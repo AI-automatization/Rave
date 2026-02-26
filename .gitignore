@@ -7,10 +7,11 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Environment variables
+# Environment variables — NEVER commit
 .env
 .env.local
 .env.*.local
+!.env.example
 
 # Logs
 logs/
@@ -20,7 +21,29 @@ logs/
 dist/
 build/
 .next/
+out/
 
 # OS
 .DS_Store
 Thumbs.db
+
+# TypeScript
+*.tsbuildinfo
+
+# Uploads
+uploads/
+
+# SSL certs
+nginx/ssl/
+
+# Firebase service account
+firebase-adminsdk*.json
+
+# Test coverage
+coverage/
+
+# React Native
+apps/mobile/android/.gradle/
+apps/mobile/android/app/build/
+apps/mobile/ios/build/
+apps/mobile/ios/Pods/

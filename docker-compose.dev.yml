@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  mongo:
+    image: mongo:7.0
+    container_name: cinesync_mongo
+    restart: unless-stopped
+    ports:
+      - '27017:27017'
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: cinesync
+      MONGO_INITDB_ROOT_PASSWORD: cinesync_dev_pass
+      MONGO_INITDB_DATABASE: cinesync
+    volumes:
+      - mongo_data:/data/db
+      - ./scripts/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    networks:
+      - cinesync_network
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: cinesync_redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    command: redis-server --appendonly yes --requirepass cinesync_redis_pass
+    volumes:
+      - redis_data:/data
+    networks:
+      - cinesync_network
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.1
+    container_name: cinesync_elasticsearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - 'ES_JAVA_OPTS=-Xms512m -Xmx512m'
+    ports:
+      - '9200:9200'
+      - '9300:9300'
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    networks:
+      - cinesync_network
+
+volumes:
+  mongo_data:
+  redis_data:
+  es_data:
+
+networks:
+  cinesync_network:
+    driver: bridge

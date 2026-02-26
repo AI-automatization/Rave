@@ -1,0 +1,165 @@
+version: '3.8'
+
+services:
+  mongo:
+    image: mongo:7.0
+    container_name: cinesync_mongo_prod
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+    volumes:
+      - mongo_data_prod:/data/db
+    networks:
+      - cinesync_network
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: cinesync_redis_prod
+    restart: always
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data_prod:/data
+    networks:
+      - cinesync_network
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.1
+    container_name: cinesync_es_prod
+    restart: always
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=true
+      - xpack.security.http.ssl.enabled=false
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      - 'ES_JAVA_OPTS=-Xms1g -Xmx1g'
+    volumes:
+      - es_data_prod:/usr/share/elasticsearch/data
+    networks:
+      - cinesync_network
+
+  auth:
+    build:
+      context: ./services/auth
+      dockerfile: Dockerfile
+    container_name: cinesync_auth
+    restart: always
+    env_file: ./services/auth/.env
+    depends_on:
+      - mongo
+      - redis
+    networks:
+      - cinesync_network
+
+  user:
+    build:
+      context: ./services/user
+      dockerfile: Dockerfile
+    container_name: cinesync_user
+    restart: always
+    env_file: ./services/user/.env
+    depends_on:
+      - mongo
+      - redis
+    networks:
+      - cinesync_network
+
+  content:
+    build:
+      context: ./services/content
+      dockerfile: Dockerfile
+    container_name: cinesync_content
+    restart: always
+    env_file: ./services/content/.env
+    depends_on:
+      - mongo
+      - redis
+      - elasticsearch
+    networks:
+      - cinesync_network
+
+  watch-party:
+    build:
+      context: ./services/watch-party
+      dockerfile: Dockerfile
+    container_name: cinesync_watch_party
+    restart: always
+    env_file: ./services/watch-party/.env
+    depends_on:
+      - mongo
+      - redis
+    networks:
+      - cinesync_network
+
+  battle:
+    build:
+      context: ./services/battle
+      dockerfile: Dockerfile
+    container_name: cinesync_battle
+    restart: always
+    env_file: ./services/battle/.env
+    depends_on:
+      - mongo
+      - redis
+    networks:
+      - cinesync_network
+
+  notification:
+    build:
+      context: ./services/notification
+      dockerfile: Dockerfile
+    container_name: cinesync_notification
+    restart: always
+    env_file: ./services/notification/.env
+    depends_on:
+      - mongo
+      - redis
+    networks:
+      - cinesync_network
+
+  admin:
+    build:
+      context: ./services/admin
+      dockerfile: Dockerfile
+    container_name: cinesync_admin
+    restart: always
+    env_file: ./services/admin/.env
+    depends_on:
+      - mongo
+      - redis
+    networks:
+      - cinesync_network
+
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: cinesync_nginx
+    restart: always
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - auth
+      - user
+      - content
+      - watch-party
+      - battle
+      - notification
+      - admin
+    networks:
+      - cinesync_network
+
+volumes:
+  mongo_data_prod:
+  redis_data_prod:
+  es_data_prod:
+
+networks:
+  cinesync_network:
+    driver: bridge

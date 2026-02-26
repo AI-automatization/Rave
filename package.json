@@ -1,0 +1,32 @@
+{
+  "name": "cinesync",
+  "version": "1.0.0",
+  "description": "CineSync — Ijtimoiy Onlayn Kinoteatr",
+  "private": true,
+  "workspaces": [
+    "services/*",
+    "apps/*",
+    "shared"
+  ],
+  "scripts": {
+    "dev:auth": "cd services/auth && npm run dev",
+    "dev:user": "cd services/user && npm run dev",
+    "dev:content": "cd services/content && npm run dev",
+    "dev:watch-party": "cd services/watch-party && npm run dev",
+    "dev:battle": "cd services/battle && npm run dev",
+    "dev:notification": "cd services/notification && npm run dev",
+    "dev:admin": "cd services/admin && npm run dev",
+    "typecheck": "tsc --noEmit -p tsconfig.base.json && npm run typecheck --workspaces --if-present",
+    "docker:dev": "docker-compose -f docker-compose.dev.yml up -d",
+    "docker:prod": "docker-compose -f docker-compose.prod.yml up -d --build",
+    "docker:down": "docker-compose -f docker-compose.dev.yml down"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "@types/node": "^20.11.5"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  }
+}
