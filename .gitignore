@@ -1,0 +1,26 @@
+# Claude CLI — lokal fayllar
+.claude/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+
+# Build output
+dist/
+build/
+.next/
+
+# OS
+.DS_Store
+Thumbs.db
