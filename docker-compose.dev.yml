@@ -8,9 +8,9 @@ services:
     ports:
       - '27017:27017'
     environment:
-      MONGO_INITDB_ROOT_USERNAME: cinesync
-      MONGO_INITDB_ROOT_PASSWORD: cinesync_dev_pass
-      MONGO_INITDB_DATABASE: cinesync
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_DB}
     volumes:
       - mongo_data:/data/db
       - ./scripts/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
@@ -23,7 +23,7 @@ services:
     restart: unless-stopped
     ports:
       - '6379:6379'
-    command: redis-server --appendonly yes --requirepass cinesync_redis_pass
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
     volumes:
       - redis_data:/data
     networks:

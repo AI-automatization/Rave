@@ -9,9 +9,11 @@ yarn-error.log*
 
 # Environment variables — NEVER commit
 .env
+.env.dev
 .env.local
 .env.*.local
 !.env.example
+!.env.dev.example
 
 # Logs
 logs/
