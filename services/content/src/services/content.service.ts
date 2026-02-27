@@ -153,22 +153,106 @@ export class ContentService {
   }
 
   async rateMovie(userId: string, movieId: string, score: number, review = ''): Promise<void> {
+    const movie = await Movie.findById(movieId);
+    if (!movie) throw new NotFoundError('Movie not found');
+
     await Rating.findOneAndUpdate(
       { userId, movieId },
       { $set: { score, review } },
       { upsert: true },
     );
 
-    // Recalculate average rating
+    await this.recalculateRating(movieId);
+  }
+
+  async getMovieRatings(
+    movieId: string,
+    page = 1,
+    limit = 20,
+  ): Promise<{ ratings: unknown[]; meta: PaginationMeta }> {
+    const skip = (page - 1) * limit;
+    const [ratings, total] = await Promise.all([
+      Rating.find({ movieId })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Rating.countDocuments({ movieId }),
+    ]);
+
+    return {
+      ratings,
+      meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    };
+  }
+
+  async deleteUserRating(userId: string, movieId: string): Promise<void> {
+    const result = await Rating.deleteOne({ userId, movieId });
+    if (result.deletedCount === 0) throw new NotFoundError('Rating not found');
+
+    await this.recalculateRating(movieId);
+    logger.info('Rating deleted', { userId, movieId });
+  }
+
+  async deleteRatingByModerator(ratingId: string): Promise<void> {
+    const rating = await Rating.findByIdAndDelete(ratingId);
+    if (!rating) throw new NotFoundError('Rating not found');
+
+    await this.recalculateRating(rating.movieId);
+    logger.info('Rating deleted by moderator', { ratingId });
+  }
+
+  private async recalculateRating(movieId: string): Promise<void> {
     const ratingStats = await Rating.aggregate([
       { $match: { movieId } },
       { $group: { _id: null, avg: { $avg: '$score' } } },
     ]);
 
-    if (ratingStats.length > 0) {
-      await Movie.updateOne({ _id: movieId }, { rating: Math.round((ratingStats[0].avg as number) * 10) / 10 });
-      await this.redis.del(REDIS_KEYS.movieCache(movieId));
-    }
+    const newRating =
+      ratingStats.length > 0 ? Math.round((ratingStats[0].avg as number) * 10) / 10 : 0;
+
+    await Movie.updateOne({ _id: movieId }, { rating: newRating });
+    await this.redis.del(REDIS_KEYS.movieCache(movieId));
+  }
+
+  async getStats(): Promise<{
+    genreDistribution: Array<{ genre: string; count: number }>;
+    yearHistogram: Array<{ year: number; count: number }>;
+    topRated: Array<{ _id: string; title: string; rating: number }>;
+    totalMovies: number;
+    publishedMovies: number;
+  }> {
+    const [genreAgg, yearAgg, topRated, totalMovies, publishedMovies] = await Promise.all([
+      // Genre distribution
+      Movie.aggregate([
+        { $match: { isPublished: true } },
+        { $unwind: '$genre' },
+        { $group: { _id: '$genre', count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $project: { genre: '$_id', count: 1, _id: 0 } },
+      ]) as Promise<Array<{ genre: string; count: number }>>,
+
+      // Year histogram
+      Movie.aggregate([
+        { $match: { isPublished: true } },
+        { $group: { _id: '$year', count: { $sum: 1 } } },
+        { $sort: { _id: -1 } },
+        { $limit: 20 },
+        { $project: { year: '$_id', count: 1, _id: 0 } },
+      ]) as Promise<Array<{ year: number; count: number }>>,
+
+      // Top 10 rated
+      Movie.find({ isPublished: true })
+        .sort({ rating: -1 })
+        .limit(10)
+        .select('_id title rating')
+        .lean() as Promise<Array<{ _id: string; title: string; rating: number }>>,
+
+      Movie.countDocuments(),
+      Movie.countDocuments({ isPublished: true }),
+    ]);
+
+    return { genreDistribution: genreAgg, yearHistogram: yearAgg, topRated, totalMovies, publishedMovies };
   }
 
   private async indexMovieInElastic(movie: IMovieDocument): Promise<void> {

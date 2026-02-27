@@ -38,4 +38,5 @@ export const config = {
 
   clientUrl: process.env.CLIENT_URL ?? 'http://localhost:3000',
   adminUrl: process.env.ADMIN_URL ?? 'http://localhost:5173',
+  userServiceUrl: process.env.USER_SERVICE_URL ?? 'http://localhost:3002',
 } as const;

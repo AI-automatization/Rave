@@ -1,5 +1,5 @@
 import Redis from 'ioredis';
-import { User, IUserDocument } from '../models/user.model';
+import { User, IUserDocument, INotificationSettings } from '../models/user.model';
 import { Friendship } from '../models/friendship.model';
 import { logger } from '@shared/utils/logger';
 import { NotFoundError, ConflictError, BadRequestError } from '@shared/utils/errors';
@@ -127,6 +127,70 @@ export class UserService {
     );
 
     return User.find({ authId: { $in: friendIds } });
+  }
+
+  async updateAvatar(userId: string, avatarPath: string): Promise<IUserDocument> {
+    const user = await User.findOneAndUpdate(
+      { authId: userId },
+      { $set: { avatar: avatarPath } },
+      { new: true },
+    );
+    if (!user) throw new NotFoundError('User not found');
+
+    logger.info('Avatar updated', { userId });
+    return user;
+  }
+
+  async getSettings(userId: string): Promise<IUserDocument['settings']> {
+    const user = await User.findOne({ authId: userId }, { settings: 1 });
+    if (!user) throw new NotFoundError('User not found');
+    return user.settings;
+  }
+
+  async updateSettings(
+    userId: string,
+    updates: { notifications?: Partial<INotificationSettings> },
+  ): Promise<IUserDocument['settings']> {
+    const updateFields: Record<string, unknown> = {};
+
+    if (updates.notifications) {
+      for (const [key, value] of Object.entries(updates.notifications)) {
+        updateFields[`settings.notifications.${key}`] = value;
+      }
+    }
+
+    const user = await User.findOneAndUpdate(
+      { authId: userId },
+      { $set: updateFields },
+      { new: true, select: 'settings' },
+    );
+    if (!user) throw new NotFoundError('User not found');
+
+    logger.info('Settings updated', { userId });
+    return user.settings;
+  }
+
+  async createProfile(authId: string, email: string, username: string): Promise<IUserDocument> {
+    const existing = await User.findOne({ authId });
+    if (existing) return existing;
+
+    const user = await User.create({ authId, email, username });
+    logger.info('User profile created', { authId, email });
+    return user;
+  }
+
+  async addFcmToken(userId: string, token: string): Promise<void> {
+    await User.updateOne(
+      { authId: userId },
+      { $addToSet: { fcmTokens: token } },
+    );
+  }
+
+  async removeFcmToken(userId: string, token: string): Promise<void> {
+    await User.updateOne(
+      { authId: userId },
+      { $pull: { fcmTokens: token } },
+    );
   }
 
   async addPoints(userId: string, points: number): Promise<void> {

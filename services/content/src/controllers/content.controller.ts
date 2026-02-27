@@ -110,4 +110,43 @@ export class ContentController {
       next(error);
     }
   };
+
+  getMovieRatings = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const page = parseInt(req.query.page as string ?? '1', 10);
+      const limit = Math.min(parseInt(req.query.limit as string ?? '20', 10), 50);
+      const { ratings, meta } = await this.contentService.getMovieRatings(req.params.id, page, limit);
+      res.json(apiResponse.paginated(ratings, meta));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  deleteMyRating = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = (req as AuthenticatedRequest).user;
+      await this.contentService.deleteUserRating(userId, req.params.id);
+      res.json(apiResponse.success(null, 'Rating deleted'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  deleteRatingModerator = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      await this.contentService.deleteRatingByModerator(req.params.ratingId);
+      res.json(apiResponse.success(null, 'Rating removed'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getStats = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const stats = await this.contentService.getStats();
+      res.json(apiResponse.success(stats));
+    } catch (error) {
+      next(error);
+    }
+  };
 }

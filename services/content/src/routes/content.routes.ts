@@ -11,6 +11,9 @@ export const createContentRouter = (redis: Redis, elastic: ElasticsearchClient):
   const contentService = new ContentService(redis, elastic);
   const contentController = new ContentController(contentService);
 
+  // GET /content/movies/stats — genre distribution, year histogram (admin/operator)
+  router.get('/movies/stats', verifyToken, requireRole('operator', 'admin', 'superadmin'), contentController.getStats);
+
   // GET /content/movies — list (public)
   router.get('/movies', apiRateLimiter, optionalAuth, contentController.listMovies);
 
@@ -37,6 +40,15 @@ export const createContentRouter = (redis: Redis, elastic: ElasticsearchClient):
 
   // POST /content/movies/:id/rate
   router.post('/movies/:id/rate', verifyToken, contentController.rateMovie);
+
+  // GET /content/movies/:id/ratings — pagination bilan
+  router.get('/movies/:id/ratings', apiRateLimiter, contentController.getMovieRatings);
+
+  // DELETE /content/movies/:id/rate — user o'z reytigini o'chiradi
+  router.delete('/movies/:id/rate', verifyToken, contentController.deleteMyRating);
+
+  // DELETE /content/ratings/:ratingId — operator/admin moderatsiya
+  router.delete('/ratings/:ratingId', verifyToken, requireRole('operator', 'admin', 'superadmin'), contentController.deleteRatingModerator);
 
   return router;
 };

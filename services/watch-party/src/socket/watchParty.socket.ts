@@ -178,6 +178,44 @@ export const registerWatchPartySocket = (io: SocketServer, watchPartyService: Wa
       }
     });
 
+    // MUTE MEMBER — owner only
+    socket.on(CLIENT_EVENTS.MUTE_MEMBER, async (data: { targetUserId: string; reason?: string }) => {
+      if (!authSocket.roomId) return;
+
+      try {
+        const room = await watchPartyService.getRoom(authSocket.roomId);
+        if (room.ownerId !== userId) {
+          socket.emit(SERVER_EVENTS.ERROR, { message: 'Only the room owner can mute members' });
+          return;
+        }
+
+        if (!room.members.includes(data.targetUserId)) {
+          socket.emit(SERVER_EVENTS.ERROR, { message: 'User is not a room member' });
+          return;
+        }
+
+        // Mute state ni saqlash
+        await watchPartyService.setMuteState(authSocket.roomId, data.targetUserId, true);
+
+        // Barcha a'zolarga (muted userga ham) broadcast
+        io.to(authSocket.roomId).emit(SERVER_EVENTS.MEMBER_MUTED, {
+          userId: data.targetUserId,
+          mutedBy: userId,
+          reason: data.reason ?? '',
+          timestamp: Date.now(),
+        });
+
+        logger.info('Member muted in watch party', {
+          roomId: authSocket.roomId,
+          targetUserId: data.targetUserId,
+          mutedBy: userId,
+        });
+      } catch (error) {
+        socket.emit(SERVER_EVENTS.ERROR, { message: 'Failed to mute member' });
+        logger.error('Socket mute error', { userId, error });
+      }
+    });
+
     // DISCONNECT
     socket.on('disconnect', () => {
       if (authSocket.roomId) {

@@ -17,6 +17,7 @@
     "dev:notification": "cd services/notification && npm run dev",
     "dev:admin": "cd services/admin && npm run dev",
     "typecheck": "tsc --noEmit -p tsconfig.base.json && npm run typecheck --workspaces --if-present",
+    "seed": "ts-node -P scripts/tsconfig.json scripts/seed.ts",
     "docker:dev": "docker-compose -f docker-compose.dev.yml up -d",
     "docker:prod": "docker-compose -f docker-compose.prod.yml up -d --build",
     "docker:down": "docker-compose -f docker-compose.dev.yml down"

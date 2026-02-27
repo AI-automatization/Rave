@@ -124,4 +124,25 @@ export class WatchPartyService {
 
     await WatchPartyRoom.updateOne({ _id: roomId }, { $pull: { members: targetUserId } });
   }
+
+  async setMuteState(roomId: string, userId: string, isMuted: boolean): Promise<void> {
+    const key = `watch_party:muted:${roomId}`;
+    if (isMuted) {
+      await this.redis.sadd(key, userId);
+      await this.redis.expire(key, TTL.WATCH_PARTY_ROOM);
+    } else {
+      await this.redis.srem(key, userId);
+    }
+  }
+
+  async getMutedMembers(roomId: string): Promise<string[]> {
+    const key = `watch_party:muted:${roomId}`;
+    return this.redis.smembers(key);
+  }
+
+  async isMuted(roomId: string, userId: string): Promise<boolean> {
+    const key = `watch_party:muted:${roomId}`;
+    const result = await this.redis.sismember(key, userId);
+    return result === 1;
+  }
 }

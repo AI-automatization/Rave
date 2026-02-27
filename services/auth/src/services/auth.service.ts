@@ -6,6 +6,7 @@ import { User, IUserDocument } from '../models/user.model';
 import { RefreshToken } from '../models/refreshToken.model';
 import { config } from '../config/index';
 import { logger } from '@shared/utils/logger';
+import { emailService } from '../utils/email.service';
 import {
   UnauthorizedError,
   ConflictError,
@@ -70,6 +71,17 @@ export class AuthService {
     });
 
     logger.info('User registered', { userId: user._id, email });
+
+    // User Service da profil yaratish (async — xato bo'lsa ham register muvaffaqiyatli)
+    this.syncUserProfile(user._id.toString(), email, username).catch((err) =>
+      logger.warn('User profile sync failed', { error: (err as Error).message }),
+    );
+
+    // Email verification xati yuborish
+    emailService.sendVerificationEmail(email, emailVerifyToken).catch((err) =>
+      logger.warn('Verification email failed', { error: (err as Error).message }),
+    );
+
     return user;
   }
 
@@ -196,7 +208,7 @@ export class AuthService {
   async forgotPassword(email: string): Promise<string> {
     const user = await User.findOne({ email });
     if (!user) {
-      // Don't reveal if email exists
+      // Email mavjudligini ochib bermaylik
       return '';
     }
 
@@ -212,6 +224,12 @@ export class AuthService {
     );
 
     logger.info('Password reset requested', { userId: user._id });
+
+    // Password reset xati yuborish
+    emailService.sendPasswordResetEmail(email, resetToken).catch((err) =>
+      logger.warn('Password reset email failed', { error: (err as Error).message }),
+    );
+
     return resetToken;
   }
 
@@ -263,10 +281,28 @@ export class AuthService {
           isEmailVerified: true,
         });
         logger.info('Google OAuth user created', { userId: user._id, email: profile.email });
+
+        // User service ga profil yaratish
+        this.syncUserProfile(user._id.toString(), profile.email, username).catch((err) =>
+          logger.warn('Google user profile sync failed', { error: (err as Error).message }),
+        );
       }
     }
 
     return user;
+  }
+
+  private async syncUserProfile(authId: string, email: string, username: string): Promise<void> {
+    const url = `${config.userServiceUrl}/internal/profile`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ authId, email, username }),
+    });
+    if (!response.ok) {
+      throw new Error(`User service responded with ${response.status}`);
+    }
+    logger.info('User profile synced to user service', { authId });
   }
 
   private async generateUniqueUsername(displayName: string): Promise<string> {

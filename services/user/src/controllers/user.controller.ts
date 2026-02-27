@@ -89,4 +89,77 @@ export class UserController {
       next(error);
     }
   };
+
+  uploadAvatar = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = (req as AuthenticatedRequest).user;
+      if (!req.file) {
+        res.status(400).json(apiResponse.error('No file uploaded'));
+        return;
+      }
+      const avatarPath = `/uploads/avatars/${req.file.filename}`;
+      const user = await this.userService.updateAvatar(userId, avatarPath);
+      res.json(apiResponse.success({ avatar: user.avatar }, 'Avatar updated'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getSettings = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = (req as AuthenticatedRequest).user;
+      const settings = await this.userService.getSettings(userId);
+      res.json(apiResponse.success(settings));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  updateSettings = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = (req as AuthenticatedRequest).user;
+      const { notifications } = req.body as { notifications?: Record<string, boolean> };
+      const settings = await this.userService.updateSettings(userId, { notifications });
+      res.json(apiResponse.success(settings, 'Settings updated'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // Internal endpoint — auth service calls this after register
+  createProfile = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { authId, email, username } = req.body as {
+        authId: string;
+        email: string;
+        username: string;
+      };
+      const user = await this.userService.createProfile(authId, email, username);
+      res.status(201).json(apiResponse.success(user, 'Profile created'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  addFcmToken = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = (req as AuthenticatedRequest).user;
+      const { token } = req.body as { token: string };
+      await this.userService.addFcmToken(userId, token);
+      res.json(apiResponse.success(null, 'FCM token registered'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  removeFcmToken = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = (req as AuthenticatedRequest).user;
+      const { token } = req.body as { token: string };
+      await this.userService.removeFcmToken(userId, token);
+      res.json(apiResponse.success(null, 'FCM token removed'));
+    } catch (error) {
+      next(error);
+    }
+  };
 }

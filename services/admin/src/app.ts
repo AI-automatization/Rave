@@ -6,6 +6,7 @@ import Redis from 'ioredis';
 import { errorHandler, notFoundHandler } from '@shared/middleware/error.middleware';
 import { morganStream } from '@shared/utils/logger';
 import { createAdminRouter } from './routes/admin.routes';
+import { createOperatorRouter } from './routes/operator.routes';
 import { config } from './config/index';
 
 export const createApp = (redis: Redis): express.Application => {
@@ -22,6 +23,7 @@ export const createApp = (redis: Redis): express.Application => {
   });
 
   app.use('/', createAdminRouter(redis));
+  app.use('/operator', createOperatorRouter(redis));
 
   app.use(notFoundHandler);
   app.use(errorHandler);

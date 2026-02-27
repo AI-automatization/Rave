@@ -4,6 +4,7 @@ import { Client as ElasticsearchClient } from '@elastic/elasticsearch';
 import { createApp } from './app';
 import { config } from './config/index';
 import { logger } from '@shared/utils/logger';
+import { initElasticsearchIndex } from './utils/elastic.init';
 
 const main = async (): Promise<void> => {
   await mongoose.connect(config.mongoUri);
@@ -16,6 +17,9 @@ const main = async (): Promise<void> => {
 
   const elastic = new ElasticsearchClient({ node: config.elasticsearchUrl });
   logger.info('Elasticsearch client initialized', { url: config.elasticsearchUrl });
+
+  // Index va mapping yaratish (mavjud bo'lsa skip qiladi)
+  await initElasticsearchIndex(elastic);
 
   const app = createApp(redis, elastic);
 

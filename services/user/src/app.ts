@@ -2,10 +2,12 @@ import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import morgan from 'morgan';
+import path from 'path';
 import Redis from 'ioredis';
 import { errorHandler, notFoundHandler } from '@shared/middleware/error.middleware';
 import { morganStream } from '@shared/utils/logger';
 import { createUserRouter } from './routes/user.routes';
+import { createAchievementRouter } from './routes/achievement.routes';
 import { config } from './config/index';
 
 export const createApp = (redis: Redis): express.Application => {
@@ -17,11 +19,15 @@ export const createApp = (redis: Redis): express.Application => {
   app.use(express.json({ limit: '10kb' }));
   app.use(express.urlencoded({ extended: true }));
 
+  // Static uploads (avatar images)
+  app.use('/uploads', express.static(path.resolve(config.uploadPath)));
+
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok', service: 'user', port: config.port });
   });
 
   app.use('/', createUserRouter(redis));
+  app.use('/achievements', createAchievementRouter());
 
   app.use(notFoundHandler);
   app.use(errorHandler);

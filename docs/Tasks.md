@@ -1,5 +1,5 @@
 # CineSync — OCHIQ VAZIFALAR
-# Yangilangan: 2026-02-26
+# Yangilangan: 2026-02-27
 # 3 dasturchi: Saidazim (Backend) | Emirhan (Mobile) | Jafar (Web)
 
 ---
@@ -23,123 +23,45 @@
 
 ## SPRINT 1 — Auth + User (boilerplate ready, real impl kerak)
 
-### T-S001 | P0 | [BACKEND] | Auth Service — real ishlashini tekshirish
-- **Sana:** 2026-02-26
+### T-S001 | P0 | [BACKEND] | Auth Service — .env setup + E2E flow testi
+- **Sana:** 2026-02-26 | **Yangilandi:** 2026-02-27
 - **Mas'ul:** Saidazim
 - **Fayl:** `services/auth/`
-- **Holat:** Boilerplate ✅ | npm install + test ❌
-- **Qolgan ishlar:**
-  - [ ] `npm install` + TypeScript build tekshirish (`npm run typecheck`)
-  - [ ] `.env` faylni to'ldirish (JWT RS256 key pair generatsiya: `openssl genrsa -out private.pem 2048`)
-  - [ ] Email verification — nodemailer orqali haqiqiy xat yuborish testi
-  - [ ] Google OAuth callback URL ni production uchun sozlash
-  - [ ] `POST /auth/register` → `POST /auth/login` → token refresh flow testi
+- **Holat:** Kod ✅ (email service + user sync) | Env setup + test ❌
+- **Qolgan ishlar (operational):**
+  - [ ] `.env` faylni to'ldirish:
+    ```bash
+    openssl genrsa -out private.pem 2048
+    openssl rsa -in private.pem -pubout -out public.pem
+    ```
+    Keyin `services/auth/.env` ga key larni qo'yish
+  - [ ] SMTP credentials (SendGrid yoki Mailtrap) to'ldirish
+  - [ ] `POST /auth/register` → `POST /auth/login` → token refresh flow testi (Postman yoki curl)
 - **Kerak:** RS256 key pair, SMTP credentials
-
----
-
-### T-S002 | P0 | [BACKEND] | User Service — avatar upload + settings
-- **Sana:** 2026-02-26
-- **Mas'ul:** Saidazim
-- **Fayl:** `services/user/src/`
-- **Holat:** Boilerplate ✅ | Avatar upload ❌ | Settings endpoint ❌
-- **Qolgan ishlar:**
-  - [ ] `PATCH /users/me/avatar` — multer middleware + file validation (mimetype, max 5MB)
-  - [ ] `GET/PATCH /users/me/settings` — notification preferences endpoint
-  - [ ] `User.create()` — auth service register bo'lganda user service da ham profil yaratish (event-driven yoki direct call)
-  - [ ] Auth ↔ User service sync mexanizmi (JWT userId orqali yoki event bus)
-
----
-
-### T-S003 | P0 | [BACKEND] | MongoDB Schemas to'liq — 4 schema + seed
-- **Sana:** 2026-02-26
-- **Mas'ul:** Saidazim
-- **Fayl:** `services/*/src/models/`
-- **Holat:** 11/15 schema yaratildi ✅ | 4 ta schema + seed ❌
-- **Yaratilgan:** User(auth), RefreshToken, User(user), Friendship, Movie, WatchHistory, Rating, WatchPartyRoom, Battle, BattleParticipant, Notification
-- **Qolgan ishlar:**
-  - [ ] `Achievement` model — key, title, description, rarity, points, condition
-  - [ ] `UserAchievement` model — userId, achievementId, unlockedAt
-  - [ ] `Feedback` model — userId, type (bug/feature/other), content, status, adminReply
-  - [ ] `APILog` model — Winston MongoDB transport uchun (method, url, status, duration, userId)
-  - [ ] `scripts/seed.ts` — demo movies (10+), admin user, test users
 
 ---
 
 ## SPRINT 2 — Content + Watch Party
 
-### T-S004 | P1 | [BACKEND] | Watch Party — audio control + mute member
-- **Sana:** 2026-02-26
-- **Mas'ul:** Saidazim
-- **Fayl:** `services/watch-party/src/socket/watchParty.socket.ts`
-- **Holat:** Boilerplate ✅ | Audio control ❌
-- **Qolgan ishlar:**
-  - [ ] `CLIENT_EVENTS.MUTE_MEMBER` handler — owner boshqa a'zoning audio ni o'chirishi
-  - [ ] `SERVER_EVENTS.MEMBER_MUTED` broadcast — muted userId + reason
-  - [ ] Buffer event test: member buffer→ boshqalar pause qiladimi?
-  - [ ] Socket.io room state Redis ga to'g'ri saqlanayaptimi tekshirish
 
----
-
-### T-S005 | P1 | [BACKEND] | Content Service — Elasticsearch index setup
-- **Sana:** 2026-02-26
+### T-S005b | P2 | [BACKEND] | Content Service — HLS upload pipeline
+- **Sana:** 2026-02-27
 - **Mas'ul:** Saidazim
 - **Fayl:** `services/content/src/`
-- **Holat:** Boilerplate ✅ | ES index mapping ❌
+- **Holat:** ❌ Boshlanmagan (requires FFmpeg + storage infra)
 - **Qolgan ishlar:**
-  - [ ] Elasticsearch `movies` index mapping yaratish (init script)
-  - [ ] Analyzer: uzbek/russian text support uchun custom analyzer
-  - [ ] Aggregation endpoint: `GET /content/movies/stats` — genre distribution, year histogram
-  - [ ] HLS video upload pipeline (operator uchun): FFmpeg transcode + m3u8 generation
+  - [ ] FFmpeg transcode endpoint — operator video yuklaydi → HLS m3u8 + .ts segments
+  - [ ] Storage: local yoki S3-compatible (MinIO) video saqlash
+  - [ ] Background job (Bull queue) — transcode async
 
 ---
 
 ## SPRINT 3 — Achievement + Rating
 
-### T-S006 | P1 | [BACKEND] | Achievement System to'liq
-- **Sana:** 2026-02-26
-- **Mas'ul:** Saidazim
-- **Fayl:** `services/user/src/` (yoki alohida achievement service)
-- **Holat:** ❌ Boshlanmagan
-- **Muammo:** Achievement model yo'q, trigger tizimi yo'q
-- **Kerak bo'ladi:**
-  - [ ] `Achievement` + `UserAchievement` model (T-S003 dan)
-  - [ ] 25+ achievement ta'rifi (movies_10, movies_50, watch_party_host, battle_winner, streak_7...)
-  - [ ] Trigger service — movie watched, battle won, friend added hodisalarida tekshirish
-  - [ ] Achievement unlock → notification + points
-  - [ ] `GET /users/:id/achievements` endpoint
-  - [ ] Secret achievements (hidden condition)
 
----
-
-### T-S007 | P2 | [BACKEND] | Rating + Review to'liq
-- **Sana:** 2026-02-26
-- **Mas'ul:** Saidazim
-- **Fayl:** `services/content/src/models/rating.model.ts`
-- **Holat:** Boilerplate ✅ | Review list + moderation ❌
-- **Qolgan ishlar:**
-  - [ ] `GET /content/movies/:id/ratings` — pagination bilan ko'rsatish
-  - [ ] Review moderation — operator review ni o'chirishi
-  - [ ] User o'z review ini o'chirishi (`DELETE /content/movies/:id/rate`)
-  - [ ] Rating + points award (8 ball per review, T-S003 points trigger bilan)
-
----
 
 ## SPRINT 4 — Admin + Operator
 
-### T-S008 | P2 | [ADMIN] | Admin Service — to'liq funksionallik
-- **Sana:** 2026-02-26
-- **Mas'ul:** Saidazim
-- **Fayl:** `services/admin/src/`
-- **Holat:** User management ✅ | Content mgmt ❌ | Feedback ❌ | Analytics ❌
-- **Qolgan ishlar:**
-  - [ ] `GET/PATCH/DELETE /admin/movies` — content moderation (publish/unpublish)
-  - [ ] `GET /admin/feedback` — user feedback list + reply
-  - [ ] `GET /admin/analytics` — DAU, MAU, watch time, battle stats (MongoDB aggregation)
-  - [ ] `GET /admin/logs` — APILog collection query (filter by level, service, date)
-  - [ ] Operator role endpoints — movie management (faqat publish qila olmaydi)
-
----
 
 ### T-S009 | P2 | [ADMIN] | Admin Dashboard UI — React + Vite
 - **Sana:** 2026-02-26
@@ -350,7 +272,7 @@
 
 | Jamoa | Tugallandi | Qolgan | JAMI |
 |-------|-----------|--------|------|
-| Saidazim | T-S001, T-S007 (shared), F-003..F-009 (boilerplate) | T-S001..T-S011 (11 task) | — |
+| Saidazim | T-S002 ✅, T-S003 ✅ (2026-02-27) | T-S001, T-S004..T-S011 (10 task) | — |
 | Emirhan | 0 | T-E001..T-E011 (11 task) | 11 |
 | Jafar | 0 | T-J001..T-J007 (7 task) | 7 |
 | Umumiy | T-C001 (partial) | T-C001..T-C005 (5 task) | 5 |
