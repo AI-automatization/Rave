@@ -3,7 +3,7 @@ import cron from 'node-cron';
 import { Battle, IBattleDocument } from '../models/battle.model';
 import { BattleParticipant } from '../models/battleParticipant.model';
 import { logger } from '@shared/utils/logger';
-import { NotFoundError, BadRequestError, ForbiddenError } from '@shared/utils/errors';
+import { NotFoundError, BadRequestError } from '@shared/utils/errors';
 import { REDIS_KEYS, POINTS } from '@shared/constants';
 import { BattleDuration } from '@shared/types';
 

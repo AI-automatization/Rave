@@ -10,7 +10,6 @@ import { emailService } from '../utils/email.service';
 import {
   UnauthorizedError,
   ConflictError,
-  NotFoundError,
   TooManyRequestsError,
   BadRequestError,
 } from '@shared/utils/errors';

@@ -20,7 +20,7 @@ export class UserService {
     if (!user) throw new NotFoundError('User not found');
 
     const isOnline = await this.isUserOnline(userId);
-    return Object.assign(user.toJSON(), { isOnline }) as IUserDocument & { isOnline: boolean };
+    return Object.assign(user.toJSON(), { isOnline }) as unknown as IUserDocument & { isOnline: boolean };
   }
 
   async updateProfile(userId: string, updates: { bio?: string; avatar?: string }): Promise<IUserDocument> {

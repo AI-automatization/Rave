@@ -246,7 +246,7 @@ export class ContentService {
         .sort({ rating: -1 })
         .limit(10)
         .select('_id title rating')
-        .lean() as Promise<Array<{ _id: string; title: string; rating: number }>>,
+        .lean() as unknown as Promise<Array<{ _id: string; title: string; rating: number }>>,
 
       Movie.countDocuments(),
       Movie.countDocuments({ isPublished: true }),

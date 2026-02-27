@@ -33,7 +33,7 @@ const achievementSchema = new Schema<IAchievementDocument>(
     timestamps: true,
     toJSON: {
       virtuals: true,
-      transform: (_doc, ret) => { delete ret.__v; return ret; },
+      transform: (_doc, ret) => { Reflect.deleteProperty(ret, '__v'); return ret; },
     },
   },
 );

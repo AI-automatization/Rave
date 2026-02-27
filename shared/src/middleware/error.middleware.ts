@@ -33,7 +33,7 @@ export const errorHandler = (
 
   // Mongoose validation error
   if (error.name === 'ValidationError') {
-    const errors = Object.values((error as Record<string, unknown>).errors as Record<string, { message: string }>).map(
+    const errors = Object.values((error as unknown as Record<string, unknown>).errors as Record<string, { message: string }>).map(
       (e) => e.message,
     );
     res.status(422).json(apiResponse.error('Validation failed', errors));

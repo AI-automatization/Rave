@@ -1,6 +1,10 @@
+import fs from 'fs';
 import winston, { createLogger, format, transports } from 'winston';
 
-const { combine, timestamp, json, colorize, simple, printf } = format;
+const { combine, timestamp, json, colorize, printf } = format;
+
+// logs/ papkasi avtomatik yaratiladi — Winston o'zi yaratmaydi
+fs.mkdirSync('logs', { recursive: true });
 
 // Sensitive field redaction
 const SENSITIVE_FIELDS = ['password', 'passwordHash', 'token', 'secret', 'authorization', 'refreshToken', 'accessToken'];
@@ -39,6 +43,8 @@ const prodFormat = combine(
 );
 
 const isDev = process.env.NODE_ENV !== 'production';
+// LOG_LEVEL env orqali boshqarish mumkin: error | warn | info | http | verbose | debug | silly
+const LOG_LEVEL = process.env.LOG_LEVEL ?? (isDev ? 'debug' : 'info');
 
 const loggerTransports: winston.transport[] = [
   new transports.Console({
@@ -75,7 +81,7 @@ if (!isDev && process.env.MONGO_URI) {
 }
 
 export const logger = createLogger({
-  level: isDev ? 'debug' : 'info',
+  level: LOG_LEVEL,
   transports: loggerTransports,
   exitOnError: false,
 });

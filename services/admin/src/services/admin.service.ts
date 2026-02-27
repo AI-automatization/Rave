@@ -1,5 +1,5 @@
 import Redis from 'ioredis';
-import mongoose from 'mongoose';
+import mongoose, { type Model } from 'mongoose';
 import { logger } from '@shared/utils/logger';
 import { NotFoundError, BadRequestError } from '@shared/utils/errors';
 import { Feedback } from '../models/feedback.model';
@@ -8,7 +8,7 @@ import { config } from '../config/index';
 
 // Admin service connects to the same DB as auth/user to manage users
 // ── Content DB inline schema ─────────────────────────────────
-const getMovieModel = () => {
+const getMovieModel = (): Model<Record<string, unknown>> => {
   const connName = 'content';
   // Agar mavjud ulanish bo'lsa ishlatamiz
   const existing = mongoose.connections.find((c) => c.name === connName);
@@ -31,12 +31,12 @@ const getMovieModel = () => {
     { collection: 'movies' },
   );
 
-  return conn.model('AdminMovie', schema);
+  return conn.model<Record<string, unknown>>('AdminMovie', schema);
 };
 
 // ── Auth/User DB inline schema ───────────────────────────────
-const getUserModel = () => {
-  if (mongoose.models['AdminUser']) return mongoose.models['AdminUser'];
+const getUserModel = (): Model<Record<string, unknown>> => {
+  if (mongoose.models['AdminUser']) return mongoose.models['AdminUser'] as Model<Record<string, unknown>>;
 
   const schema = new mongoose.Schema(
     {
@@ -51,7 +51,7 @@ const getUserModel = () => {
     { collection: 'users' },
   );
 
-  return mongoose.model('AdminUser', schema);
+  return mongoose.model<Record<string, unknown>>('AdminUser', schema);
 };
 
 export interface DashboardStats {
@@ -72,10 +72,7 @@ export class AdminService {
   async getDashboardStats(): Promise<DashboardStats> {
     const User = getUserModel();
 
-    const [totalUsers, blockedUsers] = await Promise.all([
-      User.countDocuments(),
-      User.countDocuments({ isBlocked: true }),
-    ]);
+    const totalUsers = await User.countDocuments();
 
     // Active users: users who had heartbeat in last 5 min (approximation via Redis scan)
     const activeKeys = await this.redis.keys('heartbeat:*');

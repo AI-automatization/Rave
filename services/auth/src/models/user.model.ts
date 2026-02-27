@@ -64,13 +64,9 @@ const userSchema = new Schema<IUserDocument>(
     toJSON: {
       virtuals: true,
       transform: (_doc, ret) => {
-        delete ret.passwordHash;
-        delete ret.emailVerifyToken;
-        delete ret.emailVerifyTokenExpiry;
-        delete ret.passwordResetToken;
-        delete ret.passwordResetTokenExpiry;
-        delete ret.googleId;
-        delete ret.__v;
+        ['passwordHash', 'emailVerifyToken', 'emailVerifyTokenExpiry',
+          'passwordResetToken', 'passwordResetTokenExpiry', 'googleId', '__v',
+        ].forEach((field) => Reflect.deleteProperty(ret, field));
         return ret;
       },
     },

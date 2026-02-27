@@ -1,5 +1,5 @@
 import rateLimit from 'express-rate-limit';
-import { RedisStore } from 'rate-limit-redis';
+import { RedisStore, type SendCommandFn } from 'rate-limit-redis';
 import Redis from 'ioredis';
 import { Request, Response } from 'express';
 import { apiResponse } from '../utils/apiResponse';
@@ -23,6 +23,11 @@ const tooManyRequestsHandler = (_req: Request, res: Response): void => {
   );
 };
 
+// ioredis.call() returns Promise<unknown>, but rate-limit-redis expects Promise<RedisReply>.
+// Cast through unknown to satisfy TypeScript without using `any`.
+const sendRedisCommand = ((...args: string[]) =>
+  getRedisClient().call(...(args as [string, ...string[]]))) as unknown as SendCommandFn;
+
 // General API rate limiter — 100 requests per 15 minutes per IP
 export const apiRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -31,7 +36,7 @@ export const apiRateLimiter = rateLimit({
   legacyHeaders: false,
   handler: tooManyRequestsHandler,
   store: new RedisStore({
-    sendCommand: (...args: string[]) => getRedisClient().call(...args) as Promise<unknown>,
+    sendCommand: sendRedisCommand,
     prefix: 'rl:api:',
   }),
 });
@@ -44,7 +49,7 @@ export const authRateLimiter = rateLimit({
   legacyHeaders: false,
   handler: tooManyRequestsHandler,
   store: new RedisStore({
-    sendCommand: (...args: string[]) => getRedisClient().call(...args) as Promise<unknown>,
+    sendCommand: sendRedisCommand,
     prefix: 'rl:auth:',
   }),
 });
@@ -61,7 +66,7 @@ export const userRateLimiter = rateLimit({
   },
   handler: tooManyRequestsHandler,
   store: new RedisStore({
-    sendCommand: (...args: string[]) => getRedisClient().call(...args) as Promise<unknown>,
+    sendCommand: sendRedisCommand,
     prefix: 'rl:user:',
   }),
 });
