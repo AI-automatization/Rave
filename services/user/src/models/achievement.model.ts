@@ -38,7 +38,7 @@ const achievementSchema = new Schema<IAchievementDocument>(
   },
 );
 
-achievementSchema.index({ key: 1 });
+// key unique: true orqali allaqachon index qilingan
 achievementSchema.index({ rarity: 1 });
 
 export const Achievement = model<IAchievementDocument>('Achievement', achievementSchema);

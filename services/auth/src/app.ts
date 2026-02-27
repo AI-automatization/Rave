@@ -57,7 +57,7 @@ export const createApp = (redis: Redis): express.Application => {
   });
 
   // Routes
-  app.use('/', createAuthRouter(redis));
+  app.use('/auth', createAuthRouter(redis));
 
   // 404
   app.use(notFoundHandler);

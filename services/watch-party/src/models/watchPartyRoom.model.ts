@@ -40,7 +40,7 @@ const watchPartyRoomSchema = new Schema<IWatchPartyRoomDocument>(
   },
 );
 
-watchPartyRoomSchema.index({ inviteCode: 1 });
+// inviteCode unique: true orqali allaqachon index qilingan
 watchPartyRoomSchema.index({ ownerId: 1 });
 watchPartyRoomSchema.index({ status: 1 });
 

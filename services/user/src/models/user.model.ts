@@ -84,7 +84,7 @@ const userSchema = new Schema<IUserDocument>(
   },
 );
 
-userSchema.index({ username: 1 });
+// username unique: true orqali allaqachon index qilingan
 userSchema.index({ totalPoints: -1 });
 userSchema.index({ rank: 1 });
 

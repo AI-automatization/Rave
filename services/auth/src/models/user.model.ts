@@ -73,8 +73,7 @@ const userSchema = new Schema<IUserDocument>(
   },
 );
 
-userSchema.index({ email: 1 });
-userSchema.index({ username: 1 });
+// email va username unique: true orqali allaqachon index qilingan
 userSchema.index({ createdAt: -1 });
 
 export const User = model<IUserDocument>('User', userSchema);
