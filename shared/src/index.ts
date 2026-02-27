@@ -5,6 +5,7 @@ export * from './types/index';
 export * from './utils/errors';
 export * from './utils/apiResponse';
 export { logger, morganStream } from './utils/logger';
+export * from './utils/serviceClient';
 
 // Middleware
 export * from './middleware/auth.middleware';

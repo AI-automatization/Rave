@@ -1,0 +1,61 @@
+name: Unit Tests
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [develop]
+
+jobs:
+  test:
+    name: Test — ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [auth, user, content, battle, notification, admin]
+        include:
+          - service: auth
+            path: services/auth
+          - service: user
+            path: services/user
+          - service: content
+            path: services/content
+          - service: battle
+            path: services/battle
+          - service: notification
+            path: services/notification
+          - service: admin
+            path: services/admin
+
+    services:
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27017:27017
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install root deps
+        run: npm ci
+
+      - name: Build shared
+        run: cd shared && npm run build
+
+      - name: Run tests — ${{ matrix.service }}
+        run: cd ${{ matrix.path }} && npm test --if-present
+        env:
+          MONGO_URI: mongodb://localhost:27017/cinesync_test
+          REDIS_URL: redis://localhost:6379
+          NODE_ENV: test

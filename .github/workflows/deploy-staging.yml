@@ -1,0 +1,38 @@
+name: Deploy — Staging
+
+on:
+  push:
+    branches: [develop]
+
+jobs:
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    environment: staging
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Wait for Docker Build
+        uses: lewagon/wait-on-check-action@v1.3.4
+        with:
+          ref: ${{ github.sha }}
+          check-name: 'Build — auth'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 30
+
+      - name: Deploy to staging server
+        run: |
+          echo "🚀 Deploying to staging server..."
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Commit: ${{ github.sha }}"
+          # TODO: Add actual deployment commands
+          # Example: ssh deploy@staging.cinesync.app 'cd /app && docker-compose pull && docker-compose up -d'
+        env:
+          STAGING_HOST: ${{ secrets.STAGING_HOST }}
+          STAGING_KEY: ${{ secrets.STAGING_SSH_KEY }}
+
+      - name: Notify deployment
+        if: always()
+        run: |
+          echo "Deployment status: ${{ job.status }}"

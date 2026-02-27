@@ -25,27 +25,6 @@
 
 # ═══════════════════════════════════════
 
-## SPRINT 1 — Auth + User (boilerplate ready, real impl kerak)
-
-### T-S001 | P0 | [BACKEND] | Auth Service — .env setup + E2E flow testi
-
-- **Sana:** 2026-02-26 | **Yangilandi:** 2026-02-27
-- **Mas'ul:** Saidazim
-- **Fayl:** `services/auth/`
-- **Holat:** Kod ✅ (email service + user sync) | Env setup + test ❌
-- **Qolgan ishlar (operational):**
-  - [ ] `.env` faylni to'ldirish:
-    ```bash
-    openssl genrsa -out private.pem 2048
-    openssl rsa -in private.pem -pubout -out public.pem
-    ```
-    Keyin `services/auth/.env` ga key larni qo'yish
-  - [ ] SMTP credentials (SendGrid yoki Mailtrap) to'ldirish
-  - [ ] `POST /auth/register` → `POST /auth/login` → token refresh flow testi (Postman yoki curl)
-- **Kerak:** RS256 key pair, SMTP credentials
-
----
-
 ## SPRINT 2 — Content + Watch Party
 
 ### T-S005b | P2 | [BACKEND] | Content Service — HLS upload pipeline
@@ -60,8 +39,6 @@
   - [ ] Background job (Bull queue) — transcode async
 
 ---
-
-## SPRINT 3 — Achievement + Rating
 
 ## SPRINT 4 — Admin + Operator
 
@@ -80,37 +57,6 @@
   - [ ] Content management table — publish/unpublish
   - [ ] Feedback list + reply form
   - [ ] Real-time stats (Socket.io yoki polling)
-
----
-
-## SPRINT 4-5 — DevOps + Docs
-
-### T-S010 | P2 | [DEVOPS] | CI/CD Pipeline
-
-- **Sana:** 2026-02-26
-- **Mas'ul:** Saidazim
-- **Fayl:** `.github/workflows/`
-- **Holat:** ❌ Boshlanmagan
-- **Kerak bo'ladi:**
-  - [ ] `lint.yml` — ESLint + TypeScript check (PR da)
-  - [ ] `test.yml` — Jest unit tests (PR da)
-  - [ ] `docker-build.yml` — Docker image build + push (Docker Hub/ECR)
-  - [ ] `deploy-staging.yml` — develop branch → staging server
-  - [ ] `deploy-prod.yml` — main branch → production (manual trigger)
-
----
-
-### T-S011 | P3 | [BACKEND] | API Dokumentatsiya
-
-- **Sana:** 2026-02-26
-- **Mas'ul:** Saidazim
-- **Fayl:** `docs/api/`
-- **Holat:** ❌ Boshlanmagan
-- **Kerak bo'ladi:**
-  - [ ] Swagger/OpenAPI 3.0 spec har service uchun
-  - [ ] `swagger-jsdoc` + `swagger-ui-express` integration
-  - [ ] Postman collection export
-  - [ ] `ARCHITECTURE.md` — service interaction diagram
 
 ---
 
@@ -262,26 +208,11 @@
 
 # ═══════════════════════════════════════
 
-### T-C001 | P0 | [IKKALASI] | API Contract — OpenAPI spec + versioning
-
-- **Sana:** 2026-02-26
-- **Holat:** Shared types ✅ | OpenAPI spec ❌ | API versioning (/api/v1/) ❌
-- **Qolgan:**
-  - [ ] `swagger-jsdoc` integration har servicega
-  - [ ] `/api/v1/` prefix qo'shish (breaking change — barcha team bilan kelishish)
-  - [ ] Postman collection export
-
 ### T-C002 | P0 | [IKKALASI] | Design Tokens
 
 - **Sprint:** S1
 - **Subtasks:** TASK-C-002, TASK-D-001
 - **Output:** globals.css, tailwind config, RN theme/index.ts, @cinesync/tokens
-
-### T-C003 | P1 | [IKKALASI] | Git Workflow + PR Template
-
-- **Sprint:** S1
-- **Subtasks:** TASK-C-003
-- **Output:** Branch strategy, commit convention, PR template, code review checklist
 
 ### T-C004 | P2 | [IKKALASI] | Dizayn Tasklari
 
@@ -289,28 +220,17 @@
 - **Subtasks:** TASK-D-002..TASK-D-010
 - **Output:** MovieCard hover, Hero backdrop, online status vizual, emoji float, achievement animation, battle progress, skeleton loading, Storybook, dark mode QA
 
-### T-C005 | P1 | [IKKALASI] | Service-to-Service Communication
+---
 
-- **Sana:** 2026-02-26
-- **Holat:** ❌ Boshlanmagan
-- **Muammo:** Hozir har bir service mustaqil. Battle score → User service points, Watch party complete → Achievement trigger mexanizmi yo'q
-- **Kerak:**
-  - [ ] Inter-service call strategiyasi (HTTP yoki Redis pub/sub yoki message queue)
-  - [ ] Battle win → User service `addPoints()` call
-  - [ ] Movie watched → Achievement trigger
-  - [ ] Event schema kelishish (barcha team)
+## 📊 STATISTIKA (2026-02-28 yangilandi)
+
+| Jamoa    | Tugallandi | Qolgan | JAMI |
+| -------- | ---------- | ------ | ---- |
+| Saidazim | T-S001..T-S008, T-S010, T-S011, T-C001, T-C003, T-C005 ✅ | T-S005b, T-S009 (2 task) | — |
+| Emirhan  | 0 | T-E001..T-E011 (11 task) | 11 |
+| Jafar    | 0 | T-J001..T-J007 (7 task) | 7 |
+| Umumiy   | T-C001 ✅, T-C003 ✅, T-C005 ✅ | T-C002, T-C004 (2 task) | — |
 
 ---
 
-## 📊 STATISTIKA
-
-| Jamoa    | Tugallandi                        | Qolgan                           | JAMI |
-| -------- | --------------------------------- | -------------------------------- | ---- |
-| Saidazim | T-S002 ✅, T-S003 ✅ (2026-02-27) | T-S001, T-S004..T-S011 (10 task) | —    |
-| Emirhan  | 0                                 | T-E001..T-E011 (11 task)         | 11   |
-| Jafar    | 0                                 | T-J001..T-J007 (7 task)          | 7    |
-| Umumiy   | T-C001 (partial)                  | T-C001..T-C005 (5 task)          | 5    |
-
----
-
-_docs/Tasks.md | CineSync | Yangilangan: 2026-02-26_
+_docs/Tasks.md | CineSync | Yangilangan: 2026-02-28_

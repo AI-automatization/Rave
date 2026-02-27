@@ -5,11 +5,13 @@ import helmet from 'helmet';
 import cors from 'cors';
 import morgan from 'morgan';
 import Redis from 'ioredis';
+import swaggerUi from 'swagger-ui-express';
 import { errorHandler, notFoundHandler } from '@shared/middleware/error.middleware';
 import { morganStream } from '@shared/utils/logger';
 import { createWatchPartyRouter } from './routes/watchParty.routes';
 import { WatchPartyService } from './services/watchParty.service';
 import { registerWatchPartySocket } from './socket/watchParty.socket';
+import { swaggerSpec } from './utils/swagger';
 import { config } from './config/index';
 
 export const createApp = (redis: Redis): { app: express.Application; io: SocketServer } => {
@@ -33,7 +35,10 @@ export const createApp = (redis: Redis): { app: express.Application; io: SocketS
     res.json({ status: 'ok', service: 'watch-party', port: config.port });
   });
 
-  app.use('/', createWatchPartyRouter(redis));
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+  app.get('/api-docs.json', (_req, res) => res.json(swaggerSpec));
+
+  app.use('/api/v1/watch-party', createWatchPartyRouter(redis));
 
   // Register Socket.io handlers
   const watchPartyService = new WatchPartyService(redis);

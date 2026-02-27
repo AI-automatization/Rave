@@ -21,9 +21,9 @@ dotenv.config({ path: path.resolve(__dirname, '../.env.dev.example') });
 // Connection helpers
 // ─────────────────────────────────────────────
 
-const AUTH_MONGO    = process.env.AUTH_MONGO_URI    ?? 'mongodb://cinesync:cinesync_dev_pass@localhost:27017/cinesync_auth?authSource=admin';
-const USER_MONGO    = process.env.USER_MONGO_URI    ?? 'mongodb://cinesync:cinesync_dev_pass@localhost:27017/cinesync_user?authSource=admin';
-const CONTENT_MONGO = process.env.CONTENT_MONGO_URI ?? 'mongodb://cinesync:cinesync_dev_pass@localhost:27017/cinesync_content?authSource=admin';
+const AUTH_MONGO    = process.env.AUTH_MONGO_URI    ?? 'mongodb://localhost:27017/cinesync_auth';
+const USER_MONGO    = process.env.USER_MONGO_URI    ?? 'mongodb://localhost:27017/cinesync_user';
+const CONTENT_MONGO = process.env.CONTENT_MONGO_URI ?? 'mongodb://localhost:27017/cinesync_content';
 
 // ─────────────────────────────────────────────
 // Schemas (standalone — shared import yo'q)

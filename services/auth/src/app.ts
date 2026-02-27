@@ -5,9 +5,11 @@ import morgan from 'morgan';
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import Redis from 'ioredis';
+import swaggerUi from 'swagger-ui-express';
 import { errorHandler, notFoundHandler } from '@shared/middleware/error.middleware';
 import { morganStream } from '@shared/utils/logger';
 import { createAuthRouter } from './routes/auth.routes';
+import { swaggerSpec } from './utils/swagger';
 import { config } from './config/index';
 
 export const createApp = (redis: Redis): express.Application => {
@@ -56,8 +58,12 @@ export const createApp = (redis: Redis): express.Application => {
     res.json({ status: 'ok', service: 'auth', port: config.port });
   });
 
+  // API Docs
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+  app.get('/api-docs.json', (_req, res) => res.json(swaggerSpec));
+
   // Routes
-  app.use('/auth', createAuthRouter(redis));
+  app.use('/api/v1/auth', createAuthRouter(redis));
 
   // 404
   app.use(notFoundHandler);

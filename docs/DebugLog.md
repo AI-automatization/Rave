@@ -125,6 +125,37 @@
 
 ---
 
+---
+
+## ✅ SESSIYA: 2026-02-27 (Kecha yakunlandi)
+
+### Typecheck natijasi — BARCHA YASHIL
+| Servis | Xatolar | Holat |
+|--------|---------|-------|
+| shared | 0 | ✅ |
+| auth | 0 | ✅ |
+| user | 0 | ✅ |
+| content | 0 | ✅ |
+| watch-party | 0 | ✅ |
+| battle | 0 | ✅ |
+| notification | 0 | ✅ |
+| admin | 0 | ✅ |
+
+### Yangi o'zgarishlar tekshirildi (F-018..F-021)
+- `serviceClient.ts` — axios AxiosError tipi to'g'ri, non-blocking pattern ✅
+- `battle.service.ts` — `addUserPoints` + `triggerAchievement` import qo'shildi, 0 TS xato ✅
+- `user.service.ts` — `triggerAchievement` import, 0 TS xato ✅
+- `content.service.ts` — `triggerAchievement` import, 0 TS xato ✅
+- Barcha `app.ts` swagger import — `swaggerUi` + `swaggerSpec` 0 TS xato ✅
+
+### Qolgan infra xato (hali ham bor)
+#### BUG-011 | TS6059 — root tsconfig rootDir scope
+- Holat: ⚠️ HALI HAM BOR (root darajada, har service alohida ✅)
+- Sabab: `tsconfig.base.json` `rootDir: ./src` — monorepo uchun mos emas
+- Yechim: TypeScript project references — kelajakdagi sprint
+
+---
+
 ## 🔧 WINSTON LOGGING KONFIGURATSIYA
 
 Winston har doim fayl ga yozadi (logger.ts da sozlangan):
@@ -133,6 +164,41 @@ Winston har doim fayl ga yozadi (logger.ts da sozlangan):
 - Console — development da rang bilan, production da JSON
 
 Har service ishga tushganda `logs/` papka avtomatik yaratiladi (Winston o'zi yaratadi).
+
+---
+
+## SESSION: 2026-02-28 (Services startup + ES fix)
+
+### Muhim topilmalar
+- **Auth login:** `--data-raw` bilan ham curl shell quoting xatosi berdi. Python urllib bilan to'g'ri ishladi → server kodi CORRECT ✅
+- **Auth service:** Login `{"success":true}` + `accessToken` + `refreshToken` qaytardi ✅
+
+### BUG-012 | content/elastic.init.ts — duplicate char_filter mappings
+- **Fayl:** `services/content/src/utils/elastic.init.ts:29`
+- **Xato:** `illegal_argument_exception: match "'" was already added`
+- **Sabab:** `apostrophe_filter.mappings` da `"' => '"` 2 marta (ikkisi ham ASCII U+0027, curly quotes emas)
+- **Holat:** ✅ TUZATILDI (2026-02-28)
+- **Yechim:** `\\u2018=>\\u0027`, `\\u2019=>\\u0027`, `\\u201C=>\\u0022`, `\\u201D=>\\u0022` Unicode escape sequences ishlatildi
+
+### BUG-013 | content/elastic.init.ts — `boost` ES 8.x da qabul qilinmaydi
+- **Fayl:** `services/content/src/utils/elastic.init.ts:99,113`
+- **Xato:** `mapper_parsing_exception: Unknown parameter [boost] on mapper [originalTitle]`
+- **Sabab:** `boost` ES 7.x da deprecated, ES 8.x da mapping time da ruxsat berilmaydi
+- **Holat:** ✅ TUZATILDI (2026-02-28)
+- **Yechim:** `title` va `originalTitle` fieldlaridan `boost` parametri o'chirildi (query time da ber)
+
+### Services holati (2026-02-28 session yakunida)
+| Service | Port | Health | Xato |
+|---------|------|--------|------|
+| auth | 3001 | ✅ OK | yo'q |
+| user | 3002 | ✅ OK | yo'q |
+| content | 3003 | ✅ OK | ES index yaratildi |
+| watch-party | 3004 | ✅ OK | yo'q |
+| battle | 3005 | ✅ OK | yo'q |
+| notification | 3007 | ✅ OK | yo'q |
+| admin | 3008 | ✅ OK | yo'q |
+
+Elasticsearch `movies` index: ✅ yaratildi (green, 1 shard, 0 replicas)
 
 ---
 

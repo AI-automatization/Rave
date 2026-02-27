@@ -26,7 +26,12 @@ export async function initElasticsearchIndex(elastic: ElasticsearchClient): Prom
           char_filter: {
             apostrophe_filter: {
               type: 'mapping',
-              mappings: ["' => '", "' => '", '" => "', '" => "'],
+              mappings: [
+                '\\u2018=>\\u0027',  // ' (left single quote) → '
+                '\\u2019=>\\u0027',  // ' (right single quote) → '
+                '\\u201C=>\\u0022',  // " (left double quote) → "
+                '\\u201D=>\\u0022',  // " (right double quote) → "
+              ],
             },
           },
           // ────────────────────────────────────────────
@@ -98,7 +103,6 @@ export async function initElasticsearchIndex(elastic: ElasticsearchClient): Prom
             type: 'text',
             analyzer: 'cinesync_autocomplete',
             search_analyzer: 'cinesync_search',
-            boost: 3,
             fields: {
               keyword: { type: 'keyword' },
               standard: { type: 'text', analyzer: 'cinesync_standard' },
@@ -109,7 +113,6 @@ export async function initElasticsearchIndex(elastic: ElasticsearchClient): Prom
             type: 'text',
             analyzer: 'cinesync_autocomplete',
             search_analyzer: 'cinesync_search',
-            boost: 2,
             fields: {
               keyword: { type: 'keyword' },
             },

@@ -255,6 +255,8 @@
 | BUG-008 | 2026-02-27 | TS6133 | `auth.service.ts` `NotFoundError` unused | Import o'chirildi |
 | BUG-009 | 2026-02-27 | TS6133 | `battle.service.ts` `ForbiddenError` unused | Import o'chirildi |
 | BUG-010 | 2026-02-27 | TS6133 | `admin.service.ts` `blockedUsers` unused | Ortiqcha query o'chirildi |
+| BUG-012 | 2026-02-28 | Runtime | `elastic.init.ts` apostrophe_filter duplicate mappings (ASCII `'` 2x) | Unicode escape: `\\u2018=>\\u0027`, `\\u2019=>\\u0027` |
+| BUG-013 | 2026-02-28 | Runtime | `elastic.init.ts` `boost` ES 8.x da qabul qilinmaydi | `title` va `originalTitle` fieldlaridan `boost` o'chirildi |
 
 ---
 
@@ -271,4 +273,73 @@
 
 ---
 
-_docs/Done.md | CineSync | Yangilangan: 2026-02-26_
+### F-018 | 2026-02-27 | [BACKEND] | Service-to-Service Communication (T-C005)
+
+- **Mas'ul:** Saidazim
+- **Bajarildi:**
+  - `shared/src/utils/serviceClient.ts` — typed HTTP client (axios): `addUserPoints()`, `triggerAchievement()`, `sendInternalNotification()`, `getMovieInfo()`, `validateInternalSecret()`, `requireInternalSecret()` middleware
+  - `shared/src/index.ts` — serviceClient export qo'shildi
+  - `services/battle/src/services/battle.service.ts` — `resolveBattle()` da battle win → `addUserPoints()` + `triggerAchievement('battle')` (non-blocking)
+  - `services/user/src/services/user.service.ts` — `acceptFriendRequest()` da → `triggerAchievement('friend')` (har ikkala user uchun, non-blocking)
+  - `services/content/src/services/content.service.ts` — `recordWatchHistory()` da completed=true → `triggerAchievement('movie_watched')` (non-blocking)
+  - `services/user/src/controllers/user.controller.ts` — `addPoints` handler qo'shildi (internal endpoint)
+  - `services/user/src/routes/user.routes.ts` — `POST /internal/add-points` route qo'shildi
+  - Barcha 7 service `.env.example` — `INTERNAL_SECRET` qo'shildi
+
+---
+
+### F-019 | 2026-02-27 | [BACKEND] | Git Workflow + PR Template (T-C003)
+
+- **Mas'ul:** Saidazim
+- **Bajarildi:**
+  - `.github/PULL_REQUEST_TEMPLATE.md` — TypeScript, security, zone, API format tekshiruv ro'yxati
+  - `.github/ISSUE_TEMPLATE/bug_report.md` — servis, fayl, qayta ishlab chiqarish, log maydonlari
+  - `.github/ISSUE_TEMPLATE/feature_request.md` — prioritet, zona, texnik yondashuv maydonlari
+
+---
+
+### F-020 | 2026-02-27 | [DEVOPS] | CI/CD GitHub Actions (T-S010)
+
+- **Mas'ul:** Saidazim
+- **Bajarildi:**
+  - `.github/workflows/lint.yml` — PR da barcha 8 service typecheck (matrix strategy, fail-fast: false)
+  - `.github/workflows/test.yml` — PR da Jest tests (MongoDB + Redis service containers)
+  - `.github/workflows/docker-build.yml` — develop/main push da Docker build + GHCR push (7 service, cache-from/to gha)
+  - `.github/workflows/deploy-staging.yml` — develop branch → staging (environment: staging, manual trigger placeholder)
+  - `.github/workflows/deploy-prod.yml` — main branch → production (workflow_dispatch confirm='yes' + push, environment: production)
+
+---
+
+### F-021 | 2026-02-27 | [BACKEND] | Swagger API Docs + /api/v1/ prefix (T-S011 + T-C001)
+
+- **Mas'ul:** Saidazim
+- **Bajarildi:**
+  - Barcha 7 service `src/utils/swagger.ts` — swagger-jsdoc config (OpenAPI 3.0, bearerAuth, tags)
+  - Barcha 7 service `app.ts` — `GET /api-docs` (Swagger UI) + `GET /api-docs.json` (spec) route qo'shildi
+  - **API versioning** — barcha 7 service `/api/v1/` prefix:
+    - auth: `/api/v1/auth`
+    - user: `/api/v1/users`, `/api/v1/achievements`
+    - content: `/api/v1/movies`
+    - watch-party: `/api/v1/watch-party`
+    - battle: `/api/v1/battles`
+    - notification: `/api/v1/notifications`
+    - admin: `/api/v1/admin`, `/api/v1/operator`
+  - `swagger-jsdoc` + `swagger-ui-express` — root workspace da o'rnatildi
+
+---
+
+### F-022 | 2026-02-28 | [BACKEND] | Auth E2E login testi + Services startup + ES index yaratildi (T-S001)
+
+- **Mas'ul:** Saidazim
+- **Bajarildi:**
+  - Barcha 7 service ishga tushirildi (ports 3001-3008, hammasi `/health` → 200 OK)
+  - `services/content/src/utils/elastic.init.ts` — BUG-012 tuzatildi: apostrophe_filter mappings ASCII → Unicode escape sequences
+  - `services/content/src/utils/elastic.init.ts` — BUG-013 tuzatildi: `boost` parametri ES 8.x incompatible, o'chirildi
+  - Elasticsearch `movies` index muvaffaqiyatli yaratildi (green, 1 shard, 0 replica)
+  - Auth login E2E test o'tdi: `POST /api/v1/auth/login` → `accessToken` + `refreshToken` + `user` qaytadi
+  - Seed credentials (test1@cinesync.app / Test123!) bilan login ✅ ishladi
+  - **SMTP (email):** mailtrap.io dan credentials kerak bo'lganda to'ldirish (ixtiyoriy dev uchun)
+
+---
+
+_docs/Done.md | CineSync | Yangilangan: 2026-02-28_

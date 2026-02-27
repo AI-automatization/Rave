@@ -6,6 +6,7 @@ import { logger } from '@shared/utils/logger';
 import { NotFoundError, BadRequestError } from '@shared/utils/errors';
 import { REDIS_KEYS, POINTS } from '@shared/constants';
 import { BattleDuration } from '@shared/types';
+import { addUserPoints, triggerAchievement } from '@shared/utils/serviceClient';
 
 export class BattleService {
   constructor(private redis: Redis) {
@@ -158,11 +159,17 @@ export class BattleService {
       { status: 'completed', winnerId },
     );
 
-    // Award winner points
+    // Award winner points (local DB)
     await BattleParticipant.updateOne(
       { battleId, userId: winnerId },
       { $inc: { score: POINTS.BATTLE_WIN } },
     );
+
+    // Award points in user service (non-blocking)
+    await addUserPoints(winnerId, POINTS.BATTLE_WIN);
+
+    // Trigger achievement (non-blocking)
+    await triggerAchievement(winnerId, 'battle', { battleId });
 
     logger.info('Battle resolved', { battleId, winnerId });
   }

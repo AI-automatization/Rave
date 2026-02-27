@@ -3,9 +3,11 @@ import helmet from 'helmet';
 import cors from 'cors';
 import morgan from 'morgan';
 import Redis from 'ioredis';
+import swaggerUi from 'swagger-ui-express';
 import { errorHandler, notFoundHandler } from '@shared/middleware/error.middleware';
 import { morganStream } from '@shared/utils/logger';
 import { createBattleRouter } from './routes/battle.routes';
+import { swaggerSpec } from './utils/swagger';
 import { config } from './config/index';
 
 export const createApp = (redis: Redis): express.Application => {
@@ -20,7 +22,10 @@ export const createApp = (redis: Redis): express.Application => {
     res.json({ status: 'ok', service: 'battle', port: config.port });
   });
 
-  app.use('/', createBattleRouter(redis));
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+  app.get('/api-docs.json', (_req, res) => res.json(swaggerSpec));
+
+  app.use('/api/v1/battles', createBattleRouter(redis));
 
   app.use(notFoundHandler);
   app.use(errorHandler);

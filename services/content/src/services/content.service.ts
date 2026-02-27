@@ -7,6 +7,7 @@ import { logger } from '@shared/utils/logger';
 import { NotFoundError, ForbiddenError } from '@shared/utils/errors';
 import { REDIS_KEYS, TTL } from '@shared/constants';
 import { PaginationMeta } from '@shared/types';
+import { triggerAchievement } from '@shared/utils/serviceClient';
 
 const MOVIE_INDEX = 'movies';
 
@@ -130,13 +131,20 @@ export class ContentService {
     progress: number,
     durationWatched: number,
   ): Promise<void> {
+    const completed = progress >= 90;
+
     await WatchHistory.findOneAndUpdate(
       { userId, movieId },
       {
-        $set: { progress, durationWatched, completed: progress >= 90, watchedAt: new Date() },
+        $set: { progress, durationWatched, completed, watchedAt: new Date() },
       },
       { upsert: true },
     );
+
+    // Trigger achievement if movie is fully watched (non-blocking)
+    if (completed) {
+      await triggerAchievement(userId, 'movie_watched', { movieId, durationWatched });
+    }
   }
 
   async getWatchHistory(userId: string, page = 1, limit = 20): Promise<{ history: unknown[]; meta: PaginationMeta }> {

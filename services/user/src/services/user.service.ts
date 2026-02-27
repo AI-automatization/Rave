@@ -5,6 +5,7 @@ import { logger } from '@shared/utils/logger';
 import { NotFoundError, ConflictError, BadRequestError } from '@shared/utils/errors';
 import { REDIS_KEYS, TTL, LIMITS, RANKS, POINTS } from '@shared/constants';
 import { UserRank } from '@shared/types';
+import { triggerAchievement } from '@shared/utils/serviceClient';
 
 export class UserService {
   constructor(private redis: Redis) {}
@@ -99,6 +100,10 @@ export class UserService {
 
     await this.recalculateRank(userId);
     await this.recalculateRank(requesterId);
+
+    // Trigger achievement for both users (non-blocking)
+    await triggerAchievement(userId, 'friend', { friendId: requesterId });
+    await triggerAchievement(requesterId, 'friend', { friendId: userId });
 
     logger.info('Friend request accepted', { userId, requesterId });
   }

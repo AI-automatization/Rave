@@ -3,9 +3,11 @@ import helmet from 'helmet';
 import cors from 'cors';
 import morgan from 'morgan';
 import admin from 'firebase-admin';
+import swaggerUi from 'swagger-ui-express';
 import { errorHandler, notFoundHandler } from '@shared/middleware/error.middleware';
 import { morganStream, logger } from '@shared/utils/logger';
 import { createNotificationRouter } from './routes/notification.routes';
+import { swaggerSpec } from './utils/swagger';
 import { config } from './config/index';
 
 const initFirebase = (): void => {
@@ -39,7 +41,10 @@ export const createApp = (): express.Application => {
     res.json({ status: 'ok', service: 'notification', port: config.port });
   });
 
-  app.use('/', createNotificationRouter(config.redisUrl));
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+  app.get('/api-docs.json', (_req, res) => res.json(swaggerSpec));
+
+  app.use('/api/v1/notifications', createNotificationRouter(config.redisUrl));
 
   app.use(notFoundHandler);
   app.use(errorHandler);

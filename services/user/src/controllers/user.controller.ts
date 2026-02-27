@@ -141,6 +141,17 @@ export class UserController {
     }
   };
 
+  // Internal endpoint — battle/other services call this to award points
+  addPoints = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId, points } = req.body as { userId: string; points: number };
+      await this.userService.addPoints(userId, points);
+      res.json(apiResponse.success(null, 'Points added'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   addFcmToken = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { userId } = (req as AuthenticatedRequest).user;

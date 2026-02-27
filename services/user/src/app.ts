@@ -4,10 +4,12 @@ import cors from 'cors';
 import morgan from 'morgan';
 import path from 'path';
 import Redis from 'ioredis';
+import swaggerUi from 'swagger-ui-express';
 import { errorHandler, notFoundHandler } from '@shared/middleware/error.middleware';
 import { morganStream } from '@shared/utils/logger';
 import { createUserRouter } from './routes/user.routes';
 import { createAchievementRouter } from './routes/achievement.routes';
+import { swaggerSpec } from './utils/swagger';
 import { config } from './config/index';
 
 export const createApp = (redis: Redis): express.Application => {
@@ -26,8 +28,11 @@ export const createApp = (redis: Redis): express.Application => {
     res.json({ status: 'ok', service: 'user', port: config.port });
   });
 
-  app.use('/', createUserRouter(redis));
-  app.use('/achievements', createAchievementRouter());
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+  app.get('/api-docs.json', (_req, res) => res.json(swaggerSpec));
+
+  app.use('/api/v1/users', createUserRouter(redis));
+  app.use('/api/v1/achievements', createAchievementRouter());
 
   app.use(notFoundHandler);
   app.use(errorHandler);

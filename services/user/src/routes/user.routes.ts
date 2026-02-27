@@ -82,5 +82,8 @@ export const createUserRouter = (redis: Redis): Router => {
   // Auth service calls this after user registration
   router.post('/internal/profile', validate(createProfileSchema), userController.createProfile);
 
+  // Battle/other services call this to award points
+  router.post('/internal/add-points', userController.addPoints);
+
   return router;
 };
