@@ -22,6 +22,8 @@ function MovieCard({ movie, onPress, width: cardWidth = CARD_WIDTH }: Props) {
       style={[styles.container, { width: cardWidth, height: cardHeight }]}
       onPress={() => onPress(movie)}
       activeOpacity={0.8}
+      accessibilityRole="button"
+      accessibilityLabel={`${movie.title}, ${movie.year}, reyting ${movie.rating.toFixed(1)}`}
     >
       <FastImage
         style={styles.poster}

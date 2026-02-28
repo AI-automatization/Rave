@@ -397,4 +397,145 @@
 
 ---
 
-_docs/Done.md | CineSync | Yangilangan: 2026-02-28_
+### F-025 | 2026-02-28 | [MOBILE] | HomeScreen — T-E003
+
+- **Mas'ul:** Emirhan
+- **Sprint:** S2
+- **Commit:** `8d06093`
+- **Bajarildi:**
+  - `src/screens/home/HomeScreen.tsx` — CINESYNC logo header, notification badge, RefreshControl
+  - `src/hooks/useHomeData.ts` — React Query (trending, topRated, continueWatching, staleTime 10min)
+  - `src/components/HeroBanner.tsx` — top 5 trending, linear gradient overlay, auto-scroll
+  - `src/components/MovieRow.tsx` — horizontal FlatList, optimized (getItemLayout, windowSize)
+  - `src/components/HomeSkeleton.tsx` — loading skeleton (react-native-skeleton-placeholder)
+
+---
+
+### F-026 | 2026-02-28 | [MOBILE] | SearchScreen + SearchResultsScreen — T-E004
+
+- **Mas'ul:** Emirhan
+- **Sprint:** S2
+- **Commit:** `f25bf4a`
+- **Bajarildi:**
+  - `src/screens/search/SearchScreen.tsx` — debounced search (500ms), genre filter chips, search history (MMKV), recent searches
+  - `src/screens/search/SearchResultsScreen.tsx` — results list, movie cards, pagination
+
+---
+
+### F-027 | 2026-02-28 | [MOBILE] | MovieDetailScreen + VideoPlayerScreen — T-E005
+
+- **Mas'ul:** Emirhan
+- **Sprint:** S2
+- **Commit:** `4aedc38`
+- **Bajarildi:**
+  - `src/screens/home/MovieDetailScreen.tsx` — parallax header (Animated.ScrollView), movie info, genre chips, RatingWidget (1-10 stars), watch history integration
+  - `src/screens/home/VideoPlayerScreen.tsx` — react-native-video HLS (m3u8), custom controls (play/pause/seek/fullscreen), progress save (debounced 30s), 90% → markComplete + checkAchievements
+
+---
+
+### F-028 | 2026-02-28 | [MOBILE] | WatchParty ekranlar — T-E006
+
+- **Mas'ul:** Emirhan
+- **Sprint:** S3
+- **Commit:** `e42921f`
+- **Bajarildi:**
+  - `src/screens/modal/WatchPartyCreateScreen.tsx` — movie tanlov, private/public, create room
+  - `src/screens/modal/WatchPartyScreen.tsx` — sync video player, chat panel, emoji float overlay, owner/member controls (play/pause/seek faqat owner), invite code share
+
+---
+
+### F-029 | 2026-02-28 | [MOBILE] | Do'stlar ekranlar — T-E007
+
+- **Mas'ul:** Emirhan
+- **Sprint:** S3
+- **Commit:** `dd7b038`
+- **Bajarildi:**
+  - `src/screens/friends/FriendsScreen.tsx` — friends list (online indicator), pending requests badge, search button
+  - `src/screens/friends/FriendSearchScreen.tsx` — debounced user search, send friend request
+  - `src/screens/friends/FriendProfileScreen.tsx` — public profile, stats, online status, friend actions
+
+---
+
+### F-030 | 2026-02-28 | [MOBILE] | Battle ekranlar — T-E008
+
+- **Mas'ul:** Emirhan
+- **Sprint:** S3
+- **Commit:** `988a424`
+- **Bajarildi:**
+  - `src/screens/modal/BattleCreateScreen.tsx` — duration tanlov (3/5/7 kun), opponent invite
+  - `src/screens/modal/BattleScreen.tsx` — active battles list, leaderboard (progress bars), battle detail, result (confetti animation), global challenge tab
+
+---
+
+### F-031 | 2026-02-28 | [MOBILE] | Profil + Stats + Achievements + Settings — T-E009
+
+- **Mas'ul:** Emirhan
+- **Sprint:** S4
+- **Bajarildi:**
+  - `src/screens/profile/ProfileScreen.tsx` — avatar, rank badge, stats grid (4 card), rank progress bar, navigation buttons, logout. Bug fix: BUG-M005 (username?.[0]), BUG-M006 (division by zero), BUG-M007 (manfiy qoldiq)
+  - `src/screens/profile/AchievementsScreen.tsx` — FlatList 3 column grid, RARITY_COLORS, locked/unlocked state, secret achievement "???" ko'rinishi, points badge
+  - `src/screens/profile/StatsScreen.tsx` — rank card (progress bar, next rank), stats grid (6 card), activity bar chart (4 bar), rank yo'li timeline
+  - `src/screens/profile/SettingsScreen.tsx` — til tanlash (uz/ru/en), bildirishnoma togglelar (5 ta), privacy togglelar (2 ta), save mutation, Alert feedback
+
+---
+
+### F-032 | 2026-02-28 | [MOBILE] | NotificationsScreen — T-E010
+
+- **Mas'ul:** Emirhan
+- **Sprint:** S4
+- **Bajarildi:**
+  - `src/screens/modal/NotificationsScreen.tsx` — FlatList, unread dot, icon per type (8 tur), formatDistanceToNow (date-fns), mark single read, mark all read, delete, WatchParty/Battle ga navigate (tap), empty state
+
+---
+
+### F-033 | 2026-02-28 | [MOBILE] | Mobile buglar — BUG-M005..BUG-M008
+
+- **Mas'ul:** Emirhan
+- **Bajarildi:**
+  - BUG-M005: `ProfileScreen.tsx:72` — `username?.[0]` safe optional chaining
+  - BUG-M006: `ProfileScreen.tsx:119` — `nextMilestone > 0 ?` division by zero guard
+  - BUG-M007: `ProfileScreen.tsx:112` — `Math.max(0, ...)` manfiy qoldiq oldini olish
+  - BUG-M008: `package.json:66` — `setupFilesAfterFramework` → `setupFilesAfterEnv` Jest config fix
+
+---
+
+### F-034 | 2026-02-28 | [MOBILE] | Polish + Performance + Testing — T-E011
+
+- **Mas'ul:** Emirhan
+- **Sprint:** S5
+- **Bajarildi:**
+
+**Performance:**
+- `HeroBanner.tsx` — `getItemLayout` qo'shildi (full-width slides), `initialNumToRender=1`, `maxToRenderPerBatch=2`, `windowSize=3`
+- `MovieCard.tsx` — `accessibilityRole="button"`, `accessibilityLabel="{title}, {year}, reyting {rating}"`
+- `HeroBanner.tsx` — play button va slide `accessibilityRole` + `accessibilityLabel`
+
+**Accessibility:**
+- MovieCard, HeroBanner barcha interactive elementlariga `accessibilityRole` va `accessibilityLabel` qo'shildi
+
+**Error Handling:**
+- `src/components/ErrorBoundary.tsx` — React class-based ErrorBoundary, "Qayta urinish" button, `reportError` integration
+- `App.tsx` — `<ErrorBoundary>` bilan `<AppContent>` wrap qilindi
+
+**Crash Reporting:**
+- `src/utils/crash.ts` — Sentry wrapper stub (initCrashReporting, reportError, reportMessage, setUserContext, clearUserContext). Sentry o'rnatilganda uncommenting kerak.
+- `App.tsx` — `initCrashReporting()` startup da, `setUserContext`/`clearUserContext` auth o'zgarishida
+
+**Jest Unit Tests:**
+- `jest.setup.js` — native module mocks (FastImage, LinearGradient, MMKV, SafeAreaContext, Firebase, Toast)
+- `package.json` — `setupFiles`, `transformIgnorePatterns`, `moduleNameMapper` (path aliases), `collectCoverageFrom`
+- `__tests__/components/MovieCard.test.tsx` — 5 test (title, year, rating, onPress, accessibilityLabel)
+- `__tests__/components/ErrorBoundary.test.tsx` — 4 test (normal render, error UI, reset, reportError chaqirildi)
+- `__tests__/utils/crash.test.ts` — 4 test (init, reportError, reportMessage, setUser/clearUser)
+
+**Detox E2E:**
+- `.detoxrc.js` — iOS simulator + Android emulator konfiguratsiya
+- `e2e/jest.config.js` — Detox jest runner config
+- `e2e/auth.e2e.ts` — Auth flow E2E: Splash → Onboarding → Login → Home
+
+**Bug fix (oldingi sessiyada qolgan):**
+- `package.json` — `setupFilesAfterFramework` → `setupFilesAfterEnv` (BUG-M008)
+
+---
+
+_docs/Done.md | CineSync | Yangilangan: 2026-02-28 (Emirhan: barcha tasklar tugadi ✅)_

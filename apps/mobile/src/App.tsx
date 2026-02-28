@@ -11,7 +11,11 @@ import { useSocket } from '@hooks/useSocket';
 import { useHeartbeat } from '@hooks/useHeartbeat';
 import { authApi } from '@api/auth.api';
 import { registerFcmToken, requestNotificationPermission } from '@utils/notifications';
+import { initCrashReporting, setUserContext, clearUserContext } from '@utils/crash';
+import { ErrorBoundary } from '@components/ErrorBoundary';
 import { colors } from '@theme/index';
+
+initCrashReporting();
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -23,7 +27,12 @@ const queryClient = new QueryClient({
 });
 
 function AppContent() {
-  const { setUser, logout, setLoading, hydrateFromStorage } = useAuthStore();
+  const { setUser, logout, setLoading, hydrateFromStorage, user } = useAuthStore();
+
+  useEffect(() => {
+    if (user) setUserContext(user._id, user.username);
+    else clearUserContext();
+  }, [user?._id]);
 
   useSocket();
   useHeartbeat();
@@ -73,7 +82,9 @@ export default function App() {
       <SafeAreaProvider>
         <GestureHandlerRootView style={{ flex: 1 }}>
           <StatusBar barStyle="light-content" backgroundColor={colors.bgBase} />
-          <AppContent />
+          <ErrorBoundary>
+            <AppContent />
+          </ErrorBoundary>
           <Toast />
         </GestureHandlerRootView>
       </SafeAreaProvider>

@@ -66,65 +66,13 @@
 
 # ═══════════════════════════════════════
 
-## SPRINT 2 — Home + Search + Movie Detail + Player
-
-### T-E003 | P0 | [MOBILE] | Home ekran
-
-- **Sprint:** S2
-- **Subtasks:** TASK-E-015..TASK-E-020
-- **Output:** Hero carousel, trending, top rated, continue watching, genres/categories
-
-### T-E004 | P1 | [MOBILE] | Search ekran
-
-- **Sprint:** S2
-- **Subtasks:** TASK-E-021..TASK-E-022
-- **Output:** Debounced search, results tabs, filters, search history
-
-### T-E005 | P0 | [MOBILE] | Movie Detail + Video Player
-
-- **Sprint:** S2
-- **Subtasks:** TASK-E-023..TASK-E-028
-- **Output:** Movie detail (parallax), rating widget, HLS player (quality/subtitle/audio), progress saving, PiP
-
-## SPRINT 3 — Watch Party + Friends + Battle
-
-### T-E006 | P1 | [MOBILE] | Watch Party ekranlar
-
-- **Sprint:** S3
-- **Subtasks:** TASK-E-029..TASK-E-034
-- **Output:** Create room, invite modal, party room (sync player + chat + emoji), owner/member controls
-
-### T-E007 | P1 | [MOBILE] | Do'stlar ekranlar
-
-- **Sprint:** S3
-- **Subtasks:** TASK-E-035..TASK-E-038
-- **Output:** Friends list (online status), search, requests, friend profile
-
-### T-E008 | P1 | [MOBILE] | Battle ekranlar
-
-- **Sprint:** S3
-- **Subtasks:** TASK-E-039..TASK-E-044
-- **Output:** Active battles, create, invite, detail, result (confetti), global challenge
-
 ## SPRINT 4-5 — Profile + Notifications + Polish
 
-### T-E009 | P2 | [MOBILE] | Profil + Stats + Achievements
+### ~~T-E009~~ ✅ BAJARILDI → Done.md F-031
 
-- **Sprint:** S4
-- **Subtasks:** TASK-E-045..TASK-E-048
-- **Output:** Profile, stats (charts), achievements grid (unlock animation), settings
+### ~~T-E010~~ ✅ BAJARILDI → Done.md F-032
 
-### T-E010 | P2 | [MOBILE] | Notifications
-
-- **Sprint:** S4
-- **Subtasks:** TASK-E-049..TASK-E-050
-- **Output:** In-app list, push notification handling, tap → navigate
-
-### T-E011 | P2 | [MOBILE] | Polish + Performance + Testing
-
-- **Sprint:** S5
-- **Subtasks:** TASK-E-051..TASK-E-055
-- **Output:** React.memo, FastImage, animations, accessibility, Sentry, Jest + Detox E2E
+### ~~T-E011~~ ✅ BAJARILDI → Done.md F-034
 
 ---
 
@@ -213,10 +161,10 @@
 | Jamoa    | Tugallandi | Qolgan | JAMI |
 | -------- | ---------- | ------ | ---- |
 | Saidazim | T-S001..T-S008, T-S010, T-S011, T-C001, T-C003, T-C005 ✅ | T-S005b, T-S009 (2 task) | — |
-| Emirhan  | T-E001 ✅, T-E002 ✅ | T-E003..T-E011 (9 task) | 11 |
+| Emirhan  | T-E001..T-E011 ✅ (11 task) — HAMMASI TUGADI 🎉 | — | 11 |
 | Jafar    | 0 | T-J001..T-J007 (7 task) | 7 |
 | Umumiy   | T-C001 ✅, T-C003 ✅, T-C005 ✅ | T-C002, T-C004 (2 task) | — |
 
 ---
 
-_docs/Tasks.md | CineSync | Yangilangan: 2026-02-28 (E001+E002 ✅)_
+_docs/Tasks.md | CineSync | Yangilangan: 2026-02-28 (Emirhan: E001..E011 — BARCHA TASKLAR TUGADI ✅)_

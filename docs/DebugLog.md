@@ -243,4 +243,46 @@ Elasticsearch `movies` index: ✅ yaratildi (green, 1 shard, 0 replicas)
 
 ---
 
+---
+
+## SESSION: 2026-02-28 (Mobile Sprint 4 — buglar)
+
+### BUG-M005 | ProfileScreen.tsx:72 | Runtime crash — `username[0]` unsafe index
+- **Fayl:** `apps/mobile/src/screens/profile/ProfileScreen.tsx`
+- **Qator:** 72
+- **Xato:** `user?.username[0]?.toUpperCase()` — `username` bo'sh string `""` bo'lsa, `username[0]` → `undefined`, lekin `.toUpperCase()` chaqirilmaydi (optional chaining to'g'ri). Ammo TypeScript strict modeda `string[0]` indeks tipi `string`, opsional emas — real qurilmada `undefined` qaytadi va crash bo'ladi.
+- **Holat:** ✅ TUZATILDI (2026-02-28)
+- **Yechim:** `user?.username?.[0]?.toUpperCase()` — bracket notation bilan optional chaining
+
+### BUG-M006 | ProfileScreen.tsx:119 | Runtime NaN — division by zero
+- **Fayl:** `apps/mobile/src/screens/profile/ProfileScreen.tsx`
+- **Qator:** 119
+- **Xato:** `(stats.totalPoints / stats.nextMilestone) * 100` — agar `nextMilestone === 0` bo'lsa, natija `NaN` bo'ladi. Progress bar `width: "NaN%"` — style xatosi, ekran buziladi.
+- **Holat:** ✅ TUZATILDI (2026-02-28)
+- **Yechim:** `stats.nextMilestone > 0 ? (stats.totalPoints / stats.nextMilestone) * 100 : 100`
+
+### BUG-M007 | ProfileScreen.tsx:112 | UI bug — manfiy qoldiq ko'rinishi
+- **Fayl:** `apps/mobile/src/screens/profile/ProfileScreen.tsx`
+- **Qator:** 112
+- **Xato:** `stats.nextMilestone - stats.totalPoints` — agar user milestone'dan oshib ketsa, manfiy son ko'rinadi (masalan: "-500 pt").
+- **Holat:** ✅ TUZATILDI (2026-02-28)
+- **Yechim:** `Math.max(0, stats.nextMilestone - stats.totalPoints)`
+
+### BUG-M008 | package.json:66 | Jest config xato — setupFiles ishlamaydi
+- **Fayl:** `apps/mobile/package.json`
+- **Qator:** 66
+- **Xato:** `"setupFilesAfterFramework"` — bu Jest konfiguratsiya kaliti mavjud emas. To'g'risi `"setupFilesAfterFramework"` emas, `"setupFilesAfterEnv"`. Shu sababdan `@testing-library/jest-native/extend-expect` jest ishga tushganda yuklanmaydi, custom matchers ishlamaydi.
+- **Holat:** ✅ TUZATILDI (2026-02-28)
+- **Yechim:** `"setupFilesAfterFramework"` → `"setupFilesAfterEnv"` ga o'zgartirildi
+
+---
+
+### BUG-M009 | HeroBanner.tsx | Performance — getItemLayout yo'q
+- **Fayl:** `apps/mobile/src/components/HeroBanner.tsx`
+- **Xato:** `FlatList` horizontal paging uchun `getItemLayout` berilmagan edi — React Native har scroll da barcha itemni o'lchab, performance pasayadi
+- **Holat:** ✅ TUZATILDI (2026-02-28)
+- **Yechim:** `getItemLayout={(_data, index) => ({ length: width, offset: width * index, index })}` + `initialNumToRender=1`, `maxToRenderPerBatch=2`, `windowSize=3`
+
+---
+
 *docs/DebugLog.md | CineSync | Yangilangan: 2026-02-28*

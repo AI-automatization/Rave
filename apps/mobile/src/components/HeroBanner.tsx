@@ -59,11 +59,17 @@ function HeroBanner({ movies, onMoviePress }: Props) {
         showsHorizontalScrollIndicator={false}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
+        getItemLayout={(_data, index) => ({ length: width, offset: width * index, index })}
+        initialNumToRender={1}
+        maxToRenderPerBatch={2}
+        windowSize={3}
         renderItem={({ item }) => (
           <TouchableOpacity
             style={styles.slide}
             onPress={() => onMoviePress(item)}
             activeOpacity={0.9}
+            accessibilityRole="button"
+            accessibilityLabel={`${item.title} filmini ko'rish`}
           >
             <FastImage
               style={styles.backdrop}
@@ -90,7 +96,12 @@ function HeroBanner({ movies, onMoviePress }: Props) {
                 <Text style={styles.metaDot}>·</Text>
                 <Text style={styles.metaText}>{Math.floor(item.duration / 60)}s {item.duration % 60}d</Text>
               </View>
-              <TouchableOpacity style={styles.playBtn} onPress={() => onMoviePress(item)}>
+              <TouchableOpacity
+                style={styles.playBtn}
+                onPress={() => onMoviePress(item)}
+                accessibilityRole="button"
+                accessibilityLabel={`${item.title} ko'rish`}
+              >
                 <Text style={styles.playText}>▶  Ko'rish</Text>
               </TouchableOpacity>
             </View>
