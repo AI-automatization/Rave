@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Allow: /uz/
+Allow: /ru/
+Allow: /en/
+
+Disallow: /api/
+Disallow: /(app)/
+Disallow: /settings
+Disallow: /notifications
+
+Sitemap: https://cinesync.uz/sitemap.xml

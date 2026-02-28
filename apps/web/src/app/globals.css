@@ -1,0 +1,116 @@
+@import "tailwindcss";
+@plugin "tailwindcss-animate";
+@plugin "daisyui";
+
+/* ─── DaisyUI v5 — CineSync Custom Theme ─────────────────── */
+@plugin "daisyui/theme" {
+  name: "cinesync";
+  default: true;
+  prefersdark: false;
+  color-scheme: dark;
+
+  /* Primary — Netflix red */
+  --color-primary:          oklch(52% 0.223 27);
+  --color-primary-content:  oklch(100% 0 0);
+
+  /* Secondary — orange accent */
+  --color-secondary:        oklch(68% 0.19 40);
+  --color-secondary-content:oklch(100% 0 0);
+
+  /* Accent — gold */
+  --color-accent:           oklch(84% 0.195 86);
+  --color-accent-content:   oklch(7% 0.005 270);
+
+  /* Neutral */
+  --color-neutral:          oklch(17% 0.015 270);
+  --color-neutral-content:  oklch(85% 0.004 270);
+
+  /* Base scale (dark) */
+  --color-base-100:         oklch(7% 0.005 270);
+  --color-base-200:         oklch(9% 0.005 270);
+  --color-base-300:         oklch(11% 0.008 270);
+  --color-base-content:     oklch(92% 0.004 270);
+
+  /* Semantic */
+  --color-info:             oklch(80% 0.09 222);
+  --color-info-content:     oklch(7% 0.005 270);
+  --color-success:          oklch(64% 0.195 142);
+  --color-success-content:  oklch(100% 0 0);
+  --color-warning:          oklch(76% 0.183 72);
+  --color-warning-content:  oklch(7% 0.005 270);
+  --color-error:            oklch(52% 0.223 27);
+  --color-error-content:    oklch(100% 0 0);
+
+  /* Border radius */
+  --radius-selector: 0.5rem;
+  --radius-field:    0.375rem;
+  --radius-box:      0.75rem;
+
+  /* Size */
+  --size-selector: 0.25rem;
+  --size-field:    0.25rem;
+
+  /* Border + effects */
+  --border: 1px;
+  --depth:  1;
+  --noise:  0;
+}
+
+/* ─── CineSync Custom Tokens (Tailwind v4 @theme) ───────────── */
+@theme {
+  /* Background scale */
+  --color-bg-void:     #060608;
+  --color-bg-base:     #0A0A0F;
+  --color-bg-elevated: #111118;
+  --color-bg-overlay:  #16161F;
+  --color-bg-surface:  #1C1C28;
+  --color-bg-muted:    #242433;
+
+  /* Rank badges */
+  --color-gold:    #FFD700;
+  --color-silver:  #C0C0C0;
+  --color-diamond: #88CCFF;
+
+  /* Fonts */
+  --font-display: "Bebas Neue", Impact, sans-serif;
+  --font-body:    "DM Sans", Outfit, sans-serif;
+  --font-mono:    "JetBrains Mono", monospace;
+
+  /* Animations */
+  --animate-fade-in: fade-in 0.3s ease-out;
+  --animate-shimmer: shimmer 2s infinite;
+}
+
+/* ─── Keyframes ────────────────────────────────────────────── */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shimmer {
+  0%, 100% { background-position: -200% center; }
+  50%       { background-position: 200% center; }
+}
+
+/* ─── Base ─────────────────────────────────────────────────── */
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    letter-spacing: 0.05em;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar       { width: 6px; }
+  ::-webkit-scrollbar-track { background: #111118; }
+  ::-webkit-scrollbar-thumb { background: #242433; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #E50914; }
+}
