@@ -315,6 +315,38 @@ npx lhci autorun --config=lighthouserc.json
 ❌ Socket event nomlarini o'zgartirish
 ❌ API response formatini o'zgartirish
 ```
+# Development Rules
+
+Tech stack:
+
+- Next.js
+- TailwindCSS
+- DaisyUI
+
+Restrictions:
+
+- Do not write custom CSS
+- Do not use Tailwind color utilities
+- Use DaisyUI dynamic colors only
+
+Design style:
+
+- Minimalism
+- Clean layout
+- Accessible UI
+
+Components:
+
+- card
+- button
+- navbar
+- alert
+
+Responsive:
+
+- Mobile first
+- Tablet support
+- Desktop support
 
 ---
 
