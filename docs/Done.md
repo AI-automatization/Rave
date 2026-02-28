@@ -342,4 +342,59 @@
 
 ---
 
+---
+
+### F-023 | 2026-02-28 | [MOBILE] | React Native loyiha setup — T-E001
+
+- **Mas'ul:** Emirhan
+- **Sprint:** S1
+- **Bajarildi:**
+  - `apps/mobile/package.json` — RN 0.74.5, React Navigation, Zustand, React Query, Axios, Socket.io-client, Firebase, MMKV, react-native-video, FastImage, Google SignIn
+  - `apps/mobile/tsconfig.json` — strict mode, path aliases (@screens, @components, @api, @store, @socket, @theme, @utils, @types, @navigation)
+  - `apps/mobile/babel.config.js` — babel-plugin-module-resolver + reanimated/plugin
+  - `apps/mobile/metro.config.js` + `index.js` + `app.json` + `.env.example`
+  - `src/theme/index.ts` — colors, spacing, borderRadius, typography, shadows, RANK_COLORS
+  - `src/types/index.ts` — barcha type'lar (IUser, IMovie, IWatchPartyRoom, IBattle, INotification, IAchievement, ApiResponse, ...)
+  - `src/utils/storage.ts` — MMKV token storage (accessToken, refreshToken, userId)
+  - `src/utils/notifications.ts` — FCM permission, token registration, NOTIFICATION_ROUTES
+  - `src/api/client.ts` — per-service Axios instances (6 ta), auto-refresh interceptor, token rotation
+  - `src/api/auth.api.ts` — register, login, refresh, logout, verifyEmail, forgotPassword, resetPassword, getMe
+  - `src/api/user.api.ts` — profile, avatar, settings, FCM token, heartbeat, friends, achievements
+  - `src/api/content.api.ts` — movies, search, watch history, ratings
+  - `src/api/watchParty.api.ts` — room CRUD
+  - `src/api/battle.api.ts` — battles CRUD + leaderboard
+  - `src/api/notification.api.ts` — notifications CRUD
+  - `src/store/auth.store.ts` — user, isAuthenticated, setAuth, logout, hydrateFromStorage
+  - `src/store/movies.store.ts` — trending, topRated, continueWatching
+  - `src/store/friends.store.ts` — friends, onlineIds, pendingRequests
+  - `src/store/watchParty.store.ts` — room, syncState, messages, emojis, bufferingUserIds
+  - `src/store/battle.store.ts` — activeBattles, pastBattles
+  - `src/store/notification.store.ts` — notifications, unreadCount
+  - `src/socket/client.ts` — Socket.io singleton, connectSocket/disconnect, watchPartySocket actions, SERVER/CLIENT_EVENTS constants, store integration
+  - `src/navigation/types.ts` — AuthStackParams, HomeStackParams, SearchStackParams, FriendsStackParams, ProfileStackParams, MainTabsParams, RootStackParams
+  - `src/navigation/AuthStack.tsx` — 7 screen stack
+  - `src/navigation/MainTabs.tsx` — 4 tab (Home/Search/Friends/Profile), nested stacks
+  - `src/navigation/index.tsx` — AppNavigator (auth-aware routing + modal group)
+  - `src/hooks/useSocket.ts` — connect/disconnect on auth change
+  - `src/hooks/useHeartbeat.ts` — 2 min interval + AppState listener
+  - `src/App.tsx` — QueryClient, bootstrap (token hydration → /auth/me), FCM setup, GestureHandler, SafeArea
+  - Sprint 2-5 placeholder screens (17 ta): home, search, friends, profile, modal
+
+---
+
+### F-024 | 2026-02-28 | [MOBILE] | Auth screens — T-E002
+
+- **Mas'ul:** Emirhan
+- **Sprint:** S1
+- **Bajarildi:**
+  - `src/screens/auth/SplashScreen.tsx` — animated logo, isLoading watch → Onboarding
+  - `src/screens/auth/OnboardingScreen.tsx` — 3 slide FlatList (pagingEnabled), dot indicators, Next/Start/Login buttons
+  - `src/screens/auth/LoginScreen.tsx` — email+password form, show/hide password, Google SignIn stub, API call, Toast errors, Axios error handling
+  - `src/screens/auth/RegisterScreen.tsx` — username+email+password+confirm, Joi-like client validation (PATTERNS matcher), API call
+  - `src/screens/auth/VerifyEmailScreen.tsx` — token input, authApi.verifyEmail, success → Login
+  - `src/screens/auth/ForgotPasswordScreen.tsx` — email input, sent state (email enumeration safe message)
+  - `src/screens/auth/ProfileSetupScreen.tsx` — bio input (200 char limit), avatar placeholder, skip option
+
+---
+
 _docs/Done.md | CineSync | Yangilangan: 2026-02-28_

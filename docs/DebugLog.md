@@ -1,6 +1,6 @@
 # CineSync — DEBUG LOG
 # Yaratildi: 2026-02-27
-# Mas'ul: Saidazim (Backend)
+# Mas'ul: Saidazim (Backend) | Emirhan (Mobile)
 
 ---
 
@@ -202,4 +202,45 @@ Elasticsearch `movies` index: ✅ yaratildi (green, 1 shard, 0 replicas)
 
 ---
 
-*docs/DebugLog.md | CineSync | Yaratildi: 2026-02-27*
+---
+
+## 📱 MOBILE — EMIRHAN (React Native)
+
+### BUG-M001 | socket/client.ts | TS2345 — `room: unknown` type xatosi
+- **Fayl:** `apps/mobile/src/socket/client.ts`
+- **Holat:** ✅ TUZATILDI (2026-02-28)
+- **Muammo:** `SERVER_EVENTS.ROOM_JOINED` handleri `room` ni `unknown` deb type berganda, `store().setRoom(room)` ga uzatolmadi. Murakkab `Parameters<typeof store>` workaround ishlatilgan.
+- **Yechim:** `{ room: IWatchPartyRoom; syncState: SyncState }` to'g'ridan type berildi, `IWatchPartyRoom` import qo'shildi.
+
+### BUG-M002 | App.tsx | TS6133 — `setAuth` unused variable
+- **Fayl:** `apps/mobile/src/App.tsx`
+- **Holat:** ✅ TUZATILDI (2026-02-28)
+- **Muammo:** `useAuthStore()` dan `setAuth` destructure qilingan lekin bootstrap da faqat `setUser` ishlatiladi.
+- **Yechim:** `setAuth` destructuradan olib tashlandi.
+
+### BUG-M003 | ProfileSetupScreen.tsx | TS6133 — `Image` unused import
+- **Fayl:** `apps/mobile/src/screens/auth/ProfileSetupScreen.tsx`
+- **Holat:** ✅ TUZATILDI (2026-02-28)
+- **Muammo:** `Image` react-native'dan import qilingan lekin ishlatilmagan.
+- **Yechim:** Import ro'yxatidan olib tashlandi.
+
+### BUG-M004 | package.json | babel-plugin-module-resolver yo'q
+- **Fayl:** `apps/mobile/package.json`
+- **Holat:** ✅ TUZATILDI (2026-02-28)
+- **Muammo:** `babel.config.js` da `module-resolver` plugin ishlatilgan lekin `devDependencies` da yo'q edi.
+- **Yechim:** `"babel-plugin-module-resolver": "^5.0.2"` devDependencies ga qo'shildi.
+
+### ⚠️ ESLATMA — Google OAuth (LoginScreen)
+- **Fayl:** `apps/mobile/src/screens/auth/LoginScreen.tsx`
+- **Holat:** 🟡 STUB (to'liq implement kerak)
+- **Muammo:** Backend Google OAuth redirect flow (browser orqali) ishlaydi, lekin RN da deep link bilan token qabul qilish kerak.
+- **Kerak:** `react-native-app-auth` yoki Google `idToken` → backend `/auth/google-mobile` endpoint (Saidazim bilan kelishish kerak).
+
+### ⚠️ ESLATMA — Android emulator base URL
+- **Fayl:** `apps/mobile/src/api/client.ts`
+- **Holat:** ℹ️ KONFIGURATSIYA
+- **Ma'lumot:** Android emulator uchun `10.0.2.2` (localhost proxy). iOS simulator uchun `localhost` yoki Mac IP. Fizik qurilma uchun kompyuter IP adresi kerak.
+
+---
+
+*docs/DebugLog.md | CineSync | Yangilangan: 2026-02-28*

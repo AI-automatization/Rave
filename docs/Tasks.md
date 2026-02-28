@@ -66,20 +66,6 @@
 
 # ═══════════════════════════════════════
 
-## SPRINT 1 — Setup + Auth
-
-### T-E001 | P0 | [MOBILE] | Loyiha setup + Navigation + State
-
-- **Sprint:** S1
-- **Subtasks:** TASK-E-001..TASK-E-007
-- **Output:** RN init, React Navigation (Auth/Main/Modal stacks), Zustand stores, Axios + React Query, Socket.io client, Firebase FCM, UI component library
-
-### T-E002 | P0 | [MOBILE] | Auth ekranlar
-
-- **Sprint:** S1
-- **Subtasks:** TASK-E-008..TASK-E-014
-- **Output:** Splash, onboarding, register, login (+ Google + biometric), email verify, forgot password, profile setup
-
 ## SPRINT 2 — Home + Search + Movie Detail + Player
 
 ### T-E003 | P0 | [MOBILE] | Home ekran
@@ -227,10 +213,10 @@
 | Jamoa    | Tugallandi | Qolgan | JAMI |
 | -------- | ---------- | ------ | ---- |
 | Saidazim | T-S001..T-S008, T-S010, T-S011, T-C001, T-C003, T-C005 ✅ | T-S005b, T-S009 (2 task) | — |
-| Emirhan  | 0 | T-E001..T-E011 (11 task) | 11 |
+| Emirhan  | T-E001 ✅, T-E002 ✅ | T-E003..T-E011 (9 task) | 11 |
 | Jafar    | 0 | T-J001..T-J007 (7 task) | 7 |
 | Umumiy   | T-C001 ✅, T-C003 ✅, T-C005 ✅ | T-C002, T-C004 (2 task) | — |
 
 ---
 
-_docs/Tasks.md | CineSync | Yangilangan: 2026-02-28_
+_docs/Tasks.md | CineSync | Yangilangan: 2026-02-28 (E001+E002 ✅)_
