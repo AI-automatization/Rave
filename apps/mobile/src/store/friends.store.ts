@@ -14,7 +14,7 @@ interface FriendsState {
   acceptRequest: (userId: string) => void;
 }
 
-export const useFriendsStore = create<FriendsState>((set) => ({
+export const useFriendsStore = create<FriendsState>()((set) => ({
   friends: [],
   onlineIds: new Set(),
   pendingRequests: [],

@@ -13,7 +13,7 @@ interface BattleState {
   updateBattle: (battleId: string, updates: Partial<IBattle>) => void;
 }
 
-export const useBattleStore = create<BattleState>((set) => ({
+export const useBattleStore = create<BattleState>()((set) => ({
   activeBattles: [],
   pastBattles: [],
   selectedBattle: null,

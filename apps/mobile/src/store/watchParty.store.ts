@@ -27,7 +27,7 @@ const initialState = {
   isConnected: false,
 };
 
-export const useWatchPartyStore = create<WatchPartyState>((set) => ({
+export const useWatchPartyStore = create<WatchPartyState>()((set) => ({
   ...initialState,
 
   setRoom: (room) => set({ room }),

@@ -285,4 +285,82 @@ Elasticsearch `movies` index: ✅ yaratildi (green, 1 shard, 0 replicas)
 
 ---
 
+---
+
+## 📦 KUTUBXONA YANGILANISHI — 2026-02-28
+
+### BUG-M010 | package.json | react-native-animated-charts — noto'g'ri versiya
+- **Fayl:** `apps/mobile/package.json`
+- **Xato:** `"react-native-animated-charts": "^1.0.3"` — bu paket npm'da hech qachon v1.x da chiqmagan. Eng yuqori versiya `0.0.5`. Kod ichida ham ishlatilmagan.
+- **Holat:** ✅ TUZATILDI (2026-02-28)
+- **Yechim:** `package.json` dan to'liq o'chirildi
+
+### BUG-M011 | Barcha store fayllar | Zustand v4 → v5 — curried form
+- **Fayllar:** 6 ta store (auth, movies, friends, watchParty, battle, notification)
+- **Xato:** `create<State>((set) => ...)` — zustand v5 da TypeScript type inference ishlamaydi. Curried form talab qilinadi.
+- **Holat:** ✅ TUZATILDI (2026-02-28)
+- **Yechim:** Barcha 6 store da `create<State>()((set) => ...)` — qo'shimcha `()` qo'shildi
+
+---
+
+### 📋 VERSIYA YANGILASH JADVALI
+
+| Paket | Eski | Yangi | Holat |
+|-------|------|-------|-------|
+| react | 18.2.0 | 19.2.4 | ⚠️ Native rebuild kerak |
+| react-native | 0.74.5 | 0.84.1 | ⚠️ Native rebuild kerak |
+| @react-navigation/* | v6 | v7 | ⚠️ `lazy` opsiyasini tab'larga qo'shish kerak |
+| react-native-screens | v3 | v4.24.0 | ⚠️ Native rebuild |
+| react-native-safe-area-context | v4 | v5.7.0 | ⚠️ Native rebuild |
+| react-native-reanimated | v3 | v4.2.2 | ⚠️ Worklets API o'zgardi |
+| zustand | v4 | v5.0.11 | ✅ Tuzatildi (BUG-M011) |
+| @tanstack/react-query | v5.51 | v5.90.21 | ✅ Backward compat |
+| axios | v1.7 | v1.13.6 | ✅ Minor update |
+| socket.io-client | v4.7 | v4.8.3 | ✅ Minor update |
+| @react-native-async-storage | v1 | v3.0.1 | ⚠️ API slight changes |
+| react-native-mmkv | v2 | v4.1.2 | ⚠️ Native rebuild |
+| react-native-video | v6.3 | v6.19.0 | ✅ Minor update |
+| @react-native-firebase | v20 | v23.8.6 | ✅ Backward compat |
+| react-native-vector-icons | v10.1 | v10.3.0 | ✅ Minor update |
+| @react-native-community/netinfo | v11 | v12.0.1 | ✅ Minor update |
+| react-native-haptic-feedback | v2.2 | v2.3.3 | ✅ Minor update |
+| react-native-permissions | v4 | v5.4.4 | ⚠️ API o'zgardi |
+| react-native-device-info | v11 | v15.0.2 | ✅ Mostly compat |
+| @react-native-google-signin | v12 | v16.1.1 | ⚠️ API o'zgardi (stub) |
+| react-native-toast-message | v2.2 | v2.3.3 | ✅ Minor update |
+| date-fns | v3.6 | v4.1.0 | ✅ formatDistanceToNow compat |
+| react-native-animated-charts | ^1.0.3 | ❌ O'chirildi | BUG-M010 |
+| @babel/core | v7.20 | v7.29.0 | ✅ |
+| @types/react | v18 | v19.2.14 | ✅ |
+| jest | v29.6 | v30.2.0 | ✅ |
+| @testing-library/react-native | v12 | v13.3.3 | ✅ |
+| typescript | 5.0.4 | 5.9.3 | ✅ |
+| eslint | v8.19 | v8.57.1 | ✅ v8 da qoldi (v9/10 flat config RN'da tayyor emas) |
+| detox | — | v20.47.0 | ✅ Yangi qo'shildi |
+
+### ⚠️ NATIVE REBUILD KERAK BO'LGAN PAKETLAR
+
+React Native, react-native-screens, react-native-safe-area-context, react-native-mmkv, react-native-reanimated versiyalari yangilangandan keyin:
+
+```bash
+# iOS:
+cd ios && pod install && cd ..
+
+# Android:
+cd android && ./gradlew clean && cd ..
+
+# Metro cache tozalash:
+npx react-native start --reset-cache
+```
+
+### ⚠️ REACT NATIVE 0.74 → 0.84 MIGRATION QADAMLARI
+
+1. **New Architecture** — RN 0.84 da yangi arxitektura default. `android/gradle.properties` va `ios/Podfile` da sozlash kerak.
+2. **Android Gradle** — `android/build.gradle` da `kotlinVersion`, `buildToolsVersion` yangilash.
+3. **iOS Podfile** — `platform :ios, '13.4'` → `'15.1'` (RN 0.84 minimum iOS talabi).
+4. **react-navigation v7** — Tab navigatorda `lazy` prop o'zgardi: `tabBar` opsiyasini tekshirish.
+5. **react-native-reanimated v4** — `Animated.View` o'rniga `Reanimated.View` faqat reanimated hooks bilan ishlanganda.
+
+---
+
 *docs/DebugLog.md | CineSync | Yangilangan: 2026-02-28*
