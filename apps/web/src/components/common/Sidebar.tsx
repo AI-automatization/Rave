@@ -2,40 +2,30 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import {
-  Home,
-  Film,
-  Users,
-  Swords,
-  Trophy,
-  BarChart2,
-  Bell,
-  Settings,
-  LogOut,
-  Search,
-} from 'lucide-react';
+import { FaHome, FaFilm, FaUsers, FaTrophy, FaChartBar, FaBell, FaCog, FaSignOutAlt, FaSearch } from 'react-icons/fa';
+import { GiCrossedSwords } from 'react-icons/gi';
 import Image from 'next/image';
 import { useAuthStore } from '@/store/auth.store';
 import { apiClient } from '@/lib/axios';
 import { logger } from '@/lib/logger';
 
 const NAV_ITEMS = [
-  { href: '/home',          icon: Home,     label: 'Bosh sahifa' },
-  { href: '/search',        icon: Search,   label: 'Qidirish' },
-  { href: '/movies',        icon: Film,     label: 'Filmlar' },
-  { href: '/friends',       icon: Users,    label: "Do'stlar" },
-  { href: '/battle',        icon: Swords,   label: 'Battle' },
-  { href: '/achievements',  icon: Trophy,   label: 'Yutuqlar' },
-  { href: '/stats',         icon: BarChart2, label: 'Statistika' },
+  { href: '/home',          icon: FaHome,          label: 'Bosh sahifa' },
+  { href: '/search',        icon: FaSearch,        label: 'Qidirish' },
+  { href: '/movies',        icon: FaFilm,          label: 'Filmlar' },
+  { href: '/friends',       icon: FaUsers,         label: "Do'stlar" },
+  { href: '/battle',        icon: GiCrossedSwords, label: 'Battle' },
+  { href: '/achievements',  icon: FaTrophy,        label: 'Yutuqlar' },
+  { href: '/stats',         icon: FaChartBar,      label: 'Statistika' },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { user, clearAuth } = useAuthStore();
+  const { user, refreshToken, clearAuth } = useAuthStore();
 
   const handleLogout = async () => {
     try {
-      await apiClient.post('/auth/logout');
+      await apiClient.post('/api/auth/logout', { refreshToken });
     } catch (err) {
       logger.error('Logout xatosi', err);
     } finally {
@@ -75,7 +65,7 @@ export function Sidebar() {
                     : 'text-base-content/70 hover:bg-base-300 hover:text-base-content'
                 }`}
               >
-                <Icon className="w-4 h-4 shrink-0" />
+                <Icon size={18} className="shrink-0" />
                 {label}
               </Link>
             );
@@ -88,14 +78,14 @@ export function Sidebar() {
             href="/notifications"
             className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-base-content/70 hover:bg-base-300 hover:text-base-content transition-colors"
           >
-            <Bell className="w-4 h-4" />
+            <FaBell size={18} />
             Bildirishnomalar
           </Link>
           <Link
             href="/settings"
             className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-base-content/70 hover:bg-base-300 hover:text-base-content transition-colors"
           >
-            <Settings className="w-4 h-4" />
+            <FaCog size={18} />
             Sozlamalar
           </Link>
 
@@ -122,9 +112,9 @@ export function Sidebar() {
               <button
                 onClick={() => void handleLogout()}
                 className="btn btn-ghost btn-xs btn-circle"
-                aria-label="Chiqish"
+                aria-label="Logout"
               >
-                <LogOut className="w-3 h-3" />
+                <FaSignOutAlt size={14} />
               </button>
             </div>
           )}
@@ -144,7 +134,7 @@ export function Sidebar() {
                   active ? 'text-primary' : 'text-base-content/50'
                 }`}
               >
-                <Icon className="w-5 h-5" />
+                <Icon size={23} />
                 <span className="text-[10px]">{label}</span>
               </Link>
             );

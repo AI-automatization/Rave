@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ChevronRight } from 'lucide-react';
+import { FaChevronRight } from 'react-icons/fa';
 import { HeroBanner } from '@/components/movie/HeroBanner';
 import { MovieCard } from '@/components/movie/MovieCard';
 import { logger } from '@/lib/logger';
@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: 'Bosh sahifa' };
 export const revalidate = 600;
 
 async function fetchMovies(path: string): Promise<IMovie[]> {
-  const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost';
+  const base = process.env.CONTENT_SERVICE_URL ?? 'http://localhost:3003/api/v1';
   try {
     const res = await fetch(`${base}${path}`, { next: { revalidate: 600 } });
     if (!res.ok) return [];
@@ -57,7 +57,7 @@ function Section({ title, href, movies }: { title: string; href: string; movies:
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-display">{title.toUpperCase()}</h2>
         <Link href={href} className="flex items-center gap-1 text-sm text-primary hover:underline">
-          Hammasi <ChevronRight className="w-4 h-4" />
+          Hammasi <FaChevronRight size={18} />
         </Link>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">

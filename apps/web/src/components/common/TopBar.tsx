@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Search, Bell, User } from 'lucide-react';
+import { FaSearch, FaBell, FaUser } from 'react-icons/fa';
 import { useAuthStore } from '@/store/auth.store';
 
 export function TopBar() {
@@ -28,7 +28,7 @@ export function TopBar() {
         {/* Search bar */}
         <form onSubmit={handleSearch} className="flex-1 max-w-lg">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-base-content/40" />
+            <FaSearch size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40" />
             <input
               name="q"
               type="search"
@@ -42,7 +42,7 @@ export function TopBar() {
         {/* Right actions */}
         <div className="flex items-center gap-2">
           <Link href="/notifications" className="btn btn-ghost btn-sm btn-circle" aria-label="Bildirishnomalar">
-            <Bell className="w-4 h-4" />
+            <FaBell size={18} />
           </Link>
           {user ? (
             <Link href={`/profile/${user.username}`} className="btn btn-ghost btn-sm btn-circle">
@@ -53,7 +53,7 @@ export function TopBar() {
                   </div>
                 </div>
               ) : (
-                <User className="w-4 h-4" />
+                <FaUser size={18} />
               )}
             </Link>
           ) : (

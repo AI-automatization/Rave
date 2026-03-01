@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Swords, Plus, Trophy, X } from 'lucide-react';
+import { FaPlus, FaTrophy, FaTimes } from 'react-icons/fa';
+import { GiCrossedSwords } from 'react-icons/gi';
 import { BattleCard } from '@/components/battle/BattleCard';
 import { apiClient } from '@/lib/axios';
 import { useAuthStore } from '@/store/auth.store';
@@ -65,7 +66,7 @@ export default function BattlePage() {
           className="btn btn-primary btn-sm gap-2"
           onClick={() => setShowCreate(true)}
         >
-          <Plus className="w-4 h-4" />
+          <FaPlus size={18} />
           Yangi battle
         </button>
       </div>
@@ -77,7 +78,7 @@ export default function BattlePage() {
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-display text-xl">BATTLE YARATISH</h3>
               <button className="btn btn-ghost btn-sm btn-circle" onClick={() => setShowCreate(false)}>
-                <X className="w-4 h-4" />
+                <FaTimes size={18} />
               </button>
             </div>
             {createError && <div className="alert alert-error text-sm mb-3">{createError}</div>}
@@ -125,7 +126,7 @@ export default function BattlePage() {
         </div>
       ) : battles.length === 0 ? (
         <div className="text-center py-20">
-          <Swords className="w-16 h-16 mx-auto text-base-content/10 mb-4" />
+          <GiCrossedSwords size={74} className="mx-auto text-base-content/10 mb-4" />
           <p className="text-base-content/40 mb-4">Hali battle yo&apos;q</p>
           <button className="btn btn-primary" onClick={() => setShowCreate(true)}>
             Birinchi battleni boshlash
@@ -156,7 +157,7 @@ export default function BattlePage() {
           {completedBattles.length > 0 && (
             <section>
               <h2 className="text-sm font-medium text-base-content/50 mb-3 uppercase tracking-wider flex items-center gap-2">
-                <Trophy className="w-4 h-4 text-accent" />
+                <FaTrophy size={18} className="text-accent" />
                 Tugatilgan
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

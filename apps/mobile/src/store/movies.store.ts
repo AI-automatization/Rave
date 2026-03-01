@@ -12,7 +12,7 @@ interface MoviesState {
   updateWatchProgress: (movieId: string, currentTime: number, progress: number) => void;
 }
 
-export const useMoviesStore = create<MoviesState>((set) => ({
+export const useMoviesStore = create<MoviesState>()((set) => ({
   trending: [],
   topRated: [],
   continueWatching: [],

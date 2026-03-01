@@ -13,7 +13,7 @@ interface NotificationState {
   remove: (id: string) => void;
 }
 
-export const useNotificationStore = create<NotificationState>((set) => ({
+export const useNotificationStore = create<NotificationState>()((set) => ({
   notifications: [],
   unreadCount: 0,
 

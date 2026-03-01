@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { UserPlus, Search, Users, UserCheck, Clock } from 'lucide-react';
+import { FaUserPlus, FaSearch, FaUsers, FaUserCheck, FaClock } from 'react-icons/fa';
 import { apiClient } from '@/lib/axios';
 import { logger } from '@/lib/logger';
 import type { ApiResponse, IFriendship, IUser } from '@/types';
@@ -87,21 +87,21 @@ export default function FriendsPage() {
           className={`tab ${tab === 'friends' ? 'tab-active' : ''}`}
           onClick={() => setTab('friends')}
         >
-          <Users className="w-4 h-4 mr-1" />
+          <FaUsers size={18} className="mr-1" />
           Do&apos;stlar ({friends.length})
         </button>
         <button
           className={`tab ${tab === 'requests' ? 'tab-active' : ''}`}
           onClick={() => setTab('requests')}
         >
-          <Clock className="w-4 h-4 mr-1" />
+          <FaClock size={18} className="mr-1" />
           So&apos;rovlar {requests.length > 0 && <span className="badge badge-primary badge-xs ml-1">{requests.length}</span>}
         </button>
         <button
           className={`tab ${tab === 'search' ? 'tab-active' : ''}`}
           onClick={() => setTab('search')}
         >
-          <Search className="w-4 h-4 mr-1" />
+          <FaSearch size={18} className="mr-1" />
           Qidirish
         </button>
       </div>
@@ -111,7 +111,7 @@ export default function FriendsPage() {
         <div className="space-y-3">
           {friends.length === 0 ? (
             <div className="text-center py-16 text-base-content/40">
-              <Users className="w-12 h-12 mx-auto mb-3 opacity-30" />
+              <FaUsers size={55} className="mx-auto mb-3 opacity-30" />
               <p>Hali do&apos;stlar yo&apos;q</p>
               <button className="btn btn-primary btn-sm mt-4" onClick={() => setTab('search')}>
                 Do&apos;st topish
@@ -160,7 +160,7 @@ export default function FriendsPage() {
         <div className="space-y-3">
           {requests.length === 0 ? (
             <div className="text-center py-16 text-base-content/40">
-              <Clock className="w-12 h-12 mx-auto mb-3 opacity-30" />
+              <FaClock size={55} className="mx-auto mb-3 opacity-30" />
               <p>So&apos;rovlar yo&apos;q</p>
             </div>
           ) : (
@@ -182,7 +182,7 @@ export default function FriendsPage() {
                     className="btn btn-primary btn-sm gap-1"
                     onClick={() => void acceptRequest(req._id)}
                   >
-                    <UserCheck className="w-3 h-3" />
+                    <FaUserCheck size={14} />
                     Qabul
                   </button>
                 </div>
@@ -196,7 +196,7 @@ export default function FriendsPage() {
       {tab === 'search' && (
         <div className="space-y-4">
           <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-base-content/40" />
+            <FaSearch size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40" />
             <input
               type="search"
               placeholder="Foydalanuvchi nomini qidiring..."
@@ -227,7 +227,7 @@ export default function FriendsPage() {
                     onClick={() => void sendRequest(u._id)}
                     title="Do'st qo'shish"
                   >
-                    <UserPlus className="w-4 h-4" />
+                    <FaUserPlus size={18} />
                   </button>
                 </div>
               </div>

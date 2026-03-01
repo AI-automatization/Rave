@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Bell, Check, CheckCheck, Trash2 } from 'lucide-react';
+import { FaBell, FaCheck, FaCheckDouble, FaTrash } from 'react-icons/fa';
 import { apiClient } from '@/lib/axios';
 import { logger } from '@/lib/logger';
 import type { ApiResponse, INotification } from '@/types';
@@ -85,7 +85,7 @@ export default function NotificationsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Bell className="w-6 h-6 text-primary" />
+          <FaBell size={28} className="text-primary" />
           <h1 className="text-3xl font-display">BILDIRISHNOMALAR</h1>
           {unreadCount > 0 && (
             <span className="badge badge-primary">{unreadCount}</span>
@@ -96,7 +96,7 @@ export default function NotificationsPage() {
             onClick={() => void markAllRead()}
             className="btn btn-ghost btn-sm gap-1"
           >
-            <CheckCheck className="w-4 h-4" />
+            <FaCheckDouble size={18} />
             Barchasini o&apos;qildi
           </button>
         )}
@@ -110,7 +110,7 @@ export default function NotificationsPage() {
         </div>
       ) : notifications.length === 0 ? (
         <div className="text-center py-20">
-          <Bell className="w-16 h-16 mx-auto text-base-content/10 mb-4" />
+          <FaBell size={74} className="mx-auto text-base-content/10 mb-4" />
           <p className="text-base-content/40">Bildirishnomalar yo&apos;q</p>
         </div>
       ) : (
@@ -144,7 +144,7 @@ export default function NotificationsPage() {
                       onClick={(e) => { e.stopPropagation(); void markRead(notif._id); }}
                       title="O'qildi"
                     >
-                      <Check className="w-3 h-3" />
+                      <FaCheck size={14} />
                     </button>
                   )}
                   <button
@@ -152,7 +152,7 @@ export default function NotificationsPage() {
                     onClick={(e) => { e.stopPropagation(); void deleteNotif(notif._id); }}
                     title="O'chirish"
                   >
-                    <Trash2 className="w-3 h-3" />
+                    <FaTrash size={14} />
                   </button>
                 </div>
               </div>

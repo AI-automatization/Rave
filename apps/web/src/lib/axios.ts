@@ -24,15 +24,21 @@ apiClient.interceptors.response.use(
   (res) => res,
   async (error) => {
     const original = error.config;
-    if (error.response?.status === 401 && !original._retry) {
+    const isAuthEndpoint = ['/auth/login', '/auth/register', '/auth/refresh']
+      .some((ep) => original.url?.includes(ep));
+    if (error.response?.status === 401 && !original._retry && !isAuthEndpoint) {
       original._retry = true;
       try {
+        const refreshToken = localStorage.getItem('refresh_token');
         const { data } = await axios.post(
-          `${BASE_URL}/auth/refresh`,
-          {},
+          `${BASE_URL}/api/auth/refresh`,
+          { refreshToken },
           { withCredentials: true },
         );
         localStorage.setItem('access_token', data.data.accessToken);
+        if (data.data.refreshToken) {
+          localStorage.setItem('refresh_token', data.data.refreshToken);
+        }
         original.headers.Authorization = `Bearer ${data.data.accessToken}`;
         return apiClient(original);
       } catch {

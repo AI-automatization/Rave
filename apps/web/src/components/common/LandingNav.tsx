@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
-import { Menu, X } from 'lucide-react';
+import { FaBars, FaTimes } from 'react-icons/fa';
 
 export function LandingNav() {
   const pathname = usePathname();
@@ -52,7 +52,7 @@ export function LandingNav() {
           onClick={() => setMenuOpen(!menuOpen)}
           aria-label="Menu"
         >
-          {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          {menuOpen ? <FaTimes size={23} /> : <FaBars size={23} />}
         </button>
       </div>
 

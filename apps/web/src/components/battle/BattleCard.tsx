@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Trophy, Clock, Film } from 'lucide-react';
+import { FaTrophy, FaClock, FaFilm } from 'react-icons/fa';
 import type { IBattle } from '@/types';
 
 interface BattleCardProps {
@@ -37,13 +37,13 @@ export function BattleCard({ battle, currentUserId }: BattleCardProps) {
           {/* Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              {isWinner && <Trophy className="w-4 h-4 text-accent" />}
+              {isWinner && <FaTrophy size={18} className="text-accent" />}
               <span className={`badge ${STATUS_CLASS[battle.status]} badge-sm`}>
                 {STATUS_LABEL[battle.status]}
               </span>
             </div>
             <div className="flex items-center gap-1 text-xs text-base-content/50">
-              <Clock className="w-3 h-3" />
+              <FaClock size={14} />
               <span>{battle.duration} kun</span>
             </div>
           </div>
@@ -82,7 +82,7 @@ export function BattleCard({ battle, currentUserId }: BattleCardProps) {
           {/* Stats */}
           <div className="flex items-center justify-between text-xs text-base-content/50">
             <div className="flex items-center gap-1">
-              <Film className="w-3 h-3" />
+              <FaFilm size={14} />
               <span>{me?.moviesWatched ?? 0} film</span>
             </div>
             {battle.status === 'active' && (
