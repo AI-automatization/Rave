@@ -44,6 +44,13 @@ firebase-adminsdk*.json
 # Test coverage
 coverage/
 
+# Playwright
+playwright-report/
+test-results/*
+!test-results/.gitkeep
+screenshots/*
+!screenshots/.gitkeep
+
 # React Native
 apps/mobile/android/.gradle/
 apps/mobile/android/app/build/

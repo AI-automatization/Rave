@@ -18,11 +18,17 @@
     "dev:admin": "cd services/admin && npm run dev",
     "typecheck": "tsc --noEmit -p tsconfig.base.json && npm run typecheck --workspaces --if-present",
     "seed": "ts-node -P scripts/tsconfig.json scripts/seed.ts",
-    "docker:dev": "docker-compose -f docker-compose.dev.yml up -d",
-    "docker:prod": "docker-compose -f docker-compose.prod.yml up -d --build",
-    "docker:down": "docker-compose -f docker-compose.dev.yml down"
+    "docker:dev": "docker compose -f docker-compose.dev.yml up -d",
+    "docker:prod": "docker compose -f docker-compose.prod.yml up -d --build",
+    "docker:down": "docker compose -f docker-compose.dev.yml down",
+    "test": "playwright test",
+    "test:web": "playwright test --project=web-chromium",
+    "test:api": "playwright test --project=api-auth --project=api-user --project=api-content --project=api-watch-party --project=api-battle --project=api-notification --project=api-admin",
+    "test:smoke": "playwright test --grep @smoke",
+    "test:report": "playwright show-report"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@types/node": "^20.11.5",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.3.3"
