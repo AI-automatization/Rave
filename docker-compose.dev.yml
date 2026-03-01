@@ -10,9 +10,9 @@ x-backend: &backend
     - cinesync_network
 
 # ─── UMUMIY BACKEND VOLUMES (hot-reload uchun) ────────────────────────────────
-x-shared-src: &shared-src
-  - ./shared/src:/app/shared/src:ro
-  - ./tsconfig.base.json:/app/tsconfig.base.json:ro
+x-shared-src:
+  - &shared1 ./shared/src:/app/shared/src:ro
+  - &shared2 ./tsconfig.base.json:/app/tsconfig.base.json:ro
 
 services:
 
@@ -41,7 +41,7 @@ services:
     container_name: cinesync_redis
     restart: unless-stopped
     ports:
-      - '6379:6379'
+      - '6380:6379'
     command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
     volumes:
       - redis_data:/data
@@ -84,7 +84,8 @@ services:
       - mongo
       - redis
     volumes:
-      - <<: *shared-src
+      - *shared1
+      - *shared2
       - ./services/auth/src:/app/services/auth/src
 
   user:
@@ -102,7 +103,8 @@ services:
       - mongo
       - redis
     volumes:
-      - <<: *shared-src
+      - *shared1
+      - *shared2
       - ./services/user/src:/app/services/user/src
       - user_uploads:/app/services/user/uploads
 
@@ -123,7 +125,8 @@ services:
       - redis
       - elasticsearch
     volumes:
-      - <<: *shared-src
+      - *shared1
+      - *shared2
       - ./services/content/src:/app/services/content/src
       - content_uploads:/app/services/content/uploads
 
@@ -142,7 +145,8 @@ services:
       - mongo
       - redis
     volumes:
-      - <<: *shared-src
+      - *shared1
+      - *shared2
       - ./services/watch-party/src:/app/services/watch-party/src
 
   battle:
@@ -160,7 +164,8 @@ services:
       - mongo
       - redis
     volumes:
-      - <<: *shared-src
+      - *shared1
+      - *shared2
       - ./services/battle/src:/app/services/battle/src
 
   notification:
@@ -178,7 +183,8 @@ services:
       - mongo
       - redis
     volumes:
-      - <<: *shared-src
+      - *shared1
+      - *shared2
       - ./services/notification/src:/app/services/notification/src
 
   admin:
@@ -198,7 +204,8 @@ services:
       - mongo
       - redis
     volumes:
-      - <<: *shared-src
+      - *shared1
+      - *shared2
       - ./services/admin/src:/app/services/admin/src
 
   # ═══════════════════════════════════════════════════════════════
