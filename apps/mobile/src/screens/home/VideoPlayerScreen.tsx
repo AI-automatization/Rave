@@ -32,6 +32,9 @@ export default function VideoPlayerScreen({ navigation, route }: Props) {
   const videoRef = useRef<Video>(null);
   const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isCompletedRef = useRef(false);
+  // BUG-M011: stale closure oldini olish — doim joriy qiymatlar saqlanadi
+  const latestTimeRef = useRef(startTime);
+  const latestDurationRef = useRef(0);
 
   const [paused, setPaused] = useState(false);
   const [duration, setDuration] = useState(0);
@@ -66,11 +69,15 @@ export default function VideoPlayerScreen({ navigation, route }: Props) {
   const handleProgress = useCallback(
     ({ currentTime: ct, seekableDuration }: OnProgressData) => {
       setCurrentTime(ct);
+      // BUG-M011: ref ni yangilaymiz — timer callback har doim joriy qiymatni oladi
+      latestTimeRef.current = ct;
+      latestDurationRef.current = seekableDuration;
 
       // Debounced save every 30s
       if (!saveTimerRef.current) {
         saveTimerRef.current = setTimeout(() => {
-          saveProgress(ct, seekableDuration);
+          // Ref dan o'qiymiz — stale closure emas
+          saveProgress(latestTimeRef.current, latestDurationRef.current);
           saveTimerRef.current = null;
         }, PROGRESS_SAVE_INTERVAL);
       }
@@ -89,9 +96,9 @@ export default function VideoPlayerScreen({ navigation, route }: Props) {
 
   const handleLoad = ({ duration: d, currentTime: ct }: OnLoadData) => {
     setDuration(d);
-    setCurrentTime(ct);
+    // BUG-M019: startTime mavjud bo'lsa uni ishlatamiz — ikki marta o'rnatishdan saqlanish
+    setCurrentTime(startTime > 0 ? startTime : ct);
     setBuffering(false);
-    // Seek to saved position
     if (startTime > 0) {
       videoRef.current?.seek(startTime);
     }

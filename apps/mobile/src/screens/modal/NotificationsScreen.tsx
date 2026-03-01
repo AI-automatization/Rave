@@ -114,7 +114,8 @@ export default function NotificationsScreen({ navigation }: Props) {
       if (!item.isRead) markRead(item._id);
       const route = MODAL_ROUTES[item.type];
       if (!route) return;
-      navigation.goBack();
+      // BUG-M006: goBack() dan oldin navigate() — race condition oldini olish
+      // navigate avval stack ga qo'shadi, keyin goBack() Notifications ni olib tashlaydi
       if (route === 'WatchParty') {
         const roomId = item.data?.roomId as string | undefined;
         if (roomId) navigation.navigate('WatchParty', { roomId });
@@ -122,6 +123,7 @@ export default function NotificationsScreen({ navigation }: Props) {
         const battleId = item.data?.battleId as string | undefined;
         if (battleId) navigation.navigate('Battle', { battleId });
       }
+      navigation.goBack();
     },
     [markRead, navigation],
   );

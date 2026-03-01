@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -20,6 +20,7 @@ import Toast from 'react-native-toast-message';
 import { colors, spacing, borderRadius, typography } from '@theme/index';
 import { useMovieDetail } from '@hooks/useMovieDetail';
 import { contentApi } from '@api/content.api';
+import { useAuthStore } from '@store/auth.store';
 import RatingWidget from '@components/RatingWidget';
 import type { HomeStackParams, RootStackParams } from '@navigation/types';
 
@@ -33,7 +34,15 @@ export default function MovieDetailScreen({ navigation, route }: Props) {
   const { movieId } = route.params;
   const rootNav = useNavigation<RootNav>();
   const { movie, ratings, isLoading } = useMovieDetail(movieId);
+  const userId = useAuthStore((s) => s.user?._id);
   const hasRated = useRef(false);
+
+  // BUG-M012: server dan kelgan rating ma'lumotini tekshiramiz — faqat xotirada saqlamaydi
+  useEffect(() => {
+    if (userId && ratings.length > 0) {
+      hasRated.current = ratings.some((r) => r.userId === userId);
+    }
+  }, [ratings.length, userId]);
 
   const handlePlay = () => {
     if (!movie) return;

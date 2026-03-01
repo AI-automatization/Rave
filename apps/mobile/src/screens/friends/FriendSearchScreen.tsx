@@ -3,52 +3,21 @@ import {
   View,
   Text,
   TextInput,
-  FlatList,
   TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import FastImage from 'react-native-fast-image';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import Toast from 'react-native-toast-message';
 
 import { colors, spacing, borderRadius, typography } from '@theme/index';
-import { userApi } from '@api/user.api';
 import type { FriendsStackParams } from '@navigation/types';
-import type { IUserPublic } from '@types/index';
+
+// BUG-M018: dead code va keraksiz API chaqiruv olib tashlandi — feature hali tayyor emas
 
 type Props = NativeStackScreenProps<FriendsStackParams, 'FriendSearch'>;
 
 export default function FriendSearchScreen({ navigation }: Props) {
   const [query, setQuery] = useState('');
-  const qc = useQueryClient();
-  const [sentIds, setSentIds] = useState<Set<string>>(new Set());
-
-  // Reuse content search with user search stub — using friend list filter locally
-  const { data: friends = [] } = useQuery({
-    queryKey: ['friends'],
-    queryFn: async () => {
-      const res = await userApi.getFriends();
-      return res.data ?? [];
-    },
-    staleTime: 2 * 60 * 1000,
-  });
-
-  const friendIds = new Set(friends.map((f) => f._id));
-
-  const handleSend = async (userId: string) => {
-    try {
-      await userApi.sendFriendRequest(userId);
-      setSentIds((prev) => new Set([...prev, userId]));
-      qc.invalidateQueries({ queryKey: ['friends'] });
-      Toast.show({ type: 'success', text1: "Do'stlik so'rovi yuborildi!" });
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Xatolik';
-      Toast.show({ type: 'error', text1: msg });
-    }
-  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>

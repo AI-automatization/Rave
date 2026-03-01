@@ -20,8 +20,10 @@ import type { AuthStackParams } from '@navigation/types';
 
 type Props = NativeStackScreenProps<AuthStackParams, 'Login'>;
 
+// BUG-M015: process.env RN da Babel transform olmasa undefined qaytaradi
+// react-native-config o'rnatilganda: import Config from 'react-native-config'; Config.GOOGLE_WEB_CLIENT_ID
 GoogleSignin.configure({
-  webClientId: process.env.GOOGLE_WEB_CLIENT_ID,
+  webClientId: (process.env.GOOGLE_WEB_CLIENT_ID as string | undefined) ?? '',
   offlineAccess: true,
 });
 

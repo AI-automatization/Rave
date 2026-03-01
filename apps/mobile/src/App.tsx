@@ -27,18 +27,21 @@ const queryClient = new QueryClient({
 });
 
 function AppContent() {
-  const { setUser, logout, setLoading, hydrateFromStorage, user } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
 
+  // BUG-APP-003: [user?._id] → [user?._id, user?.username] — username o'zgarganda ham Sentry yangilanadi
   useEffect(() => {
     if (user) setUserContext(user._id, user.username);
     else clearUserContext();
-  }, [user?._id]);
+  }, [user?._id, user?.username]);
 
   useSocket();
   useHeartbeat();
 
+  // BUG-APP-002: Zustand getState() — dep array bo'sh qoladi, ESLint warning yo'q
   useEffect(() => {
     async function bootstrap() {
+      const { hydrateFromStorage, setLoading, setUser, logout } = useAuthStore.getState();
       const hasTokens = hydrateFromStorage();
 
       if (!hasTokens) {
@@ -63,15 +66,22 @@ function AppContent() {
     bootstrap();
   }, []);
 
+  // BUG-APP-001: FCM faqat login bo'lganda ro'yxatdan o'tkaziladi — 401 xatosi oldini olish
   useEffect(() => {
+    if (!isAuthenticated) return;
+
+    let unsubscribeFcm: (() => void) | undefined;
+
     async function setupPush() {
       const granted = await requestNotificationPermission();
       if (granted) {
-        await registerFcmToken();
+        unsubscribeFcm = await registerFcmToken();
       }
     }
     setupPush();
-  }, []);
+
+    return () => { unsubscribeFcm?.(); };
+  }, [isAuthenticated]);
 
   return <AppNavigator />;
 }

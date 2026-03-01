@@ -10,6 +10,7 @@ import {
   Platform,
   Dimensions,
   Animated,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Video, { OnProgressData } from 'react-native-video';
@@ -38,6 +39,8 @@ export default function WatchPartyScreen({ navigation, route }: Props) {
   const isOwner = room?.ownerId === userId;
 
   const videoRef = useRef<Video>(null);
+  // BUG-M020: owner joriy vaqtni kuzatadi — play/pause commandlarida ishlatiladi
+  const localTimeRef = useRef(0);
   const [chatInput, setChatInput] = useState('');
   const [showInvite, setShowInvite] = useState(false);
   const chatListRef = useRef<FlatList>(null);
@@ -73,15 +76,18 @@ export default function WatchPartyScreen({ navigation, route }: Props) {
   }, [syncState?.serverTimestamp]);
 
   const handleProgress = ({ currentTime }: OnProgressData) => {
-    // Only owner controls sync
+    // BUG-M020: owner joriy vaqtni ref da saqlaymiz — server sync command uchun
+    if (isOwner) localTimeRef.current = currentTime;
   };
 
   const handlePlayPause = () => {
     if (!isOwner) return;
+    // localTimeRef — eng yangi vaqt; syncState.currentTime — fallback
+    const time = localTimeRef.current || syncState?.currentTime ?? 0;
     if (syncState?.isPlaying) {
-      watchPartySocket.pause(syncState.currentTime);
+      watchPartySocket.pause(time);
     } else {
-      watchPartySocket.play(syncState?.currentTime ?? 0);
+      watchPartySocket.play(time);
     }
   };
 
@@ -130,6 +136,12 @@ export default function WatchPartyScreen({ navigation, route }: Props) {
 
       {/* Video */}
       <View style={styles.videoContainer}>
+        {/* BUG-M024: videoUrl bo'sh bo'lganda video o'rniga loader ko'rsatamiz */}
+        {!videoUrl ? (
+          <View style={styles.videoLoading}>
+            <ActivityIndicator color={colors.primary} size="large" />
+          </View>
+        ) : (
         <Video
           ref={videoRef}
           source={{ uri: videoUrl, type: 'm3u8' }}
@@ -142,6 +154,7 @@ export default function WatchPartyScreen({ navigation, route }: Props) {
             isBuffering ? watchPartySocket.bufferStart() : watchPartySocket.bufferEnd();
           }}
         />
+        )}
         {/* Play/Pause overlay (owner only) */}
         {isOwner && (
           <TouchableOpacity style={styles.videoOverlay} onPress={handlePlayPause}>
@@ -178,7 +191,8 @@ export default function WatchPartyScreen({ navigation, route }: Props) {
         <FlatList
           ref={chatListRef}
           data={messages}
-          keyExtractor={(_, i) => i.toString()}
+          // BUG-M013: index unstable — userId+timestamp kombinatsiyasi
+          keyExtractor={(item, i) => `${item.userId}-${item.timestamp}-${i}`}
           renderItem={renderMessage}
           onContentSizeChange={() => chatListRef.current?.scrollToEnd()}
           style={styles.chatList}
@@ -242,6 +256,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   video: { width: '100%', height: '100%' },
+  videoLoading: { width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center', backgroundColor: '#000' },
   videoOverlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
   overlayPlay: { fontSize: 48, color: 'rgba(255,255,255,0.8)' },
   emojiOverlay: {

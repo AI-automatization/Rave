@@ -52,7 +52,8 @@ export default function BattleScreen({ navigation, route }: Props) {
       return res.data ?? [];
     },
     staleTime: 30 * 1000,
-    refetchInterval: 60 * 1000, // auto-refresh every 1min
+    // BUG-M022: faqat active battle da refetch — tugallangan/bekor qilinganda keraksiz API chaqiruv yo'q
+    refetchInterval: battle?.status === 'active' ? 60 * 1000 : false,
   });
 
   const handleAccept = async () => {

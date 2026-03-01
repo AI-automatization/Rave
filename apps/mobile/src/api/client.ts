@@ -36,7 +36,18 @@ function createClient(baseURL: string) {
 
   // Auto-refresh on 401
   let isRefreshing = false;
-  let queue: Array<(token: string) => void> = [];
+  // BUG-M007: reject ham saqlanadi — refresh muvaffaqiyatsiz bo'lganda memory leak oldini olish
+  let queue: Array<{ resolve: (token: string) => void; reject: (err: unknown) => void }> = [];
+
+  const flushQueue = (token: string) => {
+    queue.forEach(({ resolve }) => resolve(token));
+    queue = [];
+  };
+
+  const rejectQueue = (err: unknown) => {
+    queue.forEach(({ reject }) => reject(err));
+    queue = [];
+  };
 
   client.interceptors.response.use(
     response => response,
@@ -48,10 +59,13 @@ function createClient(baseURL: string) {
       }
 
       if (isRefreshing) {
-        return new Promise(resolve => {
-          queue.push((token: string) => {
-            originalRequest.headers.Authorization = `Bearer ${token}`;
-            resolve(client(originalRequest));
+        return new Promise((resolve, reject) => {
+          queue.push({
+            resolve: (token: string) => {
+              originalRequest.headers.Authorization = `Bearer ${token}`;
+              resolve(client(originalRequest));
+            },
+            reject,
           });
         });
       }
@@ -70,15 +84,16 @@ function createClient(baseURL: string) {
         tokenStorage.setAccessToken(newAccessToken);
         tokenStorage.setRefreshToken(newRefreshToken);
 
-        queue.forEach(cb => cb(newAccessToken));
-        queue = [];
+        flushQueue(newAccessToken);
 
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
         return client(originalRequest);
-      } catch {
+      } catch (refreshError) {
+        // BUG-M007: barcha pending promislarni reject qilamiz
+        rejectQueue(refreshError);
         tokenStorage.clearAll();
         // Navigation to login is handled by authStore listener
-        return Promise.reject(error);
+        return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
       }

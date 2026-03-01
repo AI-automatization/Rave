@@ -62,11 +62,31 @@
 
 # ═══════════════════════════════════════
 
-# 🟢 EMIRHAN — REACT NATIVE MOBILE ✅ BARCHA TASKLAR TUGADI
+# 🟢 EMIRHAN — REACT NATIVE MOBILE
 
 # ═══════════════════════════════════════
 
 *T-E001..T-E011 — Done.md F-023..F-034 ga ko'chirildi*
+
+## ✅ Barcha buglar tuzatildi (2026-03-01)
+
+### ✅ T-E012 | P2 | [MOBILE] | O'rta buglar tuzatish (BUG-M009..M019) — TUGADI
+### ✅ T-E013 | P3 | [MOBILE] | Past buglar tuzatish (BUG-M020..M024) — TUGADI
+
+- **Sana:** 2026-03-01
+- **Mas'ul:** Emirhan
+- **Holat:** ⏳ Kutmoqda
+- **Buglar:**
+  - [ ] BUG-M009 — WatchPartyCreateScreen: goBack+navigate race
+  - [ ] BUG-M010 — useSearch: JSON.parse catch yo'q
+  - [ ] BUG-M011 — VideoPlayerScreen: stale closure progress
+  - [ ] BUG-M012 — MovieDetailScreen: hasRated.current server tekshirilmaydi
+  - [ ] BUG-M013 — WatchPartyScreen: FlatList keyExtractor index
+  - [ ] BUG-M014 — MainTabs: notification badge noto'g'ri tabda
+  - [ ] BUG-M015 — LoginScreen: GoogleSignin.configure har render da
+  - [ ] BUG-M017 — useHomeData: progress < 90 chegarasi
+  - [ ] BUG-M018 — FriendSearchScreen: dead code + keraksiz API
+  - [ ] BUG-M019 — VideoPlayerScreen: setCurrentTime + seek ikki marta
 
 ---
 

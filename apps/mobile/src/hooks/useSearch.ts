@@ -16,7 +16,12 @@ export function useSearch() {
   // Load history on mount
   useEffect(() => {
     AsyncStorage.getItem(HISTORY_KEY).then((raw) => {
-      if (raw) setHistory(JSON.parse(raw));
+      // BUG-M010: corrupted storage crashdan himoya
+      try {
+        if (raw) setHistory(JSON.parse(raw));
+      } catch {
+        AsyncStorage.removeItem(HISTORY_KEY);
+      }
     });
   }, []);
 

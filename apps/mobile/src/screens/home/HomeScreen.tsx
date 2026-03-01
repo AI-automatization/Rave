@@ -99,7 +99,10 @@ export default function HomeScreen({ navigation }: Props) {
           title="Trendda"
           movies={trending}
           onMoviePress={handleMoviePress}
-          onSeeAll={() => navigation.navigate('MovieDetail', { movieId: trending[0]?._id })}
+          // BUG-M005: trending bo'sh bo'lganda _id undefined → crash oldini olish
+          onSeeAll={trending.length > 0
+            ? () => navigation.navigate('MovieDetail', { movieId: trending[0]._id })
+            : undefined}
         />
 
         {/* Top rated */}

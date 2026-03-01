@@ -603,4 +603,73 @@
 
 ---
 
-_docs/Done.md | CineSync | Yangilangan: 2026-03-01 (Emirhan: E001..E011 ✅ + F-037 bugfix | Jafar: J001..J006 ✅ | T-C002 ✅)_
+---
+
+### F-038 | 2026-03-01 | [MOBILE] | P1 Kritik bug audit + 8 ta fix — BUG-M001..M008
+
+- **Mas'ul:** Emirhan
+
+**BUG-M001 (P1)** — `socket/client.ts`
+- Eski socket disconnect bo'lmagan holda qayta ulanilganda event handlerlar qayta biriktirilish muammosi
+- Yechim: `connectSocket()` da `socket.removeAllListeners()` + `disconnect()` + `socket = null` qo'shildi
+
+**BUG-M002 (P1)** — `socket/client.ts:53`
+- Token `null` bo'lganda `"Bearer null"` yuborilardi → server auth xatosi + 10 marta qayta ulanish
+- Yechim: `if (!token) throw new Error(...)` — null tokendan himoya
+
+**BUG-M003 (P1)** — `SplashScreen.tsx:12`
+- `Animated.Value` har re-render da yangi instance yaratilardi → animation reset + memory leak
+- Yechim: `useRef(new Animated.Value(0)).current` ishlatildi
+
+**BUG-M004 (P1)** — `HomeScreen.tsx:102`
+- `trending[0]?._id` undefined bo'lganda MovieDetailScreen da crash
+- Yechim: `trending.length > 0 ? ... : undefined` — conditional onSeeAll
+
+**BUG-M005 (P1)** — `NotificationsScreen.tsx:117`
+- `navigation.goBack()` + `navigation.navigate()` race condition — unmounted screen dan navigate
+- Yechim: navigate avval, keyin goBack() — stack avval yangilanadi
+
+**BUG-M006 (P1)** — `api/client.ts:50`
+- Queue dagi promise lar refresh muvaffaqiyatsiz bo'lganda hech qachon reject qilinmasdi → memory leak
+- Yechim: queue type `{resolve, reject}` ga o'zgartirildi; `flushQueue/rejectQueue` helperlar qo'shildi
+
+**BUG-M007 (P1)** — `utils/notifications.ts:30`
+- `messaging().onTokenRefresh()` unsubscribe saqlanmasdi → har chaqiruvda yangi listener
+- Yechim: `registerFcmToken()` `() => void` qaytaradi; `App.tsx` da cleanup qilinadi
+
+---
+
+---
+
+### F-039 | 2026-03-01 | [MOBILE] | P2 O'rta buglar — BUG-M009..M019 (T-E012)
+
+- **Mas'ul:** Emirhan
+
+**BUG-M009** — `WatchPartyCreateScreen.tsx` — navigate avval, keyin goBack (race condition fix)
+**BUG-M010** — `hooks/useSearch.ts` — JSON.parse try/catch + corrupted storage cleanup
+**BUG-M011** — `VideoPlayerScreen.tsx` — `latestTimeRef/latestDurationRef` qo'shildi — stale closure fix
+**BUG-M012** — `MovieDetailScreen.tsx` — `useAuthStore` + `useEffect` — server ratings dan `hasRated` sync
+**BUG-M013** — `WatchPartyScreen.tsx` — FlatList `keyExtractor`: index → `userId-timestamp-i`
+**BUG-M014** — `MainTabs.tsx` — notification badge: FriendsTab → HomeTab
+**BUG-M015** — `LoginScreen.tsx` — `process.env` fallback `?? ''` + react-native-config yoʻl-yoʻriq
+**BUG-M017** — `hooks/useHomeData.ts` — `progress < 90` → `!h.isCompleted` (server flag)
+**BUG-M018** — `FriendSearchScreen.tsx` — dead code olib tashlandi (useQuery, sentIds, friendIds, handleSend)
+**BUG-M019** — `VideoPlayerScreen.tsx` — `handleLoad`: `setCurrentTime(startTime > 0 ? startTime : ct)`
+
+---
+
+---
+
+### F-040 | 2026-03-01 | [MOBILE] | P3 Past buglar — BUG-M020..M024 (T-E013)
+
+- **Mas'ul:** Emirhan
+
+**BUG-M020** — `WatchPartyScreen.tsx` — `handleProgress`: `localTimeRef` qo'shildi; `handlePlayPause` joriy vaqtdan foydalanadi
+**BUG-M021** — `ProfileScreen.tsx:72` — avatar initial: `?? '?'` fallback qo'shildi
+**BUG-M022** — `BattleScreen.tsx:55` — `refetchInterval`: `battle?.status === 'active' ? 60000 : false`
+**BUG-M023** — `api/client.ts` — F-038 da allaqachon tuzatilgan (`refreshError` qaytariladi)
+**BUG-M024** — `WatchPartyScreen.tsx` — bo'sh `videoUrl` da `ActivityIndicator` ko'rsatiladi
+
+---
+
+_docs/Done.md | CineSync | Yangilangan: 2026-03-01 (Emirhan: E001..E011 ✅ + F-037 + F-038 P1 + F-039 P2 + F-040 P3 bugfix | Jafar: J001..J006 ✅ | T-C002 ✅)_

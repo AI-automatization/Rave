@@ -51,6 +51,15 @@ export function connectSocket(): Socket {
   if (socket?.connected) return socket;
 
   const token = tokenStorage.getAccessToken();
+  // BUG-M002: token null bo'lsa server "Bearer null" ko'radi — to'xtatamiz
+  if (!token) throw new Error('No access token — cannot connect socket');
+
+  // BUG-M001: eski socket bo'lsa handlerlarni tozalab qayta ulaymiz
+  if (socket) {
+    socket.removeAllListeners();
+    socket.disconnect();
+    socket = null;
+  }
 
   socket = io(SOCKET_URL, {
     auth: { token: `Bearer ${token}` },

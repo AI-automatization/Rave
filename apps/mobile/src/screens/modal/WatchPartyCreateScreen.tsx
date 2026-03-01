@@ -41,8 +41,9 @@ export default function WatchPartyCreateScreen({ navigation, route }: Props) {
         setRoom(res.data);
         connectSocket();
         watchPartySocket.joinRoom(res.data._id);
-        navigation.goBack();
+        // BUG-M009: navigate avval stack ga qo'shadi, keyin goBack — race condition oldini olish
         rootNav.navigate('WatchParty', { roomId: res.data._id });
+        navigation.goBack();
       } else {
         Toast.show({ type: 'error', text1: res.message || 'Xona yaratishda xatolik' });
       }

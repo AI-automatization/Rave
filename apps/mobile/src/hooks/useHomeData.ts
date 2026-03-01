@@ -21,8 +21,9 @@ export function useHomeData() {
     queryKey: ['watch-history'],
     queryFn: () => contentApi.getWatchHistory(1, 10),
     staleTime: 2 * 60 * 1000,
+    // BUG-M017: isCompleted server tomonidan belgilanadi — progress chegarasiga ishonch kamroq
     select: (res) =>
-      (res.data ?? []).filter((h) => h.progress > 0 && h.progress < 90),
+      (res.data ?? []).filter((h) => h.progress > 0 && !h.isCompleted),
   });
 
   const isLoading = trending.isLoading || topRated.isLoading;

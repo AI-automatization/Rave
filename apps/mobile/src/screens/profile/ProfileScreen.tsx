@@ -69,7 +69,8 @@ export default function ProfileScreen({ navigation }: Props) {
             />
           ) : (
             <View style={styles.avatarPlaceholder}>
-              <Text style={styles.avatarInitial}>{user?.username?.[0]?.toUpperCase()}</Text>
+              {/* BUG-M021: undefined Text crash oldini olish */}
+              <Text style={styles.avatarInitial}>{user?.username?.[0]?.toUpperCase() ?? '?'}</Text>
             </View>
           )}
           <Text style={styles.username}>{user?.username}</Text>

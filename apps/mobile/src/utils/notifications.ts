@@ -21,13 +21,16 @@ export async function requestNotificationPermission(): Promise<boolean> {
   );
 }
 
-export async function registerFcmToken(): Promise<void> {
+// BUG-M008: unsubscribe funksiyasi qaytariladi — App.tsx da cleanup uchun
+export async function registerFcmToken(): Promise<() => void> {
   const token = await messaging().getToken();
   if (token) {
     await userApi.addFcmToken(token);
   }
 
-  messaging().onTokenRefresh(async (newToken) => {
+  const unsubscribe = messaging().onTokenRefresh(async (newToken) => {
     await userApi.addFcmToken(newToken);
   });
+
+  return unsubscribe;
 }

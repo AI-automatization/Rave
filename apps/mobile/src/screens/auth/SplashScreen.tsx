@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { colors, typography } from '@theme/index';
@@ -9,7 +9,8 @@ type Props = NativeStackScreenProps<AuthStackParams, 'Splash'>;
 
 export default function SplashScreen({ navigation }: Props) {
   const { isLoading, isAuthenticated } = useAuthStore();
-  const opacity = new Animated.Value(0);
+  // BUG-M004: useRef ichida — har re-render yangi instance yaratilmasligi uchun
+  const opacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.timing(opacity, {
