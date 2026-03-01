@@ -26,7 +26,7 @@ export const createApp = (redis: Redis, elastic: ElasticsearchClient): express.A
   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
   app.get('/api-docs.json', (_req, res) => res.json(swaggerSpec));
 
-  app.use('/api/v1/movies', createContentRouter(redis, elastic));
+  app.use('/api/v1/content', createContentRouter(redis, elastic));
 
   app.use(notFoundHandler);
   app.use(errorHandler);

@@ -12,25 +12,25 @@ test.describe('User Service @smoke @api', () => {
     expect(res.status()).toBe(200);
   });
 
-  test('GET /api/v1/users/profile — token yo\'q → 401', async ({ request }) => {
-    const res = await request.get('/api/v1/users/profile');
+  test('GET /api/v1/users/me — token yo\'q → 401', async ({ request }) => {
+    const res = await request.get('/api/v1/users/me');
     expect(res.status()).toBe(401);
   });
 
-  test('GET /api/v1/users/:id — token yo\'q → 401', async ({ request }) => {
+  test('GET /api/v1/users/:id — public route, mavjud bo\'lmagan ID → 404', async ({ request }) => {
     const res = await request.get('/api/v1/users/000000000000000000000001');
-    expect(res.status()).toBe(401);
+    expect(res.status()).toBe(404);
   });
 
-  test('PATCH /api/v1/users/profile — token yo\'q → 401', async ({ request }) => {
-    const res = await request.patch('/api/v1/users/profile', {
+  test('PATCH /api/v1/users/me — token yo\'q → 401', async ({ request }) => {
+    const res = await request.patch('/api/v1/users/me', {
       data: { bio: 'test' },
     });
     expect(res.status()).toBe(401);
   });
 
-  test('GET /api/v1/users/search — token yo\'q → 401', async ({ request }) => {
-    const res = await request.get('/api/v1/users/search?q=test');
+  test('GET /api/v1/users/me/friends — token yo\'q → 401', async ({ request }) => {
+    const res = await request.get('/api/v1/users/me/friends');
     expect(res.status()).toBe(401);
   });
 });

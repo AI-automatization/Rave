@@ -19,13 +19,13 @@ test.describe('Battle Service @smoke @api', () => {
     expect(res.status()).toBe(401);
   });
 
-  test('GET /api/v1/battles — token yo\'q → 401', async ({ request }) => {
-    const res = await request.get('/api/v1/battles');
+  test('GET /api/v1/battles/me — token yo\'q → 401', async ({ request }) => {
+    const res = await request.get('/api/v1/battles/me');
     expect(res.status()).toBe(401);
   });
 
-  test('GET /api/v1/battles/leaderboard — public yoki protected', async ({ request }) => {
-    const res = await request.get('/api/v1/battles/leaderboard');
-    expect([200, 401]).toContain(res.status());
+  test('GET /api/v1/battles/:id/leaderboard — token yo\'q → 401', async ({ request }) => {
+    const res = await request.get('/api/v1/battles/000000000000000000000001/leaderboard');
+    expect(res.status()).toBe(401);
   });
 });

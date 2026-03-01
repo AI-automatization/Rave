@@ -24,8 +24,8 @@ test.describe('Watch Party Service @smoke @api', () => {
     expect(res.status()).toBe(401);
   });
 
-  test('POST /api/v1/watch-party/rooms/:id/join — token yo\'q → 401', async ({ request }) => {
-    const res = await request.post('/api/v1/watch-party/rooms/test-room-id/join');
+  test('POST /api/v1/watch-party/rooms/join/:inviteCode — token yo\'q → 401', async ({ request }) => {
+    const res = await request.post('/api/v1/watch-party/rooms/join/test-invite-code');
     expect(res.status()).toBe(401);
   });
 });

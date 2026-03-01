@@ -12,19 +12,19 @@ test.describe('Content Service @smoke @api', () => {
     expect(res.status()).toBe(200);
   });
 
-  test('GET /api/v1/content/movies — public list', async ({ request }) => {
+  test('GET /api/v1/content/movies — public list → 200', async ({ request }) => {
     const res = await request.get('/api/v1/content/movies');
-    expect([200, 401]).toContain(res.status());
+    expect(res.status()).toBe(200);
   });
 
-  test('GET /api/v1/content/movies/:id — mavjud bo\'lmagan ID', async ({ request }) => {
+  test('GET /api/v1/content/movies/:id — mavjud bo\'lmagan ID → 404', async ({ request }) => {
     const res = await request.get('/api/v1/content/movies/000000000000000000000001');
-    expect([401, 404]).toContain(res.status());
+    expect(res.status()).toBe(404);
   });
 
-  test('GET /api/v1/content/search — query parametri', async ({ request }) => {
-    const res = await request.get('/api/v1/content/search?q=avengers');
-    expect([200, 401]).toContain(res.status());
+  test('GET /api/v1/content/movies/search — query parametri → 200', async ({ request }) => {
+    const res = await request.get('/api/v1/content/movies/search?q=avengers');
+    expect(res.status()).toBe(200);
   });
 
   test('POST /api/v1/content/movies — token yo\'q → 401', async ({ request }) => {

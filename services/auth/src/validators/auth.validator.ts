@@ -1,5 +1,6 @@
 import Joi from 'joi';
 import { PATTERNS } from '@shared/constants';
+import { ValidationError } from '@shared/utils/errors';
 
 export const registerSchema = Joi.object({
   email: Joi.string().email().lowercase().trim().required(),
@@ -41,7 +42,7 @@ export const validate = (schema: Joi.ObjectSchema) =>
     const { error } = schema.validate(req.body, { abortEarly: false });
     if (error) {
       const errors = error.details.map((d) => d.message);
-      next({ statusCode: 422, message: 'Validation failed', errors, isOperational: true });
+      next(new ValidationError('Validation failed', errors));
       return;
     }
     next();

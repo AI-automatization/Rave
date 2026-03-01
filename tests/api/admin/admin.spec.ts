@@ -17,15 +17,13 @@ test.describe('Admin Service @smoke @api', () => {
     expect(res.status()).toBe(401);
   });
 
-  test('GET /api/v1/admin/stats — token yo\'q → 401', async ({ request }) => {
-    const res = await request.get('/api/v1/admin/stats');
+  test('GET /api/v1/admin/dashboard — token yo\'q → 401', async ({ request }) => {
+    const res = await request.get('/api/v1/admin/dashboard');
     expect(res.status()).toBe(401);
   });
 
-  test('POST /api/v1/admin/content — token yo\'q → 401', async ({ request }) => {
-    const res = await request.post('/api/v1/admin/content', {
-      data: { title: 'Test' },
-    });
+  test('GET /api/v1/admin/analytics — token yo\'q → 401', async ({ request }) => {
+    const res = await request.get('/api/v1/admin/analytics');
     expect(res.status()).toBe(401);
   });
 

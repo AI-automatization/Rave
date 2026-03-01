@@ -12,18 +12,18 @@ test.describe('Auth Service @smoke @api', () => {
     expect(res.status()).toBe(200);
   });
 
-  test('POST /api/v1/auth/register — bo\'sh body → 400', async ({ request }) => {
+  test('POST /api/v1/auth/register — bo\'sh body → 422', async ({ request }) => {
     const res = await request.post('/api/v1/auth/register', {
       data: {},
     });
-    expect(res.status()).toBe(400);
+    expect(res.status()).toBe(422);
   });
 
-  test('POST /api/v1/auth/register — noto\'g\'ri email → 400', async ({ request }) => {
+  test('POST /api/v1/auth/register — noto\'g\'ri email → 422', async ({ request }) => {
     const res = await request.post('/api/v1/auth/register', {
       data: { username: 'test', email: 'notvalid', password: '123' },
     });
-    expect(res.status()).toBe(400);
+    expect(res.status()).toBe(422);
   });
 
   test('POST /api/v1/auth/login — mavjud bo\'lmagan user → 401/404', async ({ request }) => {
