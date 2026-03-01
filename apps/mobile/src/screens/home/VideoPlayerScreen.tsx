@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -40,6 +40,14 @@ export default function VideoPlayerScreen({ navigation, route }: Props) {
   const [controlsVisible, setControlsVisible] = useState(true);
   const controlsTimer = useRef<NodeJS.Timeout | null>(null);
   const updateWatchProgress = useMoviesStore((s) => s.updateWatchProgress);
+
+  // Cleanup timers on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      if (controlsTimer.current) clearTimeout(controlsTimer.current);
+    };
+  }, []);
 
   const saveProgress = useCallback(
     async (time: number, dur: number) => {

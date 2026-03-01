@@ -363,4 +363,56 @@ npx react-native start --reset-cache
 
 ---
 
-*docs/DebugLog.md | CineSync | Yangilangan: 2026-02-28*
+---
+
+## SESSION: 2026-03-01 (Mobile — Emirhan bug audit)
+
+### BUG-M012 | auth.store.ts | KRITIK — setUser() isAuthenticated ni o'zgartirmaydi
+- **Fayl:** `apps/mobile/src/store/auth.store.ts:29`
+- **Holat:** ✅ TUZATILDI (2026-03-01)
+- **Muammo:** `setUser: (user) => set({ user })` faqat `user` ni set qiladi. `App.tsx` bootstrap'da: token bor → `/auth/me` → `setUser(res.data)`. Lekin `isAuthenticated` hech qachon `true` bo'lmaydi. Natija: app qayta ishga tushirilganda (restart) foydalanuvchi login sahifasida qolib ketadi — tokenlar bor bo'lsa ham.
+- **Yechim:** `setUser: (user) => set({ user, isAuthenticated: true })`
+
+---
+
+### BUG-M013 | WatchPartyScreen.tsx:108 | KRITIK — videoUrl har doim bo'sh string
+- **Fayl:** `apps/mobile/src/screens/modal/WatchPartyScreen.tsx:108`
+- **Holat:** ✅ TUZATILDI (2026-03-01)
+- **Muammo:** `const videoUrl = room ? '' : '';` — har ikki branch ham `''` qaytaradi. Watch Party da video hech qachon yuklanmaydi (bo'sh URL).
+- **Yechim:** `const videoUrl = room?.movie?.videoUrl ?? '';`
+
+---
+
+### BUG-M014 | VideoPlayerScreen.tsx | O'RTA — timer reflar unmount'da tozalanmaydi
+- **Fayl:** `apps/mobile/src/screens/home/VideoPlayerScreen.tsx`
+- **Holat:** ✅ TUZATILDI (2026-03-01)
+- **Muammo:** `saveTimerRef` va `controlsTimer` ref'lari component unmount bo'lganda `clearTimeout` chaqirilmaydi. Component yo'q bo'lgandan keyin timer ot'sa: `saveProgress()` → destroyed store'ga yozish → memory leak / stale closure.
+- **Yechim:** `useEffect(() => () => { clearTimeout(saveTimerRef.current); clearTimeout(controlsTimer.current); }, [])` qo'shildi
+
+---
+
+### BUG-M015 | SearchScreen.tsx:32 | O'RTA — movie bosganda SearchResults ga o'tadi (MovieDetail o'rniga)
+- **Fayl:** `apps/mobile/src/screens/search/SearchScreen.tsx:32`
+- **Holat:** ✅ TUZATILDI (2026-03-01)
+- **Muammo:** `handleMoviePress` → `navigation.navigate('SearchResults', { query: movie.title })` — film nomini qayta qidiradi. Foydalanuvchi film detail sahifasiga o'tishini kutadi.
+- **Yechim:** `SearchStackParams` ga `MovieDetail` qo'shildi, `SearchNavigator` ga screen qo'shildi, handler → `navigation.navigate('MovieDetail', { movieId: movie._id })`
+
+---
+
+### BUG-M016 | SearchResultsScreen.tsx:38 | O'RTA — movie bosganda Search ga qaytadi
+- **Fayl:** `apps/mobile/src/screens/search/SearchResultsScreen.tsx:38`
+- **Holat:** ✅ TUZATILDI (2026-03-01)
+- **Muammo:** `handleMoviePress` → `navigation.navigate('Search')` — natijalar ekranida film bosganda bosh qidiruv sahifasiga qaytadi. Film detail ko'rinmaydi.
+- **Yechim:** BUG-M015 bilan bir fix — `navigation.navigate('MovieDetail', { movieId: movie._id })`
+
+---
+
+### BUG-M017 | socket/client.ts | O'RTA — MEMBER_JOINED/LEFT/KICKED va ROOM_UPDATED event handlerlari yo'q
+- **Fayl:** `apps/mobile/src/socket/client.ts`
+- **Holat:** ✅ TUZATILDI (2026-03-01)
+- **Muammo:** `SERVER_EVENTS` da `MEMBER_JOINED`, `MEMBER_LEFT`, `MEMBER_KICKED`, `MEMBER_MUTED`, `ROOM_UPDATED` konstantalari bor lekin hech bir handler `socket.on(...)` bilan ulangan emas. Watch Party da a'zo qo'shilsa/chiqsa/chiqarilsa — xona holati real-time yangilanmaydi.
+- **Yechim:** `watchParty.store.ts` ga `updateMembers` action qo'shildi. `socket/client.ts` ga 5 ta yangi handler ulandi.
+
+---
+
+*docs/DebugLog.md | CineSync | Yangilangan: 2026-03-01*

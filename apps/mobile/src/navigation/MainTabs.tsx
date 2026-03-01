@@ -40,6 +40,7 @@ function SearchNavigator() {
     <SearchStack.Navigator screenOptions={{ headerShown: false }}>
       <SearchStack.Screen name="Search" component={SearchScreen} />
       <SearchStack.Screen name="SearchResults" component={SearchResultsScreen} />
+      <SearchStack.Screen name="MovieDetail" component={MovieDetailScreen} />
     </SearchStack.Navigator>
   );
 }

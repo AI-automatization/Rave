@@ -105,7 +105,7 @@ export default function WatchPartyScreen({ navigation, route }: Props) {
     </View>
   );
 
-  const videoUrl = room ? '' : ''; // Will be populated from room.movie.videoUrl
+  const videoUrl = room?.movie?.videoUrl ?? '';
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>

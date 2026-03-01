@@ -29,7 +29,7 @@ export default function SearchScreen({ navigation }: Props) {
   const handleMoviePress = (movie: IMovie) => {
     Keyboard.dismiss();
     submit();
-    navigation.navigate('SearchResults', { query: movie.title });
+    navigation.navigate('MovieDetail', { movieId: movie._id });
   };
 
   const handleHistoryPress = (term: string) => {

@@ -25,6 +25,7 @@ export type HomeStackParams = {
 export type SearchStackParams = {
   Search: undefined;
   SearchResults: { query: string };
+  MovieDetail: { movieId: string };
 };
 
 // ─── Friends Stack ────────────────────────────────────────────────────────────

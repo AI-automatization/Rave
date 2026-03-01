@@ -109,6 +109,33 @@ export function connectSocket(): Socket {
   socket.on(SERVER_EVENTS.ROOM_MESSAGE, (msg: ChatMessage) => store().addMessage(msg));
   socket.on(SERVER_EVENTS.ROOM_EMOJI, (emoji: EmojiEvent) => store().addEmoji(emoji));
 
+  socket.on(
+    SERVER_EVENTS.ROOM_UPDATED,
+    ({ room }: { room: IWatchPartyRoom }) => store().setRoom(room),
+  );
+
+  socket.on(
+    SERVER_EVENTS.MEMBER_JOINED,
+    ({ members }: { userId: string; members: string[] }) => store().updateMembers(members),
+  );
+
+  socket.on(
+    SERVER_EVENTS.MEMBER_LEFT,
+    ({ members }: { userId: string; members: string[] }) => store().updateMembers(members),
+  );
+
+  socket.on(
+    SERVER_EVENTS.MEMBER_KICKED,
+    ({ members }: { userId: string; members: string[] }) => store().updateMembers(members),
+  );
+
+  socket.on(
+    SERVER_EVENTS.MEMBER_MUTED,
+    ({ userId, mutedBy }: { userId: string; mutedBy: string; reason?: string }) => {
+      if (__DEV__) console.log('[Socket] Member muted:', userId, 'by', mutedBy);
+    },
+  );
+
   return socket;
 }
 

@@ -10,6 +10,7 @@ interface WatchPartyState {
   isConnected: boolean;
 
   setRoom: (room: IWatchPartyRoom | null) => void;
+  updateMembers: (members: string[]) => void;
   setSyncState: (sync: SyncState) => void;
   addMessage: (msg: ChatMessage) => void;
   addEmoji: (emoji: EmojiEvent) => void;
@@ -31,6 +32,9 @@ export const useWatchPartyStore = create<WatchPartyState>()((set) => ({
   ...initialState,
 
   setRoom: (room) => set({ room }),
+
+  updateMembers: (members) =>
+    set((state) => state.room ? { room: { ...state.room, members } } : {}),
 
   setSyncState: (syncState) => set({ syncState }),
 

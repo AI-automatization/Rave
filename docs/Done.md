@@ -569,4 +569,38 @@
 
 ---
 
-_docs/Done.md | CineSync | Yangilangan: 2026-03-01 (Emirhan: E001..E011 ✅ | Jafar: J001..J006 ✅ | T-C002 ✅)_
+---
+
+### F-037 | 2026-03-01 | [MOBILE] | Mobile bug audit + 6 ta bug fix — BUG-M012..BUG-M017
+
+- **Mas'ul:** Emirhan
+- **Commit:** (pending)
+- **Bajarildi:**
+
+**BUG-M012 (KRITIK)** — `auth.store.ts`
+- `setUser()` `isAuthenticated: true` ni set qilmaydi → app restart'da login screen ko'rinardi
+- Yechim: `setUser: (user) => set({ user, isAuthenticated: true })`
+
+**BUG-M013 (KRITIK)** — `WatchPartyScreen.tsx:108`
+- `const videoUrl = room ? '' : ''` → video hech qachon yuklanmaydi
+- Yechim: `const videoUrl = room?.movie?.videoUrl ?? ''`
+
+**BUG-M014 (O'RTA)** — `VideoPlayerScreen.tsx`
+- `saveTimerRef` va `controlsTimer` unmount'da tozalanmaydi → memory leak
+- Yechim: `useEffect(() => () => { clearTimeout(saveTimerRef.current); clearTimeout(controlsTimer.current); }, [])` qo'shildi
+
+**BUG-M015 (O'RTA)** — `SearchScreen.tsx:32`
+- Movie bosganda `SearchResults` ga o'tadi → `MovieDetail` ga o'tishi kerak
+- Yechim: `SearchStackParams` ga `MovieDetail` qo'shildi, `SearchNavigator` ga screen qo'shildi, handler tuzatildi
+
+**BUG-M016 (O'RTA)** — `SearchResultsScreen.tsx:38`
+- Movie bosganda `Search` ga qaytadi → `MovieDetail` ga o'tishi kerak
+- Yechim: `navigation.navigate('MovieDetail', { movieId: movie._id })`
+
+**BUG-M017 (O'RTA)** — `socket/client.ts` + `watchParty.store.ts`
+- `MEMBER_JOINED/LEFT/KICKED/MUTED` + `ROOM_UPDATED` event handlerlari yo'q → real-time a'zolar ro'yxati yangilanmaydi
+- Yechim: `watchParty.store.ts` ga `updateMembers` action qo'shildi; socket'ga 5 ta yangi handler ulandi
+
+---
+
+_docs/Done.md | CineSync | Yangilangan: 2026-03-01 (Emirhan: E001..E011 ✅ + F-037 bugfix | Jafar: J001..J006 ✅ | T-C002 ✅)_

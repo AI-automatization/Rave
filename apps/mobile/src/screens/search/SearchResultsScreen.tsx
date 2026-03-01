@@ -35,7 +35,7 @@ export default function SearchResultsScreen({ navigation, route }: Props) {
   });
 
   const handleMoviePress = (movie: IMovie) => {
-    navigation.navigate('Search');
+    navigation.navigate('MovieDetail', { movieId: movie._id });
   };
 
   return (
