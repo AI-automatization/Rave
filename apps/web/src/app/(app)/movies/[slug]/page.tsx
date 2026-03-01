@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { Play, Users, Star, Clock, Calendar, Eye } from 'lucide-react';
+import { FaPlay, FaUsers, FaStar, FaClock, FaCalendarAlt, FaEye } from 'react-icons/fa';
 import { logger } from '@/lib/logger';
 import type { ApiResponse, IMovie } from '@/types';
 
@@ -10,7 +10,7 @@ interface Props {
   params: { slug: string };
 }
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost';
+const BASE_URL = process.env.CONTENT_SERVICE_URL ?? 'http://localhost:3003/api/v1';
 
 async function fetchMovie(slug: string): Promise<IMovie | null> {
   try {
@@ -124,20 +124,20 @@ export default async function MovieDetailPage({ params }: Props) {
             {/* Meta */}
             <div className="flex flex-wrap gap-4 text-sm text-base-content/60">
               <div className="flex items-center gap-1">
-                <Star className="w-4 h-4 fill-accent text-accent" />
+                <FaStar size={18} className="fill-accent text-accent" />
                 <span className="text-accent font-medium">{movie.rating.toFixed(1)}</span>
                 <span>/ 10 ({movie.reviewCount} ovoz)</span>
               </div>
               <div className="flex items-center gap-1">
-                <Clock className="w-4 h-4" />
+                <FaClock size={18} />
                 <span>{durationH > 0 ? `${durationH}s ${durationM}d` : `${durationM}d`}</span>
               </div>
               <div className="flex items-center gap-1">
-                <Calendar className="w-4 h-4" />
+                <FaCalendarAlt size={18} />
                 <span>{movie.year}</span>
               </div>
               <div className="flex items-center gap-1">
-                <Eye className="w-4 h-4" />
+                <FaEye size={18} />
                 <span>{movie.viewCount.toLocaleString()} ko&apos;rishlar</span>
               </div>
             </div>
@@ -161,11 +161,11 @@ export default async function MovieDetailPage({ params }: Props) {
             {/* Actions */}
             <div className="flex gap-3 flex-wrap">
               <Link href={`/watch/${movie._id}`} className="btn btn-primary gap-2">
-                <Play className="w-4 h-4 fill-current" />
+                <FaPlay size={18} className="fill-current" />
                 Ko&apos;rish
               </Link>
               <Link href={`/party/create?movieId=${movie._id}`} className="btn btn-outline gap-2">
-                <Users className="w-4 h-4" />
+                <FaUsers size={18} />
                 Watch Party
               </Link>
             </div>

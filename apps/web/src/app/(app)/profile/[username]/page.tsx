@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
-import { Film, Trophy, Star, Users, Calendar } from 'lucide-react';
+import { FaFilm, FaTrophy, FaStar, FaUsers, FaCalendarAlt } from 'react-icons/fa';
 import { logger } from '@/lib/logger';
 import type { ApiResponse, IUser, IAchievement } from '@/types';
 
@@ -9,7 +9,7 @@ interface Props {
   params: { username: string };
 }
 
-const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost';
+const BASE = process.env.USER_SERVICE_URL ?? 'http://localhost:3002/api/v1';
 
 async function fetchProfile(username: string): Promise<IUser | null> {
   try {
@@ -119,13 +119,13 @@ export default async function ProfilePage({ params }: Props) {
               {/* Stats */}
               <div className="flex gap-4 flex-wrap">
                 <div className="flex items-center gap-1 text-sm text-base-content/60">
-                  <Star className="w-4 h-4 text-accent" />
+                  <FaStar size={18} className="text-accent" />
                   <span className="font-medium text-base-content">{user.totalPoints.toLocaleString()}</span>
                   <span>points</span>
                 </div>
                 {user.lastSeenAt && !user.isOnline && (
                   <div className="flex items-center gap-1 text-sm text-base-content/50">
-                    <Calendar className="w-3 h-3" />
+                    <FaCalendarAlt size={14} />
                     <span>Oxirgi: {new Date(user.lastSeenAt).toLocaleDateString('uz')}</span>
                   </div>
                 )}
@@ -138,7 +138,7 @@ export default async function ProfilePage({ params }: Props) {
         {achievements.length > 0 && (
           <section className="space-y-4">
             <div className="flex items-center gap-2">
-              <Trophy className="w-5 h-5 text-accent" />
+              <FaTrophy size={23} className="text-accent" />
               <h2 className="text-xl font-display">YUTUQLAR ({achievements.length})</h2>
             </div>
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
@@ -164,14 +164,14 @@ export default async function ProfilePage({ params }: Props) {
         {/* Stats placeholders */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { icon: Film,   label: 'Filmlar',   val: '—' },
-            { icon: Trophy, label: 'Yutuqlar',  val: achievements.length },
-            { icon: Users,  label: "Do'stlar",  val: '—' },
-            { icon: Star,   label: 'Points',    val: user.totalPoints.toLocaleString() },
+            { icon: FaFilm,   label: 'Filmlar',   val: '—' },
+            { icon: FaTrophy, label: 'Yutuqlar',  val: achievements.length },
+            { icon: FaUsers,  label: "Do'stlar",  val: '—' },
+            { icon: FaStar,   label: 'Points',    val: user.totalPoints.toLocaleString() },
           ].map(({ icon: Icon, label, val }) => (
             <div key={label} className="card bg-base-200">
               <div className="card-body p-4 items-center text-center gap-1">
-                <Icon className="w-5 h-5 text-primary" />
+                <Icon size={23} className="text-primary" />
                 <p className="text-xl font-display">{val}</p>
                 <p className="text-xs text-base-content/50">{label}</p>
               </div>

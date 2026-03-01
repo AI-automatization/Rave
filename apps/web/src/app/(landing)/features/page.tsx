@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
-import { Play, Users, Swords, Trophy, Bell, Star, Wifi, Shield } from 'lucide-react';
+import { FaPlay, FaUsers, FaTrophy, FaBell, FaStar, FaWifi, FaShieldAlt } from 'react-icons/fa';
+import { GiCrossedSwords } from 'react-icons/gi';
 
 export const metadata: Metadata = {
   title: 'Funksiyalar',
@@ -8,7 +9,7 @@ export const metadata: Metadata = {
 
 const FEATURES = [
   {
-    icon: Play,
+    icon: FaPlay,
     title: 'Watch Party',
     features: [
       'Sinxron video playback (±2s threshold)',
@@ -20,7 +21,7 @@ const FEATURES = [
     ],
   },
   {
-    icon: Swords,
+    icon: GiCrossedSwords,
     title: 'Battle',
     features: [
       '3, 5 yoki 7 kunlik musobaqalar',
@@ -32,7 +33,7 @@ const FEATURES = [
     ],
   },
   {
-    icon: Trophy,
+    icon: FaTrophy,
     title: 'Achievement',
     features: [
       '25+ noyob yutuq',
@@ -44,7 +45,7 @@ const FEATURES = [
     ],
   },
   {
-    icon: Users,
+    icon: FaUsers,
     title: "Do'stlar",
     features: [
       'Do\'st qo\'shish/qabul qilish',
@@ -56,7 +57,7 @@ const FEATURES = [
     ],
   },
   {
-    icon: Bell,
+    icon: FaBell,
     title: 'Bildirishnomalar',
     features: [
       'Push notifications (FCM)',
@@ -68,7 +69,7 @@ const FEATURES = [
     ],
   },
   {
-    icon: Star,
+    icon: FaStar,
     title: 'Reyting',
     features: [
       'Film reyting (1-10)',
@@ -80,7 +81,7 @@ const FEATURES = [
     ],
   },
   {
-    icon: Wifi,
+    icon: FaWifi,
     title: 'HLS Video',
     features: [
       'HLS streaming (m3u8)',
@@ -92,7 +93,7 @@ const FEATURES = [
     ],
   },
   {
-    icon: Shield,
+    icon: FaShieldAlt,
     title: 'Xavfsizlik',
     features: [
       'JWT (RS256) autentifikatsiya',
@@ -121,7 +122,7 @@ export default function FeaturesPage() {
             <div className="card-body gap-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-primary/10">
-                  <Icon className="w-5 h-5 text-primary" />
+                  <Icon size={23} className="text-primary" />
                 </div>
                 <h2 className="font-display text-lg">{title.toUpperCase()}</h2>
               </div>

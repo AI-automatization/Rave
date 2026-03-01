@@ -538,4 +538,35 @@
 
 ---
 
-_docs/Done.md | CineSync | Yangilangan: 2026-02-28 (Emirhan: barcha tasklar tugadi ✅)_
+---
+
+### F-035 | 2026-02-28 | [WEB] | Next.js Web App — Sprint 1-4 (T-J001..T-J006)
+
+- **Mas'ul:** Jafar
+- **Sprint:** S1-S4
+- **Commit:** `f32c5e5 feat(web): add Next.js web app — Sprint 1-5 (T-J001..T-J007)`
+- **Bajarildi:**
+  - **T-J001** — Next.js App Router setup, Tailwind v4, Shadcn/ui, Zustand + React Query, Socket.io client, JWT auth middleware
+  - **T-J002** — Landing page: Hero, Features, How it works, Testimonials, Pricing, FAQ, JSON-LD schema, SEO metadata
+  - **T-J003** — App layout (sidebar/topbar), `(app)/home/page.tsx` (SSR+ISR), `(app)/movies/[slug]/page.tsx` (dynamic metadata + Movie JSON-LD)
+  - **T-J004** — `VideoPlayer.tsx` (hls.js, custom controls, keyboard shortcuts Space/Arrow/F/M, ±2s Watch Party sync), `(app)/search/page.tsx` (debounced, infinite scroll)
+  - **T-J005** — `(app)/party/[roomId]/page.tsx` (70% video + 30% chat split layout, sync state, floating emoji, members list), `ChatPanel.tsx`
+  - **T-J006** — `(app)/battle/page.tsx` (create modal, filter), `(app)/profile/[username]/page.tsx` (SSR, OG meta, achievements grid, rank badge), `(app)/stats/page.tsx`
+  - `manifest.json` + `robots.txt` + PWA icons (72..512px)
+  - Playwright test suite (`/tests/auth.spec.ts`) + `playwright.config.ts`
+  - API rewrites (`next.config.mjs`) → backend services (3001-3007)
+
+---
+
+### F-036 | 2026-02-28 | [IKKALASI] | Design Tokens — T-C002
+
+- **Mas'ul:** Saidazim + Emirhan + Jafar
+- **Sprint:** S1
+- **Bajarildi:**
+  - **Mobile:** `apps/mobile/src/theme/index.ts` — colors (#E50914, #0A0A0F, #111118...), spacing, borderRadius, typography (Bebas Neue / DM Sans), shadows, RANK_COLORS
+  - **Web:** `apps/web/src/app/globals.css` — Tailwind v4 `@theme` block, CSS custom properties
+  - Dark mode ONLY — barcha platform
+
+---
+
+_docs/Done.md | CineSync | Yangilangan: 2026-03-01 (Emirhan: E001..E011 ✅ | Jafar: J001..J006 ✅ | T-C002 ✅)_

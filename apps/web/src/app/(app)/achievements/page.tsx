@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Trophy, Lock } from 'lucide-react';
+import { FaTrophy, FaLock } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import { apiClient } from '@/lib/axios';
 import { logger } from '@/lib/logger';
@@ -53,7 +53,7 @@ export default function AchievementsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Trophy className="w-6 h-6 text-accent" />
+          <FaTrophy size={28} className="text-accent" />
           <h1 className="text-3xl font-display">YUTUQLAR</h1>
         </div>
         <div className="text-sm text-base-content/50">
@@ -97,7 +97,7 @@ export default function AchievementsPage() {
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-16 text-base-content/40">
-          <Trophy className="w-12 h-12 mx-auto mb-3 opacity-20" />
+          <FaTrophy size={55} className="mx-auto mb-3 opacity-20" />
           <p>Hech narsa topilmadi</p>
         </div>
       ) : (
@@ -121,7 +121,7 @@ export default function AchievementsPage() {
                   {isUnlocked ? (
                     <span className="text-2xl">{ach.icon}</span>
                   ) : (
-                    <Lock className="w-6 h-6 text-base-content/30" />
+                    <FaLock size={28} className="text-base-content/30" />
                   )}
                   <p className="text-xs font-medium line-clamp-2 leading-tight">{ach.title}</p>
                   {isUnlocked && (
@@ -152,7 +152,7 @@ export default function AchievementsPage() {
               exit={{ scale: 0.8, y: 20 }}
             >
               <div className="text-5xl mb-4">
-                {selected.unlockedAt ? selected.icon : <Lock className="w-12 h-12 mx-auto text-base-content/30" />}
+                {selected.unlockedAt ? selected.icon : <FaLock size={55} className="mx-auto text-base-content/30" />}
               </div>
               <h3 className="font-display text-2xl">{selected.title.toUpperCase()}</h3>
               <p className="text-base-content/60 text-sm mt-2">{selected.description}</p>

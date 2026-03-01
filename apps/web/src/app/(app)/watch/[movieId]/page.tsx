@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Users } from 'lucide-react';
+import { FaArrowLeft, FaUsers } from 'react-icons/fa';
 import dynamic from 'next/dynamic';
 import { apiClient } from '@/lib/axios';
 import { useAuthStore } from '@/store/auth.store';
@@ -71,11 +71,11 @@ export default function WatchPage() {
       {/* Back nav */}
       <div className="flex items-center justify-between">
         <Link href={`/movies/${movie.slug}`} className="btn btn-ghost btn-sm gap-2">
-          <ArrowLeft className="w-4 h-4" />
+          <FaArrowLeft size={18} />
           Orqaga
         </Link>
         <Link href={`/party/create?movieId=${movie._id}`} className="btn btn-outline btn-sm gap-2">
-          <Users className="w-4 h-4" />
+          <FaUsers size={18} />
           Watch Party
         </Link>
       </div>

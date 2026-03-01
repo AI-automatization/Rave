@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Play, Users, Swords, Trophy, Star, ChevronDown, ChevronRight } from 'lucide-react';
+import { FaPlay, FaUsers, FaTrophy, FaStar, FaChevronDown, FaChevronRight } from 'react-icons/fa';
+import { GiCrossedSwords } from 'react-icons/gi';
 import { LandingNav } from '@/components/common/LandingNav';
 import { Footer } from '@/components/common/Footer';
 
@@ -17,22 +18,22 @@ export const metadata: Metadata = {
 
 const FEATURES = [
   {
-    icon: Play,
+    icon: FaPlay,
     title: 'Watch Party',
     desc: "Do'stlar bilan bir vaqtda, sinxron holda film ko'ring. Har kim o'z ekranida, ammo birgalikda.",
   },
   {
-    icon: Swords,
+    icon: GiCrossedSwords,
     title: 'Battle',
     desc: "Raqibingiz bilan 3, 5 yoki 7 kunlik film ko'rish bahsiga kiring. G'olib points oladi.",
   },
   {
-    icon: Trophy,
+    icon: FaTrophy,
     title: 'Yutuqlar',
     desc: "Film ko'rish odatlaringiz uchun badge va achievement oling. Maxfiy yutuqlarni kashf eting.",
   },
   {
-    icon: Users,
+    icon: FaUsers,
     title: "Do'stlar",
     desc: "Onlayn do'stlaringizni ko'ring, film tavsiya qiling, birga Watch Party oching.",
   },
@@ -115,12 +116,12 @@ export default function LandingPage() {
             </p>
             <div className="flex gap-4 justify-center flex-wrap">
               <Link href="/register" className="btn btn-primary btn-lg gap-2">
-                <Play className="w-5 h-5 fill-current" />
+                <FaPlay size={23} className="fill-current" />
                 Boshlash — Bepul
               </Link>
               <Link href="/features" className="btn btn-outline btn-lg gap-2">
                 Batafsil
-                <ChevronRight className="w-4 h-4" />
+                <FaChevronRight size={18} />
               </Link>
             </div>
             <div className="mt-16 grid grid-cols-3 gap-6 max-w-md mx-auto">
@@ -133,7 +134,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
-            <ChevronDown className="w-6 h-6 text-base-content/30" />
+            <FaChevronDown size={28} className="text-base-content/30" />
           </div>
         </section>
 
@@ -149,7 +150,7 @@ export default function LandingPage() {
                 <div key={title} className="card bg-base-100 hover:shadow-lg transition-shadow">
                   <div className="card-body gap-3 items-start">
                     <div className="p-3 rounded-xl bg-primary/10">
-                      <Icon className="w-6 h-6 text-primary" />
+                      <Icon size={28} className="text-primary" />
                     </div>
                     <h3 className="font-display text-lg">{title.toUpperCase()}</h3>
                     <p className="text-base-content/60 text-sm">{desc}</p>
@@ -192,7 +193,7 @@ export default function LandingPage() {
                   <div className="card-body gap-3">
                     <div className="flex gap-1">
                       {Array.from({ length: stars }).map((_, i) => (
-                        <Star key={i} className="w-4 h-4 fill-accent text-accent" />
+                        <FaStar key={i} size={18} className="fill-accent text-accent" />
                       ))}
                     </div>
                     <p className="text-sm text-base-content/70">&quot;{text}&quot;</p>

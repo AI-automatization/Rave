@@ -3,7 +3,7 @@
 import { Suspense } from 'react';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Filter, SortAsc } from 'lucide-react';
+import { FaFilter, FaSortAmountUp } from 'react-icons/fa';
 import { MovieCard } from '@/components/movie/MovieCard';
 import { apiClient } from '@/lib/axios';
 import { logger } from '@/lib/logger';
@@ -28,7 +28,14 @@ function MoviesContent() {
   const observerRef = useRef<IntersectionObserver | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
+  // Refs — observer ichida stale closure bo'lmasin
+  const loadingRef = useRef(false);
+  const hasMoreRef = useRef(true);
+  const pageRef    = useRef(1);
+
   const loadMovies = useCallback(async (p: number, reset: boolean) => {
+    if (loadingRef.current) return;
+    loadingRef.current = true;
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -42,37 +49,47 @@ function MoviesContent() {
       );
       const { movies: newMovies, pagination } = res.data.data;
       setMovies((prev) => (reset ? newMovies : [...prev, ...newMovies]));
-      setHasMore(p < pagination.pages);
+      const more = p < pagination.pages;
+      hasMoreRef.current = more;
+      setHasMore(more);
     } catch (err) {
       logger.error('Filmlar yuklashda xato', err);
+      // Xato bo'lsa infinite loop oldini olish uchun to'xtat
+      hasMoreRef.current = false;
+      setHasMore(false);
     } finally {
+      loadingRef.current = false;
       setLoading(false);
     }
   }, [sort, genre]);
 
-  // Reset when filters change
+  // Filter o'zgarganda reset
   useEffect(() => {
+    pageRef.current = 1;
+    hasMoreRef.current = true;
     setPage(1);
     setMovies([]);
     void loadMovies(1, true);
   }, [sort, genre, loadMovies]);
 
-  // Infinite scroll
+  // Infinite scroll — faqat loadMovies o'zgarganda observer qayta yaratiladi
   useEffect(() => {
     if (!sentinelRef.current) return;
-    observerRef.current = new IntersectionObserver(
+    const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0]?.isIntersecting && hasMore && !loading) {
-          const next = page + 1;
+        if (entries[0]?.isIntersecting && hasMoreRef.current && !loadingRef.current) {
+          const next = pageRef.current + 1;
+          pageRef.current = next;
           setPage(next);
           void loadMovies(next, false);
         }
       },
       { threshold: 0.5 },
     );
-    observerRef.current.observe(sentinelRef.current);
-    return () => observerRef.current?.disconnect();
-  }, [hasMore, loading, page, loadMovies]);
+    observerRef.current = observer;
+    observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [loadMovies]);
 
   return (
     <div className="space-y-6">
@@ -82,7 +99,7 @@ function MoviesContent() {
         <div className="flex gap-3 flex-wrap">
           {/* Sort */}
           <div className="flex items-center gap-2">
-            <SortAsc className="w-4 h-4 text-base-content/50" />
+            <FaSortAmountUp size={18} className="text-base-content/50" />
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value)}
@@ -95,7 +112,7 @@ function MoviesContent() {
           </div>
           {/* Genre */}
           <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-base-content/50" />
+            <FaFilter size={18} className="text-base-content/50" />
             <select
               value={genre}
               onChange={(e) => setGenre(e.target.value)}

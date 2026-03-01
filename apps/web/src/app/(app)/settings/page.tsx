@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Save, Camera, LogOut } from 'lucide-react';
+import { FaSave, FaCamera, FaSignOutAlt } from 'react-icons/fa';
 import { useAuthStore } from '@/store/auth.store';
 import { apiClient } from '@/lib/axios';
 import { logger } from '@/lib/logger';
@@ -22,7 +22,7 @@ interface Settings {
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { user, updateUser, clearAuth } = useAuthStore();
+  const { user, updateUser, clearAuth, refreshToken } = useAuthStore();
   const [settings, setSettings] = useState<Settings['notifications']>({
     friendRequest: true,
     battleInvite:  true,
@@ -93,7 +93,7 @@ export default function SettingsPage() {
 
   const handleLogout = async () => {
     try {
-      await apiClient.post('/auth/logout');
+      await apiClient.post('/api/auth/logout', { refreshToken });
     } catch (err) {
       logger.warn('Logout xatosi', err);
     } finally {
@@ -130,7 +130,7 @@ export default function SettingsPage() {
                   )}
                 </div>
                 <label className="absolute -bottom-1 -right-1 btn btn-xs btn-circle btn-primary cursor-pointer">
-                  <Camera className="w-3 h-3" />
+                  <FaCamera size={14} />
                   <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleAvatarChange} />
                 </label>
               </div>
@@ -168,7 +168,7 @@ export default function SettingsPage() {
             <>✓ Saqlandi</>
           ) : (
             <>
-              <Save className="w-4 h-4" />
+              <FaSave size={18} />
               Saqlash
             </>
           )}
@@ -186,7 +186,7 @@ export default function SettingsPage() {
             onClick={() => void handleLogout()}
             className="btn btn-error btn-outline btn-sm gap-2 w-fit"
           >
-            <LogOut className="w-4 h-4" />
+            <FaSignOutAlt size={18} />
             Chiqish
           </button>
         </div>

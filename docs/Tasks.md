@@ -1,6 +1,6 @@
 # CineSync — OCHIQ VAZIFALAR
 
-# Yangilangan: 2026-02-27
+# Yangilangan: 2026-03-01
 
 # 3 dasturchi: Saidazim (Backend) | Emirhan (Mobile) | Jafar (Web)
 
@@ -62,17 +62,11 @@
 
 # ═══════════════════════════════════════
 
-# 🟢 EMIRHAN — REACT NATIVE MOBILE
+# 🟢 EMIRHAN — REACT NATIVE MOBILE ✅ BARCHA TASKLAR TUGADI
 
 # ═══════════════════════════════════════
 
-## SPRINT 4-5 — Profile + Notifications + Polish
-
-### ~~T-E009~~ ✅ BAJARILDI → Done.md F-031
-
-### ~~T-E010~~ ✅ BAJARILDI → Done.md F-032
-
-### ~~T-E011~~ ✅ BAJARILDI → Done.md F-034
+*T-E001..T-E011 — Done.md F-023..F-034 ga ko'chirildi*
 
 ---
 
@@ -82,57 +76,18 @@
 
 # ═══════════════════════════════════════
 
-## SPRINT 1 — Setup + Auth
-
-### T-J001 | P0 | [WEB] | Next.js setup + SEO + Design System
-
-- **Sprint:** S1
-- **Subtasks:** TASK-J-001..TASK-J-006
-- **Output:** Next.js App Router, SEO arxitekturasi (metadata, robots, sitemap, JSON-LD), Tailwind + Shadcn/ui, Zustand + React Query, Socket.io, Auth
-
-## SPRINT 2 — Landing + Home + Movie
-
-### T-J002 | P0 | [WEB] | Landing Page (SEO)
-
-- **Sprint:** S2
-- **Subtasks:** TASK-J-007..TASK-J-015
-- **Output:** Hero, features, how it works, testimonials, pricing, download, FAQ, contact, 100% Lighthouse SEO
-
-### T-J003 | P0 | [WEB] | App Layout + Home + Movie Detail
-
-- **Sprint:** S2
-- **Subtasks:** TASK-J-016..TASK-J-019
-- **Output:** App layout (sidebar/topbar), home (SSR trending), movie catalog (filters, infinite scroll), movie detail (SSG, JSON-LD)
-
-## SPRINT 3 — Player + Watch Party + Friends
-
-### T-J004 | P1 | [WEB] | Video Player + Search
-
-- **Sprint:** S3
-- **Subtasks:** TASK-J-020..TASK-J-021
-- **Output:** HLS player (hls.js), custom UI, keyboard shortcuts, quality/subtitle/audio, progress saving, PiP
-
-### T-J005 | P1 | [WEB] | Watch Party + Friends
-
-- **Sprint:** S3
-- **Subtasks:** TASK-J-022..TASK-J-023
-- **Output:** Split layout (video 70% + panel 30%), sync player, chat, emoji overlay, friends list (online status)
-
-## SPRINT 4 — Battle + Profile + Stats
-
-### T-J006 | P2 | [WEB] | Battle + Profile + Stats + Achievements
-
-- **Sprint:** S4
-- **Subtasks:** TASK-J-024..TASK-J-029
-- **Output:** Battle (leaderboard, create, result confetti), profile (SSR, OG meta), stats (Recharts), achievements grid
-
 ## SPRINT 5 — SEO + i18n + PWA + Polish
 
-### T-J007 | P2 | [WEB] | SEO + Performance + i18n + PWA
+### T-J007 | P2 | [WEB] | SEO + Performance + i18n + PWA — qolgan qismi
 
 - **Sprint:** S5
+- **Holat:** ⚠️ QISMAN (manifest.json + robots.txt ✅, Playwright tests qisman ✅)
 - **Subtasks:** TASK-J-030..TASK-J-038
-- **Output:** Dynamic OG images, Core Web Vitals, next-intl (uz/ru/en), PWA, WCAG AA, Playwright E2E
+- **Qolgan ishlar:**
+  - [ ] `next-intl` — uz/ru/en i18n setup
+  - [ ] Dynamic OG images (`/api/og` endpoint)
+  - [ ] WCAG AA accessibility audit + fixes
+  - [ ] Playwright E2E to'liq test suite
 
 ---
 
@@ -142,12 +97,6 @@
 
 # ═══════════════════════════════════════
 
-### T-C002 | P0 | [IKKALASI] | Design Tokens
-
-- **Sprint:** S1
-- **Subtasks:** TASK-C-002, TASK-D-001
-- **Output:** globals.css, tailwind config, RN theme/index.ts, @cinesync/tokens
-
 ### T-C004 | P2 | [IKKALASI] | Dizayn Tasklari
 
 - **Sprint:** S2-S5
@@ -156,15 +105,15 @@
 
 ---
 
-## 📊 STATISTIKA (2026-02-28 yangilandi)
+## 📊 STATISTIKA (2026-03-01 yangilandi)
 
 | Jamoa    | Tugallandi | Qolgan | JAMI |
 | -------- | ---------- | ------ | ---- |
 | Saidazim | T-S001..T-S008, T-S010, T-S011, T-C001, T-C003, T-C005 ✅ | T-S005b, T-S009 (2 task) | — |
 | Emirhan  | T-E001..T-E011 ✅ (11 task) — HAMMASI TUGADI 🎉 | — | 11 |
-| Jafar    | 0 | T-J001..T-J007 (7 task) | 7 |
-| Umumiy   | T-C001 ✅, T-C003 ✅, T-C005 ✅ | T-C002, T-C004 (2 task) | — |
+| Jafar    | T-J001..T-J006 ✅ (6 task) | T-J007 (1 task, qisman) | 7 |
+| Umumiy   | T-C001 ✅, T-C002 ✅, T-C003 ✅, T-C005 ✅ | T-C004 (1 task) | — |
 
 ---
 
-_docs/Tasks.md | CineSync | Yangilangan: 2026-02-28 (Emirhan: E001..E011 — BARCHA TASKLAR TUGADI ✅)_
+_docs/Tasks.md | CineSync | Yangilangan: 2026-03-01_

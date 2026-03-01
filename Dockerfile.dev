@@ -1,0 +1,25 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Root node_modules/.bin PATH (ts-node-dev, tsconfig-paths uchun)
+ENV PATH="/app/node_modules/.bin:$PATH"
+
+# Workspace package.json fayllarini ko'chirish (layer cache uchun)
+COPY package*.json ./
+COPY shared/package*.json ./shared/
+COPY services/auth/package*.json ./services/auth/
+COPY services/user/package*.json ./services/user/
+COPY services/content/package*.json ./services/content/
+COPY services/watch-party/package*.json ./services/watch-party/
+COPY services/battle/package*.json ./services/battle/
+COPY services/notification/package*.json ./services/notification/
+COPY services/admin/package*.json ./services/admin/
+
+# Barcha workspace dependency'larini o'rnatish (devDeps ham)
+RUN npm install
+
+# Source code ko'chirish
+COPY shared ./shared
+COPY services ./services
+COPY tsconfig.base.json ./

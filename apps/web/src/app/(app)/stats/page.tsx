@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Film, Clock, Trophy, Swords, BarChart2 } from 'lucide-react';
+import { FaFilm, FaClock, FaTrophy, FaChartBar } from 'react-icons/fa';
+import { GiCrossedSwords } from 'react-icons/gi';
 import { apiClient } from '@/lib/axios';
 import { useAuthStore } from '@/store/auth.store';
 import { logger } from '@/lib/logger';
@@ -63,17 +64,17 @@ export default function StatsPage() {
   const minsWatched = stats ? stats.minutesWatched % 60 : 0;
 
   const statCards = [
-    { icon: Film,    label: 'Filmlar',         val: stats?.moviesWatched ?? 0,    color: 'text-primary' },
-    { icon: Clock,   label: 'Vaqt',            val: `${hoursWatched}s ${minsWatched}d`, color: 'text-secondary' },
-    { icon: Trophy,  label: 'Yutuqlar',        val: stats?.achievements ?? 0,     color: 'text-accent' },
-    { icon: Swords,  label: 'Battle g\'alaba', val: `${stats?.battlesWon ?? 0}/${stats?.battlesTotal ?? 0}`, color: 'text-success' },
+    { icon: FaFilm,          label: 'Filmlar',         val: stats?.moviesWatched ?? 0,    color: 'text-primary' },
+    { icon: FaClock,         label: 'Vaqt',            val: `${hoursWatched}s ${minsWatched}d`, color: 'text-secondary' },
+    { icon: FaTrophy,        label: 'Yutuqlar',        val: stats?.achievements ?? 0,     color: 'text-accent' },
+    { icon: GiCrossedSwords, label: "Battle g'alaba",  val: `${stats?.battlesWon ?? 0}/${stats?.battlesTotal ?? 0}`, color: 'text-success' },
   ];
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <BarChart2 className="w-6 h-6 text-primary" />
+        <FaChartBar size={28} className="text-primary" />
         <h1 className="text-3xl font-display">STATISTIKA</h1>
       </div>
 
@@ -98,7 +99,7 @@ export default function StatsPage() {
         {statCards.map(({ icon: Icon, label, val, color }) => (
           <div key={label} className="card bg-base-200">
             <div className="card-body p-4 items-center text-center gap-2">
-              <Icon className={`w-6 h-6 ${color}`} />
+              <Icon size={28} className={color} />
               <p className="text-2xl font-display">{val}</p>
               <p className="text-xs text-base-content/50">{label}</p>
             </div>

@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { Play, Star, Clock } from 'lucide-react';
+import { FaPlay, FaStar, FaClock } from 'react-icons/fa';
 import type { IMovie } from '@/types';
 
 interface MovieCardProps {
@@ -33,7 +33,7 @@ export function MovieCard({ movie }: MovieCardProps) {
                 className="btn btn-primary btn-sm w-full gap-1"
                 onClick={(e) => e.stopPropagation()}
               >
-                <Play className="w-3 h-3 fill-current" />
+                <FaPlay size={14} className="fill-current" />
                 Ko&apos;rish
               </Link>
             </div>
@@ -43,11 +43,11 @@ export function MovieCard({ movie }: MovieCardProps) {
           <h3 className="text-sm font-medium line-clamp-2 leading-tight">{movie.title}</h3>
           <div className="flex items-center justify-between text-xs text-base-content/60">
             <div className="flex items-center gap-1">
-              <Star className="w-3 h-3 fill-accent text-accent" />
+              <FaStar size={14} className="fill-accent text-accent" />
               <span className="text-accent font-medium">{movie.rating.toFixed(1)}</span>
             </div>
             <div className="flex items-center gap-1">
-              <Clock className="w-3 h-3" />
+              <FaClock size={14} />
               <span>{durationLabel}</span>
             </div>
             <span>{movie.year}</span>
