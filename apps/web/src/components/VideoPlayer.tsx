@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import Hls from 'hls.js';
-import { Play, Pause, Volume2, VolumeX, Maximize, Minimize, Settings } from 'lucide-react';
+import { FaPlay, FaPause, FaVolumeUp, FaVolumeMute, FaExpand, FaCompress, FaCog } from 'react-icons/fa';
 import { logger } from '@/lib/logger';
 
 interface VideoPlayerProps {
@@ -240,9 +240,9 @@ export function VideoPlayer({
               aria-label={isPlaying ? 'Pauza' : 'Play'}
             >
               {isPlaying ? (
-                <Pause className="w-4 h-4 fill-current" />
+                <FaPause size={18} className="fill-current" />
               ) : (
-                <Play className="w-4 h-4 fill-current" />
+                <FaPlay size={18} className="fill-current" />
               )}
             </button>
             <button
@@ -251,9 +251,9 @@ export function VideoPlayer({
               aria-label={isMuted ? 'Ovoz yoq' : 'Ovoz o\'chir'}
             >
               {isMuted ? (
-                <VolumeX className="w-4 h-4" />
+                <FaVolumeMute size={18} />
               ) : (
-                <Volume2 className="w-4 h-4" />
+                <FaVolumeUp size={18} />
               )}
             </button>
             <input
@@ -275,7 +275,7 @@ export function VideoPlayer({
               className="btn btn-ghost btn-sm btn-circle text-white"
               aria-label="Sifat sozlamalari"
             >
-              <Settings className="w-4 h-4" />
+              <FaCog size={18} />
             </button>
             <button
               onClick={toggleFullscreen}
@@ -283,9 +283,9 @@ export function VideoPlayer({
               aria-label={isFullscreen ? 'Kichraytirish' : 'To\'liq ekran'}
             >
               {isFullscreen ? (
-                <Minimize className="w-4 h-4" />
+                <FaCompress size={18} />
               ) : (
-                <Maximize className="w-4 h-4" />
+                <FaExpand size={18} />
               )}
             </button>
           </div>
@@ -300,7 +300,7 @@ export function VideoPlayer({
           aria-label="Play"
         >
           <div className="btn btn-circle btn-primary btn-lg opacity-90">
-            <Play className="w-8 h-8 fill-current" />
+            <FaPlay size={37} className="fill-current" />
           </div>
         </button>
       )}

@@ -3,7 +3,7 @@
 import { Suspense } from 'react';
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Search, X } from 'lucide-react';
+import { FaSearch, FaTimes } from 'react-icons/fa';
 import { MovieCard } from '@/components/movie/MovieCard';
 import { apiClient } from '@/lib/axios';
 import { logger } from '@/lib/logger';
@@ -67,7 +67,7 @@ function SearchContent() {
 
       {/* Search input */}
       <div className="relative max-w-xl">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-base-content/40" />
+        <FaSearch size={23} className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40" />
         <input
           type="search"
           value={query}
@@ -83,7 +83,7 @@ function SearchContent() {
             onClick={() => setQuery('')}
             aria-label="Tozalash"
           >
-            <X className="w-4 h-4" />
+            <FaTimes size={18} />
           </button>
         )}
       </div>
@@ -106,7 +106,7 @@ function SearchContent() {
       {/* Results */}
       {!loading && searched && results.length === 0 && (
         <div className="text-center py-20">
-          <Search className="w-12 h-12 text-base-content/20 mx-auto mb-4" />
+          <FaSearch size={55} className="text-base-content/20 mx-auto mb-4" />
           <p className="text-base-content/40">&quot;{query}&quot; bo&apos;yicha natija topilmadi</p>
         </div>
       )}
@@ -127,7 +127,7 @@ function SearchContent() {
       {/* Empty state (no search yet) */}
       {!loading && !searched && (
         <div className="text-center py-20">
-          <Search className="w-16 h-16 text-base-content/10 mx-auto mb-4" />
+          <FaSearch size={74} className="text-base-content/10 mx-auto mb-4" />
           <p className="text-base-content/40">Film nomini kiriting</p>
         </div>
       )}

@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
-import { Send, Smile } from 'lucide-react';
+import { FaPaperPlane, FaSmile } from 'react-icons/fa';
 import type { IChatMessage, IUser } from '@/types';
 
 const QUICK_EMOJIS = ['😂', '❤️', '🔥', '👏', '😱', '😍', '💀', '🎬'];
@@ -147,7 +147,7 @@ export function ChatPanel({
           onClick={() => setShowEmoji(!showEmoji)}
           aria-label="Emoji"
         >
-          <Smile className="w-4 h-4" />
+          <FaSmile size={18} />
         </button>
         <input
           type="text"
@@ -164,7 +164,7 @@ export function ChatPanel({
           disabled={!input.trim()}
           aria-label="Yuborish"
         >
-          <Send className="w-4 h-4" />
+          <FaPaperPlane size={18} />
         </button>
       </div>
     </div>

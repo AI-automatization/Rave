@@ -4,7 +4,7 @@ import { useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { ArrowLeft, Copy, Check } from 'lucide-react';
+import { FaArrowLeft, FaCopy, FaCheck } from 'react-icons/fa';
 import { ChatPanel } from '@/components/party/ChatPanel';
 import { useWatchParty } from '@/hooks/useWatchParty';
 import { useAuthStore } from '@/store/auth.store';
@@ -84,7 +84,7 @@ export default function WatchPartyPage() {
       {/* Header */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <Link href="/home" className="btn btn-ghost btn-sm gap-2">
-          <ArrowLeft className="w-4 h-4" />
+          <FaArrowLeft size={18} />
           Chiqish
         </Link>
         <div className="flex items-center gap-2">
@@ -99,7 +99,7 @@ export default function WatchPartyPage() {
             className="btn btn-ghost btn-sm gap-1"
             title="Havolani nusxalash"
           >
-            {copied ? <Check className="w-4 h-4 text-success" /> : <Copy className="w-4 h-4" />}
+            {copied ? <FaCheck size={18} className="text-success" /> : <FaCopy size={18} />}
             <span className="hidden sm:inline text-xs">{copied ? 'Nusxalandi' : 'Taklif'}</span>
           </button>
         </div>

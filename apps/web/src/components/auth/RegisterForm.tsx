@@ -8,14 +8,14 @@ import { z } from 'zod';
 import { apiClient } from '@/lib/axios';
 
 const registerSchema = z.object({
-  username: z.string().min(3, "Kamida 3 ta belgi").max(30, "Ko'pi bilan 30 ta belgi")
+  username:        z.string().min(3, "Kamida 3 ta belgi").max(30, "Ko'pi bilan 30 ta belgi")
     .regex(/^[a-zA-Z0-9_]+$/, "Faqat harf, raqam va _ belgi"),
-  email:    z.string().email("To'g'ri email kiriting"),
-  password: z.string().min(8, "Kamida 8 ta belgi"),
-  confirm:  z.string(),
-}).refine((d) => d.password === d.confirm, {
+  email:           z.string().email("To'g'ri email kiriting"),
+  password:        z.string().min(8, "Kamida 8 ta belgi"),
+  confirmPassword: z.string(),
+}).refine((d) => d.password === d.confirmPassword, {
   message: "Parollar mos kelmadi",
-  path: ['confirm'],
+  path: ['confirmPassword'],
 });
 
 type RegisterFields = z.infer<typeof registerSchema>;
@@ -33,10 +33,11 @@ export function RegisterForm() {
   const onSubmit = async (data: RegisterFields) => {
     setError('');
     try {
-      await apiClient.post('/auth/register', {
-        username: data.username,
-        email:    data.email,
-        password: data.password,
+      await apiClient.post('/api/auth/register', {
+        username:        data.username,
+        email:           data.email,
+        password:        data.password,
+        confirmPassword: data.confirmPassword,
       });
       setSuccess(true);
     } catch (err: unknown) {
@@ -127,15 +128,15 @@ export function RegisterForm() {
           <div className="form-control">
             <label className="label"><span className="label-text">Parolni tasdiqlang</span></label>
             <input
-              {...register('confirm')}
+              {...register('confirmPassword')}
               type="password"
               placeholder="••••••••"
               className="input input-bordered w-full bg-bg-surface"
               autoComplete="new-password"
             />
-            {errors.confirm && (
+            {errors.confirmPassword && (
               <label className="label">
-                <span className="label-text-alt text-error">{errors.confirm.message}</span>
+                <span className="label-text-alt text-error">{errors.confirmPassword.message}</span>
               </label>
             )}
           </div>
@@ -147,7 +148,7 @@ export function RegisterForm() {
           >
             {isSubmitting
               ? <span className="loading loading-spinner loading-sm" />
-              : "Ro'yxatdan o'tish"}
+              : "Ro'yxatdan o'ting"}
           </button>
         </form>
 

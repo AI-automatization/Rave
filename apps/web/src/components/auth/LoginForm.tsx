@@ -1,13 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuthStore } from '@/store/auth.store';
-import { apiClient } from '@/lib/axios';
 import type { ApiResponse } from '@/types';
 
 const loginSchema = z.object({
@@ -28,12 +27,16 @@ interface LoginResponseData {
     totalPoints: number;
   };
   accessToken: string;
+  refreshToken: string;
 }
 
 export function LoginForm() {
-  const router   = useRouter();
-  const setAuth  = useAuthStore((s) => s.setAuth);
+  const router  = useRouter();
+  const setAuth = useAuthStore((s) => s.setAuth);
   const [error, setError] = useState('');
+
+  // /home sahifasini oldindan yuklash — login tugaganda darhol o'tadi
+  useEffect(() => { router.prefetch('/home'); }, [router]);
 
   const {
     register,
@@ -44,13 +47,21 @@ export function LoginForm() {
   const onSubmit = async (data: LoginFields) => {
     setError('');
     try {
-      const res = await apiClient.post<ApiResponse<LoginResponseData>>(
-        '/auth/login',
-        data,
-      );
-      const { user, accessToken } = res.data.data;
-      setAuth(user, accessToken);
-      router.push('/home');
+      // axios o'rniga native fetch — interceptor overhead yo'q
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      const json: ApiResponse<LoginResponseData> = await res.json();
+      if (!res.ok || !json.success) {
+        setError(json.message ?? "Email yoki parol noto'g'ri");
+        return;
+      }
+      const { user, accessToken, refreshToken } = json.data;
+      setAuth(user, accessToken, refreshToken);
+      // push o'rniga replace — history yozmasdan tezroq o'tadi
+      router.replace('/home');
     } catch {
       setError("Email yoki parol noto'g'ri");
     }

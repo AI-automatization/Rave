@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { Play, Users, Info } from 'lucide-react';
+import { FaPlay, FaUsers, FaInfoCircle } from 'react-icons/fa';
 import type { IMovie } from '@/types';
 
 interface HeroBannerProps {
@@ -46,18 +46,18 @@ export function HeroBanner({ movie }: HeroBannerProps) {
         </p>
         <div className="flex gap-3 flex-wrap">
           <Link href={`/watch/${movie._id}`} className="btn btn-primary gap-2">
-            <Play className="w-4 h-4 fill-current" />
+            <FaPlay size={18} className="fill-current" />
             Ko&apos;rish
           </Link>
           <Link
             href={`/party/create?movieId=${movie._id}`}
             className="btn btn-outline gap-2"
           >
-            <Users className="w-4 h-4" />
+            <FaUsers size={18} />
             Watch Party
           </Link>
           <Link href={`/movies/${movie.slug}`} className="btn btn-ghost gap-2">
-            <Info className="w-4 h-4" />
+            <FaInfoCircle size={18} />
             Batafsil
           </Link>
         </div>
