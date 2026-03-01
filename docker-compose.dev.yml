@@ -1,6 +1,25 @@
 version: '3.8'
 
+# ─── UMUMIY BACKEND BUILD KONFIGURATSIYASI ────────────────────────────────────
+x-backend: &backend
+  build:
+    context: .
+    dockerfile: Dockerfile.dev
+  restart: unless-stopped
+  networks:
+    - cinesync_network
+
+# ─── UMUMIY BACKEND VOLUMES (hot-reload uchun) ────────────────────────────────
+x-shared-src: &shared-src
+  - ./shared/src:/app/shared/src:ro
+  - ./tsconfig.base.json:/app/tsconfig.base.json:ro
+
 services:
+
+  # ═══════════════════════════════════════════════════════════════
+  # INFRA — MongoDB · Redis · Elasticsearch
+  # ═══════════════════════════════════════════════════════════════
+
   mongo:
     image: mongo:7.0
     container_name: cinesync_mongo
@@ -45,10 +64,183 @@ services:
     networks:
       - cinesync_network
 
+  # ═══════════════════════════════════════════════════════════════
+  # BACKEND SERVICES
+  # ═══════════════════════════════════════════════════════════════
+
+  auth:
+    <<: *backend
+    container_name: cinesync_auth
+    working_dir: /app/services/auth
+    command: npm run dev
+    ports:
+      - '3001:3001'
+    env_file: ./services/auth/.env
+    environment:
+      MONGO_URI: "mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASSWORD}@mongo:27017/cinesync_auth?authSource=admin"
+      REDIS_URL: "redis://:${REDIS_PASSWORD}@redis:6379"
+      USER_SERVICE_URL: "http://user:3002"
+    depends_on:
+      - mongo
+      - redis
+    volumes:
+      - <<: *shared-src
+      - ./services/auth/src:/app/services/auth/src
+
+  user:
+    <<: *backend
+    container_name: cinesync_user
+    working_dir: /app/services/user
+    command: npm run dev
+    ports:
+      - '3002:3002'
+    env_file: ./services/user/.env
+    environment:
+      MONGO_URI: "mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASSWORD}@mongo:27017/cinesync_user?authSource=admin"
+      REDIS_URL: "redis://:${REDIS_PASSWORD}@redis:6379"
+    depends_on:
+      - mongo
+      - redis
+    volumes:
+      - <<: *shared-src
+      - ./services/user/src:/app/services/user/src
+      - user_uploads:/app/services/user/uploads
+
+  content:
+    <<: *backend
+    container_name: cinesync_content
+    working_dir: /app/services/content
+    command: npm run dev
+    ports:
+      - '3003:3003'
+    env_file: ./services/content/.env
+    environment:
+      MONGO_URI: "mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASSWORD}@mongo:27017/cinesync_content?authSource=admin"
+      REDIS_URL: "redis://:${REDIS_PASSWORD}@redis:6379"
+      ELASTICSEARCH_URL: "http://elasticsearch:9200"
+    depends_on:
+      - mongo
+      - redis
+      - elasticsearch
+    volumes:
+      - <<: *shared-src
+      - ./services/content/src:/app/services/content/src
+      - content_uploads:/app/services/content/uploads
+
+  watch-party:
+    <<: *backend
+    container_name: cinesync_watch_party
+    working_dir: /app/services/watch-party
+    command: npm run dev
+    ports:
+      - '3004:3004'
+    env_file: ./services/watch-party/.env
+    environment:
+      MONGO_URI: "mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASSWORD}@mongo:27017/cinesync_watch_party?authSource=admin"
+      REDIS_URL: "redis://:${REDIS_PASSWORD}@redis:6379"
+    depends_on:
+      - mongo
+      - redis
+    volumes:
+      - <<: *shared-src
+      - ./services/watch-party/src:/app/services/watch-party/src
+
+  battle:
+    <<: *backend
+    container_name: cinesync_battle
+    working_dir: /app/services/battle
+    command: npm run dev
+    ports:
+      - '3005:3005'
+    env_file: ./services/battle/.env
+    environment:
+      MONGO_URI: "mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASSWORD}@mongo:27017/cinesync_battle?authSource=admin"
+      REDIS_URL: "redis://:${REDIS_PASSWORD}@redis:6379"
+    depends_on:
+      - mongo
+      - redis
+    volumes:
+      - <<: *shared-src
+      - ./services/battle/src:/app/services/battle/src
+
+  notification:
+    <<: *backend
+    container_name: cinesync_notification
+    working_dir: /app/services/notification
+    command: npm run dev
+    ports:
+      - '3007:3007'
+    env_file: ./services/notification/.env
+    environment:
+      MONGO_URI: "mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASSWORD}@mongo:27017/cinesync_notification?authSource=admin"
+      REDIS_URL: "redis://:${REDIS_PASSWORD}@redis:6379"
+    depends_on:
+      - mongo
+      - redis
+    volumes:
+      - <<: *shared-src
+      - ./services/notification/src:/app/services/notification/src
+
+  admin:
+    <<: *backend
+    container_name: cinesync_admin
+    working_dir: /app/services/admin
+    command: npm run dev
+    ports:
+      - '3008:3008'
+    env_file: ./services/admin/.env
+    environment:
+      MONGO_URI: "mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASSWORD}@mongo:27017/cinesync_admin?authSource=admin"
+      CONTENT_MONGO_URI: "mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASSWORD}@mongo:27017/cinesync_content?authSource=admin"
+      USER_MONGO_URI: "mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASSWORD}@mongo:27017/cinesync_user?authSource=admin"
+      REDIS_URL: "redis://:${REDIS_PASSWORD}@redis:6379"
+    depends_on:
+      - mongo
+      - redis
+    volumes:
+      - <<: *shared-src
+      - ./services/admin/src:/app/services/admin/src
+
+  # ═══════════════════════════════════════════════════════════════
+  # FRONTEND — Next.js Web
+  # network_mode: host → localhost:300x rewrites ishlaydi
+  # ═══════════════════════════════════════════════════════════════
+
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile.dev
+    container_name: cinesync_web
+    network_mode: host
+    environment:
+      NEXT_PUBLIC_APP_URL: "http://localhost:3000"
+      NEXT_PUBLIC_API_URL: "http://localhost"
+      NEXT_PUBLIC_SOCKET_URL: "http://localhost:3004"
+      NEXTAUTH_URL: "http://localhost:3000"
+      NEXTAUTH_SECRET: "cinesync_dev_nextauth_secret_2026"
+      NEXT_PUBLIC_GOOGLE_CLIENT_ID: "dev_google_client_id"
+    depends_on:
+      - auth
+      - user
+      - content
+      - watch-party
+      - battle
+      - notification
+
+# ═══════════════════════════════════════════════════════════════
+# VOLUMES
+# ═══════════════════════════════════════════════════════════════
+
 volumes:
   mongo_data:
   redis_data:
   es_data:
+  user_uploads:
+  content_uploads:
+
+# ═══════════════════════════════════════════════════════════════
+# NETWORKS
+# ═══════════════════════════════════════════════════════════════
 
 networks:
   cinesync_network:

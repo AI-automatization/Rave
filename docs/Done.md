@@ -218,8 +218,9 @@
 ---
 
 ### F-015 | 2026-02-27 | [BACKEND] | Rating + Review to'liq (T-S007)
+
 - **Mas'ul:** Saidazim
-- **Sprint:** S3
+  - **Sprint:** S3
 - **Bajarildi:**
   - `services/content/src/services/content.service.ts` — `getMovieRatings(movieId, page, limit)`, `deleteUserRating(userId, movieId)`, `deleteRatingByModerator(ratingId)`, `recalculateRating()` private metod (rating avg qayta hisobl + Redis cache invalidate)
   - `services/content/src/controllers/content.controller.ts` — `getMovieRatings`, `deleteMyRating`, `deleteRatingModerator` handlerlar
@@ -229,6 +230,7 @@
 ---
 
 ### F-016 | 2026-02-27 | [BACKEND] | Admin Service — to'liq funksionallik (T-S008)
+
 - **Mas'ul:** Saidazim
 - **Sprint:** S4
 - **Bajarildi:**
@@ -243,20 +245,20 @@
 
 ## 🐛 TUZATILGAN BUGLAR
 
-| #   | Sana | Tur | Muammo        | Yechim |
-| --- | ---- | --- | ------------- | ------ |
-| BUG-001 | 2026-02-27 | TS2349 | `admin.service.ts` `getMovieModel()`/`getUserModel()` not callable (union type) | Explicit `Model<Record<string, unknown>>` return type |
-| BUG-002 | 2026-02-27 | TS2322/TS2556 | `rateLimiter.middleware.ts` SendCommandFn type mismatch | `sendRedisCommand` helper + `unknown as SendCommandFn` |
-| BUG-003 | 2026-02-27 | TS2352 | `error.middleware.ts` Error → Record<string, unknown> cast | `as unknown as Record<string, unknown>` |
-| BUG-004 | 2026-02-27 | TS2352 | `user.service.ts` lean() → IUserDocument cast | `as unknown as IUserDocument & ...` |
-| BUG-005 | 2026-02-27 | TS2352 | `content.service.ts` Query → Promise cast | `as unknown as Promise<...>` |
-| BUG-006 | 2026-02-27 | TS2790 | 13 model faylda `delete ret.__v` | `Reflect.deleteProperty(ret, '__v')` |
-| BUG-007 | 2026-02-27 | TS6133 | `logger.ts` `simple` unused import | Import o'chirildi |
-| BUG-008 | 2026-02-27 | TS6133 | `auth.service.ts` `NotFoundError` unused | Import o'chirildi |
-| BUG-009 | 2026-02-27 | TS6133 | `battle.service.ts` `ForbiddenError` unused | Import o'chirildi |
-| BUG-010 | 2026-02-27 | TS6133 | `admin.service.ts` `blockedUsers` unused | Ortiqcha query o'chirildi |
-| BUG-012 | 2026-02-28 | Runtime | `elastic.init.ts` apostrophe_filter duplicate mappings (ASCII `'` 2x) | Unicode escape: `\\u2018=>\\u0027`, `\\u2019=>\\u0027` |
-| BUG-013 | 2026-02-28 | Runtime | `elastic.init.ts` `boost` ES 8.x da qabul qilinmaydi | `title` va `originalTitle` fieldlaridan `boost` o'chirildi |
+| #       | Sana       | Tur           | Muammo                                                                          | Yechim                                                     |
+| ------- | ---------- | ------------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| BUG-001 | 2026-02-27 | TS2349        | `admin.service.ts` `getMovieModel()`/`getUserModel()` not callable (union type) | Explicit `Model<Record<string, unknown>>` return type      |
+| BUG-002 | 2026-02-27 | TS2322/TS2556 | `rateLimiter.middleware.ts` SendCommandFn type mismatch                         | `sendRedisCommand` helper + `unknown as SendCommandFn`     |
+| BUG-003 | 2026-02-27 | TS2352        | `error.middleware.ts` Error → Record<string, unknown> cast                      | `as unknown as Record<string, unknown>`                    |
+| BUG-004 | 2026-02-27 | TS2352        | `user.service.ts` lean() → IUserDocument cast                                   | `as unknown as IUserDocument & ...`                        |
+| BUG-005 | 2026-02-27 | TS2352        | `content.service.ts` Query → Promise cast                                       | `as unknown as Promise<...>`                               |
+| BUG-006 | 2026-02-27 | TS2790        | 13 model faylda `delete ret.__v`                                                | `Reflect.deleteProperty(ret, '__v')`                       |
+| BUG-007 | 2026-02-27 | TS6133        | `logger.ts` `simple` unused import                                              | Import o'chirildi                                          |
+| BUG-008 | 2026-02-27 | TS6133        | `auth.service.ts` `NotFoundError` unused                                        | Import o'chirildi                                          |
+| BUG-009 | 2026-02-27 | TS6133        | `battle.service.ts` `ForbiddenError` unused                                     | Import o'chirildi                                          |
+| BUG-010 | 2026-02-27 | TS6133        | `admin.service.ts` `blockedUsers` unused                                        | Ortiqcha query o'chirildi                                  |
+| BUG-012 | 2026-02-28 | Runtime       | `elastic.init.ts` apostrophe_filter duplicate mappings (ASCII `'` 2x)           | Unicode escape: `\\u2018=>\\u0027`, `\\u2019=>\\u0027`     |
+| BUG-013 | 2026-02-28 | Runtime       | `elastic.init.ts` `boost` ES 8.x da qabul qilinmaydi                            | `title` va `originalTitle` fieldlaridan `boost` o'chirildi |
 
 ---
 
@@ -397,4 +399,61 @@
 
 ---
 
-_docs/Done.md | CineSync | Yangilangan: 2026-02-28_
+---
+
+### F-025 | 2026-02-28 | [MOBILE] | Home ekran — T-E003
+
+- **Mas'ul:** Emirhan
+- **Sprint:** S2
+- **Bajarildi:**
+  - `src/screens/home/HomeScreen.tsx` — 163 satr, HeroBanner (auto-scroll), MovieRow (trending, topRated, continueWatching)
+  - Hero carousel avtomatik slayd, gradient overlay
+  - Skeleton loading holati
+  - `src/components/home/HeroBanner.tsx` + `MovieRow.tsx` komponentlar
+- **Commit:** `8d06093 feat(mobile): T-E003 — HomeScreen, hero carousel, movie rows, skeleton`
+
+---
+
+### F-026 | 2026-02-28 | [MOBILE] | Search ekran — T-E004
+
+- **Mas'ul:** Emirhan
+- **Sprint:** S2
+- **Bajarildi:**
+  - `src/screens/search/SearchScreen.tsx` — 241 satr
+  - Debounced search (500ms), qidiruv tarixi (MMKV), genre filtrlar
+  - Natijalar 3-ustunli grid ko'rinishi
+  - Bo'sh holat va yuklanish holati
+- **Commit:** `f25bf4a feat(mobile): T-E004 — SearchScreen, debounced search, history, genre filters`
+
+---
+
+### F-027 | 2026-02-28 | [WEB] | Next.js Web App — Sprint 1-6 (T-J001..T-J006)
+
+- **Mas'ul:** Jafar
+- **Sprint:** S1-S4
+- **Bajarildi:**
+  - **T-J001** — Next.js App Router setup, Tailwind v4, Shadcn/ui, Zustand + React Query, Socket.io client, JWT auth middleware
+  - **T-J002** — Landing page: Hero, Features, How it works, Testimonials, Pricing, FAQ, JSON-LD schema, SEO metadata
+  - **T-J003** — App layout (sidebar/topbar), `(app)/home/page.tsx` (SSR+ISR), `(app)/movies/[slug]/page.tsx` (dynamic metadata + Movie JSON-LD)
+  - **T-J004** — `VideoPlayer.tsx` (hls.js, custom controls, keyboard shortcuts Space/Arrow/F/M, ±2s Watch Party sync), `(app)/search/page.tsx` (debounced, infinite scroll)
+  - **T-J005** — `(app)/party/[roomId]/page.tsx` (70% video + 30% chat split layout, sync state, floating emoji, members list), `ChatPanel.tsx`
+  - **T-J006** — `(app)/battle/page.tsx` (create modal, active/pending/completed filter), `(app)/profile/[username]/page.tsx` (SSR, OG meta, achievements grid, rank badge), `(app)/stats/page.tsx` (stat cards, charts)
+  - `manifest.json` + `robots.txt` (PWA asosi)
+  - Playwright test suite (`/tests/auth.spec.ts` + config)
+- **Commit:** `f32c5e5 feat(web): add Next.js web app — Sprint 1-5 (T-J001..T-J007)`
+
+---
+
+### F-028 | 2026-02-28 | [IKKALASI] | Design Tokens — T-C002
+
+- **Mas'ul:** Saidazim + Emirhan + Jafar
+- **Sprint:** S1
+- **Bajarildi:**
+  - **Mobile:** `apps/mobile/src/theme/index.ts` — colors (#E50914, #0A0A0F, #111118...), spacing, borderRadius, typography (Bebas Neue / DM Sans), shadows, RANK_COLORS (Bronze→Diamond)
+  - **Web:** `apps/web/src/app/globals.css` — Tailwind v4 `@theme` block, CSS custom properties (--color-primary, --color-background, --color-surface, --color-gold, ...)
+  - Dark mode ONLY — barcha platform
+- **Commit:** `f32c5e5` (web), `8d06093` (mobile)
+
+---
+
+_docs/Done.md | CineSync | Yangilangan: 2026-03-01_
