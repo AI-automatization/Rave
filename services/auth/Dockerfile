@@ -1,17 +1,32 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
+# All backend package.json files for workspace resolution
 COPY package*.json ./
 COPY tsconfig.base.json ./
 COPY shared/package*.json ./shared/
 COPY services/auth/package*.json ./services/auth/
+COPY services/user/package*.json ./services/user/
+COPY services/content/package*.json ./services/content/
+COPY services/watch-party/package*.json ./services/watch-party/
+COPY services/battle/package*.json ./services/battle/
+COPY services/notification/package*.json ./services/notification/
+COPY services/admin/package*.json ./services/admin/
 
-RUN npm ci --workspace=@cinesync/shared --workspace=@cinesync/auth
+# Full install — includes root deps (swagger-jsdoc, swagger-ui-express)
+# apps/* workspaces are skipped (dirs not present in build context)
+RUN npm ci
 
+# Copy only what is needed for this build
 COPY shared/ ./shared/
 COPY services/auth/ ./services/auth/
 
-RUN npm run build --workspace=@cinesync/auth
+# Step 1: Build shared → generates dist/*.d.ts type declarations
+RUN npm run build --workspace=@cinesync/shared
+
+# Step 2: Build service using tsconfig.build.json
+# Paths point to shared/dist/*.d.ts — avoids rootDir conflict with shared/src
+RUN npm run build --workspace=@cinesync/auth -- --project tsconfig.build.json
 
 FROM node:20-alpine AS production
 WORKDIR /app
@@ -20,8 +35,15 @@ ENV NODE_ENV=production
 COPY package*.json ./
 COPY shared/package*.json ./shared/
 COPY services/auth/package*.json ./services/auth/
+COPY services/user/package*.json ./services/user/
+COPY services/content/package*.json ./services/content/
+COPY services/watch-party/package*.json ./services/watch-party/
+COPY services/battle/package*.json ./services/battle/
+COPY services/notification/package*.json ./services/notification/
+COPY services/admin/package*.json ./services/admin/
 
-RUN npm ci --workspace=@cinesync/shared --workspace=@cinesync/auth --omit=dev
+# Production install — omits devDeps, includes root prod deps (swagger)
+RUN npm ci --omit=dev
 
 COPY --from=builder /app/shared/dist ./shared/dist
 COPY --from=builder /app/services/auth/dist ./services/auth/dist

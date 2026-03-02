@@ -4,14 +4,21 @@ WORKDIR /app
 COPY package*.json ./
 COPY tsconfig.base.json ./
 COPY shared/package*.json ./shared/
+COPY services/auth/package*.json ./services/auth/
+COPY services/user/package*.json ./services/user/
+COPY services/content/package*.json ./services/content/
+COPY services/watch-party/package*.json ./services/watch-party/
+COPY services/battle/package*.json ./services/battle/
 COPY services/notification/package*.json ./services/notification/
+COPY services/admin/package*.json ./services/admin/
 
-RUN npm ci --workspace=@cinesync/shared --workspace=@cinesync/notification
+RUN npm ci
 
 COPY shared/ ./shared/
 COPY services/notification/ ./services/notification/
 
-RUN npm run build --workspace=@cinesync/notification
+RUN npm run build --workspace=@cinesync/shared
+RUN npm run build --workspace=@cinesync/notification -- --project tsconfig.build.json
 
 FROM node:20-alpine AS production
 WORKDIR /app
@@ -19,9 +26,15 @@ ENV NODE_ENV=production
 
 COPY package*.json ./
 COPY shared/package*.json ./shared/
+COPY services/auth/package*.json ./services/auth/
+COPY services/user/package*.json ./services/user/
+COPY services/content/package*.json ./services/content/
+COPY services/watch-party/package*.json ./services/watch-party/
+COPY services/battle/package*.json ./services/battle/
 COPY services/notification/package*.json ./services/notification/
+COPY services/admin/package*.json ./services/admin/
 
-RUN npm ci --workspace=@cinesync/shared --workspace=@cinesync/notification --omit=dev
+RUN npm ci --omit=dev
 
 COPY --from=builder /app/shared/dist ./shared/dist
 COPY --from=builder /app/services/notification/dist ./services/notification/dist
