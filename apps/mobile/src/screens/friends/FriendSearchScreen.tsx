@@ -126,7 +126,7 @@ export default function FriendSearchScreen({ navigation }: Props) {
           <Text style={styles.back}>← Orqaga</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Do'st qidirish</Text>
-        <View style={{ width: 60 }} />
+        <View style={styles.headerSpacer} />
       </View>
 
       <View style={styles.searchBar}>
@@ -159,7 +159,7 @@ export default function FriendSearchScreen({ navigation }: Props) {
           keyExtractor={(item) => item._id}
           renderItem={renderItem}
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingVertical: spacing.sm }}
+          contentContainerStyle={styles.listContent}
         />
       )}
 
@@ -254,4 +254,6 @@ const styles = StyleSheet.create({
   },
   addBtnDisabled: { opacity: 0.6 },
   addBtnText: { color: colors.textPrimary, fontSize: typography.sizes.sm, fontWeight: typography.weights.medium },
+  headerSpacer: { width: 60 },
+  listContent: { paddingVertical: spacing.sm },
 });

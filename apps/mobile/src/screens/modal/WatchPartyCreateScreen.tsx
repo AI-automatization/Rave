@@ -61,7 +61,7 @@ export default function WatchPartyCreateScreen({ navigation, route }: Props) {
           <Text style={styles.cancel}>Bekor qilish</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Watch Party yaratish</Text>
-        <View style={{ width: 80 }} />
+        <View style={styles.headerSpacer} />
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
@@ -167,4 +167,5 @@ const styles = StyleSheet.create({
   },
   createBtnDisabled: { opacity: 0.6 },
   createBtnText: { color: colors.textPrimary, fontSize: typography.sizes.lg, fontWeight: typography.weights.semibold },
+  headerSpacer: { width: 80 },
 });

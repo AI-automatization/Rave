@@ -66,7 +66,7 @@ export default function BattleCreateScreen({ navigation }: Props) {
           <Text style={styles.cancel}>Bekor qilish</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Battle yaratish</Text>
-        <View style={{ width: 80 }} />
+        <View style={styles.headerSpacer} />
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
@@ -172,4 +172,5 @@ const styles = StyleSheet.create({
   },
   btnDisabled: { opacity: 0.6 },
   createBtnText: { color: colors.textPrimary, fontSize: typography.sizes.lg, fontWeight: typography.weights.semibold },
+  headerSpacer: { width: 80 },
 });

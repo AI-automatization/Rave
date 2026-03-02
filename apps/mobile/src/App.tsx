@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { StatusBar } from 'react-native';
+import { StatusBar, StyleSheet } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -92,11 +92,15 @@ function AppContent() {
   return <AppNavigator />;
 }
 
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+});
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <SafeAreaProvider>
-        <GestureHandlerRootView style={{ flex: 1 }}>
+        <GestureHandlerRootView style={styles.root}>
           <StatusBar barStyle="light-content" backgroundColor={colors.bgBase} />
           <ErrorBoundary>
             <AppContent />

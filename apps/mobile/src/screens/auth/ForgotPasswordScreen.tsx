@@ -56,7 +56,7 @@ export default function ForgotPasswordScreen({ navigation }: Props) {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
+      style={styles.keyboardView}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={styles.container}>
@@ -162,4 +162,5 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.lg,
     fontWeight: typography.weights.semibold,
   },
+  keyboardView: { flex: 1 },
 });

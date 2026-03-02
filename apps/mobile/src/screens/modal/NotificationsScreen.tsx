@@ -146,7 +146,7 @@ export default function NotificationsScreen({ navigation }: Props) {
             )}
           </TouchableOpacity>
         ) : (
-          <View style={{ width: 80 }} />
+          <View style={styles.headerSpacer} />
         )}
       </View>
 
@@ -236,4 +236,5 @@ const styles = StyleSheet.create({
   emptyIcon: { fontSize: 48, marginBottom: spacing.md },
   emptyText: { fontSize: typography.sizes.lg, color: colors.textSecondary, fontWeight: typography.weights.semibold },
   emptySub: { fontSize: typography.sizes.sm, color: colors.textMuted, marginTop: spacing.xs },
+  headerSpacer: { width: 80 },
 });

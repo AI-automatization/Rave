@@ -88,7 +88,7 @@ export default function LoginScreen({ navigation }: Props) {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
+      style={styles.keyboardView}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView
@@ -118,7 +118,7 @@ export default function LoginScreen({ navigation }: Props) {
             <Text style={styles.label}>Parol</Text>
             <View style={styles.passwordRow}>
               <TextInput
-                style={[styles.input, { flex: 1 }]}
+                style={[styles.input, styles.inputFlex]}
                 placeholder="••••••••"
                 placeholderTextColor={colors.textMuted}
                 value={password}
@@ -129,7 +129,7 @@ export default function LoginScreen({ navigation }: Props) {
                 style={styles.eyeBtn}
                 onPress={() => setShowPassword((v) => !v)}
               >
-                <Text style={{ color: colors.textMuted }}>{showPassword ? '🙈' : '👁'}</Text>
+                <Text style={styles.eyeIcon}>{showPassword ? '🙈' : '👁'}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -299,4 +299,7 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.semibold,
   },
+  keyboardView: { flex: 1 },
+  inputFlex: { flex: 1 },
+  eyeIcon: { color: colors.textMuted },
 });

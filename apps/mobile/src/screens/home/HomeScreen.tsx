@@ -113,7 +113,7 @@ export default function HomeScreen({ navigation }: Props) {
           onMoviePress={handleMoviePress}
         />
 
-        <View style={{ height: spacing.xxxl }} />
+        <View style={styles.bottomSpacer} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -164,4 +164,5 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.xs,
     fontWeight: typography.weights.bold,
   },
+  bottomSpacer: { height: spacing.xxxl },
 });

@@ -201,7 +201,7 @@ export default function WatchPartyScreen({ navigation, route }: Props) {
           renderItem={renderMessage}
           onContentSizeChange={() => chatListRef.current?.scrollToEnd()}
           style={styles.chatList}
-          contentContainerStyle={{ padding: spacing.sm }}
+          contentContainerStyle={styles.chatPadding}
         />
         <View style={styles.inputRow}>
           <TextInput
@@ -325,4 +325,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   sendText: { color: colors.textPrimary, fontSize: 18, fontWeight: typography.weights.bold },
+  chatPadding: { padding: spacing.sm },
 });

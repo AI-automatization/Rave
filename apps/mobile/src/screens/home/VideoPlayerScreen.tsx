@@ -169,7 +169,7 @@ export default function VideoPlayerScreen({ navigation, route }: Props) {
                 <Text style={styles.backIcon}>←</Text>
               </TouchableOpacity>
               <Text style={styles.titleText} numberOfLines={1}>{title}</Text>
-              <View style={{ width: 32 }} />
+              <View style={styles.headerSpacer} />
             </View>
 
             {/* Center controls */}
@@ -294,4 +294,5 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     borderRadius: 2,
   },
+  headerSpacer: { width: 32 },
 });

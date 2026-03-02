@@ -901,4 +901,27 @@ Root package.json dependencies:
 
 ---
 
-_docs/Done.md | CineSync | Yangilangan: 2026-03-03 (Emirhan: E001..E013 ✅ + F-043..F-047 Batch1-5 TUGADI | Jafar: J001..J006 ✅ | Saidazim: F-041..F-042 + BUG-B001..B003 ✅)_
+### F-048 | 2026-03-03 | [MOBILE] | Code review fixes — inline styles + MovieDetailScreen refactor
+
+- **Mas'ul:** Emirhan
+- **Bajarildi:**
+  - **Inline styles → StyleSheet.create** (15 fayl):
+    - `App.tsx` — `GestureHandlerRootView` root style
+    - `MainTabs.tsx` — `TabIcon` fontSize/opacity → `tabIcon` + `tabIconFocused/Blurred`
+    - `LoginScreen.tsx`, `RegisterScreen.tsx`, `ForgotPasswordScreen.tsx` — `keyboardView`, `inputFlex`, `eyeIcon`
+    - `FriendSearchScreen.tsx` — `headerSpacer`, `listContent`
+    - `HomeScreen.tsx` — `bottomSpacer`
+    - `VideoPlayerScreen.tsx` — `headerSpacer`
+    - `BattleCreateScreen.tsx`, `WatchPartyCreateScreen.tsx`, `NotificationsScreen.tsx` — `headerSpacer`
+    - `BattleScreen.tsx` — `headerSpacer`, `lbLoader`, `bottomSpacer`, `infoValueEnded`
+    - `ProfileScreen.tsx` — `activityLoader`, `bottomSpacer`
+    - `WatchPartyScreen.tsx` — `chatPadding`
+  - **MovieDetailScreen.tsx 402 → 171 qator** (refactor):
+    - `hooks/useMovieActions.ts` yaratildi — logika ajratildi (useEffect, hasRated ref, 3 handler)
+    - `screens/home/movieDetail.styles.ts` yaratildi — StyleSheet ajratildi (BACKDROP_HEIGHT bilan)
+    - `MovieDetailScreen.tsx` faqat render qoldi — toza, 171 qator
+  - `tsc --noEmit` — 0 xato
+
+---
+
+_docs/Done.md | CineSync | Yangilangan: 2026-03-03 (Emirhan: E001..E013 ✅ + F-043..F-048 TUGADI | Jafar: J001..J006 ✅ | Saidazim: F-041..F-042 + BUG-B001..B003 ✅)_
