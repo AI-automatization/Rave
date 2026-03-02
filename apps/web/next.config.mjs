@@ -22,7 +22,7 @@ const nextConfig = {
       },
       {
         source: '/movies/:path*',
-        destination: 'http://localhost:3003/api/v1/movies/:path*',
+        destination: 'http://localhost:3003/api/v1/content/movies/:path*',
       },
       {
         source: '/watch-party/:path*',

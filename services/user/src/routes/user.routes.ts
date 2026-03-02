@@ -69,14 +69,21 @@ export const createUserRouter = (redis: Redis): Router => {
   // Heartbeat
   router.post('/heartbeat', verifyToken, userController.heartbeat);
 
-  // Public profile
-  router.get('/:id', apiRateLimiter, userController.getPublicProfile);
-
-  // ── Friends ──────────────────────────────────────────────
+  // ── Friends — all static routes BEFORE /:id ──────────────
   router.get('/me/friends', verifyToken, userController.getFriends);
+  router.get('/friends', verifyToken, userController.getFriends);
+  router.get('/friends/requests', verifyToken, userController.getPendingRequests);
+  router.post('/friends/request', verifyToken, userController.sendFriendRequestByBody);
+  router.patch('/friends/accept/:friendshipId', verifyToken, userController.acceptFriendRequestById);
   router.post('/friends/:receiverId', verifyToken, userController.sendFriendRequest);
   router.patch('/friends/:requesterId/accept', verifyToken, userController.acceptFriendRequest);
   router.delete('/friends/:friendId', verifyToken, userController.removeFriend);
+
+  // Search — also before /:id
+  router.get('/search', verifyToken, userController.searchUsers);
+
+  // Public profile — /:id must be LAST among GET routes
+  router.get('/:id', apiRateLimiter, userController.getPublicProfile);
 
   // ── Internal (service-to-service) ────────────────────────
   // Auth service calls this after user registration

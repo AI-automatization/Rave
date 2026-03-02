@@ -218,6 +218,7 @@ services:
       context: ./apps/web
       dockerfile: Dockerfile.dev
     container_name: cinesync_web
+    restart: unless-stopped
     network_mode: host
     environment:
       NEXT_PUBLIC_APP_URL: "http://localhost:3000"
@@ -227,6 +228,11 @@ services:
       NEXTAUTH_URL: "http://localhost:3000"
       NEXTAUTH_SECRET: "cinesync_dev_nextauth_secret_2026"
       NEXT_PUBLIC_GOOGLE_CLIENT_ID: "dev_google_client_id"
+    volumes:
+      - ./apps/web/src:/app/src
+      - ./apps/web/public:/app/public
+      - web_node_modules:/app/node_modules
+      - web_next_cache:/app/.next
     depends_on:
       - auth
       - user
@@ -245,6 +251,8 @@ volumes:
   es_data:
   user_uploads:
   content_uploads:
+  web_node_modules:
+  web_next_cache:
 
 # ═══════════════════════════════════════════════════════════════
 # NETWORKS

@@ -47,6 +47,12 @@ export class UserService {
     return exists === 1;
   }
 
+  async sendFriendRequestByProfileId(requesterId: string, profileId: string): Promise<void> {
+    const receiver = await User.findById(profileId).select('authId').lean();
+    if (!receiver) throw new NotFoundError('User not found');
+    await this.sendFriendRequest(requesterId, receiver.authId as string);
+  }
+
   async sendFriendRequest(requesterId: string, receiverId: string): Promise<void> {
     if (requesterId === receiverId) {
       throw new BadRequestError('Cannot send friend request to yourself');
@@ -119,6 +125,49 @@ export class UserService {
 
     if (result.deletedCount === 0) throw new NotFoundError('Friendship not found');
     logger.info('Friend removed', { userId, friendId });
+  }
+
+  async getPendingRequests(userId: string): Promise<Record<string, unknown>[]> {
+    const requests = await Friendship.find({
+      receiverId: userId,
+      status: 'pending',
+    }).lean();
+
+    const requesterIds = requests.map((f) => f.requesterId);
+    const users = await User.find({ authId: { $in: requesterIds } })
+      .select('authId username avatar rank')
+      .lean();
+
+    const userMap = new Map(users.map((u) => [u.authId, u]));
+
+    return requests.map((f) => ({
+      ...f,
+      requester: userMap.get(f.requesterId) ?? { username: 'Unknown', rank: 'Bronze' },
+    }));
+  }
+
+  async acceptFriendRequestById(userId: string, friendshipId: string): Promise<void> {
+    const friendship = await Friendship.findOne({
+      _id: friendshipId,
+      receiverId: userId,
+      status: 'pending',
+    });
+
+    if (!friendship) throw new NotFoundError('Friend request not found');
+
+    friendship.status = 'accepted';
+    await friendship.save();
+
+    await User.updateOne({ authId: userId }, { $inc: { totalPoints: POINTS.FRIEND_ADDED } });
+    await User.updateOne({ authId: friendship.requesterId }, { $inc: { totalPoints: POINTS.FRIEND_ADDED } });
+
+    await this.recalculateRank(userId);
+    await this.recalculateRank(friendship.requesterId);
+
+    await triggerAchievement(userId, 'friend', { friendId: friendship.requesterId });
+    await triggerAchievement(friendship.requesterId, 'friend', { friendId: userId });
+
+    logger.info('Friend request accepted by id', { userId, friendshipId });
   }
 
   async getFriends(userId: string): Promise<IUserDocument[]> {
@@ -196,6 +245,25 @@ export class UserService {
       { authId: userId },
       { $pull: { fcmTokens: token } },
     );
+  }
+
+  async searchUsers(query: string, requesterId: string): Promise<Record<string, unknown>[]> {
+    if (!query || query.trim().length < 2) return [];
+
+    const users = await User.find({
+      username: { $regex: query.trim(), $options: 'i' },
+      authId: { $ne: requesterId },
+      isBlocked: false,
+    })
+      .select('authId username avatar bio rank totalPoints')
+      .limit(20)
+      .lean();
+
+    const onlineChecks = await Promise.all(
+      users.map((u) => this.isUserOnline(u.authId as string)),
+    );
+
+    return users.map((u, i) => ({ ...u, isOnline: onlineChecks[i] }));
   }
 
   async addPoints(userId: string, points: number): Promise<void> {

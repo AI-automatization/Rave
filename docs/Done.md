@@ -672,4 +672,103 @@
 
 ---
 
-_docs/Done.md | CineSync | Yangilangan: 2026-03-01 (Emirhan: E001..E011 ✅ + F-037 + F-038 P1 + F-039 P2 + F-040 P3 bugfix | Jafar: J001..J006 ✅ | T-C002 ✅)_
+---
+
+### F-041 | 2026-03-02 | [DEVOPS] | Docker — web hot-reload va bitta komanda setup
+
+- **Mas'ul:** Saidazim
+- **Bajarildi:**
+  - `apps/web/Dockerfile.dev` — `WATCHPACK_POLLING=true` qo'shildi (Docker FS polling)
+  - `docker-compose.dev.yml` — web service ga volumes qo'shildi: `./apps/web/src`, `./apps/web/public`, `web_node_modules`, `web_next_cache`
+  - `apps/web/package.json` — `@tailwindcss/oxide-linux-x64-gnu` o'chirildi (Alpine musl bilan mos kelmaydi)
+  - Bitta komanda: `docker compose -f docker-compose.dev.yml up -d --build`
+
+---
+
+### F-042 | 2026-03-02 | [BACKEND] | User Service — do'stlik endpointlari qo'shildi
+
+- **Mas'ul:** Saidazim
+- **Bajarildi:**
+  - `GET /api/v1/users/search?q=` — username bo'yicha qidiruv + `isOnline` holati
+  - `GET /api/v1/users/friends` — do'stlar ro'yxati (avval faqat `/me/friends` bor edi)
+  - `GET /api/v1/users/friends/requests` — pending so'rovlar, requester profili bilan populate qilingan
+  - `POST /api/v1/users/friends/request` — body `{userId}` bilan so'rov yuborish
+  - `PATCH /api/v1/users/friends/accept/:friendshipId` — friendship `_id` bilan qabul qilish
+
+---
+
+### BUG-B001 | 2026-03-02 | [BACKEND] | Express route ordering — `/:id` statik routelarni yutib olishi
+
+- **Mas'ul:** Saidazim
+- **Muammo:** `GET /:id` dinamik route `GET /friends`, `GET /search` kabi statik routelardan OLDIN
+  ro'yxatdan o'tgan edi. Express `/friends` ni `id="friends"` deb qabul qilgan →
+  `User.findOne({ authId: "friends" })` → 404 "User not found".
+- **Yechim:** Barcha statik routelar `/:id` dan OLDIN ro'yxatdan o'tkazildi.
+- **QOIDA — UCHALA DASTURCHI UCHUN:**
+
+```
+❌ NOTO'G'RI:
+  router.get('/:id', ...)        ← dinamik birinchi
+  router.get('/search', ...)     ← hech qachon yetmaydi
+  router.get('/me/friends', ...) ← hech qachon yetmaydi
+
+✅ TO'G'RI:
+  router.get('/me', ...)         ← statik — /me
+  router.get('/me/friends', ...) ← statik — /me/friends
+  router.get('/search', ...)     ← statik — /search
+  router.get('/friends', ...)    ← statik — /friends
+  router.get('/:id', ...)        ← dinamik — ENG OXIRIDA
+```
+
+---
+
+### BUG-B002 | 2026-03-02 | [BACKEND] | User identifier mismatch — `_id` vs `authId`
+
+- **Mas'ul:** Saidazim
+- **Muammo:** Web `u._id` (MongoDB profile ObjectId) yuboradi, backend `authId` (auth service userId)
+  bo'yicha qidiradi → 404 "User not found".
+- **Yechim:** `sendFriendRequestByProfileId()` metodi qo'shildi — `_id` orqali `authId` ni
+  topib keyin operatsiyani bajaradi.
+- **QOIDA — UCHALA DASTURCHI UCHUN:**
+
+```
+User collection da IKKI xil identifier bor:
+
+  _id     → MongoDB profile ObjectId  (69a54b70f808cfa9413654f0)
+              - faqat user service ichki ishlatish uchun
+              - frontend ga expose qilmang (to'g'ridan foydalanmang)
+
+  authId  → Auth service user._id     (69a545eee6496cf6ac946ecc)
+              - servislar arasi muloqot uchun STANDART identifier
+              - JWT ichida userId = authId
+              - Friendship, Battle, WatchParty — barchasi authId ishlatadi
+
+QOIDALAR:
+  ✅ Servislar arasi: authId ishlatish
+  ✅ Frontend → backend: authId yuborish (search response da authId bor)
+  ✅ u.authId — to'g'ri
+  ❌ u._id   — foydalanuvchini identify qilish uchun XATO
+```
+
+---
+
+### BUG-B003 | 2026-03-02 | [DEVOPS] | root package.json ga react/react-dom qo'shish XATO
+
+- **Mas'ul:** Saidazim
+- **Muammo:** `react: 18.3.1` va `react-dom: 18.3.1` monorepo root `package.json` ga
+  `dependencies` sifatida qo'shilgan. npm workspaces hoisting natijasida `apps/web` ning
+  React versiyasi bilan collision → 129 TypeScript xatosi.
+- **Yechim:** Root `package.json` dan o'chirish kerak — `apps/web/package.json` da allaqachon bor.
+- **QOIDA:**
+
+```
+Root package.json dependencies:
+  ✅ swagger-jsdoc, swagger-ui-express  — backend uchun shared dev tools
+  ✅ @playwright/test                   — test uchun
+  ❌ react, react-dom                   — faqat apps/web/package.json da bo'lishi kerak
+  ❌ react-native, expo                 — faqat apps/mobile/package.json da bo'lishi kerak
+```
+
+---
+
+_docs/Done.md | CineSync | Yangilangan: 2026-03-02 (Emirhan: E001..E011 ✅ + F-037..F-040 | Jafar: J001..J006 ✅ | Saidazim: F-041 Docker + F-042 Friends API + BUG-B001..B003 ✅)_

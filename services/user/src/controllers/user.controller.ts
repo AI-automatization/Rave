@@ -16,6 +16,17 @@ export class UserController {
     }
   };
 
+  searchUsers = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = (req as AuthenticatedRequest).user;
+      const q = (req.query['q'] as string) ?? '';
+      const users = await this.userService.searchUsers(q, userId);
+      res.json(apiResponse.success(users));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   getPublicProfile = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { id } = req.params;
@@ -42,6 +53,39 @@ export class UserController {
       const { userId } = (req as AuthenticatedRequest).user;
       await this.userService.heartbeat(userId);
       res.json(apiResponse.success(null, 'Heartbeat received'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getPendingRequests = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = (req as AuthenticatedRequest).user;
+      const requests = await this.userService.getPendingRequests(userId);
+      res.json(apiResponse.success(requests));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  sendFriendRequestByBody = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = (req as AuthenticatedRequest).user;
+      const { userId: receiverId } = req.body as { userId: string };
+      if (!receiverId) { res.status(400).json(apiResponse.error('userId required')); return; }
+      await this.userService.sendFriendRequestByProfileId(userId, receiverId);
+      res.status(201).json(apiResponse.success(null, 'Friend request sent'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  acceptFriendRequestById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = (req as AuthenticatedRequest).user;
+      const { friendshipId } = req.params;
+      await this.userService.acceptFriendRequestById(userId, friendshipId);
+      res.json(apiResponse.success(null, 'Friend request accepted'));
     } catch (error) {
       next(error);
     }
