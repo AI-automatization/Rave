@@ -17,7 +17,7 @@ import Toast from 'react-native-toast-message';
 import { colors, spacing, borderRadius, typography } from '@theme/index';
 import { watchPartyApi } from '@api/watchParty.api';
 import { useWatchPartyStore } from '@store/watchParty.store';
-import { connectSocket, watchPartySocket } from '@socket/client';
+import { watchPartySocket } from '@socket/client';
 import type { RootStackParams } from '@navigation/types';
 
 type Props = NativeStackScreenProps<RootStackParams, 'WatchPartyCreate'>;
@@ -39,7 +39,7 @@ export default function WatchPartyCreateScreen({ navigation, route }: Props) {
       const res = await watchPartyApi.createRoom(movieId, isPrivate, maxMembers);
       if (res.success && res.data) {
         setRoom(res.data);
-        connectSocket();
+        // connectSocket() shart emas — useSocket.ts App.tsx da boshqaradi
         watchPartySocket.joinRoom(res.data._id);
         // BUG-M009: navigate avval stack ga qo'shadi, keyin goBack — race condition oldini olish
         rootNav.navigate('WatchParty', { roomId: res.data._id });

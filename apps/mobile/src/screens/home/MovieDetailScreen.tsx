@@ -33,7 +33,7 @@ const BACKDROP_HEIGHT = height * 0.45;
 export default function MovieDetailScreen({ navigation, route }: Props) {
   const { movieId } = route.params;
   const rootNav = useNavigation<RootNav>();
-  const { movie, ratings, isLoading } = useMovieDetail(movieId);
+  const { movie, ratings, isLoading, isError, refetch } = useMovieDetail(movieId);
   const userId = useAuthStore((s) => s.user?._id);
   const hasRated = useRef(false);
 
@@ -73,6 +73,20 @@ export default function MovieDetailScreen({ navigation, route }: Props) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator color={colors.primary} size="large" />
+      </View>
+    );
+  }
+
+  if (isError) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.errorText}>Xatolik yuz berdi</Text>
+        <TouchableOpacity onPress={() => refetch()}>
+          <Text style={styles.backLink}>Qayta urinish</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginTop: 8 }}>
+          <Text style={styles.backLink}>Orqaga</Text>
+        </TouchableOpacity>
       </View>
     );
   }

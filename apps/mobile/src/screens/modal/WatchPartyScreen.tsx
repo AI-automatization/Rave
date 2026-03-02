@@ -20,7 +20,7 @@ import Toast from 'react-native-toast-message';
 import { colors, spacing, borderRadius, typography } from '@theme/index';
 import { useWatchPartyStore } from '@store/watchParty.store';
 import { useAuthStore } from '@store/auth.store';
-import { connectSocket, watchPartySocket, SERVER_EVENTS } from '@socket/client';
+import { watchPartySocket } from '@socket/client';
 import { watchPartyApi } from '@api/watchParty.api';
 import type { RootStackParams } from '@navigation/types';
 import type { ChatMessage } from '@types/index';
@@ -57,12 +57,14 @@ export default function WatchPartyScreen({ navigation, route }: Props) {
       }
     };
     load();
-    connectSocket();
+    // connectSocket() shart emas — useSocket.ts App.tsx da boshqaradi
     watchPartySocket.joinRoom(roomId);
 
     return () => {
       watchPartySocket.leaveRoom();
       watchPartyApi.leaveRoom(roomId).catch(() => {});
+      // Store ni tozalaymiz — eski xona ma'lumotlari qolmasin
+      useWatchPartyStore.getState().reset();
     };
   }, [roomId]);
 
@@ -70,8 +72,11 @@ export default function WatchPartyScreen({ navigation, route }: Props) {
   useEffect(() => {
     if (!syncState || !videoRef.current) return;
     const now = Date.now();
-    const elapsed = (now - syncState.serverTimestamp) / 1000;
-    const targetTime = syncState.currentTime + elapsed;
+    // Network delay compensation:
+    //   - 0 dan kichik bo'lmasin (soat farqi / teskari latency)
+    //   - 10s dan katta bo'lmasin (juda katta drift = xato timestamp)
+    const elapsed = Math.min(Math.max(0, (now - syncState.serverTimestamp) / 1000), 10);
+    const targetTime = Math.max(0, syncState.currentTime + elapsed);
     videoRef.current.seek(targetTime);
   }, [syncState?.serverTimestamp]);
 

@@ -15,7 +15,8 @@
       "@socket/*": ["src/socket/*"],
       "@theme/*": ["src/theme/*"],
       "@utils/*": ["src/utils/*"],
-      "@types/*": ["src/types/*"]
+      "@types/*": ["src/types/*"],
+      "@shared/*": ["../../shared/src/*"]
     }
   },
   "include": ["src", "index.js"]

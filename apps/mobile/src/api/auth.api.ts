@@ -57,5 +57,15 @@ export const authApi = {
     return data;
   },
 
+  // Native Google Sign-In flow: idToken → backend → JWT tokens
+  // Backend endpoint: POST /api/v1/auth/google/token
+  // ⚠️ Saidazim: services/auth da bu endpointni qo'shing (idToken → findOrCreateGoogleUser)
+  googleSignIn: async (idToken: string) => {
+    const { data } = await authClient.post<ApiResponse<LoginResponse>>('/auth/google/token', {
+      idToken,
+    });
+    return data;
+  },
+
   getGoogleAuthUrl: () => `${authClient.defaults.baseURL}/auth/google`,
 };

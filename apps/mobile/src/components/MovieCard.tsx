@@ -44,7 +44,12 @@ function MovieCard({ movie, onPress, width: cardWidth = CARD_WIDTH }: Props) {
   );
 }
 
-export default memo(MovieCard);
+// Custom comparator: movie._id va width o'zgarmasa — re-render yo'q
+// onPress har render da yangi funksiya bo'lsa ham — MovieCard qayta render qilmaydi
+export default memo(MovieCard, (prev, next) =>
+  prev.movie._id === next.movie._id &&
+  prev.width === next.width,
+);
 
 const styles = StyleSheet.create({
   container: {

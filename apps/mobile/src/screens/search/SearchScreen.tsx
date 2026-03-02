@@ -20,7 +20,7 @@ import type { IMovie } from '@types/index';
 type Props = NativeStackScreenProps<SearchStackParams, 'Search'>;
 
 export default function SearchScreen({ navigation }: Props) {
-  const { query, setQuery, debouncedQuery, results, isLoading, history, submit, removeFromHistory, clearHistory } = useSearch();
+  const { query, setQuery, debouncedQuery, results, isLoading, isError, history, submit, removeFromHistory, clearHistory } = useSearch();
   const inputRef = useRef<TextInput>(null);
 
   const showResults = debouncedQuery.length >= 2;
@@ -67,8 +67,17 @@ export default function SearchScreen({ navigation }: Props) {
         </View>
       )}
 
+      {/* Network error */}
+      {isError && !isLoading && (
+        <View style={styles.center}>
+          <Text style={styles.emptyEmoji}>⚠️</Text>
+          <Text style={styles.emptyText}>Xatolik yuz berdi</Text>
+          <Text style={styles.emptySubtext}>Internet aloqasini tekshiring</Text>
+        </View>
+      )}
+
       {/* Results grid */}
-      {showResults && !isLoading && (
+      {showResults && !isLoading && !isError && (
         <>
           <Text style={styles.resultCount}>
             {results.length} ta natija: "<Text style={styles.queryText}>{debouncedQuery}</Text>"
@@ -87,7 +96,7 @@ export default function SearchScreen({ navigation }: Props) {
       )}
 
       {/* Empty state */}
-      {showResults && !isLoading && results.length === 0 && (
+      {showResults && !isLoading && !isError && results.length === 0 && (
         <View style={styles.center}>
           <Text style={styles.emptyEmoji}>🎬</Text>
           <Text style={styles.emptyText}>Natija topilmadi</Text>

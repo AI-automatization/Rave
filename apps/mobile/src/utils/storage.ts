@@ -18,6 +18,11 @@ export const tokenStorage = {
   getUserId: () => storage.getString(KEYS.USER_ID) ?? null,
   setUserId: (id: string) => storage.set(KEYS.USER_ID, id),
 
+  setTokens: (accessToken: string, refreshToken: string) => {
+    storage.set(KEYS.ACCESS_TOKEN, accessToken);
+    storage.set(KEYS.REFRESH_TOKEN, refreshToken);
+  },
+
   clearAll: () => {
     storage.delete(KEYS.ACCESS_TOKEN);
     storage.delete(KEYS.REFRESH_TOKEN);

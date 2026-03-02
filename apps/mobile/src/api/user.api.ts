@@ -87,4 +87,11 @@ export const userApi = {
     const { data } = await userClient.get<ApiResponse<IUserStats>>('/achievements/me/stats');
     return data;
   },
+
+  searchUsers: async (query: string) => {
+    const { data } = await userClient.get<ApiResponse<IUserPublic[]>>('/user/search', {
+      params: { q: query },
+    });
+    return data;
+  },
 };

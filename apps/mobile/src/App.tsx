@@ -67,20 +67,26 @@ function AppContent() {
   }, []);
 
   // BUG-APP-001: FCM faqat login bo'lganda ro'yxatdan o'tkaziladi — 401 xatosi oldini olish
+  // mounted flag: unmount bo'lsa async callback unsubscribe yo'llab qo'ymaydi (race condition fix)
   useEffect(() => {
     if (!isAuthenticated) return;
 
+    let mounted = true;
     let unsubscribeFcm: (() => void) | undefined;
 
     async function setupPush() {
       const granted = await requestNotificationPermission();
+      if (!mounted) return; // unmount bo'lgan bo'lsa — to'xtatamiz
       if (granted) {
         unsubscribeFcm = await registerFcmToken();
       }
     }
     setupPush();
 
-    return () => { unsubscribeFcm?.(); };
+    return () => {
+      mounted = false;
+      unsubscribeFcm?.();
+    };
   }, [isAuthenticated]);
 
   return <AppNavigator />;

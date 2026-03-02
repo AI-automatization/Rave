@@ -57,5 +57,5 @@ export const useWatchPartyStore = create<WatchPartyState>()((set) => ({
 
   setConnected: (isConnected) => set({ isConnected }),
 
-  reset: () => set({ ...initialState, bufferingUserIds: new Set() }),
+  reset: () => set(initialState),
 }));

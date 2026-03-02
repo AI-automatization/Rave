@@ -26,7 +26,7 @@ export function useHomeData() {
       (res.data ?? []).filter((h) => h.progress > 0 && !h.isCompleted),
   });
 
-  const isLoading = trending.isLoading || topRated.isLoading;
+  const isLoading = trending.isLoading || topRated.isLoading || continueWatching.isLoading;
 
   return {
     trending: trending.data ?? [],
