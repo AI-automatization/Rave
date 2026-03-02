@@ -1,5 +1,5 @@
 import { authClient } from './client';
-import type { ApiResponse, IUser, LoginResponse, RegisterResponse } from '@types/index';
+import type { ApiResponse, IUser, LoginResponse, RegisterResponse } from '@app-types/index';
 
 export const authApi = {
   register: async (email: string, username: string, password: string) => {

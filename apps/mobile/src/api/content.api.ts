@@ -1,5 +1,5 @@
 import { contentClient } from './client';
-import type { ApiResponse, IMovie, IWatchHistory, IRating, ContentGenre } from '@types/index';
+import type { ApiResponse, IMovie, IWatchHistory, IRating, ContentGenre } from '@app-types/index';
 
 export interface MovieListParams {
   page?: number;

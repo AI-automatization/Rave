@@ -13,7 +13,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Video, { OnProgressData } from 'react-native-video';
+import Video, { OnProgressData, VideoRef } from 'react-native-video';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Toast from 'react-native-toast-message';
 
@@ -23,7 +23,7 @@ import { useAuthStore } from '@store/auth.store';
 import { watchPartySocket } from '@socket/client';
 import { watchPartyApi } from '@api/watchParty.api';
 import type { RootStackParams } from '@navigation/types';
-import type { ChatMessage } from '@types/index';
+import type { ChatMessage } from '@app-types/index';
 
 type Props = NativeStackScreenProps<RootStackParams, 'WatchParty'>;
 
@@ -38,7 +38,7 @@ export default function WatchPartyScreen({ navigation, route }: Props) {
   const userId = useAuthStore((s) => s.user?._id);
   const isOwner = room?.ownerId === userId;
 
-  const videoRef = useRef<Video>(null);
+  const videoRef = useRef<VideoRef>(null);
   // BUG-M020: owner joriy vaqtni kuzatadi — play/pause commandlarida ishlatiladi
   const localTimeRef = useRef(0);
   const [chatInput, setChatInput] = useState('');
@@ -88,7 +88,7 @@ export default function WatchPartyScreen({ navigation, route }: Props) {
   const handlePlayPause = () => {
     if (!isOwner) return;
     // localTimeRef — eng yangi vaqt; syncState.currentTime — fallback
-    const time = localTimeRef.current || syncState?.currentTime ?? 0;
+    const time = (localTimeRef.current || syncState?.currentTime) ?? 0;
     if (syncState?.isPlaying) {
       watchPartySocket.pause(time);
     } else {

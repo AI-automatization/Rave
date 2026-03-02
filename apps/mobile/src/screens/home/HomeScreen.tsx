@@ -19,7 +19,7 @@ import HeroBanner from '@components/HeroBanner';
 import MovieRow from '@components/MovieRow';
 import HomeSkeleton from '@components/HomeSkeleton';
 import type { HomeStackParams, RootStackParams } from '@navigation/types';
-import type { IMovie, IWatchHistory } from '@types/index';
+import type { IMovie, IWatchHistory } from '@app-types/index';
 
 type Props = NativeStackScreenProps<HomeStackParams, 'Home'>;
 type RootNav = NativeStackNavigationProp<RootStackParams>;

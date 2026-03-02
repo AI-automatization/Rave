@@ -11,7 +11,7 @@ import {
 import FastImage from 'react-native-fast-image';
 import LinearGradient from 'react-native-linear-gradient';
 import { colors, spacing, borderRadius, typography } from '@theme/index';
-import type { IMovie } from '@types/index';
+import type { IMovie } from '@app-types/index';
 
 const { width, height } = Dimensions.get('window');
 const BANNER_HEIGHT = height * 0.55;
@@ -82,7 +82,7 @@ function HeroBanner({ movies, onMoviePress }: Props) {
             />
             <View style={styles.info}>
               <View style={styles.badges}>
-                {item.genre.slice(0, 2).map((g) => (
+                {item.genre.slice(0, 2).map((g: string) => (
                   <View key={g} style={styles.badge}>
                     <Text style={styles.badgeText}>{g.toUpperCase()}</Text>
                   </View>

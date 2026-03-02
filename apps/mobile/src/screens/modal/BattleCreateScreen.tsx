@@ -18,7 +18,7 @@ import { colors, spacing, borderRadius, typography } from '@theme/index';
 import { battleApi } from '@api/battle.api';
 import { useBattleStore } from '@store/battle.store';
 import type { RootStackParams } from '@navigation/types';
-import type { BattleDuration } from '@types/index';
+import type { BattleDuration } from '@app-types/index';
 
 type Props = NativeStackScreenProps<RootStackParams, 'BattleCreate'>;
 type RootNav = NativeStackNavigationProp<RootStackParams>;

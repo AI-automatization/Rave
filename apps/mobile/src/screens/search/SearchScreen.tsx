@@ -15,7 +15,7 @@ import { colors, spacing, borderRadius, typography } from '@theme/index';
 import { useSearch } from '@hooks/useSearch';
 import MovieCard from '@components/MovieCard';
 import type { SearchStackParams } from '@navigation/types';
-import type { IMovie } from '@types/index';
+import type { IMovie } from '@app-types/index';
 
 type Props = NativeStackScreenProps<SearchStackParams, 'Search'>;
 

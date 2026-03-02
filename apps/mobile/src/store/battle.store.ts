@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { IBattle } from '@types/index';
+import type { IBattle } from '@app-types/index';
 
 interface BattleState {
   activeBattles: IBattle[];

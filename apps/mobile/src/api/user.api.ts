@@ -7,7 +7,7 @@ import type {
   IFriend,
   IUserStats,
   IAchievement,
-} from '@types/index';
+} from '@app-types/index';
 
 export const userApi = {
   getMe: async () => {

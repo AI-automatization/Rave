@@ -2,7 +2,7 @@ import React, { memo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import { colors, spacing, borderRadius, typography } from '@theme/index';
-import type { IMovie } from '@types/index';
+import type { IMovie } from '@app-types/index';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.32;

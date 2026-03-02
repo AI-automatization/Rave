@@ -1,6 +1,6 @@
 import messaging from '@react-native-firebase/messaging';
 import { userApi } from '@api/user.api';
-import type { NotificationType } from '@types/index';
+import type { NotificationType } from '@app-types/index';
 
 export const NOTIFICATION_ROUTES: Record<NotificationType, string> = {
   friend_request: 'FriendsTab',

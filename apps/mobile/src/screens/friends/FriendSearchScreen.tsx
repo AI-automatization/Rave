@@ -16,7 +16,7 @@ import Toast from 'react-native-toast-message';
 import { colors, spacing, borderRadius, typography } from '@theme/index';
 import { userApi } from '@api/user.api';
 import type { FriendsStackParams } from '@navigation/types';
-import type { IUserPublic } from '@types/index';
+import type { IUserPublic } from '@app-types/index';
 
 const DEBOUNCE_MS = 400;
 

@@ -14,7 +14,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { colors, spacing, borderRadius, typography, RANK_COLORS } from '@theme/index';
 import { userApi } from '@api/user.api';
 import type { ProfileStackParams } from '@navigation/types';
-import type { UserRank } from '@types/index';
+import type { UserRank } from '@app-types/index';
 
 type Props = NativeStackScreenProps<ProfileStackParams, 'Stats'>;
 

@@ -18,7 +18,7 @@ import { colors, spacing, borderRadius, typography } from '@theme/index';
 import { userApi } from '@api/user.api';
 import { useFriendsStore } from '@store/friends.store';
 import type { FriendsStackParams } from '@navigation/types';
-import type { IFriend } from '@types/index';
+import type { IFriend } from '@app-types/index';
 
 type Props = NativeStackScreenProps<FriendsStackParams, 'Friends'>;
 

@@ -1,5 +1,5 @@
 import { notificationClient } from './client';
-import type { ApiResponse, INotification } from '@types/index';
+import type { ApiResponse, INotification } from '@app-types/index';
 
 export const notificationApi = {
   getNotifications: async (page = 1, limit = 20, isRead?: boolean) => {

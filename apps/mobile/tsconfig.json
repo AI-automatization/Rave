@@ -1,5 +1,5 @@
 {
-  "extends": "@react-native/typescript-config/tsconfig.json",
+  "extends": "../../node_modules/@react-native/typescript-config/tsconfig.json",
   "compilerOptions": {
     "strict": true,
     "noImplicitAny": true,
@@ -15,7 +15,7 @@
       "@socket/*": ["src/socket/*"],
       "@theme/*": ["src/theme/*"],
       "@utils/*": ["src/utils/*"],
-      "@types/*": ["src/types/*"],
+      "@app-types/*": ["src/types/*"],
       "@shared/*": ["../../shared/src/*"]
     }
   },

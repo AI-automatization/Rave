@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { IWatchPartyRoom, SyncState, ChatMessage, EmojiEvent } from '@types/index';
+import type { IWatchPartyRoom, SyncState, ChatMessage, EmojiEvent } from '@app-types/index';
 
 interface WatchPartyState {
   room: IWatchPartyRoom | null;

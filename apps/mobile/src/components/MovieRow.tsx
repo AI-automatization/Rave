@@ -4,7 +4,7 @@ import { View, Text, FlatList, StyleSheet, TouchableOpacity, Dimensions } from '
 const CARD_WIDTH = Dimensions.get('window').width * 0.32;
 import { colors, spacing, typography } from '@theme/index';
 import MovieCard from './MovieCard';
-import type { IMovie } from '@types/index';
+import type { IMovie } from '@app-types/index';
 
 interface Props {
   title: string;

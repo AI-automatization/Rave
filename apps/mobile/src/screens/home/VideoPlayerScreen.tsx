@@ -7,7 +7,7 @@ import {
   StatusBar,
   ActivityIndicator,
 } from 'react-native';
-import Video, { OnProgressData, OnLoadData } from 'react-native-video';
+import Video, { OnProgressData, OnLoadData, VideoRef } from 'react-native-video';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { colors, spacing, typography } from '@theme/index';
@@ -29,7 +29,7 @@ function formatTime(secs: number): string {
 export default function VideoPlayerScreen({ navigation, route }: Props) {
   const { movieId, title, videoUrl, startTime = 0 } = route.params;
 
-  const videoRef = useRef<Video>(null);
+  const videoRef = useRef<VideoRef>(null);
   const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isCompletedRef = useRef(false);
   // BUG-M011: stale closure oldini olish — doim joriy qiymatlar saqlanadi

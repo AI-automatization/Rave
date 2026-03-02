@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { INotification } from '@types/index';
+import type { INotification } from '@app-types/index';
 
 interface NotificationState {
   notifications: INotification[];

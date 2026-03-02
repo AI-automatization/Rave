@@ -2,7 +2,7 @@ import { io, Socket } from 'socket.io-client';
 import { SOCKET_URL } from '@api/client';
 import { tokenStorage } from '@utils/storage';
 import { useWatchPartyStore } from '@store/watchParty.store';
-import type { IWatchPartyRoom, SyncState, ChatMessage, EmojiEvent } from '@types/index';
+import type { IWatchPartyRoom, SyncState, ChatMessage, EmojiEvent } from '@app-types/index';
 // shared/ dan import — 3 platforma uchun yagona manba
 import { SERVER_EVENTS, CLIENT_EVENTS } from '@shared/constants/socketEvents';
 

@@ -16,7 +16,7 @@ import { colors, spacing, borderRadius, typography } from '@theme/index';
 import { notificationApi } from '@api/notification.api';
 import { useNotificationStore } from '@store/notification.store';
 import type { RootStackParams } from '@navigation/types';
-import type { INotification, NotificationType } from '@types/index';
+import type { INotification, NotificationType } from '@app-types/index';
 
 type Props = NativeStackScreenProps<RootStackParams, 'Notifications'>;
 
