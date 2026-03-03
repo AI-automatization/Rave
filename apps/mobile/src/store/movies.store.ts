@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { IMovie, IWatchHistory } from '@types/index';
+import type { IMovie, IWatchHistory } from '@app-types/index';
 
 interface MoviesState {
   trending: IMovie[];

@@ -1,0 +1,13 @@
+# Railway config — watch-party service (port 3004)
+# Root Directory in Railway dashboard: / (repo root)
+# Config File Path in Railway dashboard: services/watch-party/railway.toml
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "services/watch-party/Dockerfile"
+
+[deploy]
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10

@@ -1,0 +1,13 @@
+# Railway config — battle service (port 3005)
+# Root Directory in Railway dashboard: / (repo root)
+# Config File Path in Railway dashboard: services/battle/railway.toml
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "services/battle/Dockerfile"
+
+[deploy]
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10

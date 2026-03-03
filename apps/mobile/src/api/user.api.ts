@@ -7,7 +7,7 @@ import type {
   IFriend,
   IUserStats,
   IAchievement,
-} from '@types/index';
+} from '@app-types/index';
 
 export const userApi = {
   getMe: async () => {
@@ -85,6 +85,13 @@ export const userApi = {
 
   getMyStats: async () => {
     const { data } = await userClient.get<ApiResponse<IUserStats>>('/achievements/me/stats');
+    return data;
+  },
+
+  searchUsers: async (query: string) => {
+    const { data } = await userClient.get<ApiResponse<IUserPublic[]>>('/user/search', {
+      params: { q: query },
+    });
     return data;
   },
 };

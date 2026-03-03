@@ -83,7 +83,7 @@ export default function ProfileScreen({ navigation }: Props) {
 
         {/* Stats cards */}
         {isLoading ? (
-          <ActivityIndicator color={colors.primary} style={{ margin: spacing.lg }} />
+          <ActivityIndicator color={colors.primary} style={styles.activityLoader} />
         ) : stats ? (
           <View style={styles.statsGrid}>
             <View style={styles.statCard}>
@@ -149,7 +149,7 @@ export default function ProfileScreen({ navigation }: Props) {
           <Text style={styles.logoutText}>Chiqish</Text>
         </TouchableOpacity>
 
-        <View style={{ height: spacing.xxxl * 2 }} />
+        <View style={styles.bottomSpacer} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -248,4 +248,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   logoutText: { color: colors.error, fontSize: typography.sizes.md, fontWeight: typography.weights.semibold },
+  activityLoader: { margin: spacing.lg },
+  bottomSpacer: { height: spacing.xxxl * 2 },
 });

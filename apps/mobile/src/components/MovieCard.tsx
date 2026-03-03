@@ -2,7 +2,7 @@ import React, { memo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import { colors, spacing, borderRadius, typography } from '@theme/index';
-import type { IMovie } from '@types/index';
+import type { IMovie } from '@app-types/index';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.32;
@@ -44,7 +44,12 @@ function MovieCard({ movie, onPress, width: cardWidth = CARD_WIDTH }: Props) {
   );
 }
 
-export default memo(MovieCard);
+// Custom comparator: movie._id va width o'zgarmasa — re-render yo'q
+// onPress har render da yangi funksiya bo'lsa ham — MovieCard qayta render qilmaydi
+export default memo(MovieCard, (prev, next) =>
+  prev.movie._id === next.movie._id &&
+  prev.width === next.width,
+);
 
 const styles = StyleSheet.create({
   container: {

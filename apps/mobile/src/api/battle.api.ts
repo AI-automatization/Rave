@@ -1,5 +1,5 @@
 import { battleClient } from './client';
-import type { ApiResponse, IBattle, IBattleParticipant, BattleDuration } from '@types/index';
+import type { ApiResponse, IBattle, IBattleParticipant, BattleDuration } from '@app-types/index';
 
 export interface LeaderboardEntry extends IBattleParticipant {
   username: string;

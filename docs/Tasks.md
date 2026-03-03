@@ -1,6 +1,6 @@
 # CineSync — OCHIQ VAZIFALAR
 
-# Yangilangan: 2026-03-01
+# Yangilangan: 2026-03-03
 
 # 3 dasturchi: Saidazim (Backend) | Emirhan (Mobile) | Jafar (Web)
 
@@ -14,7 +14,7 @@
 3. Fix bo'lgach → shu yerdan O'CHIRISH → docs/Done.md ga KO'CHIRISH
 4. Prioritet: P0=kritik, P1=muhim, P2=o'rta, P3=past
 5. Sprint: S1=hozir, S2=keyingi hafta, S3=keyingi sprint, S4-5=keyin
-6. Oxirgi T-raqam: S→015, E→011, J→011, C→005
+6. Oxirgi T-raqam: S→016, E→013, J→011, C→005
 ```
 
 ---
@@ -24,6 +24,24 @@
 # 🔴 SAIDAZIM — BACKEND + ADMIN
 
 # ═══════════════════════════════════════
+
+## SPRINT 1 — Auth (Mobile tomonidan kerak)
+
+### T-S016 | P1 | [BACKEND] | Google OAuth native token endpoint
+
+- **Sana:** 2026-03-03
+- **Mas'ul:** Saidazim
+- **Fayl:** `services/auth/src/`
+- **Holat:** ❌ Boshlanmagan
+- **Sabab:** Mobile `@react-native-google-signin` orqali idToken oladi — backendga yuboradi.
+  Passport web-redirect flow mobile uchun mos emas.
+- **Bajarilishi kerak:**
+  - [ ] `POST /api/v1/auth/google/token` endpoint — body: `{ idToken: string }`
+  - [ ] idToken → `google-auth-library` bilan verify → `findOrCreateGoogleUser(payload)`
+  - [ ] Response: `{ success, data: { user, accessToken, refreshToken } }` — LoginResponse format
+- **Eslatma:** `findOrCreateGoogleUser` metodi allaqachon `auth.service.ts` da bor — faqat endpoint kerak
+
+---
 
 ## SPRINT 2 — Content + Watch Party
 
@@ -66,27 +84,9 @@
 
 # ═══════════════════════════════════════
 
-*T-E001..T-E011 — Done.md F-023..F-034 ga ko'chirildi*
+*T-E001..T-E013 — Done.md F-023..F-040 ga ko'chirildi*
 
-## ✅ Barcha buglar tuzatildi (2026-03-01)
-
-### ✅ T-E012 | P2 | [MOBILE] | O'rta buglar tuzatish (BUG-M009..M019) — TUGADI
-### ✅ T-E013 | P3 | [MOBILE] | Past buglar tuzatish (BUG-M020..M024) — TUGADI
-
-- **Sana:** 2026-03-01
-- **Mas'ul:** Emirhan
-- **Holat:** ⏳ Kutmoqda
-- **Buglar:**
-  - [ ] BUG-M009 — WatchPartyCreateScreen: goBack+navigate race
-  - [ ] BUG-M010 — useSearch: JSON.parse catch yo'q
-  - [ ] BUG-M011 — VideoPlayerScreen: stale closure progress
-  - [ ] BUG-M012 — MovieDetailScreen: hasRated.current server tekshirilmaydi
-  - [ ] BUG-M013 — WatchPartyScreen: FlatList keyExtractor index
-  - [ ] BUG-M014 — MainTabs: notification badge noto'g'ri tabda
-  - [ ] BUG-M015 — LoginScreen: GoogleSignin.configure har render da
-  - [ ] BUG-M017 — useHomeData: progress < 90 chegarasi
-  - [ ] BUG-M018 — FriendSearchScreen: dead code + keraksiz API
-  - [ ] BUG-M019 — VideoPlayerScreen: setCurrentTime + seek ikki marta
+## ✅ Barcha tasklar tugallandi (2026-03-03)
 
 ---
 
@@ -231,7 +231,7 @@
 | Jamoa    | Tugallandi | Qolgan | JAMI |
 | -------- | ---------- | ------ | ---- |
 | Saidazim | T-S001..T-S008, T-S010, T-S011, T-C001, T-C003, T-C005 ✅ | T-S005b, T-S009 (2 task) | — |
-| Emirhan  | T-E001..T-E011 ✅ (11 task) — HAMMASI TUGADI 🎉 | — | 11 |
+| Emirhan  | T-E001..T-E013 ✅ (13 task) — HAMMASI TUGADI 🎉 | — | 13 |
 | Jafar    | T-J001..T-J006 ✅ (6 task) | T-J007 (qisman), T-J008, T-J009, T-J010 (3 yangi) | 7 |
 | Umumiy   | T-C001 ✅, T-C002 ✅, T-C003 ✅, T-C005 ✅ | T-C004 (1 task) | — |
 

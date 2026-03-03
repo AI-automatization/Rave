@@ -18,7 +18,7 @@ import { colors, spacing, borderRadius, typography } from '@theme/index';
 import { battleApi } from '@api/battle.api';
 import { useBattleStore } from '@store/battle.store';
 import type { RootStackParams } from '@navigation/types';
-import type { BattleDuration } from '@types/index';
+import type { BattleDuration } from '@app-types/index';
 
 type Props = NativeStackScreenProps<RootStackParams, 'BattleCreate'>;
 type RootNav = NativeStackNavigationProp<RootStackParams>;
@@ -66,7 +66,7 @@ export default function BattleCreateScreen({ navigation }: Props) {
           <Text style={styles.cancel}>Bekor qilish</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Battle yaratish</Text>
-        <View style={{ width: 80 }} />
+        <View style={styles.headerSpacer} />
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
@@ -172,4 +172,5 @@ const styles = StyleSheet.create({
   },
   btnDisabled: { opacity: 0.6 },
   createBtnText: { color: colors.textPrimary, fontSize: typography.sizes.lg, fontWeight: typography.weights.semibold },
+  headerSpacer: { width: 80 },
 });

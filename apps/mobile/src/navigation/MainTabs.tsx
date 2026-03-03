@@ -74,7 +74,9 @@ function TabIcon({ name, focused }: { name: string; focused: boolean }) {
     ProfileTab: '👤',
   };
   return (
-    <Text style={{ fontSize: 20, opacity: focused ? 1 : 0.45 }}>{icons[name]}</Text>
+    <Text style={[styles.tabIcon, focused ? styles.tabIconFocused : styles.tabIconBlurred]}>
+      {icons[name]}
+    </Text>
   );
 }
 
@@ -115,4 +117,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     height: 60,
   },
+  tabIcon: { fontSize: 20 },
+  tabIconFocused: { opacity: 1 },
+  tabIconBlurred: { opacity: 0.45 },
 });

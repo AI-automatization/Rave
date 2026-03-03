@@ -15,7 +15,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { colors, spacing, borderRadius, typography } from '@theme/index';
 import { userApi } from '@api/user.api';
 import type { ProfileStackParams } from '@navigation/types';
-import type { IAchievement, AchievementRarity } from '@types/index';
+import type { IAchievement, AchievementRarity } from '@app-types/index';
 
 type Props = NativeStackScreenProps<ProfileStackParams, 'Achievements'>;
 

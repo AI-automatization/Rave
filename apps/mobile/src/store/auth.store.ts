@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { tokenStorage } from '@utils/storage';
-import type { IUser } from '@types/index';
+import type { IUser } from '@app-types/index';
 
 interface AuthState {
   user: IUser | null;

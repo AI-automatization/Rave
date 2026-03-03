@@ -1,5 +1,5 @@
 import { watchPartyClient } from './client';
-import type { ApiResponse, IWatchPartyRoom } from '@types/index';
+import type { ApiResponse, IWatchPartyRoom } from '@app-types/index';
 
 export const watchPartyApi = {
   createRoom: async (movieId: string, isPrivate = false, maxMembers = 10) => {

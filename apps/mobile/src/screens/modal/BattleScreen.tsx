@@ -112,7 +112,7 @@ export default function BattleScreen({ navigation, route }: Props) {
           <Text style={styles.back}>← Orqaga</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>{battle.title}</Text>
-        <View style={{ width: 60 }} />
+        <View style={styles.headerSpacer} />
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -140,7 +140,7 @@ export default function BattleScreen({ navigation, route }: Props) {
           </View>
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Vaqt</Text>
-            <Text style={[styles.infoValue, isEnded && { color: colors.error }]}>{timeLeft}</Text>
+            <Text style={[styles.infoValue, isEnded && styles.infoValueEnded]}>{timeLeft}</Text>
           </View>
         </View>
 
@@ -154,7 +154,7 @@ export default function BattleScreen({ navigation, route }: Props) {
         {/* Leaderboard */}
         <Text style={styles.sectionTitle}>Reyting</Text>
         {lbLoading ? (
-          <ActivityIndicator color={colors.primary} style={{ margin: spacing.lg }} />
+          <ActivityIndicator color={colors.primary} style={styles.lbLoader} />
         ) : (
           leaderboard.map((entry, index) => (
             <View
@@ -184,7 +184,7 @@ export default function BattleScreen({ navigation, route }: Props) {
           </View>
         )}
 
-        <View style={{ height: spacing.xxxl * 2 }} />
+        <View style={styles.bottomSpacer} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -272,4 +272,8 @@ const styles = StyleSheet.create({
   progressFill: { height: '100%', backgroundColor: colors.primary, borderRadius: 2 },
   errorText: { color: colors.textSecondary, fontSize: typography.sizes.lg },
   emptyText: { color: colors.textMuted, fontSize: typography.sizes.md },
+  headerSpacer: { width: 60 },
+  lbLoader: { margin: spacing.lg },
+  bottomSpacer: { height: spacing.xxxl * 2 },
+  infoValueEnded: { color: colors.error },
 });

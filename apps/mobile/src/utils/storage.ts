@@ -1,6 +1,6 @@
-import { MMKV } from 'react-native-mmkv';
+import { createMMKV } from 'react-native-mmkv';
 
-const storage = new MMKV({ id: 'cinesync' });
+const storage = createMMKV({ id: 'cinesync' });
 
 const KEYS = {
   ACCESS_TOKEN: 'access_token',
@@ -18,9 +18,14 @@ export const tokenStorage = {
   getUserId: () => storage.getString(KEYS.USER_ID) ?? null,
   setUserId: (id: string) => storage.set(KEYS.USER_ID, id),
 
+  setTokens: (accessToken: string, refreshToken: string) => {
+    storage.set(KEYS.ACCESS_TOKEN, accessToken);
+    storage.set(KEYS.REFRESH_TOKEN, refreshToken);
+  },
+
   clearAll: () => {
-    storage.delete(KEYS.ACCESS_TOKEN);
-    storage.delete(KEYS.REFRESH_TOKEN);
-    storage.delete(KEYS.USER_ID);
+    storage.remove(KEYS.ACCESS_TOKEN);
+    storage.remove(KEYS.REFRESH_TOKEN);
+    storage.remove(KEYS.USER_ID);
   },
 };

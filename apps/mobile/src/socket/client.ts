@@ -2,42 +2,11 @@ import { io, Socket } from 'socket.io-client';
 import { SOCKET_URL } from '@api/client';
 import { tokenStorage } from '@utils/storage';
 import { useWatchPartyStore } from '@store/watchParty.store';
-import type { IWatchPartyRoom, SyncState, ChatMessage, EmojiEvent } from '@types/index';
+import type { IWatchPartyRoom, SyncState, ChatMessage, EmojiEvent } from '@app-types/index';
+// shared/ dan import — 3 platforma uchun yagona manba
+import { SERVER_EVENTS, CLIENT_EVENTS } from '@shared/constants/socketEvents';
 
-// ─── Event constants (mirrors shared/constants/socketEvents.ts) ───────────────
-
-export const SERVER_EVENTS = {
-  ROOM_JOINED: 'room:joined',
-  ROOM_LEFT: 'room:left',
-  ROOM_CLOSED: 'room:closed',
-  ROOM_UPDATED: 'room:updated',
-  VIDEO_PLAY: 'video:play',
-  VIDEO_PAUSE: 'video:pause',
-  VIDEO_SEEK: 'video:seek',
-  VIDEO_SYNC: 'video:sync',
-  VIDEO_BUFFER: 'video:buffer',
-  MEMBER_JOINED: 'member:joined',
-  MEMBER_LEFT: 'member:left',
-  MEMBER_KICKED: 'member:kicked',
-  MEMBER_MUTED: 'member:muted',
-  ROOM_MESSAGE: 'room:message',
-  ROOM_EMOJI: 'room:emoji',
-  ERROR: 'error',
-} as const;
-
-export const CLIENT_EVENTS = {
-  JOIN_ROOM: 'room:join',
-  LEAVE_ROOM: 'room:leave',
-  PLAY: 'video:play',
-  PAUSE: 'video:pause',
-  SEEK: 'video:seek',
-  BUFFER_START: 'video:buffer_start',
-  BUFFER_END: 'video:buffer_end',
-  SEND_MESSAGE: 'room:message',
-  SEND_EMOJI: 'room:emoji',
-  KICK_MEMBER: 'member:kick',
-  MUTE_MEMBER: 'member:mute',
-} as const;
+export { SERVER_EVENTS, CLIENT_EVENTS };
 
 // ─── Socket singleton ─────────────────────────────────────────────────────────
 

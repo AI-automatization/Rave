@@ -16,7 +16,7 @@ import { colors, spacing, borderRadius, typography } from '@theme/index';
 import { notificationApi } from '@api/notification.api';
 import { useNotificationStore } from '@store/notification.store';
 import type { RootStackParams } from '@navigation/types';
-import type { INotification, NotificationType } from '@types/index';
+import type { INotification, NotificationType } from '@app-types/index';
 
 type Props = NativeStackScreenProps<RootStackParams, 'Notifications'>;
 
@@ -146,7 +146,7 @@ export default function NotificationsScreen({ navigation }: Props) {
             )}
           </TouchableOpacity>
         ) : (
-          <View style={{ width: 80 }} />
+          <View style={styles.headerSpacer} />
         )}
       </View>
 
@@ -236,4 +236,5 @@ const styles = StyleSheet.create({
   emptyIcon: { fontSize: 48, marginBottom: spacing.md },
   emptyText: { fontSize: typography.sizes.lg, color: colors.textSecondary, fontWeight: typography.weights.semibold },
   emptySub: { fontSize: typography.sizes.sm, color: colors.textMuted, marginTop: spacing.xs },
+  headerSpacer: { width: 80 },
 });

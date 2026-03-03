@@ -71,6 +71,7 @@ export function useSearch() {
     debouncedQuery,
     results: results.data ?? [],
     isLoading: results.isLoading && debouncedQuery.length >= 2,
+    isError: results.isError,
     history,
     submit,
     removeFromHistory,

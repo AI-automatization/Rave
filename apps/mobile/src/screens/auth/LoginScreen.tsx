@@ -11,19 +11,20 @@ import {
   Platform,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { isAxiosError } from 'axios';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import Toast from 'react-native-toast-message';
 import { colors, spacing, borderRadius, typography } from '@theme/index';
 import { authApi } from '@api/auth.api';
 import { useAuthStore } from '@store/auth.store';
+import { GOOGLE_WEB_CLIENT_ID } from '@utils/config';
 import type { AuthStackParams } from '@navigation/types';
 
 type Props = NativeStackScreenProps<AuthStackParams, 'Login'>;
 
-// BUG-M015: process.env RN da Babel transform olmasa undefined qaytaradi
-// react-native-config o'rnatilganda: import Config from 'react-native-config'; Config.GOOGLE_WEB_CLIENT_ID
+// Module darajasida bir marta — render da qayta chaqirilmaydi (BUG-M015)
 GoogleSignin.configure({
-  webClientId: (process.env.GOOGLE_WEB_CLIENT_ID as string | undefined) ?? '',
+  webClientId: GOOGLE_WEB_CLIENT_ID,
   offlineAccess: true,
 });
 
@@ -51,8 +52,9 @@ export default function LoginScreen({ navigation }: Props) {
       }
     } catch (err: unknown) {
       const message =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        'Tarmoq xatosi';
+        isAxiosError<{ message?: string }>(err)
+          ? (err.response?.data?.message ?? 'Tarmoq xatosi')
+          : 'Tarmoq xatosi';
       Toast.show({ type: 'error', text1: message });
     } finally {
       setLoading(false);
@@ -67,11 +69,18 @@ export default function LoginScreen({ navigation }: Props) {
       const idToken = userInfo.data?.idToken;
       if (!idToken) throw new Error('Google token olinmadi');
 
-      // Backend Google OAuth redirect flow — deep link orqali token keladi
-      // For now, show instruction
-      Toast.show({ type: 'info', text1: "Google OAuth brauzer orqali ishlaydi" });
-    } catch {
-      Toast.show({ type: 'error', text1: 'Google kirish muvaffaqiyatsiz' });
+      // idToken → backend → JWT tokens
+      const res = await authApi.googleSignIn(idToken);
+      if (res.success && res.data) {
+        setAuth(res.data.user, res.data.accessToken, res.data.refreshToken);
+      } else {
+        Toast.show({ type: 'error', text1: res.message || 'Google kirish muvaffaqiyatsiz' });
+      }
+    } catch (err: unknown) {
+      const message = isAxiosError<{ message?: string }>(err)
+        ? (err.response?.data?.message ?? 'Google kirish muvaffaqiyatsiz')
+        : (err instanceof Error ? err.message : 'Google kirish muvaffaqiyatsiz');
+      Toast.show({ type: 'error', text1: message });
     } finally {
       setGoogleLoading(false);
     }
@@ -79,7 +88,7 @@ export default function LoginScreen({ navigation }: Props) {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
+      style={styles.keyboardView}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView
@@ -109,7 +118,7 @@ export default function LoginScreen({ navigation }: Props) {
             <Text style={styles.label}>Parol</Text>
             <View style={styles.passwordRow}>
               <TextInput
-                style={[styles.input, { flex: 1 }]}
+                style={[styles.input, styles.inputFlex]}
                 placeholder="••••••••"
                 placeholderTextColor={colors.textMuted}
                 value={password}
@@ -120,7 +129,7 @@ export default function LoginScreen({ navigation }: Props) {
                 style={styles.eyeBtn}
                 onPress={() => setShowPassword((v) => !v)}
               >
-                <Text style={{ color: colors.textMuted }}>{showPassword ? '🙈' : '👁'}</Text>
+                <Text style={styles.eyeIcon}>{showPassword ? '🙈' : '👁'}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -290,4 +299,7 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.semibold,
   },
+  keyboardView: { flex: 1 },
+  inputFlex: { flex: 1 },
+  eyeIcon: { color: colors.textMuted },
 });

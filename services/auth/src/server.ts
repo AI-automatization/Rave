@@ -59,7 +59,9 @@ const main = async (): Promise<void> => {
   });
 };
 
-main().catch((error) => {
-  logger.error('Failed to start auth service', { error });
+main().catch((error: unknown) => {
+  const msg = error instanceof Error ? error.message : String(error);
+  const stack = error instanceof Error ? error.stack : undefined;
+  logger.error('Failed to start auth service', { message: msg, stack });
   process.exit(1);
 });

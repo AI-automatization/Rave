@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { IFriend } from '@types/index';
+import type { IFriend } from '@app-types/index';
 
 interface FriendsState {
   friends: IFriend[];

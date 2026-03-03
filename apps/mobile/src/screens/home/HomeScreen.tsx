@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -19,7 +19,7 @@ import HeroBanner from '@components/HeroBanner';
 import MovieRow from '@components/MovieRow';
 import HomeSkeleton from '@components/HomeSkeleton';
 import type { HomeStackParams, RootStackParams } from '@navigation/types';
-import type { IMovie, IWatchHistory } from '@types/index';
+import type { IMovie, IWatchHistory } from '@app-types/index';
 
 type Props = NativeStackScreenProps<HomeStackParams, 'Home'>;
 type RootNav = NativeStackNavigationProp<RootStackParams>;
@@ -29,11 +29,12 @@ export default function HomeScreen({ navigation }: Props) {
   const { trending, topRated, continueWatching, isLoading, refetch } = useHomeData();
   const unreadCount = useNotificationStore((s) => s.unreadCount);
 
-  const handleMoviePress = (movie: IMovie) => {
+  // useCallback: MovieRow memo ishlashi uchun handler stabilligi kerak
+  const handleMoviePress = useCallback((movie: IMovie) => {
     navigation.navigate('MovieDetail', { movieId: movie._id });
-  };
+  }, [navigation]);
 
-  const handleContinuePress = (item: IWatchHistory) => {
+  const handleContinuePress = useCallback((item: IWatchHistory) => {
     if (!item.movie) return;
     navigation.navigate('VideoPlayer', {
       movieId: item.movieId,
@@ -41,7 +42,7 @@ export default function HomeScreen({ navigation }: Props) {
       videoUrl: item.movie.videoUrl,
       startTime: item.currentTime,
     });
-  };
+  }, [navigation]);
 
   if (isLoading) return <HomeSkeleton />;
 
@@ -112,7 +113,7 @@ export default function HomeScreen({ navigation }: Props) {
           onMoviePress={handleMoviePress}
         />
 
-        <View style={{ height: spacing.xxxl }} />
+        <View style={styles.bottomSpacer} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -163,4 +164,5 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.xs,
     fontWeight: typography.weights.bold,
   },
+  bottomSpacer: { height: spacing.xxxl },
 });

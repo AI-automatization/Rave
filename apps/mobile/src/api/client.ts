@@ -16,6 +16,23 @@ export const SERVICE_URLS = {
 
 export const SOCKET_URL = __DEV__ ? `http://10.0.2.2:3004` : 'https://api.cinesync.app:3004';
 
+// ─── Shared token refresh state (singleton) ──────────────────────────────────
+// 6 ta client bor — har biri alohida isRefreshing bo'lsa parallel refresh chiqadi.
+// Bu singleton barcha clientlar uchun umumiy lock.
+
+let isRefreshing = false;
+let queue: Array<{ resolve: (token: string) => void; reject: (err: unknown) => void }> = [];
+
+const flushQueue = (token: string) => {
+  queue.forEach(({ resolve }) => resolve(token));
+  queue = [];
+};
+
+const rejectQueue = (err: unknown) => {
+  queue.forEach(({ reject }) => reject(err));
+  queue = [];
+};
+
 // ─── Axios factory ────────────────────────────────────────────────────────────
 
 function createClient(baseURL: string) {
@@ -34,21 +51,7 @@ function createClient(baseURL: string) {
     return config;
   });
 
-  // Auto-refresh on 401
-  let isRefreshing = false;
-  // BUG-M007: reject ham saqlanadi — refresh muvaffaqiyatsiz bo'lganda memory leak oldini olish
-  let queue: Array<{ resolve: (token: string) => void; reject: (err: unknown) => void }> = [];
-
-  const flushQueue = (token: string) => {
-    queue.forEach(({ resolve }) => resolve(token));
-    queue = [];
-  };
-
-  const rejectQueue = (err: unknown) => {
-    queue.forEach(({ reject }) => reject(err));
-    queue = [];
-  };
-
+  // Auto-refresh on 401 — shared singleton lock ishlatadi
   client.interceptors.response.use(
     response => response,
     async (error: AxiosError) => {
@@ -59,6 +62,7 @@ function createClient(baseURL: string) {
       }
 
       if (isRefreshing) {
+        // Boshqa client refresh qilmoqda — navbatga qo'shamiz
         return new Promise((resolve, reject) => {
           queue.push({
             resolve: (token: string) => {
@@ -89,10 +93,8 @@ function createClient(baseURL: string) {
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
         return client(originalRequest);
       } catch (refreshError) {
-        // BUG-M007: barcha pending promislarni reject qilamiz
         rejectQueue(refreshError);
         tokenStorage.clearAll();
-        // Navigation to login is handled by authStore listener
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

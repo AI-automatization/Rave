@@ -771,4 +771,157 @@ Root package.json dependencies:
 
 ---
 
-_docs/Done.md | CineSync | Yangilangan: 2026-03-02 (Emirhan: E001..E011 ✅ + F-037..F-040 | Jafar: J001..J006 ✅ | Saidazim: F-041 Docker + F-042 Friends API + BUG-B001..B003 ✅)_
+---
+
+### F-043 | 2026-03-03 | [MOBILE] | Batch 1: Socket cleanup + shared constants — T-M012, T-M026
+
+- **Mas'ul:** Emirhan
+
+**T-M026 — Socket events hardcoded (P1)**
+- `apps/mobile/src/socket/client.ts` — `SERVER_EVENTS`/`CLIENT_EVENTS` dublikat ta'rifi o'chirildi
+- `shared/constants/socketEvents.ts` dan import qilinadi — 3 platforma uchun yagona manba
+- `metro.config.js` — `watchFolders: ['../../shared']` qo'shildi (Metro shared ni ko'radi)
+- `tsconfig.json` — `@shared/*` path alias qo'shildi
+- `babel.config.js` — `@shared` module resolver alias qo'shildi
+
+**T-M012 — WatchPartyScreen socket cleanup (P1)**
+- `WatchPartyScreen.tsx` — cleanup da `useWatchPartyStore.getState().reset()` qo'shildi
+- `WatchPartyScreen.tsx` — keraksiz `connectSocket()` olib tashlandi (useSocket.ts App.tsx da boshqaradi)
+- `WatchPartyCreateScreen.tsx` — keraksiz `connectSocket()` olib tashlandi
+
+---
+
+---
+
+### F-044 | 2026-03-03 | [MOBILE] | Batch 2: Google OAuth + Deep link + config — T-M020, T-M021, T-M002
+
+- **Mas'ul:** Emirhan
+
+**T-M020 — Google OAuth broken (P0)**
+- `src/api/auth.api.ts` — `googleSignIn(idToken)` metod qo'shildi (`POST /auth/google/token`)
+- `src/screens/auth/LoginScreen.tsx` — `handleGoogleLogin`: idToken olinib backendga yuboriladi, `setAuth` chaqiriladi
+- ⚠️ **Saidazim amal qilishi kerak:** `services/auth` da `POST /api/v1/auth/google/token` endpoint qo'shish (`idToken` → `findOrCreateGoogleUser` → JWT response)
+
+**T-M021 — Deep link handler yo'q (P0)**
+- `src/navigation/index.tsx` — `LinkingOptions` config qo'shildi (`cinesync://` scheme)
+  - `cinesync://watch-party/:roomId` → WatchPartyScreen
+  - `cinesync://battle/:battleId` → BattleScreen
+- `src/navigation/index.tsx` — OAuth callback listener (`cinesync://auth/callback?accessToken=&refreshToken=`)
+  - App yopiq holatda: `Linking.getInitialURL()` — tokenlar saqlanadi
+  - App ochiq holatda: `Linking.addEventListener('url')` — getMe + setAuth
+
+**T-M002 — process.env / config (P1)**
+- `src/utils/config.ts` — yangi fayl: `GOOGLE_WEB_CLIENT_ID`, `APP_SCHEME`, `APP_DEEP_LINK_PREFIX`
+- `src/screens/auth/LoginScreen.tsx` — `@utils/config` dan import, modul darajasida bir marta configure
+- `src/utils/storage.ts` — `setTokens(accessToken, refreshToken)` convenience metod qo'shildi
+- `apps/mobile/package.json` — Jest `moduleNameMapper` ga `@shared/*` qo'shildi
+
+---
+
+---
+
+### F-045 | 2026-03-03 | [MOBILE] | Batch 3: Token refresh singleton + FCM race + MovieDetail error
+
+- **Mas'ul:** Emirhan
+
+**T-M015 — Token refresh parallel (P1 → kritik bo'lib chiqdi)**
+- `src/api/client.ts` — `isRefreshing`/`queue`/`flushQueue`/`rejectQueue` `createClient` ichidan chiqarildi
+- Singleton pattern: 6 ta client endi umumiy lock ishlatadi
+- 6 parallel 401 → **1 ta refresh** (avval: 6 ta simultaneous refresh token call)
+
+**T-M010 — FCM setup race condition (P0)**
+- `src/App.tsx` — `mounted` flag qo'shildi
+- Komponent unmount bo'lsa async `setupPush()` `unsubscribeFcm` yo'llab qo'ymaydi
+- Cleanup: `mounted = false` + `unsubscribeFcm?.()`
+
+**T-M018 — MovieDetail error state yo'q (P2)**
+- `src/screens/home/MovieDetailScreen.tsx` — `isError` + `refetch` destructure
+- Yangi error state UI: "Xatolik yuz berdi" + "Qayta urinish" tugmasi
+- Avval: network xato → oq ekran. Keyin: xabar + retry button
+
+---
+
+---
+
+### F-046 | 2026-03-03 | [MOBILE] | Batch 4: Performance — re-render + sync lag
+
+- **Mas'ul:** Emirhan
+
+**T-M006 — MovieCard memo custom comparator (P2)**
+- `src/components/MovieCard.tsx` — `memo(MovieCard, (prev, next) => prev.movie._id === next.movie._id && prev.width === next.width)`
+- Avval: `onPress` har render da yangi funksiya → MovieCard qayta render. Keyin: faqat film o'zgarganda render
+
+**T-M005 — MovieRow renderItem + HomeScreen useCallback (P2)**
+- `src/components/MovieRow.tsx` — `renderItem` `useCallback([onMoviePress])` bilan stabilizatsiya
+- `src/screens/home/HomeScreen.tsx` — `handleMoviePress`, `handleContinuePress` → `useCallback([navigation])`
+- Natija: HomeScreen render → MovieRow render yo'q (memo) → MovieCard render yo'q → FlatList stable
+
+**T-M017 — WatchParty sync lag (P2)**
+- `src/screens/modal/WatchPartyScreen.tsx` — `elapsed = Math.min(Math.max(0, elapsed), 10)`
+- `targetTime = Math.max(0, syncState.currentTime + elapsed)`
+- Avval: manfiy elapsed yoki 100s+ drift mümkin edi. Keyin: [0, 10] oralig'ida clamp
+
+---
+
+### F-047 | 2026-03-03 | [MOBILE] | Batch 5: P2 buglar — error state, AxiosError, FriendSearch real impl
+
+- **Mas'ul:** Emirhan
+
+**1. useSearch isError (P2)**
+- `src/hooks/useSearch.ts` — `isError: results.isError` return ga qo'shildi
+- `src/screens/search/SearchScreen.tsx` — `isError` destructure + network error UI (⚠️ banner) + `showResults`/empty state ga `!isError` shart
+
+**2. useHomeData continueWatching.isLoading (P2)**
+- `src/hooks/useHomeData.ts` — `isLoading = trending.isLoading || topRated.isLoading || continueWatching.isLoading`
+- Avval: continueWatching loading tugamasdan HomeSkeleton o'chib ketardi. Keyin: barcha 3 query tayyor bo'lguncha skeleton ko'rsatiladi
+
+**3. AxiosError type safety (P2)**
+- `src/screens/auth/RegisterScreen.tsx` — `(err as {...})` → `isAxiosError<{message?}>` (axios built-in type guard)
+- `src/screens/auth/LoginScreen.tsx` — `handleLogin` va `handleGoogleLogin` ikkalasida ham. Google error uchun `err instanceof Error` fallback
+- Avval: unsafe cast → TypeScript strict da xato. Keyin: proper type narrowing
+
+**4. MovieRow getItemLayout hardcoded fix (P2)**
+- `src/components/MovieRow.tsx` — `Dimensions` import + `CARD_WIDTH = width * 0.32` konstanta
+- `getItemLayout` da `110` → `CARD_WIDTH + spacing.md`, `offset` ham yangilandi
+- Avval: hardcoded 110 (`MovieCard` width bilan mos kelmasdi) → scroll position xato. Keyin: aniq hisoblash
+
+**5. watchParty.store reset soddalashtirildi (P2)**
+- `src/store/watchParty.store.ts` — `reset: () => set({ ...initialState, bufferingUserIds: new Set() })` → `reset: () => set(initialState)`
+- `initialState.bufferingUserIds` hech qachon mutate qilinmaydi (`setBuffering` har doim `new Set(prev)` yaratadi) → `initialState` ga to'g'ridan-to'g'ri qaytish xavfsiz
+
+**6. FriendSearchScreen real implementatsiya (P2)**
+- `src/api/user.api.ts` — `searchUsers(query)` → `GET /user/search?q=<query>` qo'shildi
+- `src/screens/friends/FriendSearchScreen.tsx` — to'liq qayta yozildi:
+  - 400ms debounce + `useEffect` cancel pattern (memory leak yo'q)
+  - `userApi.searchUsers` → real backend search
+  - `FlatList` natijalar + FastImage avatar (null → initials placeholder)
+  - `userApi.sendFriendRequest` → per-item loading state (`sending: string | null`)
+  - Empty state, loading state, 2+ belgi hint
+- Avval: stub ("tez orada..."). Keyin: to'liq ishlaydigan friend search ekrani
+
+---
+
+### F-048 | 2026-03-03 | [MOBILE] | Code review fixes — inline styles + MovieDetailScreen refactor
+
+- **Mas'ul:** Emirhan
+- **Bajarildi:**
+  - **Inline styles → StyleSheet.create** (15 fayl):
+    - `App.tsx` — `GestureHandlerRootView` root style
+    - `MainTabs.tsx` — `TabIcon` fontSize/opacity → `tabIcon` + `tabIconFocused/Blurred`
+    - `LoginScreen.tsx`, `RegisterScreen.tsx`, `ForgotPasswordScreen.tsx` — `keyboardView`, `inputFlex`, `eyeIcon`
+    - `FriendSearchScreen.tsx` — `headerSpacer`, `listContent`
+    - `HomeScreen.tsx` — `bottomSpacer`
+    - `VideoPlayerScreen.tsx` — `headerSpacer`
+    - `BattleCreateScreen.tsx`, `WatchPartyCreateScreen.tsx`, `NotificationsScreen.tsx` — `headerSpacer`
+    - `BattleScreen.tsx` — `headerSpacer`, `lbLoader`, `bottomSpacer`, `infoValueEnded`
+    - `ProfileScreen.tsx` — `activityLoader`, `bottomSpacer`
+    - `WatchPartyScreen.tsx` — `chatPadding`
+  - **MovieDetailScreen.tsx 402 → 171 qator** (refactor):
+    - `hooks/useMovieActions.ts` yaratildi — logika ajratildi (useEffect, hasRated ref, 3 handler)
+    - `screens/home/movieDetail.styles.ts` yaratildi — StyleSheet ajratildi (BACKDROP_HEIGHT bilan)
+    - `MovieDetailScreen.tsx` faqat render qoldi — toza, 171 qator
+  - `tsc --noEmit` — 0 xato
+
+---
+
+_docs/Done.md | CineSync | Yangilangan: 2026-03-03 (Emirhan: E001..E013 ✅ + F-043..F-048 TUGADI | Jafar: J001..J006 ✅ | Saidazim: F-041..F-042 + BUG-B001..B003 ✅)_

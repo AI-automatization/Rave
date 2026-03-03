@@ -1,5 +1,5 @@
 import { authClient } from './client';
-import type { ApiResponse, IUser, LoginResponse, RegisterResponse } from '@types/index';
+import type { ApiResponse, IUser, LoginResponse, RegisterResponse } from '@app-types/index';
 
 export const authApi = {
   register: async (email: string, username: string, password: string) => {
@@ -54,6 +54,16 @@ export const authApi = {
 
   getMe: async () => {
     const { data } = await authClient.get<ApiResponse<IUser>>('/auth/me');
+    return data;
+  },
+
+  // Native Google Sign-In flow: idToken → backend → JWT tokens
+  // Backend endpoint: POST /api/v1/auth/google/token
+  // ⚠️ Saidazim: services/auth da bu endpointni qo'shing (idToken → findOrCreateGoogleUser)
+  googleSignIn: async (idToken: string) => {
+    const { data } = await authClient.post<ApiResponse<LoginResponse>>('/auth/google/token', {
+      idToken,
+    });
     return data;
   },
 

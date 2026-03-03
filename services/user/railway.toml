@@ -1,0 +1,13 @@
+# Railway config — user service (port 3002)
+# Root Directory in Railway dashboard: / (repo root)
+# Config File Path in Railway dashboard: services/user/railway.toml
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "services/user/Dockerfile"
+
+[deploy]
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10

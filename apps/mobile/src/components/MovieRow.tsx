@@ -1,8 +1,10 @@
-import React, { memo } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { memo, useCallback } from 'react';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+
+const CARD_WIDTH = Dimensions.get('window').width * 0.32;
 import { colors, spacing, typography } from '@theme/index';
 import MovieCard from './MovieCard';
-import type { IMovie } from '@types/index';
+import type { IMovie } from '@app-types/index';
 
 interface Props {
   title: string;
@@ -12,6 +14,13 @@ interface Props {
 }
 
 function MovieRow({ title, movies, onMoviePress, onSeeAll }: Props) {
+  // useCallback: onMoviePress o'zgarmasa renderItem yangi funksiya yaratmaydi
+  // MovieCard memo + stable renderItem = FlatList hech qachon keraksiz re-render qilmaydi
+  const renderItem = useCallback(
+    ({ item }: { item: IMovie }) => <MovieCard movie={item} onPress={onMoviePress} />,
+    [onMoviePress],
+  );
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -28,12 +37,10 @@ function MovieRow({ title, movies, onMoviePress, onSeeAll }: Props) {
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.list}
-        renderItem={({ item }) => (
-          <MovieCard movie={item} onPress={onMoviePress} />
-        )}
+        renderItem={renderItem}
         getItemLayout={(_, index) => ({
-          length: 110 + spacing.md,
-          offset: (110 + spacing.md) * index,
+          length: CARD_WIDTH + spacing.md,
+          offset: (CARD_WIDTH + spacing.md) * index,
           index,
         })}
         maxToRenderPerBatch={8}

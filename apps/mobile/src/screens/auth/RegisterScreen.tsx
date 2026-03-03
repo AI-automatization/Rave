@@ -11,6 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { isAxiosError } from 'axios';
 import Toast from 'react-native-toast-message';
 import { colors, spacing, borderRadius, typography } from '@theme/index';
 import { authApi } from '@api/auth.api';
@@ -58,8 +59,9 @@ export default function RegisterScreen({ navigation }: Props) {
       }
     } catch (err: unknown) {
       const message =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        'Tarmoq xatosi';
+        isAxiosError<{ message?: string }>(err)
+          ? (err.response?.data?.message ?? 'Tarmoq xatosi')
+          : 'Tarmoq xatosi';
       Toast.show({ type: 'error', text1: message });
     } finally {
       setLoading(false);
@@ -68,7 +70,7 @@ export default function RegisterScreen({ navigation }: Props) {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
+      style={styles.keyboardView}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView
@@ -115,7 +117,7 @@ export default function RegisterScreen({ navigation }: Props) {
             <Text style={styles.label}>Parol</Text>
             <View style={styles.passwordRow}>
               <TextInput
-                style={[styles.input, { flex: 1 }]}
+                style={[styles.input, styles.inputFlex]}
                 placeholder="••••••••"
                 placeholderTextColor={colors.textMuted}
                 value={password}
@@ -126,7 +128,7 @@ export default function RegisterScreen({ navigation }: Props) {
                 style={styles.eyeBtn}
                 onPress={() => setShowPassword((v) => !v)}
               >
-                <Text style={{ color: colors.textMuted }}>{showPassword ? '🙈' : '👁'}</Text>
+                <Text style={styles.eyeIcon}>{showPassword ? '🙈' : '👁'}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -256,4 +258,7 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.semibold,
   },
+  keyboardView: { flex: 1 },
+  inputFlex: { flex: 1 },
+  eyeIcon: { color: colors.textMuted },
 });
