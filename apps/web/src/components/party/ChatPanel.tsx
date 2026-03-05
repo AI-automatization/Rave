@@ -124,11 +124,11 @@ export function ChatPanel({
 
       {/* Emoji picker */}
       {showEmoji && (
-        <div className="flex gap-2 px-3 py-2 border-t border-base-300 flex-wrap bg-base-300">
+        <div className="flex gap-2 px-3 py-2 border-t border-slate-700 flex-wrap bg-slate-700/30">
           {QUICK_EMOJIS.map((emoji) => (
             <button
               key={emoji}
-              className="btn btn-ghost btn-xs text-lg"
+              className="inline-flex items-center justify-center h-7 px-2 rounded-lg text-lg text-slate-300 hover:bg-slate-700/50 transition-all"
               onClick={() => {
                 onSendEmoji(emoji);
                 setShowEmoji(false);
@@ -141,13 +141,13 @@ export function ChatPanel({
       )}
 
       {/* Input */}
-      <div className="flex items-center gap-2 px-3 py-3 border-t border-base-300">
+      <div className="flex items-center gap-2 px-3 py-3 border-t border-slate-700">
         <button
-          className="btn btn-ghost btn-sm btn-circle"
+          className="inline-flex items-center justify-center h-7 w-7 rounded-lg text-slate-400 hover:text-slate-300 hover:bg-slate-700/50 transition-all"
           onClick={() => setShowEmoji(!showEmoji)}
           aria-label="Emoji"
         >
-          <FaSmile size={18} />
+          <FaSmile size={16} />
         </button>
         <input
           type="text"
@@ -155,16 +155,16 @@ export function ChatPanel({
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Xabar yozing..."
-          className="input input-sm input-bordered flex-1 bg-base-300"
+          className="h-7 px-3 rounded-lg bg-slate-700 border border-slate-600 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 flex-1 text-sm"
           maxLength={500}
         />
         <button
-          className="btn btn-primary btn-sm btn-circle"
+          className="inline-flex items-center justify-center h-7 w-7 rounded-lg bg-cyan-500 text-slate-900 hover:bg-cyan-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           onClick={handleSend}
           disabled={!input.trim()}
           aria-label="Yuborish"
         >
-          <FaPaperPlane size={18} />
+          <FaPaperPlane size={14} />
         </button>
       </div>
     </div>

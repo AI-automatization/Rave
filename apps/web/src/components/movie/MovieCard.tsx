@@ -17,7 +17,7 @@ export function MovieCard({ movie }: MovieCardProps) {
 
   return (
     <Link href={`/movies/${movie.slug}`} className="group block">
-      <div className="card bg-base-200 overflow-hidden transition-transform duration-300 group-hover:scale-105">
+      <div className="bg-slate-800 rounded-lg overflow-hidden transition-all duration-300 group-hover:scale-[1.03] group-hover:shadow-2xl group-hover:shadow-cyan-500/20 border border-slate-700">
         <figure className="relative aspect-[2/3]">
           <Image
             src={movie.poster || '/placeholder.jpg'}
@@ -26,11 +26,11 @@ export function MovieCard({ movie }: MovieCardProps) {
             className="object-cover"
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-base-100/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <div className="absolute bottom-0 left-0 right-0 p-3">
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/95 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <div className="absolute bottom-0 left-0 right-0 p-4">
               <Link
                 href={`/watch/${movie._id}`}
-                className="btn btn-primary btn-sm w-full gap-1"
+                className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-lg bg-cyan-500 text-slate-900 hover:bg-cyan-400 w-full transition-all font-medium active:scale-95"
                 onClick={(e) => e.stopPropagation()}
               >
                 <FaPlay size={14} className="fill-current" />
@@ -39,15 +39,15 @@ export function MovieCard({ movie }: MovieCardProps) {
             </div>
           </div>
         </figure>
-        <div className="card-body p-3 gap-1">
-          <h3 className="text-sm font-medium line-clamp-2 leading-tight">{movie.title}</h3>
-          <div className="flex items-center justify-between text-xs text-base-content/60">
+        <div className="p-4 gap-2">
+          <h3 className="text-base font-semibold line-clamp-2 leading-tight text-white mb-2">{movie.title}</h3>
+          <div className="flex items-center justify-between text-sm text-slate-400">
             <div className="flex items-center gap-1">
-              <FaStar size={14} className="fill-accent text-accent" />
-              <span className="text-accent font-medium">{movie.rating.toFixed(1)}</span>
+              <FaStar size={13} className="fill-amber-400 text-amber-400" />
+              <span className="text-amber-400 font-semibold">{movie.rating.toFixed(1)}</span>
             </div>
             <div className="flex items-center gap-1">
-              <FaClock size={14} />
+              <FaClock size={15} />
               <span>{durationLabel}</span>
             </div>
             <span>{movie.year}</span>

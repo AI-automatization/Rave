@@ -73,8 +73,8 @@ export default function WatchPartyPage() {
   if (!room) {
     return (
       <div className="text-center py-20">
-        <p className="text-base-content/40 mb-4">Xona topilmadi</p>
-        <Link href="/home" className="btn btn-primary">Bosh sahifa</Link>
+        <p className="text-slate-400 mb-4">Xona topilmadi</p>
+        <Link href="/home" className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-lg bg-cyan-500 text-slate-900 hover:bg-cyan-400 hover:shadow-lg hover:shadow-cyan-500/50 transition-all font-medium active:scale-95">Bosh sahifa</Link>
       </div>
     );
   }
@@ -83,23 +83,23 @@ export default function WatchPartyPage() {
     <div className="space-y-3">
       {/* Header */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <Link href="/home" className="btn btn-ghost btn-sm gap-2">
-          <FaArrowLeft size={18} />
+        <Link href="/home" className="inline-flex items-center justify-center gap-2 h-8 px-3 rounded-lg text-slate-300 hover:bg-slate-700/50 transition-all text-sm font-medium">
+          <FaArrowLeft size={16} />
           Chiqish
         </Link>
         <div className="flex items-center gap-2">
-          <div className={`badge badge-sm ${isConnected ? 'badge-success' : 'badge-error'}`}>
+          <div className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold ${isConnected ? 'bg-lime-500/20 text-lime-400 border border-lime-500' : 'bg-red-500/20 text-red-400 border border-red-500'}`}>
             {isConnected ? 'Ulangan' : 'Uzildi'}
           </div>
-          <span className="text-sm text-base-content/60 truncate max-w-[150px]">
+          <span className="text-sm text-slate-400 truncate max-w-[150px]">
             {room.movie.title}
           </span>
           <button
             onClick={handleCopyInvite}
-            className="btn btn-ghost btn-sm gap-1"
+            className="inline-flex items-center justify-center gap-1 h-8 px-3 rounded-lg text-slate-300 hover:bg-slate-700/50 transition-all text-sm"
             title="Havolani nusxalash"
           >
-            {copied ? <FaCheck size={18} className="text-success" /> : <FaCopy size={18} />}
+            {copied ? <FaCheck size={16} className="text-lime-400" /> : <FaCopy size={16} />}
             <span className="hidden sm:inline text-xs">{copied ? 'Nusxalandi' : 'Taklif'}</span>
           </button>
         </div>

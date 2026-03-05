@@ -60,8 +60,8 @@ export default function WatchPage() {
   if (!movie) {
     return (
       <div className="text-center py-20">
-        <p className="text-base-content/40 mb-4">Film topilmadi</p>
-        <Link href="/movies" className="btn btn-primary">Filmlar ro&apos;yxati</Link>
+        <p className="text-slate-400 mb-4">Film topilmadi</p>
+        <Link href="/movies" className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-lg bg-cyan-500 text-slate-900 hover:bg-cyan-400 hover:shadow-lg hover:shadow-cyan-500/50 transition-all font-medium active:scale-95">Filmlar ro&apos;yxati</Link>
       </div>
     );
   }
@@ -70,12 +70,12 @@ export default function WatchPage() {
     <div className="space-y-4 max-w-5xl mx-auto">
       {/* Back nav */}
       <div className="flex items-center justify-between">
-        <Link href={`/movies/${movie.slug}`} className="btn btn-ghost btn-sm gap-2">
-          <FaArrowLeft size={18} />
+        <Link href={`/movies/${movie.slug}`} className="inline-flex items-center justify-center gap-2 h-8 px-3 rounded-lg text-slate-300 hover:bg-slate-700/50 transition-all text-sm font-medium">
+          <FaArrowLeft size={16} />
           Orqaga
         </Link>
-        <Link href={`/party/create?movieId=${movie._id}`} className="btn btn-outline btn-sm gap-2">
-          <FaUsers size={18} />
+        <Link href={`/party/create?movieId=${movie._id}`} className="inline-flex items-center justify-center gap-2 h-8 px-3 rounded-lg border-2 border-cyan-500 text-cyan-400 hover:bg-cyan-500/10 hover:shadow-lg hover:shadow-cyan-500/30 transition-all text-sm font-medium">
+          <FaUsers size={16} />
           Watch Party
         </Link>
       </div>

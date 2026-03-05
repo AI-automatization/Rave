@@ -1,11 +1,18 @@
 import type { Metadata, Viewport } from 'next';
-import { DM_Sans } from 'next/font/google';
+import { DM_Sans, Oswald } from 'next/font/google';
 import { Providers } from '@/components/common/Providers';
+import { LocaleHtmlUpdater } from '@/components/common/LocaleHtmlUpdater';
 import './globals.css';
 
 const dmSans = DM_Sans({
   subsets: ['latin'],
   variable: '--font-dm-sans',
+  display: 'swap',
+});
+
+const oswald = Oswald({
+  subsets: ['latin'],
+  variable: '--font-oswald',
   display: 'swap',
 });
 
@@ -49,9 +56,12 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="uz" data-theme="cinesync" suppressHydrationWarning>
-      <body className={`${dmSans.variable} font-body antialiased`}>
-        <Providers>{children}</Providers>
+    <html lang="uz" suppressHydrationWarning>
+      <body className={`${dmSans.variable} ${oswald.variable} font-body antialiased bg-slate-900 text-slate-100`}>
+        <Providers>
+          <LocaleHtmlUpdater />
+          {children}
+        </Providers>
       </body>
     </html>
   );

@@ -4,6 +4,7 @@ import { Suspense } from 'react';
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { FaSearch, FaTimes } from 'react-icons/fa';
+import { useTranslations } from 'next-intl';
 import { MovieCard } from '@/components/movie/MovieCard';
 import { apiClient } from '@/lib/axios';
 import { logger } from '@/lib/logger';
@@ -12,6 +13,7 @@ import type { ApiResponse, IMovie } from '@/types';
 function SearchContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const t = useTranslations('search');
   const initialQ = searchParams.get('q') ?? '';
   const [query, setQuery] = useState(initialQ);
   const [results, setResults] = useState<IMovie[]>([]);
@@ -40,7 +42,6 @@ function SearchContent() {
     }
   };
 
-  // Debounce
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
@@ -57,38 +58,34 @@ function SearchContent() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query]);
 
-  // Initial search from URL
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (initialQ) void doSearch(initialQ); }, []);
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-display">QIDIRISH</h1>
+      <h1 className="text-3xl font-display">{t('title')}</h1>
 
-      {/* Search input */}
       <div className="relative max-w-xl">
         <FaSearch size={23} className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40" />
         <input
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Film nomi, janr, rejissyor, aktyor..."
+          placeholder={t('placeholder')}
           className="input input-bordered w-full pl-10 pr-10 bg-base-200"
           autoFocus
-          aria-label="Qidiruv"
+          aria-label={t('title')}
         />
         {query && (
           <button
             className="absolute right-3 top-1/2 -translate-y-1/2 btn btn-ghost btn-xs btn-circle"
             onClick={() => setQuery('')}
-            aria-label="Tozalash"
           >
             <FaTimes size={18} />
           </button>
         )}
       </div>
 
-      {/* Loading skeletons */}
       {loading && (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
           {Array.from({ length: 10 }).map((_, i) => (
@@ -103,18 +100,17 @@ function SearchContent() {
         </div>
       )}
 
-      {/* Results */}
       {!loading && searched && results.length === 0 && (
         <div className="text-center py-20">
           <FaSearch size={55} className="text-base-content/20 mx-auto mb-4" />
-          <p className="text-base-content/40">&quot;{query}&quot; bo&apos;yicha natija topilmadi</p>
+          <p className="text-base-content/40">&quot;{query}&quot; {t('noResults')}</p>
         </div>
       )}
 
       {!loading && results.length > 0 && (
         <>
           <p className="text-sm text-base-content/50">
-            {results.length} ta natija: &quot;{query}&quot;
+            {results.length} {t('results')} &quot;{query}&quot;
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {results.map((movie) => (
@@ -124,11 +120,10 @@ function SearchContent() {
         </>
       )}
 
-      {/* Empty state (no search yet) */}
       {!loading && !searched && (
         <div className="text-center py-20">
           <FaSearch size={74} className="text-base-content/10 mx-auto mb-4" />
-          <p className="text-base-content/40">Film nomini kiriting</p>
+          <p className="text-base-content/40">{t('empty')}</p>
         </div>
       )}
     </div>

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useTranslations } from 'next-intl';
 import { useAuthStore } from '@/store/auth.store';
 import type { ApiResponse } from '@/types';
 
@@ -31,11 +32,11 @@ interface LoginResponseData {
 }
 
 export function LoginForm() {
+  const t = useTranslations('auth');
   const router  = useRouter();
   const setAuth = useAuthStore((s) => s.setAuth);
   const [error, setError] = useState('');
 
-  // /home sahifasini oldindan yuklash — login tugaganda darhol o'tadi
   useEffect(() => { router.prefetch('/home'); }, [router]);
 
   const {
@@ -47,7 +48,6 @@ export function LoginForm() {
   const onSubmit = async (data: LoginFields) => {
     setError('');
     try {
-      // axios o'rniga native fetch — interceptor overhead yo'q
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -55,86 +55,73 @@ export function LoginForm() {
       });
       const json: ApiResponse<LoginResponseData> = await res.json();
       if (!res.ok || !json.success) {
-        setError(json.message ?? "Email yoki parol noto'g'ri");
+        setError(json.message ?? t('wrongCredentials'));
         return;
       }
       const { user, accessToken, refreshToken } = json.data;
       setAuth(user, accessToken, refreshToken);
-      // push o'rniga replace — history yozmasdan tezroq o'tadi
       router.replace('/home');
     } catch {
-      setError("Email yoki parol noto'g'ri");
+      setError(t('wrongCredentials'));
     }
   };
 
   return (
-    <div className="card bg-bg-elevated shadow-xl">
-      <div className="card-body gap-4">
-        <h1 className="text-3xl font-display text-center text-white">
-          CINESYNC
-        </h1>
-        <p className="text-center text-base-content/60 text-sm">Hisobingizga kiring</p>
+    <div className="bg-slate-800 rounded-lg shadow-xl border border-slate-700 p-6">
+      <h1 className="text-3xl font-display text-center text-white mb-2">CINESYNC</h1>
+      <p className="text-center text-slate-400 text-sm mb-4">{t('loginTitle')}</p>
 
-        {error && (
-          <div className="alert alert-error text-sm">{error}</div>
-        )}
+      {error && <div className="bg-red-500/20 border border-red-500 text-red-400 text-sm rounded-lg p-3 mb-4">{error}</div>}
 
-        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text">Email</span>
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
+        <div>
+          <label className="block text-sm font-medium text-white mb-1">
+            {t('emailLabel')}
+          </label>
+          <input
+            {...register('email')}
+            type="email"
+            placeholder="email@example.com"
+            className="w-full h-9 px-3 rounded-lg bg-slate-700 border border-slate-600 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500"
+            autoComplete="email"
+          />
+          {errors.email && (
+            <label className="block text-xs text-red-400 mt-1">
+              {errors.email.message}
             </label>
-            <input
-              {...register('email')}
-              type="email"
-              placeholder="email@example.com"
-              className="input input-bordered w-full bg-bg-surface"
-              autoComplete="email"
-            />
-            {errors.email && (
-              <label className="label">
-                <span className="label-text-alt text-error">{errors.email.message}</span>
-              </label>
-            )}
-          </div>
+          )}
+        </div>
 
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text">Parol</span>
-              <Link href="/forgot-password" className="label-text-alt link link-primary">
-                Unutdingizmi?
-              </Link>
+        <div>
+          <label className="flex items-center justify-between text-sm font-medium text-white mb-1">
+            <span>{t('passwordLabel')}</span>
+            <Link href="/forgot-password" className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors">
+              {t('forgotPassword')}
+            </Link>
+          </label>
+          <input
+            {...register('password')}
+            type="password"
+            placeholder="••••••••"
+            className="w-full h-9 px-3 rounded-lg bg-slate-700 border border-slate-600 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500"
+            autoComplete="current-password"
+          />
+          {errors.password && (
+            <label className="block text-xs text-red-400 mt-1">
+              {errors.password.message}
             </label>
-            <input
-              {...register('password')}
-              type="password"
-              placeholder="••••••••"
-              className="input input-bordered w-full bg-bg-surface"
-              autoComplete="current-password"
-            />
-            {errors.password && (
-              <label className="label">
-                <span className="label-text-alt text-error">{errors.password.message}</span>
-              </label>
-            )}
-          </div>
+          )}
+        </div>
 
-          <button
-            type="submit"
-            className="btn btn-primary w-full mt-2"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? <span className="loading loading-spinner loading-sm" /> : 'Kirish'}
-          </button>
-        </form>
+        <button type="submit" className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-lg bg-cyan-500 text-slate-900 hover:bg-cyan-400 hover:shadow-lg hover:shadow-cyan-500/50 transition-all font-medium active:scale-95 w-full mt-2" disabled={isSubmitting}>
+          {isSubmitting ? <span className="animate-spin">⟳</span> : t('login')}
+        </button>
+      </form>
 
-        <p className="text-center text-sm text-base-content/60">
-          Hisob yo&apos;qmi?{' '}
-          <Link href="/register" className="link link-primary">
-            Ro&apos;yxatdan o&apos;ting
-          </Link>
-        </p>
-      </div>
+      <p className="text-center text-sm text-slate-400 mt-4">
+        {t('noAccount')}{' '}
+        <Link href="/register" className="text-cyan-400 hover:text-cyan-300 transition-colors font-medium">{t('registerLink')}</Link>
+      </p>
     </div>
   );
 }

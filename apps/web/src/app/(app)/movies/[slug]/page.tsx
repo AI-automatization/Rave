@@ -160,12 +160,12 @@ export default async function MovieDetailPage({ params }: Props) {
 
             {/* Actions */}
             <div className="flex gap-3 flex-wrap">
-              <Link href={`/watch/${movie._id}`} className="btn btn-primary gap-2">
-                <FaPlay size={18} className="fill-current" />
+              <Link href={`/watch/${movie._id}`} className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-lg bg-cyan-500 text-slate-900 hover:bg-cyan-400 hover:shadow-lg hover:shadow-cyan-500/50 transition-all font-medium active:scale-95">
+                <FaPlay size={16} className="fill-current" />
                 Ko&apos;rish
               </Link>
-              <Link href={`/party/create?movieId=${movie._id}`} className="btn btn-outline gap-2">
-                <FaUsers size={18} />
+              <Link href={`/party/create?movieId=${movie._id}`} className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-lg border-2 border-cyan-500 text-cyan-400 hover:bg-cyan-500/10 hover:shadow-lg hover:shadow-cyan-500/30 transition-all font-medium active:scale-95">
+                <FaUsers size={16} />
                 Watch Party
               </Link>
             </div>
@@ -176,7 +176,7 @@ export default async function MovieDetailPage({ params }: Props) {
                 <p className="text-sm font-medium mb-2">Aktyorlar</p>
                 <div className="flex flex-wrap gap-2">
                   {movie.cast.map((actor) => (
-                    <span key={actor} className="badge badge-ghost text-xs">{actor}</span>
+                    <span key={actor} className="inline-flex items-center px-2 py-1 rounded-lg text-xs bg-slate-700 text-slate-300">{actor}</span>
                   ))}
                 </div>
               </div>

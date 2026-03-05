@@ -5,23 +5,25 @@ import { usePathname } from 'next/navigation';
 import { FaHome, FaFilm, FaUsers, FaTrophy, FaChartBar, FaBell, FaCog, FaSignOutAlt, FaSearch } from 'react-icons/fa';
 import { GiCrossedSwords } from 'react-icons/gi';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import { useAuthStore } from '@/store/auth.store';
 import { apiClient } from '@/lib/axios';
 import { logger } from '@/lib/logger';
 
-const NAV_ITEMS = [
-  { href: '/home',          icon: FaHome,          label: 'Bosh sahifa' },
-  { href: '/search',        icon: FaSearch,        label: 'Qidirish' },
-  { href: '/movies',        icon: FaFilm,          label: 'Filmlar' },
-  { href: '/friends',       icon: FaUsers,         label: "Do'stlar" },
-  { href: '/battle',        icon: GiCrossedSwords, label: 'Battle' },
-  { href: '/achievements',  icon: FaTrophy,        label: 'Yutuqlar' },
-  { href: '/stats',         icon: FaChartBar,      label: 'Statistika' },
-];
+const NAV_ITEM_KEYS = [
+  { href: '/home',          icon: FaHome,          key: 'home' },
+  { href: '/search',        icon: FaSearch,        key: 'search' },
+  { href: '/movies',        icon: FaFilm,          key: 'movies' },
+  { href: '/friends',       icon: FaUsers,         key: 'friends' },
+  { href: '/battle',        icon: GiCrossedSwords, key: 'battle' },
+  { href: '/achievements',  icon: FaTrophy,        key: 'achievements' },
+  { href: '/stats',         icon: FaChartBar,      key: 'stats' },
+] as const;
 
 export function Sidebar() {
   const pathname = usePathname();
   const { user, refreshToken, clearAuth } = useAuthStore();
+  const t = useTranslations('nav');
 
   const handleLogout = async () => {
     try {
@@ -35,86 +37,86 @@ export function Sidebar() {
   };
 
   const rankColors: Record<string, string> = {
-    bronze:  'text-orange-400',
-    silver:  'text-silver',
-    gold:    'text-gold',
-    diamond: 'text-diamond',
-    legend:  'text-primary',
+    bronze:  'text-amber-600',
+    silver:  'text-slate-400',
+    gold:    'text-amber-400',
+    diamond: 'text-cyan-400',
+    legend:  'text-cyan-400',
   };
 
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="hidden lg:flex flex-col w-60 bg-base-200 border-r border-base-300 h-screen sticky top-0">
+      <aside className="hidden lg:flex flex-col w-72 bg-slate-800/95 backdrop-blur-md border-r border-slate-700 h-screen sticky top-0 shadow-2xl">
         {/* Logo */}
-        <Link href="/home" className="flex items-center gap-2 px-5 py-5 border-b border-base-300">
-          <span className="text-2xl font-display text-primary tracking-wider">CINESYNC</span>
+        <Link href="/home" className="flex items-center gap-2 px-6 py-6 border-b border-slate-700">
+          <span className="text-3xl font-display text-cyan-400 tracking-[0.18em]">CINESYNC</span>
         </Link>
 
         {/* Nav */}
-        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
-          {NAV_ITEMS.map(({ href, icon: Icon, label }) => {
+        <nav className="flex-1 overflow-y-auto py-5 px-4 space-y-2">
+          {NAV_ITEM_KEYS.map(({ href, icon: Icon, key }) => {
             const active = pathname === href || pathname.startsWith(href + '/');
             return (
               <Link
                 key={href}
                 href={href}
-                className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                className={`flex items-center gap-3 px-4 py-2 rounded-lg text-base transition-all ${
                   active
-                    ? 'bg-primary text-primary-content font-medium'
-                    : 'text-base-content/70 hover:bg-base-300 hover:text-base-content'
+                    ? 'bg-cyan-500 text-slate-900 font-semibold shadow-lg shadow-cyan-500/30'
+                    : 'text-slate-400 hover:bg-slate-700/50 hover:text-slate-300'
                 }`}
               >
                 <Icon size={18} className="shrink-0" />
-                {label}
+                {t(key)}
               </Link>
             );
           })}
         </nav>
 
         {/* Bottom: notifications + settings + user */}
-        <div className="border-t border-base-300 p-3 space-y-1">
+        <div className="border-t border-base-300 p-4 space-y-2">
           <Link
             href="/notifications"
-            className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-base-content/70 hover:bg-base-300 hover:text-base-content transition-colors"
+            className="flex items-center gap-3 px-4 py-3 rounded-xl text-base text-base-content/75 hover:bg-base-300/80 hover:text-base-content transition-colors"
           >
-            <FaBell size={18} />
-            Bildirishnomalar
+            <FaBell size={20} />
+            {t('notifications')}
           </Link>
           <Link
             href="/settings"
-            className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-base-content/70 hover:bg-base-300 hover:text-base-content transition-colors"
+            className="flex items-center gap-3 px-4 py-3 rounded-xl text-base text-base-content/75 hover:bg-base-300/80 hover:text-base-content transition-colors"
           >
-            <FaCog size={18} />
-            Sozlamalar
+            <FaCog size={20} />
+            {t('settings')}
           </Link>
 
           {/* User info */}
           {user && (
-            <div className="flex items-center gap-2 px-3 py-2 mt-1">
-              <Link href={`/profile/${user.username}`} className="flex items-center gap-2 flex-1 min-w-0">
+            <div className="flex items-center gap-3 px-3 py-3 mt-2 rounded-xl bg-base-300/55">
+              <Link href={`/profile/${user.username}`} className="flex items-center gap-3 flex-1 min-w-0">
                 <div className="avatar">
-                  <div className="w-8 rounded-full bg-primary text-primary-content flex items-center justify-center">
+                  <div className="w-11 rounded-full bg-primary text-primary-content flex items-center justify-center shadow-lg">
                     {user.avatar ? (
-                      <Image src={user.avatar} alt={user.username} width={32} height={32} className="object-cover" unoptimized />
+                      <Image src={user.avatar} alt={user.username} width={44} height={44} className="object-cover" unoptimized />
                     ) : (
-                      <span className="text-xs">{user.username[0].toUpperCase()}</span>
+                      <span className="text-sm font-semibold">{user.username[0].toUpperCase()}</span>
                     )}
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium truncate">{user.username}</p>
-                  <p className={`text-xs capitalize ${rankColors[user.rank] ?? 'text-base-content/50'}`}>
+                  <p className="text-sm font-semibold truncate text-slate-300">{user.username}</p>
+                  <p className={`text-sm capitalize ${rankColors[user.rank] ?? 'text-slate-500'}`}>
                     {user.rank}
                   </p>
                 </div>
               </Link>
               <button
                 onClick={() => void handleLogout()}
-                className="btn btn-ghost btn-xs btn-circle"
+                className="inline-flex items-center justify-center h-9 w-9 rounded-lg text-slate-400 hover:bg-slate-700/50 hover:text-slate-300 transition-all"
                 aria-label="Logout"
               >
-                <FaSignOutAlt size={14} />
+                <FaSignOutAlt size={16} />
               </button>
             </div>
           )}
@@ -122,20 +124,20 @@ export function Sidebar() {
       </aside>
 
       {/* Mobile bottom nav */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-base-200 border-t border-base-300 z-50">
-        <div className="flex items-center justify-around px-2 py-2">
-          {NAV_ITEMS.slice(0, 5).map(({ href, icon: Icon, label }) => {
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-slate-800/95 backdrop-blur-md border-t border-slate-700 z-50 shadow-[0_-10px_24px_rgba(4,6,13,0.45)]">
+        <div className="flex items-center justify-around px-2 py-3">
+          {NAV_ITEM_KEYS.slice(0, 5).map(({ href, icon: Icon, key }) => {
             const active = pathname === href || pathname.startsWith(href + '/');
             return (
               <Link
                 key={href}
                 href={href}
-                className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg transition-colors ${
-                  active ? 'text-primary' : 'text-base-content/50'
+                className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors ${
+                  active ? 'text-cyan-400' : 'text-slate-500 hover:text-slate-400'
                 }`}
               >
-                <Icon size={23} />
-                <span className="text-[10px]">{label}</span>
+                <Icon size={22} />
+                <span className="text-xs">{t(key)}</span>
               </Link>
             );
           })}

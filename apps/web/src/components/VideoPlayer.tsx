@@ -236,24 +236,24 @@ export function VideoPlayer({
           <div className="flex items-center gap-2">
             <button
               onClick={togglePlay}
-              className="btn btn-ghost btn-sm btn-circle text-white"
+              className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-slate-300 hover:bg-slate-700/50 transition-all"
               aria-label={isPlaying ? 'Pauza' : 'Play'}
             >
               {isPlaying ? (
-                <FaPause size={18} className="fill-current" />
+                <FaPause size={16} className="fill-current" />
               ) : (
-                <FaPlay size={18} className="fill-current" />
+                <FaPlay size={16} className="fill-current" />
               )}
             </button>
             <button
               onClick={toggleMute}
-              className="btn btn-ghost btn-sm btn-circle text-white"
+              className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-slate-300 hover:bg-slate-700/50 transition-all"
               aria-label={isMuted ? 'Ovoz yoq' : 'Ovoz o\'chir'}
             >
               {isMuted ? (
-                <FaVolumeMute size={18} />
+                <FaVolumeMute size={16} />
               ) : (
-                <FaVolumeUp size={18} />
+                <FaVolumeUp size={16} />
               )}
             </button>
             <input
@@ -263,7 +263,7 @@ export function VideoPlayer({
               step={0.05}
               value={volume}
               onChange={handleVolumeChange}
-              className="range range-xs range-primary w-20 hidden md:block cursor-pointer"
+              className="w-20 hidden md:block cursor-pointer h-1 rounded-lg bg-slate-600 accent-cyan-500"
               aria-label="Ovoz balandligi"
             />
             <span className="text-xs text-white/80 ml-1">
@@ -272,20 +272,20 @@ export function VideoPlayer({
           </div>
           <div className="flex items-center gap-1">
             <button
-              className="btn btn-ghost btn-sm btn-circle text-white"
+              className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-slate-300 hover:bg-slate-700/50 transition-all"
               aria-label="Sifat sozlamalari"
             >
-              <FaCog size={18} />
+              <FaCog size={16} />
             </button>
             <button
               onClick={toggleFullscreen}
-              className="btn btn-ghost btn-sm btn-circle text-white"
+              className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-slate-300 hover:bg-slate-700/50 transition-all"
               aria-label={isFullscreen ? 'Kichraytirish' : 'To\'liq ekran'}
             >
               {isFullscreen ? (
-                <FaCompress size={18} />
+                <FaCompress size={16} />
               ) : (
-                <FaExpand size={18} />
+                <FaExpand size={16} />
               )}
             </button>
           </div>
@@ -299,8 +299,8 @@ export function VideoPlayer({
           className="absolute inset-0 flex items-center justify-center"
           aria-label="Play"
         >
-          <div className="btn btn-circle btn-primary btn-lg opacity-90">
-            <FaPlay size={37} className="fill-current" />
+          <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-cyan-500 text-slate-900 hover:bg-cyan-400 shadow-lg shadow-cyan-500/50 opacity-90">
+            <FaPlay size={32} className="fill-current" />
           </div>
         </button>
       )}

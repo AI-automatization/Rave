@@ -3,16 +3,10 @@
 import { useState, useEffect } from 'react';
 import { FaTrophy, FaLock } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslations } from 'next-intl';
 import { apiClient } from '@/lib/axios';
 import { logger } from '@/lib/logger';
 import type { ApiResponse, IAchievement } from '@/types';
-
-const RARITY_LABELS: Record<string, string> = {
-  common:    'Oddiy',
-  rare:      'Noyob',
-  epic:      'Epic',
-  legendary: 'Legendar',
-};
 
 const RARITY_CLASSES: Record<string, string> = {
   common:    'border-base-content/20 bg-base-200',
@@ -22,6 +16,7 @@ const RARITY_CLASSES: Record<string, string> = {
 };
 
 export default function AchievementsPage() {
+  const t = useTranslations('achievements');
   const [achievements, setAchievements] = useState<IAchievement[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'unlocked' | 'locked'>('all');
@@ -42,53 +37,46 @@ export default function AchievementsPage() {
     }
   };
 
-  const unlocked = achievements.filter((a) => !!a.unlockedAt);
-  const locked = achievements.filter((a) => !a.unlockedAt);
+  const RARITY_LABELS: Record<string, string> = {
+    common:    t('rarityCommon'),
+    rare:      t('rarityRare'),
+    epic:      t('rarityEpic'),
+    legendary: t('rarityLegendary'),
+  };
 
-  const filtered =
-    filter === 'unlocked' ? unlocked : filter === 'locked' ? locked : achievements;
+  const unlocked = achievements.filter((a) => !!a.unlockedAt);
+  const locked   = achievements.filter((a) => !a.unlockedAt);
+  const filtered = filter === 'unlocked' ? unlocked : filter === 'locked' ? locked : achievements;
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <FaTrophy size={28} className="text-accent" />
-          <h1 className="text-3xl font-display">YUTUQLAR</h1>
+          <h1 className="text-3xl font-display">{t('title')}</h1>
         </div>
         <div className="text-sm text-base-content/50">
           {unlocked.length} / {achievements.length}
         </div>
       </div>
 
-      {/* Progress bar */}
       {achievements.length > 0 && (
         <div className="space-y-1">
-          <progress
-            className="progress progress-primary w-full"
-            value={unlocked.length}
-            max={achievements.length}
-          />
+          <progress className="progress progress-primary w-full" value={unlocked.length} max={achievements.length} />
           <p className="text-xs text-base-content/40 text-right">
-            {Math.round((unlocked.length / achievements.length) * 100)}% tugallangan
+            {Math.round((unlocked.length / achievements.length) * 100)}% {t('completed')}
           </p>
         </div>
       )}
 
-      {/* Filter tabs */}
       <div className="tabs tabs-boxed bg-base-200 w-fit">
         {(['all', 'unlocked', 'locked'] as const).map((f) => (
-          <button
-            key={f}
-            className={`tab ${filter === f ? 'tab-active' : ''}`}
-            onClick={() => setFilter(f)}
-          >
-            {f === 'all' ? 'Barchasi' : f === 'unlocked' ? 'Olindi' : 'Qolgan'}
+          <button key={f} className={`tab ${filter === f ? 'tab-active' : ''}`} onClick={() => setFilter(f)}>
+            {f === 'all' ? t('filterAll') : f === 'unlocked' ? t('filterUnlocked') : t('filterLocked')}
           </button>
         ))}
       </div>
 
-      {/* Grid */}
       {loading ? (
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4">
           {Array.from({ length: 16 }).map((_, i) => (
@@ -98,7 +86,7 @@ export default function AchievementsPage() {
       ) : filtered.length === 0 ? (
         <div className="text-center py-16 text-base-content/40">
           <FaTrophy size={55} className="mx-auto mb-3 opacity-20" />
-          <p>Hech narsa topilmadi</p>
+          <p>{t('nothingFound')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
@@ -136,15 +124,9 @@ export default function AchievementsPage() {
         </div>
       )}
 
-      {/* Detail modal */}
       <AnimatePresence>
         {selected && (
-          <motion.div
-            className="modal modal-open"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
+          <motion.div className="modal modal-open" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <motion.div
               className="modal-box bg-base-200 max-w-sm text-center"
               initial={{ scale: 0.8, y: 20 }}
@@ -160,18 +142,18 @@ export default function AchievementsPage() {
                 <span className={`badge ${selected.rarity === 'legendary' ? 'badge-accent' : 'badge-ghost'} capitalize`}>
                   {RARITY_LABELS[selected.rarity]}
                 </span>
-                <span className="badge badge-ghost">{selected.points} pts</span>
+                <span className="inline-flex items-center px-2 py-1 rounded text-xs bg-slate-700 text-slate-300 font-semibold">{selected.points} pts</span>
               </div>
               {selected.unlockedAt && (
-                <p className="text-xs text-base-content/40 mt-3">
-                  Olingan: {new Date(selected.unlockedAt).toLocaleDateString('uz')}
+                <p className="text-xs text-slate-500 mt-3">
+                  {t('unlockedAt')} {new Date(selected.unlockedAt).toLocaleDateString()}
                 </p>
               )}
-              <div className="modal-action">
-                <button className="btn btn-block" onClick={() => setSelected(null)}>Yopish</button>
+              <div className="mt-4">
+                <button className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-lg bg-cyan-500 text-slate-900 hover:bg-cyan-400 hover:shadow-lg hover:shadow-cyan-500/50 transition-all font-medium active:scale-95 w-full" onClick={() => setSelected(null)}>{t('close')}</button>
               </div>
             </motion.div>
-            <div className="modal-backdrop" onClick={() => setSelected(null)} />
+            <div className="fixed inset-0 bg-black/50" onClick={() => setSelected(null)} />
           </motion.div>
         )}
       </AnimatePresence>

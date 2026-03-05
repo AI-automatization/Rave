@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { FaUserPlus, FaSearch, FaUsers, FaUserCheck, FaClock } from 'react-icons/fa';
+import { useTranslations } from 'next-intl';
 import { apiClient } from '@/lib/axios';
 import { logger } from '@/lib/logger';
 import type { ApiResponse, IFriendship, IUser } from '@/types';
@@ -11,6 +12,7 @@ import type { ApiResponse, IFriendship, IUser } from '@/types';
 type Tab = 'friends' | 'requests' | 'search';
 
 export default function FriendsPage() {
+  const t = useTranslations('friends');
   const [tab, setTab] = useState<Tab>('friends');
   const [friends, setFriends] = useState<IUser[]>([]);
   const [requests, setRequests] = useState<IFriendship[]>([]);
@@ -79,73 +81,58 @@ export default function FriendsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-display">DO&apos;STLAR</h1>
+      <h1 className="text-3xl font-display">{t('title')}</h1>
 
-      {/* Tabs */}
       <div className="tabs tabs-boxed bg-base-200 w-fit">
-        <button
-          className={`tab ${tab === 'friends' ? 'tab-active' : ''}`}
-          onClick={() => setTab('friends')}
-        >
+        <button className={`tab ${tab === 'friends' ? 'tab-active' : ''}`} onClick={() => setTab('friends')}>
           <FaUsers size={18} className="mr-1" />
-          Do&apos;stlar ({friends.length})
+          {t('tabFriends')} ({friends.length})
         </button>
-        <button
-          className={`tab ${tab === 'requests' ? 'tab-active' : ''}`}
-          onClick={() => setTab('requests')}
-        >
+        <button className={`tab ${tab === 'requests' ? 'tab-active' : ''}`} onClick={() => setTab('requests')}>
           <FaClock size={18} className="mr-1" />
-          So&apos;rovlar {requests.length > 0 && <span className="badge badge-primary badge-xs ml-1">{requests.length}</span>}
+          {t('tabRequests')} {requests.length > 0 && <span className="badge badge-primary badge-xs ml-1">{requests.length}</span>}
         </button>
-        <button
-          className={`tab ${tab === 'search' ? 'tab-active' : ''}`}
-          onClick={() => setTab('search')}
-        >
+        <button className={`tab ${tab === 'search' ? 'tab-active' : ''}`} onClick={() => setTab('search')}>
           <FaSearch size={18} className="mr-1" />
-          Qidirish
+          {t('tabSearch')}
         </button>
       </div>
 
-      {/* Friends list */}
       {tab === 'friends' && (
         <div className="space-y-3">
           {friends.length === 0 ? (
-            <div className="text-center py-16 text-base-content/40">
-              <FaUsers size={55} className="mx-auto mb-3 opacity-30" />
-              <p>Hali do&apos;stlar yo&apos;q</p>
-              <button className="btn btn-primary btn-sm mt-4" onClick={() => setTab('search')}>
-                Do&apos;st topish
+            <div className="text-center py-16 text-slate-500">
+              <FaUsers size={48} className="mx-auto mb-3 opacity-30" />
+              <p>{t('empty')}</p>
+              <button className="inline-flex items-center justify-center gap-2 h-8 px-3 rounded-lg bg-cyan-500 text-slate-900 hover:bg-cyan-400 hover:shadow-lg hover:shadow-cyan-500/50 transition-all text-sm font-medium active:scale-95 mt-4" onClick={() => setTab('search')}>
+                {t('findFriend')}
               </button>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {friends.map((friend) => (
-                <div key={friend._id} className="card bg-base-200">
-                  <div className="card-body p-4 flex-row items-center gap-3">
-                    <div className="avatar">
-                      <div className="w-12 rounded-full bg-primary text-primary-content flex items-center justify-center">
-                        {friend.avatar ? (
-                          <Image src={friend.avatar} alt={friend.username} width={48} height={48} className="object-cover" unoptimized />
-                        ) : (
-                          <span className="font-medium">{friend.username[0].toUpperCase()}</span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <Link href={`/profile/${friend.username}`} className="font-medium text-sm hover:text-primary transition-colors">
-                        {friend.username}
-                      </Link>
-                      <div className="flex items-center gap-2">
-                        <span className={`text-xs capitalize ${rankColors[friend.rank] ?? 'text-base-content/50'}`}>
-                          {friend.rank}
+                <div key={friend._id} className="bg-slate-800 rounded-lg border border-slate-700 p-4 flex gap-3">
+                  <div className="w-12 h-12 rounded-lg bg-cyan-500 text-slate-900 flex items-center justify-center flex-shrink-0">
+                    {friend.avatar ? (
+                      <Image src={friend.avatar} alt={friend.username} width={48} height={48} className="object-cover rounded-lg" unoptimized />
+                    ) : (
+                      <span className="font-medium">{friend.username[0].toUpperCase()}</span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <Link href={`/profile/${friend.username}`} className="font-medium text-sm text-white hover:text-cyan-400 transition-colors">
+                      {friend.username}
+                    </Link>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs capitalize ${rankColors[friend.rank] ?? 'text-slate-500'}`}>
+                        {friend.rank}
+                      </span>
+                      {friend.isOnline && (
+                        <span className="flex items-center gap-1 text-xs text-lime-400">
+                          <span className="w-1.5 h-1.5 rounded-full bg-lime-400" />
+                          {t('online')}
                         </span>
-                        {friend.isOnline && (
-                          <span className="flex items-center gap-1 text-xs text-success">
-                            <span className="w-1.5 h-1.5 rounded-full bg-success" />
-                            Online
-                          </span>
-                        )}
-                      </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -155,52 +142,43 @@ export default function FriendsPage() {
         </div>
       )}
 
-      {/* Friend requests */}
       {tab === 'requests' && (
         <div className="space-y-3">
           {requests.length === 0 ? (
-            <div className="text-center py-16 text-base-content/40">
-              <FaClock size={55} className="mx-auto mb-3 opacity-30" />
-              <p>So&apos;rovlar yo&apos;q</p>
+            <div className="text-center py-16 text-slate-500">
+              <FaClock size={48} className="mx-auto mb-3 opacity-30" />
+              <p>{t('noRequests')}</p>
             </div>
           ) : (
             requests.map((req) => (
-              <div key={req._id} className="card bg-base-200">
-                <div className="card-body p-4 flex-row items-center gap-3">
-                  <div className="avatar">
-                    <div className="w-10 rounded-full bg-secondary text-secondary-content flex items-center justify-center">
-                      <span className="text-sm">{req.requester.username[0].toUpperCase()}</span>
-                    </div>
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-sm">{req.requester.username}</p>
-                    <p className={`text-xs capitalize ${rankColors[req.requester.rank] ?? 'text-base-content/50'}`}>
-                      {req.requester.rank}
-                    </p>
-                  </div>
-                  <button
-                    className="btn btn-primary btn-sm gap-1"
-                    onClick={() => void acceptRequest(req._id)}
-                  >
-                    <FaUserCheck size={14} />
-                    Qabul
-                  </button>
+              <div key={req._id} className="bg-slate-800 rounded-lg border border-slate-700 p-4 flex gap-3">
+                <div className="w-10 h-10 rounded-lg bg-pink-500 text-slate-900 flex items-center justify-center flex-shrink-0">
+                  <span className="text-sm font-medium">{req.requester.username[0].toUpperCase()}</span>
                 </div>
+                <div className="flex-1">
+                  <p className="font-medium text-sm text-white">{req.requester.username}</p>
+                  <p className={`text-xs capitalize ${rankColors[req.requester.rank] ?? 'text-slate-500'}`}>
+                    {req.requester.rank}
+                  </p>
+                </div>
+                <button className="inline-flex items-center justify-center gap-1 h-8 px-3 rounded-lg bg-cyan-500 text-slate-900 hover:bg-cyan-400 hover:shadow-lg hover:shadow-cyan-500/50 transition-all text-sm font-medium active:scale-95 flex-shrink-0" onClick={() => void acceptRequest(req._id)}>
+                  <FaUserCheck size={12} />
+                  {t('accept')}
+                </button>
               </div>
             ))
           )}
         </div>
       )}
 
-      {/* User search */}
       {tab === 'search' && (
         <div className="space-y-4">
           <div className="relative max-w-md">
-            <FaSearch size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40" />
+            <FaSearch size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
             <input
               type="search"
-              placeholder="Foydalanuvchi nomini qidiring..."
-              className="input input-bordered w-full pl-9 bg-base-200"
+              placeholder={t('searchPlaceholder')}
+              className="w-full h-9 pl-9 pr-3 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
@@ -208,28 +186,20 @@ export default function FriendsPage() {
               }}
             />
           </div>
-          {loading && <span className="loading loading-spinner loading-sm" />}
+          {loading && <span className="animate-spin">⟳</span>}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {searchResults.map((u) => (
-              <div key={u._id} className="card bg-base-200">
-                <div className="card-body p-4 flex-row items-center gap-3">
-                  <div className="avatar">
-                    <div className="w-10 rounded-full bg-accent text-accent-content flex items-center justify-center">
-                      <span className="text-sm">{u.username[0].toUpperCase()}</span>
-                    </div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">{u.username}</p>
-                    <p className={`text-xs capitalize ${rankColors[u.rank] ?? ''}`}>{u.rank}</p>
-                  </div>
-                  <button
-                    className="btn btn-ghost btn-sm btn-circle"
-                    onClick={() => void sendRequest(u._id)}
-                    title="Do'st qo'shish"
-                  >
-                    <FaUserPlus size={18} />
-                  </button>
+              <div key={u._id} className="bg-slate-800 rounded-lg border border-slate-700 p-4 flex gap-3">
+                <div className="w-10 h-10 rounded-lg bg-lime-500 text-slate-900 flex items-center justify-center flex-shrink-0">
+                  <span className="text-sm font-medium">{u.username[0].toUpperCase()}</span>
                 </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm text-white truncate">{u.username}</p>
+                  <p className={`text-xs capitalize ${rankColors[u.rank] ?? ''}`}>{u.rank}</p>
+                </div>
+                <button className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-slate-400 hover:bg-slate-700/50 transition-all flex-shrink-0" onClick={() => void sendRequest(u._id)}>
+                  <FaUserPlus size={16} />
+                </button>
               </div>
             ))}
           </div>

@@ -4,21 +4,17 @@ import { Suspense } from 'react';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { FaFilter, FaSortAmountUp } from 'react-icons/fa';
+import { useTranslations } from 'next-intl';
 import { MovieCard } from '@/components/movie/MovieCard';
 import { apiClient } from '@/lib/axios';
 import { logger } from '@/lib/logger';
 import type { ApiResponse, IMovie } from '@/types';
 
 const GENRES = ['Action', 'Drama', 'Comedy', 'Horror', 'Sci-Fi', 'Romance', 'Thriller', 'Animation'];
-const SORT_OPTIONS = [
-  { value: 'createdAt',  label: 'Yangi' },
-  { value: 'rating',     label: 'Reyting' },
-  { value: 'viewCount',  label: 'Mashhur' },
-  { value: 'year',       label: 'Yil' },
-];
 
 function MoviesContent() {
   const searchParams = useSearchParams();
+  const t = useTranslations('movies');
   const [movies, setMovies] = useState<IMovie[]>([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -28,10 +24,16 @@ function MoviesContent() {
   const observerRef = useRef<IntersectionObserver | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
-  // Refs — observer ichida stale closure bo'lmasin
   const loadingRef = useRef(false);
   const hasMoreRef = useRef(true);
   const pageRef    = useRef(1);
+
+  const SORT_OPTIONS = [
+    { value: 'createdAt',  label: t('sortNew') },
+    { value: 'rating',     label: t('sortRating') },
+    { value: 'viewCount',  label: t('sortPopular') },
+    { value: 'year',       label: t('sortYear') },
+  ];
 
   const loadMovies = useCallback(async (p: number, reset: boolean) => {
     if (loadingRef.current) return;
@@ -54,7 +56,6 @@ function MoviesContent() {
       setHasMore(more);
     } catch (err) {
       logger.error('Filmlar yuklashda xato', err);
-      // Xato bo'lsa infinite loop oldini olish uchun to'xtat
       hasMoreRef.current = false;
       setHasMore(false);
     } finally {
@@ -63,7 +64,6 @@ function MoviesContent() {
     }
   }, [sort, genre]);
 
-  // Filter o'zgarganda reset
   useEffect(() => {
     pageRef.current = 1;
     hasMoreRef.current = true;
@@ -72,7 +72,6 @@ function MoviesContent() {
     void loadMovies(1, true);
   }, [sort, genre, loadMovies]);
 
-  // Infinite scroll — faqat loadMovies o'zgarganda observer qayta yaratiladi
   useEffect(() => {
     if (!sentinelRef.current) return;
     const observer = new IntersectionObserver(
@@ -93,11 +92,9 @@ function MoviesContent() {
 
   return (
     <div className="space-y-6">
-      {/* Header + Filters */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-        <h1 className="text-3xl font-display">FILMLAR</h1>
+        <h1 className="text-3xl font-display">{t('title')}</h1>
         <div className="flex gap-3 flex-wrap">
-          {/* Sort */}
           <div className="flex items-center gap-2">
             <FaSortAmountUp size={18} className="text-base-content/50" />
             <select
@@ -110,7 +107,6 @@ function MoviesContent() {
               ))}
             </select>
           </div>
-          {/* Genre */}
           <div className="flex items-center gap-2">
             <FaFilter size={18} className="text-base-content/50" />
             <select
@@ -118,7 +114,7 @@ function MoviesContent() {
               onChange={(e) => setGenre(e.target.value)}
               className="select select-sm select-bordered bg-base-200"
             >
-              <option value="">Barcha janrlar</option>
+              <option value="">{t('allGenres')}</option>
               {GENRES.map((g) => (
                 <option key={g} value={g}>{g}</option>
               ))}
@@ -127,29 +123,27 @@ function MoviesContent() {
         </div>
       </div>
 
-      {/* Genre pills */}
       <div className="flex gap-2 flex-wrap">
         <button
           onClick={() => setGenre('')}
-          className={`btn btn-xs rounded-full ${genre === '' ? 'btn-primary' : 'btn-ghost'}`}
+          className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition-all ${genre === '' ? 'bg-cyan-500 text-slate-900' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
         >
-          Barchasi
+          {t('all')}
         </button>
         {GENRES.map((g) => (
           <button
             key={g}
             onClick={() => setGenre(g)}
-            className={`btn btn-xs rounded-full ${genre === g ? 'btn-primary' : 'btn-ghost'}`}
+            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition-all ${genre === g ? 'bg-cyan-500 text-slate-900' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
           >
             {g}
           </button>
         ))}
       </div>
 
-      {/* Grid */}
       {movies.length === 0 && !loading ? (
-        <div className="text-center py-20 text-base-content/40">
-          <p className="text-lg">Film topilmadi</p>
+        <div className="text-center py-20 text-slate-500">
+          <p className="text-lg">{t('notFound')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
@@ -169,7 +163,6 @@ function MoviesContent() {
         </div>
       )}
 
-      {/* Infinite scroll sentinel */}
       <div ref={sentinelRef} className="h-4" />
     </div>
   );
