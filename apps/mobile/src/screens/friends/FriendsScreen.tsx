@@ -9,7 +9,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import FastImage from 'react-native-fast-image';
+import { Image } from 'expo-image';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Toast from 'react-native-toast-message';
@@ -43,13 +43,14 @@ function FriendItem({ item, isOnline, onPress, onRemove }: {
     <TouchableOpacity style={styles.friendItem} onPress={onPress} activeOpacity={0.7}>
       <View style={styles.avatarWrap}>
         {item.avatar ? (
-          <FastImage
+          <Image
             style={styles.avatar}
-            source={{ uri: item.avatar, priority: FastImage.priority.normal }}
+            source={{ uri: item.avatar }}
+            priority="normal"
           />
         ) : (
           <View style={styles.avatarPlaceholder}>
-            <Text style={styles.avatarInitial}>{item.username[0].toUpperCase()}</Text>
+            <Text style={styles.avatarInitial}>{item.username?.[0]?.toUpperCase() ?? '?'}</Text>
           </View>
         )}
         <OnlineDot isOnline={isOnline} />
@@ -130,10 +131,10 @@ export default function FriendsScreen({ navigation }: Props) {
                     <View key={f._id} style={styles.requestItem}>
                       <View style={styles.avatarWrap}>
                         {f.avatar ? (
-                          <FastImage style={styles.avatar} source={{ uri: f.avatar }} />
+                          <Image style={styles.avatar} source={{ uri: f.avatar }} />
                         ) : (
                           <View style={styles.avatarPlaceholder}>
-                            <Text style={styles.avatarInitial}>{f.username[0].toUpperCase()}</Text>
+                            <Text style={styles.avatarInitial}>{f.username?.[0]?.toUpperCase() ?? '?'}</Text>
                           </View>
                         )}
                       </View>

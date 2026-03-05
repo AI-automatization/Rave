@@ -9,8 +9,8 @@ import {
   StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import FastImage from 'react-native-fast-image';
-import LinearGradient from 'react-native-linear-gradient';
+import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { colors } from '@theme/index';
@@ -68,14 +68,15 @@ export default function MovieDetailScreen({ navigation, route }: Props) {
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Parallax backdrop */}
         <View style={styles.backdrop}>
-          <FastImage
+          <Image
             style={styles.backdropImage}
-            source={{ uri: movie.backdropUrl || movie.posterUrl, priority: FastImage.priority.high }}
-            resizeMode={FastImage.resizeMode.cover}
+            source={{ uri: movie.backdropUrl || movie.posterUrl }}
+            contentFit="cover"
+            priority="high"
           />
           <LinearGradient
             colors={['rgba(0,0,0,0.3)', 'transparent', colors.bgBase]}
-            style={StyleSheet.absoluteFill}
+            style={StyleSheet.absoluteFillObject}
           />
           {/* Back button */}
           <SafeAreaView edges={['top']} style={styles.backBtn}>

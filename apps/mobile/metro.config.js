@@ -1,14 +1,12 @@
+const { getDefaultConfig } = require('expo/metro-config');
 const path = require('path');
-const { getDefaultConfig, mergeConfig } = require('@react-native/metro-config');
 
-const defaultConfig = getDefaultConfig(__dirname);
+const config = getDefaultConfig(__dirname);
 
-const config = {
-  // shared/ papkasidagi fayllarni Metro ko'ra olishi uchun
-  watchFolders: [path.resolve(__dirname, '../../shared')],
-  resolver: {
-    assetExts: [...defaultConfig.resolver.assetExts, 'lottie'],
-  },
-};
+// Monorepo: shared/ papkasini Metro ko'ra olishi uchun
+config.watchFolders = [path.resolve(__dirname, '../../shared')];
 
-module.exports = mergeConfig(defaultConfig, config);
+// Lottie asset support
+config.resolver.assetExts.push('lottie');
+
+module.exports = config;

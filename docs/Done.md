@@ -1,6 +1,279 @@
 # CineSync — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-02-27
+# Yangilangan: 2026-03-06
+
+---
+
+## 📱 MOBILE RUN GUIDE (Emirhan)
+> To'liq guide: `docs/MOBILE_SETUP.md`
+> Yangi PC dan git clone qilganda yoki loyihani birinchi marta ishga tushirganda
+
+### Talablar
+| Tool | Versiya | Tekshirish |
+|------|---------|------------|
+| Node.js | >= 18.18 | `node --version` |
+| npm | >= 10.0 | `npm --version` |
+| Android Studio | Yangi | Emulator uchun |
+| Java JDK | 17 | `java --version` |
+
+---
+
+### 1-qadam: Clone va install
+
+```bash
+# 1. Clone
+git clone https://github.com/AI-automatization/Rave.git
+cd Rave
+
+# 2. MUHIM: apps/package.json yaratish (git da yo'q!)
+echo '{"name":"cinesync-apps","private":true}' > apps/package.json
+
+# 3. Root dan install (apps/mobile dan EMAS!)
+npm install
+
+# Agar peer-dep xatosi chiqsa:
+npm install --legacy-peer-deps
+```
+
+---
+
+### 2-qadam: Environment fayllari
+
+```bash
+# apps/mobile/ papkasida .env yaratish:
+cd apps/mobile
+
+# .env fayli (Saidazim dan so'rash — backend URL lar)
+API_BASE_URL=http://10.0.2.2:3001       # Android emulator uchun
+# API_BASE_URL=http://localhost:3001    # iOS simulator uchun
+# API_BASE_URL=http://192.168.x.x:3001 # Real qurilma uchun (wifi IP)
+
+# Firebase uchun (Saidazim dan olish):
+# google-services.json → apps/mobile/android/app/google-services.json
+# GoogleService-Info.plist → apps/mobile/ios/GoogleService-Info.plist
+```
+
+---
+
+### 3-qadam: Metro Bundler ishga tushirish
+
+```bash
+cd apps/mobile
+
+# Standard ishga tushirish:
+npx expo start
+
+# Yoki development mode:
+npx expo start --dev-client
+
+# Cache tozalab ishga tushirish (xato chiqsa):
+npx expo start --clear
+```
+
+Metro muvaffaqiyatli ishga tushganda:
+```
+Starting Metro Bundler
+Waiting on http://localhost:8081
+```
+
+---
+
+### 4-qadam: Qurilmaga ulash
+
+**Android Emulator (tavsiya qilinadi):**
+```bash
+# Android Studio → AVD Manager → emulator ishga tushir
+# Keyin yangi terminалда:
+cd apps/mobile
+npx expo run:android
+```
+
+**Real Android qurilma (USB):**
+```bash
+# USB debugging yoqilgan bo'lsin
+adb devices   # qurilma ko'rinishini tekshir
+npx expo run:android
+```
+
+**Expo Go ishlamaydi** — loyiha Bare Workflow, faqat native build kerak.
+
+---
+
+### Tez-tez uchraydigan xatolar
+
+| Xato | Yechim |
+|------|--------|
+| `Cannot find module 'react-native/package.json'` | `apps/package.json` yo'q → 2-qadamga qayt |
+| `TypeError: Cannot read properties of undefined (reading 'push')` | `cd /c/Rave && npm install` (root dan) |
+| `Metro bundler version mismatch` | Root `package.json` da barcha `metro-*: ~0.82.0` bo'lishi kerak |
+| `TypeScript errors` | `cd apps/mobile && npm run typecheck` |
+| `EADDRINUSE: port 8081` | `npx expo start --port 8082` |
+| `Unable to find module` | `npx expo start --clear` |
+
+---
+
+### Fayllar strukturasi (muhim fayllar)
+
+```
+Rave/
+├── package.json          ← metro-* ~0.82.0 + overrides: react-native 0.79.6
+├── apps/
+│   ├── package.json      ← YARATISH KERAK (git da yo'q!)
+│   └── mobile/
+│       ├── package.json  ← react-native 0.79.6, expo ~53.0.0
+│       ├── tsconfig.json ← expo/tsconfig.base
+│       ├── babel.config.js ← @app-types alias (not @types!)
+│       ├── metro.config.js ← watchFolders + lottie ext
+│       └── eas.json      ← EAS Build profillari (git da yo'q)
+```
+
+---
+
+### F-054 | 2026-03-06 | [MOBILE] | SESSION SUMMARY — Barcha bug fix + expo start ishlayapti — Emirhan
+
+- **Mas'ul:** Emirhan
+- **Davomiyligi:** 1 sessiya (2026-03-06)
+- **Natija:** `npx expo start` → ✅ `Waiting on http://localhost:8081`
+
+**Tuzatilgan muammolar (xronologik tartibda):**
+
+| # | Fayl | Muammo | Yechim |
+|---|------|--------|--------|
+| 1 | `FriendsScreen.tsx:53,137` | `username[0].toUpperCase()` crash | `username?.[0]?.toUpperCase() ?? '?'` |
+| 2 | `FriendProfileScreen.tsx:74` | Xuddi shu crash | Optional chaining + fallback |
+| 3 | `FriendSearchScreen.tsx:96` | Bo'sh avatar initial | `.charAt(0) \|\| '?'` |
+| 4 | `WatchPartyScreen.tsx:144` | Cheksiz spinner | `room === null` va `!videoUrl` holatlari farqlandi |
+| 5 | `package.json:90` Jest | `@types` → DefinitelyTyped conflict | `@app-types` ga o'zgartirildi |
+| 6 | `babel.config.js:20` | Alias nomos (`@types` vs `@app-types`) | `@app-types` ga moslashtirилdi |
+| 7 | `tsconfig.json` | `extends` yo'li singan | `expo/tsconfig.base` ga o'zgartirildi |
+| 8 | `MovieDetailScreen.tsx:79` | `StyleSheet.absoluteFill` type xatosi | `absoluteFillObject` ga o'zgartirildi |
+| 9 | Root `package.json` | `react-native@0.84.1` hoisted → metro@0.83.x | `overrides: react-native 0.79.6` |
+| 10 | Root `package.json` | metro-core@0.83.5 `#logLines` API o'zgardi | Barcha `metro-*: ~0.82.0` pin qilindi |
+| 11 | `apps/package.json` | Expo CLI workspace xatosi | `{"name":"cinesync-apps","private":true}` yaratildi |
+
+**Muhim konfiguratsiya o'zgarishlari:**
+- Root `package.json` → 13 ta `metro-*` paket `~0.82.0` da qo'shildi
+- Root `package.json` → `overrides: {"react-native": "0.79.6"}` qo'shildi
+- `apps/package.json` → YARATILDI (git da yo'q, clone da kerak!)
+- TypeScript: 0 xato ✅
+
+---
+
+### F-053 | 2026-03-06 | [MOBILE] | metro-core@0.83.x → 0.82.x — expo start ishga tushdi — Emirhan
+
+- **Mas'ul:** Emirhan
+- **Bajarildi:**
+
+Root `package.json` ga barcha `metro-*` paketlar `~0.82.0` da qo'shildi:
+```
+metro-babel-transformer, metro-cache-key, metro-core,
+metro-file-map, metro-runtime, metro-source-map,
+metro-symbolicate, metro-transform-plugins
+```
+- **Natija:** `expo start` → Metro Bundler `Waiting on http://localhost:8081` ✅
+
+---
+
+### F-052 | 2026-03-06 | [MOBILE] | Dependency fix — Metro + TypeScript 0 xato — Emirhan
+
+- **Mas'ul:** Emirhan
+- **Bajarildi:**
+
+**1. react-native@0.84.1 → 0.79.6 (Expo SDK 53 mos versiya)**
+- 17 ta paket Expo 53 ga mos versiyaga tushirildi
+- Root cause: metro@0.83.4 vs expo@53 kutgan metro@0.82.x konflikti hal qilindi
+
+**2. devDependencies tartibga solinди**
+- `jest`, `typescript`, `babel-preset-expo`, `@types/react` dependencies dan devDependencies ga ko'chirildi
+- `expo-modules-core` olib tashlandi (expo package orqali eksport qilinadi)
+- `@react-native/*` packages 0.84.1 → 0.79.6 ga tushirildi
+
+**3. @types/react versiya konflikti hal qilindi**
+- `^19.2.14` ga o'zgartirildi — root node_modules bilan mos
+- `expo.install.exclude` ga qo'shildi — expo-doctor warning sustirildi
+
+**4. tsconfig extends o'zgartirildi**
+- `@react-native/typescript-config` → `expo/tsconfig.base` (Expo Bare workflow standart)
+
+**5. LinearGradient type xatosi tuzatildi**
+- `MovieDetailScreen.tsx:79` — `StyleSheet.absoluteFill` → `StyleSheet.absoluteFillObject`
+
+**Natija:** TypeScript ✅ 0 xato, Metro ✅ ishga tushadi, expo-doctor ✅ kritik xato yo'q
+
+---
+
+### F-051 | 2026-03-06 | [MOBILE] | tsconfig.json + babel + Jest alias xatolari — Emirhan
+
+- **Mas'ul:** Emirhan
+- **Bajarildi:**
+
+**1. KRITIK — Jest moduleNameMapper fix (`package.json:90`)**
+- `"^@types/(.*)$"` → `"^@app-types/(.*)$"`
+- Sabab: `@types/` TypeScript reserved namespace — Jest da `@types/react`, `@types/react-native` override bo'lib, testlar ishlamay qolishi mumkin edi
+
+**2. HIGH — Babel alias moslashtirish (`babel.config.js:20`)**
+- `'@types': './src/types'` → `'@app-types': './src/types'`
+- Sabab: tsconfig va Babel alias nomos edi — `@app-types` import'lar runtime da resolve bo'lmasdi
+
+**3. MEDIUM — Redundant strict flaglar (`tsconfig.json:5-6`)**
+- `noImplicitAny: true` va `strictNullChecks: true` olib tashlandi
+- Sabab: `strict: true` ularni avtomatik yoqadi — takroriy edi
+
+---
+
+### F-050 | 2026-03-06 | [MOBILE] | Avatar crash bug fix + WatchParty video state — Emirhan
+
+- **Mas'ul:** Emirhan
+- **Bajarildi:**
+
+**1. BUG: username[0] crash — FriendsScreen + FriendProfileScreen**
+- `FriendsScreen.tsx:53,137` — `username[0]` → `username?.[0]?.toUpperCase() ?? '?'`
+- `FriendProfileScreen.tsx:74` — xuddi shu fix
+- Sabab: Bo'sh string (`''`) da `[0]` `undefined` qaytaradi → `.toUpperCase()` TypeError
+- ERR-M-003 bartaraf
+
+**2. BUG: Bo'sh avatar initial — FriendSearchScreen**
+- `FriendSearchScreen.tsx:96` — `charAt(0).toUpperCase() || '?'` fallback qo'shildi
+- ERR-M-004 bartaraf
+
+**3. BUG: WatchParty cheksiz spinner — WatchPartyScreen**
+- `WatchPartyScreen.tsx:144-154` — room holati bo'yicha farqlash
+  - `room === null` (yuklanmoqda) → spinner + "Video yuklanmoqda..."
+  - `room` yuklangan ammo `videoUrl` yo'q → "Video topilmadi" (error holat)
+- ERR-M-005 bartaraf
+
+---
+
+### F-049 | 2026-03-06 | [MOBILE] | Expo Bare Workflow migration — Emirhan
+
+- **Mas'ul:** Emirhan
+- **Bajarildi:**
+
+**1. Config fayllar yangilandi:**
+- `app.json` → Expo format (slug, scheme, android/ios config, plugins)
+- `babel.config.js` → `babel-preset-expo` (CLI presetdan o'tkazildi)
+- `metro.config.js` → `expo/metro-config` (monorepo watchFolders saqlanди)
+- `index.js` → `registerRootComponent` (AppRegistry o'rniga)
+- `package.json` → `expo start`, `expo run:android`, `eas build` scriptlar
+
+**2. Paketlar almashtirildi (CLI → Expo):**
+- `react-native-fast-image` → `expo-image` (9 fayl yangilandi)
+- `react-native-linear-gradient` → `expo-linear-gradient` (2 fayl)
+- `react-native-vector-icons` → `@expo/vector-icons`
+- `react-native-haptic-feedback` → `expo-haptics`
+- `react-native-splash-screen` → `expo-splash-screen`
+- `react-native-permissions` → olib tashlandi (Firebase o'z permission API si bor)
+
+**3. EAS Build sozlandi:**
+- `eas.json` yaratildi — development/preview/production profillari
+
+**4. Buglar tuzatildi:**
+- `BUG-M014`: notification badge HomeTab → ProfileTab ga ko'chirildi (`MainTabs.tsx`)
+- `BUG-M001/M002`: allaqachon tuzatilgan bo'lib chiqdi (`socket/client.ts`)
+
+**5. Yangi fayllar yaratildi:**
+- `apps/mobile/.gitignore` — `google-services.json`, `.env`, `*.keystore` himoyalandi
+- `docs/mobile-errors.md` — error log fayl (keyingi sessiyalar uchun)
 
 ---
 

@@ -1,0 +1,49 @@
+# React Native — build artifacts (qayta yaratiladi)
+android/build/
+android/app/build/
+android/.gradle/
+android/local.properties
+android/.cxx/
+
+# iOS
+ios/build/
+ios/Pods/
+ios/*.xcworkspace/xcuserdata/
+ios/*.xcodeproj/xcuserdata/
+ios/DerivedData/
+
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Environment — HECH QACHON commit qilma
+.env
+.env.local
+.env.production
+
+# Firebase — private keys
+google-services.json
+GoogleService-Info.plist
+
+# Signing keys
+*.keystore
+!debug.keystore
+
+# Metro cache
+.metro/
+.bundle/
+
+# Test coverage
+coverage/
+
+# Expo
+.expo/
+dist/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# TypeScript
+*.tsbuildinfo

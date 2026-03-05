@@ -141,10 +141,15 @@ export default function WatchPartyScreen({ navigation, route }: Props) {
 
       {/* Video */}
       <View style={styles.videoContainer}>
-        {/* BUG-M024: videoUrl bo'sh bo'lganda video o'rniga loader ko'rsatamiz */}
+        {/* BUG-M024: videoUrl bo'sh — room yuklanmagan = loader, room yuklangan = xato */}
         {!videoUrl ? (
           <View style={styles.videoLoading}>
-            <ActivityIndicator color={colors.primary} size="large" />
+            <ActivityIndicator color={room ? undefined : colors.primary} size="large" style={room ? styles.hidden : undefined} />
+            {room ? (
+              <Text style={styles.videoErrorText}>Video topilmadi</Text>
+            ) : (
+              <Text style={styles.videoLoadingText}>Video yuklanmoqda...</Text>
+            )}
           </View>
         ) : (
         <Video
@@ -261,7 +266,10 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   video: { width: '100%', height: '100%' },
-  videoLoading: { width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center', backgroundColor: '#000' },
+  videoLoading: { width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center', backgroundColor: '#000', gap: 12 },
+  videoLoadingText: { color: colors.textSecondary, fontSize: typography.sizes.sm },
+  videoErrorText: { color: colors.error, fontSize: typography.sizes.sm },
+  hidden: { display: 'none' },
   videoOverlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
   overlayPlay: { fontSize: 48, color: 'rgba(255,255,255,0.8)' },
   emojiOverlay: {

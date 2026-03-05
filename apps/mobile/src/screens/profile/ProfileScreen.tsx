@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import FastImage from 'react-native-fast-image';
+import { Image } from 'expo-image';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -63,9 +63,10 @@ export default function ProfileScreen({ navigation }: Props) {
         {/* Avatar + info */}
         <View style={styles.profileSection}>
           {user?.avatar ? (
-            <FastImage
+            <Image
               style={styles.avatar}
-              source={{ uri: user.avatar, priority: FastImage.priority.high }}
+              source={{ uri: user.avatar }}
+              priority="high"
             />
           ) : (
             <View style={styles.avatarPlaceholder}>

@@ -1,6 +1,6 @@
 
 module.exports = {
-  presets: ['module:@react-native/babel-preset'],
+  presets: ['babel-preset-expo'],
   plugins: [
     [
       'module-resolver',
@@ -17,7 +17,7 @@ module.exports = {
           '@socket': './src/socket',
           '@theme': './src/theme',
           '@utils': './src/utils',
-          '@types': './src/types',
+          '@app-types': './src/types',
           '@shared': '../../shared/src',
         },
       },

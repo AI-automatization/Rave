@@ -1,9 +1,7 @@
 {
-  "extends": "../../node_modules/@react-native/typescript-config/tsconfig.json",
+  "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
-    "noImplicitAny": true,
-    "strictNullChecks": true,
     "baseUrl": ".",
     "paths": {
       "@screens/*": ["src/screens/*"],

@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
-import FastImage from 'react-native-fast-image';
+import { Image } from 'expo-image';
 import { colors, spacing, borderRadius, typography } from '@theme/index';
 import type { IMovie } from '@app-types/index';
 
@@ -25,13 +25,11 @@ function MovieCard({ movie, onPress, width: cardWidth = CARD_WIDTH }: Props) {
       accessibilityRole="button"
       accessibilityLabel={`${movie.title}, ${movie.year}, reyting ${movie.rating.toFixed(1)}`}
     >
-      <FastImage
+      <Image
         style={styles.poster}
-        source={{
-          uri: movie.posterUrl,
-          priority: FastImage.priority.normal,
-        }}
-        resizeMode={FastImage.resizeMode.cover}
+        source={{ uri: movie.posterUrl }}
+        contentFit="cover"
+        priority="normal"
       />
       <View style={styles.overlay}>
         <View style={styles.ratingBadge}>

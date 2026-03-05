@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import FastImage from 'react-native-fast-image';
+import { Image } from 'expo-image';
 import { useQuery } from '@tanstack/react-query';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -34,7 +34,7 @@ const AchievementCard = memo(({ item }: { item: IAchievement }) => {
   return (
     <View style={[styles.card, !isUnlocked && styles.cardLocked]}>
       {item.iconUrl ? (
-        <FastImage
+        <Image
           style={[styles.icon, !isUnlocked && styles.iconLocked]}
           source={{ uri: item.iconUrl }}
         />

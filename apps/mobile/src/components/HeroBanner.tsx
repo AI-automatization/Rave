@@ -8,8 +8,8 @@ import {
   StyleSheet,
   ViewToken,
 } from 'react-native';
-import FastImage from 'react-native-fast-image';
-import LinearGradient from 'react-native-linear-gradient';
+import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing, borderRadius, typography } from '@theme/index';
 import type { IMovie } from '@app-types/index';
 
@@ -71,10 +71,11 @@ function HeroBanner({ movies, onMoviePress }: Props) {
             accessibilityRole="button"
             accessibilityLabel={`${item.title} filmini ko'rish`}
           >
-            <FastImage
+            <Image
               style={styles.backdrop}
-              source={{ uri: item.backdropUrl || item.posterUrl, priority: FastImage.priority.high }}
-              resizeMode={FastImage.resizeMode.cover}
+              source={{ uri: item.backdropUrl || item.posterUrl }}
+              contentFit="cover"
+              priority="high"
             />
             <LinearGradient
               colors={['transparent', 'rgba(10,10,15,0.7)', colors.bgBase]}

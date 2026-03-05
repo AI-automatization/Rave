@@ -1,4 +1,37 @@
 {
-  "name": "CineSync",
-  "displayName": "CineSync"
+  "expo": {
+    "name": "CineSync",
+    "slug": "cinesync",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "cinesync",
+    "platforms": ["ios", "android"],
+    "android": {
+      "package": "com.cinesynctemp",
+      "adaptiveIcon": {
+        "backgroundColor": "#0A0A0F"
+      },
+      "googleServicesFile": "./google-services.json"
+    },
+    "ios": {
+      "bundleIdentifier": "com.cinesync.app",
+      "supportsTablet": false
+    },
+    "plugins": [
+      "expo-splash-screen",
+      [
+        "@react-native-firebase/app",
+        {
+          "android": {
+            "googleServicesFile": "./google-services.json"
+          }
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": ""
+      }
+    }
+  }
 }

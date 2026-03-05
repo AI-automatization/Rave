@@ -8,7 +8,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import FastImage from 'react-native-fast-image';
+import { Image } from 'expo-image';
 import { useQuery } from '@tanstack/react-query';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -64,13 +64,14 @@ export default function FriendProfileScreen({ navigation, route }: Props) {
         {/* Avatar */}
         <View style={styles.avatarSection}>
           {profile.avatar ? (
-            <FastImage
+            <Image
               style={styles.avatar}
-              source={{ uri: profile.avatar, priority: FastImage.priority.high }}
+              source={{ uri: profile.avatar }}
+              priority="high"
             />
           ) : (
             <View style={styles.avatarPlaceholder}>
-              <Text style={styles.avatarInitial}>{profile.username[0].toUpperCase()}</Text>
+              <Text style={styles.avatarInitial}>{profile.username?.[0]?.toUpperCase() ?? '?'}</Text>
             </View>
           )}
           {isOnline && <View style={styles.onlineDot} />}

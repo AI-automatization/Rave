@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import FastImage from 'react-native-fast-image';
+import { Image } from 'expo-image';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Toast from 'react-native-toast-message';
 
@@ -85,14 +85,15 @@ export default function FriendSearchScreen({ navigation }: Props) {
     ({ item }: { item: IUserPublic }) => (
       <View style={styles.resultItem}>
         {item.avatar ? (
-          <FastImage
+          <Image
             style={styles.avatar}
-            source={{ uri: item.avatar, priority: FastImage.priority.normal }}
-            resizeMode={FastImage.resizeMode.cover}
+            source={{ uri: item.avatar }}
+            contentFit="cover"
+            priority="normal"
           />
         ) : (
           <View style={[styles.avatar, styles.avatarPlaceholder]}>
-            <Text style={styles.avatarInitial}>{item.username.charAt(0).toUpperCase()}</Text>
+            <Text style={styles.avatarInitial}>{item.username.charAt(0).toUpperCase() || '?'}</Text>
           </View>
         )}
         <View style={styles.userInfo}>

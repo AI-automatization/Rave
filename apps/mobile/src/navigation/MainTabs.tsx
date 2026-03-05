@@ -94,17 +94,16 @@ export default function MainTabs() {
         tabBarIcon: ({ focused }) => <TabIcon name={route.name} focused={focused} />,
       })}
     >
-      {/* BUG-M014: unreadCount notification badge HomeTab da — FriendsTab da emas */}
+      <Tab.Screen name="HomeTab" component={HomeNavigator} />
+      <Tab.Screen name="SearchTab" component={SearchNavigator} />
+      <Tab.Screen name="FriendsTab" component={FriendsNavigator} />
       <Tab.Screen
-        name="HomeTab"
-        component={HomeNavigator}
+        name="ProfileTab"
+        component={ProfileNavigator}
         options={{
           tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
         }}
       />
-      <Tab.Screen name="SearchTab" component={SearchNavigator} />
-      <Tab.Screen name="FriendsTab" component={FriendsNavigator} />
-      <Tab.Screen name="ProfileTab" component={ProfileNavigator} />
     </Tab.Navigator>
   );
 }
