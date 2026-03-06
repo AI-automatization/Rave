@@ -9,7 +9,7 @@ interface Props {
   params: { username: string };
 }
 
-const BASE = process.env.USER_SERVICE_URL ?? 'http://localhost:3002/api/v1';
+const BASE = process.env.USER_SERVICE_URL ?? 'https://user-production-86ed.up.railway.app/api/v1';
 
 async function fetchProfile(username: string): Promise<IUser | null> {
   try {

@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: 'Bosh sahifa' };
 export const revalidate = 600;
 
 async function fetchMovies(path: string): Promise<IMovie[]> {
-  const base = process.env.CONTENT_SERVICE_URL ?? 'http://localhost:3003/api/v1';
+  const base = process.env.CONTENT_SERVICE_URL ?? 'https://content-production-4e08.up.railway.app/api/v1';
   try {
     const res = await fetch(`${base}${path}`, { next: { revalidate: 600 } });
     if (!res.ok) return [];
