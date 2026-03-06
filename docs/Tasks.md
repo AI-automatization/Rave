@@ -197,6 +197,29 @@
 
 ---
 
+
+### T-J012 | P1 | [WEB] | React hydration error #418 / #423 — /home sahifasi
+
+- **Sana:** 2026-03-07
+- **Mas'ul:** Jafar
+- **Fayl:** `apps/web/src/app/(app)/home/page.tsx`, `apps/web/src/components/`
+- **Holat:** ❌ Boshlanmagan
+- **Xato:** React error #418 (hydration mismatch) + #423 (state update during render)
+  - `home` sahifasida server render va client hydration orasida farq bor
+  - Server: ISR bilan pre-render (revalidate=600), statik HTML
+  - Client: hydrate qilganda HTML farq qilsa React #418 tashlaydi
+- **Sabab (taxmin):**
+  - `HeroBanner` yoki boshqa `'use client'` komponent server HTML bilan mos kelmaydi
+  - Ehtimol `localStorage`, `window`, yoki browser-only API server-side ishlatilmoqda
+  - Yoki conditional render server/client da farqli natija bermoqda
+- **Bajarilishi kerak:**
+  - [ ] Hydration mismatch qaysi komponentda ekanini aniqlash (dev mode da batafsil xabar ko'rinadi)
+  - [ ] `suppressHydrationWarning` kerak bo'lgan joylarda qo'shish YOKI
+  - [ ] Server/client render farqini bartaraf etish
+  - [ ] React #423 — render paytida state o'zgartirish joyi topib tuzatish
+- **Test:** `http://localhost:3000/home` ochib browser console da xato yo'q bo'lishi kerak
+
+---
 ## SPRINT 5 — SEO + i18n + PWA + Polish
 
 ### T-J007 | P2 | [WEB] | SEO + Performance + i18n + PWA — qolgan qismi
