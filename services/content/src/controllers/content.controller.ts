@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { ContentService } from '../services/content.service';
 import { apiResponse, buildPaginationMeta } from '@shared/utils/apiResponse';
 import { AuthenticatedRequest } from '@shared/types';
+import { uploadToCloudinary, UploadFolder } from '../utils/cloudinary';
 
 export class ContentController {
   constructor(private contentService: ContentService) {}
@@ -145,6 +146,46 @@ export class ContentController {
     try {
       const stats = await this.contentService.getStats();
       res.json(apiResponse.success(stats));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  uploadVideo = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!req.file) {
+        res.status(400).json(apiResponse.error('No file provided'));
+        return;
+      }
+      const result = await uploadToCloudinary(req.file.buffer, 'movies/videos', 'video');
+      res.json(apiResponse.success({
+        videoUrl: result.url,
+        publicId: result.publicId,
+        duration: result.duration ? Math.round(result.duration / 60) : undefined,
+        format: result.format,
+        bytes: result.bytes,
+      }, 'Video uploaded'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  uploadImage = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!req.file) {
+        res.status(400).json(apiResponse.error('No file provided'));
+        return;
+      }
+      const folder = (req.query.type === 'backdrop' ? 'movies/backdrops' : 'movies/posters') as UploadFolder;
+      const result = await uploadToCloudinary(req.file.buffer, folder, 'image');
+      res.json(apiResponse.success({
+        url: result.url,
+        publicId: result.publicId,
+        width: result.width,
+        height: result.height,
+        format: result.format,
+        bytes: result.bytes,
+      }, 'Image uploaded'));
     } catch (error) {
       next(error);
     }

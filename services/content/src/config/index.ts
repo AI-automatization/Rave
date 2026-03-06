@@ -13,6 +13,10 @@ export const config = {
   mongoUri: requireEnv('MONGO_URI'),
   redisUrl: requireEnv('REDIS_URL'),
   elasticsearchUrl: process.env.ELASTICSEARCH_URL ?? 'http://localhost:9200',
-  jwtPublicKey: requireEnv('JWT_PUBLIC_KEY').replace(/\\n/g, '\n'),
-  uploadPath: process.env.UPLOAD_PATH ?? './uploads',
+  jwtPublicKey: requireEnv('JWT_PUBLIC_KEY').replace(/\\n/g, '\n').trim(),
+  cloudinary: {
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME ?? '',
+    apiKey: process.env.CLOUDINARY_API_KEY ?? '',
+    apiSecret: process.env.CLOUDINARY_API_SECRET ?? '',
+  },
 } as const;

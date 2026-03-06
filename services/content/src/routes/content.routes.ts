@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import multer from 'multer';
 import Redis from 'ioredis';
 import { Client as ElasticsearchClient } from '@elastic/elasticsearch';
 import { ContentController } from '../controllers/content.controller';
@@ -6,10 +7,34 @@ import { ContentService } from '../services/content.service';
 import { verifyToken, optionalAuth, requireRole } from '@shared/middleware/auth.middleware';
 import { apiRateLimiter } from '@shared/middleware/rateLimiter.middleware';
 
+const videoUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024 * 1024 }, // 2GB
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith('video/')) cb(null, true);
+    else cb(new Error('Only video files allowed'));
+  },
+});
+
+const imageUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) cb(null, true);
+    else cb(new Error('Only image files allowed'));
+  },
+});
+
 export const createContentRouter = (redis: Redis, elastic: ElasticsearchClient): Router => {
   const router = Router();
   const contentService = new ContentService(redis, elastic);
   const contentController = new ContentController(contentService);
+
+  // POST /content/movies/upload — video upload to Cloudinary (operator/admin only)
+  router.post('/movies/upload', verifyToken, requireRole('operator', 'admin', 'superadmin'), videoUpload.single('video'), contentController.uploadVideo);
+
+  // POST /content/movies/upload-image — poster/backdrop upload (?type=poster|backdrop)
+  router.post('/movies/upload-image', verifyToken, requireRole('operator', 'admin', 'superadmin'), imageUpload.single('image'), contentController.uploadImage);
 
   // GET /content/movies/stats — genre distribution, year histogram (admin/operator)
   router.get('/movies/stats', verifyToken, requireRole('operator', 'admin', 'superadmin'), contentController.getStats);
