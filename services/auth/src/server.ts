@@ -41,10 +41,6 @@ const gracefulShutdown = async (signal: string): Promise<void> => {
 };
 
 const main = async (): Promise<void> => {
-  // JWT key debug
-  const pk = config.jwt.privateKey;
-  console.log(`JWT_KEY_DEBUG: len=${pk.length} starts="${pk.substring(0, 27)}" ends="${pk.substring(pk.length - 26)}" newlines=${pk.includes('\n')}`);
-
   await connectMongo();
   redisClient = connectRedis();
 

@@ -16,8 +16,8 @@ export const config = {
   redisUrl: requireEnv('REDIS_URL'),
 
   jwt: {
-    privateKey: requireEnv('JWT_PRIVATE_KEY').replace(/\\n/g, '\n'),
-    publicKey: requireEnv('JWT_PUBLIC_KEY').replace(/\\n/g, '\n'),
+    privateKey: requireEnv('JWT_PRIVATE_KEY').replace(/\\n/g, '\n').trim(),
+    publicKey: requireEnv('JWT_PUBLIC_KEY').replace(/\\n/g, '\n').trim(),
     accessTokenExpiry: '15m',
     refreshTokenExpiry: 30 * 24 * 60 * 60 * 1000, // 30 days in ms
   },
