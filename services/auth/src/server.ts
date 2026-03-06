@@ -41,6 +41,15 @@ const gracefulShutdown = async (signal: string): Promise<void> => {
 };
 
 const main = async (): Promise<void> => {
+  // JWT key debug — production da muammoni aniqlash uchun
+  const pk = config.jwt.privateKey;
+  logger.info('JWT_PRIVATE_KEY status', {
+    length: pk.length,
+    starts: pk.substring(0, 27),
+    ends: pk.substring(pk.length - 26),
+    hasNewlines: pk.includes('\n'),
+  });
+
   await connectMongo();
   redisClient = connectRedis();
 
