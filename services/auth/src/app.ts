@@ -15,6 +15,9 @@ import { config } from './config/index';
 export const createApp = (redis: Redis): express.Application => {
   const app = express();
 
+  // Railway / reverse proxy behind load balancer
+  app.set('trust proxy', 1);
+
   // Security middleware
   app.use(helmet());
   app.use(cors({

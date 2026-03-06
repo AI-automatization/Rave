@@ -15,6 +15,9 @@ import { config } from './config/index';
 export const createApp = (redis: Redis): express.Application => {
   const app = express();
 
+  // Railway reverse proxy
+  app.set('trust proxy', 1);
+
   app.use(helmet());
   app.use(cors({ origin: '*', credentials: true }));
   app.use(morgan('combined', { stream: morganStream }));

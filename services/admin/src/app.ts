@@ -14,6 +14,9 @@ import { config } from './config/index';
 export const createApp = (redis: Redis): express.Application => {
   const app = express();
 
+  // Railway reverse proxy
+  app.set('trust proxy', 1);
+
   app.use(helmet());
   // Admin service: restricted CORS — admin UI only
   app.use(cors({ origin: ['http://localhost:5173'], credentials: true }));

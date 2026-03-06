@@ -16,6 +16,9 @@ import { config } from './config/index';
 
 export const createApp = (redis: Redis): { app: express.Application; io: SocketServer } => {
   const app = express();
+
+  // Railway reverse proxy
+  app.set('trust proxy', 1);
   const httpServer = createServer(app);
 
   const io = new SocketServer(httpServer, {
