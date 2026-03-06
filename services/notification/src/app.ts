@@ -16,15 +16,20 @@ const initFirebase = (): void => {
     return;
   }
 
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: config.firebase.projectId,
-      privateKey: config.firebase.privateKey,
-      clientEmail: config.firebase.clientEmail,
-    }),
-  });
-
-  logger.info('Firebase Admin initialized');
+  try {
+    admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId: config.firebase.projectId,
+        privateKey: config.firebase.privateKey,
+        clientEmail: config.firebase.clientEmail,
+      }),
+    });
+    logger.info('Firebase Admin initialized');
+  } catch (err) {
+    logger.error('Firebase Admin init failed — push notifications disabled', {
+      message: (err as Error).message,
+    });
+  }
 };
 
 export const createApp = (): express.Application => {

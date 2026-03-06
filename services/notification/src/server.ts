@@ -19,7 +19,11 @@ const main = async (): Promise<void> => {
   });
 };
 
-main().catch((error) => {
-  logger.error('Failed to start notification service', { error });
+main().catch((error: unknown) => {
+  const err = error instanceof Error ? error : new Error(String(error));
+  logger.error('Failed to start notification service', {
+    message: err.message,
+    stack: err.stack,
+  });
   process.exit(1);
 });
