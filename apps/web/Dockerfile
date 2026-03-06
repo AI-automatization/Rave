@@ -5,7 +5,8 @@ COPY package*.json ./
 COPY tsconfig.base.json ./
 COPY apps/web/package*.json ./apps/web/
 
-RUN npm ci
+# npm ci o'rniga npm install — Linux platform-specific native binaries auto-resolve
+RUN npm install
 
 COPY apps/web/ ./apps/web/
 
