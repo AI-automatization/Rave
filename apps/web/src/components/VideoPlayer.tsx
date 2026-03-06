@@ -140,6 +140,7 @@ export function VideoPlayer({
     const video = videoRef.current;
     if (!video || !isOwner) return;
     const time = (parseFloat(e.target.value) / 100) * video.duration;
+    if (!isFinite(time)) return;
     video.currentTime = time;
     onSeek?.(time);
   };
