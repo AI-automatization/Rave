@@ -97,7 +97,7 @@ export default function WatchPage() {
       <div className="space-y-1">
         <h1 className="text-xl font-display">{movie.title.toUpperCase()}</h1>
         <div className="flex gap-3 text-sm text-base-content/50 flex-wrap">
-          {movie.genres.map((g) => (
+          {(movie.genre ?? movie.genres ?? []).map((g) => (
             <span key={g} className="badge badge-ghost text-xs">{g}</span>
           ))}
           <span>{movie.year}</span>

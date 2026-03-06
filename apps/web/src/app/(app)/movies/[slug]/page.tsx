@@ -66,7 +66,7 @@ export default async function MovieDetailPage({ params }: Props) {
             datePublished: String(movie.year),
             description: movie.description,
             director: movie.director ? { '@type': 'Person', name: movie.director } : undefined,
-            genre: movie.genres,
+            genre: movie.genre ?? movie.genres,
             duration: `PT${durationH}H${durationM}M`,
             image: movie.poster,
             aggregateRating: {
@@ -144,7 +144,7 @@ export default async function MovieDetailPage({ params }: Props) {
 
             {/* Genres */}
             <div className="flex gap-2 flex-wrap">
-              {movie.genres.map((g) => (
+              {(movie.genre ?? movie.genres ?? []).map((g) => (
                 <Link
                   key={g}
                   href={`/movies?genre=${g}`}

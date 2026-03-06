@@ -31,7 +31,7 @@ export function HeroBanner({ movie }: HeroBannerProps) {
 
       <div className="absolute bottom-0 left-0 p-6 md:p-10 max-w-xl">
         <div className="flex gap-2 mb-3 flex-wrap">
-          {movie.genres.slice(0, 3).map((g) => (
+          {(movie.genre ?? movie.genres ?? []).slice(0, 3).map((g) => (
             <span key={g} className="inline-flex items-center px-2 py-1 rounded-lg text-xs bg-slate-700/50 border border-slate-600 text-slate-400">
               {g}
             </span>
