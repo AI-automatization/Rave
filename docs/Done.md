@@ -1,6 +1,43 @@
 # CineSync — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-03-06
+# Yangilangan: 2026-03-07
+
+---
+
+### F-056 | 2026-03-07 | [MOBILE] | Android build to'liq tuzatish sessiyasi — Emirhan
+
+- **Mas'ul:** Emirhan
+- **Holat:** ⏳ Build jarayonda (PC restart keyin davom etadi)
+
+**Bajarilgan tuzatishlar (ketma-ket):**
+
+**1. @react-native/gradle-plugin yo'q (ERR-M-012) ✅**
+- `apps/mobile/package.json` → `"@react-native/gradle-plugin": "0.79.6"` qo'shildi
+- `android/settings.gradle` path:
+  `../node_modules/` → `../../../node_modules/` (root monorepo path)
+
+**2. Gradle 9.0 → 8.13 downgrade (ERR-M-013) ✅**
+- `android/gradle/wrapper/gradle-wrapper.properties`:
+  `gradle-9.0.0-bin` → `gradle-8.13-bin`
+- Sabab: Gradle 9.0 Kotlin 2.2, RN 0.79.6 Kotlin 2.0 kutadi → mos emas
+
+**3. Android SDK (ANDROID_HOME) (ERR-M-014) ✅**
+- `android/local.properties` yaratildi (gitignore da — commit bo'lmaydi):
+  ```
+  sdk.dir=C\:\\Users\\User\\AppData\\Local\\Android\\Sdk
+  ```
+
+**4. Build jarayoni boshlandi ✅**
+- Gradle 8.13 yuklab olindi ✅
+- Kotlin plugin kompilyatsiya: ✅
+- Native modullar compile: ⏳ jarayonda (PC restart keyin davom etadi)
+
+**Restart dan keyin:**
+```bash
+cd Rave/apps/mobile
+npx expo run:android
+# Build davom etadi — Gradle cache saqlanib qoladi
+```
 
 ---
 
@@ -11,21 +48,13 @@
 
 **1. @react-native/gradle-plugin hoisting muammo (ERR-M-012)**
 - `apps/mobile/package.json` → `"@react-native/gradle-plugin": "0.79.6"` devDependencies ga qo'shildi
-- `android/settings.gradle` path o'zgartirildi:
-  ```
-  ../node_modules/@react-native/gradle-plugin
-  → ../../../node_modules/@react-native/gradle-plugin  (root)
-  ```
+- `android/settings.gradle` path o'zgartirildi
 
 **2. Gradle 9.0 → 8.13 downgrade (ERR-M-013)**
-- `android/gradle/wrapper/gradle-wrapper.properties`:
-  `gradle-9.0.0-bin` → `gradle-8.13-bin`
-- Sabab: Gradle 9.0 Kotlin 2.2 bilan keladi, RN 0.79.6 Kotlin 2.0 kutadi
+- `gradle-wrapper.properties`: `gradle-9.0.0-bin` → `gradle-8.13-bin`
 
-**3. Navbatdagi qadam (ERR-M-014)**
-- `ANDROID_HOME` yoki `local.properties` sozlanishi kerak
-- Kotlin kompilyatsiya: ✅
-- Android SDK: ⚠️ kutilmoqda
+**3. Android SDK local.properties (ERR-M-014)**
+- `android/local.properties` yaratildi
 
 ---
 
