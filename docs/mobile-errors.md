@@ -117,6 +117,33 @@ Kategoriyalar: BUILD | RUNTIME | NAVIGATION | NETWORK | FIREBASE | SOCKET | METR
   `metro-core`, `metro-runtime`, `metro-source-map`, `metro-symbolicate` + boshqalar
 - **Holat:** ✅ Bartaraf — `expo start` → `Waiting on http://localhost:8081` ✅
 
+### ERR-M-012 | 2026-03-06 | [BUILD] | @react-native/gradle-plugin topilmadi
+- **Xato:** `Included build 'C:\Rave\apps\mobile\node_modules\@react-native\gradle-plugin' does not exist`
+- **Fayl:** `android/settings.gradle`
+- **Sabab:** npm workspaces `@react-native/gradle-plugin` ni root `node_modules` ga hoisting qildi,
+  lekin Gradle `../node_modules/` (mobile local) dan qidiradi
+- **Yechim:**
+  1. `apps/mobile/package.json` ga `"@react-native/gradle-plugin": "0.79.6"` qo'shildi
+  2. `android/settings.gradle` — path `../../../node_modules/@react-native/gradle-plugin` ga o'zgartirildi
+- **Holat:** ✅ Bartaraf
+
+### ERR-M-013 | 2026-03-06 | [BUILD] | Gradle 9.0 + Kotlin 2.2 vs RN 0.79.6 Kotlin 2.0 konflikti
+- **Xato:** `Module was compiled with an incompatible version of Kotlin. The binary version of its metadata is 2.2.0, expected version is 2.0.0`
+- **Fayl:** `android/gradle/wrapper/gradle-wrapper.properties`
+- **Sabab:** `gradle-9.0.0-bin` Kotlin 2.2.0 bilan keladi, `@react-native/gradle-plugin@0.79.6` Kotlin 2.0 da yozilgan
+- **Yechim:** `gradle-wrapper.properties` da `gradle-9.0.0` → `gradle-8.13` ga o'zgartirildi
+- **Holat:** ✅ Bartaraf — Kotlin kompilyatsiya muvaffaqiyatli
+
+### ERR-M-014 | 2026-03-06 | [BUILD] | ANDROID_HOME yo'q — SDK topilmadi ⚠️
+- **Xato:** `SDK location not found. Define a valid SDK location with an ANDROID_HOME environment variable or by setting the sdk.dir path in your project's local properties file`
+- **Fayl:** `android/local.properties` (yo'q)
+- **Sabab:** `ANDROID_HOME` environment variable o'rnatilmagan, `local.properties` fayl yo'q
+- **Yechim:** Android SDK path ni `local.properties` ga yozish kerak:
+  ```
+  sdk.dir=C\:\\Users\\User\\AppData\\Local\\Android\\Sdk
+  ```
+- **Holat:** ⚠️ Kutilmoqda — Android SDK path aniqlanmadi
+
 _(xato topilganda shu bo'limga qo'sh, bartaraf bo'lgach yuqoriga ko'chir)_
 
 ---

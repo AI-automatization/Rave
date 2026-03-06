@@ -4,6 +4,31 @@
 
 ---
 
+### F-055 | 2026-03-06 | [MOBILE] | Android build tuzatishlari — Emirhan
+
+- **Mas'ul:** Emirhan
+- **Bajarildi:**
+
+**1. @react-native/gradle-plugin hoisting muammo (ERR-M-012)**
+- `apps/mobile/package.json` → `"@react-native/gradle-plugin": "0.79.6"` devDependencies ga qo'shildi
+- `android/settings.gradle` path o'zgartirildi:
+  ```
+  ../node_modules/@react-native/gradle-plugin
+  → ../../../node_modules/@react-native/gradle-plugin  (root)
+  ```
+
+**2. Gradle 9.0 → 8.13 downgrade (ERR-M-013)**
+- `android/gradle/wrapper/gradle-wrapper.properties`:
+  `gradle-9.0.0-bin` → `gradle-8.13-bin`
+- Sabab: Gradle 9.0 Kotlin 2.2 bilan keladi, RN 0.79.6 Kotlin 2.0 kutadi
+
+**3. Navbatdagi qadam (ERR-M-014)**
+- `ANDROID_HOME` yoki `local.properties` sozlanishi kerak
+- Kotlin kompilyatsiya: ✅
+- Android SDK: ⚠️ kutilmoqda
+
+---
+
 ## 📱 MOBILE RUN GUIDE (Emirhan)
 > To'liq guide: `docs/MOBILE_SETUP.md`
 > Yangi PC dan git clone qilganda yoki loyihani birinchi marta ishga tushirganda
