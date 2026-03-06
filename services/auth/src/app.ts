@@ -31,26 +31,28 @@ export const createApp = (redis: Redis): express.Application => {
   app.use(express.json({ limit: '10kb' }));
   app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
-  // Passport — Google OAuth
-  passport.use(
-    new GoogleStrategy(
-      {
-        clientID: config.google.clientId,
-        clientSecret: config.google.clientSecret,
-        callbackURL: config.google.callbackUrl,
-      },
-      (_accessToken, _refreshToken, profile, done) => {
-        const email = profile.emails?.[0]?.value ?? '';
-        const picture = profile.photos?.[0]?.value ?? '';
-        done(null, {
-          id: profile.id,
-          email,
-          displayName: profile.displayName,
-          picture,
-        });
-      },
-    ),
-  );
+  // Passport — Google OAuth (faqat clientId mavjud bo'lsa)
+  if (config.google.clientId) {
+    passport.use(
+      new GoogleStrategy(
+        {
+          clientID: config.google.clientId,
+          clientSecret: config.google.clientSecret,
+          callbackURL: config.google.callbackUrl,
+        },
+        (_accessToken, _refreshToken, profile, done) => {
+          const email = profile.emails?.[0]?.value ?? '';
+          const picture = profile.photos?.[0]?.value ?? '';
+          done(null, {
+            id: profile.id,
+            email,
+            displayName: profile.displayName,
+            picture,
+          });
+        },
+      ),
+    );
+  }
   app.use(passport.initialize());
 
   // Health check

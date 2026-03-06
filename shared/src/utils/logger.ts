@@ -66,18 +66,25 @@ const loggerTransports: winston.transport[] = [
 ];
 
 // MongoDB transport — production only (avoid circular dep in dev)
-if (!isDev && process.env.MONGO_URI) {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { MongoDB } = require('winston-mongodb') as { MongoDB: new (opts: Record<string, unknown>) => winston.transport };
-  loggerTransports.push(
-    new MongoDB({
-      db: process.env.MONGO_URI,
-      collection: 'api_logs',
-      level: 'info',
-      options: { useUnifiedTopology: true },
-      format: prodFormat,
-    }),
-  );
+// .replace(/\s+/g, '') — URI ichidagi bo'sh joy/newline ni tozalash (Railway env bug)
+const mongoUri = process.env.MONGO_URI?.trim().replace(/\s+/g, '');
+if (!isDev && mongoUri) {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { MongoDB } = require('winston-mongodb') as { MongoDB: new (opts: Record<string, unknown>) => winston.transport };
+    loggerTransports.push(
+      new MongoDB({
+        db: mongoUri,
+        collection: 'api_logs',
+        level: 'info',
+        options: { useUnifiedTopology: true },
+        format: prodFormat,
+      }),
+    );
+  } catch (err) {
+    // MongoDB transport ishga tushmasa ham boshqa transportlar ishlaydi
+    console.error('winston-mongodb transport failed to initialize:', err);
+  }
 }
 
 export const logger = createLogger({
