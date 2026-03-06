@@ -46,12 +46,13 @@ function MoviesContent() {
         sort,
         ...(genre ? { genre } : {}),
       });
-      const res = await apiClient.get<ApiResponse<{ movies: IMovie[]; pagination: { pages: number } }>>(
+      const res = await apiClient.get<ApiResponse<IMovie[]>>(
         `/movies?${params.toString()}`,
       );
-      const { movies: newMovies, pagination } = res.data.data;
+      const newMovies = res.data.data ?? [];
+      const totalPages = res.data.meta?.totalPages ?? 1;
       setMovies((prev) => (reset ? newMovies : [...prev, ...newMovies]));
-      const more = p < pagination.pages;
+      const more = p < totalPages;
       hasMoreRef.current = more;
       setHasMore(more);
     } catch (err) {

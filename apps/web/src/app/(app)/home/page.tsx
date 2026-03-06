@@ -13,8 +13,8 @@ async function fetchMovies(path: string): Promise<IMovie[]> {
   try {
     const res = await fetch(`${base}${path}`, { next: { revalidate: 600 } });
     if (!res.ok) return [];
-    const json: ApiResponse<{ movies: IMovie[] }> = await res.json() as ApiResponse<{ movies: IMovie[] }>;
-    return json.data?.movies ?? [];
+    const json: ApiResponse<IMovie[]> = await res.json() as ApiResponse<IMovie[]>;
+    return json.data ?? [];
   } catch (err) {
     logger.error(`fetchMovies xatosi: ${path}`, err);
     return [];

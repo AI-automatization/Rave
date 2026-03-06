@@ -5,6 +5,8 @@ export interface ApiResponse<T> {
   success: boolean;
   data: T;
   message?: string;
+  errors?: string[] | null;
+  meta?: PaginationMeta;
   pagination?: PaginationMeta;
 }
 
@@ -12,7 +14,8 @@ export interface PaginationMeta {
   page: number;
   limit: number;
   total: number;
-  pages: number;
+  totalPages: number;
+  pages?: number;
 }
 
 export interface IMovie {
@@ -21,8 +24,11 @@ export interface IMovie {
   slug: string;
   description: string;
   poster: string;
+  posterUrl?: string;
   backdrop?: string;
+  backdropUrl?: string;
   genres: string[];
+  genre?: string[];
   year: number;
   duration: number;
   rating: number;
