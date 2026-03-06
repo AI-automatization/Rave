@@ -23,9 +23,9 @@ async function fetchMovies(path: string): Promise<IMovie[]> {
 
 export default async function HomePage() {
   const [trending, topRated, recent] = await Promise.all([
-    fetchMovies('/movies?sort=viewCount&limit=10'),
-    fetchMovies('/movies?sort=rating&limit=10'),
-    fetchMovies('/movies?sort=createdAt&limit=10'),
+    fetchMovies('/content/movies?sort=viewCount&limit=10'),
+    fetchMovies('/content/movies?sort=rating&limit=10'),
+    fetchMovies('/content/movies?sort=createdAt&limit=10'),
   ]);
 
   const hero = trending[0] ?? topRated[0];
