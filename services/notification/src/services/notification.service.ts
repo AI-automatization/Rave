@@ -7,7 +7,7 @@ import { NotFoundError } from '@shared/utils/errors';
 import { NotificationType, PaginationMeta } from '@shared/types';
 
 export class NotificationService {
-  private emailQueue: Bull.Queue<EmailJobData>;
+  private emailQueue: Bull.Queue<EmailJobData> | null;
 
   constructor(redisUrl: string) {
     this.emailQueue = getEmailQueue(redisUrl);
@@ -59,6 +59,10 @@ export class NotificationService {
   }
 
   async sendEmail(to: string, subject: string, html: string, text?: string): Promise<void> {
+    if (!this.emailQueue) {
+      logger.warn('Email queue not available — skipping email', { to, subject });
+      return;
+    }
     await enqueueEmail(this.emailQueue, { to, subject, html, text });
   }
 

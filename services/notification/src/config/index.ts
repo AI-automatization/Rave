@@ -7,11 +7,18 @@ const requireEnv = (key: string): string => {
   return value;
 };
 
+// Railway template o'zgaruvchisi resolve bo'lmagan bo'lsa (${{...}}) — bo'sh string qaytaradi
+const resolveEnv = (key: string): string => {
+  const value = process.env[key]?.trim() ?? '';
+  if (value.includes('{{')) return '';
+  return value;
+};
+
 export const config = {
   nodeEnv: process.env.NODE_ENV ?? 'development',
   port: parseInt(process.env.PORT ?? '3007', 10),
   mongoUri: requireEnv('MONGO_URI'),
-  redisUrl: requireEnv('REDIS_URL'),
+  redisUrl: resolveEnv('REDIS_URL'),
   jwtPublicKey: requireEnv('JWT_PUBLIC_KEY').replace(/\\n/g, '\n'),
 
   firebase: {

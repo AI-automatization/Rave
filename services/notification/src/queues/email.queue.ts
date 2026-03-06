@@ -23,8 +23,15 @@ const createTransporter = () =>
     },
   });
 
-export const getEmailQueue = (redisUrl: string): Bull.Queue<EmailJobData> => {
-  if (!emailQueue) {
+export const getEmailQueue = (redisUrl: string): Bull.Queue<EmailJobData> | null => {
+  if (!redisUrl) {
+    logger.warn('REDIS_URL not configured — email queue disabled');
+    return null;
+  }
+
+  if (emailQueue) return emailQueue;
+
+  try {
     emailQueue = new Bull<EmailJobData>('email', redisUrl, {
       defaultJobOptions: {
         attempts: 3,
@@ -53,6 +60,9 @@ export const getEmailQueue = (redisUrl: string): Bull.Queue<EmailJobData> => {
     emailQueue.on('failed', (job, error) => {
       logger.error('Email job failed', { jobId: job.id, to: job.data.to, error: (error as Error).message });
     });
+  } catch (err) {
+    logger.error('Bull email queue init failed — email queue disabled', { error: (err as Error).message });
+    emailQueue = null;
   }
 
   return emailQueue;
