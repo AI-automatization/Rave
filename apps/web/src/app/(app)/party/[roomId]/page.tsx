@@ -113,7 +113,7 @@ export default function WatchPartyPage() {
             {room.movie.videoUrl ? (
               <VideoPlayer
                 src={room.movie.videoUrl}
-                poster={room.movie.backdrop ?? room.movie.poster}
+                poster={room.movie.backdropUrl ?? room.movie.posterUrl ?? room.movie.backdrop ?? room.movie.poster}
                 syncTime={syncState?.currentTime}
                 isOwner={isOwner}
                 onPlay={() => { if (room.movie.videoUrl) emitPlay(syncState?.currentTime ?? 0); }}

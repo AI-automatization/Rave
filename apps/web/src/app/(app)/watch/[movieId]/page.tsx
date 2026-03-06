@@ -70,7 +70,7 @@ export default function WatchPage() {
     <div className="space-y-4 max-w-5xl mx-auto">
       {/* Back nav */}
       <div className="flex items-center justify-between">
-        <Link href={`/movies/${movie.slug}`} className="inline-flex items-center justify-center gap-2 h-8 px-3 rounded-lg text-slate-300 hover:bg-slate-700/50 transition-all text-sm font-medium">
+        <Link href={`/movies/${movie._id}`} className="inline-flex items-center justify-center gap-2 h-8 px-3 rounded-lg text-slate-300 hover:bg-slate-700/50 transition-all text-sm font-medium">
           <FaArrowLeft size={16} />
           Orqaga
         </Link>
@@ -84,7 +84,7 @@ export default function WatchPage() {
       {movie.videoUrl ? (
         <VideoPlayer
           src={movie.videoUrl}
-          poster={movie.backdrop ?? movie.poster}
+          poster={movie.backdropUrl ?? movie.posterUrl ?? movie.backdrop ?? movie.poster}
           onProgress={(progress, currentTime) => void handleProgress(progress, currentTime)}
         />
       ) : (

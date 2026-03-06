@@ -15,17 +15,25 @@ export function MovieCard({ movie }: MovieCardProps) {
   const durationLabel =
     durationHours > 0 ? `${durationHours}s ${durationMins}d` : `${durationMins}d`;
 
+  const posterSrc = movie.posterUrl ?? movie.poster;
+
   return (
-    <Link href={`/movies/${movie.slug}`} className="group block">
+    <Link href={`/movies/${movie._id}`} className="group block">
       <div className="bg-slate-800 rounded-lg overflow-hidden transition-all duration-300 group-hover:scale-[1.03] group-hover:shadow-2xl group-hover:shadow-cyan-500/20 border border-slate-700">
         <figure className="relative aspect-[2/3]">
-          <Image
-            src={movie.poster || '/placeholder.jpg'}
-            alt={movie.title}
-            fill
-            className="object-cover"
-            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-          />
+          {posterSrc ? (
+            <Image
+              src={posterSrc}
+              alt={movie.title}
+              fill
+              className="object-cover"
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+            />
+          ) : (
+            <div className="absolute inset-0 bg-slate-700 flex items-center justify-center">
+              <span className="text-slate-400 text-4xl font-bold">{movie.title[0]}</span>
+            </div>
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-slate-900/95 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
             <div className="absolute bottom-0 left-0 right-0 p-4">
               <Link
@@ -44,7 +52,7 @@ export function MovieCard({ movie }: MovieCardProps) {
           <div className="flex items-center justify-between text-sm text-slate-400">
             <div className="flex items-center gap-1">
               <FaStar size={13} className="fill-amber-400 text-amber-400" />
-              <span className="text-amber-400 font-semibold">{movie.rating.toFixed(1)}</span>
+              <span className="text-amber-400 font-semibold">{(movie.rating ?? 0).toFixed(1)}</span>
             </div>
             <div className="flex items-center gap-1">
               <FaClock size={15} />

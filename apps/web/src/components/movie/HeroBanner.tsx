@@ -10,7 +10,7 @@ interface HeroBannerProps {
 }
 
 export function HeroBanner({ movie }: HeroBannerProps) {
-  const bgSrc = movie.backdrop ?? movie.poster;
+  const bgSrc = movie.backdropUrl ?? movie.posterUrl ?? movie.backdrop ?? movie.poster;
 
   return (
     <div className="relative w-full h-[55vh] min-h-[380px] overflow-hidden rounded-xl">
@@ -56,7 +56,7 @@ export function HeroBanner({ movie }: HeroBannerProps) {
             <FaUsers size={16} />
             Watch Party
           </Link>
-          <Link href={`/movies/${movie.slug}`} className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-lg text-slate-300 hover:bg-slate-700/50 transition-all font-medium active:scale-95">
+          <Link href={`/movies/${movie._id}`} className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-lg text-slate-300 hover:bg-slate-700/50 transition-all font-medium active:scale-95">
             <FaInfoCircle size={16} />
             Batafsil
           </Link>
