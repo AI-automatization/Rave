@@ -52,12 +52,14 @@ export function VideoPlayer({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
 
-  // HLS setup
+  // HLS yoki MP4 setup
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
-    if (Hls.isSupported()) {
+    const isHls = src.includes('.m3u8');
+
+    if (isHls && Hls.isSupported()) {
       const hls = new Hls({ enableWorker: true });
       hlsRef.current = hls;
       hls.loadSource(src);
@@ -67,10 +69,11 @@ export function VideoPlayer({
           logger.error('HLS fatal error', { type: data.type, details: data.details });
         }
       });
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+    } else if (isHls && video.canPlayType('application/vnd.apple.mpegurl')) {
       video.src = src;
     } else {
-      logger.error('HLS supported emas bu brauzerda');
+      // MP4 yoki boshqa native format — to'g'ridan o'ynating
+      video.src = src;
     }
 
     return () => {
