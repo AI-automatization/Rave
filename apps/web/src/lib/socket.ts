@@ -8,7 +8,7 @@ export function getSocket(token?: string): Socket {
   if (!socket) {
     socket = io(process.env.NEXT_PUBLIC_SOCKET_URL ?? 'https://watch-part-production.up.railway.app', {
       auth: { token },
-      transports: ['polling', 'websocket'],
+      transports: ['polling'],
       autoConnect: false,
     });
   }
