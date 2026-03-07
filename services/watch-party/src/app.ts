@@ -26,7 +26,7 @@ export const createApp = (redis: Redis): { app: express.Application; io: SocketS
       origin: '*',
       methods: ['GET', 'POST'],
     },
-    transports: ['websocket', 'polling'],
+    transports: ['polling', 'websocket'],
   });
 
   app.use(helmet());
