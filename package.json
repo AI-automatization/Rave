@@ -31,29 +31,15 @@
     "@playwright/test": "^1.58.2",
     "@types/node": "^20.11.5",
     "tsconfig-paths": "^4.2.0",
-    "typescript": "^5.3.3"
-  },
-  "overrides": {
-    "react-native": "0.79.6"
+    "typescript": "^5.3.3",
+    "expo": "~55.0.5",
+    "babel-preset-expo": "~13.0.0"
   },
   "engines": {
     "node": ">=20.0.0",
     "npm": ">=10.0.0"
   },
   "dependencies": {
-    "metro": "~0.82.0",
-    "metro-babel-transformer": "~0.82.0",
-    "metro-cache": "~0.82.0",
-    "metro-cache-key": "~0.82.0",
-    "metro-config": "~0.82.0",
-    "metro-core": "~0.82.0",
-    "metro-file-map": "~0.82.0",
-    "metro-resolver": "~0.82.0",
-    "metro-runtime": "~0.82.0",
-    "metro-source-map": "~0.82.0",
-    "metro-symbolicate": "~0.82.0",
-    "metro-transform-plugins": "~0.82.0",
-    "metro-transform-worker": "~0.82.0",
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8",
     "swagger-jsdoc": "^6.2.8",
