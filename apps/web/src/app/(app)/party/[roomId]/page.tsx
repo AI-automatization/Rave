@@ -10,7 +10,7 @@ import { useWatchParty } from '@/hooks/useWatchParty';
 import { useAuthStore } from '@/store/auth.store';
 import { apiClient } from '@/lib/axios';
 import { logger } from '@/lib/logger';
-import type { ApiResponse, IWatchPartyRoom } from '@/types';
+import type { ApiResponse, IWatchPartyRoom, IMovie } from '@/types';
 
 const VideoPlayer = dynamic(
   () => import('@/components/VideoPlayer').then((m) => m.VideoPlayer),
@@ -21,6 +21,7 @@ export default function WatchPartyPage() {
   const { roomId } = useParams<{ roomId: string }>();
   const user = useAuthStore((s) => s.user);
   const [room, setRoom] = useState<IWatchPartyRoom | null>(null);
+  const [movie, setMovie] = useState<IMovie | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [floatingEmojis, setFloatingEmojis] = useState<{ id: number; emoji: string }[]>([]);
@@ -32,7 +33,13 @@ export default function WatchPartyPage() {
     const load = async () => {
       try {
         const res = await apiClient.get<ApiResponse<IWatchPartyRoom>>(`/watch-party/rooms/${roomId}`);
-        setRoom(res.data.data);
+        const roomData = res.data.data;
+        if (!roomData) return;
+        setRoom(roomData);
+
+        // Fetch movie separately
+        const movieRes = await apiClient.get<ApiResponse<IMovie>>(`/movies/${roomData.movieId}`);
+        setMovie(movieRes.data.data ?? null);
       } catch (err) {
         logger.error('Watch Party xonasini yuklashda xato', err);
       } finally {
@@ -42,7 +49,7 @@ export default function WatchPartyPage() {
     void load();
   }, [roomId]);
 
-  const isOwner = room?.owner._id === user?.id;
+  const isOwner = room?.ownerId === user?.id;
 
   const handleCopyInvite = () => {
     const link = `${window.location.origin}/party/join/${room?.inviteCode}`;
@@ -91,9 +98,11 @@ export default function WatchPartyPage() {
           <div className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold ${isConnected ? 'bg-lime-500/20 text-lime-400 border border-lime-500' : 'bg-red-500/20 text-red-400 border border-red-500'}`}>
             {isConnected ? 'Ulangan' : 'Uzildi'}
           </div>
-          <span className="text-sm text-slate-400 truncate max-w-[150px]">
-            {room.movie.title}
-          </span>
+          {movie && (
+            <span className="text-sm text-slate-400 truncate max-w-[150px]">
+              {movie.title}
+            </span>
+          )}
           <button
             onClick={handleCopyInvite}
             className="inline-flex items-center justify-center gap-1 h-8 px-3 rounded-lg text-slate-300 hover:bg-slate-700/50 transition-all text-sm"
@@ -110,14 +119,14 @@ export default function WatchPartyPage() {
         {/* Video panel */}
         <div className="lg:w-[70%] flex flex-col gap-3 min-h-0">
           <div className="relative">
-            {room.movie.videoUrl ? (
+            {movie?.videoUrl ? (
               <VideoPlayer
-                src={room.movie.videoUrl}
-                poster={room.movie.backdropUrl ?? room.movie.posterUrl ?? room.movie.backdrop ?? room.movie.poster}
+                src={movie.videoUrl}
+                poster={movie.backdropUrl ?? movie.posterUrl ?? movie.backdrop ?? movie.poster}
                 syncTime={syncState?.currentTime}
                 isOwner={isOwner}
-                onPlay={() => { if (room.movie.videoUrl) emitPlay(syncState?.currentTime ?? 0); }}
-                onPause={() => { if (room.movie.videoUrl) emitPause(syncState?.currentTime ?? 0); }}
+                onPlay={() => { if (movie.videoUrl) emitPlay(syncState?.currentTime ?? 0); }}
+                onPause={() => { if (movie.videoUrl) emitPause(syncState?.currentTime ?? 0); }}
                 onSeek={(t) => emitSeek(t)}
               />
             ) : (
@@ -145,7 +154,7 @@ export default function WatchPartyPage() {
 
           {!isOwner && (
             <div className="alert alert-info py-2">
-              <span className="text-xs">Faqat xona egasi ({room.owner.username}) video ni boshqara oladi</span>
+              <span className="text-xs">Faqat xona egasi video ni boshqara oladi</span>
             </div>
           )}
         </div>
@@ -154,7 +163,7 @@ export default function WatchPartyPage() {
         <div className="lg:w-[30%] min-h-0 flex">
           <ChatPanel
             messages={messages}
-            members={members.length > 0 ? members : room.members}
+            members={members}
             onSendMessage={sendMessage}
             onSendEmoji={handleEmojiSend}
             currentUserId={user?.id}

@@ -24,6 +24,10 @@ export default function CreatePartyPage() {
           { movieId },
         );
         const room = res.data.data;
+        if (!room?._id) {
+          router.replace(`/watch/${movieId}`);
+          return;
+        }
         router.replace(`/party/${room._id}`);
       } catch (err) {
         logger.error('Watch Party xonasini yaratishda xato', err);

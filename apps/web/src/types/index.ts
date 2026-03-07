@@ -63,9 +63,9 @@ export interface IFriendship {
 
 export interface IWatchPartyRoom {
   _id: string;
-  movie: IMovie;
-  owner: IUser;
-  members: IUser[];
+  movieId: string;
+  ownerId: string;
+  members: string[];
   inviteCode: string;
   status: 'waiting' | 'playing' | 'paused' | 'ended';
   currentTime: number;
