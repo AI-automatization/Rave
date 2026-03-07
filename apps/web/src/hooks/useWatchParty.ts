@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { connectSocket, disconnectSocket, getSocket } from '@/lib/socket';
 import { useAuthStore } from '@/store/auth.store';
+import { apiClient } from '@/lib/axios';
 import { logger } from '@/lib/logger';
-import type { IChatMessage, IUser } from '@/types';
+import type { ApiResponse, IChatMessage, IUser } from '@/types';
 
 interface SyncState {
   currentTime: number;
@@ -30,6 +31,19 @@ export function useWatchParty(roomId: string): UseWatchPartyReturn {
   const [members, setMembers] = useState<IUser[]>([]);
   const [messages, setMessages] = useState<IChatMessage[]>([]);
   const [isConnected, setIsConnected] = useState(false);
+  const usersCache = useRef<Map<string, IUser>>(new Map());
+
+  const fetchUser = useCallback(async (userId: string): Promise<IUser | null> => {
+    if (usersCache.current.has(userId)) return usersCache.current.get(userId)!;
+    try {
+      const res = await apiClient.get<ApiResponse<IUser>>(`/users/${userId}`);
+      const u = res.data.data;
+      if (u) usersCache.current.set(userId, u);
+      return u ?? null;
+    } catch {
+      return null;
+    }
+  }, []);
 
   useEffect(() => {
     if (!accessToken) return;
@@ -64,14 +78,22 @@ export function useWatchParty(roomId: string): UseWatchPartyReturn {
       setSyncState(state);
     });
 
-    // Initial join confirmation: { room, syncState }
-    socket.on('room:joined', (data: { syncState: SyncState | null }) => {
+    // Initial join confirmation: { room: { members: string[] }, syncState }
+    socket.on('room:joined', (data: { room: { members: string[] }; syncState: SyncState | null }) => {
       if (data.syncState) setSyncState(data.syncState);
+      // Fetch all member profiles
+      const memberIds = data.room?.members ?? [];
+      void Promise.all(memberIds.map((id) => fetchUser(id))).then((users) => {
+        setMembers(users.filter((u): u is IUser => u !== null));
+      });
     });
 
-    // New member joined: { userId } — no full user data available here
-    socket.on('member:joined', (_data: { userId: string }) => {
-      // member list is refreshed via room:members if needed
+    // New member joined: { userId }
+    socket.on('member:joined', (data: { userId: string }) => {
+      void fetchUser(data.userId).then((u) => {
+        if (!u) return;
+        setMembers((prev) => (prev.find((m) => m._id === u._id) ? prev : [...prev, u]));
+      });
     });
 
     // Member left: { userId }
@@ -79,8 +101,22 @@ export function useWatchParty(roomId: string): UseWatchPartyReturn {
       setMembers((prev) => prev.filter((m) => m._id !== data.userId));
     });
 
-    socket.on('room:message', (msg: IChatMessage) => {
-      setMessages((prev) => [...prev, msg]);
+    // Server sends { userId, message, timestamp }
+    socket.on('room:message', (data: { userId: string; message: string; timestamp: number }) => {
+      void fetchUser(data.userId).then((u) => {
+        const msgUser = u ?? {
+          _id: data.userId,
+          username: data.userId.slice(0, 6),
+          avatar: undefined,
+        };
+        const msg: IChatMessage = {
+          id: `${data.userId}-${data.timestamp}`,
+          user: msgUser as Pick<IUser, '_id' | 'username' | 'avatar'>,
+          text: data.message,
+          timestamp: data.timestamp,
+        };
+        setMessages((prev) => [...prev, msg]);
+      });
     });
 
     socket.on('error', (err: { message: string }) => {
@@ -102,15 +138,16 @@ export function useWatchParty(roomId: string): UseWatchPartyReturn {
       socket.off('error');
       disconnectSocket();
     };
-  }, [roomId, accessToken]);
+  }, [roomId, accessToken, fetchUser]);
 
   const sendMessage = useCallback(
     (text: string) => {
       if (!text.trim() || !user) return;
       const socket = getSocket();
-      socket.emit('room:message', { roomId, text: text.trim() });
+      // Server expects { message }, not { roomId, text }
+      socket.emit('room:message', { message: text.trim() });
     },
-    [roomId, user],
+    [user],
   );
 
   const sendEmoji = useCallback(
