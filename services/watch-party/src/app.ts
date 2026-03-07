@@ -14,7 +14,7 @@ import { registerWatchPartySocket } from './socket/watchParty.socket';
 import { swaggerSpec } from './utils/swagger';
 import { config } from './config/index';
 
-export const createApp = (redis: Redis): { app: express.Application; io: SocketServer } => {
+export const createApp = (redis: Redis): { app: express.Application; io: SocketServer; httpServer: ReturnType<typeof createServer> } => {
   const app = express();
 
   // Railway reverse proxy
@@ -50,5 +50,5 @@ export const createApp = (redis: Redis): { app: express.Application; io: SocketS
   app.use(notFoundHandler);
   app.use(errorHandler);
 
-  return { app: app as express.Application, io };
+  return { app: app as express.Application, io, httpServer };
 };

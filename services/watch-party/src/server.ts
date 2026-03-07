@@ -1,4 +1,3 @@
-import { createServer } from 'http';
 import mongoose from 'mongoose';
 import Redis from 'ioredis';
 import { createApp } from './app';
@@ -14,8 +13,7 @@ const main = async (): Promise<void> => {
   });
   redis.on('error', (err) => logger.error('Redis error', { error: err.message }));
 
-  const { app } = createApp(redis);
-  const httpServer = createServer(app);
+  const { httpServer } = createApp(redis);
 
   httpServer.listen(config.port, () => {
     logger.info('Watch-party service running', { port: config.port, env: config.nodeEnv });
