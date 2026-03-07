@@ -80,13 +80,210 @@
 
 # ═══════════════════════════════════════
 
-# 🟢 EMIRHAN — REACT NATIVE MOBILE
+# 🟢 EMIRHAN — EXPO REACT NATIVE MOBILE (QAYTA QURILMOQDA)
 
 # ═══════════════════════════════════════
 
-*T-E001..T-E013 — Done.md F-023..F-040 ga ko'chirildi*
+> **2026-03-07:** Bare React Native → Expo React Native ga to'liq ko'chirildi.
+> Eski `apps/mobile` o'chirildi. Yangi Expo app `create-expo-app` bilan yaratildi.
+> Quyidagi barcha tasklar `pending[Emirhan]` — boshidan bajariladi.
 
-## ✅ Barcha tasklar tugallandi (2026-03-03)
+---
+
+## SPRINT 1 — Expo Setup + Auth
+
+### T-E001 | P0 | [MOBILE] | Expo loyiha setup — monorepo config, aliaslar, theme
+
+- **Sana:** 2026-03-07
+- **Mas'ul:** pending[Emirhan]
+- **Fayl:** `apps/mobile/`
+- **Holat:** ❌ Boshlanmagan
+- **Bajarilishi kerak:**
+  - [ ] `create-expo-app` bilan yaratilgan baza ustiga monorepo sozlash
+  - [ ] `tsconfig.json` — strict mode, path aliases (@screens, @components, @api, @store, @socket, @theme, @utils, @types, @navigation)
+  - [ ] `babel.config.js` — `babel-preset-expo` + `babel-plugin-module-resolver`
+  - [ ] `metro.config.js` — `expo/metro-config` + monorepo `watchFolders` (shared/*)
+  - [ ] `src/theme/index.ts` — colors, spacing, borderRadius, typography, RANK_COLORS
+  - [ ] `src/types/index.ts` — IUser, IMovie, IWatchPartyRoom, IBattle, INotification, IAchievement, ApiResponse
+  - [ ] `src/utils/storage.ts` — `expo-secure-store` token storage (accessToken, refreshToken, userId)
+  - [ ] `src/utils/notifications.ts` — FCM permission, token registration, NOTIFICATION_ROUTES
+  - [ ] `src/api/client.ts` — per-service Axios instances (6 ta), auto-refresh interceptor, token rotation
+  - [ ] Barcha API fayllar: auth, user, content, watchParty, battle, notification
+  - [ ] Zustand stores: auth, movies, friends, watchParty, battle, notification
+  - [ ] Navigation types + AppNavigator (auth-aware routing)
+  - [ ] Expo paketlar: `expo-image`, `expo-linear-gradient`, `@expo/vector-icons`, `expo-haptics`, `expo-splash-screen`, `expo-av`, `expo-secure-store`
+- **Eslatma:** Expo Go emas — `expo run:android` / `expo run:ios` ishlatish (Bare Workflow)
+
+---
+
+### T-E002 | P0 | [MOBILE] | Auth ekranlar (Expo)
+
+- **Sana:** 2026-03-07
+- **Mas'ul:** pending[Emirhan]
+- **Fayl:** `apps/mobile/src/screens/auth/`
+- **Holat:** ❌ Boshlanmagan
+- **Bajarilishi kerak:**
+  - [ ] `SplashScreen.tsx` — animated logo, token hydration, Onboarding ga redirect
+  - [ ] `OnboardingScreen.tsx` — 3 slide FlatList (pagingEnabled), dot indicators
+  - [ ] `LoginScreen.tsx` — email+password, Google SignIn (expo-auth-session), toast xatolar
+  - [ ] `RegisterScreen.tsx` — username+email+password+confirm, client validation
+  - [ ] `VerifyEmailScreen.tsx` — token input, authApi.verifyEmail
+  - [ ] `ForgotPasswordScreen.tsx` — email input, enumeration-safe message
+  - [ ] `ProfileSetupScreen.tsx` — bio (200 char), avatar placeholder, skip
+
+---
+
+## SPRINT 2 — Asosiy ekranlar
+
+### T-E003 | P1 | [MOBILE] | HomeScreen + MovieRow + HeroBanner
+
+- **Sana:** 2026-03-07
+- **Mas'ul:** pending[Emirhan]
+- **Fayl:** `apps/mobile/src/screens/home/`
+- **Holat:** ❌ Boshlanmagan
+- **Bajarilishi kerak:**
+  - [ ] `HomeScreen.tsx` — header, notification badge, RefreshControl
+  - [ ] `hooks/useHomeData.ts` — React Query (trending, topRated, continueWatching, staleTime 10min)
+  - [ ] `components/HeroBanner.tsx` — top 5, `expo-linear-gradient` overlay, auto-scroll
+  - [ ] `components/MovieRow.tsx` — horizontal FlatList, optimized (getItemLayout)
+  - [ ] `components/HomeSkeleton.tsx` — loading skeleton
+
+---
+
+### T-E004 | P1 | [MOBILE] | SearchScreen + SearchResultsScreen
+
+- **Sana:** 2026-03-07
+- **Mas'ul:** pending[Emirhan]
+- **Fayl:** `apps/mobile/src/screens/search/`
+- **Holat:** ❌ Boshlanmagan
+- **Bajarilishi kerak:**
+  - [ ] `SearchScreen.tsx` — debounced search (500ms), genre filter chips, search history (expo-secure-store)
+  - [ ] `SearchResultsScreen.tsx` — results list, movie cards, pagination
+
+---
+
+### T-E005 | P1 | [MOBILE] | MovieDetailScreen + VideoPlayerScreen (expo-av)
+
+- **Sana:** 2026-03-07
+- **Mas'ul:** pending[Emirhan]
+- **Fayl:** `apps/mobile/src/screens/home/`
+- **Holat:** ❌ Boshlanmagan
+- **Bajarilishi kerak:**
+  - [ ] `MovieDetailScreen.tsx` — parallax header, movie info, genre chips, RatingWidget (1-10)
+  - [ ] `VideoPlayerScreen.tsx` — `expo-av` (Video) HLS m3u8, custom controls (play/pause/seek/fullscreen)
+  - [ ] Progress save (debounced 30s), 90% → markComplete + checkAchievements
+  - [ ] **Eslatma:** `react-native-video` EMAS — `expo-av` ishlatish
+
+---
+
+## SPRINT 3 — Ijtimoiy ekranlar
+
+### T-E006 | P1 | [MOBILE] | WatchParty ekranlar
+
+- **Sana:** 2026-03-07
+- **Mas'ul:** pending[Emirhan]
+- **Fayl:** `apps/mobile/src/screens/modal/`
+- **Holat:** ❌ Boshlanmagan
+- **Bajarilishi kerak:**
+  - [ ] `WatchPartyCreateScreen.tsx` — movie tanlov, private/public, room yaratish
+  - [ ] `WatchPartyScreen.tsx` — sync video player, chat panel, emoji float, owner/member controls, invite code
+
+---
+
+### T-E007 | P1 | [MOBILE] | Do'stlar ekranlar
+
+- **Sana:** 2026-03-07
+- **Mas'ul:** pending[Emirhan]
+- **Fayl:** `apps/mobile/src/screens/friends/`
+- **Holat:** ❌ Boshlanmagan
+- **Bajarilishi kerak:**
+  - [ ] `FriendsScreen.tsx` — friends list (online indicator), pending requests badge
+  - [ ] `FriendSearchScreen.tsx` — debounced user search, do'st so'rov yuborish
+  - [ ] `FriendProfileScreen.tsx` — public profile, stats, online status, friend actions
+
+---
+
+### T-E008 | P1 | [MOBILE] | Battle ekranlar
+
+- **Sana:** 2026-03-07
+- **Mas'ul:** pending[Emirhan]
+- **Fayl:** `apps/mobile/src/screens/modal/`
+- **Holat:** ❌ Boshlanmagan
+- **Bajarilishi kerak:**
+  - [ ] `BattleCreateScreen.tsx` — duration tanlov (3/5/7 kun), opponent invite
+  - [ ] `BattleScreen.tsx` — active battles, leaderboard (progress bars), result (confetti)
+
+---
+
+## SPRINT 4 — Profil + Bildirishnoma
+
+### T-E009 | P2 | [MOBILE] | Profil + Stats + Achievements + Settings
+
+- **Sana:** 2026-03-07
+- **Mas'ul:** pending[Emirhan]
+- **Fayl:** `apps/mobile/src/screens/profile/`
+- **Holat:** ❌ Boshlanmagan
+- **Bajarilishi kerak:**
+  - [ ] `ProfileScreen.tsx` — avatar, rank badge, stats grid (4 card), rank progress bar, logout
+  - [ ] `AchievementsScreen.tsx` — FlatList 3 column, RARITY_COLORS, locked/unlocked, secret "???"
+  - [ ] `StatsScreen.tsx` — rank card, stats grid (6 card), activity bar chart, rank yo'li
+  - [ ] `SettingsScreen.tsx` — til (uz/ru/en), bildirishnoma togglelar (5), privacy togglelar (2)
+
+---
+
+### T-E010 | P2 | [MOBILE] | NotificationsScreen
+
+- **Sana:** 2026-03-07
+- **Mas'ul:** pending[Emirhan]
+- **Fayl:** `apps/mobile/src/screens/modal/`
+- **Holat:** ❌ Boshlanmagan
+- **Bajarilishi kerak:**
+  - [ ] FlatList, unread dot, icon per type (8 tur), formatDistanceToNow
+  - [ ] mark single/all read, delete, WatchParty/Battle ga navigate (tap)
+
+---
+
+## SPRINT 5 — Sifat + Test
+
+### T-E011 | P2 | [MOBILE] | Polish + Performance + ErrorBoundary + Sentry
+
+- **Sana:** 2026-03-07
+- **Mas'ul:** pending[Emirhan]
+- **Holat:** ❌ Boshlanmagan
+- **Bajarilishi kerak:**
+  - [ ] FlatList optimizatsiya (getItemLayout, windowSize, maxToRenderPerBatch)
+  - [ ] `React.memo` — MovieCard, HeroBanner kabi heavy componentlar
+  - [ ] Accessibility: `accessibilityRole`, `accessibilityLabel`
+  - [ ] `ErrorBoundary.tsx` — class-based, "Qayta urinish" tugmasi
+  - [ ] `src/utils/crash.ts` — Sentry wrapper stub
+  - [ ] Jest unit testlar (MovieCard, ErrorBoundary, crash utils)
+  - [ ] Detox E2E: Auth flow (Splash → Onboarding → Login → Home)
+
+---
+
+### T-E012 | P1 | [MOBILE] | Google OAuth — expo-auth-session bilan native flow
+
+- **Sana:** 2026-03-07
+- **Mas'ul:** pending[Emirhan]
+- **Holat:** ❌ Boshlanmagan
+- **Sabab:** Bare React Native `@react-native-google-signin` Expo bilan murakkab. Expo `expo-auth-session` osonroq.
+- **Bajarilishi kerak:**
+  - [ ] `expo-auth-session` + `expo-web-browser` orqali Google OAuth
+  - [ ] idToken → `POST /api/v1/auth/google/token` (T-S016 backend endpointi)
+  - [ ] `LoginScreen.tsx` ga Google button integratsiya
+
+---
+
+### T-E013 | P2 | [MOBILE] | EAS Build + expo-notifications setup
+
+- **Sana:** 2026-03-07
+- **Mas'ul:** pending[Emirhan]
+- **Holat:** ❌ Boshlanmagan
+- **Bajarilishi kerak:**
+  - [ ] `eas.json` — development/preview/production profillari
+  - [ ] `expo-notifications` — FCM token olish, foreground/background handler
+  - [ ] `app.json` — android package, ios bundleId, permissions, plugins
+  - [ ] `docs/MOBILE_SETUP.md` yangilash (Expo Bare Workflow, EAS Build)
 
 ---
 
@@ -152,13 +349,13 @@
 
 ---
 
-## 📊 STATISTIKA (2026-03-01 yangilandi)
+## 📊 STATISTIKA (2026-03-07 yangilandi)
 
 | Jamoa    | Tugallandi | Qolgan | JAMI |
 | -------- | ---------- | ------ | ---- |
-| Saidazim | T-S001..T-S008, T-S010, T-S011, T-C001, T-C003, T-C005 ✅ | T-S005b, T-S009 (2 task) | — |
-| Emirhan  | T-E001..T-E013 ✅ (13 task) — HAMMASI TUGADI 🎉 | — | 13 |
-| Jafar    | T-J001..T-J006 ✅ (6 task) | T-J007 (qisman), T-J008, T-J009, T-J010 (3 yangi) | 7 |
+| Saidazim | T-S001..T-S008, T-S010, T-S011, T-C001, T-C003, T-C005 ✅ | T-S005b, T-S009, T-S016 (3 task) | — |
+| Emirhan  | — (Expo ga ko'chirildi, boshidan) | T-E001..T-E013 (13 task) | 13 |
+| Jafar    | T-J001..T-J006, T-J008, T-J009, T-J011 ✅ | T-J007 (qisman), T-J010 (verify) | — |
 | Umumiy   | T-C001 ✅, T-C002 ✅, T-C003 ✅, T-C005 ✅ | T-C004 (1 task) | — |
 
 ---

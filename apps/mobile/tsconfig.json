@@ -6,16 +6,16 @@
     "paths": {
       "@screens/*": ["src/screens/*"],
       "@components/*": ["src/components/*"],
-      "@navigation/*": ["src/navigation/*"],
-      "@hooks/*": ["src/hooks/*"],
       "@api/*": ["src/api/*"],
       "@store/*": ["src/store/*"],
       "@socket/*": ["src/socket/*"],
       "@theme/*": ["src/theme/*"],
       "@utils/*": ["src/utils/*"],
       "@app-types/*": ["src/types/*"],
+      "@navigation/*": ["src/navigation/*"],
+      "@hooks/*": ["src/hooks/*"],
       "@shared/*": ["../../shared/src/*"]
     }
   },
-  "include": ["src", "index.js"]
+  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.d.ts", "expo-env.d.ts"]
 }

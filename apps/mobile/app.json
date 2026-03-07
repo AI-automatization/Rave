@@ -4,34 +4,35 @@
     "slug": "cinesync",
     "version": "1.0.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
     "scheme": "cinesync",
-    "platforms": ["ios", "android"],
-    "android": {
-      "package": "com.cinesynctemp",
-      "adaptiveIcon": {
-        "backgroundColor": "#0A0A0F"
-      },
-      "googleServicesFile": "./google-services.json"
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0A0A0F"
     },
     "ios": {
-      "bundleIdentifier": "com.cinesync.app",
-      "supportsTablet": false
+      "supportsTablet": false,
+      "bundleIdentifier": "com.cinesync.app"
+    },
+    "android": {
+      "package": "com.cinesync.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#0A0A0F",
+        "foregroundImage": "./assets/android-icon-foreground.png"
+      }
     },
     "plugins": [
-      "expo-splash-screen",
+      "expo-secure-store",
+      "expo-image",
       [
-        "@react-native-firebase/app",
+        "expo-splash-screen",
         {
-          "android": {
-            "googleServicesFile": "./google-services.json"
-          }
+          "backgroundColor": "#0A0A0F",
+          "resizeMode": "contain"
         }
       ]
-    ],
-    "extra": {
-      "eas": {
-        "projectId": ""
-      }
-    }
+    ]
   }
 }

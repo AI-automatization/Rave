@@ -1,12 +1,17 @@
 const { getDefaultConfig } = require('expo/metro-config');
 const path = require('path');
 
-const config = getDefaultConfig(__dirname);
+const projectRoot = __dirname;
+const workspaceRoot = path.resolve(projectRoot, '../..');
 
-// Monorepo: shared/ papkasini Metro ko'ra olishi uchun
-config.watchFolders = [path.resolve(__dirname, '../../shared')];
+const config = getDefaultConfig(projectRoot);
 
-// Lottie asset support
-config.resolver.assetExts.push('lottie');
+// Monorepo: watch shared/* as well
+config.watchFolders = [workspaceRoot];
+
+config.resolver.nodeModulesPaths = [
+  path.resolve(projectRoot, 'node_modules'),
+  path.resolve(workspaceRoot, 'node_modules'),
+];
 
 module.exports = config;

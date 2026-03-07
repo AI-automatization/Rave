@@ -1,49 +1,48 @@
-# React Native — build artifacts (qayta yaratiladi)
-android/build/
-android/app/build/
-android/.gradle/
-android/local.properties
-android/.cxx/
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
-# iOS
-ios/build/
-ios/Pods/
-ios/*.xcworkspace/xcuserdata/
-ios/*.xcodeproj/xcuserdata/
-ios/DerivedData/
-
-# Node
+# dependencies
 node_modules/
-npm-debug.log
-yarn-error.log
-
-# Environment — HECH QACHON commit qilma
-.env
-.env.local
-.env.production
-
-# Firebase — private keys
-google-services.json
-GoogleService-Info.plist
-
-# Signing keys
-*.keystore
-!debug.keystore
-
-# Metro cache
-.metro/
-.bundle/
-
-# Test coverage
-coverage/
 
 # Expo
 .expo/
 dist/
+web-build/
+expo-env.d.ts
 
-# OS
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
 .DS_Store
-Thumbs.db
+*.pem
 
-# TypeScript
+# local env files
+.env*.local
+.env
+
+# Secrets
+google-services.json
+GoogleService-Info.plist
+*.keystore
+eas.json
+
+# typescript
 *.tsbuildinfo
+
+# generated native folders
+/ios
+/android
