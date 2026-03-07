@@ -292,7 +292,7 @@ export class AuthService {
   }
 
   private async syncUserProfile(authId: string, email: string, username: string): Promise<void> {
-    const url = `${config.userServiceUrl}/internal/profile`;
+    const url = `${config.userServiceUrl}/api/v1/users/internal/profile`;
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
