@@ -44,6 +44,8 @@ apiClient.interceptors.response.use(
         return apiClient(original);
       } catch {
         localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        document.cookie = 'access_token=; path=/; max-age=0; SameSite=Lax';
         window.location.href = '/login';
       }
     }
