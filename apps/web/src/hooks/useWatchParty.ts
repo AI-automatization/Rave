@@ -13,10 +13,17 @@ interface SyncState {
   updatedAt: number;
 }
 
+export interface EmojiEvent {
+  id: number;
+  userId: string;
+  emoji: string;
+}
+
 interface UseWatchPartyReturn {
   syncState: SyncState | null;
   members: IUser[];
   messages: IChatMessage[];
+  emojiEvents: EmojiEvent[];
   sendMessage: (text: string) => void;
   sendEmoji: (emoji: string) => void;
   emitPlay: (currentTime: number) => void;
@@ -31,6 +38,7 @@ export function useWatchParty(roomId: string): UseWatchPartyReturn {
   const [members, setMembers] = useState<IUser[]>([]);
   const [messages, setMessages] = useState<IChatMessage[]>([]);
   const [isConnected, setIsConnected] = useState(false);
+  const [emojiEvents, setEmojiEvents] = useState<EmojiEvent[]>([]);
   const usersCache = useRef<Map<string, IUser>>(new Map());
 
   const fetchUser = useCallback(async (userId: string): Promise<IUser | null> => {
@@ -119,6 +127,13 @@ export function useWatchParty(roomId: string): UseWatchPartyReturn {
       });
     });
 
+    // Room emoji — show floating emoji for ALL users (including sender)
+    socket.on('room:emoji', (data: { userId: string; emoji: string }) => {
+      const id = Date.now() + Math.random();
+      setEmojiEvents((prev) => [...prev, { id, userId: data.userId, emoji: data.emoji }]);
+      setTimeout(() => setEmojiEvents((prev) => prev.filter((e) => e.id !== id)), 3000);
+    });
+
     socket.on('error', (err: { message: string }) => {
       logger.error('Watch Party xatosi', err.message);
     });
@@ -135,6 +150,7 @@ export function useWatchParty(roomId: string): UseWatchPartyReturn {
       socket.off('member:joined');
       socket.off('member:left');
       socket.off('room:message');
+      socket.off('room:emoji');
       socket.off('error');
       disconnectSocket();
     };
@@ -186,6 +202,7 @@ export function useWatchParty(roomId: string): UseWatchPartyReturn {
     syncState,
     members,
     messages,
+    emojiEvents,
     sendMessage,
     sendEmoji,
     emitPlay,

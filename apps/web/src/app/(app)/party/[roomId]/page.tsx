@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { FaArrowLeft, FaCopy, FaCheck, FaUserPlus, FaTimes } from 'react-icons/fa';
@@ -24,12 +24,14 @@ export default function WatchPartyPage() {
   const [movie, setMovie] = useState<IMovie | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
-  const [floatingEmojis, setFloatingEmojis] = useState<{ id: number; emoji: string }[]>([]);
+  const [floatingEmojis, setFloatingEmojis] = useState<{ id: number; emoji: string; bottom: number; right: number }[]>([]);
   const [showInvite, setShowInvite] = useState(false);
   const [friends, setFriends] = useState<IUser[]>([]);
   const [copiedFriendId, setCopiedFriendId] = useState<string | null>(null);
+  const emojiTimestamps = useRef<number[]>([]);
+  const [emojiCooldown, setEmojiCooldown] = useState(0); // seconds left
 
-  const { syncState, members, messages, sendMessage, sendEmoji, emitPlay, emitPause, emitSeek, isConnected } =
+  const { syncState, members, messages, emojiEvents, sendMessage, sendEmoji, emitPlay, emitPause, emitSeek, isConnected } =
     useWatchParty(roomId);
 
   useEffect(() => {
@@ -78,14 +80,48 @@ export default function WatchPartyPage() {
     });
   };
 
-  const handleEmojiSend = (emoji: string) => {
-    sendEmoji(emoji);
-    const id = Date.now();
-    setFloatingEmojis((prev) => [...prev, { id, emoji }]);
-    setTimeout(() => {
-      setFloatingEmojis((prev) => prev.filter((e) => e.id !== id));
+  // Sync floatingEmojis from socket emojiEvents (all users including self)
+  useEffect(() => {
+    if (emojiEvents.length === 0) return;
+    const latest = emojiEvents[emojiEvents.length - 1];
+    const bottom = 15 + Math.random() * 55;
+    const right = 4 + Math.random() * 18;
+    setFloatingEmojis((prev) => [...prev, { id: latest.id, emoji: latest.emoji, bottom, right }]);
+    const t = setTimeout(() => {
+      setFloatingEmojis((prev) => prev.filter((e) => e.id !== latest.id));
     }, 3000);
+    return () => clearTimeout(t);
+  }, [emojiEvents]);
+
+  // Emoji rate limit: max 2 per 2 minutes
+  const EMOJI_LIMIT = 2;
+  const EMOJI_WINDOW_MS = 2 * 60 * 1000;
+
+  const handleEmojiSend = (emoji: string) => {
+    const now = Date.now();
+    // Remove timestamps older than 2 minutes
+    emojiTimestamps.current = emojiTimestamps.current.filter((t) => now - t < EMOJI_WINDOW_MS);
+    if (emojiTimestamps.current.length >= EMOJI_LIMIT) {
+      const oldest = emojiTimestamps.current[0];
+      const remaining = Math.ceil((EMOJI_WINDOW_MS - (now - oldest)) / 1000);
+      setEmojiCooldown(remaining);
+      return;
+    }
+    emojiTimestamps.current.push(now);
+    sendEmoji(emoji);
   };
+
+  // Cooldown countdown
+  useEffect(() => {
+    if (emojiCooldown <= 0) return;
+    const t = setInterval(() => {
+      setEmojiCooldown((prev) => {
+        if (prev <= 1) { clearInterval(t); return 0; }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(t);
+  }, [emojiCooldown]);
 
   if (loading) {
     return (
@@ -162,16 +198,16 @@ export default function WatchPartyPage() {
                 <p className="text-white/40">Video mavjud emas</p>
               </div>
             )}
-            {/* Floating emojis */}
+            {/* Floating emojis — driven by socket events */}
             <div className="absolute inset-0 pointer-events-none overflow-hidden">
-              {floatingEmojis.map(({ id, emoji }) => (
+              {floatingEmojis.map(({ id, emoji, bottom, right }) => (
                 <div
                   key={id}
-                  className="absolute text-4xl animate-bounce"
+                  className="absolute text-4xl select-none"
                   style={{
-                    bottom: `${20 + Math.random() * 60}%`,
-                    right: `${5 + Math.random() * 15}%`,
-                    animation: 'fade-in 3s ease-out forwards',
+                    bottom: `${bottom}%`,
+                    right: `${right}%`,
+                    animation: 'floatUp 3s ease-out forwards',
                   }}
                 >
                   {emoji}
@@ -195,6 +231,7 @@ export default function WatchPartyPage() {
             onSendMessage={sendMessage}
             onSendEmoji={handleEmojiSend}
             currentUserId={user?.id}
+            emojiCooldown={emojiCooldown}
           />
         </div>
       </div>

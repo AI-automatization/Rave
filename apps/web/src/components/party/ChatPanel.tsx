@@ -13,6 +13,7 @@ interface ChatPanelProps {
   onSendMessage: (text: string) => void;
   onSendEmoji: (emoji: string) => void;
   currentUserId?: string;
+  emojiCooldown?: number;
 }
 
 export function ChatPanel({
@@ -21,6 +22,7 @@ export function ChatPanel({
   onSendMessage,
   onSendEmoji,
   currentUserId,
+  emojiCooldown = 0,
 }: ChatPanelProps) {
   const [input, setInput] = useState('');
   const [showEmoji, setShowEmoji] = useState(false);
@@ -52,25 +54,28 @@ export function ChatPanel({
   return (
     <div className="flex flex-col h-full bg-base-200 rounded-xl overflow-hidden">
       {/* Members */}
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-base-300 overflow-x-auto">
-        <span className="text-xs text-base-content/50 shrink-0">
-          {members.length} nafar
-        </span>
-        {members.map((m) => (
-          <div key={m._id} className="flex items-center gap-1 shrink-0">
-            <div className="avatar">
-              <div className="w-6 rounded-full ring ring-primary ring-offset-base-100 ring-offset-1">
-                {m.avatar ? (
-                  <Image src={m.avatar} alt={m.username} width={24} height={24} className="object-cover" unoptimized />
-                ) : (
-                  <div className="bg-primary text-primary-content flex items-center justify-center text-xs">
-                    {m.username[0].toUpperCase()}
-                  </div>
-                )}
+      <div className="px-3 py-2 border-b border-base-300">
+        <p className="text-xs text-base-content/50 mb-2">{members.length} nafar tomosha qilmoqda</p>
+        <div className="flex flex-wrap gap-2">
+          {members.map((m) => (
+            <div key={m._id} className="flex items-center gap-1.5 bg-slate-700/40 rounded-lg px-2 py-1">
+              <div className="relative shrink-0">
+                <div className="w-6 h-6 rounded-full overflow-hidden bg-primary flex items-center justify-center">
+                  {m.avatar ? (
+                    <Image src={m.avatar} alt={m.username} width={24} height={24} className="object-cover" unoptimized />
+                  ) : (
+                    <span className="text-primary-content text-xs font-bold">{m.username[0].toUpperCase()}</span>
+                  )}
+                </div>
+                {/* Online dot */}
+                <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-lime-400 border border-slate-800" />
               </div>
+              <span className={`text-xs font-medium truncate max-w-[72px] ${m._id === currentUserId ? 'text-cyan-400' : 'text-slate-300'}`}>
+                {m._id === currentUserId ? 'Sen' : m.username}
+              </span>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
       {/* Messages */}
@@ -128,11 +133,13 @@ export function ChatPanel({
           {QUICK_EMOJIS.map((emoji) => (
             <button
               key={emoji}
-              className="inline-flex items-center justify-center h-7 px-2 rounded-lg text-lg text-slate-300 hover:bg-slate-700/50 transition-all"
+              className={`inline-flex items-center justify-center h-7 px-2 rounded-lg text-lg transition-all ${emojiCooldown > 0 ? 'opacity-40 cursor-not-allowed' : 'text-slate-300 hover:bg-slate-700/50'}`}
               onClick={() => {
+                if (emojiCooldown > 0) return;
                 onSendEmoji(emoji);
                 setShowEmoji(false);
               }}
+              disabled={emojiCooldown > 0}
             >
               {emoji}
             </button>
@@ -143,11 +150,17 @@ export function ChatPanel({
       {/* Input */}
       <div className="flex items-center gap-2 px-3 py-3 border-t border-slate-700">
         <button
-          className="inline-flex items-center justify-center h-7 w-7 rounded-lg text-slate-400 hover:text-slate-300 hover:bg-slate-700/50 transition-all"
-          onClick={() => setShowEmoji(!showEmoji)}
+          className={`relative inline-flex items-center justify-center h-7 w-7 rounded-lg transition-all ${emojiCooldown > 0 ? 'text-slate-600 cursor-not-allowed' : 'text-slate-400 hover:text-slate-300 hover:bg-slate-700/50'}`}
+          onClick={() => emojiCooldown === 0 && setShowEmoji(!showEmoji)}
           aria-label="Emoji"
+          title={emojiCooldown > 0 ? `${emojiCooldown}s kuting` : 'Emoji'}
+          disabled={emojiCooldown > 0}
         >
-          <FaSmile size={16} />
+          {emojiCooldown > 0 ? (
+            <span className="text-xs font-bold text-slate-500">{emojiCooldown}s</span>
+          ) : (
+            <FaSmile size={16} />
+          )}
         </button>
         <input
           type="text"
