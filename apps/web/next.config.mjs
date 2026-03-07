@@ -9,6 +9,8 @@ const nextConfig = {
       { protocol: 'https', hostname: '**.cloudinary.com' },
       { protocol: 'https', hostname: '**.cinesync.uz' },
       { protocol: 'https', hostname: '**.railway.app' },
+      { protocol: 'https', hostname: 'images.unsplash.com' },
+      { protocol: 'https', hostname: 'i.pravatar.cc' },
     ],
   },
   experimental: {
@@ -21,6 +23,7 @@ const nextConfig = {
     const watchUrl = process.env.NEXT_PUBLIC_SOCKET_URL ?? 'https://watch-part-production.up.railway.app';
     const battleUrl = process.env.BATTLE_SERVICE_URL?.replace('/api/v1', '') ?? 'https://battle-production-238a.up.railway.app';
     const notifUrl = process.env.NOTIFICATION_SERVICE_URL?.replace('/api/v1', '') ?? 'https://notification-production-9c30.up.railway.app';
+    const adminUrl = process.env.ADMIN_SERVICE_URL?.replace('/api/v1', '') ?? 'https://admin-production-8d2a.up.railway.app';
 
     return [
       { source: '/auth/:path*', destination: `${authUrl}/api/v1/auth/:path*` },
@@ -29,6 +32,7 @@ const nextConfig = {
       { source: '/watch-party/:path*', destination: `${watchUrl}/api/v1/watch-party/:path*` },
       { source: '/battles/:path*', destination: `${battleUrl}/api/v1/battles/:path*` },
       { source: '/notifications/:path*', destination: `${notifUrl}/api/v1/notifications/:path*` },
+      { source: '/admin/:path*', destination: `${adminUrl}/api/v1/admin/:path*` },
     ];
   },
 };

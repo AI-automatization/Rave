@@ -67,35 +67,41 @@ export function LoginForm() {
   };
 
   return (
-    <div className="bg-slate-800 rounded-lg shadow-xl border border-slate-700 p-6">
-      <h1 className="text-3xl font-display text-center text-white mb-2">CINESYNC</h1>
-      <p className="text-center text-slate-400 text-sm mb-4">{t('loginTitle')}</p>
+    <div className="bg-[#111118] rounded-2xl shadow-2xl border border-zinc-800 p-7">
+      <div className="text-center mb-6">
+        <h1 className="text-3xl font-display text-white">
+          CINE<span className="text-[#7C3AED]">SYNC</span>
+        </h1>
+        <p className="text-zinc-500 text-sm mt-1">{t('loginTitle')}</p>
+      </div>
 
-      {error && <div className="bg-red-500/20 border border-red-500 text-red-400 text-sm rounded-lg p-3 mb-4">{error}</div>}
+      {error && (
+        <div className="text-red-400 text-sm rounded-xl bg-red-500/10 border border-red-500/30 p-3 mb-5">
+          {error}
+        </div>
+      )}
 
-      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3">
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
         <div>
-          <label className="block text-sm font-medium text-white mb-1">
+          <label className="block text-sm font-medium text-zinc-300 mb-1.5">
             {t('emailLabel')}
           </label>
           <input
             {...register('email')}
             type="email"
             placeholder="email@example.com"
-            className="w-full h-9 px-3 rounded-lg bg-slate-700 border border-slate-600 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500"
+            className="w-full h-10 px-3.5 rounded-xl bg-[#0A0A0F] border border-zinc-800 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/40 focus:border-[#7C3AED]/60 transition-colors"
             autoComplete="email"
           />
           {errors.email && (
-            <label className="block text-xs text-red-400 mt-1">
-              {errors.email.message}
-            </label>
+            <p className="text-xs text-red-400 mt-1">{errors.email.message}</p>
           )}
         </div>
 
         <div>
-          <label className="flex items-center justify-between text-sm font-medium text-white mb-1">
+          <label className="flex items-center justify-between text-sm font-medium text-zinc-300 mb-1.5">
             <span>{t('passwordLabel')}</span>
-            <Link href="/forgot-password" className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors">
+            <Link href="/forgot-password" className="text-xs text-[#7C3AED] hover:text-violet-400 transition-colors">
               {t('forgotPassword')}
             </Link>
           </label>
@@ -103,24 +109,28 @@ export function LoginForm() {
             {...register('password')}
             type="password"
             placeholder="••••••••"
-            className="w-full h-9 px-3 rounded-lg bg-slate-700 border border-slate-600 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500"
+            className="w-full h-10 px-3.5 rounded-xl bg-[#0A0A0F] border border-zinc-800 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/40 focus:border-[#7C3AED]/60 transition-colors"
             autoComplete="current-password"
           />
           {errors.password && (
-            <label className="block text-xs text-red-400 mt-1">
-              {errors.password.message}
-            </label>
+            <p className="text-xs text-red-400 mt-1">{errors.password.message}</p>
           )}
         </div>
 
-        <button type="submit" className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-lg bg-cyan-500 text-slate-900 hover:bg-cyan-400 hover:shadow-lg hover:shadow-cyan-500/50 transition-all font-medium active:scale-95 w-full mt-2" disabled={isSubmitting}>
-          {isSubmitting ? <span className="animate-spin">⟳</span> : t('login')}
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="w-full h-10 rounded-xl bg-[#7C3AED] text-white font-semibold hover:bg-[#6D28D9] hover:shadow-[0_0_25px_rgba(124,58,237,0.4)] transition-all active:scale-95 mt-1 disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          {isSubmitting ? <span className="animate-spin inline-block">⟳</span> : t('login')}
         </button>
       </form>
 
-      <p className="text-center text-sm text-slate-400 mt-4">
+      <p className="text-center text-sm text-zinc-500 mt-5">
         {t('noAccount')}{' '}
-        <Link href="/register" className="text-cyan-400 hover:text-cyan-300 transition-colors font-medium">{t('registerLink')}</Link>
+        <Link href="/register" className="text-[#7C3AED] hover:text-violet-400 transition-colors font-medium">
+          {t('registerLink')}
+        </Link>
       </p>
     </div>
   );

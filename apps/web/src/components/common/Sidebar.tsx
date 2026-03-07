@@ -38,19 +38,19 @@ export function Sidebar() {
 
   const rankColors: Record<string, string> = {
     bronze:  'text-amber-600',
-    silver:  'text-slate-400',
+    silver:  'text-zinc-400',
     gold:    'text-amber-400',
-    diamond: 'text-cyan-400',
-    legend:  'text-cyan-400',
+    diamond: 'text-[#7C3AED]',
+    legend:  'text-[#7C3AED]',
   };
 
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="hidden lg:flex flex-col w-72 bg-slate-800/95 backdrop-blur-md border-r border-slate-700 h-screen sticky top-0 shadow-2xl">
+      <aside className="hidden lg:flex flex-col w-72 bg-[#111118]/95 backdrop-blur-md border-r border-zinc-800 h-screen sticky top-0 shadow-2xl">
         {/* Logo */}
-        <Link href="/home" className="flex items-center gap-2 px-6 py-6 border-b border-slate-700">
-          <span className="text-3xl font-display text-cyan-400 tracking-[0.18em]">CINESYNC</span>
+        <Link href="/home" className="flex items-center gap-2 px-6 py-6 border-b border-zinc-800">
+          <span className="text-3xl font-display text-[#7C3AED] tracking-[0.18em]">CINESYNC</span>
         </Link>
 
         {/* Nav */}
@@ -63,8 +63,8 @@ export function Sidebar() {
                 href={href}
                 className={`flex items-center gap-3 px-4 py-2 rounded-lg text-base transition-all ${
                   active
-                    ? 'bg-cyan-500 text-slate-900 font-semibold shadow-lg shadow-cyan-500/30'
-                    : 'text-slate-400 hover:bg-slate-700/50 hover:text-slate-300'
+                    ? 'bg-[#7C3AED] text-white font-semibold shadow-lg shadow-violet-500/30'
+                    : 'text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200'
                 }`}
               >
                 <Icon size={18} className="shrink-0" />
@@ -105,15 +105,15 @@ export function Sidebar() {
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold truncate text-slate-300">{user.username}</p>
-                  <p className={`text-sm capitalize ${rankColors[user.rank] ?? 'text-slate-500'}`}>
+                  <p className="text-sm font-semibold truncate text-zinc-300">{user.username}</p>
+                  <p className={`text-sm capitalize ${rankColors[user.rank] ?? 'text-zinc-500'}`}>
                     {user.rank}
                   </p>
                 </div>
               </Link>
               <button
                 onClick={() => void handleLogout()}
-                className="inline-flex items-center justify-center h-9 w-9 rounded-lg text-slate-400 hover:bg-slate-700/50 hover:text-slate-300 transition-all"
+                className="inline-flex items-center justify-center h-9 w-9 rounded-lg text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200 transition-all"
                 aria-label="Logout"
               >
                 <FaSignOutAlt size={16} />
@@ -124,7 +124,7 @@ export function Sidebar() {
       </aside>
 
       {/* Mobile bottom nav */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-slate-800/95 backdrop-blur-md border-t border-slate-700 z-50 shadow-[0_-10px_24px_rgba(4,6,13,0.45)]">
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-[#111118]/95 backdrop-blur-md border-t border-zinc-800 z-50 shadow-[0_-10px_24px_rgba(4,6,13,0.45)]">
         <div className="flex items-center justify-around px-2 py-3">
           {NAV_ITEM_KEYS.slice(0, 5).map(({ href, icon: Icon, key }) => {
             const active = pathname === href || pathname.startsWith(href + '/');
@@ -133,7 +133,7 @@ export function Sidebar() {
                 key={href}
                 href={href}
                 className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors ${
-                  active ? 'text-cyan-400' : 'text-slate-500 hover:text-slate-400'
+                  active ? 'text-[#7C3AED]' : 'text-zinc-500 hover:text-zinc-400'
                 }`}
               >
                 <Icon size={22} />

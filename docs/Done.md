@@ -4,6 +4,28 @@
 
 ---
 
+### F-057 | 2026-03-07 | [WEB] | T-J008 — Friends page API error handling + React Query [Jafar]
+
+- `toast.store.ts` (Zustand) — success/error/warning/info toastlar, 4s avtomatik yopiladi
+- `Toaster.tsx` (DaisyUI `toast`+`alert`) — Providers.tsx ga ulandi
+- `friends/page.tsx` — `useQuery` bilan do'stlar/so'rovlar, `useMutation` accept uchun
+- `sendRequest`: 201✓ / 409 / 404 / 400 / 500 status kodlariga mos toast xabarlar
+- Har foydalanuvchi uchun alohida loading spinner, yuborilgandan keyin disable + ✓ icon
+
+### F-058 | 2026-03-07 | [WEB] | T-J009 — Profile sahifalari [Jafar]
+
+- `profile/me/page.tsx` — React Query bilan `/users/me` + achievements + do'stlar soni
+- `profile/[username]/page.tsx` — `AddFriendButton` (client component) qo'shildi
+- `components/profile/AddFriendButton.tsx` — o'z profili bo'lsa yashiriladi, 409→"allaqachon" badge
+
+### F-059 | 2026-03-07 | [WEB] | T-J011 — Loading UI + React Query [Jafar]
+
+- `(app)/loading.tsx` — umumiy skeleton
+- `home/loading.tsx`, `friends/loading.tsx`, `movies/loading.tsx`, `profile/loading.tsx`
+- Next.js navigatsiya paytida avtomatik Suspense skeleton ko'rsatadi (4-5s bo'sh ekran yo'q)
+
+---
+
 ### F-056 | 2026-03-07 | [MOBILE] | Android build to'liq tuzatish sessiyasi — Emirhan
 
 - **Mas'ul:** Emirhan
