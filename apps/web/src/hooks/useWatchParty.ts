@@ -51,30 +51,39 @@ export function useWatchParty(roomId: string): UseWatchPartyReturn {
       logger.error('Socket ulanish xatosi', err.message);
     });
 
-    socket.on('video:sync', (state: SyncState) => {
+    // Server emits video:play / video:pause / video:seek (not video:sync)
+    socket.on('video:play', (state: SyncState) => {
       setSyncState(state);
     });
 
-    socket.on('room:joined', (member: IUser) => {
-      setMembers((prev) => {
-        if (prev.find((m) => m._id === member._id)) return prev;
-        return [...prev, member];
-      });
+    socket.on('video:pause', (state: SyncState) => {
+      setSyncState(state);
     });
 
-    socket.on('room:left', (userId: string) => {
-      setMembers((prev) => prev.filter((m) => m._id !== userId));
+    socket.on('video:seek', (state: SyncState) => {
+      setSyncState(state);
     });
 
-    socket.on('room:members', (list: IUser[]) => {
-      setMembers(list);
+    // Initial join confirmation: { room, syncState }
+    socket.on('room:joined', (data: { syncState: SyncState | null }) => {
+      if (data.syncState) setSyncState(data.syncState);
+    });
+
+    // New member joined: { userId } — no full user data available here
+    socket.on('member:joined', (_data: { userId: string }) => {
+      // member list is refreshed via room:members if needed
+    });
+
+    // Member left: { userId }
+    socket.on('member:left', (data: { userId: string }) => {
+      setMembers((prev) => prev.filter((m) => m._id !== data.userId));
     });
 
     socket.on('room:message', (msg: IChatMessage) => {
       setMessages((prev) => [...prev, msg]);
     });
 
-    socket.on('room:error', (err: { message: string }) => {
+    socket.on('error', (err: { message: string }) => {
       logger.error('Watch Party xatosi', err.message);
     });
 
@@ -83,12 +92,14 @@ export function useWatchParty(roomId: string): UseWatchPartyReturn {
       socket.off('connect');
       socket.off('disconnect');
       socket.off('connect_error');
-      socket.off('video:sync');
+      socket.off('video:play');
+      socket.off('video:pause');
+      socket.off('video:seek');
       socket.off('room:joined');
-      socket.off('room:left');
-      socket.off('room:members');
+      socket.off('member:joined');
+      socket.off('member:left');
       socket.off('room:message');
-      socket.off('room:error');
+      socket.off('error');
       disconnectSocket();
     };
   }, [roomId, accessToken]);

@@ -151,6 +151,7 @@ export default function WatchPartyPage() {
                 src={movie.videoUrl}
                 poster={movie.backdropUrl ?? movie.posterUrl ?? movie.backdrop ?? movie.poster}
                 syncTime={syncState?.currentTime}
+                syncIsPlaying={syncState?.isPlaying}
                 isOwner={isOwner}
                 onPlay={() => { if (movie.videoUrl) emitPlay(syncState?.currentTime ?? 0); }}
                 onPause={() => { if (movie.videoUrl) emitPause(syncState?.currentTime ?? 0); }}

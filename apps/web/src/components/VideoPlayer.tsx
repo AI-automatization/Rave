@@ -11,6 +11,7 @@ interface VideoPlayerProps {
   onProgress?: (progress: number, currentTime: number) => void;
   onEnded?: () => void;
   syncTime?: number;
+  syncIsPlaying?: boolean;
   isOwner?: boolean;
   onPlay?: () => void;
   onPause?: () => void;
@@ -33,6 +34,7 @@ export function VideoPlayer({
   onProgress,
   onEnded,
   syncTime,
+  syncIsPlaying,
   isOwner = true,
   onPlay,
   onPause,
@@ -108,6 +110,18 @@ export function VideoPlayer({
       logger.info('Watch Party sync', { syncTime, diff: Math.abs(video.currentTime - syncTime) });
     }
   }, [syncTime]);
+
+  // Watch Party play/pause sync for non-owners
+  useEffect(() => {
+    if (isOwner || syncIsPlaying === undefined) return;
+    const video = videoRef.current;
+    if (!video) return;
+    if (syncIsPlaying) {
+      void video.play().catch(() => {});
+    } else {
+      video.pause();
+    }
+  }, [syncIsPlaying, isOwner]);
 
   const togglePlay = useCallback(() => {
     const video = videoRef.current;
