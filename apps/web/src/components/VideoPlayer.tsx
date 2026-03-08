@@ -23,6 +23,7 @@ interface VideoPlayerProps {
   src: string;
   poster?: string;
   title?: string;
+  initialTime?: number;     // seek here once on first load (for owner resume)
   onProgress?: (progress: number, currentTime: number) => void;
   onEnded?: () => void;
   syncTime?: number;        // raw currentTime from server
@@ -39,6 +40,7 @@ export function VideoPlayer({
   src,
   poster,
   title,
+  initialTime,
   onProgress,
   onEnded,
   syncTime,
@@ -87,6 +89,16 @@ export function VideoPlayer({
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
+
+    // Seek to saved position once when video metadata is loaded (owner resume)
+    if (initialTime && initialTime > 0) {
+      const applyInitial = () => {
+        if (Math.abs(video.currentTime - initialTime) > 1) video.currentTime = initialTime;
+      };
+      if (video.readyState >= 1) applyInitial();
+      else video.addEventListener('loadedmetadata', applyInitial, { once: true });
+    }
+
     const isHls = src.includes('.m3u8');
     if (isHls && Hls.isSupported()) {
       const hls = new Hls({ enableWorker: true });
@@ -102,7 +114,8 @@ export function VideoPlayer({
       video.src = src;
     }
     return () => { hlsRef.current?.destroy(); hlsRef.current = null; };
-  }, [src]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [src]); // initialTime intentionally excluded — applied once on first load only
 
   /* ── Progress tracking every 5s ─────────────────────────────── */
   useEffect(() => {

@@ -283,6 +283,7 @@ export default function WatchPartyPage() {
                 platform={(room.videoPlatform ?? 'other') as import('@/types').VideoPlatform}
                 title={room.videoTitle ?? undefined}
                 thumbnail={room.videoThumbnail ?? undefined}
+                initialTime={isOwner && (room.currentTime ?? 0) > 5 ? room.currentTime : undefined}
                 syncTime={syncState?.currentTime}
                 syncTimestamp={syncState?.serverTimestamp}
                 syncIsPlaying={syncState?.isPlaying}

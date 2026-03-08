@@ -77,6 +77,7 @@ interface UniversalPlayerProps {
   platform: VideoPlatform;
   title?: string;
   thumbnail?: string;
+  initialTime?: number;
   syncTime?: number;
   syncTimestamp?: number;
   syncIsPlaying?: boolean;
@@ -90,7 +91,7 @@ interface UniversalPlayerProps {
 
 /* ── YouTube sub-component with sync ────────────────────────────── */
 function YouTubePlayer({
-  videoUrl, syncTime, syncTimestamp, syncIsPlaying, isOwner = true,
+  videoUrl, initialTime, syncTime, syncTimestamp, syncIsPlaying, isOwner = true,
   onPlay, onPause, onSeek,
 }: UniversalPlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -129,9 +130,12 @@ function YouTubePlayer({
     containerRef.current.appendChild(div);
     playerRef.current = new window.YT.Player(div, {
       videoId,
-      playerVars: { autoplay: 0, controls: isOwner ? 1 : 0, rel: 0, modestbranding: 1 },
+      playerVars: { autoplay: 0, controls: 1, rel: 0, modestbranding: 1 },
       events: {
-        onReady: () => { readyRef.current = true; },
+        onReady: (e) => {
+          readyRef.current = true;
+          if (initialTime && initialTime > 0) e.target.seekTo(initialTime, true);
+        },
         onStateChange: (e) => {
           if (!isOwner || ignoreSyncRef.current) return;
           const p = playerRef.current;
@@ -141,7 +145,7 @@ function YouTubePlayer({
         },
       },
     });
-  }, [videoId, isOwner, onPlay, onPause]);
+  }, [videoId, isOwner, initialTime, onPlay, onPause]);
 
   /* ── Apply remote sync (members only) ────────────────────── */
   useEffect(() => {
@@ -184,17 +188,12 @@ function YouTubePlayer({
         ref={containerRef}
         className="w-full h-full [&>div]:w-full [&>div]:h-full [&>iframe]:w-full [&>iframe]:h-full"
       />
-      {/* Transparent overlay for non-owners: blocks all mouse/keyboard interaction
-          with the YouTube iframe (prevents members from controlling playback) */}
-      {!isOwner && (
-        <div className="absolute inset-0 z-10 cursor-not-allowed" />
-      )}
     </div>
   );
 }
 
 /* ── Generic iframe sub-component ───────────────────────────────── */
-function IframePlayer({ videoUrl, platform, isOwner }: { videoUrl: string; platform: VideoPlatform; isOwner?: boolean }) {
+function IframePlayer({ videoUrl, platform }: { videoUrl: string; platform: VideoPlatform; isOwner?: boolean }) {
   const embedUrl = buildEmbedUrl(videoUrl, platform);
   return (
     <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
@@ -204,12 +203,7 @@ function IframePlayer({ videoUrl, platform, isOwner }: { videoUrl: string; platf
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
         allowFullScreen
         title="Video player"
-        style={!isOwner ? { pointerEvents: 'none' } : undefined}
       />
-      {/* Block member interaction */}
-      {!isOwner && (
-        <div className="absolute inset-0 z-10 cursor-not-allowed" />
-      )}
     </div>
   );
 }
@@ -230,6 +224,7 @@ export function UniversalPlayer(props: UniversalPlayerProps) {
         src={videoUrl}
         poster={props.thumbnail}
         title={props.title}
+        initialTime={props.initialTime}
         syncTime={props.syncTime}
         syncTimestamp={props.syncTimestamp}
         syncIsPlaying={props.syncIsPlaying}
