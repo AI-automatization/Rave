@@ -4,10 +4,11 @@ const BASE = process.env.CONTENT_SERVICE_URL ?? 'https://content-production-4e08
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { movieId: string } },
+  { params }: { params: Promise<{ movieId: string }> },
 ) {
   try {
-    const res = await fetch(`${BASE}/movies/${params.movieId}`, {
+    const { movieId } = await params;
+    const res = await fetch(`${BASE}/content/movies/${movieId}`, {
       headers: { 'Content-Type': 'application/json' },
     });
     const data = await res.json();
