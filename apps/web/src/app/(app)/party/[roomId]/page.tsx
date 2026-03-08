@@ -1,10 +1,10 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { FaArrowLeft, FaCopy, FaCheck, FaUserPlus, FaTimes } from 'react-icons/fa';
+import { FaCopy, FaCheck, FaUserPlus, FaTimes, FaSignOutAlt, FaCrown } from 'react-icons/fa';
 import { ChatPanel } from '@/components/party/ChatPanel';
 import { useWatchParty } from '@/hooks/useWatchParty';
 import { useAuthStore } from '@/store/auth.store';
@@ -20,6 +20,7 @@ const VideoPlayer = dynamic(
 
 export default function WatchPartyPage() {
   const { roomId } = useParams<{ roomId: string }>();
+  const router = useRouter();
   const t = useTranslations('party');
   const user = useAuthStore((s) => s.user);
   const [room, setRoom] = useState<IWatchPartyRoom | null>(null);
@@ -28,13 +29,20 @@ export default function WatchPartyPage() {
   const [copied, setCopied] = useState(false);
   const [floatingEmojis, setFloatingEmojis] = useState<{ id: number; emoji: string; bottom: number; right: number }[]>([]);
   const [showInvite, setShowInvite] = useState(false);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [friends, setFriends] = useState<IUser[]>([]);
   const [copiedFriendId, setCopiedFriendId] = useState<string | null>(null);
   const emojiTimestamps = useRef<number[]>([]);
-  const [emojiCooldown, setEmojiCooldown] = useState(0); // seconds left
+  const [emojiCooldown, setEmojiCooldown] = useState(0);
 
-  const { syncState, members, messages, emojiEvents, sendMessage, sendEmoji, emitPlay, emitPause, emitSeek, isConnected } =
-    useWatchParty(roomId);
+  const {
+    syncState, members, messages, emojiEvents, ownerId, roomClosed,
+    sendMessage, sendEmoji, emitPlay, emitPause, emitSeek, leaveRoom, isConnected,
+  } = useWatchParty(roomId, room?.ownerId);
+
+  // Effective owner: use live ownerId from socket (falls back to room data)
+  const effectiveOwnerId = ownerId ?? room?.ownerId;
+  const isOwner = !!user?.id && effectiveOwnerId === user.id;
 
   useEffect(() => {
     const load = async () => {
@@ -43,8 +51,6 @@ export default function WatchPartyPage() {
         const roomData = res.data.data;
         if (!roomData) return;
         setRoom(roomData);
-
-        // Fetch movie separately
         const movieRes = await apiClient.get<ApiResponse<IMovie>>(`/movies/${roomData.movieId}`);
         setMovie(movieRes.data.data ?? null);
       } catch (err) {
@@ -63,8 +69,12 @@ export default function WatchPartyPage() {
       .catch(() => {});
   }, []);
 
-  const isOwner = room?.ownerId === user?.id;
-
+  // Room closed by owner → redirect to home
+  useEffect(() => {
+    if (roomClosed) {
+      router.replace('/home');
+    }
+  }, [roomClosed, router]);
 
   const inviteLink = room ? `${typeof window !== 'undefined' ? window.location.origin : ''}/party/join/${room.inviteCode}` : '';
 
@@ -83,27 +93,39 @@ export default function WatchPartyPage() {
     });
   };
 
-  // Sync floatingEmojis from socket emojiEvents (all users including self)
+  const handleLeave = () => {
+    if (isOwner && members.length > 1) {
+      // Owner with others in room → show confirmation
+      setShowLeaveConfirm(true);
+    } else {
+      doLeave();
+    }
+  };
+
+  const doLeave = () => {
+    leaveRoom();
+    router.replace('/home');
+  };
+
+  // Sync floatingEmojis from socket emojiEvents
   useEffect(() => {
     if (emojiEvents.length === 0) return;
     const latest = emojiEvents[emojiEvents.length - 1];
     const bottom = 15 + Math.random() * 55;
     const right = 4 + Math.random() * 18;
     setFloatingEmojis((prev) => [...prev, { id: latest.id, emoji: latest.emoji, bottom, right }]);
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       setFloatingEmojis((prev) => prev.filter((e) => e.id !== latest.id));
     }, 3000);
-    return () => clearTimeout(t);
+    return () => clearTimeout(timer);
   }, [emojiEvents]);
 
-  // Emoji rate limit: max 2 per 2 minutes
   const EMOJI_LIMIT = 2;
   const EMOJI_WINDOW_MS = 2 * 60 * 1000;
 
   const handleEmojiSend = (emoji: string) => {
     const now = Date.now();
-    // Remove timestamps older than 2 minutes
-    emojiTimestamps.current = emojiTimestamps.current.filter((t) => now - t < EMOJI_WINDOW_MS);
+    emojiTimestamps.current = emojiTimestamps.current.filter((ts) => now - ts < EMOJI_WINDOW_MS);
     if (emojiTimestamps.current.length >= EMOJI_LIMIT) {
       const oldest = emojiTimestamps.current[0];
       const remaining = Math.ceil((EMOJI_WINDOW_MS - (now - oldest)) / 1000);
@@ -114,16 +136,15 @@ export default function WatchPartyPage() {
     sendEmoji(emoji);
   };
 
-  // Cooldown countdown
   useEffect(() => {
     if (emojiCooldown <= 0) return;
-    const t = setInterval(() => {
+    const timer = setInterval(() => {
       setEmojiCooldown((prev) => {
-        if (prev <= 1) { clearInterval(t); return 0; }
+        if (prev <= 1) { clearInterval(timer); return 0; }
         return prev - 1;
       });
     }, 1000);
-    return () => clearInterval(t);
+    return () => clearInterval(timer);
   }, [emojiCooldown]);
 
   if (loading) {
@@ -148,10 +169,13 @@ export default function WatchPartyPage() {
     <div className="space-y-3">
       {/* Header */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <Link href="/home" className="inline-flex items-center justify-center gap-2 h-8 px-3 rounded-lg text-slate-300 hover:bg-slate-700/50 transition-all text-sm font-medium">
-          <FaArrowLeft size={16} />
+        <button
+          onClick={handleLeave}
+          className="inline-flex items-center justify-center gap-2 h-8 px-3 rounded-lg text-red-400 hover:bg-red-500/10 transition-all text-sm font-medium"
+        >
+          <FaSignOutAlt size={14} />
           {t('leave')}
-        </Link>
+        </button>
         <div className="flex items-center gap-2">
           <div className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold ${isConnected ? 'bg-lime-500/20 text-lime-400 border border-lime-500' : 'bg-red-500/20 text-red-400 border border-red-500'}`}>
             {isConnected ? t('connected') : t('disconnected')}
@@ -193,26 +217,22 @@ export default function WatchPartyPage() {
                 syncTimestamp={syncState?.serverTimestamp}
                 syncIsPlaying={syncState?.isPlaying}
                 isOwner={isOwner}
-                onPlay={(t) => emitPlay(t)}
-                onPause={(t) => emitPause(t)}
-                onSeek={(t) => emitSeek(t)}
+                onPlay={(time) => emitPlay(time)}
+                onPause={(time) => emitPause(time)}
+                onSeek={(time) => emitSeek(time)}
               />
             ) : (
               <div className="aspect-video bg-black rounded-xl flex items-center justify-center">
                 <p className="text-white/40">{t('noVideo')}</p>
               </div>
             )}
-            {/* Floating emojis — driven by socket events */}
+            {/* Floating emojis */}
             <div className="absolute inset-0 pointer-events-none overflow-hidden">
               {floatingEmojis.map(({ id, emoji, bottom, right }) => (
                 <div
                   key={id}
                   className="absolute text-4xl select-none"
-                  style={{
-                    bottom: `${bottom}%`,
-                    right: `${right}%`,
-                    animation: 'floatUp 3s ease-out forwards',
-                  }}
+                  style={{ bottom: `${bottom}%`, right: `${right}%`, animation: 'floatUp 3s ease-out forwards' }}
                 >
                   {emoji}
                 </div>
@@ -236,10 +256,50 @@ export default function WatchPartyPage() {
             onSendMessage={sendMessage}
             onSendEmoji={handleEmojiSend}
             currentUserId={user?.id}
+            ownerId={effectiveOwnerId}
             emojiCooldown={emojiCooldown}
           />
         </div>
       </div>
+
+      {/* Owner leave confirmation modal */}
+      {showLeaveConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+          onClick={() => setShowLeaveConfirm(false)}
+        >
+          <div
+            className="bg-[#1a1f2e] border border-slate-700 rounded-2xl w-full max-w-sm mx-4 p-5 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
+                <FaCrown size={18} className="text-amber-400" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-slate-100">Honadan chiqmoqchimisiz?</h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  Siz egasiz. Chiqib ketsangiz, eglik <span className="text-amber-400 font-medium">keyingi a&apos;zoga</span> o&apos;tkaziladi va film davom etadi.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowLeaveConfirm(false)}
+                className="flex-1 h-9 rounded-xl border border-slate-600 text-slate-300 hover:bg-slate-700/50 transition-all text-sm"
+              >
+                Qolish
+              </button>
+              <button
+                onClick={doLeave}
+                className="flex-1 h-9 rounded-xl bg-red-500/20 border border-red-500/40 text-red-400 hover:bg-red-500/30 transition-all text-sm font-medium"
+              >
+                Chiqish
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Friend invite modal */}
       {showInvite && (
@@ -257,20 +317,15 @@ export default function WatchPartyPage() {
                 <FaTimes size={14} />
               </button>
             </div>
-
-            {/* Invite link */}
             <div className="flex items-center gap-2 bg-slate-900 rounded-lg px-3 py-2">
               <span className="text-xs text-slate-400 truncate flex-1">{inviteLink}</span>
               <button
                 onClick={handleCopyInvite}
                 className="shrink-0 text-slate-300 hover:text-lime-400 transition-colors"
-                title="Nusxalash"
               >
                 {copied ? <FaCheck size={13} className="text-lime-400" /> : <FaCopy size={13} />}
               </button>
             </div>
-
-            {/* Friends list */}
             {friends.length === 0 ? (
               <p className="text-xs text-slate-500 text-center py-4">{t('noFriends')}</p>
             ) : (

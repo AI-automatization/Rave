@@ -19,6 +19,7 @@ interface AuthState {
   setAuth: (user: AuthUser, accessToken: string, refreshToken: string) => void;
   clearAuth: () => void;
   updateUser: (updates: Partial<AuthUser>) => void;
+  updateTokens: (accessToken: string, refreshToken: string) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -51,6 +52,15 @@ export const useAuthStore = create<AuthState>()(
         set((state) => ({
           user: state.user ? { ...state.user, ...updates } : null,
         })),
+
+      updateTokens: (accessToken, refreshToken) => {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('access_token', accessToken);
+          localStorage.setItem('refresh_token', refreshToken);
+          document.cookie = `access_token=${accessToken}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
+        }
+        set({ accessToken, refreshToken });
+      },
     }),
     {
       name: 'cinesync-auth',

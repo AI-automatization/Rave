@@ -57,20 +57,38 @@ export class WatchPartyService {
     return room;
   }
 
-  async leaveRoom(userId: string, roomId: string): Promise<void> {
+  async leaveRoom(
+    userId: string,
+    roomId: string,
+  ): Promise<{ closed: boolean; newOwnerId?: string }> {
     const room = await WatchPartyRoom.findById(roomId);
-    if (!room) return;
+    if (!room) return { closed: false };
 
     if (room.ownerId === userId) {
-      // Owner leaves → close room
-      await WatchPartyRoom.updateOne({ _id: roomId }, { status: 'ended' });
-      await this.redis.del(REDIS_KEYS.watchPartyRoom(roomId));
-      logger.info('Watch party room closed by owner', { roomId, ownerId: userId });
-      return;
+      const remainingMembers = room.members.filter((m) => m !== userId);
+
+      if (remainingMembers.length === 0) {
+        // No members left — close the room
+        await WatchPartyRoom.updateOne({ _id: roomId }, { status: 'ended', members: [] });
+        await this.redis.del(REDIS_KEYS.watchPartyRoom(roomId));
+        logger.info('Watch party room closed (no members)', { roomId });
+        return { closed: true };
+      }
+
+      // Transfer ownership to the first remaining member
+      const newOwnerId = remainingMembers[0];
+      await WatchPartyRoom.updateOne(
+        { _id: roomId },
+        { ownerId: newOwnerId, members: remainingMembers },
+      );
+      logger.info('Watch party ownership transferred', { roomId, from: userId, to: newOwnerId });
+      return { closed: false, newOwnerId };
     }
 
+    // Regular member leaves
     await WatchPartyRoom.updateOne({ _id: roomId }, { $pull: { members: userId } });
     logger.info('User left watch party', { roomId, userId });
+    return { closed: false };
   }
 
   async getRoom(roomId: string): Promise<IWatchPartyRoomDocument> {

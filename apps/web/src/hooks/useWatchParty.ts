@@ -24,21 +24,26 @@ interface UseWatchPartyReturn {
   members: IUser[];
   messages: IChatMessage[];
   emojiEvents: EmojiEvent[];
+  ownerId: string | null;
+  roomClosed: boolean;
   sendMessage: (text: string) => void;
   sendEmoji: (emoji: string) => void;
   emitPlay: (currentTime: number) => void;
   emitPause: (currentTime: number) => void;
   emitSeek: (currentTime: number) => void;
+  leaveRoom: () => void;
   isConnected: boolean;
 }
 
-export function useWatchParty(roomId: string): UseWatchPartyReturn {
+export function useWatchParty(roomId: string, initialOwnerId?: string): UseWatchPartyReturn {
   const { accessToken, user } = useAuthStore();
   const [syncState, setSyncState] = useState<SyncState | null>(null);
   const [members, setMembers] = useState<IUser[]>([]);
   const [messages, setMessages] = useState<IChatMessage[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const [emojiEvents, setEmojiEvents] = useState<EmojiEvent[]>([]);
+  const [ownerId, setOwnerId] = useState<string | null>(initialOwnerId ?? null);
+  const [roomClosed, setRoomClosed] = useState(false);
   const usersCache = useRef<Map<string, IUser>>(new Map());
 
   const fetchUser = useCallback(async (userId: string): Promise<IUser | null> => {
@@ -73,23 +78,15 @@ export function useWatchParty(roomId: string): UseWatchPartyReturn {
       logger.error('Socket ulanish xatosi', err.message);
     });
 
-    // Server emits video:play / video:pause / video:seek (not video:sync)
-    socket.on('video:play', (state: SyncState) => {
-      setSyncState(state);
-    });
+    // Server emits video:play / video:pause / video:seek
+    socket.on('video:play', (state: SyncState) => { setSyncState(state); });
+    socket.on('video:pause', (state: SyncState) => { setSyncState(state); });
+    socket.on('video:seek', (state: SyncState) => { setSyncState(state); });
 
-    socket.on('video:pause', (state: SyncState) => {
-      setSyncState(state);
-    });
-
-    socket.on('video:seek', (state: SyncState) => {
-      setSyncState(state);
-    });
-
-    // Initial join confirmation: { room: { members: string[] }, syncState }
-    socket.on('room:joined', (data: { room: { members: string[] }; syncState: SyncState | null }) => {
+    // Initial join confirmation: { room: { ownerId, members: string[] }, syncState }
+    socket.on('room:joined', (data: { room: { ownerId: string; members: string[] }; syncState: SyncState | null }) => {
       if (data.syncState) setSyncState(data.syncState);
-      // Fetch all member profiles
+      if (data.room?.ownerId) setOwnerId(data.room.ownerId);
       const memberIds = data.room?.members ?? [];
       void Promise.all(memberIds.map((id) => fetchUser(id))).then((users) => {
         setMembers(users.filter((u): u is IUser => u !== null));
@@ -109,7 +106,19 @@ export function useWatchParty(roomId: string): UseWatchPartyReturn {
       setMembers((prev) => prev.filter((m) => m._id !== data.userId));
     });
 
-    // Server sends { userId, message, timestamp }
+    // Owner transferred to new user
+    socket.on('room:owner_transferred', (data: { newOwnerId: string }) => {
+      setOwnerId(data.newOwnerId);
+      logger.info('Watch Party owner transferred', { newOwnerId: data.newOwnerId });
+    });
+
+    // Room closed by owner (no members remain after owner left)
+    socket.on('room:closed', () => {
+      setRoomClosed(true);
+      logger.info('Watch Party room closed');
+    });
+
+    // Chat message: server sends { userId, message, timestamp }
     socket.on('room:message', (data: { userId: string; message: string; timestamp: number }) => {
       void fetchUser(data.userId).then((u) => {
         const msgUser = u ?? {
@@ -127,7 +136,7 @@ export function useWatchParty(roomId: string): UseWatchPartyReturn {
       });
     });
 
-    // Room emoji — show floating emoji for ALL users (including sender)
+    // Room emoji
     socket.on('room:emoji', (data: { userId: string; emoji: string }) => {
       const id = Date.now() + Math.random();
       setEmojiEvents((prev) => [...prev, { id, userId: data.userId, emoji: data.emoji }]);
@@ -139,7 +148,6 @@ export function useWatchParty(roomId: string): UseWatchPartyReturn {
     });
 
     return () => {
-      socket.emit('room:leave', { roomId });
       socket.off('connect');
       socket.off('disconnect');
       socket.off('connect_error');
@@ -149,18 +157,24 @@ export function useWatchParty(roomId: string): UseWatchPartyReturn {
       socket.off('room:joined');
       socket.off('member:joined');
       socket.off('member:left');
+      socket.off('room:owner_transferred');
+      socket.off('room:closed');
       socket.off('room:message');
       socket.off('room:emoji');
       socket.off('error');
-      disconnectSocket();
     };
   }, [roomId, accessToken, fetchUser]);
+
+  const leaveRoom = useCallback(() => {
+    const socket = getSocket();
+    socket.emit('room:leave', { roomId });
+    disconnectSocket();
+  }, [roomId]);
 
   const sendMessage = useCallback(
     (text: string) => {
       if (!text.trim() || !user) return;
       const socket = getSocket();
-      // Server expects { message }, not { roomId, text }
       socket.emit('room:message', { message: text.trim() });
     },
     [user],
@@ -203,11 +217,14 @@ export function useWatchParty(roomId: string): UseWatchPartyReturn {
     members,
     messages,
     emojiEvents,
+    ownerId,
+    roomClosed,
     sendMessage,
     sendEmoji,
     emitPlay,
     emitPause,
     emitSeek,
+    leaveRoom,
     isConnected,
   };
 }

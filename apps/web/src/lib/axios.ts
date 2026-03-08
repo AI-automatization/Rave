@@ -1,6 +1,7 @@
 'use client';
 
 import axios from 'axios';
+import { useAuthStore } from '@/store/auth.store';
 
 // Relative URL — localhost da ham, production da ham to'g'ri ishlaydi
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
@@ -13,42 +14,64 @@ export const apiClient = axios.create({
 });
 
 apiClient.interceptors.request.use((config) => {
-  const token =
-    typeof window !== 'undefined'
-      ? localStorage.getItem('access_token')
-      : null;
+  // Prefer Zustand store token (kept in sync), fall back to localStorage
+  const storeToken = useAuthStore.getState().accessToken;
+  const token = storeToken ?? (typeof window !== 'undefined' ? localStorage.getItem('access_token') : null);
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
+
+// Prevent concurrent refresh calls — queue them to reuse a single refresh promise
+let refreshPromise: Promise<string> | null = null;
 
 apiClient.interceptors.response.use(
   (res) => res,
   async (error) => {
     const original = error.config;
-    const isAuthEndpoint = ['/auth/login', '/auth/register', '/auth/refresh']
+
+    // Skip refresh for auth endpoints to avoid infinite loops
+    const isAuthEndpoint = ['/api/auth/login', '/api/auth/register', '/api/auth/refresh']
       .some((ep) => original.url?.includes(ep));
+
     if (error.response?.status === 401 && !original._retry && !isAuthEndpoint) {
       original._retry = true;
+
       try {
-        const refreshToken = localStorage.getItem('refresh_token');
-        const { data } = await axios.post(
-          `${BASE_URL}/api/auth/refresh`,
-          { refreshToken },
-          { withCredentials: true },
-        );
-        localStorage.setItem('access_token', data.data.accessToken);
-        if (data.data.refreshToken) {
-          localStorage.setItem('refresh_token', data.data.refreshToken);
+        // If a refresh is already in flight, reuse it
+        if (!refreshPromise) {
+          const refreshToken =
+            useAuthStore.getState().refreshToken ??
+            localStorage.getItem('refresh_token');
+
+          refreshPromise = axios
+            .post<{ success: boolean; data: { accessToken: string; refreshToken: string } }>(
+              `${BASE_URL}/api/auth/refresh`,
+              { refreshToken },
+              { withCredentials: true },
+            )
+            .then((res) => {
+              const { accessToken, refreshToken: newRefreshToken } = res.data.data;
+              // Update Zustand store (also syncs localStorage + cookie)
+              useAuthStore.getState().updateTokens(accessToken, newRefreshToken);
+              return accessToken;
+            })
+            .finally(() => {
+              refreshPromise = null;
+            });
         }
-        original.headers.Authorization = `Bearer ${data.data.accessToken}`;
+
+        const newAccessToken = await refreshPromise;
+        original.headers.Authorization = `Bearer ${newAccessToken}`;
         return apiClient(original);
       } catch {
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-        document.cookie = 'access_token=; path=/; max-age=0; SameSite=Lax';
-        window.location.href = '/login';
+        // Refresh failed — log the user out
+        useAuthStore.getState().clearAuth();
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login';
+        }
       }
     }
+
     return Promise.reject(error);
   },
 );

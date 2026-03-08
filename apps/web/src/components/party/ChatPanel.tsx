@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
-import { FaPaperPlane, FaSmile } from 'react-icons/fa';
+import { FaPaperPlane, FaSmile, FaCrown } from 'react-icons/fa';
 import { useTranslations } from 'next-intl';
 import type { IChatMessage, IUser } from '@/types';
 
@@ -14,6 +14,7 @@ interface ChatPanelProps {
   onSendMessage: (text: string) => void;
   onSendEmoji: (emoji: string) => void;
   currentUserId?: string;
+  ownerId?: string;
   emojiCooldown?: number;
 }
 
@@ -23,6 +24,7 @@ export function ChatPanel({
   onSendMessage,
   onSendEmoji,
   currentUserId,
+  ownerId,
   emojiCooldown = 0,
 }: ChatPanelProps) {
   const t = useTranslations('chat');
@@ -54,71 +56,92 @@ export function ChatPanel({
   };
 
   return (
-    <div className="flex flex-col h-full bg-base-200 rounded-xl overflow-hidden">
-      {/* Members */}
-      <div className="px-3 py-2 border-b border-base-300">
-        <p className="text-xs text-base-content/50 mb-2">{t('watchingCount', { count: members.length })}</p>
-        <div className="flex flex-wrap gap-2">
-          {members.map((m) => (
-            <div key={m._id} className="flex items-center gap-1.5 bg-slate-700/40 rounded-lg px-2 py-1">
-              <div className="relative shrink-0">
-                <div className="w-6 h-6 rounded-full overflow-hidden bg-primary flex items-center justify-center">
-                  {m.avatar ? (
-                    <Image src={m.avatar} alt={m.username} width={24} height={24} className="object-cover" unoptimized />
-                  ) : (
-                    <span className="text-primary-content text-xs font-bold">{m.username[0].toUpperCase()}</span>
+    <div className="flex flex-col h-full bg-[#0f1117] rounded-2xl overflow-hidden border border-white/[0.06]">
+
+      {/* ── Members (Telegram-style) ─────────────────────────────── */}
+      <div className="shrink-0 border-b border-white/[0.06]">
+        {/* Header row */}
+        <div className="flex items-center justify-between px-4 py-2.5">
+          <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest">
+            {t('watchingCount', { count: members.length })}
+          </span>
+        </div>
+
+        {/* Member rows */}
+        <ul className="max-h-[180px] overflow-y-auto">
+          {members.map((m, idx) => {
+            const isMe = m._id === currentUserId;
+            const isRoomOwner = m._id === ownerId;
+            return (
+              <li
+                key={m._id}
+                className={`flex items-center gap-3 px-4 py-2.5 hover:bg-white/[0.03] transition-colors ${idx < members.length - 1 ? 'border-b border-white/[0.04]' : ''}`}
+              >
+                {/* Avatar */}
+                <div className="relative shrink-0">
+                  <div className="w-9 h-9 rounded-full overflow-hidden bg-slate-700 flex items-center justify-center">
+                    {m.avatar ? (
+                      <Image src={m.avatar} alt={m.username} width={36} height={36} className="object-cover" unoptimized />
+                    ) : (
+                      <span className="text-sm font-semibold text-slate-300">{m.username[0]?.toUpperCase()}</span>
+                    )}
+                  </div>
+                  {/* Online dot */}
+                  <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-[#0f1117]" />
+                </div>
+
+                {/* Name + role */}
+                <div className="flex-1 min-w-0">
+                  <p className={`text-sm font-medium truncate leading-none ${isMe ? 'text-cyan-400' : 'text-slate-100'}`}>
+                    {isMe ? 'Siz' : m.username}
+                  </p>
+                  {isRoomOwner && (
+                    <p className="text-[10px] text-amber-400/80 mt-0.5 leading-none">Xona egasi</p>
                   )}
                 </div>
-                {/* Online dot */}
-                <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-lime-400 border border-slate-800" />
-              </div>
-              <span className={`text-xs font-medium truncate max-w-[72px] ${m._id === currentUserId ? 'text-cyan-400' : 'text-slate-300'}`}>
-                {m._id === currentUserId ? t('you') : m.username}
-              </span>
-            </div>
-          ))}
-        </div>
+
+                {/* Crown for owner */}
+                {isRoomOwner && (
+                  <FaCrown size={12} className="text-amber-400 shrink-0" />
+                )}
+              </li>
+            );
+          })}
+        </ul>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-3">
+      {/* ── Messages ─────────────────────────────────────────────── */}
+      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
         {messages.length === 0 ? (
-          <p className="text-center text-base-content/40 text-sm mt-8">
+          <p className="text-center text-slate-600 text-xs mt-8">
             {t('empty')}
           </p>
         ) : (
           messages.map((msg) => {
             const isOwn = msg.user._id === currentUserId;
             return (
-              <div
-                key={msg.id}
-                className={`flex gap-2 ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}
-              >
-                <div className="avatar shrink-0">
-                  <div className="w-7 rounded-full">
-                    {msg.user.avatar ? (
-                      <Image src={msg.user.avatar} alt={msg.user.username} width={28} height={28} className="object-cover" unoptimized />
-                    ) : (
-                      <div className="bg-primary text-primary-content flex items-center justify-center text-xs">
-                        {msg.user.username[0].toUpperCase()}
-                      </div>
-                    )}
-                  </div>
+              <div key={msg.id} className={`flex gap-2 ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}>
+                <div className="shrink-0 w-7 h-7 rounded-full overflow-hidden bg-slate-700 flex items-center justify-center">
+                  {msg.user.avatar ? (
+                    <Image src={msg.user.avatar} alt={msg.user.username} width={28} height={28} className="object-cover" unoptimized />
+                  ) : (
+                    <span className="text-xs font-bold text-slate-300">{msg.user.username[0]?.toUpperCase()}</span>
+                  )}
                 </div>
-                <div className={`flex flex-col gap-1 max-w-[75%] ${isOwn ? 'items-end' : 'items-start'}`}>
+                <div className={`flex flex-col gap-0.5 max-w-[76%] ${isOwn ? 'items-end' : 'items-start'}`}>
                   {!isOwn && (
-                    <span className="text-xs text-base-content/50">{msg.user.username}</span>
+                    <span className="text-[10px] text-slate-500 px-1">{msg.user.username}</span>
                   )}
                   <div
-                    className={`px-3 py-2 rounded-2xl text-sm break-words ${
+                    className={`px-3 py-2 rounded-2xl text-sm break-words leading-relaxed ${
                       isOwn
-                        ? 'bg-primary text-primary-content rounded-tr-sm'
-                        : 'bg-base-300 text-base-content rounded-tl-sm'
+                        ? 'bg-[#5865f2] text-white rounded-tr-sm'
+                        : 'bg-[#1e2230] text-slate-200 rounded-tl-sm'
                     }`}
                   >
                     {msg.text}
                   </div>
-                  <span className="text-xs text-base-content/30">
+                  <span className="text-[10px] text-slate-600 px-1">
                     {formatTime(msg.timestamp)}
                   </span>
                 </div>
@@ -129,13 +152,13 @@ export function ChatPanel({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Emoji picker */}
+      {/* ── Emoji picker ─────────────────────────────────────────── */}
       {showEmoji && (
-        <div className="flex gap-2 px-3 py-2 border-t border-slate-700 flex-wrap bg-slate-700/30">
+        <div className="flex gap-1.5 px-3 py-2 border-t border-white/[0.06] flex-wrap bg-white/[0.02]">
           {QUICK_EMOJIS.map((emoji) => (
             <button
               key={emoji}
-              className={`inline-flex items-center justify-center h-7 px-2 rounded-lg text-lg transition-all ${emojiCooldown > 0 ? 'opacity-40 cursor-not-allowed' : 'text-slate-300 hover:bg-slate-700/50'}`}
+              className={`inline-flex items-center justify-center h-8 w-8 rounded-xl text-lg transition-all ${emojiCooldown > 0 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-white/10 active:scale-90'}`}
               onClick={() => {
                 if (emojiCooldown > 0) return;
                 onSendEmoji(emoji);
@@ -149,17 +172,16 @@ export function ChatPanel({
         </div>
       )}
 
-      {/* Input */}
-      <div className="flex items-center gap-2 px-3 py-3 border-t border-slate-700">
+      {/* ── Input ────────────────────────────────────────────────── */}
+      <div className="flex items-center gap-2 px-3 py-3 border-t border-white/[0.06]">
         <button
-          className={`relative inline-flex items-center justify-center h-7 w-7 rounded-lg transition-all ${emojiCooldown > 0 ? 'text-slate-600 cursor-not-allowed' : 'text-slate-400 hover:text-slate-300 hover:bg-slate-700/50'}`}
+          className={`inline-flex items-center justify-center h-8 w-8 rounded-xl transition-all shrink-0 ${emojiCooldown > 0 ? 'text-slate-700 cursor-not-allowed' : 'text-slate-500 hover:text-slate-300 hover:bg-white/10'}`}
           onClick={() => emojiCooldown === 0 && setShowEmoji(!showEmoji)}
-          aria-label="Emoji"
           title={emojiCooldown > 0 ? t('cooldown', { seconds: emojiCooldown }) : 'Emoji'}
           disabled={emojiCooldown > 0}
         >
           {emojiCooldown > 0 ? (
-            <span className="text-xs font-bold text-slate-500">{emojiCooldown}s</span>
+            <span className="text-xs font-bold">{emojiCooldown}s</span>
           ) : (
             <FaSmile size={16} />
           )}
@@ -170,16 +192,15 @@ export function ChatPanel({
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={t('placeholder')}
-          className="h-7 px-3 rounded-lg bg-slate-700 border border-slate-600 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 flex-1 text-sm"
+          className="h-8 px-3 rounded-xl bg-[#1e2230] border border-white/[0.08] text-slate-200 placeholder-slate-600 focus:outline-none focus:border-[#5865f2]/60 flex-1 text-sm"
           maxLength={500}
         />
         <button
-          className="inline-flex items-center justify-center h-7 w-7 rounded-lg bg-cyan-500 text-slate-900 hover:bg-cyan-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          className="inline-flex items-center justify-center h-8 w-8 rounded-xl bg-[#5865f2] text-white hover:bg-[#4752c4] transition-all disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
           onClick={handleSend}
           disabled={!input.trim()}
-          aria-label="Yuborish"
         >
-          <FaPaperPlane size={14} />
+          <FaPaperPlane size={13} />
         </button>
       </div>
     </div>

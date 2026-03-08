@@ -70,10 +70,23 @@ export const registerWatchPartySocket = (io: SocketServer, watchPartyService: Wa
     socket.on(CLIENT_EVENTS.LEAVE_ROOM, async () => {
       if (!authSocket.roomId) return;
       const roomId = authSocket.roomId;
+      authSocket.roomId = undefined;
 
       await socket.leave(roomId);
-      socket.to(roomId).emit(SERVER_EVENTS.MEMBER_LEFT, { userId });
-      authSocket.roomId = undefined;
+
+      try {
+        const result = await watchPartyService.leaveRoom(userId, roomId);
+        if (result.closed) {
+          io.to(roomId).emit(SERVER_EVENTS.ROOM_CLOSED, { reason: 'owner_left' });
+        } else if (result.newOwnerId) {
+          socket.to(roomId).emit(SERVER_EVENTS.MEMBER_LEFT, { userId });
+          io.to(roomId).emit(SERVER_EVENTS.OWNER_TRANSFERRED, { newOwnerId: result.newOwnerId });
+        } else {
+          socket.to(roomId).emit(SERVER_EVENTS.MEMBER_LEFT, { userId });
+        }
+      } catch (error) {
+        logger.error('Socket leave room error', { userId, error });
+      }
 
       logger.info('Socket left room', { userId, roomId });
     });
@@ -217,9 +230,23 @@ export const registerWatchPartySocket = (io: SocketServer, watchPartyService: Wa
     });
 
     // DISCONNECT
-    socket.on('disconnect', () => {
-      if (authSocket.roomId) {
-        socket.to(authSocket.roomId).emit(SERVER_EVENTS.MEMBER_LEFT, { userId });
+    socket.on('disconnect', async () => {
+      const roomId = authSocket.roomId;
+      if (roomId) {
+        authSocket.roomId = undefined;
+        try {
+          const result = await watchPartyService.leaveRoom(userId, roomId);
+          if (result.closed) {
+            io.to(roomId).emit(SERVER_EVENTS.ROOM_CLOSED, { reason: 'owner_left' });
+          } else if (result.newOwnerId) {
+            socket.to(roomId).emit(SERVER_EVENTS.MEMBER_LEFT, { userId });
+            io.to(roomId).emit(SERVER_EVENTS.OWNER_TRANSFERRED, { newOwnerId: result.newOwnerId });
+          } else {
+            socket.to(roomId).emit(SERVER_EVENTS.MEMBER_LEFT, { userId });
+          }
+        } catch (error) {
+          logger.error('Socket disconnect leave error', { userId, error });
+        }
       }
       logger.info('Socket disconnected', { userId, socketId: socket.id });
     });

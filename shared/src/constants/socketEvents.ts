@@ -7,6 +7,7 @@ export const SERVER_EVENTS = Object.freeze({
   ROOM_LEFT: 'room:left',
   ROOM_CLOSED: 'room:closed',
   ROOM_UPDATED: 'room:updated',
+  OWNER_TRANSFERRED: 'room:owner_transferred',
 
   VIDEO_PLAY: 'video:play',
   VIDEO_PAUSE: 'video:pause',
