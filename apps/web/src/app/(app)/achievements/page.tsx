@@ -37,7 +37,7 @@ export default function AchievementsPage() {
   const t = useTranslations('achievements');
   const [achievements, setAchievements] = useState<IAchievement[]>([]);
   const [loading,  setLoading]  = useState(true);
-  const [filter,   setFilter]   = useState<'all' | 'unlocked' | 'locked'>('all');
+  const [activeFilter, setActiveFilter] = useState<'all' | 'unlocked' | 'locked'>('all');
   const [selected, setSelected] = useState<IAchievement | null>(null);
 
   useEffect(() => {
@@ -67,9 +67,9 @@ export default function AchievementsPage() {
 
   const unlocked = achievements.filter((a) => !!a.unlockedAt);
   const locked   = achievements.filter((a) => !a.unlockedAt);
-  const filtered = filter === 'unlocked' ? unlocked : filter === 'locked' ? locked : achievements;
+  const filtered = activeFilter === 'unlocked' ? unlocked : activeFilter === 'locked' ? locked : achievements;
 
-  const filterTabs: { key: typeof filter; label: string }[] = [
+  const filterTabs: { key: typeof activeFilter; label: string }[] = [
     { key: 'all',      label: t('filterAll') },
     { key: 'unlocked', label: t('filterUnlocked') },
     { key: 'locked',   label: t('filterLocked') },
@@ -112,9 +112,9 @@ export default function AchievementsPage() {
         {filterTabs.map(({ key, label }) => (
           <button
             key={key}
-            onClick={() => setFilter(key)}
+            onClick={() => setActiveFilter(key)}
             className={`h-8 px-4 rounded-lg text-sm font-medium transition-all ${
-              filter === key
+              activeFilter === key
                 ? 'bg-[#7C3AED] text-white shadow-[0_0_12px_rgba(124,58,237,0.4)]'
                 : 'text-zinc-500 hover:text-zinc-300'
             }`}
