@@ -2,64 +2,68 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { FaPlay, FaStar, FaClock } from 'react-icons/fa';
+import { FaPlay, FaStar } from 'react-icons/fa';
 import type { IMovie } from '@/types';
 
-interface MovieCardProps {
-  movie: IMovie;
-}
+interface Props { movie: IMovie }
 
-export function MovieCard({ movie }: MovieCardProps) {
-  const durationHours = Math.floor(movie.duration / 60);
-  const durationMins = movie.duration % 60;
-  const durationLabel =
-    durationHours > 0 ? `${durationHours}s ${durationMins}d` : `${durationMins}d`;
-
-  const posterSrc = movie.posterUrl ?? movie.poster;
+export function MovieCard({ movie }: Props) {
+  const poster  = movie.posterUrl ?? movie.poster;
+  const slug    = movie.slug ?? movie._id;
+  const rating  = (movie.rating ?? 0).toFixed(1);
+  const genres  = (movie.genre ?? movie.genres ?? []).slice(0, 1);
 
   return (
-    <Link href={`/movies/${movie._id}`} className="group block">
-      <div className="bg-slate-800 rounded-lg overflow-hidden transition-all duration-300 group-hover:scale-[1.03] group-hover:shadow-2xl group-hover:shadow-cyan-500/20 border border-slate-700">
-        <figure className="relative aspect-[2/3]">
-          {posterSrc ? (
+    <Link href={`/movies/${slug}`} className="group block">
+      <div className="relative rounded-xl overflow-hidden bg-[#111118] border border-white/[0.06] transition-all duration-300 group-hover:border-[#7C3AED]/40 group-hover:shadow-[0_0_24px_rgba(124,58,237,0.2)] group-hover:-translate-y-0.5">
+
+        {/* Poster */}
+        <div className="relative aspect-[2/3] overflow-hidden">
+          {poster ? (
             <Image
-              src={posterSrc}
+              src={poster}
               alt={movie.title}
               fill
-              className="object-cover"
-              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+              className="object-cover transition-transform duration-500 group-hover:scale-105"
+              sizes="(max-width:640px) 50vw, (max-width:1024px) 33vw, 20vw"
             />
           ) : (
-            <div className="absolute inset-0 bg-slate-700 flex items-center justify-center">
-              <span className="text-slate-400 text-4xl font-bold">{movie.title[0]}</span>
+            <div className="absolute inset-0 bg-[#1a1a2e] flex items-center justify-center">
+              <span className="text-5xl font-display text-white/10">{movie.title[0]}</span>
             </div>
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/95 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <div className="absolute bottom-0 left-0 right-0 p-4">
-              <Link
-                href={`/watch/${movie._id}`}
-                className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-lg bg-cyan-500 text-slate-900 hover:bg-cyan-400 w-full transition-all font-medium active:scale-95"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <FaPlay size={14} className="fill-current" />
-                Ko&apos;rish
-              </Link>
-            </div>
+
+          {/* Rating badge — top right */}
+          <div className="absolute top-2 right-2 flex items-center gap-1 bg-black/70 backdrop-blur-sm px-1.5 py-0.5 rounded-md">
+            <FaStar size={9} className="text-amber-400 fill-amber-400" />
+            <span className="text-[11px] font-semibold text-amber-400">{rating}</span>
           </div>
-        </figure>
-        <div className="p-4 gap-2">
-          <h3 className="text-base font-semibold line-clamp-2 leading-tight text-white mb-2">{movie.title}</h3>
-          <div className="flex items-center justify-between text-sm text-slate-400">
-            <div className="flex items-center gap-1">
-              <FaStar size={13} className="fill-amber-400 text-amber-400" />
-              <span className="text-amber-400 font-semibold">{(movie.rating ?? 0).toFixed(1)}</span>
+
+          {/* Genre badge — top left */}
+          {genres[0] && (
+            <div className="absolute top-2 left-2 px-1.5 py-0.5 bg-black/60 backdrop-blur-sm rounded-md">
+              <span className="text-[10px] text-zinc-400 font-medium">{genres[0]}</span>
             </div>
-            <div className="flex items-center gap-1">
-              <FaClock size={15} />
-              <span>{durationLabel}</span>
-            </div>
-            <span>{movie.year}</span>
+          )}
+
+          {/* Hover overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+            <Link
+              href={`/watch/${movie._id}`}
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center justify-center w-12 h-12 rounded-full bg-[#7C3AED] shadow-[0_0_32px_rgba(124,58,237,0.8)] hover:scale-110 transition-transform active:scale-95"
+            >
+              <FaPlay size={16} className="text-white ml-0.5 fill-current" />
+            </Link>
           </div>
+        </div>
+
+        {/* Info */}
+        <div className="p-2.5">
+          <h3 className="text-[13px] font-medium text-zinc-200 line-clamp-1 leading-tight">
+            {movie.title}
+          </h3>
+          <p className="text-[11px] text-zinc-600 mt-0.5">{movie.year}</p>
         </div>
       </div>
     </Link>

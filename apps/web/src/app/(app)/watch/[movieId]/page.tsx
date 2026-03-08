@@ -3,17 +3,26 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { FaArrowLeft, FaUsers } from 'react-icons/fa';
+import Image from 'next/image';
+import {
+  FaArrowLeft, FaUsers, FaStar, FaClock,
+  FaPlay, FaFilm,
+} from 'react-icons/fa';
 import dynamic from 'next/dynamic';
-import { apiClient } from '@/lib/axios';
 import { useAuthStore } from '@/store/auth.store';
 import { logger } from '@/lib/logger';
 import type { ApiResponse, IMovie } from '@/types';
 
-// HLS player SSR=false (browser only)
 const VideoPlayer = dynamic(
   () => import('@/components/VideoPlayer').then((m) => m.VideoPlayer),
-  { ssr: false, loading: () => <div className="aspect-video w-full bg-black rounded-xl animate-pulse" /> },
+  {
+    ssr: false,
+    loading: () => (
+      <div className="aspect-video w-full bg-[#0A0A0F] rounded-xl animate-pulse flex items-center justify-center">
+        <FaPlay size={32} className="text-zinc-700" />
+      </div>
+    ),
+  },
 );
 
 export default function WatchPage() {
@@ -25,8 +34,10 @@ export default function WatchPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await apiClient.get<ApiResponse<IMovie>>(`/movies/${movieId}`);
-        setMovie(res.data.data);
+        const res = await fetch(`/api/content/movies/${movieId}`);
+        if (!res.ok) throw new Error('Movie not found');
+        const json: ApiResponse<IMovie> = await res.json() as ApiResponse<IMovie>;
+        setMovie(json.data ?? null);
       } catch (err) {
         logger.error('Film yuklashda xato', err);
       } finally {
@@ -39,72 +50,213 @@ export default function WatchPage() {
   const handleProgress = async (progress: number, currentTime: number) => {
     if (!user) return;
     try {
-      await apiClient.post(`/movies/${movieId}/watch-history`, {
-        progress,
-        currentTime,
+      await fetch(`/api/content/movies/${movieId}/progress`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ progress, currentTime }),
       });
     } catch (err) {
       logger.warn('Progress saqlashda xato', err);
     }
   };
 
+  /* ── Loading skeleton ───────────────────────────────── */
   if (loading) {
     return (
-      <div className="space-y-4">
-        <div className="aspect-video w-full bg-base-200 animate-pulse rounded-xl" />
-        <div className="h-6 bg-base-200 rounded w-48 animate-pulse" />
+      <div className="space-y-4 max-w-6xl mx-auto">
+        <div className="h-7 w-32 bg-white/[0.05] rounded animate-pulse" />
+        <div className="aspect-video w-full bg-[#111118] rounded-2xl animate-pulse" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-3">
+            <div className="h-6 w-64 bg-white/[0.05] rounded animate-pulse" />
+            <div className="h-4 w-full bg-white/[0.04] rounded animate-pulse" />
+            <div className="h-4 w-3/4 bg-white/[0.04] rounded animate-pulse" />
+          </div>
+        </div>
       </div>
     );
   }
 
+  /* ── Not found ──────────────────────────────────────── */
   if (!movie) {
     return (
-      <div className="text-center py-20">
-        <p className="text-slate-400 mb-4">Film topilmadi</p>
-        <Link href="/movies" className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-lg bg-cyan-500 text-slate-900 hover:bg-cyan-400 hover:shadow-lg hover:shadow-cyan-500/50 transition-all font-medium active:scale-95">Filmlar ro&apos;yxati</Link>
+      <div className="flex flex-col items-center justify-center py-28 text-center">
+        <div className="w-20 h-20 rounded-2xl bg-[#111118] border border-white/[0.06] flex items-center justify-center mb-5">
+          <FaFilm size={32} className="text-zinc-700" />
+        </div>
+        <p className="text-zinc-400 text-sm mb-4">Film topilmadi</p>
+        <Link
+          href="/movies"
+          className="inline-flex items-center gap-2 h-9 px-5 rounded-xl bg-[#7C3AED] text-white text-sm font-semibold hover:bg-[#6D28D9] transition-all"
+        >
+          Filmlar ro&apos;yxatiga qaytish
+        </Link>
       </div>
     );
   }
 
+  const genres  = (movie.genre ?? movie.genres ?? []);
+  const rating  = (movie.rating ?? 0).toFixed(1);
+  const dH      = Math.floor((movie.duration ?? 0) / 60);
+  const dM      = (movie.duration ?? 0) % 60;
+  const poster  = movie.posterUrl ?? movie.poster;
+  const backdrop = movie.backdropUrl ?? movie.backdrop ?? poster;
+
   return (
-    <div className="space-y-4 max-w-5xl mx-auto">
-      {/* Back nav */}
+    <div className="space-y-4 max-w-6xl mx-auto">
+
+      {/* ── Top nav ───────────────────────────────────── */}
       <div className="flex items-center justify-between">
-        <Link href={`/movies/${movie._id}`} className="inline-flex items-center justify-center gap-2 h-8 px-3 rounded-lg text-slate-300 hover:bg-slate-700/50 transition-all text-sm font-medium">
-          <FaArrowLeft size={16} />
+        <Link
+          href="/movies"
+          className="inline-flex items-center gap-2 h-8 px-3 rounded-xl text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.05] transition-all text-sm"
+        >
+          <FaArrowLeft size={13} />
           Orqaga
         </Link>
-        <Link href={`/party/create?movieId=${movie._id}`} className="inline-flex items-center justify-center gap-2 h-8 px-3 rounded-lg border-2 border-cyan-500 text-cyan-400 hover:bg-cyan-500/10 hover:shadow-lg hover:shadow-cyan-500/30 transition-all text-sm font-medium">
-          <FaUsers size={16} />
+        <Link
+          href={`/party/create?movieId=${movie._id}`}
+          className="inline-flex items-center gap-2 h-8 px-4 rounded-xl border border-[#7C3AED]/40 text-[#7C3AED] hover:bg-[#7C3AED]/10 hover:border-[#7C3AED]/70 transition-all text-sm font-semibold"
+        >
+          <FaUsers size={13} />
           Watch Party
         </Link>
       </div>
 
-      {/* Player */}
-      {movie.videoUrl ? (
-        <VideoPlayer
-          src={movie.videoUrl}
-          poster={movie.backdropUrl ?? movie.posterUrl ?? movie.backdrop ?? movie.poster}
-          onProgress={(progress, currentTime) => void handleProgress(progress, currentTime)}
-        />
-      ) : (
-        <div className="aspect-video w-full bg-base-200 rounded-xl flex items-center justify-center">
-          <p className="text-base-content/40">Video mavjud emas</p>
-        </div>
-      )}
-
-      {/* Movie info */}
-      <div className="space-y-1">
-        <h1 className="text-xl font-display">{movie.title.toUpperCase()}</h1>
-        <div className="flex gap-3 text-sm text-base-content/50 flex-wrap">
-          {(movie.genre ?? movie.genres ?? []).map((g) => (
-            <span key={g} className="badge badge-ghost text-xs">{g}</span>
-          ))}
-          <span>{movie.year}</span>
-        </div>
+      {/* ── Player ────────────────────────────────────── */}
+      <div className="rounded-2xl overflow-hidden shadow-[0_0_60px_rgba(0,0,0,0.8)]">
+        {movie.videoUrl ? (
+          <VideoPlayer
+            src={movie.videoUrl}
+            poster={backdrop}
+            title={movie.title}
+            onProgress={(progress, currentTime) => void handleProgress(progress, currentTime)}
+          />
+        ) : (
+          <div className="aspect-video w-full bg-[#111118] flex flex-col items-center justify-center gap-3 rounded-2xl">
+            <FaPlay size={40} className="text-zinc-700" />
+            <p className="text-zinc-600 text-sm">Video hali yuklanmagan</p>
+          </div>
+        )}
       </div>
 
-      <p className="text-base-content/70 text-sm">{movie.description}</p>
+      {/* ── Info + sidebar ────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        {/* Left — movie info */}
+        <div className="lg:col-span-2 space-y-4">
+
+          {/* Title + badges */}
+          <div>
+            <h1
+              className="text-2xl md:text-3xl font-display text-white uppercase leading-none mb-2"
+              style={{ textShadow: '0 0 40px rgba(124,58,237,0.25)' }}
+            >
+              {movie.title}
+            </h1>
+            <div className="flex items-center gap-2 flex-wrap">
+              {genres.map((g) => (
+                <span
+                  key={g}
+                  className="px-2 py-0.5 rounded-md text-[11px] font-medium bg-[#7C3AED]/20 text-[#7C3AED] border border-[#7C3AED]/30"
+                >
+                  {g}
+                </span>
+              ))}
+              {movie.year && (
+                <span className="px-2 py-0.5 rounded-md text-[11px] font-medium bg-white/[0.06] text-zinc-500 border border-white/[0.08]">
+                  {movie.year}
+                </span>
+              )}
+              {dH > 0 && (
+                <span className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-white/[0.06] text-zinc-500 border border-white/[0.08]">
+                  <FaClock size={9} /> {dH}h {dM}m
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Rating row */}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1">
+              {[1,2,3,4,5].map((s) => (
+                <FaStar
+                  key={s}
+                  size={13}
+                  className={s <= Math.round((movie.rating ?? 0) / 2) ? 'text-amber-400 fill-amber-400' : 'text-zinc-700 fill-zinc-700'}
+                />
+              ))}
+              <span className="text-amber-400 text-sm font-semibold ml-1">{rating}</span>
+              <span className="text-zinc-600 text-xs ml-0.5">/ 10</span>
+            </div>
+            {(movie.viewCount ?? 0) > 0 && (
+              <span className="text-zinc-600 text-xs">
+                {movie.viewCount.toLocaleString()} ta tomosha
+              </span>
+            )}
+          </div>
+
+          {/* Description */}
+          {movie.description && (
+            <p className="text-zinc-400 text-sm leading-relaxed">{movie.description}</p>
+          )}
+
+          {/* Action buttons */}
+          <div className="flex items-center gap-3 pt-1">
+            <Link
+              href={`/movies/${movie.slug ?? movie._id}`}
+              className="inline-flex items-center gap-2 h-9 px-4 rounded-xl border border-white/[0.10] text-zinc-400 hover:text-zinc-200 hover:border-white/20 hover:bg-white/[0.04] transition-all text-sm"
+            >
+              <FaFilm size={13} />
+              Film sahifasi
+            </Link>
+          </div>
+        </div>
+
+        {/* Right — poster card */}
+        <div className="hidden lg:block">
+          <div className="rounded-2xl overflow-hidden bg-[#111118] border border-white/[0.06]">
+            {poster && (
+              <div className="relative aspect-[2/3] w-full">
+                <Image
+                  src={poster}
+                  alt={movie.title}
+                  fill
+                  className="object-cover"
+                  sizes="300px"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#111118] via-transparent to-transparent" />
+              </div>
+            )}
+            <div className="p-4 -mt-8 relative space-y-3">
+              <h3 className="text-sm font-semibold text-zinc-300 line-clamp-1">{movie.title}</h3>
+
+              {/* Stats grid */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="rounded-xl bg-white/[0.04] border border-white/[0.06] p-3 text-center">
+                  <p className="text-lg font-display text-[#7C3AED]">{rating}</p>
+                  <p className="text-[10px] text-zinc-600 mt-0.5">Reyting</p>
+                </div>
+                <div className="rounded-xl bg-white/[0.04] border border-white/[0.06] p-3 text-center">
+                  <p className="text-lg font-display text-zinc-300">
+                    {dH > 0 ? `${dH}h${dM > 0 ? ` ${dM}m` : ''}` : `${dM}m`}
+                  </p>
+                  <p className="text-[10px] text-zinc-600 mt-0.5">Davomiylik</p>
+                </div>
+              </div>
+
+              {/* Watch party CTA */}
+              <Link
+                href={`/party/create?movieId=${movie._id}`}
+                className="flex items-center justify-center gap-2 w-full h-10 rounded-xl bg-[#7C3AED]/15 border border-[#7C3AED]/30 text-[#7C3AED] text-sm font-semibold hover:bg-[#7C3AED]/25 hover:border-[#7C3AED]/50 transition-all"
+              >
+                <FaUsers size={13} />
+                Watch Party boshlash
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

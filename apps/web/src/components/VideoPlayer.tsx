@@ -2,12 +2,27 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import Hls from 'hls.js';
-import { FaPlay, FaPause, FaVolumeUp, FaVolumeMute, FaExpand, FaCompress, FaCog } from 'react-icons/fa';
+import {
+  FaPlay, FaPause, FaVolumeUp, FaVolumeDown, FaVolumeMute,
+  FaExpand, FaCompress,
+} from 'react-icons/fa';
+import { MdReplay10, MdForward10, MdPictureInPictureAlt, MdSpeed } from 'react-icons/md';
 import { logger } from '@/lib/logger';
+
+const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
+
+function formatTime(sec: number): string {
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = Math.floor(sec % 60);
+  if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
 
 interface VideoPlayerProps {
   src: string;
   poster?: string;
+  title?: string;
   onProgress?: (progress: number, currentTime: number) => void;
   onEnded?: () => void;
   syncTime?: number;
@@ -18,19 +33,10 @@ interface VideoPlayerProps {
   onSeek?: (time: number) => void;
 }
 
-function formatTime(sec: number): string {
-  const h = Math.floor(sec / 3600);
-  const m = Math.floor((sec % 3600) / 60);
-  const s = Math.floor(sec % 60);
-  if (h > 0) {
-    return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-  }
-  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-}
-
 export function VideoPlayer({
   src,
   poster,
+  title,
   onProgress,
   onEnded,
   syncTime,
@@ -40,123 +46,158 @@ export function VideoPlayer({
   onPause,
   onSeek,
 }: VideoPlayerProps) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const hlsRef = useRef<Hls | null>(null);
-  const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const controlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const videoRef      = useRef<HTMLVideoElement>(null);
+  const containerRef  = useRef<HTMLDivElement>(null);
+  const progressRef   = useRef<HTMLDivElement>(null);
+  const hlsRef        = useRef<Hls | null>(null);
+  const progressInterval = useRef<ReturnType<typeof setInterval> | null>(null);
+  const controlsTimer    = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hintTimer        = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [volume, setVolume] = useState(1);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [showControls, setShowControls] = useState(true);
+  const [isPlaying,       setIsPlaying]       = useState(false);
+  const [isMuted,         setIsMuted]         = useState(false);
+  const [volume,          setVolume]          = useState(1);
+  const [currentTime,     setCurrentTime]     = useState(0);
+  const [duration,        setDuration]        = useState(0);
+  const [buffered,        setBuffered]        = useState(0);
+  const [isFullscreen,    setIsFullscreen]    = useState(false);
+  const [showControls,    setShowControls]    = useState(true);
+  const [isBuffering,     setIsBuffering]     = useState(false);
+  const [speed,           setSpeed]           = useState(1);
+  const [showSettings,    setShowSettings]    = useState(false);
+  const [showVolSlider,   setShowVolSlider]   = useState(false);
+  const [skipFlash,       setSkipFlash]       = useState<'left' | 'right' | null>(null);
+  const [hoverTime,       setHoverTime]       = useState<{ time: number; x: number } | null>(null);
+  const [hint,            setHint]            = useState<string | null>(null);
 
-  // HLS yoki MP4 setup
+  /* ── HLS / MP4 setup ────────────────────────────────────────── */
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-
     const isHls = src.includes('.m3u8');
-
     if (isHls && Hls.isSupported()) {
       const hls = new Hls({ enableWorker: true });
       hlsRef.current = hls;
       hls.loadSource(src);
       hls.attachMedia(video);
-      hls.on(Hls.Events.ERROR, (_event, data) => {
-        if (data.fatal) {
-          logger.error('HLS fatal error', { type: data.type, details: data.details });
-        }
+      hls.on(Hls.Events.ERROR, (_e, data) => {
+        if (data.fatal) logger.error('HLS fatal error', { type: data.type, details: data.details });
       });
     } else if (isHls && video.canPlayType('application/vnd.apple.mpegurl')) {
       video.src = src;
     } else {
-      // MP4 yoki boshqa native format — to'g'ridan o'ynating
       video.src = src;
     }
-
-    return () => {
-      hlsRef.current?.destroy();
-      hlsRef.current = null;
-    };
+    return () => { hlsRef.current?.destroy(); hlsRef.current = null; };
   }, [src]);
 
-  // Progress tracking (har 5 sek)
+  /* ── Progress tracking every 5s ─────────────────────────────── */
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !onProgress) return;
-
-    progressIntervalRef.current = setInterval(() => {
-      if (video.duration > 0) {
-        const pct = (video.currentTime / video.duration) * 100;
-        onProgress(pct, video.currentTime);
-      }
+    progressInterval.current = setInterval(() => {
+      if (video.duration > 0)
+        onProgress((video.currentTime / video.duration) * 100, video.currentTime);
     }, 5000);
-
-    return () => {
-      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-    };
+    return () => { if (progressInterval.current) clearInterval(progressInterval.current); };
   }, [onProgress]);
 
-  // Watch Party sync (±2s threshold)
+  /* ── Watch-Party sync ───────────────────────────────────────── */
   useEffect(() => {
     const video = videoRef.current;
     if (!video || syncTime === undefined) return;
-    if (Math.abs(video.currentTime - syncTime) > 2) {
-      video.currentTime = syncTime;
-      logger.info('Watch Party sync', { syncTime, diff: Math.abs(video.currentTime - syncTime) });
-    }
+    if (Math.abs(video.currentTime - syncTime) > 2) video.currentTime = syncTime;
   }, [syncTime]);
 
-  // Watch Party play/pause sync for non-owners
   useEffect(() => {
     if (isOwner || syncIsPlaying === undefined) return;
     const video = videoRef.current;
     if (!video) return;
-    if (syncIsPlaying) {
-      void video.play().catch(() => {});
-    } else {
-      video.pause();
-    }
+    if (syncIsPlaying) void video.play().catch(() => {});
+    else video.pause();
   }, [syncIsPlaying, isOwner]);
 
+  /* ── Fullscreen listener ────────────────────────────────────── */
+  useEffect(() => {
+    const handler = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', handler);
+    return () => document.removeEventListener('fullscreenchange', handler);
+  }, []);
+
+  /* ── Helpers ─────────────────────────────────────────────────── */
+  const showHint = useCallback((msg: string) => {
+    setHint(msg);
+    if (hintTimer.current) clearTimeout(hintTimer.current);
+    hintTimer.current = setTimeout(() => setHint(null), 1200);
+  }, []);
+
+  const flashSkip = useCallback((dir: 'left' | 'right') => {
+    setSkipFlash(dir);
+    setTimeout(() => setSkipFlash(null), 550);
+  }, []);
+
+  const showControlsTemp = useCallback(() => {
+    setShowControls(true);
+    if (controlsTimer.current) clearTimeout(controlsTimer.current);
+    controlsTimer.current = setTimeout(() => {
+      if (videoRef.current && !videoRef.current.paused) setShowControls(false);
+    }, 3000);
+  }, []);
+
+  /* ── Actions ─────────────────────────────────────────────────── */
   const togglePlay = useCallback(() => {
     const video = videoRef.current;
     if (!video || !isOwner) return;
-    if (video.paused) {
-      void video.play().catch((err) => logger.error('Play failed', err));
-      onPlay?.();
-    } else {
-      video.pause();
-      onPause?.();
-    }
+    if (video.paused) { void video.play().catch((e) => logger.error('Play failed', e)); onPlay?.(); }
+    else { video.pause(); onPause?.(); }
   }, [isOwner, onPlay, onPause]);
 
-  const toggleMute = () => {
+  const skip = useCallback((sec: number) => {
+    const video = videoRef.current;
+    if (!video || !isOwner) return;
+    video.currentTime = Math.max(0, Math.min(video.duration, video.currentTime + sec));
+    onSeek?.(video.currentTime);
+    flashSkip(sec > 0 ? 'right' : 'left');
+    showHint(sec > 0 ? `+${sec}s` : `${sec}s`);
+  }, [isOwner, onSeek, flashSkip, showHint]);
+
+  const toggleMute = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
     video.muted = !video.muted;
     setIsMuted(video.muted);
-  };
+  }, []);
 
-  const toggleFullscreen = () => {
+  const toggleFullscreen = useCallback(() => {
     if (!containerRef.current) return;
-    if (!document.fullscreenElement) {
-      void containerRef.current.requestFullscreen();
-      setIsFullscreen(true);
-    } else {
-      void document.exitFullscreen();
-      setIsFullscreen(false);
-    }
-  };
+    if (!document.fullscreenElement) void containerRef.current.requestFullscreen();
+    else void document.exitFullscreen();
+  }, []);
 
-  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const togglePiP = useCallback(async () => {
     const video = videoRef.current;
-    if (!video || !isOwner) return;
-    const time = (parseFloat(e.target.value) / 100) * video.duration;
+    if (!video) return;
+    try {
+      if (document.pictureInPictureElement) await document.exitPictureInPicture();
+      else await video.requestPictureInPicture();
+    } catch { /* not supported in this browser */ }
+  }, []);
+
+  const applySpeed = useCallback((s: number) => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.playbackRate = s;
+    setSpeed(s);
+    setShowSettings(false);
+    showHint(`${s}x`);
+  }, [showHint]);
+
+  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+    const video = videoRef.current;
+    if (!video || !isOwner || !progressRef.current) return;
+    const rect = progressRef.current.getBoundingClientRect();
+    const pct  = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const time = pct * video.duration;
     if (!isFinite(time)) return;
     video.currentTime = time;
     onSeek?.(time);
@@ -165,53 +206,76 @@ export function VideoPlayer({
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const v = parseFloat(e.target.value);
     setVolume(v);
-    if (videoRef.current) videoRef.current.volume = v;
+    if (videoRef.current) { videoRef.current.volume = v; videoRef.current.muted = v === 0; }
+    setIsMuted(v === 0);
   };
 
-  const showControlsTemporarily = () => {
-    setShowControls(true);
-    if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
-    controlsTimerRef.current = setTimeout(() => {
-      if (isPlaying) setShowControls(false);
-    }, 3000);
+  const handleProgressHover = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!progressRef.current || duration === 0) return;
+    const rect = progressRef.current.getBoundingClientRect();
+    const x    = e.clientX - rect.left;
+    const pct  = Math.max(0, Math.min(1, x / rect.width));
+    setHoverTime({ time: pct * duration, x });
   };
 
-  // Keyboard shortcuts
+  const handleDoubleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!containerRef.current || !isOwner) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    skip(e.clientX - rect.left < rect.width / 2 ? -10 : 10);
+  };
+
+  /* ── Keyboard shortcuts ─────────────────────────────────────── */
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const video = videoRef.current;
       if (!video) return;
-      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) return;
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
       switch (e.code) {
         case 'Space':
+        case 'KeyK':   e.preventDefault(); togglePlay(); break;
+        case 'ArrowLeft':  e.preventDefault(); skip(-10); break;
+        case 'ArrowRight': e.preventDefault(); skip(10);  break;
+        case 'ArrowUp': {
           e.preventDefault();
-          togglePlay();
+          const v = Math.min(1, volume + 0.1);
+          setVolume(v);
+          if (video) { video.volume = v; video.muted = false; }
+          setIsMuted(false);
+          showHint(`🔊 ${Math.round(v * 100)}%`);
           break;
-        case 'ArrowLeft':
-          video.currentTime -= 10;
+        }
+        case 'ArrowDown': {
+          e.preventDefault();
+          const v = Math.max(0, volume - 0.1);
+          setVolume(v);
+          if (video) { video.volume = v; }
+          showHint(`🔊 ${Math.round(v * 100)}%`);
           break;
-        case 'ArrowRight':
-          video.currentTime += 10;
-          break;
-        case 'KeyF':
-          toggleFullscreen();
-          break;
-        case 'KeyM':
-          toggleMute();
-          break;
+        }
+        case 'KeyF': toggleFullscreen(); break;
+        case 'KeyM': toggleMute(); break;
       }
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [togglePlay]);
+  }, [togglePlay, skip, toggleFullscreen, toggleMute, volume, showHint]);
 
+  /* ── Derived values ─────────────────────────────────────────── */
+  const progressPct = duration > 0 ? (currentTime / duration) * 100 : 0;
+  const VolumeIcon  = isMuted || volume === 0 ? FaVolumeMute : volume < 0.5 ? FaVolumeDown : FaVolumeUp;
+
+  /* ── Render ─────────────────────────────────────────────────── */
   return (
     <div
       ref={containerRef}
-      className="relative w-full aspect-video bg-black rounded-xl overflow-hidden"
-      onMouseMove={showControlsTemporarily}
-      onMouseLeave={() => isPlaying && setShowControls(false)}
+      className="relative w-full aspect-video bg-black rounded-xl overflow-hidden select-none"
+      onMouseMove={showControlsTemp}
+      onMouseLeave={() => { if (isPlaying) setShowControls(false); setHoverTime(null); }}
+      onDoubleClick={handleDoubleClick}
+      onClick={() => { if (showSettings) setShowSettings(false); }}
     >
+      {/* Video element */}
       <video
         ref={videoRef}
         className="w-full h-full"
@@ -220,108 +284,250 @@ export function VideoPlayer({
         onPause={() => setIsPlaying(false)}
         onTimeUpdate={() => {
           const v = videoRef.current;
-          if (v) setCurrentTime(v.currentTime);
+          if (!v) return;
+          setCurrentTime(v.currentTime);
+          if (v.buffered.length > 0)
+            setBuffered((v.buffered.end(v.buffered.length - 1) / v.duration) * 100);
         }}
-        onDurationChange={() => {
-          const v = videoRef.current;
-          if (v) setDuration(v.duration);
-        }}
+        onDurationChange={() => { const v = videoRef.current; if (v) setDuration(v.duration); }}
+        onWaiting={() => setIsBuffering(true)}
+        onPlaying={() => setIsBuffering(false)}
+        onCanPlay={() => setIsBuffering(false)}
         onEnded={onEnded}
-        onClick={togglePlay}
+        onClick={(e) => { e.stopPropagation(); togglePlay(); }}
       />
 
-      <div
-        className={`absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/70 to-transparent transition-opacity duration-300 ${
-          showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
-      >
-        {/* Progress bar */}
-        <div className="px-4 pb-1">
-          <input
-            type="range"
-            min={0}
-            max={100}
-            step={0.1}
-            value={duration > 0 ? (currentTime / duration) * 100 : 0}
-            onChange={handleSeek}
-            className="range range-xs range-primary w-full cursor-pointer"
-            aria-label="Video progress"
-          />
-        </div>
-
-        {/* Controls */}
-        <div className="flex items-center justify-between px-4 pb-3 gap-2">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={togglePlay}
-              className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-slate-300 hover:bg-slate-700/50 transition-all"
-              aria-label={isPlaying ? 'Pauza' : 'Play'}
-            >
-              {isPlaying ? (
-                <FaPause size={16} className="fill-current" />
-              ) : (
-                <FaPlay size={16} className="fill-current" />
-              )}
-            </button>
-            <button
-              onClick={toggleMute}
-              className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-slate-300 hover:bg-slate-700/50 transition-all"
-              aria-label={isMuted ? 'Ovoz yoq' : 'Ovoz o\'chir'}
-            >
-              {isMuted ? (
-                <FaVolumeMute size={16} />
-              ) : (
-                <FaVolumeUp size={16} />
-              )}
-            </button>
-            <input
-              type="range"
-              min={0}
-              max={1}
-              step={0.05}
-              value={volume}
-              onChange={handleVolumeChange}
-              className="w-20 hidden md:block cursor-pointer h-1 rounded-lg bg-slate-600 accent-cyan-500"
-              aria-label="Ovoz balandligi"
-            />
-            <span className="text-xs text-white/80 ml-1">
-              {formatTime(currentTime)} / {formatTime(duration)}
-            </span>
-          </div>
-          <div className="flex items-center gap-1">
-            <button
-              className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-slate-300 hover:bg-slate-700/50 transition-all"
-              aria-label="Sifat sozlamalari"
-            >
-              <FaCog size={16} />
-            </button>
-            <button
-              onClick={toggleFullscreen}
-              className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-slate-300 hover:bg-slate-700/50 transition-all"
-              aria-label={isFullscreen ? 'Kichraytirish' : 'To\'liq ekran'}
-            >
-              {isFullscreen ? (
-                <FaCompress size={16} />
-              ) : (
-                <FaExpand size={16} />
-              )}
-            </button>
+      {/* Skip flash: left */}
+      {skipFlash === 'left' && (
+        <div className="absolute inset-y-0 left-0 w-1/2 flex items-center justify-center pointer-events-none z-20">
+          <div className="flex flex-col items-center gap-1 text-white/80 animate-pulse">
+            <MdReplay10 size={52} />
+            <span className="text-sm font-bold -mt-1">-10s</span>
           </div>
         </div>
-      </div>
+      )}
+      {/* Skip flash: right */}
+      {skipFlash === 'right' && (
+        <div className="absolute inset-y-0 right-0 w-1/2 flex items-center justify-center pointer-events-none z-20">
+          <div className="flex flex-col items-center gap-1 text-white/80 animate-pulse">
+            <MdForward10 size={52} />
+            <span className="text-sm font-bold -mt-1">+10s</span>
+          </div>
+        </div>
+      )}
 
-      {/* Play button overlay (center) */}
-      {!isPlaying && (
+      {/* Shortcut hint badge */}
+      {hint && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 bg-black/70 text-white text-sm px-3 py-1.5 rounded-lg font-medium backdrop-blur-sm pointer-events-none">
+          {hint}
+        </div>
+      )}
+
+      {/* Buffering spinner */}
+      {isBuffering && (
+        <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+          <div className="w-14 h-14 border-4 border-white/20 border-t-[#7C3AED] rounded-full animate-spin" />
+        </div>
+      )}
+
+      {/* Big play button overlay */}
+      {!isPlaying && !isBuffering && (
         <button
-          onClick={togglePlay}
-          className="absolute inset-0 flex items-center justify-center"
-          aria-label="Play"
+          onClick={(e) => { e.stopPropagation(); togglePlay(); }}
+          className="absolute inset-0 flex items-center justify-center z-10"
         >
-          <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-cyan-500 text-slate-900 hover:bg-cyan-400 shadow-lg shadow-cyan-500/50 opacity-90">
-            <FaPlay size={32} className="fill-current" />
+          <div className="w-20 h-20 rounded-full bg-[#7C3AED]/25 border-2 border-[#7C3AED]/80 flex items-center justify-center shadow-[0_0_60px_rgba(124,58,237,0.9)] hover:scale-110 transition-transform backdrop-blur-sm">
+            <FaPlay size={28} className="text-white ml-1 fill-current" />
           </div>
         </button>
       )}
+
+      {/* Controls layer */}
+      <div
+        className={`absolute inset-0 flex flex-col justify-end transition-opacity duration-300 ${
+          showControls || !isPlaying ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+      >
+        {/* Top gradient */}
+        <div className="absolute top-0 left-0 right-0 h-20 bg-gradient-to-b from-black/80 to-transparent pointer-events-none" />
+        {/* Bottom gradient */}
+        <div className="absolute bottom-0 left-0 right-0 h-36 bg-gradient-to-t from-black/95 via-black/60 to-transparent pointer-events-none" />
+
+        {/* Title top-left */}
+        {title && (
+          <div className="absolute top-3 left-4 z-10 max-w-[60%]">
+            <p className="text-white text-sm font-medium truncate drop-shadow-lg">{title}</p>
+          </div>
+        )}
+
+        {/* PiP top-right */}
+        <div className="absolute top-3 right-4 z-10">
+          <button
+            onClick={(e) => { e.stopPropagation(); void togglePiP(); }}
+            className="flex items-center justify-center h-8 w-8 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-all"
+            title="Picture in Picture"
+          >
+            <MdPictureInPictureAlt size={18} />
+          </button>
+        </div>
+
+        {/* Bottom controls */}
+        <div className="relative z-10 px-3 pb-2">
+
+          {/* Progress bar */}
+          <div
+            ref={progressRef}
+            className="relative h-6 flex items-center cursor-pointer group/prog mb-0.5"
+            onMouseMove={handleProgressHover}
+            onMouseLeave={() => setHoverTime(null)}
+            onClick={handleSeek}
+          >
+            {/* Hover time tooltip */}
+            {hoverTime && (
+              <div
+                className="absolute -top-8 bg-black/90 text-white text-[11px] px-2 py-1 rounded pointer-events-none z-30 -translate-x-1/2 whitespace-nowrap"
+                style={{ left: hoverTime.x }}
+              >
+                {formatTime(hoverTime.time)}
+              </div>
+            )}
+            {/* Track */}
+            <div className="w-full h-1 group-hover/prog:h-1.5 transition-all duration-150 rounded-full bg-white/25 relative overflow-visible">
+              {/* Buffered */}
+              <div
+                className="absolute inset-y-0 left-0 bg-white/35 rounded-full transition-all"
+                style={{ width: `${buffered}%` }}
+              />
+              {/* Played */}
+              <div
+                className="absolute inset-y-0 left-0 bg-[#7C3AED] rounded-full shadow-[0_0_8px_rgba(124,58,237,0.8)]"
+                style={{ width: `${progressPct}%` }}
+              />
+              {/* Thumb */}
+              <div
+                className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full shadow-[0_0_12px_rgba(124,58,237,1)] opacity-0 group-hover/prog:opacity-100 transition-opacity"
+                style={{ left: `calc(${progressPct}% - 7px)` }}
+              />
+            </div>
+          </div>
+
+          {/* Controls row */}
+          <div className="flex items-center justify-between gap-2">
+
+            {/* Left group */}
+            <div className="flex items-center gap-0.5">
+              {/* Play/Pause */}
+              <button
+                onClick={(e) => { e.stopPropagation(); togglePlay(); }}
+                className="flex items-center justify-center h-9 w-9 rounded-lg text-white hover:bg-white/10 transition-all"
+              >
+                {isPlaying ? <FaPause size={15} /> : <FaPlay size={15} />}
+              </button>
+
+              {/* Skip back */}
+              <button
+                onClick={(e) => { e.stopPropagation(); skip(-10); }}
+                className="flex items-center justify-center h-9 w-9 rounded-lg text-white hover:bg-white/10 transition-all"
+                title="Rewind 10s"
+              >
+                <MdReplay10 size={22} />
+              </button>
+
+              {/* Skip forward */}
+              <button
+                onClick={(e) => { e.stopPropagation(); skip(10); }}
+                className="flex items-center justify-center h-9 w-9 rounded-lg text-white hover:bg-white/10 transition-all"
+                title="Forward 10s"
+              >
+                <MdForward10 size={22} />
+              </button>
+
+              {/* Volume group */}
+              <div
+                className="flex items-center gap-1"
+                onMouseEnter={() => setShowVolSlider(true)}
+                onMouseLeave={() => setShowVolSlider(false)}
+              >
+                <button
+                  onClick={(e) => { e.stopPropagation(); toggleMute(); }}
+                  className="flex items-center justify-center h-9 w-9 rounded-lg text-white hover:bg-white/10 transition-all"
+                >
+                  <VolumeIcon size={16} />
+                </button>
+                <div
+                  className={`overflow-hidden transition-all duration-200 ${showVolSlider ? 'w-20 opacity-100' : 'w-0 opacity-0'}`}
+                >
+                  <input
+                    type="range"
+                    min={0}
+                    max={1}
+                    step={0.02}
+                    value={isMuted ? 0 : volume}
+                    onChange={handleVolumeChange}
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-20 h-1 rounded-full cursor-pointer accent-[#7C3AED]"
+                  />
+                </div>
+              </div>
+
+              {/* Time */}
+              <span className="text-white text-[11px] tabular-nums ml-1 hidden sm:block">
+                {formatTime(currentTime)} / {formatTime(duration)}
+              </span>
+            </div>
+
+            {/* Right group */}
+            <div className="flex items-center gap-0.5 relative">
+
+              {/* Speed / Settings */}
+              <div className="relative">
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowSettings(!showSettings); }}
+                  className="flex items-center gap-1 h-9 px-2 rounded-lg text-white hover:bg-white/10 transition-all text-xs font-semibold"
+                  title="Playback speed"
+                >
+                  <MdSpeed size={19} />
+                  {speed !== 1 && <span className="text-[10px]">{speed}x</span>}
+                </button>
+
+                {/* Speed dropdown */}
+                {showSettings && (
+                  <div
+                    className="absolute bottom-12 right-0 bg-[#111118] border border-white/10 rounded-xl overflow-hidden shadow-2xl z-50 w-32"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="px-3 py-2 text-[10px] text-white/40 font-semibold uppercase tracking-widest border-b border-white/10">
+                      Speed
+                    </div>
+                    {SPEEDS.map((s) => (
+                      <button
+                        key={s}
+                        onClick={() => applySpeed(s)}
+                        className={`w-full text-left px-3 py-2 text-sm transition-colors ${
+                          speed === s
+                            ? 'text-[#7C3AED] bg-[#7C3AED]/10 font-semibold'
+                            : 'text-white hover:bg-white/5'
+                        }`}
+                      >
+                        {s === 1 ? 'Normal' : `${s}x`}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Fullscreen */}
+              <button
+                onClick={(e) => { e.stopPropagation(); toggleFullscreen(); }}
+                className="flex items-center justify-center h-9 w-9 rounded-lg text-white hover:bg-white/10 transition-all"
+                title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+              >
+                {isFullscreen ? <FaCompress size={15} /> : <FaExpand size={15} />}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
