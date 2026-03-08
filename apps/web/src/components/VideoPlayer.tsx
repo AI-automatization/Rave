@@ -25,7 +25,8 @@ interface VideoPlayerProps {
   title?: string;
   onProgress?: (progress: number, currentTime: number) => void;
   onEnded?: () => void;
-  syncTime?: number;
+  syncTime?: number;        // raw currentTime from server
+  syncTimestamp?: number;   // ms epoch when server saved syncTime (for drift compensation)
   syncIsPlaying?: boolean;
   isOwner?: boolean;
   onPlay?: (currentTime: number) => void;
@@ -40,6 +41,7 @@ export function VideoPlayer({
   onProgress,
   onEnded,
   syncTime,
+  syncTimestamp,
   syncIsPlaying,
   isOwner = true,
   onPlay,
@@ -55,10 +57,12 @@ export function VideoPlayer({
   const hintTimer        = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Refs for stable access inside event listeners (avoid stale closures)
-  const syncIsPlayingRef = useRef<boolean | undefined>(syncIsPlaying);
-  const isOwnerRef       = useRef(isOwner);
-  const onPlayRef        = useRef(onPlay);
-  const onPauseRef       = useRef(onPause);
+  const syncIsPlayingRef  = useRef<boolean | undefined>(syncIsPlaying);
+  const isOwnerRef        = useRef(isOwner);
+  const onPlayRef         = useRef(onPlay);
+  const onPauseRef        = useRef(onPause);
+  const syncTimeRef       = useRef(syncTime);
+  const syncTimestampRef  = useRef(syncTimestamp);
 
   const [isPlaying,       setIsPlaying]       = useState(false);
   const [isMuted,         setIsMuted]         = useState(false);
@@ -114,6 +118,8 @@ export function VideoPlayer({
   useEffect(() => { isOwnerRef.current = isOwner; }, [isOwner]);
   useEffect(() => { onPlayRef.current = onPlay; }, [onPlay]);
   useEffect(() => { onPauseRef.current = onPause; }, [onPause]);
+  useEffect(() => { syncTimeRef.current = syncTime; }, [syncTime]);
+  useEffect(() => { syncTimestampRef.current = syncTimestamp; }, [syncTimestamp]);
 
   /* ── Watch-Party sync (seek → play in sequence) ─────────────── */
   useEffect(() => {
@@ -140,12 +146,18 @@ export function VideoPlayer({
       }
     };
 
-    // Seek to syncTime first, then play — prevents canplay-at-pos-0 race
+    // Seek to drift-compensated position first, then play
     const seekThenPlay = () => {
       if (cancelled) return;
-      const needsSeek = syncTime !== undefined && Math.abs(video.currentTime - syncTime) > 2;
+      // Compute target time with drift compensation at seek time
+      let targetTime = syncTime;
+      if (targetTime !== undefined && syncTimestamp && syncIsPlaying) {
+        const elapsed = Math.max(0, (Date.now() - syncTimestamp) / 1000);
+        targetTime = targetTime + elapsed;
+      }
+      const needsSeek = targetTime !== undefined && Math.abs(video.currentTime - targetTime) > 1;
       if (needsSeek) {
-        video.currentTime = syncTime!;
+        video.currentTime = targetTime!;
         // Wait for seek to settle before playing
         video.addEventListener('seeked', applyPlay, { once: true });
       } else {
@@ -165,7 +177,7 @@ export function VideoPlayer({
       video.removeEventListener('loadedmetadata', seekThenPlay);
       video.removeEventListener('seeked', applyPlay);
     };
-  }, [isOwner, syncTime, syncIsPlaying]);
+  }, [isOwner, syncTime, syncTimestamp, syncIsPlaying]);
 
   /* ── Non-owner guard: block headphones + PiP controls ──────── */
   // Media Session intercepts headphone buttons and PiP overlay controls.
@@ -455,8 +467,20 @@ export function VideoPlayer({
         <button
           onClick={(e) => {
             e.stopPropagation();
+            const video = videoRef.current;
+            if (!video) return;
+            // Recalculate drift at the exact moment user clicks
+            const rawTime = syncTimeRef.current;
+            const ts = syncTimestampRef.current;
+            if (rawTime !== undefined && ts) {
+              const elapsed = Math.max(0, (Date.now() - ts) / 1000);
+              const targetTime = rawTime + elapsed;
+              if (Math.abs(video.currentTime - targetTime) > 1) {
+                video.currentTime = targetTime;
+              }
+            }
             setNeedsInteraction(false);
-            void videoRef.current?.play().catch(() => {});
+            void video.play().catch(() => {});
           }}
           className="absolute inset-0 flex items-center justify-center z-20 bg-black/60 backdrop-blur-sm"
         >

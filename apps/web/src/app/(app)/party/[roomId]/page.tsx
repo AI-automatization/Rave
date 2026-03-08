@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { FaArrowLeft, FaCopy, FaCheck, FaUserPlus, FaTimes } from 'react-icons/fa';
@@ -65,14 +65,6 @@ export default function WatchPartyPage() {
 
   const isOwner = room?.ownerId === user?.id;
 
-  // Drift compensation: server stores currentTime at last play/pause/seek.
-  // If video was playing since then, add elapsed time so member joins at correct position.
-  const adjustedSyncTime = useMemo(() => {
-    if (!syncState) return undefined;
-    if (!syncState.isPlaying) return syncState.currentTime;
-    const elapsed = (Date.now() - syncState.serverTimestamp) / 1000;
-    return syncState.currentTime + Math.max(0, elapsed);
-  }, [syncState]);
 
   const inviteLink = room ? `${typeof window !== 'undefined' ? window.location.origin : ''}/party/join/${room.inviteCode}` : '';
 
@@ -197,7 +189,8 @@ export default function WatchPartyPage() {
               <VideoPlayer
                 src={movie.videoUrl}
                 poster={movie.backdropUrl ?? movie.posterUrl ?? movie.backdrop ?? movie.poster}
-                syncTime={adjustedSyncTime}
+                syncTime={syncState?.currentTime}
+                syncTimestamp={syncState?.serverTimestamp}
                 syncIsPlaying={syncState?.isPlaying}
                 isOwner={isOwner}
                 onPlay={(t) => emitPlay(t)}
