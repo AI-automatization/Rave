@@ -12,7 +12,11 @@ const registerSchema = z.object({
   username:        z.string().min(3, "Kamida 3 ta belgi").max(30, "Ko'pi bilan 30 ta belgi")
     .regex(/^[a-zA-Z0-9_]+$/, "Faqat harf, raqam va _ belgi"),
   email:           z.string().email("To'g'ri email kiriting"),
-  password:        z.string().min(8, "Kamida 8 ta belgi"),
+  password:        z.string()
+    .min(8, "Kamida 8 ta belgi bo'lishi kerak")
+    .regex(/[A-Z]/, "Kamida 1 ta katta harf bo'lishi kerak")
+    .regex(/[a-z]/, "Kamida 1 ta kichik harf bo'lishi kerak")
+    .regex(/[0-9]/, "Kamida 1 ta raqam bo'lishi kerak"),
   confirmPassword: z.string(),
 }).refine((d) => d.password === d.confirmPassword, {
   message: "Parollar mos kelmadi",
@@ -43,9 +47,11 @@ export function RegisterForm() {
       });
       setSuccess(true);
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })
-        ?.response?.data?.message;
-      setError(msg ?? t('genericError'));
+      const data = (err as { response?: { data?: { message?: string; errors?: string[] } } })
+        ?.response?.data;
+      // Show first specific validation error, fallback to generic message
+      const detail = data?.errors?.[0] ?? data?.message ?? t('genericError');
+      setError(detail);
     }
   };
 

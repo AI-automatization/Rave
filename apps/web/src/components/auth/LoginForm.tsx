@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
@@ -14,7 +13,7 @@ import type { ApiResponse } from '@/types';
 
 const loginSchema = z.object({
   email:    z.string().email("To'g'ri email kiriting"),
-  password: z.string().min(6, "Parol kamida 6 ta belgi"),
+  password: z.string().min(1, "Parolni kiriting"),
 });
 
 type LoginFields = z.infer<typeof loginSchema>;
@@ -35,12 +34,9 @@ interface LoginResponseData {
 
 export function LoginForm() {
   const t = useTranslations('auth');
-  const router  = useRouter();
   const setAuth = useAuthStore((s) => s.setAuth);
   const [error, setError]           = useState('');
   const [showPassword, setShowPassword] = useState(false);
-
-  useEffect(() => { router.prefetch('/home'); }, [router]);
 
   const {
     register,
@@ -58,12 +54,15 @@ export function LoginForm() {
       });
       const json: ApiResponse<LoginResponseData> = await res.json();
       if (!res.ok || !json.success) {
-        setError(json.message ?? t('wrongCredentials'));
+        // Show the first specific error from the array, fallback to generic message
+        const detail = json.errors?.[0] ?? json.message ?? t('wrongCredentials');
+        setError(detail);
         return;
       }
       const { user, accessToken, refreshToken } = json.data;
       setAuth(user, accessToken, refreshToken);
-      router.replace('/home');
+      // Hard navigation ensures the middleware sees the cookie immediately
+      window.location.replace('/home');
     } catch {
       setError(t('wrongCredentials'));
     }
