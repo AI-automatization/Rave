@@ -1,11 +1,15 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { VideoPlayer } from '@/components/VideoPlayer';
-import { useAuthStore } from '@/store/auth.store';
 import type { VideoPlatform } from '@/types';
 
 /* ── Helpers ─────────────────────────────────────────────────────── */
+function extractYouTubeId(url: string): string | null {
+  const m = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([^&?/\s]{11})/);
+  return m?.[1] ?? null;
+}
+
 function extractVimeoId(url: string): string | null {
   const match = url.match(/vimeo\.com\/(\d+)/);
   return match?.[1] ?? null;
@@ -47,37 +51,120 @@ interface UniversalPlayerProps {
   onFullscreenChange?: (isFullscreen: boolean) => void;
 }
 
-/* ── YouTube — proxied through our backend stream endpoint ─────── */
-function YouTubePlayer(props: UniversalPlayerProps) {
-  // Access token from Zustand / localStorage — passed as query param
-  // because <video> elements cannot set Authorization headers
-  const token =
-    useAuthStore.getState().accessToken ??
-    (typeof window !== 'undefined' ? localStorage.getItem('access_token') : '') ??
-    '';
+/* ── YouTube — IFrame Player API (postMessage) ─────────────────── */
+function YouTubeIframePlayer({
+  videoUrl, syncTime, syncTimestamp, syncIsPlaying, isOwner,
+  onPlay, onPause, onSeek,
+}: UniversalPlayerProps) {
+  const iframeRef       = useRef<HTMLIFrameElement>(null);
+  const applyingRef     = useRef(false);   // true while we're applying sync (ignore state events)
+  const currentTimeRef  = useRef(0);       // tracks latest currentTime from infoDelivery
+  const lastTrackedRef  = useRef(0);       // for seek detection (owner)
+  const playerStateRef  = useRef(-1);      // last known YouTube playerState
 
-  const streamUrl = `/youtube/stream?url=${encodeURIComponent(props.videoUrl)}&token=${encodeURIComponent(token)}`;
+  const videoId = extractYouTubeId(videoUrl);
+
+  /* Send a command to the YouTube iframe via postMessage */
+  const cmd = useCallback((func: string, args: unknown[] = []) => {
+    iframeRef.current?.contentWindow?.postMessage(
+      JSON.stringify({ event: 'command', func, args }),
+      '*',
+    );
+  }, []);
+
+  /* Member sync: when owner plays/pauses, apply to our iframe */
+  useEffect(() => {
+    if (isOwner || syncIsPlaying === undefined) return;
+
+    applyingRef.current = true;
+
+    // Drift-compensated target time
+    const elapsed = syncTimestamp ? Math.max(0, (Date.now() - syncTimestamp) / 1000) : 0;
+    const target  = (syncTime ?? 0) + (syncIsPlaying ? elapsed : 0);
+
+    // Only seek if we're significantly out of sync
+    if (Math.abs(target - currentTimeRef.current) > 2) {
+      cmd('seekTo', [target, true]);
+    }
+
+    if (syncIsPlaying) cmd('playVideo');
+    else               cmd('pauseVideo');
+
+    // Clear flag after commands settle
+    const t = setTimeout(() => { applyingRef.current = false; }, 800);
+    return () => clearTimeout(t);
+  }, [isOwner, syncIsPlaying, syncTime, syncTimestamp, cmd]);
+
+  /* Listen to YouTube postMessage events */
+  useEffect(() => {
+    const handle = (e: MessageEvent) => {
+      if (typeof e.data !== 'string') return;
+      let data: Record<string, unknown>;
+      try { data = JSON.parse(e.data) as Record<string, unknown>; }
+      catch { return; }
+
+      // Periodic info: track currentTime + playerState
+      if (data.event === 'infoDelivery') {
+        const info = data.info as Record<string, unknown> | null;
+        if (!info) return;
+        if (typeof info.currentTime === 'number') currentTimeRef.current  = info.currentTime;
+        if (typeof info.playerState === 'number') playerStateRef.current  = info.playerState;
+      }
+
+      // State transitions: only emit owner events (not sync-applied ones)
+      if (data.event === 'onStateChange' && isOwner && !applyingRef.current) {
+        const state = data.info as number;
+        const ct    = currentTimeRef.current;
+        if (state === 1) onPlay?.(ct);   // playing
+        if (state === 2) onPause?.(ct);  // paused
+      }
+    };
+
+    window.addEventListener('message', handle);
+    return () => window.removeEventListener('message', handle);
+  }, [isOwner, onPlay, onPause]);
+
+  /* Owner seek detection: poll currentTime every second, emit onSeek on jumps */
+  useEffect(() => {
+    if (!isOwner) return;
+    const id = setInterval(() => {
+      const cur = currentTimeRef.current;
+      // Natural progression ≈ 1s; a jump > 4s is likely a user seek
+      const playing = playerStateRef.current === 1;
+      if (playing && Math.abs(cur - lastTrackedRef.current - 1) > 4) {
+        onSeek?.(cur);
+      }
+      lastTrackedRef.current = cur;
+    }, 1000);
+    return () => clearInterval(id);
+  }, [isOwner, onSeek]);
+
+  if (!videoId) {
+    return (
+      <div className="aspect-video bg-black rounded-xl flex items-center justify-center">
+        <p className="text-white/40 text-sm">YouTube video ID topilmadi</p>
+      </div>
+    );
+  }
+
+  const origin   = typeof window !== 'undefined' ? window.location.origin : '';
+  const embedUrl = `https://www.youtube.com/embed/${videoId}?enablejsapi=1&origin=${encodeURIComponent(origin)}&controls=1&rel=0&modestbranding=1`;
 
   return (
-    <VideoPlayer
-      src={streamUrl}
-      poster={props.thumbnail}
-      title={props.title}
-      initialTime={props.initialTime}
-      syncTime={props.syncTime}
-      syncTimestamp={props.syncTimestamp}
-      syncIsPlaying={props.syncIsPlaying}
-      isOwner={props.isOwner}
-      onProgress={props.onProgress}
-      onPlay={props.onPlay}
-      onPause={props.onPause}
-      onSeek={props.onSeek}
-      onFullscreenChange={props.onFullscreenChange}
-    />
+    <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
+      <iframe
+        ref={iframeRef}
+        src={embedUrl}
+        className="w-full h-full border-0"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+        allowFullScreen
+        title={`YouTube — ${videoId}`}
+      />
+    </div>
   );
 }
 
-/* ── Generic iframe sub-component ───────────────────────────────── */
+/* ── Generic iframe (Vimeo, Twitch, Dailymotion) ─────────────────── */
 function IframePlayer({ videoUrl, platform }: { videoUrl: string; platform: VideoPlatform }) {
   const embedUrl = buildEmbedUrl(videoUrl, platform);
   return (
@@ -122,7 +209,7 @@ export function UniversalPlayer(props: UniversalPlayerProps) {
   }
 
   if (platform === 'youtube') {
-    return <YouTubePlayer {...props} onFullscreenChange={handleFullscreen} />;
+    return <YouTubeIframePlayer {...props} onFullscreenChange={handleFullscreen} />;
   }
 
   return <IframePlayer videoUrl={videoUrl} platform={platform} />;
