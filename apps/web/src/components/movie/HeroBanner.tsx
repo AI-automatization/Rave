@@ -8,6 +8,12 @@ import type { IMovie } from '@/types';
 
 interface Props { movie: IMovie }
 
+function formatViews(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${Math.floor(n / 1_000)}K`;
+  return String(n);
+}
+
 export function HeroBanner({ movie }: Props) {
   const t     = useTranslations('movie');
   const bg    = movie.backdropUrl ?? movie.posterUrl ?? movie.backdrop ?? movie.poster;
@@ -84,7 +90,7 @@ export function HeroBanner({ movie }: Props) {
             <span className="text-zinc-600 text-xs ml-0.5">/ 10</span>
           </div>
           {movie.viewCount > 0 && (
-            <span className="text-zinc-600 text-xs">{movie.viewCount.toLocaleString()} views</span>
+            <span className="text-zinc-600 text-xs">{formatViews(movie.viewCount)} views</span>
           )}
         </div>
 
