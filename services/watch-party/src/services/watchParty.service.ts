@@ -91,6 +91,7 @@ export class WatchPartyService {
     }
 
     room.members.push(userId);
+    room.lastActivityAt = new Date();
     await room.save();
 
     logger.info('User joined watch party', { roomId: room._id, userId });
@@ -168,7 +169,7 @@ export class WatchPartyService {
 
     await WatchPartyRoom.updateOne(
       { _id: roomId },
-      { currentTime, isPlaying, status: isPlaying ? 'playing' : 'paused' },
+      { currentTime, isPlaying, status: isPlaying ? 'playing' : 'paused', lastActivityAt: new Date() },
     );
 
     return syncState;
@@ -187,6 +188,38 @@ export class WatchPartyService {
   private async cacheRoomState(roomId: string, state: SyncState): Promise<void> {
     const key = REDIS_KEYS.watchPartyRoom(roomId);
     await this.redis.set(key, JSON.stringify(state), 'EX', TTL.WATCH_PARTY_ROOM);
+  }
+
+  /** Update lastActivityAt — call on any meaningful event (join, play, pause, seek) */
+  async updateActivity(roomId: string): Promise<void> {
+    await WatchPartyRoom.updateOne({ _id: roomId }, { lastActivityAt: new Date() });
+  }
+
+  /** Find and close all rooms inactive for more than `thresholdMinutes`. Returns closed room IDs. */
+  async closeInactiveRooms(thresholdMinutes = 10): Promise<string[]> {
+    const cutoff = new Date(Date.now() - thresholdMinutes * 60 * 1000);
+
+    const stale = await WatchPartyRoom.find({
+      status: { $ne: 'ended' },
+      lastActivityAt: { $lt: cutoff },
+    }).select('_id');
+
+    if (stale.length === 0) return [];
+
+    const ids = stale.map((r) => r._id.toString());
+
+    await WatchPartyRoom.updateMany(
+      { _id: { $in: ids } },
+      { status: 'ended', members: [] },
+    );
+
+    // Remove Redis cache for each closed room
+    await Promise.all(
+      ids.map((id) => this.redis.del(REDIS_KEYS.watchPartyRoom(id))),
+    );
+
+    logger.info('Closed inactive watch party rooms', { count: ids.length, roomIds: ids });
+    return ids;
   }
 
   async kickMember(ownerId: string, roomId: string, targetUserId: string): Promise<void> {

@@ -16,6 +16,7 @@ export interface IWatchPartyRoomDocument extends Document {
   inviteCode: string;
   isPrivate: boolean;
   password: string | null;  // bcrypt hash — null for public rooms
+  lastActivityAt: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -40,6 +41,7 @@ const watchPartyRoomSchema = new Schema<IWatchPartyRoomDocument>(
     inviteCode: { type: String, required: true, unique: true },
     isPrivate: { type: Boolean, default: false },
     password: { type: String, default: null },
+    lastActivityAt: { type: Date, default: Date.now },
   },
   {
     timestamps: true,

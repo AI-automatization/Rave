@@ -19,7 +19,26 @@ const verifySocketToken = (token: string): JwtPayload => {
 // In-memory voice rooms: roomId → Set of userIds currently in voice
 const voiceRooms = new Map<string, Set<string>>();
 
+const INACTIVE_CHECK_INTERVAL_MS = 2 * 60 * 1000; // check every 2 minutes
+const INACTIVE_THRESHOLD_MINUTES = 10;
+
 export const registerWatchPartySocket = (io: SocketServer, watchPartyService: WatchPartyService): void => {
+  // Auto-close inactive rooms every 2 minutes
+  const cleanupInterval = setInterval(async () => {
+    try {
+      const closedIds = await watchPartyService.closeInactiveRooms(INACTIVE_THRESHOLD_MINUTES);
+      for (const roomId of closedIds) {
+        io.to(roomId).emit(SERVER_EVENTS.ROOM_CLOSED, { reason: 'inactive' });
+      }
+    } catch (err) {
+      logger.error('Inactive room cleanup error', { error: (err as Error).message });
+    }
+  }, INACTIVE_CHECK_INTERVAL_MS);
+
+  // Clean up on process exit
+  process.on('SIGTERM', () => clearInterval(cleanupInterval));
+  process.on('SIGINT',  () => clearInterval(cleanupInterval));
+
   // JWT middleware for socket connections
   io.use((socket: Socket, next) => {
     const token = socket.handshake.auth.token as string | undefined;
