@@ -1,5 +1,5 @@
 import { ExternalVideo, VideoPlatform } from '../models/externalVideo.model';
-import { NotFoundError, ForbiddenError, ConflictError, BadRequestError } from '@shared/utils/errors';
+import { NotFoundError, ForbiddenError, BadRequestError } from '@shared/utils/errors';
 import { logger } from '@shared/utils/logger';
 
 // ── Platform detection ────────────────────────────────────────────────────────
@@ -130,7 +130,7 @@ export class ExternalVideoService {
   // List public (approved) videos
   async listPublic(page = 1, limit = 20, sort: 'rating' | 'viewCount' | 'createdAt' = 'createdAt') {
     const skip = (page - 1) * limit;
-    const sortField = sort === 'rating' ? { rating: -1 } : sort === 'viewCount' ? { viewCount: -1 } : { createdAt: -1 };
+    const sortField: Record<string, 1 | -1> = sort === 'rating' ? { rating: -1 } : sort === 'viewCount' ? { viewCount: -1 } : { createdAt: -1 };
     const [videos, total] = await Promise.all([
       ExternalVideo.find({ isPublic: true, status: 'approved' }).sort(sortField).skip(skip).limit(limit),
       ExternalVideo.countDocuments({ isPublic: true, status: 'approved' }),
@@ -154,7 +154,7 @@ export class ExternalVideoService {
   }
 
   // Rate a video (simple running average)
-  async rate(videoId: string, userId: string, score: number) {
+  async rate(videoId: string, _userId: string, score: number) {
     if (score < 1 || score > 10) throw new BadRequestError('Rating must be between 1 and 10');
     const video = await ExternalVideo.findById(videoId);
     if (!video) throw new NotFoundError('Video not found');
