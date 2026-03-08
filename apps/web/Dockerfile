@@ -19,11 +19,7 @@ ENV HOSTNAME=0.0.0.0
 
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
 
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./● Katta feature. Arxitektura:                                                                                                                                                            
-- WebRTC mesh + Socket.IO signaling = ovozli chat                                                                                                                                      
-- Portal pattern → fullscreen ichida chat overlay (Twitch uslubi)                                                                                                                      
-                                                                                                                                                                                       
-Barcha fayllarni parallel yozamiz:       
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
