@@ -23,6 +23,14 @@ const INACTIVE_CHECK_INTERVAL_MS = 2 * 60 * 1000; // check every 2 minutes
 const INACTIVE_THRESHOLD_MINUTES = 10;
 
 export const registerWatchPartySocket = (io: SocketServer, watchPartyService: WatchPartyService): void => {
+  // On startup: immediately close ALL existing rooms (stale data cleanup)
+  void watchPartyService.closeInactiveRooms(0).then((ids) => {
+    for (const roomId of ids) {
+      io.to(roomId).emit(SERVER_EVENTS.ROOM_CLOSED, { reason: 'inactive' });
+    }
+    if (ids.length > 0) logger.info('Startup: closed stale rooms', { count: ids.length });
+  }).catch((err: Error) => logger.error('Startup room cleanup error', { error: err.message }));
+
   // Auto-close inactive rooms every 2 minutes
   const cleanupInterval = setInterval(async () => {
     try {
