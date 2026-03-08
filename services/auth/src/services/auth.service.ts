@@ -110,7 +110,11 @@ export class AuthService {
     }
 
     // Clear brute force counter on success
-    await this.redis.del(`login_attempts:${email}`);
+    try {
+      await this.redis.del(`login_attempts:${email}`);
+    } catch {
+      logger.warn('Redis unavailable — could not clear login attempts', { email });
+    }
 
     const payload: JwtPayload = {
       userId: user._id.toString(),
@@ -317,18 +321,28 @@ export class AuthService {
   }
 
   private async checkBruteForce(email: string): Promise<void> {
-    const key = `login_attempts:${email}`;
-    const attempts = await this.redis.get(key);
-    if (attempts && parseInt(attempts, 10) >= MAX_LOGIN_ATTEMPTS) {
-      throw new TooManyRequestsError('Account locked for 15 minutes due to too many failed attempts');
+    try {
+      const key = `login_attempts:${email}`;
+      const attempts = await this.redis.get(key);
+      if (attempts && parseInt(attempts, 10) >= MAX_LOGIN_ATTEMPTS) {
+        throw new TooManyRequestsError('Account locked for 15 minutes due to too many failed attempts');
+      }
+    } catch (err) {
+      if (err instanceof TooManyRequestsError) throw err;
+      // Redis unavailable — degrade gracefully (no brute-force protection)
+      logger.warn('Redis unavailable for brute force check — degraded mode', { email });
     }
   }
 
   private async incrementLoginAttempts(email: string): Promise<void> {
-    const key = `login_attempts:${email}`;
-    const attempts = await this.redis.incr(key);
-    if (attempts === 1) {
-      await this.redis.expire(key, BLOCK_DURATION_SECONDS);
+    try {
+      const key = `login_attempts:${email}`;
+      const attempts = await this.redis.incr(key);
+      if (attempts === 1) {
+        await this.redis.expire(key, BLOCK_DURATION_SECONDS);
+      }
+    } catch {
+      logger.warn('Redis unavailable — could not increment login attempts', { email });
     }
   }
 }

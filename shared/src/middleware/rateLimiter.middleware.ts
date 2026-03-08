@@ -9,10 +9,13 @@ let redisClient: Redis | null = null;
 
 const getRedisClient = (): Redis => {
   if (!redisClient) {
-    // enableOfflineQueue:true (default) — RedisStore konstruktori chaqirganda ulanish tayyor bo'lmasligi mumkin
     redisClient = new Redis(process.env.REDIS_URL ?? 'redis://localhost:6379', {
-      maxRetriesPerRequest: 3,
+      maxRetriesPerRequest: 1,    // fail fast → passOnStoreError kicks in
+      enableOfflineQueue: false,  // reject immediately when offline (no hanging)
+      connectTimeout: 3000,
+      lazyConnect: false,
     });
+    redisClient.on('error', () => { /* suppress unhandled — passOnStoreError handles */ });
   }
   return redisClient;
 };
