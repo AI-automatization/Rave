@@ -359,9 +359,16 @@ export function VideoPlayer({
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
       switch (e.code) {
         case 'Space':
-        case 'KeyK':   e.preventDefault(); togglePlay(); break;
-        case 'ArrowLeft':  e.preventDefault(); skip(-10); break;
-        case 'ArrowRight': e.preventDefault(); skip(10);  break;
+        case 'KeyK':
+          // Members cannot play/pause — don't even preventDefault
+          if (!isOwner) return;
+          e.preventDefault(); togglePlay(); break;
+        case 'ArrowLeft':
+          if (!isOwner) return;
+          e.preventDefault(); skip(-10); break;
+        case 'ArrowRight':
+          if (!isOwner) return;
+          e.preventDefault(); skip(10); break;
         case 'ArrowUp': {
           e.preventDefault();
           const v = Math.min(1, volume + 0.1);
@@ -385,7 +392,7 @@ export function VideoPlayer({
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [togglePlay, skip, toggleFullscreen, toggleMute, volume, showHint]);
+  }, [togglePlay, skip, toggleFullscreen, toggleMute, volume, showHint, isOwner]);
 
   /* ── Derived values ─────────────────────────────────────────── */
   const progressPct = duration > 0 ? (currentTime / duration) * 100 : 0;

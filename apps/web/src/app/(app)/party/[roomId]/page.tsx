@@ -57,46 +57,50 @@ export default function WatchPartyPage() {
   const effectiveOwnerId = ownerId ?? room?.ownerId;
   const isOwner = !!user?.id && effectiveOwnerId === user.id;
 
-  // Refs to keep latest values accessible from intervals/cleanup
-  const videoUrlRef    = useRef<string | null>(null);
-  const currentTimeRef = useRef<number>(0);
-  const durationRef    = useRef<number>(0);
+  // Refs to keep latest values stable inside intervals/cleanup
+  const videoUrlRef   = useRef<string | null>(null);
+  const syncStateRef  = useRef(syncState);   // always has latest syncState
+  const durationRef   = useRef<number>(0);
 
-  useEffect(() => { videoUrlRef.current = room?.videoUrl ?? null; }, [room?.videoUrl]);
-  useEffect(() => { currentTimeRef.current = syncState?.currentTime ?? 0; }, [syncState?.currentTime]);
+  useEffect(() => { videoUrlRef.current  = room?.videoUrl ?? null; }, [room?.videoUrl]);
+  useEffect(() => { syncStateRef.current = syncState; },             [syncState]);
 
-  // Save watch progress every 30s (owner only, external videos only)
-  const saveProgress = useCallback((currentTime: number, duration: number) => {
-    const url = videoUrlRef.current;
-    if (!url || !isOwner || currentTime < 5) return;
-    apiClient.post('/watch-progress', { videoUrl: url, currentTime, duration }).catch(() => {});
-  }, [isOwner]);
+  // Accurate current time: syncState.currentTime + elapsed (drift-compensated)
+  const getLiveTime = useCallback((): number => {
+    const s = syncStateRef.current;
+    if (!s) return 0;
+    if (s.isPlaying && s.serverTimestamp) {
+      return s.currentTime + Math.max(0, (Date.now() - s.serverTimestamp) / 1000);
+    }
+    return s.currentTime;
+  }, []);
 
-  // Called by VideoPlayer onProgress — derives duration from pct + time
+  // Called by VideoPlayer onProgress — keeps durationRef fresh
   const handleVideoProgress = useCallback((pct: number, currentTime: number) => {
-    currentTimeRef.current = currentTime;
     if (pct > 0) durationRef.current = (currentTime / pct) * 100;
   }, []);
 
+  // Save progress to backend (owner only, external videos only)
+  const saveProgress = useCallback(() => {
+    const url = videoUrlRef.current;
+    if (!url || !isOwner) return;
+    const t = getLiveTime();
+    const d = durationRef.current;
+    if (t < 5) return;
+    apiClient.post('/watch-progress', { videoUrl: url, currentTime: Math.floor(t), duration: Math.floor(d) }).catch(() => {});
+  }, [isOwner, getLiveTime]);
+
+  // Auto-save every 15s
   useEffect(() => {
     if (!isOwner) return;
-    const id = setInterval(() => {
-      const t = currentTimeRef.current;
-      const d = durationRef.current;
-      if (t > 5) saveProgress(t, d);
-    }, 30_000);
+    const id = setInterval(saveProgress, 15_000);
     return () => clearInterval(id);
   }, [isOwner, saveProgress]);
 
-  // Save progress on leave
+  // Save on leave
   const saveProgressOnLeave = useCallback(() => {
-    const url = videoUrlRef.current;
-    const t   = currentTimeRef.current;
-    const d   = durationRef.current;
-    if (url && isOwner && t > 5) {
-      apiClient.post('/watch-progress', { videoUrl: url, currentTime: t, duration: d }).catch(() => {});
-    }
-  }, [isOwner]);
+    saveProgress();
+  }, [saveProgress]);
 
   useEffect(() => {
     const load = async () => {

@@ -180,13 +180,21 @@ function YouTubePlayer({
 
   return (
     <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
-      <div ref={containerRef} className="w-full h-full [&>div]:w-full [&>div]:h-full [&>iframe]:w-full [&>iframe]:h-full" />
+      <div
+        ref={containerRef}
+        className="w-full h-full [&>div]:w-full [&>div]:h-full [&>iframe]:w-full [&>iframe]:h-full"
+      />
+      {/* Transparent overlay for non-owners: blocks all mouse/keyboard interaction
+          with the YouTube iframe (prevents members from controlling playback) */}
+      {!isOwner && (
+        <div className="absolute inset-0 z-10 cursor-not-allowed" />
+      )}
     </div>
   );
 }
 
 /* ── Generic iframe sub-component ───────────────────────────────── */
-function IframePlayer({ videoUrl, platform }: { videoUrl: string; platform: VideoPlatform }) {
+function IframePlayer({ videoUrl, platform, isOwner }: { videoUrl: string; platform: VideoPlatform; isOwner?: boolean }) {
   const embedUrl = buildEmbedUrl(videoUrl, platform);
   return (
     <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
@@ -196,7 +204,12 @@ function IframePlayer({ videoUrl, platform }: { videoUrl: string; platform: Vide
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
         allowFullScreen
         title="Video player"
+        style={!isOwner ? { pointerEvents: 'none' } : undefined}
       />
+      {/* Block member interaction */}
+      {!isOwner && (
+        <div className="absolute inset-0 z-10 cursor-not-allowed" />
+      )}
     </div>
   );
 }
@@ -235,5 +248,5 @@ export function UniversalPlayer(props: UniversalPlayerProps) {
   }
 
   // Vimeo, Twitch, Dailymotion, other → generic iframe embed
-  return <IframePlayer videoUrl={videoUrl} platform={platform} />;
+  return <IframePlayer videoUrl={videoUrl} platform={platform} isOwner={props.isOwner} />;
 }
