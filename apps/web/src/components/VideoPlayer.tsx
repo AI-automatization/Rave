@@ -54,6 +54,12 @@ export function VideoPlayer({
   const controlsTimer    = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hintTimer        = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Refs for stable access inside event listeners (avoid stale closures)
+  const syncIsPlayingRef = useRef<boolean | undefined>(syncIsPlaying);
+  const isOwnerRef       = useRef(isOwner);
+  const onPlayRef        = useRef(onPlay);
+  const onPauseRef       = useRef(onPause);
+
   const [isPlaying,       setIsPlaying]       = useState(false);
   const [isMuted,         setIsMuted]         = useState(false);
   const [volume,          setVolume]          = useState(1);
@@ -102,6 +108,12 @@ export function VideoPlayer({
     return () => { if (progressInterval.current) clearInterval(progressInterval.current); };
   }, [onProgress]);
 
+  /* ── Keep refs fresh (must be before sync effects) ─────────── */
+  useEffect(() => { syncIsPlayingRef.current = syncIsPlaying; }, [syncIsPlaying]);
+  useEffect(() => { isOwnerRef.current = isOwner; }, [isOwner]);
+  useEffect(() => { onPlayRef.current = onPlay; }, [onPlay]);
+  useEffect(() => { onPauseRef.current = onPause; }, [onPause]);
+
   /* ── Watch-Party sync ───────────────────────────────────────── */
   useEffect(() => {
     const video = videoRef.current;
@@ -116,6 +128,64 @@ export function VideoPlayer({
     if (syncIsPlaying) void video.play().catch(() => {});
     else video.pause();
   }, [syncIsPlaying, isOwner]);
+
+  /* ── Non-owner guard: block headphones + PiP controls ──────── */
+  // Media Session intercepts headphone buttons and PiP overlay controls.
+  // Direct listeners catch any other path that bypasses Media Session.
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.setActionHandler('play', () => {
+        if (isOwnerRef.current) {
+          void video.play().catch(() => {});
+          onPlayRef.current?.();
+        } else if (syncIsPlayingRef.current === true) {
+          // Owner is playing — keep member in sync
+          void video.play().catch(() => {});
+        }
+        // else: owner is paused — ignore play request from member
+      });
+
+      navigator.mediaSession.setActionHandler('pause', () => {
+        if (isOwnerRef.current) {
+          video.pause();
+          onPauseRef.current?.();
+        } else if (syncIsPlayingRef.current === true) {
+          // Owner is playing — refuse pause, re-enforce play
+          void video.play().catch(() => {});
+        }
+        // else: owner is paused — video is already paused, no-op
+      });
+    }
+
+    // Fallback: catch direct pause/play on video element (some PiP implementations)
+    const onDirectPause = () => {
+      if (!isOwnerRef.current && syncIsPlayingRef.current === true) {
+        void video.play().catch(() => {});
+      }
+    };
+    const onDirectPlay = () => {
+      if (!isOwnerRef.current && syncIsPlayingRef.current === false) {
+        video.pause();
+      }
+    };
+
+    video.addEventListener('pause', onDirectPause);
+    video.addEventListener('play', onDirectPlay);
+
+    return () => {
+      video.removeEventListener('pause', onDirectPause);
+      video.removeEventListener('play', onDirectPlay);
+      if ('mediaSession' in navigator) {
+        try {
+          navigator.mediaSession.setActionHandler('play', null);
+          navigator.mediaSession.setActionHandler('pause', null);
+        } catch { /* ignore */ }
+      }
+    };
+  }, []);
 
   /* ── Fullscreen listener ────────────────────────────────────── */
   useEffect(() => {
@@ -185,12 +255,12 @@ export function VideoPlayer({
 
   const applySpeed = useCallback((s: number) => {
     const video = videoRef.current;
-    if (!video) return;
+    if (!video || !isOwner) return;
     video.playbackRate = s;
     setSpeed(s);
     setShowSettings(false);
     showHint(`${s}x`);
-  }, [showHint]);
+  }, [isOwner, showHint]);
 
   const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
     const video = videoRef.current;
@@ -330,8 +400,8 @@ export function VideoPlayer({
         </div>
       )}
 
-      {/* Big play button overlay */}
-      {!isPlaying && !isBuffering && (
+      {/* Big play button overlay — owner only */}
+      {!isPlaying && !isBuffering && isOwner && (
         <button
           onClick={(e) => { e.stopPropagation(); togglePlay(); }}
           className="absolute inset-0 flex items-center justify-center z-10"
@@ -340,6 +410,16 @@ export function VideoPlayer({
             <FaPlay size={28} className="text-white ml-1 fill-current" />
           </div>
         </button>
+      )}
+
+      {/* Paused indicator for non-owners */}
+      {!isPlaying && !isBuffering && !isOwner && (
+        <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+          <div className="flex flex-col items-center gap-2 bg-black/50 px-5 py-3 rounded-xl backdrop-blur-sm border border-white/10">
+            <FaPause size={22} className="text-white/60" />
+            <span className="text-white/60 text-xs font-medium">Egasi toxtatdi</span>
+          </div>
+        </div>
       )}
 
       {/* Controls layer */}
@@ -377,10 +457,10 @@ export function VideoPlayer({
           {/* Progress bar */}
           <div
             ref={progressRef}
-            className="relative h-6 flex items-center cursor-pointer group/prog mb-0.5"
-            onMouseMove={handleProgressHover}
+            className={`relative h-6 flex items-center group/prog mb-0.5 ${isOwner ? 'cursor-pointer' : 'cursor-default'}`}
+            onMouseMove={isOwner ? handleProgressHover : undefined}
             onMouseLeave={() => setHoverTime(null)}
-            onClick={handleSeek}
+            onClick={isOwner ? handleSeek : undefined}
           >
             {/* Hover time tooltip */}
             {hoverTime && (
@@ -479,42 +559,44 @@ export function VideoPlayer({
             {/* Right group */}
             <div className="flex items-center gap-0.5 relative">
 
-              {/* Speed / Settings */}
-              <div className="relative">
-                <button
-                  onClick={(e) => { e.stopPropagation(); setShowSettings(!showSettings); }}
-                  className="flex items-center gap-1 h-9 px-2 rounded-lg text-white hover:bg-white/10 transition-all text-xs font-semibold"
-                  title="Playback speed"
-                >
-                  <MdSpeed size={19} />
-                  {speed !== 1 && <span className="text-[10px]">{speed}x</span>}
-                </button>
-
-                {/* Speed dropdown */}
-                {showSettings && (
-                  <div
-                    className="absolute bottom-12 right-0 bg-[#111118] border border-white/10 rounded-xl overflow-hidden shadow-2xl z-50 w-32"
-                    onClick={(e) => e.stopPropagation()}
+              {/* Speed / Settings — owner only */}
+              {isOwner && (
+                <div className="relative">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setShowSettings(!showSettings); }}
+                    className="flex items-center gap-1 h-9 px-2 rounded-lg text-white hover:bg-white/10 transition-all text-xs font-semibold"
+                    title="Playback speed"
                   >
-                    <div className="px-3 py-2 text-[10px] text-white/40 font-semibold uppercase tracking-widest border-b border-white/10">
-                      Speed
+                    <MdSpeed size={19} />
+                    {speed !== 1 && <span className="text-[10px]">{speed}x</span>}
+                  </button>
+
+                  {/* Speed dropdown */}
+                  {showSettings && (
+                    <div
+                      className="absolute bottom-12 right-0 bg-[#111118] border border-white/10 rounded-xl overflow-hidden shadow-2xl z-50 w-32"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="px-3 py-2 text-[10px] text-white/40 font-semibold uppercase tracking-widest border-b border-white/10">
+                        Speed
+                      </div>
+                      {SPEEDS.map((s) => (
+                        <button
+                          key={s}
+                          onClick={() => applySpeed(s)}
+                          className={`w-full text-left px-3 py-2 text-sm transition-colors ${
+                            speed === s
+                              ? 'text-[#7C3AED] bg-[#7C3AED]/10 font-semibold'
+                              : 'text-white hover:bg-white/5'
+                          }`}
+                        >
+                          {s === 1 ? 'Normal' : `${s}x`}
+                        </button>
+                      ))}
                     </div>
-                    {SPEEDS.map((s) => (
-                      <button
-                        key={s}
-                        onClick={() => applySpeed(s)}
-                        className={`w-full text-left px-3 py-2 text-sm transition-colors ${
-                          speed === s
-                            ? 'text-[#7C3AED] bg-[#7C3AED]/10 font-semibold'
-                            : 'text-white hover:bg-white/5'
-                        }`}
-                      >
-                        {s === 1 ? 'Normal' : `${s}x`}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
+              )}
 
               {/* Fullscreen */}
               <button

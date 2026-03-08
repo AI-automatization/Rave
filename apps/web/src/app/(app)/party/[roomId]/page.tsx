@@ -219,8 +219,9 @@ export default function WatchPartyPage() {
           </div>
 
           {!isOwner && (
-            <div className="alert alert-info py-2">
-              <span className="text-xs">{t('ownerOnly')}</span>
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs">
+              <span className="text-base">👁️</span>
+              <span>{t('ownerOnly')}</span>
             </div>
           )}
         </div>
