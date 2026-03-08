@@ -10,8 +10,8 @@ let redisClient: Redis | null = null;
 const getRedisClient = (): Redis => {
   if (!redisClient) {
     redisClient = new Redis(process.env.REDIS_URL ?? 'redis://localhost:6379', {
-      maxRetriesPerRequest: 1,    // fail fast → passOnStoreError kicks in
-      enableOfflineQueue: false,  // reject immediately when offline (no hanging)
+      maxRetriesPerRequest: 1,    // fail fast on requests → passOnStoreError kicks in
+      enableOfflineQueue: true,   // queue commands during startup until Redis connects
       connectTimeout: 3000,
       lazyConnect: false,
     });
