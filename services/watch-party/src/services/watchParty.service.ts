@@ -13,14 +13,30 @@ export class WatchPartyService {
 
   async createRoom(
     ownerId: string,
-    movieId: string,
-    maxMembers = 10,
-    isPrivate = false,
+    options: {
+      movieId?: string | null;
+      videoUrl?: string | null;
+      videoTitle?: string | null;
+      videoThumbnail?: string | null;
+      videoPlatform?: string | null;
+      maxMembers?: number;
+      isPrivate?: boolean;
+    },
   ): Promise<IWatchPartyRoomDocument> {
+    const { movieId, videoUrl, videoTitle, videoThumbnail, videoPlatform, maxMembers = 10, isPrivate = false } = options;
+
+    if (!movieId && !videoUrl) {
+      throw new BadRequestError('Either movieId or videoUrl is required');
+    }
+
     const inviteCode = crypto.randomBytes(4).toString('hex').toUpperCase();
 
     const room = await WatchPartyRoom.create({
-      movieId,
+      movieId:        movieId ?? null,
+      videoUrl:       videoUrl ?? null,
+      videoTitle:     videoTitle ?? null,
+      videoThumbnail: videoThumbnail ?? null,
+      videoPlatform:  videoPlatform ?? null,
       ownerId,
       members: [ownerId],
       maxMembers: Math.min(maxMembers, LIMITS.MAX_WATCH_PARTY_MEMBERS),

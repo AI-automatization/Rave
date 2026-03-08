@@ -21,6 +21,11 @@ const VideoPlayer = dynamic(
   { ssr: false, loading: () => <div className="aspect-video w-full bg-black rounded-xl animate-pulse" /> },
 );
 
+const UniversalPlayer = dynamic(
+  () => import('@/components/video/UniversalPlayer').then((m) => m.UniversalPlayer),
+  { ssr: false, loading: () => <div className="aspect-video w-full bg-black rounded-xl animate-pulse" /> },
+);
+
 export default function WatchPartyPage() {
   const { roomId } = useParams<{ roomId: string }>();
   const router = useRouter();
@@ -59,8 +64,11 @@ export default function WatchPartyPage() {
         const roomData = res.data.data;
         if (!roomData) return;
         setRoom(roomData);
-        const movieRes = await apiClient.get<ApiResponse<IMovie>>(`/movies/${roomData.movieId}`);
-        setMovie(movieRes.data.data ?? null);
+        // Only fetch movie when using catalog (not external URL)
+        if (roomData.movieId) {
+          const movieRes = await apiClient.get<ApiResponse<IMovie>>(`/movies/${roomData.movieId}`);
+          setMovie(movieRes.data.data ?? null);
+        }
       } catch (err) {
         logger.error('Watch Party xonasini yuklashda xato', err);
       } finally {
@@ -193,9 +201,9 @@ export default function WatchPartyPage() {
           <div className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold ${isConnected ? 'bg-lime-500/20 text-lime-400 border border-lime-500' : 'bg-red-500/20 text-red-400 border border-red-500'}`}>
             {isConnected ? t('connected') : t('disconnected')}
           </div>
-          {movie && (
+          {(movie?.title ?? room?.videoTitle) && (
             <span className="text-sm text-slate-400 truncate max-w-[150px]">
-              {movie.title}
+              {movie?.title ?? room?.videoTitle}
             </span>
           )}
           <button
@@ -222,7 +230,24 @@ export default function WatchPartyPage() {
         {/* Video panel */}
         <div className="lg:w-[70%] flex flex-col gap-3 min-h-0">
           <div className="relative">
-            {movie?.videoUrl ? (
+            {room?.videoUrl ? (
+              /* External URL room — use UniversalPlayer */
+              <UniversalPlayer
+                videoUrl={room.videoUrl}
+                platform={(room.videoPlatform ?? 'other') as import('@/types').VideoPlatform}
+                title={room.videoTitle ?? undefined}
+                thumbnail={room.videoThumbnail ?? undefined}
+                syncTime={syncState?.currentTime}
+                syncTimestamp={syncState?.serverTimestamp}
+                syncIsPlaying={syncState?.isPlaying}
+                isOwner={isOwner}
+                onPlay={(time) => emitPlay(time)}
+                onPause={(time) => emitPause(time)}
+                onSeek={(time) => emitSeek(time)}
+                onFullscreenChange={handleFullscreenChange}
+              />
+            ) : movie?.videoUrl ? (
+              /* Catalog movie */
               <VideoPlayer
                 src={movie.videoUrl}
                 poster={movie.backdropUrl ?? movie.posterUrl ?? movie.backdrop ?? movie.poster}

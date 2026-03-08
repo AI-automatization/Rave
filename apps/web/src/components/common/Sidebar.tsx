@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   FaHome, FaFilm, FaUsers, FaTrophy,
-  FaChartBar, FaBell, FaCog, FaSignOutAlt,
+  FaChartBar, FaBell, FaCog, FaSignOutAlt, FaLink,
 } from 'react-icons/fa';
 import { GiCrossedSwords } from 'react-icons/gi';
 import Image from 'next/image';
@@ -16,6 +16,7 @@ import { logger } from '@/lib/logger';
 const NAV = [
   { href: '/home',         icon: FaHome,          key: 'home' },
   { href: '/movies',       icon: FaFilm,          key: 'movies' },
+  { href: '/my-videos',    icon: FaLink,          key: 'myVideos' },
   { href: '/friends',      icon: FaUsers,         key: 'friends' },
   { href: '/battle',       icon: GiCrossedSwords, key: 'battle' },
   { href: '/achievements', icon: FaTrophy,        key: 'achievements' },

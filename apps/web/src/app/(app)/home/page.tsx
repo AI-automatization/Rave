@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { HeroBanner } from '@/components/movie/HeroBanner';
 import { HomeSection } from '@/components/home/HomeSection';
+import { WatchPartyBar } from '@/components/home/WatchPartyBar';
 import { logger } from '@/lib/logger';
 import type { ApiResponse, IMovie } from '@/types';
 
@@ -33,6 +34,7 @@ export default async function HomePage() {
   return (
     <div className="space-y-10">
       {hero && <HeroBanner movie={hero} />}
+      <WatchPartyBar />
       <HomeSection sectionKey="trending" href="/movies?sort=trending" movies={trending} />
       <HomeSection sectionKey="topRated" href="/movies?sort=rating" movies={topRated} />
       <HomeSection sectionKey="recent" href="/movies?sort=new" movies={recent} />

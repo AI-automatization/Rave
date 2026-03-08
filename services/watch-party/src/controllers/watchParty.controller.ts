@@ -9,13 +9,23 @@ export class WatchPartyController {
   createRoom = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { userId } = (req as AuthenticatedRequest).user;
-      const { movieId, maxMembers, isPrivate } = req.body as {
-        movieId: string;
+      const {
+        movieId, videoUrl, videoTitle, videoThumbnail, videoPlatform,
+        maxMembers, isPrivate,
+      } = req.body as {
+        movieId?: string;
+        videoUrl?: string;
+        videoTitle?: string;
+        videoThumbnail?: string;
+        videoPlatform?: string;
         maxMembers?: number;
         isPrivate?: boolean;
       };
 
-      const room = await this.watchPartyService.createRoom(userId, movieId, maxMembers, isPrivate);
+      const room = await this.watchPartyService.createRoom(userId, {
+        movieId, videoUrl, videoTitle, videoThumbnail, videoPlatform,
+        maxMembers, isPrivate,
+      });
       res.status(201).json(apiResponse.success(room, 'Room created'));
     } catch (error) {
       next(error);

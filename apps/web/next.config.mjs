@@ -11,6 +11,10 @@ const nextConfig = {
       { protocol: 'https', hostname: '**.railway.app' },
       { protocol: 'https', hostname: 'images.unsplash.com' },
       { protocol: 'https', hostname: 'i.pravatar.cc' },
+      { protocol: 'https', hostname: 'i.ytimg.com' },
+      { protocol: 'https', hostname: 'img.youtube.com' },
+      { protocol: 'https', hostname: 'i.vimeocdn.com' },
+      { protocol: 'https', hostname: 'vumbnail.com' },
     ],
   },
   experimental: {
@@ -33,6 +37,8 @@ const nextConfig = {
       { source: '/battles/:path*', destination: `${battleUrl}/api/v1/battles/:path*` },
       { source: '/notifications/:path*', destination: `${notifUrl}/api/v1/notifications/:path*` },
       { source: '/admin/:path*', destination: `${adminUrl}/api/v1/admin/:path*` },
+      { source: '/external-videos/:path*', destination: `${contentUrl}/api/v1/content/external-videos/:path*` },
+      { source: '/external-videos', destination: `${contentUrl}/api/v1/content/external-videos` },
     ];
   },
 };

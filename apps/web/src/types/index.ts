@@ -63,7 +63,11 @@ export interface IFriendship {
 
 export interface IWatchPartyRoom {
   _id: string;
-  movieId: string;
+  movieId: string | null;
+  videoUrl: string | null;
+  videoTitle: string | null;
+  videoThumbnail: string | null;
+  videoPlatform: string | null;
   ownerId: string;
   members: string[];
   inviteCode: string;
@@ -72,6 +76,34 @@ export interface IWatchPartyRoom {
   isPlaying: boolean;
   maxMembers: number;
   createdAt: string;
+}
+
+export type VideoPlatform = 'youtube' | 'vimeo' | 'twitch' | 'dailymotion' | 'direct' | 'other';
+export type VideoStatus   = 'pending' | 'approved' | 'rejected';
+
+export interface IExternalVideo {
+  _id: string;
+  url: string;
+  title: string;
+  description: string;
+  thumbnail: string;
+  platform: VideoPlatform;
+  submittedBy: string;
+  status: VideoStatus;
+  isPublic: boolean;
+  viewCount: number;
+  rating: number;
+  ratingCount: number;
+  rejectionReason?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface IVideoMetadata {
+  title: string;
+  description: string;
+  thumbnail: string;
+  platform: VideoPlatform;
 }
 
 export interface IBattle {
