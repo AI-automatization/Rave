@@ -114,53 +114,46 @@ export function VideoPlayer({
   useEffect(() => { onPlayRef.current = onPlay; }, [onPlay]);
   useEffect(() => { onPauseRef.current = onPause; }, [onPause]);
 
-  /* ── Watch-Party sync (combined seek → play, avoids race condition) ── */
-  // Two separate effects (seek + play) had a race: canplay fired at position 0
-  // BEFORE the seek happened → video.play() interrupted by seek → silent rejection.
-  // Fix: combine into one effect — seek first, play only after data is ready.
+  /* ── Watch-Party sync (seek → play in sequence) ─────────────── */
   useEffect(() => {
-    if (isOwner) return;
+    if (isOwner || syncIsPlaying === undefined) return;
     const video = videoRef.current;
     if (!video) return;
 
-    const needsSeek = syncTime !== undefined && Math.abs(video.currentTime - syncTime) > 2;
+    // cancelled flag prevents stale callbacks after effect cleanup
+    let cancelled = false;
 
     const applyPlay = () => {
-      if (syncIsPlaying === true) void video.play().catch(() => {});
-      else if (syncIsPlaying === false) video.pause();
+      if (cancelled) return;
+      if (syncIsPlaying) void video.play().catch(() => {});
+      else video.pause();
     };
 
-    const cleanup: (() => void)[] = [];
-
-    if (video.readyState >= 3) {
-      // Enough data buffered — act immediately
+    // Seek to syncTime first, then play — prevents canplay-at-pos-0 race
+    const seekThenPlay = () => {
+      if (cancelled) return;
+      const needsSeek = syncTime !== undefined && Math.abs(video.currentTime - syncTime) > 2;
       if (needsSeek) {
         video.currentTime = syncTime!;
+        // Wait for seek to settle before playing
         video.addEventListener('seeked', applyPlay, { once: true });
-        cleanup.push(() => video.removeEventListener('seeked', applyPlay));
       } else {
         applyPlay();
       }
-    } else if (video.readyState >= 1) {
-      // Metadata known (can seek), but not enough data to play yet
-      if (needsSeek) {
-        video.currentTime = syncTime!;
-        // Seek triggers HLS to load new segment → canplay fires when ready
-      }
-      const onCanPlay = () => applyPlay();
-      video.addEventListener('canplay', onCanPlay, { once: true });
-      cleanup.push(() => video.removeEventListener('canplay', onCanPlay));
+    };
+
+    if (video.readyState >= 1) {
+      seekThenPlay();
     } else {
-      // No metadata yet — wait for it, then seek+play
-      const onMetadata = () => {
-        if (needsSeek) video.currentTime = syncTime!;
-        video.addEventListener('canplay', applyPlay, { once: true });
-      };
-      video.addEventListener('loadedmetadata', onMetadata, { once: true });
-      cleanup.push(() => video.removeEventListener('loadedmetadata', onMetadata));
+      // Not ready yet — wait for metadata, then seek+play
+      video.addEventListener('loadedmetadata', seekThenPlay, { once: true });
     }
 
-    return () => cleanup.forEach((fn) => fn());
+    return () => {
+      cancelled = true;
+      video.removeEventListener('loadedmetadata', seekThenPlay);
+      video.removeEventListener('seeked', applyPlay);
+    };
   }, [isOwner, syncTime, syncIsPlaying]);
 
   /* ── Non-owner guard: block headphones + PiP controls ──────── */
