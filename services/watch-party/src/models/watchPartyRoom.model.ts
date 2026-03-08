@@ -15,6 +15,7 @@ export interface IWatchPartyRoomDocument extends Document {
   isPlaying: boolean;
   inviteCode: string;
   isPrivate: boolean;
+  password: string | null;  // bcrypt hash — null for public rooms
   createdAt: Date;
   updatedAt: Date;
 }
@@ -38,12 +39,17 @@ const watchPartyRoomSchema = new Schema<IWatchPartyRoomDocument>(
     isPlaying: { type: Boolean, default: false },
     inviteCode: { type: String, required: true, unique: true },
     isPrivate: { type: Boolean, default: false },
+    password: { type: String, default: null },
   },
   {
     timestamps: true,
     toJSON: {
       virtuals: true,
-      transform: (_doc, ret) => { Reflect.deleteProperty(ret, '__v'); return ret; },
+      transform: (_doc, ret) => {
+        Reflect.deleteProperty(ret, '__v');
+        Reflect.deleteProperty(ret, 'password'); // never expose hash
+        return ret;
+      },
     },
   },
 );

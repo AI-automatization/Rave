@@ -11,7 +11,7 @@ export class WatchPartyController {
       const { userId } = (req as AuthenticatedRequest).user;
       const {
         movieId, videoUrl, videoTitle, videoThumbnail, videoPlatform,
-        maxMembers, isPrivate, startTime,
+        maxMembers, isPrivate, password, startTime,
       } = req.body as {
         movieId?: string;
         videoUrl?: string;
@@ -20,12 +20,13 @@ export class WatchPartyController {
         videoPlatform?: string;
         maxMembers?: number;
         isPrivate?: boolean;
+        password?: string;
         startTime?: number;
       };
 
       const room = await this.watchPartyService.createRoom(userId, {
         movieId, videoUrl, videoTitle, videoThumbnail, videoPlatform,
-        maxMembers, isPrivate, startTime,
+        maxMembers, isPrivate, password, startTime,
       });
       res.status(201).json(apiResponse.success(room, 'Room created'));
     } catch (error) {
@@ -37,8 +38,9 @@ export class WatchPartyController {
     try {
       const { userId } = (req as AuthenticatedRequest).user;
       const { inviteCode } = req.params;
+      const { password } = req.body as { password?: string };
 
-      const room = await this.watchPartyService.joinRoom(userId, inviteCode);
+      const room = await this.watchPartyService.joinRoom(userId, inviteCode, password);
       res.json(apiResponse.success(room, 'Joined room'));
     } catch (error) {
       next(error);
@@ -49,6 +51,16 @@ export class WatchPartyController {
     try {
       const room = await this.watchPartyService.getRoom(req.params.id);
       res.json(apiResponse.success(room));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getRooms = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const limit = Math.min(parseInt((req.query.limit as string) ?? '50', 10), 100);
+      const rooms = await this.watchPartyService.getRooms(limit);
+      res.json(apiResponse.success(rooms));
     } catch (error) {
       next(error);
     }

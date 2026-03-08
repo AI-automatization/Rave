@@ -9,16 +9,19 @@ export const createWatchPartyRouter = (redis: Redis): Router => {
   const watchPartyService = new WatchPartyService(redis);
   const watchPartyController = new WatchPartyController(watchPartyService);
 
-  // POST /watch-party/rooms
+  // GET /watch-party/rooms — list all active rooms (sorted by member count)
+  router.get('/rooms', verifyToken, watchPartyController.getRooms);
+
+  // POST /watch-party/rooms — create room
   router.post('/rooms', verifyToken, watchPartyController.createRoom);
 
-  // GET /watch-party/rooms/:id
+  // GET /watch-party/rooms/:id — get room details
   router.get('/rooms/:id', verifyToken, watchPartyController.getRoom);
 
-  // POST /watch-party/rooms/join/:inviteCode
+  // POST /watch-party/rooms/join/:inviteCode — join room (body: { password? })
   router.post('/rooms/join/:inviteCode', verifyToken, watchPartyController.joinRoom);
 
-  // DELETE /watch-party/rooms/:id/leave
+  // DELETE /watch-party/rooms/:id/leave — leave room
   router.delete('/rooms/:id/leave', verifyToken, watchPartyController.leaveRoom);
 
   return router;

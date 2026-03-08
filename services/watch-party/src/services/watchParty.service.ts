@@ -1,12 +1,13 @@
 import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
 import Redis from 'ioredis';
 import { WatchPartyRoom, IWatchPartyRoomDocument } from '../models/watchPartyRoom.model';
 import { logger } from '@shared/utils/logger';
-import { NotFoundError, ForbiddenError, BadRequestError } from '@shared/utils/errors';
+import { NotFoundError, ForbiddenError, BadRequestError, UnauthorizedError } from '@shared/utils/errors';
 import { SyncState } from '@shared/types';
 import { REDIS_KEYS, TTL, LIMITS } from '@shared/constants';
 
-const SYNC_THRESHOLD_SECONDS = 2; // ±2 seconds
+const SYNC_THRESHOLD_SECONDS = 2;
 
 export class WatchPartyService {
   constructor(private redis: Redis) {}
@@ -21,16 +22,26 @@ export class WatchPartyService {
       videoPlatform?: string | null;
       maxMembers?: number;
       isPrivate?: boolean;
+      password?: string;
       startTime?: number;
     },
   ): Promise<IWatchPartyRoomDocument> {
-    const { movieId, videoUrl, videoTitle, videoThumbnail, videoPlatform, maxMembers = 10, isPrivate = false, startTime = 0 } = options;
+    const {
+      movieId, videoUrl, videoTitle, videoThumbnail, videoPlatform,
+      maxMembers = 10, isPrivate = false, password, startTime = 0,
+    } = options;
 
     if (!movieId && !videoUrl) {
       throw new BadRequestError('Either movieId or videoUrl is required');
     }
 
     const inviteCode = crypto.randomBytes(4).toString('hex').toUpperCase();
+
+    // Hash password only for private rooms with a password set
+    let passwordHash: string | null = null;
+    if (isPrivate && password) {
+      passwordHash = await bcrypt.hash(password, 10);
+    }
 
     const room = await WatchPartyRoom.create({
       movieId:        movieId ?? null,
@@ -43,10 +54,10 @@ export class WatchPartyService {
       maxMembers: Math.min(maxMembers, LIMITS.MAX_WATCH_PARTY_MEMBERS),
       inviteCode,
       isPrivate,
+      password:       passwordHash,
       currentTime:    startTime,
     });
 
-    // Cache room state in Redis (with saved startTime)
     await this.cacheRoomState(room._id.toString(), {
       currentTime: startTime,
       isPlaying: false,
@@ -54,15 +65,26 @@ export class WatchPartyService {
       updatedBy: ownerId,
     });
 
-    logger.info('Watch party room created', { roomId: room._id, ownerId });
+    logger.info('Watch party room created', { roomId: room._id, ownerId, isPrivate });
     return room;
   }
 
-  async joinRoom(userId: string, inviteCode: string): Promise<IWatchPartyRoomDocument> {
+  async joinRoom(userId: string, inviteCode: string, password?: string): Promise<IWatchPartyRoomDocument> {
     const room = await WatchPartyRoom.findOne({ inviteCode, status: { $ne: 'ended' } });
     if (!room) throw new NotFoundError('Room not found or has ended');
 
     if (room.members.includes(userId)) return room; // Already member
+
+    // Private room: verify password
+    if (room.isPrivate && room.password) {
+      if (!password) {
+        throw new UnauthorizedError('password_required');
+      }
+      const ok = await bcrypt.compare(password, room.password);
+      if (!ok) {
+        throw new ForbiddenError('Noto\'g\'ri parol');
+      }
+    }
 
     if (room.members.length >= room.maxMembers) {
       throw new BadRequestError('Room is full');
@@ -86,14 +108,12 @@ export class WatchPartyService {
       const remainingMembers = room.members.filter((m) => m !== userId);
 
       if (remainingMembers.length === 0) {
-        // No members left — close the room
         await WatchPartyRoom.updateOne({ _id: roomId }, { status: 'ended', members: [] });
         await this.redis.del(REDIS_KEYS.watchPartyRoom(roomId));
         logger.info('Watch party room closed (no members)', { roomId });
         return { closed: true };
       }
 
-      // Transfer ownership to the first remaining member
       const newOwnerId = remainingMembers[0];
       await WatchPartyRoom.updateOne(
         { _id: roomId },
@@ -103,7 +123,6 @@ export class WatchPartyService {
       return { closed: false, newOwnerId };
     }
 
-    // Regular member leaves
     await WatchPartyRoom.updateOne({ _id: roomId }, { $pull: { members: userId } });
     logger.info('User left watch party', { roomId, userId });
     return { closed: false };
@@ -113,6 +132,23 @@ export class WatchPartyService {
     const room = await WatchPartyRoom.findById(roomId);
     if (!room) throw new NotFoundError('Room not found');
     return room;
+  }
+
+  /** List all active public rooms sorted by member count (descending) */
+  async getRooms(limit = 50): Promise<Array<IWatchPartyRoomDocument & { memberCount: number }>> {
+    const rooms = await WatchPartyRoom.find({ status: { $ne: 'ended' } })
+      .sort({ createdAt: -1 })
+      .limit(limit * 3) // fetch more then sort in JS by memberCount
+      .lean();
+
+    const sorted = rooms
+      .map((r) => ({ ...r, memberCount: r.members.length }))
+      .sort((a, b) => b.memberCount - a.memberCount)
+      .slice(0, limit)
+      // Remove password hash even from lean results
+      .map(({ password: _p, ...rest }) => rest as typeof rest & { memberCount: number });
+
+    return sorted as unknown as Array<IWatchPartyRoomDocument & { memberCount: number }>;
   }
 
   async syncState(
@@ -157,7 +193,6 @@ export class WatchPartyService {
     const room = await WatchPartyRoom.findById(roomId);
     if (!room) throw new NotFoundError('Room not found');
     if (room.ownerId !== ownerId) throw new ForbiddenError('Only the room owner can kick members');
-
     await WatchPartyRoom.updateOne({ _id: roomId }, { $pull: { members: targetUserId } });
   }
 

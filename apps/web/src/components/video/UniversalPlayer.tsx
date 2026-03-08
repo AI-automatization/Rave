@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import { VideoPlayer } from '@/components/VideoPlayer';
-import { apiClient } from '@/lib/axios';
+import { useAuthStore } from '@/store/auth.store';
 import type { VideoPlatform } from '@/types';
 
 /* ── Helpers ─────────────────────────────────────────────────────── */
@@ -47,68 +47,32 @@ interface UniversalPlayerProps {
   onFullscreenChange?: (isFullscreen: boolean) => void;
 }
 
-/* ── YouTube resolver — fetches direct mp4 URL, plays in VideoPlayer */
-function YouTubeResolverPlayer(props: UniversalPlayerProps) {
-  const { videoUrl, thumbnail, ...rest } = props;
-  const [directUrl, setDirectUrl] = useState<string | null>(null);
-  const [resolvedThumb, setResolvedThumb] = useState<string | undefined>(thumbnail);
-  const [loading, setLoading] = useState(true);
-  const [failed, setFailed] = useState(false);
+/* ── YouTube — proxied through our backend stream endpoint ─────── */
+function YouTubePlayer(props: UniversalPlayerProps) {
+  // Access token from Zustand / localStorage — passed as query param
+  // because <video> elements cannot set Authorization headers
+  const token =
+    useAuthStore.getState().accessToken ??
+    (typeof window !== 'undefined' ? localStorage.getItem('access_token') : '') ??
+    '';
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setFailed(false);
-    setDirectUrl(null);
-
-    apiClient
-      .get<{ success: boolean; data: { url: string; title: string; thumbnail: string } }>(
-        `/youtube/stream-url?url=${encodeURIComponent(videoUrl)}`,
-      )
-      .then((res) => {
-        if (cancelled) return;
-        const d = res.data?.data;
-        if (d?.url) {
-          setDirectUrl(d.url);
-          if (d.thumbnail && !thumbnail) setResolvedThumb(d.thumbnail);
-        } else {
-          setFailed(true);
-        }
-      })
-      .catch(() => { if (!cancelled) setFailed(true); })
-      .finally(() => { if (!cancelled) setLoading(false); });
-
-    return () => { cancelled = true; };
-  }, [videoUrl, thumbnail]);
-
-  if (loading) {
-    return (
-      <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden flex items-center justify-center">
-        {resolvedThumb && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={resolvedThumb} alt="" className="absolute inset-0 w-full h-full object-cover opacity-30" />
-        )}
-        <div className="relative flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-2 border-white/20 border-t-white/80 rounded-full animate-spin" />
-          <span className="text-white/50 text-sm">Video yuklanmoqda…</span>
-        </div>
-      </div>
-    );
-  }
-
-  if (failed || !directUrl) {
-    return (
-      <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden flex items-center justify-center">
-        <p className="text-white/40 text-sm">Videoni yuklab bo'lmadi</p>
-      </div>
-    );
-  }
+  const streamUrl = `/youtube/stream?url=${encodeURIComponent(props.videoUrl)}&token=${encodeURIComponent(token)}`;
 
   return (
     <VideoPlayer
-      src={directUrl}
-      poster={resolvedThumb}
-      {...rest}
+      src={streamUrl}
+      poster={props.thumbnail}
+      title={props.title}
+      initialTime={props.initialTime}
+      syncTime={props.syncTime}
+      syncTimestamp={props.syncTimestamp}
+      syncIsPlaying={props.syncIsPlaying}
+      isOwner={props.isOwner}
+      onProgress={props.onProgress}
+      onPlay={props.onPlay}
+      onPause={props.onPause}
+      onSeek={props.onSeek}
+      onFullscreenChange={props.onFullscreenChange}
     />
   );
 }
@@ -158,9 +122,8 @@ export function UniversalPlayer(props: UniversalPlayerProps) {
   }
 
   if (platform === 'youtube') {
-    return <YouTubeResolverPlayer {...props} onFullscreenChange={handleFullscreen} />;
+    return <YouTubePlayer {...props} onFullscreenChange={handleFullscreen} />;
   }
 
-  // Vimeo, Twitch, Dailymotion, other → generic iframe embed
   return <IframePlayer videoUrl={videoUrl} platform={platform} />;
 }

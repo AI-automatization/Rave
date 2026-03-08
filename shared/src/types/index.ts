@@ -121,7 +121,11 @@ export type WatchPartyStatus = 'waiting' | 'playing' | 'paused' | 'ended';
 
 export interface IWatchPartyRoom {
   _id: string;
-  movieId: string;
+  movieId?: string | null;
+  videoUrl?: string | null;
+  videoTitle?: string | null;
+  videoThumbnail?: string | null;
+  videoPlatform?: string | null;
   ownerId: string;
   members: string[];
   maxMembers: number;
@@ -130,6 +134,7 @@ export interface IWatchPartyRoom {
   isPlaying: boolean;
   inviteCode: string;
   isPrivate: boolean;
+  memberCount?: number;  // included in getRooms response
   createdAt: Date;
   updatedAt: Date;
 }

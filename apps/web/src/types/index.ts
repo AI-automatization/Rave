@@ -71,6 +71,8 @@ export interface IWatchPartyRoom {
   ownerId: string;
   members: string[];
   inviteCode: string;
+  isPrivate: boolean;
+  memberCount?: number;
   status: 'waiting' | 'playing' | 'paused' | 'ended';
   currentTime: number;
   isPlaying: boolean;

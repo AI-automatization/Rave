@@ -6,39 +6,53 @@ export interface YtStreamInfo {
   title: string;
   duration: number;
   thumbnail: string;
+  mimeType: string;
+  contentLength: number;
 }
 
-export const ytdlService = {
-  async getStreamUrl(youtubeUrl: string): Promise<YtStreamInfo> {
-    logger.info('Resolving YouTube stream URL', { youtubeUrl });
+interface CachedInfo {
+  info: ytdl.videoInfo;
+  format: ytdl.videoFormat;
+  cachedAt: number;
+}
 
+// In-memory cache: YouTube video info expires in ~6h, we refresh after 2h
+const infoCache = new Map<string, CachedInfo>();
+const CACHE_TTL = 2 * 60 * 60 * 1000; // 2 hours
+
+export const ytdlService = {
+  async getCachedInfo(youtubeUrl: string): Promise<CachedInfo> {
+    const cached = infoCache.get(youtubeUrl);
+    if (cached && Date.now() - cached.cachedAt < CACHE_TTL) return cached;
+
+    logger.info('Fetching YouTube video info', { youtubeUrl });
     const info = await ytdl.getInfo(youtubeUrl);
 
-    // Prefer pre-merged mp4 (audioandvideo) — 720p or 360p fallback
+    // Best pre-merged mp4 (audioandvideo) — max 720p
     let format = ytdl.chooseFormat(info.formats, {
       filter: 'audioandvideo',
       quality: 'highest',
     });
-
-    // Fallback: any format with audio+video
     if (!format) {
-      format = info.formats.find(
-        (f) => f.hasAudio && f.hasVideo && f.container === 'mp4',
-      ) ?? info.formats[0];
+      // Fallback: any format with video
+      format = info.formats.find((f) => f.hasAudio && f.hasVideo) ?? info.formats[0];
     }
 
-    if (!format?.url) {
-      throw new Error('No suitable format found');
-    }
+    const entry: CachedInfo = { info, format, cachedAt: Date.now() };
+    infoCache.set(youtubeUrl, entry);
+    return entry;
+  },
 
+  async getStreamInfo(youtubeUrl: string): Promise<YtStreamInfo> {
+    const { info, format } = await this.getCachedInfo(youtubeUrl);
     const thumbnails = info.videoDetails.thumbnails;
-    const thumbnail = thumbnails[thumbnails.length - 1]?.url ?? '';
-
     return {
       url: format.url,
       title: info.videoDetails.title,
       duration: parseInt(info.videoDetails.lengthSeconds, 10),
-      thumbnail,
+      thumbnail: thumbnails[thumbnails.length - 1]?.url ?? '',
+      mimeType: format.mimeType ?? 'video/mp4',
+      contentLength: parseInt(format.contentLength ?? '0', 10),
     };
   },
 };
