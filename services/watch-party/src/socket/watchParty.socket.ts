@@ -16,6 +16,9 @@ const verifySocketToken = (token: string): JwtPayload => {
   return jwt.verify(token, publicKey, { algorithms: ['RS256'] }) as JwtPayload;
 };
 
+// In-memory voice rooms: roomId → Set of userIds currently in voice
+const voiceRooms = new Map<string, Set<string>>();
+
 export const registerWatchPartySocket = (io: SocketServer, watchPartyService: WatchPartyService): void => {
   // JWT middleware for socket connections
   io.use((socket: Socket, next) => {
@@ -37,6 +40,9 @@ export const registerWatchPartySocket = (io: SocketServer, watchPartyService: Wa
   io.on('connection', (socket: Socket) => {
     const authSocket = socket as AuthenticatedSocket;
     const { userId } = authSocket.user;
+
+    // Personal room for direct relay (voice signaling)
+    void socket.join(`user:${userId}`);
 
     logger.info('Socket connected', { userId, socketId: socket.id });
 
@@ -229,10 +235,66 @@ export const registerWatchPartySocket = (io: SocketServer, watchPartyService: Wa
       }
     });
 
+    // ── VOICE CHAT ───────────────────────────────────────────────────
+
+    // JOIN VOICE — user must already be in a room
+    socket.on(CLIENT_EVENTS.VOICE_JOIN, () => {
+      const roomId = authSocket.roomId;
+      if (!roomId) return;
+
+      if (!voiceRooms.has(roomId)) voiceRooms.set(roomId, new Set());
+      voiceRooms.get(roomId)!.add(userId);
+
+      // Reply with currently in-voice members (excluding self)
+      const existingMembers = [...voiceRooms.get(roomId)!].filter((id) => id !== userId);
+      socket.emit(SERVER_EVENTS.VOICE_JOINED, { members: existingMembers });
+
+      // Notify others in room
+      socket.to(roomId).emit(SERVER_EVENTS.VOICE_USER_JOINED, { userId });
+      logger.info('User joined voice chat', { userId, roomId });
+    });
+
+    // LEAVE VOICE
+    socket.on(CLIENT_EVENTS.VOICE_LEAVE, () => {
+      const roomId = authSocket.roomId;
+      if (!roomId) return;
+      voiceRooms.get(roomId)?.delete(userId);
+      socket.to(roomId).emit(SERVER_EVENTS.VOICE_USER_LEFT, { userId });
+      logger.info('User left voice chat', { userId, roomId });
+    });
+
+    // VOICE OFFER — relay to target by userId (via personal room)
+    // Types are `unknown` because Node.js has no WebRTC globals; server just relays the payload.
+    socket.on(CLIENT_EVENTS.VOICE_OFFER, (data: { to: string; offer: unknown }) => {
+      socket.to(`user:${data.to}`).emit(SERVER_EVENTS.VOICE_OFFER, { from: userId, offer: data.offer });
+    });
+
+    // VOICE ANSWER — relay to target
+    socket.on(CLIENT_EVENTS.VOICE_ANSWER, (data: { to: string; answer: unknown }) => {
+      socket.to(`user:${data.to}`).emit(SERVER_EVENTS.VOICE_ANSWER, { from: userId, answer: data.answer });
+    });
+
+    // VOICE ICE — relay candidate to target
+    socket.on(CLIENT_EVENTS.VOICE_ICE, (data: { to: string; candidate: unknown }) => {
+      socket.to(`user:${data.to}`).emit(SERVER_EVENTS.VOICE_ICE, { from: userId, candidate: data.candidate });
+    });
+
+    // VOICE SPEAKING — relay speaking state to others in room
+    socket.on(CLIENT_EVENTS.VOICE_SPEAKING, (data: { speaking: boolean }) => {
+      const roomId = authSocket.roomId;
+      if (!roomId) return;
+      socket.to(roomId).emit(SERVER_EVENTS.VOICE_SPEAKING, { userId, speaking: data.speaking });
+    });
+
     // DISCONNECT
     socket.on('disconnect', async () => {
       const roomId = authSocket.roomId;
       if (roomId) {
+        // Clean up voice room
+        if (voiceRooms.get(roomId)?.delete(userId)) {
+          socket.to(roomId).emit(SERVER_EVENTS.VOICE_USER_LEFT, { userId });
+        }
+
         authSocket.roomId = undefined;
         try {
           const result = await watchPartyService.leaveRoom(userId, roomId);

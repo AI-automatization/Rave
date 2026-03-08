@@ -32,6 +32,7 @@ interface VideoPlayerProps {
   onPlay?: (currentTime: number) => void;
   onPause?: (currentTime: number) => void;
   onSeek?: (time: number) => void;
+  onFullscreenChange?: (isFullscreen: boolean) => void;
 }
 
 export function VideoPlayer({
@@ -47,6 +48,7 @@ export function VideoPlayer({
   onPlay,
   onPause,
   onSeek,
+  onFullscreenChange,
 }: VideoPlayerProps) {
   const videoRef      = useRef<HTMLVideoElement>(null);
   const containerRef  = useRef<HTMLDivElement>(null);
@@ -239,10 +241,14 @@ export function VideoPlayer({
 
   /* ── Fullscreen listener ────────────────────────────────────── */
   useEffect(() => {
-    const handler = () => setIsFullscreen(!!document.fullscreenElement);
+    const handler = () => {
+      const fs = !!document.fullscreenElement;
+      setIsFullscreen(fs);
+      onFullscreenChange?.(fs);
+    };
     document.addEventListener('fullscreenchange', handler);
     return () => document.removeEventListener('fullscreenchange', handler);
-  }, []);
+  }, [onFullscreenChange]);
 
   /* ── Helpers ─────────────────────────────────────────────────── */
   const showHint = useCallback((msg: string) => {

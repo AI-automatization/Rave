@@ -2,11 +2,14 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { FaCopy, FaCheck, FaUserPlus, FaTimes, FaSignOutAlt, FaCrown } from 'react-icons/fa';
 import { ChatPanel } from '@/components/party/ChatPanel';
+import { FullscreenOverlay } from '@/components/party/FullscreenOverlay';
 import { useWatchParty } from '@/hooks/useWatchParty';
+import { useVoiceChat } from '@/hooks/useVoiceChat';
 import { useAuthStore } from '@/store/auth.store';
 import { apiClient } from '@/lib/axios';
 import { logger } from '@/lib/logger';
@@ -39,6 +42,11 @@ export default function WatchPartyPage() {
     syncState, members, messages, emojiEvents, ownerId, roomClosed,
     sendMessage, sendEmoji, emitPlay, emitPause, emitSeek, leaveRoom, isConnected,
   } = useWatchParty(roomId, room?.ownerId);
+
+  const voice = useVoiceChat(roomId, user?.id);
+
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [fullscreenEl, setFullscreenEl] = useState<Element | null>(null);
 
   // Effective owner: use live ownerId from socket (falls back to room data)
   const effectiveOwnerId = ownerId ?? room?.ownerId;
@@ -75,6 +83,11 @@ export default function WatchPartyPage() {
       router.replace('/home');
     }
   }, [roomClosed, router]);
+
+  const handleFullscreenChange = (fs: boolean) => {
+    setIsFullscreen(fs);
+    setFullscreenEl(fs ? document.fullscreenElement : null);
+  };
 
   const inviteLink = room ? `${typeof window !== 'undefined' ? window.location.origin : ''}/party/join/${room.inviteCode}` : '';
 
@@ -220,6 +233,7 @@ export default function WatchPartyPage() {
                 onPlay={(time) => emitPlay(time)}
                 onPause={(time) => emitPause(time)}
                 onSeek={(time) => emitSeek(time)}
+                onFullscreenChange={handleFullscreenChange}
               />
             ) : (
               <div className="aspect-video bg-black rounded-xl flex items-center justify-center">
@@ -258,9 +272,26 @@ export default function WatchPartyPage() {
             currentUserId={user?.id}
             ownerId={effectiveOwnerId}
             emojiCooldown={emojiCooldown}
+            voice={voice}
           />
         </div>
       </div>
+
+      {/* Fullscreen overlay — chat + voice inside fullscreen element via portal */}
+      {isFullscreen && fullscreenEl && createPortal(
+        <FullscreenOverlay
+          messages={messages}
+          members={members}
+          currentUserId={user?.id}
+          ownerId={effectiveOwnerId}
+          voice={voice}
+          emojiCooldown={emojiCooldown}
+          floatingEmojis={floatingEmojis}
+          onSendMessage={sendMessage}
+          onSendEmoji={handleEmojiSend}
+        />,
+        fullscreenEl,
+      )}
 
       {/* Owner leave confirmation modal */}
       {showLeaveConfirm && (

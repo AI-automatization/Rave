@@ -4,7 +4,9 @@ import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { FaPaperPlane, FaSmile, FaCrown } from 'react-icons/fa';
 import { useTranslations } from 'next-intl';
+import { VoicePanel } from './VoicePanel';
 import type { IChatMessage, IUser } from '@/types';
+import type { UseVoiceChatReturn } from '@/hooks/useVoiceChat';
 
 const QUICK_EMOJIS = ['😂', '❤️', '🔥', '👏', '😱', '😍', '💀', '🎬'];
 
@@ -16,6 +18,7 @@ interface ChatPanelProps {
   currentUserId?: string;
   ownerId?: string;
   emojiCooldown?: number;
+  voice: UseVoiceChatReturn;
 }
 
 export function ChatPanel({
@@ -26,6 +29,7 @@ export function ChatPanel({
   currentUserId,
   ownerId,
   emojiCooldown = 0,
+  voice,
 }: ChatPanelProps) {
   const t = useTranslations('chat');
   const [input, setInput] = useState('');
@@ -57,6 +61,19 @@ export function ChatPanel({
 
   return (
     <div className="flex flex-col h-full bg-[#0f1117] rounded-2xl overflow-hidden border border-white/[0.06]">
+
+      {/* ── Voice Chat ───────────────────────────────────────────── */}
+      <VoicePanel
+        voiceMembers={voice.voiceMembers}
+        speakingUsers={voice.speakingUsers}
+        members={members}
+        isInVoice={voice.isInVoice}
+        isMuted={voice.isMuted}
+        currentUserId={currentUserId}
+        onJoin={() => { void voice.joinVoice(); }}
+        onLeave={voice.leaveVoice}
+        onToggleMute={voice.toggleMute}
+      />
 
       {/* ── Members (Telegram-style) ─────────────────────────────── */}
       <div className="shrink-0 border-b border-white/[0.06]">

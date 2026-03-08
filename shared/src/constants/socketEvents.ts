@@ -23,6 +23,14 @@ export const SERVER_EVENTS = Object.freeze({
   ROOM_MESSAGE: 'room:message',
   ROOM_EMOJI: 'room:emoji',
 
+  VOICE_JOINED:     'voice:joined',
+  VOICE_USER_JOINED: 'voice:user_joined',
+  VOICE_USER_LEFT:  'voice:user_left',
+  VOICE_OFFER:      'voice:offer',
+  VOICE_ANSWER:     'voice:answer',
+  VOICE_ICE:        'voice:ice',
+  VOICE_SPEAKING:   'voice:speaking',
+
   ERROR: 'error',
 } as const);
 
@@ -42,6 +50,13 @@ export const CLIENT_EVENTS = Object.freeze({
 
   KICK_MEMBER: 'member:kick',
   MUTE_MEMBER: 'member:mute',
+
+  VOICE_JOIN:     'voice:join',
+  VOICE_LEAVE:    'voice:leave',
+  VOICE_OFFER:    'voice:offer',
+  VOICE_ANSWER:   'voice:answer',
+  VOICE_ICE:      'voice:ice',
+  VOICE_SPEAKING: 'voice:speaking',
 } as const);
 
 export type ServerEvent = (typeof SERVER_EVENTS)[keyof typeof SERVER_EVENTS];
