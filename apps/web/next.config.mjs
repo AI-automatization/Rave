@@ -41,6 +41,7 @@ const nextConfig = {
       { source: '/external-videos', destination: `${contentUrl}/api/v1/content/external-videos` },
       { source: '/watch-progress/:path*', destination: `${contentUrl}/api/v1/content/watch-progress/:path*` },
       { source: '/watch-progress', destination: `${contentUrl}/api/v1/content/watch-progress` },
+      { source: '/youtube/:path*', destination: `${contentUrl}/api/v1/content/youtube/:path*` },
     ];
   },
 };

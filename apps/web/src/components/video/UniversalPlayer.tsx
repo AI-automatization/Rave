@@ -1,59 +1,17 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { VideoPlayer } from '@/components/VideoPlayer';
+import { apiClient } from '@/lib/axios';
 import type { VideoPlatform } from '@/types';
 
-/* ── YouTube IFrame API types ────────────────────────────────────── */
-declare global {
-  interface Window {
-    YT: {
-      Player: new (el: HTMLElement | string, opts: YTPlayerOptions) => YTPlayer;
-      PlayerState: { PLAYING: number; PAUSED: number; ENDED: number };
-    };
-    onYouTubeIframeAPIReady?: () => void;
-  }
-}
-
-interface YTPlayerOptions {
-  videoId: string;
-  playerVars?: Record<string, string | number>;
-  events?: {
-    onReady?: (e: { target: YTPlayer }) => void;
-    onStateChange?: (e: { data: number; target: YTPlayer }) => void;
-  };
-}
-
-interface YTPlayer {
-  playVideo(): void;
-  pauseVideo(): void;
-  seekTo(seconds: number, allowSeekAhead: boolean): void;
-  getCurrentTime(): number;
-  getPlayerState(): number;
-  destroy(): void;
-}
-
 /* ── Helpers ─────────────────────────────────────────────────────── */
-function extractYouTubeId(url: string): string | null {
-  try {
-    const u = new URL(url);
-    if (u.hostname.includes('youtu.be')) return u.pathname.slice(1).split('?')[0] ?? null;
-    return u.searchParams.get('v');
-  } catch {
-    return null;
-  }
-}
-
 function extractVimeoId(url: string): string | null {
   const match = url.match(/vimeo\.com\/(\d+)/);
   return match?.[1] ?? null;
 }
 
 function buildEmbedUrl(url: string, platform: VideoPlatform): string {
-  if (platform === 'youtube') {
-    const id = extractYouTubeId(url);
-    return id ? `https://www.youtube.com/embed/${id}?enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : ''}` : url;
-  }
   if (platform === 'vimeo') {
     const id = extractVimeoId(url);
     return id ? `https://player.vimeo.com/video/${id}?api=1` : url;
@@ -89,111 +47,74 @@ interface UniversalPlayerProps {
   onFullscreenChange?: (isFullscreen: boolean) => void;
 }
 
-/* ── YouTube sub-component with sync ────────────────────────────── */
-function YouTubePlayer({
-  videoUrl, initialTime, syncTime, syncTimestamp, syncIsPlaying, isOwner = true,
-  onPlay, onPause, onSeek,
-}: UniversalPlayerProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const playerRef    = useRef<YTPlayer | null>(null);
-  const readyRef     = useRef(false);
-  const ignoreSyncRef = useRef(false); // prevent owner's own events from looping
+/* ── YouTube resolver — fetches direct mp4 URL, plays in VideoPlayer */
+function YouTubeResolverPlayer(props: UniversalPlayerProps) {
+  const { videoUrl, thumbnail, ...rest } = props;
+  const [directUrl, setDirectUrl] = useState<string | null>(null);
+  const [resolvedThumb, setResolvedThumb] = useState<string | undefined>(thumbnail);
+  const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
 
-  const videoId = extractYouTubeId(videoUrl) ?? '';
-
-  /* ── Load YT IFrame API once ──────────────────────────────── */
   useEffect(() => {
-    if (window.YT?.Player) {
-      initPlayer();
-      return;
-    }
-    const prev = window.onYouTubeIframeAPIReady;
-    window.onYouTubeIframeAPIReady = () => {
-      prev?.();
-      initPlayer();
-    };
-    if (!document.getElementById('yt-iframe-api')) {
-      const s = document.createElement('script');
-      s.id  = 'yt-iframe-api';
-      s.src = 'https://www.youtube.com/iframe_api';
-      document.head.appendChild(s);
-    }
-    return () => { playerRef.current?.destroy(); playerRef.current = null; readyRef.current = false; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [videoId]);
+    let cancelled = false;
+    setLoading(true);
+    setFailed(false);
+    setDirectUrl(null);
 
-  const initPlayer = useCallback(() => {
-    if (!containerRef.current || !window.YT?.Player) return;
-    playerRef.current?.destroy();
-    const div = document.createElement('div');
-    containerRef.current.innerHTML = '';
-    containerRef.current.appendChild(div);
-    playerRef.current = new window.YT.Player(div, {
-      videoId,
-      playerVars: { autoplay: 0, controls: 1, rel: 0, modestbranding: 1 },
-      events: {
-        onReady: (e) => {
-          readyRef.current = true;
-          if (initialTime && initialTime > 0) e.target.seekTo(initialTime, true);
-        },
-        onStateChange: (e) => {
-          if (!isOwner || ignoreSyncRef.current) return;
-          const p = playerRef.current;
-          if (!p) return;
-          if (e.data === window.YT.PlayerState.PLAYING)  onPlay?.(p.getCurrentTime());
-          if (e.data === window.YT.PlayerState.PAUSED)   onPause?.(p.getCurrentTime());
-        },
-      },
-    });
-  }, [videoId, isOwner, initialTime, onPlay, onPause]);
+    apiClient
+      .get<{ success: boolean; data: { url: string; title: string; thumbnail: string } }>(
+        `/youtube/stream-url?url=${encodeURIComponent(videoUrl)}`,
+      )
+      .then((res) => {
+        if (cancelled) return;
+        const d = res.data?.data;
+        if (d?.url) {
+          setDirectUrl(d.url);
+          if (d.thumbnail && !thumbnail) setResolvedThumb(d.thumbnail);
+        } else {
+          setFailed(true);
+        }
+      })
+      .catch(() => { if (!cancelled) setFailed(true); })
+      .finally(() => { if (!cancelled) setLoading(false); });
 
-  /* ── Apply remote sync (members only) ────────────────────── */
-  useEffect(() => {
-    if (isOwner || !readyRef.current || syncIsPlaying === undefined) return;
-    const p = playerRef.current;
-    if (!p) return;
+    return () => { cancelled = true; };
+  }, [videoUrl, thumbnail]);
 
-    let target = syncTime ?? 0;
-    if (syncIsPlaying && syncTimestamp) {
-      target += Math.max(0, (Date.now() - syncTimestamp) / 1000);
-    }
-    ignoreSyncRef.current = true;
-    if (Math.abs(p.getCurrentTime() - target) > 1.5) p.seekTo(target, true);
-    if (syncIsPlaying) p.playVideo();
-    else p.pauseVideo();
-    setTimeout(() => { ignoreSyncRef.current = false; }, 300);
-  }, [isOwner, syncTime, syncTimestamp, syncIsPlaying]);
+  if (loading) {
+    return (
+      <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden flex items-center justify-center">
+        {resolvedThumb && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={resolvedThumb} alt="" className="absolute inset-0 w-full h-full object-cover opacity-30" />
+        )}
+        <div className="relative flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-2 border-white/20 border-t-white/80 rounded-full animate-spin" />
+          <span className="text-white/50 text-sm">Video yuklanmoqda…</span>
+        </div>
+      </div>
+    );
+  }
 
-  /* ── Owner seek detection (drag progress bar not possible with YT, ──
-     but seek via keyboard or direct interaction triggers stateChange.
-     We also poll getCurrentTime to detect seeks. ────────────────── */
-  const lastTimeRef = useRef(0);
-  useEffect(() => {
-    if (!isOwner) return;
-    const id = setInterval(() => {
-      const p = playerRef.current;
-      if (!p || !readyRef.current) return;
-      const t = p.getCurrentTime();
-      if (Math.abs(t - lastTimeRef.current) > 2) {
-        onSeek?.(t);
-      }
-      lastTimeRef.current = t;
-    }, 1000);
-    return () => clearInterval(id);
-  }, [isOwner, onSeek]);
+  if (failed || !directUrl) {
+    return (
+      <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden flex items-center justify-center">
+        <p className="text-white/40 text-sm">Videoni yuklab bo'lmadi</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
-      <div
-        ref={containerRef}
-        className="w-full h-full [&>div]:w-full [&>div]:h-full [&>iframe]:w-full [&>iframe]:h-full"
-      />
-    </div>
+    <VideoPlayer
+      src={directUrl}
+      poster={resolvedThumb}
+      {...rest}
+    />
   );
 }
 
 /* ── Generic iframe sub-component ───────────────────────────────── */
-function IframePlayer({ videoUrl, platform }: { videoUrl: string; platform: VideoPlatform; isOwner?: boolean }) {
+function IframePlayer({ videoUrl, platform }: { videoUrl: string; platform: VideoPlatform }) {
   const embedUrl = buildEmbedUrl(videoUrl, platform);
   return (
     <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
@@ -211,10 +132,8 @@ function IframePlayer({ videoUrl, platform }: { videoUrl: string; platform: Vide
 /* ── Main UniversalPlayer ────────────────────────────────────────── */
 export function UniversalPlayer(props: UniversalPlayerProps) {
   const { videoUrl, platform } = props;
-  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const handleFullscreen = useCallback((fs: boolean) => {
-    setIsFullscreen(fs);
     props.onFullscreenChange?.(fs);
   }, [props]);
 
@@ -239,9 +158,9 @@ export function UniversalPlayer(props: UniversalPlayerProps) {
   }
 
   if (platform === 'youtube') {
-    return <YouTubePlayer {...props} />;
+    return <YouTubeResolverPlayer {...props} onFullscreenChange={handleFullscreen} />;
   }
 
   // Vimeo, Twitch, Dailymotion, other → generic iframe embed
-  return <IframePlayer videoUrl={videoUrl} platform={platform} isOwner={props.isOwner} />;
+  return <IframePlayer videoUrl={videoUrl} platform={platform} />;
 }
