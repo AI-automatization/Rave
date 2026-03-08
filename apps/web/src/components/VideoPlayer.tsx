@@ -118,15 +118,33 @@ export function VideoPlayer({
   useEffect(() => {
     const video = videoRef.current;
     if (!video || syncTime === undefined) return;
-    if (Math.abs(video.currentTime - syncTime) > 2) video.currentTime = syncTime;
+    const applySeek = () => {
+      if (Math.abs(video.currentTime - syncTime) > 2) video.currentTime = syncTime;
+    };
+    // readyState >= 1 (HAVE_METADATA) — duration known, seek is possible
+    if (video.readyState >= 1) {
+      applySeek();
+    } else {
+      video.addEventListener('loadedmetadata', applySeek, { once: true });
+      return () => video.removeEventListener('loadedmetadata', applySeek);
+    }
   }, [syncTime]);
 
   useEffect(() => {
     if (isOwner || syncIsPlaying === undefined) return;
     const video = videoRef.current;
     if (!video) return;
-    if (syncIsPlaying) void video.play().catch(() => {});
-    else video.pause();
+    const applyPlayState = () => {
+      if (syncIsPlaying) void video.play().catch(() => {});
+      else video.pause();
+    };
+    // readyState >= 3 (HAVE_FUTURE_DATA) — enough data to start playback
+    if (video.readyState >= 3) {
+      applyPlayState();
+    } else {
+      video.addEventListener('canplay', applyPlayState, { once: true });
+      return () => video.removeEventListener('canplay', applyPlayState);
+    }
   }, [syncIsPlaying, isOwner]);
 
   /* ── Non-owner guard: block headphones + PiP controls ──────── */
