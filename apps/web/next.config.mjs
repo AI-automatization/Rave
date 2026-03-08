@@ -39,6 +39,8 @@ const nextConfig = {
       { source: '/admin/:path*', destination: `${adminUrl}/api/v1/admin/:path*` },
       { source: '/external-videos/:path*', destination: `${contentUrl}/api/v1/content/external-videos/:path*` },
       { source: '/external-videos', destination: `${contentUrl}/api/v1/content/external-videos` },
+      { source: '/watch-progress/:path*', destination: `${contentUrl}/api/v1/content/watch-progress/:path*` },
+      { source: '/watch-progress', destination: `${contentUrl}/api/v1/content/watch-progress` },
     ];
   },
 };

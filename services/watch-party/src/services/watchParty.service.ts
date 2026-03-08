@@ -21,9 +21,10 @@ export class WatchPartyService {
       videoPlatform?: string | null;
       maxMembers?: number;
       isPrivate?: boolean;
+      startTime?: number;
     },
   ): Promise<IWatchPartyRoomDocument> {
-    const { movieId, videoUrl, videoTitle, videoThumbnail, videoPlatform, maxMembers = 10, isPrivate = false } = options;
+    const { movieId, videoUrl, videoTitle, videoThumbnail, videoPlatform, maxMembers = 10, isPrivate = false, startTime = 0 } = options;
 
     if (!movieId && !videoUrl) {
       throw new BadRequestError('Either movieId or videoUrl is required');
@@ -42,11 +43,12 @@ export class WatchPartyService {
       maxMembers: Math.min(maxMembers, LIMITS.MAX_WATCH_PARTY_MEMBERS),
       inviteCode,
       isPrivate,
+      currentTime:    startTime,
     });
 
-    // Cache room state in Redis
+    // Cache room state in Redis (with saved startTime)
     await this.cacheRoomState(room._id.toString(), {
-      currentTime: 0,
+      currentTime: startTime,
       isPlaying: false,
       serverTimestamp: Date.now(),
       updatedBy: ownerId,

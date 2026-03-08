@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
@@ -56,6 +56,47 @@ export default function WatchPartyPage() {
   // Effective owner: use live ownerId from socket (falls back to room data)
   const effectiveOwnerId = ownerId ?? room?.ownerId;
   const isOwner = !!user?.id && effectiveOwnerId === user.id;
+
+  // Refs to keep latest values accessible from intervals/cleanup
+  const videoUrlRef    = useRef<string | null>(null);
+  const currentTimeRef = useRef<number>(0);
+  const durationRef    = useRef<number>(0);
+
+  useEffect(() => { videoUrlRef.current = room?.videoUrl ?? null; }, [room?.videoUrl]);
+  useEffect(() => { currentTimeRef.current = syncState?.currentTime ?? 0; }, [syncState?.currentTime]);
+
+  // Save watch progress every 30s (owner only, external videos only)
+  const saveProgress = useCallback((currentTime: number, duration: number) => {
+    const url = videoUrlRef.current;
+    if (!url || !isOwner || currentTime < 5) return;
+    apiClient.post('/watch-progress', { videoUrl: url, currentTime, duration }).catch(() => {});
+  }, [isOwner]);
+
+  // Called by VideoPlayer onProgress — derives duration from pct + time
+  const handleVideoProgress = useCallback((pct: number, currentTime: number) => {
+    currentTimeRef.current = currentTime;
+    if (pct > 0) durationRef.current = (currentTime / pct) * 100;
+  }, []);
+
+  useEffect(() => {
+    if (!isOwner) return;
+    const id = setInterval(() => {
+      const t = currentTimeRef.current;
+      const d = durationRef.current;
+      if (t > 5) saveProgress(t, d);
+    }, 30_000);
+    return () => clearInterval(id);
+  }, [isOwner, saveProgress]);
+
+  // Save progress on leave
+  const saveProgressOnLeave = useCallback(() => {
+    const url = videoUrlRef.current;
+    const t   = currentTimeRef.current;
+    const d   = durationRef.current;
+    if (url && isOwner && t > 5) {
+      apiClient.post('/watch-progress', { videoUrl: url, currentTime: t, duration: d }).catch(() => {});
+    }
+  }, [isOwner]);
 
   useEffect(() => {
     const load = async () => {
@@ -124,6 +165,7 @@ export default function WatchPartyPage() {
   };
 
   const doLeave = () => {
+    saveProgressOnLeave();
     leaveRoom();
     router.replace('/home');
   };
@@ -241,6 +283,7 @@ export default function WatchPartyPage() {
                 syncTimestamp={syncState?.serverTimestamp}
                 syncIsPlaying={syncState?.isPlaying}
                 isOwner={isOwner}
+                onProgress={handleVideoProgress}
                 onPlay={(time) => emitPlay(time)}
                 onPause={(time) => emitPause(time)}
                 onSeek={(time) => emitSeek(time)}
@@ -255,6 +298,7 @@ export default function WatchPartyPage() {
                 syncTimestamp={syncState?.serverTimestamp}
                 syncIsPlaying={syncState?.isPlaying}
                 isOwner={isOwner}
+                onProgress={handleVideoProgress}
                 onPlay={(time) => emitPlay(time)}
                 onPause={(time) => emitPause(time)}
                 onSeek={(time) => emitSeek(time)}

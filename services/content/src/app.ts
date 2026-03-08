@@ -9,6 +9,7 @@ import { errorHandler, notFoundHandler } from '@shared/middleware/error.middlewa
 import { morganStream } from '@shared/utils/logger';
 import { createContentRouter } from './routes/content.routes';
 import { createExternalVideoRouter } from './routes/externalVideo.routes';
+import { createWatchProgressRouter } from './routes/watchProgress.routes';
 import { swaggerSpec } from './utils/swagger';
 import { config } from './config/index';
 
@@ -32,6 +33,7 @@ export const createApp = (redis: Redis, elastic: ElasticsearchClient): express.A
 
   app.use('/api/v1/content', createContentRouter(redis, elastic));
   app.use('/api/v1/content/external-videos', createExternalVideoRouter());
+  app.use('/api/v1/content/watch-progress', createWatchProgressRouter());
 
   app.use(notFoundHandler);
   app.use(errorHandler);

@@ -81,6 +81,7 @@ interface UniversalPlayerProps {
   syncTimestamp?: number;
   syncIsPlaying?: boolean;
   isOwner?: boolean;
+  onProgress?: (progress: number, currentTime: number) => void;
   onPlay?: (currentTime: number) => void;
   onPause?: (currentTime: number) => void;
   onSeek?: (time: number) => void;
@@ -220,6 +221,7 @@ export function UniversalPlayer(props: UniversalPlayerProps) {
         syncTimestamp={props.syncTimestamp}
         syncIsPlaying={props.syncIsPlaying}
         isOwner={props.isOwner}
+        onProgress={props.onProgress}
         onPlay={props.onPlay}
         onPause={props.onPause}
         onSeek={props.onSeek}

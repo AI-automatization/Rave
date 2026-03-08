@@ -16,6 +16,7 @@ export default function CreatePartyPage() {
   const videoTitle = searchParams.get('videoTitle');
   const videoThumb = searchParams.get('videoThumbnail');
   const platform   = searchParams.get('videoPlatform');
+  const startTime  = searchParams.get('startTime');
 
   useEffect(() => {
     if (!movieId && !videoUrl) {
@@ -25,13 +26,25 @@ export default function CreatePartyPage() {
 
     const create = async () => {
       try {
+        // 1. Save video to "My Videos" when using external URL (dedup = safe)
+        if (videoUrl) {
+          await apiClient.post('/external-videos', {
+            url: videoUrl,
+            title:     videoTitle ?? undefined,
+            thumbnail: videoThumb ?? undefined,
+            platform:  platform   ?? undefined,
+          }).catch(() => {/* non-blocking — don't fail room creation */});
+        }
+
+        // 2. Create Watch Party room
         const body = movieId
           ? { movieId }
           : {
               videoUrl,
-              videoTitle:     videoTitle ?? undefined,
-              videoThumbnail: videoThumb ?? undefined,
-              videoPlatform:  platform   ?? undefined,
+              videoTitle:     videoTitle     ?? undefined,
+              videoThumbnail: videoThumb     ?? undefined,
+              videoPlatform:  platform       ?? undefined,
+              startTime:      startTime      ? parseFloat(startTime) : undefined,
             };
 
         const res = await apiClient.post<ApiResponse<IWatchPartyRoom>>(
@@ -51,7 +64,7 @@ export default function CreatePartyPage() {
     };
 
     void create();
-  }, [movieId, videoUrl, videoTitle, videoThumb, platform, router]);
+  }, [movieId, videoUrl, videoTitle, videoThumb, platform, startTime, router]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
