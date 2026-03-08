@@ -4,9 +4,11 @@ import { useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { apiClient } from '@/lib/axios';
 import { logger } from '@/lib/logger';
+import { useTranslations } from 'next-intl';
 import type { ApiResponse, IWatchPartyRoom } from '@/types';
 
 export default function CreatePartyPage() {
+  const t = useTranslations('party');
   const router = useRouter();
   const searchParams = useSearchParams();
   const movieId = searchParams.get('movieId');
@@ -41,7 +43,7 @@ export default function CreatePartyPage() {
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
       <span className="loading loading-spinner loading-lg text-primary" />
-      <p className="text-base-content/60">Watch Party xonasi yaratilmoqda...</p>
+      <p className="text-base-content/60">{t('creating')}</p>
     </div>
   );
 }

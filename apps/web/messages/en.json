@@ -70,7 +70,16 @@
     "a3": "A 3, 5, or 7-day competition. Whoever watches more movies wins.",
     "ctaTitle": "READY TO START?",
     "ctaSub": "Sign up for free right now",
-    "ctaBtn": "Get Started — Free"
+    "ctaBtn": "Get Started — Free",
+    "watchPartyCta": "Open Watch Party",
+    "battleCta": "Start Battle",
+    "startShort": "Start",
+    "detailsShort": "Details",
+    "mostPopular": "Most Popular",
+    "battleActive": "Battle Active",
+    "daysLeftDemo": "days left",
+    "filmsWatched": "films watched",
+    "yourPosition": "Your position"
   },
   "topbar": {
     "searchPlaceholder": "Movie, genre, director..."
@@ -133,7 +142,15 @@
     "noRequests": "No requests",
     "searchPlaceholder": "Search for a user...",
     "accept": "Accept",
-    "online": "Online"
+    "online": "Online",
+    "acceptedToast": "Friend accepted ✓",
+    "requestSentToast": "Request sent ✓",
+    "alreadyFriendError": "This user is already your friend or a request was already sent",
+    "notFoundError": "User not found",
+    "requestError": "Could not send friend request",
+    "serverError": "Server error, please try again",
+    "searchError": "Search failed",
+    "acceptError": "Error, please try again"
   },
   "battle": {
     "title": "BATTLE",
@@ -148,7 +165,11 @@
     "statusActive": "Active",
     "statusPending": "Pending",
     "statusCompleted": "Completed",
-    "defaultError": "Error creating battle"
+    "defaultError": "Error creating battle",
+    "you": "You",
+    "opponent": "Opponent",
+    "daysLeft": "days left",
+    "film": "film"
   },
   "achievements": {
     "title": "ACHIEVEMENTS",
@@ -216,13 +237,82 @@
   },
   "featuresPage": {
     "title": "ALL FEATURES",
-    "subtitle": "CineSync turns movie watching into a fun social experience"
+    "subtitle": "CineSync turns movie watching into a fun social experience",
+    "heroTag": "All Features",
+    "heroSub": "Turn movie watching from a solo to a social experience. Friends, competition, achievements — all in one place.",
+    "ctaTitle": "READY?",
+    "ctaSub": "Sign up for free and try all the features",
+    "statAchievements": "Achievements",
+    "statQuality": "Video Quality",
+    "f1tagline": "Together with friends, everyone on their own screen",
+    "f2tagline": "Who watches more movies — start the competition",
+    "f3tagline": "Rewards for your viewing habits",
+    "f4key": "Friends",
+    "f4tagline": "Track your online friends",
+    "f5key": "Notifications",
+    "f5tagline": "Don't miss anything important",
+    "f6key": "Rating",
+    "f6tagline": "Rate and review movies",
+    "f7tagline": "High-quality and fast video stream",
+    "f8key": "Security",
+    "f8tagline": "Your data is safe",
+    "badgePrimary": "Core",
+    "badge25": "25+ achievements"
   },
   "pricingPage": {
     "title": "PRICING",
     "subtitle": "No hidden fees",
     "recommended": "Recommended",
     "always": "forever",
-    "footnote": "* All prices in UZS. Pro subscription can be cancelled anytime."
+    "footnote": "* All prices in UZS. Pro subscription can be cancelled anytime.",
+    "plan1desc": "Always free",
+    "rowQuality": "Video quality",
+    "rowAds": "Ads",
+    "rowSearch": "Search",
+    "rowFriends": "Friends",
+    "rowHistory": "History",
+    "rowAdsYes": "Yes",
+    "rowAdsNo": "No"
+  },
+  "party": {
+    "creating": "Creating Watch Party...",
+    "joining": "Joining Watch Party...",
+    "roomNotFound": "Room not found",
+    "backHome": "Home",
+    "leave": "Leave",
+    "connected": "Connected",
+    "disconnected": "Disconnected",
+    "copied": "Copied",
+    "link": "Link",
+    "friends": "Friends",
+    "noFriends": "No friends found",
+    "inviteFriends": "Invite Friends",
+    "ownerOnly": "Only the room owner can control the video",
+    "noVideo": "Video not available"
+  },
+  "movie": {
+    "watch": "Watch",
+    "details": "Details",
+    "director": "Director",
+    "votes": "votes",
+    "views": "views",
+    "cast": "Cast",
+    "hourShort": "h",
+    "minuteShort": "m"
+  },
+  "chat": {
+    "watchingCount": "{count} watching",
+    "you": "You",
+    "empty": "No messages yet",
+    "placeholder": "Type a message...",
+    "cooldown": "Wait {seconds}s"
+  },
+  "profile": {
+    "points": "points",
+    "lastSeen": "Last seen:",
+    "films": "Films",
+    "achievements": "Achievements",
+    "friends": "Friends",
+    "achievementsTitle": "ACHIEVEMENTS"
   }
 }

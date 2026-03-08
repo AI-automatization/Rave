@@ -100,37 +100,37 @@ export default defineConfig({
     {
       name: 'api-auth',
       testDir: './tests/api/auth',
-      use: { baseURL: 'http://localhost:3001' },
+      use: { baseURL: 'https://auth-production-47a8.up.railway.app' },
     },
     {
       name: 'api-user',
       testDir: './tests/api/user',
-      use: { baseURL: 'http://localhost:3002' },
+      use: { baseURL: 'https://user-production-86ed.up.railway.app' },
     },
     {
       name: 'api-content',
       testDir: './tests/api/content',
-      use: { baseURL: 'http://localhost:3003' },
+      use: { baseURL: 'https://content-production-4e08.up.railway.app' },
     },
     {
       name: 'api-watch-party',
       testDir: './tests/api/watch-party',
-      use: { baseURL: 'http://localhost:3004' },
+      use: { baseURL: 'https://watch-part-production.up.railway.app' },
     },
     {
       name: 'api-battle',
       testDir: './tests/api/battle',
-      use: { baseURL: 'http://localhost:3005' },
+      use: { baseURL: 'https://battle-production-238a.up.railway.app' },
     },
     {
       name: 'api-notification',
       testDir: './tests/api/notification',
-      use: { baseURL: 'http://localhost:3007' },
+      use: { baseURL: 'https://notification-production-9c30.up.railway.app' },
     },
     {
       name: 'api-admin',
       testDir: './tests/api/admin',
-      use: { baseURL: 'http://localhost:3008' },
+      use: { baseURL: 'https://admin-production-8d2a.up.railway.app' },
     },
   ],
 });

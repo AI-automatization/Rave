@@ -70,7 +70,16 @@
     "a3": "3, 5 yoki 7 kunlik musobaqa. Kim ko'proq film ko'rsa, g'olib bo'ladi.",
     "ctaTitle": "TAYYOR EMISSIZ?",
     "ctaSub": "Hoziroq bepul ro'yxatdan o'ting",
-    "ctaBtn": "Boshlash — Bepul"
+    "ctaBtn": "Boshlash — Bepul",
+    "watchPartyCta": "Watch Party ochish",
+    "battleCta": "Battle boshlash",
+    "startShort": "Boshlash",
+    "detailsShort": "Batafsil",
+    "mostPopular": "Eng ommabop",
+    "battleActive": "Battle Aktiv",
+    "daysLeftDemo": "kun qoldi",
+    "filmsWatched": "film ko'rildi",
+    "yourPosition": "Sizning o'rningiz"
   },
   "topbar": {
     "searchPlaceholder": "Film, janr, rejissyor..."
@@ -133,7 +142,15 @@
     "noRequests": "So'rovlar yo'q",
     "searchPlaceholder": "Foydalanuvchi nomini qidiring...",
     "accept": "Qabul",
-    "online": "Online"
+    "online": "Online",
+    "acceptedToast": "Do'st qabul qilindi ✓",
+    "requestSentToast": "So'rov yuborildi ✓",
+    "alreadyFriendError": "Bu foydalanuvchi allaqachon do'stingiz yoki so'rov yuborilgan",
+    "notFoundError": "Foydalanuvchi topilmadi",
+    "requestError": "Do'stlik so'rovi yuborib bo'lmadi",
+    "serverError": "Server xatosi, qayta urinib ko'ring",
+    "searchError": "Qidiruv amalga oshmadi",
+    "acceptError": "Xato yuz berdi, qaytadan urinib ko'ring"
   },
   "battle": {
     "title": "BATTLE",
@@ -148,7 +165,11 @@
     "statusActive": "Faol",
     "statusPending": "Kutilmoqda",
     "statusCompleted": "Tugatilgan",
-    "defaultError": "Battle yaratishda xato"
+    "defaultError": "Battle yaratishda xato",
+    "you": "Sen",
+    "opponent": "Raqib",
+    "daysLeft": "kun qoldi",
+    "film": "film"
   },
   "achievements": {
     "title": "YUTUQLAR",
@@ -216,13 +237,82 @@
   },
   "featuresPage": {
     "title": "BARCHA FUNKSIYALAR",
-    "subtitle": "CineSync film ko'rishni ijtimoiy va qiziqarli tajribaga aylantiradi"
+    "subtitle": "CineSync film ko'rishni ijtimoiy va qiziqarli tajribaga aylantiradi",
+    "heroTag": "Barcha imkoniyatlar",
+    "heroSub": "Film ko'rishni yolg'iz emas — ijtimoiy tajribaga aylantiring. Do'stlar, musobaqa, yutuqlar — hammasi bir joyda.",
+    "ctaTitle": "TAYYORMISIZ?",
+    "ctaSub": "Bepul ro'yxatdan o'ting va hamma imkoniyatlarni sinab ko'ring",
+    "statAchievements": "Yutuqlar",
+    "statQuality": "Video sifat",
+    "f1tagline": "Do'stlar bilan birga, har kim o'z ekranidan",
+    "f2tagline": "Kim ko'proq film ko'radi — musobaqa boshlang",
+    "f3tagline": "Ko'rish odatlaringiz uchun mukofotlar",
+    "f4key": "Do'stlar",
+    "f4tagline": "Online do'stlaringizni kuzating",
+    "f5key": "Bildirishnomalar",
+    "f5tagline": "Hech narsani o'tkazib yubormang",
+    "f6key": "Reyting",
+    "f6tagline": "Filmlarni baholang va sharhlang",
+    "f7tagline": "Sifatli va tezkor video oqim",
+    "f8key": "Xavfsizlik",
+    "f8tagline": "Sizning ma'lumotlaringiz xavfsiz",
+    "badgePrimary": "Asosiy",
+    "badge25": "25+ yutuq"
   },
   "pricingPage": {
     "title": "NARXLAR",
     "subtitle": "Hech qanday yashirin to'lov yo'q",
     "recommended": "Tavsiya etiladi",
     "always": "doim",
-    "footnote": "* Barcha narxlar UZS da. Pro obuna istalgan vaqt bekor qilinishi mumkin."
+    "footnote": "* Barcha narxlar UZS da. Pro obuna istalgan vaqt bekor qilinishi mumkin.",
+    "plan1desc": "Har doim bepul",
+    "rowQuality": "Video sifat",
+    "rowAds": "Reklama",
+    "rowSearch": "Qidiruv",
+    "rowFriends": "Do'stlar",
+    "rowHistory": "Tarix",
+    "rowAdsYes": "Bor",
+    "rowAdsNo": "Yo'q"
+  },
+  "party": {
+    "creating": "Watch Party yaratilmoqda...",
+    "joining": "Watch Party ga qo'shilmoqda...",
+    "roomNotFound": "Xona topilmadi",
+    "backHome": "Bosh sahifa",
+    "leave": "Chiqish",
+    "connected": "Ulangan",
+    "disconnected": "Uzildi",
+    "copied": "Nusxalandi",
+    "link": "Havola",
+    "friends": "Do'stlar",
+    "noFriends": "Do'stlar topilmadi",
+    "inviteFriends": "Do'stlarni taklif qilish",
+    "ownerOnly": "Faqat xona egasi video ni boshqara oladi",
+    "noVideo": "Video mavjud emas"
+  },
+  "movie": {
+    "watch": "Ko'rish",
+    "details": "Batafsil",
+    "director": "Rejissyor",
+    "votes": "ovoz",
+    "views": "ko'rishlar",
+    "cast": "Aktyorlar",
+    "hourShort": "s",
+    "minuteShort": "d"
+  },
+  "chat": {
+    "watchingCount": "{count} nafar tomosha qilmoqda",
+    "you": "Sen",
+    "empty": "Hali xabar yo'q",
+    "placeholder": "Xabar yozing...",
+    "cooldown": "{seconds}s kuting"
+  },
+  "profile": {
+    "points": "points",
+    "lastSeen": "Oxirgi:",
+    "films": "Filmlar",
+    "achievements": "Yutuqlar",
+    "friends": "Do'stlar",
+    "achievementsTitle": "YUTUQLAR"
   }
 }

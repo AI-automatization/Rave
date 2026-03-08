@@ -3,6 +3,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { FaPlay, FaUsers, FaStar, FaClock, FaCalendarAlt, FaEye } from 'react-icons/fa';
+import { getTranslations } from 'next-intl/server';
 import { logger } from '@/lib/logger';
 import type { ApiResponse, IMovie } from '@/types';
 
@@ -50,6 +51,7 @@ export default async function MovieDetailPage({ params }: Props) {
   const movie = await fetchMovie(params.slug);
   if (!movie) notFound();
 
+  const t = await getTranslations('movie');
   const durationH = Math.floor(movie.duration / 60);
   const durationM = movie.duration % 60;
 
@@ -117,7 +119,7 @@ export default async function MovieDetailPage({ params }: Props) {
             <div>
               <h1 className="text-3xl md:text-4xl font-display">{movie.title.toUpperCase()}</h1>
               {movie.director && (
-                <p className="text-base-content/50 text-sm mt-1">Rejissyor: {movie.director}</p>
+                <p className="text-base-content/50 text-sm mt-1">{t('director')}: {movie.director}</p>
               )}
             </div>
 
@@ -126,11 +128,11 @@ export default async function MovieDetailPage({ params }: Props) {
               <div className="flex items-center gap-1">
                 <FaStar size={18} className="fill-accent text-accent" />
                 <span className="text-accent font-medium">{movie.rating.toFixed(1)}</span>
-                <span>/ 10 ({movie.reviewCount} ovoz)</span>
+                <span>/ 10 ({movie.reviewCount} {t('votes')})</span>
               </div>
               <div className="flex items-center gap-1">
                 <FaClock size={18} />
-                <span>{durationH > 0 ? `${durationH}s ${durationM}d` : `${durationM}d`}</span>
+                <span>{durationH > 0 ? `${durationH}${t('hourShort')} ${durationM}${t('minuteShort')}` : `${durationM}${t('minuteShort')}`}</span>
               </div>
               <div className="flex items-center gap-1">
                 <FaCalendarAlt size={18} />
@@ -138,7 +140,7 @@ export default async function MovieDetailPage({ params }: Props) {
               </div>
               <div className="flex items-center gap-1">
                 <FaEye size={18} />
-                <span>{movie.viewCount.toLocaleString()} ko&apos;rishlar</span>
+                <span>{movie.viewCount.toLocaleString()} {t('views')}</span>
               </div>
             </div>
 
@@ -162,7 +164,7 @@ export default async function MovieDetailPage({ params }: Props) {
             <div className="flex gap-3 flex-wrap">
               <Link href={`/watch/${movie._id}`} className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-lg bg-cyan-500 text-slate-900 hover:bg-cyan-400 hover:shadow-lg hover:shadow-cyan-500/50 transition-all font-medium active:scale-95">
                 <FaPlay size={16} className="fill-current" />
-                Ko&apos;rish
+                {t('watch')}
               </Link>
               <Link href={`/party/create?movieId=${movie._id}`} className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-lg border-2 border-cyan-500 text-cyan-400 hover:bg-cyan-500/10 hover:shadow-lg hover:shadow-cyan-500/30 transition-all font-medium active:scale-95">
                 <FaUsers size={16} />
@@ -173,7 +175,7 @@ export default async function MovieDetailPage({ params }: Props) {
             {/* Cast */}
             {movie.cast && movie.cast.length > 0 && (
               <div>
-                <p className="text-sm font-medium mb-2">Aktyorlar</p>
+                <p className="text-sm font-medium mb-2">{t('cast')}</p>
                 <div className="flex flex-wrap gap-2">
                   {movie.cast.map((actor) => (
                     <span key={actor} className="inline-flex items-center px-2 py-1 rounded-lg text-xs bg-slate-700 text-slate-300">{actor}</span>

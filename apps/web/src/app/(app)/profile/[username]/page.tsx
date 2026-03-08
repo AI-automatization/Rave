@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { FaFilm, FaTrophy, FaStar, FaUsers, FaCalendarAlt } from 'react-icons/fa';
+import { getTranslations } from 'next-intl/server';
 import { logger } from '@/lib/logger';
 import type { ApiResponse, IUser, IAchievement } from '@/types';
 import { AddFriendButton } from '@/components/profile/AddFriendButton';
@@ -73,7 +74,10 @@ export default async function ProfilePage({ params }: Props) {
   const user = await fetchProfile(params.username);
   if (!user) notFound();
 
-  const achievements = await fetchAchievements(user._id);
+  const [achievements, t] = await Promise.all([
+    fetchAchievements(user._id),
+    getTranslations('profile'),
+  ]);
 
   return (
     <>
@@ -142,14 +146,14 @@ export default async function ProfilePage({ params }: Props) {
                   <span className="font-medium text-base-content">
                     {user.totalPoints.toLocaleString()}
                   </span>
-                  <span>points</span>
+                  <span>{t('points')}</span>
                 </div>
                 {user.lastSeenAt && !user.isOnline && (
                   <div className="flex items-center gap-1">
                     <FaCalendarAlt size={14} />
                     <span>
-                      Oxirgi:{' '}
-                      {new Date(user.lastSeenAt).toLocaleDateString('uz')}
+                      {t('lastSeen')}{' '}
+                      {new Date(user.lastSeenAt).toLocaleDateString()}
                     </span>
                   </div>
                 )}
@@ -161,10 +165,10 @@ export default async function ProfilePage({ params }: Props) {
         {/* Stats grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { icon: FaFilm,   label: 'Filmlar',   val: '—' },
-            { icon: FaTrophy, label: 'Yutuqlar',  val: achievements.length },
-            { icon: FaUsers,  label: "Do'stlar",  val: '—' },
-            { icon: FaStar,   label: 'Points',    val: user.totalPoints.toLocaleString() },
+            { icon: FaFilm,   label: t('films'),        val: '—' },
+            { icon: FaTrophy, label: t('achievements'), val: achievements.length },
+            { icon: FaUsers,  label: t('friends'),      val: '—' },
+            { icon: FaStar,   label: t('points'),       val: user.totalPoints.toLocaleString() },
           ].map(({ icon: Icon, label, val }) => (
             <div key={label} className="card bg-base-200">
               <div className="card-body p-4 items-center text-center gap-1">
@@ -181,7 +185,7 @@ export default async function ProfilePage({ params }: Props) {
           <section className="space-y-4">
             <div className="flex items-center gap-2">
               <FaTrophy size={20} className="text-accent" />
-              <h2 className="text-xl font-display">YUTUQLAR ({achievements.length})</h2>
+              <h2 className="text-xl font-display">{t('achievementsTitle')} ({achievements.length})</h2>
             </div>
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
               {achievements.map((ach) => (

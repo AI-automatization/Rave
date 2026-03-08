@@ -16,19 +16,19 @@ export function LanguageSwitcher() {
 
   return (
     <div className="relative group">
-      <button className="inline-flex items-center justify-center gap-1 h-7 px-2 rounded-lg text-slate-400 hover:bg-slate-700/50 hover:text-slate-300 transition-all text-sm">
+      <button className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-white/5 transition-all text-sm">
         <span>{current.flag}</span>
         <span className="hidden sm:inline text-xs">{current.label}</span>
       </button>
-      <div className="absolute right-0 top-full mt-1 w-36 bg-slate-800 border border-slate-700 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 p-1">
+      <div className="absolute right-0 top-full mt-1.5 w-36 bg-[#111118] border border-zinc-800 rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.5)] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 p-1">
         {LOCALES.map(({ value, flag, label }) => (
           <button
             key={value}
             onClick={() => setLocale(value)}
-            className={`w-full flex items-center gap-2 px-3 py-2 rounded text-sm transition-colors ${
+            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${
               locale === value
-                ? 'bg-cyan-500/20 text-cyan-400 font-medium'
-                : 'text-slate-300 hover:bg-slate-700/50'
+                ? 'bg-[#7C3AED]/15 text-[#7C3AED] font-medium'
+                : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200'
             }`}
           >
             <span>{flag}</span>

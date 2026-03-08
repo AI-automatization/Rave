@@ -137,9 +137,14 @@ export function RegisterForm() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full h-10 rounded-xl bg-[#7C3AED] text-white font-semibold hover:bg-[#6D28D9] hover:shadow-[0_0_25px_rgba(124,58,237,0.4)] transition-all active:scale-95 mt-1 disabled:opacity-60 disabled:cursor-not-allowed"
+          className="w-full h-11 rounded-xl bg-[#7C3AED] text-white font-semibold hover:bg-[#6D28D9] hover:shadow-[0_0_25px_rgba(124,58,237,0.5)] transition-all duration-300 active:scale-[0.98] mt-1 disabled:opacity-55 disabled:cursor-not-allowed shadow-[0_0_16px_rgba(124,58,237,0.3)] flex items-center justify-center gap-2"
         >
-          {isSubmitting ? <span className="animate-spin inline-block">⟳</span> : t('register')}
+          {isSubmitting ? (
+            <>
+              <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+              <span className="text-sm">{t('register')}...</span>
+            </>
+          ) : t('register')}
         </button>
       </form>
 

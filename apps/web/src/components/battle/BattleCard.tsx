@@ -2,18 +2,13 @@
 
 import Link from 'next/link';
 import { FaTrophy, FaClock, FaFilm } from 'react-icons/fa';
+import { useTranslations } from 'next-intl';
 import type { IBattle } from '@/types';
 
 interface BattleCardProps {
   battle: IBattle;
   currentUserId: string;
 }
-
-const STATUS_LABEL: Record<IBattle['status'], string> = {
-  pending: 'Kutilmoqda',
-  active: 'Faol',
-  completed: 'Tugagan',
-};
 
 const STATUS_CLASS: Record<IBattle['status'], string> = {
   pending: 'badge-warning',
@@ -22,6 +17,7 @@ const STATUS_CLASS: Record<IBattle['status'], string> = {
 };
 
 export function BattleCard({ battle, currentUserId }: BattleCardProps) {
+  const t = useTranslations('battle');
   const me = battle.participants.find((p) => p.user._id === currentUserId);
   const opponent = battle.participants.find((p) => p.user._id !== currentUserId);
   const isWinner = battle.status === 'completed' && battle.winnerId === currentUserId;
@@ -29,6 +25,10 @@ export function BattleCard({ battle, currentUserId }: BattleCardProps) {
   const daysLeft = battle.status === 'active'
     ? Math.max(0, Math.ceil((new Date(battle.endDate).getTime() - Date.now()) / 86400000))
     : 0;
+
+  const statusLabel = battle.status === 'pending' ? t('statusPending')
+    : battle.status === 'active' ? t('statusActive')
+    : t('statusCompleted');
 
   return (
     <Link href={`/battle/${battle._id}`} className="block">
@@ -39,12 +39,12 @@ export function BattleCard({ battle, currentUserId }: BattleCardProps) {
             <div className="flex items-center gap-2">
               {isWinner && <FaTrophy size={18} className="text-accent" />}
               <span className={`badge ${STATUS_CLASS[battle.status]} badge-sm`}>
-                {STATUS_LABEL[battle.status]}
+                {statusLabel}
               </span>
             </div>
             <div className="flex items-center gap-1 text-xs text-base-content/50">
               <FaClock size={14} />
-              <span>{battle.duration} kun</span>
+              <span>{battle.duration} {t('days')}</span>
             </div>
           </div>
 
@@ -59,7 +59,7 @@ export function BattleCard({ battle, currentUserId }: BattleCardProps) {
                   </span>
                 </div>
               </div>
-              <span className="text-xs font-medium">{me?.user.username ?? 'Sen'}</span>
+              <span className="text-xs font-medium">{me?.user.username ?? t('you')}</span>
               <span className="text-lg font-display text-primary">{me?.score ?? 0}</span>
             </div>
 
@@ -74,7 +74,7 @@ export function BattleCard({ battle, currentUserId }: BattleCardProps) {
                   </span>
                 </div>
               </div>
-              <span className="text-xs font-medium">{opponent?.user.username ?? 'Raqib'}</span>
+              <span className="text-xs font-medium">{opponent?.user.username ?? t('opponent')}</span>
               <span className="text-lg font-display text-secondary">{opponent?.score ?? 0}</span>
             </div>
           </div>
@@ -83,10 +83,10 @@ export function BattleCard({ battle, currentUserId }: BattleCardProps) {
           <div className="flex items-center justify-between text-xs text-base-content/50">
             <div className="flex items-center gap-1">
               <FaFilm size={14} />
-              <span>{me?.moviesWatched ?? 0} film</span>
+              <span>{me?.moviesWatched ?? 0} {t('film')}</span>
             </div>
             {battle.status === 'active' && (
-              <span className="text-warning">{daysLeft} kun qoldi</span>
+              <span className="text-warning">{daysLeft} {t('daysLeft')}</span>
             )}
           </div>
         </div>

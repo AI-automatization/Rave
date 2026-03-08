@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { FaPlay, FaUsers, FaInfoCircle } from 'react-icons/fa';
+import { useTranslations } from 'next-intl';
 import type { IMovie } from '@/types';
 
 interface HeroBannerProps {
@@ -10,6 +11,7 @@ interface HeroBannerProps {
 }
 
 export function HeroBanner({ movie }: HeroBannerProps) {
+  const t = useTranslations('movie');
   const bgSrc = movie.backdropUrl ?? movie.posterUrl ?? movie.backdrop ?? movie.poster;
 
   return (
@@ -47,7 +49,7 @@ export function HeroBanner({ movie }: HeroBannerProps) {
         <div className="flex gap-3 flex-wrap">
           <Link href={`/watch/${movie._id}`} className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-lg bg-cyan-500 text-slate-900 hover:bg-cyan-400 hover:shadow-lg hover:shadow-cyan-500/50 transition-all font-medium active:scale-95">
             <FaPlay size={16} className="fill-current" />
-            Ko&apos;rish
+            {t('watch')}
           </Link>
           <Link
             href={`/party/create?movieId=${movie._id}`}
@@ -58,7 +60,7 @@ export function HeroBanner({ movie }: HeroBannerProps) {
           </Link>
           <Link href={`/movies/${movie._id}`} className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-lg text-slate-300 hover:bg-slate-700/50 transition-all font-medium active:scale-95">
             <FaInfoCircle size={16} />
-            Batafsil
+            {t('details')}
           </Link>
         </div>
       </div>

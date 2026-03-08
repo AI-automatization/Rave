@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { FaPaperPlane, FaSmile } from 'react-icons/fa';
+import { useTranslations } from 'next-intl';
 import type { IChatMessage, IUser } from '@/types';
 
 const QUICK_EMOJIS = ['😂', '❤️', '🔥', '👏', '😱', '😍', '💀', '🎬'];
@@ -24,6 +25,7 @@ export function ChatPanel({
   currentUserId,
   emojiCooldown = 0,
 }: ChatPanelProps) {
+  const t = useTranslations('chat');
   const [input, setInput] = useState('');
   const [showEmoji, setShowEmoji] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -55,7 +57,7 @@ export function ChatPanel({
     <div className="flex flex-col h-full bg-base-200 rounded-xl overflow-hidden">
       {/* Members */}
       <div className="px-3 py-2 border-b border-base-300">
-        <p className="text-xs text-base-content/50 mb-2">{members.length} nafar tomosha qilmoqda</p>
+        <p className="text-xs text-base-content/50 mb-2">{t('watchingCount', { count: members.length })}</p>
         <div className="flex flex-wrap gap-2">
           {members.map((m) => (
             <div key={m._id} className="flex items-center gap-1.5 bg-slate-700/40 rounded-lg px-2 py-1">
@@ -71,7 +73,7 @@ export function ChatPanel({
                 <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-lime-400 border border-slate-800" />
               </div>
               <span className={`text-xs font-medium truncate max-w-[72px] ${m._id === currentUserId ? 'text-cyan-400' : 'text-slate-300'}`}>
-                {m._id === currentUserId ? 'Sen' : m.username}
+                {m._id === currentUserId ? t('you') : m.username}
               </span>
             </div>
           ))}
@@ -82,7 +84,7 @@ export function ChatPanel({
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
         {messages.length === 0 ? (
           <p className="text-center text-base-content/40 text-sm mt-8">
-            Hali xabar yo&apos;q
+            {t('empty')}
           </p>
         ) : (
           messages.map((msg) => {
@@ -153,7 +155,7 @@ export function ChatPanel({
           className={`relative inline-flex items-center justify-center h-7 w-7 rounded-lg transition-all ${emojiCooldown > 0 ? 'text-slate-600 cursor-not-allowed' : 'text-slate-400 hover:text-slate-300 hover:bg-slate-700/50'}`}
           onClick={() => emojiCooldown === 0 && setShowEmoji(!showEmoji)}
           aria-label="Emoji"
-          title={emojiCooldown > 0 ? `${emojiCooldown}s kuting` : 'Emoji'}
+          title={emojiCooldown > 0 ? t('cooldown', { seconds: emojiCooldown }) : 'Emoji'}
           disabled={emojiCooldown > 0}
         >
           {emojiCooldown > 0 ? (
@@ -167,7 +169,7 @@ export function ChatPanel({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Xabar yozing..."
+          placeholder={t('placeholder')}
           className="h-7 px-3 rounded-lg bg-slate-700 border border-slate-600 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 flex-1 text-sm"
           maxLength={500}
         />

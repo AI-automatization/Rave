@@ -58,9 +58,9 @@ export default function FriendsPage() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['friends'] });
       void qc.invalidateQueries({ queryKey: ['friend-requests'] });
-      toast.success("Do'st qabul qilindi ✓");
+      toast.success(t('acceptedToast'));
     },
-    onError: () => toast.error('Xato yuz berdi, qaytadan urinib ko\'ring'),
+    onError: () => toast.error(t('acceptError')),
   });
 
   // ── Send friend request ───────────────────────────────────────────────────
@@ -70,18 +70,18 @@ export default function FriendsPage() {
     try {
       await apiClient.post('/users/friends/request', { userId });
       setSentIds((prev) => new Set(prev).add(userId));
-      toast.success("So'rov yuborildi ✓");
+      toast.success(t('requestSentToast'));
     } catch (err) {
       logger.error("Do'st so'rovi xatosi", err);
       const status = (err as AxiosError).response?.status;
       if (status === 409)
-        toast.error("Bu foydalanuvchi allaqachon do'stingiz yoki so'rov yuborilgan");
+        toast.error(t('alreadyFriendError'));
       else if (status === 404)
-        toast.error('Foydalanuvchi topilmadi');
+        toast.error(t('notFoundError'));
       else if (status === 400)
-        toast.error("Do'stlik so'rovi yuborib bo'lmadi");
+        toast.error(t('requestError'));
       else
-        toast.error('Server xatosi, qaytadan urinib ko\'ring');
+        toast.error(t('serverError'));
     } finally {
       setSendingIds((prev) => {
         const s = new Set(prev);
@@ -103,7 +103,7 @@ export default function FriendsPage() {
       setSearchResults(res.data.data ?? []);
     } catch (err) {
       logger.error('Qidiruv xatosi', err);
-      toast.error('Qidiruv amalga oshmadi');
+      toast.error(t('searchError'));
     } finally {
       setSearching(false);
     }

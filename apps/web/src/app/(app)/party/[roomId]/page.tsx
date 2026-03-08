@@ -10,6 +10,7 @@ import { useWatchParty } from '@/hooks/useWatchParty';
 import { useAuthStore } from '@/store/auth.store';
 import { apiClient } from '@/lib/axios';
 import { logger } from '@/lib/logger';
+import { useTranslations } from 'next-intl';
 import type { ApiResponse, IWatchPartyRoom, IMovie, IUser } from '@/types';
 
 const VideoPlayer = dynamic(
@@ -19,6 +20,7 @@ const VideoPlayer = dynamic(
 
 export default function WatchPartyPage() {
   const { roomId } = useParams<{ roomId: string }>();
+  const t = useTranslations('party');
   const user = useAuthStore((s) => s.user);
   const [room, setRoom] = useState<IWatchPartyRoom | null>(null);
   const [movie, setMovie] = useState<IMovie | null>(null);
@@ -135,8 +137,8 @@ export default function WatchPartyPage() {
   if (!room) {
     return (
       <div className="text-center py-20">
-        <p className="text-slate-400 mb-4">Xona topilmadi</p>
-        <Link href="/home" className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-lg bg-cyan-500 text-slate-900 hover:bg-cyan-400 hover:shadow-lg hover:shadow-cyan-500/50 transition-all font-medium active:scale-95">Bosh sahifa</Link>
+        <p className="text-slate-400 mb-4">{t('roomNotFound')}</p>
+        <Link href="/home" className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-lg bg-cyan-500 text-slate-900 hover:bg-cyan-400 hover:shadow-lg hover:shadow-cyan-500/50 transition-all font-medium active:scale-95">{t('backHome')}</Link>
       </div>
     );
   }
@@ -147,11 +149,11 @@ export default function WatchPartyPage() {
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <Link href="/home" className="inline-flex items-center justify-center gap-2 h-8 px-3 rounded-lg text-slate-300 hover:bg-slate-700/50 transition-all text-sm font-medium">
           <FaArrowLeft size={16} />
-          Chiqish
+          {t('leave')}
         </Link>
         <div className="flex items-center gap-2">
           <div className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold ${isConnected ? 'bg-lime-500/20 text-lime-400 border border-lime-500' : 'bg-red-500/20 text-red-400 border border-red-500'}`}>
-            {isConnected ? 'Ulangan' : 'Uzildi'}
+            {isConnected ? t('connected') : t('disconnected')}
           </div>
           {movie && (
             <span className="text-sm text-slate-400 truncate max-w-[150px]">
@@ -164,15 +166,15 @@ export default function WatchPartyPage() {
             title="Havolani nusxalash"
           >
             {copied ? <FaCheck size={16} className="text-lime-400" /> : <FaCopy size={16} />}
-            <span className="hidden sm:inline text-xs">{copied ? 'Nusxalandi' : 'Havola'}</span>
+            <span className="hidden sm:inline text-xs">{copied ? t('copied') : t('link')}</span>
           </button>
           <button
             onClick={() => setShowInvite(true)}
             className="inline-flex items-center justify-center gap-1 h-8 px-3 rounded-lg text-slate-300 hover:bg-slate-700/50 transition-all text-sm"
-            title="Do'stlarni taklif qilish"
+            title={t('inviteFriends')}
           >
             <FaUserPlus size={16} />
-            <span className="hidden sm:inline text-xs">Do&apos;stlar</span>
+            <span className="hidden sm:inline text-xs">{t('friends')}</span>
           </button>
         </div>
       </div>
@@ -195,7 +197,7 @@ export default function WatchPartyPage() {
               />
             ) : (
               <div className="aspect-video bg-black rounded-xl flex items-center justify-center">
-                <p className="text-white/40">Video mavjud emas</p>
+                <p className="text-white/40">{t('noVideo')}</p>
               </div>
             )}
             {/* Floating emojis — driven by socket events */}
@@ -218,7 +220,7 @@ export default function WatchPartyPage() {
 
           {!isOwner && (
             <div className="alert alert-info py-2">
-              <span className="text-xs">Faqat xona egasi video ni boshqara oladi</span>
+              <span className="text-xs">{t('ownerOnly')}</span>
             </div>
           )}
         </div>
@@ -247,7 +249,7 @@ export default function WatchPartyPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-slate-200">Do&apos;stlarni taklif qilish</h3>
+              <h3 className="text-sm font-semibold text-slate-200">{t('inviteFriends')}</h3>
               <button onClick={() => setShowInvite(false)} className="text-slate-400 hover:text-slate-200">
                 <FaTimes size={14} />
               </button>
@@ -267,7 +269,7 @@ export default function WatchPartyPage() {
 
             {/* Friends list */}
             {friends.length === 0 ? (
-              <p className="text-xs text-slate-500 text-center py-4">Do&apos;stlar topilmadi</p>
+              <p className="text-xs text-slate-500 text-center py-4">{t('noFriends')}</p>
             ) : (
               <ul className="space-y-2 max-h-64 overflow-y-auto pr-1">
                 {friends.map((friend) => (
@@ -287,9 +289,9 @@ export default function WatchPartyPage() {
                       className="shrink-0 inline-flex items-center gap-1 h-7 px-2 rounded-lg bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 transition-all text-xs font-medium"
                     >
                       {copiedFriendId === friend._id ? (
-                        <><FaCheck size={11} /> Nusxalandi</>
+                        <><FaCheck size={11} /> {t('copied')}</>
                       ) : (
-                        <><FaCopy size={11} /> Havola</>
+                        <><FaCopy size={11} /> {t('link')}</>
                       )}
                     </button>
                   </li>
