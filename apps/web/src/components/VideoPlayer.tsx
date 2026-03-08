@@ -28,8 +28,8 @@ interface VideoPlayerProps {
   syncTime?: number;
   syncIsPlaying?: boolean;
   isOwner?: boolean;
-  onPlay?: () => void;
-  onPause?: () => void;
+  onPlay?: (currentTime: number) => void;
+  onPause?: (currentTime: number) => void;
   onSeek?: (time: number) => void;
 }
 
@@ -178,7 +178,7 @@ export function VideoPlayer({
       navigator.mediaSession.setActionHandler('play', () => {
         if (isOwnerRef.current) {
           void video.play().catch(() => {});
-          onPlayRef.current?.();
+          onPlayRef.current?.(video.currentTime);
         } else if (syncIsPlayingRef.current === true) {
           // Owner is playing — keep member in sync
           void video.play().catch(() => {});
@@ -189,7 +189,7 @@ export function VideoPlayer({
       navigator.mediaSession.setActionHandler('pause', () => {
         if (isOwnerRef.current) {
           video.pause();
-          onPauseRef.current?.();
+          onPauseRef.current?.(video.currentTime);
         } else if (syncIsPlayingRef.current === true) {
           // Owner is playing — refuse pause, re-enforce play
           void video.play().catch(() => {});
@@ -256,8 +256,8 @@ export function VideoPlayer({
   const togglePlay = useCallback(() => {
     const video = videoRef.current;
     if (!video || !isOwner) return;
-    if (video.paused) { void video.play().catch((e) => logger.error('Play failed', e)); onPlay?.(); }
-    else { video.pause(); onPause?.(); }
+    if (video.paused) { void video.play().catch((e) => logger.error('Play failed', e)); onPlay?.(video.currentTime); }
+    else { video.pause(); onPause?.(video.currentTime); }
   }, [isOwner, onPlay, onPause]);
 
   const skip = useCallback((sec: number) => {

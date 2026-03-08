@@ -10,7 +10,7 @@ import type { ApiResponse, IChatMessage, IUser } from '@/types';
 interface SyncState {
   currentTime: number;
   isPlaying: boolean;
-  updatedAt: number;
+  serverTimestamp: number; // ms since epoch when owner last synced
 }
 
 export interface EmojiEvent {
