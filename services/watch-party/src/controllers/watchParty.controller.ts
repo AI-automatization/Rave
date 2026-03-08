@@ -10,9 +10,10 @@ export class WatchPartyController {
     try {
       const { userId } = (req as AuthenticatedRequest).user;
       const {
-        movieId, videoUrl, videoTitle, videoThumbnail, videoPlatform,
+        name, movieId, videoUrl, videoTitle, videoThumbnail, videoPlatform,
         maxMembers, isPrivate, password, startTime,
       } = req.body as {
+        name?: string;
         movieId?: string;
         videoUrl?: string;
         videoTitle?: string;
@@ -25,7 +26,7 @@ export class WatchPartyController {
       };
 
       const room = await this.watchPartyService.createRoom(userId, {
-        movieId, videoUrl, videoTitle, videoThumbnail, videoPlatform,
+        name, movieId, videoUrl, videoTitle, videoThumbnail, videoPlatform,
         maxMembers, isPrivate, password, startTime,
       });
       res.status(201).json(apiResponse.success(room, 'Room created'));

@@ -247,9 +247,9 @@ export default function WatchPartyPage() {
           <div className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold ${isConnected ? 'bg-lime-500/20 text-lime-400 border border-lime-500' : 'bg-red-500/20 text-red-400 border border-red-500'}`}>
             {isConnected ? t('connected') : t('disconnected')}
           </div>
-          {(movie?.title ?? room?.videoTitle) && (
+          {(room?.name ?? movie?.title ?? room?.videoTitle) && (
             <span className="text-sm text-slate-400 truncate max-w-[150px]">
-              {movie?.title ?? room?.videoTitle}
+              {room?.name ?? movie?.title ?? room?.videoTitle}
             </span>
           )}
           <button

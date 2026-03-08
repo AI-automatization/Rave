@@ -121,6 +121,7 @@ export type WatchPartyStatus = 'waiting' | 'playing' | 'paused' | 'ended';
 
 export interface IWatchPartyRoom {
   _id: string;
+  name?: string | null;
   movieId?: string | null;
   videoUrl?: string | null;
   videoTitle?: string | null;

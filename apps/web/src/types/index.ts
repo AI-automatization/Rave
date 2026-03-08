@@ -63,6 +63,7 @@ export interface IFriendship {
 
 export interface IWatchPartyRoom {
   _id: string;
+  name: string | null;
   movieId: string | null;
   videoUrl: string | null;
   videoTitle: string | null;

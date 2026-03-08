@@ -2,6 +2,7 @@ import { Schema, model, Document } from 'mongoose';
 import { WatchPartyStatus } from '@shared/types';
 
 export interface IWatchPartyRoomDocument extends Document {
+  name: string | null;      // room name (optional)
   movieId: string | null;   // null when using external videoUrl
   videoUrl: string | null;  // external video link (optional)
   videoTitle: string | null; // title for external videos
@@ -23,6 +24,7 @@ export interface IWatchPartyRoomDocument extends Document {
 
 const watchPartyRoomSchema = new Schema<IWatchPartyRoomDocument>(
   {
+    name:             { type: String, default: null },
     movieId:          { type: String, default: null },
     videoUrl:         { type: String, default: null },
     videoTitle:       { type: String, default: null },

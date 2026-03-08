@@ -15,6 +15,7 @@ export class WatchPartyService {
   async createRoom(
     ownerId: string,
     options: {
+      name?: string | null;
       movieId?: string | null;
       videoUrl?: string | null;
       videoTitle?: string | null;
@@ -27,7 +28,7 @@ export class WatchPartyService {
     },
   ): Promise<IWatchPartyRoomDocument> {
     const {
-      movieId, videoUrl, videoTitle, videoThumbnail, videoPlatform,
+      name, movieId, videoUrl, videoTitle, videoThumbnail, videoPlatform,
       maxMembers = 10, isPrivate = false, password, startTime = 0,
     } = options;
 
@@ -44,6 +45,7 @@ export class WatchPartyService {
     }
 
     const room = await WatchPartyRoom.create({
+      name:           name ?? null,
       movieId:        movieId ?? null,
       videoUrl:       videoUrl ?? null,
       videoTitle:     videoTitle ?? null,
@@ -109,9 +111,9 @@ export class WatchPartyService {
       const remainingMembers = room.members.filter((m) => m !== userId);
 
       if (remainingMembers.length === 0) {
-        await WatchPartyRoom.updateOne({ _id: roomId }, { status: 'ended', members: [] });
+        await WatchPartyRoom.deleteOne({ _id: roomId });
         await this.redis.del(REDIS_KEYS.watchPartyRoom(roomId));
-        logger.info('Watch party room closed (no members)', { roomId });
+        logger.info('Watch party room deleted (no members)', { roomId });
         return { closed: true };
       }
 
@@ -208,10 +210,7 @@ export class WatchPartyService {
 
     const ids = stale.map((r) => r._id.toString());
 
-    await WatchPartyRoom.updateMany(
-      { _id: { $in: ids } },
-      { status: 'ended', members: [] },
-    );
+    await WatchPartyRoom.deleteMany({ _id: { $in: ids } });
 
     // Remove Redis cache for each closed room
     await Promise.all(

@@ -8,7 +8,6 @@ import {
   FaCrown, FaVideo,
 } from 'react-icons/fa';
 import { apiClient } from '@/lib/axios';
-import { CreateRoomModal } from '@/components/party/CreateRoomModal';
 import type { ApiResponse, IWatchPartyRoom } from '@/types';
 
 /* ── Channel card ────────────────────────────────────────────────── */
@@ -20,7 +19,7 @@ function ChannelCard({
   onJoin: (room: IWatchPartyRoom) => void;
 }) {
   const memberCount = room.memberCount ?? room.members.length;
-  const title = room.videoTitle ?? 'Noma\'lum video';
+  const title = room.name ?? room.videoTitle ?? 'Noma\'lum video';
   const platform = room.videoPlatform ?? (room.movieId ? 'movie' : 'other');
 
   const platformColor: Record<string, string> = {
@@ -90,9 +89,14 @@ function ChannelCard({
 
       {/* Info */}
       <div className="p-3 space-y-2">
-        <p className="text-sm text-white font-medium line-clamp-1 leading-snug">
-          {title}
-        </p>
+        <div>
+          <p className="text-sm text-white font-medium line-clamp-1 leading-snug">
+            {title}
+          </p>
+          {room.name && room.videoTitle && (
+            <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">{room.videoTitle}</p>
+          )}
+        </div>
         <div className="flex items-center justify-between">
           <span className={`text-[11px] font-medium ${platformColor[platform] ?? 'text-slate-400'}`}>
             {platform === 'movie' ? '🎬 Katalog' : platform}
@@ -176,7 +180,6 @@ export default function HomePage() {
   const [rooms, setRooms] = useState<IWatchPartyRoom[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAll, setShowAll] = useState(false);
-  const [showCreateModal, setShowCreateModal] = useState(false);
   const [joiningRoom, setJoiningRoom] = useState<IWatchPartyRoom | null>(null);
   const [joinLoading, setJoinLoading] = useState(false);
   const [joinError, setJoinError] = useState('');
@@ -258,7 +261,7 @@ export default function HomePage() {
           </div>
 
           <button
-            onClick={() => setShowCreateModal(true)}
+            onClick={() => router.push('/party/create')}
             className="shrink-0 inline-flex items-center gap-2 h-12 px-6 rounded-2xl bg-[#7C3AED] text-white text-sm font-bold hover:bg-[#6D28D9] transition-all shadow-lg shadow-[#7C3AED]/30 hover:shadow-[#7C3AED]/50 active:scale-95"
           >
             <FaPlus size={13} />
@@ -289,7 +292,7 @@ export default function HomePage() {
             <p className="text-xs text-slate-500 mt-0.5">Hozir tomoshabin bo&apos;layotgan xonalar</p>
           </div>
           <button
-            onClick={() => setShowCreateModal(true)}
+            onClick={() => router.push('/party/create')}
             className="inline-flex items-center gap-1.5 h-8 px-3 rounded-xl border border-[#7C3AED]/30 text-[#7C3AED] text-xs font-semibold hover:bg-[#7C3AED]/10 transition-colors"
           >
             <FaPlus size={10} />
@@ -319,7 +322,7 @@ export default function HomePage() {
               <p className="text-sm text-slate-600 mt-1">Birinchi xonani siz yarating!</p>
             </div>
             <button
-              onClick={() => setShowCreateModal(true)}
+              onClick={() => router.push('/party/create')}
               className="inline-flex items-center gap-2 h-9 px-4 rounded-xl bg-[#7C3AED] text-white text-sm font-semibold hover:bg-[#6D28D9] transition-colors"
             >
               <FaPlus size={12} />
@@ -351,11 +354,6 @@ export default function HomePage() {
           </>
         )}
       </div>
-
-      {/* Modals */}
-      {showCreateModal && (
-        <CreateRoomModal onClose={() => setShowCreateModal(false)} />
-      )}
 
       {joiningRoom && (
         <PasswordDialog
