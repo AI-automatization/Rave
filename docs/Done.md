@@ -1,6 +1,16 @@
 # CineSync — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-03-07
+# Yangilangan: 2026-03-08
+
+---
+
+### F-060 | 2026-03-08 | [WEB] | T-J012 — React hydration errors #418 / #423 [Jafar]
+
+- **Sabab 1 (asosiy):** `Providers.tsx` — Zustand `persist` middleware localStorage ni gidratatsiya paytida sinxron o'qib, `NextIntlClientProvider` locale ni o'zgartiradi → server va client HTML mos kelmaydi (#418) + render paytida state yangilanishi (#423)
+- **Yechim:** `useState('uz')` boshlang'ich qiymat (server HTML bilan mos), `useEffect` da persisted locale qo'llaniladi — faqat mount dan keyin
+- **Sabab 2 (ikkilamchi):** `HeroBanner.tsx` — `viewCount.toLocaleString()` Node.js vs browser lokali farqli → HTML mismatch (#418)
+- **Yechim:** `formatViews()` — deterministik K/M formatlashtirish (`toLocaleString()` o'rniga)
+- **Commit:** `15652a6`
 
 ---
 
@@ -79,7 +89,7 @@ API_BASE_URL=http://10.0.2.2:3001       # Android emulator uchun
 
 ### 3-qadam: Metro Bundler ishga tushirish
 
-```bash
+```  
 cd apps/mobile
 
 # Standard ishga tushirish:
