@@ -1,318 +1,322 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { FaUserPlus, FaSearch, FaUsers, FaUserCheck, FaClock } from 'react-icons/fa';
 import { useTranslations } from 'next-intl';
-import type { AxiosError } from 'axios';
-import { apiClient } from '@/lib/axios';
 import { logger } from '@/lib/logger';
-import { toast } from '@/store/toast.store';
 import type { ApiResponse, IFriendship, IUser } from '@/types';
 
 type Tab = 'friends' | 'requests' | 'search';
 
-const RANK_COLORS: Record<string, string> = {
-  bronze:  'text-orange-400',
-  silver:  'text-base-content/60',
-  gold:    'text-gold',
-  diamond: 'text-diamond',
-  legend:  'text-primary',
+const RANK_COLOR: Record<string, string> = {
+  bronze:  'text-amber-500',
+  silver:  'text-zinc-400',
+  gold:    'text-amber-400',
+  diamond: 'text-[#7C3AED]',
+  legend:  'text-[#7C3AED]',
 };
+
+function getToken() {
+  if (typeof window === 'undefined') return '';
+  return localStorage.getItem('access_token') ?? '';
+}
+
+function authFetch(url: string, init?: RequestInit) {
+  const token = getToken();
+  return fetch(url, {
+    ...init,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(init?.headers as Record<string, string> | undefined),
+    },
+  });
+}
+
+function Avatar({ user }: { user: { avatar?: string; username: string } }) {
+  return user.avatar ? (
+    <Image
+      src={user.avatar}
+      alt={user.username}
+      width={40}
+      height={40}
+      className="w-full h-full object-cover rounded-xl"
+      unoptimized
+    />
+  ) : (
+    <span className="text-sm font-semibold text-white">
+      {user.username[0]?.toUpperCase()}
+    </span>
+  );
+}
 
 export default function FriendsPage() {
   const t = useTranslations('friends');
-  const qc = useQueryClient();
   const [tab, setTab] = useState<Tab>('friends');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<IUser[]>([]);
+  const [friends,   setFriends]   = useState<IUser[]>([]);
+  const [requests,  setRequests]  = useState<IFriendship[]>([]);
+  const [search,    setSearch]    = useState('');
+  const [results,   setResults]   = useState<IUser[]>([]);
   const [searching, setSearching] = useState(false);
+  const [loading,   setLoading]   = useState(true);
   const [sendingIds, setSendingIds] = useState<Set<string>>(new Set());
-  const [sentIds, setSentIds] = useState<Set<string>>(new Set());
+  const [sentIds,    setSentIds]    = useState<Set<string>>(new Set());
 
-  // ── Data fetching ─────────────────────────────────────────────────────────
-
-  const { data: friends = [] } = useQuery({
-    queryKey: ['friends'],
-    queryFn: () =>
-      apiClient
-        .get<ApiResponse<IUser[]>>('/users/friends')
-        .then((r) => r.data.data ?? []),
-  });
-
-  const { data: requests = [] } = useQuery({
-    queryKey: ['friend-requests'],
-    queryFn: () =>
-      apiClient
-        .get<ApiResponse<IFriendship[]>>('/users/friends/requests')
-        .then((r) => r.data.data ?? []),
-  });
-
-  // ── Accept request ────────────────────────────────────────────────────────
-
-  const { mutate: acceptRequest } = useMutation({
-    mutationFn: (friendshipId: string) =>
-      apiClient.patch(`/users/friends/accept/${friendshipId}`),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ['friends'] });
-      void qc.invalidateQueries({ queryKey: ['friend-requests'] });
-      toast.success(t('acceptedToast'));
-    },
-    onError: () => toast.error(t('acceptError')),
-  });
-
-  // ── Send friend request ───────────────────────────────────────────────────
-
-  const sendRequest = async (userId: string) => {
-    setSendingIds((prev) => new Set(prev).add(userId));
+  const loadFriends = useCallback(async () => {
+    setLoading(true);
     try {
-      await apiClient.post('/users/friends/request', { userId });
-      setSentIds((prev) => new Set(prev).add(userId));
-      toast.success(t('requestSentToast'));
+      const [fr, rq] = await Promise.all([
+        authFetch('/api/users/friends').then((r) => r.json() as Promise<ApiResponse<IUser[]>>),
+        authFetch('/api/users/friends/requests').then((r) => r.json() as Promise<ApiResponse<IFriendship[]>>),
+      ]);
+      setFriends(fr.data ?? []);
+      setRequests(rq.data ?? []);
     } catch (err) {
-      logger.error("Do'st so'rovi xatosi", err);
-      const status = (err as AxiosError).response?.status;
-      if (status === 409)
-        toast.error(t('alreadyFriendError'));
-      else if (status === 404)
-        toast.error(t('notFoundError'));
-      else if (status === 400)
-        toast.error(t('requestError'));
-      else
-        toast.error(t('serverError'));
+      logger.error("Do'stlar yuklanmadi", err);
     } finally {
-      setSendingIds((prev) => {
-        const s = new Set(prev);
-        s.delete(userId);
-        return s;
-      });
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { void loadFriends(); }, [loadFriends]);
+
+  const acceptRequest = async (friendshipId: string) => {
+    try {
+      await authFetch(`/api/users/friends/accept/${friendshipId}`, { method: 'PATCH' });
+      void loadFriends();
+    } catch (err) {
+      logger.error('Accept xatosi', err);
     }
   };
 
-  // ── Search ────────────────────────────────────────────────────────────────
+  const sendRequest = async (userId: string) => {
+    setSendingIds((p) => new Set(p).add(userId));
+    try {
+      await authFetch('/api/users/friends', {
+        method: 'POST',
+        body: JSON.stringify({ userId }),
+      });
+      setSentIds((p) => new Set(p).add(userId));
+    } catch (err) {
+      logger.error("Do'st so'rovi xatosi", err);
+    } finally {
+      setSendingIds((p) => { const s = new Set(p); s.delete(userId); return s; });
+    }
+  };
 
   const handleSearch = async (q: string) => {
-    if (!q.trim()) { setSearchResults([]); return; }
+    setSearch(q);
+    if (!q.trim()) { setResults([]); return; }
     setSearching(true);
     try {
-      const res = await apiClient.get<ApiResponse<IUser[]>>(
-        `/users/search?q=${encodeURIComponent(q)}`,
-      );
-      setSearchResults(res.data.data ?? []);
+      const res = await authFetch(`/api/users/search?q=${encodeURIComponent(q)}`);
+      const json: ApiResponse<IUser[]> = await res.json() as ApiResponse<IUser[]>;
+      setResults(json.data ?? []);
     } catch (err) {
       logger.error('Qidiruv xatosi', err);
-      toast.error(t('searchError'));
     } finally {
       setSearching(false);
     }
   };
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  /* ── Tab bar ───────────────────────────────────────── */
+  const tabs: { key: Tab; icon: typeof FaUsers; label: string; badge?: number }[] = [
+    { key: 'friends',  icon: FaUsers,  label: t('tabFriends'),  badge: friends.length },
+    { key: 'requests', icon: FaClock,  label: t('tabRequests'), badge: requests.length },
+    { key: 'search',   icon: FaSearch, label: t('tabSearch') },
+  ];
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-display">{t('title')}</h1>
 
-      {/* Tabs */}
-      <div className="tabs tabs-boxed bg-base-200 w-fit">
-        <button
-          className={`tab ${tab === 'friends' ? 'tab-active' : ''}`}
-          onClick={() => setTab('friends')}
-        >
-          <FaUsers size={18} className="mr-1" />
-          {t('tabFriends')} ({friends.length})
-        </button>
-        <button
-          className={`tab ${tab === 'requests' ? 'tab-active' : ''}`}
-          onClick={() => setTab('requests')}
-        >
-          <FaClock size={18} className="mr-1" />
-          {t('tabRequests')}
-          {requests.length > 0 && (
-            <span className="badge badge-primary badge-xs ml-1">{requests.length}</span>
-          )}
-        </button>
-        <button
-          className={`tab ${tab === 'search' ? 'tab-active' : ''}`}
-          onClick={() => setTab('search')}
-        >
-          <FaSearch size={18} className="mr-1" />
-          {t('tabSearch')}
-        </button>
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <FaUsers size={22} className="text-[#7C3AED]" />
+        <h1 className="text-3xl font-display text-white">{t('title')}</h1>
       </div>
 
-      {/* Friends list */}
-      {tab === 'friends' && (
-        <div className="space-y-3">
-          {friends.length === 0 ? (
-            <div className="text-center py-16 text-base-content/40">
-              <FaUsers size={48} className="mx-auto mb-3 opacity-30" />
-              <p>{t('empty')}</p>
-              <button
-                className="btn btn-sm btn-primary mt-4"
-                onClick={() => setTab('search')}
-              >
-                {t('findFriend')}
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {friends.map((friend) => (
-                <div
-                  key={friend._id}
-                  className="card bg-base-200 border border-base-300"
-                >
-                  <div className="card-body p-4 flex-row gap-3">
-                    <div className="w-12 h-12 rounded-lg bg-primary text-primary-content flex items-center justify-center flex-shrink-0">
-                      {friend.avatar ? (
-                        <Image
-                          src={friend.avatar}
-                          alt={friend.username}
-                          width={48}
-                          height={48}
-                          className="object-cover rounded-lg"
-                          unoptimized
-                        />
-                      ) : (
-                        <span className="font-medium">
-                          {friend.username[0].toUpperCase()}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <Link
-                        href={`/profile/${friend.username}`}
-                        className="font-medium text-sm hover:text-primary transition-colors block truncate"
-                      >
-                        {friend.username}
-                      </Link>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className={`text-xs capitalize ${RANK_COLORS[friend.rank] ?? ''}`}>
-                          {friend.rank}
-                        </span>
-                        {friend.isOnline && (
-                          <span className="flex items-center gap-1 text-xs text-success">
-                            <span className="w-1.5 h-1.5 rounded-full bg-success" />
-                            {t('online')}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+      {/* Tab bar */}
+      <div className="flex gap-1 p-1 rounded-xl bg-[#111118] border border-white/[0.06] w-fit">
+        {tabs.map(({ key, icon: Icon, label, badge }) => (
+          <button
+            key={key}
+            onClick={() => setTab(key)}
+            className={`flex items-center gap-2 h-8 px-4 rounded-lg text-sm font-medium transition-all ${
+              tab === key
+                ? 'bg-[#7C3AED] text-white shadow-[0_0_12px_rgba(124,58,237,0.4)]'
+                : 'text-zinc-500 hover:text-zinc-300'
+            }`}
+          >
+            <Icon size={13} />
+            {label}
+            {badge !== undefined && badge > 0 && (
+              <span className={`text-[10px] rounded-full px-1.5 py-0.5 leading-none font-semibold ${
+                tab === key ? 'bg-white/20 text-white' : 'bg-[#7C3AED]/20 text-[#7C3AED]'
+              }`}>
+                {badge}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
 
-      {/* Friend requests */}
-      {tab === 'requests' && (
-        <div className="space-y-3">
-          {requests.length === 0 ? (
-            <div className="text-center py-16 text-base-content/40">
-              <FaClock size={48} className="mx-auto mb-3 opacity-30" />
-              <p>{t('noRequests')}</p>
+      {/* ── Friends tab ──────────────────────────────────── */}
+      {tab === 'friends' && (
+        loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="h-20 bg-white/[0.04] rounded-2xl animate-pulse" />
+            ))}
+          </div>
+        ) : friends.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-[#111118] border border-white/[0.06] flex items-center justify-center mb-4">
+              <FaUsers size={28} className="text-zinc-700" />
             </div>
-          ) : (
-            requests.map((req) => (
-              <div
-                key={req._id}
-                className="card bg-base-200 border border-base-300"
-              >
-                <div className="card-body p-4 flex-row gap-3 items-center">
-                  <div className="w-10 h-10 rounded-lg bg-secondary text-secondary-content flex items-center justify-center flex-shrink-0">
-                    <span className="text-sm font-medium">
-                      {req.requester.username[0].toUpperCase()}
-                    </span>
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-sm">{req.requester.username}</p>
-                    <p className={`text-xs capitalize ${RANK_COLORS[req.requester.rank] ?? ''}`}>
-                      {req.requester.rank}
-                    </p>
-                  </div>
-                  <button
-                    className="btn btn-sm btn-success flex-shrink-0"
-                    onClick={() => acceptRequest(req._id)}
+            <p className="text-zinc-400 text-sm mb-4">{t('empty')}</p>
+            <button
+              onClick={() => setTab('search')}
+              className="h-9 px-5 rounded-xl bg-[#7C3AED] text-white text-sm font-semibold hover:bg-[#6D28D9] transition-all"
+            >
+              {t('findFriend')}
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {friends.map((friend) => (
+              <div key={friend._id} className="rounded-2xl bg-[#111118] border border-white/[0.06] p-4 flex items-center gap-3 hover:border-white/10 transition-all">
+                <div className="w-10 h-10 rounded-xl bg-[#7C3AED]/20 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                  <Avatar user={friend} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <Link
+                    href={`/profile/${friend.username}`}
+                    className="text-sm font-medium text-zinc-200 hover:text-white transition-colors block truncate"
                   >
-                    <FaUserCheck size={12} />
-                    {t('accept')}
-                  </button>
+                    {friend.username}
+                  </Link>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className={`text-xs capitalize ${RANK_COLOR[friend.rank ?? ''] ?? 'text-zinc-600'}`}>
+                      {friend.rank ?? '—'}
+                    </span>
+                    {friend.isOnline && (
+                      <span className="flex items-center gap-1 text-xs text-emerald-400">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                        {t('online')}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
-            ))
-          )}
-        </div>
+            ))}
+          </div>
+        )
       )}
 
-      {/* Search */}
+      {/* ── Requests tab ─────────────────────────────────── */}
+      {tab === 'requests' && (
+        requests.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-[#111118] border border-white/[0.06] flex items-center justify-center mb-4">
+              <FaClock size={26} className="text-zinc-700" />
+            </div>
+            <p className="text-zinc-400 text-sm">{t('noRequests')}</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {requests.map((req) => (
+              <div key={req._id} className="rounded-2xl bg-[#111118] border border-white/[0.06] p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#7C3AED]/20 flex items-center justify-center flex-shrink-0">
+                  <span className="text-sm font-semibold text-[#7C3AED]">
+                    {req.requester.username[0]?.toUpperCase()}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-zinc-200 truncate">{req.requester.username}</p>
+                  <p className={`text-xs capitalize ${RANK_COLOR[req.requester.rank ?? ''] ?? 'text-zinc-600'}`}>
+                    {req.requester.rank ?? '—'}
+                  </p>
+                </div>
+                <button
+                  onClick={() => void acceptRequest(req._id)}
+                  className="flex items-center gap-1.5 h-8 px-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/25 transition-all flex-shrink-0"
+                >
+                  <FaUserCheck size={12} />
+                  {t('accept')}
+                </button>
+              </div>
+            ))}
+          </div>
+        )
+      )}
+
+      {/* ── Search tab ───────────────────────────────────── */}
       {tab === 'search' && (
         <div className="space-y-4">
           <div className="relative max-w-md">
-            <FaSearch
-              size={16}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40"
-            />
+            <FaSearch size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-600" />
             <input
               type="search"
               placeholder={t('searchPlaceholder')}
-              className="input input-bordered w-full pl-9"
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                void handleSearch(e.target.value);
-              }}
+              value={search}
+              onChange={(e) => void handleSearch(e.target.value)}
+              className="w-full h-10 pl-9 pr-4 rounded-xl bg-[#111118] border border-white/[0.08] text-zinc-200 text-sm placeholder-zinc-600 focus:outline-none focus:border-[#7C3AED]/50 focus:ring-1 focus:ring-[#7C3AED]/30 transition-all"
             />
           </div>
 
           {searching && (
-            <div className="flex justify-center py-4">
-              <span className="loading loading-spinner loading-md" />
+            <div className="flex justify-center py-8">
+              <div className="w-6 h-6 rounded-full border-2 border-[#7C3AED] border-t-transparent animate-spin" />
             </div>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {searchResults.map((u) => {
-              const isSending = sendingIds.has(u._id);
-              const isSent = sentIds.has(u._id);
-              return (
-                <div
-                  key={u._id}
-                  className="card bg-base-200 border border-base-300"
-                >
-                  <div className="card-body p-4 flex-row gap-3 items-center">
-                    <div className="w-10 h-10 rounded-lg bg-success text-success-content flex items-center justify-center flex-shrink-0">
-                      <span className="text-sm font-medium">
-                        {u.username[0].toUpperCase()}
-                      </span>
+          {!searching && results.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {results.map((u) => {
+                const isSending = sendingIds.has(u._id);
+                const isSent    = sentIds.has(u._id);
+                return (
+                  <div key={u._id} className="rounded-2xl bg-[#111118] border border-white/[0.06] p-4 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-[#7C3AED]/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                      <Avatar user={u} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">{u.username}</p>
-                      <p className={`text-xs capitalize ${RANK_COLORS[u.rank] ?? ''}`}>
-                        {u.rank}
+                      <p className="text-sm font-medium text-zinc-200 truncate">{u.username}</p>
+                      <p className={`text-xs capitalize ${RANK_COLOR[u.rank ?? ''] ?? 'text-zinc-600'}`}>
+                        {u.rank ?? '—'}
                       </p>
                     </div>
                     <button
-                      className="btn btn-sm btn-ghost flex-shrink-0"
                       disabled={isSending || isSent}
                       onClick={() => void sendRequest(u._id)}
+                      className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 transition-all ${
+                        isSent
+                          ? 'bg-emerald-500/15 text-emerald-400'
+                          : 'bg-[#7C3AED]/15 border border-[#7C3AED]/30 text-[#7C3AED] hover:bg-[#7C3AED]/25 disabled:opacity-50'
+                      }`}
                     >
                       {isSending ? (
-                        <span className="loading loading-spinner loading-xs" />
+                        <div className="w-3 h-3 rounded-full border border-current border-t-transparent animate-spin" />
                       ) : isSent ? (
-                        <FaUserCheck size={16} className="text-success" />
+                        <FaUserCheck size={13} />
                       ) : (
-                        <FaUserPlus size={16} />
+                        <FaUserPlus size={13} />
                       )}
                     </button>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
+
+          {!searching && search.trim() && results.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <FaSearch size={28} className="text-zinc-700 mb-3" />
+              <p className="text-zinc-500 text-sm">Foydalanuvchi topilmadi</p>
+            </div>
+          )}
         </div>
       )}
     </div>

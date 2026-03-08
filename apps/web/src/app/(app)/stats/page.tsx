@@ -29,6 +29,11 @@ const RANK_COLOR: Record<string, string> = {
   legend:  'text-[#7C3AED]',
 };
 
+function getToken(): string {
+  if (typeof window === 'undefined') return '';
+  return localStorage.getItem('access_token') ?? '';
+}
+
 export default function StatsPage() {
   const t    = useTranslations('stats');
   const user = useAuthStore((s) => s.user);
@@ -39,8 +44,11 @@ export default function StatsPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch('/api/user-stats');
-        if (!res.ok) throw new Error('stats fetch failed');
+        const token = getToken();
+        const res = await fetch('/api/user-stats', {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (!res.ok) throw new Error(`stats ${res.status}`);
         const json: ApiResponse<UserStats> = await res.json() as ApiResponse<UserStats>;
         setStats(json.data ?? null);
       } catch (err) {
@@ -122,7 +130,7 @@ export default function StatsPage() {
             {error ? 'Statistikani yuklashda xato yuz berdi' : 'Hali statistika mavjud emas'}
           </p>
           <p className="text-zinc-600 text-xs">
-            {error ? 'Keyinroq qaytib keling' : 'Film ko\'ring va statistikangiz shu yerda ko\'rinadi'}
+            {error ? 'Keyinroq qaytib keling' : "Film ko'ring va statistikangiz shu yerda ko'rinadi"}
           </p>
         </div>
       )}
@@ -143,7 +151,6 @@ export default function StatsPage() {
                 {(user?.totalPoints ?? stats.totalPoints ?? 0).toLocaleString()}
               </p>
             </div>
-            {/* Violet glow accent */}
             <div className="absolute pointer-events-none inset-0 rounded-2xl bg-[radial-gradient(ellipse_80%_60%_at_50%_100%,rgba(124,58,237,0.08),transparent)]" />
           </div>
 
