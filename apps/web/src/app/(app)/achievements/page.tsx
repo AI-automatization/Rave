@@ -48,7 +48,7 @@ export default function AchievementsPage() {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
         const json: ApiResponse<IAchievement[]> = await res.json() as ApiResponse<IAchievement[]>;
-        setAchievements(json.data ?? []);
+        setAchievements(Array.isArray(json.data) ? json.data : []);
       } catch (err) {
         logger.error('Yutuqlar yuklanmadi', err);
       } finally {

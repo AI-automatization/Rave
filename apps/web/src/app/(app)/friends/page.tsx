@@ -71,8 +71,8 @@ export default function FriendsPage() {
         authFetch('/api/users/friends').then((r) => r.json() as Promise<ApiResponse<IUser[]>>),
         authFetch('/api/users/friends/requests').then((r) => r.json() as Promise<ApiResponse<IFriendship[]>>),
       ]);
-      setFriends(fr.data ?? []);
-      setRequests(rq.data ?? []);
+      setFriends(Array.isArray(fr.data) ? fr.data : []);
+      setRequests(Array.isArray(rq.data) ? rq.data : []);
     } catch (err) {
       logger.error("Do'stlar yuklanmadi", err);
     } finally {
