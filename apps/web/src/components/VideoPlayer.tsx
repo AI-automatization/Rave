@@ -75,6 +75,7 @@ export function VideoPlayer({
   const [skipFlash,       setSkipFlash]       = useState<'left' | 'right' | null>(null);
   const [hoverTime,       setHoverTime]       = useState<{ time: number; x: number } | null>(null);
   const [hint,            setHint]            = useState<string | null>(null);
+  const [needsInteraction, setNeedsInteraction] = useState(false); // autoplay blocked
 
   /* ── HLS / MP4 setup ────────────────────────────────────────── */
   useEffect(() => {
@@ -125,8 +126,18 @@ export function VideoPlayer({
 
     const applyPlay = () => {
       if (cancelled) return;
-      if (syncIsPlaying) void video.play().catch(() => {});
-      else video.pause();
+      if (syncIsPlaying) {
+        setNeedsInteraction(false);
+        void video.play().catch((err: unknown) => {
+          // Browser blocked autoplay (no prior user gesture) — show click-to-start overlay
+          if (!cancelled && err instanceof DOMException && err.name === 'NotAllowedError') {
+            setNeedsInteraction(true);
+          }
+        });
+      } else {
+        setNeedsInteraction(false);
+        video.pause();
+      }
     };
 
     // Seek to syncTime first, then play — prevents canplay-at-pos-0 race
@@ -377,7 +388,7 @@ export function VideoPlayer({
         ref={videoRef}
         className="w-full h-full"
         poster={poster}
-        onPlay={() => setIsPlaying(true)}
+        onPlay={() => { setIsPlaying(true); setNeedsInteraction(false); }}
         onPause={() => setIsPlaying(false)}
         onTimeUpdate={() => {
           const v = videoRef.current;
@@ -439,8 +450,29 @@ export function VideoPlayer({
         </button>
       )}
 
-      {/* Paused indicator for non-owners */}
-      {!isPlaying && !isBuffering && !isOwner && (
+      {/* Member: autoplay blocked — user must click to start */}
+      {!isOwner && needsInteraction && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setNeedsInteraction(false);
+            void videoRef.current?.play().catch(() => {});
+          }}
+          className="absolute inset-0 flex items-center justify-center z-20 bg-black/60 backdrop-blur-sm"
+        >
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-20 h-20 rounded-full bg-[#7C3AED]/25 border-2 border-[#7C3AED]/80 flex items-center justify-center shadow-[0_0_60px_rgba(124,58,237,0.9)] hover:scale-110 transition-transform">
+              <FaPlay size={28} className="text-white ml-1 fill-current" />
+            </div>
+            <span className="text-white/90 text-sm font-medium bg-black/50 px-4 py-2 rounded-lg">
+              Bosish orqali tomosha boshlang
+            </span>
+          </div>
+        </button>
+      )}
+
+      {/* Member: owner paused — show indicator */}
+      {!isOwner && !needsInteraction && !isPlaying && !isBuffering && (
         <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
           <div className="flex flex-col items-center gap-2 bg-black/50 px-5 py-3 rounded-xl backdrop-blur-sm border border-white/10">
             <FaPause size={22} className="text-white/60" />
