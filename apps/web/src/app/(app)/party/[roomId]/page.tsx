@@ -44,7 +44,7 @@ export default function WatchPartyPage() {
   const [emojiCooldown, setEmojiCooldown] = useState(0);
 
   const {
-    syncState, members, messages, emojiEvents, ownerId, roomClosed,
+    syncState, members, messages, emojiEvents, ownerId, roomClosed, roomClosedReason,
     sendMessage, sendEmoji, emitPlay, emitPause, emitSeek, leaveRoom, isConnected,
   } = useWatchParty(roomId, room?.ownerId);
 
@@ -130,12 +130,12 @@ export default function WatchPartyPage() {
       .catch(() => {});
   }, []);
 
-  // Room closed by owner → redirect to home
+  // Room closed by owner (not inactivity) → redirect to home
   useEffect(() => {
-    if (roomClosed) {
+    if (roomClosed && roomClosedReason !== 'inactive') {
       router.replace('/home');
     }
-  }, [roomClosed, router]);
+  }, [roomClosed, roomClosedReason, router]);
 
   const handleFullscreenChange = (fs: boolean) => {
     setIsFullscreen(fs);
@@ -228,6 +228,34 @@ export default function WatchPartyPage() {
       <div className="text-center py-20">
         <p className="text-slate-400 mb-4">{t('roomNotFound')}</p>
         <Link href="/home" className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-lg bg-cyan-500 text-slate-900 hover:bg-cyan-400 hover:shadow-lg hover:shadow-cyan-500/50 transition-all font-medium active:scale-95">{t('backHome')}</Link>
+      </div>
+    );
+  }
+
+  // Room exists but was closed due to inactivity (HTTP load)
+  if (room.status === 'ended') {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 gap-6 text-center">
+        <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center text-3xl">🔒</div>
+        <div>
+          <h2 className="text-xl font-semibold text-slate-200 mb-2">{t('roomClosed')}</h2>
+          <p className="text-slate-400 text-sm max-w-xs">{t('roomClosedInactive')}</p>
+        </div>
+        <Link href="/home" className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-lg bg-cyan-500 text-slate-900 hover:bg-cyan-400 transition-all font-medium active:scale-95">{t('backHome')}</Link>
+      </div>
+    );
+  }
+
+  // Room closed by inactivity while user was inside (socket event)
+  if (roomClosed && roomClosedReason === 'inactive') {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 gap-6 text-center">
+        <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center text-3xl">🔒</div>
+        <div>
+          <h2 className="text-xl font-semibold text-slate-200 mb-2">{t('roomClosed')}</h2>
+          <p className="text-slate-400 text-sm max-w-xs">{t('roomClosedInactive')}</p>
+        </div>
+        <Link href="/home" className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-lg bg-cyan-500 text-slate-900 hover:bg-cyan-400 transition-all font-medium active:scale-95">{t('backHome')}</Link>
       </div>
     );
   }

@@ -19,8 +19,8 @@ const verifySocketToken = (token: string): JwtPayload => {
 // In-memory voice rooms: roomId → Set of userIds currently in voice
 const voiceRooms = new Map<string, Set<string>>();
 
-const INACTIVE_CHECK_INTERVAL_MS = 2 * 60 * 1000; // check every 2 minutes
-const INACTIVE_THRESHOLD_MINUTES = 10;
+const INACTIVE_CHECK_INTERVAL_MS = 60 * 1000; // check every 1 minute
+const INACTIVE_THRESHOLD_MINUTES = 5;
 
 export const registerWatchPartySocket = (io: SocketServer, watchPartyService: WatchPartyService): void => {
   // On startup: immediately close ALL existing rooms (stale data cleanup)
@@ -31,13 +31,14 @@ export const registerWatchPartySocket = (io: SocketServer, watchPartyService: Wa
     if (ids.length > 0) logger.info('Startup: closed stale rooms', { count: ids.length });
   }).catch((err: Error) => logger.error('Startup room cleanup error', { error: err.message }));
 
-  // Auto-close inactive rooms every 2 minutes
+  // Auto-close inactive rooms every minute, purge old ended rooms every hour
   const cleanupInterval = setInterval(async () => {
     try {
       const closedIds = await watchPartyService.closeInactiveRooms(INACTIVE_THRESHOLD_MINUTES);
       for (const roomId of closedIds) {
         io.to(roomId).emit(SERVER_EVENTS.ROOM_CLOSED, { reason: 'inactive' });
       }
+      await watchPartyService.purgeEndedRooms(60);
     } catch (err) {
       logger.error('Inactive room cleanup error', { error: (err as Error).message });
     }

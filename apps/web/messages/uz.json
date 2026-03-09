@@ -289,7 +289,9 @@
     "noFriends": "Do'stlar topilmadi",
     "inviteFriends": "Do'stlarni taklif qilish",
     "ownerOnly": "Faqat xona egasi video ni boshqara oladi",
-    "noVideo": "Video mavjud emas"
+    "noVideo": "Video mavjud emas",
+    "roomClosed": "Bu xona yopilgan",
+    "roomClosedInactive": "Xona 5 daqiqa faolsizligi sababli avtomatik yopildi."
   },
   "movie": {
     "watch": "Ko'rish",

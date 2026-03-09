@@ -197,12 +197,12 @@ export class WatchPartyService {
     await WatchPartyRoom.updateOne({ _id: roomId }, { lastActivityAt: new Date() });
   }
 
-  /** Find and close all rooms inactive for more than `thresholdMinutes`. Returns closed room IDs. */
-  async closeInactiveRooms(thresholdMinutes = 10): Promise<string[]> {
+  /** Mark rooms inactive for more than `thresholdMinutes` as 'ended'. Returns closed room IDs. */
+  async closeInactiveRooms(thresholdMinutes = 5): Promise<string[]> {
     const cutoff = new Date(Date.now() - thresholdMinutes * 60 * 1000);
 
     const stale = await WatchPartyRoom.find({
-      status: { $ne: 'ended' },
+      status: { $in: ['waiting', 'playing', 'paused'] },
       lastActivityAt: { $lt: cutoff },
     }).select('_id');
 
@@ -210,7 +210,7 @@ export class WatchPartyService {
 
     const ids = stale.map((r) => r._id.toString());
 
-    await WatchPartyRoom.deleteMany({ _id: { $in: ids } });
+    await WatchPartyRoom.updateMany({ _id: { $in: ids } }, { status: 'ended' });
 
     // Remove Redis cache for each closed room
     await Promise.all(
@@ -219,6 +219,18 @@ export class WatchPartyService {
 
     logger.info('Closed inactive watch party rooms', { count: ids.length, roomIds: ids });
     return ids;
+  }
+
+  /** Permanently delete rooms that have been 'ended' for longer than `olderThanMinutes`. */
+  async purgeEndedRooms(olderThanMinutes = 60): Promise<void> {
+    const cutoff = new Date(Date.now() - olderThanMinutes * 60 * 1000);
+    const result = await WatchPartyRoom.deleteMany({
+      status: 'ended',
+      updatedAt: { $lt: cutoff },
+    });
+    if (result.deletedCount > 0) {
+      logger.info('Purged old ended watch party rooms', { count: result.deletedCount });
+    }
   }
 
   async kickMember(ownerId: string, roomId: string, targetUserId: string): Promise<void> {

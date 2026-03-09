@@ -289,7 +289,9 @@
     "noFriends": "No friends found",
     "inviteFriends": "Invite Friends",
     "ownerOnly": "Only the room owner can control the video",
-    "noVideo": "Video not available"
+    "noVideo": "Video not available",
+    "roomClosed": "This room has been closed",
+    "roomClosedInactive": "This room was automatically closed due to 5 minutes of inactivity."
   },
   "movie": {
     "watch": "Watch",

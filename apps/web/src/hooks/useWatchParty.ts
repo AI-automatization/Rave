@@ -26,6 +26,7 @@ interface UseWatchPartyReturn {
   emojiEvents: EmojiEvent[];
   ownerId: string | null;
   roomClosed: boolean;
+  roomClosedReason: string | null;
   sendMessage: (text: string) => void;
   sendEmoji: (emoji: string) => void;
   emitPlay: (currentTime: number) => void;
@@ -44,6 +45,7 @@ export function useWatchParty(roomId: string, initialOwnerId?: string): UseWatch
   const [emojiEvents, setEmojiEvents] = useState<EmojiEvent[]>([]);
   const [ownerId, setOwnerId] = useState<string | null>(initialOwnerId ?? null);
   const [roomClosed, setRoomClosed] = useState(false);
+  const [roomClosedReason, setRoomClosedReason] = useState<string | null>(null);
   const usersCache = useRef<Map<string, IUser>>(new Map());
 
   const fetchUser = useCallback(async (userId: string): Promise<IUser | null> => {
@@ -112,10 +114,11 @@ export function useWatchParty(roomId: string, initialOwnerId?: string): UseWatch
       logger.info('Watch Party owner transferred', { newOwnerId: data.newOwnerId });
     });
 
-    // Room closed by owner (no members remain after owner left)
-    socket.on('room:closed', () => {
+    // Room closed (owner left or inactive timeout)
+    socket.on('room:closed', (data?: { reason?: string }) => {
       setRoomClosed(true);
-      logger.info('Watch Party room closed');
+      setRoomClosedReason(data?.reason ?? null);
+      logger.info('Watch Party room closed', { reason: data?.reason });
     });
 
     // Chat message: server sends { userId, message, timestamp }
@@ -219,6 +222,7 @@ export function useWatchParty(roomId: string, initialOwnerId?: string): UseWatch
     emojiEvents,
     ownerId,
     roomClosed,
+    roomClosedReason,
     sendMessage,
     sendEmoji,
     emitPlay,
