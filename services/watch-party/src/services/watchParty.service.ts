@@ -137,9 +137,13 @@ export class WatchPartyService {
     return room;
   }
 
-  /** List all active public rooms sorted by member count (descending) */
+  /** List all active rooms inactive <10 min, sorted by member count (descending) */
   async getRooms(limit = 50): Promise<Array<IWatchPartyRoomDocument & { memberCount: number }>> {
-    const rooms = await WatchPartyRoom.find({ status: { $ne: 'ended' } })
+    const cutoff = new Date(Date.now() - 10 * 60 * 1000); // 10 minutes ago
+    const rooms = await WatchPartyRoom.find({
+      status: { $ne: 'ended' },
+      lastActivityAt: { $gt: cutoff },
+    })
       .sort({ createdAt: -1 })
       .limit(limit * 3) // fetch more then sort in JS by memberCount
       .lean();

@@ -605,33 +605,39 @@ export function VideoPlayer({
 
             {/* Left group */}
             <div className="flex items-center gap-0.5">
-              {/* Play/Pause */}
-              <button
-                onClick={(e) => { e.stopPropagation(); togglePlay(); }}
-                className="flex items-center justify-center h-9 w-9 rounded-lg text-white hover:bg-white/10 transition-all"
-              >
-                {isPlaying ? <FaPause size={15} /> : <FaPlay size={15} />}
-              </button>
+              {/* Play/Pause — owner only */}
+              {isOwner && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); togglePlay(); }}
+                  className="flex items-center justify-center h-9 w-9 rounded-lg text-white hover:bg-white/10 transition-all"
+                >
+                  {isPlaying ? <FaPause size={15} /> : <FaPlay size={15} />}
+                </button>
+              )}
 
-              {/* Skip back */}
-              <button
-                onClick={(e) => { e.stopPropagation(); skip(-10); }}
-                className="flex items-center justify-center h-9 w-9 rounded-lg text-white hover:bg-white/10 transition-all"
-                title="Rewind 10s"
-              >
-                <MdReplay10 size={22} />
-              </button>
+              {/* Skip back — owner only */}
+              {isOwner && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); skip(-10); }}
+                  className="flex items-center justify-center h-9 w-9 rounded-lg text-white hover:bg-white/10 transition-all"
+                  title="Rewind 10s"
+                >
+                  <MdReplay10 size={22} />
+                </button>
+              )}
 
-              {/* Skip forward */}
-              <button
-                onClick={(e) => { e.stopPropagation(); skip(10); }}
-                className="flex items-center justify-center h-9 w-9 rounded-lg text-white hover:bg-white/10 transition-all"
-                title="Forward 10s"
-              >
-                <MdForward10 size={22} />
-              </button>
+              {/* Skip forward — owner only */}
+              {isOwner && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); skip(10); }}
+                  className="flex items-center justify-center h-9 w-9 rounded-lg text-white hover:bg-white/10 transition-all"
+                  title="Forward 10s"
+                >
+                  <MdForward10 size={22} />
+                </button>
+              )}
 
-              {/* Volume group */}
+              {/* Volume group — everyone */}
               <div
                 className="flex items-center gap-1"
                 onMouseEnter={() => setShowVolSlider(true)}
@@ -659,7 +665,7 @@ export function VideoPlayer({
                 </div>
               </div>
 
-              {/* Time */}
+              {/* Time — everyone */}
               <span className="text-white text-[11px] tabular-nums ml-1 hidden sm:block">
                 {formatTime(currentTime)} / {formatTime(duration)}
               </span>
