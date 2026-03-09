@@ -56,47 +56,65 @@ function YouTubeIframePlayer({
   videoUrl, syncTime, syncTimestamp, syncIsPlaying, isOwner,
   onPlay, onPause, onSeek,
 }: UniversalPlayerProps) {
-  const iframeRef          = useRef<HTMLIFrameElement>(null);
-  const applyingRef        = useRef(false);   // true while we're applying sync (ignore state events)
-  const currentTimeRef     = useRef(0);       // tracks latest currentTime from infoDelivery
-  const lastTrackedRef     = useRef(0);       // for seek detection (owner)
-  const playerStateRef     = useRef(-1);      // last known YouTube playerState
-  const syncIsPlayingRef   = useRef(syncIsPlaying); // always-fresh ref for event handlers
+  const iframeRef        = useRef<HTMLIFrameElement>(null);
+  const readyRef         = useRef(false);    // true once YouTube fires onReady
+  const pendingCmds      = useRef<Array<{ func: string; args: unknown[] }>>([]);
+  const applyingRef      = useRef(false);    // true while applying sync (suppress state events)
+  const currentTimeRef   = useRef(0);        // latest currentTime from infoDelivery
+  const lastTrackedRef   = useRef(0);        // for seek detection (owner)
+  const playerStateRef   = useRef(-1);       // last known YouTube playerState
+  const syncIsPlayingRef = useRef(syncIsPlaying);
 
   const videoId = extractYouTubeId(videoUrl);
 
   /* Keep syncIsPlayingRef fresh */
   useEffect(() => { syncIsPlayingRef.current = syncIsPlaying; }, [syncIsPlaying]);
 
-  /* Send a command to the YouTube iframe via postMessage */
+  /* Send a command — queue it if player not ready yet */
   const cmd = useCallback((func: string, args: unknown[] = []) => {
+    if (!readyRef.current) {
+      // Replace any prior queued command with the same func (last wins)
+      pendingCmds.current = pendingCmds.current.filter(c => c.func !== func);
+      pendingCmds.current.push({ func, args });
+      return;
+    }
     iframeRef.current?.contentWindow?.postMessage(
       JSON.stringify({ event: 'command', func, args }),
       '*',
     );
   }, []);
 
-  /* Member sync: when owner plays/pauses, apply to our iframe */
+  /* Flush pending commands once player is ready */
+  const flushPending = useCallback(() => {
+    const win = iframeRef.current?.contentWindow;
+    if (!win) return;
+    for (const { func, args } of pendingCmds.current) {
+      win.postMessage(JSON.stringify({ event: 'command', func, args }), '*');
+    }
+    pendingCmds.current = [];
+  }, []);
+
+  /* Member sync: apply owner state whenever it changes */
   useEffect(() => {
     if (isOwner || syncIsPlaying === undefined) return;
 
     applyingRef.current = true;
 
-    // Drift-compensated target time
     const elapsed = syncTimestamp ? Math.max(0, (Date.now() - syncTimestamp) / 1000) : 0;
     const target  = (syncTime ?? 0) + (syncIsPlaying ? elapsed : 0);
 
-    // Only seek if we're significantly out of sync
     if (Math.abs(target - currentTimeRef.current) > 2) {
       cmd('seekTo', [target, true]);
     }
 
-    if (syncIsPlaying) cmd('playVideo');
-    else               cmd('pauseVideo');
+    // Give seekTo a moment before play/pause so it doesn't race
+    const t1 = setTimeout(() => {
+      if (syncIsPlaying) cmd('playVideo');
+      else               cmd('pauseVideo');
+    }, readyRef.current ? 200 : 0);
 
-    // Clear flag after commands settle
-    const t = setTimeout(() => { applyingRef.current = false; }, 800);
-    return () => clearTimeout(t);
+    const t2 = setTimeout(() => { applyingRef.current = false; }, 1000);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [isOwner, syncIsPlaying, syncTime, syncTimestamp, cmd]);
 
   /* Listen to YouTube postMessage events */
@@ -107,12 +125,40 @@ function YouTubeIframePlayer({
       try { data = JSON.parse(e.data) as Record<string, unknown>; }
       catch { return; }
 
+      // Player ready — flush queued commands then apply current sync
+      if (data.event === 'onReady') {
+        readyRef.current = true;
+        flushPending();
+
+        // Immediately apply current sync state for members
+        if (!isOwner && syncIsPlayingRef.current !== undefined) {
+          const elapsed = 0; // serverTimestamp not accessible here, use 0 for initial
+          const target  = syncTime ?? 0;
+          applyingRef.current = true;
+          iframeRef.current?.contentWindow?.postMessage(
+            JSON.stringify({ event: 'command', func: 'seekTo', args: [target, true] }), '*',
+          );
+          setTimeout(() => {
+            if (syncIsPlayingRef.current) {
+              iframeRef.current?.contentWindow?.postMessage(
+                JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*',
+              );
+            } else {
+              iframeRef.current?.contentWindow?.postMessage(
+                JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] }), '*',
+              );
+            }
+            setTimeout(() => { applyingRef.current = false; }, 500);
+          }, 300);
+        }
+      }
+
       // Periodic info: track currentTime + playerState
       if (data.event === 'infoDelivery') {
         const info = data.info as Record<string, unknown> | null;
         if (!info) return;
-        if (typeof info.currentTime === 'number') currentTimeRef.current  = info.currentTime;
-        if (typeof info.playerState === 'number') playerStateRef.current  = info.playerState;
+        if (typeof info.currentTime === 'number') currentTimeRef.current = info.currentTime;
+        if (typeof info.playerState === 'number') playerStateRef.current = info.playerState;
       }
 
       // State transitions
@@ -121,21 +167,22 @@ function YouTubeIframePlayer({
         const ct    = currentTimeRef.current;
 
         if (isOwner) {
-          // Owner: emit socket events
           if (state === 1) onPlay?.(ct);
           if (state === 2) onPause?.(ct);
         } else {
-          // Member: override back to correct state immediately
+          // Member: override back to correct state
           const shouldPlay = syncIsPlayingRef.current === true;
           if (state === 1 && !shouldPlay) {
-            // Member tried to play but owner is not playing → force pause
             applyingRef.current = true;
-            cmd('pauseVideo');
+            iframeRef.current?.contentWindow?.postMessage(
+              JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] }), '*',
+            );
             setTimeout(() => { applyingRef.current = false; }, 500);
           } else if (state === 2 && shouldPlay) {
-            // Member tried to pause but owner is playing → force play
             applyingRef.current = true;
-            cmd('playVideo');
+            iframeRef.current?.contentWindow?.postMessage(
+              JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*',
+            );
             setTimeout(() => { applyingRef.current = false; }, 500);
           }
         }
@@ -144,14 +191,13 @@ function YouTubeIframePlayer({
 
     window.addEventListener('message', handle);
     return () => window.removeEventListener('message', handle);
-  }, [isOwner, onPlay, onPause, cmd]);
+  }, [isOwner, onPlay, onPause, flushPending, syncTime]);
 
-  /* Owner seek detection: poll currentTime every second, emit onSeek on jumps */
+  /* Owner seek detection: poll every second, emit onSeek on jumps > 4s */
   useEffect(() => {
     if (!isOwner) return;
     const id = setInterval(() => {
-      const cur = currentTimeRef.current;
-      // Natural progression ≈ 1s; a jump > 4s is likely a user seek
+      const cur     = currentTimeRef.current;
       const playing = playerStateRef.current === 1;
       if (playing && Math.abs(cur - lastTrackedRef.current - 1) > 4) {
         onSeek?.(cur);
@@ -170,7 +216,7 @@ function YouTubeIframePlayer({
   }
 
   const origin   = typeof window !== 'undefined' ? window.location.origin : '';
-  const embedUrl = `https://www.youtube.com/embed/${videoId}?enablejsapi=1&origin=${encodeURIComponent(origin)}&controls=1&rel=0&modestbranding=1`;
+  const embedUrl = `https://www.youtube.com/embed/${videoId}?enablejsapi=1&origin=${encodeURIComponent(origin)}&controls=1&rel=0&modestbranding=1&autoplay=0`;
 
   return (
     <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
@@ -182,6 +228,10 @@ function YouTubeIframePlayer({
         allowFullScreen
         title={`YouTube — ${videoId}`}
       />
+      {/* Member overlay: blocks direct interaction with YouTube controls */}
+      {!isOwner && (
+        <div className="absolute inset-0 z-10" style={{ cursor: 'default' }} />
+      )}
     </div>
   );
 }

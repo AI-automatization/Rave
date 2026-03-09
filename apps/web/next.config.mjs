@@ -32,6 +32,7 @@ const nextConfig = {
     return [
       { source: '/auth/:path*', destination: `${authUrl}/api/v1/auth/:path*` },
       { source: '/users/:path*', destination: `${userUrl}/api/v1/users/:path*` },
+      { source: '/movies',        destination: `${contentUrl}/api/v1/content/movies` },
       { source: '/movies/:path*', destination: `${contentUrl}/api/v1/content/movies/:path*` },
       { source: '/watch-party/:path*', destination: `${watchUrl}/api/v1/watch-party/:path*` },
       { source: '/battles/:path*', destination: `${battleUrl}/api/v1/battles/:path*` },
