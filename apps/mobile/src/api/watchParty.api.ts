@@ -1,0 +1,42 @@
+// CineSync Mobile — Watch Party API
+import { watchPartyClient } from './client';
+import { ApiResponse, IWatchPartyRoom } from '@app-types/index';
+
+export const watchPartyApi = {
+  async createRoom(data: {
+    movieId?: string;
+    name?: string;
+    isPrivate?: boolean;
+    maxMembers?: number;
+  }): Promise<IWatchPartyRoom> {
+    const res = await watchPartyClient.post<ApiResponse<IWatchPartyRoom>>('/watch-party/rooms', data);
+    return res.data.data!;
+  },
+
+  async getRooms(): Promise<IWatchPartyRoom[]> {
+    const res = await watchPartyClient.get<ApiResponse<IWatchPartyRoom[]>>('/watch-party/rooms');
+    return res.data.data ?? [];
+  },
+
+  async getRoomById(roomId: string): Promise<IWatchPartyRoom> {
+    const res = await watchPartyClient.get<ApiResponse<IWatchPartyRoom>>(
+      `/watch-party/rooms/${roomId}`,
+    );
+    return res.data.data!;
+  },
+
+  async joinByInviteCode(inviteCode: string): Promise<IWatchPartyRoom> {
+    const res = await watchPartyClient.post<ApiResponse<IWatchPartyRoom>>(
+      `/watch-party/join/${inviteCode}`,
+    );
+    return res.data.data!;
+  },
+
+  async leaveRoom(roomId: string): Promise<void> {
+    await watchPartyClient.post(`/watch-party/rooms/${roomId}/leave`);
+  },
+
+  async closeRoom(roomId: string): Promise<void> {
+    await watchPartyClient.delete(`/watch-party/rooms/${roomId}`);
+  },
+};

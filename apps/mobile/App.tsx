@@ -1,33 +1,46 @@
-// CineSync — Expo React Native
-// T-E001: Bu fayl placeholder — AppNavigator bilan almashtiriladi
+// CineSync — Root App Component
+import React, { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { StyleSheet } from 'react-native';
+import { useAuthStore } from '@store/auth.store';
+import { AppNavigator } from '@navigation/AppNavigator';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 2,
+      staleTime: 5 * 60 * 1000, // 5 min
+    },
+  },
+});
+
+function RootApp() {
+  const hydrate = useAuthStore((s) => s.hydrate);
+
+  useEffect(() => {
+    hydrate();
+  }, [hydrate]);
+
+  return (
+    <>
+      <StatusBar style="light" />
+      <AppNavigator />
+    </>
+  );
+}
 
 export default function App() {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>CineSync</Text>
-      <Text style={styles.subtitle}>Expo React Native — setup jarayonida</Text>
-      <StatusBar style="light" />
-    </View>
+    <GestureHandlerRootView style={styles.root}>
+      <QueryClientProvider client={queryClient}>
+        <RootApp />
+      </QueryClientProvider>
+    </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0A0A0F',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: {
-    color: '#E50914',
-    fontSize: 32,
-    fontWeight: 'bold',
-  },
-  subtitle: {
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: 14,
-    marginTop: 8,
-  },
+  root: { flex: 1 },
 });

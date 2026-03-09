@@ -92,63 +92,7 @@
 
 ## SPRINT 1 — Expo Setup + Auth
 
-### T-E001 | P0 | [MOBILE] | Expo loyiha setup — monorepo config, aliaslar, theme
-
-- **Sana:** 2026-03-07
-- **Mas'ul:** pending[Emirhan]
-- **Fayl:** `apps/mobile/`
-- **Holat:** ❌ Boshlanmagan
-- **Bajarilishi kerak:**
-  - [ ] `create-expo-app` bilan yaratilgan baza ustiga monorepo sozlash
-  - [ ] `tsconfig.json` — strict mode, path aliases (@screens, @components, @api, @store, @socket, @theme, @utils, @types, @navigation)
-  - [ ] `babel.config.js` — `babel-preset-expo` + `babel-plugin-module-resolver`
-  - [ ] `metro.config.js` — `expo/metro-config` + monorepo `watchFolders` (shared/*)
-  - [ ] `src/theme/index.ts` — colors, spacing, borderRadius, typography, RANK_COLORS
-  - [ ] `src/types/index.ts` — IUser, IMovie, IWatchPartyRoom, IBattle, INotification, IAchievement, ApiResponse
-  - [ ] `src/utils/storage.ts` — `expo-secure-store` token storage (accessToken, refreshToken, userId)
-  - [ ] `src/utils/notifications.ts` — FCM permission, token registration, NOTIFICATION_ROUTES
-  - [ ] `src/api/client.ts` — per-service Axios instances (6 ta), auto-refresh interceptor, token rotation
-  - [ ] Barcha API fayllar: auth, user, content, watchParty, battle, notification
-  - [ ] Zustand stores: auth, movies, friends, watchParty, battle, notification
-  - [ ] Navigation types + AppNavigator (auth-aware routing)
-  - [ ] Expo paketlar: `expo-image`, `expo-linear-gradient`, `@expo/vector-icons`, `expo-haptics`, `expo-splash-screen`, `expo-av`, `expo-secure-store`
-- **Eslatma:** Expo Go emas — `expo run:android` / `expo run:ios` ishlatish (Bare Workflow)
-
----
-
-### T-E002 | P0 | [MOBILE] | Auth ekranlar (Expo)
-
-- **Sana:** 2026-03-07
-- **Mas'ul:** pending[Emirhan]
-- **Fayl:** `apps/mobile/src/screens/auth/`
-- **Holat:** ❌ Boshlanmagan
-- **Bajarilishi kerak:**
-  - [ ] `SplashScreen.tsx` — animated logo, token hydration, Onboarding ga redirect
-  - [ ] `OnboardingScreen.tsx` — 3 slide FlatList (pagingEnabled), dot indicators
-  - [ ] `LoginScreen.tsx` — email+password, Google SignIn (expo-auth-session), toast xatolar
-  - [ ] `RegisterScreen.tsx` — username+email+password+confirm, client validation
-  - [ ] `VerifyEmailScreen.tsx` — token input, authApi.verifyEmail
-  - [ ] `ForgotPasswordScreen.tsx` — email input, enumeration-safe message
-  - [ ] `ProfileSetupScreen.tsx` — bio (200 char), avatar placeholder, skip
-
----
-
 ## SPRINT 2 — Asosiy ekranlar
-
-### T-E003 | P1 | [MOBILE] | HomeScreen + MovieRow + HeroBanner
-
-- **Sana:** 2026-03-07
-- **Mas'ul:** pending[Emirhan]
-- **Fayl:** `apps/mobile/src/screens/home/`
-- **Holat:** ❌ Boshlanmagan
-- **Bajarilishi kerak:**
-  - [ ] `HomeScreen.tsx` — header, notification badge, RefreshControl
-  - [ ] `hooks/useHomeData.ts` — React Query (trending, topRated, continueWatching, staleTime 10min)
-  - [ ] `components/HeroBanner.tsx` — top 5, `expo-linear-gradient` overlay, auto-scroll
-  - [ ] `components/MovieRow.tsx` — horizontal FlatList, optimized (getItemLayout)
-  - [ ] `components/HomeSkeleton.tsx` — loading skeleton
-
----
 
 ### T-E004 | P1 | [MOBILE] | SearchScreen + SearchResultsScreen
 

@@ -1,6 +1,62 @@
 # CineSync — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-03-08
+# Yangilangan: 2026-03-09
+
+---
+
+### F-063 | 2026-03-09 | [MOBILE] | T-E003 — HomeScreen + MovieRow + HeroBanner [Emirhan]
+
+- `hooks/useHomeData.ts` — React Query: trending (stale 10min), topRated, continueWatching
+- `components/movie/MovieCard.tsx` — expo-image, rating badge, navigation to MovieDetail, React.memo
+- `components/movie/MovieRow.tsx` — horizontal FlatList, getItemLayout, windowSize, React.memo
+- `components/movie/HeroBanner.tsx` — top 5, LinearGradient overlay, auto-scroll 4s, dot indicators, Watch tugmasi
+- `components/movie/HomeSkeleton.tsx` — pulse animation skeleton (hero + 2 row)
+- `screens/home/HomeScreen.tsx` — header, notification badge, RefreshControl, continueWatching (shartli)
+- **tsc --noEmit:** ✅ 0 xato
+
+---
+
+### F-062 | 2026-03-09 | [MOBILE] | T-E002 — Auth ekranlar [Emirhan]
+
+- `SplashScreen.tsx` — animated logo (fade+scale), token hydration, Onboarding ga redirect
+- `OnboardingScreen.tsx` — 3 slide FlatList (pagingEnabled), dot indicators, Keyingi/Boshlash/O'tkazib
+- `LoginScreen.tsx` — email+password, show/hide parol, xato xabarlar, authApi.login → setAuth
+- `RegisterScreen.tsx` — username+email+password+confirm, client validation (8 belgi, email format)
+- `VerifyEmailScreen.tsx` — token input, authApi.verifyEmail, enumeration-safe xabar
+- `ForgotPasswordScreen.tsx` — email input, enumeration-safe success message
+- `ProfileSetupScreen.tsx` — bio (200 char), skip tugmasi, updateProfile
+- `AuthNavigator.tsx` — real screen larga ulandi
+- **tsc --noEmit:** ✅ 0 xato
+
+---
+
+### F-061 | 2026-03-09 | [MOBILE] | T-E001 — Expo loyiha foundation [Emirhan]
+
+- `src/theme/index.ts` — colors, spacing, borderRadius, typography, shadows, RANK_COLORS, RARITY_COLORS
+- `src/types/index.ts` — shared types re-export + mobile-specific (AuthStackParamList, nav types, LoginRequest, IWatchProgress, IUserStats)
+- `src/utils/storage.ts` — expo-secure-store: saveTokens, getAll, clear
+- `src/utils/notifications.ts` — expo-notifications: requestPermission, getExpoPushToken, NOTIFICATION_ROUTES, Android channel
+- `src/api/client.ts` — 6 ta per-service Axios instance, auto-refresh interceptor, token rotation
+- `src/api/auth.api.ts` — login, register, verifyEmail, forgotPassword, refresh, logout, googleToken
+- `src/api/user.api.ts` — getMe, updateProfile, updateFcmToken, search, friends CRUD
+- `src/api/content.api.ts` — trending, topRated, search, progress, markComplete, rate
+- `src/api/watchParty.api.ts` — createRoom, getRooms, joinByInviteCode, leave, close
+- `src/api/battle.api.ts` — createBattle, getMyBattles, accept, reject, leaderboard
+- `src/api/notification.api.ts` — getAll, markRead, markAllRead, delete, unreadCount
+- `src/store/auth.store.ts` — Zustand: user, accessToken, isAuthenticated, isHydrated, hydrate
+- `src/store/movies.store.ts` — trending, topRated, continueWatching, currentMovie
+- `src/store/friends.store.ts` — friends, pendingRequests, onlineStatus
+- `src/store/watchParty.store.ts` — room, syncState, messages, activeMembers
+- `src/store/battle.store.ts` — activeBattles, currentBattle
+- `src/store/notification.store.ts` — notifications, unreadCount, markRead/All
+- `src/socket/client.ts` — Socket.io: connectSocket, disconnectSocket, getSocket
+- `src/hooks/useSocket.ts` — auth-aware socket connect/disconnect
+- `src/navigation/AppNavigator.tsx` — auth-aware root navigator, hydration wait
+- `src/navigation/AuthNavigator.tsx` — AuthStack (Splash→Onboarding→Login→Register→Verify→ForgotPw→Setup)
+- `src/navigation/MainNavigator.tsx` — BottomTabs (Home/Search/Friends/Profile) + nested stacks
+- `src/navigation/PlaceholderScreen.tsx` — vaqtinchalik placeholder
+- `App.tsx` — QueryClient + GestureHandlerRootView + hydration
+- **tsc --noEmit:** ✅ 0 xato
 
 ---
 
