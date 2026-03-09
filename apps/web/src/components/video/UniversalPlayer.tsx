@@ -56,13 +56,17 @@ function YouTubeIframePlayer({
   videoUrl, syncTime, syncTimestamp, syncIsPlaying, isOwner,
   onPlay, onPause, onSeek,
 }: UniversalPlayerProps) {
-  const iframeRef       = useRef<HTMLIFrameElement>(null);
-  const applyingRef     = useRef(false);   // true while we're applying sync (ignore state events)
-  const currentTimeRef  = useRef(0);       // tracks latest currentTime from infoDelivery
-  const lastTrackedRef  = useRef(0);       // for seek detection (owner)
-  const playerStateRef  = useRef(-1);      // last known YouTube playerState
+  const iframeRef          = useRef<HTMLIFrameElement>(null);
+  const applyingRef        = useRef(false);   // true while we're applying sync (ignore state events)
+  const currentTimeRef     = useRef(0);       // tracks latest currentTime from infoDelivery
+  const lastTrackedRef     = useRef(0);       // for seek detection (owner)
+  const playerStateRef     = useRef(-1);      // last known YouTube playerState
+  const syncIsPlayingRef   = useRef(syncIsPlaying); // always-fresh ref for event handlers
 
   const videoId = extractYouTubeId(videoUrl);
+
+  /* Keep syncIsPlayingRef fresh */
+  useEffect(() => { syncIsPlayingRef.current = syncIsPlaying; }, [syncIsPlaying]);
 
   /* Send a command to the YouTube iframe via postMessage */
   const cmd = useCallback((func: string, args: unknown[] = []) => {
@@ -111,18 +115,36 @@ function YouTubeIframePlayer({
         if (typeof info.playerState === 'number') playerStateRef.current  = info.playerState;
       }
 
-      // State transitions: only emit owner events (not sync-applied ones)
-      if (data.event === 'onStateChange' && isOwner && !applyingRef.current) {
+      // State transitions
+      if (data.event === 'onStateChange' && !applyingRef.current) {
         const state = data.info as number;
         const ct    = currentTimeRef.current;
-        if (state === 1) onPlay?.(ct);   // playing
-        if (state === 2) onPause?.(ct);  // paused
+
+        if (isOwner) {
+          // Owner: emit socket events
+          if (state === 1) onPlay?.(ct);
+          if (state === 2) onPause?.(ct);
+        } else {
+          // Member: override back to correct state immediately
+          const shouldPlay = syncIsPlayingRef.current === true;
+          if (state === 1 && !shouldPlay) {
+            // Member tried to play but owner is not playing → force pause
+            applyingRef.current = true;
+            cmd('pauseVideo');
+            setTimeout(() => { applyingRef.current = false; }, 500);
+          } else if (state === 2 && shouldPlay) {
+            // Member tried to pause but owner is playing → force play
+            applyingRef.current = true;
+            cmd('playVideo');
+            setTimeout(() => { applyingRef.current = false; }, 500);
+          }
+        }
       }
     };
 
     window.addEventListener('message', handle);
     return () => window.removeEventListener('message', handle);
-  }, [isOwner, onPlay, onPause]);
+  }, [isOwner, onPlay, onPause, cmd]);
 
   /* Owner seek detection: poll currentTime every second, emit onSeek on jumps */
   useEffect(() => {

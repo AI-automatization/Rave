@@ -232,7 +232,8 @@ export function VideoPlayer({
       }
     };
     const onDirectPlay = () => {
-      if (!isOwnerRef.current && syncIsPlayingRef.current === false) {
+      // Block member play unless owner is actively playing (covers undefined too)
+      if (!isOwnerRef.current && syncIsPlayingRef.current !== true) {
         video.pause();
       }
     };
