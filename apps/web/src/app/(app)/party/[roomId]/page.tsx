@@ -40,6 +40,7 @@ export default function WatchPartyPage() {
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [friends, setFriends] = useState<IUser[]>([]);
   const [copiedFriendId, setCopiedFriendId] = useState<string | null>(null);
+  const [invitedFriendId, setInvitedFriendId] = useState<string | null>(null);
   const emojiTimestamps = useRef<number[]>([]);
   const [emojiCooldown, setEmojiCooldown] = useState(0);
 
@@ -144,11 +145,22 @@ export default function WatchPartyPage() {
 
   const inviteLink = room ? `${typeof window !== 'undefined' ? window.location.origin : ''}/party/join/${room.inviteCode}` : '';
 
-  const handleCopyForFriend = (friendId: string) => {
-    void navigator.clipboard.writeText(inviteLink).then(() => {
-      setCopiedFriendId(friendId);
-      setTimeout(() => setCopiedFriendId(null), 2000);
-    });
+  const handleInviteFriend = async (friendId: string) => {
+    try {
+      await apiClient.post(`/watch-party/rooms/${roomId}/invite`, {
+        friendId,
+        inviterName: user?.username,
+      });
+      setInvitedFriendId(friendId);
+      setTimeout(() => setInvitedFriendId(null), 3000);
+    } catch (err) {
+      logger.error('Do\'stga taklif yuborishda xato', err);
+      // Fallback: copy link
+      void navigator.clipboard.writeText(inviteLink).then(() => {
+        setCopiedFriendId(friendId);
+        setTimeout(() => setCopiedFriendId(null), 2000);
+      });
+    }
   };
 
   const handleCopyInvite = () => {
@@ -476,13 +488,15 @@ export default function WatchPartyPage() {
                     </div>
                     <span className="text-sm text-slate-300 flex-1 truncate">{friend.username}</span>
                     <button
-                      onClick={() => handleCopyForFriend(friend._id)}
+                      onClick={() => void handleInviteFriend(friend._id)}
                       className="shrink-0 inline-flex items-center gap-1 h-7 px-2 rounded-lg bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 transition-all text-xs font-medium"
                     >
-                      {copiedFriendId === friend._id ? (
+                      {invitedFriendId === friend._id ? (
+                        <><FaCheck size={11} /> Yuborildi</>
+                      ) : copiedFriendId === friend._id ? (
                         <><FaCheck size={11} /> {t('copied')}</>
                       ) : (
-                        <><FaCopy size={11} /> {t('link')}</>
+                        <><FaUserPlus size={11} /> Taklif</>
                       )}
                     </button>
                   </li>

@@ -24,5 +24,8 @@ export const createWatchPartyRouter = (redis: Redis): Router => {
   // DELETE /watch-party/rooms/:id/leave — leave room
   router.delete('/rooms/:id/leave', verifyToken, watchPartyController.leaveRoom);
 
+  // POST /watch-party/rooms/:id/invite — send watch party invite notification to a friend
+  router.post('/rooms/:id/invite', verifyToken, watchPartyController.inviteUser);
+
   return router;
 };

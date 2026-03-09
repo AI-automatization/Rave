@@ -36,6 +36,7 @@ const nextConfig = {
       { source: '/movies/:path*', destination: `${contentUrl}/api/v1/content/movies/:path*` },
       { source: '/watch-party/:path*', destination: `${watchUrl}/api/v1/watch-party/:path*` },
       { source: '/battles/:path*', destination: `${battleUrl}/api/v1/battles/:path*` },
+      { source: '/notifications', destination: `${notifUrl}/api/v1/notifications` },
       { source: '/notifications/:path*', destination: `${notifUrl}/api/v1/notifications/:path*` },
       { source: '/admin/:path*', destination: `${adminUrl}/api/v1/admin/:path*` },
       { source: '/external-videos/:path*', destination: `${contentUrl}/api/v1/content/external-videos/:path*` },

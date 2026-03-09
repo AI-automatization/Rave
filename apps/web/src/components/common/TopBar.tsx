@@ -3,9 +3,11 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { FaSearch, FaBell } from 'react-icons/fa';
 import { useTranslations } from 'next-intl';
 import { useAuthStore } from '@/store/auth.store';
+import { apiClient } from '@/lib/axios';
 import { LanguageSwitcher } from './LanguageSwitcher';
 
 export function TopBar() {
@@ -13,6 +15,22 @@ export function TopBar() {
   const user   = useAuthStore((s) => s.user);
   const t      = useTranslations('topbar');
   const tAuth  = useTranslations('auth');
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchCount = () => {
+      apiClient
+        .get<{ data: { count: number } }>('/notifications/unread-count')
+        .then((r) => setUnreadCount(r.data.data?.count ?? 0))
+        .catch(() => {});
+    };
+
+    fetchCount();
+    const id = setInterval(fetchCount, 30_000);
+    return () => clearInterval(id);
+  }, [user]);
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -52,10 +70,15 @@ export function TopBar() {
 
           <Link
             href="/notifications"
-            className="flex items-center justify-center w-9 h-9 rounded-xl text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.06] transition-all"
+            className="relative flex items-center justify-center w-9 h-9 rounded-xl text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.06] transition-all"
             aria-label="Notifications"
           >
             <FaBell size={16} />
+            {unreadCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-violet-500 text-[10px] font-bold text-white flex items-center justify-center leading-none">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
           </Link>
 
           {user ? (

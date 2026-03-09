@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { WatchPartyService } from '../services/watchParty.service';
 import { apiResponse } from '@shared/utils/apiResponse';
 import { AuthenticatedRequest } from '@shared/types';
+import { sendInternalNotification } from '@shared/utils/serviceClient';
 
 export class WatchPartyController {
   constructor(private watchPartyService: WatchPartyService) {}
@@ -72,6 +73,46 @@ export class WatchPartyController {
       const { userId } = (req as AuthenticatedRequest).user;
       await this.watchPartyService.leaveRoom(userId, req.params.id);
       res.json(apiResponse.success(null, 'Left room'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // POST /watch-party/rooms/:id/invite — send watch party invite notification to a friend
+  inviteUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = (req as AuthenticatedRequest).user;
+      const roomId = req.params.id;
+      const { friendId, inviterName } = req.body as { friendId: string; inviterName?: string };
+
+      if (!friendId) {
+        res.status(400).json(apiResponse.error('friendId is required'));
+        return;
+      }
+
+      const room = await this.watchPartyService.getRoom(roomId);
+      if (!room) {
+        res.status(404).json(apiResponse.error('Room not found'));
+        return;
+      }
+
+      const roomTitle = room.name ?? room.videoTitle ?? 'Watch Party';
+      const inviterDisplay = inviterName ?? 'Kimdir';
+
+      // Non-blocking notification
+      void sendInternalNotification({
+        userId: friendId,
+        type: 'watch_party_invite',
+        title: 'Watch Party taklifi 🎬',
+        body: `${inviterDisplay} sizni "${roomTitle}" ga taklif qildi`,
+        data: {
+          roomId: (room._id as object).toString(),
+          inviteCode: room.inviteCode,
+          inviterId: userId,
+        },
+      });
+
+      res.json(apiResponse.success(null, 'Invite notification sent'));
     } catch (error) {
       next(error);
     }

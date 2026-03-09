@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { NotificationService } from '../services/notification.service';
 import { apiResponse } from '@shared/utils/apiResponse';
-import { AuthenticatedRequest } from '@shared/types';
+import { AuthenticatedRequest, NotificationType } from '@shared/types';
 
 export class NotificationController {
   constructor(private notificationService: NotificationService) {}
@@ -54,6 +54,36 @@ export class NotificationController {
       const { userId } = (req as AuthenticatedRequest).user;
       await this.notificationService.deleteNotification(userId, req.params.id);
       res.json(apiResponse.success(null, 'Notification deleted'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // Internal endpoint — called by other microservices (no JWT, uses X-Internal-Secret)
+  sendInternal = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId, type, title, body, data } = req.body as {
+        userId: string;
+        type: string;
+        title: string;
+        body: string;
+        data?: Record<string, unknown>;
+      };
+
+      if (!userId || !type || !title || !body) {
+        res.status(400).json(apiResponse.error('Missing required fields: userId, type, title, body'));
+        return;
+      }
+
+      await this.notificationService.sendInApp(
+        userId,
+        type as NotificationType,
+        title,
+        body,
+        data ?? {},
+      );
+
+      res.json(apiResponse.success(null, 'Notification sent'));
     } catch (error) {
       next(error);
     }

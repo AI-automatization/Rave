@@ -5,7 +5,7 @@ import { logger } from '@shared/utils/logger';
 import { NotFoundError, ConflictError, BadRequestError } from '@shared/utils/errors';
 import { REDIS_KEYS, TTL, LIMITS, RANKS, POINTS } from '@shared/constants';
 import { UserRank } from '@shared/types';
-import { triggerAchievement } from '@shared/utils/serviceClient';
+import { triggerAchievement, sendInternalNotification } from '@shared/utils/serviceClient';
 
 export class UserService {
   constructor(private redis: Redis) {}
@@ -84,7 +84,18 @@ export class UserService {
       throw new BadRequestError(`Maximum friend limit (${LIMITS.MAX_FRIENDS}) reached`);
     }
 
-    await Friendship.create({ requesterId, receiverId });
+    const friendship = await Friendship.create({ requesterId, receiverId });
+
+    // Notify receiver about the new friend request (non-blocking)
+    const requester = await User.findOne({ authId: requesterId }).select('username').lean();
+    void sendInternalNotification({
+      userId: receiverId,
+      type: 'friend_request',
+      title: 'Yangi do\'st so\'rovi',
+      body: `${requester?.username ?? 'Foydalanuvchi'} sizga do\'stlik so\'rovi yubordi`,
+      data: { requesterId, friendshipId: (friendship._id as object).toString() },
+    });
+
     logger.info('Friend request sent', { requesterId, receiverId });
   }
 
@@ -110,6 +121,16 @@ export class UserService {
     // Trigger achievement for both users (non-blocking)
     await triggerAchievement(userId, 'friend', { friendId: requesterId });
     await triggerAchievement(requesterId, 'friend', { friendId: userId });
+
+    // Notify the original requester that their request was accepted (non-blocking)
+    const accepter = await User.findOne({ authId: userId }).select('username').lean();
+    void sendInternalNotification({
+      userId: requesterId,
+      type: 'friend_accepted',
+      title: 'Do\'stlik so\'rovi qabul qilindi!',
+      body: `${accepter?.username ?? 'Foydalanuvchi'} do\'stlik so\'rovingizni qabul qildi`,
+      data: { userId },
+    });
 
     logger.info('Friend request accepted', { userId, requesterId });
   }
@@ -166,6 +187,16 @@ export class UserService {
 
     await triggerAchievement(userId, 'friend', { friendId: friendship.requesterId });
     await triggerAchievement(friendship.requesterId, 'friend', { friendId: userId });
+
+    // Notify the original requester (non-blocking)
+    const accepter = await User.findOne({ authId: userId }).select('username').lean();
+    void sendInternalNotification({
+      userId: friendship.requesterId,
+      type: 'friend_accepted',
+      title: 'Do\'stlik so\'rovi qabul qilindi!',
+      body: `${accepter?.username ?? 'Foydalanuvchi'} do\'stlik so\'rovingizni qabul qildi`,
+      data: { userId },
+    });
 
     logger.info('Friend request accepted by id', { userId, friendshipId });
   }

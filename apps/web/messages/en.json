@@ -104,7 +104,17 @@
     "emailVerifyText": "A confirmation email has been sent. Please check your inbox.",
     "goToLogin": "Go to Login",
     "wrongCredentials": "Invalid email or password",
-    "genericError": "An error occurred, please try again"
+    "genericError": "An error occurred, please try again",
+    "emailInvalid": "Enter a valid email",
+    "passwordEnter": "Enter password",
+    "usernameMin": "At least 3 characters",
+    "usernameMax": "At most 30 characters",
+    "usernameFormat": "Letters, numbers and _ only",
+    "passwordMin": "At least 8 characters",
+    "passwordUppercase": "At least 1 uppercase letter",
+    "passwordLowercase": "At least 1 lowercase letter",
+    "passwordNumber": "At least 1 number",
+    "passwordMismatch": "Passwords do not match"
   },
   "common": {
     "loading": "Loading...",
@@ -114,7 +124,32 @@
     "trending": "Trending",
     "topRated": "Top Rated",
     "recent": "Recently Added",
-    "seeAll": "See All"
+    "seeAll": "See All",
+    "watchTogetherTitle": "Watch Together",
+    "watchTogetherSub1": "Watch movies",
+    "watchTogetherSub2": "with friends",
+    "watchTogetherDesc": "Share YouTube, Vimeo or any video link — everything synced in real-time.",
+    "createRoom": "Create Room",
+    "activeRooms": "Active Rooms",
+    "totalMembers": "{count} members",
+    "activeChannels": "Active Channels",
+    "roomsWatching": "Rooms currently being watched",
+    "newRoom": "New Room",
+    "noActiveRooms": "No active rooms yet",
+    "createFirstRoom": "Create the first room!",
+    "showLess": "Show less",
+    "viewAll": "View all ({count})",
+    "privateRoom": "Private Room",
+    "passwordRequired": "Password required to enter",
+    "enterPassword": "Enter password...",
+    "cancel": "Cancel",
+    "joining": "Joining...",
+    "join": "Join",
+    "passwordNeeded": "Password required",
+    "joinError": "Could not join room",
+    "unknownVideo": "Unknown video",
+    "private": "Private",
+    "public": "Public"
   },
   "search": {
     "title": "SEARCH",
@@ -131,7 +166,12 @@
     "sortYear": "Year",
     "allGenres": "All Genres",
     "all": "All",
-    "notFound": "No movies found"
+    "notFound": "No movies found",
+    "searchPlaceholder": "Search movies, genres, directors...",
+    "allLoaded": "All movies loaded",
+    "clear": "Clear",
+    "resultsFor": "{count} results for",
+    "noResultsFor": "No results for"
   },
   "friends": {
     "title": "FRIENDS",
@@ -151,7 +191,8 @@
     "requestError": "Could not send friend request",
     "serverError": "Server error, please try again",
     "searchError": "Search failed",
-    "acceptError": "Error, please try again"
+    "acceptError": "Error, please try again",
+    "userNotFound": "User not found"
   },
   "battle": {
     "title": "BATTLE",
@@ -170,7 +211,8 @@
     "you": "You",
     "opponent": "Opponent",
     "daysLeft": "days left",
-    "film": "film"
+    "film": "film",
+    "firstBattleDesc": "Choose your opponent and start the competition"
   },
   "achievements": {
     "title": "ACHIEVEMENTS",
@@ -198,12 +240,19 @@
     "filmUnit": "movies",
     "watchPartyTitle": "WATCH PARTY",
     "watchPartyCount": "Watch Parties",
-    "total": "Total:"
+    "total": "Total:",
+    "loadError": "Error loading statistics",
+    "noData": "No statistics yet",
+    "noDataDesc": "Watch movies and your statistics will appear here"
   },
   "notifications": {
     "title": "NOTIFICATIONS",
     "markAllRead": "Mark all as read",
-    "empty": "No notifications"
+    "empty": "No notifications",
+    "loadError": "Error loading notifications",
+    "markReadError": "Error marking as read",
+    "markAllReadError": "Error marking all as read",
+    "deleteError": "Error deleting"
   },
   "settings": {
     "title": "SETTINGS",
@@ -220,7 +269,10 @@
     "saved": "Saved",
     "dangerZone": "DANGER ZONE",
     "logoutInfo": "Logging out will clear saved data on this device.",
-    "logout": "Logout"
+    "logout": "Logout",
+    "loadError": "Error loading settings",
+    "saveError": "Error saving settings",
+    "logoutError": "Logout error"
   },
   "footer": {
     "tagline": "A platform for watching movies with friends.",
@@ -291,7 +343,12 @@
     "ownerOnly": "Only the room owner can control the video",
     "noVideo": "Video not available",
     "roomClosed": "This room has been closed",
-    "roomClosedInactive": "This room was automatically closed due to 5 minutes of inactivity."
+    "roomClosedInactive": "This room was automatically closed due to 5 minutes of inactivity.",
+    "leaveConfirmTitle": "Leave room?",
+    "leaveConfirmMsg": "You are the owner. If you leave, ownership transfers to the next member.",
+    "stay": "Stay",
+    "leaveRoom": "Leave",
+    "copyLink": "Copy link"
   },
   "movie": {
     "watch": "Watch",

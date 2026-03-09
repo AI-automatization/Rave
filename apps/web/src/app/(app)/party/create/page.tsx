@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
   FaFilm, FaLock, FaGlobe, FaEye, FaEyeSlash,
-  FaSearch, FaPlus, FaArrowLeft, FaSpinner, FaCheck,
+  FaSearch, FaPlus, FaArrowLeft, FaSpinner, FaCheck, FaRedo,
 } from 'react-icons/fa';
 import { apiClient } from '@/lib/axios';
 import { logger } from '@/lib/logger';
@@ -33,6 +33,7 @@ export default function CreatePartyPage() {
   /* ── Movie catalog state ── */
   const [movies,        setMovies]        = useState<IMovie[]>([]);
   const [moviesLoading, setMoviesLoading] = useState(true);
+  const [moviesError,   setMoviesError]   = useState(false);
   const [search,        setSearch]        = useState('');
   const [selectedMovie, setSelectedMovie] = useState<IMovie | null>(null);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -58,13 +59,16 @@ export default function CreatePartyPage() {
   /* ── Fetch movies ── */
   const fetchMovies = useCallback(async (q?: string) => {
     setMoviesLoading(true);
+    setMoviesError(false);
     try {
       const endpoint = q
         ? `/movies/search?q=${encodeURIComponent(q)}&limit=30`
         : `/movies?limit=30`;
       const res = await apiClient.get<ApiResponse<IMovie[]>>(endpoint);
       setMovies(res.data.data ?? []);
-    } catch {
+    } catch (err) {
+      logger.error('Film katalogini yuklashda xato', err);
+      setMoviesError(true);
       setMovies([]);
     } finally {
       setMoviesLoading(false);
@@ -187,12 +191,28 @@ export default function CreatePartyPage() {
                   </div>
                 ))}
               </div>
+            ) : moviesError ? (
+              <div className="flex flex-col items-center justify-center h-full gap-3 py-16">
+                <FaFilm size={32} className="text-slate-700" />
+                <p className="text-sm text-slate-500">Filmlarni yuklashda xato yuz berdi</p>
+                <button
+                  onClick={() => void fetchMovies(search.trim() || undefined)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/10 text-slate-400 text-xs hover:border-white/20 hover:text-white transition-colors"
+                >
+                  <FaRedo size={11} /> Qayta urinish
+                </button>
+              </div>
             ) : movies.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full gap-3 py-16">
                 <FaFilm size={32} className="text-slate-700" />
                 <p className="text-sm text-slate-500">
-                  {search ? 'Film topilmadi' : 'Katalogda film yo\'q'}
+                  {search ? 'Film topilmadi' : 'Katalogda hali film mavjud emas'}
                 </p>
+                {!search && (
+                  <p className="text-xs text-slate-600 text-center max-w-[200px]">
+                    Video havola orqali ham xona yaratishingiz mumkin
+                  </p>
+                )}
               </div>
             ) : (
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
