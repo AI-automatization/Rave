@@ -4,6 +4,16 @@
 
 ---
 
+### F-064 | 2026-03-10 | [MOBILE] | T-E004 — SearchScreen + SearchResultsScreen [Emirhan]
+
+- `hooks/useSearch.ts` — useSearchHistory (expo-secure-store, 10 ta limit), useSearchResults (React Query, stale 2min), useDebounce (500ms), GENRES array
+- `screens/search/SearchScreen.tsx` — debounced search, genre chips (10ta), quick results preview (4ta), search history (add/remove/clear), genre browse grid
+- `screens/search/SearchResultsScreen.tsx` — FlatList 2-ustun, pagination (onEndReached), loading state, empty state
+- `navigation/MainNavigator.tsx` — SearchScreen + SearchResultsScreen ulandi
+- **tsc --noEmit:** ✅ 0 xato
+
+---
+
 ### F-063 | 2026-03-09 | [MOBILE] | T-E003 — HomeScreen + MovieRow + HeroBanner [Emirhan]
 
 - `hooks/useHomeData.ts` — React Query: trending (stale 10min), topRated, continueWatching

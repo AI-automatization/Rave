@@ -94,16 +94,6 @@
 
 ## SPRINT 2 — Asosiy ekranlar
 
-### T-E004 | P1 | [MOBILE] | SearchScreen + SearchResultsScreen
-
-- **Sana:** 2026-03-07
-- **Mas'ul:** pending[Emirhan]
-- **Fayl:** `apps/mobile/src/screens/search/`
-- **Holat:** ❌ Boshlanmagan
-- **Bajarilishi kerak:**
-  - [ ] `SearchScreen.tsx` — debounced search (500ms), genre filter chips, search history (expo-secure-store)
-  - [ ] `SearchResultsScreen.tsx` — results list, movie cards, pagination
-
 ---
 
 ### T-E005 | P1 | [MOBILE] | MovieDetailScreen + VideoPlayerScreen (expo-av)

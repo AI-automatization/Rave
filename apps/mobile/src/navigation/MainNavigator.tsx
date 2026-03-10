@@ -13,6 +13,8 @@ import {
 } from '@app-types/index';
 import { PlaceholderScreen } from './PlaceholderScreen';
 import { HomeScreen } from '@screens/home/HomeScreen';
+import { SearchScreen } from '@screens/search/SearchScreen';
+import { SearchResultsScreen } from '@screens/search/SearchResultsScreen';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
@@ -33,8 +35,8 @@ function HomeStackNavigator() {
 function SearchStackNavigator() {
   return (
     <SearchStack.Navigator screenOptions={{ headerShown: false }}>
-      <SearchStack.Screen name="Search" component={PlaceholderScreen} />
-      <SearchStack.Screen name="SearchResults" component={PlaceholderScreen} />
+      <SearchStack.Screen name="Search" component={SearchScreen} />
+      <SearchStack.Screen name="SearchResults" component={SearchResultsScreen} />
     </SearchStack.Navigator>
   );
 }
