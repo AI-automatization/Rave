@@ -224,7 +224,7 @@
 ### T-E014 | P1 | [MOBILE] | Theme — Web UI bilan ranglarni moslashtirish
 
 - **Sana:** 2026-03-10
-- **Mas'ul:** pending[Emirhan]
+- **Mas'ul:** 🔄 pending[Emirhan]
 - **Fayl:** `apps/mobile/src/theme/index.ts`
 - **Holat:** ❌ Boshlanmagan
 - **Sabab:** Web `aqua` dark theme (Tailwind v4 + DaisyUI v5, `docs/UICOLORS.md`) ishlatmoqda.
