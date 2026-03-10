@@ -96,19 +96,6 @@
 
 ---
 
-### T-E005 | P1 | [MOBILE] | MovieDetailScreen + VideoPlayerScreen (expo-av)
-
-- **Sana:** 2026-03-07
-- **Mas'ul:** 🔄 pending[Emirhan]
-- **Fayl:** `apps/mobile/src/screens/home/`
-- **Holat:** ❌ Boshlanmagan
-- **Bajarilishi kerak:**
-  - [ ] `MovieDetailScreen.tsx` — parallax header, movie info, genre chips, RatingWidget (1-10)
-  - [ ] `VideoPlayerScreen.tsx` — `expo-av` (Video) HLS m3u8, custom controls (play/pause/seek/fullscreen)
-  - [ ] Progress save (debounced 30s), 90% → markComplete + checkAchievements
-  - [ ] **Eslatma:** `react-native-video` EMAS — `expo-av` ishlatish
-
----
 
 ## SPRINT 3 — Ijtimoiy ekranlar
 

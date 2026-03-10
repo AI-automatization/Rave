@@ -4,6 +4,15 @@
 
 ---
 
+### F-066 | 2026-03-10 | [MOBILE] | T-E005 — MovieDetailScreen + VideoPlayerScreen [Emirhan]
+
+- `hooks/useMovieDetail.ts` — React Query: movie (stale 5min) + watchProgress (stale 0)
+- `screens/home/MovieDetailScreen.tsx` — Animated parallax backdrop (LinearGradient fade), poster+info row, genre chips, desc, Watch button, 5-star RatingWidget (→ 1-10 backend)
+- `screens/home/VideoPlayerScreen.tsx` — expo-av Video, custom controls overlay (auto-hide 3.5s), play/pause/±10s skip, seek bar (touch-to-seek), progress throttle 30s, 90%→markComplete
+- `navigation/MainNavigator.tsx` — MovieDetailScreen + VideoPlayerScreen ulandi
+
+---
+
 ### F-065 | 2026-03-10 | [MOBILE] | T-E014 — Theme ranglarini Web UI (aqua) bilan moslashtirish [Emirhan]
 
 - `apps/mobile/src/theme/index.ts` — `colors` obyekti to'liq yangilandi
