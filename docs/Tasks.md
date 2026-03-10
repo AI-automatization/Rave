@@ -99,7 +99,7 @@
 ### T-E005 | P1 | [MOBILE] | MovieDetailScreen + VideoPlayerScreen (expo-av)
 
 - **Sana:** 2026-03-07
-- **Mas'ul:** pending[Emirhan]
+- **Mas'ul:** 🔄 pending[Emirhan]
 - **Fayl:** `apps/mobile/src/screens/home/`
 - **Holat:** ❌ Boshlanmagan
 - **Bajarilishi kerak:**
