@@ -32,7 +32,7 @@
 - **Sana:** 2026-03-03
 - **Mas'ul:** Saidazim
 - **Fayl:** `services/auth/src/`
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 pending[Saidazim]
 - **Sabab:** Mobile `@react-native-google-signin` orqali idToken oladi — backendga yuboradi.
   Passport web-redirect flow mobile uchun mos emas.
 - **Bajarilishi kerak:**
