@@ -1,6 +1,17 @@
 # CineSync — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-03-09
+# Yangilangan: 2026-03-10
+
+---
+
+### F-065 | 2026-03-10 | [MOBILE] | T-E014 — Theme ranglarini Web UI (aqua) bilan moslashtirish [Emirhan]
+
+- `apps/mobile/src/theme/index.ts` — `colors` obyekti to'liq yangilandi
+- OKLCH → HEX konversiya: base-100→bgBase(#211F1C), base-200→bgElevated(#3E3B38), base-300→border(#7A3B40)
+- primary: #E50914 (Netflix red) → #7B72F8 (violet, oklch 67% 0.182 276)
+- secondary: #49C4E5 (aqua), neutral: #C03040, textPrimary: #EFE6EB
+- Yangi tokenlar qo'shildi: primaryContent, primaryHover, secondary, secondaryContent, neutral
+- RANK_COLORS, RARITY_COLORS — o'zgartirilmadi (gamification-specific)
 
 ---
 

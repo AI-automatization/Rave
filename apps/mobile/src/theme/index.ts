@@ -1,25 +1,47 @@
 // CineSync Mobile — Design Tokens
 import { UserRank } from '@app-types/index';
 
+// Web aqua theme (Tailwind v4 + DaisyUI v5) bilan moslashtirilgan
+// OKLCH → HEX: base-100→bgBase, base-200→bgElevated, base-300→border,
+//              primary→#7B72F8, secondary→#49C4E5, neutral→#C03040
 export const colors = {
-  primary: '#E50914',
-  primaryHover: '#FF1A24',
-  bgVoid: '#060608',
-  bgBase: '#0A0A0F',
-  bgElevated: '#111118',
-  bgOverlay: '#16161F',
-  bgSurface: '#1C1C28',
-  textPrimary: '#FFFFFF',
-  textSecondary: 'rgba(255,255,255,0.7)',
-  textMuted: 'rgba(255,255,255,0.4)',
+  // Primary — violet (Web: oklch(67% 0.182 276))
+  primary: '#7B72F8',
+  primaryHover: '#9089FF',
+  primaryContent: '#1A164A',
+
+  // Secondary — aqua (Web: oklch(74% 0.16 232))
+  secondary: '#49C4E5',
+  secondaryContent: '#163545',
+
+  // Neutral — reddish (Web: oklch(59% 0.249 0))
+  neutral: '#C03040',
+
+  // Backgrounds — derived from base-100/200
+  bgVoid: '#131110',
+  bgBase: '#211F1C',       // base-100: oklch(14% 0.004 49)
+  bgSurface: '#2A2825',
+  bgElevated: '#3E3B38',   // base-200: oklch(26% 0.007 34)
+  bgOverlay: '#1A1816',
+
+  // Text — base-content: oklch(94% 0.028 342)
+  textPrimary: '#EFE6EB',
+  textSecondary: 'rgba(239,230,235,0.7)',
+  textMuted: 'rgba(239,230,235,0.4)',
+
+  // Border — base-300: oklch(45% 0.187 3)
+  border: '#7A3B40',
+  overlay: 'rgba(19,17,16,0.85)',
+
+  // Gamification — o'zgartirilmadi
   gold: '#FFD700',
   silver: '#C0C0C0',
   diamond: '#88CCFF',
+
+  // Semantic
   success: '#22C55E',
   error: '#EF4444',
   warning: '#F59E0B',
-  border: 'rgba(255,255,255,0.08)',
-  overlay: 'rgba(0,0,0,0.7)',
 } as const;
 
 export const RANK_COLORS: Record<UserRank, string> = {
