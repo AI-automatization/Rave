@@ -221,6 +221,41 @@
 
 ---
 
+### T-E014 | P1 | [MOBILE] | Theme — Web UI bilan ranglarni moslashtirish
+
+- **Sana:** 2026-03-10
+- **Mas'ul:** pending[Emirhan]
+- **Fayl:** `apps/mobile/src/theme/index.ts`
+- **Holat:** ❌ Boshlanmagan
+- **Sabab:** Web `aqua` dark theme (Tailwind v4 + DaisyUI v5, `docs/UICOLORS.md`) ishlatmoqda.
+  Mobile hozir Netflix red (`#E50914`) ishlatmoqda — platformalar orasida vizual inconsistency.
+- **Manbaa:** `docs/UICOLORS.md` — Web token → Mobile hex konversiya
+- **Bajarilishi kerak:**
+  - [ ] OKLCH → HEX konversiya (`oklch.com` dan foydalanish)
+  - [ ] `apps/mobile/src/theme/index.ts` — `colors` obyektini yangilash:
+
+```
+Web token                             → Mobile token           → HEX (taxminiy)
+--color-base-100 oklch(14% 0.004 49)  → bgBase                → #211F1C
+--color-base-200 oklch(26% 0.007 34)  → bgElevated            → #3E3B38
+--color-base-300 oklch(45% 0.187 3)   → border                → #7A3B40
+--color-base-content oklch(94% 0.028) → textPrimary           → #EFE6EB
+--color-primary oklch(67% 0.182 276)  → primary               → #7B72F8
+--color-primary-content oklch(25%)    → primaryContent        → #1A164A
+--color-secondary oklch(74% 0.16 232) → secondary             → #49C4E5
+--color-secondary-content oklch(29%)  → secondaryContent      → #163545
+--color-neutral oklch(59% 0.249 0)    → neutral               → #C03040
+--color-neutral-content oklch(97%)    → textMuted             → #F9F4F7
+```
+
+  - [ ] `bgVoid`, `bgSurface`, `bgOverlay` — Web base-100/200 dan derived qilish
+  - [ ] `success`, `error`, `warning` — Web semantic tokenlar bilan moslashtirish
+  - [ ] `RANK_COLORS`, `RARITY_COLORS` — o'zgartirmaslik (gamification-specific)
+  - [ ] Barcha screenlarni vizual tekshirish (Expo Go da)
+- **Eslatma:** Aniq HEX qiymatlar uchun `oklch.com` → Enter OKLCH → Copy HEX
+
+---
+
 # ═══════════════════════════════════════
 
 # 🔵 JAFAR — NEXT.JS WEB CLIENT
@@ -267,7 +302,7 @@
 | Jamoa    | Tugallandi | Qolgan | JAMI |
 | -------- | ---------- | ------ | ---- |
 | Saidazim | T-S001..T-S008, T-S010, T-S011, T-C001, T-C003, T-C005 ✅ | T-S005b, T-S009, T-S016 (3 task) | — |
-| Emirhan  | — (Expo ga ko'chirildi, boshidan) | T-E001..T-E013 (13 task) | 13 |
+| Emirhan  | — (Expo ga ko'chirildi, boshidan) | T-E001..T-E014 (14 task) | 14 |
 | Jafar    | T-J001..T-J006, T-J008, T-J009, T-J011 ✅ | T-J007 (qisman), T-J010 (verify) | — |
 | Umumiy   | T-C001 ✅, T-C002 ✅, T-C003 ✅, T-C005 ✅ | T-C004 (1 task) | — |
 

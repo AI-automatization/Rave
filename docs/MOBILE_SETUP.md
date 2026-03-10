@@ -1,43 +1,37 @@
 # CineSync Mobile — Setup Guide
+# Expo SDK 54 · React Native 0.81.5 · TypeScript · Expo Go
 # Yangi PC dan git clone qilgandan keyin ishga tushirish
 
 ---
 
 ## Muhim tushuncha: Qanday ishlaydi?
 
-### Expo Bare Workflow nima?
+### Expo Go Workflow (Managed)
 
-CineSync **Expo Bare Workflow** da yozilgan. Bu 2 ta qatlam demak:
+CineSync mobile **Expo Go (Managed Workflow)** da ishlatiladi:
 
 ```
-┌─────────────────────────────────────┐
-│  JavaScript (React Native kodi)     │  ← Metro Bundler orqali (localhost:8081)
-│  screens/, components/, store/ ...  │  ← Hot Reload — o'zgarish INSTANT ko'rinadi
-├─────────────────────────────────────┤
-│  Native Shell (Android APK)         │  ← Bir marta build qilinadi
-│  Firebase, MMKV, Reanimated ...     │  ← Java/Kotlin native modullar
-└─────────────────────────────────────┘
+┌─────────────────────────────────────────┐
+│  JavaScript (React Native kodi)         │  ← Metro Bundler (localhost:8081)
+│  screens/, components/, store/, ...     │  ← Hot Reload — o'zgarish INSTANT
+├─────────────────────────────────────────┤
+│  Expo Go App (telefon/emulator)         │  ← App Store / Play Store dan yuklab
+│  Barcha Expo SDK modullari ichida       │  ← expo-av, expo-image, expo-notifications ...
+└─────────────────────────────────────────┘
 ```
 
-**Nima uchun APK build kerak?**
-Bu loyihada `react-native-mmkv`, `Firebase`, `react-native-reanimated`,
-`react-native-gesture-handler` kabi **native (Java/Kotlin) kodli** paketlar bor.
-Expo Go bu kodlarni bilmaydi → ishlamaydi.
-Shuning uchun bir marta native shell (APK) build qilish kerak.
+**Afzallik:**
+- APK build kerak emas — faqat `npx expo start` + QR scan
+- Hot Reload — kod o'zgarishi 1-2 sekundda telefonida ko'rinadi
+- Barcha Expo SDK paketlari Expo Go ichida tayyor
 
-> ⚠️ **Expo Go ishlamaydi** — u faqat pure-JS loyihalar uchun
+**Monorepo muammosi (MUHIM — hal qilingan):**
+Root `node_modules/` va `apps/mobile/node_modules/` da `react`, `react-native`,
+`react-native-reanimated` ning 2 ta nusxasi paydo bo'lib app crash qilardi.
+`metro.config.js` da `extraNodeModules` orqali **deduplication** qilingan — endi ishlamaydi.
 
-**APK bir marta kerak, keyin emas:**
-1. Bir marta `expo run:android` → APK build → emulatorga install
-2. Keyingi safar faqat `npx expo start` → Metro → JS o'zgarishlar **instant** (hot reload)
-3. Native kod o'zgarmasa (yangi native paket qo'shilmasa) → qayta build YO'Q
-
-**APK qayerga tushadi?**
-```
-apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk
-```
-`expo run:android` uni avtomatik `adb install` orqali emulatorga o'rnatadi.
-Siz hech narsa qilmaysiz — app o'zi ochiladi.
+> ❌ Eski Bare Workflow (`expo run:android`, APK build) — ishlatilmaydi
+> ✅ Expo Go — `npx expo start` + QR scan
 
 ---
 
@@ -45,11 +39,12 @@ Siz hech narsa qilmaysiz — app o'zi ochiladi.
 
 | Tool | Versiya | Tekshirish | Nima uchun |
 |------|---------|------------|-----------|
-| Node.js | >= 18.18 | `node --version` | Metro Bundler, Expo CLI |
+| Node.js | >= 20.0.0 | `node --version` | Metro Bundler, Expo CLI |
 | npm | >= 10.0 | `npm --version` | Package manager |
-| Java JDK | 17 | `java --version` | Gradle (Android build) |
-| Android Studio | Yangi | — | Android SDK + Emulator |
-| Android SDK | API 33+ | Android Studio orqali | APK kompilyatsiya |
+| Expo Go | SDK 54 | App Store / Play Store | Telefon/emulatorga app o'rnatish |
+| Android Studio | Ixtiyoriy | — | Emulator ishlatmoqchi bo'lsang |
+
+> iOS uchun macOS + Xcode kerak emas — Expo Go iPhone da ham ishlaydi
 
 ---
 
@@ -60,47 +55,62 @@ git clone https://github.com/AI-automatization/Rave.git
 cd Rave
 ```
 
-### MUHIM: apps/package.json yaratish
-
-Bu fayl **git da yo'q** (`.gitignore` da), lekin Expo CLI uchun majburiy:
-
-```bash
-echo '{"name":"cinesync-apps","private":true}' > apps/package.json
-```
-
-**Nima uchun kerak?**
-Expo CLI monorepo da har bir `apps/` papkasida `package.json` borligini tekshiradi.
-Bu fayl bo'lmasa quyidagi xato chiqadi:
-```
-ConfigError: The expected package.json path: C:\...\apps\package.json does not exist
-```
-
-### npm install — ROOT DAN (MUHIM!)
+### ROOT dan npm install (MAJBURIY)
 
 ```bash
 # Rave/ papkasida turib (apps/mobile/ DAN EMAS!):
 npm install
 
-# Agar peer-dep xatosi bo'lsa:
+# Agar peer-dep xatosi:
 npm install --legacy-peer-deps
 ```
 
 **Nima uchun root dan?**
-Root `package.json` da barcha `metro-*` paketlar `~0.82.0` da pin qilingan.
-`apps/mobile/` dan install qilsang, metro@0.83.x o'rnatiladi → bundler ishlamaydi.
+Root `package.json` npm workspaces ni boshqaradi:
+```
+"workspaces": ["services/*", "apps/*", "shared"]
+```
+Root dan install qilsang `apps/mobile/node_modules/` ham to'g'ri sozlanadi.
+`apps/mobile/` dan install qilsang — Metro deduplication ishlarmaydi → crash.
 
 ```
 # Root npm install nima qiladi:
 Rave/node_modules/
-  metro@0.82.5          ← @expo/cli kutgan versiya
-  metro-core@0.82.5     ← 0.83.x da API o'zgargan, ishlamaydi
-  react-native@0.79.6   ← overrides orqali force qilingan
-  ...barcha paketlar
+  react@19.1.0              ← asosiy nusxa
+  react-native@0.81.5       ← asosiy nusxa
+  ...barcha workspace paketlar
+
+apps/mobile/node_modules/
+  react-native-reanimated   ← mobile-specific (deduplication orqali boshqariladi)
+  zustand                   ← mobile-specific
+  ...
 ```
 
 ---
 
-## 2-qadam: TypeScript tekshirish
+## 2-qadam: Environment (.env)
+
+`apps/mobile/` papkasida `.env` fayl yaratish (git da yo'q):
+
+```env
+# Android emulator uchun (10.0.2.2 = PC ning localhost):
+API_BASE_URL=http://10.0.2.2:3001
+
+# Real qurilma uchun (Wi-Fi IP, ipconfig orqali top):
+# API_BASE_URL=http://192.168.x.x:3001
+
+# iOS Simulator uchun:
+# API_BASE_URL=http://localhost:3001
+
+# Socket.io:
+SOCKET_URL=http://10.0.2.2:3004
+```
+
+> URL larni Saidazim dan so'rash (backend portlar: Auth 3001, Socket 3004)
+
+---
+
+## 3-qadam: TypeScript tekshirish
 
 ```bash
 cd apps/mobile
@@ -108,28 +118,26 @@ npm run typecheck
 # → Found 0 errors bo'lishi kerak
 ```
 
-**Nima uchun?**
-Kodda type xato bo'lsa, build jarayonida vaqt yo'qotiladi.
-Avval tekshirib, tozalab olish tezroq.
+Xato chiqsa — task boshlashdan avval tuzatish kerak.
 
 ---
 
-## 3-qadam: Metro Bundler ishga tushirish
+## 4-qadam: Metro Bundler ishga tushirish
 
 ```bash
 cd apps/mobile
 npx expo start
 ```
 
-**Metro nima qiladi?**
-JavaScript fayllarni bundle qiladi va `localhost:8081` da serve qiladi.
-Emulator/qurilmadagi native app shu serverga ulanadi.
-
 Muvaffaqiyatli bo'lganda:
 ```
 Starting Metro Bundler
-Waiting on http://localhost:8081
-Logs for your project will appear below.
+▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+█ ▄▄▄▄▄ █▀█ █◀  ← QR kod
+█ █   █ █▀▀▀ ▀
+█ █▄▄▄█ █▀▄█▄█
+▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
+Metro waiting on exp://192.168.x.x:8081
 ```
 
 Cache muammo bo'lsa:
@@ -137,167 +145,105 @@ Cache muammo bo'lsa:
 npx expo start --clear
 ```
 
+Tunnel orqali (Wi-Fi muammo bo'lsa):
+```bash
+npx expo start --tunnel
+```
+
 > Bu terminal **ochiq turishi kerak** — Metro yopilsa app ishlamaydi.
 
 ---
 
-## 4-qadam: Android APK build va install (birinchi marta)
+## 5-qadam: Expo Go bilan ulash
 
-### Emulator ishga tushirish
-Android Studio → Device Manager → ▶ Play tugmasi
+### Variant A — Telefon (tavsiya etiladi)
+
+1. Telefoningizga **Expo Go** yuklab oling:
+   - Android: [Play Store → "Expo Go"](https://play.google.com/store/apps/details?id=host.exp.exponent)
+   - iOS: [App Store → "Expo Go"](https://apps.apple.com/app/expo-go/id982107779)
+2. Expo Go ni oching → **Scan QR Code**
+3. Metro terminalida ko'rsatilgan QR kodni scan qiling
+4. App ochiladi ✅
+
+> Telefon va PC **bitta Wi-Fi** da bo'lishi kerak
+
+### Variant B — Android Emulator
 
 ```bash
-# Emulator ulanganimikni tekshir:
-adb devices
-# → emulator-5554   device   bo'lishi kerak
+# Android Studio → Device Manager → ▶ (play) tugmasi
+# Emulator ishga tushgach:
+npx expo start
+# → "a" tugmachasini bos (emulatorga ochish)
 ```
 
-### Build va install
+### Variant C — iOS Simulator (faqat macOS)
 
 ```bash
-cd apps/mobile
-npx expo run:android
+npx expo start
+# → "i" tugmachasini bos
 ```
-
-**Nima bo'ladi (ketma-ket):**
-
-| Etap | Vaqt | Nima qiladi |
-|------|------|-------------|
-| Gradle setup | ~1 min | Gradle yuklab oladi, konfiguratsiya |
-| React Native compile | ~5-10 min | Java/Kotlin native modullar kompilyatsiya |
-| APK yig'ish | ~2 min | `app-debug.apk` yaratiladi |
-| adb install | ~30 soniya | APK emulatorga o'rnatiladi |
-| App launch | ~10 soniya | App ochiladi, Metro ga ulanadi |
-| **Jami (birinchi marta)** | **~10-15 min** | |
-| **Keyingi safar** | **~1-2 min** | Faqat o'zgargan fayl rebuild |
-
-**APK manzili:**
-```
-apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk
-```
-
-> Keyingi safar faqat `npx expo start` — APK qayta build bo'lmaydi,
-> JS o'zgarishlar hot reload orqali instant ko'rinadi.
 
 ---
 
-## 5-qadam: Keyingi safar (kunlik ishlatish)
+## 6-qadam: Kunlik ishlatish
 
 ```bash
-# 1. Emulatorni ishga tushir (Android Studio)
-
-# 2. Metro start:
+# Har kuni boshida:
+git pull origin main
 cd apps/mobile
 npx expo start
 
-# 3. Emulatorda app avtomatik ochiladi
-# Kod o'zgartirsang → app hot reload qiladi (qayta build yo'q)
+# Telefon/emulator — Expo Go da app avtomatik yangilanadi
+# Kod o'zgartirish → Hot Reload (1-2 soniya)
 ```
 
 ---
 
-## Real qurilma (USB)
+## Monorepo: Metro Deduplication (muhim)
 
-```bash
-# Qurilmada: Settings → Developer Options → USB Debugging → ON
-adb devices   # qurilma ko'rinishini tekshir
-npx expo run:android
+`metro.config.js` da quyidagi paketlar **bitta nusxaga** majburlangan:
+
+```javascript
+config.resolver.extraNodeModules = {
+  'react':                    path.resolve(projectRoot, 'node_modules/react'),
+  'react-native':             path.resolve(projectRoot, 'node_modules/react-native'),
+  'react-native-reanimated':  path.resolve(projectRoot, 'node_modules/react-native-reanimated'),
+  'react-native-gesture-handler': path.resolve(projectRoot, 'node_modules/react-native-gesture-handler'),
+  'zustand':                  path.resolve(projectRoot, 'node_modules/zustand'),
+  '@tanstack/react-query':    path.resolve(projectRoot, 'node_modules/@tanstack/react-query'),
+};
 ```
 
-**Muhim:** Real qurilmada `API_BASE_URL` localhost bo'lmaydi:
-```env
-# .env faylda (apps/mobile/.env):
-API_BASE_URL=http://192.168.x.x:3001   # Wi-Fi IP (ipconfig orqali top)
+**Bu nima uchun kerak?**
+Monorepo da har bir workspace o'z `node_modules/` ini yuklashi mumkin.
+Agar `react` 2 joyda bo'lsa:
 ```
+TypeError: Cannot read properties of undefined (reading 'push')
+Invariant Violation: Hooks can only be called inside a function component
+```
+`extraNodeModules` bu xatolarni bartaraf qiladi.
+
+> ⚠️ Yangi paket qo'shsang — `apps/mobile/` dan install qil, root dan emas.
 
 ---
 
-## iOS (faqat macOS)
-
-```bash
-npx expo run:ios
-```
-
-Windows da iOS run qilib bo'lmaydi — macOS + Xcode kerak.
-
----
-
-## Environment (.env)
-
-`apps/mobile/` papkasida `.env` fayl (Saidazim dan URL so'rash):
-
-```env
-# Android emulator uchun (10.0.2.2 = PC ning localhost):
-API_BASE_URL=http://10.0.2.2:3001
-
-# iOS simulator uchun:
-# API_BASE_URL=http://localhost:3001
-
-# Real qurilma uchun (Wi-Fi, ipconfig orqali top):
-# API_BASE_URL=http://192.168.x.x:3001
-```
-
-### Firebase fayllar (Saidazim dan olish)
-
-```
-google-services.json       → apps/mobile/android/app/google-services.json
-GoogleService-Info.plist   → apps/mobile/ios/GoogleService-Info.plist
-```
-
-Bu fayllar **git da yo'q** (`.gitignore`) — secret kalitlar bor.
-
----
-
-## Tez-tez uchraydigan xatolar
-
-| Xato | Sabab | Yechim |
-|------|-------|--------|
-| `ConfigError: apps/package.json does not exist` | Git da yo'q fayl | `echo '{"name":"cinesync-apps","private":true}' > apps/package.json` |
-| `TypeError: Cannot read properties of undefined (reading 'push')` | `metro-core@0.83.x` da API o'zgargan | `cd Rave && npm install` (root dan) |
-| `Metro bundler version mismatch` | `metro-*` versiyalar aralash | Root `package.json` da barcha `metro-*: ~0.82.0` tekshir |
-| `@react-native/gradle-plugin does not exist` | npm workspace hoisting muammo | `cd Rave && npm install` (root dan) |
-| `TypeScript errors (50+)` | `@types/react` dual version | Root dan `npm install` |
-| `EADDRINUSE: port 8081` | Metro allaqachon ishlamoqda | `npx expo start --port 8082` yoki eski Metro o'chir |
-| `Module not found` runtime | Metro cache eskirgan | `npx expo start --clear` |
-| `Invariant Violation: "main" not registered` | `index.js` muammo | `index.js` da `registerRootComponent(App)` borligini tekshir |
-| `Expo Go ishlamaydi` | Bare Workflow — native kod bor | `expo run:android` (native build kerak) |
-
----
-
-## Muhim fayllar
-
-```
-Rave/
-├── package.json              ← metro-* ~0.82.0 pin | overrides: react-native 0.79.6
-│                               (root dan npm install — shu fayl boshqaradi)
-├── apps/
-│   ├── package.json          ← YARATISH KERAK: git da yo'q!
-│   └── mobile/
-│       ├── package.json      ← react-native 0.79.6 | expo ~53.0.0
-│       ├── tsconfig.json     ← extends expo/tsconfig.base
-│       ├── babel.config.js   ← @app-types alias (@types emas!)
-│       ├── metro.config.js   ← monorepo shared/ + lottie extension
-│       ├── app.json          ← expo slug, bundleId, plugins
-│       ├── index.js          ← registerRootComponent(App)
-│       ├── eas.json          ← YARATISH KERAK: git da yo'q (EAS Build uchun)
-│       └── android/
-│           └── app/build/outputs/apk/debug/
-│               └── app-debug.apk   ← build dan keyin shu yerda
-```
-
----
-
-## Path aliases
+## Path Aliases
 
 ```typescript
-import { Button }    from '@components/Button';
-import { useAuth }   from '@hooks/useAuth';
-import { apiClient } from '@api/client';
-import { useStore }  from '@store/authStore';
-import { colors }    from '@theme/colors';
-import type { Movie} from '@app-types/movie';   // ← @types EMAS, @app-types!
-import { formatDate} from '@shared/utils/date';
+import { HomeScreen }   from '@screens/home/HomeScreen';
+import { MovieCard }    from '@components/movie/MovieCard';
+import { moviesApi }    from '@api/content.api';
+import { useAuthStore } from '@store/auth.store';
+import { connectSocket } from '@socket/client';
+import { colors }       from '@theme/index';
+import { formatDate }   from '@utils/date';
+import type { IMovie }  from '@app-types/index';   // ← @types EMAS, @app-types!
+import { AppNavigator } from '@navigation/AppNavigator';
+import { useHomeData }  from '@hooks/useHomeData';
+import type { IUser }   from '@shared/types/user';  // ← shared/ dan
 ```
+
+`tsconfig.json` va `babel.config.js` da sozlangan — to'g'ridan import qilish mumkin.
 
 ---
 
@@ -305,21 +251,111 @@ import { formatDate} from '@shared/utils/date';
 
 | Texnologiya | Versiya | Nima uchun ishlatiladi |
 |-------------|---------|----------------------|
-| React Native | 0.79.6 | Native app framework (Expo 53 bilan mos) |
-| Expo SDK | ~53 | Bare workflow tooling, EAS Build |
-| TypeScript | ~5.8 | Type safety, xatoliklarni oldindan topish |
-| Zustand | ^5 | Global state (auth, user ma'lumotlari) |
-| TanStack Query | ^5 | Server state, caching, refetch |
-| Axios | ^1 | HTTP so'rovlar (backend API) |
-| Socket.io-client | ^4 | Real-time (WatchParty sinxron, Battle) |
-| React Navigation | ^7 | Ekranlar orasida o'tish |
-| expo-image | ~2.4 | Optimallashtirilgan rasm yuklash |
-| expo-linear-gradient | ~14.1 | Gradient UI (banner, kartalar) |
-| react-native-reanimated | ~3.17 | Silliq animatsiyalar |
-| react-native-mmkv | ^4 | Tez lokal storage (token saqlash) |
-| Firebase (@react-native-firebase) | ^23 | Push notification (FCM) |
-| react-native-gesture-handler | ~2.24 | Swipe, drag gesture |
+| Expo SDK | ~54.0.0 | Managed workflow tooling, Expo Go |
+| React Native | 0.81.5 | Native app framework |
+| React | 19.1.0 | UI library |
+| TypeScript | ~5.9.2 | Type safety, strict mode |
+| Zustand | ^5.0.3 | Global state (auth, movies, friends) |
+| TanStack Query | ^5.66.0 | Server state, caching, refetch |
+| Axios | ^1.8.3 | HTTP so'rovlar (backend API) |
+| Socket.io-client | ^4.8.1 | Real-time (WatchParty, Battle) |
+| React Navigation | ^6 | Ekranlar orasida o'tish (Stack + BottomTabs) |
+| expo-av | ~16.0.8 | Video player (HLS m3u8) |
+| expo-image | ~3.0.11 | Optimallashtirilgan rasm yuklash |
+| expo-auth-session | ~7.0.10 | Google OAuth (PKCE flow) |
+| expo-notifications | ~0.32.16 | Push notifications (FCM) |
+| expo-secure-store | ~15.0.8 | Token saqlash (encrypted keychain) |
+| expo-web-browser | ~15.0.10 | OAuth browser (expo-auth-session bilan) |
+| expo-linear-gradient | ~15.0.8 | Gradient UI (banner, cards) |
+| expo-haptics | ~15.0.8 | Tactile feedback |
+| react-native-reanimated | ~4.1.1 | Animatsiyalar |
+| react-native-gesture-handler | ~2.28.0 | Swipe, drag gestures |
 
 ---
 
-*docs/MOBILE_SETUP.md | CineSync | Emirhan | 2026-03-06*
+## Muhim fayllar
+
+```
+Rave/
+├── package.json              ← Root workspaces (npm install shu yerdan)
+│                               Node >=20.0.0, npm >=10.0.0
+├── apps/
+│   └── mobile/
+│       ├── package.json      ← expo ~54, react-native 0.81.5
+│       ├── tsconfig.json     ← extends expo/tsconfig.base, strict, path aliases
+│       ├── babel.config.js   ← babel-preset-expo + module-resolver (path aliases)
+│       ├── metro.config.js   ← monorepo deduplication (extraNodeModules)
+│       ├── app.json          ← Expo config: slug, bundleId, splash, plugins
+│       ├── index.ts          ← registerRootComponent(App)
+│       ├── App.tsx           ← Root: QueryClient + GestureHandlerRootView + AppNavigator
+│       └── src/
+│           ├── screens/      ← UI (max 300 qator)
+│           ├── components/   ← Reusable UI (max 150 qator)
+│           ├── navigation/   ← AppNavigator, AuthNavigator, MainNavigator
+│           ├── hooks/        ← useHomeData, useSearch, useSocket
+│           ├── api/          ← Axios layer (client.ts + *api.ts)
+│           ├── store/        ← Zustand stores
+│           ├── socket/       ← Socket.io client
+│           ├── theme/        ← colors, spacing, typography
+│           ├── types/        ← TypeScript types
+│           └── utils/        ← storage.ts (SecureStore), notifications.ts
+```
+
+---
+
+## Tez-tez uchraydigan xatolar
+
+| Xato | Sabab | Yechim |
+|------|-------|--------|
+| `TypeError: Cannot read properties of undefined (reading 'push')` | Duplicate react/react-native nusxa | `cd Rave && npm install` (root dan) |
+| `Invariant Violation: Hooks can only be called inside a function` | Duplicate react | Root dan install + `metro.config.js` extraNodeModules tekshir |
+| `Metro bundler version mismatch` | Metro versiyalar aralash | Root dan `npm install` |
+| `EADDRINUSE: port 8081` | Metro allaqachon ishlamoqda | `npx expo start --port 8082` yoki eski Metro o'chir |
+| `Module not found` runtime | Metro cache eskirgan | `npx expo start --clear` |
+| `Expo Go: SDK version mismatch` | Expo Go SDK != loyiha SDK | Expo Go ni yangilash (SDK 54 kerak) |
+| `Network request failed` | API URL noto'g'ri | `.env` da `API_BASE_URL` tekshir (emulator: `10.0.2.2`, real: Wi-Fi IP) |
+| `expo-secure-store: error` | SecureStore simulator da cheklangan | Real qurilma yoki Android emulator ishlatish |
+| `Found 0 errors` bo'lmasa | TypeScript strict xato | `npm run typecheck` → xatoni tuzat |
+
+---
+
+## EAS Build (Production / Custom Dev Client)
+
+Yangi **native modul** qo'shilganda yoki **production build** uchun:
+
+```bash
+# EAS CLI o'rnatish:
+npm install -g eas-cli
+eas login
+
+# Development build (custom dev client):
+eas build --platform android --profile development
+
+# Preview build (APK — internal test):
+eas build --platform android --profile preview
+
+# Production build:
+eas build --platform android --profile production
+```
+
+> `eas.json` fayl — T-E013 da yaratiladi (hali bajarilmagan)
+
+---
+
+## Git qoidalari (eslatma)
+
+```bash
+# Task boshlashdan oldin:
+git pull origin main
+
+# Branch:
+git checkout -b emirhan/feat-[screen-name]
+
+# Commit:
+git commit -m "feat(mobile): add MovieDetailScreen"
+git push origin emirhan/feat-[screen-name]
+```
+
+---
+
+*docs/MOBILE_SETUP.md | CineSync | Emirhan | Expo SDK 54 | v2.0 | 2026-03-10*
