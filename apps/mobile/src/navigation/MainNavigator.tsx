@@ -13,6 +13,8 @@ import {
 } from '@app-types/index';
 import { PlaceholderScreen } from './PlaceholderScreen';
 import { HomeScreen } from '@screens/home/HomeScreen';
+import { MovieDetailScreen } from '@screens/home/MovieDetailScreen';
+import { VideoPlayerScreen } from '@screens/home/VideoPlayerScreen';
 import { SearchScreen } from '@screens/search/SearchScreen';
 import { SearchResultsScreen } from '@screens/search/SearchResultsScreen';
 
@@ -26,8 +28,8 @@ function HomeStackNavigator() {
   return (
     <HomeStack.Navigator screenOptions={{ headerShown: false }}>
       <HomeStack.Screen name="Home" component={HomeScreen} />
-      <HomeStack.Screen name="MovieDetail" component={PlaceholderScreen} />
-      <HomeStack.Screen name="VideoPlayer" component={PlaceholderScreen} />
+      <HomeStack.Screen name="MovieDetail" component={MovieDetailScreen} />
+      <HomeStack.Screen name="VideoPlayer" component={VideoPlayerScreen} />
     </HomeStack.Navigator>
   );
 }
