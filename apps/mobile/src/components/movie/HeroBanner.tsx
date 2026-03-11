@@ -108,7 +108,15 @@ export const HeroBanner = memo(function HeroBanner({ movies }: Props) {
         onMomentumScrollEnd={(e) => {
           const index = Math.round(e.nativeEvent.contentOffset.x / width);
           setActiveIndex(index);
+          // Restart auto-scroll after manual swipe
           if (intervalRef.current) clearInterval(intervalRef.current);
+          intervalRef.current = setInterval(() => {
+            setActiveIndex((i) => {
+              const next = (i + 1) % movies.length;
+              flatListRef.current?.scrollToIndex({ index: next, animated: true });
+              return next;
+            });
+          }, 4000);
         }}
         getItemLayout={(_, index) => ({ length: width, offset: width * index, index })}
       />

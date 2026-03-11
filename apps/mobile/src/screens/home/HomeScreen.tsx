@@ -30,8 +30,11 @@ export function HomeScreen() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    refetch();
-    setTimeout(() => setRefreshing(false), 1000);
+    try {
+      await refetch();
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   if (isLoading) return <HomeSkeleton />;

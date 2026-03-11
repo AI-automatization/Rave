@@ -291,103 +291,6 @@
 
 ## SPRINT 1 — Expo Setup + Auth
 
-### T-E019 | P2 | [MOBILE] | ProfileSetup auth flow — foydalanuvchi hech qachon bu ekranga etib bormaydi | pending[Emirhan]
-
-- **Sana:** 2026-03-11
-- **Mas'ul:** Emirhan
-- **Fayl:** `apps/mobile/src/screens/auth/ProfileSetupScreen.tsx`, `apps/mobile/src/screens/auth/VerifyEmailScreen.tsx`, `apps/mobile/src/screens/auth/LoginScreen.tsx`
-- **Holat:** 🔄 pending[Emirhan]
-- **Sabab:** `VerifyEmailScreen` emailni tasdiqlagandan so'ng to'g'ridan `Login` ga o'tadi, `ProfileSetup` ni o'tkazib yuboradi.
-  `LoginScreen`da `setAuth()` chaqirilgach `isAuthenticated = true` bo'lib AppNavigator Main ga o'tadi — `ProfileSetup` ekrani hech qachon ko'rsatilmaydi.
-  Bundan tashqari `ProfileSetupScreen`da `navigation.replace('Login')` noto'g'ri — foydalanuvchi allaqachon tizimga kirgan bo'lsa qayta Login ko'rsatiladi.
-- **Bajarilishi kerak:**
-  - [ ] `LoginScreen` da login muvaffaqiyatli bo'lgach: `user.bio` bo'sh bo'lsa → `navigation.navigate('ProfileSetup')` (login + profileSetup ketma-ket)
-  - [ ] `ProfileSetupScreen` da save/skip: `navigation.replace('Login')` o'rniga foydalanuvchini Main ga o'tkazish (`useAuthStore().setAuth` yoki rootNavigation)
-  - [ ] Yoki: `ProfileSetup` ni `AuthStack`dan `MainStack`ga ko'chirish (cleaner yondashuv)
-- **Eslatma:** Hozircha app ishlaydi (ProfileSetup skip bo'ladi), bu UX muammo — first-time foydalanuvchilar bio o'rnatishga imkon topilmaydi
-
----
-
-## CODE REVIEW — 2026-03-11 (Bekzod QA)
-
-### T-E020 | P0 | [MOBILE] | BUG: Token refresh race condition — concurrent 401 lar bir-birini buzadi
-
-- **Sana:** 2026-03-11
-- **Mas'ul:** Emirhan
-- **Holat:** ❌ Boshlanmagan
-- **Fayl:** `apps/mobile/src/api/client.ts` (30-60-qator)
-- **Muammo:** Har bir axios client (`authClient`, `userClient`, `contentClient`) **mustaqil** 401 interceptor ga ega. App resume da 5+ so'rov bir vaqtda 401 olib, parallel refresh boshlanadi → tokenlar bir-birini bekor qiladi → auth loop / logout storm
-- **Bajarilishi kerak:**
-  - [ ] Shared `isRefreshing` flag + `failedQueue` pattern — birinchi 401 refresh boshlaydi, qolganlari kutadi
-  - [ ] Refresh tugagach queue dagi so'rovlar yangi token bilan replay qilinadi
-
----
-
-### T-E021 | P0 | [MOBILE] | BUG: Seek bar thumb noto'g'ri pozitsiya + Search pagination buzilgan
-
-- **Sana:** 2026-03-11
-- **Mas'ul:** Emirhan
-- **Holat:** ❌ Boshlanmagan
-- **Fayllar:**
-  - `apps/mobile/src/screens/home/VideoPlayerScreen.tsx` (199-qator)
-  - `apps/mobile/src/screens/search/SearchResultsScreen.tsx` (30-42, 110-114-qator)
-- **Muammo:**
-  - Seek bar: `left: '${pct}%' as unknown as number` — React Native `%` qo'llab-quvvatlamaydi → thumb har doim 0 da
-  - Search: `useQuery` bilan pagination — yangi sahifa eski natijalarni **almashtiradi** (accumulate qilmaydi)
-  - `getItemLayout` noto'g'ri hisoblangan (21px — aslida 150+ px) → scroll jumping
-- **Bajarilishi kerak:**
-  - [ ] Seek bar: `left: progressRatio * seekBarWidth - 6` (pixel hisob)
-  - [ ] Search: `useInfiniteQuery` ga o'tish yoki local `allMovies` state bilan accumulate
-  - [ ] `getItemLayout` ni to'g'ri card height ga moslashtirish yoki olib tashlash
-
----
-
-### T-E022 | P1 | [MOBILE] | SECURITY + BUG: Logout server invalidate yo'q, socket tozalanmaydi, API null crash
-
-- **Sana:** 2026-03-11
-- **Mas'ul:** Emirhan
-- **Holat:** ❌ Boshlanmagan
-- **Fayllar:**
-  - `apps/mobile/src/store/auth.store.ts` (32-35-qator)
-  - `apps/mobile/src/hooks/useSocket.ts`
-  - `apps/mobile/src/api/*.ts` (barcha API fayllar)
-- **Muammo:**
-  - `logout()` faqat local storage tozalaydi — server da refresh token **invalidate bo'lmaydi** → o'g'irlangan token ishlay beradi
-  - Logout da socket connection **uzilmaydi** — eski JWT bilan eventlar oqib ketadi
-  - Barcha API fayllarida `res.data.data!` (non-null assertion) — server null qaytarsa **crash**
-  - `WatchPartyScreen` da `setPositionAsync` reject `.catch()` yo'q → `isSyncing` abadiy `true` qoladi
-- **Bajarilishi kerak:**
-  - [ ] `logout()` da `authApi.logout(refreshToken)` chaqirish (fire-and-forget)
-  - [ ] `logout()` da `disconnectSocket()` chaqirish
-  - [ ] Barcha `res.data.data!` → null check + descriptive error throw
-  - [ ] `setPositionAsync` ga `.catch()` + `.finally(() => isSyncing.current = false)`
-
----
-
-### T-E023 | P1 | [MOBILE] | BUG: HeroBanner auto-scroll, HomeScreen refresh, notification count, settings persist
-
-- **Sana:** 2026-03-11
-- **Mas'ul:** Emirhan
-- **Holat:** ❌ Boshlanmagan
-- **Fayllar:**
-  - `apps/mobile/src/components/movie/HeroBanner.tsx` (34-46, 108-112-qator)
-  - `apps/mobile/src/screens/home/HomeScreen.tsx` (31-35-qator)
-  - `apps/mobile/src/store/notification.store.ts` (33-39-qator)
-  - `apps/mobile/src/screens/profile/SettingsScreen.tsx`
-  - `apps/mobile/src/screens/auth/VerifyEmailScreen.tsx`
-- **Muammo:**
-  - HeroBanner: manual swipe dan keyin auto-scroll **abadiy to'xtaydi** (interval restart yo'q)
-  - HomeScreen: `handleRefresh` — `refetch()` await qilinmagan, spinner 1 sek keyin fake to'xtaydi
-  - Notification: `markRead` — allaqachon o'qilgan notification uchun ham count kamayadi
-  - Settings: barcha sozlamalar **faqat local state** — mount da reset, hech narsa saqlanmaydi
-  - VerifyEmail: `keyboardType` ko'rsatilmagan (alfabetik klaviatura), "Resend code" tugmasi yo'q
-- **Bajarilishi kerak:**
-  - [ ] HeroBanner: `onMomentumScrollEnd` da interval qayta boshlash
-  - [ ] HomeScreen: `await Promise.all([...refetch()])` → keyin `setRefreshing(false)`
-  - [ ] notification `markRead`: faqat `isRead: false` bo'lsa decrement
-  - [ ] Settings: AsyncStorage bilan persist + backend API bilan sync
-  - [ ] VerifyEmail: `keyboardType="number-pad"` + resend code button + cooldown timer
-
 ---
 
 ## SPRINT 2 — Asosiy ekranlar
@@ -810,10 +713,10 @@ Foydalanuvchi **har qanday** video sayt URL ni kiritganda:
 
 | Jamoa    | Tugallandi | Qolgan | Code Review (yangi) |
 | -------- | ---------- | ------ | ---- |
-| Saidazim | T-S001..T-S008, T-S010, T-S011 ✅ | T-S005b, T-S009, T-S016 | Code: T-S017..T-S022 | Arch: T-S023..T-S025 |
-| Emirhan  | T-E015..T-E018 ✅ | T-E019 | Code: T-E020..T-E023 | — |
-| Jafar    | T-J001..T-J006, T-J008, T-J009, T-J011 ✅ | T-J007, T-J010 | Code: T-J012..T-J015 | — |
-| Umumiy   | T-C001..T-C003, T-C005 ✅ | T-C004, T-C006 | Code: T-C007 | Arch: T-C008, T-C009 |
+| Saidazim | T-S001..T-S008, T-S010, T-S011 ✅ | T-S005b, T-S009, T-S016 | Code: T-S017..T-S022 \| Arch: T-S023..T-S025 |
+| Emirhan  | T-E015..T-E023 ✅ | — | T-C006 (WebView Player, S2-S3) |
+| Jafar    | T-J001..T-J006, T-J008, T-J009, T-J011 ✅ | T-J007, T-J010 | Code: T-J012..T-J015 |
+| Umumiy   | T-C001..T-C003, T-C005 ✅ | T-C004, T-C006 | Code: T-C007 \| Arch: T-C008, T-C009 |
 
 ### Code Review + Architecture Review Summary — 2026-03-11
 

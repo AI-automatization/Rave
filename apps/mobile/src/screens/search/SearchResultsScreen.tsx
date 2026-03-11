@@ -1,5 +1,5 @@
 // CineSync Mobile — Search Results Screen
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -21,19 +21,33 @@ import { MovieCard } from '@components/movie/MovieCard';
 type Route = RouteProp<SearchStackParamList, 'SearchResults'>;
 type Nav = NativeStackNavigationProp<SearchStackParamList>;
 
-const CARD_WIDTH_RATIO = 0.44;
-
 export function SearchResultsScreen() {
   const route = useRoute<Route>();
   const navigation = useNavigation<Nav>();
   const { query } = route.params;
   const [page, setPage] = useState(1);
+  const [allMovies, setAllMovies] = useState<IMovie[]>([]);
 
   const { data, isLoading, isFetching } = useSearchResults(query, null, page);
 
-  const movies = data?.movies ?? [];
   const meta = data?.meta;
   const hasMore = meta ? page < meta.totalPages : false;
+
+  // Reset accumulated list when query changes
+  useEffect(() => {
+    setPage(1);
+    setAllMovies([]);
+  }, [query]);
+
+  // Accumulate results — new page appends, page 1 replaces
+  useEffect(() => {
+    if (!data?.movies) return;
+    if (page === 1) {
+      setAllMovies(data.movies);
+    } else {
+      setAllMovies((prev) => [...prev, ...data.movies]);
+    }
+  }, [data, page]);
 
   const handleLoadMore = useCallback(() => {
     if (!isFetching && hasMore) {
@@ -97,7 +111,7 @@ export function SearchResultsScreen() {
         </View>
       ) : (
         <FlatList
-          data={movies}
+          data={allMovies}
           renderItem={renderItem}
           keyExtractor={(item) => item._id}
           numColumns={2}
@@ -107,11 +121,6 @@ export function SearchResultsScreen() {
           ListFooterComponent={renderFooter}
           onEndReached={handleLoadMore}
           onEndReachedThreshold={0.4}
-          getItemLayout={(_, index) => {
-            const row = Math.floor(index / 2);
-            const itemHeight = (spacing.xl * CARD_WIDTH_RATIO * 1.5 * 100) / 100 + spacing.sm;
-            return { length: itemHeight, offset: itemHeight * row, index };
-          }}
           windowSize={5}
           maxToRenderPerBatch={10}
           removeClippedSubviews

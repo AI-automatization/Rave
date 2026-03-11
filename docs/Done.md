@@ -4,6 +4,45 @@
 
 ---
 
+### F-087 | 2026-03-11 | [MOBILE] | T-E023 — HeroBanner auto-scroll, HomeScreen refresh, notification count, settings persist, VerifyEmail UX [Emirhan]
+
+- `HeroBanner.tsx` — `onMomentumScrollEnd` da interval qayta ishga tushiriladi (manual swipe keyin auto-scroll to'xtab qolish bug)
+- `hooks/useHomeData.ts` — `refetch()` `Promise.all` qaytaradigan qilindi
+- `HomeScreen.tsx` — `await refetch()` + `try/finally setRefreshing(false)` (fake 1s timeout olib tashlandi)
+- `notification.store.ts` — `markRead`: allaqachon o'qilgan notification uchun `unreadCount` kamaymasligini ta'minlandi
+- `SettingsScreen.tsx` — `expo-secure-store` bilan persist: mount da yuklanadi, o'zgarganda saqlanadi
+- `VerifyEmailScreen.tsx` — `keyboardType="number-pad"` + "Kodni qayta yuborish" tugmasi + 60s cooldown timer
+
+### F-086 | 2026-03-11 | [MOBILE] | T-E022 — Logout server invalidate, socket tozalash, API null crash, WatchParty isSyncing [Emirhan]
+
+- `auth.store.ts logout()` — `authApi.logout(refreshToken)` fire-and-forget chaqiriladi (server refresh token invalidate qiladi)
+- `auth.store.ts logout()` — `disconnectSocket()` chaqiriladi (eski JWT bilan socket oqib ketmaslik uchun)
+- `auth.api.ts` — `login()` va `googleToken()` da `!` null assertion → `if (!res.data.data) throw new Error(...)`
+- `user.api.ts` — `getMe()`, `updateProfile()`, `getPublicProfile()`, `getStats()` da null assertion fix
+- `WatchPartyScreen.tsx` — `setPositionAsync` ga `.catch(() => {})` + `.finally(() => isSyncing.current = false)` qo'shildi
+
+### F-085 | 2026-03-11 | [MOBILE] | T-E021 — Seek bar thumb pozitsiya fix, Search pagination accumulate, getItemLayout olib tashlandi [Emirhan]
+
+- `VideoPlayerScreen.tsx:198` — `left: \`${progressRatio * 100}%\` as unknown as number` → `left: progressRatio * seekBarWidth - 6` (pixel hisob, React Native `%` qabul qilmaydi)
+- `SearchResultsScreen.tsx` — `allMovies` state bilan accumulate: page 1 da almashtiradi, keyingi page da qo'shadi
+- `SearchResultsScreen.tsx` — query o'zgarganda `page=1` va `allMovies=[]` reset qilinadi
+- `SearchResultsScreen.tsx` — noto'g'ri `getItemLayout` olib tashlandi (21px ≠ asl card height)
+
+### F-084 | 2026-03-11 | [MOBILE] | T-E020 — Token refresh race condition: shared isRefreshing + failedQueue [Emirhan]
+
+- `api/client.ts` — module-level `isRefreshing` flag va `failedQueue` pattern qo'shildi
+- Birinchi 401 refresh boshlaydi, qolgan parallel so'rovlar queue ga tushadi
+- Refresh tugagach queue dagi barcha so'rovlar yangi token bilan replay qilinadi
+- `processQueue(null, token)` / `processQueue(err, null)` pattern — oldingi: har bir client mustaqil refresh boshlardi → token invalidation loop
+
+### F-083 | 2026-03-11 | [MOBILE] | T-E019 — ProfileSetup auth flow fix: needsProfileSetup flag + AppNavigator [Emirhan]
+
+- `auth.store.ts` — `needsProfileSetup: boolean` + `clearProfileSetup()` qo'shildi
+- `auth.store.ts setAuth()` — `needsProfileSetup: !user.bio` (bio yo'q yangi foydalanuvchi uchun)
+- `AppNavigator.tsx` — `needsProfileSetup=true` bo'lsa Main o'rniga `ProfileSetupScreen` ko'rsatiladi
+- `ProfileSetupScreen.tsx` — `navigation.replace('Login')` o'chirildi → `clearProfileSetup()` chaqiriladi → AppNavigator Main ga o'tadi
+- `types/index.ts` — `RootStackParamList` ga `ProfileSetup: undefined` qo'shildi
+
 ### F-082 | 2026-03-11 | [MOBILE] | T-E020 — Oq ekran root fix: hideAsync App.tsx + hydrate timeout [Emirhan]
 
 - `App.tsx` — `hideAsync()` `isHydrated=true` bo'lganda darhol chaqiriladi (SplashScreen.tsx dan ko'chirildi)

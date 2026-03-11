@@ -5,12 +5,14 @@ import { ApiResponse, IUser, IUserPublic, IUserStats } from '@app-types/index';
 export const userApi = {
   async getMe(): Promise<IUser> {
     const res = await userClient.get<ApiResponse<IUser>>('/users/me');
-    return res.data.data!;
+    if (!res.data.data) throw new Error('getMe response is empty');
+    return res.data.data;
   },
 
   async updateProfile(data: Partial<Pick<IUser, 'username' | 'bio' | 'avatar'>>): Promise<IUser> {
     const res = await userClient.put<ApiResponse<IUser>>('/users/me', data);
-    return res.data.data!;
+    if (!res.data.data) throw new Error('updateProfile response is empty');
+    return res.data.data;
   },
 
   async updateFcmToken(fcmToken: string): Promise<void> {
@@ -19,13 +21,15 @@ export const userApi = {
 
   async getPublicProfile(userId: string): Promise<IUserPublic> {
     const res = await userClient.get<ApiResponse<IUserPublic>>(`/users/${userId}/public`);
-    return res.data.data!;
+    if (!res.data.data) throw new Error('getPublicProfile response is empty');
+    return res.data.data;
   },
 
   async getStats(userId?: string): Promise<IUserStats> {
     const url = userId ? `/users/${userId}/stats` : '/users/me/stats';
     const res = await userClient.get<ApiResponse<IUserStats>>(url);
-    return res.data.data!;
+    if (!res.data.data) throw new Error('getStats response is empty');
+    return res.data.data;
   },
 
   async searchUsers(query: string): Promise<IUserPublic[]> {

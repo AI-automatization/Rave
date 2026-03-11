@@ -56,14 +56,18 @@ export function WatchPartyScreen() {
     lastSyncId.current = syncId;
 
     isSyncing.current = true;
-    videoRef.current?.setPositionAsync(syncState.currentTime * 1000).then(() => {
-      if (syncState.isPlaying) {
-        videoRef.current?.playAsync();
-      } else {
-        videoRef.current?.pauseAsync();
-      }
-      isSyncing.current = false;
-    });
+    videoRef.current?.setPositionAsync(syncState.currentTime * 1000)
+      .then(() => {
+        if (syncState.isPlaying) {
+          videoRef.current?.playAsync();
+        } else {
+          videoRef.current?.pauseAsync();
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        isSyncing.current = false;
+      });
   }, [syncState]);
 
   const onPlaybackStatusUpdate = useCallback(

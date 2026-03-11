@@ -1,5 +1,5 @@
 // CineSync Mobile — Verify Email Screen
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -27,6 +27,28 @@ export function VerifyEmailScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [resendLoading, setResendLoading] = useState(false);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
+
+  const handleResend = async () => {
+    if (resendCooldown > 0 || resendLoading) return;
+    setResendLoading(true);
+    setError('');
+    try {
+      await authApi.forgotPassword(email);
+      setResendCooldown(60);
+    } catch {
+      setError("Kod qayta yuborib bo'lmadi");
+    } finally {
+      setResendLoading(false);
+    }
+  };
 
   const handleVerify = async () => {
     if (!token.trim()) { setError("Tasdiqlash kodini kiriting"); return; }
@@ -82,6 +104,7 @@ export function VerifyEmailScreen() {
           placeholderTextColor={colors.textMuted}
           value={token}
           onChangeText={setToken}
+          keyboardType="number-pad"
           autoCapitalize="none"
           autoCorrect={false}
         />
@@ -95,6 +118,20 @@ export function VerifyEmailScreen() {
             <ActivityIndicator color={colors.textPrimary} size="small" />
           ) : (
             <Text style={styles.verifyText}>Tasdiqlash</Text>
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.resendBtn, (resendCooldown > 0 || resendLoading) && styles.resendBtnDisabled]}
+          onPress={handleResend}
+          disabled={resendCooldown > 0 || resendLoading}
+        >
+          {resendLoading ? (
+            <ActivityIndicator color={colors.primary} size="small" />
+          ) : (
+            <Text style={styles.resendText}>
+              {resendCooldown > 0 ? `Qayta yuborish (${resendCooldown}s)` : 'Kodni qayta yuborish'}
+            </Text>
           )}
         </TouchableOpacity>
       </View>
@@ -166,4 +203,7 @@ const styles = StyleSheet.create({
   },
   btnDisabled: { opacity: 0.6 },
   verifyText: { color: colors.textPrimary, fontWeight: '700', fontSize: 16 },
+  resendBtn: { marginTop: spacing.sm, padding: spacing.md, alignItems: 'center' },
+  resendBtnDisabled: { opacity: 0.5 },
+  resendText: { color: colors.primary, fontSize: 14, fontWeight: '600' },
 });

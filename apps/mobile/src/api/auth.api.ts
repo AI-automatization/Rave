@@ -5,7 +5,8 @@ import { ApiResponse, LoginRequest, LoginResponse, RegisterRequest } from '@app-
 export const authApi = {
   async login(data: LoginRequest): Promise<LoginResponse> {
     const res = await authClient.post<ApiResponse<LoginResponse>>('/auth/login', data);
-    return res.data.data!;
+    if (!res.data.data) throw new Error('Login response is empty');
+    return res.data.data;
   },
 
   async register(data: RegisterRequest): Promise<{ message: string }> {
@@ -40,6 +41,7 @@ export const authApi = {
 
   async googleToken(idToken: string): Promise<LoginResponse> {
     const res = await authClient.post<ApiResponse<LoginResponse>>('/auth/google/token', { idToken });
-    return res.data.data!;
+    if (!res.data.data) throw new Error('Google token response is empty');
+    return res.data.data;
   },
 };

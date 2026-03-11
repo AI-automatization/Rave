@@ -195,7 +195,7 @@ export function VideoPlayerScreen({ route, navigation }: Props) {
                 <View
                   style={[
                     styles.seekThumb,
-                    { left: `${progressRatio * 100}%` as unknown as number },
+                    { left: progressRatio * seekBarWidth - 6 },
                   ]}
                 />
               </TouchableOpacity>

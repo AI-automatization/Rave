@@ -1,5 +1,5 @@
 // CineSync Mobile — SettingsScreen
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,8 +9,11 @@ import {
   StyleSheet,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import * as SecureStore from 'expo-secure-store';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius, typography } from '@theme/index';
+
+const SETTINGS_KEY = 'cinesync_settings';
 
 type Language = 'uz' | 'ru' | 'en';
 
@@ -69,6 +72,31 @@ export function SettingsScreen() {
   const [privacyToggles, setPrivacyToggles] = useState<Record<string, boolean>>(
     Object.fromEntries(PRIVACY_TOGGLES.map(t => [t.key, true])),
   );
+
+  // Load persisted settings on mount
+  useEffect(() => {
+    SecureStore.getItemAsync(SETTINGS_KEY).then((raw) => {
+      if (!raw) return;
+      try {
+        const saved = JSON.parse(raw) as {
+          language?: Language;
+          notifToggles?: Record<string, boolean>;
+          privacyToggles?: Record<string, boolean>;
+        };
+        if (saved.language) setLanguage(saved.language);
+        if (saved.notifToggles) setNotifToggles(saved.notifToggles);
+        if (saved.privacyToggles) setPrivacyToggles(saved.privacyToggles);
+      } catch {}
+    });
+  }, []);
+
+  // Persist whenever settings change
+  useEffect(() => {
+    SecureStore.setItemAsync(
+      SETTINGS_KEY,
+      JSON.stringify({ language, notifToggles, privacyToggles }),
+    ).catch(() => {});
+  }, [language, notifToggles, privacyToggles]);
 
   const toggleNotif = (key: string, value: boolean) =>
     setNotifToggles(prev => ({ ...prev, [key]: value }));

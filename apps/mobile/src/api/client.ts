@@ -11,6 +11,19 @@ const URLS = {
   battle: process.env.EXPO_PUBLIC_BATTLE_URL!,
 };
 
+// Shared refresh state — prevents concurrent 401 refresh storms across all clients
+let isRefreshing = false;
+type QueueItem = { resolve: (token: string) => void; reject: (err: unknown) => void };
+let failedQueue: QueueItem[] = [];
+
+function processQueue(error: unknown, token: string | null): void {
+  failedQueue.forEach(({ resolve, reject }) => {
+    if (error || !token) reject(error);
+    else resolve(token);
+  });
+  failedQueue = [];
+}
+
 function createClient(baseURL: string): AxiosInstance {
   const instance = axios.create({
     baseURL,
@@ -27,7 +40,7 @@ function createClient(baseURL: string): AxiosInstance {
     return config;
   });
 
-  // Response interceptor — 401 → refresh token
+  // Response interceptor — 401 → shared refresh (race-safe: only one refresh at a time)
   instance.interceptors.response.use(
     (response) => response,
     async (error) => {
@@ -35,6 +48,18 @@ function createClient(baseURL: string): AxiosInstance {
 
       if (error.response?.status === 401 && !originalRequest._retry) {
         originalRequest._retry = true;
+
+        if (isRefreshing) {
+          // Queue this request — wait for the ongoing refresh to complete
+          return new Promise<string>((resolve, reject) => {
+            failedQueue.push({ resolve, reject });
+          }).then((token) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return instance(originalRequest);
+          });
+        }
+
+        isRefreshing = true;
 
         try {
           const refreshToken = await tokenStorage.getRefreshToken();
@@ -45,13 +70,17 @@ function createClient(baseURL: string): AxiosInstance {
           const userId = await tokenStorage.getUserId();
 
           await tokenStorage.saveTokens(accessToken, newRefreshToken, userId ?? '');
+          processQueue(null, accessToken);
 
           originalRequest.headers.Authorization = `Bearer ${accessToken}`;
           return instance(originalRequest);
-        } catch {
+        } catch (err) {
+          processQueue(err, null);
           const { useAuthStore } = await import('@store/auth.store');
           await useAuthStore.getState().logout();
           return Promise.reject(error);
+        } finally {
+          isRefreshing = false;
         }
       }
 

@@ -9,11 +9,13 @@ interface AuthState {
   accessToken: string | null;
   isAuthenticated: boolean;
   isHydrated: boolean;
+  needsProfileSetup: boolean;
 
   setAuth: (user: IUser, accessToken: string, refreshToken: string) => Promise<void>;
   updateUser: (user: IUser) => void;
   logout: () => Promise<void>;
   hydrate: () => Promise<void>;
+  clearProfileSetup: () => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -21,17 +23,31 @@ export const useAuthStore = create<AuthState>((set) => ({
   accessToken: null,
   isAuthenticated: false,
   isHydrated: false,
+  needsProfileSetup: false,
 
   setAuth: async (user, accessToken, refreshToken) => {
     await tokenStorage.saveTokens(accessToken, refreshToken, user._id);
-    set({ user, accessToken, isAuthenticated: true });
+    set({ user, accessToken, isAuthenticated: true, needsProfileSetup: !user.bio });
   },
 
   updateUser: (user) => set({ user }),
 
+  clearProfileSetup: () => set({ needsProfileSetup: false }),
+
   logout: async () => {
+    try {
+      const refreshToken = await tokenStorage.getRefreshToken();
+      if (refreshToken) {
+        const { authApi } = await import('@api/auth.api');
+        authApi.logout(refreshToken).catch(() => {});
+      }
+    } catch {}
+    try {
+      const { disconnectSocket } = await import('@socket/client');
+      disconnectSocket();
+    } catch {}
     await tokenStorage.clear();
-    set({ user: null, accessToken: null, isAuthenticated: false });
+    set({ user: null, accessToken: null, isAuthenticated: false, needsProfileSetup: false });
   },
 
   hydrate: async () => {

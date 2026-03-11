@@ -31,12 +31,16 @@ export const useNotificationStore = create<NotificationState>((set) => ({
     })),
 
   markRead: (id) =>
-    set((state) => ({
-      notifications: state.notifications.map((n) =>
-        n._id === id ? { ...n, isRead: true } : n,
-      ),
-      unreadCount: Math.max(0, state.unreadCount - 1),
-    })),
+    set((state) => {
+      const notif = state.notifications.find((n) => n._id === id);
+      const wasUnread = notif ? !notif.isRead : false;
+      return {
+        notifications: state.notifications.map((n) =>
+          n._id === id ? { ...n, isRead: true } : n,
+        ),
+        unreadCount: wasUnread ? Math.max(0, state.unreadCount - 1) : state.unreadCount,
+      };
+    }),
 
   markAllRead: () =>
     set((state) => ({

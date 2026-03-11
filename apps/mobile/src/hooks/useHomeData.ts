@@ -32,10 +32,11 @@ export function useHomeData() {
     topRated: topRated.data ?? [],
     continueWatching: continueWatching.data ?? [],
     isLoading,
-    refetch: () => {
-      trending.refetch();
-      topRated.refetch();
-      continueWatching.refetch();
-    },
+    refetch: () =>
+      Promise.all([
+        trending.refetch(),
+        topRated.refetch(),
+        continueWatching.refetch(),
+      ]).then(() => undefined),
   };
 }

@@ -8,21 +8,15 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius, typography } from '@theme/index';
-import { AuthStackParamList } from '@app-types/index';
 import { userApi } from '@api/user.api';
 import { useAuthStore } from '@store/auth.store';
-
-type Nav = NativeStackNavigationProp<AuthStackParamList, 'ProfileSetup'>;
 
 const BIO_MAX = 200;
 
 export function ProfileSetupScreen() {
-  const navigation = useNavigation<Nav>();
-  const { updateUser } = useAuthStore();
+  const { updateUser, clearProfileSetup } = useAuthStore();
 
   const [bio, setBio] = useState('');
   const [loading, setLoading] = useState(false);
@@ -36,7 +30,7 @@ export function ProfileSetupScreen() {
       // silent — skip bo'lsa ham o'tadi
     } finally {
       setLoading(false);
-      navigation.replace('Login');
+      clearProfileSetup();
     }
   };
 
@@ -77,7 +71,7 @@ export function ProfileSetupScreen() {
 
         <TouchableOpacity
           style={styles.skipBtn}
-          onPress={() => navigation.replace('Login')}
+          onPress={clearProfileSetup}
         >
           <Text style={styles.skipText}>O'tkazib yuborish</Text>
         </TouchableOpacity>
