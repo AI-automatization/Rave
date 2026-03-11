@@ -4,6 +4,15 @@
 
 ---
 
+### F-075 | 2026-03-11 | [MOBILE] | T-E013 — eas.json + app.json plugins + EAS setup [Emirhan]
+
+- `eas.json` — development (APK/iOS sim) / preview / production (AAB) profillari
+- `app.json` — expo-notifications (#E50914, default channel), expo-secure-store, expo-av, expo-image plugins; iOS infoPlist + Android permissions
+- `.env.example` — EXPO_PUBLIC_PROJECT_ID, EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID template
+- **Qolgan (user tomonidan):** `eas init` → projectId to'ldirish, google-services.json qo'shish
+
+---
+
 ### F-074 | 2026-03-11 | [MOBILE] | T-E011 — ErrorBoundary + crash utils + Jest 9/9 [Emirhan]
 
 - `utils/crash.ts` — Sentry stub (captureException, captureMessage, setUser, clearUser, __DEV__ guard)

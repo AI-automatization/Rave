@@ -104,18 +104,6 @@
 ## SPRINT 5 — Sifat + Test
 
 
-### T-E013 | P2 | [MOBILE] | EAS Build + expo-notifications setup
-
-- **Sana:** 2026-03-07
-- **Mas'ul:** pending[Emirhan]
-- **Holat:** ❌ Boshlanmagan
-- **Bajarilishi kerak:**
-  - [ ] `eas.json` — development/preview/production profillari
-  - [ ] `expo-notifications` — FCM token olish, foreground/background handler
-  - [ ] `app.json` — android package, ios bundleId, permissions, plugins
-  - [ ] `docs/MOBILE_SETUP.md` yangilash (Expo Bare Workflow, EAS Build)
-
----
 
 
 # ═══════════════════════════════════════
