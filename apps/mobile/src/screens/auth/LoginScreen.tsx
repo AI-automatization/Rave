@@ -1,5 +1,5 @@
 // CineSync Mobile — Login Screen
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,14 +10,21 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import * as Google from 'expo-auth-session/providers/google';
+import * as WebBrowser from 'expo-web-browser';
 import { colors, spacing, borderRadius, typography } from '@theme/index';
 import { AuthStackParamList } from '@app-types/index';
 import { authApi } from '@api/auth.api';
 import { useAuthStore } from '@store/auth.store';
+
+WebBrowser.maybeCompleteAuthSession();
+
+const GOOGLE_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? '';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 
@@ -29,7 +36,24 @@ export function LoginScreen() {
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const [, googleResponse, promptAsync] = Google.useAuthRequest({ clientId: GOOGLE_CLIENT_ID });
+
+  useEffect(() => {
+    if (googleResponse?.type !== 'success') return;
+    const idToken = googleResponse.params['id_token'];
+    if (!idToken) return;
+
+    setGoogleLoading(true);
+    setError('');
+    authApi
+      .googleToken(idToken)
+      .then(({ user, accessToken, refreshToken }) => setAuth(user, accessToken, refreshToken))
+      .catch(() => setError('Google orqali kirib bo\'lmadi'))
+      .finally(() => setGoogleLoading(false));
+  }, [googleResponse]);
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -126,6 +150,30 @@ export function LoginScreen() {
               <Text style={styles.loginText}>Kirish</Text>
             )}
           </TouchableOpacity>
+
+          {/* Divider */}
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>yoki</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          {/* Google OAuth */}
+          <TouchableOpacity
+            style={[styles.googleBtn, googleLoading && styles.loginBtnDisabled]}
+            onPress={() => promptAsync()}
+            disabled={googleLoading || !GOOGLE_CLIENT_ID}
+            activeOpacity={0.8}
+          >
+            {googleLoading ? (
+              <ActivityIndicator color={colors.textPrimary} size="small" />
+            ) : (
+              <>
+                <Text style={styles.googleIcon}>G</Text>
+                <Text style={styles.googleText}>Google bilan kirish</Text>
+              </>
+            )}
+          </TouchableOpacity>
         </View>
 
         {/* Footer */}
@@ -188,6 +236,22 @@ const styles = StyleSheet.create({
   loginBtnDisabled: { opacity: 0.6 },
   loginText: { color: colors.textPrimary, fontWeight: '700', fontSize: 16 },
 
+  divider: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginVertical: spacing.xs },
+  dividerLine: { flex: 1, height: 1, backgroundColor: colors.border },
+  dividerText: { ...typography.caption, color: colors.textMuted },
+  googleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.bgElevated,
+    borderRadius: borderRadius.lg,
+    height: 52,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  googleIcon: { fontSize: 18, fontWeight: '700', color: '#4285F4' },
+  googleText: { color: colors.textPrimary, fontWeight: '600', fontSize: 15 },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
