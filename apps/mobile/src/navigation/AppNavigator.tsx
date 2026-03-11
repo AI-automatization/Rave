@@ -6,6 +6,7 @@ import { useAuthStore } from '@store/auth.store';
 import { RootStackParamList } from '@app-types/index';
 import { AuthNavigator } from './AuthNavigator';
 import { MainNavigator } from './MainNavigator';
+import { ModalNavigator } from './ModalNavigator';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -18,7 +19,14 @@ export function AppNavigator() {
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false, animation: 'fade' }}>
         {isAuthenticated ? (
-          <Stack.Screen name="Main" component={MainNavigator} />
+          <>
+            <Stack.Screen name="Main" component={MainNavigator} />
+            <Stack.Screen
+              name="Modal"
+              component={ModalNavigator}
+              options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+            />
+          </>
         ) : (
           <Stack.Screen name="Auth" component={AuthNavigator} />
         )}
