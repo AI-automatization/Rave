@@ -103,21 +103,6 @@
 
 ## SPRINT 5 — Sifat + Test
 
-### T-E011 | P2 | [MOBILE] | Polish + Performance + ErrorBoundary + Sentry
-
-- **Sana:** 2026-03-07
-- **Mas'ul:** 🔄 pending[Emirhan]
-- **Holat:** ❌ Boshlanmagan
-- **Bajarilishi kerak:**
-  - [ ] FlatList optimizatsiya (getItemLayout, windowSize, maxToRenderPerBatch)
-  - [ ] `React.memo` — MovieCard, HeroBanner kabi heavy componentlar
-  - [ ] Accessibility: `accessibilityRole`, `accessibilityLabel`
-  - [ ] `ErrorBoundary.tsx` — class-based, "Qayta urinish" tugmasi
-  - [ ] `src/utils/crash.ts` — Sentry wrapper stub
-  - [ ] Jest unit testlar (MovieCard, ErrorBoundary, crash utils)
-  - [ ] Detox E2E: Auth flow (Splash → Onboarding → Login → Home)
-
----
 
 ### T-E013 | P2 | [MOBILE] | EAS Build + expo-notifications setup
 

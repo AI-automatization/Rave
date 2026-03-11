@@ -14,14 +14,27 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.cinesync.app"
+      "bundleIdentifier": "com.cinesync.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Profil surati uchun",
+        "NSPhotoLibraryUsageDescription": "Profil surati uchun",
+        "NSMicrophoneUsageDescription": "Film ko'rish paytida audio uchun"
+      }
     },
     "android": {
       "package": "com.cinesync.app",
       "adaptiveIcon": {
         "backgroundColor": "#0A0A0F",
         "foregroundImage": "./assets/android-icon-foreground.png"
-      }
+      },
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.VIBRATE",
+        "android.permission.RECEIVE_BOOT_COMPLETED"
+      ],
+      "googleServicesFile": "./google-services.json"
     },
     "plugins": [
       [
@@ -30,7 +43,29 @@
           "backgroundColor": "#0A0A0F",
           "resizeMode": "contain"
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#E50914",
+          "defaultChannel": "default",
+          "sounds": []
+        }
+      ],
+      "expo-secure-store",
+      "expo-av",
+      [
+        "expo-image",
+        {
+          "photosPermission": "Profil surati uchun ruxsat bering"
+        }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": ""
+      }
+    }
   }
 }

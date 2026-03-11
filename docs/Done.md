@@ -4,6 +4,18 @@
 
 ---
 
+### F-074 | 2026-03-11 | [MOBILE] | T-E011 — ErrorBoundary + crash utils + Jest 9/9 [Emirhan]
+
+- `utils/crash.ts` — Sentry stub (captureException, captureMessage, setUser, clearUser, __DEV__ guard)
+- `components/common/ErrorBoundary.tsx` — class-based, getDerivedStateFromError, "Qayta urinish" tugmasi
+- `App.tsx` — root `<ErrorBoundary>` bilan o'raldi
+- `__tests__/crash.test.ts` — 5 unit test ✅
+- `__tests__/ErrorBoundary.test.tsx` — 4 unit test ✅
+- `package.json` — jest-expo ~54.0.0, react moduleNameMapper (React 19 dedup), jest@29
+- **Jest:** 9/9 tests PASS ✅
+
+---
+
 ### F-073 | 2026-03-11 | [MOBILE] | T-E010 — NotificationsScreen [Emirhan]
 
 - `screens/modal/NotificationsScreen.tsx` — 8 NotificationType icons, unread dot + left border, timeAgo helper, markRead on press, WatchParty/Battle navigate, delete confirm, markAllRead, pull-to-refresh

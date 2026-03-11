@@ -1,0 +1,71 @@
+{
+  "cli": {
+    "version": ">= 12.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_AUTH_URL": "https://auth-production-47a8.up.railway.app/api/v1",
+        "EXPO_PUBLIC_USER_URL": "https://user-production-86ed.up.railway.app/api/v1",
+        "EXPO_PUBLIC_CONTENT_URL": "https://content-production-4e08.up.railway.app/api/v1",
+        "EXPO_PUBLIC_NOTIFICATION_URL": "https://notification-production-9c30.up.railway.app/api/v1",
+        "EXPO_PUBLIC_WATCH_PARTY_URL": "https://watch-part-production.up.railway.app",
+        "EXPO_PUBLIC_BATTLE_URL": "https://battle-production-238a.up.railway.app/api/v1",
+        "EXPO_PUBLIC_ADMIN_URL": "https://admin-production-8d2a.up.railway.app/api/v1"
+      },
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleDebug"
+      },
+      "ios": {
+        "simulator": true
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_AUTH_URL": "https://auth-production-47a8.up.railway.app/api/v1",
+        "EXPO_PUBLIC_USER_URL": "https://user-production-86ed.up.railway.app/api/v1",
+        "EXPO_PUBLIC_CONTENT_URL": "https://content-production-4e08.up.railway.app/api/v1",
+        "EXPO_PUBLIC_NOTIFICATION_URL": "https://notification-production-9c30.up.railway.app/api/v1",
+        "EXPO_PUBLIC_WATCH_PARTY_URL": "https://watch-part-production.up.railway.app",
+        "EXPO_PUBLIC_BATTLE_URL": "https://battle-production-238a.up.railway.app/api/v1",
+        "EXPO_PUBLIC_ADMIN_URL": "https://admin-production-8d2a.up.railway.app/api/v1"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_AUTH_URL": "https://auth-production-47a8.up.railway.app/api/v1",
+        "EXPO_PUBLIC_USER_URL": "https://user-production-86ed.up.railway.app/api/v1",
+        "EXPO_PUBLIC_CONTENT_URL": "https://content-production-4e08.up.railway.app/api/v1",
+        "EXPO_PUBLIC_NOTIFICATION_URL": "https://notification-production-9c30.up.railway.app/api/v1",
+        "EXPO_PUBLIC_WATCH_PARTY_URL": "https://watch-part-production.up.railway.app",
+        "EXPO_PUBLIC_BATTLE_URL": "https://battle-production-238a.up.railway.app/api/v1",
+        "EXPO_PUBLIC_ADMIN_URL": "https://admin-production-8d2a.up.railway.app/api/v1"
+      },
+      "android": {
+        "buildType": "app-bundle"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "android": {
+        "serviceAccountKeyPath": "./google-services-key.json",
+        "track": "internal"
+      },
+      "ios": {
+        "appleId": "",
+        "ascAppId": "",
+        "appleTeamId": ""
+      }
+    }
+  }
+}
