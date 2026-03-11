@@ -4,6 +4,14 @@
 
 ---
 
+### F-067 | 2026-03-11 | [MOBILE] | Expo start fix + Railway env setup [Emirhan]
+
+- `package.json` (root) — noto'g'ri `expo: ~55.0.5` + `babel-preset-expo` olib tashlandi, `expo: ~54.0.0` qo'shildi (npm workspace hoisting muammosi hal qilindi)
+- `apps/mobile/.env` — Railway production API URLlari to'ldirildi (auth, user, content, notification, watch-party, battle, admin)
+- Metro Bundler muvaffaqiyatli ishga tushdi
+
+---
+
 ### F-066 | 2026-03-10 | [MOBILE] | T-E005 — MovieDetailScreen + VideoPlayerScreen [Emirhan]
 
 - `hooks/useMovieDetail.ts` — React Query: movie (stale 5min) + watchProgress (stale 0)
