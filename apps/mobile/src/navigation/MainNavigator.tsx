@@ -13,6 +13,9 @@ import {
 } from '@app-types/index';
 import { PlaceholderScreen } from './PlaceholderScreen';
 import { HomeScreen } from '@screens/home/HomeScreen';
+import { FriendsScreen } from '@screens/friends/FriendsScreen';
+import { FriendProfileScreen } from '@screens/friends/FriendProfileScreen';
+import { FriendSearchScreen } from '@screens/friends/FriendSearchScreen';
 import { MovieDetailScreen } from '@screens/home/MovieDetailScreen';
 import { VideoPlayerScreen } from '@screens/home/VideoPlayerScreen';
 import { SearchScreen } from '@screens/search/SearchScreen';
@@ -46,9 +49,9 @@ function SearchStackNavigator() {
 function FriendsStackNavigator() {
   return (
     <FriendsStack.Navigator screenOptions={{ headerShown: false }}>
-      <FriendsStack.Screen name="Friends" component={PlaceholderScreen} />
-      <FriendsStack.Screen name="FriendProfile" component={PlaceholderScreen} />
-      <FriendsStack.Screen name="FriendSearch" component={PlaceholderScreen} />
+      <FriendsStack.Screen name="Friends" component={FriendsScreen} />
+      <FriendsStack.Screen name="FriendProfile" component={FriendProfileScreen} />
+      <FriendsStack.Screen name="FriendSearch" component={FriendSearchScreen} />
     </FriendsStack.Navigator>
   );
 }

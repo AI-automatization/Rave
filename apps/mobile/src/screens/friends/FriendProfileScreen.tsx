@@ -1,0 +1,258 @@
+// CineSync Mobile — FriendProfileScreen
+import React from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+  Alert,
+} from 'react-native';
+import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
+import { useFriendProfile } from '@hooks/useFriends';
+import { useFriendsStore } from '@store/friends.store';
+import { colors, spacing, borderRadius, typography } from '@theme/index';
+import { RANK_COLORS } from '@theme/index';
+import { FriendsStackParamList } from '@app-types/index';
+
+type RouteType = RouteProp<FriendsStackParamList, 'FriendProfile'>;
+
+function StatCard({ icon, label, value }: { icon: string; label: string; value: string | number }) {
+  return (
+    <View style={styles.statCard}>
+      <Text style={styles.statIcon}>{icon}</Text>
+      <Text style={styles.statValue}>{value}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
+    </View>
+  );
+}
+
+export function FriendProfileScreen() {
+  const { params } = useRoute<RouteType>();
+  const navigation = useNavigation();
+  const friends = useFriendsStore(s => s.friends);
+  const onlineStatus = useFriendsStore(s => s.onlineStatus);
+
+  const { profileQuery, statsQuery, sendRequestMutation, removeMutation } = useFriendProfile(
+    params.userId,
+  );
+
+  const profile = profileQuery.data;
+  const stats = statsQuery.data;
+  const isFriend = friends.some(f => f._id === params.userId);
+  const isOnline = profile ? (onlineStatus[profile._id] ?? profile.isOnline) : false;
+
+  const handleRemoveFriend = () => {
+    Alert.alert('Do\'stlikdan chiqarish', `${profile?.username}ni do'stlar ro'yxatidan o'chirmoqchimisiz?`, [
+      { text: 'Bekor', style: 'cancel' },
+      {
+        text: 'O\'chirish',
+        style: 'destructive',
+        onPress: () =>
+          removeMutation.mutate(undefined, { onSuccess: () => navigation.goBack() }),
+      },
+    ]);
+  };
+
+  const handleAddFriend = () => {
+    sendRequestMutation.mutate(undefined, {
+      onSuccess: () => Alert.alert('✓', 'Do\'stlik so\'rovi yuborildi!'),
+      onError: () => Alert.alert('Xato', 'So\'rov yuborib bo\'lmadi.'),
+    });
+  };
+
+  if (profileQuery.isLoading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.errorText}>Profil topilmadi</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.root}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle} numberOfLines={1}>
+          {profile.username}
+        </Text>
+        <View style={{ width: 40 }} />
+      </View>
+
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Profile card */}
+        <View style={styles.profileCard}>
+          <View style={styles.avatarWrap}>
+            <Image
+              source={profile.avatar ? { uri: profile.avatar } : require('../../../assets/icon.png')}
+              style={styles.avatar}
+              contentFit="cover"
+            />
+            <View style={[styles.onlineDot, { backgroundColor: isOnline ? colors.success : colors.textMuted }]} />
+          </View>
+          <Text style={styles.username}>{profile.username}</Text>
+
+          <View style={styles.rankBadge}>
+            <View style={[styles.rankDot, { backgroundColor: RANK_COLORS[profile.rank] }]} />
+            <Text style={[styles.rankText, { color: RANK_COLORS[profile.rank] }]}>{profile.rank}</Text>
+          </View>
+
+          <Text style={styles.onlineStatus}>{isOnline ? '● Onlayn' : '○ Oflayn'}</Text>
+
+          {profile.bio ? <Text style={styles.bio}>{profile.bio}</Text> : null}
+        </View>
+
+        {/* Stats */}
+        {stats && (
+          <View style={styles.statsSection}>
+            <Text style={styles.sectionTitle}>STATISTIKA</Text>
+            <View style={styles.statsGrid}>
+              <StatCard icon="🎬" label="Film" value={stats.totalWatched} />
+              <StatCard icon="⚔️" label="G'alaba" value={stats.battlesWon} />
+              <StatCard icon="🏆" label="Ball" value={stats.totalPoints} />
+              <StatCard icon="👥" label="Do'stlar" value={stats.friendsCount} />
+            </View>
+          </View>
+        )}
+
+        {/* Actions */}
+        <View style={styles.actions}>
+          {isFriend ? (
+            <TouchableOpacity
+              style={styles.removeBtn}
+              onPress={handleRemoveFriend}
+              disabled={removeMutation.isPending}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="person-remove-outline" size={18} color={colors.error} />
+              <Text style={styles.removeBtnText}>Do'stlikdan chiqarish</Text>
+            </TouchableOpacity>
+          ) : sendRequestMutation.isSuccess ? (
+            <View style={styles.sentCard}>
+              <Ionicons name="checkmark-circle" size={18} color={colors.success} />
+              <Text style={styles.sentText}>So'rov yuborildi</Text>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={styles.addBtn}
+              onPress={handleAddFriend}
+              disabled={sendRequestMutation.isPending}
+              activeOpacity={0.8}
+            >
+              {sendRequestMutation.isPending ? (
+                <ActivityIndicator color={colors.textPrimary} size="small" />
+              ) : (
+                <>
+                  <Ionicons name="person-add-outline" size={18} color={colors.textPrimary} />
+                  <Text style={styles.addBtnText}>Do'st qo'shish</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <View style={{ height: spacing.xxxl }} />
+      </ScrollView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.bgBase },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  errorText: { ...typography.body, color: colors.textMuted },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  backBtn: { padding: spacing.xs },
+  headerTitle: { ...typography.h3, color: colors.textPrimary, flex: 1, textAlign: 'center' },
+  profileCard: {
+    alignItems: 'center',
+    padding: spacing.xxl,
+    gap: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  avatarWrap: { position: 'relative', marginBottom: spacing.sm },
+  avatar: { width: 88, height: 88, borderRadius: borderRadius.full },
+  onlineDot: {
+    position: 'absolute',
+    bottom: 4,
+    right: 4,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 3,
+    borderColor: colors.bgBase,
+  },
+  username: { ...typography.h2, color: colors.textPrimary },
+  rankBadge: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  rankDot: { width: 10, height: 10, borderRadius: 5 },
+  rankText: { ...typography.body, fontWeight: '600' },
+  onlineStatus: { ...typography.caption, color: colors.textMuted },
+  bio: { ...typography.body, color: colors.textSecondary, textAlign: 'center', paddingHorizontal: spacing.xl },
+  statsSection: { padding: spacing.lg, gap: spacing.md },
+  sectionTitle: { ...typography.label, color: colors.textMuted },
+  statsGrid: { flexDirection: 'row', gap: spacing.sm },
+  statCard: {
+    flex: 1,
+    backgroundColor: colors.bgSurface,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  statIcon: { fontSize: 20 },
+  statValue: { ...typography.h3, color: colors.textPrimary },
+  statLabel: { ...typography.caption, color: colors.textMuted },
+  actions: { padding: spacing.lg },
+  addBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.primary,
+    padding: spacing.lg,
+    borderRadius: borderRadius.lg,
+  },
+  addBtnText: { ...typography.body, color: colors.textPrimary, fontWeight: '600' },
+  removeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.error,
+    padding: spacing.lg,
+    borderRadius: borderRadius.lg,
+  },
+  removeBtnText: { ...typography.body, color: colors.error, fontWeight: '600' },
+  sentCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    padding: spacing.lg,
+  },
+  sentText: { ...typography.body, color: colors.success },
+});
