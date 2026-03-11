@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { StyleSheet } from 'react-native';
 import { useAuthStore } from '@store/auth.store';
 import { AppNavigator } from '@navigation/AppNavigator';
+import { ErrorBoundary } from '@components/common/ErrorBoundary';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -33,11 +34,13 @@ function RootApp() {
 
 export default function App() {
   return (
-    <GestureHandlerRootView style={styles.root}>
-      <QueryClientProvider client={queryClient}>
-        <RootApp />
-      </QueryClientProvider>
-    </GestureHandlerRootView>
+    <ErrorBoundary>
+      <GestureHandlerRootView style={styles.root}>
+        <QueryClientProvider client={queryClient}>
+          <RootApp />
+        </QueryClientProvider>
+      </GestureHandlerRootView>
+    </ErrorBoundary>
   );
 }
 

@@ -38,10 +38,37 @@
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@babel/plugin-transform-template-literals": "^7.27.1",
+    "@types/jest": "^29.5.0",
     "@types/react": "~19.1.10",
     "babel-plugin-module-resolver": "^5.0.2",
     "babel-preset-expo": "~54.0.10",
+    "jest": "^29.7.0",
+    "jest-expo": "~54.0.0",
+    "react-test-renderer": "19.1.0",
     "typescript": "~5.9.2"
   },
-  "private": true
+  "private": true,
+  "jest": {
+    "preset": "jest-expo",
+    "moduleNameMapper": {
+      "^react$": "<rootDir>/node_modules/react",
+      "^react/(.*)$": "<rootDir>/node_modules/react/$1",
+      "^react-test-renderer$": "<rootDir>/node_modules/react-test-renderer",
+      "^react-test-renderer/(.*)$": "<rootDir>/node_modules/react-test-renderer/$1",
+      "^@screens/(.*)$": "<rootDir>/src/screens/$1",
+      "^@components/(.*)$": "<rootDir>/src/components/$1",
+      "^@api/(.*)$": "<rootDir>/src/api/$1",
+      "^@store/(.*)$": "<rootDir>/src/store/$1",
+      "^@hooks/(.*)$": "<rootDir>/src/hooks/$1",
+      "^@theme/(.*)$": "<rootDir>/src/theme/$1",
+      "^@utils/(.*)$": "<rootDir>/src/utils/$1",
+      "^@navigation/(.*)$": "<rootDir>/src/navigation/$1",
+      "^@app-types/(.*)$": "<rootDir>/src/types/$1",
+      "^@socket/(.*)$": "<rootDir>/src/socket/$1",
+      "^@shared/(.*)$": "<rootDir>/../../shared/src/$1"
+    },
+    "transformIgnorePatterns": [
+      "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg)"
+    ]
+  }
 }
