@@ -102,7 +102,7 @@
 ### T-E006 | P1 | [MOBILE] | WatchParty ekranlar
 
 - **Sana:** 2026-03-07
-- **Mas'ul:** pending[Emirhan]
+- **Mas'ul:** 🔄 pending[Emirhan]
 - **Fayl:** `apps/mobile/src/screens/modal/`
 - **Holat:** ❌ Boshlanmagan
 - **Bajarilishi kerak:**
