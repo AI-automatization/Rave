@@ -33,7 +33,9 @@ export const resetPasswordSchema = Joi.object({
 });
 
 export const verifyEmailSchema = Joi.object({
-  token: Joi.string().required(),
+  token: Joi.string().pattern(/^\d{6}$/).required().messages({
+    'string.pattern.base': 'Verification code must be 6 digits',
+  }),
 });
 
 export const validate = (schema: Joi.ObjectSchema) =>

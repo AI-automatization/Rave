@@ -15,24 +15,21 @@ const transporter = nodemailer.createTransport({
 const BASE_URL = config.clientUrl;
 
 export const emailService = {
-  async sendVerificationEmail(to: string, token: string): Promise<void> {
-    const verifyUrl = `${BASE_URL}/auth/verify-email?token=${token}`;
-
+  async sendVerificationEmail(to: string, code: string): Promise<void> {
     try {
       await transporter.sendMail({
         from: `"CineSync" <${config.email.from}>`,
         to,
-        subject: 'Email manzilingizni tasdiqlang — CineSync',
+        subject: 'Tasdiqlash kodi — CineSync',
         html: `
           <div style="font-family: DM Sans, sans-serif; max-width: 600px; margin: 0 auto; background: #0A0A0F; color: #fff; padding: 40px; border-radius: 12px;">
             <h1 style="color: #E50914; margin-bottom: 8px;">CineSync</h1>
             <p style="font-size: 18px; margin-bottom: 24px;">Email manzilingizni tasdiqlang</p>
-            <p style="color: #ccc;">Ro'yxatdan o'tganingiz uchun rahmat! Hisobingizni faollashtirish uchun quyidagi tugmani bosing:</p>
-            <a href="${verifyUrl}"
-               style="display: inline-block; background: #E50914; color: #fff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 24px 0;">
-              Email ni tasdiqlash
-            </a>
-            <p style="color: #888; font-size: 13px;">Havola 10 daqiqa davomida amal qiladi.</p>
+            <p style="color: #ccc;">Ro'yxatdan o'tganingiz uchun rahmat! Quyidagi 6 raqamli kodni ilovaga kiriting:</p>
+            <div style="background: #16161F; border: 2px solid #E50914; border-radius: 12px; padding: 24px; text-align: center; margin: 24px 0;">
+              <span style="font-size: 42px; font-weight: bold; letter-spacing: 12px; color: #fff;">${code}</span>
+            </div>
+            <p style="color: #888; font-size: 13px;">Kod 10 daqiqa davomida amal qiladi.</p>
             <p style="color: #888; font-size: 13px;">Agar siz ro'yxatdan o'tmagan bo'lsangiz, bu xatni e'tiborsiz qoldiring.</p>
           </div>
         `,

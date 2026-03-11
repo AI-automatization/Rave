@@ -58,7 +58,7 @@ export class AuthService {
     }
 
     const passwordHash = await this.hashPassword(password);
-    const emailVerifyToken = crypto.randomBytes(32).toString('hex');
+    const emailVerifyToken = String(Math.floor(100000 + Math.random() * 900000)); // 6-digit OTP
     const emailVerifyTokenExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 min
 
     const user = await User.create({
@@ -194,7 +194,7 @@ export class AuthService {
       emailVerifyTokenExpiry: { $gt: new Date() },
     }).select('+emailVerifyToken +emailVerifyTokenExpiry');
 
-    if (!user) throw new BadRequestError('Invalid or expired email verification token');
+    if (!user) throw new BadRequestError('Invalid or expired verification code');
 
     await User.updateOne(
       { _id: user._id },

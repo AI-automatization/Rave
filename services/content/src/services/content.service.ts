@@ -67,24 +67,50 @@ export class ContentService {
   async searchMovies(query: string, page = 1, limit = 20): Promise<{ movies: unknown[]; meta: PaginationMeta }> {
     const from = (page - 1) * limit;
 
-    const result = await this.elastic.search({
-      index: MOVIE_INDEX,
-      from,
-      size: limit,
-      query: {
-        multi_match: {
-          query,
-          fields: ['title^3', 'originalTitle^2', 'description', 'genre'],
-          fuzziness: 'AUTO',
+    try {
+      const result = await this.elastic.search({
+        index: MOVIE_INDEX,
+        from,
+        size: limit,
+        query: {
+          multi_match: {
+            query,
+            fields: ['title^3', 'originalTitle^2', 'description', 'genre'],
+            fuzziness: 'AUTO',
+          },
         },
-      },
-    });
+      });
 
-    const total = typeof result.hits.total === 'object' ? result.hits.total.value : result.hits.total ?? 0;
-    const movies = result.hits.hits.map((hit) => hit._source);
+      const total = typeof result.hits.total === 'object' ? result.hits.total.value : result.hits.total ?? 0;
+      const movies = result.hits.hits.map((hit) => hit._source);
 
+      return {
+        movies,
+        meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
+      };
+    } catch (err) {
+      logger.warn('Elasticsearch unavailable, falling back to MongoDB search', { error: (err as Error).message });
+      return this.searchMoviesMongo(query, page, limit);
+    }
+  }
+
+  private async searchMoviesMongo(query: string, page = 1, limit = 20): Promise<{ movies: unknown[]; meta: PaginationMeta }> {
+    const skip = (page - 1) * limit;
+    const regex = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+    const filter = {
+      isPublished: true,
+      $or: [
+        { title: { $regex: regex } },
+        { originalTitle: { $regex: regex } },
+        { description: { $regex: regex } },
+      ],
+    };
+    const [movies, total] = await Promise.all([
+      Movie.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+      Movie.countDocuments(filter),
+    ]);
     return {
-      movies,
+      movies: movies as unknown[],
       meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
     };
   }
