@@ -4,6 +4,14 @@
 
 ---
 
+### F-071 | 2026-03-11 | [MOBILE] | T-E012 — Google OAuth expo-auth-session [Emirhan]
+
+- `screens/auth/LoginScreen.tsx` — WebBrowser.maybeCompleteAuthSession(), Google.useAuthRequest, useEffect (id_token → authApi.googleToken → setAuth), Google button UI (divider, G icon)
+- `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` env variable kerak (`.env`ga qo'shiladi)
+- **tsc --noEmit:** ✅ 0 xato
+
+---
+
 ### F-070 | 2026-03-11 | [MOBILE] | T-E008 — BattleCreateScreen + BattleScreen [Emirhan]
 
 - `hooks/useBattle.ts` — useMyBattles (accept/reject), useBattleDetail (60s refetch), useCreateBattle

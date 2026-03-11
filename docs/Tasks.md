@@ -104,7 +104,7 @@
 ### T-E009 | P2 | [MOBILE] | Profil + Stats + Achievements + Settings
 
 - **Sana:** 2026-03-07
-- **Mas'ul:** pending[Emirhan]
+- **Mas'ul:** 🔄 pending[Emirhan]
 - **Fayl:** `apps/mobile/src/screens/profile/`
 - **Holat:** ❌ Boshlanmagan
 - **Bajarilishi kerak:**
@@ -142,19 +142,6 @@
   - [ ] `src/utils/crash.ts` — Sentry wrapper stub
   - [ ] Jest unit testlar (MovieCard, ErrorBoundary, crash utils)
   - [ ] Detox E2E: Auth flow (Splash → Onboarding → Login → Home)
-
----
-
-### T-E012 | P1 | [MOBILE] | Google OAuth — expo-auth-session bilan native flow
-
-- **Sana:** 2026-03-07
-- **Mas'ul:** 🔄 pending[Emirhan]
-- **Holat:** ❌ Boshlanmagan
-- **Sabab:** Bare React Native `@react-native-google-signin` Expo bilan murakkab. Expo `expo-auth-session` osonroq.
-- **Bajarilishi kerak:**
-  - [ ] `expo-auth-session` + `expo-web-browser` orqali Google OAuth
-  - [ ] idToken → `POST /api/v1/auth/google/token` (T-S016 backend endpointi)
-  - [ ] `LoginScreen.tsx` ga Google button integratsiya
 
 ---
 
