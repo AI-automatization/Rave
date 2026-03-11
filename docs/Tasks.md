@@ -92,6 +92,38 @@
 
 ## SPRINT 1 — Expo Setup + Auth
 
+### T-E015 | P0 | [MOBILE] | auth.store hydrate() — user object tiklanmaydi | pending[Emirhan]
+
+- **Sana:** 2026-03-11
+- **Mas'ul:** Emirhan
+- **Fayl:** `apps/mobile/src/store/auth.store.ts`
+- **Sabab:** `hydrate()` token va `isAuthenticated: true` ni tiklaydi, lekin `user: null` qoladi.
+  App qayta ishga tushganda `user?._id` → `undefined`, WatchPartyScreen/BattleScreen buziladi.
+- **Bajarilishi:**
+  - [ ] `hydrate()` ichida token mavjud bo'lsa `userApi.getMe()` chaqirib user ni tiklash
+
+### T-E016 | P1 | [MOBILE] | client.ts 401 handler — auth store yangilanmaydi | pending[Emirhan]
+
+- **Sana:** 2026-03-11
+- **Mas'ul:** Emirhan
+- **Fayl:** `apps/mobile/src/api/client.ts`
+- **Sabab:** Refresh token fail bo'lganda `tokenStorage.clear()` chaqiriladi, lekin
+  `isAuthenticated` `true` bo'lib qoladi — foydalanuvchi "kirgan" holatda qoladi.
+- **Bajarilishi:**
+  - [ ] `tokenStorage.clear()` o'rniga `useAuthStore.getState().logout()` ishlatish
+
+### T-E017 | P1 | [MOBILE] | VerifyEmailScreen — OTP endpoint field mismatch | pending[Emirhan]
+
+- **Sana:** 2026-03-11
+- **Mas'ul:** Emirhan
+- **Fayl:** `apps/mobile/src/api/auth.api.ts`, `apps/mobile/src/screens/auth/VerifyEmailScreen.tsx`
+- **Sabab:** Backend OTP-first flow ga o'tkazildi, lekin `authApi.verifyEmail(token)` faqat
+  `{ token }` yuboradi. Backend `{ code, email }` kutishi mumkin. Saidazim bilan tekshirish kerak.
+- **Bajarilishi:**
+  - [ ] Saidazim bilan backend endpoint field larini tasdiqlash
+  - [ ] `authApi.verifyEmail` signaturasini yangilash (`code + email`)
+  - [ ] VerifyEmailScreen da `email` param ni yuborish
+
 ## SPRINT 2 — Asosiy ekranlar
 
 ---
