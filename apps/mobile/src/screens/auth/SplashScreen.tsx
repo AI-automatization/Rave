@@ -3,7 +3,6 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
-import * as SplashScreenExpo from 'expo-splash-screen';
 import { colors, typography } from '@theme/index';
 import { AuthStackParamList } from '@app-types/index';
 import { useAuthStore } from '@store/auth.store';
@@ -25,9 +24,8 @@ export function SplashScreen() {
 
   useEffect(() => {
     if (!isHydrated) return;
-
-    const timer = setTimeout(async () => {
-      await SplashScreenExpo.hideAsync();
+    // hideAsync App.tsx da chaqiriladi — bu yerda faqat navigatsiya
+    const timer = setTimeout(() => {
       if (isAuthenticated) return; // AppNavigator handles redirect
       navigation.replace('Onboarding');
     }, 1800);

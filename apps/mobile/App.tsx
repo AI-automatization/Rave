@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { StyleSheet } from 'react-native';
+import * as SplashScreen from 'expo-splash-screen';
 import { useAuthStore } from '@store/auth.store';
 import { AppNavigator } from '@navigation/AppNavigator';
 import { ErrorBoundary } from '@components/common/ErrorBoundary';
@@ -19,10 +20,19 @@ const queryClient = new QueryClient({
 
 function RootApp() {
   const hydrate = useAuthStore((s) => s.hydrate);
+  const isHydrated = useAuthStore((s) => s.isHydrated);
 
   useEffect(() => {
     hydrate();
   }, [hydrate]);
+
+  // Native splash screen ni hydration tugagandan so'ng darhol yashirish.
+  // SplashScreen.tsx ichida emas — u render bo'lmasa hideAsync hech chaqirilmaydi.
+  useEffect(() => {
+    if (isHydrated) {
+      SplashScreen.hideAsync().catch(() => undefined);
+    }
+  }, [isHydrated]);
 
   return (
     <>

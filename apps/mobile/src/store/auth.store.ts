@@ -35,24 +35,29 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   hydrate: async () => {
-    try {
-      const { accessToken, userId } = await tokenStorage.getAll();
-      if (accessToken && userId) {
-        set({ accessToken, isAuthenticated: true });
-        try {
-          const user = await userApi.getMe();
-          set({ user });
-        } catch {
-          // Token expired/invalid — logout
-          await tokenStorage.clear();
-          set({ accessToken: null, isAuthenticated: false });
+    // SecureStore Android emulator da hang qilishi mumkin — 5s timeout
+    const timeout = new Promise<void>((resolve) => setTimeout(resolve, 5000));
+    const work = async () => {
+      try {
+        const { accessToken, userId } = await tokenStorage.getAll();
+        if (accessToken && userId) {
+          set({ accessToken, isAuthenticated: true });
+          try {
+            const user = await userApi.getMe();
+            set({ user });
+          } catch {
+            // Token expired/invalid — logout
+            await tokenStorage.clear();
+            set({ accessToken: null, isAuthenticated: false });
+          }
         }
+      } catch {
+        // SecureStore xatosi — clean state
+        set({ accessToken: null, isAuthenticated: false });
+      } finally {
+        set({ isHydrated: true });
       }
-    } catch {
-      // SecureStore xatosi — clean state
-      set({ accessToken: null, isAuthenticated: false });
-    } finally {
-      set({ isHydrated: true });
-    }
+    };
+    await Promise.race([work(), timeout.then(() => set({ isHydrated: true }))]);
   },
 }));
