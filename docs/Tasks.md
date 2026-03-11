@@ -99,23 +99,10 @@
 
 ## SPRINT 3 — Ijtimoiy ekranlar
 
-### T-E007 | P1 | [MOBILE] | Do'stlar ekranlar
-
-- **Sana:** 2026-03-07
-- **Mas'ul:** 🔄 pending[Emirhan]
-- **Fayl:** `apps/mobile/src/screens/friends/`
-- **Holat:** ❌ Boshlanmagan
-- **Bajarilishi kerak:**
-  - [ ] `FriendsScreen.tsx` — friends list (online indicator), pending requests badge
-  - [ ] `FriendSearchScreen.tsx` — debounced user search, do'st so'rov yuborish
-  - [ ] `FriendProfileScreen.tsx` — public profile, stats, online status, friend actions
-
----
-
 ### T-E008 | P1 | [MOBILE] | Battle ekranlar
 
 - **Sana:** 2026-03-07
-- **Mas'ul:** pending[Emirhan]
+- **Mas'ul:** 🔄 pending[Emirhan]
 - **Fayl:** `apps/mobile/src/screens/modal/`
 - **Holat:** ❌ Boshlanmagan
 - **Bajarilishi kerak:**

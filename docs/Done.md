@@ -4,6 +4,17 @@
 
 ---
 
+### F-069 | 2026-03-11 | [MOBILE] | T-E007 — FriendsScreen + FriendSearchScreen + FriendProfileScreen [Emirhan]
+
+- `hooks/useFriends.ts` — useFriends (getFriends, getPendingRequests, accept/reject/remove), useFriendSearch (debounce 500ms, min 2 chars), useFriendProfile (publicProfile + stats + sendRequest/remove)
+- `screens/friends/FriendsScreen.tsx` — 2 tab (Do'stlar/So'rovlar), online dot, pending badge, accept/reject alert
+- `screens/friends/FriendSearchScreen.tsx` — debounce search, add/sent/friend state UI, online dot, rank badge
+- `screens/friends/FriendProfileScreen.tsx` — avatar, rank, online status, bio, 4-stat grid, add/remove friend actions
+- `navigation/MainNavigator.tsx` — FriendsStack → real screens
+- **tsc --noEmit:** ✅ 0 xato
+
+---
+
 ### F-068 | 2026-03-11 | [MOBILE] | T-E006 — WatchPartyCreateScreen + WatchPartyScreen [Emirhan]
 
 - `hooks/useWatchParty.ts` — Socket.io: JOIN_ROOM, VIDEO_SYNC/PLAY/PAUSE/SEEK, ROOM_MESSAGE, MEMBER events, ROOM_CLOSED; owner controls emitPlay/Pause/Seek/sendMessage/sendEmoji
