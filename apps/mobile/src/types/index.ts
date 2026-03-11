@@ -140,5 +140,5 @@ export type MainTabParamList = {
 export type RootStackParamList = {
   Auth: undefined;
   Main: undefined;
-  Modal: undefined;
+  Modal: { screen: keyof ModalStackParamList; params?: ModalStackParamList[keyof ModalStackParamList] };
 };

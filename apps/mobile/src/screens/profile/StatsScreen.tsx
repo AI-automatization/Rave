@@ -36,7 +36,10 @@ function StatItem({ icon, label, value, color }: { icon: string; label: string; 
 // Simple bar chart using Views
 function ActivityChart({ minutesWatched }: { minutesWatched: number }) {
   const hours = Math.round(minutesWatched / 60);
-  const bars = Array.from({ length: 7 }, (_, i) => Math.max(1, Math.round(Math.random() * hours * 0.3 + hours * 0.1)));
+  const bars = React.useMemo(
+    () => Array.from({ length: 7 }, () => Math.max(1, Math.round(Math.random() * hours * 0.3 + hours * 0.1))),
+    [hours],
+  );
   const maxVal = Math.max(...bars);
   const days = ['Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh', 'Ya'];
 
@@ -238,7 +241,7 @@ const styles = StyleSheet.create({
   rankLine: {
     position: 'absolute',
     top: 8,
-    right: -'50%'.length,
+    right: '-50%',
     width: '100%',
     height: 2,
     backgroundColor: colors.bgElevated,

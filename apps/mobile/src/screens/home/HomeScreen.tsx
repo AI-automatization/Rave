@@ -13,14 +13,14 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, typography } from '@theme/index';
-import { ModalStackParamList } from '@app-types/index';
+import { RootStackParamList } from '@app-types/index';
 import { useHomeData } from '@hooks/useHomeData';
 import { HeroBanner } from '@components/movie/HeroBanner';
 import { MovieRow } from '@components/movie/MovieRow';
 import { HomeSkeleton } from '@components/movie/HomeSkeleton';
 import { useNotificationStore } from '@store/notification.store';
 
-type Nav = NativeStackNavigationProp<ModalStackParamList>;
+type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export function HomeScreen() {
   const navigation = useNavigation<Nav>();
@@ -47,7 +47,7 @@ export function HomeScreen() {
         </Text>
         <TouchableOpacity
           style={styles.notifBtn}
-          onPress={() => navigation.navigate('Notifications')}
+          onPress={() => navigation.navigate('Modal', { screen: 'Notifications' })}
         >
           <Ionicons name="notifications-outline" size={24} color={colors.textPrimary} />
           {unreadCount > 0 && (

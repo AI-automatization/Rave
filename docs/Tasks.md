@@ -92,6 +92,23 @@
 
 ## SPRINT 1 — Expo Setup + Auth
 
+### T-E019 | P2 | [MOBILE] | ProfileSetup auth flow — foydalanuvchi hech qachon bu ekranga etib bormaydi | pending[Emirhan]
+
+- **Sana:** 2026-03-11
+- **Mas'ul:** Emirhan
+- **Fayl:** `apps/mobile/src/screens/auth/ProfileSetupScreen.tsx`, `apps/mobile/src/screens/auth/VerifyEmailScreen.tsx`, `apps/mobile/src/screens/auth/LoginScreen.tsx`
+- **Holat:** 🔄 pending[Emirhan]
+- **Sabab:** `VerifyEmailScreen` emailni tasdiqlagandan so'ng to'g'ridan `Login` ga o'tadi, `ProfileSetup` ni o'tkazib yuboradi.
+  `LoginScreen`da `setAuth()` chaqirilgach `isAuthenticated = true` bo'lib AppNavigator Main ga o'tadi — `ProfileSetup` ekrani hech qachon ko'rsatilmaydi.
+  Bundan tashqari `ProfileSetupScreen`da `navigation.replace('Login')` noto'g'ri — foydalanuvchi allaqachon tizimga kirgan bo'lsa qayta Login ko'rsatiladi.
+- **Bajarilishi kerak:**
+  - [ ] `LoginScreen` da login muvaffaqiyatli bo'lgach: `user.bio` bo'sh bo'lsa → `navigation.navigate('ProfileSetup')` (login + profileSetup ketma-ket)
+  - [ ] `ProfileSetupScreen` da save/skip: `navigation.replace('Login')` o'rniga foydalanuvchini Main ga o'tkazish (`useAuthStore().setAuth` yoki rootNavigation)
+  - [ ] Yoki: `ProfileSetup` ni `AuthStack`dan `MainStack`ga ko'chirish (cleaner yondashuv)
+- **Eslatma:** Hozircha app ishlaydi (ProfileSetup skip bo'ladi), bu UX muammo — first-time foydalanuvchilar bio o'rnatishga imkon topilmaydi
+
+---
+
 ## SPRINT 2 — Asosiy ekranlar
 
 ---
