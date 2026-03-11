@@ -47,6 +47,7 @@ export const REDIS_KEYS = {
   loginAttempts: (email: string) => `login_attempts:${email}`,
   heartbeat: (userId: string) => `heartbeat:${userId}`,
   movieCache: (movieId: string) => `movie:${movieId}`,
+  movieViewCount: (movieId: string) => `viewcount:${movieId}`,
   watchPartyRoom: (roomId: string) => `watch_party:${roomId}`,
   battleLeaderboard: (battleId: string) => `battle:leaderboard:${battleId}`,
   userSession: (userId: string) => `session:${userId}`,

@@ -18,21 +18,43 @@ export class ContentService {
   ) {}
 
   async getMovieById(movieId: string, userId?: string): Promise<IMovieDocument> {
+    const viewCountKey = REDIS_KEYS.movieViewCount(movieId);
+
     // Check cache
     const cached = await this.redis.get(REDIS_KEYS.movieCache(movieId));
-    if (cached) return JSON.parse(cached) as IMovieDocument;
+    let movie: IMovieDocument;
 
-    const movie = await Movie.findById(movieId).lean();
-    if (!movie) throw new NotFoundError('Movie not found');
-    if (!movie.isPublished && !userId) throw new ForbiddenError('Movie not available');
+    if (cached) {
+      movie = JSON.parse(cached) as IMovieDocument;
+    } else {
+      const dbMovie = await Movie.findById(movieId).lean();
+      if (!dbMovie) throw new NotFoundError('Movie not found');
+      if (!dbMovie.isPublished && !userId) throw new ForbiddenError('Movie not available');
+      movie = dbMovie as unknown as IMovieDocument;
+      // Cache movie (viewCount Redis da alohida — cache bilan aralashmaslik)
+      await this.redis.set(REDIS_KEYS.movieCache(movieId), JSON.stringify(movie), 'EX', TTL.MOVIE_CACHE);
+    }
 
-    // Increment view count
-    await Movie.updateOne({ _id: movieId }, { $inc: { viewCount: 1 } });
+    // ViewCount Redis da atomic INCR (cache dan mustaqil)
+    const vcExists = await this.redis.exists(viewCountKey);
+    if (!vcExists) {
+      // Birinchi marta: DB qiymatidan boshlash
+      await this.redis.set(viewCountKey, (movie.viewCount ?? 0) + 1);
+      Movie.updateOne({ _id: movieId }, { $inc: { viewCount: 1 } }).catch((err) =>
+        logger.error('viewCount DB sync failed', { movieId, error: (err as Error).message }),
+      );
+    } else {
+      const newCount = await this.redis.incr(viewCountKey);
+      // Har 20 ta viewda DB ga sinxronlash
+      if (newCount % 20 === 0) {
+        Movie.updateOne({ _id: movieId }, { viewCount: newCount }).catch((err) =>
+          logger.error('viewCount DB sync failed', { movieId, newCount, error: (err as Error).message }),
+        );
+      }
+    }
 
-    // Cache for 1 hour
-    await this.redis.set(REDIS_KEYS.movieCache(movieId), JSON.stringify(movie), 'EX', TTL.MOVIE_CACHE);
-
-    return movie as unknown as IMovieDocument;
+    const viewCount = parseInt((await this.redis.get(viewCountKey)) ?? String(movie.viewCount), 10);
+    return { ...movie, viewCount } as IMovieDocument;
   }
 
   async listMovies(filters: {

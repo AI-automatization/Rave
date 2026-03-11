@@ -7,6 +7,7 @@ import { UserController } from '../controllers/user.controller';
 import { UserService } from '../services/user.service';
 import { verifyToken } from '@shared/middleware/auth.middleware';
 import { apiRateLimiter } from '@shared/middleware/rateLimiter.middleware';
+import { requireInternalSecret } from '@shared/utils/serviceClient';
 import {
   validate,
   updateProfileSchema,
@@ -87,10 +88,10 @@ export const createUserRouter = (redis: Redis): Router => {
 
   // ── Internal (service-to-service) ────────────────────────
   // Auth service calls this after user registration
-  router.post('/internal/profile', validate(createProfileSchema), userController.createProfile);
+  router.post('/internal/profile', requireInternalSecret, validate(createProfileSchema), userController.createProfile);
 
   // Battle/other services call this to award points
-  router.post('/internal/add-points', userController.addPoints);
+  router.post('/internal/add-points', requireInternalSecret, userController.addPoints);
 
   return router;
 };

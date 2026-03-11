@@ -113,9 +113,29 @@ export async function getMovieInfo(movieId: string): Promise<{ title: string; du
   }
 }
 
+// ─── Create user profile ───────────────────────────────────────────────────────
+export async function createUserProfile(authId: string, email: string, username: string): Promise<void> {
+  try {
+    await axios.post(
+      `${userServiceUrl}/api/v1/users/internal/profile`,
+      { authId, email, username },
+      { headers: internalHeaders, timeout: 5000 },
+    );
+    logger.info('[serviceClient] createUserProfile', { authId });
+  } catch (err) {
+    const error = err as AxiosError;
+    logger.error('[serviceClient] createUserProfile failed', {
+      authId,
+      status: error.response?.status,
+      message: error.message,
+    });
+    throw error;
+  }
+}
+
 // ─── Validate internal secret ──────────────────────────────────────────────────
 export function validateInternalSecret(secret: string | undefined): boolean {
-  if (!INTERNAL_SECRET) return true; // dev mode — no secret required
+  if (!INTERNAL_SECRET) return false; // production da secret bo'lmasa blokla
   return secret === INTERNAL_SECRET;
 }
 

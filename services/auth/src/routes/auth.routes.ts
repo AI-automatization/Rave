@@ -54,6 +54,8 @@ export const createAuthRouter = (redis: Redis): Router => {
     passport.authenticate('google', { session: false, failureRedirect: '/auth/login-failed' }),
     authController.googleCallback,
   );
+  // POST /auth/google/exchange — temp code → tokens (one-time, 2 min TTL)
+  router.post('/google/exchange', authController.googleExchange);
 
   return router;
 };

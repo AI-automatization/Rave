@@ -3,6 +3,7 @@ import { AchievementController } from '../controllers/achievement.controller';
 import { AchievementService } from '../services/achievement.service';
 import { verifyToken, optionalAuth } from '@shared/middleware/auth.middleware';
 import { apiRateLimiter } from '@shared/middleware/rateLimiter.middleware';
+import { requireInternalSecret } from '@shared/utils/serviceClient';
 
 export const createAchievementRouter = (): Router => {
   const router = Router();
@@ -19,7 +20,7 @@ export const createAchievementRouter = (): Router => {
   router.get('/:id', apiRateLimiter, optionalAuth, controller.getUserAchievements);
 
   // POST /achievements/internal/trigger — internal (service-to-service)
-  router.post('/internal/trigger', controller.triggerEvent);
+  router.post('/internal/trigger', requireInternalSecret, controller.triggerEvent);
 
   return router;
 };

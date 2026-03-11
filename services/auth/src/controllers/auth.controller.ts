@@ -120,8 +120,23 @@ export class AuthController {
         role: found.role as import('@shared/types').UserRole,
       });
 
-      // Redirect to client with tokens (or set secure cookies)
-      res.redirect(`${process.env.CLIENT_URL}/auth/callback?token=${accessToken}&refresh=${refreshToken}`);
+      // Tokenlarni URL da emas — short-lived code orqali (brauzer history/loglardan himoya)
+      const code = await this.authService.createOAuthTempCode(accessToken, refreshToken);
+      res.redirect(`${process.env.CLIENT_URL}/auth/callback?code=${code}`);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  googleExchange = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { code } = req.body as { code: string };
+      if (!code) {
+        res.status(400).json(apiResponse.error('code talab qilinadi'));
+        return;
+      }
+      const tokens = await this.authService.exchangeOAuthCode(code);
+      res.json(apiResponse.success(tokens, 'Tokens exchanged'));
     } catch (error) {
       next(error);
     }

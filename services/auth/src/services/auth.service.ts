@@ -13,6 +13,7 @@ import {
   TooManyRequestsError,
   BadRequestError,
 } from '@shared/utils/errors';
+import { createUserProfile } from '@shared/utils/serviceClient';
 import { JwtPayload, UserRole } from '@shared/types';
 
 const BCRYPT_ROUNDS = 12;
@@ -229,11 +230,11 @@ export class AuthService {
     logger.info('Email verified', { userId: user._id });
   }
 
-  async forgotPassword(email: string): Promise<string> {
+  async forgotPassword(email: string): Promise<void> {
     const user = await User.findOne({ email });
     if (!user) {
       // Email mavjudligini ochib bermaylik
-      return '';
+      return;
     }
 
     const resetToken = crypto.randomBytes(32).toString('hex');
@@ -249,12 +250,10 @@ export class AuthService {
 
     logger.info('Password reset requested', { userId: user._id });
 
-    // Password reset xati yuborish
+    // Password reset xati yuborish — token faqat email orqali
     emailService.sendPasswordResetEmail(email, resetToken).catch((err) =>
       logger.warn('Password reset email failed', { error: (err as Error).message }),
     );
-
-    return resetToken;
   }
 
   async resetPassword(token: string, newPassword: string): Promise<void> {
@@ -281,6 +280,22 @@ export class AuthService {
     await RefreshToken.deleteMany({ userId: user._id.toString() });
 
     logger.info('Password reset completed', { userId: user._id });
+  }
+
+  // OAuth callback uchun short-lived temp code (tokenlarni URL da bermaydi)
+  async createOAuthTempCode(accessToken: string, refreshToken: string): Promise<string> {
+    const code = crypto.randomBytes(32).toString('hex');
+    const key = `oauth:code:${code}`;
+    await this.redis.setex(key, 120, JSON.stringify({ accessToken, refreshToken })); // 2 daqiqa
+    return code;
+  }
+
+  async exchangeOAuthCode(code: string): Promise<{ accessToken: string; refreshToken: string }> {
+    const key = `oauth:code:${code}`;
+    const raw = await this.redis.get(key);
+    if (!raw) throw new BadRequestError('OAuth code noto\'g\'ri yoki muddati o\'tgan');
+    await this.redis.del(key); // one-time use
+    return JSON.parse(raw) as { accessToken: string; refreshToken: string };
   }
 
   async findOrCreateGoogleUser(profile: {
@@ -317,15 +332,7 @@ export class AuthService {
   }
 
   private async syncUserProfile(authId: string, email: string, username: string): Promise<void> {
-    const url = `${config.userServiceUrl}/api/v1/users/internal/profile`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ authId, email, username }),
-    });
-    if (!response.ok) {
-      throw new Error(`User service responded with ${response.status}`);
-    }
+    await createUserProfile(authId, email, username);
     logger.info('User profile synced to user service', { authId });
   }
 

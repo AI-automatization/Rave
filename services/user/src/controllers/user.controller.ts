@@ -189,6 +189,10 @@ export class UserController {
   addPoints = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { userId, points } = req.body as { userId: string; points: number };
+      if (!userId || typeof points !== 'number' || points <= 0) {
+        res.status(400).json(apiResponse.error('userId va musbat points talab qilinadi'));
+        return;
+      }
       await this.userService.addPoints(userId, points);
       res.json(apiResponse.success(null, 'Points added'));
     } catch (error) {
