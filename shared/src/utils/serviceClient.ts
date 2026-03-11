@@ -113,6 +113,92 @@ export async function getMovieInfo(movieId: string): Promise<{ title: string; du
   }
 }
 
+// ─── Admin: User Service ───────────────────────────────────────────────────────
+
+export async function adminListUsers(filters: {
+  page?: number;
+  limit?: number;
+  role?: string;
+  isBlocked?: boolean;
+  search?: string;
+}): Promise<{ users: unknown[]; total: number }> {
+  const params = new URLSearchParams();
+  if (filters.page) params.set('page', String(filters.page));
+  if (filters.limit) params.set('limit', String(filters.limit));
+  if (filters.role) params.set('role', filters.role);
+  if (filters.isBlocked !== undefined) params.set('isBlocked', String(filters.isBlocked));
+  if (filters.search) params.set('search', filters.search);
+
+  const res = await axios.get<{ data: { users: unknown[]; total: number } }>(
+    `${userServiceUrl}/api/v1/users/internal/admin/users?${params.toString()}`,
+    { headers: internalHeaders, timeout: 5000 },
+  );
+  return res.data.data;
+}
+
+export async function adminGetUserStats(): Promise<{ totalUsers: number; activeUsers: number }> {
+  const res = await axios.get<{ data: { totalUsers: number; activeUsers: number } }>(
+    `${userServiceUrl}/api/v1/users/internal/admin/stats`,
+    { headers: internalHeaders, timeout: 5000 },
+  );
+  return res.data.data;
+}
+
+export async function adminBlockUser(userId: string): Promise<void> {
+  await axios.post(`${userServiceUrl}/api/v1/users/internal/admin/users/${userId}/block`, {}, { headers: internalHeaders, timeout: 5000 });
+}
+
+export async function adminUnblockUser(userId: string): Promise<void> {
+  await axios.post(`${userServiceUrl}/api/v1/users/internal/admin/users/${userId}/unblock`, {}, { headers: internalHeaders, timeout: 5000 });
+}
+
+export async function adminChangeUserRole(userId: string, role: string): Promise<void> {
+  await axios.patch(`${userServiceUrl}/api/v1/users/internal/admin/users/${userId}/role`, { role }, { headers: internalHeaders, timeout: 5000 });
+}
+
+export async function adminDeleteUser(userId: string): Promise<void> {
+  await axios.delete(`${userServiceUrl}/api/v1/users/internal/admin/users/${userId}`, { headers: internalHeaders, timeout: 5000 });
+}
+
+// ─── Admin: Content Service ─────────────────────────────────────────────────────
+
+export async function adminListMovies(filters: {
+  page?: number;
+  limit?: number;
+  isPublished?: boolean;
+  search?: string;
+  genre?: string;
+}): Promise<{ movies: unknown[]; total: number }> {
+  const params = new URLSearchParams();
+  if (filters.page) params.set('page', String(filters.page));
+  if (filters.limit) params.set('limit', String(filters.limit));
+  if (filters.isPublished !== undefined) params.set('isPublished', String(filters.isPublished));
+  if (filters.search) params.set('search', filters.search);
+  if (filters.genre) params.set('genre', filters.genre);
+
+  const res = await axios.get<{ data: { movies: unknown[]; total: number } }>(
+    `${contentServiceUrl}/api/v1/content/internal/admin/movies?${params.toString()}`,
+    { headers: internalHeaders, timeout: 5000 },
+  );
+  return res.data.data;
+}
+
+export async function adminPublishMovie(movieId: string): Promise<void> {
+  await axios.post(`${contentServiceUrl}/api/v1/content/internal/admin/movies/${movieId}/publish`, {}, { headers: internalHeaders, timeout: 5000 });
+}
+
+export async function adminUnpublishMovie(movieId: string): Promise<void> {
+  await axios.post(`${contentServiceUrl}/api/v1/content/internal/admin/movies/${movieId}/unpublish`, {}, { headers: internalHeaders, timeout: 5000 });
+}
+
+export async function adminDeleteMovie(movieId: string): Promise<void> {
+  await axios.delete(`${contentServiceUrl}/api/v1/content/internal/admin/movies/${movieId}`, { headers: internalHeaders, timeout: 5000 });
+}
+
+export async function adminOperatorUpdateMovie(movieId: string, data: Record<string, unknown>): Promise<void> {
+  await axios.patch(`${contentServiceUrl}/api/v1/content/internal/admin/movies/${movieId}`, data, { headers: internalHeaders, timeout: 5000 });
+}
+
 // ─── Create user profile ───────────────────────────────────────────────────────
 export async function createUserProfile(authId: string, email: string, username: string): Promise<void> {
   try {

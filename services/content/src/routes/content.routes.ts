@@ -6,6 +6,7 @@ import { ContentController } from '../controllers/content.controller';
 import { ContentService } from '../services/content.service';
 import { verifyToken, optionalAuth, requireRole } from '@shared/middleware/auth.middleware';
 import { apiRateLimiter } from '@shared/middleware/rateLimiter.middleware';
+import { requireInternalSecret } from '@shared/utils/serviceClient';
 
 const videoUpload = multer({
   storage: multer.memoryStorage(),
@@ -74,6 +75,13 @@ export const createContentRouter = (redis: Redis, elastic: ElasticsearchClient):
 
   // DELETE /content/ratings/:ratingId — operator/admin moderatsiya
   router.delete('/ratings/:ratingId', verifyToken, requireRole('operator', 'admin', 'superadmin'), contentController.deleteRatingModerator);
+
+  // ── Admin Internal ────────────────────────────────────────
+  router.get('/internal/admin/movies', requireInternalSecret, contentController.adminListMovies);
+  router.post('/internal/admin/movies/:id/publish', requireInternalSecret, contentController.adminPublishMovie);
+  router.post('/internal/admin/movies/:id/unpublish', requireInternalSecret, contentController.adminUnpublishMovie);
+  router.delete('/internal/admin/movies/:id', requireInternalSecret, contentController.adminDeleteMovie);
+  router.patch('/internal/admin/movies/:id', requireInternalSecret, contentController.adminOperatorUpdateMovie);
 
   return router;
 };

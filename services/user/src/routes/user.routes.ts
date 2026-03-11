@@ -93,5 +93,13 @@ export const createUserRouter = (redis: Redis): Router => {
   // Battle/other services call this to award points
   router.post('/internal/add-points', requireInternalSecret, userController.addPoints);
 
+  // ── Admin Internal ────────────────────────────────────────
+  router.get('/internal/admin/users', requireInternalSecret, userController.adminListUsers);
+  router.get('/internal/admin/stats', requireInternalSecret, userController.adminGetStats);
+  router.post('/internal/admin/users/:id/block', requireInternalSecret, userController.adminBlockUser);
+  router.post('/internal/admin/users/:id/unblock', requireInternalSecret, userController.adminUnblockUser);
+  router.patch('/internal/admin/users/:id/role', requireInternalSecret, userController.adminChangeUserRole);
+  router.delete('/internal/admin/users/:id', requireInternalSecret, userController.adminDeleteUser);
+
   return router;
 };

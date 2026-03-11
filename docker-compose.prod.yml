@@ -16,6 +16,12 @@ services:
       resources:
         limits:
           memory: 1G
+    healthcheck:
+      test: ['CMD', 'mongosh', '--eval', 'db.adminCommand("ping")']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   redis:
     image: redis:7.2-alpine
@@ -26,6 +32,12 @@ services:
       - redis_data_prod:/data
     networks:
       - cinesync_network
+    healthcheck:
+      test: ['CMD', 'redis-cli', '-a', '${REDIS_PASSWORD}', 'ping']
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.1
@@ -41,6 +53,12 @@ services:
       - es_data_prod:/usr/share/elasticsearch/data
     networks:
       - cinesync_network
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -sf http://localhost:9200/_cluster/health?wait_for_status=yellow || exit 1']
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
 
   auth:
     build:
@@ -50,8 +68,10 @@ services:
     restart: always
     env_file: ./services/auth/.env
     depends_on:
-      - mongo
-      - redis
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - cinesync_network
 
@@ -63,8 +83,10 @@ services:
     restart: always
     env_file: ./services/user/.env
     depends_on:
-      - mongo
-      - redis
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - cinesync_network
 
@@ -76,9 +98,12 @@ services:
     restart: always
     env_file: ./services/content/.env
     depends_on:
-      - mongo
-      - redis
-      - elasticsearch
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
     networks:
       - cinesync_network
 
@@ -90,8 +115,10 @@ services:
     restart: always
     env_file: ./services/watch-party/.env
     depends_on:
-      - mongo
-      - redis
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - cinesync_network
 
@@ -103,8 +130,10 @@ services:
     restart: always
     env_file: ./services/battle/.env
     depends_on:
-      - mongo
-      - redis
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - cinesync_network
 
@@ -116,8 +145,10 @@ services:
     restart: always
     env_file: ./services/notification/.env
     depends_on:
-      - mongo
-      - redis
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - cinesync_network
 
@@ -129,8 +160,10 @@ services:
     restart: always
     env_file: ./services/admin/.env
     depends_on:
-      - mongo
-      - redis
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - cinesync_network
 

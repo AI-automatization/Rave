@@ -221,4 +221,67 @@ export class UserController {
       next(error);
     }
   };
+
+  // ── Admin Internal Controllers ────────────────────────────────
+
+  adminListUsers = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const page = parseInt(req.query.page as string ?? '1', 10);
+      const limit = Math.min(parseInt(req.query.limit as string ?? '20', 10), 100);
+      const role = req.query.role as string | undefined;
+      const search = req.query.search as string | undefined;
+      const isBlockedParam = req.query.isBlocked as string | undefined;
+      const isBlocked = isBlockedParam !== undefined ? isBlockedParam === 'true' : undefined;
+      const result = await this.userService.adminListUsers({ page, limit, role, isBlocked, search });
+      res.json(apiResponse.success(result));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  adminBlockUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      await this.userService.adminBlockUser(req.params.id);
+      res.json(apiResponse.success(null, 'User blocked'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  adminUnblockUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      await this.userService.adminUnblockUser(req.params.id);
+      res.json(apiResponse.success(null, 'User unblocked'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  adminChangeUserRole = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { role } = req.body as { role: string };
+      await this.userService.adminChangeUserRole(req.params.id, role);
+      res.json(apiResponse.success(null, 'Role updated'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  adminDeleteUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      await this.userService.adminDeleteUser(req.params.id);
+      res.json(apiResponse.success(null, 'User deleted'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  adminGetStats = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const stats = await this.userService.adminGetStats();
+      res.json(apiResponse.success(stats));
+    } catch (error) {
+      next(error);
+    }
+  };
 }

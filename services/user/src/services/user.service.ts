@@ -302,6 +302,72 @@ export class UserService {
     await this.recalculateRank(userId);
   }
 
+  // ── Admin Internal Methods ────────────────────────────────────
+
+  async adminListUsers(filters: {
+    page: number;
+    limit: number;
+    role?: string;
+    isBlocked?: boolean;
+    search?: string;
+  }): Promise<{ users: unknown[]; total: number }> {
+    const query: Record<string, unknown> = {};
+    if (filters.role) query.role = filters.role;
+    if (filters.isBlocked !== undefined) query.isBlocked = filters.isBlocked;
+    if (filters.search) {
+      query.$or = [
+        { username: { $regex: filters.search, $options: 'i' } },
+      ];
+    }
+    const skip = (filters.page - 1) * filters.limit;
+    const [users, total] = await Promise.all([
+      User.find(query).sort({ createdAt: -1 }).skip(skip).limit(filters.limit).lean(),
+      User.countDocuments(query),
+    ]);
+    return { users, total };
+  }
+
+  async adminBlockUser(userId: string): Promise<void> {
+    const result = await User.updateOne({ authId: userId }, { isBlocked: true });
+    if (result.matchedCount === 0) throw new NotFoundError('User not found');
+    await this.redis.del(REDIS_KEYS.heartbeat(userId));
+    logger.info('User blocked via admin API', { userId });
+  }
+
+  async adminUnblockUser(userId: string): Promise<void> {
+    const result = await User.updateOne({ authId: userId }, { isBlocked: false });
+    if (result.matchedCount === 0) throw new NotFoundError('User not found');
+    logger.info('User unblocked via admin API', { userId });
+  }
+
+  async adminChangeUserRole(userId: string, newRole: string): Promise<void> {
+    const validRoles = ['user', 'operator', 'admin', 'superadmin'];
+    if (!validRoles.includes(newRole)) throw new BadRequestError('Invalid role');
+    const result = await User.updateOne({ authId: userId }, { role: newRole });
+    if (result.matchedCount === 0) throw new NotFoundError('User not found');
+    logger.info('User role changed via admin API', { userId, newRole });
+  }
+
+  async adminDeleteUser(userId: string): Promise<void> {
+    const result = await User.deleteOne({ authId: userId });
+    if (result.deletedCount === 0) throw new NotFoundError('User not found');
+    await this.redis.del(REDIS_KEYS.heartbeat(userId));
+    logger.warn('User deleted via admin API', { userId });
+  }
+
+  async adminGetStats(): Promise<{ totalUsers: number; activeUsers: number }> {
+    const totalUsers = await User.countDocuments();
+    // Redis SCAN o'rniga Set ishlatish (T-S022 fix shu yerda ham)
+    const cursor = this.redis.scanStream({ match: `${REDIS_KEYS.heartbeat('*')}`, count: 100 });
+    let activeUsers = 0;
+    await new Promise<void>((resolve, reject) => {
+      cursor.on('data', (keys: string[]) => { activeUsers += keys.length; });
+      cursor.on('end', resolve);
+      cursor.on('error', reject);
+    });
+    return { totalUsers, activeUsers };
+  }
+
   private async recalculateRank(userId: string): Promise<void> {
     const user = await User.findOne({ authId: userId }, { totalPoints: 1 });
     if (!user) return;

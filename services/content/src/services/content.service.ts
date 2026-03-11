@@ -271,6 +271,48 @@ export class ContentService {
     await this.redis.del(REDIS_KEYS.movieCache(movieId));
   }
 
+  // ── Admin Internal Methods ────────────────────────────────────
+
+  async adminListMovies(filters: {
+    page: number;
+    limit: number;
+    isPublished?: boolean;
+    search?: string;
+    genre?: string;
+  }): Promise<{ movies: unknown[]; total: number }> {
+    const query: Record<string, unknown> = {};
+    if (filters.isPublished !== undefined) query.isPublished = filters.isPublished;
+    if (filters.genre) query.genre = filters.genre;
+    if (filters.search) query.title = { $regex: filters.search, $options: 'i' };
+
+    const skip = (filters.page - 1) * filters.limit;
+    const [movies, total] = await Promise.all([
+      Movie.find(query).sort({ createdAt: -1 }).skip(skip).limit(filters.limit).lean(),
+      Movie.countDocuments(query),
+    ]);
+    return { movies, total };
+  }
+
+  async adminPublishMovie(movieId: string, isPublished: boolean): Promise<void> {
+    const movie = await Movie.findByIdAndUpdate(movieId, { $set: { isPublished } }, { new: true });
+    if (!movie) throw new NotFoundError('Movie not found');
+    await this.redis.del(REDIS_KEYS.movieCache(movieId));
+    logger.info('Movie publish status changed via admin', { movieId, isPublished });
+  }
+
+  async adminOperatorUpdateMovie(movieId: string, data: Record<string, unknown>): Promise<void> {
+    const allowedFields = ['title', 'originalTitle', 'description', 'genre', 'year', 'duration',
+      'posterUrl', 'backdropUrl', 'trailerUrl', 'videoUrl', 'type', 'language', 'country', 'ageRating'];
+    const safeData: Record<string, unknown> = {};
+    for (const key of allowedFields) {
+      if (key in data) safeData[key] = data[key];
+    }
+    const movie = await Movie.findByIdAndUpdate(movieId, { $set: safeData }, { new: true });
+    if (!movie) throw new NotFoundError('Movie not found');
+    await this.redis.del(REDIS_KEYS.movieCache(movieId));
+    logger.info('Movie updated by operator via admin API', { movieId });
+  }
+
   async getStats(): Promise<{
     genreDistribution: Array<{ genre: string; count: number }>;
     yearHistogram: Array<{ year: number; count: number }>;

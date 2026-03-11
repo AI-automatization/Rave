@@ -190,4 +190,57 @@ export class ContentController {
       next(error);
     }
   };
+
+  // ── Admin Internal Controllers ────────────────────────────────
+
+  adminListMovies = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const page = parseInt(req.query.page as string ?? '1', 10);
+      const limit = Math.min(parseInt(req.query.limit as string ?? '20', 10), 100);
+      const genre = req.query.genre as string | undefined;
+      const search = req.query.search as string | undefined;
+      const isPublishedParam = req.query.isPublished as string | undefined;
+      const isPublished = isPublishedParam !== undefined ? isPublishedParam === 'true' : undefined;
+      const result = await this.contentService.adminListMovies({ page, limit, genre, search, isPublished });
+      res.json(apiResponse.success(result));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  adminPublishMovie = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      await this.contentService.adminPublishMovie(req.params.id, true);
+      res.json(apiResponse.success(null, 'Movie published'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  adminUnpublishMovie = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      await this.contentService.adminPublishMovie(req.params.id, false);
+      res.json(apiResponse.success(null, 'Movie unpublished'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  adminDeleteMovie = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      await this.contentService.deleteMovie(req.params.id);
+      res.json(apiResponse.success(null, 'Movie deleted'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  adminOperatorUpdateMovie = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      await this.contentService.adminOperatorUpdateMovie(req.params.id, req.body as Record<string, unknown>);
+      res.json(apiResponse.success(null, 'Movie updated'));
+    } catch (error) {
+      next(error);
+    }
+  };
 }
