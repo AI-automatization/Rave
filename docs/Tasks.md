@@ -14,7 +14,7 @@
 3. Fix bo'lgach → shu yerdan O'CHIRISH → docs/Done.md ga KO'CHIRISH
 4. Prioritet: P0=kritik, P1=muhim, P2=o'rta, P3=past
 5. Sprint: S1=hozir, S2=keyingi hafta, S3=keyingi sprint, S4-5=keyin
-6. Oxirgi T-raqam: S→022, E→023, J→014, C→007
+6. Oxirgi T-raqam: S→025, E→023, J→014, C→009
 ```
 
 ---
@@ -182,6 +182,80 @@
   - [ ] Video upload — `diskStorage` yoki Cloudinary direct upload
   - [ ] ytdl cache — `lru-cache` bilan limit qo'yish
   - [ ] External video rating — per-user tekshirish, `$inc` atomic update
+
+---
+
+## ARXITEKTURA REVIEW — 2026-03-11 (Bekzod QA)
+
+### T-S023 | P0 | [BACKEND] | ARCHITECTURE: Admin service boshqa DB larga to'g'ridan kiradi + Docker healthcheck yo'q
+
+- **Sana:** 2026-03-11
+- **Mas'ul:** Saidazim
+- **Holat:** ❌ Boshlanmagan
+- **Fayllar:**
+  - `services/admin/src/services/admin.service.ts` (11-35-qator)
+  - `services/admin/src/config/index.ts` (14-15-qator)
+  - `docker-compose.prod.yml` (butun fayl)
+- **Muammo:**
+  - Admin service `mongoose.createConnection()` bilan Content va User **DB lariga to'g'ridan ulanadi** — microservices anti-pattern. Inline schema (`AdminMovie`) haqiqiy model bilan **sinxronlanmaydi**
+  - Admin config da hardcoded credentials: `mongodb://cinesync:cinesync_dev_pass@localhost:27017`
+  - Production docker-compose da **healthcheck yo'q** — servislar DB tayyor bo'lmasdan ishga tushadi → crash
+  - Hardcoded credentials: `contentMongoUri`, `userMongoUri` da dev parol fallback
+- **Bajarilishi kerak:**
+  - [ ] Admin service → Content/User **REST API** orqali murojaat (serviceClient ishlatish)
+  - [ ] Read operatsiyalar uchun adminga maxsus API endpointlar yaratish (content, user servislarida)
+  - [ ] Mutation operatsiyalar (block/delete) albatta API orqali — business logic saqlansin
+  - [ ] `docker-compose.prod.yml` ga mongo, redis, elasticsearch uchun `healthcheck` qo'shish
+  - [ ] `depends_on: condition: service_healthy` qo'shish
+  - [ ] Hardcoded credentials → `requireEnv()` bilan majburiy
+
+---
+
+### T-S024 | P1 | [BACKEND] | SCALABILITY: Socket.io Redis adapter yo'q + Nginx TLS yo'q + rate limit
+
+- **Sana:** 2026-03-11
+- **Mas'ul:** Saidazim
+- **Holat:** ❌ Boshlanmagan
+- **Fayllar:**
+  - `services/watch-party/src/app.ts` (24-30-qator)
+  - `nginx/nginx.conf` (butun fayl)
+  - `nginx/nginx.conf` (37-qator)
+- **Muammo:**
+  - Socket.io da **`@socket.io/redis-adapter` yo'q** → watch-party service 1 dan ortiq instance ga scale **qilib bo'lmaydi**. Turli instance dagi foydalanuvchilar bir-birining eventlarini ko'rmaydi
+  - Nginx da **HTTPS/TLS konfiguratsiya yo'q** — `ssl/` volume mount bor lekin config da ishlatilmagan. Barcha trafik (tokenlar ham) **ochiq HTTP** orqali
+  - Nginx rate limit `30r/m` — ijtimoiy streaming app uchun **juda past**. Oddiy brauzing 30 so'rovni 1 daqiqada oshiradi
+- **Bajarilishi kerak:**
+  - [ ] `@socket.io/redis-adapter` o'rnatish va konfiguratsiya (Redis pub/sub orqali multi-instance)
+  - [ ] Nginx da HTTPS server block qo'shish (SSL cert, HTTP→HTTPS redirect)
+  - [ ] Rate limit → `10r/s` (umumiy API), auth endpointlar uchun qat'iyroq
+  - [ ] MongoDB `maxPoolSize`, `socketTimeoutMS` barcha servislarda standartlashtirish
+
+---
+
+### T-S025 | P1 | [BACKEND] | ARCHITECTURE: Inter-service event bus yo'q + Docker deploy muammolar
+
+- **Sana:** 2026-03-11
+- **Mas'ul:** Saidazim
+- **Holat:** ❌ Boshlanmagan
+- **Fayllar:**
+  - `shared/src/utils/serviceClient.ts`
+  - `docker-compose.dev.yml` (222-qator — web `network_mode: host`)
+  - `Dockerfile.dev`, `services/*/Dockerfile`
+  - Root `package.json` (35-qator — expo devDep)
+- **Muammo:**
+  - Barcha inter-service aloqa **sinxron HTTP** — agar User service ishlamasa, `addUserPoints()` **jim-jit fail** bo'ladi, ball yo'qoladi. Retry/queue mexanizmi yo'q
+  - Web service `network_mode: host` ishlatadi — Docker networking buziladi, service name resolve ishlamaydi
+  - Production Dockerfile lar **barcha** workspace dependency larni install qiladi (auth image da user/content/battle package.json ham bor) → image hajmi katta
+  - Root `package.json` da `expo` devDep — barcha backend Docker build da Expo install bo'ladi → `--legacy-peer-deps` kerak bo'ladi
+  - `.env.example` fayllar orasida **credentials mos kelmaydi** (dev_pass vs change_me)
+  - `apps/web/` uchun `.env.example` **yo'q**
+- **Bajarilishi kerak:**
+  - [ ] Muhim operatsiyalar (addPoints, triggerAchievement) uchun Redis-based event queue (Bull) qo'shish
+  - [ ] Web container ni `cinesync_network` ga o'tkazish, Next.js rewrite larni Docker DNS bilan moslashtirish
+  - [ ] Production Dockerfile → faqat kerakli workspace install (`npm ci -w @cinesync/shared -w @cinesync/auth`)
+  - [ ] Root `package.json` dan `expo` ni olib tashlash → `apps/mobile/package.json` ga ko'chirish
+  - [ ] Barcha `.env.example` fayllarni sinxronlashtirish
+  - [ ] `apps/web/.env.example` yaratish
 
 ---
 
@@ -655,6 +729,58 @@ Foydalanuvchi **har qanday** video sayt URL ni kiritganda:
 
 ---
 
+### T-C008 | P0 | [IKKALASI] | ARCHITECTURE: Web client shared types ishlatmaydi — 20+ type divergence
+
+- **Sana:** 2026-03-11
+- **Mas'ul:** Jafar (Web) + Saidazim (Shared types yangilash)
+- **Holat:** ❌ Boshlanmagan
+- **Fayllar:**
+  - `apps/web/package.json` — `@cinesync/shared` dependency **yo'q**
+  - `apps/web/src/types/index.ts` — barcha typelar **qo'lda duplicate** qilingan
+  - `shared/src/types/index.ts` — asl typelar
+- **Muammo (ROOT CAUSE):** Web client `@cinesync/shared` package ni **umuman import qilmaydi**. 7 ta backend service va mobile app shared dan oladi, lekin web client barcha type larni local yozgan. Natijada **20+ field divergence**:
+  - `ApiResponse.data`: shared da `T | null`, web da `T` → server `null` qaytarsa **crash**
+  - `IMovie`: 15+ field farq (slug, poster, backdrop, genres, director, cast — web da bor, shared da yo'q yoki boshqacha)
+  - `IUser.rank`: shared `'Bronze'|'Silver'|'Gold'|'Platinum'|'Diamond'`, web `'bronze'|'silver'|...|'legend'` → **case mismatch + noto'g'ri qiymatlar**
+  - `INotification`: web da `'system'` type bor (shared da yo'q), `'friend_online'` yo'q (shared da bor)
+  - `IAchievement.rarity`: web da `'secret'` yo'q
+  - `IBattle`: 4+ field yo'q, `'cancelled'` status yo'q
+  - `PaginationMeta`: web da `pages` field bor (server hech qachon bermaydi)
+- **Bajarilishi kerak:**
+  - [ ] `apps/web/package.json` ga `"@cinesync/shared": "*"` qo'shish
+  - [ ] `tsconfig.json` paths → `@shared/*` resolve qilish
+  - [ ] `apps/web/src/types/index.ts` → shared dan re-export (mobile qilganidek)
+  - [ ] Shared `IMovie` ni yangilash: `slug`, `director`, `cast`, `reviewCount` qo'shish (Saidazim bilan kelishib)
+  - [ ] Shared `IUser` ni yangilash: `isOnline`, `lastSeenAt` qo'shish
+  - [ ] Barcha local type duplicate larni o'chirish
+  - **MUHIM:** Bu task barcha web type-related buglarning **asosiy sababi**. Birinchi tuzatilishi kerak.
+
+---
+
+### T-C009 | P1 | [IKKALASI] | Socket event payload mismatch + web hardcoded event strings
+
+- **Sana:** 2026-03-11
+- **Mas'ul:** Emirhan (Mobile) + Jafar (Web) + Saidazim (Backend payload)
+- **Holat:** ❌ Boshlanmagan
+- **Fayllar:**
+  - `apps/web/src/hooks/useWatchParty.ts` — 14+ hardcoded event string
+  - `apps/web/src/hooks/useVoiceChat.ts` — 8+ hardcoded event string
+  - `apps/mobile/src/hooks/useWatchParty.ts` (35, 50-51-qator)
+  - `services/watch-party/src/socket/watchParty.socket.ts` (93, 116-119-qator)
+  - `shared/src/constants/socketEvents.ts`
+- **Muammo:**
+  - **Web:** `socket.emit('room:join', ...)` kabi **hardcoded string** ishlatadi. `shared/constants/socketEvents.ts` dan `CLIENT_EVENTS`/`SERVER_EVENTS` import **qilmaydi**. Event nomi o'zgarganda web **jimgina buziladi**
+  - **Mobile:** `ROOM_JOINED` da `{ room, members }` kutadi, lekin server `{ room, syncState }` yuboradi → `members` **undefined**, `setActiveMembers(undefined)` → active member list tozalanadi
+  - **Mobile:** `MEMBER_JOINED`/`MEMBER_LEFT` da `{ userId, members[] }` kutadi, lekin server faqat `{ userId }` yuboradi → `members` **undefined**
+- **Bajarilishi kerak:**
+  - [ ] **Web:** `@cinesync/shared` dan `SERVER_EVENTS`/`CLIENT_EVENTS` import qilish (T-C008 dan keyin)
+  - [ ] **Web:** barcha hardcoded event string larni shared constant bilan almashtirish
+  - [ ] **Mobile:** `ROOM_JOINED` handler → `data.room.members` va `data.syncState` ishlatish
+  - [ ] **Mobile:** `MEMBER_JOINED`/`MEMBER_LEFT` → incremental add/remove (web qilganidek)
+  - [ ] **Backend:** Yoki server payload ga `members[]` qo'shish (mobile kutganidek)
+
+---
+
 ### T-C007 | P1 | [IKKALASI] | Shared middleware buglar: error handler + requireVerified + Mongoose 11000
 
 - **Sana:** 2026-03-11
@@ -684,27 +810,42 @@ Foydalanuvchi **har qanday** video sayt URL ni kiritganda:
 
 | Jamoa    | Tugallandi | Qolgan | Code Review (yangi) |
 | -------- | ---------- | ------ | ---- |
-| Saidazim | T-S001..T-S008, T-S010, T-S011 ✅ | T-S005b, T-S009, T-S016 | T-S017(P0), T-S018(P0), T-S019(P0), T-S020(P1), T-S021(P1), T-S022(P1) |
-| Emirhan  | T-E015..T-E018 ✅ | T-E019 | T-E020(P0), T-E021(P0), T-E022(P1), T-E023(P1) |
-| Jafar    | T-J001..T-J006, T-J008, T-J009, T-J011 ✅ | T-J007, T-J010 | T-J012(P0), T-J013(P0), T-J014(P0), T-J015(P1) |
-| Umumiy   | T-C001..T-C003, T-C005 ✅ | T-C004, T-C006 | T-C007(P1) |
+| Saidazim | T-S001..T-S008, T-S010, T-S011 ✅ | T-S005b, T-S009, T-S016 | Code: T-S017..T-S022 | Arch: T-S023..T-S025 |
+| Emirhan  | T-E015..T-E018 ✅ | T-E019 | Code: T-E020..T-E023 | — |
+| Jafar    | T-J001..T-J006, T-J008, T-J009, T-J011 ✅ | T-J007, T-J010 | Code: T-J012..T-J015 | — |
+| Umumiy   | T-C001..T-C003, T-C005 ✅ | T-C004, T-C006 | Code: T-C007 | Arch: T-C008, T-C009 |
 
-### Code Review Summary — 2026-03-11
+### Code Review + Architecture Review Summary — 2026-03-11
 
 ```
-Jami topilgan muammolar:  ~100 ta (3 zona)
-P0 (kritik):              14 ta  → DARHOL tuzatish kerak
-P1 (muhim):               30 ta  → Sprint ichida tuzatish
-P2 (o'rta):               30 ta  → Keyingi sprint
-P3 (past):                26 ta  → Backlog
+JAMI TOPILGAN MUAMMOLAR:  ~160 ta (kod + arxitektura)
 
-Eng xavfli:
-  🔴 Internal API autentifikatsiyasiz (T-S017) — har kim ball qo'sha oladi
-  🔴 Token URL da (T-S018) — brauzer history da tokenlar
-  🔴 watchProgress ishlamaydi (T-S019) — userId undefined
-  🔴 Mobile token refresh race (T-E020) — auth loop
-  🔴 Web token XSS xavfi (T-J012) — localStorage da refresh token
-  🔴 Build da tsc o'chirilgan (T-J013) — xatolar production ga o'tadi
+Code Review:     ~100 ta (3 zona)
+Architecture:     ~60 ta (infra + types + events)
+
+P0 (kritik):              17 ta  → DARHOL tuzatish kerak
+P1 (muhim):               38 ta  → Sprint ichida tuzatish
+P2 (o'rta):               42 ta  → Keyingi sprint
+P3 (past):                32 ta  → Backlog
+
+22 ta YANGI TASK yaratildi:
+  Backend (Saidazim):  T-S017..T-S025 (9 task)
+  Mobile (Emirhan):    T-E020..T-E023 (4 task)
+  Web (Jafar):         T-J012..T-J015 (4 task)
+  Umumiy (IKKALASI):   T-C007..T-C009 (3 task)
+  + oldingi:           T-C006 (WebView)
+
+TOP 5 XAVFLI:
+  🔴 T-S017 — Internal API ochiq (har kim ball qo'sha oladi)
+  🔴 T-C008 — Web shared types yo'q (20+ type divergence)
+  🔴 T-S023 — Admin DB anti-pattern + Docker healthcheck yo'q
+  🔴 T-J012 — Token XSS xavfi (localStorage)
+  🔴 T-J013 — tsc/ESLint build da o'chirilgan
+
+TOP 3 ARXITEKTURA:
+  🏗️ T-S023 — Admin shared DB anti-pattern → REST API ga o'tish
+  🏗️ T-S024 — Socket.io scale qilolmaydi (Redis adapter yo'q)
+  🏗️ T-C008 — Web client shared package bilan bog'lanmagan (ROOT CAUSE)
 ```
 
 ---
