@@ -6,6 +6,7 @@ import { WatchPartyCreateScreen } from '@screens/modal/WatchPartyCreateScreen';
 import { WatchPartyScreen } from '@screens/modal/WatchPartyScreen';
 import { BattleCreateScreen } from '@screens/modal/BattleCreateScreen';
 import { BattleScreen } from '@screens/modal/BattleScreen';
+import { NotificationsScreen } from '@screens/modal/NotificationsScreen';
 import { PlaceholderScreen } from './PlaceholderScreen';
 
 const Modal = createNativeStackNavigator<ModalStackParamList>();
@@ -17,7 +18,7 @@ export function ModalNavigator() {
       <Modal.Screen name="WatchParty" component={WatchPartyScreen} />
       <Modal.Screen name="BattleCreate" component={BattleCreateScreen} />
       <Modal.Screen name="Battle" component={BattleScreen} />
-      <Modal.Screen name="Notifications" component={PlaceholderScreen} />
+      <Modal.Screen name="Notifications" component={NotificationsScreen} />
     </Modal.Navigator>
   );
 }
