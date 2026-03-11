@@ -99,18 +99,6 @@
 
 ## SPRINT 3 — Ijtimoiy ekranlar
 
-### T-E008 | P1 | [MOBILE] | Battle ekranlar
-
-- **Sana:** 2026-03-07
-- **Mas'ul:** 🔄 pending[Emirhan]
-- **Fayl:** `apps/mobile/src/screens/modal/`
-- **Holat:** ❌ Boshlanmagan
-- **Bajarilishi kerak:**
-  - [ ] `BattleCreateScreen.tsx` — duration tanlov (3/5/7 kun), opponent invite
-  - [ ] `BattleScreen.tsx` — active battles, leaderboard (progress bars), result (confetti)
-
----
-
 ## SPRINT 4 — Profil + Bildirishnoma
 
 ### T-E009 | P2 | [MOBILE] | Profil + Stats + Achievements + Settings
@@ -160,7 +148,7 @@
 ### T-E012 | P1 | [MOBILE] | Google OAuth — expo-auth-session bilan native flow
 
 - **Sana:** 2026-03-07
-- **Mas'ul:** pending[Emirhan]
+- **Mas'ul:** 🔄 pending[Emirhan]
 - **Holat:** ❌ Boshlanmagan
 - **Sabab:** Bare React Native `@react-native-google-signin` Expo bilan murakkab. Expo `expo-auth-session` osonroq.
 - **Bajarilishi kerak:**

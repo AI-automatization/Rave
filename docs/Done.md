@@ -4,6 +4,16 @@
 
 ---
 
+### F-070 | 2026-03-11 | [MOBILE] | T-E008 — BattleCreateScreen + BattleScreen [Emirhan]
+
+- `hooks/useBattle.ts` — useMyBattles (accept/reject), useBattleDetail (60s refetch), useCreateBattle
+- `screens/modal/BattleCreateScreen.tsx` — friend picker FlatList, duration chips (3/5/7 kun), optional title
+- `screens/modal/BattleScreen.tsx` — dual mode: battleId→detail, no id→list; BattleCard animated progress bars, accept/reject, winner badge, days left
+- `navigation/ModalNavigator.tsx` — BattleCreate + Battle → real screens
+- **tsc --noEmit:** ✅ 0 xato
+
+---
+
 ### F-069 | 2026-03-11 | [MOBILE] | T-E007 — FriendsScreen + FriendSearchScreen + FriendProfileScreen [Emirhan]
 
 - `hooks/useFriends.ts` — useFriends (getFriends, getPendingRequests, accept/reject/remove), useFriendSearch (debounce 500ms, min 2 chars), useFriendProfile (publicProfile + stats + sendRequest/remove)
