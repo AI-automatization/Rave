@@ -56,6 +56,11 @@ export const userApi = {
     await userClient.delete(`/users/me/friends/${userId}`);
   },
 
+  async getMyAchievements(): Promise<Array<{ achievement: import('@app-types/index').IAchievement; unlockedAt: Date }>> {
+    const res = await userClient.get<import('@app-types/index').ApiResponse<Array<{ achievement: import('@app-types/index').IAchievement; unlockedAt: Date }>>>('/users/me/achievements');
+    return res.data.data ?? [];
+  },
+
   async getPendingRequests(): Promise<Array<{ _id: string; requester: IUserPublic; createdAt: Date }>> {
     const res = await userClient.get<ApiResponse<Array<{ _id: string; requester: IUserPublic; createdAt: Date }>>>(
       '/users/me/friend-requests',

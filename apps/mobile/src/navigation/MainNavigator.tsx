@@ -16,6 +16,10 @@ import { HomeScreen } from '@screens/home/HomeScreen';
 import { FriendsScreen } from '@screens/friends/FriendsScreen';
 import { FriendProfileScreen } from '@screens/friends/FriendProfileScreen';
 import { FriendSearchScreen } from '@screens/friends/FriendSearchScreen';
+import { ProfileScreen } from '@screens/profile/ProfileScreen';
+import { StatsScreen } from '@screens/profile/StatsScreen';
+import { AchievementsScreen } from '@screens/profile/AchievementsScreen';
+import { SettingsScreen } from '@screens/profile/SettingsScreen';
 import { MovieDetailScreen } from '@screens/home/MovieDetailScreen';
 import { VideoPlayerScreen } from '@screens/home/VideoPlayerScreen';
 import { SearchScreen } from '@screens/search/SearchScreen';
@@ -59,10 +63,10 @@ function FriendsStackNavigator() {
 function ProfileStackNavigator() {
   return (
     <ProfileStack.Navigator screenOptions={{ headerShown: false }}>
-      <ProfileStack.Screen name="Profile" component={PlaceholderScreen} />
-      <ProfileStack.Screen name="Stats" component={PlaceholderScreen} />
-      <ProfileStack.Screen name="Achievements" component={PlaceholderScreen} />
-      <ProfileStack.Screen name="Settings" component={PlaceholderScreen} />
+      <ProfileStack.Screen name="Profile" component={ProfileScreen} />
+      <ProfileStack.Screen name="Stats" component={StatsScreen} />
+      <ProfileStack.Screen name="Achievements" component={AchievementsScreen} />
+      <ProfileStack.Screen name="Settings" component={SettingsScreen} />
     </ProfileStack.Navigator>
   );
 }
