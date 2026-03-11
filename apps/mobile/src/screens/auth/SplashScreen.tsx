@@ -10,8 +10,6 @@ import { useAuthStore } from '@store/auth.store';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Splash'>;
 
-SplashScreenExpo.preventAutoHideAsync();
-
 export function SplashScreen() {
   const navigation = useNavigation<Nav>();
   const { isHydrated, isAuthenticated } = useAuthStore();

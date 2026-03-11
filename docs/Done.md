@@ -4,6 +4,13 @@
 
 ---
 
+### F-079 | 2026-03-11 | [MOBILE] | T-E018 — Oq ekran bug fix (SplashScreen + hydration) [Emirhan]
+
+- `index.ts` — `SplashScreen.preventAutoHideAsync()` eng birinchi chaqiriladi
+- `SplashScreen.tsx` — modul darajasidagi takroriy `preventAutoHideAsync()` olib tashlandi
+- `AppNavigator.tsx` — `!isHydrated` paytida `null` o'rniga `#0A0A0F` qora background
+- `auth.store.ts` — `hydrate()` try/finally — `isHydrated: true` har doim o'rnatiladi
+
 ### F-076 | 2026-03-11 | [MOBILE] | T-E015 — auth.store hydrate() user tiklanishi [Emirhan]
 
 - `auth.store.ts` — `hydrate()` ichida `userApi.getMe()` chaqirib `user` state tiklanadi

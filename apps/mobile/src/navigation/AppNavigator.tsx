@@ -1,5 +1,6 @@
 // CineSync Mobile — Root Navigator
 import React from 'react';
+import { View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuthStore } from '@store/auth.store';
@@ -13,7 +14,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 export function AppNavigator() {
   const { isAuthenticated, isHydrated } = useAuthStore();
 
-  if (!isHydrated) return null;
+  if (!isHydrated) return <View style={{ flex: 1, backgroundColor: '#0A0A0F' }} />;
 
   return (
     <NavigationContainer>

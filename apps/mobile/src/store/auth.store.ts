@@ -35,18 +35,24 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   hydrate: async () => {
-    const { accessToken, userId } = await tokenStorage.getAll();
-    if (accessToken && userId) {
-      set({ accessToken, isAuthenticated: true });
-      try {
-        const user = await userApi.getMe();
-        set({ user });
-      } catch {
-        // Token expired/invalid — logout
-        await tokenStorage.clear();
-        set({ accessToken: null, isAuthenticated: false });
+    try {
+      const { accessToken, userId } = await tokenStorage.getAll();
+      if (accessToken && userId) {
+        set({ accessToken, isAuthenticated: true });
+        try {
+          const user = await userApi.getMe();
+          set({ user });
+        } catch {
+          // Token expired/invalid — logout
+          await tokenStorage.clear();
+          set({ accessToken: null, isAuthenticated: false });
+        }
       }
+    } catch {
+      // SecureStore xatosi — clean state
+      set({ accessToken: null, isAuthenticated: false });
+    } finally {
+      set({ isHydrated: true });
     }
-    set({ isHydrated: true });
   },
 }));
