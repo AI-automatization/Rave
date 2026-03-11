@@ -99,22 +99,10 @@
 
 ## SPRINT 3 — Ijtimoiy ekranlar
 
-### T-E006 | P1 | [MOBILE] | WatchParty ekranlar
-
-- **Sana:** 2026-03-07
-- **Mas'ul:** 🔄 pending[Emirhan]
-- **Fayl:** `apps/mobile/src/screens/modal/`
-- **Holat:** ❌ Boshlanmagan
-- **Bajarilishi kerak:**
-  - [ ] `WatchPartyCreateScreen.tsx` — movie tanlov, private/public, room yaratish
-  - [ ] `WatchPartyScreen.tsx` — sync video player, chat panel, emoji float, owner/member controls, invite code
-
----
-
 ### T-E007 | P1 | [MOBILE] | Do'stlar ekranlar
 
 - **Sana:** 2026-03-07
-- **Mas'ul:** pending[Emirhan]
+- **Mas'ul:** 🔄 pending[Emirhan]
 - **Fayl:** `apps/mobile/src/screens/friends/`
 - **Holat:** ❌ Boshlanmagan
 - **Bajarilishi kerak:**

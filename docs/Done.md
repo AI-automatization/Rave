@@ -4,6 +4,19 @@
 
 ---
 
+### F-068 | 2026-03-11 | [MOBILE] | T-E006 — WatchPartyCreateScreen + WatchPartyScreen [Emirhan]
+
+- `hooks/useWatchParty.ts` — Socket.io: JOIN_ROOM, VIDEO_SYNC/PLAY/PAUSE/SEEK, ROOM_MESSAGE, MEMBER events, ROOM_CLOSED; owner controls emitPlay/Pause/Seek/sendMessage/sendEmoji
+- `components/watchParty/ChatPanel.tsx` — chat FlatList, own/other bubble, KeyboardAvoidingView, send input
+- `components/watchParty/EmojiFloat.tsx` — Animated float (translateY+opacity), 8-emoji quick picker bar
+- `screens/modal/WatchPartyCreateScreen.tsx` — room name, private/public Switch, max members chips (2/4/6/8/10), invite code info, create API call
+- `screens/modal/WatchPartyScreen.tsx` — expo-av sync video (isSyncing ref, owner controls overlay), emoji float, chat panel toggle, invite code card, leave/close room
+- `navigation/ModalNavigator.tsx` — Modal stack (WatchPartyCreate, WatchParty, Battle*, Notifications* placeholder)
+- `navigation/AppNavigator.tsx` — Modal stack (presentation: modal, slide_from_bottom) ulandi
+- **tsc --noEmit:** ✅ 0 xato
+
+---
+
 ### F-067 | 2026-03-11 | [MOBILE] | Expo start fix + Railway env setup [Emirhan]
 
 - `package.json` (root) — noto'g'ri `expo: ~55.0.5` + `babel-preset-expo` olib tashlandi, `expo: ~54.0.0` qo'shildi (npm workspace hoisting muammosi hal qilindi)
