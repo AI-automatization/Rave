@@ -90,7 +90,7 @@ export function RegisterForm() {
     setOtpError('');
     setIsVerifying(true);
     try {
-      await apiClient.post('/api/auth/verify-email', { token: code });
+      await apiClient.post('/api/auth/verify-email', { email: registeredEmail, code });
       setVerified(true);
     } catch (err: unknown) {
       const resp = (err as { response?: { data?: { message?: string } } })?.response?.data;

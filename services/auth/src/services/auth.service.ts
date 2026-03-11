@@ -49,7 +49,7 @@ export class AuthService {
     return crypto.createHash('sha256').update(token).digest('hex');
   }
 
-  async register(email: string, username: string, password: string): Promise<IUserDocument> {
+  async initiateRegistration(email: string, username: string, password: string): Promise<void> {
     const existing = await User.findOne({ $or: [{ email }, { username }] });
     if (existing) {
       throw new ConflictError(
@@ -58,27 +58,48 @@ export class AuthService {
     }
 
     const passwordHash = await this.hashPassword(password);
-    const emailVerifyToken = String(Math.floor(100000 + Math.random() * 900000)); // 6-digit OTP
-    const emailVerifyTokenExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 min
+    const code = String(Math.floor(100000 + Math.random() * 900000)); // 6-digit OTP
+
+    const pending = JSON.stringify({
+      username,
+      passwordHash,
+      otpHash: this.hashToken(code),
+    });
+
+    // Redis da 10 daqiqa saqlash
+    await this.redis.setex(`pending_reg:${email}`, 600, pending);
+
+    // Email yuborish (xato bo'lsa ham initiate muvaffaqiyatli)
+    emailService.sendVerificationEmail(email, code).catch((err) =>
+      logger.warn('Verification email failed', { error: (err as Error).message }),
+    );
+
+    logger.info('Registration initiated', { email });
+  }
+
+  async confirmRegistration(email: string, code: string): Promise<IUserDocument> {
+    const raw = await this.redis.get(`pending_reg:${email}`);
+    if (!raw) throw new BadRequestError('Kod muddati o\'tgan yoki topilmadi. Qayta ro\'yxatdan o\'ting.');
+
+    const pending = JSON.parse(raw) as { username: string; passwordHash: string; otpHash: string };
+
+    if (pending.otpHash !== this.hashToken(code)) {
+      throw new BadRequestError('Kod noto\'g\'ri');
+    }
+
+    await this.redis.del(`pending_reg:${email}`);
 
     const user = await User.create({
       email,
-      username,
-      passwordHash,
-      emailVerifyToken: this.hashToken(emailVerifyToken),
-      emailVerifyTokenExpiry,
+      username: pending.username,
+      passwordHash: pending.passwordHash,
+      isEmailVerified: true,
     });
 
-    logger.info('User registered', { userId: user._id, email });
+    logger.info('User registered and verified', { userId: user._id, email });
 
-    // User Service da profil yaratish (async — xato bo'lsa ham register muvaffaqiyatli)
-    this.syncUserProfile(user._id.toString(), email, username).catch((err) =>
+    this.syncUserProfile(user._id.toString(), email, pending.username).catch((err) =>
       logger.warn('User profile sync failed', { error: (err as Error).message }),
-    );
-
-    // Email verification xati yuborish
-    emailService.sendVerificationEmail(email, emailVerifyToken).catch((err) =>
-      logger.warn('Verification email failed', { error: (err as Error).message }),
     );
 
     return user;

@@ -6,11 +6,11 @@ import { authRateLimiter } from '@shared/middleware/rateLimiter.middleware';
 import { verifyToken } from '@shared/middleware/auth.middleware';
 import {
   registerSchema,
+  confirmRegisterSchema,
   loginSchema,
   refreshTokenSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
-  verifyEmailSchema,
   validate,
 } from '../validators/auth.validator';
 import Redis from 'ioredis';
@@ -20,8 +20,11 @@ export const createAuthRouter = (redis: Redis): Router => {
   const authService = new AuthService(redis);
   const authController = new AuthController(authService);
 
-  // POST /auth/register
-  router.post('/register', authRateLimiter, validate(registerSchema), authController.register);
+  // POST /auth/register — OTP yuborish
+  router.post('/register', authRateLimiter, validate(registerSchema), authController.initiateRegister);
+
+  // POST /auth/register/confirm — OTP tekshirish + user yaratish
+  router.post('/register/confirm', authRateLimiter, validate(confirmRegisterSchema), authController.confirmRegister);
 
   // POST /auth/login
   router.post('/login', authRateLimiter, validate(loginSchema), authController.login);
@@ -34,9 +37,6 @@ export const createAuthRouter = (redis: Redis): Router => {
 
   // POST /auth/logout-all  (requires auth)
   router.post('/logout-all', verifyToken, authController.logoutAll);
-
-  // POST /auth/verify-email
-  router.post('/verify-email', validate(verifyEmailSchema), authController.verifyEmail);
 
   // POST /auth/forgot-password
   router.post('/forgot-password', authRateLimiter, validate(forgotPasswordSchema), authController.forgotPassword);

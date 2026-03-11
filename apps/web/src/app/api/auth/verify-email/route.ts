@@ -6,7 +6,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    const upstream = await fetch(`${AUTH_SERVICE}/verify-email`, {
+    const upstream = await fetch(`${AUTH_SERVICE}/register/confirm`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Connection': 'keep-alive' },
       body: JSON.stringify(body),

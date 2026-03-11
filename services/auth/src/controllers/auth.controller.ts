@@ -6,11 +6,21 @@ import { AuthenticatedRequest } from '../types/index';
 export class AuthController {
   constructor(private authService: AuthService) {}
 
-  register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  initiateRegister = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { email, username, password } = req.body as { email: string; username: string; password: string };
-      const user = await this.authService.register(email, username, password);
-      res.status(201).json(apiResponse.success({ userId: user._id }, 'Registration successful. Please verify your email.'));
+      await this.authService.initiateRegistration(email, username, password);
+      res.status(200).json(apiResponse.success(null, 'Verification code sent to your email'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  confirmRegister = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { email, code } = req.body as { email: string; code: string };
+      const user = await this.authService.confirmRegistration(email, code);
+      res.status(201).json(apiResponse.success({ userId: user._id }, 'Registration successful'));
     } catch (error) {
       next(error);
     }
