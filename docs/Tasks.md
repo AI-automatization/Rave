@@ -101,24 +101,12 @@
 
 ## SPRINT 4 — Profil + Bildirishnoma
 
-### T-E010 | P2 | [MOBILE] | NotificationsScreen
-
-- **Sana:** 2026-03-07
-- **Mas'ul:** 🔄 pending[Emirhan]
-- **Fayl:** `apps/mobile/src/screens/modal/`
-- **Holat:** ❌ Boshlanmagan
-- **Bajarilishi kerak:**
-  - [ ] FlatList, unread dot, icon per type (8 tur), formatDistanceToNow
-  - [ ] mark single/all read, delete, WatchParty/Battle ga navigate (tap)
-
----
-
 ## SPRINT 5 — Sifat + Test
 
 ### T-E011 | P2 | [MOBILE] | Polish + Performance + ErrorBoundary + Sentry
 
 - **Sana:** 2026-03-07
-- **Mas'ul:** pending[Emirhan]
+- **Mas'ul:** 🔄 pending[Emirhan]
 - **Holat:** ❌ Boshlanmagan
 - **Bajarilishi kerak:**
   - [ ] FlatList optimizatsiya (getItemLayout, windowSize, maxToRenderPerBatch)

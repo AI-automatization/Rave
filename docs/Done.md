@@ -4,6 +4,14 @@
 
 ---
 
+### F-073 | 2026-03-11 | [MOBILE] | T-E010 — NotificationsScreen [Emirhan]
+
+- `screens/modal/NotificationsScreen.tsx` — 8 NotificationType icons, unread dot + left border, timeAgo helper, markRead on press, WatchParty/Battle navigate, delete confirm, markAllRead, pull-to-refresh
+- `navigation/ModalNavigator.tsx` — Notifications → real screen
+- **tsc --noEmit:** ✅ 0 xato
+
+---
+
 ### F-072 | 2026-03-11 | [MOBILE] | T-E009 — ProfileScreen + StatsScreen + AchievementsScreen + SettingsScreen [Emirhan]
 
 - `hooks/useProfile.ts` — useMyProfile (getMe, getStats, getMyAchievements, updateProfile)
