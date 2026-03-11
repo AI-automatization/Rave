@@ -101,24 +101,10 @@
 
 ## SPRINT 4 — Profil + Bildirishnoma
 
-### T-E009 | P2 | [MOBILE] | Profil + Stats + Achievements + Settings
-
-- **Sana:** 2026-03-07
-- **Mas'ul:** 🔄 pending[Emirhan]
-- **Fayl:** `apps/mobile/src/screens/profile/`
-- **Holat:** ❌ Boshlanmagan
-- **Bajarilishi kerak:**
-  - [ ] `ProfileScreen.tsx` — avatar, rank badge, stats grid (4 card), rank progress bar, logout
-  - [ ] `AchievementsScreen.tsx` — FlatList 3 column, RARITY_COLORS, locked/unlocked, secret "???"
-  - [ ] `StatsScreen.tsx` — rank card, stats grid (6 card), activity bar chart, rank yo'li
-  - [ ] `SettingsScreen.tsx` — til (uz/ru/en), bildirishnoma togglelar (5), privacy togglelar (2)
-
----
-
 ### T-E010 | P2 | [MOBILE] | NotificationsScreen
 
 - **Sana:** 2026-03-07
-- **Mas'ul:** pending[Emirhan]
+- **Mas'ul:** 🔄 pending[Emirhan]
 - **Fayl:** `apps/mobile/src/screens/modal/`
 - **Holat:** ❌ Boshlanmagan
 - **Bajarilishi kerak:**

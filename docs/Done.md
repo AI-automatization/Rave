@@ -4,6 +4,19 @@
 
 ---
 
+### F-072 | 2026-03-11 | [MOBILE] | T-E009 — ProfileScreen + StatsScreen + AchievementsScreen + SettingsScreen [Emirhan]
+
+- `hooks/useProfile.ts` — useMyProfile (getMe, getStats, getMyAchievements, updateProfile)
+- `api/user.api.ts` — getMyAchievements() endpoint qo'shildi
+- `screens/profile/ProfileScreen.tsx` — avatar, rank badge + progress bar, 4-stat grid, nav links, logout
+- `screens/profile/AchievementsScreen.tsx` — 3-ustun FlatList, RARITY_COLORS, locked "???" cells
+- `screens/profile/StatsScreen.tsx` — rank card, 6-stat grid, weekly bar chart (Views), rank yo'li
+- `screens/profile/SettingsScreen.tsx` — 3 til, 5 notif toggle, 2 privacy toggle
+- `navigation/MainNavigator.tsx` → real screens ulandi
+- **tsc --noEmit:** ✅ 0 xato
+
+---
+
 ### F-071 | 2026-03-11 | [MOBILE] | T-E012 — Google OAuth expo-auth-session [Emirhan]
 
 - `screens/auth/LoginScreen.tsx` — WebBrowser.maybeCompleteAuthSession(), Google.useAuthRequest, useEffect (id_token → authApi.googleToken → setAuth), Google button UI (divider, G icon)
