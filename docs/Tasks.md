@@ -62,64 +62,6 @@
 
 ## CODE REVIEW — 2026-03-11 (Bekzod QA)
 
-### T-S017 | P0 | [BACKEND] | SECURITY: Internal endpointlar autentifikatsiyasiz ochiq
-
-- **Sana:** 2026-03-11
-- **Mas'ul:** Saidazim
-- **Holat:** 🔄 pending[Saidazim]
-- **Fayllar:**
-  - `services/user/src/routes/user.routes.ts` (90-94-qator)
-  - `services/user/src/routes/achievement.routes.ts` (22-qator)
-  - `shared/src/utils/serviceClient.ts` (118-qator)
-  - `services/auth/src/services/auth.service.ts` (319-330-qator)
-- **Muammo:**
-  - `/internal/profile`, `/internal/add-points`, `/achievements/internal/trigger` endpointlari **hech qanday** auth middleware siz ochiq
-  - `validateInternalSecret()` — `INTERNAL_SECRET` env bo'sh bo'lsa **barcha** so'rovlarni o'tkazib yuboradi (production da xavfli!)
-  - `syncUserProfile` (auth service) `fetch` ishlatadi, `X-Internal-Secret` header **yubormas**
-  - Har qanday tashqi mijoz `/internal/add-points` ga so'rov yuborib **istalgan** foydalanuvchiga ball qo'shishi mumkin
-- **Bajarilishi kerak:**
-  - [ ] Barcha `/internal/*` route larga `requireInternalSecret` middleware qo'shish
-  - [ ] `validateInternalSecret()` — production da `INTERNAL_SECRET` bo'sh bo'lsa `false` qaytarish
-  - [ ] `auth.service.ts` da `syncUserProfile` ni `serviceClient` utility orqali chaqirish
-  - [ ] `/internal/add-points` da `points > 0` validation qo'shish
-
----
-
-### T-S018 | P0 | [BACKEND] | SECURITY: Google OAuth tokenlar URL da, forgotPassword token leak
-
-- **Sana:** 2026-03-11
-- **Mas'ul:** Saidazim
-- **Holat:** 🔄 pending[Saidazim]
-- **Fayllar:**
-  - `services/auth/src/controllers/auth.controller.ts` (124-qator)
-  - `services/auth/src/services/auth.service.ts` (257-qator)
-- **Muammo:**
-  - Google OAuth callback: `accessToken` + `refreshToken` to'g'ridan URL query params da:
-    `?token=${accessToken}&refresh=${refreshToken}` — brauzer history, server loglar, Referer header orqali oqadi
-  - `forgotPassword` service metodi raw `resetToken` ni return qiladi — controller ignore qilsa ham, kelajakda xavfli
-- **Bajarilishi kerak:**
-  - [ ] OAuth callback: short-lived authorization code yaratish → client POST bilan token almashish. Yoki `Set-Cookie` (`httpOnly`, `Secure`, `SameSite`) ishlatish
-  - [ ] `forgotPassword()` return type ni `Promise<void>` ga o'zgartirish, token faqat email orqali yuborilishi
-
----
-
-### T-S019 | P0 | [BACKEND] | BUG: watchProgress `userId` undefined + viewCount noto'g'ri
-
-- **Sana:** 2026-03-11
-- **Mas'ul:** Saidazim
-- **Holat:** 🔄 pending[Saidazim]
-- **Fayllar:**
-  - `services/content/src/controllers/watchProgress.controller.ts` (5-12-qator)
-  - `services/content/src/services/content.service.ts` (20-35-qator)
-- **Muammo:**
-  - `watchProgressController` — `req.userId` ishlatadi, lekin `verifyToken` middleware `req.user.userId` ga yozadi → **har doim undefined** → watch progress butunlay ishlamaydi
-  - `getMovieById` — cache dan qaytarilgan film eski `viewCount` ko'rsatadi; cache active bo'lganda `viewCount` increment bo'lmaydi
-- **Bajarilishi kerak:**
-  - [ ] `req.userId` → `(req as AuthenticatedRequest).user.userId` ga o'zgartirish
-  - [ ] viewCount ni Redis counter da alohida saqlash, cache bilan aralashmaslik
-
----
-
 ### T-S020 | P1 | [BACKEND] | SECURITY: CORS wildcard + mass assignment + validation yo'q
 
 - **Sana:** 2026-03-11
@@ -192,7 +134,7 @@
 
 - **Sana:** 2026-03-11
 - **Mas'ul:** Saidazim
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 pending[Saidazim]
 - **Fayllar:**
   - `services/admin/src/services/admin.service.ts` (11-35-qator)
   - `services/admin/src/config/index.ts` (14-15-qator)

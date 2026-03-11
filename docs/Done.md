@@ -1,6 +1,29 @@
 # CineSync — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-03-11
+# Yangilangan: 2026-03-12
+
+---
+
+### F-090 | 2026-03-12 | [BACKEND] | T-S017, T-S018, T-S019 — Security + Bug fixes [Saidazim]
+
+**T-S017 — Internal endpoint security:**
+- `shared/utils/serviceClient.ts` — `validateInternalSecret`: `INTERNAL_SECRET` bo'sh bo'lsa `false` qaytaradi (eski: `true` — production da xavfli)
+- `user.routes.ts` — `/internal/profile` va `/internal/add-points` ga `requireInternalSecret` middleware qo'shildi
+- `achievement.routes.ts` — `/internal/trigger` ga `requireInternalSecret` qo'shildi
+- `serviceClient.ts` — `createUserProfile()` funksiyasi qo'shildi (X-Internal-Secret header bilan)
+- `auth.service.ts` — `syncUserProfile`: raw `fetch` → `createUserProfile` serviceClient orqali
+- `user.controller.ts` — `addPoints`: `userId` va `points > 0` validation qo'shildi
+
+**T-S018 — OAuth tokens URL dan olib tashlandi:**
+- `auth.controller.ts` — `googleCallback`: tokenlar URL query params da emas, Redis short-lived code (2 daqiqa TTL) orqali redirect
+- `auth.service.ts` — `createOAuthTempCode()` + `exchangeOAuthCode()` metodlari qo'shildi
+- `auth.routes.ts` — `POST /auth/google/exchange` — code → tokens (one-time use)
+- `auth.service.ts` — `forgotPassword()`: `Promise<void>` — raw token return qilmaydi
+
+**T-S019 — watchProgress + viewCount:**
+- `watchProgress.controller.ts` — `req.userId` → `(req as AuthenticatedRequest).user.userId` (verifyToken `req.user` ga yozadi)
+- `content.service.ts` — viewCount: Redis counter `viewcount:{movieId}` bilan alohida tracking, cache bilan aralashmaslik
+- `shared/constants/index.ts` — `REDIS_KEYS.movieViewCount` qo'shildi
 
 ---
 
