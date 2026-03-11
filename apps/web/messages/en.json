@@ -101,7 +101,7 @@
     "hasAccount": "Already have an account?",
     "loginLink": "Login",
     "emailVerifyTitle": "VERIFY YOUR EMAIL",
-    "emailVerifyText": "A confirmation email has been sent. Please check your inbox.",
+    "emailVerifyText": "A 6-digit verification code was sent to:",
     "goToLogin": "Go to Login",
     "wrongCredentials": "Invalid email or password",
     "genericError": "An error occurred, please try again",

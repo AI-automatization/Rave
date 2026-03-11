@@ -101,7 +101,7 @@
     "hasAccount": "Уже есть аккаунт?",
     "loginLink": "Войти",
     "emailVerifyTitle": "ПОДТВЕРДИТЕ EMAIL",
-    "emailVerifyText": "Письмо с подтверждением отправлено на ваш email. Пожалуйста, проверьте.",
+    "emailVerifyText": "6-значный код подтверждения отправлен на:",
     "goToLogin": "На страницу входа",
     "wrongCredentials": "Неверный email или пароль",
     "genericError": "Произошла ошибка, попробуйте снова"

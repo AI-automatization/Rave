@@ -101,7 +101,7 @@
     "hasAccount": "Hisob bormi?",
     "loginLink": "Kirish",
     "emailVerifyTitle": "EMAIL TASDIQLANG",
-    "emailVerifyText": "Emailingizga tasdiqlash xati yuborildi. Iltimos tekshiring.",
+    "emailVerifyText": "6 raqamli tasdiqlash kodi yuborildi:",
     "goToLogin": "Kirish sahifasiga",
     "wrongCredentials": "Email yoki parol noto'g'ri",
     "genericError": "Xatolik yuz berdi, qayta urinib ko'ring"
