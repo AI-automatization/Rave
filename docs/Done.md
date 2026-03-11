@@ -4,6 +4,22 @@
 
 ---
 
+### F-082 | 2026-03-11 | [MOBILE] | T-E020 — Oq ekran root fix: hideAsync App.tsx + hydrate timeout [Emirhan]
+
+- `App.tsx` — `hideAsync()` `isHydrated=true` bo'lganda darhol chaqiriladi (SplashScreen.tsx dan ko'chirildi)
+- `SplashScreen.tsx` — `expo-splash-screen` import olib tashlandi, faqat navigatsiya vazifasi qoldi
+- `auth.store.ts hydrate()` — SecureStore Android emulator da hang qilmaslik uchun 5s race timeout
+- Sabab: `preventAutoHideAsync()` chaqirilgan, lekin `hideAsync()` navigation render bo'lmasa chaqirilmasdi → abadiy oq ekran
+
+### F-081 | 2026-03-11 | [MOBILE] | Bug audit — StatsScreen, HomeScreen nav type, app.json [Emirhan]
+
+- `StatsScreen.tsx:241` — `right: -'50%'.length` (= -3px) → `right: '-50%'` (to'g'ri % qiymati)
+- `StatsScreen.tsx:39` — `ActivityChart` `Math.random()` har render → `useMemo([hours])`
+- `HomeScreen.tsx` — navigation type `ModalStackParamList` → `RootStackParamList`, navigate call fix
+- `types/index.ts` — `Modal: undefined` → `Modal: { screen, params? }` typed
+- `app.json` — `expo-image` plugin (PluginError) va `googleServicesFile` (fayl yo'q) olib tashlandi
+- `docs/Tasks.md` — T-E019 qo'shildi (ProfileSetup auth flow muammosi)
+
 ### F-079 | 2026-03-11 | [MOBILE] | T-E018 — Oq ekran bug fix (SplashScreen + hydration) [Emirhan]
 
 - `index.ts` — `SplashScreen.preventAutoHideAsync()` eng birinchi chaqiriladi
