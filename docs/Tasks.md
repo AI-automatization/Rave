@@ -14,7 +14,7 @@
 3. Fix bo'lgach → shu yerdan O'CHIRISH → docs/Done.md ga KO'CHIRISH
 4. Prioritet: P0=kritik, P1=muhim, P2=o'rta, P3=past
 5. Sprint: S1=hozir, S2=keyingi hafta, S3=keyingi sprint, S4-5=keyin
-6. Oxirgi T-raqam: S→016, E→019, J→011, C→006
+6. Oxirgi T-raqam: S→022, E→023, J→014, C→007
 ```
 
 ---
@@ -59,6 +59,131 @@
 ---
 
 ## SPRINT 4 — Admin + Operator
+
+## CODE REVIEW — 2026-03-11 (Bekzod QA)
+
+### T-S017 | P0 | [BACKEND] | SECURITY: Internal endpointlar autentifikatsiyasiz ochiq
+
+- **Sana:** 2026-03-11
+- **Mas'ul:** Saidazim
+- **Holat:** ❌ Boshlanmagan
+- **Fayllar:**
+  - `services/user/src/routes/user.routes.ts` (90-94-qator)
+  - `services/user/src/routes/achievement.routes.ts` (22-qator)
+  - `shared/src/utils/serviceClient.ts` (118-qator)
+  - `services/auth/src/services/auth.service.ts` (319-330-qator)
+- **Muammo:**
+  - `/internal/profile`, `/internal/add-points`, `/achievements/internal/trigger` endpointlari **hech qanday** auth middleware siz ochiq
+  - `validateInternalSecret()` — `INTERNAL_SECRET` env bo'sh bo'lsa **barcha** so'rovlarni o'tkazib yuboradi (production da xavfli!)
+  - `syncUserProfile` (auth service) `fetch` ishlatadi, `X-Internal-Secret` header **yubormas**
+  - Har qanday tashqi mijoz `/internal/add-points` ga so'rov yuborib **istalgan** foydalanuvchiga ball qo'shishi mumkin
+- **Bajarilishi kerak:**
+  - [ ] Barcha `/internal/*` route larga `requireInternalSecret` middleware qo'shish
+  - [ ] `validateInternalSecret()` — production da `INTERNAL_SECRET` bo'sh bo'lsa `false` qaytarish
+  - [ ] `auth.service.ts` da `syncUserProfile` ni `serviceClient` utility orqali chaqirish
+  - [ ] `/internal/add-points` da `points > 0` validation qo'shish
+
+---
+
+### T-S018 | P0 | [BACKEND] | SECURITY: Google OAuth tokenlar URL da, forgotPassword token leak
+
+- **Sana:** 2026-03-11
+- **Mas'ul:** Saidazim
+- **Holat:** ❌ Boshlanmagan
+- **Fayllar:**
+  - `services/auth/src/controllers/auth.controller.ts` (124-qator)
+  - `services/auth/src/services/auth.service.ts` (257-qator)
+- **Muammo:**
+  - Google OAuth callback: `accessToken` + `refreshToken` to'g'ridan URL query params da:
+    `?token=${accessToken}&refresh=${refreshToken}` — brauzer history, server loglar, Referer header orqali oqadi
+  - `forgotPassword` service metodi raw `resetToken` ni return qiladi — controller ignore qilsa ham, kelajakda xavfli
+- **Bajarilishi kerak:**
+  - [ ] OAuth callback: short-lived authorization code yaratish → client POST bilan token almashish. Yoki `Set-Cookie` (`httpOnly`, `Secure`, `SameSite`) ishlatish
+  - [ ] `forgotPassword()` return type ni `Promise<void>` ga o'zgartirish, token faqat email orqali yuborilishi
+
+---
+
+### T-S019 | P0 | [BACKEND] | BUG: watchProgress `userId` undefined + viewCount noto'g'ri
+
+- **Sana:** 2026-03-11
+- **Mas'ul:** Saidazim
+- **Fayllar:**
+  - `services/content/src/controllers/watchProgress.controller.ts` (5-12-qator)
+  - `services/content/src/services/content.service.ts` (20-35-qator)
+- **Muammo:**
+  - `watchProgressController` — `req.userId` ishlatadi, lekin `verifyToken` middleware `req.user.userId` ga yozadi → **har doim undefined** → watch progress butunlay ishlamaydi
+  - `getMovieById` — cache dan qaytarilgan film eski `viewCount` ko'rsatadi; cache active bo'lganda `viewCount` increment bo'lmaydi
+- **Bajarilishi kerak:**
+  - [ ] `req.userId` → `(req as AuthenticatedRequest).user.userId` ga o'zgartirish
+  - [ ] viewCount ni Redis counter da alohida saqlash, cache bilan aralashmaslik
+
+---
+
+### T-S020 | P1 | [BACKEND] | SECURITY: CORS wildcard + mass assignment + validation yo'q
+
+- **Sana:** 2026-03-11
+- **Mas'ul:** Saidazim
+- **Fayllar:**
+  - `services/user/src/app.ts`, `services/content/src/app.ts`, `services/battle/src/app.ts`, `services/notification/src/app.ts`, `services/watch-party/src/app.ts`
+  - `services/admin/src/services/admin.service.ts` (311-318-qator)
+  - `services/content/src/controllers/content.controller.ts` (51-qator)
+  - `services/admin/src/app.ts` (22-qator)
+- **Muammo:**
+  - 5 ta service da `cors({ origin: '*', credentials: true })` — xavfsiz emas
+  - `operatorUpdateMovie` — faqat `isPublished` bloklangan, operator `viewCount`, `rating`, `_id` o'zgartira oladi
+  - `createMovie` — hech qanday Joi/Zod validation siz `req.body` to'g'ridan MongoDB ga o'tadi
+  - Admin CORS faqat `localhost:5173` ga hardcode — production da ishlamaydi
+- **Bajarilishi kerak:**
+  - [ ] Barcha servislarda CORS origin whitelist (env dan olish)
+  - [ ] `operatorUpdateMovie` da allowed fields whitelist
+  - [ ] `createMovie` uchun Joi validation schema
+  - [ ] Admin CORS ga `config.adminUrl` env qo'shish
+
+---
+
+### T-S021 | P1 | [BACKEND] | Socket.io: polling-only + rate limit yo'q + XSS sanitization yo'q
+
+- **Sana:** 2026-03-11
+- **Mas'ul:** Saidazim
+- **Fayllar:**
+  - `services/watch-party/src/app.ts` (29-qator)
+  - `services/watch-party/src/socket/watchParty.socket.ts` (188-195-qator)
+  - `services/content/src/services/externalVideo.service.ts`, `services/user/src/services/user.service.ts`
+- **Muammo:**
+  - `transports: ['polling']` — WebSocket o'chirilgan! Barcha real-time HTTP long-polling orqali — sekin, ko'p bandwidth
+  - Chat message va emoji reaction da **rate limit yo'q** — 1 client sekundiga minglab xabar yubora oladi (DoS)
+  - User bio, review, chat message, OG tag metadata **sanitize qilinmagan** — stored XSS xavfi
+- **Bajarilishi kerak:**
+  - [ ] `transports: ['websocket', 'polling']` qo'shish
+  - [ ] Socket event rate limiter (10 msg/5sek per user)
+  - [ ] `sanitize-html` yoki `xss` bilan server-side sanitization
+
+---
+
+### T-S022 | P1 | [BACKEND] | Performance: Redis KEYS, achievement 2x query, multer memory 2GB
+
+- **Sana:** 2026-03-11
+- **Mas'ul:** Saidazim
+- **Fayllar:**
+  - `services/admin/src/services/admin.service.ts` (78, 270-qator)
+  - `services/user/src/services/achievement.service.ts` (97-100-qator)
+  - `services/content/src/routes/content.routes.ts` (10-12-qator)
+  - `services/content/src/services/ytdl.service.ts` (19-20-qator)
+  - `services/content/src/services/externalVideo.service.ts` (157-169-qator)
+- **Muammo:**
+  - `redis.keys('heartbeat:*')` — production da Redis ni bloklaydi
+  - `getAchievementStats` — `UserAchievement.find({ userId })` 2 marta chaqiriladi
+  - `multer.memoryStorage()` 2GB limit — Node.js OOM crash
+  - YouTube info cache — hajm limitsiz, memory leak
+  - External video rating — race condition, user bir nechta marta baholashi mumkin
+- **Bajarilishi kerak:**
+  - [ ] `KEYS` → `SCAN` yoki Redis Set ishlatish
+  - [ ] Achievement query ni optimizatsiya qilish (bir marta fetch)
+  - [ ] Video upload — `diskStorage` yoki Cloudinary direct upload
+  - [ ] ytdl cache — `lru-cache` bilan limit qo'yish
+  - [ ] External video rating — per-user tekshirish, `$inc` atomic update
+
+---
 
 ### T-S009 | P2 | [ADMIN] | Admin Dashboard UI — React + Vite
 
@@ -109,6 +234,88 @@
 
 ---
 
+## CODE REVIEW — 2026-03-11 (Bekzod QA)
+
+### T-E020 | P0 | [MOBILE] | BUG: Token refresh race condition — concurrent 401 lar bir-birini buzadi
+
+- **Sana:** 2026-03-11
+- **Mas'ul:** Emirhan
+- **Holat:** ❌ Boshlanmagan
+- **Fayl:** `apps/mobile/src/api/client.ts` (30-60-qator)
+- **Muammo:** Har bir axios client (`authClient`, `userClient`, `contentClient`) **mustaqil** 401 interceptor ga ega. App resume da 5+ so'rov bir vaqtda 401 olib, parallel refresh boshlanadi → tokenlar bir-birini bekor qiladi → auth loop / logout storm
+- **Bajarilishi kerak:**
+  - [ ] Shared `isRefreshing` flag + `failedQueue` pattern — birinchi 401 refresh boshlaydi, qolganlari kutadi
+  - [ ] Refresh tugagach queue dagi so'rovlar yangi token bilan replay qilinadi
+
+---
+
+### T-E021 | P0 | [MOBILE] | BUG: Seek bar thumb noto'g'ri pozitsiya + Search pagination buzilgan
+
+- **Sana:** 2026-03-11
+- **Mas'ul:** Emirhan
+- **Holat:** ❌ Boshlanmagan
+- **Fayllar:**
+  - `apps/mobile/src/screens/home/VideoPlayerScreen.tsx` (199-qator)
+  - `apps/mobile/src/screens/search/SearchResultsScreen.tsx` (30-42, 110-114-qator)
+- **Muammo:**
+  - Seek bar: `left: '${pct}%' as unknown as number` — React Native `%` qo'llab-quvvatlamaydi → thumb har doim 0 da
+  - Search: `useQuery` bilan pagination — yangi sahifa eski natijalarni **almashtiradi** (accumulate qilmaydi)
+  - `getItemLayout` noto'g'ri hisoblangan (21px — aslida 150+ px) → scroll jumping
+- **Bajarilishi kerak:**
+  - [ ] Seek bar: `left: progressRatio * seekBarWidth - 6` (pixel hisob)
+  - [ ] Search: `useInfiniteQuery` ga o'tish yoki local `allMovies` state bilan accumulate
+  - [ ] `getItemLayout` ni to'g'ri card height ga moslashtirish yoki olib tashlash
+
+---
+
+### T-E022 | P1 | [MOBILE] | SECURITY + BUG: Logout server invalidate yo'q, socket tozalanmaydi, API null crash
+
+- **Sana:** 2026-03-11
+- **Mas'ul:** Emirhan
+- **Holat:** ❌ Boshlanmagan
+- **Fayllar:**
+  - `apps/mobile/src/store/auth.store.ts` (32-35-qator)
+  - `apps/mobile/src/hooks/useSocket.ts`
+  - `apps/mobile/src/api/*.ts` (barcha API fayllar)
+- **Muammo:**
+  - `logout()` faqat local storage tozalaydi — server da refresh token **invalidate bo'lmaydi** → o'g'irlangan token ishlay beradi
+  - Logout da socket connection **uzilmaydi** — eski JWT bilan eventlar oqib ketadi
+  - Barcha API fayllarida `res.data.data!` (non-null assertion) — server null qaytarsa **crash**
+  - `WatchPartyScreen` da `setPositionAsync` reject `.catch()` yo'q → `isSyncing` abadiy `true` qoladi
+- **Bajarilishi kerak:**
+  - [ ] `logout()` da `authApi.logout(refreshToken)` chaqirish (fire-and-forget)
+  - [ ] `logout()` da `disconnectSocket()` chaqirish
+  - [ ] Barcha `res.data.data!` → null check + descriptive error throw
+  - [ ] `setPositionAsync` ga `.catch()` + `.finally(() => isSyncing.current = false)`
+
+---
+
+### T-E023 | P1 | [MOBILE] | BUG: HeroBanner auto-scroll, HomeScreen refresh, notification count, settings persist
+
+- **Sana:** 2026-03-11
+- **Mas'ul:** Emirhan
+- **Holat:** ❌ Boshlanmagan
+- **Fayllar:**
+  - `apps/mobile/src/components/movie/HeroBanner.tsx` (34-46, 108-112-qator)
+  - `apps/mobile/src/screens/home/HomeScreen.tsx` (31-35-qator)
+  - `apps/mobile/src/store/notification.store.ts` (33-39-qator)
+  - `apps/mobile/src/screens/profile/SettingsScreen.tsx`
+  - `apps/mobile/src/screens/auth/VerifyEmailScreen.tsx`
+- **Muammo:**
+  - HeroBanner: manual swipe dan keyin auto-scroll **abadiy to'xtaydi** (interval restart yo'q)
+  - HomeScreen: `handleRefresh` — `refetch()` await qilinmagan, spinner 1 sek keyin fake to'xtaydi
+  - Notification: `markRead` — allaqachon o'qilgan notification uchun ham count kamayadi
+  - Settings: barcha sozlamalar **faqat local state** — mount da reset, hech narsa saqlanmaydi
+  - VerifyEmail: `keyboardType` ko'rsatilmagan (alfabetik klaviatura), "Resend code" tugmasi yo'q
+- **Bajarilishi kerak:**
+  - [ ] HeroBanner: `onMomentumScrollEnd` da interval qayta boshlash
+  - [ ] HomeScreen: `await Promise.all([...refetch()])` → keyin `setRefreshing(false)`
+  - [ ] notification `markRead`: faqat `isRead: false` bo'lsa decrement
+  - [ ] Settings: AsyncStorage bilan persist + backend API bilan sync
+  - [ ] VerifyEmail: `keyboardType="number-pad"` + resend code button + cooldown timer
+
+---
+
 ## SPRINT 2 — Asosiy ekranlar
 
 ---
@@ -128,6 +335,88 @@
 # 🔵 JAFAR — NEXT.JS WEB CLIENT
 
 # ═══════════════════════════════════════
+
+## CODE REVIEW — 2026-03-11 (Bekzod QA)
+
+### T-J012 | P0 | [WEB] | SECURITY: Token storage XSS xavfi + cookie konfiguratsiya xato
+
+- **Sana:** 2026-03-11
+- **Mas'ul:** Jafar
+- **Holat:** ❌ Boshlanmagan
+- **Fayl:** `apps/web/src/store/auth.store.ts` (35-37-qator)
+- **Muammo:**
+  - Refresh token `localStorage` da — XSS hujumida **o'g'irlanadi** va attacker doimiy kirish oladi
+  - Access token cookie da `httpOnly` yo'q, `Secure` yo'q, `max-age=30 kun` (token 15 min amal qiladi!)
+  - XSS topilsa ikkala token ham olinadi
+- **Bajarilishi kerak:**
+  - [ ] Refresh token → faqat `httpOnly; Secure; SameSite=Strict` cookie (server-side set)
+  - [ ] Access token cookie → `Secure` flag qo'shish, `max-age` ni 15 min ga tushirish
+  - [ ] Next.js API route `/api/auth/login` da cookie ni server-side o'rnatish
+
+---
+
+### T-J013 | P0 | [WEB] | Security headers yo'q + TypeScript/ESLint build da o'chirilgan
+
+- **Sana:** 2026-03-11
+- **Mas'ul:** Jafar
+- **Holat:** ❌ Boshlanmagan
+- **Fayl:** `apps/web/next.config.mjs` (3-4-qator va butun fayl)
+- **Muammo:**
+  - `ignoreDuringBuilds: true` + `ignoreBuildErrors: true` — **type xatolar production ga o'tadi!** CLAUDE.md: "QA FAIL → merge TAQIQLANGAN"
+  - `Content-Security-Policy`, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `HSTS` **hech biri yo'q**
+  - Clickjacking, MIME sniffing hujumlariga ochiq
+- **Bajarilishi kerak:**
+  - [ ] `ignoreDuringBuilds` va `ignoreBuildErrors` ni **o'chirish**
+  - [ ] Barcha tsc xatolarini tuzatish
+  - [ ] `next.config.mjs` da `headers()` funksiya qo'shish: X-Frame-Options, CSP, HSTS, referrer-policy
+
+---
+
+### T-J014 | P0 | [WEB] | SECURITY: postMessage wildcard origin + JSON-LD XSS injection
+
+- **Sana:** 2026-03-11
+- **Mas'ul:** Jafar
+- **Holat:** ❌ Boshlanmagan
+- **Fayllar:**
+  - `apps/web/src/components/video/UniversalPlayer.tsx` (83, 92-qator va boshqalar)
+  - `apps/web/src/app/(app)/movies/[slug]/page.tsx` (63-82-qator)
+  - `apps/web/src/app/(app)/profile/[username]/page.tsx` (86-95-qator)
+- **Muammo:**
+  - YouTube iframe `postMessage('*')` — har qanday origin ga yuboradi; `message` listener `e.origin` tekshirmaydi → fake event injection mumkin
+  - JSON-LD `dangerouslySetInnerHTML` — movie title/bio da `</script>` bo'lsa **arbitrary HTML/JS inject** bo'ladi
+- **Bajarilishi kerak:**
+  - [ ] `postMessage` target → `'https://www.youtube.com'`
+  - [ ] Message listener da `e.origin === 'https://www.youtube.com'` tekshirish
+  - [ ] JSON-LD da `.replace(/<\//g, '<\\/')` escape qo'shish
+
+---
+
+### T-J015 | P1 | [WEB] | BUG: Auth hydration flash + authFetch duplicate + socket stale token + middleware
+
+- **Sana:** 2026-03-11
+- **Mas'ul:** Jafar
+- **Holat:** ❌ Boshlanmagan
+- **Fayllar:**
+  - `apps/web/src/store/auth.store.ts` (25-75-qator)
+  - `apps/web/src/app/(app)/friends/page.tsx` (21-36-qator)
+  - `apps/web/src/app/(app)/battle/page.tsx` (12-27-qator)
+  - `apps/web/src/lib/socket.ts` (7-16-qator)
+  - `apps/web/src/middleware.ts` (9-qator)
+  - `apps/web/src/app/(app)/watch/[movieId]/page.tsx` (37, 50-61-qator)
+- **Muammo:**
+  - Zustand `persist` hydration: SSR da `user=null` → client da `user=obj` → **flash of unauthenticated UI** + hydration mismatch
+  - `friends/page.tsx` va `battle/page.tsx` da **duplicate** `authFetch` utility — `apiClient` ishlatmaydi → token refresh interceptor **bypass**
+  - Socket: birinchi token bilan yaratiladi, refresh dan keyin **eski token** qoladi
+  - Middleware: cookie **mavjudligini** tekshiradi, **validligini** emas — expired token bilan protected page flash
+  - Watch page: raw `fetch` auth header siz — progress saqlash **ishlamaydi**
+- **Bajarilishi kerak:**
+  - [ ] Zustand `onRehydrateStorage` + `_hasHydrated` flag qo'shish
+  - [ ] `authFetch` larni o'chirish → `apiClient` ishlatish
+  - [ ] Socket: token o'zgarganda reconnect qilish
+  - [ ] Middleware: JWT expiry tekshirish (decode, exp field)
+  - [ ] Watch page: `apiClient` ga o'tish
+
+---
 
 ## SPRINT 3 — UX + Auth + Profile
 
@@ -366,6 +655,23 @@ Foydalanuvchi **har qanday** video sayt URL ni kiritganda:
 
 ---
 
+### T-C007 | P1 | [IKKALASI] | Shared middleware buglar: error handler + requireVerified + Mongoose 11000
+
+- **Sana:** 2026-03-11
+- **Mas'ul:** Saidazim (shared/ egasi)
+- **Holat:** ❌ Boshlanmagan
+- **Fayllar:**
+  - `shared/src/middleware/error.middleware.ts` (44-qator)
+  - `shared/src/middleware/auth.middleware.ts` (90-104-qator)
+- **Muammo:**
+  - Mongoose duplicate key error: `code === '11000'` (string) — MongoDB **numeric** `11000` qaytaradi → **hech qachon match bo'lmaydi** → duplicate key xato generic 500 sifatida qaytadi
+  - `requireVerified` middleware — har doim `next()` chaqiradi, **hech narsani tekshirmaydi** → email verification soxta himoya
+- **Bajarilishi kerak:**
+  - [ ] `'11000'` → `11000` (yoki `== 11000` loose comparison)
+  - [ ] `requireVerified` — JWT payload da `isEmailVerified` tekshirish yoki DB query, yoki bu middleware ni olib tashlash
+
+---
+
 ### T-C004 | P2 | [IKKALASI] | Dizayn Tasklari
 
 - **Sprint:** S2-S5
@@ -374,14 +680,32 @@ Foydalanuvchi **har qanday** video sayt URL ni kiritganda:
 
 ---
 
-## 📊 STATISTIKA (2026-03-07 yangilandi)
+## 📊 STATISTIKA (2026-03-11 yangilandi)
 
-| Jamoa    | Tugallandi | Qolgan | JAMI |
+| Jamoa    | Tugallandi | Qolgan | Code Review (yangi) |
 | -------- | ---------- | ------ | ---- |
-| Saidazim | T-S001..T-S008, T-S010, T-S011, T-C001, T-C003, T-C005 ✅ | T-S005b, T-S009, T-S016 (3 task) | — |
-| Emirhan  | — (Expo ga ko'chirildi, boshidan) | T-E001..T-E014 (14 task) | 14 |
-| Jafar    | T-J001..T-J006, T-J008, T-J009, T-J011 ✅ | T-J007 (qisman), T-J010 (verify) | — |
-| Umumiy   | T-C001 ✅, T-C002 ✅, T-C003 ✅, T-C005 ✅ | T-C004 (1 task) | — |
+| Saidazim | T-S001..T-S008, T-S010, T-S011 ✅ | T-S005b, T-S009, T-S016 | T-S017(P0), T-S018(P0), T-S019(P0), T-S020(P1), T-S021(P1), T-S022(P1) |
+| Emirhan  | T-E015..T-E018 ✅ | T-E019 | T-E020(P0), T-E021(P0), T-E022(P1), T-E023(P1) |
+| Jafar    | T-J001..T-J006, T-J008, T-J009, T-J011 ✅ | T-J007, T-J010 | T-J012(P0), T-J013(P0), T-J014(P0), T-J015(P1) |
+| Umumiy   | T-C001..T-C003, T-C005 ✅ | T-C004, T-C006 | T-C007(P1) |
+
+### Code Review Summary — 2026-03-11
+
+```
+Jami topilgan muammolar:  ~100 ta (3 zona)
+P0 (kritik):              14 ta  → DARHOL tuzatish kerak
+P1 (muhim):               30 ta  → Sprint ichida tuzatish
+P2 (o'rta):               30 ta  → Keyingi sprint
+P3 (past):                26 ta  → Backlog
+
+Eng xavfli:
+  🔴 Internal API autentifikatsiyasiz (T-S017) — har kim ball qo'sha oladi
+  🔴 Token URL da (T-S018) — brauzer history da tokenlar
+  🔴 watchProgress ishlamaydi (T-S019) — userId undefined
+  🔴 Mobile token refresh race (T-E020) — auth loop
+  🔴 Web token XSS xavfi (T-J012) — localStorage da refresh token
+  🔴 Build da tsc o'chirilgan (T-J013) — xatolar production ga o'tadi
+```
 
 ---
 
