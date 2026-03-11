@@ -66,7 +66,7 @@
 
 - **Sana:** 2026-03-11
 - **Mas'ul:** Saidazim
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 pending[Saidazim]
 - **Fayllar:**
   - `services/user/src/routes/user.routes.ts` (90-94-qator)
   - `services/user/src/routes/achievement.routes.ts` (22-qator)
@@ -89,7 +89,7 @@
 
 - **Sana:** 2026-03-11
 - **Mas'ul:** Saidazim
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 pending[Saidazim]
 - **Fayllar:**
   - `services/auth/src/controllers/auth.controller.ts` (124-qator)
   - `services/auth/src/services/auth.service.ts` (257-qator)
@@ -107,6 +107,7 @@
 
 - **Sana:** 2026-03-11
 - **Mas'ul:** Saidazim
+- **Holat:** 🔄 pending[Saidazim]
 - **Fayllar:**
   - `services/content/src/controllers/watchProgress.controller.ts` (5-12-qator)
   - `services/content/src/services/content.service.ts` (20-35-qator)
