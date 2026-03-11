@@ -70,7 +70,7 @@ describe('ErrorBoundary', () => {
       );
     });
 
-    const instance = renderer!.getInstance() as InstanceType<typeof ErrorBoundary>;
+    const instance = renderer!.getInstance() as unknown as InstanceType<typeof ErrorBoundary>;
     // Manually set error state
     act(() => {
       instance.setState({ hasError: true, error: new Error('manual') });

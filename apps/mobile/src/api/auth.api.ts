@@ -13,8 +13,8 @@ export const authApi = {
     return res.data.data!;
   },
 
-  async verifyEmail(token: string): Promise<LoginResponse> {
-    const res = await authClient.post<ApiResponse<LoginResponse>>('/auth/verify-email', { token });
+  async confirmRegister(email: string, code: string): Promise<{ userId: string }> {
+    const res = await authClient.post<ApiResponse<{ userId: string }>>('/auth/register/confirm', { email, code });
     return res.data.data!;
   },
 

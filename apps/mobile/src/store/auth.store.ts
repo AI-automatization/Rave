@@ -2,6 +2,7 @@
 import { create } from 'zustand';
 import { IUser } from '@app-types/index';
 import { tokenStorage } from '@utils/storage';
+import { userApi } from '@api/user.api';
 
 interface AuthState {
   user: IUser | null;
@@ -37,6 +38,14 @@ export const useAuthStore = create<AuthState>((set) => ({
     const { accessToken, userId } = await tokenStorage.getAll();
     if (accessToken && userId) {
       set({ accessToken, isAuthenticated: true });
+      try {
+        const user = await userApi.getMe();
+        set({ user });
+      } catch {
+        // Token expired/invalid — logout
+        await tokenStorage.clear();
+        set({ accessToken: null, isAuthenticated: false });
+      }
     }
     set({ isHydrated: true });
   },

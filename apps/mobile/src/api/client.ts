@@ -49,9 +49,8 @@ function createClient(baseURL: string): AxiosInstance {
           originalRequest.headers.Authorization = `Bearer ${accessToken}`;
           return instance(originalRequest);
         } catch {
-          await tokenStorage.clear();
-          // authStore.logout() — store import qilinmaydi (circular dep oldini olish)
-          // Navigation reset auth.store.ts da handle qilinadi
+          const { useAuthStore } = await import('@store/auth.store');
+          await useAuthStore.getState().logout();
           return Promise.reject(error);
         }
       }

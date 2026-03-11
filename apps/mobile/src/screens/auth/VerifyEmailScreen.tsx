@@ -14,7 +14,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius, typography } from '@theme/index';
 import { AuthStackParamList } from '@app-types/index';
 import { authApi } from '@api/auth.api';
-import { useAuthStore } from '@store/auth.store';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'VerifyEmail'>;
 type Route = RouteProp<AuthStackParamList, 'VerifyEmail'>;
@@ -22,7 +21,6 @@ type Route = RouteProp<AuthStackParamList, 'VerifyEmail'>;
 export function VerifyEmailScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
-  const { setAuth } = useAuthStore();
   const { email } = route.params;
 
   const [token, setToken] = useState('');
@@ -32,15 +30,15 @@ export function VerifyEmailScreen() {
 
   const handleVerify = async () => {
     if (!token.trim()) { setError("Tasdiqlash kodini kiriting"); return; }
+    if (token.trim().length !== 6) { setError("Kod 6 ta raqamdan iborat"); return; }
     setLoading(true);
     setError('');
     try {
-      const { user, accessToken, refreshToken } = await authApi.verifyEmail(token.trim());
+      await authApi.confirmRegister(email, token.trim());
       setSuccess(true);
-      setTimeout(async () => {
-        await setAuth(user, accessToken, refreshToken);
-        navigation.replace('ProfileSetup');
-      }, 1000);
+      setTimeout(() => {
+        navigation.replace('Login');
+      }, 1200);
     } catch {
       setError("Kod noto'g'ri yoki muddati o'tgan");
     } finally {

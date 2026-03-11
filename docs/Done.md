@@ -1,6 +1,27 @@
 # CineSync — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-03-10
+# Yangilangan: 2026-03-11
+
+---
+
+### F-076 | 2026-03-11 | [MOBILE] | T-E015 — auth.store hydrate() user tiklanishi [Emirhan]
+
+- `auth.store.ts` — `hydrate()` ichida `userApi.getMe()` chaqirib `user` state tiklanadi
+- Token expired/invalid bo'lsa `logout()` state set qilinadi
+- App qayta ishga tushganda `user?._id` endi `undefined` emas
+
+### F-077 | 2026-03-11 | [MOBILE] | T-E016 — client.ts 401 handler auth store reset [Emirhan]
+
+- `api/client.ts` — refresh token fail bo'lganda `useAuthStore.getState().logout()` chaqiriladi
+- `tokenStorage.clear()` o'rniga store orqali to'liq logout — `isAuthenticated: false` bo'ladi
+- Dynamic import bilan circular dep muammosi hal qilindi
+
+### F-078 | 2026-03-11 | [MOBILE] | T-E017 — VerifyEmailScreen OTP endpoint fix [Emirhan]
+
+- `auth.api.ts` — `verifyEmail(token)` → `confirmRegister(email, code)` rename + endpoint `/auth/register/confirm`
+- `VerifyEmailScreen.tsx` — `{ email, code }` yuboriladi, javobda `{ userId }` qayta ishlashga o'zgartirildi
+- OTP tasdiqlangach Login screen ga yo'naltiriladi
+- `@types/react-test-renderer` qo'shildi + test faylida `unknown` cast fix (typecheck PASS)
 
 ---
 
