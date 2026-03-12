@@ -10,21 +10,35 @@ function OAuthCallbackInner() {
   const setAuth = useAuthStore((s) => s.setAuth);
 
   useEffect(() => {
-    const token   = params.get('token');
-    const refresh = params.get('refresh');
+    const code = params.get('code');
 
-    if (!token || !refresh) {
+    if (!code) {
       router.replace('/login');
       return;
     }
 
-    fetch('/api/auth/me', {
-      headers: { Authorization: `Bearer ${token}` },
+    // Exchange short-lived code for real tokens
+    fetch('/api/auth/google', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code }),
     })
       .then((r) => r.json())
-      .then((json) => {
-        if (json.success && json.data) {
-          const u = json.data;
+      .then(async (json) => {
+        if (!json.success || !json.data) {
+          router.replace('/login');
+          return;
+        }
+        const { accessToken, refreshToken } = json.data as { accessToken: string; refreshToken: string };
+
+        // Fetch user profile
+        const meRes = await fetch('/api/auth/me', {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        const meJson = await meRes.json();
+
+        if (meJson.success && meJson.data) {
+          const u = meJson.data;
           setAuth(
             {
               id:          u._id ?? u.id,
@@ -35,8 +49,8 @@ function OAuthCallbackInner() {
               rank:        u.rank ?? 'Bronze',
               totalPoints: u.totalPoints ?? 0,
             },
-            token,
-            refresh,
+            accessToken,
+            refreshToken,
           );
           window.location.replace('/home');
         } else {
