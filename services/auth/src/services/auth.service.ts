@@ -282,6 +282,28 @@ export class AuthService {
     logger.info('Password reset completed', { userId: user._id });
   }
 
+  // Google OAuth uchun tokenlar yaratish + refresh tokenni DB ga saqlash
+  async generateAndStoreTokens(
+    userId: string,
+    email: string,
+    role: UserRole,
+    ip: string | null = null,
+    userAgent: string | null = null,
+  ): Promise<{ accessToken: string; refreshToken: string }> {
+    const payload: JwtPayload = { userId, email, role };
+    const { accessToken, refreshToken } = this.generateTokens(payload);
+
+    await RefreshToken.create({
+      userId,
+      tokenHash: this.hashToken(refreshToken),
+      expiresAt: new Date(Date.now() + config.jwt.refreshTokenExpiry),
+      ip,
+      userAgent,
+    });
+
+    return { accessToken, refreshToken };
+  }
+
   // OAuth callback uchun short-lived temp code (tokenlarni URL da bermaydi)
   async createOAuthTempCode(accessToken: string, refreshToken: string): Promise<string> {
     const code = crypto.randomBytes(32).toString('hex');

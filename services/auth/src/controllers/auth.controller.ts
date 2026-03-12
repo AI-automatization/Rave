@@ -114,11 +114,14 @@ export class AuthController {
       const user = req.user as import('../types/index').GoogleOAuthProfile;
       const found = await this.authService.findOrCreateGoogleUser(user);
 
-      const { accessToken, refreshToken } = this.authService.generateTokens({
-        userId: found._id.toString(),
-        email: found.email,
-        role: found.role as import('@shared/types').UserRole,
-      });
+      // Tokenlar yaratish + refresh tokenni DB ga saqlash (muhim: refresh bo'lmasin)
+      const { accessToken, refreshToken } = await this.authService.generateAndStoreTokens(
+        found._id.toString(),
+        found.email,
+        found.role as import('@shared/types').UserRole,
+        req.ip ?? null,
+        req.headers['user-agent'] ?? null,
+      );
 
       // Tokenlarni URL da emas — short-lived code orqali (brauzer history/loglardan himoya)
       const code = await this.authService.createOAuthTempCode(accessToken, refreshToken);
