@@ -19,6 +19,33 @@
 
 ---
 
+### F-093 | 2026-03-12 | [BACKEND] | T-S020, T-S021, T-S022, T-S023 — Security + Perf + Arch [Saidazim]
+
+**T-S020 — CORS + mass assignment + validation:**
+- Barcha 5 servislarda `origin:'*'` → `CORS_ORIGINS` env whitelist
+- `updateMovie`: operator role uchun `OPERATOR_SAFE_FIELDS` whitelist
+- `createMovie`: Joi validation schema (`content.validator.ts`)
+- Admin CORS: hardcoded → `config.adminUrl` env
+
+**T-S021 — Socket.io WebSocket + rate limit + XSS:**
+- `transports: ['websocket', 'polling']` (WebSocket yoqildi)
+- Socket message/emoji: 10 msg/5sek rate limit per user
+- chat message, emoji, user bio, movie review: `xss` package bilan sanitize
+
+**T-S022 — Performance:**
+- `getAchievementStats`: `UserAchievement.find` 1x (avval 2x edi)
+- Video upload: `memoryStorage(2GB)` → `diskStorage(500MB)`
+- ytdl cache: `Map` → `LRUCache(max:100, ttl:2h)` (memory leak yo'q)
+- External video rating: `ratedBy[]` + atomic `$inc` (race condition yo'q)
+
+**T-S023 — Admin DB anti-pattern + Docker healthcheck:**
+- admin.service.ts: `mongoose.createConnection` → serviceClient REST API
+- User/Content servislarida admin internal endpointlar qo'shildi
+- admin/config: hardcoded dev credentials olib tashlandi
+- docker-compose.prod.yml: healthcheck + `depends_on: service_healthy`
+
+---
+
 ### F-090 | 2026-03-12 | [BACKEND] | T-S017, T-S018, T-S019 — Security + Bug fixes [Saidazim]
 
 **T-S017 — Internal endpoint security:**
