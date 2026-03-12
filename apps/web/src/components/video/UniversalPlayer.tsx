@@ -2,6 +2,7 @@
 
 import { useEffect, useCallback, useState } from 'react';
 import { VideoPlayer } from '@/components/VideoPlayer';
+import { apiClient } from '@/lib/axios';
 import type { VideoPlatform } from '@/types';
 
 /* ── Helpers ─────────────────────────────────────────────────────── */
@@ -81,26 +82,24 @@ function YouTubeStreamPlayer(props: UniversalPlayerProps) {
     setIsLive(false);
 
     const resolve = async () => {
-      const contentBase = process.env.NEXT_PUBLIC_CONTENT_URL ?? '';
-      const token =
-        typeof window !== 'undefined' ? (localStorage.getItem('access_token') ?? '') : '';
-
       // 1. Metadata olish: isLive, title, format URL
-      const infoRes = await fetch(
-        `${contentBase}/youtube/stream-url?url=${encodeURIComponent(videoUrl)}`,
-        { headers: token ? { Authorization: `Bearer ${token}` } : {} },
+      // Next.js API route orqali — apiClient token ni auto inject qiladi
+      const res = await apiClient.get<{ success: boolean; data: YtStreamInfo }>(
+        `/api/youtube/stream-url?url=${encodeURIComponent(videoUrl)}`,
       );
-      if (!infoRes.ok) throw new Error('stream-url failed');
-      const { data } = (await infoRes.json()) as { data: YtStreamInfo };
+      if (!res.data.success) throw new Error('stream-url failed');
+      const info = res.data.data;
 
       // 2. Stream URL tanlash:
       //    Live → format.url to'g'ridan (HLS m3u8, VideoPlayer HLS.js ile o'ynaydi)
-      //    VOD  → backend proxy (range request, seeking ishlaydi)
-      const finalUrl = data.isLive
-        ? data.url
-        : `${contentBase}/youtube/stream?url=${encodeURIComponent(videoUrl)}${token ? `&token=${encodeURIComponent(token)}` : ''}`;
+      //    VOD  → Next.js proxy /api/youtube/stream (range request, seeking ishlaydi)
+      const token =
+        typeof window !== 'undefined' ? (localStorage.getItem('access_token') ?? '') : '';
+      const finalUrl = info.isLive
+        ? info.url
+        : `/api/youtube/stream?url=${encodeURIComponent(videoUrl)}${token ? `&token=${encodeURIComponent(token)}` : ''}`;
 
-      setIsLive(data.isLive);
+      setIsLive(info.isLive);
       setStreamUrl(finalUrl);
     };
 
