@@ -21,6 +21,8 @@ interface WatchPartyState {
   setSyncState: (state: SyncState) => void;
   addMessage: (message: ChatMessage) => void;
   setActiveMembers: (members: string[]) => void;
+  addMember: (userId: string) => void;
+  removeMember: (userId: string) => void;
   clearParty: () => void;
 }
 
@@ -39,6 +41,18 @@ export const useWatchPartyStore = create<WatchPartyState>((set) => ({
     })),
 
   setActiveMembers: (members) => set({ activeMembers: members }),
+
+  addMember: (userId) =>
+    set((state) => ({
+      activeMembers: state.activeMembers.includes(userId)
+        ? state.activeMembers
+        : [...state.activeMembers, userId],
+    })),
+
+  removeMember: (userId) =>
+    set((state) => ({
+      activeMembers: state.activeMembers.filter((id) => id !== userId),
+    })),
 
   clearParty: () =>
     set({ room: null, syncState: null, messages: [], activeMembers: [] }),

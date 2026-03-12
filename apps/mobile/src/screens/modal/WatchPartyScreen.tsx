@@ -11,12 +11,13 @@ import {
 } from 'react-native';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
+import { AVPlaybackStatus } from 'expo-av';
 import { useWatchParty } from '@hooks/useWatchParty';
 import { useAuthStore } from '@store/auth.store';
 import { watchPartyApi } from '@api/watchParty.api';
 import { ChatPanel } from '@components/watchParty/ChatPanel';
 import { EmojiFloatItem, EmojiPickerBar } from '@components/watchParty/EmojiFloat';
+import { UniversalPlayer, UniversalPlayerRef } from '@components/video/UniversalPlayer';
 import { colors, spacing, borderRadius, typography } from '@theme/index';
 import { ModalStackParamList } from '@app-types/index';
 
@@ -39,7 +40,7 @@ export function WatchPartyScreen() {
   const { room, syncState, messages, activeMembers, isOwner, emitPlay, emitPause, emitSeek, sendMessage, sendEmoji } =
     useWatchParty(params.roomId);
 
-  const videoRef = useRef<Video>(null);
+  const playerRef = useRef<UniversalPlayerRef>(null);
   const isSyncing = useRef(false);
   const lastSyncId = useRef('');
 
@@ -56,12 +57,13 @@ export function WatchPartyScreen() {
     lastSyncId.current = syncId;
 
     isSyncing.current = true;
-    videoRef.current?.setPositionAsync(syncState.currentTime * 1000)
+    playerRef.current
+      ?.seekTo(syncState.currentTime * 1000)
       .then(() => {
         if (syncState.isPlaying) {
-          videoRef.current?.playAsync();
+          return playerRef.current?.play();
         } else {
-          videoRef.current?.pauseAsync();
+          return playerRef.current?.pause();
         }
       })
       .catch(() => {})
@@ -70,36 +72,55 @@ export function WatchPartyScreen() {
       });
   }, [syncState]);
 
-  const onPlaybackStatusUpdate = useCallback(
-    (status: AVPlaybackStatus) => {
-      if (!status.isLoaded || isSyncing.current || !isOwner) return;
-      setIsPlaying(status.isPlaying);
+  // Direct video (expo-av) status update — isPlaying tracking
+  const onPlaybackStatusUpdate = useCallback((status: AVPlaybackStatus) => {
+    if (!status.isLoaded || isSyncing.current) return;
+    setIsPlaying(status.isPlaying);
+  }, []);
+
+  // WebView events — Owner socketga yuboradi, isPlaying yangilanadi
+  const handleWebViewPlay = useCallback(
+    (secs: number) => {
+      setIsPlaying(true);
+      if (isOwner && !isSyncing.current) emitPlay(secs);
     },
-    [isOwner],
+    [isOwner, emitPlay],
+  );
+
+  const handleWebViewPause = useCallback(
+    (secs: number) => {
+      setIsPlaying(false);
+      if (isOwner && !isSyncing.current) emitPause(secs);
+    },
+    [isOwner, emitPause],
+  );
+
+  const handleWebViewSeek = useCallback(
+    (secs: number) => {
+      if (isOwner && !isSyncing.current) emitSeek(secs);
+    },
+    [isOwner, emitSeek],
   );
 
   const handlePlayPause = useCallback(async () => {
     if (!isOwner) return;
-    const status = await videoRef.current?.getStatusAsync();
-    if (!status?.isLoaded) return;
-    const currentSecs = (status.positionMillis ?? 0) / 1000;
-    if (status.isPlaying) {
-      await videoRef.current?.pauseAsync();
-      emitPause(currentSecs);
+    const posMs = (await playerRef.current?.getPositionMs()) ?? 0;
+    if (isPlaying) {
+      await playerRef.current?.pause();
+      emitPause(posMs / 1000);
     } else {
-      await videoRef.current?.playAsync();
-      emitPlay(currentSecs);
+      await playerRef.current?.play();
+      emitPlay(posMs / 1000);
     }
-  }, [isOwner, emitPlay, emitPause]);
+  }, [isOwner, isPlaying, emitPlay, emitPause]);
 
   const handleSeek = useCallback(
     async (direction: 'forward' | 'back') => {
       if (!isOwner) return;
-      const status = await videoRef.current?.getStatusAsync();
-      if (!status?.isLoaded) return;
+      const posMs = (await playerRef.current?.getPositionMs()) ?? 0;
       const delta = direction === 'forward' ? 10 : -10;
-      const newMs = Math.max(0, (status.positionMillis ?? 0) + delta * 1000);
-      await videoRef.current?.setPositionAsync(newMs);
+      const newMs = Math.max(0, posMs + delta * 1000);
+      await playerRef.current?.seekTo(newMs);
       emitSeek(newMs / 1000);
     },
     [isOwner, emitSeek],
@@ -141,11 +162,13 @@ export function WatchPartyScreen() {
     <View style={styles.root}>
       {/* Video */}
       <View style={styles.videoContainer}>
-        <Video
-          ref={videoRef}
-          source={videoUrl ? { uri: videoUrl } : undefined}
-          style={styles.video}
-          resizeMode={ResizeMode.CONTAIN}
+        <UniversalPlayer
+          ref={playerRef}
+          url={videoUrl}
+          isOwner={isOwner}
+          onPlay={handleWebViewPlay}
+          onPause={handleWebViewPause}
+          onSeek={handleWebViewSeek}
           onPlaybackStatusUpdate={onPlaybackStatusUpdate}
         />
 
@@ -236,7 +259,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  video: { width: SCREEN_W, height: VIDEO_HEIGHT },
   controls: {
     position: 'absolute',
     bottom: 12,

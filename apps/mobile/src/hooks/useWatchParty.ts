@@ -7,7 +7,6 @@ import { SyncState, IWatchPartyRoom } from '@app-types/index';
 
 interface MemberEvent {
   userId: string;
-  members: string[];
 }
 
 interface MessageEvent {
@@ -21,7 +20,7 @@ interface MessageEvent {
 export function useWatchParty(roomId: string) {
   const token = useAuthStore(s => s.accessToken);
   const userId = useAuthStore(s => s.user?._id);
-  const { room, syncState, messages, activeMembers, setRoom, setSyncState, addMessage, setActiveMembers, clearParty } =
+  const { room, syncState, messages, activeMembers, setRoom, setSyncState, addMessage, setActiveMembers, addMember, removeMember, clearParty } =
     useWatchPartyStore();
 
   const isOwner = room?.ownerId === userId;
@@ -32,9 +31,10 @@ export function useWatchParty(roomId: string) {
     const socket = connectSocket(token);
     socket.emit(CLIENT_EVENTS.JOIN_ROOM, { roomId });
 
-    socket.on(SERVER_EVENTS.ROOM_JOINED, (data: { room: IWatchPartyRoom; members: string[] }) => {
+    socket.on(SERVER_EVENTS.ROOM_JOINED, (data: { room: IWatchPartyRoom; syncState: SyncState }) => {
       setRoom(data.room);
-      setActiveMembers(data.members);
+      setActiveMembers(data.room.members);
+      if (data.syncState) setSyncState(data.syncState);
     });
 
     socket.on(SERVER_EVENTS.ROOM_UPDATED, (updated: IWatchPartyRoom) => setRoom(updated));
@@ -47,8 +47,8 @@ export function useWatchParty(roomId: string) {
       addMessage({ id: `${msg.userId}-${msg.timestamp}`, ...msg });
     });
 
-    socket.on(SERVER_EVENTS.MEMBER_JOINED, (data: MemberEvent) => setActiveMembers(data.members));
-    socket.on(SERVER_EVENTS.MEMBER_LEFT, (data: MemberEvent) => setActiveMembers(data.members));
+    socket.on(SERVER_EVENTS.MEMBER_JOINED, (data: MemberEvent) => addMember(data.userId));
+    socket.on(SERVER_EVENTS.MEMBER_LEFT, (data: MemberEvent) => removeMember(data.userId));
     socket.on(SERVER_EVENTS.ROOM_CLOSED, () => {
       clearParty();
       disconnectSocket();

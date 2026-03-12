@@ -369,7 +369,7 @@
 
 - **Sana:** 2026-03-11
 - **Mas'ul:** Emirhan (Mobile — asosiy), Saidazim (Backend — minimal), Jafar (Web — fallback UI)
-- **Holat:** 🔄 pending[Emirhan] (Mobile qismi)
+- **Holat:** ✅ Mobile M1-M5 TUGADI (2026-03-12) | Backend B1-B2 pending[Saidazim] | Web W1 pending[Jafar]
 - **Sprint:** S2-S3
 - **Prioritet:** P1 — foydalanuvchilar faqat YouTube ko'ra olmoqda, boshqa saytlar ishlamayapti
 
@@ -607,23 +607,16 @@ Foydalanuvchi **har qanday** video sayt URL ni kiritganda:
 
 - **Sana:** 2026-03-11
 - **Mas'ul:** Emirhan (Mobile) + Jafar (Web) + Saidazim (Backend payload)
-- **Holat:** 🔄 pending[Emirhan] (Mobile qismi)
+- **Holat:** ✅ Mobile qismi TUGADI (2026-03-12) | Web qismi pending[Jafar] (T-C008 dan keyin)
 - **Fayllar:**
   - `apps/web/src/hooks/useWatchParty.ts` — 14+ hardcoded event string
   - `apps/web/src/hooks/useVoiceChat.ts` — 8+ hardcoded event string
-  - `apps/mobile/src/hooks/useWatchParty.ts` (35, 50-51-qator)
   - `services/watch-party/src/socket/watchParty.socket.ts` (93, 116-119-qator)
   - `shared/src/constants/socketEvents.ts`
-- **Muammo:**
-  - **Web:** `socket.emit('room:join', ...)` kabi **hardcoded string** ishlatadi. `shared/constants/socketEvents.ts` dan `CLIENT_EVENTS`/`SERVER_EVENTS` import **qilmaydi**. Event nomi o'zgarganda web **jimgina buziladi**
-  - **Mobile:** `ROOM_JOINED` da `{ room, members }` kutadi, lekin server `{ room, syncState }` yuboradi → `members` **undefined**, `setActiveMembers(undefined)` → active member list tozalanadi
-  - **Mobile:** `MEMBER_JOINED`/`MEMBER_LEFT` da `{ userId, members[] }` kutadi, lekin server faqat `{ userId }` yuboradi → `members` **undefined**
-- **Bajarilishi kerak:**
+- **Qolgan ishlar (Jafar):**
   - [ ] **Web:** `@cinesync/shared` dan `SERVER_EVENTS`/`CLIENT_EVENTS` import qilish (T-C008 dan keyin)
   - [ ] **Web:** barcha hardcoded event string larni shared constant bilan almashtirish
-  - [ ] **Mobile:** `ROOM_JOINED` handler → `data.room.members` va `data.syncState` ishlatish
-  - [ ] **Mobile:** `MEMBER_JOINED`/`MEMBER_LEFT` → incremental add/remove (web qilganidek)
-  - [ ] **Backend:** Yoki server payload ga `members[]` qo'shish (mobile kutganidek)
+  - [ ] **Backend (ixtiyoriy):** Server payload ga `members[]` qo'shish
 
 ---
 

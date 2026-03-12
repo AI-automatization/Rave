@@ -4,6 +4,21 @@
 
 ---
 
+### F-091 | 2026-03-12 | [MOBILE] | T-C009 + T-C006 — Socket payload fix + WebView Video Player [Emirhan]
+
+**T-C009 — Socket event payload mismatch (Mobile qismi):**
+- `useWatchParty.ts` — `ROOM_JOINED`: `{ room, members }` → `{ room, syncState }` payload fix; `setActiveMembers(data.room.members)` + `setSyncState(data.syncState)` qo'shildi
+- `useWatchParty.ts` — `MEMBER_JOINED`/`MEMBER_LEFT`: `setActiveMembers(data.members)` → `addMember`/`removeMember` (incremental, server faqat `userId` yuboradi)
+- `watchParty.store.ts` — `addMember` (duplicate check bilan) va `removeMember` action lari qo'shildi
+
+**T-C006 — WebView Video Player (Mobile qismi M1-M5):**
+- `components/video/WebViewPlayer.tsx` (yangi) — `react-native-webview` asosida; MutationObserver JS injection; play/pause/seek/progress postMessage; nested iframe URL detect va redirect; loading overlay + error fallback; `forwardRef` bilan `play`/`pause`/`seekTo`/`getPositionMs` ref API
+- `components/video/UniversalPlayer.tsx` (yangi) — `detectVideoPlatform(url)`: `.mp4/.m3u8/.webm` → expo-av, boshqa hammasi → WebViewPlayer; `forwardRef` bilan unifikatsiya qilingan ref API
+- `screens/modal/WatchPartyScreen.tsx` — `Video` (expo-av) → `UniversalPlayer` ga o'tkazildi; sync useEffect `seekTo`/`play`/`pause` ref orqali; WebView `onPlay`/`onPause`/`onSeek` callbacklari socket emit bilan ulandi
+- `package.json` — `react-native-webview@~13.16.1` qo'shildi; npm install qilindi
+
+---
+
 ### F-090 | 2026-03-12 | [BACKEND] | T-S017, T-S018, T-S019 — Security + Bug fixes [Saidazim]
 
 **T-S017 — Internal endpoint security:**
