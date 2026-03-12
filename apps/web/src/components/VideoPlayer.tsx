@@ -30,6 +30,7 @@ interface VideoPlayerProps {
   syncTimestamp?: number;   // ms epoch when server saved syncTime (for drift compensation)
   syncIsPlaying?: boolean;
   isOwner?: boolean;
+  isLive?: boolean;         // live stream — seek/skip disabled, LIVE badge shown
   onPlay?: (currentTime: number) => void;
   onPause?: (currentTime: number) => void;
   onSeek?: (time: number) => void;
@@ -47,6 +48,7 @@ export function VideoPlayer({
   syncTimestamp,
   syncIsPlaying,
   isOwner = true,
+  isLive = false,
   onPlay,
   onPause,
   onSeek,
@@ -567,10 +569,10 @@ export function VideoPlayer({
           {/* Progress bar */}
           <div
             ref={progressRef}
-            className={`relative h-6 flex items-center group/prog mb-0.5 ${isOwner ? 'cursor-pointer' : 'cursor-default'}`}
-            onMouseMove={isOwner ? handleProgressHover : undefined}
+            className={`relative h-6 flex items-center group/prog mb-0.5 ${isOwner && !isLive ? 'cursor-pointer' : 'cursor-default'}`}
+            onMouseMove={isOwner && !isLive ? handleProgressHover : undefined}
             onMouseLeave={() => setHoverTime(null)}
-            onClick={isOwner ? handleSeek : undefined}
+            onClick={isOwner && !isLive ? handleSeek : undefined}
           >
             {/* Hover time tooltip */}
             {hoverTime && (
@@ -616,8 +618,8 @@ export function VideoPlayer({
                 </button>
               )}
 
-              {/* Skip back — owner only */}
-              {isOwner && (
+              {/* Skip back — owner only, not live */}
+              {isOwner && !isLive && (
                 <button
                   onClick={(e) => { e.stopPropagation(); skip(-10); }}
                   className="flex items-center justify-center h-9 w-9 rounded-lg text-white hover:bg-white/10 transition-all"
@@ -627,8 +629,8 @@ export function VideoPlayer({
                 </button>
               )}
 
-              {/* Skip forward — owner only */}
-              {isOwner && (
+              {/* Skip forward — owner only, not live */}
+              {isOwner && !isLive && (
                 <button
                   onClick={(e) => { e.stopPropagation(); skip(10); }}
                   className="flex items-center justify-center h-9 w-9 rounded-lg text-white hover:bg-white/10 transition-all"
@@ -667,9 +669,16 @@ export function VideoPlayer({
               </div>
 
               {/* Time — everyone */}
-              <span className="text-white text-[11px] tabular-nums ml-1 hidden sm:block">
-                {formatTime(currentTime)} / {formatTime(duration)}
-              </span>
+              {isLive ? (
+                <span className="flex items-center gap-1.5 ml-1">
+                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                  <span className="text-red-400 text-[11px] font-bold tracking-wide">JONLI EFIR</span>
+                </span>
+              ) : (
+                <span className="text-white text-[11px] tabular-nums ml-1 hidden sm:block">
+                  {formatTime(currentTime)} / {formatTime(duration)}
+                </span>
+              )}
             </div>
 
             {/* Right group */}

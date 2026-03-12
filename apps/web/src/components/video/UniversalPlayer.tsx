@@ -46,9 +46,21 @@ interface UniversalPlayerProps {
   onFullscreenChange?: (isFullscreen: boolean) => void;
 }
 
+interface YtStreamInfo {
+  url: string;
+  title: string;
+  duration: number;
+  thumbnail: string;
+  mimeType: string;
+  contentLength: number;
+  isLive: boolean;
+}
+
 /* ── YouTube — Backend Stream Proxy Player ──────────────────────── */
-// YouTube URL → backend /youtube/stream-url → actual stream URL
-// → VideoPlayer (bizning native player, to'liq sync support)
+// YouTube URL → backend /youtube/stream-url (metadata + isLive)
+//   VOD:  proxy URL /youtube/stream?url=...&token=... (range request, seeking)
+//   Live: format.url to'g'ridan (HLS m3u8) → VideoPlayer HLS.js ile ishlaydi
+// → VideoPlayer (bizning native player, to'liq owner/member sync)
 function YouTubeStreamPlayer(props: UniversalPlayerProps) {
   const {
     videoUrl,
@@ -58,6 +70,7 @@ function YouTubeStreamPlayer(props: UniversalPlayerProps) {
   } = props;
 
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
+  const [isLive, setIsLive] = useState(false);
   const [resolving, setResolving] = useState(true);
   const [resolveError, setResolveError] = useState(false);
 
@@ -65,28 +78,30 @@ function YouTubeStreamPlayer(props: UniversalPlayerProps) {
     setResolving(true);
     setResolveError(false);
     setStreamUrl(null);
+    setIsLive(false);
 
     const resolve = async () => {
       const contentBase = process.env.NEXT_PUBLIC_CONTENT_URL ?? '';
       const token =
         typeof window !== 'undefined' ? (localStorage.getItem('access_token') ?? '') : '';
 
-      // 1. Metadata olish (isLive, title, duration)
+      // 1. Metadata olish: isLive, title, format URL
       const infoRes = await fetch(
         `${contentBase}/youtube/stream-url?url=${encodeURIComponent(videoUrl)}`,
         { headers: token ? { Authorization: `Bearer ${token}` } : {} },
       );
       if (!infoRes.ok) throw new Error('stream-url failed');
+      const { data } = (await infoRes.json()) as { data: YtStreamInfo };
 
-      // 2. Proxy stream URL:
-      //    VOD  → backend range-request proxy (seeking ishlaydi)
-      //    Live → backend 302 redirect → HLS m3u8 (VideoPlayer native HLS)
-      const proxyUrl =
-        `${contentBase}/youtube/stream` +
-        `?url=${encodeURIComponent(videoUrl)}` +
-        (token ? `&token=${encodeURIComponent(token)}` : '');
+      // 2. Stream URL tanlash:
+      //    Live → format.url to'g'ridan (HLS m3u8, VideoPlayer HLS.js ile o'ynaydi)
+      //    VOD  → backend proxy (range request, seeking ishlaydi)
+      const finalUrl = data.isLive
+        ? data.url
+        : `${contentBase}/youtube/stream?url=${encodeURIComponent(videoUrl)}${token ? `&token=${encodeURIComponent(token)}` : ''}`;
 
-      setStreamUrl(proxyUrl);
+      setIsLive(data.isLive);
+      setStreamUrl(finalUrl);
     };
 
     resolve()
@@ -111,8 +126,7 @@ function YouTubeStreamPlayer(props: UniversalPlayerProps) {
     );
   }
 
-  // streamUrl tayyor → VideoPlayer ga o'tkazamiz
-  // VideoPlayer allaqachon to'liq sync (owner/member), HLS, seeking ni handle qiladi
+  // VideoPlayer: to'liq sync (owner/member), HLS, seeking, isLive — hammasi handle qilinadi
   return (
     <VideoPlayer
       src={streamUrl}
@@ -123,10 +137,11 @@ function YouTubeStreamPlayer(props: UniversalPlayerProps) {
       syncTimestamp={syncTimestamp}
       syncIsPlaying={syncIsPlaying}
       isOwner={isOwner}
+      isLive={isLive}
       onProgress={onProgress}
       onPlay={onPlay}
       onPause={onPause}
-      onSeek={onSeek}
+      onSeek={isLive ? undefined : onSeek}
       onFullscreenChange={onFullscreenChange}
     />
   );
