@@ -1,15 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import { VideoPlayer } from '@/components/VideoPlayer';
 import type { VideoPlatform } from '@/types';
 
 /* ── Helpers ─────────────────────────────────────────────────────── */
-function extractYouTubeId(url: string): string | null {
-  const m = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([^&?/\s]{11})/);
-  return m?.[1] ?? null;
-}
-
 function extractVimeoId(url: string): string | null {
   const match = url.match(/vimeo\.com\/(\d+)/);
   return match?.[1] ?? null;
@@ -51,188 +46,89 @@ interface UniversalPlayerProps {
   onFullscreenChange?: (isFullscreen: boolean) => void;
 }
 
-/* ── YouTube — IFrame Player API (postMessage) ─────────────────── */
-function YouTubeIframePlayer({
-  videoUrl, syncTime, syncTimestamp, syncIsPlaying, isOwner,
-  onPlay, onPause, onSeek,
-}: UniversalPlayerProps) {
-  const iframeRef        = useRef<HTMLIFrameElement>(null);
-  const readyRef         = useRef(false);    // true once YouTube fires onReady
-  const pendingCmds      = useRef<Array<{ func: string; args: unknown[] }>>([]);
-  const applyingRef      = useRef(false);    // true while applying sync (suppress state events)
-  const currentTimeRef   = useRef(0);        // latest currentTime from infoDelivery
-  const lastTrackedRef   = useRef(0);        // for seek detection (owner)
-  const playerStateRef   = useRef(-1);       // last known YouTube playerState
-  const syncIsPlayingRef = useRef(syncIsPlaying);
+/* ── YouTube — Backend Stream Proxy Player ──────────────────────── */
+// YouTube URL → backend /youtube/stream-url → actual stream URL
+// → VideoPlayer (bizning native player, to'liq sync support)
+function YouTubeStreamPlayer(props: UniversalPlayerProps) {
+  const {
+    videoUrl,
+    title, thumbnail, initialTime,
+    syncTime, syncTimestamp, syncIsPlaying,
+    isOwner, onProgress, onPlay, onPause, onSeek, onFullscreenChange,
+  } = props;
 
-  const videoId = extractYouTubeId(videoUrl);
+  const [streamUrl, setStreamUrl] = useState<string | null>(null);
+  const [resolving, setResolving] = useState(true);
+  const [resolveError, setResolveError] = useState(false);
 
-  /* Keep syncIsPlayingRef fresh */
-  useEffect(() => { syncIsPlayingRef.current = syncIsPlaying; }, [syncIsPlaying]);
-
-  /* Send a command — queue it if player not ready yet */
-  const cmd = useCallback((func: string, args: unknown[] = []) => {
-    if (!readyRef.current) {
-      // Replace any prior queued command with the same func (last wins)
-      pendingCmds.current = pendingCmds.current.filter(c => c.func !== func);
-      pendingCmds.current.push({ func, args });
-      return;
-    }
-    iframeRef.current?.contentWindow?.postMessage(
-      JSON.stringify({ event: 'command', func, args }),
-      '*',
-    );
-  }, []);
-
-  /* Flush pending commands once player is ready */
-  const flushPending = useCallback(() => {
-    const win = iframeRef.current?.contentWindow;
-    if (!win) return;
-    for (const { func, args } of pendingCmds.current) {
-      win.postMessage(JSON.stringify({ event: 'command', func, args }), '*');
-    }
-    pendingCmds.current = [];
-  }, []);
-
-  /* Member sync: apply owner state whenever it changes */
   useEffect(() => {
-    if (isOwner || syncIsPlaying === undefined) return;
+    setResolving(true);
+    setResolveError(false);
+    setStreamUrl(null);
 
-    applyingRef.current = true;
+    const resolve = async () => {
+      const contentBase = process.env.NEXT_PUBLIC_CONTENT_URL ?? '';
+      const token =
+        typeof window !== 'undefined' ? (localStorage.getItem('access_token') ?? '') : '';
 
-    const elapsed = syncTimestamp ? Math.max(0, (Date.now() - syncTimestamp) / 1000) : 0;
-    const target  = (syncTime ?? 0) + (syncIsPlaying ? elapsed : 0);
+      // 1. Metadata olish (isLive, title, duration)
+      const infoRes = await fetch(
+        `${contentBase}/youtube/stream-url?url=${encodeURIComponent(videoUrl)}`,
+        { headers: token ? { Authorization: `Bearer ${token}` } : {} },
+      );
+      if (!infoRes.ok) throw new Error('stream-url failed');
 
-    if (Math.abs(target - currentTimeRef.current) > 2) {
-      cmd('seekTo', [target, true]);
-    }
+      // 2. Proxy stream URL:
+      //    VOD  → backend range-request proxy (seeking ishlaydi)
+      //    Live → backend 302 redirect → HLS m3u8 (VideoPlayer native HLS)
+      const proxyUrl =
+        `${contentBase}/youtube/stream` +
+        `?url=${encodeURIComponent(videoUrl)}` +
+        (token ? `&token=${encodeURIComponent(token)}` : '');
 
-    // Give seekTo a moment before play/pause so it doesn't race
-    const t1 = setTimeout(() => {
-      if (syncIsPlaying) cmd('playVideo');
-      else               cmd('pauseVideo');
-    }, readyRef.current ? 200 : 0);
-
-    const t2 = setTimeout(() => { applyingRef.current = false; }, 1000);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, [isOwner, syncIsPlaying, syncTime, syncTimestamp, cmd]);
-
-  /* Listen to YouTube postMessage events */
-  useEffect(() => {
-    const handle = (e: MessageEvent) => {
-      if (typeof e.data !== 'string') return;
-      let data: Record<string, unknown>;
-      try { data = JSON.parse(e.data) as Record<string, unknown>; }
-      catch { return; }
-
-      // Player ready — flush queued commands then apply current sync
-      if (data.event === 'onReady') {
-        readyRef.current = true;
-        flushPending();
-
-        // Immediately apply current sync state for members
-        if (!isOwner && syncIsPlayingRef.current !== undefined) {
-          const elapsed = 0; // serverTimestamp not accessible here, use 0 for initial
-          const target  = syncTime ?? 0;
-          applyingRef.current = true;
-          iframeRef.current?.contentWindow?.postMessage(
-            JSON.stringify({ event: 'command', func: 'seekTo', args: [target, true] }), '*',
-          );
-          setTimeout(() => {
-            if (syncIsPlayingRef.current) {
-              iframeRef.current?.contentWindow?.postMessage(
-                JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*',
-              );
-            } else {
-              iframeRef.current?.contentWindow?.postMessage(
-                JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] }), '*',
-              );
-            }
-            setTimeout(() => { applyingRef.current = false; }, 500);
-          }, 300);
-        }
-      }
-
-      // Periodic info: track currentTime + playerState
-      if (data.event === 'infoDelivery') {
-        const info = data.info as Record<string, unknown> | null;
-        if (!info) return;
-        if (typeof info.currentTime === 'number') currentTimeRef.current = info.currentTime;
-        if (typeof info.playerState === 'number') playerStateRef.current = info.playerState;
-      }
-
-      // State transitions
-      if (data.event === 'onStateChange' && !applyingRef.current) {
-        const state = data.info as number;
-        const ct    = currentTimeRef.current;
-
-        if (isOwner) {
-          if (state === 1) onPlay?.(ct);
-          if (state === 2) onPause?.(ct);
-        } else {
-          // Member: override back to correct state
-          const shouldPlay = syncIsPlayingRef.current === true;
-          if (state === 1 && !shouldPlay) {
-            applyingRef.current = true;
-            iframeRef.current?.contentWindow?.postMessage(
-              JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] }), '*',
-            );
-            setTimeout(() => { applyingRef.current = false; }, 500);
-          } else if (state === 2 && shouldPlay) {
-            applyingRef.current = true;
-            iframeRef.current?.contentWindow?.postMessage(
-              JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*',
-            );
-            setTimeout(() => { applyingRef.current = false; }, 500);
-          }
-        }
-      }
+      setStreamUrl(proxyUrl);
     };
 
-    window.addEventListener('message', handle);
-    return () => window.removeEventListener('message', handle);
-  }, [isOwner, onPlay, onPause, flushPending, syncTime]);
+    resolve()
+      .catch(() => setResolveError(true))
+      .finally(() => setResolving(false));
+  }, [videoUrl]);
 
-  /* Owner seek detection: poll every second, emit onSeek on jumps > 4s */
-  useEffect(() => {
-    if (!isOwner) return;
-    const id = setInterval(() => {
-      const cur     = currentTimeRef.current;
-      const playing = playerStateRef.current === 1;
-      if (playing && Math.abs(cur - lastTrackedRef.current - 1) > 4) {
-        onSeek?.(cur);
-      }
-      lastTrackedRef.current = cur;
-    }, 1000);
-    return () => clearInterval(id);
-  }, [isOwner, onSeek]);
-
-  if (!videoId) {
+  if (resolving) {
     return (
-      <div className="aspect-video bg-black rounded-xl flex items-center justify-center">
-        <p className="text-white/40 text-sm">YouTube video ID topilmadi</p>
+      <div className="aspect-video bg-black rounded-xl flex flex-col items-center justify-center gap-3">
+        <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+        <p className="text-white/40 text-sm">Video yuklanmoqda...</p>
       </div>
     );
   }
 
-  const origin   = typeof window !== 'undefined' ? window.location.origin : '';
-  const embedUrl = `https://www.youtube.com/embed/${videoId}?enablejsapi=1&origin=${encodeURIComponent(origin)}&controls=1&rel=0&modestbranding=1&autoplay=0`;
+  if (resolveError || !streamUrl) {
+    return (
+      <div className="aspect-video bg-black rounded-xl flex items-center justify-center">
+        <p className="text-white/40 text-sm">Video yuklashda xato. Qayta urinib ko&apos;ring.</p>
+      </div>
+    );
+  }
 
+  // streamUrl tayyor → VideoPlayer ga o'tkazamiz
+  // VideoPlayer allaqachon to'liq sync (owner/member), HLS, seeking ni handle qiladi
   return (
-    <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
-      <iframe
-        ref={iframeRef}
-        src={embedUrl}
-        className="w-full h-full border-0"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-        allowFullScreen
-        title={`YouTube — ${videoId}`}
-      />
-      {/* Member overlay: blocks direct interaction with YouTube controls */}
-      {!isOwner && (
-        <div className="absolute inset-0 z-10" style={{ cursor: 'default' }} />
-      )}
-    </div>
+    <VideoPlayer
+      src={streamUrl}
+      poster={thumbnail}
+      title={title}
+      initialTime={initialTime}
+      syncTime={syncTime}
+      syncTimestamp={syncTimestamp}
+      syncIsPlaying={syncIsPlaying}
+      isOwner={isOwner}
+      onProgress={onProgress}
+      onPlay={onPlay}
+      onPause={onPause}
+      onSeek={onSeek}
+      onFullscreenChange={onFullscreenChange}
+    />
   );
 }
 
@@ -281,7 +177,7 @@ export function UniversalPlayer(props: UniversalPlayerProps) {
   }
 
   if (platform === 'youtube') {
-    return <YouTubeIframePlayer {...props} onFullscreenChange={handleFullscreen} />;
+    return <YouTubeStreamPlayer {...props} onFullscreenChange={handleFullscreen} />;
   }
 
   return <IframePlayer videoUrl={videoUrl} platform={platform} />;
