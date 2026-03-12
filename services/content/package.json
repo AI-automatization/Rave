@@ -22,7 +22,8 @@
     "joi": "^17.12.0",
     "mongoose": "^8.1.1",
     "morgan": "^1.10.0",
-    "multer": "^1.4.5-lts.1"
+    "multer": "^1.4.5-lts.1",
+    "xss": "^1.0.15"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",

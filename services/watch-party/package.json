@@ -21,7 +21,8 @@
     "joi": "^17.12.0",
     "mongoose": "^8.1.1",
     "morgan": "^1.10.0",
-    "socket.io": "^4.7.4"
+    "socket.io": "^4.7.4",
+    "xss": "^1.0.15"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",

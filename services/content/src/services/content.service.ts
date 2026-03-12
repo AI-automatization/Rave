@@ -1,4 +1,5 @@
 import Redis from 'ioredis';
+import xss from 'xss';
 import { Client as ElasticsearchClient } from '@elastic/elasticsearch';
 import { Movie, IMovieDocument } from '../models/movie.model';
 import { WatchHistory } from '../models/watchHistory.model';
@@ -212,9 +213,11 @@ export class ContentService {
     const movie = await Movie.findById(movieId);
     if (!movie) throw new NotFoundError('Movie not found');
 
+    const safeReview = review ? xss(review.slice(0, 1000)) : '';
+
     await Rating.findOneAndUpdate(
       { userId, movieId },
-      { $set: { score, review } },
+      { $set: { score, review: safeReview } },
       { upsert: true },
     );
 

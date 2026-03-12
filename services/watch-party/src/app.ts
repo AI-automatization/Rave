@@ -32,7 +32,7 @@ export const createApp = (redis: Redis): { app: express.Application; io: SocketS
       },
       methods: ['GET', 'POST'],
     },
-    transports: ['polling'],
+    transports: ['websocket', 'polling'],
   });
 
   app.use(helmet());

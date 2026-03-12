@@ -1,4 +1,5 @@
 import Redis from 'ioredis';
+import xss from 'xss';
 import { User, IUserDocument, INotificationSettings } from '../models/user.model';
 import { Friendship } from '../models/friendship.model';
 import { logger } from '@shared/utils/logger';
@@ -25,6 +26,7 @@ export class UserService {
   }
 
   async updateProfile(userId: string, updates: { bio?: string; avatar?: string }): Promise<IUserDocument> {
+    if (updates.bio) updates.bio = xss(updates.bio);
     const user = await User.findOneAndUpdate(
       { authId: userId },
       { $set: updates },

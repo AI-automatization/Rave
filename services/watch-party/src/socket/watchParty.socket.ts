@@ -1,5 +1,6 @@
 import { Server as SocketServer, Socket } from 'socket.io';
 import jwt from 'jsonwebtoken';
+import xss from 'xss';
 import { WatchPartyService } from '../services/watchParty.service';
 import { logger } from '@shared/utils/logger';
 import { SERVER_EVENTS, CLIENT_EVENTS } from '@shared/constants/socketEvents';
@@ -14,6 +15,23 @@ interface AuthenticatedSocket extends Socket {
 const verifySocketToken = (token: string): JwtPayload => {
   const publicKey = config.jwtPublicKey;
   return jwt.verify(token, publicKey, { algorithms: ['RS256'] }) as JwtPayload;
+};
+
+// Rate limiter: per user, 10 messages per 5 seconds (chat + emoji)
+const MSG_LIMIT = 10;
+const MSG_WINDOW_MS = 5000;
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+
+const checkRateLimit = (userId: string): boolean => {
+  const now = Date.now();
+  const entry = rateLimitMap.get(userId);
+  if (!entry || now >= entry.resetAt) {
+    rateLimitMap.set(userId, { count: 1, resetAt: now + MSG_WINDOW_MS });
+    return true;
+  }
+  if (entry.count >= MSG_LIMIT) return false;
+  entry.count++;
+  return true;
 };
 
 // In-memory voice rooms: roomId → Set of userIds currently in voice
@@ -187,9 +205,14 @@ export const registerWatchPartySocket = (io: SocketServer, watchPartyService: Wa
     // CHAT MESSAGE
     socket.on(CLIENT_EVENTS.SEND_MESSAGE, (data: { message: string }) => {
       if (!authSocket.roomId) return;
+      if (!checkRateLimit(userId)) {
+        socket.emit('error', { message: 'Rate limit: sekundiga 10 ta xabar' });
+        return;
+      }
+      const safeMessage = xss(data.message.slice(0, 500));
       io.to(authSocket.roomId).emit(SERVER_EVENTS.ROOM_MESSAGE, {
         userId,
-        message: data.message.slice(0, 500), // cap message length
+        message: safeMessage,
         timestamp: Date.now(),
       });
     });
@@ -197,9 +220,11 @@ export const registerWatchPartySocket = (io: SocketServer, watchPartyService: Wa
     // EMOJI REACTION
     socket.on(CLIENT_EVENTS.SEND_EMOJI, (data: { emoji: string }) => {
       if (!authSocket.roomId) return;
+      if (!checkRateLimit(userId)) return;
+      const safeEmoji = xss(data.emoji.slice(0, 10));
       io.to(authSocket.roomId).emit(SERVER_EVENTS.ROOM_EMOJI, {
         userId,
-        emoji: data.emoji,
+        emoji: safeEmoji,
         timestamp: Date.now(),
       });
     });
