@@ -20,6 +20,7 @@ export const config = {
   mongoUri: requireEnv('MONGO_URI'),
   redisUrl: resolveEnv('REDIS_URL'),
   jwtPublicKey: requireEnv('JWT_PUBLIC_KEY').replace(/\\n/g, '\n'),
+  corsOrigins: process.env.CORS_ORIGINS ?? 'http://localhost:3000,http://localhost:5173,http://localhost:8081',
 
   firebase: {
     projectId: process.env.FIREBASE_PROJECT_ID ?? '',

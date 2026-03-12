@@ -16,8 +16,17 @@ export const createApp = (redis: Redis): express.Application => {
   // Railway reverse proxy
   app.set('trust proxy', 1);
 
+  const allowedOrigins = config.corsOrigins.split(',').map((o) => o.trim()).filter(Boolean);
+
   app.use(helmet());
-  app.use(cors({ origin: '*', credentials: true }));
+  app.use(cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      return callback(new Error(`CORS: origin ${origin} not allowed`));
+    },
+    credentials: true,
+  }));
   app.use(morgan('combined', { stream: morganStream }));
   app.use(express.json({ limit: '10kb' }));
 

@@ -4,6 +4,13 @@ import { apiResponse, buildPaginationMeta } from '@shared/utils/apiResponse';
 import { AuthenticatedRequest } from '@shared/types';
 import { uploadToCloudinary, UploadFolder } from '../utils/cloudinary';
 
+// Fields an operator is allowed to update (excludes isPublished, viewCount, rating, _id, addedBy, elasticId)
+const OPERATOR_SAFE_FIELDS = [
+  'title', 'originalTitle', 'description', 'genre', 'year', 'duration',
+  'posterUrl', 'backdropUrl', 'trailerUrl', 'videoUrl', 'type', 'language',
+  'country', 'ageRating',
+] as const;
+
 export class ContentController {
   constructor(private contentService: ContentService) {}
 
@@ -57,7 +64,22 @@ export class ContentController {
 
   updateMovie = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const movie = await this.contentService.updateMovie(req.params.id, req.body as Record<string, unknown>);
+      const { role } = (req as AuthenticatedRequest).user;
+      const body = req.body as Record<string, unknown>;
+
+      // Operators are restricted to a safe field subset — they cannot touch
+      // isPublished, viewCount, rating, _id, addedBy, or elasticId
+      let updateData: Record<string, unknown>;
+      if (role === 'operator') {
+        updateData = {};
+        for (const field of OPERATOR_SAFE_FIELDS) {
+          if (field in body) updateData[field] = body[field];
+        }
+      } else {
+        updateData = body;
+      }
+
+      const movie = await this.contentService.updateMovie(req.params.id, updateData);
       res.json(apiResponse.success(movie, 'Movie updated'));
     } catch (error) {
       next(error);

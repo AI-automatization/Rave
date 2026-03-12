@@ -14,6 +14,7 @@ export const config = {
   redisUrl: requireEnv('REDIS_URL'),
   elasticsearchUrl: process.env.ELASTICSEARCH_URL ?? 'http://localhost:9200',
   jwtPublicKey: requireEnv('JWT_PUBLIC_KEY').replace(/\\n/g, '\n').trim(),
+  corsOrigins: process.env.CORS_ORIGINS ?? 'http://localhost:3000,http://localhost:5173,http://localhost:8081',
   cloudinary: {
     cloudName: process.env.CLOUDINARY_CLOUD_NAME ?? '',
     apiKey: process.env.CLOUDINARY_API_KEY ?? '',

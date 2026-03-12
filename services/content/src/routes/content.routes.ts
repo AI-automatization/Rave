@@ -7,6 +7,7 @@ import { ContentService } from '../services/content.service';
 import { verifyToken, optionalAuth, requireRole } from '@shared/middleware/auth.middleware';
 import { apiRateLimiter } from '@shared/middleware/rateLimiter.middleware';
 import { requireInternalSecret } from '@shared/utils/serviceClient';
+import { validate, createMovieSchema } from '../validators/content.validator';
 
 const videoUpload = multer({
   storage: multer.memoryStorage(),
@@ -50,7 +51,7 @@ export const createContentRouter = (redis: Redis, elastic: ElasticsearchClient):
   router.get('/movies/:id', apiRateLimiter, optionalAuth, contentController.getMovie);
 
   // POST /content/movies — operator/admin only
-  router.post('/movies', verifyToken, requireRole('operator', 'admin', 'superadmin'), contentController.createMovie);
+  router.post('/movies', verifyToken, requireRole('operator', 'admin', 'superadmin'), validate(createMovieSchema), contentController.createMovie);
 
   // PATCH /content/movies/:id
   router.patch('/movies/:id', verifyToken, requireRole('operator', 'admin', 'superadmin'), contentController.updateMovie);

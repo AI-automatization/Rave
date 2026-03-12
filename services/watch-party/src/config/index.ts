@@ -13,4 +13,5 @@ export const config = {
   mongoUri: requireEnv('MONGO_URI'),
   redisUrl: requireEnv('REDIS_URL'),
   jwtPublicKey: requireEnv('JWT_PUBLIC_KEY').replace(/\\n/g, '\n'),
+  corsOrigins: process.env.CORS_ORIGINS ?? 'http://localhost:3000,http://localhost:5173,http://localhost:8081',
 } as const;
