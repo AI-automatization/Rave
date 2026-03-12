@@ -83,21 +83,22 @@ function YouTubeStreamPlayer(props: UniversalPlayerProps) {
 
     const resolve = async () => {
       // 1. Metadata olish: isLive, title, format URL
-      // Next.js API route orqali — apiClient token ni auto inject qiladi
+      // next.config.mjs: /youtube/:path* → content service (rewrite)
+      // apiClient Authorization headerini auto inject qiladi
       const res = await apiClient.get<{ success: boolean; data: YtStreamInfo }>(
-        `/api/youtube/stream-url?url=${encodeURIComponent(videoUrl)}`,
+        `/youtube/stream-url?url=${encodeURIComponent(videoUrl)}`,
       );
       if (!res.data.success) throw new Error('stream-url failed');
       const info = res.data.data;
 
       // 2. Stream URL tanlash:
       //    Live → format.url to'g'ridan (HLS m3u8, VideoPlayer HLS.js ile o'ynaydi)
-      //    VOD  → Next.js proxy /api/youtube/stream (range request, seeking ishlaydi)
+      //    VOD  → /youtube/stream rewrite proxy (range request, seeking ishlaydi)
       const token =
         typeof window !== 'undefined' ? (localStorage.getItem('access_token') ?? '') : '';
       const finalUrl = info.isLive
         ? info.url
-        : `/api/youtube/stream?url=${encodeURIComponent(videoUrl)}${token ? `&token=${encodeURIComponent(token)}` : ''}`;
+        : `/youtube/stream?url=${encodeURIComponent(videoUrl)}${token ? `&token=${encodeURIComponent(token)}` : ''}`;
 
       setIsLive(info.isLive);
       setStreamUrl(finalUrl);
