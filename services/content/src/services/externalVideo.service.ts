@@ -153,20 +153,35 @@ export class ExternalVideoService {
     await ExternalVideo.updateOne({ _id: videoId }, { $inc: { viewCount: 1 } });
   }
 
-  // Rate a video (simple running average)
-  async rate(videoId: string, _userId: string, score: number) {
+  // Rate a video — per-user check + atomic update (race condition fix)
+  async rate(videoId: string, userId: string, score: number) {
     if (score < 1 || score > 10) throw new BadRequestError('Rating must be between 1 and 10');
     const video = await ExternalVideo.findById(videoId);
     if (!video) throw new NotFoundError('Video not found');
     if (!video.isPublic) throw new ForbiddenError('Video is not publicly accessible');
 
-    // Running average: (oldAvg * count + newScore) / (count + 1)
-    const newCount  = video.ratingCount + 1;
-    const newRating = (video.rating * video.ratingCount + score) / newCount;
-    video.rating      = Math.round(newRating * 10) / 10;
-    video.ratingCount = newCount;
-    await video.save();
-    return video;
+    // Per-user tekshirish — bir foydalanuvchi bir marta baholay oladi
+    const alreadyRated = (video.ratedBy as string[] | undefined)?.includes(userId) ?? false;
+    if (alreadyRated) throw new BadRequestError('Siz allaqachon bu videoni baholagansiz');
+
+    // Atomic update — findByIdAndUpdate $push + $inc (race condition yo'q)
+    const updated = await ExternalVideo.findByIdAndUpdate(
+      videoId,
+      {
+        $push: { ratedBy: userId },
+        $inc: { ratingCount: 1, ratingSum: score },
+      },
+      { new: true },
+    );
+    if (!updated) throw new NotFoundError('Video not found');
+
+    // Rating ni yangilash
+    const newRating = updated.ratingCount > 0
+      ? Math.round((updated.ratingSum / updated.ratingCount) * 10) / 10
+      : 0;
+    await ExternalVideo.updateOne({ _id: videoId }, { rating: newRating });
+
+    return { ...updated.toObject(), rating: newRating };
   }
 
   // ── Admin ────────────────────────────────────────────────────────────────────

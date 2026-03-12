@@ -94,11 +94,13 @@ export class AchievementService {
     totalPoints: number;
     byRarity: Record<string, number>;
   }> {
-    const [total, userAchievements, allAchievements] = await Promise.all([
+    const [total, userAchievements] = await Promise.all([
       Achievement.countDocuments({ isSecret: false }),
       UserAchievement.find({ userId }),
-      Achievement.find({ key: { $in: (await UserAchievement.find({ userId })).map(u => u.achievementKey) } }),
     ]);
+    const allAchievements = await Achievement.find({
+      key: { $in: userAchievements.map((u) => u.achievementKey) },
+    });
 
     const totalPoints = allAchievements.reduce((sum, a) => sum + a.points + POINTS.ACHIEVEMENT_BASE, 0);
     const byRarity = allAchievements.reduce<Record<string, number>>((acc, a) => {

@@ -1,4 +1,5 @@
 import ytdl from '@distube/ytdl-core';
+import { LRUCache } from 'lru-cache';
 import { logger } from '@shared/utils/logger';
 
 export interface YtStreamInfo {
@@ -16,14 +17,18 @@ interface CachedInfo {
   cachedAt: number;
 }
 
-// In-memory cache: YouTube video info expires in ~6h, we refresh after 2h
-const infoCache = new Map<string, CachedInfo>();
 const CACHE_TTL = 2 * 60 * 60 * 1000; // 2 hours
+
+// LRU cache: max 100 ta video info (memory leak dan himoya)
+const infoCache = new LRUCache<string, CachedInfo>({
+  max: 100,
+  ttl: CACHE_TTL,
+});
 
 export const ytdlService = {
   async getCachedInfo(youtubeUrl: string): Promise<CachedInfo> {
     const cached = infoCache.get(youtubeUrl);
-    if (cached && Date.now() - cached.cachedAt < CACHE_TTL) return cached;
+    if (cached) return cached;
 
     logger.info('Fetching YouTube video info', { youtubeUrl });
     const info = await ytdl.getInfo(youtubeUrl);

@@ -15,6 +15,8 @@ export interface IExternalVideoDocument extends Document {
   viewCount:        number;
   rating:           number;     // avg (0-10)
   ratingCount:      number;
+  ratingSum:        number;     // sum of all scores (atomic update uchun)
+  ratedBy:          string[];   // per-user deduplication
   rejectionReason?: string;
   approvedBy?:      string;     // admin userId
   approvedAt?:      Date;
@@ -39,6 +41,8 @@ const externalVideoSchema = new Schema<IExternalVideoDocument>(
     viewCount:       { type: Number, default: 0 },
     rating:          { type: Number, default: 0, min: 0, max: 10 },
     ratingCount:     { type: Number, default: 0 },
+    ratingSum:       { type: Number, default: 0 },
+    ratedBy:         [{ type: String }],
     rejectionReason: { type: String, default: null },
     approvedBy:      { type: String, default: null },
     approvedAt:      { type: Date, default: null },
