@@ -9,11 +9,13 @@ export interface YtStreamInfo {
   thumbnail: string;
   mimeType: string;
   contentLength: number;
+  isLive: boolean;
 }
 
 interface CachedInfo {
   info: ytdl.videoInfo;
   format: ytdl.videoFormat;
+  isLive: boolean;
   cachedAt: number;
 }
 
@@ -33,23 +35,33 @@ export const ytdlService = {
     logger.info('Fetching YouTube video info', { youtubeUrl });
     const info = await ytdl.getInfo(youtubeUrl);
 
-    // Best pre-merged mp4 (audioandvideo) — max 720p
-    let format = ytdl.chooseFormat(info.formats, {
-      filter: 'audioandvideo',
-      quality: 'highest',
-    });
-    if (!format) {
-      // Fallback: any format with video
-      format = info.formats.find((f) => f.hasAudio && f.hasVideo) ?? info.formats[0];
+    const isLive = !!(info.videoDetails.isLive || info.videoDetails.isLiveContent);
+
+    let format: ytdl.videoFormat;
+    if (isLive) {
+      // Live stream: HLS format kerak (m3u8)
+      format =
+        info.formats.find((f) => f.isHLS) ??
+        info.formats.find((f) => f.mimeType?.includes('m3u8')) ??
+        info.formats[0];
+    } else {
+      // VOD: best pre-merged mp4 (audioandvideo) — max 720p
+      format = ytdl.chooseFormat(info.formats, {
+        filter: 'audioandvideo',
+        quality: 'highest',
+      });
+      if (!format) {
+        format = info.formats.find((f) => f.hasAudio && f.hasVideo) ?? info.formats[0];
+      }
     }
 
-    const entry: CachedInfo = { info, format, cachedAt: Date.now() };
+    const entry: CachedInfo = { info, format, isLive, cachedAt: Date.now() };
     infoCache.set(youtubeUrl, entry);
     return entry;
   },
 
   async getStreamInfo(youtubeUrl: string): Promise<YtStreamInfo> {
-    const { info, format } = await this.getCachedInfo(youtubeUrl);
+    const { info, format, isLive } = await this.getCachedInfo(youtubeUrl);
     const thumbnails = info.videoDetails.thumbnails;
     return {
       url: format.url,
@@ -58,6 +70,7 @@ export const ytdlService = {
       thumbnail: thumbnails[thumbnails.length - 1]?.url ?? '',
       mimeType: format.mimeType ?? 'video/mp4',
       contentLength: parseInt(format.contentLength ?? '0', 10),
+      isLive,
     };
   },
 };

@@ -35,7 +35,15 @@ export const ytdlController = {
     }
 
     try {
-      const { info, format } = await ytdlService.getCachedInfo(url);
+      const { info, format, isLive } = await ytdlService.getCachedInfo(url);
+
+      // Live stream: HLS m3u8 ni to'g'ridan redirect qilish
+      // (infinite stream ni proxy qilish mumkin emas — range/contentLength yo'q)
+      if (isLive) {
+        res.redirect(302, format.url);
+        return;
+      }
+
       const contentLength = parseInt(format.contentLength ?? '0', 10);
       const mimeType = format.mimeType ?? 'video/mp4';
 

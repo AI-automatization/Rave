@@ -14,7 +14,7 @@
 3. Fix bo'lgach → shu yerdan O'CHIRISH → docs/Done.md ga KO'CHIRISH
 4. Prioritet: P0=kritik, P1=muhim, P2=o'rta, P3=past
 5. Sprint: S1=hozir, S2=keyingi hafta, S3=keyingi sprint, S4-5=keyin
-6. Oxirgi T-raqam: S→025, E→023, J→014, C→009
+6. Oxirgi T-raqam: S→025, E→024, J→014, C→009
 ```
 
 ---
@@ -148,6 +148,288 @@
 
 ---
 
+### T-E024 | P0 | [MOBILE] | YouTube video → expo-av (WebView emas) + LIVE badge
+
+- **Sana:** 2026-03-12
+- **Mas'ul:** Emirhan
+- **Holat:** ❌ Boshlanmagan
+- **Sabab:** YouTube WebView orqali o'ynaganda `window._csVideo` topilmaydi (YouTube shadowed player) → member'da `injectJavaScript('video.play()')` ishlamaydi → Watch Party sync buzilib ketmoqda.
+- **Backend tayyor:** `GET /api/v1/content/youtube/stream-url?url=...` → `{ url, isLive, title, duration }` — Saidazim tomonidan yozilgan. Stream proxy ham tayyor: `/api/v1/content/youtube/stream?url=...&token=...` — range request + seeking ishlaydi. Live uchun 302 redirect → HLS m3u8.
+
+---
+
+#### 1. `apps/mobile/src/api/content.api.ts` — YouTube metod qo'shish
+
+```typescript
+export interface YtStreamInfo {
+  url: string;
+  title: string;
+  duration: number;
+  thumbnail: string;
+  mimeType: string;
+  contentLength: number;
+  isLive: boolean;
+}
+
+// contentApi ichiga:
+async getYouTubeStreamInfo(youtubeUrl: string): Promise<YtStreamInfo> {
+  const res = await contentClient.get<ApiResponse<YtStreamInfo>>('/youtube/stream-url', {
+    params: { url: youtubeUrl },
+  });
+  return res.data.data!;
+},
+```
+
+---
+
+#### 2. `apps/mobile/src/components/video/UniversalPlayer.tsx` — YouTube platformasi qo'shish
+
+**Yangi `VideoPlatform` type:**
+```typescript
+export type VideoPlatform = 'direct' | 'youtube' | 'webview';
+```
+
+**`detectVideoPlatform` yangilash:**
+```typescript
+const YOUTUBE_REGEX = /(?:youtube\.com|youtu\.be)/i;
+
+export function detectVideoPlatform(url: string): VideoPlatform {
+  if (!url) return 'direct';
+  if (/\.(mp4|m3u8|webm|ogg|mov)(\?.*)?$/i.test(url)) return 'direct';
+  if (YOUTUBE_REGEX.test(url)) return 'youtube';
+  return 'webview';
+}
+```
+
+**Yangi prop qo'shish:**
+```typescript
+interface Props {
+  // ... mavjud proplar ...
+  /** YouTube stream resolve bo'lganda chaqiriladi */
+  onStreamResolved?: (info: { isLive: boolean; title: string }) => void;
+}
+```
+
+**`UniversalPlayer` komponentiga YouTube state + useEffect qo'shish:**
+```typescript
+// YouTube: stream proxy URL ni resolve qilish
+const [streamUrl, setStreamUrl] = useState<string | null>(null);
+const [resolving, setResolving] = useState(false);
+const [resolveError, setResolveError] = useState(false);
+
+useEffect(() => {
+  if (platform !== 'youtube' || !url) return;
+
+  setResolving(true);
+  setResolveError(false);
+  setStreamUrl(null);
+
+  const resolve = async () => {
+    // isLive va title uchun metadata olish
+    const info = await contentApi.getYouTubeStreamInfo(url);
+
+    // Stream URL konstruksiya:
+    //   VOD  → backend proxy (range request, seeking ishlaydi)
+    //   Live → backend 302 redirect → HLS m3u8 (expo-av native HLS)
+    const token = await tokenStorage.getAccessToken();
+    const contentBase = process.env.EXPO_PUBLIC_CONTENT_URL ?? '';
+    const proxyUrl =
+      `${contentBase}/youtube/stream` +
+      `?url=${encodeURIComponent(url)}` +
+      (token ? `&token=${encodeURIComponent(token)}` : '');
+
+    onStreamResolved?.({ isLive: info.isLive, title: info.title });
+    setStreamUrl(proxyUrl);
+  };
+
+  resolve()
+    .catch(() => setResolveError(true))
+    .finally(() => setResolving(false));
+}, [url, platform]); // eslint-disable-line react-hooks/exhaustive-deps
+```
+
+**Render qismi — YouTube holatlari:**
+```typescript
+if (platform === 'youtube') {
+  if (resolving) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Video yuklanmoqda...</Text>
+      </View>
+    );
+  }
+  if (resolveError || !streamUrl) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.errorText}>Video yuklashda xato</Text>
+      </View>
+    );
+  }
+  // streamUrl bor → pastdagi Video komponentga o'tadi
+}
+
+// 'direct' yoki 'youtube' (streamUrl resolved) — expo-av
+const sourceUri = platform === 'youtube' ? streamUrl! : url;
+
+return (
+  <Video
+    ref={videoRef}
+    source={sourceUri ? { uri: sourceUri } : undefined}
+    style={styles.video}
+    resizeMode={ResizeMode.CONTAIN}
+    useNativeControls={false}
+    onPlaybackStatusUpdate={onPlaybackStatusUpdate}
+  />
+);
+```
+
+**Import qo'shish:**
+```typescript
+import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
+import { contentApi } from '@api/content.api';
+import { tokenStorage } from '@utils/storage';
+import { colors, typography, spacing } from '@theme/index';
+```
+
+**Styles:**
+```typescript
+center: {
+  flex: 1,
+  justifyContent: 'center',
+  alignItems: 'center',
+  backgroundColor: '#000',
+  gap: spacing.md,
+},
+loadingText: { ...typography.body, color: colors.textSecondary },
+errorText: { ...typography.body, color: colors.error },
+```
+
+---
+
+#### 3. `apps/mobile/src/screens/modal/WatchPartyScreen.tsx` — LIVE badge + seek disable
+
+**State qo'shish:**
+```typescript
+const [videoIsLive, setVideoIsLive] = useState(false);
+```
+
+**`UniversalPlayer` ga prop qo'shish:**
+```typescript
+<UniversalPlayer
+  ref={playerRef}
+  url={videoUrl}
+  isOwner={isOwner}
+  onPlay={handleWebViewPlay}
+  onPause={handleWebViewPause}
+  onSeek={handleWebViewSeek}
+  onPlaybackStatusUpdate={onPlaybackStatusUpdate}
+  onStreamResolved={({ isLive }) => setVideoIsLive(isLive)}  {/* YANGI */}
+/>
+```
+
+**`handleSeek` — live efirda seek o'chirish:**
+```typescript
+const handleSeek = useCallback(
+  async (direction: 'forward' | 'back') => {
+    if (!isOwner || videoIsLive) return; // Live efirda seek yo'q
+    // ... qolgan kod o'zgarmaydi ...
+  },
+  [isOwner, videoIsLive, emitSeek],
+);
+```
+
+**LIVE badge — video container ichiga, floatingEmojis dan oldin:**
+```typescript
+{videoIsLive && (
+  <View style={styles.liveBadge}>
+    <View style={styles.liveDot} />
+    <Text style={styles.liveText}>JONLI EFIR</Text>
+  </View>
+)}
+```
+
+**Controls — live efirda seek tugmalarini yashirish:**
+```typescript
+{isOwner && (
+  <View style={styles.controls}>
+    {!videoIsLive && (
+      <TouchableOpacity onPress={() => handleSeek('back')} style={styles.controlBtn}>
+        <Ionicons name="play-back" size={22} color={colors.textPrimary} />
+      </TouchableOpacity>
+    )}
+    <TouchableOpacity onPress={handlePlayPause} style={styles.playBtn}>
+      <Ionicons name={isPlaying ? 'pause' : 'play'} size={26} color={colors.textPrimary} />
+    </TouchableOpacity>
+    {!videoIsLive && (
+      <TouchableOpacity onPress={() => handleSeek('forward')} style={styles.controlBtn}>
+        <Ionicons name="play-forward" size={22} color={colors.textPrimary} />
+      </TouchableOpacity>
+    )}
+  </View>
+)}
+```
+
+**Styles qo'shish:**
+```typescript
+liveBadge: {
+  position: 'absolute',
+  top: 12,
+  left: 12,
+  flexDirection: 'row',
+  alignItems: 'center',
+  gap: 6,
+  backgroundColor: colors.error,
+  paddingHorizontal: spacing.md,
+  paddingVertical: spacing.xs,
+  borderRadius: borderRadius.sm,
+},
+liveDot: {
+  width: 6,
+  height: 6,
+  borderRadius: 3,
+  backgroundColor: '#fff',
+},
+liveText: { ...typography.label, color: '#fff', fontWeight: '700' },
+```
+
+---
+
+#### Nima uchun bu o'zgarish kerak?
+
+```
+MUAMMO (hozirgi):
+  YouTube URL → WebViewPlayer → WebView ichida YouTube o'ynaydi
+  JS injection: window._csVideo → YouTube shadowed player → TOPILMAYDI
+  Member: injectJavaScript('video.play()') → window._csVideo null → ISHLAMAYDI
+  Natija: owner boshlasa member ko'rmaydi, member boshqara olmaydi
+
+YECHIM (yangi):
+  YouTube URL → detectVideoPlatform → 'youtube'
+  → contentApi.getYouTubeStreamInfo() → isLive, title olish
+  → /youtube/stream?url=...&token=... (backend proxy)
+  → expo-av Video component (to'liq nazorat)
+  → play/pause/seek ISHLAYDI (WebView yo'q)
+
+NATIJA:
+  Owner play → emitPlay → socket → server → VIDEO_PLAY → member → playerRef.play() → expo-av.playAsync() ✅
+  Member seekTo → playerRef.seekTo() → expo-av.setPositionAsync() ✅
+  Live: redirect → m3u8 → expo-av native HLS ✅ + seek yo'q + LIVE badge ✅
+
+KELAJAK (boshqa platformalar):
+  detectVideoPlatform ga yangi REGEX qo'shish kifoya:
+  if (/vimeo\.com/i.test(url)) return 'vimeo';
+  Backend: yangi extractor endpoint
+```
+
+---
+
+#### Bog'liqlik
+
+- Backend (`/youtube/stream` va `/youtube/stream-url`) — **Saidazim tomonidan TAYYOR** ✅
+- `EXPO_PUBLIC_CONTENT_URL` env var — `.env` da bo'lishi kerak (mavjud)
+
+---
 
 ## SPRINT 3 — Ijtimoiy ekranlar
 
