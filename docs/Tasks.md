@@ -369,7 +369,7 @@
 
 - **Sana:** 2026-03-11
 - **Mas'ul:** Emirhan (Mobile — asosiy), Saidazim (Backend — minimal), Jafar (Web — fallback UI)
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 pending[Emirhan] (Mobile qismi)
 - **Sprint:** S2-S3
 - **Prioritet:** P1 — foydalanuvchilar faqat YouTube ko'ra olmoqda, boshqa saytlar ishlamayapti
 
@@ -607,7 +607,7 @@ Foydalanuvchi **har qanday** video sayt URL ni kiritganda:
 
 - **Sana:** 2026-03-11
 - **Mas'ul:** Emirhan (Mobile) + Jafar (Web) + Saidazim (Backend payload)
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 pending[Emirhan] (Mobile qismi)
 - **Fayllar:**
   - `apps/web/src/hooks/useWatchParty.ts` — 14+ hardcoded event string
   - `apps/web/src/hooks/useVoiceChat.ts` — 8+ hardcoded event string
