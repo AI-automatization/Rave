@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import {
   FaBell, FaCheck, FaCheckDouble, FaTrash,
   FaUserFriends, FaTrophy, FaMedal, FaFilm, FaSync, FaWifi,
+  FaUserCheck, FaDoorOpen,
 } from 'react-icons/fa';
 import { useTranslations } from 'next-intl';
 import { apiClient } from '@/lib/axios';
@@ -28,10 +29,10 @@ const TYPE_META: Record<string, { icon: React.ReactNode; color: string; bg: stri
 const DEFAULT_META = { icon: <FaBell size={15} />, color: 'text-slate-400', bg: 'bg-slate-500/20' };
 
 const TYPE_ROUTES: Partial<Record<AnyNotifType, (data?: Record<string, string>) => string>> = {
-  friend_request:       () => '/friends',
+  friend_request:       () => '/friends?tab=requests',
   battle_invite:        () => '/battle',
   battle_result:        (d) => d?.battleId ? `/battle/${d.battleId}` : '/battle',
-  watch_party_invite:   (d) => d?.roomId ? `/party/${d.roomId}` : '/home',
+  watch_party_invite:   (d) => d?.inviteCode ? `/party/join/${d.inviteCode}` : (d?.roomId ? `/party/${d.roomId}` : '/home'),
   achievement_unlocked: () => '/achievements',
 };
 
@@ -54,6 +55,8 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<INotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [acceptingIds, setAcceptingIds] = useState<Set<string>>(new Set());
+  const [acceptedIds, setAcceptedIds] = useState<Set<string>>(new Set());
 
   const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -90,6 +93,22 @@ export default function NotificationsPage() {
     e.stopPropagation();
     setNotifications((prev) => prev.filter((n) => n._id !== id));
     apiClient.delete(`/notifications/${id}`).catch(() => {});
+  };
+
+  const acceptFriendRequest = async (e: React.MouseEvent, notif: INotification) => {
+    e.stopPropagation();
+    const friendshipId = notif.data?.friendshipId;
+    if (!friendshipId || acceptingIds.has(notif._id) || acceptedIds.has(notif._id)) return;
+    setAcceptingIds((p) => new Set(p).add(notif._id));
+    try {
+      await apiClient.patch(`/users/friends/accept/${friendshipId}`);
+      setAcceptedIds((p) => new Set(p).add(notif._id));
+      void markRead(notif._id);
+    } catch (err) {
+      logger.warn('acceptFriendRequest error', err);
+    } finally {
+      setAcceptingIds((p) => { const s = new Set(p); s.delete(notif._id); return s; });
+    }
   };
 
   const handleClick = (notif: INotification) => {
@@ -199,7 +218,37 @@ export default function NotificationsPage() {
                   <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">{notif.body}</p>
                 </div>
 
-                {/* Actions (hover) */}
+                {/* Inline action buttons for specific types */}
+                {notif.type === 'friend_request' && !acceptedIds.has(notif._id) && (
+                  <button
+                    onClick={(e) => void acceptFriendRequest(e, notif)}
+                    disabled={acceptingIds.has(notif._id)}
+                    className="shrink-0 inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-medium hover:bg-emerald-500/25 transition-all disabled:opacity-50"
+                  >
+                    {acceptingIds.has(notif._id) ? (
+                      <div className="w-3 h-3 rounded-full border border-current border-t-transparent animate-spin" />
+                    ) : (
+                      <FaUserCheck size={11} />
+                    )}
+                    Qabul
+                  </button>
+                )}
+                {notif.type === 'friend_request' && acceptedIds.has(notif._id) && (
+                  <span className="shrink-0 inline-flex items-center gap-1 text-xs text-emerald-400">
+                    <FaCheck size={10} /> Qabul qilindi
+                  </span>
+                )}
+                {notif.type === 'watch_party_invite' && notif.data?.inviteCode && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); router.push(`/party/join/${notif.data!.inviteCode}`); }}
+                    className="shrink-0 inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 text-xs font-medium hover:bg-cyan-500/25 transition-all"
+                  >
+                    <FaDoorOpen size={11} />
+                    Kirish
+                  </button>
+                )}
+
+                {/* Read / Delete (hover) */}
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                   {!notif.isRead && (
                     <button

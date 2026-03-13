@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { FaUserPlus, FaSearch, FaUsers, FaUserCheck, FaClock } from 'react-icons/fa';
 import { useTranslations } from 'next-intl';
+import { apiClient } from '@/lib/axios';
 import { logger } from '@/lib/logger';
 import type { ApiResponse, IFriendship, IUser } from '@/types';
 
@@ -18,21 +19,11 @@ const RANK_COLOR: Record<string, string> = {
   legend:  'text-[#7C3AED]',
 };
 
-function getToken() {
-  if (typeof window === 'undefined') return '';
-  return localStorage.getItem('access_token') ?? '';
-}
-
-function authFetch(url: string, init?: RequestInit) {
-  const token = getToken();
-  return fetch(url, {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(init?.headers as Record<string, string> | undefined),
-    },
-  });
+function getInitialTab(): Tab {
+  if (typeof window === 'undefined') return 'friends';
+  const p = new URLSearchParams(window.location.search);
+  const t = p.get('tab');
+  return (t === 'requests' || t === 'friends' || t === 'search') ? (t as Tab) : 'friends';
 }
 
 function Avatar({ user }: { user: { avatar?: string; username: string } }) {
@@ -54,7 +45,7 @@ function Avatar({ user }: { user: { avatar?: string; username: string } }) {
 
 export default function FriendsPage() {
   const t = useTranslations('friends');
-  const [tab, setTab] = useState<Tab>('friends');
+  const [tab, setTab] = useState<Tab>(getInitialTab);
   const [friends,   setFriends]   = useState<IUser[]>([]);
   const [requests,  setRequests]  = useState<IFriendship[]>([]);
   const [search,    setSearch]    = useState('');
@@ -68,11 +59,11 @@ export default function FriendsPage() {
     setLoading(true);
     try {
       const [fr, rq] = await Promise.all([
-        authFetch('/api/users/friends').then((r) => r.json() as Promise<ApiResponse<IUser[]>>),
-        authFetch('/api/users/friends/requests').then((r) => r.json() as Promise<ApiResponse<IFriendship[]>>),
+        apiClient.get<ApiResponse<IUser[]>>('/users/friends'),
+        apiClient.get<ApiResponse<IFriendship[]>>('/users/friends/requests'),
       ]);
-      setFriends(Array.isArray(fr.data) ? fr.data : []);
-      setRequests(Array.isArray(rq.data) ? rq.data : []);
+      setFriends(Array.isArray(fr.data.data) ? fr.data.data : []);
+      setRequests(Array.isArray(rq.data.data) ? rq.data.data : []);
     } catch (err) {
       logger.error("Do'stlar yuklanmadi", err);
     } finally {
@@ -84,7 +75,7 @@ export default function FriendsPage() {
 
   const acceptRequest = async (friendshipId: string) => {
     try {
-      await authFetch(`/api/users/friends/accept/${friendshipId}`, { method: 'PATCH' });
+      await apiClient.patch(`/users/friends/accept/${friendshipId}`);
       void loadFriends();
     } catch (err) {
       logger.error('Accept xatosi', err);
@@ -94,10 +85,7 @@ export default function FriendsPage() {
   const sendRequest = async (userId: string) => {
     setSendingIds((p) => new Set(p).add(userId));
     try {
-      await authFetch('/api/users/friends', {
-        method: 'POST',
-        body: JSON.stringify({ userId }),
-      });
+      await apiClient.post('/users/friends/request', { userId });
       setSentIds((p) => new Set(p).add(userId));
     } catch (err) {
       logger.error("Do'st so'rovi xatosi", err);
@@ -111,9 +99,8 @@ export default function FriendsPage() {
     if (!q.trim()) { setResults([]); return; }
     setSearching(true);
     try {
-      const res = await authFetch(`/api/users/search?q=${encodeURIComponent(q)}`);
-      const json: ApiResponse<IUser[]> = await res.json() as ApiResponse<IUser[]>;
-      setResults(json.data ?? []);
+      const res = await apiClient.get<ApiResponse<IUser[]>>(`/users/search?q=${encodeURIComponent(q)}`);
+      setResults(res.data.data ?? []);
     } catch (err) {
       logger.error('Qidiruv xatosi', err);
     } finally {
