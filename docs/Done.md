@@ -4,6 +4,18 @@
 
 ---
 
+### F-098 | 2026-03-14 | [MOBILE] | T-E025 — WatchPartyCreateScreen redesign [Emirhan]
+
+- `watchParty.api.ts`: `createRoom()` ga `videoUrl?` field qo'shildi
+- `WatchPartyCreateScreen.tsx`: to'liq qayta yozildi
+  - Film tanlash: Katalogdan (debounced search, `contentApi.search()`, 400ms, 5 natija) / URL orqali (toggle) mode toggle
+  - Tanlangan film: poster + title + yil/janr chip, clear button
+  - Do'stlarni taklif: `userApi.getFriends()` → checkbox list (avatar initial + username + checkbox)
+  - Tanlangan do'stlar: violet chips row (tap to remove)
+  - `handleCreate`: `movieId + videoUrl` (catalog) yoki `videoUrl` (URL mode) yuboradi
+
+---
+
 ### F-097 | 2026-03-13 | [MOBILE] | T-E024 — YouTube expo-av proxy + LIVE badge + seek disable [Emirhan]
 
 - `content.api.ts`: `YtStreamInfo` interface + `getYouTubeStreamInfo(url)` metodi qo'shildi

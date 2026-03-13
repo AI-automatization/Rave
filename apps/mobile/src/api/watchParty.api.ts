@@ -5,6 +5,7 @@ import { ApiResponse, IWatchPartyRoom } from '@app-types/index';
 export const watchPartyApi = {
   async createRoom(data: {
     movieId?: string;
+    videoUrl?: string;
     name?: string;
     isPrivate?: boolean;
     maxMembers?: number;

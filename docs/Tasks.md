@@ -134,22 +134,6 @@
 
 ## SPRINT 2 — Asosiy ekranlar
 
-### T-E025 | P1 | [MOBILE] | WatchPartyCreateScreen — Film tanlash + do'stlarni taklif
-
-- **Sana:** 2026-03-14
-- **Mas'ul:** Emirhan
-- **Fayl:** `apps/mobile/src/screens/modal/WatchPartyCreateScreen.tsx`
-- **Holat:** ❌ Boshlanmagan
-- **Sabab:** Design prompt da ko'rsatilgan: film qidirish (catalog) YOKI video URL, va do'stlarni taklif (multi-select). Hozirgi implementatsiya faqat room name + privacy + max members.
-- **Bajarilishi kerak:**
-  - [ ] Film qidirish input — `contentApi.search()` bilan debounced qidiruv, natijalar listdan tanlash
-  - [ ] Yoki video URL input (har qanday URL, toggle bilan almashish)
-  - [ ] Tanlangan film ko'rsatish: poster + title chip (tozalash tugmasi bilan)
-  - [ ] Do'stlarni taklif: `userApi.getFriends()` → multi-select FlatList (checkbox + avatar + username)
-  - [ ] Tanlangan do'stlar: violet chip lari ko'rinishi
-  - [ ] Room yaratishda: `videoUrl` (film URL yoki kiritilgan URL) + `invitedFriends[]` yuborish
-
----
 
 ### T-E026 | P1 | [MOBILE] | MovieDetailScreen — Cast ro'yxati + O'xshash filmlar
 
