@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useCallback, useState, useRef } from 'react';
-import { FaVolumeMute, FaVolumeDown, FaVolumeUp } from 'react-icons/fa';
+import { FaVolumeMute, FaVolumeDown, FaVolumeUp, FaExpand, FaCompress } from 'react-icons/fa';
 import { VideoPlayer } from '@/components/VideoPlayer';
 import { apiClient } from '@/lib/axios';
 import type { VideoPlatform } from '@/types';
@@ -132,10 +132,12 @@ function YouTubeIframePlayer(props: UniversalPlayerProps) {
   useEffect(() => { onSeekRef.current = onSeek; }, [onSeek]);
   useEffect(() => { isOwnerRef.current = isOwner; }, [isOwner]);
 
-  // Member uchun volume state (YouTube player.setVolume bilan boshqariladi)
+  // Member uchun volume + fullscreen state
   const [memberVolume, setMemberVolume] = useState(100);
   const [memberMuted, setMemberMuted] = useState(false);
   const [showVolSlider, setShowVolSlider] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
   const handleMemberVolumeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const v = parseInt(e.target.value, 10);
@@ -144,6 +146,21 @@ function YouTubeIframePlayer(props: UniversalPlayerProps) {
     playerRef.current?.setVolume(v);
     if (v === 0) playerRef.current?.mute();
     else playerRef.current?.unMute();
+  }, []);
+
+  const handleMemberFullscreen = useCallback(() => {
+    if (!wrapperRef.current) return;
+    if (!document.fullscreenElement) {
+      void wrapperRef.current.requestFullscreen();
+    } else {
+      void document.exitFullscreen();
+    }
+  }, []);
+
+  useEffect(() => {
+    const handler = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', handler);
+    return () => document.removeEventListener('fullscreenchange', handler);
   }, []);
 
   const handleMemberToggleMute = useCallback(() => {
@@ -268,7 +285,7 @@ function YouTubeIframePlayer(props: UniversalPlayerProps) {
     : FaVolumeUp;
 
   return (
-    <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
+    <div ref={wrapperRef} className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
       {/* YouTube IFrame API bu div ni replace qiladi */}
       <div ref={containerRef} className="w-full h-full" title={title} />
 
@@ -279,31 +296,43 @@ function YouTubeIframePlayer(props: UniversalPlayerProps) {
           {/* Shaffof overlay — YouTube iframe ga click o'tmasligi uchun */}
           <div className="absolute inset-0" />
 
-          {/* Volume control — pastda o'ng tomonda */}
-          <div
-            className="absolute bottom-3 right-3 flex items-center gap-2 bg-black/70 backdrop-blur-sm rounded-lg px-3 py-2"
-            onMouseEnter={() => setShowVolSlider(true)}
-            onMouseLeave={() => setShowVolSlider(false)}
-          >
-            <button
-              onClick={handleMemberToggleMute}
-              className="text-white/80 hover:text-white transition-colors"
-            >
-              <MemberVolumeIcon size={16} />
-            </button>
+          {/* Controls — pastda o'ng tomonda: volume + fullscreen */}
+          <div className="absolute bottom-3 right-3 flex items-center gap-1">
+            {/* Volume */}
             <div
-              className={`overflow-hidden transition-all duration-200 ${showVolSlider ? 'w-20 opacity-100' : 'w-0 opacity-0'}`}
+              className="flex items-center gap-2 bg-black/70 backdrop-blur-sm rounded-lg px-3 py-2"
+              onMouseEnter={() => setShowVolSlider(true)}
+              onMouseLeave={() => setShowVolSlider(false)}
             >
-              <input
-                type="range"
-                min={0}
-                max={100}
-                step={2}
-                value={memberMuted ? 0 : memberVolume}
-                onChange={handleMemberVolumeChange}
-                className="w-20 h-1 rounded-full cursor-pointer accent-[#7C3AED]"
-              />
+              <button
+                onClick={handleMemberToggleMute}
+                className="text-white/80 hover:text-white transition-colors"
+              >
+                <MemberVolumeIcon size={16} />
+              </button>
+              <div
+                className={`overflow-hidden transition-all duration-200 ${showVolSlider ? 'w-20 opacity-100' : 'w-0 opacity-0'}`}
+              >
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={2}
+                  value={memberMuted ? 0 : memberVolume}
+                  onChange={handleMemberVolumeChange}
+                  className="w-20 h-1 rounded-full cursor-pointer accent-[#7C3AED]"
+                />
+              </div>
             </div>
+
+            {/* Fullscreen */}
+            <button
+              onClick={handleMemberFullscreen}
+              className="flex items-center justify-center h-9 w-9 bg-black/70 backdrop-blur-sm rounded-lg text-white/80 hover:text-white transition-colors"
+              title={isFullscreen ? 'Kichiklashtirish' : 'Kattalashtirish'}
+            >
+              {isFullscreen ? <FaCompress size={14} /> : <FaExpand size={14} />}
+            </button>
           </div>
         </div>
       )}
