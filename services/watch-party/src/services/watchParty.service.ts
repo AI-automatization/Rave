@@ -4,10 +4,12 @@ import Redis from 'ioredis';
 import { WatchPartyRoom, IWatchPartyRoomDocument } from '../models/watchPartyRoom.model';
 import { logger } from '@shared/utils/logger';
 import { NotFoundError, ForbiddenError, BadRequestError, UnauthorizedError } from '@shared/utils/errors';
-import { SyncState } from '@shared/types';
+import { SyncState, VideoPlatform } from '@shared/types';
 import { REDIS_KEYS, TTL, LIMITS } from '@shared/constants';
 
 const SYNC_THRESHOLD_SECONDS = 2;
+// WebView sync ~150-400ms extra latency — 0.5s qo'shimcha tolerance
+const SYNC_THRESHOLD_WEBVIEW_SECONDS = 2.5;
 
 export class WatchPartyService {
   constructor(private redis: Redis) {}
@@ -20,7 +22,7 @@ export class WatchPartyService {
       videoUrl?: string | null;
       videoTitle?: string | null;
       videoThumbnail?: string | null;
-      videoPlatform?: string | null;
+      videoPlatform?: VideoPlatform | null;
       maxMembers?: number;
       isPrivate?: boolean;
       password?: string;
@@ -34,6 +36,10 @@ export class WatchPartyService {
 
     if (!movieId && !videoUrl) {
       throw new BadRequestError('Either movieId or videoUrl is required');
+    }
+
+    if (videoUrl && !/^https?:\/\//i.test(videoUrl)) {
+      throw new BadRequestError('videoUrl must start with http:// or https://');
     }
 
     const inviteCode = crypto.randomBytes(4).toString('hex').toUpperCase();
@@ -187,8 +193,9 @@ export class WatchPartyService {
     return cached ? JSON.parse(cached) as SyncState : null;
   }
 
-  needsResync(clientTime: number, serverTime: number): boolean {
-    return Math.abs(clientTime - serverTime) > SYNC_THRESHOLD_SECONDS;
+  needsResync(clientTime: number, serverTime: number, platform?: VideoPlatform | null): boolean {
+    const threshold = platform === 'webview' ? SYNC_THRESHOLD_WEBVIEW_SECONDS : SYNC_THRESHOLD_SECONDS;
+    return Math.abs(clientTime - serverTime) > threshold;
   }
 
   private async cacheRoomState(roomId: string, state: SyncState): Promise<void> {

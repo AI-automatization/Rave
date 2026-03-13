@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { WatchPartyService } from '../services/watchParty.service';
 import { apiResponse } from '@shared/utils/apiResponse';
-import { AuthenticatedRequest } from '@shared/types';
+import { AuthenticatedRequest, VideoPlatform } from '@shared/types';
 import { sendInternalNotification } from '@shared/utils/serviceClient';
 
 export class WatchPartyController {
@@ -19,7 +19,7 @@ export class WatchPartyController {
         videoUrl?: string;
         videoTitle?: string;
         videoThumbnail?: string;
-        videoPlatform?: string;
+        videoPlatform?: VideoPlatform;
         maxMembers?: number;
         isPrivate?: boolean;
         password?: string;

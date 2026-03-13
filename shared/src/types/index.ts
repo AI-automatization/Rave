@@ -119,6 +119,7 @@ export interface IMovie {
 // ─────────────────────────────────────────────
 
 export type WatchPartyStatus = 'waiting' | 'playing' | 'paused' | 'ended';
+export type VideoPlatform = 'youtube' | 'direct' | 'webview';
 
 export interface IWatchPartyRoom {
   _id: string;
@@ -127,7 +128,7 @@ export interface IWatchPartyRoom {
   videoUrl?: string | null;
   videoTitle?: string | null;
   videoThumbnail?: string | null;
-  videoPlatform?: string | null;
+  videoPlatform?: VideoPlatform | null;
   ownerId: string;
   members: string[];
   maxMembers: number;

@@ -1,5 +1,5 @@
 import { Schema, model, Document } from 'mongoose';
-import { WatchPartyStatus } from '@shared/types';
+import { WatchPartyStatus, VideoPlatform } from '@shared/types';
 
 export interface IWatchPartyRoomDocument extends Document {
   name: string | null;      // room name (optional)
@@ -7,7 +7,7 @@ export interface IWatchPartyRoomDocument extends Document {
   videoUrl: string | null;  // external video link (optional)
   videoTitle: string | null; // title for external videos
   videoThumbnail: string | null;
-  videoPlatform: string | null;
+  videoPlatform: VideoPlatform | null;
   ownerId: string;
   members: string[];
   maxMembers: number;
@@ -29,7 +29,7 @@ const watchPartyRoomSchema = new Schema<IWatchPartyRoomDocument>(
     videoUrl:         { type: String, default: null },
     videoTitle:       { type: String, default: null },
     videoThumbnail:   { type: String, default: null },
-    videoPlatform:    { type: String, default: null },
+    videoPlatform:    { type: String, enum: ['youtube', 'direct', 'webview', null], default: null },
     ownerId: { type: String, required: true },
     members: [{ type: String }],
     maxMembers: { type: Number, default: 10, min: 2, max: 10 },
