@@ -1,6 +1,7 @@
 import express from 'express';
 import { createServer } from 'http';
 import { Server as SocketServer } from 'socket.io';
+import { createAdapter } from '@socket.io/redis-adapter';
 import helmet from 'helmet';
 import cors from 'cors';
 import morgan from 'morgan';
@@ -34,6 +35,11 @@ export const createApp = (redis: Redis): { app: express.Application; io: SocketS
     },
     transports: ['websocket', 'polling'],
   });
+
+  // Redis pub/sub adapter — multi-instance scaling uchun
+  const pubClient = redis.duplicate();
+  const subClient = redis.duplicate();
+  io.adapter(createAdapter(pubClient, subClient));
 
   app.use(helmet());
   app.use(cors({
