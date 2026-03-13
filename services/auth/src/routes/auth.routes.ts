@@ -11,6 +11,7 @@ import {
   refreshTokenSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
+  googleIdTokenSchema,
   validate,
 } from '../validators/auth.validator';
 import Redis from 'ioredis';
@@ -54,6 +55,9 @@ export const createAuthRouter = (redis: Redis): Router => {
     passport.authenticate('google', { session: false, failureRedirect: '/auth/login-failed' }),
     authController.googleCallback,
   );
+  // POST /auth/google/token — Mobile: idToken → accessToken + refreshToken
+  router.post('/google/token', authRateLimiter, validate(googleIdTokenSchema), authController.googleNativeToken);
+
   // POST /auth/google/exchange — temp code → tokens (one-time, 2 min TTL)
   router.post('/google/exchange', authController.googleExchange);
 

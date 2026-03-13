@@ -131,6 +131,26 @@ export class AuthController {
     }
   };
 
+  googleNativeToken = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { idToken } = req.body as { idToken: string };
+      const profile = await this.authService.verifyGoogleIdToken(idToken);
+      const user = await this.authService.findOrCreateGoogleUser(profile);
+
+      const { accessToken, refreshToken } = await this.authService.generateAndStoreTokens(
+        user._id.toString(),
+        user.email,
+        user.role as import('@shared/types').UserRole,
+        req.ip ?? null,
+        req.headers['user-agent'] ?? null,
+      );
+
+      res.json(apiResponse.success({ user, accessToken, refreshToken }, 'Google login successful'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   googleExchange = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { code } = req.body as { code: string };

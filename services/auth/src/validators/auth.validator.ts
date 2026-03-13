@@ -39,6 +39,10 @@ export const confirmRegisterSchema = Joi.object({
   }),
 });
 
+export const googleIdTokenSchema = Joi.object({
+  idToken: Joi.string().required(),
+});
+
 export const validate = (schema: Joi.ObjectSchema) =>
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (req: any, _res: any, next: any): void => {

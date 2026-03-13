@@ -1,6 +1,7 @@
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
+import { OAuth2Client } from 'google-auth-library';
 import Redis from 'ioredis';
 import { User, IUserDocument } from '../models/user.model';
 import { RefreshToken } from '../models/refreshToken.model';
@@ -318,6 +319,29 @@ export class AuthService {
     if (!raw) throw new BadRequestError('OAuth code noto\'g\'ri yoki muddati o\'tgan');
     await this.redis.del(key); // one-time use
     return JSON.parse(raw) as { accessToken: string; refreshToken: string };
+  }
+
+  async verifyGoogleIdToken(idToken: string): Promise<{
+    id: string;
+    email: string;
+    displayName: string;
+    picture: string;
+  }> {
+    const client = new OAuth2Client(config.google.clientId);
+    const ticket = await client.verifyIdToken({
+      idToken,
+      audience: config.google.clientId,
+    });
+    const payload = ticket.getPayload();
+    if (!payload || !payload.sub || !payload.email) {
+      throw new UnauthorizedError('Invalid Google ID token');
+    }
+    return {
+      id: payload.sub,
+      email: payload.email,
+      displayName: payload.name ?? payload.email.split('@')[0],
+      picture: payload.picture ?? '',
+    };
   }
 
   async findOrCreateGoogleUser(profile: {
