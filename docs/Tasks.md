@@ -91,7 +91,7 @@
 
 - **Sana:** 2026-03-12
 - **Mas'ul:** Emirhan
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 pending[Emirhan]
 - **Sabab:** YouTube WebView orqali o'ynaganda `window._csVideo` topilmaydi (YouTube shadowed player) → member'da `injectJavaScript('video.play()')` ishlamaydi → Watch Party sync buzilib ketmoqda.
 - **Backend tayyor:** `GET /api/v1/content/youtube/stream-url?url=...` → `{ url, isLive, title, duration }` — Saidazim tomonidan yozilgan. Stream proxy ham tayyor: `/api/v1/content/youtube/stream?url=...&token=...` — range request + seeking ishlaydi. Live uchun 302 redirect → HLS m3u8.
 
