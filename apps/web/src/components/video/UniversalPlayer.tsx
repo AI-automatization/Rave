@@ -1,9 +1,36 @@
 'use client';
 
-import { useEffect, useCallback, useState } from 'react';
+import { useEffect, useCallback, useState, useRef } from 'react';
 import { VideoPlayer } from '@/components/VideoPlayer';
 import { apiClient } from '@/lib/axios';
 import type { VideoPlatform } from '@/types';
+
+/* ── Minimal YouTube IFrame API types ────────────────────────────── */
+type YTPlayerState = -1 | 0 | 1 | 2 | 3 | 5;
+interface YTPlayer {
+  playVideo(): void;
+  pauseVideo(): void;
+  seekTo(seconds: number, allowSeekAhead: boolean): void;
+  getCurrentTime(): number;
+  destroy(): void;
+}
+interface YTPlayerOptions {
+  videoId: string;
+  playerVars?: Record<string, number | string>;
+  events?: {
+    onReady?: () => void;
+    onStateChange?: (event: { data: YTPlayerState }) => void;
+  };
+}
+declare global {
+  interface Window {
+    YT: {
+      Player: new (el: HTMLElement, opts: YTPlayerOptions) => YTPlayer;
+      PlayerState: { UNSTARTED: -1; ENDED: 0; PLAYING: 1; PAUSED: 2; BUFFERING: 3; CUED: 5 };
+    };
+    onYouTubeIframeAPIReady?: () => void;
+  }
+}
 
 /* ── Helpers ─────────────────────────────────────────────────────── */
 function extractYouTubeId(url: string): string | null {
@@ -62,11 +89,165 @@ interface YtStreamInfo {
   isLive: boolean;
 }
 
+/* ── YouTube IFrame API Player (sync to'liq ishlaydi) ───────────── */
+// Backend proxy ishlamasa bu komponent fallback sifatida ishlatiladi.
+// YouTube IFrame API orqali:
+//   Owner:  onStateChange → onPlay/onPause/onSeek chaqiradi → socket emit
+//   Member: syncTime/syncIsPlaying o'zgarganda → seekTo + play/pause
+function YouTubeIframePlayer(props: UniversalPlayerProps) {
+  const {
+    videoUrl,
+    title,
+    syncTime,
+    syncTimestamp,
+    syncIsPlaying,
+    isOwner,
+    onPlay,
+    onPause,
+    onSeek,
+  } = props;
+
+  const ytId = extractYouTubeId(videoUrl);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const playerRef = useRef<YTPlayer | null>(null);
+
+  // Sync uygulanayotganda owner eventlari ignore qilinadi (feedback loop oldini olish)
+  const applyingSyncRef = useRef(false);
+  // Seek aniqlash: BUFFERING state da vaqtni saqlab qo'yamiz
+  const prevTimeRef = useRef(0);
+  // Takroriy sync oldini olish
+  const lastSyncKeyRef = useRef('');
+
+  // Stable callback refs (stale closure muammosidan himoya)
+  const onPlayRef = useRef(onPlay);
+  const onPauseRef = useRef(onPause);
+  const onSeekRef = useRef(onSeek);
+  const isOwnerRef = useRef(isOwner);
+  useEffect(() => { onPlayRef.current = onPlay; }, [onPlay]);
+  useEffect(() => { onPauseRef.current = onPause; }, [onPause]);
+  useEffect(() => { onSeekRef.current = onSeek; }, [onSeek]);
+  useEffect(() => { isOwnerRef.current = isOwner; }, [isOwner]);
+
+  // YouTube IFrame API yuklash va player yaratish
+  useEffect(() => {
+    if (!ytId || typeof window === 'undefined') return;
+
+    const createPlayer = () => {
+      if (!containerRef.current || playerRef.current) return;
+      playerRef.current = new window.YT.Player(containerRef.current, {
+        videoId: ytId,
+        playerVars: {
+          autoplay: 1,
+          rel: 0,
+          modestbranding: 1,
+          // Member player kontrollarni ko'rmaydi — faqat owner boshqaradi
+          controls: isOwnerRef.current ? 1 : 0,
+        },
+        events: {
+          onStateChange: (event: { data: YTPlayerState }) => {
+            // Member va sync apply paytida owner eventlari ignore
+            if (!isOwnerRef.current || applyingSyncRef.current) return;
+            const player = playerRef.current;
+            if (!player) return;
+            const currentTime = player.getCurrentTime();
+
+            if (event.data === 3) {
+              // BUFFERING — seek bo'lishi mumkin, vaqtni eslab qol
+              prevTimeRef.current = currentTime;
+            } else if (event.data === 1) {
+              // PLAYING — seek bo'ldimi?
+              if (Math.abs(currentTime - prevTimeRef.current) > 2) {
+                onSeekRef.current?.(currentTime);
+              }
+              onPlayRef.current?.(currentTime);
+              prevTimeRef.current = currentTime;
+            } else if (event.data === 2) {
+              // PAUSED
+              onPauseRef.current?.(currentTime);
+              prevTimeRef.current = currentTime;
+            }
+          },
+        },
+      });
+    };
+
+    if (window.YT?.Player) {
+      createPlayer();
+    } else {
+      // API skriptini yuklash (bir marta)
+      if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
+        const script = document.createElement('script');
+        script.src = 'https://www.youtube.com/iframe_api';
+        document.head.appendChild(script);
+      }
+      const prev = window.onYouTubeIframeAPIReady;
+      window.onYouTubeIframeAPIReady = () => {
+        prev?.();
+        createPlayer();
+      };
+    }
+
+    return () => {
+      playerRef.current?.destroy();
+      playerRef.current = null;
+    };
+  }, [ytId]);
+
+  // Member: sync qo'llash (VideoPlayer dagi drift compensation bilan bir xil formula)
+  useEffect(() => {
+    if (isOwner || syncIsPlaying === undefined) return;
+    const player = playerRef.current;
+    if (!player) return;
+
+    const syncKey = `${syncTime}-${syncIsPlaying}`;
+    if (lastSyncKeyRef.current === syncKey) return;
+    lastSyncKeyRef.current = syncKey;
+
+    applyingSyncRef.current = true;
+
+    // Drift compensation: server yuborgan vaqtdan beri qancha o'tdi
+    let targetTime = syncTime ?? 0;
+    if (syncTimestamp && syncIsPlaying) {
+      const elapsed = Math.max(0, (Date.now() - syncTimestamp) / 1000);
+      targetTime = targetTime + elapsed;
+    }
+
+    if (Math.abs(player.getCurrentTime() - targetTime) > 1) {
+      player.seekTo(targetTime, true);
+    }
+
+    if (syncIsPlaying) {
+      player.playVideo();
+    } else {
+      player.pauseVideo();
+    }
+
+    // Sync tugagach flag ni qaytarish (500ms — YT player react qilishi uchun)
+    setTimeout(() => { applyingSyncRef.current = false; }, 500);
+  }, [isOwner, syncTime, syncTimestamp, syncIsPlaying]);
+
+  if (!ytId) {
+    return (
+      <div className="aspect-video bg-black rounded-xl flex items-center justify-center">
+        <p className="text-white/40 text-sm">Noto&apos;g&apos;ri YouTube URL</p>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      ref={containerRef}
+      className="w-full aspect-video bg-black rounded-xl overflow-hidden"
+      title={title}
+    />
+  );
+}
+
 /* ── YouTube — Backend Stream Proxy Player ──────────────────────── */
 // YouTube URL → backend /youtube/stream-url (metadata + isLive)
 //   VOD:  proxy URL /youtube/stream?url=...&token=... (range request, seeking)
 //   Live: format.url to'g'ridan (HLS m3u8) → VideoPlayer HLS.js ile ishlaydi
-// → VideoPlayer (bizning native player, to'liq owner/member sync)
+// Agar backend fail bo'lsa → YouTubeIframePlayer fallback (sync ishlaydi)
 function YouTubeStreamPlayer(props: UniversalPlayerProps) {
   const {
     videoUrl,
@@ -87,9 +268,7 @@ function YouTubeStreamPlayer(props: UniversalPlayerProps) {
     setIsLive(false);
 
     const resolve = async () => {
-      // 1. Metadata olish: isLive, title, format URL
       // next.config.mjs: /youtube/:path* → content service (rewrite)
-      // apiClient Authorization headerini auto inject qiladi
       // ytdl.getInfo() cold start da 15-20s oladi — 30s timeout kerak
       const res = await apiClient.get<{ success: boolean; data: YtStreamInfo }>(
         `/youtube/stream-url?url=${encodeURIComponent(videoUrl)}`,
@@ -98,9 +277,6 @@ function YouTubeStreamPlayer(props: UniversalPlayerProps) {
       if (!res.data.success) throw new Error('stream-url failed');
       const info = res.data.data;
 
-      // 2. Stream URL tanlash:
-      //    Live → format.url to'g'ridan (HLS m3u8, VideoPlayer HLS.js ile o'ynaydi)
-      //    VOD  → /youtube/stream rewrite proxy (range request, seeking ishlaydi)
       const token =
         typeof window !== 'undefined' ? (localStorage.getItem('access_token') ?? '') : '';
       const finalUrl = info.isLive
@@ -126,29 +302,10 @@ function YouTubeStreamPlayer(props: UniversalPlayerProps) {
   }
 
   if (resolveError || !streamUrl) {
-    // Backend proxy ishlamadi — YouTube iframe ga fallback
-    const ytId = extractYouTubeId(videoUrl);
-    if (ytId) {
-      return (
-        <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
-          <iframe
-            src={`https://www.youtube.com/embed/${ytId}?autoplay=1&rel=0`}
-            className="w-full h-full border-0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-            allowFullScreen
-            title={title ?? 'YouTube video'}
-          />
-        </div>
-      );
-    }
-    return (
-      <div className="aspect-video bg-black rounded-xl flex items-center justify-center">
-        <p className="text-white/40 text-sm">Video yuklashda xato. Qayta urinib ko&apos;ring.</p>
-      </div>
-    );
+    // Backend proxy fail — YouTube IFrame API fallback (sync to'liq ishlaydi)
+    return <YouTubeIframePlayer {...props} />;
   }
 
-  // VideoPlayer: to'liq sync (owner/member), HLS, seeking, isLive — hammasi handle qilinadi
   return (
     <VideoPlayer
       src={streamUrl}
