@@ -22,7 +22,7 @@ export function AddFriendButton({ userId, username }: Props) {
   const handleClick = async () => {
     setStatus('loading');
     try {
-      await apiClient.post('/users/friends/request', { userId });
+      await apiClient.post('/api/users/friends', { userId });
       setStatus('sent');
       toast.success("Do'stlik so'rovi yuborildi ✓");
     } catch (err) {

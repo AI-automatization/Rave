@@ -126,7 +126,7 @@ export default function WatchPartyPage() {
 
   useEffect(() => {
     apiClient
-      .get<ApiResponse<IUser[]>>('/users/friends')
+      .get<ApiResponse<IUser[]>>('/api/users/friends')
       .then((r) => setFriends(r.data.data ?? []))
       .catch(() => {});
   }, []);

@@ -59,8 +59,8 @@ export default function FriendsPage() {
     setLoading(true);
     try {
       const [fr, rq] = await Promise.all([
-        apiClient.get<ApiResponse<IUser[]>>('/users/friends'),
-        apiClient.get<ApiResponse<IFriendship[]>>('/users/friends/requests'),
+        apiClient.get<ApiResponse<IUser[]>>('/api/users/friends'),
+        apiClient.get<ApiResponse<IFriendship[]>>('/api/users/friends/requests'),
       ]);
       setFriends(Array.isArray(fr.data.data) ? fr.data.data : []);
       setRequests(Array.isArray(rq.data.data) ? rq.data.data : []);
@@ -75,7 +75,7 @@ export default function FriendsPage() {
 
   const acceptRequest = async (friendshipId: string) => {
     try {
-      await apiClient.patch(`/users/friends/accept/${friendshipId}`);
+      await apiClient.patch(`/api/users/friends/accept/${friendshipId}`);
       void loadFriends();
     } catch (err) {
       logger.error('Accept xatosi', err);
@@ -85,7 +85,7 @@ export default function FriendsPage() {
   const sendRequest = async (userId: string) => {
     setSendingIds((p) => new Set(p).add(userId));
     try {
-      await apiClient.post('/users/friends/request', { userId });
+      await apiClient.post('/api/users/friends', { userId });
       setSentIds((p) => new Set(p).add(userId));
     } catch (err) {
       logger.error("Do'st so'rovi xatosi", err);
@@ -99,7 +99,7 @@ export default function FriendsPage() {
     if (!q.trim()) { setResults([]); return; }
     setSearching(true);
     try {
-      const res = await apiClient.get<ApiResponse<IUser[]>>(`/users/search?q=${encodeURIComponent(q)}`);
+      const res = await apiClient.get<ApiResponse<IUser[]>>(`/api/users/search?q=${encodeURIComponent(q)}`);
       setResults(res.data.data ?? []);
     } catch (err) {
       logger.error('Qidiruv xatosi', err);

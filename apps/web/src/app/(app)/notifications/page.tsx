@@ -101,7 +101,7 @@ export default function NotificationsPage() {
     if (!friendshipId || acceptingIds.has(notif._id) || acceptedIds.has(notif._id)) return;
     setAcceptingIds((p) => new Set(p).add(notif._id));
     try {
-      await apiClient.patch(`/users/friends/accept/${friendshipId}`);
+      await apiClient.patch(`/api/users/friends/accept/${friendshipId}`);
       setAcceptedIds((p) => new Set(p).add(notif._id));
       void markRead(notif._id);
     } catch (err) {
