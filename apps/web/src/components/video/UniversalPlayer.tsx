@@ -6,6 +6,11 @@ import { apiClient } from '@/lib/axios';
 import type { VideoPlatform } from '@/types';
 
 /* ── Helpers ─────────────────────────────────────────────────────── */
+function extractYouTubeId(url: string): string | null {
+  const match = url.match(/(?:v=|youtu\.be\/|embed\/)([a-zA-Z0-9_-]{11})/);
+  return match?.[1] ?? null;
+}
+
 function extractVimeoId(url: string): string | null {
   const match = url.match(/vimeo\.com\/(\d+)/);
   return match?.[1] ?? null;
@@ -121,6 +126,21 @@ function YouTubeStreamPlayer(props: UniversalPlayerProps) {
   }
 
   if (resolveError || !streamUrl) {
+    // Backend proxy ishlamadi — YouTube iframe ga fallback
+    const ytId = extractYouTubeId(videoUrl);
+    if (ytId) {
+      return (
+        <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
+          <iframe
+            src={`https://www.youtube.com/embed/${ytId}?autoplay=1&rel=0`}
+            className="w-full h-full border-0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+            allowFullScreen
+            title={title ?? 'YouTube video'}
+          />
+        </div>
+      );
+    }
     return (
       <div className="aspect-video bg-black rounded-xl flex items-center justify-center">
         <p className="text-white/40 text-sm">Video yuklashda xato. Qayta urinib ko&apos;ring.</p>
