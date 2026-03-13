@@ -12,7 +12,7 @@ COPY services/battle/package*.json ./services/battle/
 COPY services/notification/package*.json ./services/notification/
 COPY services/admin/package*.json ./services/admin/
 
-RUN npm ci --legacy-peer-deps -w @cinesync/shared -w @cinesync/notification
+RUN npm ci --legacy-peer-deps --include-workspace-root -w @cinesync/shared -w @cinesync/notification
 
 COPY shared/ ./shared/
 COPY services/notification/ ./services/notification/
@@ -34,7 +34,7 @@ COPY services/battle/package*.json ./services/battle/
 COPY services/notification/package*.json ./services/notification/
 COPY services/admin/package*.json ./services/admin/
 
-RUN npm ci --legacy-peer-deps --omit=dev -w @cinesync/shared -w @cinesync/notification
+RUN npm ci --legacy-peer-deps --omit=dev --include-workspace-root -w @cinesync/shared -w @cinesync/notification
 
 COPY --from=builder /app/shared/dist ./shared/dist
 COPY --from=builder /app/services/notification/dist ./services/notification/dist

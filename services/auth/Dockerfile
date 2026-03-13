@@ -15,7 +15,7 @@ COPY services/admin/package*.json ./services/admin/
 
 # Full install — includes root deps (swagger-jsdoc, swagger-ui-express)
 # apps/* workspaces are skipped (dirs not present in build context)
-RUN npm ci --legacy-peer-deps -w @cinesync/shared -w @cinesync/auth
+RUN npm ci --legacy-peer-deps --include-workspace-root -w @cinesync/shared -w @cinesync/auth
 
 # Copy only what is needed for this build
 COPY shared/ ./shared/
@@ -43,7 +43,7 @@ COPY services/notification/package*.json ./services/notification/
 COPY services/admin/package*.json ./services/admin/
 
 # Production install — omits devDeps, includes root prod deps (swagger)
-RUN npm ci --legacy-peer-deps --omit=dev -w @cinesync/shared -w @cinesync/auth
+RUN npm ci --legacy-peer-deps --omit=dev --include-workspace-root -w @cinesync/shared -w @cinesync/auth
 
 COPY --from=builder /app/shared/dist ./shared/dist
 COPY --from=builder /app/services/auth/dist ./services/auth/dist
