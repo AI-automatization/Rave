@@ -14,7 +14,7 @@
 3. Fix bo'lgach → shu yerdan O'CHIRISH → docs/Done.md ga KO'CHIRISH
 4. Prioritet: P0=kritik, P1=muhim, P2=o'rta, P3=past
 5. Sprint: S1=hozir, S2=keyingi hafta, S3=keyingi sprint, S4-5=keyin
-6. Oxirgi T-raqam: S→029, E→024, J→014, C→009
+6. Oxirgi T-raqam: S→029, E→030, J→014, C→009
 ```
 
 ---
@@ -134,11 +134,100 @@
 
 ## SPRINT 2 — Asosiy ekranlar
 
+### T-E025 | P1 | [MOBILE] | WatchPartyCreateScreen — Film tanlash + do'stlarni taklif
+
+- **Sana:** 2026-03-14
+- **Mas'ul:** Emirhan
+- **Fayl:** `apps/mobile/src/screens/modal/WatchPartyCreateScreen.tsx`
+- **Holat:** ❌ Boshlanmagan
+- **Sabab:** Design prompt da ko'rsatilgan: film qidirish (catalog) YOKI video URL, va do'stlarni taklif (multi-select). Hozirgi implementatsiya faqat room name + privacy + max members.
+- **Bajarilishi kerak:**
+  - [ ] Film qidirish input — `contentApi.search()` bilan debounced qidiruv, natijalar listdan tanlash
+  - [ ] Yoki video URL input (har qanday URL, toggle bilan almashish)
+  - [ ] Tanlangan film ko'rsatish: poster + title chip (tozalash tugmasi bilan)
+  - [ ] Do'stlarni taklif: `userApi.getFriends()` → multi-select FlatList (checkbox + avatar + username)
+  - [ ] Tanlangan do'stlar: violet chip lari ko'rinishi
+  - [ ] Room yaratishda: `videoUrl` (film URL yoki kiritilgan URL) + `invitedFriends[]` yuborish
+
+---
+
+### T-E026 | P1 | [MOBILE] | MovieDetailScreen — Cast ro'yxati + O'xshash filmlar
+
+- **Sana:** 2026-03-14
+- **Mas'ul:** Emirhan
+- **Fayl:** `apps/mobile/src/screens/home/MovieDetailScreen.tsx`
+- **Holat:** ❌ Boshlanmagan
+- **Sabab:** Design prompt da: cast horizontal scroll (circular avatars) + similar movies row. Hozirgi implementatsiyada bular yo'q.
+- **Bajarilishi kerak:**
+  - [ ] Cast section: `IMovie.cast` array dan circular avatars (60px) + ism — horizontal ScrollView
+  - [ ] `IMovie.cast` bo'sh bo'lsa section yashiriladi
+  - [ ] O'xshash filmlar: `contentApi.getMovies({ genre: movie.genres[0] })` — faqat shu filmdan tashqari, max 10
+  - [ ] `MovieRow` komponent ishlatish (mavjud) — "O'xshash Filmlar" section sarlavhasi bilan
+  - [ ] Tap → boshqa MovieDetailScreen (stack navigation)
+
 ---
 
 ## SPRINT 3 — Ijtimoiy ekranlar
 
 ## SPRINT 4 — Profil + Bildirishnoma
+
+### T-E027 | P1 | [MOBILE] | ProfileSetupScreen — Avatar picker + Genre chips
+
+- **Sana:** 2026-03-14
+- **Mas'ul:** Emirhan
+- **Fayl:** `apps/mobile/src/screens/auth/ProfileSetupScreen.tsx`
+- **Holat:** ❌ Boshlanmagan
+- **Sabab:** Design prompt da: avatar kamera/galereyadan tanlash + sevimli janrlar multi-select chips. Hozirgi implementatsiyada faqat bio textarea bor.
+- **Bajarilishi kerak:**
+  - [ ] `expo-image-picker` — kamera yoki galereya, 1:1 crop, 500px max
+  - [ ] Avatar preview: 100px circle, violet border, ustida kamera icon overlay
+  - [ ] Genre chips: `ContentGenre` enum dan, multi-select toggle (active: violet filled, inactive: outline)
+  - [ ] Tanlangan janrlarni `userApi.updateProfile({ favoriteGenres })` bilan saqlash
+  - [ ] "Davom etish" + "Keyinroq" tugmalari (mavjud) saqlanadi
+
+---
+
+### T-E028 | P1 | [MOBILE] | ProfileScreen — Avatar tahrirlash + Profil edit modal
+
+- **Sana:** 2026-03-14
+- **Mas'ul:** Emirhan
+- **Fayl:** `apps/mobile/src/screens/profile/ProfileScreen.tsx`
+- **Holat:** ❌ Boshlanmagan
+- **Sabab:** Design prompt da avatar ustida edit icon, profil tahrirlash. Hozirgi implementatsiyada avatar static, edit yo'q.
+- **Bajarilishi kerak:**
+  - [ ] Avatar ustida kamera icon overlay (absolute, bottom-right)
+  - [ ] Tap → `expo-image-picker` → `userApi.updateProfile({ avatar: base64 yoki url })`
+  - [ ] Edit profil bottom sheet modal: username, bio input, saqlash tugmasi
+  - [ ] `useProfile` hook — mutatsiya qo'llab, store ni yangilash
+
+---
+
+### T-E029 | P2 | [MOBILE] | SettingsScreen — Profil tahrirlash navigatsiya + Hisob o'chirish
+
+- **Sana:** 2026-03-14
+- **Mas'ul:** Emirhan
+- **Fayl:** `apps/mobile/src/screens/profile/SettingsScreen.tsx`
+- **Holat:** ❌ Boshlanmagan
+- **Sabab:** Design prompt da: "Profilni tahrirlash →" va "Hisobni o'chirish" (danger, double confirm). Hozirda bular yo'q.
+- **Bajarilishi kerak:**
+  - [ ] "Profilni tahrirlash →" — ProfileScreen da edit modal ochish (yoki SettingsScreen ichida)
+  - [ ] "Parolni o'zgartirish →" — email input + eski parol + yangi parol forma
+  - [ ] "Hisobni o'chirish" — `colors.error` qizil rang, 2 bosqichli tasdiqlash: Alert → "TASDIQLASH" yozish → `userApi.deleteAccount()` → logout
+
+---
+
+### T-E030 | P2 | [MOBILE] | StatsScreen — Real API faollik grafigi
+
+- **Sana:** 2026-03-14
+- **Mas'ul:** Emirhan
+- **Fayl:** `apps/mobile/src/screens/profile/StatsScreen.tsx`
+- **Holat:** ❌ Boshlanmagan
+- **Sabab:** Hozirgi activity bar chart mock data ishlatmoqda. Real `userApi.getStats()` dan haftalik faollik olish kerak.
+- **Bajarilishi kerak:**
+  - [ ] `userApi.getStats()` response dan `weeklyActivity` array (7 kun) olish
+  - [ ] Agar backend da yo'q → `moviesStore.watchHistory` dan oxirgi 7 kun hisoblash (client-side fallback)
+  - [ ] Bar chart: mavjud implementatsiya o'lchamlarini real data bilan to'ldirish
+  - [ ] Loading skeleton + empty state ("Hali faollik yo'q")
 
 ## SPRINT 5 — Sifat + Test
 
