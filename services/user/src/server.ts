@@ -3,6 +3,7 @@ import Redis from 'ioredis';
 import { createApp } from './app';
 import { config } from './config/index';
 import { logger } from '@shared/utils/logger';
+import { initServiceQueues } from '@shared/utils/serviceQueue';
 
 let redisClient: Redis;
 
@@ -15,6 +16,8 @@ const main = async (): Promise<void> => {
   });
   redisClient.on('connect', () => logger.info('Redis connected', { service: 'user' }));
   redisClient.on('error', (err) => logger.error('Redis error', { error: err.message }));
+
+  initServiceQueues(config.redisUrl);
 
   const app = createApp(redisClient);
 

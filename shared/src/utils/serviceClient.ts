@@ -1,6 +1,7 @@
 import axios, { AxiosError } from 'axios';
 import { logger } from './logger';
 import { AppError } from './errors';
+import { isQueueReady, queueAddPoints, queueTriggerAchievement } from './serviceQueue';
 
 const INTERNAL_SECRET = process.env.INTERNAL_SECRET ?? '';
 
@@ -13,6 +14,13 @@ const internalHeaders = {
 const userServiceUrl = process.env.USER_SERVICE_URL ?? 'http://localhost:3002';
 
 export async function addUserPoints(userId: string, points: number): Promise<void> {
+  // Queue bor bo'lsa — retry bilan queue ga yuborish (reliability)
+  if (isQueueReady()) {
+    await queueAddPoints(userId, points);
+    return;
+  }
+
+  // Fallback: to'g'ridan HTTP (queue init bo'lmagan servislar uchun)
   try {
     await axios.post(
       `${userServiceUrl}/api/v1/users/internal/add-points`,
@@ -22,13 +30,12 @@ export async function addUserPoints(userId: string, points: number): Promise<voi
     logger.info('[serviceClient] addUserPoints', { userId, points });
   } catch (err) {
     const error = err as AxiosError;
-    logger.error('[serviceClient] addUserPoints failed', {
+    logger.error('[serviceClient] addUserPoints failed (no queue)', {
       userId,
       points,
       status: error.response?.status,
       message: error.message,
     });
-    // Non-blocking — points failure should not stop main flow
   }
 }
 
@@ -49,6 +56,11 @@ export async function triggerAchievement(
   event: AchievementEvent,
   meta?: Record<string, unknown>,
 ): Promise<void> {
+  if (isQueueReady()) {
+    await queueTriggerAchievement(userId, event, meta);
+    return;
+  }
+
   try {
     await axios.post(
       `${userServiceUrl}/api/v1/achievements/internal/trigger`,
@@ -58,13 +70,12 @@ export async function triggerAchievement(
     logger.info('[serviceClient] triggerAchievement', { userId, event });
   } catch (err) {
     const error = err as AxiosError;
-    logger.error('[serviceClient] triggerAchievement failed', {
+    logger.error('[serviceClient] triggerAchievement failed (no queue)', {
       userId,
       event,
       status: error.response?.status,
       message: error.message,
     });
-    // Non-blocking — achievement failure should not stop main flow
   }
 }
 

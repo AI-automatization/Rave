@@ -4,6 +4,7 @@ import { Client as ElasticsearchClient } from '@elastic/elasticsearch';
 import { createApp } from './app';
 import { config } from './config/index';
 import { logger } from '@shared/utils/logger';
+import { initServiceQueues } from '@shared/utils/serviceQueue';
 import { initElasticsearchIndex } from './utils/elastic.init';
 
 const main = async (): Promise<void> => {
@@ -20,6 +21,8 @@ const main = async (): Promise<void> => {
 
   // Index va mapping yaratish (mavjud bo'lsa skip qiladi)
   await initElasticsearchIndex(elastic);
+
+  initServiceQueues(config.redisUrl);
 
   const app = createApp(redis, elastic);
 

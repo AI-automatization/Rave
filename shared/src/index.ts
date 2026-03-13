@@ -6,6 +6,7 @@ export * from './utils/errors';
 export * from './utils/apiResponse';
 export { logger, morganStream } from './utils/logger';
 export * from './utils/serviceClient';
+export { initServiceQueues, isQueueReady } from './utils/serviceQueue';
 
 // Middleware
 export * from './middleware/auth.middleware';

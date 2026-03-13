@@ -3,6 +3,7 @@ import Redis from 'ioredis';
 import { createApp } from './app';
 import { config } from './config/index';
 import { logger } from '@shared/utils/logger';
+import { initServiceQueues } from '@shared/utils/serviceQueue';
 
 const main = async (): Promise<void> => {
   await mongoose.connect(config.mongoUri);
@@ -12,6 +13,8 @@ const main = async (): Promise<void> => {
     retryStrategy: (times) => Math.min(times * 50, 2000),
   });
   redis.on('error', (err) => logger.error('Redis error', { error: err.message }));
+
+  initServiceQueues(config.redisUrl);
 
   const app = createApp(redis);
 
