@@ -46,11 +46,13 @@ export const ytdlService = {
         info.formats[0];
     } else {
       // VOD: best pre-merged mp4 (audioandvideo) — max 720p
-      format = ytdl.chooseFormat(info.formats, {
-        filter: 'audioandvideo',
-        quality: 'highest',
-      });
-      if (!format) {
+      // ytdl.chooseFormat throws "No such format found" if no match — try/catch kerak
+      try {
+        format = ytdl.chooseFormat(info.formats, {
+          filter: 'audioandvideo',
+          quality: 'highest',
+        });
+      } catch {
         format = info.formats.find((f) => f.hasAudio && f.hasVideo) ?? info.formats[0];
       }
     }

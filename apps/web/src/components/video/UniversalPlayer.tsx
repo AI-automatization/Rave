@@ -85,8 +85,10 @@ function YouTubeStreamPlayer(props: UniversalPlayerProps) {
       // 1. Metadata olish: isLive, title, format URL
       // next.config.mjs: /youtube/:path* → content service (rewrite)
       // apiClient Authorization headerini auto inject qiladi
+      // ytdl.getInfo() cold start da 15-20s oladi — 30s timeout kerak
       const res = await apiClient.get<{ success: boolean; data: YtStreamInfo }>(
         `/youtube/stream-url?url=${encodeURIComponent(videoUrl)}`,
+        { timeout: 30_000 },
       );
       if (!res.data.success) throw new Error('stream-url failed');
       const info = res.data.data;
