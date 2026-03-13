@@ -14,7 +14,7 @@
 3. Fix bo'lgach → shu yerdan O'CHIRISH → docs/Done.md ga KO'CHIRISH
 4. Prioritet: P0=kritik, P1=muhim, P2=o'rta, P3=past
 5. Sprint: S1=hozir, S2=keyingi hafta, S3=keyingi sprint, S4-5=keyin
-6. Oxirgi T-raqam: S→025, E→024, J→014, C→009
+6. Oxirgi T-raqam: S→029, E→024, J→014, C→009
 ```
 
 ---
@@ -29,6 +29,55 @@
 
 
 ## SPRINT 2 — Content + Watch Party
+
+### T-S026 | P0 | [BACKEND] | Content Service — Trending + Top-Rated + Continue-Watching endpointlar
+
+- **Sana:** 2026-03-14
+- **Mas'ul:** Saidazim
+- **Fayl:** `services/content/src/`
+- **Holat:** ❌ Boshlanmagan
+- **Sabab:** Mobile `HomeScreen` ishlashi uchun zarur — bu endpointlarsiz ekran ochilmaydi.
+- **Bajarilishi kerak:**
+  - [ ] `GET /content/trending?limit=10` — viewCount yoki createdAt bo'yicha top filmlar. Redis cache: `trending:${limit}` TTL 10 min
+  - [ ] `GET /content/top-rated?limit=10` — averageRating bo'yicha saralangan. Redis cache: `top-rated:${limit}` TTL 10 min
+  - [ ] `GET /content/continue-watching` — `verifyToken`, userId bo'yicha progress < 0.9 filmlar. Response: `IMovie & { progress: number }`
+
+---
+
+### T-S027 | P0 | [BACKEND] | Content Service — Watch Progress path alias (`/movies/:id/progress`)
+
+- **Sana:** 2026-03-14
+- **Mas'ul:** Saidazim
+- **Fayl:** `services/content/src/routes/`
+- **Holat:** ❌ Boshlanmagan
+- **Sabab:** Mobile `/content/movies/:id/progress` chaqiradi, backend `/content/watch-progress` (boshqa path + body format).
+- **Bajarilishi kerak:**
+  - [ ] `POST /content/movies/:id/progress` — body: `{ progress: number, duration: number }` — mavjud watchProgressService ga yo'naltirish (`:id` = movieId)
+  - [ ] `GET /content/movies/:id/progress` — mavjud watchProgressService ga yo'naltirish
+
+---
+
+### T-S028 | P1 | [BACKEND] | Watch Party Service — Room yopish endpoint
+
+- **Sana:** 2026-03-14
+- **Mas'ul:** Saidazim
+- **Fayl:** `services/watch-party/src/`
+- **Holat:** ❌ Boshlanmagan
+- **Sabab:** Mobile owner sifatida `DELETE /watch-party/rooms/:id` chaqiradi — backend da yo'q.
+- **Bajarilishi kerak:**
+  - [ ] `DELETE /watch-party/rooms/:id` — faqat owner, room `status: 'closed'`, socket `ROOM_CLOSED` emit barcha a'zolarga
+
+---
+
+### T-S029 | P1 | [BACKEND] | Battle Service — Battle rad etish endpoint
+
+- **Sana:** 2026-03-14
+- **Mas'ul:** Saidazim
+- **Fayl:** `services/battle/src/`
+- **Holat:** ❌ Boshlanmagan
+- **Sabab:** Mobile `POST /battles/:id/reject` chaqiradi — backend da yo'q.
+- **Bajarilishi kerak:**
+  - [ ] `POST /battles/:id/reject` — faqat invited user, status `pending` → `rejected`, challengerga notification
 
 ### T-S005b | P2 | [BACKEND] | Content Service — HLS upload pipeline
 

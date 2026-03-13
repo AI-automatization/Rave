@@ -378,4 +378,133 @@ const logger = createLogger({
 
 ---
 
+## 📱 MOBILE UCHUN KERAKLI ENDPOINTLAR (Emirhan tomonidan so'ralgan)
+
+> **Sana:** 2026-03-14
+> **Sabab:** Mobile app exploration da aniqlandi — quyidagi endpointlar mobile da chaqirilmoqda lekin backend da mavjud emas yoki path/method farq qiladi.
+> Bular bajarilmasa **HomeScreen ishlamaydi** (P0) va bir qator funksiyalar sinadi (P1).
+
+---
+
+### 🔴 P0 — HomeScreen ishlamaydi
+
+#### T-S026 | Content Service — Trending + Top-Rated + Continue-Watching
+
+**Fayl:** `services/content/src/`
+
+Mobile quyidagilarni chaqiradi:
+
+```
+GET /api/v1/content/trending?limit=10
+GET /api/v1/content/top-rated?limit=10
+GET /api/v1/content/continue-watching
+```
+
+Backend da bu endpointlar **yo'q** — faqat `/content/movies` (paginated) bor.
+
+**Bajarilishi kerak:**
+
+- [ ] `GET /content/trending` — `viewCount` yoki `createdAt` bo'yicha top filmlar
+  - Response: `{ success, data: IMovie[] }`
+  - Query param: `limit` (default 10)
+  - Redis cache: `trending:${limit}` — TTL 10 daqiqa
+- [ ] `GET /content/top-rated` — `averageRating` bo'yicha saralangan filmlar
+  - Response: `{ success, data: IMovie[] }`
+  - Query param: `limit` (default 10)
+  - Redis cache: `top-rated:${limit}` — TTL 10 daqiqa
+- [ ] `GET /content/continue-watching` — foydalanuvchining tugallanmagan filmlari
+  - Auth: `verifyToken` (majburiy)
+  - Response: `{ success, data: Array<IMovie & { progress: number }> }`
+  - WatchProgress collection dan `userId` bo'yicha `progress < 0.9` filtrlab olish
+
+---
+
+#### T-S027 | Content Service — Watch Progress path moslashtirish
+
+Mobile quyidagilarni chaqiradi:
+
+```
+POST /api/v1/content/movies/:id/progress    body: { progress: number, duration: number }
+GET  /api/v1/content/movies/:id/progress
+```
+
+Backend da mavjud:
+
+```
+POST /api/v1/content/watch-progress         body: { movieId, progress, duration }
+GET  /api/v1/content/watch-progress?movieId=...
+```
+
+**Path va body format farq qiladi** — mobile ishlamaydi.
+
+**Bajarilishi kerak (2 variant — birini tanlash):**
+
+- [ ] **Variant A (tavsiya):** `services/content/src/routes/` ga alias route qo'shish:
+  ```
+  POST /content/movies/:id/progress  →  watchProgressController.saveProgress (movieId param dan oladi)
+  GET  /content/movies/:id/progress  →  watchProgressController.getProgress (movieId param dan oladi)
+  ```
+- [ ] **Variant B:** Mobile `contentApi.ts` ni mavjud endpointga moslashtirish (Emirhan qiladi, lekin body format ham farq qiladi — ikkalasi ham o'zgaradi)
+
+> **Tavsiya: Variant A** — mobile side ko'p joy o'zgaradi, backend bir route qo'shish oson.
+
+---
+
+### 🟡 P1 — Funksiyalar ishlamaydi
+
+#### T-S028 | Watch Party Service — Room yopish endpoint
+
+Mobile quyidagini chaqiradi:
+
+```
+DELETE /api/v1/watch-party/rooms/:id
+```
+
+Lekin backend da bu endpoint **yo'q** (faqat `leave` bor).
+
+**Bajarilishi kerak:**
+
+- [ ] `DELETE /watch-party/rooms/:id` — xonani yopish (faqat owner)
+  - Auth: `verifyToken` + owner tekshirish
+  - Socket emit: `ROOM_CLOSED` barcha a'zolarga
+  - DB: room `status: 'closed'` ga o'tkazish
+  - Response: `{ success: true }`
+
+---
+
+#### T-S029 | Battle Service — Battle rad etish endpoint
+
+Mobile quyidagini chaqiradi:
+
+```
+POST /api/v1/battles/:id/reject
+```
+
+Lekin backend da **yo'q**.
+
+**Bajarilishi kerak:**
+
+- [ ] `POST /battles/:id/reject` — battle taklifini rad etish
+  - Auth: `verifyToken`
+  - Tekshirish: faqat invited user rad eta oladi, status `pending` bo'lishi kerak
+  - DB: battle `status: 'rejected'` ga o'tkazish
+  - Notification: challengerga "battle rad etildi" xabari
+
+---
+
+### ℹ️ Eslatma
+
+```
+Mobile API fayllarida shuningdek quyidagi method mismatch lar bor
+(Emirhan o'zi tuzatadi — backend o'zgarishi shart emas):
+
+  battleApi.acceptBattle()      → PUT /battles/:id/accept   (to'g'risi: POST)
+  userApi.acceptFriendRequest() → PUT /users/friend-requests/:id/accept
+                                  (to'g'risi: PATCH /users/friends/accept/:id)
+
+Bu ikkalasini Emirhan o'z api/*.ts fayllarida tuzatadi.
+```
+
+---
+
 *CLAUDE_BACKEND.md | CineSync | Saidazim | v1.0*
