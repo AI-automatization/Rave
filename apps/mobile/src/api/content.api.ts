@@ -2,6 +2,16 @@
 import { contentClient } from './client';
 import { ApiResponse, IMovie, ContentGenre, PaginationMeta, IWatchProgress } from '@app-types/index';
 
+export interface YtStreamInfo {
+  url: string;
+  title: string;
+  duration: number;
+  thumbnail: string;
+  mimeType: string;
+  contentLength: number;
+  isLive: boolean;
+}
+
 interface MoviesResponse {
   movies: IMovie[];
   meta: PaginationMeta;
@@ -61,6 +71,13 @@ export const contentApi = {
 
   async rateMovie(movieId: string, rating: number): Promise<void> {
     await contentClient.post(`/content/movies/${movieId}/rate`, { rating });
+  },
+
+  async getYouTubeStreamInfo(youtubeUrl: string): Promise<YtStreamInfo> {
+    const res = await contentClient.get<ApiResponse<YtStreamInfo>>('/youtube/stream-url', {
+      params: { url: youtubeUrl },
+    });
+    return res.data.data!;
   },
 
   async getWatchProgress(movieId: string): Promise<IWatchProgress | null> {

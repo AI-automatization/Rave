@@ -48,6 +48,7 @@ export function WatchPartyScreen() {
   const [floatingEmojis, setFloatingEmojis] = useState<FloatingEmoji[]>([]);
   const [showInvite, setShowInvite] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [videoIsLive, setVideoIsLive] = useState(false);
 
   // Apply incoming sync from server
   useEffect(() => {
@@ -116,14 +117,14 @@ export function WatchPartyScreen() {
 
   const handleSeek = useCallback(
     async (direction: 'forward' | 'back') => {
-      if (!isOwner) return;
+      if (!isOwner || videoIsLive) return;
       const posMs = (await playerRef.current?.getPositionMs()) ?? 0;
       const delta = direction === 'forward' ? 10 : -10;
       const newMs = Math.max(0, posMs + delta * 1000);
       await playerRef.current?.seekTo(newMs);
       emitSeek(newMs / 1000);
     },
-    [isOwner, emitSeek],
+    [isOwner, videoIsLive, emitSeek],
   );
 
   const handleEmojiSelect = useCallback(
@@ -170,7 +171,16 @@ export function WatchPartyScreen() {
           onPause={handleWebViewPause}
           onSeek={handleWebViewSeek}
           onPlaybackStatusUpdate={onPlaybackStatusUpdate}
+          onStreamResolved={({ isLive }) => setVideoIsLive(isLive)}
         />
+
+        {/* LIVE badge */}
+        {videoIsLive && (
+          <View style={styles.liveBadge}>
+            <View style={styles.liveDot} />
+            <Text style={styles.liveText}>JONLI EFIR</Text>
+          </View>
+        )}
 
         {/* Floating emojis */}
         {floatingEmojis.map(e => (
@@ -180,15 +190,19 @@ export function WatchPartyScreen() {
         {/* Video controls overlay (owner only) */}
         {isOwner && (
           <View style={styles.controls}>
-            <TouchableOpacity onPress={() => handleSeek('back')} style={styles.controlBtn}>
-              <Ionicons name="play-back" size={22} color={colors.textPrimary} />
-            </TouchableOpacity>
+            {!videoIsLive && (
+              <TouchableOpacity onPress={() => handleSeek('back')} style={styles.controlBtn}>
+                <Ionicons name="play-back" size={22} color={colors.textPrimary} />
+              </TouchableOpacity>
+            )}
             <TouchableOpacity onPress={handlePlayPause} style={styles.playBtn}>
               <Ionicons name={isPlaying ? 'pause' : 'play'} size={26} color={colors.textPrimary} />
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => handleSeek('forward')} style={styles.controlBtn}>
-              <Ionicons name="play-forward" size={22} color={colors.textPrimary} />
-            </TouchableOpacity>
+            {!videoIsLive && (
+              <TouchableOpacity onPress={() => handleSeek('forward')} style={styles.controlBtn}>
+                <Ionicons name="play-forward" size={22} color={colors.textPrimary} />
+              </TouchableOpacity>
+            )}
           </View>
         )}
         {!isOwner && (
@@ -276,6 +290,25 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     borderRadius: borderRadius.full,
   },
+  liveBadge: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.error,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.sm,
+  },
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.textPrimary,
+  },
+  liveText: { ...typography.label, color: colors.textPrimary, fontWeight: '700' },
   memberBadge: {
     position: 'absolute',
     bottom: 12,

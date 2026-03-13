@@ -1,6 +1,14 @@
 # CineSync — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-03-12
+# Yangilangan: 2026-03-13
+
+---
+
+### F-097 | 2026-03-13 | [MOBILE] | T-E024 — YouTube expo-av proxy + LIVE badge + seek disable [Emirhan]
+
+- `content.api.ts`: `YtStreamInfo` interface + `getYouTubeStreamInfo(url)` metodi qo'shildi
+- `UniversalPlayer.tsx`: `VideoPlatform` ga `'youtube'` qo'shildi; `detectVideoPlatform` YouTube REGEX bilan yangilandi; `onStreamResolved` prop qo'shildi; YouTube URL → `getYouTubeStreamInfo()` → backend proxy URL (`/youtube/stream?url=...&token=...`) → expo-av `<Video>`; loading/error state UI
+- `WatchPartyScreen.tsx`: `videoIsLive` state; `onStreamResolved` callback; `handleSeek` da `videoIsLive` guard; LIVE badge (absolute top:12 left:12, `colors.error` bg, `colors.textPrimary` dot, "JONLI EFIR"); seek tugmalari live da yashiriladi
 
 ---
 
