@@ -27,21 +27,6 @@
 
 ## SPRINT 1 — Auth (Mobile tomonidan kerak)
 
-### T-S016 | P1 | [BACKEND] | Google OAuth native token endpoint
-
-- **Sana:** 2026-03-03
-- **Mas'ul:** Saidazim
-- **Fayl:** `services/auth/src/`
-- **Holat:** 🔄 pending[Saidazim]
-- **Sabab:** Mobile `@react-native-google-signin` orqali idToken oladi — backendga yuboradi.
-  Passport web-redirect flow mobile uchun mos emas.
-- **Bajarilishi kerak:**
-  - [ ] `POST /api/v1/auth/google/token` endpoint — body: `{ idToken: string }`
-  - [ ] idToken → `google-auth-library` bilan verify → `findOrCreateGoogleUser(payload)`
-  - [ ] Response: `{ success, data: { user, accessToken, refreshToken } }` — LoginResponse format
-- **Eslatma:** `findOrCreateGoogleUser` metodi allaqachon `auth.service.ts` da bor — faqat endpoint kerak
-
----
 
 ## SPRINT 2 — Content + Watch Party
 
@@ -62,51 +47,15 @@
 
 ## ARXITEKTURA REVIEW — 2026-03-11 (Bekzod QA)
 
-### T-S024 | P1 | [BACKEND] | SCALABILITY: Socket.io Redis adapter yo'q + Nginx TLS yo'q + rate limit
 
-- **Sana:** 2026-03-11
+### T-S025b | P2 | [BACKEND] | Inter-service event bus + Production Dockerfile optim
+
+- **Sana:** 2026-03-13
 - **Mas'ul:** Saidazim
-- **Holat:** ❌ Boshlanmagan
-- **Fayllar:**
-  - `services/watch-party/src/app.ts` (24-30-qator)
-  - `nginx/nginx.conf` (butun fayl)
-  - `nginx/nginx.conf` (37-qator)
-- **Muammo:**
-  - Socket.io da **`@socket.io/redis-adapter` yo'q** → watch-party service 1 dan ortiq instance ga scale **qilib bo'lmaydi**. Turli instance dagi foydalanuvchilar bir-birining eventlarini ko'rmaydi
-  - Nginx da **HTTPS/TLS konfiguratsiya yo'q** — `ssl/` volume mount bor lekin config da ishlatilmagan. Barcha trafik (tokenlar ham) **ochiq HTTP** orqali
-  - Nginx rate limit `30r/m` — ijtimoiy streaming app uchun **juda past**. Oddiy brauzing 30 so'rovni 1 daqiqada oshiradi
+- **Holat:** ❌ Boshlanmagan (T-S025 qolgan qismi)
 - **Bajarilishi kerak:**
-  - [ ] `@socket.io/redis-adapter` o'rnatish va konfiguratsiya (Redis pub/sub orqali multi-instance)
-  - [ ] Nginx da HTTPS server block qo'shish (SSL cert, HTTP→HTTPS redirect)
-  - [ ] Rate limit → `10r/s` (umumiy API), auth endpointlar uchun qat'iyroq
-  - [ ] MongoDB `maxPoolSize`, `socketTimeoutMS` barcha servislarda standartlashtirish
-
----
-
-### T-S025 | P1 | [BACKEND] | ARCHITECTURE: Inter-service event bus yo'q + Docker deploy muammolar
-
-- **Sana:** 2026-03-11
-- **Mas'ul:** Saidazim
-- **Holat:** ❌ Boshlanmagan
-- **Fayllar:**
-  - `shared/src/utils/serviceClient.ts`
-  - `docker-compose.dev.yml` (222-qator — web `network_mode: host`)
-  - `Dockerfile.dev`, `services/*/Dockerfile`
-  - Root `package.json` (35-qator — expo devDep)
-- **Muammo:**
-  - Barcha inter-service aloqa **sinxron HTTP** — agar User service ishlamasa, `addUserPoints()` **jim-jit fail** bo'ladi, ball yo'qoladi. Retry/queue mexanizmi yo'q
-  - Web service `network_mode: host` ishlatadi — Docker networking buziladi, service name resolve ishlamaydi
-  - Production Dockerfile lar **barcha** workspace dependency larni install qiladi (auth image da user/content/battle package.json ham bor) → image hajmi katta
-  - Root `package.json` da `expo` devDep — barcha backend Docker build da Expo install bo'ladi → `--legacy-peer-deps` kerak bo'ladi
-  - `.env.example` fayllar orasida **credentials mos kelmaydi** (dev_pass vs change_me)
-  - `apps/web/` uchun `.env.example` **yo'q**
-- **Bajarilishi kerak:**
-  - [ ] Muhim operatsiyalar (addPoints, triggerAchievement) uchun Redis-based event queue (Bull) qo'shish
-  - [ ] Web container ni `cinesync_network` ga o'tkazish, Next.js rewrite larni Docker DNS bilan moslashtirish
-  - [ ] Production Dockerfile → faqat kerakli workspace install (`npm ci -w @cinesync/shared -w @cinesync/auth`)
-  - [ ] Root `package.json` dan `expo` ni olib tashlash → `apps/mobile/package.json` ga ko'chirish
-  - [ ] Barcha `.env.example` fayllarni sinxronlashtirish
-  - [ ] `apps/web/.env.example` yaratish
+  - [ ] `addUserPoints`, `triggerAchievement` uchun Bull event queue (retry + reliability)
+  - [ ] Production Dockerfile: faqat kerakli workspace install (`npm ci -w @cinesync/shared -w @cinesync/auth`)
 
 ---
 
@@ -810,22 +759,6 @@ Foydalanuvchi **har qanday** video sayt URL ni kiritganda:
 
 ---
 
-### T-C007 | P1 | [IKKALASI] | Shared middleware buglar: error handler + requireVerified + Mongoose 11000
-
-- **Sana:** 2026-03-11
-- **Mas'ul:** Saidazim (shared/ egasi)
-- **Holat:** ❌ Boshlanmagan
-- **Fayllar:**
-  - `shared/src/middleware/error.middleware.ts` (44-qator)
-  - `shared/src/middleware/auth.middleware.ts` (90-104-qator)
-- **Muammo:**
-  - Mongoose duplicate key error: `code === '11000'` (string) — MongoDB **numeric** `11000` qaytaradi → **hech qachon match bo'lmaydi** → duplicate key xato generic 500 sifatida qaytadi
-  - `requireVerified` middleware — har doim `next()` chaqiradi, **hech narsani tekshirmaydi** → email verification soxta himoya
-- **Bajarilishi kerak:**
-  - [ ] `'11000'` → `11000` (yoki `== 11000` loose comparison)
-  - [ ] `requireVerified` — JWT payload da `isEmailVerified` tekshirish yoki DB query, yoki bu middleware ni olib tashlash
-
----
 
 ### T-C004 | P2 | [IKKALASI] | Dizayn Tasklari
 

@@ -4,6 +4,44 @@
 
 ---
 
+### F-095 | 2026-03-13 | [BACKEND+DOCKER] | T-S025 (qisman) — Docker + env fixes [Saidazim]
+
+- Web container: `network_mode: host` → `cinesync_network` + `ports: 3000:3000`
+- Web service env: `localhost:300x` → Docker DNS (`auth:3001`, `user:3002`, ...)
+- Root `package.json`: `expo` devDep o'chirildi (faqat `apps/mobile/package.json` da)
+- `apps/web/.env.example` yaratildi
+- Qolgan: Bull event queue (inter-service reliability), Production Dockerfile optimizatsiya
+
+---
+
+### F-094 | 2026-03-13 | [BACKEND+INFRA] | T-S024 — Socket.io Redis adapter + Nginx TLS + rate limit [Saidazim]
+
+- `@socket.io/redis-adapter` o'rnatildi; `pubClient`/`subClient` (redis.duplicate()) bilan adapter sozlandi
+- `nginx.conf`: HTTP→HTTPS 301 redirect server block qo'shildi
+- `nginx.conf`: HTTPS server block — TLS 1.2/1.3, ssl_session_cache, ssl_ciphers
+- `nginx.conf`: HSTS header qo'shildi (`max-age=31536000; includeSubDomains`)
+- `nginx.conf`: rate limit `30r/m` → `10r/s` (api), `10r/m` → `5r/m` (auth)
+
+---
+
+### F-093 | 2026-03-13 | [BACKEND+SHARED] | T-C007 — Shared middleware buglar tuzatildi [Saidazim]
+
+- `error.middleware.ts`: Mongoose 11000 code `'11000'` (string) → `11000 || '11000'` (ikkisini ham tekshirish)
+- `auth.middleware.ts`: `requireVerified` endi `user.isEmailVerified` ni JWT payload dan tekshiradi
+- `shared/types`: `JwtPayload` ga `isEmailVerified?: boolean` qo'shildi
+- `auth.service.ts`: `login`, `refreshTokens`, `generateAndStoreTokens` — payload ga `isEmailVerified` qo'shildi
+
+---
+
+### F-092 | 2026-03-13 | [BACKEND] | T-S016 — Google OAuth native token endpoint [Saidazim]
+
+- `POST /api/v1/auth/google/token` endpoint qo'shildi — body: `{ idToken: string }`
+- `google-auth-library` o'rnatildi; `verifyGoogleIdToken()` service metodi yozildi
+- idToken verify → `findOrCreateGoogleUser` → `generateAndStoreTokens` → `{ user, accessToken, refreshToken }` response
+- `googleIdTokenSchema` Joi validator + `authRateLimiter` qo'shildi
+
+---
+
 ### F-091 | 2026-03-12 | [MOBILE] | T-C009 + T-C006 — Socket payload fix + WebView Video Player [Emirhan]
 
 **T-C009 — Socket event payload mismatch (Mobile qismi):**
