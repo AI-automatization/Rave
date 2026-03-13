@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useCallback, useState, useRef } from 'react';
+import { FaVolumeMute, FaVolumeDown, FaVolumeUp } from 'react-icons/fa';
 import { VideoPlayer } from '@/components/VideoPlayer';
 import { apiClient } from '@/lib/axios';
 import type { VideoPlatform } from '@/types';
@@ -12,6 +13,9 @@ interface YTPlayer {
   pauseVideo(): void;
   seekTo(seconds: number, allowSeekAhead: boolean): void;
   getCurrentTime(): number;
+  setVolume(volume: number): void;
+  mute(): void;
+  unMute(): void;
   destroy(): void;
 }
 interface YTPlayerOptions {
@@ -128,6 +132,31 @@ function YouTubeIframePlayer(props: UniversalPlayerProps) {
   useEffect(() => { onSeekRef.current = onSeek; }, [onSeek]);
   useEffect(() => { isOwnerRef.current = isOwner; }, [isOwner]);
 
+  // Member uchun volume state (YouTube player.setVolume bilan boshqariladi)
+  const [memberVolume, setMemberVolume] = useState(100);
+  const [memberMuted, setMemberMuted] = useState(false);
+  const [showVolSlider, setShowVolSlider] = useState(false);
+
+  const handleMemberVolumeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = parseInt(e.target.value, 10);
+    setMemberVolume(v);
+    setMemberMuted(v === 0);
+    playerRef.current?.setVolume(v);
+    if (v === 0) playerRef.current?.mute();
+    else playerRef.current?.unMute();
+  }, []);
+
+  const handleMemberToggleMute = useCallback(() => {
+    if (memberMuted) {
+      playerRef.current?.unMute();
+      playerRef.current?.setVolume(memberVolume || 100);
+      setMemberMuted(false);
+    } else {
+      playerRef.current?.mute();
+      setMemberMuted(true);
+    }
+  }, [memberMuted, memberVolume]);
+
   // YouTube IFrame API yuklash va player yaratish
   useEffect(() => {
     if (!ytId || typeof window === 'undefined') return;
@@ -234,12 +263,51 @@ function YouTubeIframePlayer(props: UniversalPlayerProps) {
     );
   }
 
+  const MemberVolumeIcon = memberMuted || memberVolume === 0 ? FaVolumeMute
+    : memberVolume < 50 ? FaVolumeDown
+    : FaVolumeUp;
+
   return (
-    <div
-      ref={containerRef}
-      className="w-full aspect-video bg-black rounded-xl overflow-hidden"
-      title={title}
-    />
+    <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
+      {/* YouTube IFrame API bu div ni replace qiladi */}
+      <div ref={containerRef} className="w-full h-full" title={title} />
+
+      {/* Member overlay: iframe clicks BLOKLANADI (play/pause/seek imkonsiz)
+          Faqat volume control ko'rinadi pastda */}
+      {!isOwner && (
+        <div className="absolute inset-0 z-10">
+          {/* Shaffof overlay — YouTube iframe ga click o'tmasligi uchun */}
+          <div className="absolute inset-0" />
+
+          {/* Volume control — pastda o'ng tomonda */}
+          <div
+            className="absolute bottom-3 right-3 flex items-center gap-2 bg-black/70 backdrop-blur-sm rounded-lg px-3 py-2"
+            onMouseEnter={() => setShowVolSlider(true)}
+            onMouseLeave={() => setShowVolSlider(false)}
+          >
+            <button
+              onClick={handleMemberToggleMute}
+              className="text-white/80 hover:text-white transition-colors"
+            >
+              <MemberVolumeIcon size={16} />
+            </button>
+            <div
+              className={`overflow-hidden transition-all duration-200 ${showVolSlider ? 'w-20 opacity-100' : 'w-0 opacity-0'}`}
+            >
+              <input
+                type="range"
+                min={0}
+                max={100}
+                step={2}
+                value={memberMuted ? 0 : memberVolume}
+                onChange={handleMemberVolumeChange}
+                className="w-20 h-1 rounded-full cursor-pointer accent-[#7C3AED]"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
