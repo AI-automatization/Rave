@@ -4,6 +4,21 @@
 
 ---
 
+### F-096 | 2026-03-13 | [BACKEND+INFRA] | T-C006 B1-B2 + T-S025b [Saidazim]
+
+**T-C006 B1-B2 — WebView platform support:**
+- `VideoPlatform` type: `'youtube'|'direct'|'webview'` shared/types ga qo'shildi
+- Room model: `videoPlatform` Mongoose enum ga `'webview'` qo'shildi
+- Service: `videoUrl` http/https validation; `needsResync()` webview uchun 2.5s threshold
+
+**T-S025b — Bull queue + Dockerfile:**
+- `shared/utils/serviceQueue.ts`: `addUserPoints`/`triggerAchievement` Bull queue (5 retry, exponential backoff)
+- `serviceClient.ts`: queue bor bo'lsa queue, yo'q bo'lsa direct HTTP fallback
+- battle/content/user `server.ts`: `initServiceQueues(redisUrl)` qo'shildi
+- 7 ta Production Dockerfile: `npm ci -w @cinesync/shared -w @cinesync/[service]` — faqat kerakli deps
+
+---
+
 ### F-095 | 2026-03-13 | [BACKEND+DOCKER] | T-S025 (qisman) — Docker + env fixes [Saidazim]
 
 - Web container: `network_mode: host` → `cinesync_network` + `ports: 3000:3000`

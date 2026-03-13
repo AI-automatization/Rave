@@ -48,16 +48,6 @@
 ## ARXITEKTURA REVIEW — 2026-03-11 (Bekzod QA)
 
 
-### T-S025b | P2 | [BACKEND] | Inter-service event bus + Production Dockerfile optim
-
-- **Sana:** 2026-03-13
-- **Mas'ul:** Saidazim
-- **Holat:** ❌ Boshlanmagan (T-S025 qolgan qismi)
-- **Bajarilishi kerak:**
-  - [ ] `addUserPoints`, `triggerAchievement` uchun Bull event queue (retry + reliability)
-  - [ ] Production Dockerfile: faqat kerakli workspace install (`npm ci -w @cinesync/shared -w @cinesync/auth`)
-
----
 
 ### T-S009 | P2 | [ADMIN] | Admin Dashboard UI — React + Vite
 
