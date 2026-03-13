@@ -143,6 +143,7 @@ export class AuthService {
       userId: user._id.toString(),
       email: user.email,
       role: user.role as UserRole,
+      isEmailVerified: user.isEmailVerified,
     };
 
     const { accessToken, refreshToken } = this.generateTokens(payload);
@@ -185,6 +186,7 @@ export class AuthService {
       userId: user._id.toString(),
       email: user.email,
       role: user.role as UserRole,
+      isEmailVerified: user.isEmailVerified,
     };
 
     const { accessToken, refreshToken } = this.generateTokens(payload);
@@ -290,8 +292,9 @@ export class AuthService {
     role: UserRole,
     ip: string | null = null,
     userAgent: string | null = null,
+    isEmailVerified = true,
   ): Promise<{ accessToken: string; refreshToken: string }> {
-    const payload: JwtPayload = { userId, email, role };
+    const payload: JwtPayload = { userId, email, role, isEmailVerified };
     const { accessToken, refreshToken } = this.generateTokens(payload);
 
     await RefreshToken.create({

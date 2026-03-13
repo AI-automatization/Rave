@@ -98,7 +98,9 @@ export const requireVerified = (
     return next(new UnauthorizedError('Authentication required'));
   }
 
-  // Email verification flag can be embedded in token or checked via header
-  // Services that need this should extend the JWT payload with isEmailVerified
+  if (!user.isEmailVerified) {
+    return next(new ForbiddenError('Email verification required'));
+  }
+
   next();
 };

@@ -40,8 +40,9 @@ export const errorHandler = (
     return;
   }
 
-  // Mongoose duplicate key error
-  if ((error as NodeJS.ErrnoException).code === '11000') {
+  // Mongoose duplicate key error — MongoDB returns numeric 11000, not string
+  const errCode = (error as { code?: unknown }).code;
+  if (errCode === 11000 || errCode === '11000') {
     res.status(409).json(apiResponse.error('Resource already exists'));
     return;
   }
