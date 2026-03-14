@@ -54,7 +54,7 @@
 - **Sana:** 2026-02-26
 - **Mas'ul:** Saidazim
 - **Fayl:** `apps/admin-ui/`
-- **Holat:** 🔄 pending[Saidazim]
+- **Holat:** ✅ TUGADI (2026-03-14)
 - **Sprint:** S4-S5
 - **Kerak bo'ladi:**
   - [ ] Vite + React + TypeScript + TailwindCSS setup

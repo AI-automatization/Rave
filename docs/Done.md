@@ -4,6 +4,21 @@
 
 ---
 
+### F-108 | 2026-03-14 | [ADMIN] | T-S009 — Admin Dashboard UI [Saidazim]
+
+- Vite + React 18 + TypeScript + TailwindCSS (dark mode, CineSync design system)
+- Login page — JWT auth, role tekshirish (admin/superadmin/operator)
+- Dashboard — 5 ta StatCard, Recharts (Top Movies, Janr taqsimoti, Bugungi faollik), auto-refresh 30s
+- Foydalanuvchilar sahifasi — qidirish, role/holat filter, block/unblock, role o'zgartirish, o'chirish
+- Kontent sahifasi — publish/unpublish, filter, superadmin delete
+- Feedback sahifasi — javob berish modal, status o'zgartirish
+- Loglar sahifasi — level/servis filter, pagination
+- Railway deploy: `Dockerfile` + `nginx.conf` (SPA routing), `.env` production URL lar bilan
+- `VITE_AUTH_API_URL` = auth-production-47a8.up.railway.app
+- `VITE_ADMIN_API_URL` = admin-production-8d2a.up.railway.app
+
+---
+
 ### F-107 | 2026-03-14 | [BACKEND] | T-S029 — Battle reject endpoint [Saidazim]
 
 - `POST /battles/:id/reject` — faqat `hasAccepted: false` bo'lgan participant rad eta oladi
