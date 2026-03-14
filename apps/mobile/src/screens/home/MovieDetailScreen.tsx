@@ -273,9 +273,9 @@ export function MovieDetailScreen({ route, navigation }: Props) {
               <Text style={styles.ratingDone}>Bahoingiz qabul qilindi ✓</Text>
             )}
           </View>
-
-          <View style={{ height: spacing.xxxl + insets.bottom }} />
         </View>
+
+        <View style={{ height: spacing.xxxl + insets.bottom }} />
       </Animated.ScrollView>
     </View>
   );
