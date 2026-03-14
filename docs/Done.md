@@ -1,6 +1,16 @@
 # CineSync — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-03-14
+# Yangilangan: 2026-03-15
+
+---
+
+### F-109 | 2026-03-15 | [MOBILE] | T-E031 — Telegram Login ekrani va polling flow [Emirhan]
+
+- `authApi.telegramInit()` — POST /auth/telegram/init → `{ state, botUrl }`
+- `authApi.telegramPoll(state)` — GET /auth/telegram/poll?state (202→null, 200→LoginResponse)
+- `LoginScreen` — `handleTelegramLogin`: Linking.openURL(botUrl) + setInterval poll har 2s, max 60 urinish (2 daqiqa)
+- Telegram tugmasi (#2CA5E0 rang) Google tugmasidan keyin
+- useEffect unmount da interval tozalash (memory leak yo'q)
 
 ---
 
