@@ -190,7 +190,7 @@ export class UserController {
     try {
       const { userId, points } = req.body as { userId: string; points: number };
       if (!userId || typeof points !== 'number' || points <= 0) {
-        res.status(400).json(apiResponse.error('userId va musbat points talab qilinadi'));
+        res.status(400).json(apiResponse.error('userId and positive points are required'));
         return;
       }
       await this.userService.addPoints(userId, points);

@@ -81,12 +81,12 @@ export class AuthService {
 
   async confirmRegistration(email: string, code: string): Promise<IUserDocument> {
     const raw = await this.redis.get(`pending_reg:${email}`);
-    if (!raw) throw new BadRequestError('Kod muddati o\'tgan yoki topilmadi. Qayta ro\'yxatdan o\'ting.');
+    if (!raw) throw new BadRequestError('Verification code expired or not found. Please register again.');
 
     const pending = JSON.parse(raw) as { username: string; passwordHash: string; otpHash: string };
 
     if (pending.otpHash !== this.hashToken(code)) {
-      throw new BadRequestError('Kod noto\'g\'ri');
+      throw new BadRequestError('Invalid verification code');
     }
 
     await this.redis.del(`pending_reg:${email}`);
@@ -319,7 +319,7 @@ export class AuthService {
   async exchangeOAuthCode(code: string): Promise<{ accessToken: string; refreshToken: string }> {
     const key = `oauth:code:${code}`;
     const raw = await this.redis.get(key);
-    if (!raw) throw new BadRequestError('OAuth code noto\'g\'ri yoki muddati o\'tgan');
+    if (!raw) throw new BadRequestError('OAuth code is invalid or expired');
     await this.redis.del(key); // one-time use
     return JSON.parse(raw) as { accessToken: string; refreshToken: string };
   }

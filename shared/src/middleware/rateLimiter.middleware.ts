@@ -45,11 +45,11 @@ export const apiRateLimiter = rateLimit({
   }),
 });
 
-// Auth rate limiter — dev: 200 req/15min, prod: 10 req/15min
+// Auth rate limiter — dev: 200 req/15min, prod: 30 req/15min
 const isDev = process.env.NODE_ENV === 'development';
 export const authRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: isDev ? 200 : 10,
+  max: isDev ? 200 : 30,
   standardHeaders: true,
   legacyHeaders: false,
   passOnStoreError: true,

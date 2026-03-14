@@ -155,7 +155,7 @@ export class AuthController {
     try {
       const { code } = req.body as { code: string };
       if (!code) {
-        res.status(400).json(apiResponse.error('code talab qilinadi'));
+        res.status(400).json(apiResponse.error('code is required'));
         return;
       }
       const tokens = await this.authService.exchangeOAuthCode(code);
