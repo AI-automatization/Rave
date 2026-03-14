@@ -44,4 +44,8 @@ export const authApi = {
     if (!res.data.data) throw new Error('Google token response is empty');
     return res.data.data;
   },
+
+  async changePassword(oldPassword: string, newPassword: string): Promise<void> {
+    await authClient.post('/auth/change-password', { oldPassword, newPassword });
+  },
 };

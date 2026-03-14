@@ -1,6 +1,56 @@
 # CineSync — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-03-13
+# Yangilangan: 2026-03-14
+
+---
+
+### F-103 | 2026-03-14 | [MOBILE] | T-E030 — StatsScreen real API faollik grafigi [Emirhan]
+
+- `IUserStats`: `weeklyActivity?: number[]` qo'shildi
+- `ActivityChart`: mock random data o'chirildi → `weeklyActivity` prop ga asoslangan real bars
+- Empty state: "Hali faollik yo'q" (icon + text) — agar barcha 7 kun 0 bo'lsa
+- Backend `weeklyActivity` bermasa → bo'sh grafik ko'rsatiladi (graceful fallback)
+
+---
+
+### F-102 | 2026-03-14 | [MOBILE] | T-E029 — SettingsScreen profil tahrirlash + parol + hisob o'chirish [Emirhan]
+
+- HISOB bo'limi qo'shildi: "Profilni tahrirlash" + "Parolni o'zgartirish" navigatsiya satrlar
+- `authApi.changePassword(oldPassword, newPassword)` — `POST /auth/change-password`
+- `userApi.deleteAccount()` — `DELETE /users/me`
+- Hisob o'chirish: 2 bosqichli tasdiqlash (Alert → "TASDIQLASH" so'zi → `userApi.deleteAccount()` → logout)
+- Parol o'zgartirish modal: eski/yangi/tasdiqlash input, validatsiya
+- Profil tahrirlash modal: username + bio input (ProfileScreen kabi)
+
+---
+
+### F-101 | 2026-03-14 | [MOBILE] | T-E028 — ProfileScreen avatar edit + profil edit modal [Emirhan]
+
+- Avatar ustida kamera icon overlay (absolute, bottom-right, primary rang)
+- Tap → `expo-image-picker` (1:1 crop) → `userApi.updateProfile({ avatar })`
+- Username yonida pencil icon — modal ochadi
+- Profil edit bottom sheet modal: username + bio input, Saqlash tugmasi
+- `useMyProfile.updateProfileMutation` kengaytirildi: `avatar` field qo'shildi
+
+---
+
+### F-100 | 2026-03-14 | [MOBILE] | T-E027 — ProfileSetupScreen avatar picker + genre chips [Emirhan]
+
+- `shared/types`: `IUser.favoriteGenres?: ContentGenre[]` qo'shildi
+- `userApi.updateProfile`: `favoriteGenres` qo'shildi
+- Avatar picker: `expo-image-picker` (1:1 crop, 0.8 quality) — galereya, violet camera overlay
+- Genre chips: 10 ta janr multi-select toggle (active: violet filled, inactive: outline)
+- `handleSave`: bio + avatar + favoriteGenres birga yuboriladi
+
+---
+
+### F-099 | 2026-03-14 | [MOBILE] | T-E026 — MovieDetailScreen cast + o'xshash filmlar [Emirhan]
+
+- `shared/types`: `ICastMember { name, photoUrl? }` + `IMovie.cast?`, `IMovie.director?` qo'shildi
+- `useMovieDetail`: `similarMovies` query qo'shildi — `contentApi.getMovies({ genre })`, o'zini filtr qiladi, max 10
+- Cast section: circular avatars (60px), actor ism, photoUrl bo'lmasa fallback icon — horizontal ScrollView
+- Cast bo'sh bo'lsa yashiriladi
+- O'xshash filmlar: poster (100x148) + title + rating — horizontal ScrollView, tap → boshqa MovieDetail
 
 ---
 

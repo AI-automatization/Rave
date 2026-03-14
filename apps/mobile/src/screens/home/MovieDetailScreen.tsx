@@ -10,7 +10,6 @@ import {
   Dimensions,
   StatusBar,
   ActivityIndicator,
-  GestureResponderEvent,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -18,7 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing, typography, borderRadius } from '@theme/index';
-import { HomeStackParamList } from '@app-types/index';
+import { HomeStackParamList, IMovie, ICastMember } from '@app-types/index';
 import { useMovieDetail } from '@hooks/useMovieDetail';
 import { contentApi } from '@api/content.api';
 
@@ -29,7 +28,7 @@ const HEADER_HEIGHT = 280;
 
 export function MovieDetailScreen({ route, navigation }: Props) {
   const { movieId } = route.params;
-  const { movie, watchProgress, isLoading } = useMovieDetail(movieId);
+  const { movie, watchProgress, similarMovies, isLoading } = useMovieDetail(movieId);
   const insets = useSafeAreaInsets();
   const scrollY = useRef(new Animated.Value(0)).current;
   const [userRating, setUserRating] = useState(0);
@@ -163,6 +162,51 @@ export function MovieDetailScreen({ route, navigation }: Props) {
             </Text>
           </TouchableOpacity>
 
+          {/* Cast */}
+          {movie.cast && movie.cast.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>AKTYORLAR</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.castScroll}>
+                {movie.cast.map((actor: ICastMember, idx: number) => (
+                  <View key={idx} style={styles.castItem}>
+                    {actor.photoUrl ? (
+                      <Image source={{ uri: actor.photoUrl }} style={styles.castAvatar} contentFit="cover" />
+                    ) : (
+                      <View style={[styles.castAvatar, styles.castAvatarFallback]}>
+                        <Ionicons name="person" size={24} color={colors.textMuted} />
+                      </View>
+                    )}
+                    <Text style={styles.castName} numberOfLines={2}>{actor.name}</Text>
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          {/* O'xshash filmlar */}
+          {similarMovies.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>O'XSHASH FILMLAR</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.similarScroll}>
+                {similarMovies.map((item: IMovie) => (
+                  <TouchableOpacity
+                    key={item._id}
+                    style={styles.similarCard}
+                    onPress={() => navigation.push('MovieDetail', { movieId: item._id })}
+                    activeOpacity={0.8}
+                  >
+                    <Image source={{ uri: item.posterUrl }} style={styles.similarPoster} contentFit="cover" />
+                    <Text style={styles.similarTitle} numberOfLines={2}>{item.title}</Text>
+                    <View style={styles.similarRating}>
+                      <Ionicons name="star" size={10} color={colors.gold} />
+                      <Text style={styles.similarRatingText}>{item.rating.toFixed(1)}</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
           {/* Rating Widget */}
           <View style={styles.ratingSection}>
             <Text style={styles.ratingLabel}>Baholang</Text>
@@ -264,4 +308,23 @@ const styles = StyleSheet.create({
   stars: { flexDirection: 'row', gap: spacing.sm },
   starBtn: { padding: spacing.xs },
   ratingDone: { ...typography.caption, color: colors.success },
+  section: { marginBottom: spacing.xl },
+  sectionTitle: { ...typography.label, color: colors.textMuted, marginBottom: spacing.md },
+  castScroll: { marginHorizontal: -spacing.xl, paddingHorizontal: spacing.xl },
+  castItem: { alignItems: 'center', width: 72, marginRight: spacing.md },
+  castAvatar: { width: 60, height: 60, borderRadius: 30 },
+  castAvatarFallback: {
+    backgroundColor: colors.bgElevated,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  castName: { ...typography.caption, textAlign: 'center', marginTop: spacing.xs },
+  similarScroll: { marginHorizontal: -spacing.xl, paddingHorizontal: spacing.xl },
+  similarCard: { width: 100, marginRight: spacing.md },
+  similarPoster: { width: 100, height: 148, borderRadius: borderRadius.md, marginBottom: spacing.xs },
+  similarTitle: { ...typography.caption, lineHeight: 14 },
+  similarRating: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 2 },
+  similarRatingText: { fontSize: 10, color: colors.gold },
 });

@@ -33,15 +33,21 @@ function StatItem({ icon, label, value, color }: { icon: string; label: string; 
   );
 }
 
-// Simple bar chart using Views
-function ActivityChart({ minutesWatched }: { minutesWatched: number }) {
-  const hours = Math.round(minutesWatched / 60);
-  const bars = React.useMemo(
-    () => Array.from({ length: 7 }, () => Math.max(1, Math.round(Math.random() * hours * 0.3 + hours * 0.1))),
-    [hours],
-  );
-  const maxVal = Math.max(...bars);
+// Bar chart — real weekly activity data
+function ActivityChart({ weeklyActivity }: { weeklyActivity?: number[] }) {
   const days = ['Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh', 'Ya'];
+  const bars = weeklyActivity ?? Array(7).fill(0);
+  const maxVal = Math.max(...bars, 1); // avoid division by zero
+  const hasActivity = bars.some((v) => v > 0);
+
+  if (!hasActivity) {
+    return (
+      <View style={[styles.chart, styles.chartEmpty]}>
+        <Ionicons name="bar-chart-outline" size={28} color={colors.textMuted} />
+        <Text style={styles.chartEmptyText}>Hali faollik yo'q</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.chart}>
@@ -51,7 +57,10 @@ function ActivityChart({ minutesWatched }: { minutesWatched: number }) {
             <View
               style={[
                 styles.bar,
-                { height: `${Math.round((val / maxVal) * 100)}%`, backgroundColor: i === 6 ? colors.primary : colors.bgElevated },
+                {
+                  height: `${Math.round((val / maxVal) * 100)}%`,
+                  backgroundColor: val > 0 ? colors.primary : colors.bgElevated,
+                },
               ]}
             />
           </View>
@@ -135,7 +144,7 @@ export function StatsScreen() {
       {/* Activity chart */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>HAFTALIK FAOLLIK</Text>
-        <ActivityChart minutesWatched={stats.totalMinutes} />
+        <ActivityChart weeklyActivity={stats.weeklyActivity} />
       </View>
 
       {/* Rank yo'li */}
@@ -228,6 +237,13 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     alignItems: 'flex-end',
   },
+  chartEmpty: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'column',
+    gap: spacing.xs,
+  },
+  chartEmptyText: { ...typography.caption, color: colors.textMuted },
   barCol: { flex: 1, alignItems: 'center', gap: 4 },
   barWrapper: { flex: 1, width: '100%', justifyContent: 'flex-end' },
   bar: { width: '100%', borderRadius: 3, minHeight: 4 },

@@ -10,6 +10,7 @@ export type {
   UserRank,
   JwtPayload,
   IMovie,
+  ICastMember,
   ContentType,
   ContentGenre,
   IWatchPartyRoom,
@@ -82,6 +83,7 @@ export interface IUserStats {
   friendsCount: number;
   currentStreak: number;
   longestStreak: number;
+  weeklyActivity?: number[]; // 7 kun, minutes per day (Du..Ya)
 }
 
 // ─────────────────────────────────────────────

@@ -9,7 +9,7 @@ export const userApi = {
     return res.data.data;
   },
 
-  async updateProfile(data: Partial<Pick<IUser, 'username' | 'bio' | 'avatar'>>): Promise<IUser> {
+  async updateProfile(data: Partial<Pick<IUser, 'username' | 'bio' | 'avatar' | 'favoriteGenres'>>): Promise<IUser> {
     const res = await userClient.put<ApiResponse<IUser>>('/users/me', data);
     if (!res.data.data) throw new Error('updateProfile response is empty');
     return res.data.data;
@@ -70,5 +70,9 @@ export const userApi = {
       '/users/me/friend-requests',
     );
     return res.data.data ?? [];
+  },
+
+  async deleteAccount(): Promise<void> {
+    await userClient.delete('/users/me');
   },
 };

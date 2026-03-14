@@ -30,7 +30,8 @@ export function useMyProfile() {
   });
 
   const updateProfileMutation = useMutation({
-    mutationFn: (data: { username?: string; bio?: string }) => userApi.updateProfile(data),
+    mutationFn: (data: { username?: string; bio?: string; avatar?: string }) =>
+      userApi.updateProfile(data),
     onSuccess: user => {
       updateUser(user);
       queryClient.invalidateQueries({ queryKey: ['my-profile'] });

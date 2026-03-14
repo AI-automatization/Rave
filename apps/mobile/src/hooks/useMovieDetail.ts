@@ -18,9 +18,21 @@ export function useMovieDetail(movieId: string) {
     enabled: !!movieId,
   });
 
+  const genre = movieQuery.data?.genre?.[0];
+  const similarQuery = useQuery<IMovie[]>({
+    queryKey: ['similar', movieId, genre],
+    queryFn: async () => {
+      const res = await contentApi.getMovies({ genre, limit: 11 });
+      return res.movies.filter((m) => m._id !== movieId).slice(0, 10);
+    },
+    staleTime: 10 * 60 * 1000,
+    enabled: !!movieQuery.data && !!genre,
+  });
+
   return {
     movie: movieQuery.data ?? null,
     watchProgress: progressQuery.data ?? null,
+    similarMovies: similarQuery.data ?? [],
     isLoading: movieQuery.isLoading,
     error: movieQuery.error,
     refetch: movieQuery.refetch,

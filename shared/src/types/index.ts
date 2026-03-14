@@ -33,6 +33,7 @@ export interface IUser {
   username: string;
   avatar: string | null;
   bio: string;
+  favoriteGenres?: ContentGenre[];
   role: UserRole;
   rank: UserRank;
   totalPoints: number;
@@ -93,6 +94,11 @@ export type ContentGenre =
   | 'documentary'
   | 'fantasy';
 
+export interface ICastMember {
+  name: string;
+  photoUrl?: string;
+}
+
 export interface IMovie {
   _id: string;
   title: string;
@@ -109,6 +115,8 @@ export interface IMovie {
   trailerUrl: string;
   isPublished: boolean;
   viewCount: number;
+  director?: string;
+  cast?: ICastMember[];
   addedBy: string; // operator/admin userId
   createdAt: Date;
   updatedAt: Date;
