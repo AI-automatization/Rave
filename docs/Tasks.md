@@ -112,7 +112,7 @@
 
 - **Sana:** 2026-03-11
 - **Mas'ul:** Jafar
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 pending[Jafar]
 - **Fayl:** `apps/web/src/store/auth.store.ts` (35-37-qator)
 - **Muammo:**
   - Refresh token `localStorage` da — XSS hujumida **o'g'irlanadi** va attacker doimiy kirish oladi
@@ -129,7 +129,7 @@
 
 - **Sana:** 2026-03-11
 - **Mas'ul:** Jafar
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 pending[Jafar]
 - **Fayl:** `apps/web/next.config.mjs` (3-4-qator va butun fayl)
 - **Muammo:**
   - `ignoreDuringBuilds: true` + `ignoreBuildErrors: true` — **type xatolar production ga o'tadi!** CLAUDE.md: "QA FAIL → merge TAQIQLANGAN"
@@ -146,7 +146,7 @@
 
 - **Sana:** 2026-03-11
 - **Mas'ul:** Jafar
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 pending[Jafar]
 - **Fayllar:**
   - `apps/web/src/components/video/UniversalPlayer.tsx` (83, 92-qator va boshqalar)
   - `apps/web/src/app/(app)/movies/[slug]/page.tsx` (63-82-qator)
@@ -429,7 +429,7 @@ Foydalanuvchi **har qanday** video sayt URL ni kiritganda:
 
 - **Sana:** 2026-03-11
 - **Mas'ul:** Jafar (Web) + Saidazim (Shared types yangilash)
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 pending[Jafar]
 - **Fayllar:**
   - `apps/web/package.json` — `@cinesync/shared` dependency **yo'q**
   - `apps/web/src/types/index.ts` — barcha typelar **qo'lda duplicate** qilingan
