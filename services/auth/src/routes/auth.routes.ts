@@ -61,5 +61,8 @@ export const createAuthRouter = (redis: Redis): Router => {
   // POST /auth/google/exchange — temp code → tokens (one-time, 2 min TTL)
   router.post('/google/exchange', authController.googleExchange);
 
+  // POST /auth/init-admin — bir martalik superadmin yaratish (ADMIN_INIT_SECRET bilan himoyalangan)
+  router.post('/init-admin', authController.initAdmin);
+
   return router;
 };

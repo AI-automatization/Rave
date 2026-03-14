@@ -422,4 +422,20 @@ export class AuthService {
       logger.warn('Redis unavailable — could not increment login attempts', { email });
     }
   }
+
+  async createSuperAdmin(email: string, username: string, password: string): Promise<void> {
+    const existing = await User.findOne({ $or: [{ email }, { role: 'superadmin' }] });
+    if (existing) {
+      throw new ConflictError('Superadmin already exists');
+    }
+    const passwordHash = await this.hashPassword(password);
+    await User.create({
+      email,
+      username,
+      passwordHash,
+      role: 'superadmin',
+      isVerified: true,
+    });
+    logger.info('Superadmin created', { email, username });
+  }
 }

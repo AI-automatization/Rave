@@ -178,4 +178,30 @@ export class AuthController {
       next(error);
     }
   };
+
+  // POST /auth/init-admin — bir martalik superadmin yaratish
+  // ADMIN_INIT_SECRET env var bilan himoyalangan
+  initAdmin = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const secret = process.env.ADMIN_INIT_SECRET;
+      if (!secret) {
+        res.status(403).json(apiResponse.error('Not configured'));
+        return;
+      }
+      const { initSecret, email, username, password } = req.body as {
+        initSecret: string;
+        email: string;
+        username: string;
+        password: string;
+      };
+      if (initSecret !== secret) {
+        res.status(403).json(apiResponse.error('Invalid secret'));
+        return;
+      }
+      await this.authService.createSuperAdmin(email, username, password);
+      res.json(apiResponse.success(null, 'Superadmin created'));
+    } catch (error) {
+      next(error);
+    }
+  };
 }
