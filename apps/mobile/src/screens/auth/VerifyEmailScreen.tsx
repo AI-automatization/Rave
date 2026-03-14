@@ -1,5 +1,5 @@
 // CineSync Mobile — Verify Email Screen
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  NativeSyntheticEvent,
+  TextInputKeyPressEventData,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -23,7 +25,9 @@ export function VerifyEmailScreen() {
   const route = useRoute<Route>();
   const { email } = route.params;
 
-  const [token, setToken] = useState('');
+  const [digits, setDigits] = useState(['', '', '', '', '', '']);
+  const inputRefs = useRef<Array<TextInput | null>>(Array(6).fill(null));
+  const token = digits.join('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -50,13 +54,33 @@ export function VerifyEmailScreen() {
     }
   };
 
+  const handleDigit = (text: string, index: number) => {
+    const digit = text.replace(/[^0-9]/g, '').slice(-1);
+    const newDigits = [...digits];
+    newDigits[index] = digit;
+    setDigits(newDigits);
+    if (digit && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleKeyPress = (e: NativeSyntheticEvent<TextInputKeyPressEventData>, index: number) => {
+    if (e.nativeEvent.key === 'Backspace' && !digits[index] && index > 0) {
+      const newDigits = [...digits];
+      newDigits[index - 1] = '';
+      setDigits(newDigits);
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
+
   const handleVerify = async () => {
-    if (!token.trim()) { setError("Tasdiqlash kodini kiriting"); return; }
-    if (token.trim().length !== 6) { setError("Kod 6 ta raqamdan iborat"); return; }
+    const code = digits.join('');
+    if (!code.trim()) { setError("Tasdiqlash kodini kiriting"); return; }
+    if (code.trim().length !== 6) { setError("Kod 6 ta raqamdan iborat"); return; }
     setLoading(true);
     setError('');
     try {
-      await authApi.confirmRegister(email, token.trim());
+      await authApi.confirmRegister(email, code.trim());
       setSuccess(true);
       setTimeout(() => {
         navigation.replace('Login');
@@ -98,16 +122,23 @@ export function VerifyEmailScreen() {
           </View>
         ) : null}
 
-        <TextInput
-          style={styles.tokenInput}
-          placeholder="Tasdiqlash kodi"
-          placeholderTextColor={colors.textMuted}
-          value={token}
-          onChangeText={setToken}
-          keyboardType="number-pad"
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
+        {/* 6-box OTP input */}
+        <View style={styles.otpRow}>
+          {digits.map((digit, index) => (
+            <TextInput
+              key={index}
+              ref={ref => { inputRefs.current[index] = ref; }}
+              style={[styles.otpBox, digit ? styles.otpBoxFilled : undefined]}
+              value={digit}
+              onChangeText={text => handleDigit(text, index)}
+              onKeyPress={e => handleKeyPress(e, index)}
+              keyboardType="number-pad"
+              maxLength={1}
+              autoFocus={index === 0}
+              selectTextOnFocus
+            />
+          ))}
+        </View>
 
         <TouchableOpacity
           style={[styles.verifyBtn, loading && styles.btnDisabled]}
@@ -179,20 +210,26 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   successText: { color: colors.success, fontSize: 13 },
-  tokenInput: {
+  otpRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
     width: '100%',
+    justifyContent: 'center',
+  },
+  otpBox: {
+    width: 44,
+    height: 52,
     backgroundColor: colors.bgElevated,
-    borderRadius: borderRadius.lg,
+    borderRadius: borderRadius.md,
     borderWidth: 1,
     borderColor: colors.border,
-    paddingHorizontal: spacing.md,
-    height: 52,
     color: colors.textPrimary,
-    fontSize: 18,
+    fontSize: 20,
+    fontWeight: '700',
     textAlign: 'center',
-    letterSpacing: 6,
-    marginBottom: spacing.md,
   },
+  otpBoxFilled: { borderColor: colors.primary },
   verifyBtn: {
     width: '100%',
     backgroundColor: colors.primary,

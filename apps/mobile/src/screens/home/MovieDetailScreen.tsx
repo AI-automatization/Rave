@@ -10,14 +10,16 @@ import {
   Dimensions,
   StatusBar,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing, typography, borderRadius } from '@theme/index';
-import { HomeStackParamList, IMovie, ICastMember } from '@app-types/index';
+import { HomeStackParamList, RootStackParamList, IMovie, ICastMember } from '@app-types/index';
 import { useMovieDetail } from '@hooks/useMovieDetail';
 import { contentApi } from '@api/content.api';
 
@@ -30,9 +32,12 @@ export function MovieDetailScreen({ route, navigation }: Props) {
   const { movieId } = route.params;
   const { movie, watchProgress, similarMovies, isLoading } = useMovieDetail(movieId);
   const insets = useSafeAreaInsets();
+  const rootNav = useNavigation<NavigationProp<RootStackParamList>>();
   const scrollY = useRef(new Animated.Value(0)).current;
   const [userRating, setUserRating] = useState(0);
   const [ratingSubmitted, setRatingSubmitted] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [descExpanded, setDescExpanded] = useState(false);
 
   const headerTranslate = scrollY.interpolate({
     inputRange: [0, HEADER_HEIGHT],
@@ -104,13 +109,30 @@ export function MovieDetailScreen({ route, navigation }: Props) {
         />
       </Animated.View>
 
-      {/* Back Button */}
-      <TouchableOpacity
-        style={[styles.backBtn, { top: insets.top + spacing.sm }]}
-        onPress={() => navigation.goBack()}
-      >
-        <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
-      </TouchableOpacity>
+      {/* Header actions */}
+      <View style={[styles.headerActions, { top: insets.top + spacing.sm }]}>
+        <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.goBack()}>
+          <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
+        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          <TouchableOpacity
+            style={styles.headerBtn}
+            onPress={() => setIsFavorite(f => !f)}
+          >
+            <Ionicons
+              name={isFavorite ? 'heart' : 'heart-outline'}
+              size={22}
+              color={isFavorite ? colors.error : colors.textPrimary}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.headerBtn}
+            onPress={() => Alert.alert('Ulashish', `"${movie?.title}" filmini ulashing`)}
+          >
+            <Ionicons name="share-outline" size={22} color={colors.textPrimary} />
+          </TouchableOpacity>
+        </View>
+      </View>
 
       {/* Scrollable Content */}
       <Animated.ScrollView
@@ -151,8 +173,19 @@ export function MovieDetailScreen({ route, navigation }: Props) {
             ))}
           </View>
 
-          {/* Description */}
-          <Text style={styles.desc}>{movie.description}</Text>
+          {/* Description — collapsible */}
+          <View style={styles.descWrap}>
+            <Text style={styles.desc} numberOfLines={descExpanded ? undefined : 3}>
+              {movie.description}
+            </Text>
+            {movie.description && movie.description.length > 120 && (
+              <TouchableOpacity onPress={() => setDescExpanded(e => !e)}>
+                <Text style={styles.descToggle}>
+                  {descExpanded ? 'Yopish ↑' : 'Ko\'proq ko\'rish ↓'}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
 
           {/* Watch Button */}
           <TouchableOpacity style={styles.watchBtn} onPress={handleWatch} activeOpacity={0.85}>
@@ -160,6 +193,16 @@ export function MovieDetailScreen({ route, navigation }: Props) {
             <Text style={styles.watchText}>
               {watchProgress?.progress ? 'Davom ettirish' : "Ko'rish"}
             </Text>
+          </TouchableOpacity>
+
+          {/* Watch Party Button */}
+          <TouchableOpacity
+            style={styles.watchPartyBtn}
+            onPress={() => rootNav.navigate('Modal', { screen: 'WatchPartyCreate' })}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="people-outline" size={20} color={colors.primary} />
+            <Text style={styles.watchPartyText}>Watch Party Yaratish</Text>
           </TouchableOpacity>
 
           {/* Cast */}
@@ -249,10 +292,17 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   backdrop: { width: SCREEN_WIDTH, height: HEADER_HEIGHT },
-  backBtn: {
+  headerActions: {
     position: 'absolute',
     left: spacing.lg,
+    right: spacing.lg,
     zIndex: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  headerRight: { flexDirection: 'row', gap: spacing.sm },
+  headerBtn: {
     backgroundColor: 'rgba(0,0,0,0.5)',
     borderRadius: borderRadius.full,
     padding: spacing.xs,
@@ -291,7 +341,9 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   chipText: { ...typography.caption, color: colors.textSecondary },
-  desc: { ...typography.body, lineHeight: 22, marginBottom: spacing.xl },
+  descWrap: { marginBottom: spacing.xl, gap: spacing.xs },
+  desc: { ...typography.body, lineHeight: 22 },
+  descToggle: { ...typography.caption, color: colors.primary, fontWeight: '600', marginTop: spacing.xs },
   watchBtn: {
     backgroundColor: colors.primary,
     flexDirection: 'row',
@@ -303,6 +355,18 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   watchText: { ...typography.h3, color: colors.primaryContent },
+  watchPartyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.lg,
+    marginBottom: spacing.xl,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  watchPartyText: { ...typography.h3, color: colors.primary },
   ratingSection: { alignItems: 'center', gap: spacing.md },
   ratingLabel: { ...typography.label },
   stars: { flexDirection: 'row', gap: spacing.sm },

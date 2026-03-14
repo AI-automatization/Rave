@@ -18,6 +18,21 @@ import { colors, spacing, borderRadius, typography } from '@theme/index';
 import { AuthStackParamList } from '@app-types/index';
 import { authApi } from '@api/auth.api';
 
+function getPasswordStrength(pass: string): { pct: number; label: string; color: string } {
+  if (!pass) return { pct: 0, label: '', color: colors.bgElevated };
+  let score = 0;
+  if (pass.length >= 8) score++;
+  if (pass.length >= 12) score++;
+  if (/[A-Z]/.test(pass)) score++;
+  if (/[0-9]/.test(pass)) score++;
+  if (/[^A-Za-z0-9]/.test(pass)) score++;
+  if (score <= 1) return { pct: 20, label: 'Zaif', color: colors.error };
+  if (score <= 2) return { pct: 40, label: "O'rtacha", color: colors.warning };
+  if (score <= 3) return { pct: 60, label: 'Yaxshi', color: colors.warning };
+  if (score <= 4) return { pct: 80, label: 'Kuchli', color: colors.success };
+  return { pct: 100, label: 'Juda kuchli', color: colors.success };
+}
+
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Register'>;
 
 export function RegisterScreen() {
@@ -138,6 +153,19 @@ export function RegisterScreen() {
             />
           </View>
 
+          {/* Password strength indicator */}
+          {password.length > 0 && (() => {
+            const { pct, label, color } = getPasswordStrength(password);
+            return (
+              <View style={styles.strengthWrap}>
+                <View style={styles.strengthTrack}>
+                  <View style={[styles.strengthFill, { width: `${pct}%` as unknown as number, backgroundColor: color }]} />
+                </View>
+                <Text style={[styles.strengthLabel, { color }]}>{label}</Text>
+              </View>
+            );
+          })()}
+
           <TouchableOpacity
             style={[styles.registerBtn, loading && styles.btnDisabled]}
             onPress={handleRegister}
@@ -210,4 +238,14 @@ const styles = StyleSheet.create({
   },
   footerText: { color: colors.textMuted, fontSize: 14 },
   loginLink: { color: colors.primary, fontWeight: '600', fontSize: 14 },
+  strengthWrap: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  strengthTrack: {
+    flex: 1,
+    height: 4,
+    backgroundColor: colors.bgElevated,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  strengthFill: { height: '100%', borderRadius: 2 },
+  strengthLabel: { fontSize: 12, fontWeight: '600', minWidth: 80, textAlign: 'right' },
 });

@@ -50,7 +50,7 @@ function LockedCell() {
   );
 }
 
-const LOCKED_PLACEHOLDER_COUNT = 6;
+const LOCKED_PLACEHOLDER_COUNT = 12;
 
 export function AchievementsScreen() {
   const navigation = useNavigation();
@@ -76,7 +76,9 @@ export function AchievementsScreen() {
           <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.title}>Yutuqlar</Text>
-        <Text style={styles.count}>{achievements.length} ta</Text>
+        <Text style={styles.count}>
+          {achievements.length} / {achievements.length + LOCKED_PLACEHOLDER_COUNT} ochilgan
+        </Text>
       </View>
 
       {achievementsQuery.isLoading ? (

@@ -8,6 +8,7 @@ import {
   FlatList,
   TouchableOpacity,
   ListRenderItem,
+  Alert,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -29,6 +30,7 @@ export const HeroBanner = memo(function HeroBanner({ movies }: Props) {
   const navigation = useNavigation<Nav>();
   const flatListRef = useRef<FlatList<IMovie>>(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [listSet, setListSet] = useState<Set<string>>(new Set());
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -78,16 +80,37 @@ export const HeroBanner = memo(function HeroBanner({ movies }: Props) {
           <Text style={styles.metaDot}>·</Text>
           <Text style={styles.metaText}>{item.duration} daqiqa</Text>
         </View>
-        <TouchableOpacity
-          style={styles.watchBtn}
-          onPress={() => navigation.navigate('VideoPlayer', {
-            movieId: item._id,
-            videoUrl: item.videoUrl,
-            title: item.title,
-          })}
-        >
-          <Text style={styles.watchText}>▶  Ko'rish</Text>
-        </TouchableOpacity>
+        <View style={styles.btnRow}>
+          <TouchableOpacity
+            style={styles.watchBtn}
+            onPress={() => navigation.navigate('VideoPlayer', {
+              movieId: item._id,
+              videoUrl: item.videoUrl,
+              title: item.title,
+            })}
+          >
+            <Text style={styles.watchText}>▶  Ko'rish</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.listBtn, listSet.has(item._id) && styles.listBtnActive]}
+            onPress={() => {
+              setListSet(prev => {
+                const next = new Set(prev);
+                if (next.has(item._id)) {
+                  next.delete(item._id);
+                } else {
+                  next.add(item._id);
+                  Alert.alert('', '+ Listga qo\'shildi ✓', [], { cancelable: true });
+                }
+                return next;
+              });
+            }}
+          >
+            <Text style={[styles.listBtnText, listSet.has(item._id) && styles.listBtnTextActive]}>
+              {listSet.has(item._id) ? '✓ Listda' : '+ List'}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -144,7 +167,7 @@ const styles = StyleSheet.create({
   },
   genres: { flexDirection: 'row', gap: spacing.xs, marginBottom: spacing.xs },
   genreBadge: {
-    backgroundColor: 'rgba(229,9,20,0.8)',
+    backgroundColor: colors.primary + 'CC',
     borderRadius: borderRadius.sm,
     paddingHorizontal: 8,
     paddingVertical: 2,
@@ -154,15 +177,24 @@ const styles = StyleSheet.create({
   meta: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   metaText: { ...typography.caption, color: 'rgba(255,255,255,0.8)' },
   metaDot: { color: colors.textMuted },
+  btnRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs },
   watchBtn: {
-    alignSelf: 'flex-start',
     backgroundColor: colors.primary,
     borderRadius: borderRadius.md,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
-    marginTop: spacing.xs,
   },
   watchText: { color: colors.textPrimary, fontWeight: '700', fontSize: 14 },
+  listBtn: {
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.textPrimary,
+  },
+  listBtnActive: { borderColor: colors.primary },
+  listBtnText: { color: colors.textPrimary, fontWeight: '700', fontSize: 14 },
+  listBtnTextActive: { color: colors.primary },
   dots: {
     flexDirection: 'row',
     justifyContent: 'center',

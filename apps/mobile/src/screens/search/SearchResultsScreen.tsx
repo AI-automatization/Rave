@@ -13,10 +13,10 @@ import {
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { colors, spacing, borderRadius, typography } from '@theme/index';
 import { IMovie, SearchStackParamList } from '@app-types/index';
 import { useSearchResults } from '@hooks/useSearch';
-import { MovieCard } from '@components/movie/MovieCard';
 
 type Route = RouteProp<SearchStackParamList, 'SearchResults'>;
 type Nav = NativeStackNavigationProp<SearchStackParamList>;
@@ -56,8 +56,42 @@ export function SearchResultsScreen() {
   }, [isFetching, hasMore]);
 
   const renderItem = useCallback(
-    ({ item }: ListRenderItemInfo<IMovie>) => <MovieCard movie={item} />,
-    [],
+    ({ item }: ListRenderItemInfo<IMovie>) => (
+      <TouchableOpacity
+        style={styles.resultCard}
+        onPress={() => navigation.navigate('SearchResults', { query: item.title })}
+        activeOpacity={0.8}
+      >
+        <Image
+          source={{ uri: item.posterUrl }}
+          style={styles.resultPoster}
+          contentFit="cover"
+        />
+        <View style={styles.resultInfo}>
+          <Text style={styles.resultTitle} numberOfLines={2}>{item.title}</Text>
+          <View style={styles.resultMeta}>
+            <Ionicons name="star" size={12} color={colors.gold} />
+            <Text style={styles.resultRating}>{item.rating.toFixed(1)}</Text>
+            <Text style={styles.resultMetaDot}>·</Text>
+            <Text style={styles.resultYear}>{item.year}</Text>
+            {item.duration > 0 && (
+              <>
+                <Text style={styles.resultMetaDot}>·</Text>
+                <Text style={styles.resultDuration}>{item.duration}m</Text>
+              </>
+            )}
+          </View>
+          <View style={styles.resultGenres}>
+            {item.genre.slice(0, 2).map(g => (
+              <View key={g} style={styles.resultChip}>
+                <Text style={styles.resultChipText}>{g}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      </TouchableOpacity>
+    ),
+    [navigation],
   );
 
   const renderEmpty = () => {
@@ -114,8 +148,6 @@ export function SearchResultsScreen() {
           data={allMovies}
           renderItem={renderItem}
           keyExtractor={(item) => item._id}
-          numColumns={2}
-          columnWrapperStyle={styles.columnWrapper}
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={renderEmpty}
           ListFooterComponent={renderFooter}
@@ -144,11 +176,34 @@ const styles = StyleSheet.create({
   headerQuery: { ...typography.h3, color: colors.textPrimary },
   headerCount: { ...typography.caption, color: colors.textMuted, marginTop: 2 },
   listContent: {
-    paddingHorizontal: spacing.xl,
+    paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xxxl,
     paddingTop: spacing.sm,
+    gap: spacing.sm,
   },
-  columnWrapper: { gap: spacing.md, marginBottom: spacing.md },
+  resultCard: {
+    flexDirection: 'row',
+    backgroundColor: colors.bgSurface,
+    borderRadius: borderRadius.lg,
+    overflow: 'hidden',
+    gap: spacing.md,
+  },
+  resultPoster: { width: 80, height: 120 },
+  resultInfo: { flex: 1, paddingVertical: spacing.md, paddingRight: spacing.md, gap: spacing.xs, justifyContent: 'center' },
+  resultTitle: { ...typography.h3, color: colors.textPrimary },
+  resultMeta: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  resultRating: { ...typography.caption, color: colors.gold, fontWeight: '700' },
+  resultMetaDot: { ...typography.caption, color: colors.textMuted },
+  resultYear: { ...typography.caption, color: colors.textSecondary },
+  resultDuration: { ...typography.caption, color: colors.textSecondary },
+  resultGenres: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
+  resultChip: {
+    backgroundColor: colors.bgElevated,
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+  },
+  resultChipText: { ...typography.caption, color: colors.textSecondary, fontSize: 11 },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   footer: { paddingVertical: spacing.xl, alignItems: 'center' },
   empty: {
