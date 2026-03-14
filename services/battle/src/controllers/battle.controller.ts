@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { BattleService } from '../services/battle.service';
 import { apiResponse } from '@shared/utils/apiResponse';
 import { AuthenticatedRequest } from '@shared/types';
+import { sendInternalNotification } from '@shared/utils/serviceClient';
 
 export class BattleController {
   constructor(private battleService: BattleService) {}
@@ -43,6 +44,25 @@ export class BattleController {
       const { userId } = (req as AuthenticatedRequest).user;
       await this.battleService.acceptInvite(req.params.id, userId);
       res.json(apiResponse.success(null, 'Battle joined'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // POST /battles/:id/reject (T-S029)
+  rejectInvite = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = (req as AuthenticatedRequest).user;
+      const { creatorId } = await this.battleService.rejectInvite(req.params.id, userId);
+      // Non-blocking notification to challenger
+      void sendInternalNotification({
+        userId: creatorId,
+        type: 'battle_result',
+        title: 'Battle rad etildi',
+        body: 'Siz yuborgan battle taklifi rad etildi',
+        data: { battleId: req.params.id },
+      });
+      res.json(apiResponse.success(null, 'Battle rejected'));
     } catch (error) {
       next(error);
     }

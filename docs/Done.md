@@ -4,6 +4,41 @@
 
 ---
 
+### F-107 | 2026-03-14 | [BACKEND] | T-S029 — Battle reject endpoint [Saidazim]
+
+- `POST /battles/:id/reject` — faqat `hasAccepted: false` bo'lgan participant rad eta oladi
+- Participant record o'chiriladi, battle `status: 'rejected'` ga o'tadi
+- `shared/src/types/index.ts`: `BattleStatus`ga `'rejected'` qo'shildi
+- `battle.model.ts`: enum yangilandi
+- Challenger (creatorId) ga `battle_result` notification yuboriladi (non-blocking)
+
+---
+
+### F-106 | 2026-03-14 | [BACKEND] | T-S028 — Watch Party room yopish endpoint [Saidazim]
+
+- `DELETE /watch-party/rooms/:id` — faqat owner yopishi mumkin
+- Service: `closeRoom()` — status `'ended'`, Redis cache tozalanadi
+- Controller: `io.to(roomId).emit(ROOM_CLOSED, { reason: 'owner_closed' })` barcha a'zolarga
+- Router: `io: SocketServer` parametri qo'shildi, `app.ts` ga `io` uzatildi
+
+---
+
+### F-105 | 2026-03-14 | [BACKEND] | T-S027 — Watch Progress alias route [Saidazim]
+
+- `POST /content/movies/:id/progress` — body: `{ progress: 0-1, duration }` → `currentTime = progress * duration`
+- `GET /content/movies/:id/progress` → `{ progress, currentTime, duration }` response
+- Key: `movieid:${movieId}` prefix (watchProgressService da mavjud infra ishlatiladi)
+
+---
+
+### F-104 | 2026-03-14 | [BACKEND] | T-S026 — Content trending/top-rated/continue-watching [Saidazim]
+
+- `GET /content/trending?limit=N` — `viewCount` desc, Redis cache `trending:${limit}` TTL 10 min
+- `GET /content/top-rated?limit=N` — `rating` desc, Redis cache `top-rated:${limit}` TTL 10 min
+- `GET /content/continue-watching` — `verifyToken`, `WatchProgress` (prefix `movieid:`, percent 0-90) + Movie join, response `{ ...movie, progress }`
+
+---
+
 ### F-103 | 2026-03-14 | [MOBILE] | T-E030 — StatsScreen real API faollik grafigi [Emirhan]
 
 - `IUserStats`: `weeklyActivity?: number[]` qo'shildi

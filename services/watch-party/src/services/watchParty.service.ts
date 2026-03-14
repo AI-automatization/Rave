@@ -244,6 +244,16 @@ export class WatchPartyService {
     }
   }
 
+  async closeRoom(ownerId: string, roomId: string): Promise<void> {
+    const room = await WatchPartyRoom.findById(roomId);
+    if (!room) throw new NotFoundError('Room not found');
+    if (room.ownerId !== ownerId) throw new ForbiddenError('Only the room owner can close this room');
+
+    await WatchPartyRoom.updateOne({ _id: roomId }, { status: 'ended' });
+    await this.redis.del(REDIS_KEYS.watchPartyRoom(roomId));
+    logger.info('Watch party room closed by owner', { roomId, ownerId });
+  }
+
   async kickMember(ownerId: string, roomId: string, targetUserId: string): Promise<void> {
     const room = await WatchPartyRoom.findById(roomId);
     if (!room) throw new NotFoundError('Room not found');

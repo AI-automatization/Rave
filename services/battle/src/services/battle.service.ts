@@ -65,6 +65,22 @@ export class BattleService {
     logger.info('Battle invite accepted', { battleId, userId });
   }
 
+  async rejectInvite(battleId: string, userId: string): Promise<{ creatorId: string }> {
+    const battle = await Battle.findById(battleId);
+    if (!battle) throw new NotFoundError('Battle not found');
+
+    const participant = await BattleParticipant.findOne({ battleId, userId });
+    if (!participant) throw new NotFoundError('Battle invitation not found');
+    if (participant.hasAccepted) throw new BadRequestError('Cannot reject — invitation already accepted');
+
+    // Remove participant record and mark battle as rejected
+    await BattleParticipant.deleteOne({ battleId, userId });
+    await Battle.updateOne({ _id: battleId }, { status: 'rejected' });
+
+    logger.info('Battle invite rejected', { battleId, userId, creatorId: battle.creatorId });
+    return { creatorId: battle.creatorId };
+  }
+
   async addMovieScore(
     battleId: string,
     userId: string,

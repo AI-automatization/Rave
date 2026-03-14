@@ -24,6 +24,9 @@ export const createBattleRouter = (redis: Redis): Router => {
   // POST /battles/:id/accept
   router.post('/:id/accept', verifyToken, battleController.acceptInvite);
 
+  // POST /battles/:id/reject (T-S029)
+  router.post('/:id/reject', verifyToken, battleController.rejectInvite);
+
   // GET /battles/:id/leaderboard
   router.get('/:id/leaderboard', verifyToken, battleController.getLeaderboard);
 

@@ -1,11 +1,16 @@
 import { Request, Response, NextFunction } from 'express';
+import { Server as SocketServer } from 'socket.io';
 import { WatchPartyService } from '../services/watchParty.service';
 import { apiResponse } from '@shared/utils/apiResponse';
 import { AuthenticatedRequest, VideoPlatform } from '@shared/types';
 import { sendInternalNotification } from '@shared/utils/serviceClient';
+import { SERVER_EVENTS } from '@shared/constants/socketEvents';
 
 export class WatchPartyController {
-  constructor(private watchPartyService: WatchPartyService) {}
+  constructor(
+    private watchPartyService: WatchPartyService,
+    private io: SocketServer,
+  ) {}
 
   createRoom = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
@@ -73,6 +78,19 @@ export class WatchPartyController {
       const { userId } = (req as AuthenticatedRequest).user;
       await this.watchPartyService.leaveRoom(userId, req.params.id);
       res.json(apiResponse.success(null, 'Left room'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // DELETE /watch-party/rooms/:id — close room (owner only), emit ROOM_CLOSED (T-S028)
+  closeRoom = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = (req as AuthenticatedRequest).user;
+      const roomId = req.params.id;
+      await this.watchPartyService.closeRoom(userId, roomId);
+      this.io.to(roomId).emit(SERVER_EVENTS.ROOM_CLOSED, { reason: 'owner_closed' });
+      res.json(apiResponse.success(null, 'Room closed'));
     } catch (error) {
       next(error);
     }

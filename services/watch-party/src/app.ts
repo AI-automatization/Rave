@@ -60,7 +60,7 @@ export const createApp = (redis: Redis): { app: express.Application; io: SocketS
   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
   app.get('/api-docs.json', (_req, res) => res.json(swaggerSpec));
 
-  app.use('/api/v1/watch-party', createWatchPartyRouter(redis));
+  app.use('/api/v1/watch-party', createWatchPartyRouter(redis, io));
 
   // Register Socket.io handlers
   const watchPartyService = new WatchPartyService(redis);

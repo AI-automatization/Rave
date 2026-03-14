@@ -20,7 +20,7 @@ const battleSchema = new Schema<IBattleDocument>(
     duration: { type: Number, enum: [3, 5, 7], required: true },
     status: {
       type: String,
-      enum: ['pending', 'active', 'completed', 'cancelled'],
+      enum: ['pending', 'active', 'completed', 'cancelled', 'rejected'],
       default: 'pending',
     },
     startDate: { type: Date },

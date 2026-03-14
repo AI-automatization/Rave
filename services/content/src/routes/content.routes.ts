@@ -44,6 +44,18 @@ export const createContentRouter = (redis: Redis, elastic: ElasticsearchClient):
   const contentService = new ContentService(redis, elastic);
   const contentController = new ContentController(contentService);
 
+  // ── Discovery endpoints (T-S026) ─────────────────────────────
+  // GET /content/trending?limit=10
+  router.get('/trending', apiRateLimiter, contentController.getTrending);
+  // GET /content/top-rated?limit=10
+  router.get('/top-rated', apiRateLimiter, contentController.getTopRated);
+  // GET /content/continue-watching — auth required
+  router.get('/continue-watching', verifyToken, contentController.getContinueWatching);
+
+  // ── Watch Progress alias (T-S027) — mobile uses /movies/:id/progress ─
+  router.post('/movies/:id/progress', verifyToken, contentController.saveMovieProgress);
+  router.get('/movies/:id/progress', verifyToken, contentController.getMovieProgress);
+
   // POST /content/movies/upload — video upload to Cloudinary (operator/admin only)
   router.post('/movies/upload', verifyToken, requireRole('operator', 'admin', 'superadmin'), videoUpload.single('video'), contentController.uploadVideo);
 

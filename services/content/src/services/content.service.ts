@@ -3,6 +3,7 @@ import xss from 'xss';
 import { Client as ElasticsearchClient } from '@elastic/elasticsearch';
 import { Movie, IMovieDocument } from '../models/movie.model';
 import { WatchHistory } from '../models/watchHistory.model';
+import { WatchProgress } from '../models/watchProgress.model';
 import { Rating } from '../models/rating.model';
 import { logger } from '@shared/utils/logger';
 import { NotFoundError, ForbiddenError } from '@shared/utils/errors';
@@ -272,6 +273,61 @@ export class ContentService {
 
     await Movie.updateOne({ _id: movieId }, { rating: newRating });
     await this.redis.del(REDIS_KEYS.movieCache(movieId));
+  }
+
+  // ── Discovery Endpoints ──────────────────────────────────────
+
+  async getTrending(limit: number): Promise<IMovieDocument[]> {
+    const cacheKey = `trending:${limit}`;
+    const cached = await this.redis.get(cacheKey);
+    if (cached) return JSON.parse(cached) as IMovieDocument[];
+
+    const movies = await Movie.find({ isPublished: true })
+      .sort({ viewCount: -1 })
+      .limit(limit)
+      .lean();
+
+    await this.redis.set(cacheKey, JSON.stringify(movies), 'EX', 600); // TTL 10 min
+    return movies as unknown as IMovieDocument[];
+  }
+
+  async getTopRated(limit: number): Promise<IMovieDocument[]> {
+    const cacheKey = `top-rated:${limit}`;
+    const cached = await this.redis.get(cacheKey);
+    if (cached) return JSON.parse(cached) as IMovieDocument[];
+
+    const movies = await Movie.find({ isPublished: true, rating: { $gt: 0 } })
+      .sort({ rating: -1 })
+      .limit(limit)
+      .lean();
+
+    await this.redis.set(cacheKey, JSON.stringify(movies), 'EX', 600); // TTL 10 min
+    return movies as unknown as IMovieDocument[];
+  }
+
+  async getContinueWatching(userId: string): Promise<Array<Record<string, unknown>>> {
+    // Alias route dan kelgan yozuvlar 'movieid:${id}' prefix bilan saqlanadi
+    const progressEntries = await WatchProgress.find({
+      userId,
+      videoUrl: /^movieid:/,
+      percent: { $gt: 0, $lt: 90 },
+    })
+      .sort({ updatedAt: -1 })
+      .limit(20)
+      .lean();
+
+    if (progressEntries.length === 0) return [];
+
+    const movieIds = progressEntries.map((e) => e.videoUrl.replace('movieid:', ''));
+    const movies = await Movie.find({ _id: { $in: movieIds }, isPublished: true }).lean();
+    const movieMap = new Map(movies.map((m) => [m._id.toString(), m as unknown as Record<string, unknown>]));
+
+    return progressEntries
+      .filter((e) => movieMap.has(e.videoUrl.replace('movieid:', '')))
+      .map((e) => ({
+        ...movieMap.get(e.videoUrl.replace('movieid:', '')),
+        progress: e.percent / 100,
+      }));
   }
 
   // ── Admin Internal Methods ────────────────────────────────────

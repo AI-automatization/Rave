@@ -3,6 +3,7 @@ import { ContentService } from '../services/content.service';
 import { apiResponse, buildPaginationMeta } from '@shared/utils/apiResponse';
 import { AuthenticatedRequest } from '@shared/types';
 import { uploadToCloudinary, UploadFolder } from '../utils/cloudinary';
+import { watchProgressService } from '../services/watchProgress.service';
 
 // Fields an operator is allowed to update (excludes isPublished, viewCount, rating, _id, addedBy, elasticId)
 const OPERATOR_SAFE_FIELDS = [
@@ -208,6 +209,74 @@ export class ContentController {
         format: result.format,
         bytes: result.bytes,
       }, 'Image uploaded'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // ── Discovery Controllers (T-S026) ───────────────────────────
+
+  getTrending = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string ?? '10', 10), 50);
+      const movies = await this.contentService.getTrending(limit);
+      res.json(apiResponse.success(movies));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getTopRated = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string ?? '10', 10), 50);
+      const movies = await this.contentService.getTopRated(limit);
+      res.json(apiResponse.success(movies));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getContinueWatching = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = (req as AuthenticatedRequest).user;
+      const movies = await this.contentService.getContinueWatching(userId);
+      res.json(apiResponse.success(movies));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // ── Watch Progress Alias Controllers (T-S027) ────────────────
+  // Mobile: POST/GET /movies/:id/progress
+
+  saveMovieProgress = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = (req as AuthenticatedRequest).user;
+      const { progress, duration } = req.body as { progress: number; duration: number };
+      const movieId = req.params.id;
+      // progress is 0-1 ratio; convert to currentTime in seconds
+      const currentTime = progress * (duration ?? 0);
+      await watchProgressService.save(userId, `movieid:${movieId}`, currentTime, duration ?? 0);
+      res.json(apiResponse.success(null, 'Progress saved'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getMovieProgress = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = (req as AuthenticatedRequest).user;
+      const movieId = req.params.id;
+      const entry = await watchProgressService.get(userId, `movieid:${movieId}`);
+      if (!entry) {
+        res.json(apiResponse.success({ progress: 0, currentTime: 0, duration: 0 }));
+        return;
+      }
+      res.json(apiResponse.success({
+        progress: entry.percent / 100,
+        currentTime: entry.currentTime,
+        duration: entry.duration,
+      }));
     } catch (error) {
       next(error);
     }

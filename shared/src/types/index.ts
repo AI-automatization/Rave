@@ -161,7 +161,7 @@ export interface SyncState {
 // Battle
 // ─────────────────────────────────────────────
 
-export type BattleStatus = 'pending' | 'active' | 'completed' | 'cancelled';
+export type BattleStatus = 'pending' | 'active' | 'completed' | 'cancelled' | 'rejected';
 export type BattleDuration = 3 | 5 | 7; // days
 
 export interface IBattle {
