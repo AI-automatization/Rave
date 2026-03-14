@@ -35,7 +35,7 @@
 - **Sana:** 2026-03-14
 - **Mas'ul:** Saidazim
 - **Fayl:** `services/content/src/`
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 pending[Saidazim]
 - **Sabab:** Mobile `HomeScreen` ishlashi uchun zarur — bu endpointlarsiz ekran ochilmaydi.
 - **Bajarilishi kerak:**
   - [ ] `GET /content/trending?limit=10` — viewCount yoki createdAt bo'yicha top filmlar. Redis cache: `trending:${limit}` TTL 10 min
@@ -49,7 +49,7 @@
 - **Sana:** 2026-03-14
 - **Mas'ul:** Saidazim
 - **Fayl:** `services/content/src/routes/`
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 pending[Saidazim]
 - **Sabab:** Mobile `/content/movies/:id/progress` chaqiradi, backend `/content/watch-progress` (boshqa path + body format).
 - **Bajarilishi kerak:**
   - [ ] `POST /content/movies/:id/progress` — body: `{ progress: number, duration: number }` — mavjud watchProgressService ga yo'naltirish (`:id` = movieId)
@@ -62,7 +62,7 @@
 - **Sana:** 2026-03-14
 - **Mas'ul:** Saidazim
 - **Fayl:** `services/watch-party/src/`
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 pending[Saidazim]
 - **Sabab:** Mobile owner sifatida `DELETE /watch-party/rooms/:id` chaqiradi — backend da yo'q.
 - **Bajarilishi kerak:**
   - [ ] `DELETE /watch-party/rooms/:id` — faqat owner, room `status: 'closed'`, socket `ROOM_CLOSED` emit barcha a'zolarga
@@ -74,7 +74,7 @@
 - **Sana:** 2026-03-14
 - **Mas'ul:** Saidazim
 - **Fayl:** `services/battle/src/`
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 pending[Saidazim]
 - **Sabab:** Mobile `POST /battles/:id/reject` chaqiradi — backend da yo'q.
 - **Bajarilishi kerak:**
   - [ ] `POST /battles/:id/reject` — faqat invited user, status `pending` → `rejected`, challengerga notification
