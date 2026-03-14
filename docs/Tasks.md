@@ -81,7 +81,7 @@
 
 ## SPRINT 1 — Expo Setup + Auth
 
-### T-E031 | P1 | [MOBILE] | Telegram Login ekrani va flow | pending[Emirhan]
+### T-E031 | P1 | [MOBILE] | Telegram Login ekrani va flow | pending[Emirhan] 🔒
 
 **Backend tayyor** — faqat mobile UI va flow kerak.
 
