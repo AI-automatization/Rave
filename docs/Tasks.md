@@ -54,7 +54,7 @@
 - **Sana:** 2026-02-26
 - **Mas'ul:** Saidazim
 - **Fayl:** `apps/admin-ui/`
-- **Holat:** ❌ Boshlanmagan (keyingi sprint)
+- **Holat:** 🔄 pending[Saidazim]
 - **Sprint:** S4-S5
 - **Kerak bo'ladi:**
   - [ ] Vite + React + TypeScript + TailwindCSS setup
