@@ -140,7 +140,7 @@
 - **Sana:** 2026-03-14
 - **Mas'ul:** Emirhan
 - **Fayl:** `apps/mobile/src/screens/home/MovieDetailScreen.tsx`
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 pending[Emirhan]
 - **Sabab:** Design prompt da: cast horizontal scroll (circular avatars) + similar movies row. Hozirgi implementatsiyada bular yo'q.
 - **Bajarilishi kerak:**
   - [ ] Cast section: `IMovie.cast` array dan circular avatars (60px) + ism — horizontal ScrollView
@@ -160,7 +160,7 @@
 - **Sana:** 2026-03-14
 - **Mas'ul:** Emirhan
 - **Fayl:** `apps/mobile/src/screens/auth/ProfileSetupScreen.tsx`
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 pending[Emirhan]
 - **Sabab:** Design prompt da: avatar kamera/galereyadan tanlash + sevimli janrlar multi-select chips. Hozirgi implementatsiyada faqat bio textarea bor.
 - **Bajarilishi kerak:**
   - [ ] `expo-image-picker` — kamera yoki galereya, 1:1 crop, 500px max
@@ -176,7 +176,7 @@
 - **Sana:** 2026-03-14
 - **Mas'ul:** Emirhan
 - **Fayl:** `apps/mobile/src/screens/profile/ProfileScreen.tsx`
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 pending[Emirhan]
 - **Sabab:** Design prompt da avatar ustida edit icon, profil tahrirlash. Hozirgi implementatsiyada avatar static, edit yo'q.
 - **Bajarilishi kerak:**
   - [ ] Avatar ustida kamera icon overlay (absolute, bottom-right)
@@ -191,7 +191,7 @@
 - **Sana:** 2026-03-14
 - **Mas'ul:** Emirhan
 - **Fayl:** `apps/mobile/src/screens/profile/SettingsScreen.tsx`
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 pending[Emirhan]
 - **Sabab:** Design prompt da: "Profilni tahrirlash →" va "Hisobni o'chirish" (danger, double confirm). Hozirda bular yo'q.
 - **Bajarilishi kerak:**
   - [ ] "Profilni tahrirlash →" — ProfileScreen da edit modal ochish (yoki SettingsScreen ichida)
@@ -205,7 +205,7 @@
 - **Sana:** 2026-03-14
 - **Mas'ul:** Emirhan
 - **Fayl:** `apps/mobile/src/screens/profile/StatsScreen.tsx`
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 pending[Emirhan]
 - **Sabab:** Hozirgi activity bar chart mock data ishlatmoqda. Real `userApi.getStats()` dan haftalik faollik olish kerak.
 - **Bajarilishi kerak:**
   - [ ] `userApi.getStats()` response dan `weeklyActivity` array (7 kun) olish
