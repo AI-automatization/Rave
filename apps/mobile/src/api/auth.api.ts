@@ -48,4 +48,18 @@ export const authApi = {
   async changePassword(oldPassword: string, newPassword: string): Promise<void> {
     await authClient.post('/auth/change-password', { oldPassword, newPassword });
   },
+
+  async telegramInit(): Promise<{ state: string; botUrl: string }> {
+    const res = await authClient.post<ApiResponse<{ state: string; botUrl: string }>>('/auth/telegram/init');
+    if (!res.data.data) throw new Error('Telegram init failed');
+    return res.data.data;
+  },
+
+  async telegramPoll(state: string): Promise<LoginResponse | null> {
+    const res = await authClient.get<ApiResponse<LoginResponse | null>>(
+      `/auth/telegram/poll?state=${encodeURIComponent(state)}`,
+      { validateStatus: (s) => s === 200 || s === 202 },
+    );
+    return res.data.data ?? null;
+  },
 };

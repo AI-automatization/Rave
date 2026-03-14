@@ -1,5 +1,5 @@
 // CineSync Mobile — Login Screen
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Image,
+  Linking,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -37,7 +38,15 @@ export function LoginScreen() {
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [telegramLoading, setTelegramLoading] = useState(false);
   const [error, setError] = useState('');
+  const telegramIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (telegramIntervalRef.current) clearInterval(telegramIntervalRef.current);
+    };
+  }, []);
 
   const [, googleResponse, promptAsync] = Google.useAuthRequest({ clientId: GOOGLE_CLIENT_ID });
 
@@ -54,6 +63,46 @@ export function LoginScreen() {
       .catch(() => setError('Google orqali kirib bo\'lmadi'))
       .finally(() => setGoogleLoading(false));
   }, [googleResponse]);
+
+  const handleTelegramLogin = async () => {
+    setTelegramLoading(true);
+    setError('');
+    try {
+      const { state, botUrl } = await authApi.telegramInit();
+      await Linking.openURL(botUrl);
+
+      let attempts = 0;
+      const MAX_ATTEMPTS = 60;
+
+      telegramIntervalRef.current = setInterval(async () => {
+        attempts++;
+        if (attempts > MAX_ATTEMPTS) {
+          clearInterval(telegramIntervalRef.current!);
+          telegramIntervalRef.current = null;
+          setTelegramLoading(false);
+          setError("Amal qilmadi, qayta urinib ko'ring");
+          return;
+        }
+        try {
+          const result = await authApi.telegramPoll(state);
+          if (result) {
+            clearInterval(telegramIntervalRef.current!);
+            telegramIntervalRef.current = null;
+            setTelegramLoading(false);
+            await setAuth(result.user, result.accessToken, result.refreshToken);
+          }
+        } catch {
+          clearInterval(telegramIntervalRef.current!);
+          telegramIntervalRef.current = null;
+          setTelegramLoading(false);
+          setError("Telegram orqali kirib bo'lmadi");
+        }
+      }, 2000);
+    } catch {
+      setTelegramLoading(false);
+      setError("Telegram orqali kirib bo'lmadi");
+    }
+  };
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -174,6 +223,26 @@ export function LoginScreen() {
               </>
             )}
           </TouchableOpacity>
+
+          {/* Telegram OAuth */}
+          <TouchableOpacity
+            style={[styles.telegramBtn, telegramLoading && styles.loginBtnDisabled]}
+            onPress={handleTelegramLogin}
+            disabled={telegramLoading}
+            activeOpacity={0.8}
+          >
+            {telegramLoading ? (
+              <>
+                <ActivityIndicator color="#fff" size="small" />
+                <Text style={styles.telegramText}>Telegram kutilmoqda...</Text>
+              </>
+            ) : (
+              <>
+                <Text style={styles.telegramIcon}>✈</Text>
+                <Text style={styles.telegramText}>Telegram bilan kirish</Text>
+              </>
+            )}
+          </TouchableOpacity>
         </View>
 
         {/* Footer */}
@@ -252,6 +321,17 @@ const styles = StyleSheet.create({
   },
   googleIcon: { fontSize: 18, fontWeight: '700', color: '#4285F4' },
   googleText: { color: colors.textPrimary, fontWeight: '600', fontSize: 15 },
+  telegramBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: '#2CA5E0',
+    borderRadius: borderRadius.lg,
+    height: 52,
+  },
+  telegramIcon: { fontSize: 18, color: '#fff' },
+  telegramText: { color: '#fff', fontWeight: '600', fontSize: 15 },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
