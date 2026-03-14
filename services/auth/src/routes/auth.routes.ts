@@ -61,10 +61,11 @@ export const createAuthRouter = (redis: Redis): Router => {
   // POST /auth/google/exchange — temp code → tokens (one-time, 2 min TTL)
   router.post('/google/exchange', authController.googleExchange);
 
-  // Telegram auth (mobile — Bot + Deep Link flow)
-  router.post('/telegram/init', authRateLimiter, authController.telegramInit);
-  router.post('/telegram/webhook', authController.telegramWebhook);
-  router.get('/telegram/poll', authController.telegramPoll);
+  // Telegram auth (mobile)
+  router.post('/telegram/login', authRateLimiter, authController.telegramLogin);   // hash verify → JWT
+  router.post('/telegram/init', authRateLimiter, authController.telegramInit);     // polling flow init
+  router.post('/telegram/webhook', authController.telegramWebhook);                // bot updates
+  router.get('/telegram/poll', authController.telegramPoll);                       // polling check
 
   // POST /auth/init-admin — bir martalik superadmin yaratish (ADMIN_INIT_SECRET bilan himoyalangan)
   router.post('/init-admin', authController.initAdmin);

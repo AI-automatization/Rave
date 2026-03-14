@@ -81,6 +81,50 @@
 
 ## SPRINT 1 — Expo Setup + Auth
 
+### T-E031 | P1 | [MOBILE] | Telegram Login ekrani va flow | pending[Emirhan]
+
+**Backend tayyor** — faqat mobile UI va flow kerak.
+
+**Flow:**
+```
+1. LoginScreen → "Telegram bilan kirish" tugmasi
+2. POST /auth/telegram/init → { state, botUrl }
+3. Linking.openURL(botUrl)  ← Telegram ilovasi ochiladi
+4. Foydalanuvchi botda /start bosadi
+5. Poll: GET /auth/telegram/poll?state=STATE (har 2 sek, max 2 daqiqa)
+6. Response 200 (not 202) → { accessToken, refreshToken, user }
+7. Token saqlash → HomeScreen ga o'tish
+8. Background: Linking.openURL("https://t.me/gatsCinema_bot?start=USER_ID")
+   ← Notification linking uchun (ixtiyoriy, user rozi bo'lsa)
+```
+
+**API Endpoints (production):**
+```
+POST https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/init
+  Response: { success: true, data: { state: "abc123", botUrl: "https://t.me/gatsCinema_bot?start=abc123" } }
+
+GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state=abc123
+  Pending:  { success: true, data: null, message: "Pending" }   → HTTP 202
+  Success:  { success: true, data: { accessToken, refreshToken, user } } → HTTP 200
+```
+
+**UI:**
+```tsx
+// LoginScreen da qo'shish:
+<TouchableOpacity onPress={handleTelegramLogin}>
+  <Text>Telegram bilan kirish</Text>
+</TouchableOpacity>
+
+// handleTelegramLogin:
+// 1. POST /init → botUrl olish
+// 2. Linking.openURL(botUrl)
+// 3. setInterval poll (har 2000ms)
+// 4. 202 → kutish | 200 → login | error → xato ko'rsatish
+// 5. Timeout 2 daqiqadan keyin "Amal qilmadi, qayta urinib ko'ring"
+```
+
+**Kerakli packages:** faqat `Linking` (Expo built-in), axios (allaqachon bor)
+
 ---
 
 ## SPRINT 2 — Asosiy ekranlar

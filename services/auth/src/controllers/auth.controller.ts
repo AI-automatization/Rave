@@ -181,6 +181,25 @@ export class AuthController {
 
   // ─── TELEGRAM AUTH ────────────────────────────────────────────────────────
 
+  // POST /auth/telegram/login — hash verify → JWT (mobile direct flow)
+  telegramLogin = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const data = req.body as {
+        id: string;
+        first_name: string;
+        last_name?: string;
+        username?: string;
+        photo_url?: string;
+        auth_date: string;
+        hash: string;
+      };
+      const result = await this.authService.loginWithTelegramData(data);
+      res.json(apiResponse.success(result, 'Telegram login successful'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   telegramInit = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const result = await this.authService.initTelegramAuth();
