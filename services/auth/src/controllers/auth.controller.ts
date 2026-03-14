@@ -179,6 +179,49 @@ export class AuthController {
     }
   };
 
+  // ─── TELEGRAM AUTH ────────────────────────────────────────────────────────
+
+  telegramInit = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const result = await this.authService.initTelegramAuth();
+      res.json(apiResponse.success(result, 'Telegram auth initiated'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  telegramWebhook = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const secret = req.headers['x-telegram-bot-api-secret-token'];
+      if (secret !== process.env.TELEGRAM_WEBHOOK_SECRET) {
+        res.status(403).json(apiResponse.error('Forbidden'));
+        return;
+      }
+      await this.authService.handleTelegramWebhook(req.body as Parameters<typeof this.authService.handleTelegramWebhook>[0]);
+      res.sendStatus(200);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  telegramPoll = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { state } = req.query as { state: string };
+      if (!state) {
+        res.status(400).json(apiResponse.error('state is required'));
+        return;
+      }
+      const result = await this.authService.pollTelegramAuth(state);
+      if (!result) {
+        res.status(202).json(apiResponse.success(null, 'Pending'));
+        return;
+      }
+      res.json(apiResponse.success(result, 'Telegram login successful'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   // POST /auth/init-admin — bir martalik superadmin yaratish
   // ADMIN_INIT_SECRET env var bilan himoyalangan
   initAdmin = async (req: Request, res: Response, next: NextFunction): Promise<void> => {

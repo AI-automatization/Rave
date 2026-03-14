@@ -423,6 +423,91 @@ export class AuthService {
     }
   }
 
+  // ─── TELEGRAM AUTH ────────────────────────────────────────────────────────
+
+  async initTelegramAuth(): Promise<{ state: string; botUrl: string }> {
+    const state = crypto.randomBytes(16).toString('hex');
+    await this.redis.setex(`tg:state:${state}`, 300, '1'); // 5 daqiqa TTL
+    const botUsername = process.env.TELEGRAM_BOT_USERNAME ?? '';
+    const botUrl = `https://t.me/${botUsername}?start=${state}`;
+    return { state, botUrl };
+  }
+
+  async handleTelegramWebhook(update: {
+    message?: {
+      text?: string;
+      from: { id: number; username?: string; first_name: string; photo?: string };
+    };
+  }): Promise<void> {
+    const msg = update.message;
+    if (!msg?.text?.startsWith('/start ')) return;
+
+    const state = msg.text.slice(7).trim();
+    const exists = await this.redis.get(`tg:state:${state}`);
+    if (!exists) return; // invalid or expired state
+
+    const from = msg.from;
+    const telegramId = String(from.id);
+
+    const user = await this.findOrCreateTelegramUser({
+      id: telegramId,
+      username: from.username ?? `tg_${telegramId}`,
+      firstName: from.first_name,
+    });
+
+    const { accessToken, refreshToken } = await this.generateAndStoreTokens(
+      user._id.toString(),
+      user.email,
+      user.role as UserRole,
+      null,
+      'Telegram Bot',
+    );
+
+    await this.redis.del(`tg:state:${state}`);
+    await this.redis.setex(
+      `tg:auth:${state}`,
+      300,
+      JSON.stringify({ accessToken, refreshToken, user }),
+    );
+
+    logger.info('Telegram auth completed', { userId: user._id, telegramId });
+  }
+
+  async pollTelegramAuth(state: string): Promise<{ accessToken: string; refreshToken: string; user: IUserDocument } | null> {
+    const raw = await this.redis.get(`tg:auth:${state}`);
+    if (!raw) return null;
+    await this.redis.del(`tg:auth:${state}`);
+    return JSON.parse(raw) as { accessToken: string; refreshToken: string; user: IUserDocument };
+  }
+
+  async findOrCreateTelegramUser(profile: {
+    id: string;
+    username: string;
+    firstName: string;
+  }): Promise<IUserDocument> {
+    let user = await User.findOne({ telegramId: profile.id }).select('+telegramId');
+
+    if (!user) {
+      const username = await this.generateUniqueUsername(profile.username);
+      const email = `tg_${profile.id}@telegram.cinesync.internal`;
+
+      user = await User.create({
+        email,
+        username,
+        telegramId: profile.id,
+        isEmailVerified: true,
+      });
+
+      logger.info('Telegram user created', { userId: user._id, telegramId: profile.id });
+
+      this.syncUserProfile(user._id.toString(), email, username).catch((err) =>
+        logger.warn('Telegram user profile sync failed', { error: (err as Error).message }),
+      );
+    }
+
+    return user;
+  }
+
   async createSuperAdmin(email: string, username: string, password: string): Promise<void> {
     const existing = await User.findOne({ $or: [{ email }, { role: 'superadmin' }] });
     if (existing) {

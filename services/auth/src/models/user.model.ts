@@ -17,6 +17,7 @@ export interface IUserDocument extends Document {
   fcmTokens: string[];
   lastLoginAt: Date | null;
   googleId: string | null;
+  telegramId: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -58,6 +59,7 @@ const userSchema = new Schema<IUserDocument>(
     fcmTokens: [{ type: String }],
     lastLoginAt: { type: Date, default: null },
     googleId: { type: String, default: null, select: false },
+    telegramId: { type: String, default: null, select: false },
   },
   {
     timestamps: true,
@@ -65,7 +67,7 @@ const userSchema = new Schema<IUserDocument>(
       virtuals: true,
       transform: (_doc, ret) => {
         ['passwordHash', 'emailVerifyToken', 'emailVerifyTokenExpiry',
-          'passwordResetToken', 'passwordResetTokenExpiry', 'googleId', '__v',
+          'passwordResetToken', 'passwordResetTokenExpiry', 'googleId', 'telegramId', '__v',
         ].forEach((field) => Reflect.deleteProperty(ret, field));
         return ret;
       },
