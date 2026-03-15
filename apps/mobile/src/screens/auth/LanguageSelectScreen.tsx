@@ -33,8 +33,8 @@ const LANGUAGES: LangOption[] = [
 
 export function LanguageSelectScreen() {
   const navigation = useNavigation<Nav>();
-  const setLang = useLanguageStore((s) => s.setLang);
-  const [selected, setSelected] = useState<Language>('uz');
+  const { lang: storedLang, setLang } = useLanguageStore();
+  const [selected, setSelected] = useState<Language>(storedLang);
 
   const handleContinue = () => {
     setLang(selected);

@@ -82,6 +82,8 @@ export const translations = {
     strengthVeryStrong: { uz: 'Juda kuchli', ru: 'Очень сильный', en: 'Very Strong' },
     errUsername: { uz: 'Foydalanuvchi nomini kiriting', ru: 'Введите имя пользователя', en: 'Enter username' },
     errUsernameShort: { uz: 'Username kamida 3 ta belgi', ru: 'Имя пользователя минимум 3 символа', en: 'Username must be at least 3 characters' },
+    errUsernameMax: { uz: "Username ko'pi bilan 20 ta belgi bo'lishi mumkin", ru: 'Имя пользователя не может быть длиннее 20 символов', en: 'Username must be at most 20 characters' },
+    errUsernameChars: { uz: "Username faqat harf va raqamlardan iborat bo'lishi kerak", ru: 'Имя пользователя может содержать только буквы и цифры', en: 'Username can only contain letters and numbers' },
     errEmail: { uz: 'Emailni kiriting', ru: 'Введите email', en: 'Enter email' },
     errEmailFormat: { uz: "Email noto'g'ri formatda", ru: 'Неверный формат email', en: 'Invalid email format' },
     errPassword: { uz: 'Parolni kiriting', ru: 'Введите пароль', en: 'Enter password' },

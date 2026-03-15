@@ -96,6 +96,10 @@ export function RegisterScreen() {
   }, [googleResponse]);
 
   const handleTelegramLogin = async () => {
+    if (telegramIntervalRef.current) {
+      clearInterval(telegramIntervalRef.current);
+      telegramIntervalRef.current = null;
+    }
     setTelegramLoading(true);
     setError('');
     try {
@@ -161,6 +165,8 @@ export function RegisterScreen() {
   const validate = (): string | null => {
     if (!username.trim()) return t('register', 'errUsername');
     if (username.length < 3) return t('register', 'errUsernameShort');
+    if (username.length > 20) return t('register', 'errUsernameMax');
+    if (!/^[a-zA-Z0-9]+$/.test(username)) return t('register', 'errUsernameChars');
     if (!email.trim()) return t('register', 'errEmail');
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return t('register', 'errEmailFormat');
     if (!password) return t('register', 'errPassword');
