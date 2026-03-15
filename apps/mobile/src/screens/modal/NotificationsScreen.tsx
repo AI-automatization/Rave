@@ -27,7 +27,7 @@ const TYPE_ICONS: Record<NotificationType, { icon: string; color: string }> = {
   watch_party_invite:  { icon: 'tv-outline',                color: colors.primary },
   battle_invite:       { icon: 'flash-outline',             color: colors.warning },
   battle_result:       { icon: 'trophy-outline',            color: colors.gold },
-  achievement_unlocked:{ icon: 'ribbon-outline',            color: '#8B5CF6' },
+  achievement_unlocked:{ icon: 'ribbon-outline',            color: colors.primary },
   friend_online:       { icon: 'radio-button-on-outline',   color: colors.success },
   friend_watching:     { icon: 'eye-outline',               color: colors.secondary },
 };

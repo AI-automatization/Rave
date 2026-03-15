@@ -4,6 +4,12 @@
 
 ---
 
+## ЯЗЫК ОБЩЕНИЯ (ОБЯЗАТЕЛЬНО)
+
+**Claude ВСЕГДА отвечает на русском языке.** Независимо от того, на каком языке написан вопрос — ответ всегда на русском. Код, комментарии и технические термины остаются на английском.
+
+---
+
 ## BIRINCHI QADAM (MAJBURIY)
 
 **Har yangi terminal sessiyasida Claude quyidagini so'rashi SHART:**
@@ -14,7 +20,7 @@ Salom! Men CineSync loyihasidaman.
 Kimligingizni aniqlay olmayman — ismingiz kim?
   1. Saidazim (Backend + Admin + Operator)
   2. Emirhan  (React Native Mobile)
-  3. Jafar    (Next.js Web Client)
+  3. Jafar    (React Native Mobile)
 
 Ishlash rejimi:
   A. Single Task  — 1 agent, oddiy task

@@ -92,6 +92,7 @@ export interface IUserStats {
 
 export type AuthStackParamList = {
   Splash: undefined;
+  LanguageSelect: undefined;
   Onboarding: undefined;
   Login: undefined;
   Register: undefined;
@@ -135,6 +136,7 @@ export type ModalStackParamList = {
 export type MainTabParamList = {
   HomeTab: undefined;
   SearchTab: undefined;
+  CreateTab: undefined;
   FriendsTab: undefined;
   ProfileTab: undefined;
 };

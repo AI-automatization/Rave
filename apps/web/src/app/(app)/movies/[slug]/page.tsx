@@ -36,13 +36,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: {
       title: `${movie.title} | CineSync`,
       description: movie.description.slice(0, 160),
-      images: [movie.backdropUrl ?? movie.posterUrl ?? movie.backdrop ?? movie.poster],
+      images: (movie.backdropUrl ?? movie.posterUrl ?? movie.backdrop ?? movie.poster) ? [movie.backdropUrl ?? movie.posterUrl ?? movie.backdrop ?? movie.poster ?? ''] : [],
       type: 'video.movie',
     },
     twitter: {
       card: 'summary_large_image',
       title: movie.title,
-      images: [movie.backdropUrl ?? movie.posterUrl ?? movie.backdrop ?? movie.poster],
+      images: (movie.backdropUrl ?? movie.posterUrl ?? movie.backdrop ?? movie.poster) ? [movie.backdropUrl ?? movie.posterUrl ?? movie.backdrop ?? movie.poster ?? ''] : [],
     },
   };
 }
@@ -57,7 +57,7 @@ export default async function MovieDetailPage({ params }: Props) {
 
   return (
     <>
-      {/* JSON-LD Movie schema */}
+      {/* JSON-LD Movie schema — escape closing script tags to prevent XSS */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -77,16 +77,16 @@ export default async function MovieDetailPage({ params }: Props) {
               bestRating: 10,
               ratingCount: movie.reviewCount,
             },
-          }),
+          }).replace(/<\//g, '<\\/'),
         }}
       />
 
       <div className="space-y-6">
         {/* Backdrop */}
         <div className="relative w-full h-64 md:h-96 rounded-2xl overflow-hidden">
-          {movie.backdropUrl ?? movie.posterUrl ?? movie.backdrop ?? movie.poster ? (
+          {(movie.backdropUrl ?? movie.posterUrl ?? movie.backdrop ?? movie.poster) ? (
             <Image
-              src={movie.backdropUrl ?? movie.posterUrl ?? movie.backdrop ?? movie.poster}
+              src={movie.backdropUrl ?? movie.posterUrl ?? movie.backdrop ?? movie.poster ?? ''}
               alt={movie.title}
               fill
               className="object-cover"

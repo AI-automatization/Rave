@@ -22,11 +22,13 @@ import { userApi } from '@api/user.api';
 import { colors, spacing, borderRadius, typography } from '@theme/index';
 import { RANK_COLORS } from '@theme/index';
 import { IUserPublic, FriendsStackParamList } from '@app-types/index';
+import { useT } from '@i18n/index';
 
 type Nav = NativeStackNavigationProp<FriendsStackParamList>;
 
 export function FriendSearchScreen() {
   const navigation = useNavigation<Nav>();
+  const { t } = useT();
   const [query, setQuery] = useState('');
   const friends = useFriendsStore(s => s.friends);
   const { data: results = [], isFetching } = useFriendSearch(query);
@@ -37,7 +39,7 @@ export function FriendSearchScreen() {
   const sendRequest = useMutation({
     mutationFn: (userId: string) => userApi.sendFriendRequest(userId),
     onSuccess: (_, userId) => setSentIds(prev => new Set(prev).add(userId)),
-    onError: () => Alert.alert('Xato', 'So\'rov yuborib bo\'lmadi.'),
+    onError: () => Alert.alert(t('common', 'error'), t('common', 'error')),
   });
 
   const friendIds = new Set(friends.map(f => f._id));
@@ -69,7 +71,7 @@ export function FriendSearchScreen() {
             <Text style={styles.username}>{item.username}</Text>
             <View style={styles.rankRow}>
               <View style={[styles.rankDot, { backgroundColor: RANK_COLORS[item.rank] }]} />
-              <Text style={styles.rankText}>{item.rank} · {item.totalPoints} ball</Text>
+              <Text style={styles.rankText}>{item.rank} · {item.totalPoints} {t('profile', 'points')}</Text>
             </View>
             {item.bio ? <Text style={styles.bio} numberOfLines={1}>{item.bio}</Text> : null}
           </View>
@@ -78,11 +80,11 @@ export function FriendSearchScreen() {
         {state === 'friend' ? (
           <View style={styles.friendBadge}>
             <Ionicons name="checkmark" size={14} color={colors.success} />
-            <Text style={styles.friendBadgeText}>Do'st</Text>
+            <Text style={styles.friendBadgeText}>{t('friends', 'alreadyFriends')}</Text>
           </View>
         ) : state === 'sent' ? (
           <View style={styles.sentBadge}>
-            <Text style={styles.sentText}>Yuborildi</Text>
+            <Text style={styles.sentText}>{t('friends', 'requestSent')}</Text>
           </View>
         ) : (
           <TouchableOpacity
@@ -111,7 +113,7 @@ export function FriendSearchScreen() {
             style={styles.searchInput}
             value={query}
             onChangeText={setQuery}
-            placeholder="Foydalanuvchi qidirish..."
+            placeholder={t('friends', 'searchPlaceholder')}
             placeholderTextColor={colors.textMuted}
             autoFocus
             returnKeyType="search"
@@ -136,14 +138,14 @@ export function FriendSearchScreen() {
             query.length >= 2 && !isFetching ? (
               <View style={styles.empty}>
                 <Ionicons name="person-outline" size={40} color={colors.textMuted} />
-                <Text style={styles.emptyText}>"{query}" topilmadi</Text>
+                <Text style={styles.emptyText}>"{query}" {t('search', 'noResults')}</Text>
               </View>
             ) : query.length > 0 && query.length < 2 ? (
-              <Text style={styles.hint}>Kamida 2 ta belgi kiriting</Text>
+              <Text style={styles.hint}>{t('common', 'search')}</Text>
             ) : (
               <View style={styles.empty}>
                 <Ionicons name="search-outline" size={40} color={colors.textMuted} />
-                <Text style={styles.emptyText}>Username bo'yicha qidiring</Text>
+                <Text style={styles.emptyText}>{t('friends', 'searchPlaceholder')}</Text>
               </View>
             )
           }

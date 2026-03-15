@@ -14,12 +14,11 @@ interface AuthUser {
 interface AuthState {
   user: AuthUser | null;
   accessToken: string | null;
-  refreshToken: string | null;
   isAuthenticated: boolean;
-  setAuth: (user: AuthUser, accessToken: string, refreshToken: string) => void;
+  setAuth: (user: AuthUser, accessToken: string) => void;
   clearAuth: () => void;
   updateUser: (updates: Partial<AuthUser>) => void;
-  updateTokens: (accessToken: string, refreshToken: string) => void;
+  updateAccessToken: (accessToken: string) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -27,25 +26,20 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       user: null,
       accessToken: null,
-      refreshToken: null,
       isAuthenticated: false,
 
-      setAuth: (user, accessToken, refreshToken) => {
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('access_token', accessToken);
-          localStorage.setItem('refresh_token', refreshToken);
-          document.cookie = `access_token=${accessToken}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
-        }
-        set({ user, accessToken, refreshToken, isAuthenticated: true });
+      setAuth: (user, accessToken) => {
+        set({ user, accessToken, isAuthenticated: true });
       },
 
       clearAuth: () => {
+        // Clear refresh token cookie via API route
         if (typeof window !== 'undefined') {
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('refresh_token');
-          document.cookie = 'access_token=; path=/; max-age=0; SameSite=Lax';
+          void fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {
+            // silently ignore — cookie cleanup is best-effort
+          });
         }
-        set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false });
+        set({ user: null, accessToken: null, isAuthenticated: false });
       },
 
       updateUser: (updates) =>
@@ -53,21 +47,17 @@ export const useAuthStore = create<AuthState>()(
           user: state.user ? { ...state.user, ...updates } : null,
         })),
 
-      updateTokens: (accessToken, refreshToken) => {
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('access_token', accessToken);
-          localStorage.setItem('refresh_token', refreshToken);
-          document.cookie = `access_token=${accessToken}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
-        }
-        set({ accessToken, refreshToken });
+      updateAccessToken: (accessToken) => {
+        set({ accessToken });
       },
     }),
     {
       name: 'cinesync-auth',
       partialize: (state) => ({
         user: state.user,
+        // Access token kept in persisted store for page refresh survival
+        // Refresh token is ONLY in httpOnly cookie (set by server-side API route)
         accessToken: state.accessToken,
-        refreshToken: state.refreshToken,
         isAuthenticated: state.isAuthenticated,
       }),
     },

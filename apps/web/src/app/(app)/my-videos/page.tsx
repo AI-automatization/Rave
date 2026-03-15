@@ -25,7 +25,7 @@ const STATUS_CONFIG = {
 };
 
 const PLATFORM_ICON: Record<VideoPlatform, string> = {
-  youtube: '▶', vimeo: '🎬', twitch: '📡', dailymotion: '🎥', direct: '📎', other: '🌐',
+  youtube: '▶', vimeo: '🎬', twitch: '📡', dailymotion: '🎥', direct: '📎', webview: '🖥', other: '🌐',
 };
 
 /* ── Helpers ─────────────────────────────────────────────────────── */

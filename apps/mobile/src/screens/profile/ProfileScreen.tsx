@@ -22,6 +22,7 @@ import { useMyProfile } from '@hooks/useProfile';
 import { useAuthStore } from '@store/auth.store';
 import { colors, spacing, borderRadius, typography, RANK_COLORS } from '@theme/index';
 import { ProfileStackParamList } from '@app-types/index';
+import { useT } from '@i18n/index';
 
 type Nav = NativeStackNavigationProp<ProfileStackParamList, 'Profile'>;
 
@@ -48,15 +49,16 @@ export function ProfileScreen() {
   const { user, logout } = useAuthStore();
   const { profileQuery, statsQuery, updateProfileMutation } = useMyProfile();
   const stats = statsQuery.data;
+  const { t } = useT();
 
   const [editVisible, setEditVisible] = useState(false);
   const [editUsername, setEditUsername] = useState('');
   const [editBio, setEditBio] = useState('');
 
   const handleLogout = () => {
-    Alert.alert('Chiqish', 'Akkauntdan chiqmoqchimisiz?', [
-      { text: 'Bekor', style: 'cancel' },
-      { text: 'Chiqish', style: 'destructive', onPress: logout },
+    Alert.alert(t('profile', 'logoutTitle'), t('profile', 'logoutMsg'), [
+      { text: t('common', 'cancel'), style: 'cancel' },
+      { text: t('profile', 'logoutBtn'), style: 'destructive', onPress: logout },
     ]);
   };
 
@@ -99,7 +101,7 @@ export function ProfileScreen() {
       <ScrollView style={styles.root} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Profil</Text>
+          <Text style={styles.title}>{t('profile', 'title')}</Text>
           <TouchableOpacity onPress={() => navigation.navigate('Settings')} style={styles.settingsBtn}>
             <Ionicons name="settings-outline" size={22} color={colors.textSecondary} />
           </TouchableOpacity>
@@ -133,13 +135,13 @@ export function ProfileScreen() {
           {/* Rank progress bar */}
           <View style={styles.progressWrap}>
             <View style={styles.progressRow}>
-              <Text style={styles.progressLabel}>{user.totalPoints} ball</Text>
-              <Text style={styles.progressLabel}>{rankMax} ball</Text>
+              <Text style={styles.progressLabel}>{user.totalPoints} {t('profile', 'points')}</Text>
+              <Text style={styles.progressLabel}>{rankMax} {t('profile', 'points')}</Text>
             </View>
             <View style={styles.progressTrack}>
               <View style={[styles.progressFill, { width: `${rankProgress}%`, backgroundColor: rankColor }]} />
             </View>
-            <Text style={styles.progressSub}>{user.rank} → keyingi daraja</Text>
+            <Text style={styles.progressSub}>{user.rank} {t('profile', 'nextRank')}</Text>
           </View>
         </View>
 
@@ -147,10 +149,10 @@ export function ProfileScreen() {
         {stats && (
           <View style={styles.statsSection}>
             <View style={styles.statsGrid}>
-              <StatCard icon="🎬" value={stats.totalWatched} label="Film" />
-              <StatCard icon="⏱" value={`${Math.round(stats.totalMinutes / 60)}h`} label="Soat" />
-              <StatCard icon="⚔️" value={stats.battlesWon} label="G'alaba" />
-              <StatCard icon="🏅" value={stats.achievementsCount} label="Badge" />
+              <StatCard icon="🎬" value={stats.totalWatched} label={t('profile', 'movies')} />
+              <StatCard icon="⏱" value={`${Math.round(stats.totalMinutes / 60)}h`} label={t('profile', 'hours')} />
+              <StatCard icon="⚔️" value={stats.battlesWon} label={t('profile', 'wins')} />
+              <StatCard icon="🏅" value={stats.achievementsCount} label={t('profile', 'badges')} />
             </View>
           </View>
         )}
@@ -158,8 +160,8 @@ export function ProfileScreen() {
         {/* Navigation links */}
         <View style={styles.navLinks}>
           {([
-            { icon: 'bar-chart-outline', label: 'Statistika', screen: 'Stats' },
-            { icon: 'ribbon-outline', label: 'Yutuqlar', screen: 'Achievements' },
+            { icon: 'bar-chart-outline', label: t('profile', 'stats'), screen: 'Stats' },
+            { icon: 'ribbon-outline', label: t('profile', 'achievements'), screen: 'Achievements' },
           ] as const).map(item => (
             <TouchableOpacity
               key={item.screen}
@@ -177,7 +179,7 @@ export function ProfileScreen() {
         {/* Logout */}
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.8}>
           <Ionicons name="log-out-outline" size={20} color={colors.error} />
-          <Text style={styles.logoutText}>Chiqish</Text>
+          <Text style={styles.logoutText}>{t('profile', 'logoutBtn')}</Text>
         </TouchableOpacity>
 
         {profileQuery.isFetching && <ActivityIndicator style={styles.refreshIndicator} color={colors.primary} size="small" />}
@@ -189,9 +191,9 @@ export function ProfileScreen() {
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
           <View style={styles.modalSheet}>
             <View style={styles.modalHandle} />
-            <Text style={styles.modalTitle}>Profilni tahrirlash</Text>
+            <Text style={styles.modalTitle}>{t('profile', 'editProfile')}</Text>
 
-            <Text style={styles.inputLabel}>Foydalanuvchi nomi</Text>
+            <Text style={styles.inputLabel}>{t('profile', 'username')}</Text>
             <TextInput
               style={styles.modalInput}
               value={editUsername}
@@ -200,11 +202,11 @@ export function ProfileScreen() {
               autoCapitalize="none"
             />
 
-            <Text style={styles.inputLabel}>Bio</Text>
+            <Text style={styles.inputLabel}>{t('profile', 'bio')}</Text>
             <TextInput
               style={[styles.modalInput, styles.modalInputMulti]}
               value={editBio}
-              onChangeText={(t) => setEditBio(t.slice(0, 200))}
+              onChangeText={(txt) => setEditBio(txt.slice(0, 200))}
               placeholderTextColor={colors.textMuted}
               multiline
               textAlignVertical="top"
@@ -212,7 +214,7 @@ export function ProfileScreen() {
 
             <View style={styles.modalActions}>
               <TouchableOpacity style={styles.cancelBtn} onPress={() => setEditVisible(false)}>
-                <Text style={styles.cancelText}>Bekor</Text>
+                <Text style={styles.cancelText}>{t('common', 'cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.saveBtn, updateProfileMutation.isPending && styles.btnDisabled]}
@@ -222,7 +224,7 @@ export function ProfileScreen() {
                 {updateProfileMutation.isPending ? (
                   <ActivityIndicator size="small" color={colors.textPrimary} />
                 ) : (
-                  <Text style={styles.saveText}>Saqlash</Text>
+                  <Text style={styles.saveText}>{t('common', 'save')}</Text>
                 )}
               </TouchableOpacity>
             </View>

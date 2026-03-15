@@ -57,7 +57,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="uz" suppressHydrationWarning>
-      <body className={`${dmSans.variable} ${oswald.variable} font-body antialiased bg-slate-900 text-slate-100`}>
+      <body className={`${dmSans.variable} ${oswald.variable} font-body antialiased bg-[#060608] text-white`}>
         <Providers>
           <LocaleHtmlUpdater />
           {children}

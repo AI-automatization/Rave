@@ -6,6 +6,7 @@ import { useNavigation } from '@react-navigation/native';
 import { colors, typography } from '@theme/index';
 import { AuthStackParamList } from '@app-types/index';
 import { useAuthStore } from '@store/auth.store';
+import { useT } from '@i18n/index';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Splash'>;
 
@@ -14,6 +15,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 export function SplashScreen() {
   const navigation = useNavigation<Nav>();
   const { isHydrated, isAuthenticated } = useAuthStore();
+  const { t } = useT();
   const opacity = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(0.8)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
@@ -31,7 +33,7 @@ export function SplashScreen() {
     // hideAsync App.tsx da chaqiriladi — bu yerda faqat navigatsiya
     const timer = setTimeout(() => {
       if (isAuthenticated) return; // AppNavigator handles redirect
-      navigation.replace('Onboarding');
+      navigation.replace('LanguageSelect');
     }, 1800);
 
     return () => clearTimeout(timer);
@@ -49,7 +51,7 @@ export function SplashScreen() {
         <Text style={styles.logoAccent}>SYNC</Text>
       </Animated.View>
       <Animated.Text style={[styles.tagline, { opacity }]}>
-        Do'stlar bilan birga ko'ring
+        {t('splash', 'tagline')}
       </Animated.Text>
 
       {/* Loading bar */}

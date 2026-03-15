@@ -16,6 +16,8 @@ const STATUS_STYLE: Record<IBattle['status'], { label: string; dot: string; text
   pending:   { label: 'Pending',   dot: 'bg-amber-400',   text: 'text-amber-400' },
   active:    { label: 'Active',    dot: 'bg-emerald-400', text: 'text-emerald-400' },
   completed: { label: 'Completed', dot: 'bg-zinc-500',    text: 'text-zinc-500' },
+  cancelled: { label: 'Cancelled', dot: 'bg-red-400',     text: 'text-red-400' },
+  rejected:  { label: 'Rejected',  dot: 'bg-red-400',     text: 'text-red-400' },
 };
 
 export function BattleCard({ battle, currentUserId, onAccept }: BattleCardProps) {

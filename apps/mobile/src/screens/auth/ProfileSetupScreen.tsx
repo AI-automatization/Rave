@@ -16,26 +16,28 @@ import { colors, spacing, borderRadius, typography } from '@theme/index';
 import { ContentGenre } from '@app-types/index';
 import { userApi } from '@api/user.api';
 import { useAuthStore } from '@store/auth.store';
+import { useT } from '@i18n/index';
 
 const BIO_MAX = 200;
 
-const GENRE_LABELS: Record<ContentGenre, string> = {
-  action:      'Jangovar',
-  comedy:      'Komediya',
-  drama:       'Drama',
-  horror:      'Dahshat',
-  thriller:    'Triller',
-  romance:     'Romantika',
-  'sci-fi':    'Ilmiy-fantastik',
-  animation:   'Animatsiya',
-  documentary: 'Hujjatli',
-  fantasy:     'Fantaziya',
+const GENRE_KEYS: Record<ContentGenre, string> = {
+  action:      'action',
+  comedy:      'comedy',
+  drama:       'drama',
+  horror:      'horror',
+  thriller:    'thriller',
+  romance:     'romance',
+  'sci-fi':    'scifi',
+  animation:   'animation',
+  documentary: 'documentary',
+  fantasy:     'fantasy',
 };
 
-const ALL_GENRES = Object.keys(GENRE_LABELS) as ContentGenre[];
+const ALL_GENRES = Object.keys(GENRE_KEYS) as ContentGenre[];
 
 export function ProfileSetupScreen() {
   const { updateUser, clearProfileSetup } = useAuthStore();
+  const { t } = useT();
 
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [bio, setBio] = useState('');
@@ -89,8 +91,8 @@ export function ProfileSetupScreen() {
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
     >
-      <Text style={styles.title}>Profilingizni sozlang</Text>
-      <Text style={styles.sub}>Bu qadamni o'tkazib yuborishingiz mumkin</Text>
+      <Text style={styles.title}>{t('profileSetup', 'title')}</Text>
+      <Text style={styles.sub}>{t('profileSetup', 'sub')}</Text>
 
       {/* Avatar picker */}
       <TouchableOpacity style={styles.avatarWrap} onPress={handlePickAvatar} activeOpacity={0.8}>
@@ -110,10 +112,10 @@ export function ProfileSetupScreen() {
       <View style={styles.bioWrap}>
         <TextInput
           style={styles.bioInput}
-          placeholder="O'zingiz haqida yozing... (ixtiyoriy)"
+          placeholder={t('profileSetup', 'bioPlaceholder')}
           placeholderTextColor={colors.textMuted}
           value={bio}
-          onChangeText={(t) => setBio(t.slice(0, BIO_MAX))}
+          onChangeText={(txt) => setBio(txt.slice(0, BIO_MAX))}
           multiline
           textAlignVertical="top"
         />
@@ -122,7 +124,7 @@ export function ProfileSetupScreen() {
 
       {/* Genre chips */}
       <View style={styles.genreSection}>
-        <Text style={styles.genreLabel}>Sevimli janrlar (ixtiyoriy)</Text>
+        <Text style={styles.genreLabel}>{t('profileSetup', 'favoriteGenres')}</Text>
         <View style={styles.chipGrid}>
           {ALL_GENRES.map((genre) => {
             const active = selectedGenres.includes(genre);
@@ -134,7 +136,7 @@ export function ProfileSetupScreen() {
                 activeOpacity={0.8}
               >
                 <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                  {GENRE_LABELS[genre]}
+                  {t('genres', GENRE_KEYS[genre])}
                 </Text>
               </TouchableOpacity>
             );
@@ -151,12 +153,12 @@ export function ProfileSetupScreen() {
         {loading ? (
           <ActivityIndicator color={colors.textPrimary} size="small" />
         ) : (
-          <Text style={styles.saveText}>Saqlash va davom etish</Text>
+          <Text style={styles.saveText}>{t('profileSetup', 'saveBtn')}</Text>
         )}
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.skipBtn} onPress={clearProfileSetup}>
-        <Text style={styles.skipText}>O'tkazib yuborish</Text>
+        <Text style={styles.skipText}>{t('profileSetup', 'skipBtn')}</Text>
       </TouchableOpacity>
     </ScrollView>
   );

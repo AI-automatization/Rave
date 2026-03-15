@@ -51,7 +51,7 @@ export class AuthService {
     return crypto.createHash('sha256').update(token).digest('hex');
   }
 
-  async initiateRegistration(email: string, username: string, password: string): Promise<void> {
+  async initiateRegistration(email: string, username: string, password: string): Promise<string | null> {
     const existing = await User.findOne({ $or: [{ email }, { username }] });
     if (existing) {
       throw new ConflictError(
@@ -77,6 +77,9 @@ export class AuthService {
     );
 
     logger.info('Registration initiated', { email });
+
+    // Dev mode: return code directly so it can be included in response
+    return config.nodeEnv !== 'production' ? code : null;
   }
 
   async confirmRegistration(email: string, code: string): Promise<IUserDocument> {

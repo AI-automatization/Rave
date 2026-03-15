@@ -1,63 +1,65 @@
 // CineSync Mobile — Design Tokens
+// WEB_DESIGN_GUIDE.md bilan moslashtirilgan (2026-03-15)
 import { UserRank } from '@app-types/index';
 
-// Web aqua theme (Tailwind v4 + DaisyUI v5) bilan moslashtirilgan
-// OKLCH → HEX: base-100→bgBase, base-200→bgElevated, base-300→border,
-//              primary→#7B72F8, secondary→#49C4E5, neutral→#C03040
 export const colors = {
-  // Primary — violet (Web: oklch(67% 0.182 276))
-  primary: '#7B72F8',
-  primaryHover: '#9089FF',
-  primaryContent: '#1A164A',
+  // Primary — violet (#7C3AED, web bilan bir xil)
+  primary: '#7C3AED',
+  primaryHover: '#6D28D9',
+  primaryContent: '#FFFFFF',
 
-  // Secondary — aqua (Web: oklch(74% 0.16 232))
-  secondary: '#49C4E5',
-  secondaryContent: '#163545',
+  // Secondary — info/accent (web: text-blue-400)
+  secondary: '#60A5FA',
+  secondaryContent: '#FFFFFF',
 
-  // Neutral — reddish (Web: oklch(59% 0.249 0))
-  neutral: '#C03040',
+  // Backgrounds — web design guide bilan bir xil
+  bgVoid: '#060608',       // eng chuqur fon (root)
+  bgBase: '#0A0A0F',       // sahifa asosi
+  bgDark: '#0d0d14',       // nav, sidebar foni
+  bgElevated: '#111118',   // card, modal, panel
+  bgOverlay: '#16161F',    // hover overlay
+  bgSurface: '#1C1C28',    // secondary card
+  bgMuted: '#242433',      // divider, subtle element
 
-  // Backgrounds — derived from base-100/200
-  bgVoid: '#131110',
-  bgBase: '#211F1C',       // base-100: oklch(14% 0.004 49)
-  bgSurface: '#2A2825',
-  bgElevated: '#3E3B38',   // base-200: oklch(26% 0.007 34)
-  bgOverlay: '#1A1816',
+  // Text
+  textPrimary: '#FFFFFF',
+  textSecondary: '#D4D4D8',  // zinc-300
+  textTertiary: '#A1A1AA',   // zinc-400
+  textMuted: '#71717A',      // zinc-500
+  textDim: '#52525B',        // zinc-600
 
-  // Text — base-content: oklch(94% 0.028 342)
-  textPrimary: '#EFE6EB',
-  textSecondary: 'rgba(239,230,235,0.7)',
-  textMuted: 'rgba(239,230,235,0.4)',
+  // Border
+  border: 'rgba(255,255,255,0.06)',
+  borderStrong: 'rgba(255,255,255,0.08)',
 
-  // Border — base-300: oklch(45% 0.187 3)
-  border: '#7A3B40',
-  overlay: 'rgba(19,17,16,0.85)',
-
-  // Gamification — o'zgartirilmadi
+  // Gamification
   gold: '#FFD700',
   silver: '#C0C0C0',
   diamond: '#88CCFF',
 
   // Semantic
-  success: '#22C55E',
-  error: '#EF4444',
-  warning: '#F59E0B',
+  success: '#34D399',   // emerald-400
+  error: '#F87171',     // red-400
+  warning: '#FBBF24',   // amber-400
+
+  // Overlay backdrop
+  overlay: 'rgba(0,0,0,0.6)',
 } as const;
 
 export const RANK_COLORS: Record<UserRank, string> = {
-  Bronze: '#CD7F32',
-  Silver: '#C0C0C0',
-  Gold: '#FFD700',
+  Bronze: '#F59E0B',   // amber-500
+  Silver: '#A1A1AA',   // zinc-400
+  Gold: '#FBBF24',     // amber-400
   Platinum: '#E5E4E2',
-  Diamond: '#88CCFF',
+  Diamond: '#7C3AED',  // violet (web bilan bir xil)
 };
 
 export const RARITY_COLORS = {
-  common: '#9CA3AF',
-  rare: '#3B82F6',
-  epic: '#8B5CF6',
-  legendary: '#F59E0B',
-  secret: '#EC4899',
+  common:    '#71717A',  // zinc-500
+  rare:      '#3B82F6',  // blue-500
+  epic:      '#7C3AED',  // violet (primary bilan bir xil)
+  legendary: '#FBBF24',  // amber-400
+  secret:    '#EC4899',  // pink-500
 } as const;
 
 export const spacing = {

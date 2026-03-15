@@ -42,7 +42,7 @@ export async function requestNotificationPermission(): Promise<boolean> {
       name: 'CineSync',
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#E50914',
+      lightColor: '#7C3AED',
     });
   }
 

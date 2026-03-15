@@ -272,7 +272,7 @@ export default function CreatePartyPage() {
                 <div className="relative w-10 h-14 rounded-lg overflow-hidden shrink-0">
                   {(selectedMovie.posterUrl || selectedMovie.poster) ? (
                     <Image
-                      src={selectedMovie.posterUrl || selectedMovie.poster}
+                      src={selectedMovie.posterUrl ?? selectedMovie.poster ?? ''}
                       alt={selectedMovie.title}
                       fill
                       className="object-cover"

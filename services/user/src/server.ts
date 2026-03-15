@@ -5,6 +5,20 @@ import { config } from './config/index';
 import { logger } from '@shared/utils/logger';
 import { initServiceQueues } from '@shared/utils/serviceQueue';
 
+// Prevent Bull/ioredis transient errors from crashing the service
+process.on('uncaughtException', (err: Error) => {
+  logger.error('Uncaught exception (non-fatal, service continues)', {
+    error: err.message,
+    name: err.name,
+  });
+});
+
+process.on('unhandledRejection', (reason: unknown) => {
+  logger.error('Unhandled rejection (non-fatal, service continues)', {
+    reason: String(reason),
+  });
+});
+
 let redisClient: Redis;
 
 const main = async (): Promise<void> => {

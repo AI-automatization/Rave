@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { FaTrophy, FaLock } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslations } from 'next-intl';
+import { useAuthStore } from '@/store/auth.store';
 import { logger } from '@/lib/logger';
 import type { ApiResponse, IAchievement } from '@/types';
 
@@ -29,8 +30,7 @@ const RARITY_TEXT: Record<string, string> = {
 };
 
 function getToken() {
-  if (typeof window === 'undefined') return '';
-  return localStorage.getItem('access_token') ?? '';
+  return useAuthStore.getState().accessToken ?? '';
 }
 
 export default function AchievementsPage() {

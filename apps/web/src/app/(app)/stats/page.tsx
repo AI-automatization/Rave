@@ -30,8 +30,7 @@ const RANK_COLOR: Record<string, string> = {
 };
 
 function getToken(): string {
-  if (typeof window === 'undefined') return '';
-  return localStorage.getItem('access_token') ?? '';
+  return useAuthStore.getState().accessToken ?? '';
 }
 
 export default function StatsPage() {

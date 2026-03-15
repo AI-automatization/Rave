@@ -22,6 +22,7 @@ import { colors, spacing, typography, borderRadius } from '@theme/index';
 import { HomeStackParamList, RootStackParamList, IMovie, ICastMember } from '@app-types/index';
 import { useMovieDetail } from '@hooks/useMovieDetail';
 import { contentApi } from '@api/content.api';
+import { useT } from '@i18n/index';
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'MovieDetail'>;
 
@@ -38,6 +39,7 @@ export function MovieDetailScreen({ route, navigation }: Props) {
   const [ratingSubmitted, setRatingSubmitted] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
+  const { t } = useT();
 
   const headerTranslate = scrollY.interpolate({
     inputRange: [0, HEADER_HEIGHT],
@@ -79,7 +81,7 @@ export function MovieDetailScreen({ route, navigation }: Props) {
   if (!movie) {
     return (
       <View style={styles.center}>
-        <Text style={styles.errorText}>Film topilmadi</Text>
+        <Text style={styles.errorText}>{t('movie', 'notFound')}</Text>
       </View>
     );
   }
@@ -127,7 +129,7 @@ export function MovieDetailScreen({ route, navigation }: Props) {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.headerBtn}
-            onPress={() => Alert.alert('Ulashish', `"${movie?.title}" filmini ulashing`)}
+            onPress={() => Alert.alert(t('movie', 'share'), `"${movie?.title}" ${t('movie', 'shareMovie')}`)}
           >
             <Ionicons name="share-outline" size={22} color={colors.textPrimary} />
           </TouchableOpacity>
@@ -181,7 +183,7 @@ export function MovieDetailScreen({ route, navigation }: Props) {
             {movie.description && movie.description.length > 120 && (
               <TouchableOpacity onPress={() => setDescExpanded(e => !e)}>
                 <Text style={styles.descToggle}>
-                  {descExpanded ? 'Yopish ↑' : 'Ko\'proq ko\'rish ↓'}
+                  {descExpanded ? t('movie', 'showLess') : t('movie', 'showMore')}
                 </Text>
               </TouchableOpacity>
             )}
@@ -191,7 +193,7 @@ export function MovieDetailScreen({ route, navigation }: Props) {
           <TouchableOpacity style={styles.watchBtn} onPress={handleWatch} activeOpacity={0.85}>
             <Ionicons name="play-circle" size={22} color={colors.primaryContent} />
             <Text style={styles.watchText}>
-              {watchProgress?.progress ? 'Davom ettirish' : "Ko'rish"}
+              {watchProgress?.progress ? t('movie', 'continueWatching') : t('movie', 'play')}
             </Text>
           </TouchableOpacity>
 
@@ -202,13 +204,13 @@ export function MovieDetailScreen({ route, navigation }: Props) {
             activeOpacity={0.85}
           >
             <Ionicons name="people-outline" size={20} color={colors.primary} />
-            <Text style={styles.watchPartyText}>Watch Party Yaratish</Text>
+            <Text style={styles.watchPartyText}>{t('movie', 'watchPartyCreate')}</Text>
           </TouchableOpacity>
 
           {/* Cast */}
           {movie.cast && movie.cast.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>AKTYORLAR</Text>
+              <Text style={styles.sectionTitle}>{t('movie', 'castSection')}</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.castScroll}>
                 {movie.cast.map((actor: ICastMember, idx: number) => (
                   <View key={idx} style={styles.castItem}>

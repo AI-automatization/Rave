@@ -22,41 +22,42 @@ import { authApi } from '@api/auth.api';
 import { userApi } from '@api/user.api';
 import { useAuthStore } from '@store/auth.store';
 import { useMyProfile } from '@hooks/useProfile';
+import { useLanguageStore, Language } from '@store/language.store';
+import { useT } from '@i18n/index';
 
 const SETTINGS_KEY = 'cinesync_settings';
-type Language = 'uz' | 'ru' | 'en';
 
 const LANGUAGES: { code: Language; label: string; flag: string }[] = [
-  { code: 'uz', label: "O'zbekcha", flag: '🇺🇿' },
-  { code: 'ru', label: 'Русский', flag: '🇷🇺' },
-  { code: 'en', label: 'English', flag: '🇬🇧' },
+  { code: 'uz', label: "O'zbekcha", flag: '\u{1F1FA}\u{1F1FF}' },
+  { code: 'ru', label: '\u0420\u0443\u0441\u0441\u043A\u0438\u0439', flag: '\u{1F1F7}\u{1F1FA}' },
+  { code: 'en', label: 'English', flag: '\u{1F1EC}\u{1F1E7}' },
 ];
 
-interface ToggleItem { key: string; label: string; sub?: string }
+interface ToggleItem { key: string; labelKey: string; subKey?: string }
 
 const NOTIFICATION_TOGGLES: ToggleItem[] = [
-  { key: 'friendRequest', label: "Do'stlik so'rovlari" },
-  { key: 'watchPartyInvite', label: 'Watch Party taklifi' },
-  { key: 'battleInvite', label: 'Battle taklifi' },
-  { key: 'achievementUnlocked', label: 'Yutuq ochildi' },
-  { key: 'dailyReminder', label: 'Kunlik eslatma', sub: 'Har kuni soat 20:00' },
+  { key: 'friendRequest', labelKey: 'friendRequest' },
+  { key: 'watchPartyInvite', labelKey: 'watchPartyInvite' },
+  { key: 'battleInvite', labelKey: 'battleInvite' },
+  { key: 'achievementUnlocked', labelKey: 'achievementUnlocked' },
+  { key: 'dailyReminder', labelKey: 'dailyReminder', subKey: 'dailyReminderSub' },
 ];
 
 const PRIVACY_TOGGLES: ToggleItem[] = [
-  { key: 'showOnlineStatus', label: "Onlayn statusni ko'rsatish" },
-  { key: 'showWatchHistory', label: "Ko'rish tarixini ko'rsatish" },
+  { key: 'showOnlineStatus', labelKey: 'showOnlineStatus' },
+  { key: 'showWatchHistory', labelKey: 'showWatchHistory' },
 ];
 
 function SectionHeader({ title }: { title: string }) {
   return <Text style={styles.sectionHeader}>{title}</Text>;
 }
 
-function ToggleRow({ item, value, onChange }: { item: ToggleItem; value: boolean; onChange: (v: boolean) => void }) {
+function ToggleRow({ label, sub, value, onChange }: { label: string; sub?: string; value: boolean; onChange: (v: boolean) => void }) {
   return (
     <View style={styles.toggleRow}>
       <View style={styles.toggleLeft}>
-        <Text style={styles.toggleLabel}>{item.label}</Text>
-        {item.sub && <Text style={styles.toggleSub}>{item.sub}</Text>}
+        <Text style={styles.toggleLabel}>{label}</Text>
+        {sub && <Text style={styles.toggleSub}>{sub}</Text>}
       </View>
       <Switch
         value={value}
@@ -74,13 +75,14 @@ export function SettingsScreen() {
   const navigation = useNavigation();
   const { user, logout } = useAuthStore();
   const { updateProfileMutation } = useMyProfile();
+  const { lang: language, setLang: setLanguage } = useLanguageStore();
+  const { t } = useT();
 
-  const [language, setLanguage] = useState<Language>('uz');
   const [notifToggles, setNotifToggles] = useState<Record<string, boolean>>(
-    Object.fromEntries(NOTIFICATION_TOGGLES.map(t => [t.key, true])),
+    Object.fromEntries(NOTIFICATION_TOGGLES.map(item => [item.key, true])),
   );
   const [privacyToggles, setPrivacyToggles] = useState<Record<string, boolean>>(
-    Object.fromEntries(PRIVACY_TOGGLES.map(t => [t.key, true])),
+    Object.fromEntries(PRIVACY_TOGGLES.map(item => [item.key, true])),
   );
 
   // Edit profile state
@@ -99,23 +101,21 @@ export function SettingsScreen() {
       if (!raw) return;
       try {
         const saved = JSON.parse(raw) as {
-          language?: Language;
           notifToggles?: Record<string, boolean>;
           privacyToggles?: Record<string, boolean>;
         };
-        if (saved.language) setLanguage(saved.language);
         if (saved.notifToggles) setNotifToggles(saved.notifToggles);
         if (saved.privacyToggles) setPrivacyToggles(saved.privacyToggles);
-      } catch {}
+      } catch { /* empty */ }
     });
   }, []);
 
   useEffect(() => {
     SecureStore.setItemAsync(
       SETTINGS_KEY,
-      JSON.stringify({ language, notifToggles, privacyToggles }),
-    ).catch(() => {});
-  }, [language, notifToggles, privacyToggles]);
+      JSON.stringify({ notifToggles, privacyToggles }),
+    ).catch(() => { /* empty */ });
+  }, [notifToggles, privacyToggles]);
 
   const toggleNotif = (key: string, value: boolean) =>
     setNotifToggles(prev => ({ ...prev, [key]: value }));
@@ -139,11 +139,11 @@ export function SettingsScreen() {
   const handleChangePassword = async () => {
     if (!oldPassword || !newPassword) return;
     if (newPassword !== confirmPassword) {
-      Alert.alert('Xato', 'Yangi parollar mos kelmadi');
+      Alert.alert(t('common', 'error'), t('settings', 'passwordMismatch'));
       return;
     }
     if (newPassword.length < 6) {
-      Alert.alert('Xato', 'Parol kamida 6 ta belgidan iborat bo\'lishi kerak');
+      Alert.alert(t('common', 'error'), t('settings', 'passwordTooShort'));
       return;
     }
     setPwdLoading(true);
@@ -153,9 +153,9 @@ export function SettingsScreen() {
       setOldPassword('');
       setNewPassword('');
       setConfirmPassword('');
-      Alert.alert('Muvaffaqiyat', 'Parol o\'zgartirildi');
+      Alert.alert(t('settings', 'success'), t('settings', 'passwordChanged'));
     } catch {
-      Alert.alert('Xato', 'Eski parol noto\'g\'ri yoki server xatosi');
+      Alert.alert(t('common', 'error'), t('settings', 'oldPasswordError'));
     } finally {
       setPwdLoading(false);
     }
@@ -163,32 +163,32 @@ export function SettingsScreen() {
 
   const handleDeleteAccount = () => {
     Alert.alert(
-      'Hisobni o\'chirish',
-      'Bu amalni qaytarib bo\'lmaydi. Davom etasizmi?',
+      t('settings', 'deleteConfirmTitle'),
+      t('settings', 'deleteAccountConfirm'),
       [
-        { text: 'Bekor', style: 'cancel' },
+        { text: t('common', 'cancel'), style: 'cancel' },
         {
-          text: 'Davom etish',
+          text: t('settings', 'deleteAccountProceed'),
           style: 'destructive',
           onPress: () => {
             Alert.prompt(
-              'Tasdiqlang',
-              '"TASDIQLASH" so\'zini kiriting',
+              t('settings', 'deleteAccountVerify'),
+              t('settings', 'deleteAccountPrompt'),
               [
-                { text: 'Bekor', style: 'cancel' },
+                { text: t('common', 'cancel'), style: 'cancel' },
                 {
-                  text: 'O\'chirish',
+                  text: t('settings', 'deleteBtn'),
                   style: 'destructive',
-                  onPress: async (input) => {
-                    if (input !== 'TASDIQLASH') {
-                      Alert.alert('Xato', 'Noto\'g\'ri tasdiqlash so\'zi');
+                  onPress: async (input?: string) => {
+                    if (input !== t('settings', 'deleteAccountWord')) {
+                      Alert.alert(t('common', 'error'), t('settings', 'deleteAccountWrongWord'));
                       return;
                     }
                     try {
                       await userApi.deleteAccount();
                       logout();
                     } catch {
-                      Alert.alert('Xato', 'Hisob o\'chirishda xatolik yuz berdi');
+                      Alert.alert(t('common', 'error'), t('settings', 'deleteAccountError'));
                     }
                   },
                 },
@@ -208,28 +208,28 @@ export function SettingsScreen() {
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
           </TouchableOpacity>
-          <Text style={styles.title}>Sozlamalar</Text>
+          <Text style={styles.title}>{t('settings', 'title')}</Text>
           <View style={{ width: 40 }} />
         </View>
 
         <View style={styles.content}>
           {/* Account */}
-          <SectionHeader title="HISOB" />
+          <SectionHeader title={t('settings', 'accountSection')} />
           <View style={styles.card}>
             <TouchableOpacity style={[styles.navRow, styles.rowBorder]} onPress={openEditProfile} activeOpacity={0.8}>
               <Ionicons name="person-outline" size={18} color={colors.textSecondary} />
-              <Text style={styles.navLabel}>Profilni tahrirlash</Text>
+              <Text style={styles.navLabel}>{t('settings', 'editProfile')}</Text>
               <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
             </TouchableOpacity>
             <TouchableOpacity style={styles.navRow} onPress={() => setActiveModal('changePassword')} activeOpacity={0.8}>
               <Ionicons name="lock-closed-outline" size={18} color={colors.textSecondary} />
-              <Text style={styles.navLabel}>Parolni o'zgartirish</Text>
+              <Text style={styles.navLabel}>{t('settings', 'changePassword')}</Text>
               <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
             </TouchableOpacity>
           </View>
 
           {/* Language */}
-          <SectionHeader title="TIL" />
+          <SectionHeader title={t('settings', 'langSection')} />
           <View style={styles.card}>
             {LANGUAGES.map((lang, i) => (
               <TouchableOpacity
@@ -248,31 +248,40 @@ export function SettingsScreen() {
           </View>
 
           {/* Notifications */}
-          <SectionHeader title="BILDIRISHNOMALAR" />
+          <SectionHeader title={t('settings', 'notifSection')} />
           <View style={styles.card}>
             {NOTIFICATION_TOGGLES.map((item, i) => (
               <View key={item.key} style={i < NOTIFICATION_TOGGLES.length - 1 ? styles.rowBorder : undefined}>
-                <ToggleRow item={item} value={notifToggles[item.key] ?? true} onChange={v => toggleNotif(item.key, v)} />
+                <ToggleRow
+                  label={t('settings', item.labelKey)}
+                  sub={item.subKey ? t('settings', item.subKey) : undefined}
+                  value={notifToggles[item.key] ?? true}
+                  onChange={v => toggleNotif(item.key, v)}
+                />
               </View>
             ))}
           </View>
 
           {/* Privacy */}
-          <SectionHeader title="MAXFIYLIK" />
+          <SectionHeader title={t('settings', 'privacySection')} />
           <View style={styles.card}>
             {PRIVACY_TOGGLES.map((item, i) => (
               <View key={item.key} style={i < PRIVACY_TOGGLES.length - 1 ? styles.rowBorder : undefined}>
-                <ToggleRow item={item} value={privacyToggles[item.key] ?? true} onChange={v => togglePrivacy(item.key, v)} />
+                <ToggleRow
+                  label={t('settings', item.labelKey)}
+                  value={privacyToggles[item.key] ?? true}
+                  onChange={v => togglePrivacy(item.key, v)}
+                />
               </View>
             ))}
           </View>
 
           {/* App info */}
-          <SectionHeader title="ILOVA" />
+          <SectionHeader title={t('settings', 'appSection')} />
           <View style={styles.card}>
             {[
-              { label: 'Versiya', value: '1.0.0' },
-              { label: 'Platforma', value: 'Expo SDK 54' },
+              { label: t('settings', 'version'), value: '1.0.0' },
+              { label: t('settings', 'platform'), value: 'Expo SDK 54' },
             ].map((item, i) => (
               <View key={item.label} style={[styles.infoRow, i === 0 && styles.rowBorder]}>
                 <Text style={styles.infoLabel}>{item.label}</Text>
@@ -282,10 +291,10 @@ export function SettingsScreen() {
           </View>
 
           {/* Danger zone */}
-          <SectionHeader title="XAVFLI ZONA" />
+          <SectionHeader title={t('settings', 'dangerZone')} />
           <TouchableOpacity style={styles.deleteBtn} onPress={handleDeleteAccount} activeOpacity={0.8}>
             <Ionicons name="trash-outline" size={18} color={colors.error} />
-            <Text style={styles.deleteText}>Hisobni o'chirish</Text>
+            <Text style={styles.deleteText}>{t('settings', 'deleteAccount')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -297,8 +306,8 @@ export function SettingsScreen() {
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
           <View style={styles.modalSheet}>
             <View style={styles.modalHandle} />
-            <Text style={styles.modalTitle}>Profilni tahrirlash</Text>
-            <Text style={styles.inputLabel}>Foydalanuvchi nomi</Text>
+            <Text style={styles.modalTitle}>{t('settings', 'editProfile')}</Text>
+            <Text style={styles.inputLabel}>{t('profile', 'username')}</Text>
             <TextInput
               style={styles.modalInput}
               value={editUsername}
@@ -306,18 +315,18 @@ export function SettingsScreen() {
               placeholderTextColor={colors.textMuted}
               autoCapitalize="none"
             />
-            <Text style={styles.inputLabel}>Bio</Text>
+            <Text style={styles.inputLabel}>{t('profile', 'bio')}</Text>
             <TextInput
               style={[styles.modalInput, styles.modalInputMulti]}
               value={editBio}
-              onChangeText={(t: string) => setEditBio(t.slice(0, 200))}
+              onChangeText={(txt: string) => setEditBio(txt.slice(0, 200))}
               placeholderTextColor={colors.textMuted}
               multiline
               textAlignVertical="top"
             />
             <View style={styles.modalActions}>
               <TouchableOpacity style={styles.cancelBtn} onPress={() => setActiveModal(null)}>
-                <Text style={styles.cancelText}>Bekor</Text>
+                <Text style={styles.cancelText}>{t('common', 'cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.saveBtn, updateProfileMutation.isPending && styles.btnDisabled]}
@@ -326,7 +335,7 @@ export function SettingsScreen() {
               >
                 {updateProfileMutation.isPending
                   ? <ActivityIndicator size="small" color={colors.textPrimary} />
-                  : <Text style={styles.saveText}>Saqlash</Text>}
+                  : <Text style={styles.saveText}>{t('common', 'save')}</Text>}
               </TouchableOpacity>
             </View>
           </View>
@@ -338,8 +347,8 @@ export function SettingsScreen() {
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
           <View style={styles.modalSheet}>
             <View style={styles.modalHandle} />
-            <Text style={styles.modalTitle}>Parolni o'zgartirish</Text>
-            <Text style={styles.inputLabel}>Eski parol</Text>
+            <Text style={styles.modalTitle}>{t('settings', 'changePassword')}</Text>
+            <Text style={styles.inputLabel}>{t('settings', 'currentPassword')}</Text>
             <TextInput
               style={styles.modalInput}
               value={oldPassword}
@@ -348,16 +357,16 @@ export function SettingsScreen() {
               placeholderTextColor={colors.textMuted}
               placeholder="••••••••"
             />
-            <Text style={styles.inputLabel}>Yangi parol</Text>
+            <Text style={styles.inputLabel}>{t('settings', 'newPassword')}</Text>
             <TextInput
               style={styles.modalInput}
               value={newPassword}
               onChangeText={setNewPassword}
               secureTextEntry
               placeholderTextColor={colors.textMuted}
-              placeholder="Kamida 6 belgi"
+              placeholder="••••••••"
             />
-            <Text style={styles.inputLabel}>Yangi parolni tasdiqlang</Text>
+            <Text style={styles.inputLabel}>{t('settings', 'confirmPassword')}</Text>
             <TextInput
               style={styles.modalInput}
               value={confirmPassword}
@@ -368,7 +377,7 @@ export function SettingsScreen() {
             />
             <View style={styles.modalActions}>
               <TouchableOpacity style={styles.cancelBtn} onPress={() => setActiveModal(null)}>
-                <Text style={styles.cancelText}>Bekor</Text>
+                <Text style={styles.cancelText}>{t('common', 'cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.saveBtn, pwdLoading && styles.btnDisabled]}
@@ -377,7 +386,7 @@ export function SettingsScreen() {
               >
                 {pwdLoading
                   ? <ActivityIndicator size="small" color={colors.textPrimary} />
-                  : <Text style={styles.saveText}>O'zgartirish</Text>}
+                  : <Text style={styles.saveText}>{t('settings', 'change')}</Text>}
               </TouchableOpacity>
             </View>
           </View>

@@ -4,6 +4,7 @@ import { useEffect, useCallback, useState, useRef } from 'react';
 import { FaVolumeMute, FaVolumeDown, FaVolumeUp, FaExpand, FaCompress } from 'react-icons/fa';
 import { VideoPlayer } from '@/components/VideoPlayer';
 import { apiClient } from '@/lib/axios';
+import { useAuthStore } from '@/store/auth.store';
 import type { VideoPlatform } from '@/types';
 
 /* ── Minimal YouTube IFrame API types ────────────────────────────── */
@@ -374,8 +375,7 @@ function YouTubeStreamPlayer(props: UniversalPlayerProps) {
       if (!res.data.success) throw new Error('stream-url failed');
       const info = res.data.data;
 
-      const token =
-        typeof window !== 'undefined' ? (localStorage.getItem('access_token') ?? '') : '';
+      const token = useAuthStore.getState().accessToken ?? '';
       const finalUrl = info.isLive
         ? info.url
         : `/youtube/stream?url=${encodeURIComponent(videoUrl)}${token ? `&token=${encodeURIComponent(token)}` : ''}`;

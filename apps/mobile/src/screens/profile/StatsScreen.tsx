@@ -14,6 +14,7 @@ import { useMyProfile } from '@hooks/useProfile';
 import { useAuthStore } from '@store/auth.store';
 import { colors, spacing, borderRadius, typography, RANK_COLORS } from '@theme/index';
 import { UserRank } from '@app-types/index';
+import { useT } from '@i18n/index';
 
 const RANK_ORDER = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond'];
 
@@ -34,8 +35,7 @@ function StatItem({ icon, label, value, color }: { icon: string; label: string; 
 }
 
 // Bar chart — real weekly activity data
-function ActivityChart({ weeklyActivity }: { weeklyActivity?: number[] }) {
-  const days = ['Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh', 'Ya'];
+function ActivityChart({ weeklyActivity, emptyText, dayLabels }: { weeklyActivity?: number[]; emptyText: string; dayLabels: string[] }) {
   const bars = weeklyActivity ?? Array(7).fill(0);
   const maxVal = Math.max(...bars, 1); // avoid division by zero
   const hasActivity = bars.some((v) => v > 0);
@@ -44,7 +44,7 @@ function ActivityChart({ weeklyActivity }: { weeklyActivity?: number[] }) {
     return (
       <View style={[styles.chart, styles.chartEmpty]}>
         <Ionicons name="bar-chart-outline" size={28} color={colors.textMuted} />
-        <Text style={styles.chartEmptyText}>Hali faollik yo'q</Text>
+        <Text style={styles.chartEmptyText}>{emptyText}</Text>
       </View>
     );
   }
@@ -64,7 +64,7 @@ function ActivityChart({ weeklyActivity }: { weeklyActivity?: number[] }) {
               ]}
             />
           </View>
-          <Text style={styles.barDay}>{days[i]}</Text>
+          <Text style={styles.barDay}>{dayLabels[i]}</Text>
         </View>
       ))}
     </View>
@@ -76,10 +76,19 @@ export function StatsScreen() {
   const user = useAuthStore(s => s.user);
   const { statsQuery } = useMyProfile();
   const stats = statsQuery.data;
+  const { t, lang } = useT();
 
   if (statsQuery.isLoading || !stats || !user) {
     return <ActivityIndicator color={colors.primary} style={styles.loader} />;
   }
+
+  const DAY_LABELS_MAP: Record<string, string[]> = {
+    uz: ['Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh', 'Ya'],
+    ru: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
+    en: ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'],
+  };
+
+  const dayLabels = DAY_LABELS_MAP[lang] ?? DAY_LABELS_MAP['en'];
 
   const rankColor = RANK_COLORS[user.rank];
   const currentRankIdx = RANK_ORDER.indexOf(user.rank);
@@ -96,7 +105,7 @@ export function StatsScreen() {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.title}>Statistika</Text>
+        <Text style={styles.title}>{t('stats', 'title')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -108,7 +117,7 @@ export function StatsScreen() {
           </View>
           <View style={styles.rankPoints}>
             <Text style={styles.pointsValue}>{user.totalPoints}</Text>
-            <Text style={styles.pointsLabel}>ball</Text>
+            <Text style={styles.pointsLabel}>{t('profile', 'points')}</Text>
           </View>
         </View>
         {nextRank && (
@@ -125,7 +134,7 @@ export function StatsScreen() {
               />
             </View>
             <Text style={styles.progressText}>
-              {pointsToNext} ball → {nextRank}
+              {pointsToNext} {t('profile', 'points')} \u2192 {nextRank}
             </Text>
           </View>
         )}
@@ -133,23 +142,27 @@ export function StatsScreen() {
 
       {/* 6 stat cards */}
       <View style={styles.statsGrid}>
-        <StatItem icon="🎬" label="Filmlar" value={stats.totalWatched} />
-        <StatItem icon="⏱" label="Soatlar" value={`${Math.round(stats.totalMinutes / 60)}h`} />
-        <StatItem icon="⚔️" label="Janglar" value={stats.battlesTotal} />
-        <StatItem icon="🏆" label="G'alabalar" value={stats.battlesWon} color={colors.gold} />
-        <StatItem icon="📊" label="Win rate" value={`${winRate}%`} color={winRate >= 50 ? colors.success : colors.error} />
-        <StatItem icon="🔥" label="Streak" value={`${stats.currentStreak} kun`} color={colors.warning} />
+        <StatItem icon="🎬" label={t('stats', 'films')} value={stats.totalWatched} />
+        <StatItem icon="⏱" label={t('stats', 'hours')} value={`${Math.round(stats.totalMinutes / 60)}${t('stats', 'hours')}`} />
+        <StatItem icon="⚔️" label={t('stats', 'battles')} value={stats.battlesTotal} />
+        <StatItem icon="🏆" label={t('stats', 'victories')} value={stats.battlesWon} color={colors.gold} />
+        <StatItem icon="📊" label={t('stats', 'winRate')} value={`${winRate}%`} color={winRate >= 50 ? colors.success : colors.error} />
+        <StatItem icon="🔥" label={t('stats', 'streak')} value={`${stats.currentStreak} ${t('stats', 'days')}`} color={colors.warning} />
       </View>
 
       {/* Activity chart */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>HAFTALIK FAOLLIK</Text>
-        <ActivityChart weeklyActivity={stats.weeklyActivity} />
+        <Text style={styles.sectionTitle}>{t('stats', 'weeklyActivity').toUpperCase()}</Text>
+        <ActivityChart
+          weeklyActivity={stats.weeklyActivity}
+          emptyText={t('stats', 'noActivity')}
+          dayLabels={dayLabels}
+        />
       </View>
 
       {/* Rank yo'li */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>RANK YO'LI</Text>
+        <Text style={styles.sectionTitle}>{t('stats', 'rankPath')}</Text>
         <View style={styles.rankPath}>
           {RANK_ORDER.map((rank, i) => {
             const rankKey = rank as UserRank;

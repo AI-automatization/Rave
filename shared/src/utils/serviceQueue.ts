@@ -35,13 +35,22 @@ export function initServiceQueues(redisUrl: string): void {
   const userServiceUrl = process.env.USER_SERVICE_URL ?? 'http://localhost:3002';
 
   try {
-    pointsQueue = new Bull<PointsJobData>('service:add-points', redisUrl, {
+    const parsedUrl = new URL(redisUrl);
+    const redisOptions = {
+      redis: {
+        host: parsedUrl.hostname,
+        port: parseInt(parsedUrl.port || '6379', 10),
+        password: parsedUrl.password || undefined,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        maxRetriesPerRequest: null as any,
+        enableReadyCheck: false,
+      },
       defaultJobOptions: JOB_OPTIONS,
-    });
+    };
 
-    achievementQueue = new Bull<AchievementJobData>('service:trigger-achievement', redisUrl, {
-      defaultJobOptions: JOB_OPTIONS,
-    });
+    pointsQueue = new Bull<PointsJobData>('service:add-points', redisOptions);
+
+    achievementQueue = new Bull<AchievementJobData>('service:trigger-achievement', redisOptions);
 
     pointsQueue.process(async (job: Job<PointsJobData>) => {
       await axios.post(
@@ -70,6 +79,10 @@ export function initServiceQueues(redisUrl: string): void {
       });
     });
 
+    pointsQueue.on('error', (err: Error) => {
+      logger.error('[serviceQueue] Points queue error', { error: err.message });
+    });
+
     achievementQueue.on('failed', (job, err: Error) => {
       logger.error('[serviceQueue] triggerAchievement job failed', {
         userId: job.data.userId,
@@ -77,6 +90,10 @@ export function initServiceQueues(redisUrl: string): void {
         attempt: job.attemptsMade,
         error: err.message,
       });
+    });
+
+    achievementQueue.on('error', (err: Error) => {
+      logger.error('[serviceQueue] Achievement queue error', { error: err.message });
     });
 
     logger.info('[serviceQueue] Service queues initialized');

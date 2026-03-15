@@ -16,7 +16,7 @@ interface CreateRoomModalProps {
 
 const PLATFORM_LABEL: Record<VideoPlatform, string> = {
   youtube: 'YouTube', vimeo: 'Vimeo', twitch: 'Twitch',
-  dailymotion: 'Dailymotion', direct: 'To\'g\'ridan video', other: 'Boshqa sayt',
+  dailymotion: 'Dailymotion', direct: 'To\'g\'ridan video', webview: 'WebView', other: 'Boshqa sayt',
 };
 
 const PLATFORM_COLOR: Record<VideoPlatform, string> = {
@@ -25,6 +25,7 @@ const PLATFORM_COLOR: Record<VideoPlatform, string> = {
   twitch: 'text-purple-400 bg-purple-500/10',
   dailymotion: 'text-orange-400 bg-orange-500/10',
   direct: 'text-emerald-400 bg-emerald-500/10',
+  webview: 'text-cyan-400 bg-cyan-500/10',
   other: 'text-slate-400 bg-slate-500/10',
 };
 

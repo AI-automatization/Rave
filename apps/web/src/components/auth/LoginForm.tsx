@@ -29,7 +29,6 @@ interface LoginResponseData {
     totalPoints: number;
   };
   accessToken: string;
-  refreshToken: string;
 }
 
 export function LoginForm() {
@@ -53,14 +52,14 @@ export function LoginForm() {
         body: JSON.stringify(data),
       });
       const json: ApiResponse<LoginResponseData> = await res.json();
-      if (!res.ok || !json.success) {
+      if (!res.ok || !json.success || !json.data) {
         // Show the first specific error from the array, fallback to generic message
         const detail = json.errors?.[0] ?? json.message ?? t('wrongCredentials');
         setError(detail);
         return;
       }
-      const { user, accessToken, refreshToken } = json.data;
-      setAuth(user, accessToken, refreshToken);
+      const { user, accessToken } = json.data;
+      setAuth(user, accessToken);
       // Hard navigation ensures the middleware sees the cookie immediately
       window.location.replace('/home');
     } catch {

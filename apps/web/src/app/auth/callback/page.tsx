@@ -29,9 +29,9 @@ function OAuthCallbackInner() {
           router.replace('/login');
           return;
         }
-        const { accessToken, refreshToken } = json.data as { accessToken: string; refreshToken: string };
+        const { accessToken } = json.data as { accessToken: string };
 
-        // Fetch user profile
+        // Fetch user profile (refresh token is already in httpOnly cookie)
         const meRes = await fetch('/api/auth/me', {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
@@ -50,7 +50,6 @@ function OAuthCallbackInner() {
               totalPoints: u.totalPoints ?? 0,
             },
             accessToken,
-            refreshToken,
           );
           window.location.replace('/home');
         } else {

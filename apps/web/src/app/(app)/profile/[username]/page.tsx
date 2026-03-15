@@ -81,6 +81,7 @@ export default async function ProfilePage({ params }: Props) {
 
   return (
     <>
+      {/* JSON-LD Person schema — escape closing script tags to prevent XSS */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -90,7 +91,7 @@ export default async function ProfilePage({ params }: Props) {
             name: user.username,
             description: user.bio,
             image: user.avatar,
-          }),
+          }).replace(/<\//g, '<\\/'),
         }}
       />
       <div className="space-y-6 max-w-3xl mx-auto">

@@ -1,5 +1,5 @@
 // CineSync Mobile — Register Screen
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,33 +10,49 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
+  Animated,
+  Dimensions,
+  StatusBar,
+  Linking,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, borderRadius, typography } from '@theme/index';
+import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
+import * as Google from 'expo-auth-session/providers/google';
+import * as WebBrowser from 'expo-web-browser';
+import { colors } from '@theme/index';
 import { AuthStackParamList } from '@app-types/index';
 import { authApi } from '@api/auth.api';
+import { useAuthStore } from '@store/auth.store';
+import { useT } from '@i18n/index';
+import MaskedView from '@react-native-masked-view/masked-view';
 
-function getPasswordStrength(pass: string): { pct: number; label: string; color: string } {
-  if (!pass) return { pct: 0, label: '', color: colors.bgElevated };
-  let score = 0;
-  if (pass.length >= 8) score++;
-  if (pass.length >= 12) score++;
-  if (/[A-Z]/.test(pass)) score++;
-  if (/[0-9]/.test(pass)) score++;
-  if (/[^A-Za-z0-9]/.test(pass)) score++;
-  if (score <= 1) return { pct: 20, label: 'Zaif', color: colors.error };
-  if (score <= 2) return { pct: 40, label: "O'rtacha", color: colors.warning };
-  if (score <= 3) return { pct: 60, label: 'Yaxshi', color: colors.warning };
-  if (score <= 4) return { pct: 80, label: 'Kuchli', color: colors.success };
-  return { pct: 100, label: 'Juda kuchli', color: colors.success };
-}
+WebBrowser.maybeCompleteAuthSession();
+
+const GOOGLE_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? '';
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Register'>;
 
+function GradientGoogleIcon() {
+  return (
+    <MaskedView maskElement={<FontAwesome5 name="google" size={20} color="#000" />}>
+      <LinearGradient
+        colors={['#4285F4', '#EA4335', '#FBBC05', '#34A853']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <FontAwesome5 name="google" size={20} style={{ opacity: 0 }} />
+      </LinearGradient>
+    </MaskedView>
+  );
+}
+
 export function RegisterScreen() {
   const navigation = useNavigation<Nav>();
+  const { setAuth } = useAuthStore();
+  const { t } = useT();
 
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -44,28 +60,118 @@ export function RegisterScreen() {
   const [confirm, setConfirm] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [telegramLoading, setTelegramLoading] = useState(false);
   const [error, setError] = useState('');
+  const [focusedField, setFocusedField] = useState<string | null>(null);
+  const telegramIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+  const strengthAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 700, useNativeDriver: true }),
+    ]).start();
+    return () => {
+      if (telegramIntervalRef.current) clearInterval(telegramIntervalRef.current);
+    };
+  }, []);
+
+  const [, googleResponse, promptAsync] = Google.useAuthRequest({ clientId: GOOGLE_CLIENT_ID });
+
+  useEffect(() => {
+    if (googleResponse?.type !== 'success') return;
+    const idToken = googleResponse.params['id_token'];
+    if (!idToken) return;
+    setGoogleLoading(true);
+    setError('');
+    authApi
+      .googleToken(idToken)
+      .then(({ user, accessToken, refreshToken }) => setAuth(user, accessToken, refreshToken))
+      .catch(() => setError(t('login', 'errorGoogle')))
+      .finally(() => setGoogleLoading(false));
+  }, [googleResponse]);
+
+  const handleTelegramLogin = async () => {
+    setTelegramLoading(true);
+    setError('');
+    try {
+      const { state, botUrl } = await authApi.telegramInit();
+      await Linking.openURL(botUrl);
+      let attempts = 0;
+      telegramIntervalRef.current = setInterval(async () => {
+        attempts++;
+        if (attempts > 60) {
+          clearInterval(telegramIntervalRef.current!);
+          telegramIntervalRef.current = null;
+          setTelegramLoading(false);
+          setError(t('login', 'errorTelegramTimeout'));
+          return;
+        }
+        try {
+          const result = await authApi.telegramPoll(state);
+          if (result) {
+            clearInterval(telegramIntervalRef.current!);
+            telegramIntervalRef.current = null;
+            setTelegramLoading(false);
+            await setAuth(result.user, result.accessToken, result.refreshToken);
+          }
+        } catch {
+          clearInterval(telegramIntervalRef.current!);
+          telegramIntervalRef.current = null;
+          setTelegramLoading(false);
+          setError(t('login', 'errorTelegram'));
+        }
+      }, 2000);
+    } catch {
+      setTelegramLoading(false);
+      setError(t('login', 'errorTelegram'));
+    }
+  };
+
+  const getStrength = (pass: string) => {
+    if (!pass) return { pct: 0, label: '', color: colors.bgElevated };
+    let score = 0;
+    if (pass.length >= 8) score++;
+    if (pass.length >= 12) score++;
+    if (/[A-Z]/.test(pass)) score++;
+    if (/[0-9]/.test(pass)) score++;
+    if (/[^A-Za-z0-9]/.test(pass)) score++;
+    const levels: Array<{ pct: number; label: string; color: string }> = [
+      { pct: 0, label: '', color: colors.bgElevated },
+      { pct: 20, label: t('register', 'strengthWeak'), color: '#EF4444' },
+      { pct: 40, label: t('register', 'strengthFair'), color: '#F59E0B' },
+      { pct: 60, label: t('register', 'strengthGood'), color: '#FBBF24' },
+      { pct: 80, label: t('register', 'strengthStrong'), color: '#34D399' },
+      { pct: 100, label: t('register', 'strengthVeryStrong'), color: '#22C55E' },
+    ];
+    return levels[score];
+  };
+
+  useEffect(() => {
+    Animated.spring(strengthAnim, {
+      toValue: getStrength(password).pct,
+      tension: 60, friction: 10, useNativeDriver: false,
+    }).start();
+  }, [password]);
 
   const validate = (): string | null => {
-    if (!username.trim()) return "Foydalanuvchi nomini kiriting";
-    if (username.length < 3) return "Username kamida 3 ta belgi";
-    if (username.length > 20) return "Username ko'pi bilan 20 ta belgi";
-    if (!/^[a-zA-Z0-9_]+$/.test(username)) return "Username faqat harf, raqam va _ bo'lishi mumkin";
-    if (!email.trim()) return "Emailni kiriting";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "Email noto'g'ri formatda";
-    if (!password) return "Parolni kiriting";
-    if (password.length < 8) return "Parol kamida 8 ta belgi";
-    if (!/[A-Z]/.test(password)) return "Parolda kamida 1 ta katta harf bo'lishi kerak";
-    if (!/[a-z]/.test(password)) return "Parolda kamida 1 ta kichik harf bo'lishi kerak";
-    if (!/[0-9]/.test(password)) return "Parolda kamida 1 ta raqam bo'lishi kerak";
-    if (password !== confirm) return "Parollar mos emas";
+    if (!username.trim()) return t('register', 'errUsername');
+    if (username.length < 3) return t('register', 'errUsernameShort');
+    if (!email.trim()) return t('register', 'errEmail');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return t('register', 'errEmailFormat');
+    if (!password) return t('register', 'errPassword');
+    if (password.length < 8) return t('register', 'errPasswordShort');
+    if (password !== confirm) return t('register', 'errPasswordMatch');
     return null;
   };
 
   const handleRegister = async () => {
-    const validationError = validate();
-    if (validationError) { setError(validationError); return; }
-
+    const err = validate();
+    if (err) { setError(err); return; }
     setLoading(true);
     setError('');
     try {
@@ -78,182 +184,216 @@ export function RegisterScreen() {
         email: email.trim().toLowerCase(),
         devOtp: result._dev_otp,
       });
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })
-        ?.response?.data?.message;
-      setError(msg ?? "Ro'yxatdan o'tishda xato");
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setError(msg ?? t('register', 'errGeneral'));
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <KeyboardAvoidingView
-      style={styles.root}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView
-        contentContainerStyle={styles.container}
-        keyboardShouldPersistTaps="handled"
-      >
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
+  const strength = getStrength(password);
+  const focused = (f: string) => focusedField === f;
+  const passwordsMatch = confirm.length > 0 && password === confirm;
+  const passwordsMismatch = confirm.length > 0 && password !== confirm;
+
+  const renderInput = (
+    icon: keyof typeof Ionicons.glyphMap,
+    placeholder: string,
+    value: string,
+    onChange: (v: string) => void,
+    fieldId: string,
+    opts?: { secure?: boolean; keyboard?: 'default' | 'email-address'; toggle?: boolean },
+  ) => (
+    <View style={[s.inputOuter, focused(fieldId) && s.inputOuterFocused]}>
+      <Ionicons name={icon} size={17} color={focused(fieldId) ? colors.primary : colors.textDim} />
+      <TextInput
+        style={s.input}
+        placeholder={placeholder}
+        placeholderTextColor={colors.textDim}
+        value={value}
+        onChangeText={onChange}
+        onFocus={() => setFocusedField(fieldId)}
+        onBlur={() => setFocusedField(null)}
+        keyboardType={opts?.keyboard ?? 'default'}
+        secureTextEntry={opts?.secure && !showPass}
+        autoCapitalize="none"
+        autoCorrect={false}
+      />
+      {opts?.toggle && (
+        <TouchableOpacity onPress={() => setShowPass(!showPass)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <Ionicons name={showPass ? 'eye-off-outline' : 'eye-outline'} size={17} color={colors.textDim} />
         </TouchableOpacity>
+      )}
+    </View>
+  );
 
-        <View style={styles.header}>
-          <Text style={styles.title}>Ro'yxatdan o'tish</Text>
-          <Text style={styles.sub}>Akkount yarating</Text>
-        </View>
+  return (
+    <View style={s.root}>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-        <View style={styles.form}>
-          {error ? (
-            <View style={styles.errorBox}>
-              <Ionicons name="alert-circle" size={16} color={colors.error} />
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          ) : null}
+      <View style={s.bgGrid}>
+        {Array.from({ length: 8 }).map((_, i) => (
+          <View key={`h${i}`} style={[s.gridLineH, { top: (SCREEN_H / 8) * i }]} />
+        ))}
+        {Array.from({ length: 6 }).map((_, i) => (
+          <View key={`v${i}`} style={[s.gridLineV, { left: (SCREEN_W / 6) * i }]} />
+        ))}
+        <LinearGradient colors={['transparent', 'rgba(124,58,237,0.12)', 'transparent']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.accentLine} />
+      </View>
 
-          {[
-            { icon: 'person-outline', placeholder: 'Foydalanuvchi nomi', value: username, onChange: setUsername, type: 'default' },
-            { icon: 'mail-outline', placeholder: 'Email', value: email, onChange: setEmail, type: 'email-address' },
-          ].map(({ icon, placeholder, value, onChange, type }) => (
-            <View key={placeholder} style={styles.inputWrap}>
-              <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={18} color={colors.textMuted} style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder={placeholder}
-                placeholderTextColor={colors.textMuted}
-                value={value}
-                onChangeText={onChange}
-                keyboardType={type as 'default' | 'email-address'}
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-            </View>
-          ))}
+      <KeyboardAvoidingView style={s.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView contentContainerStyle={s.container} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
 
-          <View style={styles.inputWrap}>
-            <Ionicons name="lock-closed-outline" size={18} color={colors.textMuted} style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Parol (kamida 8 ta belgi)"
-              placeholderTextColor={colors.textMuted}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPass}
-              autoCapitalize="none"
-            />
-            <TouchableOpacity onPress={() => setShowPass(!showPass)} style={styles.eyeBtn}>
-              <Ionicons name={showPass ? 'eye-off-outline' : 'eye-outline'} size={18} color={colors.textMuted} />
+            <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
             </TouchableOpacity>
-          </View>
 
-          <View style={styles.inputWrap}>
-            <Ionicons name="lock-closed-outline" size={18} color={colors.textMuted} style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Parolni tasdiqlang"
-              placeholderTextColor={colors.textMuted}
-              value={confirm}
-              onChangeText={setConfirm}
-              secureTextEntry={!showPass}
-              autoCapitalize="none"
-            />
-          </View>
+            <View style={s.header}>
+              <Text style={s.title}>{t('register', 'title')}</Text>
+              <Text style={s.subtitle}>{t('register', 'subtitle')}</Text>
+            </View>
 
-          {/* Password strength indicator */}
-          {password.length > 0 && (() => {
-            const { pct, label, color } = getPasswordStrength(password);
-            return (
-              <View style={styles.strengthWrap}>
-                <View style={styles.strengthTrack}>
-                  <View style={[styles.strengthFill, { width: `${pct}%` as unknown as number, backgroundColor: color }]} />
-                </View>
-                <Text style={[styles.strengthLabel, { color }]}>{label}</Text>
+            {error ? (
+              <View style={s.errorBox}>
+                <Ionicons name="alert-circle" size={16} color={colors.error} />
+                <Text style={s.errorText}>{error}</Text>
               </View>
-            );
-          })()}
+            ) : null}
 
-          <TouchableOpacity
-            style={[styles.registerBtn, loading && styles.btnDisabled]}
-            onPress={handleRegister}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color={colors.textPrimary} size="small" />
-            ) : (
-              <Text style={styles.registerText}>Ro'yxatdan o'tish</Text>
+            {renderInput('person-outline', t('register', 'usernamePlaceholder'), username, setUsername, 'username')}
+            {renderInput('mail-outline', t('register', 'emailPlaceholder'), email, setEmail, 'email', { keyboard: 'email-address' })}
+            {renderInput('lock-closed-outline', t('register', 'passwordPlaceholder'), password, setPassword, 'password', { secure: true, toggle: true })}
+            {renderInput('shield-checkmark-outline', t('register', 'confirmPlaceholder'), confirm, setConfirm, 'confirm', { secure: true })}
+
+            {password.length > 0 && (
+              <View style={s.strengthRow}>
+                <View style={s.strengthTrack}>
+                  <Animated.View
+                    style={[s.strengthFill, {
+                      width: strengthAnim.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] }),
+                      backgroundColor: strength.color,
+                    }]}
+                  />
+                </View>
+                <Text style={[s.strengthLabel, { color: strength.color }]}>{strength.label}</Text>
+              </View>
             )}
-          </TouchableOpacity>
-        </View>
 
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>Akkount bor? </Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-            <Text style={styles.loginLink}>Kirish</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+            {(passwordsMatch || passwordsMismatch) && (
+              <View style={s.matchRow}>
+                <Ionicons name={passwordsMatch ? 'checkmark-circle' : 'close-circle'} size={14} color={passwordsMatch ? colors.success : colors.error} />
+                <Text style={[s.matchText, { color: passwordsMatch ? colors.success : colors.error }]}>
+                  {passwordsMatch ? t('register', 'passwordsMatch') : t('register', 'errPasswordMatch')}
+                </Text>
+              </View>
+            )}
+
+            <TouchableOpacity onPress={handleRegister} disabled={loading} activeOpacity={0.85} style={{ marginTop: 20 }}>
+              <LinearGradient colors={loading ? ['#3F3F46', '#3F3F46'] : ['#7C3AED', '#9333EA']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.primaryBtn}>
+                {loading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={s.primaryBtnText}>{t('register', 'registerBtn')}</Text>}
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <View style={s.divider}>
+              <View style={s.dividerLine} />
+              <Text style={s.dividerText}>{t('common', 'or')}</Text>
+              <View style={s.dividerLine} />
+            </View>
+
+            <View style={s.socialRow}>
+              <TouchableOpacity onPress={() => promptAsync()} disabled={googleLoading || !GOOGLE_CLIENT_ID} activeOpacity={0.85} style={[s.socialHalf, googleLoading && s.btnDisabled]}>
+                <LinearGradient colors={['#4285F4', '#34A853', '#FBBC05', '#EA4335']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.socialBorder}>
+                  <View style={s.socialInner}>
+                    {googleLoading ? <ActivityIndicator color={colors.textPrimary} size="small" /> : <GradientGoogleIcon />}
+                  </View>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <TouchableOpacity onPress={handleTelegramLogin} disabled={telegramLoading} activeOpacity={0.85} style={[s.socialHalf, telegramLoading && s.btnDisabled]}>
+                <LinearGradient colors={['#2AABEE', '#229ED9']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.socialBorder}>
+                  <View style={s.socialInner}>
+                    {telegramLoading ? <ActivityIndicator color="#fff" size="small" /> : <FontAwesome5 name="telegram-plane" size={20} color="#2AABEE" />}
+                  </View>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+
+            <View style={s.footer}>
+              <Text style={s.footerText}>{t('register', 'haveAccount')}</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+                <Text style={s.footerLink}>{t('register', 'loginLink')}</Text>
+              </TouchableOpacity>
+            </View>
+
+          </Animated.View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.bgBase },
-  container: { flexGrow: 1, paddingHorizontal: spacing.xl },
-  backBtn: { marginTop: 60, marginBottom: spacing.xl },
-  header: { marginBottom: spacing.xxxl },
-  title: { ...typography.h1, marginBottom: spacing.xs },
-  sub: { ...typography.body },
-  form: { gap: spacing.md },
+const s = StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.bgVoid },
+  flex: { flex: 1 },
+  container: { flexGrow: 1, paddingHorizontal: 28, paddingTop: 50, paddingBottom: 40 },
+
+  bgGrid: { ...StyleSheet.absoluteFillObject },
+  gridLineH: { position: 'absolute', left: 0, right: 0, height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(255,255,255,0.03)' },
+  gridLineV: { position: 'absolute', top: 0, bottom: 0, width: StyleSheet.hairlineWidth, backgroundColor: 'rgba(255,255,255,0.03)' },
+  accentLine: { position: 'absolute', top: SCREEN_H * 0.12, left: 0, right: 0, height: 1 },
+
+  backBtn: { marginBottom: 24 },
+  header: { marginBottom: 32 },
+  title: { fontSize: 28, fontWeight: '800', color: colors.textPrimary, letterSpacing: 0.5, marginBottom: 6 },
+  subtitle: { fontSize: 14, color: colors.textMuted },
+
   errorBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(239,68,68,0.1)',
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-    gap: spacing.xs,
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: 'rgba(248,113,113,0.08)',
+    borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12,
+    gap: 8, marginBottom: 12,
   },
   errorText: { color: colors.error, fontSize: 13, flex: 1 },
-  inputWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.bgElevated,
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: spacing.md,
-    height: 52,
+
+  inputOuter: {
+    flexDirection: 'row', alignItems: 'center',
+    height: 54, borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    paddingHorizontal: 18, gap: 12,
+    marginBottom: 14,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
   },
-  inputIcon: { marginRight: spacing.sm },
+  inputOuterFocused: {
+    borderColor: 'rgba(124,58,237,0.45)',
+    backgroundColor: 'rgba(124,58,237,0.05)',
+  },
   input: { flex: 1, color: colors.textPrimary, fontSize: 15 },
-  eyeBtn: { padding: spacing.xs },
-  registerBtn: {
-    backgroundColor: colors.primary,
-    borderRadius: borderRadius.lg,
-    height: 52,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: spacing.xs,
-  },
-  btnDisabled: { opacity: 0.6 },
-  registerText: { color: colors.textPrimary, fontWeight: '700', fontSize: 16 },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: spacing.xxxl,
-    paddingBottom: spacing.xxxl,
-  },
-  footerText: { color: colors.textMuted, fontSize: 14 },
-  loginLink: { color: colors.primary, fontWeight: '600', fontSize: 14 },
-  strengthWrap: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  strengthTrack: {
-    flex: 1,
-    height: 4,
-    backgroundColor: colors.bgElevated,
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
+
+  strengthRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: -4, marginBottom: 4 },
+  strengthTrack: { flex: 1, height: 3, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' },
   strengthFill: { height: '100%', borderRadius: 2 },
-  strengthLabel: { fontSize: 12, fontWeight: '600', minWidth: 80, textAlign: 'right' },
+  strengthLabel: { fontSize: 11, fontWeight: '700', minWidth: 70, textAlign: 'right', textTransform: 'uppercase', letterSpacing: 0.5 },
+
+  matchRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: -4, marginBottom: 4 },
+  matchText: { fontSize: 12, fontWeight: '600' },
+
+  primaryBtn: { height: 54, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  primaryBtnText: { color: '#fff', fontSize: 16, fontWeight: '700', letterSpacing: 0.5 },
+
+  divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 24, gap: 14 },
+  dividerLine: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(255,255,255,0.1)' },
+  dividerText: { color: colors.textDim, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 },
+
+  socialRow: { flexDirection: 'row', gap: 14 },
+  socialHalf: { flex: 1 },
+  socialBorder: { height: 56, borderRadius: 16, padding: 1.5 },
+  socialInner: { flex: 1, borderRadius: 14.5, backgroundColor: colors.bgVoid, alignItems: 'center', justifyContent: 'center' },
+
+  btnDisabled: { opacity: 0.5 },
+
+  footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 28, gap: 4 },
+  footerText: { color: colors.textMuted, fontSize: 14 },
+  footerLink: { color: '#A855F7', fontSize: 14, fontWeight: '700' },
 });

@@ -14,9 +14,8 @@ export const apiClient = axios.create({
 });
 
 apiClient.interceptors.request.use((config) => {
-  // Prefer Zustand store token (kept in sync), fall back to localStorage
-  const storeToken = useAuthStore.getState().accessToken;
-  const token = storeToken ?? (typeof window !== 'undefined' ? localStorage.getItem('access_token') : null);
+  // Access token from Zustand store (in-memory / persisted state)
+  const token = useAuthStore.getState().accessToken;
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
@@ -39,20 +38,16 @@ apiClient.interceptors.response.use(
       try {
         // If a refresh is already in flight, reuse it
         if (!refreshPromise) {
-          const refreshToken =
-            useAuthStore.getState().refreshToken ??
-            localStorage.getItem('refresh_token');
-
+          // Refresh token is in httpOnly cookie — sent automatically via credentials: include
           refreshPromise = axios
-            .post<{ success: boolean; data: { accessToken: string; refreshToken: string } }>(
+            .post<{ success: boolean; data: { accessToken: string } }>(
               `${BASE_URL}/api/auth/refresh`,
-              { refreshToken },
+              {},
               { withCredentials: true },
             )
             .then((res) => {
-              const { accessToken, refreshToken: newRefreshToken } = res.data.data;
-              // Update Zustand store (also syncs localStorage + cookie)
-              useAuthStore.getState().updateTokens(accessToken, newRefreshToken);
+              const { accessToken } = res.data.data;
+              useAuthStore.getState().updateAccessToken(accessToken);
               return accessToken;
             })
             .finally(() => {

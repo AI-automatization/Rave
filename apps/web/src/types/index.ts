@@ -1,88 +1,101 @@
 // CineSync Web — TypeScript Types
-// shared/types bilan sinxron (Saidazim bilan kelishib o'zgartiriladi)
+// Re-export shared types and add web-specific extensions
 
-export interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  message?: string;
-  errors?: string[] | null;
+export type {
+  UserRole,
+  UserRank,
+  ContentType,
+  ContentGenre,
+  ICastMember,
+  WatchPartyStatus,
+  SyncState,
+  BattleDuration,
+  NotificationType,
+  AchievementRarity,
+  FriendshipStatus,
+  JwtPayload,
+  IUserPublic,
+} from '@shared/types';
+
+// Import and re-export PaginationMeta; extend ApiResponse for web
+import type { ApiResponse as ApiResponseShared, PaginationMeta } from '@shared/types';
+export type { PaginationMeta } from '@shared/types';
+
+/** ApiResponse for web — includes `pagination` alias for backward compatibility */
+export interface ApiResponse<T = null> extends Omit<ApiResponseShared<T>, 'meta'> {
   meta?: PaginationMeta;
   pagination?: PaginationMeta;
 }
 
-export interface PaginationMeta {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
-  pages?: number;
+import type {
+  IUser as IUserShared,
+  IMovie as IMovieShared,
+  IWatchPartyRoom as IWatchPartyRoomShared,
+  IBattle as IBattleShared,
+  IBattleParticipant as IBattleParticipantShared,
+  IAchievement as IAchievementShared,
+} from '@shared/types';
+
+// ─────────────────────────────────────────────
+// Web-specific type extensions
+// These override shared types with web-friendly adjustments
+// (e.g., Date → string for serialized JSON responses)
+// ─────────────────────────────────────────────
+
+/** IUser for the web — dates come as strings from JSON, extra web fields */
+export interface IUser extends Omit<IUserShared, 'createdAt' | 'updatedAt' | 'lastLoginAt' | 'lastSeenAt' | 'avatar' | 'bio' | 'isEmailVerified' | 'isBlocked' | 'fcmTokens' | 'favoriteGenres'> {
+  avatar?: string;
+  bio?: string;
+  isOnline?: boolean;
+  lastSeenAt?: string;
+  isEmailVerified?: boolean;
+  isBlocked?: boolean;
+  fcmTokens?: string[];
+  favoriteGenres?: string[];
+  lastLoginAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
-export interface IMovie {
-  _id: string;
-  title: string;
-  slug: string;
-  description: string;
-  poster: string;
+/** IMovie for the web — supports both shared field names and legacy web names */
+export interface IMovie extends Omit<IMovieShared, 'createdAt' | 'updatedAt' | 'originalTitle' | 'type' | 'genre' | 'posterUrl' | 'backdropUrl' | 'videoUrl' | 'trailerUrl' | 'addedBy' | 'cast' | 'reviewCount'> {
+  slug?: string;
+  originalTitle?: string;
+  type?: string;
+  genre?: string[];
+  genres?: string[];
+  poster?: string;
   posterUrl?: string;
   backdrop?: string;
   backdropUrl?: string;
-  genres: string[];
-  genre?: string[];
-  year: number;
-  duration: number;
-  rating: number;
-  reviewCount: number;
+  videoUrl?: string;
+  trailerUrl?: string;
+  reviewCount?: number;
   director?: string;
   cast?: string[];
-  videoUrl?: string;
-  isPublished: boolean;
-  viewCount: number;
+  addedBy?: string;
   createdAt: string;
+  updatedAt?: string;
 }
 
-export interface IUser {
-  _id: string;
-  username: string;
-  email: string;
-  avatar?: string;
-  bio?: string;
-  rank: 'bronze' | 'silver' | 'gold' | 'diamond' | 'legend';
-  totalPoints: number;
-  isOnline?: boolean;
-  lastSeenAt?: string;
-}
-
-export interface IFriendship {
-  _id: string;
-  requester: IUser;
-  receiver: IUser;
-  status: 'pending' | 'accepted' | 'blocked';
-  createdAt: string;
-}
-
-export interface IWatchPartyRoom {
-  _id: string;
+/** IWatchPartyRoom for the web — dates as strings */
+export interface IWatchPartyRoom extends Omit<IWatchPartyRoomShared, 'createdAt' | 'updatedAt' | 'videoPlatform' | 'name' | 'movieId' | 'videoUrl' | 'videoTitle' | 'videoThumbnail'> {
   name: string | null;
   movieId: string | null;
   videoUrl: string | null;
   videoTitle: string | null;
   videoThumbnail: string | null;
   videoPlatform: string | null;
-  ownerId: string;
-  members: string[];
-  inviteCode: string;
-  isPrivate: boolean;
-  memberCount?: number;
-  status: 'waiting' | 'playing' | 'paused' | 'ended';
-  currentTime: number;
-  isPlaying: boolean;
-  maxMembers: number;
   createdAt: string;
+  updatedAt?: string;
 }
 
-export type VideoPlatform = 'youtube' | 'vimeo' | 'twitch' | 'dailymotion' | 'direct' | 'other';
-export type VideoStatus   = 'pending' | 'approved' | 'rejected';
+/** VideoPlatform for web — extended with additional platforms */
+export type VideoPlatform = 'youtube' | 'direct' | 'webview' | 'vimeo' | 'twitch' | 'dailymotion' | 'other';
+export type VideoStatus = 'pending' | 'approved' | 'rejected';
+
+/** BattleStatus for web — subset commonly used in web UI */
+export type BattleStatus = 'pending' | 'active' | 'completed' | 'cancelled' | 'rejected';
 
 export interface IExternalVideo {
   _id: string;
@@ -109,23 +122,26 @@ export interface IVideoMetadata {
   platform: VideoPlatform;
 }
 
-export interface IBattle {
-  _id: string;
+/** IBattle for the web — dates as strings, participants populated */
+export interface IBattle extends Omit<IBattleShared, 'creatorId' | 'startDate' | 'endDate' | 'winnerId' | 'createdAt' | 'updatedAt' | 'participants' | 'status'> {
+  creatorId?: string;
   participants: IBattleParticipant[];
-  duration: 3 | 5 | 7;
-  status: 'pending' | 'active' | 'completed';
+  status: BattleStatus;
   startDate: string;
   endDate: string;
   winnerId?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
-export interface IBattleParticipant {
+/** IBattleParticipant for the web — user is populated */
+export interface IBattleParticipant extends Omit<IBattleParticipantShared, 'userId' | 'joinedAt'> {
   user: IUser;
-  score: number;
-  moviesWatched: number;
-  minutesWatched: number;
+  userId?: string;
+  joinedAt?: string;
 }
 
+/** INotification for the web — dates as strings, extra types */
 export interface INotification {
   _id: string;
   type:
@@ -135,12 +151,25 @@ export interface INotification {
     | 'battle_result'
     | 'achievement_unlocked'
     | 'watch_party_invite'
+    | 'friend_online'
+    | 'friend_watching'
     | 'system';
   title: string;
   body: string;
   isRead: boolean;
+  userId?: string;
   data?: Record<string, string>;
   createdAt: string;
+}
+
+/** IFriendship for the web — requester/receiver are populated user objects */
+export interface IFriendship {
+  _id: string;
+  requester: IUser;
+  receiver: IUser;
+  status: 'pending' | 'accepted' | 'blocked';
+  createdAt: string;
+  updatedAt?: string;
 }
 
 export interface IChatMessage {
@@ -150,13 +179,11 @@ export interface IChatMessage {
   timestamp: number;
 }
 
-export interface IAchievement {
-  _id: string;
-  key: string;
-  title: string;
-  description: string;
+/** IAchievement for the web — includes 'secret' rarity, icon as string (emoji) */
+export interface IAchievement extends Omit<IAchievementShared, 'iconUrl' | 'condition' | 'rarity'> {
   icon: string;
-  rarity: 'common' | 'rare' | 'epic' | 'legendary';
-  points: number;
+  iconUrl?: string;
+  rarity: 'common' | 'rare' | 'epic' | 'legendary' | 'secret';
+  condition?: Record<string, unknown>;
   unlockedAt?: string;
 }

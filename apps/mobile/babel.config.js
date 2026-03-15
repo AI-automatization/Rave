@@ -19,6 +19,7 @@ module.exports = function (api) {
             '@app-types': './src/types',
             '@navigation': './src/navigation',
             '@hooks': './src/hooks',
+            '@i18n': './src/i18n',
             '@shared': '../../shared/src',
           },
         },

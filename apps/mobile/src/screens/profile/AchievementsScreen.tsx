@@ -15,6 +15,7 @@ import { Image } from 'expo-image';
 import { useMyProfile } from '@hooks/useProfile';
 import { colors, spacing, borderRadius, typography, RARITY_COLORS } from '@theme/index';
 import { IAchievement } from '@app-types/index';
+import { useT } from '@i18n/index';
 
 interface UnlockedAchievement {
   achievement: IAchievement;
@@ -56,6 +57,7 @@ export function AchievementsScreen() {
   const navigation = useNavigation();
   const { achievementsQuery } = useMyProfile();
   const achievements = achievementsQuery.data ?? [];
+  const { t } = useT();
 
   // Add locked placeholders
   const items: Array<UnlockedAchievement | 'locked'> = [
@@ -75,9 +77,9 @@ export function AchievementsScreen() {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.title}>Yutuqlar</Text>
+        <Text style={styles.title}>{t('achievements', 'title')}</Text>
         <Text style={styles.count}>
-          {achievements.length} / {achievements.length + LOCKED_PLACEHOLDER_COUNT} ochilgan
+          {achievements.length} / {achievements.length + LOCKED_PLACEHOLDER_COUNT} {t('achievements', 'unlocked')}
         </Text>
       </View>
 
@@ -96,7 +98,7 @@ export function AchievementsScreen() {
             achievements.length === 0 ? (
               <View style={styles.empty}>
                 <Text style={styles.emptyIcon}>🏆</Text>
-                <Text style={styles.emptyText}>Hali yutuq yo'q. Film ko'ring!</Text>
+                <Text style={styles.emptyText}>{t('achievements', 'emptyHint')}</Text>
               </View>
             ) : null
           }

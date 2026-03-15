@@ -39,6 +39,8 @@ export interface IUser {
   totalPoints: number;
   isEmailVerified: boolean;
   isBlocked: boolean;
+  isOnline?: boolean;
+  lastSeenAt?: Date | string | null;
   fcmTokens: string[];
   lastLoginAt: Date | null;
   createdAt: Date;
@@ -103,12 +105,14 @@ export interface IMovie {
   _id: string;
   title: string;
   originalTitle: string;
+  slug?: string;
   description: string;
   type: ContentType;
   genre: ContentGenre[];
   year: number;
   duration: number; // minutes
   rating: number; // 0-10
+  reviewCount?: number;
   posterUrl: string;
   backdropUrl: string;
   videoUrl: string; // HLS m3u8

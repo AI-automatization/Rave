@@ -9,8 +9,10 @@ export class AuthController {
   initiateRegister = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { email, username, password } = req.body as { email: string; username: string; password: string };
-      await this.authService.initiateRegistration(email, username, password);
-      res.status(200).json(apiResponse.success(null, 'Verification code sent to your email'));
+      const devCode = await this.authService.initiateRegistration(email, username, password);
+      // In development, return OTP code in response (SMTP won't deliver in dev)
+      const data = devCode !== null ? { _dev_otp: devCode } : null;
+      res.status(200).json(apiResponse.success(data, 'Verification code sent to your email'));
     } catch (error) {
       next(error);
     }

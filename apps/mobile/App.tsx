@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { StyleSheet } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { useAuthStore } from '@store/auth.store';
+import { useLanguageStore } from '@store/language.store';
 import { AppNavigator } from '@navigation/AppNavigator';
 import { ErrorBoundary } from '@components/common/ErrorBoundary';
 
@@ -24,6 +25,7 @@ function RootApp() {
 
   useEffect(() => {
     hydrate();
+    useLanguageStore.getState().hydrate();
   }, [hydrate]);
 
   // Native splash screen ni hydration tugagandan so'ng darhol yashirish.

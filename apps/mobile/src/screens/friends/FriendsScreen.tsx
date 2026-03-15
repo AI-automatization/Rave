@@ -20,20 +20,20 @@ import { colors, spacing, borderRadius, typography } from '@theme/index';
 import { IUserPublic } from '@app-types/index';
 import { FriendsStackParamList } from '@app-types/index';
 import { RANK_COLORS } from '@theme/index';
+import { useT } from '@i18n/index';
 
 type Nav = NativeStackNavigationProp<FriendsStackParamList, 'Friends'>;
-
-const TABS = ['Do\'stlar', 'So\'rovlar'] as const;
-type Tab = (typeof TABS)[number];
 
 function FriendRow({
   item,
   isOnline,
   onPress,
+  pointsLabel,
 }: {
   item: IUserPublic;
   isOnline: boolean;
   onPress: () => void;
+  pointsLabel: string;
 }) {
   return (
     <TouchableOpacity style={styles.row} onPress={onPress} activeOpacity={0.8}>
@@ -50,7 +50,7 @@ function FriendRow({
         <View style={styles.rankRow}>
           <View style={[styles.rankDot, { backgroundColor: RANK_COLORS[item.rank] }]} />
           <Text style={styles.rankText}>{item.rank}</Text>
-          <Text style={styles.points}>{item.totalPoints} ball</Text>
+          <Text style={styles.points}>{item.totalPoints} {pointsLabel}</Text>
         </View>
       </View>
       <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
@@ -60,7 +60,10 @@ function FriendRow({
 
 export function FriendsScreen() {
   const navigation = useNavigation<Nav>();
-  const [tab, setTab] = useState<Tab>('Do\'stlar');
+  const { t } = useT();
+  const tabs = [t('friends', 'title'), t('friends', 'requests')] as const;
+  type Tab = (typeof tabs)[number];
+  const [tab, setTab] = useState<Tab>(tabs[0]);
   const [refreshing, setRefreshing] = useState(false);
   const { friends, pendingRequests, onlineStatus, friendsLoading, requestsLoading, acceptMutation, rejectMutation, refetchFriends } =
     useFriends();
@@ -76,9 +79,9 @@ export function FriendsScreen() {
   };
 
   const handleReject = (friendshipId: string) => {
-    Alert.alert('Rad etish', 'So\'rovni rad etmoqchimisiz?', [
-      { text: 'Bekor', style: 'cancel' },
-      { text: 'Rad etish', style: 'destructive', onPress: () => rejectMutation.mutate(friendshipId) },
+    Alert.alert(t('friends', 'rejectTitle'), t('friends', 'rejectMsg'), [
+      { text: t('common', 'cancel'), style: 'cancel' },
+      { text: t('friends', 'rejectBtn'), style: 'destructive', onPress: () => rejectMutation.mutate(friendshipId) },
     ]);
   };
 
@@ -87,6 +90,7 @@ export function FriendsScreen() {
       item={item}
       isOnline={onlineStatus[item._id] ?? item.isOnline}
       onPress={() => navigation.navigate('FriendProfile', { userId: item._id })}
+      pointsLabel={t('profile', 'points')}
     />
   );
 
@@ -94,7 +98,7 @@ export function FriendsScreen() {
     <View style={styles.root}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Do'stlar</Text>
+        <Text style={styles.title}>{t('friends', 'title')}</Text>
         <TouchableOpacity onPress={() => navigation.navigate('FriendSearch')} style={styles.searchBtn}>
           <Ionicons name="person-add-outline" size={22} color={colors.primary} />
         </TouchableOpacity>
@@ -102,10 +106,10 @@ export function FriendsScreen() {
 
       {/* Tabs */}
       <View style={styles.tabs}>
-        {TABS.map(t => (
-          <TouchableOpacity key={t} style={[styles.tab, tab === t && styles.tabActive]} onPress={() => setTab(t)}>
-            <Text style={[styles.tabText, tab === t && styles.tabTextActive]}>{t}</Text>
-            {t === 'So\'rovlar' && pendingRequests.length > 0 && (
+        {tabs.map(tabItem => (
+          <TouchableOpacity key={tabItem} style={[styles.tab, tab === tabItem && styles.tabActive]} onPress={() => setTab(tabItem)}>
+            <Text style={[styles.tabText, tab === tabItem && styles.tabTextActive]}>{tabItem}</Text>
+            {tabItem === tabs[1] && pendingRequests.length > 0 && (
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>{pendingRequests.length}</Text>
               </View>
@@ -115,7 +119,7 @@ export function FriendsScreen() {
       </View>
 
       {/* Friends list */}
-      {tab === 'Do\'stlar' && (
+      {tab === tabs[0] && (
         <FlatList
           data={friends}
           keyExtractor={item => item._id}
@@ -127,9 +131,9 @@ export function FriendsScreen() {
             ) : (
               <View style={styles.empty}>
                 <Ionicons name="people-outline" size={48} color={colors.textMuted} />
-                <Text style={styles.emptyText}>Hali do'stlar yo'q</Text>
+                <Text style={styles.emptyText}>{t('friends', 'noFriends')}</Text>
                 <TouchableOpacity onPress={() => navigation.navigate('FriendSearch')}>
-                  <Text style={styles.emptyAction}>Do'st qidirish →</Text>
+                  <Text style={styles.emptyAction}>{t('friends', 'findFriends')}</Text>
                 </TouchableOpacity>
               </View>
             )
@@ -139,7 +143,7 @@ export function FriendsScreen() {
       )}
 
       {/* Pending requests */}
-      {tab === 'So\'rovlar' && (
+      {tab === tabs[1] && (
         <FlatList
           data={pendingRequests}
           keyExtractor={item => item._id}
@@ -172,7 +176,7 @@ export function FriendsScreen() {
             ) : (
               <View style={styles.empty}>
                 <Ionicons name="mail-outline" size={48} color={colors.textMuted} />
-                <Text style={styles.emptyText}>So'rovlar yo'q</Text>
+                <Text style={styles.emptyText}>{t('friends', 'noRequests')}</Text>
               </View>
             )
           }

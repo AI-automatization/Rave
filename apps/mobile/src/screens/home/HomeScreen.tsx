@@ -19,6 +19,7 @@ import { HeroBanner } from '@components/movie/HeroBanner';
 import { MovieRow } from '@components/movie/MovieRow';
 import { HomeSkeleton } from '@components/movie/HomeSkeleton';
 import { useNotificationStore } from '@store/notification.store';
+import { useT } from '@i18n/index';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -26,6 +27,7 @@ export function HomeScreen() {
   const navigation = useNavigation<Nav>();
   const { trending, topRated, continueWatching, isLoading, refetch } = useHomeData();
   const unreadCount = useNotificationStore((s) => s.unreadCount);
+  const { t } = useT();
   const [refreshing, setRefreshing] = React.useState(false);
 
   const handleRefresh = async () => {
@@ -76,11 +78,11 @@ export function HomeScreen() {
         <HeroBanner movies={trending.slice(0, 5)} />
 
         {continueWatching.length > 0 && (
-          <MovieRow title="Davom ettirish" movies={continueWatching} />
+          <MovieRow title={t('home', 'continueWatching')} movies={continueWatching} />
         )}
 
-        <MovieRow title="Trending" movies={trending} />
-        <MovieRow title="Top Rated" movies={topRated} />
+        <MovieRow title={t('home', 'trending')} movies={trending} />
+        <MovieRow title={t('home', 'topRated')} movies={topRated} />
 
         <View style={{ height: spacing.xxxl }} />
       </ScrollView>

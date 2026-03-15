@@ -10,8 +10,7 @@ import { logger } from '@/lib/logger';
 import type { ApiResponse, IBattle } from '@/types';
 
 function getToken() {
-  if (typeof window === 'undefined') return '';
-  return localStorage.getItem('access_token') ?? '';
+  return useAuthStore.getState().accessToken ?? '';
 }
 
 function authFetch(url: string, init?: RequestInit) {

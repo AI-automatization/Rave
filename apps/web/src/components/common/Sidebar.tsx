@@ -33,11 +33,11 @@ const RANK_COLOR: Record<string, string> = {
 
 export function Sidebar() {
   const pathname              = usePathname();
-  const { user, refreshToken, clearAuth } = useAuthStore();
+  const { user, clearAuth } = useAuthStore();
   const t                     = useTranslations('nav');
 
   const handleLogout = async () => {
-    try { await apiClient.post('/api/auth/logout', { refreshToken }); }
+    try { await apiClient.post('/api/auth/logout', {}); }
     catch (e) { logger.error('Logout error', e); }
     finally { clearAuth(); window.location.href = '/login'; }
   };

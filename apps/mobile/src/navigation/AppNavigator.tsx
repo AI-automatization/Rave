@@ -5,6 +5,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuthStore } from '@store/auth.store';
 import { RootStackParamList } from '@app-types/index';
+import { colors } from '@theme/index';
 import { AuthNavigator } from './AuthNavigator';
 import { MainNavigator } from './MainNavigator';
 import { ModalNavigator } from './ModalNavigator';
@@ -15,7 +16,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 export function AppNavigator() {
   const { isAuthenticated, isHydrated, needsProfileSetup } = useAuthStore();
 
-  if (!isHydrated) return <View style={{ flex: 1, backgroundColor: '#0A0A0F' }} />;
+  if (!isHydrated) return <View style={{ flex: 1, backgroundColor: colors.bgBase }} />;
 
   return (
     <NavigationContainer>
