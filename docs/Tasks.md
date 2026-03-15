@@ -163,7 +163,7 @@ GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state
 
 - **Sana:** 2026-03-15
 - **Mas'ul:** Emirhan
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 pending[Emirhan]
 - **Fayl:** `apps/mobile/src/api/auth.api.ts` (27-qator)
 - **Muammo:** `authApi.resetPassword()` backendga `{ token, password }` yuboradi, backend `resetPasswordSchema` esa `{ token, newPassword }` kutadi → Joi validation xatosi → parolni tiklash ishlamaydi
 - **Bajarilishi kerak:**
@@ -175,7 +175,7 @@ GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state
 
 - **Sana:** 2026-03-15
 - **Mas'ul:** Emirhan
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 pending[Emirhan]
 - **Fayl:** `apps/mobile/src/screens/auth/LoginScreen.tsx` (67-qator, `handleTelegramLogin`)
 - **Muammo:** `handleTelegramLogin` boshida mavjud interval tozalanmaydi. Tugma 2 marta bosilsa 2 parallel `setInterval` polling ishga tushadi → race condition, ikki xil state, xato natijalar
 - **Bajarilishi kerak:**
@@ -187,7 +187,7 @@ GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state
 
 - **Sana:** 2026-03-15
 - **Mas'ul:** Emirhan
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 pending[Emirhan]
 - **Fayl:** `apps/mobile/src/screens/auth/ProfileSetupScreen.tsx` (190-qator, 222-qator)
 - **Muammo:** `'#7C3AED'` 2 joyda hardcoded — `colors.*` token ishlatilmagan. CLAUDE.md: "Hardcoded hex TAQIQLANGAN"
 - **Bajarilishi kerak:**
@@ -200,7 +200,7 @@ GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state
 
 - **Sana:** 2026-03-15
 - **Mas'ul:** Emirhan
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 pending[Emirhan]
 - **Fayl:** `apps/mobile/src/screens/auth/RegisterScreen.tsx` (`validate()` funksiya, 49-58-qatorlar)
 - **Muammo:** Backend `PATTERNS.USERNAME = /^[a-zA-Z0-9_]{3,20}$/` va `PATTERNS.PASSWORD` (uppercase+lowercase+digit) qoidalari bor. Mobile faqat uzunlikni tekshiradi → user server error ko'radi
 - **Bajarilishi kerak:**
@@ -213,7 +213,7 @@ GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state
 
 - **Sana:** 2026-03-15
 - **Mas'ul:** Emirhan
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 pending[Emirhan]
 - **Fayllar:** `apps/mobile/src/screens/auth/VerifyEmailScreen.tsx` (47-qator), `apps/mobile/src/screens/auth/RegisterScreen.tsx` (72-qator)
 - **Muammo:** `handleResend` → `authApi.forgotPassword(email)` chaqiradi → user parolni tiklash emaili oladi (OTP emas!) — noto'g'ri email, noto'g'ri UX
 - **Bajarilishi kerak (T-S031 tayyor bo'lguncha — workaround):**
