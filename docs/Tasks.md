@@ -25,39 +25,6 @@
 
 # ═══════════════════════════════════════
 
-## SPRINT 1 — Auth (Mobile tomonidan kerak)
-
-### T-S030 | P1 | [BACKEND] | Auth — POST /auth/change-password endpoint yo'q
-
-- **Sana:** 2026-03-15
-- **Mas'ul:** Saidazim
-- **Holat:** ❌ Boshlanmagan
-- **Fayllar:** `services/auth/src/routes/auth.routes.ts`, `services/auth/src/controllers/auth.controller.ts`, `services/auth/src/services/auth.service.ts`, `services/auth/src/validators/auth.validator.ts`
-- **Muammo:** Mobile `SettingsScreen` da "Parolni o'zgartirish" tugmasi `POST /auth/change-password` chaqiradi lekin backend da bu route **MAVJUD EMAS** → 404 xatosi
-- **Bajarilishi kerak:**
-  - [ ] `changePasswordSchema`: `{ oldPassword, newPassword }` Joi validator
-  - [ ] `AuthService.changePassword(userId, oldPassword, newPassword)`: bcrypt compare → hash → update
-  - [ ] `AuthController.changePassword`: handler
-  - [ ] Route: `POST /auth/change-password` — `verifyToken` middleware bilan (authenticated)
-  - [ ] Parol o'zgarganda barcha refresh tokenlarni invalidate qilish (`RefreshToken.deleteMany`)
-
----
-
-### T-S031 | P2 | [BACKEND] | Auth — POST /auth/register/resend endpoint yo'q
-
-- **Sana:** 2026-03-15
-- **Mas'ul:** Saidazim
-- **Holat:** ❌ Boshlanmagan
-- **Fayllar:** `services/auth/src/routes/auth.routes.ts`, `services/auth/src/controllers/auth.controller.ts`, `services/auth/src/services/auth.service.ts`
-- **Muammo:** `VerifyEmailScreen` da "Kodni qayta yuborish" tugmasi bor. Backend da OTP resend endpoint yo'q. Mobile hozir `forgotPassword` chaqiradi → user **parolni tiklash emaili** oladi (noto'g'ri!)
-- **Bajarilishi kerak:**
-  - [ ] Route: `POST /auth/register/resend` body: `{ email }` — `authRateLimiter` bilan
-  - [ ] `AuthService.resendVerificationCode(email)`: Redis da `pending_reg:email` mavjud bo'lsa yangi OTP generatsiya + email yuborish; mavjud bo'lmasa `BadRequestError` ("Sessiya tugagan, qayta ro'yxatdan o'ting")
-  - [ ] Response: `{ message: "Verification code resent" }`
-- **Bog'liq:** T-E036 (Mobile) — T-S031 tayyor bo'lgach, mobile `authApi.resendVerification(email)` ga o'tadi
-
----
-
 ## SPRINT 2 — Content + Watch Party
 
 ### T-S005b | P2 | [BACKEND] | Content Service — HLS upload pipeline
@@ -557,7 +524,7 @@ Foydalanuvchi **har qanday** video sayt URL ni kiritganda:
 
 | Jamoa    | Tugallandi | Qolgan | Yangi (2026-03-15) |
 | -------- | ---------- | ------ | ---- |
-| Saidazim | T-S001..T-S008, T-S010, T-S011 ✅ | T-S005b, T-S009, T-S016 | T-S030 (change-password) \| T-S031 (resend OTP) |
+| Saidazim | T-S001..T-S008, T-S010, T-S011, T-S030, T-S031 ✅ | T-S005b, T-S016 | — |
 | Emirhan  | T-E015..T-E036 ✅ | — | — |
 | Jafar    | T-J001..T-J006, T-J008, T-J009, T-J011 ✅ | T-J007, T-J010 | Code: T-J012..T-J015 |
 | Umumiy   | T-C001..T-C003, T-C005 ✅ | T-C004, T-C006 | Code: T-C007 \| Arch: T-C008, T-C009 |

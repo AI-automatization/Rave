@@ -12,6 +12,7 @@ import {
   forgotPasswordSchema,
   resetPasswordSchema,
   googleIdTokenSchema,
+  changePasswordSchema,
   validate,
 } from '../validators/auth.validator';
 import Redis from 'ioredis';
@@ -50,6 +51,9 @@ export const createAuthRouter = (redis: Redis): Router => {
 
   // GET /auth/me
   router.get('/me', verifyToken, authController.getMe);
+
+  // POST /auth/change-password — authenticated (T-S030)
+  router.post('/change-password', verifyToken, validate(changePasswordSchema), authController.changePassword);
 
   // Google OAuth
   router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));

@@ -43,6 +43,13 @@ export const googleIdTokenSchema = Joi.object({
   idToken: Joi.string().required(),
 });
 
+export const changePasswordSchema = Joi.object({
+  oldPassword: Joi.string().required(),
+  newPassword: Joi.string().pattern(PATTERNS.PASSWORD).required().messages({
+    'string.pattern.base': 'Password must be 8+ chars with uppercase, lowercase and number',
+  }),
+});
+
 export const validate = (schema: Joi.ObjectSchema) =>
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (req: any, _res: any, next: any): void => {

@@ -121,6 +121,17 @@ export class AuthController {
     }
   };
 
+  changePassword = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = (req as AuthenticatedRequest).user;
+      const { oldPassword, newPassword } = req.body as { oldPassword: string; newPassword: string };
+      await this.authService.changePassword(userId, oldPassword, newPassword);
+      res.json(apiResponse.success(null, 'Password changed successfully'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   googleCallback = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const user = req.user as import('../types/index').GoogleOAuthProfile;

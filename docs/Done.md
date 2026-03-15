@@ -4,6 +4,13 @@
 
 ---
 
+### F-117 | 2026-03-15 | [BACKEND] | T-S030 + T-S031 — Auth change-password + resend-verification [Saidazim]
+
+- **T-S030** (`POST /auth/change-password`) — `verifyToken` + `changePasswordSchema` validator, `AuthService.changePassword()`: bcrypt compare → hash → update + `RefreshToken.deleteMany()` (barcha sessiyalar invalidate)
+- **T-S031** (`POST /auth/resend-verification`) — allaqachon mavjud edi: route, controller `resendVerification`, service `resendVerificationCode()` — barchasi ishlaydi. Mobile `authApi.resendVerification()` to'g'ri path (`/auth/resend-verification`) ga murojaat qilmoqda ✅
+
+---
+
 ### F-116 | 2026-03-15 | [MOBILE] | T-E037 — Post-pull regressions fix [Emirhan]
 
 - **RegisterScreen.tsx** — `handleTelegramLogin` boshida `clearInterval` guard qo'shildi (T-E033 regressiyasi)

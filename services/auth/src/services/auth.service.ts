@@ -307,6 +307,26 @@ export class AuthService {
     logger.info('Password reset completed', { userId: user._id });
   }
 
+  async changePassword(userId: string, oldPassword: string, newPassword: string): Promise<void> {
+    const user = await User.findById(userId).select('+passwordHash');
+    if (!user) throw new UnauthorizedError('User not found');
+
+    if (!user.passwordHash) {
+      throw new BadRequestError('Password login is not enabled for this account (OAuth only)');
+    }
+
+    const isMatch = await this.comparePassword(oldPassword, user.passwordHash);
+    if (!isMatch) throw new UnauthorizedError('Current password is incorrect');
+
+    const passwordHash = await this.hashPassword(newPassword);
+    await User.updateOne({ _id: userId }, { passwordHash });
+
+    // Invalidate all refresh tokens — force re-login on other devices
+    await RefreshToken.deleteMany({ userId });
+
+    logger.info('Password changed', { userId });
+  }
+
   // Google OAuth uchun tokenlar yaratish + refresh tokenni DB ga saqlash
   async generateAndStoreTokens(
     userId: string,
