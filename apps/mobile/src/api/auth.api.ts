@@ -9,9 +9,9 @@ export const authApi = {
     return res.data.data;
   },
 
-  async register(data: RegisterRequest): Promise<{ message: string }> {
-    const res = await authClient.post<ApiResponse<{ message: string }>>('/auth/register', data);
-    return res.data.data!;
+  async register(data: RegisterRequest): Promise<{ _dev_otp?: string }> {
+    const res = await authClient.post<ApiResponse<{ _dev_otp?: string }>>('/auth/register', data);
+    return res.data.data ?? {};
   },
 
   async confirmRegister(email: string, code: string): Promise<{ userId: string }> {
@@ -23,8 +23,8 @@ export const authApi = {
     await authClient.post('/auth/forgot-password', { email });
   },
 
-  async resetPassword(token: string, password: string): Promise<void> {
-    await authClient.post('/auth/reset-password', { token, password });
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    await authClient.post('/auth/reset-password', { token, newPassword });
   },
 
   async refresh(refreshToken: string): Promise<{ accessToken: string; refreshToken: string }> {

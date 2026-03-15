@@ -1,5 +1,5 @@
 // CineSync Mobile — Verify Email Screen
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius, typography } from '@theme/index';
 import { AuthStackParamList } from '@app-types/index';
 import { authApi } from '@api/auth.api';
+import { useT } from '@i18n/index';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'VerifyEmail'>;
 type Route = RouteProp<AuthStackParamList, 'VerifyEmail'>;
@@ -23,35 +24,19 @@ type Route = RouteProp<AuthStackParamList, 'VerifyEmail'>;
 export function VerifyEmailScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
-  const { email } = route.params;
+  const { email, devOtp } = route.params;
+  const { t } = useT();
 
-  const [digits, setDigits] = useState(['', '', '', '', '', '']);
+  const [digits, setDigits] = useState(() =>
+    devOtp ? devOtp.split('').slice(0, 6) : ['', '', '', '', '', ''],
+  );
   const inputRefs = useRef<Array<TextInput | null>>(Array(6).fill(null));
-  const token = digits.join('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
-  const [resendCooldown, setResendCooldown] = useState(0);
-  const [resendLoading, setResendLoading] = useState(false);
 
-  useEffect(() => {
-    if (resendCooldown <= 0) return;
-    const timer = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [resendCooldown]);
-
-  const handleResend = async () => {
-    if (resendCooldown > 0 || resendLoading) return;
-    setResendLoading(true);
-    setError('');
-    try {
-      await authApi.forgotPassword(email);
-      setResendCooldown(60);
-    } catch {
-      setError("Kod qayta yuborib bo'lmadi");
-    } finally {
-      setResendLoading(false);
-    }
+  const handleResend = () => {
+    navigation.replace('Register');
   };
 
   const handleDigit = (text: string, index: number) => {
@@ -75,8 +60,8 @@ export function VerifyEmailScreen() {
 
   const handleVerify = async () => {
     const code = digits.join('');
-    if (!code.trim()) { setError("Tasdiqlash kodini kiriting"); return; }
-    if (code.trim().length !== 6) { setError("Kod 6 ta raqamdan iborat"); return; }
+    if (!code.trim()) { setError(t('verifyEmail', 'errEmpty')); return; }
+    if (code.trim().length !== 6) { setError(t('verifyEmail', 'errLength')); return; }
     setLoading(true);
     setError('');
     try {
@@ -86,7 +71,7 @@ export function VerifyEmailScreen() {
         navigation.replace('Login');
       }, 1200);
     } catch {
-      setError("Kod noto'g'ri yoki muddati o'tgan");
+      setError(t('verifyEmail', 'errInvalid'));
     } finally {
       setLoading(false);
     }
@@ -102,11 +87,17 @@ export function VerifyEmailScreen() {
         <View style={styles.iconWrap}>
           <Ionicons name="mail" size={48} color={colors.primary} />
         </View>
-        <Text style={styles.title}>Emailni tasdiqlang</Text>
+        <Text style={styles.title}>{t('verifyEmail', 'title')}</Text>
         <Text style={styles.sub}>
           <Text style={styles.email}>{email}</Text>
-          {'\n'}manziliga tasdiqlash kodi yuborildi
+          {'\n'}{t('verifyEmail', 'sub')}
         </Text>
+
+        {devOtp ? (
+          <View style={styles.devHint}>
+            <Text style={styles.devHintText}>{t('verifyEmail', 'devHint')} ({devOtp})</Text>
+          </View>
+        ) : null}
 
         {error ? (
           <View style={styles.errorBox}>
@@ -118,7 +109,7 @@ export function VerifyEmailScreen() {
         {success ? (
           <View style={styles.successBox}>
             <Ionicons name="checkmark-circle" size={16} color={colors.success} />
-            <Text style={styles.successText}>Tasdiqlandi!</Text>
+            <Text style={styles.successText}>{t('verifyEmail', 'success')}</Text>
           </View>
         ) : null}
 
@@ -148,22 +139,17 @@ export function VerifyEmailScreen() {
           {loading ? (
             <ActivityIndicator color={colors.textPrimary} size="small" />
           ) : (
-            <Text style={styles.verifyText}>Tasdiqlash</Text>
+            <Text style={styles.verifyText}>{t('verifyEmail', 'verifyBtn')}</Text>
           )}
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.resendBtn, (resendCooldown > 0 || resendLoading) && styles.resendBtnDisabled]}
+          style={styles.resendBtn}
           onPress={handleResend}
-          disabled={resendCooldown > 0 || resendLoading}
         >
-          {resendLoading ? (
-            <ActivityIndicator color={colors.primary} size="small" />
-          ) : (
-            <Text style={styles.resendText}>
-              {resendCooldown > 0 ? `Qayta yuborish (${resendCooldown}s)` : 'Kodni qayta yuborish'}
-            </Text>
-          )}
+          <Text style={styles.resendText}>
+            {t('verifyEmail', 'resend')}
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -241,6 +227,13 @@ const styles = StyleSheet.create({
   btnDisabled: { opacity: 0.6 },
   verifyText: { color: colors.textPrimary, fontWeight: '700', fontSize: 16 },
   resendBtn: { marginTop: spacing.sm, padding: spacing.md, alignItems: 'center' },
-  resendBtnDisabled: { opacity: 0.5 },
   resendText: { color: colors.primary, fontSize: 14, fontWeight: '600' },
+  devHint: {
+    backgroundColor: 'rgba(124,58,237,0.15)',
+    borderRadius: borderRadius.md,
+    padding: spacing.sm,
+    marginBottom: spacing.md,
+    width: '100%',
+  },
+  devHintText: { color: colors.primary, fontSize: 12, textAlign: 'center', fontWeight: '600' },
 });
