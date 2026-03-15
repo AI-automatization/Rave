@@ -1,6 +1,6 @@
 # CineSync — OCHIQ VAZIFALAR
 
-# Yangilangan: 2026-03-11
+# Yangilangan: 2026-03-15
 
 # 3 dasturchi: Saidazim (Backend) | Emirhan (Mobile) | Jafar (Web)
 
@@ -14,7 +14,7 @@
 3. Fix bo'lgach → shu yerdan O'CHIRISH → docs/Done.md ga KO'CHIRISH
 4. Prioritet: P0=kritik, P1=muhim, P2=o'rta, P3=past
 5. Sprint: S1=hozir, S2=keyingi hafta, S3=keyingi sprint, S4-5=keyin
-6. Oxirgi T-raqam: S→029, E→030, J→014, C→009
+6. Oxirgi T-raqam: S→031, E→036, J→014, C→009
 ```
 
 ---
@@ -27,6 +27,36 @@
 
 ## SPRINT 1 — Auth (Mobile tomonidan kerak)
 
+### T-S030 | P1 | [BACKEND] | Auth — POST /auth/change-password endpoint yo'q
+
+- **Sana:** 2026-03-15
+- **Mas'ul:** Saidazim
+- **Holat:** ❌ Boshlanmagan
+- **Fayllar:** `services/auth/src/routes/auth.routes.ts`, `services/auth/src/controllers/auth.controller.ts`, `services/auth/src/services/auth.service.ts`, `services/auth/src/validators/auth.validator.ts`
+- **Muammo:** Mobile `SettingsScreen` da "Parolni o'zgartirish" tugmasi `POST /auth/change-password` chaqiradi lekin backend da bu route **MAVJUD EMAS** → 404 xatosi
+- **Bajarilishi kerak:**
+  - [ ] `changePasswordSchema`: `{ oldPassword, newPassword }` Joi validator
+  - [ ] `AuthService.changePassword(userId, oldPassword, newPassword)`: bcrypt compare → hash → update
+  - [ ] `AuthController.changePassword`: handler
+  - [ ] Route: `POST /auth/change-password` — `verifyToken` middleware bilan (authenticated)
+  - [ ] Parol o'zgarganda barcha refresh tokenlarni invalidate qilish (`RefreshToken.deleteMany`)
+
+---
+
+### T-S031 | P2 | [BACKEND] | Auth — POST /auth/register/resend endpoint yo'q
+
+- **Sana:** 2026-03-15
+- **Mas'ul:** Saidazim
+- **Holat:** ❌ Boshlanmagan
+- **Fayllar:** `services/auth/src/routes/auth.routes.ts`, `services/auth/src/controllers/auth.controller.ts`, `services/auth/src/services/auth.service.ts`
+- **Muammo:** `VerifyEmailScreen` da "Kodni qayta yuborish" tugmasi bor. Backend da OTP resend endpoint yo'q. Mobile hozir `forgotPassword` chaqiradi → user **parolni tiklash emaili** oladi (noto'g'ri!)
+- **Bajarilishi kerak:**
+  - [ ] Route: `POST /auth/register/resend` body: `{ email }` — `authRateLimiter` bilan
+  - [ ] `AuthService.resendVerificationCode(email)`: Redis da `pending_reg:email` mavjud bo'lsa yangi OTP generatsiya + email yuborish; mavjud bo'lmasa `BadRequestError` ("Sessiya tugagan, qayta ro'yxatdan o'ting")
+  - [ ] Response: `{ message: "Verification code resent" }`
+- **Bog'liq:** T-E036 (Mobile) — T-S031 tayyor bo'lgach, mobile `authApi.resendVerification(email)` ga o'tadi
+
+---
 
 ## SPRINT 2 — Content + Watch Party
 
@@ -124,6 +154,74 @@ GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state
 ```
 
 **Kerakli packages:** faqat `Linking` (Expo built-in), axios (allaqachon bor)
+
+---
+
+## SPRINT 1b — Auth Bug Fixes (2026-03-15 Audit)
+
+### T-E032 | P1 | [MOBILE] | Bug: resetPassword API body mismatch
+
+- **Sana:** 2026-03-15
+- **Mas'ul:** Emirhan
+- **Holat:** ❌ Boshlanmagan
+- **Fayl:** `apps/mobile/src/api/auth.api.ts` (27-qator)
+- **Muammo:** `authApi.resetPassword()` backendga `{ token, password }` yuboradi, backend `resetPasswordSchema` esa `{ token, newPassword }` kutadi → Joi validation xatosi → parolni tiklash ishlamaydi
+- **Bajarilishi kerak:**
+  - [ ] `auth.api.ts:27` — `{ token, password }` → `{ token, newPassword }` o'zgartirish (1 qator)
+
+---
+
+### T-E033 | P1 | [MOBILE] | Bug: Telegram login double-tap race condition
+
+- **Sana:** 2026-03-15
+- **Mas'ul:** Emirhan
+- **Holat:** ❌ Boshlanmagan
+- **Fayl:** `apps/mobile/src/screens/auth/LoginScreen.tsx` (67-qator, `handleTelegramLogin`)
+- **Muammo:** `handleTelegramLogin` boshida mavjud interval tozalanmaydi. Tugma 2 marta bosilsa 2 parallel `setInterval` polling ishga tushadi → race condition, ikki xil state, xato natijalar
+- **Bajarilishi kerak:**
+  - [ ] `handleTelegramLogin` funktsiyasi boshiga qo'shish: `if (telegramIntervalRef.current) { clearInterval(telegramIntervalRef.current); telegramIntervalRef.current = null; }`
+
+---
+
+### T-E034 | P2 | [MOBILE] | Code: ProfileSetupScreen hardcoded hex rang
+
+- **Sana:** 2026-03-15
+- **Mas'ul:** Emirhan
+- **Holat:** ❌ Boshlanmagan
+- **Fayl:** `apps/mobile/src/screens/auth/ProfileSetupScreen.tsx` (190-qator, 222-qator)
+- **Muammo:** `'#7C3AED'` 2 joyda hardcoded — `colors.*` token ishlatilmagan. CLAUDE.md: "Hardcoded hex TAQIQLANGAN"
+- **Bajarilishi kerak:**
+  - [ ] 190-qator: `backgroundColor: '#7C3AED'` → `backgroundColor: colors.primary`
+  - [ ] 222-qator: `backgroundColor: '#7C3AED', borderColor: '#7C3AED'` → `colors.primary`
+
+---
+
+### T-E035 | P2 | [MOBILE] | Bug: RegisterScreen client-side validation zaif
+
+- **Sana:** 2026-03-15
+- **Mas'ul:** Emirhan
+- **Holat:** ❌ Boshlanmagan
+- **Fayl:** `apps/mobile/src/screens/auth/RegisterScreen.tsx` (`validate()` funksiya, 49-58-qatorlar)
+- **Muammo:** Backend `PATTERNS.USERNAME = /^[a-zA-Z0-9_]{3,20}$/` va `PATTERNS.PASSWORD` (uppercase+lowercase+digit) qoidalari bor. Mobile faqat uzunlikni tekshiradi → user server error ko'radi
+- **Bajarilishi kerak:**
+  - [ ] Username: `> 20` belgi tekshirish + `[a-zA-Z0-9_]` faqat allowed tekshirish
+  - [ ] Password: kamida 1 katta harf (`/[A-Z]/`), 1 kichik harf (`/[a-z]/`), 1 raqam (`/[0-9]/`) tekshirish
+
+---
+
+### T-E036 | P1 | [MOBILE] | Bug: VerifyEmailScreen "resend" noto'g'ri API
+
+- **Sana:** 2026-03-15
+- **Mas'ul:** Emirhan
+- **Holat:** ❌ Boshlanmagan
+- **Fayllar:** `apps/mobile/src/screens/auth/VerifyEmailScreen.tsx` (47-qator), `apps/mobile/src/screens/auth/RegisterScreen.tsx` (72-qator)
+- **Muammo:** `handleResend` → `authApi.forgotPassword(email)` chaqiradi → user parolni tiklash emaili oladi (OTP emas!) — noto'g'ri email, noto'g'ri UX
+- **Bajarilishi kerak (T-S031 tayyor bo'lguncha — workaround):**
+  - [ ] `RegisterScreen.tsx:72` — navigatsiyaga `username` va `password` ham qo'shish: `navigation.navigate('VerifyEmail', { email, username, password })`
+  - [ ] `VerifyEmailScreen.tsx` — route params ga `username` va `password` qo'shish
+  - [ ] `handleResend` — `authApi.forgotPassword()` o'rniga `authApi.register({ email, username, password })` chaqirish (bu OTP ni qayta yuboradi)
+- **T-S031 tayyor bo'lganda:**
+  - [ ] `authApi.resendVerification(email)` qo'shish va unga o'tish
 
 ---
 
@@ -523,12 +621,12 @@ Foydalanuvchi **har qanday** video sayt URL ni kiritganda:
 
 ---
 
-## 📊 STATISTIKA (2026-03-11 yangilandi)
+## 📊 STATISTIKA (2026-03-15 yangilandi)
 
-| Jamoa    | Tugallandi | Qolgan | Code Review (yangi) |
+| Jamoa    | Tugallandi | Qolgan | Yangi (2026-03-15) |
 | -------- | ---------- | ------ | ---- |
-| Saidazim | T-S001..T-S008, T-S010, T-S011 ✅ | T-S005b, T-S009, T-S016 | Code: T-S017..T-S022 \| Arch: T-S023..T-S025 |
-| Emirhan  | T-E015..T-E023 ✅ | — | T-C006 (WebView Player, S2-S3) |
+| Saidazim | T-S001..T-S008, T-S010, T-S011 ✅ | T-S005b, T-S009, T-S016 | T-S030 (change-password) \| T-S031 (resend OTP) |
+| Emirhan  | T-E015..T-E031 ✅ | — | T-E032..T-E036 (Auth audit fixes) |
 | Jafar    | T-J001..T-J006, T-J008, T-J009, T-J011 ✅ | T-J007, T-J010 | Code: T-J012..T-J015 |
 | Umumiy   | T-C001..T-C003, T-C005 ✅ | T-C004, T-C006 | Code: T-C007 \| Arch: T-C008, T-C009 |
 
