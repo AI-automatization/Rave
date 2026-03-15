@@ -7,7 +7,7 @@ const URLS = {
   user: process.env.EXPO_PUBLIC_USER_URL!,
   content: process.env.EXPO_PUBLIC_CONTENT_URL!,
   notification: process.env.EXPO_PUBLIC_NOTIFICATION_URL!,
-  watchParty: process.env.EXPO_PUBLIC_WATCH_PARTY_URL!,
+  watchParty: `${process.env.EXPO_PUBLIC_WATCH_PARTY_URL}/api/v1`,
   battle: process.env.EXPO_PUBLIC_BATTLE_URL!,
 };
 
