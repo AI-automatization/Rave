@@ -82,6 +82,25 @@ export class AuthService {
     return config.nodeEnv !== 'production' ? code : null;
   }
 
+  async resendVerificationCode(email: string): Promise<void> {
+    const raw = await this.redis.get(`pending_reg:${email}`);
+    if (!raw) {
+      throw new BadRequestError('Pending registration not found. Please register again.');
+    }
+
+    const pending = JSON.parse(raw) as { username: string; passwordHash: string; otpHash: string };
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+
+    const updated = JSON.stringify({ ...pending, otpHash: this.hashToken(code) });
+    await this.redis.setex(`pending_reg:${email}`, 600, updated);
+
+    emailService.sendVerificationEmail(email, code).catch((err) =>
+      logger.warn('Resend verification email failed', { error: (err as Error).message }),
+    );
+
+    logger.info('Verification code resent', { email });
+  }
+
   async confirmRegistration(email: string, code: string): Promise<IUserDocument> {
     const raw = await this.redis.get(`pending_reg:${email}`);
     if (!raw) throw new BadRequestError('Verification code expired or not found. Please register again.');

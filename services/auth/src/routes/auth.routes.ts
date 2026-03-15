@@ -27,6 +27,9 @@ export const createAuthRouter = (redis: Redis): Router => {
   // POST /auth/register/confirm — OTP tekshirish + user yaratish
   router.post('/register/confirm', authRateLimiter, validate(confirmRegisterSchema), authController.confirmRegister);
 
+  // POST /auth/resend-verification — OTP qayta yuborish
+  router.post('/resend-verification', authRateLimiter, validate(forgotPasswordSchema), authController.resendVerification);
+
   // POST /auth/login
   router.post('/login', authRateLimiter, validate(loginSchema), authController.login);
 

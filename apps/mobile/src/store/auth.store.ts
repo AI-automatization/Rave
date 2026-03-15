@@ -27,7 +27,15 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   setAuth: async (user, accessToken, refreshToken) => {
     await tokenStorage.saveTokens(accessToken, refreshToken, user._id);
+    // Auth service user dan boshlash (rank/totalPoints yo'q bo'lishi mumkin)
     set({ user, accessToken, isAuthenticated: true, needsProfileSetup: !user.bio });
+    // User service dan to'liq profil olish (rank, totalPoints, va boshqalar)
+    try {
+      const fullUser = await userApi.getMe();
+      set({ user: fullUser, needsProfileSetup: !fullUser.bio });
+    } catch {
+      // User service down bo'lsa auth user bilan davom etamiz
+    }
   },
 
   updateUser: (user) => set({ user }),
@@ -61,10 +69,15 @@ export const useAuthStore = create<AuthState>((set) => ({
           try {
             const user = await userApi.getMe();
             set({ user });
-          } catch {
-            // Token expired/invalid — logout
-            await tokenStorage.clear();
-            set({ accessToken: null, isAuthenticated: false });
+          } catch (err: unknown) {
+            // Token expired yoki invalid (401) bo'lsa logout
+            // User service down (network error, 5xx) bo'lsa logout QILMAYMIZ
+            const status = (err as { response?: { status?: number } })?.response?.status;
+            if (status === 401 || status === 403) {
+              await tokenStorage.clear();
+              set({ accessToken: null, isAuthenticated: false });
+            }
+            // Boshqa xatolarda: token saqlanadi, user null qoladi (keyingi so'rovda qayta urinadi)
           }
         }
       } catch {

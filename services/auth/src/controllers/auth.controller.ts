@@ -18,6 +18,16 @@ export class AuthController {
     }
   };
 
+  resendVerification = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { email } = req.body as { email: string };
+      await this.authService.resendVerificationCode(email);
+      res.json(apiResponse.success(null, 'Verification code resent'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   confirmRegister = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { email, code } = req.body as { email: string; code: string };
