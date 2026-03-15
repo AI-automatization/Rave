@@ -4,6 +4,16 @@
 
 ---
 
+### F-116 | 2026-03-15 | [MOBILE] | T-E037 — Post-pull regressions fix [Emirhan]
+
+- **RegisterScreen.tsx** — `handleTelegramLogin` boshida `clearInterval` guard qo'shildi (T-E033 regressiyasi)
+- **RegisterScreen.tsx** — `validate()`: username max 20 + `/^[a-zA-Z0-9]+$/` pattern tekshiruvi qaytarildi (T-E035 regressiyasi)
+- **translations.ts** — `errUsernameMax` va `errUsernameChars` kalitlari qo'shildi (uz/ru/en)
+- **LanguageSelectScreen.tsx** — `useState(storedLang)`: saqlangan tildan default olinadi (hardcoded 'uz' o'rniga)
+- **npm install** — `@react-native-masked-view/masked-view` va `expo-image-picker` o'rnatildi
+
+---
+
 ### F-110..F-115 | 2026-03-15 | [MOBILE] | T-E032..T-E036 + Jafar zone bug — Auth audit fixes [Emirhan]
 
 - **T-E032** (auth.api.ts) — `resetPassword` body: `{ token, password }` → `{ token, newPassword }` (Jafar tomonidan allaqachon tuzatilgan, verified ✅)
