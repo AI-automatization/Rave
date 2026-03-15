@@ -157,74 +157,6 @@ GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state
 
 ---
 
-## SPRINT 1b — Auth Bug Fixes (2026-03-15 Audit)
-
-### T-E032 | P1 | [MOBILE] | Bug: resetPassword API body mismatch
-
-- **Sana:** 2026-03-15
-- **Mas'ul:** Emirhan
-- **Holat:** 🔄 pending[Emirhan]
-- **Fayl:** `apps/mobile/src/api/auth.api.ts` (27-qator)
-- **Muammo:** `authApi.resetPassword()` backendga `{ token, password }` yuboradi, backend `resetPasswordSchema` esa `{ token, newPassword }` kutadi → Joi validation xatosi → parolni tiklash ishlamaydi
-- **Bajarilishi kerak:**
-  - [ ] `auth.api.ts:27` — `{ token, password }` → `{ token, newPassword }` o'zgartirish (1 qator)
-
----
-
-### T-E033 | P1 | [MOBILE] | Bug: Telegram login double-tap race condition
-
-- **Sana:** 2026-03-15
-- **Mas'ul:** Emirhan
-- **Holat:** 🔄 pending[Emirhan]
-- **Fayl:** `apps/mobile/src/screens/auth/LoginScreen.tsx` (67-qator, `handleTelegramLogin`)
-- **Muammo:** `handleTelegramLogin` boshida mavjud interval tozalanmaydi. Tugma 2 marta bosilsa 2 parallel `setInterval` polling ishga tushadi → race condition, ikki xil state, xato natijalar
-- **Bajarilishi kerak:**
-  - [ ] `handleTelegramLogin` funktsiyasi boshiga qo'shish: `if (telegramIntervalRef.current) { clearInterval(telegramIntervalRef.current); telegramIntervalRef.current = null; }`
-
----
-
-### T-E034 | P2 | [MOBILE] | Code: ProfileSetupScreen hardcoded hex rang
-
-- **Sana:** 2026-03-15
-- **Mas'ul:** Emirhan
-- **Holat:** 🔄 pending[Emirhan]
-- **Fayl:** `apps/mobile/src/screens/auth/ProfileSetupScreen.tsx` (190-qator, 222-qator)
-- **Muammo:** `'#7C3AED'` 2 joyda hardcoded — `colors.*` token ishlatilmagan. CLAUDE.md: "Hardcoded hex TAQIQLANGAN"
-- **Bajarilishi kerak:**
-  - [ ] 190-qator: `backgroundColor: '#7C3AED'` → `backgroundColor: colors.primary`
-  - [ ] 222-qator: `backgroundColor: '#7C3AED', borderColor: '#7C3AED'` → `colors.primary`
-
----
-
-### T-E035 | P2 | [MOBILE] | Bug: RegisterScreen client-side validation zaif
-
-- **Sana:** 2026-03-15
-- **Mas'ul:** Emirhan
-- **Holat:** 🔄 pending[Emirhan]
-- **Fayl:** `apps/mobile/src/screens/auth/RegisterScreen.tsx` (`validate()` funksiya, 49-58-qatorlar)
-- **Muammo:** Backend `PATTERNS.USERNAME = /^[a-zA-Z0-9_]{3,20}$/` va `PATTERNS.PASSWORD` (uppercase+lowercase+digit) qoidalari bor. Mobile faqat uzunlikni tekshiradi → user server error ko'radi
-- **Bajarilishi kerak:**
-  - [ ] Username: `> 20` belgi tekshirish + `[a-zA-Z0-9_]` faqat allowed tekshirish
-  - [ ] Password: kamida 1 katta harf (`/[A-Z]/`), 1 kichik harf (`/[a-z]/`), 1 raqam (`/[0-9]/`) tekshirish
-
----
-
-### T-E036 | P1 | [MOBILE] | Bug: VerifyEmailScreen "resend" noto'g'ri API
-
-- **Sana:** 2026-03-15
-- **Mas'ul:** Emirhan
-- **Holat:** 🔄 pending[Emirhan]
-- **Fayllar:** `apps/mobile/src/screens/auth/VerifyEmailScreen.tsx` (47-qator), `apps/mobile/src/screens/auth/RegisterScreen.tsx` (72-qator)
-- **Muammo:** `handleResend` → `authApi.forgotPassword(email)` chaqiradi → user parolni tiklash emaili oladi (OTP emas!) — noto'g'ri email, noto'g'ri UX
-- **Bajarilishi kerak (T-S031 tayyor bo'lguncha — workaround):**
-  - [ ] `RegisterScreen.tsx:72` — navigatsiyaga `username` va `password` ham qo'shish: `navigation.navigate('VerifyEmail', { email, username, password })`
-  - [ ] `VerifyEmailScreen.tsx` — route params ga `username` va `password` qo'shish
-  - [ ] `handleResend` — `authApi.forgotPassword()` o'rniga `authApi.register({ email, username, password })` chaqirish (bu OTP ni qayta yuboradi)
-- **T-S031 tayyor bo'lganda:**
-  - [ ] `authApi.resendVerification(email)` qo'shish va unga o'tish
-
----
-
 ## SPRINT 2 — Asosiy ekranlar
 
 
@@ -626,7 +558,7 @@ Foydalanuvchi **har qanday** video sayt URL ni kiritganda:
 | Jamoa    | Tugallandi | Qolgan | Yangi (2026-03-15) |
 | -------- | ---------- | ------ | ---- |
 | Saidazim | T-S001..T-S008, T-S010, T-S011 ✅ | T-S005b, T-S009, T-S016 | T-S030 (change-password) \| T-S031 (resend OTP) |
-| Emirhan  | T-E015..T-E031 ✅ | — | T-E032..T-E036 (Auth audit fixes) |
+| Emirhan  | T-E015..T-E036 ✅ | — | — |
 | Jafar    | T-J001..T-J006, T-J008, T-J009, T-J011 ✅ | T-J007, T-J010 | Code: T-J012..T-J015 |
 | Umumiy   | T-C001..T-C003, T-C005 ✅ | T-C004, T-C006 | Code: T-C007 \| Arch: T-C008, T-C009 |
 

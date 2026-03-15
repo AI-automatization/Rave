@@ -16,7 +16,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius, typography } from '@theme/index';
 import { AuthStackParamList } from '@app-types/index';
 import { authApi } from '@api/auth.api';
-import { useT } from '@i18n/index';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'VerifyEmail'>;
 type Route = RouteProp<AuthStackParamList, 'VerifyEmail'>;
@@ -25,7 +24,6 @@ export function VerifyEmailScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const { email, devOtp } = route.params;
-  const { t } = useT();
 
   const [digits, setDigits] = useState(() =>
     devOtp ? devOtp.split('').slice(0, 6) : ['', '', '', '', '', ''],
@@ -60,8 +58,8 @@ export function VerifyEmailScreen() {
 
   const handleVerify = async () => {
     const code = digits.join('');
-    if (!code.trim()) { setError(t('verifyEmail', 'errEmpty')); return; }
-    if (code.trim().length !== 6) { setError(t('verifyEmail', 'errLength')); return; }
+    if (!code.trim()) { setError("Tasdiqlash kodini kiriting"); return; }
+    if (code.trim().length !== 6) { setError("Kod 6 ta raqamdan iborat"); return; }
     setLoading(true);
     setError('');
     try {
@@ -71,7 +69,7 @@ export function VerifyEmailScreen() {
         navigation.replace('Login');
       }, 1200);
     } catch {
-      setError(t('verifyEmail', 'errInvalid'));
+      setError("Kod noto'g'ri yoki muddati o'tgan");
     } finally {
       setLoading(false);
     }
@@ -87,15 +85,15 @@ export function VerifyEmailScreen() {
         <View style={styles.iconWrap}>
           <Ionicons name="mail" size={48} color={colors.primary} />
         </View>
-        <Text style={styles.title}>{t('verifyEmail', 'title')}</Text>
+        <Text style={styles.title}>Emailni tasdiqlang</Text>
         <Text style={styles.sub}>
           <Text style={styles.email}>{email}</Text>
-          {'\n'}{t('verifyEmail', 'sub')}
+          {'\n'}manziliga tasdiqlash kodi yuborildi
         </Text>
 
         {devOtp ? (
           <View style={styles.devHint}>
-            <Text style={styles.devHintText}>{t('verifyEmail', 'devHint')} ({devOtp})</Text>
+            <Text style={styles.devHintText}>Dev OTP: {devOtp}</Text>
           </View>
         ) : null}
 
@@ -109,7 +107,7 @@ export function VerifyEmailScreen() {
         {success ? (
           <View style={styles.successBox}>
             <Ionicons name="checkmark-circle" size={16} color={colors.success} />
-            <Text style={styles.successText}>{t('verifyEmail', 'success')}</Text>
+            <Text style={styles.successText}>Tasdiqlandi!</Text>
           </View>
         ) : null}
 
@@ -139,7 +137,7 @@ export function VerifyEmailScreen() {
           {loading ? (
             <ActivityIndicator color={colors.textPrimary} size="small" />
           ) : (
-            <Text style={styles.verifyText}>{t('verifyEmail', 'verifyBtn')}</Text>
+            <Text style={styles.verifyText}>Tasdiqlash</Text>
           )}
         </TouchableOpacity>
 
@@ -148,7 +146,7 @@ export function VerifyEmailScreen() {
           onPress={handleResend}
         >
           <Text style={styles.resendText}>
-            {t('verifyEmail', 'resend')}
+            Kodni qayta yuborish
           </Text>
         </TouchableOpacity>
       </View>

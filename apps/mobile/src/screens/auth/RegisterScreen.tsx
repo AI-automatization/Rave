@@ -49,10 +49,15 @@ export function RegisterScreen() {
   const validate = (): string | null => {
     if (!username.trim()) return "Foydalanuvchi nomini kiriting";
     if (username.length < 3) return "Username kamida 3 ta belgi";
+    if (username.length > 20) return "Username ko'pi bilan 20 ta belgi";
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) return "Username faqat harf, raqam va _ bo'lishi mumkin";
     if (!email.trim()) return "Emailni kiriting";
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "Email noto'g'ri formatda";
     if (!password) return "Parolni kiriting";
     if (password.length < 8) return "Parol kamida 8 ta belgi";
+    if (!/[A-Z]/.test(password)) return "Parolda kamida 1 ta katta harf bo'lishi kerak";
+    if (!/[a-z]/.test(password)) return "Parolda kamida 1 ta kichik harf bo'lishi kerak";
+    if (!/[0-9]/.test(password)) return "Parolda kamida 1 ta raqam bo'lishi kerak";
     if (password !== confirm) return "Parollar mos emas";
     return null;
   };
@@ -64,12 +69,15 @@ export function RegisterScreen() {
     setLoading(true);
     setError('');
     try {
-      await authApi.register({
+      const result = await authApi.register({
         username: username.trim(),
         email: email.trim().toLowerCase(),
         password,
       });
-      navigation.navigate('VerifyEmail', { email: email.trim().toLowerCase() });
+      navigation.navigate('VerifyEmail', {
+        email: email.trim().toLowerCase(),
+        devOtp: result._dev_otp,
+      });
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })
         ?.response?.data?.message;

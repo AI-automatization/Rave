@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: '#7C3AED',
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     backgroundColor: colors.bgElevated,
   },
-  chipActive: { backgroundColor: '#7C3AED', borderColor: '#7C3AED' },
+  chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   chipText: { ...typography.caption, color: colors.textSecondary },
   chipTextActive: { color: colors.textPrimary },
   saveBtn: {

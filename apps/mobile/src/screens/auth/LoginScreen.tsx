@@ -65,6 +65,10 @@ export function LoginScreen() {
   }, [googleResponse]);
 
   const handleTelegramLogin = async () => {
+    if (telegramIntervalRef.current) {
+      clearInterval(telegramIntervalRef.current);
+      telegramIntervalRef.current = null;
+    }
     setTelegramLoading(true);
     setError('');
     try {

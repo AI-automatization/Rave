@@ -95,7 +95,7 @@ export type AuthStackParamList = {
   Onboarding: undefined;
   Login: undefined;
   Register: undefined;
-  VerifyEmail: { email: string };
+  VerifyEmail: { email: string; devOtp?: string };
   ForgotPassword: undefined;
   ProfileSetup: undefined;
 };

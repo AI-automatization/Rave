@@ -4,6 +4,17 @@
 
 ---
 
+### F-110..F-115 | 2026-03-15 | [MOBILE] | T-E032..T-E036 + Jafar zone bug — Auth audit fixes [Emirhan]
+
+- **T-E032** (auth.api.ts) — `resetPassword` body: `{ token, password }` → `{ token, newPassword }` (Jafar tomonidan allaqachon tuzatilgan, verified ✅)
+- **T-E033** (LoginScreen.tsx) — Telegram double-tap race condition: `handleTelegramLogin` boshida avvalgi intervalni tozalash qo'shildi
+- **T-E034** (ProfileSetupScreen.tsx) — `'#7C3AED'` hardcoded hex ikki joyda → `colors.primary` ga o'zgartirildi
+- **T-E035** (RegisterScreen.tsx) — `validate()` kuchaytirildi: username max 20 + `[a-zA-Z0-9_]` + password uppercase/lowercase/digit tekshiruvi
+- **T-E036** (VerifyEmailScreen.tsx + types/index.ts) — resend bug: Jafar `navigation.replace('Register')` qilgan edi (to'g'ri), lekin mavjud bo'lmagan `@i18n/index` import qoldirilgan edi → `useT` olib tashlandi, hardcoded strings qaytarildi. `devOtp` auto-fill (dev mode) saqlab qolindi.
+- **Bonus** (RegisterScreen.tsx) — register API `_dev_otp` response → `devOtp` sifatida VerifyEmail ga o'tkaziladi; `AuthStackParamList.VerifyEmail` tipi `{ email, devOtp? }` ga to'g'irlandi
+
+---
+
 ### F-109 | 2026-03-15 | [MOBILE] | T-E031 — Telegram Login ekrani va polling flow [Emirhan]
 
 - `authApi.telegramInit()` — POST /auth/telegram/init → `{ state, botUrl }`
