@@ -4,6 +4,23 @@
 
 ---
 
+### F-118 | 2026-03-16 | [BACKEND] | T-S026..T-S029 + Mobile Endpoint Alignment [Saidazim]
+
+- **T-S026** — Content: `GET /content/trending`, `GET /content/top-rated`, `GET /content/continue-watching` (Redis cache 10min) ✅
+- **T-S027** — Content: `POST/GET /content/movies/:id/progress` alias routes ✅
+- **T-S028** — WatchParty: `DELETE /watch-party/rooms/:id` (closeRoom + Socket ROOM_CLOSED emit) ✅
+- **T-S029** — Battle: `POST/PUT /battles/:id/reject` (rejectInvite + notification to challenger) ✅
+- Content: `POST /movies/:id/complete`, `GET /internal/user-watch-stats/:userId` (streak + weeklyActivity) ✅
+- Content: `rateMovie` endi `rating` va `score` ikkisini ham qabul qiladi ✅
+- User routes: `/me/stats`, `/:id/stats`, `/me/achievements`, `/me/friend-requests`, `/:id/public`, `/:userId/friend-request`, `/friend-requests/:id/accept|reject`, `DELETE /me`, `DELETE /me/friends/:userId` qo'shildi ✅
+- User: FCM token `fcmToken` va `token` ikki xil field nomini qabul qiladi ✅
+- Notification: PUT aliases (`put /:id/read`, `put /read-all`) qo'shildi ✅
+- Battle: PUT aliases (`put /:id/accept`, `put /:id/reject`) qo'shildi ✅
+- WatchParty: `POST /join/:inviteCode`, `POST /rooms/:id/leave` aliases qo'shildi ✅
+- shared/serviceClient: `getUserWatchStats`, `getUserBattleStats` internal helpers ✅
+
+---
+
 ### F-117 | 2026-03-15 | [BACKEND] | T-S030 + T-S031 — Auth change-password + resend-verification [Saidazim]
 
 - **T-S030** (`POST /auth/change-password`) — `verifyToken` + `changePasswordSchema` validator, `AuthService.changePassword()`: bcrypt compare → hash → update + `RefreshToken.deleteMany()` (barcha sessiyalar invalidate)

@@ -27,6 +27,11 @@
 
 ## SPRINT 2 — Content + Watch Party
 
+### ✅ T-S026 | TUGADI → Done.md F-118
+### ✅ T-S027 | TUGADI → Done.md F-118
+### ✅ T-S028 | TUGADI → Done.md F-118
+### ✅ T-S029 | TUGADI → Done.md F-118
+
 ### T-S005b | P2 | [BACKEND] | Content Service — HLS upload pipeline
 
 - **Sana:** 2026-02-27
