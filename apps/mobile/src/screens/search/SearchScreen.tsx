@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius, typography } from '@theme/index';
 import { ContentGenre, SearchStackParamList } from '@app-types/index';
@@ -21,11 +22,14 @@ import {
   useSearchResults,
   GENRES,
 } from '@hooks/useSearch';
+import { useT } from '@i18n/index';
 
 type Nav = NativeStackNavigationProp<SearchStackParamList>;
 
 export function SearchScreen() {
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
+  const { t } = useT();
   const [query, setQuery] = useState('');
   const [activeGenre, setActiveGenre] = useState<ContentGenre | null>(null);
   const debouncedQuery = useDebounce(query);
@@ -65,8 +69,8 @@ export function SearchScreen() {
       <StatusBar barStyle="light-content" backgroundColor={colors.bgBase} />
 
       {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.title}>Qidiruv</Text>
+      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
+        <Text style={styles.title}>{t('search', 'searchTitle')}</Text>
       </View>
 
       {/* Search Input */}
@@ -75,7 +79,7 @@ export function SearchScreen() {
           <Ionicons name="search" size={18} color={colors.textMuted} style={styles.inputIcon} />
           <TextInput
             style={styles.input}
-            placeholder="Film, janr, yil..."
+            placeholder={t('search', 'placeholderShort')}
             placeholderTextColor={colors.textMuted}
             value={query}
             onChangeText={handleSearch}
@@ -201,7 +205,6 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bgBase },
   header: {
     paddingHorizontal: spacing.xl,
-    paddingTop: spacing.xl + spacing.sm,
     paddingBottom: spacing.md,
   },
   title: { ...typography.h1 },

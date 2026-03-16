@@ -231,7 +231,7 @@ export function MovieDetailScreen({ route, navigation }: Props) {
           {/* O'xshash filmlar */}
           {similarMovies.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>O'XSHASH FILMLAR</Text>
+              <Text style={styles.sectionTitle}>{t('movie', 'similarSection')}</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.similarScroll}>
                 {similarMovies.map((item: IMovie) => (
                   <TouchableOpacity
@@ -254,7 +254,7 @@ export function MovieDetailScreen({ route, navigation }: Props) {
 
           {/* Rating Widget */}
           <View style={styles.ratingSection}>
-            <Text style={styles.ratingLabel}>Baholang</Text>
+            <Text style={styles.ratingLabel}>{t('movie', 'rate')}</Text>
             <View style={styles.stars}>
               {[1, 2, 3, 4, 5].map((star) => (
                 <TouchableOpacity
@@ -272,7 +272,7 @@ export function MovieDetailScreen({ route, navigation }: Props) {
               ))}
             </View>
             {ratingSubmitted && (
-              <Text style={styles.ratingDone}>Bahoingiz qabul qilindi ✓</Text>
+              <Text style={styles.ratingDone}>{t('movie', 'ratingDone')} ✓</Text>
             )}
           </View>
         </View>

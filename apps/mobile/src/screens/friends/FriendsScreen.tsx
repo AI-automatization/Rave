@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useFriends } from '@hooks/useFriends';
@@ -58,8 +59,11 @@ function FriendRow({
   );
 }
 
+const TAB_BAR_HEIGHT = 60;
+
 export function FriendsScreen() {
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
   const { t } = useT();
   const tabs = [t('friends', 'title'), t('friends', 'requests')] as const;
   type Tab = (typeof tabs)[number];
@@ -97,7 +101,7 @@ export function FriendsScreen() {
   return (
     <View style={styles.root}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
         <Text style={styles.title}>{t('friends', 'title')}</Text>
         <TouchableOpacity onPress={() => navigation.navigate('FriendSearch')} style={styles.searchBtn}>
           <Ionicons name="person-add-outline" size={22} color={colors.primary} />
@@ -138,7 +142,7 @@ export function FriendsScreen() {
               </View>
             )
           }
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[styles.list, { paddingBottom: TAB_BAR_HEIGHT + insets.bottom }]}
         />
       )}
 
@@ -180,7 +184,7 @@ export function FriendsScreen() {
               </View>
             )
           }
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[styles.list, { paddingBottom: TAB_BAR_HEIGHT + insets.bottom }]}
         />
       )}
     </View>
@@ -194,7 +198,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingBottom: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },

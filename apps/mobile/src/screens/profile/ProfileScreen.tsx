@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
@@ -46,6 +47,7 @@ function StatCard({ icon, value, label }: { icon: string; value: string | number
 
 export function ProfileScreen() {
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
   const { user, logout } = useAuthStore();
   const { profileQuery, statsQuery, updateProfileMutation } = useMyProfile();
   const stats = statsQuery.data;
@@ -100,7 +102,7 @@ export function ProfileScreen() {
     <>
       <ScrollView style={styles.root} showsVerticalScrollIndicator={false}>
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
           <Text style={styles.title}>{t('profile', 'title')}</Text>
           <TouchableOpacity onPress={() => navigation.navigate('Settings')} style={styles.settingsBtn}>
             <Ionicons name="settings-outline" size={22} color={colors.textSecondary} />
@@ -183,7 +185,7 @@ export function ProfileScreen() {
         </TouchableOpacity>
 
         {profileQuery.isFetching && <ActivityIndicator style={styles.refreshIndicator} color={colors.primary} size="small" />}
-        <View style={{ height: spacing.xxxl }} />
+        <View style={{ height: 60 + insets.bottom + spacing.lg }} />
       </ScrollView>
 
       {/* Edit Profile Modal */}
@@ -243,7 +245,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingBottom: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },

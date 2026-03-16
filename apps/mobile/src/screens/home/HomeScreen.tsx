@@ -12,6 +12,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing, typography } from '@theme/index';
 import { RootStackParamList } from '@app-types/index';
 import { useHomeData } from '@hooks/useHomeData';
@@ -23,8 +24,11 @@ import { useT } from '@i18n/index';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
+const TAB_BAR_HEIGHT = 60;
+
 export function HomeScreen() {
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
   const { trending, topRated, continueWatching, isLoading, refetch } = useHomeData();
   const unreadCount = useNotificationStore((s) => s.unreadCount);
   const { t } = useT();
@@ -46,7 +50,7 @@ export function HomeScreen() {
       <StatusBar barStyle="light-content" backgroundColor={colors.bgBase} />
 
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
         <Text style={styles.logo}>
           CINE<Text style={styles.logoAccent}>SYNC</Text>
         </Text>
@@ -84,7 +88,7 @@ export function HomeScreen() {
         <MovieRow title={t('home', 'trending')} movies={trending} />
         <MovieRow title={t('home', 'topRated')} movies={topRated} />
 
-        <View style={{ height: spacing.xxxl }} />
+        <View style={{ height: TAB_BAR_HEIGHT + insets.bottom + spacing.lg }} />
       </ScrollView>
     </View>
   );
@@ -97,8 +101,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.md,
-    paddingTop: spacing.xl + spacing.sm,
+    paddingBottom: spacing.md,
   },
   logo: { ...typography.h2, fontSize: 22, letterSpacing: 1 },
   logoAccent: { color: colors.primary },
