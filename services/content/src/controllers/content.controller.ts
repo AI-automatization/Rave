@@ -127,8 +127,10 @@ export class ContentController {
   rateMovie = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { userId } = (req as AuthenticatedRequest).user;
-      const { score, review } = req.body as { score: number; review?: string };
-      await this.contentService.rateMovie(userId, req.params.id, score, review);
+      // Mobile sends 'rating', some clients send 'score'
+      const body = req.body as { score?: number; rating?: number; review?: string };
+      const score = body.score ?? body.rating ?? 0;
+      await this.contentService.rateMovie(userId, req.params.id, score, body.review);
       res.json(apiResponse.success(null, 'Rating submitted'));
     } catch (error) {
       next(error);
@@ -254,8 +256,8 @@ export class ContentController {
       const { userId } = (req as AuthenticatedRequest).user;
       const { progress, duration } = req.body as { progress: number; duration: number };
       const movieId = req.params.id;
-      // progress is 0-1 ratio; convert to currentTime in seconds
-      const currentTime = progress * (duration ?? 0);
+      // progress is currentTime in seconds (mobile sends seconds directly)
+      const currentTime = typeof progress === 'number' ? progress : 0;
       await watchProgressService.save(userId, `movieid:${movieId}`, currentTime, duration ?? 0);
       res.json(apiResponse.success(null, 'Progress saved'));
     } catch (error) {
@@ -269,14 +271,41 @@ export class ContentController {
       const movieId = req.params.id;
       const entry = await watchProgressService.get(userId, `movieid:${movieId}`);
       if (!entry) {
-        res.json(apiResponse.success({ progress: 0, currentTime: 0, duration: 0 }));
+        res.json(apiResponse.success({ progress: 0, duration: 0, isCompleted: false, updatedAt: null }));
         return;
       }
       res.json(apiResponse.success({
-        progress: entry.percent / 100,
-        currentTime: entry.currentTime,
+        progress: entry.currentTime,
         duration: entry.duration,
+        isCompleted: entry.percent >= 90,
+        updatedAt: entry.updatedAt,
       }));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // POST /content/movies/:id/complete — mark movie as fully watched (T-S026)
+  completeMovie = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = (req as AuthenticatedRequest).user;
+      const movieId = req.params.id;
+      const { duration } = req.body as { duration?: number };
+      await this.contentService.recordWatchHistory(userId, movieId, 100, duration ?? 0);
+      if (duration) {
+        await watchProgressService.save(userId, `movieid:${movieId}`, duration, duration);
+      }
+      res.json(apiResponse.success(null, 'Movie marked as complete'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // GET /content/internal/user-watch-stats/:userId — internal: user service calls this
+  getUserWatchStats = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const stats = await this.contentService.getUserWatchStats(req.params.userId);
+      res.json(apiResponse.success(stats));
     } catch (error) {
       next(error);
     }

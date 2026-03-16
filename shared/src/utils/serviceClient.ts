@@ -210,6 +210,47 @@ export async function adminOperatorUpdateMovie(movieId: string, data: Record<str
   await axios.patch(`${contentServiceUrl}/api/v1/content/internal/admin/movies/${movieId}`, data, { headers: internalHeaders, timeout: 5000 });
 }
 
+// ─── User Watch Stats (content service internal) ───────────────────────────────
+export async function getUserWatchStats(userId: string): Promise<{
+  totalWatched: number;
+  totalMinutes: number;
+  currentStreak: number;
+  longestStreak: number;
+  weeklyActivity: number[];
+} | null> {
+  try {
+    const res = await axios.get<{ success: boolean; data: { totalWatched: number; totalMinutes: number; currentStreak: number; longestStreak: number; weeklyActivity: number[] } }>(
+      `${contentServiceUrl}/api/v1/content/internal/user-watch-stats/${userId}`,
+      { headers: internalHeaders, timeout: 5000 },
+    );
+    return res.data.data;
+  } catch (err) {
+    const error = err as AxiosError;
+    logger.error('[serviceClient] getUserWatchStats failed', { userId, message: error.message });
+    return null;
+  }
+}
+
+// ─── User Battle Stats (battle service internal) ───────────────────────────────
+const battleServiceUrl = process.env.BATTLE_SERVICE_URL ?? 'http://localhost:3005';
+
+export async function getUserBattleStats(userId: string): Promise<{
+  battlesWon: number;
+  battlesTotal: number;
+} | null> {
+  try {
+    const res = await axios.get<{ success: boolean; data: { battlesWon: number; battlesTotal: number } }>(
+      `${battleServiceUrl}/api/v1/battles/internal/user-stats/${userId}`,
+      { headers: internalHeaders, timeout: 5000 },
+    );
+    return res.data.data;
+  } catch (err) {
+    const error = err as AxiosError;
+    logger.error('[serviceClient] getUserBattleStats failed', { userId, message: error.message });
+    return null;
+  }
+}
+
 // ─── Create user profile ───────────────────────────────────────────────────────
 export async function createUserProfile(authId: string, email: string, username: string): Promise<void> {
   try {

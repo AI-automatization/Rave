@@ -27,5 +27,9 @@ export const createNotificationRouter = (redisUrl: string): Router => {
   // DELETE /notifications/:id
   router.delete('/:id', verifyToken, notificationController.deleteNotification);
 
+  // PUT aliases — mobile uses PUT instead of PATCH
+  router.put('/read-all', verifyToken, notificationController.markAllAsRead);
+  router.put('/:id/read', verifyToken, notificationController.markAsRead);
+
   return router;
 };

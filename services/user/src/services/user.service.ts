@@ -6,7 +6,8 @@ import { logger } from '@shared/utils/logger';
 import { NotFoundError, ConflictError, BadRequestError } from '@shared/utils/errors';
 import { REDIS_KEYS, TTL, LIMITS, RANKS, POINTS } from '@shared/constants';
 import { UserRank } from '@shared/types';
-import { triggerAchievement, sendInternalNotification } from '@shared/utils/serviceClient';
+import { triggerAchievement, sendInternalNotification, getUserWatchStats, getUserBattleStats } from '@shared/utils/serviceClient';
+import { UserAchievement } from '../models/userAchievement.model';
 
 export class UserService {
   constructor(private redis: Redis) {}
@@ -368,6 +369,82 @@ export class UserService {
       cursor.on('error', reject);
     });
     return { totalUsers, activeUsers };
+  }
+
+  async rejectFriendRequestById(userId: string, friendshipId: string): Promise<void> {
+    const friendship = await Friendship.findOne({
+      _id: friendshipId,
+      receiverId: userId,
+      status: 'pending',
+    });
+    if (!friendship) throw new NotFoundError('Friend request not found');
+    await Friendship.deleteOne({ _id: friendshipId });
+    logger.info('Friend request rejected by id', { userId, friendshipId });
+  }
+
+  async deleteAccount(userId: string): Promise<void> {
+    await Friendship.deleteMany({
+      $or: [{ requesterId: userId }, { receiverId: userId }],
+    });
+    const result = await User.deleteOne({ authId: userId });
+    if (result.deletedCount === 0) throw new NotFoundError('User not found');
+    await this.redis.del(REDIS_KEYS.heartbeat(userId));
+    logger.warn('User account deleted', { userId });
+  }
+
+  async getUserStats(userId: string): Promise<{
+    totalWatched: number;
+    totalMinutes: number;
+    totalPoints: number;
+    rank: string;
+    rankProgress: number;
+    battlesWon: number;
+    battlesTotal: number;
+    achievementsCount: number;
+    friendsCount: number;
+    currentStreak: number;
+    longestStreak: number;
+    weeklyActivity: number[];
+  }> {
+    const user = await User.findOne({ authId: userId }, { totalPoints: 1, rank: 1 }).lean();
+    if (!user) throw new NotFoundError('User not found');
+
+    const RANK_THRESHOLDS: Record<string, { min: number; max: number }> = {
+      Bronze:   { min: 0,     max: 499 },
+      Silver:   { min: 500,   max: 1999 },
+      Gold:     { min: 2000,  max: 4999 },
+      Platinum: { min: 5000,  max: 9999 },
+      Diamond:  { min: 10000, max: Infinity },
+    };
+    const rankInfo = RANK_THRESHOLDS[user.rank] ?? { min: 0, max: 499 };
+    const rankProgress = rankInfo.max === Infinity
+      ? 100
+      : Math.min(100, Math.floor(((user.totalPoints - rankInfo.min) / (rankInfo.max - rankInfo.min)) * 100));
+
+    const [friendsCount, achievementsCount, watchStats, battleStats] = await Promise.all([
+      Friendship.countDocuments({
+        $or: [{ requesterId: userId }, { receiverId: userId }],
+        status: 'accepted',
+      }),
+      UserAchievement.countDocuments({ userId }),
+      getUserWatchStats(userId),
+      getUserBattleStats(userId),
+    ]);
+
+    return {
+      totalWatched:   watchStats?.totalWatched ?? 0,
+      totalMinutes:   watchStats?.totalMinutes ?? 0,
+      totalPoints:    user.totalPoints,
+      rank:           user.rank,
+      rankProgress,
+      battlesWon:     battleStats?.battlesWon ?? 0,
+      battlesTotal:   battleStats?.battlesTotal ?? 0,
+      achievementsCount,
+      friendsCount,
+      currentStreak:  watchStats?.currentStreak ?? 0,
+      longestStreak:  watchStats?.longestStreak ?? 0,
+      weeklyActivity: watchStats?.weeklyActivity ?? new Array(7).fill(0),
+    };
   }
 
   private async recalculateRank(userId: string): Promise<void> {

@@ -140,6 +140,14 @@ export class BattleService {
     return Battle.find({ _id: { $in: battleIds }, status: 'active' });
   }
 
+  async getUserStats(userId: string): Promise<{ battlesWon: number; battlesTotal: number }> {
+    const [battlesWon, battlesTotal] = await Promise.all([
+      Battle.countDocuments({ winnerId: userId }),
+      BattleParticipant.countDocuments({ userId }),
+    ]);
+    return { battlesWon, battlesTotal };
+  }
+
   private scheduleBattleResolution(): void {
     // Run every hour to check ended battles
     cron.schedule('0 * * * *', async () => {

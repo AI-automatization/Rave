@@ -15,6 +15,9 @@ export const createBattleRouter = (redis: Redis): Router => {
   // GET /battles/me — my battles
   router.get('/me', verifyToken, battleController.getMyBattles);
 
+  // Internal: GET /battles/internal/user-stats/:userId — for user service aggregation
+  router.get('/internal/user-stats/:userId', battleController.getUserStats);
+
   // GET /battles/:id
   router.get('/:id', verifyToken, battleController.getBattle);
 
@@ -29,6 +32,10 @@ export const createBattleRouter = (redis: Redis): Router => {
 
   // GET /battles/:id/leaderboard
   router.get('/:id/leaderboard', verifyToken, battleController.getLeaderboard);
+
+  // PUT aliases — mobile uses PUT instead of POST for accept/reject
+  router.put('/:id/accept', verifyToken, battleController.acceptInvite);
+  router.put('/:id/reject', verifyToken, battleController.rejectInvite);
 
   return router;
 };

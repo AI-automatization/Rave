@@ -412,6 +412,78 @@ export class ContentService {
     return { genreDistribution: genreAgg, yearHistogram: yearAgg, topRated, totalMovies, publishedMovies };
   }
 
+  // ── Internal Stats (for user service aggregation) ────────────
+  async getUserWatchStats(userId: string): Promise<{
+    totalWatched: number;
+    totalMinutes: number;
+    currentStreak: number;
+    longestStreak: number;
+    weeklyActivity: number[];
+  }> {
+    const [totalWatched, minutesAgg] = await Promise.all([
+      WatchHistory.countDocuments({ userId, completed: true }),
+      WatchHistory.aggregate<{ total: number }>([
+        { $match: { userId } },
+        { $group: { _id: null, total: { $sum: '$durationWatched' } } },
+      ]),
+    ]);
+
+    const totalMinutes = Math.round((minutesAgg[0]?.total ?? 0) / 60);
+
+    // Streak hisoblash uchun barcha unique sana larni olish
+    const watchEntries = await WatchHistory.find({ userId })
+      .sort({ watchedAt: -1 })
+      .select('watchedAt')
+      .lean();
+
+    const uniqueDates = [
+      ...new Set(watchEntries.map((w) => new Date(w.watchedAt).toISOString().split('T')[0])),
+    ].sort().reverse();
+
+    // Current streak
+    let currentStreak = 0;
+    const today = new Date().toISOString().split('T')[0];
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+
+    if (uniqueDates[0] === today || uniqueDates[0] === yesterday) {
+      currentStreak = 1;
+      for (let i = 1; i < uniqueDates.length; i++) {
+        const diffDays = Math.round(
+          (new Date(uniqueDates[i - 1]).getTime() - new Date(uniqueDates[i]).getTime()) / 86400000,
+        );
+        if (diffDays === 1) currentStreak++;
+        else break;
+      }
+    }
+
+    // Longest streak
+    let longestStreak = 0;
+    let streak = 0;
+    for (let i = 0; i < uniqueDates.length; i++) {
+      if (i === 0) {
+        streak = 1;
+      } else {
+        const diffDays = Math.round(
+          (new Date(uniqueDates[i - 1]).getTime() - new Date(uniqueDates[i]).getTime()) / 86400000,
+        );
+        streak = diffDays === 1 ? streak + 1 : 1;
+      }
+      longestStreak = Math.max(longestStreak, streak);
+    }
+
+    // Weekly activity: oxirgi 7 kun, [0]=Yak, [1]=Du, ..., [6]=Sha
+    const weeklyActivity = new Array<number>(7).fill(0);
+    const now = new Date();
+    for (const entry of watchEntries) {
+      const diffMs = now.getTime() - new Date(entry.watchedAt).getTime();
+      if (diffMs < 7 * 86400000) {
+        weeklyActivity[new Date(entry.watchedAt).getDay()]++;
+      }
+    }
+
+    return { totalWatched, totalMinutes, currentStreak, longestStreak, weeklyActivity };
+  }
+
   private async indexMovieInElastic(movie: IMovieDocument): Promise<void> {
     try {
       const response = await this.elastic.index({

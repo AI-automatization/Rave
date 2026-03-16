@@ -52,9 +52,15 @@ export const createContentRouter = (redis: Redis, elastic: ElasticsearchClient):
   // GET /content/continue-watching — auth required
   router.get('/continue-watching', verifyToken, contentController.getContinueWatching);
 
+  // GET /content/search — alias for /movies/search (mobile uses this path)
+  router.get('/search', apiRateLimiter, optionalAuth, contentController.searchMovies);
+
   // ── Watch Progress alias (T-S027) — mobile uses /movies/:id/progress ─
   router.post('/movies/:id/progress', verifyToken, contentController.saveMovieProgress);
   router.get('/movies/:id/progress', verifyToken, contentController.getMovieProgress);
+
+  // POST /content/movies/:id/complete — mark movie as complete (mobile calls this)
+  router.post('/movies/:id/complete', verifyToken, contentController.completeMovie);
 
   // POST /content/movies/upload — video upload to Cloudinary (operator/admin only)
   router.post('/movies/upload', verifyToken, requireRole('operator', 'admin', 'superadmin'), videoUpload.single('video'), contentController.uploadVideo);
@@ -100,6 +106,9 @@ export const createContentRouter = (redis: Redis, elastic: ElasticsearchClient):
 
   // DELETE /content/ratings/:ratingId — operator/admin moderatsiya
   router.delete('/ratings/:ratingId', verifyToken, requireRole('operator', 'admin', 'superadmin'), contentController.deleteRatingModerator);
+
+  // GET /content/internal/user-watch-stats/:userId — internal: user service calls this for stats aggregation
+  router.get('/internal/user-watch-stats/:userId', contentController.getUserWatchStats);
 
   // ── Admin Internal ────────────────────────────────────────
   router.get('/internal/admin/movies', requireInternalSecret, contentController.adminListMovies);

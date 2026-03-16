@@ -45,6 +45,7 @@ export const createApp = (redis: Redis, elastic: ElasticsearchClient): express.A
   app.use('/api/v1/content/external-videos', createExternalVideoRouter());
   app.use('/api/v1/content/watch-progress', createWatchProgressRouter());
   app.use('/api/v1/content/youtube', createYtdlRouter());
+  app.use('/api/v1/youtube', createYtdlRouter());
 
   app.use(notFoundHandler);
   app.use(errorHandler);

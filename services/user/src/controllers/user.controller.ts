@@ -170,6 +170,68 @@ export class UserController {
     }
   };
 
+  rejectFriendRequestById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = (req as AuthenticatedRequest).user;
+      await this.userService.rejectFriendRequestById(userId, req.params.friendshipId);
+      res.json(apiResponse.success(null, 'Friend request rejected'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  deleteAccount = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = (req as AuthenticatedRequest).user;
+      await this.userService.deleteAccount(userId);
+      res.json(apiResponse.success(null, 'Account deleted'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getMyStats = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = (req as AuthenticatedRequest).user;
+      const stats = await this.userService.getUserStats(userId);
+      res.json(apiResponse.success(stats));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getUserStats = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const stats = await this.userService.getUserStats(req.params.userId);
+      res.json(apiResponse.success(stats));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  sendFriendRequestByPath = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = (req as AuthenticatedRequest).user;
+      const { userId: receiverId } = req.params;
+      await this.userService.sendFriendRequest(userId, receiverId);
+      res.status(201).json(apiResponse.success(null, 'Friend request sent'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getMyAchievementsProxy = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = (req as AuthenticatedRequest).user;
+      const { AchievementService } = await import('../services/achievement.service');
+      const achievementService = new AchievementService();
+      const achievements = await achievementService.getUserAchievements(userId, false);
+      res.json(apiResponse.success(achievements));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   // Internal endpoint — auth service calls this after register
   createProfile = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
@@ -203,7 +265,10 @@ export class UserController {
   addFcmToken = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { userId } = (req as AuthenticatedRequest).user;
-      const { token } = req.body as { token: string };
+      // Mobile sends 'fcmToken', some clients send 'token'
+      const body = req.body as { token?: string; fcmToken?: string };
+      const token = body.token ?? body.fcmToken ?? '';
+      if (!token) { res.status(400).json(apiResponse.error('token is required')); return; }
       await this.userService.addFcmToken(userId, token);
       res.json(apiResponse.success(null, 'FCM token registered'));
     } catch (error) {
@@ -214,7 +279,9 @@ export class UserController {
   removeFcmToken = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { userId } = (req as AuthenticatedRequest).user;
-      const { token } = req.body as { token: string };
+      const body = req.body as { token?: string; fcmToken?: string };
+      const token = body.token ?? body.fcmToken ?? '';
+      if (!token) { res.status(400).json(apiResponse.error('token is required')); return; }
       await this.userService.removeFcmToken(userId, token);
       res.json(apiResponse.success(null, 'FCM token removed'));
     } catch (error) {

@@ -13,7 +13,6 @@ import {
   updateProfileSchema,
   updateSettingsSchema,
   createProfileSchema,
-  fcmTokenSchema,
 } from '../validators/user.validator';
 import { config } from '../config/index';
 import { LIMITS } from '@shared/constants';
@@ -55,6 +54,14 @@ export const createUserRouter = (redis: Redis): Router => {
   // ── Profile ──────────────────────────────────────────────
   router.get('/me', verifyToken, userController.getProfile);
   router.patch('/me', verifyToken, validate(updateProfileSchema), userController.updateProfile);
+  // PUT alias — mobile uses PUT
+  router.put('/me', verifyToken, validate(updateProfileSchema), userController.updateProfile);
+
+  // Stats
+  router.get('/me/stats', verifyToken, userController.getMyStats);
+
+  // Achievements proxy
+  router.get('/me/achievements', verifyToken, userController.getMyAchievementsProxy);
 
   // Avatar upload
   router.patch('/me/avatar', verifyToken, avatarUpload.single('avatar'), userController.uploadAvatar);
@@ -64,14 +71,20 @@ export const createUserRouter = (redis: Redis): Router => {
   router.patch('/me/settings', verifyToken, validate(updateSettingsSchema), userController.updateSettings);
 
   // FCM tokens
-  router.post('/me/fcm-token', verifyToken, validate(fcmTokenSchema), userController.addFcmToken);
-  router.delete('/me/fcm-token', verifyToken, validate(fcmTokenSchema), userController.removeFcmToken);
+  router.post('/me/fcm-token', verifyToken, userController.addFcmToken);
+  router.delete('/me/fcm-token', verifyToken, userController.removeFcmToken);
 
   // Heartbeat
   router.post('/heartbeat', verifyToken, userController.heartbeat);
 
+  // Delete account
+  router.delete('/me', verifyToken, userController.deleteAccount);
+
   // ── Friends — all static routes BEFORE /:id ──────────────
   router.get('/me/friends', verifyToken, userController.getFriends);
+  router.get('/me/friend-requests', verifyToken, userController.getPendingRequests);
+  router.delete('/me/friends/:userId', verifyToken, userController.removeFriend);
+
   router.get('/friends', verifyToken, userController.getFriends);
   router.get('/friends/requests', verifyToken, userController.getPendingRequests);
   router.post('/friends/request', verifyToken, userController.sendFriendRequestByBody);
@@ -80,8 +93,22 @@ export const createUserRouter = (redis: Redis): Router => {
   router.patch('/friends/:requesterId/accept', verifyToken, userController.acceptFriendRequest);
   router.delete('/friends/:friendId', verifyToken, userController.removeFriend);
 
+  // friend-requests by friendshipId (mobile uses these paths)
+  router.put('/friend-requests/:friendshipId/accept', verifyToken, userController.acceptFriendRequestById);
+  router.put('/friend-requests/:friendshipId/reject', verifyToken, userController.rejectFriendRequestById);
+  router.patch('/friends/reject/:friendshipId', verifyToken, userController.rejectFriendRequestById);
+
   // Search — also before /:id
   router.get('/search', verifyToken, userController.searchUsers);
+
+  // Stats for any user (before /:id catch-all)
+  router.get('/:userId/stats', apiRateLimiter, userController.getUserStats);
+
+  // Public profile alias — mobile calls /:id/public
+  router.get('/:id/public', apiRateLimiter, userController.getPublicProfile);
+
+  // /:userId/friend-request — mobile path for sending friend request
+  router.post('/:userId/friend-request', verifyToken, userController.sendFriendRequestByPath);
 
   // Public profile — /:id must be LAST among GET routes
   router.get('/:id', apiRateLimiter, userController.getPublicProfile);

@@ -31,5 +31,9 @@ export const createWatchPartyRouter = (redis: Redis, io: SocketServer): Router =
   // POST /watch-party/rooms/:id/invite — send watch party invite notification to a friend
   router.post('/rooms/:id/invite', verifyToken, watchPartyController.inviteUser);
 
+  // POST aliases — mobile uses POST instead of DELETE for leave, and /join without /rooms prefix
+  router.post('/rooms/:id/leave', verifyToken, watchPartyController.leaveRoom);
+  router.post('/join/:inviteCode', verifyToken, watchPartyController.joinRoom);
+
   return router;
 };
