@@ -4,6 +4,27 @@
 
 ---
 
+### F-123 | 2026-03-16 | [WEB] | T-J013 — Security headers + ESLint/TypeScript build fix [Jafar]
+
+- **Fayl:** `apps/web/next.config.mjs`, `apps/web/src/app/(app)/home/page.tsx`, `apps/web/src/app/api/auth/register/route.ts`
+- **Fix:**
+  - HSTS header qo'shildi: `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload`
+  - `ignoreDuringBuilds` / `ignoreBuildErrors` — allaqachon mavjud emas ✅
+  - ESLint xatolar tuzatildi: unused `room` param (home/page.tsx), unused `_omit` var (register/route.ts)
+  - `next build` — 0 xato ✅, tsc — 0 xato ✅
+- **Security headers (to'liq):** CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, X-XSS-Protection, HSTS ✅
+
+---
+
+### F-122 | 2026-03-16 | [WEB+MOBILE] | T-J012 — Token storage XSS fix + mobile auth error handling [Jafar]
+
+- **Web:** 4 ta API route (`login`, `refresh`, `google`, `logout`) da `access_token` cookie httpOnly+Secure+SameSite=strict qo'shildi
+- **Mobile:** LoginScreen, RegisterScreen, VerifyEmailScreen — `errors[]` array parsing tuzatildi
+- **Mobile:** VerifyEmailScreen — barcha hardcoded string lar i18n (`useT()`) ga o'tkazildi
+- **Mobile:** `auth.api.ts` — resend endpoint `/auth/register/resend` ga tuzatildi
+
+---
+
 ### F-121 | 2026-03-16 | [MOBILE] | T-E039 — Video Extractor Mobile Integration [Emirhan]
 
 - **API:** `contentApi.extractVideo(url)` → `POST /api/v1/content/extract` qo'shildi (`content.api.ts`)

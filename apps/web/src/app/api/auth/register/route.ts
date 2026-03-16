@@ -6,7 +6,8 @@ export async function POST(req: NextRequest) {
   try {
     // confirmPassword ni strip qilib auth servicega jo'natamiz
     const body = await req.json();
-    const { confirmPassword: _omit, ...clean } = body as Record<string, unknown>;
+    const { confirmPassword: _, ...clean } = body as Record<string, unknown>;
+    void _;
 
     const upstream = await fetch(`${AUTH_SERVICE}/register`, {
       method: 'POST',

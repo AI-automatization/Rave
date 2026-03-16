@@ -191,8 +191,9 @@ export function RegisterScreen() {
         devOtp: result._dev_otp,
       });
     } catch (e: unknown) {
-      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      setError(msg ?? t('register', 'errGeneral'));
+      const data = (e as { response?: { data?: { message?: string; errors?: string[] } } })?.response?.data;
+      const detail = data?.errors?.[0] ?? data?.message;
+      setError(detail ?? t('register', 'errGeneral'));
     } finally {
       setLoading(false);
     }

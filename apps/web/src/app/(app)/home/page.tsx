@@ -115,7 +115,6 @@ function ChannelCard({
 
 /* ── Password dialog for private rooms ───────────────────────────── */
 function PasswordDialog({
-  room,
   onSubmit,
   onCancel,
   loading,

@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius, typography } from '@theme/index';
 import { AuthStackParamList } from '@app-types/index';
 import { authApi } from '@api/auth.api';
+import { useT } from '@i18n/index';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'VerifyEmail'>;
 type Route = RouteProp<AuthStackParamList, 'VerifyEmail'>;
@@ -24,6 +25,7 @@ export function VerifyEmailScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const { email, devOtp } = route.params;
+  const { t } = useT();
 
   const [digits, setDigits] = useState(() =>
     devOtp ? devOtp.split('').slice(0, 6) : ['', '', '', '', '', ''],
@@ -52,8 +54,9 @@ export function VerifyEmailScreen() {
           return prev - 1;
         });
       }, 1000);
-    } catch {
-      setError("Kod qayta yuborib bo'lmadi. Keyinroq urinib ko'ring.");
+    } catch (err: unknown) {
+      const data = (err as { response?: { data?: { message?: string; errors?: string[] } } })?.response?.data;
+      setError(data?.errors?.[0] ?? data?.message ?? t('verifyEmail', 'errResend'));
     } finally {
       setResending(false);
     }
@@ -80,8 +83,8 @@ export function VerifyEmailScreen() {
 
   const handleVerify = async () => {
     const code = digits.join('');
-    if (!code.trim()) { setError("Tasdiqlash kodini kiriting"); return; }
-    if (code.trim().length !== 6) { setError("Kod 6 ta raqamdan iborat"); return; }
+    if (!code.trim()) { setError(t('verifyEmail', 'errEmpty')); return; }
+    if (code.trim().length !== 6) { setError(t('verifyEmail', 'errLength')); return; }
     setLoading(true);
     setError('');
     try {
@@ -90,8 +93,9 @@ export function VerifyEmailScreen() {
       setTimeout(() => {
         navigation.replace('Login');
       }, 1200);
-    } catch {
-      setError("Kod noto'g'ri yoki muddati o'tgan");
+    } catch (err: unknown) {
+      const data = (err as { response?: { data?: { message?: string; errors?: string[] } } })?.response?.data;
+      setError(data?.errors?.[0] ?? data?.message ?? t('verifyEmail', 'errInvalid'));
     } finally {
       setLoading(false);
     }
@@ -107,10 +111,10 @@ export function VerifyEmailScreen() {
         <View style={styles.iconWrap}>
           <Ionicons name="mail" size={48} color={colors.primary} />
         </View>
-        <Text style={styles.title}>Emailni tasdiqlang</Text>
+        <Text style={styles.title}>{t('verifyEmail', 'title')}</Text>
         <Text style={styles.sub}>
           <Text style={styles.email}>{email}</Text>
-          {'\n'}manziliga tasdiqlash kodi yuborildi
+          {'\n'}{t('verifyEmail', 'sub')}
         </Text>
 
         {devOtp ? (
@@ -129,7 +133,7 @@ export function VerifyEmailScreen() {
         {success ? (
           <View style={styles.successBox}>
             <Ionicons name="checkmark-circle" size={16} color={colors.success} />
-            <Text style={styles.successText}>Tasdiqlandi!</Text>
+            <Text style={styles.successText}>{t('verifyEmail', 'success')}</Text>
           </View>
         ) : null}
 
@@ -159,7 +163,7 @@ export function VerifyEmailScreen() {
           {loading ? (
             <ActivityIndicator color={colors.textPrimary} size="small" />
           ) : (
-            <Text style={styles.verifyText}>Tasdiqlash</Text>
+            <Text style={styles.verifyText}>{t('verifyEmail', 'verifyBtn')}</Text>
           )}
         </TouchableOpacity>
 
@@ -172,7 +176,7 @@ export function VerifyEmailScreen() {
             <ActivityIndicator size="small" color={colors.primary} />
           ) : (
             <Text style={styles.resendText}>
-              {resendCooldown > 0 ? `Qayta yuborish (${resendCooldown}s)` : 'Kodni qayta yuborish'}
+              {resendCooldown > 0 ? `${t('verifyEmail', 'resendCooldown')} (${resendCooldown}s)` : t('verifyEmail', 'resend')}
             </Text>
           )}
         </TouchableOpacity>

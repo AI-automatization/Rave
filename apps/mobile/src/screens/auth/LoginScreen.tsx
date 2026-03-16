@@ -143,8 +143,9 @@ export function LoginScreen() {
       });
       await setAuth(user, accessToken, refreshToken);
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      setError(msg ?? t('login', 'errorCredentials'));
+      const data = (err as { response?: { data?: { message?: string; errors?: string[] } } })?.response?.data;
+      const detail = data?.errors?.[0] ?? data?.message;
+      setError(detail ?? t('login', 'errorCredentials'));
     } finally {
       setLoading(false);
     }

@@ -159,37 +159,8 @@ GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state
 
 ## CODE REVIEW — 2026-03-11 (Bekzod QA)
 
-### T-J012 | P0 | [WEB] | SECURITY: Token storage XSS xavfi + cookie konfiguratsiya xato
-
-- **Sana:** 2026-03-11
-- **Mas'ul:** Jafar
-- **Holat:** 🔄 pending[Jafar]
-- **Fayl:** `apps/web/src/store/auth.store.ts` (35-37-qator)
-- **Muammo:**
-  - Refresh token `localStorage` da — XSS hujumida **o'g'irlanadi** va attacker doimiy kirish oladi
-  - Access token cookie da `httpOnly` yo'q, `Secure` yo'q, `max-age=30 kun` (token 15 min amal qiladi!)
-  - XSS topilsa ikkala token ham olinadi
-- **Bajarilishi kerak:**
-  - [ ] Refresh token → faqat `httpOnly; Secure; SameSite=Strict` cookie (server-side set)
-  - [ ] Access token cookie → `Secure` flag qo'shish, `max-age` ni 15 min ga tushirish
-  - [ ] Next.js API route `/api/auth/login` da cookie ni server-side o'rnatish
-
----
-
-### T-J013 | P0 | [WEB] | Security headers yo'q + TypeScript/ESLint build da o'chirilgan
-
-- **Sana:** 2026-03-11
-- **Mas'ul:** Jafar
-- **Holat:** 🔄 pending[Jafar]
-- **Fayl:** `apps/web/next.config.mjs` (3-4-qator va butun fayl)
-- **Muammo:**
-  - `ignoreDuringBuilds: true` + `ignoreBuildErrors: true` — **type xatolar production ga o'tadi!** CLAUDE.md: "QA FAIL → merge TAQIQLANGAN"
-  - `Content-Security-Policy`, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `HSTS` **hech biri yo'q**
-  - Clickjacking, MIME sniffing hujumlariga ochiq
-- **Bajarilishi kerak:**
-  - [ ] `ignoreDuringBuilds` va `ignoreBuildErrors` ni **o'chirish**
-  - [ ] Barcha tsc xatolarini tuzatish
-  - [ ] `next.config.mjs` da `headers()` funksiya qo'shish: X-Frame-Options, CSP, HSTS, referrer-policy
+### ✅ T-J012 | TUGADI → Done.md F-122
+### ✅ T-J013 | TUGADI → Done.md F-123
 
 ---
 

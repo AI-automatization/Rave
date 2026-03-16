@@ -21,13 +21,20 @@ export async function POST(req: NextRequest) {
   }
 
   const res = NextResponse.json({ success: true });
+  const isProduction = process.env.NODE_ENV === 'production';
   // Clear both cookies
-  res.cookies.set('access_token', '', { maxAge: 0, path: '/' });
+  res.cookies.set('access_token', '', {
+    maxAge: 0,
+    path: '/',
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: 'strict',
+  });
   res.cookies.set('refresh_token', '', {
     maxAge: 0,
     path: '/',
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: isProduction,
     sameSite: 'strict',
   });
   return res;

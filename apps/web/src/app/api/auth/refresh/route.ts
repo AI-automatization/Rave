@@ -40,13 +40,24 @@ export async function POST(req: NextRequest) {
         { status: upstream.status },
       );
 
+      const isProduction = process.env.NODE_ENV === 'production';
+
       // Rotate refresh token in httpOnly cookie
       res.cookies.set('refresh_token', newRefreshToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: isProduction,
         sameSite: 'strict',
         path: '/',
         maxAge: 30 * 24 * 60 * 60, // 30 days
+      });
+
+      // Update access token cookie for middleware auth checks
+      res.cookies.set('access_token', accessToken, {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: 'strict',
+        path: '/',
+        maxAge: 15 * 60, // 15 minutes — matches JWT expiry
       });
 
       return res;
