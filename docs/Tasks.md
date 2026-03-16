@@ -14,7 +14,7 @@
 3. Fix bo'lgach → shu yerdan O'CHIRISH → docs/Done.md ga KO'CHIRISH
 4. Prioritet: P0=kritik, P1=muhim, P2=o'rta, P3=past
 5. Sprint: S1=hozir, S2=keyingi hafta, S3=keyingi sprint, S4-5=keyin
-6. Oxirgi T-raqam: S→031, E→036, J→014, C→009
+6. Oxirgi T-raqam: S→032, E→039, J→014, C→009
 ```
 
 ---
@@ -82,6 +82,110 @@
 ---
 
 ## SPRINT 1 — Expo Setup + Auth
+
+### T-E039 | P1 | [MOBILE] | Video Extractor — Mobile Integration | pending[Emirhan]
+
+- **Sana:** 2026-03-16
+- **Mas'ul:** Emirhan
+- **Backend:** ✅ `POST /api/v1/content/extract` — tayyor (T-S032)
+- **Fayllar:** `apps/mobile/src/api/content.api.ts`, `apps/mobile/src/screens/`, yangi component
+
+---
+
+#### BACKEND ENDPOINT (TAYYOR)
+
+```
+POST /api/v1/content/extract
+Authorization: Bearer <token>
+Content-Type: application/json
+
+Body:   { "url": "https://vimeo.com/123456789" }
+
+Response (success):
+{
+  "success": true,
+  "data": {
+    "title": "Video nomi",
+    "videoUrl": "https://player.vimeo.com/external/xxx.m3u8",
+    "poster": "https://thumbnail.url/img.jpg",
+    "platform": "vimeo",   // youtube | vimeo | tiktok | dailymotion | rutube | facebook | instagram | twitch | vk | streamable | reddit | twitter | generic | unknown
+    "type": "hls",         // "mp4" | "hls"
+    "duration": 120,       // sekund (ixtiyoriy)
+    "isLive": false,       // ixtiyoriy
+    "useProxy": false      // faqat YouTube uchun true — /api/v1/youtube/stream orqali oynating
+  }
+}
+
+Response (error):
+{ "success": false, "message": "Could not extract a playable video URL from: vimeo.com" }
+{ "success": false, "message": "Invalid URL" }
+{ "success": false, "message": "Private/internal URLs are not allowed" }
+```
+
+**Qo'llab-quvvatlanadigan platformalar:** YouTube, Vimeo, TikTok, Dailymotion, Rutube, Facebook, Instagram, Twitch, VK, Streamable, Reddit, Twitter/X, har qanday sayt (generic HTML scraping + yt-dlp fallback)
+
+---
+
+#### MOBILE TASKLARI
+
+**1. API funksiya qo'shish** (`apps/mobile/src/api/content.api.ts`):
+```typescript
+extractVideo: async (url: string): Promise<VideoExtractResult> => {
+  const res = await contentClient.post<ApiResponse<VideoExtractResult>>('/content/extract', { url });
+  if (!res.data.success || !res.data.data) throw new Error(res.data.message ?? 'Extraction failed');
+  return res.data.data;
+},
+```
+
+**Type qo'shish** (`apps/mobile/src/types/index.ts` yoki `content.types.ts`):
+```typescript
+export interface VideoExtractResult {
+  title: string;
+  videoUrl: string;
+  poster: string;
+  platform: 'youtube' | 'vimeo' | 'tiktok' | 'dailymotion' | 'rutube' | 'facebook' | 'instagram' | 'twitch' | 'vk' | 'streamable' | 'reddit' | 'twitter' | 'generic' | 'unknown';
+  type: 'mp4' | 'hls';
+  duration?: number;
+  isLive?: boolean;
+  useProxy?: boolean;
+}
+```
+
+**2. URL Input Screen/Modal** (yangi yoki mavjud screenga qo'shish):
+- URL matn kiritish input
+- "Qo'shish" tugmasi → `extractVideo(url)` chaqirish
+- Loading state (`ActivityIndicator`) — server ~3-30 sekund ishlashi mumkin
+- Error state — "Video topilmadi. Boshqa URL sinab ko'ring"
+- Muvaffaqiyat → `VideoExtractResult` → keyingi qadamga o'tish
+
+**3. Video oynash** (`UniversalPlayer` yoki yangi):
+- `type === 'mp4'` → `<Video>` (expo-video yoki react-native-video) `source={{ uri: videoUrl }}`
+- `type === 'hls'` → HLS player (expo-video HLS ni qo'llab-quvvatlaydi)
+- `useProxy === true` (YouTube) → `videoUrl` ni to'g'ridan ishlatma!
+  YouTube uchun maxsus oynash kerak — mavjud `YouTubePlayer` komponentini ishlatish yoki
+  `GET /api/v1/youtube/stream-url?url=<youtubeUrl>` → `streamUrl` → Video component
+
+**4. Watch Party ga qo'shish** (ixtiyoriy — keyingi bosqich):
+- "Watch Party boshlash" tugmasi → `POST /watch-party/rooms` body ga:
+  ```json
+  { "videoUrl": result.videoUrl, "videoTitle": result.title, "videoPlatform": result.platform }
+  ```
+- Mavjud Watch Party screen da `videoUrl` ni oynash (T-C006 WebView bilan birga ishlaydi)
+
+---
+
+#### SINASH
+
+```
+1. YouTube URL → useProxy=true → YouTubePlayer orqali oynash
+2. Vimeo URL → type=hls → HLS player
+3. Direct .mp4 URL → type=mp4 → Video component
+4. Noto'g'ri URL → "Invalid URL" xato
+5. Private URL (192.168.1.1) → "Private/internal URLs are not allowed" xato
+6. Backend yetib bormasa → network error handling
+```
+
+---
 
 ### T-E038 | P0 | [MOBILE] | BUG: SearchScreen crash — `data.movies` undefined | pending[Emirhan]
 
@@ -591,8 +695,8 @@ Foydalanuvchi **har qanday** video sayt URL ni kiritganda:
 
 | Jamoa    | Tugallandi | Qolgan | Yangi (2026-03-15) |
 | -------- | ---------- | ------ | ---- |
-| Saidazim | T-S001..T-S008, T-S010, T-S011, T-S030, T-S031 ✅ | T-S005b, T-S016 | — |
-| Emirhan  | T-E015..T-E036 ✅ | — | — |
+| Saidazim | T-S001..T-S008, T-S010, T-S011, T-S030, T-S031, T-S032 ✅ | T-S005b, T-S016 | T-S032 (video extractor) |
+| Emirhan  | T-E015..T-E037 ✅ | T-E038, T-E039 | T-E038 (search crash), T-E039 (video extractor) |
 | Jafar    | T-J001..T-J006, T-J008, T-J009, T-J011 ✅ | T-J007, T-J010 | Code: T-J012..T-J015 |
 | Umumiy   | T-C001..T-C003, T-C005 ✅ | T-C004, T-C006 | Code: T-C007 \| Arch: T-C008, T-C009 |
 

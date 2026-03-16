@@ -1,6 +1,24 @@
 # CineSync — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-03-15
+# Yangilangan: 2026-03-16
+
+---
+
+### F-119 | 2026-03-16 | [BACKEND] | T-S032 — Universal Video Extractor `POST /api/v1/content/extract` [Saidazim]
+
+- **Endpoint:** `POST /api/v1/content/extract` — `verifyToken` + `apiRateLimiter`
+- **Qo'llab-quvvatlagan platformalar:** YouTube, Vimeo, TikTok, Dailymotion, Rutube, Facebook, Instagram, Twitch, VK, Streamable, Reddit, Twitter/X, generic (HTML scraping), unknown (yt-dlp fallback)
+- **Faylllar yaratildi:**
+  - `services/content/src/services/videoExtractor/types.ts` — `VideoExtractResult`, `VideoPlatform`, `VideoType`
+  - `services/content/src/services/videoExtractor/detectPlatform.ts` — URL SSRF validation + platform regex detection
+  - `services/content/src/services/videoExtractor/genericExtractor.ts` — HTML scraping: `<video>`, `og:video`, `.mp4/.m3u8` URL search
+  - `services/content/src/services/videoExtractor/ytDlpExtractor.ts` — yt-dlp binary fallback via `child_process.spawn`, 30s timeout, best format picker
+  - `services/content/src/services/videoExtractor/index.ts` — orchestrator: validateUrl → detectPlatform → extract → Redis cache (2h TTL)
+  - `services/content/src/controllers/videoExtract.controller.ts` — HTTP controller
+- **content.routes.ts** — `router.post('/extract', verifyToken, apiRateLimiter, videoExtractController.extract)` qo'shildi
+- **YouTube:** mavjud `ytdlService.getStreamInfo()` orqali, `useProxy: true` — frontend `/api/v1/youtube/stream` dan oynashi kerak
+- **SSRF himoya:** private IP rangelari (10.x, 192.168.x, 172.16-31.x, 127.x, ::1) va `file://`/`ftp://` bloklangan
+- **Cache:** Redis `vextract:{base64url-key}` 2 soat TTL
 
 ---
 

@@ -5,6 +5,7 @@ import fs from 'fs';
 import Redis from 'ioredis';
 import { Client as ElasticsearchClient } from '@elastic/elasticsearch';
 import { ContentController } from '../controllers/content.controller';
+import { VideoExtractController } from '../controllers/videoExtract.controller';
 import { ContentService } from '../services/content.service';
 import { verifyToken, optionalAuth, requireRole } from '@shared/middleware/auth.middleware';
 import { apiRateLimiter } from '@shared/middleware/rateLimiter.middleware';
@@ -43,6 +44,11 @@ export const createContentRouter = (redis: Redis, elastic: ElasticsearchClient):
   const router = Router();
   const contentService = new ContentService(redis, elastic);
   const contentController = new ContentController(contentService);
+  const videoExtractController = new VideoExtractController(redis);
+
+  // ── Video URL Extraction (T-S031) ─────────────────────────────
+  // POST /content/extract — extract playable stream URL from any webpage/platform
+  router.post('/extract', verifyToken, apiRateLimiter, videoExtractController.extract);
 
   // ── Discovery endpoints (T-S026) ─────────────────────────────
   // GET /content/trending?limit=10
