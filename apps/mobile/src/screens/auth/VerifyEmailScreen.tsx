@@ -32,9 +32,31 @@ export function VerifyEmailScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const handleResend = () => {
-    navigation.replace('Register');
+  const handleResend = async () => {
+    if (resendCooldown > 0 || resending) return;
+    setResending(true);
+    setError('');
+    try {
+      await authApi.resendVerification(email);
+      setResendCooldown(60);
+      cooldownRef.current = setInterval(() => {
+        setResendCooldown((prev) => {
+          if (prev <= 1) {
+            if (cooldownRef.current) clearInterval(cooldownRef.current);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } catch {
+      setError("Kod qayta yuborib bo'lmadi. Keyinroq urinib ko'ring.");
+    } finally {
+      setResending(false);
+    }
   };
 
   const handleDigit = (text: string, index: number) => {
@@ -142,12 +164,17 @@ export function VerifyEmailScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.resendBtn}
+          style={[styles.resendBtn, (resending || resendCooldown > 0) && styles.resendBtnDisabled]}
           onPress={handleResend}
+          disabled={resending || resendCooldown > 0}
         >
-          <Text style={styles.resendText}>
-            Kodni qayta yuborish
-          </Text>
+          {resending ? (
+            <ActivityIndicator size="small" color={colors.primary} />
+          ) : (
+            <Text style={styles.resendText}>
+              {resendCooldown > 0 ? `Qayta yuborish (${resendCooldown}s)` : 'Kodni qayta yuborish'}
+            </Text>
+          )}
         </TouchableOpacity>
       </View>
     </View>
@@ -225,6 +252,7 @@ const styles = StyleSheet.create({
   btnDisabled: { opacity: 0.6 },
   verifyText: { color: colors.textPrimary, fontWeight: '700', fontSize: 16 },
   resendBtn: { marginTop: spacing.sm, padding: spacing.md, alignItems: 'center' },
+  resendBtnDisabled: { opacity: 0.5 },
   resendText: { color: colors.primary, fontSize: 14, fontWeight: '600' },
   devHint: {
     backgroundColor: 'rgba(124,58,237,0.15)',

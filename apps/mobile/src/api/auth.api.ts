@@ -49,6 +49,10 @@ export const authApi = {
     await authClient.post('/auth/change-password', { oldPassword, newPassword });
   },
 
+  async resendVerification(email: string): Promise<void> {
+    await authClient.post('/auth/resend-verification', { email });
+  },
+
   async telegramInit(): Promise<{ state: string; botUrl: string }> {
     const res = await authClient.post<ApiResponse<{ state: string; botUrl: string }>>('/auth/telegram/init');
     if (!res.data.data) throw new Error('Telegram init failed');

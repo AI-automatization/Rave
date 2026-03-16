@@ -72,6 +72,10 @@ export const userApi = {
     return res.data.data ?? [];
   },
 
+  async heartbeat(): Promise<void> {
+    await userClient.post('/users/heartbeat');
+  },
+
   async deleteAccount(): Promise<void> {
     await userClient.delete('/users/me');
   },
