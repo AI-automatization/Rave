@@ -2,9 +2,9 @@
 //
 // Flow:
 //   URL → validateUrl() + SSRF check → detectPlatform()
-//     → youtube   : ytdlService.getStreamInfo()   [existing @distube/ytdl-core]
+//     → youtube   : ytdlService.getStreamInfo() with yt-dlp fallback if ytdl-core fails
 //     → known platforms (non-YT): ytDlpExtractor()
-//     → unknown   : genericExtractor() → fallback ytDlpExtractor()
+//     → unknown   : genericExtractor() (HTML + iframe follow) → fallback ytDlpExtractor()
 //   → Redis cache (TTL 2h)
 //   → VideoExtractResult
 
@@ -51,18 +51,29 @@ export async function extractVideo(
 
   // 4. Platform-specific extraction
   if (platform === 'youtube') {
-    const info = await ytdlService.getStreamInfo(rawUrl);
-    const type = info.mimeType.includes('m3u8') ? 'hls' : 'mp4';
-    result = {
-      title: info.title,
-      videoUrl: info.url,
-      poster: info.thumbnail,
-      platform: 'youtube',
-      type,
-      duration: info.duration,
-      isLive: info.isLive,
-      useProxy: true, // frontend must use /api/v1/youtube/stream
-    };
+    try {
+      const info = await ytdlService.getStreamInfo(rawUrl);
+      const type = info.mimeType.includes('m3u8') ? 'hls' : 'mp4';
+      result = {
+        title: info.title,
+        videoUrl: info.url,
+        poster: info.thumbnail,
+        platform: 'youtube',
+        type,
+        duration: info.duration,
+        isLive: info.isLive,
+        useProxy: true, // frontend must use /api/v1/youtube/stream
+      };
+    } catch (ytdlErr) {
+      // ytdl-core fails periodically when YouTube changes internals (e.g. "invalid onError method")
+      // Fall back to yt-dlp which is more resilient
+      logger.warn('ytdl-core failed, falling back to yt-dlp', {
+        url: rawUrl,
+        error: (ytdlErr as Error).message,
+      });
+      result = await ytDlpExtractor(rawUrl);
+      if (result) result = { ...result, platform: 'youtube', useProxy: false };
+    }
   } else if (YTDLP_PLATFORMS.has(platform)) {
     result = await ytDlpExtractor(rawUrl);
     if (result) result = { ...result, platform };

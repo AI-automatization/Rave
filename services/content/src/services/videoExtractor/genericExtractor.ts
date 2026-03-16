@@ -3,11 +3,15 @@
 //   1. <video src="..."> / <source src="...">
 //   2. og:video meta tag
 //   3. Plain .mp4 / .m3u8 URLs found in HTML
+//   4. <iframe src="..."> — follow embed player iframes (depth=1)
+//      Handles sites like kinogo.family that wrap player in iframe
 
 import { URL } from 'url';
 import { VideoExtractResult, VideoType } from './types';
 
 const FETCH_TIMEOUT_MS = 10_000;
+// Max depth for iframe following (1 = follow one iframe level)
+const MAX_IFRAME_DEPTH = 1;
 
 const USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
@@ -26,6 +30,9 @@ const OG_TITLE_RE = /<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+
 const OG_IMAGE_RE = /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i;
 const TITLE_RE = /<title[^>]*>([^<]+)<\/title>/i;
 
+// <iframe src="..."> — embed player iframes
+const IFRAME_SRC_RE = /<iframe[^>]+src=["']([^"']+)["']/gi;
+
 function firstMatch(re: RegExp, html: string): string | null {
   re.lastIndex = 0;
   const m = re.exec(html);
@@ -39,7 +46,7 @@ function allMatches(re: RegExp, html: string): string[] {
   while ((m = re.exec(html)) !== null) {
     results.push(m[1].trim());
   }
-  return [...new Set(results)]; // dedupe
+  return [...new Set(results)];
 }
 
 function resolveUrl(src: string, base: URL): string {
@@ -54,28 +61,47 @@ function guessType(url: string): VideoType {
   return /\.m3u8/i.test(url) ? 'hls' : 'mp4';
 }
 
-export async function genericExtractor(
-  pageUrl: URL,
-): Promise<VideoExtractResult | null> {
-  let html: string;
+async function fetchHtml(url: string): Promise<string | null> {
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-    const res = await fetch(pageUrl.href, {
+    const res = await fetch(url, {
       headers: {
         'User-Agent': USER_AGENT,
         Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.9',
+        Referer: url,
       },
       signal: controller.signal,
       redirect: 'follow',
     });
     clearTimeout(timer);
     if (!res.ok) return null;
-    html = await res.text();
+    return await res.text();
   } catch {
     return null;
   }
+}
+
+function extractVideoUrls(html: string, base: URL): string[] {
+  const videoTagSrcs = allMatches(VIDEO_TAG_SRC_RE, html).map((s) => resolveUrl(s, base));
+  const ogVideos = allMatches(OG_VIDEO_RE, html).map((s) => resolveUrl(s, base));
+  const m3u8Urls = allMatches(M3U8_RE, html);
+  const mp4Urls = allMatches(MP4_RE, html);
+  return [
+    ...videoTagSrcs,
+    ...ogVideos,
+    ...m3u8Urls,
+    ...mp4Urls,
+  ].filter(Boolean);
+}
+
+export async function genericExtractor(
+  pageUrl: URL,
+  _depth = 0,
+): Promise<VideoExtractResult | null> {
+  const html = await fetchHtml(pageUrl.href);
+  if (!html) return null;
 
   const title =
     firstMatch(OG_TITLE_RE, html) ??
@@ -84,29 +110,50 @@ export async function genericExtractor(
 
   const poster = firstMatch(OG_IMAGE_RE, html) ?? '';
 
-  // Priority: <video>/<source> → og:video → .mp4 in HTML → .m3u8 in HTML
-  const videoTagSrcs = allMatches(VIDEO_TAG_SRC_RE, html).map((s) => resolveUrl(s, pageUrl));
-  const ogVideos = allMatches(OG_VIDEO_RE, html).map((s) => resolveUrl(s, pageUrl));
-  const mp4Urls = allMatches(MP4_RE, html);
-  const m3u8Urls = allMatches(M3U8_RE, html);
+  // 1. Try direct video URLs in page
+  const candidates = extractVideoUrls(html, pageUrl);
 
-  const candidates = [
-    ...videoTagSrcs,
-    ...ogVideos,
-    ...m3u8Urls, // prefer HLS when available
-    ...mp4Urls,
-  ].filter(Boolean);
+  if (candidates.length > 0) {
+    const videoUrl = candidates[0];
+    return {
+      title,
+      videoUrl,
+      poster: resolveUrl(poster, pageUrl),
+      platform: 'generic',
+      type: guessType(videoUrl),
+    };
+  }
 
-  if (candidates.length === 0) return null;
+  // 2. No direct video found — try following embed iframes (depth-limited)
+  if (_depth < MAX_IFRAME_DEPTH) {
+    const iframeSrcs = allMatches(IFRAME_SRC_RE, html)
+      .map((s) => resolveUrl(s, pageUrl))
+      .filter((s) => s.startsWith('http')); // only absolute URLs
 
-  const videoUrl = candidates[0];
-  const type = guessType(videoUrl);
+    for (const iframeSrc of iframeSrcs) {
+      let iframeUrl: URL;
+      try {
+        iframeUrl = new URL(iframeSrc);
+      } catch {
+        continue;
+      }
 
-  return {
-    title,
-    videoUrl,
-    poster: resolveUrl(poster, pageUrl),
-    platform: 'generic',
-    type,
-  };
+      const iframeHtml = await fetchHtml(iframeSrc);
+      if (!iframeHtml) continue;
+
+      const iframeCandidates = extractVideoUrls(iframeHtml, iframeUrl);
+      if (iframeCandidates.length > 0) {
+        const videoUrl = iframeCandidates[0];
+        return {
+          title,
+          videoUrl,
+          poster: resolveUrl(poster, pageUrl),
+          platform: 'generic',
+          type: guessType(videoUrl),
+        };
+      }
+    }
+  }
+
+  return null;
 }
