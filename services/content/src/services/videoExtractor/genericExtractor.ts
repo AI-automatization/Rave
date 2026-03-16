@@ -8,6 +8,7 @@
 
 import { URL } from 'url';
 import { VideoExtractResult, VideoType } from './types';
+import { validateUrl } from './detectPlatform';
 
 const FETCH_TIMEOUT_MS = 10_000;
 // Max depth for iframe following (1 = follow one iframe level)
@@ -133,9 +134,10 @@ export async function genericExtractor(
     for (const iframeSrc of iframeSrcs) {
       let iframeUrl: URL;
       try {
-        iframeUrl = new URL(iframeSrc);
+        // validateUrl blocks private/internal IPs (SSRF guard)
+        iframeUrl = validateUrl(iframeSrc);
       } catch {
-        continue;
+        continue; // skip blocked/invalid iframe URLs
       }
 
       const iframeHtml = await fetchHtml(iframeSrc);

@@ -1,4 +1,5 @@
 import Joi from 'joi';
+import { Request, Response, NextFunction } from 'express';
 import { PATTERNS } from '@shared/constants';
 import { ValidationError } from '@shared/utils/errors';
 
@@ -51,8 +52,7 @@ export const changePasswordSchema = Joi.object({
 });
 
 export const validate = (schema: Joi.ObjectSchema) =>
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (req: any, _res: any, next: any): void => {
+  (req: Request, _res: Response, next: NextFunction): void => {
     const { error } = schema.validate(req.body, { abortEarly: false });
     if (error) {
       const errors = error.details.map((d) => d.message);

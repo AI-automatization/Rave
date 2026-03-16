@@ -89,14 +89,8 @@ export class BattleController {
 
   getUserStats = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const secret = req.headers['x-internal-secret'] as string | undefined;
-      const { validateInternalSecret } = await import('@shared/utils/serviceClient');
-      if (!validateInternalSecret(secret)) {
-        res.status(401).json({ success: false, message: 'Unauthorized internal request' });
-        return;
-      }
       const stats = await this.battleService.getUserStats(req.params.userId);
-      res.json({ success: true, data: stats });
+      res.json(apiResponse.success(stats));
     } catch (error) {
       next(error);
     }

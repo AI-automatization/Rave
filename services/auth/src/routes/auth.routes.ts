@@ -75,7 +75,7 @@ export const createAuthRouter = (redis: Redis): Router => {
   router.get('/telegram/poll', authController.telegramPoll);                       // polling check
 
   // POST /auth/init-admin — bir martalik superadmin yaratish (ADMIN_INIT_SECRET bilan himoyalangan)
-  router.post('/init-admin', authController.initAdmin);
+  router.post('/init-admin', authRateLimiter, authController.initAdmin);
 
   return router;
 };

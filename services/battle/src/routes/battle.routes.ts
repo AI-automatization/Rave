@@ -3,6 +3,7 @@ import Redis from 'ioredis';
 import { BattleController } from '../controllers/battle.controller';
 import { BattleService } from '../services/battle.service';
 import { verifyToken } from '@shared/middleware/auth.middleware';
+import { requireInternalSecret } from '@shared/utils/serviceClient';
 
 export const createBattleRouter = (redis: Redis): Router => {
   const router = Router();
@@ -16,7 +17,7 @@ export const createBattleRouter = (redis: Redis): Router => {
   router.get('/me', verifyToken, battleController.getMyBattles);
 
   // Internal: GET /battles/internal/user-stats/:userId — for user service aggregation
-  router.get('/internal/user-stats/:userId', battleController.getUserStats);
+  router.get('/internal/user-stats/:userId', requireInternalSecret, battleController.getUserStats);
 
   // GET /battles/:id
   router.get('/:id', verifyToken, battleController.getBattle);
