@@ -2,6 +2,17 @@
 import { contentClient } from './client';
 import { ApiResponse, IMovie, ContentGenre, PaginationMeta, IWatchProgress } from '@app-types/index';
 
+export interface VideoExtractResult {
+  title: string;
+  videoUrl: string;
+  poster: string;
+  platform: 'youtube' | 'vimeo' | 'tiktok' | 'dailymotion' | 'rutube' | 'facebook' | 'instagram' | 'twitch' | 'vk' | 'streamable' | 'reddit' | 'twitter' | 'generic' | 'unknown';
+  type: 'mp4' | 'hls';
+  duration?: number;
+  isLive?: boolean;
+  useProxy?: boolean;
+}
+
 export interface YtStreamInfo {
   url: string;
   title: string;
@@ -38,8 +49,11 @@ export const contentApi = {
     genre?: ContentGenre;
     search?: string;
   }): Promise<MoviesResponse> {
-    const res = await contentClient.get<ApiResponse<MoviesResponse>>('/content/movies', { params });
-    return res.data.data ?? { movies: [], meta: { page: 1, limit: 10, total: 0, totalPages: 0 } };
+    const res = await contentClient.get<ApiResponse<IMovie[]>>('/content/movies', { params });
+    return {
+      movies: res.data.data ?? [],
+      meta: res.data.meta ?? { page: 1, limit: 10, total: 0, totalPages: 0 },
+    };
   },
 
   async getMovieById(movieId: string): Promise<IMovie> {
@@ -48,10 +62,13 @@ export const contentApi = {
   },
 
   async search(query: string, page = 1, limit = 20): Promise<MoviesResponse> {
-    const res = await contentClient.get<ApiResponse<MoviesResponse>>('/content/search', {
+    const res = await contentClient.get<ApiResponse<IMovie[]>>('/content/search', {
       params: { q: query, page, limit },
     });
-    return res.data.data ?? { movies: [], meta: { page: 1, limit: 20, total: 0, totalPages: 0 } };
+    return {
+      movies: res.data.data ?? [],
+      meta: res.data.meta ?? { page: 1, limit: 20, total: 0, totalPages: 0 },
+    };
   },
 
   async getContinueWatching(): Promise<Array<IMovie & { progress: number }>> {
@@ -71,6 +88,12 @@ export const contentApi = {
 
   async rateMovie(movieId: string, rating: number): Promise<void> {
     await contentClient.post(`/content/movies/${movieId}/rate`, { rating });
+  },
+
+  async extractVideo(url: string): Promise<VideoExtractResult> {
+    const res = await contentClient.post<ApiResponse<VideoExtractResult>>('/content/extract', { url });
+    if (!res.data.success || !res.data.data) throw new Error(res.data.message ?? 'Extraction failed');
+    return res.data.data;
   },
 
   async getYouTubeStreamInfo(youtubeUrl: string): Promise<YtStreamInfo> {

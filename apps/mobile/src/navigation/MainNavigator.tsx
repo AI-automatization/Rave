@@ -27,6 +27,7 @@ import { AchievementsScreen } from '@screens/profile/AchievementsScreen';
 import { SettingsScreen } from '@screens/profile/SettingsScreen';
 import { MovieDetailScreen } from '@screens/home/MovieDetailScreen';
 import { VideoPlayerScreen } from '@screens/home/VideoPlayerScreen';
+import { VideoExtractScreen } from '@screens/home/VideoExtractScreen';
 import { SearchScreen } from '@screens/search/SearchScreen';
 import { SearchResultsScreen } from '@screens/search/SearchResultsScreen';
 import { useT } from '@i18n/index';
@@ -43,6 +44,7 @@ function HomeStackNavigator() {
       <HomeStack.Screen name="Home" component={HomeScreen} />
       <HomeStack.Screen name="MovieDetail" component={MovieDetailScreen} />
       <HomeStack.Screen name="VideoPlayer" component={VideoPlayerScreen} />
+      <HomeStack.Screen name="VideoExtract" component={VideoExtractScreen} />
     </HomeStack.Navigator>
   );
 }

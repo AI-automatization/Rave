@@ -105,6 +105,7 @@ export type HomeStackParamList = {
   Home: undefined;
   MovieDetail: { movieId: string };
   VideoPlayer: { movieId: string; videoUrl: string; title: string };
+  VideoExtract: undefined;
 };
 
 export type SearchStackParamList = {

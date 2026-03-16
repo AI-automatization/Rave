@@ -4,6 +4,34 @@
 
 ---
 
+### F-121 | 2026-03-16 | [MOBILE] | T-E039 — Video Extractor Mobile Integration [Emirhan]
+
+- **API:** `contentApi.extractVideo(url)` → `POST /api/v1/content/extract` qo'shildi (`content.api.ts`)
+- **Type:** `VideoExtractResult` interface qo'shildi (`content.api.ts`)
+- **Screen:** `VideoExtractScreen` yaratildi (`screens/home/VideoExtractScreen.tsx`)
+  - Input state: URL validatsiya (http/https), extract tugmasi
+  - Loading state: ActivityIndicator + "3-30 soniya" ogohlantirish
+  - Error state: backend xato xabaridan foydalanuvchi-do'stona matn
+  - Ready state: platformBadge + JONLI EFIR badge + UniversalPlayer + Watch Party tugmasi
+  - `useProxy=true` → UniversalPlayer ga original YouTube URL (YouTube proxy flow)
+  - `useProxy=false` → `result.videoUrl` to'g'ridan UniversalPlayer ga
+- **Navigation:** `VideoExtract: undefined` → `HomeStackParamList` + `MainNavigator.tsx` da ro'yxatdan o'tdi
+- **tsc:** `npx tsc --noEmit` → 0 xato ✅
+
+---
+
+### F-120 | 2026-03-16 | [MOBILE] | T-E038 — SearchScreen crash fix (`data.movies` undefined) [Emirhan]
+
+- **Fayl:** `apps/mobile/src/api/content.api.ts`
+- **Sabab:** `getMovies()` va `search()` da `ApiResponse<MoviesResponse>` (noto'g'ri generic)
+  - Backend `data` = `IMovie[]` (array), `meta` = top-level field qaytaradi
+  - Lekin kod `res.data.data.movies` kutgan → `data.movies = undefined` → SearchScreen crash
+- **Fix:** Generic ni `ApiResponse<IMovie[]>` ga o'zgartirish + response object qo'lda qurish:
+  `{ movies: res.data.data ?? [], meta: res.data.meta ?? {...} }`
+- **tsc:** 0 xato ✅
+
+---
+
 ### F-119 | 2026-03-16 | [BACKEND] | T-S032 — Universal Video Extractor `POST /api/v1/content/extract` [Saidazim]
 
 - **Endpoint:** `POST /api/v1/content/extract` — `verifyToken` + `apiRateLimiter`
