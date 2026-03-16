@@ -83,6 +83,68 @@
 
 ## SPRINT 1 — Expo Setup + Auth
 
+### T-E038 | P0 | [MOBILE] | BUG: SearchScreen crash — `data.movies` undefined | pending[Emirhan]
+
+- **Sana:** 2026-03-16
+- **Xato:** `TypeError: Cannot read property 'length' of undefined`
+- **Fayl:** `apps/mobile/src/api/content.api.ts` — `getMovies()` funksiyasi (42-qator) va `search()` funksiyasi (53-qator)
+- **Sabab:**
+  Backend `GET /content/movies` va `GET /content/search` endpointlari `apiResponse.paginated()` bilan javob qaytaradi:
+  ```json
+  { "success": true, "data": [...movies array...], "meta": { "page":1, "limit":20, "total":50, "totalPages":3 } }
+  ```
+  Ya'ni `res.data.data` = **array** `[...IMovie[]]`, `res.data.meta` = **PaginationMeta**
+
+  Lekin `content.api.ts` da:
+  ```typescript
+  // NOTO'G'RI — res.data.data array (truthy), fallback ishlamaydi
+  return res.data.data ?? { movies: [], meta: {...} };
+  // Natija: data = [...movies...] (array, movies property YO'Q)
+  ```
+
+  `SearchScreen.tsx:35` da:
+  ```typescript
+  const hasResults = (data?.movies.length ?? 0) > 0;
+  //                        ^^^^^^^
+  // data = [...] (array), data.movies = undefined → CRASH!
+  ```
+
+- **Fix (2 ta funksiyani o'zgartirish):**
+
+  **1. `getMovies()` (~42-qator):**
+  ```typescript
+  // O'ZGARTIRISH KERAK:
+  async getMovies(params?: {...}): Promise<MoviesResponse> {
+    const res = await contentClient.get<ApiResponse<IMovie[]>>('/content/movies', { params });
+    return {
+      movies: res.data.data ?? [],
+      meta: res.data.meta ?? { page: 1, limit: 10, total: 0, totalPages: 0 },
+    };
+  },
+  ```
+
+  **2. `search()` (~51-qator):**
+  ```typescript
+  // O'ZGARTIRISH KERAK:
+  async search(query: string, page = 1, limit = 20): Promise<MoviesResponse> {
+    const res = await contentClient.get<ApiResponse<IMovie[]>>('/content/search', {
+      params: { q: query, page, limit },
+    });
+    return {
+      movies: res.data.data ?? [],
+      meta: res.data.meta ?? { page: 1, limit: 20, total: 0, totalPages: 0 },
+    };
+  },
+  ```
+
+- **Qo'shimcha:** `ApiResponse` tipini yangilanadigan bo'lsa `meta` fieldini qo'shish kerak:
+  ```typescript
+  // apps/mobile/src/types/index.ts — ApiResponse<T> ga:
+  meta?: { page: number; limit: number; total: number; totalPages: number };
+  ```
+
+---
+
 ### ✅ T-E031 | TUGADI → Done.md F-109
 
 **Backend tayyor** — faqat mobile UI va flow kerak.
