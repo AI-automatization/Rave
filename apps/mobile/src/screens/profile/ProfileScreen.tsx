@@ -24,10 +24,13 @@ import { useAuthStore } from '@store/auth.store';
 import { colors, spacing, borderRadius, typography, RANK_COLORS } from '@theme/index';
 import { ProfileStackParamList } from '@app-types/index';
 import { useT } from '@i18n/index';
+import type { UserRank } from '@app-types/index';
 
 type Nav = NativeStackNavigationProp<ProfileStackParamList, 'Profile'>;
 
-const RANK_THRESHOLDS: Record<string, [number, number]> = {
+const RANK_ORDER: UserRank[] = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond'];
+
+const RANK_THRESHOLDS: Record<UserRank, [number, number]> = {
   Bronze:   [0, 499],
   Silver:   [500, 1999],
   Gold:     [2000, 4999],
@@ -43,6 +46,23 @@ function StatCard({ icon, value, label }: { icon: string; value: string | number
       <Text style={styles.statLabel}>{label}</Text>
     </View>
   );
+}
+
+function InfoRow({ icon, label, value }: { icon: keyof typeof Ionicons.glyphMap; label: string; value: string }) {
+  return (
+    <View style={styles.infoRow}>
+      <Ionicons name={icon} size={18} color={colors.textMuted} />
+      <Text style={styles.infoLabel}>{label}</Text>
+      <Text style={styles.infoValue}>{value}</Text>
+    </View>
+  );
+}
+
+function formatDate(date: Date | string | null | undefined): string {
+  if (!date) return '—';
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 export function ProfileScreen() {
@@ -68,7 +88,7 @@ export function ProfileScreen() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') return;
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
@@ -94,9 +114,15 @@ export function ProfileScreen() {
 
   if (!user) return <ActivityIndicator style={styles.loader} color={colors.primary} />;
 
-  const rankColor = RANK_COLORS[user.rank];
-  const [rankMin, rankMax] = RANK_THRESHOLDS[user.rank] ?? [0, 1];
-  const rankProgress = Math.min(((user.totalPoints - rankMin) / (rankMax - rankMin)) * 100, 100);
+  const rank = user.rank ?? 'Bronze';
+  const rankColor = RANK_COLORS[rank] ?? colors.textMuted;
+  const [rankMin, rankMax] = RANK_THRESHOLDS[rank] ?? [0, 1];
+  const totalPts = user.totalPoints ?? 0;
+  const rankProgress = rankMax > rankMin
+    ? Math.min(((totalPts - rankMin) / (rankMax - rankMin)) * 100, 100)
+    : 0;
+  const rankIdx = RANK_ORDER.indexOf(rank);
+  const nextRank = rankIdx < RANK_ORDER.length - 1 ? RANK_ORDER[rankIdx + 1] : null;
 
   return (
     <>
@@ -128,36 +154,85 @@ export function ProfileScreen() {
             <Ionicons name="pencil-outline" size={16} color={colors.textMuted} />
           </TouchableOpacity>
 
+          {/* Online status */}
+          <View style={styles.onlineRow}>
+            <View style={[styles.onlineDot, { backgroundColor: user.isOnline === true ? colors.success : colors.textDim }]} />
+            <Text style={[styles.onlineText, { color: user.isOnline === true ? colors.success : colors.textMuted }]}>
+              {user.isOnline === true ? 'Online' : 'Offline'}
+            </Text>
+          </View>
+
           <View style={styles.rankBadge}>
             <View style={[styles.rankDot, { backgroundColor: rankColor }]} />
-            <Text style={[styles.rankText, { color: rankColor }]}>{user.rank}</Text>
+            <Text style={[styles.rankText, { color: rankColor }]}>{rank}</Text>
+            <Text style={styles.rankPts}>{totalPts} {t('profile', 'points')}</Text>
           </View>
           {user.bio ? <Text style={styles.bio}>{user.bio}</Text> : null}
 
           {/* Rank progress bar */}
           <View style={styles.progressWrap}>
             <View style={styles.progressRow}>
-              <Text style={styles.progressLabel}>{user.totalPoints} {t('profile', 'points')}</Text>
+              <Text style={styles.progressLabel}>{totalPts} {t('profile', 'points')}</Text>
               <Text style={styles.progressLabel}>{rankMax} {t('profile', 'points')}</Text>
             </View>
             <View style={styles.progressTrack}>
               <View style={[styles.progressFill, { width: `${rankProgress}%`, backgroundColor: rankColor }]} />
             </View>
-            <Text style={styles.progressSub}>{user.rank} {t('profile', 'nextRank')}</Text>
+            {nextRank ? (
+              <Text style={styles.progressSub}>{rank} → {nextRank}</Text>
+            ) : (
+              <Text style={[styles.progressSub, { color: rankColor }]}>MAX RANK</Text>
+            )}
           </View>
         </View>
 
         {/* Stats grid */}
-        {stats && (
-          <View style={styles.statsSection}>
+        <View style={styles.statsSection}>
+          <Text style={styles.sectionTitle}>{t('profile', 'stats')}</Text>
+          {stats ? (
             <View style={styles.statsGrid}>
-              <StatCard icon="🎬" value={stats.totalWatched} label={t('profile', 'movies')} />
-              <StatCard icon="⏱" value={`${Math.round(stats.totalMinutes / 60)}h`} label={t('profile', 'hours')} />
-              <StatCard icon="⚔️" value={stats.battlesWon} label={t('profile', 'wins')} />
-              <StatCard icon="🏅" value={stats.achievementsCount} label={t('profile', 'badges')} />
+              <StatCard icon="🎬" value={stats.totalWatched ?? 0} label={t('profile', 'movies')} />
+              <StatCard icon="⏱" value={`${Math.round((stats.totalMinutes ?? 0) / 60)}h`} label={t('profile', 'hours')} />
+              <StatCard icon="⚔️" value={stats.battlesWon ?? 0} label={t('profile', 'wins')} />
+              <StatCard icon="🏅" value={stats.achievementsCount ?? 0} label={t('profile', 'badges')} />
             </View>
+          ) : statsQuery.isLoading ? (
+            <ActivityIndicator color={colors.primary} size="small" />
+          ) : (
+            <View style={styles.statsGrid}>
+              <StatCard icon="🎬" value={0} label={t('profile', 'movies')} />
+              <StatCard icon="⏱" value="0h" label={t('profile', 'hours')} />
+              <StatCard icon="⚔️" value={0} label={t('profile', 'wins')} />
+              <StatCard icon="🏅" value={0} label={t('profile', 'badges')} />
+            </View>
+          )}
+        </View>
+
+        {/* Account info */}
+        <View style={styles.accountSection}>
+          <Text style={styles.sectionTitle}>{t('profile', 'accountInfo')}</Text>
+          <View style={styles.accountCard}>
+            <InfoRow icon="mail-outline" label="Email" value={user.email ?? '—'} />
+            <View style={styles.infoDivider} />
+            <InfoRow icon="shield-checkmark-outline" label={t('profile', 'role')} value={user.role ?? '—'} />
+            <View style={styles.infoDivider} />
+            <InfoRow icon="calendar-outline" label={t('profile', 'joined')} value={formatDate(user.createdAt)} />
+            <View style={styles.infoDivider} />
+            <InfoRow icon="time-outline" label={t('profile', 'lastLogin')} value={formatDate(user.lastLoginAt)} />
+            {stats?.friendsCount !== undefined && (
+              <>
+                <View style={styles.infoDivider} />
+                <InfoRow icon="people-outline" label={t('profile', 'friends')} value={String(stats.friendsCount)} />
+              </>
+            )}
+            {stats?.currentStreak !== undefined && stats.currentStreak > 0 && (
+              <>
+                <View style={styles.infoDivider} />
+                <InfoRow icon="flame-outline" label={t('profile', 'streak')} value={`${stats.currentStreak} ${t('stats', 'days')}`} />
+              </>
+            )}
           </View>
-        )}
+        </View>
 
         {/* Navigation links */}
         <View style={styles.navLinks}>
@@ -275,9 +350,13 @@ const styles = StyleSheet.create({
   },
   usernameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   username: { ...typography.h2, color: colors.textPrimary },
-  rankBadge: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  onlineRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  onlineDot: { width: 8, height: 8, borderRadius: 4 },
+  onlineText: { ...typography.caption, fontWeight: '600' },
+  rankBadge: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   rankDot: { width: 10, height: 10, borderRadius: 5 },
   rankText: { ...typography.body, fontWeight: '700' },
+  rankPts: { ...typography.caption, color: colors.textMuted },
   bio: { ...typography.body, color: colors.textSecondary, textAlign: 'center', paddingHorizontal: spacing.xl },
   progressWrap: { width: '100%', gap: spacing.xs, marginTop: spacing.sm },
   progressRow: { flexDirection: 'row', justifyContent: 'space-between' },
@@ -285,12 +364,28 @@ const styles = StyleSheet.create({
   progressTrack: { height: 8, backgroundColor: colors.bgElevated, borderRadius: borderRadius.full, overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: borderRadius.full },
   progressSub: { ...typography.caption, color: colors.textMuted, textAlign: 'center' },
+  sectionTitle: { ...typography.label, color: colors.textMuted, textTransform: 'uppercase', marginBottom: spacing.sm },
   statsSection: { padding: spacing.lg },
   statsGrid: { flexDirection: 'row', gap: spacing.sm },
   statCard: { flex: 1, backgroundColor: colors.bgSurface, borderRadius: borderRadius.md, padding: spacing.md, alignItems: 'center', gap: spacing.xs },
   statIcon: { fontSize: 22 },
   statValue: { ...typography.h3, color: colors.textPrimary },
   statLabel: { ...typography.caption, color: colors.textMuted },
+  accountSection: { paddingHorizontal: spacing.lg, marginBottom: spacing.md },
+  accountCard: {
+    backgroundColor: colors.bgSurface,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
+  },
+  infoLabel: { ...typography.caption, color: colors.textMuted, width: 90 },
+  infoValue: { ...typography.body, color: colors.textPrimary, flex: 1, textAlign: 'right' },
+  infoDivider: { height: 1, backgroundColor: colors.border },
   navLinks: { marginHorizontal: spacing.lg, gap: spacing.sm },
   navLink: {
     flexDirection: 'row',

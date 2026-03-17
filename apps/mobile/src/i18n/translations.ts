@@ -202,6 +202,12 @@ export const translations = {
     logoutTitle: { uz: 'Chiqish', ru: 'Выход', en: 'Sign Out' },
     logoutMsg: { uz: 'Akkauntdan chiqmoqchimisiz?', ru: 'Вы хотите выйти из аккаунта?', en: 'Do you want to sign out?' },
     logoutBtn: { uz: 'Chiqish', ru: 'Выйти', en: 'Sign Out' },
+    accountInfo: { uz: "Akkaunt ma'lumotlari", ru: 'Информация об аккаунте', en: 'Account Info' },
+    role: { uz: 'Rol', ru: 'Роль', en: 'Role' },
+    joined: { uz: "Ro'yxatdan o'tgan", ru: 'Дата регистрации', en: 'Joined' },
+    lastLogin: { uz: 'Oxirgi kirish', ru: 'Последний вход', en: 'Last Login' },
+    friends: { uz: "Do'stlar", ru: 'Друзья', en: 'Friends' },
+    streak: { uz: 'Seriya', ru: 'Серия', en: 'Streak' },
   },
 
   // ─── Stats ───

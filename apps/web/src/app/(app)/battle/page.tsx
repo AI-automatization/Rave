@@ -6,24 +6,9 @@ import { GiCrossedSwords } from 'react-icons/gi';
 import { useTranslations } from 'next-intl';
 import { BattleCard } from '@/components/battle/BattleCard';
 import { useAuthStore } from '@/store/auth.store';
+import { apiClient } from '@/lib/axios';
 import { logger } from '@/lib/logger';
 import type { ApiResponse, IBattle } from '@/types';
-
-function getToken() {
-  return useAuthStore.getState().accessToken ?? '';
-}
-
-function authFetch(url: string, init?: RequestInit) {
-  const token = getToken();
-  return fetch(url, {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(init?.headers as Record<string, string> | undefined),
-    },
-  });
-}
 
 export default function BattlePage() {
   const t    = useTranslations('battle');
@@ -40,9 +25,8 @@ export default function BattlePage() {
 
   const loadBattles = useCallback(async () => {
     try {
-      const res  = await authFetch('/api/battles/me');
-      const json: ApiResponse<IBattle[]> = await res.json() as ApiResponse<IBattle[]>;
-      setBattles(Array.isArray(json.data) ? json.data : []);
+      const res = await apiClient.get<ApiResponse<IBattle[]>>('/api/battles/me');
+      setBattles(Array.isArray(res.data.data) ? res.data.data : []);
     } catch (err) {
       logger.error('Battlelar yuklashda xato', err);
     } finally {
@@ -58,17 +42,13 @@ export default function BattlePage() {
     setCreating(true);
     setFormError('');
     try {
-      const res = await authFetch('/api/battles', {
-        method: 'POST',
-        body: JSON.stringify({ opponentUsername: opponentUsername.trim(), duration }),
-      });
-      const json = await res.json() as { message?: string };
-      if (!res.ok) throw new Error(json.message ?? t('defaultError'));
+      await apiClient.post('/api/battles', { opponentUsername: opponentUsername.trim(), duration });
       setShowForm(false);
       setOpponentUsername('');
       void loadBattles();
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : t('defaultError');
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string } } };
+      const msg = axiosErr?.response?.data?.message ?? t('defaultError');
       setFormError(msg);
       logger.error('Battle yaratishda xato', err);
     } finally {
@@ -78,7 +58,7 @@ export default function BattlePage() {
 
   const handleAccept = async (battleId: string) => {
     try {
-      await authFetch(`/api/battles/${battleId}/accept`, { method: 'POST' });
+      await apiClient.post(`/api/battles/${battleId}/accept`);
       void loadBattles();
     } catch (err) {
       logger.error('Battle qabul qilishda xato', err);

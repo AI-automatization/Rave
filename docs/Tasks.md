@@ -164,22 +164,7 @@ GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state
 
 ---
 
-### T-J014 | P0 | [WEB] | SECURITY: postMessage wildcard origin + JSON-LD XSS injection
-
-- **Sana:** 2026-03-11
-- **Mas'ul:** Jafar
-- **Holat:** 🔄 pending[Jafar]
-- **Fayllar:**
-  - `apps/web/src/components/video/UniversalPlayer.tsx` (83, 92-qator va boshqalar)
-  - `apps/web/src/app/(app)/movies/[slug]/page.tsx` (63-82-qator)
-  - `apps/web/src/app/(app)/profile/[username]/page.tsx` (86-95-qator)
-- **Muammo:**
-  - YouTube iframe `postMessage('*')` — har qanday origin ga yuboradi; `message` listener `e.origin` tekshirmaydi → fake event injection mumkin
-  - JSON-LD `dangerouslySetInnerHTML` — movie title/bio da `</script>` bo'lsa **arbitrary HTML/JS inject** bo'ladi
-- **Bajarilishi kerak:**
-  - [ ] `postMessage` target → `'https://www.youtube.com'`
-  - [ ] Message listener da `e.origin === 'https://www.youtube.com'` tekshirish
-  - [ ] JSON-LD da `.replace(/<\//g, '<\\/')` escape qo'shish
+### ✅ T-J014 | TUGADI → Done.md F-124
 
 ---
 
@@ -447,31 +432,7 @@ Foydalanuvchi **har qanday** video sayt URL ni kiritganda:
 
 ---
 
-### T-C008 | P0 | [IKKALASI] | ARCHITECTURE: Web client shared types ishlatmaydi — 20+ type divergence
-
-- **Sana:** 2026-03-11
-- **Mas'ul:** Jafar (Web) + Saidazim (Shared types yangilash)
-- **Holat:** 🔄 pending[Jafar]
-- **Fayllar:**
-  - `apps/web/package.json` — `@cinesync/shared` dependency **yo'q**
-  - `apps/web/src/types/index.ts` — barcha typelar **qo'lda duplicate** qilingan
-  - `shared/src/types/index.ts` — asl typelar
-- **Muammo (ROOT CAUSE):** Web client `@cinesync/shared` package ni **umuman import qilmaydi**. 7 ta backend service va mobile app shared dan oladi, lekin web client barcha type larni local yozgan. Natijada **20+ field divergence**:
-  - `ApiResponse.data`: shared da `T | null`, web da `T` → server `null` qaytarsa **crash**
-  - `IMovie`: 15+ field farq (slug, poster, backdrop, genres, director, cast — web da bor, shared da yo'q yoki boshqacha)
-  - `IUser.rank`: shared `'Bronze'|'Silver'|'Gold'|'Platinum'|'Diamond'`, web `'bronze'|'silver'|...|'legend'` → **case mismatch + noto'g'ri qiymatlar**
-  - `INotification`: web da `'system'` type bor (shared da yo'q), `'friend_online'` yo'q (shared da bor)
-  - `IAchievement.rarity`: web da `'secret'` yo'q
-  - `IBattle`: 4+ field yo'q, `'cancelled'` status yo'q
-  - `PaginationMeta`: web da `pages` field bor (server hech qachon bermaydi)
-- **Bajarilishi kerak:**
-  - [ ] `apps/web/package.json` ga `"@cinesync/shared": "*"` qo'shish
-  - [ ] `tsconfig.json` paths → `@shared/*` resolve qilish
-  - [ ] `apps/web/src/types/index.ts` → shared dan re-export (mobile qilganidek)
-  - [ ] Shared `IMovie` ni yangilash: `slug`, `director`, `cast`, `reviewCount` qo'shish (Saidazim bilan kelishib)
-  - [ ] Shared `IUser` ni yangilash: `isOnline`, `lastSeenAt` qo'shish
-  - [ ] Barcha local type duplicate larni o'chirish
-  - **MUHIM:** Bu task barcha web type-related buglarning **asosiy sababi**. Birinchi tuzatilishi kerak.
+### ✅ T-C008 | TUGADI → Done.md F-125
 
 ---
 

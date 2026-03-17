@@ -10,6 +10,7 @@ import {
 } from 'react-icons/fa';
 import dynamic from 'next/dynamic';
 import { useAuthStore } from '@/store/auth.store';
+import { apiClient } from '@/lib/axios';
 import { logger } from '@/lib/logger';
 import type { ApiResponse, IMovie } from '@/types';
 
@@ -34,10 +35,8 @@ export default function WatchPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch(`/api/content/movies/${movieId}`);
-        if (!res.ok) throw new Error('Movie not found');
-        const json: ApiResponse<IMovie> = await res.json() as ApiResponse<IMovie>;
-        setMovie(json.data ?? null);
+        const res = await apiClient.get<ApiResponse<IMovie>>(`/movies/${movieId}`);
+        setMovie(res.data.data ?? null);
       } catch (err) {
         logger.error('Film yuklashda xato', err);
       } finally {
@@ -50,11 +49,7 @@ export default function WatchPage() {
   const handleProgress = async (progress: number, currentTime: number) => {
     if (!user) return;
     try {
-      await fetch(`/api/content/movies/${movieId}/progress`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ progress, currentTime }),
-      });
+      await apiClient.post(`/movies/${movieId}/progress`, { progress, currentTime });
     } catch (err) {
       logger.warn('Progress saqlashda xato', err);
     }

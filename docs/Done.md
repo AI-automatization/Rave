@@ -59,6 +59,25 @@
 
 ---
 
+### F-125 | 2026-03-16 | [IKKALASI] | T-C008 — Web shared types integration (already resolved) [Jafar]
+
+- **Статус:** Все пункты уже были реализованы ранее
+- tsconfig paths: `@shared/*` → `../../shared/src/*` ✅
+- `apps/web/src/types/index.ts` — все типы re-export из `@shared/types` с web-specific extensions (Date→string)
+- IUser, IMovie, IBattle, IWatchPartyRoom, IAchievement, ApiResponse — все extend shared
+- Shared types уже имеют: `slug`, `director`, `cast`, `reviewCount` (IMovie), `isOnline`, `lastSeenAt` (IUser), `secret` (AchievementRarity)
+
+---
+
+### F-124 | 2026-03-16 | [WEB] | T-J014 — postMessage + JSON-LD XSS fix (already resolved) [Jafar]
+
+- **Статус:** Все 3 пункта уже были исправлены ранее
+- postMessage wildcard: YouTube используется через IFrame API (window.YT.Player), не через raw postMessage — проблема отсутствует
+- Message listener без origin: нет addEventListener('message') в коде — проблема отсутствует
+- JSON-LD XSS: `.replace(/<\//g, '<\\/')` escape уже в `movies/[slug]/page.tsx:80` и `profile/[username]/page.tsx:94`
+
+---
+
 ### F-123 | 2026-03-16 | [WEB] | T-J013 — Security headers + ESLint/TypeScript build fix [Jafar]
 
 - **Fayl:** `apps/web/next.config.mjs`, `apps/web/src/app/(app)/home/page.tsx`, `apps/web/src/app/api/auth/register/route.ts`
