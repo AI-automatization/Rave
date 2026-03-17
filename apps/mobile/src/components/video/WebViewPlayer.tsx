@@ -1,10 +1,50 @@
 // CineSync Mobile — WebViewPlayer
 // react-native-webview asosida har qanday saytdan video o'ynatish
-import React, { forwardRef, useImperativeHandle, useRef, useState } from 'react';
-import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+// M6: Loading overlay, ad blocker, redirect warning, fullscreen, error+retry
+import React, { forwardRef, useImperativeHandle, useRef, useState, useCallback, useEffect } from 'react';
+import {
+  View,
+  Text,
+  ActivityIndicator,
+  StyleSheet,
+  TouchableOpacity,
+  StatusBar,
+} from 'react-native';
 import WebView from 'react-native-webview';
-import type { WebViewMessageEvent } from 'react-native-webview';
-import { colors, spacing, typography } from '@theme/index';
+import type { WebViewMessageEvent, ShouldStartLoadRequest, WebViewNavigation } from 'react-native-webview';
+import { colors, spacing, typography, borderRadius } from '@theme/index';
+
+// Reklama domenlarini bloklash
+const AD_HOSTNAMES = [
+  'doubleclick.net',
+  'googlesyndication.com',
+  'adservice.google.com',
+  'connect.facebook.net',
+  'scorecardresearch.com',
+  'outbrain.com',
+  'taboola.com',
+  'popads.net',
+  'exoclick.com',
+  'trafficjunky.net',
+  'juicyads.com',
+];
+
+function isAdRequest(url: string): boolean {
+  try {
+    const { hostname } = new URL(url);
+    return AD_HOSTNAMES.some(ad => hostname.includes(ad));
+  } catch {
+    return false;
+  }
+}
+
+function getHostname(url: string): string {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return url;
+  }
+}
 
 export interface WebViewPlayerRef {
   play: () => void;
@@ -95,8 +135,17 @@ export const WebViewPlayer = forwardRef<WebViewPlayerRef, Props>(
   ({ url, isOwner, onPlay, onPause, onSeek, onProgress }, ref) => {
     const webviewRef = useRef<WebView>(null);
     const currentTimeMsRef = useRef(0);
+    const originalHostRef = useRef(getHostname(url));
+
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
+    const [redirectWarning, setRedirectWarning] = useState<string | null>(null);
+
+    // Fullscreen: StatusBar yashirish
+    useEffect(() => {
+      StatusBar.setHidden(true, 'slide');
+      return () => StatusBar.setHidden(false, 'slide');
+    }, []);
 
     useImperativeHandle(ref, () => ({
       play: () => {
@@ -115,7 +164,7 @@ export const WebViewPlayer = forwardRef<WebViewPlayerRef, Props>(
       getPositionMs: () => currentTimeMsRef.current,
     }));
 
-    const handleMessage = (event: WebViewMessageEvent) => {
+    const handleMessage = useCallback((event: WebViewMessageEvent) => {
       try {
         const data = JSON.parse(event.nativeEvent.data) as WebViewMessage;
         switch (data.type) {
@@ -147,19 +196,61 @@ export const WebViewPlayer = forwardRef<WebViewPlayerRef, Props>(
       } catch {
         // JSON parse xato — ignore
       }
-    };
+    }, [isOwner, onPlay, onPause, onSeek, onProgress]);
+
+    // Reklama bloklash
+    const handleShouldStartLoad = useCallback((request: ShouldStartLoadRequest): boolean => {
+      return !isAdRequest(request.url);
+    }, []);
+
+    // Redirect aniqlash: domen o'zgarsa ogohlantirish
+    const handleNavigationStateChange = useCallback((navState: WebViewNavigation) => {
+      if (!navState.url) return;
+      const newHost = getHostname(navState.url);
+      if (newHost && newHost !== originalHostRef.current) {
+        setRedirectWarning(newHost);
+      }
+    }, []);
+
+    const handleRetry = useCallback(() => {
+      setError(false);
+      setLoading(true);
+      setRedirectWarning(null);
+      webviewRef.current?.reload();
+    }, []);
 
     return (
       <View style={styles.container}>
-        {loading && (
-          <View style={styles.loadingOverlay}>
+        {/* Loading overlay */}
+        {loading && !error && (
+          <View style={styles.overlay}>
             <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={styles.loadingHost}>{getHostname(url)}</Text>
             <Text style={styles.loadingText}>Yuklanmoqda...</Text>
           </View>
         )}
+
+        {/* Redirect ogohlantirish banneri */}
+        {redirectWarning !== null && (
+          <TouchableOpacity
+            style={styles.warningBanner}
+            onPress={() => setRedirectWarning(null)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.warningText}>
+              Redirect: {redirectWarning} (yopish uchun bosing)
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Xato holati */}
         {error ? (
           <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>Sayt yuklanmadi</Text>
+            <Text style={styles.errorTitle}>Sayt yuklanmadi</Text>
+            <Text style={styles.errorHost}>{getHostname(url)}</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
+              <Text style={styles.retryText}>Qayta urinish</Text>
+            </TouchableOpacity>
           </View>
         ) : (
           <WebView
@@ -177,7 +268,15 @@ export const WebViewPlayer = forwardRef<WebViewPlayerRef, Props>(
               setLoading(false);
               setError(true);
             }}
+            onHttpError={({ nativeEvent }) => {
+              if (nativeEvent.statusCode >= 400) {
+                setLoading(false);
+                setError(true);
+              }
+            }}
             allowsFullscreenVideo
+            onShouldStartLoadWithRequest={handleShouldStartLoad}
+            onNavigationStateChange={handleNavigationStateChange}
           />
         )}
       </View>
@@ -188,24 +287,58 @@ export const WebViewPlayer = forwardRef<WebViewPlayerRef, Props>(
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
   webview: { flex: 1 },
-  loadingOverlay: {
+
+  overlay: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: '#000',
+    backgroundColor: colors.bgVoid,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: spacing.md,
+    gap: spacing.sm,
     zIndex: 10,
   },
+  loadingHost: { ...typography.h3, color: colors.textPrimary },
   loadingText: { ...typography.body, color: colors.textSecondary },
+
+  warningBanner: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(251,191,36,0.15)',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    zIndex: 20,
+  },
+  warningText: {
+    ...typography.caption,
+    color: colors.warning,
+    textAlign: 'center',
+  },
+
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#000',
+    backgroundColor: colors.bgVoid,
+    gap: spacing.sm,
+    padding: spacing.xxxl,
   },
-  errorText: { ...typography.body, color: colors.error },
+  errorTitle: { ...typography.h2, color: colors.textPrimary },
+  errorHost: { ...typography.body, color: colors.textMuted },
+  retryButton: {
+    marginTop: spacing.md,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.lg,
+  },
+  retryText: {
+    ...typography.body,
+    color: colors.primaryContent,
+    fontWeight: '600' as const,
+  },
 });
