@@ -93,7 +93,7 @@ export function SettingsScreen() {
   // Change password state
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+
   const [pwdLoading, setPwdLoading] = useState(false);
 
   useEffect(() => {
@@ -138,10 +138,7 @@ export function SettingsScreen() {
 
   const handleChangePassword = async () => {
     if (!oldPassword || !newPassword) return;
-    if (newPassword !== confirmPassword) {
-      Alert.alert(t('common', 'error'), t('settings', 'passwordMismatch'));
-      return;
-    }
+
     if (newPassword.length < 6) {
       Alert.alert(t('common', 'error'), t('settings', 'passwordTooShort'));
       return;
@@ -152,7 +149,7 @@ export function SettingsScreen() {
       setActiveModal(null);
       setOldPassword('');
       setNewPassword('');
-      setConfirmPassword('');
+
       Alert.alert(t('settings', 'success'), t('settings', 'passwordChanged'));
     } catch {
       Alert.alert(t('common', 'error'), t('settings', 'oldPasswordError'));
@@ -366,15 +363,7 @@ export function SettingsScreen() {
               placeholderTextColor={colors.textMuted}
               placeholder="••••••••"
             />
-            <Text style={styles.inputLabel}>{t('settings', 'confirmPassword')}</Text>
-            <TextInput
-              style={styles.modalInput}
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              secureTextEntry
-              placeholderTextColor={colors.textMuted}
-              placeholder="••••••••"
-            />
+
             <View style={styles.modalActions}>
               <TouchableOpacity style={styles.cancelBtn} onPress={() => setActiveModal(null)}>
                 <Text style={styles.cancelText}>{t('common', 'cancel')}</Text>

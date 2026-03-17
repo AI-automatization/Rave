@@ -1,5 +1,5 @@
-// CineSync Mobile — ProfileScreen
-import React, { useState } from 'react';
+// CineSync Mobile — ProfileScreen (animated)
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,8 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  Animated,
+  Dimensions,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -19,6 +21,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useMyProfile } from '@hooks/useProfile';
 import { useAuthStore } from '@store/auth.store';
 import { colors, spacing, borderRadius, typography, RANK_COLORS } from '@theme/index';
@@ -28,8 +31,8 @@ import type { UserRank } from '@app-types/index';
 
 type Nav = NativeStackNavigationProp<ProfileStackParamList, 'Profile'>;
 
+const { width: SCREEN_W } = Dimensions.get('window');
 const RANK_ORDER: UserRank[] = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond'];
-
 const RANK_THRESHOLDS: Record<UserRank, [number, number]> = {
   Bronze:   [0, 499],
   Silver:   [500, 1999],
@@ -37,24 +40,122 @@ const RANK_THRESHOLDS: Record<UserRank, [number, number]> = {
   Platinum: [5000, 9999],
   Diamond:  [10000, 99999],
 };
+const RANK_IONICONS: Record<UserRank, keyof typeof Ionicons.glyphMap> = {
+  Bronze: 'shield-outline',
+  Silver: 'shield-half-outline',
+  Gold: 'shield',
+  Platinum: 'diamond-outline',
+  Diamond: 'trophy',
+};
 
-function StatCard({ icon, value, label }: { icon: string; value: string | number; label: string }) {
+// ─── Animated components ─────────────────────────────────────
+
+function FadeInView({ delay = 0, children, style }: { delay?: number; children: React.ReactNode; style?: object }) {
+  const opacity = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(18)).current;
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      Animated.parallel([
+        Animated.timing(opacity, { toValue: 1, duration: 400, useNativeDriver: true }),
+        Animated.timing(translateY, { toValue: 0, duration: 400, useNativeDriver: true }),
+      ]).start();
+    }, delay);
+    return () => clearTimeout(timer);
+  }, [delay, opacity, translateY]);
+
   return (
-    <View style={styles.statCard}>
-      <Text style={styles.statIcon}>{icon}</Text>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
+    <Animated.View style={[style, { opacity, transform: [{ translateY }] }]}>
+      {children}
+    </Animated.View>
+  );
+}
+
+function AnimatedProgressBar({ progress, color, delay = 300 }: { progress: number; color: string; delay?: number }) {
+  const width = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      Animated.timing(width, { toValue: progress, duration: 800, useNativeDriver: false }).start();
+    }, delay);
+    return () => clearTimeout(timer);
+  }, [progress, delay, width]);
+
+  return (
+    <View style={s.progressTrack}>
+      <Animated.View
+        style={[
+          s.progressFill,
+          {
+            backgroundColor: color,
+            width: width.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] }),
+          },
+        ]}
+      />
     </View>
+  );
+}
+
+function PulsingDot({ active }: { active: boolean }) {
+  const scale = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (!active) return;
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(scale, { toValue: 1.4, duration: 800, useNativeDriver: true }),
+        Animated.timing(scale, { toValue: 1, duration: 800, useNativeDriver: true }),
+      ]),
+    );
+    pulse.start();
+    return () => pulse.stop();
+  }, [active, scale]);
+
+  return (
+    <View style={s.onlineDotWrap}>
+      {active && (
+        <Animated.View
+          style={[s.onlinePulse, { backgroundColor: colors.success + '40', transform: [{ scale }] }]}
+        />
+      )}
+      <View style={[s.onlineDot, { backgroundColor: active ? colors.success : colors.textDim }]} />
+    </View>
+  );
+}
+
+function StatCard({ icon, value, label, delay = 0, iconColor }: { icon: keyof typeof Ionicons.glyphMap; value: string | number; label: string; delay?: number; iconColor?: string }) {
+  return (
+    <FadeInView delay={delay} style={s.statCard}>
+      <Ionicons name={icon} size={24} color={iconColor ?? colors.primary} />
+      <Text style={s.statValue}>{value}</Text>
+      <Text style={s.statLabel}>{label}</Text>
+    </FadeInView>
   );
 }
 
 function InfoRow({ icon, label, value }: { icon: keyof typeof Ionicons.glyphMap; label: string; value: string }) {
   return (
-    <View style={styles.infoRow}>
-      <Ionicons name={icon} size={18} color={colors.textMuted} />
-      <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={styles.infoValue}>{value}</Text>
+    <View style={s.infoRow}>
+      <View style={s.infoIconWrap}>
+        <Ionicons name={icon} size={16} color={colors.primary} />
+      </View>
+      <Text style={s.infoLabel}>{label}</Text>
+      <Text style={s.infoValue} numberOfLines={1}>{value}</Text>
     </View>
+  );
+}
+
+function NavItem({ icon, label, onPress, delay = 0 }: { icon: keyof typeof Ionicons.glyphMap; label: string; onPress: () => void; delay?: number }) {
+  return (
+    <FadeInView delay={delay}>
+      <TouchableOpacity style={s.navLink} onPress={onPress} activeOpacity={0.7}>
+        <View style={s.navIconWrap}>
+          <Ionicons name={icon} size={20} color={colors.primary} />
+        </View>
+        <Text style={s.navLinkText}>{label}</Text>
+        <Ionicons name="chevron-forward" size={18} color={colors.textDim} />
+      </TouchableOpacity>
+    </FadeInView>
   );
 }
 
@@ -64,6 +165,8 @@ function formatDate(date: Date | string | null | undefined): string {
   if (isNaN(d.getTime())) return '—';
   return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' });
 }
+
+// ─── Main ─────────────────────────────────────────────────────
 
 export function ProfileScreen() {
   const navigation = useNavigation<Nav>();
@@ -77,6 +180,9 @@ export function ProfileScreen() {
   const [editUsername, setEditUsername] = useState('');
   const [editBio, setEditBio] = useState('');
 
+  // Avatar scale animation on press
+  const avatarScale = useRef(new Animated.Value(1)).current;
+
   const handleLogout = () => {
     Alert.alert(t('profile', 'logoutTitle'), t('profile', 'logoutMsg'), [
       { text: t('common', 'cancel'), style: 'cancel' },
@@ -85,6 +191,11 @@ export function ProfileScreen() {
   };
 
   const handlePickAvatar = async () => {
+    Animated.sequence([
+      Animated.timing(avatarScale, { toValue: 0.9, duration: 100, useNativeDriver: true }),
+      Animated.timing(avatarScale, { toValue: 1, duration: 100, useNativeDriver: true }),
+    ]).start();
+
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') return;
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -112,12 +223,34 @@ export function ProfileScreen() {
     );
   };
 
-  if (!user) return <ActivityIndicator style={styles.loader} color={colors.primary} />;
+  const displayUser = profileQuery.data ?? user;
 
-  const rank = user.rank ?? 'Bronze';
+  if (!displayUser) {
+    if (profileQuery.isLoading) {
+      return (
+        <View style={[s.root, { alignItems: 'center', justifyContent: 'center' }]}>
+          <ActivityIndicator color={colors.primary} size="large" />
+        </View>
+      );
+    }
+    return (
+      <View style={[s.root, { alignItems: 'center', justifyContent: 'center' }]}>
+        <View style={s.emptyIcon}>
+          <Ionicons name="person-outline" size={40} color={colors.textDim} />
+        </View>
+        <Text style={s.emptyText}>{t('profile', 'title')}</Text>
+        <TouchableOpacity style={s.retryBtn} onPress={() => profileQuery.refetch()} activeOpacity={0.8}>
+          <Text style={s.retryText}>{t('common', 'retry') || 'Retry'}</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  const u = displayUser;
+  const rank = (u.rank ?? 'Bronze') as UserRank;
   const rankColor = RANK_COLORS[rank] ?? colors.textMuted;
   const [rankMin, rankMax] = RANK_THRESHOLDS[rank] ?? [0, 1];
-  const totalPts = user.totalPoints ?? 0;
+  const totalPts = u.totalPoints ?? 0;
   const rankProgress = rankMax > rankMin
     ? Math.min(((totalPts - rankMin) / (rankMax - rankMin)) * 100, 100)
     : 0;
@@ -126,182 +259,199 @@ export function ProfileScreen() {
 
   return (
     <>
-      <ScrollView style={styles.root} showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
-          <Text style={styles.title}>{t('profile', 'title')}</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Settings')} style={styles.settingsBtn}>
-            <Ionicons name="settings-outline" size={22} color={colors.textSecondary} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Profile card */}
-        <View style={styles.profileCard}>
-          {/* Avatar + edit overlay */}
-          <TouchableOpacity style={styles.avatarWrap} onPress={handlePickAvatar} activeOpacity={0.8}>
-            <Image
-              source={user.avatar ? { uri: user.avatar } : require('../../../assets/icon.png')}
-              style={styles.avatar}
-              contentFit="cover"
-            />
-            <View style={styles.avatarEditOverlay}>
-              <Ionicons name="camera" size={14} color={colors.textPrimary} />
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={openEditModal} activeOpacity={0.8} style={styles.usernameRow}>
-            <Text style={styles.username}>{user.username}</Text>
-            <Ionicons name="pencil-outline" size={16} color={colors.textMuted} />
-          </TouchableOpacity>
-
-          {/* Online status */}
-          <View style={styles.onlineRow}>
-            <View style={[styles.onlineDot, { backgroundColor: user.isOnline === true ? colors.success : colors.textDim }]} />
-            <Text style={[styles.onlineText, { color: user.isOnline === true ? colors.success : colors.textMuted }]}>
-              {user.isOnline === true ? 'Online' : 'Offline'}
-            </Text>
+      <ScrollView style={s.root} showsVerticalScrollIndicator={false} bounces={false}>
+        {/* ── Gradient Header ─────────────────────────── */}
+        <LinearGradient
+          colors={[rankColor + '25', colors.bgBase]}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={[s.headerGradient, { paddingTop: insets.top + spacing.md }]}
+        >
+          {/* Top row */}
+          <View style={s.topRow}>
+            <Text style={s.title}>{t('profile', 'title')}</Text>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Settings')}
+              style={s.settingsBtn}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="settings-outline" size={22} color={colors.textSecondary} />
+            </TouchableOpacity>
           </View>
 
-          <View style={styles.rankBadge}>
-            <View style={[styles.rankDot, { backgroundColor: rankColor }]} />
-            <Text style={[styles.rankText, { color: rankColor }]}>{rank}</Text>
-            <Text style={styles.rankPts}>{totalPts} {t('profile', 'points')}</Text>
-          </View>
-          {user.bio ? <Text style={styles.bio}>{user.bio}</Text> : null}
+          {/* Avatar */}
+          <FadeInView delay={100} style={s.avatarSection}>
+            <TouchableOpacity onPress={handlePickAvatar} activeOpacity={0.85}>
+              <Animated.View style={[s.avatarRing, { borderColor: rankColor + '60', transform: [{ scale: avatarScale }] }]}>
+                <Image
+                  source={u.avatar ? { uri: u.avatar } : require('../../../assets/icon.png')}
+                  style={s.avatar}
+                  contentFit="cover"
+                />
+              </Animated.View>
+              <View style={[s.avatarEditBadge, { backgroundColor: colors.primary }]}>
+                <Ionicons name="camera" size={12} color="#fff" />
+              </View>
+            </TouchableOpacity>
+          </FadeInView>
 
-          {/* Rank progress bar */}
-          <View style={styles.progressWrap}>
-            <View style={styles.progressRow}>
-              <Text style={styles.progressLabel}>{totalPts} {t('profile', 'points')}</Text>
-              <Text style={styles.progressLabel}>{rankMax} {t('profile', 'points')}</Text>
+          {/* Username + online */}
+          <FadeInView delay={200} style={s.nameSection}>
+            <TouchableOpacity onPress={openEditModal} activeOpacity={0.8} style={s.usernameRow}>
+              <Text style={s.username}>{u.username}</Text>
+              <Ionicons name="create-outline" size={16} color={colors.textMuted} />
+            </TouchableOpacity>
+
+            <View style={s.onlineRow}>
+              <PulsingDot active={u.isOnline === true} />
+              <Text style={[s.onlineText, { color: u.isOnline === true ? colors.success : colors.textMuted }]}>
+                {u.isOnline === true ? 'Online' : 'Offline'}
+              </Text>
             </View>
-            <View style={styles.progressTrack}>
-              <View style={[styles.progressFill, { width: `${rankProgress}%`, backgroundColor: rankColor }]} />
+          </FadeInView>
+
+          {/* Rank badge */}
+          <FadeInView delay={300} style={s.rankSection}>
+            <View style={[s.rankChip, { backgroundColor: rankColor + '18', borderColor: rankColor + '35' }]}>
+              <Ionicons name={RANK_IONICONS[rank]} size={16} color={rankColor} />
+              <Text style={[s.rankName, { color: rankColor }]}>{rank}</Text>
+              <View style={s.rankDivider} />
+              <Text style={[s.rankPts, { color: rankColor }]}>{totalPts} {t('profile', 'points')}</Text>
             </View>
+          </FadeInView>
+
+          {u.bio ? (
+            <FadeInView delay={350}>
+              <Text style={s.bio}>{u.bio}</Text>
+            </FadeInView>
+          ) : null}
+
+          {/* Rank progress */}
+          <FadeInView delay={400} style={s.progressWrap}>
+            <View style={s.progressLabelRow}>
+              <Text style={s.progressLabel}>{totalPts}</Text>
+              <Text style={s.progressLabel}>{rankMax}</Text>
+            </View>
+            <AnimatedProgressBar progress={rankProgress} color={rankColor} delay={500} />
             {nextRank ? (
-              <Text style={styles.progressSub}>{rank} → {nextRank}</Text>
+              <Text style={s.progressSub}>{rank}  →  {nextRank}</Text>
             ) : (
-              <Text style={[styles.progressSub, { color: rankColor }]}>MAX RANK</Text>
+              <Text style={[s.progressSub, { color: rankColor, fontWeight: '700' }]}>MAX RANK</Text>
             )}
+          </FadeInView>
+        </LinearGradient>
+
+        {/* ── Stats ──────────────────────────────────── */}
+        <View style={s.section}>
+          <Text style={s.sectionTitle}>{t('profile', 'stats')}</Text>
+          <View style={s.statsGrid}>
+            <StatCard icon="film-outline" value={stats?.totalWatched ?? 0} label={t('profile', 'movies')} delay={200} iconColor={colors.primary} />
+            <StatCard icon="time-outline" value={`${Math.round((stats?.totalMinutes ?? 0) / 60)}h`} label={t('profile', 'hours')} delay={300} iconColor={colors.secondary} />
+            <StatCard icon="flash-outline" value={stats?.battlesWon ?? 0} label={t('profile', 'wins')} delay={400} iconColor={colors.error} />
+            <StatCard icon="ribbon-outline" value={stats?.achievementsCount ?? 0} label={t('profile', 'badges')} delay={500} iconColor={colors.gold} />
           </View>
         </View>
 
-        {/* Stats grid */}
-        <View style={styles.statsSection}>
-          <Text style={styles.sectionTitle}>{t('profile', 'stats')}</Text>
-          {stats ? (
-            <View style={styles.statsGrid}>
-              <StatCard icon="🎬" value={stats.totalWatched ?? 0} label={t('profile', 'movies')} />
-              <StatCard icon="⏱" value={`${Math.round((stats.totalMinutes ?? 0) / 60)}h`} label={t('profile', 'hours')} />
-              <StatCard icon="⚔️" value={stats.battlesWon ?? 0} label={t('profile', 'wins')} />
-              <StatCard icon="🏅" value={stats.achievementsCount ?? 0} label={t('profile', 'badges')} />
-            </View>
-          ) : statsQuery.isLoading ? (
-            <ActivityIndicator color={colors.primary} size="small" />
-          ) : (
-            <View style={styles.statsGrid}>
-              <StatCard icon="🎬" value={0} label={t('profile', 'movies')} />
-              <StatCard icon="⏱" value="0h" label={t('profile', 'hours')} />
-              <StatCard icon="⚔️" value={0} label={t('profile', 'wins')} />
-              <StatCard icon="🏅" value={0} label={t('profile', 'badges')} />
-            </View>
-          )}
-        </View>
-
-        {/* Account info */}
-        <View style={styles.accountSection}>
-          <Text style={styles.sectionTitle}>{t('profile', 'accountInfo')}</Text>
-          <View style={styles.accountCard}>
-            <InfoRow icon="mail-outline" label="Email" value={user.email ?? '—'} />
-            <View style={styles.infoDivider} />
-            <InfoRow icon="shield-checkmark-outline" label={t('profile', 'role')} value={user.role ?? '—'} />
-            <View style={styles.infoDivider} />
-            <InfoRow icon="calendar-outline" label={t('profile', 'joined')} value={formatDate(user.createdAt)} />
-            <View style={styles.infoDivider} />
-            <InfoRow icon="time-outline" label={t('profile', 'lastLogin')} value={formatDate(user.lastLoginAt)} />
+        {/* ── Account info ───────────────────────────── */}
+        <View style={s.section}>
+          <Text style={s.sectionTitle}>{t('profile', 'accountInfo')}</Text>
+          <FadeInView delay={300} style={s.accountCard}>
+            <InfoRow icon="mail-outline" label="Email" value={u.email ?? '—'} />
+            <View style={s.infoDivider} />
+            <InfoRow icon="shield-checkmark-outline" label={t('profile', 'role')} value={u.role ?? '—'} />
+            <View style={s.infoDivider} />
+            <InfoRow icon="calendar-outline" label={t('profile', 'joined')} value={formatDate(u.createdAt)} />
+            <View style={s.infoDivider} />
+            <InfoRow icon="time-outline" label={t('profile', 'lastLogin')} value={formatDate(u.lastLoginAt)} />
             {stats?.friendsCount !== undefined && (
               <>
-                <View style={styles.infoDivider} />
+                <View style={s.infoDivider} />
                 <InfoRow icon="people-outline" label={t('profile', 'friends')} value={String(stats.friendsCount)} />
               </>
             )}
             {stats?.currentStreak !== undefined && stats.currentStreak > 0 && (
               <>
-                <View style={styles.infoDivider} />
+                <View style={s.infoDivider} />
                 <InfoRow icon="flame-outline" label={t('profile', 'streak')} value={`${stats.currentStreak} ${t('stats', 'days')}`} />
               </>
             )}
-          </View>
+          </FadeInView>
         </View>
 
-        {/* Navigation links */}
-        <View style={styles.navLinks}>
-          {([
-            { icon: 'bar-chart-outline', label: t('profile', 'stats'), screen: 'Stats' },
-            { icon: 'ribbon-outline', label: t('profile', 'achievements'), screen: 'Achievements' },
-          ] as const).map(item => (
-            <TouchableOpacity
-              key={item.screen}
-              style={styles.navLink}
-              onPress={() => navigation.navigate(item.screen)}
-              activeOpacity={0.8}
-            >
-              <Ionicons name={item.icon} size={20} color={colors.secondary} />
-              <Text style={styles.navLinkText}>{item.label}</Text>
-              <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-            </TouchableOpacity>
-          ))}
+        {/* ── Nav links ──────────────────────────────── */}
+        <View style={s.section}>
+          <NavItem
+            icon="bar-chart-outline"
+            label={t('profile', 'stats')}
+            onPress={() => navigation.navigate('Stats')}
+            delay={400}
+          />
+          <View style={{ height: spacing.sm }} />
+          <NavItem
+            icon="ribbon-outline"
+            label={t('profile', 'achievements')}
+            onPress={() => navigation.navigate('Achievements')}
+            delay={500}
+          />
         </View>
 
-        {/* Logout */}
-        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.8}>
-          <Ionicons name="log-out-outline" size={20} color={colors.error} />
-          <Text style={styles.logoutText}>{t('profile', 'logoutBtn')}</Text>
-        </TouchableOpacity>
+        {/* ── Logout ─────────────────────────────────── */}
+        <FadeInView delay={600} style={s.section}>
+          <TouchableOpacity style={s.logoutBtn} onPress={handleLogout} activeOpacity={0.7}>
+            <Ionicons name="log-out-outline" size={20} color={colors.error} />
+            <Text style={s.logoutText}>{t('profile', 'logoutBtn')}</Text>
+          </TouchableOpacity>
+        </FadeInView>
 
-        {profileQuery.isFetching && <ActivityIndicator style={styles.refreshIndicator} color={colors.primary} size="small" />}
-        <View style={{ height: 60 + insets.bottom + spacing.lg }} />
+        {profileQuery.isFetching && (
+          <ActivityIndicator style={{ marginVertical: spacing.md }} color={colors.primary} size="small" />
+        )}
+        <View style={{ height: 60 + insets.bottom + spacing.xl }} />
       </ScrollView>
 
-      {/* Edit Profile Modal */}
+      {/* ── Edit Modal ───────────────────────────────── */}
       <Modal visible={editVisible} transparent animationType="slide" onRequestClose={() => setEditVisible(false)}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
-          <View style={styles.modalSheet}>
-            <View style={styles.modalHandle} />
-            <Text style={styles.modalTitle}>{t('profile', 'editProfile')}</Text>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={s.modalOverlay}>
+          <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setEditVisible(false)} />
+          <View style={s.modalSheet}>
+            <View style={s.modalHandle} />
+            <Text style={s.modalTitle}>{t('profile', 'editProfile')}</Text>
 
-            <Text style={styles.inputLabel}>{t('profile', 'username')}</Text>
+            <Text style={s.inputLabel}>{t('profile', 'username')}</Text>
             <TextInput
-              style={styles.modalInput}
+              style={s.modalInput}
               value={editUsername}
               onChangeText={setEditUsername}
               placeholderTextColor={colors.textMuted}
               autoCapitalize="none"
             />
 
-            <Text style={styles.inputLabel}>{t('profile', 'bio')}</Text>
+            <Text style={s.inputLabel}>{t('profile', 'bio')}</Text>
             <TextInput
-              style={[styles.modalInput, styles.modalInputMulti]}
+              style={[s.modalInput, s.modalInputMulti]}
               value={editBio}
               onChangeText={(txt) => setEditBio(txt.slice(0, 200))}
               placeholderTextColor={colors.textMuted}
+              placeholder="Write something about yourself..."
               multiline
               textAlignVertical="top"
             />
+            <Text style={s.charCount}>{editBio.length}/200</Text>
 
-            <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => setEditVisible(false)}>
-                <Text style={styles.cancelText}>{t('common', 'cancel')}</Text>
+            <View style={s.modalActions}>
+              <TouchableOpacity style={s.cancelBtn} onPress={() => setEditVisible(false)} activeOpacity={0.8}>
+                <Text style={s.cancelText}>{t('common', 'cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.saveBtn, updateProfileMutation.isPending && styles.btnDisabled]}
+                style={[s.saveBtn, updateProfileMutation.isPending && s.btnDisabled]}
                 onPress={handleSaveEdit}
                 disabled={updateProfileMutation.isPending}
+                activeOpacity={0.8}
               >
                 {updateProfileMutation.isPending ? (
-                  <ActivityIndicator size="small" color={colors.textPrimary} />
+                  <ActivityIndicator size="small" color="#fff" />
                 ) : (
-                  <Text style={styles.saveText}>{t('common', 'save')}</Text>
+                  <Text style={s.saveText}>{t('common', 'save')}</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -312,108 +462,216 @@ export function ProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+// ─── Styles ───────────────────────────────────────────────────
+const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bgBase },
-  loader: { flex: 1, marginTop: 80 },
-  header: {
+
+  // Header gradient
+  headerGradient: {
+    paddingBottom: spacing.xl,
+    alignItems: 'center',
+  },
+  topRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    width: '100%',
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    marginBottom: spacing.lg,
   },
   title: { ...typography.h1, color: colors.textPrimary },
-  settingsBtn: { padding: spacing.xs },
-  profileCard: {
-    alignItems: 'center',
-    padding: spacing.xxl,
-    gap: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  avatarWrap: { position: 'relative', marginBottom: spacing.sm },
-  avatar: { width: 88, height: 88, borderRadius: borderRadius.full },
-  avatarEditOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: colors.primary,
+  settingsBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.bgElevated,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
+  },
+
+  // Avatar
+  avatarSection: { alignItems: 'center', marginBottom: spacing.md },
+  avatarRing: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatar: { width: 90, height: 90, borderRadius: 45 },
+  avatarEditBadge: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
     borderColor: colors.bgBase,
   },
-  usernameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
-  username: { ...typography.h2, color: colors.textPrimary },
+
+  // Name
+  nameSection: { alignItems: 'center', gap: spacing.xs },
+  usernameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  username: { fontSize: 22, fontWeight: '700', color: colors.textPrimary },
   onlineRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  onlineDotWrap: { width: 12, height: 12, alignItems: 'center', justifyContent: 'center' },
+  onlinePulse: { position: 'absolute', width: 12, height: 12, borderRadius: 6 },
   onlineDot: { width: 8, height: 8, borderRadius: 4 },
   onlineText: { ...typography.caption, fontWeight: '600' },
-  rankBadge: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  rankDot: { width: 10, height: 10, borderRadius: 5 },
-  rankText: { ...typography.body, fontWeight: '700' },
-  rankPts: { ...typography.caption, color: colors.textMuted },
-  bio: { ...typography.body, color: colors.textSecondary, textAlign: 'center', paddingHorizontal: spacing.xl },
-  progressWrap: { width: '100%', gap: spacing.xs, marginTop: spacing.sm },
-  progressRow: { flexDirection: 'row', justifyContent: 'space-between' },
+
+  // Rank
+  rankSection: { marginTop: spacing.sm },
+  rankChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.full,
+    borderWidth: 1,
+    gap: spacing.xs,
+  },
+
+  rankName: { fontSize: 14, fontWeight: '700' },
+  rankDivider: { width: 1, height: 14, backgroundColor: colors.border, marginHorizontal: spacing.xs },
+  rankPts: { fontSize: 12, fontWeight: '600' },
+  bio: {
+    ...typography.body,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    paddingHorizontal: spacing.xxl,
+    marginTop: spacing.sm,
+    lineHeight: 20,
+  },
+
+  // Progress
+  progressWrap: { width: SCREEN_W - spacing.xxl * 2, marginTop: spacing.md },
+  progressLabelRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.xs },
   progressLabel: { ...typography.caption, color: colors.textMuted },
-  progressTrack: { height: 8, backgroundColor: colors.bgElevated, borderRadius: borderRadius.full, overflow: 'hidden' },
+  progressTrack: {
+    height: 6,
+    backgroundColor: colors.bgElevated,
+    borderRadius: borderRadius.full,
+    overflow: 'hidden',
+  },
   progressFill: { height: '100%', borderRadius: borderRadius.full },
-  progressSub: { ...typography.caption, color: colors.textMuted, textAlign: 'center' },
-  sectionTitle: { ...typography.label, color: colors.textMuted, textTransform: 'uppercase', marginBottom: spacing.sm },
-  statsSection: { padding: spacing.lg },
+  progressSub: { ...typography.caption, color: colors.textMuted, textAlign: 'center', marginTop: spacing.xs },
+
+  // Section
+  section: { paddingHorizontal: spacing.lg, marginTop: spacing.lg },
+  sectionTitle: {
+    ...typography.label,
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: spacing.sm,
+  },
+
+  // Stats
   statsGrid: { flexDirection: 'row', gap: spacing.sm },
-  statCard: { flex: 1, backgroundColor: colors.bgSurface, borderRadius: borderRadius.md, padding: spacing.md, alignItems: 'center', gap: spacing.xs },
-  statIcon: { fontSize: 22 },
-  statValue: { ...typography.h3, color: colors.textPrimary },
+  statCard: {
+    flex: 1,
+    backgroundColor: colors.bgSurface,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    alignItems: 'center',
+    gap: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+
+  statValue: { fontSize: 18, fontWeight: '700', color: colors.textPrimary },
   statLabel: { ...typography.caption, color: colors.textMuted },
-  accountSection: { paddingHorizontal: spacing.lg, marginBottom: spacing.md },
+
+  // Account info
   accountCard: {
     backgroundColor: colors.bgSurface,
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.lg,
     padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    paddingVertical: spacing.sm,
+    paddingVertical: 10,
   },
-  infoLabel: { ...typography.caption, color: colors.textMuted, width: 90 },
-  infoValue: { ...typography.body, color: colors.textPrimary, flex: 1, textAlign: 'right' },
-  infoDivider: { height: 1, backgroundColor: colors.border },
-  navLinks: { marginHorizontal: spacing.lg, gap: spacing.sm },
+  infoIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.primary + '15',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  infoLabel: { ...typography.caption, color: colors.textMuted, flex: 1 },
+  infoValue: { ...typography.body, color: colors.textPrimary, maxWidth: SCREEN_W * 0.45, textAlign: 'right' },
+  infoDivider: { height: 1, backgroundColor: colors.border, marginLeft: 44 },
+
+  // Nav links
   navLink: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
     backgroundColor: colors.bgSurface,
     padding: spacing.md,
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  navLinkText: { ...typography.body, color: colors.textPrimary, flex: 1 },
+  navIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: colors.primary + '15',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  navLinkText: { ...typography.body, color: colors.textPrimary, flex: 1, fontWeight: '500' },
+
+  // Logout
   logoutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
-    margin: spacing.lg,
+    justifyContent: 'center',
+    gap: spacing.sm,
     padding: spacing.md,
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.error + '10',
     borderWidth: 1,
-    borderColor: colors.error + '55',
+    borderColor: colors.error + '25',
   },
-  logoutText: { ...typography.body, color: colors.error },
-  refreshIndicator: { marginTop: spacing.md },
+  logoutText: { ...typography.body, color: colors.error, fontWeight: '600' },
+
+  // Empty
+  emptyIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: colors.bgSurface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.lg,
+  },
+  emptyText: { ...typography.body, color: colors.textMuted, marginBottom: spacing.lg },
+  retryBtn: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.xxl,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.lg,
+  },
+  retryText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+
   // Modal
-  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.6)' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' },
   modalSheet: {
     backgroundColor: colors.bgSurface,
-    borderTopLeftRadius: borderRadius.xl,
-    borderTopRightRadius: borderRadius.xl,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     padding: spacing.xl,
     gap: spacing.md,
     paddingBottom: spacing.xxxl,
@@ -427,17 +685,18 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   modalTitle: { ...typography.h2, color: colors.textPrimary },
-  inputLabel: { ...typography.label, color: colors.textMuted },
+  inputLabel: { ...typography.label, color: colors.textMuted, marginTop: spacing.xs },
   modalInput: {
     backgroundColor: colors.bgElevated,
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.lg,
     borderWidth: 1,
     borderColor: colors.border,
     padding: spacing.md,
     color: colors.textPrimary,
     fontSize: 15,
   },
-  modalInputMulti: { height: 80, textAlignVertical: 'top' },
+  modalInputMulti: { height: 90, textAlignVertical: 'top' },
+  charCount: { ...typography.caption, color: colors.textDim, textAlign: 'right' },
   modalActions: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.sm },
   cancelBtn: {
     flex: 1,
@@ -447,7 +706,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  cancelText: { ...typography.body, color: colors.textSecondary },
+  cancelText: { ...typography.body, color: colors.textSecondary, fontWeight: '600' },
   saveBtn: {
     flex: 1,
     backgroundColor: colors.primary,
@@ -456,6 +715,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  btnDisabled: { opacity: 0.6 },
-  saveText: { color: colors.textPrimary, fontWeight: '700', fontSize: 15 },
+  btnDisabled: { opacity: 0.5 },
+  saveText: { color: '#fff', fontWeight: '700', fontSize: 15 },
 });

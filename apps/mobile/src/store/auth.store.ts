@@ -70,14 +70,38 @@ export const useAuthStore = create<AuthState>((set) => ({
             const user = await userApi.getMe();
             set({ user });
           } catch (err: unknown) {
-            // Token expired yoki invalid (401) bo'lsa logout
-            // User service down (network error, 5xx) bo'lsa logout QILMAYMIZ
             const status = (err as { response?: { status?: number } })?.response?.status;
             if (status === 401 || status === 403) {
+              // Token expired yoki invalid → logout
               await tokenStorage.clear();
               set({ accessToken: null, isAuthenticated: false });
+            } else if (status === 404) {
+              // User service da profil yo'q — JWT dan minimal user yaratamiz
+              try {
+                const payload = JSON.parse(atob(accessToken.split('.')[1]));
+                set({
+                  user: {
+                    _id: payload.userId ?? userId ?? '',
+                    email: payload.email ?? '',
+                    username: payload.email?.split('@')[0] ?? 'User',
+                    avatar: null,
+                    bio: '',
+                    role: payload.role ?? 'user',
+                    rank: 'Bronze',
+                    totalPoints: 0,
+                    isEmailVerified: payload.isEmailVerified ?? false,
+                    isBlocked: false,
+                    fcmTokens: [],
+                    lastLoginAt: null,
+                    createdAt: new Date(),
+                    updatedAt: new Date(),
+                  },
+                });
+              } catch {
+                // JWT decode failed — user qoladi null
+              }
             }
-            // Boshqa xatolarda: token saqlanadi, user null qoladi (keyingi so'rovda qayta urinadi)
+            // Boshqa xatolarda: token saqlanadi, user null qoladi
           }
         }
       } catch {

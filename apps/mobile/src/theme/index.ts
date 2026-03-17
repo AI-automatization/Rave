@@ -47,10 +47,10 @@ export const colors = {
 } as const;
 
 export const RANK_COLORS: Record<UserRank, string> = {
-  Bronze: '#F59E0B',   // amber-500
+  Bronze: '#CD7F32',   // classic bronze
   Silver: '#A1A1AA',   // zinc-400
-  Gold: '#FBBF24',     // amber-400
-  Platinum: '#E5E4E2',
+  Gold: '#E5A100',     // warm gold (not neon yellow)
+  Platinum: '#B0C4DE', // light steel blue
   Diamond: '#7C3AED',  // violet (web bilan bir xil)
 };
 
