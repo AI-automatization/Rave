@@ -1,7 +1,8 @@
 // CineSync Mobile — WebViewPlayer
 // react-native-webview asosida har qanday saytdan video o'ynatish
 // M6: Loading overlay, ad blocker, redirect warning, fullscreen, error+retry
-import React, { forwardRef, useImperativeHandle, useRef, useState, useCallback, useEffect } from 'react';
+// M7: Site-specific adapters (uzmovi.tv, kinogo.cc, filmix.net, hdrezka.ag, generic)
+import React, { forwardRef, useImperativeHandle, useRef, useState, useCallback, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -13,6 +14,7 @@ import {
 import WebView from 'react-native-webview';
 import type { WebViewMessageEvent, ShouldStartLoadRequest, WebViewNavigation } from 'react-native-webview';
 import { colors, spacing, typography, borderRadius } from '@theme/index';
+import { getAdapter, buildInjectJs } from './WebViewAdapters';
 
 // Reklama domenlarini bloklash
 const AD_HOSTNAMES = [
@@ -70,72 +72,15 @@ type WebViewMessage =
   | { type: 'PROGRESS'; currentTime: number; duration: number }
   | { type: 'IFRAME_FOUND'; urls: string[] };
 
-// Sahifaga inject qilinadigan JS:
-// 1. <video> element paydo bo'lishini MutationObserver bilan kutadi
-// 2. play/pause/seeked eventlarini postMessage orqali RN ga yuboradi
-// 3. Har 2 sekundda progress yuboradi
-// 4. window._csVideo orqali RN dan boshqarish mumkin bo'ladi
-const INJECT_JS = `
-(function() {
-  if (window._csVideoSetup) return;
-  window._csVideoSetup = true;
-
-  function rn(obj) {
-    window.ReactNativeWebView.postMessage(JSON.stringify(obj));
-  }
-
-  function attachVideo(v) {
-    if (window._csVideo === v) return;
-    window._csVideo = v;
-
-    v.addEventListener('play', function() {
-      rn({ type: 'PLAY', currentTime: v.currentTime });
-    });
-    v.addEventListener('pause', function() {
-      rn({ type: 'PAUSE', currentTime: v.currentTime });
-    });
-    v.addEventListener('seeked', function() {
-      rn({ type: 'SEEK', currentTime: v.currentTime });
-    });
-
-    if (window._csProgressInterval) clearInterval(window._csProgressInterval);
-    window._csProgressInterval = setInterval(function() {
-      if (window._csVideo && !window._csVideo.paused) {
-        rn({ type: 'PROGRESS', currentTime: window._csVideo.currentTime, duration: window._csVideo.duration || 0 });
-      }
-    }, 2000);
-
-    rn({ type: 'VIDEO_FOUND' });
-  }
-
-  function scan() {
-    var v = document.querySelector('video');
-    if (v) { attachVideo(v); return; }
-
-    var iframes = document.querySelectorAll('iframe');
-    var urls = [];
-    for (var i = 0; i < iframes.length; i++) {
-      if (iframes[i].src && iframes[i].src.indexOf('http') === 0) {
-        urls.push(iframes[i].src);
-      }
-    }
-    if (urls.length) rn({ type: 'IFRAME_FOUND', urls: urls });
-  }
-
-  var obs = new MutationObserver(scan);
-  obs.observe(document.documentElement, { childList: true, subtree: true });
-  scan();
-  setTimeout(scan, 1500);
-  setTimeout(scan, 4000);
-})();
-true;
-`;
 
 export const WebViewPlayer = forwardRef<WebViewPlayerRef, Props>(
   ({ url, isOwner, onPlay, onPause, onSeek, onProgress }, ref) => {
     const webviewRef = useRef<WebView>(null);
     const currentTimeMsRef = useRef(0);
     const originalHostRef = useRef(getHostname(url));
+
+    // M7: URL ga qarab saytga xos adapter tanlanadi
+    const injectJs = useMemo(() => buildInjectJs(getAdapter(url)), [url]);
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
@@ -261,7 +206,7 @@ export const WebViewPlayer = forwardRef<WebViewPlayerRef, Props>(
             domStorageEnabled
             allowsInlineMediaPlayback
             mediaPlaybackRequiresUserAction={false}
-            injectedJavaScript={INJECT_JS}
+            injectedJavaScript={injectJs}
             onMessage={handleMessage}
             onLoadEnd={() => setLoading(false)}
             onError={() => {
