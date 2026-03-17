@@ -241,7 +241,7 @@ GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state
 
 - **Sana:** 2026-03-11
 - **Mas'ul:** Emirhan (Mobile — asosiy), Saidazim (Backend — minimal), Jafar (Web — fallback UI)
-- **Holat:** ✅ Mobile M1-M5 TUGADI (2026-03-12) | Backend B1-B2 pending[Saidazim] | Web W1 pending[Jafar]
+- **Holat:** ✅ Mobile M1-M5 TUGADI (2026-03-12) | M6-M7 pending[Emirhan] | Backend B1-B2 pending[Saidazim] | Web W1 pending[Jafar]
 - **Sprint:** S2-S3
 - **Prioritet:** P1 — foydalanuvchilar faqat YouTube ko'ra olmoqda, boshqa saytlar ishlamayapti
 
