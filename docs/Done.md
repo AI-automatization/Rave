@@ -4,6 +4,42 @@
 
 ---
 
+### F-126 | 2026-03-16 | [MOBILE] | Backend ↔ Mobile API alignment + missing endpoints fix [Emirhan]
+
+- **Barcha 6 ta servis tekshirildi** — route/method mos kelmasliklar topilmadi ✅
+- **VerifyEmailScreen resend bug:** `handleResend` `navigation.replace('Register')` chaqirar edi (API chaqirmasdan)
+  - **Fix:** `authApi.resendVerification(email)` qo'shildi (`auth.api.ts`), 60 soniya cooldown timer (`VerifyEmailScreen.tsx`)
+- **Online status bug:** `POST /users/heartbeat` hech qachon chaqirilmasdi → foydalanuvchi doim offline ko'rinar edi
+  - **Fix:** `userApi.heartbeat()` qo'shildi (`user.api.ts`), har 2 daqiqada interval `AppNavigator.tsx` da (`isAuthenticated` ga bog'liq)
+- **Fayllar:** `auth.api.ts`, `user.api.ts`, `AppNavigator.tsx`, `VerifyEmailScreen.tsx`
+
+---
+
+### F-125 | 2026-03-16 | [MOBILE] | WatchParty black screen + chat socket mismatch fix [Emirhan]
+
+- **Sabab 1 — Qora ekran:** `room` null bo'lganida (socket `ROOM_JOINED` kelmasdanoldin) `videoUrl=''` → `UniversalPlayer` hech narsa ko'rsatmasdi
+  - **Fix:** `WatchPartyScreen.tsx` da `room` null bo'lsa `<ActivityIndicator>` ko'rsatish, player faqat room yuklangandan keyin render qilish
+- **Sabab 2 — Chat crash (backend):** `sendMessage` `{ roomId, text }` yuborar edi, lekin backend `data.message` kutgan (`data.message.slice(0,500)`) → `undefined.slice()` → backend crash
+  - **Fix:** `useWatchParty.ts` `sendMessage`: `{ roomId, text }` → `{ message: text }` (roomId socket da `authSocket.roomId` sifatida saqlanadi)
+- **Sabab 3 — Xabarlar ko'rinmasdi:** Backend `ROOM_MESSAGE` `{ userId, message, timestamp }` yuboradi, lekin mobile `text` polini kutgan (`MessageEvent.text`) → xabarlar store ga tushmasdi
+  - **Fix:** `MessageEvent` interfeysi yangilandi (`text` → `message`), handler `msg.message` → `text` mapping qiladi
+- **Fayllar:** `apps/mobile/src/hooks/useWatchParty.ts`, `apps/mobile/src/screens/modal/WatchPartyScreen.tsx`
+
+---
+
+### F-124 | 2026-03-16 | [MOBILE] | UniversalPlayer — YouTube WebView embed fallback [Emirhan]
+
+- **Sabab:** `ytdl.getInfo()` Railway serverida YouTube tomonidan bloklanadi → `GET /youtube/stream-url` 500 qaytaradi → `resolveError=true` → "Video yuklashda xato"
+- **Fix:** `resolveError=true` bo'lganda expo-av o'rniga `WebViewPlayer` fallback ishlaydi
+  - `getYouTubeEmbedUrl(url)`: `youtube.com/watch?v=ID` / `youtu.be/ID` / `youtube.com/shorts/ID` → `youtube.com/embed/ID`
+  - `useWebview = platform === 'webview' || (platform === 'youtube' && resolveError)`
+  - `useImperativeHandle` endi `useWebview` asosida ref metodlarini yo'naltiradi
+  - WatchParty owner play/pause/seek WebViewPlayer JS injection orqali ishlaydi
+- **Oqim:** YouTube URL → proxy sinab ko'radi → ✅ muvaffaqiyat (expo-av) | ❌ blokland (WebView embed)
+- **Fayl:** `apps/mobile/src/components/video/UniversalPlayer.tsx`
+
+---
+
 ### F-123 | 2026-03-16 | [WEB] | T-J013 — Security headers + ESLint/TypeScript build fix [Jafar]
 
 - **Fayl:** `apps/web/next.config.mjs`, `apps/web/src/app/(app)/home/page.tsx`, `apps/web/src/app/api/auth/register/route.ts`

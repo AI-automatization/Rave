@@ -8,6 +8,7 @@ import {
   Alert,
   Dimensions,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -163,16 +164,20 @@ export function WatchPartyScreen() {
     <View style={styles.root}>
       {/* Video */}
       <View style={styles.videoContainer}>
-        <UniversalPlayer
-          ref={playerRef}
-          url={videoUrl}
-          isOwner={isOwner}
-          onPlay={handleWebViewPlay}
-          onPause={handleWebViewPause}
-          onSeek={handleWebViewSeek}
-          onPlaybackStatusUpdate={onPlaybackStatusUpdate}
-          onStreamResolved={({ isLive }) => setVideoIsLive(isLive)}
-        />
+        {!room ? (
+          <ActivityIndicator size="large" color={colors.primary} />
+        ) : (
+          <UniversalPlayer
+            ref={playerRef}
+            url={videoUrl}
+            isOwner={isOwner}
+            onPlay={handleWebViewPlay}
+            onPause={handleWebViewPause}
+            onSeek={handleWebViewSeek}
+            onPlaybackStatusUpdate={onPlaybackStatusUpdate}
+            onStreamResolved={({ isLive }) => setVideoIsLive(isLive)}
+          />
+        )}
 
         {/* LIVE badge */}
         {videoIsLive && (

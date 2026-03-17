@@ -11,9 +11,7 @@ interface MemberEvent {
 
 interface MessageEvent {
   userId: string;
-  username: string;
-  avatar: string | null;
-  text: string;
+  message: string;
   timestamp: number;
 }
 
@@ -44,7 +42,7 @@ export function useWatchParty(roomId: string) {
     socket.on(SERVER_EVENTS.VIDEO_SEEK, (state: SyncState) => setSyncState(state));
 
     socket.on(SERVER_EVENTS.ROOM_MESSAGE, (msg: MessageEvent) => {
-      addMessage({ id: `${msg.userId}-${msg.timestamp}`, ...msg });
+      addMessage({ id: `${msg.userId}-${msg.timestamp}`, userId: msg.userId, username: '', avatar: null, text: msg.message, timestamp: msg.timestamp });
     });
 
     socket.on(SERVER_EVENTS.MEMBER_JOINED, (data: MemberEvent) => addMember(data.userId));
@@ -85,8 +83,8 @@ export function useWatchParty(roomId: string) {
   );
 
   const sendMessage = useCallback(
-    (text: string) => getSocket()?.emit(CLIENT_EVENTS.SEND_MESSAGE, { roomId, text }),
-    [roomId],
+    (text: string) => getSocket()?.emit(CLIENT_EVENTS.SEND_MESSAGE, { message: text }),
+    [],
   );
 
   const sendEmoji = useCallback(

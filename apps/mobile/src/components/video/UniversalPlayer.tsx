@@ -38,6 +38,16 @@ export function detectVideoPlatform(url: string): VideoPlatform {
   return 'webview';
 }
 
+function getYouTubeEmbedUrl(url: string): string {
+  const watchMatch = url.match(/[?&]v=([^&]+)/);
+  if (watchMatch) return `https://www.youtube.com/embed/${watchMatch[1]}`;
+  const shortMatch = url.match(/youtu\.be\/([^?&/]+)/);
+  if (shortMatch) return `https://www.youtube.com/embed/${shortMatch[1]}`;
+  const shortsMatch = url.match(/\/shorts\/([^?&/]+)/);
+  if (shortsMatch) return `https://www.youtube.com/embed/${shortsMatch[1]}`;
+  return url;
+}
+
 export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
   ({ url, isOwner, onPlay, onPause, onSeek, onPlaybackStatusUpdate, onProgress, onStreamResolved }, ref) => {
     const videoRef = useRef<Video>(null);
@@ -74,43 +84,36 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
         .finally(() => setResolving(false));
     }, [url, platform]); // eslint-disable-line react-hooks/exhaustive-deps
 
+    const useWebview = platform === 'webview' || (platform === 'youtube' && resolveError);
+
     useImperativeHandle(ref, () => ({
       play: async () => {
-        if (platform === 'webview') {
-          webviewRef.current?.play();
-        } else {
-          await videoRef.current?.playAsync();
-        }
+        if (useWebview) webviewRef.current?.play();
+        else await videoRef.current?.playAsync();
       },
       pause: async () => {
-        if (platform === 'webview') {
-          webviewRef.current?.pause();
-        } else {
-          await videoRef.current?.pauseAsync();
-        }
+        if (useWebview) webviewRef.current?.pause();
+        else await videoRef.current?.pauseAsync();
       },
       seekTo: async (ms: number) => {
-        if (platform === 'webview') {
-          webviewRef.current?.seekTo(ms);
-        } else {
-          await videoRef.current?.setPositionAsync(ms);
-        }
+        if (useWebview) webviewRef.current?.seekTo(ms);
+        else await videoRef.current?.setPositionAsync(ms);
       },
       getPositionMs: async () => {
-        if (platform === 'webview') {
-          return webviewRef.current?.getPositionMs() ?? 0;
-        }
+        if (useWebview) return webviewRef.current?.getPositionMs() ?? 0;
         const status = await videoRef.current?.getStatusAsync();
         if (status?.isLoaded) return status.positionMillis;
         return 0;
       },
-    }));
+    }), [useWebview]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    if (platform === 'webview') {
+    // WebView: native webview URL yoki YouTube proxy xato (embed fallback)
+    if (useWebview) {
+      const displayUrl = platform === 'youtube' ? getYouTubeEmbedUrl(url) : url;
       return (
         <WebViewPlayer
           ref={webviewRef}
-          url={url}
+          url={displayUrl}
           isOwner={isOwner}
           onPlay={onPlay}
           onPause={onPause}
@@ -120,22 +123,14 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
       );
     }
 
-    if (platform === 'youtube') {
-      if (resolving) {
-        return (
-          <View style={styles.center}>
-            <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={styles.loadingText}>Video yuklanmoqda...</Text>
-          </View>
-        );
-      }
-      if (resolveError || !streamUrl) {
-        return (
-          <View style={styles.center}>
-            <Text style={styles.errorText}>Video yuklashda xato</Text>
-          </View>
-        );
-      }
+    // YouTube: stream resolve kutish
+    if (platform === 'youtube' && resolving) {
+      return (
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingText}>Video yuklanmoqda...</Text>
+        </View>
+      );
     }
 
     // 'direct' yoki 'youtube' (streamUrl resolved) — expo-av
