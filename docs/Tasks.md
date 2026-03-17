@@ -241,7 +241,7 @@ GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state
 
 - **Sana:** 2026-03-11
 - **Mas'ul:** Emirhan (Mobile — asosiy), Saidazim (Backend — minimal), Jafar (Web — fallback UI)
-- **Holat:** ✅ Mobile M1-M5 TUGADI (2026-03-12) | M6-M7 pending[Emirhan] | Backend B1-B2 pending[Saidazim] | Web W1 pending[Jafar]
+- **Holat:** ✅ Mobile M1-M7 TUGADI (2026-03-17) | Backend B1-B2 pending[Saidazim] | Web W1 pending[Jafar]
 - **Sprint:** S2-S3
 - **Prioritet:** P1 — foydalanuvchilar faqat YouTube ko'ra olmoqda, boshqa saytlar ishlamayapti
 
@@ -348,14 +348,14 @@ Foydalanuvchi URL kiritadi (uzmovi.tv/..., kinogo.cc/..., har qanday sayt)
     - **boshqa hammasi** → `WebViewPlayer` (yangi)
   - `videoPlatform === 'webview'` holat qo'shish
 
-- [ ] **M6. UX yaxshilash**
+- [x] **M6. UX yaxshilash** ✅ 2026-03-17
   - Loading overlay — sahifa yuklanayotganda spinner
   - Sayt reklamalarini bloklash (reklama domainlarni intercept qilish)
   - `onNavigationStateChange` — sayt redirect qilsa ogohlantirish
   - Fullscreen mode — statusbar yashirish, WebView to'liq ekran
   - Error handling — sayt yuklanmasa fallback UI
 
-- [ ] **M7. Saytga moslashgan adapterlar (keyingi bosqich)**
+- [x] **M7. Saytga moslashgan adapterlar** ✅ 2026-03-17
   - uzmovi.tv uchun maxsus adapter (iframe tuzilishi ma'lum)
   - kinogo.cc uchun maxsus adapter
   - Generic fallback — `<video>` tag qidirish

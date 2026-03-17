@@ -1,6 +1,25 @@
 # CineSync — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-03-16
+# Yangilangan: 2026-03-17
+
+---
+
+### F-127 | 2026-03-17 | [MOBILE] | T-C006 M6+M7 — WebViewPlayer UX + Site Adapters [Emirhan]
+
+- **M6 — UX yaxshilash:**
+  - Loading overlay: hostname + spinner, `bgVoid` fon
+  - Ad blocker: `onShouldStartLoadWithRequest` — 11 ta reklama domeni blok (`doubleclick.net`, `exoclick.com` va h.k.)
+  - Redirect warning: `onNavigationStateChange` — domen o'zgarsa sariq banner, bosib yopiladi
+  - Fullscreen: `StatusBar.setHidden(true, 'slide')` mount da, unmount da tiklanadi
+  - Error + Retry: HTTP 4xx/5xx + `onError` — hostname + "Qayta urinish" tugmasi, `reload()` chaqiradi
+- **M7 — Site adapterlar (`WebViewAdapters.ts` yangi fayl):**
+  - `uzmovi.tv`: `.plyr video`, `#player video`, popup yopish, `scanDelay: 2000ms`
+  - `kinogo.cc`: `#oframep video`, `.player-box video`, popup yopish, `scanDelay: 1500ms`
+  - `filmix.net`: `.vjs-tech`, `.video-js video`, `scanDelay: 1000ms`
+  - `hdrezka.ag`: `#player video`, `.pjsplayer video`, `scanDelay: 2500ms`
+  - Generic fallback: `video` selector, `scanDelay: 0`
+  - `INJECT_JS` hardcoded → `buildInjectJs(getAdapter(url))` dinamik (useMemo)
+- **Fayllar:** `apps/mobile/src/components/video/WebViewPlayer.tsx`, `apps/mobile/src/components/video/WebViewAdapters.ts` (yangi)
 
 ---
 
