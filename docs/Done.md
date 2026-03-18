@@ -4,7 +4,7 @@
 
 ---
 
-### F-132 | 2026-03-18 | [BACKEND] | T-S033 — yt-dlp deploy + sayt ishonchliligi + strukturali error [Saidazim]
+### F-133 | 2026-03-18 | [BACKEND] | T-S033 — yt-dlp deploy + sayt ishonchliligi + strukturali error [Saidazim]
 
 - **S33-1**: `services/content/Dockerfile` — yt-dlp musl static binary (Alpine uchun) production stage ga qo'shildi
 - **S33-2**: O'zbek saytlar (uzmovi.tv, tv.mover.uz) — `genericExtractor` depth=2 + Referer header iframe follow orqali yaxshi ishlaydi
@@ -16,12 +16,25 @@
   - `videoExtract.controller.ts`: `VideoExtractError` catch → `{ success, reason, message }` response (HTTP 422)
 - **S33-4**: YouTube proxy Range request — `ytdl.controller.ts` da allaqachon implementatsiya qilingan (tekshirildi)
 
-### F-131 | 2026-03-18 | [BACKEND] | T-C006 B1-B2 + SH1 — WebView platform support (allaqachon mavjud) [Saidazim]
+### F-132 | 2026-03-18 | [BACKEND] | T-C006 B1-B2 + SH1 — WebView platform support (allaqachon mavjud) [Saidazim]
 
 - **watchPartyRoom.model.ts:32** — `videoPlatform` enum ga `'webview'` allaqachon qo'shilgan
 - **watchParty.service.ts** — `SYNC_THRESHOLD_WEBVIEW_SECONDS = 2.5` + `needsResync(platform?)` WebView toleransi allaqachon implementatsiya qilingan
 - **shared/src/types/index.ts:134** — `VideoPlatform = 'youtube' | 'direct' | 'webview'` allaqachon bor
 - Yangi kod yozilmadi — tekshirib tasdiqlandi
+
+### F-131 | 2026-03-18 | [MOBILE] | T-E040 — Universal Video Extraction mobile qismi [Emirhan]
+
+- **E40-1 `extractVideo()` API:** allaqachon tayyor edi (`content.api.ts:93-97`)
+- **E40-5 `VideoExtractResult` type:** allaqachon tayyor edi (`content.api.ts:5-14`)
+- **E40-2 `useVideoExtraction` hook:** yangi yaratildi (`hooks/useVideoExtraction.ts`)
+  - Direct URL (.mp4/.m3u8) → skip extraction, darhol natija
+  - Backend `POST /content/extract` chaqirish (15s timeout, AbortController)
+  - YouTube proxy URL rewrite (`useProxy: true` bo'lsa)
+  - Fallback mode (extraction fail → WebView)
+- **E40-3 `UniversalPlayer` yangilandi:** `extractedUrl`, `extractedType`, `isExtracting` proplar qo'shildi
+- **E40-4 `WatchPartyCreateScreen` UX:** URL kiritganda avtomatik extraction
+- **E40-6 Error handling:** timeout, network error, unsupported site → fallback mode
 
 ### F-128 | 2026-03-18 | [MOBILE] | Build fix — UniversalPlayer import xatolar + component prop mismatches [Emirhan]
 

@@ -31,8 +31,8 @@ export const battleApi = {
     await battleClient.put(`/battles/${battleId}/reject`);
   },
 
-  async getLeaderboard(battleId: string): Promise<IBattle> {
-    const res = await battleClient.get<ApiResponse<IBattle>>(`/battles/${battleId}/leaderboard`);
-    return res.data.data!;
+  async getLeaderboard(battleId: string): Promise<{ userId: string; score: number }[]> {
+    const res = await battleClient.get<ApiResponse<{ userId: string; score: number }[]>>(`/battles/${battleId}/leaderboard`);
+    return res.data.data ?? [];
   },
 };

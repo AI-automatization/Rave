@@ -1,7 +1,7 @@
 // CineSync Mobile — UniversalPlayer
 // URL ga qarab to'g'ri player tanlaydi: expo-av (direct) yoki WebView (youtube/boshqalar)
 import React, { forwardRef, useImperativeHandle, useRef, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
 import { WebViewPlayer, WebViewPlayerRef } from './WebViewPlayer';
@@ -25,6 +25,12 @@ interface Props {
   onPlaybackStatusUpdate?: (status: AVPlaybackStatus) => void;
   onProgress?: (currentTimeSecs: number, durationSecs: number) => void;
   onStreamResolved?: (info: { isLive: boolean; title: string }) => void;
+  /** Direct stream URL from video extraction (useVideoExtraction hook) */
+  extractedUrl?: string;
+  /** Type hint from extraction — mp4 or hls */
+  extractedType?: 'mp4' | 'hls';
+  /** Show loading overlay while extraction is in progress */
+  isExtracting?: boolean;
 }
 
 const YOUTUBE_REGEX = /(?:youtube\.com|youtu\.be)/i;
@@ -65,15 +71,25 @@ const MOBILE_USER_AGENT =
   '(KHTML, like Gecko) Chrome/120.0.6099.144 Mobile Safari/537.36';
 
 export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
-  ({ url, isOwner, onPlay, onPause, onSeek, onPlaybackStatusUpdate, onProgress }, ref) => {
+  (
+    {
+      url, isOwner, onPlay, onPause, onSeek,
+      onPlaybackStatusUpdate, onProgress,
+      extractedUrl, extractedType, isExtracting,
+    },
+    ref,
+  ) => {
     const videoRef = useRef<Video>(null);
     const webviewRef = useRef<WebViewPlayerRef>(null);
     const platform = detectVideoPlatform(url);
     const [videoError, setVideoError] = useState(false);
 
-    // YouTube va boshqa saytlar → WebView
-    // Direct (.mp4/.m3u8 va h.k.) → expo-av
-    const useWebview = platform === 'youtube' || platform === 'webview' || videoError;
+    // extractedUrl mavjud bo'lsa → expo-av (direct) rejimida ishlatish
+    // Aks holda: YouTube/boshqa saytlar → WebView, direct → expo-av
+    const hasExtracted = !!extractedUrl;
+    const useWebview =
+      !hasExtracted && (platform === 'youtube' || platform === 'webview' || videoError);
+    const directSource = hasExtracted ? extractedUrl : url;
 
     useImperativeHandle(ref, () => ({
       play: async () => {
@@ -95,6 +111,16 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
         return 0;
       },
     }), [useWebview]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Extraction jarayonida → loading overlay
+    if (isExtracting) {
+      return (
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.extractingText}>Video aniqlanmoqda...</Text>
+        </View>
+      );
+    }
 
     // URL yo'q → placeholder
     if (!url) {
@@ -130,7 +156,7 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
     return (
       <Video
         ref={videoRef}
-        source={{ uri: url }}
+        source={{ uri: directSource }}
         style={styles.video}
         resizeMode={ResizeMode.CONTAIN}
         shouldPlay
@@ -158,4 +184,9 @@ const styles = StyleSheet.create({
   },
   errorText: { ...typography.body, color: colors.textPrimary, fontWeight: '600' },
   errorHint: { ...typography.caption, color: colors.textMuted, textAlign: 'center' },
+  extractingText: {
+    ...typography.body,
+    color: colors.textSecondary,
+    marginTop: spacing.sm,
+  },
 });

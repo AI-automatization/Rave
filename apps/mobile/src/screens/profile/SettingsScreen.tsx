@@ -1,73 +1,29 @@
-// CineSync Mobile — SettingsScreen
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  Switch,
-  StyleSheet,
-  Modal,
-  TextInput,
-  Alert,
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-} from 'react-native';
+// CineSync Mobile — SettingsScreen (composed)
+import React, { useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import * as SecureStore from 'expo-secure-store';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius, typography } from '@theme/index';
-import { authApi } from '@api/auth.api';
 import { userApi } from '@api/user.api';
 import { useAuthStore } from '@store/auth.store';
 import { useMyProfile } from '@hooks/useProfile';
 import { useLanguageStore, Language } from '@store/language.store';
 import { useT } from '@i18n/index';
-
-const SETTINGS_KEY = 'cinesync_settings';
+import {
+  SectionHeader,
+  ToggleRow,
+  EditProfileModal,
+  ChangePasswordModal,
+  useSettingsStorage,
+  NOTIFICATION_TOGGLES,
+  PRIVACY_TOGGLES,
+} from '@components/settings';
 
 const LANGUAGES: { code: Language; label: string; flag: string }[] = [
   { code: 'uz', label: "O'zbekcha", flag: '\u{1F1FA}\u{1F1FF}' },
   { code: 'ru', label: '\u0420\u0443\u0441\u0441\u043A\u0438\u0439', flag: '\u{1F1F7}\u{1F1FA}' },
   { code: 'en', label: 'English', flag: '\u{1F1EC}\u{1F1E7}' },
 ];
-
-interface ToggleItem { key: string; labelKey: string; subKey?: string }
-
-const NOTIFICATION_TOGGLES: ToggleItem[] = [
-  { key: 'friendRequest', labelKey: 'friendRequest' },
-  { key: 'watchPartyInvite', labelKey: 'watchPartyInvite' },
-  { key: 'battleInvite', labelKey: 'battleInvite' },
-  { key: 'achievementUnlocked', labelKey: 'achievementUnlocked' },
-  { key: 'dailyReminder', labelKey: 'dailyReminder', subKey: 'dailyReminderSub' },
-];
-
-const PRIVACY_TOGGLES: ToggleItem[] = [
-  { key: 'showOnlineStatus', labelKey: 'showOnlineStatus' },
-  { key: 'showWatchHistory', labelKey: 'showWatchHistory' },
-];
-
-function SectionHeader({ title }: { title: string }) {
-  return <Text style={styles.sectionHeader}>{title}</Text>;
-}
-
-function ToggleRow({ label, sub, value, onChange }: { label: string; sub?: string; value: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <View style={styles.toggleRow}>
-      <View style={styles.toggleLeft}>
-        <Text style={styles.toggleLabel}>{label}</Text>
-        {sub && <Text style={styles.toggleSub}>{sub}</Text>}
-      </View>
-      <Switch
-        value={value}
-        onValueChange={onChange}
-        trackColor={{ false: colors.bgElevated, true: colors.primary }}
-        thumbColor={colors.textPrimary}
-      />
-    </View>
-  );
-}
 
 type ActiveModal = 'editProfile' | 'changePassword' | null;
 
@@ -77,50 +33,11 @@ export function SettingsScreen() {
   const { updateProfileMutation } = useMyProfile();
   const { lang: language, setLang: setLanguage } = useLanguageStore();
   const { t } = useT();
+  const { notifToggles, privacyToggles, toggleNotif, togglePrivacy } = useSettingsStorage();
 
-  const [notifToggles, setNotifToggles] = useState<Record<string, boolean>>(
-    Object.fromEntries(NOTIFICATION_TOGGLES.map(item => [item.key, true])),
-  );
-  const [privacyToggles, setPrivacyToggles] = useState<Record<string, boolean>>(
-    Object.fromEntries(PRIVACY_TOGGLES.map(item => [item.key, true])),
-  );
-
-  // Edit profile state
   const [activeModal, setActiveModal] = useState<ActiveModal>(null);
   const [editUsername, setEditUsername] = useState('');
   const [editBio, setEditBio] = useState('');
-
-  // Change password state
-  const [oldPassword, setOldPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-
-  const [pwdLoading, setPwdLoading] = useState(false);
-
-  useEffect(() => {
-    SecureStore.getItemAsync(SETTINGS_KEY).then((raw) => {
-      if (!raw) return;
-      try {
-        const saved = JSON.parse(raw) as {
-          notifToggles?: Record<string, boolean>;
-          privacyToggles?: Record<string, boolean>;
-        };
-        if (saved.notifToggles) setNotifToggles(saved.notifToggles);
-        if (saved.privacyToggles) setPrivacyToggles(saved.privacyToggles);
-      } catch { /* empty */ }
-    });
-  }, []);
-
-  useEffect(() => {
-    SecureStore.setItemAsync(
-      SETTINGS_KEY,
-      JSON.stringify({ notifToggles, privacyToggles }),
-    ).catch(() => { /* empty */ });
-  }, [notifToggles, privacyToggles]);
-
-  const toggleNotif = (key: string, value: boolean) =>
-    setNotifToggles(prev => ({ ...prev, [key]: value }));
-  const togglePrivacy = (key: string, value: boolean) =>
-    setPrivacyToggles(prev => ({ ...prev, [key]: value }));
 
   const openEditProfile = () => {
     setEditUsername(user?.username ?? '');
@@ -134,28 +51,6 @@ export function SettingsScreen() {
       { username: editUsername.trim(), bio: editBio.trim() },
       { onSuccess: () => setActiveModal(null) },
     );
-  };
-
-  const handleChangePassword = async () => {
-    if (!oldPassword || !newPassword) return;
-
-    if (newPassword.length < 6) {
-      Alert.alert(t('common', 'error'), t('settings', 'passwordTooShort'));
-      return;
-    }
-    setPwdLoading(true);
-    try {
-      await authApi.changePassword(oldPassword, newPassword);
-      setActiveModal(null);
-      setOldPassword('');
-      setNewPassword('');
-
-      Alert.alert(t('settings', 'success'), t('settings', 'passwordChanged'));
-    } catch {
-      Alert.alert(t('common', 'error'), t('settings', 'oldPasswordError'));
-    } finally {
-      setPwdLoading(false);
-    }
   };
 
   const handleDeleteAccount = () => {
@@ -206,7 +101,7 @@ export function SettingsScreen() {
             <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
           </TouchableOpacity>
           <Text style={styles.title}>{t('settings', 'title')}</Text>
-          <View style={{ width: 40 }} />
+          <View style={styles.spacer} />
         </View>
 
         <View style={styles.content}>
@@ -295,92 +190,24 @@ export function SettingsScreen() {
           </TouchableOpacity>
         </View>
 
-        <View style={{ height: spacing.xxxl }} />
+        <View style={styles.bottomSpacer} />
       </ScrollView>
 
-      {/* Edit Profile Modal */}
-      <Modal visible={activeModal === 'editProfile'} transparent animationType="slide" onRequestClose={() => setActiveModal(null)}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
-          <View style={styles.modalSheet}>
-            <View style={styles.modalHandle} />
-            <Text style={styles.modalTitle}>{t('settings', 'editProfile')}</Text>
-            <Text style={styles.inputLabel}>{t('profile', 'username')}</Text>
-            <TextInput
-              style={styles.modalInput}
-              value={editUsername}
-              onChangeText={setEditUsername}
-              placeholderTextColor={colors.textMuted}
-              autoCapitalize="none"
-            />
-            <Text style={styles.inputLabel}>{t('profile', 'bio')}</Text>
-            <TextInput
-              style={[styles.modalInput, styles.modalInputMulti]}
-              value={editBio}
-              onChangeText={(txt: string) => setEditBio(txt.slice(0, 200))}
-              placeholderTextColor={colors.textMuted}
-              multiline
-              textAlignVertical="top"
-            />
-            <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => setActiveModal(null)}>
-                <Text style={styles.cancelText}>{t('common', 'cancel')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.saveBtn, updateProfileMutation.isPending && styles.btnDisabled]}
-                onPress={handleSaveProfile}
-                disabled={updateProfileMutation.isPending}
-              >
-                {updateProfileMutation.isPending
-                  ? <ActivityIndicator size="small" color={colors.textPrimary} />
-                  : <Text style={styles.saveText}>{t('common', 'save')}</Text>}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
-
-      {/* Change Password Modal */}
-      <Modal visible={activeModal === 'changePassword'} transparent animationType="slide" onRequestClose={() => setActiveModal(null)}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
-          <View style={styles.modalSheet}>
-            <View style={styles.modalHandle} />
-            <Text style={styles.modalTitle}>{t('settings', 'changePassword')}</Text>
-            <Text style={styles.inputLabel}>{t('settings', 'currentPassword')}</Text>
-            <TextInput
-              style={styles.modalInput}
-              value={oldPassword}
-              onChangeText={setOldPassword}
-              secureTextEntry
-              placeholderTextColor={colors.textMuted}
-              placeholder="••••••••"
-            />
-            <Text style={styles.inputLabel}>{t('settings', 'newPassword')}</Text>
-            <TextInput
-              style={styles.modalInput}
-              value={newPassword}
-              onChangeText={setNewPassword}
-              secureTextEntry
-              placeholderTextColor={colors.textMuted}
-              placeholder="••••••••"
-            />
-
-            <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => setActiveModal(null)}>
-                <Text style={styles.cancelText}>{t('common', 'cancel')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.saveBtn, pwdLoading && styles.btnDisabled]}
-                onPress={handleChangePassword}
-                disabled={pwdLoading}
-              >
-                {pwdLoading
-                  ? <ActivityIndicator size="small" color={colors.textPrimary} />
-                  : <Text style={styles.saveText}>{t('settings', 'change')}</Text>}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+      {/* Modals */}
+      <EditProfileModal
+        visible={activeModal === 'editProfile'}
+        onClose={() => setActiveModal(null)}
+        username={editUsername}
+        onUsernameChange={setEditUsername}
+        bio={editBio}
+        onBioChange={setEditBio}
+        onSave={handleSaveProfile}
+        saving={updateProfileMutation.isPending}
+      />
+      <ChangePasswordModal
+        visible={activeModal === 'changePassword'}
+        onClose={() => setActiveModal(null)}
+      />
     </>
   );
 }
@@ -398,24 +225,15 @@ const styles = StyleSheet.create({
   },
   backBtn: { padding: spacing.xs },
   title: { ...typography.h2, color: colors.textPrimary },
+  spacer: { width: 40 },
   content: { padding: spacing.lg, gap: spacing.sm },
-  sectionHeader: { ...typography.label, color: colors.textMuted, marginTop: spacing.md, marginBottom: spacing.xs },
   card: { backgroundColor: colors.bgSurface, borderRadius: borderRadius.lg, overflow: 'hidden' },
   rowBorder: { borderBottomWidth: 1, borderBottomColor: colors.border },
-  navRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing.md,
-    gap: spacing.md,
-  },
+  navRow: { flexDirection: 'row', alignItems: 'center', padding: spacing.md, gap: spacing.md },
   navLabel: { ...typography.body, color: colors.textPrimary, flex: 1 },
   langRow: { flexDirection: 'row', alignItems: 'center', padding: spacing.md, gap: spacing.md },
   langFlag: { fontSize: 20 },
   langLabel: { ...typography.body, color: colors.textPrimary, flex: 1 },
-  toggleRow: { flexDirection: 'row', alignItems: 'center', padding: spacing.md, gap: spacing.md },
-  toggleLeft: { flex: 1, gap: 2 },
-  toggleLabel: { ...typography.body, color: colors.textPrimary },
-  toggleSub: { ...typography.caption, color: colors.textMuted },
   infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: spacing.md },
   infoLabel: { ...typography.body, color: colors.textSecondary },
   infoValue: { ...typography.body, color: colors.textMuted },
@@ -430,42 +248,5 @@ const styles = StyleSheet.create({
     borderColor: colors.error + '44',
   },
   deleteText: { ...typography.body, color: colors.error },
-  // Modal
-  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.6)' },
-  modalSheet: {
-    backgroundColor: colors.bgSurface,
-    borderTopLeftRadius: borderRadius.xl,
-    borderTopRightRadius: borderRadius.xl,
-    padding: spacing.xl,
-    gap: spacing.md,
-    paddingBottom: spacing.xxxl,
-  },
-  modalHandle: {
-    width: 40, height: 4, borderRadius: 2,
-    backgroundColor: colors.border, alignSelf: 'center', marginBottom: spacing.sm,
-  },
-  modalTitle: { ...typography.h2, color: colors.textPrimary },
-  inputLabel: { ...typography.label, color: colors.textMuted },
-  modalInput: {
-    backgroundColor: colors.bgElevated,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.md,
-    color: colors.textPrimary,
-    fontSize: 15,
-  },
-  modalInputMulti: { height: 80, textAlignVertical: 'top' },
-  modalActions: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.sm },
-  cancelBtn: {
-    flex: 1, backgroundColor: colors.bgElevated, borderRadius: borderRadius.lg,
-    height: 48, alignItems: 'center', justifyContent: 'center',
-  },
-  cancelText: { ...typography.body, color: colors.textSecondary },
-  saveBtn: {
-    flex: 1, backgroundColor: colors.primary, borderRadius: borderRadius.lg,
-    height: 48, alignItems: 'center', justifyContent: 'center',
-  },
-  btnDisabled: { opacity: 0.6 },
-  saveText: { color: colors.textPrimary, fontWeight: '700', fontSize: 15 },
+  bottomSpacer: { height: spacing.xxxl },
 });

@@ -11,43 +11,22 @@ import {
   ScrollView,
   ActivityIndicator,
   Animated,
-  Dimensions,
   StatusBar,
-  Linking,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
-import * as Google from 'expo-auth-session/providers/google';
-import * as WebBrowser from 'expo-web-browser';
-import { colors, BRAND_COLORS } from '@theme/index';
+import { Ionicons } from '@expo/vector-icons';
+import { colors } from '@theme/index';
 import { AuthStackParamList } from '@app-types/index';
 import { authApi } from '@api/auth.api';
 import { useAuthStore } from '@store/auth.store';
 import { useT } from '@i18n/index';
-import MaskedView from '@react-native-masked-view/masked-view';
-
-WebBrowser.maybeCompleteAuthSession();
-
-const GOOGLE_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? '';
-const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
+import { AuthGridBackground } from '@components/auth/AuthGridBackground';
+import { SocialAuthButtons } from '@components/auth/SocialAuthButtons';
+import { useSocialAuth } from '@hooks/useSocialAuth';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
-
-function GradientGoogleIcon() {
-  return (
-    <MaskedView maskElement={<FontAwesome5 name="google" size={20} color={colors.black} />}>
-      <LinearGradient
-        colors={[...BRAND_COLORS.googleGradient]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
-        <FontAwesome5 name="google" size={20} style={{ opacity: 0 }} />
-      </LinearGradient>
-    </MaskedView>
-  );
-}
 
 export function LoginScreen() {
   const navigation = useNavigation<Nav>();
@@ -58,80 +37,36 @@ export function LoginScreen() {
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
-  const [telegramLoading, setTelegramLoading] = useState(false);
   const [error, setError] = useState('');
   const [focusedField, setFocusedField] = useState<string | null>(null);
-  const telegramIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
+
+  const {
+    googleLoading,
+    telegramLoading,
+    googleDisabled,
+    socialError,
+    clearSocialError,
+    promptGoogleAsync,
+    handleTelegramLogin,
+  } = useSocialAuth();
 
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
       Animated.timing(slideAnim, { toValue: 0, duration: 700, useNativeDriver: true }),
     ]).start();
-    return () => {
-      if (telegramIntervalRef.current) clearInterval(telegramIntervalRef.current);
-    };
   }, []);
 
-  const [, googleResponse, promptAsync] = Google.useAuthRequest({ clientId: GOOGLE_CLIENT_ID });
-
+  // Merge social auth errors into local error state
   useEffect(() => {
-    if (googleResponse?.type !== 'success') return;
-    const idToken = googleResponse.params['id_token'];
-    if (!idToken) return;
-    setGoogleLoading(true);
-    setError('');
-    authApi
-      .googleToken(idToken)
-      .then(({ user, accessToken, refreshToken }) => setAuth(user, accessToken, refreshToken))
-      .catch(() => setError(t('login', 'errorGoogle')))
-      .finally(() => setGoogleLoading(false));
-  }, [googleResponse]);
-
-  const handleTelegramLogin = async () => {
-    if (telegramIntervalRef.current) {
-      clearInterval(telegramIntervalRef.current);
-      telegramIntervalRef.current = null;
+    if (socialError) {
+      setError(socialError);
+      clearSocialError();
     }
-    setTelegramLoading(true);
-    setError('');
-    try {
-      const { state, botUrl } = await authApi.telegramInit();
-      await Linking.openURL(botUrl);
-      let attempts = 0;
-      telegramIntervalRef.current = setInterval(async () => {
-        attempts++;
-        if (attempts > 60) {
-          clearInterval(telegramIntervalRef.current!);
-          telegramIntervalRef.current = null;
-          setTelegramLoading(false);
-          setError(t('login', 'errorTelegramTimeout'));
-          return;
-        }
-        try {
-          const result = await authApi.telegramPoll(state);
-          if (result) {
-            clearInterval(telegramIntervalRef.current!);
-            telegramIntervalRef.current = null;
-            setTelegramLoading(false);
-            await setAuth(result.user, result.accessToken, result.refreshToken);
-          }
-        } catch {
-          clearInterval(telegramIntervalRef.current!);
-          telegramIntervalRef.current = null;
-          setTelegramLoading(false);
-          setError(t('login', 'errorTelegram'));
-        }
-      }, 2000);
-    } catch {
-      setTelegramLoading(false);
-      setError(t('login', 'errorTelegram'));
-    }
-  };
+  }, [socialError]);
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) { setError(t('login', 'errorEmpty')); return; }
@@ -157,21 +92,7 @@ export function LoginScreen() {
     <View style={s.root}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-      {/* Grid bg */}
-      <View style={s.bgGrid}>
-        {Array.from({ length: 8 }).map((_, i) => (
-          <View key={`h${i}`} style={[s.gridLineH, { top: (SCREEN_H / 8) * i }]} />
-        ))}
-        {Array.from({ length: 6 }).map((_, i) => (
-          <View key={`v${i}`} style={[s.gridLineV, { left: (SCREEN_W / 6) * i }]} />
-        ))}
-        <LinearGradient
-          colors={['transparent', 'rgba(124,58,237,0.15)', 'transparent']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={s.accentLine}
-        />
-      </View>
+      <AuthGridBackground accentLinePosition={0.18} accentOpacity={0.15} />
 
       <KeyboardAvoidingView style={s.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={s.container} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
@@ -254,54 +175,14 @@ export function LoginScreen() {
               <View style={s.dividerLine} />
             </View>
 
-            {/* Social row */}
-            <View style={s.socialRow}>
-              {/* Google */}
-              <TouchableOpacity
-                onPress={() => promptAsync()}
-                disabled={googleLoading || !GOOGLE_CLIENT_ID}
-                activeOpacity={0.85}
-                style={[s.socialHalf, googleLoading && s.btnDisabled]}
-              >
-                <LinearGradient
-                  colors={[...BRAND_COLORS.googleGradient]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={s.socialBorder}
-                >
-                  <View style={s.socialInner}>
-                    {googleLoading ? (
-                      <ActivityIndicator color={colors.textPrimary} size="small" />
-                    ) : (
-                      <GradientGoogleIcon />
-                    )}
-                  </View>
-                </LinearGradient>
-              </TouchableOpacity>
-
-              {/* Telegram */}
-              <TouchableOpacity
-                onPress={handleTelegramLogin}
-                disabled={telegramLoading}
-                activeOpacity={0.85}
-                style={[s.socialHalf, telegramLoading && s.btnDisabled]}
-              >
-                <LinearGradient
-                  colors={[...BRAND_COLORS.telegramGradient]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={s.socialBorder}
-                >
-                  <View style={s.socialInner}>
-                    {telegramLoading ? (
-                      <ActivityIndicator color={colors.white} size="small" />
-                    ) : (
-                      <FontAwesome5 name="telegram-plane" size={20} color={BRAND_COLORS.telegramBlue} />
-                    )}
-                  </View>
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
+            {/* Social auth */}
+            <SocialAuthButtons
+              googleLoading={googleLoading}
+              telegramLoading={telegramLoading}
+              googleDisabled={googleDisabled}
+              onGooglePress={promptGoogleAsync}
+              onTelegramPress={handleTelegramLogin}
+            />
 
             {/* Footer */}
             <View style={s.footer}>
@@ -325,17 +206,6 @@ const s = StyleSheet.create({
     paddingHorizontal: 28, paddingTop: 60, paddingBottom: 40,
   },
 
-  bgGrid: { ...StyleSheet.absoluteFillObject },
-  gridLineH: {
-    position: 'absolute', left: 0, right: 0,
-    height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(255,255,255,0.03)',
-  },
-  gridLineV: {
-    position: 'absolute', top: 0, bottom: 0,
-    width: StyleSheet.hairlineWidth, backgroundColor: 'rgba(255,255,255,0.03)',
-  },
-  accentLine: { position: 'absolute', top: SCREEN_H * 0.18, left: 0, right: 0, height: 1 },
-
   header: { alignItems: 'center', marginBottom: 44 },
   logo: { fontSize: 42, fontWeight: '900', color: colors.textPrimary, letterSpacing: 6, marginBottom: 8 },
   logoAccent: { color: colors.link },
@@ -349,7 +219,6 @@ const s = StyleSheet.create({
   },
   errorText: { color: colors.error, fontSize: 13, flex: 1 },
 
-  // Inputs — pill shape, subtle bg
   inputOuter: {
     flexDirection: 'row', alignItems: 'center',
     height: 54, borderRadius: 16,
@@ -373,17 +242,6 @@ const s = StyleSheet.create({
   divider: { flexDirection: 'row', alignItems: 'center', marginBottom: 24, gap: 14 },
   dividerLine: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(255,255,255,0.1)' },
   dividerText: { color: colors.textDim, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 },
-
-  socialRow: { flexDirection: 'row', gap: 14 },
-  socialHalf: { flex: 1 },
-  socialBorder: { height: 56, borderRadius: 16, padding: 1.5 },
-  socialInner: {
-    flex: 1, borderRadius: 14.5,
-    backgroundColor: colors.bgVoid,
-    alignItems: 'center', justifyContent: 'center',
-  },
-
-  btnDisabled: { opacity: 0.5 },
 
   footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 32, gap: 4 },
   footerText: { color: colors.textMuted, fontSize: 14 },

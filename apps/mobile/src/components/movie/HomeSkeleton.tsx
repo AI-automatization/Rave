@@ -34,7 +34,7 @@ export function HomeSkeleton() {
         {[0, 1, 2, 3].map((i) => (
           <SkeletonBox key={i} style={styles.card} />
         ))}
-      </View>
+      </View> 
 
       {/* Row label 2 */}
       <SkeletonBox style={styles.rowLabel} />
