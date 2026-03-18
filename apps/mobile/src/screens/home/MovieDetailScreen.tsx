@@ -1,6 +1,6 @@
 // CineSync Mobile — Movie Detail Screen
 import React, { useRef, useState } from 'react';
-import { View, StyleSheet, Animated, StatusBar, ActivityIndicator, Alert, Text } from 'react-native';
+import { View, StyleSheet, Animated, StatusBar, ActivityIndicator, Text } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -43,10 +43,6 @@ export function MovieDetailScreen({ route, navigation }: Props) {
     navigation.navigate('VideoPlayer', { movieId: movie._id, videoUrl: movie.videoUrl, title: movie.title });
   };
 
-  const handleShare = () => {
-    Alert.alert(t('movie', 'share'), `"${movie?.title}" ${t('movie', 'shareMovie')}`);
-  };
-
   if (isLoading) {
     return (
       <View style={s.center}>
@@ -77,9 +73,11 @@ export function MovieDetailScreen({ route, navigation }: Props) {
       <MovieDetailActions
         top={insets.top + spacing.sm}
         isFavorite={isFavorite}
+        movieTitle={movie.title}
+        shareLabel={t('movie', 'share')}
+        shareMovieLabel={t('movie', 'shareMovie')}
         onBack={() => navigation.goBack()}
-        onFavorite={() => setIsFavorite(f => !f)}
-        onShare={handleShare}
+        onToggleFavorite={() => setIsFavorite(f => !f)}
       />
 
       <Animated.ScrollView
@@ -107,23 +105,23 @@ export function MovieDetailScreen({ route, navigation }: Props) {
           />
 
           {movie.cast && movie.cast.length > 0 && (
-            <MovieCastList cast={movie.cast} title={t('movie', 'castSection')} />
+            <MovieCastList cast={movie.cast} sectionTitle={t('movie', 'castSection')} />
           )}
 
           {similarMovies.length > 0 && (
             <MovieSimilarList
               movies={similarMovies}
-              title={t('movie', 'similarSection')}
-              onPress={(id) => navigation.push('MovieDetail', { movieId: id })}
+              sectionTitle={t('movie', 'similarSection')}
+              onMoviePress={(id: string) => navigation.push('MovieDetail', { movieId: id })}
             />
           )}
 
           <MovieRatingWidget
-            rating={userRating}
-            submitted={ratingSubmitted}
+            userRating={userRating}
+            ratingSubmitted={ratingSubmitted}
             onRate={handleRate}
-            label={t('movie', 'rate')}
-            doneLabel={t('movie', 'ratingDone')}
+            rateLabel={t('movie', 'rate')}
+            ratingDoneLabel={t('movie', 'ratingDone')}
           />
         </View>
 

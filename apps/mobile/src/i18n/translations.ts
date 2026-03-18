@@ -336,6 +336,12 @@ export const translations = {
     viewer: { uz: 'Tomoshabin', ru: 'Зритель', en: 'Viewer' },
     liveStream: { uz: 'JONLI EFIR', ru: 'ПРЯМОЙ ЭФИР', en: 'LIVE' },
     inviteCode: { uz: 'INVITE KOD', ru: 'КОД ПРИГЛАШЕНИЯ', en: 'INVITE CODE' },
+    codeCopied: { uz: 'Kod nusxalandi!', ru: 'Код скопирован!', en: 'Code copied!' },
+    inviteSent: { uz: 'Taklif yuborildi!', ru: 'Приглашение отправлено!', en: 'Invite sent!' },
+    inviteFailed: { uz: 'Taklif yuborib bo\'lmadi', ru: 'Не удалось отправить приглашение', en: 'Failed to send invite' },
+    noFriendsYet: { uz: "Hali do'stlaringiz yo'q", ru: 'У вас пока нет друзей', en: 'No friends yet' },
+    shareInvite: { uz: 'Ulashish', ru: 'Поделиться', en: 'Share' },
+    shareText: { uz: "CineSync Watch Party ga qo'shiling!", ru: 'Присоединяйтесь к CineSync Watch Party!', en: 'Join CineSync Watch Party!' },
   },
 
   // ─── Battle ───

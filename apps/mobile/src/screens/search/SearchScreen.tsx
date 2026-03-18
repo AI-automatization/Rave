@@ -6,7 +6,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing, typography } from '@theme/index';
 import { ContentGenre, SearchStackParamList } from '@app-types/index';
-import { useSearchHistory, useDebounce, useSearchResults, GENRES } from '@hooks/useSearch';
+import { useSearchHistory, useDebounce, useSearchResults } from '@hooks/useSearch';
 import { useT } from '@i18n/index';
 import { SearchInput } from '@components/search/SearchInput';
 import { GenreChips } from '@components/search/GenreChips';
@@ -68,12 +68,12 @@ export function SearchScreen() {
       <SearchInput
         value={query}
         onChangeText={setQuery}
-        onSubmit={handleSubmit}
+        onSubmitEditing={handleSubmit}
+        onClear={() => setQuery('')}
         placeholder={t('search', 'placeholderShort')}
       />
 
       <GenreChips
-        genres={GENRES}
         activeGenre={activeGenre}
         onToggle={handleGenreToggle}
       />
@@ -89,8 +89,8 @@ export function SearchScreen() {
       {debouncedQuery.length === 0 && history.length > 0 && (
         <SearchHistory
           history={history}
-          onPress={handleHistoryPress}
-          onRemove={removeFromHistory}
+          onItemPress={handleHistoryPress}
+          onItemRemove={removeFromHistory}
           onClear={clearHistory}
         />
       )}

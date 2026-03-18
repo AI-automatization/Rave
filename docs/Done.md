@@ -1,6 +1,32 @@
 # CineSync — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-03-17
+# Yangilangan: 2026-03-18
+
+---
+
+### F-128 | 2026-03-18 | [MOBILE] | Build fix — UniversalPlayer import xatolar + component prop mismatches [Emirhan]
+
+- **UniversalPlayer.tsx:** `../../api/content` → `../../api/content.api` (named export), `../../storage/token` → `../../utils/storage` (named export)
+- **MovieDetailScreen.tsx:** 4 ta component prop mismatch tuzatildi (MovieDetailActions, MovieCastList, MovieSimilarList, MovieRatingWidget)
+- **SearchScreen.tsx:** SearchInput `onSubmit` → `onSubmitEditing` + `onClear`, GenreChips `genres` prop olib tashlandi, SearchHistory `onPress` → `onItemPress`
+- **VideoSection.tsx:** `RefObject<UniversalPlayerRef | null>` type fix
+- **ProfileAnimations.tsx:** React 19 + Animated.View children type fix
+
+### F-129 | 2026-03-18 | [MOBILE] | YouTube Error 152 fix — IFrame API → mobile WebView [Emirhan]
+
+- YouTube IFrame Embed API (Error 152-4) o'rniga `m.youtube.com/watch?v=ID` to'g'ridan WebView da ochish
+- `MOBILE_USER_AGENT` (Chrome Mobile, "wv" markersiz) barcha WebView larga yuboriladi
+- YouTube backend proxy 5s timeout qo'shildi — fail bo'lsa darhol WebView ga tushadi
+- WebViewAdapters YouTube adapter `.html5-main-video` selektori bilan video topadi
+
+### F-130 | 2026-03-18 | [MOBILE] | WatchParty do'st taklif qilish + video sync yaxshilash [Emirhan]
+
+- **InviteCard:** invite code + nusxalash (expo-clipboard) + ulashish (Share API) + do'stlar ro'yxati + taklif yuborish (`POST /watch-party/rooms/:id/invite`)
+- **watchParty.api:** `inviteFriend(roomId, friendId, inviterName)` metodi qo'shildi
+- **RoomInfoBar:** invite tugma endi barcha a'zolarga ko'rinadi (avval faqat owner)
+- **WebViewPlayer:** `injectWithRetry()` — video element topilmagan bo'lsa 500ms kutib qayta urinadi (sync ishonchliligi)
+- **i18n:** codeCopied, inviteSent, inviteFailed, noFriendsYet, shareInvite, shareText tarjimalari
+- **expo-clipboard** package qo'shildi
 
 ---
 

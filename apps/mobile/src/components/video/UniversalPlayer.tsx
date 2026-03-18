@@ -36,26 +36,33 @@ export function detectVideoPlatform(url: string): VideoPlatform {
   return 'webview';
 }
 
-/**
- * YouTube URL dan video ID ajratib olish.
- * WebViewPlayer ga youtubeVideoId prop sifatida uzatiladi —
- * u IFrame API HTML rejimini faollashtiradi (URI rejim emas, cross-origin muammo yo'q).
- */
+/** YouTube video ID ni ajratib oladi */
 function extractYouTubeVideoId(url: string): string | null {
   const watchMatch = url.match(/[?&]v=([^&]+)/);
   if (watchMatch) return watchMatch[1];
-
   const shortMatch = url.match(/youtu\.be\/([^?&/]+)/);
   if (shortMatch) return shortMatch[1];
-
   const shortsMatch = url.match(/\/shorts\/([^?&/]+)/);
   if (shortsMatch) return shortsMatch[1];
-
   const embedMatch = url.match(/\/embed\/([^?&/]+)/);
   if (embedMatch) return embedMatch[1];
-
   return null;
 }
+
+/** YouTube video ID ni ajratib olib, mobile watch URL qaytaradi */
+function getMobileYouTubeUrl(url: string): string {
+  const id = extractYouTubeVideoId(url);
+  if (id) return `https://m.youtube.com/watch?v=${id}`;
+  return url;
+}
+
+/**
+ * WebView user-agent: "wv" markeri olib tashlangan Chrome Mobile UA.
+ * YouTube va boshqa saytlar WebView ni browser deb qabul qiladi → bloklash yo'q.
+ */
+const MOBILE_USER_AGENT =
+  'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 ' +
+  '(KHTML, like Gecko) Chrome/120.0.6099.144 Mobile Safari/537.36';
 
 export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
   ({ url, isOwner, onPlay, onPause, onSeek, onPlaybackStatusUpdate, onProgress }, ref) => {
@@ -100,21 +107,21 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
       );
     }
 
-    // YouTube → IFrame API HTML rejimi (youtubeVideoId prop orqali)
-    // Boshqa saytlar → URI rejimi
+    // YouTube: IFrame API EMAS — Error 152 beradi.
+    // m.youtube.com ni oddiy brauzer sifatida ochish + MOBILE_USER_AGENT.
+    // Boshqa saytlar: URI rejimi + MOBILE_USER_AGENT.
     if (useWebview) {
-      const youtubeVideoId =
-        platform === 'youtube' ? (extractYouTubeVideoId(url) ?? undefined) : undefined;
+      const displayUrl = platform === 'youtube' ? getMobileYouTubeUrl(url) : url;
       return (
         <WebViewPlayer
           ref={webviewRef}
-          url={url}
-          youtubeVideoId={youtubeVideoId}
+          url={displayUrl}
           isOwner={isOwner}
           onPlay={onPlay}
           onPause={onPause}
           onSeek={onSeek}
           onProgress={onProgress}
+          userAgent={MOBILE_USER_AGENT}
         />
       );
     }

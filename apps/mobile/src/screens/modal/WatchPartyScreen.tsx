@@ -178,7 +178,11 @@ export function WatchPartyScreen() {
       />
 
       {showInvite && room?.inviteCode && (
-        <InviteCard inviteCode={room.inviteCode} />
+        <InviteCard
+          inviteCode={room.inviteCode}
+          roomId={params.roomId}
+          roomName={room.name ?? 'Watch Party'}
+        />
       )}
 
       <View style={[s.emojiBar, Platform.OS === 'ios' ? null : s.emojiBarAndroid]}>

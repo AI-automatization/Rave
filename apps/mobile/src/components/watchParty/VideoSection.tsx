@@ -24,7 +24,7 @@ export interface FloatingEmoji {
 }
 
 interface VideoSectionProps {
-  playerRef: React.RefObject<UniversalPlayerRef>;
+  playerRef: React.RefObject<UniversalPlayerRef | null>;
   videoUrl: string;
   isReady: boolean;
   isOwner: boolean;

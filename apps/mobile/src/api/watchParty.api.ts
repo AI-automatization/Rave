@@ -40,4 +40,11 @@ export const watchPartyApi = {
   async closeRoom(roomId: string): Promise<void> {
     await watchPartyClient.delete(`/watch-party/rooms/${roomId}`);
   },
+
+  async inviteFriend(roomId: string, friendId: string, inviterName?: string): Promise<void> {
+    await watchPartyClient.post(`/watch-party/rooms/${roomId}/invite`, {
+      friendId,
+      inviterName,
+    });
+  },
 };

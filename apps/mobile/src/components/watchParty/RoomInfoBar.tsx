@@ -34,11 +34,9 @@ export const RoomInfoBar = React.memo(function RoomInfoBar({
       </View>
 
       <View style={styles.infoActions}>
-        {isOwner && (
-          <TouchableOpacity onPress={onToggleInvite} style={styles.iconBtn}>
-            <Ionicons name="link-outline" size={20} color={colors.secondary} />
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity onPress={onToggleInvite} style={styles.iconBtn}>
+          <Ionicons name="person-add-outline" size={20} color={colors.secondary} />
+        </TouchableOpacity>
         <TouchableOpacity onPress={onToggleChat} style={styles.iconBtn}>
           <Ionicons name="chatbubble-outline" size={20} color={colors.textSecondary} />
           {hasMessages && <View style={styles.chatDot} />}

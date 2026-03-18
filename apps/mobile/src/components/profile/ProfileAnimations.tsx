@@ -31,7 +31,7 @@ export const FadeInView = React.memo(function FadeInView({
 
   return (
     <Animated.View style={[style, { opacity, transform: [{ translateY }] }]}>
-      {children}
+      {children as unknown as React.ReactElement<unknown, string>}
     </Animated.View>
   );
 });

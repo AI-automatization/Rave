@@ -184,18 +184,22 @@ export const WebViewPlayer = forwardRef<WebViewPlayerRef, Props>(
       return () => StatusBar.setHidden(false, 'slide');
     }, []);
 
+    // Video element hali topilmagan bo'lsa, 500ms kutib qayta urinish
+    const injectWithRetry = useCallback((js: string) => {
+      const wrapped = `if(window._csVideo){${js}}else{setTimeout(function(){if(window._csVideo){${js}}},500);} true;`;
+      webviewRef.current?.injectJavaScript(wrapped);
+    }, []);
+
     useImperativeHandle(ref, () => ({
       play: () => {
-        webviewRef.current?.injectJavaScript('if(window._csVideo){window._csVideo.play();} true;');
+        injectWithRetry('window._csVideo.play();');
       },
       pause: () => {
-        webviewRef.current?.injectJavaScript('if(window._csVideo){window._csVideo.pause();} true;');
+        injectWithRetry('window._csVideo.pause();');
       },
       seekTo: (ms: number) => {
         const secs = ms / 1000;
-        webviewRef.current?.injectJavaScript(
-          `if(window._csVideo){window._csVideo.currentTime=${secs};} true;`,
-        );
+        injectWithRetry(`window._csVideo.currentTime=${secs};`);
         currentTimeMsRef.current = ms;
       },
       getPositionMs: () => currentTimeMsRef.current,
