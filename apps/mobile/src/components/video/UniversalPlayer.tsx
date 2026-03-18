@@ -107,6 +107,15 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
       },
     }), [useWebview]); // eslint-disable-line react-hooks/exhaustive-deps
 
+    // Baг #1 fix: URL yo'q yoki bo'sh — placeholder ko'rsatish
+    if (!url) {
+      return (
+        <View style={styles.center}>
+          <Text style={styles.errorText}>Video mavjud emas</Text>
+        </View>
+      );
+    }
+
     // WebView: native webview URL yoki YouTube proxy xato (embed fallback)
     if (useWebview) {
       const displayUrl = platform === 'youtube' ? getYouTubeEmbedUrl(url) : url;
@@ -144,6 +153,10 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
         resizeMode={ResizeMode.CONTAIN}
         useNativeControls={false}
         onPlaybackStatusUpdate={onPlaybackStatusUpdate}
+        onError={() => {
+          // Баг #2 fix: YouTube proxy stream xato → WebView embed ga fallback
+          if (platform === 'youtube') setResolveError(true);
+        }}
       />
     );
   },

@@ -94,6 +94,15 @@ export function WatchPartyCreateScreen() {
       };
       if (filmMode === 'catalog' && selectedMovie) {
         payload.movieId = selectedMovie._id;
+        // Баг #3 fix: bo'sh videoUrl yubormaslik — katalog filmda video yo'q bo'lsa ogohlantirish
+        if (!selectedMovie.videoUrl) {
+          Alert.alert(
+            'Video mavjud emas',
+            'Bu filmda video fayl hali yuklanmagan. URL orqali kiriting yoki boshqa film tanlang.',
+          );
+          setLoading(false);
+          return;
+        }
         payload.videoUrl = selectedMovie.videoUrl;
       } else if (filmMode === 'url' && videoUrl.trim()) {
         payload.videoUrl = videoUrl.trim();
