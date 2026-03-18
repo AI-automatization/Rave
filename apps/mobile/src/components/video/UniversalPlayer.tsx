@@ -36,8 +36,12 @@ export function detectVideoPlatform(url: string): VideoPlatform {
 }
 
 /**
- * YouTube URL → embed URL + autoplay.
- * Embed format WebView da ishlaydi va youtube.com domenida qoladi (redirect yo'q).
+ * YouTube URL → youtube-nocookie.com embed URL.
+ *
+ * youtube-nocookie.com ishlatiladi chunki:
+ * - Cookie consent sahifasini ko'rsatmaydi (EU va boshqa hududlarda)
+ * - WebView da autoplay bloklash kamroq
+ * - Standart youtube.com embed dan ishonchliiroq
  */
 function getYouTubeEmbedUrl(url: string): string {
   let videoId: string | null = null;
@@ -53,11 +57,16 @@ function getYouTubeEmbedUrl(url: string): string {
 
   if (!videoId) return url;
 
-  // autoplay=1 — WebView da ishlaydi (browser iframe dan farqli)
-  // playsinline=1 — fullscreen ga chiqmasdan ichida o'ynaydi
-  // controls=1 — standart YouTube kontrollari ko'rinadi
-  return `https://www.youtube.com/embed/${videoId}?autoplay=1&playsinline=1&controls=1`;
+  return `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&playsinline=1&controls=1&rel=0`;
 }
+
+/**
+ * WebView user-agent: "wv" markeri olib tashlangan Chrome Mobile UA.
+ * YouTube va boshqa saytlar WebView ni browser deb qabul qiladi → bloklash yo'q.
+ */
+const MOBILE_USER_AGENT =
+  'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 ' +
+  '(KHTML, like Gecko) Chrome/120.0.6099.144 Mobile Safari/537.36';
 
 export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
   ({ url, isOwner, onPlay, onPause, onSeek, onPlaybackStatusUpdate, onProgress }, ref) => {
@@ -99,10 +108,11 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
       );
     }
 
-    // YouTube → embed URL bilan WebView (proxy yo'q — tez va ishonchli)
+    // YouTube → nocookie embed + mobile UA (WebView detectsiyasini bloklash)
     // Boshqa saytlar → to'g'ridan WebView
     if (useWebview) {
       const displayUrl = platform === 'youtube' ? getYouTubeEmbedUrl(url) : url;
+      const userAgent = platform === 'youtube' ? MOBILE_USER_AGENT : undefined;
       return (
         <WebViewPlayer
           ref={webviewRef}
@@ -112,6 +122,7 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
           onPause={onPause}
           onSeek={onSeek}
           onProgress={onProgress}
+          userAgent={userAgent}
         />
       );
     }

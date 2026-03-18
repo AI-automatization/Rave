@@ -62,6 +62,8 @@ interface Props {
   onPause: (currentTimeSecs: number) => void;
   onSeek: (currentTimeSecs: number) => void;
   onProgress?: (currentTimeSecs: number, durationSecs: number) => void;
+  /** Custom User-Agent — YouTube kabi saytlar uchun WebView detektsiyasini o'tkazib yuborish */
+  userAgent?: string;
 }
 
 type WebViewMessage =
@@ -74,7 +76,7 @@ type WebViewMessage =
 
 
 export const WebViewPlayer = forwardRef<WebViewPlayerRef, Props>(
-  ({ url, isOwner, onPlay, onPause, onSeek, onProgress }, ref) => {
+  ({ url, isOwner, onPlay, onPause, onSeek, onProgress, userAgent }, ref) => {
     const webviewRef = useRef<WebView>(null);
     const currentTimeMsRef = useRef(0);
     const originalHostRef = useRef(getHostname(url));
@@ -222,6 +224,7 @@ export const WebViewPlayer = forwardRef<WebViewPlayerRef, Props>(
             allowsFullscreenVideo
             onShouldStartLoadWithRequest={handleShouldStartLoad}
             onNavigationStateChange={handleNavigationStateChange}
+            userAgent={userAgent}
           />
         )}
       </View>
