@@ -145,9 +145,19 @@ export const WebViewPlayer = forwardRef<WebViewPlayerRef, Props>(
       }
     }, [isOwner, onPlay, onPause, onSeek, onProgress]);
 
-    // Reklama bloklash
+    // Reklama va native-app redirect bloklash
     const handleShouldStartLoad = useCallback((request: ShouldStartLoadRequest): boolean => {
-      return !isAdRequest(request.url);
+      const { url } = request;
+      // Block intent://, youtube://, market:// — bunlar native app ochishga urinadi → black screen
+      try {
+        const scheme = url.split(':')[0].toLowerCase();
+        if (scheme !== 'http' && scheme !== 'https' && scheme !== 'blob' && scheme !== 'data') {
+          return false;
+        }
+      } catch {
+        return false;
+      }
+      return !isAdRequest(url);
     }, []);
 
     // Redirect aniqlash: domen o'zgarsa ogohlantirish

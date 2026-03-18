@@ -36,6 +36,7 @@ interface VideoSectionProps {
   onSeek: (secs: number) => void;
   onPlaybackStatusUpdate: (status: AVPlaybackStatus) => void;
   onStreamResolved: (info: { isLive: boolean }) => void;
+  onProgress?: (currentTimeSecs: number, durationSecs: number) => void;
   onPlayPause: () => void;
   onSeekDirection: (direction: 'forward' | 'back') => void;
   onRemoveEmoji: (id: string) => void;
@@ -54,6 +55,7 @@ export const VideoSection = React.memo(function VideoSection({
   onSeek,
   onPlaybackStatusUpdate,
   onStreamResolved,
+  onProgress,
   onPlayPause,
   onSeekDirection,
   onRemoveEmoji,
@@ -72,6 +74,7 @@ export const VideoSection = React.memo(function VideoSection({
           onSeek={onSeek}
           onPlaybackStatusUpdate={onPlaybackStatusUpdate}
           onStreamResolved={onStreamResolved}
+          onProgress={onProgress}
         />
       )}
 
