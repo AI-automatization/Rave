@@ -56,7 +56,8 @@ const LOCKED_PLACEHOLDER_COUNT = 12;
 export function AchievementsScreen() {
   const navigation = useNavigation();
   const { achievementsQuery } = useMyProfile();
-  const achievements = achievementsQuery.data ?? [];
+  const rawData = achievementsQuery.data;
+  const achievements: UnlockedAchievement[] = Array.isArray(rawData) ? rawData : [];
   const { t } = useT();
 
   // Add locked placeholders

@@ -21,7 +21,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
-import { colors } from '@theme/index';
+import { colors, BRAND_COLORS } from '@theme/index';
 import { AuthStackParamList } from '@app-types/index';
 import { authApi } from '@api/auth.api';
 import { useAuthStore } from '@store/auth.store';
@@ -37,9 +37,9 @@ type Nav = NativeStackNavigationProp<AuthStackParamList, 'Register'>;
 
 function GradientGoogleIcon() {
   return (
-    <MaskedView maskElement={<FontAwesome5 name="google" size={20} color="#000" />}>
+    <MaskedView maskElement={<FontAwesome5 name="google" size={20} color={colors.black} />}>
       <LinearGradient
-        colors={['#4285F4', '#EA4335', '#FBBC05', '#34A853']}
+        colors={[...BRAND_COLORS.googleGradient]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       >
@@ -146,11 +146,11 @@ export function RegisterScreen() {
     if (/[^A-Za-z0-9]/.test(pass)) score++;
     const levels: Array<{ pct: number; label: string; color: string }> = [
       { pct: 0, label: '', color: colors.bgElevated },
-      { pct: 20, label: t('register', 'strengthWeak'), color: '#EF4444' },
-      { pct: 40, label: t('register', 'strengthFair'), color: '#F59E0B' },
-      { pct: 60, label: t('register', 'strengthGood'), color: '#FBBF24' },
-      { pct: 80, label: t('register', 'strengthStrong'), color: '#34D399' },
-      { pct: 100, label: t('register', 'strengthVeryStrong'), color: '#22C55E' },
+      { pct: 20, label: t('register', 'strengthWeak'), color: colors.passwordWeak },
+      { pct: 40, label: t('register', 'strengthFair'), color: colors.passwordFair },
+      { pct: 60, label: t('register', 'strengthGood'), color: colors.warning },
+      { pct: 80, label: t('register', 'strengthStrong'), color: colors.success },
+      { pct: 100, label: t('register', 'strengthVeryStrong'), color: colors.passwordVeryStrong },
     ];
     return levels[score];
   };
@@ -298,8 +298,8 @@ export function RegisterScreen() {
             )}
 
             <TouchableOpacity onPress={handleRegister} disabled={loading} activeOpacity={0.85} style={{ marginTop: 20 }}>
-              <LinearGradient colors={loading ? ['#3F3F46', '#3F3F46'] : ['#7C3AED', '#9333EA']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.primaryBtn}>
-                {loading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={s.primaryBtnText}>{t('register', 'registerBtn')}</Text>}
+              <LinearGradient colors={loading ? [colors.bgLoading, colors.bgLoading] : [colors.primary, colors.primaryLight]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.primaryBtn}>
+                {loading ? <ActivityIndicator color={colors.white} size="small" /> : <Text style={s.primaryBtnText}>{t('register', 'registerBtn')}</Text>}
               </LinearGradient>
             </TouchableOpacity>
 
@@ -311,7 +311,7 @@ export function RegisterScreen() {
 
             <View style={s.socialRow}>
               <TouchableOpacity onPress={() => promptAsync()} disabled={googleLoading || !GOOGLE_CLIENT_ID} activeOpacity={0.85} style={[s.socialHalf, googleLoading && s.btnDisabled]}>
-                <LinearGradient colors={['#4285F4', '#34A853', '#FBBC05', '#EA4335']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.socialBorder}>
+                <LinearGradient colors={[...BRAND_COLORS.googleGradient]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.socialBorder}>
                   <View style={s.socialInner}>
                     {googleLoading ? <ActivityIndicator color={colors.textPrimary} size="small" /> : <GradientGoogleIcon />}
                   </View>
@@ -319,9 +319,9 @@ export function RegisterScreen() {
               </TouchableOpacity>
 
               <TouchableOpacity onPress={handleTelegramLogin} disabled={telegramLoading} activeOpacity={0.85} style={[s.socialHalf, telegramLoading && s.btnDisabled]}>
-                <LinearGradient colors={['#2AABEE', '#229ED9']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.socialBorder}>
+                <LinearGradient colors={[...BRAND_COLORS.telegramGradient]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.socialBorder}>
                   <View style={s.socialInner}>
-                    {telegramLoading ? <ActivityIndicator color="#fff" size="small" /> : <FontAwesome5 name="telegram-plane" size={20} color="#2AABEE" />}
+                    {telegramLoading ? <ActivityIndicator color={colors.white} size="small" /> : <FontAwesome5 name="telegram-plane" size={20} color={BRAND_COLORS.telegramBlue} />}
                   </View>
                 </LinearGradient>
               </TouchableOpacity>
@@ -387,7 +387,7 @@ const s = StyleSheet.create({
   matchText: { fontSize: 12, fontWeight: '600' },
 
   primaryBtn: { height: 54, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  primaryBtnText: { color: '#fff', fontSize: 16, fontWeight: '700', letterSpacing: 0.5 },
+  primaryBtnText: { color: colors.white, fontSize: 16, fontWeight: '700', letterSpacing: 0.5 },
 
   divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 24, gap: 14 },
   dividerLine: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(255,255,255,0.1)' },
@@ -402,5 +402,5 @@ const s = StyleSheet.create({
 
   footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 28, gap: 4 },
   footerText: { color: colors.textMuted, fontSize: 14 },
-  footerLink: { color: '#A855F7', fontSize: 14, fontWeight: '700' },
+  footerLink: { color: colors.link, fontSize: 14, fontWeight: '700' },
 });

@@ -21,7 +21,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
-import { colors } from '@theme/index';
+import { colors, BRAND_COLORS } from '@theme/index';
 import { AuthStackParamList } from '@app-types/index';
 import { authApi } from '@api/auth.api';
 import { useAuthStore } from '@store/auth.store';
@@ -37,9 +37,9 @@ type Nav = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 
 function GradientGoogleIcon() {
   return (
-    <MaskedView maskElement={<FontAwesome5 name="google" size={20} color="#000" />}>
+    <MaskedView maskElement={<FontAwesome5 name="google" size={20} color={colors.black} />}>
       <LinearGradient
-        colors={['#4285F4', '#EA4335', '#FBBC05', '#34A853']}
+        colors={[...BRAND_COLORS.googleGradient]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       >
@@ -234,13 +234,13 @@ export function LoginScreen() {
             {/* Login Button */}
             <TouchableOpacity onPress={handleLogin} disabled={loading} activeOpacity={0.85}>
               <LinearGradient
-                colors={loading ? ['#3F3F46', '#3F3F46'] : ['#7C3AED', '#9333EA']}
+                colors={loading ? [colors.bgLoading, colors.bgLoading] : [colors.primary, colors.primaryLight]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={s.primaryBtn}
               >
                 {loading ? (
-                  <ActivityIndicator color="#fff" size="small" />
+                  <ActivityIndicator color={colors.white} size="small" />
                 ) : (
                   <Text style={s.primaryBtnText}>{t('login', 'loginBtn')}</Text>
                 )}
@@ -264,7 +264,7 @@ export function LoginScreen() {
                 style={[s.socialHalf, googleLoading && s.btnDisabled]}
               >
                 <LinearGradient
-                  colors={['#4285F4', '#34A853', '#FBBC05', '#EA4335']}
+                  colors={[...BRAND_COLORS.googleGradient]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={s.socialBorder}
@@ -287,16 +287,16 @@ export function LoginScreen() {
                 style={[s.socialHalf, telegramLoading && s.btnDisabled]}
               >
                 <LinearGradient
-                  colors={['#2AABEE', '#229ED9']}
+                  colors={[...BRAND_COLORS.telegramGradient]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={s.socialBorder}
                 >
                   <View style={s.socialInner}>
                     {telegramLoading ? (
-                      <ActivityIndicator color="#fff" size="small" />
+                      <ActivityIndicator color={colors.white} size="small" />
                     ) : (
-                      <FontAwesome5 name="telegram-plane" size={20} color="#2AABEE" />
+                      <FontAwesome5 name="telegram-plane" size={20} color={BRAND_COLORS.telegramBlue} />
                     )}
                   </View>
                 </LinearGradient>
@@ -338,7 +338,7 @@ const s = StyleSheet.create({
 
   header: { alignItems: 'center', marginBottom: 44 },
   logo: { fontSize: 42, fontWeight: '900', color: colors.textPrimary, letterSpacing: 6, marginBottom: 8 },
-  logoAccent: { color: '#A855F7' },
+  logoAccent: { color: colors.link },
   subtitle: { fontSize: 14, color: colors.textMuted, letterSpacing: 0.5 },
 
   errorBox: {
@@ -368,7 +368,7 @@ const s = StyleSheet.create({
   forgotText: { color: colors.textMuted, fontSize: 13 },
 
   primaryBtn: { height: 54, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginBottom: 28 },
-  primaryBtnText: { color: '#fff', fontSize: 16, fontWeight: '700', letterSpacing: 0.5 },
+  primaryBtnText: { color: colors.white, fontSize: 16, fontWeight: '700', letterSpacing: 0.5 },
 
   divider: { flexDirection: 'row', alignItems: 'center', marginBottom: 24, gap: 14 },
   dividerLine: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(255,255,255,0.1)' },
@@ -387,5 +387,5 @@ const s = StyleSheet.create({
 
   footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 32, gap: 4 },
   footerText: { color: colors.textMuted, fontSize: 14 },
-  footerLink: { color: '#A855F7', fontSize: 14, fontWeight: '700' },
+  footerLink: { color: colors.link, fontSize: 14, fontWeight: '700' },
 });

@@ -24,14 +24,32 @@ export function useWatchParty(roomId: string) {
   const isOwner = room?.ownerId === userId;
 
   useEffect(() => {
+    // Har safar yangi xonaga kirda — eski ma'lumotlarni tozala
+    clearParty();
+
     if (!token) return;
 
     const socket = connectSocket(token);
-    socket.emit(CLIENT_EVENTS.JOIN_ROOM, { roomId });
+
+    const joinRoom = () => {
+      if (__DEV__) console.log('[useWatchParty] joining room:', roomId);
+      socket.emit(CLIENT_EVENTS.JOIN_ROOM, { roomId });
+    };
+
+    // Re-join on every connect (handles initial connect + reconnects after network drop)
+    socket.on('connect', joinRoom);
+
+    // Already connected — darhol join
+    if (socket.connected) {
+      joinRoom();
+    }
 
     socket.on(SERVER_EVENTS.ROOM_JOINED, (data: { room: IWatchPartyRoom; syncState: SyncState }) => {
       setRoom(data.room);
-      setActiveMembers(data.room.members);
+      const memberIds = (data.room.members as unknown[]).map((m: unknown) =>
+        typeof m === 'string' ? m : (m as { _id?: string; userId?: string })?._id ?? (m as { userId?: string })?.userId ?? '',
+      );
+      setActiveMembers(memberIds);
       if (data.syncState) setSyncState(data.syncState);
     });
 
@@ -52,8 +70,25 @@ export function useWatchParty(roomId: string) {
       disconnectSocket();
     });
 
+    socket.on('disconnect', (reason: string) => {
+      if (__DEV__) console.log('[useWatchParty] socket disconnected:', reason);
+    });
+
+    socket.on(SERVER_EVENTS.ERROR, (err: { message?: string }) => {
+      if (__DEV__) console.log('[useWatchParty] socket error:', err?.message);
+    });
+
+    socket.on('connect_error', (err: Error) => {
+      if (__DEV__) console.log('[useWatchParty] connect_error:', err?.message);
+    });
+
     return () => {
-      socket.emit(CLIENT_EVENTS.LEAVE_ROOM, { roomId });
+      socket.off('connect', joinRoom);
+      socket.off('disconnect');
+      // NOTE: Do NOT emit LEAVE_ROOM here — React StrictMode runs cleanup+remount
+      // in dev, which would delete the room before the second mount can join it.
+      // Explicit leave happens via handleLeave (HTTP API). Socket disconnect
+      // event on the backend handles cleanup when the socket actually closes.
       socket.off(SERVER_EVENTS.ROOM_JOINED);
       socket.off(SERVER_EVENTS.ROOM_UPDATED);
       socket.off(SERVER_EVENTS.VIDEO_SYNC);
@@ -64,6 +99,8 @@ export function useWatchParty(roomId: string) {
       socket.off(SERVER_EVENTS.MEMBER_JOINED);
       socket.off(SERVER_EVENTS.MEMBER_LEFT);
       socket.off(SERVER_EVENTS.ROOM_CLOSED);
+      socket.off(SERVER_EVENTS.ERROR);
+      socket.off('connect_error');
     };
   }, [roomId, token]);
 

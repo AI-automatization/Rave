@@ -44,6 +44,27 @@ export const colors = {
 
   // Overlay backdrop
   overlay: 'rgba(0,0,0,0.6)',
+
+  // Extended palette
+  primaryLight: '#9333EA',   // lighter violet (gradient second stop)
+  link: '#A855F7',           // purple link / accent text
+  bgLoading: '#3F3F46',      // zinc-700, skeleton / loading placeholder
+
+  // Password strength progression
+  passwordWeak: '#EF4444',       // red-500
+  passwordFair: '#F59E0B',       // amber-500
+  passwordVeryStrong: '#22C55E', // green-500
+
+  // White shorthand
+  white: '#FFFFFF',
+  black: '#000000',
+} as const;
+
+// Brand colors — externally mandated, do NOT change
+export const BRAND_COLORS = {
+  googleGradient: ['#4285F4', '#EA4335', '#FBBC05', '#34A853'] as const,
+  telegramGradient: ['#2AABEE', '#229ED9'] as const,
+  telegramBlue: '#2AABEE',
 } as const;
 
 export const RANK_COLORS: Record<UserRank, string> = {

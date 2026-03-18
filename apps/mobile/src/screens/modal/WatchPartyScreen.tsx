@@ -1,37 +1,24 @@
 // CineSync Mobile — WatchPartyScreen
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-  Dimensions,
-  Platform,
-  ActivityIndicator,
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Alert, Platform } from 'react-native';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
 import { AVPlaybackStatus } from 'expo-av';
 import { useWatchParty } from '@hooks/useWatchParty';
 import { useAuthStore } from '@store/auth.store';
 import { watchPartyApi } from '@api/watchParty.api';
+import { disconnectSocket } from '@socket/client';
 import { ChatPanel } from '@components/watchParty/ChatPanel';
-import { EmojiFloatItem, EmojiPickerBar } from '@components/watchParty/EmojiFloat';
-import { UniversalPlayer, UniversalPlayerRef } from '@components/video/UniversalPlayer';
-import { colors, spacing, borderRadius, typography } from '@theme/index';
+import { EmojiPickerBar } from '@components/watchParty/EmojiFloat';
+import { UniversalPlayerRef } from '@components/video/UniversalPlayer';
+import { VideoSection, FloatingEmoji } from '@components/watchParty/VideoSection';
+import { RoomInfoBar } from '@components/watchParty/RoomInfoBar';
+import { InviteCard } from '@components/watchParty/InviteCard';
+import { colors, spacing } from '@theme/index';
 import { ModalStackParamList } from '@app-types/index';
 
 type RouteType = RouteProp<ModalStackParamList, 'WatchParty'>;
 
 const { width: SCREEN_W } = Dimensions.get('window');
-const VIDEO_HEIGHT = (SCREEN_W * 9) / 16;
-
-interface FloatingEmoji {
-  id: string;
-  emoji: string;
-  x: number;
-}
 
 export function WatchPartyScreen() {
   const { params } = useRoute<RouteType>();
@@ -46,12 +33,19 @@ export function WatchPartyScreen() {
   const lastSyncId = useRef('');
 
   const [showChat, setShowChat] = useState(false);
-  const [floatingEmojis, setFloatingEmojis] = useState<FloatingEmoji[]>([]);
   const [showInvite, setShowInvite] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [videoIsLive, setVideoIsLive] = useState(false);
+  const [floatingEmojis, setFloatingEmojis] = useState<FloatingEmoji[]>([]);
+  const [connectTimeout, setConnectTimeout] = useState(false);
 
-  // Apply incoming sync from server
+  // 15 soniya ichida room kelmasa — xabar ko'rsatish
+  useEffect(() => {
+    if (room) return;
+    const timer = setTimeout(() => setConnectTimeout(true), 15000);
+    return () => clearTimeout(timer);
+  }, [room]);
+
   useEffect(() => {
     if (!syncState) return;
     const syncId = `${syncState.serverTimestamp}`;
@@ -62,47 +56,31 @@ export function WatchPartyScreen() {
     playerRef.current
       ?.seekTo(syncState.currentTime * 1000)
       .then(() => {
-        if (syncState.isPlaying) {
-          return playerRef.current?.play();
-        } else {
-          return playerRef.current?.pause();
-        }
+        if (syncState.isPlaying) return playerRef.current?.play();
+        else return playerRef.current?.pause();
       })
       .catch(() => {})
-      .finally(() => {
-        isSyncing.current = false;
-      });
+      .finally(() => { isSyncing.current = false; });
   }, [syncState]);
 
-  // Direct video (expo-av) status update — isPlaying tracking
   const onPlaybackStatusUpdate = useCallback((status: AVPlaybackStatus) => {
     if (!status.isLoaded || isSyncing.current) return;
     setIsPlaying(status.isPlaying);
   }, []);
 
-  // WebView events — Owner socketga yuboradi, isPlaying yangilanadi
-  const handleWebViewPlay = useCallback(
-    (secs: number) => {
-      setIsPlaying(true);
-      if (isOwner && !isSyncing.current) emitPlay(secs);
-    },
-    [isOwner, emitPlay],
-  );
+  const handleWebViewPlay = useCallback((secs: number) => {
+    setIsPlaying(true);
+    if (isOwner && !isSyncing.current) emitPlay(secs);
+  }, [isOwner, emitPlay]);
 
-  const handleWebViewPause = useCallback(
-    (secs: number) => {
-      setIsPlaying(false);
-      if (isOwner && !isSyncing.current) emitPause(secs);
-    },
-    [isOwner, emitPause],
-  );
+  const handleWebViewPause = useCallback((secs: number) => {
+    setIsPlaying(false);
+    if (isOwner && !isSyncing.current) emitPause(secs);
+  }, [isOwner, emitPause]);
 
-  const handleWebViewSeek = useCallback(
-    (secs: number) => {
-      if (isOwner && !isSyncing.current) emitSeek(secs);
-    },
-    [isOwner, emitSeek],
-  );
+  const handleWebViewSeek = useCallback((secs: number) => {
+    if (isOwner && !isSyncing.current) emitSeek(secs);
+  }, [isOwner, emitSeek]);
 
   const handlePlayPause = useCallback(async () => {
     if (!isOwner) return;
@@ -116,30 +94,24 @@ export function WatchPartyScreen() {
     }
   }, [isOwner, isPlaying, emitPlay, emitPause]);
 
-  const handleSeek = useCallback(
-    async (direction: 'forward' | 'back') => {
-      if (!isOwner || videoIsLive) return;
-      const posMs = (await playerRef.current?.getPositionMs()) ?? 0;
-      const delta = direction === 'forward' ? 10 : -10;
-      const newMs = Math.max(0, posMs + delta * 1000);
-      await playerRef.current?.seekTo(newMs);
-      emitSeek(newMs / 1000);
-    },
-    [isOwner, videoIsLive, emitSeek],
-  );
+  const handleSeekDirection = useCallback(async (direction: 'forward' | 'back') => {
+    if (!isOwner || videoIsLive) return;
+    const posMs = (await playerRef.current?.getPositionMs()) ?? 0;
+    const delta = direction === 'forward' ? 10 : -10;
+    const newMs = Math.max(0, posMs + delta * 1000);
+    await playerRef.current?.seekTo(newMs);
+    emitSeek(newMs / 1000);
+  }, [isOwner, videoIsLive, emitSeek]);
 
-  const handleEmojiSelect = useCallback(
-    (emoji: string) => {
-      sendEmoji(emoji);
-      setFloatingEmojis(prev => [
-        ...prev,
-        { id: `${Date.now()}`, emoji, x: Math.random() * (SCREEN_W - 60) + 10 },
-      ]);
-    },
-    [sendEmoji],
-  );
+  const handleEmojiSelect = useCallback((emoji: string) => {
+    sendEmoji(emoji);
+    setFloatingEmojis(prev => [
+      ...prev,
+      { id: `${Date.now()}`, emoji, x: Math.random() * (SCREEN_W - 60) + 10 },
+    ]);
+  }, [sendEmoji]);
 
-  const removeEmoji = useCallback((id: string) => {
+  const handleRemoveEmoji = useCallback((id: string) => {
     setFloatingEmojis(prev => prev.filter(e => e.id !== id));
   }, []);
 
@@ -150,118 +122,71 @@ export function WatchPartyScreen() {
         text: isOwner ? 'Xonani yopish' : 'Chiqish',
         style: 'destructive',
         onPress: async () => {
-          if (isOwner) await watchPartyApi.closeRoom(params.roomId);
-          else await watchPartyApi.leaveRoom(params.roomId);
+          try {
+            if (isOwner) await watchPartyApi.closeRoom(params.roomId);
+            else await watchPartyApi.leaveRoom(params.roomId);
+          } catch {
+            // Room may already be gone — proceed with leaving
+          }
+          disconnectSocket();
           navigation.goBack();
         },
       },
     ]);
   };
 
-  const videoUrl = room?.videoUrl ?? '';
+  if (connectTimeout && !room) {
+    return (
+      <View style={s.errorRoot}>
+        <Text style={s.errorTitle}>Ulanib bo'lmadi</Text>
+        <Text style={s.errorSub}>Socket serverga ulanishda xatolik yuz berdi</Text>
+        <TouchableOpacity style={s.errorBtn} onPress={() => navigation.goBack()}>
+          <Text style={s.errorBtnText}>Orqaga qaytish</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
-    <View style={styles.root}>
-      {/* Video */}
-      <View style={styles.videoContainer}>
-        {!room ? (
-          <ActivityIndicator size="large" color={colors.primary} />
-        ) : (
-          <UniversalPlayer
-            ref={playerRef}
-            url={videoUrl}
-            isOwner={isOwner}
-            onPlay={handleWebViewPlay}
-            onPause={handleWebViewPause}
-            onSeek={handleWebViewSeek}
-            onPlaybackStatusUpdate={onPlaybackStatusUpdate}
-            onStreamResolved={({ isLive }) => setVideoIsLive(isLive)}
-          />
-        )}
+    <View style={s.root}>
+      <VideoSection
+        playerRef={playerRef}
+        videoUrl={room?.videoUrl ?? ''}
+        isReady={!!room}
+        isOwner={isOwner}
+        isPlaying={isPlaying}
+        videoIsLive={videoIsLive}
+        floatingEmojis={floatingEmojis}
+        onPlay={handleWebViewPlay}
+        onPause={handleWebViewPause}
+        onSeek={handleWebViewSeek}
+        onPlaybackStatusUpdate={onPlaybackStatusUpdate}
+        onStreamResolved={({ isLive }) => setVideoIsLive(isLive)}
+        onPlayPause={handlePlayPause}
+        onSeekDirection={handleSeekDirection}
+        onRemoveEmoji={handleRemoveEmoji}
+      />
 
-        {/* LIVE badge */}
-        {videoIsLive && (
-          <View style={styles.liveBadge}>
-            <View style={styles.liveDot} />
-            <Text style={styles.liveText}>JONLI EFIR</Text>
-          </View>
-        )}
+      <RoomInfoBar
+        roomName={room?.name ?? 'Watch Party'}
+        memberCount={activeMembers.length}
+        isOwner={isOwner}
+        hasMessages={messages.length > 0}
+        onToggleInvite={() => setShowInvite(v => !v)}
+        onToggleChat={() => setShowChat(v => !v)}
+        onLeave={handleLeave}
+      />
 
-        {/* Floating emojis */}
-        {floatingEmojis.map(e => (
-          <EmojiFloatItem key={e.id} emoji={e.emoji} x={e.x} onDone={() => removeEmoji(e.id)} />
-        ))}
-
-        {/* Video controls overlay (owner only) */}
-        {isOwner && (
-          <View style={styles.controls}>
-            {!videoIsLive && (
-              <TouchableOpacity onPress={() => handleSeek('back')} style={styles.controlBtn}>
-                <Ionicons name="play-back" size={22} color={colors.textPrimary} />
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity onPress={handlePlayPause} style={styles.playBtn}>
-              <Ionicons name={isPlaying ? 'pause' : 'play'} size={26} color={colors.textPrimary} />
-            </TouchableOpacity>
-            {!videoIsLive && (
-              <TouchableOpacity onPress={() => handleSeek('forward')} style={styles.controlBtn}>
-                <Ionicons name="play-forward" size={22} color={colors.textPrimary} />
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
-        {!isOwner && (
-          <View style={styles.memberBadge}>
-            <Ionicons name="eye-outline" size={14} color={colors.textMuted} />
-            <Text style={styles.memberBadgeText}>Tomoshabin</Text>
-          </View>
-        )}
-      </View>
-
-      {/* Room info bar */}
-      <View style={styles.infoBar}>
-        <View style={styles.infoLeft}>
-          <Text style={styles.roomName} numberOfLines={1}>
-            {room?.name ?? 'Watch Party'}
-          </Text>
-          <View style={styles.memberCount}>
-            <Ionicons name="people-outline" size={14} color={colors.textMuted} />
-            <Text style={styles.memberCountText}>{activeMembers.length}</Text>
-          </View>
-        </View>
-
-        <View style={styles.infoActions}>
-          {isOwner && (
-            <TouchableOpacity onPress={() => setShowInvite(v => !v)} style={styles.iconBtn}>
-              <Ionicons name="link-outline" size={20} color={colors.secondary} />
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity onPress={() => setShowChat(v => !v)} style={styles.iconBtn}>
-            <Ionicons name="chatbubble-outline" size={20} color={colors.textSecondary} />
-            {messages.length > 0 && <View style={styles.chatDot} />}
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handleLeave} style={styles.iconBtn}>
-            <Ionicons name="exit-outline" size={20} color={colors.error} />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Invite code */}
-      {showInvite && room && (
-        <View style={styles.inviteCard}>
-          <Text style={styles.inviteLabel}>INVITE KOD</Text>
-          <Text style={styles.inviteCode}>{room.inviteCode}</Text>
-        </View>
+      {showInvite && room?.inviteCode && (
+        <InviteCard inviteCode={room.inviteCode} />
       )}
 
-      {/* Emoji bar */}
-      <View style={styles.emojiBar}>
+      <View style={[s.emojiBar, Platform.OS === 'ios' ? null : s.emojiBarAndroid]}>
         <EmojiPickerBar onSelect={handleEmojiSelect} />
       </View>
 
-      {/* Chat panel */}
       {showChat && (
-        <View style={styles.chatPanel}>
+        <View style={s.chatPanel}>
           <ChatPanel messages={messages} currentUserId={userId} onSend={sendMessage} />
         </View>
       )}
@@ -269,104 +194,26 @@ export function WatchPartyScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bgVoid },
-  videoContainer: {
-    width: SCREEN_W,
-    height: VIDEO_HEIGHT,
-    backgroundColor: '#000',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  controls: {
-    position: 'absolute',
-    bottom: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xl,
-  },
-  controlBtn: {
-    padding: spacing.sm,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    borderRadius: borderRadius.full,
-  },
-  playBtn: {
-    padding: spacing.md,
-    backgroundColor: colors.primary,
-    borderRadius: borderRadius.full,
-  },
-  liveBadge: {
-    position: 'absolute',
-    top: 12,
-    left: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: colors.error,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.sm,
-  },
-  liveDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.textPrimary,
-  },
-  liveText: { ...typography.label, color: colors.textPrimary, fontWeight: '700' },
-  memberBadge: {
-    position: 'absolute',
-    bottom: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.full,
-  },
-  memberBadgeText: { ...typography.caption, color: colors.textMuted },
-  infoBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: spacing.md,
-    paddingHorizontal: spacing.lg,
-    backgroundColor: colors.bgSurface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  infoLeft: { flex: 1, gap: 2 },
-  roomName: { ...typography.h3, color: colors.textPrimary },
-  memberCount: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  memberCountText: { ...typography.caption, color: colors.textMuted },
-  infoActions: { flexDirection: 'row', gap: spacing.sm },
-  iconBtn: { padding: spacing.sm, position: 'relative' },
-  chatDot: {
-    position: 'absolute',
-    top: 6,
-    right: 6,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.error,
-  },
-  inviteCard: {
-    backgroundColor: colors.bgElevated,
-    padding: spacing.md,
-    marginHorizontal: spacing.lg,
-    marginTop: spacing.sm,
-    borderRadius: borderRadius.md,
-    borderLeftWidth: 3,
-    borderLeftColor: colors.primary,
-    gap: spacing.xs,
-  },
-  inviteLabel: { ...typography.label, color: colors.textMuted },
-  inviteCode: { ...typography.h2, color: colors.primary, letterSpacing: 4 },
-  emojiBar: {
-    padding: spacing.md,
-    alignItems: 'center',
-    marginTop: Platform.OS === 'ios' ? 0 : spacing.sm,
-  },
+  emojiBar: { padding: spacing.md, alignItems: 'center' },
+  emojiBarAndroid: { marginTop: spacing.sm },
   chatPanel: { flex: 1 },
+  errorRoot: {
+    flex: 1,
+    backgroundColor: colors.bgBase,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.lg,
+    padding: spacing.xl,
+  },
+  errorTitle: { fontSize: 20, fontWeight: '700', color: colors.textPrimary },
+  errorSub: { fontSize: 14, color: colors.textMuted, textAlign: 'center' },
+  errorBtn: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.xxl,
+    paddingVertical: spacing.md,
+    borderRadius: 12,
+  },
+  errorBtnText: { color: colors.white, fontWeight: '700', fontSize: 15 },
 });

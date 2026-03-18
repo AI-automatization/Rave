@@ -13,10 +13,11 @@ export function connectSocket(token: string): Socket {
 
   socket = io(WATCH_PARTY_URL, {
     auth: { token },
-    transports: ['websocket'],
+    transports: ['polling', 'websocket'],
     reconnection: true,
     reconnectionDelay: 1000,
     reconnectionAttempts: 10,
+    timeout: 20000,
   });
 
   return socket;
