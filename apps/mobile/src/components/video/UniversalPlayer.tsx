@@ -1,11 +1,9 @@
 // CineSync Mobile — UniversalPlayer
-// URL ga qarab to'g'ri player tanlaydi: expo-av (direct/youtube) yoki WebView (boshqalar)
-import React, { forwardRef, useImperativeHandle, useRef, useState, useEffect } from 'react';
-import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
+// URL ga qarab to'g'ri player tanlaydi: expo-av (direct) yoki WebView (youtube/boshqalar)
+import React, { forwardRef, useImperativeHandle, useRef } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
 import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import { WebViewPlayer, WebViewPlayerRef } from './WebViewPlayer';
-import { contentApi } from '@api/content.api';
-import { tokenStorage } from '@utils/storage';
 import { colors, typography, spacing } from '@theme/index';
 
 export type VideoPlatform = 'direct' | 'youtube' | 'webview';
@@ -25,7 +23,6 @@ interface Props {
   onSeek: (currentTimeSecs: number) => void;
   onPlaybackStatusUpdate?: (status: AVPlaybackStatus) => void;
   onProgress?: (currentTimeSecs: number, durationSecs: number) => void;
-  /** YouTube stream resolve bo'lganda chaqiriladi */
   onStreamResolved?: (info: { isLive: boolean; title: string }) => void;
 }
 
@@ -38,53 +35,39 @@ export function detectVideoPlatform(url: string): VideoPlatform {
   return 'webview';
 }
 
+/**
+ * YouTube URL → embed URL + autoplay.
+ * Embed format WebView da ishlaydi va youtube.com domenida qoladi (redirect yo'q).
+ */
 function getYouTubeEmbedUrl(url: string): string {
+  let videoId: string | null = null;
+
   const watchMatch = url.match(/[?&]v=([^&]+)/);
-  if (watchMatch) return `https://www.youtube.com/embed/${watchMatch[1]}`;
+  if (watchMatch) videoId = watchMatch[1];
+
   const shortMatch = url.match(/youtu\.be\/([^?&/]+)/);
-  if (shortMatch) return `https://www.youtube.com/embed/${shortMatch[1]}`;
+  if (!videoId && shortMatch) videoId = shortMatch[1];
+
   const shortsMatch = url.match(/\/shorts\/([^?&/]+)/);
-  if (shortsMatch) return `https://www.youtube.com/embed/${shortsMatch[1]}`;
-  return url;
+  if (!videoId && shortsMatch) videoId = shortsMatch[1];
+
+  if (!videoId) return url;
+
+  // autoplay=1 — WebView da ishlaydi (browser iframe dan farqli)
+  // playsinline=1 — fullscreen ga chiqmasdan ichida o'ynaydi
+  // controls=1 — standart YouTube kontrollari ko'rinadi
+  return `https://www.youtube.com/embed/${videoId}?autoplay=1&playsinline=1&controls=1`;
 }
 
 export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
-  ({ url, isOwner, onPlay, onPause, onSeek, onPlaybackStatusUpdate, onProgress, onStreamResolved }, ref) => {
+  ({ url, isOwner, onPlay, onPause, onSeek, onPlaybackStatusUpdate, onProgress }, ref) => {
     const videoRef = useRef<Video>(null);
     const webviewRef = useRef<WebViewPlayerRef>(null);
     const platform = detectVideoPlatform(url);
 
-    // YouTube: backend proxy URL resolve
-    const [streamUrl, setStreamUrl] = useState<string | null>(null);
-    const [resolving, setResolving] = useState(false);
-    const [resolveError, setResolveError] = useState(false);
-
-    useEffect(() => {
-      if (platform !== 'youtube' || !url) return;
-
-      setResolving(true);
-      setResolveError(false);
-      setStreamUrl(null);
-
-      const resolve = async () => {
-        const info = await contentApi.getYouTubeStreamInfo(url);
-        const token = await tokenStorage.getAccessToken();
-        const contentBase = process.env.EXPO_PUBLIC_CONTENT_URL ?? '';
-        const proxyUrl =
-          `${contentBase}/youtube/stream` +
-          `?url=${encodeURIComponent(url)}` +
-          (token ? `&token=${encodeURIComponent(token)}` : '');
-
-        onStreamResolved?.({ isLive: info.isLive, title: info.title });
-        setStreamUrl(proxyUrl);
-      };
-
-      resolve()
-        .catch(() => setResolveError(true))
-        .finally(() => setResolving(false));
-    }, [url, platform]); // eslint-disable-line react-hooks/exhaustive-deps
-
-    const useWebview = platform === 'webview' || (platform === 'youtube' && resolveError);
+    // YouTube va boshqa saytlar → WebView
+    // Direct (.mp4/.m3u8 va h.k.) → expo-av
+    const useWebview = platform === 'youtube' || platform === 'webview';
 
     useImperativeHandle(ref, () => ({
       play: async () => {
@@ -107,7 +90,7 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
       },
     }), [useWebview]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Baг #1 fix: URL yo'q yoki bo'sh — placeholder ko'rsatish
+    // URL yo'q → placeholder
     if (!url) {
       return (
         <View style={styles.center}>
@@ -116,7 +99,8 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
       );
     }
 
-    // WebView: native webview URL yoki YouTube proxy xato (embed fallback)
+    // YouTube → embed URL bilan WebView (proxy yo'q — tez va ishonchli)
+    // Boshqa saytlar → to'g'ridan WebView
     if (useWebview) {
       const displayUrl = platform === 'youtube' ? getYouTubeEmbedUrl(url) : url;
       return (
@@ -132,31 +116,15 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
       );
     }
 
-    // YouTube: stream resolve kutish
-    if (platform === 'youtube' && resolving) {
-      return (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Video yuklanmoqda...</Text>
-        </View>
-      );
-    }
-
-    // 'direct' yoki 'youtube' (streamUrl resolved) — expo-av
-    const sourceUri = platform === 'youtube' ? streamUrl! : url;
-
+    // Direct: expo-av (mp4, m3u8, webm va h.k.)
     return (
       <Video
         ref={videoRef}
-        source={sourceUri ? { uri: sourceUri } : undefined}
+        source={{ uri: url }}
         style={styles.video}
         resizeMode={ResizeMode.CONTAIN}
         useNativeControls={false}
         onPlaybackStatusUpdate={onPlaybackStatusUpdate}
-        onError={() => {
-          // Баг #2 fix: YouTube proxy stream xato → WebView embed ga fallback
-          if (platform === 'youtube') setResolveError(true);
-        }}
       />
     );
   },
@@ -171,6 +139,5 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgVoid,
     gap: spacing.md,
   },
-  loadingText: { ...typography.body, color: colors.textSecondary },
   errorText: { ...typography.body, color: colors.error },
 });

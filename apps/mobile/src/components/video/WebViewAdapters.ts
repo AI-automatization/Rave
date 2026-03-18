@@ -13,6 +13,12 @@ export interface VideoAdapter {
 
 // Saytga xos adapterlar
 const ADAPTERS: Record<string, VideoAdapter> = {
+  // YouTube embed: video element sahifaning asosiy kontentida
+  'youtube.com': {
+    selectors: ['video', '.html5-main-video', '.video-stream'],
+    scanDelay: 1000,
+  },
+
   'uzmovi.tv': {
     selectors: [
       '.plyr video',
