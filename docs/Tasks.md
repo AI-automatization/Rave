@@ -481,21 +481,319 @@ Foydalanuvchi **har qanday** video sayt URL ni kiritganda:
 ### T-C010 | P1 | [IKKALASI] | Universal Video Sync — extract → play → sync pipeline end-to-end
 
 - **Sana:** 2026-03-18
-- **Mas'ul:** Saidazim (Backend T-S033) + Emirhan (Mobile T-E040)
+- **Mas'ul:** Saidazim (Backend ✅ TAYYOR) + Emirhan (Mobile ← QILISH KERAK)
 - **Sprint:** S6
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** ⚠️ Backend TAYYOR | Mobile qismi tekshirilishi kerak (T-E040 "TUGADI" belgilangan, lekin integration yo'q)
 - **Maqsad:** Foydalanuvchi HAR QANDAY URL ni WatchParty ga qo'yib, do'stlar bilan sinxron ko'ra olishi
 
-**End-to-end flow:**
+---
+
+## 🟢 BACKEND — TAYYOR (Saidazim, 2026-03-18)
+
+### Endpoint: `POST /api/v1/content/extract`
+
+**Production URL:** `https://content-production-4e08.up.railway.app/api/v1/content/extract`
+
+**Auth:** `Authorization: Bearer <accessToken>` header kerak
+
+**Request:**
+```json
+POST /api/v1/content/extract
+Content-Type: application/json
+Authorization: Bearer <accessToken>
+
+{ "url": "https://uzmovi.tv/film/..." }
 ```
-1. Mobile: URL kiritiladi (tv.mover.uz, uzmovi.tv, youtube, har qanday)
-2. Mobile → Backend: POST /content/extract { url }
-3. Backend: yt-dlp / scraper / genericExtractor → direct stream URL
-4. Backend → Mobile: { videoUrl: ".m3u8", type: "hls", title: "..." }
-5. Mobile: expo-av (direct play) → FULL SYNC ✅
-6. Agar extract fail → WebView fallback → PARTIAL SYNC ⚠️
-7. Owner play/pause/seek → Socket.io → Members sinxron
+
+**Response — muvaffaqiyat:**
+```json
+HTTP 200
+{
+  "success": true,
+  "data": {
+    "title": "Film nomi",
+    "videoUrl": "https://cdn.example.com/video.m3u8",
+    "poster": "https://cdn.example.com/poster.jpg",
+    "platform": "generic",
+    "type": "hls",
+    "duration": 5400,
+    "isLive": false,
+    "useProxy": false
+  }
+}
 ```
+
+**Response — YouTube (maxsus holat):**
+```json
+HTTP 200
+{
+  "success": true,
+  "data": {
+    "title": "YouTube video nomi",
+    "videoUrl": "...",
+    "platform": "youtube",
+    "type": "mp4",
+    "useProxy": true   ← BU MUHIM! true bo'lsa backend proxy ishlatiladi
+  }
+}
+```
+
+> ⚠️ YouTube da `useProxy: true` bo'lsa — `videoUrl` ni bevosita ishlatma!
+> Buning o'rniga: `GET /api/v1/youtube/stream?url=<original-youtube-url>&token=<accessToken>`
+> Bu endpoint Range request qo'llab-quvvatlaydi (seeking ishlaydi).
+
+**Response — extract muvaffaqiyatsiz:**
+```json
+HTTP 422
+{
+  "success": false,
+  "data": null,
+  "message": "Could not extract a playable video URL from: uzmovi.tv",
+  "errors": null,
+  "reason": "unsupported_site"   ← "unsupported_site" | "drm" | "timeout"
+}
+```
+
+**reason turlari:**
+| reason | Ma'nosi | Mobile da nima qilish kerak |
+|--------|---------|----------------------------|
+| `unsupported_site` | Sayt qo'llab-quvvatlanmaydi | WebView fallback |
+| `drm` | DRM himoyalangan (Netflix kabi) | "Bu kontent DRM himoyalangan" xabar |
+| `timeout` | 20 sekundda javob kelmadi | Retry yoki WebView fallback |
+
+**Qo'llab-quvvatlanadigan platformalar (yt-dlp + scraper):**
+- YouTube, Vimeo, TikTok, Dailymotion, Rutube, Facebook, Instagram, Twitch, VK
+- tv.mover.uz, uzmovi.tv → genericExtractor (iframe depth=2, Referer header)
+- To'g'ridan `.mp4` yoki `.m3u8` URL → hech narsa qilmasdan qaytaradi
+- 700+ sayt yt-dlp orqali
+
+**Redis cache:** 2 soat — bir URL uchun backend qayta hisoblamas
+
+---
+
+## 📱 EMIRHAN — MOBILE DA NIMA QILISH KERAK
+
+### Holat tekshiruvi (muhim!)
+
+T-E040 "TUGADI" belgilangan, lekin quyidagi integratsiyalar tekshirilishi kerak:
+
+**Savol 1:** `UniversalPlayer.tsx` da `POST /content/extract` chaqirilayaptimi?
+- Agar YO'Q → quyidagi E40-1..E40-3 larni bajarish kerak
+
+**Savol 2:** YouTube da `useProxy: true` bo'lganda `/youtube/stream` endpoint ishlatilayaptimi?
+- Agar YO'Q → E40-6 ni bajarish kerak
+
+---
+
+### E40-1. `content.api.ts` — `extractVideo()` metodi
+
+```typescript
+// apps/mobile/src/api/content.api.ts ga qo'shish:
+
+export interface VideoExtractResult {
+  title: string;
+  videoUrl: string;
+  poster: string;
+  platform: 'youtube' | 'vimeo' | 'tiktok' | 'generic' | 'unknown';
+  type: 'mp4' | 'hls';
+  duration?: number;
+  isLive?: boolean;
+  useProxy?: boolean;
+}
+
+export interface VideoExtractError {
+  success: false;
+  reason: 'unsupported_site' | 'drm' | 'timeout';
+  message: string;
+}
+
+export async function extractVideo(
+  url: string
+): Promise<VideoExtractResult | null> {
+  try {
+    const response = await apiClient.post<{ success: true; data: VideoExtractResult }>(
+      '/content/extract',
+      { url }
+    );
+    return response.data.data;
+  } catch (error: unknown) {
+    // 422 = extract failed (unsupported_site / drm / timeout)
+    // null qaytarish → WebView fallback
+    return null;
+  }
+}
+```
+
+---
+
+### E40-2. `useVideoExtraction` hook
+
+```typescript
+// apps/mobile/src/hooks/useVideoExtraction.ts
+
+import { useState } from 'react';
+import { extractVideo, VideoExtractResult } from '../api/content.api';
+
+interface ExtractionState {
+  loading: boolean;
+  result: VideoExtractResult | null;
+  fallbackMode: boolean;  // true → WebView ishlatilsin
+  error: string | null;
+}
+
+export function useVideoExtraction() {
+  const [state, setState] = useState<ExtractionState>({
+    loading: false,
+    result: null,
+    fallbackMode: false,
+    error: null,
+  });
+
+  const extract = async (url: string) => {
+    // To'g'ridan stream URL bo'lsa — backend ga yuborma
+    if (/\.(mp4|m3u8|webm)(\?|$)/i.test(url)) {
+      const type = /\.m3u8/i.test(url) ? 'hls' : 'mp4';
+      setState({
+        loading: false,
+        result: { title: '', videoUrl: url, poster: '', platform: 'generic', type },
+        fallbackMode: false,
+        error: null,
+      });
+      return;
+    }
+
+    setState({ loading: true, result: null, fallbackMode: false, error: null });
+
+    const result = await extractVideo(url);
+
+    if (result) {
+      setState({ loading: false, result, fallbackMode: false, error: null });
+    } else {
+      // Extract muvaffaqiyatsiz → WebView fallback
+      setState({ loading: false, result: null, fallbackMode: true, error: null });
+    }
+  };
+
+  return { ...state, extract };
+}
+```
+
+---
+
+### E40-3. `UniversalPlayer.tsx` — extraction flow
+
+```typescript
+// UniversalPlayer ichida:
+// URL kelganda avval extractVideo() chaqir
+
+useEffect(() => {
+  if (!videoUrl) return;
+  void extract(videoUrl);
+}, [videoUrl]);
+
+// Player tanlash:
+if (loading) {
+  return <ExtractionLoading />; // spinner + "Video aniqlanmoqda..."
+}
+
+if (fallbackMode || !result) {
+  return <WebViewPlayer url={videoUrl} ... />; // mavjud WebView
+}
+
+if (result.platform === 'youtube' && result.useProxy) {
+  // ⚠️ MUHIM: YouTube proxy endpoint ishlatilsin
+  const token = await getAccessToken(); // tokenni olish
+  const proxyUrl = `https://content-production-4e08.up.railway.app/api/v1/youtube/stream?url=${encodeURIComponent(videoUrl)}&token=${token}`;
+  return <DirectPlayer url={proxyUrl} type="mp4" />;
+}
+
+// Boshqa barcha holat — expo-av to'g'ridan
+return <DirectPlayer url={result.videoUrl} type={result.type} />;
+```
+
+---
+
+### E40-4. WatchPartyScreen — URL kiritish UX
+
+```typescript
+// URL kiritilganda loading state ko'rsatish:
+const { loading, result, fallbackMode, extract } = useVideoExtraction();
+
+const handleUrlSubmit = async (url: string) => {
+  await extract(url);
+  // extract() tugagach state avtomatik yangilanadi
+};
+
+// UI:
+{loading && (
+  <View>
+    <ActivityIndicator />
+    <Text>Video aniqlanmoqda... (max 20 sek)</Text>
+  </View>
+)}
+
+{fallbackMode && (
+  <View>
+    <Text>⚠️ Bu sayt to'g'ridan ochiladi (WebView rejimi)</Text>
+    <Text>Sinxronlash qisman ishlashi mumkin</Text>
+  </View>
+)}
+
+{result && !fallbackMode && (
+  <View>
+    <Text>✅ Video topildi: {result.title}</Text>
+    {result.poster ? <Image source={{ uri: result.poster }} /> : null}
+  </View>
+)}
+```
+
+---
+
+### E40-5. ExtractionLoading komponenti (oddiy)
+
+```typescript
+// apps/mobile/src/components/video/ExtractionLoading.tsx
+import React from 'react';
+import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+
+export function ExtractionLoading() {
+  return (
+    <View style={styles.container}>
+      <ActivityIndicator size="large" color="#E50914" />
+      <Text style={styles.text}>Video aniqlanmoqda...</Text>
+      <Text style={styles.sub}>Saytdan video URL olinmoqda</Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#0A0A0F' },
+  text: { color: '#fff', marginTop: 16, fontSize: 16 },
+  sub: { color: '#888', marginTop: 8, fontSize: 13 },
+});
+```
+
+---
+
+### ✅ Tekshirish ro'yxati (Emirhan uchun)
+
+```
+□ content.api.ts da extractVideo() bor
+□ useVideoExtraction hook ishlaydi
+□ UniversalPlayer extraction loading ko'rsatadi
+□ extraction muvaffaqiyatli → expo-av da ochiladi
+□ extraction fail → WebView da ochiladi
+□ YouTube useProxy:true → /youtube/stream endpoint ishlatiladi
+□ To'g'ridan .mp4/.m3u8 URL → extract chaqirilmaydi, to'g'ri play
+□ WatchParty: URL kiritganda extraction loading ko'rinadi
+
+Test URL lar:
+  Direct:   https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8  (ishlashi kerak, extract yo'q)
+  YouTube:  https://www.youtube.com/watch?v=dQw4w9WgXcQ          (useProxy:true)
+  Generic:  har qanday video sayt URL
+```
+
+---
 
 **Acceptance criteria:**
 - [ ] tv.mover.uz dan video URL → WatchParty da sinxron ko'rish

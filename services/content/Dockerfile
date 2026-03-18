@@ -41,9 +41,9 @@ COPY --from=builder /app/services/content/dist ./services/content/dist
 
 RUN ln -s /app/shared/dist /app/node_modules/@shared
 
-# yt-dlp via pip (Alpine musl uchun static binary yo'q — pip yagona ishonchli yo'l)
+# yt-dlp via pip (Alpine 3.21+ PEP 668: --break-system-packages kerak)
 RUN apk add --no-cache python3 py3-pip && \
-    pip3 install --no-cache-dir yt-dlp
+    pip3 install --no-cache-dir --break-system-packages yt-dlp
 
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S cinesync -u 1001 && \
