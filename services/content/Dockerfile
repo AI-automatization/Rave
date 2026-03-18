@@ -41,10 +41,9 @@ COPY --from=builder /app/services/content/dist ./services/content/dist
 
 RUN ln -s /app/shared/dist /app/node_modules/@shared
 
-# yt-dlp static binary (musl build for Alpine compatibility)
-RUN wget -q -O /usr/local/bin/yt-dlp \
-      "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux_musl" && \
-    chmod a+rx /usr/local/bin/yt-dlp
+# yt-dlp via pip (Alpine musl uchun static binary yo'q — pip yagona ishonchli yo'l)
+RUN apk add --no-cache python3 py3-pip && \
+    pip3 install --no-cache-dir yt-dlp
 
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S cinesync -u 1001 && \
