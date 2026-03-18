@@ -13,10 +13,38 @@ export interface VideoAdapter {
 
 // Saytga xos adapterlar
 const ADAPTERS: Record<string, VideoAdapter> = {
-  // YouTube embed: video element sahifaning asosiy kontentida
   'youtube.com': {
-    selectors: ['video', '.html5-main-video', '.video-stream'],
-    scanDelay: 1000,
+    selectors: [
+      '.html5-main-video',
+      '.video-stream',
+      'video',
+    ],
+    postAttachJs: `
+      // YouTube reklama va popup larni yopish
+      var skipBtn = document.querySelector('.ytp-ad-skip-button, .ytp-ad-skip-button-modern, [id*="skip"]');
+      if (skipBtn) skipBtn.click();
+      // Autoplay
+      if (window._csVideo && window._csVideo.paused) {
+        window._csVideo.play().catch(function(){});
+      }
+    `,
+    scanDelay: 3000,
+  },
+
+  'm.youtube.com': {
+    selectors: [
+      '.html5-main-video',
+      '.video-stream',
+      'video',
+    ],
+    postAttachJs: `
+      var skipBtn = document.querySelector('.ytp-ad-skip-button, .ytp-ad-skip-button-modern, [id*="skip"]');
+      if (skipBtn) skipBtn.click();
+      if (window._csVideo && window._csVideo.paused) {
+        window._csVideo.play().catch(function(){});
+      }
+    `,
+    scanDelay: 3000,
   },
 
   'uzmovi.tv': {

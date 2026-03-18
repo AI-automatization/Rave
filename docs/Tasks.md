@@ -2,7 +2,7 @@
 
 # Yangilangan: 2026-03-15
 
-# 3 dasturchi: Saidazim (Backend) | Emirhan (Mobile) | Jafar (Web)
+# 3 dasturchi: Saidazim (Backend) | Emirhan (Mobile) | Jafar (Mobile)
 
 ---
 
@@ -153,7 +153,7 @@ GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state
 
 # ═══════════════════════════════════════
 
-# 🔵 JAFAR — NEXT.JS WEB CLIENT
+# 🔵 JAFAR — REACT NATIVE MOBILE
 
 # ═══════════════════════════════════════
 
@@ -171,7 +171,7 @@ GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state
 ### T-J015 | P1 | [WEB] | BUG: Auth hydration flash + authFetch duplicate + socket stale token + middleware
 
 - **Sana:** 2026-03-11
-- **Mas'ul:** Jafar
+- **Mas'ul:** (ochiq — web mas'uli yo'q)
 - **Holat:** ❌ Boshlanmagan
 - **Fayllar:**
   - `apps/web/src/store/auth.store.ts` (25-75-qator)
@@ -225,8 +225,8 @@ GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state
 ### T-C006 | P1 | [IKKALASI] | WebView Video Player — har qanday saytdan video ko'rish
 
 - **Sana:** 2026-03-11
-- **Mas'ul:** Emirhan (Mobile — asosiy), Saidazim (Backend — minimal), Jafar (Web — fallback UI)
-- **Holat:** ✅ Mobile M1-M7 TUGADI (2026-03-17) | Backend B1-B2 pending[Saidazim] | Web W1 pending[Jafar]
+- **Mas'ul:** Emirhan (Mobile — asosiy), Saidazim (Backend — minimal)
+- **Holat:** ✅ Mobile M1-M7 TUGADI (2026-03-17) | Backend B1-B2 pending[Saidazim] | Web W1 ochiq
 - **Sprint:** S2-S3
 - **Prioritet:** P1 — foydalanuvchilar faqat YouTube ko'ra olmoqda, boshqa saytlar ishlamayapti
 
@@ -439,8 +439,8 @@ Foydalanuvchi **har qanday** video sayt URL ni kiritganda:
 ### T-C009 | P1 | [IKKALASI] | Socket event payload mismatch + web hardcoded event strings
 
 - **Sana:** 2026-03-11
-- **Mas'ul:** Emirhan (Mobile) + Jafar (Web) + Saidazim (Backend payload)
-- **Holat:** ✅ Mobile qismi TUGADI (2026-03-12) | Web qismi pending[Jafar] (T-C008 dan keyin)
+- **Mas'ul:** Emirhan (Mobile) + Saidazim (Backend payload)
+- **Holat:** ✅ Mobile qismi TUGADI (2026-03-12) | Web qismi ochiq (T-C008 dan keyin)
 - **Fayllar:**
   - `apps/web/src/hooks/useWatchParty.ts` — 14+ hardcoded event string
   - `apps/web/src/hooks/useVoiceChat.ts` — 8+ hardcoded event string

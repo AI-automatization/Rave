@@ -151,7 +151,7 @@ export function WatchPartyScreen() {
     <View style={s.root}>
       <VideoSection
         playerRef={playerRef}
-        videoUrl={room?.videoUrl ?? ''}
+        videoUrl={room?.videoUrl || ''}
         isReady={!!room}
         isOwner={isOwner}
         isPlaying={isPlaying}

@@ -63,7 +63,9 @@ export const VideoSection = React.memo(function VideoSection({
   return (
     <View style={styles.videoContainer}>
       {!isReady ? (
-        <ActivityIndicator size="large" color={colors.primary} />
+        <View style={styles.loadingCenter}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
       ) : (
         <UniversalPlayer
           ref={playerRef}
@@ -122,8 +124,6 @@ const styles = StyleSheet.create({
     width: SCREEN_W,
     height: VIDEO_HEIGHT,
     backgroundColor: colors.black,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   controls: {
     position: 'absolute',
@@ -173,4 +173,9 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.full,
   },
   memberBadgeText: { ...typography.caption, color: colors.textMuted },
+  loadingCenter: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });

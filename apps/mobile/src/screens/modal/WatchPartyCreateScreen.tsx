@@ -85,6 +85,17 @@ export function WatchPartyCreateScreen() {
       Alert.alert('Xato', 'Xona nomi kiriting');
       return;
     }
+
+    // Video majburiy — URL yoki katalogdan film tanlash kerak
+    if (filmMode === 'catalog' && !selectedMovie) {
+      Alert.alert('Xato', 'Katalogdan film tanlang yoki URL rejimiga o\'ting');
+      return;
+    }
+    if (filmMode === 'url' && !videoUrl.trim()) {
+      Alert.alert('Xato', 'Video URL kiriting');
+      return;
+    }
+
     setLoading(true);
     try {
       const payload: Parameters<typeof watchPartyApi.createRoom>[0] = {
@@ -94,7 +105,6 @@ export function WatchPartyCreateScreen() {
       };
       if (filmMode === 'catalog' && selectedMovie) {
         payload.movieId = selectedMovie._id;
-        // Баг #3 fix: bo'sh videoUrl yubormaslik — katalog filmda video yo'q bo'lsa ogohlantirish
         if (!selectedMovie.videoUrl) {
           Alert.alert(
             'Video mavjud emas',
@@ -132,7 +142,7 @@ export function WatchPartyCreateScreen() {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {/* Film tanlash */}
         <View style={styles.section}>
-          <Text style={styles.label}>FILM (IXTIYORIY)</Text>
+          <Text style={styles.label}>VIDEO MANBASI</Text>
           <View style={styles.modeRow}>
             <TouchableOpacity
               style={[styles.modeBtn, filmMode === 'catalog' && styles.modeBtnActive]}

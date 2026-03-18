@@ -32,7 +32,7 @@ Javob kelgach:
 1. Tegishli faylni o'qib kontekstga kirish:
    - Saidazim → `CLAUDE_BACKEND.md`
    - Emirhan  → `CLAUDE_MOBILE.md`
-   - Jafar    → `CLAUDE_WEB.md`
+   - Jafar    → `CLAUDE_MOBILE.md`
 2. `git pull origin main` — eng yangi holatni olish
 3. `docs/Tasks.md` o'qib ochiq tasklarni ko'rish + `pending[X]` statuslarni tekshirish
 4. Task boshlashdan oldin **GIT-BASED TASK LOCKING** protokolini bajarish (pastda)
@@ -76,8 +76,8 @@ cinesync/
 │   ├── notification/  → Saidazim (port 3007)
 │   └── admin/         → Saidazim (port 3008)
 ├── apps/
-│   ├── mobile/        → Emirhan (React Native)
-│   ├── web/           → Jafar (Next.js)
+│   ├── mobile/        → Emirhan + Jafar (React Native)
+│   ├── web/           → (hozircha mas'ul yo'q)
 │   └── admin-ui/      → Saidazim (React + Vite)
 ├── shared/
 │   ├── types/         → UMUMIY — kelishib o'zgartirish
@@ -376,8 +376,8 @@ docker compose -f docker-compose.dev.yml up -d --build auth
 docker compose -f docker-compose.dev.yml up -d
 
 # 2. O'z appingni ishga tushir:
-#    Emirhan: cd apps/mobile && npx react-native start
-#    Jafar:   cd apps/web && npm run dev
+#    Emirhan: cd apps/mobile && npx expo start
+#    Jafar:   cd apps/mobile && npx expo start
 
 # Backend lokal ishlatish shart emas — Docker konteynerlar ishlaydi.
 ```
@@ -569,10 +569,10 @@ QA FAIL bo'lsa → merge TAQIQLANGAN → agent xatoni tuzatishi kerak.
 ```
   Saidazim (Terminal 1)                  Emirhan (Terminal 2)        Jafar (Terminal 3)
   ══════════════════════                 ══════════════════           ════════════════════
-  Mode B → Backend Orch.                 Mode B → Mobile Orch.       Mode B → Web Orch.
+  Mode B → Backend Orch.                 Mode B → Mobile Orch.       Mode B → Mobile Orch.
     │                                      │                            │
-    ├─ Agent: T-S016 (Auth fix)            ├─ Agent: T-E012 (iOS push) ├─ Agent: T-J008 (OG img)
-    ├─ Agent: T-S005b (HLS pipeline)       ├─ QA: tsc mobile           ├─ QA: tsc web
+    ├─ Agent: T-S016 (Auth fix)            ├─ Agent: T-E012 (iOS push) ├─ Agent: T-J015 (Mobile)
+    ├─ Agent: T-S005b (HLS pipeline)       ├─ QA: tsc mobile           ├─ QA: tsc mobile
     ├─ QA: tsc services                    ├─ git commit + push         ├─ git commit + push
     ├─ git commit + push                   └─ Done.md update            └─ Done.md update
     └─ Done.md update
@@ -605,8 +605,8 @@ QA FAIL bo'lsa → merge TAQIQLANGAN → agent xatoni tuzatishi kerak.
 | Fayl | Kim uchun |
 |------|-----------|
 | `CLAUDE_BACKEND.md` | Saidazim — services, DB, Socket.io, Admin |
-| `CLAUDE_MOBILE.md` | Emirhan — React Native, Firebase, navigation |
-| `CLAUDE_WEB.md` | Jafar — Next.js, SEO, landing, web app |
+| `CLAUDE_MOBILE.md` | Emirhan + Jafar — React Native, Firebase, navigation |
+| `CLAUDE_WEB.md` | (hozircha mas'ul yo'q) — Next.js, SEO, landing, web app |
 | `docs/Tasks.md` | Hammaga — ochiq vazifalar |
 | `docs/Done.md` | Hammaga — bajarilgan ishlar |
 

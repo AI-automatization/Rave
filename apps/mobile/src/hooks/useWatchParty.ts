@@ -78,9 +78,7 @@ export function useWatchParty(roomId: string) {
       if (__DEV__) console.log('[useWatchParty] socket error:', err?.message);
     });
 
-    socket.on('connect_error', (err: Error) => {
-      if (__DEV__) console.log('[useWatchParty] connect_error:', err?.message);
-    });
+    // connect_error: token refresh socket/client.ts da boshqariladi
 
     return () => {
       socket.off('connect', joinRoom);
@@ -100,7 +98,6 @@ export function useWatchParty(roomId: string) {
       socket.off(SERVER_EVENTS.MEMBER_LEFT);
       socket.off(SERVER_EVENTS.ROOM_CLOSED);
       socket.off(SERVER_EVENTS.ERROR);
-      socket.off('connect_error');
     };
   }, [roomId, token]);
 
