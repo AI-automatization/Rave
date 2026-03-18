@@ -1,6 +1,6 @@
 # CineSync — OCHIQ VAZIFALAR
 
-# Yangilangan: 2026-03-15
+# Yangilangan: 2026-03-18
 
 # 3 dasturchi: Saidazim (Backend) | Emirhan (Mobile) | Jafar (Mobile)
 
@@ -14,7 +14,7 @@
 3. Fix bo'lgach → shu yerdan O'CHIRISH → docs/Done.md ga KO'CHIRISH
 4. Prioritet: P0=kritik, P1=muhim, P2=o'rta, P3=past
 5. Sprint: S1=hozir, S2=keyingi hafta, S3=keyingi sprint, S4-5=keyin
-6. Oxirgi T-raqam: S→032, E→039, J→014, C→009
+6. Oxirgi T-raqam: S→033, E→040, J→014, C→010
 ```
 
 ---
@@ -31,6 +31,52 @@
 ### ✅ T-S027 | TUGADI → Done.md F-118
 ### ✅ T-S028 | TUGADI → Done.md F-118
 ### ✅ T-S029 | TUGADI → Done.md F-118
+
+### T-S033 | P1 | [BACKEND] | Video Extract endpoint — yt-dlp deploy + sayt qo'llab-quvvatlash kengaytirish
+
+- **Sana:** 2026-03-18
+- **Mas'ul:** pending[Saidazim]
+- **Sprint:** S6
+- **Bog'liqlik:** T-E040 (mobile shu endpoint ga bog'liq)
+- **Fayl:** `services/content/src/services/videoExtractor/`
+- **Holat:** ⚠️ Endpoint mavjud (`POST /content/extract`), lekin deploy va sayt qo'llab-quvvatlash kengaytirish kerak
+
+**Mavjud infra:**
+```
+POST /api/v1/content/extract
+├─ videoExtractor/ — detectPlatform → ytdl-core/yt-dlp/genericExtractor
+├─ ytdl.service.ts — YouTube specific (LRU cache 2h)
+├─ Redis cache — TTL 2h
+├─ SSRF protection — private IP block
+└─ 700+ sayt yt-dlp orqali
+```
+
+**Subtasklar:**
+
+- [ ] **S33-1. yt-dlp Railway/Docker da o'rnatish**
+  - Dockerfile ga `yt-dlp` binary qo'shish (pip yoki static binary)
+  - Python dependency kerak bo'lishi mumkin
+  - Health check: `yt-dlp --version` ishlashini tekshirish
+  - Railway da PATH ga qo'shish
+
+- [ ] **S33-2. O'zbek saytlar uchun custom extractors**
+  - `tv.mover.uz` — genericExtractor ishlashini tekshirish, kerak bo'lsa adapter yozish
+  - `uzmovi.tv` — genericExtractor ishlashini tekshirish, kerak bo'lsa adapter yozish
+  - HLS stream (.m3u8) URL ni to'g'ri qaytarish
+  - Referer/Cookie himoyasi bo'lsa — proxy yoki header qo'shish
+
+- [ ] **S33-3. Extract endpoint ishonchliligini oshirish**
+  - yt-dlp timeout: 30s → 20s (mobile UX uchun tezroq)
+  - genericExtractor: iframe follow depth=2 (ba'zi saytlar 2 ta iframe)
+  - Fallback chain: ytdl-core → yt-dlp → genericExtractor → FAIL
+  - Error response: `{ success: false, reason: "unsupported_site" | "timeout" | "drm" }`
+
+- [ ] **S33-4. YouTube proxy endpoint optimizatsiya**
+  - `GET /youtube/stream` — Range request ishlashini tekshirish (seeking)
+  - Mobile da `useProxy: true` kelganda shu endpoint ishlatiladi
+  - Bandwidth monitoring (Railway limit)
+
+---
 
 ### T-S005b | P2 | [BACKEND] | Content Service — HLS upload pipeline
 
@@ -148,7 +194,76 @@ GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state
 
 ## SPRINT 5 — Sifat + Test
 
+---
 
+## SPRINT 6 — Universal Video Extraction + Sync
+
+### T-E040 | P1 | [MOBILE] | Universal Video Extraction — yt-dlp hybrid + WebView fallback
+
+- **Sana:** 2026-03-18
+- **Mas'ul:** pending[Emirhan]
+- **Sprint:** S6
+- **Bog'liqlik:** T-S033 (backend extract endpoint tayyor bo'lishi kerak)
+- **Fayl:** `apps/mobile/src/`
+- **Maqsad:** Foydalanuvchi HAR QANDAY sayt URL ni kiritganda video ko'ra olishi kerak (tv.mover.uz, uzmovi.tv, youtube, va h.k.)
+
+**FLOW:**
+```
+Foydalanuvchi URL kiritadi
+        │
+        ▼
+  POST /content/extract  ← backend yt-dlp + scraper
+        │
+    ┌───┴───┐
+    ▼       ▼
+ SUCCESS   FAIL
+    │       │
+    ▼       ▼
+ expo-av   WebView
+ (direct)  (fallback)
+    │       │
+    ▼       ▼
+  SYNC ✅  SYNC ⚠️ (JS inject, partial)
+```
+
+**Subtasklar:**
+
+- [ ] **E40-1. `content.api.ts` — `extractVideo(url)` method**
+  - `POST /api/v1/content/extract` ga so'rov yuborish
+  - Request: `{ url: string }`
+  - Response: `{ videoUrl, title, poster, type, platform, isLive, useProxy }`
+  - Error handling: timeout (15s), network error → null qaytarish
+
+- [ ] **E40-2. `useVideoExtraction` hook**
+  - URL kiritilganda `extractVideo()` chaqiradi
+  - State: `loading`, `extractedUrl`, `error`, `fallbackMode`
+  - Success → `extractedUrl` saqlash (direct play uchun)
+  - Fail → `fallbackMode = true` (WebView ga tushadi)
+
+- [ ] **E40-3. `UniversalPlayer.tsx` — extraction flow integratsiya**
+  - Hozirgi flow: URL → detectPlatform → play
+  - Yangi flow: URL → extractVideo() → success? direct play : WebView fallback
+  - YouTube uchun: `useProxy: true` bo'lsa → backend proxy URL ishlatish
+  - Loading state: extraction vaqtida spinner + "Video aniqlanmoqda..." text
+
+- [ ] **E40-4. WatchPartyScreen — URL kiritish UX**
+  - URL input field + "Qo'shish" tugmasi
+  - Extraction loading state (progress bar yoki spinner)
+  - Success: video title + poster preview ko'rsatish
+  - Fail: "WebView rejimida ochiladi" ogohlantirish + davom etish tugmasi
+
+- [ ] **E40-5. VideoExtractResult type qo'shish**
+  - `apps/mobile/src/types/index.ts` ga interface qo'shish
+  - Backend response ga mos type
+
+- [ ] **E40-6. Error handling + edge cases**
+  - Backend 503 (yt-dlp o'rnatilmagan) → WebView fallback
+  - Timeout (15s) → WebView fallback
+  - YouTube `useProxy: true` → `/api/v1/youtube/stream?url=...&token=JWT` ishlatish
+  - HLS `.m3u8` URL → expo-av (direct, full sync)
+  - Already direct URL (.mp4/.m3u8) → extract chaqirmasdan to'g'ri play
+
+---
 
 
 # ═══════════════════════════════════════
@@ -453,6 +568,35 @@ Foydalanuvchi **har qanday** video sayt URL ni kiritganda:
 
 ---
 
+
+### T-C010 | P1 | [IKKALASI] | Universal Video Sync — extract → play → sync pipeline end-to-end
+
+- **Sana:** 2026-03-18
+- **Mas'ul:** Saidazim (Backend T-S033) + Emirhan (Mobile T-E040)
+- **Sprint:** S6
+- **Holat:** ❌ Boshlanmagan
+- **Maqsad:** Foydalanuvchi HAR QANDAY URL ni WatchParty ga qo'yib, do'stlar bilan sinxron ko'ra olishi
+
+**End-to-end flow:**
+```
+1. Mobile: URL kiritiladi (tv.mover.uz, uzmovi.tv, youtube, har qanday)
+2. Mobile → Backend: POST /content/extract { url }
+3. Backend: yt-dlp / scraper / genericExtractor → direct stream URL
+4. Backend → Mobile: { videoUrl: ".m3u8", type: "hls", title: "..." }
+5. Mobile: expo-av (direct play) → FULL SYNC ✅
+6. Agar extract fail → WebView fallback → PARTIAL SYNC ⚠️
+7. Owner play/pause/seek → Socket.io → Members sinxron
+```
+
+**Acceptance criteria:**
+- [ ] tv.mover.uz dan video URL → WatchParty da sinxron ko'rish
+- [ ] uzmovi.tv dan video URL → WatchParty da sinxron ko'rish
+- [ ] YouTube URL → backend extract → expo-av (proxy) → sinxron ko'rish
+- [ ] Noma'lum sayt → WebView fallback → hech bo'lmasa ko'rsa bo'ladi
+- [ ] Extract vaqtida loading UI ko'rinadi
+- [ ] Extract fail bo'lsa foydalanuvchiga tushunarli xabar
+
+---
 
 ### T-C004 | P2 | [IKKALASI] | Dizayn Tasklari
 
