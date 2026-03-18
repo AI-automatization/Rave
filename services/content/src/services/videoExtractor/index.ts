@@ -12,8 +12,8 @@ import Redis from 'ioredis';
 import { logger } from '@shared/utils/logger';
 import { validateUrl, detectPlatform } from './detectPlatform';
 import { genericExtractor } from './genericExtractor';
-import { ytDlpExtractor } from './ytDlpExtractor';
-import { VideoExtractResult, VideoPlatform } from './types';
+import { ytDlpExtractor, YtDlpDrmError } from './ytDlpExtractor';
+import { VideoExtractResult, VideoPlatform, VideoExtractError } from './types';
 import { ytdlService } from '../ytdl.service';
 
 const CACHE_TTL_SECONDS = 2 * 60 * 60; // 2h
@@ -71,11 +71,21 @@ export async function extractVideo(
         url: rawUrl,
         error: (ytdlErr as Error).message,
       });
-      result = await ytDlpExtractor(rawUrl);
+      try {
+        result = await ytDlpExtractor(rawUrl);
+      } catch (dlpErr) {
+        if (dlpErr instanceof YtDlpDrmError) throw new VideoExtractError('drm');
+        throw dlpErr;
+      }
       if (result) result = { ...result, platform: 'youtube', useProxy: false };
     }
   } else if (YTDLP_PLATFORMS.has(platform)) {
-    result = await ytDlpExtractor(rawUrl);
+    try {
+      result = await ytDlpExtractor(rawUrl);
+    } catch (dlpErr) {
+      if (dlpErr instanceof YtDlpDrmError) throw new VideoExtractError('drm');
+      throw dlpErr;
+    }
     if (result) result = { ...result, platform };
   } else if (platform === 'generic') {
     // Direct stream URL — return as-is without fetching
@@ -91,13 +101,19 @@ export async function extractVideo(
     // Unknown platform: try generic HTML scraping first, then yt-dlp fallback
     result = await genericExtractor(parsedUrl);
     if (!result) {
-      result = await ytDlpExtractor(rawUrl);
+      try {
+        result = await ytDlpExtractor(rawUrl);
+      } catch (dlpErr) {
+        if (dlpErr instanceof YtDlpDrmError) throw new VideoExtractError('drm');
+        throw dlpErr;
+      }
     }
     if (result) result = { ...result, platform: 'generic' };
   }
 
   if (!result) {
-    throw new Error(
+    throw new VideoExtractError(
+      'unsupported_site',
       `Could not extract a playable video URL from: ${parsedUrl.hostname}`,
     );
   }

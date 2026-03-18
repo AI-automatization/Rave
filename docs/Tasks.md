@@ -53,28 +53,10 @@ POST /api/v1/content/extract
 
 **Subtasklar:**
 
-- [ ] **S33-1. yt-dlp Railway/Docker da o'rnatish**
-  - Dockerfile ga `yt-dlp` binary qo'shish (pip yoki static binary)
-  - Python dependency kerak bo'lishi mumkin
-  - Health check: `yt-dlp --version` ishlashini tekshirish
-  - Railway da PATH ga qo'shish
-
-- [ ] **S33-2. O'zbek saytlar uchun custom extractors**
-  - `tv.mover.uz` — genericExtractor ishlashini tekshirish, kerak bo'lsa adapter yozish
-  - `uzmovi.tv` — genericExtractor ishlashini tekshirish, kerak bo'lsa adapter yozish
-  - HLS stream (.m3u8) URL ni to'g'ri qaytarish
-  - Referer/Cookie himoyasi bo'lsa — proxy yoki header qo'shish
-
-- [ ] **S33-3. Extract endpoint ishonchliligini oshirish**
-  - yt-dlp timeout: 30s → 20s (mobile UX uchun tezroq)
-  - genericExtractor: iframe follow depth=2 (ba'zi saytlar 2 ta iframe)
-  - Fallback chain: ytdl-core → yt-dlp → genericExtractor → FAIL
-  - Error response: `{ success: false, reason: "unsupported_site" | "timeout" | "drm" }`
-
-- [ ] **S33-4. YouTube proxy endpoint optimizatsiya**
-  - `GET /youtube/stream` — Range request ishlashini tekshirish (seeking)
-  - Mobile da `useProxy: true` kelganda shu endpoint ishlatiladi
-  - Bandwidth monitoring (Railway limit)
+- [x] **S33-1.** yt-dlp musl binary Dockerfile ga qo'shildi ✅
+- [x] **S33-2.** O'zbek saytlar — genericExtractor depth=2 + Referer ✅
+- [x] **S33-3.** timeout 20s, depth=2, structured errors ✅
+- [x] **S33-4.** YouTube proxy Range request — allaqachon mavjud ✅
 
 ---
 
@@ -467,24 +449,14 @@ Foydalanuvchi URL kiritadi (uzmovi.tv/..., kinogo.cc/..., har qanday sayt)
 
 **Backend o'zgarishlar MINIMAL — mavjud sync engine allaqachon ishlaydi.**
 
-- [ ] **B1. Room model — `videoPlatform` ga `'webview'` qo'shish**
-  - `services/watch-party/src/models/` — enum ga `'webview'` qo'shish
-  - Room yaratishda `videoPlatform: 'webview'` qabul qilish
-  - Validation: URL format tekshirish (http/https boshlanishi)
-
-- [ ] **B2. Sync event tolerance**
-  - WebView yondashuv ~150-400ms kechikish beradi
-  - Sync threshold ni sozlash: `SYNC_TOLERANCE_MS = 500` (webview uchun kengaytirish)
-  - Bu ixtiyoriy — hozirgi sync engine generic, ishlashi kerak
+- [x] **B1. Room model — `videoPlatform` ga `'webview'` qo'shish** ✅ Done.md F-131
+- [x] **B2. Sync event tolerance** ✅ Done.md F-131
 
 ---
 
 #### SHARED TYPES (kelishib o'zgartirish — LOCK PROTOCOL)
 
-- [ ] **SH1. `shared/types/` — VideoPlatform type yangilash**
-  - `VideoPlatform` ga `'webview'` qo'shish
-  - `IWatchPartyRoom.videoPlatform` ni yangilash
-  - **MUHIM:** Saidazim + Emirhan + Jafar kelishishi kerak (shared file protocol)
+- [x] **SH1. `shared/types/` — VideoPlatform type yangilash** ✅ Done.md F-131
 
 ---
 

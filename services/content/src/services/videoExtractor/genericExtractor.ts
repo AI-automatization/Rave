@@ -11,8 +11,8 @@ import { VideoExtractResult, VideoType } from './types';
 import { validateUrl } from './detectPlatform';
 
 const FETCH_TIMEOUT_MS = 10_000;
-// Max depth for iframe following (1 = follow one iframe level)
-const MAX_IFRAME_DEPTH = 1;
+// Max depth for iframe following (2 = follow two iframe levels — helps tv.mover.uz, uzmovi.tv)
+const MAX_IFRAME_DEPTH = 2;
 
 const USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
@@ -62,7 +62,7 @@ function guessType(url: string): VideoType {
   return /\.m3u8/i.test(url) ? 'hls' : 'mp4';
 }
 
-async function fetchHtml(url: string): Promise<string | null> {
+async function fetchHtml(url: string, referer?: string): Promise<string | null> {
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
@@ -71,7 +71,7 @@ async function fetchHtml(url: string): Promise<string | null> {
         'User-Agent': USER_AGENT,
         Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.9',
-        Referer: url,
+        Referer: referer ?? url,
       },
       signal: controller.signal,
       redirect: 'follow',
@@ -100,8 +100,9 @@ function extractVideoUrls(html: string, base: URL): string[] {
 export async function genericExtractor(
   pageUrl: URL,
   _depth = 0,
+  _referer?: string,
 ): Promise<VideoExtractResult | null> {
-  const html = await fetchHtml(pageUrl.href);
+  const html = await fetchHtml(pageUrl.href, _referer);
   if (!html) return null;
 
   const title =
@@ -140,18 +141,15 @@ export async function genericExtractor(
         continue; // skip blocked/invalid iframe URLs
       }
 
-      const iframeHtml = await fetchHtml(iframeSrc);
-      if (!iframeHtml) continue;
-
-      const iframeCandidates = extractVideoUrls(iframeHtml, iframeUrl);
-      if (iframeCandidates.length > 0) {
-        const videoUrl = iframeCandidates[0];
+      // Recursive call — Referer = parent page URL (helps sites that check Referer)
+      const iframeResult = await genericExtractor(iframeUrl, _depth + 1, pageUrl.href);
+      if (iframeResult) {
         return {
-          title,
-          videoUrl,
-          poster: resolveUrl(poster, pageUrl),
+          title: title || iframeResult.title,
+          videoUrl: iframeResult.videoUrl,
+          poster: iframeResult.poster || resolveUrl(poster, pageUrl),
           platform: 'generic',
-          type: guessType(videoUrl),
+          type: iframeResult.type,
         };
       }
     }

@@ -41,6 +41,11 @@ COPY --from=builder /app/services/content/dist ./services/content/dist
 
 RUN ln -s /app/shared/dist /app/node_modules/@shared
 
+# yt-dlp static binary (musl build for Alpine compatibility)
+RUN wget -q -O /usr/local/bin/yt-dlp \
+      "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux_musl" && \
+    chmod a+rx /usr/local/bin/yt-dlp
+
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S cinesync -u 1001 && \
     mkdir -p /app/services/content/logs && \

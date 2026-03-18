@@ -4,7 +4,17 @@
 import { spawn } from 'child_process';
 import { VideoExtractResult, VideoType } from './types';
 
-const YTDLP_TIMEOUT_MS = 30_000; // 30s max
+/** Thrown when yt-dlp detects DRM-protected content */
+export class YtDlpDrmError extends Error {
+  constructor() {
+    super('DRM protected content');
+    this.name = 'YtDlpDrmError';
+  }
+}
+
+const DRM_RE = /drm|widevine|encrypted|protected/i;
+
+const YTDLP_TIMEOUT_MS = 20_000; // 20s max (mobile UX uchun tezroq)
 
 interface YtDlpJson {
   title?: string;
@@ -55,7 +65,7 @@ function pickBestUrl(data: YtDlpJson): { url: string; type: VideoType } | null {
 export async function ytDlpExtractor(
   rawUrl: string,
 ): Promise<VideoExtractResult | null> {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     let stdout = '';
     let stderr = '';
 
@@ -79,6 +89,10 @@ export async function ytDlpExtractor(
       clearTimeout(timer);
 
       if (code !== 0 || !stdout.trim()) {
+        if (DRM_RE.test(stderr)) {
+          reject(new YtDlpDrmError());
+          return;
+        }
         resolve(null);
         return;
       }

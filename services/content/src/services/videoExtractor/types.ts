@@ -1,5 +1,16 @@
 // CineSync — Universal Video Extractor — Shared Types
 
+export type VideoExtractErrorReason = 'unsupported_site' | 'timeout' | 'drm';
+
+export class VideoExtractError extends Error {
+  readonly reason: VideoExtractErrorReason;
+  constructor(reason: VideoExtractErrorReason, message?: string) {
+    super(message ?? reason);
+    this.name = 'VideoExtractError';
+    this.reason = reason;
+  }
+}
+
 export type VideoPlatform =
   | 'youtube'
   | 'vimeo'

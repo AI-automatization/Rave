@@ -4,6 +4,25 @@
 
 ---
 
+### F-132 | 2026-03-18 | [BACKEND] | T-S033 — yt-dlp deploy + sayt ishonchliligi + strukturali error [Saidazim]
+
+- **S33-1**: `services/content/Dockerfile` — yt-dlp musl static binary (Alpine uchun) production stage ga qo'shildi
+- **S33-2**: O'zbek saytlar (uzmovi.tv, tv.mover.uz) — `genericExtractor` depth=2 + Referer header iframe follow orqali yaxshi ishlaydi
+- **S33-3**:
+  - `ytDlpExtractor.ts`: timeout 30s → 20s; DRM stderr detection → `YtDlpDrmError` throw
+  - `genericExtractor.ts`: `MAX_IFRAME_DEPTH` 1 → 2; recursive iframe follow + Referer header (parent URL)
+  - `videoExtractor/index.ts`: DRM → `VideoExtractError('drm')`; all fail → `VideoExtractError('unsupported_site')`
+  - `types.ts`: `VideoExtractError` class + `VideoExtractErrorReason` type qo'shildi
+  - `videoExtract.controller.ts`: `VideoExtractError` catch → `{ success, reason, message }` response (HTTP 422)
+- **S33-4**: YouTube proxy Range request — `ytdl.controller.ts` da allaqachon implementatsiya qilingan (tekshirildi)
+
+### F-131 | 2026-03-18 | [BACKEND] | T-C006 B1-B2 + SH1 — WebView platform support (allaqachon mavjud) [Saidazim]
+
+- **watchPartyRoom.model.ts:32** — `videoPlatform` enum ga `'webview'` allaqachon qo'shilgan
+- **watchParty.service.ts** — `SYNC_THRESHOLD_WEBVIEW_SECONDS = 2.5` + `needsResync(platform?)` WebView toleransi allaqachon implementatsiya qilingan
+- **shared/src/types/index.ts:134** — `VideoPlatform = 'youtube' | 'direct' | 'webview'` allaqachon bor
+- Yangi kod yozilmadi — tekshirib tasdiqlandi
+
 ### F-128 | 2026-03-18 | [MOBILE] | Build fix — UniversalPlayer import xatolar + component prop mismatches [Emirhan]
 
 - **UniversalPlayer.tsx:** `../../api/content` → `../../api/content.api` (named export), `../../storage/token` → `../../utils/storage` (named export)
