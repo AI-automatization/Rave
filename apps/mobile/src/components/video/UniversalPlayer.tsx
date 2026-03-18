@@ -36,28 +36,21 @@ export function detectVideoPlatform(url: string): VideoPlatform {
 }
 
 /**
- * YouTube URL → youtube-nocookie.com embed URL.
- *
- * youtube-nocookie.com ishlatiladi chunki:
- * - Cookie consent sahifasini ko'rsatmaydi (EU va boshqa hududlarda)
- * - WebView da autoplay bloklash kamroq
- * - Standart youtube.com embed dan ishonchliiroq
+ * YouTube URL dan video ID ajratib olish.
+ * WebViewPlayer ga youtubeVideoId prop sifatida uzatiladi —
+ * u IFrame API HTML rejimini faollashtiradi (URI rejim emas).
  */
-function getYouTubeEmbedUrl(url: string): string {
-  let videoId: string | null = null;
-
+function extractYouTubeVideoId(url: string): string | null {
   const watchMatch = url.match(/[?&]v=([^&]+)/);
-  if (watchMatch) videoId = watchMatch[1];
+  if (watchMatch) return watchMatch[1];
 
   const shortMatch = url.match(/youtu\.be\/([^?&/]+)/);
-  if (!videoId && shortMatch) videoId = shortMatch[1];
+  if (shortMatch) return shortMatch[1];
 
   const shortsMatch = url.match(/\/shorts\/([^?&/]+)/);
-  if (!videoId && shortsMatch) videoId = shortsMatch[1];
+  if (shortsMatch) return shortsMatch[1];
 
-  if (!videoId) return url;
-
-  return `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&playsinline=1&controls=1&rel=0`;
+  return null;
 }
 
 /**
@@ -108,15 +101,16 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
       );
     }
 
-    // YouTube → nocookie embed + mobile UA (WebView detectsiyasini bloklash)
-    // Boshqa saytlar → to'g'ridan WebView
+    // YouTube → IFrame API HTML rejimi (youtubeVideoId prop orqali)
+    // Boshqa saytlar → URI rejimi
     if (useWebview) {
-      const displayUrl = platform === 'youtube' ? getYouTubeEmbedUrl(url) : url;
+      const youtubeVideoId = platform === 'youtube' ? (extractYouTubeVideoId(url) ?? undefined) : undefined;
       const userAgent = platform === 'youtube' ? MOBILE_USER_AGENT : undefined;
       return (
         <WebViewPlayer
           ref={webviewRef}
-          url={displayUrl}
+          url={url}
+          youtubeVideoId={youtubeVideoId}
           isOwner={isOwner}
           onPlay={onPlay}
           onPause={onPause}

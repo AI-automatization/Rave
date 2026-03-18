@@ -2,6 +2,7 @@
 // react-native-webview asosida har qanday saytdan video o'ynatish
 // M6: Loading overlay, ad blocker, redirect warning, fullscreen, error+retry
 // M7: Site-specific adapters (uzmovi.tv, kinogo.cc, filmix.net, hdrezka.ag, generic)
+// M8: YouTube IFrame API mode (source={{ html }}) — direct URI emas, cross-origin problem yo'q
 import React, { forwardRef, useImperativeHandle, useRef, useState, useCallback, useEffect, useMemo } from 'react';
 import {
   View,
@@ -12,7 +13,8 @@ import {
   StatusBar,
 } from 'react-native';
 import WebView from 'react-native-webview';
-import type { WebViewMessageEvent, ShouldStartLoadRequest, WebViewNavigation } from 'react-native-webview';
+import type { WebViewMessageEvent } from 'react-native-webview';
+import type { ShouldStartLoadRequest, WebViewNavigation } from 'react-native-webview/lib/WebViewTypes';
 import { colors, spacing, typography, borderRadius } from '@theme/index';
 import { getAdapter, buildInjectJs } from './WebViewAdapters';
 
@@ -48,6 +50,88 @@ function getHostname(url: string): string {
   }
 }
 
+/**
+ * YouTube IFrame API yordamida video o'ynatish uchun HTML sahifasi.
+ * source={{ uri }} o'rniga source={{ html }} ishlatiladi chunki:
+ * - YouTube URI rejimida WebView ichida cross-origin restriction tufayli black screen
+ * - HTML rejimida IFrame API events (play/pause/seek/progress) to'liq ishlaydi
+ * - window._csVideo proxy orqali play/pause/seekTo ref metodlari ishlaydi
+ */
+function buildYouTubeHtml(videoId: string): string {
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
+    #yt { width: 100%; height: 100%; }
+  </style>
+</head>
+<body>
+  <div id="yt"></div>
+  <script src="https://www.youtube.com/iframe_api"></script>
+  <script>
+    var ytPlayer = null;
+    var progressTimer = null;
+
+    function rn(obj) {
+      if (window.ReactNativeWebView) {
+        window.ReactNativeWebView.postMessage(JSON.stringify(obj));
+      }
+    }
+
+    function onYouTubeIframeAPIReady() {
+      ytPlayer = new YT.Player('yt', {
+        videoId: '${videoId}',
+        playerVars: {
+          autoplay: 1,
+          playsinline: 1,
+          controls: 1,
+          rel: 0,
+          modestbranding: 1,
+          iv_load_policy: 3
+        },
+        events: {
+          onReady: function(e) {
+            e.target.playVideo();
+            rn({ type: 'VIDEO_FOUND' });
+            progressTimer = setInterval(function() {
+              if (ytPlayer && ytPlayer.getPlayerState() === YT.PlayerState.PLAYING) {
+                rn({ type: 'PROGRESS', currentTime: ytPlayer.getCurrentTime(), duration: ytPlayer.getDuration() || 0 });
+              }
+            }, 2000);
+          },
+          onStateChange: function(e) {
+            var ct = ytPlayer ? ytPlayer.getCurrentTime() : 0;
+            if (e.data === YT.PlayerState.PLAYING) {
+              rn({ type: 'PLAY', currentTime: ct });
+            } else if (e.data === YT.PlayerState.PAUSED) {
+              rn({ type: 'PAUSE', currentTime: ct });
+            }
+          }
+        }
+      });
+
+      // window._csVideo — WebViewPlayer ref metodlari uchun proxy
+      window._csVideo = {
+        get currentTime() { return ytPlayer ? ytPlayer.getCurrentTime() : 0; },
+        set currentTime(t) {
+          if (ytPlayer) {
+            ytPlayer.seekTo(t, true);
+            rn({ type: 'SEEK', currentTime: t });
+          }
+        },
+        play: function() { if (ytPlayer) ytPlayer.playVideo(); },
+        pause: function() { if (ytPlayer) ytPlayer.pauseVideo(); },
+        get paused() { return !ytPlayer || ytPlayer.getPlayerState() !== YT.PlayerState.PLAYING; }
+      };
+    }
+  </script>
+</body>
+</html>`;
+}
+
 export interface WebViewPlayerRef {
   play: () => void;
   pause: () => void;
@@ -57,12 +141,14 @@ export interface WebViewPlayerRef {
 
 interface Props {
   url: string;
+  /** YouTube video ID — set qilinsa IFrame API HTML rejimi faollashadi */
+  youtubeVideoId?: string;
   isOwner: boolean;
   onPlay: (currentTimeSecs: number) => void;
   onPause: (currentTimeSecs: number) => void;
   onSeek: (currentTimeSecs: number) => void;
   onProgress?: (currentTimeSecs: number, durationSecs: number) => void;
-  /** Custom User-Agent — YouTube kabi saytlar uchun WebView detektsiyasini o'tkazib yuborish */
+  /** Custom User-Agent — saytlar uchun WebView detektsiyasini o'tkazib yuborish */
   userAgent?: string;
 }
 
@@ -76,13 +162,17 @@ type WebViewMessage =
 
 
 export const WebViewPlayer = forwardRef<WebViewPlayerRef, Props>(
-  ({ url, isOwner, onPlay, onPause, onSeek, onProgress, userAgent }, ref) => {
+  ({ url, youtubeVideoId, isOwner, onPlay, onPause, onSeek, onProgress, userAgent }, ref) => {
     const webviewRef = useRef<WebView>(null);
     const currentTimeMsRef = useRef(0);
     const originalHostRef = useRef(getHostname(url));
 
-    // M7: URL ga qarab saytga xos adapter tanlanadi
-    const injectJs = useMemo(() => buildInjectJs(getAdapter(url)), [url]);
+    // YouTube rejimi: HTML source, adapter injection kerak emas
+    const isYouTubeMode = !!youtubeVideoId;
+    const injectJs = useMemo(
+      () => (isYouTubeMode ? 'true;' : buildInjectJs(getAdapter(url))),
+      [url, isYouTubeMode],
+    );
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
@@ -132,8 +222,8 @@ export const WebViewPlayer = forwardRef<WebViewPlayerRef, Props>(
             onProgress?.(data.currentTime, data.duration);
             break;
           case 'IFRAME_FOUND':
-            // Nested iframe: birinchi iframe URL ni to'g'ridan ochamiz
-            if (data.urls[0]) {
+            // Nested iframe: birinchi iframe URL ni to'g'ridan ochamiz (faqat generic rejimda)
+            if (!isYouTubeMode && data.urls[0]) {
               webviewRef.current?.injectJavaScript(
                 `window.location.href = ${JSON.stringify(data.urls[0])}; true;`,
               );
@@ -143,31 +233,31 @@ export const WebViewPlayer = forwardRef<WebViewPlayerRef, Props>(
       } catch {
         // JSON parse xato — ignore
       }
-    }, [isOwner, onPlay, onPause, onSeek, onProgress]);
+    }, [isOwner, isYouTubeMode, onPlay, onPause, onSeek, onProgress]);
 
     // Reklama va native-app redirect bloklash
     const handleShouldStartLoad = useCallback((request: ShouldStartLoadRequest): boolean => {
-      const { url } = request;
-      // Block intent://, youtube://, market:// — bunlar native app ochishga urinadi → black screen
+      const { url: reqUrl } = request;
+      // intent://, youtube://, market:// — native app ochishga urinadi → black screen
       try {
-        const scheme = url.split(':')[0].toLowerCase();
+        const scheme = reqUrl.split(':')[0].toLowerCase();
         if (scheme !== 'http' && scheme !== 'https' && scheme !== 'blob' && scheme !== 'data') {
           return false;
         }
       } catch {
         return false;
       }
-      return !isAdRequest(url);
+      return !isAdRequest(reqUrl);
     }, []);
 
-    // Redirect aniqlash: domen o'zgarsa ogohlantirish
+    // Redirect aniqlash: domen o'zgarsa ogohlantirish (YouTube rejimida o'chirish)
     const handleNavigationStateChange = useCallback((navState: WebViewNavigation) => {
-      if (!navState.url) return;
+      if (isYouTubeMode || !navState.url) return;
       const newHost = getHostname(navState.url);
       if (newHost && newHost !== originalHostRef.current) {
         setRedirectWarning(newHost);
       }
-    }, []);
+    }, [isYouTubeMode]);
 
     const handleRetry = useCallback(() => {
       setError(false);
@@ -175,6 +265,11 @@ export const WebViewPlayer = forwardRef<WebViewPlayerRef, Props>(
       setRedirectWarning(null);
       webviewRef.current?.reload();
     }, []);
+
+    // WebView source: YouTube → HTML IFrame API, boshqalar → URI
+    const webViewSource = isYouTubeMode
+      ? { html: buildYouTubeHtml(youtubeVideoId!), baseUrl: 'https://www.youtube.com' }
+      : { uri: url };
 
     return (
       <View style={styles.container}>
@@ -212,7 +307,7 @@ export const WebViewPlayer = forwardRef<WebViewPlayerRef, Props>(
         ) : (
           <WebView
             ref={webviewRef}
-            source={{ uri: url }}
+            source={webViewSource}
             style={styles.webview}
             javaScriptEnabled
             domStorageEnabled
