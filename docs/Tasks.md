@@ -14,7 +14,7 @@
 3. Fix bo'lgach → shu yerdan O'CHIRISH → docs/Done.md ga KO'CHIRISH
 4. Prioritet: P0=kritik, P1=muhim, P2=o'rta, P3=past
 5. Sprint: S1=hozir, S2=keyingi hafta, S3=keyingi sprint, S4-5=keyin
-6. Oxirgi T-raqam: S→033, E→040, J→014, C→010
+6. Oxirgi T-raqam: S→033, E→041, J→014, C→010
 ```
 
 ---
@@ -181,6 +181,127 @@ GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state
 ## SPRINT 6 — Universal Video Extraction + Sync
 
 ### ✅ T-E040 | TUGADI → Done.md F-131
+
+---
+
+### T-E041 | P1 | [MOBILE] | WebViewPlayer — Member lock overlay + bug tekshiruv
+
+- **Sana:** 2026-03-19
+- **Mas'ul:** pending[Emirhan]
+- **Sprint:** S6
+- **Fayl:** `apps/mobile/src/components/video/WebViewPlayer.tsx`
+- **Holat:** ❌ Boshlanmagan
+
+---
+
+#### 🎯 ASOSIY VAZIFA — Member lock overlay
+
+**Muammo:** Hozir WatchParty da member ham WebView da click/tap/scroll qila oladi — saytning o'z playeri ularda ham interactive. Bu noto'g'ri: faqat owner boshqarishi kerak.
+
+**Kerak:** Member WebView ni ko'radi (bir xil URL, bir xil sayt), lekin hech narsa bosa olmaydi.
+
+**Yechim — 5 qator kod:**
+
+```tsx
+// WebView bilan birgalikda (error yo'q holat):
+) : (
+  <View style={{ flex: 1 }}>
+    <WebView ... />   {/* mavjud kod — o'zgartirma */}
+
+    {/* Member lock: shaffof overlay, barcha touch larni ushlab oladi */}
+    {!isOwner && (
+      <View style={StyleSheet.absoluteFill} />
+    )}
+  </View>
+)}
+```
+
+`StyleSheet.absoluteFill` = `{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }` — React Native da default `backgroundColor` yo'q, ya'ni shaffof. Vizual ko'rinmaydi, lekin barcha touch larni bloklaydi.
+
+**Natija:**
+
+| | Owner | Member |
+|--|-------|--------|
+| Saytni ko'radi | ✅ | ✅ |
+| Click/tap | ✅ | ❌ (overlay bloklaydi) |
+| Scroll | ✅ | ❌ |
+| Fullscreen tugma | ✅ | ❌ |
+| Play/Pause/Seek | ✅ (o'zi bosadi) | ✅ (Socket.io sync, JS inject) |
+
+---
+
+#### 🐛 BUG TEKSHIRUV — WebViewPlayer
+
+Quyidagilarni tekshirib, ishlayotganini tasdiqlash yoki bug tuzatish:
+
+**B1. `isOwner` events tekshiruvi**
+```
+Tekshirish: Owner WebView da play bosadi → Socket.io ga ketadimi?
+Tekshirish: Member Socket.io dan event oladi → video sync bo'ladimi?
+
+handleMessage ichida (line ~214):
+  case 'PLAY': if (isOwner) onPlay(...)  ← faqat owner yuboradi ✅ (mavjud)
+  case 'PAUSE': if (isOwner) onPause(...) ← ✅ (mavjud)
+  case 'SEEK': if (isOwner) onSeek(...)  ← ✅ (mavjud)
+
+Agar member da ham onPlay/onPause chaqirilayotgan bo'lsa → bug, tuzatish kerak
+```
+
+**B2. `injectWithRetry` member da ishlashini tekshirish**
+```
+Member Socket.io dan 'video:play' oladi → ref.play() → injectWithRetry('window._csVideo.play();')
+Bu WebView ga inject bo'ladimi? Test qilish kerak.
+
+Agar video element topilmasa → _csVideo undefined → inject ishlamaydi
+Adapter to'g'ri ishlayotganini tekshirish
+```
+
+**B3. YouTube `youtubeVideoId` prop bo'sh holat**
+```tsx
+// UniversalPlayer.tsx da:
+<WebViewPlayer
+  url={url}
+  youtubeVideoId={youtubeVideoId}  // undefined bo'lsa nima bo'ladi?
+  ...
+/>
+
+// WebViewPlayer ichida:
+const isYouTubeMode = !!youtubeVideoId;  // ✅ undefined → false (ok)
+```
+Tekshirish: YouTube rejimda `buildYouTubeHtml('')` bo'sh videoId bilan chaqirilmasligiga ishonch hosil qilish.
+
+**B4. `onProgress` undefined holati**
+```tsx
+onProgress?.(data.currentTime, data.duration);  // ✅ optional chaining bor
+```
+Agar `onProgress` berilmagan bo'lsa — ishlamaydi (ok, optional).
+
+**B5. Redirect warning — member da ham ko'rinadi**
+```
+Hozir: isOwner tekshirilmaydi — member ham redirect warning ko'radi
+Kerak: member da redirect warning ko'rsatmaslik (yoki ko'rsatish — muhim emas)
+Bu kichik UX muammo, critical emas
+```
+
+**B6. Error retry — member da ishlashini tekshirish**
+```
+Member da sayt yuklanmasa → retry tugma ko'rinadi → bosadi → reload()
+Bu okmi yoki member retry bosa olmasligi kerakmi?
+Tavsiya: member ham retry bosa olsin (sayt muammosi, control muammosi emas)
+```
+
+---
+
+#### ✅ Qabul qilish mezonlari
+
+```
+□ Member WebView ni ko'radi (bir xil URL)
+□ Member hech narsani bosa olmaydi (overlay ishlaydi)
+□ Owner play → member 1-3 sek ichida sync bo'ladi
+□ YouTube rejimda member ham video ko'radi, bosa olmaydi
+□ Overlay faqat member da ko'rinadi, owner da yo'q
+□ TypeScript xatosi yo'q (tsc --noEmit o'tadi)
+```
 
 ---
 
