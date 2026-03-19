@@ -185,9 +185,14 @@ GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state
 ---
 
 ### ✅ T-E041 | TUGADI → Done.md F-134
+
+### ✅ T-E042 | TUGADI → Done.md F-136
 - **Sprint:** S6
-- **Fayl:** `apps/mobile/src/components/video/WebViewPlayer.tsx`
-- **Holat:** ❌ Boshlanmagan
+- **Fayllar:** `VideoSection.tsx`, `WatchPartyScreen.tsx`, `ModalNavigator.tsx`
+- **Subtasklar:**
+  - [x] `gestureEnabled: false` — WatchParty modal swipe dismiss o'chirish ✅
+  - [x] Fullscreen toggle — video katta/kichik, RoomInfoBar/Emoji yashirish ✅
+  - [x] Stop tugmasi — owner stop → pause + seekTo(0) + emitPause(0) → members sync ✅
 
 ---
 

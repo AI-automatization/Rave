@@ -4,6 +4,15 @@
 
 ---
 
+### F-136 | 2026-03-19 | [MOBILE] | T-E042 — WatchParty fullscreen + stop + swipe disable [Emirhan]
+
+- **ModalNavigator.tsx:** `gestureEnabled: false` — WatchParty da iOS swipe-to-dismiss o'chirildi
+- **VideoSection.tsx:** `isFullscreen` prop + `videoContainerFullscreen` (SCREEN_H) + fullscreen toggle button (top-right, expand/contract icon)
+- **VideoSection.tsx:** Stop tugmasi owner controls da (square icon) → `onStop` callback
+- **VideoSection.tsx:** Fullscreen da RoomInfoBar/Emoji/Chat yashiriladi (WatchPartyScreen `!isFullscreen` wrapper)
+- **WatchPartyScreen.tsx:** `handleStop` → seekTo(0) + pause + emitPause(0) + setIsPlaying(false) (existing socket events, no backend change)
+- **WatchPartyScreen.tsx:** `handleToggleFullscreen` → `isFullscreen` state toggle
+
 ### F-135 | 2026-03-19 | [MOBILE] | T-C010 — Universal Video Sync extract→play→sync pipeline [Emirhan]
 
 - **Bug 1 tuzatildi** — `detectVideoPlatform` YouTube proxy URL ni 'webview' deb aniqlardi; `/youtube/stream` pattern qo'shildi → 'direct' qaytaradi, expo-av to'g'ridan o'ynaydi

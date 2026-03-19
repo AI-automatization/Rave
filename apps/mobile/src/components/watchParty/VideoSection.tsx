@@ -7,6 +7,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Dimensions,
+  StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AVPlaybackStatus } from 'expo-av';
@@ -14,7 +15,7 @@ import { UniversalPlayer, UniversalPlayerRef } from '@components/video/Universal
 import { EmojiFloatItem } from '@components/watchParty/EmojiFloat';
 import { colors, spacing, borderRadius, typography } from '@theme/index';
 
-const { width: SCREEN_W } = Dimensions.get('window');
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 export const VIDEO_HEIGHT = (SCREEN_W * 9) / 16;
 
 export interface FloatingEmoji {
@@ -29,6 +30,7 @@ interface VideoSectionProps {
   isReady: boolean;
   isOwner: boolean;
   isPlaying: boolean;
+  isFullscreen: boolean;
   videoIsLive: boolean;
   floatingEmojis: FloatingEmoji[];
   onPlay: (secs: number) => void;
@@ -38,7 +40,9 @@ interface VideoSectionProps {
   onStreamResolved: (info: { isLive: boolean }) => void;
   onProgress?: (currentTimeSecs: number, durationSecs: number) => void;
   onPlayPause: () => void;
+  onStop: () => void;
   onSeekDirection: (direction: 'forward' | 'back') => void;
+  onToggleFullscreen: () => void;
   onRemoveEmoji: (id: string) => void;
 }
 
@@ -48,6 +52,7 @@ export const VideoSection = React.memo(function VideoSection({
   isReady,
   isOwner,
   isPlaying,
+  isFullscreen,
   videoIsLive,
   floatingEmojis,
   onPlay,
@@ -57,11 +62,17 @@ export const VideoSection = React.memo(function VideoSection({
   onStreamResolved,
   onProgress,
   onPlayPause,
+  onStop,
   onSeekDirection,
+  onToggleFullscreen,
   onRemoveEmoji,
 }: VideoSectionProps) {
+  const containerStyle = isFullscreen
+    ? [styles.videoContainer, styles.videoContainerFullscreen]
+    : styles.videoContainer;
+
   return (
-    <View style={styles.videoContainer}>
+    <View style={containerStyle}>
       {!isReady ? (
         <View style={styles.loadingCenter}>
           <ActivityIndicator size="large" color={colors.primary} />
@@ -79,6 +90,15 @@ export const VideoSection = React.memo(function VideoSection({
           onProgress={onProgress}
         />
       )}
+
+      {/* Fullscreen toggle — har doim ko'rinadi */}
+      <TouchableOpacity style={styles.fullscreenBtn} onPress={onToggleFullscreen}>
+        <Ionicons
+          name={isFullscreen ? 'contract-outline' : 'expand-outline'}
+          size={20}
+          color={colors.textPrimary}
+        />
+      </TouchableOpacity>
 
       {videoIsLive && (
         <View style={styles.liveBadge}>
@@ -98,6 +118,9 @@ export const VideoSection = React.memo(function VideoSection({
               <Ionicons name="play-back" size={22} color={colors.textPrimary} />
             </TouchableOpacity>
           )}
+          <TouchableOpacity onPress={onStop} style={styles.controlBtn}>
+            <Ionicons name="stop" size={22} color={colors.textPrimary} />
+          </TouchableOpacity>
           <TouchableOpacity onPress={onPlayPause} style={styles.playBtn}>
             <Ionicons name={isPlaying ? 'pause' : 'play'} size={26} color={colors.textPrimary} />
           </TouchableOpacity>
@@ -124,6 +147,18 @@ const styles = StyleSheet.create({
     width: SCREEN_W,
     height: VIDEO_HEIGHT,
     backgroundColor: colors.black,
+  },
+  videoContainerFullscreen: {
+    height: SCREEN_H,
+  },
+  fullscreenBtn: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    padding: spacing.sm,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: borderRadius.full,
+    zIndex: 10,
   },
   controls: {
     position: 'absolute',

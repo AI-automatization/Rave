@@ -15,7 +15,7 @@ export function ModalNavigator() {
   return (
     <Modal.Navigator screenOptions={{ headerShown: false }}>
       <Modal.Screen name="WatchPartyCreate" component={WatchPartyCreateScreen} />
-      <Modal.Screen name="WatchParty" component={WatchPartyScreen} />
+      <Modal.Screen name="WatchParty" component={WatchPartyScreen} options={{ gestureEnabled: false }} />
       <Modal.Screen name="BattleCreate" component={BattleCreateScreen} />
       <Modal.Screen name="Battle" component={BattleScreen} />
       <Modal.Screen name="Notifications" component={NotificationsScreen} />

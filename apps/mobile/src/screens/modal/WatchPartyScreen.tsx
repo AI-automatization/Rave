@@ -35,6 +35,7 @@ export function WatchPartyScreen() {
   const [showChat, setShowChat] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [videoIsLive, setVideoIsLive] = useState(false);
   const [floatingEmojis, setFloatingEmojis] = useState<FloatingEmoji[]>([]);
   const [connectTimeout, setConnectTimeout] = useState(false);
@@ -93,6 +94,18 @@ export function WatchPartyScreen() {
       emitPlay(posMs / 1000);
     }
   }, [isOwner, isPlaying, emitPlay, emitPause]);
+
+  const handleStop = useCallback(async () => {
+    if (!isOwner) return;
+    await playerRef.current?.seekTo(0);
+    await playerRef.current?.pause();
+    emitPause(0);
+    setIsPlaying(false);
+  }, [isOwner, emitPause]);
+
+  const handleToggleFullscreen = useCallback(() => {
+    setIsFullscreen(v => !v);
+  }, []);
 
   const handleSeekDirection = useCallback(async (direction: 'forward' | 'back') => {
     if (!isOwner || videoIsLive) return;
@@ -155,6 +168,7 @@ export function WatchPartyScreen() {
         isReady={!!room}
         isOwner={isOwner}
         isPlaying={isPlaying}
+        isFullscreen={isFullscreen}
         videoIsLive={videoIsLive}
         floatingEmojis={floatingEmojis}
         onPlay={handleWebViewPlay}
@@ -163,36 +177,42 @@ export function WatchPartyScreen() {
         onPlaybackStatusUpdate={onPlaybackStatusUpdate}
         onStreamResolved={({ isLive }) => setVideoIsLive(isLive)}
         onPlayPause={handlePlayPause}
+        onStop={handleStop}
         onSeekDirection={handleSeekDirection}
+        onToggleFullscreen={handleToggleFullscreen}
         onRemoveEmoji={handleRemoveEmoji}
       />
 
-      <RoomInfoBar
-        roomName={room?.name ?? 'Watch Party'}
-        memberCount={activeMembers.length}
-        isOwner={isOwner}
-        hasMessages={messages.length > 0}
-        onToggleInvite={() => setShowInvite(v => !v)}
-        onToggleChat={() => setShowChat(v => !v)}
-        onLeave={handleLeave}
-      />
+      {!isFullscreen && (
+        <>
+          <RoomInfoBar
+            roomName={room?.name ?? 'Watch Party'}
+            memberCount={activeMembers.length}
+            isOwner={isOwner}
+            hasMessages={messages.length > 0}
+            onToggleInvite={() => setShowInvite(v => !v)}
+            onToggleChat={() => setShowChat(v => !v)}
+            onLeave={handleLeave}
+          />
 
-      {showInvite && room?.inviteCode && (
-        <InviteCard
-          inviteCode={room.inviteCode}
-          roomId={params.roomId}
-          roomName={room.name ?? 'Watch Party'}
-        />
-      )}
+          {showInvite && room?.inviteCode && (
+            <InviteCard
+              inviteCode={room.inviteCode}
+              roomId={params.roomId}
+              roomName={room.name ?? 'Watch Party'}
+            />
+          )}
 
-      <View style={[s.emojiBar, Platform.OS === 'ios' ? null : s.emojiBarAndroid]}>
-        <EmojiPickerBar onSelect={handleEmojiSelect} />
-      </View>
+          <View style={[s.emojiBar, Platform.OS === 'ios' ? null : s.emojiBarAndroid]}>
+            <EmojiPickerBar onSelect={handleEmojiSelect} />
+          </View>
 
-      {showChat && (
-        <View style={s.chatPanel}>
-          <ChatPanel messages={messages} currentUserId={userId} onSend={sendMessage} />
-        </View>
+          {showChat && (
+            <View style={s.chatPanel}>
+              <ChatPanel messages={messages} currentUserId={userId} onSend={sendMessage} />
+            </View>
+          )}
+        </>
       )}
     </View>
   );
