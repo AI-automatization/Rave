@@ -204,5 +204,75 @@ export class AdminController {
       next(error);
     }
   };
+
+  // ── Battles ───────────────────────────────────────────────
+
+  listBattles = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const page = parseInt((req.query.page as string) ?? '1', 10);
+      const limit = Math.min(parseInt((req.query.limit as string) ?? '20', 10), 100);
+      const { battles, total } = await this.adminService.listBattles({
+        page,
+        limit,
+        status: req.query.status as string | undefined,
+      });
+      res.json(apiResponse.paginated(battles, buildPaginationMeta(page, limit, total)));
+    } catch (error) { next(error); }
+  };
+
+  endBattle = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId: adminId } = (req as AuthenticatedRequest).user;
+      await this.adminService.endBattle(req.params.id, adminId);
+      res.json(apiResponse.success(null, 'Battle ended'));
+    } catch (error) { next(error); }
+  };
+
+  // ── Watch Parties ─────────────────────────────────────────
+
+  listWatchParties = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const page = parseInt((req.query.page as string) ?? '1', 10);
+      const limit = Math.min(parseInt((req.query.limit as string) ?? '20', 10), 100);
+      const { rooms, total } = await this.adminService.listWatchParties({
+        page,
+        limit,
+        status: req.query.status as string | undefined,
+      });
+      res.json(apiResponse.paginated(rooms, buildPaginationMeta(page, limit, total)));
+    } catch (error) { next(error); }
+  };
+
+  closeWatchParty = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId: adminId } = (req as AuthenticatedRequest).user;
+      await this.adminService.closeWatchParty(req.params.id, adminId);
+      res.json(apiResponse.success(null, 'Watch party closed'));
+    } catch (error) { next(error); }
+  };
+
+  // ── Notifications ─────────────────────────────────────────
+
+  broadcastNotification = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId: adminId } = (req as AuthenticatedRequest).user;
+      const { title, body, type } = req.body as { title: string; body: string; type?: string };
+      if (!title || !body) {
+        res.status(400).json(apiResponse.error('title and body required'));
+        return;
+      }
+      await this.adminService.broadcastNotification(title, body, type ?? 'announcement', adminId);
+      res.json(apiResponse.success(null, 'Notification broadcast sent'));
+    } catch (error) { next(error); }
+  };
+
+  // ── System Health ──────────────────────────────────────────
+
+  getSystemHealth = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const health = await this.adminService.getSystemHealth();
+      res.json(apiResponse.success(health));
+    } catch (error) { next(error); }
+  };
 }
 

@@ -19,6 +19,12 @@ export const createBattleRouter = (redis: Redis): Router => {
   // Internal: GET /battles/internal/user-stats/:userId — for user service aggregation
   router.get('/internal/user-stats/:userId', requireInternalSecret, battleController.getUserStats);
 
+  // Internal Admin: GET /battles/internal/admin/list — list all battles (admin)
+  router.get('/internal/admin/list', requireInternalSecret, battleController.adminListBattles);
+
+  // Internal Admin: POST /battles/internal/admin/:id/end — force end battle (admin)
+  router.post('/internal/admin/:id/end', requireInternalSecret, battleController.adminEndBattle);
+
   // GET /battles/:id
   router.get('/:id', verifyToken, battleController.getBattle);
 

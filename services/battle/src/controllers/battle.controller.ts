@@ -1,8 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import { BattleService } from '../services/battle.service';
-import { apiResponse } from '@shared/utils/apiResponse';
+import { apiResponse, buildPaginationMeta } from '@shared/utils/apiResponse';
 import { AuthenticatedRequest } from '@shared/types';
 import { sendInternalNotification } from '@shared/utils/serviceClient';
+import { Battle } from '../models/battle.model';
 
 export class BattleController {
   constructor(private battleService: BattleService) {}
@@ -91,6 +92,47 @@ export class BattleController {
     try {
       const stats = await this.battleService.getUserStats(req.params.userId);
       res.json(apiResponse.success(stats));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // ── Admin endpoints ──────────────────────────────────────────
+
+  adminListBattles = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const page = parseInt((req.query.page as string) ?? '1', 10);
+      const limit = Math.min(parseInt((req.query.limit as string) ?? '20', 10), 100);
+      const status = req.query.status as string | undefined;
+
+      const query: Record<string, unknown> = {};
+      if (status) query.status = status;
+
+      const skip = (page - 1) * limit;
+      const [battles, total] = await Promise.all([
+        Battle.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+        Battle.countDocuments(query),
+      ]);
+
+      res.json(apiResponse.paginated(battles, buildPaginationMeta(page, limit, total)));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  adminEndBattle = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const battle = await Battle.findById(req.params.id);
+      if (!battle) {
+        res.status(404).json(apiResponse.error('Battle not found'));
+        return;
+      }
+
+      battle.status = 'completed';
+      battle.endDate = new Date();
+      await battle.save();
+
+      res.json(apiResponse.success(null, 'Battle ended'));
     } catch (error) {
       next(error);
     }

@@ -5,8 +5,11 @@ const navItems = [
   { to: '/', label: 'Dashboard', end: true },
   { to: '/users', label: 'Users' },
   { to: '/movies', label: 'Content' },
+  { to: '/battles', label: 'Battles' },
+  { to: '/watchparties', label: 'Watch Parties' },
   { to: '/feedback', label: 'Feedback' },
   { to: '/logs', label: 'Logs' },
+  { to: '/system', label: 'System' },
 ];
 
 export function Sidebar() {

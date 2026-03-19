@@ -210,6 +210,74 @@ export async function adminOperatorUpdateMovie(movieId: string, data: Record<str
   await axios.patch(`${contentServiceUrl}/api/v1/content/internal/admin/movies/${movieId}`, data, { headers: internalHeaders, timeout: 5000 });
 }
 
+// ─── Admin: Battle Service ─────────────────────────────────────────────────────
+
+export async function adminListBattles(filters: {
+  page?: number;
+  limit?: number;
+  status?: string;
+}): Promise<{ battles: unknown[]; total: number }> {
+  const params = new URLSearchParams();
+  if (filters.page) params.set('page', String(filters.page));
+  if (filters.limit) params.set('limit', String(filters.limit));
+  if (filters.status) params.set('status', filters.status);
+
+  const res = await axios.get<{ data: { battles: unknown[]; total: number } }>(
+    `${battleServiceUrl}/api/v1/battles/internal/admin/list?${params.toString()}`,
+    { headers: internalHeaders, timeout: 5000 },
+  );
+  return res.data.data;
+}
+
+export async function adminEndBattle(battleId: string): Promise<void> {
+  await axios.post(
+    `${battleServiceUrl}/api/v1/battles/internal/admin/${battleId}/end`,
+    {},
+    { headers: internalHeaders, timeout: 5000 },
+  );
+}
+
+// ─── Admin: Watch Party Service ────────────────────────────────────────────────
+const watchPartyServiceUrl = process.env.WATCH_PARTY_SERVICE_URL ?? 'http://localhost:3004';
+
+export async function adminListWatchParties(filters: {
+  page?: number;
+  limit?: number;
+  status?: string;
+}): Promise<{ rooms: unknown[]; total: number }> {
+  const params = new URLSearchParams();
+  if (filters.page) params.set('page', String(filters.page));
+  if (filters.limit) params.set('limit', String(filters.limit));
+  if (filters.status) params.set('status', filters.status);
+
+  const res = await axios.get<{ data: { rooms: unknown[]; total: number } }>(
+    `${watchPartyServiceUrl}/api/v1/watchparty/internal/admin/list?${params.toString()}`,
+    { headers: internalHeaders, timeout: 5000 },
+  );
+  return res.data.data;
+}
+
+export async function adminCloseWatchParty(roomId: string): Promise<void> {
+  await axios.delete(
+    `${watchPartyServiceUrl}/api/v1/watchparty/internal/admin/${roomId}`,
+    { headers: internalHeaders, timeout: 5000 },
+  );
+}
+
+// ─── Admin: Notification Broadcast ────────────────────────────────────────────
+
+export async function adminBroadcastNotification(payload: {
+  title: string;
+  body: string;
+  type?: string;
+}): Promise<void> {
+  await axios.post(
+    `${notificationServiceUrl}/api/v1/notifications/internal/admin/broadcast`,
+    payload,
+    { headers: internalHeaders, timeout: 10000 },
+  );
+}
+
 // ─── User Watch Stats (content service internal) ───────────────────────────────
 export async function getUserWatchStats(userId: string): Promise<{
   totalWatched: number;

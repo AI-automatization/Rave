@@ -1,10 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
 import { Server as SocketServer } from 'socket.io';
 import { WatchPartyService } from '../services/watchParty.service';
-import { apiResponse } from '@shared/utils/apiResponse';
+import { apiResponse, buildPaginationMeta } from '@shared/utils/apiResponse';
 import { AuthenticatedRequest, VideoPlatform } from '@shared/types';
 import { sendInternalNotification } from '@shared/utils/serviceClient';
 import { SERVER_EVENTS } from '@shared/constants/socketEvents';
+import { WatchPartyRoom } from '../models/watchPartyRoom.model';
 
 export class WatchPartyController {
   constructor(
@@ -131,6 +132,46 @@ export class WatchPartyController {
       });
 
       res.json(apiResponse.success(null, 'Invite notification sent'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // ── Admin endpoints ──────────────────────────────────────────
+
+  adminListRooms = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const page = parseInt((req.query.page as string) ?? '1', 10);
+      const limit = Math.min(parseInt((req.query.limit as string) ?? '20', 10), 100);
+      const status = req.query.status as string | undefined;
+
+      const query: Record<string, unknown> = {};
+      if (status) query.status = status;
+
+      const skip = (page - 1) * limit;
+      const [rooms, total] = await Promise.all([
+        WatchPartyRoom.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+        WatchPartyRoom.countDocuments(query),
+      ]);
+
+      res.json(apiResponse.paginated(rooms, buildPaginationMeta(page, limit, total)));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  adminCloseRoom = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const room = await WatchPartyRoom.findById(req.params.id);
+      if (!room) {
+        res.status(404).json(apiResponse.error('Room not found'));
+        return;
+      }
+
+      room.status = 'ended';
+      await room.save();
+
+      res.json(apiResponse.success(null, 'Room closed'));
     } catch (error) {
       next(error);
     }

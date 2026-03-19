@@ -12,6 +12,9 @@ export const createNotificationRouter = (redisUrl: string): Router => {
   // POST /notifications/internal/send — service-to-service (X-Internal-Secret header)
   router.post('/internal/send', requireInternalSecret, notificationController.sendInternal);
 
+  // POST /notifications/internal/admin/broadcast — broadcast notification to all users (admin)
+  router.post('/internal/admin/broadcast', requireInternalSecret, notificationController.broadcastInternal);
+
   // GET /notifications
   router.get('/', verifyToken, notificationController.getNotifications);
 

@@ -103,6 +103,40 @@ export interface ApiLog {
   userAgent: string | null;
 }
 
+// ── Battles ───────────────────────────────────────────────────
+
+export interface AdminBattle {
+  _id: string;
+  creatorId: string;
+  status: 'pending' | 'active' | 'completed' | 'cancelled' | 'rejected';
+  duration: 3 | 5 | 7;
+  endDate: string | null;
+  createdAt: string;
+  participants?: Array<{ userId: string; moviesWatched: number; score: number }>;
+}
+
+// ── Watch Parties ─────────────────────────────────────────────
+
+export interface AdminWatchParty {
+  _id: string;
+  code: string;
+  ownerId: string;
+  status: 'waiting' | 'playing' | 'paused' | 'ended';
+  movieId: string | null;
+  members: string[];
+  maxMembers: number;
+  createdAt: string;
+}
+
+// ── System Health ──────────────────────────────────────────────
+
+export interface ServiceHealth {
+  status: 'ok' | 'error';
+  latency?: number;
+}
+
+export type SystemHealth = Record<string, ServiceHealth>;
+
 // ── Analytics ─────────────────────────────────────────────────
 
 export interface Analytics {

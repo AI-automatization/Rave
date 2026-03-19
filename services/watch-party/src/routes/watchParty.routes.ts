@@ -4,11 +4,18 @@ import { Server as SocketServer } from 'socket.io';
 import { WatchPartyController } from '../controllers/watchParty.controller';
 import { WatchPartyService } from '../services/watchParty.service';
 import { verifyToken } from '@shared/middleware/auth.middleware';
+import { requireInternalSecret } from '@shared/utils/serviceClient';
 
 export const createWatchPartyRouter = (redis: Redis, io: SocketServer): Router => {
   const router = Router();
   const watchPartyService = new WatchPartyService(redis);
   const watchPartyController = new WatchPartyController(watchPartyService, io);
+
+  // Internal Admin: GET /watch-party/internal/admin/list — list all rooms (admin)
+  router.get('/internal/admin/list', requireInternalSecret, watchPartyController.adminListRooms);
+
+  // Internal Admin: DELETE /watch-party/internal/admin/:id — force close room (admin)
+  router.delete('/internal/admin/:id', requireInternalSecret, watchPartyController.adminCloseRoom);
 
   // GET /watch-party/rooms — list all active rooms (sorted by member count)
   router.get('/rooms', verifyToken, watchPartyController.getRooms);

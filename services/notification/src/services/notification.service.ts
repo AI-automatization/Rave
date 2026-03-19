@@ -105,4 +105,8 @@ export class NotificationService {
     const result = await Notification.deleteOne({ _id: notificationId, userId });
     if (result.deletedCount === 0) throw new NotFoundError('Notification not found');
   }
+
+  async logBroadcast(title: string, body: string, type: string): Promise<void> {
+    logger.info('Admin broadcast notification logged', { title, type, body });
+  }
 }

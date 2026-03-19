@@ -59,6 +59,24 @@ export class NotificationController {
     }
   };
 
+  // Internal Admin endpoint — broadcast notification log (no JWT, uses X-Internal-Secret)
+  broadcastInternal = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { title, body, type } = req.body as { title: string; body: string; type?: string };
+
+      if (!title || !body) {
+        res.status(400).json(apiResponse.error('Missing required fields: title, body'));
+        return;
+      }
+
+      await this.notificationService.logBroadcast(title, body, type ?? 'announcement');
+
+      res.json(apiResponse.success(null, 'Broadcast notification logged'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   // Internal endpoint — called by other microservices (no JWT, uses X-Internal-Secret)
   sendInternal = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {

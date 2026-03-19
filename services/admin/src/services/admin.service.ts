@@ -1,3 +1,4 @@
+import axios from 'axios';
 import Redis from 'ioredis';
 import { logger } from '@shared/utils/logger';
 import { BadRequestError } from '@shared/utils/errors';
@@ -16,6 +17,11 @@ import {
   adminUnpublishMovie,
   adminDeleteMovie,
   adminOperatorUpdateMovie,
+  adminListBattles,
+  adminEndBattle,
+  adminListWatchParties,
+  adminCloseWatchParty,
+  adminBroadcastNotification,
 } from '@shared/utils/serviceClient';
 
 export interface DashboardStats {
@@ -216,5 +222,71 @@ export class AdminService {
 
     await Feedback.create({ userId, type, content });
     logger.info('Feedback submitted', { userId, type });
+  }
+
+  // ── Battle Management ──────────────────────────────────────
+
+  async listBattles(filters: {
+    page: number;
+    limit: number;
+    status?: string;
+  }): Promise<{ battles: unknown[]; total: number }> {
+    return adminListBattles(filters);
+  }
+
+  async endBattle(battleId: string, adminId: string): Promise<void> {
+    await adminEndBattle(battleId);
+    logger.info('Battle force-ended by admin', { battleId, adminId });
+  }
+
+  // ── Watch Party Management ─────────────────────────────────
+
+  async listWatchParties(filters: {
+    page: number;
+    limit: number;
+    status?: string;
+  }): Promise<{ rooms: unknown[]; total: number }> {
+    return adminListWatchParties(filters);
+  }
+
+  async closeWatchParty(roomId: string, adminId: string): Promise<void> {
+    await adminCloseWatchParty(roomId);
+    logger.info('WatchParty force-closed by admin', { roomId, adminId });
+  }
+
+  // ── Notification Broadcast ────────────────────────────────
+
+  async broadcastNotification(title: string, body: string, type: string, adminId: string): Promise<void> {
+    await adminBroadcastNotification({ title, body, type });
+    logger.info('Broadcast notification sent by admin', { title, adminId });
+  }
+
+  // ── System Health ──────────────────────────────────────────
+
+  async getSystemHealth(): Promise<Record<string, { status: 'ok' | 'error'; latency?: number }>> {
+    const services = [
+      { name: 'auth', url: process.env.AUTH_SERVICE_URL ?? 'http://localhost:3001' },
+      { name: 'user', url: process.env.USER_SERVICE_URL ?? 'http://localhost:3002' },
+      { name: 'content', url: process.env.CONTENT_SERVICE_URL ?? 'http://localhost:3003' },
+      { name: 'watch-party', url: process.env.WATCH_PARTY_SERVICE_URL ?? 'http://localhost:3004' },
+      { name: 'battle', url: process.env.BATTLE_SERVICE_URL ?? 'http://localhost:3005' },
+      { name: 'notification', url: process.env.NOTIFICATION_SERVICE_URL ?? 'http://localhost:3007' },
+    ];
+
+    const results: Record<string, { status: 'ok' | 'error'; latency?: number }> = {};
+
+    await Promise.all(
+      services.map(async (svc) => {
+        const start = Date.now();
+        try {
+          await axios.get(`${svc.url}/health`, { timeout: 3000 });
+          results[svc.name] = { status: 'ok', latency: Date.now() - start };
+        } catch {
+          results[svc.name] = { status: 'error', latency: Date.now() - start };
+        }
+      }),
+    );
+
+    return results;
   }
 }
