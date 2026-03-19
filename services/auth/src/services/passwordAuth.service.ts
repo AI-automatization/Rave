@@ -198,6 +198,18 @@ export class PasswordAuthService {
     await User.updateOne({ _id: user._id }, { lastLoginAt: new Date() });
 
     logger.info('User logged in', { userId: user._id });
+
+    // Admin/superadmin/operator login → email alert
+    if (['admin', 'superadmin', 'operator'].includes(user.role)) {
+      emailService.sendAdminLoginAlert({
+        adminEmail: user.email,
+        ip,
+        userAgent,
+        role: user.role,
+        timestamp: new Date(),
+      }).catch(() => {/* silent */});
+    }
+
     return { accessToken, refreshToken, user };
   }
 
@@ -395,6 +407,22 @@ export class PasswordAuthService {
       isVerified: true,
     });
     logger.info('Superadmin created', { email, username });
+  }
+
+  async upsertSuperAdmin(email: string, username: string, password: string): Promise<'created' | 'updated'> {
+    const passwordHash = await this.hashPassword(password);
+    const existing = await User.findOne({ role: 'superadmin' });
+    if (existing) {
+      await User.updateOne(
+        { _id: existing._id },
+        { email, username, passwordHash, isEmailVerified: true },
+      );
+      logger.info('Superadmin credentials updated', { email });
+      return 'updated';
+    }
+    await User.create({ email, username, passwordHash, role: 'superadmin', isEmailVerified: true });
+    logger.info('Superadmin created', { email });
+    return 'created';
   }
 
   private async checkBruteForce(email: string): Promise<void> {

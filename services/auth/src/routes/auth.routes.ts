@@ -77,5 +77,8 @@ export const createAuthRouter = (redis: Redis): Router => {
   // POST /auth/init-admin — bir martalik superadmin yaratish (ADMIN_INIT_SECRET bilan himoyalangan)
   router.post('/init-admin', authRateLimiter, authController.initAdmin);
 
+  // PUT /auth/init-admin — superadmin credentials yangilash (upsert)
+  router.put('/init-admin', authController.upsertAdmin);
+
   return router;
 };

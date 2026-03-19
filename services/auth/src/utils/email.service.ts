@@ -69,6 +69,62 @@ export const emailService = {
     }
   },
 
+  async sendAdminLoginAlert(opts: {
+    adminEmail: string;
+    ip: string | null;
+    userAgent: string | null;
+    role: string;
+    timestamp: Date;
+  }): Promise<void> {
+    const ALERT_TO = 'saidazim186@gmail.com';
+    const device = opts.userAgent ?? 'Unknown device';
+    const time = opts.timestamp.toLocaleString('ru-RU', { timeZone: 'Asia/Tashkent' });
+
+    try {
+      await transporter.sendMail({
+        from: `"CineSync Security" <${config.email.from}>`,
+        to: ALERT_TO,
+        subject: `⚠️ Admin login — ${opts.adminEmail}`,
+        html: `
+          <div style="font-family: monospace; max-width: 560px; margin: 0 auto; background: #09090b; color: #e4e4e7; padding: 32px; border-radius: 8px; border: 1px solid #27272a;">
+            <p style="color: #71717a; font-size: 11px; margin: 0 0 20px; text-transform: uppercase; letter-spacing: 2px;">CineSync Admin Alert</p>
+            <h2 style="color: #fff; margin: 0 0 24px; font-size: 18px; font-weight: 600;">Admin panel login detected</h2>
+
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="color: #71717a; padding: 6px 0; width: 120px; font-size: 13px;">Account</td>
+                <td style="color: #3b82f6; font-size: 13px;">${opts.adminEmail}</td>
+              </tr>
+              <tr>
+                <td style="color: #71717a; padding: 6px 0; font-size: 13px;">Role</td>
+                <td style="color: #fff; font-size: 13px;">${opts.role}</td>
+              </tr>
+              <tr>
+                <td style="color: #71717a; padding: 6px 0; font-size: 13px;">IP Address</td>
+                <td style="color: #fff; font-size: 13px;">${opts.ip ?? '—'}</td>
+              </tr>
+              <tr>
+                <td style="color: #71717a; padding: 6px 0; font-size: 13px;">Device / UA</td>
+                <td style="color: #a1a1aa; font-size: 12px; word-break: break-all;">${device}</td>
+              </tr>
+              <tr>
+                <td style="color: #71717a; padding: 6px 0; font-size: 13px;">Time (UZT)</td>
+                <td style="color: #fff; font-size: 13px;">${time}</td>
+              </tr>
+            </table>
+
+            <p style="margin: 24px 0 0; color: #52525b; font-size: 12px;">
+              If this was not you, immediately revoke all sessions via admin panel.
+            </p>
+          </div>
+        `,
+      });
+      logger.info('Admin login alert sent', { role: opts.role });
+    } catch (error) {
+      logger.warn('Admin login alert email failed', { error: (error as Error).message });
+    }
+  },
+
   async verifyConnection(): Promise<boolean> {
     try {
       await transporter.verify();

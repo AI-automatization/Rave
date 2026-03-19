@@ -79,6 +79,9 @@ export class AuthService {
   createSuperAdmin = (email: string, username: string, password: string) =>
     this.password.createSuperAdmin(email, username, password);
 
+  upsertSuperAdmin = (email: string, username: string, password: string) =>
+    this.password.upsertSuperAdmin(email, username, password);
+
   // ─── Google Auth delegates ───────────────────────────────────────────────────
 
   verifyGoogleIdToken = (idToken: string) =>
