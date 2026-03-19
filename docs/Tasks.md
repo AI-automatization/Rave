@@ -178,23 +178,262 @@ GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state
 
 ---
 
-## SPRINT 7 — Refactor + Quality
+### ✅ T-E043 | TUGADI → Done.md F-137
 
-### T-E043 | P2 | [MOBILE] | Refactor — WebViewPlayer.tsx (406q) + VideoExtractScreen.tsx (375q) | pending[Emirhan]
+---
+
+## SPRINT 2 — Asosiy ekranlar
+
+### T-E044 | P1 | [MOBILE] | HomeScreen — "Yangi filmlar" qatori + genre filter
 
 - **Sana:** 2026-03-19
-- **Mas'ul:** pending[Emirhan]
-- **Sprint:** S7
-- **Fayllar:**
-  - `apps/mobile/src/components/video/WebViewPlayer.tsx` (406 qator → <280 ga tushirish)
-  - `apps/mobile/src/screens/home/VideoExtractScreen.tsx` (375 qator → <250 ga tushirish)
+- **Mas'ul:** (ochiq)
+- **Sprint:** S2
+- **Fayllar:** `hooks/useHomeData.ts`, `components/movie/MovieRow.tsx`, `screens/home/HomeScreen.tsx`, `api/content.api.ts`
+- **Holat:** ❌ Boshlanmagan
+- **Backend bog'liqligi:** `GET /content/movies?sort=newest` — Saidazim tekshirishi kerak
+- **Subtasklar:**
+  - [ ] `contentApi.getNewReleases(limit)` metodi qo'shish
+  - [ ] `useHomeData` ga `newReleases` query qo'shish
+  - [ ] HomeScreen da `<MovieRow title="Yangi filmlar" movies={newReleases} />` qo'shish
+  - [ ] Genre filter chip row (Trending → filter by genre → SearchScreen ga o'tish)
+
+---
+
+### T-E045 | P1 | [MOBILE] | VideoPlayerScreen — fullscreen landscape + double-tap seek + buffering spinner
+
+- **Sana:** 2026-03-19
+- **Mas'ul:** (ochiq)
+- **Sprint:** S2
+- **Fayllar:** `screens/home/VideoPlayerScreen.tsx`, `components/video/VideoControls.tsx` (yangi)
+- **Holat:** ❌ Boshlanmagan
+- **Backend bog'liqligi:** Yo'q (client-side only)
+- **Subtasklar:**
+  - [ ] `VideoControls.tsx` komponent ajratish (inline controls → alohida)
+  - [ ] Landscape fullscreen: `ScreenOrientation.lockAsync(LANDSCAPE)` + `StatusBar.setHidden(true)`
+  - [ ] Portrait qaytish: `ScreenOrientation.lockAsync(PORTRAIT_UP)`
+  - [ ] `isBuffering` holati uchun spinner
+  - [ ] Double-tap: chapga 10s orqaga, o'ngga 10s oldinga
+
+---
+
+### T-E046 | P2 | [MOBILE] | SearchResultsScreen — genre + year filter + sort
+
+- **Sana:** 2026-03-19
+- **Mas'ul:** (ochiq)
+- **Sprint:** S2
+- **Fayllar:** `screens/search/SearchResultsScreen.tsx`, `components/search/SearchFiltersBar.tsx` (yangi), `hooks/useSearch.ts`
+- **Holat:** ❌ Boshlanmagan
+- **Backend bog'liqligi:** `GET /content/movies?genre=X&year=Y&sort=Z` — Saidazim tekshirishi kerak
+- **Subtasklar:**
+  - [ ] `SearchFiltersBar.tsx`: genre chips + year picker + sort (rating, year, title)
+  - [ ] `useSearch` ga `genre`, `year`, `sort` parametrlar
+  - [ ] Filter o'zgarganda page=1 ga reset
+
+---
+
+### T-E047 | P2 | [MOBILE] | MovieDetailScreen — Battle shortcut + Share API
+
+- **Sana:** 2026-03-19
+- **Mas'ul:** (ochiq)
+- **Sprint:** S2
+- **Fayllar:** `screens/home/MovieDetailScreen.tsx`
+- **Holat:** ❌ Boshlanmagan
+- **Backend bog'liqligi:** `POST/DELETE /content/movies/:id/favorite` — tekshirish kerak
+- **Subtasklar:**
+  - [ ] "Battle boshlash" tugmasi → `BattleCreate` modal + movie title pre-fill
+  - [ ] "Filmni ulashish" → Share API orqali movie URL
+  - [ ] Favorites persist: `contentApi.addFavorite` / `removeFavorite`
+
+---
+
+## SPRINT 3 — Ijtimoiy ekranlar
+
+### T-E048 | P1 | [MOBILE] | WatchParty — Join by invite code ekrani
+
+- **Sana:** 2026-03-19
+- **Mas'ul:** (ochiq)
+- **Sprint:** S3
+- **Fayllar:** `screens/modal/WatchPartyJoinScreen.tsx` (yangi), `navigation/ModalNavigator.tsx`, `types/index.ts`, `api/watchParty.api.ts`
+- **Holat:** ❌ Boshlanmagan
+- **Backend bog'liqligi:** `POST /watch-party/join/:inviteCode` — allaqachon mavjud (F-118)
+- **Subtasklar:**
+  - [ ] `WatchPartyJoinScreen.tsx`: 6 belgi invite code input + "Qo'shilish" tugmasi
+  - [ ] `ModalStackParamList` ga `WatchPartyJoin: undefined` qo'shish
+  - [ ] `ModalNavigator` ga route qo'shish
+  - [ ] `WatchPartyCreateScreen` da "Join" tab qo'shish (Create | Join)
+
+---
+
+### T-E049 | P1 | [MOBILE] | FriendProfileScreen — Battle challenge + WatchParty invite
+
+- **Sana:** 2026-03-19
+- **Mas'ul:** (ochiq)
+- **Sprint:** S3
+- **Fayllar:** `screens/friends/FriendProfileScreen.tsx`, `screens/modal/BattleCreateScreen.tsx`
 - **Holat:** ❌ Boshlanmagan
 - **Subtasklar:**
-  - [ ] WebViewPlayer: `buildYouTubeHtml` → alohida fayl
-  - [ ] WebViewPlayer: AD_HOSTNAMES + isAdRequest → alohida utils
-  - [ ] VideoExtractScreen: `useVideoExtract` hook ajratish
-  - [ ] VideoExtractScreen: `VideoExtractInput` komponent ajratish
-  - [ ] VideoExtractScreen: `VideoExtractReady` komponent ajratish
+  - [ ] "Battle boshlash" tugmasi → `BattleCreate` + `initialFriendId` param
+  - [ ] `BattleCreateScreen` ga `initialFriendId?: string` param qo'shish
+  - [ ] "Watch Party ga taklif" (faqat aktiv WatchParty bo'lsa)
+  - [ ] Do'st "hozir film ko'rmoqda" holati ko'rsatish
+
+---
+
+### T-E050 | P2 | [MOBILE] | BattleScreen — yakunlangan battles tarix
+
+- **Sana:** 2026-03-19
+- **Mas'ul:** (ochiq)
+- **Sprint:** S3
+- **Fayllar:** `screens/modal/BattleScreen.tsx`, `hooks/useBattle.ts`, `api/battle.api.ts`
+- **Holat:** ❌ Boshlanmagan
+- **Backend bog'liqligi:** `GET /battles?status=completed` — tekshirish kerak
+- **Subtasklar:**
+  - [ ] Tab: "Faol" | "Tarix"
+  - [ ] `battleApi.getCompletedBattles()` API metodi
+  - [ ] `useBattleHistory` hook
+  - [ ] Yakunlangan battle card: g'olib + ball
+
+---
+
+### T-E051 | P2 | [MOBILE] | FriendsScreen — Online do'stlar birinchi + activity
+
+- **Sana:** 2026-03-19
+- **Mas'ul:** (ochiq)
+- **Sprint:** S3
+- **Fayllar:** `screens/friends/FriendsScreen.tsx`, `hooks/useFriends.ts`
+- **Holat:** ❌ Boshlanmagan
+- **Subtasklar:**
+  - [ ] Online do'stlar birinchi (SectionList: "Online" | "Oflayn")
+  - [ ] "Hozir film ko'rmoqda" badge (isWatching)
+  - [ ] Swipe-to-remove gesture
+
+---
+
+## SPRINT 4 — Profil + Bildirishnoma
+
+### T-E052 | P1 | [MOBILE] | Push Notifications (FCM) — Expo Notifications integratsiyasi
+
+- **Sana:** 2026-03-19
+- **Mas'ul:** (ochiq)
+- **Sprint:** S4
+- **Fayllar:** `services/notifications/usePushNotifications.ts` (yangi), `navigation/AppNavigator.tsx`, `api/user.api.ts`
+- **Holat:** ❌ Boshlanmagan
+- **Backend bog'liqligi:** `PUT /users/me/fcm-token` — tekshirish kerak
+- **Subtasklar:**
+  - [ ] `expo-notifications` permission so'rash
+  - [ ] `usePushNotifications` hook — token olish + backend ga yuborish
+  - [ ] Foreground notification handler (toast)
+  - [ ] Background/killed: deep link handling
+  - [ ] NotificationsScreen badge real-time
+
+---
+
+### T-E053 | P1 | [MOBILE] | NotificationsScreen — useNotifications hook ajratish + socket
+
+- **Sana:** 2026-03-19
+- **Mas'ul:** (ochiq)
+- **Sprint:** S4
+- **Fayllar:** `hooks/useNotifications.ts` (yangi), `screens/modal/NotificationsScreen.tsx`
+- **Holat:** ❌ Boshlanmagan
+- **Backend bog'liqligi:** Socket event `NOTIFICATION_NEW` — tekshirish kerak
+- **Subtasklar:**
+  - [ ] `useNotifications.ts`: getAll, markRead, markAll, delete, acceptFriend, rejectFriend
+  - [ ] NotificationsScreen faqat render (270q → ~150q)
+  - [ ] Socket `NOTIFICATION_NEW` → `notification.store.addNotification`
+  - [ ] Badge real-time update
+
+---
+
+### T-E054 | P2 | [MOBILE] | SettingsScreen — ChangePassword ulash + Language toggle
+
+- **Sana:** 2026-03-19
+- **Mas'ul:** (ochiq)
+- **Sprint:** S4
+- **Fayllar:** `screens/profile/SettingsScreen.tsx`, `components/settings/ChangePasswordModal.tsx`
+- **Holat:** ❌ Boshlanmagan
+- **Backend bog'liqligi:** `POST /auth/change-password` — allaqachon mavjud (F-117)
+- **Subtasklar:**
+  - [ ] ChangePasswordModal → `authApi.changePassword(old, new)` ulash
+  - [ ] Language selector: `['uz', 'ru', 'en']` → `language.store`
+
+---
+
+### T-E055 | P2 | [MOBILE] | AchievementsScreen — rarity filter + progress + unlock animation
+
+- **Sana:** 2026-03-19
+- **Mas'ul:** (ochiq)
+- **Sprint:** S4
+- **Fayllar:** `screens/profile/AchievementsScreen.tsx`, `components/profile/AchievementCard.tsx` (yangi)
+- **Holat:** ❌ Boshlanmagan
+- **Subtasklar:**
+  - [ ] Rarity filter chips: "Barchasi" | "Common" | "Rare" | "Epic" | "Legendary"
+  - [ ] Progress: "X/Y ochilgan"
+  - [ ] Unlock animation: `Animated.spring`
+  - [ ] Achievement detail modal (tap on card)
+
+---
+
+## SPRINT 5 — Sifat + Test
+
+### T-E056 | P1 | [MOBILE] | TypeScript strict audit + console.log cleanup
+
+- **Sana:** 2026-03-19
+- **Mas'ul:** (ochiq)
+- **Sprint:** S5
+- **Fayllar:** `hooks/useProfile.ts`, `hooks/useWatchParty.ts`, `screens/modal/NotificationsScreen.tsx`, barcha screen hardcoded strings
+- **Holat:** ❌ Boshlanmagan
+- **Subtasklar:**
+  - [ ] `if (__DEV__) console.log` audit — production ga chiqmasligi
+  - [ ] `NotificationsScreen` unsafe cast `as Record<string, string>` → type guard
+  - [ ] Hardcoded matnlar → i18n `useT()` (BattleScreen, WatchPartyCreateScreen)
+  - [ ] `npx tsc --noEmit` — 0 xato
+
+---
+
+### T-E057 | P1 | [MOBILE] | Unit testlar — hooks va API layer
+
+- **Sana:** 2026-03-19
+- **Mas'ul:** (ochiq)
+- **Sprint:** S5
+- **Fayllar:** `__tests__/hooks/useHomeData.test.ts`, `__tests__/hooks/useSearch.test.ts`, `__tests__/api/content.api.test.ts`, `__tests__/hooks/useBattle.test.ts`
+- **Holat:** ❌ Boshlanmagan
+- **Subtasklar:**
+  - [ ] Jest setup tekshirish
+  - [ ] `useHomeData` test (mock contentApi)
+  - [ ] `useSearch` test (debounce, history)
+  - [ ] `contentApi` test (axios mock)
+  - [ ] `useBattle` test (accept/reject mutations)
+  - [ ] Coverage: 70%+ hooks, 80%+ API
+
+---
+
+### T-E058 | P2 | [MOBILE] | Performance — React.memo + FlatList getItemLayout + expo-image cache
+
+- **Sana:** 2026-03-19
+- **Mas'ul:** (ochiq)
+- **Sprint:** S5
+- **Fayllar:** `components/movie/MovieCard.tsx`, `components/movie/MovieRow.tsx`, barcha FlatList komponentlar
+- **Holat:** ❌ Boshlanmagan
+- **Subtasklar:**
+  - [ ] `MovieCard`, `FriendRow`, `BattleCard` → `React.memo`
+  - [ ] FlatList `getItemLayout` (fixed height bo'lsa)
+  - [ ] `expo-image` `{ cachePolicy: 'memory-disk' }` barcha Image larga
+
+---
+
+### T-E059 | P2 | [MOBILE] | E2E smoke test — critical user flows
+
+- **Sana:** 2026-03-19
+- **Mas'ul:** (ochiq)
+- **Sprint:** S5
+- **Fayllar:** `__tests__/e2e/auth.flow.test.ts`, `__tests__/e2e/watchparty.flow.test.ts`
+- **Holat:** ❌ Boshlanmagan
+- **Subtasklar:**
+  - [ ] Login → Home → MovieDetail → VideoPlayer oqimi
+  - [ ] Register → VerifyEmail → ProfileSetup oqimi
+  - [ ] WatchPartyCreate → WatchPartyScreen → Leave oqimi
+  - [ ] Notification tap → deep link → to'g'ri ekran
 
 ---
 

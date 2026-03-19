@@ -4,6 +4,13 @@
 
 ---
 
+### F-137 | 2026-03-19 | [MOBILE] | T-E043 — Refactor: WebViewPlayer + VideoExtractScreen split [Emirhan]
+
+- **WebViewPlayer.tsx:** 406q → 294q. `buildYouTubeHtml` → `webviewYouTube.ts` (78q). `AD_HOSTNAMES + isAdRequest + getHostname` → `webviewAdBlocker.ts` (32q)
+- **VideoExtractScreen.tsx:** 375q → 68q (thin wrapper). Logic → `useVideoExtract.ts` (92q). Input UI → `VideoExtractInput.tsx` (154q). Ready UI → `VideoExtractReady.tsx` (142q)
+- **Yangi fayllar:** 5 ta: `webviewYouTube.ts`, `webviewAdBlocker.ts`, `useVideoExtract.ts`, `VideoExtractInput.tsx`, `VideoExtractReady.tsx`
+- **Funksional o'zgarish:** YO'Q — behavior identik saqlanadi
+
 ### F-136 | 2026-03-19 | [MOBILE] | T-E042 — WatchParty fullscreen + stop + swipe disable [Emirhan]
 
 - **ModalNavigator.tsx:** `gestureEnabled: false` — WatchParty da iOS swipe-to-dismiss o'chirildi
