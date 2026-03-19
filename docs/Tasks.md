@@ -1,6 +1,6 @@
 # CineSync — OCHIQ VAZIFALAR
 
-# Yangilangan: 2026-03-18
+# Yangilangan: 2026-03-19
 
 # 3 dasturchi: Saidazim (Backend) | Emirhan (Mobile) | Jafar (Mobile)
 
@@ -14,7 +14,7 @@
 3. Fix bo'lgach → shu yerdan O'CHIRISH → docs/Done.md ga KO'CHIRISH
 4. Prioritet: P0=kritik, P1=muhim, P2=o'rta, P3=past
 5. Sprint: S1=hozir, S2=keyingi hafta, S3=keyingi sprint, S4-5=keyin
-6. Oxirgi T-raqam: S→033, E→041, J→014, C→010
+6. Oxirgi T-raqam: S→034, E→041, J→014, C→010
 ```
 
 ---

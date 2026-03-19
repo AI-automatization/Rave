@@ -1414,11 +1414,27 @@ Root package.json dependencies:
 
 ---
 
----
+### T-S034 | 2026-03-19 | [BACKEND] | Full backend refactor — Faza 1-2-3
 
----
+- **Mas'ul:** Saidazim
+- **Commit:** `85bbd6f`
 
----
+**Faza 1 — Critical bugs:**
+- `rateLimitMap` memory leak — watch-party socket da setInterval(60s) cleanup qo'shildi
+- MongoDB `maxPoolSize`: 10 → 5 (7 servis × 5 = 35, Atlas 100 limit dan xavfsiz)
+- `REDIS_KEYS` to'liq namespace bilan: `auth:`, `user:`, `content:`, `party:`, `battle:`
+- `admin.service.ts` hardcoded `session:${userId}` → `REDIS_KEYS.userSession()`
+
+**Faza 2 — File splitting (Facade pattern):**
+- `auth.service.ts` (654 LOC) → `passwordAuth.service.ts` + `googleAuth.service.ts` + `telegramAuth.service.ts` + facade
+- `user.service.ts` (464 LOC) → `profile.service.ts` + `friendship.service.ts` + facade
+- `content.service.ts` (511 LOC) → `movie.service.ts` + `search.service.ts` + `watchHistory.service.ts` + facade
+- `watchParty.socket.ts` (369 LOC) → `roomEvents.handler.ts` + `videoEvents.handler.ts` + `chatEvents.handler.ts` + `voiceEvents.handler.ts`
+
+**Faza 3 — Shared abstractions:**
+- `shared/middleware/requestId.middleware.ts` — X-Request-ID tracing header
+- `shared/middleware/timeout.middleware.ts` — 30s global timeout (503)
+- Barcha 7 servis `app.ts`: `requestId` + `timeout()` middleware qo'shildi
 
 ---
 
