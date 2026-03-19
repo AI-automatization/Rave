@@ -14,7 +14,7 @@
 3. Fix bo'lgach → shu yerdan O'CHIRISH → docs/Done.md ga KO'CHIRISH
 4. Prioritet: P0=kritik, P1=muhim, P2=o'rta, P3=past
 5. Sprint: S1=hozir, S2=keyingi hafta, S3=keyingi sprint, S4-5=keyin
-6. Oxirgi T-raqam: S→034, E→041, J→014, C→010
+6. Oxirgi T-raqam: S→034, E→043, J→014, C→010
 ```
 
 ---
@@ -175,6 +175,26 @@ GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state
 
 
 ## SPRINT 5 — Sifat + Test
+
+---
+
+## SPRINT 7 — Refactor + Quality
+
+### T-E043 | P2 | [MOBILE] | Refactor — WebViewPlayer.tsx (406q) + VideoExtractScreen.tsx (375q) | pending[Emirhan]
+
+- **Sana:** 2026-03-19
+- **Mas'ul:** pending[Emirhan]
+- **Sprint:** S7
+- **Fayllar:**
+  - `apps/mobile/src/components/video/WebViewPlayer.tsx` (406 qator → <280 ga tushirish)
+  - `apps/mobile/src/screens/home/VideoExtractScreen.tsx` (375 qator → <250 ga tushirish)
+- **Holat:** ❌ Boshlanmagan
+- **Subtasklar:**
+  - [ ] WebViewPlayer: `buildYouTubeHtml` → alohida fayl
+  - [ ] WebViewPlayer: AD_HOSTNAMES + isAdRequest → alohida utils
+  - [ ] VideoExtractScreen: `useVideoExtract` hook ajratish
+  - [ ] VideoExtractScreen: `VideoExtractInput` komponent ajratish
+  - [ ] VideoExtractScreen: `VideoExtractReady` komponent ajratish
 
 ---
 
