@@ -251,7 +251,7 @@ export async function adminListWatchParties(filters: {
   if (filters.status) params.set('status', filters.status);
 
   const res = await axios.get<{ data: { rooms: unknown[]; total: number } }>(
-    `${watchPartyServiceUrl}/api/v1/watchparty/internal/admin/list?${params.toString()}`,
+    `${watchPartyServiceUrl}/api/v1/watch-party/internal/admin/list?${params.toString()}`,
     { headers: internalHeaders, timeout: 5000 },
   );
   return res.data.data;
@@ -259,7 +259,7 @@ export async function adminListWatchParties(filters: {
 
 export async function adminCloseWatchParty(roomId: string): Promise<void> {
   await axios.delete(
-    `${watchPartyServiceUrl}/api/v1/watchparty/internal/admin/${roomId}`,
+    `${watchPartyServiceUrl}/api/v1/watch-party/internal/admin/${roomId}`,
     { headers: internalHeaders, timeout: 5000 },
   );
 }
