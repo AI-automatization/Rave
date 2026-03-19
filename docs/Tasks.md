@@ -378,7 +378,7 @@ Tavsiya: member ham retry bosa olsin (sayt muammosi, control muammosi emas)
 
 - **Sana:** 2026-03-11
 - **Mas'ul:** Emirhan (Mobile — asosiy), Saidazim (Backend — minimal)
-- **Holat:** ✅ Mobile M1-M7 TUGADI (2026-03-17) | Backend B1-B2 pending[Saidazim] | Web W1 ochiq
+- **Holat:** ✅ Mobile M1-M7 TUGADI (2026-03-19) | Backend B1-B2 pending[Saidazim] | Web W1 ochiq
 - **Sprint:** S2-S3
 - **Prioritet:** P1 — foydalanuvchilar faqat YouTube ko'ra olmoqda, boshqa saytlar ishlamayapti
 
@@ -450,40 +450,11 @@ Foydalanuvchi URL kiritadi (uzmovi.tv/..., kinogo.cc/..., har qanday sayt)
 **Fayl:** `apps/mobile/src/components/video/UniversalPlayer.tsx` (o'zgartirish)
 **Fayl:** `apps/mobile/src/screens/party/WatchPartyScreen.tsx` (o'zgartirish)
 
-- [ ] **M1. `WebViewPlayer` komponenti yaratish**
-  - `react-native-webview` asosida
-  - Props: `url`, `isOwner`, `onPlay`, `onPause`, `onSeek`, `onProgress`, `syncTime`, `syncIsPlaying`
-  - `javaScriptEnabled`, `domStorageEnabled`, `allowsInlineMediaPlayback` = true
-  - `mediaPlaybackRequiresUserAction` = false
-
-- [ ] **M2. JS Injection — video elementni topish**
-  - `injectedJavaScript` orqali sahifaga JS kiritish
-  - `MutationObserver` bilan `<video>` element paydo bo'lishini kutish
-  - Agar video nested `<iframe>` ichida bo'lsa:
-    - Avval barcha `<iframe>` larning `src` URL larini `postMessage` orqali yuborish
-    - React Native da iframe URL ni aniqlash → to'g'ridan iframe URL ni WebView da ochish
-    - Bu usul bilan iframe ichidagi video ga to'g'ridan kirish mumkin
-  - `document.querySelector('video')` + fallback: `document.querySelectorAll('video')[0]`
-
-- [ ] **M3. JS Injection — video boshqarish (Owner)**
-  - `video.addEventListener('play', ...)` → `postMessage({ type: 'PLAY', currentTime })`
-  - `video.addEventListener('pause', ...)` → `postMessage({ type: 'PAUSE', currentTime })`
-  - `video.addEventListener('seeked', ...)` → `postMessage({ type: 'SEEK', currentTime })`
-  - Har 2 sekundda `postMessage({ type: 'PROGRESS', currentTime, duration })`
-  - `onMessage` handler React Native da — Socket.io ga yuborish
-
-- [ ] **M4. JS Injection — video boshqarish (Member)**
-  - Socket dan `sync:play` kelganda → `webviewRef.injectJavaScript('video.play()')`
-  - Socket dan `sync:pause` kelganda → `webviewRef.injectJavaScript('video.pause()')`
-  - Socket dan `sync:seek` kelganda → `webviewRef.injectJavaScript('video.currentTime = X')`
-  - Sync aniqligi: ~150-400ms kechikish (JS injection + postMessage overhead)
-
-- [ ] **M5. UniversalPlayer ga WebView integratsiya**
-  - `detectPlatform(url)` logikasini yangilash:
-    - `youtube` → YouTubePlayer (mavjud)
-    - `.mp4/.m3u8` → DirectPlayer (mavjud)
-    - **boshqa hammasi** → `WebViewPlayer` (yangi)
-  - `videoPlatform === 'webview'` holat qo'shish
+- [x] **M1. `WebViewPlayer` komponenti yaratish** ✅ 2026-03-19
+- [x] **M2. JS Injection — video elementni topish** ✅ 2026-03-19 (MutationObserver + iframe detect — WebViewAdapters.ts)
+- [x] **M3. JS Injection — video boshqarish (Owner)** ✅ 2026-03-19 (play/pause/seeked/progress events → postMessage)
+- [x] **M4. JS Injection — video boshqarish (Member)** ✅ 2026-03-19 (injectWithRetry — useImperativeHandle)
+- [x] **M5. UniversalPlayer ga WebView integratsiya** ✅ 2026-03-19 (detectVideoPlatform → 'webview' branch)
 
 - [x] **M6. UX yaxshilash** ✅ 2026-03-17
   - Loading overlay — sahifa yuklanayotganda spinner
