@@ -1,6 +1,7 @@
 // CineSync Mobile — Video extraction hook
 import { useState, useCallback } from 'react';
 import { contentApi, VideoExtractResult } from '@api/content.api';
+import { useAuthStore } from '@store/auth.store';
 
 const EXTRACTION_TIMEOUT_MS = 15_000;
 
@@ -46,10 +47,11 @@ function inferVideoType(url: string): 'mp4' | 'hls' {
 
 /**
  * Builds a proxied YouTube stream URL via the content service.
+ * Token passed as query param since expo-av can't set auth headers.
  */
-function buildYouTubeProxyUrl(videoUrl: string): string {
+function buildYouTubeProxyUrl(videoUrl: string, token: string): string {
   const encoded = encodeURIComponent(videoUrl);
-  return `${CONTENT_BASE_URL}/api/v1/youtube/stream?url=${encoded}`;
+  return `${CONTENT_BASE_URL}/api/v1/youtube/stream?url=${encoded}&token=${token}`;
 }
 
 /**
@@ -75,6 +77,7 @@ function withTimeout<T>(
  * - For YouTube results with `useProxy`, rewrites the videoUrl through the proxy.
  */
 export function useVideoExtraction(): UseVideoExtractionReturn {
+  const accessToken = useAuthStore(s => s.accessToken);
   const [isExtracting, setIsExtracting] = useState(false);
   const [result, setResult] = useState<VideoExtractResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -131,7 +134,7 @@ export function useVideoExtraction(): UseVideoExtractionReturn {
 
       // 3. YouTube proxy rewrite when backend says so
       if (extracted.useProxy && extracted.platform === 'youtube') {
-        extracted.videoUrl = buildYouTubeProxyUrl(extracted.videoUrl);
+        extracted.videoUrl = buildYouTubeProxyUrl(extracted.videoUrl, accessToken ?? '');
 
         if (__DEV__) console.log('[useVideoExtraction] Proxy URL applied');
       }

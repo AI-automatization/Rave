@@ -184,10 +184,7 @@ GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state
 
 ---
 
-### T-E041 | P1 | [MOBILE] | WebViewPlayer — Member lock overlay + bug tekshiruv
-
-- **Sana:** 2026-03-19
-- **Mas'ul:** pending[Emirhan]
+### ✅ T-E041 | TUGADI → Done.md F-134
 - **Sprint:** S6
 - **Fayl:** `apps/mobile/src/components/video/WebViewPlayer.tsx`
 - **Holat:** ❌ Boshlanmagan
@@ -602,9 +599,9 @@ Foydalanuvchi **har qanday** video sayt URL ni kiritganda:
 ### T-C010 | P1 | [IKKALASI] | Universal Video Sync — extract → play → sync pipeline end-to-end
 
 - **Sana:** 2026-03-18
-- **Mas'ul:** Saidazim (Backend ✅ TAYYOR) + Emirhan (Mobile ← QILISH KERAK)
+- **Mas'ul:** Saidazim (Backend ✅ TAYYOR) + Emirhan (Mobile ✅ TAYYOR)
 - **Sprint:** S6
-- **Holat:** ⚠️ Backend TAYYOR | Mobile qismi tekshirilishi kerak (T-E040 "TUGADI" belgilangan, lekin integration yo'q)
+- **Holat:** ✅ TUGADI → Done.md F-135
 - **Maqsad:** Foydalanuvchi HAR QANDAY URL ni WatchParty ga qo'yib, do'stlar bilan sinxron ko'ra olishi
 
 ---

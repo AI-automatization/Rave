@@ -256,7 +256,7 @@ export const WebViewPlayer = forwardRef<WebViewPlayerRef, Props>(
 
     // Redirect aniqlash: domen o'zgarsa ogohlantirish (YouTube rejimida o'chirish)
     const handleNavigationStateChange = useCallback((navState: WebViewNavigation) => {
-      if (isYouTubeMode || !navState.url) return;
+      if (isYouTubeMode || !navState.url || !isOwner) return;
       const newHost = getHostname(navState.url);
       if (newHost && newHost !== originalHostRef.current) {
         setRedirectWarning(newHost);
@@ -309,32 +309,36 @@ export const WebViewPlayer = forwardRef<WebViewPlayerRef, Props>(
             </TouchableOpacity>
           </View>
         ) : (
-          <WebView
-            ref={webviewRef}
-            source={webViewSource}
-            style={styles.webview}
-            javaScriptEnabled
-            domStorageEnabled
-            allowsInlineMediaPlayback
-            mediaPlaybackRequiresUserAction={false}
-            injectedJavaScript={injectJs}
-            onMessage={handleMessage}
-            onLoadEnd={() => setLoading(false)}
-            onError={() => {
-              setLoading(false);
-              setError(true);
-            }}
-            onHttpError={({ nativeEvent }) => {
-              if (nativeEvent.statusCode >= 400) {
+          <View style={styles.webviewWrapper}>
+            <WebView
+              ref={webviewRef}
+              source={webViewSource}
+              style={styles.webview}
+              javaScriptEnabled
+              domStorageEnabled
+              allowsInlineMediaPlayback
+              mediaPlaybackRequiresUserAction={false}
+              injectedJavaScript={injectJs}
+              onMessage={handleMessage}
+              onLoadEnd={() => setLoading(false)}
+              onError={() => {
                 setLoading(false);
                 setError(true);
-              }
-            }}
-            allowsFullscreenVideo
-            onShouldStartLoadWithRequest={handleShouldStartLoad}
-            onNavigationStateChange={handleNavigationStateChange}
-            userAgent={userAgent}
-          />
+              }}
+              onHttpError={({ nativeEvent }) => {
+                if (nativeEvent.statusCode >= 400) {
+                  setLoading(false);
+                  setError(true);
+                }
+              }}
+              allowsFullscreenVideo
+              onShouldStartLoadWithRequest={handleShouldStartLoad}
+              onNavigationStateChange={handleNavigationStateChange}
+              userAgent={userAgent}
+            />
+            {/* Member lock overlay: shaffof, barcha touch larni bloklaydi */}
+            {!isOwner && <View style={StyleSheet.absoluteFill} />}
+          </View>
         )}
       </View>
     );
@@ -343,6 +347,7 @@ export const WebViewPlayer = forwardRef<WebViewPlayerRef, Props>(
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
+  webviewWrapper: { flex: 1 },
   webview: { flex: 1 },
 
   overlay: {

@@ -1,8 +1,21 @@
 # CineSync — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-03-18
+# Yangilangan: 2026-03-19
 
 ---
+
+### F-135 | 2026-03-19 | [MOBILE] | T-C010 — Universal Video Sync extract→play→sync pipeline [Emirhan]
+
+- **Bug 1 tuzatildi** — `detectVideoPlatform` YouTube proxy URL ni 'webview' deb aniqlardi; `/youtube/stream` pattern qo'shildi → 'direct' qaytaradi, expo-av to'g'ridan o'ynaydi
+- **Bug 2 tuzatildi** — `buildYouTubeProxyUrl` auth token yo'q edi; `useAuthStore(s => s.accessToken)` import + `&token=` query param qo'shildi
+- **Flow endi to'liq ishlaydi:** URL kiritiladi → extraction (debounce 800ms) → extracted URL room ga saqlanadi → WatchPartyScreen → UniversalPlayer → to'g'ri player tanlaydi
+
+### F-134 | 2026-03-19 | [MOBILE] | T-E041 — WebViewPlayer member lock overlay + bug tekshiruv [Emirhan]
+
+- **Member lock overlay** — `!isOwner` bo'lganda `StyleSheet.absoluteFill` shaffof View qo'shildi; member WebView ni ko'radi lekin hech narsani bosa olmaydi
+- **B5 tuzatildi** — redirect warning faqat owner uchun ko'rinadi (`!isOwner` return qo'shildi `handleNavigationStateChange` ga)
+- **webviewWrapper** style qo'shildi — WebView + overlay wrapper uchun `flex: 1`
+- **B1-B4, B6 tasdiqlandi** — `if (isOwner) onPlay/onPause/onSeek` to'g'ri, `injectWithRetry` ishlaydi, `youtubeVideoId` berilmaydi (IFrame API yo'q), `onProgress?.()` optional chaining bor, member retry bosa oladi
 
 ### F-133 | 2026-03-18 | [BACKEND] | T-S033 — yt-dlp deploy + sayt ishonchliligi + strukturali error [Saidazim]
 

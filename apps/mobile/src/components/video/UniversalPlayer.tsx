@@ -39,6 +39,8 @@ export function detectVideoPlatform(url: string): VideoPlatform {
   if (!url) return 'direct';
   if (/\.(mp4|m3u8|webm|ogg|mov)(\?.*)?$/i.test(url)) return 'direct';
   if (YOUTUBE_REGEX.test(url)) return 'youtube';
+  // Content service YouTube proxy stream — expo-av plays it directly
+  if (/\/youtube\/stream(\?|$)/i.test(url)) return 'direct';
   return 'webview';
 }
 
