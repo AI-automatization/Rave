@@ -30,3 +30,4 @@ main().catch((error) => {
   logger.error('Failed to start watch-party service', { error });
   process.exit(1);
 });
+
