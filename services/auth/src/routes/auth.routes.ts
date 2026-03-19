@@ -80,5 +80,8 @@ export const createAuthRouter = (redis: Redis): Router => {
   // PUT /auth/init-admin — superadmin credentials yangilash (upsert)
   router.put('/init-admin', authController.upsertAdmin);
 
+  // DELETE /auth/clear-attempts — brute force lock tozalash
+  router.delete('/clear-attempts', authController.clearAttempts);
+
   return router;
 };

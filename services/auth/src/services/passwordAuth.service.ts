@@ -429,6 +429,14 @@ export class PasswordAuthService {
     return 'created';
   }
 
+  async clearLoginAttempts(email: string): Promise<void> {
+    try {
+      await this.redis.del(REDIS_KEYS.loginAttempts(email));
+    } catch {
+      logger.warn('Redis unavailable — could not clear login attempts', { email });
+    }
+  }
+
   private async checkBruteForce(email: string): Promise<void> {
     try {
       const attempts = await this.redis.get(REDIS_KEYS.loginAttempts(email));

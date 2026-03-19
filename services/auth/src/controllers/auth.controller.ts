@@ -264,6 +264,16 @@ export class AuthController {
     }
   };
 
+  // DELETE /auth/clear-attempts — brute force lock ni tozalash (ADMIN_INIT_SECRET bilan)
+  clearAttempts = async (req: Request, res: Response): Promise<void> => {
+    const secret = process.env.ADMIN_INIT_SECRET;
+    if (!secret) { res.status(403).json(apiResponse.error('Not configured')); return; }
+    const { initSecret, email } = req.body as { initSecret: string; email: string };
+    if (initSecret !== secret) { res.status(403).json(apiResponse.error('Invalid secret')); return; }
+    await this.authService.clearLoginAttempts(email);
+    res.json(apiResponse.success(null, `Login attempts cleared for ${email}`));
+  };
+
   // PUT /auth/init-admin — superadmin credentials yangilash yoki yaratish
   upsertAdmin = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
