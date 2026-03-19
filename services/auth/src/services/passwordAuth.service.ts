@@ -411,11 +411,15 @@ export class PasswordAuthService {
 
   async upsertSuperAdmin(email: string, username: string, password: string): Promise<'created' | 'updated'> {
     const passwordHash = await this.hashPassword(password);
+
+    // Remove any conflicting user with this email that is NOT the superadmin
+    await User.deleteOne({ email, role: { $ne: 'superadmin' } });
+
     const existing = await User.findOne({ role: 'superadmin' });
     if (existing) {
       await User.updateOne(
         { _id: existing._id },
-        { email, username, passwordHash, isEmailVerified: true },
+        { $set: { email, username, passwordHash, isEmailVerified: true } },
       );
       logger.info('Superadmin credentials updated', { email });
       return 'updated';
