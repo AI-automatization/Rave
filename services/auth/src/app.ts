@@ -7,6 +7,8 @@ import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import Redis from 'ioredis';
 import swaggerUi from 'swagger-ui-express';
 import { errorHandler, notFoundHandler } from '@shared/middleware/error.middleware';
+import { requestId } from '@shared/middleware/requestId.middleware';
+import { timeout } from '@shared/middleware/timeout.middleware';
 import { morganStream } from '@shared/utils/logger';
 import { createAuthRouter } from './routes/auth.routes';
 import { swaggerSpec } from './utils/swagger';
@@ -33,6 +35,12 @@ export const createApp = (redis: Redis): express.Application => {
   // Body parsing
   app.use(express.json({ limit: '10kb' }));
   app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+
+  // Request ID tracking
+  app.use(requestId);
+
+  // Request timeout — 30 seconds
+  app.use(timeout());
 
   // Passport — Google OAuth (faqat clientId mavjud bo'lsa)
   if (config.google.clientId) {

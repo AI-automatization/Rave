@@ -44,14 +44,29 @@ export const PORTS = {
 // ─────────────────────────────────────────────
 
 export const REDIS_KEYS = {
-  loginAttempts: (email: string) => `login_attempts:${email}`,
-  heartbeat: (userId: string) => `heartbeat:${userId}`,
-  movieCache: (movieId: string) => `movie:${movieId}`,
-  movieViewCount: (movieId: string) => `viewcount:${movieId}`,
-  watchPartyRoom: (roomId: string) => `watch_party:${roomId}`,
+  // Auth service
+  loginAttempts: (email: string) => `auth:login_attempts:${email}`,
+  pendingReg: (email: string) => `auth:pending_reg:${email}`,
+  oauthCode: (code: string) => `auth:oauth:code:${code}`,
+  tgState: (state: string) => `auth:tg:state:${state}`,
+  tgAuth: (state: string) => `auth:tg:auth:${state}`,
+  userSession: (userId: string) => `auth:session:${userId}`,
+
+  // User service
+  heartbeat: (userId: string) => `user:heartbeat:${userId}`,
+  rateLimitUser: (userId: string) => `ratelimit:user:${userId}`,
+
+  // Content service
+  movieCache: (movieId: string) => `content:movie:${movieId}`,
+  movieViewCount: (movieId: string) => `content:viewcount:${movieId}`,
+  trending: (limit: number) => `content:trending:${limit}`,
+  topRated: (limit: number) => `content:toprated:${limit}`,
+
+  // Watch party
+  watchPartyRoom: (roomId: string) => `party:room:${roomId}`,
+
+  // Battle
   battleLeaderboard: (battleId: string) => `battle:leaderboard:${battleId}`,
-  userSession: (userId: string) => `session:${userId}`,
-  rateLimitUser: (userId: string) => `rate:user:${userId}`,
 } as const;
 
 // ─────────────────────────────────────────────

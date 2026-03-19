@@ -8,7 +8,7 @@ let redisClient: Redis;
 
 const connectMongo = async (): Promise<void> => {
   await mongoose.connect(config.mongoUri, {
-    maxPoolSize: 10,
+    maxPoolSize: 5,
     serverSelectionTimeoutMS: 5000,
     socketTimeoutMS: 45000,
   });

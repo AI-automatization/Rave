@@ -1,0 +1,68 @@
+import { OAuth2Client } from 'google-auth-library';
+import { User, IUserDocument } from '../models/user.model';
+import { config } from '../config/index';
+import { logger } from '@shared/utils/logger';
+import { UnauthorizedError } from '@shared/utils/errors';
+import { generateUniqueUsername, syncUserProfile } from './passwordAuth.service';
+
+export class GoogleAuthService {
+  // Constructor accepts passwordAuth for potential future delegation
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  constructor(_passwordAuth?: unknown) {}
+
+  async verifyGoogleIdToken(idToken: string): Promise<{
+    id: string;
+    email: string;
+    displayName: string;
+    picture: string;
+  }> {
+    const client = new OAuth2Client(config.google.clientId);
+    const ticket = await client.verifyIdToken({
+      idToken,
+      audience: config.google.clientId,
+    });
+    const payload = ticket.getPayload();
+    if (!payload || !payload.sub || !payload.email) {
+      throw new UnauthorizedError('Invalid Google ID token');
+    }
+    return {
+      id: payload.sub,
+      email: payload.email,
+      displayName: payload.name ?? payload.email.split('@')[0],
+      picture: payload.picture ?? '',
+    };
+  }
+
+  async findOrCreateGoogleUser(profile: {
+    id: string;
+    email: string;
+    displayName: string;
+    picture: string;
+  }): Promise<IUserDocument> {
+    let user = await User.findOne({ googleId: profile.id }).select('+googleId');
+
+    if (!user) {
+      user = await User.findOne({ email: profile.email });
+      if (user) {
+        await User.updateOne({ _id: user._id }, { googleId: profile.id });
+      } else {
+        const username = await generateUniqueUsername(profile.displayName);
+        user = await User.create({
+          email: profile.email,
+          username,
+          googleId: profile.id,
+          avatar: profile.picture,
+          isEmailVerified: true,
+        });
+        logger.info('Google OAuth user created', { userId: user._id, email: profile.email });
+
+        // User service ga profil yaratish
+        syncUserProfile(user._id.toString(), profile.email, username).catch((err) =>
+          logger.warn('Google user profile sync failed', { error: (err as Error).message }),
+        );
+      }
+    }
+
+    return user;
+  }
+}

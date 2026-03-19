@@ -1,6 +1,7 @@
 import Redis from 'ioredis';
 import { logger } from '@shared/utils/logger';
 import { BadRequestError } from '@shared/utils/errors';
+import { REDIS_KEYS } from '@shared/constants';
 import { Feedback } from '../models/feedback.model';
 import { ApiLog } from '../models/apiLog.model';
 import {
@@ -59,7 +60,7 @@ export class AdminService {
 
   async blockUser(userId: string, adminId: string): Promise<void> {
     await adminBlockUser(userId);
-    await this.redis.del(`session:${userId}`);
+    await this.redis.del(REDIS_KEYS.userSession(userId));
     logger.info('User blocked by admin', { userId, adminId });
   }
 

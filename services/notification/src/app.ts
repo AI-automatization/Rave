@@ -5,6 +5,8 @@ import morgan from 'morgan';
 import admin from 'firebase-admin';
 import swaggerUi from 'swagger-ui-express';
 import { errorHandler, notFoundHandler } from '@shared/middleware/error.middleware';
+import { requestId } from '@shared/middleware/requestId.middleware';
+import { timeout } from '@shared/middleware/timeout.middleware';
 import { morganStream, logger } from '@shared/utils/logger';
 import { createNotificationRouter } from './routes/notification.routes';
 import { swaggerSpec } from './utils/swagger';
@@ -53,6 +55,8 @@ export const createApp = (): express.Application => {
   }));
   app.use(morgan('combined', { stream: morganStream }));
   app.use(express.json({ limit: '10kb' }));
+  app.use(requestId);
+  app.use(timeout());
 
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok', service: 'notification', port: config.port });

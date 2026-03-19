@@ -5,6 +5,8 @@ import morgan from 'morgan';
 import Redis from 'ioredis';
 import swaggerUi from 'swagger-ui-express';
 import { errorHandler, notFoundHandler } from '@shared/middleware/error.middleware';
+import { requestId } from '@shared/middleware/requestId.middleware';
+import { timeout } from '@shared/middleware/timeout.middleware';
 import { morganStream } from '@shared/utils/logger';
 import { createAdminRouter } from './routes/admin.routes';
 import { createOperatorRouter } from './routes/operator.routes';
@@ -22,6 +24,8 @@ export const createApp = (redis: Redis): express.Application => {
   app.use(cors({ origin: [config.adminUrl], credentials: true }));
   app.use(morgan('combined', { stream: morganStream }));
   app.use(express.json({ limit: '10kb' }));
+  app.use(requestId);
+  app.use(timeout());
 
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok', service: 'admin', port: config.port });

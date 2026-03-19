@@ -12,6 +12,8 @@ export { initServiceQueues, isQueueReady } from './utils/serviceQueue';
 export * from './middleware/auth.middleware';
 export * from './middleware/error.middleware';
 export * from './middleware/rateLimiter.middleware';
+export * from './middleware/requestId.middleware';
+export * from './middleware/timeout.middleware';
 
 // Constants
 export * from './constants/index';

@@ -1,11 +1,14 @@
 import { Server as SocketServer, Socket } from 'socket.io';
 import jwt from 'jsonwebtoken';
-import xss from 'xss';
 import { WatchPartyService } from '../services/watchParty.service';
 import { logger } from '@shared/utils/logger';
-import { SERVER_EVENTS, CLIENT_EVENTS } from '@shared/constants/socketEvents';
+import { SERVER_EVENTS } from '@shared/constants/socketEvents';
 import { JwtPayload } from '@shared/types';
 import { config } from '../config/index';
+import { registerRoomEvents } from './roomEvents.handler';
+import { registerVideoEvents } from './videoEvents.handler';
+import { registerChatEvents } from './chatEvents.handler';
+import { registerVoiceEvents } from './voiceEvents.handler';
 
 interface AuthenticatedSocket extends Socket {
   user: JwtPayload;
@@ -33,6 +36,16 @@ const checkRateLimit = (userId: string): boolean => {
   entry.count++;
   return true;
 };
+
+// Clean up expired rate limit entries every minute to prevent memory leak
+setInterval(() => {
+  const now = Date.now();
+  for (const [userId, entry] of rateLimitMap.entries()) {
+    if (now >= entry.resetAt) {
+      rateLimitMap.delete(userId);
+    }
+  }
+}, 60_000);
 
 // In-memory voice rooms: roomId → Set of userIds currently in voice
 const voiceRooms = new Map<string, Set<string>>();
@@ -92,254 +105,13 @@ export const registerWatchPartySocket = (io: SocketServer, watchPartyService: Wa
 
     logger.info('Socket connected', { userId, socketId: socket.id });
 
-    // JOIN ROOM
-    socket.on(CLIENT_EVENTS.JOIN_ROOM, async (data: { roomId: string }) => {
-      try {
-        const room = await watchPartyService.getRoom(data.roomId);
+    // Register all event handlers
+    registerRoomEvents(io, socket, authSocket, watchPartyService);
+    registerVideoEvents(io, socket, authSocket, watchPartyService);
+    registerChatEvents(socket, authSocket, checkRateLimit);
+    registerVoiceEvents(socket, authSocket, voiceRooms);
 
-        if (!room.members.includes(userId)) {
-          socket.emit(SERVER_EVENTS.ERROR, { message: 'Not a room member' });
-          return;
-        }
-
-        await socket.join(data.roomId);
-        authSocket.roomId = data.roomId;
-
-        // Get current sync state
-        const syncState = await watchPartyService.getSyncState(data.roomId);
-
-        socket.emit(SERVER_EVENTS.ROOM_JOINED, { room, syncState });
-        socket.to(data.roomId).emit(SERVER_EVENTS.MEMBER_JOINED, { userId });
-
-        logger.info('Socket joined room', { userId, roomId: data.roomId });
-      } catch (error) {
-        socket.emit(SERVER_EVENTS.ERROR, { message: 'Failed to join room' });
-        logger.error('Socket join room error', { userId, error });
-      }
-    });
-
-    // LEAVE ROOM
-    socket.on(CLIENT_EVENTS.LEAVE_ROOM, async () => {
-      if (!authSocket.roomId) return;
-      const roomId = authSocket.roomId;
-      authSocket.roomId = undefined;
-
-      await socket.leave(roomId);
-
-      try {
-        const result = await watchPartyService.leaveRoom(userId, roomId);
-        if (result.closed) {
-          io.to(roomId).emit(SERVER_EVENTS.ROOM_CLOSED, { reason: 'owner_left' });
-        } else if (result.newOwnerId) {
-          socket.to(roomId).emit(SERVER_EVENTS.MEMBER_LEFT, { userId });
-          io.to(roomId).emit(SERVER_EVENTS.OWNER_TRANSFERRED, { newOwnerId: result.newOwnerId });
-        } else {
-          socket.to(roomId).emit(SERVER_EVENTS.MEMBER_LEFT, { userId });
-        }
-      } catch (error) {
-        logger.error('Socket leave room error', { userId, error });
-      }
-
-      logger.info('Socket left room', { userId, roomId });
-    });
-
-    // PLAY — owner only
-    socket.on(CLIENT_EVENTS.PLAY, async (data: { currentTime: number }) => {
-      if (!authSocket.roomId) return;
-      const roomId = authSocket.roomId;
-
-      try {
-        const room = await watchPartyService.getRoom(roomId);
-        if (room.ownerId !== userId) return; // Only owner can play
-
-        const syncState = await watchPartyService.syncState(roomId, userId, data.currentTime, true);
-        io.to(roomId).emit(SERVER_EVENTS.VIDEO_PLAY, syncState);
-      } catch (error) {
-        logger.error('Socket play error', { userId, error });
-      }
-    });
-
-    // PAUSE — owner only
-    socket.on(CLIENT_EVENTS.PAUSE, async (data: { currentTime: number }) => {
-      if (!authSocket.roomId) return;
-      const roomId = authSocket.roomId;
-
-      try {
-        const room = await watchPartyService.getRoom(roomId);
-        if (room.ownerId !== userId) return;
-
-        const syncState = await watchPartyService.syncState(roomId, userId, data.currentTime, false);
-        io.to(roomId).emit(SERVER_EVENTS.VIDEO_PAUSE, syncState);
-      } catch (error) {
-        logger.error('Socket pause error', { userId, error });
-      }
-    });
-
-    // SEEK — owner only
-    socket.on(CLIENT_EVENTS.SEEK, async (data: { currentTime: number }) => {
-      if (!authSocket.roomId) return;
-      const roomId = authSocket.roomId;
-
-      try {
-        const room = await watchPartyService.getRoom(roomId);
-        if (room.ownerId !== userId) return;
-
-        const syncState = await watchPartyService.syncState(roomId, userId, data.currentTime, room.isPlaying);
-        io.to(roomId).emit(SERVER_EVENTS.VIDEO_SEEK, syncState);
-      } catch (error) {
-        logger.error('Socket seek error', { userId, error });
-      }
-    });
-
-    // BUFFER — notify others to pause
-    socket.on(CLIENT_EVENTS.BUFFER_START, () => {
-      if (!authSocket.roomId) return;
-      socket.to(authSocket.roomId).emit(SERVER_EVENTS.VIDEO_BUFFER, { userId, buffering: true });
-    });
-
-    socket.on(CLIENT_EVENTS.BUFFER_END, () => {
-      if (!authSocket.roomId) return;
-      socket.to(authSocket.roomId).emit(SERVER_EVENTS.VIDEO_BUFFER, { userId, buffering: false });
-    });
-
-    // CHAT MESSAGE
-    socket.on(CLIENT_EVENTS.SEND_MESSAGE, (data: { message: string }) => {
-      if (!authSocket.roomId) return;
-      if (!checkRateLimit(userId)) {
-        socket.emit('error', { message: 'Rate limit: sekundiga 10 ta xabar' });
-        return;
-      }
-      const safeMessage = xss(data.message.slice(0, 500));
-      io.to(authSocket.roomId).emit(SERVER_EVENTS.ROOM_MESSAGE, {
-        userId,
-        message: safeMessage,
-        timestamp: Date.now(),
-      });
-    });
-
-    // EMOJI REACTION
-    socket.on(CLIENT_EVENTS.SEND_EMOJI, (data: { emoji: string }) => {
-      if (!authSocket.roomId) return;
-      if (!checkRateLimit(userId)) return;
-      const safeEmoji = xss(data.emoji.slice(0, 10));
-      io.to(authSocket.roomId).emit(SERVER_EVENTS.ROOM_EMOJI, {
-        userId,
-        emoji: safeEmoji,
-        timestamp: Date.now(),
-      });
-    });
-
-    // KICK MEMBER — owner only
-    socket.on(CLIENT_EVENTS.KICK_MEMBER, async (data: { targetUserId: string }) => {
-      if (!authSocket.roomId) return;
-
-      try {
-        await watchPartyService.kickMember(userId, authSocket.roomId, data.targetUserId);
-        io.to(authSocket.roomId).emit(SERVER_EVENTS.MEMBER_KICKED, { userId: data.targetUserId });
-
-        // Force disconnect the kicked user's socket in this room
-        const sockets = await io.in(authSocket.roomId).fetchSockets();
-        for (const s of sockets) {
-          if ((s as unknown as AuthenticatedSocket).user?.userId === data.targetUserId) {
-            s.leave(authSocket.roomId ?? '');
-          }
-        }
-      } catch (error) {
-        socket.emit(SERVER_EVENTS.ERROR, { message: 'Failed to kick member' });
-        logger.error('Socket kick error', { userId, error });
-      }
-    });
-
-    // MUTE MEMBER — owner only
-    socket.on(CLIENT_EVENTS.MUTE_MEMBER, async (data: { targetUserId: string; reason?: string }) => {
-      if (!authSocket.roomId) return;
-
-      try {
-        const room = await watchPartyService.getRoom(authSocket.roomId);
-        if (room.ownerId !== userId) {
-          socket.emit(SERVER_EVENTS.ERROR, { message: 'Only the room owner can mute members' });
-          return;
-        }
-
-        if (!room.members.includes(data.targetUserId)) {
-          socket.emit(SERVER_EVENTS.ERROR, { message: 'User is not a room member' });
-          return;
-        }
-
-        // Mute state ni saqlash
-        await watchPartyService.setMuteState(authSocket.roomId, data.targetUserId, true);
-
-        // Barcha a'zolarga (muted userga ham) broadcast
-        io.to(authSocket.roomId).emit(SERVER_EVENTS.MEMBER_MUTED, {
-          userId: data.targetUserId,
-          mutedBy: userId,
-          reason: data.reason ?? '',
-          timestamp: Date.now(),
-        });
-
-        logger.info('Member muted in watch party', {
-          roomId: authSocket.roomId,
-          targetUserId: data.targetUserId,
-          mutedBy: userId,
-        });
-      } catch (error) {
-        socket.emit(SERVER_EVENTS.ERROR, { message: 'Failed to mute member' });
-        logger.error('Socket mute error', { userId, error });
-      }
-    });
-
-    // ── VOICE CHAT ───────────────────────────────────────────────────
-
-    // JOIN VOICE — user must already be in a room
-    socket.on(CLIENT_EVENTS.VOICE_JOIN, () => {
-      const roomId = authSocket.roomId;
-      if (!roomId) return;
-
-      if (!voiceRooms.has(roomId)) voiceRooms.set(roomId, new Set());
-      voiceRooms.get(roomId)!.add(userId);
-
-      // Reply with currently in-voice members (excluding self)
-      const existingMembers = [...voiceRooms.get(roomId)!].filter((id) => id !== userId);
-      socket.emit(SERVER_EVENTS.VOICE_JOINED, { members: existingMembers });
-
-      // Notify others in room
-      socket.to(roomId).emit(SERVER_EVENTS.VOICE_USER_JOINED, { userId });
-      logger.info('User joined voice chat', { userId, roomId });
-    });
-
-    // LEAVE VOICE
-    socket.on(CLIENT_EVENTS.VOICE_LEAVE, () => {
-      const roomId = authSocket.roomId;
-      if (!roomId) return;
-      voiceRooms.get(roomId)?.delete(userId);
-      socket.to(roomId).emit(SERVER_EVENTS.VOICE_USER_LEFT, { userId });
-      logger.info('User left voice chat', { userId, roomId });
-    });
-
-    // VOICE OFFER — relay to target by userId (via personal room)
-    // Types are `unknown` because Node.js has no WebRTC globals; server just relays the payload.
-    socket.on(CLIENT_EVENTS.VOICE_OFFER, (data: { to: string; offer: unknown }) => {
-      socket.to(`user:${data.to}`).emit(SERVER_EVENTS.VOICE_OFFER, { from: userId, offer: data.offer });
-    });
-
-    // VOICE ANSWER — relay to target
-    socket.on(CLIENT_EVENTS.VOICE_ANSWER, (data: { to: string; answer: unknown }) => {
-      socket.to(`user:${data.to}`).emit(SERVER_EVENTS.VOICE_ANSWER, { from: userId, answer: data.answer });
-    });
-
-    // VOICE ICE — relay candidate to target
-    socket.on(CLIENT_EVENTS.VOICE_ICE, (data: { to: string; candidate: unknown }) => {
-      socket.to(`user:${data.to}`).emit(SERVER_EVENTS.VOICE_ICE, { from: userId, candidate: data.candidate });
-    });
-
-    // VOICE SPEAKING — relay speaking state to others in room
-    socket.on(CLIENT_EVENTS.VOICE_SPEAKING, (data: { speaking: boolean }) => {
-      const roomId = authSocket.roomId;
-      if (!roomId) return;
-      socket.to(roomId).emit(SERVER_EVENTS.VOICE_SPEAKING, { userId, speaking: data.speaking });
-    });
-
-    // DISCONNECT
+    // DISCONNECT — kept inline: needs voiceRooms + io access
     socket.on('disconnect', async () => {
       const roomId = authSocket.roomId;
       if (roomId) {
