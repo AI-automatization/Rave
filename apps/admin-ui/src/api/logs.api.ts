@@ -7,6 +7,7 @@ export const logsApi = {
     limit?: number;
     level?: string;
     service?: string;
+    userId?: string;
     dateFrom?: string;
     dateTo?: string;
   }): Promise<PaginatedResponse<ApiLog>> => {

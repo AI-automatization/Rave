@@ -94,6 +94,13 @@ export interface ApiLog {
   service: string;
   timestamp: string;
   meta: Record<string, unknown>;
+  method: string | null;
+  url: string | null;
+  statusCode: number | null;
+  duration: number | null;
+  userId: string | null;
+  ip: string | null;
+  userAgent: string | null;
 }
 
 // ── Analytics ─────────────────────────────────────────────────

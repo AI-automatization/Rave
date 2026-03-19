@@ -36,8 +36,8 @@ export function LoginPage() {
     <div className="min-h-screen bg-bg flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <span className="text-primary font-bold text-2xl tracking-tight">CINESYNC</span>
-          <p className="text-text-muted text-sm mt-1">Admin Panel</p>
+          <span className="text-white font-semibold text-xl tracking-widest uppercase">CineSync</span>
+          <p className="text-text-dim text-xs mt-1 font-mono">admin</p>
         </div>
 
         <div className="bg-surface border border-border rounded-xl p-6">

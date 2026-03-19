@@ -7,7 +7,7 @@ interface StatCardProps {
 }
 
 const colorClass: Record<NonNullable<StatCardProps['color']>, string> = {
-  red: 'text-primary',
+  red: 'text-red-400',
   blue: 'text-blue-400',
   green: 'text-green-400',
   yellow: 'text-yellow-400',

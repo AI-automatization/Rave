@@ -195,6 +195,7 @@ export class AdminController {
         page, limit,
         level: req.query.level as string | undefined,
         service: req.query.service as string | undefined,
+        userId: req.query.userId as string | undefined,
         dateFrom,
         dateTo,
       });

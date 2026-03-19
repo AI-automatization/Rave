@@ -181,12 +181,14 @@ export class AdminService {
     limit: number;
     level?: string;
     service?: string;
+    userId?: string;
     dateFrom?: Date;
     dateTo?: Date;
   }): Promise<{ logs: unknown[]; total: number }> {
     const query: Record<string, unknown> = {};
     if (filters.level) query.level = filters.level;
     if (filters.service) query.service = filters.service;
+    if (filters.userId) query.userId = filters.userId;
     if (filters.dateFrom || filters.dateTo) {
       query.timestamp = {};
       if (filters.dateFrom) (query.timestamp as Record<string, unknown>).$gte = filters.dateFrom;

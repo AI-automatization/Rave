@@ -5,15 +5,15 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        primary: '#E50914',
-        'primary-hover': '#b8070f',
-        bg: '#0A0A0F',
-        surface: '#111118',
-        overlay: '#16161F',
-        gold: '#FFD700',
-        diamond: '#88CCFF',
-        border: '#1e1e2a',
-        'text-muted': '#6b7280',
+        accent: '#3b82f6',
+        'accent-hover': '#2563eb',
+        bg: '#09090b',
+        surface: '#111113',
+        overlay: '#1c1c1f',
+        border: '#27272a',
+        'border-light': '#3f3f46',
+        'text-muted': '#71717a',
+        'text-dim': '#52525b',
       },
       fontFamily: {
         sans: ['DM Sans', 'sans-serif'],
