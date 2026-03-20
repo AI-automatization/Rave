@@ -52,15 +52,26 @@ export function useSearchHistory() {
   return { history, addToHistory, removeFromHistory, clearHistory };
 }
 
+export type SearchSortOption = 'rating' | 'year' | 'title';
+
 export function useSearchResults(
   query: string,
   genre: ContentGenre | null,
   page: number,
+  year?: number | null,
+  sort?: SearchSortOption | null,
 ) {
   return useQuery({
-    queryKey: ['search', query, genre, page],
+    queryKey: ['search', query, genre, page, year, sort],
     queryFn: () =>
-      contentApi.getMovies({ search: query, genre: genre ?? undefined, page, limit: 20 }),
+      contentApi.getMovies({
+        search: query,
+        genre: genre ?? undefined,
+        page,
+        limit: 20,
+        year: year ?? undefined,
+        sort: sort ?? undefined,
+      }),
     enabled: query.trim().length > 0,
     staleTime: 2 * 60 * 1000,
   });

@@ -12,18 +12,19 @@ type Nav = NativeStackNavigationProp<HomeStackParamList>;
 interface Props {
   movie: IMovie;
   width?: number;
+  onPress?: () => void;
 }
 
 const CARD_WIDTH = (Dimensions.get('window').width - 48) / 2.5;
 
-export const MovieCard = memo(function MovieCard({ movie, width = CARD_WIDTH }: Props) {
+export const MovieCard = memo(function MovieCard({ movie, width = CARD_WIDTH, onPress }: Props) {
   const navigation = useNavigation<Nav>();
   const height = width * 1.5;
 
   return (
     <TouchableOpacity
       style={[styles.card, { width, height }]}
-      onPress={() => navigation.navigate('MovieDetail', { movieId: movie._id })}
+      onPress={onPress ?? (() => navigation.navigate('MovieDetail', { movieId: movie._id }))}
       activeOpacity={0.8}
     >
       <Image

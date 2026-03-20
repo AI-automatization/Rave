@@ -1,9 +1,38 @@
 // CineSync Mobile — Movie Detail hook
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { contentApi } from '@api/content.api';
 import { IMovie, IWatchProgress } from '@app-types/index';
 
 export function useMovieDetail(movieId: string) {
+  const queryClient = useQueryClient();
+
+  const favoritesQuery = useQuery<IMovie[]>({
+    queryKey: ['favorites'],
+    queryFn: () => contentApi.getFavorites(),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const isFavorite = favoritesQuery.data?.some((m) => m._id === movieId) ?? false;
+
+  const toggleFavoriteMutation = useMutation({
+    mutationFn: () =>
+      isFavorite ? contentApi.removeFavorite(movieId) : contentApi.addFavorite(movieId),
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ['favorites'] });
+      const previous = queryClient.getQueryData<IMovie[]>(['favorites']);
+      queryClient.setQueryData<IMovie[]>(['favorites'], (old = []) =>
+        isFavorite ? old.filter((m) => m._id !== movieId) : [...old, { _id: movieId } as IMovie],
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, ctx) => {
+      queryClient.setQueryData(['favorites'], ctx?.previous);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['favorites'] });
+    },
+  });
+
   const movieQuery = useQuery<IMovie>({
     queryKey: ['movie', movieId],
     queryFn: () => contentApi.getMovieById(movieId),
@@ -36,5 +65,8 @@ export function useMovieDetail(movieId: string) {
     isLoading: movieQuery.isLoading,
     error: movieQuery.error,
     refetch: movieQuery.refetch,
+    isFavorite,
+    toggleFavorite: toggleFavoriteMutation.mutate,
+    isFavoriteLoading: toggleFavoriteMutation.isPending,
   };
 }

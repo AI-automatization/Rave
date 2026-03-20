@@ -23,6 +23,12 @@ export function useHomeData() {
     staleTime: 5 * 60 * 1000,
   });
 
+  const newReleases = useQuery({
+    queryKey: ['newReleases'],
+    queryFn: () => contentApi.getNewReleases(10),
+    staleTime: 5 * 60 * 1000,
+  });
+
   const isLoading =
     (trending.isLoading && !trending.data) ||
     (topRated.isLoading && !topRated.data);
@@ -31,12 +37,14 @@ export function useHomeData() {
     trending: trending.data ?? [],
     topRated: topRated.data ?? [],
     continueWatching: continueWatching.data ?? [],
+    newReleases: newReleases.data ?? [],
     isLoading,
     refetch: () =>
       Promise.all([
         trending.refetch(),
         topRated.refetch(),
         continueWatching.refetch(),
+        newReleases.refetch(),
       ]).then(() => undefined),
   };
 }

@@ -8,19 +8,21 @@ import {
   Text,
   RefreshControl,
   StatusBar,
+  FlatList,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, spacing, typography } from '@theme/index';
-import { RootStackParamList } from '@app-types/index';
+import { colors, spacing, typography, borderRadius } from '@theme/index';
+import { ContentGenre, RootStackParamList } from '@app-types/index';
 import { useHomeData } from '@hooks/useHomeData';
 import { HeroBanner } from '@components/movie/HeroBanner';
 import { MovieRow } from '@components/movie/MovieRow';
 import { HomeSkeleton } from '@components/movie/HomeSkeleton';
 import { useNotificationStore } from '@store/notification.store';
 import { useT } from '@i18n/index';
+import { GENRES } from '@hooks/useSearch';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -29,10 +31,11 @@ const TAB_BAR_HEIGHT = 60;
 export function HomeScreen() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
-  const { trending, topRated, continueWatching, isLoading, refetch } = useHomeData();
+  const { trending, topRated, continueWatching, newReleases, isLoading, refetch } = useHomeData();
   const unreadCount = useNotificationStore((s) => s.unreadCount);
   const { t } = useT();
   const [refreshing, setRefreshing] = React.useState(false);
+  const [activeGenre, setActiveGenre] = React.useState<ContentGenre | null>(null);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -41,6 +44,14 @@ export function HomeScreen() {
     } finally {
       setRefreshing(false);
     }
+  };
+
+  const handleGenrePress = (genre: ContentGenre) => {
+    setActiveGenre(g => g === genre ? null : genre);
+    (navigation as any).navigate('SearchTab', {
+      screen: 'SearchResults',
+      params: { query: genre },
+    });
   };
 
   if (isLoading) return <HomeSkeleton />;
@@ -81,12 +92,39 @@ export function HomeScreen() {
       >
         <HeroBanner movies={trending.slice(0, 5)} />
 
+        {/* Genre chips */}
+        <View style={styles.genreSection}>
+          <Text style={styles.genreTitle}>{t('home', 'genres')}</Text>
+          <FlatList
+            data={GENRES}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(item) => item.value}
+            contentContainerStyle={styles.genreList}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={[styles.genreChip, activeGenre === item.value && styles.genreChipActive]}
+                onPress={() => handleGenrePress(item.value)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.genreChipText, activeGenre === item.value && styles.genreChipTextActive]}>
+                  {item.label}
+                </Text>
+              </TouchableOpacity>
+            )}
+          />
+        </View>
+
         {continueWatching.length > 0 && (
           <MovieRow title={t('home', 'continueWatching')} movies={continueWatching} />
         )}
 
         <MovieRow title={t('home', 'trending')} movies={trending} />
         <MovieRow title={t('home', 'topRated')} movies={topRated} />
+
+        {newReleases.length > 0 && (
+          <MovieRow title={t('home', 'newReleases')} movies={newReleases} />
+        )}
 
         <View style={{ height: TAB_BAR_HEIGHT + insets.bottom + spacing.lg }} />
       </ScrollView>
@@ -119,4 +157,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 3,
   },
   badgeText: { color: colors.textPrimary, fontSize: 10, fontWeight: '700' },
+  genreSection: { marginBottom: spacing.lg },
+  genreTitle: { ...typography.h3, marginLeft: spacing.xl, marginBottom: spacing.md },
+  genreList: { paddingHorizontal: spacing.xl, gap: spacing.sm },
+  genreChip: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.bgElevated,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  genreChipActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.bgSurface,
+  },
+  genreChipText: { ...typography.caption, color: colors.textSecondary, fontWeight: '600' },
+  genreChipTextActive: { color: colors.primary },
 });

@@ -184,66 +184,10 @@ GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state
 
 ## SPRINT 2 — Asosiy ekranlar
 
-### T-E044 | P1 | [MOBILE] | HomeScreen — "Yangi filmlar" qatori + genre filter
-
-- **Sana:** 2026-03-19
-- **Mas'ul:** pending[Emirhan]
-- **Sprint:** S2
-- **Fayllar:** `hooks/useHomeData.ts`, `components/movie/MovieRow.tsx`, `screens/home/HomeScreen.tsx`, `api/content.api.ts`
-- **Holat:** ❌ Boshlanmagan
-- **Backend bog'liqligi:** `GET /content/movies?sort=newest` — Saidazim tekshirishi kerak
-- **Subtasklar:**
-  - [ ] `contentApi.getNewReleases(limit)` metodi qo'shish
-  - [ ] `useHomeData` ga `newReleases` query qo'shish
-  - [ ] HomeScreen da `<MovieRow title="Yangi filmlar" movies={newReleases} />` qo'shish
-  - [ ] Genre filter chip row (Trending → filter by genre → SearchScreen ga o'tish)
-
----
-
-### T-E045 | P1 | [MOBILE] | VideoPlayerScreen — fullscreen landscape + double-tap seek + buffering spinner
-
-- **Sana:** 2026-03-19
-- **Mas'ul:** pending[Emirhan]
-- **Sprint:** S2
-- **Fayllar:** `screens/home/VideoPlayerScreen.tsx`, `components/video/VideoControls.tsx` (yangi)
-- **Holat:** ❌ Boshlanmagan
-- **Backend bog'liqligi:** Yo'q (client-side only)
-- **Subtasklar:**
-  - [ ] `VideoControls.tsx` komponent ajratish (inline controls → alohida)
-  - [ ] Landscape fullscreen: `ScreenOrientation.lockAsync(LANDSCAPE)` + `StatusBar.setHidden(true)`
-  - [ ] Portrait qaytish: `ScreenOrientation.lockAsync(PORTRAIT_UP)`
-  - [ ] `isBuffering` holati uchun spinner
-  - [ ] Double-tap: chapga 10s orqaga, o'ngga 10s oldinga
-
----
-
-### T-E046 | P2 | [MOBILE] | SearchResultsScreen — genre + year filter + sort
-
-- **Sana:** 2026-03-19
-- **Mas'ul:** pending[Emirhan]
-- **Sprint:** S2
-- **Fayllar:** `screens/search/SearchResultsScreen.tsx`, `components/search/SearchFiltersBar.tsx` (yangi), `hooks/useSearch.ts`
-- **Holat:** ❌ Boshlanmagan
-- **Backend bog'liqligi:** `GET /content/movies?genre=X&year=Y&sort=Z` — Saidazim tekshirishi kerak
-- **Subtasklar:**
-  - [ ] `SearchFiltersBar.tsx`: genre chips + year picker + sort (rating, year, title)
-  - [ ] `useSearch` ga `genre`, `year`, `sort` parametrlar
-  - [ ] Filter o'zgarganda page=1 ga reset
-
----
-
-### T-E047 | P2 | [MOBILE] | MovieDetailScreen — Battle shortcut + Share API
-
-- **Sana:** 2026-03-19
-- **Mas'ul:** pending[Emirhan]
-- **Sprint:** S2
-- **Fayllar:** `screens/home/MovieDetailScreen.tsx`
-- **Holat:** ❌ Boshlanmagan
-- **Backend bog'liqligi:** `POST/DELETE /content/movies/:id/favorite` — tekshirish kerak
-- **Subtasklar:**
-  - [ ] "Battle boshlash" tugmasi → `BattleCreate` modal + movie title pre-fill
-  - [ ] "Filmni ulashish" → Share API orqali movie URL
-  - [ ] Favorites persist: `contentApi.addFavorite` / `removeFavorite`
+### ✅ T-E044 | TUGADI → Done.md F-138
+### ✅ T-E045 | TUGADI → Done.md F-138
+### ✅ T-E046 | TUGADI → Done.md F-138
+### ✅ T-E047 | TUGADI → Done.md F-138
 
 ---
 

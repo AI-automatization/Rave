@@ -15,8 +15,9 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { colors, spacing, borderRadius, typography } from '@theme/index';
-import { IMovie, SearchStackParamList } from '@app-types/index';
-import { useSearchResults } from '@hooks/useSearch';
+import { ContentGenre, IMovie, SearchStackParamList } from '@app-types/index';
+import { useSearchResults, SearchSortOption } from '@hooks/useSearch';
+import { SearchFiltersBar } from '@components/search/SearchFiltersBar';
 
 type Route = RouteProp<SearchStackParamList, 'SearchResults'>;
 type Nav = NativeStackNavigationProp<SearchStackParamList>;
@@ -27,17 +28,20 @@ export function SearchResultsScreen() {
   const { query } = route.params;
   const [page, setPage] = useState(1);
   const [allMovies, setAllMovies] = useState<IMovie[]>([]);
+  const [genre, setGenre] = useState<ContentGenre | null>(null);
+  const [year, setYear] = useState<number | null>(null);
+  const [sort, setSort] = useState<SearchSortOption | null>(null);
 
-  const { data, isLoading, isFetching } = useSearchResults(query, null, page);
+  const { data, isLoading, isFetching } = useSearchResults(query, genre, page, year, sort);
 
   const meta = data?.meta;
   const hasMore = meta ? page < meta.totalPages : false;
 
-  // Reset accumulated list when query changes
+  // Reset accumulated list when query or filters change
   useEffect(() => {
     setPage(1);
     setAllMovies([]);
-  }, [query]);
+  }, [query, genre, year, sort]);
 
   // Accumulate results — new page appends, page 1 replaces
   useEffect(() => {
@@ -137,6 +141,16 @@ export function SearchResultsScreen() {
           )}
         </View>
       </View>
+
+      {/* Filters */}
+      <SearchFiltersBar
+        genre={genre}
+        year={year}
+        sort={sort}
+        onGenreChange={setGenre}
+        onYearChange={setYear}
+        onSortChange={setSort}
+      />
 
       {/* Loading initial */}
       {isLoading && page === 1 ? (

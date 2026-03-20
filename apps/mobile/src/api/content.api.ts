@@ -43,11 +43,20 @@ export const contentApi = {
     return res.data.data ?? [];
   },
 
+  async getNewReleases(limit = 10): Promise<IMovie[]> {
+    const res = await contentClient.get<ApiResponse<IMovie[]>>('/content/movies', {
+      params: { sort: 'newest', limit },
+    });
+    return res.data.data ?? [];
+  },
+
   async getMovies(params?: {
     page?: number;
     limit?: number;
     genre?: ContentGenre;
     search?: string;
+    year?: number;
+    sort?: 'rating' | 'year' | 'title';
   }): Promise<MoviesResponse> {
     const res = await contentClient.get<ApiResponse<IMovie[]>>('/content/movies', { params });
     return {
@@ -112,5 +121,18 @@ export const contentApi = {
     } catch {
       return null;
     }
+  },
+
+  async addFavorite(movieId: string): Promise<void> {
+    await contentClient.post(`/content/movies/${movieId}/favorite`);
+  },
+
+  async removeFavorite(movieId: string): Promise<void> {
+    await contentClient.delete(`/content/movies/${movieId}/favorite`);
+  },
+
+  async getFavorites(): Promise<IMovie[]> {
+    const res = await contentClient.get<ApiResponse<IMovie[]>>('/content/favorites');
+    return res.data.data ?? [];
   },
 };

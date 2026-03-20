@@ -157,6 +157,13 @@ export const translations = {
     noResultsTitle: { uz: 'Natija topilmadi', ru: 'Результатов нет', en: 'No results found' },
     noResultsFor: { uz: "bo'yicha hech narsa yo'q", ru: 'ничего не найдено', en: 'nothing found for' },
     resultCount: { uz: 'ta natija', ru: 'результатов', en: 'results' },
+    filterGenre: { uz: 'Janr', ru: 'Жанр', en: 'Genre' },
+    filterYear: { uz: 'Yil', ru: 'Год', en: 'Year' },
+    filterSort: { uz: 'Saralash', ru: 'Сортировка', en: 'Sort' },
+    sortRating: { uz: 'Reyting', ru: 'По рейтингу', en: 'By Rating' },
+    sortYear: { uz: 'Yilga ko\'ra', ru: 'По году', en: 'By Year' },
+    sortTitle: { uz: 'Nomi bo\'yicha', ru: 'По названию', en: 'By Title' },
+    all: { uz: 'Barchasi', ru: 'Все', en: 'All' },
   },
 
   // ─── Friends ───
@@ -404,6 +411,9 @@ export const translations = {
     shareMovie: { uz: 'filmini ulashing', ru: 'Поделитесь фильмом', en: 'Share the movie' },
     rate: { uz: 'Baholang', ru: 'Оцените', en: 'Rate' },
     ratingDone: { uz: 'Bahoingiz qabul qilindi', ru: 'Ваша оценка принята', en: 'Your rating was submitted' },
+    startBattle: { uz: 'Battle boshlash', ru: 'Начать баттл', en: 'Start Battle' },
+    addFavorite: { uz: "Sevimlilarga qo'shish", ru: 'Добавить в избранное', en: 'Add to Favorites' },
+    removeFavorite: { uz: 'Sevimlilardan olib tashlash', ru: 'Убрать из избранного', en: 'Remove from Favorites' },
   },
 
   // ─── Genres ───

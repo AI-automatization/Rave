@@ -11,12 +11,13 @@ const CARD_HEIGHT = CARD_WIDTH * 1.5;
 interface Props {
   title: string;
   movies: IMovie[];
+  onMoviePress?: (movie: IMovie) => void;
 }
 
-export const MovieRow = memo(function MovieRow({ title, movies }: Props) {
+export const MovieRow = memo(function MovieRow({ title, movies, onMoviePress }: Props) {
   const renderItem: ListRenderItem<IMovie> = ({ item }) => (
     <View style={styles.cardWrap}>
-      <MovieCard movie={item} width={CARD_WIDTH} />
+      <MovieCard movie={item} width={CARD_WIDTH} onPress={onMoviePress ? () => onMoviePress(item) : undefined} />
     </View>
   );
 

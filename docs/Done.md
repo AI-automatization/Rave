@@ -1,6 +1,16 @@
 # CineSync — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-03-19
+# Yangilangan: 2026-03-20
+
+---
+
+### F-138 | 2026-03-20 | [MOBILE] | T-E044/E045/E046/E047 — Sprint 2 asosiy ekranlar [Emirhan]
+
+- **T-E044 HomeScreen:** `contentApi.getNewReleases` + `useHomeData` newReleases query + `MovieRow` onMoviePress prop + HomeScreen genre chips (GENRES dan FlatList) + newReleases row. `MovieCard` optional onPress prop.
+- **T-E045 VideoPlayer:** `VideoControls.tsx` yangi komponent (controls overlay ajratilib chiqildi). `VideoPlayerScreen.tsx`: double-tap seek (±10s, 300ms DOUBLE_TAP_DELAY), isBuffering spinner VideoControls ichida, fullscreen toggle (orient lock yo'q — expo-screen-orientation yo'q).
+- **T-E046 Search Filters:** `SearchSortOption` type eksport. `useSearchResults` year+sort params. Yangi `SearchFiltersBar.tsx` (genre/year/sort 3 ta ScrollView row). `SearchResultsScreen` filtrlar integrasiya + page reset on filter change.
+- **T-E047 MovieDetail:** `BattleCreate: { initialMovieTitle? }` type. `useMovieDetail` — favorites query + optimistic toggle mutation. `MovieDetailActions` — Share.share API (Alert.alert o'rniga). `MovieDetailInfo` — onBattle/battleLabel props + battle button (gold border). `MovieDetailScreen` — handleBattle → BattleCreate modal, favorites hook dan isFavorite/toggleFavorite. i18n: startBattle/addFavorite/removeFavorite/filterGenre/filterYear/filterSort/sortRating/sortYear/sortTitle/all.
+- **TSC:** ✅ 0 xato
 
 ---
 

@@ -130,7 +130,7 @@ export type ModalStackParamList = {
   WatchParty: { roomId: string };
   WatchPartyCreate: undefined;
   Battle: { battleId?: string };
-  BattleCreate: undefined;
+  BattleCreate: { initialMovieTitle?: string } | undefined;
   Notifications: undefined;
 };
 

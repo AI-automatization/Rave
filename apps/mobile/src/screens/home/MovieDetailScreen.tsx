@@ -22,11 +22,10 @@ const HEADER_HEIGHT = 280;
 
 export function MovieDetailScreen({ route, navigation }: Props) {
   const { movieId } = route.params;
-  const { movie, watchProgress, similarMovies, isLoading } = useMovieDetail(movieId);
+  const { movie, watchProgress, similarMovies, isLoading, isFavorite, toggleFavorite } = useMovieDetail(movieId);
   const insets = useSafeAreaInsets();
   const rootNav = useNavigation<NavigationProp<RootStackParamList>>();
   const scrollY = useRef(new Animated.Value(0)).current;
-  const [isFavorite, setIsFavorite] = useState(false);
   const [userRating, setUserRating] = useState(0);
   const [ratingSubmitted, setRatingSubmitted] = useState(false);
   const { t } = useT();
@@ -41,6 +40,14 @@ export function MovieDetailScreen({ route, navigation }: Props) {
   const handleWatch = () => {
     if (!movie) return;
     navigation.navigate('VideoPlayer', { movieId: movie._id, videoUrl: movie.videoUrl, title: movie.title });
+  };
+
+  const handleBattle = () => {
+    if (!movie) return;
+    rootNav.navigate('Modal', {
+      screen: 'BattleCreate',
+      params: { initialMovieTitle: movie.title },
+    });
   };
 
   if (isLoading) {
@@ -73,11 +80,12 @@ export function MovieDetailScreen({ route, navigation }: Props) {
       <MovieDetailActions
         top={insets.top + spacing.sm}
         isFavorite={isFavorite}
+        movieId={movie._id}
         movieTitle={movie.title}
         shareLabel={t('movie', 'share')}
         shareMovieLabel={t('movie', 'shareMovie')}
         onBack={() => navigation.goBack()}
-        onToggleFavorite={() => setIsFavorite(f => !f)}
+        onToggleFavorite={() => toggleFavorite()}
       />
 
       <Animated.ScrollView
@@ -97,9 +105,11 @@ export function MovieDetailScreen({ route, navigation }: Props) {
             watchProgress={watchProgress}
             onWatch={handleWatch}
             onWatchParty={() => rootNav.navigate('Modal', { screen: 'WatchPartyCreate' })}
+            onBattle={handleBattle}
             playLabel={t('movie', 'play')}
             continueLabel={t('movie', 'continueWatching')}
             watchPartyLabel={t('movie', 'watchPartyCreate')}
+            battleLabel={t('movie', 'startBattle')}
             showMoreLabel={t('movie', 'showMore')}
             showLessLabel={t('movie', 'showLess')}
           />
