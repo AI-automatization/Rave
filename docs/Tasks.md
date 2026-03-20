@@ -196,7 +196,7 @@ GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state
 ### T-E048 | P1 | [MOBILE] | WatchParty — Join by invite code ekrani
 
 - **Sana:** 2026-03-19
-- **Mas'ul:** (ochiq)
+- **Mas'ul:** pending[Emirhan]
 - **Sprint:** S3
 - **Fayllar:** `screens/modal/WatchPartyJoinScreen.tsx` (yangi), `navigation/ModalNavigator.tsx`, `types/index.ts`, `api/watchParty.api.ts`
 - **Holat:** ❌ Boshlanmagan
@@ -212,7 +212,7 @@ GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state
 ### T-E049 | P1 | [MOBILE] | FriendProfileScreen — Battle challenge + WatchParty invite
 
 - **Sana:** 2026-03-19
-- **Mas'ul:** (ochiq)
+- **Mas'ul:** pending[Emirhan]
 - **Sprint:** S3
 - **Fayllar:** `screens/friends/FriendProfileScreen.tsx`, `screens/modal/BattleCreateScreen.tsx`
 - **Holat:** ❌ Boshlanmagan
@@ -227,7 +227,7 @@ GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state
 ### T-E050 | P2 | [MOBILE] | BattleScreen — yakunlangan battles tarix
 
 - **Sana:** 2026-03-19
-- **Mas'ul:** (ochiq)
+- **Mas'ul:** pending[Emirhan]
 - **Sprint:** S3
 - **Fayllar:** `screens/modal/BattleScreen.tsx`, `hooks/useBattle.ts`, `api/battle.api.ts`
 - **Holat:** ❌ Boshlanmagan
@@ -243,7 +243,7 @@ GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state
 ### T-E051 | P2 | [MOBILE] | FriendsScreen — Online do'stlar birinchi + activity
 
 - **Sana:** 2026-03-19
-- **Mas'ul:** (ochiq)
+- **Mas'ul:** pending[Emirhan]
 - **Sprint:** S3
 - **Fayllar:** `screens/friends/FriendsScreen.tsx`, `hooks/useFriends.ts`
 - **Holat:** ❌ Boshlanmagan
