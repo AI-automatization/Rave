@@ -205,7 +205,7 @@ GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state
 ### T-E052 | P1 | [MOBILE] | Push Notifications (FCM) — Expo Notifications integratsiyasi
 
 - **Sana:** 2026-03-19
-- **Mas'ul:** (ochiq)
+- **Mas'ul:** pending[Emirhan]
 - **Sprint:** S4
 - **Fayllar:** `services/notifications/usePushNotifications.ts` (yangi), `navigation/AppNavigator.tsx`, `api/user.api.ts`
 - **Holat:** ❌ Boshlanmagan
@@ -222,7 +222,7 @@ GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state
 ### T-E053 | P1 | [MOBILE] | NotificationsScreen — useNotifications hook ajratish + socket
 
 - **Sana:** 2026-03-19
-- **Mas'ul:** (ochiq)
+- **Mas'ul:** pending[Emirhan]
 - **Sprint:** S4
 - **Fayllar:** `hooks/useNotifications.ts` (yangi), `screens/modal/NotificationsScreen.tsx`
 - **Holat:** ❌ Boshlanmagan
@@ -238,7 +238,7 @@ GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state
 ### T-E054 | P2 | [MOBILE] | SettingsScreen — ChangePassword ulash + Language toggle
 
 - **Sana:** 2026-03-19
-- **Mas'ul:** (ochiq)
+- **Mas'ul:** pending[Emirhan]
 - **Sprint:** S4
 - **Fayllar:** `screens/profile/SettingsScreen.tsx`, `components/settings/ChangePasswordModal.tsx`
 - **Holat:** ❌ Boshlanmagan
@@ -252,7 +252,7 @@ GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state
 ### T-E055 | P2 | [MOBILE] | AchievementsScreen — rarity filter + progress + unlock animation
 
 - **Sana:** 2026-03-19
-- **Mas'ul:** (ochiq)
+- **Mas'ul:** pending[Emirhan]
 - **Sprint:** S4
 - **Fayllar:** `screens/profile/AchievementsScreen.tsx`, `components/profile/AchievementCard.tsx` (yangi)
 - **Holat:** ❌ Boshlanmagan
