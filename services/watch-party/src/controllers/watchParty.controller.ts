@@ -171,7 +171,89 @@ export class WatchPartyController {
       room.status = 'ended';
       await room.save();
 
+      this.io.to(req.params.id).emit(SERVER_EVENTS.ROOM_CLOSED, { reason: 'admin_closed' });
+
       res.json(apiResponse.success(null, 'Room closed'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // POST /internal/admin/:id/join — admin joins any room (bypasses all restrictions)
+  adminJoinRoom = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const roomId = req.params.id;
+      const room = await WatchPartyRoom.findById(roomId).lean();
+      if (!room) {
+        res.status(404).json(apiResponse.error('Room not found'));
+        return;
+      }
+
+      // Emit admin:joined to all room members
+      this.io.to(roomId).emit('admin:joined', { message: 'Admin is monitoring this room' });
+
+      res.json(apiResponse.success({ room }, 'Admin joined watch party'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // POST /internal/admin/:id/control — admin controls video in any room
+  adminControlRoom = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const roomId = req.params.id;
+      const { action, currentTime } = req.body as { action: 'play' | 'pause' | 'seek'; currentTime?: number };
+
+      const room = await WatchPartyRoom.findById(roomId);
+      if (!room) {
+        res.status(404).json(apiResponse.error('Room not found'));
+        return;
+      }
+
+      const time = currentTime ?? room.currentTime;
+
+      if (action === 'play') {
+        room.isPlaying = true;
+        room.currentTime = time;
+        await room.save();
+        this.io.to(roomId).emit(SERVER_EVENTS.VIDEO_PLAY, { userId: 'admin', currentTime: time });
+      } else if (action === 'pause') {
+        room.isPlaying = false;
+        room.currentTime = time;
+        await room.save();
+        this.io.to(roomId).emit(SERVER_EVENTS.VIDEO_PAUSE, { userId: 'admin', currentTime: time });
+      } else if (action === 'seek') {
+        room.currentTime = time;
+        await room.save();
+        this.io.to(roomId).emit(SERVER_EVENTS.VIDEO_SEEK, { userId: 'admin', currentTime: time });
+      }
+
+      res.json(apiResponse.success(null, `Admin ${action} executed`));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // DELETE /internal/admin/:id/members/:userId — admin kicks any member
+  adminKickMember = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { id: roomId, userId: targetUserId } = req.params;
+
+      const room = await WatchPartyRoom.findById(roomId);
+      if (!room) {
+        res.status(404).json(apiResponse.error('Room not found'));
+        return;
+      }
+
+      room.members = room.members.filter((m) => m !== targetUserId);
+      await room.save();
+
+      // Emit kick event to the room so all clients know
+      this.io.to(roomId).emit(SERVER_EVENTS.MEMBER_KICKED, { userId: targetUserId });
+      // Also emit directly to the kicked user's socket (if they're in the room)
+      this.io.to(roomId).emit(SERVER_EVENTS.ROOM_CLOSED, { reason: 'admin_kicked', targetUserId });
+
+      res.json(apiResponse.success(null, 'Member kicked'));
     } catch (error) {
       next(error);
     }

@@ -1,3 +1,5 @@
+
+
 import { Schema, model, Document } from 'mongoose';
 import { UserRole } from '@shared/types';
 
@@ -10,6 +12,9 @@ export interface IUserDocument extends Document {
   role: UserRole;
   isEmailVerified: boolean;
   isBlocked: boolean;
+  blockReason: string | null;
+  blockedAt: Date | null;
+  lastDevice: string | null;
   emailVerifyToken: string | null;
   emailVerifyTokenExpiry: Date | null;
   passwordResetToken: string | null;
@@ -52,6 +57,9 @@ const userSchema = new Schema<IUserDocument>(
     },
     isEmailVerified: { type: Boolean, default: false },
     isBlocked: { type: Boolean, default: false },
+    blockReason: { type: String, default: null },
+    blockedAt: { type: Date, default: null },
+    lastDevice: { type: String, default: null },
     emailVerifyToken: { type: String, default: null, select: false },
     emailVerifyTokenExpiry: { type: Date, default: null, select: false },
     passwordResetToken: { type: String, default: null, select: false },

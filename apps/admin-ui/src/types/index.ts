@@ -50,6 +50,9 @@ export interface AdminUser {
   avatar: string | null;
   role: 'user' | 'operator' | 'admin' | 'superadmin';
   isBlocked: boolean;
+  blockReason?: string | null;
+  blockedAt?: string | null;
+  lastDevice?: string | null;
   isEmailVerified: boolean;
   createdAt: string;
   lastLoginAt: string | null;
@@ -119,12 +122,31 @@ export interface AdminBattle {
 
 export interface AdminWatchParty {
   _id: string;
-  code: string;
+  inviteCode: string;
+  name?: string | null;
   ownerId: string;
   status: 'waiting' | 'playing' | 'paused' | 'ended';
   movieId: string | null;
+  videoUrl?: string | null;
+  videoTitle?: string | null;
+  videoPlatform?: string | null;
+  currentTime: number;
+  isPlaying: boolean;
+  isPrivate: boolean;
   members: string[];
   maxMembers: number;
+  lastActivityAt: string;
+  createdAt: string;
+}
+
+export interface AuditLog {
+  _id: string;
+  adminId: string;
+  adminEmail: string;
+  action: string;
+  targetId?: string;
+  targetType?: string;
+  details: Record<string, unknown>;
   createdAt: string;
 }
 

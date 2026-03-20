@@ -39,6 +39,9 @@ export interface IUser {
   totalPoints: number;
   isEmailVerified: boolean;
   isBlocked: boolean;
+  blockReason?: string | null;
+  blockedAt?: Date | string | null;
+  lastDevice?: string | null;
   isOnline?: boolean;
   lastSeenAt?: Date | string | null;
   fcmTokens: string[];

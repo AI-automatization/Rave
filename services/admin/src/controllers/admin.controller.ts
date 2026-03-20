@@ -34,8 +34,9 @@ export class AdminController {
 
   blockUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { userId: adminId } = (req as AuthenticatedRequest).user;
-      await this.adminService.blockUser(req.params.id, adminId);
+      const { userId: adminId, email: adminEmail } = (req as AuthenticatedRequest).user;
+      const { reason } = req.body as { reason?: string };
+      await this.adminService.blockUser(req.params.id, adminId, adminEmail, reason);
       res.json(apiResponse.success(null, 'User blocked'));
     } catch (error) {
       next(error);
@@ -44,8 +45,8 @@ export class AdminController {
 
   unblockUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { userId: adminId } = (req as AuthenticatedRequest).user;
-      await this.adminService.unblockUser(req.params.id, adminId);
+      const { userId: adminId, email: adminEmail } = (req as AuthenticatedRequest).user;
+      await this.adminService.unblockUser(req.params.id, adminId, adminEmail);
       res.json(apiResponse.success(null, 'User unblocked'));
     } catch (error) {
       next(error);
@@ -54,9 +55,9 @@ export class AdminController {
 
   changeUserRole = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { userId: adminId } = (req as AuthenticatedRequest).user;
+      const { userId: adminId, email: adminEmail } = (req as AuthenticatedRequest).user;
       const { role } = req.body as { role: string };
-      await this.adminService.changeUserRole(req.params.id, role, adminId);
+      await this.adminService.changeUserRole(req.params.id, role, adminId, adminEmail);
       res.json(apiResponse.success(null, 'User role updated'));
     } catch (error) {
       next(error);
@@ -65,8 +66,8 @@ export class AdminController {
 
   deleteUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { userId: adminId } = (req as AuthenticatedRequest).user;
-      await this.adminService.deleteUser(req.params.id, adminId);
+      const { userId: adminId, email: adminEmail } = (req as AuthenticatedRequest).user;
+      await this.adminService.deleteUser(req.params.id, adminId, adminEmail);
       res.json(apiResponse.success(null, 'User deleted'));
     } catch (error) {
       next(error);
@@ -245,9 +246,47 @@ export class AdminController {
 
   closeWatchParty = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { userId: adminId } = (req as AuthenticatedRequest).user;
-      await this.adminService.closeWatchParty(req.params.id, adminId);
+      const { userId: adminId, email: adminEmail } = (req as AuthenticatedRequest).user;
+      await this.adminService.closeWatchParty(req.params.id, adminId, adminEmail);
       res.json(apiResponse.success(null, 'Watch party closed'));
+    } catch (error) { next(error); }
+  };
+
+  joinWatchParty = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId: adminId } = (req as AuthenticatedRequest).user;
+      const result = await this.adminService.joinWatchParty(req.params.id, adminId);
+      res.json(apiResponse.success(result, 'Joined watch party as admin'));
+    } catch (error) { next(error); }
+  };
+
+  controlWatchParty = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId: adminId, email: adminEmail } = (req as AuthenticatedRequest).user;
+      const { action, currentTime } = req.body as { action: 'play' | 'pause' | 'seek'; currentTime?: number };
+      await this.adminService.controlWatchParty(req.params.id, action, currentTime, adminId, adminEmail);
+      res.json(apiResponse.success(null, `Watch party ${action} executed`));
+    } catch (error) { next(error); }
+  };
+
+  kickWatchPartyMember = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId: adminId, email: adminEmail } = (req as AuthenticatedRequest).user;
+      await this.adminService.kickWatchPartyMember(req.params.id, req.params.userId, adminId, adminEmail);
+      res.json(apiResponse.success(null, 'Member kicked'));
+    } catch (error) { next(error); }
+  };
+
+  getAuditLogs = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const page = parseInt((req.query.page as string) ?? '1', 10);
+      const limit = Math.min(parseInt((req.query.limit as string) ?? '20', 10), 100);
+      const action = req.query.action as string | undefined;
+      const adminId = req.query.adminId as string | undefined;
+      const dateFrom = req.query.dateFrom ? new Date(req.query.dateFrom as string) : undefined;
+      const dateTo = req.query.dateTo ? new Date(req.query.dateTo as string) : undefined;
+      const { logs, total } = await this.adminService.getAuditLogs({ page, limit, action, adminId, dateFrom, dateTo });
+      res.json(apiResponse.paginated(logs, buildPaginationMeta(page, limit, total)));
     } catch (error) { next(error); }
   };
 

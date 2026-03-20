@@ -65,6 +65,12 @@ export const createAdminRouter = (redis: Redis): Router => {
   // ── Watch Parties ─────────────────────────────────────────────
   router.get('/watchparties', adminController.listWatchParties);
   router.delete('/watchparties/:id', requireRole('superadmin'), adminController.closeWatchParty);
+  router.post('/watchparties/:id/join', adminController.joinWatchParty);
+  router.post('/watchparties/:id/control', adminController.controlWatchParty);
+  router.delete('/watchparties/:id/members/:userId', adminController.kickWatchPartyMember);
+
+  // ── Audit Logs ────────────────────────────────────────────────
+  router.get('/audit-logs', adminController.getAuditLogs);
 
   // ── Notifications ─────────────────────────────────────────────
   router.post('/notifications/broadcast', requireRole('admin', 'superadmin'), adminController.broadcastNotification);

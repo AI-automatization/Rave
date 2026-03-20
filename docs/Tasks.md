@@ -272,6 +272,60 @@ GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state
 
 ---
 
+### T-E060 | P1 | [MOBILE] | Blocked account popup + Admin WatchParty events
+
+- **Sana:** 2026-03-20
+- **Mas'ul:** pending[Emirhan]
+- **Sprint:** S5
+- **Sabab:** Saidazim backend da foydalanuvchi bloklanishini `ACCOUNT_BLOCKED` kodi bilan qaytaradi + admin watch party ga qo'shilganda yangi Socket.io eventlar kerak
+- **Holat:** ❌ Boshlanmagan
+
+**Backend qanday javob qaytaradi (blok holatida):**
+```json
+HTTP 403
+{
+  "success": false,
+  "code": "ACCOUNT_BLOCKED",
+  "message": "Account is blocked",
+  "reason": "Admin tomonidan belgilangan sabab",
+  "data": null,
+  "errors": null
+}
+```
+
+**Subtasklar:**
+
+- [ ] **E60-1.** Login screen: `POST /auth/login` 403 + `code === 'ACCOUNT_BLOCKED'` bo'lsa:
+  - Modal ko'rsatish: "Akkauntingiz bloklangan"
+  - Sabab matni: `reason` field dan
+  - "Bog'lanish" (support email/telegram) va "OK" tugmalar
+  - File: `apps/mobile/src/screens/auth/LoginScreen.tsx` (yoki LoginScreen qayerda bo'lsa)
+
+- [ ] **E60-2.** Token refresh: `POST /auth/refresh` 403 + `ACCOUNT_BLOCKED` bo'lsa:
+  - Foydalanuvchini logout qilish
+  - Bloklangan modal ko'rsatish
+  - File: `apps/mobile/src/api/apiClient.ts` (yoki axios interceptor qayerda bo'lsa)
+  - Interceptor da handle qilish: `if (error.response?.data?.code === 'ACCOUNT_BLOCKED')`
+
+- [ ] **E60-3.** Socket.io events — admin WatchParty ga kirganida:
+  - `'admin:joined'` event — `{ message: string }` → UI da "Admin is monitoring" banner ko'rsatish (kichik, kamtarona)
+  - `'admin:left'` event → banner yashirish
+  - File: `apps/mobile/src/screens/modal/WatchPartyScreen.tsx` (yoki WatchPartyScreen)
+
+- [ ] **E60-4.** Agar ilovada ishlayotganda har qanday API da `ACCOUNT_BLOCKED` kelsa:
+  - Global handler qo'shish (axios interceptor)
+  - Logout + "Akkauntingiz bloklandi" modal
+  - `reason` field ko'rsatish
+
+**Bloklangan modal component:**
+```tsx
+// Reusable component: BlockedAccountModal.tsx
+// Props: visible, reason, onClose
+// Design: qizil icon, sarlavha "Akkaunt bloklangan", reason matni, "OK" tugma
+```
+
+---
+
 ## SPRINT 6 — Universal Video Extraction + Sync
 
 ### ✅ T-E040 | TUGADI → Done.md F-131

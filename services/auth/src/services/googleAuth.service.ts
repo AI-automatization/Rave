@@ -63,6 +63,15 @@ export class GoogleAuthService {
       }
     }
 
+    if (user.isBlocked) {
+      const reason = user.blockReason ?? 'No reason provided';
+      const err = new Error(reason) as Error & { statusCode: number; code: string; reason: string };
+      err.statusCode = 403;
+      err.code = 'ACCOUNT_BLOCKED';
+      err.reason = reason;
+      throw err;
+    }
+
     return user;
   }
 }

@@ -5,6 +5,7 @@ import { BadRequestError } from '@shared/utils/errors';
 import { REDIS_KEYS } from '@shared/constants';
 import { Feedback } from '../models/feedback.model';
 import { ApiLog } from '../models/apiLog.model';
+import { AuditLog } from '../models/auditLog.model';
 import {
   adminListUsers,
   adminGetUserStats,
@@ -21,6 +22,9 @@ import {
   adminEndBattle,
   adminListWatchParties,
   adminCloseWatchParty,
+  adminJoinWatchParty,
+  adminControlWatchParty,
+  adminKickWatchPartyMember,
   adminBroadcastNotification,
 } from '@shared/utils/serviceClient';
 
@@ -64,25 +68,44 @@ export class AdminService {
     return adminListUsers(filters);
   }
 
-  async blockUser(userId: string, adminId: string): Promise<void> {
-    await adminBlockUser(userId);
-    await this.redis.del(REDIS_KEYS.userSession(userId));
-    logger.info('User blocked by admin', { userId, adminId });
+  private async logAudit(
+    adminId: string,
+    adminEmail: string,
+    action: string,
+    details: Record<string, unknown>,
+    targetId?: string,
+    targetType?: string,
+  ): Promise<void> {
+    try {
+      await AuditLog.create({ adminId, adminEmail, action, targetId, targetType, details });
+    } catch (err) {
+      logger.warn('Audit log write failed', { error: (err as Error).message, action, adminId });
+    }
   }
 
-  async unblockUser(userId: string, adminId: string): Promise<void> {
+  async blockUser(userId: string, adminId: string, adminEmail: string, reason?: string): Promise<void> {
+    await adminBlockUser(userId, reason);
+    await this.redis.del(REDIS_KEYS.userSession(userId));
+    logger.info('User blocked by admin', { userId, adminId, reason });
+    await this.logAudit(adminId, adminEmail, 'block_user', { reason: reason ?? null }, userId, 'user');
+  }
+
+  async unblockUser(userId: string, adminId: string, adminEmail: string): Promise<void> {
     await adminUnblockUser(userId);
     logger.info('User unblocked by admin', { userId, adminId });
+    await this.logAudit(adminId, adminEmail, 'unblock_user', {}, userId, 'user');
   }
 
-  async changeUserRole(userId: string, newRole: string, adminId: string): Promise<void> {
+  async changeUserRole(userId: string, newRole: string, adminId: string, adminEmail: string): Promise<void> {
     await adminChangeUserRole(userId, newRole);
     logger.info('User role changed by admin', { userId, newRole, adminId });
+    await this.logAudit(adminId, adminEmail, 'change_role', { newRole }, userId, 'user');
   }
 
-  async deleteUser(userId: string, adminId: string): Promise<void> {
+  async deleteUser(userId: string, adminId: string, adminEmail: string): Promise<void> {
     await adminDeleteUser(userId);
     logger.warn('User deleted by admin', { userId, adminId });
+    await this.logAudit(adminId, adminEmail, 'delete_user', {}, userId, 'user');
   }
 
   // ── Movie Management ────────────────────────────────────────
@@ -249,9 +272,58 @@ export class AdminService {
     return adminListWatchParties(filters);
   }
 
-  async closeWatchParty(roomId: string, adminId: string): Promise<void> {
+  async closeWatchParty(roomId: string, adminId: string, adminEmail: string): Promise<void> {
     await adminCloseWatchParty(roomId);
     logger.info('WatchParty force-closed by admin', { roomId, adminId });
+    await this.logAudit(adminId, adminEmail, 'close_watchparty', {}, roomId, 'watchparty');
+  }
+
+  async joinWatchParty(roomId: string, adminId: string): Promise<{ room: unknown }> {
+    const result = await adminJoinWatchParty(roomId);
+    logger.info('Admin joined WatchParty', { roomId, adminId });
+    return result;
+  }
+
+  async controlWatchParty(
+    roomId: string,
+    action: 'play' | 'pause' | 'seek',
+    currentTime: number | undefined,
+    adminId: string,
+    adminEmail: string,
+  ): Promise<void> {
+    await adminControlWatchParty(roomId, action, currentTime);
+    logger.info('Admin controlled WatchParty', { roomId, action, adminId });
+    await this.logAudit(adminId, adminEmail, 'control_watchparty', { action, currentTime }, roomId, 'watchparty');
+  }
+
+  async kickWatchPartyMember(roomId: string, userId: string, adminId: string, adminEmail: string): Promise<void> {
+    await adminKickWatchPartyMember(roomId, userId);
+    logger.info('Admin kicked WatchParty member', { roomId, userId, adminId });
+    await this.logAudit(adminId, adminEmail, 'kick_member', { userId }, roomId, 'watchparty');
+  }
+
+  async getAuditLogs(filters: {
+    page: number;
+    limit: number;
+    action?: string;
+    adminId?: string;
+    dateFrom?: Date;
+    dateTo?: Date;
+  }): Promise<{ logs: unknown[]; total: number }> {
+    const query: Record<string, unknown> = {};
+    if (filters.action) query.action = filters.action;
+    if (filters.adminId) query.adminId = filters.adminId;
+    if (filters.dateFrom || filters.dateTo) {
+      query.createdAt = {};
+      if (filters.dateFrom) (query.createdAt as Record<string, unknown>).$gte = filters.dateFrom;
+      if (filters.dateTo) (query.createdAt as Record<string, unknown>).$lte = filters.dateTo;
+    }
+    const skip = (filters.page - 1) * filters.limit;
+    const [logs, total] = await Promise.all([
+      AuditLog.find(query).sort({ createdAt: -1 }).skip(skip).limit(filters.limit).lean(),
+      AuditLog.countDocuments(query),
+    ]);
+    return { logs, total };
   }
 
   // ── Notification Broadcast ────────────────────────────────

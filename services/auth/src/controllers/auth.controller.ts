@@ -53,6 +53,18 @@ export class AuthController {
         ),
       );
     } catch (error) {
+      const err = error as { code?: string; reason?: string };
+      if (err.code === 'ACCOUNT_BLOCKED') {
+        res.status(403).json({
+          success: false,
+          code: 'ACCOUNT_BLOCKED',
+          message: 'Account is blocked',
+          reason: err.reason ?? 'No reason provided',
+          data: null,
+          errors: null,
+        });
+        return;
+      }
       next(error);
     }
   };
@@ -66,6 +78,18 @@ export class AuthController {
       const tokens = await this.authService.refreshTokens(refreshToken, ip, userAgent);
       res.json(apiResponse.success(tokens, 'Tokens refreshed'));
     } catch (error) {
+      const err = error as { code?: string; reason?: string };
+      if (err.code === 'ACCOUNT_BLOCKED') {
+        res.status(403).json({
+          success: false,
+          code: 'ACCOUNT_BLOCKED',
+          message: 'Account is blocked',
+          reason: err.reason ?? 'No reason provided',
+          data: null,
+          errors: null,
+        });
+        return;
+      }
       next(error);
     }
   };
@@ -170,6 +194,18 @@ export class AuthController {
 
       res.json(apiResponse.success({ user, accessToken, refreshToken }, 'Google login successful'));
     } catch (error) {
+      const err = error as { code?: string; reason?: string };
+      if (err.code === 'ACCOUNT_BLOCKED') {
+        res.status(403).json({
+          success: false,
+          code: 'ACCOUNT_BLOCKED',
+          message: 'Account is blocked',
+          reason: err.reason ?? 'No reason provided',
+          data: null,
+          errors: null,
+        });
+        return;
+      }
       next(error);
     }
   };

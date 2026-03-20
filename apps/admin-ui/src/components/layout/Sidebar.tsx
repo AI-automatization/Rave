@@ -9,6 +9,7 @@ const navItems = [
   { to: '/watchparties', label: 'Watch Parties' },
   { to: '/feedback', label: 'Feedback' },
   { to: '/logs', label: 'Logs' },
+  { to: '/audit-logs', label: 'Audit Logs' },
   { to: '/system', label: 'System' },
 ];
 

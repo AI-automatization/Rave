@@ -155,8 +155,8 @@ export async function adminGetUserStats(): Promise<{ totalUsers: number; activeU
   return res.data.data;
 }
 
-export async function adminBlockUser(userId: string): Promise<void> {
-  await axios.post(`${userServiceUrl}/api/v1/users/internal/admin/users/${userId}/block`, {}, { headers: internalHeaders, timeout: 5000 });
+export async function adminBlockUser(userId: string, reason?: string): Promise<void> {
+  await axios.post(`${userServiceUrl}/api/v1/users/internal/admin/users/${userId}/block`, { reason }, { headers: internalHeaders, timeout: 5000 });
 }
 
 export async function adminUnblockUser(userId: string): Promise<void> {
@@ -260,6 +260,34 @@ export async function adminListWatchParties(filters: {
 export async function adminCloseWatchParty(roomId: string): Promise<void> {
   await axios.delete(
     `${watchPartyServiceUrl}/api/v1/watch-party/internal/admin/${roomId}`,
+    { headers: internalHeaders, timeout: 5000 },
+  );
+}
+
+export async function adminJoinWatchParty(roomId: string): Promise<{ room: unknown }> {
+  const res = await axios.post<{ data: { room: unknown } }>(
+    `${watchPartyServiceUrl}/api/v1/watch-party/internal/admin/${roomId}/join`,
+    {},
+    { headers: internalHeaders, timeout: 5000 },
+  );
+  return res.data.data;
+}
+
+export async function adminControlWatchParty(
+  roomId: string,
+  action: 'play' | 'pause' | 'seek',
+  currentTime?: number,
+): Promise<void> {
+  await axios.post(
+    `${watchPartyServiceUrl}/api/v1/watch-party/internal/admin/${roomId}/control`,
+    { action, currentTime },
+    { headers: internalHeaders, timeout: 5000 },
+  );
+}
+
+export async function adminKickWatchPartyMember(roomId: string, userId: string): Promise<void> {
+  await axios.delete(
+    `${watchPartyServiceUrl}/api/v1/watch-party/internal/admin/${roomId}/members/${userId}`,
     { headers: internalHeaders, timeout: 5000 },
   );
 }

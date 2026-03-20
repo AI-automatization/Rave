@@ -218,15 +218,21 @@ export class ProfileService {
     return { users, total };
   }
 
-  async adminBlockUser(userId: string): Promise<void> {
-    const result = await User.updateOne({ authId: userId }, { isBlocked: true });
+  async adminBlockUser(userId: string, reason?: string): Promise<void> {
+    const result = await User.updateOne(
+      { authId: userId },
+      { isBlocked: true, blockReason: reason ?? null, blockedAt: new Date() },
+    );
     if (result.matchedCount === 0) throw new NotFoundError('User not found');
     await this.redis.del(REDIS_KEYS.heartbeat(userId));
-    logger.info('User blocked via admin API', { userId });
+    logger.info('User blocked via admin API', { userId, reason });
   }
 
   async adminUnblockUser(userId: string): Promise<void> {
-    const result = await User.updateOne({ authId: userId }, { isBlocked: false });
+    const result = await User.updateOne(
+      { authId: userId },
+      { isBlocked: false, blockReason: null, blockedAt: null },
+    );
     if (result.matchedCount === 0) throw new NotFoundError('User not found');
     logger.info('User unblocked via admin API', { userId });
   }

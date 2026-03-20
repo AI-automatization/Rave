@@ -162,7 +162,12 @@ export class PasswordAuthService {
     }
 
     if (user.isBlocked) {
-      throw new UnauthorizedError('Account is blocked. Please contact support.');
+      const reason = user.blockReason ?? 'No reason provided';
+      const err = new Error(reason) as Error & { statusCode: number; code: string; reason: string };
+      err.statusCode = 403;
+      err.code = 'ACCOUNT_BLOCKED';
+      err.reason = reason;
+      throw err;
     }
 
     const isMatch = await this.comparePassword(password, user.passwordHash);
@@ -195,7 +200,7 @@ export class PasswordAuthService {
       userAgent,
     });
 
-    await User.updateOne({ _id: user._id }, { lastLoginAt: new Date() });
+    await User.updateOne({ _id: user._id }, { lastLoginAt: new Date(), lastDevice: userAgent ?? null });
 
     logger.info('User logged in', { userId: user._id });
 
@@ -226,8 +231,16 @@ export class PasswordAuthService {
     }
 
     const user = await User.findById(stored.userId);
-    if (!user || user.isBlocked) {
-      throw new UnauthorizedError('User not found or blocked');
+    if (!user) {
+      throw new UnauthorizedError('User not found');
+    }
+    if (user.isBlocked) {
+      const reason = user.blockReason ?? 'No reason provided';
+      const err = new Error(reason) as Error & { statusCode: number; code: string; reason: string };
+      err.statusCode = 403;
+      err.code = 'ACCOUNT_BLOCKED';
+      err.reason = reason;
+      throw err;
     }
 
     // Rotate — delete old, create new

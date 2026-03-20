@@ -22,6 +22,8 @@ export function UsersPage() {
 
   const [roleModal, setRoleModal] = useState<{ user: AdminUser } | null>(null);
   const [newRole, setNewRole] = useState('');
+  const [blockModal, setBlockModal] = useState<{ user: AdminUser } | null>(null);
+  const [blockReason, setBlockReason] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -43,11 +45,24 @@ export function UsersPage() {
 
   useEffect(() => { void load(); }, [load]);
 
-  const handleBlock = async (user: AdminUser) => {
+  const handleUnblock = async (user: AdminUser) => {
     setActionLoading(user._id);
     try {
-      if (user.isBlocked) await usersApi.unblock(user._id);
-      else await usersApi.block(user._id);
+      await usersApi.unblock(user._id);
+      await load();
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleBlockConfirm = async () => {
+    if (!blockModal) return;
+    if (blockReason.trim().length < 3) return;
+    setActionLoading(blockModal.user._id);
+    try {
+      await usersApi.block(blockModal.user._id, blockReason.trim());
+      setBlockModal(null);
+      setBlockReason('');
       await load();
     } finally {
       setActionLoading(null);
@@ -150,10 +165,18 @@ export function UsersPage() {
                   </td>
                   <td className="px-4 py-3">{roleBadge(user.role)}</td>
                   <td className="px-4 py-3">
-                    {user.isBlocked
-                      ? <Badge variant="red">Bloklangan</Badge>
-                      : <Badge variant="green">Faol</Badge>
-                    }
+                    {user.isBlocked ? (
+                      <div>
+                        <Badge variant="red">Bloklangan</Badge>
+                        {user.blockReason && (
+                          <p className="text-xs text-red-400 mt-0.5 max-w-[160px] truncate" title={user.blockReason}>
+                            {user.blockReason}
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <Badge variant="green">Faol</Badge>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-text-muted">
                     {new Date(user.createdAt).toLocaleDateString('uz-UZ')}
@@ -164,7 +187,10 @@ export function UsersPage() {
                         size="sm"
                         variant={user.isBlocked ? 'secondary' : 'danger'}
                         loading={actionLoading === user._id}
-                        onClick={() => void handleBlock(user)}
+                        onClick={() => {
+                          if (user.isBlocked) void handleUnblock(user);
+                          else { setBlockModal({ user }); setBlockReason(''); }
+                        }}
                       >
                         {user.isBlocked ? 'Razblok' : 'Blok'}
                       </Button>
@@ -197,6 +223,40 @@ export function UsersPage() {
           <Pagination page={meta.page} totalPages={meta.totalPages} total={meta.total} limit={meta.limit} onChange={setPage} />
         </div>
       </div>
+
+      {/* Block user modal */}
+      <Modal open={!!blockModal} onClose={() => setBlockModal(null)} title="Foydalanuvchini bloklash">
+        {blockModal && (
+          <div className="flex flex-col gap-4">
+            <p className="text-sm text-text-muted">
+              <span className="text-white font-medium">{blockModal.user.username}</span> ni bloklash sababini kiriting
+            </p>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-text-muted">Sabab (majburiy)</label>
+              <textarea
+                className="bg-overlay border border-border rounded-lg px-3 py-2 text-white text-sm resize-none h-20 focus:outline-none focus:border-primary"
+                placeholder="Masalan: qoidalar buzilishi, spam, harakat..."
+                value={blockReason}
+                onChange={(e) => setBlockReason(e.target.value)}
+              />
+              {blockReason.trim().length > 0 && blockReason.trim().length < 3 && (
+                <p className="text-xs text-red-400">Kamida 3 belgi kiriting</p>
+              )}
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button onClick={() => setBlockModal(null)}>Bekor</Button>
+              <Button
+                variant="danger"
+                loading={!!actionLoading}
+                disabled={blockReason.trim().length < 3}
+                onClick={() => void handleBlockConfirm()}
+              >
+                Bloklash
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       {/* Role change modal */}
       <Modal open={!!roleModal} onClose={() => setRoleModal(null)} title="Role o'zgartirish">

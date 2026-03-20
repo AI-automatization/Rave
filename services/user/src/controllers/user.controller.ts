@@ -308,7 +308,8 @@ export class UserController {
 
   adminBlockUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      await this.userService.adminBlockUser(req.params.id);
+      const { reason } = req.body as { reason?: string };
+      await this.userService.adminBlockUser(req.params.id, reason);
       res.json(apiResponse.success(null, 'User blocked'));
     } catch (error) {
       next(error);

@@ -22,6 +22,9 @@ export interface IUserDocument extends Document {
   rank: UserRank;
   totalPoints: number;
   isBlocked: boolean;
+  blockReason: string | null;
+  blockedAt: Date | null;
+  lastDevice: string | null;
   fcmTokens: string[];
   lastSeenAt: Date | null;
   settings: { notifications: INotificationSettings };
@@ -48,6 +51,9 @@ const userSchema = new Schema<IUserDocument>(
     },
     totalPoints: { type: Number, default: 0 },
     isBlocked: { type: Boolean, default: false },
+    blockReason: { type: String, default: null },
+    blockedAt: { type: Date, default: null },
+    lastDevice: { type: String, default: null },
     fcmTokens: [{ type: String }],
     lastSeenAt: { type: Date, default: null },
     settings: {

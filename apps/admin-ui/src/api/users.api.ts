@@ -13,8 +13,8 @@ export const usersApi = {
     return res.data;
   },
 
-  block: async (id: string): Promise<void> => {
-    await apiClient.patch(`/admin/users/${id}/block`);
+  block: async (id: string, reason?: string): Promise<void> => {
+    await apiClient.patch(`/admin/users/${id}/block`, { reason });
   },
 
   unblock: async (id: string): Promise<void> => {
