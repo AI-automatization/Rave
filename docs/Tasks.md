@@ -214,7 +214,7 @@ GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state
 ### T-E056 | P1 | [MOBILE] | TypeScript strict audit + console.log cleanup
 
 - **Sana:** 2026-03-19
-- **Mas'ul:** (ochiq)
+- **Mas'ul:** pending[Emirhan]
 - **Sprint:** S5
 - **Fayllar:** `hooks/useProfile.ts`, `hooks/useWatchParty.ts`, `screens/modal/NotificationsScreen.tsx`, barcha screen hardcoded strings
 - **Holat:** ❌ Boshlanmagan
@@ -229,7 +229,7 @@ GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state
 ### T-E057 | P1 | [MOBILE] | Unit testlar — hooks va API layer
 
 - **Sana:** 2026-03-19
-- **Mas'ul:** (ochiq)
+- **Mas'ul:** pending[Emirhan]
 - **Sprint:** S5
 - **Fayllar:** `__tests__/hooks/useHomeData.test.ts`, `__tests__/hooks/useSearch.test.ts`, `__tests__/api/content.api.test.ts`, `__tests__/hooks/useBattle.test.ts`
 - **Holat:** ❌ Boshlanmagan
@@ -246,7 +246,7 @@ GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state
 ### T-E058 | P2 | [MOBILE] | Performance — React.memo + FlatList getItemLayout + expo-image cache
 
 - **Sana:** 2026-03-19
-- **Mas'ul:** (ochiq)
+- **Mas'ul:** pending[Emirhan]
 - **Sprint:** S5
 - **Fayllar:** `components/movie/MovieCard.tsx`, `components/movie/MovieRow.tsx`, barcha FlatList komponentlar
 - **Holat:** ❌ Boshlanmagan
@@ -260,7 +260,7 @@ GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state
 ### T-E059 | P2 | [MOBILE] | E2E smoke test — critical user flows
 
 - **Sana:** 2026-03-19
-- **Mas'ul:** (ochiq)
+- **Mas'ul:** pending[Emirhan]
 - **Sprint:** S5
 - **Fayllar:** `__tests__/e2e/auth.flow.test.ts`, `__tests__/e2e/watchparty.flow.test.ts`
 - **Holat:** ❌ Boshlanmagan
