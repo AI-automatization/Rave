@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
+  SectionList,
   FlatList,
   TouchableOpacity,
   StyleSheet,
@@ -89,7 +90,7 @@ export function FriendsScreen() {
     ]);
   };
 
-  const renderFriend = ({ item }: ListRenderItemInfo<IUserPublic>) => (
+  const renderFriend = ({ item }: { item: IUserPublic }) => (
     <FriendRow
       item={item}
       isOnline={onlineStatus[item._id] ?? item.isOnline}
@@ -122,29 +123,46 @@ export function FriendsScreen() {
         ))}
       </View>
 
-      {/* Friends list */}
-      {tab === tabs[0] && (
-        <FlatList
-          data={friends}
-          keyExtractor={item => item._id}
-          renderItem={renderFriend}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />}
-          ListEmptyComponent={
-            friendsLoading ? (
-              <ActivityIndicator color={colors.primary} style={styles.loader} />
-            ) : (
-              <View style={styles.empty}>
-                <Ionicons name="people-outline" size={48} color={colors.textMuted} />
-                <Text style={styles.emptyText}>{t('friends', 'noFriends')}</Text>
-                <TouchableOpacity onPress={() => navigation.navigate('FriendSearch')}>
-                  <Text style={styles.emptyAction}>{t('friends', 'findFriends')}</Text>
-                </TouchableOpacity>
+      {/* Friends list — SectionList: Online | Oflayn */}
+      {tab === tabs[0] && (() => {
+        const onlineFriends = friends.filter(f => onlineStatus[f._id] ?? f.isOnline);
+        const offlineFriends = friends.filter(f => !(onlineStatus[f._id] ?? f.isOnline));
+        const sections = [
+          ...(onlineFriends.length > 0 ? [{ title: t('friends', 'online'), data: onlineFriends }] : []),
+          ...(offlineFriends.length > 0 ? [{ title: t('friends', 'offline'), data: offlineFriends }] : []),
+        ];
+
+        if (friendsLoading) {
+          return <ActivityIndicator color={colors.primary} style={styles.loader} />;
+        }
+        if (friends.length === 0) {
+          return (
+            <View style={styles.empty}>
+              <Ionicons name="people-outline" size={48} color={colors.textMuted} />
+              <Text style={styles.emptyText}>{t('friends', 'noFriends')}</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('FriendSearch')}>
+                <Text style={styles.emptyAction}>{t('friends', 'findFriends')}</Text>
+              </TouchableOpacity>
+            </View>
+          );
+        }
+        return (
+          <SectionList
+            sections={sections}
+            keyExtractor={item => item._id}
+            renderItem={renderFriend}
+            renderSectionHeader={({ section }) => (
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionHeaderText}>{section.title}</Text>
+                <Text style={styles.sectionCount}>{section.data.length}</Text>
               </View>
-            )
-          }
-          contentContainerStyle={[styles.list, { paddingBottom: TAB_BAR_HEIGHT + insets.bottom }]}
-        />
-      )}
+            )}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />}
+            contentContainerStyle={[styles.list, { paddingBottom: TAB_BAR_HEIGHT + insets.bottom }]}
+            stickySectionHeadersEnabled={false}
+          />
+        );
+      })()}
 
       {/* Pending requests */}
       {tab === tabs[1] && (
@@ -252,4 +270,21 @@ const styles = StyleSheet.create({
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, paddingTop: 80 },
   emptyText: { ...typography.body, color: colors.textMuted },
   emptyAction: { ...typography.body, color: colors.primary, fontWeight: '600' },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xs,
+  },
+  sectionHeaderText: { ...typography.label, color: colors.textMuted },
+  sectionCount: {
+    ...typography.caption,
+    color: colors.textMuted,
+    backgroundColor: colors.bgElevated,
+    borderRadius: borderRadius.full,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 1,
+  },
 });

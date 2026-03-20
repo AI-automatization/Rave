@@ -35,4 +35,11 @@ export const battleApi = {
     const res = await battleClient.get<ApiResponse<{ userId: string; score: number }[]>>(`/battles/${battleId}/leaderboard`);
     return res.data.data ?? [];
   },
+
+  async getCompletedBattles(): Promise<IBattle[]> {
+    const res = await battleClient.get<ApiResponse<IBattle[]>>('/battles/me', {
+      params: { status: 'completed' },
+    });
+    return res.data.data ?? [];
+  },
 };

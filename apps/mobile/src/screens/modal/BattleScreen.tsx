@@ -1,5 +1,5 @@
 // CineSync Mobile — BattleScreen
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { useRoute, useNavigation, RouteProp, NavigationProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { useMyBattles, useBattleDetail } from '@hooks/useBattle';
+import { useMyBattles, useBattleDetail, useBattleHistory } from '@hooks/useBattle';
 import { useAuthStore } from '@store/auth.store';
 import { colors, spacing, borderRadius, typography } from '@theme/index';
 import { IBattle, ModalStackParamList } from '@app-types/index';
@@ -134,6 +134,8 @@ function BattleListView() {
   const navigation = useNavigation<NavigationProp<ModalStackParamList>>();
   const userId = useAuthStore(s => s.user?._id) ?? '';
   const { activeBattles, isLoading, refetch, acceptMutation, rejectMutation } = useMyBattles();
+  const historyQuery = useBattleHistory();
+  const [tab, setTab] = useState<'active' | 'history'>('active');
 
   const handleAccept = (battleId: string) => acceptMutation.mutate(battleId);
 
@@ -144,12 +146,20 @@ function BattleListView() {
     ]);
   };
 
-  const renderItem = ({ item }: ListRenderItemInfo<IBattle>) => (
+  const renderActive = ({ item }: ListRenderItemInfo<IBattle>) => (
     <BattleCard
       battle={item}
       userId={userId}
       onAccept={() => handleAccept(item._id)}
       onReject={() => handleReject(item._id)}
+      onPress={() => navigation.navigate('Battle', { battleId: item._id })}
+    />
+  );
+
+  const renderHistory = ({ item }: ListRenderItemInfo<IBattle>) => (
+    <BattleCard
+      battle={item}
+      userId={userId}
       onPress={() => navigation.navigate('Battle', { battleId: item._id })}
     />
   );
@@ -163,24 +173,63 @@ function BattleListView() {
           <Text style={styles.newBtnText}>Yangi</Text>
         </TouchableOpacity>
       </View>
-      <FlatList
-        data={activeBattles}
-        keyExtractor={item => item._id}
-        renderItem={renderItem}
-        refreshControl={<RefreshControl refreshing={isLoading} onRefresh={refetch} tintColor={colors.primary} />}
-        ListEmptyComponent={
-          !isLoading ? (
-            <View style={styles.empty}>
-              <Text style={styles.emptyIcon}>⚔️</Text>
-              <Text style={styles.emptyText}>Hali battle yo'q</Text>
-              <TouchableOpacity onPress={() => navigation.navigate('BattleCreate')}>
-                <Text style={styles.emptyAction}>Battle boshlash →</Text>
-              </TouchableOpacity>
-            </View>
-          ) : null
-        }
-        contentContainerStyle={styles.listContent}
-      />
+
+      {/* Tabs */}
+      <View style={styles.tabRow}>
+        <TouchableOpacity
+          style={[styles.tabBtn, tab === 'active' && styles.tabBtnActive]}
+          onPress={() => setTab('active')}
+        >
+          <Text style={[styles.tabBtnText, tab === 'active' && styles.tabBtnTextActive]}>
+            Faol ({activeBattles.length})
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tabBtn, tab === 'history' && styles.tabBtnActive]}
+          onPress={() => setTab('history')}
+        >
+          <Text style={[styles.tabBtnText, tab === 'history' && styles.tabBtnTextActive]}>
+            Tarix
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {tab === 'active' ? (
+        <FlatList
+          data={activeBattles}
+          keyExtractor={item => item._id}
+          renderItem={renderActive}
+          refreshControl={<RefreshControl refreshing={isLoading} onRefresh={refetch} tintColor={colors.primary} />}
+          ListEmptyComponent={
+            !isLoading ? (
+              <View style={styles.empty}>
+                <Text style={styles.emptyIcon}>⚔️</Text>
+                <Text style={styles.emptyText}>Hali battle yo'q</Text>
+                <TouchableOpacity onPress={() => navigation.navigate('BattleCreate')}>
+                  <Text style={styles.emptyAction}>Battle boshlash →</Text>
+                </TouchableOpacity>
+              </View>
+            ) : null
+          }
+          contentContainerStyle={styles.listContent}
+        />
+      ) : (
+        <FlatList
+          data={historyQuery.data ?? []}
+          keyExtractor={item => item._id}
+          renderItem={renderHistory}
+          refreshControl={<RefreshControl refreshing={historyQuery.isLoading} onRefresh={() => historyQuery.refetch()} tintColor={colors.primary} />}
+          ListEmptyComponent={
+            !historyQuery.isLoading ? (
+              <View style={styles.empty}>
+                <Text style={styles.emptyIcon}>📜</Text>
+                <Text style={styles.emptyText}>Yakunlangan battle yo'q</Text>
+              </View>
+            ) : null
+          }
+          contentContainerStyle={styles.listContent}
+        />
+      )}
     </View>
   );
 }
@@ -206,6 +255,11 @@ const styles = StyleSheet.create({
   newBtn: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, backgroundColor: colors.primary, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: borderRadius.full },
   newBtnText: { ...typography.caption, color: colors.textPrimary, fontWeight: '600' },
   listContent: { padding: spacing.md, gap: spacing.md, flexGrow: 1 },
+  tabRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: colors.border },
+  tabBtn: { flex: 1, paddingVertical: spacing.md, alignItems: 'center' },
+  tabBtnActive: { borderBottomWidth: 2, borderBottomColor: colors.primary },
+  tabBtnText: { ...typography.body, color: colors.textMuted, fontWeight: '600' },
+  tabBtnTextActive: { color: colors.primary },
   empty: { flex: 1, alignItems: 'center', gap: spacing.md, paddingTop: 80 },
   emptyIcon: { fontSize: 48 },
   emptyText: { ...typography.body, color: colors.textMuted },

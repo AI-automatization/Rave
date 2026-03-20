@@ -38,8 +38,24 @@ export function WatchPartyCreateScreen() {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="close" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.title}>Watch Party yaratish</Text>
+        <Text style={styles.title}>Watch Party</Text>
         <View style={styles.headerSpacer} />
+      </View>
+
+      {/* Create | Join tabs */}
+      <View style={styles.modeTabs}>
+        <View style={[styles.modeTab, styles.modeTabActive]}>
+          <Ionicons name="add-circle-outline" size={16} color={colors.primary} />
+          <Text style={[styles.modeTabText, styles.modeTabTextActive]}>Yaratish</Text>
+        </View>
+        <TouchableOpacity
+          style={styles.modeTab}
+          onPress={() => navigation.navigate('WatchPartyJoin')}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="enter-outline" size={16} color={colors.textMuted} />
+          <Text style={styles.modeTabText}>Kod orqali</Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -169,6 +185,22 @@ const styles = StyleSheet.create({
   backBtn: { padding: spacing.xs },
   title: { ...typography.h2, color: colors.textPrimary },
   headerSpacer: { width: 40 },
+  modeTabs: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  modeTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.md,
+  },
+  modeTabActive: { borderBottomWidth: 2, borderBottomColor: colors.primary },
+  modeTabText: { ...typography.body, color: colors.textMuted, fontWeight: '600' },
+  modeTabTextActive: { color: colors.primary },
   content: { padding: spacing.lg, gap: spacing.xl },
   section: { gap: spacing.sm },
   label: { ...typography.label, color: colors.textMuted },

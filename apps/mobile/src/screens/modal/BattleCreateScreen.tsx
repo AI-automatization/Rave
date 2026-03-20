@@ -11,7 +11,7 @@ import {
   Alert,
   ListRenderItemInfo,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
@@ -22,6 +22,7 @@ import { RANK_COLORS } from '@theme/index';
 import { BattleDuration, IUserPublic, ModalStackParamList } from '@app-types/index';
 
 type Nav = NativeStackNavigationProp<ModalStackParamList, 'BattleCreate'>;
+type RouteType = RouteProp<ModalStackParamList, 'BattleCreate'>;
 
 const DURATIONS: { value: BattleDuration; label: string }[] = [
   { value: 3, label: '3 kun' },
@@ -63,10 +64,14 @@ function FriendPickerRow({
 
 export function BattleCreateScreen() {
   const navigation = useNavigation<Nav>();
+  const route = useRoute<RouteType>();
+  const params = route.params;
   const friends = useFriendsStore(s => s.friends);
-  const [selectedFriendId, setSelectedFriendId] = useState<string | null>(null);
+  const [selectedFriendId, setSelectedFriendId] = useState<string | null>(
+    params?.initialFriendId ?? null,
+  );
   const [duration, setDuration] = useState<BattleDuration>(5);
-  const [title, setTitle] = useState('');
+  const [title, setTitle] = useState(params?.initialMovieTitle ?? '');
 
   const createBattle = useCreateBattle();
 

@@ -55,3 +55,11 @@ export function useCreateBattle() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['my-battles'] }),
   });
 }
+
+export function useBattleHistory() {
+  return useQuery({
+    queryKey: ['battles-completed'],
+    queryFn: () => battleApi.getCompletedBattles(),
+    staleTime: 2 * 60 * 1000,
+  });
+}

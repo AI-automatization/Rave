@@ -129,8 +129,9 @@ export type ProfileStackParamList = {
 export type ModalStackParamList = {
   WatchParty: { roomId: string };
   WatchPartyCreate: undefined;
+  WatchPartyJoin: undefined;
   Battle: { battleId?: string };
-  BattleCreate: { initialMovieTitle?: string } | undefined;
+  BattleCreate: { initialMovieTitle?: string; initialFriendId?: string } | undefined;
   Notifications: undefined;
 };
 

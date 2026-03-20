@@ -9,16 +9,17 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
+import { useRoute, useNavigation, RouteProp, NavigationProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useFriendProfile } from '@hooks/useFriends';
 import { useFriendsStore } from '@store/friends.store';
 import { colors, spacing, borderRadius, typography } from '@theme/index';
 import { RANK_COLORS } from '@theme/index';
-import { FriendsStackParamList } from '@app-types/index';
+import { FriendsStackParamList, RootStackParamList } from '@app-types/index';
 
 type RouteType = RouteProp<FriendsStackParamList, 'FriendProfile'>;
+type RootNav = NavigationProp<RootStackParamList>;
 
 function StatCard({ icon, label, value }: { icon: string; label: string; value: string | number }) {
   return (
@@ -33,6 +34,7 @@ function StatCard({ icon, label, value }: { icon: string; label: string; value: 
 export function FriendProfileScreen() {
   const { params } = useRoute<RouteType>();
   const navigation = useNavigation();
+  const rootNav = useNavigation<RootNav>();
   const friends = useFriendsStore(s => s.friends);
   const onlineStatus = useFriendsStore(s => s.onlineStatus);
 
@@ -126,6 +128,36 @@ export function FriendProfileScreen() {
               <StatCard icon="🏆" label="Ball" value={stats.totalPoints} />
               <StatCard icon="👥" label="Do'stlar" value={stats.friendsCount} />
             </View>
+          </View>
+        )}
+
+        {/* Social actions (only for friends) */}
+        {isFriend && (
+          <View style={styles.socialActions}>
+            <TouchableOpacity
+              style={styles.battleBtn}
+              onPress={() =>
+                rootNav.navigate('Modal', {
+                  screen: 'BattleCreate',
+                  params: { initialFriendId: params.userId },
+                })
+              }
+              activeOpacity={0.85}
+            >
+              <Ionicons name="trophy-outline" size={18} color={colors.gold} />
+              <Text style={styles.battleBtnText}>Battle boshlash</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.watchPartyBtn}
+              onPress={() =>
+                rootNav.navigate('Modal', { screen: 'WatchPartyCreate' })
+              }
+              activeOpacity={0.85}
+            >
+              <Ionicons name="people-outline" size={18} color={colors.secondary} />
+              <Text style={styles.watchPartyBtnText}>Watch Party</Text>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -255,4 +287,34 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
   },
   sentText: { ...typography.body, color: colors.success },
+  socialActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+  },
+  battleBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.gold,
+    padding: spacing.md,
+    borderRadius: borderRadius.lg,
+  },
+  battleBtnText: { ...typography.caption, color: colors.gold, fontWeight: '600' },
+  watchPartyBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.secondary,
+    padding: spacing.md,
+    borderRadius: borderRadius.lg,
+  },
+  watchPartyBtnText: { ...typography.caption, color: colors.secondary, fontWeight: '600' },
 });
