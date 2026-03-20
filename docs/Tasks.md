@@ -193,64 +193,10 @@ GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state
 
 ## SPRINT 3 — Ijtimoiy ekranlar
 
-### T-E048 | P1 | [MOBILE] | WatchParty — Join by invite code ekrani
-
-- **Sana:** 2026-03-19
-- **Mas'ul:** pending[Emirhan]
-- **Sprint:** S3
-- **Fayllar:** `screens/modal/WatchPartyJoinScreen.tsx` (yangi), `navigation/ModalNavigator.tsx`, `types/index.ts`, `api/watchParty.api.ts`
-- **Holat:** ❌ Boshlanmagan
-- **Backend bog'liqligi:** `POST /watch-party/join/:inviteCode` — allaqachon mavjud (F-118)
-- **Subtasklar:**
-  - [ ] `WatchPartyJoinScreen.tsx`: 6 belgi invite code input + "Qo'shilish" tugmasi
-  - [ ] `ModalStackParamList` ga `WatchPartyJoin: undefined` qo'shish
-  - [ ] `ModalNavigator` ga route qo'shish
-  - [ ] `WatchPartyCreateScreen` da "Join" tab qo'shish (Create | Join)
-
----
-
-### T-E049 | P1 | [MOBILE] | FriendProfileScreen — Battle challenge + WatchParty invite
-
-- **Sana:** 2026-03-19
-- **Mas'ul:** pending[Emirhan]
-- **Sprint:** S3
-- **Fayllar:** `screens/friends/FriendProfileScreen.tsx`, `screens/modal/BattleCreateScreen.tsx`
-- **Holat:** ❌ Boshlanmagan
-- **Subtasklar:**
-  - [ ] "Battle boshlash" tugmasi → `BattleCreate` + `initialFriendId` param
-  - [ ] `BattleCreateScreen` ga `initialFriendId?: string` param qo'shish
-  - [ ] "Watch Party ga taklif" (faqat aktiv WatchParty bo'lsa)
-  - [ ] Do'st "hozir film ko'rmoqda" holati ko'rsatish
-
----
-
-### T-E050 | P2 | [MOBILE] | BattleScreen — yakunlangan battles tarix
-
-- **Sana:** 2026-03-19
-- **Mas'ul:** pending[Emirhan]
-- **Sprint:** S3
-- **Fayllar:** `screens/modal/BattleScreen.tsx`, `hooks/useBattle.ts`, `api/battle.api.ts`
-- **Holat:** ❌ Boshlanmagan
-- **Backend bog'liqligi:** `GET /battles?status=completed` — tekshirish kerak
-- **Subtasklar:**
-  - [ ] Tab: "Faol" | "Tarix"
-  - [ ] `battleApi.getCompletedBattles()` API metodi
-  - [ ] `useBattleHistory` hook
-  - [ ] Yakunlangan battle card: g'olib + ball
-
----
-
-### T-E051 | P2 | [MOBILE] | FriendsScreen — Online do'stlar birinchi + activity
-
-- **Sana:** 2026-03-19
-- **Mas'ul:** pending[Emirhan]
-- **Sprint:** S3
-- **Fayllar:** `screens/friends/FriendsScreen.tsx`, `hooks/useFriends.ts`
-- **Holat:** ❌ Boshlanmagan
-- **Subtasklar:**
-  - [ ] Online do'stlar birinchi (SectionList: "Online" | "Oflayn")
-  - [ ] "Hozir film ko'rmoqda" badge (isWatching)
-  - [ ] Swipe-to-remove gesture
+### ✅ T-E048 | TUGADI → Done.md F-139
+### ✅ T-E049 | TUGADI → Done.md F-139
+### ✅ T-E050 | TUGADI → Done.md F-139
+### ✅ T-E051 | TUGADI → Done.md F-139
 
 ---
 

@@ -4,6 +4,14 @@
 
 ---
 
+### F-139 | 2026-03-20 | [MOBILE] | T-E048/E049/E050/E051 — Sprint 3 ijtimoiy ekranlar [Emirhan]
+
+- **T-E048 WatchParty Join:** `WatchPartyJoinScreen.tsx` — 6-belgili invite kod visual input (6 box), `watchPartyApi.joinByInviteCode`. `ModalNavigator` WatchPartyJoin route. `WatchPartyCreateScreen` Create|Join tabs. `types/index.ts` WatchPartyJoin param.
+- **T-E049 FriendProfile:** Battle + WatchParty tugmalari (faqat do'stlar uchun). `BattleCreateScreen` — `initialFriendId` (do'stni avto-tanlash) + `initialMovieTitle` (avto-to'ldirish) route params.
+- **T-E050 Battle History:** `battleApi.getCompletedBattles()`. `useBattleHistory` hook. `BattleScreen` → BattleListView Faol|Tarix tabs.
+- **T-E051 FriendsScreen:** `FlatList` → `SectionList` "Online / Oflayn" seksiyalar, har seksiyada do'stlar soni badge.
+- **TSC:** ✅ 0 xato
+
 ### F-138 | 2026-03-20 | [MOBILE] | T-E044/E045/E046/E047 — Sprint 2 asosiy ekranlar [Emirhan]
 
 - **T-E044 HomeScreen:** `contentApi.getNewReleases` + `useHomeData` newReleases query + `MovieRow` onMoviePress prop + HomeScreen genre chips (GENRES dan FlatList) + newReleases row. `MovieCard` optional onPress prop.
