@@ -187,7 +187,7 @@ GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state
 ### T-E044 | P1 | [MOBILE] | HomeScreen — "Yangi filmlar" qatori + genre filter
 
 - **Sana:** 2026-03-19
-- **Mas'ul:** (ochiq)
+- **Mas'ul:** pending[Emirhan]
 - **Sprint:** S2
 - **Fayllar:** `hooks/useHomeData.ts`, `components/movie/MovieRow.tsx`, `screens/home/HomeScreen.tsx`, `api/content.api.ts`
 - **Holat:** ❌ Boshlanmagan
@@ -203,7 +203,7 @@ GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state
 ### T-E045 | P1 | [MOBILE] | VideoPlayerScreen — fullscreen landscape + double-tap seek + buffering spinner
 
 - **Sana:** 2026-03-19
-- **Mas'ul:** (ochiq)
+- **Mas'ul:** pending[Emirhan]
 - **Sprint:** S2
 - **Fayllar:** `screens/home/VideoPlayerScreen.tsx`, `components/video/VideoControls.tsx` (yangi)
 - **Holat:** ❌ Boshlanmagan
@@ -220,7 +220,7 @@ GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state
 ### T-E046 | P2 | [MOBILE] | SearchResultsScreen — genre + year filter + sort
 
 - **Sana:** 2026-03-19
-- **Mas'ul:** (ochiq)
+- **Mas'ul:** pending[Emirhan]
 - **Sprint:** S2
 - **Fayllar:** `screens/search/SearchResultsScreen.tsx`, `components/search/SearchFiltersBar.tsx` (yangi), `hooks/useSearch.ts`
 - **Holat:** ❌ Boshlanmagan
@@ -235,7 +235,7 @@ GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state
 ### T-E047 | P2 | [MOBILE] | MovieDetailScreen — Battle shortcut + Share API
 
 - **Sana:** 2026-03-19
-- **Mas'ul:** (ochiq)
+- **Mas'ul:** pending[Emirhan]
 - **Sprint:** S2
 - **Fayllar:** `screens/home/MovieDetailScreen.tsx`
 - **Holat:** ❌ Boshlanmagan
