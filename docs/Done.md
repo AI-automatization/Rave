@@ -4,6 +4,14 @@
 
 ---
 
+### F-140 | 2026-03-20 | [MOBILE] | T-E052/E053/E054/E055 — Sprint 4 Profil + Bildirishnoma [Emirhan]
+
+- **T-E052 Push Notifications:** `usePushNotifications.ts` — expo-notifications permission, ExpoPushToken → `userApi.updateFcmToken`. `AppNavigator.tsx` — `useNavigationContainerRef`, `useLastNotificationResponse` deep link handler (roomId → WatchParty, battleId → Battle).
+- **T-E053 NotificationsScreen refactor:** `useNotifications.ts` hook — barcha query/mutation (getAll, markRead, markAll, delete, acceptFriend, rejectFriend) + socket `notification:new` listener. `NotificationsScreen.tsx` 285q → 145q (faqat render).
+- **T-E054 SettingsScreen:** ChangePasswordModal → `authApi.changePassword` allaqachon ulangan ✅. Language selector → `useLanguageStore` allaqachon mavjud ✅. Qo'shimcha o'zgartirish talab qilinmadi.
+- **T-E055 AchievementsScreen:** `AchievementCard.tsx` (yangi) — `Animated.spring` kirish animatsiyasi, tap → detail modal. `AchievementsScreen.tsx` — rarity filter chips (Barchasi/Common/Rare/Epic/Legendary), `DetailModal` — achievement title/description/points/date.
+- **TSC:** ✅ 0 xato
+
 ### F-139 | 2026-03-20 | [MOBILE] | T-E048/E049/E050/E051 — Sprint 3 ijtimoiy ekranlar [Emirhan]
 
 - **T-E048 WatchParty Join:** `WatchPartyJoinScreen.tsx` — 6-belgili invite kod visual input (6 box), `watchPartyApi.joinByInviteCode`. `ModalNavigator` WatchPartyJoin route. `WatchPartyCreateScreen` Create|Join tabs. `types/index.ts` WatchPartyJoin param.

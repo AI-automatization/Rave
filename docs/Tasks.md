@@ -202,65 +202,10 @@ GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state
 
 ## SPRINT 4 — Profil + Bildirishnoma
 
-### T-E052 | P1 | [MOBILE] | Push Notifications (FCM) — Expo Notifications integratsiyasi
-
-- **Sana:** 2026-03-19
-- **Mas'ul:** pending[Emirhan]
-- **Sprint:** S4
-- **Fayllar:** `services/notifications/usePushNotifications.ts` (yangi), `navigation/AppNavigator.tsx`, `api/user.api.ts`
-- **Holat:** ❌ Boshlanmagan
-- **Backend bog'liqligi:** `PUT /users/me/fcm-token` — tekshirish kerak
-- **Subtasklar:**
-  - [ ] `expo-notifications` permission so'rash
-  - [ ] `usePushNotifications` hook — token olish + backend ga yuborish
-  - [ ] Foreground notification handler (toast)
-  - [ ] Background/killed: deep link handling
-  - [ ] NotificationsScreen badge real-time
-
----
-
-### T-E053 | P1 | [MOBILE] | NotificationsScreen — useNotifications hook ajratish + socket
-
-- **Sana:** 2026-03-19
-- **Mas'ul:** pending[Emirhan]
-- **Sprint:** S4
-- **Fayllar:** `hooks/useNotifications.ts` (yangi), `screens/modal/NotificationsScreen.tsx`
-- **Holat:** ❌ Boshlanmagan
-- **Backend bog'liqligi:** Socket event `NOTIFICATION_NEW` — tekshirish kerak
-- **Subtasklar:**
-  - [ ] `useNotifications.ts`: getAll, markRead, markAll, delete, acceptFriend, rejectFriend
-  - [ ] NotificationsScreen faqat render (270q → ~150q)
-  - [ ] Socket `NOTIFICATION_NEW` → `notification.store.addNotification`
-  - [ ] Badge real-time update
-
----
-
-### T-E054 | P2 | [MOBILE] | SettingsScreen — ChangePassword ulash + Language toggle
-
-- **Sana:** 2026-03-19
-- **Mas'ul:** pending[Emirhan]
-- **Sprint:** S4
-- **Fayllar:** `screens/profile/SettingsScreen.tsx`, `components/settings/ChangePasswordModal.tsx`
-- **Holat:** ❌ Boshlanmagan
-- **Backend bog'liqligi:** `POST /auth/change-password` — allaqachon mavjud (F-117)
-- **Subtasklar:**
-  - [ ] ChangePasswordModal → `authApi.changePassword(old, new)` ulash
-  - [ ] Language selector: `['uz', 'ru', 'en']` → `language.store`
-
----
-
-### T-E055 | P2 | [MOBILE] | AchievementsScreen — rarity filter + progress + unlock animation
-
-- **Sana:** 2026-03-19
-- **Mas'ul:** pending[Emirhan]
-- **Sprint:** S4
-- **Fayllar:** `screens/profile/AchievementsScreen.tsx`, `components/profile/AchievementCard.tsx` (yangi)
-- **Holat:** ❌ Boshlanmagan
-- **Subtasklar:**
-  - [ ] Rarity filter chips: "Barchasi" | "Common" | "Rare" | "Epic" | "Legendary"
-  - [ ] Progress: "X/Y ochilgan"
-  - [ ] Unlock animation: `Animated.spring`
-  - [ ] Achievement detail modal (tap on card)
+### ✅ T-E052 | TUGADI → Done.md F-140
+### ✅ T-E053 | TUGADI → Done.md F-140
+### ✅ T-E054 | TUGADI → Done.md F-140
+### ✅ T-E055 | TUGADI → Done.md F-140
 
 ---
 

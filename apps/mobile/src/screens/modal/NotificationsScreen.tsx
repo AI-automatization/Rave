@@ -1,5 +1,5 @@
 // CineSync Mobile — NotificationsScreen
-import React, { useCallback } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -7,29 +7,23 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Alert,
   ListRenderItemInfo,
 } from 'react-native';
-import { useNavigation, NavigationProp } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { notificationApi } from '@api/notification.api';
-import { userApi } from '@api/user.api';
-import { useNotificationStore } from '@store/notification.store';
 import { colors, spacing, borderRadius, typography } from '@theme/index';
-import { INotification, NotificationType, ModalStackParamList } from '@app-types/index';
-
-type Nav = NavigationProp<ModalStackParamList>;
+import { INotification, NotificationType } from '@app-types/index';
+import { useNotifications } from '@hooks/useNotifications';
 
 const TYPE_ICONS: Record<NotificationType, { icon: string; color: string }> = {
-  friend_request:      { icon: 'person-add-outline',       color: colors.secondary },
-  friend_accepted:     { icon: 'people-outline',            color: colors.success },
-  watch_party_invite:  { icon: 'tv-outline',                color: colors.primary },
-  battle_invite:       { icon: 'flash-outline',             color: colors.warning },
-  battle_result:       { icon: 'trophy-outline',            color: colors.gold },
-  achievement_unlocked:{ icon: 'ribbon-outline',            color: colors.primary },
-  friend_online:       { icon: 'radio-button-on-outline',   color: colors.success },
-  friend_watching:     { icon: 'eye-outline',               color: colors.secondary },
+  friend_request:       { icon: 'person-add-outline',      color: colors.secondary },
+  friend_accepted:      { icon: 'people-outline',           color: colors.success },
+  watch_party_invite:   { icon: 'tv-outline',               color: colors.primary },
+  battle_invite:        { icon: 'flash-outline',            color: colors.warning },
+  battle_result:        { icon: 'trophy-outline',           color: colors.gold },
+  achievement_unlocked: { icon: 'ribbon-outline',           color: colors.primary },
+  friend_online:        { icon: 'radio-button-on-outline',  color: colors.success },
+  friend_watching:      { icon: 'eye-outline',              color: colors.secondary },
 };
 
 function timeAgo(date: Date): string {
@@ -42,144 +36,63 @@ function timeAgo(date: Date): string {
   return `${Math.floor(hours / 24)}k`;
 }
 
-function NotifItem({ item, onPress, onDelete, onAccept, onReject, onJoin }: {
-  item: INotification;
-  onPress: () => void;
-  onDelete: () => void;
-  onAccept?: () => void;
-  onReject?: () => void;
-  onJoin?: () => void;
-}) {
-  const { icon, color } = TYPE_ICONS[item.type] ?? { icon: 'notifications-outline', color: colors.textMuted };
-  const hasActions = item.type === 'friend_request' || item.type === 'watch_party_invite';
-
-  return (
-    <TouchableOpacity
-      style={[styles.item, !item.isRead && styles.itemUnread]}
-      onPress={onPress}
-      activeOpacity={0.8}
-    >
-      <View style={[styles.iconWrap, { backgroundColor: color + '22' }]}>
-        <Ionicons name={icon as never} size={20} color={color} />
-      </View>
-      <View style={styles.itemContent}>
-        <Text style={styles.itemTitle} numberOfLines={1}>{item.title}</Text>
-        <Text style={styles.itemBody} numberOfLines={2}>{item.body}</Text>
-        <Text style={styles.itemTime}>{timeAgo(item.createdAt)}</Text>
-        {hasActions && (
-          <View style={styles.actionRow}>
-            {item.type === 'friend_request' && (
-              <>
-                <TouchableOpacity style={styles.acceptBtn} onPress={onAccept}>
-                  <Text style={styles.acceptBtnText}>Qabul</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.rejectBtn} onPress={onReject}>
-                  <Text style={styles.rejectBtnText}>Rad</Text>
-                </TouchableOpacity>
-              </>
-            )}
-            {item.type === 'watch_party_invite' && (
-              <TouchableOpacity style={styles.acceptBtn} onPress={onJoin}>
-                <Text style={styles.acceptBtnText}>Qo'shilish</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
-      </View>
-      {!item.isRead && <View style={styles.unreadDot} />}
-      <TouchableOpacity onPress={onDelete} style={styles.deleteBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-        <Ionicons name="close" size={16} color={colors.textMuted} />
-      </TouchableOpacity>
-    </TouchableOpacity>
-  );
-}
-
 export function NotificationsScreen() {
-  const navigation = useNavigation<Nav>();
-  const queryClient = useQueryClient();
-  const { notifications, setNotifications, markRead, markAllRead } = useNotificationStore();
-
-  const { isLoading, refetch } = useQuery({
-    queryKey: ['notifications'],
-    queryFn: async () => {
-      const data = await notificationApi.getAll();
-      setNotifications(data);
-      return data;
-    },
-    staleTime: 30 * 1000,
-  });
-
-  const markReadMutation = useMutation({
-    mutationFn: (id: string) => notificationApi.markAsRead(id),
-    onSuccess: (_, id) => markRead(id),
-  });
-
-  const markAllMutation = useMutation({
-    mutationFn: () => notificationApi.markAllAsRead(),
-    onSuccess: () => {
-      markAllRead();
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => notificationApi.deleteNotification(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
-  });
-
-  const acceptFriendMutation = useMutation({
-    mutationFn: (friendshipId: string) => userApi.acceptFriendRequest(friendshipId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
-  });
-
-  const rejectFriendMutation = useMutation({
-    mutationFn: (friendshipId: string) => userApi.rejectFriendRequest(friendshipId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
-  });
-
-  const handlePress = useCallback((item: INotification) => {
-    if (!item.isRead) markReadMutation.mutate(item._id);
-
-    const data = item.data as Record<string, string>;
-    switch (item.type) {
-      case 'watch_party_invite':
-        if (data.roomId) navigation.navigate('WatchParty', { roomId: data.roomId });
-        break;
-      case 'battle_invite':
-      case 'battle_result':
-        navigation.navigate('Battle', { battleId: data.battleId });
-        break;
-      default:
-        break;
-    }
-  }, [markReadMutation, navigation]);
-
-  const handleDelete = (id: string) => {
-    Alert.alert('O\'chirish', 'Bu bildirişnomani o\'chirmoqchimisiz?', [
-      { text: 'Bekor', style: 'cancel' },
-      { text: 'O\'chirish', style: 'destructive', onPress: () => deleteMutation.mutate(id) },
-    ]);
-  };
-
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const navigation = useNavigation();
+  const {
+    notifications,
+    isLoading,
+    unreadCount,
+    refetch,
+    handlePress,
+    handleDelete,
+    markAllMutation,
+    acceptFriendMutation,
+    rejectFriendMutation,
+  } = useNotifications();
 
   const renderItem = ({ item }: ListRenderItemInfo<INotification>) => {
+    const { icon, color } = TYPE_ICONS[item.type] ?? { icon: 'notifications-outline', color: colors.textMuted };
     const data = item.data as Record<string, string>;
+    const hasActions = item.type === 'friend_request' || item.type === 'watch_party_invite';
+
     return (
-      <NotifItem
-        item={item}
+      <TouchableOpacity
+        style={[styles.item, !item.isRead && styles.itemUnread]}
         onPress={() => handlePress(item)}
-        onDelete={() => handleDelete(item._id)}
-        onAccept={item.type === 'friend_request' && data.friendshipId
-          ? () => acceptFriendMutation.mutate(data.friendshipId)
-          : undefined}
-        onReject={item.type === 'friend_request' && data.friendshipId
-          ? () => rejectFriendMutation.mutate(data.friendshipId)
-          : undefined}
-        onJoin={item.type === 'watch_party_invite' && data.roomId
-          ? () => { handlePress(item); }
-          : undefined}
-      />
+        activeOpacity={0.8}
+      >
+        <View style={[styles.iconWrap, { backgroundColor: color + '22' }]}>
+          <Ionicons name={icon as never} size={20} color={color} />
+        </View>
+        <View style={styles.itemContent}>
+          <Text style={styles.itemTitle} numberOfLines={1}>{item.title}</Text>
+          <Text style={styles.itemBody} numberOfLines={2}>{item.body}</Text>
+          <Text style={styles.itemTime}>{timeAgo(item.createdAt)}</Text>
+          {hasActions && (
+            <View style={styles.actionRow}>
+              {item.type === 'friend_request' && (
+                <>
+                  <TouchableOpacity style={styles.acceptBtn} onPress={() => acceptFriendMutation.mutate(data.friendshipId)}>
+                    <Text style={styles.acceptBtnText}>Qabul</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.rejectBtn} onPress={() => rejectFriendMutation.mutate(data.friendshipId)}>
+                    <Text style={styles.rejectBtnText}>Rad</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+              {item.type === 'watch_party_invite' && (
+                <TouchableOpacity style={styles.acceptBtn} onPress={() => handlePress(item)}>
+                  <Text style={styles.acceptBtnText}>Qo'shilish</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+        </View>
+        {!item.isRead && <View style={styles.unreadDot} />}
+        <TouchableOpacity onPress={() => handleDelete(item._id)} style={styles.deleteBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <Ionicons name="close" size={16} color={colors.textMuted} />
+        </TouchableOpacity>
+      </TouchableOpacity>
     );
   };
 
@@ -265,20 +178,9 @@ const styles = StyleSheet.create({
   unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary },
   deleteBtn: { padding: spacing.xs },
   actionRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
-  acceptBtn: {
-    backgroundColor: colors.success,
-    borderRadius: borderRadius.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-  },
+  acceptBtn: { backgroundColor: colors.success, borderRadius: borderRadius.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.xs },
   acceptBtnText: { ...typography.caption, color: colors.textPrimary, fontWeight: '700' },
-  rejectBtn: {
-    borderRadius: borderRadius.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderWidth: 1,
-    borderColor: colors.error,
-  },
+  rejectBtn: { borderRadius: borderRadius.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderWidth: 1, borderColor: colors.error },
   rejectBtnText: { ...typography.caption, color: colors.error, fontWeight: '600' },
   empty: { flex: 1, alignItems: 'center', gap: spacing.md, paddingTop: 80 },
   emptyText: { ...typography.body, color: colors.textMuted },
