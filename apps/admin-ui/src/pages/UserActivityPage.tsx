@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useState, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { logsApi } from '../api/logs.api';
 import { Pagination } from '../components/ui/Pagination';
 import type { ApiLog, PaginationMeta } from '../types';
@@ -105,13 +106,16 @@ function statusColor(code: number | null): string {
 // ── component ─────────────────────────────────────────────────
 
 export function UserActivityPage() {
-  const [logs, setLogs]       = useState<ApiLog[]>([]);
-  const [meta, setMeta]       = useState<PaginationMeta>({ page: 1, limit: 50, total: 0, totalPages: 1 });
-  const [loading, setLoading] = useState(false);
+  const [searchParams] = useSearchParams();
+
+  const [logs, setLogs]         = useState<ApiLog[]>([]);
+  const [meta, setMeta]         = useState<PaginationMeta>({ page: 1, limit: 50, total: 0, totalPages: 1 });
+  const [loading, setLoading]   = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
 
-  const [userIdInput, setUserIdInput] = useState('');
-  const [appliedUserId, setAppliedUserId] = useState('');
+  const urlUserId = searchParams.get('userId') ?? '';
+  const [userIdInput, setUserIdInput]     = useState(urlUserId);
+  const [appliedUserId, setAppliedUserId] = useState(urlUserId);
   const [page, setPage] = useState(1);
 
   const load = useCallback(async () => {
