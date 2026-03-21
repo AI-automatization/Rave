@@ -280,10 +280,10 @@ GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state
 ### T-E061 | P1 | [MOBILE] | Fix: Do'stlar tizimi + Bildirishnomalar
 
 - **Sana:** 2026-03-21
-- **Mas'ul:** pending[Emirhan]
+- **Mas'ul:** pending[Jafar]
 - **Sprint:** S5
 - **Fayllar:** `apps/mobile/src/hooks/useNotifications.ts`, `apps/mobile/src/hooks/useFriends.ts`, `apps/mobile/src/screens/modal/NotificationsScreen.tsx`, `apps/mobile/src/screens/friends/FriendsScreen.tsx`, `apps/mobile/src/api/notification.api.ts`
-- **Holat:** ❌ Bug
+- **Holat:** 🔄 Bajarilmoqda
 
 **Muammolar:**
 
