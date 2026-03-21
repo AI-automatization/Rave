@@ -12,14 +12,19 @@ function levelFromStatus(statusCode: number): 'info' | 'warn' | 'error' {
 }
 
 // ── Derive logs URI ──────────────────────────────────────────
-// LOGS_MONGO_URI → explicit override
-// MONGO_URI → replace database name with 'cinesync' (admin's DB)
+// LOGS_MONGO_URI → explicit override (set this on Railway for each service)
+// MONGO_URI      → fallback: replace database name with 'cinesync_admin'
 function getLogsMongoUri(): string | null {
   if (process.env.LOGS_MONGO_URI) return process.env.LOGS_MONGO_URI;
   const uri = process.env.MONGO_URI;
   if (!uri) return null;
-  // Replace /database_name with /cinesync (keeps query params intact)
-  return uri.replace(/(mongodb(?:\+srv)?:\/\/[^/]+\/)([^/?]+)/, '$1cinesync');
+  // Replace /db_name with /cinesync_admin (admin's DB) — keeps query params
+  // Handles: /cinesync_auth?authSource=admin → /cinesync_admin?authSource=admin
+  // Handles: / (no db name) → adds /cinesync_admin
+  return uri.replace(
+    /(mongodb(?:\+srv)?:\/\/[^/]+\/)([^/?]*)/,
+    '$1cinesync_admin',
+  );
 }
 
 // ── Lazy singleton connection ────────────────────────────────
