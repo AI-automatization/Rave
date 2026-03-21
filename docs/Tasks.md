@@ -509,37 +509,7 @@ Tavsiya: member ham retry bosa olsin (sayt muammosi, control muammosi emas)
 
 ---
 
-### T-J022 | P1 | [MOBILE] | WatchParty — member lock overlay (WebView)
-
-- **Sana:** 2026-03-21
-- **Mas'ul:** pending[Jafar]
-- **Sprint:** S6
-- **Fayl:** `apps/mobile/src/screens/WatchParty/components/WebViewPlayer.tsx` (yoki `VideoSection.tsx`)
-- **Holat:** ❌ Boshlanmagan
-
-**Muammo:**
-Hozir WatchParty da member ham WebView da tap/scroll/click qila oladi — saytning o'z playeri ularda ham interactive. Faqat owner boshqarishi kerak.
-
-**Yechim — 5 qator:**
-```tsx
-// WebView dan keyingi qatorda:
-{!isOwner && (
-  <View style={StyleSheet.absoluteFill} />
-)}
-// StyleSheet.absoluteFill — shaffof, touch larni to'sadi
-```
-
-**Qo'shimcha — Bug tekshiruv (`isOwner` events):**
-- Owner WebView da play bosadi → Socket.io ga `video:play` ketadimi? ✓ tekshirish
-- Member `video:play` oladi → `injectWithRetry` WebView ga inject bo'ladimi? ✓ tekshirish
-- Agar member da ham `onPlay/onPause` chaqirilayotgan bo'lsa → bug: `if (isOwner)` guard qo'shish
-
-**Subtasklar:**
-- [ ] `WebViewPlayer.tsx` da `isOwner` prop bor-yo'qligini tekshirish
-- [ ] `{!isOwner && <View style={StyleSheet.absoluteFill} />}` — WebView ustiga qo'shish
-- [ ] Test: member tap bosadi → video boshqarilmaydi ✅
-- [ ] Test: owner play bosadi → member sync bo'ladi ✅
-- [ ] TypeScript: `tsc --noEmit` o'tadi ✅
+### ✅ T-J022 | TUGADI → Done.md F-145
 
 ---
 

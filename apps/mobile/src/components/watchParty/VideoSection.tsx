@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Dimensions,
   StatusBar,
+  StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AVPlaybackStatus } from 'expo-av';
@@ -79,17 +80,21 @@ export const VideoSection = React.memo(function VideoSection({
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : (
-        <UniversalPlayer
-          ref={playerRef}
-          url={videoUrl}
-          isOwner={isOwner}
-          onPlay={onPlay}
-          onPause={onPause}
-          onSeek={onSeek}
-          onPlaybackStatusUpdate={onPlaybackStatusUpdate}
-          onStreamResolved={onStreamResolved}
-          onProgress={onProgress}
-        />
+        <>
+          <UniversalPlayer
+            ref={playerRef}
+            url={videoUrl}
+            isOwner={isOwner}
+            onPlay={onPlay}
+            onPause={onPause}
+            onSeek={onSeek}
+            onPlaybackStatusUpdate={onPlaybackStatusUpdate}
+            onStreamResolved={onStreamResolved}
+            onProgress={onProgress}
+          />
+          {/* Member lock: transparent overlay blocks all touch events */}
+          {!isOwner && <View style={StyleSheet.absoluteFill} pointerEvents="box-only" />}
+        </>
       )}
 
       {/* Fullscreen toggle — har doim ko'rinadi */}

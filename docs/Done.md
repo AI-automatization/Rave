@@ -11,6 +11,7 @@
 - **ROOM_CLOSED handler:** `useWatchParty.ts` da `RoomClosedData` interface qo'shildi (reason: owner_left | inactivity | admin_closed | account_blocked). `WatchPartyScreen.tsx` da har bir reason uchun alohida Alert (3 tilda lokalizatsiya). `account_blocked` da darhol goBack().
 - **i18n:** `translations.ts` ga roomClosed, closedInactivity, closedOwnerLeft, closedByAdmin, reason tarjimalari qo'shildi (uz/ru/en).
 - **Fayllar:** `useWatchParty.ts`, `WatchPartyScreen.tsx`, `AppNavigator.tsx`, `translations.ts`
+- **T-J022:** `VideoSection.tsx` da `{!isOwner && <View style={StyleSheet.absoluteFill} pointerEvents="box-only" />}` — shaffof overlay member touch/tap/scroll ni bloklaydi. Owner controls va fullscreen toggle overlay ustida qoladi (zIndex).
 
 ---
 
