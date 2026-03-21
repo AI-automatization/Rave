@@ -10,9 +10,13 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import type { ComponentProps } from 'react';
+
+type IoniconsName = ComponentProps<typeof Ionicons>['name'];
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { INotification, NotificationType } from '@app-types/index';
-import { useNotifications } from '@hooks/useNotifications';
+import { useNotifications, parseNotificationData } from '@hooks/useNotifications';
+import { useT } from '@i18n/index';
 
 function timeAgo(date: Date): string {
   const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
@@ -28,6 +32,7 @@ export function NotificationsScreen() {
   const navigation = useNavigation();
   const { colors } = useTheme();
   const styles = useStyles();
+  const { t } = useT();
   const {
     notifications,
     isLoading,
@@ -40,7 +45,7 @@ export function NotificationsScreen() {
     rejectFriendMutation,
   } = useNotifications();
 
-  const TYPE_ICONS: Record<NotificationType, { icon: string; color: string }> = {
+  const TYPE_ICONS: Record<NotificationType, { icon: IoniconsName; color: string }> = {
     friend_request:       { icon: 'person-add-outline',      color: colors.secondary },
     friend_accepted:      { icon: 'people-outline',           color: colors.success },
     watch_party_invite:   { icon: 'tv-outline',               color: colors.primary },
@@ -52,9 +57,9 @@ export function NotificationsScreen() {
   };
 
   const renderItem = ({ item }: ListRenderItemInfo<INotification>) => {
-    const { icon, color } = TYPE_ICONS[item.type] ?? { icon: 'notifications-outline', color: colors.textMuted };
-    const data = (item.data && typeof item.data === 'object') ? item.data as Record<string, string> : {};
-    const friendshipId = data.friendshipId;
+    const { icon, color } = TYPE_ICONS[item.type] ?? { icon: 'notifications-outline' as IoniconsName, color: colors.textMuted };
+    const data = parseNotificationData(item.data);
+    const friendshipId = typeof data.friendshipId === 'string' ? data.friendshipId : undefined;
     const hasActions = (item.type === 'friend_request' && !!friendshipId) || item.type === 'watch_party_invite';
 
     return (
@@ -64,7 +69,7 @@ export function NotificationsScreen() {
         activeOpacity={0.8}
       >
         <View style={[styles.iconWrap, { backgroundColor: color + '22' }]}>
-          <Ionicons name={icon as never} size={20} color={color} />
+          <Ionicons name={icon} size={20} color={color} />
         </View>
         <View style={styles.itemContent}>
           <Text style={styles.itemTitle} numberOfLines={1}>{item.title}</Text>
@@ -75,16 +80,16 @@ export function NotificationsScreen() {
               {item.type === 'friend_request' && friendshipId && (
                 <>
                   <TouchableOpacity style={styles.acceptBtn} onPress={() => acceptFriendMutation.mutate(friendshipId)}>
-                    <Text style={styles.acceptBtnText}>Qabul</Text>
+                    <Text style={styles.acceptBtnText}>{t('notifications', 'accept')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.rejectBtn} onPress={() => rejectFriendMutation.mutate(friendshipId)}>
-                    <Text style={styles.rejectBtnText}>Rad</Text>
+                    <Text style={styles.rejectBtnText}>{t('notifications', 'reject')}</Text>
                   </TouchableOpacity>
                 </>
               )}
               {item.type === 'watch_party_invite' && (
                 <TouchableOpacity style={styles.acceptBtn} onPress={() => handlePress(item)}>
-                  <Text style={styles.acceptBtnText}>Qo'shilish</Text>
+                  <Text style={styles.acceptBtnText}>{t('notifications', 'join')}</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -106,7 +111,7 @@ export function NotificationsScreen() {
           <Ionicons name="close" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.title}>Bildirishnomalar</Text>
+          <Text style={styles.title}>{t('notifications', 'title')}</Text>
           {unreadCount > 0 && (
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{unreadCount}</Text>
@@ -115,7 +120,7 @@ export function NotificationsScreen() {
         </View>
         {unreadCount > 0 ? (
           <TouchableOpacity onPress={() => markAllMutation.mutate()} disabled={markAllMutation.isPending} style={styles.markAllBtn}>
-            <Text style={styles.markAllText}>Hammasini o'qi</Text>
+            <Text style={styles.markAllText}>{t('notifications', 'markAllShort')}</Text>
           </TouchableOpacity>
         ) : (
           <View style={{ width: 80 }} />
@@ -135,7 +140,7 @@ export function NotificationsScreen() {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Ionicons name="notifications-off-outline" size={48} color={colors.textMuted} />
-              <Text style={styles.emptyText}>Bildirishnomalar yo'q</Text>
+              <Text style={styles.emptyText}>{t('notifications', 'empty')}</Text>
             </View>
           }
         />

@@ -4,6 +4,17 @@
 
 ---
 
+### F-142 | 2026-03-21 | [MOBILE] | T-E061 — Do'stlar tizimi + Bildirishnomalar fix [Jafar]
+
+- **Type guard:** `useNotifications.ts` + `NotificationsScreen.tsx` — `as Record<string, string>` → `NotificationData` interface + `parseNotificationData()` function. `data.friendshipId/roomId/battleId` → `typeof` check.
+- **Icon type:** `NotificationsScreen.tsx` — `as never` → `IoniconsName` (`ComponentProps<typeof Ionicons>['name']`).
+- **i18n migration:** `NotificationsScreen.tsx` — "Bildirishnomalar", "Hammasini o'qi", "Bildirishnomalar yo'q", "Qabul", "Rad", "Qo'shilish" → `useT()`. `useNotifications.ts` — Alert.alert strings → i18n.
+- **Query invalidation:** ✅ Allaqachon to'g'ri (accept → `['friends']`+`['friend-requests']`, reject → `['friend-requests']`).
+- **Socket:** ✅ `getSocket()` null check mavjud.
+- **notification.api.ts:** ✅ URL lar to'g'ri (`notificationClient`).
+- **Test:** Playwright 30/30 API passed. Expo emulator — NotificationsScreen, FriendsScreen, HomeScreen crash-free.
+- **TSC:** ✅ 0 xato
+
 ### F-141 | 2026-03-21 | [MOBILE] | T-E056 — TypeScript strict audit + console.log cleanup [Jafar]
 
 - **console.log audit:** ✅ Barcha console.log `if (__DEV__)` ichida — tozalash kerak emas

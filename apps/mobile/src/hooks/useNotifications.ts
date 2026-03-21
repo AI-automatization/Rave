@@ -8,11 +8,25 @@ import { userApi } from '@api/user.api';
 import { useNotificationStore } from '@store/notification.store';
 import { getSocket } from '@socket/client';
 import { INotification, ModalStackParamList } from '@app-types/index';
+import { useT } from '@i18n/index';
+
+export interface NotificationData {
+  friendshipId?: string;
+  roomId?: string;
+  battleId?: string;
+  [key: string]: unknown;
+}
+
+export function parseNotificationData(raw: unknown): NotificationData {
+  if (raw && typeof raw === 'object') return raw as NotificationData;
+  return {};
+}
 
 const NOTIFICATION_NEW = 'notification:new';
 type Nav = NavigationProp<ModalStackParamList>;
 
 export function useNotifications() {
+  const { t } = useT();
   const queryClient = useQueryClient();
   const navigation = useNavigation<Nav>();
   const { notifications, setNotifications, markRead, markAllRead, addNotification } =
@@ -77,14 +91,14 @@ export function useNotifications() {
 
   const handlePress = useCallback((item: INotification) => {
     if (!item.isRead) markReadMutation.mutate(item._id);
-    const data = (item.data && typeof item.data === 'object') ? item.data as Record<string, string> : {};
+    const data = parseNotificationData(item.data);
     switch (item.type) {
       case 'watch_party_invite':
-        if (data.roomId) navigation.navigate('WatchParty', { roomId: data.roomId });
+        if (typeof data.roomId === 'string') navigation.navigate('WatchParty', { roomId: data.roomId });
         break;
       case 'battle_invite':
       case 'battle_result':
-        navigation.navigate('Battle', { battleId: data.battleId });
+        if (typeof data.battleId === 'string') navigation.navigate('Battle', { battleId: data.battleId });
         break;
       default:
         break;
@@ -92,9 +106,9 @@ export function useNotifications() {
   }, [markReadMutation, navigation]);
 
   const handleDelete = useCallback((id: string) => {
-    Alert.alert("O'chirish", "Bu bildirişnomani o'chirmoqchimisiz?", [
-      { text: 'Bekor', style: 'cancel' },
-      { text: "O'chirish", style: 'destructive', onPress: () => deleteMutation.mutate(id) },
+    Alert.alert(t('notifications', 'deleteTitle'), t('notifications', 'deleteMsg'), [
+      { text: t('common', 'cancel'), style: 'cancel' },
+      { text: t('notifications', 'deleteBtn'), style: 'destructive', onPress: () => deleteMutation.mutate(id) },
     ]);
   }, [deleteMutation]);
 

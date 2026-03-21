@@ -277,36 +277,7 @@ GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state
 
 ## SPRINT 5 — Sifat + Test
 
-### T-E061 | P1 | [MOBILE] | Fix: Do'stlar tizimi + Bildirishnomalar
-
-- **Sana:** 2026-03-21
-- **Mas'ul:** pending[Jafar]
-- **Sprint:** S5
-- **Fayllar:** `apps/mobile/src/hooks/useNotifications.ts`, `apps/mobile/src/hooks/useFriends.ts`, `apps/mobile/src/screens/modal/NotificationsScreen.tsx`, `apps/mobile/src/screens/friends/FriendsScreen.tsx`, `apps/mobile/src/api/notification.api.ts`
-- **Holat:** 🔄 Bajarilmoqda
-
-**Muammolar:**
-
-**1. friend_request bildirishnomasi:**
-- `NotificationsScreen.tsx` da `data.friendshipId` ishlatiladi lekin backend notification da bu field bo'lishi kafolatlanmagan
-- `useNotifications.ts` line 70: `const data = item.data as Record<string, string>` — unsafe cast (T-E056 bilan bog'liq)
-- `handlePress` for `friend_request`: faqat markAsRead qiladi, lekin navigatsiya yo'q — accept/reject UI da bor lekin ular alohida
-
-**2. Do'stlar qabul qilinganda list yangilanmaydi:**
-- `useNotifications.ts` `acceptFriendMutation.onSuccess` — faqat `['notifications']` invalidate qiladi
-- `['friends']` query invalidate QILINMAYDI — FriendsScreen yangilanmaydi
-- `rejectFriendMutation.onSuccess` ham `['friends']` ni invalidate qilishi kerak emas lekin `['friend-requests']` ni qilishi kerak
-
-**3. Bildirishnomalar real-time emas:**
-- Socket.io `notification:new` handler to'g'ri ishlayaptimi? `getSocket()` null bo'lishi mumkin agar socket hali ulanmagan bo'lsa
-
-**Fix:**
-- [ ] `useNotifications.ts` `acceptFriendMutation.onSuccess` ga `queryClient.invalidateQueries(['friends'])` qo'shish
-- [ ] `useNotifications.ts` `rejectFriendMutation.onSuccess` ga `queryClient.invalidateQueries(['friend-requests'])` qo'shish
-- [ ] `NotificationsScreen.tsx` `data.friendshipId` — type guard yozish (`typeof data.friendshipId === 'string'` tekshirish)
-- [ ] `useFriends.ts` `acceptMutation.onSuccess` — `['friend-requests']` va `['friends']` invalidate to'g'ri qilinganini tekshirish
-- [ ] Backend tekshirish: `friend_request` notification da `data.friendshipId` bor ekan (Saidazim tomonidan tekshirildi ✅)
-- [ ] `notification.api.ts` tekshirish — barcha endpointlar to'g'ri URL ga point qilayaptimi?
+### ✅ T-E061 | TUGADI → Done.md F-142
 
 ---
 
