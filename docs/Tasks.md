@@ -538,21 +538,50 @@ const initial = await messaging().getInitialNotification();
 // same handling for initial
 ```
 
-**C. WatchPartyScreen — ROOM_CLOSED handler:**
+**C. WatchPartyScreen — ROOM_CLOSED handler (barcha sabablar):**
+
+Backend `ROOM_CLOSED` eventida quyidagi fieldlar keladi:
 ```typescript
-// Socket eventni handle qilish:
-socket.on('ROOM_CLOSED', ({ reason }) => {
-  navigation.goBack();
-  showToast(reason === 'inactivity' ? 'Xona 5 daqiqa faolsizlikdan yopildi' : 'Xona egasi yopdi');
+{
+  reason: 'owner_left' | 'inactivity' | 'admin_closed' | 'account_blocked';
+  adminEmail?: string;   // faqat admin_closed da
+  closeReason?: string;  // faqat admin_closed da (admin kiritgan sabab)
+}
+```
+
+```typescript
+// WatchPartyScreen da:
+socket.on('ROOM_CLOSED', ({ reason, adminEmail, closeReason }) => {
+  let message = '';
+
+  if (reason === 'inactivity') {
+    message = 'Xona 5 daqiqa faolsizlikdan avtomatik yopildi';
+  } else if (reason === 'owner_left') {
+    message = 'Xona egasi xonani yopdi';
+  } else if (reason === 'admin_closed') {
+    // Admin tomonidan yopildi — sabab ko'rsatiladi
+    message = `Xona admin (${adminEmail ?? 'admin'}) tomonidan yopildi`;
+    if (closeReason) message += `\nSabab: ${closeReason}`;
+  } else if (reason === 'account_blocked') {
+    // Foydalanuvchi bloklangan — BlockedScreen ga yo'naltirish
+    navigation.reset({ index: 0, routes: [{ name: 'Blocked' }] });
+    return;
+  }
+
+  // Modal yoki Alert ko'rsatish, keyin xonadan chiqish
+  Alert.alert('Xona yopildi', message, [
+    { text: 'OK', onPress: () => navigation.goBack() }
+  ]);
 });
 ```
-Backend endi `ROOM_CLOSED` ni ikkita holda yuboradi: `owner_left` va `inactivity`.
 
 **Subtasklar:**
 - [ ] FCM token registration hook (Emirhan bilan baham ko'rish mumkin)
 - [ ] `messaging().subscribeToTopic('all')` — broadcast uchun
 - [ ] `onNotificationOpenedApp` + `getInitialNotification` deep link handler
-- [ ] WatchPartyScreen da `ROOM_CLOSED` event handler
+- [ ] WatchPartyScreen da `ROOM_CLOSED` — barcha 4 ta reason uchun handler
+- [ ] `admin_closed` da: Alert modal — adminEmail + closeReason ko'rsatish
+- [ ] `account_blocked` da: BlockedScreen ga redirect (T-J026 bilan bog'liq)
 
 ---
 
