@@ -310,18 +310,7 @@ GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state
 
 ---
 
-### T-E056 | P1 | [MOBILE] | TypeScript strict audit + console.log cleanup
-
-- **Sana:** 2026-03-19
-- **Mas'ul:** pending[Jafar]
-- **Sprint:** S5
-- **Fayllar:** `hooks/useProfile.ts`, `hooks/useWatchParty.ts`, `screens/modal/NotificationsScreen.tsx`, barcha screen hardcoded strings
-- **Holat:** 🔄 Bajarilmoqda
-- **Subtasklar:**
-  - [ ] `if (__DEV__) console.log` audit — production ga chiqmasligi
-  - [ ] `NotificationsScreen` unsafe cast `as Record<string, string>` → type guard
-  - [ ] Hardcoded matnlar → i18n `useT()` (BattleScreen, WatchPartyCreateScreen)
-  - [ ] `npx tsc --noEmit` — 0 xato
+### ✅ T-E056 | TUGADI → Done.md F-141
 
 ---
 

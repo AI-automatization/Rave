@@ -1,8 +1,15 @@
 # CineSync — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-03-20
+# Yangilangan: 2026-03-21
 
 ---
+
+### F-141 | 2026-03-21 | [MOBILE] | T-E056 — TypeScript strict audit + console.log cleanup [Jafar]
+
+- **console.log audit:** ✅ Barcha console.log `if (__DEV__)` ichida — tozalash kerak emas
+- **Unsafe casts tuzatildi:** `NotificationsScreen.tsx` `as Record<string, string>` → proper interface, `as never` → icon type. `useWatchParty.ts` `as unknown[]` → type guard. `ProfileAnimations.tsx` double cast → `React.ReactNode`. `ErrorBoundary.test.tsx` simplified cast.
+- **i18n migration:** `BattleCreateScreen`, `BattleScreen`, `WatchPartyCreateScreen`, `WatchPartyJoinScreen`, `NotificationsScreen` hardcoded strings → `useT()` hook orqali i18n.
+- **TSC:** ✅ 0 xato
 
 ### F-140 | 2026-03-20 | [MOBILE] | T-E052/E053/E054/E055 — Sprint 4 Profil + Bildirishnoma [Emirhan]
 
