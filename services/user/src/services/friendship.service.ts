@@ -52,7 +52,7 @@ export class FriendshipService {
       type: 'friend_request',
       title: 'Yangi do\'st so\'rovi',
       body: `${requester?.username ?? 'Foydalanuvchi'} sizga do\'stlik so\'rovi yubordi`,
-      data: { requesterId, friendshipId: (friendship._id as object).toString() },
+      data: { requesterId, friendshipId: (friendship._id as object).toString(), screen: 'Friends' },
     });
 
     logger.info('Friend request sent', { requesterId, receiverId });
@@ -175,7 +175,7 @@ export class FriendshipService {
       type: 'friend_accepted',
       title: 'Do\'stlik so\'rovi qabul qilindi!',
       body: `${accepter?.username ?? 'Foydalanuvchi'} do\'stlik so\'rovingizni qabul qildi`,
-      data: { userId },
+      data: { userId, screen: 'Friends' },
     });
   }
 }

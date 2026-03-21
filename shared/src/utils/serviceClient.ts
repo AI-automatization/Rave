@@ -79,6 +79,22 @@ export async function triggerAchievement(
   }
 }
 
+// ─── User Service — FCM tokens ─────────────────────────────────────────────────
+
+export async function getUserFcmTokens(userId: string): Promise<string[]> {
+  try {
+    const res = await axios.get<{ data: { tokens: string[] } }>(
+      `${userServiceUrl}/api/v1/users/internal/${userId}/fcm-tokens`,
+      { headers: internalHeaders, timeout: 5000 },
+    );
+    return res.data.data?.tokens ?? [];
+  } catch (err) {
+    const error = err as AxiosError;
+    logger.error('[serviceClient] getUserFcmTokens failed', { userId, message: error.message });
+    return [];
+  }
+}
+
 // ─── Notification Service ──────────────────────────────────────────────────────
 const notificationServiceUrl = process.env.NOTIFICATION_SERVICE_URL ?? 'http://localhost:3007';
 

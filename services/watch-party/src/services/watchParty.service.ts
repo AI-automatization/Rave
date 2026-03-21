@@ -254,6 +254,15 @@ export class WatchPartyService {
     logger.info('Watch party room closed by owner', { roomId, ownerId });
   }
 
+  // Called by inactivity auto-close — no owner check needed
+  async closeRoomBySystem(roomId: string): Promise<void> {
+    const room = await WatchPartyRoom.findById(roomId);
+    if (!room || room.status === 'ended') return; // already closed
+    await WatchPartyRoom.updateOne({ _id: roomId }, { status: 'ended' });
+    await this.redis.del(REDIS_KEYS.watchPartyRoom(roomId));
+    logger.info('Watch party room auto-closed by system', { roomId });
+  }
+
   async kickMember(ownerId: string, roomId: string, targetUserId: string): Promise<void> {
     const room = await WatchPartyRoom.findById(roomId);
     if (!room) throw new NotFoundError('Room not found');

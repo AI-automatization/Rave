@@ -106,7 +106,18 @@ export class NotificationService {
     if (result.deletedCount === 0) throw new NotFoundError('Notification not found');
   }
 
-  async logBroadcast(title: string, body: string, type: string): Promise<void> {
-    logger.info('Admin broadcast notification logged', { title, type, body });
+  async sendBroadcast(title: string, body: string, type: string): Promise<void> {
+    try {
+      await admin.messaging().send({
+        topic: 'all',
+        notification: { title, body },
+        data: { type, screen: 'Home' },
+        android: { priority: 'high' },
+        apns: { payload: { aps: { sound: 'default' } } },
+      });
+      logger.info('FCM broadcast sent', { title, type });
+    } catch (error) {
+      logger.error('FCM broadcast failed', { error });
+    }
   }
 }

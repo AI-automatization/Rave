@@ -128,6 +128,7 @@ export class WatchPartyController {
           roomId: (room._id as object).toString(),
           inviteCode: room.inviteCode,
           inviterId: userId,
+          screen: 'WatchParty',
         },
       });
 

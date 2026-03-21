@@ -35,6 +35,14 @@ export class BattleController {
       const { id: battleId } = req.params;
       const { inviteeId } = req.body as { inviteeId: string };
       await this.battleService.inviteParticipant(battleId, userId, inviteeId);
+      // Non-blocking notification to invitee
+      void sendInternalNotification({
+        userId: inviteeId,
+        type: 'battle_invite',
+        title: 'Battle taklifi ⚔️',
+        body: 'Sizga battle taklifi yuborildi',
+        data: { battleId, inviterId: userId, screen: 'Battles' },
+      });
       res.json(apiResponse.success(null, 'Invitation sent'));
     } catch (error) {
       next(error);
@@ -62,7 +70,7 @@ export class BattleController {
         type: 'battle_result',
         title: 'Battle rad etildi',
         body: 'Siz yuborgan battle taklifi rad etildi',
-        data: { battleId: req.params.id },
+        data: { battleId: req.params.id, screen: 'Battles' },
       });
       res.json(apiResponse.success(null, 'Battle rejected'));
     } catch (error) {

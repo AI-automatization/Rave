@@ -8,7 +8,7 @@ export const systemApi = {
     return res.data.data;
   },
 
-  broadcast: async (title: string, body: string): Promise<void> => {
-    await apiClient.post('/admin/notifications/broadcast', { title, body });
+  broadcast: async (title: string, body: string, type = 'announcement'): Promise<void> => {
+    await apiClient.post('/admin/notifications/broadcast', { title, body, type });
   },
 };

@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { NotificationService } from '../services/notification.service';
 import { apiResponse } from '@shared/utils/apiResponse';
 import { AuthenticatedRequest, NotificationType } from '@shared/types';
+import { getUserFcmTokens } from '@shared/utils/serviceClient';
 
 export class NotificationController {
   constructor(private notificationService: NotificationService) {}
@@ -69,9 +70,9 @@ export class NotificationController {
         return;
       }
 
-      await this.notificationService.logBroadcast(title, body, type ?? 'announcement');
+      await this.notificationService.sendBroadcast(title, body, type ?? 'announcement');
 
-      res.json(apiResponse.success(null, 'Broadcast notification logged'));
+      res.json(apiResponse.success(null, 'Broadcast notification sent'));
     } catch (error) {
       next(error);
     }
@@ -100,6 +101,20 @@ export class NotificationController {
         body,
         data ?? {},
       );
+
+      // Send FCM push non-blocking
+      void (async () => {
+        const tokens = await getUserFcmTokens(userId);
+        if (tokens.length > 0) {
+          const fcmData: Record<string, string> = { type };
+          if (data) {
+            for (const [k, v] of Object.entries(data)) {
+              if (typeof v === 'string') fcmData[k] = v;
+            }
+          }
+          await this.notificationService.sendPush(tokens, title, body, fcmData);
+        }
+      })();
 
       res.json(apiResponse.success(null, 'Notification sent'));
     } catch (error) {

@@ -114,6 +114,11 @@ export class ProfileService {
     );
   }
 
+  async getFcmTokens(userId: string): Promise<string[]> {
+    const user = await User.findOne({ authId: userId }).select('fcmTokens').lean();
+    return user?.fcmTokens ?? [];
+  }
+
   async searchUsers(query: string, requesterId: string): Promise<Record<string, unknown>[]> {
     if (!query || query.trim().length < 1) return [];
 

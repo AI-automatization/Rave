@@ -2,10 +2,17 @@ import { useEffect, useState, useCallback } from 'react';
 import { systemApi } from '../api/system.api';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
+import { Input, Select } from '../components/ui/Input';
 import type { SystemHealth } from '../types';
 
 const SERVICES = ['auth', 'user', 'content', 'watch-party', 'battle', 'notification'];
+
+const BROADCAST_TYPES = [
+  { value: 'announcement', label: 'Announcement — umumiy e\'lon' },
+  { value: 'maintenance', label: 'Maintenance — texnik ishlar' },
+  { value: 'promo', label: 'Promo — aksiya/yangilik' },
+  { value: 'update', label: 'Update — yangilanish' },
+];
 
 const AUTO_REFRESH_INTERVAL_MS = 30_000;
 
@@ -16,6 +23,7 @@ export function SystemPage() {
 
   const [broadcastTitle, setBroadcastTitle] = useState('');
   const [broadcastBody, setBroadcastBody]   = useState('');
+  const [broadcastType, setBroadcastType]   = useState('announcement');
   const [sendLoading, setSendLoading]       = useState(false);
   const [sendResult, setSendResult]         = useState<{ ok: boolean; message: string } | null>(null);
 
@@ -43,10 +51,11 @@ export function SystemPage() {
     setSendLoading(true);
     setSendResult(null);
     try {
-      await systemApi.broadcast(broadcastTitle.trim(), broadcastBody.trim());
+      await systemApi.broadcast(broadcastTitle.trim(), broadcastBody.trim(), broadcastType);
       setSendResult({ ok: true, message: 'Broadcast sent successfully' });
       setBroadcastTitle('');
       setBroadcastBody('');
+      setBroadcastType('announcement');
     } catch {
       setSendResult({ ok: false, message: 'Failed to send broadcast' });
     } finally {
@@ -108,6 +117,15 @@ export function SystemPage() {
       {/* Section 2: Broadcast Notification */}
       <section className="flex flex-col gap-4 max-w-lg">
         <h2 className="text-base font-semibold text-white">Broadcast Notification</h2>
+
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-text-muted font-medium">Type</label>
+          <Select value={broadcastType} onChange={(e) => setBroadcastType(e.target.value)}>
+            {BROADCAST_TYPES.map((t) => (
+              <option key={t.value} value={t.value}>{t.label}</option>
+            ))}
+          </Select>
+        </div>
 
         <Input
           label="Title"

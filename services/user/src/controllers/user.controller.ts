@@ -289,6 +289,17 @@ export class UserController {
     }
   };
 
+  // Internal — called by notification service to get FCM tokens
+  getFcmTokensInternal = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = req.params;
+      const tokens = await this.userService.getFcmTokens(userId);
+      res.json(apiResponse.success({ tokens }));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   // ── Admin Internal Controllers ────────────────────────────────
 
   adminListUsers = async (req: Request, res: Response, next: NextFunction): Promise<void> => {

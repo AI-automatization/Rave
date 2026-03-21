@@ -26,6 +26,7 @@ export class UserService {
   createProfile = (authId: string, email: string, username: string) => this.profile.createProfile(authId, email, username);
   addFcmToken = (userId: string, token: string) => this.profile.addFcmToken(userId, token);
   removeFcmToken = (userId: string, token: string) => this.profile.removeFcmToken(userId, token);
+  getFcmTokens = (userId: string) => this.profile.getFcmTokens(userId);
   searchUsers = (query: string, requesterId: string) => this.profile.searchUsers(query, requesterId);
   addPoints = (userId: string, points: number) => this.profile.addPoints(userId, points);
   getUserStats = (userId: string) => this.profile.getUserStats(userId);

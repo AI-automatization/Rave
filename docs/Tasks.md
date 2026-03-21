@@ -14,7 +14,7 @@
 3. Fix bo'lgach → shu yerdan O'CHIRISH → docs/Done.md ga KO'CHIRISH
 4. Prioritet: P0=kritik, P1=muhim, P2=o'rta, P3=past
 5. Sprint: S1=hozir, S2=keyingi hafta, S3=keyingi sprint, S4-5=keyin
-6. Oxirgi T-raqam: S→034, E→043, J→020, C→010
+6. Oxirgi T-raqam: S→038, E→062, J→021, C→010
 ```
 
 ---
@@ -22,6 +22,26 @@
 # ═══════════════════════════════════════
 
 # 🔴 SAIDAZIM — BACKEND + ADMIN
+
+### T-S038 | P1 | [BACKEND] | Watch Party — bo'sh xonani 5 daqiqada avtomatik yopish
+
+- **Sana:** 2026-03-21
+- **Mas'ul:** pending[Saidazim]
+- **Sprint:** S4
+- **Fayllar:** `services/watch-party/src/socket/roomEvents.handler.ts`, `services/watch-party/src/services/watchParty.service.ts`
+- **Holat:** ❌ Boshlanmagan
+
+**Muammo:**
+Xona yaratilgandan keyin yoki oxirgi member chiqib ketgandan keyin xona abadiy "active" qoladi.
+Kerak: oxirgi user chiqib ketgandan so'ng 5 daqiqa `inactive` bo'lsa → xona avtomatik `status: 'ended'` ga o'tsin.
+
+**Yechim:**
+- `leave` eventda: agar xonada member qolmasa → `setTimeout(5 * 60 * 1000, closeRoom)` ishga tushirish
+- Agar 5 daqiqa ichida yangi member kelsa → timeout bekor qilish
+- Room close bo'lganda `ROOM_CLOSED` event barcha socketlarga emit qilish
+- Redis da timeout ID saqlash (xona restartda ham ishlashi uchun) YOKI Bull job ishlatish
+
+---
 
 # ═══════════════════════════════════════
 
@@ -214,6 +234,65 @@ GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state
 ---
 
 ## SPRINT 5 — Sifat + Test
+
+### T-E062 | P1 | [MOBILE] | FCM token registration + notification deep links
+
+- **Sana:** 2026-03-21
+- **Mas'ul:** pending[Emirhan]
+- **Sprint:** S4
+- **Fayllar:** `apps/mobile/src/hooks/useNotifications.ts` (yoki yangi), `apps/mobile/src/navigation/`
+- **Holat:** ❌ Boshlanmagan
+
+**Muammo:**
+Backend FCM push yuboradi, lekin mobile:
+1. FCM token ni backendga ro'yxatdan o'tkazishi kerak
+2. Notification bosilganda to'g'ri ekranga yo'naltirishi kerak
+
+**Yechim:**
+
+**A. FCM token registration:**
+```typescript
+// App startup yoki login dan keyin:
+import messaging from '@react-native-firebase/messaging';
+import { apiClient } from '../api/client';
+
+const token = await messaging().getToken();
+await apiClient.post('/users/me/fcm-token', { fcmToken: token });
+
+// Token yangilanganda:
+messaging().onTokenRefresh(async (newToken) => {
+  await apiClient.post('/users/me/fcm-token', { fcmToken: newToken });
+});
+```
+
+**B. Notification tap → deep link:**
+```typescript
+// FCM data payload dan screen olish:
+// data.screen = 'Friends' | 'WatchParty' | 'Battles' | 'Home'
+// data.roomId, data.battleId, data.friendshipId — qo'shimcha params
+
+messaging().onNotificationOpenedApp((remoteMessage) => {
+  const { screen, roomId, battleId } = remoteMessage.data ?? {};
+  if (screen === 'WatchParty' && roomId) navigation.navigate('WatchParty', { roomId });
+  else if (screen === 'Battles') navigation.navigate('Battles');
+  else if (screen === 'Friends') navigation.navigate('Friends');
+  else navigation.navigate('Home');
+});
+
+// App birinchi ochilganda (notification tap bilan):
+const initial = await messaging().getInitialNotification();
+if (initial?.data?.screen) { /* same logic */ }
+```
+
+**Subtasklar:**
+- [ ] `useNotifications` hook — token register + foreground/background handler
+- [ ] `AppNavigator` da `onNotificationOpenedApp` + `getInitialNotification`
+- [ ] Permission so'rash (iOS: `messaging().requestPermission()`)
+- [ ] Background message handler (`setBackgroundMessageHandler`)
+- [ ] FCM topic `all` ga subscribe: `messaging().subscribeToTopic('all')`
+- [ ] Test: backend dan broadcast → telefonga push keladi
+
+---
 
 ### ✅ T-E061 | TUGADI → Done.md F-142
 
@@ -425,6 +504,57 @@ Tavsiya: member ham retry bosa olsin (sayt muammosi, control muammosi emas)
 ### ✅ T-J016 | TUGADI → Done.md F-144
 ### ✅ T-J017 | TUGADI → Done.md F-144
 ### ✅ T-J018 | TUGADI → Done.md F-144
+
+### T-J021 | P1 | [MOBILE] | FCM token registration + notification deep links + ROOM_CLOSED handler
+
+- **Sana:** 2026-03-21
+- **Mas'ul:** pending[Jafar]
+- **Sprint:** S4
+- **Bog'liq:** T-E062 (Emirhan — coordination kerak, bitta hook yoziladi)
+- **Holat:** ❌ Boshlanmagan
+
+**A. FCM token registration (Emirhan bilan bir xil):**
+```typescript
+import messaging from '@react-native-firebase/messaging';
+const token = await messaging().getToken();
+await apiClient.post('/users/me/fcm-token', { fcmToken: token });
+messaging().onTokenRefresh(async (t) => apiClient.post('/users/me/fcm-token', { fcmToken: t }));
+// FCM topic all ga subscribe (broadcast uchun):
+await messaging().subscribeToTopic('all');
+```
+
+**B. Notification tap → deep link:**
+```typescript
+// data.screen: 'Friends' | 'WatchParty' | 'Battles' | 'Home'
+// data.roomId, data.battleId, data.inviteCode — qo'shimcha params
+messaging().onNotificationOpenedApp((msg) => {
+  const { screen, roomId, inviteCode } = msg.data ?? {};
+  if (screen === 'WatchParty' && inviteCode) navigation.navigate('WatchPartyJoin', { inviteCode });
+  else if (screen === 'Battles') navigation.navigate('Battles');
+  else if (screen === 'Friends') navigation.navigate('Friends');
+  else navigation.navigate('Home');
+});
+const initial = await messaging().getInitialNotification();
+// same handling for initial
+```
+
+**C. WatchPartyScreen — ROOM_CLOSED handler:**
+```typescript
+// Socket eventni handle qilish:
+socket.on('ROOM_CLOSED', ({ reason }) => {
+  navigation.goBack();
+  showToast(reason === 'inactivity' ? 'Xona 5 daqiqa faolsizlikdan yopildi' : 'Xona egasi yopdi');
+});
+```
+Backend endi `ROOM_CLOSED` ni ikkita holda yuboradi: `owner_left` va `inactivity`.
+
+**Subtasklar:**
+- [ ] FCM token registration hook (Emirhan bilan baham ko'rish mumkin)
+- [ ] `messaging().subscribeToTopic('all')` — broadcast uchun
+- [ ] `onNotificationOpenedApp` + `getInitialNotification` deep link handler
+- [ ] WatchPartyScreen da `ROOM_CLOSED` event handler
+
+---
 
 ### T-J019 | P2 | [MOBILE] | FriendSearch — backend search natijasi bo'sh kelishi mumkin
 

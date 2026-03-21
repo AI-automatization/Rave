@@ -9,6 +9,10 @@ interface AuthenticatedSocket extends Socket {
   roomId?: string;
 }
 
+// In-memory map of roomId → inactivity close timer
+const roomCloseTimers = new Map<string, ReturnType<typeof setTimeout>>();
+const ROOM_INACTIVITY_MS = 5 * 60 * 1000; // 5 minutes
+
 export const registerRoomEvents = (
   io: SocketServer,
   socket: Socket,
@@ -24,6 +28,14 @@ export const registerRoomEvents = (
       if (!room.members.includes(userId)) {
         socket.emit(SERVER_EVENTS.ERROR, { message: 'Not a room member' });
         return;
+      }
+
+      // Cancel any pending inactivity close timer for this room
+      const pendingTimer = roomCloseTimers.get(data.roomId);
+      if (pendingTimer) {
+        clearTimeout(pendingTimer);
+        roomCloseTimers.delete(data.roomId);
+        logger.info('Room inactivity timer cancelled — member joined', { roomId: data.roomId });
       }
 
       await socket.join(data.roomId);
@@ -57,6 +69,27 @@ export const registerRoomEvents = (
         io.to(roomId).emit(SERVER_EVENTS.OWNER_TRANSFERRED, { newOwnerId: result.newOwnerId });
       } else {
         socket.to(roomId).emit(SERVER_EVENTS.MEMBER_LEFT, { userId });
+      }
+
+      // If the room is not already closed, check if anyone is still in the socket room
+      if (!result.closed) {
+        const sockets = await io.in(roomId).fetchSockets();
+        if (sockets.length === 0 && !roomCloseTimers.has(roomId)) {
+          logger.info('Room empty — starting 5-minute inactivity timer', { roomId });
+          const timer = setTimeout(() => {
+            roomCloseTimers.delete(roomId);
+            void (async () => {
+              try {
+                await watchPartyService.closeRoomBySystem(roomId);
+                io.to(roomId).emit(SERVER_EVENTS.ROOM_CLOSED, { reason: 'inactivity' });
+                logger.info('Room auto-closed after 5 minutes of inactivity', { roomId });
+              } catch (e) {
+                logger.error('Failed to auto-close room', { roomId, error: e });
+              }
+            })();
+          }, ROOM_INACTIVITY_MS);
+          roomCloseTimers.set(roomId, timer);
+        }
       }
     } catch (error) {
       logger.error('Socket leave room error', { userId, error });
