@@ -417,6 +417,38 @@ export async function getUserBattleStats(userId: string): Promise<{
   }
 }
 
+// ─── Block/Unblock: revoke sessions + disconnect sockets ─────────────────────
+
+const authServiceUrl = process.env.AUTH_SERVICE_URL ?? 'http://localhost:3001';
+
+export async function revokeUserSessions(userId: string): Promise<void> {
+  try {
+    await axios.post(
+      `${authServiceUrl}/api/v1/auth/internal/users/${userId}/revoke-sessions`,
+      {},
+      { headers: internalHeaders, timeout: 5000 },
+    );
+    logger.info('[serviceClient] revokeUserSessions', { userId });
+  } catch (err) {
+    const error = err as AxiosError;
+    logger.error('[serviceClient] revokeUserSessions failed', { userId, message: error.message });
+  }
+}
+
+export async function disconnectUserSocket(userId: string): Promise<void> {
+  try {
+    await axios.post(
+      `${watchPartyServiceUrl}/api/v1/watch-party/internal/users/${userId}/disconnect`,
+      {},
+      { headers: internalHeaders, timeout: 5000 },
+    );
+    logger.info('[serviceClient] disconnectUserSocket', { userId });
+  } catch (err) {
+    const error = err as AxiosError;
+    logger.error('[serviceClient] disconnectUserSocket failed', { userId, message: error.message });
+  }
+}
+
 // ─── Create user profile ───────────────────────────────────────────────────────
 export async function createUserProfile(authId: string, email: string, username: string): Promise<void> {
   try {

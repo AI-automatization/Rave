@@ -273,4 +273,20 @@ export class WatchPartyController {
       next(error);
     }
   };
+
+  // POST /internal/users/:userId/disconnect — force-disconnect blocked user from all socket rooms
+  disconnectUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = req.params;
+      // Find all sockets in the user's personal room and disconnect them
+      const sockets = await this.io.in(`user:${userId}`).fetchSockets();
+      for (const s of sockets) {
+        s.emit(SERVER_EVENTS.ROOM_CLOSED, { reason: 'account_blocked' });
+        s.disconnect(true);
+      }
+      res.json(apiResponse.success(null, `Disconnected ${sockets.length} socket(s) for user`));
+    } catch (error) {
+      next(error);
+    }
+  };
 }

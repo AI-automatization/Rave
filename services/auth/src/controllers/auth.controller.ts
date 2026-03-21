@@ -114,6 +114,17 @@ export class AuthController {
     }
   };
 
+  // Internal — called by admin/user service when user is blocked
+  revokeUserSessions = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = req.params;
+      await this.authService.logoutAll(userId);
+      res.json(apiResponse.success(null, 'All sessions revoked'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   verifyEmail = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { token } = req.body as { token: string };

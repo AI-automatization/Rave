@@ -4,6 +4,7 @@ import { AuthController } from '../controllers/auth.controller';
 import { AuthService } from '../services/auth.service';
 import { authRateLimiter } from '@shared/middleware/rateLimiter.middleware';
 import { verifyToken, requireNotBlocked } from '@shared/middleware/auth.middleware';
+import { requireInternalSecret } from '@shared/utils/serviceClient';
 import {
   registerSchema,
   confirmRegisterSchema,
@@ -75,6 +76,9 @@ export const createAuthRouter = (redis: Redis): Router => {
   router.post('/telegram/init', authRateLimiter, authController.telegramInit);     // polling flow init
   router.post('/telegram/webhook', authController.telegramWebhook);                // bot updates
   router.get('/telegram/poll', authController.telegramPoll);                       // polling check
+
+  // POST /auth/internal/users/:userId/revoke-sessions — admin blocks user, revoke all refresh tokens
+  router.post('/internal/users/:userId/revoke-sessions', requireInternalSecret, authController.revokeUserSessions);
 
   // POST /auth/init-admin — bir martalik superadmin yaratish (ADMIN_INIT_SECRET bilan himoyalangan)
   router.post('/init-admin', authRateLimiter, authController.initAdmin);

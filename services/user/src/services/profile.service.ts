@@ -7,7 +7,7 @@ import { logger } from '@shared/utils/logger';
 import { NotFoundError, BadRequestError } from '@shared/utils/errors';
 import { REDIS_KEYS, TTL, RANKS } from '@shared/constants';
 import { UserRank } from '@shared/types';
-import { getUserWatchStats, getUserBattleStats } from '@shared/utils/serviceClient';
+import { getUserWatchStats, getUserBattleStats, revokeUserSessions, disconnectUserSocket } from '@shared/utils/serviceClient';
 
 export class ProfileService {
   constructor(private redis: Redis) {}
@@ -237,7 +237,16 @@ export class ProfileService {
       { isBlocked: true, blockReason: reason ?? null, blockedAt: new Date() },
     );
     if (result.matchedCount === 0) throw new NotFoundError('User not found');
+
+    // Set Redis blocked flag — requireNotBlocked middleware rejects all future requests immediately
+    await this.redis.set(REDIS_KEYS.blockedUser(userId), '1', 'EX', TTL.BLOCKED_USER);
+    // Delete heartbeat (show as offline)
     await this.redis.del(REDIS_KEYS.heartbeat(userId));
+
+    // Non-blocking: revoke refresh tokens + disconnect sockets
+    void revokeUserSessions(userId);
+    void disconnectUserSocket(userId);
+
     logger.info('User blocked via admin API', { userId, reason });
   }
 
@@ -247,6 +256,10 @@ export class ProfileService {
       { isBlocked: false, blockReason: null, blockedAt: null },
     );
     if (result.matchedCount === 0) throw new NotFoundError('User not found');
+
+    // Remove Redis blocked flag — user can access again immediately
+    await this.redis.del(REDIS_KEYS.blockedUser(userId));
+
     logger.info('User unblocked via admin API', { userId });
   }
 

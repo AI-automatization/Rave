@@ -82,6 +82,7 @@ export const TTL = {
   LOGIN_BLOCK: 15 * 60,              // 15 minutes
   OTP: 10 * 60,                      // 10 minutes
   WATCH_PARTY_ROOM: 24 * 60 * 60,   // 24 hours
+  BLOCKED_USER: 365 * 24 * 60 * 60, // 1 year (until manually unblocked)
 } as const;
 
 // ─────────────────────────────────────────────

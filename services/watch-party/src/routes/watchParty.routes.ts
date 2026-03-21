@@ -12,6 +12,9 @@ export const createWatchPartyRouter = (redis: Redis, io: SocketServer): Router =
   const watchPartyController = new WatchPartyController(watchPartyService, io);
   const notBlocked = requireNotBlocked(redis);
 
+  // Internal — force-disconnect blocked user from all sockets
+  router.post('/internal/users/:userId/disconnect', requireInternalSecret, watchPartyController.disconnectUser);
+
   // Internal Admin: GET /watch-party/internal/admin/stats — today's stats (admin)
   router.get('/internal/admin/stats', requireInternalSecret, watchPartyController.adminGetStats);
 

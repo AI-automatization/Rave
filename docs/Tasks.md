@@ -14,7 +14,7 @@
 3. Fix bo'lgach → shu yerdan O'CHIRISH → docs/Done.md ga KO'CHIRISH
 4. Prioritet: P0=kritik, P1=muhim, P2=o'rta, P3=past
 5. Sprint: S1=hozir, S2=keyingi hafta, S3=keyingi sprint, S4-5=keyin
-6. Oxirgi T-raqam: S→038, E→062, J→025, C→010
+6. Oxirgi T-raqam: S→038, E→062, J→026, C→010
 ```
 
 ---
@@ -708,6 +708,76 @@ POST   /auth/logout                  → logout (refresh token invalid qilinadi)
 **C. Security:**
 - [ ] Avatar yuklashda mimetype tekshirish (`image/jpeg` | `image/png` faqat)
 - [ ] Fayl hajmi: max 5MB (client side check)
+- [ ] TypeScript: `tsc --noEmit` o'tadi ✅
+
+---
+
+### T-J026 | P1 | [MOBILE] | Bloklangan akkaunt — to'liq handle qilish
+
+- **Sana:** 2026-03-21
+- **Mas'ul:** pending[Jafar]
+- **Sprint:** S4
+- **Fayllar:** `apps/mobile/src/navigation/AppNavigator.tsx`, `apps/mobile/src/screens/Auth/BlockedScreen.tsx`, `apps/mobile/src/api/client.ts`
+- **Holat:** ❌ Boshlanmagan
+
+**Backend tomonida nima bo'ladi (allaqachon tayyor):**
+1. Admin userga blok qo'yadi → Redis `auth:blocked:{userId}` set qilinadi
+2. Barcha refresh tokenlar o'chiriladi (qayta login qila olmaydi)
+3. Socket.io ulanishi uziladi (`ROOM_CLOSED { reason: 'account_blocked' }` yuboriladi)
+4. Keyingi har qanday API so'rov → **HTTP 403** `{ success: false, message: 'Account is blocked' }`
+
+**Mobile da bajarilishi kerak:**
+
+**A. API client interceptor — 403 ushlab olish:**
+```typescript
+// apps/mobile/src/api/client.ts — response interceptor:
+axiosInstance.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response?.status === 403 &&
+        error.response?.data?.message === 'Account is blocked') {
+      // Token tozalash
+      await AsyncStorage.removeItem('accessToken');
+      await AsyncStorage.removeItem('refreshToken');
+      // BlockedScreen ga redirect
+      navigationRef.current?.reset({ index: 0, routes: [{ name: 'Blocked' }] });
+    }
+    return Promise.reject(error);
+  }
+);
+```
+
+**B. BlockedScreen:**
+```
+- Qizil qalqon/lock icon (tasvir)
+- "Akkauntingiz bloklangan" sarlavha
+- Admin bilan bog'lanish: support email (ilovaga hardcode)
+- "Chiqish" tugmasi → token tozalash → LoginScreen
+- Login tugmasini ko'rsatma (qayta login qilib ham kirish imkoni yo'q)
+```
+
+**C. Socket eventlarni handle qilish:**
+```typescript
+// WatchPartyScreen da:
+socket.on('ROOM_CLOSED', ({ reason }) => {
+  if (reason === 'account_blocked') {
+    navigation.reset({ index: 0, routes: [{ name: 'Blocked' }] });
+    return;
+  }
+  // boshqa reason lar uchun oldingi logika
+});
+```
+
+**D. Navigation:**
+- `Blocked` ekranini `AppNavigator` ga qo'shish
+- Auth guard: login check + block check (token bor lekin `isBlocked` tekshirish kerak emas, backend handle qiladi)
+
+**Subtasklar:**
+- [ ] `BlockedScreen.tsx` — UI
+- [ ] `client.ts` da 403 interceptor — `Account is blocked` case uchun
+- [ ] `AppNavigator` da `Blocked` ekrani + reset navigation
+- [ ] `WatchPartyScreen` da `account_blocked` reason handler
+- [ ] Test: admin blocks → 5 sekund ichida app BlockedScreen ko'rsatadi
 - [ ] TypeScript: `tsc --noEmit` o'tadi ✅
 
 ---
