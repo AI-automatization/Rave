@@ -13,7 +13,7 @@ import {
   TooManyRequestsError,
   BadRequestError,
 } from '@shared/utils/errors';
-import { createUserProfile } from '@shared/utils/serviceClient';
+import { createUserProfile, syncAdminProfile } from '@shared/utils/serviceClient';
 import { JwtPayload, UserRole } from '@shared/types';
 import { REDIS_KEYS } from '@shared/constants';
 
@@ -412,7 +412,7 @@ export class PasswordAuthService {
       throw new ConflictError('Superadmin already exists');
     }
     const passwordHash = await this.hashPassword(password);
-    await User.create({
+    const created = await User.create({
       email,
       username,
       passwordHash,
@@ -420,6 +420,9 @@ export class PasswordAuthService {
       isVerified: true,
     });
     logger.info('Superadmin created', { email, username });
+
+    // Sync role to user service DB (non-blocking)
+    void syncAdminProfile((created._id as object).toString(), email, username, 'superadmin');
   }
 
   async upsertSuperAdmin(email: string, username: string, password: string): Promise<'created' | 'updated'> {
@@ -428,18 +431,29 @@ export class PasswordAuthService {
     // Remove any conflicting user with this email that is NOT the superadmin
     await User.deleteOne({ email, role: { $ne: 'superadmin' } });
 
+    let authId: string;
+    let result: 'created' | 'updated';
+
     const existing = await User.findOne({ role: 'superadmin' });
     if (existing) {
       await User.updateOne(
         { _id: existing._id },
         { $set: { email, username, passwordHash, isEmailVerified: true } },
       );
+      authId = existing._id.toString();
+      result = 'updated';
       logger.info('Superadmin credentials updated', { email });
-      return 'updated';
+    } else {
+      const created = await User.create({ email, username, passwordHash, role: 'superadmin', isEmailVerified: true });
+      authId = (created._id as object).toString();
+      result = 'created';
+      logger.info('Superadmin created', { email });
     }
-    await User.create({ email, username, passwordHash, role: 'superadmin', isEmailVerified: true });
-    logger.info('Superadmin created', { email });
-    return 'created';
+
+    // Sync role to user service DB (non-blocking) — prevents role mismatch in users list
+    void syncAdminProfile(authId, email, username, 'superadmin');
+
+    return result;
   }
 
   async clearLoginAttempts(email: string): Promise<void> {

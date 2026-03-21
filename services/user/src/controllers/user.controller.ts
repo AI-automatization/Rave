@@ -289,6 +289,21 @@ export class UserController {
     }
   };
 
+  // Internal — called by auth service after superadmin create/update
+  syncAdminProfileInternal = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { authId, email, username, role } = req.body as { authId: string; email: string; username: string; role: string };
+      if (!authId || !email || !username || !role) {
+        res.status(400).json(apiResponse.error('Missing required fields'));
+        return;
+      }
+      await this.userService.syncAdminProfile(authId, email, username, role);
+      res.json(apiResponse.success(null, 'Admin profile synced'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   // Internal — called by notification service to get FCM tokens
   getFcmTokensInternal = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {

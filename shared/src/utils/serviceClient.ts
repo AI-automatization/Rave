@@ -417,6 +417,23 @@ export async function getUserBattleStats(userId: string): Promise<{
   }
 }
 
+// ─── Sync admin profile to user DB ────────────────────────────────────────────
+
+export async function syncAdminProfile(authId: string, email: string, username: string, role: string): Promise<void> {
+  try {
+    await axios.post(
+      `${userServiceUrl}/api/v1/users/internal/sync-admin-profile`,
+      { authId, email, username, role },
+      { headers: internalHeaders, timeout: 5000 },
+    );
+    logger.info('[serviceClient] syncAdminProfile', { authId, role });
+  } catch (err) {
+    const error = err as AxiosError;
+    logger.error('[serviceClient] syncAdminProfile failed', { authId, message: error.message });
+    // Non-blocking — don't throw, auth op succeeded
+  }
+}
+
 // ─── Block/Unblock: revoke sessions + disconnect sockets ─────────────────────
 
 const authServiceUrl = process.env.AUTH_SERVICE_URL ?? 'http://localhost:3001';

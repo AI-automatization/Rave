@@ -121,6 +121,9 @@ export const createUserRouter = (redis: Redis): Router => {
   // Battle/other services call this to award points
   router.post('/internal/add-points', requireInternalSecret, userController.addPoints);
 
+  // Auth service calls this after superadmin create/update to sync role to user DB
+  router.post('/internal/sync-admin-profile', requireInternalSecret, userController.syncAdminProfileInternal);
+
   // Notification service calls this to get FCM tokens for push delivery
   router.get('/internal/:userId/fcm-tokens', requireInternalSecret, userController.getFcmTokensInternal);
 

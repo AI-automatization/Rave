@@ -263,6 +263,16 @@ export class ProfileService {
     logger.info('User unblocked via admin API', { userId });
   }
 
+  // Called by auth service after superadmin create/update to keep both DBs in sync
+  async syncAdminProfile(authId: string, email: string, username: string, role: string): Promise<void> {
+    await User.findOneAndUpdate(
+      { authId },
+      { $set: { email, username, role, isEmailVerified: true } },
+      { upsert: true },
+    );
+    logger.info('Admin profile synced to user DB', { authId, role });
+  }
+
   async adminChangeUserRole(userId: string, newRole: string): Promise<void> {
     const validRoles = ['user', 'operator', 'admin', 'superadmin'];
     if (!validRoles.includes(newRole)) throw new BadRequestError('Invalid role');

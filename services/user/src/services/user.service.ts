@@ -33,6 +33,7 @@ export class UserService {
   adminListUsers = (filters: Parameters<ProfileService['adminListUsers']>[0]) => this.profile.adminListUsers(filters);
   adminBlockUser = (userId: string, reason?: string) => this.profile.adminBlockUser(userId, reason);
   adminUnblockUser = (userId: string) => this.profile.adminUnblockUser(userId);
+  syncAdminProfile = (authId: string, email: string, username: string, role: string) => this.profile.syncAdminProfile(authId, email, username, role);
   adminChangeUserRole = (userId: string, role: string) => this.profile.adminChangeUserRole(userId, role);
   adminDeleteUser = (userId: string) => this.profile.adminDeleteUser(userId);
   adminGetStats = () => this.profile.adminGetStats();
