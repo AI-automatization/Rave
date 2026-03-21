@@ -1,4 +1,4 @@
-\import axios from 'axios';
+import axios from 'axios';
 import Redis from 'ioredis';
 import { logger } from '@shared/utils/logger';
 import { BadRequestError } from '@shared/utils/errors';
