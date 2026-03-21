@@ -13,6 +13,9 @@
 - **Fayllar:** `useWatchParty.ts`, `WatchPartyScreen.tsx`, `AppNavigator.tsx`, `translations.ts`
 - **T-J022:** `VideoSection.tsx` da `{!isOwner && <View style={StyleSheet.absoluteFill} pointerEvents="box-only" />}` — shaffof overlay member touch/tap/scroll ni bloklaydi. Owner controls va fullscreen toggle overlay ustida qoladi (zIndex).
 - **T-J023:** Notification ekrani allaqachon to'liq implement qilingan: `notification.api.ts` (GET, PUT, DELETE), `NotificationsScreen.tsx` (FlatList + unread badge + pull-to-refresh + empty state + mark all read + type icons + friend accept/reject + WatchParty join). `useNotifications.ts` hook bilan Socket.io realtime ham ishlaydi.
+- **T-J024:** Battle ekrani allaqachon to'liq implement qilingan: `battle.api.ts` (create, getMyBattles, getBattleById, accept, reject, getLeaderboard, getCompleted). `BattleScreen.tsx` (detail + list view, tabs active/history, accept/reject actions, progress bars, winner ko'rsatish). `useBattle.ts` hook (React Query + mutations).
+- **T-J025:** Profil va Settings allaqachon implement qilingan: `ProfileScreen.tsx` (avatar picker, edit modal, stats grid), `SettingsScreen.tsx` (edit profile, change password, language, notifications/privacy toggles, delete account, app info, logout).
+- **T-J026:** Bloklangan akkaunt handling allaqachon implement qilingan: `BlockedAccountModal.tsx` (UI), `client.ts` (403 ACCOUNT_BLOCKED interceptor → logout + notifyBlocked), `AppNavigator.tsx` (global listener → modal ko'rsatish), `WatchPartyScreen` da account_blocked reason handler (T-J021 da qo'shildi).
 
 ---
 
