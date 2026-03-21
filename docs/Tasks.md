@@ -14,7 +14,7 @@
 3. Fix bo'lgach → shu yerdan O'CHIRISH → docs/Done.md ga KO'CHIRISH
 4. Prioritet: P0=kritik, P1=muhim, P2=o'rta, P3=past
 5. Sprint: S1=hozir, S2=keyingi hafta, S3=keyingi sprint, S4-5=keyin
-6. Oxirgi T-raqam: S→038, E→062, J→021, C→010
+6. Oxirgi T-raqam: S→038, E→062, J→025, C→010
 ```
 
 ---
@@ -553,6 +553,162 @@ Backend endi `ROOM_CLOSED` ni ikkita holda yuboradi: `owner_left` va `inactivity
 - [ ] `messaging().subscribeToTopic('all')` — broadcast uchun
 - [ ] `onNotificationOpenedApp` + `getInitialNotification` deep link handler
 - [ ] WatchPartyScreen da `ROOM_CLOSED` event handler
+
+---
+
+### T-J022 | P1 | [MOBILE] | WatchParty — member lock overlay (WebView)
+
+- **Sana:** 2026-03-21
+- **Mas'ul:** pending[Jafar]
+- **Sprint:** S6
+- **Fayl:** `apps/mobile/src/screens/WatchParty/components/WebViewPlayer.tsx` (yoki `VideoSection.tsx`)
+- **Holat:** ❌ Boshlanmagan
+
+**Muammo:**
+Hozir WatchParty da member ham WebView da tap/scroll/click qila oladi — saytning o'z playeri ularda ham interactive. Faqat owner boshqarishi kerak.
+
+**Yechim — 5 qator:**
+```tsx
+// WebView dan keyingi qatorda:
+{!isOwner && (
+  <View style={StyleSheet.absoluteFill} />
+)}
+// StyleSheet.absoluteFill — shaffof, touch larni to'sadi
+```
+
+**Qo'shimcha — Bug tekshiruv (`isOwner` events):**
+- Owner WebView da play bosadi → Socket.io ga `video:play` ketadimi? ✓ tekshirish
+- Member `video:play` oladi → `injectWithRetry` WebView ga inject bo'ladimi? ✓ tekshirish
+- Agar member da ham `onPlay/onPause` chaqirilayotgan bo'lsa → bug: `if (isOwner)` guard qo'shish
+
+**Subtasklar:**
+- [ ] `WebViewPlayer.tsx` da `isOwner` prop bor-yo'qligini tekshirish
+- [ ] `{!isOwner && <View style={StyleSheet.absoluteFill} />}` — WebView ustiga qo'shish
+- [ ] Test: member tap bosadi → video boshqarilmaydi ✅
+- [ ] Test: owner play bosadi → member sync bo'ladi ✅
+- [ ] TypeScript: `tsc --noEmit` o'tadi ✅
+
+---
+
+### T-J023 | P1 | [MOBILE] | Notification ekrani — to'liq implementatsiya
+
+- **Sana:** 2026-03-21
+- **Mas'ul:** pending[Jafar]
+- **Sprint:** S4
+- **Fayllar:** `apps/mobile/src/screens/Notifications/NotificationsScreen.tsx`, `apps/mobile/src/api/notifications.api.ts`
+- **Holat:** ❌ Boshlanmagan
+
+**Backend API (production):**
+```
+GET  /notifications?page=1&limit=20        → list (paginated)
+GET  /notifications/unread-count           → { count: number }
+PATCH /notifications/:id/read              → mark one read
+PATCH /notifications/read-all             → mark all read
+DELETE /notifications/:id                  → delete
+```
+
+**Notification types va ularning action:**
+| type | Ko'rinish | Tap action |
+|------|-----------|------------|
+| `friend_request` | "X do'stlik so'rovi yubordi" | → Friends ekrani |
+| `friend_accepted` | "X do'stingiz bo'ldi" | → Friends ekrani |
+| `watch_party_invite` | "X Watch Party ga taklif qildi" | → WatchPartyJoin ekrani (inviteCode bilan) |
+| `battle_invite` | "X battle taklifi yubordi" | → Battles ekrani |
+| `battle_result` | "Battle rad etildi/yakunlandi" | → Battles ekrani |
+| `achievement_unlocked` | "Achievement ochildi! 🏆" | → Profile/Achievements ekrani |
+
+**Notification data payload (backend dan keladi):**
+```typescript
+// data field ichida:
+{ screen: 'Friends' | 'WatchParty' | 'Battles' | 'Home', inviteCode?: string, battleId?: string }
+```
+
+**Subtasklar:**
+- [ ] `notifications.api.ts` — barcha endpoint lar (GET, PATCH, DELETE)
+- [ ] `NotificationsScreen` — FlatList, unread badge (qizil), pull-to-refresh
+- [ ] Har bir notification tapping → `data.screen` asosida navigate
+- [ ] Unread count badge — tab bar yoki header da
+- [ ] "Hammasini o'qilgan deb belgilash" tugmasi
+- [ ] Empty state — "Hozircha bildirishnoma yo'q"
+- [ ] TypeScript: `tsc --noEmit` o'tadi ✅
+
+---
+
+### T-J024 | P2 | [MOBILE] | Battle invite — qabul qilish/rad etish + battle detail ekrani
+
+- **Sana:** 2026-03-21
+- **Mas'ul:** pending[Jafar]
+- **Sprint:** S4
+- **Fayllar:** `apps/mobile/src/screens/Battles/BattleDetailScreen.tsx`, `apps/mobile/src/api/battles.api.ts`
+- **Holat:** ❌ Boshlanmagan
+
+**Backend API:**
+```
+GET    /battles/:id                  → battle detail (participants, status, leaderboard)
+POST   /battles/:id/accept           → invite qabul qilish
+POST   /battles/:id/reject           → invite rad etish
+GET    /battles/:id/leaderboard      → sorted participants list
+GET    /battles                      → my battles list
+```
+
+**Battle statuses:** `pending` | `active` | `completed` | `cancelled` | `rejected`
+
+**Invite flow:**
+```
+Notification tap (battle_invite) →
+  data.battleId bilan BattleDetailScreen.navigate →
+    Accept / Reject tugmalari ko'rinadi (status === 'pending' && !hasAccepted) →
+      Accept: POST /battles/:id/accept → battle 'active' bo'ladi →
+              toast "Battle boshlandi! Kim ko'proq film ko'radi?"
+      Reject: POST /battles/:id/reject → creator ga notification ketadi (backend avtomatik)
+```
+
+**Subtasklar:**
+- [ ] `battles.api.ts` — getBattle, getLeaderboard, acceptInvite, rejectInvite, getMyBattles
+- [ ] `BattleDetailScreen` — status, davomiylik, leaderboard (score bo'yicha sorted)
+- [ ] Accept/Reject tugmalari — faqat `pending` va `!hasAccepted` holda ko'rinadi
+- [ ] Leaderboard: har bir ishtirokchi: avatar, username, score (balls), moviesWatched, minutesWatched
+- [ ] Winner ko'rsatish — `completed` statusda, winner yuqorida 🏆
+- [ ] My Battles list — active/pending/completed filtr
+- [ ] TypeScript: `tsc --noEmit` o'tadi ✅
+
+---
+
+### T-J025 | P2 | [MOBILE] | Profil settings ekrani — bio edit, avatar upload, account
+
+- **Sana:** 2026-03-21
+- **Mas'ul:** pending[Jafar]
+- **Sprint:** S5
+- **Fayllar:** `apps/mobile/src/screens/Profile/EditProfileScreen.tsx`, `apps/mobile/src/screens/Profile/SettingsScreen.tsx`
+- **Holat:** ❌ Boshlanmagan
+
+**Backend API:**
+```
+GET    /users/me                     → o'z profil ma'lumotlari
+PATCH  /users/me                     → { bio: string } yangilash
+POST   /users/me/avatar              → multipart/form-data, field: 'avatar' (image/jpeg, image/png, max 5MB)
+DELETE /auth/account                 → akkauntni o'chirish (confirmation kerak!)
+POST   /auth/logout                  → logout (refresh token invalid qilinadi)
+```
+
+**Subtasklar:**
+
+**A. Edit Profile:**
+- [ ] Bio maydon (max 200 belgi)
+- [ ] Avatar tanlash — `expo-image-picker` (gallery) yoki kamera
+- [ ] Avatar yuklash — `FormData` bilan multipart POST
+- [ ] Saqlash tugmasi — `PATCH /users/me` + avatar bo'lsa `POST /users/me/avatar`
+
+**B. Settings:**
+- [ ] Notification sozlamalari (local toggle — FCM subscription on/off)
+- [ ] "Chiqish" (Logout) — `POST /auth/logout` → token tozalash → LoginScreen ga redirect
+- [ ] "Akkauntni o'chirish" — confirmation modal → `DELETE /auth/account`
+- [ ] App versiyasi ko'rsatish (static, `expo-constants`)
+
+**C. Security:**
+- [ ] Avatar yuklashda mimetype tekshirish (`image/jpeg` | `image/png` faqat)
+- [ ] Fayl hajmi: max 5MB (client side check)
+- [ ] TypeScript: `tsc --noEmit` o'tadi ✅
 
 ---
 
