@@ -16,8 +16,15 @@ COPY services/battle/package*.json ./services/battle/
 COPY services/notification/package*.json ./services/notification/
 COPY services/admin/package*.json ./services/admin/
 
+# Apps workspace stubs (npm workspaces resolution uchun — apps kodi kerak emas)
+COPY apps/package.json ./apps/
+COPY apps/web/package*.json ./apps/web/
+COPY apps/admin-ui/package*.json ./apps/admin-ui/
+COPY apps/mobile/package*.json ./apps/mobile/
+
 # Barcha workspace dependency'larini o'rnatish (devDeps ham)
-RUN npm install
+# --ignore-scripts: native build xatolarini oldini olish (apps uchun)
+RUN npm install --ignore-scripts
 
 # Source code ko'chirish
 COPY shared ./shared

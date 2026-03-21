@@ -532,12 +532,7 @@ Tavsiya: member ham retry bosa olsin (sayt muammosi, control muammosi emas)
 
 ### ✅ T-J019 | TUGADI → Done.md F-145
 
-### T-J020 | P2 | [MOBILE] | Docker Compose build xatosi — service containerlar build bo'lmaydi
-
-- **Sana:** 2026-03-21
-- **Muammo:** `docker compose -f docker-compose.dev.yml up -d` da service containerlar (auth, user, content...) build vaqtida `npm install` xato beradi
-- **Ta'sir:** Faqat infra (mongo, redis, elasticsearch) Docker orqali ishlaydi, servicelar lokal ishga tushiriladi
-- **Fayl:** `Dockerfile.dev`, `docker-compose.dev.yml`
+### ✅ T-J020 | TUGADI → Done.md F-145
 
 ---
 

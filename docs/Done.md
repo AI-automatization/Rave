@@ -17,6 +17,7 @@
 - **T-J025:** Profil va Settings allaqachon implement qilingan: `ProfileScreen.tsx` (avatar picker, edit modal, stats grid), `SettingsScreen.tsx` (edit profile, change password, language, notifications/privacy toggles, delete account, app info, logout).
 - **T-J026:** Bloklangan akkaunt handling allaqachon implement qilingan: `BlockedAccountModal.tsx` (UI), `client.ts` (403 ACCOUNT_BLOCKED interceptor → logout + notifyBlocked), `AppNavigator.tsx` (global listener → modal ko'rsatish), `WatchPartyScreen` da account_blocked reason handler (T-J021 da qo'shildi).
 - **T-J019:** `profile.service.ts` da `isUserOnline()` va `heartbeat()` ga try/catch qo'shildi. Redis down bo'lganda graceful degradation — offline deb ko'rsatadi, crash bermaydi.
+- **T-J020:** `Dockerfile.dev` da `apps/*/package.json` stub'lar qo'shildi (npm workspaces resolution uchun). `--ignore-scripts` flag qo'shildi (native build xatolarini oldini olish). Docker Desktop o'chirilgan — test lokal qilinmadi, lekin fix mantiqiy to'g'ri.
 
 ---
 
