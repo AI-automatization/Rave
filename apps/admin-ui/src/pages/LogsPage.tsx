@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { Fragment, useEffect, useState, useCallback } from 'react';
 import { logsApi } from '../api/logs.api';
 import { Pagination } from '../components/ui/Pagination';
 import type { ApiLog, PaginationMeta } from '../types';
@@ -27,6 +27,7 @@ function parseDevice(userAgent: string | null): string {
 function statusColor(code: number | null): string {
   if (!code) return 'text-text-dim';
   if (code < 300) return 'text-emerald-400';
+  if (code < 400) return 'text-blue-400';
   if (code < 500) return 'text-amber-400';
   return 'text-red-400';
 }
@@ -69,19 +70,23 @@ export function LogsPage() {
   const [expanded, setExpanded] = useState<string | null>(null);
 
   // filters
-  const [level,   setLevel]   = useState('');
-  const [service, setService] = useState('');
-  const [userId,  setUserId]  = useState('');
-  const [page,    setPage]    = useState(1);
+  const [level,    setLevel]    = useState('');
+  const [service,  setService]  = useState('');
+  const [userId,   setUserId]   = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo,   setDateTo]   = useState('');
+  const [page,     setPage]     = useState(1);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const res = await logsApi.list({
         page, limit: 50,
-        level:   level   || undefined,
-        service: service || undefined,
-        userId:  userId  || undefined,
+        level:    level    || undefined,
+        service:  service  || undefined,
+        userId:   userId   || undefined,
+        dateFrom: dateFrom || undefined,
+        dateTo:   dateTo   || undefined,
       });
       setLogs(res.data);
       setMeta(res.meta);
@@ -90,7 +95,7 @@ export function LogsPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, level, service, userId]);
+  }, [page, level, service, userId, dateFrom, dateTo]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -167,9 +172,25 @@ export function LogsPage() {
           className="px-3 py-1.5 text-xs bg-surface border border-border rounded-lg text-white placeholder-text-dim focus:outline-none focus:border-border-light w-44 font-mono"
         />
 
-        {(level || service || userId) && (
+        <input
+          type="date"
+          value={dateFrom}
+          onChange={e => { setDateFrom(e.target.value); setPage(1); }}
+          title="Dan"
+          className="px-3 py-1.5 text-xs bg-surface border border-border rounded-lg text-white placeholder-text-dim focus:outline-none focus:border-border-light w-36 font-mono [color-scheme:dark]"
+        />
+
+        <input
+          type="date"
+          value={dateTo}
+          onChange={e => { setDateTo(e.target.value); setPage(1); }}
+          title="Gacha"
+          className="px-3 py-1.5 text-xs bg-surface border border-border rounded-lg text-white placeholder-text-dim focus:outline-none focus:border-border-light w-36 font-mono [color-scheme:dark]"
+        />
+
+        {(level || service || userId || dateFrom || dateTo) && (
           <button
-            onClick={() => { setLevel(''); setService(''); setUserId(''); setPage(1); }}
+            onClick={() => { setLevel(''); setService(''); setUserId(''); setDateFrom(''); setDateTo(''); setPage(1); }}
             className="px-3 py-1.5 text-xs text-text-muted hover:text-white transition-colors"
           >
             Clear
@@ -203,9 +224,8 @@ export function LogsPage() {
                   <td colSpan={8} className="px-4 py-10 text-center text-text-dim">No logs found</td>
                 </tr>
               ) : logs.map((log) => (
-                <>
+                <Fragment key={log._id}>
                   <tr
-                    key={log._id}
                     onClick={() => toggle(log._id)}
                     className={`border-b border-border/40 cursor-pointer transition-colors ${
                       expanded === log._id ? 'bg-overlay' : 'hover:bg-overlay/50'
@@ -332,7 +352,7 @@ export function LogsPage() {
                       </td>
                     </tr>
                   )}
-                </>
+                </Fragment>
               ))}
             </tbody>
           </table>
