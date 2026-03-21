@@ -11,6 +11,7 @@ import { BattlesPage } from './pages/BattlesPage';
 import { WatchPartiesPage } from './pages/WatchPartiesPage';
 import { SystemPage } from './pages/SystemPage';
 import { AuditLogsPage } from './pages/AuditLogsPage';
+import { UserActivityPage } from './pages/UserActivityPage';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -40,6 +41,7 @@ export default function App() {
           <Route path="watchparties" element={<WatchPartiesPage />} />
           <Route path="system" element={<SystemPage />} />
           <Route path="audit-logs" element={<AuditLogsPage />} />
+          <Route path="user-activity" element={<UserActivityPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

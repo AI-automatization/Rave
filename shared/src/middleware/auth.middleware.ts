@@ -1,8 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import Redis from 'ioredis';
 import { JwtPayload, AuthenticatedRequest, OptionalAuthRequest, UserRole } from '../types/index';
 import { UnauthorizedError, ForbiddenError } from '../utils/errors';
 import { logger } from '../utils/logger';
+import { REDIS_KEYS } from '../constants/index';
 
 const getPublicKey = (): string => {
   const key = process.env.JWT_PUBLIC_KEY;
@@ -104,3 +106,18 @@ export const requireVerified = (
 
   next();
 };
+
+export const requireNotBlocked = (redis: Redis) =>
+  async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
+    const user = (req as AuthenticatedRequest).user;
+    if (!user) return next();
+    try {
+      const blocked = await redis.get(REDIS_KEYS.blockedUser(user.userId));
+      if (blocked) {
+        return next(new ForbiddenError('Account is blocked'));
+      }
+    } catch {
+      // Redis unavailable — allow through (fail open)
+    }
+    next();
+  };

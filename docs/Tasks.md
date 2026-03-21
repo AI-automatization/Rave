@@ -32,71 +32,9 @@
 ### ✅ T-S028 | TUGADI → Done.md F-118
 ### ✅ T-S029 | TUGADI → Done.md F-118
 
-### T-S035 | P1 | [ADMIN] | Admin Logs sahifasi — loglar ko'rinmayapti
-
-- **Sana:** 2026-03-21
-- **Mas'ul:** pending[Saidazim]
-- **Sprint:** S4
-- **Fayllar:** `services/admin/src/services/admin.service.ts`, `shared/src/middleware/apiLogger.middleware.ts`
-- **Holat:** ❌ Bug
-
-**Muammo:**
-`admin.service.ts` `getLogs()` `ApiLog` modelini default mongoose connection orqali o'qiydi.
-`apiLogger` middleware esa ALOHIDA dedicated `logsConn` orqali yozadi.
-Agar admin servisning MONGO_URI `cinesync_admin` DBga point qilmasa yoki `LOGS_MONGO_URI` farq qilsa — loglar ko'rinmaydi.
-
-**Fix:**
-- [ ] `apiLogger.middleware.ts` ga `getApiLogModel()` export qo'shish
-- [ ] `admin.service.ts` `getLogs()` ichida `getApiLogModel()` ishlatish (dedicated logsConn orqali o'qish)
-- [ ] Yoki: `admin.service.ts` da `LOGS_MONGO_URI` orqali alohida connection ochish va o'sha orqali o'qish
-- [ ] Tekshirish: loglar ko'rinayaptimi? Boshqa servislar (auth, user) loglari ham ko'rinadimi?
-
----
-
-### T-S036 | P1 | [ADMIN] | Admin Analytics — to'liq statistika yo'q (topMovies, genreDistribution, bugungi faollik)
-
-- **Sana:** 2026-03-21
-- **Mas'ul:** pending[Saidazim]
-- **Sprint:** S4
-- **Fayllar:** `services/admin/src/services/admin.service.ts`, `services/admin/src/controllers/admin.controller.ts`
-- **Holat:** ❌ Incomplete
-
-**Muammo:**
-Frontend `Analytics` type kutadi: `topMovies`, `genreDistribution`, `watchPartiesCreatedToday`, `battlesCreatedToday`, `newUsersThisWeek`
-Lekin backend `getAnalytics()` qaytaradi: `totalUsers, newUsersToday: 0, newUsersThisMonth: 0` — boshqa fieldlar yo'q.
-Dashboard da "Top 10 Film" va "Janr taqsimoti" chartlari doim "Ma'lumot yo'q" ko'rsatadi.
-
-**Fix:**
-- [ ] Content service dan top movies (viewCount bo'yicha top 10) olish — `/content/internal/admin/movies?sort=viewCount&limit=10`
-- [ ] Content service dan genre distribution olish
-- [ ] Watch-party service dan `watchPartiesCreatedToday` — bugun yaratilgan partylar soni
-- [ ] Battle service dan `battlesCreatedToday` — bugun yaratilgan battlelar soni
-- [ ] User service dan `newUsersThisWeek` — bu hafta yangi foydalanuvchilar
-- [ ] `serviceClient.ts` ga zarur helper functionlar qo'shish
-- [ ] Dashboard stats (`activeBattles`, `activeWatchParties`) ni ham to'g'ri to'ldirish — hozir 0
-
----
-
-### T-S037 | P1 | [ADMIN] | Admin Watch Parties — roomlar ko'rinmayapti
-
-- **Sana:** 2026-03-21
-- **Mas'ul:** pending[Saidazim]
-- **Sprint:** S4
-- **Fayllar:** `services/watch-party/src/controllers/watchParty.controller.ts`, `shared/src/utils/serviceClient.ts`
-- **Holat:** ❌ Bug
-
-**Muammo:**
-Watch-party service `adminListRooms` controller qanday format qaytarmoqda — noma'lum.
-Admin UI `AdminWatchParty` type kutadi: `members: string[]`, `videoTitle`, `videoPlatform`, `name`, `inviteCode`
-Watch-party Room modeli bu fieldlarning barchasini saqlashi yoki qaytarishi kerak.
-
-**Fix:**
-- [ ] `watchParty.controller.ts` `adminListRooms` tekshirish — to'g'ri paginated response qaytaradimi?
-- [ ] Room modeli `videoTitle`, `videoPlatform`, `name` fieldlarini saqlaydi? Agar yo'q — qo'shish
-- [ ] `members` field — `string[]` (userId array) yoki objects array? String bo'lishi kerak
-- [ ] `adminJoinRoom` controller — `{ room: ... }` format bilan qaytaradimi? `watchpartiesApi.join()` `res.data.data.room` kutadi
-
----
+### ✅ T-S035 | TUGADI → Done.md F-144
+### ✅ T-S036 | TUGADI → Done.md F-144
+### ✅ T-S037 | TUGADI → Done.md F-144
 
 ### T-S033 | P1 | [BACKEND] | Video Extract endpoint — yt-dlp deploy + sayt qo'llab-quvvatlash kengaytirish
 
@@ -484,30 +422,9 @@ Tavsiya: member ham retry bosa olsin (sayt muammosi, control muammosi emas)
 
 ## SPRINT 5 — Ochiq tasklar
 
-### T-J016 | P1 | [BACKEND] | Redis Docker config — bo'sh parol bilan start bermaydi
-
-- **Sana:** 2026-03-21
-- **Mas'ul:** pending[Saidazim]
-- **Muammo:** `docker-compose.dev.yml` da Redis `requirepass` ga bo'sh string berilsa Redis FATAL xato beradi va start bermaydi
-- **Ta'sir:** Content Service (3003), Watch-Party (3004), Battle (3005) ishlamaydi — Redis kerak
-- **Yechim:** `docker-compose.dev.yml` da Redis config tuzatish — default parol qo'yish yoki `requirepass` ni olib tashlash
-- **Fayl:** `docker-compose.dev.yml`, Redis command/config
-
-### T-J017 | P1 | [BACKEND] | Content Service (3003) ishlamaydi — Redis connection crash
-
-- **Sana:** 2026-03-21
-- **Mas'ul:** pending[Saidazim]
-- **Muammo:** Content service Redis ga ulana olmaydi va crash beradi (MaxRetriesPerRequestError). `maxRetriesPerRequest` limiti 1 ga teng — bitta retry dan keyin xato
-- **Ta'sir:** Film search, movie detail, video URL — hammasi ishlamaydi
-- **Bog'liq:** T-J016 (Redis config)
-
-### T-J018 | P1 | [BACKEND] | Watch-Party Service (3004) ishlamaydi — Redis connection crash
-
-- **Sana:** 2026-03-21
-- **Mas'ul:** pending[Saidazim]
-- **Muammo:** Watch-party service Redis ga ulana olmaydi va start bermaydi. Socket.io ham ishlamaydi
-- **Ta'sir:** Watch party yaratish, xonaga qo'shilish, video sync — hammasi ishlamaydi
-- **Bog'liq:** T-J016 (Redis config)
+### ✅ T-J016 | TUGADI → Done.md F-144
+### ✅ T-J017 | TUGADI → Done.md F-144
+### ✅ T-J018 | TUGADI → Done.md F-144
 
 ### T-J019 | P2 | [MOBILE] | FriendSearch — backend search natijasi bo'sh kelishi mumkin
 

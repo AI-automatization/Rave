@@ -4,6 +4,17 @@
 
 ---
 
+### F-144 | 2026-03-21 | [BACKEND+INFRA] | T-J016 T-J017 T-J018 T-S035 T-S036 T-S037 — Redis fix + Admin analytics [Saidazim]
+
+- **T-J016:** `docker-compose.dev.yml` Redis `requirepass` — `${REDIS_PASSWORD:-cinesync_redis_dev}` default fallback. Bo'sh parol bilan FATAL xato tuzatildi.
+- **T-J017:** `services/content/src/server.ts` — `maxRetriesPerRequest: null`, `lazyConnect: true`, graceful degradation. Redis down bo'lsa servis crash bermaydi.
+- **T-J018:** `services/watch-party/src/server.ts` — ayni fix. Socket.io single-instance mode da ishlaydi Redis bo'lmasa ham.
+- **T-S035:** Allaqachon fix qilingan (previous session) — `getApiLogModel()` export + admin service ishlatmoqda.
+- **T-S036:** `getAnalytics()` to'liq to'ldirildi — `totalUsers`, `newUsersThisWeek` (user service), `activeBattles`, `activeWatchParties` (battle/watch-party service). `profile.service.ts` `adminGetStats()` ga `newUsersThisWeek` qo'shildi. `serviceClient.ts` type yangilandi.
+- **T-S037:** Tekshirildi — model to'g'ri (`members: string[]`, `videoTitle`, `videoPlatform`, `name`, `inviteCode` barchasi bor). `adminJoinRoom` `{ room }` format qaytaradi. O'zgartirish kerak emas.
+
+---
+
 ### F-143 | 2026-03-21 | [MOBILE] | T-E060 — Blocked account popup + Admin WatchParty events + Dark theme fix [Jafar]
 
 - **BlockedAccountModal:** Yangi `BlockedAccountModal.tsx` component — banned foydalanuvchilar uchun modal (icon, reason, contact support, OK button).

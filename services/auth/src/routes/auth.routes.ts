@@ -3,7 +3,7 @@ import passport from 'passport';
 import { AuthController } from '../controllers/auth.controller';
 import { AuthService } from '../services/auth.service';
 import { authRateLimiter } from '@shared/middleware/rateLimiter.middleware';
-import { verifyToken } from '@shared/middleware/auth.middleware';
+import { verifyToken, requireNotBlocked } from '@shared/middleware/auth.middleware';
 import {
   registerSchema,
   confirmRegisterSchema,
@@ -40,8 +40,10 @@ export const createAuthRouter = (redis: Redis): Router => {
   // POST /auth/logout
   router.post('/logout', validate(refreshTokenSchema), authController.logout);
 
+  const notBlocked = requireNotBlocked(redis);
+
   // POST /auth/logout-all  (requires auth)
-  router.post('/logout-all', verifyToken, authController.logoutAll);
+  router.post('/logout-all', verifyToken, notBlocked, authController.logoutAll);
 
   // POST /auth/forgot-password
   router.post('/forgot-password', authRateLimiter, validate(forgotPasswordSchema), authController.forgotPassword);
@@ -50,10 +52,10 @@ export const createAuthRouter = (redis: Redis): Router => {
   router.post('/reset-password', authRateLimiter, validate(resetPasswordSchema), authController.resetPassword);
 
   // GET /auth/me
-  router.get('/me', verifyToken, authController.getMe);
+  router.get('/me', verifyToken, notBlocked, authController.getMe);
 
   // POST /auth/change-password — authenticated (T-S030)
-  router.post('/change-password', verifyToken, validate(changePasswordSchema), authController.changePassword);
+  router.post('/change-password', verifyToken, notBlocked, validate(changePasswordSchema), authController.changePassword);
 
   // Google OAuth
   router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));

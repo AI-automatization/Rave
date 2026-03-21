@@ -51,6 +51,7 @@ export const REDIS_KEYS = {
   tgState: (state: string) => `auth:tg:state:${state}`,
   tgAuth: (state: string) => `auth:tg:auth:${state}`,
   userSession: (userId: string) => `auth:session:${userId}`,
+  blockedUser: (userId: string) => `auth:blocked:${userId}`,
 
   // User service
   heartbeat: (userId: string) => `user:heartbeat:${userId}`,
