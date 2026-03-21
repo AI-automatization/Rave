@@ -2,7 +2,7 @@ import { Router } from 'express';
 import Redis from 'ioredis';
 import { BattleController } from '../controllers/battle.controller';
 import { BattleService } from '../services/battle.service';
-import { verifyToken, requireNotBlocked } from '@shared/middleware/auth.middleware';
+import { verifyToken } from '@shared/middleware/auth.middleware';
 import { requireInternalSecret } from '@shared/utils/serviceClient';
 
 export const createBattleRouter = (redis: Redis): Router => {
