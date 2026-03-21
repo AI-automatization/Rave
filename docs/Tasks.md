@@ -487,6 +487,7 @@ Tavsiya: member ham retry bosa olsin (sayt muammosi, control muammosi emas)
 ### T-J016 | P1 | [BACKEND] | Redis Docker config — bo'sh parol bilan start bermaydi
 
 - **Sana:** 2026-03-21
+- **Mas'ul:** pending[Saidazim]
 - **Muammo:** `docker-compose.dev.yml` da Redis `requirepass` ga bo'sh string berilsa Redis FATAL xato beradi va start bermaydi
 - **Ta'sir:** Content Service (3003), Watch-Party (3004), Battle (3005) ishlamaydi — Redis kerak
 - **Yechim:** `docker-compose.dev.yml` da Redis config tuzatish — default parol qo'yish yoki `requirepass` ni olib tashlash
@@ -495,6 +496,7 @@ Tavsiya: member ham retry bosa olsin (sayt muammosi, control muammosi emas)
 ### T-J017 | P1 | [BACKEND] | Content Service (3003) ishlamaydi — Redis connection crash
 
 - **Sana:** 2026-03-21
+- **Mas'ul:** pending[Saidazim]
 - **Muammo:** Content service Redis ga ulana olmaydi va crash beradi (MaxRetriesPerRequestError). `maxRetriesPerRequest` limiti 1 ga teng — bitta retry dan keyin xato
 - **Ta'sir:** Film search, movie detail, video URL — hammasi ishlamaydi
 - **Bog'liq:** T-J016 (Redis config)
@@ -502,6 +504,7 @@ Tavsiya: member ham retry bosa olsin (sayt muammosi, control muammosi emas)
 ### T-J018 | P1 | [BACKEND] | Watch-Party Service (3004) ishlamaydi — Redis connection crash
 
 - **Sana:** 2026-03-21
+- **Mas'ul:** pending[Saidazim]
 - **Muammo:** Watch-party service Redis ga ulana olmaydi va start bermaydi. Socket.io ham ishlamaydi
 - **Ta'sir:** Watch party yaratish, xonaga qo'shilish, video sync — hammasi ishlamaydi
 - **Bog'liq:** T-J016 (Redis config)
