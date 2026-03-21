@@ -7,7 +7,7 @@ import { Client as ElasticsearchClient } from '@elastic/elasticsearch';
 import { ContentController } from '../controllers/content.controller';
 import { VideoExtractController } from '../controllers/videoExtract.controller';
 import { ContentService } from '../services/content.service';
-import { verifyToken, optionalAuth, requireRole } from '@shared/middleware/auth.middleware';
+import { verifyToken, optionalAuth, requireRole, requireNotBlocked } from '@shared/middleware/auth.middleware';
 import { apiRateLimiter } from '@shared/middleware/rateLimiter.middleware';
 import { requireInternalSecret } from '@shared/utils/serviceClient';
 import { validate, createMovieSchema } from '../validators/content.validator';
@@ -45,10 +45,11 @@ export const createContentRouter = (redis: Redis, elastic: ElasticsearchClient):
   const contentService = new ContentService(redis, elastic);
   const contentController = new ContentController(contentService);
   const videoExtractController = new VideoExtractController(redis);
+  const notBlocked = requireNotBlocked(redis);
 
   // ── Video URL Extraction (T-S031) ─────────────────────────────
   // POST /content/extract — extract playable stream URL from any webpage/platform
-  router.post('/extract', verifyToken, apiRateLimiter, videoExtractController.extract);
+  router.post('/extract', verifyToken, notBlocked, apiRateLimiter, videoExtractController.extract);
 
   // ── Discovery endpoints (T-S026) ─────────────────────────────
   // GET /content/trending?limit=10
@@ -56,26 +57,26 @@ export const createContentRouter = (redis: Redis, elastic: ElasticsearchClient):
   // GET /content/top-rated?limit=10
   router.get('/top-rated', apiRateLimiter, contentController.getTopRated);
   // GET /content/continue-watching — auth required
-  router.get('/continue-watching', verifyToken, contentController.getContinueWatching);
+  router.get('/continue-watching', verifyToken, notBlocked, contentController.getContinueWatching);
 
   // GET /content/search — alias for /movies/search (mobile uses this path)
   router.get('/search', apiRateLimiter, optionalAuth, contentController.searchMovies);
 
   // ── Watch Progress alias (T-S027) — mobile uses /movies/:id/progress ─
-  router.post('/movies/:id/progress', verifyToken, contentController.saveMovieProgress);
-  router.get('/movies/:id/progress', verifyToken, contentController.getMovieProgress);
+  router.post('/movies/:id/progress', verifyToken, notBlocked, contentController.saveMovieProgress);
+  router.get('/movies/:id/progress', verifyToken, notBlocked, contentController.getMovieProgress);
 
   // POST /content/movies/:id/complete — mark movie as complete (mobile calls this)
-  router.post('/movies/:id/complete', verifyToken, contentController.completeMovie);
+  router.post('/movies/:id/complete', verifyToken, notBlocked, contentController.completeMovie);
 
   // POST /content/movies/upload — video upload to Cloudinary (operator/admin only)
-  router.post('/movies/upload', verifyToken, requireRole('operator', 'admin', 'superadmin'), videoUpload.single('video'), contentController.uploadVideo);
+  router.post('/movies/upload', verifyToken, notBlocked, requireRole('operator', 'admin', 'superadmin'), videoUpload.single('video'), contentController.uploadVideo);
 
   // POST /content/movies/upload-image — poster/backdrop upload (?type=poster|backdrop)
-  router.post('/movies/upload-image', verifyToken, requireRole('operator', 'admin', 'superadmin'), imageUpload.single('image'), contentController.uploadImage);
+  router.post('/movies/upload-image', verifyToken, notBlocked, requireRole('operator', 'admin', 'superadmin'), imageUpload.single('image'), contentController.uploadImage);
 
   // GET /content/movies/stats — genre distribution, year histogram (admin/operator)
-  router.get('/movies/stats', verifyToken, requireRole('operator', 'admin', 'superadmin'), contentController.getStats);
+  router.get('/movies/stats', verifyToken, notBlocked, requireRole('operator', 'admin', 'superadmin'), contentController.getStats);
 
   // GET /content/movies — list (public)
   router.get('/movies', apiRateLimiter, optionalAuth, contentController.listMovies);
@@ -87,37 +88,38 @@ export const createContentRouter = (redis: Redis, elastic: ElasticsearchClient):
   router.get('/movies/:id', apiRateLimiter, optionalAuth, contentController.getMovie);
 
   // POST /content/movies — operator/admin only
-  router.post('/movies', verifyToken, requireRole('operator', 'admin', 'superadmin'), validate(createMovieSchema), contentController.createMovie);
+  router.post('/movies', verifyToken, notBlocked, requireRole('operator', 'admin', 'superadmin'), validate(createMovieSchema), contentController.createMovie);
 
   // PATCH /content/movies/:id
-  router.patch('/movies/:id', verifyToken, requireRole('operator', 'admin', 'superadmin'), contentController.updateMovie);
+  router.patch('/movies/:id', verifyToken, notBlocked, requireRole('operator', 'admin', 'superadmin'), contentController.updateMovie);
 
   // DELETE /content/movies/:id
-  router.delete('/movies/:id', verifyToken, requireRole('admin', 'superadmin'), contentController.deleteMovie);
+  router.delete('/movies/:id', verifyToken, notBlocked, requireRole('admin', 'superadmin'), contentController.deleteMovie);
 
   // POST /content/history — record watch progress
-  router.post('/history', verifyToken, contentController.recordWatchHistory);
+  router.post('/history', verifyToken, notBlocked, contentController.recordWatchHistory);
 
   // GET /content/history — get watch history
-  router.get('/history', verifyToken, contentController.getWatchHistory);
+  router.get('/history', verifyToken, notBlocked, contentController.getWatchHistory);
 
   // POST /content/movies/:id/rate
-  router.post('/movies/:id/rate', verifyToken, contentController.rateMovie);
+  router.post('/movies/:id/rate', verifyToken, notBlocked, contentController.rateMovie);
 
   // GET /content/movies/:id/ratings — pagination bilan
   router.get('/movies/:id/ratings', apiRateLimiter, contentController.getMovieRatings);
 
   // DELETE /content/movies/:id/rate — user o'z reytigini o'chiradi
-  router.delete('/movies/:id/rate', verifyToken, contentController.deleteMyRating);
+  router.delete('/movies/:id/rate', verifyToken, notBlocked, contentController.deleteMyRating);
 
   // DELETE /content/ratings/:ratingId — operator/admin moderatsiya
-  router.delete('/ratings/:ratingId', verifyToken, requireRole('operator', 'admin', 'superadmin'), contentController.deleteRatingModerator);
+  router.delete('/ratings/:ratingId', verifyToken, notBlocked, requireRole('operator', 'admin', 'superadmin'), contentController.deleteRatingModerator);
 
   // GET /content/internal/user-watch-stats/:userId — internal: user service calls this for stats aggregation
   router.get('/internal/user-watch-stats/:userId', contentController.getUserWatchStats);
 
   // ── Admin Internal ────────────────────────────────────────
   router.get('/internal/admin/movies', requireInternalSecret, contentController.adminListMovies);
+  router.get('/internal/admin/stats', requireInternalSecret, contentController.adminGetStats);
   router.post('/internal/admin/movies/:id/publish', requireInternalSecret, contentController.adminPublishMovie);
   router.post('/internal/admin/movies/:id/unpublish', requireInternalSecret, contentController.adminUnpublishMovie);
   router.delete('/internal/admin/movies/:id', requireInternalSecret, contentController.adminDeleteMovie);

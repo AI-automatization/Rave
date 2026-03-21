@@ -74,6 +74,12 @@ function getModel(): mongoose.Model<any> | null {
   }
 }
 
+// ── Export for admin service reads ───────────────────────────
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function getLogsModel(): mongoose.Model<any> | null {
+  return getModel();
+}
+
 // ── Middleware ───────────────────────────────────────────────
 
 export function apiLogger(serviceName: string) {

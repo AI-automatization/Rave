@@ -32,6 +32,72 @@
 ### ✅ T-S028 | TUGADI → Done.md F-118
 ### ✅ T-S029 | TUGADI → Done.md F-118
 
+### T-S035 | P1 | [ADMIN] | Admin Logs sahifasi — loglar ko'rinmayapti
+
+- **Sana:** 2026-03-21
+- **Mas'ul:** pending[Saidazim]
+- **Sprint:** S4
+- **Fayllar:** `services/admin/src/services/admin.service.ts`, `shared/src/middleware/apiLogger.middleware.ts`
+- **Holat:** ❌ Bug
+
+**Muammo:**
+`admin.service.ts` `getLogs()` `ApiLog` modelini default mongoose connection orqali o'qiydi.
+`apiLogger` middleware esa ALOHIDA dedicated `logsConn` orqali yozadi.
+Agar admin servisning MONGO_URI `cinesync_admin` DBga point qilmasa yoki `LOGS_MONGO_URI` farq qilsa — loglar ko'rinmaydi.
+
+**Fix:**
+- [ ] `apiLogger.middleware.ts` ga `getApiLogModel()` export qo'shish
+- [ ] `admin.service.ts` `getLogs()` ichida `getApiLogModel()` ishlatish (dedicated logsConn orqali o'qish)
+- [ ] Yoki: `admin.service.ts` da `LOGS_MONGO_URI` orqali alohida connection ochish va o'sha orqali o'qish
+- [ ] Tekshirish: loglar ko'rinayaptimi? Boshqa servislar (auth, user) loglari ham ko'rinadimi?
+
+---
+
+### T-S036 | P1 | [ADMIN] | Admin Analytics — to'liq statistika yo'q (topMovies, genreDistribution, bugungi faollik)
+
+- **Sana:** 2026-03-21
+- **Mas'ul:** pending[Saidazim]
+- **Sprint:** S4
+- **Fayllar:** `services/admin/src/services/admin.service.ts`, `services/admin/src/controllers/admin.controller.ts`
+- **Holat:** ❌ Incomplete
+
+**Muammo:**
+Frontend `Analytics` type kutadi: `topMovies`, `genreDistribution`, `watchPartiesCreatedToday`, `battlesCreatedToday`, `newUsersThisWeek`
+Lekin backend `getAnalytics()` qaytaradi: `totalUsers, newUsersToday: 0, newUsersThisMonth: 0` — boshqa fieldlar yo'q.
+Dashboard da "Top 10 Film" va "Janr taqsimoti" chartlari doim "Ma'lumot yo'q" ko'rsatadi.
+
+**Fix:**
+- [ ] Content service dan top movies (viewCount bo'yicha top 10) olish — `/content/internal/admin/movies?sort=viewCount&limit=10`
+- [ ] Content service dan genre distribution olish
+- [ ] Watch-party service dan `watchPartiesCreatedToday` — bugun yaratilgan partylar soni
+- [ ] Battle service dan `battlesCreatedToday` — bugun yaratilgan battlelar soni
+- [ ] User service dan `newUsersThisWeek` — bu hafta yangi foydalanuvchilar
+- [ ] `serviceClient.ts` ga zarur helper functionlar qo'shish
+- [ ] Dashboard stats (`activeBattles`, `activeWatchParties`) ni ham to'g'ri to'ldirish — hozir 0
+
+---
+
+### T-S037 | P1 | [ADMIN] | Admin Watch Parties — roomlar ko'rinmayapti
+
+- **Sana:** 2026-03-21
+- **Mas'ul:** pending[Saidazim]
+- **Sprint:** S4
+- **Fayllar:** `services/watch-party/src/controllers/watchParty.controller.ts`, `shared/src/utils/serviceClient.ts`
+- **Holat:** ❌ Bug
+
+**Muammo:**
+Watch-party service `adminListRooms` controller qanday format qaytarmoqda — noma'lum.
+Admin UI `AdminWatchParty` type kutadi: `members: string[]`, `videoTitle`, `videoPlatform`, `name`, `inviteCode`
+Watch-party Room modeli bu fieldlarning barchasini saqlashi yoki qaytarishi kerak.
+
+**Fix:**
+- [ ] `watchParty.controller.ts` `adminListRooms` tekshirish — to'g'ri paginated response qaytaradimi?
+- [ ] Room modeli `videoTitle`, `videoPlatform`, `name` fieldlarini saqlaydi? Agar yo'q — qo'shish
+- [ ] `members` field — `string[]` (userId array) yoki objects array? String bo'lishi kerak
+- [ ] `adminJoinRoom` controller — `{ room: ... }` format bilan qaytaradimi? `watchpartiesApi.join()` `res.data.data.room` kutadi
+
+---
+
 ### T-S033 | P1 | [BACKEND] | Video Extract endpoint — yt-dlp deploy + sayt qo'llab-quvvatlash kengaytirish
 
 - **Sana:** 2026-03-18
@@ -210,6 +276,39 @@ GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state
 ---
 
 ## SPRINT 5 — Sifat + Test
+
+### T-E061 | P1 | [MOBILE] | Fix: Do'stlar tizimi + Bildirishnomalar
+
+- **Sana:** 2026-03-21
+- **Mas'ul:** pending[Emirhan]
+- **Sprint:** S5
+- **Fayllar:** `apps/mobile/src/hooks/useNotifications.ts`, `apps/mobile/src/hooks/useFriends.ts`, `apps/mobile/src/screens/modal/NotificationsScreen.tsx`, `apps/mobile/src/screens/friends/FriendsScreen.tsx`, `apps/mobile/src/api/notification.api.ts`
+- **Holat:** ❌ Bug
+
+**Muammolar:**
+
+**1. friend_request bildirishnomasi:**
+- `NotificationsScreen.tsx` da `data.friendshipId` ishlatiladi lekin backend notification da bu field bo'lishi kafolatlanmagan
+- `useNotifications.ts` line 70: `const data = item.data as Record<string, string>` — unsafe cast (T-E056 bilan bog'liq)
+- `handlePress` for `friend_request`: faqat markAsRead qiladi, lekin navigatsiya yo'q — accept/reject UI da bor lekin ular alohida
+
+**2. Do'stlar qabul qilinganda list yangilanmaydi:**
+- `useNotifications.ts` `acceptFriendMutation.onSuccess` — faqat `['notifications']` invalidate qiladi
+- `['friends']` query invalidate QILINMAYDI — FriendsScreen yangilanmaydi
+- `rejectFriendMutation.onSuccess` ham `['friends']` ni invalidate qilishi kerak emas lekin `['friend-requests']` ni qilishi kerak
+
+**3. Bildirishnomalar real-time emas:**
+- Socket.io `notification:new` handler to'g'ri ishlayaptimi? `getSocket()` null bo'lishi mumkin agar socket hali ulanmagan bo'lsa
+
+**Fix:**
+- [ ] `useNotifications.ts` `acceptFriendMutation.onSuccess` ga `queryClient.invalidateQueries(['friends'])` qo'shish
+- [ ] `useNotifications.ts` `rejectFriendMutation.onSuccess` ga `queryClient.invalidateQueries(['friend-requests'])` qo'shish
+- [ ] `NotificationsScreen.tsx` `data.friendshipId` — type guard yozish (`typeof data.friendshipId === 'string'` tekshirish)
+- [ ] `useFriends.ts` `acceptMutation.onSuccess` — `['friend-requests']` va `['friends']` invalidate to'g'ri qilinganini tekshirish
+- [ ] Backend tekshirish: `friend_request` notification da `data.friendshipId` bor ekan (Saidazim tomonidan tekshirildi ✅)
+- [ ] `notification.api.ts` tekshirish — barcha endpointlar to'g'ri URL ga point qilayaptimi?
+
+---
 
 ### T-E056 | P1 | [MOBILE] | TypeScript strict audit + console.log cleanup
 

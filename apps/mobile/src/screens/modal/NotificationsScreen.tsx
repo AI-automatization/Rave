@@ -52,8 +52,9 @@ export function NotificationsScreen() {
 
   const renderItem = ({ item }: ListRenderItemInfo<INotification>) => {
     const { icon, color } = TYPE_ICONS[item.type] ?? { icon: 'notifications-outline', color: colors.textMuted };
-    const data = item.data as Record<string, string>;
-    const hasActions = item.type === 'friend_request' || item.type === 'watch_party_invite';
+    const data = (item.data && typeof item.data === 'object') ? item.data as Record<string, string> : {};
+    const friendshipId = data.friendshipId;
+    const hasActions = (item.type === 'friend_request' && !!friendshipId) || item.type === 'watch_party_invite';
 
     return (
       <TouchableOpacity
@@ -70,12 +71,12 @@ export function NotificationsScreen() {
           <Text style={styles.itemTime}>{timeAgo(item.createdAt)}</Text>
           {hasActions && (
             <View style={styles.actionRow}>
-              {item.type === 'friend_request' && (
+              {item.type === 'friend_request' && friendshipId && (
                 <>
-                  <TouchableOpacity style={styles.acceptBtn} onPress={() => acceptFriendMutation.mutate(data.friendshipId)}>
+                  <TouchableOpacity style={styles.acceptBtn} onPress={() => acceptFriendMutation.mutate(friendshipId)}>
                     <Text style={styles.acceptBtnText}>Qabul</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.rejectBtn} onPress={() => rejectFriendMutation.mutate(data.friendshipId)}>
+                  <TouchableOpacity style={styles.rejectBtn} onPress={() => rejectFriendMutation.mutate(friendshipId)}>
                     <Text style={styles.rejectBtnText}>Rad</Text>
                   </TouchableOpacity>
                 </>

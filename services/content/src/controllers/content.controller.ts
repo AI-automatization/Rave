@@ -328,6 +328,27 @@ export class ContentController {
     }
   };
 
+  adminGetStats = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const [stats, topMovies] = await Promise.all([
+        this.contentService.getStats(),
+        this.contentService.getTrending(10),
+      ]);
+      res.json(apiResponse.success({
+        genreDistribution: stats.genreDistribution,
+        topMovies: topMovies.map((m) => ({
+          _id: String(m._id),
+          title: m.title as string,
+          viewCount: (m.viewCount as number) ?? 0,
+        })),
+        totalMovies: stats.totalMovies,
+        publishedMovies: stats.publishedMovies,
+      }));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   adminPublishMovie = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       await this.contentService.adminPublishMovie(req.params.id, true);
