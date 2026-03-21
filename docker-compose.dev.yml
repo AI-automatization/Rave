@@ -42,7 +42,7 @@ services:
     restart: unless-stopped
     ports:
       - '6380:6379'
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-cinesync_redis_dev}
     volumes:
       - redis_data:/data
     networks:

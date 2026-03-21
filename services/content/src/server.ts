@@ -12,9 +12,19 @@ const main = async (): Promise<void> => {
   logger.info('MongoDB connected', { service: 'content' });
 
   const redis = new Redis(config.redisUrl, {
-    retryStrategy: (times) => Math.min(times * 50, 2000),
+    maxRetriesPerRequest: null,
+    enableReadyCheck: false,
+    lazyConnect: true,
+    retryStrategy: (times) => Math.min(times * 100, 3000),
   });
-  redis.on('error', (err) => logger.error('Redis error', { error: err.message }));
+  redis.on('error', (err) => logger.warn('Redis connection error — cache degraded', { error: err.message }));
+
+  try {
+    await redis.connect();
+    logger.info('Redis connected', { service: 'content' });
+  } catch (err) {
+    logger.warn('Redis unavailable at startup — continuing without cache', { error: (err as Error).message });
+  }
 
   const elastic = new ElasticsearchClient({ node: config.elasticsearchUrl });
   logger.info('Elasticsearch client initialized', { url: config.elasticsearchUrl });

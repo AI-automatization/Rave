@@ -260,8 +260,12 @@ export class ProfileService {
     logger.warn('User deleted via admin API', { userId });
   }
 
-  async adminGetStats(): Promise<{ totalUsers: number; activeUsers: number }> {
-    const totalUsers = await User.countDocuments();
+  async adminGetStats(): Promise<{ totalUsers: number; activeUsers: number; newUsersThisWeek: number }> {
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const [totalUsers, newUsersThisWeek] = await Promise.all([
+      User.countDocuments(),
+      User.countDocuments({ createdAt: { $gte: weekAgo } }),
+    ]);
     const cursor = this.redis.scanStream({ match: `${REDIS_KEYS.heartbeat('*')}`, count: 100 });
     let activeUsers = 0;
     await new Promise<void>((resolve, reject) => {
@@ -269,7 +273,7 @@ export class ProfileService {
       cursor.on('end', resolve);
       cursor.on('error', reject);
     });
-    return { totalUsers, activeUsers };
+    return { totalUsers, activeUsers, newUsersThisWeek };
   }
 
   async deleteAccount(userId: string): Promise<void> {

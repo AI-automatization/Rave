@@ -9,9 +9,19 @@ const main = async (): Promise<void> => {
   logger.info('MongoDB connected', { service: 'watch-party' });
 
   const redis = new Redis(config.redisUrl, {
-    retryStrategy: (times) => Math.min(times * 50, 2000),
+    maxRetriesPerRequest: null,
+    enableReadyCheck: false,
+    lazyConnect: true,
+    retryStrategy: (times) => Math.min(times * 100, 3000),
   });
-  redis.on('error', (err) => logger.error('Redis error', { error: err.message }));
+  redis.on('error', (err) => logger.warn('Redis connection error — socket degraded', { error: err.message }));
+
+  try {
+    await redis.connect();
+    logger.info('Redis connected', { service: 'watch-party' });
+  } catch (err) {
+    logger.warn('Redis unavailable at startup — Socket.io adapter disabled', { error: (err as Error).message });
+  }
 
   const { httpServer } = createApp(redis);
 

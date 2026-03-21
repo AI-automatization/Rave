@@ -187,24 +187,29 @@ export class AdminService {
   // ── Analytics ────────────────────────────────────────────────
 
   async getAnalytics(): Promise<{
-    newUsersToday: number;
+    totalUsers: number;
     newUsersThisWeek: number;
     watchPartiesCreatedToday: number;
     battlesCreatedToday: number;
+    activeWatchParties: number;
+    activeBattles: number;
     topMovies: Array<{ _id: string; title: string; viewCount: number }>;
     genreDistribution: Array<{ genre: string; count: number }>;
   }> {
-    const [contentStats, watchPartyStats, battleStats] = await Promise.all([
+    const [contentStats, watchPartyStats, battleStats, userStats] = await Promise.all([
       adminGetContentStats(),
       adminGetWatchPartyStats(),
       adminGetBattleStats(),
+      adminGetUserStats(),
     ]);
 
     return {
-      newUsersToday: 0,       // TODO: add user service endpoint for daily new users
-      newUsersThisWeek: 0,    // TODO: add user service endpoint for weekly new users
+      totalUsers: userStats.totalUsers,
+      newUsersThisWeek: userStats.newUsersThisWeek,
       watchPartiesCreatedToday: watchPartyStats.createdToday,
       battlesCreatedToday: battleStats.createdToday,
+      activeWatchParties: watchPartyStats.activeNow,
+      activeBattles: battleStats.activeNow,
       topMovies: contentStats.topMovies,
       genreDistribution: contentStats.genreDistribution,
     };

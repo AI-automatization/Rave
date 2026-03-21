@@ -147,8 +147,8 @@ export async function adminListUsers(filters: {
   return res.data.data;
 }
 
-export async function adminGetUserStats(): Promise<{ totalUsers: number; activeUsers: number }> {
-  const res = await axios.get<{ data: { totalUsers: number; activeUsers: number } }>(
+export async function adminGetUserStats(): Promise<{ totalUsers: number; activeUsers: number; newUsersThisWeek: number }> {
+  const res = await axios.get<{ data: { totalUsers: number; activeUsers: number; newUsersThisWeek: number } }>(
     `${userServiceUrl}/api/v1/users/internal/admin/stats`,
     { headers: internalHeaders, timeout: 5000 },
   );
