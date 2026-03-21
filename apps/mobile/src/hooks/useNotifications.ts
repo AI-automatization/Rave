@@ -48,26 +48,36 @@ export function useNotifications() {
 
   const acceptFriendMutation = useMutation({
     mutationFn: (friendshipId: string) => userApi.acceptFriendRequest(friendshipId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      void queryClient.invalidateQueries({ queryKey: ['friends'] });
+      void queryClient.invalidateQueries({ queryKey: ['friend-requests'] });
+    },
   });
 
   const rejectFriendMutation = useMutation({
     mutationFn: (friendshipId: string) => userApi.rejectFriendRequest(friendshipId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      void queryClient.invalidateQueries({ queryKey: ['friend-requests'] });
+    },
   });
 
   // Socket: real-time new notifications
   useEffect(() => {
     const socket = getSocket();
     if (!socket) return;
-    const handler = (notification: INotification) => addNotification(notification);
+    const handler = (notification: INotification) => {
+      addNotification(notification);
+      void refetch();
+    };
     socket.on(NOTIFICATION_NEW, handler);
     return () => { socket.off(NOTIFICATION_NEW, handler); };
-  }, [addNotification]);
+  }, [addNotification, refetch]);
 
   const handlePress = useCallback((item: INotification) => {
     if (!item.isRead) markReadMutation.mutate(item._id);
-    const data = item.data as Record<string, string>;
+    const data = (item.data && typeof item.data === 'object') ? item.data as Record<string, string> : {};
     switch (item.type) {
       case 'watch_party_invite':
         if (data.roomId) navigation.navigate('WatchParty', { roomId: data.roomId });

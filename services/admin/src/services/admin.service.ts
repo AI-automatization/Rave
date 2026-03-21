@@ -4,7 +4,7 @@ import { logger } from '@shared/utils/logger';
 import { BadRequestError } from '@shared/utils/errors';
 import { REDIS_KEYS } from '@shared/constants';
 import { Feedback } from '../models/feedback.model';
-import { ApiLog } from '../models/apiLog.model';
+import { getLogsModel } from '@shared/middleware/apiLogger.middleware';
 import { AuditLog } from '../models/auditLog.model';
 import {
   adminListUsers,
@@ -26,6 +26,9 @@ import {
   adminControlWatchParty,
   adminKickWatchPartyMember,
   adminBroadcastNotification,
+  adminGetContentStats,
+  adminGetWatchPartyStats,
+  adminGetBattleStats,
 } from '@shared/utils/serviceClient';
 
 export interface DashboardStats {
@@ -44,17 +47,19 @@ export class AdminService {
   }
 
   async getDashboardStats(): Promise<DashboardStats> {
-    const [userStats, movieResult] = await Promise.all([
+    const [userStats, movieResult, watchPartyStats, battleStats] = await Promise.all([
       adminGetUserStats(),
       adminListMovies({ limit: 1 }),
+      adminGetWatchPartyStats(),
+      adminGetBattleStats(),
     ]);
 
     return {
       totalUsers: userStats.totalUsers,
       activeUsers: userStats.activeUsers,
       totalMovies: movieResult.total,
-      activeBattles: 0,
-      activeWatchParties: 0,
+      activeBattles: battleStats.activeNow,
+      activeWatchParties: watchPartyStats.activeNow,
     };
   }
 
@@ -86,12 +91,14 @@ export class AdminService {
   async blockUser(userId: string, adminId: string, adminEmail: string, reason?: string): Promise<void> {
     await adminBlockUser(userId, reason);
     await this.redis.del(REDIS_KEYS.userSession(userId));
+    await this.redis.set(REDIS_KEYS.blockedUser(userId), '1');
     logger.info('User blocked by admin', { userId, adminId, reason });
     await this.logAudit(adminId, adminEmail, 'block_user', { reason: reason ?? null }, userId, 'user');
   }
 
   async unblockUser(userId: string, adminId: string, adminEmail: string): Promise<void> {
     await adminUnblockUser(userId);
+    await this.redis.del(REDIS_KEYS.blockedUser(userId));
     logger.info('User unblocked by admin', { userId, adminId });
     await this.logAudit(adminId, adminEmail, 'unblock_user', {}, userId, 'user');
   }
@@ -180,26 +187,26 @@ export class AdminService {
   // ── Analytics ────────────────────────────────────────────────
 
   async getAnalytics(): Promise<{
-    totalUsers: number;
     newUsersToday: number;
-    newUsersThisMonth: number;
-    activeUsers: number;
-    totalMovies: number;
-    publishedMovies: number;
+    newUsersThisWeek: number;
+    watchPartiesCreatedToday: number;
+    battlesCreatedToday: number;
+    topMovies: Array<{ _id: string; title: string; viewCount: number }>;
+    genreDistribution: Array<{ genre: string; count: number }>;
   }> {
-    const [userStats, allMovies, publishedMovies] = await Promise.all([
-      adminGetUserStats(),
-      adminListMovies({ limit: 1 }),
-      adminListMovies({ limit: 1, isPublished: true }),
+    const [contentStats, watchPartyStats, battleStats] = await Promise.all([
+      adminGetContentStats(),
+      adminGetWatchPartyStats(),
+      adminGetBattleStats(),
     ]);
 
     return {
-      totalUsers: userStats.totalUsers,
-      newUsersToday: 0, // User service dan alohida endpoint kerak bo'lganda qo'shiladi
-      newUsersThisMonth: 0,
-      activeUsers: userStats.activeUsers,
-      totalMovies: allMovies.total,
-      publishedMovies: publishedMovies.total,
+      newUsersToday: 0,       // TODO: add user service endpoint for daily new users
+      newUsersThisWeek: 0,    // TODO: add user service endpoint for weekly new users
+      watchPartiesCreatedToday: watchPartyStats.createdToday,
+      battlesCreatedToday: battleStats.createdToday,
+      topMovies: contentStats.topMovies,
+      genreDistribution: contentStats.genreDistribution,
     };
   }
 
@@ -225,9 +232,11 @@ export class AdminService {
     }
 
     const skip = (filters.page - 1) * filters.limit;
+    const LogModel = getLogsModel();
+    if (!LogModel) return { logs: [], total: 0 };
     const [logs, total] = await Promise.all([
-      ApiLog.find(query).sort({ timestamp: -1 }).skip(skip).limit(filters.limit).lean(),
-      ApiLog.countDocuments(query),
+      LogModel.find(query).sort({ timestamp: -1 }).skip(skip).limit(filters.limit).lean(),
+      LogModel.countDocuments(query),
     ]);
     return { logs, total };
   }

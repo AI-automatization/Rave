@@ -99,6 +99,20 @@ export class BattleController {
 
   // ── Admin endpoints ──────────────────────────────────────────
 
+  adminGetStats = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const [createdToday, activeNow] = await Promise.all([
+        Battle.countDocuments({ createdAt: { $gte: today } }),
+        Battle.countDocuments({ status: 'active' }),
+      ]);
+      res.json(apiResponse.success({ createdToday, activeNow }));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   adminListBattles = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const page = parseInt((req.query.page as string) ?? '1', 10);

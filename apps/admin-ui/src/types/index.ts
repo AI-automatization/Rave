@@ -45,6 +45,7 @@ export interface DashboardStats {
 
 export interface AdminUser {
   _id: string;
+  authId: string;
   email: string;
   username: string;
   avatar: string | null;

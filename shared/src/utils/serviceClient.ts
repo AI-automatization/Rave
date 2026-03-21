@@ -210,7 +210,48 @@ export async function adminOperatorUpdateMovie(movieId: string, data: Record<str
   await axios.patch(`${contentServiceUrl}/api/v1/content/internal/admin/movies/${movieId}`, data, { headers: internalHeaders, timeout: 5000 });
 }
 
+export async function adminGetContentStats(): Promise<{
+  genreDistribution: Array<{ genre: string; count: number }>;
+  topMovies: Array<{ _id: string; title: string; viewCount: number }>;
+  totalMovies: number;
+  publishedMovies: number;
+}> {
+  try {
+    const res = await axios.get<{ data: { genreDistribution: Array<{ genre: string; count: number }>; topMovies: Array<{ _id: string; title: string; viewCount: number }>; totalMovies: number; publishedMovies: number } }>(
+      `${contentServiceUrl}/api/v1/content/internal/admin/stats`,
+      { headers: internalHeaders, timeout: 5000 },
+    );
+    return res.data.data;
+  } catch {
+    return { genreDistribution: [], topMovies: [], totalMovies: 0, publishedMovies: 0 };
+  }
+}
+
 // ─── Admin: Battle Service ─────────────────────────────────────────────────────
+
+export async function adminGetWatchPartyStats(): Promise<{ createdToday: number; activeNow: number }> {
+  try {
+    const res = await axios.get<{ data: { createdToday: number; activeNow: number } }>(
+      `${watchPartyServiceUrl}/api/v1/watch-party/internal/admin/stats`,
+      { headers: internalHeaders, timeout: 5000 },
+    );
+    return res.data.data ?? { createdToday: 0, activeNow: 0 };
+  } catch {
+    return { createdToday: 0, activeNow: 0 };
+  }
+}
+
+export async function adminGetBattleStats(): Promise<{ createdToday: number; activeNow: number }> {
+  try {
+    const res = await axios.get<{ data: { createdToday: number; activeNow: number } }>(
+      `${battleServiceUrl}/api/v1/battles/internal/admin/stats`,
+      { headers: internalHeaders, timeout: 5000 },
+    );
+    return res.data.data ?? { createdToday: 0, activeNow: 0 };
+  } catch {
+    return { createdToday: 0, activeNow: 0 };
+  }
+}
 
 export async function adminListBattles(filters: {
   page?: number;
@@ -250,11 +291,16 @@ export async function adminListWatchParties(filters: {
   if (filters.limit) params.set('limit', String(filters.limit));
   if (filters.status) params.set('status', filters.status);
 
-  const res = await axios.get<{ data: { rooms: unknown[]; total: number } }>(
+  const res = await axios.get<{
+    success: boolean;
+    data: unknown[];
+    meta: { page: number; limit: number; total: number; totalPages: number };
+    errors: null;
+  }>(
     `${watchPartyServiceUrl}/api/v1/watch-party/internal/admin/list?${params.toString()}`,
     { headers: internalHeaders, timeout: 5000 },
   );
-  return res.data.data;
+  return { rooms: res.data.data, total: res.data.meta?.total ?? 0 };
 }
 
 export async function adminCloseWatchParty(roomId: string): Promise<void> {

@@ -139,6 +139,20 @@ export class WatchPartyController {
 
   // ── Admin endpoints ──────────────────────────────────────────
 
+  adminGetStats = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const [createdToday, activeNow] = await Promise.all([
+        WatchPartyRoom.countDocuments({ createdAt: { $gte: today } }),
+        WatchPartyRoom.countDocuments({ status: { $in: ['playing', 'waiting', 'paused'] } }),
+      ]);
+      res.json(apiResponse.success({ createdToday, activeNow }));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   adminListRooms = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const page = parseInt((req.query.page as string) ?? '1', 10);

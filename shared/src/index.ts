@@ -8,8 +8,12 @@ export { logger, morganStream } from './utils/logger';
 export * from './utils/serviceClient';
 export { initServiceQueues, isQueueReady } from './utils/serviceQueue';
 
+// Models
+export * from './models/apiLog.model';
+
 // Middleware
 export * from './middleware/auth.middleware';
+export * from './middleware/apiLogger.middleware';
 export * from './middleware/error.middleware';
 export * from './middleware/rateLimiter.middleware';
 export * from './middleware/requestId.middleware';

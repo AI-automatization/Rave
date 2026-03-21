@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { usersApi } from '../api/users.api';
 import { useAuthStore } from '../store/auth.store';
 import { Badge } from '../components/ui/Badge';
@@ -9,6 +10,7 @@ import { Pagination } from '../components/ui/Pagination';
 import type { AdminUser, PaginationMeta } from '../types';
 
 export function UsersPage() {
+  const navigate = useNavigate();
   const currentUser = useAuthStore((s) => s.user);
   const isSuperAdmin = currentUser?.role === 'superadmin';
 
@@ -25,6 +27,15 @@ export function UsersPage() {
   const [blockModal, setBlockModal] = useState<{ user: AdminUser } | null>(null);
   const [blockReason, setBlockReason] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleCopyId = (id: string) => {
+    void navigator.clipboard.writeText(id);
+    setCopiedId(id);
+    if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    copyTimerRef.current = setTimeout(() => setCopiedId(null), 1500);
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -48,7 +59,7 @@ export function UsersPage() {
   const handleUnblock = async (user: AdminUser) => {
     setActionLoading(user._id);
     try {
-      await usersApi.unblock(user._id);
+      await usersApi.unblock(user.authId);
       await load();
     } finally {
       setActionLoading(null);
@@ -60,7 +71,7 @@ export function UsersPage() {
     if (blockReason.trim().length < 3) return;
     setActionLoading(blockModal.user._id);
     try {
-      await usersApi.block(blockModal.user._id, blockReason.trim());
+      await usersApi.block(blockModal.user.authId, blockReason.trim());
       setBlockModal(null);
       setBlockReason('');
       await load();
@@ -73,7 +84,7 @@ export function UsersPage() {
     if (!roleModal || !newRole) return;
     setActionLoading(roleModal.user._id);
     try {
-      await usersApi.changeRole(roleModal.user._id, newRole);
+      await usersApi.changeRole(roleModal.user.authId, newRole);
       setRoleModal(null);
       await load();
     } finally {
@@ -85,7 +96,7 @@ export function UsersPage() {
     if (!confirm(`"${user.username}" ni o'chirish? Bu amalni qaytarib bo'lmaydi.`)) return;
     setActionLoading(user._id);
     try {
-      await usersApi.delete(user._id);
+      await usersApi.delete(user.authId);
       await load();
     } finally {
       setActionLoading(null);
@@ -160,6 +171,24 @@ export function UsersPage() {
                       <div>
                         <p className="font-medium text-white">{user.username}</p>
                         <p className="text-xs text-text-muted">{user.email}</p>
+                        <button
+                          onClick={() => handleCopyId(user._id)}
+                          title={user._id}
+                          className="flex items-center gap-1 mt-0.5 group"
+                        >
+                          <span className="font-mono text-[10px] text-text-dim group-hover:text-text-muted transition-colors">
+                            {user._id.slice(-10)}
+                          </span>
+                          {copiedId === user._id ? (
+                            <svg className="w-3 h-3 text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                            </svg>
+                          ) : (
+                            <svg className="w-3 h-3 text-text-dim group-hover:text-text-muted shrink-0 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75" />
+                            </svg>
+                          )}
+                        </button>
                       </div>
                     </div>
                   </td>
@@ -183,6 +212,13 @@ export function UsersPage() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-2">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => navigate(`/user-activity?userId=${user.authId}`)}
+                      >
+                        Faoliyat
+                      </Button>
                       <Button
                         size="sm"
                         variant={user.isBlocked ? 'secondary' : 'danger'}

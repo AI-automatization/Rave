@@ -9,6 +9,7 @@ import swaggerUi from 'swagger-ui-express';
 import { errorHandler, notFoundHandler } from '@shared/middleware/error.middleware';
 import { requestId } from '@shared/middleware/requestId.middleware';
 import { timeout } from '@shared/middleware/timeout.middleware';
+import { apiLogger } from '@shared/middleware/apiLogger.middleware';
 import { morganStream } from '@shared/utils/logger';
 import { createAuthRouter } from './routes/auth.routes';
 import { swaggerSpec } from './utils/swagger';
@@ -38,6 +39,7 @@ export const createApp = (redis: Redis): express.Application => {
 
   // Request ID tracking
   app.use(requestId);
+  app.use(apiLogger('auth'));
 
   // Request timeout — 30 seconds
   app.use(timeout());
