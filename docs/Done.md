@@ -4,6 +4,17 @@
 
 ---
 
+### F-143 | 2026-03-21 | [MOBILE] | T-E060 — Blocked account popup + Admin WatchParty events + Dark theme fix [Jafar]
+
+- **BlockedAccountModal:** Yangi `BlockedAccountModal.tsx` component — banned foydalanuvchilar uchun modal (icon, reason, contact support, OK button).
+- **Login 403 handler:** `LoginScreen.tsx` — `ACCOUNT_BLOCKED` 403 response → modal ko'rsatish (reason bilan).
+- **Global interceptor:** `client.ts` — axios response interceptor da `ACCOUNT_BLOCKED` 403 → logout + global event → AppNavigator da modal.
+- **Admin monitoring:** `useWatchParty.ts` — `admin:joined`/`admin:left` socket events → `adminMonitoring` state. `WatchPartyScreen.tsx` — shield banner ko'rsatish.
+- **Dark theme fix:** `ThemeContext.tsx` — always dark mode. `theme.store.ts` — light mode o'chirilgan. `SettingsScreen.tsx` — tema tanlash UI olib tashlangan.
+- **Circular import fix:** `colors.ts` — rang definitsiyalari alohida faylga chiqarildi (ThemeContext ↔ index.ts circular dependency tuzatildi).
+- **i18n:** `blocked` section qo'shildi (title, message, noReason, contactSupport, adminMonitoring). `common` ga `ok`, `contact` qo'shildi.
+- **Test:** Android emulator da registration, login, dark theme — barchasi to'g'ri ishlaydi. TSC: ✅ 0 xato.
+
 ### F-142 | 2026-03-21 | [MOBILE] | T-E061 — Do'stlar tizimi + Bildirishnomalar fix [Jafar]
 
 - **Type guard:** `useNotifications.ts` + `NotificationsScreen.tsx` — `as Record<string, string>` → `NotificationData` interface + `parseNotificationData()` function. `data.friendshipId/roomId/battleId` → `typeof` check.
