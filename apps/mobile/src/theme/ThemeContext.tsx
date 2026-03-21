@@ -1,30 +1,22 @@
-import React, { createContext, useContext, useMemo } from 'react';
-import { useThemeStore } from '@store/theme.store';
-import { darkColors, lightColors, type ThemeColors } from './index';
+import React, { createContext, useContext } from 'react';
+import { darkColors, type ThemeColors } from './colors';
 
 interface ThemeContextValue {
   colors: ThemeColors;
   isDark: boolean;
 }
 
-const ThemeContext = createContext<ThemeContextValue>({
+// CineSync — Dark mode ONLY (barcha platform)
+const THEME_VALUE: ThemeContextValue = {
   colors: darkColors,
   isDark: true,
-});
+};
+
+const ThemeContext = createContext<ThemeContextValue>(THEME_VALUE);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const mode = useThemeStore((s) => s.mode);
-
-  const value = useMemo(() => {
-    const isDark = mode === 'dark';
-    return {
-      colors: isDark ? darkColors : lightColors,
-      isDark,
-    };
-  }, [mode]);
-
   return (
-    <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
+    <ThemeContext.Provider value={THEME_VALUE}>{children}</ThemeContext.Provider>
   );
 }
 

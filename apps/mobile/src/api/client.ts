@@ -2,6 +2,17 @@
 import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 import { tokenStorage } from '@utils/storage';
 
+// Global blocked account state — any screen can subscribe
+type BlockedListener = (reason: string) => void;
+const blockedListeners: Set<BlockedListener> = new Set();
+export function onAccountBlocked(listener: BlockedListener): () => void {
+  blockedListeners.add(listener);
+  return () => { blockedListeners.delete(listener); };
+}
+function notifyBlocked(reason: string): void {
+  blockedListeners.forEach(fn => fn(reason));
+}
+
 const URLS = {
   auth: process.env.EXPO_PUBLIC_AUTH_URL!,
   user: process.env.EXPO_PUBLIC_USER_URL!,
@@ -45,6 +56,15 @@ function createClient(baseURL: string): AxiosInstance {
     (response) => response,
     async (error) => {
       const originalRequest = error.config;
+
+      // ACCOUNT_BLOCKED — global handler
+      if (error.response?.status === 403 && error.response?.data?.code === 'ACCOUNT_BLOCKED') {
+        const reason = error.response.data.reason ?? '';
+        const { useAuthStore } = await import('@store/auth.store');
+        await useAuthStore.getState().logout();
+        notifyBlocked(reason);
+        return Promise.reject(error);
+      }
 
       if (error.response?.status === 401 && !originalRequest._retry) {
         originalRequest._retry = true;

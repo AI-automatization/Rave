@@ -13,8 +13,10 @@ import { UniversalPlayerRef } from '@components/video/UniversalPlayer';
 import { VideoSection, FloatingEmoji } from '@components/watchParty/VideoSection';
 import { RoomInfoBar } from '@components/watchParty/RoomInfoBar';
 import { InviteCard } from '@components/watchParty/InviteCard';
-import { useTheme, createThemedStyles, spacing } from '@theme/index';
+import { Ionicons } from '@expo/vector-icons';
+import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { ModalStackParamList } from '@app-types/index';
+import { useT } from '@i18n/index';
 
 type RouteType = RouteProp<ModalStackParamList, 'WatchParty'>;
 
@@ -27,7 +29,8 @@ export function WatchPartyScreen() {
   const { colors } = useTheme();
   const s = useStyles();
 
-  const { room, syncState, messages, activeMembers, isOwner, emitPlay, emitPause, emitSeek, sendMessage, sendEmoji } =
+  const { t } = useT();
+  const { room, syncState, messages, activeMembers, isOwner, adminMonitoring, emitPlay, emitPause, emitSeek, sendMessage, sendEmoji } =
     useWatchParty(params.roomId);
 
   const playerRef = useRef<UniversalPlayerRef>(null);
@@ -197,6 +200,13 @@ export function WatchPartyScreen() {
             onLeave={handleLeave}
           />
 
+          {adminMonitoring && (
+            <View style={s.adminBanner}>
+              <Ionicons name="shield-checkmark-outline" size={14} color={colors.warning} />
+              <Text style={s.adminBannerText}>{t('blocked', 'adminMonitoring')}</Text>
+            </View>
+          )}
+
           {showInvite && room?.inviteCode && (
             <InviteCard
               inviteCode={room.inviteCode}
@@ -242,4 +252,18 @@ const useStyles = createThemedStyles((colors) => ({
     borderRadius: 12,
   },
   errorBtnText: { color: colors.white, fontWeight: '700', fontSize: 15 },
+  adminBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    backgroundColor: 'rgba(245,158,11,0.12)',
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+  },
+  adminBannerText: {
+    ...typography.caption,
+    color: colors.warning,
+    fontWeight: '600',
+  },
 }));

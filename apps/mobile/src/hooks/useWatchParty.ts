@@ -1,5 +1,5 @@
 // CineSync Mobile — useWatchParty hook
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import { useWatchPartyStore } from '@store/watchParty.store';
 import { useAuthStore } from '@store/auth.store';
 import { connectSocket, disconnectSocket, getSocket, SERVER_EVENTS, CLIENT_EVENTS } from '@socket/client';
@@ -22,6 +22,7 @@ export function useWatchParty(roomId: string) {
     useWatchPartyStore();
 
   const isOwner = room?.ownerId === userId;
+  const [adminMonitoring, setAdminMonitoring] = useState(false);
 
   useEffect(() => {
     // Har safar yangi xonaga kirda — eski ma'lumotlarni tozala
@@ -78,6 +79,10 @@ export function useWatchParty(roomId: string) {
       if (__DEV__) console.log('[useWatchParty] socket error:', err?.message);
     });
 
+    // Admin monitoring events
+    socket.on('admin:joined', () => setAdminMonitoring(true));
+    socket.on('admin:left', () => setAdminMonitoring(false));
+
     // connect_error: token refresh socket/client.ts da boshqariladi
 
     return () => {
@@ -98,6 +103,8 @@ export function useWatchParty(roomId: string) {
       socket.off(SERVER_EVENTS.MEMBER_LEFT);
       socket.off(SERVER_EVENTS.ROOM_CLOSED);
       socket.off(SERVER_EVENTS.ERROR);
+      socket.off('admin:joined');
+      socket.off('admin:left');
     };
   }, [roomId, token]);
 
@@ -126,5 +133,5 @@ export function useWatchParty(roomId: string) {
     [roomId],
   );
 
-  return { room, syncState, messages, activeMembers, isOwner, emitPlay, emitPause, emitSeek, sendMessage, sendEmoji };
+  return { room, syncState, messages, activeMembers, isOwner, adminMonitoring, emitPlay, emitPause, emitSeek, sendMessage, sendEmoji };
 }

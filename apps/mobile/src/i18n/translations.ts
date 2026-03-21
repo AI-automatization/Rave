@@ -14,6 +14,17 @@ export const translations = {
     search: { uz: 'Izlash', ru: 'Поиск', en: 'Search' },
     send: { uz: 'Yuborish', ru: 'Отправить', en: 'Send' },
     confirm: { uz: 'Tasdiqlash', ru: 'Подтвердить', en: 'Confirm' },
+    ok: { uz: 'OK', ru: 'OK', en: 'OK' },
+    contact: { uz: "Bog'lanish", ru: 'Связаться', en: 'Contact' },
+  },
+
+  // ─── Blocked Account ───
+  blocked: {
+    title: { uz: 'Akkaunt bloklangan', ru: 'Аккаунт заблокирован', en: 'Account Blocked' },
+    message: { uz: 'Akkauntingiz bloklangan. Quyida sabab ko\'rsatilgan:', ru: 'Ваш аккаунт заблокирован. Причина указана ниже:', en: 'Your account has been blocked. Reason below:' },
+    noReason: { uz: 'Sabab ko\'rsatilmagan', ru: 'Причина не указана', en: 'No reason provided' },
+    contactSupport: { uz: 'Yordam uchun bog\'laning', ru: 'Свяжитесь с поддержкой', en: 'Contact support' },
+    adminMonitoring: { uz: 'Admin kuzatmoqda', ru: 'Администратор наблюдает', en: 'Admin is monitoring' },
   },
 
   // ─── Splash ───

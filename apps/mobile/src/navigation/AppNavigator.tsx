@@ -1,5 +1,5 @@
 // CineSync Mobile — Root Navigator
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -14,6 +14,8 @@ import { ProfileSetupScreen } from '@screens/auth/ProfileSetupScreen';
 import { userApi } from '@api/user.api';
 import { usePushNotifications } from '@hooks/usePushNotifications';
 import { LanguageTransition } from '@components/common/LanguageTransition';
+import { BlockedAccountModal } from '@components/common/BlockedAccountModal';
+import { onAccountBlocked } from '@api/client';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -26,7 +28,18 @@ export function AppNavigator() {
   const lastResponse = Notifications.useLastNotificationResponse();
   const { colors } = useTheme();
 
+  const [blockedVisible, setBlockedVisible] = useState(false);
+  const [blockedReason, setBlockedReason] = useState('');
+
   usePushNotifications();
+
+  // Global ACCOUNT_BLOCKED listener
+  useEffect(() => {
+    return onAccountBlocked((reason) => {
+      setBlockedReason(reason);
+      setBlockedVisible(true);
+    });
+  }, []);
 
   // Deep link: notification tapped (background/killed)
   useEffect(() => {
@@ -65,6 +78,7 @@ export function AppNavigator() {
   if (!isHydrated) return <View style={{ flex: 1, backgroundColor: colors.bgBase }} />;
 
   return (
+    <>
     <NavigationContainer ref={navigationRef}>
       <LanguageTransition>
         <Stack.Navigator screenOptions={{ headerShown: false, animation: 'fade' }}>
@@ -87,5 +101,12 @@ export function AppNavigator() {
         </Stack.Navigator>
       </LanguageTransition>
     </NavigationContainer>
+
+    <BlockedAccountModal
+      visible={blockedVisible}
+      reason={blockedReason}
+      onClose={() => setBlockedVisible(false)}
+    />
+  </>
   );
 }

@@ -24,6 +24,7 @@ import { useAuthStore } from '@store/auth.store';
 import { useT } from '@i18n/index';
 import { AuthGridBackground } from '@components/auth/AuthGridBackground';
 import { SocialAuthButtons } from '@components/auth/SocialAuthButtons';
+import { BlockedAccountModal } from '@components/common/BlockedAccountModal';
 import { useSocialAuth } from '@hooks/useSocialAuth';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
@@ -42,6 +43,8 @@ export function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [blockedVisible, setBlockedVisible] = useState(false);
+  const [blockedReason, setBlockedReason] = useState('');
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
@@ -81,8 +84,13 @@ export function LoginScreen() {
       });
       await setAuth(user, accessToken, refreshToken);
     } catch (err: unknown) {
-      const data = (err as { response?: { data?: { message?: string; errors?: string[] } } })?.response?.data;
-      const detail = data?.errors?.[0] ?? data?.message;
+      const resp = (err as { response?: { status?: number; data?: { code?: string; reason?: string; message?: string; errors?: string[] } } })?.response;
+      if (resp?.status === 403 && resp.data?.code === 'ACCOUNT_BLOCKED') {
+        setBlockedReason(resp.data.reason ?? '');
+        setBlockedVisible(true);
+        return;
+      }
+      const detail = resp?.data?.errors?.[0] ?? resp?.data?.message;
       setError(detail ?? t('login', 'errorCredentials'));
     } finally {
       setLoading(false);
@@ -197,6 +205,12 @@ export function LoginScreen() {
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <BlockedAccountModal
+        visible={blockedVisible}
+        reason={blockedReason}
+        onClose={() => setBlockedVisible(false)}
+      />
     </View>
   );
 }

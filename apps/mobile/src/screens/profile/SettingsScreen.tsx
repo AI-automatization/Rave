@@ -9,7 +9,7 @@ import { userApi } from '@api/user.api';
 import { useAuthStore } from '@store/auth.store';
 import { useMyProfile } from '@hooks/useProfile';
 import { useLanguageStore, Language } from '@store/language.store';
-import { useThemeStore } from '@store/theme.store';
+// theme.store import removed — dark mode only
 import { useT } from '@i18n/index';
 import {
   SectionHeader,
@@ -27,10 +27,7 @@ const LANGUAGES: { code: Language; label: string; flag: string }[] = [
   { code: 'en', label: 'English', flag: '\u{1F1EC}\u{1F1E7}' },
 ];
 
-const THEMES: { mode: 'dark' | 'light'; icon: keyof typeof Ionicons.glyphMap; labelKey: string }[] = [
-  { mode: 'dark', icon: 'moon-outline', labelKey: 'themeDark' },
-  { mode: 'light', icon: 'sunny-outline', labelKey: 'themeLight' },
-];
+// CineSync — Dark mode ONLY. Light tema o'chirilgan.
 
 type ActiveModal = 'editProfile' | 'changePassword' | null;
 
@@ -42,7 +39,7 @@ export function SettingsScreen() {
   const { user, logout } = useAuthStore();
   const { updateProfileMutation } = useMyProfile();
   const { lang: language, setLang: setLanguage } = useLanguageStore();
-  const { mode: themeMode, setMode: setThemeMode } = useThemeStore();
+  // Dark mode ONLY — tema tanlash o'chirilgan
   const { t } = useT();
   const { notifToggles, privacyToggles, toggleNotif, togglePrivacy } = useSettingsStorage();
   const { colors } = useTheme();
@@ -131,25 +128,6 @@ export function SettingsScreen() {
               <Text style={styles.navLabel}>{t('settings', 'changePassword')}</Text>
               <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
             </TouchableOpacity>
-          </View>
-
-          {/* Theme */}
-          <SectionHeader title={t('settings', 'themeSection')} />
-          <View style={styles.card}>
-            {THEMES.map((theme, i) => (
-              <TouchableOpacity
-                key={theme.mode}
-                style={[styles.langRow, i < THEMES.length - 1 && styles.rowBorder]}
-                onPress={() => setThemeMode(theme.mode)}
-                activeOpacity={0.8}
-              >
-                <Ionicons name={theme.icon} size={20} color={colors.textSecondary} />
-                <Text style={styles.langLabel}>{t('settings', theme.labelKey)}</Text>
-                {themeMode === theme.mode && (
-                  <Ionicons name="checkmark" size={20} color={colors.primary} />
-                )}
-              </TouchableOpacity>
-            ))}
           </View>
 
           {/* Language */}
