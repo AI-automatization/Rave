@@ -85,13 +85,13 @@ export function useFriends() {
 }
 
 export function useFriendSearch(query: string) {
-  const debouncedQuery = useDebounce(query, 500);
+  const debouncedQuery = useDebounce(query, 400);
 
   return useQuery({
     queryKey: ['user-search', debouncedQuery],
     queryFn: () =>
-      debouncedQuery.length >= 2 ? userApi.searchUsers(debouncedQuery) : Promise.resolve([]),
-    enabled: debouncedQuery.length >= 2,
+      debouncedQuery.length >= 1 ? userApi.searchUsers(debouncedQuery) : Promise.resolve([]),
+    enabled: debouncedQuery.length >= 1,
     staleTime: 30 * 1000,
   });
 }

@@ -1,7 +1,5 @@
-// CineSync Mobile — WatchPartyCreateScreen
-// Composition-only screen: delegates logic to useWatchPartyCreate,
-// UI sections to FilmSelector and FriendPicker
-import React from 'react';
+// CineSync Mobile — WatchPartyCreateScreen (modern design + animations)
+import React, { useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,9 +8,13 @@ import {
   ScrollView,
   Switch,
   ActivityIndicator,
+  Animated,
+  Dimensions,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import type { ModalStackParamList } from '@app-types/index';
@@ -22,152 +24,231 @@ import { FriendPicker } from '@components/watchParty/FriendPicker';
 
 type Nav = NativeStackNavigationProp<ModalStackParamList, 'WatchPartyCreate'>;
 
+const { width: SCREEN_W } = Dimensions.get('window');
+
+// ─── Animated section wrapper ───────────────────────────────────
+function FadeSlideIn({ delay = 0, children, style }: { delay?: number; children: React.ReactNode; style?: object }) {
+  const opacity = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(20)).current;
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      Animated.parallel([
+        Animated.timing(opacity, { toValue: 1, duration: 400, useNativeDriver: true }),
+        Animated.timing(translateY, { toValue: 0, duration: 400, useNativeDriver: true }),
+      ]).start();
+    }, delay);
+    return () => clearTimeout(timer);
+  }, [delay, opacity, translateY]);
+
+  return (
+    <Animated.View style={[style, { opacity, transform: [{ translateY }] }]}>
+      {children as unknown as React.ReactElement<unknown, string>}
+    </Animated.View>
+  );
+}
+
 export function WatchPartyCreateScreen() {
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
   const wp = useWatchPartyCreate();
   const { colors } = useTheme();
-  const styles = useStyles();
+  const s = useStyles();
+
+  // FAB create button scale animation
+  const btnScale = useRef(new Animated.Value(1)).current;
 
   const onCreateSuccess = (roomId: string) => {
     navigation.replace('WatchParty', { roomId });
   };
 
+  const handleCreatePress = () => {
+    Animated.sequence([
+      Animated.timing(btnScale, { toValue: 0.95, duration: 100, useNativeDriver: true }),
+      Animated.timing(btnScale, { toValue: 1, duration: 100, useNativeDriver: true }),
+    ]).start();
+    wp.handleCreate(onCreateSuccess);
+  };
+
   return (
-    <View style={styles.root}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+    <View style={s.root}>
+      {/* Header with gradient */}
+      <LinearGradient
+        colors={[colors.primary + '20', colors.bgBase]}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={[s.header, { paddingTop: insets.top + spacing.sm }]}
+      >
+        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} activeOpacity={0.7}>
           <Ionicons name="close" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.title}>Watch Party</Text>
-        <View style={styles.headerSpacer} />
-      </View>
+        <View style={s.headerCenter}>
+          <Ionicons name="tv-outline" size={20} color={colors.primary} />
+          <Text style={s.title}>Watch Party</Text>
+        </View>
+        <View style={{ width: 40 }} />
+      </LinearGradient>
 
       {/* Create | Join tabs */}
-      <View style={styles.modeTabs}>
-        <View style={[styles.modeTab, styles.modeTabActive]}>
-          <Ionicons name="add-circle-outline" size={16} color={colors.primary} />
-          <Text style={[styles.modeTabText, styles.modeTabTextActive]}>Yaratish</Text>
+      <FadeSlideIn delay={100}>
+        <View style={s.modeTabs}>
+          <View style={[s.modeTab, s.modeTabActive]}>
+            <Ionicons name="add-circle-outline" size={16} color={colors.primary} />
+            <Text style={[s.modeTabText, s.modeTabTextActive]}>Yaratish</Text>
+          </View>
+          <TouchableOpacity
+            style={s.modeTab}
+            onPress={() => navigation.navigate('WatchPartyJoin')}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="enter-outline" size={16} color={colors.textMuted} />
+            <Text style={s.modeTabText}>Kod orqali</Text>
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity
-          style={styles.modeTab}
-          onPress={() => navigation.navigate('WatchPartyJoin')}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="enter-outline" size={16} color={colors.textMuted} />
-          <Text style={styles.modeTabText}>Kod orqali</Text>
-        </TouchableOpacity>
-      </View>
+      </FadeSlideIn>
 
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         {/* Film selection */}
-        <FilmSelector
-          filmMode={wp.filmMode}
-          onSwitchToCatalog={wp.switchToCatalog}
-          onSwitchToUrl={wp.switchToUrl}
-          selectedMovie={wp.selectedMovie}
-          onSelectMovie={wp.selectMovie}
-          onClearMovie={wp.clearSelectedMovie}
-          searchQuery={wp.searchQuery}
-          onSearchChange={wp.setSearchQuery}
-          searching={wp.searching}
-          searchResults={wp.searchResults}
-          videoUrl={wp.videoUrl}
-          onVideoUrlChange={wp.setVideoUrl}
-          isExtracting={wp.isExtracting}
-          extractResult={wp.extractResult}
-          fallbackMode={wp.fallbackMode}
-        />
+        <FadeSlideIn delay={150}>
+          <FilmSelector
+            filmMode={wp.filmMode}
+            onSwitchToCatalog={wp.switchToCatalog}
+            onSwitchToUrl={wp.switchToUrl}
+            selectedMovie={wp.selectedMovie}
+            onSelectMovie={wp.selectMovie}
+            onClearMovie={wp.clearSelectedMovie}
+            searchQuery={wp.searchQuery}
+            onSearchChange={wp.setSearchQuery}
+            searching={wp.searching}
+            searchResults={wp.searchResults}
+            videoUrl={wp.videoUrl}
+            onVideoUrlChange={wp.setVideoUrl}
+            isExtracting={wp.isExtracting}
+            extractResult={wp.extractResult}
+            fallbackMode={wp.fallbackMode}
+          />
+        </FadeSlideIn>
 
         {/* Room name */}
-        <View style={styles.section}>
-          <Text style={styles.label}>XONA NOMI</Text>
-          <TextInput
-            style={styles.input}
-            value={wp.roomName}
-            onChangeText={wp.setRoomName}
-            placeholder="Masalan: Kecha filmlar kechasi"
-            placeholderTextColor={colors.textMuted}
-            maxLength={50}
-          />
-          <Text style={styles.charCount}>{wp.roomName.length}/50</Text>
-        </View>
+        <FadeSlideIn delay={200}>
+          <View style={s.section}>
+            <View style={s.sectionHeader}>
+              <Ionicons name="text-outline" size={16} color={colors.primary} />
+              <Text style={s.label}>XONA NOMI</Text>
+            </View>
+            <TextInput
+              style={s.input}
+              value={wp.roomName}
+              onChangeText={wp.setRoomName}
+              placeholder="Masalan: Kecha filmlar kechasi"
+              placeholderTextColor={colors.textMuted}
+              maxLength={50}
+            />
+            <Text style={s.charCount}>{wp.roomName.length}/50</Text>
+          </View>
+        </FadeSlideIn>
 
         {/* Private toggle + Max members */}
-        <View style={styles.section}>
-          <View style={styles.row}>
-            <View style={styles.rowLeft}>
-              <Ionicons
-                name={wp.isPrivate ? 'lock-closed' : 'globe-outline'}
-                size={20}
-                color={colors.secondary}
-              />
-              <View>
-                <Text style={styles.rowTitle}>{wp.isPrivate ? 'Shaxsiy' : 'Ommaviy'}</Text>
-                <Text style={styles.rowSub}>
-                  {wp.isPrivate ? 'Faqat invite kod orqali' : 'Barcha qo\'shila oladi'}
-                </Text>
+        <FadeSlideIn delay={250}>
+          <View style={s.section}>
+            <View style={s.toggleCard}>
+              <View style={s.toggleLeft}>
+                <View style={[s.toggleIcon, { backgroundColor: colors.secondary + '15' }]}>
+                  <Ionicons
+                    name={wp.isPrivate ? 'lock-closed' : 'globe-outline'}
+                    size={18}
+                    color={colors.secondary}
+                  />
+                </View>
+                <View>
+                  <Text style={s.rowTitle}>{wp.isPrivate ? 'Shaxsiy xona' : 'Ommaviy xona'}</Text>
+                  <Text style={s.rowSub}>
+                    {wp.isPrivate ? 'Faqat invite kod orqali' : 'Barcha qo\'shila oladi'}
+                  </Text>
+                </View>
               </View>
+              <Switch
+                value={wp.isPrivate}
+                onValueChange={wp.setIsPrivate}
+                trackColor={{ false: colors.bgMuted, true: colors.primary + '80' }}
+                thumbColor={wp.isPrivate ? colors.primary : colors.textSecondary}
+              />
             </View>
-            <Switch
-              value={wp.isPrivate}
-              onValueChange={wp.setIsPrivate}
-              trackColor={{ false: colors.bgElevated, true: colors.primary }}
-              thumbColor={colors.textPrimary}
-            />
-          </View>
-          <Text style={[styles.label, styles.membersLabel]}>MAKSIMAL A'ZOLAR</Text>
-          <View style={styles.membersRow}>
-            {wp.maxMembersOptions.map(n => (
-              <TouchableOpacity
-                key={n}
-                style={[styles.memberChip, wp.maxMembers === n && styles.memberChipActive]}
-                onPress={() => wp.setMaxMembers(n)}
-              >
-                <Text
-                  style={[styles.memberChipText, wp.maxMembers === n && styles.memberChipTextActive]}
+
+            <View style={s.sectionHeader}>
+              <Ionicons name="people-outline" size={16} color={colors.primary} />
+              <Text style={s.label}>MAKSIMAL A'ZOLAR</Text>
+            </View>
+            <View style={s.membersRow}>
+              {wp.maxMembersOptions.map(n => (
+                <TouchableOpacity
+                  key={n}
+                  style={[s.memberChip, wp.maxMembers === n && s.memberChipActive]}
+                  onPress={() => wp.setMaxMembers(n)}
+                  activeOpacity={0.7}
                 >
-                  {n}
-                </Text>
-              </TouchableOpacity>
-            ))}
+                  <Text
+                    style={[s.memberChipText, wp.maxMembers === n && s.memberChipTextActive]}
+                  >
+                    {n}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
-        </View>
+        </FadeSlideIn>
 
         {/* Friends */}
-        <FriendPicker
-          friends={wp.friends}
-          selectedFriendIds={wp.selectedFriendIds}
-          selectedFriends={wp.selectedFriends}
-          onToggleFriend={wp.toggleFriend}
-        />
+        <FadeSlideIn delay={300}>
+          <FriendPicker
+            friends={wp.friends}
+            selectedFriendIds={wp.selectedFriendIds}
+            selectedFriends={wp.selectedFriends}
+            onToggleFriend={wp.toggleFriend}
+          />
+        </FadeSlideIn>
 
         {/* Info card */}
-        <View style={styles.infoCard}>
-          <Ionicons name="information-circle-outline" size={16} color={colors.secondary} />
-          <Text style={styles.infoText}>
-            Xona yaratilgach invite kod hosil bo'ladi. Tanlangan do'stlaringizga yuboring!
-          </Text>
-        </View>
+        <FadeSlideIn delay={350}>
+          <View style={s.infoCard}>
+            <View style={[s.infoIconWrap, { backgroundColor: colors.secondary + '15' }]}>
+              <Ionicons name="information-circle" size={18} color={colors.secondary} />
+            </View>
+            <Text style={s.infoText}>
+              Xona yaratilgach invite kod hosil bo'ladi. Tanlangan do'stlaringizga notification yuboriladi!
+            </Text>
+          </View>
+        </FadeSlideIn>
+
+        <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* Footer */}
-      <View style={styles.footer}>
-        <TouchableOpacity
-          style={[styles.createBtn, wp.loading && styles.createBtnDisabled]}
-          onPress={() => wp.handleCreate(onCreateSuccess)}
-          disabled={wp.loading}
-          activeOpacity={0.8}
-        >
-          {wp.loading ? (
-            <ActivityIndicator color={colors.textPrimary} />
-          ) : (
-            <>
-              <Ionicons name="play-circle" size={20} color={colors.textPrimary} />
-              <Text style={styles.createBtnText}>Xona yaratish</Text>
-            </>
-          )}
-        </TouchableOpacity>
+      {/* Floating create button */}
+      <View style={[s.footer, { paddingBottom: insets.bottom + spacing.md }]}>
+        <Animated.View style={{ transform: [{ scale: btnScale }] }}>
+          <TouchableOpacity
+            style={[s.createBtn, wp.loading && s.createBtnDisabled]}
+            onPress={handleCreatePress}
+            disabled={wp.loading}
+            activeOpacity={0.85}
+          >
+            <LinearGradient
+              colors={[colors.primary, colors.primaryLight ?? '#9333EA']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={s.createBtnGradient}
+            >
+              {wp.loading ? (
+                <ActivityIndicator color={colors.white} />
+              ) : (
+                <>
+                  <Ionicons name="play-circle" size={22} color={colors.white} />
+                  <Text style={s.createBtnText}>Xona yaratish</Text>
+                </>
+              )}
+            </LinearGradient>
+          </TouchableOpacity>
+        </Animated.View>
       </View>
     </View>
   );
@@ -175,21 +256,38 @@ export function WatchPartyCreateScreen() {
 
 const useStyles = createThemedStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bgBase },
+
+  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
   },
-  backBtn: { padding: spacing.xs },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.bgElevated,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerCenter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
   title: { ...typography.h2, color: colors.textPrimary },
-  headerSpacer: { width: 40 },
+
+  // Mode tabs
   modeTabs: {
     flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    marginHorizontal: spacing.lg,
+    backgroundColor: colors.bgElevated,
+    borderRadius: borderRadius.xl,
+    padding: 4,
+    marginBottom: spacing.sm,
   },
   modeTab: {
     flex: 1,
@@ -197,40 +295,56 @@ const useStyles = createThemedStyles((colors) => ({
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.xs,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm + 2,
+    borderRadius: borderRadius.lg,
   },
-  modeTabActive: { borderBottomWidth: 2, borderBottomColor: colors.primary },
+  modeTabActive: {
+    backgroundColor: colors.primary + '20',
+  },
   modeTabText: { ...typography.body, color: colors.textMuted, fontWeight: '600' },
   modeTabTextActive: { color: colors.primary },
+
+  // Content
   content: { padding: spacing.lg, gap: spacing.xl },
   section: { gap: spacing.sm },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
   label: { ...typography.label, color: colors.textMuted },
-  membersLabel: { marginTop: spacing.md },
 
   // Input
   input: {
     backgroundColor: colors.bgElevated,
     color: colors.textPrimary,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
+    borderRadius: borderRadius.xl,
+    padding: spacing.md + 2,
     fontSize: 15,
     borderWidth: 1,
     borderColor: colors.border,
   },
-  charCount: { ...typography.caption, color: colors.textMuted, textAlign: 'right' },
+  charCount: { ...typography.caption, color: colors.textDim, textAlign: 'right' },
 
-  // Row (private toggle)
-  row: {
+  // Toggle card
+  toggleCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: colors.bgElevated,
     padding: spacing.md,
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.xl,
     borderWidth: 1,
     borderColor: colors.border,
   },
-  rowLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, flex: 1 },
+  toggleLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, flex: 1 },
+  toggleIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: borderRadius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   rowTitle: { ...typography.body, color: colors.textPrimary, fontWeight: '600' },
   rowSub: { ...typography.caption, color: colors.textMuted },
 
@@ -240,38 +354,60 @@ const useStyles = createThemedStyles((colors) => ({
     flex: 1,
     paddingVertical: spacing.md,
     backgroundColor: colors.bgElevated,
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.xl,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.border,
   },
-  memberChipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
-  memberChipText: { ...typography.body, color: colors.textMuted, fontWeight: '600' },
-  memberChipTextActive: { color: colors.textPrimary },
+  memberChipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  memberChipText: { ...typography.body, color: colors.textMuted, fontWeight: '700' },
+  memberChipTextActive: { color: colors.white },
 
   // Info card
   infoCard: {
     flexDirection: 'row',
-    gap: spacing.sm,
+    gap: spacing.md,
     backgroundColor: colors.bgElevated,
     padding: spacing.md,
-    borderRadius: borderRadius.md,
-    borderLeftWidth: 3,
-    borderLeftColor: colors.secondary,
+    borderRadius: borderRadius.xl,
+    borderWidth: 1,
+    borderColor: colors.secondary + '20',
+    alignItems: 'flex-start',
   },
-  infoText: { ...typography.caption, color: colors.textSecondary, flex: 1 },
+  infoIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: borderRadius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  infoText: { ...typography.caption, color: colors.textSecondary, flex: 1, lineHeight: 18 },
 
   // Footer
-  footer: { padding: spacing.lg, borderTopWidth: 1, borderTopColor: colors.border },
+  footer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    backgroundColor: colors.bgBase + 'E0',
+  },
   createBtn: {
+    borderRadius: borderRadius.xl,
+    overflow: 'hidden',
+  },
+  createBtnDisabled: { opacity: 0.6 },
+  createBtnGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
-    backgroundColor: colors.primary,
-    padding: spacing.lg,
-    borderRadius: borderRadius.lg,
+    paddingVertical: spacing.lg,
+    borderRadius: borderRadius.xl,
   },
-  createBtnDisabled: { opacity: 0.6 },
-  createBtnText: { ...typography.h3, color: colors.textPrimary },
+  createBtnText: { ...typography.h3, color: colors.white, fontWeight: '700' },
 }));

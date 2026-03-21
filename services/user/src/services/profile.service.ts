@@ -115,7 +115,7 @@ export class ProfileService {
   }
 
   async searchUsers(query: string, requesterId: string): Promise<Record<string, unknown>[]> {
-    if (!query || query.trim().length < 2) return [];
+    if (!query || query.trim().length < 1) return [];
 
     const users = await User.find({
       username: { $regex: query.trim(), $options: 'i' },
@@ -130,7 +130,15 @@ export class ProfileService {
       users.map((u) => this.isUserOnline(u.authId as string)),
     );
 
-    return users.map((u, i) => ({ ...u, isOnline: onlineChecks[i] }));
+    return users.map((u, i) => ({
+      _id: u.authId,
+      username: u.username,
+      avatar: u.avatar,
+      bio: u.bio,
+      rank: u.rank,
+      totalPoints: u.totalPoints,
+      isOnline: onlineChecks[i],
+    }));
   }
 
   async addPoints(userId: string, points: number): Promise<void> {

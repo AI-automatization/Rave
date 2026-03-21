@@ -1,13 +1,11 @@
-// CineSync Mobile — Profile small reusable widgets
+// CineSync Mobile — Profile small reusable widgets (web-style cards)
 import React from 'react';
-import { View, Text, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { FadeInView } from './ProfileAnimations';
 
-const { width: SCREEN_W } = Dimensions.get('window');
-
-// ─── StatCard ──────────────────────────────────────────────────
+// ─── StatCard (web-style: icon → value → label, centered) ───────
 
 interface StatCardProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -29,7 +27,7 @@ export const StatCard = React.memo(function StatCard({
 
   return (
     <FadeInView delay={delay} style={s.statCard}>
-      <Ionicons name={icon} size={24} color={iconColor ?? colors.primary} />
+      <Ionicons name={icon} size={22} color={iconColor ?? colors.primary} />
       <Text style={s.statValue}>{value}</Text>
       <Text style={s.statLabel}>{label}</Text>
     </FadeInView>
@@ -91,19 +89,31 @@ export const NavItem = React.memo(function NavItem({
 });
 
 const useStyles = createThemedStyles((colors) => ({
+  // StatCard — web style: card bg-base-200, centered content
   statCard: {
     flex: 1,
-    backgroundColor: colors.bgSurface,
-    borderRadius: borderRadius.lg,
-    padding: spacing.md,
+    backgroundColor: colors.bgElevated,
+    borderRadius: borderRadius.xl,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.sm,
     alignItems: 'center',
-    gap: spacing.xs,
+    gap: 2,
     borderWidth: 1,
     borderColor: colors.border,
   },
-  statValue: { fontSize: 18, fontWeight: '700', color: colors.textPrimary },
-  statLabel: { ...typography.caption, color: colors.textMuted },
+  statValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    marginTop: spacing.xs,
+  },
+  statLabel: {
+    ...typography.caption,
+    color: colors.textMuted,
+    fontSize: 11,
+  },
 
+  // InfoRow
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -122,24 +132,26 @@ const useStyles = createThemedStyles((colors) => ({
   infoValue: {
     ...typography.body,
     color: colors.textPrimary,
-    maxWidth: SCREEN_W * 0.45,
     textAlign: 'right',
+    flexShrink: 1,
+    maxWidth: '45%',
   },
 
+  // NavItem — web card style
   navLink: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    backgroundColor: colors.bgSurface,
+    backgroundColor: colors.bgElevated,
     padding: spacing.md,
-    borderRadius: borderRadius.lg,
+    borderRadius: borderRadius.xl,
     borderWidth: 1,
     borderColor: colors.border,
   },
   navIconWrap: {
     width: 40,
     height: 40,
-    borderRadius: 12,
+    borderRadius: borderRadius.lg,
     backgroundColor: colors.primary + '15',
     alignItems: 'center',
     justifyContent: 'center',

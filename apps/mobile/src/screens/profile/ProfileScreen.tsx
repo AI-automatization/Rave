@@ -1,4 +1,4 @@
-// CineSync Mobile — ProfileScreen
+// CineSync Mobile — ProfileScreen (web-style card layout + animations)
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -8,7 +8,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { useMyProfile } from '@hooks/useProfile';
 import { useAuthStore } from '@store/auth.store';
-import { useTheme, createThemedStyles, spacing, typography } from '@theme/index';
+import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { ProfileStackParamList } from '@app-types/index';
 import { useT } from '@i18n/index';
 import type { UserRank } from '@app-types/index';
@@ -86,6 +86,7 @@ export function ProfileScreen() {
   }
 
   const u = displayUser;
+  const joinDate = formatDate(u.createdAt);
 
   return (
     <>
@@ -102,28 +103,33 @@ export function ProfileScreen() {
           onSettingsPress={() => navigation.navigate('Settings')}
           titleLabel={t('profile', 'title')}
           pointsLabel={t('profile', 'points')}
+          joinDate={joinDate}
         />
 
-        {/* Stats */}
+        {/* Stats grid — web style 2x2 */}
         <View style={s.section}>
-          <Text style={s.sectionTitle}>{t('profile', 'stats')}</Text>
+          <FadeInView delay={150}>
+            <Text style={s.sectionTitle}>{t('profile', 'stats')}</Text>
+          </FadeInView>
           <View style={s.statsGrid}>
-            <StatCard icon="film-outline" value={stats?.totalWatched ?? 0} label={t('profile', 'movies')} delay={200} iconColor={colors.primary} />
-            <StatCard icon="time-outline" value={`${Math.round((stats?.totalMinutes ?? 0) / 60)}h`} label={t('profile', 'hours')} delay={300} iconColor={colors.secondary} />
-            <StatCard icon="flash-outline" value={stats?.battlesWon ?? 0} label={t('profile', 'wins')} delay={400} iconColor={colors.error} />
-            <StatCard icon="ribbon-outline" value={stats?.achievementsCount ?? 0} label={t('profile', 'badges')} delay={500} iconColor={colors.gold} />
+            <StatCard icon="film-outline" value={stats?.totalWatched ?? '—'} label={t('profile', 'movies')} delay={200} iconColor={colors.primary} />
+            <StatCard icon="time-outline" value={`${Math.round((stats?.totalMinutes ?? 0) / 60)}h`} label={t('profile', 'hours')} delay={250} iconColor={colors.secondary} />
+            <StatCard icon="flash-outline" value={stats?.battlesWon ?? 0} label={t('profile', 'wins')} delay={300} iconColor={colors.error} />
+            <StatCard icon="ribbon-outline" value={stats?.achievementsCount ?? 0} label={t('profile', 'badges')} delay={350} iconColor={colors.gold} />
           </View>
         </View>
 
-        {/* Account info */}
+        {/* Account info card */}
         <View style={s.section}>
-          <Text style={s.sectionTitle}>{t('profile', 'accountInfo')}</Text>
-          <FadeInView delay={300} style={s.accountCard}>
+          <FadeInView delay={350}>
+            <Text style={s.sectionTitle}>{t('profile', 'accountInfo')}</Text>
+          </FadeInView>
+          <FadeInView delay={400} style={s.accountCard}>
             <InfoRow icon="mail-outline" label="Email" value={u.email ?? '—'} />
             <View style={s.infoDivider} />
             <InfoRow icon="shield-checkmark-outline" label={t('profile', 'role')} value={u.role ?? '—'} />
             <View style={s.infoDivider} />
-            <InfoRow icon="calendar-outline" label={t('profile', 'joined')} value={formatDate(u.createdAt)} />
+            <InfoRow icon="calendar-outline" label={t('profile', 'joined')} value={joinDate} />
             <View style={s.infoDivider} />
             <InfoRow icon="time-outline" label={t('profile', 'lastLogin')} value={formatDate(u.lastLoginAt)} />
             {stats?.friendsCount !== undefined && (
@@ -143,13 +149,13 @@ export function ProfileScreen() {
 
         {/* Nav links */}
         <View style={s.section}>
-          <NavItem icon="bar-chart-outline" label={t('profile', 'stats')} onPress={() => navigation.navigate('Stats')} delay={400} />
+          <NavItem icon="bar-chart-outline" label={t('profile', 'stats')} onPress={() => navigation.navigate('Stats')} delay={450} />
           <View style={{ height: spacing.sm }} />
           <NavItem icon="ribbon-outline" label={t('profile', 'achievements')} onPress={() => navigation.navigate('Achievements')} delay={500} />
         </View>
 
         {/* Logout */}
-        <FadeInView delay={600} style={s.section}>
+        <FadeInView delay={550} style={s.section}>
           <TouchableOpacity style={s.logoutBtn} onPress={handleLogout} activeOpacity={0.7}>
             <Ionicons name="log-out-outline" size={20} color={colors.error} />
             <Text style={s.logoutText}>{t('profile', 'logoutBtn')}</Text>
@@ -188,10 +194,14 @@ const useStyles = createThemedStyles((colors) => ({
     letterSpacing: 1,
     marginBottom: spacing.sm,
   },
-  statsGrid: { flexDirection: 'row', gap: spacing.sm },
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
   accountCard: {
-    backgroundColor: colors.bgSurface,
-    borderRadius: 12,
+    backgroundColor: colors.bgElevated,
+    borderRadius: borderRadius.xl,
     padding: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
@@ -203,7 +213,7 @@ const useStyles = createThemedStyles((colors) => ({
     justifyContent: 'center',
     gap: spacing.sm,
     padding: spacing.md,
-    borderRadius: 12,
+    borderRadius: borderRadius.xl,
     backgroundColor: colors.error + '10',
     borderWidth: 1,
     borderColor: colors.error + '25',

@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme, createThemedStyles } from '@theme/index';
 import { AuthStackParamList } from '@app-types/index';
 import { authApi } from '@api/auth.api';
+import { useAuthStore } from '@store/auth.store';
 import { useT } from '@i18n/index';
 import { useSocialAuth } from '@hooks/useSocialAuth';
 import { AuthGridBackground } from '@components/auth/AuthGridBackground';
@@ -87,10 +88,22 @@ export function RegisterScreen() {
         email: email.trim().toLowerCase(),
         password,
       });
-      navigation.navigate('VerifyEmail', {
-        email: email.trim().toLowerCase(),
-        devOtp: result._dev_otp,
-      });
+      // Avtomatik login — ro'yxatdan o'tgandan keyin darhol asosiy ekranga o'tish
+      try {
+        const loginResult = await authApi.login({
+          email: email.trim().toLowerCase(),
+          password,
+        });
+        await useAuthStore.getState().setAuth(loginResult.user, loginResult.accessToken, loginResult.refreshToken);
+        return; // setAuth → isAuthenticated → AppNavigator Main ekranga o'tadi
+      } catch {
+        // Login xato bo'lsa (email tasdiqlanmagan) → VerifyEmail ga o'tish
+        navigation.navigate('VerifyEmail', {
+          email: email.trim().toLowerCase(),
+          password,
+          devOtp: result._dev_otp,
+        });
+      }
     } catch (e: unknown) {
       const data = (e as { response?: { data?: { message?: string; errors?: string[] } } })?.response?.data;
       const detail = data?.errors?.[0] ?? data?.message;

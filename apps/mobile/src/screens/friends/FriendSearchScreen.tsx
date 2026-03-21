@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -28,6 +29,7 @@ type Nav = NativeStackNavigationProp<FriendsStackParamList>;
 
 export function FriendSearchScreen() {
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const styles = useStyles();
   const { t } = useT();
@@ -113,7 +115,7 @@ export function FriendSearchScreen() {
   return (
     <View style={styles.root}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </TouchableOpacity>
@@ -137,7 +139,7 @@ export function FriendSearchScreen() {
       </View>
 
       {/* Results */}
-      {isFetching && query.length >= 2 ? (
+      {isFetching && query.length >= 1 ? (
         <ActivityIndicator color={colors.primary} style={styles.loader} />
       ) : (
         <FlatList
@@ -145,13 +147,11 @@ export function FriendSearchScreen() {
           keyExtractor={item => item._id}
           renderItem={renderItem}
           ListEmptyComponent={
-            query.length >= 2 && !isFetching ? (
+            query.length >= 1 && !isFetching ? (
               <View style={styles.empty}>
                 <Ionicons name="person-outline" size={40} color={colors.textMuted} />
                 <Text style={styles.emptyText}>"{query}" {t('search', 'noResults')}</Text>
               </View>
-            ) : query.length > 0 && query.length < 2 ? (
-              <Text style={styles.hint}>{t('common', 'search')}</Text>
             ) : (
               <View style={styles.empty}>
                 <Ionicons name="search-outline" size={40} color={colors.textMuted} />

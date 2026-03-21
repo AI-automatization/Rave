@@ -1,5 +1,5 @@
-// CineSync Mobile — Video Controls Overlay
-import React from 'react';
+// CineSync Mobile — Video Controls Overlay (themed + animated)
+import React, { useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,9 +7,11 @@ import {
   StyleSheet,
   GestureResponderEvent,
   ActivityIndicator,
+  Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, typography, borderRadius } from '@theme/index';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useTheme, spacing, typography, borderRadius } from '@theme/index';
 
 interface VideoControlsProps {
   title: string;
@@ -55,55 +57,80 @@ export const VideoControls = React.memo(function VideoControls({
   onToggleFullscreen,
   seekBarWidth,
 }: VideoControlsProps) {
+  const { colors } = useTheme();
   const progressRatio = duration > 0 ? position / duration : 0;
 
+  // Fade in animation
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(fadeAnim, { toValue: 1, duration: 250, useNativeDriver: true }).start();
+  }, [fadeAnim]);
+
+  // Play button scale
+  const playScale = useRef(new Animated.Value(1)).current;
+  const handlePlayPress = () => {
+    Animated.sequence([
+      Animated.timing(playScale, { toValue: 0.85, duration: 80, useNativeDriver: true }),
+      Animated.timing(playScale, { toValue: 1, duration: 80, useNativeDriver: true }),
+    ]).start();
+    onTogglePlay();
+  };
+
   return (
-    <View style={StyleSheet.absoluteFillObject}>
-      {/* Top bar */}
-      <View style={[s.topBar, { paddingTop }]}>
-        <TouchableOpacity onPress={onBack} style={s.iconBtn}>
-          <Ionicons name="chevron-back" size={26} color={colors.textPrimary} />
+    <Animated.View style={[StyleSheet.absoluteFillObject, { opacity: fadeAnim }]}>
+      {/* Top gradient + bar */}
+      <LinearGradient
+        colors={['rgba(0,0,0,0.7)', 'transparent']}
+        style={[s.topBar, { paddingTop }]}
+      >
+        <TouchableOpacity onPress={onBack} style={s.iconBtn} activeOpacity={0.7}>
+          <Ionicons name="chevron-back" size={26} color="#fff" />
         </TouchableOpacity>
         <Text style={s.titleText} numberOfLines={1}>{title}</Text>
-        <TouchableOpacity onPress={onToggleFullscreen} style={s.iconBtn}>
+        <TouchableOpacity onPress={onToggleFullscreen} style={s.iconBtn} activeOpacity={0.7}>
           <Ionicons
             name={isFullscreen ? 'contract-outline' : 'expand-outline'}
             size={22}
-            color={colors.textPrimary}
+            color="#fff"
           />
         </TouchableOpacity>
-      </View>
+      </LinearGradient>
 
       {/* Center controls */}
       <View style={s.centerControls}>
         {isBuffering ? (
-          <ActivityIndicator color={colors.textPrimary} size="large" />
+          <ActivityIndicator color="#fff" size="large" />
         ) : (
           <>
-            <TouchableOpacity onPress={onSkipBack} style={s.skipBtn}>
-              <Ionicons name="play-back" size={28} color={colors.textPrimary} />
+            <TouchableOpacity onPress={onSkipBack} style={s.skipBtn} activeOpacity={0.7}>
+              <Ionicons name="play-back" size={28} color="#fff" />
               <Text style={s.skipLabel}>10</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={onTogglePlay} style={s.playBtn}>
-              <Ionicons
-                name={isPlaying ? 'pause' : 'play'}
-                size={44}
-                color={colors.textPrimary}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={onSkipForward} style={s.skipBtn}>
-              <Ionicons name="play-forward" size={28} color={colors.textPrimary} />
+            <Animated.View style={{ transform: [{ scale: playScale }] }}>
+              <TouchableOpacity onPress={handlePlayPress} style={s.playBtn} activeOpacity={0.8}>
+                <Ionicons
+                  name={isPlaying ? 'pause' : 'play'}
+                  size={40}
+                  color="#fff"
+                />
+              </TouchableOpacity>
+            </Animated.View>
+            <TouchableOpacity onPress={onSkipForward} style={s.skipBtn} activeOpacity={0.7}>
+              <Ionicons name="play-forward" size={28} color="#fff" />
               <Text style={s.skipLabel}>10</Text>
             </TouchableOpacity>
           </>
         )}
       </View>
 
-      {/* Bottom bar */}
-      <View style={[s.bottomBar, { paddingBottom }]}>
+      {/* Bottom gradient + seek bar */}
+      <LinearGradient
+        colors={['transparent', 'rgba(0,0,0,0.7)']}
+        style={[s.bottomBar, { paddingBottom }]}
+      >
         <View style={s.timeRow}>
           <Text style={s.timeText}>{formatTime(position)}</Text>
-          <Text style={s.timeText}>{formatTime(duration)}</Text>
+          <Text style={s.timeDuration}>{formatTime(duration)}</Text>
         </View>
         <TouchableOpacity
           activeOpacity={1}
@@ -111,11 +138,12 @@ export const VideoControls = React.memo(function VideoControls({
           onLayout={(e) => onSeekBarLayout(e.nativeEvent.layout.width)}
           style={s.seekBarTrack}
         >
-          <View style={[s.seekBarFill, { width: `${progressRatio * 100}%` }]} />
-          <View style={[s.seekThumb, { left: progressRatio * seekBarWidth - 6 }]} />
+          <View style={s.seekBarBg} />
+          <View style={[s.seekBarFill, { width: `${progressRatio * 100}%`, backgroundColor: colors.primary }]} />
+          <View style={[s.seekThumb, { left: progressRatio * seekBarWidth - 7, backgroundColor: colors.primary }]} />
         </TouchableOpacity>
-      </View>
-    </View>
+      </LinearGradient>
+    </Animated.View>
   );
 });
 
@@ -126,49 +154,65 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.md,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingBottom: spacing.xxl,
   },
-  iconBtn: { width: 40, alignItems: 'center' },
+  iconBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   titleText: {
     flex: 1,
     ...typography.h3,
     textAlign: 'center',
-    color: colors.textPrimary,
+    color: '#fff',
   },
   centerControls: {
     ...StyleSheet.absoluteFillObject,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.xxxl,
+    gap: 48,
   },
   skipBtn: { alignItems: 'center', gap: 2 },
-  skipLabel: { ...typography.caption, color: colors.textPrimary },
+  skipLabel: { ...typography.caption, color: 'rgba(255,255,255,0.8)', fontWeight: '600' },
   playBtn: {
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    borderRadius: borderRadius.full,
-    padding: spacing.lg,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 40,
+    width: 72,
+    height: 72,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   bottomBar: {
     position: 'absolute',
     bottom: 0, left: 0, right: 0,
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingTop: spacing.xxl,
     gap: spacing.sm,
   },
   timeRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  timeText: { ...typography.caption, color: colors.textPrimary },
-  seekBarTrack: { height: 20, justifyContent: 'center' },
-  seekBarFill: { height: 3, backgroundColor: colors.primary, borderRadius: 2 },
+  timeText: { ...typography.caption, color: '#fff', fontWeight: '600' },
+  timeDuration: { ...typography.caption, color: 'rgba(255,255,255,0.6)' },
+  seekBarTrack: { height: 24, justifyContent: 'center' },
+  seekBarBg: {
+    position: 'absolute',
+    left: 0, right: 0,
+    height: 4,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 2,
+  },
+  seekBarFill: { height: 4, borderRadius: 2 },
   seekThumb: {
     position: 'absolute',
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: colors.primary,
-    top: 4,
-    marginLeft: -6,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    top: 5,
+    borderWidth: 2,
+    borderColor: '#fff',
   },
 });

@@ -1,20 +1,18 @@
-// CineSync Mobile — Profile gradient header (avatar, rank, progress)
+// CineSync Mobile — Profile card header (web-style horizontal layout)
 import React, { useRef } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   Animated,
-  Dimensions,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
-import { FadeInView, AnimatedProgressBar, PulsingDot } from './ProfileAnimations';
+import { FadeInView, PulsingDot } from './ProfileAnimations';
 import type { RankMeta } from '@hooks/useProfileData';
-
-const { width: SCREEN_W } = Dimensions.get('window');
+import { RANK_COLORS } from '@theme/colors';
+import type { UserRank } from '@app-types/index';
 
 interface ProfileHeaderProps {
   avatarUri?: string | null;
@@ -28,6 +26,7 @@ interface ProfileHeaderProps {
   onSettingsPress: () => void;
   titleLabel: string;
   pointsLabel: string;
+  joinDate?: string;
 }
 
 export const ProfileHeader = React.memo(function ProfileHeader({
@@ -42,11 +41,12 @@ export const ProfileHeader = React.memo(function ProfileHeader({
   onSettingsPress,
   titleLabel,
   pointsLabel,
+  joinDate,
 }: ProfileHeaderProps) {
   const { colors } = useTheme();
   const s = useStyles();
   const avatarScale = useRef(new Animated.Value(1)).current;
-  const { rank, rankColor, rankIcon, totalPts, rankMin, rankMax, rankProgress, nextRank } = rankMeta;
+  const { rank, rankColor, totalPts } = rankMeta;
 
   const handlePressAvatar = () => {
     Animated.sequence([
@@ -57,13 +57,8 @@ export const ProfileHeader = React.memo(function ProfileHeader({
   };
 
   return (
-    <LinearGradient
-      colors={[rankColor + '25', colors.bgBase]}
-      start={{ x: 0.5, y: 0 }}
-      end={{ x: 0.5, y: 1 }}
-      style={[s.container, { paddingTop: paddingTop + spacing.md }]}
-    >
-      {/* Top row */}
+    <View style={[s.container, { paddingTop: paddingTop + spacing.md }]}>
+      {/* Top row — title + settings */}
       <View style={s.topRow}>
         <Text style={s.title}>{titleLabel}</Text>
         <TouchableOpacity onPress={onSettingsPress} style={s.settingsBtn} activeOpacity={0.7}>
@@ -71,134 +66,192 @@ export const ProfileHeader = React.memo(function ProfileHeader({
         </TouchableOpacity>
       </View>
 
-      {/* Avatar */}
-      <FadeInView delay={100} style={s.avatarSection}>
-        <TouchableOpacity onPress={handlePressAvatar} activeOpacity={0.85}>
-          <Animated.View style={[s.avatarRing, { borderColor: rankColor + '60', transform: [{ scale: avatarScale }] }]}>
-            <Image
-              source={avatarUri ? { uri: avatarUri } : require('../../../assets/icon.png')}
-              style={s.avatar}
-              contentFit="cover"
-            />
-          </Animated.View>
-          <View style={[s.avatarEditBadge, { backgroundColor: colors.primary }]}>
-            <Ionicons name="camera" size={12} color={colors.white} />
+      {/* Profile card — web style horizontal */}
+      <FadeInView delay={100} style={s.profileCard}>
+        <View style={s.cardContent}>
+          {/* Avatar */}
+          <TouchableOpacity onPress={handlePressAvatar} activeOpacity={0.85}>
+            <Animated.View style={[s.avatarRing, { borderColor: rankColor, transform: [{ scale: avatarScale }] }]}>
+              <Image
+                source={avatarUri ? { uri: avatarUri } : require('../../../assets/icon.png')}
+                style={s.avatar}
+                contentFit="cover"
+              />
+            </Animated.View>
+            <View style={[s.avatarEditBadge, { backgroundColor: colors.primary }]}>
+              <Ionicons name="camera" size={10} color={colors.white} />
+            </View>
+            {/* Online dot on avatar */}
+            <View style={[s.onlineDotAbsolute, { backgroundColor: isOnline ? colors.success : colors.textDim, borderColor: colors.bgElevated }]} />
+          </TouchableOpacity>
+
+          {/* Info section */}
+          <View style={s.infoSection}>
+            <View style={s.nameEditRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={s.username}>{username.toUpperCase()}</Text>
+                {bio ? <Text style={s.bio} numberOfLines={2}>{bio}</Text> : null}
+              </View>
+              <TouchableOpacity onPress={onEditPress} style={s.editBtn} activeOpacity={0.7}>
+                <Ionicons name="create-outline" size={16} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Rank badge */}
+            <FadeInView delay={200}>
+              <View style={[s.rankBadge, { backgroundColor: rankColor + '15', borderColor: rankColor + '30' }]}>
+                <Text style={[s.rankText, { color: rankColor }]}>{rank}</Text>
+              </View>
+            </FadeInView>
+
+            {/* Meta row — points + online */}
+            <FadeInView delay={300}>
+              <View style={s.metaRow}>
+                <View style={s.metaItem}>
+                  <Ionicons name="star" size={14} color={colors.gold} />
+                  <Text style={s.metaValue}>{totalPts.toLocaleString()}</Text>
+                  <Text style={s.metaLabel}>{pointsLabel}</Text>
+                </View>
+                {joinDate ? (
+                  <View style={s.metaItem}>
+                    <Ionicons name="calendar-outline" size={14} color={colors.textMuted} />
+                    <Text style={s.metaLabel}>{joinDate}</Text>
+                  </View>
+                ) : null}
+                <View style={s.metaItem}>
+                  <PulsingDot active={isOnline === true} />
+                  <Text style={[s.metaLabel, { color: isOnline ? colors.success : colors.textMuted }]}>
+                    {isOnline ? 'Online' : 'Offline'}
+                  </Text>
+                </View>
+              </View>
+            </FadeInView>
           </View>
-        </TouchableOpacity>
-      </FadeInView>
-
-      {/* Username + online */}
-      <FadeInView delay={200} style={s.nameSection}>
-        <TouchableOpacity onPress={onEditPress} activeOpacity={0.8} style={s.usernameRow}>
-          <Text style={s.username}>{username}</Text>
-          <Ionicons name="create-outline" size={16} color={colors.textMuted} />
-        </TouchableOpacity>
-        <View style={s.onlineRow}>
-          <PulsingDot active={isOnline === true} />
-          <Text style={[s.onlineText, { color: isOnline === true ? colors.success : colors.textMuted }]}>
-            {isOnline === true ? 'Online' : 'Offline'}
-          </Text>
         </View>
       </FadeInView>
-
-      {/* Rank badge */}
-      <FadeInView delay={300} style={s.rankSection}>
-        <View style={[s.rankChip, { backgroundColor: rankColor + '18', borderColor: rankColor + '35' }]}>
-          <Ionicons name={rankIcon} size={16} color={rankColor} />
-          <Text style={[s.rankName, { color: rankColor }]}>{rank}</Text>
-          <View style={s.rankDivider} />
-          <Text style={[s.rankPts, { color: rankColor }]}>{totalPts} {pointsLabel}</Text>
-        </View>
-      </FadeInView>
-
-      {bio ? (
-        <FadeInView delay={350}>
-          <Text style={s.bio}>{bio}</Text>
-        </FadeInView>
-      ) : null}
-
-      {/* Rank progress */}
-      <FadeInView delay={400} style={s.progressWrap}>
-        <View style={s.progressLabelRow}>
-          <Text style={s.progressLabel}>{totalPts}</Text>
-          <Text style={s.progressLabel}>{rankMax}</Text>
-        </View>
-        <AnimatedProgressBar progress={rankProgress} color={rankColor} delay={500} />
-        {nextRank ? (
-          <Text style={s.progressSub}>{rank}  →  {nextRank}</Text>
-        ) : (
-          <Text style={[s.progressSub, { color: rankColor, fontWeight: '700' }]}>MAX RANK</Text>
-        )}
-      </FadeInView>
-    </LinearGradient>
+    </View>
   );
 });
 
 const useStyles = createThemedStyles((colors) => ({
-  container: { paddingBottom: spacing.xl, alignItems: 'center' },
+  container: { paddingBottom: spacing.sm },
   topRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    width: '100%',
     paddingHorizontal: spacing.lg,
     marginBottom: spacing.lg,
   },
   title: { ...typography.h1, color: colors.textPrimary },
   settingsBtn: {
-    width: 40, height: 40,
+    width: 40,
+    height: 40,
     borderRadius: 20,
     backgroundColor: colors.bgElevated,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarSection: { alignItems: 'center', marginBottom: spacing.md },
+  profileCard: {
+    marginHorizontal: spacing.lg,
+    backgroundColor: colors.bgElevated,
+    borderRadius: borderRadius.xl,
+    padding: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  cardContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.lg,
+  },
   avatarRing: {
-    width: 100, height: 100,
-    borderRadius: 50,
-    borderWidth: 3,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatar: { width: 90, height: 90, borderRadius: 45 },
+  avatar: { width: 72, height: 72, borderRadius: 36 },
   avatarEditBadge: {
     position: 'absolute',
-    bottom: 2, right: 2,
-    width: 28, height: 28,
-    borderRadius: 14,
+    bottom: 0,
+    right: 0,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: colors.bgBase,
+    borderWidth: 2,
+    borderColor: colors.bgElevated,
   },
-  nameSection: { alignItems: 'center', gap: spacing.xs },
-  usernameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  username: { fontSize: 22, fontWeight: '700', color: colors.textPrimary },
-  onlineRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
-  onlineText: { ...typography.caption, fontWeight: '600', color: colors.textMuted },
-  rankSection: { marginTop: spacing.sm },
-  rankChip: {
+  onlineDotAbsolute: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    borderWidth: 2,
+  },
+  infoSection: { flex: 1, gap: spacing.sm },
+  nameEditRow: {
     flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
+  username: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    letterSpacing: 0.5,
+  },
+  bio: {
+    ...typography.caption,
+    color: colors.textTertiary,
+    marginTop: 2,
+    lineHeight: 16,
+  },
+  editBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.bgSurface,
     alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rankBadge: {
+    alignSelf: 'flex-start',
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.xs,
     borderRadius: borderRadius.full,
     borderWidth: 1,
-    gap: spacing.xs,
   },
-  rankName: { fontSize: 14, fontWeight: '700' },
-  rankDivider: { width: 1, height: 14, backgroundColor: colors.border, marginHorizontal: spacing.xs },
-  rankPts: { fontSize: 12, fontWeight: '600' },
-  bio: {
-    ...typography.body,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    paddingHorizontal: spacing.xxl,
-    marginTop: spacing.sm,
-    lineHeight: 20,
+  rankText: {
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
-  progressWrap: { width: SCREEN_W - spacing.xxl * 2, marginTop: spacing.md },
-  progressLabelRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.xs },
-  progressLabel: { ...typography.caption, color: colors.textMuted },
-  progressSub: { ...typography.caption, color: colors.textMuted, textAlign: 'center', marginTop: spacing.xs },
+  metaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.md,
+    alignItems: 'center',
+  },
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  metaValue: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
+  metaLabel: {
+    ...typography.caption,
+    color: colors.textMuted,
+  },
 }));

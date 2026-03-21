@@ -1,4 +1,4 @@
-import { User, IUserDocument } from '../models/user.model';
+import { User } from '../models/user.model';
 import { Friendship, IFriendshipDocument } from '../models/friendship.model';
 import { logger } from '@shared/utils/logger';
 import { NotFoundError, ConflictError, BadRequestError } from '@shared/utils/errors';
@@ -119,13 +119,18 @@ export class FriendshipService {
 
     const userMap = new Map(users.map((u) => [u.authId, u]));
 
-    return requests.map((f) => ({
-      ...f,
-      requester: userMap.get(f.requesterId) ?? { username: 'Unknown', rank: 'Bronze' },
-    }));
+    return requests.map((f) => {
+      const u = userMap.get(f.requesterId);
+      return {
+        ...f,
+        requester: u
+          ? { _id: u.authId, username: u.username, avatar: u.avatar, rank: u.rank }
+          : { _id: f.requesterId, username: 'Unknown', rank: 'Bronze' },
+      };
+    });
   }
 
-  async getFriends(userId: string): Promise<IUserDocument[]> {
+  async getFriends(userId: string): Promise<Record<string, unknown>[]> {
     const friendships = await Friendship.find({
       $or: [{ requesterId: userId }, { receiverId: userId }],
       status: 'accepted',
@@ -135,7 +140,18 @@ export class FriendshipService {
       f.requesterId === userId ? f.receiverId : f.requesterId,
     );
 
-    return User.find({ authId: { $in: friendIds } });
+    const users = await User.find({ authId: { $in: friendIds } })
+      .select('authId username avatar bio rank totalPoints')
+      .lean();
+
+    return users.map((u) => ({
+      _id: u.authId,
+      username: u.username,
+      avatar: u.avatar,
+      bio: u.bio,
+      rank: u.rank,
+      totalPoints: u.totalPoints,
+    }));
   }
 
   private async _acceptFriendship(friendship: IFriendshipDocument): Promise<void> {

@@ -197,8 +197,15 @@ export function useWatchPartyCreate(): UseWatchPartyCreateReturn {
       }
       const room = await watchPartyApi.createRoom(payload);
       onSuccess(room._id);
-    } catch {
-      Alert.alert('Xato', 'Xona yaratib bo\'lmadi. Qayta urinib ko\'ring.');
+    } catch (err: unknown) {
+      let msg = 'Xona yaratib bo\'lmadi. Qayta urinib ko\'ring.';
+      if (err && typeof err === 'object' && 'response' in err) {
+        const resp = (err as { response?: { data?: { message?: string }; status?: number } }).response;
+        if (resp?.data?.message) msg = resp.data.message;
+        else if (resp?.status === 401) msg = 'Sessiya tugagan. Qayta kiring.';
+        else if (resp?.status === 403) msg = 'Ruxsat berilmagan.';
+      }
+      Alert.alert('Xato', msg);
     } finally {
       setLoading(false);
     }
