@@ -334,10 +334,10 @@ GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state
 ### T-E060 | P1 | [MOBILE] | Blocked account popup + Admin WatchParty events
 
 - **Sana:** 2026-03-20
-- **Mas'ul:** pending[Emirhan]
+- **Mas'ul:** pending[Jafar]
 - **Sprint:** S5
 - **Sabab:** Saidazim backend da foydalanuvchi bloklanishini `ACCOUNT_BLOCKED` kodi bilan qaytaradi + admin watch party ga qo'shilganda yangi Socket.io eventlar kerak
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 Bajarilmoqda
 
 **Backend qanday javob qaytaradi (blok holatida):**
 ```json
