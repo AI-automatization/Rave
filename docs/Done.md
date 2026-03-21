@@ -12,6 +12,7 @@
 - **i18n:** `translations.ts` ga roomClosed, closedInactivity, closedOwnerLeft, closedByAdmin, reason tarjimalari qo'shildi (uz/ru/en).
 - **Fayllar:** `useWatchParty.ts`, `WatchPartyScreen.tsx`, `AppNavigator.tsx`, `translations.ts`
 - **T-J022:** `VideoSection.tsx` da `{!isOwner && <View style={StyleSheet.absoluteFill} pointerEvents="box-only" />}` — shaffof overlay member touch/tap/scroll ni bloklaydi. Owner controls va fullscreen toggle overlay ustida qoladi (zIndex).
+- **T-J023:** Notification ekrani allaqachon to'liq implement qilingan: `notification.api.ts` (GET, PUT, DELETE), `NotificationsScreen.tsx` (FlatList + unread badge + pull-to-refresh + empty state + mark all read + type icons + friend accept/reject + WatchParty join). `useNotifications.ts` hook bilan Socket.io realtime ham ishlaydi.
 
 ---
 

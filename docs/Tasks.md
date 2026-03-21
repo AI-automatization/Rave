@@ -513,47 +513,7 @@ Tavsiya: member ham retry bosa olsin (sayt muammosi, control muammosi emas)
 
 ---
 
-### T-J023 | P1 | [MOBILE] | Notification ekrani — to'liq implementatsiya
-
-- **Sana:** 2026-03-21
-- **Mas'ul:** pending[Jafar]
-- **Sprint:** S4
-- **Fayllar:** `apps/mobile/src/screens/Notifications/NotificationsScreen.tsx`, `apps/mobile/src/api/notifications.api.ts`
-- **Holat:** ❌ Boshlanmagan
-
-**Backend API (production):**
-```
-GET  /notifications?page=1&limit=20        → list (paginated)
-GET  /notifications/unread-count           → { count: number }
-PATCH /notifications/:id/read              → mark one read
-PATCH /notifications/read-all             → mark all read
-DELETE /notifications/:id                  → delete
-```
-
-**Notification types va ularning action:**
-| type | Ko'rinish | Tap action |
-|------|-----------|------------|
-| `friend_request` | "X do'stlik so'rovi yubordi" | → Friends ekrani |
-| `friend_accepted` | "X do'stingiz bo'ldi" | → Friends ekrani |
-| `watch_party_invite` | "X Watch Party ga taklif qildi" | → WatchPartyJoin ekrani (inviteCode bilan) |
-| `battle_invite` | "X battle taklifi yubordi" | → Battles ekrani |
-| `battle_result` | "Battle rad etildi/yakunlandi" | → Battles ekrani |
-| `achievement_unlocked` | "Achievement ochildi! 🏆" | → Profile/Achievements ekrani |
-
-**Notification data payload (backend dan keladi):**
-```typescript
-// data field ichida:
-{ screen: 'Friends' | 'WatchParty' | 'Battles' | 'Home', inviteCode?: string, battleId?: string }
-```
-
-**Subtasklar:**
-- [ ] `notifications.api.ts` — barcha endpoint lar (GET, PATCH, DELETE)
-- [ ] `NotificationsScreen` — FlatList, unread badge (qizil), pull-to-refresh
-- [ ] Har bir notification tapping → `data.screen` asosida navigate
-- [ ] Unread count badge — tab bar yoki header da
-- [ ] "Hammasini o'qilgan deb belgilash" tugmasi
-- [ ] Empty state — "Hozircha bildirishnoma yo'q"
-- [ ] TypeScript: `tsc --noEmit` o'tadi ✅
+### ✅ T-J023 | TUGADI → Done.md F-145
 
 ---
 
