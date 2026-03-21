@@ -5,15 +5,15 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
   ActivityIndicator,
   NativeSyntheticEvent,
   TextInputKeyPressEventData,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, borderRadius, typography } from '@theme/index';
+import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { AuthStackParamList } from '@app-types/index';
 import { authApi } from '@api/auth.api';
 import { useT } from '@i18n/index';
@@ -24,8 +24,11 @@ type Route = RouteProp<AuthStackParamList, 'VerifyEmail'>;
 export function VerifyEmailScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
+  const insets = useSafeAreaInsets();
   const { email, devOtp } = route.params;
   const { t } = useT();
+  const { colors } = useTheme();
+  const styles = useStyles();
 
   const [digits, setDigits] = useState(() =>
     devOtp ? devOtp.split('').slice(0, 6) : ['', '', '', '', '', ''],
@@ -103,7 +106,7 @@ export function VerifyEmailScreen() {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+      <TouchableOpacity style={[styles.backBtn, { marginTop: insets.top + spacing.sm }]} onPress={() => navigation.goBack()}>
         <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
       </TouchableOpacity>
 
@@ -185,9 +188,9 @@ export function VerifyEmailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   container: { flex: 1, backgroundColor: colors.bgBase, paddingHorizontal: spacing.xl },
-  backBtn: { marginTop: 60, marginBottom: spacing.xl },
+  backBtn: { marginBottom: spacing.xl },
   content: { alignItems: 'center', marginTop: spacing.xxxl },
   iconWrap: {
     width: 100,
@@ -200,8 +203,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  title: { ...typography.h1, marginBottom: spacing.sm },
-  sub: { ...typography.body, textAlign: 'center', lineHeight: 22, marginBottom: spacing.xl },
+  title: { ...typography.h1, color: colors.textPrimary, marginBottom: spacing.sm },
+  sub: { ...typography.body, color: colors.textSecondary, textAlign: 'center', lineHeight: 22, marginBottom: spacing.xl },
   email: { color: colors.primary, fontWeight: '600' },
   errorBox: {
     flexDirection: 'row',
@@ -266,4 +269,4 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   devHintText: { color: colors.primary, fontSize: 12, textAlign: 'center', fontWeight: '600' },
-});
+}));

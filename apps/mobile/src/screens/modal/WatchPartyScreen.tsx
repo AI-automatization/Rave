@@ -1,6 +1,6 @@
 // CineSync Mobile — WatchPartyScreen
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Alert, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, Dimensions, Alert, Platform } from 'react-native';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { AVPlaybackStatus } from 'expo-av';
 import { useWatchParty } from '@hooks/useWatchParty';
@@ -13,7 +13,7 @@ import { UniversalPlayerRef } from '@components/video/UniversalPlayer';
 import { VideoSection, FloatingEmoji } from '@components/watchParty/VideoSection';
 import { RoomInfoBar } from '@components/watchParty/RoomInfoBar';
 import { InviteCard } from '@components/watchParty/InviteCard';
-import { colors, spacing } from '@theme/index';
+import { useTheme, createThemedStyles, spacing } from '@theme/index';
 import { ModalStackParamList } from '@app-types/index';
 
 type RouteType = RouteProp<ModalStackParamList, 'WatchParty'>;
@@ -24,6 +24,8 @@ export function WatchPartyScreen() {
   const { params } = useRoute<RouteType>();
   const navigation = useNavigation();
   const userId = useAuthStore(s => s.user?._id) ?? '';
+  const { colors } = useTheme();
+  const s = useStyles();
 
   const { room, syncState, messages, activeMembers, isOwner, emitPlay, emitPause, emitSeek, sendMessage, sendEmoji } =
     useWatchParty(params.roomId);
@@ -218,7 +220,7 @@ export function WatchPartyScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bgVoid },
   emojiBar: { padding: spacing.md, alignItems: 'center' },
   emojiBarAndroid: { marginTop: spacing.sm },
@@ -240,4 +242,4 @@ const s = StyleSheet.create({
     borderRadius: 12,
   },
   errorBtnText: { color: colors.white, fontWeight: '700', fontSize: 15 },
-});
+}));

@@ -462,21 +462,23 @@ Tavsiya: member ham retry bosa olsin (sayt muammosi, control muammosi emas)
 
 # ═══════════════════════════════════════
 
-## CODE REVIEW — 2026-03-11 (Bekzod QA)
+> **2026-03-18:** Jafar Web → Mobile ga o'tdi. Quyidagi web tasklar mas'ulsiz qoldi.
+> Eski tugallangan tasklar arxivda qoladi.
+
+## Tugallangan (arxiv)
 
 ### ✅ T-J012 | TUGADI → Done.md F-122
 ### ✅ T-J013 | TUGADI → Done.md F-123
-
----
-
 ### ✅ T-J014 | TUGADI → Done.md F-124
 
 ---
 
+## ⚠️ MAS'ULSIZ WEB TASKLAR (Jafar endi mobile da)
+
 ### T-J015 | P1 | [WEB] | BUG: Auth hydration flash + authFetch duplicate + socket stale token + middleware
 
 - **Sana:** 2026-03-11
-- **Mas'ul:** (ochiq — web mas'uli yo'q)
+- **Mas'ul:** ❌ MAS'UL YO'Q (Jafar mobile ga o'tdi 2026-03-18)
 - **Holat:** ❌ Boshlanmagan
 - **Fayllar:**
   - `apps/web/src/store/auth.store.ts` (25-75-qator)
@@ -500,17 +502,10 @@ Tavsiya: member ham retry bosa olsin (sayt muammosi, control muammosi emas)
 
 ---
 
-## SPRINT 3 — UX + Auth + Profile
-
----
-
-
----
-## SPRINT 5 — SEO + i18n + PWA + Polish
-
 ### T-J007 | P2 | [WEB] | SEO + Performance + i18n + PWA — qolgan qismi
 
 - **Sprint:** S5
+- **Mas'ul:** ❌ MAS'UL YO'Q (Jafar mobile ga o'tdi 2026-03-18)
 - **Holat:** ⚠️ QISMAN (manifest.json + robots.txt ✅, Playwright tests qisman ✅)
 - **Subtasks:** TASK-J-030..TASK-J-038
 - **Qolgan ishlar:**
@@ -712,7 +707,7 @@ Foydalanuvchi **har qanday** video sayt URL ni kiritganda:
   - `apps/web/src/hooks/useVoiceChat.ts` — 8+ hardcoded event string
   - `services/watch-party/src/socket/watchParty.socket.ts` (93, 116-119-qator)
   - `shared/src/constants/socketEvents.ts`
-- **Qolgan ishlar (Jafar):**
+- **Qolgan ishlar (❌ MAS'UL YO'Q — Jafar mobile ga o'tdi 2026-03-18):**
   - [ ] **Web:** `@cinesync/shared` dan `SERVER_EVENTS`/`CLIENT_EVENTS` import qilish (T-C008 dan keyin)
   - [ ] **Web:** barcha hardcoded event string larni shared constant bilan almashtirish
   - [ ] **Backend (ixtiyoriy):** Server payload ga `members[]` qo'shish
@@ -1061,7 +1056,7 @@ Test URL lar:
 | -------- | ---------- | ------ | ---- |
 | Saidazim | T-S001..T-S008, T-S010, T-S011, T-S030, T-S031, T-S032 ✅ | T-S005b, T-S016 | T-S032 (video extractor) |
 | Emirhan  | T-E015..T-E037 ✅ | T-E038, T-E039 | T-E038 (search crash), T-E039 (video extractor) |
-| Jafar    | T-J001..T-J006, T-J008, T-J009, T-J011 ✅ | T-J007, T-J010 | Code: T-J012..T-J015 |
+| Jafar    | T-J001..T-J006, T-J008..T-J014 ✅ | ~~T-J007, T-J015~~ (web, mas'ulsiz) | 2026-03-18 dan MOBILE zona |
 | Umumiy   | T-C001..T-C003, T-C005 ✅ | T-C004, T-C006 | Code: T-C007 \| Arch: T-C008, T-C009 |
 
 ### Code Review + Architecture Review Summary — 2026-03-11

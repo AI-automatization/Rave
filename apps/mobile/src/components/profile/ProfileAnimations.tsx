@@ -1,7 +1,7 @@
 // CineSync Mobile — Profile animation primitives
 import React, { useEffect, useRef } from 'react';
-import { View, Animated, StyleSheet } from 'react-native';
-import { colors, borderRadius } from '@theme/index';
+import { View, Animated } from 'react-native';
+import { useTheme, createThemedStyles, borderRadius } from '@theme/index';
 
 // ─── FadeInView ────────────────────────────────────────────────
 
@@ -49,6 +49,7 @@ export const AnimatedProgressBar = React.memo(function AnimatedProgressBar({
   color,
   delay = 300,
 }: AnimatedProgressBarProps) {
+  const s = useStyles();
   const width = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -80,6 +81,8 @@ interface PulsingDotProps {
 }
 
 export const PulsingDot = React.memo(function PulsingDot({ active }: PulsingDotProps) {
+  const { colors } = useTheme();
+  const s = useStyles();
   const scale = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -106,7 +109,7 @@ export const PulsingDot = React.memo(function PulsingDot({ active }: PulsingDotP
   );
 });
 
-const s = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   progressTrack: {
     height: 6,
     backgroundColor: colors.bgElevated,
@@ -117,4 +120,4 @@ const s = StyleSheet.create({
   onlineDotWrap: { width: 12, height: 12, alignItems: 'center', justifyContent: 'center' },
   onlinePulse: { position: 'absolute', width: 12, height: 12, borderRadius: 6 },
   onlineDot: { width: 8, height: 8, borderRadius: 4 },
-});
+}));

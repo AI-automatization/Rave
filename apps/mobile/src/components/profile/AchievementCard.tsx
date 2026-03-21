@@ -1,8 +1,8 @@
 // CineSync Mobile — AchievementCard component
 import React, { useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, Animated, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Animated } from 'react-native';
 import { Image } from 'expo-image';
-import { colors, spacing, borderRadius, typography, RARITY_COLORS } from '@theme/index';
+import { useTheme, createThemedStyles, spacing, borderRadius, typography, RARITY_COLORS } from '@theme/index';
 import { IAchievement } from '@app-types/index';
 
 export interface UnlockedAchievement {
@@ -16,6 +16,8 @@ interface Props {
 }
 
 export function AchievementCard({ item, onPress }: Props) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const scale = useRef(new Animated.Value(0.6)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const rarityColor = RARITY_COLORS[item.achievement.rarity] ?? colors.textMuted;
@@ -51,7 +53,7 @@ export function AchievementCard({ item, onPress }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   touchable: { flex: 1 },
   cell: {
     flex: 1,
@@ -69,4 +71,4 @@ const styles = StyleSheet.create({
   rarityDot: { width: 8, height: 8, borderRadius: 4 },
   cellTitle: { ...typography.caption, color: colors.textPrimary, textAlign: 'center', fontWeight: '600' },
   rarityLabel: { fontSize: 10, fontWeight: '600', textTransform: 'capitalize' },
-});
+}));

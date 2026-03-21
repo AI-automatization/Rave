@@ -1,10 +1,10 @@
 // CineSync Mobile — Movie Card Component
 import React, { memo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, Dimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { colors, borderRadius, typography } from '@theme/index';
+import { useTheme, createThemedStyles, borderRadius, typography } from '@theme/index';
 import { IMovie, HomeStackParamList } from '@app-types/index';
 
 type Nav = NativeStackNavigationProp<HomeStackParamList>;
@@ -20,6 +20,7 @@ const CARD_WIDTH = (Dimensions.get('window').width - 48) / 2.5;
 export const MovieCard = memo(function MovieCard({ movie, width = CARD_WIDTH, onPress }: Props) {
   const navigation = useNavigation<Nav>();
   const height = width * 1.5;
+  const styles = useStyles();
 
   return (
     <TouchableOpacity
@@ -47,7 +48,7 @@ export const MovieCard = memo(function MovieCard({ movie, width = CARD_WIDTH, on
   );
 });
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   card: { borderRadius: borderRadius.lg, overflow: 'hidden', backgroundColor: colors.bgElevated },
   poster: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   overlay: { position: 'absolute', top: 8, right: 8 },
@@ -68,4 +69,4 @@ const styles = StyleSheet.create({
   },
   title: { ...typography.caption, color: colors.textPrimary, fontWeight: '600' },
   year: { ...typography.caption, color: colors.textMuted },
-});
+}));

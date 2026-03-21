@@ -1,7 +1,7 @@
 // CineSync Mobile — GenreBrowse component
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { colors, spacing, borderRadius, typography } from '@theme/index';
+import { View, Text, TouchableOpacity } from 'react-native';
+import { createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { ContentGenre } from '@app-types/index';
 import { GENRES } from '@hooks/useSearch';
 
@@ -10,6 +10,8 @@ interface GenreBrowseProps {
 }
 
 export const GenreBrowse = React.memo(function GenreBrowse({ onGenrePress }: GenreBrowseProps) {
+  const styles = useStyles();
+
   return (
     <View style={styles.browseSection}>
       <Text style={styles.sectionLabel}>Janr bo'yicha ko'rish</Text>
@@ -29,7 +31,7 @@ export const GenreBrowse = React.memo(function GenreBrowse({ onGenrePress }: Gen
   );
 });
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   browseSection: { paddingHorizontal: spacing.xl, marginTop: spacing.xl },
   sectionLabel: {
     ...typography.label,
@@ -53,4 +55,4 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   browseCardText: { ...typography.body, color: colors.textPrimary, fontWeight: '600' },
-});
+}));

@@ -1,13 +1,13 @@
 // CineSync Mobile — Video Extract Screen
 import React, { useRef } from 'react';
-import { View, Text, ActivityIndicator, StyleSheet, StatusBar } from 'react-native';
+import { View, Text, ActivityIndicator, StatusBar } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { UniversalPlayerRef } from '@components/video/UniversalPlayer';
 import { VideoExtractInput } from '@components/home/VideoExtractInput';
 import { VideoExtractReady } from '@components/home/VideoExtractReady';
 import { useVideoExtract } from '@hooks/useVideoExtract';
-import { colors, spacing, typography } from '@theme/index';
+import { useTheme, createThemedStyles, spacing, typography } from '@theme/index';
 import type { HomeStackParamList } from '@app-types/index';
 
 type Nav = NativeStackNavigationProp<HomeStackParamList, 'VideoExtract'>;
@@ -19,6 +19,8 @@ export function VideoExtractScreen() {
     url, setUrl, state, errorMsg, result, playerUrl,
     handleExtract, handleReset, handleWatchParty,
   } = useVideoExtract();
+  const { colors } = useTheme();
+  const styles = useStyles();
 
   if (state === 'input' || state === 'error') {
     return (
@@ -55,7 +57,7 @@ export function VideoExtractScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   loading: {
     flex: 1,
     backgroundColor: colors.bgBase,
@@ -65,4 +67,4 @@ const styles = StyleSheet.create({
   },
   loadingTitle: { ...typography.h3, color: colors.textPrimary, textAlign: 'center' },
   loadingHint: { ...typography.caption, color: colors.textMuted, textAlign: 'center' },
-});
+}));

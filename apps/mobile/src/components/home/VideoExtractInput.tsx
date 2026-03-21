@@ -5,14 +5,13 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
   StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, borderRadius, typography } from '@theme/index';
+import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import type { ExtractState } from '@hooks/useVideoExtract';
 
 interface Props {
@@ -25,6 +24,9 @@ interface Props {
 }
 
 export function VideoExtractInput({ url, setUrl, state, errorMsg, onExtract, onBack }: Props) {
+  const { colors } = useTheme();
+  const styles = useStyles();
+
   return (
     <KeyboardAvoidingView
       style={styles.root}
@@ -97,7 +99,7 @@ export function VideoExtractInput({ url, setUrl, state, errorMsg, onExtract, onB
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bgBase },
   header: {
     flexDirection: 'row',
@@ -151,4 +153,4 @@ const styles = StyleSheet.create({
   supportedRow: { gap: spacing.xs },
   supportedLabel: { ...typography.label, color: colors.textMuted },
   supportedList: { ...typography.caption, color: colors.textMuted, lineHeight: 18 },
-});
+}));

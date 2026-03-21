@@ -91,7 +91,7 @@
 - **E40-4 `WatchPartyCreateScreen` UX:** URL kiritganda avtomatik extraction
 - **E40-6 Error handling:** timeout, network error, unsupported site → fallback mode
 
-### F-128 | 2026-03-18 | [MOBILE] | Build fix — UniversalPlayer import xatolar + component prop mismatches [Emirhan]
+### F-128a | 2026-03-18 | [MOBILE] | Build fix — UniversalPlayer import xatolar + component prop mismatches [Emirhan]
 
 - **UniversalPlayer.tsx:** `../../api/content` → `../../api/content.api` (named export), `../../storage/token` → `../../utils/storage` (named export)
 - **MovieDetailScreen.tsx:** 4 ta component prop mismatch tuzatildi (MovieDetailActions, MovieCastList, MovieSimilarList, MovieRatingWidget)
@@ -114,6 +114,27 @@
 - **WebViewPlayer:** `injectWithRetry()` — video element topilmagan bo'lsa 500ms kutib qayta urinadi (sync ishonchliligi)
 - **i18n:** codeCopied, inviteSent, inviteFailed, noFriendsYet, shareInvite, shareText tarjimalari
 - **expo-clipboard** package qo'shildi
+
+### F-128b | 2026-03-18 | [MOBILE+DOCS] | Watch Party improvements + socket auto-refresh + role update [Jafar]
+
+- **UniversalPlayer.tsx — YouTube плеер переработан:**
+  - Удалён IFrame API подход (`extractYouTubeVideoId`)
+  - Добавлен backend proxy resolve через `contentApi.getYouTubeStreamInfo()` → proxy URL → expo-av
+  - Fallback цепочка: proxy error → WebView (m.youtube.com), expo-av error → WebView
+  - Новые состояния: `streamUrl`, `resolving`, `resolveError`, `videoError`
+  - Улучшен пустой UI: иконка + подсказка, loading спиннеры
+  - `onStreamResolved` callback для live/title информации
+- **WebViewAdapters.ts — YouTube адаптеры расширены:**
+  - `youtube.com`: selectors переупорядочены, `scanDelay` 1000→3000, ad skip postAttachJs
+  - Новый адаптер `m.youtube.com` с ad skip и autoplay
+- **VideoSection.tsx:** Loading индикатор в отдельный flex center
+- **useWatchParty.ts:** `connect_error` обработчик перенесён в socket/client.ts
+- **WatchPartyCreateScreen.tsx:** Видео теперь обязательно (валидация catalog/URL), label → "VIDEO MANBASI"
+- **WatchPartyScreen.tsx:** `??` → `||` для пустых строк videoUrl
+- **socket/client.ts (+51 строк):** Авто-refresh token при "Invalid token", cleanup `removeAllListeners()`
+- **CLAUDE.md:** Jafar → Mobile (раньше Web), роли обновлены
+- **Tasks.md:** Jafar роли обновлены, web задачи → "ochiq"
+- **Новые файлы:** `docs/WEB_DESIGN_GUIDE.md` (673 строк), `scripts/test_watch_party.mjs` (277 строк), `tsconfig.json`
 
 ---
 

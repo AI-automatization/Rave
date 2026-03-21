@@ -1,8 +1,8 @@
 // CineSync Mobile — SearchHistory component
 import React from 'react';
-import { View, Text, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, typography } from '@theme/index';
+import { useTheme, createThemedStyles, spacing, typography } from '@theme/index';
 
 interface SearchHistoryProps {
   history: string[];
@@ -17,6 +17,9 @@ export const SearchHistory = React.memo(function SearchHistory({
   onItemRemove,
   onClear,
 }: SearchHistoryProps) {
+  const { colors } = useTheme();
+  const styles = useStyles();
+
   return (
     <View style={styles.historySection}>
       <View style={styles.historyHeader}>
@@ -50,7 +53,7 @@ export const SearchHistory = React.memo(function SearchHistory({
   );
 });
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   historySection: { paddingHorizontal: spacing.xl, marginTop: spacing.lg },
   historyHeader: {
     flexDirection: 'row',
@@ -73,4 +76,4 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   historyText: { ...typography.body, color: colors.textSecondary, flex: 1 },
-});
+}));

@@ -3,7 +3,7 @@ import React from 'react';
 import { StyleSheet, Dimensions, Animated } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors } from '@theme/index';
+import { useTheme } from '@theme/index';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -17,6 +17,8 @@ interface MovieDetailHeroProps {
 
 export const MovieDetailHero = React.memo<MovieDetailHeroProps>(
   ({ backdropUrl, headerHeight = HEADER_HEIGHT, scrollY }) => {
+    const { colors } = useTheme();
+
     const headerTranslate = scrollY.interpolate({
       inputRange: [0, headerHeight],
       outputRange: [0, -headerHeight / 3],

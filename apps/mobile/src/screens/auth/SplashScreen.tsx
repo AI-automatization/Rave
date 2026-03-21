@@ -1,9 +1,9 @@
 // CineSync Mobile — Splash Screen
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, Dimensions } from 'react-native';
+import { View, Text, Animated, Dimensions } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
-import { colors, typography } from '@theme/index';
+import { useTheme, createThemedStyles, typography } from '@theme/index';
 import { AuthStackParamList } from '@app-types/index';
 import { useAuthStore } from '@store/auth.store';
 import { useT } from '@i18n/index';
@@ -16,6 +16,8 @@ export function SplashScreen() {
   const navigation = useNavigation<Nav>();
   const { isHydrated, isAuthenticated } = useAuthStore();
   const { t } = useT();
+  const { colors } = useTheme();
+  const styles = useStyles();
   const opacity = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(0.8)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
@@ -62,7 +64,7 @@ export function SplashScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   container: {
     flex: 1,
     backgroundColor: colors.bgVoid,
@@ -87,8 +89,8 @@ const styles = StyleSheet.create({
   },
   tagline: {
     ...typography.body,
-    marginTop: 12,
     color: colors.textMuted,
+    marginTop: 12,
   },
   progressTrack: {
     position: 'absolute',
@@ -104,4 +106,4 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     borderRadius: 1,
   },
-});
+}));

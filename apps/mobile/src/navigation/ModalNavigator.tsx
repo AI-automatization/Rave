@@ -14,7 +14,9 @@ const Modal = createNativeStackNavigator<ModalStackParamList>();
 
 export function ModalNavigator() {
   return (
-    <Modal.Navigator screenOptions={{ headerShown: false }}>
+    <Modal.Navigator
+      screenOptions={{ headerShown: false, animation: 'slide_from_bottom', animationDuration: 300 }}
+    >
       <Modal.Screen name="WatchPartyCreate" component={WatchPartyCreateScreen} />
       <Modal.Screen name="WatchPartyJoin" component={WatchPartyJoinScreen} />
       <Modal.Screen name="WatchParty" component={WatchPartyScreen} options={{ gestureEnabled: false }} />

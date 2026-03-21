@@ -9,9 +9,8 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  StyleSheet,
 } from 'react-native';
-import { colors, spacing, borderRadius, typography } from '@theme/index';
+import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { useT } from '@i18n/index';
 
 interface EditProfileModalProps {
@@ -36,6 +35,8 @@ export function EditProfileModal({
   saving,
 }: EditProfileModalProps) {
   const { t } = useT();
+  const { colors } = useTheme();
+  const styles = useStyles();
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -83,7 +84,7 @@ export function EditProfileModal({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.6)' },
   sheet: {
     backgroundColor: colors.bgSurface,
@@ -133,4 +134,4 @@ const styles = StyleSheet.create({
   },
   btnDisabled: { opacity: 0.6 },
   saveText: { color: colors.textPrimary, fontWeight: '700', fontSize: 15 },
-});
+}));

@@ -6,12 +6,11 @@ import {
   FlatList,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
   KeyboardAvoidingView,
   Platform,
   ListRenderItemInfo,
 } from 'react-native';
-import { colors, spacing, borderRadius, typography } from '@theme/index';
+import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 
 interface ChatMessage {
   id: string;
@@ -29,6 +28,7 @@ interface ChatPanelProps {
 }
 
 function MessageItem({ item, currentUserId }: { item: ChatMessage; currentUserId: string }) {
+  const styles = useStyles();
   const isMine = item.userId === currentUserId;
   return (
     <View style={[styles.messageRow, isMine && styles.messageRowMine]}>
@@ -46,6 +46,8 @@ function MessageItem({ item, currentUserId }: { item: ChatMessage; currentUserId
 }
 
 export function ChatPanel({ messages, currentUserId, onSend }: ChatPanelProps) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const [input, setInput] = useState('');
   const listRef = useRef<FlatList<ChatMessage>>(null);
 
@@ -93,7 +95,7 @@ export function ChatPanel({ messages, currentUserId, onSend }: ChatPanelProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   container: { flex: 1, backgroundColor: colors.bgOverlay },
   list: { padding: spacing.sm, gap: spacing.sm },
   messageRow: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.xs },
@@ -137,4 +139,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   sendText: { color: colors.textPrimary, fontSize: 18, fontWeight: '700' },
-});
+}));

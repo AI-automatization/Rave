@@ -1,11 +1,12 @@
 // Vaqtinchalik placeholder — har bir ekran T-E002+ da yoziladi
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text } from 'react-native';
 import { useRoute } from '@react-navigation/native';
-import { colors } from '@theme/index';
+import { createThemedStyles } from '@theme/index';
 
 export function PlaceholderScreen() {
   const route = useRoute();
+  const styles = useStyles();
   return (
     <View style={styles.container}>
       <Text style={styles.name}>{route.name}</Text>
@@ -14,7 +15,7 @@ export function PlaceholderScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   container: {
     flex: 1,
     backgroundColor: colors.bgBase,
@@ -23,4 +24,4 @@ const styles = StyleSheet.create({
   },
   name: { color: colors.primary, fontSize: 20, fontWeight: '700' },
   sub: { color: colors.textMuted, fontSize: 13, marginTop: 6 },
-});
+}));

@@ -3,7 +3,6 @@ import React from 'react';
 import {
   View,
   ScrollView,
-  StyleSheet,
   TouchableOpacity,
   Text,
   RefreshControl,
@@ -14,7 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, spacing, typography, borderRadius } from '@theme/index';
+import { useTheme, createThemedStyles, spacing, typography, borderRadius } from '@theme/index';
 import { ContentGenre, RootStackParamList } from '@app-types/index';
 import { useHomeData } from '@hooks/useHomeData';
 import { HeroBanner } from '@components/movie/HeroBanner';
@@ -34,6 +33,8 @@ export function HomeScreen() {
   const { trending, topRated, continueWatching, newReleases, isLoading, refetch } = useHomeData();
   const unreadCount = useNotificationStore((s) => s.unreadCount);
   const { t } = useT();
+  const { colors } = useTheme();
+  const styles = useStyles();
   const [refreshing, setRefreshing] = React.useState(false);
   const [activeGenre, setActiveGenre] = React.useState<ContentGenre | null>(null);
 
@@ -132,7 +133,7 @@ export function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bgBase },
   header: {
     flexDirection: 'row',
@@ -141,7 +142,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingBottom: spacing.md,
   },
-  logo: { ...typography.h2, fontSize: 22, letterSpacing: 1 },
+  logo: { ...typography.h2, color: colors.textPrimary, fontSize: 22, letterSpacing: 1 },
   logoAccent: { color: colors.primary },
   notifBtn: { padding: spacing.xs, position: 'relative' },
   badge: {
@@ -158,7 +159,7 @@ const styles = StyleSheet.create({
   },
   badgeText: { color: colors.textPrimary, fontSize: 10, fontWeight: '700' },
   genreSection: { marginBottom: spacing.lg },
-  genreTitle: { ...typography.h3, marginLeft: spacing.xl, marginBottom: spacing.md },
+  genreTitle: { ...typography.h3, color: colors.textPrimary, marginLeft: spacing.xl, marginBottom: spacing.md },
   genreList: { paddingHorizontal: spacing.xl, gap: spacing.sm },
   genreChip: {
     paddingHorizontal: spacing.md,
@@ -174,4 +175,4 @@ const styles = StyleSheet.create({
   },
   genreChipText: { ...typography.caption, color: colors.textSecondary, fontWeight: '600' },
   genreChipTextActive: { color: colors.primary },
-});
+}));

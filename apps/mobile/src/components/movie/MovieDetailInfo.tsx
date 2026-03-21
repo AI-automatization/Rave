@@ -1,9 +1,9 @@
 // CineSync Mobile — Movie detail info block (poster + meta + genres + desc + buttons)
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, borderRadius, typography } from '@theme/index';
+import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import type { IMovie, IWatchProgress } from '@app-types/index';
 
 interface MovieDetailInfoProps {
@@ -35,6 +35,8 @@ export const MovieDetailInfo = React.memo(function MovieDetailInfo({
 }: MovieDetailInfoProps) {
   const [descExpanded, setDescExpanded] = useState(false);
   const durationText = `${Math.floor(movie.duration / 60)}h ${movie.duration % 60}m`;
+  const { colors } = useTheme();
+  const s = useStyles();
 
   return (
     <View>
@@ -103,15 +105,15 @@ export const MovieDetailInfo = React.memo(function MovieDetailInfo({
   );
 });
 
-const s = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   infoRow: { flexDirection: 'row', gap: spacing.lg, marginBottom: spacing.lg },
   poster: { width: 100, height: 148, borderRadius: borderRadius.md },
   infoText: { flex: 1, gap: spacing.sm },
-  title: { ...typography.h2, flexWrap: 'wrap' },
-  meta: { ...typography.body },
+  title: { ...typography.h2, color: colors.textPrimary, flexWrap: 'wrap' },
+  meta: { ...typography.body, color: colors.textSecondary },
   ratingRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   ratingNum: { ...typography.body, color: colors.gold, fontWeight: '700' },
-  metaSmall: { ...typography.caption },
+  metaSmall: { ...typography.caption, color: colors.textMuted },
   typeChip: {
     backgroundColor: colors.secondary + '22',
     borderRadius: borderRadius.sm,
@@ -131,7 +133,7 @@ const s = StyleSheet.create({
   },
   chipText: { ...typography.caption, color: colors.textSecondary },
   descWrap: { marginBottom: spacing.xl, gap: spacing.xs },
-  desc: { ...typography.body, lineHeight: 22 },
+  desc: { ...typography.body, color: colors.textSecondary, lineHeight: 22 },
   descToggle: { ...typography.caption, color: colors.primary, fontWeight: '600', marginTop: spacing.xs },
   watchBtn: {
     backgroundColor: colors.primary,
@@ -168,4 +170,4 @@ const s = StyleSheet.create({
     borderColor: colors.gold,
   },
   battleText: { ...typography.h3, color: colors.gold },
-});
+}));

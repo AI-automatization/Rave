@@ -6,13 +6,14 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as Notifications from 'expo-notifications';
 import { useAuthStore } from '@store/auth.store';
 import { RootStackParamList } from '@app-types/index';
-import { colors } from '@theme/index';
+import { useTheme } from '@theme/index';
 import { AuthNavigator } from './AuthNavigator';
 import { MainNavigator } from './MainNavigator';
 import { ModalNavigator } from './ModalNavigator';
 import { ProfileSetupScreen } from '@screens/auth/ProfileSetupScreen';
 import { userApi } from '@api/user.api';
 import { usePushNotifications } from '@hooks/usePushNotifications';
+import { LanguageTransition } from '@components/common/LanguageTransition';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -23,6 +24,7 @@ export function AppNavigator() {
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const navigationRef = useNavigationContainerRef<RootStackParamList>();
   const lastResponse = Notifications.useLastNotificationResponse();
+  const { colors } = useTheme();
 
   usePushNotifications();
 
@@ -64,24 +66,26 @@ export function AppNavigator() {
 
   return (
     <NavigationContainer ref={navigationRef}>
-      <Stack.Navigator screenOptions={{ headerShown: false, animation: 'fade' }}>
-        {isAuthenticated ? (
-          needsProfileSetup ? (
-            <Stack.Screen name="ProfileSetup" component={ProfileSetupScreen} />
+      <LanguageTransition>
+        <Stack.Navigator screenOptions={{ headerShown: false, animation: 'fade' }}>
+          {isAuthenticated ? (
+            needsProfileSetup ? (
+              <Stack.Screen name="ProfileSetup" component={ProfileSetupScreen} />
+            ) : (
+              <>
+                <Stack.Screen name="Main" component={MainNavigator} />
+                <Stack.Screen
+                  name="Modal"
+                  component={ModalNavigator}
+                  options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+                />
+              </>
+            )
           ) : (
-            <>
-              <Stack.Screen name="Main" component={MainNavigator} />
-              <Stack.Screen
-                name="Modal"
-                component={ModalNavigator}
-                options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
-              />
-            </>
-          )
-        ) : (
-          <Stack.Screen name="Auth" component={AuthNavigator} />
-        )}
-      </Stack.Navigator>
+            <Stack.Screen name="Auth" component={AuthNavigator} />
+          )}
+        </Stack.Navigator>
+      </LanguageTransition>
     </NavigationContainer>
   );
 }

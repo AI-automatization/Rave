@@ -6,7 +6,6 @@ import {
   TextInput,
   FlatList,
   TouchableOpacity,
-  StyleSheet,
   ActivityIndicator,
   Alert,
   ListRenderItemInfo,
@@ -17,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useFriendsStore } from '@store/friends.store';
 import { useCreateBattle } from '@hooks/useBattle';
-import { colors, spacing, borderRadius, typography } from '@theme/index';
+import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { RANK_COLORS } from '@theme/index';
 import { BattleDuration, IUserPublic, ModalStackParamList } from '@app-types/index';
 
@@ -39,6 +38,8 @@ function FriendPickerRow({
   selected: boolean;
   onPress: () => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   return (
     <TouchableOpacity
       style={[styles.friendRow, selected && styles.friendRowSelected]}
@@ -67,6 +68,8 @@ export function BattleCreateScreen() {
   const route = useRoute<RouteType>();
   const params = route.params;
   const friends = useFriendsStore(s => s.friends);
+  const { colors } = useTheme();
+  const styles = useStyles();
   const [selectedFriendId, setSelectedFriendId] = useState<string | null>(
     params?.initialFriendId ?? null,
   );
@@ -182,7 +185,7 @@ export function BattleCreateScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bgBase },
   header: {
     flexDirection: 'row',
@@ -252,4 +255,4 @@ const styles = StyleSheet.create({
   },
   createBtnDisabled: { opacity: 0.5 },
   createBtnText: { ...typography.h3, color: colors.textPrimary },
-});
+}));

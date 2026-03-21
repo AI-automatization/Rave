@@ -4,7 +4,6 @@ import {
   View,
   Text,
   TouchableOpacity,
-  StyleSheet,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -16,7 +15,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '@theme/index';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTheme, createThemedStyles } from '@theme/index';
 import { AuthStackParamList } from '@app-types/index';
 import { authApi } from '@api/auth.api';
 import { useT } from '@i18n/index';
@@ -29,7 +29,10 @@ type Nav = NativeStackNavigationProp<AuthStackParamList, 'Register'>;
 
 export function RegisterScreen() {
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
   const { t } = useT();
+  const { colors } = useTheme();
+  const s = useStyles();
 
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -104,7 +107,7 @@ export function RegisterScreen() {
 
       <KeyboardAvoidingView style={s.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
-          contentContainerStyle={s.container}
+          contentContainerStyle={[s.container, { paddingTop: insets.top + 16 }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
@@ -187,10 +190,10 @@ export function RegisterScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bgVoid },
   flex: { flex: 1 },
-  container: { flexGrow: 1, paddingHorizontal: 28, paddingTop: 50, paddingBottom: 40 },
+  container: { flexGrow: 1, paddingHorizontal: 28, paddingBottom: 40 },
 
   backBtn: { marginBottom: 24 },
   header: { marginBottom: 32 },
@@ -214,10 +217,10 @@ const s = StyleSheet.create({
   primaryBtnText: { color: colors.white, fontSize: 16, fontWeight: '700', letterSpacing: 0.5 },
 
   divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 24, gap: 14 },
-  dividerLine: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(255,255,255,0.1)' },
+  dividerLine: { flex: 1, height: 0.5, backgroundColor: 'rgba(255,255,255,0.1)' },
   dividerText: { color: colors.textDim, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 },
 
   footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 28, gap: 4 },
   footerText: { color: colors.textMuted, fontSize: 14 },
   footerLink: { color: colors.link, fontSize: 14, fontWeight: '700' },
-});
+}));

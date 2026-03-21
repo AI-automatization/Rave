@@ -1,10 +1,10 @@
 // CineSync Mobile — Search Screen
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, StatusBar } from 'react-native';
+import { View, Text, StatusBar } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, spacing, typography } from '@theme/index';
+import { useTheme, createThemedStyles, spacing, typography } from '@theme/index';
 import { ContentGenre, SearchStackParamList } from '@app-types/index';
 import { useSearchHistory, useDebounce, useSearchResults } from '@hooks/useSearch';
 import { useT } from '@i18n/index';
@@ -19,6 +19,8 @@ type Nav = NativeStackNavigationProp<SearchStackParamList>;
 export function SearchScreen() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
+  const styles = useStyles();
   const { t } = useT();
   const [query, setQuery] = useState('');
   const [activeGenre, setActiveGenre] = useState<ContentGenre | null>(null);
@@ -58,11 +60,11 @@ export function SearchScreen() {
   const hasResults = (data?.movies.length ?? 0) > 0;
 
   return (
-    <View style={s.root}>
+    <View style={styles.root}>
       <StatusBar barStyle="light-content" backgroundColor={colors.bgBase} />
 
-      <View style={[s.header, { paddingTop: insets.top + spacing.sm }]}>
-        <Text style={s.title}>{t('search', 'searchTitle')}</Text>
+      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
+        <Text style={styles.title}>{t('search', 'searchTitle')}</Text>
       </View>
 
       <SearchInput
@@ -102,8 +104,8 @@ export function SearchScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bgBase },
   header: { paddingHorizontal: spacing.xl, paddingBottom: spacing.md },
-  title: { ...typography.h1 },
-});
+  title: { ...typography.h1, color: colors.textPrimary },
+}));

@@ -1,10 +1,10 @@
 // CineSync Mobile — Video extract ready state: player + info + actions
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, StatusBar } from 'react-native';
+import { View, Text, TouchableOpacity, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { RefObject } from 'react';
 import { UniversalPlayer, UniversalPlayerRef } from '@components/video/UniversalPlayer';
-import { colors, spacing, borderRadius, typography } from '@theme/index';
+import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import type { VideoExtractResult } from '@api/content.api';
 import { PLATFORM_LABELS } from '@hooks/useVideoExtract';
 
@@ -19,6 +19,9 @@ interface Props {
 }
 
 export function VideoExtractReady({ result, playerUrl, playerRef, onReset, onWatchParty }: Props) {
+  const { colors } = useTheme();
+  const styles = useStyles();
+
   return (
     <View style={styles.root}>
       <StatusBar barStyle="light-content" backgroundColor={colors.bgVoid} />
@@ -71,7 +74,7 @@ export function VideoExtractReady({ result, playerUrl, playerRef, onReset, onWat
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bgBase },
   playerWrap: { height: PLAYER_HEIGHT, backgroundColor: colors.bgVoid },
   infoBar: {
@@ -139,4 +142,4 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   actionBtnPrimaryText: { ...typography.body, color: colors.textPrimary, fontWeight: '700' },
-});
+}));

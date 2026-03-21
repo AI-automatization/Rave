@@ -1,9 +1,9 @@
 // CineSync Mobile — Movie Detail: Similar movies horizontal list
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, typography, borderRadius } from '@theme/index';
+import { useTheme, createThemedStyles, spacing, typography, borderRadius } from '@theme/index';
 import { IMovie } from '@app-types/index';
 
 interface MovieSimilarListProps {
@@ -14,6 +14,9 @@ interface MovieSimilarListProps {
 
 export const MovieSimilarList = React.memo<MovieSimilarListProps>(
   ({ movies, sectionTitle, onMoviePress }) => {
+    const { colors } = useTheme();
+    const styles = useStyles();
+
     if (!movies || movies.length === 0) return null;
 
     return (
@@ -51,13 +54,13 @@ export const MovieSimilarList = React.memo<MovieSimilarListProps>(
 
 MovieSimilarList.displayName = 'MovieSimilarList';
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   section: { marginBottom: spacing.xl },
   sectionTitle: { ...typography.label, color: colors.textMuted, marginBottom: spacing.md },
   similarScroll: { marginHorizontal: -spacing.xl, paddingHorizontal: spacing.xl },
   similarCard: { width: 100, marginRight: spacing.md },
   similarPoster: { width: 100, height: 148, borderRadius: borderRadius.md, marginBottom: spacing.xs },
-  similarTitle: { ...typography.caption, lineHeight: 14 },
+  similarTitle: { ...typography.caption, color: colors.textMuted, lineHeight: 14 },
   similarRating: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 2 },
   similarRatingText: { fontSize: 10, color: colors.gold },
-});
+}));

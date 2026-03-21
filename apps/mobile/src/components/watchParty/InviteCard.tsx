@@ -6,14 +6,13 @@ import {
   Text,
   TouchableOpacity,
   FlatList,
-  StyleSheet,
   ActivityIndicator,
   Alert,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { Share } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, borderRadius, typography } from '@theme/index';
+import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { userApi } from '@api/user.api';
 import { watchPartyApi } from '@api/watchParty.api';
 import { useAuthStore } from '@store/auth.store';
@@ -32,6 +31,8 @@ export const InviteCard = React.memo(function InviteCard({
   roomName,
 }: InviteCardProps) {
   const { t } = useT();
+  const { colors } = useTheme();
+  const s = useStyles();
   const username = useAuthStore(s => s.user?.username) ?? '';
   const [friends, setFriends] = useState<IUserPublic[]>([]);
   const [loading, setLoading] = useState(true);
@@ -106,7 +107,7 @@ export const InviteCard = React.memo(function InviteCard({
         )}
       </View>
     );
-  }, [invitedIds, invitingId, handleInvite]);
+  }, [invitedIds, invitingId, handleInvite, s, colors]);
 
   return (
     <View style={s.card}>
@@ -149,7 +150,7 @@ export const InviteCard = React.memo(function InviteCard({
   );
 });
 
-const s = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   card: {
     backgroundColor: colors.bgElevated,
     marginHorizontal: spacing.lg,
@@ -230,4 +231,4 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-});
+}));

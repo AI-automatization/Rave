@@ -6,13 +6,13 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
-  StyleSheet,
   ActivityIndicator,
 } from 'react-native';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, borderRadius, typography } from '@theme/index';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { ContentGenre } from '@app-types/index';
 import { userApi } from '@api/user.api';
 import { useAuthStore } from '@store/auth.store';
@@ -36,8 +36,11 @@ const GENRE_KEYS: Record<ContentGenre, string> = {
 const ALL_GENRES = Object.keys(GENRE_KEYS) as ContentGenre[];
 
 export function ProfileSetupScreen() {
+  const insets = useSafeAreaInsets();
   const { updateUser, clearProfileSetup } = useAuthStore();
   const { t } = useT();
+  const { colors } = useTheme();
+  const styles = useStyles();
 
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [bio, setBio] = useState('');
@@ -87,7 +90,7 @@ export function ProfileSetupScreen() {
   return (
     <ScrollView
       style={styles.root}
-      contentContainerStyle={styles.container}
+      contentContainerStyle={[styles.container, { paddingTop: insets.top + spacing.xl }]}
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
     >
@@ -164,17 +167,16 @@ export function ProfileSetupScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bgBase },
   container: {
     alignItems: 'center',
     paddingHorizontal: spacing.xl,
-    paddingTop: spacing.xxxl,
     paddingBottom: spacing.xxxl,
     gap: spacing.lg,
   },
-  title: { ...typography.h1, textAlign: 'center' },
-  sub: { ...typography.body, textAlign: 'center', color: colors.textSecondary },
+  title: { ...typography.h1, color: colors.textPrimary, textAlign: 'center' },
+  sub: { ...typography.body, color: colors.textSecondary, textAlign: 'center' },
   avatarWrap: { position: 'relative', marginBottom: spacing.sm },
   avatar: { width: 100, height: 100, borderRadius: 50 },
   avatarFallback: {
@@ -209,7 +211,7 @@ const styles = StyleSheet.create({
     height: 100,
     width: '100%',
   },
-  bioCount: { ...typography.caption, textAlign: 'right', marginTop: spacing.xs },
+  bioCount: { ...typography.caption, color: colors.textMuted, textAlign: 'right', marginTop: spacing.xs },
   genreSection: { width: '100%', gap: spacing.sm },
   genreLabel: { ...typography.label, color: colors.textSecondary },
   chipGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
@@ -236,4 +238,4 @@ const styles = StyleSheet.create({
   saveText: { color: colors.textPrimary, fontWeight: '700', fontSize: 16 },
   skipBtn: { padding: spacing.md },
   skipText: { color: colors.textMuted, fontSize: 14 },
-});
+}));

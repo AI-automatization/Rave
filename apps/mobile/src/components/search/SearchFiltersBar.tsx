@@ -1,7 +1,7 @@
 // CineSync Mobile — Search Filters Bar (genre + year + sort chips)
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
-import { colors, spacing, borderRadius, typography } from '@theme/index';
+import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { ContentGenre } from '@app-types/index';
 import { GENRES, SearchSortOption } from '@hooks/useSearch';
 
@@ -33,6 +33,8 @@ export function SearchFiltersBar({
   onSortChange,
   allLabel = 'All',
 }: SearchFiltersBarProps) {
+  const s = useStyles();
+
   return (
     <View style={s.container}>
       {/* Genre row */}
@@ -107,7 +109,7 @@ export function SearchFiltersBar({
   );
 }
 
-const s = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   container: { gap: spacing.xs, paddingBottom: spacing.sm },
   row: { paddingHorizontal: spacing.lg, gap: spacing.sm, flexDirection: 'row' },
   chip: {
@@ -124,4 +126,4 @@ const s = StyleSheet.create({
   },
   chipText: { ...typography.caption, color: colors.textSecondary, fontWeight: '600' },
   chipTextActive: { color: colors.primary },
-});
+}));

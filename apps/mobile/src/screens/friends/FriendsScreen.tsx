@@ -1,28 +1,28 @@
 // CineSync Mobile — FriendsScreen
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
   SectionList,
   FlatList,
   TouchableOpacity,
-  StyleSheet,
   ActivityIndicator,
   RefreshControl,
   Alert,
   ListRenderItemInfo,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useFriends } from '@hooks/useFriends';
-import { colors, spacing, borderRadius, typography } from '@theme/index';
+import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { IUserPublic } from '@app-types/index';
 import { FriendsStackParamList } from '@app-types/index';
 import { RANK_COLORS } from '@theme/index';
 import { useT } from '@i18n/index';
+import { DEFAULT_AVATAR } from '@utils/assets';
 
 type Nav = NativeStackNavigationProp<FriendsStackParamList, 'Friends'>;
 
@@ -37,11 +37,14 @@ function FriendRow({
   onPress: () => void;
   pointsLabel: string;
 }) {
+  const { colors } = useTheme();
+  const styles = useStyles();
+
   return (
     <TouchableOpacity style={styles.row} onPress={onPress} activeOpacity={0.8}>
       <View style={styles.avatarWrap}>
         <Image
-          source={item.avatar ? { uri: item.avatar } : require('../../../assets/icon.png')}
+          source={item.avatar ? { uri: item.avatar } : DEFAULT_AVATAR}
           style={styles.avatar}
           contentFit="cover"
         />
@@ -65,17 +68,27 @@ const TAB_BAR_HEIGHT = 60;
 export function FriendsScreen() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
+  const styles = useStyles();
   const { t } = useT();
   const tabs = [t('friends', 'title'), t('friends', 'requests')] as const;
   type Tab = (typeof tabs)[number];
   const [tab, setTab] = useState<Tab>(tabs[0]);
   const [refreshing, setRefreshing] = useState(false);
-  const { friends, pendingRequests, onlineStatus, friendsLoading, requestsLoading, acceptMutation, rejectMutation, refetchFriends } =
+  const { friends, pendingRequests, onlineStatus, friendsLoading, friendsError, requestsLoading, requestsError, acceptMutation, rejectMutation, refetchFriends, refetchRequests } =
     useFriends();
+
+  // Ekranga qaytganda do'stlar va so'rovlarni yangilash
+  useFocusEffect(
+    useCallback(() => {
+      refetchFriends();
+      refetchRequests();
+    }, [refetchFriends, refetchRequests]),
+  );
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await refetchFriends();
+    await Promise.all([refetchFriends(), refetchRequests()]);
     setRefreshing(false);
   };
 
@@ -135,6 +148,17 @@ export function FriendsScreen() {
         if (friendsLoading) {
           return <ActivityIndicator color={colors.primary} style={styles.loader} />;
         }
+        if (friendsError) {
+          return (
+            <View style={styles.empty}>
+              <Ionicons name="alert-circle-outline" size={48} color={colors.textMuted} />
+              <Text style={styles.emptyText}>{t('common', 'error')}</Text>
+              <TouchableOpacity onPress={() => refetchFriends()}>
+                <Text style={styles.emptyAction}>{t('common', 'retry')}</Text>
+              </TouchableOpacity>
+            </View>
+          );
+        }
         if (friends.length === 0) {
           return (
             <View style={styles.empty}>
@@ -151,6 +175,8 @@ export function FriendsScreen() {
             sections={sections}
             keyExtractor={item => item._id}
             renderItem={renderFriend}
+            maxToRenderPerBatch={15}
+            windowSize={7}
             renderSectionHeader={({ section }) => (
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionHeaderText}>{section.title}</Text>
@@ -173,7 +199,7 @@ export function FriendsScreen() {
             <View style={styles.requestRow}>
               <View style={styles.avatarWrap}>
                 <Image
-                  source={item.requester.avatar ? { uri: item.requester.avatar } : require('../../../assets/icon.png')}
+                  source={item.requester.avatar ? { uri: item.requester.avatar } : DEFAULT_AVATAR}
                   style={styles.avatar}
                   contentFit="cover"
                 />
@@ -195,6 +221,14 @@ export function FriendsScreen() {
           ListEmptyComponent={
             requestsLoading ? (
               <ActivityIndicator color={colors.primary} style={styles.loader} />
+            ) : requestsError ? (
+              <View style={styles.empty}>
+                <Ionicons name="alert-circle-outline" size={48} color={colors.textMuted} />
+                <Text style={styles.emptyText}>{t('common', 'error')}</Text>
+                <TouchableOpacity onPress={() => refetchRequests()}>
+                  <Text style={styles.emptyAction}>{t('common', 'retry')}</Text>
+                </TouchableOpacity>
+              </View>
             ) : (
               <View style={styles.empty}>
                 <Ionicons name="mail-outline" size={48} color={colors.textMuted} />
@@ -209,7 +243,7 @@ export function FriendsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bgBase },
   header: {
     flexDirection: 'row',
@@ -287,4 +321,4 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: 1,
   },
-});
+}));

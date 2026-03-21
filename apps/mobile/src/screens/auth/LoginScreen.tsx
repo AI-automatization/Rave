@@ -5,7 +5,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -17,7 +16,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '@theme/index';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTheme, createThemedStyles } from '@theme/index';
 import { AuthStackParamList } from '@app-types/index';
 import { authApi } from '@api/auth.api';
 import { useAuthStore } from '@store/auth.store';
@@ -30,8 +30,11 @@ type Nav = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 
 export function LoginScreen() {
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
   const { setAuth } = useAuthStore();
   const { t } = useT();
+  const { colors } = useTheme();
+  const s = useStyles();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -95,7 +98,7 @@ export function LoginScreen() {
       <AuthGridBackground accentLinePosition={0.18} accentOpacity={0.15} />
 
       <KeyboardAvoidingView style={s.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={s.container} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={[s.container, { paddingTop: insets.top + 20 }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
 
             {/* Logo */}
@@ -198,12 +201,12 @@ export function LoginScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bgVoid },
   flex: { flex: 1 },
   container: {
     flexGrow: 1, justifyContent: 'center',
-    paddingHorizontal: 28, paddingTop: 60, paddingBottom: 40,
+    paddingHorizontal: 28, paddingBottom: 40,
   },
 
   header: { alignItems: 'center', marginBottom: 44 },
@@ -240,10 +243,10 @@ const s = StyleSheet.create({
   primaryBtnText: { color: colors.white, fontSize: 16, fontWeight: '700', letterSpacing: 0.5 },
 
   divider: { flexDirection: 'row', alignItems: 'center', marginBottom: 24, gap: 14 },
-  dividerLine: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(255,255,255,0.1)' },
+  dividerLine: { flex: 1, height: 0.5, backgroundColor: 'rgba(255,255,255,0.1)' },
   dividerText: { color: colors.textDim, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 },
 
   footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 32, gap: 4 },
   footerText: { color: colors.textMuted, fontSize: 14 },
   footerLink: { color: colors.link, fontSize: 14, fontWeight: '700' },
-});
+}));

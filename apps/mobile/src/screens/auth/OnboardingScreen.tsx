@@ -2,14 +2,13 @@
 import React, { useRef, useState, useCallback } from 'react';
 import {
   View,
-  StyleSheet,
   FlatList,
   Dimensions,
   StatusBar,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { colors } from '@theme/index';
+import { createThemedStyles } from '@theme/index';
 import { AuthStackParamList } from '@app-types/index';
 import { useOnboardingAnimations } from '@hooks/useOnboardingAnimations';
 import { SLIDES, Slide } from '@components/auth/onboardingSlides';
@@ -26,6 +25,7 @@ export function OnboardingScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const { floatAnim, iconScale, floatTranslate, animateIconPop } =
     useOnboardingAnimations();
+  const styles = useStyles();
 
   const goNext = useCallback(() => {
     if (currentIndex < SLIDES.length - 1) {
@@ -105,9 +105,9 @@ function keyExtractor(item: Slide): string {
   return item.id;
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   container: {
     flex: 1,
     backgroundColor: colors.bgBase,
   },
-});
+}));

@@ -3,11 +3,11 @@ import React from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors } from '@theme/index';
+import { useTheme } from '@theme/index';
 import { useT } from '@i18n/index';
 import type { Slide } from './onboardingSlides';
 import { ICON_SIZE } from './onboardingSlides';
-import { styles } from './OnboardingSlide.styles';
+import { useStyles } from './OnboardingSlide.styles';
 
 interface OnboardingSlideProps {
   item: Slide;
@@ -23,6 +23,8 @@ export function OnboardingSlide({
   floatTranslate,
 }: OnboardingSlideProps) {
   const { t } = useT();
+  const { colors } = useTheme();
+  const styles = useStyles();
 
   return (
     <View style={styles.slide}>

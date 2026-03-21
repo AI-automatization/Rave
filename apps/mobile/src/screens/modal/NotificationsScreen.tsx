@@ -5,26 +5,14 @@ import {
   Text,
   FlatList,
   TouchableOpacity,
-  StyleSheet,
   ActivityIndicator,
   ListRenderItemInfo,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, borderRadius, typography } from '@theme/index';
+import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { INotification, NotificationType } from '@app-types/index';
 import { useNotifications } from '@hooks/useNotifications';
-
-const TYPE_ICONS: Record<NotificationType, { icon: string; color: string }> = {
-  friend_request:       { icon: 'person-add-outline',      color: colors.secondary },
-  friend_accepted:      { icon: 'people-outline',           color: colors.success },
-  watch_party_invite:   { icon: 'tv-outline',               color: colors.primary },
-  battle_invite:        { icon: 'flash-outline',            color: colors.warning },
-  battle_result:        { icon: 'trophy-outline',           color: colors.gold },
-  achievement_unlocked: { icon: 'ribbon-outline',           color: colors.primary },
-  friend_online:        { icon: 'radio-button-on-outline',  color: colors.success },
-  friend_watching:      { icon: 'eye-outline',              color: colors.secondary },
-};
 
 function timeAgo(date: Date): string {
   const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
@@ -38,6 +26,8 @@ function timeAgo(date: Date): string {
 
 export function NotificationsScreen() {
   const navigation = useNavigation();
+  const { colors } = useTheme();
+  const styles = useStyles();
   const {
     notifications,
     isLoading,
@@ -49,6 +39,17 @@ export function NotificationsScreen() {
     acceptFriendMutation,
     rejectFriendMutation,
   } = useNotifications();
+
+  const TYPE_ICONS: Record<NotificationType, { icon: string; color: string }> = {
+    friend_request:       { icon: 'person-add-outline',      color: colors.secondary },
+    friend_accepted:      { icon: 'people-outline',           color: colors.success },
+    watch_party_invite:   { icon: 'tv-outline',               color: colors.primary },
+    battle_invite:        { icon: 'flash-outline',            color: colors.warning },
+    battle_result:        { icon: 'trophy-outline',           color: colors.gold },
+    achievement_unlocked: { icon: 'ribbon-outline',           color: colors.primary },
+    friend_online:        { icon: 'radio-button-on-outline',  color: colors.success },
+    friend_watching:      { icon: 'eye-outline',              color: colors.secondary },
+  };
 
   const renderItem = ({ item }: ListRenderItemInfo<INotification>) => {
     const { icon, color } = TYPE_ICONS[item.type] ?? { icon: 'notifications-outline', color: colors.textMuted };
@@ -142,7 +143,7 @@ export function NotificationsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bgBase },
   header: {
     flexDirection: 'row',
@@ -184,4 +185,4 @@ const styles = StyleSheet.create({
   rejectBtnText: { ...typography.caption, color: colors.error, fontWeight: '600' },
   empty: { flex: 1, alignItems: 'center', gap: spacing.md, paddingTop: 80 },
   emptyText: { ...typography.body, color: colors.textMuted },
-});
+}));

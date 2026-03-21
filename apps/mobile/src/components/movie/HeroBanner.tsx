@@ -3,7 +3,6 @@ import React, { memo, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   Dimensions,
   FlatList,
   TouchableOpacity,
@@ -15,7 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { IMovie, HomeStackParamList } from '@app-types/index';
-import { colors, spacing, borderRadius, typography } from '@theme/index';
+import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 
 type Nav = NativeStackNavigationProp<HomeStackParamList>;
 
@@ -32,6 +31,8 @@ export const HeroBanner = memo(function HeroBanner({ movies }: Props) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [listSet, setListSet] = useState<Set<string>>(new Set());
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const { colors } = useTheme();
+  const styles = useStyles();
 
   useEffect(() => {
     if (movies.length <= 1) return;
@@ -152,7 +153,7 @@ export const HeroBanner = memo(function HeroBanner({ movies }: Props) {
   );
 });
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   container: { marginBottom: spacing.lg },
   slide: { width, height: BANNER_HEIGHT },
   backdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
@@ -208,4 +209,4 @@ const styles = StyleSheet.create({
     backgroundColor: colors.border,
   },
   dotActive: { width: 18, backgroundColor: colors.primary },
-});
+}));

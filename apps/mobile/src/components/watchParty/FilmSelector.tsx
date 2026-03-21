@@ -8,10 +8,9 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
-  StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, borderRadius, typography } from '@theme/index';
+import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { ExtractStatus } from '@components/watchParty/ExtractStatus';
 import type { IMovie } from '@app-types/index';
 import type { VideoExtractResult } from '@api/content.api';
@@ -55,6 +54,8 @@ export function FilmSelector({
   extractResult,
   fallbackMode,
 }: FilmSelectorProps) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   return (
     <View style={styles.section}>
       <Text style={styles.label}>VIDEO MANBASI</Text>
@@ -127,6 +128,8 @@ export function FilmSelector({
 /* ── Sub-components ── */
 
 function SelectedMovieCard({ movie, onClear }: { movie: IMovie; onClear: () => void }) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   return (
     <View style={styles.selectedMovie}>
       {movie.posterUrl ? (
@@ -160,6 +163,8 @@ function CatalogSearch({
   searchResults: IMovie[];
   onSelectMovie: (movie: IMovie) => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   return (
     <>
       <View style={styles.searchBox}>
@@ -193,7 +198,7 @@ function CatalogSearch({
 
 /* ── Styles ── */
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   section: { gap: spacing.sm },
   label: { ...typography.label, color: colors.textMuted },
 
@@ -274,4 +279,4 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-});
+}));

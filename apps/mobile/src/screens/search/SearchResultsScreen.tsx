@@ -4,7 +4,6 @@ import {
   View,
   Text,
   FlatList,
-  StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
   StatusBar,
@@ -14,7 +13,7 @@ import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { colors, spacing, borderRadius, typography } from '@theme/index';
+import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { ContentGenre, IMovie, SearchStackParamList } from '@app-types/index';
 import { useSearchResults, SearchSortOption } from '@hooks/useSearch';
 import { SearchFiltersBar } from '@components/search/SearchFiltersBar';
@@ -25,6 +24,8 @@ type Nav = NativeStackNavigationProp<SearchStackParamList>;
 export function SearchResultsScreen() {
   const route = useRoute<Route>();
   const navigation = useNavigation<Nav>();
+  const { colors } = useTheme();
+  const styles = useStyles();
   const { query } = route.params;
   const [page, setPage] = useState(1);
   const [allMovies, setAllMovies] = useState<IMovie[]>([]);
@@ -95,7 +96,7 @@ export function SearchResultsScreen() {
         </View>
       </TouchableOpacity>
     ),
-    [navigation],
+    [navigation, colors, styles],
   );
 
   const renderEmpty = () => {
@@ -176,7 +177,7 @@ export function SearchResultsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bgBase },
   header: {
     flexDirection: 'row',
@@ -229,4 +230,4 @@ const styles = StyleSheet.create({
   },
   emptyTitle: { ...typography.h3, color: colors.textSecondary },
   emptyText: { ...typography.body, color: colors.textMuted, textAlign: 'center' },
-});
+}));

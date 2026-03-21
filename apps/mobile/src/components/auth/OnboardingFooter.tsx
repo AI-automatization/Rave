@@ -3,11 +3,10 @@ import React from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, borderRadius, typography } from '@theme/index';
+import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { useT } from '@i18n/index';
 import { SLIDES } from './onboardingSlides';
 
@@ -25,6 +24,8 @@ export function OnboardingFooter({
   onSkip,
 }: OnboardingFooterProps) {
   const { t } = useT();
+  const { colors } = useTheme();
+  const styles = useStyles();
   const isLast = currentIndex === SLIDES.length - 1;
 
   return (
@@ -76,7 +77,7 @@ export function OnboardingFooter({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   bottomSection: {
     position: 'absolute',
     bottom: 0,
@@ -136,4 +137,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 15,
   },
-});
+}));

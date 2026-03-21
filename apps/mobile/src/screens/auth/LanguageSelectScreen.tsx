@@ -3,13 +3,12 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   TouchableOpacity,
   Dimensions,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { colors, spacing, borderRadius, typography } from '@theme/index';
+import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { AuthStackParamList } from '@app-types/index';
 import { useLanguageStore, Language } from '@store/language.store';
 import { t as translate } from '@i18n/translations';
@@ -35,6 +34,8 @@ export function LanguageSelectScreen() {
   const navigation = useNavigation<Nav>();
   const { lang: storedLang, setLang } = useLanguageStore();
   const [selected, setSelected] = useState<Language>(storedLang);
+  const { colors } = useTheme();
+  const styles = useStyles();
 
   const handleContinue = () => {
     setLang(selected);
@@ -83,7 +84,7 @@ export function LanguageSelectScreen() {
 
 const CARD_WIDTH = SCREEN_WIDTH - spacing.xl * 2;
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   container: {
     flex: 1,
     backgroundColor: colors.bgBase,
@@ -110,6 +111,7 @@ const styles = StyleSheet.create({
   },
   title: {
     ...typography.h1,
+    color: colors.textPrimary,
     textAlign: 'center',
     marginBottom: spacing.xxl,
   },
@@ -164,4 +166,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 16,
   },
-});
+}));

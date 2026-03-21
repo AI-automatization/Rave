@@ -5,23 +5,27 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  StyleSheet,
   ActivityIndicator,
   Alert,
 } from 'react-native';
 import { useRoute, useNavigation, RouteProp, NavigationProp } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useFriendProfile } from '@hooks/useFriends';
 import { useFriendsStore } from '@store/friends.store';
-import { colors, spacing, borderRadius, typography } from '@theme/index';
+import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { RANK_COLORS } from '@theme/index';
 import { FriendsStackParamList, RootStackParamList } from '@app-types/index';
+import { useT } from '@i18n/index';
+import { DEFAULT_AVATAR } from '@utils/assets';
 
 type RouteType = RouteProp<FriendsStackParamList, 'FriendProfile'>;
 type RootNav = NavigationProp<RootStackParamList>;
 
 function StatCard({ icon, label, value }: { icon: string; label: string; value: string | number }) {
+  const styles = useStyles();
+
   return (
     <View style={styles.statCard}>
       <Text style={styles.statIcon}>{icon}</Text>
@@ -31,10 +35,16 @@ function StatCard({ icon, label, value }: { icon: string; label: string; value: 
   );
 }
 
+const TAB_BAR_HEIGHT = 60;
+
 export function FriendProfileScreen() {
   const { params } = useRoute<RouteType>();
   const navigation = useNavigation();
   const rootNav = useNavigation<RootNav>();
+  const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
+  const styles = useStyles();
+  const { t } = useT();
   const friends = useFriendsStore(s => s.friends);
   const onlineStatus = useFriendsStore(s => s.onlineStatus);
 
@@ -48,10 +58,10 @@ export function FriendProfileScreen() {
   const isOnline = profile ? (onlineStatus[profile._id] ?? profile.isOnline) : false;
 
   const handleRemoveFriend = () => {
-    Alert.alert('Do\'stlikdan chiqarish', `${profile?.username}ni do'stlar ro'yxatidan o'chirmoqchimisiz?`, [
-      { text: 'Bekor', style: 'cancel' },
+    Alert.alert(t('friends', 'removeFriend'), `${profile?.username} ${t('friends', 'removeFriendMsg')}`, [
+      { text: t('common', 'cancel'), style: 'cancel' },
       {
-        text: 'O\'chirish',
+        text: t('friends', 'removeBtn'),
         style: 'destructive',
         onPress: () =>
           removeMutation.mutate(undefined, { onSuccess: () => navigation.goBack() }),
@@ -61,8 +71,8 @@ export function FriendProfileScreen() {
 
   const handleAddFriend = () => {
     sendRequestMutation.mutate(undefined, {
-      onSuccess: () => Alert.alert('✓', 'Do\'stlik so\'rovi yuborildi!'),
-      onError: () => Alert.alert('Xato', 'So\'rov yuborib bo\'lmadi.'),
+      onSuccess: () => Alert.alert('✓', t('friends', 'requestSentAlert')),
+      onError: () => Alert.alert(t('common', 'error'), t('friends', 'requestError')),
     });
   };
 
@@ -74,10 +84,16 @@ export function FriendProfileScreen() {
     );
   }
 
-  if (!profile) {
+  if (profileQuery.isError || !profile) {
     return (
       <View style={styles.center}>
-        <Text style={styles.errorText}>Profil topilmadi</Text>
+        <Ionicons name="alert-circle-outline" size={48} color={colors.textMuted} />
+        <Text style={styles.errorText}>
+          {profileQuery.isError ? t('common', 'error') : t('friends', 'profileNotFound')}
+        </Text>
+        <TouchableOpacity onPress={() => profileQuery.refetch()} style={styles.retryBtn}>
+          <Text style={styles.retryText}>{t('common', 'retry')}</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -85,7 +101,7 @@ export function FriendProfileScreen() {
   return (
     <View style={styles.root}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </TouchableOpacity>
@@ -100,7 +116,7 @@ export function FriendProfileScreen() {
         <View style={styles.profileCard}>
           <View style={styles.avatarWrap}>
             <Image
-              source={profile.avatar ? { uri: profile.avatar } : require('../../../assets/icon.png')}
+              source={profile.avatar ? { uri: profile.avatar } : DEFAULT_AVATAR}
               style={styles.avatar}
               contentFit="cover"
             />
@@ -113,23 +129,32 @@ export function FriendProfileScreen() {
             <Text style={[styles.rankText, { color: RANK_COLORS[profile.rank] }]}>{profile.rank}</Text>
           </View>
 
-          <Text style={styles.onlineStatus}>{isOnline ? '● Onlayn' : '○ Oflayn'}</Text>
+          <Text style={styles.onlineStatus}>{isOnline ? `● ${t('friends', 'online')}` : `○ ${t('friends', 'offline')}`}</Text>
 
           {profile.bio ? <Text style={styles.bio}>{profile.bio}</Text> : null}
         </View>
 
         {/* Stats */}
-        {stats && (
+        {statsQuery.isLoading ? (
+          <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.xl }} />
+        ) : statsQuery.isError ? (
+          <View style={styles.statsError}>
+            <Text style={styles.statsErrorText}>{t('common', 'error')}</Text>
+            <TouchableOpacity onPress={() => statsQuery.refetch()}>
+              <Text style={styles.retryText}>{t('common', 'retry')}</Text>
+            </TouchableOpacity>
+          </View>
+        ) : stats ? (
           <View style={styles.statsSection}>
-            <Text style={styles.sectionTitle}>STATISTIKA</Text>
+            <Text style={styles.sectionTitle}>{t('friends', 'statistics')}</Text>
             <View style={styles.statsGrid}>
-              <StatCard icon="🎬" label="Film" value={stats.totalWatched} />
-              <StatCard icon="⚔️" label="G'alaba" value={stats.battlesWon} />
-              <StatCard icon="🏆" label="Ball" value={stats.totalPoints} />
-              <StatCard icon="👥" label="Do'stlar" value={stats.friendsCount} />
+              <StatCard icon="🎬" label={t('profile', 'movies')} value={stats.totalWatched} />
+              <StatCard icon="⚔️" label={t('profile', 'wins')} value={stats.battlesWon} />
+              <StatCard icon="🏆" label={t('profile', 'points')} value={stats.totalPoints} />
+              <StatCard icon="👥" label={t('friends', 'friendsCount')} value={stats.friendsCount} />
             </View>
           </View>
-        )}
+        ) : null}
 
         {/* Social actions (only for friends) */}
         {isFriend && (
@@ -145,7 +170,7 @@ export function FriendProfileScreen() {
               activeOpacity={0.85}
             >
               <Ionicons name="trophy-outline" size={18} color={colors.gold} />
-              <Text style={styles.battleBtnText}>Battle boshlash</Text>
+              <Text style={styles.battleBtnText}>{t('battle', 'startBattle')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -171,12 +196,12 @@ export function FriendProfileScreen() {
               activeOpacity={0.8}
             >
               <Ionicons name="person-remove-outline" size={18} color={colors.error} />
-              <Text style={styles.removeBtnText}>Do'stlikdan chiqarish</Text>
+              <Text style={styles.removeBtnText}>{t('friends', 'removeFriend')}</Text>
             </TouchableOpacity>
           ) : sendRequestMutation.isSuccess ? (
             <View style={styles.sentCard}>
               <Ionicons name="checkmark-circle" size={18} color={colors.success} />
-              <Text style={styles.sentText}>So'rov yuborildi</Text>
+              <Text style={styles.sentText}>{t('friends', 'requestSent')}</Text>
             </View>
           ) : (
             <TouchableOpacity
@@ -190,29 +215,33 @@ export function FriendProfileScreen() {
               ) : (
                 <>
                   <Ionicons name="person-add-outline" size={18} color={colors.textPrimary} />
-                  <Text style={styles.addBtnText}>Do'st qo'shish</Text>
+                  <Text style={styles.addBtnText}>{t('friends', 'addFriend')}</Text>
                 </>
               )}
             </TouchableOpacity>
           )}
         </View>
 
-        <View style={{ height: spacing.xxxl }} />
+        <View style={{ height: TAB_BAR_HEIGHT + insets.bottom + spacing.xl }} />
       </ScrollView>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bgBase },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md },
   errorText: { ...typography.body, color: colors.textMuted },
+  retryBtn: { paddingVertical: spacing.sm, paddingHorizontal: spacing.lg },
+  retryText: { ...typography.body, color: colors.primary, fontWeight: '600' },
+  statsError: { alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.xl },
+  statsErrorText: { ...typography.caption, color: colors.textMuted },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingBottom: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
@@ -240,7 +269,7 @@ const styles = StyleSheet.create({
   username: { ...typography.h2, color: colors.textPrimary },
   rankBadge: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   rankDot: { width: 10, height: 10, borderRadius: 5 },
-  rankText: { ...typography.body, fontWeight: '600' },
+  rankText: { ...typography.body, fontWeight: '600', color: colors.textSecondary },
   onlineStatus: { ...typography.caption, color: colors.textMuted },
   bio: { ...typography.body, color: colors.textSecondary, textAlign: 'center', paddingHorizontal: spacing.xl },
   statsSection: { padding: spacing.lg, gap: spacing.md },
@@ -317,4 +346,4 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.lg,
   },
   watchPartyBtnText: { ...typography.caption, color: colors.secondary, fontWeight: '600' },
-});
+}));

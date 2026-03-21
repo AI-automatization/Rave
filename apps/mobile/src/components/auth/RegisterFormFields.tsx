@@ -5,12 +5,12 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
   Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '@theme/index';
+import { useTheme, createThemedStyles } from '@theme/index';
 import { useT } from '@i18n/index';
+import type { ThemeColors } from '@theme/index';
 
 /* ── Password strength helper ───────────────────── */
 
@@ -20,7 +20,7 @@ interface StrengthLevel {
   color: string;
 }
 
-function getStrength(pass: string, t: ReturnType<typeof useT>['t']): StrengthLevel {
+function getStrength(pass: string, t: ReturnType<typeof useT>['t'], colors: ThemeColors): StrengthLevel {
   if (!pass) return { pct: 0, label: '', color: colors.bgElevated };
   let score = 0;
   if (pass.length >= 8) score++;
@@ -87,6 +87,9 @@ function InputRow({
   onToggleShowPass,
   keyboard = 'default',
 }: InputRowProps) {
+  const { colors } = useTheme();
+  const s = useStyles();
+
   return (
     <View style={[s.inputOuter, isFocused && s.inputOuterFocused]}>
       <Ionicons name={icon} size={17} color={isFocused ? colors.primary : colors.textDim} />
@@ -137,9 +140,11 @@ export function RegisterFormFields({
   onBlur,
 }: RegisterFormFieldsProps) {
   const { t } = useT();
+  const { colors } = useTheme();
+  const s = useStyles();
   const strengthAnim = useRef(new Animated.Value(0)).current;
 
-  const strength = getStrength(password, t);
+  const strength = getStrength(password, t, colors);
   const passwordsMatch = confirm.length > 0 && password === confirm;
   const passwordsMismatch = confirm.length > 0 && password !== confirm;
 
@@ -239,7 +244,7 @@ export function RegisterFormFields({
   );
 }
 
-const s = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   inputOuter: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -290,4 +295,4 @@ const s = StyleSheet.create({
     marginBottom: 4,
   },
   matchText: { fontSize: 12, fontWeight: '600' },
-});
+}));

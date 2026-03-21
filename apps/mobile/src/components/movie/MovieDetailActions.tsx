@@ -1,8 +1,8 @@
 // CineSync Mobile — Movie Detail: Header Action Buttons
 import React from 'react';
-import { View, TouchableOpacity, StyleSheet, Share } from 'react-native';
+import { View, TouchableOpacity, Share } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, borderRadius } from '@theme/index';
+import { useTheme, createThemedStyles, spacing, borderRadius } from '@theme/index';
 
 interface MovieDetailActionsProps {
   top: number;
@@ -17,6 +17,9 @@ interface MovieDetailActionsProps {
 
 export const MovieDetailActions = React.memo<MovieDetailActionsProps>(
   ({ top, isFavorite, movieTitle, shareLabel, shareMovieLabel, onBack, onToggleFavorite }) => {
+    const { colors } = useTheme();
+    const styles = useStyles();
+
     const handleShare = () => {
       Share.share({
         title: shareLabel,
@@ -48,7 +51,7 @@ export const MovieDetailActions = React.memo<MovieDetailActionsProps>(
 
 MovieDetailActions.displayName = 'MovieDetailActions';
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((_colors) => ({
   headerActions: {
     position: 'absolute',
     left: spacing.lg,
@@ -64,4 +67,4 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.full,
     padding: spacing.xs,
   },
-});
+}));

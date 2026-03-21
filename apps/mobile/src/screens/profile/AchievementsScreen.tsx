@@ -4,7 +4,6 @@ import {
   View,
   Text,
   FlatList,
-  StyleSheet,
   ActivityIndicator,
   TouchableOpacity,
   Modal,
@@ -12,10 +11,11 @@ import {
   ListRenderItemInfo,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useMyProfile } from '@hooks/useProfile';
-import { colors, spacing, borderRadius, typography, RARITY_COLORS } from '@theme/index';
+import { useTheme, createThemedStyles, spacing, borderRadius, typography, RARITY_COLORS } from '@theme/index';
 import { AchievementRarity } from '@app-types/index';
 import { useT } from '@i18n/index';
 import { AchievementCard, UnlockedAchievement } from '@components/profile/AchievementCard';
@@ -31,6 +31,8 @@ const RARITY_FILTERS: Array<{ label: string; value: AchievementRarity | null }> 
 const LOCKED_PLACEHOLDER_COUNT = 12;
 
 function LockedCell() {
+  const styles = useStyles();
+
   return (
     <View style={styles.cellLocked}>
       <Text style={styles.lockedIcon}>🔒</Text>
@@ -40,6 +42,9 @@ function LockedCell() {
 }
 
 function DetailModal({ item, onClose }: { item: UnlockedAchievement | null; onClose: () => void }) {
+  const { colors } = useTheme();
+  const styles = useStyles();
+
   if (!item) return null;
   const rarityColor = RARITY_COLORS[item.achievement.rarity] ?? colors.textMuted;
 
@@ -68,6 +73,9 @@ function DetailModal({ item, onClose }: { item: UnlockedAchievement | null; onCl
 
 export function AchievementsScreen() {
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
+  const styles = useStyles();
   const { achievementsQuery } = useMyProfile();
   const rawData = achievementsQuery.data;
   const achievements: UnlockedAchievement[] = Array.isArray(rawData) ? rawData : [];
@@ -93,7 +101,7 @@ export function AchievementsScreen() {
   return (
     <View style={styles.root}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </TouchableOpacity>
@@ -130,7 +138,7 @@ export function AchievementsScreen() {
           keyExtractor={(_, i) => String(i)}
           renderItem={renderItem}
           numColumns={3}
-          contentContainerStyle={styles.grid}
+          contentContainerStyle={[styles.grid, { paddingBottom: 60 + insets.bottom + spacing.xl }]}
           columnWrapperStyle={styles.row}
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={
@@ -149,13 +157,13 @@ export function AchievementsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bgBase },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingBottom: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
     gap: spacing.md,
@@ -206,4 +214,4 @@ const styles = StyleSheet.create({
   modalDate: { ...typography.caption, color: colors.textMuted },
   closeBtn: { backgroundColor: colors.bgElevated, borderRadius: borderRadius.full, paddingHorizontal: spacing.xl, paddingVertical: spacing.sm, marginTop: spacing.sm },
   closeBtnText: { ...typography.body, color: colors.textPrimary, fontWeight: '600' },
-});
+}));

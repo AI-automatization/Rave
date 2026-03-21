@@ -9,9 +9,8 @@ import {
   KeyboardAvoidingView,
   ActivityIndicator,
   Platform,
-  StyleSheet,
 } from 'react-native';
-import { colors, spacing, borderRadius, typography } from '@theme/index';
+import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 
 interface ProfileEditModalProps {
   visible: boolean;
@@ -44,6 +43,9 @@ export const ProfileEditModal = React.memo(function ProfileEditModal({
   cancelLabel,
   saveLabel,
 }: ProfileEditModalProps) {
+  const { colors } = useTheme();
+  const s = useStyles();
+
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView
@@ -99,7 +101,7 @@ export const ProfileEditModal = React.memo(function ProfileEditModal({
   );
 });
 
-const s = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   modalOverlay: { flex: 1, backgroundColor: colors.overlay },
   modalSheet: {
     backgroundColor: colors.bgSurface,
@@ -150,4 +152,4 @@ const s = StyleSheet.create({
   },
   btnDisabled: { opacity: 0.5 },
   saveText: { color: colors.white, fontWeight: '700', fontSize: 15 },
-});
+}));

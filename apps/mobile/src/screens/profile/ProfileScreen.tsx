@@ -1,6 +1,6 @@
 // CineSync Mobile — ProfileScreen
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -8,7 +8,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { useMyProfile } from '@hooks/useProfile';
 import { useAuthStore } from '@store/auth.store';
-import { colors, spacing, typography } from '@theme/index';
+import { useTheme, createThemedStyles, spacing, typography } from '@theme/index';
 import { ProfileStackParamList } from '@app-types/index';
 import { useT } from '@i18n/index';
 import type { UserRank } from '@app-types/index';
@@ -24,6 +24,8 @@ type Nav = NativeStackNavigationProp<ProfileStackParamList, 'Profile'>;
 export function ProfileScreen() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
+  const s = useStyles();
   const { user, logout } = useAuthStore();
   const { profileQuery, statsQuery, updateProfileMutation } = useMyProfile();
   const stats = statsQuery.data;
@@ -176,7 +178,7 @@ export function ProfileScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bgBase },
   section: { paddingHorizontal: spacing.lg, marginTop: spacing.lg },
   sectionTitle: {
@@ -207,4 +209,4 @@ const s = StyleSheet.create({
     borderColor: colors.error + '25',
   },
   logoutText: { ...typography.body, color: colors.error, fontWeight: '600' },
-});
+}));

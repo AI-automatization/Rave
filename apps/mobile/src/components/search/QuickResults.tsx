@@ -1,8 +1,8 @@
 // CineSync Mobile — QuickResults component
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, borderRadius, typography } from '@theme/index';
+import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { IMovie } from '@app-types/index';
 
 interface QuickResultsProps {
@@ -16,6 +16,9 @@ export const QuickResults = React.memo(function QuickResults({
   onMoviePress,
   onSeeAll,
 }: QuickResultsProps) {
+  const { colors } = useTheme();
+  const styles = useStyles();
+
   return (
     <View style={styles.quickResults}>
       <Text style={styles.sectionLabel}>Natijalar</Text>
@@ -39,7 +42,7 @@ export const QuickResults = React.memo(function QuickResults({
   );
 });
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   quickResults: {
     marginHorizontal: spacing.xl,
     marginTop: spacing.sm,
@@ -72,4 +75,4 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
   },
   seeAllText: { ...typography.caption, color: colors.primary, fontWeight: '600' },
-});
+}));

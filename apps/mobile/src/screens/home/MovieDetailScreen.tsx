@@ -4,7 +4,7 @@ import { View, StyleSheet, Animated, StatusBar, ActivityIndicator, Text } from '
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, spacing, borderRadius, typography } from '@theme/index';
+import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { HomeStackParamList, RootStackParamList } from '@app-types/index';
 import { useMovieDetail } from '@hooks/useMovieDetail';
 import { contentApi } from '@api/content.api';
@@ -29,6 +29,8 @@ export function MovieDetailScreen({ route, navigation }: Props) {
   const [userRating, setUserRating] = useState(0);
   const [ratingSubmitted, setRatingSubmitted] = useState(false);
   const { t } = useT();
+  const { colors } = useTheme();
+  const s = useStyles();
 
   const handleRate = async (stars: number) => {
     if (ratingSubmitted) return;
@@ -141,7 +143,7 @@ export function MovieDetailScreen({ route, navigation }: Props) {
   );
 }
 
-const s = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bgBase },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bgBase },
   errorText: { ...typography.body, color: colors.error },
@@ -153,4 +155,4 @@ const s = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.xl,
   },
-});
+}));

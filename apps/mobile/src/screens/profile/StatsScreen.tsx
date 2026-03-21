@@ -4,15 +4,15 @@ import {
   View,
   Text,
   ScrollView,
-  StyleSheet,
   ActivityIndicator,
   TouchableOpacity,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useMyProfile } from '@hooks/useProfile';
 import { useAuthStore } from '@store/auth.store';
-import { colors, spacing, borderRadius, typography, RANK_COLORS } from '@theme/index';
+import { useTheme, createThemedStyles, spacing, borderRadius, typography, RANK_COLORS } from '@theme/index';
 import { UserRank } from '@app-types/index';
 import { useT } from '@i18n/index';
 
@@ -23,6 +23,8 @@ const RANK_THRESHOLDS: Record<string, number> = {
 };
 
 function StatItem({ icon, label, value, color }: { icon: string; label: string; value: string | number; color?: string }) {
+  const styles = useStyles();
+
   return (
     <View style={styles.statItem}>
       <Text style={styles.statIcon}>{icon}</Text>
@@ -36,6 +38,8 @@ function StatItem({ icon, label, value, color }: { icon: string; label: string; 
 
 // Bar chart — real weekly activity data
 function ActivityChart({ weeklyActivity, emptyText, dayLabels }: { weeklyActivity?: number[]; emptyText: string; dayLabels: string[] }) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const bars = weeklyActivity ?? Array(7).fill(0);
   const maxVal = Math.max(...bars, 1); // avoid division by zero
   const hasActivity = bars.some((v) => v > 0);
@@ -71,8 +75,13 @@ function ActivityChart({ weeklyActivity, emptyText, dayLabels }: { weeklyActivit
   );
 }
 
+const TAB_BAR_HEIGHT = 60;
+
 export function StatsScreen() {
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
+  const styles = useStyles();
   const user = useAuthStore(s => s.user);
   const { statsQuery } = useMyProfile();
   const stats = statsQuery.data;
@@ -101,7 +110,7 @@ export function StatsScreen() {
   return (
     <ScrollView style={styles.root} showsVerticalScrollIndicator={false}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </TouchableOpacity>
@@ -190,12 +199,12 @@ export function StatsScreen() {
         </View>
       </View>
 
-      <View style={{ height: spacing.xxxl }} />
+      <View style={{ height: TAB_BAR_HEIGHT + insets.bottom + spacing.xl }} />
     </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bgBase },
   loader: { flex: 1, marginTop: 80 },
   header: {
@@ -203,7 +212,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingBottom: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
@@ -219,7 +228,7 @@ const styles = StyleSheet.create({
   },
   rankRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   rankBadge: { paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: borderRadius.full },
-  rankName: { ...typography.h3, fontWeight: '700' },
+  rankName: { ...typography.h3, fontWeight: '700', color: colors.textPrimary },
   rankPoints: { alignItems: 'flex-end' },
   pointsValue: { ...typography.h2, color: colors.textPrimary },
   pointsLabel: { ...typography.caption, color: colors.textMuted },
@@ -276,4 +285,4 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgElevated,
     zIndex: -1,
   },
-});
+}));

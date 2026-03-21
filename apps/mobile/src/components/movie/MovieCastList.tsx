@@ -1,9 +1,9 @@
 // CineSync Mobile — Movie Detail: Cast horizontal list
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, ScrollView } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, typography, borderRadius } from '@theme/index';
+import { useTheme, createThemedStyles, spacing, typography, borderRadius } from '@theme/index';
 import { ICastMember } from '@app-types/index';
 
 interface MovieCastListProps {
@@ -12,6 +12,9 @@ interface MovieCastListProps {
 }
 
 export const MovieCastList = React.memo<MovieCastListProps>(({ cast, sectionTitle }) => {
+  const { colors } = useTheme();
+  const styles = useStyles();
+
   if (!cast || cast.length === 0) return null;
 
   return (
@@ -45,7 +48,7 @@ export const MovieCastList = React.memo<MovieCastListProps>(({ cast, sectionTitl
 
 MovieCastList.displayName = 'MovieCastList';
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   section: { marginBottom: spacing.xl },
   sectionTitle: { ...typography.label, color: colors.textMuted, marginBottom: spacing.md },
   castScroll: { marginHorizontal: -spacing.xl, paddingHorizontal: spacing.xl },
@@ -58,5 +61,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  castName: { ...typography.caption, textAlign: 'center', marginTop: spacing.xs },
-});
+  castName: { ...typography.caption, color: colors.textMuted, textAlign: 'center', marginTop: spacing.xs },
+}));

@@ -9,6 +9,7 @@ import { useAuthStore } from '@store/auth.store';
 import { useLanguageStore } from '@store/language.store';
 import { AppNavigator } from '@navigation/AppNavigator';
 import { ErrorBoundary } from '@components/common/ErrorBoundary';
+import { ThemeProvider, useTheme } from '@theme/index';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -36,9 +37,11 @@ function RootApp() {
     }
   }, [isHydrated]);
 
+  const { isDark } = useTheme();
+
   return (
     <>
-      <StatusBar style="light" />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       <AppNavigator />
     </>
   );
@@ -49,7 +52,9 @@ export default function App() {
     <ErrorBoundary>
       <GestureHandlerRootView style={styles.root}>
         <QueryClientProvider client={queryClient}>
-          <RootApp />
+          <ThemeProvider>
+            <RootApp />
+          </ThemeProvider>
         </QueryClientProvider>
       </GestureHandlerRootView>
     </ErrorBoundary>

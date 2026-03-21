@@ -1,8 +1,8 @@
 // CineSync Mobile — Profile small reusable widgets
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, borderRadius, typography } from '@theme/index';
+import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { FadeInView } from './ProfileAnimations';
 
 const { width: SCREEN_W } = Dimensions.get('window');
@@ -24,6 +24,9 @@ export const StatCard = React.memo(function StatCard({
   delay = 0,
   iconColor,
 }: StatCardProps) {
+  const { colors } = useTheme();
+  const s = useStyles();
+
   return (
     <FadeInView delay={delay} style={s.statCard}>
       <Ionicons name={icon} size={24} color={iconColor ?? colors.primary} />
@@ -42,6 +45,9 @@ interface InfoRowProps {
 }
 
 export const InfoRow = React.memo(function InfoRow({ icon, label, value }: InfoRowProps) {
+  const { colors } = useTheme();
+  const s = useStyles();
+
   return (
     <View style={s.infoRow}>
       <View style={s.infoIconWrap}>
@@ -68,6 +74,9 @@ export const NavItem = React.memo(function NavItem({
   onPress,
   delay = 0,
 }: NavItemProps) {
+  const { colors } = useTheme();
+  const s = useStyles();
+
   return (
     <FadeInView delay={delay}>
       <TouchableOpacity style={s.navLink} onPress={onPress} activeOpacity={0.7}>
@@ -81,7 +90,7 @@ export const NavItem = React.memo(function NavItem({
   );
 });
 
-const s = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   statCard: {
     flex: 1,
     backgroundColor: colors.bgSurface,
@@ -136,4 +145,4 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   navLinkText: { ...typography.body, color: colors.textPrimary, flex: 1, fontWeight: '500' },
-});
+}));

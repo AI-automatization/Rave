@@ -5,7 +5,6 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  StyleSheet,
   ActivityIndicator,
   RefreshControl,
   Animated,
@@ -17,7 +16,7 @@ import { useRoute, useNavigation, RouteProp, NavigationProp } from '@react-navig
 import { Ionicons } from '@expo/vector-icons';
 import { useMyBattles, useBattleDetail, useBattleHistory } from '@hooks/useBattle';
 import { useAuthStore } from '@store/auth.store';
-import { colors, spacing, borderRadius, typography } from '@theme/index';
+import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { IBattle, ModalStackParamList } from '@app-types/index';
 
 type RouteType = RouteProp<ModalStackParamList, 'Battle'>;
@@ -25,6 +24,7 @@ type RouteType = RouteProp<ModalStackParamList, 'Battle'>;
 // Animated progress bar component
 function ProgressBar({ score, maxScore, color }: { score: number; maxScore: number; color: string }) {
   const anim = useRef(new Animated.Value(0)).current;
+  const styles = useStyles();
   const pct = maxScore > 0 ? Math.min(score / maxScore, 1) : 0;
 
   useEffect(() => {
@@ -47,6 +47,8 @@ function BattleCard({ battle, userId, onAccept, onReject, onPress }: {
   onReject?: () => void;
   onPress?: () => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const me = battle.participants.find(p => p.userId === userId);
   const opponent = battle.participants.find(p => p.userId !== userId);
   const maxScore = Math.max(me?.score ?? 0, opponent?.score ?? 1, 1);
@@ -109,6 +111,8 @@ function BattleCard({ battle, userId, onAccept, onReject, onPress }: {
 // Detail view when battleId provided
 function BattleDetailView({ battleId }: { battleId: string }) {
   const navigation = useNavigation();
+  const { colors } = useTheme();
+  const styles = useStyles();
   const userId = useAuthStore(s => s.user?._id) ?? '';
   const { data: battle, isLoading } = useBattleDetail(battleId);
 
@@ -132,6 +136,8 @@ function BattleDetailView({ battleId }: { battleId: string }) {
 // List view (all battles)
 function BattleListView() {
   const navigation = useNavigation<NavigationProp<ModalStackParamList>>();
+  const { colors } = useTheme();
+  const styles = useStyles();
   const userId = useAuthStore(s => s.user?._id) ?? '';
   const { activeBattles, isLoading, refetch, acceptMutation, rejectMutation } = useMyBattles();
   const historyQuery = useBattleHistory();
@@ -240,7 +246,7 @@ export function BattleScreen() {
   return <BattleListView />;
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   loader: { marginTop: 40 },
   errorText: { ...typography.body, color: colors.textMuted, textAlign: 'center', marginTop: 40 },
   // Detail
@@ -289,4 +295,4 @@ const styles = StyleSheet.create({
   rejectBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.sm, borderRadius: borderRadius.md, borderWidth: 1, borderColor: colors.error },
   rejectBtnText: { ...typography.caption, color: colors.error, fontWeight: '600' },
   waitingText: { ...typography.caption, color: colors.textMuted, textAlign: 'center' },
-});
+}));

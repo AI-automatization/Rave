@@ -4,14 +4,13 @@ import {
   View,
   Text,
   TouchableOpacity,
-  StyleSheet,
   Animated,
   Dimensions,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, borderRadius, typography } from '@theme/index';
+import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { FadeInView, AnimatedProgressBar, PulsingDot } from './ProfileAnimations';
 import type { RankMeta } from '@hooks/useProfileData';
 
@@ -44,6 +43,8 @@ export const ProfileHeader = React.memo(function ProfileHeader({
   titleLabel,
   pointsLabel,
 }: ProfileHeaderProps) {
+  const { colors } = useTheme();
+  const s = useStyles();
   const avatarScale = useRef(new Animated.Value(1)).current;
   const { rank, rankColor, rankIcon, totalPts, rankMin, rankMax, rankProgress, nextRank } = rankMeta;
 
@@ -133,7 +134,7 @@ export const ProfileHeader = React.memo(function ProfileHeader({
   );
 });
 
-const s = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   container: { paddingBottom: spacing.xl, alignItems: 'center' },
   topRow: {
     flexDirection: 'row',
@@ -174,7 +175,7 @@ const s = StyleSheet.create({
   usernameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   username: { fontSize: 22, fontWeight: '700', color: colors.textPrimary },
   onlineRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
-  onlineText: { ...typography.caption, fontWeight: '600' },
+  onlineText: { ...typography.caption, fontWeight: '600', color: colors.textMuted },
   rankSection: { marginTop: spacing.sm },
   rankChip: {
     flexDirection: 'row',
@@ -200,4 +201,4 @@ const s = StyleSheet.create({
   progressLabelRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.xs },
   progressLabel: { ...typography.caption, color: colors.textMuted },
   progressSub: { ...typography.caption, color: colors.textMuted, textAlign: 'center', marginTop: spacing.xs },
-});
+}));

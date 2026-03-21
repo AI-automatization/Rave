@@ -1,7 +1,7 @@
 // CineSync Mobile — GenreChips component
 import React from 'react';
-import { ScrollView, TouchableOpacity, Text, StyleSheet } from 'react-native';
-import { colors, spacing, borderRadius, typography } from '@theme/index';
+import { ScrollView, TouchableOpacity, Text } from 'react-native';
+import { createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { ContentGenre } from '@app-types/index';
 import { GENRES } from '@hooks/useSearch';
 
@@ -14,6 +14,8 @@ export const GenreChips = React.memo(function GenreChips({
   activeGenre,
   onToggle,
 }: GenreChipsProps) {
+  const styles = useStyles();
+
   return (
     <ScrollView
       horizontal
@@ -37,7 +39,7 @@ export const GenreChips = React.memo(function GenreChips({
   );
 });
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   genreScroll: { maxHeight: 44 },
   genreList: {
     paddingHorizontal: spacing.xl,
@@ -58,4 +60,4 @@ const styles = StyleSheet.create({
   },
   chipText: { ...typography.caption, color: colors.textSecondary, fontWeight: '500' },
   chipTextActive: { color: colors.textPrimary, fontWeight: '600' },
-});
+}));

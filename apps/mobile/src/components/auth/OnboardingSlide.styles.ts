@@ -1,11 +1,11 @@
 // CineSync Mobile — OnboardingSlide styles
-import { StyleSheet, Dimensions } from 'react-native';
-import { colors, spacing, typography } from '@theme/index';
+import { Dimensions } from 'react-native';
+import { createThemedStyles, spacing, typography } from '@theme/index';
 import { ICON_RING_SIZE } from './onboardingSlides';
 
 const { width } = Dimensions.get('window');
 
-export const styles = StyleSheet.create({
+export const useStyles = createThemedStyles((colors) => ({
   slide: {
     width,
     flex: 1,
@@ -67,9 +67,9 @@ export const styles = StyleSheet.create({
   },
   subtitle: {
     ...typography.body,
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
     paddingHorizontal: spacing.lg,
-    color: colors.textSecondary,
   },
-});
+}));

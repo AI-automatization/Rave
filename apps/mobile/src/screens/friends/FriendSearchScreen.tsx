@@ -6,7 +6,6 @@ import {
   TextInput,
   FlatList,
   TouchableOpacity,
-  StyleSheet,
   ActivityIndicator,
   Alert,
   ListRenderItemInfo,
@@ -15,38 +14,49 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useFriendSearch } from '@hooks/useFriends';
 import { useFriendsStore } from '@store/friends.store';
 import { userApi } from '@api/user.api';
-import { colors, spacing, borderRadius, typography } from '@theme/index';
+import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { RANK_COLORS } from '@theme/index';
 import { IUserPublic, FriendsStackParamList } from '@app-types/index';
 import { useT } from '@i18n/index';
+import { DEFAULT_AVATAR } from '@utils/assets';
 
 type Nav = NativeStackNavigationProp<FriendsStackParamList>;
 
 export function FriendSearchScreen() {
   const navigation = useNavigation<Nav>();
+  const { colors } = useTheme();
+  const styles = useStyles();
   const { t } = useT();
   const [query, setQuery] = useState('');
+  const queryClient = useQueryClient();
   const friends = useFriendsStore(s => s.friends);
+  const sentRequestIds = useFriendsStore(s => s.sentRequestIds);
+  const addSentRequest = useFriendsStore(s => s.addSentRequest);
   const { data: results = [], isFetching } = useFriendSearch(query);
-
-  // Track sent requests locally for UI feedback
-  const [sentIds, setSentIds] = useState<Set<string>>(new Set());
 
   const sendRequest = useMutation({
     mutationFn: (userId: string) => userApi.sendFriendRequest(userId),
-    onSuccess: (_, userId) => setSentIds(prev => new Set(prev).add(userId)),
-    onError: () => Alert.alert(t('common', 'error'), t('common', 'error')),
+    onMutate: (userId) => {
+      // Optimistic: darhol sent qilib belgilash (race condition oldini olish)
+      addSentRequest(userId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['friend-requests'] });
+    },
+    onError: (_, userId) => {
+      Alert.alert(t('common', 'error'), t('friends', 'requestError'));
+    },
   });
 
   const friendIds = new Set(friends.map(f => f._id));
 
   const getActionState = (userId: string) => {
     if (friendIds.has(userId)) return 'friend';
-    if (sentIds.has(userId)) return 'sent';
+    if (sentRequestIds.has(userId)) return 'sent';
     return 'none';
   };
 
@@ -61,7 +71,7 @@ export function FriendSearchScreen() {
         >
           <View style={styles.avatarWrap}>
             <Image
-              source={item.avatar ? { uri: item.avatar } : require('../../../assets/icon.png')}
+              source={item.avatar ? { uri: item.avatar } : DEFAULT_AVATAR}
               style={styles.avatar}
               contentFit="cover"
             />
@@ -156,7 +166,7 @@ export function FriendSearchScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bgBase },
   header: {
     flexDirection: 'row',
@@ -224,4 +234,4 @@ const styles = StyleSheet.create({
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, paddingTop: 80 },
   emptyText: { ...typography.body, color: colors.textMuted },
   hint: { ...typography.caption, color: colors.textMuted, textAlign: 'center', marginTop: 40 },
-});
+}));

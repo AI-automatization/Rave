@@ -1,12 +1,14 @@
 // CineSync Mobile — Social auth buttons (Google + Telegram)
 import React from 'react';
-import { View, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { FontAwesome5 } from '@expo/vector-icons';
 import MaskedView from '@react-native-masked-view/masked-view';
-import { colors, BRAND_COLORS } from '@theme/index';
+import { useTheme, createThemedStyles, BRAND_COLORS } from '@theme/index';
 
 function GradientGoogleIcon() {
+  const { colors } = useTheme();
+
   return (
     <MaskedView
       maskElement={<FontAwesome5 name="google" size={20} color={colors.black} />}
@@ -16,7 +18,7 @@ function GradientGoogleIcon() {
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       >
-        <FontAwesome5 name="google" size={20} style={s.iconHidden} />
+        <FontAwesome5 name="google" size={20} style={s_iconHidden} />
       </LinearGradient>
     </MaskedView>
   );
@@ -37,6 +39,9 @@ export function SocialAuthButtons({
   onGooglePress,
   onTelegramPress,
 }: SocialAuthButtonsProps) {
+  const { colors } = useTheme();
+  const s = useStyles();
+
   return (
     <View style={s.socialRow}>
       <TouchableOpacity
@@ -86,7 +91,10 @@ export function SocialAuthButtons({
   );
 }
 
-const s = StyleSheet.create({
+// Static style for the hidden icon (not theme-dependent)
+const s_iconHidden = { opacity: 0 };
+
+const useStyles = createThemedStyles((colors) => ({
   socialRow: { flexDirection: 'row', gap: 14 },
   socialHalf: { flex: 1 },
   socialBorder: { height: 56, borderRadius: 16, padding: 1.5 },
@@ -98,5 +106,4 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   btnDisabled: { opacity: 0.5 },
-  iconHidden: { opacity: 0 },
-});
+}));

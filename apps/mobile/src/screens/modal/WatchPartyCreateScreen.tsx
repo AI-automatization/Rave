@@ -9,13 +9,12 @@ import {
   TouchableOpacity,
   ScrollView,
   Switch,
-  StyleSheet,
   ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, borderRadius, typography } from '@theme/index';
+import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import type { ModalStackParamList } from '@app-types/index';
 import { useWatchPartyCreate } from '@hooks/useWatchPartyCreate';
 import { FilmSelector } from '@components/watchParty/FilmSelector';
@@ -26,6 +25,8 @@ type Nav = NativeStackNavigationProp<ModalStackParamList, 'WatchPartyCreate'>;
 export function WatchPartyCreateScreen() {
   const navigation = useNavigation<Nav>();
   const wp = useWatchPartyCreate();
+  const { colors } = useTheme();
+  const styles = useStyles();
 
   const onCreateSuccess = (roomId: string) => {
     navigation.replace('WatchParty', { roomId });
@@ -172,7 +173,7 @@ export function WatchPartyCreateScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bgBase },
   header: {
     flexDirection: 'row',
@@ -273,4 +274,4 @@ const styles = StyleSheet.create({
   },
   createBtnDisabled: { opacity: 0.6 },
   createBtnText: { ...typography.h3, color: colors.textPrimary },
-});
+}));

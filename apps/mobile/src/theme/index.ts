@@ -2,7 +2,8 @@
 // WEB_DESIGN_GUIDE.md bilan moslashtirilgan (2026-03-15)
 import { UserRank } from '@app-types/index';
 
-export const colors = {
+// ── Dark theme colors ────────────────────────────────────────────
+export const darkColors = {
   // Primary — violet (#7C3AED, web bilan bir xil)
   primary: '#7C3AED',
   primaryHover: '#6D28D9',
@@ -60,7 +61,62 @@ export const colors = {
   black: '#000000',
 } as const;
 
-// Brand colors — externally mandated, do NOT change
+// ── Type export ──────────────────────────────────────────────────
+// NOTE: ThemeColors uses string values (not literal) so both palettes are assignable
+export type ThemeColors = { [K in keyof typeof darkColors]: string };
+
+// ── Light theme colors ───────────────────────────────────────────
+export const lightColors: ThemeColors = {
+  primary: '#7C3AED',
+  primaryHover: '#6D28D9',
+  primaryContent: '#FFFFFF',
+
+  secondary: '#3B82F6',
+  secondaryContent: '#FFFFFF',
+
+  bgVoid: '#F5F5F7',
+  bgBase: '#FFFFFF',
+  bgDark: '#F3F3F8',
+  bgElevated: '#F0F0F5',
+  bgOverlay: '#E8E8F0',
+  bgSurface: '#EAEAF0',
+  bgMuted: '#DDDDE5',
+
+  textPrimary: '#111118',
+  textSecondary: '#3F3F46',
+  textTertiary: '#52525B',
+  textMuted: '#71717A',
+  textDim: '#A1A1AA',
+
+  border: 'rgba(0,0,0,0.08)',
+  borderStrong: 'rgba(0,0,0,0.12)',
+
+  gold: '#FFD700',
+  silver: '#C0C0C0',
+  diamond: '#88CCFF',
+
+  success: '#16A34A',
+  error: '#DC2626',
+  warning: '#D97706',
+
+  overlay: 'rgba(0,0,0,0.3)',
+
+  primaryLight: '#9333EA',
+  link: '#7C3AED',
+  bgLoading: '#D4D4D8',
+
+  passwordWeak: '#DC2626',
+  passwordFair: '#D97706',
+  passwordVeryStrong: '#16A34A',
+
+  white: '#FFFFFF',
+  black: '#000000',
+} as const;
+
+// ── Backward compatibility — existing code uses `colors` ─────────
+export const colors = darkColors;
+
+// ── Brand colors — externally mandated, do NOT change ────────────
 export const BRAND_COLORS = {
   googleGradient: ['#4285F4', '#EA4335', '#FBBC05', '#34A853'] as const,
   telegramGradient: ['#2AABEE', '#229ED9'] as const,
@@ -106,38 +162,31 @@ export const typography = {
     fontSize: 32,
     fontWeight: '700' as const,
     letterSpacing: 1,
-    color: colors.textPrimary,
   },
   h1: {
     fontSize: 24,
     fontWeight: '700' as const,
-    color: colors.textPrimary,
   },
   h2: {
     fontSize: 20,
     fontWeight: '600' as const,
-    color: colors.textPrimary,
   },
   h3: {
     fontSize: 16,
     fontWeight: '600' as const,
-    color: colors.textPrimary,
   },
   body: {
     fontSize: 14,
     fontWeight: '400' as const,
-    color: colors.textSecondary,
   },
   caption: {
     fontSize: 12,
     fontWeight: '400' as const,
-    color: colors.textMuted,
   },
   label: {
     fontSize: 12,
     fontWeight: '600' as const,
     letterSpacing: 0.5,
-    color: colors.textMuted,
   },
 } as const;
 
@@ -164,3 +213,7 @@ export const shadows = {
     elevation: 8,
   },
 } as const;
+
+// ── Re-exports from theme system ─────────────────────────────────
+export { ThemeProvider, useTheme } from './ThemeContext';
+export { createThemedStyles } from './createStyles';

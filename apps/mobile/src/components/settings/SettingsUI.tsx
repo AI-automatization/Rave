@@ -1,9 +1,10 @@
 // CineSync Mobile — Shared settings UI primitives
 import React from 'react';
-import { View, Text, Switch, StyleSheet } from 'react-native';
-import { colors, spacing, typography } from '@theme/index';
+import { View, Text, Switch } from 'react-native';
+import { useTheme, createThemedStyles, spacing, typography } from '@theme/index';
 
 export function SectionHeader({ title }: { title: string }) {
+  const styles = useStyles();
   return <Text style={styles.sectionHeader}>{title}</Text>;
 }
 
@@ -15,6 +16,8 @@ interface ToggleRowProps {
 }
 
 export function ToggleRow({ label, sub, value, onChange }: ToggleRowProps) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   return (
     <View style={styles.toggleRow}>
       <View style={styles.toggleLeft}>
@@ -31,11 +34,11 @@ export function ToggleRow({ label, sub, value, onChange }: ToggleRowProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   sectionHeader: {
     ...typography.label,
     color: colors.textMuted,
-    marginTop: spacing.md,
+    marginTop: spacing.sm,
     marginBottom: spacing.xs,
   },
   toggleRow: {
@@ -47,4 +50,4 @@ const styles = StyleSheet.create({
   toggleLeft: { flex: 1, gap: 2 },
   toggleLabel: { ...typography.body, color: colors.textPrimary },
   toggleSub: { ...typography.caption, color: colors.textMuted },
-});
+}));

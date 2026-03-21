@@ -1,8 +1,8 @@
 // CineSync Mobile — WatchParty RoomInfoBar
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, borderRadius, typography } from '@theme/index';
+import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 
 interface RoomInfoBarProps {
   roomName: string;
@@ -23,6 +23,8 @@ export const RoomInfoBar = React.memo(function RoomInfoBar({
   onToggleChat,
   onLeave,
 }: RoomInfoBarProps) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   return (
     <View style={styles.infoBar}>
       <View style={styles.infoLeft}>
@@ -49,7 +51,7 @@ export const RoomInfoBar = React.memo(function RoomInfoBar({
   );
 });
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   infoBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -75,4 +77,4 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.full,
     backgroundColor: colors.error,
   },
-});
+}));

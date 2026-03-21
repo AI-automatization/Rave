@@ -1,12 +1,13 @@
 // CineSync Mobile — Home Loading Skeleton
 import React, { useEffect, useRef } from 'react';
-import { View, Animated, StyleSheet, Dimensions } from 'react-native';
-import { colors, spacing, borderRadius } from '@theme/index';
+import { View, Animated, Dimensions } from 'react-native';
+import { useTheme, createThemedStyles, spacing, borderRadius } from '@theme/index';
 
 const { width } = Dimensions.get('window');
 
 function SkeletonBox({ style }: { style: object }) {
   const opacity = useRef(new Animated.Value(0.3)).current;
+  const { colors } = useTheme();
 
   useEffect(() => {
     Animated.loop(
@@ -21,6 +22,8 @@ function SkeletonBox({ style }: { style: object }) {
 }
 
 export function HomeSkeleton() {
+  const styles = useStyles();
+
   return (
     <View style={styles.container}>
       {/* Hero */}
@@ -34,7 +37,7 @@ export function HomeSkeleton() {
         {[0, 1, 2, 3].map((i) => (
           <SkeletonBox key={i} style={styles.card} />
         ))}
-      </View> 
+      </View>
 
       {/* Row label 2 */}
       <SkeletonBox style={styles.rowLabel} />
@@ -49,7 +52,7 @@ export function HomeSkeleton() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   container: { flex: 1, backgroundColor: colors.bgBase },
   hero: {
     width,
@@ -75,4 +78,4 @@ const styles = StyleSheet.create({
     height: 195,
     borderRadius: borderRadius.lg,
   },
-});
+}));

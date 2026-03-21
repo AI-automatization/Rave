@@ -4,7 +4,6 @@ import {
   View,
   Text,
   TouchableOpacity,
-  StyleSheet,
   ActivityIndicator,
   Dimensions,
   StatusBar,
@@ -13,7 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { AVPlaybackStatus } from 'expo-av';
 import { UniversalPlayer, UniversalPlayerRef } from '@components/video/UniversalPlayer';
 import { EmojiFloatItem } from '@components/watchParty/EmojiFloat';
-import { colors, spacing, borderRadius, typography } from '@theme/index';
+import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 export const VIDEO_HEIGHT = (SCREEN_W * 9) / 16;
@@ -67,6 +66,8 @@ export const VideoSection = React.memo(function VideoSection({
   onToggleFullscreen,
   onRemoveEmoji,
 }: VideoSectionProps) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const containerStyle = isFullscreen
     ? [styles.videoContainer, styles.videoContainerFullscreen]
     : styles.videoContainer;
@@ -142,7 +143,7 @@ export const VideoSection = React.memo(function VideoSection({
   );
 });
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   videoContainer: {
     width: SCREEN_W,
     height: VIDEO_HEIGHT,
@@ -213,4 +214,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-});
+}));

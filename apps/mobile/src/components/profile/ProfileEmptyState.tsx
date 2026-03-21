@@ -1,8 +1,8 @@
 // CineSync Mobile — Profile loading / not-found states
 import React from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, borderRadius, typography } from '@theme/index';
+import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 
 interface ProfileEmptyStateProps {
   isLoading: boolean;
@@ -17,6 +17,9 @@ export const ProfileEmptyState = React.memo(function ProfileEmptyState({
   retryLabel,
   onRetry,
 }: ProfileEmptyStateProps) {
+  const { colors } = useTheme();
+  const s = useStyles();
+
   if (isLoading) {
     return (
       <View style={s.root}>
@@ -38,7 +41,7 @@ export const ProfileEmptyState = React.memo(function ProfileEmptyState({
   );
 });
 
-const s = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   root: {
     flex: 1,
     backgroundColor: colors.bgBase,
@@ -62,4 +65,4 @@ const s = StyleSheet.create({
     borderRadius: borderRadius.lg,
   },
   retryText: { color: colors.white, fontWeight: '700', fontSize: 15 },
-});
+}));

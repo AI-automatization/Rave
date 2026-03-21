@@ -1,8 +1,8 @@
 // CineSync Mobile — Movie Row (horizontal FlatList)
 import React, { memo } from 'react';
-import { View, Text, FlatList, StyleSheet, ListRenderItem } from 'react-native';
+import { View, Text, FlatList, ListRenderItem } from 'react-native';
 import { IMovie } from '@app-types/index';
-import { colors, spacing, typography } from '@theme/index';
+import { createThemedStyles, spacing, typography } from '@theme/index';
 import { MovieCard } from './MovieCard';
 
 const CARD_WIDTH = 130;
@@ -15,6 +15,8 @@ interface Props {
 }
 
 export const MovieRow = memo(function MovieRow({ title, movies, onMoviePress }: Props) {
+  const styles = useStyles();
+
   const renderItem: ListRenderItem<IMovie> = ({ item }) => (
     <View style={styles.cardWrap}>
       <MovieCard movie={item} width={CARD_WIDTH} onPress={onMoviePress ? () => onMoviePress(item) : undefined} />
@@ -47,9 +49,9 @@ export const MovieRow = memo(function MovieRow({ title, movies, onMoviePress }: 
   );
 });
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   container: { marginBottom: spacing.xl },
-  title: { ...typography.h3, marginLeft: spacing.xl, marginBottom: spacing.md },
+  title: { ...typography.h3, color: colors.textPrimary, marginLeft: spacing.xl, marginBottom: spacing.md },
   listContent: { paddingHorizontal: spacing.xl },
   cardWrap: { height: CARD_HEIGHT },
-});
+}));

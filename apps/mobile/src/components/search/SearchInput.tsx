@@ -1,8 +1,8 @@
 // CineSync Mobile — SearchInput component
 import React from 'react';
-import { View, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TextInput, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, borderRadius } from '@theme/index';
+import { useTheme, createThemedStyles, spacing, borderRadius } from '@theme/index';
 
 interface SearchInputProps {
   value: string;
@@ -19,6 +19,9 @@ export const SearchInput = React.memo(function SearchInput({
   onSubmitEditing,
   onClear,
 }: SearchInputProps) {
+  const { colors } = useTheme();
+  const styles = useStyles();
+
   return (
     <View style={styles.inputRow}>
       <View style={styles.inputWrap}>
@@ -44,7 +47,7 @@ export const SearchInput = React.memo(function SearchInput({
   );
 });
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   inputRow: {
     paddingHorizontal: spacing.xl,
     paddingBottom: spacing.md,
@@ -66,4 +69,4 @@ const styles = StyleSheet.create({
     fontSize: 15,
     paddingVertical: 0,
   },
-});
+}));

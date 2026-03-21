@@ -17,7 +17,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '@theme/index';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTheme, createThemedStyles } from '@theme/index';
 import { AuthStackParamList } from '@app-types/index';
 import { authApi } from '@api/auth.api';
 import { useT } from '@i18n/index';
@@ -28,7 +29,10 @@ type Nav = NativeStackNavigationProp<AuthStackParamList, 'ForgotPassword'>;
 
 export function ForgotPasswordScreen() {
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
   const { t } = useT();
+  const { colors } = useTheme();
+  const s = useStyles();
 
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -81,7 +85,7 @@ export function ForgotPasswordScreen() {
       </View>
 
       <KeyboardAvoidingView style={s.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <Animated.View style={[s.container, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+        <Animated.View style={[s.container, { paddingTop: insets.top + 16, opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
 
           {/* Back */}
           <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
@@ -164,10 +168,10 @@ export function ForgotPasswordScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bgVoid },
   flex: { flex: 1 },
-  container: { flex: 1, paddingHorizontal: 28, paddingTop: 50 },
+  container: { flex: 1, paddingHorizontal: 28 },
 
   bgGrid: { ...StyleSheet.absoluteFillObject },
   gridLineH: { position: 'absolute', left: 0, right: 0, height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(255,255,255,0.03)' },
@@ -218,4 +222,4 @@ const s = StyleSheet.create({
   primaryBtnText: { color: '#fff', fontSize: 16, fontWeight: '700', letterSpacing: 0.5 },
 
   btnDisabled: { opacity: 0.5 },
-});
+}));

@@ -10,9 +10,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
-  StyleSheet,
 } from 'react-native';
-import { colors, spacing, borderRadius, typography } from '@theme/index';
+import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { authApi } from '@api/auth.api';
 import { useT } from '@i18n/index';
 
@@ -23,6 +22,8 @@ interface ChangePasswordModalProps {
 
 export function ChangePasswordModal({ visible, onClose }: ChangePasswordModalProps) {
   const { t } = useT();
+  const { colors } = useTheme();
+  const styles = useStyles();
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -102,7 +103,7 @@ export function ChangePasswordModal({ visible, onClose }: ChangePasswordModalPro
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.6)' },
   sheet: {
     backgroundColor: colors.bgSurface,
@@ -151,4 +152,4 @@ const styles = StyleSheet.create({
   },
   btnDisabled: { opacity: 0.6 },
   saveText: { color: colors.textPrimary, fontWeight: '700', fontSize: 15 },
-});
+}));

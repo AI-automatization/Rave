@@ -1,13 +1,15 @@
 // CineSync Mobile — SettingsScreen (composed)
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, borderRadius, typography } from '@theme/index';
+import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { userApi } from '@api/user.api';
 import { useAuthStore } from '@store/auth.store';
 import { useMyProfile } from '@hooks/useProfile';
 import { useLanguageStore, Language } from '@store/language.store';
+import { useThemeStore } from '@store/theme.store';
 import { useT } from '@i18n/index';
 import {
   SectionHeader,
@@ -25,15 +27,26 @@ const LANGUAGES: { code: Language; label: string; flag: string }[] = [
   { code: 'en', label: 'English', flag: '\u{1F1EC}\u{1F1E7}' },
 ];
 
+const THEMES: { mode: 'dark' | 'light'; icon: keyof typeof Ionicons.glyphMap; labelKey: string }[] = [
+  { mode: 'dark', icon: 'moon-outline', labelKey: 'themeDark' },
+  { mode: 'light', icon: 'sunny-outline', labelKey: 'themeLight' },
+];
+
 type ActiveModal = 'editProfile' | 'changePassword' | null;
+
+const TAB_BAR_HEIGHT = 60;
 
 export function SettingsScreen() {
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const { user, logout } = useAuthStore();
   const { updateProfileMutation } = useMyProfile();
   const { lang: language, setLang: setLanguage } = useLanguageStore();
+  const { mode: themeMode, setMode: setThemeMode } = useThemeStore();
   const { t } = useT();
   const { notifToggles, privacyToggles, toggleNotif, togglePrivacy } = useSettingsStorage();
+  const { colors } = useTheme();
+  const styles = useStyles();
 
   const [activeModal, setActiveModal] = useState<ActiveModal>(null);
   const [editUsername, setEditUsername] = useState('');
@@ -96,7 +109,7 @@ export function SettingsScreen() {
     <>
       <ScrollView style={styles.root} showsVerticalScrollIndicator={false}>
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
           </TouchableOpacity>
@@ -118,6 +131,25 @@ export function SettingsScreen() {
               <Text style={styles.navLabel}>{t('settings', 'changePassword')}</Text>
               <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
             </TouchableOpacity>
+          </View>
+
+          {/* Theme */}
+          <SectionHeader title={t('settings', 'themeSection')} />
+          <View style={styles.card}>
+            {THEMES.map((theme, i) => (
+              <TouchableOpacity
+                key={theme.mode}
+                style={[styles.langRow, i < THEMES.length - 1 && styles.rowBorder]}
+                onPress={() => setThemeMode(theme.mode)}
+                activeOpacity={0.8}
+              >
+                <Ionicons name={theme.icon} size={20} color={colors.textSecondary} />
+                <Text style={styles.langLabel}>{t('settings', theme.labelKey)}</Text>
+                {themeMode === theme.mode && (
+                  <Ionicons name="checkmark" size={20} color={colors.primary} />
+                )}
+              </TouchableOpacity>
+            ))}
           </View>
 
           {/* Language */}
@@ -190,7 +222,7 @@ export function SettingsScreen() {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.bottomSpacer} />
+        <View style={{ height: TAB_BAR_HEIGHT + insets.bottom + spacing.xl }} />
       </ScrollView>
 
       {/* Modals */}
@@ -212,21 +244,21 @@ export function SettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bgBase },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingBottom: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
   backBtn: { padding: spacing.xs },
   title: { ...typography.h2, color: colors.textPrimary },
   spacer: { width: 40 },
-  content: { padding: spacing.lg, gap: spacing.sm },
+  content: { padding: spacing.lg, gap: spacing.xs },
   card: { backgroundColor: colors.bgSurface, borderRadius: borderRadius.lg, overflow: 'hidden' },
   rowBorder: { borderBottomWidth: 1, borderBottomColor: colors.border },
   navRow: { flexDirection: 'row', alignItems: 'center', padding: spacing.md, gap: spacing.md },
@@ -248,5 +280,4 @@ const styles = StyleSheet.create({
     borderColor: colors.error + '44',
   },
   deleteText: { ...typography.body, color: colors.error },
-  bottomSpacer: { height: spacing.xxxl },
-});
+}));
