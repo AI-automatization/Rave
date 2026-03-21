@@ -8,6 +8,7 @@ import swaggerUi from 'swagger-ui-express';
 import { errorHandler, notFoundHandler } from '@shared/middleware/error.middleware';
 import { requestId } from '@shared/middleware/requestId.middleware';
 import { timeout } from '@shared/middleware/timeout.middleware';
+import { apiLogger } from '@shared/middleware/apiLogger.middleware';
 import { morganStream } from '@shared/utils/logger';
 import { createUserRouter } from './routes/user.routes';
 import { createAchievementRouter } from './routes/achievement.routes';
@@ -36,6 +37,7 @@ export const createApp = (redis: Redis): express.Application => {
   app.use(express.json({ limit: '10kb' }));
   app.use(express.urlencoded({ extended: true }));
   app.use(requestId);
+  app.use(apiLogger('user'));
   app.use(timeout());
 
   // Static uploads (avatar images)
