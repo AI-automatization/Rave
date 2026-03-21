@@ -530,12 +530,7 @@ Tavsiya: member ham retry bosa olsin (sayt muammosi, control muammosi emas)
 
 ---
 
-### T-J019 | P2 | [MOBILE] | FriendSearch — backend search natijasi bo'sh kelishi mumkin
-
-- **Sana:** 2026-03-21
-- **Muammo:** Backend `searchUsers` avval `authId` qaytarardi, `_id` emas — mobile `_id` kutadi. Fix qilindi (authId → _id mapping), lekin Redis ishlamaganda online status tekshirish xato berishi mumkin
-- **Ta'sir:** Do'st qidirish ishlashi, lekin online status noto'g'ri ko'rinishi mumkin
-- **Bog'liq:** T-J016 (Redis config)
+### ✅ T-J019 | TUGADI → Done.md F-145
 
 ### T-J020 | P2 | [MOBILE] | Docker Compose build xatosi — service containerlar build bo'lmaydi
 

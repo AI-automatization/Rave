@@ -40,14 +40,23 @@ export class ProfileService {
   }
 
   async heartbeat(userId: string): Promise<void> {
-    const key = REDIS_KEYS.heartbeat(userId);
-    await this.redis.set(key, '1', 'EX', TTL.HEARTBEAT);
+    try {
+      const key = REDIS_KEYS.heartbeat(userId);
+      await this.redis.set(key, '1', 'EX', TTL.HEARTBEAT);
+    } catch {
+      // Redis down — silent fail, heartbeat is best-effort
+    }
   }
 
   async isUserOnline(userId: string): Promise<boolean> {
-    const key = REDIS_KEYS.heartbeat(userId);
-    const exists = await this.redis.exists(key);
-    return exists === 1;
+    try {
+      const key = REDIS_KEYS.heartbeat(userId);
+      const exists = await this.redis.exists(key);
+      return exists === 1;
+    } catch {
+      // Redis down → graceful degradation, show as offline
+      return false;
+    }
   }
 
   async updateAvatar(userId: string, avatarPath: string): Promise<IUserDocument> {
