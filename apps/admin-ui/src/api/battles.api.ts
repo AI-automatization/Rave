@@ -14,4 +14,8 @@ export const battlesApi = {
   endBattle: async (id: string): Promise<void> => {
     await apiClient.post<ApiResponse<null>>(`/admin/battles/${id}/end`);
   },
+
+  cancelBattle: async (id: string): Promise<void> => {
+    await apiClient.post<ApiResponse<null>>(`/admin/battles/${id}/cancel`);
+  },
 };

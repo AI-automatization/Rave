@@ -229,6 +229,14 @@ export class AdminController {
     } catch (error) { next(error); }
   };
 
+  cancelBattle = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId: adminId } = (req as AuthenticatedRequest).user;
+      await this.adminService.cancelBattle(req.params.id, adminId);
+      res.json(apiResponse.success(null, 'Battle cancelled'));
+    } catch (error) { next(error); }
+  };
+
   // ── Watch Parties ─────────────────────────────────────────
 
   listWatchParties = async (req: Request, res: Response, next: NextFunction): Promise<void> => {

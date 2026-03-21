@@ -111,12 +111,21 @@ export interface ApiLog {
 
 export interface AdminBattle {
   _id: string;
+  title: string;
   creatorId: string;
   status: 'pending' | 'active' | 'completed' | 'cancelled' | 'rejected';
   duration: 3 | 5 | 7;
+  startDate: string | null;
   endDate: string | null;
+  winnerId: string | null;
   createdAt: string;
-  participants?: Array<{ userId: string; moviesWatched: number; score: number }>;
+  participants?: Array<{
+    userId: string;
+    score: number;
+    moviesWatched: number;
+    minutesWatched: number;
+    hasAccepted: boolean;
+  }>;
 }
 
 // ── Watch Parties ─────────────────────────────────────────────

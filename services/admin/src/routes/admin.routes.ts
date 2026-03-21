@@ -60,7 +60,8 @@ export const createAdminRouter = (redis: Redis): Router => {
 
   // ── Battles ───────────────────────────────────────────────────
   router.get('/battles', adminController.listBattles);
-  router.post('/battles/:id/end', requireRole('superadmin'), adminController.endBattle);
+  router.post('/battles/:id/end', adminController.endBattle);
+  router.post('/battles/:id/cancel', adminController.cancelBattle);
 
   // ── Watch Parties ─────────────────────────────────────────────
   router.get('/watchparties', adminController.listWatchParties);

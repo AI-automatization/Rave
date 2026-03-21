@@ -20,6 +20,7 @@ import {
   adminOperatorUpdateMovie,
   adminListBattles,
   adminEndBattle,
+  adminCancelBattle,
   adminListWatchParties,
   adminCloseWatchParty,
   adminJoinWatchParty,
@@ -274,6 +275,11 @@ export class AdminService {
   async endBattle(battleId: string, adminId: string): Promise<void> {
     await adminEndBattle(battleId);
     logger.info('Battle force-ended by admin', { battleId, adminId });
+  }
+
+  async cancelBattle(battleId: string, adminId: string): Promise<void> {
+    await adminCancelBattle(battleId);
+    logger.info('Battle cancelled by admin', { battleId, adminId });
   }
 
   // ── Watch Party Management ─────────────────────────────────

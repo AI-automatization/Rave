@@ -1,7 +1,10 @@
 import { Fragment, useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { logsApi } from '../api/logs.api';
+import { usersApi } from '../api/users.api';
 import { Pagination } from '../components/ui/Pagination';
+import { Button } from '../components/ui/Button';
+import { Modal } from '../components/ui/Modal';
 import type { ApiLog, PaginationMeta } from '../types';
 
 // ── Action mapping ────────────────────────────────────────────
@@ -110,7 +113,7 @@ export function UserActivityPage() {
 
   const [logs, setLogs]         = useState<ApiLog[]>([]);
   const [meta, setMeta]         = useState<PaginationMeta>({ page: 1, limit: 50, total: 0, totalPages: 1 });
-  const [loading, setLoading]   = useState(false);
+  const [loading, setLoading]   = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
 
   const urlUserId = searchParams.get('userId') ?? '';
@@ -118,11 +121,18 @@ export function UserActivityPage() {
   const [appliedUserId, setAppliedUserId] = useState(urlUserId);
   const [page, setPage] = useState(1);
 
+  // Block/unblock actions
+  const [blockModal, setBlockModal] = useState<'block' | 'unblock' | null>(null);
+  const [blockReason, setBlockReason] = useState('');
+  const [blockLoading, setBlockLoading] = useState(false);
+  const [blockSuccess, setBlockSuccess] = useState<string | null>(null);
+
   const load = useCallback(async () => {
-    if (!appliedUserId) return;
     setLoading(true);
     try {
-      const res = await logsApi.list({ page, limit: 50, userId: appliedUserId });
+      const params: Parameters<typeof logsApi.list>[0] = { page, limit: 50 };
+      if (appliedUserId) params.userId = appliedUserId;
+      const res = await logsApi.list(params);
       setLogs(res.data);
       setMeta(res.meta);
     } catch {
@@ -136,7 +146,6 @@ export function UserActivityPage() {
 
   const handleSearch = () => {
     const trimmed = userIdInput.trim();
-    if (!trimmed) return;
     setAppliedUserId(trimmed);
     setPage(1);
   };
@@ -144,76 +153,106 @@ export function UserActivityPage() {
   const handleClear = () => {
     setUserIdInput('');
     setAppliedUserId('');
-    setLogs([]);
-    setMeta({ page: 1, limit: 50, total: 0, totalPages: 1 });
     setPage(1);
+  };
+
+  const handleBlock = async () => {
+    if (!appliedUserId) return;
+    setBlockLoading(true);
+    try {
+      await usersApi.block(appliedUserId, blockReason || undefined);
+      setBlockModal(null);
+      setBlockReason('');
+      setBlockSuccess('Foydalanuvchi bloklandi');
+      setTimeout(() => setBlockSuccess(null), 3000);
+    } finally {
+      setBlockLoading(false);
+    }
+  };
+
+  const handleUnblock = async () => {
+    if (!appliedUserId) return;
+    setBlockLoading(true);
+    try {
+      await usersApi.unblock(appliedUserId);
+      setBlockModal(null);
+      setBlockSuccess('Foydalanuvchi blokdan chiqarildi');
+      setTimeout(() => setBlockSuccess(null), 3000);
+    } finally {
+      setBlockLoading(false);
+    }
   };
 
   return (
     <div className="flex flex-col gap-6">
 
       {/* Header */}
-      <div>
-        <h1 className="text-base font-semibold text-white tracking-tight">Foydalanuvchi Harakatlari</h1>
-        <p className="text-xs text-text-dim mt-0.5">
-          {appliedUserId
-            ? `${meta.total.toLocaleString()} ta harakat · userId: ${appliedUserId}`
-            : 'userId kiriting — foydalanuvchi faoliyatini ko\'rish uchun'}
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-base font-semibold text-white tracking-tight">Foydalanuvchi Harakatlari</h1>
+          <p className="text-xs text-text-dim mt-0.5">
+            {appliedUserId
+              ? `${meta.total.toLocaleString()} ta harakat · userId: ${appliedUserId}`
+              : `${meta.total.toLocaleString()} ta harakat — barcha foydalanuvchilar`}
+          </p>
+        </div>
+        {appliedUserId && (
+          <div className="flex gap-2">
+            <Button size="sm" variant="secondary" onClick={() => setBlockModal('unblock')}>
+              Blokdan chiqarish
+            </Button>
+            <Button size="sm" variant="danger" onClick={() => setBlockModal('block')}>
+              Bloklash
+            </Button>
+          </div>
+        )}
       </div>
 
-      {/* Search */}
-      <div className="flex gap-2">
+      {/* Success toast */}
+      {blockSuccess && (
+        <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-sm px-4 py-2 rounded-lg">
+          {blockSuccess}
+        </div>
+      )}
+
+      {/* Search + Filter */}
+      <div className="flex gap-2 flex-wrap">
         <input
           type="text"
-          placeholder="User ID kiriting..."
+          placeholder="User ID (ixtiyoriy)..."
           value={userIdInput}
           onChange={e => setUserIdInput(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleSearch()}
-          className="flex-1 max-w-sm px-3 py-2 text-sm bg-surface border border-border rounded-lg text-white placeholder-text-dim focus:outline-none focus:border-border-light font-mono"
+          className="flex-1 min-w-48 max-w-sm px-3 py-2 text-sm bg-surface border border-border rounded-lg text-white placeholder-text-dim focus:outline-none focus:border-border-light font-mono"
         />
         <button
           onClick={handleSearch}
-          disabled={!userIdInput.trim()}
-          className="px-4 py-2 text-sm bg-accent text-white rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:bg-accent/90 transition-colors"
+          className="px-4 py-2 text-sm bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors"
         >
-          Ko'rish
+          Filter
         </button>
         {appliedUserId && (
           <button
             onClick={handleClear}
             className="px-3 py-2 text-sm text-text-muted hover:text-white border border-border rounded-lg hover:border-border-light transition-colors"
           >
-            Tozalash
+            Barchasi
           </button>
         )}
       </div>
 
-      {/* Empty state */}
-      {!appliedUserId && (
-        <div className="flex flex-col items-center justify-center py-20 text-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-surface border border-border flex items-center justify-center">
-            <svg className="w-5 h-5 text-text-dim" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-            </svg>
-          </div>
-          <p className="text-text-muted text-sm">Foydalanuvchi harakatlarini ko'rish uchun userId kiriting</p>
-          <p className="text-text-dim text-xs">Users sahifasidan userId ni nusxa oling</p>
-        </div>
-      )}
-
       {/* Loading */}
-      {loading && appliedUserId && (
+      {loading && (
         <div className="flex items-center justify-center py-16">
           <div className="text-text-dim text-sm">Yuklanmoqda...</div>
         </div>
       )}
 
       {/* No results */}
-      {!loading && appliedUserId && logs.length === 0 && (
+      {!loading && logs.length === 0 && (
         <div className="flex flex-col items-center justify-center py-16 text-center gap-2">
-          <p className="text-text-muted text-sm">Bu foydalanuvchi uchun log topilmadi</p>
-          <p className="text-text-dim text-xs font-mono">{appliedUserId}</p>
+          <p className="text-text-muted text-sm">Log topilmadi</p>
+          {appliedUserId && <p className="text-text-dim text-xs font-mono">{appliedUserId}</p>}
         </div>
       )}
 
@@ -352,6 +391,51 @@ export function UserActivityPage() {
           </div>
         </div>
       )}
+
+      {/* Block Modal */}
+      <Modal
+        open={blockModal === 'block'}
+        onClose={() => { setBlockModal(null); setBlockReason(''); }}
+        title="Foydalanuvchini bloklash"
+      >
+        <div className="flex flex-col gap-4">
+          <p className="text-sm text-text-muted">
+            UserId: <span className="text-white font-mono">{appliedUserId}</span>
+          </p>
+          <input
+            type="text"
+            placeholder="Sabab (ixtiyoriy)..."
+            value={blockReason}
+            onChange={e => setBlockReason(e.target.value)}
+            className="px-3 py-2 text-sm bg-bg border border-border rounded-lg text-white placeholder-text-dim focus:outline-none"
+          />
+          <div className="flex gap-2 justify-end">
+            <Button onClick={() => { setBlockModal(null); setBlockReason(''); }}>Bekor qilish</Button>
+            <Button variant="danger" loading={blockLoading} onClick={() => void handleBlock()}>
+              Bloklash
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Unblock Modal */}
+      <Modal
+        open={blockModal === 'unblock'}
+        onClose={() => setBlockModal(null)}
+        title="Blokdan chiqarish"
+      >
+        <div className="flex flex-col gap-4">
+          <p className="text-sm text-text-muted">
+            UserId: <span className="text-white font-mono">{appliedUserId}</span> blokdan chiqarilsinmi?
+          </p>
+          <div className="flex gap-2 justify-end">
+            <Button onClick={() => setBlockModal(null)}>Bekor qilish</Button>
+            <Button loading={blockLoading} onClick={() => void handleUnblock()}>
+              Chiqarish
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

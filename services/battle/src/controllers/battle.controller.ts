@@ -4,6 +4,7 @@ import { apiResponse, buildPaginationMeta } from '@shared/utils/apiResponse';
 import { AuthenticatedRequest } from '@shared/types';
 import { sendInternalNotification } from '@shared/utils/serviceClient';
 import { Battle } from '../models/battle.model';
+import { BattleParticipant } from '../models/battleParticipant.model';
 
 export class BattleController {
   constructor(private battleService: BattleService) {}
@@ -128,7 +129,18 @@ export class BattleController {
         Battle.countDocuments(query),
       ]);
 
-      res.json(apiResponse.paginated(battles, buildPaginationMeta(page, limit, total)));
+      // Join participants for each battle
+      const battleIds = battles.map((b) => String(b._id));
+      const participants = await BattleParticipant.find({ battleId: { $in: battleIds } }).lean();
+      const byBattle: Record<string, typeof participants> = {};
+      for (const p of participants) {
+        if (!byBattle[p.battleId]) byBattle[p.battleId] = [];
+        byBattle[p.battleId].push(p);
+      }
+
+      const result = battles.map((b) => ({ ...b, participants: byBattle[String(b._id)] ?? [] }));
+
+      res.json(apiResponse.paginated(result, buildPaginationMeta(page, limit, total)));
     } catch (error) {
       next(error);
     }
@@ -147,6 +159,25 @@ export class BattleController {
       await battle.save();
 
       res.json(apiResponse.success(null, 'Battle ended'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  adminCancelBattle = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const battle = await Battle.findById(req.params.id);
+      if (!battle) {
+        res.status(404).json(apiResponse.error('Battle not found'));
+        return;
+      }
+      if (battle.status !== 'pending') {
+        res.status(400).json(apiResponse.error('Only pending battles can be cancelled'));
+        return;
+      }
+      battle.status = 'cancelled';
+      await battle.save();
+      res.json(apiResponse.success(null, 'Battle cancelled'));
     } catch (error) {
       next(error);
     }

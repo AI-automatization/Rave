@@ -263,16 +263,24 @@ export async function adminListBattles(filters: {
   if (filters.limit) params.set('limit', String(filters.limit));
   if (filters.status) params.set('status', filters.status);
 
-  const res = await axios.get<{ data: { battles: unknown[]; total: number } }>(
+  const res = await axios.get<{ data: unknown[]; meta: { total: number } }>(
     `${battleServiceUrl}/api/v1/battles/internal/admin/list?${params.toString()}`,
     { headers: internalHeaders, timeout: 5000 },
   );
-  return res.data.data;
+  return { battles: res.data.data, total: res.data.meta.total };
 }
 
 export async function adminEndBattle(battleId: string): Promise<void> {
   await axios.post(
     `${battleServiceUrl}/api/v1/battles/internal/admin/${battleId}/end`,
+    {},
+    { headers: internalHeaders, timeout: 5000 },
+  );
+}
+
+export async function adminCancelBattle(battleId: string): Promise<void> {
+  await axios.post(
+    `${battleServiceUrl}/api/v1/battles/internal/admin/${battleId}/cancel`,
     {},
     { headers: internalHeaders, timeout: 5000 },
   );

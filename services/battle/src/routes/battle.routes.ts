@@ -28,6 +28,9 @@ export const createBattleRouter = (redis: Redis): Router => {
   // Internal Admin: POST /battles/internal/admin/:id/end — force end battle (admin)
   router.post('/internal/admin/:id/end', requireInternalSecret, battleController.adminEndBattle);
 
+  // Internal Admin: POST /battles/internal/admin/:id/cancel — cancel pending battle (admin)
+  router.post('/internal/admin/:id/cancel', requireInternalSecret, battleController.adminCancelBattle);
+
   // GET /battles/:id
   router.get('/:id', verifyToken, battleController.getBattle);
 
