@@ -14,7 +14,7 @@
 3. Fix bo'lgach → shu yerdan O'CHIRISH → docs/Done.md ga KO'CHIRISH
 4. Prioritet: P0=kritik, P1=muhim, P2=o'rta, P3=past
 5. Sprint: S1=hozir, S2=keyingi hafta, S3=keyingi sprint, S4-5=keyin
-6. Oxirgi T-raqam: S→034, E→043, J→014, C→010
+6. Oxirgi T-raqam: S→034, E→043, J→020, C→010
 ```
 
 ---
@@ -479,6 +479,46 @@ Tavsiya: member ham retry bosa olsin (sayt muammosi, control muammosi emas)
 ### ✅ T-J012 | TUGADI → Done.md F-122
 ### ✅ T-J013 | TUGADI → Done.md F-123
 ### ✅ T-J014 | TUGADI → Done.md F-124
+
+---
+
+## SPRINT 5 — Ochiq tasklar
+
+### T-J016 | P1 | [BACKEND] | Redis Docker config — bo'sh parol bilan start bermaydi
+
+- **Sana:** 2026-03-21
+- **Muammo:** `docker-compose.dev.yml` da Redis `requirepass` ga bo'sh string berilsa Redis FATAL xato beradi va start bermaydi
+- **Ta'sir:** Content Service (3003), Watch-Party (3004), Battle (3005) ishlamaydi — Redis kerak
+- **Yechim:** `docker-compose.dev.yml` da Redis config tuzatish — default parol qo'yish yoki `requirepass` ni olib tashlash
+- **Fayl:** `docker-compose.dev.yml`, Redis command/config
+
+### T-J017 | P1 | [BACKEND] | Content Service (3003) ishlamaydi — Redis connection crash
+
+- **Sana:** 2026-03-21
+- **Muammo:** Content service Redis ga ulana olmaydi va crash beradi (MaxRetriesPerRequestError). `maxRetriesPerRequest` limiti 1 ga teng — bitta retry dan keyin xato
+- **Ta'sir:** Film search, movie detail, video URL — hammasi ishlamaydi
+- **Bog'liq:** T-J016 (Redis config)
+
+### T-J018 | P1 | [BACKEND] | Watch-Party Service (3004) ishlamaydi — Redis connection crash
+
+- **Sana:** 2026-03-21
+- **Muammo:** Watch-party service Redis ga ulana olmaydi va start bermaydi. Socket.io ham ishlamaydi
+- **Ta'sir:** Watch party yaratish, xonaga qo'shilish, video sync — hammasi ishlamaydi
+- **Bog'liq:** T-J016 (Redis config)
+
+### T-J019 | P2 | [MOBILE] | FriendSearch — backend search natijasi bo'sh kelishi mumkin
+
+- **Sana:** 2026-03-21
+- **Muammo:** Backend `searchUsers` avval `authId` qaytarardi, `_id` emas — mobile `_id` kutadi. Fix qilindi (authId → _id mapping), lekin Redis ishlamaganda online status tekshirish xato berishi mumkin
+- **Ta'sir:** Do'st qidirish ishlashi, lekin online status noto'g'ri ko'rinishi mumkin
+- **Bog'liq:** T-J016 (Redis config)
+
+### T-J020 | P2 | [MOBILE] | Docker Compose build xatosi — service containerlar build bo'lmaydi
+
+- **Sana:** 2026-03-21
+- **Muammo:** `docker compose -f docker-compose.dev.yml up -d` da service containerlar (auth, user, content...) build vaqtida `npm install` xato beradi
+- **Ta'sir:** Faqat infra (mongo, redis, elasticsearch) Docker orqali ishlaydi, servicelar lokal ishga tushiriladi
+- **Fayl:** `Dockerfile.dev`, `docker-compose.dev.yml`
 
 ---
 
