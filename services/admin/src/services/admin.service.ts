@@ -292,10 +292,10 @@ export class AdminService {
     return adminListWatchParties(filters);
   }
 
-  async closeWatchParty(roomId: string, adminId: string, adminEmail: string): Promise<void> {
-    await adminCloseWatchParty(roomId);
-    logger.info('WatchParty force-closed by admin', { roomId, adminId });
-    await this.logAudit(adminId, adminEmail, 'close_watchparty', {}, roomId, 'watchparty');
+  async closeWatchParty(roomId: string, adminId: string, adminEmail: string, closeReason?: string): Promise<void> {
+    await adminCloseWatchParty(roomId, adminEmail, closeReason);
+    logger.info('WatchParty force-closed by admin', { roomId, adminId, closeReason });
+    await this.logAudit(adminId, adminEmail, 'close_watchparty', { closeReason }, roomId, 'watchparty');
   }
 
   async joinWatchParty(roomId: string, adminId: string): Promise<{ room: unknown }> {

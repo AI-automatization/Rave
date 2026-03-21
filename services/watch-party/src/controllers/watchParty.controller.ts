@@ -186,7 +186,13 @@ export class WatchPartyController {
       room.status = 'ended';
       await room.save();
 
-      this.io.to(req.params.id).emit(SERVER_EVENTS.ROOM_CLOSED, { reason: 'admin_closed' });
+      const { adminEmail, closeReason } = req.body as { adminEmail?: string; closeReason?: string };
+
+      this.io.to(req.params.id).emit(SERVER_EVENTS.ROOM_CLOSED, {
+        reason: 'admin_closed',
+        adminEmail: adminEmail ?? 'admin',
+        closeReason: closeReason ?? '',
+      });
 
       res.json(apiResponse.success(null, 'Room closed'));
     } catch (error) {

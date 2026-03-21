@@ -49,6 +49,7 @@ export function WatchPartiesPage() {
   const [page, setPage]         = useState(1);
 
   const [confirmModal, setConfirmModal] = useState<{ room: AdminWatchParty } | null>(null);
+  const [closeReason, setCloseReason]   = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   // Admin control panel
@@ -77,8 +78,9 @@ export function WatchPartiesPage() {
     if (!confirmModal) return;
     setActionLoading(confirmModal.room._id);
     try {
-      await watchPartiesApi.closeRoom(confirmModal.room._id);
+      await watchPartiesApi.closeRoom(confirmModal.room._id, closeReason.trim() || undefined);
       setConfirmModal(null);
+      setCloseReason('');
       await load();
     } finally {
       setActionLoading(null);
@@ -325,15 +327,25 @@ export function WatchPartiesPage() {
       </Modal>
 
       {/* Force close confirm modal */}
-      <Modal open={!!confirmModal} onClose={() => setConfirmModal(null)} title="Watch Party yopish">
+      <Modal open={!!confirmModal} onClose={() => { setConfirmModal(null); setCloseReason(''); }} title="Watch Party yopish">
         {confirmModal && (
           <div className="flex flex-col gap-4">
             <p className="text-sm text-text-muted">
               <span className="text-white font-mono">{confirmModal.room.inviteCode}</span> xonasini majburiy yopmoqchimisiz?
               Barcha a'zolar chiqariladi.
             </p>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-text-muted font-medium">Sabab (ixtiyoriy — foydalanuvchiga ko'rinadi)</label>
+              <input
+                type="text"
+                placeholder="Masalan: Qoidabuzarlik yoki texnik nosozlik..."
+                value={closeReason}
+                onChange={(e) => setCloseReason(e.target.value)}
+                className="bg-surface border border-border rounded-lg px-3 py-2 text-sm text-white placeholder-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+              />
+            </div>
             <div className="flex gap-2 justify-end">
-              <Button onClick={() => setConfirmModal(null)}>Bekor</Button>
+              <Button onClick={() => { setConfirmModal(null); setCloseReason(''); }}>Bekor</Button>
               <Button variant="danger" loading={!!actionLoading} onClick={() => void handleForceClose()}>
                 Yopish
               </Button>

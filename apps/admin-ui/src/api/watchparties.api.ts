@@ -11,8 +11,8 @@ export const watchPartiesApi = {
     return res.data;
   },
 
-  closeRoom: async (id: string): Promise<void> => {
-    await apiClient.delete<ApiResponse<null>>(`/admin/watchparties/${id}`);
+  closeRoom: async (id: string, reason?: string): Promise<void> => {
+    await apiClient.delete<ApiResponse<null>>(`/admin/watchparties/${id}`, { data: { reason } });
   },
 
   join: async (id: string): Promise<{ room: AdminWatchParty }> => {

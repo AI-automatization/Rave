@@ -327,10 +327,14 @@ export async function adminListWatchParties(filters: {
   return { rooms: res.data.data, total: res.data.meta?.total ?? 0 };
 }
 
-export async function adminCloseWatchParty(roomId: string): Promise<void> {
+export async function adminCloseWatchParty(roomId: string, adminEmail?: string, closeReason?: string): Promise<void> {
   await axios.delete(
     `${watchPartyServiceUrl}/api/v1/watch-party/internal/admin/${roomId}`,
-    { headers: internalHeaders, timeout: 5000 },
+    {
+      headers: internalHeaders,
+      data: { adminEmail: adminEmail ?? 'admin', closeReason: closeReason ?? '' },
+      timeout: 5000,
+    },
   );
 }
 

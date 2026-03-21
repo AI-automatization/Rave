@@ -255,7 +255,8 @@ export class AdminController {
   closeWatchParty = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { userId: adminId, email: adminEmail } = (req as AuthenticatedRequest).user;
-      await this.adminService.closeWatchParty(req.params.id, adminId, adminEmail);
+      const { reason } = req.body as { reason?: string };
+      await this.adminService.closeWatchParty(req.params.id, adminId, adminEmail, reason);
       res.json(apiResponse.success(null, 'Watch party closed'));
     } catch (error) { next(error); }
   };
