@@ -45,10 +45,18 @@ export function AppNavigator() {
   useEffect(() => {
     if (!lastResponse || !navigationRef.isReady()) return;
     const data = lastResponse.notification.request.content.data as Record<string, string>;
-    if (data.roomId) {
+    const screen = data.screen;
+
+    if (data.inviteCode) {
+      navigationRef.navigate('Modal', { screen: 'WatchPartyJoin' });
+    } else if (data.roomId) {
       navigationRef.navigate('Modal', { screen: 'WatchParty', params: { roomId: data.roomId } });
     } else if (data.battleId) {
       navigationRef.navigate('Modal', { screen: 'Battle', params: { battleId: data.battleId } });
+    } else if (screen === 'Friends') {
+      navigationRef.navigate('Main');
+    } else if (screen === 'Notifications') {
+      navigationRef.navigate('Modal', { screen: 'Notifications' });
     }
   }, [lastResponse, navigationRef]);
 

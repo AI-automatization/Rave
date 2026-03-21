@@ -30,7 +30,7 @@ export function WatchPartyScreen() {
   const s = useStyles();
 
   const { t } = useT();
-  const { room, syncState, messages, activeMembers, isOwner, adminMonitoring, emitPlay, emitPause, emitSeek, sendMessage, sendEmoji } =
+  const { room, syncState, messages, activeMembers, isOwner, adminMonitoring, roomClosed, emitPlay, emitPause, emitSeek, sendMessage, sendEmoji } =
     useWatchParty(params.roomId);
 
   const playerRef = useRef<UniversalPlayerRef>(null);
@@ -51,6 +51,33 @@ export function WatchPartyScreen() {
     const timer = setTimeout(() => setConnectTimeout(true), 15000);
     return () => clearTimeout(timer);
   }, [room]);
+
+  // ROOM_CLOSED handler — reason ga qarab Alert yoki redirect
+  useEffect(() => {
+    if (!roomClosed) return;
+
+    if (roomClosed.reason === 'account_blocked') {
+      navigation.goBack();
+      return;
+    }
+
+    let message = '';
+    if (roomClosed.reason === 'inactivity') {
+      message = t('watchParty', 'closedInactivity') ?? 'Xona 5 daqiqa faolsizlikdan avtomatik yopildi';
+    } else if (roomClosed.reason === 'owner_left') {
+      message = t('watchParty', 'closedOwnerLeft') ?? 'Xona egasi xonani yopdi';
+    } else if (roomClosed.reason === 'admin_closed') {
+      message = `${t('watchParty', 'closedByAdmin') ?? 'Xona admin tomonidan yopildi'}`;
+      if (roomClosed.adminEmail) message += ` (${roomClosed.adminEmail})`;
+      if (roomClosed.closeReason) message += `\n${t('watchParty', 'reason') ?? 'Sabab'}: ${roomClosed.closeReason}`;
+    }
+
+    Alert.alert(
+      t('watchParty', 'roomClosed') ?? 'Xona yopildi',
+      message,
+      [{ text: 'OK', onPress: () => navigation.goBack() }],
+    );
+  }, [roomClosed, navigation, t]);
 
   useEffect(() => {
     if (!syncState) return;

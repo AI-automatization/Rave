@@ -364,6 +364,11 @@ export const translations = {
     noFriendsYet: { uz: "Hali do'stlaringiz yo'q", ru: 'У вас пока нет друзей', en: 'No friends yet' },
     shareInvite: { uz: 'Ulashish', ru: 'Поделиться', en: 'Share' },
     shareText: { uz: "CineSync Watch Party ga qo'shiling!", ru: 'Присоединяйтесь к CineSync Watch Party!', en: 'Join CineSync Watch Party!' },
+    roomClosed: { uz: 'Xona yopildi', ru: 'Комната закрыта', en: 'Room Closed' },
+    closedInactivity: { uz: 'Xona 5 daqiqa faolsizlikdan avtomatik yopildi', ru: 'Комната автоматически закрыта после 5 минут неактивности', en: 'Room automatically closed after 5 minutes of inactivity' },
+    closedOwnerLeft: { uz: 'Xona egasi xonani yopdi', ru: 'Владелец закрыл комнату', en: 'Room owner closed the room' },
+    closedByAdmin: { uz: 'Xona admin tomonidan yopildi', ru: 'Комната закрыта администратором', en: 'Room closed by admin' },
+    reason: { uz: 'Sabab', ru: 'Причина', en: 'Reason' },
   },
 
   // ─── Battle ───

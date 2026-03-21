@@ -15,6 +15,12 @@ interface MessageEvent {
   timestamp: number;
 }
 
+export interface RoomClosedData {
+  reason: 'owner_left' | 'inactivity' | 'admin_closed' | 'account_blocked';
+  adminEmail?: string;
+  closeReason?: string;
+}
+
 export function useWatchParty(roomId: string) {
   const token = useAuthStore(s => s.accessToken);
   const userId = useAuthStore(s => s.user?._id);
@@ -23,6 +29,7 @@ export function useWatchParty(roomId: string) {
 
   const isOwner = room?.ownerId === userId;
   const [adminMonitoring, setAdminMonitoring] = useState(false);
+  const [roomClosed, setRoomClosed] = useState<RoomClosedData | null>(null);
 
   useEffect(() => {
     // Har safar yangi xonaga kirda — eski ma'lumotlarni tozala
@@ -66,7 +73,8 @@ export function useWatchParty(roomId: string) {
 
     socket.on(SERVER_EVENTS.MEMBER_JOINED, (data: MemberEvent) => addMember(data.userId));
     socket.on(SERVER_EVENTS.MEMBER_LEFT, (data: MemberEvent) => removeMember(data.userId));
-    socket.on(SERVER_EVENTS.ROOM_CLOSED, () => {
+    socket.on(SERVER_EVENTS.ROOM_CLOSED, (data?: RoomClosedData) => {
+      setRoomClosed(data ?? { reason: 'owner_left' });
       clearParty();
       disconnectSocket();
     });
@@ -133,5 +141,5 @@ export function useWatchParty(roomId: string) {
     [roomId],
   );
 
-  return { room, syncState, messages, activeMembers, isOwner, adminMonitoring, emitPlay, emitPause, emitSeek, sendMessage, sendEmoji };
+  return { room, syncState, messages, activeMembers, isOwner, adminMonitoring, roomClosed, emitPlay, emitPause, emitSeek, sendMessage, sendEmoji };
 }

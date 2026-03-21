@@ -4,6 +4,16 @@
 
 ---
 
+### F-145 | 2026-03-21 | [MOBILE] | T-J021 — FCM token + notification deep links + ROOM_CLOSED handler [Jafar]
+
+- **FCM token registration:** Allaqachon `usePushNotifications.ts` da expo-notifications orqali implement qilingan (token → `userApi.updateFcmToken`). Firebase emas, Expo Push ishlatiladi.
+- **Deep link navigation:** `AppNavigator.tsx` da `useLastNotificationResponse` orqali kengaytirildi — roomId, battleId, inviteCode, Friends, Notifications ekranlariga yo'naltirish.
+- **ROOM_CLOSED handler:** `useWatchParty.ts` da `RoomClosedData` interface qo'shildi (reason: owner_left | inactivity | admin_closed | account_blocked). `WatchPartyScreen.tsx` da har bir reason uchun alohida Alert (3 tilda lokalizatsiya). `account_blocked` da darhol goBack().
+- **i18n:** `translations.ts` ga roomClosed, closedInactivity, closedOwnerLeft, closedByAdmin, reason tarjimalari qo'shildi (uz/ru/en).
+- **Fayllar:** `useWatchParty.ts`, `WatchPartyScreen.tsx`, `AppNavigator.tsx`, `translations.ts`
+
+---
+
 ### F-144 | 2026-03-21 | [BACKEND+INFRA] | T-J016 T-J017 T-J018 T-S035 T-S036 T-S037 — Redis fix + Admin analytics [Saidazim]
 
 - **T-J016:** `docker-compose.dev.yml` Redis `requirepass` — `${REDIS_PASSWORD:-cinesync_redis_dev}` default fallback. Bo'sh parol bilan FATAL xato tuzatildi.
