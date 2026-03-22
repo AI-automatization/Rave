@@ -19,15 +19,22 @@ export const registerVideoEvents = (
 
   // PLAY — owner only
   socket.on(CLIENT_EVENTS.PLAY, async (data: { currentTime: number }) => {
-    if (!authSocket.roomId) return;
+    if (!authSocket.roomId) {
+      logger.warn('Video play: no roomId set', { userId });
+      return;
+    }
     const roomId = authSocket.roomId;
 
     try {
       const room = await watchPartyService.getRoom(roomId);
-      if (room.ownerId !== userId) return;
+      if (room.ownerId !== userId) {
+        logger.warn('Video play rejected: not owner', { userId, ownerId: room.ownerId, roomId });
+        return;
+      }
 
       const syncState = await watchPartyService.syncState(roomId, userId, data.currentTime, true);
       io.to(roomId).emit(SERVER_EVENTS.VIDEO_PLAY, syncState);
+      logger.info('Video sync: play', { roomId, userId, currentTime: data.currentTime });
     } catch (error) {
       logger.error('Socket play error', { userId, error });
     }
@@ -44,6 +51,7 @@ export const registerVideoEvents = (
 
       const syncState = await watchPartyService.syncState(roomId, userId, data.currentTime, false);
       io.to(roomId).emit(SERVER_EVENTS.VIDEO_PAUSE, syncState);
+      logger.info('Video sync: pause', { roomId, userId, currentTime: data.currentTime });
     } catch (error) {
       logger.error('Socket pause error', { userId, error });
     }
@@ -60,6 +68,7 @@ export const registerVideoEvents = (
 
       const syncState = await watchPartyService.syncState(roomId, userId, data.currentTime, room.isPlaying);
       io.to(roomId).emit(SERVER_EVENTS.VIDEO_SEEK, syncState);
+      logger.info('Video sync: seek', { roomId, userId, currentTime: data.currentTime });
     } catch (error) {
       logger.error('Socket seek error', { userId, error });
     }

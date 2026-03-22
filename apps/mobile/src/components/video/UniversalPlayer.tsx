@@ -161,7 +161,7 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
         source={{ uri: directSource }}
         style={styles.video}
         resizeMode={ResizeMode.CONTAIN}
-        shouldPlay
+        shouldPlay={false}
         useNativeControls={false}
         onPlaybackStatusUpdate={(status) => {
           onPlaybackStatusUpdate?.(status);

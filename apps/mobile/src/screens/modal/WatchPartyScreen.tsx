@@ -36,6 +36,7 @@ export function WatchPartyScreen() {
   const playerRef = useRef<UniversalPlayerRef>(null);
   const isSyncing = useRef(false);
   const lastSyncId = useRef('');
+  const prevIsPlayingRef = useRef(false);
 
   const [showChat, setShowChat] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
@@ -96,10 +97,33 @@ export function WatchPartyScreen() {
       .finally(() => { isSyncing.current = false; });
   }, [syncState]);
 
+  // Owner periodic sync heartbeat — every 5 seconds, emit current position
+  // Keeps members in sync even if individual play/pause events are missed
+  useEffect(() => {
+    if (!isOwner || !room) return;
+    const interval = setInterval(async () => {
+      if (isSyncing.current) return;
+      const posMs = (await playerRef.current?.getPositionMs()) ?? 0;
+      if (isPlaying) {
+        emitPlay(posMs / 1000);
+      }
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [isOwner, room, isPlaying, emitPlay]);
+
   const onPlaybackStatusUpdate = useCallback((status: AVPlaybackStatus) => {
     if (!status.isLoaded || isSyncing.current) return;
-    setIsPlaying(status.isPlaying);
-  }, []);
+    const nowPlaying = status.isPlaying;
+    setIsPlaying(nowPlaying);
+
+    // Owner: emit play/pause when expo-av video state changes (auto-play, user controls, etc.)
+    if (isOwner) {
+      const posSecs = status.positionMillis / 1000;
+      if (nowPlaying && !prevIsPlayingRef.current) emitPlay(posSecs);
+      if (!nowPlaying && prevIsPlayingRef.current) emitPause(posSecs);
+    }
+    prevIsPlayingRef.current = nowPlaying;
+  }, [isOwner, emitPlay, emitPause]);
 
   const handleWebViewPlay = useCallback((secs: number) => {
     setIsPlaying(true);
