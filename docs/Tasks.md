@@ -14,7 +14,7 @@
 3. Fix bo'lgach → shu yerdan O'CHIRISH → docs/Done.md ga KO'CHIRISH
 4. Prioritet: P0=kritik, P1=muhim, P2=o'rta, P3=past
 5. Sprint: S1=hozir, S2=keyingi hafta, S3=keyingi sprint, S4-5=keyin
-6. Oxirgi T-raqam: S→038, E→062, J→028, C→010
+6. Oxirgi T-raqam: S→038, E→062, J→036, C→010
 7. Yangilangan: 2026-03-22
 ```
 
@@ -673,6 +673,263 @@ GET  https://content-production-4e08.up.railway.app/api/v1/content/movies/:id/ra
 - [ ] Film sahifasiga kirganda user ning mavjud bahosini fetch qilish
 - [ ] Rating input ni mavjud baho bilan pre-fill qilish
 - [ ] Test: bir filmga ikki marta baho → ikkinchisi yangilaydi, saqlamaydi ✓
+
+---
+
+### T-J029 | P1 | [MOBILE] | Ko'rish tarixi (Watch History) — backend tayyor, mobile yo'q
+
+- **Sana:** 2026-03-22
+- **Mas'ul:** pending[Jafar]
+- **Sprint:** S4
+- **Fayllar:** `apps/mobile/src/api/content.api.ts`, yangi `apps/mobile/src/screens/WatchHistoryScreen.tsx` yoki `ProfileScreen.tsx` ichida
+- **Holat:** ❌ Boshlanmagan
+
+**Backend tayyor:**
+```
+GET  https://content-production-4e08.up.railway.app/api/v1/content/history
+     → { data: { history: [{ movieId, title, progress, watchedAt, completed }], meta } }
+
+POST https://content-production-4e08.up.railway.app/api/v1/content/history
+     Body: { movieId, progress, durationWatched }
+     → 200
+```
+
+**Kerak:**
+- `content.api.ts` ga `getWatchHistory()` va `recordWatchHistory()` qo'shish
+- Film ko'rilayotganda har 30 sekundda yoki tugatganda `POST /history` chaqirish
+- Profil ekranda yoki alohida ekranda ko'rilgan filmlar tarixi ko'rsatish
+
+**Subtasklar:**
+- [ ] `content.api.ts`: `getWatchHistory(page)`, `recordWatchHistory(movieId, progress, duration)`
+- [ ] Video player da watch progress tracking (har 30s yoki video pause/stop da)
+- [ ] `WatchHistoryScreen` yoki `ProfileScreen` da tarih ro'yxati (film nomi, progress bar, sana)
+- [ ] `completed: true` bo'lgan filmlar alohida "Ko'rilgan filmlar" seksiyasi
+
+---
+
+### T-J030 | P1 | [MOBILE] | Battle invite — do'stni battle ga taklif qilish
+
+- **Sana:** 2026-03-22
+- **Mas'ul:** pending[Jafar]
+- **Sprint:** S4
+- **Fayllar:** `apps/mobile/src/api/battle.api.ts`, `apps/mobile/src/screens/BattleScreen.tsx` (yoki mavjud battle ekran)
+- **Holat:** ❌ Boshlanmagan
+
+**Backend tayyor:**
+```
+POST https://battle-production-238a.up.railway.app/api/v1/battles/:id/invite
+     Body: { userId: "receiverId" }
+     → 200 { message: "Invite sent" }
+     + Push notification do'stga yuboriladi (type: 'battle_invite')
+
+POST https://battle-production-238a.up.railway.app/api/v1/battles/:id/accept
+PUT  https://battle-production-238a.up.railway.app/api/v1/battles/:id/accept   ← mobile alias
+     → 200
+
+POST https://battle-production-238a.up.railway.app/api/v1/battles/:id/reject
+PUT  https://battle-production-238a.up.railway.app/api/v1/battles/:id/reject   ← mobile alias
+     → 200
+```
+
+**Battle invite notification payload:**
+```json
+{
+  "type": "battle_invite",
+  "screen": "Battles",
+  "battleId": "...",
+  "fromUserId": "..."
+}
+```
+
+**Kerak:**
+- `battle.api.ts` ga `inviteParticipant(battleId, userId)` qo'shish
+- Battle ekranida do'stlar ro'yxatidan invite yuborish UI
+- Notification handler: `battle_invite` → `Battles` ekraniga navigate + battle detail ko'rsatish
+
+**Subtasklar:**
+- [ ] `battle.api.ts`: `inviteParticipant(battleId, userId)`
+- [ ] Battle detail ekranida "Do'st taklif qil" tugmasi → do'stlar ro'yxati modal
+- [ ] FCM handler: `battle_invite` notification → `Battles` ekraniga navigate
+- [ ] Incoming invite UI (accept/reject tugmalar) — notification yoki in-app
+
+---
+
+### T-J031 | P2 | [MOBILE] | Foydalanuvchi sozlamalari — settings API ulash
+
+- **Sana:** 2026-03-22
+- **Mas'ul:** pending[Jafar]
+- **Sprint:** S5
+- **Fayllar:** `apps/mobile/src/api/user.api.ts`, `apps/mobile/src/screens/SettingsScreen.tsx`
+- **Holat:** ❌ Boshlanmagan
+
+**Backend tayyor:**
+```
+GET  https://user-production-86ed.up.railway.app/api/v1/users/me/settings
+     → { data: { language, notifications: { push, email }, privacy: { showActivity } } }
+
+PATCH https://user-production-86ed.up.railway.app/api/v1/users/me/settings
+     Body: { language?, notifications?: { push?, email? }, privacy?: { showActivity? } }
+     → 200
+```
+
+**Kerak:**
+- `user.api.ts` ga `getSettings()`, `updateSettings(data)` qo'shish
+- `SettingsScreen` backend dan settings yuklash va saqlash
+
+**Subtasklar:**
+- [ ] `user.api.ts`: `getSettings()`, `updateSettings(data)`
+- [ ] `SettingsScreen`: mount da settings yuklash
+- [ ] Toggle o'zgarganda `PATCH /users/me/settings` chaqirish
+- [ ] Tili, push notification, privacy toggle lar backend bilan sinxron
+
+---
+
+### T-J032 | P2 | [MOBILE] | Avatar yuklash — kamera / galereya
+
+- **Sana:** 2026-03-22
+- **Mas'ul:** pending[Jafar]
+- **Sprint:** S5
+- **Fayllar:** `apps/mobile/src/api/user.api.ts`, `apps/mobile/src/screens/ProfileScreen.tsx` (yoki `EditProfileScreen.tsx`)
+- **Holat:** ❌ Boshlanmagan
+
+**Backend tayyor:**
+```
+PATCH https://user-production-86ed.up.railway.app/api/v1/users/me/avatar
+     Content-Type: multipart/form-data
+     Body: { avatar: File (jpg/png/webp, max 5MB) }
+     → 200 { data: { avatarUrl: "https://..." } }
+```
+
+**Kerak:**
+- `expo-image-picker` bilan kamera yoki galereyadan rasm tanlash
+- `FormData` bilan multipart POST yuborish
+- Yangi avatar URL ni profil ekranda ko'rsatish
+
+**Subtasklar:**
+- [ ] `user.api.ts`: `uploadAvatar(formData)` — multipart/form-data POST
+- [ ] Profil ekranda avatar bosilganda image picker ochiladi
+- [ ] Rasm tanlanganda upload → progress indicator
+- [ ] Upload muvaffaqiyatli bo'lganda avatar yangilanadi (local state + backend)
+- [ ] Xato: hajm > 5MB, noto'g'ri format → foydalanuvchiga xabar
+
+---
+
+### T-J033 | P2 | [MOBILE] | Film reytinglari ro'yxatini ko'rish
+
+- **Sana:** 2026-03-22
+- **Mas'ul:** pending[Jafar]
+- **Sprint:** S5
+- **Fayllar:** `apps/mobile/src/api/content.api.ts`, `apps/mobile/src/screens/MovieDetailScreen.tsx`
+- **Holat:** ❌ Boshlanmagan
+
+**Backend tayyor:**
+```
+GET https://content-production-4e08.up.railway.app/api/v1/content/movies/:id/ratings
+    → { data: { ratings: [{ userId, username, score, review, createdAt }], meta } }
+
+DELETE https://content-production-4e08.up.railway.app/api/v1/content/movies/:id/rate
+    → 200 (o'z bahosini o'chirish)
+```
+
+**Kerak:**
+- Film sahifasida boshqa foydalanuvchilar baholarini ko'rsatish
+- User o'z bahosini o'chira olish
+- Film sahifasida "Baholar" seksiyasi qo'shish
+
+**Subtasklar:**
+- [ ] `content.api.ts`: `getMovieRatings(movieId, page)`, `deleteMyRating(movieId)`
+- [ ] `MovieDetailScreen` da ratings seksiyasi (username, yulduzlar, izoh)
+- [ ] User o'z bahosi ustida "O'chirish" tugmasi
+- [ ] Pagination (10 ta, "Ko'proq" tugmasi)
+
+---
+
+### T-J034 | P2 | [MOBILE] | Barcha qurilmalardan chiqish (Logout All)
+
+- **Sana:** 2026-03-22
+- **Mas'ul:** pending[Jafar]
+- **Sprint:** S5
+- **Fayllar:** `apps/mobile/src/api/auth.api.ts`, `apps/mobile/src/screens/SettingsScreen.tsx`
+- **Holat:** ❌ Boshlanmagan
+
+**Backend tayyor:**
+```
+POST https://auth-production-47a8.up.railway.app/api/v1/auth/logout-all
+     Authorization: Bearer <accessToken>
+     → 200 { message: "All sessions terminated" }
+     (barcha refresh tokenlar o'chiriladi — barcha qurilmalardan chiqadi)
+```
+
+**Kerak:**
+- `auth.api.ts` ga `logoutAll()` qo'shish
+- `SettingsScreen` da "Barcha qurilmalardan chiqish" tugmasi
+
+**Subtasklar:**
+- [ ] `auth.api.ts`: `logoutAll()` — POST /auth/logout-all
+- [ ] `SettingsScreen` da "Barcha qurilmalardan chiqish" (confirm dialog bilan)
+- [ ] Muvaffaqiyatli bo'lganda → local token tozalab, Login ekraniga o'tish
+
+---
+
+### T-J035 | P3 | [MOBILE] | FCM token o'chirish (logout da)
+
+- **Sana:** 2026-03-22
+- **Mas'ul:** pending[Jafar]
+- **Sprint:** S5
+- **Fayllar:** `apps/mobile/src/api/user.api.ts`, `apps/mobile/src/hooks/useAuth.ts` (yoki logout flow)
+- **Holat:** ❌ Boshlanmagan
+
+**Backend tayyor:**
+```
+DELETE https://user-production-86ed.up.railway.app/api/v1/users/me/fcm-token
+       → 200 (FCM token o'chirildi — bu qurilmaga endi push kelmasligi uchun)
+```
+
+**Kerak:**
+- Logout qilishdan oldin `DELETE /users/me/fcm-token` chaqirish
+- Shunday qilsa — user logout qilgandan keyin eski qurilmaga push kelmasligi ta'minlanadi
+
+**Subtasklar:**
+- [ ] `user.api.ts`: `removeFcmToken()` — DELETE /users/me/fcm-token
+- [ ] Logout flow da: `removeFcmToken()` → `authApi.logout()` → token tozalash
+
+---
+
+### T-J036 | P2 | [MOBILE] | "Continue Watching" — to'xtatilgan filmlarni davom ettirish
+
+- **Sana:** 2026-03-22
+- **Mas'ul:** pending[Jafar]
+- **Sprint:** S5
+- **Fayllar:** `apps/mobile/src/api/content.api.ts`, `apps/mobile/src/screens/HomeScreen.tsx`
+- **Holat:** ❌ Boshlanmagan
+
+**Backend tayyor:**
+```
+GET  https://content-production-4e08.up.railway.app/api/v1/content/continue-watching
+     → { data: [{ movieId, title, poster, progress (0-100), lastWatchedAt }] }
+
+GET  https://content-production-4e08.up.railway.app/api/v1/content/movies/:id/progress
+     → { data: { progress, position (sekunda) } }
+
+POST https://content-production-4e08.up.railway.app/api/v1/content/movies/:id/progress
+     Body: { position: 1234 (sekunda), duration: 7200 }
+     → 200
+
+POST https://content-production-4e08.up.railway.app/api/v1/content/movies/:id/complete
+     → 200 (film to'liq ko'rildi belgisi)
+```
+
+**Kerak:**
+- Home ekranda "Davom ettirish" seksiyasi — to'xtatilgan filmlar
+- Film ochilganda oxirgi to'xtatilgan joydan davom ettirish
+- Ko'rish jarayonida progress saqlash (har 30s yoki pause da)
+
+**Subtasklar:**
+- [ ] `content.api.ts`: `getContinueWatching()`, `getMovieProgress(movieId)`, `saveProgress(movieId, position, duration)`, `completeMovie(movieId)`
+- [ ] `HomeScreen` da "Davom ettirish" horizontal ro'yxat (progress bar bilan)
+- [ ] Film player ochilganda `GET /movies/:id/progress` → oxirgi pozitsiyadan play
+- [ ] Video da har 30s `POST /movies/:id/progress` chaqirish
+- [ ] Film 95%+ da `POST /movies/:id/complete` chaqirish
 
 ---
 
