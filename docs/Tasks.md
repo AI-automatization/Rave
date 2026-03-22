@@ -14,7 +14,7 @@
 3. Fix bo'lgach → shu yerdan O'CHIRISH → docs/Done.md ga KO'CHIRISH
 4. Prioritet: P0=kritik, P1=muhim, P2=o'rta, P3=past
 5. Sprint: S1=hozir, S2=keyingi hafta, S3=keyingi sprint, S4-5=keyin
-6. Oxirgi T-raqam: S→038, E→062, J→026, C→010
+6. Oxirgi T-raqam: S→038, E→062, J→028, C→010
 7. Yangilangan: 2026-03-22
 ```
 
@@ -527,6 +527,152 @@ Tavsiya: member ham retry bosa olsin (sayt muammosi, control muammosi emas)
 ---
 
 ### ✅ T-J026 | TUGADI → Done.md F-145
+
+---
+
+### T-J027 | P1 | [MOBILE] | Do'stlik — Friends list real-time yangilanishi + friend_accepted notification
+
+- **Sana:** 2026-03-22
+- **Mas'ul:** pending[Jafar]
+- **Sprint:** S4
+- **Fayllar:** `apps/mobile/src/screens/FriendsScreen.tsx` (yoki mavjud friends ekran), `apps/mobile/src/hooks/useFriends.ts` (yoki mavjud hook), `apps/mobile/src/hooks/useNotifications.ts`
+- **Holat:** ❌ Boshlanmagan
+
+**Muammo:**
+Backend da friends accept fix qilindi (2026-03-22, commit `3d91fce`):
+- Do'stlik qabul qilinganda **ikkala tomon** uchun to'g'ri ko'rinadi
+- Backend endi `friend_accepted` push notification yuboradi (A → B ga so'rov yuborsa, B qabul qilganda A ga push keladi)
+
+Lekin mobile bu notification ni handle qilmaydi va friends listni refresh qilmaydi.
+
+**Kerak:**
+
+**A. friend_accepted notification handle:**
+```typescript
+// useNotifications.ts yoki messaging handler da:
+// FCM data payload:
+// {
+//   type: 'friend_accepted',
+//   screen: 'Friends',
+//   accepterId: 'user_auth_id'   ← kim qabul qildi
+// }
+
+messaging().onNotificationOpenedApp((remoteMessage) => {
+  const { screen } = remoteMessage.data ?? {};
+  if (screen === 'Friends') navigation.navigate('Friends');
+});
+
+// Foreground notification (app ochiq paytda):
+messaging().onMessage(async (remoteMessage) => {
+  if (remoteMessage.data?.type === 'friend_accepted') {
+    // Toast/snackbar ko'rsatish
+    // Friends listni refetch qilish
+    queryClient.invalidateQueries(['friends']);
+  }
+});
+```
+
+**B. Friends list — so'rov yuborilgandan keyin refetch:**
+```typescript
+// So'rov yuborilgandan keyin:
+const sendRequest = async (userId: string) => {
+  await friendsApi.sendRequest(userId);
+  await refetchFriends();        // ← pending requests listni yangilash
+};
+
+// So'rov qabul qilinganidan keyin:
+const acceptRequest = async (friendshipId: string) => {
+  await friendsApi.accept(friendshipId);
+  await refetchFriends();        // ← friends listni yangilash (ikkala tomon uchun)
+};
+```
+
+**C. Backend API endpoints (production):**
+```
+GET  https://user-production-86ed.up.railway.app/api/v1/users/me/friends
+     → { data: [{ authId, username, avatar, ... }] }
+
+GET  https://user-production-86ed.up.railway.app/api/v1/users/me/friend-requests
+     → { data: [{ _id (friendshipId), requesterId, receiverId, createdAt }] }
+
+POST https://user-production-86ed.up.railway.app/api/v1/users/friends/:receiverId
+     → 201 (so'rov yuborildi)
+
+PATCH https://user-production-86ed.up.railway.app/api/v1/users/friends/accept/:friendshipId
+     → 200 (qabul qilindi) + backend A ga push yuboradi
+
+DELETE https://user-production-86ed.up.railway.app/api/v1/users/me/friends/:userId
+     → 200 (do'stlik o'chirildi)
+```
+
+**Subtasklar:**
+- [ ] `friend_accepted` FCM notification type ni handler ga qo'shish
+- [ ] Notification bosilganda → `Friends` ekraniga navigate
+- [ ] Foreground notification → `queryClient.invalidateQueries(['friends'])` + toast
+- [ ] `sendFriendRequest` dan keyin pending list refetch
+- [ ] `acceptFriendRequest` dan keyin friends list refetch (real-time ko'rinishi uchun)
+- [ ] Test: A dan B ga so'rov → B qabul qiladi → A ning friends listida B ko'rinadi ✓
+
+---
+
+### T-J028 | P1 | [MOBILE] | Film reytingi — 201/200 response handle + takroriy baho UI fix
+
+- **Sana:** 2026-03-22
+- **Mas'ul:** pending[Jafar]
+- **Sprint:** S4
+- **Fayllar:** `apps/mobile/src/screens/MovieDetailScreen.tsx` (yoki film ekran), `apps/mobile/src/api/content.api.ts`
+- **Holat:** ❌ Boshlanmagan
+
+**Muammo:**
+Backend da `POST /content/movies/:id/rate` fix qilindi (2026-03-22):
+- **201** → yangi baho (birinchi marta)
+- **200** → mavjud baho yangilandi
+
+Hozir mobile har safar "Baho qo'shildi" deydi, lekin aslida update bo'lgan bo'lishi mumkin.
+Asosiy muammo: **Mobile UI film sahifasiga qayta kirganda rating inputni reset qilmaydi** — shuning uchun user ikki marta baho bera oladi deb o'ylaydi.
+
+**Backend aslida upsert qiladi** — ikkinchi baho ALMASHTIRADI (saqlamaydi), lekin UI shuni ko'rsatmaydi.
+
+**Kerak:**
+
+**A. Rating response handle:**
+```typescript
+const rateMovie = async (movieId: string, score: number) => {
+  const res = await contentApi.rateMovie(movieId, { score });
+  if (res.status === 201) {
+    toast.show('Baho qo\'shildi!');      // yangi
+  } else if (res.status === 200) {
+    toast.show('Baho yangilandi');       // update
+  }
+  await refetchMovieRatings(movieId);   // ratings ni yangilash
+};
+```
+
+**B. Film sahifasiga kirganda mavjud bahoni ko'rsatish:**
+```typescript
+// MovieDetailScreen mount da user ning mavjud bahosini olish:
+GET /api/v1/content/movies/:id/ratings
+// Response da currentUserRating field bor bo'lsa → rating inputni pre-fill qilish
+// Shunda user qayta kirganda o'z bahosini ko'radi va "baho bera olmaydi" deb o'ylamaydi
+```
+
+**Backend API:**
+```
+POST https://content-production-4e08.up.railway.app/api/v1/content/movies/:id/rate
+  Body: { score: 1-10, review?: string }
+  201 → yangi baho
+  200 → mavjud baho yangilandi (upsert)
+
+GET  https://content-production-4e08.up.railway.app/api/v1/content/movies/:id/ratings
+  → { data: { ratings: [...], meta: {...} } }
+```
+
+**Subtasklar:**
+- [ ] `rateMovie` API call da status code tekshirish (201 vs 200)
+- [ ] 201 → "Baho qo'shildi!" toast, 200 → "Baho yangilandi" toast
+- [ ] Film sahifasiga kirganda user ning mavjud bahosini fetch qilish
+- [ ] Rating input ni mavjud baho bilan pre-fill qilish
+- [ ] Test: bir filmga ikki marta baho → ikkinchisi yangilaydi, saqlamaydi ✓
 
 ---
 
