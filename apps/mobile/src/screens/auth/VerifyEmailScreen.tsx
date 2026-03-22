@@ -131,10 +131,14 @@ export function VerifyEmailScreen() {
     try {
       await authApi.confirmRegister(email, code.trim());
       setSuccess(true);
-      // Avtomatik login — to'g'ridan-to'g'ri asosiy ekranga o'tish
-      const loggedIn = await autoLogin();
+      // Avtomatik login — to'g'ridan-to'g'ri asosiy ekranga o'tish (10s timeout)
+      const autoLoginWithTimeout = Promise.race([
+        autoLogin(),
+        new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 10000)),
+      ]);
+      const loggedIn = await autoLoginWithTimeout;
       if (!loggedIn) {
-        // Login xato bo'lsa — Login ekraniga o'tish
+        // Login xato bo'lsa yoki timeout — Login ekraniga o'tish
         setTimeout(() => navigation.replace('Login'), 1200);
       }
     } catch (err: unknown) {

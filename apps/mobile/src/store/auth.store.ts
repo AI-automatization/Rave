@@ -29,12 +29,15 @@ export const useAuthStore = create<AuthState>((set) => ({
     await tokenStorage.saveTokens(accessToken, refreshToken, user._id);
     // Auth service user dan boshlash (rank/totalPoints yo'q bo'lishi mumkin)
     set({ user, accessToken, isAuthenticated: true, needsProfileSetup: !user.bio });
-    // User service dan to'liq profil olish (rank, totalPoints, va boshqalar)
+    // User service dan to'liq profil olish — 5s timeout (SecureStore Android hang himoyasi)
     try {
-      const fullUser = await userApi.getMe();
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('getMe timeout')), 5000),
+      );
+      const fullUser = await Promise.race([userApi.getMe(), timeout]);
       set({ user: fullUser, needsProfileSetup: !fullUser.bio });
     } catch {
-      // User service down bo'lsa auth user bilan davom etamiz
+      // User service down yoki timeout — auth user bilan davom etamiz
     }
   },
 

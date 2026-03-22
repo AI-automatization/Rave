@@ -88,16 +88,19 @@ export function RegisterScreen() {
         email: email.trim().toLowerCase(),
         password,
       });
-      // Avtomatik login — ro'yxatdan o'tgandan keyin darhol asosiy ekranga o'tish
+      // Avtomatik login — ro'yxatdan o'tgandan keyin darhol asosiy ekranga o'tish (10s timeout)
       try {
-        const loginResult = await authApi.login({
-          email: email.trim().toLowerCase(),
-          password,
-        });
+        const loginTimeout = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('login timeout')), 10000),
+        );
+        const loginResult = await Promise.race([
+          authApi.login({ email: email.trim().toLowerCase(), password }),
+          loginTimeout,
+        ]);
         await useAuthStore.getState().setAuth(loginResult.user, loginResult.accessToken, loginResult.refreshToken);
         return; // setAuth → isAuthenticated → AppNavigator Main ekranga o'tadi
       } catch {
-        // Login xato bo'lsa (email tasdiqlanmagan) → VerifyEmail ga o'tish
+        // Login xato bo'lsa yoki timeout (email tasdiqlanmagan) → VerifyEmail ga o'tish
         navigation.navigate('VerifyEmail', {
           email: email.trim().toLowerCase(),
           password,
