@@ -18,6 +18,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
+import { useT, translations } from '@i18n/index';
+
+type TFn = (section: keyof typeof translations, key: string) => string;
 import type { ModalStackParamList } from '@app-types/index';
 import { useWatchPartyCreate } from '@hooks/useWatchPartyCreate';
 import { useWatchPartyRooms } from '@hooks/useWatchPartyRooms';
@@ -31,10 +34,10 @@ type TabKey = 'rooms' | 'create' | 'join';
 
 const CODE_LENGTH = 6;
 
-const TABS: { key: TabKey; icon: string; label: string }[] = [
-  { key: 'rooms', icon: 'globe-outline', label: 'Xonalar' },
-  { key: 'create', icon: 'add-circle-outline', label: 'Yaratish' },
-  { key: 'join', icon: 'key-outline', label: 'Kod' },
+const TAB_KEYS: { key: TabKey; icon: string; labelKey: string }[] = [
+  { key: 'rooms', icon: 'globe-outline', labelKey: 'tabRooms' },
+  { key: 'create', icon: 'add-circle-outline', labelKey: 'tabCreate' },
+  { key: 'join', icon: 'key-outline', labelKey: 'tabCode' },
 ];
 
 // ─── Animated section wrapper ───────────────────────────────────
@@ -60,7 +63,7 @@ function FadeSlideIn({ delay = 0, children, style }: { delay?: number; children:
 }
 
 // ─── Rooms Tab ──────────────────────────────────────────────────
-function RoomsTab({ navigation }: { navigation: Nav }) {
+function RoomsTab({ navigation, t }: { navigation: Nav; t: TFn }) {
   const { data: rooms, isLoading, refetch, isRefetching } = useWatchPartyRooms();
   const { colors } = useTheme();
   const s = useStyles();
@@ -89,10 +92,8 @@ function RoomsTab({ navigation }: { navigation: Nav }) {
         <View style={s.emptyIcon}>
           <Ionicons name="tv-outline" size={56} color={colors.textDim} />
         </View>
-        <Text style={s.emptyTitle}>Hozircha xonalar yo'q</Text>
-        <Text style={s.emptySub}>
-          Birinchi bo'lib xona yarating yoki invite kod bilan qo'shiling!
-        </Text>
+        <Text style={s.emptyTitle}>{t('watchParty', 'noRoomsTitle')}</Text>
+        <Text style={s.emptySub}>{t('watchParty', 'noRoomsSub')}</Text>
       </ScrollView>
     );
   }
@@ -103,31 +104,28 @@ function RoomsTab({ navigation }: { navigation: Nav }) {
       showsVerticalScrollIndicator={false}
       refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={colors.primary} />}
     >
-      {/* Active rooms count */}
       <FadeSlideIn delay={50}>
         <View style={s.roomsHeader}>
           <View style={s.roomsCountBadge}>
             <View style={[s.liveDot, { backgroundColor: colors.success }]} />
             <Text style={s.roomsCountText}>
-              {activeRooms.length} ta faol xona
+              {activeRooms.length} {t('watchParty', 'activeCount')}
             </Text>
           </View>
         </View>
       </FadeSlideIn>
 
-      {/* Active rooms */}
       {activeRooms.map((room, i) => (
-        <RoomCard key={room._id} room={room} index={i} onPress={handleRoomPress} />
+        <RoomCard key={room._id} room={room} index={i} onPress={handleRoomPress} t={t} />
       ))}
 
-      {/* Ended rooms */}
       {endedRooms.length > 0 && (
         <>
           <FadeSlideIn delay={activeRooms.length * 80 + 100}>
-            <Text style={s.endedLabel}>Tugagan xonalar</Text>
+            <Text style={s.endedLabel}>{t('watchParty', 'endedRooms')}</Text>
           </FadeSlideIn>
           {endedRooms.map((room, i) => (
-            <RoomCard key={room._id} room={room} index={activeRooms.length + i} onPress={handleRoomPress} />
+            <RoomCard key={room._id} room={room} index={activeRooms.length + i} onPress={handleRoomPress} t={t} />
           ))}
         </>
       )}
@@ -138,7 +136,7 @@ function RoomsTab({ navigation }: { navigation: Nav }) {
 }
 
 // ─── Create Tab ─────────────────────────────────────────────────
-function CreateTab({ navigation }: { navigation: Nav }) {
+function CreateTab({ navigation, t }: { navigation: Nav; t: TFn }) {
   const wp = useWatchPartyCreate();
   const { colors } = useTheme();
   const s = useStyles();
@@ -184,13 +182,13 @@ function CreateTab({ navigation }: { navigation: Nav }) {
           <View style={s.section}>
             <View style={s.sectionHeader}>
               <Ionicons name="text-outline" size={16} color={colors.primary} />
-              <Text style={s.label}>XONA NOMI</Text>
+              <Text style={s.label}>{t('watchParty', 'roomNameLabel')}</Text>
             </View>
             <TextInput
               style={s.input}
               value={wp.roomName}
               onChangeText={wp.setRoomName}
-              placeholder="Masalan: Kecha filmlar kechasi"
+              placeholder={t('watchParty', 'roomNamePlaceholder')}
               placeholderTextColor={colors.textMuted}
               maxLength={50}
             />
@@ -210,9 +208,9 @@ function CreateTab({ navigation }: { navigation: Nav }) {
                   />
                 </View>
                 <View>
-                  <Text style={s.rowTitle}>{wp.isPrivate ? 'Shaxsiy xona' : 'Ommaviy xona'}</Text>
+                  <Text style={s.rowTitle}>{wp.isPrivate ? t('watchParty', 'private') : t('watchParty', 'public')}</Text>
                   <Text style={s.rowSub}>
-                    {wp.isPrivate ? 'Faqat invite kod orqali' : 'Barcha qo\'shila oladi'}
+                    {wp.isPrivate ? t('watchParty', 'privateDesc') : t('watchParty', 'publicDesc')}
                   </Text>
                 </View>
               </View>
@@ -226,7 +224,7 @@ function CreateTab({ navigation }: { navigation: Nav }) {
 
             <View style={s.sectionHeader}>
               <Ionicons name="people-outline" size={16} color={colors.primary} />
-              <Text style={s.label}>MAKSIMAL A'ZOLAR</Text>
+              <Text style={s.label}>{t('watchParty', 'maxMembers')}</Text>
             </View>
             <View style={s.membersRow}>
               {wp.maxMembersOptions.map(n => (
@@ -260,7 +258,7 @@ function CreateTab({ navigation }: { navigation: Nav }) {
               <Ionicons name="information-circle" size={18} color={colors.secondary} />
             </View>
             <Text style={s.infoText}>
-              Xona yaratilgach invite kod hosil bo'ladi. Tanlangan do'stlaringizga notification yuboriladi!
+              {t('watchParty', 'infoMessage')}
             </Text>
           </View>
         </FadeSlideIn>
@@ -288,7 +286,7 @@ function CreateTab({ navigation }: { navigation: Nav }) {
               ) : (
                 <>
                   <Ionicons name="play-circle" size={22} color={colors.white} />
-                  <Text style={s.createBtnText}>Xona yaratish</Text>
+                  <Text style={s.createBtnText}>{t('watchParty', 'createRoom')}</Text>
                 </>
               )}
             </LinearGradient>
@@ -300,7 +298,7 @@ function CreateTab({ navigation }: { navigation: Nav }) {
 }
 
 // ─── Join Tab ───────────────────────────────────────────────────
-function JoinTab({ navigation }: { navigation: Nav }) {
+function JoinTab({ navigation, t }: { navigation: Nav; t: TFn }) {
   const { colors } = useTheme();
   const s = useStyles();
   const [code, setCode] = useState('');
@@ -313,7 +311,7 @@ function JoinTab({ navigation }: { navigation: Nav }) {
 
   const handleJoin = useCallback(async () => {
     if (code.length < CODE_LENGTH) {
-      Alert.alert('Xato', `${CODE_LENGTH} belgili kod kiriting`);
+      Alert.alert(t('watchParty', 'error'), t('watchParty', 'joinCodeShort'));
       return;
     }
     setLoading(true);
@@ -321,11 +319,11 @@ function JoinTab({ navigation }: { navigation: Nav }) {
       const room = await watchPartyApi.joinByInviteCode(code);
       navigation.replace('WatchParty', { roomId: room._id });
     } catch {
-      Alert.alert('Xato', 'Noto\'g\'ri kod yoki xona topilmadi');
+      Alert.alert(t('watchParty', 'error'), t('watchParty', 'joinError'));
     } finally {
       setLoading(false);
     }
-  }, [code, navigation]);
+  }, [code, navigation, t]);
 
   return (
     <View style={s.joinContent}>
@@ -341,11 +339,11 @@ function JoinTab({ navigation }: { navigation: Nav }) {
       </FadeSlideIn>
 
       <FadeSlideIn delay={150}>
-        <Text style={s.joinHeading}>Invite kod kiriting</Text>
+        <Text style={s.joinHeading}>{t('watchParty', 'joinHeading')}</Text>
       </FadeSlideIn>
       <FadeSlideIn delay={200}>
         <Text style={s.joinSub}>
-          Do'stingiz yuborgan {CODE_LENGTH} belgili kodni kiriting
+          {t('watchParty', 'joinSub')}
         </Text>
       </FadeSlideIn>
 
@@ -397,7 +395,7 @@ function JoinTab({ navigation }: { navigation: Nav }) {
             ) : (
               <>
                 <Ionicons name="enter-outline" size={20} color={colors.white} />
-                <Text style={s.joinBtnText}>Qo'shilish</Text>
+                <Text style={s.joinBtnText}>{t('watchParty', 'joinBtn')}</Text>
               </>
             )}
           </LinearGradient>
@@ -413,6 +411,7 @@ export function WatchPartyCreateScreen() {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const s = useStyles();
+  const { t } = useT();
   const [activeTab, setActiveTab] = useState<TabKey>('rooms');
 
   // Tab indicator animation
@@ -452,7 +451,7 @@ export function WatchPartyCreateScreen() {
       <View
         style={s.tabBar}
         onLayout={(e) => {
-          tabWidth.current = (e.nativeEvent.layout.width - spacing.lg * 2 - 8) / TABS.length;
+          tabWidth.current = (e.nativeEvent.layout.width - spacing.lg * 2 - 8) / TAB_KEYS.length;
         }}
       >
         <View style={s.tabBarInner}>
@@ -461,7 +460,7 @@ export function WatchPartyCreateScreen() {
             style={[
               s.tabIndicator,
               {
-                width: `${100 / TABS.length}%` as unknown as number,
+                width: `${100 / TAB_KEYS.length}%` as unknown as number,
                 transform: [{ translateX: indicatorX }],
               },
             ]}
@@ -472,7 +471,7 @@ export function WatchPartyCreateScreen() {
             />
           </Animated.View>
 
-          {TABS.map((tab, index) => (
+          {TAB_KEYS.map((tab, index) => (
             <TouchableOpacity
               key={tab.key}
               style={s.tab}
@@ -485,7 +484,7 @@ export function WatchPartyCreateScreen() {
                 color={activeTab === tab.key ? colors.primary : colors.textMuted}
               />
               <Text style={[s.tabText, activeTab === tab.key && s.tabTextActive]}>
-                {tab.label}
+                {t('watchParty', tab.labelKey)}
               </Text>
             </TouchableOpacity>
           ))}
@@ -493,9 +492,9 @@ export function WatchPartyCreateScreen() {
       </View>
 
       {/* Tab content */}
-      {activeTab === 'rooms' && <RoomsTab navigation={navigation} />}
-      {activeTab === 'create' && <CreateTab navigation={navigation} />}
-      {activeTab === 'join' && <JoinTab navigation={navigation} />}
+      {activeTab === 'rooms' && <RoomsTab navigation={navigation} t={t} />}
+      {activeTab === 'create' && <CreateTab navigation={navigation} t={t} />}
+      {activeTab === 'join' && <JoinTab navigation={navigation} t={t} />}
     </View>
   );
 }

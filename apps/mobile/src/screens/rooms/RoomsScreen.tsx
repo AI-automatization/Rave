@@ -19,18 +19,21 @@ import { useTheme, createThemedStyles, spacing, borderRadius, typography } from 
 import { RootStackParamList, IWatchPartyRoom, WatchPartyStatus } from '@app-types/index';
 import { useWatchPartyRooms } from '@hooks/useWatchPartyRooms';
 import { useT } from '@i18n/index';
+import type { translations } from '@i18n/index';
+
+type TFn = (section: keyof typeof translations, key: string) => string;
 
 const TAB_BAR_HEIGHT = 60;
 
-const STATUS_MAP: Record<WatchPartyStatus, { icon: string; label: string; colorKey: 'success' | 'warning' | 'secondary' | 'textDim' }> = {
-  waiting: { icon: 'hourglass-outline', label: 'Kutilmoqda', colorKey: 'warning' },
-  playing: { icon: 'play-circle', label: 'Jonli', colorKey: 'success' },
-  paused: { icon: 'pause-circle', label: 'Pauza', colorKey: 'secondary' },
-  ended: { icon: 'checkmark-circle', label: 'Tugagan', colorKey: 'textDim' },
+const STATUS_MAP: Record<WatchPartyStatus, { icon: string; labelKey: string; colorKey: 'success' | 'warning' | 'secondary' | 'textDim' }> = {
+  waiting: { icon: 'hourglass-outline', labelKey: 'statusWaiting', colorKey: 'warning' },
+  playing: { icon: 'play-circle', labelKey: 'statusPlaying', colorKey: 'success' },
+  paused: { icon: 'pause-circle', labelKey: 'statusPaused', colorKey: 'secondary' },
+  ended: { icon: 'checkmark-circle', labelKey: 'statusEnded', colorKey: 'textDim' },
 };
 
 // ─── Animated card ──────────────────────────────────────────────
-function RoomListCard({ room, index, onPress }: { room: IWatchPartyRoom; index: number; onPress: () => void }) {
+function RoomListCard({ room, index, onPress, t }: { room: IWatchPartyRoom; index: number; onPress: () => void; t: TFn }) {
   const { colors } = useTheme();
   const s = useStyles();
   const opacity = useRef(new Animated.Value(0)).current;
@@ -108,7 +111,7 @@ function RoomListCard({ room, index, onPress }: { room: IWatchPartyRoom; index: 
             {/* Status chip */}
             <View style={[s.statusChip, { backgroundColor: statusColor + '15' }]}>
               <Ionicons name={statusCfg.icon as keyof typeof Ionicons.glyphMap} size={11} color={statusColor} />
-              <Text style={[s.statusChipText, { color: statusColor }]}>{statusCfg.label}</Text>
+              <Text style={[s.statusChipText, { color: statusColor }]}>{t('watchParty', statusCfg.labelKey)}</Text>
             </View>
 
             {/* Members */}
@@ -177,7 +180,7 @@ export function RoomsScreen() {
           </View>
           <TouchableOpacity style={s.joinCodeBtn} onPress={handleJoin} activeOpacity={0.7}>
             <Ionicons name="key-outline" size={16} color={colors.secondary} />
-            <Text style={s.joinCodeText}>Kod</Text>
+            <Text style={s.joinCodeText}>{t('watchParty', 'tabCode')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -191,7 +194,7 @@ export function RoomsScreen() {
               style={s.createRoomGradient}
             >
               <Ionicons name="add-circle" size={18} color={colors.white} />
-              <Text style={s.createRoomText}>Xona yaratish</Text>
+              <Text style={s.createRoomText}>{t('watchParty', 'createRoom')}</Text>
             </LinearGradient>
           </TouchableOpacity>
 
@@ -199,13 +202,13 @@ export function RoomsScreen() {
           {activeRooms.length > 0 && (
             <View style={s.statsPill}>
               <View style={[s.statDot, { backgroundColor: colors.success }]} />
-              <Text style={s.statsText}>{activeRooms.length} faol</Text>
+              <Text style={s.statsText}>{activeRooms.length} {t('watchParty', 'activeCount')}</Text>
             </View>
           )}
           {liveRooms.length > 0 && (
             <View style={[s.statsPill, { backgroundColor: colors.success + '12' }]}>
               <Ionicons name="play" size={12} color={colors.success} />
-              <Text style={[s.statsText, { color: colors.success }]}>{liveRooms.length} live</Text>
+              <Text style={[s.statsText, { color: colors.success }]}>{liveRooms.length} {t('watchParty', 'live')}</Text>
             </View>
           )}
         </View>
@@ -235,13 +238,11 @@ export function RoomsScreen() {
                   <Ionicons name="tv-outline" size={56} color={colors.textDim} />
                 </LinearGradient>
               </View>
-              <Text style={s.emptyTitle}>Hozircha xonalar yo'q</Text>
-              <Text style={s.emptySub}>
-                Birinchi bo'lib xona yarating va do'stlaringiz bilan film ko'ring!
-              </Text>
+              <Text style={s.emptyTitle}>{t('watchParty', 'noRoomsTitle')}</Text>
+              <Text style={s.emptySub}>{t('watchParty', 'noRoomsSub')}</Text>
               <TouchableOpacity style={s.emptyBtn} onPress={handleCreate} activeOpacity={0.8}>
                 <Ionicons name="add-circle-outline" size={18} color={colors.primary} />
-                <Text style={s.emptyBtnText}>Xona yaratish</Text>
+                <Text style={s.emptyBtnText}>{t('watchParty', 'createRoom')}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -249,13 +250,14 @@ export function RoomsScreen() {
           {/* Active rooms */}
           {activeRooms.length > 0 && (
             <View style={s.section}>
-              <Text style={s.sectionLabel}>FAOL XONALAR</Text>
+              <Text style={s.sectionLabel}>{t('watchParty', 'activeRooms')}</Text>
               {activeRooms.map((room, i) => (
                 <RoomListCard
                   key={room._id}
                   room={room}
                   index={i}
                   onPress={() => handleRoomPress(room._id)}
+                  t={t}
                 />
               ))}
             </View>
@@ -264,13 +266,14 @@ export function RoomsScreen() {
           {/* Ended rooms */}
           {endedRooms.length > 0 && (
             <View style={s.section}>
-              <Text style={[s.sectionLabel, { color: colors.textDim }]}>TUGAGAN</Text>
+              <Text style={[s.sectionLabel, { color: colors.textDim }]}>{t('watchParty', 'endedRooms')}</Text>
               {endedRooms.map((room, i) => (
                 <RoomListCard
                   key={room._id}
                   room={room}
                   index={activeRooms.length + i}
                   onPress={() => handleRoomPress(room._id)}
+                  t={t}
                 />
               ))}
             </View>

@@ -4,21 +4,25 @@ import { View, Text, TouchableOpacity, Image, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import type { IWatchPartyRoom, WatchPartyStatus } from '@app-types/index';
+import type { translations } from '@i18n/index';
+
+type TFn = (section: keyof typeof translations, key: string) => string;
 
 interface RoomCardProps {
   room: IWatchPartyRoom;
   index: number;
   onPress: (roomId: string) => void;
+  t: TFn;
 }
 
-const STATUS_CONFIG: Record<WatchPartyStatus, { icon: string; label: string; color: string }> = {
-  waiting: { icon: 'hourglass-outline', label: 'Kutilmoqda', color: '#FBBF24' },
-  playing: { icon: 'play-circle', label: 'Ko\'rilmoqda', color: '#34D399' },
-  paused: { icon: 'pause-circle', label: 'Pauza', color: '#60A5FA' },
-  ended: { icon: 'checkmark-circle', label: 'Tugagan', color: '#71717A' },
+const STATUS_CONFIG: Record<WatchPartyStatus, { icon: string; labelKey: string; color: string }> = {
+  waiting: { icon: 'hourglass-outline', labelKey: 'statusWaiting', color: '#FBBF24' },
+  playing: { icon: 'play-circle', labelKey: 'statusPlaying', color: '#34D399' },
+  paused: { icon: 'pause-circle', labelKey: 'statusPaused', color: '#60A5FA' },
+  ended: { icon: 'checkmark-circle', labelKey: 'statusEnded', color: '#71717A' },
 };
 
-export function RoomCard({ room, index, onPress }: RoomCardProps) {
+export function RoomCard({ room, index, onPress, t }: RoomCardProps) {
   const s = useStyles();
   const opacity = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(24)).current;
@@ -58,7 +62,7 @@ export function RoomCard({ room, index, onPress }: RoomCardProps) {
           {/* Status badge */}
           <View style={[s.statusBadge, { backgroundColor: statusCfg.color + '20' }]}>
             <Ionicons name={statusCfg.icon as keyof typeof Ionicons.glyphMap} size={12} color={statusCfg.color} />
-            <Text style={[s.statusText, { color: statusCfg.color }]}>{statusCfg.label}</Text>
+            <Text style={[s.statusText, { color: statusCfg.color }]}>{t('watchParty', statusCfg.labelKey)}</Text>
           </View>
         </View>
 
@@ -91,7 +95,7 @@ export function RoomCard({ room, index, onPress }: RoomCardProps) {
                 color={room.isPrivate ? '#FBBF24' : '#34D399'}
               />
               <Text style={s.metaText}>
-                {room.isPrivate ? 'Shaxsiy' : 'Ochiq'}
+                {room.isPrivate ? t('watchParty', 'private') : t('watchParty', 'open')}
               </Text>
             </View>
           </View>
