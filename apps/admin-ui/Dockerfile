@@ -1,6 +1,12 @@
 # Build stage
 FROM node:20-alpine AS builder
 WORKDIR /app
+
+ARG VITE_ADMIN_API_URL
+ARG VITE_AUTH_API_URL
+ENV VITE_ADMIN_API_URL=$VITE_ADMIN_API_URL
+ENV VITE_AUTH_API_URL=$VITE_AUTH_API_URL
+
 COPY package.json ./
 RUN npm install
 COPY . .
