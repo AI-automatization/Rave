@@ -17,10 +17,15 @@ export class GoogleAuthService {
     picture: string;
   }> {
     const client = new OAuth2Client(config.google.clientId);
-    const ticket = await client.verifyIdToken({
-      idToken,
-      audience: config.google.clientId,
-    });
+    let ticket;
+    try {
+      ticket = await client.verifyIdToken({
+        idToken,
+        audience: config.google.clientId,
+      });
+    } catch {
+      throw new UnauthorizedError('Invalid Google ID token');
+    }
     const payload = ticket.getPayload();
     if (!payload || !payload.sub || !payload.email) {
       throw new UnauthorizedError('Invalid Google ID token');

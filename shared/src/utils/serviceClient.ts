@@ -1,6 +1,6 @@
 import axios, { AxiosError } from 'axios';
 import { logger } from './logger';
-import { AppError } from './errors';
+import { AppError, ConflictError, BadRequestError, ValidationError, InternalServerError } from './errors';
 import { isQueueReady, queueAddPoints, queueTriggerAchievement } from './serviceQueue';
 
 const INTERNAL_SECRET = process.env.INTERNAL_SECRET ?? '';
@@ -429,12 +429,23 @@ export async function createStaffAccount(
   password: string,
   role: 'admin' | 'operator' | 'moderator',
 ): Promise<{ authId: string }> {
-  const res = await axios.post<{ success: boolean; data: { authId: string } }>(
-    `${authServiceUrl}/api/v1/auth/internal/create-staff`,
-    { email, username, password, role },
-    { headers: internalHeaders, timeout: 10000 },
-  );
-  return res.data.data;
+  try {
+    const res = await axios.post<{ success: boolean; data: { authId: string } }>(
+      `${authServiceUrl}/api/v1/auth/internal/create-staff`,
+      { email, username, password, role },
+      { headers: internalHeaders, timeout: 10000 },
+    );
+    return res.data.data;
+  } catch (err) {
+    const axiosErr = err as AxiosError<{ message?: string }>;
+    const status = axiosErr.response?.status;
+    const message = axiosErr.response?.data?.message ?? axiosErr.message;
+    if (status === 409) throw new ConflictError(message ?? 'Staff account already exists');
+    if (status === 400) throw new BadRequestError(message ?? 'Invalid staff account data');
+    if (status === 422) throw new ValidationError(message ?? 'Validation failed');
+    logger.error('[serviceClient] createStaffAccount failed', { status, message });
+    throw new InternalServerError('Failed to create staff account');
+  }
 }
 
 // ─── Sync admin profile to user DB ────────────────────────────────────────────
