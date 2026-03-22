@@ -7,7 +7,7 @@ const AUTH_BASE = import.meta.env.VITE_AUTH_API_URL as string;
 export const authApi = {
   login: async (email: string, password: string): Promise<LoginResponse> => {
     const res = await axios.post<ApiResponse<LoginResponse>>(
-      `${AUTH_BASE}/auth/login`,
+      `${AUTH_BASE}/api/v1/auth/login`,
       { email, password },
     );
     if (!res.data.success || !res.data.data) throw new Error(res.data.message);
