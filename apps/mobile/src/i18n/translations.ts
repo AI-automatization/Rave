@@ -453,7 +453,7 @@ export const translations = {
   // ─── Tab bar labels ───
   tabs: {
     home: { uz: 'Bosh', ru: 'Главная', en: 'Home' },
-    search: { uz: 'Izlash', ru: 'Поиск', en: 'Search' },
+    rooms: { uz: 'Xonalar', ru: 'Комнаты', en: 'Rooms' },
     friends: { uz: "Do'stlar", ru: 'Друзья', en: 'Friends' },
     profile: { uz: 'Profil', ru: 'Профиль', en: 'Profile' },
   },

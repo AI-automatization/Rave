@@ -22,7 +22,7 @@ type TabEntry = {
 
 export const TABS: TabEntry[] = [
   { name: 'HomeTab',    icon: 'home-outline',   iconActive: 'home',   labelKey: 'home' },
-  { name: 'SearchTab',  icon: 'search-outline', iconActive: 'search', labelKey: 'search' },
+  { name: 'RoomsTab',   icon: 'tv-outline',     iconActive: 'tv',     labelKey: 'rooms' },
   { name: 'FriendsTab', icon: 'people-outline', iconActive: 'people', labelKey: 'friends' },
   { name: 'ProfileTab', icon: 'person-outline', iconActive: 'person', labelKey: 'profile' },
 ];

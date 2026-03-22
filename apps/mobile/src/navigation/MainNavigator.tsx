@@ -6,6 +6,7 @@ import {
   MainTabParamList,
   HomeStackParamList,
   SearchStackParamList,
+  RoomsStackParamList,
   FriendsStackParamList,
   ProfileStackParamList,
 } from '@app-types/index';
@@ -22,13 +23,13 @@ import { SettingsScreen } from '@screens/profile/SettingsScreen';
 import { MovieDetailScreen } from '@screens/home/MovieDetailScreen';
 import { VideoPlayerScreen } from '@screens/home/VideoPlayerScreen';
 import { VideoExtractScreen } from '@screens/home/VideoExtractScreen';
-import { SearchScreen } from '@screens/search/SearchScreen';
 import { SearchResultsScreen } from '@screens/search/SearchResultsScreen';
+import { RoomsScreen } from '@screens/rooms/RoomsScreen';
 import { LanguageTransition } from '@components/common/LanguageTransition';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
-const SearchStack = createNativeStackNavigator<SearchStackParamList>();
+const RoomsStack = createNativeStackNavigator<RoomsStackParamList>();
 const FriendsStack = createNativeStackNavigator<FriendsStackParamList>();
 const ProfileStack = createNativeStackNavigator<ProfileStackParamList>();
 
@@ -43,18 +44,18 @@ function HomeStackNavigator() {
       <HomeStack.Screen name="MovieDetail" component={MovieDetailScreen} options={{ animation: 'slide_from_bottom' }} />
       <HomeStack.Screen name="VideoPlayer" component={VideoPlayerScreen} options={{ animation: 'fade' }} />
       <HomeStack.Screen name="VideoExtract" component={VideoExtractScreen} options={{ animation: 'fade' }} />
+      <HomeStack.Screen name="SearchResults" component={SearchResultsScreen} options={{ animation: 'slide_from_right' }} />
     </HomeStack.Navigator>
   );
 }
 
-function SearchStackNavigator() {
+function RoomsStackNavigator() {
   return (
-    <SearchStack.Navigator
+    <RoomsStack.Navigator
       screenOptions={{ headerShown: false, animation: 'slide_from_right', animationDuration: 250 }}
     >
-      <SearchStack.Screen name="Search" component={SearchScreen} />
-      <SearchStack.Screen name="SearchResults" component={SearchResultsScreen} />
-    </SearchStack.Navigator>
+      <RoomsStack.Screen name="Rooms" component={RoomsScreen} />
+    </RoomsStack.Navigator>
   );
 }
 
@@ -92,7 +93,7 @@ export function MainNavigator() {
         screenOptions={{ headerShown: false }}
       >
         <Tab.Screen name="HomeTab"    component={HomeStackNavigator} />
-        <Tab.Screen name="SearchTab"  component={SearchStackNavigator} />
+        <Tab.Screen name="RoomsTab"   component={RoomsStackNavigator} />
         <Tab.Screen name="CreateTab"  component={PlaceholderScreen} />
         <Tab.Screen name="FriendsTab" component={FriendsStackNavigator} />
         <Tab.Screen name="ProfileTab" component={ProfileStackNavigator} />

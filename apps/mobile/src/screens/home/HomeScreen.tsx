@@ -1,10 +1,11 @@
-// CineSync Mobile — Home Screen
-import React from 'react';
+// CineSync Mobile — Home Screen (with search + genre filters)
+import React, { useState, useCallback } from 'react';
 import {
   View,
   ScrollView,
   TouchableOpacity,
   Text,
+  TextInput,
   RefreshControl,
   StatusBar,
   FlatList,
@@ -14,8 +15,9 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme, createThemedStyles, spacing, typography, borderRadius } from '@theme/index';
-import { ContentGenre, RootStackParamList } from '@app-types/index';
+import { ContentGenre, HomeStackParamList, RootStackParamList } from '@app-types/index';
 import { useHomeData } from '@hooks/useHomeData';
+import { useDebounce, useSearchResults } from '@hooks/useSearch';
 import { HeroBanner } from '@components/movie/HeroBanner';
 import { MovieRow } from '@components/movie/MovieRow';
 import { HomeSkeleton } from '@components/movie/HomeSkeleton';
@@ -23,57 +25,73 @@ import { useNotificationStore } from '@store/notification.store';
 import { useT } from '@i18n/index';
 import { GENRES } from '@hooks/useSearch';
 
-type Nav = NativeStackNavigationProp<RootStackParamList>;
+type HomeNav = NativeStackNavigationProp<HomeStackParamList>;
+type RootNav = NativeStackNavigationProp<RootStackParamList>;
 
 const TAB_BAR_HEIGHT = 60;
 
 export function HomeScreen() {
-  const navigation = useNavigation<Nav>();
+  const navigation = useNavigation<HomeNav>();
+  const rootNav = useNavigation<RootNav>();
   const insets = useSafeAreaInsets();
   const { trending, topRated, continueWatching, newReleases, isLoading, refetch } = useHomeData();
   const unreadCount = useNotificationStore((s) => s.unreadCount);
   const { t } = useT();
   const { colors } = useTheme();
-  const styles = useStyles();
-  const [refreshing, setRefreshing] = React.useState(false);
-  const [activeGenre, setActiveGenre] = React.useState<ContentGenre | null>(null);
+  const s = useStyles();
+  const [refreshing, setRefreshing] = useState(false);
+  const [query, setQuery] = useState('');
+  const [activeGenre, setActiveGenre] = useState<ContentGenre | null>(null);
+  const [searchFocused, setSearchFocused] = useState(false);
+  const debouncedQuery = useDebounce(query);
+  const { data: quickResults } = useSearchResults(debouncedQuery, activeGenre, 1);
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    try {
-      await refetch();
-    } finally {
-      setRefreshing(false);
-    }
+    try { await refetch(); } finally { setRefreshing(false); }
   };
 
-  const handleGenrePress = (genre: ContentGenre) => {
-    setActiveGenre(g => g === genre ? null : genre);
-    (navigation as any).navigate('SearchTab', {
-      screen: 'SearchResults',
-      params: { query: genre },
+  const handleSearch = useCallback(() => {
+    const trimmed = query.trim();
+    if (!trimmed && !activeGenre) return;
+    navigation.navigate('SearchResults', { query: trimmed || activeGenre || '' });
+  }, [query, activeGenre, navigation]);
+
+  const handleGenrePress = useCallback((genre: ContentGenre) => {
+    setActiveGenre(g => {
+      const newGenre = g === genre ? null : genre;
+      if (newGenre) {
+        navigation.navigate('SearchResults', { query: newGenre });
+      }
+      return newGenre;
     });
-  };
+  }, [navigation]);
+
+  const handleQuickResultPress = useCallback((title: string) => {
+    navigation.navigate('SearchResults', { query: title });
+  }, [navigation]);
 
   if (isLoading) return <HomeSkeleton />;
 
+  const hasQuickResults = searchFocused && debouncedQuery.length > 0 && (quickResults?.movies.length ?? 0) > 0;
+
   return (
-    <View style={styles.root}>
+    <View style={s.root}>
       <StatusBar barStyle="light-content" backgroundColor={colors.bgBase} />
 
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
-        <Text style={styles.logo}>
-          CINE<Text style={styles.logoAccent}>SYNC</Text>
+      <View style={[s.header, { paddingTop: insets.top + spacing.sm }]}>
+        <Text style={s.logo}>
+          CINE<Text style={s.logoAccent}>SYNC</Text>
         </Text>
         <TouchableOpacity
-          style={styles.notifBtn}
-          onPress={() => navigation.navigate('Modal', { screen: 'Notifications' })}
+          style={s.notifBtn}
+          onPress={() => rootNav.navigate('Modal', { screen: 'Notifications' })}
         >
           <Ionicons name="notifications-outline" size={24} color={colors.textPrimary} />
           {unreadCount > 0 && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>
+            <View style={s.badge}>
+              <Text style={s.badgeText}>
                 {unreadCount > 9 ? '9+' : String(unreadCount)}
               </Text>
             </View>
@@ -81,40 +99,81 @@ export function HomeScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* Search bar */}
+      <View style={s.searchRow}>
+        <View style={[s.searchWrap, searchFocused && s.searchWrapFocused]}>
+          <Ionicons name="search" size={18} color={searchFocused ? colors.primary : colors.textMuted} />
+          <TextInput
+            style={s.searchInput}
+            placeholder={t('search', 'placeholderShort')}
+            placeholderTextColor={colors.textMuted}
+            value={query}
+            onChangeText={setQuery}
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setSearchFocused(false)}
+            onSubmitEditing={handleSearch}
+            returnKeyType="search"
+            autoCorrect={false}
+            autoCapitalize="none"
+          />
+          {query.length > 0 && (
+            <TouchableOpacity onPress={() => setQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons name="close-circle" size={18} color={colors.textMuted} />
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+
+      {/* Genre chips */}
+      <FlatList
+        data={GENRES}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        keyExtractor={(item) => item.value}
+        contentContainerStyle={s.genreList}
+        style={s.genreStrip}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={[s.genreChip, activeGenre === item.value && s.genreChipActive]}
+            onPress={() => handleGenrePress(item.value)}
+            activeOpacity={0.7}
+          >
+            <Text style={[s.genreChipText, activeGenre === item.value && s.genreChipTextActive]}>
+              {item.label}
+            </Text>
+          </TouchableOpacity>
+        )}
+      />
+
+      {/* Quick search results overlay */}
+      {hasQuickResults && (
+        <View style={s.quickResults}>
+          {quickResults!.movies.slice(0, 4).map((movie) => (
+            <TouchableOpacity
+              key={movie._id}
+              style={s.quickItem}
+              onPress={() => handleQuickResultPress(movie.title)}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="film-outline" size={14} color={colors.textMuted} />
+              <Text style={s.quickItemText} numberOfLines={1}>{movie.title}</Text>
+              <Ionicons name="arrow-forward" size={14} color={colors.textDim} />
+            </TouchableOpacity>
+          ))}
+          <TouchableOpacity style={s.quickSeeAll} onPress={handleSearch} activeOpacity={0.7}>
+            <Text style={s.quickSeeAllText}>{t('search', 'seeAll') || 'Hammasini ko\'rish'}</Text>
+            <Ionicons name="chevron-forward" size={14} color={colors.primary} />
+          </TouchableOpacity>
+        </View>
+      )}
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor={colors.primary}
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />
         }
       >
         <HeroBanner movies={trending.slice(0, 5)} />
-
-        {/* Genre chips */}
-        <View style={styles.genreSection}>
-          <Text style={styles.genreTitle}>{t('home', 'genres')}</Text>
-          <FlatList
-            data={GENRES}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            keyExtractor={(item) => item.value}
-            contentContainerStyle={styles.genreList}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={[styles.genreChip, activeGenre === item.value && styles.genreChipActive]}
-                onPress={() => handleGenrePress(item.value)}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.genreChipText, activeGenre === item.value && styles.genreChipTextActive]}>
-                  {item.label}
-                </Text>
-              </TouchableOpacity>
-            )}
-          />
-        </View>
 
         {continueWatching.length > 0 && (
           <MovieRow title={t('home', 'continueWatching')} movies={continueWatching} />
@@ -140,7 +199,7 @@ const useStyles = createThemedStyles((colors) => ({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.md,
+    paddingBottom: spacing.sm,
   },
   logo: { ...typography.h2, color: colors.textPrimary, fontSize: 22, letterSpacing: 1 },
   logoAccent: { color: colors.primary },
@@ -158,12 +217,43 @@ const useStyles = createThemedStyles((colors) => ({
     paddingHorizontal: 3,
   },
   badgeText: { color: colors.textPrimary, fontSize: 10, fontWeight: '700' },
-  genreSection: { marginBottom: spacing.lg },
-  genreTitle: { ...typography.h3, color: colors.textPrimary, marginLeft: spacing.xl, marginBottom: spacing.md },
+
+  // Search
+  searchRow: {
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.sm,
+  },
+  searchWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.bgElevated,
+    borderRadius: borderRadius.xl,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + 2,
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  searchWrapFocused: {
+    borderColor: colors.primary + '60',
+    backgroundColor: colors.bgSurface,
+  },
+  searchInput: {
+    flex: 1,
+    color: colors.textPrimary,
+    fontSize: 15,
+    paddingVertical: 0,
+  },
+
+  // Genre strip
+  genreStrip: {
+    flexGrow: 0,
+    marginBottom: spacing.sm,
+  },
   genreList: { paddingHorizontal: spacing.xl, gap: spacing.sm },
   genreChip: {
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
+    paddingVertical: spacing.xs + 1,
     borderRadius: borderRadius.full,
     backgroundColor: colors.bgElevated,
     borderWidth: 1,
@@ -171,8 +261,53 @@ const useStyles = createThemedStyles((colors) => ({
   },
   genreChipActive: {
     borderColor: colors.primary,
-    backgroundColor: colors.bgSurface,
+    backgroundColor: colors.primary + '18',
   },
   genreChipText: { ...typography.caption, color: colors.textSecondary, fontWeight: '600' },
   genreChipTextActive: { color: colors.primary },
+
+  // Quick results
+  quickResults: {
+    position: 'absolute',
+    top: 0,
+    left: spacing.xl,
+    right: spacing.xl,
+    zIndex: 100,
+    backgroundColor: colors.bgElevated,
+    borderRadius: borderRadius.xl,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: 'hidden',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+  },
+  quickItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  quickItemText: {
+    ...typography.body,
+    color: colors.textPrimary,
+    flex: 1,
+  },
+  quickSeeAll: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.sm + 2,
+  },
+  quickSeeAllText: {
+    ...typography.caption,
+    color: colors.primary,
+    fontWeight: '700',
+  },
 }));

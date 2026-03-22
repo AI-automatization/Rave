@@ -106,6 +106,7 @@ export type HomeStackParamList = {
   MovieDetail: { movieId: string };
   VideoPlayer: { movieId: string; videoUrl: string; title: string };
   VideoExtract: undefined;
+  SearchResults: { query: string };
 };
 
 export type SearchStackParamList = {
@@ -135,9 +136,13 @@ export type ModalStackParamList = {
   Notifications: undefined;
 };
 
+export type RoomsStackParamList = {
+  Rooms: undefined;
+};
+
 export type MainTabParamList = {
   HomeTab: undefined;
-  SearchTab: undefined;
+  RoomsTab: undefined;
   CreateTab: undefined;
   FriendsTab: undefined;
   ProfileTab: undefined;
