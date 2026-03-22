@@ -139,9 +139,20 @@ export class PasswordAuthService {
 
     logger.info('User registered and verified', { userId: user._id, email });
 
-    syncUserProfile(user._id.toString(), email, pending.username).catch((err) =>
-      logger.warn('User profile sync failed', { error: (err as Error).message }),
-    );
+    // Sync profile to user service — retry up to 3 times so /users/me works immediately after verification
+    const authId = user._id.toString();
+    (async () => {
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          await syncUserProfile(authId, email, pending.username);
+          return;
+        } catch (err) {
+          logger.warn('User profile sync attempt failed', { authId, attempt, error: (err as Error).message });
+          if (attempt < 3) await new Promise((r) => setTimeout(r, attempt * 500));
+        }
+      }
+      logger.error('User profile sync failed after 3 attempts — will retry on next login', { authId, email });
+    })().catch(() => {/* already logged */});
 
     return user;
   }
@@ -203,6 +214,13 @@ export class PasswordAuthService {
     await User.updateOne({ _id: user._id }, { lastLoginAt: new Date(), lastDevice: userAgent ?? null });
 
     logger.info('User logged in', { userId: user._id });
+
+    // Background: ensure user profile exists in user service (heals accounts where sync failed at registration)
+    if (!['admin', 'superadmin', 'operator', 'moderator'].includes(user.role)) {
+      syncUserProfile(user._id.toString(), user.email, user.username).catch((err) =>
+        logger.debug('Profile sync on login skipped', { userId: user._id, error: (err as Error).message }),
+      );
+    }
 
     // Staff login → send self-notification + alert superadmin
     if (['admin', 'superadmin', 'operator', 'moderator'].includes(user.role)) {
