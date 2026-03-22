@@ -40,6 +40,20 @@ export async function syncUserProfile(authId: string, email: string, username: s
   logger.info('User profile synced to user service', { authId });
 }
 
+/** Retry wrapper — ensures profile is created in user service (3 attempts, 500ms backoff) */
+export async function syncUserProfileWithRetry(authId: string, email: string, username: string): Promise<void> {
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      await syncUserProfile(authId, email, username);
+      return;
+    } catch (err) {
+      logger.warn('User profile sync attempt failed', { authId, attempt, error: (err as Error).message });
+      if (attempt < 3) await new Promise((r) => setTimeout(r, attempt * 500));
+    }
+  }
+  logger.error('User profile sync failed after 3 attempts', { authId, email });
+}
+
 // ─── PasswordAuthService ─────────────────────────────────────────────────────
 
 export class PasswordAuthService {
@@ -139,20 +153,8 @@ export class PasswordAuthService {
 
     logger.info('User registered and verified', { userId: user._id, email });
 
-    // Sync profile to user service — retry up to 3 times so /users/me works immediately after verification
-    const authId = user._id.toString();
-    (async () => {
-      for (let attempt = 1; attempt <= 3; attempt++) {
-        try {
-          await syncUserProfile(authId, email, pending.username);
-          return;
-        } catch (err) {
-          logger.warn('User profile sync attempt failed', { authId, attempt, error: (err as Error).message });
-          if (attempt < 3) await new Promise((r) => setTimeout(r, attempt * 500));
-        }
-      }
-      logger.error('User profile sync failed after 3 attempts — will retry on next login', { authId, email });
-    })().catch(() => {/* already logged */});
+    // Sync profile to user service (non-blocking with retry)
+    void syncUserProfileWithRetry(user._id.toString(), email, pending.username);
 
     return user;
   }
@@ -216,11 +218,7 @@ export class PasswordAuthService {
     logger.info('User logged in', { userId: user._id });
 
     // Background: ensure user profile exists in user service (heals accounts where sync failed at registration)
-    if (!['admin', 'superadmin', 'operator', 'moderator'].includes(user.role)) {
-      syncUserProfile(user._id.toString(), user.email, user.username).catch((err) =>
-        logger.debug('Profile sync on login skipped', { userId: user._id, error: (err as Error).message }),
-      );
-    }
+    void syncUserProfileWithRetry(user._id.toString(), user.email, user.username);
 
     // Staff login → send self-notification + alert superadmin
     if (['admin', 'superadmin', 'operator', 'moderator'].includes(user.role)) {

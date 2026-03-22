@@ -3,7 +3,7 @@ import { User, IUserDocument } from '../models/user.model';
 import { config } from '../config/index';
 import { logger } from '@shared/utils/logger';
 import { UnauthorizedError } from '@shared/utils/errors';
-import { generateUniqueUsername, syncUserProfile } from './passwordAuth.service';
+import { generateUniqueUsername, syncUserProfileWithRetry } from './passwordAuth.service';
 
 export class GoogleAuthService {
   // Constructor accepts passwordAuth for potential future delegation
@@ -62,9 +62,7 @@ export class GoogleAuthService {
         logger.info('Google OAuth user created', { userId: user._id, email: profile.email });
 
         // User service ga profil yaratish
-        syncUserProfile(user._id.toString(), profile.email, username).catch((err) =>
-          logger.warn('Google user profile sync failed', { error: (err as Error).message }),
-        );
+        void syncUserProfileWithRetry(user._id.toString(), profile.email, username);
       }
     }
 
@@ -76,6 +74,9 @@ export class GoogleAuthService {
       err.reason = reason;
       throw err;
     }
+
+    // Auto-heal: ensure profile exists in user service on every login
+    void syncUserProfileWithRetry(user._id.toString(), user.email, user.username);
 
     return user;
   }

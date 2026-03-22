@@ -5,7 +5,7 @@ import { logger } from '@shared/utils/logger';
 import { UnauthorizedError } from '@shared/utils/errors';
 import { UserRole } from '@shared/types';
 import { REDIS_KEYS } from '@shared/constants';
-import { PasswordAuthService, generateUniqueUsername, syncUserProfile } from './passwordAuth.service';
+import { PasswordAuthService, generateUniqueUsername, syncUserProfileWithRetry } from './passwordAuth.service';
 
 export class TelegramAuthService {
   constructor(
@@ -160,9 +160,10 @@ export class TelegramAuthService {
 
       logger.info('Telegram user created', { userId: user._id, telegramId: profile.id });
 
-      syncUserProfile(user._id.toString(), email, username).catch((err) =>
-        logger.warn('Telegram user profile sync failed', { error: (err as Error).message }),
-      );
+      void syncUserProfileWithRetry(user._id.toString(), email, username);
+    } else {
+      // Auto-heal: ensure profile exists in user service on every login
+      void syncUserProfileWithRetry(user._id.toString(), user.email, user.username);
     }
 
     return user;
