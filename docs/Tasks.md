@@ -530,6 +530,97 @@ Tavsiya: member ham retry bosa olsin (sayt muammosi, control muammosi emas)
 
 ---
 
+### T-J037 | P0 | [MOBILE] | Bloklangan akkaunt — 403 modal + avtomatik chiqish
+
+- **Sana:** 2026-03-22
+- **Mas'ul:** pending[Jafar]
+- **Sprint:** S4 (KRITIK — security)
+- **Fayllar:** `apps/mobile/src/api/client.ts` (axios interceptor), yangi `apps/mobile/src/components/BlockedModal.tsx`
+- **Holat:** ❌ Boshlanmagan
+
+**Muammo:**
+Admin foydalanuvchini bloklaganda backend har qanday so'rovga **HTTP 403** + `"Account is blocked"` qaytaradi. Lekin mobile hozirda bu holatni handle qilmaydi — foydalanuvchi ilovada qolaveradi va nima bo'lganini tushunmaydi.
+
+**Backend response (bloklanganda):**
+```json
+HTTP 403
+{
+  "success": false,
+  "data": null,
+  "message": "Account is blocked",
+  "errors": null
+}
+```
+
+**Kerak:**
+
+**A. Axios interceptor da 403 ushlab olish:**
+```typescript
+// apps/mobile/src/api/client.ts da responseInterceptor:
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const status = error.response?.status;
+    const message = error.response?.data?.message ?? '';
+
+    if (status === 403 && message.includes('blocked')) {
+      // 1. Modal ko'rsat
+      useBlockedStore.getState().showBlocked();
+      // 2. Tokenlarni tozala
+      await authStorage.clearTokens();
+      // 3. Auth store dan chiqar
+      useAuthStore.getState().logout();
+    }
+
+    return Promise.reject(error);
+  }
+);
+```
+
+**B. BlockedModal komponenti:**
+```typescript
+// apps/mobile/src/components/BlockedModal.tsx
+// Modal ko'rinishi:
+// ╔═══════════════════════════════╗
+// ║  🚫 Akkauntingiz bloklandi    ║
+// ║                               ║
+// ║  Siz CineSync qoidalarini     ║
+// ║  buzganingiz uchun akkauntingiz║
+// ║  vaqtincha bloklandi.         ║
+// ║                               ║
+// ║  Murojaat uchun:              ║
+// ║  support@cinesync.app         ║
+// ║                               ║
+// ║     [Tushundim]               ║
+// ╚═══════════════════════════════╝
+// "Tushundim" → LoginScreen ga yo'naltirish
+```
+
+**C. Global Zustand store:**
+```typescript
+// useBlockedStore.ts (yoki useAuthStore ga qo'shish):
+interface BlockedStore {
+  isBlocked: boolean;
+  showBlocked: () => void;
+  hideBlocked: () => void;
+}
+```
+
+**Subtasklar:**
+- [ ] `client.ts` axios interceptor: 403 + "blocked" → token tozalash + logout
+- [ ] `BlockedModal.tsx` — o'chirib bo'lmaydigan modal (backdropPressBehavior: 'none')
+- [ ] `useBlockedStore` yoki `useAuthStore` ga `isBlocked` state qo'shish
+- [ ] `App.tsx` root da `<BlockedModal />` global render qilish
+- [ ] Test: admin panel dan user blokla → mobile da modal chiqadi + chiqarib yuboradi ✓
+- [ ] Token refresh (401) bilan adashtirmaslik — faqat 403 + "blocked" message uchun
+
+**Muhim:** 401 (token eskirgan) va 403 (blocked) farqi:
+- `401` → token refresh qilish (normal flow)
+- `403 + "blocked"` → modal + logout (bu task)
+- `403 + boshqa message` → oddiy xato (tegma)
+
+---
+
 ### T-J027 | P1 | [MOBILE] | Do'stlik — Friends list real-time yangilanishi + friend_accepted notification
 
 - **Sana:** 2026-03-22
