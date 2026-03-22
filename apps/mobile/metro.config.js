@@ -36,6 +36,16 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
       type: 'sourceFile',
     };
   }
+
+  // Fix: expo is hoisted to workspace root, so expo/AppEntry.js does `../../App`
+  // which resolves to Rave/App (not found). Redirect to our index.ts instead.
+  if (moduleName.endsWith('expo/AppEntry') || moduleName.endsWith('expo/AppEntry.js')) {
+    return {
+      filePath: path.resolve(projectRoot, 'index.ts'),
+      type: 'sourceFile',
+    };
+  }
+
   return context.resolveRequest(context, moduleName, platform);
 };
 

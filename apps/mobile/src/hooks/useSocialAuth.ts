@@ -9,7 +9,8 @@ import { useT } from '@i18n/index';
 
 WebBrowser.maybeCompleteAuthSession();
 
-const GOOGLE_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? '';
+const GOOGLE_CLIENT_ID         = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? '';
+const GOOGLE_ANDROID_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID ?? '';
 const TELEGRAM_POLL_INTERVAL_MS = 2000;
 const TELEGRAM_MAX_ATTEMPTS = 60;
 
@@ -33,7 +34,8 @@ export function useSocialAuth(): UseSocialAuthResult {
   const telegramIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [, googleResponse, promptAsync] = Google.useAuthRequest({
-    clientId: GOOGLE_CLIENT_ID,
+    clientId:        GOOGLE_CLIENT_ID,
+    androidClientId: GOOGLE_ANDROID_CLIENT_ID || undefined,
   });
 
   // Cleanup telegram polling on unmount
