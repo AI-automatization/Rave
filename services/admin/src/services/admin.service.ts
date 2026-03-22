@@ -30,6 +30,7 @@ import {
   adminGetContentStats,
   adminGetWatchPartyStats,
   adminGetBattleStats,
+  createStaffAccount,
 } from '@shared/utils/serviceClient';
 
 export interface DashboardStats {
@@ -351,6 +352,52 @@ export class AdminService {
   async broadcastNotification(title: string, body: string, type: string, adminId: string): Promise<void> {
     await adminBroadcastNotification({ title, body, type });
     logger.info('Broadcast notification sent by admin', { title, adminId });
+  }
+
+  // ── Staff Management (superadmin only) ────────────────────
+
+  async createStaff(
+    email: string,
+    username: string,
+    password: string,
+    role: 'admin' | 'operator' | 'moderator',
+    createdByAdminId: string,
+    createdByAdminEmail: string,
+  ): Promise<{ authId: string }> {
+    const result = await createStaffAccount(email, username, password, role);
+    await AuditLog.create({
+      adminId: createdByAdminId,
+      adminEmail: createdByAdminEmail,
+      action: 'create_staff',
+      targetId: result.authId,
+      details: { email, username, role },
+    });
+    logger.info('Staff account created by admin', { email, role, createdByAdminId });
+    return result;
+  }
+
+  async listStaff(page: number, limit: number): Promise<{ users: unknown[]; total: number }> {
+    return adminListUsers({
+      page,
+      limit,
+      role: 'admin,operator,moderator,superadmin',
+    });
+  }
+
+  async deleteStaff(
+    targetAuthId: string,
+    adminId: string,
+    adminEmail: string,
+  ): Promise<void> {
+    await adminDeleteUser(targetAuthId);
+    await AuditLog.create({
+      adminId,
+      adminEmail,
+      action: 'delete_staff',
+      targetId: targetAuthId,
+      details: {},
+    });
+    logger.warn('Staff account deleted by superadmin', { targetAuthId, adminId });
   }
 
   // ── System Health ──────────────────────────────────────────

@@ -77,6 +77,9 @@ export const createAuthRouter = (redis: Redis): Router => {
   router.post('/telegram/webhook', authController.telegramWebhook);                // bot updates
   router.get('/telegram/poll', authController.telegramPoll);                       // polling check
 
+  // POST /auth/internal/create-staff — superadmin creates admin/operator/moderator account
+  router.post('/internal/create-staff', requireInternalSecret, authController.createStaffAccount);
+
   // POST /auth/internal/users/:userId/revoke-sessions — admin blocks user, revoke all refresh tokens
   router.post('/internal/users/:userId/revoke-sessions', requireInternalSecret, authController.revokeUserSessions);
 

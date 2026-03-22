@@ -82,6 +82,13 @@ export class AuthService {
   upsertSuperAdmin = (email: string, username: string, password: string) =>
     this.password.upsertSuperAdmin(email, username, password);
 
+  createStaffAccount = (
+    email: string,
+    username: string,
+    password: string,
+    role: 'admin' | 'operator' | 'moderator',
+  ) => this.password.createStaffAccount(email, username, password, role);
+
   clearLoginAttempts = (email: string) => this.password.clearLoginAttempts(email);
 
   // ─── Google Auth delegates ───────────────────────────────────────────────────

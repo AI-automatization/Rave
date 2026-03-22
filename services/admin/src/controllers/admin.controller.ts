@@ -286,6 +286,48 @@ export class AdminController {
     } catch (error) { next(error); }
   };
 
+  // ── Staff Management ──────────────────────────────────────
+
+  createStaff = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId: adminId, email: adminEmail } = (req as AuthenticatedRequest).user;
+      const { email, username, password, role } = req.body as {
+        email: string;
+        username: string;
+        password: string;
+        role: 'admin' | 'operator' | 'moderator';
+      };
+      if (!email || !username || !password || !role) {
+        res.status(400).json(apiResponse.error('email, username, password, role are required'));
+        return;
+      }
+      const validRoles = ['admin', 'operator', 'moderator'];
+      if (!validRoles.includes(role)) {
+        res.status(400).json(apiResponse.error('role must be admin, operator or moderator'));
+        return;
+      }
+      const result = await this.adminService.createStaff(email, username, password, role, adminId, adminEmail);
+      res.status(201).json(apiResponse.success(result, 'Staff account created'));
+    } catch (error) { next(error); }
+  };
+
+  listStaff = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const page = parseInt((req.query.page as string) ?? '1', 10);
+      const limit = Math.min(parseInt((req.query.limit as string) ?? '50', 10), 100);
+      const { users, total } = await this.adminService.listStaff(page, limit);
+      res.json(apiResponse.paginated(users, buildPaginationMeta(page, limit, total)));
+    } catch (error) { next(error); }
+  };
+
+  deleteStaff = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId: adminId, email: adminEmail } = (req as AuthenticatedRequest).user;
+      await this.adminService.deleteStaff(req.params.id, adminId, adminEmail);
+      res.json(apiResponse.success(null, 'Staff account deleted'));
+    } catch (error) { next(error); }
+  };
+
   getAuditLogs = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const page = parseInt((req.query.page as string) ?? '1', 10);

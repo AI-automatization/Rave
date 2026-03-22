@@ -59,6 +59,22 @@ export interface AdminUser {
   lastLoginAt: string | null;
 }
 
+// ── Staff ─────────────────────────────────────────────────────
+
+export type StaffRole = 'admin' | 'operator' | 'moderator' | 'superadmin';
+
+export interface StaffMember {
+  _id: string;
+  authId: string;
+  email: string;
+  username: string;
+  avatar: string | null;
+  role: StaffRole;
+  isBlocked: boolean;
+  createdAt: string;
+  lastLoginAt: string | null;
+}
+
 // ── Movies ────────────────────────────────────────────────────
 
 export interface AdminMovie {

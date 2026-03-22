@@ -114,6 +114,22 @@ export class AuthController {
     }
   };
 
+  // Internal — called by admin service to create staff account
+  createStaffAccount = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { email, username, password, role } = req.body as {
+        email: string;
+        username: string;
+        password: string;
+        role: 'admin' | 'operator' | 'moderator';
+      };
+      const result = await this.authService.createStaffAccount(email, username, password, role);
+      res.status(201).json(apiResponse.success(result, 'Staff account created'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   // Internal — called by admin/user service when user is blocked
   revokeUserSessions = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {

@@ -421,6 +421,22 @@ export async function getUserBattleStats(userId: string): Promise<{
   }
 }
 
+// ─── Create staff account (auth + user DB) ────────────────────────────────────
+
+export async function createStaffAccount(
+  email: string,
+  username: string,
+  password: string,
+  role: 'admin' | 'operator' | 'moderator',
+): Promise<{ authId: string }> {
+  const res = await axios.post<{ success: boolean; data: { authId: string } }>(
+    `${authServiceUrl}/api/v1/auth/internal/create-staff`,
+    { email, username, password, role },
+    { headers: internalHeaders, timeout: 10000 },
+  );
+  return res.data.data;
+}
+
 // ─── Sync admin profile to user DB ────────────────────────────────────────────
 
 export async function syncAdminProfile(authId: string, email: string, username: string, role: string): Promise<void> {

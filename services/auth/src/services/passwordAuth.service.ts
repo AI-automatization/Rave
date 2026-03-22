@@ -425,6 +425,39 @@ export class PasswordAuthService {
     void syncAdminProfile((created._id as object).toString(), email, username, 'superadmin');
   }
 
+  // Internal — called by admin service to create/replace staff account
+  async createStaffAccount(
+    email: string,
+    username: string,
+    password: string,
+    role: 'admin' | 'operator' | 'moderator',
+  ): Promise<{ authId: string }> {
+    const passwordHash = await this.hashPassword(password);
+
+    // Remove any existing user with this email (both regular users and old staff)
+    await User.deleteOne({ email });
+
+    // Also remove brute force lock if existed
+    await this.redis.del(REDIS_KEYS.loginAttempts(email));
+
+    const created = await User.create({
+      email,
+      username,
+      passwordHash,
+      role,
+      isEmailVerified: true,
+      isBlocked: false,
+    });
+
+    const authId = (created._id as object).toString();
+    logger.info('Staff account created', { email, username, role, authId });
+
+    // Sync role to user DB
+    void syncAdminProfile(authId, email, username, role);
+
+    return { authId };
+  }
+
   async upsertSuperAdmin(email: string, username: string, password: string): Promise<'created' | 'updated'> {
     const passwordHash = await this.hashPassword(password);
 

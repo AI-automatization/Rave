@@ -225,7 +225,10 @@ export class ProfileService {
     search?: string;
   }): Promise<{ users: unknown[]; total: number }> {
     const query: Record<string, unknown> = {};
-    if (filters.role) query.role = filters.role;
+    if (filters.role) {
+      const roles = filters.role.split(',').map((r) => r.trim()).filter(Boolean);
+      query.role = roles.length === 1 ? roles[0] : { $in: roles };
+    }
     if (filters.isBlocked !== undefined) query.isBlocked = filters.isBlocked;
     if (filters.search) {
       query.$or = [
