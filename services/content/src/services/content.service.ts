@@ -36,7 +36,7 @@ export class ContentService {
   getUserWatchStats = (userId: string) => this.search.getUserWatchStats(userId);
   recordWatchHistory = (...args: Parameters<WatchHistoryService['recordWatchHistory']>) => this.history.recordWatchHistory(...args);
   getWatchHistory = (userId: string, page?: number, limit?: number) => this.history.getWatchHistory(userId, page, limit);
-  rateMovie = (userId: string, movieId: string, score: number, review?: string) => this.history.rateMovie(userId, movieId, score, review);
+  rateMovie = (userId: string, movieId: string, score: number, review?: string): Promise<{ isNew: boolean }> => this.history.rateMovie(userId, movieId, score, review);
   getMovieRatings = (movieId: string, page?: number, limit?: number) => this.history.getMovieRatings(movieId, page, limit);
   deleteUserRating = (userId: string, movieId: string) => this.history.deleteUserRating(userId, movieId);
   deleteRatingByModerator = (ratingId: string) => this.history.deleteRatingByModerator(ratingId);

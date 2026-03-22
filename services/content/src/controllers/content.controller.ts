@@ -130,8 +130,10 @@ export class ContentController {
       // Mobile sends 'rating', some clients send 'score'
       const body = req.body as { score?: number; rating?: number; review?: string };
       const score = body.score ?? body.rating ?? 0;
-      await this.contentService.rateMovie(userId, req.params.id, score, body.review);
-      res.json(apiResponse.success(null, 'Rating submitted'));
+      const { isNew } = await this.contentService.rateMovie(userId, req.params.id, score, body.review);
+      const status = isNew ? 201 : 200;
+      const message = isNew ? 'Rating submitted' : 'Rating updated';
+      res.status(status).json(apiResponse.success(null, message));
     } catch (error) {
       next(error);
     }

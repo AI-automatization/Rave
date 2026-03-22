@@ -1,4 +1,5 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
 import { useAuthStore } from '../../store/auth.store';
 
 const navItems = [
@@ -19,16 +20,43 @@ const superAdminItems = [
   { to: '/staff', label: 'Staff' },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+export function Sidebar({ open, onClose }: SidebarProps) {
   const { user, logout } = useAuthStore();
   const isSuperAdmin = user?.role === 'superadmin';
+  const location = useLocation();
+
+  // Close sidebar on route change (mobile)
+  useEffect(() => {
+    onClose();
+  }, [location.pathname]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <aside className="w-52 bg-bg border-r border-border flex flex-col h-screen sticky top-0 shrink-0">
+    <aside className={`
+      fixed inset-y-0 left-0 z-30 w-52 bg-bg border-r border-border flex flex-col
+      transition-transform duration-200 ease-in-out
+      md:static md:translate-x-0 md:h-screen md:sticky md:top-0 md:shrink-0
+      ${open ? 'translate-x-0' : '-translate-x-full'}
+    `}>
       {/* Logo */}
-      <div className="px-5 py-4 border-b border-border">
-        <span className="text-white font-semibold text-sm tracking-widest uppercase">CineSync</span>
-        <span className="ml-2 text-[10px] text-text-dim bg-overlay rounded px-1.5 py-0.5 font-mono">admin</span>
+      <div className="px-5 py-4 border-b border-border flex items-center justify-between">
+        <div>
+          <span className="text-white font-semibold text-sm tracking-widest uppercase">CineSync</span>
+          <span className="ml-2 text-[10px] text-text-dim bg-overlay rounded px-1.5 py-0.5 font-mono">admin</span>
+        </div>
+        <button
+          onClick={onClose}
+          className="md:hidden p-1 text-text-muted hover:text-white transition-colors"
+          aria-label="Close menu"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
       </div>
 
       {/* Nav */}
