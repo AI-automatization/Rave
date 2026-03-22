@@ -47,19 +47,23 @@ export class WatchHistoryService {
     };
   }
 
-  async rateMovie(userId: string, movieId: string, score: number, review = ''): Promise<void> {
+  async rateMovie(userId: string, movieId: string, score: number, review = ''): Promise<{ isNew: boolean }> {
     const movie = await Movie.findById(movieId);
     if (!movie) throw new NotFoundError('Movie not found');
 
     const safeReview = review ? xss(review.slice(0, 1000)) : '';
 
+    const existing = await Rating.findOne({ userId, movieId }).select('_id').lean();
+
     await Rating.findOneAndUpdate(
       { userId, movieId },
       { $set: { score, review: safeReview } },
-      { upsert: true },
+      { upsert: true, new: true },
     );
 
     await this.recalculateRating(movieId);
+
+    return { isNew: !existing };
   }
 
   async getMovieRatings(

@@ -31,6 +31,7 @@ import {
   adminGetWatchPartyStats,
   adminGetBattleStats,
   createStaffAccount,
+  syncAdminProfile,
 } from '@shared/utils/serviceClient';
 
 export interface DashboardStats {
@@ -365,6 +366,8 @@ export class AdminService {
     createdByAdminEmail: string,
   ): Promise<{ authId: string }> {
     const result = await createStaffAccount(email, username, password, role);
+    // Sync staff profile to user service (non-blocking — don't fail if user service is slow)
+    void syncAdminProfile(result.authId, email, username, role);
     await AuditLog.create({
       adminId: createdByAdminId,
       adminEmail: createdByAdminEmail,

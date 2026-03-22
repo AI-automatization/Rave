@@ -134,10 +134,10 @@ export class FriendshipService {
     const friendships = await Friendship.find({
       $or: [{ requesterId: userId }, { receiverId: userId }],
       status: 'accepted',
-    });
+    }).lean();
 
     const friendIds = friendships.map((f) =>
-      f.requesterId === userId ? f.receiverId : f.requesterId,
+      String(f.requesterId) === String(userId) ? f.receiverId : f.requesterId,
     );
 
     const users = await User.find({ authId: { $in: friendIds } })
@@ -161,12 +161,14 @@ export class FriendshipService {
     friendship.status = 'accepted';
     await friendship.save();
 
-    await User.updateOne({ authId: userId }, { $inc: { totalPoints: POINTS.FRIEND_ADDED } });
-    await User.updateOne({ authId: requesterId }, { $inc: { totalPoints: POINTS.FRIEND_ADDED } });
+    await Promise.all([
+      User.updateOne({ authId: userId }, { $inc: { totalPoints: POINTS.FRIEND_ADDED } }),
+      User.updateOne({ authId: requesterId }, { $inc: { totalPoints: POINTS.FRIEND_ADDED } }),
+    ]);
 
-    // Trigger achievement for both users (non-blocking)
-    await triggerAchievement(userId, 'friend', { friendId: requesterId });
-    await triggerAchievement(requesterId, 'friend', { friendId: userId });
+    // Trigger achievement for both users (non-blocking — do NOT await)
+    void triggerAchievement(userId, 'friend', { friendId: requesterId });
+    void triggerAchievement(requesterId, 'friend', { friendId: userId });
 
     // Notify the original requester that their request was accepted (non-blocking)
     const accepter = await User.findOne({ authId: userId }).select('username').lean();
@@ -174,8 +176,8 @@ export class FriendshipService {
       userId: requesterId,
       type: 'friend_accepted',
       title: 'Do\'stlik so\'rovi qabul qilindi!',
-      body: `${accepter?.username ?? 'Foydalanuvchi'} do\'stlik so\'rovingizni qabul qildi`,
-      data: { userId, screen: 'Friends' },
+      body: `${accepter?.username ?? 'Foydalanuvchi'} sizning do\'stlik so\'rovingizni qabul qildi`,
+      data: { accepterId: userId, screen: 'Friends' },
     });
   }
 }
