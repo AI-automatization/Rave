@@ -38,5 +38,6 @@ export const config = {
 
   clientUrl: process.env.CLIENT_URL ?? 'http://localhost:3000',
   adminUrl: process.env.ADMIN_URL ?? 'http://localhost:5173',
+  superadminEmail: process.env.SUPERADMIN_EMAIL ?? 'saidazim186@gmail.com',
   userServiceUrl: process.env.USER_SERVICE_URL ?? 'http://localhost:3002',
 } as const;

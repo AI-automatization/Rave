@@ -204,8 +204,8 @@ export class PasswordAuthService {
 
     logger.info('User logged in', { userId: user._id });
 
-    // Admin/superadmin/operator login → email alert
-    if (['admin', 'superadmin', 'operator'].includes(user.role)) {
+    // Staff login → send self-notification + alert superadmin
+    if (['admin', 'superadmin', 'operator', 'moderator'].includes(user.role)) {
       emailService.sendAdminLoginAlert({
         adminEmail: user.email,
         ip,
