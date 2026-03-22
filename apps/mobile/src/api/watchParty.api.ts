@@ -33,6 +33,11 @@ export const watchPartyApi = {
     return res.data.data!;
   },
 
+  async joinRoomById(roomId: string): Promise<IWatchPartyRoom> {
+    const room = await watchPartyApi.getRoomById(roomId);
+    return watchPartyApi.joinByInviteCode(room.inviteCode);
+  },
+
   async leaveRoom(roomId: string): Promise<void> {
     await watchPartyClient.post(`/watch-party/rooms/${roomId}/leave`);
   },

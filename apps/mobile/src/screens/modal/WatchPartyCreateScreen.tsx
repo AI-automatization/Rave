@@ -71,8 +71,19 @@ function RoomsTab({ navigation, t }: { navigation: Nav; t: TFn }) {
   const activeRooms = (rooms ?? []).filter(r => r.status !== 'ended');
   const endedRooms = (rooms ?? []).filter(r => r.status === 'ended');
 
-  const handleRoomPress = (roomId: string) => {
-    navigation.replace('WatchParty', { roomId });
+  const [joining, setJoining] = useState<string | null>(null);
+
+  const handleRoomPress = async (roomId: string) => {
+    setJoining(roomId);
+    try {
+      // HTTP join first (adds user to members), then navigate to socket room
+      await watchPartyApi.joinRoomById(roomId);
+      navigation.replace('WatchParty', { roomId });
+    } catch {
+      Alert.alert(t('watchParty', 'error'), t('watchParty', 'joinError'));
+    } finally {
+      setJoining(null);
+    }
   };
 
   if (isLoading) {

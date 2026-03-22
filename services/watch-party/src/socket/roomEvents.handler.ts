@@ -10,7 +10,7 @@ interface AuthenticatedSocket extends Socket {
 }
 
 // In-memory map of roomId → inactivity close timer
-const roomCloseTimers = new Map<string, ReturnType<typeof setTimeout>>();
+export const roomCloseTimers = new Map<string, ReturnType<typeof setTimeout>>();
 const ROOM_INACTIVITY_MS = 5 * 60 * 1000; // 5 minutes
 
 export const registerRoomEvents = (
@@ -23,11 +23,21 @@ export const registerRoomEvents = (
 
   socket.on(CLIENT_EVENTS.JOIN_ROOM, async (data: { roomId: string }) => {
     try {
-      const room = await watchPartyService.getRoom(data.roomId);
+      let room = await watchPartyService.getRoom(data.roomId);
 
+      // Auto-join: if user is not a member yet and room is not private, add them
       if (!room.members.includes(userId)) {
-        socket.emit(SERVER_EVENTS.ERROR, { message: 'Not a room member' });
-        return;
+        if (room.isPrivate) {
+          socket.emit(SERVER_EVENTS.ERROR, { message: 'Not a room member. Join via invite code first.' });
+          return;
+        }
+        // Public room — auto-add to members via service (checks maxMembers etc.)
+        try {
+          room = await watchPartyService.joinRoom(userId, room.inviteCode);
+        } catch {
+          socket.emit(SERVER_EVENTS.ERROR, { message: 'Failed to join room — it may be full or ended' });
+          return;
+        }
       }
 
       // Cancel any pending inactivity close timer for this room

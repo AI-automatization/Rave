@@ -42,7 +42,7 @@ export class WatchPartyService {
       throw new BadRequestError('videoUrl must start with http:// or https://');
     }
 
-    const inviteCode = crypto.randomBytes(4).toString('hex').toUpperCase();
+    const inviteCode = crypto.randomBytes(3).toString('hex').toUpperCase(); // 6 chars
 
     // Hash password only for private rooms with a password set
     let passwordHash: string | null = null;

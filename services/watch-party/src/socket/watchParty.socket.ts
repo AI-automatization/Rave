@@ -5,7 +5,7 @@ import { logger } from '@shared/utils/logger';
 import { SERVER_EVENTS } from '@shared/constants/socketEvents';
 import { JwtPayload } from '@shared/types';
 import { config } from '../config/index';
-import { registerRoomEvents } from './roomEvents.handler';
+import { registerRoomEvents, roomCloseTimers } from './roomEvents.handler';
 import { registerVideoEvents } from './videoEvents.handler';
 import { registerChatEvents } from './chatEvents.handler';
 import { registerVoiceEvents } from './voiceEvents.handler';
@@ -54,8 +54,8 @@ const INACTIVE_CHECK_INTERVAL_MS = 60 * 1000; // check every 1 minute
 const INACTIVE_THRESHOLD_MINUTES = 5;
 
 export const registerWatchPartySocket = (io: SocketServer, watchPartyService: WatchPartyService): void => {
-  // On startup: immediately close ALL existing rooms (stale data cleanup)
-  void watchPartyService.closeInactiveRooms(0).then((ids) => {
+  // On startup: close rooms that have been inactive for more than 30 minutes (not ALL rooms)
+  void watchPartyService.closeInactiveRooms(30).then((ids) => {
     for (const roomId of ids) {
       io.to(roomId).emit(SERVER_EVENTS.ROOM_CLOSED, { reason: 'inactive' });
     }
@@ -111,7 +111,8 @@ export const registerWatchPartySocket = (io: SocketServer, watchPartyService: Wa
     registerChatEvents(socket, authSocket, checkRateLimit);
     registerVoiceEvents(socket, authSocket, voiceRooms);
 
-    // DISCONNECT — kept inline: needs voiceRooms + io access
+    // DISCONNECT — do NOT remove user from members (allows reconnect).
+    // Only clean up voice and notify others. Explicit leave happens via room:leave event or HTTP API.
     socket.on('disconnect', async () => {
       const roomId = authSocket.roomId;
       if (roomId) {
@@ -121,18 +122,27 @@ export const registerWatchPartySocket = (io: SocketServer, watchPartyService: Wa
         }
 
         authSocket.roomId = undefined;
-        try {
-          const result = await watchPartyService.leaveRoom(userId, roomId);
-          if (result.closed) {
-            io.to(roomId).emit(SERVER_EVENTS.ROOM_CLOSED, { reason: 'owner_left' });
-          } else if (result.newOwnerId) {
-            socket.to(roomId).emit(SERVER_EVENTS.MEMBER_LEFT, { userId });
-            io.to(roomId).emit(SERVER_EVENTS.OWNER_TRANSFERRED, { newOwnerId: result.newOwnerId });
-          } else {
-            socket.to(roomId).emit(SERVER_EVENTS.MEMBER_LEFT, { userId });
+        socket.to(roomId).emit(SERVER_EVENTS.MEMBER_LEFT, { userId });
+
+        // Start inactivity timer if room is now empty (no sockets connected)
+        const sockets = await io.in(roomId).fetchSockets();
+        if (sockets.length === 0) {
+          if (!roomCloseTimers.has(roomId)) {
+            logger.info('Room empty after disconnect — starting 5-minute inactivity timer', { roomId });
+            const timer = setTimeout(() => {
+              roomCloseTimers.delete(roomId);
+              void (async () => {
+                try {
+                  await watchPartyService.closeRoomBySystem(roomId);
+                  io.to(roomId).emit(SERVER_EVENTS.ROOM_CLOSED, { reason: 'inactivity' });
+                  logger.info('Room auto-closed after 5 minutes of inactivity', { roomId });
+                } catch (e) {
+                  logger.error('Failed to auto-close room', { roomId, error: e });
+                }
+              })();
+            }, 5 * 60 * 1000);
+            roomCloseTimers.set(roomId, timer);
           }
-        } catch (error) {
-          logger.error('Socket disconnect leave error', { userId, error });
         }
       }
       logger.info('Socket disconnected', { userId, socketId: socket.id });
