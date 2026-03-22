@@ -66,4 +66,8 @@ export const authApi = {
     );
     return res.data.data ?? null;
   },
+
+  async logoutAll(): Promise<void> {
+    await authClient.post('/auth/logout-all');
+  },
 };

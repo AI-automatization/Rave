@@ -77,22 +77,31 @@ export function useNotifications() {
     },
   });
 
-  // Socket: real-time new notifications
+  // Socket: real-time new notifications + friend_accepted refetch
   useEffect(() => {
     const socket = getSocket();
     if (!socket) return;
     const handler = (notification: INotification) => {
       addNotification(notification);
       void refetch();
+      // Auto-refetch friends on friend_accepted
+      if (notification.type === 'friend_accepted') {
+        void queryClient.invalidateQueries({ queryKey: ['friends'] });
+        void queryClient.invalidateQueries({ queryKey: ['friend-requests'] });
+      }
     };
     socket.on(NOTIFICATION_NEW, handler);
     return () => { socket.off(NOTIFICATION_NEW, handler); };
-  }, [addNotification, refetch]);
+  }, [addNotification, refetch, queryClient]);
 
   const handlePress = useCallback((item: INotification) => {
     if (!item.isRead) markReadMutation.mutate(item._id);
     const data = parseNotificationData(item.data);
     switch (item.type) {
+      case 'friend_accepted':
+      case 'friend_request':
+        navigation.navigate('Notifications');
+        break;
       case 'watch_party_invite':
         if (typeof data.roomId === 'string') navigation.navigate('WatchParty', { roomId: data.roomId });
         break;

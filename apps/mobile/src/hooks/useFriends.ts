@@ -59,6 +59,15 @@ export function useFriends() {
     onError: () => Alert.alert(t('common', 'error'), t('friends', 'requestError')),
   });
 
+  const sendRequestMutation = useMutation({
+    mutationFn: (userId: string) => userApi.sendFriendRequest(userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['friends'] });
+      queryClient.invalidateQueries({ queryKey: ['friend-requests'] });
+    },
+    onError: () => Alert.alert(t('common', 'error'), t('friends', 'requestError')),
+  });
+
   const removeMutation = useMutation({
     mutationFn: (userId: string) => userApi.removeFriend(userId),
     onSuccess: (_, userId) => {
@@ -78,6 +87,7 @@ export function useFriends() {
     requestsError,
     acceptMutation,
     rejectMutation,
+    sendRequestMutation,
     removeMutation,
     refetchFriends,
     refetchRequests,

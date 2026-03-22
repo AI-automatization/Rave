@@ -95,8 +95,24 @@ export const contentApi = {
     await contentClient.post(`/content/movies/${movieId}/complete`);
   },
 
-  async rateMovie(movieId: string, rating: number): Promise<void> {
-    await contentClient.post(`/content/movies/${movieId}/rate`, { rating });
+  async rateMovie(movieId: string, score: number, review?: string): Promise<{ isNew: boolean }> {
+    const res = await contentClient.post(`/content/movies/${movieId}/rate`, { score, review });
+    return { isNew: res.status === 201 };
+  },
+
+  async getMovieRatings(movieId: string, page = 1): Promise<{
+    ratings: Array<{ userId: string; username: string; score: number; review?: string; createdAt: string }>;
+    meta: PaginationMeta;
+  }> {
+    const res = await contentClient.get<ApiResponse<{
+      ratings: Array<{ userId: string; username: string; score: number; review?: string; createdAt: string }>;
+      meta: PaginationMeta;
+    }>>(`/content/movies/${movieId}/ratings`, { params: { page } });
+    return res.data.data ?? { ratings: [], meta: { page: 1, limit: 10, total: 0, totalPages: 0 } };
+  },
+
+  async deleteMyRating(movieId: string): Promise<void> {
+    await contentClient.delete(`/content/movies/${movieId}/rate`);
   },
 
   async extractVideo(url: string): Promise<VideoExtractResult> {

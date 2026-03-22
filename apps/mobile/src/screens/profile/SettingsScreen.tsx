@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { userApi } from '@api/user.api';
+import { authApi } from '@api/auth.api';
 import { useAuthStore } from '@store/auth.store';
 import { useMyProfile } from '@hooks/useProfile';
 import { useLanguageStore, Language } from '@store/language.store';
@@ -41,6 +42,11 @@ export function SettingsScreen() {
   const { lang: language, setLang: setLanguage } = useLanguageStore();
   // Dark mode ONLY — tema tanlash o'chirilgan
   const { t } = useT();
+
+  const handleLanguageChange = (code: Language) => {
+    setLanguage(code);
+    userApi.updateSettings({ language: code }).catch(() => { /* silent */ });
+  };
   const { notifToggles, privacyToggles, toggleNotif, togglePrivacy } = useSettingsStorage();
   const { colors } = useTheme();
   const styles = useStyles();
@@ -137,7 +143,7 @@ export function SettingsScreen() {
               <TouchableOpacity
                 key={lang.code}
                 style={[styles.langRow, i < LANGUAGES.length - 1 && styles.rowBorder]}
-                onPress={() => setLanguage(lang.code)}
+                onPress={() => handleLanguageChange(lang.code)}
                 activeOpacity={0.8}
               >
                 <Text style={styles.langFlag}>{lang.flag}</Text>
@@ -194,10 +200,45 @@ export function SettingsScreen() {
 
           {/* Danger zone */}
           <SectionHeader title={t('settings', 'dangerZone')} />
-          <TouchableOpacity style={styles.deleteBtn} onPress={handleDeleteAccount} activeOpacity={0.8}>
-            <Ionicons name="trash-outline" size={18} color={colors.error} />
-            <Text style={styles.deleteText}>{t('settings', 'deleteAccount')}</Text>
-          </TouchableOpacity>
+          <View style={styles.card}>
+            <TouchableOpacity
+              style={[styles.navRow, styles.rowBorder]}
+              onPress={() => {
+                Alert.alert(
+                  t('settings', 'logoutAllTitle') || 'Barcha qurilmalardan chiqish',
+                  t('settings', 'logoutAllMsg') || 'Barcha sessiyalar tugatiladi. Davom etasizmi?',
+                  [
+                    { text: t('common', 'cancel'), style: 'cancel' },
+                    {
+                      text: t('settings', 'logoutAllBtn') || 'Chiqish',
+                      style: 'destructive',
+                      onPress: async () => {
+                        try {
+                          await userApi.removeFcmToken();
+                        } catch { /* silent */ }
+                        try {
+                          await authApi.logoutAll();
+                        } catch { /* silent */ }
+                        logout();
+                      },
+                    },
+                  ],
+                );
+              }}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="log-out-outline" size={18} color={colors.warning} />
+              <Text style={[styles.navLabel, { color: colors.warning }]}>
+                {t('settings', 'logoutAll') || 'Barcha qurilmalardan chiqish'}
+              </Text>
+              <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.navRow} onPress={handleDeleteAccount} activeOpacity={0.8}>
+              <Ionicons name="trash-outline" size={18} color={colors.error} />
+              <Text style={[styles.navLabel, { color: colors.error }]}>{t('settings', 'deleteAccount')}</Text>
+              <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={{ height: TAB_BAR_HEIGHT + insets.bottom + spacing.xl }} />
@@ -247,15 +288,4 @@ const useStyles = createThemedStyles((colors) => ({
   infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: spacing.md },
   infoLabel: { ...typography.body, color: colors.textSecondary },
   infoValue: { ...typography.body, color: colors.textMuted },
-  deleteBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    backgroundColor: colors.bgSurface,
-    padding: spacing.md,
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.error + '44',
-  },
-  deleteText: { ...typography.body, color: colors.error },
 }));

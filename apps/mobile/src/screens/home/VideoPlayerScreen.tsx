@@ -191,6 +191,17 @@ function DirectPlayer({
   const lastTapRef = useRef(0);
   const lastSideRef = useRef<'left' | 'right' | null>(null);
 
+  // Resume from last position — fetch on mount, apply when video is ready
+  const resumedRef = useRef(false);
+  const resumePositionRef = useRef<number | null>(null);
+  useEffect(() => {
+    contentApi.getWatchProgress(movieId).then((progress) => {
+      if (progress && !progress.isCompleted && progress.progress > 0) {
+        resumePositionRef.current = progress.progress * 1000;
+      }
+    }).catch(() => { /* silent */ });
+  }, [movieId]);
+
   // Loading animation
   useEffect(() => {
     if (!loading) return;
@@ -233,6 +244,12 @@ function DirectPlayer({
       setPlaying(st.isPlaying);
       setBuffering(st.isBuffering);
       if (st.durationMillis) setDur(st.durationMillis);
+
+      // Resume from saved position (once, when video first loads)
+      if (!resumedRef.current && resumePositionRef.current && videoRef.current && st.durationMillis) {
+        resumedRef.current = true;
+        videoRef.current.setPositionAsync(resumePositionRef.current);
+      }
 
       // Auto-save progress every 30s
       const now = Date.now();

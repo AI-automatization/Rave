@@ -2,6 +2,7 @@
 import { useEffect, useRef } from 'react';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import { useQueryClient } from '@tanstack/react-query';
 import { userApi } from '@api/user.api';
 import { useAuthStore } from '@store/auth.store';
 
@@ -17,22 +18,33 @@ Notifications.setNotificationHandler({
 
 export function usePushNotifications() {
   const isAuthenticated = useAuthStore(s => s.isAuthenticated);
-  const listenerRef = useRef<Notifications.EventSubscription | null>(null);
+  const queryClient = useQueryClient();
+  const receivedRef = useRef<Notifications.EventSubscription | null>(null);
 
   useEffect(() => {
     if (!isAuthenticated) return;
 
     void registerForPushNotifications();
 
-    // Foreground notification received — setNotificationHandler handles display
-    listenerRef.current = Notifications.addNotificationReceivedListener(() => {
-      // no-op: banner shown by setNotificationHandler above
+    // Foreground notification — invalidate relevant queries
+    receivedRef.current = Notifications.addNotificationReceivedListener((notification) => {
+      const data = notification.request.content.data as Record<string, unknown> | undefined;
+      const type = data?.type as string | undefined;
+      if (type === 'friend_accepted' || type === 'friend_request') {
+        void queryClient.invalidateQueries({ queryKey: ['friends'] });
+        void queryClient.invalidateQueries({ queryKey: ['friend-requests'] });
+      }
+      if (type === 'battle_invite' || type === 'battle_result') {
+        void queryClient.invalidateQueries({ queryKey: ['my-battles'] });
+      }
+      // Always refresh notifications list
+      void queryClient.invalidateQueries({ queryKey: ['notifications'] });
     });
 
     return () => {
-      listenerRef.current?.remove();
+      receivedRef.current?.remove();
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, queryClient]);
 }
 
 async function registerForPushNotifications(): Promise<void> {

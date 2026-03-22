@@ -63,3 +63,15 @@ export function useBattleHistory() {
     staleTime: 2 * 60 * 1000,
   });
 }
+
+export function useBattleInvite(battleId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (userId: string) => battleApi.inviteParticipant(battleId, userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['battle', battleId] });
+      queryClient.invalidateQueries({ queryKey: ['my-battles'] });
+    },
+  });
+}

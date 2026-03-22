@@ -42,4 +42,8 @@ export const battleApi = {
     });
     return res.data.data ?? [];
   },
+
+  async inviteParticipant(battleId: string, userId: string): Promise<void> {
+    await battleClient.post(`/battles/${battleId}/invite`, { userId });
+  },
 };

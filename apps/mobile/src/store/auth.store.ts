@@ -43,6 +43,11 @@ export const useAuthStore = create<AuthState>((set) => ({
   clearProfileSetup: () => set({ needsProfileSetup: false }),
 
   logout: async () => {
+    // Remove FCM token before logout (prevent stale push notifications)
+    try {
+      const { userApi } = await import('@api/user.api');
+      await userApi.removeFcmToken();
+    } catch { /* silent — token may already be invalid */ }
     try {
       const refreshToken = await tokenStorage.getRefreshToken();
       if (refreshToken) {

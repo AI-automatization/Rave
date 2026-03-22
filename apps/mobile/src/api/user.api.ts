@@ -2,6 +2,12 @@
 import { userClient } from './client';
 import { ApiResponse, IUser, IUserPublic, IUserStats } from '@app-types/index';
 
+export interface UserSettings {
+  language: string;
+  notifications: { push: boolean; email: boolean };
+  privacy: { showActivity: boolean };
+}
+
 export const userApi = {
   async getMe(): Promise<IUser> {
     const res = await userClient.get<ApiResponse<IUser>>('/users/me');
@@ -78,5 +84,29 @@ export const userApi = {
 
   async deleteAccount(): Promise<void> {
     await userClient.delete('/users/me');
+  },
+
+  async getSettings(): Promise<UserSettings> {
+    const res = await userClient.get<ApiResponse<UserSettings>>('/users/me/settings');
+    if (!res.data.data) throw new Error('getSettings response is empty');
+    return res.data.data;
+  },
+
+  async updateSettings(data: Partial<UserSettings>): Promise<UserSettings> {
+    const res = await userClient.patch<ApiResponse<UserSettings>>('/users/me/settings', data);
+    if (!res.data.data) throw new Error('updateSettings response is empty');
+    return res.data.data;
+  },
+
+  async removeFcmToken(): Promise<void> {
+    await userClient.delete('/users/me/fcm-token');
+  },
+
+  async uploadAvatar(formData: FormData): Promise<{ avatarUrl: string }> {
+    const res = await userClient.patch<ApiResponse<{ avatarUrl: string }>>('/users/me/avatar', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    if (!res.data.data) throw new Error('uploadAvatar response is empty');
+    return res.data.data;
   },
 };

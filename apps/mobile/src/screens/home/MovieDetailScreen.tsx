@@ -1,5 +1,5 @@
 // CineSync Mobile — Movie Detail Screen
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { View, StyleSheet, Animated, StatusBar, ActivityIndicator, Text } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { HomeStackParamList, RootStackParamList } from '@app-types/index';
 import { useMovieDetail } from '@hooks/useMovieDetail';
+import { useAuthStore } from '@store/auth.store';
 import { contentApi } from '@api/content.api';
 import { useT } from '@i18n/index';
 import { MovieDetailHero } from '@components/movie/MovieDetailHero';
@@ -31,12 +32,36 @@ export function MovieDetailScreen({ route, navigation }: Props) {
   const { t } = useT();
   const { colors } = useTheme();
   const s = useStyles();
+  const userId = useAuthStore(s2 => s2.user?._id);
+
+  // Load user's existing rating on mount
+  useEffect(() => {
+    if (!movieId) return;
+    contentApi.getMovieRatings(movieId).then((data) => {
+      const myRating = data.ratings.find(r => r.userId === userId);
+      if (myRating) {
+        setUserRating(Math.round(myRating.score / 2));
+        setRatingSubmitted(true);
+      }
+    }).catch(() => { /* silent */ });
+  }, [movieId, userId]);
 
   const handleRate = async (stars: number) => {
-    if (ratingSubmitted) return;
+    const prevRating = userRating;
+    const prevSubmitted = ratingSubmitted;
     setUserRating(stars);
-    await contentApi.rateMovie(movieId, stars * 2).catch(() => {});
-    setRatingSubmitted(true);
+    try {
+      const { isNew } = await contentApi.rateMovie(movieId, stars * 2);
+      setRatingSubmitted(true);
+      if (__DEV__) {
+        // eslint-disable-next-line no-console
+        console.log(`[Rating] ${isNew ? 'Created' : 'Updated'} rating: ${stars * 2}`);
+      }
+    } catch {
+      // Revert to previous state on error
+      setUserRating(prevRating);
+      setRatingSubmitted(prevSubmitted);
+    }
   };
 
   const handleWatch = () => {

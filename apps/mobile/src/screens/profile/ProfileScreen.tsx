@@ -1,5 +1,5 @@
 // CineSync Mobile — ProfileScreen (web-style card layout + animations)
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -8,6 +8,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { useMyProfile } from '@hooks/useProfile';
 import { useAuthStore } from '@store/auth.store';
+import { userApi } from '@api/user.api';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { ProfileStackParamList } from '@app-types/index';
 import { useT } from '@i18n/index';
@@ -42,19 +43,41 @@ export function ProfileScreen() {
     ]);
   };
 
-  const handlePickAvatar = async () => {
+  const handlePickAvatar = useCallback(async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') return;
+    if (status !== 'granted') {
+      Alert.alert(t('common', 'error'), t('profile', 'galleryPermission') || 'Gallery permission required');
+      return;
+    }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
     });
-    if (!result.canceled && result.assets[0]) {
-      updateProfileMutation.mutate({ avatar: result.assets[0].uri });
+    if (result.canceled || !result.assets[0]) return;
+
+    const asset = result.assets[0];
+    const fileSize = asset.fileSize ?? 0;
+    if (fileSize > 5 * 1024 * 1024) {
+      Alert.alert(t('common', 'error'), t('profile', 'avatarTooLarge') || 'Max 5MB');
+      return;
     }
-  };
+
+    try {
+      const formData = new FormData();
+      const uri = asset.uri;
+      const fileName = uri.split('/').pop() ?? 'avatar.jpg';
+      const ext = fileName.split('.').pop()?.toLowerCase() ?? 'jpg';
+      const mimeType = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
+
+      formData.append('avatar', { uri, name: fileName, type: mimeType } as unknown as Blob);
+      const { avatarUrl } = await userApi.uploadAvatar(formData);
+      updateProfileMutation.mutate({ avatar: avatarUrl });
+    } catch {
+      Alert.alert(t('common', 'error'), t('profile', 'avatarUploadError') || 'Upload failed');
+    }
+  }, [t, updateProfileMutation]);
 
   const openEditModal = () => {
     setEditUsername(user?.username ?? '');

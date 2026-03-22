@@ -25,7 +25,6 @@ export const MovieRatingWidget = React.memo<MovieRatingWidgetProps>(
             <TouchableOpacity
               key={star}
               onPress={() => onRate(star)}
-              disabled={ratingSubmitted}
               style={styles.starBtn}
             >
               <Ionicons

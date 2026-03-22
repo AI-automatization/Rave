@@ -58,8 +58,10 @@ function createClient(baseURL: string): AxiosInstance {
       const originalRequest = error.config;
 
       // ACCOUNT_BLOCKED — global handler
-      if (error.response?.status === 403 && error.response?.data?.code === 'ACCOUNT_BLOCKED') {
-        const reason = error.response.data.reason ?? '';
+      if (error.response?.status === 403 &&
+        (error.response?.data?.code === 'ACCOUNT_BLOCKED' ||
+         (error.response?.data?.message ?? '').toLowerCase().includes('blocked'))) {
+        const reason = error.response.data.reason ?? error.response.data.message ?? '';
         const { useAuthStore } = await import('@store/auth.store');
         await useAuthStore.getState().logout();
         notifyBlocked(reason);
