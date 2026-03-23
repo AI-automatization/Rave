@@ -27,6 +27,7 @@ const { width: SCREEN_W } = Dimensions.get('window');
 
 export function WatchPartyScreen() {
   const { params } = useRoute<RouteType>();
+  const videoReferer = params.videoReferer;
   const navigation = useNavigation<NavProp>();
   const userId = useAuthStore(s => s.user?._id) ?? '';
   const { colors } = useTheme();
@@ -231,6 +232,7 @@ export function WatchPartyScreen() {
       <VideoSection
         playerRef={playerRef}
         videoUrl={room?.videoUrl || ''}
+        videoReferer={videoReferer}
         isReady={!!room}
         isOwner={isOwner}
         isPlaying={isPlaying}

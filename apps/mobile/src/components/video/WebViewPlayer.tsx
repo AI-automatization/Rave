@@ -38,6 +38,8 @@ interface Props {
   onProgress?: (currentTimeSecs: number, durationSecs: number) => void;
   /** Custom User-Agent — saytlar uchun WebView detektsiyasini o'tkazib yuborish */
   userAgent?: string;
+  /** Referer header для CDN hotlink-защиты */
+  referer?: string;
 }
 
 type WebViewMessage =
@@ -50,7 +52,7 @@ type WebViewMessage =
 
 
 export const WebViewPlayer = forwardRef<WebViewPlayerRef, Props>(
-  ({ url, youtubeVideoId, isOwner, onPlay, onPause, onSeek, onProgress, userAgent }, ref) => {
+  ({ url, youtubeVideoId, isOwner, onPlay, onPause, onSeek, onProgress, userAgent, referer }, ref) => {
     const webviewRef = useRef<WebView>(null);
     const currentTimeMsRef = useRef(0);
     const originalHostRef = useRef(getHostname(url));
@@ -161,7 +163,7 @@ export const WebViewPlayer = forwardRef<WebViewPlayerRef, Props>(
     // WebView source: YouTube → HTML IFrame API, boshqalar → URI
     const webViewSource = isYouTubeMode
       ? { html: buildYouTubeHtml(youtubeVideoId!), baseUrl: 'https://www.youtube.com' }
-      : { uri: url };
+      : { uri: url, headers: referer ? { Referer: referer } : {} };
 
     return (
       <View style={styles.container}>

@@ -175,6 +175,8 @@ export function ProfileScreen() {
           <NavItem icon="bar-chart-outline" label={t('profile', 'stats')} onPress={() => navigation.navigate('Stats')} delay={450} />
           <View style={{ height: spacing.sm }} />
           <NavItem icon="ribbon-outline" label={t('profile', 'achievements')} onPress={() => navigation.navigate('Achievements')} delay={500} />
+          <View style={{ height: spacing.sm }} />
+          <NavItem icon="time-outline" label="Ko'rish tarixi" onPress={() => navigation.navigate('WatchHistory')} delay={550} />
         </View>
 
         {/* Logout */}

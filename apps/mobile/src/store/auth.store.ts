@@ -28,6 +28,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   setAuth: async (user, accessToken, refreshToken) => {
     await tokenStorage.saveTokens(accessToken, refreshToken, user._id);
     // Auth service user dan boshlash (rank/totalPoints yo'q bo'lishi mumkin)
+    // user._id here is auth service ID — matches JWT userId and room.ownerId
+    const authServiceId = user._id;
     set({ user, accessToken, isAuthenticated: true, needsProfileSetup: !user.bio });
     // User service dan to'liq profil olish — 5s timeout (SecureStore Android hang himoyasi)
     try {
@@ -35,7 +37,9 @@ export const useAuthStore = create<AuthState>((set) => ({
         setTimeout(() => reject(new Error('getMe timeout')), 5000),
       );
       const fullUser = await Promise.race([userApi.getMe(), timeout]);
-      set({ user: fullUser, needsProfileSetup: !fullUser.bio });
+      // User service has its own _id (different from auth service ID).
+      // Override with auth service ID so isOwner comparison works in WatchParty.
+      set({ user: { ...fullUser, _id: authServiceId }, needsProfileSetup: !fullUser.bio });
     } catch {
       // User service down yoki timeout — auth user bilan davom etamiz
     }
@@ -76,6 +80,8 @@ export const useAuthStore = create<AuthState>((set) => ({
           set({ accessToken, isAuthenticated: true });
           try {
             const user = await userApi.getMe();
+            // tokenStorage userId = auth service ID (saved in setAuth) = room.ownerId in WatchParty
+            if (userId) user._id = userId;
             set({ user });
           } catch (err: unknown) {
             const status = (err as { response?: { status?: number } })?.response?.status;
@@ -83,8 +89,9 @@ export const useAuthStore = create<AuthState>((set) => ({
               // Token expired yoki invalid → logout
               await tokenStorage.clear();
               set({ accessToken: null, isAuthenticated: false });
-            } else if (status === 404) {
-              // User service da profil yo'q — JWT dan minimal user yaratamiz
+            } else {
+              // 404, network error, yoki boshqa xatolik — JWT dan minimal user yaratamiz
+              // Bu isOwner ni to'g'ri ishlashi uchun zarur (userId = null bo'lsa isOwner false)
               try {
                 const payload = JSON.parse(atob(accessToken.split('.')[1]));
                 set({
@@ -109,7 +116,7 @@ export const useAuthStore = create<AuthState>((set) => ({
                 // JWT decode failed — user qoladi null
               }
             }
-            // Boshqa xatolarda: token saqlanadi, user null qoladi
+            // Token saqlanadi, keyingi sessiyada getMe qayta urinadi
           }
         }
       } catch {

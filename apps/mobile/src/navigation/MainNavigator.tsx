@@ -20,6 +20,7 @@ import { ProfileScreen } from '@screens/profile/ProfileScreen';
 import { StatsScreen } from '@screens/profile/StatsScreen';
 import { AchievementsScreen } from '@screens/profile/AchievementsScreen';
 import { SettingsScreen } from '@screens/profile/SettingsScreen';
+import { WatchHistoryScreen } from '@screens/profile/WatchHistoryScreen';
 import { MovieDetailScreen } from '@screens/home/MovieDetailScreen';
 import { VideoPlayerScreen } from '@screens/home/VideoPlayerScreen';
 import { VideoExtractScreen } from '@screens/home/VideoExtractScreen';
@@ -80,6 +81,7 @@ function ProfileStackNavigator() {
       <ProfileStack.Screen name="Stats" component={StatsScreen} />
       <ProfileStack.Screen name="Achievements" component={AchievementsScreen} />
       <ProfileStack.Screen name="Settings" component={SettingsScreen} />
+      <ProfileStack.Screen name="WatchHistory" component={WatchHistoryScreen} />
     </ProfileStack.Navigator>
   );
 }

@@ -16,6 +16,7 @@ import { MovieDetailInfo } from '@components/movie/MovieDetailInfo';
 import { MovieCastList } from '@components/movie/MovieCastList';
 import { MovieSimilarList } from '@components/movie/MovieSimilarList';
 import { MovieRatingWidget } from '@components/movie/MovieRatingWidget';
+import { MovieRatingsSection, RatingItem } from '@components/movie/MovieRatingsSection';
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'MovieDetail'>;
 
@@ -29,15 +30,17 @@ export function MovieDetailScreen({ route, navigation }: Props) {
   const scrollY = useRef(new Animated.Value(0)).current;
   const [userRating, setUserRating] = useState(0);
   const [ratingSubmitted, setRatingSubmitted] = useState(false);
+  const [allRatings, setAllRatings] = useState<RatingItem[]>([]);
   const { t } = useT();
   const { colors } = useTheme();
   const s = useStyles();
   const userId = useAuthStore(s2 => s2.user?._id);
 
-  // Load user's existing rating on mount
+  // Load all ratings + pre-fill own rating on mount
   useEffect(() => {
     if (!movieId) return;
     contentApi.getMovieRatings(movieId).then((data) => {
+      setAllRatings(data.ratings);
       const myRating = data.ratings.find(r => r.userId === userId);
       if (myRating) {
         setUserRating(Math.round(myRating.score / 2));
@@ -51,17 +54,24 @@ export function MovieDetailScreen({ route, navigation }: Props) {
     const prevSubmitted = ratingSubmitted;
     setUserRating(stars);
     try {
-      const { isNew } = await contentApi.rateMovie(movieId, stars * 2);
+      await contentApi.rateMovie(movieId, stars * 2);
       setRatingSubmitted(true);
-      if (__DEV__) {
-        // eslint-disable-next-line no-console
-        console.log(`[Rating] ${isNew ? 'Created' : 'Updated'} rating: ${stars * 2}`);
-      }
+      // Refresh ratings list after submit
+      const data = await contentApi.getMovieRatings(movieId);
+      setAllRatings(data.ratings);
     } catch {
-      // Revert to previous state on error
       setUserRating(prevRating);
       setRatingSubmitted(prevSubmitted);
     }
+  };
+
+  const handleDeleteRating = async () => {
+    try {
+      await contentApi.deleteMyRating(movieId);
+      setUserRating(0);
+      setRatingSubmitted(false);
+      setAllRatings((prev) => prev.filter((r) => r.userId !== userId));
+    } catch { /* silent */ }
   };
 
   const handleWatch = () => {
@@ -159,6 +169,12 @@ export function MovieDetailScreen({ route, navigation }: Props) {
             onRate={handleRate}
             rateLabel={t('movie', 'rate')}
             ratingDoneLabel={t('movie', 'ratingDone')}
+          />
+
+          <MovieRatingsSection
+            ratings={allRatings}
+            currentUserId={userId}
+            onDeleteOwn={ratingSubmitted ? handleDeleteRating : undefined}
           />
         </View>
 

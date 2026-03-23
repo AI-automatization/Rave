@@ -16,7 +16,9 @@ import { EmojiFloatItem } from '@components/watchParty/EmojiFloat';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
-export const VIDEO_HEIGHT = (SCREEN_W * 9) / 16;
+// 45% of screen height — gives comfortable video size on all iPhones
+// Old formula (SCREEN_W * 9/16) gave only ~26% on tall phones, leaving huge black void
+export const VIDEO_HEIGHT = Math.round(SCREEN_H * 0.45);
 
 export interface FloatingEmoji {
   id: string;
@@ -27,6 +29,7 @@ export interface FloatingEmoji {
 interface VideoSectionProps {
   playerRef: React.RefObject<UniversalPlayerRef | null>;
   videoUrl: string;
+  videoReferer?: string;
   isReady: boolean;
   isOwner: boolean;
   isPlaying: boolean;
@@ -49,6 +52,7 @@ interface VideoSectionProps {
 export const VideoSection = React.memo(function VideoSection({
   playerRef,
   videoUrl,
+  videoReferer,
   isReady,
   isOwner,
   isPlaying,
@@ -84,6 +88,7 @@ export const VideoSection = React.memo(function VideoSection({
           <UniversalPlayer
             ref={playerRef}
             url={videoUrl}
+            referer={videoReferer}
             isOwner={isOwner}
             onPlay={onPlay}
             onPause={onPause}

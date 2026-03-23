@@ -126,10 +126,11 @@ export type ProfileStackParamList = {
   Stats: undefined;
   Achievements: undefined;
   Settings: undefined;
+  WatchHistory: undefined;
 };
 
 export type ModalStackParamList = {
-  WatchParty: { roomId: string };
+  WatchParty: { roomId: string; videoReferer?: string };
   WatchPartyCreate: undefined;
   WatchPartyJoin: undefined;
   Battle: { battleId?: string };

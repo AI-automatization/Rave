@@ -38,10 +38,24 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   }
 
   // Fix: expo is hoisted to workspace root, so expo/AppEntry.js does `../../App`
-  // which resolves to Rave/App (not found). Redirect to our index.ts instead.
+  // which resolves to Rave/App (not found). Two cases to handle:
+
+  // Case 1: someone imports 'expo/AppEntry' → redirect to our index.ts
   if (moduleName.endsWith('expo/AppEntry') || moduleName.endsWith('expo/AppEntry.js')) {
     return {
       filePath: path.resolve(projectRoot, 'index.ts'),
+      type: 'sourceFile',
+    };
+  }
+
+  // Case 2: AppEntry.js itself (at workspace root) tries `../../App` → resolve to our App.tsx
+  if (
+    moduleName === '../../App' &&
+    context.originModulePath &&
+    context.originModulePath.replace(/\\/g, '/').includes('expo/AppEntry')
+  ) {
+    return {
+      filePath: path.resolve(projectRoot, 'App.tsx'),
       type: 'sourceFile',
     };
   }

@@ -139,6 +139,31 @@ export const contentApi = {
     }
   },
 
+  async getWatchHistory(page = 1): Promise<{
+    history: Array<{
+      movieId: string;
+      title: string;
+      poster?: string;
+      progress: number;
+      watchedAt: string;
+      completed: boolean;
+    }>;
+    meta: PaginationMeta;
+  }> {
+    const res = await contentClient.get<ApiResponse<{
+      history: Array<{
+        movieId: string;
+        title: string;
+        poster?: string;
+        progress: number;
+        watchedAt: string;
+        completed: boolean;
+      }>;
+      meta: PaginationMeta;
+    }>>('/content/history', { params: { page } });
+    return res.data.data ?? { history: [], meta: { page: 1, limit: 20, total: 0, totalPages: 0 } };
+  },
+
   async addFavorite(movieId: string): Promise<void> {
     await contentClient.post(`/content/movies/${movieId}/favorite`);
   },

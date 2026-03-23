@@ -1,5 +1,35 @@
 # CineSync — BAJARILGAN ISHLAR ARXIVI
 
+# Yangilangan: 2026-03-24
+
+---
+
+### F-151 | 2026-03-24 | [MOBILE] | T-J029 — Ko'rish tarixi ekrani [Emirhan]
+
+- `content.api.ts`: `getWatchHistory(page)` → `GET /content/history` (pagination bilan)
+- `types/index.ts`: `ProfileStackParamList` ga `WatchHistory: undefined` qo'shildi
+- `WatchHistoryScreen.tsx` (yangi): 3 tab (Barchasi / Ko'rildi / Davom etadi), progress bar, poster, sana
+- `MainNavigator.tsx`: `WatchHistory` screen registratsiyasi
+- `ProfileScreen.tsx`: "Ko'rish tarixi" NavItem qo'shildi
+
+---
+
+### F-152 | 2026-03-24 | [MOBILE] | T-J033 — Film reytinglari ro'yxati [Emirhan]
+
+- `MovieRatingsSection.tsx` (yangi): barcha foydalanuvchilarning baholari, yulduzcha, avatar, ko'rib chiqish
+- `MovieDetailScreen.tsx`: `allRatings` state qo'shildi, `handleDeleteRating()`, `MovieRatingsSection` render
+- O'z bahosi bo'lsa "O'chirish" icon ko'rinadi
+
+---
+
+### F-153 | 2026-03-24 | [MOBILE] | T-J030 — Battle invite UI [Emirhan]
+
+- `BattleInviteModal.tsx` (yangi): do'stlar ro'yxati, "Taklif" tugmasi, muvaffaqiyat ko'rsatish
+- `BattleScreen.tsx`: `BattleDetailView` ga "Do'st taklif qilish" tugmasi + header icon qo'shildi
+- Faqat owner va active battle da ko'rinadi
+
+---
+
 # Yangilangan: 2026-03-23
 
 ---

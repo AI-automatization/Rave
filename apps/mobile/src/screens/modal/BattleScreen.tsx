@@ -18,6 +18,7 @@ import { useMyBattles, useBattleDetail, useBattleHistory } from '@hooks/useBattl
 import { useAuthStore } from '@store/auth.store';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { IBattle, ModalStackParamList } from '@app-types/index';
+import { BattleInviteModal } from '@components/modal/BattleInviteModal';
 
 type RouteType = RouteProp<ModalStackParamList, 'Battle'>;
 
@@ -115,21 +116,43 @@ function BattleDetailView({ battleId }: { battleId: string }) {
   const styles = useStyles();
   const userId = useAuthStore(s => s.user?._id) ?? '';
   const { data: battle, isLoading } = useBattleDetail(battleId);
+  const [inviteVisible, setInviteVisible] = useState(false);
 
   if (isLoading) return <ActivityIndicator color={colors.primary} style={styles.loader} />;
   if (!battle) return <Text style={styles.errorText}>Battle topilmadi</Text>;
 
+  const isOwner = battle.creatorId === userId;
+  const canInvite = isOwner && battle.status === 'active';
+
   return (
-    <ScrollView style={styles.detailScroll} showsVerticalScrollIndicator={false}>
-      <View style={styles.backRow}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
-        </TouchableOpacity>
-        <Text style={styles.detailTitle}>{battle.title || 'Battle'}</Text>
-      </View>
-      <BattleCard battle={battle} userId={userId} />
-      <View style={{ height: spacing.xxxl }} />
-    </ScrollView>
+    <>
+      <ScrollView style={styles.detailScroll} showsVerticalScrollIndicator={false}>
+        <View style={styles.backRow}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
+          </TouchableOpacity>
+          <Text style={styles.detailTitle}>{battle.title || 'Battle'}</Text>
+          {canInvite && (
+            <TouchableOpacity style={styles.inviteHeaderBtn} onPress={() => setInviteVisible(true)}>
+              <Ionicons name="person-add-outline" size={20} color={colors.primary} />
+            </TouchableOpacity>
+          )}
+        </View>
+        <BattleCard battle={battle} userId={userId} />
+        {canInvite && (
+          <TouchableOpacity style={styles.inviteBtn} onPress={() => setInviteVisible(true)} activeOpacity={0.8}>
+            <Ionicons name="flash" size={16} color={colors.textPrimary} />
+            <Text style={styles.inviteBtnText}>Do'st taklif qilish</Text>
+          </TouchableOpacity>
+        )}
+        <View style={{ height: spacing.xxxl }} />
+      </ScrollView>
+      <BattleInviteModal
+        battleId={battleId}
+        visible={inviteVisible}
+        onClose={() => setInviteVisible(false)}
+      />
+    </>
   );
 }
 
@@ -254,6 +277,19 @@ const useStyles = createThemedStyles((colors) => ({
   backRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.lg },
   backBtn: { padding: spacing.xs },
   detailTitle: { ...typography.h2, color: colors.textPrimary, flex: 1 },
+  inviteHeaderBtn: { padding: spacing.xs },
+  inviteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    margin: spacing.md,
+    marginTop: 0,
+    padding: spacing.md,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.lg,
+  },
+  inviteBtnText: { ...typography.body, color: colors.textPrimary, fontWeight: '600' },
   // List
   listRoot: { flex: 1, backgroundColor: colors.bgBase },
   listHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.border },

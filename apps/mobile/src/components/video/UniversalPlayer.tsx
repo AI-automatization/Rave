@@ -31,6 +31,8 @@ interface Props {
   extractedType?: 'mp4' | 'hls';
   /** Show loading overlay while extraction is in progress */
   isExtracting?: boolean;
+  /** Referer для CDN hotlink-защиты (страница где найдено видео) */
+  referer?: string;
 }
 
 const YOUTUBE_REGEX = /(?:youtube\.com|youtu\.be)/i;
@@ -78,6 +80,7 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
       url, isOwner, onPlay, onPause, onSeek,
       onPlaybackStatusUpdate, onProgress,
       extractedUrl, extractedType, isExtracting,
+      referer,
     },
     ref,
   ) => {
@@ -150,15 +153,19 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
           onSeek={onSeek}
           onProgress={onProgress}
           userAgent={MOBILE_USER_AGENT}
+          referer={platform !== 'youtube' ? referer : undefined}
         />
       );
     }
 
     // Direct: expo-av (mp4, m3u8, webm va h.k.)
+    const avSource = referer
+      ? { uri: directSource, headers: { Referer: referer } }
+      : { uri: directSource };
     return (
       <Video
         ref={videoRef}
-        source={{ uri: directSource }}
+        source={avSource}
         style={styles.video}
         resizeMode={ResizeMode.CONTAIN}
         shouldPlay={false}

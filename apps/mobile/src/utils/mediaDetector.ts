@@ -10,6 +10,8 @@ export interface RoomMedia {
   videoTitle: string;
   videoPlatform: VideoPlatform;
   videoThumbnail?: string;
+  /** Referer URL для CDN hotlink-защиты */
+  videoReferer?: string;
 }
 
 /** Payload приходящий через WebView postMessage */
@@ -19,6 +21,8 @@ export interface MediaDetectedPayload {
   videoUrl: string;
   pageTitle: string;
   thumbnailUrl?: string;
+  /** URL страницы где найдено видео — нужен как Referer для CDN */
+  pageUrl?: string;
 }
 
 // ─── Normalization ────────────────────────────────────────────────────────────
@@ -37,6 +41,7 @@ export function normalizeDetectedMedia(payload: MediaDetectedPayload): RoomMedia
     videoTitle: payload.pageTitle || 'Video',
     videoPlatform: platform,
     videoThumbnail: payload.thumbnailUrl,
+    videoReferer: payload.pageUrl,
   };
 }
 
@@ -119,6 +124,7 @@ export const MEDIA_DETECTION_JS = `
         videoUrl: url,
         pageTitle: document.title || 'YouTube',
         thumbnailUrl: thumb,
+        pageUrl: window.location.href,
       }));
       return;
     }
@@ -138,6 +144,7 @@ export const MEDIA_DETECTION_JS = `
           platform: 'direct',
           videoUrl: src,
           pageTitle: document.title || 'Video',
+          pageUrl: window.location.href,
         }));
         return;
       }

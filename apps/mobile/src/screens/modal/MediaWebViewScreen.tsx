@@ -81,7 +81,7 @@ export function MediaWebViewScreen() {
         videoTitle: media.videoTitle,
         videoPlatform: media.videoPlatform,
       });
-      navigation.navigate('WatchParty', { roomId: room._id });
+      navigation.navigate('WatchParty', { roomId: room._id, videoReferer: media.videoReferer });
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
