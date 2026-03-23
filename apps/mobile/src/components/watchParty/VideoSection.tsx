@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { AVPlaybackStatus } from 'expo-av';
 import { UniversalPlayer, UniversalPlayerRef } from '@components/video/UniversalPlayer';
 import { EmojiFloatItem } from '@components/watchParty/EmojiFloat';
+import { VideoProgressBar } from '@components/watchParty/VideoProgressBar';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
@@ -47,6 +48,9 @@ interface VideoSectionProps {
   onSeekDirection: (direction: 'forward' | 'back') => void;
   onToggleFullscreen: () => void;
   onRemoveEmoji: (id: string) => void;
+  currentTime?: number;
+  duration?: number;
+  onProgressSeek?: (secs: number) => void;
 }
 
 export const VideoSection = React.memo(function VideoSection({
@@ -70,6 +74,9 @@ export const VideoSection = React.memo(function VideoSection({
   onSeekDirection,
   onToggleFullscreen,
   onRemoveEmoji,
+  currentTime = 0,
+  duration = 0,
+  onProgressSeek,
 }: VideoSectionProps) {
   const { colors } = useTheme();
   const styles = useStyles();
@@ -122,6 +129,19 @@ export const VideoSection = React.memo(function VideoSection({
         <EmojiFloatItem key={e.id} emoji={e.emoji} x={e.x} onDone={() => onRemoveEmoji(e.id)} />
       ))}
 
+      {/* Progress bar — owner drag to seek, member read-only */}
+      {!videoIsLive && duration > 0 && (
+        <View style={styles.progressBarWrap}>
+          <VideoProgressBar
+            currentTime={currentTime}
+            duration={duration}
+            isOwner={isOwner}
+            isLive={videoIsLive}
+            onSeek={secs => onProgressSeek?.(secs)}
+          />
+        </View>
+      )}
+
       {isOwner && (
         <View style={styles.controls}>
           {!videoIsLive && (
@@ -170,6 +190,12 @@ const useStyles = createThemedStyles((colors) => ({
     backgroundColor: 'rgba(0,0,0,0.5)',
     borderRadius: borderRadius.full,
     zIndex: 10,
+  },
+  progressBarWrap: {
+    position: 'absolute',
+    bottom: 56,   // above controls row
+    left: 0,
+    right: 0,
   },
   controls: {
     position: 'absolute',

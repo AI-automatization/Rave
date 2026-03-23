@@ -49,6 +49,8 @@ export function WatchPartyScreen() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [videoIsLive, setVideoIsLive] = useState(false);
+  const [videoCurrentTime, setVideoCurrentTime] = useState(0);
+  const [videoDuration, setVideoDuration] = useState(0);
   const [floatingEmojis, setFloatingEmojis] = useState<FloatingEmoji[]>([]);
   const [connectTimeout, setConnectTimeout] = useState(false);
 
@@ -122,7 +124,11 @@ export function WatchPartyScreen() {
     const nowPlaying = status.isPlaying;
     setIsPlaying(nowPlaying);
 
-    // Owner: emit play/pause when expo-av video state changes (auto-play, user controls, etc.)
+    // Progress bar update (expo-av direct streams)
+    setVideoCurrentTime(status.positionMillis / 1000);
+    if (status.durationMillis) setVideoDuration(status.durationMillis / 1000);
+
+    // Owner: emit play/pause when expo-av video state changes
     if (isOwner) {
       const posSecs = status.positionMillis / 1000;
       if (nowPlaying && !prevIsPlayingRef.current) emitPlay(posSecs);
@@ -144,6 +150,19 @@ export function WatchPartyScreen() {
   const handleWebViewSeek = useCallback((secs: number) => {
     if (isOwner && !isSyncing.current) emitSeek(secs);
   }, [isOwner, emitSeek]);
+
+  // WebView progress (currentTime/duration from JS injection)
+  const handleProgress = useCallback((currentTimeSecs: number, durationSecs: number) => {
+    setVideoCurrentTime(currentTimeSecs);
+    if (durationSecs > 0) setVideoDuration(durationSecs);
+  }, []);
+
+  const handleProgressSeek = useCallback(async (secs: number) => {
+    if (!isOwner || videoIsLive) return;
+    const ms = secs * 1000;
+    await playerRef.current?.seekTo(ms);
+    emitSeek(secs);
+  }, [isOwner, videoIsLive, emitSeek]);
 
   const handlePlayPause = useCallback(async () => {
     if (!isOwner) return;
@@ -243,8 +262,12 @@ export function WatchPartyScreen() {
         onPause={handleWebViewPause}
         onSeek={handleWebViewSeek}
         onPlaybackStatusUpdate={onPlaybackStatusUpdate}
+        onProgress={handleProgress}
         onStreamResolved={({ isLive }) => setVideoIsLive(isLive)}
         onPlayPause={handlePlayPause}
+        currentTime={videoCurrentTime}
+        duration={videoDuration}
+        onProgressSeek={handleProgressSeek}
         onStop={handleStop}
         onSeekDirection={handleSeekDirection}
         onToggleFullscreen={handleToggleFullscreen}
