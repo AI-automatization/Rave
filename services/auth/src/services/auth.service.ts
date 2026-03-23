@@ -89,6 +89,8 @@ export class AuthService {
     role: 'admin' | 'operator' | 'moderator',
   ) => this.password.createStaffAccount(email, username, password, role);
 
+  deleteUser = (userId: string) => this.password.deleteUser(userId);
+
   clearLoginAttempts = (email: string) => this.password.clearLoginAttempts(email);
 
   // ─── Google Auth delegates ───────────────────────────────────────────────────

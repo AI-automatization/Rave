@@ -41,7 +41,7 @@ const userSchema = new Schema<IUserDocument>(
     bio: { type: String, maxlength: 200, default: '' },
     role: {
       type: String,
-      enum: ['user', 'operator', 'admin', 'superadmin'],
+      enum: ['user', 'operator', 'moderator', 'admin', 'superadmin'],
       default: 'user',
     },
     rank: {

@@ -130,6 +130,17 @@ export class AuthController {
     }
   };
 
+  // Internal — called by admin service when user is deleted
+  deleteUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = req.params;
+      await this.authService.deleteUser(userId);
+      res.json(apiResponse.success(null, 'User deleted from auth'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   // Internal — called by admin/user service when user is blocked
   revokeUserSessions = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {

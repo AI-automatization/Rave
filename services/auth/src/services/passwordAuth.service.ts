@@ -448,6 +448,12 @@ export class PasswordAuthService {
     password: string,
     role: 'admin' | 'operator' | 'moderator',
   ): Promise<{ authId: string }> {
+    // Check username uniqueness before deleting old email user
+    const existingByUsername = await User.findOne({ username, email: { $ne: email } });
+    if (existingByUsername) {
+      throw new ConflictError(`Username "${username}" is already taken`);
+    }
+
     const passwordHash = await this.hashPassword(password);
 
     // Remove any existing user with this email (both regular users and old staff)
@@ -503,6 +509,22 @@ export class PasswordAuthService {
     void syncAdminProfile(authId, email, username, 'superadmin');
 
     return result;
+  }
+
+  async deleteUser(userId: string): Promise<void> {
+    const user = await User.findById(userId);
+    if (!user) return; // already deleted — idempotent
+
+    // Revoke all refresh tokens
+    await RefreshToken.deleteMany({ userId });
+
+    // Clear brute force locks
+    await this.redis.del(REDIS_KEYS.loginAttempts(user.email));
+
+    // Delete user from auth DB
+    await User.deleteOne({ _id: userId });
+
+    logger.warn('User deleted from auth DB', { userId, email: user.email });
   }
 
   async clearLoginAttempts(email: string): Promise<void> {

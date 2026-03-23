@@ -82,8 +82,12 @@ export function StaffPage() {
       setFormError('Parollar mos kelmaydi');
       return;
     }
-    if (form.password.length < 8) {
-      setFormError('Parol kamida 8 ta belgi bo\'lishi kerak');
+    if (!/^[a-zA-Z0-9_]{3,20}$/.test(form.username)) {
+      setFormError('Username: 3-20 belgi, faqat harf, raqam va _ ruxsat etiladi');
+      return;
+    }
+    if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$/.test(form.password)) {
+      setFormError('Parol kamida 8 belgi, 1 katta harf, 1 kichik harf va 1 raqam bo\'lishi kerak');
       return;
     }
     setCreating(true);

@@ -469,6 +469,19 @@ export async function syncAdminProfile(authId: string, email: string, username: 
 
 const authServiceUrl = process.env.AUTH_SERVICE_URL ?? 'http://localhost:3001';
 
+export async function deleteAuthUser(userId: string): Promise<void> {
+  try {
+    await axios.delete(
+      `${authServiceUrl}/api/v1/auth/internal/users/${userId}`,
+      { headers: internalHeaders, timeout: 5000 },
+    );
+    logger.info('[serviceClient] deleteAuthUser', { userId });
+  } catch (err) {
+    const error = err as AxiosError;
+    logger.error('[serviceClient] deleteAuthUser failed', { userId, message: error.message });
+  }
+}
+
 export async function revokeUserSessions(userId: string): Promise<void> {
   try {
     await axios.post(

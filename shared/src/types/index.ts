@@ -23,7 +23,7 @@ export interface PaginationMeta {
 // User
 // ─────────────────────────────────────────────
 
-export type UserRole = 'user' | 'operator' | 'admin' | 'superadmin';
+export type UserRole = 'user' | 'operator' | 'moderator' | 'admin' | 'superadmin';
 
 export type UserRank = 'Bronze' | 'Silver' | 'Gold' | 'Platinum' | 'Diamond';
 

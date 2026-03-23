@@ -80,6 +80,9 @@ export const createAuthRouter = (redis: Redis): Router => {
   // POST /auth/internal/create-staff — superadmin creates admin/operator/moderator account
   router.post('/internal/create-staff', requireInternalSecret, authController.createStaffAccount);
 
+  // DELETE /auth/internal/users/:userId — admin deletes user from auth DB
+  router.delete('/internal/users/:userId', requireInternalSecret, authController.deleteUser);
+
   // POST /auth/internal/users/:userId/revoke-sessions — admin blocks user, revoke all refresh tokens
   router.post('/internal/users/:userId/revoke-sessions', requireInternalSecret, authController.revokeUserSessions);
 

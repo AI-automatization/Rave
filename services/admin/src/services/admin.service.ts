@@ -28,6 +28,8 @@ import {
   adminKickWatchPartyMember,
   adminBroadcastNotification,
   adminGetContentStats,
+  deleteAuthUser,
+  revokeUserSessions,
   adminGetWatchPartyStats,
   adminGetBattleStats,
   createStaffAccount,
@@ -113,8 +115,16 @@ export class AdminService {
   }
 
   async deleteUser(userId: string, adminId: string, adminEmail: string): Promise<void> {
+    // Delete from user service DB (profile)
     await adminDeleteUser(userId);
-    logger.warn('User deleted by admin', { userId, adminId });
+    // Delete from auth service DB (credentials + refresh tokens)
+    await deleteAuthUser(userId);
+    // Revoke active sessions
+    await revokeUserSessions(userId);
+    // Clear blocked user flag from Redis
+    await this.redis.del(REDIS_KEYS.blockedUser(userId));
+    await this.redis.del(REDIS_KEYS.userSession(userId));
+    logger.warn('User fully deleted by admin (user + auth DB)', { userId, adminId });
     await this.logAudit(adminId, adminEmail, 'delete_user', {}, userId, 'user');
   }
 
@@ -392,7 +402,12 @@ export class AdminService {
     adminId: string,
     adminEmail: string,
   ): Promise<void> {
+    // Delete from user service DB (profile)
     await adminDeleteUser(targetAuthId);
+    // Delete from auth service DB (credentials + refresh tokens)
+    await deleteAuthUser(targetAuthId);
+    // Revoke active sessions
+    await revokeUserSessions(targetAuthId);
     await AuditLog.create({
       adminId,
       adminEmail,
@@ -400,7 +415,7 @@ export class AdminService {
       targetId: targetAuthId,
       details: {},
     });
-    logger.warn('Staff account deleted by superadmin', { targetAuthId, adminId });
+    logger.warn('Staff account fully deleted by superadmin', { targetAuthId, adminId });
   }
 
   // ── System Health ──────────────────────────────────────────
