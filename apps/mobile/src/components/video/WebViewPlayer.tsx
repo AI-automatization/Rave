@@ -48,7 +48,8 @@ type WebViewMessage =
   | { type: 'PAUSE'; currentTime: number }
   | { type: 'SEEK'; currentTime: number }
   | { type: 'PROGRESS'; currentTime: number; duration: number }
-  | { type: 'IFRAME_FOUND'; urls: string[] };
+  | { type: 'IFRAME_FOUND'; urls: string[] }
+  | { type: 'YT_EMBED_ERROR'; code: number };
 
 
 export const WebViewPlayer = forwardRef<WebViewPlayerRef, Props>(
@@ -67,6 +68,11 @@ export const WebViewPlayer = forwardRef<WebViewPlayerRef, Props>(
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
     const [redirectWarning, setRedirectWarning] = useState<string | null>(null);
+    // YouTube IFrame embed error 150/152 → fallback to m.youtube.com
+    const [ytFallback, setYtFallback] = useState(false);
+    const fallbackYtUrl = isYouTubeMode && youtubeVideoId
+      ? `https://m.youtube.com/watch?v=${youtubeVideoId}`
+      : url;
 
     // Fullscreen: StatusBar yashirish
     useEffect(() => {
@@ -123,6 +129,13 @@ export const WebViewPlayer = forwardRef<WebViewPlayerRef, Props>(
               );
             }
             break;
+          case 'YT_EMBED_ERROR':
+            // 150/152: embedding disabled — fallback to m.youtube.com full site
+            if (data.code === 150 || data.code === 152 || data.code === 101) {
+              setYtFallback(true);
+              setLoading(true);
+            }
+            break;
         }
       } catch {
         // JSON parse xato — ignore
@@ -160,9 +173,14 @@ export const WebViewPlayer = forwardRef<WebViewPlayerRef, Props>(
       webviewRef.current?.reload();
     }, []);
 
-    // WebView source: YouTube → HTML IFrame API, boshqalar → URI
-    const webViewSource = isYouTubeMode
+    // WebView source:
+    //  YouTube IFrame embed (normal) → buildYouTubeHtml
+    //  YouTube fallback (error 150/152) → m.youtube.com URI
+    //  Others → URI
+    const webViewSource = isYouTubeMode && !ytFallback
       ? { html: buildYouTubeHtml(youtubeVideoId!), baseUrl: 'https://www.youtube.com' }
+      : isYouTubeMode && ytFallback
+      ? { uri: fallbackYtUrl }
       : { uri: url, headers: referer ? { Referer: referer } : {} };
 
     return (

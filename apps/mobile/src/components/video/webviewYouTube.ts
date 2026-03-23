@@ -54,6 +54,10 @@ export function buildYouTubeHtml(videoId: string): string {
             } else if (e.data === YT.PlayerState.PAUSED) {
               rn({ type: 'PAUSE', currentTime: ct });
             }
+          },
+          onError: function(e) {
+            // 150/152: embedding disabled by video owner → fallback to m.youtube.com
+            rn({ type: 'YT_EMBED_ERROR', code: e.data });
           }
         }
       });
