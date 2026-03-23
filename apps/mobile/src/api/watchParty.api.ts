@@ -6,6 +6,8 @@ export const watchPartyApi = {
   async createRoom(data: {
     movieId?: string;
     videoUrl?: string;
+    videoTitle?: string;
+    videoPlatform?: string;
     name?: string;
     isPrivate?: boolean;
     maxMembers?: number;

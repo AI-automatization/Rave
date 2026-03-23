@@ -2,7 +2,7 @@ import { Server as SocketServer, Socket } from 'socket.io';
 import { WatchPartyService } from '../services/watchParty.service';
 import { logger } from '@shared/utils/logger';
 import { SERVER_EVENTS, CLIENT_EVENTS } from '@shared/constants/socketEvents';
-import { JwtPayload } from '@shared/types';
+import { JwtPayload, VideoPlatform } from '@shared/types';
 
 interface AuthenticatedSocket extends Socket {
   user: JwtPayload;
@@ -106,6 +106,35 @@ export const registerRoomEvents = (
     }
 
     logger.info('Socket left room', { userId, roomId });
+  });
+
+  // CHANGE_MEDIA — owner only: yangi videoUrl + title + platform → ROOM_UPDATED broadcast
+  socket.on(CLIENT_EVENTS.CHANGE_MEDIA, async (data: {
+    videoUrl: string;
+    videoTitle?: string;
+    videoPlatform?: string;
+  }) => {
+    const roomId = authSocket.roomId;
+    if (!roomId) {
+      logger.warn('Media change: socket has no roomId', { userId });
+      return;
+    }
+
+    try {
+      const updated = await watchPartyService.updateRoomMedia(userId, roomId, {
+        videoUrl:      data.videoUrl,
+        videoTitle:    data.videoTitle    ?? null,
+        videoPlatform: (data.videoPlatform as VideoPlatform) ?? null,
+      });
+
+      // Barcha memberlarga yangi room state broadcast — ROOM_UPDATED mavjud event
+      io.to(roomId).emit(SERVER_EVENTS.ROOM_UPDATED, updated);
+
+      logger.info('Room media changed', { roomId, userId, videoUrl: data.videoUrl });
+    } catch (error) {
+      socket.emit(SERVER_EVENTS.ERROR, { message: 'Failed to change room media' });
+      logger.error('Socket media change error', { userId, error });
+    }
   });
 
   socket.on(CLIENT_EVENTS.KICK_MEMBER, async (data: { targetUserId: string }) => {

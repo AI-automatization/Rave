@@ -20,6 +20,7 @@ module.exports = function (api) {
             '@navigation': './src/navigation',
             '@hooks': './src/hooks',
             '@i18n': './src/i18n',
+            '@constants': './src/constants',
             '@shared': '../../shared/src',
           },
         },

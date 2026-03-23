@@ -263,6 +263,57 @@ export class WatchPartyService {
     logger.info('Watch party room auto-closed by system', { roomId });
   }
 
+  /**
+   * Owner xona mediasini almashtiradi.
+   * currentTime → 0, isPlaying → false, status → 'waiting' ga reset qilinadi.
+   * Redis sync state ham yangilanadi — yangi media noldan boshlanadi.
+   */
+  async updateRoomMedia(
+    ownerId: string,
+    roomId: string,
+    media: {
+      videoUrl: string;
+      videoTitle?: string | null;
+      videoPlatform?: VideoPlatform | null;
+    },
+  ): Promise<IWatchPartyRoomDocument> {
+    const room = await WatchPartyRoom.findById(roomId);
+    if (!room) throw new NotFoundError('Room not found');
+    if (room.ownerId !== ownerId) throw new ForbiddenError('Only the room owner can change media');
+
+    if (!/^https?:\/\//i.test(media.videoUrl)) {
+      throw new BadRequestError('videoUrl must start with http:// or https://');
+    }
+
+    await WatchPartyRoom.updateOne(
+      { _id: roomId },
+      {
+        videoUrl:     media.videoUrl,
+        videoTitle:   media.videoTitle   ?? null,
+        videoPlatform: media.videoPlatform ?? null,
+        videoThumbnail: null,
+        currentTime:  0,
+        isPlaying:    false,
+        status:       'waiting',
+        lastActivityAt: new Date(),
+      },
+    );
+
+    // Reset Redis sync state — yangi media noldan boshlanadi
+    await this.cacheRoomState(roomId, {
+      currentTime: 0,
+      isPlaying: false,
+      serverTimestamp: Date.now(),
+      updatedBy: ownerId,
+    });
+
+    const updated = await WatchPartyRoom.findById(roomId);
+    if (!updated) throw new NotFoundError('Room not found after update');
+
+    logger.info('Watch party media updated', { roomId, ownerId, videoUrl: media.videoUrl });
+    return updated;
+  }
+
   async kickMember(ownerId: string, roomId: string, targetUserId: string): Promise<void> {
     const room = await WatchPartyRoom.findById(roomId);
     if (!room) throw new NotFoundError('Room not found');

@@ -1,6 +1,32 @@
 # CineSync — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-03-21
+# Yangilangan: 2026-03-23
+
+---
+
+### F-146 | 2026-03-23 | [MOBILE+BACKEND] | T-E063 + T-S039 — Source Picker + In-App Browser + Media Change [Emirhan]
+
+**Mobile (T-E063):**
+- `src/constants/mediaSources.ts` — 17 ta media manba (YouTube, VK, Rutube, Twitch, Web, Drive, DRM va internal)
+- `src/utils/mediaDetector.ts` — JS injection (MEDIA_DETECTION_JS) + normalizeDetectedMedia → RoomMedia
+- `src/screens/modal/SourcePickerScreen.tsx` — 2-kolonli grid modal, qidiruv, DRM xabar, DIM="SOON" badge
+- `src/screens/modal/MediaWebViewScreen.tsx` — Встроенный браузер (back/forward/close) + media detection popup
+- `CustomTabBar.tsx` "+" tugmasi → SourcePickerScreen(context='new_room')
+- `ModalNavigator.tsx` — SourcePicker + MediaWebView registered
+- `types/index.ts` — ModalStackParamList extended, VideoPlatform exported
+- `watchParty.store.ts` — updateRoomMedia optimistic action
+- `useWatchParty.ts` — emitMediaChange hook (optimistic + socket emit)
+- `WatchPartyScreen.tsx` — owner uchun "Сменить медиа" tugmasi
+- `watchParty.api.ts` — createRoom: videoTitle + videoPlatform qo'shildi
+- `babel.config.js` + `tsconfig.json` — @constants/* alias
+- `shared/socketEvents.ts` — CHANGE_MEDIA: 'room:media:change' qo'shildi
+
+**Backend (T-S039):**
+- `watchParty.service.ts` — updateRoomMedia(ownerId, roomId, media): owner check + DB update + Redis reset
+- `roomEvents.handler.ts` — CHANGE_MEDIA socket handler: owner validation → updateRoomMedia → ROOM_UPDATED broadcast
+
+**Flow:** "+" → SourcePicker → MediaWebView → JS detects media → popup → createRoom(new_room) / socket emit(change_media)
+**Sync:** CHANGE_MEDIA → backend → ROOM_UPDATED → mobile setRoom() → UniversalPlayer reloads
 
 ---
 

@@ -1,6 +1,6 @@
 # CineSync — OCHIQ VAZIFALAR
 
-# Yangilangan: 2026-03-19
+# Yangilangan: 2026-03-23
 
 # 3 dasturchi: Saidazim (Backend) | Emirhan (Mobile) | Jafar (Mobile)
 
@@ -23,6 +23,10 @@
 # ═══════════════════════════════════════
 
 # 🔴 SAIDAZIM — BACKEND + ADMIN
+
+### ✅ T-S039 | TUGADI → Done.md F-146
+
+---
 
 ### T-S038 | P1 | [BACKEND] | Watch Party — bo'sh xonani 5 daqiqada avtomatik yopish
 
@@ -350,6 +354,12 @@ if (initial?.data?.screen) { /* same logic */ }
 ---
 
 ### ✅ T-E060 | TUGADI → Done.md F-143
+
+---
+
+## SPRINT 7 — Source Picker + In-App Browser
+
+### ✅ T-E063 | TUGADI → Done.md F-146
 
 ---
 

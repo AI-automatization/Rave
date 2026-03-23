@@ -3,7 +3,7 @@ import { useEffect, useCallback, useState } from 'react';
 import { useWatchPartyStore } from '@store/watchParty.store';
 import { useAuthStore } from '@store/auth.store';
 import { connectSocket, disconnectSocket, getSocket, SERVER_EVENTS, CLIENT_EVENTS } from '@socket/client';
-import { SyncState, IWatchPartyRoom } from '@app-types/index';
+import { SyncState, IWatchPartyRoom, VideoPlatform } from '@app-types/index';
 
 interface MemberEvent {
   userId: string;
@@ -24,7 +24,7 @@ export interface RoomClosedData {
 export function useWatchParty(roomId: string) {
   const token = useAuthStore(s => s.accessToken);
   const userId = useAuthStore(s => s.user?._id);
-  const { room, syncState, messages, activeMembers, setRoom, setSyncState, addMessage, setActiveMembers, addMember, removeMember, clearParty } =
+  const { room, syncState, messages, activeMembers, setRoom, setSyncState, addMessage, setActiveMembers, addMember, removeMember, clearParty, updateRoomMedia } =
     useWatchPartyStore();
 
   const isOwner = room?.ownerId === userId;
@@ -141,5 +141,22 @@ export function useWatchParty(roomId: string) {
     [roomId],
   );
 
-  return { room, syncState, messages, activeMembers, isOwner, adminMonitoring, roomClosed, emitPlay, emitPause, emitSeek, sendMessage, sendEmoji };
+  /**
+   * Owner xona mediasini almashtiradi.
+   * Server room:updated broadcast qiladi → barcha memberlar ROOM_UPDATED oladi.
+   */
+  const emitMediaChange = useCallback(
+    (media: { videoUrl: string; videoTitle: string; videoPlatform: string }) => {
+      // Optimistic update — server confirm qilguncha UI ni yangilash
+      updateRoomMedia({
+        videoUrl: media.videoUrl,
+        videoTitle: media.videoTitle,
+        videoPlatform: media.videoPlatform as VideoPlatform,
+      });
+      getSocket()?.emit(CLIENT_EVENTS.CHANGE_MEDIA, { roomId, ...media });
+    },
+    [roomId, updateRoomMedia],
+  );
+
+  return { room, syncState, messages, activeMembers, isOwner, adminMonitoring, roomClosed, emitPlay, emitPause, emitSeek, sendMessage, sendEmoji, emitMediaChange };
 }

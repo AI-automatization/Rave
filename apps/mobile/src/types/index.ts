@@ -15,6 +15,7 @@ export type {
   ContentGenre,
   IWatchPartyRoom,
   WatchPartyStatus,
+  VideoPlatform,
   SyncState,
   IBattle,
   IBattleParticipant,
@@ -134,6 +135,19 @@ export type ModalStackParamList = {
   Battle: { battleId?: string };
   BattleCreate: { initialMovieTitle?: string; initialFriendId?: string } | undefined;
   Notifications: undefined;
+  /** Source picker — выбор платформы (YouTube, Web, VK, etc.) */
+  SourcePicker: {
+    context: 'new_room' | 'change_media';
+    roomId?: string;
+  };
+  /** Встроенный браузер для просмотра и импорта медиа */
+  MediaWebView: {
+    sourceId: string;
+    sourceName: string;
+    defaultUrl: string;
+    context: 'new_room' | 'change_media';
+    roomId?: string;
+  };
 };
 
 export type RoomsStackParamList = {

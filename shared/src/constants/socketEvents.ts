@@ -57,6 +57,9 @@ export const CLIENT_EVENTS = Object.freeze({
   VOICE_ANSWER:   'voice:answer',
   VOICE_ICE:      'voice:ice',
   VOICE_SPEAKING: 'voice:speaking',
+
+  // Owner xona mediasini almashtiradi → server room:updated broadcast qiladi barcha memberlarga
+  CHANGE_MEDIA: 'room:media:change',
 } as const);
 
 export type ServerEvent = (typeof SERVER_EVENTS)[keyof typeof SERVER_EVENTS];

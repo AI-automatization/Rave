@@ -2,6 +2,7 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { View, Text, TouchableOpacity, Dimensions, Alert, Platform } from 'react-native';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AVPlaybackStatus } from 'expo-av';
 import { useWatchParty } from '@hooks/useWatchParty';
 import { useAuthStore } from '@store/auth.store';
@@ -19,12 +20,13 @@ import { ModalStackParamList } from '@app-types/index';
 import { useT } from '@i18n/index';
 
 type RouteType = RouteProp<ModalStackParamList, 'WatchParty'>;
+type NavProp = NativeStackNavigationProp<ModalStackParamList>;
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
 export function WatchPartyScreen() {
   const { params } = useRoute<RouteType>();
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavProp>();
   const userId = useAuthStore(s => s.user?._id) ?? '';
   const { colors } = useTheme();
   const s = useStyles();
@@ -184,6 +186,11 @@ export function WatchPartyScreen() {
     setFloatingEmojis(prev => prev.filter(e => e.id !== id));
   }, []);
 
+  const handleChangeMedia = useCallback(() => {
+    if (!isOwner) return;
+    navigation.navigate('SourcePicker', { context: 'change_media', roomId: params.roomId });
+  }, [isOwner, navigation, params.roomId]);
+
   const handleLeave = () => {
     Alert.alert('Chiqish', 'Watch Party dan chiqmoqchimisiz?', [
       { text: 'Bekor', style: 'cancel' },
@@ -251,6 +258,17 @@ export function WatchPartyScreen() {
             onLeave={handleLeave}
           />
 
+          {/* Owner: кнопка смены медиа источника */}
+          {isOwner && (
+            <TouchableOpacity style={s.changeMediaBtn} onPress={handleChangeMedia}>
+              <Ionicons name="add-circle-outline" size={16} color={colors.primary} />
+              <Text style={s.changeMediaText}>
+                {room?.videoTitle ? room.videoTitle.slice(0, 36) : 'Выбрать источник'}
+              </Text>
+              <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
+            </TouchableOpacity>
+          )}
+
           {adminMonitoring && (
             <View style={s.adminBanner}>
               <Ionicons name="shield-checkmark-outline" size={14} color={colors.warning} />
@@ -283,6 +301,22 @@ export function WatchPartyScreen() {
 
 const useStyles = createThemedStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bgVoid },
+  changeMediaBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    backgroundColor: 'rgba(229,9,20,0.06)',
+    borderBottomWidth: 0.5,
+    borderBottomColor: 'rgba(255,255,255,0.05)',
+  },
+  changeMediaText: {
+    flex: 1,
+    ...typography.caption,
+    color: colors.textMuted,
+    fontSize: 13,
+  },
   emojiBar: { padding: spacing.md, alignItems: 'center' },
   emojiBarAndroid: { marginTop: spacing.sm },
   chatPanel: { flex: 1 },

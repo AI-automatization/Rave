@@ -24,6 +24,8 @@ interface WatchPartyState {
   addMember: (userId: string) => void;
   removeMember: (userId: string) => void;
   clearParty: () => void;
+  /** Optimistic update xona mediasini almashtirish uchun */
+  updateRoomMedia: (media: Partial<Pick<IWatchPartyRoom, 'videoUrl' | 'videoTitle' | 'videoPlatform'>>) => void;
 }
 
 export const useWatchPartyStore = create<WatchPartyState>((set) => ({
@@ -56,4 +58,9 @@ export const useWatchPartyStore = create<WatchPartyState>((set) => ({
 
   clearParty: () =>
     set({ room: null, syncState: null, messages: [], activeMembers: [] }),
+
+  updateRoomMedia: (media) =>
+    set((state) => ({
+      room: state.room ? { ...state.room, ...media } : null,
+    })),
 }));
