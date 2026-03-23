@@ -1,0 +1,29 @@
+# CineSync E2E — Home → MovieDetail → VideoPlayer
+# Run: maestro test .maestro/02_home_to_movie_detail.yaml
+appId: com.cinesync.mobile
+
+---
+
+- launchApp
+- assertVisible: "CINESYNC"
+
+# Tap first movie card in Trending row
+- tapOn:
+    index: 0
+    id: "movie-card"
+
+# MovieDetail screen
+- assertVisible: "Ko'rish"         # Watch button
+- assertVisible: "Sevimlilar"      # Favorites button
+
+# Tap Watch button → VideoPlayer
+- tapOn: "Ko'rish"
+- assertVisible:
+    id: "video-player"
+
+# Go back
+- pressKey: Back
+- assertVisible: "Ko'rish"         # Back to MovieDetail
+
+- pressKey: Back
+- assertVisible: "CINESYNC"        # Back to Home

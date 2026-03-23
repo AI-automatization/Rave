@@ -1,0 +1,32 @@
+# CineSync E2E — Notification deep link navigation
+# Run: maestro test .maestro/04_notification_deep_link.yaml
+appId: com.cinesync.mobile
+
+---
+
+- launchApp
+- assertVisible: "CINESYNC"
+
+# Tap notification bell → NotificationsScreen
+- tapOn:
+    id: "notifications-button"
+- assertVisible: "Bildirishnomalar"
+
+# Go back
+- pressKey: Back
+- assertVisible: "CINESYNC"
+
+# Navigate to Friends tab
+- tapOn:
+    id: "tab-friends"
+- assertVisible: "Do'stlar"
+
+# Navigate to Profile tab
+- tapOn:
+    id: "tab-profile"
+- assertVisible: "Profil"
+
+# Back to Home
+- tapOn:
+    id: "tab-home"
+- assertVisible: "CINESYNC"

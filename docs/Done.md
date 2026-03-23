@@ -4,6 +4,48 @@
 
 ---
 
+### F-150 | 2026-03-23 | [MOBILE] | T-E059 — E2E smoke test: Maestro flows [Emirhan]
+
+- **Yondashuv:** Detox → Maestro (Expo bilan osonroq, native build shart emas)
+- `apps/mobile/.maestro/01_auth_login.yaml` — Login → HomeScreen
+- `apps/mobile/.maestro/02_home_to_movie_detail.yaml` — Home → MovieDetail → VideoPlayer → Back
+- `apps/mobile/.maestro/03_watchparty_create_join.yaml` — "+" → SourcePicker → YouTube → Back
+- `apps/mobile/.maestro/04_notification_deep_link.yaml` — Bell → Notifications → Friends → Profile → Home
+- `apps/mobile/.maestro/README.md` — O'rnatish va ishga tushirish yo'riqnomasi
+- **Ishga tushirish:** `maestro test .maestro/` (Maestro CLI o'rnatilishi kerak — bir marta)
+
+---
+
+### F-149 | 2026-03-23 | [MOBILE] | T-E057 — Unit testlar: hooks va API layer [Emirhan]
+
+- `__tests__/api/content.api.test.ts` — 9 test: getTrending, getTopRated, getMovies, search, addFavorite, removeFavorite, extractVideo (error case), getWatchProgress (graceful null)
+- `__tests__/hooks/useSearch.test.ts` — 9 test: GENRES constant, debounce timer logic, search history deduplication + MAX_HISTORY, query enabled logic
+- `__tests__/hooks/useHomeData.test.ts` — 9 test: API call params, isLoading logic, fallback empty array
+- `__tests__/hooks/useBattle.test.ts` — 10 test: getMyBattles, accept/reject/create, getBattleById, daysLeft calc, winner detection, staleTime/refetchInterval
+- Jami: 37 test | Jest setup ✅ (jest-expo preset, moduleNameMapper barcha alias) | `npm install` keyin `npm test` bilan ishga tushirish
+
+---
+
+### F-148 | 2026-03-23 | [MOBILE] | T-E058 — Performance: React.memo + expo-image cachePolicy [Emirhan]
+
+- `MovieCard.tsx` — `expo-image` ga `cachePolicy="memory-disk"` qo'shildi
+- `FriendsScreen.tsx` — `FriendRow` → `React.memo(...)` + avatar Image `cachePolicy="memory-disk"`
+- `BattleScreen.tsx` — `BattleCard` → `React.memo(...)`
+- `MovieCard`, `MovieRow` allaqachon `memo` + `getItemLayout` ✅ (avval qilingan)
+
+---
+
+### F-147 | 2026-03-23 | [MOBILE] | T-E062 — FCM token registration + notification deep links [Emirhan]
+
+- **Yechim:** `@react-native-firebase/messaging` emas — `expo-notifications` orqali T-E052 da allaqachon implement qilingan.
+- `usePushNotifications.ts` — `getExpoPushTokenAsync()` → `userApi.updateFcmToken(token)` ✅
+- `AppNavigator.tsx` — `useLastNotificationResponse` → `inviteCode / roomId / battleId / screen` deep link ✅
+- Android channel setup + iOS permission request ✅
+- Foreground: `addNotificationReceivedListener` + React Query invalidation ✅
+- Background/killed: `useLastNotificationResponse` hook pokrыvaet ✅
+
+---
+
 ### F-146 | 2026-03-23 | [MOBILE+BACKEND] | T-E063 + T-S039 — Source Picker + In-App Browser + Media Change [Emirhan]
 
 **Mobile (T-E063):**

@@ -34,6 +34,7 @@ export const MovieCard = memo(function MovieCard({ movie, width = CARD_WIDTH, on
         contentFit="cover"
         transition={200}
         recyclingKey={movie._id}
+        cachePolicy="memory-disk"
       />
       <View style={styles.overlay}>
         <View style={styles.ratingBadge}>

@@ -1,0 +1,25 @@
+# CineSync E2E — WatchParty Create → Screen → Leave
+# Run: maestro test .maestro/03_watchparty_create_join.yaml
+appId: com.cinesync.mobile
+
+---
+
+- launchApp
+- assertVisible: "CINESYNC"
+
+# Tap "+" button in tab bar → SourcePickerScreen
+- tapOn:
+    id: "tab-plus-button"
+- assertVisible: "Manba tanlash"
+
+# Select YouTube
+- tapOn: "YouTube"
+- assertVisible:
+    id: "media-webview"
+
+# Go back to SourcePicker
+- pressKey: Back
+
+# Close modal
+- pressKey: Back
+- assertVisible: "CINESYNC"

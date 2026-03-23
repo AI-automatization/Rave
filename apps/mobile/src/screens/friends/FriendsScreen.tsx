@@ -26,7 +26,7 @@ import { DEFAULT_AVATAR } from '@utils/assets';
 
 type Nav = NativeStackNavigationProp<FriendsStackParamList, 'Friends'>;
 
-function FriendRow({
+const FriendRow = React.memo(function FriendRow({
   item,
   isOnline,
   onPress,
@@ -47,6 +47,7 @@ function FriendRow({
           source={item.avatar ? { uri: item.avatar } : DEFAULT_AVATAR}
           style={styles.avatar}
           contentFit="cover"
+          cachePolicy="memory-disk"
         />
         <View style={[styles.onlineDot, { backgroundColor: isOnline ? colors.success : colors.textMuted }]} />
       </View>
@@ -61,7 +62,7 @@ function FriendRow({
       <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
     </TouchableOpacity>
   );
-}
+});
 
 const TAB_BAR_HEIGHT = 60;
 

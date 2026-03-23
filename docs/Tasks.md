@@ -240,62 +240,7 @@ GET  https://auth-production-47a8.up.railway.app/api/v1/auth/telegram/poll?state
 
 ## SPRINT 5 — Sifat + Test
 
-### T-E062 | P1 | [MOBILE] | FCM token registration + notification deep links
-
-- **Sana:** 2026-03-21
-- **Mas'ul:** pending[Emirhan]
-- **Sprint:** S4
-- **Fayllar:** `apps/mobile/src/hooks/useNotifications.ts` (yoki yangi), `apps/mobile/src/navigation/`
-- **Holat:** ❌ Boshlanmagan
-
-**Muammo:**
-Backend FCM push yuboradi, lekin mobile:
-1. FCM token ni backendga ro'yxatdan o'tkazishi kerak
-2. Notification bosilganda to'g'ri ekranga yo'naltirishi kerak
-
-**Yechim:**
-
-**A. FCM token registration:**
-```typescript
-// App startup yoki login dan keyin:
-import messaging from '@react-native-firebase/messaging';
-import { apiClient } from '../api/client';
-
-const token = await messaging().getToken();
-await apiClient.post('/users/me/fcm-token', { fcmToken: token });
-
-// Token yangilanganda:
-messaging().onTokenRefresh(async (newToken) => {
-  await apiClient.post('/users/me/fcm-token', { fcmToken: newToken });
-});
-```
-
-**B. Notification tap → deep link:**
-```typescript
-// FCM data payload dan screen olish:
-// data.screen = 'Friends' | 'WatchParty' | 'Battles' | 'Home'
-// data.roomId, data.battleId, data.friendshipId — qo'shimcha params
-
-messaging().onNotificationOpenedApp((remoteMessage) => {
-  const { screen, roomId, battleId } = remoteMessage.data ?? {};
-  if (screen === 'WatchParty' && roomId) navigation.navigate('WatchParty', { roomId });
-  else if (screen === 'Battles') navigation.navigate('Battles');
-  else if (screen === 'Friends') navigation.navigate('Friends');
-  else navigation.navigate('Home');
-});
-
-// App birinchi ochilganda (notification tap bilan):
-const initial = await messaging().getInitialNotification();
-if (initial?.data?.screen) { /* same logic */ }
-```
-
-**Subtasklar:**
-- [ ] `useNotifications` hook — token register + foreground/background handler
-- [ ] `AppNavigator` da `onNotificationOpenedApp` + `getInitialNotification`
-- [ ] Permission so'rash (iOS: `messaging().requestPermission()`)
-- [ ] Background message handler (`setBackgroundMessageHandler`)
-- [ ] FCM topic `all` ga subscribe: `messaging().subscribeToTopic('all')`
-- [ ] Test: backend dan broadcast → telefonga push keladi
+### ✅ T-E062 | TUGADI → Done.md F-147
 
 ---
 
@@ -307,49 +252,15 @@ if (initial?.data?.screen) { /* same logic */ }
 
 ---
 
-### T-E057 | P1 | [MOBILE] | Unit testlar — hooks va API layer
-
-- **Sana:** 2026-03-19
-- **Mas'ul:** pending[Emirhan]
-- **Sprint:** S5
-- **Fayllar:** `__tests__/hooks/useHomeData.test.ts`, `__tests__/hooks/useSearch.test.ts`, `__tests__/api/content.api.test.ts`, `__tests__/hooks/useBattle.test.ts`
-- **Holat:** ❌ Boshlanmagan
-- **Subtasklar:**
-  - [ ] Jest setup tekshirish
-  - [ ] `useHomeData` test (mock contentApi)
-  - [ ] `useSearch` test (debounce, history)
-  - [ ] `contentApi` test (axios mock)
-  - [ ] `useBattle` test (accept/reject mutations)
-  - [ ] Coverage: 70%+ hooks, 80%+ API
+### ✅ T-E057 | TUGADI → Done.md F-149
 
 ---
 
-### T-E058 | P2 | [MOBILE] | Performance — React.memo + FlatList getItemLayout + expo-image cache
-
-- **Sana:** 2026-03-19
-- **Mas'ul:** pending[Emirhan]
-- **Sprint:** S5
-- **Fayllar:** `components/movie/MovieCard.tsx`, `components/movie/MovieRow.tsx`, barcha FlatList komponentlar
-- **Holat:** ❌ Boshlanmagan
-- **Subtasklar:**
-  - [ ] `MovieCard`, `FriendRow`, `BattleCard` → `React.memo`
-  - [ ] FlatList `getItemLayout` (fixed height bo'lsa)
-  - [ ] `expo-image` `{ cachePolicy: 'memory-disk' }` barcha Image larga
+### ✅ T-E058 | TUGADI → Done.md F-148
 
 ---
 
-### T-E059 | P2 | [MOBILE] | E2E smoke test — critical user flows
-
-- **Sana:** 2026-03-19
-- **Mas'ul:** pending[Emirhan]
-- **Sprint:** S5
-- **Fayllar:** `__tests__/e2e/auth.flow.test.ts`, `__tests__/e2e/watchparty.flow.test.ts`
-- **Holat:** ❌ Boshlanmagan
-- **Subtasklar:**
-  - [ ] Login → Home → MovieDetail → VideoPlayer oqimi
-  - [ ] Register → VerifyEmail → ProfileSetup oqimi
-  - [ ] WatchPartyCreate → WatchPartyScreen → Leave oqimi
-  - [ ] Notification tap → deep link → to'g'ri ekran
+### ✅ T-E059 | TUGADI → Done.md F-150
 
 ---
 

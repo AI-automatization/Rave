@@ -1,0 +1,29 @@
+# CineSync E2E — Login flow
+# Run: maestro test .maestro/01_auth_login.yaml
+appId: com.cinesync.mobile
+
+---
+
+- launchApp
+- assertVisible: "CINESYNC"       # Splash / auth screen
+
+# Navigate to Login if on Onboarding
+- runFlow:
+    when:
+      visible: "Boshlash"
+    flow:
+      - tapOn: "Boshlash"
+
+# Login form
+- assertVisible: "Login"
+- tapOn:
+    id: "email-input"
+- inputText: "testuser@cinesync.com"
+- tapOn:
+    id: "password-input"
+- inputText: "Test1234!"
+- tapOn: "Kirish"
+
+# After login — should see HomeScreen
+- assertVisible: "CINESYNC"
+- assertVisible: "Trending"

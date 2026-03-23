@@ -40,7 +40,7 @@ function ProgressBar({ score, maxScore, color }: { score: number; maxScore: numb
   );
 }
 
-function BattleCard({ battle, userId, onAccept, onReject, onPress }: {
+const BattleCard = React.memo(function BattleCard({ battle, userId, onAccept, onReject, onPress }: {
   battle: IBattle;
   userId: string;
   onAccept?: () => void;
@@ -106,7 +106,7 @@ function BattleCard({ battle, userId, onAccept, onReject, onPress }: {
       )}
     </TouchableOpacity>
   );
-}
+});
 
 // Detail view when battleId provided
 function BattleDetailView({ battleId }: { battleId: string }) {
