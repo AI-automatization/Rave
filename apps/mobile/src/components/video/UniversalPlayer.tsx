@@ -138,15 +138,17 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
       );
     }
 
-    // YouTube: IFrame API EMAS — Error 152 beradi.
-    // m.youtube.com ni oddiy brauzer sifatida ochish + MOBILE_USER_AGENT.
+    // YouTube: IFrame API rejimi — toza embed player, YouTube site UI yo'q.
+    // youtubeVideoId berilsa WebViewPlayer buildYouTubeHtml ishlatadi.
     // Boshqa saytlar: URI rejimi + MOBILE_USER_AGENT.
     if (useWebview) {
-      const displayUrl = platform === 'youtube' ? getMobileYouTubeUrl(url) : url;
+      const ytId = platform === 'youtube' ? extractYouTubeVideoId(url) : null;
+      const displayUrl = (!ytId && platform === 'youtube') ? getMobileYouTubeUrl(url) : url;
       return (
         <WebViewPlayer
           ref={webviewRef}
           url={displayUrl}
+          youtubeVideoId={ytId ?? undefined}
           isOwner={isOwner}
           onPlay={onPlay}
           onPause={onPause}

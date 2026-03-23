@@ -11,7 +11,7 @@ import { disconnectSocket } from '@socket/client';
 import { ChatPanel } from '@components/watchParty/ChatPanel';
 import { VoiceChat } from '@components/watchParty/VoiceChat';
 import { EmojiPickerBar } from '@components/watchParty/EmojiFloat';
-import { UniversalPlayerRef } from '@components/video/UniversalPlayer';
+import { UniversalPlayerRef, detectVideoPlatform } from '@components/video/UniversalPlayer';
 import { VideoSection, FloatingEmoji } from '@components/watchParty/VideoSection';
 import { RoomInfoBar } from '@components/watchParty/RoomInfoBar';
 import { InviteCard } from '@components/watchParty/InviteCard';
@@ -252,6 +252,7 @@ export function WatchPartyScreen() {
         playerRef={playerRef}
         videoUrl={room?.videoUrl || ''}
         videoReferer={videoReferer}
+        isWebView={['youtube', 'webview'].includes(detectVideoPlatform(room?.videoUrl || ''))}
         isReady={!!room}
         isOwner={isOwner}
         isPlaying={isPlaying}

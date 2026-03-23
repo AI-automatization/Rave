@@ -51,6 +51,8 @@ interface VideoSectionProps {
   currentTime?: number;
   duration?: number;
   onProgressSeek?: (secs: number) => void;
+  /** WebView rejimida (YouTube/sayt) app overlay controls yashiriladi */
+  isWebView?: boolean;
 }
 
 export const VideoSection = React.memo(function VideoSection({
@@ -77,6 +79,7 @@ export const VideoSection = React.memo(function VideoSection({
   currentTime = 0,
   duration = 0,
   onProgressSeek,
+  isWebView = false,
 }: VideoSectionProps) {
   const { colors } = useTheme();
   const styles = useStyles();
@@ -129,8 +132,8 @@ export const VideoSection = React.memo(function VideoSection({
         <EmojiFloatItem key={e.id} emoji={e.emoji} x={e.x} onDone={() => onRemoveEmoji(e.id)} />
       ))}
 
-      {/* Progress bar — owner drag to seek, member read-only */}
-      {!videoIsLive && duration > 0 && (
+      {/* Progress bar — WebView rejimida yashiriladi (YouTube o'z controls bor) */}
+      {!isWebView && !videoIsLive && duration > 0 && (
         <View style={styles.progressBarWrap}>
           <VideoProgressBar
             currentTime={currentTime}
@@ -142,7 +145,8 @@ export const VideoSection = React.memo(function VideoSection({
         </View>
       )}
 
-      {isOwner && (
+      {/* App controls — WebView rejimida yashiriladi */}
+      {isOwner && !isWebView && (
         <View style={styles.controls}>
           {!videoIsLive && (
             <TouchableOpacity onPress={() => onSeekDirection('back')} style={styles.controlBtn}>
@@ -163,7 +167,7 @@ export const VideoSection = React.memo(function VideoSection({
         </View>
       )}
 
-      {!isOwner && (
+      {!isOwner && !isWebView && (
         <View style={styles.memberBadge}>
           <Ionicons name="eye-outline" size={14} color={colors.textMuted} />
           <Text style={styles.memberBadgeText}>Tomoshabin</Text>
