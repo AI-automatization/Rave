@@ -82,8 +82,13 @@ export function MediaWebViewScreen() {
         videoPlatform: media.videoPlatform,
       });
       navigation.navigate('WatchParty', { roomId: room._id });
-    } catch {
-      Alert.alert('Ошибка', 'Не удалось создать комнату. Проверьте подключение к сети.');
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        (err as { message?: string })?.message ??
+        'Проверьте подключение к сети.';
+      if (__DEV__) console.log('[MediaWebView] createRoom error:', err);
+      Alert.alert('Ошибка', `Не удалось создать комнату: ${msg}`);
     } finally {
       setIsImporting(false);
     }
@@ -99,12 +104,12 @@ export function MediaWebViewScreen() {
       const media = normalizeDetectedMedia(data);
 
       Alert.alert(
-        '▶ Открыть в комнате?',
+        '▶ Видео найдено',
         `"${media.videoTitle.slice(0, 80)}"`,
         [
           { text: 'Отмена', style: 'cancel' },
           {
-            text: 'Открыть в комнате',
+            text: 'Забрать видео',
             onPress: () => importMediaRef.current(media),
           },
         ],

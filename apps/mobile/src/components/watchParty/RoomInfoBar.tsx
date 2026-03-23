@@ -11,6 +11,7 @@ interface RoomInfoBarProps {
   hasMessages: boolean;
   onToggleInvite: () => void;
   onToggleChat: () => void;
+  onToggleVoice: () => void;
   onLeave: () => void;
 }
 
@@ -21,6 +22,7 @@ export const RoomInfoBar = React.memo(function RoomInfoBar({
   hasMessages,
   onToggleInvite,
   onToggleChat,
+  onToggleVoice,
   onLeave,
 }: RoomInfoBarProps) {
   const { colors } = useTheme();
@@ -42,6 +44,9 @@ export const RoomInfoBar = React.memo(function RoomInfoBar({
         <TouchableOpacity onPress={onToggleChat} style={styles.iconBtn}>
           <Ionicons name="chatbubble-outline" size={20} color={colors.textSecondary} />
           {hasMessages && <View style={styles.chatDot} />}
+        </TouchableOpacity>
+        <TouchableOpacity onPress={onToggleVoice} style={styles.iconBtn}>
+          <Ionicons name="mic-outline" size={20} color={colors.textSecondary} />
         </TouchableOpacity>
         <TouchableOpacity onPress={onLeave} style={styles.iconBtn}>
           <Ionicons name="exit-outline" size={20} color={colors.error} />

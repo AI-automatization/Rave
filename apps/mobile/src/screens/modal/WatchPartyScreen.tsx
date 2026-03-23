@@ -9,6 +9,7 @@ import { useAuthStore } from '@store/auth.store';
 import { watchPartyApi } from '@api/watchParty.api';
 import { disconnectSocket } from '@socket/client';
 import { ChatPanel } from '@components/watchParty/ChatPanel';
+import { VoiceChat } from '@components/watchParty/VoiceChat';
 import { EmojiPickerBar } from '@components/watchParty/EmojiFloat';
 import { UniversalPlayerRef } from '@components/video/UniversalPlayer';
 import { VideoSection, FloatingEmoji } from '@components/watchParty/VideoSection';
@@ -34,6 +35,7 @@ export function WatchPartyScreen() {
   const { t } = useT();
   const { room, syncState, messages, activeMembers, isOwner, adminMonitoring, roomClosed, emitPlay, emitPause, emitSeek, sendMessage, sendEmoji } =
     useWatchParty(params.roomId);
+  // emitVoiceJoin/Leave handled directly inside VoiceChat via getSocket()
 
   const playerRef = useRef<UniversalPlayerRef>(null);
   const isSyncing = useRef(false);
@@ -41,6 +43,7 @@ export function WatchPartyScreen() {
   const prevIsPlayingRef = useRef(false);
 
   const [showChat, setShowChat] = useState(false);
+  const [showVoice, setShowVoice] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -254,7 +257,8 @@ export function WatchPartyScreen() {
             isOwner={isOwner}
             hasMessages={messages.length > 0}
             onToggleInvite={() => setShowInvite(v => !v)}
-            onToggleChat={() => setShowChat(v => !v)}
+            onToggleChat={() => { setShowChat(v => !v); setShowVoice(false); }}
+            onToggleVoice={() => { setShowVoice(v => !v); setShowChat(false); }}
             onLeave={handleLeave}
           />
 
@@ -287,6 +291,15 @@ export function WatchPartyScreen() {
           <View style={[s.emojiBar, Platform.OS === 'ios' ? null : s.emojiBarAndroid]}>
             <EmojiPickerBar onSelect={handleEmojiSelect} />
           </View>
+
+          {showVoice && (
+            <VoiceChat
+              roomId={params.roomId}
+              currentUserId={userId}
+              visible={showVoice}
+              onClose={() => setShowVoice(false)}
+            />
+          )}
 
           {showChat && (
             <View style={s.chatPanel}>

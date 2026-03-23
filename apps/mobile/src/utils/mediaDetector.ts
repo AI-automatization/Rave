@@ -58,11 +58,50 @@ export const MEDIA_DETECTION_JS = `
   var lastReportedUrl = '';
   var timer = null;
 
+  // Search engine result pages — no real video, skip detection
+  var SEARCH_PATTERNS = [
+    'google.com/search',
+    'bing.com/search',
+    'yandex.ru/search',
+    'yandex.com/search',
+    'yahoo.com/search',
+    'duckduckgo.com/?q=',
+    'mail.ru/search',
+  ];
+
+  function isSearchPage(url) {
+    for (var i = 0; i < SEARCH_PATTERNS.length; i++) {
+      if (url.indexOf(SEARCH_PATTERNS[i]) !== -1) return true;
+    }
+    return false;
+  }
+
+  // Only consider video src that looks like a real media file or stream
+  function isRealVideoSrc(src) {
+    if (!src || src.indexOf('http') !== 0) return false;
+    // Skip blob URLs (DRM), data URLs, about:, chrome-extension:
+    if (src.indexOf('blob:') === 0 || src.indexOf('data:') === 0) return false;
+    // Must be a real URL
+    var lower = src.toLowerCase();
+    // Accept direct media file extensions
+    if (/\\.(mp4|m3u8|webm|ogg|mov|ts|mkv)(\\?|$)/.test(lower)) return true;
+    // Accept known video CDN patterns
+    if (lower.indexOf('videoplayback') !== -1) return false; // Google CDN previews — skip
+    if (lower.indexOf('.googlevideo.com') !== -1) return false; // Google video CDN — skip
+    if (lower.indexOf('googlevideo') !== -1) return false;
+    // Accept if it's a stream endpoint (contains /stream, /playlist, /manifest, /hls)
+    if (/\\/(stream|playlist\\.m3u8|manifest|hls|dash)/.test(lower)) return true;
+    // Reject everything else (thumbnails, posters, API endpoints)
+    return false;
+  }
+
   function detectMedia() {
     var url = window.location.href;
 
-    var isYTWatch = url.indexOf('youtube.com/watch?') !== -1 ||
-                    url.indexOf('youtube.com/watch ') !== -1;
+    // Skip search engine result pages — they have preview video clips, not real content
+    if (isSearchPage(url)) return;
+
+    var isYTWatch = url.indexOf('youtube.com/watch?') !== -1;
     var isYTShorts = url.indexOf('youtube.com/shorts/') !== -1;
     var isYTBe = url.indexOf('youtu.be/') !== -1;
 
@@ -90,9 +129,9 @@ export const MEDIA_DETECTION_JS = `
       var src = v.src || v.currentSrc;
       if (!src) {
         var s = v.querySelector('source');
-        if (s) src = s.src;
+        if (s) src = s.src || s.getAttribute('src') || '';
       }
-      if (src && src.indexOf('http') === 0 && url !== lastReportedUrl) {
+      if (isRealVideoSrc(src) && url !== lastReportedUrl) {
         lastReportedUrl = url;
         window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({
           type: 'MEDIA_DETECTED',

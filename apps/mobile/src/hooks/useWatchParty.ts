@@ -158,5 +158,15 @@ export function useWatchParty(roomId: string) {
     [roomId, updateRoomMedia],
   );
 
-  return { room, syncState, messages, activeMembers, isOwner, adminMonitoring, roomClosed, emitPlay, emitPause, emitSeek, sendMessage, sendEmoji, emitMediaChange };
+  // ─── Voice chat helpers ────────────────────────────────────────────────────
+
+  const emitVoiceJoin = useCallback(() => {
+    getSocket()?.emit(CLIENT_EVENTS.VOICE_JOIN);
+  }, []);
+
+  const emitVoiceLeave = useCallback(() => {
+    getSocket()?.emit(CLIENT_EVENTS.VOICE_LEAVE);
+  }, []);
+
+  return { room, syncState, messages, activeMembers, isOwner, adminMonitoring, roomClosed, emitPlay, emitPause, emitSeek, sendMessage, sendEmoji, emitMediaChange, emitVoiceJoin, emitVoiceLeave };
 }
