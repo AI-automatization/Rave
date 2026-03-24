@@ -464,6 +464,7 @@ export const translations = {
     shareMovie: { uz: 'filmini ulashing', ru: 'Поделитесь фильмом', en: 'Share the movie' },
     rate: { uz: 'Baholang', ru: 'Оцените', en: 'Rate' },
     ratingDone: { uz: 'Bahoingiz qabul qilindi', ru: 'Ваша оценка принята', en: 'Your rating was submitted' },
+    ratingUpdated: { uz: 'Baho yangilandi', ru: 'Оценка обновлена', en: 'Rating updated' },
     startBattle: { uz: 'Battle boshlash', ru: 'Начать баттл', en: 'Start Battle' },
     addFavorite: { uz: "Sevimlilarga qo'shish", ru: 'Добавить в избранное', en: 'Add to Favorites' },
     removeFavorite: { uz: 'Sevimlilardan olib tashlash', ru: 'Убрать из избранного', en: 'Remove from Favorites' },

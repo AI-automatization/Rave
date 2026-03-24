@@ -4,6 +4,40 @@
 
 ---
 
+### F-157 | 2026-03-24 | [MOBILE] | T-J028 — Film reytingi 201/200 toast fix [Emirhan]
+
+- `MovieDetailScreen.tsx`: `ratingIsNew` state qo'shildi, `rateMovie()` → `{ isNew }` ushlanadi
+- `ratingIsNew=false` → mount da mavjud baho bo'lsa set qilinadi
+- `ratingDoneLabel`: `isNew ? 'ratingDone' : 'ratingUpdated'` dinamik label
+- `translations.ts`: `ratingUpdated` key qo'shildi (uz/ru/en)
+
+---
+
+### F-156 | 2026-03-24 | [MOBILE] | T-J037 — Bloklangan akkaunt modal [allaqachon mavjud]
+
+- `client.ts`: axios interceptor 403 + "blocked" → `useBlockedStore.showBlocked()` + logout ✅ mavjud
+- `BlockedAccountModal.tsx`: global modal, backdropPressBehavior: 'none' ✅ mavjud
+- `App.tsx`: `<BlockedAccountModal />` global render ✅ mavjud
+- WatchParty: `account_blocked` reason → `navigation.goBack()` ✅ mavjud
+
+---
+
+### F-155 | 2026-03-24 | [MOBILE] | T-J027 — Friends real-time yangilanishi [allaqachon mavjud]
+
+- `useNotifications.ts`: `friend_accepted` FCM type handler → `queryClient.invalidateQueries(['friends'])` ✅ mavjud
+- `useFriends.ts`: `sendFriendRequest`/`acceptFriendRequest` → refetch ✅ mavjud
+- Foreground notification + navigate to Friends screen ✅ mavjud
+
+---
+
+### F-154 | 2026-03-24 | [BACKEND] | T-S038 — Bo'sh xonani 5 daqiqada avtomatik yopish [allaqachon mavjud]
+
+- `roomEvents.handler.ts`: `roomCloseTimers` Map + `setTimeout(5 * 60 * 1000, closeRoom)` ✅ mavjud
+- Yangi member kelsa → `clearTimeout` ✅ mavjud
+- `ROOM_CLOSED { reason: 'inactivity' }` emit ✅ mavjud
+
+---
+
 ### F-151 | 2026-03-24 | [MOBILE] | T-J029 — Ko'rish tarixi ekrani [Emirhan]
 
 - `content.api.ts`: `getWatchHistory(page)` → `GET /content/history` (pagination bilan)

@@ -30,6 +30,7 @@ export function MovieDetailScreen({ route, navigation }: Props) {
   const scrollY = useRef(new Animated.Value(0)).current;
   const [userRating, setUserRating] = useState(0);
   const [ratingSubmitted, setRatingSubmitted] = useState(false);
+  const [ratingIsNew, setRatingIsNew] = useState(true);
   const [allRatings, setAllRatings] = useState<RatingItem[]>([]);
   const { t } = useT();
   const { colors } = useTheme();
@@ -45,6 +46,7 @@ export function MovieDetailScreen({ route, navigation }: Props) {
       if (myRating) {
         setUserRating(Math.round(myRating.score / 2));
         setRatingSubmitted(true);
+        setRatingIsNew(false);
       }
     }).catch(() => { /* silent */ });
   }, [movieId, userId]);
@@ -54,8 +56,9 @@ export function MovieDetailScreen({ route, navigation }: Props) {
     const prevSubmitted = ratingSubmitted;
     setUserRating(stars);
     try {
-      await contentApi.rateMovie(movieId, stars * 2);
+      const { isNew } = await contentApi.rateMovie(movieId, stars * 2);
       setRatingSubmitted(true);
+      setRatingIsNew(isNew);
       // Refresh ratings list after submit
       const data = await contentApi.getMovieRatings(movieId);
       setAllRatings(data.ratings);
@@ -168,7 +171,7 @@ export function MovieDetailScreen({ route, navigation }: Props) {
             ratingSubmitted={ratingSubmitted}
             onRate={handleRate}
             rateLabel={t('movie', 'rate')}
-            ratingDoneLabel={t('movie', 'ratingDone')}
+            ratingDoneLabel={ratingIsNew ? (t('movie', 'ratingDone') ?? 'Bahoingiz qabul qilindi') : (t('movie', 'ratingUpdated') ?? 'Baho yangilandi')}
           />
 
           <MovieRatingsSection
