@@ -236,6 +236,40 @@ export interface IAchievement {
 }
 
 // ─────────────────────────────────────────────
+// Video Extraction (shared between content service + mobile)
+// ─────────────────────────────────────────────
+
+/**
+ * Type 1 — direct MP4/HLS (pirate sites: playerjs, lookmovie2, moviesapi)
+ * Type 2 — embed API (YouTube, Twitch, VK, Rutube, Vimeo, Dailymotion)
+ * Type 3 — auth/DRM WebView session (Cinerama, Megogo, Kinopoisk)
+ */
+export type VideoSourceType = 'type1' | 'type2' | 'type3';
+
+export type ExtractionMethod =
+  | 'playerjs'       // Playerjs JSON config in <script>
+  | 'security-api'   // lookmovie2 /api/v1/security/movie-access
+  | 'yt-dlp'         // yt-dlp binary extraction
+  | 'playwright'     // headless browser network interception
+  | 'webview-session'// can't extract — WebView IS the player
+  | 'embed-api';     // official embed JS API (YouTube IFrame, Twitch Embed, etc.)
+
+export interface EpisodeInfo {
+  label: string;  // e.g. "S1E1 — Пилот"
+  url: string;    // direct MP4 or HLS URL
+  quality?: string; // e.g. "1080p"
+}
+
+/** Request body for POST /api/v1/content/extract */
+export interface VideoExtractRequest {
+  url: string;
+  /** Netscape-format cookies from WebView (for auth-protected Type 3 sites) */
+  cookies?: string;
+  /** TMDB movie ID — enables moviesapi.club lookup */
+  tmdbId?: string;
+}
+
+// ─────────────────────────────────────────────
 // Friendship
 // ─────────────────────────────────────────────
 

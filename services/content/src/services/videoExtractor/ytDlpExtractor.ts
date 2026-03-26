@@ -64,18 +64,27 @@ function pickBestUrl(data: YtDlpJson): { url: string; type: VideoType } | null {
 
 export async function ytDlpExtractor(
   rawUrl: string,
+  cookies?: string,
 ): Promise<VideoExtractResult | null> {
   return new Promise((resolve, reject) => {
     let stdout = '';
     let stderr = '';
 
-    const child = spawn('yt-dlp', [
+    const args = [
       '--dump-json',
       '--no-playlist',
       '--no-warnings',
       '--socket-timeout', '10',
-      rawUrl,
-    ]);
+    ];
+
+    // Cookie forwarding for auth-protected sites (T-S045)
+    if (cookies && cookies.length <= 4096) {
+      args.push('--add-header', `Cookie:${cookies}`);
+    }
+
+    args.push(rawUrl);
+
+    const child = spawn('yt-dlp', args);
 
     const timer = setTimeout(() => {
       child.kill('SIGTERM');

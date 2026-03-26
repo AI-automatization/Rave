@@ -20,9 +20,15 @@ const PLATFORM_PATTERNS: Array<{ re: RegExp; platform: VideoPlatform }> = [
   { re: /streamable\.com/i, platform: 'streamable' },
   { re: /reddit\.com/i, platform: 'reddit' },
   { re: /twitter\.com|x\.com/i, platform: 'twitter' },
-  // Direct stream URLs → generic (mp4/m3u8)
+  // Playerjs-based sites (CIS pirate video platforms)
+  { re: /uzmovie\.tv|uzmovi\.uz|kinooteka\.uz|kinolenta\.uz|kino\.uz/i, platform: 'playerjs' },
+  // lookmovie2 Security API
+  { re: /lookmovie2\.(to|ag|io)/i, platform: 'lookmovie2' },
+  // moviesapi.club JSON API
+  { re: /moviesapi\.club/i, platform: 'moviesapi' },
+  // Direct stream URLs → generic (mp4/m3u8/mpd)
   { re: /\.(mp4|webm|mov|avi)(\?|$)/i, platform: 'generic' },
-  { re: /\.(m3u8)(\?|$)/i, platform: 'generic' },
+  { re: /\.(m3u8|mpd)(\?|$)/i, platform: 'generic' },
 ];
 
 export function validateUrl(rawUrl: string): URL {

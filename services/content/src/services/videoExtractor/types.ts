@@ -1,6 +1,8 @@
-// CineSync — Universal Video Extractor — Shared Types
+// CineSync — Universal Video Extractor — Types
 
-export type VideoExtractErrorReason = 'unsupported_site' | 'timeout' | 'drm';
+import type { VideoSourceType, ExtractionMethod, EpisodeInfo } from '@shared/types';
+
+export type VideoExtractErrorReason = 'unsupported_site' | 'timeout' | 'drm' | 'geo_blocked';
 
 export class VideoExtractError extends Error {
   readonly reason: VideoExtractErrorReason;
@@ -24,6 +26,9 @@ export type VideoPlatform =
   | 'streamable'
   | 'reddit'
   | 'twitter'
+  | 'playerjs'    // Playerjs-based sites (uzmovie.tv, kinooteka.uz, etc.)
+  | 'lookmovie2'  // lookmovie2.to Security API
+  | 'moviesapi'   // moviesapi.club JSON API
   | 'generic'
   | 'unknown';
 
@@ -37,6 +42,18 @@ export interface VideoExtractResult {
   type: VideoType;
   duration?: number;  // seconds
   isLive?: boolean;
-  // YouTube specific: frontend should proxy through /api/v1/youtube/stream
+  // YouTube specific: frontend must use /api/v1/youtube/stream
   useProxy?: boolean;
+  // Extraction metadata
+  sourceType?: VideoSourceType;
+  extractionMethod?: ExtractionMethod;
+  // HLS proxy needed (CDN requires Referer/Origin on segments)
+  proxyRequired?: boolean;
+  // Whether this result can be cached (tokenized short-lived URLs: false)
+  cacheable?: boolean;
+  // Episode list for series (Playerjs multi-episode format)
+  episodes?: EpisodeInfo[];
 }
+
+// Re-export shared types for convenience within this service
+export type { VideoSourceType, ExtractionMethod, EpisodeInfo };

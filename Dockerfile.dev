@@ -20,7 +20,12 @@ COPY services/admin/package*.json ./services/admin/
 COPY apps/package.json ./apps/
 COPY apps/web/package*.json ./apps/web/
 COPY apps/admin-ui/package*.json ./apps/admin-ui/
-COPY apps/mobile/package*.json ./apps/mobile/
+# Mobile: .dockerignore da excluded, stub yaratamiz (npm workspaces uchun)
+RUN mkdir -p ./apps/mobile && echo '{"name":"cinesync-mobile","version":"1.0.0","private":true}' > ./apps/mobile/package.json
+
+# yt-dlp — video extraction uchun (dev va prod uchun ham kerak)
+RUN apk add --no-cache python3 py3-pip && \
+    pip3 install --no-cache-dir --break-system-packages yt-dlp
 
 # Barcha workspace dependency'larini o'rnatish (devDeps ham)
 # --ignore-scripts: native build xatolarini oldini olish (apps uchun)

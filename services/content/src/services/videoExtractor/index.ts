@@ -2,10 +2,15 @@
 //
 // Flow:
 //   URL → validateUrl() + SSRF check → detectPlatform()
-//     → youtube   : ytdlService.getStreamInfo() with yt-dlp fallback if ytdl-core fails
-//     → known platforms (non-YT): ytDlpExtractor()
-//     → unknown   : genericExtractor() (HTML + iframe follow) → fallback ytDlpExtractor()
-//   → Redis cache (TTL 2h)
+//     → youtube    : ytdlService.getStreamInfo() → yt-dlp fallback
+//     → playerjs   : playerjsExtractor() (inline <script> JSON parse)
+//     → lookmovie2 : lookmovie2Extractor() (Security API)
+//     → moviesapi  : moviesapiExtractor() (JSON API by TMDB ID)
+//     → yt-dlp platforms (vimeo/tiktok/twitch/vk/etc): ytDlpExtractor()
+//     → geo_blocked: throw VideoExtractError('geo_blocked')
+//     → generic    : direct stream URL passthrough
+//     → unknown    : genericExtractor() (HTML scrape) → yt-dlp fallback
+//   → Redis cache (TTL by platform type)
 //   → VideoExtractResult
 
 import Redis from 'ioredis';
@@ -13,43 +18,74 @@ import { logger } from '@shared/utils/logger';
 import { validateUrl, detectPlatform } from './detectPlatform';
 import { genericExtractor } from './genericExtractor';
 import { ytDlpExtractor, YtDlpDrmError } from './ytDlpExtractor';
+import { playerjsExtractor } from './playerjsExtractor';
+import { lookmovie2Extractor } from './lookmovie2Extractor';
+import { moviesapiExtractor } from './moviesapiExtractor';
 import { VideoExtractResult, VideoPlatform, VideoExtractError } from './types';
 import { ytdlService } from '../ytdl.service';
 
-const CACHE_TTL_SECONDS = 2 * 60 * 60; // 2h
 const CACHE_PREFIX = 'vextract:';
 
-// Platforms that yt-dlp handles well (non-YouTube, non-generic direct link)
+/** Cache TTL in seconds by platform (T-S047) */
+const CACHE_TTL_BY_PLATFORM: Partial<Record<VideoPlatform, number>> & { default: number } = {
+  youtube:    7_200,   // 2h — YouTube URLs expire in ~6h
+  playerjs:   86_400,  // 24h — static MP4, no expiry
+  lookmovie2: 86_400,  // 24h — Security API returns 29h valid URLs
+  moviesapi:  86_400,  // 24h — static API
+  generic:    3_600,   // 1h
+  default:    7_200,   // 2h fallback
+};
+
+/** Platforms where yt-dlp handles extraction */
 const YTDLP_PLATFORMS: ReadonlySet<VideoPlatform> = new Set([
   'vimeo', 'tiktok', 'dailymotion', 'rutube', 'facebook',
   'instagram', 'twitch', 'vk', 'streamable', 'reddit', 'twitter',
 ]);
 
+/** Sites geo-blocked from our UAE server (T-S046) */
+const GEO_BLOCKED_DOMAINS = new Set([
+  'hdrezka.ag', 'hdrezka.me', 'rezka.ag',
+  'filmix.net', 'filmix.ac',
+  'kinogo.cc', 'kinogo.ac',
+  'seasonvar.ru',
+]);
+
 export async function extractVideo(
   rawUrl: string,
   redis: Redis,
+  options?: { cookies?: string; tmdbId?: string },
 ): Promise<VideoExtractResult> {
   // 1. Validate URL + SSRF guard
   const parsedUrl = validateUrl(rawUrl);
 
-  // 2. Check Redis cache
-  const cacheKey = CACHE_PREFIX + Buffer.from(rawUrl).toString('base64url').slice(0, 64);
-  const cached = await redis.get(cacheKey);
-  if (cached) {
-    try {
-      return JSON.parse(cached) as VideoExtractResult;
-    } catch {
-      // corrupt cache entry — ignore and re-extract
-    }
+  // 2. Geo-block check (T-S046)
+  if (GEO_BLOCKED_DOMAINS.has(parsedUrl.hostname.replace(/^www\./, ''))) {
+    throw new VideoExtractError(
+      'geo_blocked',
+      `${parsedUrl.hostname} is geo-blocked from our server. This site is only accessible from Russia. Use the site directly in your browser.`,
+    );
   }
 
-  // 3. Detect platform
+  // 3. Check Redis cache
+  const cacheKey = CACHE_PREFIX + Buffer.from(rawUrl).toString('base64url').slice(0, 64);
+  try {
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      const parsed = JSON.parse(cached) as VideoExtractResult;
+      // Don't serve cached result if it was marked non-cacheable (shouldn't happen, but guard)
+      if (parsed.cacheable !== false) return parsed;
+    }
+  } catch {
+    // corrupt cache entry or Redis unavailable — re-extract
+  }
+
+  // 4. Detect platform
   const platform = detectPlatform(parsedUrl);
   logger.info('Extracting video', { url: rawUrl, platform });
 
   let result: VideoExtractResult | null = null;
 
-  // 4. Platform-specific extraction
+  // 5. Platform-specific extraction
   if (platform === 'youtube') {
     try {
       const info = await ytdlService.getStreamInfo(rawUrl);
@@ -62,11 +98,12 @@ export async function extractVideo(
         type,
         duration: info.duration,
         isLive: info.isLive,
-        useProxy: true, // frontend must use /api/v1/youtube/stream
+        useProxy: true,
+        sourceType: 'type2',
+        extractionMethod: 'yt-dlp',
+        cacheable: true,
       };
     } catch (ytdlErr) {
-      // ytdl-core fails periodically when YouTube changes internals (e.g. "invalid onError method")
-      // Fall back to yt-dlp which is more resilient
       logger.warn('ytdl-core failed, falling back to yt-dlp', {
         url: rawUrl,
         error: (ytdlErr as Error).message,
@@ -77,29 +114,24 @@ export async function extractVideo(
         if (dlpErr instanceof YtDlpDrmError) throw new VideoExtractError('drm');
         throw dlpErr;
       }
-      if (result) result = { ...result, platform: 'youtube', useProxy: false };
+      if (result) result = { ...result, platform: 'youtube', useProxy: false, sourceType: 'type2', extractionMethod: 'yt-dlp', cacheable: true };
     }
-  } else if (YTDLP_PLATFORMS.has(platform)) {
-    try {
-      result = await ytDlpExtractor(rawUrl);
-    } catch (dlpErr) {
-      if (dlpErr instanceof YtDlpDrmError) throw new VideoExtractError('drm');
-      throw dlpErr;
+
+  } else if (platform === 'playerjs') {
+    result = await playerjsExtractor(rawUrl);
+    if (!result) {
+      // Fallback to yt-dlp
+      try {
+        result = await ytDlpExtractor(rawUrl);
+      } catch (dlpErr) {
+        if (dlpErr instanceof YtDlpDrmError) throw new VideoExtractError('drm');
+        throw dlpErr;
+      }
+      if (result) result = { ...result, platform: 'playerjs', sourceType: 'type1', extractionMethod: 'yt-dlp', cacheable: true };
     }
-    if (result) result = { ...result, platform };
-  } else if (platform === 'generic') {
-    // Direct stream URL — return as-is without fetching
-    const type = /\.m3u8/i.test(rawUrl) ? 'hls' : 'mp4';
-    result = {
-      title: parsedUrl.hostname,
-      videoUrl: rawUrl,
-      poster: '',
-      platform: 'generic',
-      type,
-    };
-  } else {
-    // Unknown platform: try generic HTML scraping first, then yt-dlp fallback
-    result = await genericExtractor(parsedUrl);
+
+  } else if (platform === 'lookmovie2') {
+    result = await lookmovie2Extractor(rawUrl);
     if (!result) {
       try {
         result = await ytDlpExtractor(rawUrl);
@@ -107,8 +139,56 @@ export async function extractVideo(
         if (dlpErr instanceof YtDlpDrmError) throw new VideoExtractError('drm');
         throw dlpErr;
       }
+      if (result) result = { ...result, platform: 'lookmovie2', sourceType: 'type1', extractionMethod: 'yt-dlp', cacheable: true };
     }
-    if (result) result = { ...result, platform: 'generic' };
+
+  } else if (platform === 'moviesapi') {
+    result = await moviesapiExtractor(rawUrl, options?.tmdbId);
+    if (!result) {
+      try {
+        result = await ytDlpExtractor(rawUrl);
+      } catch (dlpErr) {
+        if (dlpErr instanceof YtDlpDrmError) throw new VideoExtractError('drm');
+        throw dlpErr;
+      }
+      if (result) result = { ...result, platform: 'moviesapi', sourceType: 'type1', extractionMethod: 'yt-dlp', cacheable: true };
+    }
+
+  } else if (YTDLP_PLATFORMS.has(platform)) {
+    try {
+      result = await ytDlpExtractor(rawUrl, options?.cookies);
+    } catch (dlpErr) {
+      if (dlpErr instanceof YtDlpDrmError) throw new VideoExtractError('drm');
+      throw dlpErr;
+    }
+    if (result) result = { ...result, platform, sourceType: 'type1', extractionMethod: 'yt-dlp', cacheable: true };
+
+  } else if (platform === 'generic') {
+    // Direct stream URL — return as-is
+    const type = /\.(m3u8|mpd)/i.test(rawUrl) ? 'hls' : 'mp4';
+    result = {
+      title: parsedUrl.hostname,
+      videoUrl: rawUrl,
+      poster: '',
+      platform: 'generic',
+      type,
+      sourceType: 'type1',
+      extractionMethod: 'yt-dlp',
+      cacheable: false, // unknown TTL for direct URLs
+    };
+
+  } else {
+    // Unknown: generic HTML scraping → yt-dlp fallback
+    result = await genericExtractor(parsedUrl);
+    if (!result) {
+      try {
+        result = await ytDlpExtractor(rawUrl, options?.cookies);
+      } catch (dlpErr) {
+        if (dlpErr instanceof YtDlpDrmError) throw new VideoExtractError('drm');
+        throw dlpErr;
+      }
+    }
+    if (result) result = { ...result, platform: 'generic', sourceType: 'type1', extractionMethod: 'yt-dlp', cacheable: true };
   }
 
   if (!result) {
@@ -118,8 +198,15 @@ export async function extractVideo(
     );
   }
 
-  // 5. Cache result
-  await redis.setex(cacheKey, CACHE_TTL_SECONDS, JSON.stringify(result));
+  // 6. Cache result (TTL by platform, skip if non-cacheable)
+  if (result.cacheable !== false) {
+    const ttl = CACHE_TTL_BY_PLATFORM[result.platform] ?? CACHE_TTL_BY_PLATFORM.default;
+    try {
+      await redis.setex(cacheKey, ttl, JSON.stringify(result));
+    } catch {
+      // Redis unavailable — continue without caching
+    }
+  }
 
   return result;
 }
