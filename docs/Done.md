@@ -1,6 +1,39 @@
 # CineSync — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-03-24
+# Yangilangan: 2026-03-26
+
+---
+
+### F-158 | 2026-03-26 | [BACKEND+INFRA] | T-S033, T-C011, T-S040, T-S041, T-S042, T-S045, T-S046, T-S047 — Video Extractor v2 [Saidazim]
+
+**Инфраструктура:**
+- `Dockerfile.dev`: добавлен yt-dlp (python3+pip3), mobile workspace stub, исправлен `.dockerignore`
+- `shared/tsconfig.json`: исправлен баг (лишний `/` после `"outDir": "./dist"`)
+- Redis AOF: починен corrupted `appendonly.aof.1.incr.aof` (redis-check-aof --fix)
+
+**Shared types (T-C011):**
+- `shared/src/types/index.ts`: добавлены `VideoSourceType`, `ExtractionMethod`, `EpisodeInfo`, `VideoExtractRequest`
+
+**Playerjs extractor (T-S040):**
+- `playerjsExtractor.ts`: парсит `new Playerjs({file:[...]})` из `<script>`, поддерживает multi-quality и multi-episode формат
+- `detectPlatform.ts`: добавлены домены uzmovie.tv, uzmovi.uz, kinooteka.uz → platform `'playerjs'`
+
+**lookmovie2 extractor (T-S041):**
+- `lookmovie2Extractor.ts`: извлекает id_movie+hash из HTML, вызывает Security API → 29h HLS URL
+
+**moviesapi extractor (T-S042):**
+- `moviesapiExtractor.ts`: `GET /api/movie/{tmdbId}` → прямой video_url
+
+**Cookie forwarding (T-S045):**
+- `ytDlpExtractor.ts`: принимает `cookies?` → `--add-header Cookie:...` (max 4096 chars)
+- `videoExtract.controller.ts`: читает `cookies` и `tmdbId` из request body
+
+**Geo-block (T-S046):**
+- `index.ts`: `GEO_BLOCKED_DOMAINS` — hdrezka, filmix, kinogo, seasonvar → `VideoExtractError('geo_blocked')`
+- `controller.ts`: `geo_blocked` → HTTP 451
+
+**Cache TTL по типу (T-S047):**
+- `CACHE_TTL_BY_PLATFORM`: playerjs/lookmovie2/moviesapi=24h, youtube=2h, generic=1h, tokenized=skip
 
 ---
 
