@@ -23,4 +23,7 @@ export const config = {
   hlsOutputDir: process.env.HLS_OUTPUT_DIR ?? '/tmp/cinesync-hls',
   // Railway: set FFMPEG_PATH env var if ffmpeg is not on PATH (e.g. /usr/bin/ffmpeg)
   ffmpegPath: process.env.FFMPEG_PATH ?? '',
+  // Proxy for geo-blocked sites (hdrezka, filmix, kinogo) — T-S049
+  // Format: http://user:pass@proxy-ip:port  OR  socks5://user:pass@proxy-ip:port
+  geoProxyUrl: process.env.GEO_PROXY_URL ?? '',
 } as const;

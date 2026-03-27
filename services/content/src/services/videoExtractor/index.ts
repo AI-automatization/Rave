@@ -23,6 +23,7 @@ import { playerjsExtractor } from './playerjsExtractor';
 import { lookmovie2Extractor } from './lookmovie2Extractor';
 import { moviesapiExtractor } from './moviesapiExtractor';
 import { VideoExtractResult, VideoPlatform, VideoExtractError } from './types';
+import { geoExtractor, hasGeoProxy } from './geoExtractor';
 import { ytdlService } from '../ytdl.service';
 
 const CACHE_PREFIX = 'vextract:';
@@ -59,11 +60,36 @@ export async function extractVideo(
   // 1. Validate URL + SSRF guard
   const parsedUrl = validateUrl(rawUrl);
 
-  // 2. Geo-block check (T-S046)
+  // 2. Geo-block check (T-S046 / T-S049)
   if (GEO_BLOCKED_DOMAINS.has(parsedUrl.hostname.replace(/^www\./, ''))) {
+    // T-S049: if GEO_PROXY_URL is configured → try extraction via proxy
+    if (hasGeoProxy()) {
+      const geoResult = await geoExtractor(rawUrl);
+
+      if (geoResult?.video) {
+        // Playerjs found directly on geo-blocked page — cache & return
+        const geoVideo = geoResult.video;
+        if (geoVideo.cacheable !== false) {
+          const geoCacheKey = CACHE_PREFIX + Buffer.from(rawUrl).toString('base64url').slice(0, 64);
+          const geoTtl = CACHE_TTL_BY_PLATFORM[geoVideo.platform] ?? CACHE_TTL_BY_PLATFORM.default;
+          try { await redis.setex(geoCacheKey, geoTtl, JSON.stringify(geoVideo)); } catch { /* ignore */ }
+        }
+        return geoVideo;
+      }
+
+      if (geoResult?.iframeUrl) {
+        // Found an embed iframe (e.g. ashdi.vip) → re-extract without proxy
+        try {
+          return await extractVideo(geoResult.iframeUrl, redis, options);
+        } catch {
+          // iframe extraction failed — fall through to geo_blocked error
+        }
+      }
+    }
+
     throw new VideoExtractError(
       'geo_blocked',
-      `${parsedUrl.hostname} is geo-blocked from our server. This site is only accessible from Russia. Use the site directly in your browser.`,
+      `${parsedUrl.hostname} is geo-blocked from our server. This site is only accessible from Russia.${hasGeoProxy() ? ' Proxy extraction also failed.' : ' Set GEO_PROXY_URL env var to enable proxy extraction.'}`,
     );
   }
 
