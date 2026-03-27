@@ -46,10 +46,14 @@ RUN apk add --no-cache python3 py3-pip && \
     pip3 install --no-cache-dir --break-system-packages yt-dlp
 
 # Playwright/Chromium support (T-S043) — system Chromium to avoid downloading ~150MB browser
-RUN apk add --no-cache chromium chromium-driver \
+# chromium-driver package doesn't exist in Alpine — only chromium is needed for Playwright
+RUN apk add --no-cache chromium \
     nss freetype harfbuzz ca-certificates ttf-freefont
 ENV PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium-browser
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+
+# FFmpeg for HLS transcoding (T-S005b)
+RUN apk add --no-cache ffmpeg
 
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S cinesync -u 1001 && \
