@@ -3,6 +3,20 @@
 import { URL } from 'url';
 import { VideoPlatform } from './types';
 
+// Platforms that require JS execution to reveal video URLs (T-S043).
+// These are tried with Playwright as the last-resort extractor.
+export const PLAYWRIGHT_PLATFORMS = new Set([
+  'vidlink.pro',
+  'smashystream.xyz',
+  'flixcdn.cyou',
+  'streamlare.com',
+]);
+
+export function isPlaywrightPlatform(url: URL): boolean {
+  const hostname = url.hostname.replace(/^www\./, '');
+  return PLAYWRIGHT_PLATFORMS.has(hostname);
+}
+
 // Private/reserved IP ranges (SSRF protection)
 const PRIVATE_IP_RE =
   /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|::1$|fc00:|fe80:)/i;

@@ -51,52 +51,6 @@
 
 ---
 
-### T-S043 | P1 | [BACKEND] | Playwright Headless Service — динамик сайтлардан видео URL қўлга киритиш
-
-- **Sana:** 2026-03-26
-- **Mas'ul:** pending[Saidazim]
-- **Sprint:** S6
-- **Fayl:** `services/content/src/services/playwright/`, `services/content/package.json`
-- **Holat:** ❌ Boshlanmagan
-
-**Контекст:**
-vidlink.pro, smashystream.xyz, flixcdn.cyou — видео URL только после JS execution.
-Playwright `page.on('response')` перехватывает `.m3u8`/`.mp4` автоматически.
-
-**Subtasklar:**
-- [ ] S43-1. `playwright-chromium` ни `services/content/package.json` га қўшиш
-- [ ] S43-2. `playwrightExtractor.ts` — `page.on('response')` орқали `.m3u8`/`.mp4` URL тутиш
-- [ ] S43-3. 30 секунд timeout + биринчи топилган медиа URL қайтариш
-- [ ] S43-4. `PLAYWRIGHT_PLATFORMS` Set: `vidlink.pro`, `smashystream.xyz`, `flixcdn.cyou`, `streamlare.com`
-- [ ] S43-5. `index.ts`: unknown platform → generic → yt-dlp → playwright (last resort)
-- [ ] S43-6. Dockerfile: `chromium` + `chromium-driver` пакетлар (Alpine)
-- [ ] S43-7. Concurrency limiter: max 3 Playwright instance параллел
-
-**Эслатма:** 5-10x секин HTTP дан. Фақат бошқа методлар ишламаганда.
-
----
-
-### T-S044 | P2 | [BACKEND] | HLS Reverse Proxy endpoint — токенли стримларни мобайл учун проксилаш
-
-- **Sana:** 2026-03-26
-- **Mas'ul:** pending[Saidazim]
-- **Sprint:** S7
-- **Fayl:** `services/content/src/controllers/hlsProxy.controller.ts`, `services/content/src/routes/content.routes.ts`
-- **Holat:** ❌ Boshlanmagan
-
-**Контекст:**
-lookmovie2 CDN HLS сегментларида `Referer` header талаб қилади. expo-av
-`.m3u8` га Referer бериши мумкин, лекин `.ts` сегментларга автоматик бермайди — 403.
-`VideoExtractResult.proxyRequired=true` бўлса мобайл HLS proxy ишлатади.
-
-**Subtasklar:**
-- [ ] S44-1. `GET /api/v1/content/hls-proxy?url={encoded}&referer={encoded}` endpoint
-- [ ] S44-2. m3u8 fetch → сегмент URL ларини `/hls-proxy?url=...&referer=...` га rewrite
-- [ ] S44-3. `GET /api/v1/content/hls-proxy/segment?url={encoded}` — stream с Referer header
-- [ ] S44-4. SSRF guard: `validateUrl()` (private IP блок)
-- [ ] S44-5. Rate limit: 100 req/min per user
-
----
 
 # ═══════════════════════════════════════
 

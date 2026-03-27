@@ -15,7 +15,8 @@
 
 import Redis from 'ioredis';
 import { logger } from '@shared/utils/logger';
-import { validateUrl, detectPlatform } from './detectPlatform';
+import { validateUrl, detectPlatform, isPlaywrightPlatform } from './detectPlatform';
+import { playwrightExtractor } from './playwrightExtractor';
 import { genericExtractor } from './genericExtractor';
 import { ytDlpExtractor, YtDlpDrmError } from './ytDlpExtractor';
 import { playerjsExtractor } from './playerjsExtractor';
@@ -178,17 +179,32 @@ export async function extractVideo(
     };
 
   } else {
-    // Unknown: generic HTML scraping → yt-dlp fallback
+    // Unknown: generic HTML scraping → yt-dlp → Playwright (last resort, T-S043)
     result = await genericExtractor(parsedUrl);
     if (!result) {
       try {
         result = await ytDlpExtractor(rawUrl, options?.cookies);
       } catch (dlpErr) {
         if (dlpErr instanceof YtDlpDrmError) throw new VideoExtractError('drm');
-        throw dlpErr;
+        // yt-dlp failed for other reason — fall through to Playwright
+        logger.warn('yt-dlp failed, trying Playwright', {
+          url: rawUrl,
+          error: (dlpErr as Error).message,
+        });
       }
     }
-    if (result) result = { ...result, platform: 'generic', sourceType: 'type1', extractionMethod: 'yt-dlp', cacheable: true };
+    // Playwright: only for known JS-heavy platforms (slow — last resort)
+    if (!result && isPlaywrightPlatform(parsedUrl)) {
+      logger.info('Falling back to Playwright extractor', { url: rawUrl });
+      result = await playwrightExtractor(rawUrl);
+    }
+    if (result) result = {
+      ...result,
+      platform:          'generic',
+      sourceType:        'type1',
+      extractionMethod:  result.extractionMethod ?? 'yt-dlp',
+      cacheable:         result.cacheable ?? true,
+    };
   }
 
   if (!result) {

@@ -4,6 +4,25 @@
 
 ---
 
+### F-162 | 2026-03-27 | [BACKEND] | T-S043 — Playwright Headless Service [Saidazim]
+
+- `playwright-chromium` dependency qo'shildi, `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1` + system chromium (Dockerfile)
+- `playwrightExtractor.ts` — `page.on('response')` orqali `.m3u8`/`.mp4`/`.mpd` tutish, 30s timeout, max 3 concurrent
+- `PLAYWRIGHT_PLATFORMS` Set (vidlink.pro, smashystream.xyz, flixcdn.cyou, streamlare.com) `detectPlatform.ts` da
+- `index.ts`: unknown → generic → yt-dlp → playwright (last resort, faqat PLAYWRIGHT_PLATFORMS uchun)
+
+---
+
+### F-163 | 2026-03-27 | [BACKEND] | T-S044 — HLS Reverse Proxy endpoint [Saidazim]
+
+- `hlsProxy.controller.ts` — `GET /hls-proxy` (m3u8 rewrite) + `GET /hls-proxy/segment` (ts stream)
+- SSRF guard: private IP, localhost, IPv6 bloklash
+- M3u8 rewriter: barcha segment URL + EXT-X-KEY/MAP URI → `/hls-proxy/segment?url=...&referer=...`
+- Range request forwarding (seeking uchun)
+- `verifyToken` + `userRateLimiter` (per-user)
+
+---
+
 ### F-161 | 2026-03-27 | [MOBILE] | T-E069 + T-E070 — ashdi.vip/bazon.tv adapters + FB/IG/Reddit/Streamable [Emirhan]
 
 **T-E069 — ashdi.vip + bazon.tv + CDN adapterlar (`WebViewAdapters.ts`):**

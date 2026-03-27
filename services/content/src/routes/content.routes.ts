@@ -6,9 +6,10 @@ import Redis from 'ioredis';
 import { Client as ElasticsearchClient } from '@elastic/elasticsearch';
 import { ContentController } from '../controllers/content.controller';
 import { VideoExtractController } from '../controllers/videoExtract.controller';
+import { hlsProxyController } from '../controllers/hlsProxy.controller';
 import { ContentService } from '../services/content.service';
 import { verifyToken, optionalAuth, requireRole, requireNotBlocked } from '@shared/middleware/auth.middleware';
-import { apiRateLimiter } from '@shared/middleware/rateLimiter.middleware';
+import { apiRateLimiter, userRateLimiter } from '@shared/middleware/rateLimiter.middleware';
 import { requireInternalSecret } from '@shared/utils/serviceClient';
 import { validate, createMovieSchema } from '../validators/content.validator';
 
@@ -50,6 +51,12 @@ export const createContentRouter = (redis: Redis, elastic: ElasticsearchClient):
   // ── Video URL Extraction (T-S031) ─────────────────────────────
   // POST /content/extract — extract playable stream URL from any webpage/platform
   router.post('/extract', verifyToken, notBlocked, apiRateLimiter, videoExtractController.extract);
+
+  // ── HLS Reverse Proxy (T-S044) ────────────────────────────────
+  // Proxies HLS playlists + segments with Referer header (needed for lookmovie2 CDN).
+  // Rate-limited to 100 req/min per user via userRateLimiter.
+  router.get('/hls-proxy/segment', verifyToken, userRateLimiter, hlsProxyController.proxySegment);
+  router.get('/hls-proxy',         verifyToken, userRateLimiter, hlsProxyController.proxyM3u8);
 
   // ── Discovery endpoints (T-S026) ─────────────────────────────
   // GET /content/trending?limit=10
