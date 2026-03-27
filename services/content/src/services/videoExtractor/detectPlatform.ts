@@ -36,6 +36,10 @@ const PLATFORM_PATTERNS: Array<{ re: RegExp; platform: VideoPlatform }> = [
   { re: /twitter\.com|x\.com/i, platform: 'twitter' },
   // Playerjs-based sites (CIS pirate video platforms)
   { re: /uzmovie\.tv|uzmovi\.uz|kinooteka\.uz|kinolenta\.uz|kino\.uz/i, platform: 'playerjs' },
+  // Iframe embed providers — ashdi.vip and bazon.tv host Playerjs embeds
+  // used by kinogo.cc, turk123, animego, rezka and many others (T-S048)
+  { re: /ashdi\.vip/i, platform: 'playerjs' },
+  { re: /bazon\.tv|bazon\.biz/i, platform: 'playerjs' },
   // lookmovie2 Security API
   { re: /lookmovie2\.(to|ag|io)/i, platform: 'lookmovie2' },
   // moviesapi.club JSON API

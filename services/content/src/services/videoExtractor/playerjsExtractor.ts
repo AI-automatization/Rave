@@ -95,9 +95,20 @@ function extractQualityLabel(str: string): string | undefined {
   return m?.[1];
 }
 
-async function fetchHtml(url: string): Promise<string> {
+// Domains that require a spoofed Referer (T-S048)
+// ashdi.vip and bazon.tv validate Referer on embed requests
+const REFERER_OVERRIDE: Record<string, string> = {
+  'ashdi.vip':  'https://kinogo.cc/',
+  'bazon.tv':   'https://kinogo.cc/',
+  'bazon.biz':  'https://kinogo.cc/',
+};
+
+async function fetchHtml(url: string, refererOverride?: string): Promise<string> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  const parsed = new URL(url);
+  const hostname = parsed.hostname.replace(/^www\./, '');
+  const referer = refererOverride ?? REFERER_OVERRIDE[hostname] ?? (parsed.origin + '/');
   try {
     const resp = await fetch(url, {
       signal: controller.signal,
@@ -107,7 +118,8 @@ async function fetchHtml(url: string): Promise<string> {
           '(KHTML, like Gecko) Chrome/120.0.6099.144 Mobile Safari/537.36',
         Accept: 'text/html,application/xhtml+xml',
         'Accept-Language': 'ru-RU,ru;q=0.9,en;q=0.8',
-        Referer: new URL(url).origin + '/',
+        Referer: referer,
+        Origin: parsed.origin,
       },
     });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
