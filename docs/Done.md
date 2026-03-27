@@ -4,6 +4,14 @@
 
 ---
 
+### F-166 | 2026-03-28 | [BACKEND] | T-S048 — ashdi.vip + bazon.tv extractor [Saidazim]
+
+- `detectPlatform.ts`: ashdi.vip, bazon.tv, bazon.biz → platform: 'playerjs'
+- `playerjsExtractor.ts`: REFERER_OVERRIDE map — 403 bo'lmasligi uchun Referer spoofing
+- kinogo.cc, turk123, animego va 10+ sayt endi ishlayd
+
+---
+
 ### F-165 | 2026-03-28 | [BACKEND] | T-S033 — Video Extract endpoint production deploy + smoke test [Saidazim]
 
 - `POST /api/v1/content/extract` Railway da ishlayapti ✅
