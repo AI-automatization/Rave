@@ -1,6 +1,6 @@
 // CineSync Mobile — MediaWebViewScreen
-// Встроенный браузер для просмотра и импорта медиа в комнату
-import React, { useRef, useState, useCallback } from 'react';
+// In-app browser: video topilganda pastda "Watch Party" bar chiqadi — popup yo'q
+import React, { useRef, useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
   StyleSheet,
+  Animated,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -17,7 +18,14 @@ import type { WebViewNavigation, WebViewMessageEvent } from 'react-native-webvie
 import { Ionicons } from '@expo/vector-icons';
 import { watchPartyApi } from '@api/watchParty.api';
 import { getSocket, CLIENT_EVENTS } from '@socket/client';
-import { MEDIA_DETECTION_JS, normalizeDetectedMedia, normalizeBlobMedia, type MediaDetectedPayload, type BlobVideoFoundPayload, type RoomMedia } from '@utils/mediaDetector';
+import {
+  MEDIA_DETECTION_JS,
+  normalizeDetectedMedia,
+  normalizeBlobMedia,
+  type MediaDetectedPayload,
+  type BlobVideoFoundPayload,
+  type RoomMedia,
+} from '@utils/mediaDetector';
 import { colors, spacing, borderRadius, typography } from '@theme/index';
 import type { ModalStackParamList } from '@app-types/index';
 
@@ -28,14 +36,13 @@ const MOBILE_UA =
   'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 ' +
   '(KHTML, like Gecko) Chrome/120.0.6099.144 Mobile Safari/537.36';
 
-// E67-1: document.cookie → postMessage (Netscape format)
+// E67-1: document.cookie → postMessage
 const COOKIE_COLLECTION_JS = `
 (function() {
   function sendCookies() {
     try {
       var raw = document.cookie;
       if (!raw) return;
-      // E67-2: Netscape format: name=value pairs joined by "; " — server parses as Cookie header
       window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({
         type: 'COOKIE_UPDATE',
         cookies: raw,
@@ -63,34 +70,44 @@ export function MediaWebViewScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [pageTitle, setPageTitle] = useState(params.sourceName);
   const [isImporting, setIsImporting] = useState(false);
-  // Ref guard — prevents double-call even before React re-render (stale closure fix)
+
+  // Video topilganda bar uchun state
+  const [detectedMedia, setDetectedMedia] = useState<RoomMedia | null>(null);
+
+  // Animated bar (pastdan chiqadi)
+  const barAnim = useRef(new Animated.Value(0)).current;
+
+  // Ref guards — no stale closures
   const isImportingRef = useRef(false);
-  // Alert dedup — prevents stacking multiple "▶ Видео найдено" alerts
-  const alertShownRef = useRef(false);
-  // E67-1: WebView cookies (injected JS orqali olinadi)
   const cookiesRef = useRef<string>('');
-  // importMedia ref — stable reference in onMessage to avoid stale closures
   const importMediaRef = useRef<(media: RoomMedia) => Promise<void>>(async () => {});
+
+  // Bar animation
+  useEffect(() => {
+    Animated.spring(barAnim, {
+      toValue: detectedMedia ? 1 : 0,
+      useNativeDriver: true,
+      tension: 80,
+      friction: 12,
+    }).start();
+  }, [detectedMedia, barAnim]);
 
   const onNavigationStateChange = useCallback((state: WebViewNavigation) => {
     setCanGoBack(state.canGoBack);
     setCanGoForward(state.canGoForward);
     if (state.title) setPageTitle(state.title);
-    // Yangi sahifaga o'tganda alert dedup ni reset qil
-    alertShownRef.current = false;
+    // Yangi sahifaga o'tganda detected media ni tozala
+    setDetectedMedia(null);
   }, []);
 
   // ─── Media import flow ──────────────────────────────────────────────────────
 
-  // Keep ref in sync so onMessage (stable) always calls latest importMedia
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   React.useEffect(() => { importMediaRef.current = importMedia; });
 
   async function importMedia(media: RoomMedia) {
     if (isImportingRef.current) return;
 
     if (params.context === 'change_media') {
-      // Already in a room — emit socket event
       if (!params.roomId) return;
       getSocket()?.emit(CLIENT_EVENTS.CHANGE_MEDIA, {
         roomId: params.roomId,
@@ -102,12 +119,9 @@ export function MediaWebViewScreen() {
       return;
     }
 
-    // New room — create + navigate
     isImportingRef.current = true;
     setIsImporting(true);
     try {
-      // E67-4: cookies faqat webview-session rejimida yuboriladi
-      // E67-5: cookies log ga yozilmaydi
       const sessionCookies = media.mode === 'webview-session' ? cookiesRef.current : undefined;
       const room = await watchPartyApi.createRoom({
         name: media.videoTitle.slice(0, 60),
@@ -120,14 +134,9 @@ export function MediaWebViewScreen() {
     } catch (err: unknown) {
       if (__DEV__) console.log('[MediaWebView] createRoom error:', err);
       const axiosErr = err as { response?: { data?: { message?: string } }; code?: string; message?: string };
-      let msg: string;
-      if (axiosErr.response?.data?.message) {
-        msg = axiosErr.response.data.message;
-      } else if (axiosErr.code === 'ECONNABORTED' || axiosErr.message === 'Network Error') {
-        msg = 'Сервер недоступен. Проверьте интернет или попробуйте позже.';
-      } else {
-        msg = axiosErr.message ?? 'Проверьте подключение к сети.';
-      }
+      const msg = axiosErr.response?.data?.message
+        ?? (axiosErr.message === 'Network Error' ? 'Сервер недоступен. Попробуйте позже.' : axiosErr.message)
+        ?? 'Ошибка сети.';
       Alert.alert('Ошибка', msg);
     } finally {
       isImportingRef.current = false;
@@ -135,7 +144,7 @@ export function MediaWebViewScreen() {
     }
   }
 
-  // ─── WebView message handler ────────────────────────────────────────────────
+  // ─── WebView message handler ─────────────────────────────────────────────────
 
   const onMessage = useCallback((event: WebViewMessageEvent) => {
     try {
@@ -144,70 +153,34 @@ export function MediaWebViewScreen() {
         | BlobVideoFoundPayload
         | { type: 'COOKIE_UPDATE'; cookies: string; domain: string };
 
-      // E67-1: Cookie yangilanishini saqla (log qilinmaydi — E67-5)
       if (data.type === 'COOKIE_UPDATE') {
         if (data.cookies) cookiesRef.current = data.cookies;
         return;
       }
 
       if (data.type === 'BLOB_VIDEO_FOUND') {
-        if (alertShownRef.current) return;
-        alertShownRef.current = true;
-        // DRM/auth сайт — webview-session режими
         const media = normalizeBlobMedia(data);
-        Alert.alert(
-          '🔒 Защищённое видео',
-          'Это видео защищено DRM. Открыть как WebView-сессию в комнате?',
-          [
-            { text: 'Отмена', style: 'cancel', onPress: () => { alertShownRef.current = false; } },
-            {
-              text: 'Открыть в комнате',
-              onPress: () => {
-                alertShownRef.current = false;
-                importMediaRef.current(media);
-              },
-            },
-          ],
-          { cancelable: true, onDismiss: () => { alertShownRef.current = false; } },
-        );
+        setDetectedMedia(media);
         return;
       }
 
       if (data.type !== 'MEDIA_DETECTED') return;
 
-      // Dedup: agar alert allaqachon ko'rsatilgan bo'lsa — yangi popup ko'rsatma
-      if (alertShownRef.current) return;
-      alertShownRef.current = true;
-
       const media = normalizeDetectedMedia(data);
-
-      Alert.alert(
-        '▶ Видео найдено',
-        `"${media.videoTitle.slice(0, 80)}"`,
-        [
-          {
-            text: 'Отмена',
-            style: 'cancel',
-            onPress: () => { alertShownRef.current = false; },
-          },
-          {
-            text: 'Забрать видео',
-            onPress: () => {
-              alertShownRef.current = false;
-              importMediaRef.current(media);
-            },
-          },
-        ],
-        { cancelable: true, onDismiss: () => { alertShownRef.current = false; } },
-      );
+      setDetectedMedia(media);
     } catch {
-      // Ignore non-JSON messages from page scripts
+      // Non-JSON messages ignored
     }
-    // importMedia is stable enough; including it would create infinite loops
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ─── Render ─────────────────────────────────────────────────────────────────
+  // ─── Bar translate ───────────────────────────────────────────────────────────
+
+  const barTranslateY = barAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [120, 0],
+  });
+
+  // ─── Render ──────────────────────────────────────────────────────────────────
 
   return (
     <View style={[styles.root, { paddingTop: insets.top || 0 }]}>
@@ -248,7 +221,6 @@ export function MediaWebViewScreen() {
         </View>
       </View>
 
-      {/* Loading bar */}
       {isLoading && <View style={styles.loadingBar} />}
 
       {/* WebView */}
@@ -280,18 +252,42 @@ export function MediaWebViewScreen() {
         )}
       />
 
-      {/* Import overlay when creating room */}
-      {isImporting && (
-        <View style={styles.importOverlay}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.importText}>Создаём комнату...</Text>
-        </View>
+      {/* Video topilganda — pastda Watch Party bar */}
+      {detectedMedia && (
+        <Animated.View
+          style={[
+            styles.videoBar,
+            { transform: [{ translateY: barTranslateY }], paddingBottom: insets.bottom || spacing.md },
+          ]}
+        >
+          <View style={styles.videoBarLeft}>
+            <Ionicons name="play-circle" size={22} color={colors.primary} />
+            <Text style={styles.videoBarTitle} numberOfLines={1}>
+              {detectedMedia.videoTitle || 'Видео найдено'}
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={[styles.videoBarBtn, isImporting && styles.videoBarBtnDisabled]}
+            onPress={() => importMediaRef.current(detectedMedia)}
+            disabled={isImporting}
+            activeOpacity={0.8}
+          >
+            {isImporting ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <>
+                <Ionicons name="tv-outline" size={16} color="#fff" />
+                <Text style={styles.videoBarBtnText}>Watch Party</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </Animated.View>
       )}
     </View>
   );
 }
 
-// ─── Styles ──────────────────────────────────────────────────────────────────
+// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   root: {
@@ -375,16 +371,57 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 15,
   },
-  importOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(10,10,15,0.88)',
+  // ─── Video bar ────────────────────────────────────────────────────────────
+  videoBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#111118',
+    borderTopWidth: 0.5,
+    borderTopColor: 'rgba(255,255,255,0.12)',
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.lg,
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+    gap: spacing.sm,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 12,
   },
-  importText: {
-    color: '#fff',
-    fontSize: 16,
+  videoBarLeft: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    minWidth: 0,
+  },
+  videoBarTitle: {
+    flex: 1,
+    fontSize: 13,
     fontWeight: '600',
+    color: '#fff',
+  },
+  videoBarBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.md,
+    minWidth: 110,
+    justifyContent: 'center',
+  },
+  videoBarBtnDisabled: {
+    opacity: 0.6,
+  },
+  videoBarBtnText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 13,
   },
 });
