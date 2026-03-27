@@ -63,6 +63,10 @@ export function MediaWebViewScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [pageTitle, setPageTitle] = useState(params.sourceName);
   const [isImporting, setIsImporting] = useState(false);
+  // Ref guard — prevents double-call even before React re-render (stale closure fix)
+  const isImportingRef = useRef(false);
+  // Alert dedup — prevents stacking multiple "▶ Видео найдено" alerts
+  const alertShownRef = useRef(false);
   // E67-1: WebView cookies (injected JS orqali olinadi)
   const cookiesRef = useRef<string>('');
   // importMedia ref — stable reference in onMessage to avoid stale closures
@@ -72,6 +76,8 @@ export function MediaWebViewScreen() {
     setCanGoBack(state.canGoBack);
     setCanGoForward(state.canGoForward);
     if (state.title) setPageTitle(state.title);
+    // Yangi sahifaga o'tganda alert dedup ni reset qil
+    alertShownRef.current = false;
   }, []);
 
   // ─── Media import flow ──────────────────────────────────────────────────────
@@ -81,7 +87,7 @@ export function MediaWebViewScreen() {
   React.useEffect(() => { importMediaRef.current = importMedia; });
 
   async function importMedia(media: RoomMedia) {
-    if (isImporting) return;
+    if (isImportingRef.current) return;
 
     if (params.context === 'change_media') {
       // Already in a room — emit socket event
@@ -97,6 +103,7 @@ export function MediaWebViewScreen() {
     }
 
     // New room — create + navigate
+    isImportingRef.current = true;
     setIsImporting(true);
     try {
       // E67-4: cookies faqat webview-session rejimida yuboriladi
@@ -111,13 +118,19 @@ export function MediaWebViewScreen() {
       });
       navigation.navigate('WatchParty', { roomId: room._id, videoReferer: media.videoReferer });
     } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        (err as { message?: string })?.message ??
-        'Проверьте подключение к сети.';
       if (__DEV__) console.log('[MediaWebView] createRoom error:', err);
-      Alert.alert('Ошибка', `Не удалось создать комнату: ${msg}`);
+      const axiosErr = err as { response?: { data?: { message?: string } }; code?: string; message?: string };
+      let msg: string;
+      if (axiosErr.response?.data?.message) {
+        msg = axiosErr.response.data.message;
+      } else if (axiosErr.code === 'ECONNABORTED' || axiosErr.message === 'Network Error') {
+        msg = 'Сервер недоступен. Проверьте интернет или попробуйте позже.';
+      } else {
+        msg = axiosErr.message ?? 'Проверьте подключение к сети.';
+      }
+      Alert.alert('Ошибка', msg);
     } finally {
+      isImportingRef.current = false;
       setIsImporting(false);
     }
   }
@@ -138,24 +151,33 @@ export function MediaWebViewScreen() {
       }
 
       if (data.type === 'BLOB_VIDEO_FOUND') {
+        if (alertShownRef.current) return;
+        alertShownRef.current = true;
         // DRM/auth сайт — webview-session режими
         const media = normalizeBlobMedia(data);
         Alert.alert(
           '🔒 Защищённое видео',
           'Это видео защищено DRM. Открыть как WebView-сессию в комнате?',
           [
-            { text: 'Отмена', style: 'cancel' },
+            { text: 'Отмена', style: 'cancel', onPress: () => { alertShownRef.current = false; } },
             {
               text: 'Открыть в комнате',
-              onPress: () => importMediaRef.current(media),
+              onPress: () => {
+                alertShownRef.current = false;
+                importMediaRef.current(media);
+              },
             },
           ],
-          { cancelable: true },
+          { cancelable: true, onDismiss: () => { alertShownRef.current = false; } },
         );
         return;
       }
 
       if (data.type !== 'MEDIA_DETECTED') return;
+
+      // Dedup: agar alert allaqachon ko'rsatilgan bo'lsa — yangi popup ko'rsatma
+      if (alertShownRef.current) return;
+      alertShownRef.current = true;
 
       const media = normalizeDetectedMedia(data);
 
@@ -163,13 +185,20 @@ export function MediaWebViewScreen() {
         '▶ Видео найдено',
         `"${media.videoTitle.slice(0, 80)}"`,
         [
-          { text: 'Отмена', style: 'cancel' },
+          {
+            text: 'Отмена',
+            style: 'cancel',
+            onPress: () => { alertShownRef.current = false; },
+          },
           {
             text: 'Забрать видео',
-            onPress: () => importMediaRef.current(media),
+            onPress: () => {
+              alertShownRef.current = false;
+              importMediaRef.current(media);
+            },
           },
         ],
-        { cancelable: true },
+        { cancelable: true, onDismiss: () => { alertShownRef.current = false; } },
       );
     } catch {
       // Ignore non-JSON messages from page scripts

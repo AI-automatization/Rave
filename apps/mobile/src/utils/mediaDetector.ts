@@ -83,6 +83,9 @@ export function normalizeBlobMedia(payload: BlobVideoFoundPayload): RoomMedia {
  */
 export const MEDIA_DETECTION_JS = `
 (function() {
+  if (window._csMediaDetectorSetup) return;
+  window._csMediaDetectorSetup = true;
+
   var lastReportedVideoUrl = '';
   var fallbackTimer = null;
 
