@@ -57,6 +57,36 @@ const COOKIE_COLLECTION_JS = `
 })();
 `;
 
+// ─── Platform hint ────────────────────────────────────────────────────────────
+
+function getHint(sourceId: string): string {
+  switch (sourceId) {
+    case 'youtube':
+    case 'youtube-live':
+      return 'YouTube da video toping va oching — avtomatik aniqlanadi';
+    case 'twitch':
+      return 'Twitch da kanal yoki VOD ni oching';
+    case 'vk':
+      return 'VK da videoni bosing — pleer ochilsin';
+    case 'rutube':
+      return 'Rutube da videoni oching';
+    case 'x':
+      return 'X (Twitter) da video postni oching';
+    case 'facebook':
+      return 'Facebook da video post yoki Reelni oching';
+    case 'instagram':
+      return 'Instagram da Reel yoki videoni oching';
+    case 'reddit':
+      return 'Reddit da video postni oching';
+    case 'streamable':
+      return 'Streamable da videoni oching';
+    case 'drive':
+      return 'Google Drive da video faylni oching';
+    default:
+      return 'Film yoki videoni toping va bosing — avtomatik aniqlanadi';
+  }
+}
+
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export function MediaWebViewScreen() {
@@ -252,7 +282,17 @@ export function MediaWebViewScreen() {
         )}
       />
 
-      {/* Video topilganda — pastda Watch Party bar */}
+      {/* Video topilmagan — hint bar */}
+      {!detectedMedia && !isLoading && (
+        <View style={[styles.hintBar, { paddingBottom: insets.bottom || spacing.sm }]}>
+          <Ionicons name="search-outline" size={15} color="#6B7280" />
+          <Text style={styles.hintText} numberOfLines={2}>
+            {getHint(params.sourceId ?? '')}
+          </Text>
+        </View>
+      )}
+
+      {/* Video topilganda — Watch Party bar (pastdan chiqadi) */}
       {detectedMedia && (
         <Animated.View
           style={[
@@ -371,7 +411,28 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 15,
   },
-  // ─── Video bar ────────────────────────────────────────────────────────────
+  // ─── Hint bar ─────────────────────────────────────────────────────────────
+  hintBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.sm,
+    backgroundColor: 'rgba(17,17,24,0.92)',
+    borderTopWidth: 0.5,
+    borderTopColor: 'rgba(255,255,255,0.06)',
+  },
+  hintText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#6B7280',
+    lineHeight: 17,
+  },
+  // ─── Video bar ─────────────────────────────────────────────────────────────
   videoBar: {
     position: 'absolute',
     bottom: 0,
