@@ -4,6 +4,22 @@
 
 ---
 
+### F-161 | 2026-03-27 | [MOBILE] | T-E069 + T-E070 — ashdi.vip/bazon.tv adapters + FB/IG/Reddit/Streamable [Emirhan]
+
+**T-E069 — ashdi.vip + bazon.tv + CDN adapterlar (`WebViewAdapters.ts`):**
+- `ashdi.vip` adapter: `.jw-video`, `.plyr video`, `.video-js video`, `video`; scanDelay 2500ms; Playerjs JSON parse postAttachJs
+- `bazon.tv` adapter: `.video-js video`, `.vjs-tech`, `.plyr video`, `video`; scanDelay 2000ms; popup yopish
+- `cdnvideohub.xyz` adapter: `.jw-video`, `.video-js video`, `video`; scanDelay 2000ms
+- `videocdn.me` adapter: `.jw-video`, `.plyr video`, `.video-js video`, `video`; scanDelay 2000ms
+- Natija: kinogo.cc → ashdi.vip iframe → adapter video topadi
+
+**T-E070 — Facebook, Instagram, Reddit, Streamable WebView orqali (`mediaSources.ts`, `mediaDetector.ts`):**
+- `mediaSources.ts`: facebook, instagram, reddit, streamable yozuvlari qo'shildi (`support: 'full'`)
+- `mediaDetector.ts` `isRealVideoSrc()`: `fbcdn.net/.mp4`, `cdninstagram.com/.mp4`, `v.redd.it`, `streamable.com/.mp4` domenlar qo'shildi
+- Natija: foydalanuvchi SourcePicker → FB/IG/Reddit/Streamable → MediaWebViewScreen → video auto-detected → popup
+
+---
+
 ### F-160 | 2026-03-27 | [MOBILE] | T-E065 — WebView Session Player (Cinerama, Megogo) [Emirhan]
 
 **T-E065 — WebView Session Player (`mediaDetector.ts`, `UniversalPlayer.tsx`, `mediaSources.ts`, `WebViewAdapters.ts`):**

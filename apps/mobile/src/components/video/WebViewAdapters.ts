@@ -96,6 +96,44 @@ const ADAPTERS: Record<string, VideoAdapter> = {
     scanDelay: 2500,
   },
 
+  // T-E069: ashdi.vip + bazon.tv — 60-70% CIS saytlari shular orqali ishlaydi
+  'ashdi.vip': {
+    selectors: ['.jw-video', '.plyr video', '.video-js video', 'video'],
+    postAttachJs: `
+      // Playerjs JSON file list dan birinchi URL ni olish
+      try {
+        var pjScripts = document.querySelectorAll('script');
+        for (var i = 0; i < pjScripts.length; i++) {
+          var t = pjScripts[i].textContent || '';
+          var m = t.match(/Playerjs\\s*\\(\\s*\\{[^}]*file\\s*:\\s*"([^"]+)"/);
+          if (!m) m = t.match(/file\\s*:\\s*"([^"]+\\.(?:m3u8|mp4)[^"]*)"/);
+          if (m && m[1] && window._csVideo) { window._csVideo.src = m[1]; break; }
+        }
+      } catch(e) {}
+    `,
+    scanDelay: 2500,
+  },
+
+  'bazon.tv': {
+    selectors: ['.video-js video', '.vjs-tech', '.plyr video', 'video'],
+    postAttachJs: `
+      var ad = document.querySelector('.close-btn, .popup-close, [data-dismiss="modal"]');
+      if (ad) ad.click();
+    `,
+    scanDelay: 2000,
+  },
+
+  // T-E069: Keng tarqalgan CDN providerlar
+  'cdnvideohub.xyz': {
+    selectors: ['.jw-video', '.video-js video', 'video'],
+    scanDelay: 2000,
+  },
+
+  'videocdn.me': {
+    selectors: ['.jw-video', '.plyr video', '.video-js video', 'video'],
+    scanDelay: 2000,
+  },
+
   // E65-7: webview-session платформалар
   'cinerama.uz': {
     selectors: ['.video-js video', '.plyr video', 'video'],

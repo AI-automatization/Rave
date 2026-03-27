@@ -14,7 +14,7 @@
 3. Fix bo'lgach → shu yerdan O'CHIRISH → docs/Done.md ga KO'CHIRISH
 4. Prioritet: P0=kritik, P1=muhim, P2=o'rta, P3=past
 5. Sprint: S1=hozir, S2=keyingi hafta, S3=keyingi sprint, S4-5=keyin
-6. Oxirgi T-raqam: S→047, E→070, J→037, C→011
+6. Oxirgi T-raqam: S→047, E→070 (hammasi bajarildi), J→037, C→011
 7. Yangilangan: 2026-03-27
 ```
 
@@ -108,75 +108,6 @@ lookmovie2 CDN HLS сегментларида `Referer` header талаб қил
 
 ---
 
-### T-E069 | P1 | [MOBILE] | ashdi.vip + bazon.tv WebView Adapter
-
-- **Sana:** 2026-03-27
-- **Mas'ul:** pending[Emirhan]
-- **Sprint:** S8
-- **Fayl:** `apps/mobile/src/components/video/WebViewAdapters.ts`
-- **Holat:** ❌ Boshlanmagan
-
-**Контекст:**
-O'zbekiston va Rossiya saytlarining 60-70% (kinogo, turk123, animego, rezka va boshqalar)
-o'z ichida **ashdi.vip** yoki **bazon.tv** iframidan foydalanadi.
-Hozir: IFRAME_FOUND → o'sha sahifaga o'tiladi → adapter yo'q → video topilmaydi.
-Keyin: adapter → Playerjs JSON parse → .m3u8 / .mp4 topiladi.
-
-**Subtasklar:**
-- [ ] E69-1. `ashdi.vip` adapter — selectors: `.jw-video`, `.plyr video`, `video`; scanDelay 2500ms
-- [ ] E69-2. `bazon.tv` adapter — selectors: `.video-js video`, `.vjs-tech`, `video`; scanDelay 2000ms
-- [ ] E69-3. `MEDIA_DETECTION_JS` — Playerjs format aniqlash:
-  `new Playerjs({file: [...]})` yoki `Playerjs({file:"url"})` → src setter intercept bilan tutiladi (T-E064 da bor)
-- [ ] E69-4. `cdnvideohub.xyz`, `videocdn.me` adapterlar (keng tarqalgan CDN providerlar)
-- [ ] E69-5. Test: kinogo.cc sahifasida video topilishini tekshirish (WebView orqali)
-
-**Natija:** kinogo, turk123, animego va yana 10+ sayt ishlaydi
-
----
-
-### T-E070 | P1 | [MOBILE] | URL kiritish funksiyasi — Facebook, Instagram, Reddit, Streamable
-
-- **Sana:** 2026-03-27
-- **Mas'ul:** pending[Emirhan]
-- **Sprint:** S8
-- **Fayl:** `apps/mobile/src/screens/modal/SourcePickerScreen.tsx`
-- **Holat:** ❌ Boshlanmagan
-
-**Контекст:**
-Backend allaqachon quyidagi saytlarni qo'llab-quvvatlaydi (yt-dlp orqali):
-- **Facebook** — post/reel videolar
-- **Instagram** — post/reel/story videolar (login bo'lmasa ochiq kontent)
-- **Reddit** — video postlar (v.redd.it)
-- **Streamable** — to'g'ridan video hostlar
-
-Muammo: mobilda bu saytlarga kirish yo'li yo'q. "Web" saytidan ochsa ham
-video URL avtomatik topilmasligi mumkin (SPA, auth).
-**Eng to'g'ri yo'l:** foydalanuvchi o'zi URL nusxalab kiritadi → backend extract qiladi.
-
-**Subtasklar:**
-- [ ] E70-1. `SourcePickerScreen.tsx` — pastki qismga "URL kiritish" bo'lim qo'shish
-  ```
-  [ https://... ni shu yerga joylashtiring ] [→]
-  ```
-- [ ] E70-2. URL validate qilish — `http://` yoki `https://` bilan boshlanishi kerak
-- [ ] E70-3. `contentApi.extractVideo(url)` chaqirish — loading spinner ko'rsatish
-- [ ] E70-4. Muvaffaqiyatli → `normalizeExtractResult(result)` → `RoomMedia` ga aylantirish
-- [ ] E70-5. Natija `context` ga qarab:
-  - `new_room` → `watchPartyApi.createRoom()` → `WatchPartyScreen`
-  - `change_media` → socket `CHANGE_MEDIA` emit → `WatchPartyScreen`
-- [ ] E70-6. Xato holatlari:
-  - Geo-block (HTTP 451) → "Bu sayt mintaqangizda mavjud emas"
-  - DRM → "Bu kontent himoyalangan (DRM)"
-  - Topilmadi → "Video topilmadi. Boshqa URL kiriting"
-- [ ] E70-7. Qo'llab-quvvatlanadigan saytlar ko'rsatkich (hint text):
-  `"Facebook, Instagram, Reddit, Streamable va 700+ sayt"`
-
-**Natija:**
-- Foydalanuvchi istalgan video linkini nusxalab joylashtiradi
-- Backend yt-dlp orqali video URL ni topadi
-- expo-av da native o'ynatadi (tez, seek ishlaydi, sifat tanlash mumkin)
-
----
 
 # ═══════════════════════════════════════
 

@@ -20,6 +20,38 @@ export interface MediaSource {
 
 export const MEDIA_SOURCES: MediaSource[] = [
   {
+    id: 'facebook',
+    label: 'Facebook',
+    iconName: 'logo-facebook',
+    brandColor: '#1877F2',
+    defaultUrl: 'https://www.facebook.com/watch',
+    support: 'full',
+  },
+  {
+    id: 'instagram',
+    label: 'Instagram',
+    iconName: 'logo-instagram',
+    brandColor: '#E1306C',
+    defaultUrl: 'https://www.instagram.com/reels',
+    support: 'full',
+  },
+  {
+    id: 'reddit',
+    label: 'Reddit',
+    iconName: 'logo-reddit',
+    brandColor: '#FF4500',
+    defaultUrl: 'https://www.reddit.com/r/videos',
+    support: 'full',
+  },
+  {
+    id: 'streamable',
+    label: 'Streamable',
+    iconName: 'play-circle-outline',
+    brandColor: '#1DBBFF',
+    defaultUrl: 'https://streamable.com',
+    support: 'full',
+  },
+  {
     id: 'youtube',
     label: 'YouTube',
     iconName: 'logo-youtube',

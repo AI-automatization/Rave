@@ -119,6 +119,11 @@ export const MEDIA_DETECTION_JS = `
     if (lower.indexOf('.googlevideo.com') !== -1) return false;
     if (lower.indexOf('googlevideo') !== -1) return false;
     if (/\\/(stream|playlist\\.m3u8|manifest|hls|dash)/.test(lower)) return true;
+    // T-E070: Facebook, Instagram, Reddit, Streamable CDN domenlar
+    if (lower.indexOf('fbcdn.net') !== -1 && lower.indexOf('.mp4') !== -1) return true;
+    if (lower.indexOf('cdninstagram.com') !== -1 && lower.indexOf('.mp4') !== -1) return true;
+    if (lower.indexOf('v.redd.it') !== -1) return true;
+    if (lower.indexOf('streamable.com') !== -1 && lower.indexOf('.mp4') !== -1) return true;
     return false;
   }
 
