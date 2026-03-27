@@ -2,9 +2,10 @@
 // Список источников медиа для Source Picker (аналог Rave)
 
 export type MediaSupportLevel =
-  | 'full'     // WebView + media detection работает
-  | 'drm'      // DRM защита — только fallback сообщение
-  | 'internal'; // Внутренняя функция приложения (Coming soon)
+  | 'full'            // WebView + media detection работает
+  | 'drm'             // DRM защита — только fallback сообщение
+  | 'webview-session' // E65-5: страница сама является плеером (Cinerama, Megogo)
+  | 'internal';       // Внутренняя функция приложения (Coming soon)
 
 export interface MediaSource {
   id: string;
@@ -49,6 +50,22 @@ export const MEDIA_SOURCES: MediaSource[] = [
     brandColor: '#00B4FF',
     defaultUrl: 'https://rutube.ru',
     support: 'full',
+  },
+  {
+    id: 'cinerama',
+    label: 'Cinerama',
+    iconName: 'film-outline',
+    brandColor: '#E8432D',
+    defaultUrl: 'https://cinerama.uz',
+    support: 'webview-session',
+  },
+  {
+    id: 'megogo',
+    label: 'Megogo',
+    iconName: 'play-circle-outline',
+    brandColor: '#FF6600',
+    defaultUrl: 'https://megogo.net',
+    support: 'webview-session',
   },
   {
     id: 'netflix',

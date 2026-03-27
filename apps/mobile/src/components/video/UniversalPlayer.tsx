@@ -37,6 +37,8 @@ interface Props {
   isExtracting?: boolean;
   /** Referer для CDN hotlink-защиты (страница где найдено видео) */
   referer?: string;
+  /** E65-4: webview-session mode — DRM/auth page IS the player, skip expo-av */
+  mode?: 'extracted' | 'webview-session';
 }
 
 const YOUTUBE_REGEX = /(?:youtube\.com|youtu\.be)/i;
@@ -133,7 +135,7 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
       url, isOwner, onPlay, onPause, onSeek,
       onPlaybackStatusUpdate, onProgress,
       extractedUrl, extractedType, isExtracting,
-      referer,
+      referer, mode,
     },
     ref,
   ) => {
@@ -146,7 +148,8 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
     // Aks holda: YouTube/boshqa saytlar → WebView, direct → expo-av
     const hasExtracted = !!extractedUrl;
     const useWebview =
-      !hasExtracted && (platform === 'youtube' || platform === 'webview' || videoError);
+      mode === 'webview-session' ||
+      (!hasExtracted && (platform === 'youtube' || platform === 'webview' || videoError));
     const directSource = hasExtracted ? extractedUrl : url;
 
     useImperativeHandle(ref, () => ({

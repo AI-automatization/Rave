@@ -95,6 +95,25 @@ const ADAPTERS: Record<string, VideoAdapter> = {
     ],
     scanDelay: 2500,
   },
+
+  // E65-7: webview-session платформалар
+  'cinerama.uz': {
+    selectors: ['.video-js video', '.plyr video', 'video'],
+    postAttachJs: `
+      var playBtn = document.querySelector('.vjs-play-control, .plyr__control--overlaid, [data-plyr="play"]');
+      if (playBtn) playBtn.click();
+    `,
+    scanDelay: 2000,
+  },
+
+  'megogo.net': {
+    selectors: ['.vjs-tech', 'video.megogo-player', 'video'],
+    postAttachJs: `
+      var ad = document.querySelector('.megogo-ad-skip, .skip-btn');
+      if (ad) ad.click();
+    `,
+    scanDelay: 3000,
+  },
 };
 
 const GENERIC_ADAPTER: VideoAdapter = {

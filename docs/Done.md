@@ -4,6 +4,20 @@
 
 ---
 
+### F-160 | 2026-03-27 | [MOBILE] | T-E065 — WebView Session Player (Cinerama, Megogo) [Emirhan]
+
+**T-E065 — WebView Session Player (`mediaDetector.ts`, `UniversalPlayer.tsx`, `mediaSources.ts`, `WebViewAdapters.ts`):**
+- `MediaDetectedPayload.mode?: 'extracted' | 'webview-session'` — E65-1
+- `normalizeDetectedMedia()`: `mode: payload.mode ?? 'extracted'` — passthrough
+- `BlobVideoFoundPayload` → `normalizeBlobMedia()` → `mode: 'webview-session'` — E65-2 (T-E064 da bajarilgan)
+- `MediaWebViewScreen.tsx` BLOB_VIDEO_FOUND → DRM alert → webview-session import — E65-3 (T-E064 da bajarilgan)
+- `UniversalPlayer.tsx`: `mode?: 'extracted' | 'webview-session'` prop; `mode==='webview-session'` → force WebView — E65-4
+- `mediaSources.ts`: `MediaSupportLevel` ga `'webview-session'` qo'shildi; Cinerama + Megogo yozuvlari — E65-5
+- Progress bar: `detectVideoPlatform()` 'webview' qaytaradi → `isWebView=true` → bar yashiriladi — E65-6 (allaqachon)
+- `WebViewAdapters.ts`: `cinerama.uz` + `megogo.net` adapterlar — E65-7
+
+---
+
 ### F-159 | 2026-03-27 | [MOBILE] | T-E064, T-E066, T-E067, T-E068 — Video Detection v2 + Adapters + Cookie + Quality [Emirhan]
 
 **T-E064 — Smart Video Detector v2 (`mediaDetector.ts`):**

@@ -25,6 +25,8 @@ export interface MediaDetectedPayload {
   thumbnailUrl?: string;
   /** URL страницы где найдено видео — нужен как Referer для CDN */
   pageUrl?: string;
+  /** E65-1: webview-session режими — DRM/auth сайтлар */
+  mode?: 'extracted' | 'webview-session';
 }
 
 /** blob: URL топилганда — DRM/auth сайт сигнали (webview-session режими) */
@@ -51,7 +53,7 @@ export function normalizeDetectedMedia(payload: MediaDetectedPayload): RoomMedia
     videoPlatform: platform,
     videoThumbnail: payload.thumbnailUrl,
     videoReferer: payload.pageUrl,
-    mode: 'extracted',
+    mode: payload.mode ?? 'extracted',
   };
 }
 

@@ -108,29 +108,6 @@ lookmovie2 CDN HLS сегментларида `Referer` header талаб қил
 
 ---
 
-### T-E065 | P1 | [MOBILE] | WebView Session Player — Type 3 сайтлар (Cinerama, Megogo)
-
-- **Sana:** 2026-03-26
-- **Mas'ul:** pending[Emirhan]
-- **Sprint:** S6
-- **Fayl:** `apps/mobile/src/screens/modal/MediaWebViewScreen.tsx`, `apps/mobile/src/utils/mediaDetector.ts`, `apps/mobile/src/components/video/UniversalPlayer.tsx`
-- **Holat:** ❌ Boshlanmagan
-
-**Контекст:**
-Cinerama.uz, Megogo.net — DRM/auth. URL ажратиб бўлмайди.
-WebView ўзи плеер — JS injection орқали play/pause/seek. Sync `pageUrl` орқали.
-
-**Subtasklar:**
-- [ ] E65-1. `MediaDetectedPayload` га `mode: 'extracted' | 'webview-session'`
-- [ ] E65-2. blob/DRM URL → `mode: 'webview-session'` хабари
-- [ ] E65-3. `MediaWebViewScreen.tsx` — webview-session: `pageUrl` → Watch Party
-- [ ] E65-4. `UniversalPlayer.tsx` — webview-session: WebView + MOBILE_USER_AGENT
-- [ ] E65-5. `mediaSources.ts` — Cinerama, Megogo: `'drm'` → `'webview-session'`
-- [ ] E65-6. Watch Party — webview-session member ҳам WebView кўради (progress bar йўқ)
-- [ ] E65-7. JS adapter: `cinerama.uz`, `megogo.net` — `play()`/`pause()`/`seek()` injection
-
----
-
 # ═══════════════════════════════════════
 
 # 🔵 JAFAR — REACT NATIVE MOBILE
