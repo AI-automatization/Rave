@@ -4,6 +4,16 @@
 
 ---
 
+### F-164 | 2026-03-28 | [BACKEND] | T-S005b — HLS Upload Pipeline [Saidazim]
+
+- `hls.queue.ts` — Bull queue 'hls-transcode' (Redis), 2 attempts, removeOnComplete:50
+- `hls.worker.ts` — FFmpeg: raw video → m3u8 + .ts segments (6s), auto-cleanup input, Movie.videoUrl update
+- `hlsUpload.controller.ts` — `POST /movies/upload-hls` (enqueue, 202), `GET /movies/hls-status/:jobId`
+- Static serve: `GET /api/v1/content/hls-files/:jobId/*` → `/tmp/cinesync-hls/`
+- Railway: `FFMPEG_PATH` env var agar ffmpeg PATH da bo'lmasa
+
+---
+
 ### F-162 | 2026-03-27 | [BACKEND] | T-S043 — Playwright Headless Service [Saidazim]
 
 - `playwright-chromium` dependency qo'shildi, `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1` + system chromium (Dockerfile)

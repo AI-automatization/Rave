@@ -26,18 +26,6 @@
 
 ---
 
-### T-S005b | P2 | [BACKEND] | Content Service — HLS upload pipeline
-
-- **Sana:** 2026-02-27
-- **Mas'ul:** pending[Saidazim]
-- **Fayl:** `services/content/src/`
-- **Holat:** ❌ Boshlanmagan (requires FFmpeg + storage infra)
-- **Qolgan ishlar:**
-  - [ ] FFmpeg transcode endpoint — operator video yuklaydi → HLS m3u8 + .ts segments
-  - [ ] Storage: local yoki S3-compatible (MinIO) video saqlash
-  - [ ] Background job (Bull queue) — transcode async
-
----
 
 ### T-S033 | P1 | [BACKEND] | Video Extract endpoint — production deploy + smoke test
 
