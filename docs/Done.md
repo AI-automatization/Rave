@@ -4,6 +4,16 @@
 
 ---
 
+### F-167 | 2026-03-28 | [BACKEND] | T-S049 — Geo-blocked proxy extraction [Saidazim]
+
+- `geoExtractor.ts`: undici ProxyAgent — `GEO_PROXY_URL` env orqali proxy fetch
+- Kinogo → ashdi.vip iframe topib qaytaradi → normal re-extraction
+- Hdrezka, filmix → Playerjs bevosita parse
+- `index.ts`: geo-block yerda proxy sinab ko'radi, muvaffaqiyatsiz bo'lsa geo_blocked error
+- Railway: `GEO_PROXY_URL=http://user:pass@proxy:port` qo'shish kerak
+
+---
+
 ### F-166 | 2026-03-28 | [BACKEND] | T-S048 — ashdi.vip + bazon.tv extractor [Saidazim]
 
 - `detectPlatform.ts`: ashdi.vip, bazon.tv, bazon.biz → platform: 'playerjs'
