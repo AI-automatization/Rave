@@ -29,7 +29,7 @@
 ### T-S005b | P2 | [BACKEND] | Content Service — HLS upload pipeline
 
 - **Sana:** 2026-02-27
-- **Mas'ul:** Saidazim
+- **Mas'ul:** pending[Saidazim]
 - **Fayl:** `services/content/src/`
 - **Holat:** ❌ Boshlanmagan (requires FFmpeg + storage infra)
 - **Qolgan ishlar:**
