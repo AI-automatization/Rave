@@ -6,6 +6,7 @@ import { config } from './config/index';
 import { logger } from '@shared/utils/logger';
 import { initServiceQueues } from '@shared/utils/serviceQueue';
 import { initElasticsearchIndex } from './utils/elastic.init';
+import { startHlsWorker } from './workers/hls.worker';
 
 const main = async (): Promise<void> => {
   await mongoose.connect(config.mongoUri);
@@ -33,6 +34,7 @@ const main = async (): Promise<void> => {
   await initElasticsearchIndex(elastic);
 
   initServiceQueues(config.redisUrl);
+  startHlsWorker();
 
   const app = createApp(redis, elastic);
 

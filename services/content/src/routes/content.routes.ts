@@ -7,6 +7,7 @@ import { Client as ElasticsearchClient } from '@elastic/elasticsearch';
 import { ContentController } from '../controllers/content.controller';
 import { VideoExtractController } from '../controllers/videoExtract.controller';
 import { hlsProxyController } from '../controllers/hlsProxy.controller';
+import { hlsUploadController } from '../controllers/hlsUpload.controller';
 import { ContentService } from '../services/content.service';
 import { verifyToken, optionalAuth, requireRole, requireNotBlocked } from '@shared/middleware/auth.middleware';
 import { apiRateLimiter, userRateLimiter } from '@shared/middleware/rateLimiter.middleware';
@@ -75,6 +76,12 @@ export const createContentRouter = (redis: Redis, elastic: ElasticsearchClient):
 
   // POST /content/movies/:id/complete — mark movie as complete (mobile calls this)
   router.post('/movies/:id/complete', verifyToken, notBlocked, contentController.completeMovie);
+
+  // ── HLS Upload Pipeline (T-S005b) ────────────────────────────
+  // POST /content/movies/upload-hls — operator uploads raw video → async FFmpeg transcode to HLS
+  router.post('/movies/upload-hls', verifyToken, notBlocked, requireRole('operator', 'admin', 'superadmin'), videoUpload.single('video'), hlsUploadController.upload);
+  // GET /content/movies/hls-status/:jobId — check transcode job status
+  router.get('/movies/hls-status/:jobId', verifyToken, notBlocked, requireRole('operator', 'admin', 'superadmin'), hlsUploadController.getStatus);
 
   // POST /content/movies/upload — video upload to Cloudinary (operator/admin only)
   router.post('/movies/upload', verifyToken, notBlocked, requireRole('operator', 'admin', 'superadmin'), videoUpload.single('video'), contentController.uploadVideo);

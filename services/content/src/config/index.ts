@@ -20,4 +20,7 @@ export const config = {
     apiKey: process.env.CLOUDINARY_API_KEY ?? '',
     apiSecret: process.env.CLOUDINARY_API_SECRET ?? '',
   },
+  hlsOutputDir: process.env.HLS_OUTPUT_DIR ?? '/tmp/cinesync-hls',
+  // Railway: set FFMPEG_PATH env var if ffmpeg is not on PATH (e.g. /usr/bin/ffmpeg)
+  ffmpegPath: process.env.FFMPEG_PATH ?? '',
 } as const;
