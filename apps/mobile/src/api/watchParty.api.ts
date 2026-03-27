@@ -11,6 +11,8 @@ export const watchPartyApi = {
     name?: string;
     isPrivate?: boolean;
     maxMembers?: number;
+    /** E67-3: WebView session cookies — faqat webview-session rejimida */
+    cookies?: string;
   }): Promise<IWatchPartyRoom> {
     const res = await watchPartyClient.post<ApiResponse<IWatchPartyRoom>>('/watch-party/rooms', data);
     return res.data.data!;

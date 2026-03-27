@@ -15,7 +15,7 @@
 4. Prioritet: P0=kritik, P1=muhim, P2=o'rta, P3=past
 5. Sprint: S1=hozir, S2=keyingi hafta, S3=keyingi sprint, S4-5=keyin
 6. Oxirgi T-raqam: S→047, E→068, J→037, C→011
-7. Yangilangan: 2026-03-26
+7. Yangilangan: 2026-03-27
 ```
 
 ---
@@ -108,28 +108,6 @@ lookmovie2 CDN HLS сегментларида `Referer` header талаб қил
 
 ---
 
-### T-E064 | P1 | [MOBILE] | Smart Video Detector v2 — MutationObserver + src setter intercept
-
-- **Sana:** 2026-03-26
-- **Mas'ul:** pending[Emirhan]
-- **Sprint:** S6
-- **Fayl:** `apps/mobile/src/utils/mediaDetector.ts`
-- **Holat:** ❌ Boshlanmagan
-
-**Контекст:**
-Ҳозирги detector `setTimeout(1500ms)` — Play тугмаси босилганда видео кейин юкланади,
-timeout ўтиб кетади. `lastReportedUrl` — page URL эмас, video URL track қилиш керак.
-
-**Subtasklar:**
-- [ ] E64-1. `MutationObserver` — DOM га янги `<video>` қўшилса дарров аниқлаш
-- [ ] E64-2. `HTMLMediaElement.src` setter intercept — `Object.defineProperty` орқали тутиш
-- [ ] E64-3. `lastReportedUrl` → `lastReportedVideoUrl` (video URL deduplication)
-- [ ] E64-4. `.mpd` (DASH) extension `isRealVideoSrc()` га қўшиш
-- [ ] E64-5. `blob:` URL → `BLOB_VIDEO_FOUND` хабари (webview-session сигнали)
-- [ ] E64-6. Timeout fallback: 5 секунд ичида топмаса → 500ms retry
-
----
-
 ### T-E065 | P1 | [MOBILE] | WebView Session Player — Type 3 сайтлар (Cinerama, Megogo)
 
 - **Sana:** 2026-03-26
@@ -150,59 +128,6 @@ WebView ўзи плеер — JS injection орқали play/pause/seek. Sync `p
 - [ ] E65-5. `mediaSources.ts` — Cinerama, Megogo: `'drm'` → `'webview-session'`
 - [ ] E65-6. Watch Party — webview-session member ҳам WebView кўради (progress bar йўқ)
 - [ ] E65-7. JS adapter: `cinerama.uz`, `megogo.net` — `play()`/`pause()`/`seek()` injection
-
----
-
-### T-E066 | P2 | [MOBILE] | WebView Adapters v2 — Twitch, VK Video, Rutube, Vimeo, Dailymotion
-
-- **Sana:** 2026-03-26
-- **Mas'ul:** pending[Emirhan]
-- **Sprint:** S7
-- **Fayl:** `apps/mobile/src/components/video/WebViewAdapters.ts`
-- **Holat:** ❌ Boshlanmagan
-
-**Subtasklar:**
-- [ ] E66-1. `buildTwitchHtml(channelOrVodId)` — Twitch Embed JS API: play/pause/seek/timeupdate
-- [ ] E66-2. `buildVKVideoHtml(ownerId, videoId)` — VK Video JS SDK
-- [ ] E66-3. `buildRutubeHtml(videoId)` — Rutube postMessage протокол
-- [ ] E66-4. `buildVimeoHtml(videoId)` — Vimeo Player.js SDK
-- [ ] E66-5. `buildDailymotionHtml(videoId)` — Dailymotion Player API
-- [ ] E66-6. `UniversalPlayer.tsx` — URL дан platform аниқлаш → соответствующий build* функция
-- [ ] E66-7. Ҳар адаптер: `PLAY`, `PAUSE`, `SEEK`, `PROGRESS` postMessage стандарти
-
----
-
-### T-E067 | P2 | [MOBILE] | Cookie Forwarding — WebView cookies → Content Service
-
-- **Sana:** 2026-03-26
-- **Mas'ul:** pending[Emirhan]
-- **Sprint:** S7
-- **Fayl:** `apps/mobile/src/screens/modal/MediaWebViewScreen.tsx`, `apps/mobile/src/api/content.api.ts`
-- **Holat:** ❌ Boshlanmagan
-
-**Subtasklar:**
-- [ ] E67-1. CookieManager орқали WebView cookies олиш
-- [ ] E67-2. Netscape format конвертация
-- [ ] E67-3. `contentApi.extractVideo({ url, cookies })` — request body га cookies
-- [ ] E67-4. Фақат `webview-session` режимида юбориш
-- [ ] E67-5. Cookie ни logs га ёзмаслик (privacy)
-
----
-
-### T-E068 | P3 | [MOBILE] | Multi-Quality Source Selector — видео сифат танлаш UI
-
-- **Sana:** 2026-03-26
-- **Mas'ul:** pending[Emirhan]
-- **Sprint:** S8
-- **Fayl:** `apps/mobile/src/components/watchparty/`, `apps/mobile/src/screens/watchparty/WatchPartyScreen.tsx`
-- **Holat:** ❌ Boshlanmagan
-
-**Subtasklar:**
-- [ ] E68-1. `QualityMenu` — bottom sheet, `[{label: '1080p', url}]` list
-- [ ] E68-2. `EpisodeMenu` — сезон → эпизод аккордеон
-- [ ] E68-3. "⚙ Сифат" кнопка Watch Party (owner only)
-- [ ] E68-4. `CHANGE_MEDIA` socket event орқали барча members га янги URL
-- [ ] E68-5. `VideoExtractResult.episodes` мобайлга узатиш
 
 ---
 

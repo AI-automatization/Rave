@@ -5,6 +5,10 @@ import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
 import { WebViewPlayer, WebViewPlayerRef } from './WebViewPlayer';
+import {
+  extractTwitchId, extractVKVideoIds, extractRutubeId, extractVimeoId, extractDailymotionId,
+  buildTwitchHtml, buildVKVideoHtml, buildRutubeHtml, buildVimeoHtml, buildDailymotionHtml,
+} from './WebViewAdapters';
 import { colors, typography, spacing } from '@theme/index';
 
 export type VideoPlatform = 'direct' | 'youtube' | 'webview';
@@ -36,6 +40,55 @@ interface Props {
 }
 
 const YOUTUBE_REGEX = /(?:youtube\.com|youtu\.be)/i;
+
+/** E66-6: Webview platformasi uchun aniq embed turini aniqlaydi */
+export type EmbedPlatform = 'twitch' | 'vk' | 'rutube' | 'vimeo' | 'dailymotion' | null;
+
+export function detectEmbedPlatform(url: string): EmbedPlatform {
+  if (!url) return null;
+  try {
+    const { hostname, pathname } = new URL(url);
+    const host = hostname.replace(/^www\./, '');
+    if (host === 'twitch.tv' || host === 'clips.twitch.tv') return 'twitch';
+    if (host === 'vk.com' && /^\/video/.test(pathname)) return 'vk';
+    if (host === 'rutube.ru') return 'rutube';
+    if (host === 'vimeo.com' || host === 'player.vimeo.com') return 'vimeo';
+    if (host.includes('dailymotion.com') || host === 'dai.ly') return 'dailymotion';
+  } catch { /* invalid URL */ }
+  return null;
+}
+
+/** Embed HTML + baseUrl qaytaradi, yoki null (ID ajratib bo'lmasa) */
+function buildEmbedHtml(url: string, embed: EmbedPlatform): { html: string; baseUrl: string } | null {
+  switch (embed) {
+    case 'twitch': {
+      const info = extractTwitchId(url);
+      if (!info) return null;
+      return { html: buildTwitchHtml(info.id, info.type), baseUrl: 'https://twitch.tv' };
+    }
+    case 'vk': {
+      const ids = extractVKVideoIds(url);
+      if (!ids) return null;
+      return { html: buildVKVideoHtml(ids.ownerId, ids.videoId), baseUrl: 'https://vk.com' };
+    }
+    case 'rutube': {
+      const id = extractRutubeId(url);
+      if (!id) return null;
+      return { html: buildRutubeHtml(id), baseUrl: 'https://rutube.ru' };
+    }
+    case 'vimeo': {
+      const id = extractVimeoId(url);
+      if (!id) return null;
+      return { html: buildVimeoHtml(id), baseUrl: 'https://player.vimeo.com' };
+    }
+    case 'dailymotion': {
+      const id = extractDailymotionId(url);
+      if (!id) return null;
+      return { html: buildDailymotionHtml(id), baseUrl: 'https://geo.dailymotion.com' };
+    }
+    default: return null;
+  }
+}
 
 export function detectVideoPlatform(url: string): VideoPlatform {
   if (!url) return 'direct';
@@ -139,23 +192,27 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
     }
 
     // YouTube: IFrame API rejimi — toza embed player, YouTube site UI yo'q.
-    // youtubeVideoId berilsa WebViewPlayer buildYouTubeHtml ishlatadi.
-    // Boshqa saytlar: URI rejimi + MOBILE_USER_AGENT.
+    // Boshqa embed platformalar (Twitch, VK, Rutube, Vimeo, Dailymotion): buildEmbedHtml.
+    // Generic saytlar: URI rejimi + MOBILE_USER_AGENT.
     if (useWebview) {
       const ytId = platform === 'youtube' ? extractYouTubeVideoId(url) : null;
+      const embedPlatform = platform === 'webview' ? detectEmbedPlatform(url) : null;
+      const embedHtml = embedPlatform ? buildEmbedHtml(url, embedPlatform) : null;
       const displayUrl = (!ytId && platform === 'youtube') ? getMobileYouTubeUrl(url) : url;
       return (
         <WebViewPlayer
           ref={webviewRef}
           url={displayUrl}
           youtubeVideoId={ytId ?? undefined}
+          htmlContent={embedHtml?.html}
+          htmlBaseUrl={embedHtml?.baseUrl}
           isOwner={isOwner}
           onPlay={onPlay}
           onPause={onPause}
           onSeek={onSeek}
           onProgress={onProgress}
           userAgent={MOBILE_USER_AGENT}
-          referer={platform !== 'youtube' ? referer : undefined}
+          referer={platform !== 'youtube' && !embedHtml ? referer : undefined}
         />
       );
     }

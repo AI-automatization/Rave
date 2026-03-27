@@ -7,7 +7,7 @@ import { AVPlaybackStatus } from 'expo-av';
 import { useWatchParty } from '@hooks/useWatchParty';
 import { useAuthStore } from '@store/auth.store';
 import { watchPartyApi } from '@api/watchParty.api';
-import { disconnectSocket } from '@socket/client';
+import { disconnectSocket, getSocket, CLIENT_EVENTS } from '@socket/client';
 import { ChatPanel } from '@components/watchParty/ChatPanel';
 import { VoiceChat } from '@components/watchParty/VoiceChat';
 import { EmojiPickerBar } from '@components/watchParty/EmojiFloat';
@@ -15,6 +15,8 @@ import { UniversalPlayerRef, detectVideoPlatform } from '@components/video/Unive
 import { VideoSection, FloatingEmoji } from '@components/watchParty/VideoSection';
 import { RoomInfoBar } from '@components/watchParty/RoomInfoBar';
 import { InviteCard } from '@components/watchParty/InviteCard';
+import { QualityMenu, QualityOption } from '@components/watchParty/QualityMenu';
+import { EpisodeMenu, Episode } from '@components/watchParty/EpisodeMenu';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { ModalStackParamList } from '@app-types/index';
@@ -53,6 +55,12 @@ export function WatchPartyScreen() {
   const [videoDuration, setVideoDuration] = useState(0);
   const [floatingEmojis, setFloatingEmojis] = useState<FloatingEmoji[]>([]);
   const [connectTimeout, setConnectTimeout] = useState(false);
+  // E68: Quality/Episode menus
+  const [showQualityMenu, setShowQualityMenu] = useState(false);
+  const [showEpisodeMenu, setShowEpisodeMenu] = useState(false);
+  const [extractQualities, setExtractQualities] = useState<QualityOption[]>([]);
+  const [extractEpisodes, setExtractEpisodes] = useState<Episode[]>([]);
+  const [currentVideoUrl, setCurrentVideoUrl] = useState('');
 
   // 15 soniya ichida room kelmasa — xabar ko'rsatish
   useEffect(() => {
@@ -214,6 +222,29 @@ export function WatchPartyScreen() {
     navigation.navigate('SourcePicker', { context: 'change_media', roomId: params.roomId });
   }, [isOwner, navigation, params.roomId]);
 
+  // E68-3/E68-4: Quality/Episode selection → CHANGE_MEDIA socket event
+  const handleQualitySelect = useCallback((option: QualityOption) => {
+    if (!isOwner || !room) return;
+    getSocket()?.emit(CLIENT_EVENTS.CHANGE_MEDIA, {
+      roomId: params.roomId,
+      videoUrl: option.url,
+      videoTitle: room.videoTitle ?? 'Video',
+      videoPlatform: room.videoPlatform ?? 'direct',
+    });
+    setCurrentVideoUrl(option.url);
+  }, [isOwner, room, params.roomId]);
+
+  const handleEpisodeSelect = useCallback((episode: Episode) => {
+    if (!isOwner || !room) return;
+    getSocket()?.emit(CLIENT_EVENTS.CHANGE_MEDIA, {
+      roomId: params.roomId,
+      videoUrl: episode.url,
+      videoTitle: episode.title,
+      videoPlatform: room.videoPlatform ?? 'direct',
+    });
+    setCurrentVideoUrl(episode.url);
+  }, [isOwner, room, params.roomId]);
+
   const handleLeave = () => {
     Alert.alert('Chiqish', 'Watch Party dan chiqmoqchimisiz?', [
       { text: 'Bekor', style: 'cancel' },
@@ -299,6 +330,24 @@ export function WatchPartyScreen() {
             </TouchableOpacity>
           )}
 
+          {/* E68-3: Quality/Episode buttons — owner only, when data available */}
+          {isOwner && (extractQualities.length > 0 || extractEpisodes.length > 0) && (
+            <View style={s.gearRow}>
+              {extractQualities.length > 0 && (
+                <TouchableOpacity style={s.gearBtn} onPress={() => setShowQualityMenu(true)}>
+                  <Ionicons name="settings-outline" size={14} color={colors.textMuted} />
+                  <Text style={s.gearBtnText}>Сифат</Text>
+                </TouchableOpacity>
+              )}
+              {extractEpisodes.length > 0 && (
+                <TouchableOpacity style={s.gearBtn} onPress={() => setShowEpisodeMenu(true)}>
+                  <Ionicons name="list-outline" size={14} color={colors.textMuted} />
+                  <Text style={s.gearBtnText}>Эпизодлар</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+
           {adminMonitoring && (
             <View style={s.adminBanner}>
               <Ionicons name="shield-checkmark-outline" size={14} color={colors.warning} />
@@ -332,6 +381,22 @@ export function WatchPartyScreen() {
               <ChatPanel messages={messages} currentUserId={userId} onSend={sendMessage} />
             </View>
           )}
+
+          {/* E68-1/E68-2: Quality and Episode modals */}
+          <QualityMenu
+            visible={showQualityMenu}
+            qualities={extractQualities}
+            currentUrl={currentVideoUrl || room?.videoUrl || ''}
+            onSelect={handleQualitySelect}
+            onClose={() => setShowQualityMenu(false)}
+          />
+          <EpisodeMenu
+            visible={showEpisodeMenu}
+            episodes={extractEpisodes}
+            currentUrl={currentVideoUrl || room?.videoUrl || ''}
+            onSelect={handleEpisodeSelect}
+            onClose={() => setShowEpisodeMenu(false)}
+          />
         </>
       )}
     </View>
@@ -355,6 +420,27 @@ const useStyles = createThemedStyles((colors) => ({
     ...typography.caption,
     color: colors.textMuted,
     fontSize: 13,
+  },
+  gearRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.xs,
+    borderBottomWidth: 0.5,
+    borderBottomColor: 'rgba(255,255,255,0.05)',
+  },
+  gearBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    backgroundColor: colors.bgSurface,
+    borderRadius: borderRadius.full,
+  },
+  gearBtnText: {
+    ...typography.caption,
+    color: colors.textMuted,
   },
   emojiBar: { padding: spacing.md, alignItems: 'center' },
   emojiBarAndroid: { marginTop: spacing.sm },

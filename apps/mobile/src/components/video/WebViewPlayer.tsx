@@ -31,6 +31,10 @@ interface Props {
   url: string;
   /** YouTube video ID — set qilinsa IFrame API HTML rejimi faollashadi */
   youtubeVideoId?: string;
+  /** Pre-built HTML for embed platforms (Twitch, VK, Rutube, Vimeo, Dailymotion) */
+  htmlContent?: string;
+  /** baseUrl for htmlContent (e.g. 'https://twitch.tv') */
+  htmlBaseUrl?: string;
   isOwner: boolean;
   onPlay: (currentTimeSecs: number) => void;
   onPause: (currentTimeSecs: number) => void;
@@ -53,16 +57,17 @@ type WebViewMessage =
 
 
 export const WebViewPlayer = forwardRef<WebViewPlayerRef, Props>(
-  ({ url, youtubeVideoId, isOwner, onPlay, onPause, onSeek, onProgress, userAgent, referer }, ref) => {
+  ({ url, youtubeVideoId, htmlContent, htmlBaseUrl, isOwner, onPlay, onPause, onSeek, onProgress, userAgent, referer }, ref) => {
     const webviewRef = useRef<WebView>(null);
     const currentTimeMsRef = useRef(0);
     const originalHostRef = useRef(getHostname(url));
 
-    // YouTube rejimi: HTML source, adapter injection kerak emas
+    // HTML mode: YouTube IFrame or pre-built embed HTML — adapter injection kerak emas
+    const isHtmlMode = !!youtubeVideoId || !!htmlContent;
     const isYouTubeMode = !!youtubeVideoId;
     const injectJs = useMemo(
-      () => (isYouTubeMode ? 'true;' : buildInjectJs(getAdapter(url))),
-      [url, isYouTubeMode],
+      () => (isHtmlMode ? 'true;' : buildInjectJs(getAdapter(url))),
+      [url, isHtmlMode],
     );
 
     const [loading, setLoading] = useState(true);
@@ -123,7 +128,7 @@ export const WebViewPlayer = forwardRef<WebViewPlayerRef, Props>(
             break;
           case 'IFRAME_FOUND':
             // Nested iframe: birinchi iframe URL ni to'g'ridan ochamiz (faqat generic rejimda)
-            if (!isYouTubeMode && data.urls[0]) {
+            if (!isHtmlMode && data.urls[0]) {
               webviewRef.current?.injectJavaScript(
                 `window.location.href = ${JSON.stringify(data.urls[0])}; true;`,
               );
@@ -157,9 +162,9 @@ export const WebViewPlayer = forwardRef<WebViewPlayerRef, Props>(
       return !isAdRequest(reqUrl);
     }, []);
 
-    // Redirect aniqlash: domen o'zgarsa ogohlantirish (YouTube rejimida o'chirish)
+    // Redirect aniqlash: domen o'zgarsa ogohlantirish (HTML embed rejimida o'chirish)
     const handleNavigationStateChange = useCallback((navState: WebViewNavigation) => {
-      if (isYouTubeMode || !navState.url || !isOwner) return;
+      if (isHtmlMode || !navState.url || !isOwner) return;
       const newHost = getHostname(navState.url);
       if (newHost && newHost !== originalHostRef.current) {
         setRedirectWarning(newHost);
@@ -174,10 +179,13 @@ export const WebViewPlayer = forwardRef<WebViewPlayerRef, Props>(
     }, []);
 
     // WebView source:
+    //  Pre-built embed HTML (Twitch, VK, Rutube, Vimeo, Dailymotion) → htmlContent
     //  YouTube IFrame embed (normal) → buildYouTubeHtml
     //  YouTube fallback (error 150/152) → m.youtube.com URI
     //  Others → URI
-    const webViewSource = isYouTubeMode && !ytFallback
+    const webViewSource = htmlContent
+      ? { html: htmlContent, baseUrl: htmlBaseUrl ?? 'about:blank' }
+      : isYouTubeMode && !ytFallback
       ? { html: buildYouTubeHtml(youtubeVideoId!), baseUrl: 'https://www.youtube.com' }
       : isYouTubeMode && ytFallback
       ? { uri: fallbackYtUrl }

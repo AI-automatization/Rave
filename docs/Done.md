@@ -1,5 +1,46 @@
 # CineSync — BAJARILGAN ISHLAR ARXIVI
 
+# Yangilangan: 2026-03-27
+
+---
+
+### F-159 | 2026-03-27 | [MOBILE] | T-E064, T-E066, T-E067, T-E068 — Video Detection v2 + Adapters + Cookie + Quality [Emirhan]
+
+**T-E064 — Smart Video Detector v2 (`mediaDetector.ts`):**
+- `MutationObserver` — DOM ga yangi `<video>` qo'shilsa darhol aniqlash
+- `HTMLMediaElement.src` setter intercept — `Object.defineProperty` orqali tutish
+- `lastReportedUrl` → `lastReportedVideoUrl` (video URL deduplication)
+- `.mpd` (DASH) extension `isRealVideoSrc()` ga qo'shildi
+- `blob:` URL → `BLOB_VIDEO_FOUND` postMessage + `normalizeBlobMedia()` funksiya
+- 5 sekundlik timeout fallback → 500ms retry
+- `BlobVideoFoundPayload` type, `RoomMedia.mode` field qo'shildi
+- `MediaWebViewScreen.tsx`: `BLOB_VIDEO_FOUND` handler — DRM alert + webview-session import
+
+**T-E066 — WebView Adapters v2 (`WebViewAdapters.ts`):**
+- `buildTwitchHtml(id, type)` — Twitch Embed JS API, PLAY/PAUSE/SEEK/PROGRESS
+- `buildVKVideoHtml(ownerId, videoId)` — VK Video postMessage API
+- `buildRutubeHtml(videoId)` — Rutube postMessage protokol
+- `buildVimeoHtml(videoId)` — Vimeo Player.js SDK
+- `buildDailymotionHtml(videoId)` — Dailymotion postMessage API
+- ID extractors: `extractTwitchId`, `extractVKVideoIds`, `extractRutubeId`, `extractVimeoId`, `extractDailymotionId`
+- `WebViewPlayer.tsx`: `htmlContent` + `htmlBaseUrl` props, `isHtmlMode` flag
+- `UniversalPlayer.tsx`: `detectEmbedPlatform()`, `buildEmbedHtml()`, `EmbedPlatform` type
+
+**T-E067 — Cookie Forwarding (`MediaWebViewScreen.tsx`, `content.api.ts`):**
+- `COOKIE_COLLECTION_JS` — `document.cookie` → postMessage `COOKIE_UPDATE`
+- `cookiesRef` — cookie cache (log qilinmaydi)
+- `createRoom({ cookies })` — faqat `webview-session` rejimida yuboriladi
+- `contentApi.extractVideo(url, cookies?)` — optional cookies param
+- `watchPartyApi.createRoom.cookies` field qo'shildi
+
+**T-E068 — Multi-Quality Source Selector:**
+- `QualityMenu.tsx` — bottom sheet modal, sifat tanlash (owner only)
+- `EpisodeMenu.tsx` — season/episode accordion modal
+- `content.api.ts`: `VideoQualityOption`, `VideoEpisode` interface, `VideoExtractResult.qualities/episodes`
+- `WatchPartyScreen.tsx`: gear buttons + modals + `CHANGE_MEDIA` emit on select
+
+---
+
 # Yangilangan: 2026-03-26
 
 ---

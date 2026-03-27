@@ -17,7 +17,7 @@ import type { WebViewNavigation, WebViewMessageEvent } from 'react-native-webvie
 import { Ionicons } from '@expo/vector-icons';
 import { watchPartyApi } from '@api/watchParty.api';
 import { getSocket, CLIENT_EVENTS } from '@socket/client';
-import { MEDIA_DETECTION_JS, normalizeDetectedMedia, type MediaDetectedPayload, type RoomMedia } from '@utils/mediaDetector';
+import { MEDIA_DETECTION_JS, normalizeDetectedMedia, normalizeBlobMedia, type MediaDetectedPayload, type BlobVideoFoundPayload, type RoomMedia } from '@utils/mediaDetector';
 import { colors, spacing, borderRadius, typography } from '@theme/index';
 import type { ModalStackParamList } from '@app-types/index';
 
@@ -27,6 +27,28 @@ type RouteType = RouteProp<ModalStackParamList, 'MediaWebView'>;
 const MOBILE_UA =
   'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 ' +
   '(KHTML, like Gecko) Chrome/120.0.6099.144 Mobile Safari/537.36';
+
+// E67-1: document.cookie → postMessage (Netscape format)
+const COOKIE_COLLECTION_JS = `
+(function() {
+  function sendCookies() {
+    try {
+      var raw = document.cookie;
+      if (!raw) return;
+      // E67-2: Netscape format: name=value pairs joined by "; " — server parses as Cookie header
+      window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({
+        type: 'COOKIE_UPDATE',
+        cookies: raw,
+        domain: window.location.hostname,
+      }));
+    } catch(e) {}
+  }
+  sendCookies();
+  setTimeout(sendCookies, 2000);
+  setTimeout(sendCookies, 5000);
+  true;
+})();
+`;
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
@@ -41,6 +63,8 @@ export function MediaWebViewScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [pageTitle, setPageTitle] = useState(params.sourceName);
   const [isImporting, setIsImporting] = useState(false);
+  // E67-1: WebView cookies (injected JS orqali olinadi)
+  const cookiesRef = useRef<string>('');
   // importMedia ref — stable reference in onMessage to avoid stale closures
   const importMediaRef = useRef<(media: RoomMedia) => Promise<void>>(async () => {});
 
@@ -75,11 +99,15 @@ export function MediaWebViewScreen() {
     // New room — create + navigate
     setIsImporting(true);
     try {
+      // E67-4: cookies faqat webview-session rejimida yuboriladi
+      // E67-5: cookies log ga yozilmaydi
+      const sessionCookies = media.mode === 'webview-session' ? cookiesRef.current : undefined;
       const room = await watchPartyApi.createRoom({
         name: media.videoTitle.slice(0, 60),
         videoUrl: media.videoUrl,
         videoTitle: media.videoTitle,
         videoPlatform: media.videoPlatform,
+        cookies: sessionCookies,
       });
       navigation.navigate('WatchParty', { roomId: room._id, videoReferer: media.videoReferer });
     } catch (err: unknown) {
@@ -98,7 +126,35 @@ export function MediaWebViewScreen() {
 
   const onMessage = useCallback((event: WebViewMessageEvent) => {
     try {
-      const data = JSON.parse(event.nativeEvent.data) as MediaDetectedPayload;
+      const data = JSON.parse(event.nativeEvent.data) as
+        | MediaDetectedPayload
+        | BlobVideoFoundPayload
+        | { type: 'COOKIE_UPDATE'; cookies: string; domain: string };
+
+      // E67-1: Cookie yangilanishini saqla (log qilinmaydi — E67-5)
+      if (data.type === 'COOKIE_UPDATE') {
+        if (data.cookies) cookiesRef.current = data.cookies;
+        return;
+      }
+
+      if (data.type === 'BLOB_VIDEO_FOUND') {
+        // DRM/auth сайт — webview-session режими
+        const media = normalizeBlobMedia(data);
+        Alert.alert(
+          '🔒 Защищённое видео',
+          'Это видео защищено DRM. Открыть как WebView-сессию в комнате?',
+          [
+            { text: 'Отмена', style: 'cancel' },
+            {
+              text: 'Открыть в комнате',
+              onPress: () => importMediaRef.current(media),
+            },
+          ],
+          { cancelable: true },
+        );
+        return;
+      }
+
       if (data.type !== 'MEDIA_DETECTED') return;
 
       const media = normalizeDetectedMedia(data);
@@ -171,7 +227,7 @@ export function MediaWebViewScreen() {
         ref={webViewRef}
         source={{ uri: params.defaultUrl }}
         userAgent={MOBILE_UA}
-        injectedJavaScript={MEDIA_DETECTION_JS}
+        injectedJavaScript={MEDIA_DETECTION_JS + COOKIE_COLLECTION_JS}
         onNavigationStateChange={onNavigationStateChange}
         onLoadStart={() => setIsLoading(true)}
         onLoadEnd={() => setIsLoading(false)}

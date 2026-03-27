@@ -2,6 +2,18 @@
 import { contentClient } from './client';
 import { ApiResponse, IMovie, ContentGenre, PaginationMeta, IWatchProgress } from '@app-types/index';
 
+export interface VideoQualityOption {
+  label: string;
+  url: string;
+}
+
+export interface VideoEpisode {
+  title: string;
+  url: string;
+  season?: number;
+  episode?: number;
+}
+
 export interface VideoExtractResult {
   title: string;
   videoUrl: string;
@@ -11,6 +23,10 @@ export interface VideoExtractResult {
   duration?: number;
   isLive?: boolean;
   useProxy?: boolean;
+  /** E68-5: Sifat variantlari — {label:'1080p', url} */
+  qualities?: VideoQualityOption[];
+  /** E68-5: Seriya/episode ro'yxati */
+  episodes?: VideoEpisode[];
 }
 
 export interface YtStreamInfo {
@@ -115,8 +131,12 @@ export const contentApi = {
     await contentClient.delete(`/content/movies/${movieId}/rate`);
   },
 
-  async extractVideo(url: string): Promise<VideoExtractResult> {
-    const res = await contentClient.post<ApiResponse<VideoExtractResult>>('/content/extract', { url });
+  async extractVideo(url: string, cookies?: string): Promise<VideoExtractResult> {
+    // E67-3: cookies faqat webview-session rejimida yuboriladi
+    // E67-5: cookies ni hech qachon log ga yozma
+    const body: Record<string, string> = { url };
+    if (cookies) body.cookies = cookies;
+    const res = await contentClient.post<ApiResponse<VideoExtractResult>>('/content/extract', body);
     if (!res.data.success || !res.data.data) throw new Error(res.data.message ?? 'Extraction failed');
     return res.data.data;
   },
