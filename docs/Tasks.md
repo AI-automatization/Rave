@@ -27,17 +27,6 @@
 ---
 
 
-### T-S033 | P1 | [BACKEND] | Video Extract endpoint — production deploy + smoke test
-
-- **Sana:** 2026-03-18
-- **Mas'ul:** pending[Saidazim]
-- **Sprint:** S6
-- **Holat:** ⚠️ Код готов (2026-03-26) — нужен только Railway redeploy + smoke test
-
-**Qolgan:**
-- [ ] S33-5. Railway: trigger redeploy content service → проверить `POST /extract` с youtube и uzmovie.tv URL
-
----
 
 
 # ═══════════════════════════════════════

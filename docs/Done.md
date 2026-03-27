@@ -4,6 +4,15 @@
 
 ---
 
+### F-165 | 2026-03-28 | [BACKEND] | T-S033 — Video Extract endpoint production deploy + smoke test [Saidazim]
+
+- `POST /api/v1/content/extract` Railway da ishlayapti ✅
+- YouTube smoke test: mp4 URL + poster + duration to'g'ri qaytdi ✅
+- uzmovie.tv: `unsupported_site` 422 — to'g'ri xato ✅
+- Dockerfile: `chromium-driver` o'chirildi (Alpine da yo'q), `ffmpeg` qo'shildi
+
+---
+
 ### F-164 | 2026-03-28 | [BACKEND] | T-S005b — HLS Upload Pipeline [Saidazim]
 
 - `hls.queue.ts` — Bull queue 'hls-transcode' (Redis), 2 attempts, removeOnComplete:50
