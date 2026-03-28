@@ -5,6 +5,7 @@ import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AVPlaybackStatus } from 'expo-av';
 import { useWatchParty } from '@hooks/useWatchParty';
+import { useVideoExtraction } from '@hooks/useVideoExtraction';
 import { useAuthStore } from '@store/auth.store';
 import { watchPartyApi } from '@api/watchParty.api';
 import { disconnectSocket, getSocket, CLIENT_EVENTS } from '@socket/client';
@@ -40,6 +41,10 @@ export function WatchPartyScreen() {
     useWatchParty(params.roomId);
   // emitVoiceJoin/Leave handled directly inside VoiceChat via getSocket()
 
+  // T-E076: extract video URL + qualities/episodes when room loads
+  const { isExtracting, result: extractResult, fallbackMode: extractFallback, extract } = useVideoExtraction();
+  const extractStartedRef = useRef(false);
+
   const playerRef = useRef<UniversalPlayerRef>(null);
   const isSyncing = useRef(false);
   const lastSyncId = useRef('');
@@ -61,6 +66,27 @@ export function WatchPartyScreen() {
   const [extractQualities, setExtractQualities] = useState<QualityOption[]>([]);
   const [extractEpisodes, setExtractEpisodes] = useState<Episode[]>([]);
   const [currentVideoUrl, setCurrentVideoUrl] = useState('');
+
+  // T-E076: room.videoUrl tayyor bo'lganda extraction boshlash (bir marta)
+  useEffect(() => {
+    const rawUrl = room?.videoUrl;
+    if (!rawUrl || extractStartedRef.current) return;
+    extractStartedRef.current = true;
+    void extract(rawUrl);
+  }, [room?.videoUrl, extract]);
+
+  // T-E076: extraction muvaffaqiyatli bo'lganda quality/episode menularini to'ldirish
+  useEffect(() => {
+    if (!extractResult) return;
+    if (extractResult.qualities?.length) {
+      setExtractQualities(extractResult.qualities);
+    }
+    if (extractResult.episodes?.length) {
+      setExtractEpisodes(
+        extractResult.episodes.map(e => ({ title: e.title, url: e.url, season: e.season, episode: e.episode })),
+      );
+    }
+  }, [extractResult]);
 
   // 15 soniya ichida room kelmasa — xabar ko'rsatish
   useEffect(() => {
@@ -277,14 +303,20 @@ export function WatchPartyScreen() {
     );
   }
 
+  // T-E076: extracted URL ni ishlatish, fallback bo'lsa asl URL (WebView rejimida ochiladi)
+  const resolvedVideoUrl = extractResult?.videoUrl ?? room?.videoUrl ?? '';
+  const resolvedIsWebView = extractFallback
+    ? ['youtube', 'webview'].includes(detectVideoPlatform(room?.videoUrl ?? ''))
+    : ['youtube', 'webview'].includes(detectVideoPlatform(resolvedVideoUrl));
+
   return (
     <View style={s.root}>
       <VideoSection
         playerRef={playerRef}
-        videoUrl={room?.videoUrl || ''}
+        videoUrl={resolvedVideoUrl}
         videoReferer={videoReferer}
-        isWebView={['youtube', 'webview'].includes(detectVideoPlatform(room?.videoUrl || ''))}
-        isReady={!!room}
+        isWebView={resolvedIsWebView}
+        isReady={!!room && !isExtracting}
         isOwner={isOwner}
         isPlaying={isPlaying}
         isFullscreen={isFullscreen}

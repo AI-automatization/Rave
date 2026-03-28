@@ -92,6 +92,25 @@
 
 ---
 
+### T-E076 | P1 | [MOBILE] | WatchParty — video extraction + quality/episode menus | pending[Saidazim]
+
+- **Sana:** 2026-03-28
+- **Mas'ul:** Saidazim (tomonidan bajarilmoqda)
+- **Holat:** 🔄 Bajarilmoqda
+- **Muammo:**
+  1. `WatchPartyScreen` `room.videoUrl` ni to'g'ridan foydalanadi — `/extract` chaqirilmaydi
+  2. `uzmovie.tv`, `kinogo.cc`, Playerjs saytlar — extraction yo'q bo'lgani uchun video o'ynamaydi
+  3. `extractQualities = []`, `extractEpisodes = []` — har doim bo'sh
+- **Yechim:**
+  - `WatchPartyScreen` da `useVideoExtraction` hook qo'shish
+  - Room yuklanganda `extract(room.videoUrl)` chaqirish
+  - Natija: `extractResult.videoUrl` → real MP4/HLS
+  - `extractResult.qualities/episodes` → menyu to'ldirish
+  - Extraction muvaffaqiyatsiz bo'lsa → WebView fallback
+- **Fayllar:** `apps/mobile/src/screens/modal/WatchPartyScreen.tsx`
+
+---
+
 
 # ═══════════════════════════════════════
 
