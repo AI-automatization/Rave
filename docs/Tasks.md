@@ -39,58 +39,8 @@
 
 ---
 
-### T-E071 | P1 | [MOBILE] | BUG: WebView popup 3 marta chiqyapti
 
-- **Sana:** 2026-03-28
-- **Mas'ul:** Emirhan
-- **Holat:** 🔄 pending[Emirhan]
-- **Muammo:** MediaWebViewScreen da video ochilganda popup faqat 1 marta chiqishi kerak, hozir 3 marta chiqyapti
-- **Fayl:** `apps/mobile/src/screens/MediaWebViewScreen.tsx`
 
----
-
-### T-E072 | P1 | [MOBILE] | WebView iframe popup — olib tashlash
-
-- **Sana:** 2026-03-28
-- **Mas'ul:** Emirhan
-- **Holat:** 🔄 pending[Emirhan]
-- **Muammo:** Hozir mobile barcha saytlar uchun popup/yangi tab ochyapti. Iframe ishlatadigan pirate saytlar uchun popup kerak emas — mobile o'zi aniqlasin qaysi sayt iframe, qaysi sayt to'g'ri video
-- **Fayl:** `apps/mobile/src/screens/MediaWebViewScreen.tsx`
-- **Eslatma:** Backend `/extract` endpoint ishlayapti — agar backend video URL qaytarsa → popup yo'q, agar `unsupported_site` → WebView ichida qolsin
-
----
-
-### T-E073 | P1 | [MOBILE] | BUG: Google Auth — Network Error
-
-- **Sana:** 2026-03-28
-- **Mas'ul:** Emirhan
-- **Holat:** 🔄 pending[Emirhan]
-- **Muammo:** Google/Android OAuth da Network Error kelayapti, cookie/token handling muammo
-- **Fayl:** `apps/mobile/src/services/authApi.ts`, Google Console OAuth config
-- **Eslatma:** Saidazim: token backend da alohida chiqarilishi kerak (Android vs Web client)
-
----
-
-### T-E074 | P2 | [MOBILE] | QualityMenu — real data bilan ulash
-
-- **Sana:** 2026-03-28
-- **Mas'ul:** Emirhan
-- **Holat:** 🔄 pending[Emirhan]
-- **Muammo:** `QualityMenu.tsx` va `EpisodeMenu.tsx` tayyor lekin hozir bo'sh `[]` ko'rsatayapti — `useVideoExtraction` hook dan `qualities`/`episodes` WatchPartyScreen ga uzatilmayapti
-- **Fayl:** `apps/mobile/src/screens/WatchPartyScreen.tsx`, `apps/mobile/src/hooks/useVideoExtraction.ts`
-
----
-
-### T-E075 | P2 | [MOBILE] | URL kiritish funksiyasi — SourcePicker da
-
-- **Sana:** 2026-03-28
-- **Mas'ul:** Emirhan
-- **Holat:** 🔄 pending[Emirhan]
-- **Maqsad:** Foydalanuvchi o'zi topgan link ni kiritsin → backend `/extract` → video
-- **Fayl:** `apps/mobile/src/screens/SourcePickerScreen.tsx`
-- **Backend:** `POST /api/v1/content/extract` — tayyor ✅
-
----
 
 
 

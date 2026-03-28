@@ -4,6 +4,40 @@
 
 ---
 
+### F-173 | 2026-03-28 | [MOBILE] | T-E075 — SourcePickerScreen URL kiritish [Emirhan]
+
+- `SourcePickerScreen.tsx`: URL input + "→" tugma qo'shildi
+- `POST /api/v1/content/extract` chaqiriladi → `change_media` yoki yangi xona yaratadi
+- Xato xabari ko'rsatiladi; `ActivityIndicator` loading holatida
+
+---
+
+### F-172 | 2026-03-28 | [MOBILE] | T-E074 — QualityMenu real data wiring [Emirhan]
+
+- `useVideoExtraction.ts`: `qualities` va `episodes` return typeiga qo'shildi
+- `result?.qualities ?? []` va `result?.episodes ?? []` — komponentlarga to'g'ridan uzatiladi
+- `extract` useCallback deps ga `accessToken` qo'shildi
+
+---
+
+### F-171 | 2026-03-28 | [MOBILE] | T-E071 + T-E072 — WebView popup fix [Emirhan]
+
+- `MediaWebViewScreen.tsx`: `detectedUrlRef` URL-guard — popup 1 marotaba chiqadi (T-E071)
+- `tryBackendExtract()` → har yangi URL da backend `/extract` chaqiriladi
+- Backend muvaffaqiyatli topsa → JS detection o'chiriladi (`backendFoundVideoRef`)
+- Backend topa olmasa → JS detection avvalgidek ishlaydi (T-E072)
+- Loading holatida "Видео анализируется…" hint bar ko'rsatiladi
+
+---
+
+### F-170 | 2026-03-28 | [MOBILE] | T-E073 — Google Auth Network Error fix [Emirhan]
+
+- `useSocialAuth.ts`: `clientId` → `webClientId` (Android/Web proper separation)
+- `idToken` extraction: `authentication?.idToken ?? params['id_token']` (Android PKCE fix)
+- `googleDisabled`: checks both web AND android client ID — button no longer wrongly disabled
+
+---
+
 ### F-169 | 2026-03-28 | [MOBILE] | T-E076 — WatchParty video extraction on room load [Saidazim]
 
 - `WatchPartyScreen`: `useVideoExtraction` hook qo'shildi

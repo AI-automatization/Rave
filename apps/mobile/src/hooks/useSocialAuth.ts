@@ -34,7 +34,7 @@ export function useSocialAuth(): UseSocialAuthResult {
   const telegramIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [, googleResponse, promptAsync] = Google.useAuthRequest({
-    clientId:        GOOGLE_CLIENT_ID,
+    webClientId:     GOOGLE_CLIENT_ID || undefined,
     androidClientId: GOOGLE_ANDROID_CLIENT_ID || undefined,
   });
 
@@ -48,7 +48,11 @@ export function useSocialAuth(): UseSocialAuthResult {
   // Handle Google response
   useEffect(() => {
     if (googleResponse?.type !== 'success') return;
-    const idToken = googleResponse.params['id_token'];
+    // Android: idToken comes from authentication object (after PKCE code exchange)
+    // Web/iOS: idToken comes from params['id_token']
+    const idToken =
+      googleResponse.authentication?.idToken ??
+      googleResponse.params['id_token'];
     if (!idToken) return;
     setGoogleLoading(true);
     setSocialError('');
@@ -103,7 +107,7 @@ export function useSocialAuth(): UseSocialAuthResult {
   return {
     googleLoading,
     telegramLoading,
-    googleDisabled: !GOOGLE_CLIENT_ID,
+    googleDisabled: !GOOGLE_CLIENT_ID && !GOOGLE_ANDROID_CLIENT_ID,
     socialError,
     clearSocialError: () => setSocialError(''),
     promptGoogleAsync: () => promptAsync(),

@@ -13,6 +13,10 @@ const DIRECT_EXTENSIONS = ['.mp4', '.m3u8', '.webm', '.mkv', '.avi', '.mov'];
 interface UseVideoExtractionReturn {
   isExtracting: boolean;
   result: VideoExtractResult | null;
+  /** Quality options from extracted result (empty array if backend returned none) */
+  qualities: NonNullable<VideoExtractResult['qualities']>;
+  /** Episode list from extracted result (empty array if backend returned none) */
+  episodes: NonNullable<VideoExtractResult['episodes']>;
   error: string | null;
   fallbackMode: boolean;
   extract: (url: string) => Promise<void>;
@@ -151,7 +155,16 @@ export function useVideoExtraction(): UseVideoExtractionReturn {
     } finally {
       setIsExtracting(false);
     }
-  }, []);
+  }, [accessToken]);
 
-  return { isExtracting, result, error, fallbackMode, extract, reset };
+  return {
+    isExtracting,
+    result,
+    qualities: result?.qualities ?? [],
+    episodes: result?.episodes ?? [],
+    error,
+    fallbackMode,
+    extract,
+    reset,
+  };
 }

@@ -8,8 +8,8 @@ import {
   FlatList,
   TextInput,
   Alert,
+  ActivityIndicator,
   StyleSheet,
-  Platform,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -17,6 +17,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MEDIA_SOURCES, MediaSource } from '@constants/mediaSources';
+import { contentApi } from '@api/content.api';
+import { watchPartyApi } from '@api/watchParty.api';
+import { getSocket, CLIENT_EVENTS } from '@socket/client';
 import { colors, spacing, borderRadius, typography } from '@theme/index';
 import type { ModalStackParamList } from '@app-types/index';
 
@@ -66,6 +69,9 @@ export function SourcePickerScreen() {
   const { params } = useRoute<RouteType>();
   const insets = useSafeAreaInsets();
   const [query, setQuery] = useState('');
+  const [urlInput, setUrlInput] = useState('');
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [urlError, setUrlError] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     if (!query.trim()) return MEDIA_SOURCES;
@@ -98,6 +104,39 @@ export function SourcePickerScreen() {
       context: params.context,
       roomId: params.roomId,
     });
+  }
+
+  async function handleUrlExtract() {
+    const trimmed = urlInput.trim();
+    if (!trimmed) return;
+    setUrlError(null);
+    setIsExtracting(true);
+    try {
+      const extracted = await contentApi.extractVideo(trimmed);
+      if (params.context === 'change_media') {
+        if (!params.roomId) return;
+        getSocket()?.emit(CLIENT_EVENTS.CHANGE_MEDIA, {
+          roomId: params.roomId,
+          videoUrl: extracted.videoUrl,
+          videoTitle: extracted.title || trimmed,
+          videoPlatform: extracted.platform,
+        });
+        navigation.navigate('WatchParty', { roomId: params.roomId });
+        return;
+      }
+      const room = await watchPartyApi.createRoom({
+        name: (extracted.title || trimmed).slice(0, 60),
+        videoUrl: extracted.videoUrl,
+        videoTitle: extracted.title || trimmed,
+        videoPlatform: extracted.platform,
+      });
+      navigation.navigate('WatchParty', { roomId: room._id });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Не удалось извлечь видео';
+      setUrlError(msg);
+    } finally {
+      setIsExtracting(false);
+    }
   }
 
   function handleCreateRoom() {
@@ -135,6 +174,37 @@ export function SourcePickerScreen() {
             <Ionicons name="close-circle" size={18} color="#6B7280" />
           </TouchableOpacity>
         )}
+      </View>
+
+      {/* T-E075: Direct URL input */}
+      <View style={styles.urlSection}>
+        <Text style={styles.urlLabel}>Или вставьте прямую ссылку на видео</Text>
+        <View style={styles.urlRow}>
+          <TextInput
+            style={styles.urlInput}
+            placeholder="https://..."
+            placeholderTextColor="#6B7280"
+            value={urlInput}
+            onChangeText={(t) => { setUrlInput(t); setUrlError(null); }}
+            returnKeyType="go"
+            onSubmitEditing={handleUrlExtract}
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="url"
+          />
+          <TouchableOpacity
+            style={[styles.urlBtn, (!urlInput.trim() || isExtracting) && styles.urlBtnDisabled]}
+            onPress={handleUrlExtract}
+            disabled={!urlInput.trim() || isExtracting}
+            activeOpacity={0.75}
+          >
+            {isExtracting
+              ? <ActivityIndicator size="small" color="#fff" />
+              : <Ionicons name="arrow-forward" size={20} color="#fff" />
+            }
+          </TouchableOpacity>
+        </View>
+        {urlError ? <Text style={styles.urlErrorText}>{urlError}</Text> : null}
       </View>
 
       {/* Grid */}
@@ -209,7 +279,6 @@ const styles = StyleSheet.create({
     flex: 1,
     color: '#fff',
     fontSize: 15,
-    ...Platform.select({ web: { outlineStyle: 'none' } }),
   },
   grid: {
     paddingHorizontal: spacing.md,
@@ -286,5 +355,45 @@ const styles = StyleSheet.create({
   emptyText: {
     ...typography.body,
     color: '#4B5563',
+  },
+  // T-E075: URL input section
+  urlSection: {
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  urlLabel: {
+    ...typography.caption,
+    color: '#6B7280',
+    marginBottom: spacing.xs,
+  },
+  urlRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    alignItems: 'center',
+  },
+  urlInput: {
+    flex: 1,
+    height: 44,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    borderRadius: borderRadius.lg,
+    paddingHorizontal: spacing.md,
+    color: '#fff',
+    fontSize: 14,
+  },
+  urlBtn: {
+    width: 44,
+    height: 44,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  urlBtnDisabled: {
+    opacity: 0.4,
+  },
+  urlErrorText: {
+    ...typography.caption,
+    color: colors.error,
+    marginTop: spacing.xs,
   },
 });

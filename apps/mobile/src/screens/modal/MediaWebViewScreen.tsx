@@ -17,6 +17,7 @@ import WebView from 'react-native-webview';
 import type { WebViewNavigation, WebViewMessageEvent } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
 import { watchPartyApi } from '@api/watchParty.api';
+import { contentApi } from '@api/content.api';
 import { getSocket, CLIENT_EVENTS } from '@socket/client';
 import {
   MEDIA_DETECTION_JS,
@@ -114,6 +115,12 @@ export function MediaWebViewScreen() {
   const cookiesRef = useRef<string>('');
   const importMediaRef = useRef<(media: RoomMedia) => Promise<void>>(async () => {});
 
+  // T-E071: URL guard — popup fires only once per unique video URL
+  const detectedUrlRef = useRef('');
+  // T-E072: backend extract state
+  const backendFoundVideoRef = useRef(false);
+  const [isBackendExtracting, setIsBackendExtracting] = useState(false);
+
   // Bar animation
   useEffect(() => {
     Animated.spring(barAnim, {
@@ -124,16 +131,55 @@ export function MediaWebViewScreen() {
     }).start();
   }, [detectedMedia, barAnim]);
 
+  // T-E071: single point for setting detectedMedia — ignores duplicate URLs
+  const setDetectedMediaOnce = useCallback((media: RoomMedia) => {
+    if (detectedUrlRef.current === media.videoUrl) return;
+    detectedUrlRef.current = media.videoUrl;
+    setDetectedMedia(media);
+  }, []);
+
+  // T-E072: ask backend first; fall back to JS detection on failure
+  const tryBackendExtract = useCallback(async (url: string) => {
+    if (!url || !url.startsWith('http')) return;
+    backendFoundVideoRef.current = false;
+    detectedUrlRef.current = '';
+    setIsBackendExtracting(true);
+    try {
+      const result = await contentApi.extractVideo(url, cookiesRef.current || undefined);
+      const media: RoomMedia = {
+        videoUrl: result.videoUrl,
+        videoTitle: result.title || 'Video',
+        videoPlatform: result.platform === 'youtube' ? 'youtube' : 'direct',
+        videoThumbnail: result.poster || undefined,
+        videoReferer: url,
+        mode: 'extracted',
+      };
+      backendFoundVideoRef.current = true;
+      setDetectedMediaOnce(media);
+    } catch {
+      // unsupported site or network error — JS detection takes over
+    } finally {
+      setIsBackendExtracting(false);
+    }
+  }, [setDetectedMediaOnce]);
+
   const onNavigationStateChange = useCallback((state: WebViewNavigation) => {
     setCanGoBack(state.canGoBack);
     setCanGoForward(state.canGoForward);
     if (state.title) setPageTitle(state.title);
-    // Only clear detected media when URL actually changes to a different page.
-    // Previously cleared on every nav event which removed the bar during Playerjs/iframe loads.
     if (state.url && state.url !== lastKnownUrlRef.current) {
       lastKnownUrlRef.current = state.url;
+      detectedUrlRef.current = '';
+      backendFoundVideoRef.current = false;
       setDetectedMedia(null);
+      void tryBackendExtract(state.url);
     }
+  }, [tryBackendExtract]);
+
+  // T-E072: try backend extract on initial URL load
+  useEffect(() => {
+    void tryBackendExtract(params.defaultUrl);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ─── Media import flow ──────────────────────────────────────────────────────
@@ -194,20 +240,22 @@ export function MediaWebViewScreen() {
         return;
       }
 
+      // T-E072: backend already extracted — JS detection not needed
+      if (backendFoundVideoRef.current) return;
+
       if (data.type === 'BLOB_VIDEO_FOUND') {
-        const media = normalizeBlobMedia(data);
-        setDetectedMedia(media);
+        setDetectedMediaOnce(normalizeBlobMedia(data));
         return;
       }
 
       if (data.type !== 'MEDIA_DETECTED') return;
 
-      const media = normalizeDetectedMedia(data);
-      setDetectedMedia(media);
+      // T-E071: setDetectedMediaOnce deduplicates by URL
+      setDetectedMediaOnce(normalizeDetectedMedia(data));
     } catch {
       // Non-JSON messages ignored
     }
-  }, []);
+  }, [setDetectedMediaOnce]);
 
   // ─── Bar translate ───────────────────────────────────────────────────────────
 
@@ -288,8 +336,16 @@ export function MediaWebViewScreen() {
         )}
       />
 
-      {/* Video topilmagan — hint bar */}
-      {!detectedMedia && !isLoading && (
+      {/* Backend analizlayapti — loading hint */}
+      {!detectedMedia && isBackendExtracting && (
+        <View style={[styles.hintBar, { paddingBottom: insets.bottom || spacing.sm }]}>
+          <ActivityIndicator size="small" color={colors.primary} />
+          <Text style={styles.hintText}>Видео анализируется…</Text>
+        </View>
+      )}
+
+      {/* Video topilmagan, backend ham topalmadi — manual hint */}
+      {!detectedMedia && !isLoading && !isBackendExtracting && (
         <View style={[styles.hintBar, { paddingBottom: insets.bottom || spacing.sm }]}>
           <Ionicons name="search-outline" size={15} color="#6B7280" />
           <Text style={styles.hintText} numberOfLines={2}>
