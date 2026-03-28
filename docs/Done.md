@@ -1,6 +1,20 @@
 # CineSync — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-03-27
+# Yangilangan: 2026-03-28
+
+---
+
+### F-170 | 2026-03-28 | [SECURITY] | Batch — 7 P1/P2 bug fix (code analysis) [Saidazim]
+
+- **BUG #11**: cache key SHA256 — truncated base64 collision fixed (`videoExtractor/index.ts`)
+- **BUG #14**: Google OAuth Android — `audience: [webClientId, androidClientId]` multi-audience (`googleAuth.service.ts` + `config/index.ts`)
+- **BUG #1**: `useVideoExtraction` — `accessToken` added to `useCallback` dep array (stale closure fix)
+- **BUG #7**: room join TOCTOU — atomic `findOneAndUpdate` with `$expr $lt $size` (prevents exceeding maxMembers)
+- **BUG #9**: `updateRoomMedia` TOCTOU — `findOneAndUpdate({ ownerId })` eliminates ownership check gap
+- **BUG #10**: `kickMember` TOCTOU — `updateOne({ ownerId })` + `matchedCount` check
+- **BUG #15**: `changePassword` — now clears `passwordResetToken` + expiry on password change
+- **BUG #20**: `requireNotBlocked` fail-open — Redis downtime now logged at `error` level
+- Commit: bc750f0
 
 ---
 
