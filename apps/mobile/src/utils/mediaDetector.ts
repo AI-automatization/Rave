@@ -239,6 +239,33 @@ export const MEDIA_DETECTION_JS = `
     }
   } catch(e) {}
 
+  // E64-7: 'play' event — capture phase fires before any Playerjs/HLS.js handler.
+  // When user presses Play, currentSrc is guaranteed to be set.
+  // This catches cases where src setter was overwritten by the video library (race condition).
+  document.addEventListener('play', function(e) {
+    var target = e.target;
+    if (!target || target.tagName !== 'VIDEO') return;
+    var src = target.currentSrc || target.src;
+    if (!src) return;
+    if (src.indexOf('blob:') === 0) {
+      reportBlobVideo();
+    } else if (isRealVideoSrc(src)) {
+      reportVideoUrl(src);
+    }
+  }, true);
+
+  // E64-8: XHR interception — catches m3u8/mp4 requests from HLS.js / Playerjs.
+  // When the video library fetches the manifest, we report the URL immediately.
+  try {
+    var origXhrOpen = XMLHttpRequest.prototype.open;
+    XMLHttpRequest.prototype.open = function(method, xhrUrl) {
+      if (typeof xhrUrl === 'string' && isRealVideoSrc(xhrUrl)) {
+        reportVideoUrl(xhrUrl);
+      }
+      return origXhrOpen.apply(this, arguments);
+    };
+  } catch(e) {}
+
   // E64-6: Timeout fallback — 5s, then retry once after 500ms
   function startFallbackTimer() {
     clearTimeout(fallbackTimer);

@@ -193,7 +193,10 @@ export function useWatchPartyCreate(): UseWatchPartyCreateReturn {
         }
         payload.videoUrl = selectedMovie.videoUrl;
       } else if (filmMode === 'url' && videoUrl.trim()) {
-        payload.videoUrl = extractResult?.videoUrl ?? videoUrl.trim();
+        // Always store the RAW original URL, not the extracted/proxy URL.
+        // WatchPartyScreen (T-E076) re-extracts per-user so each member gets
+        // their own fresh proxy URL with their own access token.
+        payload.videoUrl = videoUrl.trim();
       }
       const room = await watchPartyApi.createRoom(payload);
       onSuccess(room._id);

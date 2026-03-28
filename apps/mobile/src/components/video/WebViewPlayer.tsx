@@ -252,8 +252,15 @@ export const WebViewPlayer = forwardRef<WebViewPlayerRef, Props>(
               onNavigationStateChange={handleNavigationStateChange}
               userAgent={userAgent}
             />
-            {/* Member lock overlay: shaffof, barcha touch larni bloklaydi */}
-            {!isOwner && <View style={StyleSheet.absoluteFill} />}
+            {/* Member lock: semi-transparent overlay blocks all touch events.
+                pointerEvents="box-only" + backgroundColor forces Android SurfaceView
+                to go through React Native touch system instead of bypassing it. */}
+            {!isOwner && (
+              <View
+                style={[StyleSheet.absoluteFill, styles.memberLockOverlay]}
+                pointerEvents="box-only"
+              />
+            )}
           </View>
         )}
       </View>
@@ -265,6 +272,11 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
   webviewWrapper: { flex: 1 },
   webview: { flex: 1 },
+  memberLockOverlay: {
+    // rgba background forces Android SurfaceView WebView to process touches
+    // through React Native instead of the native SurfaceView layer
+    backgroundColor: 'rgba(0,0,0,0.01)',
+  },
 
   overlay: {
     position: 'absolute',

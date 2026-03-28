@@ -100,6 +100,8 @@ export function MediaWebViewScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [pageTitle, setPageTitle] = useState(params.sourceName);
   const [isImporting, setIsImporting] = useState(false);
+  // Track last URL to avoid clearing detectedMedia on non-navigation events
+  const lastKnownUrlRef = useRef(params.defaultUrl);
 
   // Video topilganda bar uchun state
   const [detectedMedia, setDetectedMedia] = useState<RoomMedia | null>(null);
@@ -126,8 +128,12 @@ export function MediaWebViewScreen() {
     setCanGoBack(state.canGoBack);
     setCanGoForward(state.canGoForward);
     if (state.title) setPageTitle(state.title);
-    // Yangi sahifaga o'tganda detected media ni tozala
-    setDetectedMedia(null);
+    // Only clear detected media when URL actually changes to a different page.
+    // Previously cleared on every nav event which removed the bar during Playerjs/iframe loads.
+    if (state.url && state.url !== lastKnownUrlRef.current) {
+      lastKnownUrlRef.current = state.url;
+      setDetectedMedia(null);
+    }
   }, []);
 
   // ─── Media import flow ──────────────────────────────────────────────────────
