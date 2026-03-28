@@ -43,7 +43,7 @@
 
 - **Sana:** 2026-03-28
 - **Mas'ul:** Emirhan
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 pending[Emirhan]
 - **Muammo:** MediaWebViewScreen da video ochilganda popup faqat 1 marta chiqishi kerak, hozir 3 marta chiqyapti
 - **Fayl:** `apps/mobile/src/screens/MediaWebViewScreen.tsx`
 
@@ -53,7 +53,7 @@
 
 - **Sana:** 2026-03-28
 - **Mas'ul:** Emirhan
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 pending[Emirhan]
 - **Muammo:** Hozir mobile barcha saytlar uchun popup/yangi tab ochyapti. Iframe ishlatadigan pirate saytlar uchun popup kerak emas — mobile o'zi aniqlasin qaysi sayt iframe, qaysi sayt to'g'ri video
 - **Fayl:** `apps/mobile/src/screens/MediaWebViewScreen.tsx`
 - **Eslatma:** Backend `/extract` endpoint ishlayapti — agar backend video URL qaytarsa → popup yo'q, agar `unsupported_site` → WebView ichida qolsin
@@ -64,7 +64,7 @@
 
 - **Sana:** 2026-03-28
 - **Mas'ul:** Emirhan
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 pending[Emirhan]
 - **Muammo:** Google/Android OAuth da Network Error kelayapti, cookie/token handling muammo
 - **Fayl:** `apps/mobile/src/services/authApi.ts`, Google Console OAuth config
 - **Eslatma:** Saidazim: token backend da alohida chiqarilishi kerak (Android vs Web client)
@@ -75,7 +75,7 @@
 
 - **Sana:** 2026-03-28
 - **Mas'ul:** Emirhan
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 pending[Emirhan]
 - **Muammo:** `QualityMenu.tsx` va `EpisodeMenu.tsx` tayyor lekin hozir bo'sh `[]` ko'rsatayapti — `useVideoExtraction` hook dan `qualities`/`episodes` WatchPartyScreen ga uzatilmayapti
 - **Fayl:** `apps/mobile/src/screens/WatchPartyScreen.tsx`, `apps/mobile/src/hooks/useVideoExtraction.ts`
 
@@ -85,7 +85,7 @@
 
 - **Sana:** 2026-03-28
 - **Mas'ul:** Emirhan
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 pending[Emirhan]
 - **Maqsad:** Foydalanuvchi o'zi topgan link ni kiritsin → backend `/extract` → video
 - **Fayl:** `apps/mobile/src/screens/SourcePickerScreen.tsx`
 - **Backend:** `POST /api/v1/content/extract` — tayyor ✅
