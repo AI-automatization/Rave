@@ -4,6 +4,15 @@
 
 ---
 
+### F-168 | 2026-03-28 | [BACKEND] | Batch — 14+ yangi Playerjs saytlari [Saidazim]
+
+- `detectPlatform.ts`: anime (animevost, anidub, animejoy, animeonline, sovetromantica, anilibria)
+- CIS kino: lordfilm.*, kinopub.*, rezka.ag, tv.mover.uz
+- Embed CDN: alloha.*, videoframe.*, cdnvideohub.*, iframe.*
+- Commit: f9abbf8
+
+---
+
 ### F-167 | 2026-03-28 | [BACKEND] | T-S049 — Geo-blocked proxy extraction [Saidazim]
 
 - `geoExtractor.ts`: undici ProxyAgent — `GEO_PROXY_URL` env orqali proxy fetch
