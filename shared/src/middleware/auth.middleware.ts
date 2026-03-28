@@ -116,8 +116,13 @@ export const requireNotBlocked = (redis: Redis) =>
       if (blocked) {
         return next(new ForbiddenError('Account is blocked'));
       }
-    } catch {
-      // Redis unavailable — allow through (fail open)
+    } catch (err) {
+      // Redis unavailable — fail open to preserve availability, but log at error level
+      // so on-call is alerted and can verify no blocked accounts are exploiting the window
+      logger.error('requireNotBlocked: Redis unavailable, fail-open for user', {
+        userId: user.userId,
+        error: (err as Error).message,
+      });
     }
     next();
   };

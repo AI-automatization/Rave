@@ -94,16 +94,32 @@ export class WatchPartyService {
       }
     }
 
-    if (room.members.length >= room.maxMembers) {
+    // Atomic push: only succeeds if members.length < maxMembers at the DB level
+    // This prevents TOCTOU race where two users both pass the length check and both get added
+    const updated = await WatchPartyRoom.findOneAndUpdate(
+      {
+        _id: room._id,
+        status: { $ne: 'ended' },
+        members: { $ne: userId },
+        $expr: { $lt: [{ $size: '$members' }, '$maxMembers'] },
+      },
+      {
+        $push: { members: userId },
+        $set: { lastActivityAt: new Date() },
+      },
+      { new: true },
+    );
+
+    if (!updated) {
+      // Re-check to give accurate error message
+      const rechk = await WatchPartyRoom.findById(room._id).select('members maxMembers status');
+      if (!rechk || rechk.status === 'ended') throw new NotFoundError('Room not found or has ended');
+      if ((rechk.members as string[]).includes(userId)) return rechk as IWatchPartyRoomDocument;
       throw new BadRequestError('Room is full');
     }
 
-    room.members.push(userId);
-    room.lastActivityAt = new Date();
-    await room.save();
-
     logger.info('User joined watch party', { roomId: room._id, userId });
-    return room;
+    return updated;
   }
 
   async leaveRoom(
@@ -277,27 +293,33 @@ export class WatchPartyService {
       videoPlatform?: VideoPlatform | null;
     },
   ): Promise<IWatchPartyRoomDocument> {
-    const room = await WatchPartyRoom.findById(roomId);
-    if (!room) throw new NotFoundError('Room not found');
-    if (room.ownerId !== ownerId) throw new ForbiddenError('Only the room owner can change media');
-
     if (!/^https?:\/\//i.test(media.videoUrl)) {
       throw new BadRequestError('videoUrl must start with http:// or https://');
     }
 
-    await WatchPartyRoom.updateOne(
-      { _id: roomId },
+    // Atomic ownership check + update: eliminates TOCTOU between findById and updateOne
+    const updated = await WatchPartyRoom.findOneAndUpdate(
+      { _id: roomId, ownerId },
       {
-        videoUrl:     media.videoUrl,
-        videoTitle:   media.videoTitle   ?? null,
-        videoPlatform: media.videoPlatform ?? null,
-        videoThumbnail: null,
-        currentTime:  0,
-        isPlaying:    false,
-        status:       'waiting',
-        lastActivityAt: new Date(),
+        $set: {
+          videoUrl:       media.videoUrl,
+          videoTitle:     media.videoTitle   ?? null,
+          videoPlatform:  media.videoPlatform ?? null,
+          videoThumbnail: null,
+          currentTime:    0,
+          isPlaying:      false,
+          status:         'waiting',
+          lastActivityAt: new Date(),
+        },
       },
+      { new: true },
     );
+
+    if (!updated) {
+      const exists = await WatchPartyRoom.exists({ _id: roomId });
+      if (!exists) throw new NotFoundError('Room not found');
+      throw new ForbiddenError('Only the room owner can change media');
+    }
 
     // Reset Redis sync state — yangi media noldan boshlanadi
     await this.cacheRoomState(roomId, {
@@ -307,18 +329,21 @@ export class WatchPartyService {
       updatedBy: ownerId,
     });
 
-    const updated = await WatchPartyRoom.findById(roomId);
-    if (!updated) throw new NotFoundError('Room not found after update');
-
     logger.info('Watch party media updated', { roomId, ownerId, videoUrl: media.videoUrl });
     return updated;
   }
 
   async kickMember(ownerId: string, roomId: string, targetUserId: string): Promise<void> {
-    const room = await WatchPartyRoom.findById(roomId);
-    if (!room) throw new NotFoundError('Room not found');
-    if (room.ownerId !== ownerId) throw new ForbiddenError('Only the room owner can kick members');
-    await WatchPartyRoom.updateOne({ _id: roomId }, { $pull: { members: targetUserId } });
+    // Atomic ownership check + kick: eliminates TOCTOU between findById and updateOne
+    const result = await WatchPartyRoom.updateOne(
+      { _id: roomId, ownerId },
+      { $pull: { members: targetUserId } },
+    );
+    if (result.matchedCount === 0) {
+      const exists = await WatchPartyRoom.exists({ _id: roomId });
+      if (!exists) throw new NotFoundError('Room not found');
+      throw new ForbiddenError('Only the room owner can kick members');
+    }
   }
 
   async setMuteState(roomId: string, userId: string, isMuted: boolean): Promise<void> {

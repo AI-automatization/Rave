@@ -14,6 +14,7 @@
 //   → VideoExtractResult
 
 import Redis from 'ioredis';
+import { createHash } from 'crypto';
 import { logger } from '@shared/utils/logger';
 import { validateUrl, detectPlatform, isPlaywrightPlatform } from './detectPlatform';
 import { playwrightExtractor } from './playwrightExtractor';
@@ -70,7 +71,7 @@ export async function extractVideo(
         // Playerjs found directly on geo-blocked page — cache & return
         const geoVideo = geoResult.video;
         if (geoVideo.cacheable !== false) {
-          const geoCacheKey = CACHE_PREFIX + Buffer.from(rawUrl).toString('base64url').slice(0, 64);
+          const geoCacheKey = CACHE_PREFIX + createHash('sha256').update(rawUrl).digest('hex');
           const geoTtl = CACHE_TTL_BY_PLATFORM[geoVideo.platform] ?? CACHE_TTL_BY_PLATFORM.default;
           try { await redis.setex(geoCacheKey, geoTtl, JSON.stringify(geoVideo)); } catch { /* ignore */ }
         }
@@ -94,7 +95,7 @@ export async function extractVideo(
   }
 
   // 3. Check Redis cache
-  const cacheKey = CACHE_PREFIX + Buffer.from(rawUrl).toString('base64url').slice(0, 64);
+  const cacheKey = CACHE_PREFIX + createHash('sha256').update(rawUrl).digest('hex');
   try {
     const cached = await redis.get(cacheKey);
     if (cached) {

@@ -377,7 +377,15 @@ export class PasswordAuthService {
     if (!isMatch) throw new UnauthorizedError('Current password is incorrect');
 
     const passwordHash = await this.hashPassword(newPassword);
-    await User.updateOne({ _id: userId }, { passwordHash });
+    await User.updateOne(
+      { _id: userId },
+      {
+        passwordHash,
+        // Clear any pending reset token so it can't be used after password change
+        passwordResetToken: null,
+        passwordResetTokenExpiry: null,
+      },
+    );
 
     // Invalidate all refresh tokens — force re-login on other devices
     await RefreshToken.deleteMany({ userId });

@@ -16,12 +16,14 @@ export class GoogleAuthService {
     displayName: string;
     picture: string;
   }> {
+    // Accept both Web and Android client IDs as valid audiences (BUG #14 fix)
+    const audiences = [config.google.clientId, config.google.androidClientId].filter(Boolean);
     const client = new OAuth2Client(config.google.clientId);
     let ticket;
     try {
       ticket = await client.verifyIdToken({
         idToken,
-        audience: config.google.clientId,
+        audience: audiences,
       });
     } catch {
       throw new UnauthorizedError('Invalid Google ID token');
