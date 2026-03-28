@@ -34,12 +34,33 @@ const PLATFORM_PATTERNS: Array<{ re: RegExp; platform: VideoPlatform }> = [
   { re: /streamable\.com/i, platform: 'streamable' },
   { re: /reddit\.com/i, platform: 'reddit' },
   { re: /twitter\.com|x\.com/i, platform: 'twitter' },
-  // Playerjs-based sites (CIS pirate video platforms)
+  // ── Playerjs-based sites (CIS pirate video platforms) ────────────────────
+  // Uzbekistan / Central Asia
   { re: /uzmovie\.tv|uzmovi\.uz|kinooteka\.uz|kinolenta\.uz|kino\.uz/i, platform: 'playerjs' },
-  // Iframe embed providers — ashdi.vip and bazon.tv host Playerjs embeds
-  // used by kinogo.cc, turk123, animego, rezka and many others (T-S048)
+  { re: /tv\.mover\.uz|mover\.uz/i, platform: 'playerjs' },
+  // Russian / CIS movie sites
+  { re: /lordfilm\.(cc|app|day|me|film)/i, platform: 'playerjs' },
+  { re: /kinopub\.(me|io|app)/i, platform: 'playerjs' },
+  { re: /rezka\.ag/i, platform: 'playerjs' },
+  // Anime sites (CIS) — use Playerjs player
+  { re: /animevost\.org/i, platform: 'playerjs' },
+  { re: /anidub\.(com|me)/i, platform: 'playerjs' },
+  { re: /animejoy\.tv/i, platform: 'playerjs' },
+  { re: /animeonline\.net/i, platform: 'playerjs' },
+  { re: /sovetromantica\.com/i, platform: 'playerjs' },
+  { re: /anilibria\.(tv|me)/i, platform: 'playerjs' },
+  // ── Iframe embed providers ──────────────────────────────────────────────
+  // ashdi.vip and bazon.tv — used by kinogo, turk123, animego, rezka (T-S048)
   { re: /ashdi\.vip/i, platform: 'playerjs' },
   { re: /bazon\.tv|bazon\.biz/i, platform: 'playerjs' },
+  // alloha.tv — popular embed CDN for Russian movie sites
+  { re: /alloha\.(tv|online|cc)/i, platform: 'playerjs' },
+  // videoframe — embed provider used by many CIS sites
+  { re: /videoframe\.(online|net)/i, platform: 'playerjs' },
+  // cdnvideohub — CDN embed provider
+  { re: /cdnvideohub\.(me|net|tv)/i, platform: 'playerjs' },
+  // iframe.video / iframemovie — common embed wrappers
+  { re: /iframe\.(video|online|tv)/i, platform: 'playerjs' },
   // lookmovie2 Security API
   { re: /lookmovie2\.(to|ag|io)/i, platform: 'lookmovie2' },
   // moviesapi.club JSON API
