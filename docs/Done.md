@@ -4,6 +4,17 @@
 
 ---
 
+### F-169 | 2026-03-28 | [MOBILE] | T-E076 — WatchParty video extraction on room load [Saidazim]
+
+- `WatchPartyScreen`: `useVideoExtraction` hook qo'shildi
+- Room yuklanganda `extract(room.videoUrl)` — Playerjs/CIS saytlar endi ishlaydi
+- `extractResult.videoUrl` → real MP4/HLS URL sifatida ishlatiladi
+- `extractQualities/Episodes` → menyu ma'lumotlari to'ldiriladi
+- Extraction fail bo'lsa → WebView fallback bilan asl URL
+- `isReady` extraction tugaguncha spinner ko'rsatadi
+
+---
+
 ### F-168 | 2026-03-28 | [BACKEND] | Batch — 14+ yangi Playerjs saytlari [Saidazim]
 
 - `detectPlatform.ts`: anime (animevost, anidub, animejoy, animeonline, sovetromantica, anilibria)
