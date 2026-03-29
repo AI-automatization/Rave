@@ -1,3 +1,7 @@
+> ⚠️ ORPHANED FILE: Jafar 2026-03-18 dan mobile'ga o'tdi.
+> Bu fayl hozircha ownersiz. Web task'lar T-J015 va T-J007 ochiq.
+> Web zona'ga teginish kerak bo'lsa — jamoa bilan kelishish MAJBURIY.
+
 # CLAUDE_WEB.md — Next.js Web Client Engineer Guide
 # Next.js 14 · TypeScript · TailwindCSS · Shadcn/ui · Socket.io · Framer Motion
 # Claude CLI bu faylni Jafar tanlanganda o'qiydi
@@ -315,71 +319,20 @@ npx lhci autorun --config=lighthouserc.json
 ❌ Socket event nomlarini o'zgartirish
 ❌ API response formatini o'zgartirish
 ```
-# Development Rules
-
-Tech stack:
-
-- Next.js
-- TailwindCSS
-- DaisyUI
-
-Restrictions:
-
-- Do not write custom CSS
-- Do not use Tailwind color utilities
-- Use DaisyUI dynamic colors only
-
-Design style:
-
-- Minimalism
-- Clean layout
-- Accessible UI
-
-Components:
-
-- card
-- button
-- navbar
-- alert
-
-Responsive:
-
-- Mobile first
-- Tablet support
-- Desktop support
 
 ---
-# Development Rules
 
-Tech stack:
+## 🎨 DAISYUI QOIDALARI
 
-- Next.js
-- TailwindCSS
-- DaisyUI
+```
+Tech stack: Next.js + TailwindCSS + DaisyUI
+- Custom CSS TAQIQLANGAN — DaisyUI class ishlatish
+- Tailwind raw color utilities TAQIQLANGAN — DaisyUI dynamic colors ishlatish
+- Design: Minimalism, clean layout, accessible UI
+- Responsive: Mobile first → Tablet → Desktop
+- Components: card, button, navbar, alert (DaisyUI)
+```
 
-Restrictions:
+---
 
-- Do not write custom CSS
-- Do not use Tailwind color utilities
-- Use DaisyUI dynamic colors only
-
-Design style:
-
-- Minimalism
-- Clean layout
-- Accessible UI
-
-Components:
-
-- card
-- button
-- navbar
-- alert
-
-Responsive:
-
-- Mobile first
-- Tablet support
-- Desktop support
-check logs and write in .playwright-mcp 
-*CLAUDE_WEB.md | CineSync | Jafar | v1.0*
+*CLAUDE_WEB.md | CineSync | Jafar → ORPHANED | v1.1 | 2026-03-30*

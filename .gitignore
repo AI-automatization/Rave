@@ -1,5 +1,11 @@
-# Claude CLI — lokal fayllar
-.claude/
+# Claude CLI — lokal fayllar (skills shared, rest ignored)
+.claude/*
+!.claude/skills/
+.claude/locks/
+.claude/settings.json
+.claude/settings.local.json
+.claude/statsig/
+.claude/todos/
 
 # Node.js
 node_modules/

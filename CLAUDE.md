@@ -307,7 +307,7 @@ cd services/admin && npm run dev        # :3008
 
 # 3. Frontend:
 cd apps/web && npm run dev              # :3000
-cd apps/mobile && npx react-native start
+cd apps/mobile && npx expo start
 cd apps/admin-ui && npm run dev         # :5173
 
 # 4. Type check:
@@ -560,6 +560,19 @@ Har merge dan OLDIN QA Agent quyidagilarni tekshiradi:
   3. apps/web/: tsc --noEmit
   4. apps/mobile/: tsc --noEmit
   5. apps/admin-ui/: tsc --noEmit
+  6. cd apps/mobile && npx jest --passWithNoTests
+  7. Maestro E2E: cd apps/mobile && maestro test .maestro/
+  8. Playwright: cd apps/web && npx playwright test (agar web o'zgargan bo'lsa)
+
+### Critic Agent — MAJBURIY code review
+
+Har merge dan OLDIN Critic Agent 3 ta perspective dan tekshiradi:
+  1. CORRECTNESS — Kod muammoni hal qiladimi? API/Socket mos keladi?
+  2. ARCHITECTURE — SOLID, zone, 300-line limit?
+  3. INTEGRATION — Backend↔Mobile↔Web buzilmaydi?
+
+Agar o'rtacha ball < 7/10 → merge TAQIQLANGAN.
+Skill: `.claude/skills/critic-agent.md`
 
 QA FAIL bo'lsa → merge TAQIQLANGAN → agent xatoni tuzatishi kerak.
 ```
@@ -597,6 +610,26 @@ QA FAIL bo'lsa → merge TAQIQLANGAN → agent xatoni tuzatishi kerak.
 ❌ Multi-Agent: agent zone dan tashqari fayl o'zgartirish TAQIQLANGAN
 ❌ Multi-Agent: QA Agent tekshirmasdan merge qilish TAQIQLANGAN
 ```
+
+---
+
+## AGENT SKILLS (.claude/skills/)
+
+Barcha agentlar quyidagi skilllarni avtomatik ishlatadi:
+
+| Skill | Fayl | Vazifa |
+|-------|------|--------|
+| Self-Reflection | `.claude/skills/self-reflection.md` | 7-step anti-hallucination check |
+| Critic Agent | `.claude/skills/critic-agent.md` | 3-judge code review before merge |
+| Execute-Judge Loop | `.claude/skills/execute-judge-loop.md` | Write→Compile→Check→Fix cycle |
+| Subagent Dispatch | `.claude/skills/subagent-dispatch.md` | Agent coordination + zone enforcement |
+| Auto Tests | `.claude/skills/auto-tests.md` | Parallel test writing and fixing |
+| Visual Testing | `.claude/skills/visual-testing.md` | Screenshot UI verification |
+| Root Cause Tracing | `.claude/skills/root-cause-tracing.md` | 5-step backward debugging |
+| Spec-Driven Implement | `.claude/skills/spec-driven-implement.md` | Spec→Code→Verify pipeline |
+
+**Har agent ishni tugatganda Self-Reflection (7 step) bajarishi MAJBURIY.**
+**Har merge dan oldin Critic Agent (3 judge) tekshirishi MAJBURIY.**
 
 ---
 

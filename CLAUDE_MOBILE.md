@@ -97,6 +97,16 @@ ProfileStack
  ├ StatsScreen
  ├ AchievementsScreen
  └ SettingsScreen
+
+ModalStack (overlay)
+ ├ SourcePickerScreen         — media source selection (YouTube, Twitch, VK, etc.)
+ ├ MediaWebViewScreen         — embedded browser + video detection + bottom bar
+ ├ WatchPartyCreateScreen     — create watch room
+ ├ WatchPartyJoinScreen       — join by invite code
+ ├ WatchPartyScreen           — main watch party (video + chat + sync)
+ ├ BattleCreateScreen         — create battle challenge
+ ├ BattleScreen               — real-time battle with scoring
+ └ NotificationsScreen        — notification center
 ```
 
 ### Zustand Stores
@@ -203,6 +213,44 @@ const RARITY_COLORS = {
 ---
 
 ## 🎬 VIDEO PLAYER — expo-av
+
+### Video Extraction → Playback Flow
+
+```
+SourcePickerScreen → MediaWebViewScreen → WatchPartyScreen → UniversalPlayer
+
+1. Owner "Web" bosadi → SourcePicker → MediaWebView ochiladi
+2. MediaWebView sahifani yuklaydi → cookie'lar to'planadi
+3. Backend extraction: contentApi.extractVideo(url, cookies)
+4. Agar backend topsa → bottom bar "Video Found" chiqadi
+5. Agar backend topmasa → JS injection fallback (MutationObserver)
+6. "Watch Party" bosiladi → CHANGE_MEDIA socket event yuboriladi
+7. WatchPartyScreen → useVideoExtraction(room.videoUrl)
+8. UniversalPlayer: extractedUrl bor → expo-av, yo'q → WebView fallback
+```
+
+### Video Components
+```
+components/video/
+├── UniversalPlayer.tsx   — expo-av / WebView router (ref: play/pause/seek/getPosition)
+├── WebViewPlayer.tsx     — HTML5 WebView wrapper (site-specific adapters)
+├── WebViewAdapters.ts    — Site-specific JS injection (YouTube, uzmovi, kinogo, hdrezka...)
+├── VideoControls.tsx     — Play/pause/seek overlay (double-tap ±10s)
+├── webviewAdBlocker.ts   — Ad hostname filtering
+└── webviewYouTube.ts     — YouTube IFrame API integration
+
+components/watchParty/
+├── VideoSection.tsx      — Video container for watch party
+├── QualityMenu.tsx       — Quality selector modal (from extraction)
+├── EpisodeMenu.tsx       — Episode/season selector (accordion)
+├── VideoProgressBar.tsx  — Seek bar (owner-only thumb)
+├── ExtractStatus.tsx     — Extraction state indicator
+├── ChatPanel.tsx         — Live chat messages
+├── VoiceChat.tsx         — WebRTC voice (peer-to-peer)
+└── EmojiFloat.tsx        — Emoji overlay animation
+```
+
+### expo-av Native Player
 
 ```typescript
 // screens/home/VideoPlayerScreen.tsx
@@ -459,9 +507,14 @@ export const tokenStorage = {
 # Unit test:
 cd apps/mobile && npm test
 
-# E2E (Detox):
-detox build --configuration android.emu.debug
-detox test --configuration android.emu.debug
+# E2E (Maestro):
+cd apps/mobile && maestro test .maestro/
+
+# Maestro flows:
+# .maestro/flows/auth-flow.yaml
+# .maestro/flows/watch-party-flow.yaml
+# .maestro/flows/video-player-flow.yaml
+# .maestro/flows/friends-flow.yaml
 
 # Type check:
 cd apps/mobile && npm run typecheck
