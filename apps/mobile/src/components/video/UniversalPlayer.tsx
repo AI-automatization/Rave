@@ -143,13 +143,25 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
     const webviewRef = useRef<WebViewPlayerRef>(null);
     const platform = detectVideoPlatform(url);
     const [videoError, setVideoError] = useState(false);
+    // avLoaded: true once expo-av fires first successful status — shows buffering spinner until then
+    const [avLoaded, setAvLoaded] = useState(false);
+
+    // Reset error/loaded state when extractedUrl changes (new extraction result → fresh start)
+    const prevExtractedUrlRef = useRef(extractedUrl);
+    if (prevExtractedUrlRef.current !== extractedUrl) {
+      prevExtractedUrlRef.current = extractedUrl;
+      setVideoError(false);
+      setAvLoaded(false);
+    }
 
     // extractedUrl mavjud bo'lsa → expo-av (direct) rejimida ishlatish
     // Aks holda: YouTube/boshqa saytlar → WebView, direct → expo-av
+    // videoError: har qanday xatoda WebView fallback (extractedUrl muvaffaqiyatsiz bo'lsa ham)
     const hasExtracted = !!extractedUrl;
     const useWebview =
       mode === 'webview-session' ||
-      (!hasExtracted && (platform === 'youtube' || platform === 'webview' || videoError));
+      videoError ||
+      (!hasExtracted && (platform === 'youtube' || platform === 'webview'));
     const directSource = hasExtracted ? extractedUrl : url;
 
     useImperativeHandle(ref, () => ({
@@ -225,27 +237,43 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
       ? { uri: directSource, headers: { Referer: referer } }
       : { uri: directSource };
     return (
-      <Video
-        ref={videoRef}
-        source={avSource}
-        style={styles.video}
-        resizeMode={ResizeMode.CONTAIN}
-        shouldPlay={false}
-        useNativeControls={false}
-        onPlaybackStatusUpdate={(status) => {
-          onPlaybackStatusUpdate?.(status);
-          if (!status.isLoaded && status.error) {
-            setVideoError(true);
-          }
-        }}
-        onError={() => setVideoError(true)}
-      />
+      <View style={styles.video}>
+        <Video
+          ref={videoRef}
+          source={avSource}
+          style={StyleSheet.absoluteFill}
+          resizeMode={ResizeMode.CONTAIN}
+          shouldPlay={false}
+          useNativeControls={false}
+          onPlaybackStatusUpdate={(status) => {
+            onPlaybackStatusUpdate?.(status);
+            if (status.isLoaded) {
+              setAvLoaded(true);
+            } else if (status.error) {
+              setVideoError(true);
+            }
+          }}
+          onError={() => setVideoError(true)}
+        />
+        {/* Buffering indicator — shown until expo-av fires first loaded status */}
+        {!avLoaded && (
+          <View style={styles.bufferingOverlay} pointerEvents="none">
+            <ActivityIndicator size="large" color={colors.primary} />
+          </View>
+        )}
+      </View>
     );
   },
 );
 
 const styles = StyleSheet.create({
-  video: { width: '100%', height: '100%' },
+  video: { width: '100%', height: '100%', backgroundColor: '#000' },
+  bufferingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
   center: {
     flex: 1,
     justifyContent: 'center',
