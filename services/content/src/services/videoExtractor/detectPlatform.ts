@@ -22,6 +22,12 @@ const PRIVATE_IP_RE =
   /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|::1$|fc00:|fe80:)/i;
 
 const PLATFORM_PATTERNS: Array<{ re: RegExp; platform: VideoPlatform }> = [
+  // ── Direct stream URLs — MUST be checked FIRST so CDN URLs with video extensions
+  // (e.g. v.mover.uz/video.mp4, cdn.kinopub.me/hls/stream.m3u8) are not
+  // misclassified as playerjs/youtube sites whose domain also appears in the URL.
+  { re: /\.(mp4|webm|mov|avi|ts|mkv)(\?|#|$)/i, platform: 'generic' },
+  { re: /\.(m3u8|mpd)(\?|#|$)/i, platform: 'generic' },
+  // ── Known platforms ──────────────────────────────────────────────────────
   { re: /youtube\.com|youtu\.be/i, platform: 'youtube' },
   { re: /vimeo\.com/i, platform: 'vimeo' },
   { re: /tiktok\.com/i, platform: 'tiktok' },
@@ -65,9 +71,6 @@ const PLATFORM_PATTERNS: Array<{ re: RegExp; platform: VideoPlatform }> = [
   { re: /lookmovie2\.(to|ag|io)/i, platform: 'lookmovie2' },
   // moviesapi.club JSON API
   { re: /moviesapi\.club/i, platform: 'moviesapi' },
-  // Direct stream URLs → generic (mp4/m3u8/mpd)
-  { re: /\.(mp4|webm|mov|avi)(\?|$)/i, platform: 'generic' },
-  { re: /\.(m3u8|mpd)(\?|$)/i, platform: 'generic' },
 ];
 
 export function validateUrl(rawUrl: string): URL {

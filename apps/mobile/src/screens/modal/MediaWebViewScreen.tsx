@@ -172,9 +172,24 @@ export function MediaWebViewScreen() {
       detectedUrlRef.current = '';
       backendFoundVideoRef.current = false;
       setDetectedMedia(null);
+
+      // Direct video file URL (e.g. https://v.mover.uz/llyNHHL_m.mp4):
+      // WebView renders the binary file with no HTML/DOM — JS injection never fires.
+      // Detect immediately from URL and show popup without calling backend.
+      if (/\.(mp4|m3u8|webm|mkv|ts|mov|mpd)(\?|#|$)/i.test(state.url)) {
+        const fileName = state.url.split('/').pop()?.split('?')[0] ?? 'Video';
+        setDetectedMediaOnce({
+          videoUrl: state.url,
+          videoTitle: state.title || fileName,
+          videoPlatform: /\.m3u8(\?|#|$)/i.test(state.url) ? 'direct' : 'direct',
+          mode: 'extracted',
+        });
+        return;
+      }
+
       void tryBackendExtract(state.url);
     }
-  }, [tryBackendExtract]);
+  }, [tryBackendExtract, setDetectedMediaOnce]);
 
   // T-E072: try backend extract on initial URL load
   useEffect(() => {
