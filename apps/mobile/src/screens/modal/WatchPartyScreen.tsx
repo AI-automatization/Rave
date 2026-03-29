@@ -49,6 +49,10 @@ export function WatchPartyScreen() {
   const isSyncing = useRef(false);
   const lastSyncId = useRef('');
   const prevIsPlayingRef = useRef(false);
+  // Prevents re-entrant handlePlayPause calls (rapid double-press)
+  const isActionInFlight = useRef(false);
+  // Tracks intended play state via ref to avoid stale closure in handlePlayPause
+  const intendedPlayingRef = useRef(false);
 
   const [showChat, setShowChat] = useState(false);
   const [showVoice, setShowVoice] = useState(false);
@@ -133,6 +137,9 @@ export function WatchPartyScreen() {
     if (lastSyncId.current === syncId) return;
     lastSyncId.current = syncId;
 
+    // Update intendedPlayingRef so handlePlayPause uses the latest server state
+    intendedPlayingRef.current = syncState.isPlaying;
+
     isSyncing.current = true;
     playerRef.current
       ?.seekTo(syncState.currentTime * 1000)
@@ -141,7 +148,11 @@ export function WatchPartyScreen() {
         else return playerRef.current?.pause();
       })
       .catch(() => {})
-      .finally(() => { isSyncing.current = false; });
+      .finally(() => {
+        // Delay reset so expo-av status callbacks that fire after seek/play
+        // are still suppressed — prevents feedback loop emit
+        setTimeout(() => { isSyncing.current = false; }, 400);
+      });
   }, [syncState]);
 
   // Owner periodic sync heartbeat — every 5 seconds, emit current position
@@ -159,22 +170,26 @@ export function WatchPartyScreen() {
   }, [isOwner, room, isPlaying, emitPlay]);
 
   const onPlaybackStatusUpdate = useCallback((status: AVPlaybackStatus) => {
-    if (!status.isLoaded || isSyncing.current) return;
+    if (!status.isLoaded) return;
     const nowPlaying = status.isPlaying;
-    setIsPlaying(nowPlaying);
 
-    // Progress bar update (expo-av direct streams)
+    // Always update UI state (progress bar, play button icon)
+    if (!isSyncing.current) {
+      setIsPlaying(nowPlaying);
+      intendedPlayingRef.current = nowPlaying;
+    }
     setVideoCurrentTime(status.positionMillis / 1000);
     if (status.durationMillis) setVideoDuration(status.durationMillis / 1000);
 
-    // Owner: emit play/pause when expo-av video state changes
-    if (isOwner) {
-      const posSecs = status.positionMillis / 1000;
-      if (nowPlaying && !prevIsPlayingRef.current) emitPlay(posSecs);
-      if (!nowPlaying && prevIsPlayingRef.current) emitPause(posSecs);
+    // Owner: emit ONLY when video finishes naturally (not from our explicit actions)
+    // All explicit play/pause is emitted from handlePlayPause / handleWebViewPlay/Pause
+    // to avoid the feedback loop: emit → server sync → seekTo → status callback → emit again
+    if (isOwner && !isSyncing.current && status.didJustFinish) {
+      emitPause(status.durationMillis ? status.durationMillis / 1000 : 0);
     }
+
     prevIsPlayingRef.current = nowPlaying;
-  }, [isOwner, emitPlay, emitPause]);
+  }, [isOwner, emitPause]);
 
   const handleWebViewPlay = useCallback((secs: number) => {
     setIsPlaying(true);
@@ -204,16 +219,34 @@ export function WatchPartyScreen() {
   }, [isOwner, videoIsLive, emitSeek]);
 
   const handlePlayPause = useCallback(async () => {
-    if (!isOwner) return;
-    const posMs = (await playerRef.current?.getPositionMs()) ?? 0;
-    if (isPlaying) {
-      await playerRef.current?.pause();
-      emitPause(posMs / 1000);
-    } else {
-      await playerRef.current?.play();
-      emitPlay(posMs / 1000);
+    if (!isOwner || isActionInFlight.current) return;
+    isActionInFlight.current = true;
+
+    try {
+      // Use ref instead of isPlaying state to avoid stale closure on rapid double-press
+      const nextPlaying = !intendedPlayingRef.current;
+      intendedPlayingRef.current = nextPlaying;
+      setIsPlaying(nextPlaying);
+
+      // Lock isSyncing so onPlaybackStatusUpdate won't emit while we act
+      isSyncing.current = true;
+
+      const posMs = (await playerRef.current?.getPositionMs()) ?? 0;
+      if (nextPlaying) {
+        await playerRef.current?.play();
+        emitPlay(posMs / 1000);
+      } else {
+        await playerRef.current?.pause();
+        emitPause(posMs / 1000);
+      }
+    } finally {
+      // Release debounce lock + isSyncing after expo-av settles (300ms)
+      setTimeout(() => {
+        isActionInFlight.current = false;
+        isSyncing.current = false;
+      }, 300);
     }
-  }, [isOwner, isPlaying, emitPlay, emitPause]);
+  }, [isOwner, emitPlay, emitPause]);
 
   const handleStop = useCallback(async () => {
     if (!isOwner) return;
