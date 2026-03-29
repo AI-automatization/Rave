@@ -30,6 +30,9 @@ export interface FloatingEmoji {
 interface VideoSectionProps {
   playerRef: React.RefObject<UniversalPlayerRef | null>;
   videoUrl: string;
+  /** Extracted direct stream URL (mp4/HLS). When provided, UniversalPlayer uses expo-av
+   * regardless of URL format — bypasses detectVideoPlatform guessing. */
+  extractedUrl?: string;
   videoReferer?: string;
   isReady: boolean;
   isOwner: boolean;
@@ -58,6 +61,7 @@ interface VideoSectionProps {
 export const VideoSection = React.memo(function VideoSection({
   playerRef,
   videoUrl,
+  extractedUrl,
   videoReferer,
   isReady,
   isOwner,
@@ -98,6 +102,7 @@ export const VideoSection = React.memo(function VideoSection({
           <UniversalPlayer
             ref={playerRef}
             url={videoUrl}
+            extractedUrl={extractedUrl}
             referer={videoReferer}
             isOwner={isOwner}
             onPlay={onPlay}

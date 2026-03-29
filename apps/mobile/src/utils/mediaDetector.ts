@@ -116,12 +116,17 @@ export const MEDIA_DETECTION_JS = `
     if (!src || src.indexOf('http') !== 0) return false;
     if (src.indexOf('data:') === 0) return false;
     var lower = src.toLowerCase();
-    // E64-4: добавлен .mpd (DASH)
+    // E64-4: file extension matching (.mpd = MPEG-DASH)
     if (/\\.(mp4|m3u8|webm|ogg|mov|ts|mkv|mpd)(\\?|$)/.test(lower)) return true;
+    // Explicitly skip Google video CDN (YouTube internal playback URLs)
     if (lower.indexOf('videoplayback') !== -1) return false;
     if (lower.indexOf('.googlevideo.com') !== -1) return false;
     if (lower.indexOf('googlevideo') !== -1) return false;
-    if (/\\/(stream|playlist\\.m3u8|manifest|hls|dash)/.test(lower)) return true;
+    // Common stream path segments
+    if (/\\/(stream|playlist\\.m3u8|manifest\\.m3u8|master\\.m3u8|manifest|hls|dash|chunklist)/.test(lower)) return true;
+    // E64-9: CIS CDN patterns — uzmovi.uz, mover.uz, kinopub, etc. use CDN URLs without extensions
+    // e.g. https://cdn.uzmovie.tv/v/abc/index or https://hls2.cdn.ru/video/720p/seg
+    if (/\\/(video|vod|cdn|media)\\/[^/]+\\/(index|master|720p|480p|360p|1080p|hls)/.test(lower)) return true;
     // T-E070: Facebook, Instagram, Reddit, Streamable CDN domenlar
     if (lower.indexOf('fbcdn.net') !== -1 && lower.indexOf('.mp4') !== -1) return true;
     if (lower.indexOf('cdninstagram.com') !== -1 && lower.indexOf('.mp4') !== -1) return true;
@@ -264,6 +269,22 @@ export const MEDIA_DETECTION_JS = `
       }
       return origXhrOpen.apply(this, arguments);
     };
+  } catch(e) {}
+
+  // E64-9: fetch() interception — HLS.js v1+ uses fetch instead of XHR for HLS manifests.
+  // Playerjs on uzmovi.uz, mover.uz and other CIS sites may use newer HLS.js.
+  try {
+    var origFetch = window.fetch;
+    if (typeof origFetch === 'function') {
+      window.fetch = function(input, init) {
+        var url = typeof input === 'string' ? input
+          : (input && typeof input === 'object' && 'url' in input ? input.url : '');
+        if (url && isRealVideoSrc(url)) {
+          reportVideoUrl(url);
+        }
+        return origFetch.apply(this, arguments);
+      };
+    }
   } catch(e) {}
 
   // E64-6: Timeout fallback — 5s, then retry once after 500ms

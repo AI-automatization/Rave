@@ -42,7 +42,7 @@ export function WatchPartyScreen() {
   // emitVoiceJoin/Leave handled directly inside VoiceChat via getSocket()
 
   // T-E076: extract video URL + qualities/episodes when room loads
-  const { isExtracting, result: extractResult, fallbackMode: extractFallback, extract } = useVideoExtraction();
+  const { isExtracting, result: extractResult, fallbackMode: extractFallback, extract, reset: resetExtraction } = useVideoExtraction();
   const extractStartedRef = useRef(false);
 
   const playerRef = useRef<UniversalPlayerRef>(null);
@@ -68,12 +68,17 @@ export function WatchPartyScreen() {
   const [currentVideoUrl, setCurrentVideoUrl] = useState('');
 
   // T-E076: room.videoUrl tayyor bo'lganda extraction boshlash (bir marta)
+  // Cleanup: reset ref + state so next room with same URL re-extracts (BUG #5 fix)
   useEffect(() => {
     const rawUrl = room?.videoUrl;
     if (!rawUrl || extractStartedRef.current) return;
     extractStartedRef.current = true;
     void extract(rawUrl);
-  }, [room?.videoUrl, extract]);
+    return () => {
+      extractStartedRef.current = false;
+      resetExtraction();
+    };
+  }, [room?.videoUrl, extract, resetExtraction]);
 
   // T-E076: extraction muvaffaqiyatli bo'lganda quality/episode menularini to'ldirish
   useEffect(() => {
@@ -303,19 +308,21 @@ export function WatchPartyScreen() {
     );
   }
 
-  // T-E076: extracted URL ni ishlatish, fallback bo'lsa asl URL (WebView rejimida ochiladi)
-  const resolvedVideoUrl = extractResult?.videoUrl ?? room?.videoUrl ?? '';
-  const resolvedIsWebView = extractFallback
-    ? ['youtube', 'webview'].includes(detectVideoPlatform(room?.videoUrl ?? ''))
-    : ['youtube', 'webview'].includes(detectVideoPlatform(resolvedVideoUrl));
+  // T-E076: original URL → UniversalPlayer url prop (platform detection + WebView fallback)
+  // extracted URL → extractedUrl prop → UniversalPlayer uses expo-av regardless of URL format
+  // When extraction fails (fallback) → extractedUrl = undefined → UniversalPlayer opens WebView with original URL
+  const originalVideoUrl = room?.videoUrl ?? '';
+  const extractedVideoUrl = (!extractFallback && extractResult?.videoUrl) ? extractResult.videoUrl : undefined;
+  const isWebViewMode = !extractedVideoUrl && ['youtube', 'webview'].includes(detectVideoPlatform(originalVideoUrl));
 
   return (
     <View style={s.root}>
       <VideoSection
         playerRef={playerRef}
-        videoUrl={resolvedVideoUrl}
+        videoUrl={originalVideoUrl}
+        extractedUrl={extractedVideoUrl}
         videoReferer={videoReferer}
-        isWebView={resolvedIsWebView}
+        isWebView={isWebViewMode}
         isReady={!!room && !isExtracting}
         isOwner={isOwner}
         isPlaying={isPlaying}
