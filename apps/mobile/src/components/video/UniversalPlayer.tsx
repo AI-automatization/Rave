@@ -249,9 +249,10 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
             onPlaybackStatusUpdate?.(status);
             if (status.isLoaded) {
               setAvLoaded(true);
-            } else if (status.error) {
-              setVideoError(true);
             }
+            // Note: errors handled exclusively by onError (fatal load failures only).
+            // status.error can fire on transient seek/play state changes and must not
+            // trigger WebView fallback — that would switch the player mid-playback.
           }}
           onError={() => setVideoError(true)}
         />
