@@ -1,4 +1,4 @@
-// CineSync Mobile — Home Screen (with search + genre filters)
+// CineSync Mobile — Home Screen (external-source-first UX for MVP)
 import React, { useState, useCallback } from 'react';
 import {
   View,
@@ -18,9 +18,13 @@ import { useTheme, createThemedStyles, spacing, typography, borderRadius } from 
 import { ContentGenre, HomeStackParamList, RootStackParamList } from '@app-types/index';
 import { useHomeData } from '@hooks/useHomeData';
 import { useDebounce, useSearchResults } from '@hooks/useSearch';
+import { useWatchPartyRooms } from '@hooks/useWatchPartyRooms';
 import { HeroBanner } from '@components/movie/HeroBanner';
 import { MovieRow } from '@components/movie/MovieRow';
 import { HomeSkeleton } from '@components/movie/HomeSkeleton';
+import { HomeCTA } from '@components/home/HomeCTA';
+import { HomeActiveRooms } from '@components/home/HomeActiveRooms';
+import { HomeEmptyState } from '@components/home/HomeEmptyState';
 import { useNotificationStore } from '@store/notification.store';
 import { useT } from '@i18n/index';
 import { GENRES } from '@hooks/useSearch';
@@ -35,6 +39,7 @@ export function HomeScreen() {
   const rootNav = useNavigation<RootNav>();
   const insets = useSafeAreaInsets();
   const { trending, topRated, continueWatching, newReleases, isLoading, refetch } = useHomeData();
+  const { data: activeRooms } = useWatchPartyRooms();
   const unreadCount = useNotificationStore((s) => s.unreadCount);
   const { t } = useT();
   const { colors } = useTheme();
@@ -71,9 +76,19 @@ export function HomeScreen() {
     navigation.navigate('SearchResults', { query: title });
   }, [navigation]);
 
+  const handleSourcePicker = useCallback(() => {
+    rootNav.navigate('Modal', { screen: 'SourcePicker', params: { context: 'new_room' } });
+  }, [rootNav]);
+
+  const handleRoomPress = useCallback((roomId: string) => {
+    rootNav.navigate('Modal', { screen: 'WatchParty', params: { roomId } });
+  }, [rootNav]);
+
   if (isLoading) return <HomeSkeleton />;
 
   const hasQuickResults = searchFocused && debouncedQuery.length > 0 && (quickResults?.movies.length ?? 0) > 0;
+  const isContentEmpty = trending.length === 0 && topRated.length === 0;
+  const liveRooms = (activeRooms ?? []).filter(r => r.status !== 'ended');
 
   return (
     <View style={s.root}>
@@ -161,7 +176,7 @@ export function HomeScreen() {
             </TouchableOpacity>
           ))}
           <TouchableOpacity style={s.quickSeeAll} onPress={handleSearch} activeOpacity={0.7}>
-            <Text style={s.quickSeeAllText}>{t('search', 'seeAll') || 'Hammasini ko\'rish'}</Text>
+            <Text style={s.quickSeeAllText}>{t('search', 'seeAll') || "Hammasini ko'rish"}</Text>
             <Ionicons name="chevron-forward" size={14} color={colors.primary} />
           </TouchableOpacity>
         </View>
@@ -173,17 +188,30 @@ export function HomeScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />
         }
       >
-        <HeroBanner movies={trending.slice(0, 5)} />
+        {/* Hero CTA — always visible, guides user to SourcePicker */}
+        <HomeCTA onPress={handleSourcePicker} />
 
-        {continueWatching.length > 0 && (
-          <MovieRow title={t('home', 'continueWatching')} movies={continueWatching} />
-        )}
+        {/* Active Watch Party rooms */}
+        <HomeActiveRooms rooms={liveRooms} onRoomPress={handleRoomPress} />
 
-        <MovieRow title={t('home', 'trending')} movies={trending} />
-        <MovieRow title={t('home', 'topRated')} movies={topRated} />
+        {/* Content rows or empty state */}
+        {isContentEmpty ? (
+          <HomeEmptyState onPickVideo={handleSourcePicker} />
+        ) : (
+          <>
+            <HeroBanner movies={trending.slice(0, 5)} />
 
-        {newReleases.length > 0 && (
-          <MovieRow title={t('home', 'newReleases')} movies={newReleases} />
+            {continueWatching.length > 0 && (
+              <MovieRow title={t('home', 'continueWatching')} movies={continueWatching} />
+            )}
+
+            <MovieRow title={t('home', 'trending')} movies={trending} />
+            <MovieRow title={t('home', 'topRated')} movies={topRated} />
+
+            {newReleases.length > 0 && (
+              <MovieRow title={t('home', 'newReleases')} movies={newReleases} />
+            )}
+          </>
         )}
 
         <View style={{ height: TAB_BAR_HEIGHT + insets.bottom + spacing.lg }} />
@@ -217,12 +245,7 @@ const useStyles = createThemedStyles((colors) => ({
     paddingHorizontal: 3,
   },
   badgeText: { color: colors.textPrimary, fontSize: 10, fontWeight: '700' },
-
-  // Search
-  searchRow: {
-    paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.sm,
-  },
+  searchRow: { paddingHorizontal: spacing.xl, paddingBottom: spacing.sm },
   searchWrap: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -238,18 +261,8 @@ const useStyles = createThemedStyles((colors) => ({
     borderColor: colors.primary + '60',
     backgroundColor: colors.bgSurface,
   },
-  searchInput: {
-    flex: 1,
-    color: colors.textPrimary,
-    fontSize: 15,
-    paddingVertical: 0,
-  },
-
-  // Genre strip
-  genreStrip: {
-    flexGrow: 0,
-    marginBottom: spacing.sm,
-  },
+  searchInput: { flex: 1, color: colors.textPrimary, fontSize: 15, paddingVertical: 0 },
+  genreStrip: { flexGrow: 0, marginBottom: spacing.sm },
   genreList: { paddingHorizontal: spacing.xl, gap: spacing.sm },
   genreChip: {
     paddingHorizontal: spacing.md,
@@ -259,14 +272,9 @@ const useStyles = createThemedStyles((colors) => ({
     borderWidth: 1,
     borderColor: 'transparent',
   },
-  genreChipActive: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primary + '18',
-  },
+  genreChipActive: { borderColor: colors.primary, backgroundColor: colors.primary + '18' },
   genreChipText: { ...typography.caption, color: colors.textSecondary, fontWeight: '600' },
   genreChipTextActive: { color: colors.primary },
-
-  // Quick results
   quickResults: {
     position: 'absolute',
     top: 0,
@@ -293,11 +301,7 @@ const useStyles = createThemedStyles((colors) => ({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  quickItemText: {
-    ...typography.body,
-    color: colors.textPrimary,
-    flex: 1,
-  },
+  quickItemText: { ...typography.body, color: colors.textPrimary, flex: 1 },
   quickSeeAll: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -305,9 +309,5 @@ const useStyles = createThemedStyles((colors) => ({
     gap: spacing.xs,
     paddingVertical: spacing.sm + 2,
   },
-  quickSeeAllText: {
-    ...typography.caption,
-    color: colors.primary,
-    fontWeight: '700',
-  },
+  quickSeeAllText: { ...typography.caption, color: colors.primary, fontWeight: '700' },
 }));

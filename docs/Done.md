@@ -1,6 +1,23 @@
 # CineSync — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-03-28
+# Yangilangan: 2026-03-31
+
+---
+
+### F-171 | 2026-03-31 | [MOBILE] | Sprint 8 — MVP Release: HomeScreen UX + Empty States + Network [Emirhan]
+
+- **T-E077 (P0)**: HomeScreen external-source-first UX
+  - `HomeCTA.tsx` — "Do'stlar bilan birga ko'rish" CTA → SourcePicker (new_room)
+  - `HomeActiveRooms.tsx` — active Watch Party rooms section (useWatchPartyRooms, refetch 15s)
+  - `HomeEmptyState.tsx` — graceful empty state when film DB is empty + SourcePicker CTA
+  - `HomeScreen.tsx` — isContentEmpty check, liveRooms filter, handleSourcePicker/handleRoomPress
+- **T-E078 (P1)**: Empty state polish — SearchScreen query no-results state
+  - `SearchScreen.tsx` — showEmptyState logic + Ionicons icon + i18n noResultsTitle/noResultsFor
+  - FriendsScreen/BattleScreen/WatchHistoryScreen: already had empty states ✅
+- **T-E079 (P1)**: Network error handling (zero new packages)
+  - `useNetworkStatus.ts` — AppState + fetch/AbortController (google generate_204, 4s timeout)
+  - `OfflineBanner.tsx` — Animated.spring slide-in/out, wifi-outline icon, retry button
+  - `App.tsx` — OfflineBanner integrated in RootApp
 
 ---
 

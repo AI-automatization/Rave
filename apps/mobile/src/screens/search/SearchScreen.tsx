@@ -1,6 +1,7 @@
 // CineSync Mobile — Search Screen
 import React, { useState, useCallback } from 'react';
 import { View, Text, StatusBar } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -58,6 +59,8 @@ export function SearchScreen() {
   }, [navigation]);
 
   const hasResults = (data?.movies.length ?? 0) > 0;
+  const searchCompleted = debouncedQuery.length > 0 && data !== undefined;
+  const showEmptyState = searchCompleted && !hasResults;
 
   return (
     <View style={styles.root}>
@@ -88,6 +91,16 @@ export function SearchScreen() {
         />
       )}
 
+      {showEmptyState && (
+        <View style={styles.emptyState}>
+          <Ionicons name="search-outline" size={48} color={colors.textMuted} />
+          <Text style={styles.emptyTitle}>{t('search', 'noResultsTitle')}</Text>
+          <Text style={styles.emptySub}>
+            {`«${debouncedQuery}» ${t('search', 'noResultsFor')}`}
+          </Text>
+        </View>
+      )}
+
       {debouncedQuery.length === 0 && history.length > 0 && (
         <SearchHistory
           history={history}
@@ -108,4 +121,23 @@ const useStyles = createThemedStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bgBase },
   header: { paddingHorizontal: spacing.xl, paddingBottom: spacing.md },
   title: { ...typography.h1, color: colors.textPrimary },
+  emptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.xxxl,
+    paddingTop: spacing.xxxl * 2,
+    gap: spacing.md,
+  },
+  emptyTitle: {
+    ...typography.h3,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  emptySub: {
+    ...typography.body,
+    color: colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
 }));

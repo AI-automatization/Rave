@@ -11,6 +11,8 @@ import { onAccountBlocked } from '@api/client';
 import { AppNavigator } from '@navigation/AppNavigator';
 import { ErrorBoundary } from '@components/common/ErrorBoundary';
 import { BlockedAccountModal } from '@components/common/BlockedAccountModal';
+import { OfflineBanner } from '@components/common/OfflineBanner';
+import { useNetworkStatus } from '@hooks/useNetworkStatus';
 import { ThemeProvider, useTheme } from '@theme/index';
 
 const queryClient = new QueryClient({
@@ -52,6 +54,7 @@ function RootApp() {
   }, []);
 
   const { isDark } = useTheme();
+  const { isOnline, recheck } = useNetworkStatus();
 
   return (
     <>
@@ -62,6 +65,7 @@ function RootApp() {
         reason={blockedReason ?? undefined}
         onClose={handleBlockedClose}
       />
+      <OfflineBanner isOnline={isOnline} onRetry={recheck} />
     </>
   );
 }

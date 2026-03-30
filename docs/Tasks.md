@@ -51,46 +51,6 @@
 
 ---
 
-### T-E077 | P0 | [MOBILE] | HomeScreen — external source UX (SourcePicker ga yo'naltirish)
-
-- **Mas'ul:** pending[Emirhan]
-- **Holat:** ❌ Boshlanmagan
-- **Sabab:** MVP da ichki film bazasi yo'q — foydalanuvchi YouTube/Rutube/VK dan video topadi. HomeScreen hozir bo'sh trending/topRated ko'rsatadi → SourcePicker ga yo'naltirilishi kerak
-- **Qilish kerak:**
-  - [ ] HomeScreen ni external-source-first UX ga o'zgartirish
-  - [ ] "Do'stlar bilan birga ko'rish" CTA → SourcePicker
-  - [ ] Faol Watch Party room larni ko'rsatish (mavjud useWatchPartyRooms)
-  - [ ] Bo'sh holat graceful: "Video tanlang va do'stlar bilan ko'ring"
-
----
-
-### T-E078 | P1 | [MOBILE] | Empty state polish — bo'sh ekranlar uchun graceful UI
-
-- **Mas'ul:** pending[Emirhan]
-- **Holat:** ❌ Boshlanmagan
-- **Sabab:** Film bazasi bo'sh → HomeScreen, Search, WatchHistory, Friends bo'sh ko'rinadi
-- **Qilish kerak:**
-  - [ ] HomeScreen: trending bo'sh → "Hali videolar yo'q" + SourcePicker ga yo'naltirish
-  - [ ] SearchScreen: natija yo'q → graceful empty state
-  - [ ] FriendsScreen: do'st yo'q → "Do'st qidiring" CTA
-  - [ ] WatchHistoryScreen: tarix bo'q → "Hali hech narsa ko'rilmagan"
-  - [ ] BattleScreen: battle yo'q → "Do'stingizni battle ga chaqiring"
-
----
-
-### T-E079 | P1 | [MOBILE] | Network error handling — offline banner + retry
-
-- **Mas'ul:** pending[Emirhan]
-- **Holat:** ❌ Boshlanmagan
-- **Sabab:** Internet yo'q bo'lganda app crash qilishi mumkin → graceful xabar kerak
-- **Qilish kerak:**
-  - [ ] Global network status hook (NetInfo yoki expo equivalent)
-  - [ ] Offline banner (top yoki bottom da) — "Internet aloqasi yo'q"
-  - [ ] API call fail → retry button (crash o'rniga)
-  - [ ] Socket disconnect → reconnecting indicator
-
----
-
 ### T-E080 | P1 | [MOBILE] | App icon + Splash screen branding
 
 - **Mas'ul:** pending[Emirhan]
