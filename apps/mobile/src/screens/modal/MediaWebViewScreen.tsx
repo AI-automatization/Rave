@@ -37,6 +37,32 @@ const MOBILE_UA =
   'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 ' +
   '(KHTML, like Gecko) Chrome/120.0.6099.144 Mobile Safari/537.36';
 
+// DDoS-Guard / Cloudflare challenge detection
+const BOT_PROTECTION_JS = `
+(function() {
+  function check() {
+    try {
+      var title = document.title || '';
+      var html = document.documentElement ? document.documentElement.innerHTML : '';
+      var isDdos =
+        title.indexOf('DDoS-Guard') !== -1 ||
+        html.indexOf('ddos-guard.net') !== -1 ||
+        !!document.querySelector('script[src*="ddos-guard"]');
+      var isCf =
+        title.indexOf('Just a moment') !== -1 ||
+        !!document.querySelector('#cf-wrapper') ||
+        !!document.querySelector('.cf-browser-verification');
+      if ((isDdos || isCf) && window.ReactNativeWebView) {
+        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'BOT_PROTECTION_DETECTED' }));
+      }
+    } catch(e) {}
+  }
+  setTimeout(check, 2000);
+  setTimeout(check, 5000);
+  true;
+})();
+`;
+
 // E67-1: document.cookie → postMessage
 const COOKIE_COLLECTION_JS = `
 (function() {
@@ -120,6 +146,8 @@ export function MediaWebViewScreen() {
   // T-E072: backend extract state
   const backendFoundVideoRef = useRef(false);
   const [isBackendExtracting, setIsBackendExtracting] = useState(false);
+  // Bot protection (DDoS-Guard / Cloudflare) detected on page
+  const [isBotProtected, setIsBotProtected] = useState(false);
 
   // Bar animation
   useEffect(() => {
@@ -167,7 +195,10 @@ export function MediaWebViewScreen() {
     setCanGoBack(state.canGoBack);
     setCanGoForward(state.canGoForward);
     if (state.title) setPageTitle(state.title);
-    if (state.url && state.url !== lastKnownUrlRef.current) {
+    // Skip non-navigable URLs — about:srcdoc (iframe srcdoc), data:, javascript:
+    if (!state.url || !state.url.startsWith('http')) return;
+    if (state.url !== lastKnownUrlRef.current) {
+      setIsBotProtected(false);
       lastKnownUrlRef.current = state.url;
       detectedUrlRef.current = '';
       backendFoundVideoRef.current = false;
@@ -250,10 +281,16 @@ export function MediaWebViewScreen() {
       const data = JSON.parse(event.nativeEvent.data) as
         | MediaDetectedPayload
         | BlobVideoFoundPayload
-        | { type: 'COOKIE_UPDATE'; cookies: string; domain: string };
+        | { type: 'COOKIE_UPDATE'; cookies: string; domain: string }
+        | { type: 'BOT_PROTECTION_DETECTED' };
 
       if (data.type === 'COOKIE_UPDATE') {
         if (data.cookies) cookiesRef.current = data.cookies;
+        return;
+      }
+
+      if (data.type === 'BOT_PROTECTION_DETECTED') {
+        setIsBotProtected(true);
         return;
       }
 
@@ -329,7 +366,11 @@ export function MediaWebViewScreen() {
         ref={webViewRef}
         source={{ uri: params.defaultUrl }}
         userAgent={MOBILE_UA}
-        injectedJavaScript={MEDIA_DETECTION_JS + COOKIE_COLLECTION_JS}
+        injectedJavaScript={MEDIA_DETECTION_JS + COOKIE_COLLECTION_JS + BOT_PROTECTION_JS}
+        onShouldStartLoadWithRequest={(req) => {
+          // Block about:srcdoc and other non-http URLs to suppress WARN logs
+          return req.url.startsWith('http');
+        }}
         onNavigationStateChange={onNavigationStateChange}
         onLoadStart={() => setIsLoading(true)}
         onLoadEnd={() => setIsLoading(false)}
@@ -361,8 +402,18 @@ export function MediaWebViewScreen() {
         </View>
       )}
 
+      {/* Bot protection detected (DDoS-Guard / Cloudflare) */}
+      {isBotProtected && !detectedMedia && (
+        <View style={[styles.hintBar, styles.hintBarWarning, { paddingBottom: insets.bottom || spacing.sm }]}>
+          <Ionicons name="shield-outline" size={15} color="#F59E0B" />
+          <Text style={[styles.hintText, styles.hintTextWarning]} numberOfLines={3}>
+            Сайт заблокировал встроенный браузер (DDoS-Guard / Cloudflare). Подождите несколько секунд или выберите другой источник.
+          </Text>
+        </View>
+      )}
+
       {/* Video topilmagan, backend ham topalmadi — manual hint */}
-      {!detectedMedia && !isLoading && !isBackendExtracting && (
+      {!detectedMedia && !isLoading && !isBackendExtracting && !isBotProtected && (
         <View style={[styles.hintBar, { paddingBottom: insets.bottom || spacing.sm }]}>
           <Ionicons name="search-outline" size={15} color="#6B7280" />
           <Text style={styles.hintText} numberOfLines={2}>
@@ -510,6 +561,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6B7280',
     lineHeight: 17,
+  },
+  hintBarWarning: {
+    borderTopColor: 'rgba(245,158,11,0.2)',
+  },
+  hintTextWarning: {
+    color: '#F59E0B',
   },
   // ─── Video bar ─────────────────────────────────────────────────────────────
   videoBar: {

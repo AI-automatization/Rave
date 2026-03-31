@@ -352,9 +352,15 @@ export function WatchPartyScreen() {
   // T-E076: original URL → UniversalPlayer url prop (platform detection + WebView fallback)
   // extracted URL → extractedUrl prop → UniversalPlayer uses expo-av regardless of URL format
   // When extraction fails (fallback) → extractedUrl = undefined → UniversalPlayer opens WebView with original URL
+  // iOS: VP8 WebM not supported by AVPlayer → skip extractedUrl to force WebView embed (e.g. Rutube embed HTML)
   const originalVideoUrl = room?.videoUrl ?? '';
-  const extractedVideoUrl = (!extractFallback && extractResult?.videoUrl) ? extractResult.videoUrl : undefined;
-  const isWebViewMode = !extractedVideoUrl && ['youtube', 'webview'].includes(detectVideoPlatform(originalVideoUrl));
+  const rawExtractedUrl = (!extractFallback && extractResult?.videoUrl) ? extractResult.videoUrl : undefined;
+  const extractedVideoUrl = (rawExtractedUrl && Platform.OS === 'ios' && /\.webm(\?|#|$)/i.test(rawExtractedUrl))
+    ? undefined
+    : rawExtractedUrl;
+  const isWebViewMode = !extractedVideoUrl && (
+    ['youtube', 'webview'].includes(detectVideoPlatform(originalVideoUrl)) || extractFallback
+  );
 
   return (
     <View style={s.root}>

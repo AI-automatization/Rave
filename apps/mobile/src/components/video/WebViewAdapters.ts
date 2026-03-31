@@ -96,6 +96,16 @@ const ADAPTERS: Record<string, VideoAdapter> = {
     scanDelay: 2500,
   },
 
+  // rezka.ag — HDrezka new domain (hdrezka.ag → rezka.ag migration)
+  'rezka.ag': {
+    selectors: [
+      '#player video',
+      '.pjsplayer video',
+      'video',
+    ],
+    scanDelay: 2500,
+  },
+
   // T-E069: ashdi.vip + bazon.tv — 60-70% CIS saytlari shular orqali ishlaydi
   'ashdi.vip': {
     selectors: ['.jw-video', '.plyr video', '.video-js video', 'video'],
