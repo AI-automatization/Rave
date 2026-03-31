@@ -37,6 +37,42 @@ const MOBILE_UA =
   'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 ' +
   '(KHTML, like Gecko) Chrome/120.0.6099.144 Mobile Safari/537.36';
 
+// Known placeholder / ad video URL patterns — skip these during detection
+function isPlaceholderVideoUrl(url: string): boolean {
+  const lower = url.toLowerCase();
+  // blank.mp4 — CDN pre-roll ad placeholder (cdn77.srv224.com and others)
+  if (/\/blank\.(mp4|webm|ogg)(\?|#|$)/.test(lower)) return true;
+  // CDN template paths (e.g. /templates/149/134/blank.mp4)
+  if (/\/templates\/\d+\/\d+\//.test(lower)) return true;
+  return false;
+}
+
+// Iframe URL scan — fires after page load to detect cross-origin player iframes
+// Many CIS film sites embed their player from ashdi.vip, bazon.tv, etc. (cross-origin)
+// We can't reach the video element inside, but backend can extract from those iframe URLs
+const IFRAME_SCAN_JS = `
+(function() {
+  function scanIframes() {
+    try {
+      var iframes = document.querySelectorAll('iframe[src]');
+      var urls = [];
+      for (var i = 0; i < iframes.length; i++) {
+        var src = iframes[i].src;
+        if (src && src.indexOf('http') === 0 && src !== window.location.href) {
+          urls.push(src);
+        }
+      }
+      if (urls.length && window.ReactNativeWebView) {
+        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'IFRAME_FOUND', urls: urls }));
+      }
+    } catch(e) {}
+  }
+  setTimeout(scanIframes, 2500);
+  setTimeout(scanIframes, 6000);
+  true;
+})();
+`;
+
 // DDoS-Guard / Cloudflare challenge detection
 const BOT_PROTECTION_JS = `
 (function() {
@@ -207,7 +243,7 @@ export function MediaWebViewScreen() {
       // Direct video file URL (e.g. https://v.mover.uz/llyNHHL_m.mp4):
       // WebView renders the binary file with no HTML/DOM — JS injection never fires.
       // Detect immediately from URL and show popup without calling backend.
-      if (/\.(mp4|m3u8|webm|mkv|ts|mov|mpd)(\?|#|$)/i.test(state.url)) {
+      if (/\.(mp4|m3u8|webm|mkv|ts|mov|mpd)(\?|#|$)/i.test(state.url) && !isPlaceholderVideoUrl(state.url)) {
         const fileName = state.url.split('/').pop()?.split('?')[0] ?? 'Video';
         setDetectedMediaOnce({
           videoUrl: state.url,
@@ -282,7 +318,8 @@ export function MediaWebViewScreen() {
         | MediaDetectedPayload
         | BlobVideoFoundPayload
         | { type: 'COOKIE_UPDATE'; cookies: string; domain: string }
-        | { type: 'BOT_PROTECTION_DETECTED' };
+        | { type: 'BOT_PROTECTION_DETECTED' }
+        | { type: 'IFRAME_FOUND'; urls: string[] };
 
       if (data.type === 'COOKIE_UPDATE') {
         if (data.cookies) cookiesRef.current = data.cookies;
@@ -291,6 +328,15 @@ export function MediaWebViewScreen() {
 
       if (data.type === 'BOT_PROTECTION_DETECTED') {
         setIsBotProtected(true);
+        return;
+      }
+
+      if (data.type === 'IFRAME_FOUND') {
+        // Cross-origin player iframe (ashdi.vip, bazon.tv, etc.) detected in page.
+        // JS injection can't reach inside cross-origin iframes, but backend can extract from them.
+        if (Array.isArray(data.urls) && data.urls[0] && !backendFoundVideoRef.current) {
+          void tryBackendExtract(data.urls[0]);
+        }
         return;
       }
 
@@ -304,8 +350,11 @@ export function MediaWebViewScreen() {
 
       if (data.type !== 'MEDIA_DETECTED') return;
 
+      const normalized = normalizeDetectedMedia(data);
+      // Skip placeholder/ad video URLs (blank.mp4, CDN templates)
+      if (isPlaceholderVideoUrl(normalized.videoUrl)) return;
       // T-E071: setDetectedMediaOnce deduplicates by URL
-      setDetectedMediaOnce(normalizeDetectedMedia(data));
+      setDetectedMediaOnce(normalized);
     } catch {
       // Non-JSON messages ignored
     }
@@ -366,7 +415,7 @@ export function MediaWebViewScreen() {
         ref={webViewRef}
         source={{ uri: params.defaultUrl }}
         userAgent={MOBILE_UA}
-        injectedJavaScript={MEDIA_DETECTION_JS + COOKIE_COLLECTION_JS + BOT_PROTECTION_JS}
+        injectedJavaScript={MEDIA_DETECTION_JS + COOKIE_COLLECTION_JS + BOT_PROTECTION_JS + IFRAME_SCAN_JS}
         onShouldStartLoadWithRequest={(req) => {
           // Block about:srcdoc and other non-http URLs to suppress WARN logs
           return req.url.startsWith('http');

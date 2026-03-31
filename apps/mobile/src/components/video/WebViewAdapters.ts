@@ -87,6 +87,17 @@ const ADAPTERS: Record<string, VideoAdapter> = {
     scanDelay: 1000,
   },
 
+  // filmx.fun — same player infrastructure as filmix.net
+  'filmx.fun': {
+    selectors: [
+      '.vjs-tech',
+      '.video-js video',
+      '#player video',
+      'video',
+    ],
+    scanDelay: 1500,
+  },
+
   'hdrezka.ag': {
     selectors: [
       '#player video',
