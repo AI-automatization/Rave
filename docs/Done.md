@@ -4,6 +4,19 @@
 
 ---
 
+### F-173 | 2026-03-31 | [MOBILE] | T-E080 — CineSync app icon + splash screen branding [Emirhan]
+
+- `assets/icon.png` — 1024×1024, dark bg (#0A0A0F) + violet circle gradient + white play button
+- `assets/splash-icon.png` — 1024×1024, transparent bg + violet circle + play button (glow effect)
+- `assets/android-icon-foreground.png` — 1024×1024, transparent (adaptive icon layer)
+- `assets/android-icon-background.png` — 1024×1024, solid #0A0A0F
+- `assets/android-icon-monochrome.png` — white play triangle on transparent
+- `assets/notification-icon.png` — 96×96 white play icon
+- `assets/favicon.png` — 48×48 mini icon
+- `scripts/generate-icons.mjs` — qayta generatsiya skripti (jimp v1)
+
+---
+
 ### F-172 | 2026-03-31 | [MOBILE] | BUG FIX: SafeAreaProvider missing — OfflineBanner crash [Emirhan]
 
 - **T-E082 (P0)**: `<SafeAreaProvider>` not found → real device crash

@@ -14,7 +14,7 @@
 3. Fix bo'lgach → shu yerdan O'CHIRISH → docs/Done.md ga KO'CHIRISH
 4. Prioritet: P0=kritik, P1=muhim, P2=o'rta, P3=past
 5. Sprint: S1=hozir, S2=keyingi hafta, S3=keyingi sprint, S4-5=keyin
-6. Oxirgi T-raqam: S→049, E→082, J→037, C→013
+6. Oxirgi T-raqam: S→049, E→082, J→037, C→013  (E080 yopildi)
 7. Yangilangan: 2026-03-31
 ```
 
@@ -52,17 +52,6 @@
 ---
 
 
-### T-E080 | P1 | [MOBILE] | App icon + Splash screen branding
-
-- **Mas'ul:** pending[Emirhan]
-- **Holat:** ❌ Boshlanmagan
-- **Sabab:** Default Expo icon va splash → CineSync branding kerak
-- **Qilish kerak:**
-  - [ ] App icon (1024x1024) — CineSync logo
-  - [ ] Splash screen — CineSync branding (app.json da sozlash)
-  - [ ] Adaptive icon (Android) — foreground + background layer
-
----
 
 ### T-E081 | P1 | [MOBILE] | Real qurilmada smoke test (Expo Go)
 

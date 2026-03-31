@@ -7,6 +7,7 @@ import { AVPlaybackStatus } from 'expo-av';
 import { useWatchParty } from '@hooks/useWatchParty';
 import { useVideoExtraction } from '@hooks/useVideoExtraction';
 import { useAuthStore } from '@store/auth.store';
+import { useWatchPartyStore } from '@store/watchParty.store';
 import { watchPartyApi } from '@api/watchParty.api';
 import { disconnectSocket, getSocket, CLIENT_EVENTS } from '@socket/client';
 import { ChatPanel } from '@components/watchParty/ChatPanel';
@@ -70,6 +71,13 @@ export function WatchPartyScreen() {
   const [extractQualities, setExtractQualities] = useState<QualityOption[]>([]);
   const [extractEpisodes, setExtractEpisodes] = useState<Episode[]>([]);
   const [currentVideoUrl, setCurrentVideoUrl] = useState('');
+
+  // WatchParty ochiq — OfflineBanner yashirish
+  const setWatchPartyOpen = useWatchPartyStore((s) => s.setWatchPartyOpen);
+  useEffect(() => {
+    setWatchPartyOpen(true);
+    return () => setWatchPartyOpen(false);
+  }, [setWatchPartyOpen]);
 
   // T-E076: room.videoUrl tayyor bo'lganda extraction boshlash (bir marta)
   // Cleanup: reset ref + state so next room with same URL re-extracts (BUG #5 fix)

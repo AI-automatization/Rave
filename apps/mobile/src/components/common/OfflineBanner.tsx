@@ -1,82 +1,98 @@
 // CineSync Mobile — Offline Banner Component
+// Positions correctly below status bar using safe area insets.
+// Slides in from ABOVE the screen (not from behind the status bar).
 import React, { useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, Animated } from 'react-native';
+import { View, Text, TouchableOpacity, Animated, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme, createThemedStyles, spacing, typography } from '@theme/index';
+import { useTheme, spacing, typography } from '@theme/index';
 
 interface OfflineBannerProps {
   isOnline: boolean;
   onRetry: () => Promise<void>;
 }
 
-const BANNER_HEIGHT = 44;
+const CONTENT_HEIGHT = 40;
 
 export function OfflineBanner({ isOnline, onRetry }: OfflineBannerProps) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const s = useStyles();
-  const slideAnim = useRef(new Animated.Value(-BANNER_HEIGHT)).current;
+
+  // Total banner height = status bar area + content area
+  const bannerHeight = insets.top + CONTENT_HEIGHT;
+  const slideAnim = useRef(new Animated.Value(-bannerHeight)).current;
 
   useEffect(() => {
+    // Animate to 0 (visible, covering top area) or -bannerHeight (fully above screen)
     Animated.spring(slideAnim, {
-      toValue: isOnline ? -BANNER_HEIGHT : 0,
+      toValue: isOnline ? -bannerHeight : 0,
       useNativeDriver: true,
-      bounciness: 4,
+      bounciness: 3,
+      speed: 14,
     }).start();
-  }, [isOnline, slideAnim]);
+  }, [isOnline, bannerHeight, slideAnim]);
 
   return (
     <Animated.View
       style={[
-        s.container,
-        { top: insets.top, transform: [{ translateY: slideAnim }] },
+        styles.container,
+        {
+          height: bannerHeight,
+          paddingTop: insets.top,
+          backgroundColor: colors.warning + 'F0',
+          transform: [{ translateY: slideAnim }],
+        },
       ]}
       pointerEvents={isOnline ? 'none' : 'auto'}
     >
-      <View style={s.content}>
-        <Ionicons name="wifi-outline" size={18} color={colors.textPrimary} />
-        <Text style={s.label}>Internet aloqasi yo'q</Text>
+      <View style={styles.content}>
+        <Ionicons name="wifi-outline" size={16} color="#000" />
+        <Text style={styles.label}>Internet aloqasi yo'q</Text>
+        <TouchableOpacity onPress={onRetry} style={styles.retryBtn} activeOpacity={0.7}>
+          <Text style={styles.retryText}>Qayta urinish</Text>
+          <Ionicons name="refresh-outline" size={13} color="#000" />
+        </TouchableOpacity>
       </View>
-      <TouchableOpacity onPress={onRetry} style={s.retryBtn} activeOpacity={0.7}>
-        <Text style={s.retryText}>Qayta urinish</Text>
-        <Ionicons name="arrow-forward-outline" size={14} color={colors.textPrimary} />
-      </TouchableOpacity>
     </Animated.View>
   );
 }
 
-const useStyles = createThemedStyles((colors) => ({
+const styles = StyleSheet.create({
   container: {
     position: 'absolute',
+    top: 0,
     left: 0,
     right: 0,
-    height: BANNER_HEIGHT,
-    backgroundColor: colors.warning + 'E6',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
     zIndex: 999,
+    justifyContent: 'flex-end',
   },
   content: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xs,
     gap: spacing.sm,
+    height: CONTENT_HEIGHT,
   },
   label: {
-    ...typography.body,
-    color: colors.textPrimary,
-    fontWeight: '600',
+    ...typography.caption,
+    color: '#000',
+    fontWeight: '700',
+    flex: 1,
   },
   retryBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
+    gap: 4,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    backgroundColor: 'rgba(0,0,0,0.15)',
+    borderRadius: 8,
   },
   retryText: {
     ...typography.caption,
-    color: colors.textPrimary,
+    color: '#000',
     fontWeight: '600',
+    fontSize: 12,
   },
-}));
+});

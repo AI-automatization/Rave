@@ -231,10 +231,12 @@ export function MediaWebViewScreen() {
     } catch (err: unknown) {
       if (__DEV__) console.log('[MediaWebView] createRoom error:', err);
       const axiosErr = err as { response?: { data?: { message?: string } }; code?: string; message?: string };
-      const msg = axiosErr.response?.data?.message
-        ?? (axiosErr.message === 'Network Error' ? 'Сервер недоступен. Попробуйте позже.' : axiosErr.message)
-        ?? 'Ошибка сети.';
-      Alert.alert('Ошибка', msg);
+      const isTimeout = axiosErr.code === 'ECONNABORTED' || (axiosErr.message ?? '').includes('timeout');
+      const isNetworkError = axiosErr.message === 'Network Error';
+      const msg = isTimeout || isNetworkError
+        ? 'Internet aloqasini tekshiring va qayta urinib ko\'ring.'
+        : axiosErr.response?.data?.message ?? 'Xona yaratib bo\'lmadi.';
+      Alert.alert('Xato', msg);
     } finally {
       isImportingRef.current = false;
       setIsImporting(false);

@@ -16,6 +16,8 @@ interface WatchPartyState {
   syncState: SyncState | null;
   messages: ChatMessage[];
   activeMembers: string[];
+  /** WatchParty ekrani ochiq — OfflineBanner yashiriladi */
+  isWatchPartyOpen: boolean;
 
   setRoom: (room: IWatchPartyRoom | null) => void;
   setSyncState: (state: SyncState) => void;
@@ -24,6 +26,7 @@ interface WatchPartyState {
   addMember: (userId: string) => void;
   removeMember: (userId: string) => void;
   clearParty: () => void;
+  setWatchPartyOpen: (open: boolean) => void;
   /** Optimistic update xona mediasini almashtirish uchun */
   updateRoomMedia: (media: Partial<Pick<IWatchPartyRoom, 'videoUrl' | 'videoTitle' | 'videoPlatform'>>) => void;
 }
@@ -33,6 +36,7 @@ export const useWatchPartyStore = create<WatchPartyState>((set) => ({
   syncState: null,
   messages: [],
   activeMembers: [],
+  isWatchPartyOpen: false,
 
   setRoom: (room) => set({ room }),
   setSyncState: (syncState) => set({ syncState }),
@@ -59,8 +63,13 @@ export const useWatchPartyStore = create<WatchPartyState>((set) => ({
   clearParty: () =>
     set({ room: null, syncState: null, messages: [], activeMembers: [] }),
 
+  setWatchPartyOpen: (open) => set({ isWatchPartyOpen: open }),
+
   updateRoomMedia: (media) =>
     set((state) => ({
       room: state.room ? { ...state.room, ...media } : null,
     })),
 }));
+
+// Selector shorthand
+export const selectIsWatchPartyOpen = (s: WatchPartyState) => s.isWatchPartyOpen;
