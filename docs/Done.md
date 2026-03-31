@@ -4,6 +4,15 @@
 
 ---
 
+### F-172 | 2026-03-31 | [MOBILE] | BUG FIX: SafeAreaProvider missing — OfflineBanner crash [Emirhan]
+
+- **T-E082 (P0)**: `<SafeAreaProvider>` not found → real device crash
+  - `App.tsx`: `SafeAreaProvider` import qo'shildi (`react-native-safe-area-context`)
+  - `<SafeAreaProvider>` `GestureHandlerRootView` ichiga, `QueryClientProvider` tashqarisiga wrap qilindi
+  - `OfflineBanner` `useSafeAreaInsets()` endi context topadi
+
+---
+
 ### F-171 | 2026-03-31 | [MOBILE] | Sprint 8 — MVP Release: HomeScreen UX + Empty States + Network [Emirhan]
 
 - **T-E077 (P0)**: HomeScreen external-source-first UX

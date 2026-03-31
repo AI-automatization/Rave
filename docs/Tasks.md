@@ -14,8 +14,8 @@
 3. Fix bo'lgach → shu yerdan O'CHIRISH → docs/Done.md ga KO'CHIRISH
 4. Prioritet: P0=kritik, P1=muhim, P2=o'rta, P3=past
 5. Sprint: S1=hozir, S2=keyingi hafta, S3=keyingi sprint, S4-5=keyin
-6. Oxirgi T-raqam: S→049, E→081, J→037, C→013
-7. Yangilangan: 2026-03-30
+6. Oxirgi T-raqam: S→049, E→082, J→037, C→013
+7. Yangilangan: 2026-03-31
 ```
 
 ---
@@ -50,6 +50,7 @@
 *(Sprint 1..7 TUGADI — Sprint 8: MVP Release)*
 
 ---
+
 
 ### T-E080 | P1 | [MOBILE] | App icon + Splash screen branding
 

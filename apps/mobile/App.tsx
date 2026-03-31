@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { StyleSheet } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
@@ -74,11 +75,13 @@ export default function App() {
   return (
     <ErrorBoundary>
       <GestureHandlerRootView style={styles.root}>
-        <QueryClientProvider client={queryClient}>
-          <ThemeProvider>
-            <RootApp />
-          </ThemeProvider>
-        </QueryClientProvider>
+        <SafeAreaProvider>
+          <QueryClientProvider client={queryClient}>
+            <ThemeProvider>
+              <RootApp />
+            </ThemeProvider>
+          </QueryClientProvider>
+        </SafeAreaProvider>
       </GestureHandlerRootView>
     </ErrorBoundary>
   );
