@@ -95,9 +95,13 @@ describe('useHomeData isLoading logic', () => {
   });
 
   it('isLoading is true when trending loading without data', () => {
+    const trendingLoading = true;
+    const trendingResult: string[] | undefined = undefined;
+    const topRatedLoading = false;
+    const topRatedResult: string[] | undefined = undefined;
     const isLoading =
-      (true && !undefined) ||
-      (false && !undefined);
+      (trendingLoading && !trendingResult) ||
+      (topRatedLoading && !topRatedResult);
     expect(isLoading).toBe(true);
   });
 

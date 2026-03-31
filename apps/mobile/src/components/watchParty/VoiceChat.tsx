@@ -66,7 +66,7 @@ export function VoiceChat({ roomId, currentUserId, visible, onClose }: VoiceChat
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Peer connections map: userId → RTCPeerConnection
-  const peerRefs = useRef<Map<string, InstanceType<typeof RTCPeerConnection>>>(new Map());
+  const peerRefs = useRef<Map<string, InstanceType<NonNullable<typeof RTCPeerConnection>>>>(new Map());
   const localStreamRef = useRef<import('react-native-webrtc').MediaStream | null>(null);
   const speakingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -112,7 +112,7 @@ export function VoiceChat({ roomId, currentUserId, visible, onClose }: VoiceChat
     async (data: { from: string; offer: RTCSessionDescriptionInit }) => {
       if (!RTCPeerConnection || !RTCSessionDescription || !RTCIceCandidate) return;
       const pc = getOrCreatePeer(data.from);
-      await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+      await pc.setRemoteDescription(new RTCSessionDescription({ ...data.offer, sdp: data.offer.sdp ?? '' }));
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
       getSocket()?.emit(CLIENT_EVENTS.VOICE_ANSWER, {
@@ -128,7 +128,7 @@ export function VoiceChat({ roomId, currentUserId, visible, onClose }: VoiceChat
     async (data: { from: string; answer: RTCSessionDescriptionInit }) => {
       if (!RTCSessionDescription) return;
       const pc = peerRefs.current.get(data.from);
-      if (pc) await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+      if (pc) await pc.setRemoteDescription(new RTCSessionDescription({ ...data.answer, sdp: data.answer.sdp ?? '' }));
     },
     [],
   );
@@ -187,27 +187,29 @@ export function VoiceChat({ roomId, currentUserId, visible, onClose }: VoiceChat
 
   // ─── Peer helpers ──────────────────────────────────────────────────────────
 
-  function getOrCreatePeer(userId: string): InstanceType<typeof RTCPeerConnection> {
+  function getOrCreatePeer(userId: string): InstanceType<NonNullable<typeof RTCPeerConnection>> {
     if (peerRefs.current.has(userId)) return peerRefs.current.get(userId)!;
 
     const pc = new RTCPeerConnection!({ iceServers: ICE_SERVERS });
 
     // Add local audio tracks
     if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach((track: MediaStreamTrack) => {
+      localStreamRef.current.getTracks().forEach((track) => {
         pc.addTrack(track, localStreamRef.current!);
       });
     }
 
     // ICE candidate handler
-    pc.onicecandidate = (e: RTCPeerConnectionIceEvent) => {
+    // react-native-webrtc EventTarget extends are not fully resolved by TS — cast needed
+    type IceCandidateEmitter = { addEventListener(type: 'icecandidate', h: (e: { candidate: { toJSON(): Record<string, unknown> } | null }) => void): void };
+    (pc as unknown as IceCandidateEmitter).addEventListener('icecandidate', (e) => {
       if (e.candidate) {
         getSocket()?.emit(CLIENT_EVENTS.VOICE_ICE, {
           to: userId,
           candidate: e.candidate.toJSON(),
         });
       }
-    };
+    });
 
     peerRefs.current.set(userId, pc);
     return pc;
@@ -237,7 +239,7 @@ export function VoiceChat({ roomId, currentUserId, visible, onClose }: VoiceChat
   function leaveVoiceInternal() {
     closeAllPeers();
     if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach((t: MediaStreamTrack) => t.stop());
+      localStreamRef.current.getTracks().forEach((t) => t.stop());
       localStreamRef.current = null;
     }
     if (speakingTimerRef.current) clearInterval(speakingTimerRef.current);
@@ -257,7 +259,7 @@ export function VoiceChat({ roomId, currentUserId, visible, onClose }: VoiceChat
       localStreamRef.current = stream as import('react-native-webrtc').MediaStream;
 
       // Mute state
-      stream.getAudioTracks().forEach((t: MediaStreamTrack) => { t.enabled = !isMuted; });
+      stream.getAudioTracks().forEach((t) => { t.enabled = !isMuted; });
 
       // Periodic speaking detection via audio level (simplified)
       let speaking = false;
@@ -295,7 +297,7 @@ export function VoiceChat({ roomId, currentUserId, visible, onClose }: VoiceChat
     setIsMuted(prev => {
       const next = !prev;
       const tracks = localStreamRef.current?.getAudioTracks() ?? [];
-      tracks.forEach((t: MediaStreamTrack) => { t.enabled = !next; });
+      tracks.forEach((t) => { t.enabled = !next; });
       if (next) getSocket()?.emit(CLIENT_EVENTS.VOICE_SPEAKING, { speaking: false });
       return next;
     });
