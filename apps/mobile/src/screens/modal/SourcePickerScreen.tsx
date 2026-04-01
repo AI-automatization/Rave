@@ -131,9 +131,22 @@ export function SourcePickerScreen() {
         videoPlatform: extracted.platform,
       });
       navigation.navigate('WatchParty', { roomId: room._id });
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Не удалось извлечь видео';
-      setUrlError(msg);
+    } catch {
+      // Backend extraction failed (geo-blocked, unsupported site, etc.).
+      // If the URL is valid, open it in MediaWebViewScreen so the user can
+      // browse the page and pick the video themselves via JS detection.
+      try {
+        new URL(trimmed);
+        navigation.navigate('MediaWebView', {
+          sourceId: 'custom',
+          sourceName: 'Видео',
+          defaultUrl: trimmed,
+          context: params.context,
+          roomId: params.roomId,
+        });
+      } catch {
+        setUrlError('Не удалось извлечь видео. Проверьте ссылку.');
+      }
     } finally {
       setIsExtracting(false);
     }

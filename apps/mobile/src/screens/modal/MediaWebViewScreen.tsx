@@ -203,8 +203,9 @@ export function MediaWebViewScreen() {
   }, []);
 
   // T-E072: ask backend first; fall back to JS detection on failure
-  const tryBackendExtract = useCallback(async (url: string) => {
-    if (!url || !url.startsWith('http')) return;
+  // Returns true if backend extraction succeeded, false otherwise.
+  const tryBackendExtract = useCallback(async (url: string): Promise<boolean> => {
+    if (!url || !url.startsWith('http')) return false;
     backendFoundVideoRef.current = false;
     detectedUrlRef.current = '';
     setIsBackendExtracting(true);
@@ -220,8 +221,10 @@ export function MediaWebViewScreen() {
       };
       backendFoundVideoRef.current = true;
       setDetectedMediaOnce(media);
+      return true;
     } catch {
       // unsupported site or network error — JS detection takes over
+      return false;
     } finally {
       setIsBackendExtracting(false);
     }
@@ -333,9 +336,22 @@ export function MediaWebViewScreen() {
 
       if (data.type === 'IFRAME_FOUND') {
         // Cross-origin player iframe (ashdi.vip, bazon.tv, etc.) detected in page.
-        // JS injection can't reach inside cross-origin iframes, but backend can extract from them.
+        // Strategy:
+        //   1. Try backend extraction — works if Railway can access the CDN (non-geo-blocked).
+        //   2. If backend fails (Railway geo-blocked for CIS sites) → navigate the WebView
+        //      to the iframe URL directly. The user's device CAN access CIS sites.
+        //      Navigating via window.location.href preserves the correct Referer header,
+        //      passing hotlink checks on ashdi.vip / bazon.tv.
+        //      MEDIA_DETECTION_JS then finds the <video> element on the player page.
         if (Array.isArray(data.urls) && data.urls[0] && !backendFoundVideoRef.current) {
-          void tryBackendExtract(data.urls[0]);
+          const iframeUrl = data.urls[0];
+          void tryBackendExtract(iframeUrl).then((success) => {
+            if (!success && !backendFoundVideoRef.current && webViewRef.current) {
+              webViewRef.current.injectJavaScript(
+                `window.location.href = ${JSON.stringify(iframeUrl)};true;`,
+              );
+            }
+          });
         }
         return;
       }
