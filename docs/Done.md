@@ -1,6 +1,39 @@
 # CineSync — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-03-31
+# Yangilangan: 2026-04-01
+
+---
+
+### F-176 | 2026-04-01 | [MOBILE] | Smoke test fix — video detection: blank.mp4 filter, cross-origin iframe, filmx.fun [Emirhan]
+
+- `MediaWebViewScreen`: `isPlaceholderVideoUrl()` — blank.mp4 va `/templates/` CDN placeholder URL larni real video deb hisoblamaslik (uzmovi ad bug fix)
+- `MediaWebViewScreen`: `IFRAME_SCAN_JS` injection — `<iframe src>` ni scan qiladi va `IFRAME_FOUND` yuboradi; `tryBackendExtract()` iframe URL da chaqiriladi → filmx.fun / animego cross-origin player iframe endi ishlaydi (ashdi.vip, bazon.tv embed)
+- `WebViewAdapters`: `filmx.fun` adapter qo'shildi (filmix.net bilan bir xil selektorlar)
+- Commit: `2f7e07c`
+
+---
+
+### F-175 | 2026-04-01 | [MOBILE] | Smoke test fix — srcdoc warn, DDoS-Guard, WebM iOS [Emirhan]
+
+- `MediaWebViewScreen`: `!url.startsWith('http')` guard → `onNavigationStateChange` da `about:srcdoc` uchun 'Can't open url' WARN yo'q qilindi
+- `MediaWebViewScreen`: `onShouldStartLoadWithRequest` → non-http URL lar uchun `false` qaytaradi (srcdoc iframe Linking triggerini bloklaydi)
+- `MediaWebViewScreen`: `BOT_PROTECTION_JS` injection — DDoS-Guard / Cloudflare challenge sahifalarini aniqlaydi (title + HTML + script src tekshiradi) va amber banner ko'rsatadi
+- `WatchPartyScreen`: iOS da `.webm` `extractedUrl` skip qilinadi — VP8 WebM AVPlayer tomonidan qo'llab-quvvatlanmaydi; WebView fallback (Rutube HTML embed) ishlatiladi
+- Commit: `c6328bc`
+
+---
+
+### F-174 | 2026-04-01 | [MOBILE] | TypeScript xatolarini to'liq tuzatish — VoiceChat WebRTC + test + express [Emirhan]
+
+- `VoiceChat.tsx`: `NonNullable<typeof RTCPeerConnection>` → `InstanceType` constraint uchun
+- `VoiceChat.tsx`: `RTCSessionDescription sdp?? ''` — optional → required sdp fix
+- `VoiceChat.tsx`: explicit `MediaStreamTrack` annotatsiyalari olib tashlandi (RN-WebRTC inference ga qoldirdi)
+- `VoiceChat.tsx`: `IceCandidateEmitter` cast → `addEventListener` uchun (event-target-shim TS limitation)
+- `useHomeData.test.ts`: TS2873 always-falsy — `!undefined` o'rniga typed variable ishlatildi
+- `tsconfig.json`: `skipLibCheck: true` qo'shildi (node_modules `.d.ts` uchun)
+- `package.json`: `@types/express` devDep qo'shildi (`shared/types` express `Request` import qiladi)
+- `tsc --noEmit`: CLEAN (0 errors)
+- Commit: `2258fa6`
 
 ---
 

@@ -1,6 +1,6 @@
 # CineSync — OCHIQ VAZIFALAR
 
-# Yangilangan: 2026-03-30
+# Yangilangan: 2026-04-01
 
 # 3 dasturchi: Saidazim (Backend) | Emirhan (Mobile) | Jafar (Mobile)
 
@@ -14,8 +14,8 @@
 3. Fix bo'lgach → shu yerdan O'CHIRISH → docs/Done.md ga KO'CHIRISH
 4. Prioritet: P0=kritik, P1=muhim, P2=o'rta, P3=past
 5. Sprint: S1=hozir, S2=keyingi hafta, S3=keyingi sprint, S4-5=keyin
-6. Oxirgi T-raqam: S→049, E→082, J→037, C→013  (E080 yopildi)
-7. Yangilangan: 2026-03-31
+6. Oxirgi T-raqam: S→050, E→082, J→037, C→013
+7. Yangilangan: 2026-04-01
 ```
 
 ---
@@ -56,15 +56,16 @@
 ### T-E081 | P1 | [MOBILE] | Real qurilmada smoke test (Expo Go)
 
 - **Mas'ul:** pending[Emirhan]
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** ⚠️ Qisman (bug fixes done: F-174/F-175/F-176, manual check kerak)
 - **Sabab:** Emulator da ishlaydi ≠ real telefonda ishlaydi. MVP chiqarishdan oldin majburiy
-- **Qilish kerak:**
+- **Ilgari tuzatilgan** (2026-04-01): srcdoc warn, DDoS-Guard, WebM iOS, blank.mp4, cross-origin iframe, filmx.fun, TS errors
+- **Qilish kerak (manual):**
   - [ ] Auth flow: Register → Verify → Login → ProfileSetup
   - [ ] SourcePicker → YouTube → video detect → Watch Party yaratish
   - [ ] Do'st qo'shish → invite → birga ko'rish (2 ta qurilma)
   - [ ] Push notification kelishi
   - [ ] Chat + Voice (dev build kerak)
-  - [ ] Topilgan buglarni Tasks.md ga yozish
+  - [ ] Topilgan yangi buglarni Tasks.md ga yozish
 
 ---
 
