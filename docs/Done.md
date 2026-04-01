@@ -4,6 +4,15 @@
 
 ---
 
+### F-177 | 2026-04-01 | [MOBILE] | Smoke test fix — WebM iOS, CIS iframe navigate, URL fallback [Emirhan]
+
+- `WatchPartyScreen`: `iosWebmBlocked` flag → `isWebViewMode=true` Rutube/Yandex VP8 WebM → WKWebView da ijro (qora ekran yo'q)
+- `MediaWebViewScreen`: `tryBackendExtract` → `Promise<boolean>`; `IFRAME_FOUND` backend fail → `window.location.href` inject → Referer saqlanadi → ashdi.vip/bazon.tv hotlink check o'tadi → MEDIA_DETECTION_JS video topadi
+- `SourcePickerScreen`: URL extract fail → error emas, `MediaWebViewScreen` ochiladi
+- Commit: `23adf2d`
+
+---
+
 ### F-176 | 2026-04-01 | [MOBILE] | Smoke test fix — video detection: blank.mp4 filter, cross-origin iframe, filmx.fun [Emirhan]
 
 - `MediaWebViewScreen`: `isPlaceholderVideoUrl()` — blank.mp4 va `/templates/` CDN placeholder URL larni real video deb hisoblamaslik (uzmovi ad bug fix)
