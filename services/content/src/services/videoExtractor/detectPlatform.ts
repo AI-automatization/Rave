@@ -44,6 +44,8 @@ const PLATFORM_PATTERNS: Array<{ re: RegExp; platform: VideoPlatform }> = [
   // Uzbekistan / Central Asia
   { re: /uzmovie\.tv|uzmovi\.uz|kinooteka\.uz|kinolenta\.uz|kino\.uz/i, platform: 'playerjs' },
   { re: /tv\.mover\.uz|mover\.uz/i, platform: 'playerjs' },
+  { re: /asilmedia\.(org|net|uz)/i, platform: 'playerjs' },
+  { re: /fayllar\d*\.ru/i, platform: 'playerjs' },
   // Russian / CIS movie sites
   { re: /lordfilm\.(cc|app|day|me|film)/i, platform: 'playerjs' },
   { re: /kinopub\.(me|io|app)/i, platform: 'playerjs' },

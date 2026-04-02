@@ -141,7 +141,62 @@ function extractPoster(html: string): string {
   return m ? m[1] : '';
 }
 
+/**
+ * fayllar1.ru/player/player.html?file=DIRECT_MP4_URL
+ * Used by asilmedia.org — MP4 URL is in the ?file= query parameter.
+ * If the URL is a fayllar player page, extract the file param directly.
+ */
+function extractFayllarDirectUrl(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+    if (!/fayllar\d*\.ru/i.test(parsed.hostname)) return null;
+    if (!parsed.pathname.includes('player.html')) return null;
+    const file = parsed.searchParams.get('file');
+    return file && file.startsWith('http') ? file : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Parse asilmedia-style pages that embed fayllar1.ru iframes with ?file=MP4_URL.
+ * Returns multiple quality options (480p, 720p, 1080p) sorted by quality.
+ */
+const FAYLLAR_IFRAME_RE = /<iframe[^>]+src=["']([^"']*fayllar\d*\.ru\/player\/player\.html\?file=[^"']+)["']/gi;
+
+function extractFayllarIframes(html: string): Array<{ url: string; quality: string }> {
+  FAYLLAR_IFRAME_RE.lastIndex = 0;
+  const results: Array<{ url: string; quality: string }> = [];
+  let m: RegExpExecArray | null;
+  // eslint-disable-next-line no-cond-assign
+  while ((m = FAYLLAR_IFRAME_RE.exec(html)) !== null) {
+    const iframeSrc = m[1].startsWith('http') ? m[1] : `http:${m[1]}`;
+    const directUrl = extractFayllarDirectUrl(iframeSrc);
+    if (directUrl) {
+      const qMatch = directUrl.match(/(\d{3,4})p/i);
+      results.push({ url: directUrl, quality: qMatch ? `${qMatch[1]}p` : 'unknown' });
+    }
+  }
+  return results;
+}
+
 export async function playerjsExtractor(rawUrl: string): Promise<VideoExtractResult | null> {
+  // If URL is a direct fayllar player link (fayllar1.ru/player/player.html?file=...)
+  const fayllarDirect = extractFayllarDirectUrl(rawUrl);
+  if (fayllarDirect) {
+    const type = /\.m3u8|\/hls\//i.test(fayllarDirect) ? 'hls' : 'mp4';
+    return {
+      title: 'Video',
+      videoUrl: fayllarDirect,
+      poster: '',
+      platform: 'playerjs',
+      type,
+      sourceType: 'type1',
+      extractionMethod: 'playerjs',
+      cacheable: true,
+    };
+  }
+
   let html: string;
   try {
     html = await fetchHtml(rawUrl);
@@ -150,7 +205,40 @@ export async function playerjsExtractor(rawUrl: string): Promise<VideoExtractRes
     return null;
   }
 
-  // Try simple regex first (file: "...string...")
+  // Try fayllar1.ru iframe extraction (asilmedia.org pattern)
+  const fayllarEntries = extractFayllarIframes(html);
+  if (fayllarEntries.length > 0) {
+    // Pick best quality: 1080p > 720p > 480p
+    const sorted = fayllarEntries.sort((a, b) => {
+      const aNum = parseInt(a.quality) || 0;
+      const bNum = parseInt(b.quality) || 0;
+      return bNum - aNum;
+    });
+    const best = sorted[0];
+    const title = extractTitle(html);
+    const poster = extractPoster(html);
+    const type = /\.m3u8|\/hls\//i.test(best.url) ? 'hls' : 'mp4';
+
+    logger.info('playerjsExtractor: fayllar iframe extracted', {
+      url: rawUrl,
+      bestUrl: best.url.slice(0, 80),
+      quality: best.quality,
+      totalQualities: sorted.length,
+    });
+
+    return {
+      title,
+      videoUrl: best.url,
+      poster,
+      platform: 'playerjs',
+      type,
+      sourceType: 'type1',
+      extractionMethod: 'playerjs',
+      cacheable: true,
+    };
+  }
+
+  // Try standard Playerjs (new Playerjs({file: "..."}))
   let fileValue: string | null = null;
 
   const simpleMatch = PLAYERJS_RE.exec(html);
