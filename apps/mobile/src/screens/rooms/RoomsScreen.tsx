@@ -52,7 +52,7 @@ function RoomListCard({ room, index, onPress, t }: { room: IWatchPartyRoom; inde
 
   const statusCfg = STATUS_MAP[room.status] ?? STATUS_MAP.waiting;
   const statusColor = colors[statusCfg.colorKey];
-  const memberCount = room.memberCount ?? room.members.length;
+  const memberCount = room.memberCount ?? room.members?.length ?? 0;
   const isFull = memberCount >= room.maxMembers;
   const isEnded = room.status === 'ended';
 

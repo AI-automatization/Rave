@@ -4,6 +4,16 @@
 
 ---
 
+### F-178 | 2026-04-06 | [MOBILE] | Crash fix — TypeError: Cannot read property 'length' of undefined [Emirhan]
+
+- **Root cause:** `HomeActiveRooms.tsx` + `RoomsScreen.tsx` — `room.memberCount ?? room.members.length` crashes when backend room response omits `members` array (sends only `memberCount` or both undefined)
+- `HomeActiveRooms.tsx:22`: `room.memberCount ?? room.members.length` → `room.memberCount ?? room.members?.length ?? 0`
+- `RoomsScreen.tsx:55`: same fix
+- `HeroBanner.tsx:70`: `item.genre.slice(0, 2)` → `(item.genre ?? []).slice(0, 2)` (defensive — backend IMovie may omit genre)
+- Crash was triggered on HomeScreen immediately after login (HomeActiveRooms rendered rooms from API)
+
+---
+
 ### F-177 | 2026-04-01 | [MOBILE] | Smoke test fix — WebM iOS, CIS iframe navigate, URL fallback [Emirhan]
 
 - `WatchPartyScreen`: `iosWebmBlocked` flag → `isWebViewMode=true` Rutube/Yandex VP8 WebM → WKWebView da ijro (qora ekran yo'q)

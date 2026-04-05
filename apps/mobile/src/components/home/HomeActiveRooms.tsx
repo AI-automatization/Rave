@@ -19,7 +19,7 @@ function ActiveRoomRow({
 }) {
   const { colors } = useTheme();
   const s = useStyles();
-  const memberCount = room.memberCount ?? room.members.length;
+  const memberCount = room.memberCount ?? room.members?.length ?? 0;
   const isPlaying = room.status === 'playing';
 
   return (

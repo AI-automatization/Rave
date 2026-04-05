@@ -67,7 +67,7 @@ export const HeroBanner = memo(function HeroBanner({ movies }: Props) {
       />
       <View style={styles.info}>
         <View style={styles.genres}>
-          {item.genre.slice(0, 2).map((g) => (
+          {(item.genre ?? []).slice(0, 2).map((g) => (
             <View key={g} style={styles.genreBadge}>
               <Text style={styles.genreText}>{g}</Text>
             </View>
