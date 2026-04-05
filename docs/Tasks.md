@@ -14,8 +14,8 @@
 3. Fix bo'lgach → shu yerdan O'CHIRISH → docs/Done.md ga KO'CHIRISH
 4. Prioritet: P0=kritik, P1=muhim, P2=o'rta, P3=past
 5. Sprint: S1=hozir, S2=keyingi hafta, S3=keyingi sprint, S4-5=keyin
-6. Oxirgi T-raqam: S→050, E→082, J→037, C→013
-7. Yangilangan: 2026-04-01
+6. Oxirgi T-raqam: S→051, E→082, J→037, C→013
+7. Yangilangan: 2026-04-06
 ```
 
 ---
@@ -23,6 +23,21 @@
 # ═══════════════════════════════════════
 
 # 🔴 SAIDAZIM — BACKEND + ADMIN
+
+---
+
+### T-S051 | P1 | [BACKEND] | Video extractor — Playwright bot detection fix (captcha blokirovkasi)
+
+- **Mas'ul:** pending[Saidazim]
+- **Holat:** ❌ Boshlanmagan
+- **Sabab:** `playwrightExtractor.ts` headless Chromium `--no-sandbox` flag bilan ishlaydi → Cloudflare/DDoS-Guard uni bot deb bloklaydi. Railway server IP hammaning so'rovlari uchun bitta — bir necha urinishdan keyin IP block-listga tushadi va captcha chiqadi.
+- **Qilish kerak:**
+  - [ ] `playwrightExtractor.ts`: stealth plugin qo'shish (`playwright-stealth` yoki `puppeteer-extra-plugin-stealth` analog)
+  - [ ] `genericExtractor.ts`: tasodifiy User-Agent rotation (har so'rovda boshqa UA)
+  - [ ] `genericExtractor.ts`: iframe recursion orasiga 100-300ms tasodifiy delay
+  - [ ] Geo-blocked domenlar uchun Redis cache TTL oshirish: `hdrezka`, `filmix`, `kinogo` → 6-12 soat (hozirda qisqa)
+  - [ ] Railway deploy uchun proxy rotation imkoniyatini ko'rish (agar IP blok davom etsa)
+- **Fayllar:** `services/content/src/services/videoExtractor/playwrightExtractor.ts`, `genericExtractor.ts`, `index.ts`
 
 ---
 
