@@ -45,7 +45,7 @@ export function connectSocket(token: string): Socket {
 
   socket = io(WATCH_PARTY_URL, {
     auth: { token },
-    transports: ['polling', 'websocket'],
+    transports: ['websocket', 'polling'],
     reconnection: true,
     reconnectionDelay: 1000,
     reconnectionAttempts: 10,
