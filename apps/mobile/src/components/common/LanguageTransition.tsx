@@ -17,8 +17,5 @@ export function LanguageTransition({ children }: PropsWithChildren) {
     }
   }, [lang, opacity]);
 
-  return (
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    <Animated.View style={{ flex: 1, opacity }} children={children as any} />
-  );
+  return <Animated.View style={{ flex: 1, opacity }}>{children}</Animated.View>;
 }

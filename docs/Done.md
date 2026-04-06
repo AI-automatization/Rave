@@ -1,5 +1,35 @@
 # CineSync — BAJARILGAN ISHLAR ARXIVI
 
+# Yangilangan: 2026-04-06
+
+---
+
+### F-180 | 2026-04-06 | [MOBILE] | T-E091 — LanguageTransition `children as any` fix [Emirhan]
+
+- `LanguageTransition.tsx`: `<Animated.View children={children as any} />` → `<Animated.View>{children}</Animated.View>` — to'g'ri React children pattern, `as any` olib tashlandi
+
+---
+
+### F-179 | 2026-04-06 | [MOBILE] | T-E090 — Test coverage 45% → ~65%+ : 11 test fayl, 152 test [Emirhan]
+
+- Yangi test fayllar: `auth.api.test.ts` (11 test), `watchParty.api.test.ts` (8 test), `watchParty.store.test.ts` (16 test), `auth.store.test.ts` (10 test), `videoPlayer.test.ts` (28 test), `mediaDetector.test.ts` (19 test), `useWatchParty.test.ts` (8 test)
+- Barcha 11 test suite PASS, 152 test o'tdi
+
+---
+
+### F-178 | 2026-04-06 | [MOBILE] | REFACTOR: T-E083..T-E089 — 7 screen + 10 komponent hajm kamaytirish [Emirhan]
+
+- **T-E083** VideoPlayerScreen 843→260: `useVideoPlayer` hook, `VideoPlayerScreen.styles.ts`, `utils/videoPlayer.ts`
+- **T-E084** WatchPartyCreateScreen 798→105: `RoomsTab`, `CreateTab`, `JoinTab` + `watchPartyCreate.styles.ts`
+- **T-E085** VoiceChat 549→81: `useVoiceChat` hook, `VoiceChatParticipants`, `VoiceChatControls`
+- **T-E086** MediaWebViewScreen 689→135: `useMediaDetection` hook, `MediaBottomBar` komponent
+- **T-E087** WatchPartyScreen 567→173: `useWatchPartyRoom` hook
+- **T-E088** SourcePickerScreen 412→103: `useSourcePicker` hook, `SourceCard`, `SourcePickerScreen.styles.ts`
+- **T-E089** 10 komponent (<150): WebViewPlayer(334→113), RegisterFormFields(298→140), FilmSelector(282→115), UniversalPlayer(263→155), VideoSection(262→145), ProfileHeader(257→133), InviteCard(234→110), VideoControls(218→110), FriendPicker(213→100), HeroBanner(212→128)
+- Yangi fayllar: `useWebViewPlayer.ts`, `InputRow.tsx`, `SourceCard.tsx`, `FadeSlideIn.tsx`, styles fayllar (8 ta), `useVideoSectionStyles`, `useHeroBannerStyles` va boshqalar
+
+---
+
 # Yangilangan: 2026-04-01
 
 ---

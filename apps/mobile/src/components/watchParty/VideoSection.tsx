@@ -1,37 +1,21 @@
 // CineSync Mobile — WatchParty VideoSection
 import React from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  ActivityIndicator,
-  Dimensions,
-  StatusBar,
-  StyleSheet,
-} from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AVPlaybackStatus } from 'expo-av';
 import { UniversalPlayer, UniversalPlayerRef } from '@components/video/UniversalPlayer';
 import { EmojiFloatItem } from '@components/watchParty/EmojiFloat';
 import { VideoProgressBar } from '@components/watchParty/VideoProgressBar';
-import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
+import { useTheme } from '@theme/index';
+import { useVideoSectionStyles, VIDEO_HEIGHT } from './VideoSection.styles';
 
-const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
-// 45% of screen height — gives comfortable video size on all iPhones
-// Old formula (SCREEN_W * 9/16) gave only ~26% on tall phones, leaving huge black void
-export const VIDEO_HEIGHT = Math.round(SCREEN_H * 0.45);
+export { VIDEO_HEIGHT };
 
-export interface FloatingEmoji {
-  id: string;
-  emoji: string;
-  x: number;
-}
+export interface FloatingEmoji { id: string; emoji: string; x: number; }
 
 interface VideoSectionProps {
   playerRef: React.RefObject<UniversalPlayerRef | null>;
   videoUrl: string;
-  /** Extracted direct stream URL (mp4/HLS). When provided, UniversalPlayer uses expo-av
-   * regardless of URL format — bypasses detectVideoPlatform guessing. */
   extractedUrl?: string;
   videoReferer?: string;
   isReady: boolean;
@@ -54,76 +38,36 @@ interface VideoSectionProps {
   currentTime?: number;
   duration?: number;
   onProgressSeek?: (secs: number) => void;
-  /** WebView rejimida (YouTube/sayt) app overlay controls yashiriladi */
   isWebView?: boolean;
 }
 
 export const VideoSection = React.memo(function VideoSection({
-  playerRef,
-  videoUrl,
-  extractedUrl,
-  videoReferer,
-  isReady,
-  isOwner,
-  isPlaying,
-  isFullscreen,
-  videoIsLive,
-  floatingEmojis,
-  onPlay,
-  onPause,
-  onSeek,
-  onPlaybackStatusUpdate,
-  onStreamResolved,
-  onProgress,
-  onPlayPause,
-  onStop,
-  onSeekDirection,
-  onToggleFullscreen,
-  onRemoveEmoji,
-  currentTime = 0,
-  duration = 0,
-  onProgressSeek,
-  isWebView = false,
+  playerRef, videoUrl, extractedUrl, videoReferer, isReady, isOwner, isPlaying,
+  isFullscreen, videoIsLive, floatingEmojis, onPlay, onPause, onSeek,
+  onPlaybackStatusUpdate, onStreamResolved, onProgress, onPlayPause, onStop,
+  onSeekDirection, onToggleFullscreen, onRemoveEmoji,
+  currentTime = 0, duration = 0, onProgressSeek, isWebView = false,
 }: VideoSectionProps) {
   const { colors } = useTheme();
-  const styles = useStyles();
-  const containerStyle = isFullscreen
-    ? [styles.videoContainer, styles.videoContainerFullscreen]
-    : styles.videoContainer;
+  const styles = useVideoSectionStyles();
 
   return (
-    <View style={containerStyle}>
+    <View style={isFullscreen ? [styles.videoContainer, styles.videoContainerFullscreen] : styles.videoContainer}>
       {!isReady ? (
         <View style={styles.loadingCenter}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : (
         <>
-          <UniversalPlayer
-            ref={playerRef}
-            url={videoUrl}
-            extractedUrl={extractedUrl}
-            referer={videoReferer}
-            isOwner={isOwner}
-            onPlay={onPlay}
-            onPause={onPause}
-            onSeek={onSeek}
-            onPlaybackStatusUpdate={onPlaybackStatusUpdate}
-            onStreamResolved={onStreamResolved}
-            onProgress={onProgress}
-          />
-          {/* Member lock: transparent overlay blocks all touch events */}
+          <UniversalPlayer ref={playerRef} url={videoUrl} extractedUrl={extractedUrl}
+            referer={videoReferer} isOwner={isOwner} onPlay={onPlay} onPause={onPause} onSeek={onSeek}
+            onPlaybackStatusUpdate={onPlaybackStatusUpdate} onStreamResolved={onStreamResolved} onProgress={onProgress} />
           {!isOwner && <View style={StyleSheet.absoluteFill} pointerEvents="box-only" />}
         </>
       )}
 
-      {/* Fullscreen toggle — har doim ko'rinadi */}
       <TouchableOpacity style={styles.fullscreenBtn} onPress={onToggleFullscreen}>
-        <Ionicons
-          name={isFullscreen ? 'contract-outline' : 'expand-outline'}
-          size={20}
-          color={colors.textPrimary}
-        />
+        <Ionicons name={isFullscreen ? 'contract-outline' : 'expand-outline'} size={20} color={colors.textPrimary} />
       </TouchableOpacity>
 
       {videoIsLive && (
@@ -137,20 +81,13 @@ export const VideoSection = React.memo(function VideoSection({
         <EmojiFloatItem key={e.id} emoji={e.emoji} x={e.x} onDone={() => onRemoveEmoji(e.id)} />
       ))}
 
-      {/* Progress bar — WebView rejimida yashiriladi (YouTube o'z controls bor) */}
       {!isWebView && !videoIsLive && duration > 0 && (
         <View style={styles.progressBarWrap}>
-          <VideoProgressBar
-            currentTime={currentTime}
-            duration={duration}
-            isOwner={isOwner}
-            isLive={videoIsLive}
-            onSeek={secs => onProgressSeek?.(secs)}
-          />
+          <VideoProgressBar currentTime={currentTime} duration={duration} isOwner={isOwner}
+            isLive={videoIsLive} onSeek={secs => onProgressSeek?.(secs)} />
         </View>
       )}
 
-      {/* App controls — WebView rejimida yashiriladi */}
       {isOwner && !isWebView && (
         <View style={styles.controls}>
           {!videoIsLive && (
@@ -181,82 +118,3 @@ export const VideoSection = React.memo(function VideoSection({
     </View>
   );
 });
-
-const useStyles = createThemedStyles((colors) => ({
-  videoContainer: {
-    width: SCREEN_W,
-    height: VIDEO_HEIGHT,
-    backgroundColor: colors.black,
-  },
-  videoContainerFullscreen: {
-    height: SCREEN_H,
-  },
-  fullscreenBtn: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    padding: spacing.sm,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    borderRadius: borderRadius.full,
-    zIndex: 10,
-  },
-  progressBarWrap: {
-    position: 'absolute',
-    bottom: 56,   // above controls row
-    left: 0,
-    right: 0,
-  },
-  controls: {
-    position: 'absolute',
-    bottom: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xl,
-  },
-  controlBtn: {
-    padding: spacing.sm,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    borderRadius: borderRadius.full,
-  },
-  playBtn: {
-    padding: spacing.md,
-    backgroundColor: colors.primary,
-    borderRadius: borderRadius.full,
-  },
-  liveBadge: {
-    position: 'absolute',
-    top: 12,
-    left: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: colors.error,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.sm,
-  },
-  liveDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.textPrimary,
-  },
-  liveText: { ...typography.label, color: colors.textPrimary, fontWeight: '700' },
-  memberBadge: {
-    position: 'absolute',
-    bottom: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.full,
-  },
-  memberBadgeText: { ...typography.caption, color: colors.textMuted },
-  loadingCenter: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-}));

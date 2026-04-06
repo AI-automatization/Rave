@@ -1,422 +1,58 @@
 // CineSync Mobile — MediaWebViewScreen
 // In-app browser: video topilganda pastda "Watch Party" bar chiqadi — popup yo'q
-import React, { useRef, useState, useCallback, useEffect } from 'react';
+import React from 'react';
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  ActivityIndicator,
-  Alert,
-  StyleSheet,
-  Animated,
+  View, Text, TouchableOpacity, ActivityIndicator, StyleSheet,
 } from 'react-native';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import WebView from 'react-native-webview';
-import type { WebViewNavigation, WebViewMessageEvent } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
-import { watchPartyApi } from '@api/watchParty.api';
-import { contentApi } from '@api/content.api';
-import { getSocket, CLIENT_EVENTS } from '@socket/client';
-import {
-  MEDIA_DETECTION_JS,
-  normalizeDetectedMedia,
-  normalizeBlobMedia,
-  type MediaDetectedPayload,
-  type BlobVideoFoundPayload,
-  type RoomMedia,
-} from '@utils/mediaDetector';
 import { colors, spacing, borderRadius, typography } from '@theme/index';
-import type { ModalStackParamList } from '@app-types/index';
-
-type Nav = NativeStackNavigationProp<ModalStackParamList>;
-type RouteType = RouteProp<ModalStackParamList, 'MediaWebView'>;
-
-const MOBILE_UA =
-  'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 ' +
-  '(KHTML, like Gecko) Chrome/120.0.6099.144 Mobile Safari/537.36';
-
-// Known placeholder / ad video URL patterns — skip these during detection
-function isPlaceholderVideoUrl(url: string): boolean {
-  const lower = url.toLowerCase();
-  // blank.mp4 — CDN pre-roll ad placeholder (cdn77.srv224.com and others)
-  if (/\/blank\.(mp4|webm|ogg)(\?|#|$)/.test(lower)) return true;
-  // CDN template paths (e.g. /templates/149/134/blank.mp4)
-  if (/\/templates\/\d+\/\d+\//.test(lower)) return true;
-  return false;
-}
-
-// Iframe URL scan — fires after page load to detect cross-origin player iframes
-// Many CIS film sites embed their player from ashdi.vip, bazon.tv, etc. (cross-origin)
-// We can't reach the video element inside, but backend can extract from those iframe URLs
-const IFRAME_SCAN_JS = `
-(function() {
-  function scanIframes() {
-    try {
-      var iframes = document.querySelectorAll('iframe[src]');
-      var urls = [];
-      for (var i = 0; i < iframes.length; i++) {
-        var src = iframes[i].src;
-        if (src && src.indexOf('http') === 0 && src !== window.location.href) {
-          urls.push(src);
-        }
-      }
-      if (urls.length && window.ReactNativeWebView) {
-        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'IFRAME_FOUND', urls: urls }));
-      }
-    } catch(e) {}
-  }
-  setTimeout(scanIframes, 2500);
-  setTimeout(scanIframes, 6000);
-  true;
-})();
-`;
-
-// DDoS-Guard / Cloudflare challenge detection
-const BOT_PROTECTION_JS = `
-(function() {
-  function check() {
-    try {
-      var title = document.title || '';
-      var html = document.documentElement ? document.documentElement.innerHTML : '';
-      var isDdos =
-        title.indexOf('DDoS-Guard') !== -1 ||
-        html.indexOf('ddos-guard.net') !== -1 ||
-        !!document.querySelector('script[src*="ddos-guard"]');
-      var isCf =
-        title.indexOf('Just a moment') !== -1 ||
-        !!document.querySelector('#cf-wrapper') ||
-        !!document.querySelector('.cf-browser-verification');
-      if ((isDdos || isCf) && window.ReactNativeWebView) {
-        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'BOT_PROTECTION_DETECTED' }));
-      }
-    } catch(e) {}
-  }
-  setTimeout(check, 2000);
-  setTimeout(check, 5000);
-  true;
-})();
-`;
-
-// E67-1: document.cookie → postMessage
-const COOKIE_COLLECTION_JS = `
-(function() {
-  function sendCookies() {
-    try {
-      var raw = document.cookie;
-      if (!raw) return;
-      window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({
-        type: 'COOKIE_UPDATE',
-        cookies: raw,
-        domain: window.location.hostname,
-      }));
-    } catch(e) {}
-  }
-  sendCookies();
-  setTimeout(sendCookies, 2000);
-  setTimeout(sendCookies, 5000);
-  true;
-})();
-`;
-
-// ─── Platform hint ────────────────────────────────────────────────────────────
-
-function getHint(sourceId: string): string {
-  switch (sourceId) {
-    case 'youtube':
-    case 'youtube-live':
-      return 'YouTube da video toping va oching — avtomatik aniqlanadi';
-    case 'twitch':
-      return 'Twitch da kanal yoki VOD ni oching';
-    case 'vk':
-      return 'VK da videoni bosing — pleer ochilsin';
-    case 'rutube':
-      return 'Rutube da videoni oching';
-    case 'x':
-      return 'X (Twitter) da video postni oching';
-    case 'facebook':
-      return 'Facebook da video post yoki Reelni oching';
-    case 'instagram':
-      return 'Instagram da Reel yoki videoni oching';
-    case 'reddit':
-      return 'Reddit da video postni oching';
-    case 'streamable':
-      return 'Streamable da videoni oching';
-    case 'drive':
-      return 'Google Drive da video faylni oching';
-    default:
-      return 'Film yoki videoni toping va bosing — avtomatik aniqlanadi';
-  }
-}
-
-// ─── Main Screen ──────────────────────────────────────────────────────────────
+import { useMediaDetection, WEBVIEW_INJECT_JS } from '@hooks/useMediaDetection';
+import { MediaBottomBar } from '@components/watchParty/MediaBottomBar';
+import { MOBILE_UA } from '@utils/webViewScripts';
 
 export function MediaWebViewScreen() {
-  const navigation = useNavigation<Nav>();
-  const { params } = useRoute<RouteType>();
   const insets = useSafeAreaInsets();
-
-  const webViewRef = useRef<WebView>(null);
-  const [canGoBack, setCanGoBack] = useState(false);
-  const [canGoForward, setCanGoForward] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [pageTitle, setPageTitle] = useState(params.sourceName);
-  const [isImporting, setIsImporting] = useState(false);
-  // Track last URL to avoid clearing detectedMedia on non-navigation events
-  const lastKnownUrlRef = useRef(params.defaultUrl);
-
-  // Video topilganda bar uchun state
-  const [detectedMedia, setDetectedMedia] = useState<RoomMedia | null>(null);
-
-  // Animated bar (pastdan chiqadi)
-  const barAnim = useRef(new Animated.Value(0)).current;
-
-  // Ref guards — no stale closures
-  const isImportingRef = useRef(false);
-  const cookiesRef = useRef<string>('');
-  const importMediaRef = useRef<(media: RoomMedia) => Promise<void>>(async () => {});
-
-  // T-E071: URL guard — popup fires only once per unique video URL
-  const detectedUrlRef = useRef('');
-  // T-E072: backend extract state
-  const backendFoundVideoRef = useRef(false);
-  const [isBackendExtracting, setIsBackendExtracting] = useState(false);
-  // Bot protection (DDoS-Guard / Cloudflare) detected on page
-  const [isBotProtected, setIsBotProtected] = useState(false);
-
-  // Bar animation
-  useEffect(() => {
-    Animated.spring(barAnim, {
-      toValue: detectedMedia ? 1 : 0,
-      useNativeDriver: true,
-      tension: 80,
-      friction: 12,
-    }).start();
-  }, [detectedMedia, barAnim]);
-
-  // T-E071: single point for setting detectedMedia — ignores duplicate URLs
-  const setDetectedMediaOnce = useCallback((media: RoomMedia) => {
-    if (detectedUrlRef.current === media.videoUrl) return;
-    detectedUrlRef.current = media.videoUrl;
-    setDetectedMedia(media);
-  }, []);
-
-  // T-E072: ask backend first; fall back to JS detection on failure
-  // Returns true if backend extraction succeeded, false otherwise.
-  const tryBackendExtract = useCallback(async (url: string): Promise<boolean> => {
-    if (!url || !url.startsWith('http')) return false;
-    backendFoundVideoRef.current = false;
-    detectedUrlRef.current = '';
-    setIsBackendExtracting(true);
-    try {
-      const result = await contentApi.extractVideo(url, cookiesRef.current || undefined);
-      const media: RoomMedia = {
-        videoUrl: result.videoUrl,
-        videoTitle: result.title || 'Video',
-        videoPlatform: result.platform === 'youtube' ? 'youtube' : 'direct',
-        videoThumbnail: result.poster || undefined,
-        videoReferer: url,
-        mode: 'extracted',
-      };
-      backendFoundVideoRef.current = true;
-      setDetectedMediaOnce(media);
-      return true;
-    } catch {
-      // unsupported site or network error — JS detection takes over
-      return false;
-    } finally {
-      setIsBackendExtracting(false);
-    }
-  }, [setDetectedMediaOnce]);
-
-  const onNavigationStateChange = useCallback((state: WebViewNavigation) => {
-    setCanGoBack(state.canGoBack);
-    setCanGoForward(state.canGoForward);
-    if (state.title) setPageTitle(state.title);
-    // Skip non-navigable URLs — about:srcdoc (iframe srcdoc), data:, javascript:
-    if (!state.url || !state.url.startsWith('http')) return;
-    if (state.url !== lastKnownUrlRef.current) {
-      setIsBotProtected(false);
-      lastKnownUrlRef.current = state.url;
-      detectedUrlRef.current = '';
-      backendFoundVideoRef.current = false;
-      setDetectedMedia(null);
-
-      // Direct video file URL (e.g. https://v.mover.uz/llyNHHL_m.mp4):
-      // WebView renders the binary file with no HTML/DOM — JS injection never fires.
-      // Detect immediately from URL and show popup without calling backend.
-      if (/\.(mp4|m3u8|webm|mkv|ts|mov|mpd)(\?|#|$)/i.test(state.url) && !isPlaceholderVideoUrl(state.url)) {
-        const fileName = state.url.split('/').pop()?.split('?')[0] ?? 'Video';
-        setDetectedMediaOnce({
-          videoUrl: state.url,
-          videoTitle: state.title || fileName,
-          videoPlatform: /\.m3u8(\?|#|$)/i.test(state.url) ? 'direct' : 'direct',
-          mode: 'extracted',
-        });
-        return;
-      }
-
-      void tryBackendExtract(state.url);
-    }
-  }, [tryBackendExtract, setDetectedMediaOnce]);
-
-  // T-E072: try backend extract on initial URL load
-  useEffect(() => {
-    void tryBackendExtract(params.defaultUrl);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // ─── Media import flow ──────────────────────────────────────────────────────
-
-  React.useEffect(() => { importMediaRef.current = importMedia; });
-
-  async function importMedia(media: RoomMedia) {
-    if (isImportingRef.current) return;
-
-    if (params.context === 'change_media') {
-      if (!params.roomId) return;
-      getSocket()?.emit(CLIENT_EVENTS.CHANGE_MEDIA, {
-        roomId: params.roomId,
-        videoUrl: media.videoUrl,
-        videoTitle: media.videoTitle,
-        videoPlatform: media.videoPlatform,
-      });
-      navigation.navigate('WatchParty', { roomId: params.roomId });
-      return;
-    }
-
-    isImportingRef.current = true;
-    setIsImporting(true);
-    try {
-      const sessionCookies = media.mode === 'webview-session' ? cookiesRef.current : undefined;
-      const room = await watchPartyApi.createRoom({
-        name: media.videoTitle.slice(0, 60),
-        videoUrl: media.videoUrl,
-        videoTitle: media.videoTitle,
-        videoPlatform: media.videoPlatform,
-        cookies: sessionCookies,
-      });
-      navigation.navigate('WatchParty', { roomId: room._id, videoReferer: media.videoReferer });
-    } catch (err: unknown) {
-      if (__DEV__) console.log('[MediaWebView] createRoom error:', err);
-      const axiosErr = err as { response?: { data?: { message?: string } }; code?: string; message?: string };
-      const isTimeout = axiosErr.code === 'ECONNABORTED' || (axiosErr.message ?? '').includes('timeout');
-      const isNetworkError = axiosErr.message === 'Network Error';
-      const msg = isTimeout || isNetworkError
-        ? 'Internet aloqasini tekshiring va qayta urinib ko\'ring.'
-        : axiosErr.response?.data?.message ?? 'Xona yaratib bo\'lmadi.';
-      Alert.alert('Xato', msg);
-    } finally {
-      isImportingRef.current = false;
-      setIsImporting(false);
-    }
-  }
-
-  // ─── WebView message handler ─────────────────────────────────────────────────
-
-  const onMessage = useCallback((event: WebViewMessageEvent) => {
-    try {
-      const data = JSON.parse(event.nativeEvent.data) as
-        | MediaDetectedPayload
-        | BlobVideoFoundPayload
-        | { type: 'COOKIE_UPDATE'; cookies: string; domain: string }
-        | { type: 'BOT_PROTECTION_DETECTED' }
-        | { type: 'IFRAME_FOUND'; urls: string[] };
-
-      if (data.type === 'COOKIE_UPDATE') {
-        if (data.cookies) cookiesRef.current = data.cookies;
-        return;
-      }
-
-      if (data.type === 'BOT_PROTECTION_DETECTED') {
-        setIsBotProtected(true);
-        return;
-      }
-
-      if (data.type === 'IFRAME_FOUND') {
-        // Cross-origin player iframe (ashdi.vip, bazon.tv, etc.) detected in page.
-        // Strategy:
-        //   1. Try backend extraction — works if Railway can access the CDN (non-geo-blocked).
-        //   2. If backend fails (Railway geo-blocked for CIS sites) → navigate the WebView
-        //      to the iframe URL directly. The user's device CAN access CIS sites.
-        //      Navigating via window.location.href preserves the correct Referer header,
-        //      passing hotlink checks on ashdi.vip / bazon.tv.
-        //      MEDIA_DETECTION_JS then finds the <video> element on the player page.
-        if (Array.isArray(data.urls) && data.urls[0] && !backendFoundVideoRef.current) {
-          const iframeUrl = data.urls[0];
-          void tryBackendExtract(iframeUrl).then((success) => {
-            if (!success && !backendFoundVideoRef.current && webViewRef.current) {
-              webViewRef.current.injectJavaScript(
-                `window.location.href = ${JSON.stringify(iframeUrl)};true;`,
-              );
-            }
-          });
-        }
-        return;
-      }
-
-      // T-E072: backend already extracted — JS detection not needed
-      if (backendFoundVideoRef.current) return;
-
-      if (data.type === 'BLOB_VIDEO_FOUND') {
-        setDetectedMediaOnce(normalizeBlobMedia(data));
-        return;
-      }
-
-      if (data.type !== 'MEDIA_DETECTED') return;
-
-      const normalized = normalizeDetectedMedia(data);
-      // Skip placeholder/ad video URLs (blank.mp4, CDN templates)
-      if (isPlaceholderVideoUrl(normalized.videoUrl)) return;
-      // T-E071: setDetectedMediaOnce deduplicates by URL
-      setDetectedMediaOnce(normalized);
-    } catch {
-      // Non-JSON messages ignored
-    }
-  }, [setDetectedMediaOnce]);
-
-  // ─── Bar translate ───────────────────────────────────────────────────────────
-
-  const barTranslateY = barAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [120, 0],
-  });
-
-  // ─── Render ──────────────────────────────────────────────────────────────────
+  const {
+    webViewRef, params,
+    canGoBack, canGoForward, isLoading, pageTitle, isImporting,
+    detectedMedia, isBackendExtracting, isBotProtected,
+    barTranslateY, importMediaRef,
+    setIsLoading,
+    onNavigationStateChange, onMessage,
+  } = useMediaDetection();
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top || 0 }]}>
-      {/* Header */}
-      <View style={styles.header}>
+    <View style={[s.root, { paddingTop: insets.top || 0 }]}>
+      {/* Browser header */}
+      <View style={s.header}>
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.headerBtn}
+          onPress={() => webViewRef.current?.stopLoading()}
+          style={s.headerBtn}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Ionicons name="close" size={24} color="#fff" />
         </TouchableOpacity>
 
-        <View style={styles.titleWrap}>
+        <View style={s.titleWrap}>
           {isLoading ? (
             <ActivityIndicator size="small" color={colors.primary} />
           ) : (
-            <Ionicons name="lock-closed-outline" size={12} color="#6B7280" style={styles.lockIcon} />
+            <Ionicons name="lock-closed-outline" size={12} color="#6B7280" style={s.lockIcon} />
           )}
-          <Text style={styles.headerTitle} numberOfLines={1}>{pageTitle}</Text>
+          <Text style={s.headerTitle} numberOfLines={1}>{pageTitle}</Text>
         </View>
 
-        <View style={styles.navBtns}>
+        <View style={s.navBtns}>
           <TouchableOpacity
-            onPress={() => webViewRef.current?.goBack()}
-            disabled={!canGoBack}
+            onPress={() => webViewRef.current?.goBack()} disabled={!canGoBack}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <Ionicons name="chevron-back" size={22} color={canGoBack ? '#fff' : '#4B5563'} />
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => webViewRef.current?.goForward()}
-            disabled={!canGoForward}
+            onPress={() => webViewRef.current?.goForward()} disabled={!canGoForward}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <Ionicons name="chevron-forward" size={22} color={canGoForward ? '#fff' : '#4B5563'} />
@@ -424,266 +60,76 @@ export function MediaWebViewScreen() {
         </View>
       </View>
 
-      {isLoading && <View style={styles.loadingBar} />}
+      {isLoading && <View style={s.loadingBar} />}
 
-      {/* WebView */}
       <WebView
         ref={webViewRef}
         source={{ uri: params.defaultUrl }}
         userAgent={MOBILE_UA}
-        injectedJavaScript={MEDIA_DETECTION_JS + COOKIE_COLLECTION_JS + BOT_PROTECTION_JS + IFRAME_SCAN_JS}
-        onShouldStartLoadWithRequest={(req) => {
-          // Block about:srcdoc and other non-http URLs to suppress WARN logs
-          return req.url.startsWith('http');
-        }}
+        injectedJavaScript={WEBVIEW_INJECT_JS}
+        onShouldStartLoadWithRequest={(req) => req.url.startsWith('http')}
         onNavigationStateChange={onNavigationStateChange}
         onLoadStart={() => setIsLoading(true)}
         onLoadEnd={() => setIsLoading(false)}
         onMessage={onMessage}
-        javaScriptEnabled
-        domStorageEnabled
-        allowsBackForwardNavigationGestures
-        style={styles.webview}
+        javaScriptEnabled domStorageEnabled allowsBackForwardNavigationGestures
+        style={s.webview}
         renderError={() => (
-          <View style={styles.errorView}>
+          <View style={s.errorView}>
             <Ionicons name="wifi-outline" size={48} color="#4B5563" />
-            <Text style={styles.errorTitle}>Страница недоступна</Text>
-            <Text style={styles.errorSub}>Сайт заблокировал встроенный браузер или недоступен.</Text>
-            <TouchableOpacity
-              style={styles.reloadBtn}
-              onPress={() => webViewRef.current?.reload()}
-            >
-              <Text style={styles.reloadText}>Обновить</Text>
+            <Text style={s.errorTitle}>Страница недоступна</Text>
+            <Text style={s.errorSub}>Сайт заблокировал встроенный браузер или недоступен.</Text>
+            <TouchableOpacity style={s.reloadBtn} onPress={() => webViewRef.current?.reload()}>
+              <Text style={s.reloadText}>Обновить</Text>
             </TouchableOpacity>
           </View>
         )}
       />
 
-      {/* Backend analizlayapti — loading hint */}
-      {!detectedMedia && isBackendExtracting && (
-        <View style={[styles.hintBar, { paddingBottom: insets.bottom || spacing.sm }]}>
-          <ActivityIndicator size="small" color={colors.primary} />
-          <Text style={styles.hintText}>Видео анализируется…</Text>
-        </View>
-      )}
-
-      {/* Bot protection detected (DDoS-Guard / Cloudflare) */}
-      {isBotProtected && !detectedMedia && (
-        <View style={[styles.hintBar, styles.hintBarWarning, { paddingBottom: insets.bottom || spacing.sm }]}>
-          <Ionicons name="shield-outline" size={15} color="#F59E0B" />
-          <Text style={[styles.hintText, styles.hintTextWarning]} numberOfLines={3}>
-            Сайт заблокировал встроенный браузер (DDoS-Guard / Cloudflare). Подождите несколько секунд или выберите другой источник.
-          </Text>
-        </View>
-      )}
-
-      {/* Video topilmagan, backend ham topalmadi — manual hint */}
-      {!detectedMedia && !isLoading && !isBackendExtracting && !isBotProtected && (
-        <View style={[styles.hintBar, { paddingBottom: insets.bottom || spacing.sm }]}>
-          <Ionicons name="search-outline" size={15} color="#6B7280" />
-          <Text style={styles.hintText} numberOfLines={2}>
-            {getHint(params.sourceId ?? '')}
-          </Text>
-        </View>
-      )}
-
-      {/* Video topilganda — Watch Party bar (pastdan chiqadi) */}
-      {detectedMedia && (
-        <Animated.View
-          style={[
-            styles.videoBar,
-            { transform: [{ translateY: barTranslateY }], paddingBottom: insets.bottom || spacing.md },
-          ]}
-        >
-          <View style={styles.videoBarLeft}>
-            <Ionicons name="play-circle" size={22} color={colors.primary} />
-            <Text style={styles.videoBarTitle} numberOfLines={1}>
-              {detectedMedia.videoTitle || 'Видео найдено'}
-            </Text>
-          </View>
-          <TouchableOpacity
-            style={[styles.videoBarBtn, isImporting && styles.videoBarBtnDisabled]}
-            onPress={() => importMediaRef.current(detectedMedia)}
-            disabled={isImporting}
-            activeOpacity={0.8}
-          >
-            {isImporting ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <>
-                <Ionicons name="tv-outline" size={16} color="#fff" />
-                <Text style={styles.videoBarBtnText}>Watch Party</Text>
-              </>
-            )}
-          </TouchableOpacity>
-        </Animated.View>
-      )}
+      <MediaBottomBar
+        detectedMedia={detectedMedia}
+        isBackendExtracting={isBackendExtracting}
+        isBotProtected={isBotProtected}
+        isLoading={isLoading}
+        isImporting={isImporting}
+        sourceId={params.sourceId ?? ''}
+        paddingBottom={insets.bottom}
+        barTranslateY={barTranslateY}
+        onImport={(media) => importMediaRef.current(media)}
+      />
     </View>
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: '#0A0A0F',
-  },
+const s = StyleSheet.create({
+  root: { flex: 1, backgroundColor: '#0A0A0F' },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    backgroundColor: '#111118',
-    borderBottomWidth: 0.5,
-    borderBottomColor: 'rgba(255,255,255,0.08)',
-    gap: spacing.sm,
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
+    backgroundColor: '#111118', borderBottomWidth: 0.5,
+    borderBottomColor: 'rgba(255,255,255,0.08)', gap: spacing.sm,
   },
-  headerBtn: {
-    padding: spacing.xs,
-  },
+  headerBtn: { padding: spacing.xs },
   titleWrap: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: borderRadius.lg,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs + 2,
-    gap: spacing.xs,
-    minHeight: 34,
+    flex: 1, flexDirection: 'row', alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: borderRadius.lg,
+    paddingHorizontal: spacing.md, paddingVertical: spacing.xs + 2,
+    gap: spacing.xs, minHeight: 34,
   },
-  lockIcon: {
-    marginRight: 2,
-  },
-  headerTitle: {
-    flex: 1,
-    ...typography.caption,
-    color: '#9CA3AF',
-    fontSize: 12,
-  },
-  navBtns: {
-    flexDirection: 'row',
-    gap: spacing.xs,
-  },
-  loadingBar: {
-    height: 2,
-    backgroundColor: colors.primary,
-    width: '60%',
-  },
-  webview: {
-    flex: 1,
-    backgroundColor: '#0A0A0F',
-  },
+  lockIcon: { marginRight: 2 },
+  headerTitle: { flex: 1, ...typography.caption, color: '#9CA3AF', fontSize: 12 },
+  navBtns: { flexDirection: 'row', gap: spacing.xs },
+  loadingBar: { height: 2, backgroundColor: colors.primary, width: '60%' },
+  webview: { flex: 1, backgroundColor: '#0A0A0F' },
   errorView: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#0A0A0F',
-    gap: spacing.md,
-    padding: spacing.xl,
+    flex: 1, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#0A0A0F', gap: spacing.md, padding: spacing.xl,
   },
-  errorTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  errorSub: {
-    fontSize: 14,
-    color: '#6B7280',
-    textAlign: 'center',
-    lineHeight: 20,
-  },
+  errorTitle: { fontSize: 18, fontWeight: '700', color: '#fff' },
+  errorSub: { fontSize: 14, color: '#6B7280', textAlign: 'center', lineHeight: 20 },
   reloadBtn: {
-    marginTop: spacing.sm,
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.xxl,
-    paddingVertical: spacing.md,
-    borderRadius: borderRadius.lg,
+    marginTop: spacing.sm, backgroundColor: colors.primary,
+    paddingHorizontal: spacing.xxl, paddingVertical: spacing.md, borderRadius: borderRadius.lg,
   },
-  reloadText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 15,
-  },
-  // ─── Hint bar ─────────────────────────────────────────────────────────────
-  hintBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
-    backgroundColor: 'rgba(17,17,24,0.92)',
-    borderTopWidth: 0.5,
-    borderTopColor: 'rgba(255,255,255,0.06)',
-  },
-  hintText: {
-    flex: 1,
-    fontSize: 12,
-    color: '#6B7280',
-    lineHeight: 17,
-  },
-  hintBarWarning: {
-    borderTopColor: 'rgba(245,158,11,0.2)',
-  },
-  hintTextWarning: {
-    color: '#F59E0B',
-  },
-  // ─── Video bar ─────────────────────────────────────────────────────────────
-  videoBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#111118',
-    borderTopWidth: 0.5,
-    borderTopColor: 'rgba(255,255,255,0.12)',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.md,
-    gap: spacing.sm,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 12,
-  },
-  videoBarLeft: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    minWidth: 0,
-  },
-  videoBarTitle: {
-    flex: 1,
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  videoBarBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.md,
-    minWidth: 110,
-    justifyContent: 'center',
-  },
-  videoBarBtnDisabled: {
-    opacity: 0.6,
-  },
-  videoBarBtnText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 13,
-  },
+  reloadText: { color: '#fff', fontWeight: '700', fontSize: 15 },
 });
