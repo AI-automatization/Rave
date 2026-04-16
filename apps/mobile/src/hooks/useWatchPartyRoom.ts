@@ -174,7 +174,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
 
   const handleChangeMedia = useCallback(() => {
     if (!isOwner) return;
-    navigation.navigate('SourcePicker', { context: 'change_media', roomId });
+    navigation.navigate('SourcePicker', { mode: 'change', roomId });
   }, [isOwner, navigation, roomId]);
 
   const handleQualitySelect = useCallback((option: QualityOption) => {

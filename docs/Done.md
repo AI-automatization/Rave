@@ -1,6 +1,17 @@
 # CineSync — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-04-06
+# Yangilangan: 2026-04-16
+
+---
+
+### F-181 | 2026-04-16 | [MOBILE] | T-E092 + T-E093 + T-E094 + T-E095 — Rave UX transformation (FAB + mode rename) [Emirhan]
+
+- **T-E092**: `WatchPartyScreen.tsx` — `changeMediaBtn` (horizontal banner) → `changeMediaFab` (52×52 circular FAB, `position: absolute`, `right: 16`, `bottom: 72`, `colors.primary` background, `add` icon 28px). Faqat `isOwner` uchun ko'rinadi.
+- **T-E093**: `context: 'new_room' | 'change_media'` → `mode: 'create' | 'change'` rename — 7 fayl: `types/index.ts`, `useWatchPartyRoom.ts`, `useSourcePicker.ts` (3 joy), `useMediaDetection.ts`, `CustomTabBar.tsx`, `HomeScreen.tsx`, `SourcePickerScreen.tsx`
+- **T-E094**: ALLAQACHON BAJARILGAN — `useMediaDetection.importMedia` va `useSourcePicker.handleUrlExtract` `mode='change'` da `CHANGE_MEDIA` emit, `mode='create'` da `createRoom` — hech qanday qo'shimcha kod kerak emas edi
+- **T-E095**: ALLAQACHON BAJARILGAN — `HomeCTA` komponenti F-171 (T-E077) da qo'shilgan edi
+- **TS bonus**: `watchParty.store.test.ts` `SYNC_STUB`'ga `updatedBy: 'user-1'` qo'shildi; `LanguageTransition.tsx` `@ts-expect-error` bilan `@types/react` 18.3+ vs RN Animated.View version conflict hal qilindi
+- **tsc --noEmit**: CLEAN (0 errors)
 
 ---
 

@@ -94,10 +94,8 @@ export function WatchPartyScreen() {
           />
 
           {isOwner && (
-            <TouchableOpacity style={s.changeMediaBtn} onPress={handleChangeMedia}>
-              <Ionicons name="add-circle-outline" size={16} color={colors.primary} />
-              <Text style={s.changeMediaText}>{room?.videoTitle ? room.videoTitle.slice(0, 36) : 'Выбрать источник'}</Text>
-              <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
+            <TouchableOpacity style={s.changeMediaFab} onPress={handleChangeMedia}>
+              <Ionicons name="add" size={28} color="#fff" />
             </TouchableOpacity>
           )}
 
@@ -151,12 +149,15 @@ export function WatchPartyScreen() {
 
 const useStyles = createThemedStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bgVoid },
-  changeMediaBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
-    paddingHorizontal: spacing.lg, paddingVertical: spacing.sm,
-    backgroundColor: 'rgba(229,9,20,0.06)', borderBottomWidth: 0.5, borderBottomColor: 'rgba(255,255,255,0.05)',
+  changeMediaFab: {
+    position: 'absolute', right: spacing.lg, bottom: 72,
+    width: 52, height: 52, borderRadius: 26,
+    backgroundColor: colors.primary,
+    alignItems: 'center', justifyContent: 'center',
+    zIndex: 10, elevation: 8,
+    shadowColor: '#000', shadowOpacity: 0.4,
+    shadowOffset: { width: 0, height: 4 }, shadowRadius: 8,
   },
-  changeMediaText: { flex: 1, ...typography.caption, color: colors.textMuted, fontSize: 13 },
   gearRow: { flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.lg, paddingVertical: spacing.xs, borderBottomWidth: 0.5, borderBottomColor: 'rgba(255,255,255,0.05)' },
   gearBtn: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingHorizontal: spacing.md, paddingVertical: spacing.xs, backgroundColor: colors.bgSurface, borderRadius: borderRadius.full },
   gearBtnText: { ...typography.caption, color: colors.textMuted },

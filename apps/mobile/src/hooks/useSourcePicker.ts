@@ -37,7 +37,7 @@ export function useSourcePicker() {
       sourceId: source.id,
       sourceName: source.label,
       defaultUrl: source.defaultUrl,
-      context: params.context,
+      mode: params.mode,
       roomId: params.roomId,
     });
   }
@@ -49,7 +49,7 @@ export function useSourcePicker() {
     setIsExtracting(true);
     try {
       const extracted = await contentApi.extractVideo(trimmed);
-      if (params.context === 'change_media') {
+      if (params.mode === 'change') {
         if (!params.roomId) return;
         getSocket()?.emit(CLIENT_EVENTS.CHANGE_MEDIA, {
           roomId: params.roomId,
@@ -74,7 +74,7 @@ export function useSourcePicker() {
           sourceId: 'custom',
           sourceName: 'Видео',
           defaultUrl: trimmed,
-          context: params.context,
+          mode: params.mode,
           roomId: params.roomId,
         });
       } catch {

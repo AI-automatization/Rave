@@ -9,7 +9,7 @@ const ROOM_STUB = {
 };
 
 const SYNC_STUB = {
-  isPlaying: true, currentTime: 120, serverTimestamp: Date.now(),
+  isPlaying: true, currentTime: 120, serverTimestamp: Date.now(), updatedBy: 'user-1',
 };
 
 const MSG_STUB = {

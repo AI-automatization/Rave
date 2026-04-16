@@ -77,7 +77,7 @@ export function HomeScreen() {
   }, [navigation]);
 
   const handleSourcePicker = useCallback(() => {
-    rootNav.navigate('Modal', { screen: 'SourcePicker', params: { context: 'new_room' } });
+    rootNav.navigate('Modal', { screen: 'SourcePicker', params: { mode: 'create' } });
   }, [rootNav]);
 
   const handleRoomPress = useCallback((roomId: string) => {

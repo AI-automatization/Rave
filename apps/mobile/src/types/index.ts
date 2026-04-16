@@ -138,7 +138,7 @@ export type ModalStackParamList = {
   Notifications: undefined;
   /** Source picker — выбор платформы (YouTube, Web, VK, etc.) */
   SourcePicker: {
-    context: 'new_room' | 'change_media';
+    mode: 'create' | 'change';
     roomId?: string;
   };
   /** Встроенный браузер для просмотра и импорта медиа */
@@ -146,7 +146,7 @@ export type ModalStackParamList = {
     sourceId: string;
     sourceName: string;
     defaultUrl: string;
-    context: 'new_room' | 'change_media';
+    mode: 'create' | 'change';
     roomId?: string;
   };
 };

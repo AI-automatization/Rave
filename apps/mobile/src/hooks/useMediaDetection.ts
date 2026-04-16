@@ -117,7 +117,7 @@ export function useMediaDetection() {
 
   async function importMedia(media: RoomMedia) {
     if (isImportingRef.current) return;
-    if (params.context === 'change_media') {
+    if (params.mode === 'change') {
       if (!params.roomId) return;
       getSocket()?.emit(CLIENT_EVENTS.CHANGE_MEDIA, {
         roomId: params.roomId, videoUrl: media.videoUrl,

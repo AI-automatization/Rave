@@ -1,4 +1,4 @@
-import { useEffect, useRef, type PropsWithChildren } from 'react';
+import React, { useEffect, useRef, type PropsWithChildren } from 'react';
 import { Animated } from 'react-native';
 import { useLanguageStore } from '@store/language.store';
 
@@ -17,5 +17,6 @@ export function LanguageTransition({ children }: PropsWithChildren) {
     }
   }, [lang, opacity]);
 
+  // @ts-expect-error — @types/react 18.3+ bigint in ReactNode vs older RN Animated.View types mismatch
   return <Animated.View style={{ flex: 1, opacity }}>{children}</Animated.View>;
 }

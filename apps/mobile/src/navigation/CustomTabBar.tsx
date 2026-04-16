@@ -152,7 +152,7 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
       {/* Floating "+" button with gradient + pulse */}
       <TouchableOpacity
         style={styles.fab}
-        onPress={() => rootNav.navigate('Modal', { screen: 'SourcePicker', params: { context: 'new_room' } })}
+        onPress={() => rootNav.navigate('Modal', { screen: 'SourcePicker', params: { mode: 'create' } })}
         activeOpacity={0.85}
       >
         <Animated.View style={[styles.fabShadowWrap, { transform: [{ scale: fabPulse }] }]}>

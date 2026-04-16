@@ -94,7 +94,7 @@ export function SourcePickerScreen() {
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) => <SourceCard source={item} onPress={handleSourcePress} />}
         ListFooterComponent={
-          params.context === 'new_room' ? (
+          params.mode === 'create' ? (
             <TouchableOpacity style={s.createRoomBtn} onPress={handleCreateRoom}>
               <Ionicons name="people-outline" size={18} color="#E50914" />
               <Text style={s.createRoomText}>Создать комнату без медиа</Text>
