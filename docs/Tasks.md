@@ -117,8 +117,8 @@
 
 ### T-E092 | P1 | [MOBILE] | WatchPartyScreen "+" FAB — Source Picker launcher (Rave UX flow)
 
-- **Mas'ul:**
-- **Holat:** ❌ Boshlanmagan
+- **Mas'ul:** pending[Emirhan]
+- **Holat:** 🔄 Jarayonda
 - **Sabab:** Rave UX: room ichida "+" tugma → Source Picker. Hozirgi `changeMediaBtn` kichik text-button, Rave style'ga mos emas. MVP entry point fix (plan §2.3 #2).
 - **Qilish kerak:**
   - [ ] `WatchPartyScreen.tsx:394-403` — `changeMediaBtn` → FAB style "+" tugma
@@ -132,8 +132,8 @@
 
 ### T-E093 | P1 | [MOBILE] | SourcePicker `mode: 'create' | 'change'` prop + navigation
 
-- **Mas'ul:**
-- **Holat:** ❌ Boshlanmagan
+- **Mas'ul:** pending[Emirhan]
+- **Holat:** 🔄 Jarayonda
 - **Sabab:** Hozir SourcePicker faqat "create new room" mode da ishlaydi. Rave UX da mavjud roomdan ochib CHANGE_MEDIA yuborilishi kerak.
 - **Qilish kerak:**
   - [ ] `ModalStackParamList.SourcePicker: { mode: 'create' | 'change'; roomId?: string }`
