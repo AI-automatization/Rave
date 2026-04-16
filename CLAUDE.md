@@ -19,8 +19,7 @@ Salom! Men CineSync loyihasidaman.
 
 Kimligingizni aniqlay olmayman — ismingiz kim?
   1. Saidazim (Backend + Admin + Operator)
-  2. Emirhan  (React Native Mobile)
-  3. Jafar    (React Native Mobile)
+  2. Emirhan  (React Native Mobile + Web)
 
 Ishlash rejimi:
   A. Single Task  — 1 agent, oddiy task
@@ -32,13 +31,12 @@ Javob kelgach:
 1. Tegishli faylni o'qib kontekstga kirish:
    - Saidazim → `CLAUDE_BACKEND.md`
    - Emirhan  → `CLAUDE_MOBILE.md`
-   - Jafar    → `CLAUDE_MOBILE.md`
 2. `git pull origin main` — eng yangi holatni olish
 3. `docs/Tasks.md` o'qib ochiq tasklarni ko'rish + `pending[X]` statuslarni tekshirish
 4. Task boshlashdan oldin **GIT-BASED TASK LOCKING** protokolini bajarish (pastda)
 5. **Mode B** tanlansa → Multi-Agent Protocol (pastda) faollashadi
 
-> **Nima uchun?** 3 ta dasturchi 3 xil platforma. Noto'g'ri zona fayliga teginish = merge conflict + production crash.
+> **Nima uchun?** 2 ta dasturchi 2 xil platforma. Noto'g'ri zona fayliga teginish = merge conflict + production crash.
 
 ---
 
@@ -76,7 +74,7 @@ cinesync/
 │   ├── notification/  → Saidazim (port 3007)
 │   └── admin/         → Saidazim (port 3008)
 ├── apps/
-│   ├── mobile/        → Emirhan + Jafar (React Native)
+│   ├── mobile/        → Emirhan (React Native)
 │   ├── web/           → (hozircha mas'ul yo'q)
 │   └── admin-ui/      → Saidazim (React + Vite)
 ├── shared/
@@ -220,7 +218,6 @@ git pull origin main
 # Branch format:
 saidazim/feat-[feature-name]
 emirhan/feat-[feature-name]
-jafar/feat-[feature-name]
 
 # Commit format (Conventional Commits):
 feat(auth): add Google OAuth callback
@@ -324,7 +321,7 @@ npm run typecheck  # barcha workspaces
 # Barcha konteynerlarni ishga tushirish:
 docker compose -f docker-compose.dev.yml up -d
 
-# Faqat infra (Emirhan, Jafar uchun — backend lokal ishlatmasdan):
+# Faqat infra (Emirhan uchun — backend lokal ishlatmasdan):
 docker compose -f docker-compose.dev.yml up -d mongo redis elasticsearch
 
 # Holat tekshirish:
@@ -369,7 +366,7 @@ docker compose -f docker-compose.dev.yml restart auth
 docker compose -f docker-compose.dev.yml up -d --build auth
 ```
 
-### Emirhan va Jafar uchun minimal ishga tushirish
+### Emirhan uchun minimal ishga tushirish
 
 ```bash
 # 1. Infrani ko'tar:
@@ -377,7 +374,6 @@ docker compose -f docker-compose.dev.yml up -d
 
 # 2. O'z appingni ishga tushir:
 #    Emirhan: cd apps/mobile && npx expo start
-#    Jafar:   cd apps/mobile && npx expo start
 
 # Backend lokal ishlatish shart emas — Docker konteynerlar ishlaydi.
 ```
@@ -580,17 +576,17 @@ QA FAIL bo'lsa → merge TAQIQLANGAN → agent xatoni tuzatishi kerak.
 ### Parallel ishlash misoli
 
 ```
-  Saidazim (Terminal 1)                  Emirhan (Terminal 2)        Jafar (Terminal 3)
-  ══════════════════════                 ══════════════════           ════════════════════
-  Mode B → Backend Orch.                 Mode B → Mobile Orch.       Mode B → Mobile Orch.
-    │                                      │                            │
-    ├─ Agent: T-S016 (Auth fix)            ├─ Agent: T-E012 (iOS push) ├─ Agent: T-J015 (Mobile)
-    ├─ Agent: T-S005b (HLS pipeline)       ├─ QA: tsc mobile           ├─ QA: tsc mobile
-    ├─ QA: tsc services                    ├─ git commit + push         ├─ git commit + push
-    ├─ git commit + push                   └─ Done.md update            └─ Done.md update
-    └─ Done.md update
+  Saidazim (Terminal 1)                  Emirhan (Terminal 2)
+  ══════════════════════                 ══════════════════
+  Mode B → Backend Orch.                 Mode B → Mobile Orch.
+    │                                      │
+    ├─ Agent: T-S052 (Mesh handler)        ├─ Agent: T-E092 (FAB tugma)
+    ├─ Agent: T-S053 (Scope cleanup)       ├─ Agent: T-E096 (MeshClient)
+    ├─ QA: tsc services                    ├─ QA: tsc mobile
+    ├─ git commit + push                   ├─ git commit + push
+    └─ Done.md update                      └─ Done.md update
 
-  PARALLEL OK: backend zone ≠ mobile zone ≠ web zone → conflict YO'Q
+  PARALLEL OK: backend zone ≠ mobile zone → conflict YO'Q
   SHARED ZONE: shared/* → LOCK protocol faollashadi
 ```
 
@@ -638,7 +634,7 @@ Barcha agentlar quyidagi skilllarni avtomatik ishlatadi:
 | Fayl | Kim uchun |
 |------|-----------|
 | `CLAUDE_BACKEND.md` | Saidazim — services, DB, Socket.io, Admin |
-| `CLAUDE_MOBILE.md` | Emirhan + Jafar — React Native, Firebase, navigation |
+| `CLAUDE_MOBILE.md` | Emirhan — React Native, Firebase, navigation |
 | `CLAUDE_WEB.md` | (hozircha mas'ul yo'q) — Next.js, SEO, landing, web app |
 | `docs/Tasks.md` | Hammaga — ochiq vazifalar |
 | `docs/Done.md` | Hammaga — bajarilgan ishlar |
