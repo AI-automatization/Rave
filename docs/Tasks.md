@@ -26,26 +26,9 @@
 
 ---
 
-### T-S052 | P1 | [BACKEND] | Mesh signalling handler — peer:offer/answer/ice routing (Rave Hybrid sync)
-
-- **Mas'ul:** pending[Saidazim]
-- **Holat:** ❌ Boshlanmagan
-- **Sabab:** Hybrid (Socket.io + WebRTC DataChannel) sync arxitekturasi uchun backend peer-to-peer SDP va ICE candidate almashinuvini routing qilishi kerak. Hozirgi Socket.io da 50-150ms lag — mesh orqali 5-30ms ga tushadi (Rave-darajada).
-- **Qilish kerak:**
-  - [ ] `services/watch-party/src/socket/mesh.handlers.ts` yaratish
-  - [ ] `peer:offer` → `getUserSocket(toUserId).emit('peer:offer', { fromUserId, sdp })`
-  - [ ] `peer:answer` va `peer:ice` uchun ham xuddi shunday routing
-  - [ ] `mesh:join` → boshqa a'zolarga `mesh:peer-joined` broadcast
-  - [ ] `services/watch-party/src/socket/index.ts` da `registerMeshHandlers(io, socket)` chaqirilishi
-- **Fayllar:** `services/watch-party/src/socket/mesh.handlers.ts` (yangi), `services/watch-party/src/socket/index.ts`
-- **Reference:** `docs/RAVE_TRANSFORMATION_PLAN.md` §6.2 Qadam 1
-- **Bog'liq:** T-C014 birinchi bo'lishi shart
-
----
-
 ### T-S051 | P1 | [BACKEND] | Video extractor — Playwright bot detection fix (captcha blokirovkasi)
 
-- **Mas'ul:** pending[Saidazim]
+- **Mas'ul:** pending[Saidazim] (in progress)
 - **Holat:** ❌ Boshlanmagan
 - **Sabab:** `playwrightExtractor.ts` headless Chromium `--no-sandbox` flag bilan ishlaydi → Cloudflare/DDoS-Guard uni bot deb bloklaydi. Railway server IP hammaning so'rovlari uchun bitta — bir necha urinishdan keyin IP block-listga tushadi va captcha chiqadi.
 - **Qilish kerak:**
