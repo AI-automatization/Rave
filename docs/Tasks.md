@@ -109,21 +109,6 @@
 
 ---
 
-### T-S054 | P1 | [BACKEND] | Predictive sync — SyncState ga `scheduledAt` field qo'shish
-
-- **Mas'ul:**
-- **Holat:** ❌ Boshlanmagan
-- **Sabab:** Hozir server SyncState da faqat `serverTimestamp` yuboradi. Peer'lar event kelgan zahoti play/seek qiladi — lekin network delay tufayli 50-150ms kechikadi. `scheduledAt = Date.now() + 150` qo'shsak, barcha peer'lar ANIQ BIR VAQTDA play bosadi.
-- **Qilish kerak:**
-  - [ ] `watchParty.service.ts` → `syncState()` funksiyaga `scheduledAt: Date.now() + 150` field qo'shish
-  - [ ] `SyncState` interface ga `scheduledAt: number` qo'shish
-  - [ ] PLAY, PAUSE, SEEK eventlarda scheduledAt broadcast qilinishi
-  - [ ] Heartbeat (VIDEO_SYNC) da scheduledAt bo'lmasligi kerak
-- **Fayllar:** `services/watch-party/src/services/watchParty.service.ts`
-- **BLOCKS:** T-E098
-
----
-
 ### T-S055 | P1 | [BACKEND] | Democratic buffer wait — bir kishi buffer bo'lsa hammani pause
 
 - **Mas'ul:**
@@ -162,50 +147,6 @@
 ---
 
 *(Sprint 1..7 TUGADI — Sprint 8: MVP Release — Sprint 9: Sync Optimizatsiya)*
-
----
-
-### T-E092 | P1 | [MOBILE] | WatchPartyScreen "+" FAB — Source Picker launcher (Rave UX flow)
-
-- **Mas'ul:**
-- **Holat:** ❌ Boshlanmagan
-- **Sabab:** Rave UX: room ichida "+" tugma → Source Picker. Hozirgi `changeMediaBtn` kichik text-button.
-- **Qilish kerak:**
-  - [ ] `WatchPartyScreen.tsx:394-403` — `changeMediaBtn` → FAB style "+" tugma
-  - [ ] Faqat `isOwner` da ko'rinadi (mavjud)
-  - [ ] `add-circle-outline` → `add` (katta icon, 28px)
-  - [ ] `handleOpenSourcePicker` → `navigation.navigate('SourcePicker', { mode: 'change', roomId })`
-- **Fayllar:** `apps/mobile/src/screens/modal/WatchPartyScreen.tsx`
-- **Reference:** `docs/RAVE_TRANSFORMATION_PLAN.md` §4.2 Fayl 1
-
----
-
-### T-E093 | P1 | [MOBILE] | SourcePicker `mode: 'create' | 'change'` prop + navigation
-
-- **Mas'ul:**
-- **Holat:** ❌ Boshlanmagan
-- **Sabab:** Hozir SourcePicker faqat "create new room" mode da ishlaydi.
-- **Qilish kerak:**
-  - [ ] `ModalStackParamList.SourcePicker: { mode: 'create' | 'change'; roomId?: string }`
-  - [ ] `SourcePickerScreen.tsx` — `mode` va `roomId` navigation param qabul qiladi
-  - [ ] `navigation.navigate('MediaWebView', { mode, roomId, defaultUrl })` ga uzatadi
-- **Fayllar:** `apps/mobile/src/types/index.ts`, `apps/mobile/src/screens/modal/SourcePickerScreen.tsx`
-- **Reference:** `docs/RAVE_TRANSFORMATION_PLAN.md` §4.2 Fayl 2
-- **Bog'liq:** T-E092 dan keyin
-
----
-
-### T-E094 | P1 | [MOBILE] | MediaWebView — CHANGE_MEDIA vs createRoom ajratish
-
-- **Mas'ul:**
-- **Holat:** ❌ Boshlanmagan
-- **Sabab:** Video topilganda `mode='change'` bo'lsa — `CHANGE_MEDIA`; `mode='create'` bo'lsa — `createRoom`. Hozirgi kod faqat bitta yo'lni bajaradi.
-- **Qilish kerak:**
-  - [ ] `MediaWebViewScreen.tsx` `handleSendToRoom`: `params.mode === 'change'` → `socket.emit(CLIENT_EVENTS.CHANGE_MEDIA, ...)` + `navigation.goBack()`
-  - [ ] `params.mode === 'create'` → eski flow (createRoom + navigation.replace)
-- **Fayllar:** `apps/mobile/src/screens/modal/MediaWebViewScreen.tsx`
-- **Reference:** `docs/RAVE_TRANSFORMATION_PLAN.md` §4.2 Fayl 3
-- **Bog'liq:** T-E093 dan keyin
 
 ---
 

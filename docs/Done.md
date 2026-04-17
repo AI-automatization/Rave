@@ -2041,4 +2041,14 @@ Root package.json dependencies:
 
 ---
 
-_docs/Done.md | CineSync | Yangilangan: 2026-03-07 (Mobile Expo ga ko'chirildi, qayta qurilmoqda)_
+### F-182 | T-S054 | 2026-04-17 | Predictive sync — scheduledAt field (Saidazim)
+
+`scheduledAt: now + 150` field qo'shildi — barcha peer'lar PLAY/PAUSE/SEEK aniq bir UTC vaqtda bajaradi.
+
+- `shared/src/types/index.ts` → `SyncState.scheduledAt?: number`
+- `services/watch-party/src/services/watchParty.service.ts` → `syncState()`: `scheduledAt: now + 150`
+- Commit: `13da353`
+
+---
+
+_docs/Done.md | CineSync | Yangilangan: 2026-04-17_
