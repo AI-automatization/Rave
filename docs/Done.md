@@ -2102,4 +2102,16 @@ Redis Set отслеживает буферящих пользователей. 
 
 ---
 
+### F-188 | T-S052 | 2026-04-18 | Mesh signalling handler — peer:offer/answer/ice relay (Saidazim)
+
+Pure relay pattern — сервер не хранит WebRTC состояние, только маршрутизирует сигналы через личные комнаты `user:${userId}`.
+MESH_JOIN/LEAVE бродкастятся всей комнате. Автоматический MESH_PEER_LEFT при дисконнекте.
+
+- `services/watch-party/src/socket/mesh.handlers.ts` (новый файл)
+- `watchParty.socket.ts` → `registerMeshHandlers(io, socket, authSocket)`
+- Тест: 5/5 PASS (join, offer, answer, ice, leave)
+- Commit: `b916a9b`
+
+---
+
 _docs/Done.md | CineSync | Yangilangan: 2026-04-18_
