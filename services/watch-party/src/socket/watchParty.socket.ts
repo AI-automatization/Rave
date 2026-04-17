@@ -9,6 +9,7 @@ import { registerRoomEvents, roomCloseTimers } from './roomEvents.handler';
 import { registerVideoEvents } from './videoEvents.handler';
 import { registerChatEvents } from './chatEvents.handler';
 import { registerVoiceEvents } from './voiceEvents.handler';
+import { registerMeshHandlers } from './mesh.handlers';
 
 interface AuthenticatedSocket extends Socket {
   user: JwtPayload;
@@ -110,6 +111,7 @@ export const registerWatchPartySocket = (io: SocketServer, watchPartyService: Wa
     registerVideoEvents(io, socket, authSocket, watchPartyService);
     registerChatEvents(socket, authSocket, checkRateLimit);
     registerVoiceEvents(socket, authSocket, voiceRooms);
+    registerMeshHandlers(io, socket, authSocket);
 
     // DISCONNECT — do NOT remove user from members (allows reconnect).
     // Only clean up voice and notify others. Explicit leave happens via room:leave event or HTTP API.
