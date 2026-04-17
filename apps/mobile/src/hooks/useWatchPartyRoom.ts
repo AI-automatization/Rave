@@ -20,6 +20,12 @@ import { useT } from '@i18n/index';
 type NavProp = NativeStackNavigationProp<ModalStackParamList>;
 const { width: SCREEN_W } = Dimensions.get('window');
 
+// T-E098: Predictive sync — scheduledAt from backend (T-S054)
+// Optional field: when absent, falls back to immediate execution
+interface PredictiveSyncState {
+  scheduledAt?: number; // Unix ms — exact time all peers should execute action
+}
+
 export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const navigation = useNavigation<NavProp>();
   const userId = useAuthStore(s => s.user?._id) ?? '';
@@ -92,6 +98,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     Alert.alert(t('watchParty', 'roomClosed') ?? 'Xona yopildi', message, [{ text: 'OK', onPress: () => navigation.goBack() }]);
   }, [roomClosed, navigation, t]);
 
+  // T-E098: Predictive sync — scheduledAt support
   useEffect(() => {
     if (!syncState) return;
     const syncId = `${syncState.serverTimestamp}`;
@@ -99,10 +106,30 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     lastSyncId.current = syncId;
     intendedPlayingRef.current = syncState.isPlaying;
     isSyncing.current = true;
-    playerRef.current?.seekTo(syncState.currentTime * 1000)
-      .then(() => syncState.isPlaying ? playerRef.current?.play() : playerRef.current?.pause())
-      .catch(() => {})
-      .finally(() => { setTimeout(() => { isSyncing.current = false; }, 400); });
+
+    const scheduled = (syncState as PredictiveSyncState).scheduledAt;
+
+    const executeSync = (compensationSecs: number) => {
+      const targetMs = (syncState.currentTime + compensationSecs) * 1000;
+      playerRef.current?.seekTo(targetMs)
+        .then(() => syncState.isPlaying ? playerRef.current?.play() : playerRef.current?.pause())
+        .catch(() => {})
+        .finally(() => { setTimeout(() => { isSyncing.current = false; }, 400); });
+    };
+
+    if (scheduled && scheduled > 0) {
+      const delay = scheduled - Date.now();
+      if (delay > 0) {
+        // Future: wait until scheduledAt, then execute
+        const timerId = setTimeout(() => executeSync(0), delay);
+        return () => clearTimeout(timerId);
+      }
+      // Past: compensate for elapsed time
+      executeSync(Math.abs(delay) / 1000);
+    } else {
+      // No scheduledAt (backend T-S054 not deployed yet) — immediate
+      executeSync(0);
+    }
   }, [syncState]);
 
   useEffect(() => {

@@ -29,8 +29,20 @@ type WebViewMessage =
   | { type: 'PAUSE'; currentTime: number }
   | { type: 'SEEK'; currentTime: number }
   | { type: 'PROGRESS'; currentTime: number; duration: number }
+  | { type: 'POSITION_POLL'; currentTime: number }
   | { type: 'IFRAME_FOUND'; urls: string[] }
   | { type: 'YT_EMBED_ERROR'; code: number };
+
+const POSITION_POLL_INTERVAL_MS = 2000;
+const POSITION_POLL_JS = `
+  if(window._csVideo && !window._csVideo.paused){
+    window.ReactNativeWebView.postMessage(JSON.stringify({
+      type:'POSITION_POLL',
+      currentTime:window._csVideo.currentTime
+    }));
+  }
+  true;
+`;
 
 export function useWebViewPlayer(
   imperativeRef: React.Ref<WebViewPlayerRef>,
@@ -39,6 +51,7 @@ export function useWebViewPlayer(
   const webviewRef = useRef<WebView>(null);
   const currentTimeMsRef = useRef(0);
   const originalHostRef = useRef(getHostname(url));
+  const isPlayingRef = useRef(false);
 
   const isHtmlMode = !!youtubeVideoId || !!htmlContent;
   const isYouTubeMode = !!youtubeVideoId;
@@ -62,6 +75,16 @@ export function useWebViewPlayer(
     return () => StatusBar.setHidden(false, 'slide');
   }, []);
 
+  // T-E100: Periodic position polling — real currentTime from WebView every 2s
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (isPlayingRef.current) {
+        webviewRef.current?.injectJavaScript(POSITION_POLL_JS);
+      }
+    }, POSITION_POLL_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, []);
+
   const injectWithRetry = useCallback((js: string) => {
     const wrapped = `if(window._csVideo){${js}}else{setTimeout(function(){if(window._csVideo){${js}}},500);} true;`;
     webviewRef.current?.injectJavaScript(wrapped);
@@ -83,10 +106,12 @@ export function useWebViewPlayer(
       switch (data.type) {
         case 'PLAY':
           currentTimeMsRef.current = data.currentTime * 1000;
+          isPlayingRef.current = true;
           if (isOwner) onPlay(data.currentTime);
           break;
         case 'PAUSE':
           currentTimeMsRef.current = data.currentTime * 1000;
+          isPlayingRef.current = false;
           if (isOwner) onPause(data.currentTime);
           break;
         case 'SEEK':
@@ -96,6 +121,9 @@ export function useWebViewPlayer(
         case 'PROGRESS':
           currentTimeMsRef.current = data.currentTime * 1000;
           onProgress?.(data.currentTime, data.duration);
+          break;
+        case 'POSITION_POLL':
+          currentTimeMsRef.current = data.currentTime * 1000;
           break;
         case 'IFRAME_FOUND':
           if (!isHtmlMode && data.urls[0]) {
