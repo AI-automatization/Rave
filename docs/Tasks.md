@@ -28,7 +28,7 @@
 
 ### T-S051 | P1 | [BACKEND] | Video extractor — Playwright bot detection fix (captcha blokirovkasi)
 
-- **Mas'ul:** pending[Saidazim]
+- **Mas'ul:** pending[Saidazim] (in progress)
 - **Holat:** ❌ Boshlanmagan
 - **Sabab:** `playwrightExtractor.ts` headless Chromium `--no-sandbox` flag bilan ishlaydi → Cloudflare/DDoS-Guard uni bot deb bloklaydi. Railway server IP hammaning so'rovlari uchun bitta — bir necha urinishdan keyin IP block-listga tushadi va captcha chiqadi.
 - **Qilish kerak:**
