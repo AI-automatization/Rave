@@ -111,7 +111,7 @@
 
 ### T-S055 | P1 | [BACKEND] | Democratic buffer wait — bir kishi buffer bo'lsa hammani pause
 
-- **Mas'ul:**
+- **Mas'ul:** pending[Saidazim]
 - **Holat:** ❌ Boshlanmagan
 - **Sabab:** Hozir BUFFER_START/BUFFER_END eventlar faqat notification. Peer'lar davom etadi → buffer bo'lgan kishi 5-10 sek orqada qoladi.
 - **Qilish kerak:**
