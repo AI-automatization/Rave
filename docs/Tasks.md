@@ -43,7 +43,7 @@
 
 ### T-S050 | P1 | [BACKEND] | Push notification E2E test — Expo Push Token → FCM delivery
 
-- **Mas'ul:** pending[Saidazim]
+- **Mas'ul:** pending[Saidazim] (in progress)
 - **Holat:** ❌ Boshlanmagan
 - **Sabab:** Mobile da Expo Push Token yuboriladi, lekin real qurilmada push notification kelishi hech qachon test qilinmagan
 - **Qilish kerak:**
