@@ -2076,4 +2076,20 @@ Redis Set отслеживает буферящих пользователей. 
 
 ---
 
+### F-185 | T-E098 + T-E100 | 2026-04-18 | Predictive sync + WebView polling (Emirhan)
+
+- `useWatchPartyRoom.ts` → `scheduledAt`: `delay = scheduledAt - Date.now()` → `setTimeout(play, delay)`; `delay ≤ 0` → seek компенсация
+- `useWebViewPlayer.ts` → har 2s JS injection: `video.currentTime` → `postMessage(POSITION_POLL)`; faqat `isPlaying=true` da
+- Commit: `670d319`
+
+---
+
+### F-186 | T-E099 | 2026-04-18 | Drift correction via playbackRate (Emirhan)
+
+- `useWatchPartyRoom.ts` → `VIDEO_HEARTBEAT` listener: drift > 2s → seekTo; 0.3–2s → playbackRate 0.95/1.05; < 0.3s → ignore
+- `expo-av`: `setRateAsync(rate, shouldCorrectPitch: true)`
+- Commit: `d342d5f`
+
+---
+
 _docs/Done.md | CineSync | Yangilangan: 2026-04-18_
