@@ -20,6 +20,7 @@ export interface UniversalPlayerRef {
   pause: () => Promise<void>;
   seekTo: (ms: number) => Promise<void>;
   getPositionMs: () => Promise<number>;
+  setRate: (rate: number) => Promise<void>;
 }
 
 interface Props {
@@ -93,6 +94,10 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
         const status = await videoRef.current?.getStatusAsync();
         if (status?.isLoaded) return status.positionMillis;
         return 0;
+      },
+      setRate: async (rate: number) => {
+        if (useWebview) webviewRef.current?.setRate(rate);
+        else await videoRef.current?.setRateAsync(rate, true);
       },
     }), [useWebview]); // eslint-disable-line react-hooks/exhaustive-deps
 

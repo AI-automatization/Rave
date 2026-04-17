@@ -21,6 +21,15 @@ export interface RoomClosedData {
   closeReason?: string;
 }
 
+// T-E099: Heartbeat from owner — separate from syncState to avoid seekTo trigger
+export interface HeartbeatData {
+  currentTime: number; // owner video position (seconds)
+  timestamp: number;   // owner Date.now() when sent
+}
+
+// T-S056 will add this event; until then listener is dormant
+const VIDEO_HEARTBEAT_EVENT = 'video:heartbeat';
+
 export function useWatchParty(roomId: string) {
   const token = useAuthStore(s => s.accessToken);
   const userId = useAuthStore(s => s.user?._id);
@@ -30,6 +39,7 @@ export function useWatchParty(roomId: string) {
   const isOwner = room?.ownerId === userId;
   const [adminMonitoring, setAdminMonitoring] = useState(false);
   const [roomClosed, setRoomClosed] = useState<RoomClosedData | null>(null);
+  const [heartbeat, setHeartbeat] = useState<HeartbeatData | null>(null);
 
   useEffect(() => {
     // Har safar yangi xonaga kirda — eski ma'lumotlarni tozala
@@ -87,6 +97,9 @@ export function useWatchParty(roomId: string) {
       if (__DEV__) console.log('[useWatchParty] socket error:', err?.message);
     });
 
+    // T-E099: Heartbeat listener — separate from syncState (no seekTo trigger)
+    socket.on(VIDEO_HEARTBEAT_EVENT, (data: HeartbeatData) => setHeartbeat(data));
+
     // Admin monitoring events
     socket.on('admin:joined', () => setAdminMonitoring(true));
     socket.on('admin:left', () => setAdminMonitoring(false));
@@ -111,6 +124,7 @@ export function useWatchParty(roomId: string) {
       socket.off(SERVER_EVENTS.MEMBER_LEFT);
       socket.off(SERVER_EVENTS.ROOM_CLOSED);
       socket.off(SERVER_EVENTS.ERROR);
+      socket.off(VIDEO_HEARTBEAT_EVENT);
       socket.off('admin:joined');
       socket.off('admin:left');
     };
@@ -168,5 +182,5 @@ export function useWatchParty(roomId: string) {
     getSocket()?.emit(CLIENT_EVENTS.VOICE_LEAVE);
   }, []);
 
-  return { room, syncState, messages, activeMembers, isOwner, adminMonitoring, roomClosed, emitPlay, emitPause, emitSeek, sendMessage, sendEmoji, emitMediaChange, emitVoiceJoin, emitVoiceLeave };
+  return { room, syncState, messages, activeMembers, isOwner, adminMonitoring, roomClosed, heartbeat, emitPlay, emitPause, emitSeek, sendMessage, sendEmoji, emitMediaChange, emitVoiceJoin, emitVoiceLeave };
 }

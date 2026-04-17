@@ -12,6 +12,7 @@ export interface WebViewPlayerRef {
   pause: () => void;
   seekTo: (ms: number) => void;
   getPositionMs: () => number;
+  setRate: (rate: number) => void;
 }
 
 interface Props {

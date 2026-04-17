@@ -26,12 +26,19 @@ interface PredictiveSyncState {
   scheduledAt?: number; // Unix ms — exact time all peers should execute action
 }
 
+// T-E099: Drift correction thresholds
+const DRIFT_FORCE_SEEK_SECS = 2.0;   // >2s → hard seekTo
+const DRIFT_RATE_ADJUST_SECS = 0.3;  // 0.3-2s → playbackRate correction
+const DRIFT_RATE_SLOW = 0.95;
+const DRIFT_RATE_FAST = 1.05;
+const DRIFT_RATE_RESET_MS = 3000;    // reset to 1.0 after 3s
+
 export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const navigation = useNavigation<NavProp>();
   const userId = useAuthStore(s => s.user?._id) ?? '';
   const { t } = useT();
 
-  const { room, syncState, messages, activeMembers, isOwner, adminMonitoring, roomClosed,
+  const { room, syncState, messages, activeMembers, isOwner, adminMonitoring, roomClosed, heartbeat,
     emitPlay, emitPause, emitSeek, sendMessage, sendEmoji } = useWatchParty(roomId);
   const { isExtracting, result: extractResult, fallbackMode: extractFallback, extract, reset: resetExtraction } = useVideoExtraction();
 
@@ -42,6 +49,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const isActionInFlight = useRef(false);
   const intendedPlayingRef = useRef(false);
   const extractStartedRef = useRef(false);
+  const driftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [showChat, setShowChat] = useState(false);
   const [showVoice, setShowVoice] = useState(false);
@@ -141,6 +149,35 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     }, 5000);
     return () => clearInterval(interval);
   }, [isOwner, room, isPlaying, emitPlay]);
+
+  // T-E099: Drift correction — only for members (not owner), on heartbeat
+  useEffect(() => {
+    if (isOwner || !heartbeat || !isPlaying || isSyncing.current) return;
+
+    const expected = heartbeat.currentTime + (Date.now() - heartbeat.timestamp) / 1000;
+    const drift = videoCurrentTime - expected;
+    const absDrift = Math.abs(drift);
+
+    if (absDrift > DRIFT_FORCE_SEEK_SECS) {
+      // Large drift — force seek to correct position
+      playerRef.current?.seekTo(expected * 1000);
+    } else if (absDrift > DRIFT_RATE_ADJUST_SECS) {
+      // Moderate drift — gradual correction via playbackRate
+      const rate = drift > 0 ? DRIFT_RATE_SLOW : DRIFT_RATE_FAST;
+      playerRef.current?.setRate(rate);
+
+      // Clear previous timer if exists
+      if (driftTimerRef.current) clearTimeout(driftTimerRef.current);
+      driftTimerRef.current = setTimeout(() => {
+        playerRef.current?.setRate(1.0);
+        driftTimerRef.current = null;
+      }, DRIFT_RATE_RESET_MS);
+    }
+    // drift < 0.3s → ignore, acceptable sync
+  }, [heartbeat, isOwner, isPlaying, videoCurrentTime]);
+
+  // Cleanup drift timer on unmount
+  useEffect(() => () => { if (driftTimerRef.current) clearTimeout(driftTimerRef.current); }, []);
 
   const onPlaybackStatusUpdate = useCallback((status: AVPlaybackStatus) => {
     if (!status.isLoaded) return;

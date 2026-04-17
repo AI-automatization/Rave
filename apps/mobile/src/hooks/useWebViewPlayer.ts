@@ -98,6 +98,7 @@ export function useWebViewPlayer(
       currentTimeMsRef.current = ms;
     },
     getPositionMs: () => currentTimeMsRef.current,
+    setRate: (rate: number) => injectWithRetry(`window._csVideo.playbackRate=${rate};`),
   }));
 
   const handleMessage = useCallback((event: WebViewMessageEvent) => {
