@@ -127,7 +127,7 @@
 
 ### T-S056 | P1 | [BACKEND] | Heartbeat alohida event — VIDEO_HEARTBEAT (PLAY dan ajratish)
 
-- **Mas'ul:**
+- **Mas'ul:** pending[Saidazim]
 - **Holat:** ❌ Boshlanmagan
 - **Sabab:** Hozir owner heartbeat (5 sek) oddiy PLAY event sifatida yuboriladi → member'lar `seekTo()` qiladi → video har 5 sekundda "sakraydi".
 - **Qilish kerak:**
