@@ -28,7 +28,7 @@
 
 ### T-C014 | P1 | [IKKALASI] | Shared socket events — PEER_OFFER/ANSWER/ICE + MESH (Rave Hybrid)
 
-- **Mas'ul:**
+- **Mas'ul:** pending[Saidazim]
 - **Holat:** ❌ Boshlanmagan
 - **Sabab:** WebRTC signalling event nomlari backend + mobile da bir xil bo'lishi shart. Birinchi qadam — T-S052 va T-E096 ga dependency.
 - **Qilish kerak:**
