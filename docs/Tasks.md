@@ -26,22 +26,6 @@
 
 ---
 
-### T-C014 | P1 | [IKKALASI] | Shared socket events — PEER_OFFER/ANSWER/ICE + MESH (Rave Hybrid)
-
-- **Mas'ul:** pending[Saidazim]
-- **Holat:** ❌ Boshlanmagan
-- **Sabab:** WebRTC signalling event nomlari backend + mobile da bir xil bo'lishi shart. Birinchi qadam — T-S052 va T-E096 ga dependency.
-- **Qilish kerak:**
-  - [ ] `shared/constants/socket-events.ts` — `CLIENT_EVENTS.PEER_OFFER`, `PEER_ANSWER`, `PEER_ICE`, `MESH_JOIN`
-  - [ ] `SERVER_EVENTS.PEER_OFFER`, `PEER_ANSWER`, `PEER_ICE`, `MESH_PEER_JOINED`
-  - [ ] `shared/types/index.ts` — `SyncMessage`, `MeshSignalPayload` types
-  - [ ] Kelishish: Saidazim + Emirhan birga (shared file lock protocol)
-- **Fayllar:** `shared/constants/socket-events.ts`, `shared/types/index.ts`
-- **Reference:** `docs/RAVE_TRANSFORMATION_PLAN.md` §4.3, §6.2 Qadam 1
-- **BLOCKS:** T-S052, T-E096
-
----
-
 ### T-S052 | P1 | [BACKEND] | Mesh signalling handler — peer:offer/answer/ice routing (Rave Hybrid sync)
 
 - **Mas'ul:**

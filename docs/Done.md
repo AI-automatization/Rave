@@ -2092,4 +2092,14 @@ Redis Set отслеживает буферящих пользователей. 
 
 ---
 
+### F-187 | T-C014 | 2026-04-18 | Shared WebRTC mesh socket events + types (Saidazim)
+
+- `shared/constants/socketEvents.ts` → SERVER_EVENTS: `PEER_OFFER/ANSWER/ICE`, `MESH_PEER_JOINED/LEFT`
+- `shared/constants/socketEvents.ts` → CLIENT_EVENTS: `PEER_OFFER/ANSWER/ICE`, `MESH_JOIN/LEAVE`
+- `shared/types/index.ts` → `MeshSignalPayload`, `SyncMessage`, `MeshSignalType`
+- Разблокирует: T-S052 (backend mesh handler) + T-E096 (mobile MeshClient)
+- Commit: `c65dc06`
+
+---
+
 _docs/Done.md | CineSync | Yangilangan: 2026-04-18_
