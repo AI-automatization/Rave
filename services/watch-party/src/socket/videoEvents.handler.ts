@@ -99,14 +99,74 @@ export const registerVideoEvents = (
     }
   });
 
-  // BUFFER — notify others
-  socket.on(CLIENT_EVENTS.BUFFER_START, () => {
+  // BUFFER — democratic wait: pause all when first peer buffers, resume when all done
+  const bufferTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
+  const MAX_BUFFER_WAIT_MS = 30_000;
+
+  const resumeRoom = async (roomId: string) => {
+    await watchPartyService.clearAllBuffering(roomId);
+    const existing = bufferTimeouts.get(roomId);
+    if (existing) { clearTimeout(existing); bufferTimeouts.delete(roomId); }
+
+    const room = await watchPartyService.getRoom(roomId);
+    const syncState = await watchPartyService.syncState(roomId, room.ownerId, room.currentTime, true);
+    io.to(roomId).emit(SERVER_EVENTS.VIDEO_PLAY, syncState);
+    io.to(roomId).emit(SERVER_EVENTS.VIDEO_BUFFER, { userId, buffering: false });
+    logger.info('Buffer wait over — resumed room', { roomId });
+  };
+
+  socket.on(CLIENT_EVENTS.BUFFER_START, async () => {
     if (!authSocket.roomId) return;
-    socket.to(authSocket.roomId).emit(SERVER_EVENTS.VIDEO_BUFFER, { userId, buffering: true });
+    const roomId = authSocket.roomId;
+
+    try {
+      const count = await watchPartyService.markBuffering(roomId, userId);
+      io.to(roomId).emit(SERVER_EVENTS.VIDEO_BUFFER, { userId, buffering: true });
+
+      if (count === 1) {
+        // First buffer — pause everyone
+        const room = await watchPartyService.getRoom(roomId);
+        const syncState = await watchPartyService.syncState(roomId, room.ownerId, room.currentTime, false);
+        io.to(roomId).emit(SERVER_EVENTS.VIDEO_PAUSE, syncState);
+        logger.info('Democratic buffer pause', { roomId, userId });
+
+        // Safety: force resume after 30s
+        const timeout = setTimeout(() => resumeRoom(roomId), MAX_BUFFER_WAIT_MS);
+        bufferTimeouts.set(roomId, timeout);
+      }
+    } catch (error) {
+      logger.error('Socket buffer_start error', { userId, error });
+    }
   });
 
-  socket.on(CLIENT_EVENTS.BUFFER_END, () => {
+  socket.on(CLIENT_EVENTS.BUFFER_END, async () => {
     if (!authSocket.roomId) return;
-    socket.to(authSocket.roomId).emit(SERVER_EVENTS.VIDEO_BUFFER, { userId, buffering: false });
+    const roomId = authSocket.roomId;
+
+    try {
+      const remaining = await watchPartyService.unmarkBuffering(roomId, userId);
+      if (remaining === 0) {
+        await resumeRoom(roomId);
+      } else {
+        io.to(roomId).emit(SERVER_EVENTS.VIDEO_BUFFER, { userId, buffering: false });
+        logger.info('Buffer wait: still waiting', { roomId, remaining });
+      }
+    } catch (error) {
+      logger.error('Socket buffer_end error', { userId, error });
+    }
+  });
+
+  // Cleanup on disconnect — remove from buffering set
+  socket.on('disconnect', async () => {
+    if (!authSocket.roomId) return;
+    const roomId = authSocket.roomId;
+    try {
+      const remaining = await watchPartyService.unmarkBuffering(roomId, userId);
+      if (remaining === 0) {
+        const existing = bufferTimeouts.get(roomId);
+        if (existing) { clearTimeout(existing); bufferTimeouts.delete(roomId); }
+        await watchPartyService.clearAllBuffering(roomId);
+      }
+    } catch { /* ignore disconnect cleanup errors */ }
   });
 };

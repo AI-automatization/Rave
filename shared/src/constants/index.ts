@@ -65,6 +65,7 @@ export const REDIS_KEYS = {
 
   // Watch party
   watchPartyRoom: (roomId: string) => `party:room:${roomId}`,
+  bufferingUsers: (roomId: string) => `party:buffering:${roomId}`,
 
   // Battle
   battleLeaderboard: (battleId: string) => `battle:leaderboard:${battleId}`,

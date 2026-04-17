@@ -348,6 +348,25 @@ export class WatchPartyService {
     }
   }
 
+  // Returns new buffering count — if 1, caller should pause the room
+  async markBuffering(roomId: string, userId: string): Promise<number> {
+    const key = REDIS_KEYS.bufferingUsers(roomId);
+    await this.redis.sadd(key, userId);
+    await this.redis.expire(key, 60); // auto-clear after 60s in case of missed BUFFER_END
+    return this.redis.scard(key);
+  }
+
+  // Returns remaining count — if 0, caller should resume the room
+  async unmarkBuffering(roomId: string, userId: string): Promise<number> {
+    const key = REDIS_KEYS.bufferingUsers(roomId);
+    await this.redis.srem(key, userId);
+    return this.redis.scard(key);
+  }
+
+  async clearAllBuffering(roomId: string): Promise<void> {
+    await this.redis.del(REDIS_KEYS.bufferingUsers(roomId));
+  }
+
   async setMuteState(roomId: string, userId: string, isMuted: boolean): Promise<void> {
     const key = `watch_party:muted:${roomId}`;
     if (isMuted) {
