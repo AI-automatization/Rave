@@ -166,6 +166,28 @@ export interface SyncState {
 }
 
 // ─────────────────────────────────────────────
+// WebRTC Mesh (Bosqich B — Rave Hybrid Sync)
+// ─────────────────────────────────────────────
+
+export type MeshSignalType = 'offer' | 'answer' | 'ice';
+
+export interface MeshSignalPayload {
+  fromUserId: string;
+  toUserId: string;
+  type: MeshSignalType;
+  sdp?: { type: 'offer' | 'answer'; sdp: string };
+  candidate?: { candidate: string; sdpMid?: string | null; sdpMLineIndex?: number | null };
+}
+
+export interface SyncMessage {
+  type: 'play' | 'pause' | 'seek' | 'heartbeat';
+  currentTime: number;
+  scheduledAt?: number; // only for play/pause/seek
+  timestamp: number;
+  fromUserId: string;
+}
+
+// ─────────────────────────────────────────────
 // Battle
 // ─────────────────────────────────────────────
 

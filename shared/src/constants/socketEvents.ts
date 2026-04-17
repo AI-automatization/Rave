@@ -32,6 +32,13 @@ export const SERVER_EVENTS = Object.freeze({
   VOICE_ICE:        'voice:ice',
   VOICE_SPEAKING:   'voice:speaking',
 
+  // WebRTC mesh signalling (Bosqich B)
+  PEER_OFFER:        'mesh:peer_offer',
+  PEER_ANSWER:       'mesh:peer_answer',
+  PEER_ICE:          'mesh:peer_ice',
+  MESH_PEER_JOINED:  'mesh:peer_joined',
+  MESH_PEER_LEFT:    'mesh:peer_left',
+
   ERROR: 'error',
 } as const);
 
@@ -62,6 +69,13 @@ export const CLIENT_EVENTS = Object.freeze({
 
   // Owner xona mediasini almashtiradi → server room:updated broadcast qiladi barcha memberlarga
   CHANGE_MEDIA: 'room:media:change',
+
+  // WebRTC mesh signalling (Bosqich B)
+  PEER_OFFER:  'mesh:peer_offer',
+  PEER_ANSWER: 'mesh:peer_answer',
+  PEER_ICE:    'mesh:peer_ice',
+  MESH_JOIN:   'mesh:join',
+  MESH_LEAVE:  'mesh:leave',
 } as const);
 
 export type ServerEvent = (typeof SERVER_EVENTS)[keyof typeof SERVER_EVENTS];
