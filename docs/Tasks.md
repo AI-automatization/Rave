@@ -125,21 +125,6 @@
 
 ---
 
-### T-S056 | P1 | [BACKEND] | Heartbeat alohida event — VIDEO_HEARTBEAT (PLAY dan ajratish)
-
-- **Mas'ul:** pending[Saidazim]
-- **Holat:** ❌ Boshlanmagan
-- **Sabab:** Hozir owner heartbeat (5 sek) oddiy PLAY event sifatida yuboriladi → member'lar `seekTo()` qiladi → video har 5 sekundda "sakraydi".
-- **Qilish kerak:**
-  - [ ] `shared/constants/socket-events.ts` → `CLIENT_EVENTS.HEARTBEAT = 'video:heartbeat'`, `SERVER_EVENTS.VIDEO_HEARTBEAT = 'video:heartbeat'`
-  - [ ] `videoEvents.handler.ts` → `HEARTBEAT` handler: owner check + broadcast (scheduledAt YO'Q)
-  - [ ] `HEARTBEAT` payload: `{ currentTime, timestamp: Date.now() }`
-  - [ ] Redis/MongoDB position saqlash, lekin isPlaying o'zgartirmaslik
-- **Fayllar:** `services/watch-party/src/socket/videoEvents.handler.ts`, `shared/constants/socket-events.ts`
-- **BLOCKS:** T-E099
-
----
-
 # ═══════════════════════════════════════
 
 # 🟢 EMIRHAN — EXPO REACT NATIVE MOBILE + WEB

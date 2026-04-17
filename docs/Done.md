@@ -2051,4 +2051,16 @@ Root package.json dependencies:
 
 ---
 
-_docs/Done.md | CineSync | Yangilangan: 2026-04-17_
+### F-183 | T-S056 | 2026-04-18 | VIDEO_HEARTBEAT отдельное событие (Saidazim)
+
+`CLIENT_EVENTS.HEARTBEAT = 'video:heartbeat'` + `SERVER_EVENTS.VIDEO_HEARTBEAT` добавлены.
+Handler: owner check + broadcast `{ currentTime, timestamp, updatedBy }` без `scheduledAt`.
+Peers используют только drift correction (playbackRate), не seekTo — прыжки устранены.
+
+- `shared/src/constants/socketEvents.ts` — HEARTBEAT + VIDEO_HEARTBEAT
+- `services/watch-party/src/socket/videoEvents.handler.ts` — HEARTBEAT handler
+- Commit: `e39c018`
+
+---
+
+_docs/Done.md | CineSync | Yangilangan: 2026-04-18_
