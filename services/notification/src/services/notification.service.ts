@@ -6,6 +6,45 @@ import { logger } from '@shared/utils/logger';
 import { NotFoundError } from '@shared/utils/errors';
 import { NotificationType, PaginationMeta } from '@shared/types';
 
+const EXPO_PUSH_URL    = 'https://exp.host/--/api/v2/push/send';
+const EXPO_TOKEN_PREFIX = 'ExponentPushToken[';
+const EXPO_BATCH_SIZE   = 100; // Expo API limit per request
+
+async function sendExpoPush(
+  tokens: string[],
+  title: string,
+  body: string,
+  data: Record<string, string>,
+): Promise<void> {
+  // Send in batches of 100 — Expo API limit
+  const batches: Promise<void>[] = [];
+  for (let i = 0; i < tokens.length; i += EXPO_BATCH_SIZE) {
+    const batch = tokens.slice(i, i + EXPO_BATCH_SIZE);
+    const messages = batch.map((to) => ({ to, title, body, data, sound: 'default', priority: 'high' }));
+
+    batches.push((async () => {
+      const res = await fetch(EXPO_PUSH_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(messages),
+      });
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        logger.error('Expo push failed', { status: res.status, body: text });
+        return;
+      }
+
+      const json = await res.json() as { data: Array<{ status: string; message?: string }> };
+      const failures = json.data?.filter((r) => r.status !== 'ok') ?? [];
+      if (failures.length > 0) logger.warn('Expo push partial failure', { failures });
+      logger.info('Expo push sent', { total: batch.length, failures: failures.length });
+    })());
+  }
+
+  await Promise.all(batches);
+}
+
 export class NotificationService {
   private emailQueue: Bull.Queue<EmailJobData> | null;
 
@@ -33,29 +72,42 @@ export class NotificationService {
   }
 
   async sendPush(
-    fcmTokens: string[],
+    tokens: string[],
     title: string,
     body: string,
     data: Record<string, string> = {},
   ): Promise<void> {
-    if (!fcmTokens.length) return;
+    if (!tokens.length) return;
 
-    try {
-      const response = await admin.messaging().sendEachForMulticast({
-        tokens: fcmTokens,
-        notification: { title, body },
-        data,
-        android: { priority: 'high' },
-        apns: { payload: { aps: { sound: 'default' } } },
-      });
+    const { expoTokens, fcmTokens } = tokens.reduce<{ expoTokens: string[]; fcmTokens: string[] }>(
+      (acc, t) => {
+        if (t.startsWith(EXPO_TOKEN_PREFIX)) acc.expoTokens.push(t);
+        else acc.fcmTokens.push(t);
+        return acc;
+      },
+      { expoTokens: [], fcmTokens: [] },
+    );
 
-      logger.info('FCM push sent', {
-        success: response.successCount,
-        failure: response.failureCount,
-      });
-    } catch (error) {
-      logger.error('FCM push failed', { error });
-    }
+    await Promise.all([
+      expoTokens.length > 0
+        ? sendExpoPush(expoTokens, title, body, data).catch((err) =>
+            logger.error('Expo push error', { error: (err as Error).message }),
+          )
+        : Promise.resolve(),
+      fcmTokens.length > 0
+        ? admin.messaging().sendEachForMulticast({
+            tokens: fcmTokens,
+            notification: { title, body },
+            data,
+            android: { priority: 'high' },
+            apns: { payload: { aps: { sound: 'default' } } },
+          }).then((r) => {
+            logger.info('FCM push sent', { success: r.successCount, failure: r.failureCount });
+          }).catch((error) => {
+            logger.error('FCM push failed', { error });
+          })
+        : Promise.resolve(),
+    ]);
   }
 
   async sendEmail(to: string, subject: string, html: string, text?: string): Promise<void> {
