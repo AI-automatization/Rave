@@ -2114,4 +2114,13 @@ MESH_JOIN/LEAVE бродкастятся всей комнате. Автомат
 
 ---
 
+### F-189 | T-S051 | 2026-04-18 | Playwright stealth + UA rotation (Saidazim)
+
+- `playwrightExtractor.ts`: random UA из 5 вариантов, случайный viewport, `--disable-blink-features=AutomationControlled`, init script: `navigator.webdriver=false`, `window.chrome={runtime:{}}`
+- `genericExtractor.ts`: random UA каждый запрос, 100-300ms задержка между iframe рекурсиями
+- `index.ts`: generic TTL 1h → 6h (CIS сайты дорого re-extract через Playwright)
+- Commit: `b72b1ea`
+
+---
+
 _docs/Done.md | CineSync | Yangilangan: 2026-04-18_

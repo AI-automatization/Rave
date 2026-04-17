@@ -26,21 +26,6 @@
 
 ---
 
-### T-S051 | P1 | [BACKEND] | Video extractor — Playwright bot detection fix (captcha blokirovkasi)
-
-- **Mas'ul:** pending[Saidazim] (in progress)
-- **Holat:** ❌ Boshlanmagan
-- **Sabab:** `playwrightExtractor.ts` headless Chromium `--no-sandbox` flag bilan ishlaydi → Cloudflare/DDoS-Guard uni bot deb bloklaydi. Railway server IP hammaning so'rovlari uchun bitta — bir necha urinishdan keyin IP block-listga tushadi va captcha chiqadi.
-- **Qilish kerak:**
-  - [ ] `playwrightExtractor.ts`: stealth plugin qo'shish (`playwright-stealth` yoki `puppeteer-extra-plugin-stealth` analog)
-  - [ ] `genericExtractor.ts`: tasodifiy User-Agent rotation (har so'rovda boshqa UA)
-  - [ ] `genericExtractor.ts`: iframe recursion orasiga 100-300ms tasodifiy delay
-  - [ ] Geo-blocked domenlar uchun Redis cache TTL oshirish: `hdrezka`, `filmix`, `kinogo` → 6-12 soat
-  - [ ] Railway deploy uchun proxy rotation imkoniyatini ko'rish (agar IP blok davom etsa)
-- **Fayllar:** `services/content/src/services/videoExtractor/playwrightExtractor.ts`, `genericExtractor.ts`, `index.ts`
-
----
-
 ### T-S053 | P2 | [BACKEND] | Scope cleanup — Battle service maintenance mode + feature flag
 
 - **Mas'ul:**
