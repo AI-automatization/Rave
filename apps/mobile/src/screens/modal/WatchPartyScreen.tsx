@@ -33,7 +33,7 @@ export function WatchPartyScreen() {
     setShowChat, setShowVoice, setShowInvite, setShowQualityMenu, setShowEpisodeMenu, setVideoIsLive,
     sendMessage,
     onPlaybackStatusUpdate, handleWebViewPlay, handleWebViewPause, handleWebViewSeek,
-    handleProgress, handleProgressSeek, handlePlayPause, handleStop,
+    handleWebViewBuffering, handleProgress, handleProgressSeek, handlePlayPause, handleStop,
     handleToggleFullscreen, handleSeekDirection, handleEmojiSelect, handleRemoveEmoji,
     handleChangeMedia, handleQualitySelect, handleEpisodeSelect, handleLeave,
   } = useWatchPartyRoom(params.roomId, params.videoReferer);
@@ -69,6 +69,7 @@ export function WatchPartyScreen() {
         onSeek={handleWebViewSeek}
         onPlaybackStatusUpdate={onPlaybackStatusUpdate}
         onProgress={handleProgress}
+        onBuffering={handleWebViewBuffering}
         onStreamResolved={({ isLive }) => setVideoIsLive(isLive)}
         onPlayPause={handlePlayPause}
         currentTime={videoCurrentTime}

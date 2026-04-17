@@ -21,6 +21,7 @@ interface Props {
   onPause: (secs: number) => void;
   onSeek: (secs: number) => void;
   onProgress?: (secs: number, dur: number) => void;
+  onBuffering?: (isBuffering: boolean) => void;
 }
 
 type WebViewMessage =
@@ -30,6 +31,7 @@ type WebViewMessage =
   | { type: 'SEEK'; currentTime: number }
   | { type: 'PROGRESS'; currentTime: number; duration: number }
   | { type: 'POSITION_POLL'; currentTime: number }
+  | { type: 'BUFFERING'; isBuffering: boolean }
   | { type: 'IFRAME_FOUND'; urls: string[] }
   | { type: 'YT_EMBED_ERROR'; code: number };
 
@@ -46,7 +48,7 @@ const POSITION_POLL_JS = `
 
 export function useWebViewPlayer(
   imperativeRef: React.Ref<WebViewPlayerRef>,
-  { url, youtubeVideoId, htmlContent, htmlBaseUrl, isOwner, referer, onPlay, onPause, onSeek, onProgress }: Props,
+  { url, youtubeVideoId, htmlContent, htmlBaseUrl, isOwner, referer, onPlay, onPause, onSeek, onProgress, onBuffering }: Props,
 ) {
   const webviewRef = useRef<WebView>(null);
   const currentTimeMsRef = useRef(0);
@@ -126,6 +128,9 @@ export function useWebViewPlayer(
         case 'POSITION_POLL':
           currentTimeMsRef.current = data.currentTime * 1000;
           break;
+        case 'BUFFERING':
+          onBuffering?.(data.isBuffering);
+          break;
         case 'IFRAME_FOUND':
           if (!isHtmlMode && data.urls[0]) {
             webviewRef.current?.injectJavaScript(`window.location.href = ${JSON.stringify(data.urls[0])}; true;`);
@@ -139,7 +144,7 @@ export function useWebViewPlayer(
           break;
       }
     } catch { /* ignore */ }
-  }, [isOwner, isHtmlMode, onPlay, onPause, onSeek, onProgress]);
+  }, [isOwner, isHtmlMode, onPlay, onPause, onSeek, onProgress, onBuffering]);
 
   const handleShouldStartLoad = useCallback((request: ShouldStartLoadRequest): boolean => {
     try {

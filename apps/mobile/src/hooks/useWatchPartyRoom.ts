@@ -33,12 +33,15 @@ const DRIFT_RATE_SLOW = 0.95;
 const DRIFT_RATE_FAST = 1.05;
 const DRIFT_RATE_RESET_MS = 3000;    // reset to 1.0 after 3s
 
+// T-E101: Buffer event debounce
+const BUFFER_DEBOUNCE_MS = 500;
+
 export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const navigation = useNavigation<NavProp>();
   const userId = useAuthStore(s => s.user?._id) ?? '';
   const { t } = useT();
 
-  const { room, syncState, messages, activeMembers, isOwner, adminMonitoring, roomClosed, heartbeat,
+  const { room, syncState, messages, activeMembers, isOwner, adminMonitoring, roomClosed, heartbeat, bufferingUsers,
     emitPlay, emitPause, emitSeek, sendMessage, sendEmoji } = useWatchParty(roomId);
   const { isExtracting, result: extractResult, fallbackMode: extractFallback, extract, reset: resetExtraction } = useVideoExtraction();
 
@@ -50,6 +53,8 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const intendedPlayingRef = useRef(false);
   const extractStartedRef = useRef(false);
   const driftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const bufferDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isBufferingRef = useRef(false);
 
   const [showChat, setShowChat] = useState(false);
   const [showVoice, setShowVoice] = useState(false);
@@ -179,17 +184,36 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   // Cleanup drift timer on unmount
   useEffect(() => () => { if (driftTimerRef.current) clearTimeout(driftTimerRef.current); }, []);
 
+  // T-E101: Buffer signal — debounced emit to server
+  const emitBufferState = useCallback((buffering: boolean) => {
+    if (bufferDebounceRef.current) clearTimeout(bufferDebounceRef.current);
+    bufferDebounceRef.current = setTimeout(() => {
+      if (isBufferingRef.current === buffering) return; // no change
+      isBufferingRef.current = buffering;
+      const socket = getSocket();
+      if (!socket) return;
+      socket.emit(buffering ? CLIENT_EVENTS.BUFFER_START : CLIENT_EVENTS.BUFFER_END, { roomId });
+    }, BUFFER_DEBOUNCE_MS);
+  }, [roomId]);
+
+  // Cleanup buffer debounce on unmount
+  useEffect(() => () => { if (bufferDebounceRef.current) clearTimeout(bufferDebounceRef.current); }, []);
+
   const onPlaybackStatusUpdate = useCallback((status: AVPlaybackStatus) => {
     if (!status.isLoaded) return;
     if (!isSyncing.current) { setIsPlaying(status.isPlaying); intendedPlayingRef.current = status.isPlaying; }
     setVideoCurrentTime(status.positionMillis / 1000);
     if (status.durationMillis) setVideoDuration(status.durationMillis / 1000);
+    // T-E101: Detect buffering from expo-av (isBuffering field)
+    if (status.isBuffering !== undefined) emitBufferState(status.isBuffering);
     if (isOwner && !isSyncing.current && status.didJustFinish) emitPause(status.durationMillis ? status.durationMillis / 1000 : 0);
     prevIsPlayingRef.current = status.isPlaying;
-  }, [isOwner, emitPause]);
+  }, [isOwner, emitPause, emitBufferState]);
 
   const handleWebViewPlay = useCallback((secs: number) => { setIsPlaying(true); if (isOwner && !isSyncing.current) emitPlay(secs); }, [isOwner, emitPlay]);
   const handleWebViewPause = useCallback((secs: number) => { setIsPlaying(false); if (isOwner && !isSyncing.current) emitPause(secs); }, [isOwner, emitPause]);
+  // T-E101: WebView buffering callback
+  const handleWebViewBuffering = useCallback((isBuffering: boolean) => { emitBufferState(isBuffering); }, [emitBufferState]);
   const handleWebViewSeek = useCallback((secs: number) => { if (isOwner && !isSyncing.current) emitSeek(secs); }, [isOwner, emitSeek]);
   const handleProgress = useCallback((currentTimeSecs: number, durationSecs: number) => { setVideoCurrentTime(currentTimeSecs); if (durationSecs > 0) setVideoDuration(durationSecs); }, []);
 
@@ -275,12 +299,12 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     playerRef, userId, room, messages, activeMembers, isOwner, adminMonitoring, connectTimeout,
     isExtracting, extractResult, showChat, showVoice, showInvite, isPlaying, isFullscreen,
     videoIsLive, videoCurrentTime, videoDuration, floatingEmojis, showQualityMenu, showEpisodeMenu,
-    extractQualities, extractEpisodes, currentVideoUrl,
+    extractQualities, extractEpisodes, currentVideoUrl, bufferingUsers,
     originalVideoUrl, extractedVideoUrl, isWebViewMode,
     setShowChat, setShowVoice, setShowInvite, setShowQualityMenu, setShowEpisodeMenu, setVideoIsLive,
     sendMessage, sendEmoji,
     onPlaybackStatusUpdate, handleWebViewPlay, handleWebViewPause, handleWebViewSeek,
-    handleProgress, handleProgressSeek, handlePlayPause, handleStop,
+    handleWebViewBuffering, handleProgress, handleProgressSeek, handlePlayPause, handleStop,
     handleToggleFullscreen: useCallback(() => setIsFullscreen(v => !v), []),
     handleSeekDirection, handleEmojiSelect, handleRemoveEmoji,
     handleChangeMedia, handleQualitySelect, handleEpisodeSelect, handleLeave,

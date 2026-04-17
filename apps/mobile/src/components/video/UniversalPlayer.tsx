@@ -31,6 +31,7 @@ interface Props {
   onSeek: (currentTimeSecs: number) => void;
   onPlaybackStatusUpdate?: (status: AVPlaybackStatus) => void;
   onProgress?: (currentTimeSecs: number, durationSecs: number) => void;
+  onBuffering?: (isBuffering: boolean) => void;
   onStreamResolved?: (info: { isLive: boolean; title: string }) => void;
   extractedUrl?: string;
   extractedType?: 'mp4' | 'hls';
@@ -67,7 +68,7 @@ function buildEmbedHtml(url: string, embed: EmbedPlatform): { html: string; base
 }
 
 export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
-  ({ url, isOwner, onPlay, onPause, onSeek, onPlaybackStatusUpdate, onProgress, extractedUrl, isExtracting, referer, mode }, ref) => {
+  ({ url, isOwner, onPlay, onPause, onSeek, onPlaybackStatusUpdate, onProgress, onBuffering, extractedUrl, isExtracting, referer, mode }, ref) => {
     const videoRef = useRef<Video>(null);
     const webviewRef = useRef<WebViewPlayerRef>(null);
     const platform = detectVideoPlatform(url);
@@ -127,7 +128,7 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
       return (
         <WebViewPlayer ref={webviewRef} url={displayUrl} youtubeVideoId={ytId ?? undefined}
           htmlContent={embedHtml?.html} htmlBaseUrl={embedHtml?.baseUrl}
-          isOwner={isOwner} onPlay={onPlay} onPause={onPause} onSeek={onSeek} onProgress={onProgress}
+          isOwner={isOwner} onPlay={onPlay} onPause={onPause} onSeek={onSeek} onProgress={onProgress} onBuffering={onBuffering}
           userAgent={MOBILE_UA} referer={platform !== 'youtube' && !embedHtml ? referer : undefined} />
       );
     }

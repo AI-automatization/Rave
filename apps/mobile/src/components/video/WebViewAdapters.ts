@@ -565,6 +565,12 @@ export function buildInjectJs(adapter: VideoAdapter): string {
     v.addEventListener('seeked', function() {
       rn({ type: 'SEEK', currentTime: v.currentTime });
     });
+    v.addEventListener('waiting', function() {
+      rn({ type: 'BUFFERING', isBuffering: true });
+    });
+    v.addEventListener('playing', function() {
+      rn({ type: 'BUFFERING', isBuffering: false });
+    });
 
     if (window._csProgressInterval) clearInterval(window._csProgressInterval);
     window._csProgressInterval = setInterval(function() {

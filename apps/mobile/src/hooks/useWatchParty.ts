@@ -40,6 +40,7 @@ export function useWatchParty(roomId: string) {
   const [adminMonitoring, setAdminMonitoring] = useState(false);
   const [roomClosed, setRoomClosed] = useState<RoomClosedData | null>(null);
   const [heartbeat, setHeartbeat] = useState<HeartbeatData | null>(null);
+  const [bufferingUsers, setBufferingUsers] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     // Har safar yangi xonaga kirda — eski ma'lumotlarni tozala
@@ -100,6 +101,16 @@ export function useWatchParty(roomId: string) {
     // T-E099: Heartbeat listener — separate from syncState (no seekTo trigger)
     socket.on(VIDEO_HEARTBEAT_EVENT, (data: HeartbeatData) => setHeartbeat(data));
 
+    // T-E101: Buffer event — track who is buffering
+    socket.on(SERVER_EVENTS.VIDEO_BUFFER, (data: { userId: string; isBuffering: boolean }) => {
+      setBufferingUsers(prev => {
+        const next = new Set(prev);
+        if (data.isBuffering) next.add(data.userId);
+        else next.delete(data.userId);
+        return next;
+      });
+    });
+
     // Admin monitoring events
     socket.on('admin:joined', () => setAdminMonitoring(true));
     socket.on('admin:left', () => setAdminMonitoring(false));
@@ -119,6 +130,7 @@ export function useWatchParty(roomId: string) {
       socket.off(SERVER_EVENTS.VIDEO_PLAY);
       socket.off(SERVER_EVENTS.VIDEO_PAUSE);
       socket.off(SERVER_EVENTS.VIDEO_SEEK);
+      socket.off(SERVER_EVENTS.VIDEO_BUFFER);
       socket.off(SERVER_EVENTS.ROOM_MESSAGE);
       socket.off(SERVER_EVENTS.MEMBER_JOINED);
       socket.off(SERVER_EVENTS.MEMBER_LEFT);
@@ -182,5 +194,5 @@ export function useWatchParty(roomId: string) {
     getSocket()?.emit(CLIENT_EVENTS.VOICE_LEAVE);
   }, []);
 
-  return { room, syncState, messages, activeMembers, isOwner, adminMonitoring, roomClosed, heartbeat, emitPlay, emitPause, emitSeek, sendMessage, sendEmoji, emitMediaChange, emitVoiceJoin, emitVoiceLeave };
+  return { room, syncState, messages, activeMembers, isOwner, adminMonitoring, roomClosed, heartbeat, bufferingUsers, emitPlay, emitPause, emitSeek, sendMessage, sendEmoji, emitMediaChange, emitVoiceJoin, emitVoiceLeave };
 }

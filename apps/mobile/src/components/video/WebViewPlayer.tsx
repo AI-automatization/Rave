@@ -25,6 +25,7 @@ interface Props {
   onPause: (currentTimeSecs: number) => void;
   onSeek: (currentTimeSecs: number) => void;
   onProgress?: (currentTimeSecs: number, durationSecs: number) => void;
+  onBuffering?: (isBuffering: boolean) => void;
   userAgent?: string;
   referer?: string;
 }

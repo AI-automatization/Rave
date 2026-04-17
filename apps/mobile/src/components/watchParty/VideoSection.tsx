@@ -30,6 +30,7 @@ interface VideoSectionProps {
   onPlaybackStatusUpdate: (status: AVPlaybackStatus) => void;
   onStreamResolved: (info: { isLive: boolean }) => void;
   onProgress?: (currentTimeSecs: number, durationSecs: number) => void;
+  onBuffering?: (isBuffering: boolean) => void;
   onPlayPause: () => void;
   onStop: () => void;
   onSeekDirection: (direction: 'forward' | 'back') => void;
@@ -44,7 +45,7 @@ interface VideoSectionProps {
 export const VideoSection = React.memo(function VideoSection({
   playerRef, videoUrl, extractedUrl, videoReferer, isReady, isOwner, isPlaying,
   isFullscreen, videoIsLive, floatingEmojis, onPlay, onPause, onSeek,
-  onPlaybackStatusUpdate, onStreamResolved, onProgress, onPlayPause, onStop,
+  onPlaybackStatusUpdate, onStreamResolved, onProgress, onBuffering, onPlayPause, onStop,
   onSeekDirection, onToggleFullscreen, onRemoveEmoji,
   currentTime = 0, duration = 0, onProgressSeek, isWebView = false,
 }: VideoSectionProps) {
@@ -61,7 +62,7 @@ export const VideoSection = React.memo(function VideoSection({
         <>
           <UniversalPlayer ref={playerRef} url={videoUrl} extractedUrl={extractedUrl}
             referer={videoReferer} isOwner={isOwner} onPlay={onPlay} onPause={onPause} onSeek={onSeek}
-            onPlaybackStatusUpdate={onPlaybackStatusUpdate} onStreamResolved={onStreamResolved} onProgress={onProgress} />
+            onPlaybackStatusUpdate={onPlaybackStatusUpdate} onStreamResolved={onStreamResolved} onProgress={onProgress} onBuffering={onBuffering} />
           {!isOwner && <View style={StyleSheet.absoluteFill} pointerEvents="box-only" />}
         </>
       )}
