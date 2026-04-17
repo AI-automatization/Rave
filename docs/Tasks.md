@@ -109,22 +109,6 @@
 
 ---
 
-### T-S055 | P1 | [BACKEND] | Democratic buffer wait — bir kishi buffer bo'lsa hammani pause
-
-- **Mas'ul:** pending[Saidazim]
-- **Holat:** ❌ Boshlanmagan
-- **Sabab:** Hozir BUFFER_START/BUFFER_END eventlar faqat notification. Peer'lar davom etadi → buffer bo'lgan kishi 5-10 sek orqada qoladi.
-- **Qilish kerak:**
-  - [ ] `videoEvents.handler.ts` → `BUFFER_START` kelganda: `bufferingUsers` Set (Redis/in-memory)
-  - [ ] Birinchi buffer → `io.to(roomId).emit(SERVER_EVENTS.VIDEO_PAUSE, syncState)`
-  - [ ] `BUFFER_END` → setdan o'chirish. Bo'sh → `io.to(roomId).emit(SERVER_EVENTS.VIDEO_PLAY, syncState)`
-  - [ ] Edge case: buffer user disconnect bo'lsa → setdan o'chirish
-  - [ ] Max buffer wait: 30 sekund → majburiy play
-- **Fayllar:** `services/watch-party/src/socket/videoEvents.handler.ts`
-- **BLOCKS:** T-E101
-
----
-
 # ═══════════════════════════════════════
 
 # 🟢 EMIRHAN — EXPO REACT NATIVE MOBILE + WEB

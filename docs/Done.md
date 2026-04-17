@@ -2063,4 +2063,17 @@ Peers используют только drift correction (playbackRate), не se
 
 ---
 
+### F-184 | T-S055 | 2026-04-18 | Democratic buffer wait (Saidazim)
+
+BUFFER_START от любого пира → пауза всей комнаты. BUFFER_END когда все готовы → автоматическое возобновление.
+Redis Set отслеживает буферящих пользователей. Safety timeout 30s → force resume.
+На disconnect пользователь удаляется из Set.
+
+- `shared/src/constants/index.ts` → `REDIS_KEYS.bufferingUsers`
+- `watchParty.service.ts` → `markBuffering`, `unmarkBuffering`, `clearAllBuffering`
+- `videoEvents.handler.ts` → BUFFER_START/BUFFER_END полная логика
+- Commit: `b45f454`
+
+---
+
 _docs/Done.md | CineSync | Yangilangan: 2026-04-18_
