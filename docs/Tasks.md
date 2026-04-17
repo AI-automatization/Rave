@@ -14,7 +14,7 @@
 3. Fix bo'lgach → shu yerdan O'CHIRISH → docs/Done.md ga KO'CHIRISH
 4. Prioritet: P0=kritik, P1=muhim, P2=o'rta, P3=past
 5. Sprint: S1=hozir, S2=keyingi hafta, S3=keyingi sprint, S4-5=keyin
-6. Oxirgi T-raqam: S→056, E→101, C→016
+6. Oxirgi T-raqam: S→056, E→101, C→016 (S-050 done)
 7. Yangilangan: 2026-04-17
 ```
 
@@ -38,18 +38,6 @@
   - [ ] Admin panel'dan Battle/Achievement bo'limini yashirish (feature flag)
 - **Fayllar:** `services/battle/src/app.ts`, `services/admin/src/routes/*.ts`, `.env.example`
 - **Reference:** `docs/RAVE_TRANSFORMATION_PLAN.md` §7.2
-
----
-
-### T-S050 | P1 | [BACKEND] | Push notification E2E test — Expo Push Token → FCM delivery
-
-- **Mas'ul:** pending[Saidazim] (in progress)
-- **Holat:** ❌ Boshlanmagan
-- **Sabab:** Mobile da Expo Push Token yuboriladi, lekin real qurilmada push notification kelishi hech qachon test qilinmagan
-- **Qilish kerak:**
-  - [ ] Expo Push Token → notification service da to'g'ri qabul qilinishini tekshirish
-  - [ ] Friend request / WatchParty invite push larni real qurilmada test
-  - [ ] FCM vs Expo Push Server — qaysi biri ishlatilayotganini aniqlash va test
 
 ---
 

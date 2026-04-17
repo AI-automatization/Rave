@@ -1,6 +1,19 @@
 # CineSync — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-04-16
+# Yangilangan: 2026-04-18
+
+---
+
+### F-182 | 2026-04-18 | [BACKEND] | T-S050 — Expo Push Token routing + batch support [Saidazim]
+
+- **Kritik bug fix**: `ExponentPushToken[...]` tokenlar FCM ga yuborilardi → silently ignored. Endi to'g'ri routing:
+  - `ExponentPushToken[` prefix → Expo Push API (`https://exp.host/--/api/v2/push/send`)
+  - Oddiy FCM tokenlar → Firebase Admin `sendEachForMulticast()`
+- `EXPO_TOKEN_PREFIX = 'ExponentPushToken['` — constant qo'shildi (hardcoded string o'rniga)
+- `EXPO_BATCH_SIZE = 100` — Expo API limiti uchun chunked batching implementatsiya qilindi
+- Token splitting: 2x `.filter()` → bitta `.reduce()` (efficiency fix)
+- Intermediate `tasks` array → inline `Promise.all([...])` (simplify skill finding)
+- Railway: deployed, health check ✅
 
 ---
 
