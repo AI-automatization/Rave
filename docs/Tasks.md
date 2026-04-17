@@ -1,6 +1,6 @@
 # CineSync — OCHIQ VAZIFALAR
 
-# Yangilangan: 2026-04-16
+# Yangilangan: 2026-04-17
 
 # 3 dasturchi: Saidazim (Backend) | Emirhan (Mobile) | Jafar (Mobile)
 
@@ -14,8 +14,8 @@
 3. Fix bo'lgach → shu yerdan O'CHIRISH → docs/Done.md ga KO'CHIRISH
 4. Prioritet: P0=kritik, P1=muhim, P2=o'rta, P3=past
 5. Sprint: S1=hozir, S2=keyingi hafta, S3=keyingi sprint, S4-5=keyin
-6. Oxirgi T-raqam: S→053, E→097, J→037, C→016
-7. Yangilangan: 2026-04-16
+6. Oxirgi T-raqam: S→056, E→101, J→037, C→016
+7. Yangilangan: 2026-04-17
 ```
 
 ---
@@ -85,7 +85,62 @@
 
 ---
 
+## 🎬 BOSQICH A — Video Sync Optimizatsiya (Socket.io + Predictive + Drift)
 
+> **Maqsad:** Sync lag ni 150ms+ dan 20-40ms ga tushirish. WebRTC/Mesh KUTMASDAN hoziroq qilish mumkin.
+> **Natija:** Rave bilan 65% funksional o'xshashlik (hozir 30%).
+> **Tartib:** T-S054 → T-E098 → T-S056 → T-E099 → T-E100 → T-S055 → T-E101
+
+---
+
+### T-S054 | P1 | [BACKEND] | Predictive sync — SyncState ga `scheduledAt` field qo'shish
+
+- **Mas'ul:**
+- **Holat:** ❌ Boshlanmagan
+- **Sabab:** Hozir server SyncState da faqat `serverTimestamp` yuboradi (dedup uchun). Peer'lar event kelgan zahoti play/seek qiladi — lekin network delay tufayli 50-150ms kechikadi. `scheduledAt = Date.now() + 150` qo'shsak, barcha peer'lar ANIQ BIR VAQTDA play bosadi.
+- **Qilish kerak:**
+  - [ ] `watchParty.service.ts` → `syncState()` funksiyaga `scheduledAt: Date.now() + 150` field qo'shish
+  - [ ] `SyncState` interface ga `scheduledAt: number` qo'shish (shared/types yoki service ichida)
+  - [ ] PLAY, PAUSE, SEEK eventlarda scheduledAt broadcast qilinishi
+  - [ ] Heartbeat (VIDEO_SYNC) da scheduledAt bo'lmasligi kerak (faqat correction uchun)
+- **Fayllar:** `services/watch-party/src/services/watchParty.service.ts`
+- **Natija:** Mobile (T-E098) bu field dan foydalanib aniq vaqtda sync qiladi
+- **BLOCKS:** T-E098
+
+---
+
+### T-S055 | P1 | [BACKEND] | Democratic buffer wait — bir kishi buffer bo'lsa hammani pause
+
+- **Mas'ul:**
+- **Holat:** ❌ Boshlanmagan
+- **Sabab:** Hozir BUFFER_START/BUFFER_END eventlar faqat notification sifatida broadcast qilinadi. Peer'lar video ko'rishda davom etadi → buffer bo'lgan kishi 5-10 sekund orqada qoladi → sync buziladi.
+- **Qilish kerak:**
+  - [ ] `videoEvents.handler.ts` → `BUFFER_START` kelganda: room uchun `bufferingUsers` Set yaratish (Redis yoki in-memory)
+  - [ ] Birinchi buffer event kelganda → `io.to(roomId).emit(SERVER_EVENTS.VIDEO_PAUSE, syncState)` — hammani pause
+  - [ ] `BUFFER_END` kelganda → `bufferingUsers` dan o'chirish. Agar set bo'sh → `io.to(roomId).emit(SERVER_EVENTS.VIDEO_PLAY, syncState)` — hammani play
+  - [ ] Edge case: buffer bo'lgan user disconnect bo'lsa → bufferingUsers dan o'chirish
+  - [ ] Max buffer wait: 30 sekund. 30s dan keyin majburiy play (buffer bo'lgan userni skip)
+- **Fayllar:** `services/watch-party/src/socket/videoEvents.handler.ts`
+- **Natija:** Bir kishining interneti sekinlashsa — hammasi kutadi, keyin birga davom etadi
+- **BLOCKS:** T-E101
+
+---
+
+### T-S056 | P1 | [BACKEND] | Heartbeat alohida event — VIDEO_HEARTBEAT (PLAY dan ajratish)
+
+- **Mas'ul:**
+- **Holat:** ❌ Boshlanmagan
+- **Sabab:** Hozir owner heartbeat (5 sek) oddiy PLAY event sifatida yuboriladi. Member'lar buni PLAY deb qabul qilib `seekTo()` qiladi → video har 5 sekundda "sakraydi". Heartbeat alohida event bo'lishi kerak — member faqat drift correction qiladi, jump qilmaydi.
+- **Qilish kerak:**
+  - [ ] `shared/constants/socket-events.ts` → `CLIENT_EVENTS.HEARTBEAT = 'video:heartbeat'`, `SERVER_EVENTS.VIDEO_HEARTBEAT = 'video:heartbeat'`
+  - [ ] `videoEvents.handler.ts` → `HEARTBEAT` handler: owner check + position saqlash + broadcast (scheduledAt YO'Q)
+  - [ ] `HEARTBEAT` payload: `{ currentTime, timestamp: Date.now() }` — peer drift hisoblash uchun
+  - [ ] Redis/MongoDB update qilish (position saqlash), lekin isPlaying o'zgartirmaslik
+- **Fayllar:** `services/watch-party/src/socket/videoEvents.handler.ts`, `shared/constants/socket-events.ts` (yoki `shared/src/constants/socketEvents.ts`)
+- **Natija:** Mobile (T-E099) heartbeat ni PLAY dan farqlaydi va drift correction qiladi
+- **BLOCKS:** T-E099
+
+---
 
 
 # ═══════════════════════════════════════
@@ -94,7 +149,7 @@
 
 ---
 
-*(Sprint 1..7 TUGADI — Sprint 8: MVP Release)*
+*(Sprint 1..7 TUGADI — Sprint 8: MVP Release — Sprint 9: Sync Optimizatsiya)*
 
 ---
 
@@ -149,7 +204,91 @@
 
 ---
 
+## 🎬 BOSQICH A — Mobile Sync Optimizatsiya
 
+---
+
+### T-E098 | P1 | [MOBILE] | Predictive sync — `scheduledAt` bilan aniq vaqtda play/pause/seek
+
+- **Mas'ul:**
+- **Holat:** ❌ Boshlanmagan
+- **Sabab:** Hozir `useWatchPartyRoom.ts` da syncState kelganda DARHOL `seekTo() + play()` qiladi. Network delay tufayli har peer boshqa-boshqa vaqtda play bosadi (50-150ms farq). `scheduledAt` field kelganda, peer'lar `setTimeout` bilan ANIQ BIR VAQTDA play qilishi kerak.
+- **Qilish kerak:**
+  - [ ] `useWatchPartyRoom.ts` → syncState `useEffect` ichida `scheduledAt` tekshirish:
+    - `delay = syncState.scheduledAt - Date.now()`
+    - `delay > 0` → `setTimeout(() => play(), delay)` (kelajakda play)
+    - `delay <= 0` → `position + |delay|/1000` hisoblab seek (o'tib ketgan vaqtni qo'shish)
+  - [ ] PAUSE uchun ham: `scheduledAt` vaqtda pause qilish
+  - [ ] SEEK uchun: position + network delay kompensatsiya
+  - [ ] Heartbeat (VIDEO_HEARTBEAT) da scheduledAt bo'lmaydi → eski mantiq saqlanadi
+- **Fayllar:** `apps/mobile/src/hooks/useWatchPartyRoom.ts`
+- **Bog'liq:** T-S054 birinchi bo'lishi SHART (backend scheduledAt yuborishi kerak)
+- **Natija:** Lag 150ms → 40-60ms. Barcha peer'lar bir vaqtda play/pause bosadi.
+
+---
+
+### T-E099 | P1 | [MOBILE] | Drift correction — playbackRate bilan sekin tuzatish (sakramasdan)
+
+- **Mas'ul:**
+- **Holat:** ❌ Boshlanmagan
+- **Sabab:** Hozir heartbeat oddiy PLAY event sifatida keladi → member'lar `seekTo()` qiladi → video har 5 sekundda "sakraydi" (jump). Heartbeat alohida event bo'lgandan keyin (T-S056), member faqat drift correction qilishi kerak — KO'ZGA KO'RINMAS tuzatish.
+- **Qilish kerak:**
+  - [ ] `useWatchPartyRoom.ts` → `VIDEO_HEARTBEAT` event listener qo'shish
+  - [ ] Heartbeat kelganda drift hisoblash:
+    - `expected = ownerPosition + (Date.now() - ownerTimestamp) / 1000`
+    - `myPosition = await playerRef.getPositionMs() / 1000`
+    - `drift = myPosition - expected`
+  - [ ] Drift > 2.0s → force `seekTo()` (boshqa iloji yo'q)
+  - [ ] Drift 0.3-2.0s → `playbackRate = drift > 0 ? 0.95 : 1.05` + 3 sekunddan keyin `1.0` qaytarish
+  - [ ] Drift < 0.3s → hech narsa (yetarli darajada sync)
+  - [ ] Heartbeat interval ni 5s → 10s ga o'zgartirish (owner emit qismida)
+  - [ ] expo-av: `setRateAsync(rate, shouldCorrectPitch: true)` ishlatish
+  - [ ] WebView: JS injection `video.playbackRate = 0.95/1.05` ishlatish
+- **Fayllar:** `apps/mobile/src/hooks/useWatchPartyRoom.ts`
+- **Bog'liq:** T-S056 birinchi bo'lishi SHART (backend HEARTBEAT event yuborishi kerak)
+- **Natija:** Video hech qachon "sakramaydi". 1 sekund orqada = bir oz tezroq o'ynab quvib yetadi. Foydalanuvchi sezmaydi.
+
+---
+
+### T-E100 | P1 | [MOBILE] | WebView periodic position polling — sync uchun aniq pozitsiya
+
+- **Mas'ul:**
+- **Holat:** ❌ Boshlanmagan
+- **Sabab:** Hozir WebView da `getPositionMs()` faqat `currentTimeMsRef.current` qaytaradi — bu faqat WebView message kelganda yangilanadi. Owner heartbeat uchun YANGI va TO'G'RI position kerak, lekin cached (eski) qiymat keladi. Bu sync xatoligiga olib keladi.
+- **Qilish kerak:**
+  - [ ] `useWebViewPlayer.ts` → har 2 sekundda WebView ga JS injection yuborish:
+    ```
+    const video = document.querySelector('video');
+    if (video) postMessage({ type: 'POSITION_POLL', currentTime: video.currentTime, duration: video.duration });
+    ```
+  - [ ] `POSITION_POLL` message handler: `currentTimeMsRef.current` yangilash
+  - [ ] `setInterval(2000)` — component mount da boshlash, unmount da tozalash
+  - [ ] YouTube uchun: `player.getCurrentTime()` ishlatish (YouTube IFrame API)
+  - [ ] Polling faqat isPlaying = true bo'lganda ishlashi (battery tejash)
+- **Fayllar:** `apps/mobile/src/hooks/useWebViewPlayer.ts`
+- **Bog'liq:** MUSTAQIL — hech qanday backend taskni kutish kerak emas ✅
+- **Natija:** WebView mode da sync aniqroq bo'ladi. Hozir 2-5 sek xatolik → keyin 0.5-1 sek.
+
+---
+
+### T-E101 | P1 | [MOBILE] | Buffer event — buffering bo'lganda server ga signal yuborish
+
+- **Mas'ul:**
+- **Holat:** ❌ Boshlanmagan
+- **Sabab:** Hozir video buffer (loading spinner) bo'lganda hech qanday signal yuborilmaydi. Boshqa peer'lar ko'rishda davom etadi → buffer bo'lgan kishi 5-10 sek orqada qoladi. Server (T-S055) buffer signal olsa hammani pause qilishi kerak.
+- **Qilish kerak:**
+  - [ ] `useWatchPartyRoom.ts` → `onPlaybackStatusUpdate` da `isBuffering` state tekshirish:
+    - expo-av: `status.isLoaded && status.isBuffering` → `socket.emit(CLIENT_EVENTS.BUFFER_START)`
+    - expo-av: buffer tugaganda → `socket.emit(CLIENT_EVENTS.BUFFER_END)`
+  - [ ] WebView uchun: `waiting` event → `postMessage({ type: 'BUFFER' })` → socket emit
+  - [ ] WebView `playing` event → buffer end signal
+  - [ ] Debounce: 500ms — qisqa buffer'lar uchun signal yubormaslik (tez-tez on/off oldini olish)
+  - [ ] UI: "Do'stingiz buffering..." xabari ko'rsatish (boshqa peer buffer qilganda)
+- **Fayllar:** `apps/mobile/src/hooks/useWatchPartyRoom.ts`, `apps/mobile/src/hooks/useWebViewPlayer.ts`
+- **Bog'liq:** T-S055 birinchi bo'lishi SHART (backend buffer wait logic kerak)
+- **Natija:** Bir kishida internet sekin = hammasi kutadi. Tiklanganda birga davom.
+
+---
 
 
 
