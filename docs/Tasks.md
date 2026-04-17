@@ -28,7 +28,7 @@
 
 ### T-S052 | P1 | [BACKEND] | Mesh signalling handler — peer:offer/answer/ice routing (Rave Hybrid sync)
 
-- **Mas'ul:**
+- **Mas'ul:** pending[Saidazim]
 - **Holat:** ❌ Boshlanmagan
 - **Sabab:** Hybrid (Socket.io + WebRTC DataChannel) sync arxitekturasi uchun backend peer-to-peer SDP va ICE candidate almashinuvini routing qilishi kerak. Hozirgi Socket.io da 50-150ms lag — mesh orqali 5-30ms ga tushadi (Rave-darajada).
 - **Qilish kerak:**
