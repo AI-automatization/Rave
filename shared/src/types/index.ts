@@ -162,6 +162,7 @@ export interface SyncState {
   isPlaying: boolean;
   serverTimestamp: number;
   updatedBy: string;
+  scheduledAt?: number; // UTC ms — peers execute play/pause at this exact timestamp
 }
 
 // ─────────────────────────────────────────────

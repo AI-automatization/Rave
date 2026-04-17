@@ -186,11 +186,13 @@ export class WatchPartyService {
     currentTime: number,
     isPlaying: boolean,
   ): Promise<SyncState> {
+    const now = Date.now();
     const syncState: SyncState = {
       currentTime,
       isPlaying,
-      serverTimestamp: Date.now(),
+      serverTimestamp: now,
       updatedBy: ownerId,
+      scheduledAt: now + 150, // 150ms window — peers execute at exact same UTC timestamp
     };
 
     await this.cacheRoomState(roomId, syncState);
