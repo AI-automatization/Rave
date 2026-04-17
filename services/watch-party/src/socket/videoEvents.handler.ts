@@ -74,6 +74,31 @@ export const registerVideoEvents = (
     }
   });
 
+  // HEARTBEAT — owner position ping, no scheduledAt, no seekTo on peers
+  socket.on(CLIENT_EVENTS.HEARTBEAT, async (data: { currentTime: number }) => {
+    if (!authSocket.roomId) return;
+    const roomId = authSocket.roomId;
+
+    try {
+      const room = await watchPartyService.getRoom(roomId);
+      if (room.ownerId !== userId) return;
+
+      await watchPartyService.updateActivity(roomId);
+      await watchPartyService.getSyncState(roomId); // keep Redis TTL fresh
+
+      const heartbeat = {
+        currentTime: data.currentTime,
+        timestamp: Date.now(),
+        updatedBy: userId,
+      };
+
+      // Broadcast to all peers except sender — no scheduledAt, peers use drift correction only
+      socket.to(roomId).emit(SERVER_EVENTS.VIDEO_HEARTBEAT, heartbeat);
+    } catch (error) {
+      logger.error('Socket heartbeat error', { userId, error });
+    }
+  });
+
   // BUFFER — notify others
   socket.on(CLIENT_EVENTS.BUFFER_START, () => {
     if (!authSocket.roomId) return;

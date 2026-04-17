@@ -14,6 +14,7 @@ export const SERVER_EVENTS = Object.freeze({
   VIDEO_SEEK: 'video:seek',
   VIDEO_SYNC: 'video:sync',
   VIDEO_BUFFER: 'video:buffer',
+  VIDEO_HEARTBEAT: 'video:heartbeat',
 
   MEMBER_JOINED: 'member:joined',
   MEMBER_LEFT: 'member:left',
@@ -44,6 +45,7 @@ export const CLIENT_EVENTS = Object.freeze({
   SEEK: 'video:seek',
   BUFFER_START: 'video:buffer_start',
   BUFFER_END: 'video:buffer_end',
+  HEARTBEAT: 'video:heartbeat',
 
   SEND_MESSAGE: 'room:message',
   SEND_EMOJI: 'room:emoji',
