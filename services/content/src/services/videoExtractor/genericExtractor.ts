@@ -14,9 +14,17 @@ const FETCH_TIMEOUT_MS = 10_000;
 // Max depth for iframe following (2 = follow two iframe levels — helps tv.mover.uz, uzmovi.tv)
 const MAX_IFRAME_DEPTH = 2;
 
-const USER_AGENT =
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
-  '(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
+const USER_AGENTS = [
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0',
+  'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15',
+];
+
+const randomDelay = (min = 100, max = 300): Promise<void> =>
+  new Promise((r) => setTimeout(r, min + Math.random() * (max - min)));
 
 // Patterns that match direct video stream URLs in HTML source
 const MP4_RE = /(https?:\/\/[^"' \s<>]+\.mp4[^"' \s<>]*)/gi;
@@ -64,11 +72,12 @@ function guessType(url: string): VideoType {
 
 async function fetchHtml(url: string, referer?: string): Promise<string | null> {
   try {
+    const userAgent = USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
     const res = await fetch(url, {
       headers: {
-        'User-Agent': USER_AGENT,
+        'User-Agent': userAgent,
         Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.9',
         Referer: referer ?? url,
@@ -140,6 +149,9 @@ export async function genericExtractor(
       } catch {
         continue; // skip blocked/invalid iframe URLs
       }
+
+      // Random delay between iframe requests — reduces bot fingerprint
+      await randomDelay(100, 300);
 
       // Recursive call — Referer = parent page URL (helps sites that check Referer)
       const iframeResult = await genericExtractor(iframeUrl, _depth + 1, pageUrl.href);

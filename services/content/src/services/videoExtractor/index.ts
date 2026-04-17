@@ -35,7 +35,7 @@ const CACHE_TTL_BY_PLATFORM: Partial<Record<VideoPlatform, number>> & { default:
   playerjs:   86_400,  // 24h — static MP4, no expiry
   lookmovie2: 86_400,  // 24h — Security API returns 29h valid URLs
   moviesapi:  86_400,  // 24h — static API
-  generic:    3_600,   // 1h
+  generic:    21_600,  // 6h — CIS sites (kinogo, filmix via proxy) slow to re-extract
   default:    7_200,   // 2h fallback
 };
 

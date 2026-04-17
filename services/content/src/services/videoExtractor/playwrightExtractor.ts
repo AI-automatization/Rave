@@ -12,6 +12,25 @@ const NAVIGATE_TIMEOUT_MS = 25_000;
 const POST_LOAD_WAIT_MS   = 5_000;  // extra wait for deferred video requests
 const MAX_CONCURRENT      = 3;
 
+const USER_AGENTS = [
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0',
+  'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+];
+
+const VIEWPORTS = [
+  { width: 1920, height: 1080 },
+  { width: 1366, height: 768 },
+  { width: 1536, height: 864 },
+  { width: 1440, height: 900 },
+];
+
+function pick<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
 // --- Semaphore: max 3 Playwright instances in parallel ---
 let activeCount = 0;
 const waitQueue: Array<() => void> = [];
@@ -44,19 +63,41 @@ export async function playwrightExtractor(url: string): Promise<VideoExtractResu
   let page:    Page    | null = null;
 
   try {
+    const userAgent = pick(USER_AGENTS);
+    const viewport  = pick(VIEWPORTS);
+
     browser = await chromium.launch({
       headless: true,
-      // Use system chromium installed in Dockerfile (PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH)
       executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
         '--disable-gpu',
+        // Stealth: hide automation signals
+        '--disable-blink-features=AutomationControlled',
+        '--disable-infobars',
+        '--window-size=' + viewport.width + ',' + viewport.height,
+        '--lang=en-US,en',
       ],
     });
 
     page = await browser.newPage();
+
+    // Stealth: runs in browser context — browser globals (navigator, window) are valid there
+    await page.addInitScript(/* js */ `
+      Object.defineProperty(navigator, 'webdriver', { get: () => false });
+      Object.defineProperty(navigator, 'plugins',   { get: () => [1, 2, 3] });
+      Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
+      window.chrome = { runtime: {} };
+    `);
+
+    await page.setViewportSize(viewport);
+    await page.setExtraHTTPHeaders({
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+    });
+    await page.context().setExtraHTTPHeaders({ 'User-Agent': userAgent });
 
     let foundUrl:  string          | null = null;
     let foundType: 'hls' | 'mp4'         = 'mp4';
