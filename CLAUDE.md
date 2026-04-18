@@ -165,6 +165,81 @@ Format: `T-XXX | Pn | [KATEGORIYA] | Sarlavha | pending[Ism]`
 
 ---
 
+## TELEGRAM NOTIFICATIONS — ЗАКОН (ОБЯЗАТЕЛЬНО)
+
+> **ЭТО АБСОЛЮТНОЕ ПРАВИЛО. КАЖДЫЙ РАЗ. БЕЗ ИСКЛЮЧЕНИЙ.**
+
+**При ЛЮБОМ изменении задач Claude ОБЯЗАН отправить Telegram уведомление.**
+
+### Скрипт
+
+```bash
+.claude/scripts/tg-notify.sh <action> <task_id> <task_meta> <title> [executor] [details]
+```
+
+| Параметр | Описание | Пример |
+|----------|----------|--------|
+| `action` | Событие | `new` / `claim` / `done` / `update` / `blocked` |
+| `task_id` | ID задачи | `T-S057` |
+| `task_meta` | Приоритет + категория | `"P2 \| BACKEND"` |
+| `title` | Название задачи | `"Sarlavha matni"` |
+| `executor` | Исполнитель (опц.) | `Saidazim` |
+| `details` | Подробности (опц.) | `"tsc: CLEAN, 3 fayl"` |
+
+### Кому отправляется (автоматически по префиксу)
+
+```
+T-S***  →  только Saidazim  (chat: 6299152655)
+T-E***  →  только Emirhan   (chat: 569913655)
+T-C***  →  оба              (оба chat ID)
+```
+
+### Примеры использования
+
+```bash
+# Новая задача:
+.claude/scripts/tg-notify.sh new T-S057 "P2 | BACKEND" "Battle leaderboard endpoint"
+
+# Взять задачу:
+.claude/scripts/tg-notify.sh claim T-S057 "P2 | BACKEND" "Battle leaderboard endpoint" Saidazim
+
+# Выполнить задачу (с деталями):
+.claude/scripts/tg-notify.sh done T-S057 "P2 | BACKEND" "Battle leaderboard endpoint" Saidazim \
+  "3 fayl o'zgartirildi: controller, service, routes | tsc: CLEAN"
+
+# Обновление совместной задачи:
+.claude/scripts/tg-notify.sh update T-C012 "P0 | IKKALASI" "MVP E2E test" "Saidazim+Emirhan" \
+  "YouTube OK, Rutube FAIL — issue topildi"
+
+# Заблокировано:
+.claude/scripts/tg-notify.sh blocked T-S058 "P1 | BACKEND" "Mesh handler" Saidazim \
+  "T-E096 tugashini kutmoqda"
+```
+
+### Порядок действий при claim (обновлённый)
+
+```
+1. git pull origin main
+2. docs/Tasks.md ni o'qi
+3. pending[SeniningIsming] yoz
+4. git add docs/Tasks.md
+5. git commit -m "task: claim T-XXX [Ism]"
+6. git push origin main
+7. .claude/scripts/tg-notify.sh claim T-XXX "Pn | KAT" "Sarlavha" Ism   ← MAJBURIY
+8. ENDI ishni boshlash mumkin
+```
+
+### Порядок действий при выполнении (обновлённый)
+
+```
+1. Tasks.md dan o'chirish
+2. Done.md ga ko'chirish
+3. git add + git commit + git push
+4. .claude/scripts/tg-notify.sh done T-XXX "Pn | KAT" "Sarlavha" Ism "Bajarilgan ishlar"  ← MAJBURIY
+```
+
+---
+
 ## GIT-BASED TASK LOCKING (MAJBURIY)
 
 **Taskni boshlashdan OLDIN quyidagi qadamlar bajariladi:**

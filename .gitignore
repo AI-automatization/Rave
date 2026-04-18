@@ -1,6 +1,7 @@
 # Claude CLI — lokal fayllar (skills shared, rest ignored)
 .claude/*
 !.claude/skills/
+!.claude/scripts/
 .claude/locks/
 .claude/settings.json
 .claude/settings.local.json
