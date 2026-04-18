@@ -4,7 +4,6 @@ import {
   RTCPeerConnection,
   RTCSessionDescription,
   RTCIceCandidate,
-  MediaStream,
 } from 'react-native-webrtc';
 import { getSocket, CLIENT_EVENTS, SERVER_EVENTS } from '@socket/client';
 import { meshConfig } from './config';
@@ -77,10 +76,14 @@ export class MeshClient {
 
   // ── Private: Peer connection management ──────────────────────────
 
+  // react-native-webrtc RTCPeerConnection extends EventTarget — event callback
+  // properties (onicecandidate, etc.) are NOT in the .d.ts, but addEventListener works at runtime.
+  // We cast to avoid TS conflicts between react-native-webrtc and global WebRTC types.
   private createPeerConnection(peerId: string): RTCPeerConnection {
     const pc = new RTCPeerConnection({ iceServers: meshConfig.iceServers });
+    const pcAny = pc as unknown as Record<string, unknown>;
 
-    pc.onicecandidate = (event: { candidate: RTCIceCandidate | null }) => {
+    pcAny.onicecandidate = (event: { candidate: { candidate: string; sdpMid: string | null; sdpMLineIndex: number | null } | null }) => {
       if (event.candidate && !this.destroyed) {
         getSocket()?.emit(CLIENT_EVENTS.PEER_ICE, {
           roomId: this.roomId,
@@ -94,7 +97,7 @@ export class MeshClient {
       }
     };
 
-    pc.onconnectionstatechange = () => {
+    pcAny.onconnectionstatechange = () => {
       const peer = this.peers.get(peerId);
       if (!peer) return;
       const state = pc.connectionState;
@@ -111,7 +114,7 @@ export class MeshClient {
     return pc;
   }
 
-  private setupDataChannel(peerId: string, channel: RTCDataChannel): void {
+  private setupDataChannel(peerId: string, channel: MeshPeer['dataChannel']): void {
     const peer = this.peers.get(peerId);
     if (!peer) return;
     peer.dataChannel = channel;
@@ -144,7 +147,6 @@ export class MeshClient {
 
   private handlePeerJoined = (data: { userId: string }): void => {
     if (this.destroyed || data.userId === this.userId) return;
-    // New peer joined — create offer (initiator)
     this.createOffer(data.userId);
   };
 
@@ -182,7 +184,8 @@ export class MeshClient {
       const peer: MeshPeer = { userId: peerId, connection: pc, dataChannel: null, isConnected: false };
       this.peers.set(peerId, peer);
 
-      pc.ondatachannel = (event: { channel: RTCDataChannel }) => {
+      const pcAny = pc as unknown as Record<string, unknown>;
+      pcAny.ondatachannel = (event: { channel: MeshPeer['dataChannel'] }) => {
         this.setupDataChannel(peerId, event.channel);
       };
 

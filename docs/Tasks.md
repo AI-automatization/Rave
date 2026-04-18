@@ -38,21 +38,6 @@
 
 ---
 
-### T-E097 | P2 | [MOBILE] | SyncBroadcaster + TopologyManager — fallback + mesh/star/socket
-
-- **Mas'ul:** pending[Emirhan]
-- **Holat:** 🔄 Ishlanmoqda
-- **Sabab:** Mesh peers soniga qarab topology tanlash: ≤6 full mesh, 7-15 star, 16+ Socket.io fallback.
-- **Qilish kerak:**
-  - [ ] `SyncBroadcaster.ts` — mesh + Socket.io ikki yo'nalish; `viaMesh` flag
-  - [ ] `TopologyManager.ts` — `FULL_MESH_LIMIT=6`, `STAR_LIMIT=15` constantalar
-  - [ ] `AppState.addEventListener` — background → `meshClient.destroy()`, active → `reconnect()`
-- **Fayllar:** `apps/mobile/src/services/mesh/SyncBroadcaster.ts`, `TopologyManager.ts`
-- **Reference:** `docs/RAVE_TRANSFORMATION_PLAN.md` §6.2 Qadam 4-5-6
-- **Bog'liq:** T-E096 dan keyin
-
----
-
 ### T-E081 | P1 | [MOBILE] | Real qurilmada smoke test (Expo Go)
 
 - **Mas'ul:** pending[Emirhan]

@@ -4,6 +4,21 @@
 
 ---
 
+### F-193 | 2026-04-19 | [MOBILE] | T-E097 — SyncBroadcaster + TopologyManager + MeshClient TS fixes [Emirhan]
+
+- `SyncBroadcaster.ts` (148q): dual-path sync — mesh DataChannel primary, Socket.io fallback
+  - `send()` → mesh → broadcast via DataChannel + socket backup for unconnected peers
+  - AppState listener: background → `destroyMesh()`, foreground → `startMesh()`
+  - `broadcastPlay/Pause/Seek/Heartbeat` public API via SyncProtocol
+- `TopologyManager.ts` (40q): peer count → topology selection (≤6 full_mesh, 7-15 star, 16+ socket_only)
+- `MeshClient.ts` TS fix: `pcAny` cast for react-native-webrtc EventTarget vs global WebRTC types
+- `types.ts` fix: `MeshPeer.connection/dataChannel` → any (type conflict avoidance)
+- `types/index.ts`: added `SyncMessage`/`MeshSignalPayload` re-export
+- `index.ts`: added `SyncBroadcaster`, `TopologyManager` exports
+- tsc --noEmit: **0 errors**
+
+---
+
 ### F-192 | 2026-04-19 | [MOBILE] | T-E101 — Buffer event signal (debounced emit to server) [Emirhan]
 
 - `useWatchPartyRoom.ts`: `emitBufferState()` — 500ms debounce, `BUFFER_START`/`BUFFER_END` emit

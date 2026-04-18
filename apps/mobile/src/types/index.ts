@@ -27,6 +27,8 @@ export type {
   AchievementRarity,
   IFriendship,
   FriendshipStatus,
+  SyncMessage,
+  MeshSignalPayload,
 } from '@shared/types/index';
 
 // ─────────────────────────────────────────────
