@@ -43,7 +43,13 @@ export const createApp = (redis: Redis): express.Application => {
   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
   app.get('/api-docs.json', (_req, res) => res.json(swaggerSpec));
 
-  app.use('/api/v1/battles', createBattleRouter(redis));
+  if (config.featureBattles) {
+    app.use('/api/v1/battles', createBattleRouter(redis));
+  } else {
+    app.use('/api/v1/battles', (_req, res) => {
+      res.status(503).json({ success: false, message: 'Battle feature is temporarily disabled', data: null, errors: null });
+    });
+  }
 
   app.use(notFoundHandler);
   app.use(errorHandler);

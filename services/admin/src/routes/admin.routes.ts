@@ -1,8 +1,13 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import Redis from 'ioredis';
 import { AdminController } from '../controllers/admin.controller';
 import { AdminService } from '../services/admin.service';
 import { verifyToken, requireRole } from '@shared/middleware/auth.middleware';
+
+const FEATURE_BATTLES = process.env.FEATURE_BATTLES !== 'false';
+const battlesDisabled = (_req: Request, res: Response): void => {
+  res.status(503).json({ success: false, message: 'Battle feature is temporarily disabled', data: null, errors: null });
+};
 
 export const createAdminRouter = (redis: Redis): Router => {
   const router = Router();
@@ -59,9 +64,14 @@ export const createAdminRouter = (redis: Redis): Router => {
   router.get('/logs', adminController.getLogs);
 
   // ── Battles ───────────────────────────────────────────────────
-  router.get('/battles', adminController.listBattles);
-  router.post('/battles/:id/end', adminController.endBattle);
-  router.post('/battles/:id/cancel', adminController.cancelBattle);
+  router.get('/battles', FEATURE_BATTLES ? adminController.listBattles : battlesDisabled);
+  router.post('/battles/:id/end', FEATURE_BATTLES ? adminController.endBattle : battlesDisabled);
+  router.post('/battles/:id/cancel', FEATURE_BATTLES ? adminController.cancelBattle : battlesDisabled);
+
+  // ── Feature flags (for admin-ui conditional rendering) ────────
+  router.get('/features', (_req, res) => {
+    res.json({ success: true, data: { battles: FEATURE_BATTLES }, message: 'Feature flags', errors: null });
+  });
 
   // ── Watch Parties ─────────────────────────────────────────────
   router.get('/watchparties', adminController.listWatchParties);

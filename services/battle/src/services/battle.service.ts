@@ -189,11 +189,8 @@ export class BattleService {
       { $inc: { score: POINTS.BATTLE_WIN } },
     );
 
-    // Award points in user service (non-blocking)
-    await addUserPoints(winnerId, POINTS.BATTLE_WIN);
-
-    // Trigger achievement (non-blocking)
-    await triggerAchievement(winnerId, 'battle', { battleId });
+    addUserPoints(winnerId, POINTS.BATTLE_WIN).catch(() => undefined);
+    triggerAchievement(winnerId, 'battle', { battleId }).catch(() => undefined);
 
     logger.info('Battle resolved', { battleId, winnerId });
   }

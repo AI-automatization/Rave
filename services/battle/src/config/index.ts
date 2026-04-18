@@ -14,4 +14,5 @@ export const config = {
   redisUrl: requireEnv('REDIS_URL'),
   jwtPublicKey: requireEnv('JWT_PUBLIC_KEY').replace(/\\n/g, '\n'),
   corsOrigins: process.env.CORS_ORIGINS ?? 'http://localhost:3000,http://localhost:5173,http://localhost:8081',
+  featureBattles: process.env.FEATURE_BATTLES !== 'false',
 } as const;
