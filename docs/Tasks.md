@@ -28,8 +28,8 @@
 
 ### T-S053 | P2 | [BACKEND] | Scope cleanup — Battle service maintenance mode + feature flag
 
-- **Mas'ul:**
-- **Holat:** ❌ Boshlanmagan
+- **Mas'ul:** pending[Saidazim]
+- **Holat:** 🔄 Jarayonda
 - **Sabab:** Rave transformation plan (§7.2) Battle/Achievement/Stats Rave'da yo'q → MVP uchun ikkinchi darajaga tushirish. Hozirgi Battle service Redis + MongoDB + Bull resource iste'mol qiladi.
 - **Qilish kerak:**
   - [ ] `services/battle/src/app.ts`: `FEATURE_BATTLES=false` bo'lsa barcha endpoint 503 qaytaradi
