@@ -1,6 +1,35 @@
 # CineSync — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-04-18
+# Yangilangan: 2026-04-19
+
+---
+
+### F-192 | 2026-04-19 | [MOBILE] | T-E101 — Buffer event signal (debounced emit to server) [Emirhan]
+
+- `useWatchPartyRoom.ts`: `emitBufferState()` — 500ms debounce, `BUFFER_START`/`BUFFER_END` emit
+- expo-av: `status.isBuffering` → `emitBufferState(status.isBuffering)` in `onPlaybackStatusUpdate`
+- WebView: `handleWebViewBuffering` callback → `emitBufferState(isBuffering)`
+- `useWebViewPlayer.ts`: `BUFFERING` message type parsing → `onBuffering` callback
+- `useWatchParty.ts`: `SERVER_EVENTS.VIDEO_BUFFER` listener → `bufferingUsers` Set tracking
+- `bufferingUsers` exposed via hook return → UI da "Do'stingiz buffering..." xabari uchun
+
+---
+
+### F-191 | 2026-04-19 | [MOBILE] | T-E096 — MeshClient + SyncProtocol — WebRTC DataChannel sync [Emirhan]
+
+- `services/mesh/MeshClient.ts` (224q): RTCPeerConnection lifecycle, DataChannel, signalling handlers (offer/answer/ICE)
+- `services/mesh/SyncProtocol.ts` (54q): play/pause/seek/heartbeat message creators + `calcDrift()` drift correction
+- `services/mesh/config.ts` (24q): Google STUN + Metered.ca TURN servers, `EXPO_PUBLIC_TURN_*` env vars
+- `services/mesh/types.ts` (27q): `MeshPeer`, `MeshEvent`, `MeshEventHandler`, re-exports `SyncMessage`/`MeshSignalPayload`
+- `services/mesh/index.ts` (4q): barrel exports
+- `useWatchParty.ts` integration: mesh socket events (PEER_OFFER/ANSWER/ICE, MESH_PEER_JOINED/LEFT)
+
+---
+
+### F-190 | 2026-04-19 | [MOBILE] | T-E095 — HomeScreen Rave CTA (allaqachon F-181 da qilingan edi) [Emirhan]
+
+- ALLAQACHON BAJARILGAN — `HomeCTA` komponenti F-171 (T-E077) da qo'shilgan, F-181 da tasdiqlangan
+- Tasks.md dan tozalandi
 
 ---
 

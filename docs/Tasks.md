@@ -1,6 +1,6 @@
 # CineSync — OCHIQ VAZIFALAR
 
-# Yangilangan: 2026-04-18
+# Yangilangan: 2026-04-19
 
 # 2 dasturchi: Saidazim (Backend) | Emirhan (Mobile + Web)
 
@@ -14,8 +14,8 @@
 3. Fix bo'lgach → shu yerdan O'CHIRISH → docs/Done.md ga KO'CHIRISH
 4. Prioritet: P0=kritik, P1=muhim, P2=o'rta, P3=past
 5. Sprint: S1=hozir, S2=keyingi hafta, S3=keyingi sprint, S4-5=keyin
-6. Oxirgi T-raqam: S→056, E→101, C→016 (S-050 done)
-7. Yangilangan: 2026-04-17
+6. Oxirgi T-raqam: S→056, E→101, C→016
+7. Yangilangan: 2026-04-19
 ```
 
 ---
@@ -24,13 +24,7 @@
 
 # 🔴 SAIDAZIM — BACKEND + ADMIN
 
----
-
-## 🎬 BOSQICH A — Video Sync Optimizatsiya (Socket.io + Predictive + Drift)
-
-> **Maqsad:** Sync lag ni 150ms+ dan 20-40ms ga tushirish. WebRTC/Mesh KUTMASDAN hoziroq qilish mumkin.
-> **Natija:** Rave bilan 65% funksional o'xshashlik (hozir 30%).
-> **Tartib:** T-S054 → T-E098 → T-S056 → T-E099 → T-E100 → T-S055 → T-E101
+*(Barcha backend tasklari TUGADI — T-S050..T-S056 Done.md da)*
 
 ---
 
@@ -44,28 +38,10 @@
 
 ---
 
-### T-E096 | P1 | [MOBILE] | MeshClient + SyncProtocol — WebRTC DataChannel sync
-
-- **Mas'ul:**
-- **Holat:** ❌ Boshlanmagan
-- **Sabab:** Rave'ning 5-30ms sync uchun WebRTC DataChannel. `react-native-webrtc` allaqachon o'rnatilgan. **Expo Go da ishlamaydi → development build kerak.**
-- **Qilish kerak:**
-  - [ ] `apps/mobile/src/services/mesh/MeshClient.ts` — `RTCPeerConnection` + `DataChannel` full implementation
-  - [ ] `apps/mobile/src/services/mesh/SyncProtocol.ts` — play/pause/seek/heartbeat + drift correction
-  - [ ] `apps/mobile/src/services/mesh/config.ts` — ICE servers (Google STUN + TURN)
-  - [ ] `apps/mobile/src/services/mesh/types.ts` — `SyncMessage`, `MeshConfig`
-  - [ ] `useWatchParty.ts` integration — MeshClient lifecycle
-  - [ ] TURN server: Metered.ca bepul tier (50GB/oy)
-- **Fayllar:** `apps/mobile/src/services/mesh/*` (yangi papka), `apps/mobile/src/hooks/useWatchParty.ts`
-- **Reference:** `docs/RAVE_TRANSFORMATION_PLAN.md` §6.2 Qadam 2-3
-- **Bog'liq:** T-C014 + T-S052 birinchi bo'lishi shart
-
----
-
 ### T-E097 | P2 | [MOBILE] | SyncBroadcaster + TopologyManager — fallback + mesh/star/socket
 
-- **Mas'ul:**
-- **Holat:** ❌ Boshlanmagan
+- **Mas'ul:** pending[Emirhan]
+- **Holat:** 🔄 Ishlanmoqda
 - **Sabab:** Mesh peers soniga qarab topology tanlash: ≤6 full mesh, 7-15 star, 16+ Socket.io fallback.
 - **Qilish kerak:**
   - [ ] `SyncBroadcaster.ts` — mesh + Socket.io ikki yo'nalish; `viaMesh` flag
@@ -74,20 +50,6 @@
 - **Fayllar:** `apps/mobile/src/services/mesh/SyncBroadcaster.ts`, `TopologyManager.ts`
 - **Reference:** `docs/RAVE_TRANSFORMATION_PLAN.md` §6.2 Qadam 4-5-6
 - **Bog'liq:** T-E096 dan keyin
-
----
-
-### T-E095 | P2 | [MOBILE] | HomeScreen Rave CTA — "Birga ko'rish" tugmasi
-
-- **Mas'ul:**
-- **Holat:** ❌ Boshlanmagan
-- **Sabab:** Hozirgi HomeScreen Netflix stili. Rave da entry point Rooms/Source Picker.
-- **Qilish kerak:**
-  - [ ] `HomeScreen.tsx` yuqorisida "Birga ko'rish" hero CTA qo'shish
-  - [ ] Tugma → `navigation.navigate('Rooms', { screen: 'RoomsScreen' })`
-  - [ ] Movie catalog rows pastroqqa
-- **Fayllar:** `apps/mobile/src/screens/home/HomeScreen.tsx`
-- **Reference:** `docs/RAVE_TRANSFORMATION_PLAN.md` §4.2 Fayl 4
 
 ---
 
@@ -101,26 +63,6 @@
   - [ ] Do'st qo'shish → invite → birga ko'rish (2 ta qurilma)
   - [ ] Push notification kelishi
   - [ ] Topilgan yangi buglarni Tasks.md ga yozish
-
----
-
-## 🎬 BOSQICH A — Mobile Sync Optimizatsiya
-
----
-
-### T-E101 | P1 | [MOBILE] | Buffer event — buffering bo'lganda server ga signal yuborish
-
-- **Mas'ul:**
-- **Holat:** ❌ Boshlanmagan
-- **Sabab:** Video buffer bo'lganda hech signal yuborilmaydi → boshqa peer'lar davom etadi → buffer bo'lgan 5-10 sek orqada qoladi.
-- **Qilish kerak:**
-  - [ ] `useWatchPartyRoom.ts` → `isBuffering` → `socket.emit(CLIENT_EVENTS.BUFFER_START)`
-  - [ ] Buffer tugaganda → `socket.emit(CLIENT_EVENTS.BUFFER_END)`
-  - [ ] WebView: `waiting` event → buffer signal
-  - [ ] Debounce: 500ms (qisqa buffer'lar uchun)
-  - [ ] UI: "Do'stingiz buffering..." xabari
-- **Fayllar:** `apps/mobile/src/hooks/useWatchPartyRoom.ts`, `apps/mobile/src/hooks/useWebViewPlayer.ts`
-- **Bog'liq:** T-S055 birinchi bo'lishi SHART
 
 ---
 
