@@ -4,6 +4,18 @@
 
 ---
 
+### F-183 | 2026-04-18 | [BACKEND] | T-S053 — Battle service maintenance mode + feature flag [Saidazim]
+
+- `FEATURE_BATTLES=false` env var → barcha `/api/v1/battles/*` endpointlar 503 qaytaradi
+- `services/battle/src/app.ts`: `config.featureBattles` flag orqali router conditionally mount
+- `services/battle/src/config/index.ts`: `featureBattles: process.env.FEATURE_BATTLES !== 'false'`
+- Admin routes (`services/admin/src/routes/admin.routes.ts`): battle admin endpointlar ham gated; yangi `GET /admin/features` endpoint — admin-ui uchun feature flags
+- Achievement triggers `resolveBattle()` da `await` olib tashlandi → fire-and-forget `.catch(() => undefined)` — truly non-blocking
+- `services/battle/.env.example`: `FEATURE_BATTLES=true` qo'shildi
+- tsc: CLEAN (battle + admin services)
+
+---
+
 ### F-182 | 2026-04-18 | [BACKEND] | T-S050 — Expo Push Token routing + batch support [Saidazim]
 
 - **Kritik bug fix**: `ExponentPushToken[...]` tokenlar FCM ga yuborilardi → silently ignored. Endi to'g'ri routing:

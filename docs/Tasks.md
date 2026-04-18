@@ -1,6 +1,6 @@
 # CineSync — OCHIQ VAZIFALAR
 
-# Yangilangan: 2026-04-17
+# Yangilangan: 2026-04-18
 
 # 2 dasturchi: Saidazim (Backend) | Emirhan (Mobile + Web)
 
@@ -23,21 +23,6 @@
 # ═══════════════════════════════════════
 
 # 🔴 SAIDAZIM — BACKEND + ADMIN
-
----
-
-### T-S053 | P2 | [BACKEND] | Scope cleanup — Battle service maintenance mode + feature flag
-
-- **Mas'ul:** pending[Saidazim]
-- **Holat:** 🔄 Jarayonda
-- **Sabab:** Rave transformation plan (§7.2) Battle/Achievement/Stats Rave'da yo'q → MVP uchun ikkinchi darajaga tushirish. Hozirgi Battle service Redis + MongoDB + Bull resource iste'mol qiladi.
-- **Qilish kerak:**
-  - [ ] `services/battle/src/app.ts`: `FEATURE_BATTLES=false` bo'lsa barcha endpoint 503 qaytaradi
-  - [ ] Railway env var qo'shish — `FEATURE_BATTLES=false` MVP uchun
-  - [ ] Achievement trigger'lar non-blocking bo'lishi (serviceQueue fail bo'lsa log qilmasdan skip)
-  - [ ] Admin panel'dan Battle/Achievement bo'limini yashirish (feature flag)
-- **Fayllar:** `services/battle/src/app.ts`, `services/admin/src/routes/*.ts`, `.env.example`
-- **Reference:** `docs/RAVE_TRANSFORMATION_PLAN.md` §7.2
 
 ---
 
