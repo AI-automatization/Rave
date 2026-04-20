@@ -28,8 +28,8 @@
 
 ### T-S057 | P1 | [BACKEND] | Watch Party: owner echo fix — socket.to() vs io.to()
 
-- **Mas'ul:**
-- **Holat:** ❌ Boshlanmagan
+- **Mas'ul:** pending[Saidazim]
+- **Holat:** 🔄 Jarayonda
 - **Sabab:** `videoEvents.handler.ts` da play/pause/seek uchun `io.to(roomId).emit()` ishlatilmoqda — bu owner'ga ham o'z komandalarini qaytarib yuboradi. Owner VIDEO_PLAY oladi → useEffect → seekTo + play → playback to'xtaydi. Shuning uchun 5-6 marta bosish kerak bo'lmoqda.
 - **Fayl:** `services/watch-party/src/socket/videoEvents.handler.ts`
 - **Qilish kerak:**
