@@ -14,7 +14,7 @@
 3. Fix bo'lgach → shu yerdan O'CHIRISH → docs/Done.md ga KO'CHIRISH
 4. Prioritet: P0=kritik, P1=muhim, P2=o'rta, P3=past
 5. Sprint: S1=hozir, S2=keyingi hafta, S3=keyingi sprint, S4-5=keyin
-6. Oxirgi T-raqam: S→057, E→103, C→016
+6. Oxirgi T-raqam: S→057, E→105, C→016
 7. Yangilangan: 2026-04-20
 ```
 
@@ -66,6 +66,48 @@
   - [ ] `handleWebViewPlay` ichida: `if (pendingSync) { seekTo(pendingSync.currentTime); pendingSync = null; }`
   - [ ] Timeout (30s): agar pendingSync apply bo'lmasa — discard (reklama juda uzun bo'lsa)
 - **Ehtiyot:** Faqat `isWebViewMode === true` bo'lganda ishlaydi. expo-av (YouTube extracted, .mp4) ga tegmaydi — ular seekTo ni to'g'ri qabul qiladi
+
+---
+
+### T-E104 | P1 | [MOBILE] | iOS WebView CAPTCHA — Android User-Agent on iOS
+
+- **Mas'ul:**
+- **Holat:** ❌ Boshlanmagan
+- **Sabab:** `MOBILE_UA` (`webViewScripts.ts`) — Android Chrome User-Agent har joyda qattiq kodlangan. iOS WebView da WebKit engine ishlaydi, lekin Android UA yuboriladi. Google bu nomuvofiqlikni aniqlaydi (TLS fingerprint iOS, UA Android) → bot deb hisoblaydi → CAPTCHA ko'rsatadi.
+- **Fayllar:**
+  - `apps/mobile/src/utils/webViewScripts.ts` — `MOBILE_UA` const
+  - `apps/mobile/src/screens/modal/MediaWebViewScreen.tsx` — `userAgent={MOBILE_UA}`
+  - `apps/mobile/src/components/video/UniversalPlayer.tsx` — `userAgent={MOBILE_UA}` (WebViewPlayer ga uzatiladi)
+- **Qilish kerak:**
+  - [ ] `webViewScripts.ts` da platform-specific UA:
+    ```ts
+    import { Platform } from 'react-native';
+    export const IOS_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
+    export const ANDROID_UA = 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.144 Mobile Safari/537.36';
+    export const MOBILE_UA = Platform.OS === 'ios' ? IOS_UA : ANDROID_UA;
+    ```
+  - [ ] `MediaWebViewScreen` va `UniversalPlayer` da MOBILE_UA import → avtomatik to'g'ri UA
+- **Ehtiyot:** `videoPlayer.ts` da ham MOBILE_UA bor — tekshirish kerak
+
+---
+
+### T-E105 | P2 | [MOBILE] | Rutube WebView adapter — noto'g'ri postMessage metodlari
+
+- **Mas'ul:**
+- **Holat:** ❌ Boshlanmagan
+- **Sabab:** `WebViewAdapters.ts` `buildRutubeHtml()` da play/pause/seek buyruqlari YouTube API nomlari bilan yuborilmoqda. Rutube boshqa API format ishlatadi — komandalar ignore qilinadi.
+  - `sendCmd('playVideo')` → Rutube `{ method: 'play' }` kutadi
+  - `sendCmd('pauseVideo')` → Rutube `{ method: 'pause' }` kutadi
+  - `sendCmd('seekTo', t)` → Rutube `{ method: 'setCurrentTime', value: t }` kutishi mumkin
+  - Event listener da `onStateChange` + `playerState: 1/2` — bu YouTube formatiga o'xshaydi, Rutube boshqacha yuborishi mumkin
+- **Fayl:** `apps/mobile/src/components/video/WebViewAdapters.ts` (line 380-431)
+- **Qilish kerak:**
+  - [ ] Rutube embed API rasmiy docs yoki DevTools orqali tekshirish — haqiqiy event va metod nomlarini aniqlash
+  - [ ] `sendCmd('playVideo')` → `sendCmd('play')`
+  - [ ] `sendCmd('pauseVideo')` → `sendCmd('pause')`
+  - [ ] `sendCmd('seekTo', t)` → to'g'ri metod nomi bilan almashtirish
+  - [ ] `onStateChange` event listenerni Rutube haqiqiy eventlariga moslashtirish
+- **Ehtiyot:** Faqat `buildRutubeHtml()` ni o'zgartirish — boshqa platformalar (YouTube, VK, Vimeo, Dailymotion) tegmaydi
 
 ---
 
