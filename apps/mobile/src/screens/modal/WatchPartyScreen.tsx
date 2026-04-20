@@ -58,7 +58,7 @@ export function WatchPartyScreen() {
         extractedUrl={extractedVideoUrl}
         videoReferer={params.videoReferer}
         isWebView={isWebViewMode}
-        isReady={!!room && !isExtracting}
+        isReady={!!room && (!isExtracting || isWebViewMode)}
         isOwner={isOwner}
         isPlaying={isPlaying}
         isFullscreen={isFullscreen}

@@ -19,12 +19,37 @@ export function buildYouTubeHtml(videoId: string): string {
   <script>
     var ytPlayer = null;
     var progressTimer = null;
+    // Command queue: if sync commands arrive before IFrame API is ready
+    var pendingSeek = null;
+    var pendingPlay = null; // null=no cmd, true=play, false=pause
 
     function rn(obj) {
       if (window.ReactNativeWebView) {
         window.ReactNativeWebView.postMessage(JSON.stringify(obj));
       }
     }
+
+    // Declare _csVideo GLOBALLY so injectWithRetry can find it even before IFrame ready
+    window._csVideo = {
+      get currentTime() { return ytPlayer ? ytPlayer.getCurrentTime() : (pendingSeek || 0); },
+      set currentTime(t) {
+        pendingSeek = t;
+        if (ytPlayer) { ytPlayer.seekTo(t, true); }
+        rn({ type: 'SEEK', currentTime: t });
+      },
+      play: function() {
+        pendingPlay = true;
+        if (ytPlayer) ytPlayer.playVideo();
+      },
+      pause: function() {
+        pendingPlay = false;
+        if (ytPlayer) ytPlayer.pauseVideo();
+      },
+      get paused() {
+        if (!ytPlayer) return pendingPlay !== true;
+        try { return ytPlayer.getPlayerState() !== YT.PlayerState.PLAYING; } catch(e) { return true; }
+      }
+    };
 
     function onYouTubeIframeAPIReady() {
       ytPlayer = new YT.Player('yt', {
@@ -39,7 +64,20 @@ export function buildYouTubeHtml(videoId: string): string {
         },
         events: {
           onReady: function(e) {
-            e.target.playVideo();
+            // Apply queued commands from before player was ready
+            if (pendingSeek !== null) {
+              e.target.seekTo(pendingSeek, true);
+              pendingSeek = null;
+            }
+            if (pendingPlay === true) {
+              e.target.playVideo();
+            } else if (pendingPlay === false) {
+              e.target.pauseVideo();
+            } else {
+              e.target.playVideo(); // default: autoplay
+            }
+            pendingPlay = null;
+
             rn({ type: 'VIDEO_FOUND' });
             progressTimer = setInterval(function() {
               if (ytPlayer && ytPlayer.getPlayerState() === YT.PlayerState.PLAYING) {
@@ -56,25 +94,10 @@ export function buildYouTubeHtml(videoId: string): string {
             }
           },
           onError: function(e) {
-            // 150/152: embedding disabled by video owner → fallback to m.youtube.com
             rn({ type: 'YT_EMBED_ERROR', code: e.data });
           }
         }
       });
-
-      // window._csVideo — WebViewPlayer ref metodlari uchun proxy
-      window._csVideo = {
-        get currentTime() { return ytPlayer ? ytPlayer.getCurrentTime() : 0; },
-        set currentTime(t) {
-          if (ytPlayer) {
-            ytPlayer.seekTo(t, true);
-            rn({ type: 'SEEK', currentTime: t });
-          }
-        },
-        play: function() { if (ytPlayer) ytPlayer.playVideo(); },
-        pause: function() { if (ytPlayer) ytPlayer.pauseVideo(); },
-        get paused() { return !ytPlayer || ytPlayer.getPlayerState() !== YT.PlayerState.PLAYING; }
-      };
     }
   </script>
 </body>

@@ -106,12 +106,12 @@ export function useWebViewPlayer(
         case 'PLAY':
           currentTimeMsRef.current = data.currentTime * 1000;
           isPlayingRef.current = true;
-          if (isOwner) onPlay(data.currentTime);
+          onPlay(data.currentTime);
           break;
         case 'PAUSE':
           currentTimeMsRef.current = data.currentTime * 1000;
           isPlayingRef.current = false;
-          if (isOwner) onPause(data.currentTime);
+          onPause(data.currentTime);
           break;
         case 'SEEK':
           currentTimeMsRef.current = data.currentTime * 1000;
