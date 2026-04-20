@@ -66,11 +66,7 @@ export function useWebViewPlayer(
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [redirectWarning, setRedirectWarning] = useState<string | null>(null);
-  const [ytFallback, setYtFallback] = useState(false);
-
-  const fallbackYtUrl = isYouTubeMode && youtubeVideoId
-    ? `https://m.youtube.com/watch?v=${youtubeVideoId}`
-    : url;
+  const [ytEmbedBlocked, setYtEmbedBlocked] = useState(false);
 
   useEffect(() => {
     StatusBar.setHidden(true, 'slide');
@@ -138,8 +134,8 @@ export function useWebViewPlayer(
           break;
         case 'YT_EMBED_ERROR':
           if (data.code === 150 || data.code === 152 || data.code === 101) {
-            setYtFallback(true);
-            setLoading(true);
+            setYtEmbedBlocked(true);
+            setLoading(false);
           }
           break;
       }
@@ -169,15 +165,14 @@ export function useWebViewPlayer(
 
   const webViewSource = htmlContent
     ? { html: htmlContent, baseUrl: htmlBaseUrl ?? 'about:blank' }
-    : isYouTubeMode && !ytFallback
+    : isYouTubeMode
     ? { html: buildYouTubeHtml(youtubeVideoId!), baseUrl: 'https://www.youtube.com' }
-    : isYouTubeMode && ytFallback
-    ? { uri: fallbackYtUrl }
     : { uri: url, headers: referer ? { Referer: referer } : {} };
 
   return {
     webviewRef, injectJs, webViewSource,
-    loading, error, redirectWarning,
+    loading, error, redirectWarning, ytEmbedBlocked,
+    youtubeVideoId,
     setLoading, setError,
     handleMessage, handleShouldStartLoad, handleNavigationStateChange, handleRetry,
     setRedirectWarning,

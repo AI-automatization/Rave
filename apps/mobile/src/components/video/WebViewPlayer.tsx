@@ -1,7 +1,7 @@
 // CineSync Mobile — WebViewPlayer
 // react-native-webview asosida har qanday saytdan video o'ynatish
 import React, { forwardRef } from 'react';
-import { View, Text, ActivityIndicator, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet, TouchableOpacity, Linking } from 'react-native';
 import WebView from 'react-native-webview';
 import { colors, spacing, typography, borderRadius } from '@theme/index';
 import { getHostname } from './webviewAdBlocker';
@@ -34,7 +34,7 @@ export const WebViewPlayer = forwardRef<WebViewPlayerRef, Props>((props, ref) =>
   const { url, userAgent } = props;
   const {
     webviewRef, injectJs, webViewSource,
-    loading, error, redirectWarning,
+    loading, error, redirectWarning, ytEmbedBlocked, youtubeVideoId,
     setLoading, setError,
     handleMessage, handleShouldStartLoad, handleNavigationStateChange, handleRetry,
     setRedirectWarning,
@@ -56,7 +56,18 @@ export const WebViewPlayer = forwardRef<WebViewPlayerRef, Props>((props, ref) =>
         </TouchableOpacity>
       )}
 
-      {error ? (
+      {ytEmbedBlocked ? (
+        <View style={s.errorContainer}>
+          <Text style={s.errorTitle}>Встроенный плеер недоступен</Text>
+          <Text style={s.errorHost}>Автор этого видео запретил встраивание</Text>
+          <TouchableOpacity
+            style={s.retryButton}
+            onPress={() => Linking.openURL(`https://www.youtube.com/watch?v=${youtubeVideoId}`)}
+          >
+            <Text style={s.retryText}>Открыть в YouTube</Text>
+          </TouchableOpacity>
+        </View>
+      ) : error ? (
         <View style={s.errorContainer}>
           <Text style={s.errorTitle}>Sayt yuklanmadi</Text>
           <Text style={s.errorHost}>{getHostname(url)}</Text>
