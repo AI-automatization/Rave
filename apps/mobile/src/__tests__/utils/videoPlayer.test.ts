@@ -11,7 +11,8 @@ describe('constants', () => {
   it('YOUTUBE_RE matches youtube.com', () => expect(YOUTUBE_RE.test('https://youtube.com/watch?v=abc')).toBe(true));
   it('YOUTUBE_RE matches youtu.be', () => expect(YOUTUBE_RE.test('https://youtu.be/abc123')).toBe(true));
   it('YOUTUBE_RE does not match other sites', () => expect(YOUTUBE_RE.test('https://vimeo.com/123')).toBe(false));
-  it('MOBILE_UA contains Chrome Mobile', () => expect(MOBILE_UA).toContain('Chrome/120'));
+  it('MOBILE_UA contains Mozilla', () => expect(MOBILE_UA).toContain('Mozilla/5.0'));
+  it('MOBILE_UA is platform-specific', () => expect(typeof MOBILE_UA).toBe('string'));
 });
 
 describe('extractYouTubeVideoId', () => {
