@@ -157,6 +157,11 @@ export function useWatchParty(roomId: string) {
     [roomId],
   );
 
+  const emitHeartbeat = useCallback(
+    (currentTime: number) => getSocket()?.emit(CLIENT_EVENTS.HEARTBEAT, { roomId, currentTime }),
+    [roomId],
+  );
+
   const sendMessage = useCallback(
     (text: string) => getSocket()?.emit(CLIENT_EVENTS.SEND_MESSAGE, { message: text }),
     [],
@@ -194,5 +199,5 @@ export function useWatchParty(roomId: string) {
     getSocket()?.emit(CLIENT_EVENTS.VOICE_LEAVE);
   }, []);
 
-  return { room, syncState, messages, activeMembers, isOwner, adminMonitoring, roomClosed, heartbeat, bufferingUsers, emitPlay, emitPause, emitSeek, sendMessage, sendEmoji, emitMediaChange, emitVoiceJoin, emitVoiceLeave };
+  return { room, syncState, messages, activeMembers, isOwner, adminMonitoring, roomClosed, heartbeat, bufferingUsers, emitPlay, emitPause, emitSeek, emitHeartbeat, sendMessage, sendEmoji, emitMediaChange, emitVoiceJoin, emitVoiceLeave };
 }

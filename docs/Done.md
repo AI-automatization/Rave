@@ -4,6 +4,14 @@
 
 ---
 
+### F-196 | 2026-04-20 | [MOBILE] | T-E102 — Watch Party owner heartbeat fix [Saidazim]
+
+- `useWatchParty.ts`: `emitHeartbeat` callback qo'shildi (`CLIENT_EVENTS.HEARTBEAT` → `video:heartbeat`)
+- `useWatchPartyRoom.ts`: 5s interval ichida `emitPlay()` → `emitHeartbeat()`, dependency array yangilandi
+- **Natija:** owner 5s interval VIDEO_HEARTBEAT yuboradi (syncState trigger yo'q) — drift correction ishlaydi, playback uzilmaydi
+
+---
+
 ### F-195 | 2026-04-20 | [MOBILE] | T-E104 — iOS WebView CAPTCHA: platform-specific MOBILE_UA [Saidazim]
 
 - `apps/mobile/src/utils/webViewScripts.ts`: `MOBILE_UA` → `Platform.OS === 'ios' ? IOS_UA : ANDROID_UA`

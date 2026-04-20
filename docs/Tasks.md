@@ -40,21 +40,6 @@
 
 ---
 
-### T-E102 | P1 | [MOBILE] | Watch Party: owner heartbeat — emitPlay → emitHeartbeat
-
-- **Mas'ul:**
-- **Yaratilgan:** 2026-04-20 09:04
-- **Holat:** ❌ Boshlanmagan
-- **Sabab:** `useWatchPartyRoom.ts` da owner har 5 sekundda `emitPlay()` yuborib turadi (lines 149-156). Bu backend da VIDEO_PLAY syncState broadcast qiladi → barcha a'zolar seekTo + play bajaradi → playback har 5 sekundda to'xtaydi.
-- **Fayl:** `apps/mobile/src/hooks/useWatchPartyRoom.ts`
-- **Qilish kerak:**
-  - [ ] Lines 149-156 ichidagi `emitPlay(posMs / 1000)` → `emitHeartbeat(posMs / 1000)` ga almashtirish
-  - [ ] `emitHeartbeat` ni `useWatchParty.ts` dan return qilish (allaqachon emitPlay kabi yo'l bor)
-  - [ ] Heartbeat SERVER_EVENTS.VIDEO_HEARTBEAT ishlatadi — bu syncState trigger qilmaydi, faqat drift correction uchun
-- **Ehtiyot:** YouTube, kinogo, direct .mp4 — hammasi uchun teng ishlaydi (heartbeat platform-independent)
-
----
-
 ### T-E103 | P1 | [MOBILE] | Watch Party: WebView pendingSync — Rutube + boshqa WebView saytlarda sync muammosi
 
 - **Mas'ul:**

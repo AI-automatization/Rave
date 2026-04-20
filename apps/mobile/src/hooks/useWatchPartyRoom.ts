@@ -42,7 +42,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const { t } = useT();
 
   const { room, syncState, messages, activeMembers, isOwner, adminMonitoring, roomClosed, heartbeat, bufferingUsers,
-    emitPlay, emitPause, emitSeek, sendMessage, sendEmoji } = useWatchParty(roomId);
+    emitPlay, emitPause, emitSeek, emitHeartbeat, sendMessage, sendEmoji } = useWatchParty(roomId);
   const { isExtracting, result: extractResult, fallbackMode: extractFallback, extract, reset: resetExtraction } = useVideoExtraction();
 
   const playerRef = useRef<UniversalPlayerRef>(null);
@@ -150,10 +150,10 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     const interval = setInterval(async () => {
       if (isSyncing.current) return;
       const posMs = (await playerRef.current?.getPositionMs()) ?? 0;
-      if (isPlaying) emitPlay(posMs / 1000);
+      if (isPlaying) emitHeartbeat(posMs / 1000);
     }, 5000);
     return () => clearInterval(interval);
-  }, [isOwner, room, isPlaying, emitPlay]);
+  }, [isOwner, room, isPlaying, emitHeartbeat]);
 
   // T-E099: Drift correction — only for members (not owner), on heartbeat
   useEffect(() => {
