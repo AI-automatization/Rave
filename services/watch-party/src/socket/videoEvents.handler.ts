@@ -33,7 +33,7 @@ export const registerVideoEvents = (
       }
 
       const syncState = await watchPartyService.syncState(roomId, userId, data.currentTime, true);
-      io.to(roomId).emit(SERVER_EVENTS.VIDEO_PLAY, syncState);
+      socket.to(roomId).emit(SERVER_EVENTS.VIDEO_PLAY, syncState);
       logger.info('Video sync: play', { roomId, userId, currentTime: data.currentTime });
     } catch (error) {
       logger.error('Socket play error', { userId, error });
@@ -50,7 +50,7 @@ export const registerVideoEvents = (
       if (room.ownerId !== userId) return;
 
       const syncState = await watchPartyService.syncState(roomId, userId, data.currentTime, false);
-      io.to(roomId).emit(SERVER_EVENTS.VIDEO_PAUSE, syncState);
+      socket.to(roomId).emit(SERVER_EVENTS.VIDEO_PAUSE, syncState);
       logger.info('Video sync: pause', { roomId, userId, currentTime: data.currentTime });
     } catch (error) {
       logger.error('Socket pause error', { userId, error });
@@ -67,7 +67,7 @@ export const registerVideoEvents = (
       if (room.ownerId !== userId) return;
 
       const syncState = await watchPartyService.syncState(roomId, userId, data.currentTime, room.isPlaying);
-      io.to(roomId).emit(SERVER_EVENTS.VIDEO_SEEK, syncState);
+      socket.to(roomId).emit(SERVER_EVENTS.VIDEO_SEEK, syncState);
       logger.info('Video sync: seek', { roomId, userId, currentTime: data.currentTime });
     } catch (error) {
       logger.error('Socket seek error', { userId, error });
