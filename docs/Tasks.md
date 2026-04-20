@@ -42,7 +42,7 @@
 
 ### T-E103 | P1 | [MOBILE] | Watch Party: WebView pendingSync — Rutube + boshqa WebView saytlarda sync muammosi
 
-- **Mas'ul:**
+- **Mas'ul:** pending[Saidazim]
 - **Yaratilgan:** 2026-04-20 09:04
 - **Holat:** ❌ Boshlanmagan
 - **Sabab:** Yangi a'zo xonaga qo'shilganda syncState darhol seekTo bajaradi. Lekin WebView (Rutube) hali reklama ko'rsatmoqda — seek reklama vaqtida ignored yoki fails. Reklama tugagach video boshlanmaydi, oxirgi kadrda qotib qoladi.
