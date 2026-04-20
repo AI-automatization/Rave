@@ -73,9 +73,9 @@
 
 ### T-E104 | P1 | [MOBILE] | iOS WebView CAPTCHA — Android User-Agent on iOS
 
-- **Mas'ul:**
+- **Mas'ul:** pending[Saidazim]
 - **Yaratilgan:** 2026-04-20 16:16
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 Jarayonda
 - **Sabab:** `MOBILE_UA` (`webViewScripts.ts`) — Android Chrome User-Agent har joyda qattiq kodlangan. iOS WebView da WebKit engine ishlaydi, lekin Android UA yuboriladi. Google bu nomuvofiqlikni aniqlaydi (TLS fingerprint iOS, UA Android) → bot deb hisoblaydi → CAPTCHA ko'rsatadi.
 - **Fayllar:**
   - `apps/mobile/src/utils/webViewScripts.ts` — `MOBILE_UA` const
