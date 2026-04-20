@@ -55,6 +55,10 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const driftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bufferDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isBufferingRef = useRef(false);
+  // T-E103: WebView pendingSync — defer seekTo until ad finishes
+  const pendingSyncRef = useRef<{ currentTime: number; isPlaying: boolean } | null>(null);
+  const pendingSyncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const webViewReadyRef = useRef(false);
 
   const [showChat, setShowChat] = useState(false);
   const [showVoice, setShowVoice] = useState(false);
@@ -118,6 +122,18 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     if (lastSyncId.current === syncId) return;
     lastSyncId.current = syncId;
     intendedPlayingRef.current = syncState.isPlaying;
+
+    // T-E103: WebView not ready (ad playing) — defer seek until first play event
+    if (isWebViewModeRef.current && !webViewReadyRef.current) {
+      pendingSyncRef.current = { currentTime: syncState.currentTime, isPlaying: syncState.isPlaying };
+      if (pendingSyncTimeoutRef.current) clearTimeout(pendingSyncTimeoutRef.current);
+      pendingSyncTimeoutRef.current = setTimeout(() => {
+        pendingSyncRef.current = null;
+        pendingSyncTimeoutRef.current = null;
+      }, 30_000);
+      return;
+    }
+
     isSyncing.current = true;
 
     const scheduled = (syncState as PredictiveSyncState).scheduledAt;
@@ -210,7 +226,25 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     prevIsPlayingRef.current = status.isPlaying;
   }, [isOwner, emitPause, emitBufferState]);
 
-  const handleWebViewPlay = useCallback((secs: number) => { setIsPlaying(true); if (isOwner && !isSyncing.current) emitPlay(secs); }, [isOwner, emitPlay]);
+  const handleWebViewPlay = useCallback((secs: number) => {
+    // T-E103: first play after ad — apply deferred sync
+    if (!webViewReadyRef.current) {
+      webViewReadyRef.current = true;
+      if (pendingSyncRef.current) {
+        const { currentTime, isPlaying } = pendingSyncRef.current;
+        pendingSyncRef.current = null;
+        if (pendingSyncTimeoutRef.current) { clearTimeout(pendingSyncTimeoutRef.current); pendingSyncTimeoutRef.current = null; }
+        isSyncing.current = true;
+        playerRef.current?.seekTo(currentTime * 1000)
+          .then(() => isPlaying ? playerRef.current?.play() : playerRef.current?.pause())
+          .catch(() => {})
+          .finally(() => { setTimeout(() => { isSyncing.current = false; }, 400); });
+        return;
+      }
+    }
+    setIsPlaying(true);
+    if (isOwner && !isSyncing.current) emitPlay(secs);
+  }, [isOwner, emitPlay]);
   const handleWebViewPause = useCallback((secs: number) => { setIsPlaying(false); if (isOwner && !isSyncing.current) emitPause(secs); }, [isOwner, emitPause]);
   // T-E101: WebView buffering callback
   const handleWebViewBuffering = useCallback((isBuffering: boolean) => { emitBufferState(isBuffering); }, [emitBufferState]);
@@ -294,6 +328,20 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const iosWebmBlocked = !!(rawExtractedUrl && Platform.OS === 'ios' && /\.webm(\?|#|$)/i.test(rawExtractedUrl));
   const extractedVideoUrl = iosWebmBlocked ? undefined : rawExtractedUrl;
   const isWebViewMode = !extractedVideoUrl && (iosWebmBlocked || ['youtube', 'webview'].includes(detectVideoPlatform(originalVideoUrl)) || extractFallback);
+
+  // T-E103: keep ref in sync for use inside effects without dependency issues
+  const isWebViewModeRef = useRef(false);
+  isWebViewModeRef.current = isWebViewMode;
+
+  // T-E103: reset WebView ready state when video URL changes (new media → ad may play again)
+  useEffect(() => {
+    webViewReadyRef.current = false;
+    pendingSyncRef.current = null;
+    if (pendingSyncTimeoutRef.current) { clearTimeout(pendingSyncTimeoutRef.current); pendingSyncTimeoutRef.current = null; }
+  }, [room?.videoUrl]);
+
+  // T-E103: cleanup pendingSync timeout on unmount
+  useEffect(() => () => { if (pendingSyncTimeoutRef.current) clearTimeout(pendingSyncTimeoutRef.current); }, []);
 
   return {
     playerRef, userId, room, messages, activeMembers, isOwner, adminMonitoring, connectTimeout,

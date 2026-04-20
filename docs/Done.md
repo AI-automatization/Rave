@@ -4,6 +4,16 @@
 
 ---
 
+### F-197 | 2026-04-20 | [MOBILE] | T-E103 — WebView pendingSync: Rutube ad freeze fix [Saidazim]
+
+- `useWatchPartyRoom.ts`: `pendingSyncRef`, `webViewReadyRef`, `isWebViewModeRef` qo'shildi
+- syncState effect: `isWebViewMode && !webViewReady` → seekTo ni defer qiladi (30s timeout)
+- `handleWebViewPlay`: birinchi play eventda (reklama tugagach) pendingSync apply qilinadi
+- `room?.videoUrl` o'zgarganda `webViewReadyRef` reset — yangi media uchun ham ishlaydi
+- **Natija:** Rutube yangi a'zo reklama vaqtida qo'shilsa — reklama tugagach avtomatik sync bo'ladi
+
+---
+
 ### F-196 | 2026-04-20 | [MOBILE] | T-E102 — Watch Party owner heartbeat fix [Saidazim]
 
 - `useWatchParty.ts`: `emitHeartbeat` callback qo'shildi (`CLIENT_EVENTS.HEARTBEAT` → `video:heartbeat`)

@@ -40,22 +40,6 @@
 
 ---
 
-### T-E103 | P1 | [MOBILE] | Watch Party: WebView pendingSync — Rutube + boshqa WebView saytlarda sync muammosi
-
-- **Mas'ul:** pending[Saidazim]
-- **Yaratilgan:** 2026-04-20 09:04
-- **Holat:** ❌ Boshlanmagan
-- **Sabab:** Yangi a'zo xonaga qo'shilganda syncState darhol seekTo bajaradi. Lekin WebView (Rutube) hali reklama ko'rsatmoqda — seek reklama vaqtida ignored yoki fails. Reklama tugagach video boshlanmaydi, oxirgi kadrda qotib qoladi.
-- **Fayl:** `apps/mobile/src/hooks/useWatchPartyRoom.ts`
-- **Qilish kerak:**
-  - [ ] `isWebViewMode` bo'lsa: `pendingSync` ref qo'shish — syncState ni saqlab qo'yish
-  - [ ] Birinchi `handleWebViewPlay` event kelganda (reklama tugab, haqiqiy video boshlanganda) pendingSync ni apply qilish
-  - [ ] `handleWebViewPlay` ichida: `if (pendingSync) { seekTo(pendingSync.currentTime); pendingSync = null; }`
-  - [ ] Timeout (30s): agar pendingSync apply bo'lmasa — discard (reklama juda uzun bo'lsa)
-- **Ehtiyot:** Faqat `isWebViewMode === true` bo'lganda ishlaydi. expo-av (YouTube extracted, .mp4) ga tegmaydi — ular seekTo ni to'g'ri qabul qiladi
-
----
-
 
 ### T-E105 | P2 | [MOBILE] | Rutube WebView adapter — noto'g'ri postMessage metodlari
 
