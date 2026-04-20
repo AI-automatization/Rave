@@ -1,6 +1,19 @@
 # CineSync — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-04-19
+# Yangilangan: 2026-04-20
+
+---
+
+### F-194 | 2026-04-20 | [BACKEND] | T-S057 — Watch Party owner echo fix: socket.to() vs io.to() [Saidazim]
+
+- `services/watch-party/src/socket/videoEvents.handler.ts`: 3 ta o'zgarish
+  - `PLAY` handler: `io.to(roomId).emit(VIDEO_PLAY)` → `socket.to(roomId).emit(VIDEO_PLAY)`
+  - `PAUSE` handler: xuddi shunday
+  - `SEEK` handler: xuddi shunday
+- `HEARTBEAT` allaqachon `socket.to()` ishlatmoqda edi — o'zgarmadi
+- `BUFFER resumeRoom()`: `io.to(roomId)` qoldi — system event, barcha qurilmalar kerak
+- **Natija:** Owner o'z play/pause/seek komandalarini qaytib olmaydi → seekTo echo yo'qoladi → 1 ta bosmada ishlaydi
+- tsc pre-existing rootDir errors (monorepo) — yangi xato yo'q
 
 ---
 
