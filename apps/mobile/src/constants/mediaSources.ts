@@ -20,14 +20,6 @@ export interface MediaSource {
 
 export const MEDIA_SOURCES: MediaSource[] = [
   {
-    id: 'facebook',
-    label: 'Facebook',
-    iconName: 'logo-facebook',
-    brandColor: '#1877F2',
-    defaultUrl: 'https://www.facebook.com/watch',
-    support: 'full',
-  },
-  {
     id: 'instagram',
     label: 'Instagram',
     iconName: 'logo-instagram',
@@ -36,35 +28,11 @@ export const MEDIA_SOURCES: MediaSource[] = [
     support: 'full',
   },
   {
-    id: 'reddit',
-    label: 'Reddit',
-    iconName: 'logo-reddit',
-    brandColor: '#FF4500',
-    defaultUrl: 'https://www.reddit.com/r/videos',
-    support: 'full',
-  },
-  {
-    id: 'streamable',
-    label: 'Streamable',
-    iconName: 'play-circle-outline',
-    brandColor: '#1DBBFF',
-    defaultUrl: 'https://streamable.com',
-    support: 'full',
-  },
-  {
     id: 'youtube',
     label: 'YouTube',
     iconName: 'logo-youtube',
     brandColor: '#FF0000',
     defaultUrl: 'https://m.youtube.com',
-    support: 'full',
-  },
-  {
-    id: 'x',
-    label: 'X',
-    iconName: 'logo-twitter',
-    brandColor: '#FFFFFF',
-    defaultUrl: 'https://x.com',
     support: 'full',
   },
   {
@@ -90,44 +58,6 @@ export const MEDIA_SOURCES: MediaSource[] = [
     brandColor: '#E8432D',
     defaultUrl: 'https://cinerama.uz',
     support: 'webview-session',
-  },
-  {
-    id: 'megogo',
-    label: 'Megogo',
-    iconName: 'play-circle-outline',
-    brandColor: '#FF6600',
-    defaultUrl: 'https://megogo.net',
-    support: 'webview-session',
-  },
-  {
-    id: 'netflix',
-    label: 'Netflix',
-    iconName: 'film-outline',
-    brandColor: '#E50914',
-    defaultUrl: 'https://www.netflix.com',
-    support: 'drm',
-    drmMessage:
-      'Netflix использует DRM-защиту. Встроенный плеер не может воспроизводить защищённый контент. Используйте официальное приложение Netflix.',
-  },
-  {
-    id: 'prime',
-    label: 'prime',
-    iconName: 'star-outline',
-    brandColor: '#00A8E1',
-    defaultUrl: 'https://www.primevideo.com',
-    support: 'drm',
-    drmMessage:
-      'Amazon Prime Video использует DRM-защиту. Используйте официальное приложение Prime Video.',
-  },
-  {
-    id: 'crunchyroll',
-    label: 'Crunchyroll',
-    iconName: 'pizza-outline',
-    brandColor: '#FF6500',
-    defaultUrl: 'https://www.crunchyroll.com',
-    support: 'drm',
-    drmMessage:
-      'Большинство контента Crunchyroll защищено DRM. Попробуйте бесплатные серии через источник "Web".',
   },
   {
     id: 'twitch',

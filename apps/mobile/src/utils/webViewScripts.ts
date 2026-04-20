@@ -88,11 +88,7 @@ export function getSourceHint(sourceId: string): string {
     case 'twitch':       return 'Twitch da kanal yoki VOD ni oching';
     case 'vk':           return 'VK da videoni bosing — pleer ochilsin';
     case 'rutube':       return 'Rutube da videoni oching';
-    case 'x':            return 'X (Twitter) da video postni oching';
-    case 'facebook':     return 'Facebook da video post yoki Reelni oching';
     case 'instagram':    return 'Instagram da Reel yoki videoni oching';
-    case 'reddit':       return 'Reddit da video postni oching';
-    case 'streamable':   return 'Streamable da videoni oching';
     case 'drive':        return 'Google Drive da video faylni oching';
     default:             return 'Film yoki videoni toping va bosing — avtomatik aniqlanadi';
   }
