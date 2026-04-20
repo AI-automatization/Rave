@@ -26,26 +26,37 @@ export function VideoProgressBar({ currentTime, duration, isOwner, isLive, onSee
   const [dragging, setDragging] = useState(false);
   const [dragTime, setDragTime] = useState(0);
 
-  const calcTime = useCallback((x: number): number => {
-    if (trackWidth <= 0 || duration <= 0) return 0;
-    return Math.max(0, Math.min(duration, (x / trackWidth) * duration));
-  }, [trackWidth, duration]);
+  // Refs — keep latest values accessible inside the once-created PanResponder
+  const trackWidthRef = useRef(0);
+  const durationRef = useRef(duration);
+  const isOwnerRef = useRef(isOwner);
+  const isLiveRef = useRef(isLive);
+  const onSeekRef = useRef(onSeek);
+  durationRef.current = duration;
+  isOwnerRef.current = isOwner;
+  isLiveRef.current = isLive;
+  onSeekRef.current = onSeek;
+
+  const calcTimeFromRef = useCallback((x: number): number => {
+    if (trackWidthRef.current <= 0 || durationRef.current <= 0) return 0;
+    return Math.max(0, Math.min(durationRef.current, (x / trackWidthRef.current) * durationRef.current));
+  }, []);
 
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => isOwner && duration > 0 && !isLive,
-      onMoveShouldSetPanResponder: () => isOwner && duration > 0 && !isLive,
+      onStartShouldSetPanResponder: () => isOwnerRef.current && durationRef.current > 0 && !isLiveRef.current,
+      onMoveShouldSetPanResponder: () => isOwnerRef.current && durationRef.current > 0 && !isLiveRef.current,
       onPanResponderGrant: (e) => {
         setDragging(true);
-        setDragTime(calcTime(e.nativeEvent.locationX));
+        setDragTime(calcTimeFromRef(e.nativeEvent.locationX));
       },
       onPanResponderMove: (e) => {
-        setDragTime(calcTime(e.nativeEvent.locationX));
+        setDragTime(calcTimeFromRef(e.nativeEvent.locationX));
       },
       onPanResponderRelease: (e) => {
-        const secs = calcTime(e.nativeEvent.locationX);
+        const secs = calcTimeFromRef(e.nativeEvent.locationX);
         setDragging(false);
-        onSeek(secs);
+        onSeekRef.current(secs);
       },
       onPanResponderTerminate: () => setDragging(false),
     }),
@@ -74,7 +85,7 @@ export function VideoProgressBar({ currentTime, duration, isOwner, isLive, onSee
 
       <View
         style={styles.trackWrapper}
-        onLayout={e => setTrackWidth(e.nativeEvent.layout.width)}
+        onLayout={e => { const w = e.nativeEvent.layout.width; trackWidthRef.current = w; setTrackWidth(w); }}
         {...panResponder.panHandlers}
       >
         {/* Background track */}
