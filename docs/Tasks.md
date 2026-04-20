@@ -1,6 +1,6 @@
 # CineSync — OCHIQ VAZIFALAR
 
-# Yangilangan: 2026-04-19
+# Yangilangan: 2026-04-20
 
 # 2 dasturchi: Saidazim (Backend) | Emirhan (Mobile + Web)
 
@@ -14,8 +14,8 @@
 3. Fix bo'lgach → shu yerdan O'CHIRISH → docs/Done.md ga KO'CHIRISH
 4. Prioritet: P0=kritik, P1=muhim, P2=o'rta, P3=past
 5. Sprint: S1=hozir, S2=keyingi hafta, S3=keyingi sprint, S4-5=keyin
-6. Oxirgi T-raqam: S→056, E→101, C→016
-7. Yangilangan: 2026-04-19
+6. Oxirgi T-raqam: S→057, E→103, C→016
+7. Yangilangan: 2026-04-20
 ```
 
 ---
@@ -24,7 +24,21 @@
 
 # 🔴 SAIDAZIM — BACKEND + ADMIN
 
-*(Barcha backend tasklari TUGADI — T-S050..T-S056 Done.md da)*
+---
+
+### T-S057 | P1 | [BACKEND] | Watch Party: owner echo fix — socket.to() vs io.to()
+
+- **Mas'ul:**
+- **Holat:** ❌ Boshlanmagan
+- **Sabab:** `videoEvents.handler.ts` da play/pause/seek uchun `io.to(roomId).emit()` ishlatilmoqda — bu owner'ga ham o'z komandalarini qaytarib yuboradi. Owner VIDEO_PLAY oladi → useEffect → seekTo + play → playback to'xtaydi. Shuning uchun 5-6 marta bosish kerak bo'lmoqda.
+- **Fayl:** `services/watch-party/src/socket/videoEvents.handler.ts`
+- **Qilish kerak:**
+  - [ ] `PLAY` handler: `io.to(roomId).emit(VIDEO_PLAY)` → `socket.to(roomId).emit(VIDEO_PLAY)` (owner o'ziga echo olmaydi)
+  - [ ] `PAUSE` handler: xuddi shunday
+  - [ ] `SEEK` handler: xuddi shunday
+  - [ ] `HEARTBEAT` handler: allaqachon `socket.to()` ishlatmoqda — tekshirish
+  - [ ] `BUFFER_START/END` da `resumeRoom()`: `io.to(roomId).emit(VIDEO_PLAY)` qoladi (system event, barcha qurilmalar uchun)
+- **Ehtiyot:** Boshqa saytlar buzilmaydi — faqat socket routing o'zgaradi, event format o'zgarmaydi
 
 ---
 
@@ -35,6 +49,35 @@
 ---
 
 *(Sprint 1..7 TUGADI — Sprint 8: MVP Release — Sprint 9: Sync Optimizatsiya)*
+
+---
+
+### T-E102 | P1 | [MOBILE] | Watch Party: owner heartbeat — emitPlay → emitHeartbeat
+
+- **Mas'ul:**
+- **Holat:** ❌ Boshlanmagan
+- **Sabab:** `useWatchPartyRoom.ts` da owner har 5 sekundda `emitPlay()` yuborib turadi (lines 149-156). Bu backend da VIDEO_PLAY syncState broadcast qiladi → barcha a'zolar seekTo + play bajaradi → playback har 5 sekundda to'xtaydi.
+- **Fayl:** `apps/mobile/src/hooks/useWatchPartyRoom.ts`
+- **Qilish kerak:**
+  - [ ] Lines 149-156 ichidagi `emitPlay(posMs / 1000)` → `emitHeartbeat(posMs / 1000)` ga almashtirish
+  - [ ] `emitHeartbeat` ni `useWatchParty.ts` dan return qilish (allaqachon emitPlay kabi yo'l bor)
+  - [ ] Heartbeat SERVER_EVENTS.VIDEO_HEARTBEAT ishlatadi — bu syncState trigger qilmaydi, faqat drift correction uchun
+- **Ehtiyot:** YouTube, kinogo, direct .mp4 — hammasi uchun teng ishlaydi (heartbeat platform-independent)
+
+---
+
+### T-E103 | P1 | [MOBILE] | Watch Party: WebView pendingSync — Rutube + boshqa WebView saytlarda sync muammosi
+
+- **Mas'ul:**
+- **Holat:** ❌ Boshlanmagan
+- **Sabab:** Yangi a'zo xonaga qo'shilganda syncState darhol seekTo bajaradi. Lekin WebView (Rutube) hali reklama ko'rsatmoqda — seek reklama vaqtida ignored yoki fails. Reklama tugagach video boshlanmaydi, oxirgi kadrda qotib qoladi.
+- **Fayl:** `apps/mobile/src/hooks/useWatchPartyRoom.ts`
+- **Qilish kerak:**
+  - [ ] `isWebViewMode` bo'lsa: `pendingSync` ref qo'shish — syncState ni saqlab qo'yish
+  - [ ] Birinchi `handleWebViewPlay` event kelganda (reklama tugab, haqiqiy video boshlanganda) pendingSync ni apply qilish
+  - [ ] `handleWebViewPlay` ichida: `if (pendingSync) { seekTo(pendingSync.currentTime); pendingSync = null; }`
+  - [ ] Timeout (30s): agar pendingSync apply bo'lmasa — discard (reklama juda uzun bo'lsa)
+- **Ehtiyot:** Faqat `isWebViewMode === true` bo'lganda ishlaydi. expo-av (YouTube extracted, .mp4) ga tegmaydi — ular seekTo ni to'g'ri qabul qiladi
 
 ---
 
