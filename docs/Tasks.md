@@ -41,27 +41,6 @@
 ---
 
 
-### T-E105 | P2 | [MOBILE] | Rutube WebView adapter — noto'g'ri postMessage metodlari
-
-- **Mas'ul:**
-- **Yaratilgan:** 2026-04-20 16:16
-- **Holat:** ❌ Boshlanmagan
-- **Sabab:** `WebViewAdapters.ts` `buildRutubeHtml()` da play/pause/seek buyruqlari YouTube API nomlari bilan yuborilmoqda. Rutube boshqa API format ishlatadi — komandalar ignore qilinadi.
-  - `sendCmd('playVideo')` → Rutube `{ method: 'play' }` kutadi
-  - `sendCmd('pauseVideo')` → Rutube `{ method: 'pause' }` kutadi
-  - `sendCmd('seekTo', t)` → Rutube `{ method: 'setCurrentTime', value: t }` kutishi mumkin
-  - Event listener da `onStateChange` + `playerState: 1/2` — bu YouTube formatiga o'xshaydi, Rutube boshqacha yuborishi mumkin
-- **Fayl:** `apps/mobile/src/components/video/WebViewAdapters.ts` (line 380-431)
-- **Qilish kerak:**
-  - [ ] Rutube embed API rasmiy docs yoki DevTools orqali tekshirish — haqiqiy event va metod nomlarini aniqlash
-  - [ ] `sendCmd('playVideo')` → `sendCmd('play')`
-  - [ ] `sendCmd('pauseVideo')` → `sendCmd('pause')`
-  - [ ] `sendCmd('seekTo', t)` → to'g'ri metod nomi bilan almashtirish
-  - [ ] `onStateChange` event listenerni Rutube haqiqiy eventlariga moslashtirish
-- **Ehtiyot:** Faqat `buildRutubeHtml()` ni o'zgartirish — boshqa platformalar (YouTube, VK, Vimeo, Dailymotion) tegmaydi
-
----
-
 ### T-E081 | P1 | [MOBILE] | Real qurilmada smoke test (Expo Go)
 
 - **Mas'ul:** pending[Emirhan]

@@ -4,6 +4,19 @@
 
 ---
 
+### F-198 | 2026-04-20 | [MOBILE] | T-E105 — Rutube WebView adapter: to'g'ri postMessage metodlari [Saidazim]
+
+- `WebViewAdapters.ts` `buildRutubeHtml()`:
+  - `sendCmd('playVideo')` → `sendCmd('play')`
+  - `sendCmd('pauseVideo')` → `sendCmd('pause')`
+  - `sendCmd('seekTo', t)` → `sendCmd('setCurrentTime', t)`
+  - event listener: `switch (data.event)` → `switch (data.type)`
+  - `onStateChange` + `playerState 1/2` → `player:changeState` + `d.state === 'playing'/'paused'`
+  - `onCurrentTime` → `player:currentTime`, `info.currentTime` → `d.time`
+- **Natija:** Rutube play/pause/seek buyruqlari endi ishlaydi, perematka sinxronlashadi
+
+---
+
 ### F-197 | 2026-04-20 | [MOBILE] | T-E103 — WebView pendingSync: Rutube ad freeze fix [Saidazim]
 
 - `useWatchPartyRoom.ts`: `pendingSyncRef`, `webViewReadyRef`, `isWebViewModeRef` qo'shildi

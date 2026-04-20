@@ -399,9 +399,9 @@ export function buildRutubeHtml(videoId: string): string {
     }
     window._csVideo = {
       get currentTime() { return ct; },
-      set currentTime(t) { ct = t; sendCmd('seekTo', t); rn({ type: 'SEEK', currentTime: t }); },
-      play: function() { sendCmd('playVideo'); },
-      pause: function() { sendCmd('pauseVideo'); },
+      set currentTime(t) { ct = t; sendCmd('setCurrentTime', t); rn({ type: 'SEEK', currentTime: t }); },
+      play: function() { sendCmd('play'); },
+      pause: function() { sendCmd('pause'); },
       get paused() { return paused; }
     };
     function startProgress() {
@@ -413,16 +413,17 @@ export function buildRutubeHtml(videoId: string): string {
     window.addEventListener('message', function(e) {
       try {
         var data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
-        var info = data.info || {};
-        switch (data.event) {
-          case 'inited': case 'ready': rn({ type: 'VIDEO_FOUND' }); startProgress(); break;
-          case 'onStateChange':
-            if (info.playerState === 1) { paused = false; rn({ type: 'PLAY', currentTime: ct }); }
-            else if (info.playerState === 2) { paused = true; rn({ type: 'PAUSE', currentTime: ct }); }
+        var d = data.data || {};
+        switch (data.type) {
+          case 'player:ready': rn({ type: 'VIDEO_FOUND' }); startProgress(); break;
+          case 'player:changeState':
+            if (d.state === 'playing') { paused = false; rn({ type: 'PLAY', currentTime: ct }); }
+            else if (d.state === 'paused' || d.state === 'stopped') { paused = true; rn({ type: 'PAUSE', currentTime: ct }); }
             break;
-          case 'onCurrentTime': case 'timeupdate':
-            ct = info.currentTime || data.currentTime || ct;
-            dur = info.duration || data.duration || dur; break;
+          case 'player:currentTime':
+            ct = d.time || ct;
+            dur = d.duration || dur;
+            break;
         }
       } catch(e) {}
     });
