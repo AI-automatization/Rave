@@ -43,6 +43,7 @@
 ### T-E102 | P1 | [MOBILE] | Watch Party: owner heartbeat — emitPlay → emitHeartbeat
 
 - **Mas'ul:**
+- **Yaratilgan:** 2026-04-20 09:04
 - **Holat:** ❌ Boshlanmagan
 - **Sabab:** `useWatchPartyRoom.ts` da owner har 5 sekundda `emitPlay()` yuborib turadi (lines 149-156). Bu backend da VIDEO_PLAY syncState broadcast qiladi → barcha a'zolar seekTo + play bajaradi → playback har 5 sekundda to'xtaydi.
 - **Fayl:** `apps/mobile/src/hooks/useWatchPartyRoom.ts`
@@ -57,6 +58,7 @@
 ### T-E103 | P1 | [MOBILE] | Watch Party: WebView pendingSync — Rutube + boshqa WebView saytlarda sync muammosi
 
 - **Mas'ul:**
+- **Yaratilgan:** 2026-04-20 09:04
 - **Holat:** ❌ Boshlanmagan
 - **Sabab:** Yangi a'zo xonaga qo'shilganda syncState darhol seekTo bajaradi. Lekin WebView (Rutube) hali reklama ko'rsatmoqda — seek reklama vaqtida ignored yoki fails. Reklama tugagach video boshlanmaydi, oxirgi kadrda qotib qoladi.
 - **Fayl:** `apps/mobile/src/hooks/useWatchPartyRoom.ts`
@@ -72,6 +74,7 @@
 ### T-E104 | P1 | [MOBILE] | iOS WebView CAPTCHA — Android User-Agent on iOS
 
 - **Mas'ul:**
+- **Yaratilgan:** 2026-04-20 16:16
 - **Holat:** ❌ Boshlanmagan
 - **Sabab:** `MOBILE_UA` (`webViewScripts.ts`) — Android Chrome User-Agent har joyda qattiq kodlangan. iOS WebView da WebKit engine ishlaydi, lekin Android UA yuboriladi. Google bu nomuvofiqlikni aniqlaydi (TLS fingerprint iOS, UA Android) → bot deb hisoblaydi → CAPTCHA ko'rsatadi.
 - **Fayllar:**
@@ -94,6 +97,7 @@
 ### T-E105 | P2 | [MOBILE] | Rutube WebView adapter — noto'g'ri postMessage metodlari
 
 - **Mas'ul:**
+- **Yaratilgan:** 2026-04-20 16:16
 - **Holat:** ❌ Boshlanmagan
 - **Sabab:** `WebViewAdapters.ts` `buildRutubeHtml()` da play/pause/seek buyruqlari YouTube API nomlari bilan yuborilmoqda. Rutube boshqa API format ishlatadi — komandalar ignore qilinadi.
   - `sendCmd('playVideo')` → Rutube `{ method: 'play' }` kutadi
@@ -114,6 +118,7 @@
 ### T-E081 | P1 | [MOBILE] | Real qurilmada smoke test (Expo Go)
 
 - **Mas'ul:** pending[Emirhan]
+- **Yaratilgan:** 2026-03-14 (retroaktiv)
 - **Holat:** ⚠️ Qisman (manual check kerak)
 - **Qilish kerak (manual):**
   - [ ] Auth flow: Register → Verify → Login → ProfileSetup
@@ -133,6 +138,7 @@
 ### T-C012 | P0 | [IKKALASI] | MVP End-to-end test — register → video → WatchParty → sync
 
 - **Mas'ul:** pending[Emirhan] + pending[Saidazim]
+- **Yaratilgan:** 2026-04-19 (retroaktiv)
 - **Holat:** ❌ Boshlanmagan
 - **Sabab:** MVP chiqarishdan oldin to'liq flow ishlashini 2 qurilmada tasdiqlash kerak
 - **Qilish kerak:**
@@ -148,6 +154,7 @@
 ### T-C013 | P1 | [IKKALASI] | Video extractor — top 5 saytni production da test
 
 - **Mas'ul:** pending[Emirhan] + pending[Saidazim]
+- **Yaratilgan:** 2026-04-19 (retroaktiv)
 - **Holat:** ❌ Boshlanmagan
 - **Qilish kerak:**
   - [ ] YouTube — extract + play + sync
@@ -162,6 +169,7 @@
 ### T-C015 | P1 | [IKKALASI] | Rave Hybrid sync — QA matritsa (2/5/10 peer, drift, fallback)
 
 - **Mas'ul:**
+- **Yaratilgan:** 2026-04-19 (retroaktiv)
 - **Holat:** ❌ Boshlanmagan
 - **Sabab:** Mesh implementatsiya tugagach MAJBURIY E2E test matritsa.
 - **Qilish kerak:**
@@ -181,6 +189,7 @@
 ### T-C016 | P2 | [IKKALASI] | Brand rang yagona manbaga — 3 hujjat kelishmovchiligi
 
 - **Mas'ul:**
+- **Yaratilgan:** 2026-04-19 (retroaktiv)
 - **Holat:** ❌ Boshlanmagan
 - **Sabab:** `CLAUDE.md` → `#E50914`, `WEB_DESIGN_GUIDE.md` → `#7C3AED`, mobile kod → `#7B72F8`. Yagona rang kerak.
 - **Qilish kerak:**

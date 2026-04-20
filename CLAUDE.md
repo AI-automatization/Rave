@@ -154,6 +154,27 @@ Format: `T-XXX | Pn | [KATEGORIYA] | Sarlavha | pending[Ism]`
 ### T-C006 | P2 | IKKALASI | Socket event types shared      | pending[Saidazim]
 ```
 
+## TASK TIMESTAMP — ЗАКОН (ОБЯЗАТЕЛЬНО)
+
+> **ЭТО АБСОЛЮТНОЕ ПРАВИЛО. КАЖДЫЙ TASK. БЕЗ ИСКЛЮЧЕНИЙ.**
+
+**Har yangi task yaratilganda MAJBURIY `- **Yaratilgan:** YYYY-MM-DD HH:MM` qatori qo'shiladi.**
+
+```markdown
+### T-S057 | P1 | [BACKEND] | Sarlavha
+
+- **Mas'ul:** pending[Saidazim]
+- **Yaratilgan:** 2026-04-20 16:00        ← MAJBURIY — task yaratilgan sana va vaqt
+- **Holat:** ❌ Boshlanmagan
+- **Sabab:** ...
+```
+
+**Qoidalar:**
+- Timestamp = task `docs/Tasks.md` ga yozilgan paytdagi aniq sana + vaqt
+- Format: `YYYY-MM-DD HH:MM` (24 soat, UTC+5 Toshkent vaqti)
+- Mavjud tasklarga retroaktiv qo'shish — sessiya boshida eski tasklarda timestamp yo'q bo'lsa qo'shiladi
+- `date '+%Y-%m-%d %H:%M'` buyrug'i bilan hozirgi vaqtni olish
+
 **Fix bo'lgandan keyin:**
 1. `docs/Tasks.md` dan o'chiriladi
 2. `docs/Done.md` ga ko'chiriladi (sana + qisqa yechim)
