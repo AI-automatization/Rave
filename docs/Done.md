@@ -4,6 +4,18 @@
 
 ---
 
+### F-195 | 2026-04-20 | [MOBILE] | T-E104 — iOS WebView CAPTCHA: platform-specific MOBILE_UA [Saidazim]
+
+- `apps/mobile/src/utils/webViewScripts.ts`: `MOBILE_UA` → `Platform.OS === 'ios' ? IOS_UA : ANDROID_UA`
+- `apps/mobile/src/utils/videoPlayer.ts`: то же самое (второй источник MOBILE_UA)
+- iOS UA: `AppleWebKit/605.1.15 ... Version/17.0 Mobile/15E148 Safari/604.1`
+- Android UA: прежний Chrome/120 UA (не изменился)
+- `videoPlayer.test.ts`: обновлён — `toContain('Chrome/120')` → `toContain('Mozilla/5.0')`
+- tsc: pre-existing react-native-webrtc ошибки (не затронуты). Новых ошибок нет.
+- Jest: 30/30 PASS
+
+---
+
 ### F-194 | 2026-04-20 | [BACKEND] | T-S057 — Watch Party owner echo fix: socket.to() vs io.to() [Saidazim]
 
 - `services/watch-party/src/socket/videoEvents.handler.ts`: 3 ta o'zgarish

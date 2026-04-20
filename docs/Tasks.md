@@ -71,28 +71,6 @@
 
 ---
 
-### T-E104 | P1 | [MOBILE] | iOS WebView CAPTCHA — Android User-Agent on iOS
-
-- **Mas'ul:** pending[Saidazim]
-- **Yaratilgan:** 2026-04-20 16:16
-- **Holat:** 🔄 Jarayonda
-- **Sabab:** `MOBILE_UA` (`webViewScripts.ts`) — Android Chrome User-Agent har joyda qattiq kodlangan. iOS WebView da WebKit engine ishlaydi, lekin Android UA yuboriladi. Google bu nomuvofiqlikni aniqlaydi (TLS fingerprint iOS, UA Android) → bot deb hisoblaydi → CAPTCHA ko'rsatadi.
-- **Fayllar:**
-  - `apps/mobile/src/utils/webViewScripts.ts` — `MOBILE_UA` const
-  - `apps/mobile/src/screens/modal/MediaWebViewScreen.tsx` — `userAgent={MOBILE_UA}`
-  - `apps/mobile/src/components/video/UniversalPlayer.tsx` — `userAgent={MOBILE_UA}` (WebViewPlayer ga uzatiladi)
-- **Qilish kerak:**
-  - [ ] `webViewScripts.ts` da platform-specific UA:
-    ```ts
-    import { Platform } from 'react-native';
-    export const IOS_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
-    export const ANDROID_UA = 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.144 Mobile Safari/537.36';
-    export const MOBILE_UA = Platform.OS === 'ios' ? IOS_UA : ANDROID_UA;
-    ```
-  - [ ] `MediaWebViewScreen` va `UniversalPlayer` da MOBILE_UA import → avtomatik to'g'ri UA
-- **Ehtiyot:** `videoPlayer.ts` da ham MOBILE_UA bor — tekshirish kerak
-
----
 
 ### T-E105 | P2 | [MOBILE] | Rutube WebView adapter — noto'g'ri postMessage metodlari
 
