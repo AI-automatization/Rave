@@ -1,6 +1,29 @@
 # CineSync — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-04-20
+# Yangilangan: 2026-04-21
+
+---
+
+### F-199 | 2026-04-21 | [BACKEND] | T-S058 — Live reactions: Socket.io + Redis rate limit [Saidazim]
+
+- `shared/constants/socketEvents.ts`: `SEND_REACTION` (client) + `REACTION_BROADCAST` (server) events
+- `shared/constants/index.ts`: `reactionRate(userId, roomId)` Redis key
+- `services/watch-party/src/socket/reactionEvents.handler.ts` (yangi fayl):
+  - `reaction:send` → emoji whitelist (20 emoji Set) + unicode regex fallback
+  - Redis INCR rate limit: max 10/sec per user per room, fail-open
+  - Broadcast: `reaction:broadcast` → `{ userId, emoji, roomId, timestamp }`
+- `watchParty.socket.ts`: redis parameter qo'shildi, `registerReactionEvents` chaqirildi
+
+---
+
+### F-200 | 2026-04-21 | [BACKEND] | T-S059 — Watch-party REST rate limiting [Saidazim]
+
+- `shared/constants/index.ts`: `createRoomRate(ip)` + `joinRoomRate(userId)` Redis keys
+- `services/watch-party/src/middleware/rateLimiter.ts` (yangi fayl):
+  - `createRoomLimiter`: POST /rooms → max 5/min per IP
+  - `joinRoomLimiter`: POST /rooms/join/:inviteCode + /join/:inviteCode → max 10/min per user
+  - Redis INCR+EXPIRE, fail-open (Redis down bo'lsa o'tkazib yuboradi)
+- `watchParty.routes.ts`: har ikkala route ga middleware qo'shildi
 
 ---
 
