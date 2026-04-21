@@ -41,9 +41,9 @@ COPY --from=builder /app/services/content/dist ./services/content/dist
 
 RUN ln -s /app/shared/dist /app/node_modules/@shared
 
-# yt-dlp via pip (Alpine 3.21+ PEP 668: --break-system-packages kerak)
+# yt-dlp via pip — min 2025.1.0 for poToken + MWEB client support
 RUN apk add --no-cache python3 py3-pip && \
-    pip3 install --no-cache-dir --break-system-packages yt-dlp
+    pip3 install --no-cache-dir --break-system-packages "yt-dlp>=2025.1.0"
 
 # Playwright/Chromium support (T-S043) — system Chromium to avoid downloading ~150MB browser
 # chromium-driver package doesn't exist in Alpine — only chromium is needed for Playwright
