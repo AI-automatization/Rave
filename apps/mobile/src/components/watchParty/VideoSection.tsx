@@ -52,25 +52,48 @@ export const VideoSection = React.memo(function VideoSection({
   const { colors } = useTheme();
   const styles = useVideoSectionStyles();
 
+  const showProgress = !videoIsLive && duration > 0;
+  const showControls = isOwner && !isWebView;
+  const showMember = !isOwner && !isWebView;
+  const showPlayerBar = showProgress || showControls || showMember;
+
   return (
     <View style={isFullscreen ? [styles.videoContainer, styles.videoContainerFullscreen] : styles.videoContainer}>
+      {/* ── Video player ── */}
       {!isReady ? (
         <View style={styles.loadingCenter}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : (
         <>
-          <UniversalPlayer ref={playerRef} url={videoUrl} extractedUrl={extractedUrl}
-            referer={videoReferer} isOwner={isOwner} onPlay={onPlay} onPause={onPause} onSeek={onSeek}
-            onPlaybackStatusUpdate={onPlaybackStatusUpdate} onStreamResolved={onStreamResolved} onProgress={onProgress} onBuffering={onBuffering} />
+          <UniversalPlayer
+            ref={playerRef}
+            url={videoUrl}
+            extractedUrl={extractedUrl}
+            referer={videoReferer}
+            isOwner={isOwner}
+            onPlay={onPlay}
+            onPause={onPause}
+            onSeek={onSeek}
+            onPlaybackStatusUpdate={onPlaybackStatusUpdate}
+            onStreamResolved={onStreamResolved}
+            onProgress={onProgress}
+            onBuffering={onBuffering}
+          />
           {!isOwner && <View style={StyleSheet.absoluteFill} pointerEvents="box-only" />}
         </>
       )}
 
+      {/* ── Top-right: fullscreen toggle ── */}
       <TouchableOpacity style={styles.fullscreenBtn} onPress={onToggleFullscreen}>
-        <Ionicons name={isFullscreen ? 'contract-outline' : 'expand-outline'} size={20} color={colors.textPrimary} />
+        <Ionicons
+          name={isFullscreen ? 'contract-outline' : 'expand-outline'}
+          size={18}
+          color="rgba(255,255,255,0.85)"
+        />
       </TouchableOpacity>
 
+      {/* ── Top-left: live badge ── */}
       {videoIsLive && (
         <View style={styles.liveBadge}>
           <View style={styles.liveDot} />
@@ -78,42 +101,68 @@ export const VideoSection = React.memo(function VideoSection({
         </View>
       )}
 
+      {/* ── Floating emojis ── */}
       {floatingEmojis.map(e => (
         <EmojiFloatItem key={e.id} emoji={e.emoji} x={e.x} onDone={() => onRemoveEmoji(e.id)} />
       ))}
 
-      {!videoIsLive && duration > 0 && (
-        <View style={styles.progressBarWrap}>
-          <VideoProgressBar currentTime={currentTime} duration={duration} isOwner={isOwner}
-            isLive={videoIsLive} onSeek={secs => onProgressSeek?.(secs)} />
-        </View>
-      )}
+      {/* ── Unified player bar (bottom) ── */}
+      {showPlayerBar && (
+        <View style={styles.playerBar}>
 
-      {isOwner && !isWebView && (
-        <View style={styles.controls}>
-          {!videoIsLive && (
-            <TouchableOpacity onPress={() => onSeekDirection('back')} style={styles.controlBtn}>
-              <Ionicons name="play-back" size={22} color={colors.textPrimary} />
-            </TouchableOpacity>
+          {/* Progress bar */}
+          {showProgress && (
+            <VideoProgressBar
+              currentTime={currentTime}
+              duration={duration}
+              isOwner={isOwner}
+              isLive={videoIsLive}
+              onSeek={secs => onProgressSeek?.(secs)}
+            />
           )}
-          <TouchableOpacity onPress={onStop} style={styles.controlBtn}>
-            <Ionicons name="stop" size={22} color={colors.textPrimary} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={onPlayPause} style={styles.playBtn}>
-            <Ionicons name={isPlaying ? 'pause' : 'play'} size={26} color={colors.textPrimary} />
-          </TouchableOpacity>
-          {!videoIsLive && (
-            <TouchableOpacity onPress={() => onSeekDirection('forward')} style={styles.controlBtn}>
-              <Ionicons name="play-forward" size={22} color={colors.textPrimary} />
-            </TouchableOpacity>
-          )}
-        </View>
-      )}
 
-      {!isOwner && !isWebView && (
-        <View style={styles.memberBadge}>
-          <Ionicons name="eye-outline" size={14} color={colors.textMuted} />
-          <Text style={styles.memberBadgeText}>Tomoshabin</Text>
+          {/* Divider between progress and controls */}
+          {showProgress && (showControls || showMember) && (
+            <View style={styles.playerBarDivider} />
+          )}
+
+          {/* Owner controls */}
+          {showControls && (
+            <View style={styles.playerControls}>
+              {!videoIsLive && (
+                <TouchableOpacity style={styles.controlBtn} onPress={() => onSeekDirection('back')}>
+                  <Ionicons name="play-back-outline" size={19} color="rgba(255,255,255,0.80)" />
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity style={styles.controlBtn} onPress={onStop}>
+                <Ionicons name="stop-outline" size={19} color="rgba(255,255,255,0.80)" />
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.playPauseBtn} onPress={onPlayPause}>
+                <Ionicons
+                  name={isPlaying ? 'pause' : 'play'}
+                  size={26}
+                  color="#fff"
+                  style={isPlaying ? undefined : { marginLeft: 3 }}
+                />
+              </TouchableOpacity>
+
+              {!videoIsLive && (
+                <TouchableOpacity style={styles.controlBtn} onPress={() => onSeekDirection('forward')}>
+                  <Ionicons name="play-forward-outline" size={19} color="rgba(255,255,255,0.80)" />
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+
+          {/* Member (viewer) badge */}
+          {showMember && (
+            <View style={styles.memberRow}>
+              <Ionicons name="eye-outline" size={13} color="rgba(255,255,255,0.38)" />
+              <Text style={styles.memberText}>Tomoshabin</Text>
+            </View>
+          )}
         </View>
       )}
     </View>
