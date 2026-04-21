@@ -127,6 +127,9 @@ export const createUserRouter = (redis: Redis): Router => {
   // Notification service calls this to get FCM tokens for push delivery
   router.get('/internal/:userId/fcm-tokens', requireInternalSecret, userController.getFcmTokensInternal);
 
+  // Notification broadcast — get all push tokens for all users
+  router.get('/internal/admin/all-push-tokens', requireInternalSecret, userController.getAllPushTokensInternal);
+
   // ── Admin Internal ────────────────────────────────────────
   router.get('/internal/admin/users', requireInternalSecret, userController.adminListUsers);
   router.get('/internal/admin/stats', requireInternalSecret, userController.adminGetStats);

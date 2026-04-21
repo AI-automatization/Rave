@@ -128,6 +128,17 @@ export class ProfileService {
     return user?.fcmTokens ?? [];
   }
 
+  async getAllPushTokens(): Promise<string[]> {
+    const users = await User.find({ fcmTokens: { $exists: true, $not: { $size: 0 } } })
+      .select('fcmTokens')
+      .lean();
+    const tokens: string[] = [];
+    for (const u of users) {
+      if (u.fcmTokens?.length) tokens.push(...u.fcmTokens);
+    }
+    return [...new Set(tokens)];
+  }
+
   async searchUsers(query: string, requesterId: string): Promise<Record<string, unknown>[]> {
     if (!query || query.trim().length < 1) return [];
 

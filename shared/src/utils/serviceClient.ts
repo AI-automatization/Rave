@@ -95,6 +95,20 @@ export async function getUserFcmTokens(userId: string): Promise<string[]> {
   }
 }
 
+export async function getAllPushTokens(): Promise<string[]> {
+  try {
+    const res = await axios.get<{ data: { tokens: string[] } }>(
+      `${userServiceUrl}/api/v1/users/internal/admin/all-push-tokens`,
+      { headers: internalHeaders, timeout: 10000 },
+    );
+    return res.data.data?.tokens ?? [];
+  } catch (err) {
+    const error = err as AxiosError;
+    logger.error('[serviceClient] getAllPushTokens failed', { message: error.message });
+    return [];
+  }
+}
+
 // ─── Notification Service ──────────────────────────────────────────────────────
 const notificationServiceUrl = process.env.NOTIFICATION_SERVICE_URL ?? 'http://localhost:3007';
 

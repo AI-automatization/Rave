@@ -378,4 +378,13 @@ export class UserController {
       next(error);
     }
   };
+
+  getAllPushTokensInternal = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tokens = await this.userService.getAllPushTokens();
+      res.json(apiResponse.success({ tokens }));
+    } catch (error) {
+      next(error);
+    }
+  };
 }

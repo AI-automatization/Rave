@@ -5,6 +5,7 @@ import { getEmailQueue, enqueueEmail, EmailJobData } from '../queues/email.queue
 import { logger } from '@shared/utils/logger';
 import { NotFoundError } from '@shared/utils/errors';
 import { NotificationType, PaginationMeta } from '@shared/types';
+import { getAllPushTokens } from '@shared/utils/serviceClient';
 
 const EXPO_PUSH_URL    = 'https://exp.host/--/api/v2/push/send';
 const EXPO_TOKEN_PREFIX = 'ExponentPushToken[';
@@ -159,17 +160,12 @@ export class NotificationService {
   }
 
   async sendBroadcast(title: string, body: string, type: string): Promise<void> {
-    try {
-      await admin.messaging().send({
-        topic: 'all',
-        notification: { title, body },
-        data: { type, screen: 'Home' },
-        android: { priority: 'high' },
-        apns: { payload: { aps: { sound: 'default' } } },
-      });
-      logger.info('FCM broadcast sent', { title, type });
-    } catch (error) {
-      logger.error('FCM broadcast failed', { error });
+    const tokens = await getAllPushTokens();
+    if (!tokens.length) {
+      logger.warn('sendBroadcast: no push tokens registered, skipping');
+      return;
     }
+    logger.info('sendBroadcast: sending to tokens', { total: tokens.length, title });
+    await this.sendPush(tokens, title, body, { type, screen: 'Home' });
   }
 }
