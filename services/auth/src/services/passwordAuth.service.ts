@@ -320,6 +320,19 @@ export class PasswordAuthService {
       return;
     }
 
+    // Per-email rate limit: max 3 reset requests per hour
+    try {
+      const rateKey = REDIS_KEYS.passwordResetRate(email);
+      const count = await this.redis.incr(rateKey);
+      if (count === 1) await this.redis.expire(rateKey, 3600);
+      if (count > 3) {
+        logger.warn('Password reset rate limit exceeded', { email });
+        return;
+      }
+    } catch {
+      logger.warn('Redis unavailable — skipping password reset rate check', { email });
+    }
+
     const resetToken = crypto.randomBytes(32).toString('hex');
     const resetTokenHash = this.hashToken(resetToken);
 

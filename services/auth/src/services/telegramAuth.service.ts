@@ -115,6 +115,8 @@ export class TelegramAuthService {
       }
 
       // Case 2: /start APP_USER_ID — notification linking (after login)
+      // Validate ObjectId format before findById to prevent injection
+      if (!/^[a-f0-9]{24}$/i.test(param)) return;
       const appUser = await User.findById(param).select('+telegramId');
       if (appUser) {
         await User.updateOne({ _id: appUser._id }, { telegramId });

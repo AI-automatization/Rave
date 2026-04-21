@@ -38,8 +38,15 @@ export class WatchPartyService {
       throw new BadRequestError('Either movieId or videoUrl is required');
     }
 
-    if (videoUrl && !/^https?:\/\//i.test(videoUrl)) {
-      throw new BadRequestError('videoUrl must start with http:// or https://');
+    if (videoUrl) {
+      if (!/^https?:\/\//i.test(videoUrl)) {
+        throw new BadRequestError('videoUrl must start with http:// or https://');
+      }
+      // Reject internal/private network URLs (SSRF prevention)
+      const PRIVATE_URL = /^https?:\/\/(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/i;
+      if (PRIVATE_URL.test(videoUrl)) {
+        throw new BadRequestError('videoUrl points to a private or internal address');
+      }
     }
 
     const inviteCode = crypto.randomBytes(3).toString('hex').toUpperCase(); // 6 chars

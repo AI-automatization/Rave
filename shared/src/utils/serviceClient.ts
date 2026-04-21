@@ -95,6 +95,20 @@ export async function getUserFcmTokens(userId: string): Promise<string[]> {
   }
 }
 
+export async function removeBadFcmTokens(tokens: string[]): Promise<void> {
+  if (!tokens.length) return;
+  try {
+    await axios.post(
+      `${userServiceUrl}/api/v1/users/internal/fcm-tokens/cleanup`,
+      { tokens },
+      { headers: internalHeaders, timeout: 5000 },
+    );
+  } catch (err) {
+    const error = err as AxiosError;
+    logger.warn('[serviceClient] removeBadFcmTokens failed', { message: error.message, count: tokens.length });
+  }
+}
+
 export async function getAllPushTokens(): Promise<string[]> {
   try {
     const res = await axios.get<{ data: { tokens: string[] } }>(

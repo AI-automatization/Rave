@@ -46,6 +46,7 @@ export const PORTS = {
 export const REDIS_KEYS = {
   // Auth service
   loginAttempts: (email: string) => `auth:login_attempts:${email}`,
+  passwordResetRate: (email: string) => `auth:pwd_reset_rate:${email}`,
   pendingReg: (email: string) => `auth:pending_reg:${email}`,
   oauthCode: (code: string) => `auth:oauth:code:${code}`,
   tgState: (state: string) => `auth:tg:state:${state}`,

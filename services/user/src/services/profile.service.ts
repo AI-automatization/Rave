@@ -123,6 +123,11 @@ export class ProfileService {
     );
   }
 
+  async removeBadFcmTokens(tokens: string[]): Promise<void> {
+    if (!tokens.length) return;
+    await User.updateMany({}, { $pull: { fcmTokens: { $in: tokens } } });
+  }
+
   async getFcmTokens(userId: string): Promise<string[]> {
     const user = await User.findOne({ authId: userId }).select('fcmTokens').lean();
     return user?.fcmTokens ?? [];
@@ -142,8 +147,9 @@ export class ProfileService {
   async searchUsers(query: string, requesterId: string): Promise<Record<string, unknown>[]> {
     if (!query || query.trim().length < 1) return [];
 
+    const escaped = query.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const users = await User.find({
-      username: { $regex: query.trim(), $options: 'i' },
+      username: { $regex: escaped, $options: 'i' },
       authId: { $ne: requesterId },
       isBlocked: false,
     })

@@ -141,6 +141,11 @@ export const registerRoomEvents = (
     if (!authSocket.roomId) return;
 
     try {
+      const room = await watchPartyService.getRoom(authSocket.roomId);
+      if (room.ownerId !== userId) {
+        socket.emit(SERVER_EVENTS.ERROR, { message: 'Only the room owner can kick members' });
+        return;
+      }
       await watchPartyService.kickMember(userId, authSocket.roomId, data.targetUserId);
       io.to(authSocket.roomId).emit(SERVER_EVENTS.MEMBER_KICKED, { userId: data.targetUserId });
 

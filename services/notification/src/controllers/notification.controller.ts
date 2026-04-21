@@ -10,7 +10,7 @@ export class NotificationController {
   getNotifications = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { userId } = (req as AuthenticatedRequest).user;
-      const page = parseInt(req.query.page as string ?? '1', 10);
+      const page = Math.max(1, parseInt(req.query.page as string ?? '1', 10) || 1);
       const limit = parseInt(req.query.limit as string ?? '20', 10);
 
       const { notifications, meta } = await this.notificationService.getNotifications(userId, page, limit);

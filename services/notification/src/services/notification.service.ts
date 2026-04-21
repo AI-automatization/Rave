@@ -5,7 +5,7 @@ import { getEmailQueue, enqueueEmail, EmailJobData } from '../queues/email.queue
 import { logger } from '@shared/utils/logger';
 import { NotFoundError } from '@shared/utils/errors';
 import { NotificationType, PaginationMeta } from '@shared/types';
-import { getAllPushTokens } from '@shared/utils/serviceClient';
+import { getAllPushTokens, removeBadFcmTokens } from '@shared/utils/serviceClient';
 
 const EXPO_PUSH_URL    = 'https://exp.host/--/api/v2/push/send';
 const EXPO_TOKEN_PREFIX = 'ExponentPushToken[';
@@ -104,6 +104,12 @@ export class NotificationService {
             apns: { payload: { aps: { sound: 'default' } } },
           }).then((r) => {
             logger.info('FCM push sent', { success: r.successCount, failure: r.failureCount });
+            if (r.failureCount > 0) {
+              const badTokens = r.responses
+                .map((resp, i) => (!resp.success ? fcmTokens[i] : null))
+                .filter((t): t is string => t !== null);
+              void removeBadFcmTokens(badTokens);
+            }
           }).catch((error) => {
             logger.error('FCM push failed', { error });
           })

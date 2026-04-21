@@ -124,8 +124,8 @@ export class BattleController {
 
   adminListBattles = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const page = parseInt((req.query.page as string) ?? '1', 10);
-      const limit = Math.min(parseInt((req.query.limit as string) ?? '20', 10), 100);
+      const page = Math.max(1, parseInt((req.query.page as string) ?? '1', 10) || 1);
+      const limit = Math.min(Math.max(1, parseInt((req.query.limit as string) ?? '20', 10) || 20), 100);
       const status = req.query.status as string | undefined;
 
       const query: Record<string, unknown> = {};

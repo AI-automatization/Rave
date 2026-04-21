@@ -304,6 +304,21 @@ export class UserController {
     }
   };
 
+  // Internal — called by notification service to remove stale/invalid FCM tokens
+  removeBadFcmTokensInternal = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { tokens } = req.body as { tokens?: string[] };
+      if (!Array.isArray(tokens) || tokens.length === 0) {
+        res.status(400).json(apiResponse.error('tokens array is required'));
+        return;
+      }
+      await this.userService.removeBadFcmTokens(tokens);
+      res.json(apiResponse.success(null, `${tokens.length} bad tokens removed`));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   // Internal — called by notification service to get FCM tokens
   getFcmTokensInternal = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
@@ -319,8 +334,8 @@ export class UserController {
 
   adminListUsers = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const page = parseInt(req.query.page as string ?? '1', 10);
-      const limit = Math.min(parseInt(req.query.limit as string ?? '20', 10), 100);
+      const page = Math.max(1, parseInt(req.query.page as string ?? '1', 10) || 1);
+      const limit = Math.min(Math.max(1, parseInt(req.query.limit as string ?? '20', 10) || 20), 100);
       const role = req.query.role as string | undefined;
       const search = req.query.search as string | undefined;
       const isBlockedParam = req.query.isBlocked as string | undefined;

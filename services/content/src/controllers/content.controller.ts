@@ -27,8 +27,8 @@ export class ContentController {
 
   listMovies = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const page = parseInt(req.query.page as string ?? '1', 10);
-      const limit = Math.min(parseInt(req.query.limit as string ?? '20', 10), 100);
+      const page = Math.max(1, parseInt(req.query.page as string ?? '1', 10) || 1);
+      const limit = Math.min(Math.max(1, parseInt(req.query.limit as string ?? '20', 10) || 20), 100);
       const genre = req.query.genre as string | undefined;
       const year = req.query.year ? parseInt(req.query.year as string, 10) : undefined;
       const type = req.query.type as string | undefined;
@@ -43,7 +43,7 @@ export class ContentController {
   searchMovies = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const q = req.query.q as string ?? '';
-      const page = parseInt(req.query.page as string ?? '1', 10);
+      const page = Math.max(1, parseInt(req.query.page as string ?? '1', 10) || 1);
       const limit = parseInt(req.query.limit as string ?? '20', 10);
 
       const { movies, meta } = await this.contentService.searchMovies(q, page, limit);
@@ -114,7 +114,7 @@ export class ContentController {
   getWatchHistory = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { userId } = (req as AuthenticatedRequest).user;
-      const page = parseInt(req.query.page as string ?? '1', 10);
+      const page = Math.max(1, parseInt(req.query.page as string ?? '1', 10) || 1);
       const limit = parseInt(req.query.limit as string ?? '20', 10);
 
       const { history, meta } = await this.contentService.getWatchHistory(userId, page, limit);
@@ -141,8 +141,8 @@ export class ContentController {
 
   getMovieRatings = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const page = parseInt(req.query.page as string ?? '1', 10);
-      const limit = Math.min(parseInt(req.query.limit as string ?? '20', 10), 50);
+      const page = Math.max(1, parseInt(req.query.page as string ?? '1', 10) || 1);
+      const limit = Math.min(Math.max(1, parseInt(req.query.limit as string ?? '20', 10) || 20), 50);
       const { ratings, meta } = await this.contentService.getMovieRatings(req.params.id, page, limit);
       res.json(apiResponse.paginated(ratings, meta));
     } catch (error) {
@@ -222,7 +222,7 @@ export class ContentController {
 
   getTrending = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const limit = Math.min(parseInt(req.query.limit as string ?? '10', 10), 50);
+      const limit = Math.min(Math.max(1, parseInt(req.query.limit as string ?? '10', 10) || 20), 50);
       const movies = await this.contentService.getTrending(limit);
       res.json(apiResponse.success(movies));
     } catch (error) {
@@ -232,7 +232,7 @@ export class ContentController {
 
   getTopRated = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const limit = Math.min(parseInt(req.query.limit as string ?? '10', 10), 50);
+      const limit = Math.min(Math.max(1, parseInt(req.query.limit as string ?? '10', 10) || 20), 50);
       const movies = await this.contentService.getTopRated(limit);
       res.json(apiResponse.success(movies));
     } catch (error) {
@@ -317,8 +317,8 @@ export class ContentController {
 
   adminListMovies = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const page = parseInt(req.query.page as string ?? '1', 10);
-      const limit = Math.min(parseInt(req.query.limit as string ?? '20', 10), 100);
+      const page = Math.max(1, parseInt(req.query.page as string ?? '1', 10) || 1);
+      const limit = Math.min(Math.max(1, parseInt(req.query.limit as string ?? '20', 10) || 20), 100);
       const genre = req.query.genre as string | undefined;
       const search = req.query.search as string | undefined;
       const isPublishedParam = req.query.isPublished as string | undefined;

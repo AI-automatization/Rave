@@ -17,8 +17,8 @@ export class AdminController {
 
   listUsers = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const page = parseInt(req.query.page as string ?? '1', 10);
-      const limit = Math.min(parseInt(req.query.limit as string ?? '20', 10), 100);
+      const page = Math.max(1, parseInt(req.query.page as string ?? '1', 10) || 1);
+      const limit = Math.min(Math.max(1, parseInt(req.query.limit as string ?? '20', 10) || 20), 100);
       const role = req.query.role as string | undefined;
       const search = req.query.search as string | undefined;
       const isBlocked = req.query.isBlocked === 'true' ? true : req.query.isBlocked === 'false' ? false : undefined;
@@ -78,8 +78,8 @@ export class AdminController {
 
   listMovies = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const page = parseInt(req.query.page as string ?? '1', 10);
-      const limit = Math.min(parseInt(req.query.limit as string ?? '20', 10), 100);
+      const page = Math.max(1, parseInt(req.query.page as string ?? '1', 10) || 1);
+      const limit = Math.min(Math.max(1, parseInt(req.query.limit as string ?? '20', 10) || 20), 100);
       const isPublished = req.query.isPublished === 'true' ? true : req.query.isPublished === 'false' ? false : undefined;
 
       const { movies, total } = await this.adminService.listMovies({
@@ -137,8 +137,8 @@ export class AdminController {
 
   listFeedback = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const page = parseInt(req.query.page as string ?? '1', 10);
-      const limit = Math.min(parseInt(req.query.limit as string ?? '20', 10), 100);
+      const page = Math.max(1, parseInt(req.query.page as string ?? '1', 10) || 1);
+      const limit = Math.min(Math.max(1, parseInt(req.query.limit as string ?? '20', 10) || 20), 100);
       const { feedbacks, total } = await this.adminService.listFeedback({
         page, limit,
         status: req.query.status as string | undefined,
@@ -187,8 +187,8 @@ export class AdminController {
 
   getLogs = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const page = parseInt(req.query.page as string ?? '1', 10);
-      const limit = Math.min(parseInt(req.query.limit as string ?? '50', 10), 200);
+      const page = Math.max(1, parseInt(req.query.page as string ?? '1', 10) || 1);
+      const limit = Math.min(Math.max(1, parseInt(req.query.limit as string ?? '50', 10) || 20), 200);
       const dateFrom = req.query.dateFrom ? new Date(req.query.dateFrom as string) : undefined;
       const dateTo = req.query.dateTo ? new Date(req.query.dateTo as string) : undefined;
 
@@ -210,8 +210,8 @@ export class AdminController {
 
   listBattles = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const page = parseInt((req.query.page as string) ?? '1', 10);
-      const limit = Math.min(parseInt((req.query.limit as string) ?? '20', 10), 100);
+      const page = Math.max(1, parseInt((req.query.page as string) ?? '1', 10) || 1);
+      const limit = Math.min(Math.max(1, parseInt((req.query.limit as string) ?? '20', 10) || 20), 100);
       const { battles, total } = await this.adminService.listBattles({
         page,
         limit,
@@ -241,8 +241,8 @@ export class AdminController {
 
   listWatchParties = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const page = parseInt((req.query.page as string) ?? '1', 10);
-      const limit = Math.min(parseInt((req.query.limit as string) ?? '20', 10), 100);
+      const page = Math.max(1, parseInt((req.query.page as string) ?? '1', 10) || 1);
+      const limit = Math.min(Math.max(1, parseInt((req.query.limit as string) ?? '20', 10) || 20), 100);
       const { rooms, total } = await this.adminService.listWatchParties({
         page,
         limit,
@@ -313,8 +313,8 @@ export class AdminController {
 
   listStaff = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const page = parseInt((req.query.page as string) ?? '1', 10);
-      const limit = Math.min(parseInt((req.query.limit as string) ?? '50', 10), 100);
+      const page = Math.max(1, parseInt((req.query.page as string) ?? '1', 10) || 1);
+      const limit = Math.min(Math.max(1, parseInt((req.query.limit as string) ?? '50', 10) || 20), 100);
       const { users, total } = await this.adminService.listStaff(page, limit);
       res.json(apiResponse.paginated(users, buildPaginationMeta(page, limit, total)));
     } catch (error) { next(error); }
@@ -330,8 +330,8 @@ export class AdminController {
 
   getAuditLogs = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const page = parseInt((req.query.page as string) ?? '1', 10);
-      const limit = Math.min(parseInt((req.query.limit as string) ?? '20', 10), 100);
+      const page = Math.max(1, parseInt((req.query.page as string) ?? '1', 10) || 1);
+      const limit = Math.min(Math.max(1, parseInt((req.query.limit as string) ?? '20', 10) || 20), 100);
       const action = req.query.action as string | undefined;
       const adminId = req.query.adminId as string | undefined;
       const dateFrom = req.query.dateFrom ? new Date(req.query.dateFrom as string) : undefined;
