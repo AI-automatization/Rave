@@ -68,7 +68,7 @@ export const createApp = (redis: Redis): { app: express.Application; io: SocketS
 
   // Register Socket.io handlers
   const watchPartyService = new WatchPartyService(redis);
-  registerWatchPartySocket(io, watchPartyService);
+  registerWatchPartySocket(io, watchPartyService, redis);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

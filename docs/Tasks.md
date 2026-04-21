@@ -28,9 +28,9 @@
 
 ### T-S058 | P1 | [BACKEND] | Live reactions backend — Socket.io events + Redis rate limit
 
-- **Mas'ul:**
+- **Mas'ul:** pending[Saidazim]
 - **Yaratilgan:** 2026-04-21 21:04
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 Jarayonda
 - **Sabab:** Bekzod aka roadmap — Faza 1, effort S. Engagement uchun kritik.
 - **Qilish kerak:**
   - [ ] `reaction:send` socket event qo'shish (emoji + userId + roomId)
@@ -43,9 +43,9 @@
 
 ### T-S059 | P1 | [BACKEND] | Watch-party REST rate limiting — POST /rooms, POST /rooms/:id/join
 
-- **Mas'ul:**
+- **Mas'ul:** pending[Saidazim]
 - **Yaratilgan:** 2026-04-21 21:04
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 Jarayonda
 - **Sabab:** Bekzod aka review — POST spam = Mongo full, DOS risk.
 - **Qilish kerak:**
   - [ ] `services/watch-party/src/routes/` ga `rateLimiter` middleware qo'shish

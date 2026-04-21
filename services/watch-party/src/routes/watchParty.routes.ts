@@ -5,12 +5,15 @@ import { WatchPartyController } from '../controllers/watchParty.controller';
 import { WatchPartyService } from '../services/watchParty.service';
 import { verifyToken, requireNotBlocked } from '@shared/middleware/auth.middleware';
 import { requireInternalSecret } from '@shared/utils/serviceClient';
+import { createRoomLimiter, joinRoomLimiter } from '../middleware/rateLimiter';
 
 export const createWatchPartyRouter = (redis: Redis, io: SocketServer): Router => {
   const router = Router();
   const watchPartyService = new WatchPartyService(redis);
   const watchPartyController = new WatchPartyController(watchPartyService, io);
   const notBlocked = requireNotBlocked(redis);
+  const createLimiter = createRoomLimiter(redis);
+  const joinLimiter = joinRoomLimiter(redis);
 
   // Internal — force-disconnect blocked user from all sockets
   router.post('/internal/users/:userId/disconnect', requireInternalSecret, watchPartyController.disconnectUser);
@@ -36,14 +39,14 @@ export const createWatchPartyRouter = (redis: Redis, io: SocketServer): Router =
   // GET /watch-party/rooms — list all active rooms (sorted by member count)
   router.get('/rooms', verifyToken, notBlocked, watchPartyController.getRooms);
 
-  // POST /watch-party/rooms — create room
-  router.post('/rooms', verifyToken, notBlocked, watchPartyController.createRoom);
+  // POST /watch-party/rooms — create room (max 5/min per IP)
+  router.post('/rooms', verifyToken, notBlocked, createLimiter, watchPartyController.createRoom);
 
   // GET /watch-party/rooms/:id — get room details
   router.get('/rooms/:id', verifyToken, notBlocked, watchPartyController.getRoom);
 
-  // POST /watch-party/rooms/join/:inviteCode — join room (body: { password? })
-  router.post('/rooms/join/:inviteCode', verifyToken, notBlocked, watchPartyController.joinRoom);
+  // POST /watch-party/rooms/join/:inviteCode — join room (max 10/min per user)
+  router.post('/rooms/join/:inviteCode', verifyToken, notBlocked, joinLimiter, watchPartyController.joinRoom);
 
   // DELETE /watch-party/rooms/:id — close room (owner only) (T-S028)
   router.delete('/rooms/:id', verifyToken, notBlocked, watchPartyController.closeRoom);
@@ -56,7 +59,7 @@ export const createWatchPartyRouter = (redis: Redis, io: SocketServer): Router =
 
   // POST aliases — mobile uses POST instead of DELETE for leave, and /join without /rooms prefix
   router.post('/rooms/:id/leave', verifyToken, notBlocked, watchPartyController.leaveRoom);
-  router.post('/join/:inviteCode', verifyToken, notBlocked, watchPartyController.joinRoom);
+  router.post('/join/:inviteCode', verifyToken, notBlocked, joinLimiter, watchPartyController.joinRoom);
 
   return router;
 };

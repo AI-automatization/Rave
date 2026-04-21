@@ -24,6 +24,8 @@ export const SERVER_EVENTS = Object.freeze({
   ROOM_MESSAGE: 'room:message',
   ROOM_EMOJI: 'room:emoji',
 
+  REACTION_BROADCAST: 'reaction:broadcast',
+
   VOICE_JOINED:     'voice:joined',
   VOICE_USER_JOINED: 'voice:user_joined',
   VOICE_USER_LEFT:  'voice:user_left',
@@ -66,6 +68,8 @@ export const CLIENT_EVENTS = Object.freeze({
   VOICE_ANSWER:   'voice:answer',
   VOICE_ICE:      'voice:ice',
   VOICE_SPEAKING: 'voice:speaking',
+
+  SEND_REACTION: 'reaction:send',
 
   // Owner xona mediasini almashtiradi → server room:updated broadcast qiladi barcha memberlarga
   CHANGE_MEDIA: 'room:media:change',

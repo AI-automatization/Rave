@@ -10,6 +10,7 @@ import { registerVideoEvents } from './videoEvents.handler';
 import { registerChatEvents } from './chatEvents.handler';
 import { registerVoiceEvents } from './voiceEvents.handler';
 import { registerMeshHandlers } from './mesh.handlers';
+import { registerReactionEvents } from './reactionEvents.handler';
 
 interface AuthenticatedSocket extends Socket {
   user: JwtPayload;
@@ -54,7 +55,7 @@ const voiceRooms = new Map<string, Set<string>>();
 const INACTIVE_CHECK_INTERVAL_MS = 60 * 1000; // check every 1 minute
 const INACTIVE_THRESHOLD_MINUTES = 5;
 
-export const registerWatchPartySocket = (io: SocketServer, watchPartyService: WatchPartyService): void => {
+export const registerWatchPartySocket = (io: SocketServer, watchPartyService: WatchPartyService, redis: import('ioredis').default): void => {
   // On startup: close rooms that have been inactive for more than 30 minutes (not ALL rooms)
   void watchPartyService.closeInactiveRooms(30).then((ids) => {
     for (const roomId of ids) {
@@ -112,6 +113,7 @@ export const registerWatchPartySocket = (io: SocketServer, watchPartyService: Wa
     registerChatEvents(socket, authSocket, checkRateLimit);
     registerVoiceEvents(socket, authSocket, voiceRooms);
     registerMeshHandlers(io, socket, authSocket);
+    registerReactionEvents(io, socket, authSocket, redis);
 
     // DISCONNECT — do NOT remove user from members (allows reconnect).
     // Only clean up voice and notify others. Explicit leave happens via room:leave event or HTTP API.
