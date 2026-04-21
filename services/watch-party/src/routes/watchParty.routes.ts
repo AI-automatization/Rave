@@ -36,6 +36,12 @@ export const createWatchPartyRouter = (redis: Redis, io: SocketServer): Router =
   // Internal Admin: DELETE /watch-party/internal/admin/:id/members/:userId — kick any member
   router.delete('/internal/admin/:id/members/:userId', requireInternalSecret, watchPartyController.adminKickMember);
 
+  // GET /watch-party/rooms/my/recent — user's last 10 rooms (T-S061)
+  router.get('/rooms/my/recent', verifyToken, notBlocked, watchPartyController.getRecentRooms);
+
+  // GET /watch-party/rooms/public/active — public rooms sorted by memberCount (T-S062)
+  router.get('/rooms/public/active', verifyToken, notBlocked, watchPartyController.getPublicActiveRooms);
+
   // GET /watch-party/rooms — list all active rooms (sorted by member count)
   router.get('/rooms', verifyToken, notBlocked, watchPartyController.getRooms);
 
@@ -53,6 +59,15 @@ export const createWatchPartyRouter = (redis: Redis, io: SocketServer): Router =
 
   // DELETE /watch-party/rooms/:id/leave — leave room
   router.delete('/rooms/:id/leave', verifyToken, notBlocked, watchPartyController.leaveRoom);
+
+  // POST /watch-party/rooms/:id/playlist — add to queue (owner only, T-S060)
+  router.post('/rooms/:id/playlist', verifyToken, notBlocked, watchPartyController.addToPlaylist);
+
+  // DELETE /watch-party/rooms/:id/playlist/:index — remove by index (owner only, T-S060)
+  router.delete('/rooms/:id/playlist/:index', verifyToken, notBlocked, watchPartyController.removeFromPlaylist);
+
+  // POST /watch-party/rooms/:id/playlist/next — advance to next (owner only, T-S060)
+  router.post('/rooms/:id/playlist/next', verifyToken, notBlocked, watchPartyController.playNextFromPlaylist);
 
   // POST /watch-party/rooms/:id/invite — send watch party invite notification to a friend
   router.post('/rooms/:id/invite', verifyToken, notBlocked, watchPartyController.inviteUser);

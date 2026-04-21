@@ -26,6 +26,8 @@ export const SERVER_EVENTS = Object.freeze({
 
   REACTION_BROADCAST: 'reaction:broadcast',
 
+  PLAYLIST_UPDATED: 'playlist:updated',
+
   VOICE_JOINED:     'voice:joined',
   VOICE_USER_JOINED: 'voice:user_joined',
   VOICE_USER_LEFT:  'voice:user_left',

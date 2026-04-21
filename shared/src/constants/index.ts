@@ -70,6 +70,8 @@ export const REDIS_KEYS = {
   reactionRate: (userId: string, roomId: string) => `party:reaction_rate:${userId}:${roomId}`,
   createRoomRate: (ip: string) => `party:create_rate:${ip}`,
   joinRoomRate: (userId: string) => `party:join_rate:${userId}`,
+  recentRooms: (userId: string) => `party:recent_rooms:${userId}`,
+  publicRoomsCache: () => `party:public_rooms_cache`,
 
   // Battle
   battleLeaderboard: (battleId: string) => `battle:leaderboard:${battleId}`,

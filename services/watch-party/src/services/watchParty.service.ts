@@ -4,7 +4,7 @@ import Redis from 'ioredis';
 import { WatchPartyRoom, IWatchPartyRoomDocument } from '../models/watchPartyRoom.model';
 import { logger } from '@shared/utils/logger';
 import { NotFoundError, ForbiddenError, BadRequestError, UnauthorizedError } from '@shared/utils/errors';
-import { SyncState, VideoPlatform } from '@shared/types';
+import { SyncState, VideoPlatform, VideoItem } from '@shared/types';
 import { REDIS_KEYS, TTL, LIMITS } from '@shared/constants';
 
 const SYNC_THRESHOLD_SECONDS = 2;
@@ -80,6 +80,7 @@ export class WatchPartyService {
       updatedBy: ownerId,
     });
 
+    if (!isPrivate) void this.invalidatePublicRoomsCache();
     logger.info('Watch party room created', { roomId: room._id, ownerId, isPrivate });
     return room;
   }
@@ -125,6 +126,8 @@ export class WatchPartyService {
       throw new BadRequestError('Room is full');
     }
 
+    void this.invalidateRecentRoomsCache([userId]);
+    void this.invalidatePublicRoomsCache();
     logger.info('User joined watch party', { roomId: room._id, userId });
     return updated;
   }
@@ -156,6 +159,8 @@ export class WatchPartyService {
     }
 
     await WatchPartyRoom.updateOne({ _id: roomId }, { $pull: { members: userId } });
+    void this.invalidateRecentRoomsCache([userId]);
+    void this.invalidatePublicRoomsCache();
     logger.info('User left watch party', { roomId, userId });
     return { closed: false };
   }
@@ -276,6 +281,7 @@ export class WatchPartyService {
 
     await WatchPartyRoom.updateOne({ _id: roomId }, { status: 'ended' });
     await this.redis.del(REDIS_KEYS.watchPartyRoom(roomId));
+    void this.invalidatePublicRoomsCache();
     logger.info('Watch party room closed by owner', { roomId, ownerId });
   }
 
@@ -393,5 +399,168 @@ export class WatchPartyService {
     const key = `watch_party:muted:${roomId}`;
     const result = await this.redis.sismember(key, userId);
     return result === 1;
+  }
+
+  // ── T-S060: Playlist ────────────────────────────────────────────
+
+  private readonly PRIVATE_URL = /^https?:\/\/(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/i;
+  private readonly MAX_PLAYLIST = 50;
+
+  async addToPlaylist(
+    ownerId: string,
+    roomId: string,
+    item: { videoUrl: string; videoTitle?: string | null; videoPlatform?: VideoPlatform | null },
+  ): Promise<IWatchPartyRoomDocument> {
+    if (!/^https?:\/\//i.test(item.videoUrl)) {
+      throw new BadRequestError('videoUrl must start with http:// or https://');
+    }
+    if (this.PRIVATE_URL.test(item.videoUrl)) {
+      throw new BadRequestError('videoUrl points to a private or internal address');
+    }
+
+    const result = await WatchPartyRoom.findOneAndUpdate(
+      {
+        _id: roomId,
+        ownerId,
+        status: { $ne: 'ended' },
+        $expr: { $lt: [{ $size: '$playlist' }, this.MAX_PLAYLIST] },
+      },
+      {
+        $push: {
+          playlist: {
+            videoUrl:      item.videoUrl,
+            videoTitle:    item.videoTitle ?? null,
+            videoPlatform: item.videoPlatform ?? null,
+            addedBy:       ownerId,
+            addedAt:       new Date(),
+          },
+        },
+        $set: { lastActivityAt: new Date() },
+      },
+      { new: true },
+    );
+
+    if (!result) {
+      const exists = await WatchPartyRoom.exists({ _id: roomId });
+      if (!exists) throw new NotFoundError('Room not found');
+      const room = await WatchPartyRoom.findById(roomId).select('playlist');
+      if (room && room.playlist.length >= this.MAX_PLAYLIST) {
+        throw new BadRequestError(`Playlist limit is ${this.MAX_PLAYLIST} items`);
+      }
+      throw new ForbiddenError('Only the room owner can manage the playlist');
+    }
+
+    logger.info('Playlist item added', { roomId, ownerId });
+    return result;
+  }
+
+  async removeFromPlaylist(ownerId: string, roomId: string, index: number): Promise<IWatchPartyRoomDocument> {
+    const room = await WatchPartyRoom.findOne({ _id: roomId, ownerId, status: { $ne: 'ended' } });
+    if (!room) {
+      const exists = await WatchPartyRoom.exists({ _id: roomId });
+      if (!exists) throw new NotFoundError('Room not found');
+      throw new ForbiddenError('Only the room owner can manage the playlist');
+    }
+    if (index < 0 || index >= room.playlist.length) {
+      throw new BadRequestError('Invalid playlist index');
+    }
+
+    room.playlist.splice(index, 1);
+    room.lastActivityAt = new Date();
+    await room.save();
+
+    logger.info('Playlist item removed', { roomId, ownerId, index });
+    return room;
+  }
+
+  // Advances to next item: sets room videoUrl/videoTitle/videoPlatform to playlist[0], removes it from queue
+  async playNextFromPlaylist(ownerId: string, roomId: string): Promise<IWatchPartyRoomDocument> {
+    const room = await WatchPartyRoom.findOne({ _id: roomId, ownerId, status: { $ne: 'ended' } });
+    if (!room) {
+      const exists = await WatchPartyRoom.exists({ _id: roomId });
+      if (!exists) throw new NotFoundError('Room not found');
+      throw new ForbiddenError('Only the room owner can advance the playlist');
+    }
+    if (room.playlist.length === 0) {
+      throw new BadRequestError('Playlist is empty');
+    }
+
+    const next = room.playlist[0] as VideoItem;
+    room.playlist.splice(0, 1);
+    room.videoUrl      = next.videoUrl;
+    room.videoTitle    = next.videoTitle;
+    room.videoPlatform = next.videoPlatform;
+    room.currentTime   = 0;
+    room.isPlaying     = false;
+    room.status        = 'waiting';
+    room.lastActivityAt = new Date();
+    await room.save();
+
+    await this.cacheRoomState(roomId, {
+      currentTime: 0,
+      isPlaying: false,
+      serverTimestamp: Date.now(),
+      updatedBy: ownerId,
+    });
+
+    logger.info('Playlist advanced to next item', { roomId, ownerId, nextUrl: next.videoUrl });
+    return room;
+  }
+
+  // ── T-S061: Recent rooms ────────────────────────────────────────
+
+  async getRecentRooms(userId: string, limit = 10): Promise<IWatchPartyRoomDocument[]> {
+    const cacheKey = REDIS_KEYS.recentRooms(userId);
+    const cached = await this.redis.get(cacheKey);
+    if (cached) {
+      return JSON.parse(cached) as IWatchPartyRoomDocument[];
+    }
+
+    const rooms = await WatchPartyRoom.find({ members: userId })
+      .sort({ lastActivityAt: -1 })
+      .limit(limit)
+      .select('-password')
+      .lean();
+
+    await this.redis.set(cacheKey, JSON.stringify(rooms), 'EX', 5 * 60); // 5 min TTL
+    return rooms as unknown as IWatchPartyRoomDocument[];
+  }
+
+  private async invalidateRecentRoomsCache(userIds: string[]): Promise<void> {
+    if (userIds.length === 0) return;
+    await Promise.all(userIds.map((id) => this.redis.del(REDIS_KEYS.recentRooms(id))));
+  }
+
+  // ── T-S062: Public active rooms ────────────────────────────────
+
+  async getPublicActiveRooms(limit = 50): Promise<Array<IWatchPartyRoomDocument & { memberCount: number }>> {
+    const cacheKey = REDIS_KEYS.publicRoomsCache();
+    const cached = await this.redis.get(cacheKey);
+    if (cached) {
+      return JSON.parse(cached) as Array<IWatchPartyRoomDocument & { memberCount: number }>;
+    }
+
+    const cutoff = new Date(Date.now() - 10 * 60 * 1000);
+    const rooms = await WatchPartyRoom.find({
+      isPrivate: false,
+      status: { $in: ['waiting', 'playing', 'paused'] },
+      lastActivityAt: { $gt: cutoff },
+    })
+      .select('-password')
+      .sort({ lastActivityAt: -1 })
+      .limit(limit * 2)
+      .lean();
+
+    const sorted = rooms
+      .map((r) => ({ ...r, memberCount: r.members.length }))
+      .sort((a, b) => b.memberCount - a.memberCount)
+      .slice(0, limit);
+
+    await this.redis.set(cacheKey, JSON.stringify(sorted), 'EX', 30); // 30s TTL
+    return sorted as unknown as Array<IWatchPartyRoomDocument & { memberCount: number }>;
+  }
+
+  async invalidatePublicRoomsCache(): Promise<void> {
+    await this.redis.del(REDIS_KEYS.publicRoomsCache());
   }
 }

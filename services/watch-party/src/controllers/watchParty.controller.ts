@@ -84,6 +84,105 @@ export class WatchPartyController {
     }
   };
 
+  // ── T-S060: Playlist ──────────────────────────────────────────
+
+  // POST /watch-party/rooms/:id/playlist
+  addToPlaylist = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = (req as AuthenticatedRequest).user;
+      const roomId = req.params.id;
+      const { videoUrl, videoTitle, videoPlatform } = req.body as {
+        videoUrl: string;
+        videoTitle?: string;
+        videoPlatform?: VideoPlatform;
+      };
+
+      if (!videoUrl) {
+        res.status(400).json(apiResponse.error('videoUrl is required'));
+        return;
+      }
+
+      const room = await this.watchPartyService.addToPlaylist(userId, roomId, { videoUrl, videoTitle, videoPlatform });
+      this.io.to(roomId).emit(SERVER_EVENTS.PLAYLIST_UPDATED, { playlist: room.playlist });
+      res.status(201).json(apiResponse.success({ playlist: room.playlist }, 'Added to playlist'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // DELETE /watch-party/rooms/:id/playlist/:index
+  removeFromPlaylist = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = (req as AuthenticatedRequest).user;
+      const roomId = req.params.id;
+      const index = parseInt(req.params.index, 10);
+
+      if (isNaN(index) || index < 0) {
+        res.status(400).json(apiResponse.error('Invalid index'));
+        return;
+      }
+
+      const room = await this.watchPartyService.removeFromPlaylist(userId, roomId, index);
+      this.io.to(roomId).emit(SERVER_EVENTS.PLAYLIST_UPDATED, { playlist: room.playlist });
+      res.json(apiResponse.success({ playlist: room.playlist }, 'Removed from playlist'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // POST /watch-party/rooms/:id/playlist/next
+  playNextFromPlaylist = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = (req as AuthenticatedRequest).user;
+      const roomId = req.params.id;
+
+      const room = await this.watchPartyService.playNextFromPlaylist(userId, roomId);
+      this.io.to(roomId).emit(SERVER_EVENTS.PLAYLIST_UPDATED, { playlist: room.playlist });
+      this.io.to(roomId).emit(SERVER_EVENTS.ROOM_UPDATED, {
+        videoUrl:      room.videoUrl,
+        videoTitle:    room.videoTitle,
+        videoPlatform: room.videoPlatform,
+        currentTime:   0,
+        isPlaying:     false,
+      });
+      res.json(apiResponse.success({
+        videoUrl:      room.videoUrl,
+        videoTitle:    room.videoTitle,
+        videoPlatform: room.videoPlatform,
+        playlist:      room.playlist,
+      }, 'Advanced to next video'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // ── T-S061: Recent rooms ──────────────────────────────────────
+
+  // GET /watch-party/rooms/my/recent
+  getRecentRooms = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = (req as AuthenticatedRequest).user;
+      const limit = Math.min(Math.max(1, parseInt((req.query.limit as string) ?? '10', 10) || 10), 20);
+      const rooms = await this.watchPartyService.getRecentRooms(userId, limit);
+      res.json(apiResponse.success(rooms));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // ── T-S062: Public active rooms ───────────────────────────────
+
+  // GET /watch-party/rooms/public/active
+  getPublicActiveRooms = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const limit = Math.min(Math.max(1, parseInt((req.query.limit as string) ?? '50', 10) || 50), 100);
+      const rooms = await this.watchPartyService.getPublicActiveRooms(limit);
+      res.json(apiResponse.success(rooms));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   // DELETE /watch-party/rooms/:id — close room (owner only), emit ROOM_CLOSED (T-S028)
   closeRoom = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {

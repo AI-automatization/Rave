@@ -1,5 +1,5 @@
 import { Schema, model, Document } from 'mongoose';
-import { WatchPartyStatus, VideoPlatform } from '@shared/types';
+import { WatchPartyStatus, VideoPlatform, VideoItem } from '@shared/types';
 
 export interface IWatchPartyRoomDocument extends Document {
   name: string | null;      // room name (optional)
@@ -17,6 +17,7 @@ export interface IWatchPartyRoomDocument extends Document {
   inviteCode: string;
   isPrivate: boolean;
   password: string | null;  // bcrypt hash — null for public rooms
+  playlist: VideoItem[];
   lastActivityAt: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -43,6 +44,16 @@ const watchPartyRoomSchema = new Schema<IWatchPartyRoomDocument>(
     inviteCode: { type: String, required: true, unique: true },
     isPrivate: { type: Boolean, default: false },
     password: { type: String, default: null },
+    playlist: {
+      type: [{
+        videoUrl:       { type: String, required: true },
+        videoTitle:     { type: String, default: null },
+        videoPlatform:  { type: String, enum: ['youtube', 'direct', 'webview', null], default: null },
+        addedBy:        { type: String, required: true },
+        addedAt:        { type: Date, default: Date.now },
+      }],
+      default: [],
+    },
     lastActivityAt: { type: Date, default: Date.now },
   },
   {
@@ -61,5 +72,7 @@ const watchPartyRoomSchema = new Schema<IWatchPartyRoomDocument>(
 // inviteCode unique: true orqali allaqachon index qilingan
 watchPartyRoomSchema.index({ ownerId: 1 });
 watchPartyRoomSchema.index({ status: 1 });
+watchPartyRoomSchema.index({ members: 1, lastActivityAt: -1 }); // T-S061: recent rooms
+watchPartyRoomSchema.index({ isPrivate: 1, status: 1, lastActivityAt: -1 }); // T-S062: public feed
 
 export const WatchPartyRoom = model<IWatchPartyRoomDocument>('WatchPartyRoom', watchPartyRoomSchema);
