@@ -66,10 +66,17 @@ async function registerForPushNotifications(): Promise<void> {
 
   if (finalStatus !== 'granted') return;
 
-  const token = (await Notifications.getExpoPushTokenAsync()).data;
+  const projectId = process.env.EXPO_PUBLIC_PROJECT_ID;
+  if (!projectId) {
+    if (__DEV__) console.warn('[Push] EXPO_PUBLIC_PROJECT_ID is not set — push token registration skipped');
+    return;
+  }
+
   try {
+    const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+    if (__DEV__) console.log('[Push] token registered:', token);
     await userApi.updateFcmToken(token);
-  } catch {
-    // Silent fail — retry on next launch
+  } catch (err) {
+    if (__DEV__) console.error('[Push] token registration failed:', err);
   }
 }
