@@ -4,6 +4,22 @@
 
 ---
 
+### F-204 | 2026-04-21 | [BACKEND] | T-S063 — Telegram Share Room bot [Saidazim]
+
+- `services/notification/src/services/telegram.service.ts` (новый):
+  - `/start room_{inviteCode}` deep link handler: валидация 6-hex кода, inline кнопки (App + Web)
+  - `/start` → welcome message; unknown → help
+  - `getShareLink(inviteCode)` → `t.me/RaveBot?start=room_{CODE}`
+  - `registerWebhook(url)` — авто-регистрация при старте
+  - Fail-safe: бот отключён если `TELEGRAM_BOT_TOKEN` не задан
+- `services/notification/src/controllers/telegram.controller.ts` (новый):
+  - `POST /telegram/webhook`: проверяет `X-Telegram-Bot-Api-Secret-Token`, 200 немедленно, async обработка
+  - `GET /telegram/share-link?inviteCode=XXXX`: возвращает Telegram deep link
+- `notification.routes.ts` + `server.ts` + `config`: интеграция + env переменные
+- `.env.example`: документированы `TELEGRAM_BOT_TOKEN`, `WEBHOOK_SECRET`, `APP_SCHEME` и др.
+
+---
+
 ### F-201 | 2026-04-21 | [BACKEND] | T-S060 — Video queue/playlist in Watch Party [Saidazim]
 
 - `shared/types/index.ts`: `VideoItem` interface (videoUrl, videoTitle, videoPlatform, addedBy, addedAt)
