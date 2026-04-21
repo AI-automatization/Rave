@@ -253,8 +253,10 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
 
   const handleProgressSeek = useCallback(async (secs: number) => {
     if (!isOwner || videoIsLive) return;
+    isSyncing.current = true;
     await playerRef.current?.seekTo(secs * 1000);
     emitSeek(secs);
+    setTimeout(() => { isSyncing.current = false; }, 400);
   }, [isOwner, videoIsLive, emitSeek]);
 
   const handlePlayPause = useCallback(async () => {

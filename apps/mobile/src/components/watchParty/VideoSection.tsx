@@ -82,7 +82,7 @@ export const VideoSection = React.memo(function VideoSection({
         <EmojiFloatItem key={e.id} emoji={e.emoji} x={e.x} onDone={() => onRemoveEmoji(e.id)} />
       ))}
 
-      {!isWebView && !videoIsLive && duration > 0 && (
+      {!videoIsLive && duration > 0 && (
         <View style={styles.progressBarWrap}>
           <VideoProgressBar currentTime={currentTime} duration={duration} isOwner={isOwner}
             isLive={videoIsLive} onSeek={secs => onProgressSeek?.(secs)} />
