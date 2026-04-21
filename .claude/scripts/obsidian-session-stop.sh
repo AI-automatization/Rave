@@ -80,13 +80,18 @@ PYEOF
 
   # ── Sync tasks ──────────────────────────────────────────────────
   bash "$SCRIPT_DIR/obsidian-tasks-sync.sh" 2>/dev/null || true
+
+  # ── Write handoff for next session ──────────────────────────────
+  bash "$SCRIPT_DIR/obsidian-handoff.sh" 2>/dev/null || true
 fi
 
-# ── Commit vault to git ────────────────────────────────────────────
+# ── Commit + push vault to git ────────────────────────────────────
 if [[ -d "$VAULT/.git" ]]; then
   git -C "$VAULT" add -A 2>/dev/null || true
   git -C "$VAULT" diff --cached --quiet 2>/dev/null || \
     git -C "$VAULT" commit -q -m "vault: session $NOW" 2>/dev/null || true
+  # Push so Emirhan's session-start pulls latest context
+  git -C "$VAULT" push -q origin main 2>/dev/null || true
 fi
 
 exit 0
