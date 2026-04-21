@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { createApp } from './app';
 import { config } from './config/index';
 import { logger } from '@shared/utils/logger';
+import { registerWebhook } from './services/telegram.service';
 
 const main = async (): Promise<void> => {
   logger.info('[1/4] Connecting to MongoDB...');
@@ -18,6 +19,12 @@ const main = async (): Promise<void> => {
     });
     server.on('error', reject);
   });
+
+  // Register Telegram webhook if configured (non-blocking)
+  const tgWebhookUrl = process.env.TELEGRAM_WEBHOOK_URL ?? '';
+  if (tgWebhookUrl && config.telegram.botToken) {
+    void registerWebhook(tgWebhookUrl);
+  }
 
   process.on('SIGTERM', async () => {
     await mongoose.connection.close();

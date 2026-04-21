@@ -28,9 +28,9 @@
 
 ### T-S063 | P3 | [BACKEND] | Telegram "Share room" bot — viral loop
 
-- **Mas'ul:**
+- **Mas'ul:** pending[Saidazim]
 - **Yaratilgan:** 2026-04-21 21:04
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 Jarayonda
 - **Sabab:** Bekzod aka roadmap — Faza 1, effort S. CAC=0, MD Osiyo viral loop.
 - **Qilish kerak:**
   - [ ] Telegram bot: `/shareroom <inviteCode>` → deep link yuboradi

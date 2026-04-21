@@ -35,4 +35,12 @@ export const config = {
     pass: process.env.SMTP_PASS ?? '',
     from: process.env.EMAIL_FROM ?? 'noreply@cinesync.app',
   },
+
+  telegram: {
+    botToken: process.env.TELEGRAM_BOT_TOKEN ?? '',
+    botUsername: process.env.TELEGRAM_BOT_USERNAME ?? 'RaveBot',
+    webhookSecret: process.env.TELEGRAM_WEBHOOK_SECRET ?? '',
+    appScheme: process.env.APP_SCHEME ?? 'cinesync',       // mobile deep link scheme
+    webBaseUrl: process.env.WEB_BASE_URL ?? 'https://cinesync.app',
+  },
 } as const;
