@@ -4,6 +4,36 @@
 
 ---
 
+### F-201 | 2026-04-21 | [BACKEND] | T-S060 — Video queue/playlist in Watch Party [Saidazim]
+
+- `shared/types/index.ts`: `VideoItem` interface (videoUrl, videoTitle, videoPlatform, addedBy, addedAt)
+- `shared/constants/socketEvents.ts`: `PLAYLIST_UPDATED` server event
+- `WatchPartyRoom` model: `playlist: VideoItem[]` field, compound indexes for T-S061/S062
+- `watchParty.service.ts`: `addToPlaylist` / `removeFromPlaylist` / `playNextFromPlaylist`
+  - SSRF check, max 50 items, atomic owner check, Redis sync state reset on playNext
+- `watchParty.controller.ts` + `routes`: `POST/DELETE /rooms/:id/playlist`, `POST /rooms/:id/playlist/next`
+- Socket: `PLAYLIST_UPDATED` + `ROOM_UPDATED` broadcast on each mutation
+
+---
+
+### F-202 | 2026-04-21 | [BACKEND] | T-S061 — Recent rooms history [Saidazim]
+
+- `shared/constants/index.ts`: `recentRooms(userId)` Redis key
+- `watchParty.service.ts`: `getRecentRooms(userId, limit)` — members query sorted by lastActivityAt
+- Redis cache: `party:recent_rooms:{userId}` TTL 5min, invalidated on join/leave
+- `GET /watch-party/rooms/my/recent` endpoint
+
+---
+
+### F-203 | 2026-04-21 | [BACKEND] | T-S062 — Active public rooms feed [Saidazim]
+
+- `shared/constants/index.ts`: `publicRoomsCache()` Redis key
+- `watchParty.service.ts`: `getPublicActiveRooms(limit)` — isPrivate=false, active, last 10min
+- Sorted by memberCount desc, Redis cache TTL 30s, invalidated on create/join/leave/close
+- `GET /watch-party/rooms/public/active` endpoint
+
+---
+
 ### F-199 | 2026-04-21 | [BACKEND] | T-S058 — Live reactions: Socket.io + Redis rate limit [Saidazim]
 
 - `shared/constants/socketEvents.ts`: `SEND_REACTION` (client) + `REACTION_BROADCAST` (server) events

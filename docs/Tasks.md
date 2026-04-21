@@ -26,46 +26,6 @@
 
 ---
 
-### T-S060 | P2 | [BACKEND] | Video queue / playlist — Watch Party da ketma-ket videolar
-
-- **Mas'ul:**
-- **Yaratilgan:** 2026-04-21 21:04
-- **Holat:** ❌ Boshlanmagan
-- **Sabab:** Bekzod aka roadmap — Faza 1, effort M. "Bir epizod tugadi — keyingi" muammosi.
-- **Qilish kerak:**
-  - [ ] `WatchPartyRoom` modeliga `playlist: VideoItem[]` field qo'shish
-  - [ ] `POST /rooms/:id/playlist` — video qo'shish (owner only)
-  - [ ] `DELETE /rooms/:id/playlist/:index` — o'chirish
-  - [ ] `POST /rooms/:id/playlist/next` — keyingi videoga o'tish
-  - [ ] Socket event: `playlist:updated` barcha a'zolarga
-
----
-
-### T-S061 | P2 | [BACKEND] | Recent rooms history — foydalanuvchi oxirgi xonalari
-
-- **Mas'ul:**
-- **Yaratilgan:** 2026-04-21 21:04
-- **Holat:** ❌ Boshlanmagan
-- **Qilish kerak:**
-  - [ ] `GET /rooms/my/recent` — user ning oxirgi 10 ta room (member bo'lgan)
-  - [ ] `WatchPartyRoom` da `members` array mavjud → filter by userId, sort by `lastActivityAt`
-  - [ ] Redis cache: `recent_rooms:{userId}` TTL 5 min
-
----
-
-### T-S062 | P2 | [BACKEND] | Active public rooms feed — discovery
-
-- **Mas'ul:**
-- **Yaratilgan:** 2026-04-21 21:04
-- **Holat:** ❌ Boshlanmagan
-- **Sabab:** Bekzod aka roadmap — Faza 2, cold-start fix. Redis sorted set.
-- **Qilish kerak:**
-  - [ ] `GET /rooms/public/active` — isPrivate=false, status=active, sort by memberCount
-  - [ ] Redis sorted set: `public_rooms` — score = memberCount, TTL 30s cache
-  - [ ] Room yaratilganda/yopilganda Redis set yangilanadi
-
----
-
 ### T-S063 | P3 | [BACKEND] | Telegram "Share room" bot — viral loop
 
 - **Mas'ul:**
