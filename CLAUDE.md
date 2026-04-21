@@ -735,6 +735,70 @@ Barcha agentlar quyidagi skilllarni avtomatik ishlatadi:
 
 ---
 
+## OBSIDIAN MEMORY — ЗАКОН (ОБЯЗАТЕЛЬНО)
+
+> **Obsidian — loyiha xotirasi. Claude har muhim qaror, bug va g'oyani DARHOL yozadi.**
+
+**Vault joyi:** `~/Documents/CineSync-Vault` (o'zgartirilishi mumkin: `CINESYNC_VAULT` env var)
+
+### Qachon yoziladi (MAJBURIY)
+
+| Holat | Buyruq |
+|-------|--------|
+| Arxitektura qaror qabul qilinganda | `decision` |
+| Bug root cause topilganda | `bug` |
+| Non-obvious g'oya/yechim chiqqanda | `idea` |
+| Muhim TODO paydo bo'lganda | `todo` |
+| Fix/patch qo'llanilganda | `fix` |
+
+### Skript
+
+```bash
+.claude/scripts/obsidian-note.sh <type> <service> "<title>" "<body>" [executor]
+```
+
+**type:** `decision` | `bug` | `idea` | `todo` | `fix`
+
+**service:** `auth` | `user` | `content` | `watch-party` | `battle` | `notification` | `admin` | `mobile` | `shared` | `general`
+
+### Misollar
+
+```bash
+# Arxitektura qaror:
+.claude/scripts/obsidian-note.sh decision watch-party \
+  "Redis pub/sub over Socket.io rooms for sync" \
+  "Chose Redis pub/sub to decouple sync state from socket connections — allows reconnect without losing state" \
+  Saidazim
+
+# Bug topildi:
+.claude/scripts/obsidian-note.sh bug content \
+  "Elasticsearch index not updated on movie edit" \
+  "Movie.findByIdAndUpdate bypasses Mongoose post-save hook — Elasticsearch stays stale" \
+  Saidazim
+
+# G'oya:
+.claude/scripts/obsidian-note.sh idea battle \
+  "Spectator mode for battles" \
+  "Allow non-participants to watch live battle stats — increases engagement"
+
+# Fix qo'llanildi:
+.claude/scripts/obsidian-note.sh fix notification \
+  "FCM token dedup on login" \
+  "Added Set-based dedup before saving fcmTokens array — prevents 10x duplicate sends" \
+  Saidazim
+```
+
+### Hooks (avtomatik)
+
+```
+SessionStart → obsidian-session-start.sh  (daily note + tasks sync)
+Stop         → obsidian-session-stop.sh   (git context sync + vault commit)
+```
+
+> **Birinchi marta sozlash:** `bash .claude/scripts/obsidian-setup.sh`
+
+---
+
 ## KEYIN O'QILADIGAN FAYLLAR
 
 | Fayl | Kim uchun |
@@ -747,4 +811,4 @@ Barcha agentlar quyidagi skilllarni avtomatik ishlatadi:
 
 ---
 
-*CLAUDE.md | CineSync — Ijtimoiy Onlayn Kinoteatr | v2.0 | 2026-03-02*
+*CLAUDE.md | CineSync — Ijtimoiy Onlayn Kinoteatr | v2.1 | 2026-04-21*
