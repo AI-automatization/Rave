@@ -1,6 +1,6 @@
 # CineSync — OCHIQ VAZIFALAR
 
-# Yangilangan: 2026-04-20
+# Yangilangan: 2026-04-21
 
 # 2 dasturchi: Saidazim (Backend) | Emirhan (Mobile + Web)
 
@@ -14,8 +14,8 @@
 3. Fix bo'lgach → shu yerdan O'CHIRISH → docs/Done.md ga KO'CHIRISH
 4. Prioritet: P0=kritik, P1=muhim, P2=o'rta, P3=past
 5. Sprint: S1=hozir, S2=keyingi hafta, S3=keyingi sprint, S4-5=keyin
-6. Oxirgi T-raqam: S→057, E→105, C→016
-7. Yangilangan: 2026-04-20
+6. Oxirgi T-raqam: S→063, E→105, C→016
+7. Yangilangan: 2026-04-21
 ```
 
 ---
@@ -26,7 +26,86 @@
 
 ---
 
-*(Barcha backend tasklari TUGADI — T-S050..T-S057 Done.md da)*
+### T-S058 | P1 | [BACKEND] | Live reactions backend — Socket.io events + Redis rate limit
+
+- **Mas'ul:**
+- **Yaratilgan:** 2026-04-21 21:04
+- **Holat:** ❌ Boshlanmagan
+- **Sabab:** Bekzod aka roadmap — Faza 1, effort S. Engagement uchun kritik.
+- **Qilish kerak:**
+  - [ ] `reaction:send` socket event qo'shish (emoji + userId + roomId)
+  - [ ] Redis rate limit: per-user per-room max 10 reaction/sec
+  - [ ] `reaction:broadcast` barcha room a'zolarga
+  - [ ] `shared/constants/socketEvents.ts` ga yangi eventlar
+  - [ ] Emoji whitelist validation (unicode range yoki string list)
+
+---
+
+### T-S059 | P1 | [BACKEND] | Watch-party REST rate limiting — POST /rooms, POST /rooms/:id/join
+
+- **Mas'ul:**
+- **Yaratilgan:** 2026-04-21 21:04
+- **Holat:** ❌ Boshlanmagan
+- **Sabab:** Bekzod aka review — POST spam = Mongo full, DOS risk.
+- **Qilish kerak:**
+  - [ ] `services/watch-party/src/routes/` ga `rateLimiter` middleware qo'shish
+  - [ ] POST /rooms: max 5 room/min per IP
+  - [ ] POST /rooms/:id/join: max 10/min per user
+
+---
+
+### T-S060 | P2 | [BACKEND] | Video queue / playlist — Watch Party da ketma-ket videolar
+
+- **Mas'ul:**
+- **Yaratilgan:** 2026-04-21 21:04
+- **Holat:** ❌ Boshlanmagan
+- **Sabab:** Bekzod aka roadmap — Faza 1, effort M. "Bir epizod tugadi — keyingi" muammosi.
+- **Qilish kerak:**
+  - [ ] `WatchPartyRoom` modeliga `playlist: VideoItem[]` field qo'shish
+  - [ ] `POST /rooms/:id/playlist` — video qo'shish (owner only)
+  - [ ] `DELETE /rooms/:id/playlist/:index` — o'chirish
+  - [ ] `POST /rooms/:id/playlist/next` — keyingi videoga o'tish
+  - [ ] Socket event: `playlist:updated` barcha a'zolarga
+
+---
+
+### T-S061 | P2 | [BACKEND] | Recent rooms history — foydalanuvchi oxirgi xonalari
+
+- **Mas'ul:**
+- **Yaratilgan:** 2026-04-21 21:04
+- **Holat:** ❌ Boshlanmagan
+- **Qilish kerak:**
+  - [ ] `GET /rooms/my/recent` — user ning oxirgi 10 ta room (member bo'lgan)
+  - [ ] `WatchPartyRoom` da `members` array mavjud → filter by userId, sort by `lastActivityAt`
+  - [ ] Redis cache: `recent_rooms:{userId}` TTL 5 min
+
+---
+
+### T-S062 | P2 | [BACKEND] | Active public rooms feed — discovery
+
+- **Mas'ul:**
+- **Yaratilgan:** 2026-04-21 21:04
+- **Holat:** ❌ Boshlanmagan
+- **Sabab:** Bekzod aka roadmap — Faza 2, cold-start fix. Redis sorted set.
+- **Qilish kerak:**
+  - [ ] `GET /rooms/public/active` — isPrivate=false, status=active, sort by memberCount
+  - [ ] Redis sorted set: `public_rooms` — score = memberCount, TTL 30s cache
+  - [ ] Room yaratilganda/yopilganda Redis set yangilanadi
+
+---
+
+### T-S063 | P3 | [BACKEND] | Telegram "Share room" bot — viral loop
+
+- **Mas'ul:**
+- **Yaratilgan:** 2026-04-21 21:04
+- **Holat:** ❌ Boshlanmagan
+- **Sabab:** Bekzod aka roadmap — Faza 1, effort S. CAC=0, MD Osiyo viral loop.
+- **Qilish kerak:**
+  - [ ] Telegram bot: `/shareroom <inviteCode>` → deep link yuboradi
+  - [ ] `services/notification/` da bot command handler qo'shish
+  - [ ] Deep link format: `t.me/RaveBot?start=room_{inviteCode}`
+  - [ ] Room join page mobile da deep link bilan ochiladi
+  - **Bog'liq:** T-S058 (reactions) birinchi, keyin bu
 
 ---
 
