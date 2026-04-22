@@ -35,13 +35,14 @@ const DRIFT_RATE_RESET_MS = 3000;    // reset to 1.0 after 3s
 
 // T-E101: Buffer event debounce
 const BUFFER_DEBOUNCE_MS = 500;
+const REACTION_RATE_LIMIT = 10;
 
 export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const navigation = useNavigation<NavProp>();
   const userId = useAuthStore(s => s.user?._id) ?? '';
   const { t } = useT();
 
-  const { room, syncState, messages, activeMembers, isOwner, adminMonitoring, roomClosed, heartbeat, bufferingUsers,
+  const { room, syncState, messages, activeMembers, isOwner, adminMonitoring, roomClosed, heartbeat, bufferingUsers, lastReaction,
     emitPlay, emitPause, emitSeek, emitHeartbeat, sendMessage, sendEmoji } = useWatchParty(roomId);
   const { isExtracting, result: extractResult, fallbackMode: extractFallback, extract, reset: resetExtraction } = useVideoExtraction();
 
@@ -54,6 +55,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const extractStartedRef = useRef(false);
   const driftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bufferDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reactionTimestampsRef = useRef<number[]>([]);
   const isBufferingRef = useRef(false);
   // T-E103: WebView pendingSync — defer seekTo until ad finishes
   const pendingSyncRef = useRef<{ currentTime: number; isPlaying: boolean } | null>(null);
@@ -200,6 +202,15 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   // Cleanup drift timer on unmount
   useEffect(() => () => { if (driftTimerRef.current) clearTimeout(driftTimerRef.current); }, []);
 
+  // T-E106: Show incoming reactions from other members as floating emoji
+  useEffect(() => {
+    if (!lastReaction || lastReaction.userId === userId) return;
+    setFloatingEmojis(prev => [
+      ...prev,
+      { id: `${lastReaction.userId}-${lastReaction.timestamp}`, emoji: lastReaction.emoji, x: Math.random() * (SCREEN_W - 60) + 10 },
+    ]);
+  }, [lastReaction, userId]);
+
   // T-E101: Buffer signal — debounced emit to server
   const emitBufferState = useCallback((buffering: boolean) => {
     if (bufferDebounceRef.current) clearTimeout(bufferDebounceRef.current);
@@ -290,8 +301,12 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   }, [isOwner, videoIsLive, emitSeek]);
 
   const handleEmojiSelect = useCallback((emoji: string) => {
+    const now = Date.now();
+    reactionTimestampsRef.current = reactionTimestampsRef.current.filter(t => now - t < 1000);
+    if (reactionTimestampsRef.current.length >= REACTION_RATE_LIMIT) return;
+    reactionTimestampsRef.current.push(now);
     sendEmoji(emoji);
-    setFloatingEmojis(prev => [...prev, { id: `${Date.now()}`, emoji, x: Math.random() * (SCREEN_W - 60) + 10 }]);
+    setFloatingEmojis(prev => [...prev, { id: `${now}`, emoji, x: Math.random() * (SCREEN_W - 60) + 10 }]);
   }, [sendEmoji]);
 
   const handleRemoveEmoji = useCallback((id: string) => { setFloatingEmojis(prev => prev.filter(e => e.id !== id)); }, []);

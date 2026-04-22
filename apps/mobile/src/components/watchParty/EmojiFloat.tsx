@@ -31,7 +31,7 @@ export function EmojiFloatItem({ emoji, x, onDone }: EmojiFloatItemProps) {
   );
 }
 
-const QUICK_EMOJIS = ['❤️', '😂', '🔥', '👏', '😮', '🎉', '💯', '😍'];
+const QUICK_EMOJIS = ['❤️', '😂', '🔥', '👏', '😮', '😢', '🎉', '👍', '💯', '🍿'];
 
 interface EmojiPickerBarProps {
   onSelect: (emoji: string) => void;
