@@ -37,21 +37,6 @@
 ---
 
 
-### T-E106 | P1 | [MOBILE] | Live reactions UI — floating emoji during watch party
-
-- **Mas'ul:** pending[Emirhan]
-- **Yaratilgan:** 2026-04-22 12:20
-- **Holat:** 🔄 Jarayonda
-- **Sabab:** Backend T-S058 tayyor — socket events `reaction:send` + `reaction:broadcast` ishlaydi
-- **Qilish kerak:**
-  - [ ] `WatchPartyScreen` da emoji picker (bottom bar yoki floating button)
-  - [ ] `CLIENT_EVENTS.SEND_REACTION` emit: `{ emoji }` — socket ga yuborish
-  - [ ] `SERVER_EVENTS.REACTION_BROADCAST` listener: `{ userId, emoji, timestamp }` qabul qilish
-  - [ ] Floating emoji animation: ekranda yuqoriga ko'tariluvchi emoji (Animated.Value)
-  - [ ] Whitelist: ❤️ 😂 🔥 👏 😮 😢 🎉 👍 💯 🍿 (qisqa picker)
-  - [ ] Rate limit UI: 10/sec dan ortiq yuborishni frontend da ham cheklash
-
----
 
 ### T-E107 | P1 | [MOBILE] | Playlist UI — Watch Party queue (owner controls)
 

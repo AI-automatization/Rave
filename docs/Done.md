@@ -4,6 +4,17 @@
 
 ---
 
+### T-E106 | 2026-04-22 | [MOBILE] | Live reactions UI — floating emoji during watch party [Emirhan]
+
+- **Bajarildi:**
+  - `useWatchParty.ts`: `SEND_EMOJI` → `SEND_REACTION` (`reaction:send`); `REACTION_BROADCAST` listener qo'shildi → `lastReaction` state qaytariladi
+  - `useWatchPartyRoom.ts`: `lastReaction` effect — boshqa userlarning emoji'si `floatingEmojis` ga qo'shiladi; rate limit 10/sec (sliding window); `reactionTimestampsRef` ile cheklash
+  - `EmojiFloat.tsx`: whitelist 8 → 10 emoji: ❤️ 😂 🔥 👏 😮 😢 🎉 👍 💯 🍿
+- **tsc:** CLEAN (0 errors in modified files)
+- **Fayl:** 3 fayl o'zgartirildi
+
+---
+
 ### F-205 | 2026-04-22 | [MOBILE] | Google Auth iOS crash fix + Push token fix [Emirhan]
 
 - **Muammo:** iOS da `LoginScreen` ochilganda Render Error — `iosClientId must be defined to use Google auth on this platform`
