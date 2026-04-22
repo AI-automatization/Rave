@@ -42,7 +42,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const userId = useAuthStore(s => s.user?._id) ?? '';
   const { t } = useT();
 
-  const { room, syncState, messages, activeMembers, isOwner, adminMonitoring, roomClosed, heartbeat, bufferingUsers, lastReaction,
+  const { room, syncState, messages, activeMembers, playlist, isOwner, adminMonitoring, roomClosed, heartbeat, bufferingUsers, lastReaction,
     emitPlay, emitPause, emitSeek, emitHeartbeat, sendMessage, sendEmoji } = useWatchParty(roomId);
   const { isExtracting, result: extractResult, fallbackMode: extractFallback, extract, reset: resetExtraction } = useVideoExtraction();
 
@@ -328,6 +328,21 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     setCurrentVideoUrl(episode.url);
   }, [isOwner, room, roomId]);
 
+  const handleAddToQueue = useCallback(() => {
+    if (!isOwner) return;
+    navigation.navigate('SourcePicker', { mode: 'queue', roomId });
+  }, [isOwner, navigation, roomId]);
+
+  const handlePlaylistRemove = useCallback(async (index: number) => {
+    if (!isOwner) return;
+    try { await watchPartyApi.removeFromPlaylist(roomId, index); } catch {}
+  }, [isOwner, roomId]);
+
+  const handlePlaylistNext = useCallback(async () => {
+    if (!isOwner) return;
+    try { await watchPartyApi.playNext(roomId); } catch {}
+  }, [isOwner, roomId]);
+
   const handleLeave = useCallback(() => {
     Alert.alert('Chiqish', 'Watch Party dan chiqmoqchimisiz?', [
       { text: 'Bekor', style: 'cancel' },
@@ -373,5 +388,6 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     handleToggleFullscreen: useCallback(() => setIsFullscreen(v => !v), []),
     handleSeekDirection, handleEmojiSelect, handleRemoveEmoji,
     handleChangeMedia, handleQualitySelect, handleEpisodeSelect, handleLeave,
+    playlist, handleAddToQueue, handlePlaylistRemove, handlePlaylistNext,
   };
 }

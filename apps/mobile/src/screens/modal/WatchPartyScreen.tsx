@@ -1,5 +1,5 @@
 // CineSync Mobile — WatchPartyScreen
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Platform } from 'react-native';
 import { useRoute, RouteProp } from '@react-navigation/native';
 import { ChatPanel } from '@components/watchParty/ChatPanel';
@@ -10,6 +10,7 @@ import { RoomInfoBar } from '@components/watchParty/RoomInfoBar';
 import { InviteCard } from '@components/watchParty/InviteCard';
 import { QualityMenu } from '@components/watchParty/QualityMenu';
 import { EpisodeMenu } from '@components/watchParty/EpisodeMenu';
+import { PlaylistPanel } from '@components/watchParty/PlaylistPanel';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { ModalStackParamList } from '@app-types/index';
@@ -24,12 +25,15 @@ export function WatchPartyScreen() {
   const s = useStyles();
   const { t } = useT();
 
+  const [showPlaylist, setShowPlaylist] = useState(false);
+
   const {
     playerRef, userId, room, messages, activeMembers, isOwner, adminMonitoring, connectTimeout,
     showChat, showVoice, showInvite, isPlaying, isFullscreen, videoIsLive,
     videoCurrentTime, videoDuration, floatingEmojis, showQualityMenu, showEpisodeMenu,
     extractQualities, extractEpisodes, currentVideoUrl,
     originalVideoUrl, extractedVideoUrl, isWebViewMode, isExtracting,
+    playlist, handleAddToQueue, handlePlaylistRemove, handlePlaylistNext,
     setShowChat, setShowVoice, setShowInvite, setShowQualityMenu, setShowEpisodeMenu, setVideoIsLive,
     sendMessage,
     onPlaybackStatusUpdate, handleWebViewPlay, handleWebViewPause, handleWebViewSeek,
@@ -100,6 +104,18 @@ export function WatchPartyScreen() {
             </TouchableOpacity>
           )}
 
+          <TouchableOpacity
+            style={[s.playlistFab, playlist.length > 0 && s.playlistFabActive]}
+            onPress={() => setShowPlaylist(v => !v)}
+          >
+            <Ionicons name="list" size={20} color="#fff" />
+            {playlist.length > 0 && (
+              <View style={s.playlistBadge}>
+                <Text style={s.playlistBadgeText}>{playlist.length}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+
           {isOwner && (extractQualities.length > 0 || extractEpisodes.length > 0) && (
             <View style={s.gearRow}>
               {extractQualities.length > 0 && (
@@ -140,6 +156,17 @@ export function WatchPartyScreen() {
             </View>
           )}
 
+          {showPlaylist && (
+            <PlaylistPanel
+              playlist={playlist}
+              isOwner={isOwner}
+              onAddToQueue={handleAddToQueue}
+              onRemove={handlePlaylistRemove}
+              onPlayNext={handlePlaylistNext}
+              onClose={() => setShowPlaylist(false)}
+            />
+          )}
+
           <QualityMenu visible={showQualityMenu} qualities={extractQualities} currentUrl={currentVideoUrl || room?.videoUrl || ''} onSelect={handleQualitySelect} onClose={() => setShowQualityMenu(false)} />
           <EpisodeMenu visible={showEpisodeMenu} episodes={extractEpisodes} currentUrl={currentVideoUrl || room?.videoUrl || ''} onSelect={handleEpisodeSelect} onClose={() => setShowEpisodeMenu(false)} />
         </>
@@ -159,6 +186,22 @@ const useStyles = createThemedStyles((colors) => ({
     shadowColor: '#000', shadowOpacity: 0.4,
     shadowOffset: { width: 0, height: 4 }, shadowRadius: 8,
   },
+  playlistFab: {
+    position: 'absolute', right: spacing.lg, bottom: 132,
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    alignItems: 'center', justifyContent: 'center',
+    zIndex: 10, elevation: 7,
+  },
+  playlistFabActive: { backgroundColor: 'rgba(123,114,248,0.5)' },
+  playlistBadge: {
+    position: 'absolute', top: -4, right: -4,
+    minWidth: 18, height: 18, borderRadius: 9,
+    backgroundColor: colors.primary,
+    alignItems: 'center', justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  playlistBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
   gearRow: { flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.lg, paddingVertical: spacing.xs, borderBottomWidth: 0.5, borderBottomColor: 'rgba(255,255,255,0.05)' },
   gearBtn: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingHorizontal: spacing.md, paddingVertical: spacing.xs, backgroundColor: colors.bgSurface, borderRadius: borderRadius.full },
   gearBtnText: { ...typography.caption, color: colors.textMuted },

@@ -161,6 +161,7 @@ export interface IWatchPartyRoom {
   inviteCode: string;
   isPrivate: boolean;
   memberCount?: number;  // included in getRooms response
+  playlist?: VideoItem[]; // T-E107
   createdAt: Date;
   updatedAt: Date;
 }

@@ -16,6 +16,7 @@ export type {
   IWatchPartyRoom,
   WatchPartyStatus,
   VideoPlatform,
+  VideoItem,
   SyncState,
   IBattle,
   IBattleParticipant,
@@ -140,7 +141,7 @@ export type ModalStackParamList = {
   Notifications: undefined;
   /** Source picker — выбор платформы (YouTube, Web, VK, etc.) */
   SourcePicker: {
-    mode: 'create' | 'change';
+    mode: 'create' | 'change' | 'queue';
     roomId?: string;
   };
   /** Встроенный браузер для просмотра и импорта медиа */
@@ -148,7 +149,7 @@ export type ModalStackParamList = {
     sourceId: string;
     sourceName: string;
     defaultUrl: string;
-    mode: 'create' | 'change';
+    mode: 'create' | 'change' | 'queue';
     roomId?: string;
   };
 };

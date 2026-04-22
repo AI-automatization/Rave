@@ -1,6 +1,6 @@
 // CineSync Mobile — Watch Party API
 import { watchPartyClient } from './client';
-import { ApiResponse, IWatchPartyRoom } from '@app-types/index';
+import { ApiResponse, IWatchPartyRoom, VideoItem } from '@app-types/index';
 
 export const watchPartyApi = {
   async createRoom(data: {
@@ -55,5 +55,30 @@ export const watchPartyApi = {
       friendId,
       inviterName,
     });
+  },
+
+  // T-E107: Playlist CRUD
+  async addToPlaylist(roomId: string, data: { videoUrl: string; videoTitle: string; videoPlatform: string }): Promise<VideoItem[]> {
+    const res = await watchPartyClient.post<ApiResponse<{ playlist: VideoItem[] }>>(`/watch-party/rooms/${roomId}/playlist`, data);
+    return res.data.data?.playlist ?? [];
+  },
+
+  async removeFromPlaylist(roomId: string, index: number): Promise<VideoItem[]> {
+    const res = await watchPartyClient.delete<ApiResponse<{ playlist: VideoItem[] }>>(`/watch-party/rooms/${roomId}/playlist/${index}`);
+    return res.data.data?.playlist ?? [];
+  },
+
+  async playNext(roomId: string): Promise<void> {
+    await watchPartyClient.post(`/watch-party/rooms/${roomId}/playlist/next`);
+  },
+
+  async getRecentRooms(): Promise<IWatchPartyRoom[]> {
+    const res = await watchPartyClient.get<ApiResponse<IWatchPartyRoom[]>>('/watch-party/rooms/my/recent');
+    return res.data.data ?? [];
+  },
+
+  async getPublicRooms(): Promise<IWatchPartyRoom[]> {
+    const res = await watchPartyClient.get<ApiResponse<IWatchPartyRoom[]>>('/watch-party/rooms/public/active');
+    return res.data.data ?? [];
   },
 };

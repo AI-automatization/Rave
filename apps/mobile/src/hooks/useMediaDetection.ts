@@ -126,6 +126,18 @@ export function useMediaDetection() {
       navigation.navigate('WatchParty', { roomId: params.roomId });
       return;
     }
+    if (params.mode === 'queue') {
+      if (!params.roomId) return;
+      try {
+        await watchPartyApi.addToPlaylist(params.roomId, {
+          videoUrl: media.videoUrl,
+          videoTitle: media.videoTitle,
+          videoPlatform: media.videoPlatform,
+        });
+      } catch {}
+      navigation.navigate('WatchParty', { roomId: params.roomId });
+      return;
+    }
     isImportingRef.current = true;
     setIsImporting(true);
     try {

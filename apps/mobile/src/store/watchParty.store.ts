@@ -1,6 +1,6 @@
 // CineSync Mobile — Watch Party Store (Zustand)
 import { create } from 'zustand';
-import { IWatchPartyRoom, SyncState } from '@app-types/index';
+import { IWatchPartyRoom, SyncState, VideoItem } from '@app-types/index';
 
 interface ChatMessage {
   id: string;
@@ -16,6 +16,7 @@ interface WatchPartyState {
   syncState: SyncState | null;
   messages: ChatMessage[];
   activeMembers: string[];
+  playlist: VideoItem[];
   /** WatchParty ekrani ochiq — OfflineBanner yashiriladi */
   isWatchPartyOpen: boolean;
 
@@ -25,6 +26,7 @@ interface WatchPartyState {
   setActiveMembers: (members: string[]) => void;
   addMember: (userId: string) => void;
   removeMember: (userId: string) => void;
+  setPlaylist: (items: VideoItem[]) => void;
   clearParty: () => void;
   setWatchPartyOpen: (open: boolean) => void;
   /** Optimistic update xona mediasini almashtirish uchun */
@@ -36,6 +38,7 @@ export const useWatchPartyStore = create<WatchPartyState>((set) => ({
   syncState: null,
   messages: [],
   activeMembers: [],
+  playlist: [],
   isWatchPartyOpen: false,
 
   setRoom: (room) => set({ room }),
@@ -60,8 +63,10 @@ export const useWatchPartyStore = create<WatchPartyState>((set) => ({
       activeMembers: state.activeMembers.filter((id) => id !== userId),
     })),
 
+  setPlaylist: (items) => set({ playlist: items }),
+
   clearParty: () =>
-    set({ room: null, syncState: null, messages: [], activeMembers: [] }),
+    set({ room: null, syncState: null, messages: [], activeMembers: [], playlist: [] }),
 
   setWatchPartyOpen: (open) => set({ isWatchPartyOpen: open }),
 

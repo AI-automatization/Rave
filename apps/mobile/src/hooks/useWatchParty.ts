@@ -40,7 +40,7 @@ const VIDEO_HEARTBEAT_EVENT = 'video:heartbeat';
 export function useWatchParty(roomId: string) {
   const token = useAuthStore(s => s.accessToken);
   const userId = useAuthStore(s => s.user?._id);
-  const { room, syncState, messages, activeMembers, setRoom, setSyncState, addMessage, setActiveMembers, addMember, removeMember, clearParty, updateRoomMedia } =
+  const { room, syncState, messages, activeMembers, playlist, setRoom, setSyncState, addMessage, setActiveMembers, addMember, removeMember, setPlaylist, clearParty, updateRoomMedia } =
     useWatchPartyStore();
 
   const isOwner = room?.ownerId === userId;
@@ -78,6 +78,7 @@ export function useWatchParty(roomId: string) {
       );
       setActiveMembers(memberIds);
       if (data.syncState) setSyncState(data.syncState);
+      setPlaylist(data.room.playlist ?? []);
     });
 
     socket.on(SERVER_EVENTS.ROOM_UPDATED, (updated: IWatchPartyRoom) => setRoom(updated));
@@ -119,6 +120,9 @@ export function useWatchParty(roomId: string) {
       });
     });
 
+    // T-E107: Playlist updated by owner or server
+    socket.on(SERVER_EVENTS.PLAYLIST_UPDATED, ({ playlist }: { playlist: import('@app-types/index').VideoItem[] }) => setPlaylist(playlist));
+
     // T-E106: Reaction broadcast from other members
     socket.on(SERVER_EVENTS.REACTION_BROADCAST, (data: ReactionBroadcast) => setLastReaction(data));
 
@@ -148,6 +152,7 @@ export function useWatchParty(roomId: string) {
       socket.off(SERVER_EVENTS.ROOM_CLOSED);
       socket.off(SERVER_EVENTS.ERROR);
       socket.off(VIDEO_HEARTBEAT_EVENT);
+      socket.off(SERVER_EVENTS.PLAYLIST_UPDATED);
       socket.off(SERVER_EVENTS.REACTION_BROADCAST);
       socket.off('admin:joined');
       socket.off('admin:left');
@@ -211,5 +216,5 @@ export function useWatchParty(roomId: string) {
     getSocket()?.emit(CLIENT_EVENTS.VOICE_LEAVE);
   }, []);
 
-  return { room, syncState, messages, activeMembers, isOwner, adminMonitoring, roomClosed, heartbeat, bufferingUsers, lastReaction, emitPlay, emitPause, emitSeek, emitHeartbeat, sendMessage, sendEmoji, emitMediaChange, emitVoiceJoin, emitVoiceLeave };
+  return { room, syncState, messages, activeMembers, playlist, isOwner, adminMonitoring, roomClosed, heartbeat, bufferingUsers, lastReaction, emitPlay, emitPause, emitSeek, emitHeartbeat, sendMessage, sendEmoji, emitMediaChange, emitVoiceJoin, emitVoiceLeave };
 }

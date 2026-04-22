@@ -9,6 +9,7 @@ import { getSocket, CLIENT_EVENTS } from '@socket/client';
 import type { MediaSource } from '@constants/mediaSources';
 import type { ModalStackParamList } from '@app-types/index';
 
+
 type Nav = NativeStackNavigationProp<ModalStackParamList>;
 type RouteType = RouteProp<ModalStackParamList, 'SourcePicker'>;
 
@@ -53,6 +54,16 @@ export function useSourcePicker() {
         if (!params.roomId) return;
         getSocket()?.emit(CLIENT_EVENTS.CHANGE_MEDIA, {
           roomId: params.roomId,
+          videoUrl: extracted.videoUrl,
+          videoTitle: extracted.title || trimmed,
+          videoPlatform: extracted.platform,
+        });
+        navigation.navigate('WatchParty', { roomId: params.roomId });
+        return;
+      }
+      if (params.mode === 'queue') {
+        if (!params.roomId) return;
+        await watchPartyApi.addToPlaylist(params.roomId, {
           videoUrl: extracted.videoUrl,
           videoTitle: extracted.title || trimmed,
           videoPlatform: extracted.platform,
