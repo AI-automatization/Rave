@@ -1,6 +1,22 @@
 # CineSync — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-04-21
+# Yangilangan: 2026-04-22
+
+---
+
+### F-205 | 2026-04-22 | [MOBILE] | Google Auth iOS crash fix + Push token fix [Emirhan]
+
+- **Muammo:** iOS da `LoginScreen` ochilganda Render Error — `iosClientId must be defined to use Google auth on this platform`
+- **Sabab:** `Google.useAuthRequest()` iOS da `iosClientId` talab qiladi, lekin faqat `webClientId` va `androidClientId` berilgan edi
+- **Fix — `useSocialAuth.ts`:**
+  - `GOOGLE_IOS_CLIENT_ID` env var qo'shildi
+  - `GOOGLE_CONFIGURED` — platforma bo'yicha client ID mavjudligini tekshiradi (iOS/Android/Web)
+  - Client ID yo'q bo'lsa → dummy config `{ clientId: 'disabled' }` → kнопка disabled, lekin ekran **crashsiz** ishlaydi
+  - `googleDisabled` endi `!GOOGLE_CONFIGURED` ga bog'langan
+- **Fix — `.env` + `.env.example`:**
+  - `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` qo'shildi
+  - `EXPO_PUBLIC_PROJECT_ID` placeholder → haqiqiy UUID (`d4ce0a75-...`) — push token registration 400 error tuzatildi
+- **tsc:** CLEAN (0 errors)
 
 ---
 
