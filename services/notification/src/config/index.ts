@@ -40,7 +40,8 @@ export const config = {
     botToken: process.env.TELEGRAM_BOT_TOKEN ?? '',
     botUsername: process.env.TELEGRAM_BOT_USERNAME ?? 'RaveBot',
     webhookSecret: process.env.TELEGRAM_WEBHOOK_SECRET ?? '',
-    appScheme: process.env.APP_SCHEME ?? 'cinesync',       // mobile deep link scheme
+    appScheme: process.env.APP_SCHEME ?? 'cinesync',
     webBaseUrl: process.env.WEB_BASE_URL ?? 'https://cinesync.app',
+    authServiceUrl: process.env.AUTH_SERVICE_URL ?? 'http://localhost:3001',
   },
 } as const;

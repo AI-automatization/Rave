@@ -59,6 +59,27 @@ const buildWebJoinLink = (inviteCode: string): string =>
 export const getShareLink = (inviteCode: string): string =>
   buildTelegramDeepLink(inviteCode);
 
+// ── Forward auth messages to auth service ────────────────────────
+// T-S063 registered this webhook → auth service no longer receives updates.
+// Messages starting with "/start auth_" belong to the auth Telegram login flow.
+
+const forwardToAuth = async (update: TgUpdate): Promise<void> => {
+  const authUrl = config.telegram.authServiceUrl;
+  const secret  = config.telegram.webhookSecret;
+  try {
+    await fetch(`${authUrl}/api/v1/auth/telegram/webhook`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(secret ? { 'x-telegram-bot-api-secret-token': secret } : {}),
+      },
+      body: JSON.stringify(update),
+    });
+  } catch (err) {
+    logger.error('Failed to forward Telegram auth update to auth service', { error: (err as Error).message });
+  }
+};
+
 // ── Webhook update handler ────────────────────────────────────────
 
 export const handleTelegramUpdate = async (update: TgUpdate): Promise<void> => {
@@ -68,6 +89,12 @@ export const handleTelegramUpdate = async (update: TgUpdate): Promise<void> => {
   const chatId = msg.chat.id;
   const text   = msg.text.trim();
   const from   = msg.from?.first_name ?? 'Friend';
+
+  // /start auth_{state} — Telegram login flow (belongs to auth service)
+  if (text.startsWith('/start auth_')) {
+    await forwardToAuth(update);
+    return;
+  }
 
   // /start room_{inviteCode}  — Telegram deep link click
   if (text.startsWith('/start room_')) {
