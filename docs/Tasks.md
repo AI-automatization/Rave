@@ -40,9 +40,9 @@
 
 ### T-E107 | P1 | [MOBILE] | Playlist UI — Watch Party queue (owner controls)
 
-- **Mas'ul:**
+- **Mas'ul:** pending[Emirhan]
 - **Yaratilgan:** 2026-04-22 12:20
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 Jarayonda
 - **Sabab:** Backend T-S060 tayyor — playlist CRUD + `playlist:updated` socket event
 - **Qilish kerak:**
   - [ ] `SERVER_EVENTS.PLAYLIST_UPDATED` listener → playlist state yangilash
