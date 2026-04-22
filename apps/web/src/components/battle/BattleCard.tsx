@@ -76,8 +76,8 @@ export function BattleCard({ battle, currentUserId, onAccept }: BattleCardProps)
 
             {/* Me */}
             <div className="flex-1 flex flex-col items-center gap-1.5">
-              <div className="w-10 h-10 rounded-xl bg-[#7C3AED]/20 border border-[#7C3AED]/30 flex items-center justify-center">
-                <span className="text-sm font-semibold text-[#7C3AED]">
+              <div className="w-10 h-10 rounded-xl bg-[#7B72F8]/20 border border-[#7B72F8]/30 flex items-center justify-center">
+                <span className="text-sm font-semibold text-[#7B72F8]">
                   {me?.user.username[0]?.toUpperCase() ?? '?'}
                 </span>
               </div>
@@ -87,7 +87,7 @@ export function BattleCard({ battle, currentUserId, onAccept }: BattleCardProps)
               <span className={`text-2xl font-display ${
                 battle.status === 'completed'
                   ? iWin ? 'text-emerald-400' : 'text-zinc-500'
-                  : 'text-[#7C3AED]'
+                  : 'text-[#7B72F8]'
               }`}>
                 {myScore}
               </span>
@@ -133,7 +133,7 @@ export function BattleCard({ battle, currentUserId, onAccept }: BattleCardProps)
             {isInvited && onAccept && (
               <button
                 onClick={(e) => { e.preventDefault(); onAccept(battle._id); }}
-                className="text-xs h-6 px-2.5 rounded-lg bg-[#7C3AED]/20 border border-[#7C3AED]/30 text-[#7C3AED] font-medium hover:bg-[#7C3AED]/30 transition-all"
+                className="text-xs h-6 px-2.5 rounded-lg bg-[#7B72F8]/20 border border-[#7B72F8]/30 text-[#7B72F8] font-medium hover:bg-[#7B72F8]/30 transition-all"
               >
                 {t('accept')}
               </button>

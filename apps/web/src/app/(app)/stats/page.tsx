@@ -25,8 +25,8 @@ const RANK_COLOR: Record<string, string> = {
   bronze:  'text-amber-500',
   silver:  'text-zinc-400',
   gold:    'text-amber-400',
-  diamond: 'text-[#7C3AED]',
-  legend:  'text-[#7C3AED]',
+  diamond: 'text-[#7B72F8]',
+  legend:  'text-[#7B72F8]',
 };
 
 function getToken(): string {
@@ -84,8 +84,8 @@ export default function StatsPage() {
       icon:  FaFilm,
       label: t('moviesLabel'),
       val:   stats?.moviesWatched ?? 0,
-      color: 'text-[#7C3AED]',
-      bg:    'bg-[#7C3AED]/10 border-[#7C3AED]/20',
+      color: 'text-[#7B72F8]',
+      bg:    'bg-[#7B72F8]/10 border-[#7B72F8]/20',
     },
     {
       icon:  FaClock,
@@ -115,7 +115,7 @@ export default function StatsPage() {
 
       {/* Header */}
       <div className="flex items-center gap-3">
-        <FaChartBar size={22} className="text-[#7C3AED]" />
+        <FaChartBar size={22} className="text-[#7B72F8]" />
         <h1 className="text-3xl font-display text-white">{t('title')}</h1>
       </div>
 
@@ -146,11 +146,11 @@ export default function StatsPage() {
             </div>
             <div className="text-right">
               <p className="text-xs text-zinc-600 mb-1">{t('totalPoints')}</p>
-              <p className="text-3xl font-display text-[#7C3AED]">
+              <p className="text-3xl font-display text-[#7B72F8]">
                 {(user?.totalPoints ?? stats.totalPoints ?? 0).toLocaleString()}
               </p>
             </div>
-            <div className="absolute pointer-events-none inset-0 rounded-2xl bg-[radial-gradient(ellipse_80%_60%_at_50%_100%,rgba(124,58,237,0.08),transparent)]" />
+            <div className="absolute pointer-events-none inset-0 rounded-2xl bg-[radial-gradient(ellipse_80%_60%_at_50%_100%,rgba(123,114,248,0.08),transparent)]" />
           </div>
 
           {/* Stat cards */}
@@ -185,7 +185,7 @@ export default function StatsPage() {
                       </div>
                       <div className="h-1.5 w-full rounded-full bg-white/[0.06] overflow-hidden">
                         <div
-                          className="h-full rounded-full bg-[#7C3AED] transition-all duration-700"
+                          className="h-full rounded-full bg-[#7B72F8] transition-all duration-700"
                           style={{ width: `${pct}%` }}
                         />
                       </div>
@@ -201,7 +201,7 @@ export default function StatsPage() {
             <h2 className="text-base font-display text-white mb-2">{t('watchPartyTitle')}</h2>
             <p className="text-zinc-600 text-sm">
               {t('total')}{' '}
-              <span className="text-[#7C3AED] font-semibold">{stats.watchParties ?? 0}</span>{' '}
+              <span className="text-[#7B72F8] font-semibold">{stats.watchParties ?? 0}</span>{' '}
               {t('watchPartyCount')}
             </p>
           </div>

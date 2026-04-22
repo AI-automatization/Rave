@@ -27,7 +27,7 @@ export function LanguageSwitcher() {
             onClick={() => setLocale(value)}
             className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${
               locale === value
-                ? 'bg-[#7C3AED]/15 text-[#7C3AED] font-medium'
+                ? 'bg-[#7B72F8]/15 text-[#7B72F8] font-medium'
                 : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200'
             }`}
           >

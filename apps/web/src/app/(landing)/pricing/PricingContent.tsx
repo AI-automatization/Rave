@@ -67,12 +67,12 @@ export function PricingContent() {
               key={name}
               className={`rounded-2xl border p-8 transition-all duration-300 ${
                 highlighted
-                  ? 'bg-[#0e0720] border-[#7C3AED]/60 shadow-[0_0_60px_rgba(124,58,237,0.22)]'
+                  ? 'bg-[#0e0720] border-[#7B72F8]/60 shadow-[0_0_60px_rgba(123,114,248,0.22)]'
                   : 'bg-[#111118] border-zinc-800'
               }`}
             >
               {highlighted && (
-                <div className="inline-block px-2.5 py-1 rounded-full bg-[#7C3AED]/15 border border-[#7C3AED]/40 text-[#7C3AED] text-xs font-semibold uppercase tracking-widest mb-4">
+                <div className="inline-block px-2.5 py-1 rounded-full bg-[#7B72F8]/15 border border-[#7B72F8]/40 text-[#7B72F8] text-xs font-semibold uppercase tracking-widest mb-4">
                   {t('recommended')}
                 </div>
               )}
@@ -89,7 +89,7 @@ export function PricingContent() {
                 {features.map(({ label, val }) => (
                   <li key={label} className="flex items-center justify-between text-sm">
                     <span className="text-zinc-500 flex items-center gap-2">
-                      <FaCheck size={10} className={highlighted ? 'text-[#7C3AED]' : 'text-zinc-700'} />
+                      <FaCheck size={10} className={highlighted ? 'text-[#7B72F8]' : 'text-zinc-700'} />
                       {label}
                     </span>
                     <span className={`font-medium ${highlighted ? 'text-white' : 'text-zinc-300'}`}>{val}</span>
@@ -101,7 +101,7 @@ export function PricingContent() {
                 href={href}
                 className={`flex items-center justify-center h-11 rounded-lg font-semibold transition-all duration-300 active:scale-95 w-full ${
                   highlighted
-                    ? 'bg-[#7C3AED] text-white hover:bg-[#6D28D9] hover:shadow-[0_0_30px_rgba(124,58,237,0.6)]'
+                    ? 'bg-[#7B72F8] text-white hover:bg-[#6B63E8] hover:shadow-[0_0_30px_rgba(123,114,248,0.6)]'
                     : 'border border-zinc-700 text-zinc-300 hover:border-zinc-500 hover:text-white'
                 }`}
               >

@@ -20,6 +20,15 @@
 
 ---
 
+### F-207 | 2026-04-22 | [IKKALASI] | T-C016 — Brand color unification → #7B72F8 [Saidazim]
+
+- `CLAUDE.md` §Design System: `#E50914` (Netflix red) → `#7B72F8` (Rave violet)
+- `docs/WEB_DESIGN_GUIDE.md`: 204+ occurrences `#7C3AED` → `#7B72F8`, RGB `124,58,237` → `123,114,248`
+- `apps/web/src/`: 204 occurrences `#7C3AED` → `#7B72F8` (массовая замена)
+- Единый источник истины: `#7B72F8` во всех 3 источниках
+
+---
+
 ### F-206 | 2026-04-22 | [BACKEND] | T-S064 — Elasticsearch stale index bug fix [Saidazim]
 
 - `services/content/src/services/movie.service.ts`:

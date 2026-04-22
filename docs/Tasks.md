@@ -186,17 +186,3 @@
 
 ---
 
-### T-C016 | P2 | [IKKALASI] | Brand rang yagona manbaga — 3 hujjat kelishmovchiligi
-
-- **Mas'ul:**
-- **Yaratilgan:** 2026-04-19 (retroaktiv)
-- **Holat:** ❌ Boshlanmagan
-- **Sabab:** `CLAUDE.md` → `#E50914`, `WEB_DESIGN_GUIDE.md` → `#7C3AED`, mobile kod → `#7B72F8`. Yagona rang kerak.
-- **Qilish kerak:**
-  - [ ] `#7B72F8` violet tanlash (mobile koddagi rang)
-  - [ ] `CLAUDE.md` §Design System yangilash
-  - [ ] `WEB_DESIGN_GUIDE.md` yangilash
-  - [ ] `apps/web/` kodida unification
-- **Reference:** `docs/RAVE_TRANSFORMATION_PLAN.md` §2.3 #6
-
----

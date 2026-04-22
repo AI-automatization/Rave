@@ -78,7 +78,7 @@ function VideoCard({
           {hasProgress && (
             <button
               onClick={() => onContinue(video, progress.currentTime)}
-              className="w-11 h-11 rounded-full bg-[#7C3AED]/80 flex items-center justify-center hover:bg-[#7C3AED] transition-colors"
+              className="w-11 h-11 rounded-full bg-[#7B72F8]/80 flex items-center justify-center hover:bg-[#7B72F8] transition-colors"
               title="Davom etish"
             >
               <FaPlay size={14} className="text-white ml-0.5" />
@@ -97,7 +97,7 @@ function VideoCard({
         {hasProgress && (
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/40">
             <div
-              className="h-full bg-[#7C3AED] transition-all"
+              className="h-full bg-[#7B72F8] transition-all"
               style={{ width: `${progress.percent}%` }}
             />
           </div>
@@ -132,7 +132,7 @@ function VideoCard({
         {hasProgress && progress.duration > 0 && (
           <div className="flex items-center gap-2 text-[11px] text-slate-500">
             <div className="flex-1 h-1 bg-white/10 rounded-full overflow-hidden">
-              <div className="h-full bg-[#7C3AED]/60 rounded-full" style={{ width: `${progress.percent}%` }} />
+              <div className="h-full bg-[#7B72F8]/60 rounded-full" style={{ width: `${progress.percent}%` }} />
             </div>
             <span className="shrink-0 tabular-nums">
               {formatTime(progress.currentTime)} / {formatTime(progress.duration)}
@@ -175,7 +175,7 @@ function VideoCard({
             <>
               <button
                 onClick={() => onContinue(video, progress.currentTime)}
-                className="flex-1 h-8 rounded-xl bg-[#7C3AED] text-white text-xs font-semibold hover:bg-[#6D28D9] transition-colors flex items-center justify-center gap-1.5"
+                className="flex-1 h-8 rounded-xl bg-[#7B72F8] text-white text-xs font-semibold hover:bg-[#6B63E8] transition-colors flex items-center justify-center gap-1.5"
               >
                 <FaPlay size={10} />
                 Davom etish
@@ -191,7 +191,7 @@ function VideoCard({
           ) : (
             <button
               onClick={() => onWatch(video)}
-              className="flex-1 h-8 rounded-xl bg-[#7C3AED]/10 border border-[#7C3AED]/20 text-[#7C3AED] text-xs font-semibold hover:bg-[#7C3AED]/20 transition-colors flex items-center justify-center gap-1.5"
+              className="flex-1 h-8 rounded-xl bg-[#7B72F8]/10 border border-[#7B72F8]/20 text-[#7B72F8] text-xs font-semibold hover:bg-[#7B72F8]/20 transition-colors flex items-center justify-center gap-1.5"
             >
               <FaPlay size={10} />
               Watch Party boshlash
@@ -272,7 +272,7 @@ export default function MyVideosPage() {
         </div>
         <button
           onClick={() => setShowModal(true)}
-          className="inline-flex items-center gap-2 h-9 px-4 rounded-xl bg-[#7C3AED] text-white text-sm font-semibold hover:bg-[#6D28D9] transition-colors"
+          className="inline-flex items-center gap-2 h-9 px-4 rounded-xl bg-[#7B72F8] text-white text-sm font-semibold hover:bg-[#6B63E8] transition-colors"
         >
           <FaPlus size={12} />
           Yangi video qo&apos;shish
@@ -293,7 +293,7 @@ export default function MyVideosPage() {
           </div>
           <button
             onClick={() => setShowModal(true)}
-            className="inline-flex items-center gap-2 h-9 px-4 rounded-xl border border-[#7C3AED]/30 text-[#7C3AED] text-sm hover:bg-[#7C3AED]/10 transition-colors"
+            className="inline-flex items-center gap-2 h-9 px-4 rounded-xl border border-[#7B72F8]/30 text-[#7B72F8] text-sm hover:bg-[#7B72F8]/10 transition-colors"
           >
             <FaPlus size={12} />
             Video qo&apos;shish

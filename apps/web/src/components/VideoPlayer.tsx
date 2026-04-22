@@ -475,7 +475,7 @@ export function VideoPlayer({
       {/* Buffering spinner */}
       {isBuffering && (
         <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
-          <div className="w-14 h-14 border-4 border-white/20 border-t-[#7C3AED] rounded-full animate-spin" />
+          <div className="w-14 h-14 border-4 border-white/20 border-t-[#7B72F8] rounded-full animate-spin" />
         </div>
       )}
 
@@ -485,7 +485,7 @@ export function VideoPlayer({
           onClick={(e) => { e.stopPropagation(); togglePlay(); }}
           className="absolute inset-0 flex items-center justify-center z-10"
         >
-          <div className="w-20 h-20 rounded-full bg-[#7C3AED]/25 border-2 border-[#7C3AED]/80 flex items-center justify-center shadow-[0_0_60px_rgba(124,58,237,0.9)] hover:scale-110 transition-transform backdrop-blur-sm">
+          <div className="w-20 h-20 rounded-full bg-[#7B72F8]/25 border-2 border-[#7B72F8]/80 flex items-center justify-center shadow-[0_0_60px_rgba(123,114,248,0.9)] hover:scale-110 transition-transform backdrop-blur-sm">
             <FaPlay size={28} className="text-white ml-1 fill-current" />
           </div>
         </button>
@@ -514,7 +514,7 @@ export function VideoPlayer({
           className="absolute inset-0 flex items-center justify-center z-20 bg-black/60 backdrop-blur-sm"
         >
           <div className="flex flex-col items-center gap-3">
-            <div className="w-20 h-20 rounded-full bg-[#7C3AED]/25 border-2 border-[#7C3AED]/80 flex items-center justify-center shadow-[0_0_60px_rgba(124,58,237,0.9)] hover:scale-110 transition-transform">
+            <div className="w-20 h-20 rounded-full bg-[#7B72F8]/25 border-2 border-[#7B72F8]/80 flex items-center justify-center shadow-[0_0_60px_rgba(123,114,248,0.9)] hover:scale-110 transition-transform">
               <FaPlay size={28} className="text-white ml-1 fill-current" />
             </div>
             <span className="text-white/90 text-sm font-medium bg-black/50 px-4 py-2 rounded-lg">
@@ -592,12 +592,12 @@ export function VideoPlayer({
               />
               {/* Played */}
               <div
-                className="absolute inset-y-0 left-0 bg-[#7C3AED] rounded-full shadow-[0_0_8px_rgba(124,58,237,0.8)]"
+                className="absolute inset-y-0 left-0 bg-[#7B72F8] rounded-full shadow-[0_0_8px_rgba(123,114,248,0.8)]"
                 style={{ width: `${progressPct}%` }}
               />
               {/* Thumb */}
               <div
-                className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full shadow-[0_0_12px_rgba(124,58,237,1)] opacity-0 group-hover/prog:opacity-100 transition-opacity"
+                className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full shadow-[0_0_12px_rgba(123,114,248,1)] opacity-0 group-hover/prog:opacity-100 transition-opacity"
                 style={{ left: `calc(${progressPct}% - 7px)` }}
               />
             </div>
@@ -663,7 +663,7 @@ export function VideoPlayer({
                     value={isMuted ? 0 : volume}
                     onChange={handleVolumeChange}
                     onClick={(e) => e.stopPropagation()}
-                    className="w-20 h-1 rounded-full cursor-pointer accent-[#7C3AED]"
+                    className="w-20 h-1 rounded-full cursor-pointer accent-[#7B72F8]"
                   />
                 </div>
               </div>
@@ -711,7 +711,7 @@ export function VideoPlayer({
                           onClick={() => applySpeed(s)}
                           className={`w-full text-left px-3 py-2 text-sm transition-colors ${
                             speed === s
-                              ? 'text-[#7C3AED] bg-[#7C3AED]/10 font-semibold'
+                              ? 'text-[#7B72F8] bg-[#7B72F8]/10 font-semibold'
                               : 'text-white hover:bg-white/5'
                           }`}
                         >

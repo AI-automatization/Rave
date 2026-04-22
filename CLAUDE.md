@@ -522,7 +522,7 @@ docker compose -f docker-compose.dev.yml up -d
 ## DESIGN SYSTEM
 
 ```
-Primary:      #E50914 (Netflix red)
+Primary:      #7B72F8 (Rave violet)
 Background:   #0A0A0F (dark base)
 Surface:      #111118 (elevated)
 Overlay:      #16161F

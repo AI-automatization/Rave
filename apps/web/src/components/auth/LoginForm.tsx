@@ -72,16 +72,16 @@ export function LoginForm() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, ease: 'easeOut' }}
-      className="bg-[#111118] rounded-2xl border border-zinc-800 shadow-[0_0_60px_rgba(124,58,237,0.12)] p-7"
+      className="bg-[#111118] rounded-2xl border border-zinc-800 shadow-[0_0_60px_rgba(123,114,248,0.12)] p-7"
     >
       {/* Logo */}
       <div className="text-center mb-7">
         <Link href="/" className="inline-flex items-center gap-2 mb-3">
-          <div className="w-8 h-8 rounded-lg bg-[#7C3AED] flex items-center justify-center shadow-[0_0_16px_rgba(124,58,237,0.5)]">
+          <div className="w-8 h-8 rounded-lg bg-[#7B72F8] flex items-center justify-center shadow-[0_0_16px_rgba(123,114,248,0.5)]">
             <FaPlay size={11} className="text-white ml-0.5" />
           </div>
           <span className="text-2xl font-display text-white tracking-wide">
-            CINE<span className="text-[#7C3AED]">SYNC</span>
+            CINE<span className="text-[#7B72F8]">SYNC</span>
           </span>
         </Link>
         <p className="text-zinc-500 text-sm">{t('loginTitle')}</p>
@@ -110,7 +110,7 @@ export function LoginForm() {
               type="email"
               placeholder="email@example.com"
               autoComplete="email"
-              className="w-full h-11 pl-9 pr-3.5 rounded-xl bg-[#0A0A0F] border border-zinc-800 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/40 focus:border-[#7C3AED]/50 transition-all duration-200 hover:border-zinc-700"
+              className="w-full h-11 pl-9 pr-3.5 rounded-xl bg-[#0A0A0F] border border-zinc-800 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-[#7B72F8]/40 focus:border-[#7B72F8]/50 transition-all duration-200 hover:border-zinc-700"
             />
           </div>
           {errors.email && <p className="text-xs text-red-400 mt-1">{errors.email.message}</p>}
@@ -120,7 +120,7 @@ export function LoginForm() {
         <div>
           <label className="flex items-center justify-between text-sm font-medium text-zinc-300 mb-1.5">
             <span>{t('passwordLabel')}</span>
-            <Link href="/forgot-password" className="text-xs text-[#7C3AED] hover:text-violet-400 transition-colors">
+            <Link href="/forgot-password" className="text-xs text-[#7B72F8] hover:text-violet-400 transition-colors">
               {t('forgotPassword')}
             </Link>
           </label>
@@ -131,7 +131,7 @@ export function LoginForm() {
               type={showPassword ? 'text' : 'password'}
               placeholder="••••••••"
               autoComplete="current-password"
-              className="w-full h-11 pl-9 pr-10 rounded-xl bg-[#0A0A0F] border border-zinc-800 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/40 focus:border-[#7C3AED]/50 transition-all duration-200 hover:border-zinc-700"
+              className="w-full h-11 pl-9 pr-10 rounded-xl bg-[#0A0A0F] border border-zinc-800 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-[#7B72F8]/40 focus:border-[#7B72F8]/50 transition-all duration-200 hover:border-zinc-700"
             />
             <button
               type="button"
@@ -149,7 +149,7 @@ export function LoginForm() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full h-11 rounded-xl bg-[#7C3AED] text-white font-semibold hover:bg-[#6D28D9] hover:shadow-[0_0_30px_rgba(124,58,237,0.55)] transition-all duration-300 active:scale-[0.98] mt-1 disabled:opacity-55 disabled:cursor-not-allowed shadow-[0_0_16px_rgba(124,58,237,0.3)] flex items-center justify-center gap-2"
+          className="w-full h-11 rounded-xl bg-[#7B72F8] text-white font-semibold hover:bg-[#6B63E8] hover:shadow-[0_0_30px_rgba(123,114,248,0.55)] transition-all duration-300 active:scale-[0.98] mt-1 disabled:opacity-55 disabled:cursor-not-allowed shadow-[0_0_16px_rgba(123,114,248,0.3)] flex items-center justify-center gap-2"
         >
           {isSubmitting ? (
             <>
@@ -183,7 +183,7 @@ export function LoginForm() {
 
       <p className="text-center text-sm text-zinc-500 mt-4">
         {t('noAccount')}{' '}
-        <Link href="/register" className="text-[#7C3AED] hover:text-violet-400 transition-colors font-medium">
+        <Link href="/register" className="text-[#7B72F8] hover:text-violet-400 transition-colors font-medium">
           {t('registerLink')}
         </Link>
       </p>

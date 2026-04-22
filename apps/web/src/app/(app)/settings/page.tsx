@@ -115,14 +115,14 @@ export default function SettingsPage() {
           <h2 className="font-display text-lg text-white">{t('profilePhoto')}</h2>
           <div className="flex items-center gap-4">
             <div className="relative">
-              <div className="w-16 h-16 rounded-full overflow-hidden bg-[#7C3AED]/20 border border-[#7C3AED]/30 flex items-center justify-center">
+              <div className="w-16 h-16 rounded-full overflow-hidden bg-[#7B72F8]/20 border border-[#7B72F8]/30 flex items-center justify-center">
                 {avatarPreview ? (
                   <Image src={avatarPreview} alt="Avatar" width={64} height={64} className="w-full h-full object-cover" unoptimized />
                 ) : (
-                  <span className="text-xl font-display text-[#7C3AED]">{user?.username[0].toUpperCase()}</span>
+                  <span className="text-xl font-display text-[#7B72F8]">{user?.username[0].toUpperCase()}</span>
                 )}
               </div>
-              <label className="absolute -bottom-1 -right-1 inline-flex items-center justify-center h-6 w-6 rounded-full bg-[#7C3AED] text-white hover:bg-[#6D28D9] cursor-pointer transition-all">
+              <label className="absolute -bottom-1 -right-1 inline-flex items-center justify-center h-6 w-6 rounded-full bg-[#7B72F8] text-white hover:bg-[#6B63E8] cursor-pointer transition-all">
                 <FaCamera size={12} />
                 <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleAvatarChange} />
               </label>
@@ -145,7 +145,7 @@ export default function SettingsPage() {
                     checked={settings[key]}
                     onChange={(e) => setSettings((prev) => ({ ...prev, [key]: e.target.checked }))}
                   />
-                  <div className="w-9 h-5 rounded-full bg-white/[0.08] peer-checked:bg-[#7C3AED] transition-colors relative after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:rounded-full after:bg-white after:transition-all peer-checked:after:translate-x-4" />
+                  <div className="w-9 h-5 rounded-full bg-white/[0.08] peer-checked:bg-[#7B72F8] transition-colors relative after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:rounded-full after:bg-white after:transition-all peer-checked:after:translate-x-4" />
                 </label>
               </div>
             ))}
@@ -156,7 +156,7 @@ export default function SettingsPage() {
         <button
           type="submit"
           disabled={saving}
-          className="w-full h-10 rounded-xl bg-[#7C3AED] text-white font-semibold text-sm hover:bg-[#6D28D9] disabled:opacity-50 transition-all flex items-center justify-center gap-2 shadow-[0_0_16px_rgba(124,58,237,0.3)]"
+          className="w-full h-10 rounded-xl bg-[#7B72F8] text-white font-semibold text-sm hover:bg-[#6B63E8] disabled:opacity-50 transition-all flex items-center justify-center gap-2 shadow-[0_0_16px_rgba(123,114,248,0.3)]"
         >
           {saving ? (
             <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />

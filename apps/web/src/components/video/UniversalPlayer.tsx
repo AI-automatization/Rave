@@ -321,7 +321,7 @@ function YouTubeIframePlayer(props: UniversalPlayerProps) {
                   step={2}
                   value={memberMuted ? 0 : memberVolume}
                   onChange={handleMemberVolumeChange}
-                  className="w-20 h-1 rounded-full cursor-pointer accent-[#7C3AED]"
+                  className="w-20 h-1 rounded-full cursor-pointer accent-[#7B72F8]"
                 />
               </div>
             </div>

@@ -11,21 +11,21 @@ import type { ApiResponse, IAchievement } from '@/types';
 const RARITY_BORDER: Record<string, string> = {
   common:    'border-white/[0.08]',
   rare:      'border-blue-500/30',
-  epic:      'border-[#7C3AED]/40',
+  epic:      'border-[#7B72F8]/40',
   legendary: 'border-amber-400/50',
 };
 
 const RARITY_GLOW: Record<string, string> = {
   common:    '',
   rare:      'shadow-[0_0_12px_rgba(59,130,246,0.12)]',
-  epic:      'shadow-[0_0_12px_rgba(124,58,237,0.15)]',
+  epic:      'shadow-[0_0_12px_rgba(123,114,248,0.15)]',
   legendary: 'shadow-[0_0_16px_rgba(251,191,36,0.2)]',
 };
 
 const RARITY_TEXT: Record<string, string> = {
   common:    'text-zinc-500',
   rare:      'text-blue-400',
-  epic:      'text-[#7C3AED]',
+  epic:      'text-[#7B72F8]',
   legendary: 'text-amber-400',
 };
 
@@ -115,7 +115,7 @@ export default function AchievementsPage() {
             onClick={() => setActiveFilter(key)}
             className={`h-8 px-4 rounded-lg text-sm font-medium transition-all ${
               activeFilter === key
-                ? 'bg-[#7C3AED] text-white shadow-[0_0_12px_rgba(124,58,237,0.4)]'
+                ? 'bg-[#7B72F8] text-white shadow-[0_0_12px_rgba(123,114,248,0.4)]'
                 : 'text-zinc-500 hover:text-zinc-300'
             }`}
           >
@@ -206,7 +206,7 @@ export default function AchievementsPage() {
                   } bg-white/[0.04] border border-white/[0.06]`}>
                     {RARITY_LABELS[selected.rarity] ?? selected.rarity}
                   </span>
-                  <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-[#7C3AED]/15 border border-[#7C3AED]/30 text-[#7C3AED]">
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-[#7B72F8]/15 border border-[#7B72F8]/30 text-[#7B72F8]">
                     {selected.points} pts
                   </span>
                 </div>
@@ -217,7 +217,7 @@ export default function AchievementsPage() {
                 )}
                 <button
                   onClick={() => setSelected(null)}
-                  className="w-full h-10 rounded-xl bg-[#7C3AED] text-white text-sm font-semibold hover:bg-[#6D28D9] transition-all"
+                  className="w-full h-10 rounded-xl bg-[#7B72F8] text-white text-sm font-semibold hover:bg-[#6B63E8] transition-all"
                 >
                   {t('close')}
                 </button>

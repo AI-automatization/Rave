@@ -82,7 +82,7 @@ export default function WatchPage() {
         <p className="text-zinc-400 text-sm mb-4">Film topilmadi</p>
         <Link
           href="/movies"
-          className="inline-flex items-center gap-2 h-9 px-5 rounded-xl bg-[#7C3AED] text-white text-sm font-semibold hover:bg-[#6D28D9] transition-all"
+          className="inline-flex items-center gap-2 h-9 px-5 rounded-xl bg-[#7B72F8] text-white text-sm font-semibold hover:bg-[#6B63E8] transition-all"
         >
           Filmlar ro&apos;yxatiga qaytish
         </Link>
@@ -111,7 +111,7 @@ export default function WatchPage() {
         </Link>
         <Link
           href={`/party/create?movieId=${movie._id}`}
-          className="inline-flex items-center gap-2 h-8 px-4 rounded-xl border border-[#7C3AED]/40 text-[#7C3AED] hover:bg-[#7C3AED]/10 hover:border-[#7C3AED]/70 transition-all text-sm font-semibold"
+          className="inline-flex items-center gap-2 h-8 px-4 rounded-xl border border-[#7B72F8]/40 text-[#7B72F8] hover:bg-[#7B72F8]/10 hover:border-[#7B72F8]/70 transition-all text-sm font-semibold"
         >
           <FaUsers size={13} />
           Watch Party
@@ -145,7 +145,7 @@ export default function WatchPage() {
           <div>
             <h1
               className="text-2xl md:text-3xl font-display text-white uppercase leading-none mb-2"
-              style={{ textShadow: '0 0 40px rgba(124,58,237,0.25)' }}
+              style={{ textShadow: '0 0 40px rgba(123,114,248,0.25)' }}
             >
               {movie.title}
             </h1>
@@ -153,7 +153,7 @@ export default function WatchPage() {
               {genres.map((g) => (
                 <span
                   key={g}
-                  className="px-2 py-0.5 rounded-md text-[11px] font-medium bg-[#7C3AED]/20 text-[#7C3AED] border border-[#7C3AED]/30"
+                  className="px-2 py-0.5 rounded-md text-[11px] font-medium bg-[#7B72F8]/20 text-[#7B72F8] border border-[#7B72F8]/30"
                 >
                   {g}
                 </span>
@@ -229,7 +229,7 @@ export default function WatchPage() {
               {/* Stats grid */}
               <div className="grid grid-cols-2 gap-2">
                 <div className="rounded-xl bg-white/[0.04] border border-white/[0.06] p-3 text-center">
-                  <p className="text-lg font-display text-[#7C3AED]">{rating}</p>
+                  <p className="text-lg font-display text-[#7B72F8]">{rating}</p>
                   <p className="text-[10px] text-zinc-600 mt-0.5">Reyting</p>
                 </div>
                 <div className="rounded-xl bg-white/[0.04] border border-white/[0.06] p-3 text-center">
@@ -243,7 +243,7 @@ export default function WatchPage() {
               {/* Watch party CTA */}
               <Link
                 href={`/party/create?movieId=${movie._id}`}
-                className="flex items-center justify-center gap-2 w-full h-10 rounded-xl bg-[#7C3AED]/15 border border-[#7C3AED]/30 text-[#7C3AED] text-sm font-semibold hover:bg-[#7C3AED]/25 hover:border-[#7C3AED]/50 transition-all"
+                className="flex items-center justify-center gap-2 w-full h-10 rounded-xl bg-[#7B72F8]/15 border border-[#7B72F8]/30 text-[#7B72F8] text-sm font-semibold hover:bg-[#7B72F8]/25 hover:border-[#7B72F8]/50 transition-all"
               >
                 <FaUsers size={13} />
                 Watch Party boshlash

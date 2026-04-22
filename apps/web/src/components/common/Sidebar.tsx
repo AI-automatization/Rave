@@ -27,8 +27,8 @@ const RANK_COLOR: Record<string, string> = {
   bronze:  'text-amber-500',
   silver:  'text-zinc-400',
   gold:    'text-amber-400',
-  diamond: 'text-[#7C3AED]',
-  legend:  'text-[#7C3AED]',
+  diamond: 'text-[#7B72F8]',
+  legend:  'text-[#7B72F8]',
 };
 
 export function Sidebar() {
@@ -56,7 +56,7 @@ export function Sidebar() {
           className="flex items-center gap-2 px-6 py-5 border-b border-white/[0.06]"
         >
           <span className="text-2xl font-display tracking-[0.2em] text-white">
-            CINE<span className="text-[#7C3AED]">SYNC</span>
+            CINE<span className="text-[#7B72F8]">SYNC</span>
           </span>
         </Link>
 
@@ -70,16 +70,16 @@ export function Sidebar() {
                 href={href}
                 className={`relative flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group ${
                   active
-                    ? 'bg-[#7C3AED]/15 text-white'
+                    ? 'bg-[#7B72F8]/15 text-white'
                     : 'text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-300'
                 }`}
               >
                 {active && (
-                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-[#7C3AED] rounded-r-full shadow-[0_0_8px_rgba(124,58,237,0.8)]" />
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-[#7B72F8] rounded-r-full shadow-[0_0_8px_rgba(123,114,248,0.8)]" />
                 )}
                 <Icon
                   size={17}
-                  className={`shrink-0 transition-colors ${active ? 'text-[#7C3AED]' : 'group-hover:text-zinc-300'}`}
+                  className={`shrink-0 transition-colors ${active ? 'text-[#7B72F8]' : 'group-hover:text-zinc-300'}`}
                 />
                 {t(key)}
               </Link>
@@ -93,7 +93,7 @@ export function Sidebar() {
             href="/notifications"
             className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
               isActive('/notifications')
-                ? 'bg-[#7C3AED]/15 text-white'
+                ? 'bg-[#7B72F8]/15 text-white'
                 : 'text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-300'
             }`}
           >
@@ -104,7 +104,7 @@ export function Sidebar() {
             href="/settings"
             className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
               isActive('/settings')
-                ? 'bg-[#7C3AED]/15 text-white'
+                ? 'bg-[#7B72F8]/15 text-white'
                 : 'text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-300'
             }`}
           >
@@ -119,7 +119,7 @@ export function Sidebar() {
                 href={`/profile/${user.username}`}
                 className="flex items-center gap-2.5 flex-1 min-w-0"
               >
-                <div className="w-8 h-8 rounded-lg bg-[#7C3AED]/20 border border-[#7C3AED]/30 flex items-center justify-center overflow-hidden flex-shrink-0">
+                <div className="w-8 h-8 rounded-lg bg-[#7B72F8]/20 border border-[#7B72F8]/30 flex items-center justify-center overflow-hidden flex-shrink-0">
                   {user.avatar ? (
                     <Image
                       src={user.avatar}
@@ -130,7 +130,7 @@ export function Sidebar() {
                       unoptimized
                     />
                   ) : (
-                    <span className="text-xs font-bold text-[#7C3AED]">
+                    <span className="text-xs font-bold text-[#7B72F8]">
                       {user.username[0].toUpperCase()}
                     </span>
                   )}
@@ -164,7 +164,7 @@ export function Sidebar() {
                 key={href}
                 href={href}
                 className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ${
-                  active ? 'text-[#7C3AED]' : 'text-zinc-600'
+                  active ? 'text-[#7B72F8]' : 'text-zinc-600'
                 }`}
               >
                 <Icon size={20} />

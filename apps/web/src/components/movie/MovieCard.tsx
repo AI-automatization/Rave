@@ -15,7 +15,7 @@ export function MovieCard({ movie }: Props) {
 
   return (
     <Link href={`/movies/${slug}`} className="group block">
-      <div className="relative rounded-xl overflow-hidden bg-[#111118] border border-white/[0.06] transition-all duration-300 group-hover:border-[#7C3AED]/40 group-hover:shadow-[0_0_24px_rgba(124,58,237,0.2)] group-hover:-translate-y-0.5">
+      <div className="relative rounded-xl overflow-hidden bg-[#111118] border border-white/[0.06] transition-all duration-300 group-hover:border-[#7B72F8]/40 group-hover:shadow-[0_0_24px_rgba(123,114,248,0.2)] group-hover:-translate-y-0.5">
 
         {/* Poster */}
         <div className="relative aspect-[2/3] overflow-hidden">
@@ -51,7 +51,7 @@ export function MovieCard({ movie }: Props) {
             <Link
               href={`/watch/${movie._id}`}
               onClick={(e) => e.stopPropagation()}
-              className="flex items-center justify-center w-12 h-12 rounded-full bg-[#7C3AED] shadow-[0_0_32px_rgba(124,58,237,0.8)] hover:scale-110 transition-transform active:scale-95"
+              className="flex items-center justify-center w-12 h-12 rounded-full bg-[#7B72F8] shadow-[0_0_32px_rgba(123,114,248,0.8)] hover:scale-110 transition-transform active:scale-95"
             >
               <FaPlay size={16} className="text-white ml-0.5 fill-current" />
             </Link>

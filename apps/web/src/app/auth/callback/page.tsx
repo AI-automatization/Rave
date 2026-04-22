@@ -61,7 +61,7 @@ function OAuthCallbackInner() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-[#0A0A0F]">
-      <div className="w-8 h-8 rounded-full border-2 border-[#7C3AED]/30 border-t-[#7C3AED] animate-spin" />
+      <div className="w-8 h-8 rounded-full border-2 border-[#7B72F8]/30 border-t-[#7B72F8] animate-spin" />
       <p className="text-zinc-500 text-sm">Google orqali kirilmoqda...</p>
     </div>
   );
@@ -72,7 +72,7 @@ export default function OAuthCallbackPage() {
     <Suspense
       fallback={
         <div className="min-h-screen flex items-center justify-center bg-[#0A0A0F]">
-          <div className="w-8 h-8 rounded-full border-2 border-[#7C3AED]/30 border-t-[#7C3AED] animate-spin" />
+          <div className="w-8 h-8 rounded-full border-2 border-[#7B72F8]/30 border-t-[#7B72F8] animate-spin" />
         </div>
       }
     >

@@ -32,7 +32,7 @@ function ChannelCard({
   };
 
   return (
-    <div className="group bg-[#111118] border border-white/[0.06] rounded-2xl overflow-hidden hover:border-[#7C3AED]/40 transition-all hover:shadow-lg hover:shadow-[#7C3AED]/5">
+    <div className="group bg-[#111118] border border-white/[0.06] rounded-2xl overflow-hidden hover:border-[#7B72F8]/40 transition-all hover:shadow-lg hover:shadow-[#7B72F8]/5">
       {/* Thumbnail */}
       <div className="relative aspect-video bg-slate-900">
         {room.videoThumbnail ? (
@@ -53,7 +53,7 @@ function ChannelCard({
         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
           <button
             onClick={() => onJoin(room)}
-            className="h-10 px-5 rounded-xl bg-[#7C3AED] text-white text-sm font-semibold hover:bg-[#6D28D9] transition-colors flex items-center gap-2"
+            className="h-10 px-5 rounded-xl bg-[#7B72F8] text-white text-sm font-semibold hover:bg-[#6B63E8] transition-colors flex items-center gap-2"
           >
             <FaPlay size={11} />
             Kirish
@@ -103,7 +103,7 @@ function ChannelCard({
           </span>
           <button
             onClick={() => onJoin(room)}
-            className="h-7 px-3 rounded-lg bg-[#7C3AED]/10 border border-[#7C3AED]/20 text-[#7C3AED] text-[11px] font-semibold hover:bg-[#7C3AED]/20 transition-colors"
+            className="h-7 px-3 rounded-lg bg-[#7B72F8]/10 border border-[#7B72F8]/20 text-[#7B72F8] text-[11px] font-semibold hover:bg-[#7B72F8]/20 transition-colors"
           >
             Ulash
           </button>
@@ -163,7 +163,7 @@ function PasswordDialog({
           <button
             onClick={() => pw && onSubmit(pw)}
             disabled={!pw || loading}
-            className="flex-1 h-9 rounded-xl bg-[#7C3AED] text-white text-sm font-semibold disabled:opacity-40 hover:bg-[#6D28D9] transition-colors"
+            className="flex-1 h-9 rounded-xl bg-[#7B72F8] text-white text-sm font-semibold disabled:opacity-40 hover:bg-[#6B63E8] transition-colors"
           >
             {loading ? 'Kirilmoqda...' : 'Kirish'}
           </button>
@@ -239,20 +239,20 @@ export default function HomePage() {
   return (
     <div className="space-y-8">
       {/* ── Banner ───────────────────────────────────────────────── */}
-      <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-[#7C3AED]/30 via-[#111118] to-[#0a0a0f] border border-[#7C3AED]/20 p-8 md:p-12">
+      <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-[#7B72F8]/30 via-[#111118] to-[#0a0a0f] border border-[#7B72F8]/20 p-8 md:p-12">
         {/* Background pattern */}
         <div className="absolute inset-0 opacity-5" style={{
-          backgroundImage: 'radial-gradient(circle at 20% 50%, #7C3AED 0%, transparent 50%), radial-gradient(circle at 80% 20%, #EC4899 0%, transparent 40%)',
+          backgroundImage: 'radial-gradient(circle at 20% 50%, #7B72F8 0%, transparent 50%), radial-gradient(circle at 80% 20%, #EC4899 0%, transparent 40%)',
         }} />
 
         <div className="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-bold tracking-widest text-[#7C3AED] uppercase">Watch Together</span>
+              <span className="text-[11px] font-bold tracking-widest text-[#7B72F8] uppercase">Watch Together</span>
             </div>
             <h1 className="text-3xl md:text-4xl font-bold text-white leading-tight">
               Do&apos;stlar bilan birga<br />
-              <span className="text-[#7C3AED]">film ko&apos;ring</span>
+              <span className="text-[#7B72F8]">film ko&apos;ring</span>
             </h1>
             <p className="text-sm text-slate-400 max-w-md">
               YouTube, Vimeo yoki istalgan video havolasini ulashing — hammasi sinxron, real vaqtda.
@@ -261,7 +261,7 @@ export default function HomePage() {
 
           <button
             onClick={() => router.push('/party/create')}
-            className="shrink-0 inline-flex items-center gap-2 h-12 px-6 rounded-2xl bg-[#7C3AED] text-white text-sm font-bold hover:bg-[#6D28D9] transition-all shadow-lg shadow-[#7C3AED]/30 hover:shadow-[#7C3AED]/50 active:scale-95"
+            className="shrink-0 inline-flex items-center gap-2 h-12 px-6 rounded-2xl bg-[#7B72F8] text-white text-sm font-bold hover:bg-[#6B63E8] transition-all shadow-lg shadow-[#7B72F8]/30 hover:shadow-[#7B72F8]/50 active:scale-95"
           >
             <FaPlus size={13} />
             Xona yaratish
@@ -275,7 +275,7 @@ export default function HomePage() {
             { icon: <FaCrown size={14} />, label: 'Jami a\'zolar', value: rooms.reduce((s, r) => s + (r.memberCount ?? r.members.length), 0) },
           ].map((stat) => (
             <div key={stat.label} className="flex items-center gap-2 text-slate-400">
-              <span className="text-[#7C3AED]">{stat.icon}</span>
+              <span className="text-[#7B72F8]">{stat.icon}</span>
               <span className="text-white font-semibold tabular-nums">{stat.value}</span>
               <span className="text-xs">{stat.label}</span>
             </div>
@@ -292,7 +292,7 @@ export default function HomePage() {
           </div>
           <button
             onClick={() => router.push('/party/create')}
-            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-xl border border-[#7C3AED]/30 text-[#7C3AED] text-xs font-semibold hover:bg-[#7C3AED]/10 transition-colors"
+            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-xl border border-[#7B72F8]/30 text-[#7B72F8] text-xs font-semibold hover:bg-[#7B72F8]/10 transition-colors"
           >
             <FaPlus size={10} />
             Yangi xona
@@ -322,7 +322,7 @@ export default function HomePage() {
             </div>
             <button
               onClick={() => router.push('/party/create')}
-              className="inline-flex items-center gap-2 h-9 px-4 rounded-xl bg-[#7C3AED] text-white text-sm font-semibold hover:bg-[#6D28D9] transition-colors"
+              className="inline-flex items-center gap-2 h-9 px-4 rounded-xl bg-[#7B72F8] text-white text-sm font-semibold hover:bg-[#6B63E8] transition-colors"
             >
               <FaPlus size={12} />
               Xona yaratish

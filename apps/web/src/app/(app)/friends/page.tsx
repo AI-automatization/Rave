@@ -15,8 +15,8 @@ const RANK_COLOR: Record<string, string> = {
   bronze:  'text-amber-500',
   silver:  'text-zinc-400',
   gold:    'text-amber-400',
-  diamond: 'text-[#7C3AED]',
-  legend:  'text-[#7C3AED]',
+  diamond: 'text-[#7B72F8]',
+  legend:  'text-[#7B72F8]',
 };
 
 function getInitialTab(): Tab {
@@ -120,7 +120,7 @@ export default function FriendsPage() {
 
       {/* Header */}
       <div className="flex items-center gap-3">
-        <FaUsers size={22} className="text-[#7C3AED]" />
+        <FaUsers size={22} className="text-[#7B72F8]" />
         <h1 className="text-3xl font-display text-white">{t('title')}</h1>
       </div>
 
@@ -132,7 +132,7 @@ export default function FriendsPage() {
             onClick={() => setTab(key)}
             className={`flex items-center gap-2 h-8 px-4 rounded-lg text-sm font-medium transition-all ${
               tab === key
-                ? 'bg-[#7C3AED] text-white shadow-[0_0_12px_rgba(124,58,237,0.4)]'
+                ? 'bg-[#7B72F8] text-white shadow-[0_0_12px_rgba(123,114,248,0.4)]'
                 : 'text-zinc-500 hover:text-zinc-300'
             }`}
           >
@@ -140,7 +140,7 @@ export default function FriendsPage() {
             {label}
             {badge !== undefined && badge > 0 && (
               <span className={`text-[10px] rounded-full px-1.5 py-0.5 leading-none font-semibold ${
-                tab === key ? 'bg-white/20 text-white' : 'bg-[#7C3AED]/20 text-[#7C3AED]'
+                tab === key ? 'bg-white/20 text-white' : 'bg-[#7B72F8]/20 text-[#7B72F8]'
               }`}>
                 {badge}
               </span>
@@ -165,7 +165,7 @@ export default function FriendsPage() {
             <p className="text-zinc-400 text-sm mb-4">{t('empty')}</p>
             <button
               onClick={() => setTab('search')}
-              className="h-9 px-5 rounded-xl bg-[#7C3AED] text-white text-sm font-semibold hover:bg-[#6D28D9] transition-all"
+              className="h-9 px-5 rounded-xl bg-[#7B72F8] text-white text-sm font-semibold hover:bg-[#6B63E8] transition-all"
             >
               {t('findFriend')}
             </button>
@@ -174,7 +174,7 @@ export default function FriendsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {friends.map((friend) => (
               <div key={friend._id} className="rounded-2xl bg-[#111118] border border-white/[0.06] p-4 flex items-center gap-3 hover:border-white/10 transition-all">
-                <div className="w-10 h-10 rounded-xl bg-[#7C3AED]/20 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                <div className="w-10 h-10 rounded-xl bg-[#7B72F8]/20 flex items-center justify-center flex-shrink-0 overflow-hidden">
                   <Avatar user={friend} />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -215,8 +215,8 @@ export default function FriendsPage() {
           <div className="space-y-2">
             {requests.map((req) => (
               <div key={req._id} className="rounded-2xl bg-[#111118] border border-white/[0.06] p-4 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-[#7C3AED]/20 flex items-center justify-center flex-shrink-0">
-                  <span className="text-sm font-semibold text-[#7C3AED]">
+                <div className="w-10 h-10 rounded-xl bg-[#7B72F8]/20 flex items-center justify-center flex-shrink-0">
+                  <span className="text-sm font-semibold text-[#7B72F8]">
                     {req.requester.username[0]?.toUpperCase()}
                   </span>
                 </div>
@@ -249,13 +249,13 @@ export default function FriendsPage() {
               placeholder={t('searchPlaceholder')}
               value={search}
               onChange={(e) => void handleSearch(e.target.value)}
-              className="w-full h-10 pl-9 pr-4 rounded-xl bg-[#111118] border border-white/[0.08] text-zinc-200 text-sm placeholder-zinc-600 focus:outline-none focus:border-[#7C3AED]/50 focus:ring-1 focus:ring-[#7C3AED]/30 transition-all"
+              className="w-full h-10 pl-9 pr-4 rounded-xl bg-[#111118] border border-white/[0.08] text-zinc-200 text-sm placeholder-zinc-600 focus:outline-none focus:border-[#7B72F8]/50 focus:ring-1 focus:ring-[#7B72F8]/30 transition-all"
             />
           </div>
 
           {searching && (
             <div className="flex justify-center py-8">
-              <div className="w-6 h-6 rounded-full border-2 border-[#7C3AED] border-t-transparent animate-spin" />
+              <div className="w-6 h-6 rounded-full border-2 border-[#7B72F8] border-t-transparent animate-spin" />
             </div>
           )}
 
@@ -266,7 +266,7 @@ export default function FriendsPage() {
                 const isSent    = sentIds.has(u._id);
                 return (
                   <div key={u._id} className="rounded-2xl bg-[#111118] border border-white/[0.06] p-4 flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-[#7C3AED]/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    <div className="w-10 h-10 rounded-xl bg-[#7B72F8]/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
                       <Avatar user={u} />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -281,7 +281,7 @@ export default function FriendsPage() {
                       className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 transition-all ${
                         isSent
                           ? 'bg-emerald-500/15 text-emerald-400'
-                          : 'bg-[#7C3AED]/15 border border-[#7C3AED]/30 text-[#7C3AED] hover:bg-[#7C3AED]/25 disabled:opacity-50'
+                          : 'bg-[#7B72F8]/15 border border-[#7B72F8]/30 text-[#7B72F8] hover:bg-[#7B72F8]/25 disabled:opacity-50'
                       }`}
                     >
                       {isSending ? (

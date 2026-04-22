@@ -145,9 +145,9 @@ export function LandingContent() {
           <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0F] via-[#0A0A0F]/85 to-[#0A0A0F]/60" />
           <div className="absolute inset-0 bg-gradient-to-r from-[#0A0A0F]/80 via-transparent to-[#0A0A0F]/80" />
           {/* Violet tint over everything */}
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_50%_50%,rgba(124,58,237,0.18),transparent)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_50%_50%,rgba(123,114,248,0.18),transparent)]" />
           {/* Animated violet pulse in center */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-[#7C3AED]/10 rounded-full blur-[100px] animate-pulse pointer-events-none" style={{ animationDuration: '4s' }} />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-[#7B72F8]/10 rounded-full blur-[100px] animate-pulse pointer-events-none" style={{ animationDuration: '4s' }} />
 
           {/* Content */}
           <div className="relative z-10 text-center px-4 max-w-4xl mx-auto pt-24 pb-16">
@@ -155,9 +155,9 @@ export function LandingContent() {
               initial={{ opacity: 0, y: -12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
-              className="inline-flex items-center gap-2 mb-8 px-4 py-2 rounded-full border border-[#7C3AED]/40 bg-[#7C3AED]/10 backdrop-blur-sm text-sm text-white/80 shadow-[0_0_24px_rgba(124,58,237,0.25)]"
+              className="inline-flex items-center gap-2 mb-8 px-4 py-2 rounded-full border border-[#7B72F8]/40 bg-[#7B72F8]/10 backdrop-blur-sm text-sm text-white/80 shadow-[0_0_24px_rgba(123,114,248,0.25)]"
             >
-              <span className="w-2 h-2 rounded-full bg-[#7C3AED] animate-pulse" />
+              <span className="w-2 h-2 rounded-full bg-[#7B72F8] animate-pulse" />
               {t('badge')}
             </motion.div>
 
@@ -166,10 +166,10 @@ export function LandingContent() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.65, delay: 0.1 }}
               className="text-5xl sm:text-7xl md:text-8xl font-display uppercase leading-none tracking-tight mb-6 text-white"
-              style={{ textShadow: '0 0 80px rgba(124,58,237,0.25)' }}
+              style={{ textShadow: '0 0 80px rgba(123,114,248,0.25)' }}
             >
               {t('heroTitle1')}<br />
-              <span className="text-[#7C3AED]" style={{ textShadow: '0 0 50px rgba(124,58,237,0.7)' }}>
+              <span className="text-[#7B72F8]" style={{ textShadow: '0 0 50px rgba(123,114,248,0.7)' }}>
                 {t('heroTitle2')}
               </span>
             </motion.h1>
@@ -190,7 +190,7 @@ export function LandingContent() {
               className="flex gap-4 justify-center flex-wrap"
             >
               <Link href="/register"
-                className="inline-flex items-center gap-2 h-11 px-6 rounded-lg bg-[#7C3AED] text-white font-semibold hover:bg-[#6D28D9] hover:shadow-[0_0_50px_rgba(124,58,237,0.75)] transition-all duration-300 active:scale-95 shadow-[0_0_24px_rgba(124,58,237,0.45)] text-sm">
+                className="inline-flex items-center gap-2 h-11 px-6 rounded-lg bg-[#7B72F8] text-white font-semibold hover:bg-[#6B63E8] hover:shadow-[0_0_50px_rgba(123,114,248,0.75)] transition-all duration-300 active:scale-95 shadow-[0_0_24px_rgba(123,114,248,0.45)] text-sm">
                 <FaPlay size={11} />
                 <span className="hidden sm:inline">{t('startFree')}</span>
                 <span className="sm:hidden">{t('startShort')}</span>
@@ -215,7 +215,7 @@ export function LandingContent() {
                 { val: '100K+', label: t('statParties') },
               ].map(({ val, label }) => (
                 <div key={label} className="text-center">
-                  <p className="text-2xl font-display text-[#7C3AED]" style={{ textShadow: '0 0 20px rgba(124,58,237,0.6)' }}>{val}</p>
+                  <p className="text-2xl font-display text-[#7B72F8]" style={{ textShadow: '0 0 20px rgba(123,114,248,0.6)' }}>{val}</p>
                   <p className="text-xs text-zinc-500 mt-0.5">{label}</p>
                 </div>
               ))}
@@ -237,10 +237,10 @@ export function LandingContent() {
                 <motion.div
                   key={title}
                   variants={fadeUp}
-                  className="group bg-[#111118] rounded-xl border border-zinc-800/80 hover:border-[#7C3AED]/50 hover:shadow-[0_0_40px_rgba(124,58,237,0.14)] transition-all duration-300 p-6"
+                  className="group bg-[#111118] rounded-xl border border-zinc-800/80 hover:border-[#7B72F8]/50 hover:shadow-[0_0_40px_rgba(123,114,248,0.14)] transition-all duration-300 p-6"
                 >
-                  <div className="p-3 rounded-lg bg-[#7C3AED]/10 w-fit mb-4 group-hover:bg-[#7C3AED]/22 group-hover:shadow-[0_0_18px_rgba(124,58,237,0.35)] transition-all duration-300">
-                    <Icon size={22} className="text-[#7C3AED]" />
+                  <div className="p-3 rounded-lg bg-[#7B72F8]/10 w-fit mb-4 group-hover:bg-[#7B72F8]/22 group-hover:shadow-[0_0_18px_rgba(123,114,248,0.35)] transition-all duration-300">
+                    <Icon size={22} className="text-[#7B72F8]" />
                   </div>
                   <h3 className="font-display text-base uppercase text-white mb-2">{title}</h3>
                   <p className="text-zinc-500 text-sm leading-relaxed">{desc}</p>
@@ -259,16 +259,16 @@ export function LandingContent() {
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
             >
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#7C3AED]/10 border border-[#7C3AED]/30 text-[#7C3AED] text-xs font-semibold uppercase tracking-widest mb-6 shadow-[0_0_14px_rgba(124,58,237,0.2)]">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#7B72F8]/10 border border-[#7B72F8]/30 text-[#7B72F8] text-xs font-semibold uppercase tracking-widest mb-6 shadow-[0_0_14px_rgba(123,114,248,0.2)]">
                 <FaUsers size={10} /> Watch Party
               </div>
               <h2 className="text-4xl md:text-5xl font-display uppercase text-white leading-tight mb-6">
                 {t('f1title')}<br />
-                <span className="text-[#7C3AED]" style={{ textShadow: '0 0 30px rgba(124,58,237,0.55)' }}>{t('f4title')}</span>
+                <span className="text-[#7B72F8]" style={{ textShadow: '0 0 30px rgba(123,114,248,0.55)' }}>{t('f4title')}</span>
               </h2>
               <p className="text-zinc-400 text-lg mb-8 leading-relaxed">{t('f4desc')}</p>
               <Link href="/register"
-                className="inline-flex items-center gap-2 h-11 px-6 rounded-lg bg-[#7C3AED] text-white font-semibold hover:bg-[#6D28D9] hover:shadow-[0_0_36px_rgba(124,58,237,0.65)] transition-all duration-300 active:scale-95 shadow-[0_0_18px_rgba(124,58,237,0.35)] text-sm">
+                className="inline-flex items-center gap-2 h-11 px-6 rounded-lg bg-[#7B72F8] text-white font-semibold hover:bg-[#6B63E8] hover:shadow-[0_0_36px_rgba(123,114,248,0.65)] transition-all duration-300 active:scale-95 shadow-[0_0_18px_rgba(123,114,248,0.35)] text-sm">
                 <span className="hidden sm:inline">{t('watchPartyCta')}</span>
                 <span className="sm:hidden">{t('startShort')}</span>
                 <FaChevronRight size={11} />
@@ -283,7 +283,7 @@ export function LandingContent() {
               transition={{ duration: 0.6, delay: 0.15 }}
               className="relative"
             >
-              <div className="bg-[#0A0A0F] rounded-2xl border border-[#7C3AED]/30 overflow-hidden shadow-[0_4px_60px_rgba(124,58,237,0.2)]">
+              <div className="bg-[#0A0A0F] rounded-2xl border border-[#7B72F8]/30 overflow-hidden shadow-[0_4px_60px_rgba(123,114,248,0.2)]">
                 {/* Screen */}
                 <div
                   className="relative flex items-center justify-center"
@@ -295,7 +295,7 @@ export function LandingContent() {
                   {/* Decorative film icon */}
                   <FaFilm size={48} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white/5" />
                   {/* Play button */}
-                  <div className="w-16 h-16 rounded-full bg-[#7C3AED]/25 border-2 border-[#7C3AED]/70 flex items-center justify-center shadow-[0_0_50px_rgba(124,58,237,0.6)] hover:scale-110 transition-transform cursor-pointer">
+                  <div className="w-16 h-16 rounded-full bg-[#7B72F8]/25 border-2 border-[#7B72F8]/70 flex items-center justify-center shadow-[0_0_50px_rgba(123,114,248,0.6)] hover:scale-110 transition-transform cursor-pointer">
                     <FaPlay size={18} className="text-white ml-1" />
                   </div>
                   {/* Progress bar */}
@@ -303,7 +303,7 @@ export function LandingContent() {
                     <div className="flex items-center gap-2">
                       <span className="text-white/40 text-[11px]">1:24:37</span>
                       <div className="h-1 flex-1 bg-white/10 rounded-full">
-                        <div className="h-full w-2/5 bg-[#7C3AED] rounded-full shadow-[0_0_10px_rgba(124,58,237,0.9)]" />
+                        <div className="h-full w-2/5 bg-[#7B72F8] rounded-full shadow-[0_0_10px_rgba(123,114,248,0.9)]" />
                       </div>
                       <span className="text-white/40 text-[11px]">2:18:00</span>
                     </div>
@@ -312,7 +312,7 @@ export function LandingContent() {
                   <div className="absolute top-4 right-4 flex items-center gap-1">
                     {['A', 'N', 'B'].map((l, i) => (
                       <div key={i} className="w-7 h-7 rounded-full border-2 border-[#111118] flex items-center justify-center text-[10px] font-bold text-white -ml-1 first:ml-0"
-                        style={{ backgroundColor: ['#7C3AED', '#a855f7', '#6D28D9'][i] }}>
+                        style={{ backgroundColor: ['#7B72F8', '#a855f7', '#6B63E8'][i] }}>
                         {l}
                       </div>
                     ))}
@@ -322,7 +322,7 @@ export function LandingContent() {
                 {/* Chat panel */}
                 <div className="p-4 space-y-2.5 bg-[#0d0d14]">
                   {[
-                    { user: 'Alisher', msg: "🔥 Bu sahna juda zo'r!", time: '21:42', color: '#7C3AED' },
+                    { user: 'Alisher', msg: "🔥 Bu sahna juda zo'r!", time: '21:42', color: '#7B72F8' },
                     { user: 'Nodira',  msg: "Men ham shu sahnani xush ko'raman 😍", time: '21:43', color: '#a855f7' },
                   ].map(({ user, msg, time, color }) => (
                     <div key={user} className="flex gap-2.5 items-start">
@@ -340,7 +340,7 @@ export function LandingContent() {
                 </div>
               </div>
               {/* Glow behind card */}
-              <div className="absolute -inset-8 bg-[#7C3AED]/12 rounded-3xl blur-3xl -z-10" />
+              <div className="absolute -inset-8 bg-[#7B72F8]/12 rounded-3xl blur-3xl -z-10" />
             </motion.div>
           </div>
         </section>
@@ -361,7 +361,7 @@ export function LandingContent() {
                   <span className="text-[#FFD700] font-display uppercase text-sm flex items-center gap-2">
                     <GiCrossedSwords size={16} /> {t('battleActive')}
                   </span>
-                  <span className="px-2.5 py-1 rounded-full bg-[#7C3AED]/10 border border-[#7C3AED]/25 text-[#7C3AED] text-xs font-semibold">5 {t('daysLeftDemo')}</span>
+                  <span className="px-2.5 py-1 rounded-full bg-[#7B72F8]/10 border border-[#7B72F8]/25 text-[#7B72F8] text-xs font-semibold">5 {t('daysLeftDemo')}</span>
                 </div>
                 <div className="space-y-1">
                   {BATTLE_USERS.map(({ rank, name, movies, initials, color, bg }) => (
@@ -426,7 +426,7 @@ export function LandingContent() {
             <motion.div variants={stagger} initial="hidden" whileInView="visible" viewport={{ once: true }} className="grid grid-cols-1 sm:grid-cols-2 gap-8">
               {STEPS.map(({ num, title, desc }) => (
                 <motion.div key={num} variants={fadeUp} className="flex gap-4 items-start group">
-                  <span className="text-4xl font-display text-[#7C3AED]/35 leading-none flex-shrink-0 group-hover:text-[#7C3AED]/65 transition-colors duration-300">{num}</span>
+                  <span className="text-4xl font-display text-[#7B72F8]/35 leading-none flex-shrink-0 group-hover:text-[#7B72F8]/65 transition-colors duration-300">{num}</span>
                   <div>
                     <h3 className="text-white font-medium mb-1">{title}</h3>
                     <p className="text-zinc-500 text-sm leading-relaxed">{desc}</p>
@@ -448,7 +448,7 @@ export function LandingContent() {
                 <motion.div
                   key={name}
                   variants={fadeUp}
-                  className="bg-[#111118] rounded-xl border border-zinc-800 hover:border-[#7C3AED]/35 hover:shadow-[0_0_32px_rgba(124,58,237,0.1)] transition-all duration-300 p-6"
+                  className="bg-[#111118] rounded-xl border border-zinc-800 hover:border-[#7B72F8]/35 hover:shadow-[0_0_32px_rgba(123,114,248,0.1)] transition-all duration-300 p-6"
                 >
                   <div className="flex gap-1 mb-3">
                     {Array.from({ length: stars }).map((_, j) => (
@@ -457,7 +457,7 @@ export function LandingContent() {
                   </div>
                   <p className="text-zinc-400 text-sm mb-5 leading-relaxed">&quot;{text}&quot;</p>
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full flex-shrink-0 bg-[#7C3AED]/18 border border-[#7C3AED]/40 flex items-center justify-center text-sm font-bold text-[#7C3AED]">
+                    <div className="w-9 h-9 rounded-full flex-shrink-0 bg-[#7B72F8]/18 border border-[#7B72F8]/40 flex items-center justify-center text-sm font-bold text-[#7B72F8]">
                       {initials}
                     </div>
                     <p className="text-white text-sm font-medium">{name}</p>
@@ -482,12 +482,12 @@ export function LandingContent() {
                   variants={fadeUp}
                   className={`rounded-xl border p-8 transition-all duration-300 ${
                     highlighted
-                      ? 'bg-[#0e0720] border-[#7C3AED]/55 shadow-[0_0_60px_rgba(124,58,237,0.22)]'
+                      ? 'bg-[#0e0720] border-[#7B72F8]/55 shadow-[0_0_60px_rgba(123,114,248,0.22)]'
                       : 'bg-[#0A0A0F] border-zinc-800 hover:border-zinc-700'
                   }`}
                 >
                   {highlighted && (
-                    <div className="text-[#7C3AED] text-xs font-semibold uppercase tracking-widest mb-4">{t('mostPopular')}</div>
+                    <div className="text-[#7B72F8] text-xs font-semibold uppercase tracking-widest mb-4">{t('mostPopular')}</div>
                   )}
                   <h3 className="font-display text-3xl uppercase text-white mb-2">{name}</h3>
                   <div className="flex items-baseline gap-1 mb-6">
@@ -497,7 +497,7 @@ export function LandingContent() {
                   <ul className="space-y-3 mb-8">
                     {features.map((f) => (
                       <li key={f} className="flex items-center gap-3 text-sm text-zinc-300">
-                        <FaCheck size={11} className={`flex-shrink-0 ${highlighted ? 'text-[#7C3AED]' : 'text-zinc-600'}`} />
+                        <FaCheck size={11} className={`flex-shrink-0 ${highlighted ? 'text-[#7B72F8]' : 'text-zinc-600'}`} />
                         {f}
                       </li>
                     ))}
@@ -505,7 +505,7 @@ export function LandingContent() {
                   <Link href={href}
                     className={`flex items-center justify-center h-11 rounded-lg font-semibold transition-all duration-300 active:scale-95 w-full ${
                       highlighted
-                        ? 'bg-[#7C3AED] text-white hover:bg-[#6D28D9] hover:shadow-[0_0_28px_rgba(124,58,237,0.6)]'
+                        ? 'bg-[#7B72F8] text-white hover:bg-[#6B63E8] hover:shadow-[0_0_28px_rgba(123,114,248,0.6)]'
                         : 'border border-zinc-700 text-zinc-300 hover:border-zinc-500 hover:text-white'
                     }`}>
                     {cta}
@@ -525,7 +525,7 @@ export function LandingContent() {
             <motion.div variants={stagger} initial="hidden" whileInView="visible" viewport={{ once: true }} className="space-y-3">
               {FAQS.map(({ q, a }) => (
                 <motion.div key={q} variants={fadeUp}>
-                  <details className="group bg-[#111118] rounded-xl border border-zinc-800 hover:border-[#7C3AED]/40 hover:shadow-[0_0_22px_rgba(124,58,237,0.09)] transition-all duration-300 overflow-hidden">
+                  <details className="group bg-[#111118] rounded-xl border border-zinc-800 hover:border-[#7B72F8]/40 hover:shadow-[0_0_22px_rgba(123,114,248,0.09)] transition-all duration-300 overflow-hidden">
                     <summary className="flex items-center justify-between gap-4 p-5 cursor-pointer font-medium text-white text-sm list-none [&::-webkit-details-marker]:hidden">
                       {q}
                       <span className="text-zinc-600 group-open:rotate-180 transition-transform duration-300 flex-shrink-0">▼</span>
@@ -544,11 +544,11 @@ export function LandingContent() {
         <section className="py-28 px-4 text-center bg-[#0A0A0F] relative overflow-hidden">
           {/* Layered violet glow — the main visual */}
           <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[400px] bg-[#7C3AED]/22 rounded-full blur-[130px]" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[250px] bg-[#6D28D9]/30 rounded-full blur-[80px]" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200px] h-[120px] bg-[#7C3AED]/40 rounded-full blur-[40px]" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[400px] bg-[#7B72F8]/22 rounded-full blur-[130px]" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[250px] bg-[#6B63E8]/30 rounded-full blur-[80px]" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200px] h-[120px] bg-[#7B72F8]/40 rounded-full blur-[40px]" />
             {/* Subtle ring */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full border border-[#7C3AED]/15 blur-[2px]" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full border border-[#7B72F8]/15 blur-[2px]" />
             {/* Corner accents */}
             <div className="absolute top-8 left-8 w-32 h-32 bg-[#4C1D95]/20 rounded-full blur-[60px]" />
             <div className="absolute bottom-8 right-8 w-32 h-32 bg-[#4C1D95]/20 rounded-full blur-[60px]" />
@@ -561,13 +561,13 @@ export function LandingContent() {
             viewport={{ once: true }}
             className="relative z-10 max-w-2xl mx-auto"
           >
-            <motion.div variants={fadeUp} className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#7C3AED]/15 border border-[#7C3AED]/40 text-[#7C3AED] text-xs font-semibold uppercase tracking-widest mb-8 shadow-[0_0_22px_rgba(124,58,237,0.35)]">
+            <motion.div variants={fadeUp} className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#7B72F8]/15 border border-[#7B72F8]/40 text-[#7B72F8] text-xs font-semibold uppercase tracking-widest mb-8 shadow-[0_0_22px_rgba(123,114,248,0.35)]">
               <FaPlay size={8} /> CineSync
             </motion.div>
             <motion.h2
               variants={fadeUp}
               className="text-4xl md:text-6xl font-display uppercase text-white leading-tight mb-6"
-              style={{ textShadow: '0 0 80px rgba(124,58,237,0.5)' }}
+              style={{ textShadow: '0 0 80px rgba(123,114,248,0.5)' }}
             >
               {t('ctaTitle')}
             </motion.h2>
@@ -576,7 +576,7 @@ export function LandingContent() {
             </motion.p>
             <motion.div variants={fadeUp}>
               <Link href="/register"
-                className="inline-flex items-center gap-3 h-14 px-10 rounded-lg bg-[#7C3AED] text-white font-bold hover:bg-[#6D28D9] hover:shadow-[0_0_70px_rgba(124,58,237,0.85)] transition-all duration-300 active:scale-95 text-base uppercase tracking-wide shadow-[0_0_36px_rgba(124,58,237,0.55)]">
+                className="inline-flex items-center gap-3 h-14 px-10 rounded-lg bg-[#7B72F8] text-white font-bold hover:bg-[#6B63E8] hover:shadow-[0_0_70px_rgba(123,114,248,0.85)] transition-all duration-300 active:scale-95 text-base uppercase tracking-wide shadow-[0_0_36px_rgba(123,114,248,0.55)]">
                 <FaPlay size={14} /> {t('ctaBtn')}
               </Link>
             </motion.div>

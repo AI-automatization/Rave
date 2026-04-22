@@ -16,7 +16,7 @@ const SECTION_ICONS = {
 const SECTION_ICON_COLORS = {
   trending: 'text-orange-400',
   topRated: 'text-amber-400',
-  recent:   'text-[#7C3AED]',
+  recent:   'text-[#7B72F8]',
 } as const;
 
 interface Props {
@@ -51,7 +51,7 @@ export function HomeSection({ sectionKey, href, movies }: Props) {
         </div>
         <Link
           href={href}
-          className="flex items-center gap-1 text-xs font-semibold text-zinc-500 hover:text-[#7C3AED] transition-colors group"
+          className="flex items-center gap-1 text-xs font-semibold text-zinc-500 hover:text-[#7B72F8] transition-colors group"
         >
           {t('seeAll')}
           <FaChevronRight

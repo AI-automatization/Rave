@@ -173,7 +173,7 @@ function MoviesContent() {
 
       {/* ── Header ──────────────────────────────────── */}
       <div className="flex items-center gap-3">
-        <FaFilm size={22} className="text-[#7C3AED]" />
+        <FaFilm size={22} className="text-[#7B72F8]" />
         <h1 className="text-3xl font-display text-white">{t('title')}</h1>
         {!loading && total > 0 && (
           <span className="ml-auto text-sm text-zinc-600">{total.toLocaleString()} films</span>
@@ -191,7 +191,7 @@ function MoviesContent() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search movies, genres, directors…"
-          className="w-full h-11 pl-11 pr-10 rounded-xl bg-[#111118] border border-white/[0.08] text-zinc-300 placeholder-zinc-600 text-sm focus:outline-none focus:border-[#7C3AED]/50 focus:shadow-[0_0_0_1px_rgba(124,58,237,0.25)] transition-all"
+          className="w-full h-11 pl-11 pr-10 rounded-xl bg-[#111118] border border-white/[0.08] text-zinc-300 placeholder-zinc-600 text-sm focus:outline-none focus:border-[#7B72F8]/50 focus:shadow-[0_0_0_1px_rgba(123,114,248,0.25)] transition-all"
           autoComplete="off"
         />
         {query && (
@@ -217,7 +217,7 @@ function MoviesContent() {
                   onClick={() => setSort(value)}
                   className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                     sort === value
-                      ? 'bg-[#7C3AED] text-white shadow-[0_0_16px_rgba(124,58,237,0.4)]'
+                      ? 'bg-[#7B72F8] text-white shadow-[0_0_16px_rgba(123,114,248,0.4)]'
                       : 'bg-white/[0.05] text-zinc-500 hover:bg-white/[0.08] hover:text-zinc-300 border border-white/[0.06]'
                   }`}
                 >
@@ -234,7 +234,7 @@ function MoviesContent() {
               onClick={() => setGenre('')}
               className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
                 genre === ''
-                  ? 'bg-[#7C3AED]/20 text-[#7C3AED] border border-[#7C3AED]/40'
+                  ? 'bg-[#7B72F8]/20 text-[#7B72F8] border border-[#7B72F8]/40'
                   : 'bg-white/[0.04] text-zinc-600 border border-white/[0.06] hover:border-white/10 hover:text-zinc-400'
               }`}
             >
@@ -246,7 +246,7 @@ function MoviesContent() {
                 onClick={() => setGenre(g)}
                 className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
                   genre === g
-                    ? 'bg-[#7C3AED]/20 text-[#7C3AED] border border-[#7C3AED]/40'
+                    ? 'bg-[#7B72F8]/20 text-[#7B72F8] border border-[#7B72F8]/40'
                     : 'bg-white/[0.04] text-zinc-600 border border-white/[0.06] hover:border-white/10 hover:text-zinc-400'
                 }`}
               >
@@ -268,7 +268,7 @@ function MoviesContent() {
           </span>
           <button
             onClick={clearSearch}
-            className="ml-2 text-[#7C3AED] hover:text-violet-400 text-xs font-medium"
+            className="ml-2 text-[#7B72F8] hover:text-violet-400 text-xs font-medium"
           >
             Clear
           </button>
@@ -325,7 +325,7 @@ function MoviesContent() {
       {/* Loading more indicator */}
       {!loading && page > 1 && hasMore && (
         <div className="flex justify-center py-4">
-          <div className="w-6 h-6 border-2 border-white/10 border-t-[#7C3AED] rounded-full animate-spin" />
+          <div className="w-6 h-6 border-2 border-white/10 border-t-[#7B72F8] rounded-full animate-spin" />
         </div>
       )}
     </div>

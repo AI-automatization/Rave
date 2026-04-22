@@ -25,8 +25,8 @@ export function FeaturesContent() {
       icon: FaPlay,
       key: 'Watch Party',
       tagline: t('f1tagline'),
-      color: '#7C3AED',
-      glow: 'rgba(124,58,237,0.25)',
+      color: '#7B72F8',
+      glow: 'rgba(123,114,248,0.25)',
       badge: t('badgePrimary'),
       features: [
         'Sinxron video playback (±2s)',
@@ -70,8 +70,8 @@ export function FeaturesContent() {
       icon: FaUsers,
       key: t('f4key'),
       tagline: t('f4tagline'),
-      color: '#7C3AED',
-      glow: 'rgba(124,58,237,0.2)',
+      color: '#7B72F8',
+      glow: 'rgba(123,114,248,0.2)',
       badge: null,
       features: [
         "Do'st qo'shish/qabul",
@@ -85,8 +85,8 @@ export function FeaturesContent() {
       icon: FaBell,
       key: t('f5key'),
       tagline: t('f5tagline'),
-      color: '#7C3AED',
-      glow: 'rgba(124,58,237,0.2)',
+      color: '#7B72F8',
+      glow: 'rgba(123,114,248,0.2)',
       badge: null,
       features: [
         'Push notifications (FCM)',
@@ -115,8 +115,8 @@ export function FeaturesContent() {
       icon: FaWifi,
       key: 'HLS Video',
       tagline: t('f7tagline'),
-      color: '#7C3AED',
-      glow: 'rgba(124,58,237,0.2)',
+      color: '#7B72F8',
+      glow: 'rgba(123,114,248,0.2)',
       badge: '4K',
       features: [
         'HLS streaming (m3u8)',
@@ -157,9 +157,9 @@ export function FeaturesContent() {
       <section className="relative overflow-hidden pt-24 pb-16 px-4 text-center">
         {/* Background glow */}
         <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[400px] bg-[#7C3AED]/15 rounded-full blur-[130px]" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[400px] bg-[#7B72F8]/15 rounded-full blur-[130px]" />
           <div className="absolute inset-0 opacity-[0.03]" style={{
-            backgroundImage: 'linear-gradient(rgba(124,58,237,1) 1px,transparent 1px),linear-gradient(90deg,rgba(124,58,237,1) 1px,transparent 1px)',
+            backgroundImage: 'linear-gradient(rgba(123,114,248,1) 1px,transparent 1px),linear-gradient(90deg,rgba(123,114,248,1) 1px,transparent 1px)',
             backgroundSize: '60px 60px',
           }} />
         </div>
@@ -169,7 +169,7 @@ export function FeaturesContent() {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#7C3AED]/40 bg-[#7C3AED]/10 text-[#7C3AED] text-xs font-semibold uppercase tracking-widest mb-6 shadow-[0_0_18px_rgba(124,58,237,0.3)]"
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#7B72F8]/40 bg-[#7B72F8]/10 text-[#7B72F8] text-xs font-semibold uppercase tracking-widest mb-6 shadow-[0_0_18px_rgba(123,114,248,0.3)]"
           >
             <FaPlay size={8} /> {t('heroTag')}
           </motion.div>
@@ -179,7 +179,7 @@ export function FeaturesContent() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.55, delay: 0.1 }}
             className="text-5xl sm:text-7xl font-display uppercase text-white leading-none mb-5"
-            style={{ textShadow: '0 0 80px rgba(124,58,237,0.3)' }}
+            style={{ textShadow: '0 0 80px rgba(123,114,248,0.3)' }}
           >
             {t('title')}
           </motion.h1>
@@ -205,7 +205,7 @@ export function FeaturesContent() {
         <div className="max-w-3xl mx-auto px-4 py-5 grid grid-cols-4 gap-4">
           {STATS.map(({ val, label }) => (
             <div key={label} className="text-center">
-              <p className="text-2xl sm:text-3xl font-display text-[#7C3AED]" style={{ textShadow: '0 0 20px rgba(124,58,237,0.5)' }}>{val}</p>
+              <p className="text-2xl sm:text-3xl font-display text-[#7B72F8]" style={{ textShadow: '0 0 20px rgba(123,114,248,0.5)' }}>{val}</p>
               <p className="text-zinc-600 text-xs mt-0.5">{label}</p>
             </div>
           ))}
@@ -283,7 +283,7 @@ export function FeaturesContent() {
       {/* ── BOTTOM CTA ──────────────────────────────── */}
       <section className="relative overflow-hidden py-20 px-4 text-center">
         <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] bg-[#7C3AED]/18 rounded-full blur-[100px]" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] bg-[#7B72F8]/18 rounded-full blur-[100px]" />
         </div>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -293,14 +293,14 @@ export function FeaturesContent() {
           className="relative"
         >
           <h2 className="text-4xl sm:text-5xl font-display uppercase text-white mb-4"
-            style={{ textShadow: '0 0 60px rgba(124,58,237,0.35)' }}>
+            style={{ textShadow: '0 0 60px rgba(123,114,248,0.35)' }}>
             {t('ctaTitle')}
           </h2>
           <p className="text-zinc-500 mb-8 max-w-sm mx-auto">{t('ctaSub')}</p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
               href="/register"
-              className="inline-flex items-center gap-2 h-11 px-6 rounded-lg bg-[#7C3AED] text-white font-semibold hover:bg-[#6D28D9] hover:shadow-[0_0_40px_rgba(124,58,237,0.7)] transition-all duration-300 active:scale-95 shadow-[0_0_20px_rgba(124,58,237,0.4)] text-sm"
+              className="inline-flex items-center gap-2 h-11 px-6 rounded-lg bg-[#7B72F8] text-white font-semibold hover:bg-[#6B63E8] hover:shadow-[0_0_40px_rgba(123,114,248,0.7)] transition-all duration-300 active:scale-95 shadow-[0_0_20px_rgba(123,114,248,0.4)] text-sm"
             >
               <FaPlay size={11} />
               <span>{tl('startShort')}</span>

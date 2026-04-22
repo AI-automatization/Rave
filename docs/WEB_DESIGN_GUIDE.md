@@ -24,13 +24,13 @@ Barcha ranglar **hardcoded hex** bilan ishlatiladi (Tailwind custom token emas).
 
 | Holat | Hex | Tailwind ekvivalenti |
 |-------|-----|----------------------|
-| Default | `#7C3AED` | `violet-600` |
-| Hover | `#6D28D9` | `violet-700` |
-| Background tint | `bg-[#7C3AED]/10` | 10% opacity |
-| Background tint medium | `bg-[#7C3AED]/15` | 15% opacity |
-| Border | `border-[#7C3AED]/30` | 30% opacity |
-| Glow (small) | `shadow-[0_0_12px_rgba(124,58,237,0.4)]` | — |
-| Glow (large) | `shadow-[0_0_30px_rgba(124,58,237,0.55)]` | — |
+| Default | `#7B72F8` | `violet-600` |
+| Hover | `#6B63E8` | `violet-700` |
+| Background tint | `bg-[#7B72F8]/10` | 10% opacity |
+| Background tint medium | `bg-[#7B72F8]/15` | 15% opacity |
+| Border | `border-[#7B72F8]/30` | 30% opacity |
+| Glow (small) | `shadow-[0_0_12px_rgba(123,114,248,0.4)]` | — |
+| Glow (large) | `shadow-[0_0_30px_rgba(123,114,248,0.55)]` | — |
 
 ### Matn ranglari
 
@@ -58,13 +58,13 @@ Barcha ranglar **hardcoded hex** bilan ishlatiladi (Tailwind custom token emas).
 | Bronze | `text-amber-500` |
 | Silver | `text-zinc-400` |
 | Gold | `text-amber-400` |
-| Diamond / Legend | `text-[#7C3AED]` |
+| Diamond / Legend | `text-[#7B72F8]` |
 
 | Rarity | Border | Glow | Text |
 |--------|--------|------|------|
 | Common | `border-white/[0.08]` | — | `text-zinc-500` |
 | Rare | `border-blue-500/30` | `shadow-[0_0_12px_rgba(59,130,246,0.12)]` | `text-blue-400` |
-| Epic | `border-[#7C3AED]/40` | `shadow-[0_0_12px_rgba(124,58,237,0.15)]` | `text-[#7C3AED]` |
+| Epic | `border-[#7B72F8]/40` | `shadow-[0_0_12px_rgba(123,114,248,0.15)]` | `text-[#7B72F8]` |
 | Legendary | `border-amber-400/50` | `shadow-[0_0_16px_rgba(251,191,36,0.2)]` | `text-amber-400` |
 
 ---
@@ -120,7 +120,7 @@ Asosiy chegara:  border border-white/[0.06]   ← barcha card, panel
 Kuchroq chegara: border border-white/[0.08]   ← modal
 Input default:   border border-zinc-800        ← form element
 Input hover:     hover:border-zinc-700
-Input focus:     focus:border-[#7C3AED]/50
+Input focus:     focus:border-[#7B72F8]/50
 ```
 
 ---
@@ -131,9 +131,9 @@ Input focus:     focus:border-[#7C3AED]/50
 
 ```tsx
 // PRIMARY — asosiy harakat
-<button className="h-10 px-5 rounded-xl bg-[#7C3AED] text-white text-sm font-semibold
-  hover:bg-[#6D28D9] transition-all shadow-[0_0_16px_rgba(124,58,237,0.3)]
-  hover:shadow-[0_0_30px_rgba(124,58,237,0.55)] active:scale-[0.98]">
+<button className="h-10 px-5 rounded-xl bg-[#7B72F8] text-white text-sm font-semibold
+  hover:bg-[#6B63E8] transition-all shadow-[0_0_16px_rgba(123,114,248,0.3)]
+  hover:shadow-[0_0_30px_rgba(123,114,248,0.55)] active:scale-[0.98]">
   Bosish
 </button>
 
@@ -144,8 +144,8 @@ Input focus:     focus:border-[#7C3AED]/50
 </button>
 
 // GHOST — minimal
-<button className="h-8 px-3 rounded-xl border border-[#7C3AED]/30 text-[#7C3AED]
-  text-xs font-semibold hover:bg-[#7C3AED]/10 transition-colors">
+<button className="h-8 px-3 rounded-xl border border-[#7B72F8]/30 text-[#7B72F8]
+  text-xs font-semibold hover:bg-[#7B72F8]/10 transition-colors">
   Yangi +
 </button>
 
@@ -186,14 +186,14 @@ Input focus:     focus:border-[#7C3AED]/50
 
 // HOVER CARD (bosiladigan)
 <div className="group bg-[#111118] border border-white/[0.06] rounded-2xl overflow-hidden
-  hover:border-[#7C3AED]/40 transition-all hover:shadow-lg hover:shadow-[#7C3AED]/5">
+  hover:border-[#7B72F8]/40 transition-all hover:shadow-lg hover:shadow-[#7B72F8]/5">
   ...
 </div>
 
 // BANNER/HERO CARD (gradientli)
 <div className="relative rounded-2xl overflow-hidden
-  bg-gradient-to-br from-[#7C3AED]/30 via-[#111118] to-[#0a0a0f]
-  border border-[#7C3AED]/20 p-8 md:p-12">
+  bg-gradient-to-br from-[#7B72F8]/30 via-[#111118] to-[#0a0a0f]
+  border border-[#7B72F8]/20 p-8 md:p-12">
   ...
 </div>
 
@@ -212,7 +212,7 @@ Input focus:     focus:border-[#7C3AED]/50
 <input
   className="w-full h-10 px-3.5 rounded-xl bg-[#0A0A0F] border border-white/[0.08]
     text-zinc-200 text-sm placeholder-zinc-600
-    focus:outline-none focus:border-[#7C3AED]/50 focus:ring-1 focus:ring-[#7C3AED]/30
+    focus:outline-none focus:border-[#7B72F8]/50 focus:ring-1 focus:ring-[#7B72F8]/30
     transition-all"
   placeholder="Kiriting..."
 />
@@ -221,7 +221,7 @@ Input focus:     focus:border-[#7C3AED]/50
 <input
   className="w-full h-11 pl-9 pr-3.5 rounded-xl bg-[#0A0A0F] border border-zinc-800
     text-zinc-200 placeholder-zinc-600
-    focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/40 focus:border-[#7C3AED]/50
+    focus:outline-none focus:ring-2 focus:ring-[#7B72F8]/40 focus:border-[#7B72F8]/50
     transition-all duration-200 hover:border-zinc-700"
 />
 
@@ -256,7 +256,7 @@ Input focus:     focus:border-[#7C3AED]/50
     {/* Header */}
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-2">
-        <SomeIcon className="text-[#7C3AED]" />
+        <SomeIcon className="text-[#7B72F8]" />
         <h3 className="font-display text-xl text-white">Modal sarlavha</h3>
       </div>
       <button onClick={onClose} className="w-7 h-7 rounded-lg text-zinc-500 hover:text-zinc-300
@@ -273,7 +273,7 @@ Input focus:     focus:border-[#7C3AED]/50
       <button onClick={onClose} className="flex-1 h-9 rounded-xl border border-white/10 text-slate-400 text-sm hover:bg-white/5 transition-colors">
         Bekor
       </button>
-      <button className="flex-1 h-9 rounded-xl bg-[#7C3AED] text-white text-sm font-semibold hover:bg-[#6D28D9] transition-colors">
+      <button className="flex-1 h-9 rounded-xl bg-[#7B72F8] text-white text-sm font-semibold hover:bg-[#6B63E8] transition-colors">
         Tasdiqlash
       </button>
     </div>
@@ -331,7 +331,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 // GENERIC TAG
 <span className="text-xs font-semibold px-2.5 py-1 rounded-lg
-  bg-[#7C3AED]/15 border border-[#7C3AED]/30 text-[#7C3AED]">
+  bg-[#7B72F8]/15 border border-[#7B72F8]/30 text-[#7B72F8]">
   Epic
 </span>
 ```
@@ -349,7 +349,7 @@ import { motion, AnimatePresence } from 'framer-motion';
       onClick={() => setActive(key)}
       className={`h-8 px-4 rounded-lg text-sm font-medium transition-all ${
         active === key
-          ? 'bg-[#7C3AED] text-white shadow-[0_0_12px_rgba(124,58,237,0.4)]'
+          ? 'bg-[#7B72F8] text-white shadow-[0_0_12px_rgba(123,114,248,0.4)]'
           : 'text-zinc-500 hover:text-zinc-300'
       }`}
     >
@@ -393,8 +393,8 @@ import { motion, AnimatePresence } from 'framer-motion';
     <p className="text-slate-300 font-medium">Hali hech narsa yo'q</p>
     <p className="text-sm text-slate-600 mt-1">Birinchi bo'lib qo'shing!</p>
   </div>
-  <button className="h-9 px-5 rounded-xl bg-[#7C3AED] text-white text-sm font-semibold
-    hover:bg-[#6D28D9] transition-all">
+  <button className="h-9 px-5 rounded-xl bg-[#7B72F8] text-white text-sm font-semibold
+    hover:bg-[#6B63E8] transition-all">
     Qo'shish
   </button>
 </div>
@@ -454,13 +454,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 ```tsx
 // Avatar (8x8 = 32px, yoki 10x10 = 40px)
-<div className="w-8 h-8 rounded-lg bg-[#7C3AED]/20 border border-[#7C3AED]/30
+<div className="w-8 h-8 rounded-lg bg-[#7B72F8]/20 border border-[#7B72F8]/30
   flex items-center justify-center overflow-hidden">
   {user.avatar ? (
     <Image src={user.avatar} alt={user.username} width={32} height={32}
       className="object-cover w-full h-full" unoptimized />
   ) : (
-    <span className="text-xs font-bold text-[#7C3AED]">
+    <span className="text-xs font-bold text-[#7B72F8]">
       {user.username[0].toUpperCase()}
     </span>
   )}
@@ -479,7 +479,7 @@ w-64 | bg-[#0d0d14] | border-r border-white/[0.06] | h-screen sticky top-0
 Tuzilishi:
 ├── Logo: px-6 py-5, border-b
 ├── Nav: flex-1 overflow-y-auto py-4 px-3 space-y-0.5
-│     active item: bg-[#7C3AED]/15 text-white + left indicator bar
+│     active item: bg-[#7B72F8]/15 text-white + left indicator bar
 │     inactive:    text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-300
 └── Bottom: border-t, notifications + settings + user card
 ```
@@ -489,7 +489,7 @@ Tuzilishi:
 ```
 fixed bottom-0 | bg-[#0d0d14]/95 backdrop-blur-xl | border-t border-white/[0.06] | z-50
 flex justify-around px-1 py-2
-5 ta nav item: icon + label, active = text-[#7C3AED]
+5 ta nav item: icon + label, active = text-[#7B72F8]
 ```
 
 ### Page Content
@@ -564,7 +564,7 @@ import { FaPlay, FaLock, FaGlobe, FaUsers, FaPlus, FaTimes,
 import { GiCrossedSwords } from 'react-icons/gi';
 
 // Oddiy ishlatish
-<FaPlay size={14} className="text-[#7C3AED]" />
+<FaPlay size={14} className="text-[#7B72F8]" />
 
 // Nav iconlar: size={17-20}
 // Card/button iconlar: size={12-16}
@@ -579,12 +579,12 @@ import { GiCrossedSwords } from 'react-icons/gi';
 ```tsx
 // Logo (katta)
 <span className="text-2xl font-display tracking-[0.2em] text-white">
-  CINE<span className="text-[#7C3AED]">SYNC</span>
+  CINE<span className="text-[#7B72F8]">SYNC</span>
 </span>
 
 // Logo icon (kichik, rounded)
-<div className="w-8 h-8 rounded-lg bg-[#7C3AED] flex items-center justify-center
-  shadow-[0_0_16px_rgba(124,58,237,0.5)]">
+<div className="w-8 h-8 rounded-lg bg-[#7B72F8] flex items-center justify-center
+  shadow-[0_0_16px_rgba(123,114,248,0.5)]">
   <FaPlay size={11} className="text-white ml-0.5" />
 </div>
 ```
@@ -601,7 +601,7 @@ import { GiCrossedSwords } from 'react-icons/gi';
 ✅ Icon: react-icons (svg emas)
 ✅ Spacing: Tailwind gap/space/p/m (inline style emas)
 ✅ Hover: transition-all yoki transition-colors har doim
-✅ Focus: focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/40
+✅ Focus: focus:outline-none focus:ring-2 focus:ring-[#7B72F8]/40
 ✅ Disabled: disabled:opacity-50 disabled:cursor-not-allowed
 
 ❌ Inline style (faqat background-image radial-gradient uchun ruxsat)
@@ -609,7 +609,7 @@ import { GiCrossedSwords } from 'react-icons/gi';
 ❌ Light background yoki white surface
 ❌ Rounded-3xl yoki yumalocroq chegaralar
 ❌ Red/green/blue primary rang (#E50914 ishlatma — bu eski loyiha rangi)
-   Hozirgi brand rang: #7C3AED (purple)
+   Hozirgi brand rang: #7B72F8 (purple)
 ```
 
 ---
@@ -626,12 +626,12 @@ export default function SomePage() {
       {/* 1. Page header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <SomeIcon size={22} className="text-[#7C3AED]" />
+          <SomeIcon size={22} className="text-[#7B72F8]" />
           <h1 className="text-3xl font-display text-white">SAHIFA NOMI</h1>
         </div>
-        <button className="flex items-center gap-2 h-9 px-4 rounded-xl bg-[#7C3AED]
-          text-white text-sm font-semibold hover:bg-[#6D28D9] transition-all
-          shadow-[0_0_16px_rgba(124,58,237,0.35)]">
+        <button className="flex items-center gap-2 h-9 px-4 rounded-xl bg-[#7B72F8]
+          text-white text-sm font-semibold hover:bg-[#6B63E8] transition-all
+          shadow-[0_0_16px_rgba(123,114,248,0.35)]">
           <FaPlus size={12} />
           Qo'shish
         </button>

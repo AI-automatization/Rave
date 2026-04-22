@@ -9,11 +9,11 @@ export function Footer() {
           {/* Brand */}
           <div className="flex-shrink-0">
             <Link href="/" className="inline-flex items-center gap-2 mb-3">
-              <div className="w-7 h-7 rounded-lg bg-[#7C3AED] flex items-center justify-center shadow-[0_0_12px_rgba(124,58,237,0.4)]">
+              <div className="w-7 h-7 rounded-lg bg-[#7B72F8] flex items-center justify-center shadow-[0_0_12px_rgba(123,114,248,0.4)]">
                 <FaPlay size={9} className="text-white ml-0.5" />
               </div>
               <span className="text-lg font-display text-white tracking-wide">
-                CINE<span className="text-[#7C3AED]">SYNC</span>
+                CINE<span className="text-[#7B72F8]">SYNC</span>
               </span>
             </Link>
             <p className="text-zinc-600 text-sm max-w-[200px] leading-relaxed">

@@ -43,7 +43,7 @@ export function HeroBanner({ movie }: Props) {
       <div className="absolute inset-0 bg-gradient-to-r from-[#0A0A0F] via-[#0A0A0F]/70 to-transparent" />
       <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0F] via-[#0A0A0F]/30 to-transparent" />
       {/* Violet tint */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_80%_at_0%_100%,rgba(124,58,237,0.18),transparent)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_80%_at_0%_100%,rgba(123,114,248,0.18),transparent)]" />
 
       {/* Content */}
       <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-10 max-w-2xl">
@@ -53,7 +53,7 @@ export function HeroBanner({ movie }: Props) {
           {genres.map((g) => (
             <span
               key={g}
-              className="px-2.5 py-0.5 rounded-md text-xs font-medium bg-[#7C3AED]/20 text-[#7C3AED] border border-[#7C3AED]/30"
+              className="px-2.5 py-0.5 rounded-md text-xs font-medium bg-[#7B72F8]/20 text-[#7B72F8] border border-[#7B72F8]/30"
             >
               {g}
             </span>
@@ -71,7 +71,7 @@ export function HeroBanner({ movie }: Props) {
         {/* Title */}
         <h1
           className="text-4xl md:text-6xl font-display text-white leading-none mb-3 uppercase"
-          style={{ textShadow: '0 0 60px rgba(124,58,237,0.35)' }}
+          style={{ textShadow: '0 0 60px rgba(123,114,248,0.35)' }}
         >
           {movie.title}
         </h1>
@@ -105,7 +105,7 @@ export function HeroBanner({ movie }: Props) {
         <div className="flex items-center gap-3 flex-wrap">
           <Link
             href={`/watch/${movie._id}`}
-            className="inline-flex items-center gap-2 h-11 px-6 rounded-xl bg-[#7C3AED] text-white font-semibold text-sm hover:bg-[#6D28D9] hover:shadow-[0_0_32px_rgba(124,58,237,0.7)] transition-all active:scale-95 shadow-[0_0_20px_rgba(124,58,237,0.4)]"
+            className="inline-flex items-center gap-2 h-11 px-6 rounded-xl bg-[#7B72F8] text-white font-semibold text-sm hover:bg-[#6B63E8] hover:shadow-[0_0_32px_rgba(123,114,248,0.7)] transition-all active:scale-95 shadow-[0_0_20px_rgba(123,114,248,0.4)]"
           >
             <FaPlay size={13} className="fill-current" />
             {t('watch')}

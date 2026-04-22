@@ -44,7 +44,7 @@ export function TopBar() {
       <div className="flex items-center gap-4 px-5 h-14">
         {/* Logo — mobile only */}
         <Link href="/home" className="lg:hidden text-xl font-display text-white tracking-[0.2em] flex-shrink-0">
-          CINE<span className="text-[#7C3AED]">SYNC</span>
+          CINE<span className="text-[#7B72F8]">SYNC</span>
         </Link>
 
         {/* Search */}
@@ -58,7 +58,7 @@ export function TopBar() {
               name="q"
               type="search"
               placeholder={t('searchPlaceholder')}
-              className="w-full h-9 pl-9 pr-4 rounded-xl bg-white/[0.05] border border-white/[0.08] text-sm text-zinc-300 placeholder-zinc-600 focus:outline-none focus:border-[#7C3AED]/50 focus:bg-white/[0.07] transition-all"
+              className="w-full h-9 pl-9 pr-4 rounded-xl bg-white/[0.05] border border-white/[0.08] text-sm text-zinc-300 placeholder-zinc-600 focus:outline-none focus:border-[#7B72F8]/50 focus:bg-white/[0.07] transition-all"
               aria-label={t('searchPlaceholder')}
             />
           </div>
@@ -84,7 +84,7 @@ export function TopBar() {
           {user ? (
             <Link
               href={`/profile/${user.username}`}
-              className="flex items-center justify-center w-8 h-8 rounded-lg overflow-hidden bg-[#7C3AED]/20 border border-[#7C3AED]/30 hover:border-[#7C3AED]/60 transition-all"
+              className="flex items-center justify-center w-8 h-8 rounded-lg overflow-hidden bg-[#7B72F8]/20 border border-[#7B72F8]/30 hover:border-[#7B72F8]/60 transition-all"
             >
               {user.avatar ? (
                 <Image
@@ -96,7 +96,7 @@ export function TopBar() {
                   unoptimized
                 />
               ) : (
-                <span className="text-xs font-bold text-[#7C3AED]">
+                <span className="text-xs font-bold text-[#7B72F8]">
                   {user.username[0].toUpperCase()}
                 </span>
               )}
@@ -104,7 +104,7 @@ export function TopBar() {
           ) : (
             <Link
               href="/login"
-              className="h-8 px-4 rounded-lg bg-[#7C3AED] text-white text-xs font-semibold hover:bg-[#6D28D9] hover:shadow-lg hover:shadow-violet-500/30 transition-all active:scale-95 inline-flex items-center"
+              className="h-8 px-4 rounded-lg bg-[#7B72F8] text-white text-xs font-semibold hover:bg-[#6B63E8] hover:shadow-lg hover:shadow-violet-500/30 transition-all active:scale-95 inline-flex items-center"
             >
               {tAuth('login')}
             </Link>

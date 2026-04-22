@@ -94,7 +94,7 @@ export default function JoinPartyPage() {
             <button
               onClick={() => void join(password)}
               disabled={!password || joining}
-              className="flex-1 h-10 rounded-xl bg-[#7C3AED] text-white text-sm font-semibold disabled:opacity-40 hover:bg-[#6D28D9] transition-colors"
+              className="flex-1 h-10 rounded-xl bg-[#7B72F8] text-white text-sm font-semibold disabled:opacity-40 hover:bg-[#6B63E8] transition-colors"
             >
               {joining ? 'Kirilmoqda...' : 'Kirish'}
             </button>

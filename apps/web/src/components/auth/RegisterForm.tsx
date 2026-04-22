@@ -107,7 +107,7 @@ export function RegisterForm() {
         <div className="text-5xl mb-4">✅</div>
         <h2 className="text-xl font-display text-white mb-2">Email tasdiqlandi!</h2>
         <p className="text-zinc-500 text-sm mb-5">Hisobingiz faollashtirildi. Endi kirishingiz mumkin.</p>
-        <Link href="/login" className="inline-flex items-center justify-center h-10 px-6 rounded-xl bg-[#7C3AED] text-white font-semibold hover:bg-[#6D28D9] hover:shadow-[0_0_25px_rgba(124,58,237,0.4)] transition-all active:scale-95 w-full">
+        <Link href="/login" className="inline-flex items-center justify-center h-10 px-6 rounded-xl bg-[#7B72F8] text-white font-semibold hover:bg-[#6B63E8] hover:shadow-[0_0_25px_rgba(123,114,248,0.4)] transition-all active:scale-95 w-full">
           {t('goToLogin')}
         </Link>
       </div>
@@ -121,7 +121,7 @@ export function RegisterForm() {
         <div className="text-5xl mb-4">✉️</div>
         <h2 className="text-xl font-display text-white mb-2">{t('emailVerifyTitle')}</h2>
         <p className="text-zinc-400 text-sm mb-1">{t('emailVerifyText')}</p>
-        <p className="text-[#7C3AED] text-sm font-medium mb-6">{registeredEmail}</p>
+        <p className="text-[#7B72F8] text-sm font-medium mb-6">{registeredEmail}</p>
 
         <div className="flex justify-center gap-2 mb-4" onPaste={handleOtpPaste}>
           {otpValues.map((val, i) => (
@@ -134,7 +134,7 @@ export function RegisterForm() {
               value={val}
               onChange={(e) => handleOtpChange(i, e.target.value)}
               onKeyDown={(e) => handleOtpKeyDown(i, e)}
-              className="w-11 h-14 text-center text-2xl font-bold rounded-xl bg-[#0A0A0F] border border-zinc-700 text-white focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/60 focus:border-[#7C3AED] transition-colors"
+              className="w-11 h-14 text-center text-2xl font-bold rounded-xl bg-[#0A0A0F] border border-zinc-700 text-white focus:outline-none focus:ring-2 focus:ring-[#7B72F8]/60 focus:border-[#7B72F8] transition-colors"
             />
           ))}
         </div>
@@ -146,7 +146,7 @@ export function RegisterForm() {
         <button
           onClick={handleVerify}
           disabled={isVerifying || otpValues.join('').length < 6}
-          className="w-full h-11 rounded-xl bg-[#7C3AED] text-white font-semibold hover:bg-[#6D28D9] hover:shadow-[0_0_25px_rgba(124,58,237,0.5)] transition-all duration-300 active:scale-[0.98] disabled:opacity-55 disabled:cursor-not-allowed shadow-[0_0_16px_rgba(124,58,237,0.3)] flex items-center justify-center gap-2"
+          className="w-full h-11 rounded-xl bg-[#7B72F8] text-white font-semibold hover:bg-[#6B63E8] hover:shadow-[0_0_25px_rgba(123,114,248,0.5)] transition-all duration-300 active:scale-[0.98] disabled:opacity-55 disabled:cursor-not-allowed shadow-[0_0_16px_rgba(123,114,248,0.3)] flex items-center justify-center gap-2"
         >
           {isVerifying ? (
             <>
@@ -163,7 +163,7 @@ export function RegisterForm() {
     <div className="bg-[#111118] rounded-2xl shadow-2xl border border-zinc-800 p-7">
       <div className="text-center mb-6">
         <h1 className="text-3xl font-display text-white">
-          CINE<span className="text-[#7C3AED]">SYNC</span>
+          CINE<span className="text-[#7B72F8]">SYNC</span>
         </h1>
         <p className="text-zinc-500 text-sm mt-1">{t('registerTitle')}</p>
       </div>
@@ -181,7 +181,7 @@ export function RegisterForm() {
             {...register('username')}
             type="text"
             placeholder="username"
-            className="w-full h-10 px-3.5 rounded-xl bg-[#0A0A0F] border border-zinc-800 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/40 focus:border-[#7C3AED]/60 transition-colors"
+            className="w-full h-10 px-3.5 rounded-xl bg-[#0A0A0F] border border-zinc-800 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-[#7B72F8]/40 focus:border-[#7B72F8]/60 transition-colors"
             autoComplete="username"
           />
           {errors.username && (
@@ -195,7 +195,7 @@ export function RegisterForm() {
             {...register('email')}
             type="email"
             placeholder="email@example.com"
-            className="w-full h-10 px-3.5 rounded-xl bg-[#0A0A0F] border border-zinc-800 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/40 focus:border-[#7C3AED]/60 transition-colors"
+            className="w-full h-10 px-3.5 rounded-xl bg-[#0A0A0F] border border-zinc-800 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-[#7B72F8]/40 focus:border-[#7B72F8]/60 transition-colors"
             autoComplete="email"
           />
           {errors.email && (
@@ -209,7 +209,7 @@ export function RegisterForm() {
             {...register('password')}
             type="password"
             placeholder="••••••••"
-            className="w-full h-10 px-3.5 rounded-xl bg-[#0A0A0F] border border-zinc-800 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/40 focus:border-[#7C3AED]/60 transition-colors"
+            className="w-full h-10 px-3.5 rounded-xl bg-[#0A0A0F] border border-zinc-800 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-[#7B72F8]/40 focus:border-[#7B72F8]/60 transition-colors"
             autoComplete="new-password"
           />
           {errors.password && (
@@ -223,7 +223,7 @@ export function RegisterForm() {
             {...register('confirmPassword')}
             type="password"
             placeholder="••••••••"
-            className="w-full h-10 px-3.5 rounded-xl bg-[#0A0A0F] border border-zinc-800 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/40 focus:border-[#7C3AED]/60 transition-colors"
+            className="w-full h-10 px-3.5 rounded-xl bg-[#0A0A0F] border border-zinc-800 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-[#7B72F8]/40 focus:border-[#7B72F8]/60 transition-colors"
             autoComplete="new-password"
           />
           {errors.confirmPassword && (
@@ -234,7 +234,7 @@ export function RegisterForm() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full h-11 rounded-xl bg-[#7C3AED] text-white font-semibold hover:bg-[#6D28D9] hover:shadow-[0_0_25px_rgba(124,58,237,0.5)] transition-all duration-300 active:scale-[0.98] mt-1 disabled:opacity-55 disabled:cursor-not-allowed shadow-[0_0_16px_rgba(124,58,237,0.3)] flex items-center justify-center gap-2"
+          className="w-full h-11 rounded-xl bg-[#7B72F8] text-white font-semibold hover:bg-[#6B63E8] hover:shadow-[0_0_25px_rgba(123,114,248,0.5)] transition-all duration-300 active:scale-[0.98] mt-1 disabled:opacity-55 disabled:cursor-not-allowed shadow-[0_0_16px_rgba(123,114,248,0.3)] flex items-center justify-center gap-2"
         >
           {isSubmitting ? (
             <>
@@ -247,7 +247,7 @@ export function RegisterForm() {
 
       <p className="text-center text-sm text-zinc-500 mt-5">
         {t('hasAccount')}{' '}
-        <Link href="/login" className="text-[#7C3AED] hover:text-violet-400 transition-colors font-medium">
+        <Link href="/login" className="text-[#7B72F8] hover:text-violet-400 transition-colors font-medium">
           {t('loginLink')}
         </Link>
       </p>

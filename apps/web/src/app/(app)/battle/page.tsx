@@ -75,12 +75,12 @@ export default function BattlePage() {
       {/* ── Header ─────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <GiCrossedSwords size={22} className="text-[#7C3AED]" />
+          <GiCrossedSwords size={22} className="text-[#7B72F8]" />
           <h1 className="text-3xl font-display text-white">{t('title')}</h1>
         </div>
         <button
           onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 h-9 px-4 rounded-xl bg-[#7C3AED] text-white text-sm font-semibold hover:bg-[#6D28D9] shadow-[0_0_16px_rgba(124,58,237,0.35)] hover:shadow-[0_0_20px_rgba(124,58,237,0.5)] transition-all"
+          className="flex items-center gap-2 h-9 px-4 rounded-xl bg-[#7B72F8] text-white text-sm font-semibold hover:bg-[#6B63E8] shadow-[0_0_16px_rgba(123,114,248,0.35)] hover:shadow-[0_0_20px_rgba(123,114,248,0.5)] transition-all"
         >
           <FaPlus size={12} />
           {t('newBattle')}
@@ -100,7 +100,7 @@ export default function BattlePage() {
               {/* Modal header */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <GiCrossedSwords size={18} className="text-[#7C3AED]" />
+                  <GiCrossedSwords size={18} className="text-[#7B72F8]" />
                   <h3 className="font-display text-xl text-white">{t('createTitle')}</h3>
                 </div>
                 <button
@@ -131,7 +131,7 @@ export default function BattlePage() {
                     onChange={(e) => setOpponentUsername(e.target.value)}
                     placeholder="username"
                     required
-                    className="w-full h-10 px-3.5 rounded-xl bg-[#0A0A0F] border border-white/[0.08] text-zinc-200 text-sm placeholder-zinc-600 focus:outline-none focus:border-[#7C3AED]/50 focus:ring-1 focus:ring-[#7C3AED]/30 transition-all"
+                    className="w-full h-10 px-3.5 rounded-xl bg-[#0A0A0F] border border-white/[0.08] text-zinc-200 text-sm placeholder-zinc-600 focus:outline-none focus:border-[#7B72F8]/50 focus:ring-1 focus:ring-[#7B72F8]/30 transition-all"
                   />
                 </div>
 
@@ -148,7 +148,7 @@ export default function BattlePage() {
                         onClick={() => setDuration(d)}
                         className={`h-9 rounded-xl text-sm font-semibold transition-all ${
                           duration === d
-                            ? 'bg-[#7C3AED] text-white shadow-[0_0_12px_rgba(124,58,237,0.4)]'
+                            ? 'bg-[#7B72F8] text-white shadow-[0_0_12px_rgba(123,114,248,0.4)]'
                             : 'bg-white/[0.04] border border-white/[0.06] text-zinc-400 hover:border-white/10 hover:text-zinc-300'
                         }`}
                       >
@@ -162,7 +162,7 @@ export default function BattlePage() {
                 <button
                   type="submit"
                   disabled={creating}
-                  className="w-full h-10 rounded-xl bg-[#7C3AED] text-white text-sm font-semibold hover:bg-[#6D28D9] disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+                  className="w-full h-10 rounded-xl bg-[#7B72F8] text-white text-sm font-semibold hover:bg-[#6B63E8] disabled:opacity-50 transition-all flex items-center justify-center gap-2"
                 >
                   {creating ? (
                     <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
@@ -192,7 +192,7 @@ export default function BattlePage() {
           <p className="text-zinc-600 text-xs mb-5">Raqibingizni tanlang va jang boshlang</p>
           <button
             onClick={() => setShowForm(true)}
-            className="h-9 px-5 rounded-xl bg-[#7C3AED] text-white text-sm font-semibold hover:bg-[#6D28D9] transition-all"
+            className="h-9 px-5 rounded-xl bg-[#7B72F8] text-white text-sm font-semibold hover:bg-[#6B63E8] transition-all"
           >
             {t('firstBattle')}
           </button>

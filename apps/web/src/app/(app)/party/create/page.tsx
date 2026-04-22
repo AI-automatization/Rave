@@ -176,7 +176,7 @@ export default function CreatePartyPage() {
                 placeholder="Film qidirish..."
                 value={search}
                 onChange={(e) => handleSearchChange(e.target.value)}
-                className="w-full bg-[#111118] border border-white/[0.08] rounded-xl pl-9 pr-4 py-2 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-[#7C3AED]/50 transition-colors"
+                className="w-full bg-[#111118] border border-white/[0.08] rounded-xl pl-9 pr-4 py-2 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-[#7B72F8]/50 transition-colors"
               />
             </div>
           </div>
@@ -225,7 +225,7 @@ export default function CreatePartyPage() {
                       onClick={() => handleSelectMovie(movie)}
                       className={`relative rounded-xl overflow-hidden border-2 transition-all text-left ${
                         isSelected
-                          ? 'border-[#7C3AED] shadow-lg shadow-[#7C3AED]/30 scale-[1.02]'
+                          ? 'border-[#7B72F8] shadow-lg shadow-[#7B72F8]/30 scale-[1.02]'
                           : 'border-transparent hover:border-white/20 hover:scale-[1.01]'
                       }`}
                     >
@@ -244,8 +244,8 @@ export default function CreatePartyPage() {
                           </div>
                         )}
                         {isSelected && (
-                          <div className="absolute inset-0 bg-[#7C3AED]/40 flex items-center justify-center">
-                            <div className="w-7 h-7 rounded-full bg-[#7C3AED] flex items-center justify-center shadow-lg">
+                          <div className="absolute inset-0 bg-[#7B72F8]/40 flex items-center justify-center">
+                            <div className="w-7 h-7 rounded-full bg-[#7B72F8] flex items-center justify-center shadow-lg">
                               <FaCheck size={12} className="text-white" />
                             </div>
                           </div>
@@ -268,7 +268,7 @@ export default function CreatePartyPage() {
 
             {/* Selected movie preview */}
             {selectedMovie && (
-              <div className="flex items-center gap-3 p-3 rounded-xl bg-[#7C3AED]/10 border border-[#7C3AED]/20">
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-[#7B72F8]/10 border border-[#7B72F8]/20">
                 <div className="relative w-10 h-14 rounded-lg overflow-hidden shrink-0">
                   {(selectedMovie.posterUrl || selectedMovie.poster) ? (
                     <Image
@@ -279,13 +279,13 @@ export default function CreatePartyPage() {
                       unoptimized
                     />
                   ) : (
-                    <div className="w-full h-full bg-[#7C3AED]/20 flex items-center justify-center">
-                      <FaFilm size={14} className="text-[#7C3AED]" />
+                    <div className="w-full h-full bg-[#7B72F8]/20 flex items-center justify-center">
+                      <FaFilm size={14} className="text-[#7B72F8]" />
                     </div>
                   )}
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs font-semibold text-[#7C3AED]">Tanlangan film</p>
+                  <p className="text-xs font-semibold text-[#7B72F8]">Tanlangan film</p>
                   <p className="text-sm text-white font-medium line-clamp-2 mt-0.5">{selectedMovie.title}</p>
                 </div>
               </div>
@@ -301,11 +301,11 @@ export default function CreatePartyPage() {
                 placeholder="https://youtube.com/watch?v=..."
                 value={videoUrl}
                 onChange={(e) => handleUrlChange(e.target.value)}
-                className="w-full bg-[#111118] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-[#7C3AED]/50 transition-colors"
+                className="w-full bg-[#111118] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-[#7B72F8]/50 transition-colors"
               />
               {urlPlatform && videoUrl && (
                 <p className="text-[11px] text-slate-500">
-                  Platforma: <span className="text-[#7C3AED] font-medium">{urlPlatform}</span>
+                  Platforma: <span className="text-[#7B72F8] font-medium">{urlPlatform}</span>
                 </p>
               )}
             </div>
@@ -319,7 +319,7 @@ export default function CreatePartyPage() {
                 value={roomName}
                 onChange={(e) => setRoomName(e.target.value)}
                 maxLength={50}
-                className="w-full bg-[#111118] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-[#7C3AED]/50 transition-colors"
+                className="w-full bg-[#111118] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-[#7B72F8]/50 transition-colors"
               />
             </div>
 
@@ -381,7 +381,7 @@ export default function CreatePartyPage() {
             <button
               onClick={() => void handleCreate()}
               disabled={!canCreate || creating}
-              className="w-full h-11 rounded-2xl bg-[#7C3AED] text-white font-bold text-sm disabled:opacity-40 hover:bg-[#6D28D9] transition-all shadow-lg shadow-[#7C3AED]/20 flex items-center justify-center gap-2 active:scale-95"
+              className="w-full h-11 rounded-2xl bg-[#7B72F8] text-white font-bold text-sm disabled:opacity-40 hover:bg-[#6B63E8] transition-all shadow-lg shadow-[#7B72F8]/20 flex items-center justify-center gap-2 active:scale-95"
             >
               {creating ? (
                 <><FaSpinner size={13} className="animate-spin" /> Yaratilmoqda...</>

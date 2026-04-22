@@ -133,8 +133,8 @@ export function CreateRoomModal({ onClose }: CreateRoomModalProps) {
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.08]">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-[#7C3AED]/20 flex items-center justify-center">
-              <FaPlay size={10} className="text-[#7C3AED] ml-0.5" />
+            <div className="w-7 h-7 rounded-lg bg-[#7B72F8]/20 flex items-center justify-center">
+              <FaPlay size={10} className="text-[#7B72F8] ml-0.5" />
             </div>
             <h2 className="text-sm font-semibold text-white">Xona yaratish</h2>
           </div>
@@ -161,10 +161,10 @@ export function CreateRoomModal({ onClose }: CreateRoomModalProps) {
                 onChange={handleUrlChange}
                 onBlur={handleUrlBlur}
                 onKeyDown={handleUrlKeyDown}
-                className="w-full bg-[#0a0a0f] border border-white/10 rounded-xl pl-9 pr-10 py-2.5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-[#7C3AED]/50 transition-colors"
+                className="w-full bg-[#0a0a0f] border border-white/10 rounded-xl pl-9 pr-10 py-2.5 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-[#7B72F8]/50 transition-colors"
               />
               {fetchState === 'loading' && (
-                <FaSpinner size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#7C3AED] animate-spin" />
+                <FaSpinner size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#7B72F8] animate-spin" />
               )}
               {fetchState === 'success' && (
                 <FaCheckCircle size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-400" />
@@ -277,7 +277,7 @@ export function CreateRoomModal({ onClose }: CreateRoomModalProps) {
           <button
             onClick={() => void handleCreate()}
             disabled={!canCreate}
-            className="w-full h-10 rounded-xl bg-[#7C3AED] text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#6D28D9] transition-colors flex items-center justify-center gap-2"
+            className="w-full h-10 rounded-xl bg-[#7B72F8] text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#6B63E8] transition-colors flex items-center justify-center gap-2"
           >
             {creating ? (
               <><FaSpinner size={13} className="animate-spin" /> Yaratilmoqda...</>
