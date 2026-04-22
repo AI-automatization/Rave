@@ -145,6 +145,7 @@ export class MovieService {
     const movie = await Movie.findByIdAndUpdate(movieId, { $set: { isPublished } }, { new: true });
     if (!movie) throw new NotFoundError('Movie not found');
     await this.redis.del(REDIS_KEYS.movieCache(movieId));
+    await this.indexMovieInElastic(movie);
     logger.info('Movie publish status changed via admin', { movieId, isPublished });
   }
 
@@ -158,6 +159,7 @@ export class MovieService {
     const movie = await Movie.findByIdAndUpdate(movieId, { $set: safeData }, { new: true });
     if (!movie) throw new NotFoundError('Movie not found');
     await this.redis.del(REDIS_KEYS.movieCache(movieId));
+    await this.indexMovieInElastic(movie);
     logger.info('Movie updated by operator via admin API', { movieId });
   }
 

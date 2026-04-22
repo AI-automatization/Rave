@@ -20,6 +20,15 @@
 
 ---
 
+### F-206 | 2026-04-22 | [BACKEND] | T-S064 — Elasticsearch stale index bug fix [Saidazim]
+
+- `services/content/src/services/movie.service.ts`:
+  - `adminPublishMovie`: `findByIdAndUpdate` + Redis `del` + **`await this.indexMovieInElastic(movie)`** — исправлено
+  - `adminOperatorUpdateMovie`: аналогично — `indexMovieInElastic` добавлен
+  - Теперь `isPublished`, `title`, `description`, `genre` изменения немедленно отражаются в Elasticsearch поиске
+
+---
+
 ### F-204 | 2026-04-21 | [BACKEND] | T-S063 — Telegram Share Room bot [Saidazim]
 
 - `services/notification/src/services/telegram.service.ts` (новый):

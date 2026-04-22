@@ -14,8 +14,8 @@
 3. Fix bo'lgach → shu yerdan O'CHIRISH → docs/Done.md ga KO'CHIRISH
 4. Prioritet: P0=kritik, P1=muhim, P2=o'rta, P3=past
 5. Sprint: S1=hozir, S2=keyingi hafta, S3=keyingi sprint, S4-5=keyin
-6. Oxirgi T-raqam: S→063, E→110, C→016
-7. Yangilangan: 2026-04-21
+6. Oxirgi T-raqam: S→064, E→110, C→016
+7. Yangilangan: 2026-04-22
 ```
 
 ---
