@@ -39,9 +39,9 @@
 
 ### T-E106 | P1 | [MOBILE] | Live reactions UI — floating emoji during watch party
 
-- **Mas'ul:**
+- **Mas'ul:** pending[Emirhan]
 - **Yaratilgan:** 2026-04-22 12:20
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 Jarayonda
 - **Sabab:** Backend T-S058 tayyor — socket events `reaction:send` + `reaction:broadcast` ishlaydi
 - **Qilish kerak:**
   - [ ] `WatchPartyScreen` da emoji picker (bottom bar yoki floating button)
