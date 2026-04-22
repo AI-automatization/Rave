@@ -17,7 +17,7 @@ export class GoogleAuthService {
     picture: string;
   }> {
     // Accept both Web and Android client IDs as valid audiences (BUG #14 fix)
-    const audiences = [config.google.clientId, config.google.androidClientId].filter(Boolean);
+    const audiences = [config.google.clientId, config.google.androidClientId, config.google.iosClientId].filter(Boolean);
     const client = new OAuth2Client(config.google.clientId);
     let ticket;
     try {

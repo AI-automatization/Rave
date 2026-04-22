@@ -35,6 +35,7 @@ export const config = {
     clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '',
     callbackUrl: process.env.GOOGLE_CALLBACK_URL ?? 'http://localhost:3001/auth/google/callback',
     androidClientId: process.env.GOOGLE_ANDROID_CLIENT_ID ?? '',
+    iosClientId: process.env.GOOGLE_IOS_CLIENT_ID ?? '',
   },
 
   clientUrl: process.env.CLIENT_URL ?? 'http://localhost:3000',
