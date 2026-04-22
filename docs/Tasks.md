@@ -14,7 +14,7 @@
 3. Fix bo'lgach → shu yerdan O'CHIRISH → docs/Done.md ga KO'CHIRISH
 4. Prioritet: P0=kritik, P1=muhim, P2=o'rta, P3=past
 5. Sprint: S1=hozir, S2=keyingi hafta, S3=keyingi sprint, S4-5=keyin
-6. Oxirgi T-raqam: S→063, E→105, C→016
+6. Oxirgi T-raqam: S→063, E→110, C→016
 7. Yangilangan: 2026-04-21
 ```
 
@@ -36,6 +36,84 @@
 
 ---
 
+
+### T-E106 | P1 | [MOBILE] | Live reactions UI — floating emoji during watch party
+
+- **Mas'ul:**
+- **Yaratilgan:** 2026-04-22 12:20
+- **Holat:** ❌ Boshlanmagan
+- **Sabab:** Backend T-S058 tayyor — socket events `reaction:send` + `reaction:broadcast` ishlaydi
+- **Qilish kerak:**
+  - [ ] `WatchPartyScreen` da emoji picker (bottom bar yoki floating button)
+  - [ ] `CLIENT_EVENTS.SEND_REACTION` emit: `{ emoji }` — socket ga yuborish
+  - [ ] `SERVER_EVENTS.REACTION_BROADCAST` listener: `{ userId, emoji, timestamp }` qabul qilish
+  - [ ] Floating emoji animation: ekranda yuqoriga ko'tariluvchi emoji (Animated.Value)
+  - [ ] Whitelist: ❤️ 😂 🔥 👏 😮 😢 🎉 👍 💯 🍿 (qisqa picker)
+  - [ ] Rate limit UI: 10/sec dan ortiq yuborishni frontend da ham cheklash
+
+---
+
+### T-E107 | P1 | [MOBILE] | Playlist UI — Watch Party queue (owner controls)
+
+- **Mas'ul:**
+- **Yaratilgan:** 2026-04-22 12:20
+- **Holat:** ❌ Boshlanmagan
+- **Sabab:** Backend T-S060 tayyor — playlist CRUD + `playlist:updated` socket event
+- **Qilish kerak:**
+  - [ ] `SERVER_EVENTS.PLAYLIST_UPDATED` listener → playlist state yangilash
+  - [ ] Owner uchun: "Add to queue" tugmasi (SourcePicker flow ga bog'lash)
+  - [ ] `POST /rooms/:id/playlist` — video qo'shish
+  - [ ] `DELETE /rooms/:id/playlist/:index` — o'chirish
+  - [ ] `POST /rooms/:id/playlist/next` — keyingi video (owner only)
+  - [ ] Playlist UI: WatchPartyScreen da collapsible list (non-owner faqat ko'radi)
+  - [ ] `ROOM_UPDATED` event qabul → yangi videoUrl ni player ga uzatish
+
+---
+
+### T-E108 | P2 | [MOBILE] | Recent rooms screen — oxirgi ko'rilgan xonalar
+
+- **Mas'ul:**
+- **Yaratilgan:** 2026-04-22 12:20
+- **Holat:** ❌ Boshlanmagan
+- **Sabab:** Backend T-S061 tayyor — `GET /watch-party/rooms/my/recent` endpoint
+- **Qilish kerak:**
+  - [ ] `GET /watch-party/rooms/my/recent` API chaqiruvi
+  - [ ] WatchPartyCreateScreen yoki HomeScreen da "Recent rooms" tab/section
+  - [ ] Room card: name/title, memberCount, status, lastActivityAt
+  - [ ] Tap → joinRoom (inviteCode orqali)
+  - [ ] Empty state: "Hali xona yo'q"
+
+---
+
+### T-E109 | P2 | [MOBILE] | Public rooms discovery — ochiq xonalar lenti
+
+- **Mas'ul:**
+- **Yaratilgan:** 2026-04-22 12:20
+- **Holat:** ❌ Boshlanmagan
+- **Sabab:** Backend T-S062 tayyor — `GET /watch-party/rooms/public/active` (memberCount bo'yicha)
+- **Qilish kerak:**
+  - [ ] `GET /watch-party/rooms/public/active` API chaqiruvi
+  - [ ] SourcePickerScreen yoki yangi DiscoverScreen da "Live rooms" section
+  - [ ] Room card: videoTitle, memberCount badge, status indicator (🟢 playing / 🟡 waiting)
+  - [ ] Pull-to-refresh (30s cache bo'lgani uchun)
+  - [ ] Tap → joinRoom flow (private room bo'lsa password modal)
+
+---
+
+### T-E110 | P2 | [MOBILE] | Telegram Share room — native share sheet
+
+- **Mas'ul:**
+- **Yaratilgan:** 2026-04-22 12:20
+- **Holat:** ❌ Boshlanmagan
+- **Sabab:** Backend T-S063 tayyor — `@gatsCinema_bot` webhook ishlaydi
+- **Qilish kerak:**
+  - [ ] `GET /notifications/telegram/share-link?inviteCode=XXXX` API chaqiruvi
+  - [ ] WatchPartyScreen da "Share" tugmasi (owner + member uchun)
+  - [ ] `Share.share()` (React Native built-in) — link + "Join me on Rave!"
+  - [ ] Deep link handler: `cinesync://join/:inviteCode` → joinRoom flow
+  - [ ] `app.json` da `scheme: "cinesync"` va Linking config tekshirish
+
+---
 
 ### T-E081 | P1 | [MOBILE] | Real qurilmada smoke test (Expo Go)
 
