@@ -4,6 +4,21 @@
 
 ---
 
+### T-E107 | 2026-04-22 | [MOBILE] | Playlist UI — Watch Party queue (owner controls) [Emirhan]
+
+- **Bajarildi:**
+  - `shared/types`: `IWatchPartyRoom.playlist?: VideoItem[]` qo'shildi
+  - `watchParty.api.ts`: `addToPlaylist`, `removeFromPlaylist`, `playNext` metodlari
+  - `watchParty.store.ts`: `playlist` state + `setPlaylist` action
+  - `useWatchParty.ts`: `PLAYLIST_UPDATED` listener + `ROOM_JOINED`'dan init
+  - `useWatchPartyRoom.ts`: `handleAddToQueue`, `handlePlaylistRemove`, `handlePlaylistNext`
+  - `SourcePicker` + `MediaWebView`: `queue` mode → `POST /playlist` (CHANGE_MEDIA emas)
+  - `PlaylistPanel.tsx`: yangi komponent — owner add/remove/playNext, viewer read-only
+  - `WatchPartyScreen.tsx`: playlist FAB (badge), PlaylistPanel integration
+- **tsc:** CLEAN | **10 fayl o'zgartirildi**
+
+---
+
 ### T-E106 | 2026-04-22 | [MOBILE] | Live reactions UI — floating emoji during watch party [Emirhan]
 
 - **Bajarildi:**

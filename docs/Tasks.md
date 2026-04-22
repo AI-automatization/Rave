@@ -38,22 +38,6 @@
 
 
 
-### T-E107 | P1 | [MOBILE] | Playlist UI — Watch Party queue (owner controls)
-
-- **Mas'ul:** pending[Emirhan]
-- **Yaratilgan:** 2026-04-22 12:20
-- **Holat:** 🔄 Jarayonda
-- **Sabab:** Backend T-S060 tayyor — playlist CRUD + `playlist:updated` socket event
-- **Qilish kerak:**
-  - [ ] `SERVER_EVENTS.PLAYLIST_UPDATED` listener → playlist state yangilash
-  - [ ] Owner uchun: "Add to queue" tugmasi (SourcePicker flow ga bog'lash)
-  - [ ] `POST /rooms/:id/playlist` — video qo'shish
-  - [ ] `DELETE /rooms/:id/playlist/:index` — o'chirish
-  - [ ] `POST /rooms/:id/playlist/next` — keyingi video (owner only)
-  - [ ] Playlist UI: WatchPartyScreen da collapsible list (non-owner faqat ko'radi)
-  - [ ] `ROOM_UPDATED` event qabul → yangi videoUrl ni player ga uzatish
-
----
 
 ### T-E108 | P2 | [MOBILE] | Recent rooms screen — oxirgi ko'rilgan xonalar
 
