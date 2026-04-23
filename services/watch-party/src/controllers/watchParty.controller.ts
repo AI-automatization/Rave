@@ -189,7 +189,7 @@ export class WatchPartyController {
       const { userId } = (req as AuthenticatedRequest).user;
       const roomId = req.params.id;
       await this.watchPartyService.closeRoom(userId, roomId);
-      this.io.to(roomId).emit(SERVER_EVENTS.ROOM_CLOSED, { reason: 'owner_closed' });
+      this.io.to(roomId).emit(SERVER_EVENTS.ROOM_CLOSED, { reason: 'owner_left' });
       res.json(apiResponse.success(null, 'Room closed'));
     } catch (error) {
       next(error);

@@ -59,7 +59,7 @@ export const registerWatchPartySocket = (io: SocketServer, watchPartyService: Wa
   // On startup: close rooms that have been inactive for more than 30 minutes (not ALL rooms)
   void watchPartyService.closeInactiveRooms(30).then((ids) => {
     for (const roomId of ids) {
-      io.to(roomId).emit(SERVER_EVENTS.ROOM_CLOSED, { reason: 'inactive' });
+      io.to(roomId).emit(SERVER_EVENTS.ROOM_CLOSED, { reason: 'inactivity' });
     }
     if (ids.length > 0) logger.info('Startup: closed stale rooms', { count: ids.length });
   }).catch((err: Error) => logger.error('Startup room cleanup error', { error: err.message }));
@@ -69,7 +69,7 @@ export const registerWatchPartySocket = (io: SocketServer, watchPartyService: Wa
     try {
       const closedIds = await watchPartyService.closeInactiveRooms(INACTIVE_THRESHOLD_MINUTES);
       for (const roomId of closedIds) {
-        io.to(roomId).emit(SERVER_EVENTS.ROOM_CLOSED, { reason: 'inactive' });
+        io.to(roomId).emit(SERVER_EVENTS.ROOM_CLOSED, { reason: 'inactivity' });
       }
       await watchPartyService.purgeEndedRooms(60);
     } catch (err) {
