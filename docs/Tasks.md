@@ -41,7 +41,7 @@
 
 ### T-E108 | P2 | [MOBILE] | Recent rooms screen — oxirgi ko'rilgan xonalar
 
-- **Mas'ul:**
+- **Mas'ul:** pending[Emirhan]
 - **Yaratilgan:** 2026-04-22 12:20
 - **Holat:** ❌ Boshlanmagan
 - **Sabab:** Backend T-S061 tayyor — `GET /watch-party/rooms/my/recent` endpoint
@@ -56,7 +56,7 @@
 
 ### T-E109 | P2 | [MOBILE] | Public rooms discovery — ochiq xonalar lenti
 
-- **Mas'ul:**
+- **Mas'ul:** pending[Emirhan]
 - **Yaratilgan:** 2026-04-22 12:20
 - **Holat:** ❌ Boshlanmagan
 - **Sabab:** Backend T-S062 tayyor — `GET /watch-party/rooms/public/active` (memberCount bo'yicha)
