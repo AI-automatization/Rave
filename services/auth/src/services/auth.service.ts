@@ -19,7 +19,7 @@ export class AuthService {
 
   constructor(redis: Redis) {
     this.password = new PasswordAuthService(redis);
-    this.google = new GoogleAuthService(this.password);
+    this.google = new GoogleAuthService(this.password, redis);
     this.telegram = new TelegramAuthService(redis, this.password);
   }
 
@@ -100,6 +100,21 @@ export class AuthService {
 
   findOrCreateGoogleUser = (profile: Parameters<GoogleAuthService['findOrCreateGoogleUser']>[0]) =>
     this.google.findOrCreateGoogleUser(profile);
+
+  initMobileGoogleAuth = () =>
+    this.google.initMobileGoogleAuth();
+
+  isMobileGoogleState = (state: string) =>
+    this.google.isMobileGoogleState(state);
+
+  storeMobileGoogleResult = (state: string, data: object) =>
+    this.google.storeMobileGoogleResult(state, data);
+
+  pollMobileGoogleResult = (state: string) =>
+    this.google.pollMobileGoogleResult(state);
+
+  exchangeCodeForIdToken = (code: string) =>
+    this.google.exchangeCodeForIdToken(code);
 
   // ─── Telegram Auth delegates ─────────────────────────────────────────────────
 

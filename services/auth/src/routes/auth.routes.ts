@@ -60,16 +60,28 @@ export const createAuthRouter = (redis: Redis): Router => {
 
   // Google OAuth
   router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
-  router.get(
-    '/google/callback',
-    passport.authenticate('google', { session: false, failureRedirect: '/auth/login-failed' }),
-    authController.googleCallback,
-  );
+  const googlePassportCallback = passport.authenticate('google', {
+    session: false,
+    failureRedirect: '/auth/login-failed',
+  });
+  router.get('/google/callback', (req, res, next) => {
+    const state = req.query.state as string | undefined;
+    if (state?.startsWith('m:')) {
+      authController.googleMobileCallback(req, res, next);
+      return;
+    }
+    googlePassportCallback(req, res, next);
+  }, authController.googleCallback);
   // POST /auth/google/token — Mobile: idToken → accessToken + refreshToken
   router.post('/google/token', authRateLimiter, validate(googleIdTokenSchema), authController.googleNativeToken);
 
   // POST /auth/google/exchange — temp code → tokens (one-time, 2 min TTL)
   router.post('/google/exchange', authController.googleExchange);
+
+  // Mobile polling flow (works in Expo Go without a build)
+  router.post('/google/init', authRateLimiter, authController.googleMobileInit);
+  router.get('/google/mobile', authController.googleMobileRedirect);
+  router.get('/google/poll', authController.googleMobilePoll);
 
   // Telegram auth (mobile)
   router.post('/telegram/login', authRateLimiter, authController.telegramLogin);   // hash verify → JWT

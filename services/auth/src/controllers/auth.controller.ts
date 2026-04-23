@@ -194,6 +194,80 @@ export class AuthController {
     }
   };
 
+  // POST /auth/google/init — mobile: generate state UUID for polling flow
+  googleMobileInit = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const state = await this.authService.initMobileGoogleAuth();
+      res.json(apiResponse.success({ state }, 'Google mobile auth initiated'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // GET /auth/google/mobile?state=UUID — redirect to Google OAuth (mobile flow)
+  googleMobileRedirect = async (req: Request, res: Response): Promise<void> => {
+    const state = req.query.state as string;
+    const isValid = state ? await this.authService.isMobileGoogleState(state) : false;
+    if (!isValid) {
+      res.status(400).send('<html><body>Invalid or expired state. Please try again.</body></html>');
+      return;
+    }
+    const params = new URLSearchParams({
+      client_id: process.env.GOOGLE_CLIENT_ID ?? '',
+      redirect_uri: process.env.GOOGLE_CALLBACK_URL ?? '',
+      response_type: 'code',
+      scope: 'openid profile email',
+      state: `m:${state}`,
+      access_type: 'offline',
+      prompt: 'select_account',
+    });
+    res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
+  };
+
+  // GET /auth/google/callback — mobile branch (state starts with "m:")
+  googleMobileCallback = async (req: Request, res: Response, _next: NextFunction): Promise<void> => {
+    const { code, state } = req.query as { code?: string; state?: string };
+    const mobileState = (state ?? '').replace('m:', '');
+
+    const successHtml = `<html><body style="background:#0A0A0F;color:#fff;font-family:sans-serif;text-align:center;padding:60px">
+      <h2 style="color:#7B72F8">✓ Вход выполнен!</h2><p>Вернитесь в приложение Rave.</p></body></html>`;
+    const errorHtml = `<html><body style="background:#0A0A0F;color:#fff;font-family:sans-serif;text-align:center;padding:60px">
+      <h2>❌ Ошибка входа</h2><p>Попробуйте снова в приложении.</p></body></html>`;
+
+    if (!code) { res.send(errorHtml); return; }
+    try {
+      const idToken = await this.authService.exchangeCodeForIdToken(code);
+      const profile = await this.authService.verifyGoogleIdToken(idToken);
+      const user = await this.authService.findOrCreateGoogleUser(profile);
+      const { accessToken, refreshToken } = await this.authService.generateAndStoreTokens(
+        user._id.toString(), user.email,
+        user.role as import('@shared/types').UserRole,
+        req.ip ?? null, req.headers['user-agent'] ?? null,
+      );
+      await this.authService.storeMobileGoogleResult(mobileState, {
+        user: user.toObject(),
+        accessToken,
+        refreshToken,
+      });
+      res.send(successHtml);
+    } catch {
+      res.send(errorHtml);
+    }
+  };
+
+  // GET /auth/google/poll?state=UUID — mobile: poll for tokens
+  googleMobilePoll = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { state } = req.query as { state: string };
+      if (!state) { res.status(400).json(apiResponse.error('state is required')); return; }
+      const result = await this.authService.pollMobileGoogleResult(state);
+      if (!result) { res.status(202).json(apiResponse.success(null, 'Pending')); return; }
+      res.json(apiResponse.success(result, 'Google login successful'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   googleCallback = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const user = req.user as import('../types/index').GoogleOAuthProfile;

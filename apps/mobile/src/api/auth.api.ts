@@ -45,6 +45,20 @@ export const authApi = {
     return res.data.data;
   },
 
+  async googleInit(): Promise<{ state: string }> {
+    const res = await authClient.post<ApiResponse<{ state: string }>>('/auth/google/init');
+    if (!res.data.data) throw new Error('Google init failed');
+    return res.data.data;
+  },
+
+  async googlePoll(state: string): Promise<LoginResponse | null> {
+    const res = await authClient.get<ApiResponse<LoginResponse | null>>(
+      `/auth/google/poll?state=${encodeURIComponent(state)}`,
+      { validateStatus: (s) => s === 200 || s === 202 },
+    );
+    return res.data.data ?? null;
+  },
+
   async changePassword(oldPassword: string, newPassword: string): Promise<void> {
     await authClient.post('/auth/change-password', { oldPassword, newPassword });
   },
