@@ -42,7 +42,7 @@
 
 ### T-E110 | P2 | [MOBILE] | Telegram Share room — native share sheet
 
-- **Mas'ul:**
+- **Mas'ul:** pending[Emirhan]
 - **Yaratilgan:** 2026-04-22 12:20
 - **Holat:** ❌ Boshlanmagan
 - **Sabab:** Backend T-S063 tayyor — `@gatsCinema_bot` webhook ishlaydi
