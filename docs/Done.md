@@ -4,6 +4,19 @@
 
 ---
 
+### T-E108 + T-E109 | 2026-04-23 | [MOBILE] | Recent rooms + Public rooms discovery [Emirhan]
+
+- **Bajarildi:**
+  - `hooks/useRecentRooms.ts`: yangi hook — `GET /watch-party/rooms/my/recent` (stale 30s, refetch 60s)
+  - `hooks/usePublicRooms.ts`: yangi hook — `GET /watch-party/rooms/public/active` (stale+refetch 30s)
+  - `RoomsTab.tsx`: 3-qismli segmented control — "Мои / Недавние / Открытые"
+    - Har tab alohida query; pull-to-refresh; empty state har tabga o'ziga xos icon + matn
+    - "Открытые" tabda "Live public rooms" badge
+  - `translations.ts`: `subTabMy`, `subTabRecent`, `subTabDiscover`, `discoverHint`, `noRecentTitle`, `noRecentSub`, `noPublicTitle`, `noPublicSub` kalitlari (uz/ru/en)
+- **tsc:** CLEAN | **4 fayl o'zgartirildi**
+
+---
+
 ### T-E107 | 2026-04-22 | [MOBILE] | Playlist UI — Watch Party queue (owner controls) [Emirhan]
 
 - **Bajarildi:**

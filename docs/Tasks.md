@@ -39,35 +39,6 @@
 
 
 
-### T-E108 | P2 | [MOBILE] | Recent rooms screen — oxirgi ko'rilgan xonalar
-
-- **Mas'ul:** pending[Emirhan]
-- **Yaratilgan:** 2026-04-22 12:20
-- **Holat:** ❌ Boshlanmagan
-- **Sabab:** Backend T-S061 tayyor — `GET /watch-party/rooms/my/recent` endpoint
-- **Qilish kerak:**
-  - [ ] `GET /watch-party/rooms/my/recent` API chaqiruvi
-  - [ ] WatchPartyCreateScreen yoki HomeScreen da "Recent rooms" tab/section
-  - [ ] Room card: name/title, memberCount, status, lastActivityAt
-  - [ ] Tap → joinRoom (inviteCode orqali)
-  - [ ] Empty state: "Hali xona yo'q"
-
----
-
-### T-E109 | P2 | [MOBILE] | Public rooms discovery — ochiq xonalar lenti
-
-- **Mas'ul:** pending[Emirhan]
-- **Yaratilgan:** 2026-04-22 12:20
-- **Holat:** ❌ Boshlanmagan
-- **Sabab:** Backend T-S062 tayyor — `GET /watch-party/rooms/public/active` (memberCount bo'yicha)
-- **Qilish kerak:**
-  - [ ] `GET /watch-party/rooms/public/active` API chaqiruvi
-  - [ ] SourcePickerScreen yoki yangi DiscoverScreen da "Live rooms" section
-  - [ ] Room card: videoTitle, memberCount badge, status indicator (🟢 playing / 🟡 waiting)
-  - [ ] Pull-to-refresh (30s cache bo'lgani uchun)
-  - [ ] Tap → joinRoom flow (private room bo'lsa password modal)
-
----
 
 ### T-E110 | P2 | [MOBILE] | Telegram Share room — native share sheet
 
