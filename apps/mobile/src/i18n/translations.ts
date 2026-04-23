@@ -368,6 +368,15 @@ export const translations = {
     tabRooms: { uz: 'Xonalar', ru: 'Комнаты', en: 'Rooms' },
     tabCreate: { uz: 'Yaratish', ru: 'Создать', en: 'Create' },
     tabCode: { uz: 'Kod', ru: 'Код', en: 'Code' },
+    // Rooms sub-tabs (T-E108 + T-E109)
+    subTabMy:       { uz: 'Mening', ru: 'Мои', en: 'My' },
+    subTabRecent:   { uz: 'Oxirgi', ru: 'Недавние', en: 'Recent' },
+    subTabDiscover: { uz: 'Ochiq', ru: 'Открытые', en: 'Discover' },
+    discoverHint:   { uz: 'Hamma uchun ochiq jonli xonalar', ru: 'Публичные комнаты в прямом эфире', en: 'Live public rooms for everyone' },
+    noRecentTitle:  { uz: "Oxirgi xonalar yo'q", ru: 'Нет недавних комнат', en: 'No recent rooms' },
+    noRecentSub:    { uz: "Qo'shilgan xonalaringiz bu yerda ko'rinadi", ru: 'Комнаты, которые вы посещали, появятся здесь', en: 'Rooms you visited will appear here' },
+    noPublicTitle:  { uz: "Hozir ochiq xonalar yo'q", ru: 'Нет открытых комнат', en: 'No public rooms right now' },
+    noPublicSub:    { uz: 'Birinchi bo\'lib xona yarating!', ru: 'Создайте комнату первым!', en: 'Be the first to create a room!' },
     // Join
     joinTitle: { uz: "Qo'shilish", ru: 'Присоединиться', en: 'Join' },
     joinHeading: { uz: 'Invite kod kiriting', ru: 'Введите инвайт-код', en: 'Enter invite code' },
