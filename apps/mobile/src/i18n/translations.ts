@@ -363,7 +363,10 @@ export const translations = {
     inviteFailed: { uz: 'Taklif yuborib bo\'lmadi', ru: 'Не удалось отправить приглашение', en: 'Failed to send invite' },
     noFriendsYet: { uz: "Hali do'stlaringiz yo'q", ru: 'У вас пока нет друзей', en: 'No friends yet' },
     shareInvite: { uz: 'Ulashish', ru: 'Поделиться', en: 'Share' },
-    shareText: { uz: "CineSync Watch Party ga qo'shiling!", ru: 'Присоединяйтесь к CineSync Watch Party!', en: 'Join CineSync Watch Party!' },
+    shareText: { uz: "Rave Watch Party ga qo'shiling!", ru: 'Присоединяйтесь к Rave Watch Party!', en: 'Join Rave Watch Party!' },
+    shareViaTelegram: { uz: 'Telegram orqali ulashish', ru: 'Поделиться через Telegram', en: 'Share via Telegram' },
+    shareNative: { uz: 'Boshqa ilovalar', ru: 'Другие приложения', en: 'Other apps' },
+    shareRoomMessage: { uz: "Menga Rave da qo'shiling! 🎬", ru: 'Присоединяйся ко мне в Rave! 🎬', en: 'Join me on Rave! 🎬' },
     // Tabs
     tabRooms: { uz: 'Xonalar', ru: 'Комнаты', en: 'Rooms' },
     tabCreate: { uz: 'Yaratish', ru: 'Создать', en: 'Create' },

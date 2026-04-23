@@ -1,5 +1,5 @@
 // CineSync Mobile — WatchParty Join by Invite Code
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
@@ -18,30 +18,44 @@ import { ModalStackParamList } from '@app-types/index';
 import { watchPartyApi } from '@api/watchParty.api';
 
 type Nav = NativeStackNavigationProp<ModalStackParamList, 'WatchPartyJoin'>;
+type Route = RouteProp<ModalStackParamList, 'WatchPartyJoin'>;
 
 const CODE_LENGTH = 6;
 
 export function WatchPartyJoinScreen() {
   const navigation = useNavigation<Nav>();
+  const route = useRoute<Route>();
   const { colors } = useTheme();
   const styles = useStyles();
-  const [code, setCode] = useState('');
+  const deepLinkCode = route.params?.inviteCode;
+  const [code, setCode] = useState(deepLinkCode?.toUpperCase().slice(0, CODE_LENGTH) ?? '');
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<TextInput>(null);
+  const autoJoinTriggered = useRef(false);
+
+  // Auto-join when opened via deep link with inviteCode
+  useEffect(() => {
+    if (deepLinkCode && deepLinkCode.length === CODE_LENGTH && !autoJoinTriggered.current) {
+      autoJoinTriggered.current = true;
+      handleJoin(deepLinkCode.toUpperCase());
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deepLinkCode]);
 
   const handleChangeCode = (text: string) => {
     const cleaned = text.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, CODE_LENGTH);
     setCode(cleaned);
   };
 
-  const handleJoin = async () => {
-    if (code.length < CODE_LENGTH) {
+  const handleJoin = async (overrideCode?: string) => {
+    const joinCode = overrideCode ?? code;
+    if (joinCode.length < CODE_LENGTH) {
       Alert.alert('Xato', `${CODE_LENGTH} belgili kod kiriting`);
       return;
     }
     setLoading(true);
     try {
-      const room = await watchPartyApi.joinByInviteCode(code);
+      const room = await watchPartyApi.joinByInviteCode(joinCode);
       navigation.replace('WatchParty', { roomId: room._id });
     } catch {
       Alert.alert('Xato', 'Noto\'g\'ri kod yoki xona topilmadi');
@@ -107,7 +121,7 @@ export function WatchPartyJoinScreen() {
 
         <TouchableOpacity
           style={[styles.joinBtn, (loading || code.length < CODE_LENGTH) && styles.joinBtnDisabled]}
-          onPress={handleJoin}
+          onPress={() => handleJoin()}
           disabled={loading || code.length < CODE_LENGTH}
           activeOpacity={0.85}
         >

@@ -40,19 +40,6 @@
 
 
 
-### T-E110 | P2 | [MOBILE] | Telegram Share room — native share sheet
-
-- **Mas'ul:** pending[Emirhan]
-- **Yaratilgan:** 2026-04-22 12:20
-- **Holat:** ❌ Boshlanmagan
-- **Sabab:** Backend T-S063 tayyor — `@gatsCinema_bot` webhook ishlaydi
-- **Qilish kerak:**
-  - [ ] `GET /notifications/telegram/share-link?inviteCode=XXXX` API chaqiruvi
-  - [ ] WatchPartyScreen da "Share" tugmasi (owner + member uchun)
-  - [ ] `Share.share()` (React Native built-in) — link + "Join me on Rave!"
-  - [ ] Deep link handler: `cinesync://join/:inviteCode` → joinRoom flow
-  - [ ] `app.json` da `scheme: "cinesync"` va Linking config tekshirish
-
 ---
 
 ### T-E081 | P1 | [MOBILE] | Real qurilmada smoke test (Expo Go)

@@ -1,12 +1,13 @@
 // CineSync Mobile — WatchParty InviteCard
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, FlatList, ActivityIndicator, Alert, Share } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, ActivityIndicator, Alert, Share, Linking } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@theme/index';
 import { useInviteCardStyles } from './InviteCard.styles';
 import { userApi } from '@api/user.api';
 import { watchPartyApi } from '@api/watchParty.api';
+import { notificationApi } from '@api/notification.api';
 import { useAuthStore } from '@store/auth.store';
 import { useT } from '@i18n/index';
 import type { IUserPublic } from '@app-types/index';
@@ -34,9 +35,29 @@ export const InviteCard = React.memo(function InviteCard({ inviteCode, roomId, r
     setTimeout(() => setCopied(false), 2000);
   }, [inviteCode]);
 
-  const handleShare = useCallback(async () => {
+  const handleShareTelegram = useCallback(async () => {
     try {
-      await Share.share({ message: `${t('watchParty', 'shareText')}\n\nXona: ${roomName}\nKod: ${inviteCode}` });
+      const link = await notificationApi.getTelegramShareLink(inviteCode);
+      if (link) {
+        await Linking.openURL(link);
+      }
+    } catch {
+      // Fallback: native share with invite code
+      try {
+        await Share.share({
+          message: `${t('watchParty', 'shareRoomMessage')}\n\n${t('watchParty', 'inviteCode')}: ${inviteCode}`,
+        });
+      } catch { /* User cancelled */ }
+    }
+  }, [inviteCode, t]);
+
+  const handleShareNative = useCallback(async () => {
+    try {
+      const shareMessage = `${t('watchParty', 'shareRoomMessage')}\n\n` +
+        `${roomName}\n` +
+        `${t('watchParty', 'inviteCode')}: ${inviteCode}\n\n` +
+        `cinesync://join/${inviteCode}`;
+      await Share.share({ message: shareMessage });
     } catch { /* User cancelled */ }
   }, [inviteCode, roomName, t]);
 
@@ -80,12 +101,21 @@ export const InviteCard = React.memo(function InviteCard({ inviteCode, roomId, r
           <TouchableOpacity style={s.copyBtn} onPress={handleCopy}>
             <Ionicons name={copied ? 'checkmark' : 'copy-outline'} size={18} color={copied ? colors.success : colors.textPrimary} />
           </TouchableOpacity>
-          <TouchableOpacity style={s.shareBtn} onPress={handleShare}>
-            <Ionicons name="share-outline" size={18} color={colors.textPrimary} />
-          </TouchableOpacity>
         </View>
         {copied && <Text style={s.copiedText}>{t('watchParty', 'codeCopied')}</Text>}
       </View>
+
+      <View style={s.shareSection}>
+        <TouchableOpacity style={s.telegramBtn} onPress={handleShareTelegram} activeOpacity={0.7}>
+          <Ionicons name="paper-plane-outline" size={16} color="#fff" />
+          <Text style={s.telegramBtnText}>{t('watchParty', 'shareViaTelegram')}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={s.nativeShareBtn} onPress={handleShareNative} activeOpacity={0.7}>
+          <Ionicons name="share-outline" size={16} color={colors.textPrimary} />
+          <Text style={s.nativeShareBtnText}>{t('watchParty', 'shareNative')}</Text>
+        </TouchableOpacity>
+      </View>
+
       <View style={s.friendsSection}>
         <Text style={s.label}>{t('watchParty', 'inviteFriends')}</Text>
         {loading ? <ActivityIndicator size="small" color={colors.primary} style={s.loader} />

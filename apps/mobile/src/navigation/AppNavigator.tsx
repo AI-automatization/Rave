@@ -2,6 +2,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';
+import * as Linking from 'expo-linking';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as Notifications from 'expo-notifications';
 import { useAuthStore } from '@store/auth.store';
@@ -59,6 +60,33 @@ export function AppNavigator() {
       navigationRef.navigate('Modal', { screen: 'Notifications' });
     }
   }, [lastResponse, navigationRef]);
+
+  // Deep link: cinesync://join/:inviteCode
+  useEffect(() => {
+    if (!isAuthenticated || !navigationRef.isReady()) return;
+
+    const handleDeepLink = (url: string) => {
+      const match = url.match(/cinesync:\/\/join\/([A-Fa-f0-9]{6})/i);
+      if (match) {
+        navigationRef.navigate('Modal', {
+          screen: 'WatchPartyJoin',
+          params: { inviteCode: match[1].toUpperCase() },
+        });
+      }
+    };
+
+    // Handle URL that opened the app (cold start)
+    Linking.getInitialURL().then((url) => {
+      if (url) handleDeepLink(url);
+    });
+
+    // Handle URL while app is running (warm start)
+    const subscription = Linking.addEventListener('url', (event) => {
+      handleDeepLink(event.url);
+    });
+
+    return () => subscription.remove();
+  }, [isAuthenticated, navigationRef]);
 
   useEffect(() => {
     if (!isAuthenticated) {

@@ -4,6 +4,22 @@
 
 ---
 
+### T-E110 | 2026-04-24 | [MOBILE] | Telegram Share room — native share sheet [Emirhan]
+
+- **Bajarildi:**
+  - `api/notification.api.ts`: `getTelegramShareLink(inviteCode)` — backend `GET /notifications/telegram/share-link` endpoint chaqiruvi
+  - `components/watchParty/InviteCard.tsx`: Telegram share + native share 2 ta alohida tugma
+  - `components/watchParty/InviteCard.styles.ts`: `shareSection`, `telegramBtn`, `nativeShareBtn` stillari
+  - `i18n/translations.ts`: `shareViaTelegram`, `shareNative`, `shareRoomMessage` kalitlari (uz/ru/en)
+  - `navigation/AppNavigator.tsx`: `cinesync://join/:inviteCode` deep link handler (cold + warm start)
+  - `screens/modal/WatchPartyJoinScreen.tsx`: `inviteCode` param qabul qilish + auto-join
+  - `types/index.ts`: `WatchPartyJoin` param tipi yangilandi (`{ inviteCode?: string }`)
+  - `app.json`: `scheme: "cinesync"` allaqachon mavjud edi ✅
+- **tsc:** CLEAN (0 errors)
+- **Fayllar:** 7 ta o'zgartirildi
+
+---
+
 ### T-E108 + T-E109 | 2026-04-23 | [MOBILE] | Recent rooms + Public rooms discovery [Emirhan]
 
 - **Bajarildi:**

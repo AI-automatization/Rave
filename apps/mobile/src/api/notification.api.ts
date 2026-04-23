@@ -28,4 +28,12 @@ export const notificationApi = {
     );
     return res.data.data?.count ?? 0;
   },
+
+  async getTelegramShareLink(inviteCode: string): Promise<string> {
+    const res = await notificationClient.get<ApiResponse<{ link: string }>>(
+      '/notifications/telegram/share-link',
+      { params: { inviteCode } },
+    );
+    return res.data.data?.link ?? '';
+  },
 };

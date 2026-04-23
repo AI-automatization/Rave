@@ -13,6 +13,21 @@ export const useInviteCardStyles = createThemedStyles((colors) => ({
   copyBtn: { padding: spacing.sm, backgroundColor: colors.bgSurface, borderRadius: borderRadius.sm },
   shareBtn: { padding: spacing.sm, backgroundColor: colors.bgSurface, borderRadius: borderRadius.sm },
   copiedText: { ...typography.caption, color: colors.success },
+  shareSection: {
+    flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.md, paddingBottom: spacing.md,
+  },
+  telegramBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: spacing.xs, backgroundColor: '#0088cc', borderRadius: borderRadius.sm,
+    paddingVertical: spacing.sm, paddingHorizontal: spacing.md,
+  },
+  telegramBtnText: { ...typography.caption, color: '#fff', fontWeight: '600' },
+  nativeShareBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: spacing.xs, backgroundColor: colors.bgSurface, borderRadius: borderRadius.sm,
+    paddingVertical: spacing.sm, paddingHorizontal: spacing.md,
+  },
+  nativeShareBtnText: { ...typography.caption, color: colors.textPrimary, fontWeight: '600' },
   friendsSection: {
     paddingHorizontal: spacing.md, paddingBottom: spacing.md,
     borderTopWidth: 1, borderTopColor: colors.border, paddingTop: spacing.sm, gap: spacing.xs,
