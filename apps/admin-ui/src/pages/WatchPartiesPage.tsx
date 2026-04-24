@@ -1,34 +1,12 @@
 import { useEffect, useState, useCallback } from 'react';
+import { Tv2, Play, Pause, SkipForward, UserMinus, XCircle, Search } from 'lucide-react';
 import { watchPartiesApi } from '../api/watchparties.api';
 import { useAuthStore } from '../store/auth.store';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
-import { Input, Select } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
 import { Pagination } from '../components/ui/Pagination';
 import type { AdminWatchParty, PaginationMeta } from '../types';
-
-type BadgeVariant = 'green' | 'yellow' | 'gray';
-
-function statusBadge(status: AdminWatchParty['status']) {
-  const map: Record<AdminWatchParty['status'], BadgeVariant> = {
-    playing: 'green',
-    waiting: 'yellow',
-    paused:  'yellow',
-    ended:   'gray',
-  };
-  return <Badge variant={map[status]}>{status}</Badge>;
-}
-
-function platformBadge(platform: string | null | undefined) {
-  if (!platform) return <span className="text-text-muted text-xs">—</span>;
-  const colors: Record<string, string> = {
-    youtube: 'text-red-400',
-    direct:  'text-blue-400',
-    webview: 'text-purple-400',
-  };
-  return <span className={`text-xs font-medium ${colors[platform] ?? 'text-text-muted'}`}>{platform}</span>;
-}
 
 function formatTime(seconds: number): string {
   const h = Math.floor(seconds / 3600);
@@ -38,8 +16,25 @@ function formatTime(seconds: number): string {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
+function statusBadge(status: AdminWatchParty['status']) {
+  const map: Record<AdminWatchParty['status'], { variant: 'green' | 'yellow' | 'gray'; label: string }> = {
+    playing: { variant: 'green',  label: 'Идёт' },
+    waiting: { variant: 'yellow', label: 'Ожидает' },
+    paused:  { variant: 'yellow', label: 'Пауза' },
+    ended:   { variant: 'gray',   label: 'Завершён' },
+  };
+  const { variant, label } = map[status];
+  return <Badge variant={variant} dot>{label}</Badge>;
+}
+
+const PLATFORM_COLOR: Record<string, string> = {
+  youtube: 'text-red-400',
+  direct:  'text-blue-400',
+  webview: 'text-violet-400',
+};
+
 export function WatchPartiesPage() {
-  const currentUser = useAuthStore((s) => s.user);
+  const currentUser  = useAuthStore((s) => s.user);
   const isSuperAdmin = currentUser?.role === 'superadmin';
 
   const [rooms, setRooms]       = useState<AdminWatchParty[]>([]);
@@ -52,9 +47,8 @@ export function WatchPartiesPage() {
   const [closeReason, setCloseReason]   = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  // Admin control panel
   const [adminPanel, setAdminPanel] = useState<{ room: AdminWatchParty } | null>(null);
-  const [seekTime, setSeekTime] = useState('');
+  const [seekTime, setSeekTime]     = useState('');
   const [controlLoading, setControlLoading] = useState(false);
 
   const load = useCallback(async () => {
@@ -65,11 +59,8 @@ export function WatchPartiesPage() {
       const res = await watchPartiesApi.list(params);
       setRooms(res.data);
       setMeta(res.meta);
-    } catch {
-      // silent
-    } finally {
-      setLoading(false);
-    }
+    } catch { /* silent */ }
+    finally { setLoading(false); }
   }, [page, statusFilter]);
 
   useEffect(() => { void load(); }, [load]);
@@ -82,9 +73,7 @@ export function WatchPartiesPage() {
       setConfirmModal(null);
       setCloseReason('');
       await load();
-    } finally {
-      setActionLoading(null);
-    }
+    } finally { setActionLoading(null); }
   };
 
   const handleAdminJoin = async (room: AdminWatchParty) => {
@@ -93,11 +82,8 @@ export function WatchPartiesPage() {
       const result = await watchPartiesApi.join(room._id);
       setAdminPanel({ room: result.room });
       setSeekTime('');
-    } catch {
-      // silent
-    } finally {
-      setActionLoading(null);
-    }
+    } catch { /* silent */ }
+    finally { setActionLoading(null); }
   };
 
   const handleControl = async (action: 'play' | 'pause' | 'seek') => {
@@ -106,11 +92,8 @@ export function WatchPartiesPage() {
     try {
       const time = action === 'seek' ? parseFloat(seekTime) || 0 : undefined;
       await watchPartiesApi.control(adminPanel.room._id, action, time);
-    } catch {
-      // silent
-    } finally {
-      setControlLoading(false);
-    }
+    } catch { /* silent */ }
+    finally { setControlLoading(false); }
   };
 
   const handleKick = async (userId: string) => {
@@ -121,173 +104,177 @@ export function WatchPartiesPage() {
       setAdminPanel((prev) =>
         prev ? { room: { ...prev.room, members: prev.room.members.filter((m) => m !== userId) } } : null,
       );
-    } catch {
-      // silent
-    } finally {
-      setControlLoading(false);
-    }
+    } catch { /* silent */ }
+    finally { setControlLoading(false); }
   };
 
   return (
-    <div className="flex flex-col gap-5">
-      <div>
-        <h1 className="text-xl font-bold text-white">Watch Parties</h1>
-        <p className="text-text-muted text-sm mt-0.5">{meta.total.toLocaleString()} total</p>
+    <div className="flex flex-col gap-5 animate-fade-in">
+      {/* Header */}
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Watch Parties</h1>
+          <p className="text-text-muted text-sm mt-0.5">{meta.total.toLocaleString('ru')} всего комнат</p>
+        </div>
+        <div className="flex items-center gap-2 text-xs text-text-dim bg-card rounded-xl px-3 py-2 border border-white/[0.06]">
+          <Tv2 size={13} />
+          <span>Совместные просмотры</span>
+        </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3">
-        <Select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}>
-          <option value="">All statuses</option>
-          <option value="waiting">Waiting</option>
-          <option value="playing">Playing</option>
-          <option value="paused">Paused</option>
-          <option value="ended">Ended</option>
-        </Select>
+      {/* Filter */}
+      <div className="flex flex-wrap gap-2.5">
+        <select
+          value={statusFilter}
+          onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+          className="bg-surface border border-border hover:border-border-md rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent/30 transition-all"
+        >
+          <option value="">Все статусы</option>
+          <option value="waiting">Ожидает</option>
+          <option value="playing">Идёт</option>
+          <option value="paused">Пауза</option>
+          <option value="ended">Завершён</option>
+        </select>
       </div>
 
       {/* Table */}
-      <div className="bg-surface border border-border rounded-xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="text-left px-4 py-3 text-text-muted font-medium">Room</th>
-                <th className="text-left px-4 py-3 text-text-muted font-medium">Status</th>
-                <th className="text-left px-4 py-3 text-text-muted font-medium">Nimani ko'ryapti</th>
-                <th className="text-left px-4 py-3 text-text-muted font-medium">A'zolar</th>
-                <th className="text-left px-4 py-3 text-text-muted font-medium">Sana</th>
-                <th className="text-right px-4 py-3 text-text-muted font-medium">Amallar</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr><td colSpan={6} className="px-4 py-8 text-center text-text-muted">Yuklanmoqda...</td></tr>
-              ) : rooms.length === 0 ? (
-                <tr><td colSpan={6} className="px-4 py-8 text-center text-text-muted">Watch party topilmadi</td></tr>
-              ) : rooms.map((room) => (
-                <tr key={room._id} className="border-b border-border/50 hover:bg-overlay/50 transition-colors">
-                  <td className="px-4 py-3">
-                    <p className="text-white font-medium text-xs">{room.name ?? room.inviteCode}</p>
-                    <p className="text-text-muted text-xs font-mono">{room.ownerId.slice(-8)}</p>
-                  </td>
-                  <td className="px-4 py-3">{statusBadge(room.status)}</td>
-                  <td className="px-4 py-3">
-                    <div>
-                      {room.videoTitle ? (
-                        <p className="text-white text-xs max-w-[200px] truncate">{room.videoTitle}</p>
-                      ) : room.videoUrl ? (
-                        <p className="text-text-muted text-xs max-w-[200px] truncate">{room.videoUrl}</p>
-                      ) : (
-                        <span className="text-text-muted text-xs">—</span>
-                      )}
-                      <div className="flex items-center gap-2 mt-0.5">
-                        {platformBadge(room.videoPlatform)}
-                        {room.currentTime > 0 && (
-                          <span className="text-text-muted text-xs">{formatTime(room.currentTime)}</span>
-                        )}
-                        {room.isPlaying && <span className="text-green-400 text-xs">▶</span>}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-white">
-                    {room.members.length}/{room.maxMembers}
-                  </td>
-                  <td className="px-4 py-3 text-text-muted text-xs">
-                    {new Date(room.createdAt).toLocaleDateString()}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-end gap-2">
-                      {room.status !== 'ended' && (
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          loading={actionLoading === room._id}
-                          onClick={() => void handleAdminJoin(room)}
-                        >
-                          Kuzatish
-                        </Button>
-                      )}
-                      {isSuperAdmin && room.status !== 'ended' && (
-                        <Button
-                          size="sm"
-                          variant="danger"
-                          loading={actionLoading === room._id}
-                          onClick={() => setConfirmModal({ room })}
-                        >
-                          Yopish
-                        </Button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
+      <div className="bg-card rounded-2xl shadow-card overflow-hidden">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-white/[0.05]">
+              {['Комната', 'Статус', 'Контент', 'Участники', 'Создана', ''].map((h) => (
+                <th key={h} className="text-left px-5 py-3.5 text-[11px] font-semibold text-text-dim uppercase tracking-wider last:text-right">
+                  {h}
+                </th>
               ))}
-            </tbody>
-          </table>
-        </div>
-        <div className="border-t border-border px-4">
-          <Pagination page={meta.page} totalPages={meta.totalPages} total={meta.total} limit={meta.limit} onChange={setPage} />
-        </div>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-white/[0.03]">
+            {loading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <tr key={i}>
+                  {Array.from({ length: 6 }).map((__, j) => (
+                    <td key={j} className="px-5 py-4">
+                      <div className="h-4 bg-white/[0.05] rounded animate-pulse" style={{ width: `${50 + (i * j * 9) % 40}%` }} />
+                    </td>
+                  ))}
+                </tr>
+              ))
+            ) : rooms.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-5 py-12 text-center text-text-muted">Watch Party не найден</td>
+              </tr>
+            ) : rooms.map((room) => (
+              <tr key={room._id} className="tr-hover">
+                <td className="px-5 py-4">
+                  <p className="font-medium text-white">{room.name ?? room.inviteCode}</p>
+                  <p className="text-xs text-text-dim font-mono mt-0.5">{room.ownerId.slice(-8)}</p>
+                </td>
+                <td className="px-5 py-4">{statusBadge(room.status)}</td>
+                <td className="px-5 py-4 max-w-[200px]">
+                  {room.videoTitle ? (
+                    <p className="text-white text-xs truncate">{room.videoTitle}</p>
+                  ) : room.videoUrl ? (
+                    <p className="text-text-muted text-xs truncate">{room.videoUrl}</p>
+                  ) : (
+                    <span className="text-text-dim text-xs">—</span>
+                  )}
+                  <div className="flex items-center gap-2 mt-0.5">
+                    {room.videoPlatform && (
+                      <span className={`text-[11px] font-medium ${PLATFORM_COLOR[room.videoPlatform] ?? 'text-text-muted'}`}>
+                        {room.videoPlatform}
+                      </span>
+                    )}
+                    {room.currentTime > 0 && (
+                      <span className="text-text-dim text-[11px]">{formatTime(room.currentTime)}</span>
+                    )}
+                    {room.isPlaying && <span className="text-emerald-400 text-[10px]">▶</span>}
+                  </div>
+                </td>
+                <td className="px-5 py-4">
+                  <span className="text-white font-medium">{room.members.length}</span>
+                  <span className="text-text-dim">/{room.maxMembers}</span>
+                </td>
+                <td className="px-5 py-4 text-text-muted text-xs whitespace-nowrap">
+                  {new Date(room.createdAt).toLocaleDateString('ru-RU', { day: '2-digit', month: 'short' })}
+                </td>
+                <td className="px-5 py-4">
+                  <div className="flex items-center justify-end gap-1.5">
+                    {room.status !== 'ended' && (
+                      <button
+                        onClick={() => void handleAdminJoin(room)}
+                        disabled={actionLoading === room._id}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg text-text-dim hover:text-accent hover:bg-accent/10 transition-colors"
+                        title="Войти как наблюдатель"
+                      >
+                        <Search size={15} />
+                      </button>
+                    )}
+                    {isSuperAdmin && room.status !== 'ended' && (
+                      <button
+                        onClick={() => setConfirmModal({ room })}
+                        disabled={actionLoading === room._id}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg text-text-dim hover:text-red-400 hover:bg-red-400/10 transition-colors"
+                        title="Принудительно завершить"
+                      >
+                        <XCircle size={15} />
+                      </button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {meta.totalPages > 1 && (
+          <div className="px-5 border-t border-white/[0.04]">
+            <Pagination page={meta.page} totalPages={meta.totalPages} total={meta.total} limit={meta.limit} onChange={setPage} />
+          </div>
+        )}
       </div>
 
       {/* Admin control panel modal */}
-      <Modal
-        open={!!adminPanel}
-        onClose={() => setAdminPanel(null)}
-        title="Admin — Watch Party nazorati"
-      >
+      <Modal open={!!adminPanel} onClose={() => setAdminPanel(null)} title="Управление комнатой" size="md">
         {adminPanel && (
-          <div className="flex flex-col gap-5">
-            {/* Room info */}
-            <div className="bg-overlay rounded-lg p-3 text-sm">
-              <p className="text-white font-medium">{adminPanel.room.name ?? adminPanel.room.inviteCode}</p>
+          <div className="flex flex-col gap-4">
+            <div className="bg-bg/60 rounded-xl p-3.5 border border-white/[0.06]">
+              <p className="text-white text-sm font-medium">{adminPanel.room.name ?? adminPanel.room.inviteCode}</p>
               {adminPanel.room.videoTitle && (
-                <p className="text-text-muted text-xs mt-1">{adminPanel.room.videoTitle}</p>
+                <p className="text-text-muted text-xs mt-0.5 truncate">{adminPanel.room.videoTitle}</p>
               )}
               <div className="flex items-center gap-3 mt-2 text-xs">
-                {platformBadge(adminPanel.room.videoPlatform)}
-                <span className="text-text-muted">Vaqt: {formatTime(adminPanel.room.currentTime)}</span>
-                <span className={adminPanel.room.isPlaying ? 'text-green-400' : 'text-text-muted'}>
-                  {adminPanel.room.isPlaying ? '▶ Ijro etilmoqda' : '⏸ To\'xtatilgan'}
+                {adminPanel.room.videoPlatform && (
+                  <span className={PLATFORM_COLOR[adminPanel.room.videoPlatform] ?? 'text-text-muted'}>
+                    {adminPanel.room.videoPlatform}
+                  </span>
+                )}
+                <span className="text-text-muted">Позиция: {formatTime(adminPanel.room.currentTime)}</span>
+                <span className={adminPanel.room.isPlaying ? 'text-emerald-400' : 'text-text-muted'}>
+                  {adminPanel.room.isPlaying ? '▶ Воспроизводится' : '⏸ Пауза'}
                 </span>
               </div>
             </div>
 
-            {/* Video controls */}
+            {/* Controls */}
             <div>
-              <p className="text-xs text-text-muted mb-2 font-medium uppercase tracking-wider">Video boshqaruvi</p>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  size="sm"
-                  variant="primary"
-                  loading={controlLoading}
-                  onClick={() => void handleControl('play')}
-                >
-                  ▶ Play
+              <p className="text-[10px] text-text-dim uppercase tracking-wider mb-2 font-semibold">Управление видео</p>
+              <div className="flex flex-wrap gap-2 items-center">
+                <Button size="sm" variant="primary" loading={controlLoading} onClick={() => void handleControl('play')}>
+                  <Play size={13} /> Play
                 </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  loading={controlLoading}
-                  onClick={() => void handleControl('pause')}
-                >
-                  ⏸ Pause
+                <Button size="sm" variant="secondary" loading={controlLoading} onClick={() => void handleControl('pause')}>
+                  <Pause size={13} /> Pause
                 </Button>
-                <div className="flex items-center gap-2">
-                  <Input
-                    placeholder="Sekund (masalan 120)"
+                <div className="flex items-center gap-1.5">
+                  <input
+                    placeholder="Секунды"
                     value={seekTime}
                     onChange={(e) => setSeekTime(e.target.value)}
-                    className="w-40"
+                    className="w-28 bg-surface border border-border rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-text-dim focus:outline-none focus:ring-2 focus:ring-accent/30 transition-all"
                   />
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    loading={controlLoading}
-                    disabled={!seekTime}
-                    onClick={() => void handleControl('seek')}
-                  >
-                    ⏩ Seek
+                  <Button size="sm" variant="ghost" loading={controlLoading} disabled={!seekTime} onClick={() => void handleControl('seek')}>
+                    <SkipForward size={13} /> Seek
                   </Button>
                 </div>
               </div>
@@ -295,60 +282,52 @@ export function WatchPartiesPage() {
 
             {/* Members */}
             <div>
-              <p className="text-xs text-text-muted mb-2 font-medium uppercase tracking-wider">
-                A'zolar ({adminPanel.room.members.length}/{adminPanel.room.maxMembers})
+              <p className="text-[10px] text-text-dim uppercase tracking-wider mb-2 font-semibold">
+                Участники ({adminPanel.room.members.length}/{adminPanel.room.maxMembers})
               </p>
               {adminPanel.room.members.length === 0 ? (
-                <p className="text-xs text-text-muted">A'zo yo'q</p>
+                <p className="text-xs text-text-muted">Участников нет</p>
               ) : (
                 <div className="flex flex-col gap-1">
                   {adminPanel.room.members.map((userId) => (
-                    <div key={userId} className="flex items-center justify-between bg-overlay rounded px-3 py-1.5">
+                    <div key={userId} className="flex items-center justify-between bg-bg/60 rounded-lg px-3 py-2 border border-white/[0.04]">
                       <span className="font-mono text-xs text-text-muted">{userId.slice(-12)}</span>
-                      <Button
-                        size="sm"
-                        variant="danger"
-                        loading={controlLoading}
+                      <button
                         onClick={() => void handleKick(userId)}
+                        disabled={controlLoading}
+                        className="w-7 h-7 flex items-center justify-center rounded-lg text-text-dim hover:text-red-400 hover:bg-red-400/10 transition-colors"
+                        title="Выгнать"
                       >
-                        Chiqarish
-                      </Button>
+                        <UserMinus size={13} />
+                      </button>
                     </div>
                   ))}
                 </div>
               )}
             </div>
-
-            <div className="flex justify-end">
-              <Button onClick={() => setAdminPanel(null)}>Yopish</Button>
-            </div>
           </div>
         )}
       </Modal>
 
-      {/* Force close confirm modal */}
-      <Modal open={!!confirmModal} onClose={() => { setConfirmModal(null); setCloseReason(''); }} title="Watch Party yopish">
+      {/* Force close modal */}
+      <Modal open={!!confirmModal} onClose={() => { setConfirmModal(null); setCloseReason(''); }} title="Закрыть комнату">
         {confirmModal && (
           <div className="flex flex-col gap-4">
             <p className="text-sm text-text-muted">
-              <span className="text-white font-mono">{confirmModal.room.inviteCode}</span> xonasini majburiy yopmoqchimisiz?
-              Barcha a'zolar chiqariladi.
+              Принудительно завершить комнату{' '}
+              <span className="text-white font-medium font-mono">{confirmModal.room.inviteCode}</span>?
+              Все участники будут выгнаны.
             </p>
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-text-muted font-medium">Sabab (ixtiyoriy — foydalanuvchiga ko'rinadi)</label>
-              <input
-                type="text"
-                placeholder="Masalan: Qoidabuzarlik yoki texnik nosozlik..."
-                value={closeReason}
-                onChange={(e) => setCloseReason(e.target.value)}
-                className="bg-surface border border-border rounded-lg px-3 py-2 text-sm text-white placeholder-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
-              />
-            </div>
+            <textarea
+              placeholder="Причина (опционально, будет видна участникам)..."
+              value={closeReason}
+              onChange={(e) => setCloseReason(e.target.value)}
+              rows={2}
+              className="bg-surface border border-border rounded-xl px-3 py-2.5 text-sm text-white placeholder-text-dim focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent/50 resize-none transition-all"
+            />
             <div className="flex gap-2 justify-end">
-              <Button onClick={() => { setConfirmModal(null); setCloseReason(''); }}>Bekor</Button>
-              <Button variant="danger" loading={!!actionLoading} onClick={() => void handleForceClose()}>
-                Yopish
-              </Button>
+              <Button variant="ghost" onClick={() => { setConfirmModal(null); setCloseReason(''); }}>Отмена</Button>
+              <Button variant="danger" loading={!!actionLoading} onClick={() => void handleForceClose()}>Закрыть</Button>
             </div>
           </div>
         )}
