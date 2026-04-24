@@ -2,22 +2,65 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500&display=swap');
+
 @layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+
   body {
-    @apply bg-bg text-white font-sans;
+    @apply bg-bg text-white font-sans antialiased;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(123,114,248,0.08) 0%, transparent 60%);
+    background-attachment: fixed;
   }
 
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+  ::selection { background: rgba(123,114,248,0.35); color: #fff; }
+
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+}
+
+@layer components {
+  /* Glass card */
+  .glass {
+    background: rgba(14,14,26,0.7);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.07);
   }
-  ::-webkit-scrollbar-track {
-    @apply bg-surface;
+
+  /* Subtle gradient top border on cards */
+  .card-accent {
+    position: relative;
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      padding: 1px;
+      background: linear-gradient(135deg, rgba(123,114,248,0.3), transparent 60%);
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      mask-composite: exclude;
+      pointer-events: none;
+    }
   }
-  ::-webkit-scrollbar-thumb {
-    @apply bg-border rounded-full;
+
+  /* Table row hover */
+  .tr-hover {
+    @apply transition-colors hover:bg-white/[0.025] cursor-pointer;
   }
-  ::-webkit-scrollbar-thumb:hover {
-    @apply bg-text-muted;
+}
+
+@layer utilities {
+  .text-gradient {
+    background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.6) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .bg-grid {
+    background-image: url("data:image/svg+xml,%3Csvg width='32' height='32' viewBox='0 0 32 32' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 32V0h32' stroke='rgba(255,255,255,0.03)' stroke-width='1'/%3E%3C/svg%3E");
   }
 }
