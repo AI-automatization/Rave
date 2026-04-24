@@ -53,6 +53,10 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const isActionInFlight = useRef(false);
   const intendedPlayingRef = useRef(false);
   const extractStartedRef = useRef(false);
+  const extractFnRef = useRef(extract);
+  extractFnRef.current = extract;
+  const resetExtractionFnRef = useRef(resetExtraction);
+  resetExtractionFnRef.current = resetExtraction;
   const driftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bufferDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reactionTimestampsRef = useRef<number[]>([]);
@@ -85,9 +89,9 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     const rawUrl = room?.videoUrl;
     if (!rawUrl || extractStartedRef.current) return;
     extractStartedRef.current = true;
-    void extract(rawUrl);
-    return () => { extractStartedRef.current = false; resetExtraction(); };
-  }, [room?.videoUrl, extract, resetExtraction]);
+    void extractFnRef.current(rawUrl);
+    return () => { extractStartedRef.current = false; resetExtractionFnRef.current(); };
+  }, [room?.videoUrl]); // extract/resetExtraction excluded via refs to prevent re-trigger on token refresh
 
   useEffect(() => {
     if (!extractResult) return;
@@ -105,7 +109,8 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
 
   useEffect(() => {
     if (!roomClosed) return;
-    if (roomClosed.reason === 'account_blocked') { navigation.goBack(); return; }
+    const safeGoBack = () => { if (navigation.canGoBack()) navigation.goBack(); };
+    if (roomClosed.reason === 'account_blocked') { safeGoBack(); return; }
     let message = '';
     if (roomClosed.reason === 'inactivity') message = t('watchParty', 'closedInactivity') ?? 'Xona 5 daqiqa faolsizlikdan avtomatik yopildi';
     else if (roomClosed.reason === 'owner_left') message = t('watchParty', 'closedOwnerLeft') ?? 'Xona egasi xonani yopdi';
@@ -114,7 +119,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
       if (roomClosed.adminEmail) message += ` (${roomClosed.adminEmail})`;
       if (roomClosed.closeReason) message += `\n${t('watchParty', 'reason') ?? 'Sabab'}: ${roomClosed.closeReason}`;
     }
-    Alert.alert(t('watchParty', 'roomClosed') ?? 'Xona yopildi', message, [{ text: 'OK', onPress: () => navigation.goBack() }]);
+    Alert.alert(t('watchParty', 'roomClosed') ?? 'Xona yopildi', message, [{ text: 'OK', onPress: safeGoBack }]);
   }, [roomClosed, navigation, t]);
 
   // T-E098: Predictive sync — scheduledAt support

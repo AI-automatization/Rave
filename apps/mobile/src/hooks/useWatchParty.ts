@@ -1,5 +1,5 @@
 // CineSync Mobile — useWatchParty hook
-import { useEffect, useCallback, useState } from 'react';
+import { useEffect, useCallback, useState, useRef } from 'react';
 import { useWatchPartyStore } from '@store/watchParty.store';
 import { useAuthStore } from '@store/auth.store';
 import { connectSocket, disconnectSocket, getSocket, SERVER_EVENTS, CLIENT_EVENTS } from '@socket/client';
@@ -39,6 +39,8 @@ const VIDEO_HEARTBEAT_EVENT = 'video:heartbeat';
 
 export function useWatchParty(roomId: string) {
   const token = useAuthStore(s => s.accessToken);
+  const tokenRef = useRef(token);
+  tokenRef.current = token;
   const userId = useAuthStore(s => s.user?._id);
   const { room, syncState, messages, activeMembers, playlist, setRoom, setSyncState, addMessage, setActiveMembers, addMember, removeMember, setPlaylist, clearParty, updateRoomMedia } =
     useWatchPartyStore();
@@ -54,9 +56,9 @@ export function useWatchParty(roomId: string) {
     // Har safar yangi xonaga kirda — eski ma'lumotlarni tozala
     clearParty();
 
-    if (!token) return;
+    if (!tokenRef.current) return;
 
-    const socket = connectSocket(token);
+    const socket = connectSocket(tokenRef.current);
 
     const joinRoom = () => {
       if (__DEV__) console.log('[useWatchParty] joining room:', roomId);
@@ -157,7 +159,7 @@ export function useWatchParty(roomId: string) {
       socket.off('admin:joined');
       socket.off('admin:left');
     };
-  }, [roomId, token]);
+  }, [roomId]); // token intentionally excluded: refresh is handled inside socket/client.ts
 
   const emitPlay = useCallback(
     (currentTime: number) => getSocket()?.emit(CLIENT_EVENTS.PLAY, { roomId, currentTime }),

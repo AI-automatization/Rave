@@ -118,7 +118,14 @@ export function useVideoExtraction(): UseVideoExtractionReturn {
         return;
       }
 
-      // 2. Extract via backend with timeout
+      // 2. Non-HTTP URLs (about:srcdoc, blob:, data:, etc.) are not extractable
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        if (__DEV__) console.log('[useVideoExtraction] Non-HTTP URL — skipping extraction, using WebView fallback');
+        setFallbackMode(true);
+        return;
+      }
+
+      // 3. Extract via backend with timeout
       const extracted = await withTimeout<VideoExtractResult>(
         (signal) =>
           new Promise<VideoExtractResult>((resolve, reject) => {
