@@ -96,7 +96,7 @@ export function captureMessage(message: string, level: 'info' | 'warning' = 'inf
 let _initialized = false;
 
 export function initErrorLogger(): void {
-  if (_initialized || __DEV__) return;
+  if (_initialized) return;
   _initialized = true;
 
   const originalHandler = ErrorUtils.getGlobalHandler();
