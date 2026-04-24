@@ -48,12 +48,12 @@ export function MovieRatingsSection({ ratings, currentUserId, onDeleteOwn }: Pro
   const styles = useStyles();
   const { colors } = useTheme();
 
-  if (!ratings?.length) return null;
+  if (ratings.length === 0) return null;
 
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>Baholar ({ratings?.length ?? 0})</Text>
-      {(ratings ?? []).slice(0, 6).map((r) => {
+      <Text style={styles.sectionTitle}>Baholar ({ratings.length})</Text>
+      {ratings.slice(0, 6).map((r) => {
         const isOwn = r.userId === currentUserId;
         return (
           <View key={r.userId} style={[styles.row, isOwn && styles.ownRow]}>
