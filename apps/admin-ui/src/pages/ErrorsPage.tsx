@@ -51,6 +51,17 @@ function StatCard({ icon, value, label, active, onClick }: {
   );
 }
 
+// ── InfoBlock ──────────────────────────────────────────────────────────────
+
+function InfoBlock({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="bg-overlay/50 rounded-md px-3 py-2">
+      <p className="text-[10px] text-text-dim uppercase tracking-wide mb-0.5">{label}</p>
+      <p className="text-xs text-white font-medium truncate">{value}</p>
+    </div>
+  );
+}
+
 // ── EventDrawer ────────────────────────────────────────────────────────────
 
 function EventDrawer({ issue, onClose }: { issue: MobileIssue; onClose: () => void }) {
@@ -97,47 +108,109 @@ function EventDrawer({ issue, onClose }: { issue: MobileIssue; onClose: () => vo
         <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-4">
           {loading && <p className="text-text-muted text-sm">Загрузка...</p>}
           {!loading && events.length === 0 && <p className="text-text-muted text-sm">Нет событий</p>}
-          {events.map((ev) => (
-            <div key={ev.id} className="rounded-lg border border-border bg-surface p-4 flex flex-col gap-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-text-muted">{ev.device} · {ev.osVersion}</span>
-                <span className="text-xs text-text-dim">{relativeTime(ev.timestamp)}</span>
+          {events.map((ev) => {
+            const ctx = ev.context as {
+              device?: { model?: string; name?: string; year_class?: number; screen_width?: number; screen_height?: number; screen_density?: number; color_scheme?: string };
+              os?: { name?: string; version?: string };
+              app?: { app_version?: string; build_number?: string; app_name?: string; ownership?: string };
+              runtime?: { expo_sdk?: string; js_engine?: string };
+              componentStack?: string;
+            } | null;
+            const stackFrames = (ev.stackTrace as { values?: { stacktrace?: { frames?: Array<{ filename?: string; function?: string; lineno?: number }> } }[] }).values?.[0]?.stacktrace?.frames ?? [];
+            return (
+              <div key={ev.id} className="rounded-lg border border-border bg-surface flex flex-col overflow-hidden">
+
+                {/* Event header */}
+                <div className="flex items-center justify-between px-4 py-2.5 bg-overlay/60 border-b border-border">
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide ${
+                      ev.level === 'fatal' ? 'bg-red-500/20 text-red-400' :
+                      ev.level === 'error' ? 'bg-orange-500/20 text-orange-400' :
+                      'bg-amber-500/20 text-amber-400'
+                    }`}>{ev.level}</span>
+                    <span className="text-xs text-text-muted">{PLATFORM_ICON[ev.platform] ?? '📱'} {ev.platform}</span>
+                  </div>
+                  <span className="text-xs text-text-dim font-mono">{relativeTime(ev.timestamp)}</span>
+                </div>
+
+                <div className="p-4 flex flex-col gap-3">
+
+                  {/* Device + OS + App grid */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <InfoBlock label="Устройство" value={ctx?.device?.model ?? ev.device ?? '—'} />
+                    <InfoBlock label="ОС" value={ctx?.os ? `${ctx.os.name} ${ctx.os.version}` : ev.osVersion ?? '—'} />
+                    <InfoBlock label="Версия приложения" value={ctx?.app?.app_version ?? ev.appVersion ?? '—'} />
+                    <InfoBlock label="Build" value={ctx?.app?.build_number ?? '—'} />
+                    <InfoBlock label="Экран" value={ctx?.device?.screen_width ? `${ctx.device.screen_width}×${ctx.device.screen_height} @${ctx.device.screen_density}x` : '—'} />
+                    <InfoBlock label="Год устройства" value={ctx?.device?.year_class ? String(ctx.device.year_class) : '—'} />
+                    <InfoBlock label="Тема" value={ctx?.device?.color_scheme ?? '—'} />
+                    <InfoBlock label="JS Engine" value={ctx?.runtime?.js_engine ?? '—'} />
+                    <InfoBlock label="Expo SDK" value={ctx?.runtime?.expo_sdk ?? '—'} />
+                    <InfoBlock label="Ownership" value={ctx?.app?.ownership ?? '—'} />
+                  </div>
+
+                  {/* User */}
+                  {ev.userId && (
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className="text-text-dim">User ID:</span>
+                      <span className="text-white font-mono bg-overlay px-2 py-0.5 rounded select-all">{ev.userId}</span>
+                    </div>
+                  )}
+
+                  {/* Stack trace — all frames */}
+                  {stackFrames.length > 0 && (
+                    <div>
+                      <p className="text-xs text-text-dim mb-1 font-medium">Stack trace ({stackFrames.length} frames)</p>
+                      <div className="bg-overlay rounded p-2 text-xs font-mono text-text-muted overflow-x-auto max-h-52">
+                        {[...stackFrames].reverse().map((f, i) => (
+                          <div key={i} className={`py-0.5 ${i === 0 ? 'text-red-400' : ''}`}>
+                            <span className="text-accent">{f.function ?? '?'}</span>
+                            <span className="text-text-dim"> at {f.filename ?? '?'}:{f.lineno ?? '?'}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Component stack */}
+                  {ctx?.componentStack && (
+                    <div>
+                      <p className="text-xs text-text-dim mb-1 font-medium">Component stack</p>
+                      <div className="bg-overlay rounded p-2 text-xs font-mono text-amber-400/80 overflow-x-auto max-h-32 whitespace-pre">
+                        {ctx.componentStack.trim()}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Breadcrumbs — all */}
+                  {ev.breadcrumbs && ev.breadcrumbs.length > 0 && (
+                    <div>
+                      <p className="text-xs text-text-dim mb-1 font-medium">Breadcrumbs ({ev.breadcrumbs.length})</p>
+                      <div className="bg-overlay rounded p-2 text-xs font-mono text-text-muted overflow-x-auto max-h-40 flex flex-col gap-0.5">
+                        {(ev.breadcrumbs as Array<{ type?: string; message?: string; category?: string; timestamp?: string }>)
+                          .map((b, i) => (
+                            <div key={i} className="flex gap-2">
+                              <span className="text-text-dim shrink-0">[{b.type ?? b.category ?? 'log'}]</span>
+                              <span className="flex-1 truncate">{b.message ?? ''}</span>
+                              {b.timestamp && <span className="text-text-dim shrink-0">{relativeTime(b.timestamp)}</span>}
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Raw context */}
+                  <details className="group">
+                    <summary className="text-xs text-text-dim cursor-pointer hover:text-white select-none">Raw context</summary>
+                    <div className="mt-1 bg-overlay rounded p-2 text-xs font-mono text-text-muted overflow-x-auto max-h-40 whitespace-pre">
+                      {JSON.stringify(ev.context, null, 2)}
+                    </div>
+                  </details>
+
+                </div>
               </div>
-              {ev.userId && (
-                <p className="text-xs text-text-muted">User: <span className="text-white font-mono">{ev.userId}</span></p>
-              )}
-              {/* Stack trace */}
-              {ev.stackTrace && (ev.stackTrace as { values?: { stacktrace?: { frames?: unknown[] } }[] }).values?.[0]?.stacktrace?.frames && (
-                <div>
-                  <p className="text-xs text-text-dim mb-1">Stack trace</p>
-                  <div className="bg-overlay rounded p-2 text-xs font-mono text-text-muted overflow-x-auto max-h-40">
-                    {((ev.stackTrace as { values?: { stacktrace?: { frames?: Array<{ filename?: string; function?: string; lineno?: number }> } }[] }).values?.[0]?.stacktrace?.frames ?? [])
-                      .slice(-8).reverse().map((f, i) => (
-                        <div key={i} className="py-0.5">
-                          <span className="text-accent">{f.function ?? '?'}</span>
-                          <span className="text-text-dim"> at {f.filename ?? '?'}:{f.lineno ?? '?'}</span>
-                        </div>
-                      ))}
-                  </div>
-                </div>
-              )}
-              {/* Breadcrumbs */}
-              {ev.breadcrumbs && ev.breadcrumbs.length > 0 && (
-                <div>
-                  <p className="text-xs text-text-dim mb-1">Breadcrumbs ({ev.breadcrumbs.length})</p>
-                  <div className="bg-overlay rounded p-2 text-xs font-mono text-text-muted overflow-x-auto max-h-32 flex flex-col gap-1">
-                    {(ev.breadcrumbs as Array<{ type?: string; message?: string; category?: string }>)
-                      .slice(-6).map((b, i) => (
-                        <div key={i} className="flex gap-2">
-                          <span className="text-text-dim shrink-0">[{b.type ?? b.category ?? 'log'}]</span>
-                          <span>{b.message ?? ''}</span>
-                        </div>
-                      ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
         {total > 10 && (
           <div className="px-5 py-3 border-t border-border">
