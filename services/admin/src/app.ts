@@ -11,6 +11,7 @@ import { morganStream } from '@shared/utils/logger';
 import { apiLogger } from '@shared/middleware/apiLogger.middleware';
 import { createAdminRouter } from './routes/admin.routes';
 import { createOperatorRouter } from './routes/operator.routes';
+import { createErrorsRouter } from './routes/errors.routes';
 import { swaggerSpec } from './utils/swagger';
 import { config } from './config/index';
 
@@ -21,8 +22,8 @@ export const createApp = (redis: Redis): express.Application => {
   app.set('trust proxy', 1);
 
   app.use(helmet());
-  // Admin service: restricted CORS — admin UI only (configurable via ADMIN_URL env)
-  app.use(cors({ origin: [config.adminUrl], credentials: true }));
+  // Admin service: restricted CORS — admin UI + mobile ingest
+  app.use(cors({ origin: [config.adminUrl, '*'], credentials: true }));
   app.use(morgan('combined', { stream: morganStream }));
   app.use(express.json({ limit: '10kb' }));
   app.use(requestId);
@@ -38,6 +39,7 @@ export const createApp = (redis: Redis): express.Application => {
 
   app.use('/api/v1/admin', createAdminRouter(redis));
   app.use('/api/v1/operator', createOperatorRouter(redis));
+  app.use('/api/v1/errors', createErrorsRouter());
 
   app.use(notFoundHandler);
   app.use(errorHandler);

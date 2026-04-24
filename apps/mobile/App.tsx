@@ -1,5 +1,6 @@
 // CineSync — Root App Component
 import React, { useEffect, useState, useCallback } from 'react';
+import { initErrorLogger } from '@utils/errorLogger';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -15,6 +16,8 @@ import { BlockedAccountModal } from '@components/common/BlockedAccountModal';
 import { OfflineBanner } from '@components/common/OfflineBanner';
 import { useNetworkStatus } from '@hooks/useNetworkStatus';
 import { ThemeProvider, useTheme } from '@theme/index';
+
+initErrorLogger();
 
 const queryClient = new QueryClient({
   defaultOptions: {

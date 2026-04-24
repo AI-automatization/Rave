@@ -1,6 +1,36 @@
 # CineSync — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-04-22
+# Yangilangan: 2026-04-24
+
+---
+
+### T-S065 | 2026-04-24 | [BACKEND+ADMIN] | Mobile Error Logging System [Saidazim]
+
+- **Bajarildi:**
+  - `services/admin/src/models/mobileIssue.model.ts` — MobileIssue MongoDB model (fingerprint upsert)
+  - `services/admin/src/models/mobileEvent.model.ts` — MobileEvent model (90-day TTL index)
+  - `services/admin/src/services/errors.service.ts` — SHA-256 fingerprinting, ingest, list, stats, updateStatus, getEvents, delete
+  - `services/admin/src/controllers/errors.controller.ts` — REST controller + x-error-key auth
+  - `services/admin/src/routes/errors.routes.ts` — POST /ingest (public), GET /stats, GET /, PATCH /:id/status, GET /:id/events, DELETE /:id
+  - `services/admin/src/app.ts` — createErrorsRouter qo'shildi
+  - `apps/admin-ui/src/api/errors.api.ts` — Admin UI API client
+  - `apps/admin-ui/src/pages/ErrorsPage.tsx` — StatCard + Table + EventDrawer + Pagination
+  - `apps/admin-ui/src/App.tsx` — /errors route
+  - `apps/admin-ui/src/components/layout/Sidebar.tsx` — "Mobile Errors" nav item
+  - `apps/mobile/src/utils/errorLogger.ts` — Pure JS error capture + global handler
+  - `apps/mobile/App.tsx` — initErrorLogger() call
+- **Yechim:** Kustom GlitchTip-like tizim: mobile → admin service → MongoDB → admin UI
+
+### T-S066 | 2026-04-24 | [BACKEND] | Google OAuth polling flow for Expo Go [Saidazim]
+
+- **Bajarildi:**
+  - `services/auth/src/services/googleAuth.service.ts` — initMobileGoogleAuth, storeMobileGoogleResult, pollMobileGoogleResult, exchangeCodeForIdToken (Redis TTL)
+  - `services/auth/src/services/auth.service.ts` — delegate methods
+  - `services/auth/src/controllers/auth.controller.ts` — googleMobileInit, googleMobileRedirect, googleMobileCallback, googleMobilePoll
+  - `services/auth/src/routes/auth.routes.ts` — POST /google/init, GET /google/mobile, GET /google/poll; callback route splitted mobile vs web
+  - `apps/mobile/src/api/auth.api.ts` — googleInit(), googlePoll()
+  - `apps/mobile/src/hooks/useSocialAuth.ts` — backend polling flow (WebBrowser.openBrowserAsync + 2s polling)
+- **Yechim:** Mobile → backend URL → Google OAuth server-side → Redis → poll
 
 ---
 

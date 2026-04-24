@@ -8,6 +8,7 @@ const navItems = [
   { to: '/movies', label: 'Content' },
   { to: '/battles', label: 'Battles' },
   { to: '/watchparties', label: 'Watch Parties' },
+  { to: '/errors', label: 'Mobile Errors' },
   { to: '/feedback', label: 'Feedback' },
   { to: '/logs', label: 'Logs' },
   { to: '/user-activity', label: 'User Activity' },
