@@ -1,6 +1,76 @@
 # CineSync — OCHIQ VAZIFALAR
 
-# Yangilangan: 2026-04-21
+# Yangilangan: 2026-04-24
+
+---
+
+### T-S067 | P0 | [ADMIN] | Admin UI — Production redesign: Sidebar + Layout + Header | pending[Saidazim]
+
+- **Mas'ul:** pending[Saidazim]
+- **Yaratilgan:** 2026-04-24 23:08
+- **Holat:** 🔄 Bajarilmoqda
+- **Sabab:** Sidebar'da ikonkalar yo'q, desktop header yo'q, UI "доска" ko'rinishida
+- **Qilish kerak:**
+  - [ ] lucide-react o'rnatish
+  - [ ] Sidebar: ikonkalar, badge (error count), guruhlar, active state
+  - [ ] Layout: desktop header (breadcrumb, search, notifications, avatar)
+  - [ ] Login page redesign
+
+---
+
+### T-S068 | P0 | [ADMIN] | Admin UI — User Detail page (/users/:id) + Contact user | pending[Saidazim]
+
+- **Mas'ul:** pending[Saidazim]
+- **Yaratilgan:** 2026-04-24 23:08
+- **Holat:** ❌ Boshlanmagan
+- **Sabab:** Admin xatosi bo'lgan foydalanuvchi bilan bog'lana olmaydi
+- **Qilish kerak:**
+  - [ ] /users/:id sahifasi — avatar, email, username, role, joined
+  - [ ] Foydalanuvchi xatolari tarixi (userId bilan bog'liq errors)
+  - [ ] "Xabar yuborish" — mailto: email link
+  - [ ] Block/unblock, role o'zgartirish
+
+---
+
+### T-S069 | P0 | [ADMIN] | Admin UI — ErrorsPage: user info + contact button in EventDrawer | pending[Saidazim]
+
+- **Mas'ul:** pending[Saidazim]
+- **Yaratilgan:** 2026-04-24 23:08
+- **Holat:** ❌ Boshlanmagan
+- **Sabab:** Xato bo'lgan foydalanuvchining kontakt ma'lumotlari ko'rinmaydi
+- **Qilish kerak:**
+  - [ ] EventDrawer: userId bo'lsa → user API dan email/username olish
+  - [ ] "Foydalanuvchi profili" → /users/:id link
+  - [ ] "Bog'lanish" → mailto: email tugmasi
+  - [ ] Xato jadvalida Foydalanuvchi ustuni qo'shish
+
+---
+
+### T-S070 | P1 | [ADMIN] | Admin UI — Dashboard redesign: activity feed + error trend chart | pending[Saidazim]
+
+- **Mas'ul:** pending[Saidazim]
+- **Yaratilgan:** 2026-04-24 23:08
+- **Holat:** ❌ Boshlanmagan
+- **Sabab:** Dashboard faqat statistika ko'rsatadi, real-time hodisalar yo'q
+- **Qilish kerak:**
+  - [ ] Real-time activity feed (yangi xatolar, yangi foydalanuvchilar)
+  - [ ] Error trend chart (kunlik xatolar grafigi)
+  - [ ] Quick stats — bugungi yangi userlar, xatolar
+
+---
+
+### T-S071 | P2 | [ADMIN] | Admin UI — Global search Cmd+K | pending[Saidazim]
+
+- **Mas'ul:** pending[Saidazim]
+- **Yaratilgan:** 2026-04-24 23:08
+- **Holat:** ❌ Boshlanmagan
+- **Sabab:** Foydalanuvchilarni, xatolarni, filmlarni tezda topish imkoni yo'q
+- **Qilish kerak:**
+  - [ ] Cmd+K / Ctrl+K shortcut → modal
+  - [ ] Users, Errors, Movies bo'yicha qidiruv
+  - [ ] Natijani bosish → tegishli sahifaga o'tish
+
+---
 
 # 2 dasturchi: Saidazim (Backend) | Emirhan (Mobile + Web)
 

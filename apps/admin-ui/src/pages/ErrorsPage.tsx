@@ -1,6 +1,10 @@
 import { useEffect, useState, useCallback } from 'react';
+import { Link } from 'react-router-dom';
+import { Mail, User } from 'lucide-react';
 import { errorsApi, MobileIssue, MobileEvent, IssueStatus, ErrorStats } from '../api/errors.api';
+import { usersApi } from '../api/users.api';
 import { Pagination } from '../components/ui/Pagination';
+import type { AdminUser } from '../types';
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
@@ -48,6 +52,53 @@ function StatCard({ icon, value, label, active, onClick }: {
         <p className="text-xs text-text-muted mt-0.5">{label}</p>
       </div>
     </button>
+  );
+}
+
+// ── UserCard ───────────────────────────────────────────────────────────────
+
+function UserCard({ userId }: { userId: string }) {
+  const [user, setUser] = useState<AdminUser | null>(null);
+
+  useEffect(() => {
+    usersApi.getById(userId).then(setUser).catch(() => {});
+  }, [userId]);
+
+  if (!user) {
+    return (
+      <div className="flex items-center gap-2 text-xs text-text-muted">
+        <User size={13} className="text-text-dim" />
+        <span className="font-mono">{userId}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-3 bg-accent/5 border border-accent/15 rounded-lg px-3 py-2">
+      <div className="w-7 h-7 rounded-full bg-accent/20 flex items-center justify-center shrink-0">
+        <span className="text-accent text-xs font-bold uppercase">{user.email[0]}</span>
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-xs font-medium text-white truncate">{user.username || user.email}</p>
+        <p className="text-[11px] text-text-muted truncate">{user.email}</p>
+      </div>
+      <div className="flex items-center gap-1.5 shrink-0">
+        <a
+          href={`mailto:${user.email}`}
+          className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-md bg-accent/10 text-accent hover:bg-accent/20 transition-colors"
+        >
+          <Mail size={11} />
+          Связаться
+        </a>
+        <Link
+          to={`/users/${user._id}`}
+          className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-md bg-white/5 text-text-muted hover:text-white hover:bg-white/10 transition-colors"
+        >
+          <User size={11} />
+          Профиль
+        </Link>
+      </div>
+    </div>
   );
 }
 
@@ -150,12 +201,7 @@ function EventDrawer({ issue, onClose }: { issue: MobileIssue; onClose: () => vo
                   </div>
 
                   {/* User */}
-                  {ev.userId && (
-                    <div className="flex items-center gap-2 text-xs">
-                      <span className="text-text-dim">User ID:</span>
-                      <span className="text-white font-mono bg-overlay px-2 py-0.5 rounded select-all">{ev.userId}</span>
-                    </div>
-                  )}
+                  {ev.userId && <UserCard userId={ev.userId} />}
 
                   {/* Stack trace — all frames */}
                   {stackFrames.length > 0 && (

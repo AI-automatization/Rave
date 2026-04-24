@@ -25,6 +25,11 @@ export const usersApi = {
     await apiClient.patch(`/admin/users/${id}/role`, { role });
   },
 
+  getById: async (id: string): Promise<AdminUser> => {
+    const res = await apiClient.get<{ data: AdminUser }>(`/admin/users/${id}`);
+    return res.data.data;
+  },
+
   delete: async (id: string): Promise<void> => {
     await apiClient.delete(`/admin/users/${id}`);
   },
