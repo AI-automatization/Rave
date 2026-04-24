@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
-const INGEST_URL = `${process.env.EXPO_PUBLIC_ADMIN_URL ?? ''}/errors/ingest`;
+const INGEST_URL = `${process.env.EXPO_PUBLIC_ADMIN_URL ?? 'https://admin-production-8d2a.up.railway.app/api/v1'}/errors/ingest`;
 const API_KEY = process.env.EXPO_PUBLIC_ERROR_KEY ?? 'rave-mobile-errors';
 
 interface ErrorPayload {
@@ -63,13 +63,16 @@ function buildPayload(error: Error, level = 'error'): ErrorPayload {
 
 async function send(payload: ErrorPayload): Promise<void> {
   try {
-    await fetch(INGEST_URL, {
+    const res = await fetch(INGEST_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-error-key': API_KEY },
       body: JSON.stringify(payload),
     });
-  } catch {
-    // silent — never throw from error reporting
+    if (__DEV__) {
+      console.log('[ErrorLogger] sent:', payload.exception?.values?.[0]?.type ?? payload.message, '→', res.status);
+    }
+  } catch (e) {
+    if (__DEV__) console.warn('[ErrorLogger] send failed:', e);
   }
 }
 
@@ -99,8 +102,11 @@ export function initErrorLogger(): void {
   if (_initialized) return;
   _initialized = true;
 
+  if (__DEV__) console.log('[ErrorLogger] init, INGEST_URL:', INGEST_URL);
+
   const originalHandler = ErrorUtils.getGlobalHandler();
   ErrorUtils.setGlobalHandler((error: Error, isFatal?: boolean) => {
+    if (__DEV__) console.log('[ErrorLogger] caught:', error.message, 'fatal:', isFatal);
     captureError(error, isFatal ? 'error' : 'warning');
     originalHandler?.(error, isFatal);
   });
