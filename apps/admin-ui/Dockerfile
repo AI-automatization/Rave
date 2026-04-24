@@ -7,14 +7,14 @@ ARG VITE_AUTH_API_URL
 ENV VITE_ADMIN_API_URL=$VITE_ADMIN_API_URL
 ENV VITE_AUTH_API_URL=$VITE_AUTH_API_URL
 
-COPY package.json ./
+COPY apps/admin-ui/package.json ./
 RUN npm install
-COPY . .
+COPY apps/admin-ui/ .
 RUN npm run build
 
 # Serve stage
 FROM nginx:alpine
 COPY --from=builder /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY apps/admin-ui/nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
