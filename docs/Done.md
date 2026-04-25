@@ -1,6 +1,28 @@
 # CineSync — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-04-24
+# Yangilangan: 2026-04-25
+
+---
+
+### T-E111 | 2026-04-25 | [MOBILE] | WatchParty UI bugs — playlist, FAB, theme tokens [Emirhan]
+
+- **Bajarildi:**
+  - `screens/modal/WatchPartyScreen.tsx`:
+    - `PlaylistPanel` endi `position:'absolute', bottom:0` — bottom sheet sifatida chiqadi (avval `chatPanel flex:1` ortida ko'rinmas edi)
+    - Playlist ochiq paytda `changeMediaFab` + `playlistFab` yashirinadi (FAB overlap bug fix)
+    - `FAB_BOTTOM = 72`, `FAB_PRIMARY_SIZE = 52` — magic numbers → nomli konstantalar
+    - `playlistSheet` yangi stil: `zIndex:15, elevation:16, shadow`
+  - `components/watchParty/PlaylistPanel.tsx`:
+    - `StyleSheet.create` → `createThemedStyles` (to'liq tema tokenlariga o'tish)
+    - `#7B72F8` → `colors.primary`, `rgba(17,17,24,...)` → `colors.bgSurface`
+    - Barcha hardcoded `16px`, `12px`, `8px` → `spacing.lg`, `spacing.md`, `spacing.sm`
+    - `borderRadius: 20` → `borderRadius.full`, `borderRadius: 16` → `borderRadius.xl`
+  - `components/watchParty/RoomCard.tsx`: `thumbWrap` dan `position:'relative'` olib tashlandi
+  - `components/watchParty/RoomInfoBar.tsx`: `iconBtn` dan `position:'relative'` olib tashlandi
+  - `components/watchParty/EmojiFloat.tsx`: `zIndex: 99 → 20`, `gap: 8 → spacing.sm`, `paddingHorizontal: 12 → spacing.md`
+  - `components/watchParty/VideoSection.styles.ts`: `top: 12, right/left: 12 → spacing.md`
+- **tsc:** CLEAN | **jest:** 339/339 passed
+- **Commit:** `f81e60e`
 
 ---
 
