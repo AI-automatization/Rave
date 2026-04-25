@@ -124,7 +124,6 @@ const useStyles = createThemedStyles((colors) => ({
   thumbWrap: {
     width: 88,
     height: 88,
-    position: 'relative',
   },
   thumb: {
     width: '100%',

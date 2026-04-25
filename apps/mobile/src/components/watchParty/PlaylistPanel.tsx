@@ -1,7 +1,8 @@
 // CineSync Mobile — WatchParty Playlist Panel (T-E107)
 import React from 'react';
-import { View, Text, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import type { VideoItem } from '@app-types/index';
 
 interface PlaylistPanelProps {
@@ -14,6 +15,7 @@ interface PlaylistPanelProps {
 }
 
 export function PlaylistPanel({ playlist, isOwner, onAddToQueue, onRemove, onPlayNext, onClose }: PlaylistPanelProps) {
+  const s = useStyles();
   return (
     <View style={s.container}>
       <View style={s.header}>
@@ -72,52 +74,52 @@ export function PlaylistPanel({ playlist, isOwner, onAddToQueue, onRemove, onPla
   );
 }
 
-const s = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   container: {
-    backgroundColor: 'rgba(17,17,24,0.97)',
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    backgroundColor: colors.bgSurface,
+    borderTopLeftRadius: borderRadius.xl,
+    borderTopRightRadius: borderRadius.xl,
     maxHeight: 280,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
     borderBottomWidth: 0.5,
-    borderBottomColor: 'rgba(255,255,255,0.08)',
+    borderBottomColor: colors.border,
   },
-  title: { color: '#fff', fontWeight: '700', fontSize: 15 },
-  headerActions: { flexDirection: 'row', gap: 8 },
+  title: { ...typography.h3, color: colors.textPrimary, fontWeight: '700' },
+  headerActions: { flexDirection: 'row', gap: spacing.sm },
   iconBtn: {
     width: 32, height: 32,
     alignItems: 'center', justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 16,
+    borderRadius: borderRadius.full,
   },
-  empty: { alignItems: 'center', paddingVertical: 24, gap: 8 },
-  emptyText: { color: 'rgba(255,255,255,0.3)', fontSize: 13 },
+  empty: { alignItems: 'center', paddingVertical: spacing.xxl, gap: spacing.sm },
+  emptyText: { ...typography.caption, color: colors.textMuted },
   addBtn: {
-    marginTop: 4, paddingHorizontal: 16, paddingVertical: 8,
-    backgroundColor: '#7B72F8', borderRadius: 20,
+    marginTop: spacing.xs, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm,
+    backgroundColor: colors.primary, borderRadius: borderRadius.full,
   },
-  addBtnText: { color: '#fff', fontWeight: '600', fontSize: 13 },
+  addBtnText: { ...typography.caption, color: colors.white, fontWeight: '600' },
   playNextBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    marginHorizontal: 16, marginVertical: 8,
-    paddingHorizontal: 14, paddingVertical: 8,
-    backgroundColor: '#7B72F8', borderRadius: 20,
+    flexDirection: 'row', alignItems: 'center', gap: spacing.xs,
+    marginHorizontal: spacing.lg, marginVertical: spacing.sm,
+    paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
+    backgroundColor: colors.primary, borderRadius: borderRadius.full,
     alignSelf: 'flex-start',
   },
-  playNextText: { color: '#fff', fontWeight: '600', fontSize: 13 },
+  playNextText: { ...typography.caption, color: colors.white, fontWeight: '600' },
   list: { maxHeight: 180 },
   item: {
     flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 16, paddingVertical: 10,
+    paddingHorizontal: spacing.lg, paddingVertical: spacing.sm,
     borderBottomWidth: 0.5,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
+    borderBottomColor: colors.border,
   },
-  itemIcon: { marginRight: 10 },
-  itemTitle: { flex: 1, color: 'rgba(255,255,255,0.8)', fontSize: 13 },
-});
+  itemIcon: { marginRight: spacing.sm },
+  itemTitle: { flex: 1, ...typography.caption, color: colors.textSecondary },
+}));

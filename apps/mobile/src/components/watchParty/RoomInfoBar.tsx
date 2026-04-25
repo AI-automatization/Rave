@@ -72,7 +72,7 @@ const useStyles = createThemedStyles((colors) => ({
   memberCount: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   memberCountText: { ...typography.caption, color: colors.textMuted },
   infoActions: { flexDirection: 'row', gap: spacing.sm },
-  iconBtn: { padding: spacing.sm, position: 'relative' },
+  iconBtn: { padding: spacing.sm },
   chatDot: {
     position: 'absolute',
     top: 6,

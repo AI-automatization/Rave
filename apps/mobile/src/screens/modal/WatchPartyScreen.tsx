@@ -98,23 +98,25 @@ export function WatchPartyScreen() {
             onLeave={handleLeave}
           />
 
-          {isOwner && (
+          {isOwner && !showPlaylist && (
             <TouchableOpacity style={s.changeMediaFab} onPress={handleChangeMedia}>
               <Ionicons name="add" size={28} color="#fff" />
             </TouchableOpacity>
           )}
 
-          <TouchableOpacity
-            style={[s.playlistFab, playlist.length > 0 && s.playlistFabActive]}
-            onPress={() => setShowPlaylist(v => !v)}
-          >
-            <Ionicons name="list" size={20} color="#fff" />
-            {playlist.length > 0 && (
-              <View style={s.playlistBadge}>
-                <Text style={s.playlistBadgeText}>{playlist.length}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
+          {!showPlaylist && (
+            <TouchableOpacity
+              style={[s.playlistFab, playlist.length > 0 && s.playlistFabActive]}
+              onPress={() => setShowPlaylist(v => !v)}
+            >
+              <Ionicons name="list" size={20} color="#fff" />
+              {playlist.length > 0 && (
+                <View style={s.playlistBadge}>
+                  <Text style={s.playlistBadgeText}>{playlist.length}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          )}
 
           {isOwner && (extractQualities.length > 0 || extractEpisodes.length > 0) && (
             <View style={s.gearRow}>
@@ -157,14 +159,16 @@ export function WatchPartyScreen() {
           )}
 
           {showPlaylist && (
-            <PlaylistPanel
-              playlist={playlist}
-              isOwner={isOwner}
-              onAddToQueue={handleAddToQueue}
-              onRemove={handlePlaylistRemove}
-              onPlayNext={handlePlaylistNext}
-              onClose={() => setShowPlaylist(false)}
-            />
+            <View style={s.playlistSheet}>
+              <PlaylistPanel
+                playlist={playlist}
+                isOwner={isOwner}
+                onAddToQueue={handleAddToQueue}
+                onRemove={handlePlaylistRemove}
+                onPlayNext={handlePlaylistNext}
+                onClose={() => setShowPlaylist(false)}
+              />
+            </View>
           )}
 
           <QualityMenu visible={showQualityMenu} qualities={extractQualities} currentUrl={currentVideoUrl || room?.videoUrl || ''} onSelect={handleQualitySelect} onClose={() => setShowQualityMenu(false)} />
@@ -175,23 +179,26 @@ export function WatchPartyScreen() {
   );
 }
 
+const FAB_BOTTOM = 72;
+const FAB_PRIMARY_SIZE = 52;
+
 const useStyles = createThemedStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bgVoid },
   changeMediaFab: {
-    position: 'absolute', right: spacing.lg, bottom: 72,
+    position: 'absolute', right: spacing.lg, bottom: FAB_BOTTOM,
     width: 52, height: 52, borderRadius: 26,
     backgroundColor: colors.primary,
     alignItems: 'center', justifyContent: 'center',
-    zIndex: 10, elevation: 8,
+    zIndex: 20, elevation: 8,
     shadowColor: '#000', shadowOpacity: 0.4,
     shadowOffset: { width: 0, height: 4 }, shadowRadius: 8,
   },
   playlistFab: {
-    position: 'absolute', right: spacing.lg, bottom: 132,
+    position: 'absolute', right: spacing.lg, bottom: FAB_BOTTOM + FAB_PRIMARY_SIZE + spacing.sm,
     width: 44, height: 44, borderRadius: 22,
     backgroundColor: 'rgba(255,255,255,0.12)',
     alignItems: 'center', justifyContent: 'center',
-    zIndex: 10, elevation: 7,
+    zIndex: 20, elevation: 7,
   },
   playlistFabActive: { backgroundColor: 'rgba(123,114,248,0.5)' },
   playlistBadge: {
@@ -215,4 +222,10 @@ const useStyles = createThemedStyles((colors) => ({
   errorBtnText: { color: colors.white, fontWeight: '700', fontSize: 15 },
   adminBanner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs, backgroundColor: 'rgba(245,158,11,0.12)', paddingVertical: spacing.xs, paddingHorizontal: spacing.md },
   adminBannerText: { ...typography.caption, color: colors.warning, fontWeight: '600' },
+  playlistSheet: {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    zIndex: 15, elevation: 16,
+    shadowColor: '#000', shadowOpacity: 0.35,
+    shadowRadius: 20, shadowOffset: { width: 0, height: -4 },
+  },
 }));

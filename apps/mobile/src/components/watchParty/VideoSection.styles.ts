@@ -11,7 +11,7 @@ export const useVideoSectionStyles = createThemedStyles((colors) => ({
 
   // ── Fullscreen toggle (top-right) ──────────────────────────────
   fullscreenBtn: {
-    position: 'absolute', top: 12, right: 12,
+    position: 'absolute', top: spacing.md, right: spacing.md,
     width: 34, height: 34,
     backgroundColor: 'rgba(0,0,0,0.55)',
     borderRadius: 17,
@@ -23,7 +23,7 @@ export const useVideoSectionStyles = createThemedStyles((colors) => ({
 
   // ── Live badge (top-left) ──────────────────────────────────────
   liveBadge: {
-    position: 'absolute', top: 12, left: 12,
+    position: 'absolute', top: spacing.md, left: spacing.md,
     flexDirection: 'row', alignItems: 'center', gap: 5,
     backgroundColor: colors.error,
     paddingHorizontal: spacing.md,

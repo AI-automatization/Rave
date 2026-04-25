@@ -1,6 +1,7 @@
 // CineSync Mobile — WatchParty Emoji Float
 import React, { useEffect, useRef } from 'react';
 import { StyleSheet, Text, Animated } from 'react-native';
+import { spacing } from '@theme/index';
 
 interface EmojiFloatItemProps {
   emoji: string;
@@ -53,13 +54,13 @@ const styles = StyleSheet.create({
   floatItem: {
     position: 'absolute',
     bottom: 80,
-    zIndex: 99,
+    zIndex: 20,
   },
   emoji: { fontSize: 28 },
   pickerBar: {
     flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 12,
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
     paddingVertical: 6,
     backgroundColor: 'rgba(0,0,0,0.6)',
     borderRadius: 24,
