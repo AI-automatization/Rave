@@ -133,7 +133,7 @@ export class ErrorsService {
     limit: number;
     status?: IssueStatus;
     search?: string;
-  }) {
+  }): Promise<{ data: Record<string, unknown>[]; total: number; page: number; limit: number; totalPages: number }> {
     const { page, limit, status, search } = params;
     const filter: Record<string, unknown> = {};
     if (status) filter.status = status;
@@ -167,7 +167,7 @@ export class ErrorsService {
     return MobileIssue.findByIdAndUpdate(id, { status }, { new: true });
   }
 
-  async getIssueEvents(issueId: string, page: number, limit: number) {
+  async getIssueEvents(issueId: string, page: number, limit: number): Promise<{ data: Record<string, unknown>[]; total: number; page: number; limit: number; totalPages: number }> {
     const [data, total] = await Promise.all([
       MobileEvent.find({ issueId }).sort({ timestamp: -1 }).skip((page - 1) * limit).limit(limit).lean(),
       MobileEvent.countDocuments({ issueId }),
