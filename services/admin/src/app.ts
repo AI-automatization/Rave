@@ -25,7 +25,7 @@ export const createApp = (redis: Redis): express.Application => {
   // Admin service: restricted CORS — admin UI + mobile ingest
   app.use(cors({ origin: [config.adminUrl, '*'], credentials: true }));
   app.use(morgan('combined', { stream: morganStream }));
-  app.use(express.json({ limit: '10kb' }));
+  app.use(express.json({ limit: '512kb' }));
   app.use(requestId);
   app.use(apiLogger('admin'));
   app.use(timeout());

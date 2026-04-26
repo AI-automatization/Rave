@@ -17,15 +17,18 @@ interface SentryException {
 
 interface SentryEvent {
   event_id?: string;
+  timestamp?: string;
   level?: string;
   platform?: string;
   release?: string;
   environment?: string;
   user?: { id?: string; [k: string]: unknown };
   contexts?: {
-    os?: { name?: string; version?: string };
-    device?: { name?: string; model?: string; brand?: string };
-    app?: { app_version?: string };
+    os?: { name?: string; version?: string; api_level?: number; brand?: string; manufacturer?: string; fingerprint?: string; model?: string; is_tablet?: boolean };
+    device?: { name?: string; model?: string; brand?: string; manufacturer?: string; screen_width?: number; screen_height?: number; screen_density?: number; color_scheme?: string; is_tablet?: boolean };
+    app?: { app_version?: string; build_number?: string; app_name?: string; execution_env?: string; is_expo_go?: boolean; app_state?: string; session_id?: string };
+    runtime?: { expo_sdk?: string; js_engine?: string; rn_version?: string; hermes_version?: string };
+    culture?: { timezone?: string; locale?: string };
   };
   exception?: { values?: SentryException[] };
   message?: string;
@@ -63,13 +66,15 @@ function extractPlatform(event: SentryEvent): 'ios' | 'android' | 'unknown' {
 function extractDevice(event: SentryEvent): string {
   const d = event.contexts?.device;
   if (!d) return '';
-  return [d.brand, d.model].filter(Boolean).join(' ');
+  const parts = [d.manufacturer ?? d.brand, d.model ?? d.name].filter(Boolean);
+  return parts.join(' ') || 'unknown';
 }
 
 function extractOsVersion(event: SentryEvent): string {
   const os = event.contexts?.os;
   if (!os) return '';
-  return `${os.name ?? ''} ${os.version ?? ''}`.trim();
+  const apiLevel = os.api_level ? ` (API ${os.api_level})` : '';
+  return `${os.name ?? ''} ${os.version ?? ''}${apiLevel}`.trim();
 }
 
 export class ErrorsService {
@@ -144,7 +149,8 @@ export class ErrorsService {
       MobileIssue.countDocuments(filter),
     ]);
 
-    return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
+    const mapped = data.map((e) => ({ ...e, id: String(e._id) }));
+    return { data: mapped, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
   async getStats() {
@@ -166,7 +172,8 @@ export class ErrorsService {
       MobileEvent.find({ issueId }).sort({ timestamp: -1 }).skip((page - 1) * limit).limit(limit).lean(),
       MobileEvent.countDocuments({ issueId }),
     ]);
-    return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
+    const mapped = data.map((e) => ({ ...e, id: String(e._id) }));
+    return { data: mapped, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
   async deleteIssue(id: string) {

@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Mail, User, X, AlertTriangle, Clock, Smartphone, ChevronDown, ChevronRight } from 'lucide-react';
+import { Search, Mail, User, X, AlertTriangle, Clock, Smartphone, ChevronDown, ChevronRight, Cpu, Globe, Layers, Zap, Tag, MonitorSmartphone, Code2, Database, Shield } from 'lucide-react';
 import { errorsApi, MobileIssue, MobileEvent, IssueStatus, ErrorStats } from '../api/errors.api';
 import { usersApi } from '../api/users.api';
 import { Badge } from '../components/ui/Badge';
@@ -104,17 +104,6 @@ function UserCard({ userId }: { userId: string }) {
   );
 }
 
-// ── InfoBlock ─────────────────────────────────────────────────────────────────
-
-function InfoBlock({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="bg-bg/60 rounded-lg px-3 py-2 border border-white/[0.04]">
-      <p className="text-[10px] text-text-dim uppercase tracking-wider mb-0.5">{label}</p>
-      <p className="text-xs text-white font-medium truncate">{value}</p>
-    </div>
-  );
-}
-
 // ── EventDrawer ───────────────────────────────────────────────────────────────
 
 function EventDrawer({ issue, onClose }: { issue: MobileIssue; onClose: () => void }) {
@@ -123,11 +112,16 @@ function EventDrawer({ issue, onClose }: { issue: MobileIssue; onClose: () => vo
   const [total, setTotal]     = useState(0);
   const [loading, setLoading] = useState(true);
   const [expandedRaw, setExpandedRaw] = useState<string | null>(null);
+  const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
 
   useEffect(() => {
     setLoading(true);
     errorsApi.getEvents(issue.id, page)
-      .then((r) => { setEvents(r.data); setTotal(r.meta.total); })
+      .then((r) => {
+        setEvents(r.data);
+        setTotal(r.meta.total);
+        if (r.data.length > 0) setExpandedEvent(r.data[0].id);
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [issue.id, page]);
@@ -135,7 +129,7 @@ function EventDrawer({ issue, onClose }: { issue: MobileIssue; onClose: () => vo
   return (
     <div className="fixed inset-0 z-40 flex animate-fade-in">
       <div className="flex-1 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="w-[640px] bg-bg border-l border-white/[0.07] flex flex-col h-full overflow-hidden">
+      <div className="w-[680px] bg-bg border-l border-white/[0.07] flex flex-col h-full overflow-hidden">
 
         {/* Header */}
         <div className="px-5 py-4 border-b border-white/[0.06] flex items-start justify-between gap-3 shrink-0">
@@ -172,7 +166,7 @@ function EventDrawer({ issue, onClose }: { issue: MobileIssue; onClose: () => vo
         </div>
 
         {/* Events list */}
-        <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-3">
+        <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4 flex flex-col gap-3">
           {loading && Array.from({ length: 2 }).map((_, i) => (
             <div key={i} className="h-40 bg-card rounded-2xl animate-pulse" />
           ))}
@@ -180,106 +174,305 @@ function EventDrawer({ issue, onClose }: { issue: MobileIssue; onClose: () => vo
             <div className="text-center py-12 text-text-muted text-sm">Нет событий</div>
           )}
           {events.map((ev) => {
-            const ctx = ev.context as {
-              device?: { model?: string; name?: string; year_class?: number; screen_width?: number; screen_height?: number; screen_density?: number; color_scheme?: string };
-              os?: { name?: string; version?: string };
-              app?: { app_version?: string; build_number?: string; app_name?: string; ownership?: string };
-              runtime?: { expo_sdk?: string; js_engine?: string };
+            const raw = ev.context as {
+              contexts?: {
+                os?: { name?: string; version?: string; api_level?: number; brand?: string; manufacturer?: string; fingerprint?: string; model?: string; is_tablet?: boolean };
+                device?: { model?: string; name?: string; brand?: string; manufacturer?: string; screen_width?: number; screen_height?: number; window_width?: number; window_height?: number; screen_density?: number; screen_scale?: number; color_scheme?: string; is_tablet?: boolean };
+                app?: { app_version?: string; build_number?: string; app_name?: string; execution_env?: string; is_expo_go?: boolean; app_state?: string; session_id?: string };
+                runtime?: { expo_sdk?: string; js_engine?: string; rn_version?: string };
+                culture?: { timezone?: string; locale?: string };
+              };
+              tags?: Record<string, string>;
+              extra?: Record<string, unknown>;
               componentStack?: string;
             } | null;
+            const ctx = raw?.contexts;
             const stackFrames = (ev.stackTrace as { values?: { stacktrace?: { frames?: Array<{ filename?: string; function?: string; lineno?: number }> } }[] }).values?.[0]?.stacktrace?.frames ?? [];
             const isRawExpanded = expandedRaw === ev.id;
+            const deviceName = [ctx?.device?.manufacturer ?? ctx?.device?.brand, ctx?.device?.model ?? ctx?.device?.name].filter(Boolean).join(' ') || ev.device || 'Unknown Device';
+            const osLabel = ctx?.os ? `${ctx.os.name ?? ''} ${ctx.os.version ?? ''}`.trim() : ev.osVersion || '—';
+            const levelColor = ev.level === 'fatal' ? { bg: 'bg-red-500/15', text: 'text-red-400', border: 'border-red-500/25', dot: 'bg-red-400' } :
+                               ev.level === 'error' ? { bg: 'bg-orange-500/15', text: 'text-orange-400', border: 'border-orange-500/25', dot: 'bg-orange-400' } :
+                               { bg: 'bg-amber-500/15', text: 'text-amber-400', border: 'border-amber-500/25', dot: 'bg-amber-400' };
+            const extraEntries = raw?.extra ? Object.entries(raw.extra) : [];
+
+            const isExpanded = expandedEvent === ev.id;
 
             return (
-              <div key={ev.id} className="bg-card rounded-2xl border border-white/[0.06] overflow-hidden shadow-card">
+              <div key={ev.id} className="rounded-2xl border border-white/[0.07] overflow-hidden bg-[#0d0d14]">
 
-                {/* Event header */}
-                <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/[0.04] bg-overlay/40">
+                {/* ── Event top bar — click to expand ── */}
+                <button
+                  onClick={() => setExpandedEvent(isExpanded ? null : ev.id)}
+                  className={`w-full flex items-center justify-between px-4 py-2.5 border-b ${levelColor.border} ${levelColor.bg} hover:brightness-110 transition-all`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className={`flex items-center gap-1.5 text-[11px] font-bold px-2 py-0.5 rounded-lg border uppercase tracking-widest ${levelColor.bg} ${levelColor.text} ${levelColor.border}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${levelColor.dot} animate-pulse`} />
+                      {ev.level}
+                    </span>
+                    <span className="text-xs text-text-muted font-medium">{PLATFORM_ICON[ev.platform] ?? '📱'} {ev.platform}</span>
+                    {ctx?.culture?.locale && (
+                      <span className="text-[11px] text-text-dim bg-white/[0.05] px-2 py-0.5 rounded-md border border-white/[0.06]">{ctx.culture.locale}</span>
+                    )}
+                  </div>
                   <div className="flex items-center gap-2">
-                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider ${
-                      ev.level === 'fatal' ? 'bg-red-500/20 text-red-400' :
-                      ev.level === 'error' ? 'bg-orange-500/20 text-orange-400' :
-                      'bg-amber-500/20 text-amber-400'
-                    }`}>{ev.level}</span>
-                    <span className="text-xs text-text-dim">{PLATFORM_ICON[ev.platform] ?? '📱'} {ev.platform}</span>
+                    <span className="text-[11px] text-text-dim font-mono tabular-nums">{relativeTime(ev.timestamp)}</span>
+                    {isExpanded ? <ChevronDown size={13} className="text-text-dim" /> : <ChevronRight size={13} className="text-text-dim" />}
                   </div>
-                  <span className="text-xs text-text-dim font-mono">{relativeTime(ev.timestamp)}</span>
-                </div>
+                </button>
 
-                <div className="p-4 flex flex-col gap-3">
-                  {/* Device grid */}
-                  <div className="grid grid-cols-2 gap-1.5">
-                    <InfoBlock label="Устройство" value={ctx?.device?.model ?? ev.device ?? '—'} />
-                    <InfoBlock label="ОС" value={ctx?.os ? `${ctx.os.name ?? ''} ${ctx.os.version ?? ''}`.trim() : ev.osVersion ?? '—'} />
-                    <InfoBlock label="Версия" value={ctx?.app?.app_version ?? ev.appVersion ?? '—'} />
-                    <InfoBlock label="Build" value={ctx?.app?.build_number ?? '—'} />
-                    <InfoBlock label="Экран" value={ctx?.device?.screen_width ? `${ctx.device.screen_width}×${ctx.device.screen_height} @${ctx.device.screen_density}x` : '—'} />
-                    <InfoBlock label="Год устройства" value={ctx?.device?.year_class ? String(ctx.device.year_class) : '—'} />
-                    <InfoBlock label="Тема" value={ctx?.device?.color_scheme ?? '—'} />
-                    <InfoBlock label="JS Engine" value={ctx?.runtime?.js_engine ?? '—'} />
-                    <InfoBlock label="Expo SDK" value={ctx?.runtime?.expo_sdk ?? '—'} />
-                    <InfoBlock label="Ownership" value={ctx?.app?.ownership ?? '—'} />
+                {/* ── Collapsed: just Device Hero ── */}
+                {!isExpanded && (
+                  <div
+                    className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-white/[0.02] transition-colors"
+                    onClick={() => setExpandedEvent(ev.id)}
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-accent/10 border border-accent/20 flex items-center justify-center shrink-0">
+                      <MonitorSmartphone size={15} className="text-accent" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-white truncate">{deviceName}</p>
+                      <p className="text-[11px] text-text-muted truncate">{osLabel}{ctx?.os?.api_level ? ` · API ${ctx.os.api_level}` : ''}</p>
+                    </div>
+                    <span className="text-[10px] text-text-dim">нажми для деталей →</span>
+                  </div>
+                )}
+
+                {/* ── Expanded: full details ── */}
+                {isExpanded && <div className="p-4 flex flex-col gap-4">
+
+                  {/* ── Device Hero ── */}
+                  <div className="flex items-center gap-3 bg-white/[0.03] rounded-xl p-3.5 border border-white/[0.05]">
+                    <div className="w-11 h-11 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center shrink-0">
+                      <MonitorSmartphone size={20} className="text-accent" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-white truncate">{deviceName}</p>
+                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                        <span className="text-[11px] text-text-muted">{osLabel}</span>
+                        {ctx?.os?.api_level && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20 font-mono">API {ctx.os.api_level}</span>
+                        )}
+                        {ctx?.app?.is_expo_go && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-purple-500/10 text-purple-400 border border-purple-500/20">Expo Go</span>
+                        )}
+                        {ctx?.device?.is_tablet && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">Tablet</span>
+                        )}
+                        {ctx?.device?.color_scheme && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-white/5 text-text-dim border border-white/[0.07]">
+                            {ctx.device.color_scheme === 'dark' ? '🌙' : '☀️'} {ctx.device.color_scheme}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="text-[11px] text-text-dim">App State</p>
+                      <span className={`text-[11px] font-medium ${ctx?.app?.app_state === 'active' ? 'text-emerald-400' : 'text-amber-400'}`}>
+                        {ctx?.app?.app_state ?? '—'}
+                      </span>
+                    </div>
                   </div>
 
-                  {/* User */}
-                  {ev.userId && <UserCard userId={ev.userId} />}
+                  {/* ── 4-column info grid ── */}
+                  <div className="grid grid-cols-2 gap-3">
 
-                  {/* Stack trace */}
-                  {stackFrames.length > 0 && (
+                    {/* Device */}
+                    <div className="rounded-xl border border-white/[0.06] overflow-hidden">
+                      <div className="flex items-center gap-2 px-3 py-2 bg-white/[0.03] border-b border-white/[0.05]">
+                        <Smartphone size={12} className="text-accent" />
+                        <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Device</span>
+                      </div>
+                      <div className="p-3 flex flex-col gap-2">
+                        {[
+                          ['Модель',      ctx?.device?.model ?? '—'],
+                          ['Бренд',       ctx?.device?.brand ?? '—'],
+                          ['Производитель', ctx?.device?.manufacturer ?? '—'],
+                          ['Экран',       ctx?.device?.screen_width ? `${Math.round(ctx.device.screen_width)}×${Math.round(ctx.device.screen_height ?? 0)}` : '—'],
+                          ['Плотность',   ctx?.device?.screen_density ? `${ctx.device.screen_density}x` : '—'],
+                        ].map(([k, v]) => (
+                          <div key={k} className="flex justify-between items-center gap-2">
+                            <span className="text-[10px] text-text-dim shrink-0">{k}</span>
+                            <span className="text-[11px] text-white font-medium text-right truncate max-w-[120px]">{v}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* OS */}
+                    <div className="rounded-xl border border-white/[0.06] overflow-hidden">
+                      <div className="flex items-center gap-2 px-3 py-2 bg-white/[0.03] border-b border-white/[0.05]">
+                        <Layers size={12} className="text-cyan-400" />
+                        <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">OS</span>
+                      </div>
+                      <div className="p-3 flex flex-col gap-2">
+                        {[
+                          ['Система',   ctx?.os?.name ?? '—'],
+                          ['Версия',    ctx?.os?.version ?? '—'],
+                          ['API Level', ctx?.os?.api_level ? String(ctx.os.api_level) : '—'],
+                          ['Бренд',     ctx?.os?.brand ?? '—'],
+                          ['Произ.',    ctx?.os?.manufacturer ?? '—'],
+                        ].map(([k, v]) => (
+                          <div key={k} className="flex justify-between items-center gap-2">
+                            <span className="text-[10px] text-text-dim shrink-0">{k}</span>
+                            <span className="text-[11px] text-white font-medium text-right truncate max-w-[120px]">{v}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Runtime */}
+                    <div className="rounded-xl border border-white/[0.06] overflow-hidden">
+                      <div className="flex items-center gap-2 px-3 py-2 bg-white/[0.03] border-b border-white/[0.05]">
+                        <Zap size={12} className="text-yellow-400" />
+                        <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Runtime</span>
+                      </div>
+                      <div className="p-3 flex flex-col gap-2">
+                        {[
+                          ['JS Engine',  ctx?.runtime?.js_engine ?? '—'],
+                          ['RN Version', ctx?.runtime?.rn_version ?? '—'],
+                          ['Expo SDK',   ctx?.runtime?.expo_sdk ?? '—'],
+                          ['Среда',      ctx?.app?.execution_env ?? '—'],
+                          ['App v',      ctx?.app?.app_version ? `${ctx.app.app_version} (${ctx.app.build_number ?? '0'})` : ev.appVersion ?? '—'],
+                        ].map(([k, v]) => (
+                          <div key={k} className="flex justify-between items-center gap-2">
+                            <span className="text-[10px] text-text-dim shrink-0">{k}</span>
+                            <span className="text-[11px] text-white font-medium text-right truncate max-w-[120px]">{v}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Culture */}
+                    <div className="rounded-xl border border-white/[0.06] overflow-hidden">
+                      <div className="flex items-center gap-2 px-3 py-2 bg-white/[0.03] border-b border-white/[0.05]">
+                        <Globe size={12} className="text-emerald-400" />
+                        <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Culture</span>
+                      </div>
+                      <div className="p-3 flex flex-col gap-2">
+                        {[
+                          ['Timezone', ctx?.culture?.timezone ?? '—'],
+                          ['Locale',   ctx?.culture?.locale ?? '—'],
+                          ['App Name', ctx?.app?.app_name ?? '—'],
+                          ['Session',  ctx?.app?.session_id ? ctx.app.session_id.slice(0, 8) + '…' : '—'],
+                        ].map(([k, v]) => (
+                          <div key={k} className="flex justify-between items-center gap-2">
+                            <span className="text-[10px] text-text-dim shrink-0">{k}</span>
+                            <span className="text-[11px] text-white font-medium text-right truncate max-w-[120px]">{v}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── Fingerprint ── */}
+                  {ctx?.os?.fingerprint && ctx.os.fingerprint !== 'unknown' && (
+                    <div className="flex items-start gap-2.5 bg-white/[0.02] rounded-xl px-3 py-2.5 border border-white/[0.05]">
+                      <Shield size={12} className="text-text-dim mt-0.5 shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-[10px] text-text-dim uppercase tracking-wider mb-0.5">Build Fingerprint</p>
+                        <p className="text-[11px] font-mono text-text-muted break-all leading-relaxed">{ctx.os.fingerprint}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── Tags ── */}
+                  {raw?.tags && Object.keys(raw.tags).length > 0 && (
                     <div>
-                      <p className="text-[10px] text-text-dim uppercase tracking-wider mb-1.5 font-medium">Stack trace ({stackFrames.length})</p>
-                      <div className="bg-bg rounded-xl p-3 text-xs font-mono overflow-x-auto max-h-48 border border-white/[0.04]">
-                        {[...stackFrames].reverse().map((f, i) => (
-                          <div key={i} className={`py-0.5 ${i === 0 ? 'text-red-400' : 'text-text-muted'}`}>
-                            <span className={i === 0 ? 'text-red-400' : 'text-accent/80'}>{f.function ?? '?'}</span>
-                            <span className="text-text-dim"> at {f.filename ?? '?'}:{f.lineno ?? '?'}</span>
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <Tag size={11} className="text-text-dim" />
+                        <span className="text-[10px] text-text-dim uppercase tracking-wider font-semibold">Tags</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {Object.entries(raw.tags).map(([k, v]) => (
+                          <span key={k} className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-lg bg-accent/10 border border-accent/20 text-accent/90 font-mono">
+                            <span className="text-accent/50">{k}:</span>{v}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── Extra ── */}
+                  {extraEntries.length > 0 && (
+                    <div>
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <Database size={11} className="text-text-dim" />
+                        <span className="text-[10px] text-text-dim uppercase tracking-wider font-semibold">Extra</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {extraEntries.map(([k, v]) => (
+                          <div key={k} className="flex items-center justify-between gap-2 bg-white/[0.03] rounded-lg px-2.5 py-1.5 border border-white/[0.05]">
+                            <span className="text-[10px] text-text-dim">{k}</span>
+                            <span className="text-[11px] text-amber-300 font-mono">{String(v)}</span>
                           </div>
                         ))}
                       </div>
                     </div>
                   )}
 
-                  {/* Component stack */}
-                  {ctx?.componentStack && (
+                  {/* ── User ── */}
+                  {ev.userId && <UserCard userId={ev.userId} />}
+
+                  {/* ── Stack trace ── */}
+                  {stackFrames.length > 0 && (
                     <div>
-                      <p className="text-[10px] text-text-dim uppercase tracking-wider mb-1.5 font-medium">Component stack</p>
-                      <div className="bg-bg rounded-xl p-3 text-xs font-mono text-amber-400/80 overflow-x-auto max-h-28 whitespace-pre border border-white/[0.04]">
-                        {ctx.componentStack.trim()}
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <Code2 size={11} className="text-text-dim" />
+                        <span className="text-[10px] text-text-dim uppercase tracking-wider font-semibold">Stack Trace</span>
+                        <span className="text-[10px] text-text-dim bg-white/[0.05] px-1.5 py-0.5 rounded">{stackFrames.length} frames</span>
+                      </div>
+                      <div className="bg-[#080810] rounded-xl border border-white/[0.06] overflow-hidden">
+                        <div className="overflow-x-auto max-h-56 p-3 flex flex-col gap-0.5">
+                          {[...stackFrames].reverse().map((f, i) => {
+                            const filename = f.filename?.split('/').pop() ?? f.filename ?? '?';
+                            const isTop = i === 0;
+                            return (
+                              <div key={i} className={`flex items-start gap-2 py-0.5 rounded px-1 ${isTop ? 'bg-red-500/10' : 'hover:bg-white/[0.02]'}`}>
+                                <span className={`text-[10px] font-mono w-4 shrink-0 text-right tabular-nums mt-0.5 ${isTop ? 'text-red-400' : 'text-text-dim'}`}>{i + 1}</span>
+                                <div className="min-w-0">
+                                  <span className={`text-[11px] font-mono font-medium ${isTop ? 'text-red-300' : 'text-accent/80'}`}>{f.function ?? '?'}</span>
+                                  <span className="text-text-dim text-[10px] font-mono"> · {filename}</span>
+                                  <span className={`text-[10px] font-mono ml-1 ${isTop ? 'text-red-400/70' : 'text-text-dim'}`}>:{f.lineno ?? '?'}</span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
                   )}
 
-                  {/* Breadcrumbs */}
-                  {ev.breadcrumbs && ev.breadcrumbs.length > 0 && (
+                  {/* ── Component stack ── */}
+                  {raw?.componentStack && (
                     <div>
-                      <p className="text-[10px] text-text-dim uppercase tracking-wider mb-1.5 font-medium">Breadcrumbs ({ev.breadcrumbs.length})</p>
-                      <div className="bg-bg rounded-xl p-3 text-xs font-mono text-text-muted overflow-x-auto max-h-36 flex flex-col gap-0.5 border border-white/[0.04]">
-                        {(ev.breadcrumbs as Array<{ type?: string; message?: string; category?: string; timestamp?: string }>)
-                          .map((b, i) => (
-                            <div key={i} className="flex gap-2 items-start">
-                              <span className="text-text-dim shrink-0">[{b.type ?? b.category ?? 'log'}]</span>
-                              <span className="flex-1 truncate">{b.message ?? ''}</span>
-                              {b.timestamp && <span className="text-text-dim shrink-0 text-[10px]">{relativeTime(b.timestamp)}</span>}
-                            </div>
-                          ))}
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <Cpu size={11} className="text-text-dim" />
+                        <span className="text-[10px] text-text-dim uppercase tracking-wider font-semibold">Component Stack</span>
+                      </div>
+                      <div className="bg-[#080810] rounded-xl p-3 text-[11px] font-mono text-amber-300/80 overflow-x-auto max-h-28 whitespace-pre border border-white/[0.06]">
+                        {raw.componentStack.trim()}
                       </div>
                     </div>
                   )}
 
-                  {/* Raw context toggle */}
+                  {/* ── Raw JSON toggle ── */}
                   <button
                     onClick={() => setExpandedRaw(isRawExpanded ? null : ev.id)}
-                    className="flex items-center gap-1.5 text-[11px] text-text-dim hover:text-text-muted transition-colors"
+                    className="flex items-center gap-1.5 text-[11px] text-text-dim hover:text-text-muted transition-colors self-start"
                   >
                     {isRawExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-                    Raw context
+                    Raw JSON
                   </button>
                   {isRawExpanded && (
-                    <div className="bg-bg rounded-xl p-3 text-xs font-mono text-text-muted overflow-x-auto max-h-40 whitespace-pre border border-white/[0.04]">
+                    <div className="bg-[#080810] rounded-xl p-3 text-[11px] font-mono text-text-muted overflow-x-auto max-h-48 whitespace-pre border border-white/[0.06]">
                       {JSON.stringify(ev.context, null, 2)}
                     </div>
                   )}
-                </div>
+
+                </div>}
+
               </div>
             );
           })}
