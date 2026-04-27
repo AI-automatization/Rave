@@ -396,7 +396,33 @@ export class AuthController {
   };
 
   telegramRedirect = (_req: Request, res: Response): void => {
-    res.redirect('cinesync://auth/callback');
+    res.setHeader('Content-Type', 'text/html');
+    res.send(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>CineSync</title>
+  <style>
+    body { margin:0; display:flex; flex-direction:column; align-items:center;
+           justify-content:center; height:100vh; background:#0A0A0F;
+           color:#fff; font-family:sans-serif; text-align:center; padding:24px; box-sizing:border-box; }
+    h2 { color:#7B72F8; margin-bottom:8px; }
+    p  { color:#aaa; font-size:14px; }
+  </style>
+  <script>
+    window.location.href = 'cinesync://auth/callback';
+    setTimeout(function() {
+      document.getElementById('fallback').style.display = 'block';
+    }, 1500);
+  </script>
+</head>
+<body>
+  <h2>✅ Вы вошли!</h2>
+  <p>Открываем CineSync...</p>
+  <p id="fallback" style="display:none">Если приложение не открылось — просто вернитесь назад.</p>
+</body>
+</html>`);
   };
 
   telegramPoll = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
