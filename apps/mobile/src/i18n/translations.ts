@@ -134,6 +134,8 @@ export const translations = {
   profileSetup: {
     title: { uz: 'Profilingizni sozlang', ru: 'Настройте профиль', en: 'Set Up Your Profile' },
     sub: { uz: "Bu qadamni o'tkazib yuborishingiz mumkin", ru: 'Этот шаг можно пропустить', en: 'You can skip this step' },
+    usernameLabel: { uz: 'Ismingiz', ru: 'Ваше имя', en: 'Your name' },
+    usernamePlaceholder: { uz: 'Ismingizni kiriting', ru: 'Введите имя', en: 'Enter your name' },
     bioPlaceholder: { uz: "O'zingiz haqida yozing... (ixtiyoriy)", ru: 'Расскажите о себе... (необязательно)', en: 'Tell about yourself... (optional)' },
     favoriteGenres: { uz: 'Sevimli janrlar', ru: 'Любимые жанры', en: 'Favorite Genres' },
     saveBtn: { uz: 'Saqlash va davom etish', ru: 'Сохранить и продолжить', en: 'Save and Continue' },

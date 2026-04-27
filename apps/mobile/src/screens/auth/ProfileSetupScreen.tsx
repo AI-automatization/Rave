@@ -37,12 +37,13 @@ const ALL_GENRES = Object.keys(GENRE_KEYS) as ContentGenre[];
 
 export function ProfileSetupScreen() {
   const insets = useSafeAreaInsets();
-  const { updateUser, clearProfileSetup } = useAuthStore();
+  const { updateUser, clearProfileSetup, user } = useAuthStore();
   const { t } = useT();
   const { colors } = useTheme();
   const styles = useStyles();
 
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
+  const [username, setUsername] = useState(user?.username ?? '');
   const [bio, setBio] = useState('');
   const [selectedGenres, setSelectedGenres] = useState<ContentGenre[]>([]);
   const [loading, setLoading] = useState(false);
@@ -74,6 +75,7 @@ export function ProfileSetupScreen() {
     setLoading(true);
     try {
       const updated = await userApi.updateProfile({
+        username: username.trim() || undefined,
         bio: bio.trim() || undefined,
         avatar: avatarUri ?? undefined,
         favoriteGenres: selectedGenres.length > 0 ? selectedGenres : undefined,
@@ -110,6 +112,20 @@ export function ProfileSetupScreen() {
           <Ionicons name="camera" size={16} color={colors.textPrimary} />
         </View>
       </TouchableOpacity>
+
+      {/* Username */}
+      <View style={styles.fieldWrap}>
+        <Text style={styles.fieldLabel}>{t('profileSetup', 'usernameLabel')}</Text>
+        <TextInput
+          style={styles.fieldInput}
+          placeholder={t('profileSetup', 'usernamePlaceholder')}
+          placeholderTextColor={colors.textMuted}
+          value={username}
+          onChangeText={(txt) => setUsername(txt.replace(/\s/g, '').slice(0, 30))}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+      </View>
 
       {/* Bio */}
       <View style={styles.bioWrap}>
@@ -198,6 +214,20 @@ const useStyles = createThemedStyles((colors) => ({
     justifyContent: 'center',
     borderWidth: 2,
     borderColor: colors.bgBase,
+  },
+  fieldWrap: { width: '100%', gap: spacing.xs },
+  fieldLabel: { ...typography.label, color: colors.textSecondary },
+  fieldInput: {
+    backgroundColor: colors.bgElevated,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    color: colors.textPrimary,
+    fontSize: 15,
+    height: 48,
+    width: '100%',
   },
   bioWrap: { width: '100%' },
   bioInput: {

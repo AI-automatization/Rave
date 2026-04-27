@@ -1,7 +1,7 @@
 // CineSync Mobile — Auth Store (Zustand)
 import { create } from 'zustand';
 import { IUser } from '@app-types/index';
-import { tokenStorage } from '@utils/storage';
+import { tokenStorage, profileSetupStorage } from '@utils/storage';
 import { userApi } from '@api/user.api';
 
 interface AuthState {
@@ -18,7 +18,7 @@ interface AuthState {
   clearProfileSetup: () => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   accessToken: null,
   isAuthenticated: false,
@@ -27,10 +27,10 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   setAuth: async (user, accessToken, refreshToken) => {
     await tokenStorage.saveTokens(accessToken, refreshToken, user._id);
-    // Auth service user dan boshlash (rank/totalPoints yo'q bo'lishi mumkin)
-    // user._id here is auth service ID — matches JWT userId and room.ownerId
     const authServiceId = user._id;
-    set({ user, accessToken, isAuthenticated: true, needsProfileSetup: !user.bio });
+    // Show profile setup only if user has never completed/skipped it on this device
+    const setupDone = await profileSetupStorage.isDone(user._id);
+    set({ user, accessToken, isAuthenticated: true, needsProfileSetup: !setupDone });
     // User service dan to'liq profil olish — 5s timeout (SecureStore Android hang himoyasi)
     try {
       const timeout = new Promise<never>((_, reject) =>
@@ -39,7 +39,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       const fullUser = await Promise.race([userApi.getMe(), timeout]);
       // User service has its own _id (different from auth service ID).
       // Override with auth service ID so isOwner comparison works in WatchParty.
-      set({ user: { ...fullUser, _id: authServiceId }, needsProfileSetup: !fullUser.bio });
+      set({ user: { ...fullUser, _id: authServiceId }, needsProfileSetup: !setupDone });
     } catch {
       // User service down yoki timeout — auth user bilan davom etamiz
     }
@@ -47,7 +47,11 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   updateUser: (user) => set({ user }),
 
-  clearProfileSetup: () => set({ needsProfileSetup: false }),
+  clearProfileSetup: () => {
+    const userId = get().user?._id;
+    if (userId) profileSetupStorage.markDone(userId).catch(() => {});
+    set({ needsProfileSetup: false });
+  },
 
   logout: async () => {
     // Remove FCM token before logout (prevent stale push notifications)

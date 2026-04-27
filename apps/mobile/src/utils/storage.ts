@@ -19,6 +19,17 @@ async function remove(key: string): Promise<void> {
   await SecureStore.deleteItemAsync(key);
 }
 
+// Per-user flag: was profile setup screen already shown?
+export const profileSetupStorage = {
+  async isDone(userId: string): Promise<boolean> {
+    const val = await get(`cinesync_profile_setup_done_${userId}`);
+    return val === '1';
+  },
+  async markDone(userId: string): Promise<void> {
+    await set(`cinesync_profile_setup_done_${userId}`, '1');
+  },
+};
+
 export const tokenStorage = {
   async saveTokens(accessToken: string, refreshToken: string, userId: string): Promise<void> {
     await Promise.all([
