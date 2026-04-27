@@ -15,6 +15,7 @@ import { createContentRouter } from './routes/content.routes';
 import { createExternalVideoRouter } from './routes/externalVideo.routes';
 import { createWatchProgressRouter } from './routes/watchProgress.routes';
 import { createYtdlRouter } from './routes/ytdl.routes';
+import { createVideoSearchRouter } from './routes/videoSearch.routes';
 import { swaggerSpec } from './utils/swagger';
 import { config } from './config/index';
 
@@ -59,6 +60,7 @@ export const createApp = (redis: Redis, elastic: ElasticsearchClient): express.A
   app.use('/api/v1/content/watch-progress', createWatchProgressRouter());
   app.use('/api/v1/content/youtube', createYtdlRouter());
   app.use('/api/v1/youtube', createYtdlRouter());
+  app.use('/api/v1/content/video-search', createVideoSearchRouter());
 
   app.use(notFoundHandler);
   app.use(errorHandler);

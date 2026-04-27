@@ -7,6 +7,7 @@ export const watchPartyApi = {
     movieId?: string;
     videoUrl?: string;
     videoTitle?: string;
+    videoThumbnail?: string;
     videoPlatform?: string;
     name?: string;
     isPrivate?: boolean;

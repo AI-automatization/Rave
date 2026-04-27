@@ -196,4 +196,20 @@ export const contentApi = {
     const res = await contentClient.get<ApiResponse<IMovie[]>>('/content/favorites');
     return res.data.data ?? [];
   },
+
+  async searchVideos(q: string): Promise<VideoSearchItem[]> {
+    const res = await contentClient.get<ApiResponse<VideoSearchItem[]>>('/content/video-search', {
+      params: { q },
+    });
+    return res.data.data ?? [];
+  },
 };
+
+export interface VideoSearchItem {
+  title: string;
+  thumbnail: string;
+  url: string;
+  platform: 'youtube' | 'rutube' | 'vk';
+  duration?: number;
+  viewCount?: number;
+}
