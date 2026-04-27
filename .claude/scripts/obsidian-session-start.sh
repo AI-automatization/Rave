@@ -88,20 +88,68 @@ if $SHOULD_SYNC; then
   echo "$NOW" > "$SYNC_LOCK"
 fi
 
-# ── OUTPUT HANDOFF TO CLAUDE ───────────────────────────────────────
-# Всё что выводится в stdout — Claude видит как system-reminder
+# ── OUTPUT TO CLAUDE ──────────────────────────────────────────────
+# Всё что в stdout — Claude видит как system-reminder
 # Это главный механизм памяти между сессиями
 
+BRAIN="$VAULT/AI_CONTEXT/project-brain.md"
+LESSONS="$VAULT/AI_CONTEXT/lessons-learned.md"
+HOWTO="$VAULT/AI_CONTEXT/how-saidazim-works.md"
 HANDOFF="$VAULT/AI_CONTEXT/handoff.md"
-if [[ -f "$HANDOFF" ]]; then
-  echo "════════════════════════════════════════════"
-  echo "📂 OBSIDIAN MEMORY — прочитай перед началом"
-  echo "════════════════════════════════════════════"
-  echo ""
-  # Выводим handoff без frontmatter
-  tail -n +6 "$HANDOFF"
-  echo ""
-  echo "════════════════════════════════════════════"
+
+echo "════════════════════════════════════════════"
+echo "🧠 RAVE — ПОЛНАЯ ПАМЯТЬ КЛОДА"
+echo "════════════════════════════════════════════"
+
+echo ""
+echo "━━━ 👤 КАК РАБОТАТЬ С SAIDAZIM ━━━"
+if [[ -f "$HOWTO" ]]; then tail -n +6 "$HOWTO"; fi
+
+echo ""
+echo "━━━ ❌ ОШИБКИ КОТОРЫЕ НЕЛЬЗЯ ПОВТОРЯТЬ ━━━"
+if [[ -f "$LESSONS" ]]; then tail -n +6 "$LESSONS"; fi
+
+echo ""
+echo "━━━ 🏗 ПРОЕКТ: АРХИТЕКТУРА И КОНТЕКСТ ━━━"
+if [[ -f "$BRAIN" ]]; then tail -n +6 "$BRAIN"; fi
+
+echo ""
+echo "━━━ 🔄 СЕЙЧАС: СТАТУС И ЗАДАЧИ ━━━"
+if [[ -f "$HANDOFF" ]]; then tail -n +6 "$HANDOFF"; fi
+
+echo ""
+echo "━━━ 💬 TEZCODE — ПОСЛЕДНИЕ СООБЩЕНИЯ ━━━"
+TG_LOG="$HOME/tg_messages.log"
+SINCE_EPOCH=$(date -d '24 hours ago' +%s 2>/dev/null || date -v-24H +%s 2>/dev/null || echo 0)
+
+if [[ -f "$TG_LOG" ]]; then
+  TODAY=$(date '+%Y-%m-%d')
+  YESTERDAY=$(date -d 'yesterday' '+%Y-%m-%d' 2>/dev/null || date -v-1d '+%Y-%m-%d' 2>/dev/null || echo "")
+
+  # Group messages — today + yesterday
+  GROUP_MSGS=$(grep -E "^\[($TODAY|$YESTERDAY)" "$TG_LOG" | grep "\[group\] TEZCODE" 2>/dev/null || true)
+
+  # Private messages from known tezCode members — today + yesterday
+  TEZCODE_MEMBERS="Бекзод|Abubakir|Diyor|Sardor|Сардор|Akmal|Акмал"
+  PRIVATE_MSGS=$(grep -E "^\[($TODAY|$YESTERDAY)" "$TG_LOG" | grep "\[private\]" | grep -E "$TEZCODE_MEMBERS" 2>/dev/null || true)
+
+  if [[ -n "$GROUP_MSGS" ]]; then
+    echo "📢 tezCode группа (сегодня/вчера):"
+    echo "$GROUP_MSGS" | sed 's/\[group\] TEZCODE Team Managment | //'
+  else
+    echo "📢 tezCode группа: нет сообщений за последние 24ч"
+  fi
+
+  if [[ -n "$PRIVATE_MSGS" ]]; then
+    echo ""
+    echo "📩 Личные от участников tezCode:"
+    echo "$PRIVATE_MSGS" | sed 's/\[private\] //'
+  fi
+else
+  echo "⚠️  tg_messages.log не найден — запусти tg_autobot.py"
 fi
+
+echo ""
+echo "════════════════════════════════════════════"
 
 exit 0

@@ -45,6 +45,41 @@ Javob kelgach:
 3. `docs/Tasks.md` o'qib ochiq tasklarni ko'rish + `pending[X]` statuslarni tekshirish
 4. Task boshlashdan oldin **GIT-BASED TASK LOCKING** protokolini bajarish (pastda)
 5. **Mode B** tanlansa → Multi-Agent Protocol (pastda) faollashadi
+6. **TEZCODE xabarlarini tekshirish** — pastdagi qoidaga ko'ra (MAJBURIY)
+
+---
+
+## TEZCODE MONITORING — ЗАКОН (ОБЯЗАТЕЛЬНО)
+
+> **Har yangi sessiyada Claude TEZCODE xabarlarini o'qishi SHART.**
+
+**tg_autobot.py** barcha xabarlarni `/home/saidazim/tg_messages.log` ga yozadi.
+
+SessionStart hook avtomatik o'qiydi — lekin Claude ham kontekstni TUSHUNISHI kerak:
+
+### Nima tekshiriladi
+
+1. **TEZCODE guruh** — so'nggi 24 soat xabarlari
+2. **TEZCODE a'zolaridan shaxsiy xabarlar** — Бекзод ака, Abubakir, Diyor aka, Сардор, Akmal
+
+### Nima ahamiyatli
+
+```
+⚠️  Senga tafsiya qilingan task  → docs/Tasks.md ga qo'sh
+⚠️  Muhim qaror / o'zgarish      → kontekstga ol
+⚠️  Bug yoki muammo              → texnik bo'lsa — tekshir
+⚠️  Uchrashuvga taklif           → Saidazimga eslatma ber
+```
+
+### Qo'lda tekshirish (agar kerak bo'lsa)
+
+```bash
+# So'nggi 24 soat — TEZCODE guruh
+grep "$(date '+%Y-%m-%d')" ~/tg_messages.log | grep "TEZCODE"
+
+# Barcha shaxsiy xabarlar
+grep "\[private\]" ~/tg_messages.log | tail -20
+```
 
 > **Nima uchun?** 2 ta dasturchi 2 xil platforma. Noto'g'ri zona fayliga teginish = merge conflict + production crash.
 
