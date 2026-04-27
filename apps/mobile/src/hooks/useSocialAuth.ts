@@ -78,7 +78,8 @@ export function useSocialAuth(): UseSocialAuthResult {
       // Waits until user closes the browser (cancel or complete)
       await WebBrowser.openBrowserAsync(authUrl);
 
-      // Browser closed — if poll still running, user cancelled
+      // Browser closed — give poll 6s to pick up the result before treating as cancel
+      await new Promise<void>((resolve) => setTimeout(resolve, 6000));
       if (googleIntervalRef.current) {
         clearInterval(googleIntervalRef.current);
         googleIntervalRef.current = null;
