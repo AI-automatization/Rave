@@ -64,7 +64,7 @@ export const authApi = {
   },
 
   async resendVerification(email: string): Promise<void> {
-    await authClient.post('/auth/register/resend', { email });
+    await authClient.post('/auth/resend-verification', { email });
   },
 
   async telegramInit(): Promise<{ state: string; botUrl: string }> {

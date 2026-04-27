@@ -37,6 +37,7 @@ export function ForgotPasswordScreen() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [error, setError] = useState('');
   const [focused, setFocused] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -53,14 +54,25 @@ export function ForgotPasswordScreen() {
   const handleSubmit = async () => {
     if (!email.trim()) return;
     setLoading(true);
+    setError('');
+    let success = false;
     try {
       await authApi.forgotPassword(email.trim().toLowerCase());
-      setSent(true);
-    } catch {
-      setSent(true);
+      success = true;
+    } catch (err) {
+      const hasResponse = !!(err as { response?: unknown }).response;
+      if (hasResponse) {
+        // Server responded (even 4xx) — anti-enumeration: treat as success
+        success = true;
+      } else {
+        setError(t('forgotPassword', 'errorNetwork'));
+      }
     } finally {
       setLoading(false);
-      Animated.spring(checkScale, { toValue: 1, tension: 50, friction: 6, useNativeDriver: true }).start();
+      if (success) {
+        setSent(true);
+        Animated.spring(checkScale, { toValue: 1, tension: 50, friction: 6, useNativeDriver: true }).start();
+      }
     }
   };
 
@@ -123,6 +135,13 @@ export function ForgotPasswordScreen() {
 
                 <Text style={s.title}>{t('forgotPassword', 'title')}</Text>
                 <Text style={s.sub}>{t('forgotPassword', 'sub')}</Text>
+
+                {error ? (
+                  <View style={s.errorBox}>
+                    <Ionicons name="alert-circle" size={16} color={colors.error} />
+                    <Text style={s.errorText}>{error}</Text>
+                  </View>
+                ) : null}
 
                 <View style={[s.inputOuter, focused && s.inputOuterFocused]}>
                   <Ionicons name="mail-outline" size={17} color={focused ? colors.primary : colors.textDim} />
@@ -222,4 +241,12 @@ const useStyles = createThemedStyles((colors) => ({
   primaryBtnText: { color: '#fff', fontSize: 16, fontWeight: '700', letterSpacing: 0.5 },
 
   btnDisabled: { opacity: 0.5 },
+
+  errorBox: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: 'rgba(248,113,113,0.08)',
+    borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12,
+    gap: 8, marginBottom: 12, width: '100%',
+  },
+  errorText: { color: colors.error, fontSize: 13, flex: 1 },
 }));

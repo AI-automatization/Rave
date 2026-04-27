@@ -76,7 +76,7 @@ export const createAuthRouter = (redis: Redis): Router => {
   router.post('/google/token', authRateLimiter, validate(googleIdTokenSchema), authController.googleNativeToken);
 
   // POST /auth/google/exchange — temp code → tokens (one-time, 2 min TTL)
-  router.post('/google/exchange', authController.googleExchange);
+  router.post('/google/exchange', authRateLimiter, authController.googleExchange);
 
   // Mobile polling flow (works in Expo Go without a build)
   router.post('/google/init', authRateLimiter, authController.googleMobileInit);

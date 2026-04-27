@@ -127,6 +127,7 @@ export const translations = {
     sentSub: { uz: "Agar bu email ro'yxatda bo'lsa, parolni tiklash havolasi yuboriladi.", ru: 'Если этот email зарегистрирован, ссылка для сброса пароля будет отправлена.', en: 'If this email is registered, a reset link will be sent.' },
     backToLogin: { uz: 'Kirish sahifasiga qaytish', ru: 'Вернуться к входу', en: 'Back to Sign In' },
     sendBtn: { uz: 'Yuborish', ru: 'Отправить', en: 'Send' },
+    errorNetwork: { uz: 'Tarmoq xatosi. Internetni tekshiring.', ru: 'Ошибка сети. Проверьте подключение.', en: 'Network error. Check your connection.' },
   },
 
   // ─── Auth — Profile Setup ───
