@@ -404,23 +404,25 @@ export class AuthController {
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>CineSync</title>
   <style>
-    body { margin:0; display:flex; flex-direction:column; align-items:center;
-           justify-content:center; height:100vh; background:#0A0A0F;
-           color:#fff; font-family:sans-serif; text-align:center; padding:24px; box-sizing:border-box; }
-    h2 { color:#7B72F8; margin-bottom:8px; }
-    p  { color:#aaa; font-size:14px; }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{display:flex;flex-direction:column;align-items:center;justify-content:center;
+         min-height:100vh;background:#0A0A0F;color:#fff;font-family:-apple-system,sans-serif;
+         text-align:center;padding:32px}
+    .check{font-size:64px;margin-bottom:16px}
+    h2{font-size:22px;font-weight:700;color:#7B72F8;margin-bottom:8px}
+    p{color:#888;font-size:15px;line-height:1.5;margin-bottom:24px}
+    a.btn{display:block;background:#7B72F8;color:#fff;text-decoration:none;
+          font-size:17px;font-weight:700;padding:16px 32px;border-radius:16px;
+          margin-bottom:16px;letter-spacing:0.3px}
+    .hint{color:#555;font-size:13px}
   </style>
-  <script>
-    window.location.href = 'cinesync://auth/callback';
-    setTimeout(function() {
-      document.getElementById('fallback').style.display = 'block';
-    }, 1500);
-  </script>
 </head>
 <body>
-  <h2>✅ Вы вошли!</h2>
-  <p>Открываем CineSync...</p>
-  <p id="fallback" style="display:none">Если приложение не открылось — просто вернитесь назад.</p>
+  <div class="check">✅</div>
+  <h2>Вы вошли в CineSync!</h2>
+  <p>Нажмите кнопку ниже чтобы вернуться в приложение</p>
+  <a class="btn" href="cinesync://auth/callback">🎬 Открыть CineSync</a>
+  <p class="hint">Или просто нажмите «Назад» в браузере</p>
 </body>
 </html>`);
   };
