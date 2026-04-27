@@ -1,7 +1,7 @@
 // CineSync Mobile — Shared social auth hook (Google + Telegram)
 // Google uses backend polling flow (works in Expo Go without a native build).
 import { useState, useEffect, useRef } from 'react';
-import { Linking } from 'react-native';
+import { Linking, AppState } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import { authApi } from '@api/auth.api';
 import { useAuthStore } from '@store/auth.store';
@@ -30,11 +30,13 @@ export function useSocialAuth(): UseSocialAuthResult {
   const [socialError, setSocialError] = useState('');
   const googleIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const telegramIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const telegramAppStateRef = useRef<ReturnType<typeof AppState.addEventListener> | null>(null);
 
   useEffect(() => {
     return () => {
       if (googleIntervalRef.current) clearInterval(googleIntervalRef.current);
       if (telegramIntervalRef.current) clearInterval(telegramIntervalRef.current);
+      if (telegramAppStateRef.current) telegramAppStateRef.current.remove();
     };
   }, []);
 
@@ -48,8 +50,6 @@ export function useSocialAuth(): UseSocialAuthResult {
     try {
       const { state } = await authApi.googleInit();
       const authUrl = `${AUTH_BASE_URL}/api/v1/auth/google/mobile?state=${encodeURIComponent(state)}`;
-      // Open system browser — user completes Google sign-in there
-      void WebBrowser.openBrowserAsync(authUrl);
 
       let attempts = 0;
       googleIntervalRef.current = setInterval(async () => {
@@ -74,6 +74,16 @@ export function useSocialAuth(): UseSocialAuthResult {
           // keep polling silently
         }
       }, POLL_INTERVAL_MS);
+
+      // Waits until user closes the browser (cancel or complete)
+      await WebBrowser.openBrowserAsync(authUrl);
+
+      // Browser closed — if poll still running, user cancelled
+      if (googleIntervalRef.current) {
+        clearInterval(googleIntervalRef.current);
+        googleIntervalRef.current = null;
+        setGoogleLoading(false);
+      }
     } catch {
       setGoogleLoading(false);
       setSocialError(t('login', 'errorGoogle'));
@@ -90,6 +100,7 @@ export function useSocialAuth(): UseSocialAuthResult {
     try {
       const { state, botUrl } = await authApi.telegramInit();
       await Linking.openURL(botUrl);
+
       let attempts = 0;
       telegramIntervalRef.current = setInterval(async () => {
         attempts++;
@@ -106,6 +117,10 @@ export function useSocialAuth(): UseSocialAuthResult {
             clearInterval(telegramIntervalRef.current!);
             telegramIntervalRef.current = null;
             setTelegramLoading(false);
+            if (telegramAppStateRef.current) {
+              telegramAppStateRef.current.remove();
+              telegramAppStateRef.current = null;
+            }
             await setAuth(result.user, result.accessToken, result.refreshToken);
           }
         } catch {
@@ -115,6 +130,23 @@ export function useSocialAuth(): UseSocialAuthResult {
           setSocialError(t('login', 'errorTelegram'));
         }
       }, POLL_INTERVAL_MS);
+
+      // When user returns to app from Telegram without completing auth, stop loading after grace period
+      if (telegramAppStateRef.current) telegramAppStateRef.current.remove();
+      telegramAppStateRef.current = AppState.addEventListener('change', (nextState) => {
+        if (nextState === 'active') {
+          telegramAppStateRef.current?.remove();
+          telegramAppStateRef.current = null;
+          // Give 5s for the last poll to complete before resetting
+          setTimeout(() => {
+            if (telegramIntervalRef.current) {
+              clearInterval(telegramIntervalRef.current);
+              telegramIntervalRef.current = null;
+              setTelegramLoading(false);
+            }
+          }, 5000);
+        }
+      });
     } catch {
       setTelegramLoading(false);
       setSocialError(t('login', 'errorTelegram'));
