@@ -110,7 +110,13 @@ export class TelegramAuthService {
           JSON.stringify({ accessToken, refreshToken, user }),
         );
 
-        await this.sendTelegramMessage(chatId, '✅ Muvaffaqiyatli autentifikatsiya! Ilovaga qaytishingiz mumkin.');
+        await this.sendTelegramMessage(chatId, '✅ Вы вошли в CineSync! Нажмите кнопку ниже чтобы вернуться в приложение.', {
+          reply_markup: {
+            inline_keyboard: [[
+              { text: '🎬 Открыть CineSync', url: 'cinesync://auth/callback' },
+            ]],
+          },
+        });
         logger.info('Telegram polling auth completed', { userId: user._id, telegramId });
         return;
       }
@@ -172,13 +178,14 @@ export class TelegramAuthService {
     return user;
   }
 
-  private async sendTelegramMessage(chatId: number, text: string): Promise<void> {
+  private async sendTelegramMessage(chatId: number, text: string, extra?: Record<string, unknown>): Promise<void> {
     const botToken = process.env.TELEGRAM_BOT_TOKEN ?? '';
+    if (!botToken) { logger.warn('TELEGRAM_BOT_TOKEN not set'); return; }
     try {
       const res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: chatId, text }),
+        body: JSON.stringify({ chat_id: chatId, text, ...extra }),
       });
       if (!res.ok) logger.warn('Telegram sendMessage failed', { chatId, status: res.status });
     } catch (err) {
