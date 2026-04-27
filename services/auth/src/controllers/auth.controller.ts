@@ -229,8 +229,24 @@ export class AuthController {
     const { code, state } = req.query as { code?: string; state?: string };
     const mobileState = (state ?? '').replace('m:', '');
 
-    const successHtml = `<html><body style="background:#0A0A0F;color:#fff;font-family:sans-serif;text-align:center;padding:60px">
-      <h2 style="color:#7B72F8">✓ Вход выполнен!</h2><p>Вернитесь в приложение Rave.</p></body></html>`;
+    const successHtml = `<!DOCTYPE html><html><head>
+      <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+      <title>CineSync</title>
+      <script>window.location.href='cinesync://auth/callback';</script>
+      <style>*{box-sizing:border-box;margin:0;padding:0}
+        body{display:flex;flex-direction:column;align-items:center;justify-content:center;
+             min-height:100vh;background:#0A0A0F;color:#fff;font-family:-apple-system,sans-serif;
+             text-align:center;padding:32px}
+        h2{font-size:22px;font-weight:700;color:#7B72F8;margin:16px 0 8px}
+        p{color:#888;font-size:15px;margin-bottom:24px}
+        a{display:block;background:#7B72F8;color:#fff;text-decoration:none;
+          font-size:17px;font-weight:700;padding:16px 32px;border-radius:16px}</style>
+      </head><body>
+      <div style="font-size:64px">✅</div>
+      <h2>Вы вошли в CineSync!</h2>
+      <p>Возвращаемся в приложение...</p>
+      <a href="cinesync://auth/callback">🎬 Открыть CineSync</a>
+    </body></html>`;
     const errorHtml = `<html><body style="background:#0A0A0F;color:#fff;font-family:sans-serif;text-align:center;padding:60px">
       <h2>❌ Ошибка входа</h2><p>Попробуйте снова в приложении.</p></body></html>`;
 
