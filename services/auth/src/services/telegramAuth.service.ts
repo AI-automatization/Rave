@@ -17,7 +17,7 @@ export class TelegramAuthService {
     const state = crypto.randomBytes(16).toString('hex');
     await this.redis.setex(REDIS_KEYS.tgState(state), 300, '1'); // 5 daqiqa TTL
     const botUsername = process.env.TELEGRAM_BOT_USERNAME ?? '';
-    const botUrl = `https://t.me/${botUsername}?start=${state}`;
+    const botUrl = `https://t.me/${botUsername}?start=auth_${state}`;
     return { state, botUrl };
   }
 
@@ -82,7 +82,8 @@ export class TelegramAuthService {
     const from = msg.from;
     const telegramId = String(from.id);
     const chatId = msg.chat.id;
-    const param = msg.text.slice(6).trim(); // /start <param>
+    const rawParam = msg.text.slice(6).trim(); // /start <param>
+    const param = rawParam.startsWith('auth_') ? rawParam.slice(5) : rawParam;
 
     // Case 1: /start STATE — polling flow (old method, still supported)
     if (param) {
