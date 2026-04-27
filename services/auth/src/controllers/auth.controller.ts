@@ -382,8 +382,9 @@ export class AuthController {
 
   telegramWebhook = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const secret = req.headers['x-telegram-bot-api-secret-token'];
-      if (secret !== process.env.TELEGRAM_WEBHOOK_SECRET) {
+      const expectedSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
+      const receivedSecret = req.headers['x-telegram-bot-api-secret-token'];
+      if (expectedSecret && receivedSecret !== expectedSecret) {
         res.status(403).json(apiResponse.error('Forbidden'));
         return;
       }
