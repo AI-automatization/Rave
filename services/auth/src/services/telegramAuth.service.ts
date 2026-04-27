@@ -17,7 +17,8 @@ export class TelegramAuthService {
     const state = crypto.randomBytes(16).toString('hex');
     await this.redis.setex(REDIS_KEYS.tgState(state), 300, '1'); // 5 daqiqa TTL
     const botUsername = process.env.TELEGRAM_BOT_USERNAME ?? '';
-    const botUrl = `https://t.me/${botUsername}?start=auth_${state}`;
+    // tg:// scheme triggers iOS "Back to CineSync" button automatically
+    const botUrl = `tg://resolve?domain=${botUsername}&start=auth_${state}`;
     return { state, botUrl };
   }
 
@@ -110,14 +111,7 @@ export class TelegramAuthService {
           JSON.stringify({ accessToken, refreshToken, user }),
         );
 
-        const authBaseUrl = process.env.AUTH_SERVICE_URL ?? `https://auth-production-47a8.up.railway.app`;
-        await this.sendTelegramMessage(chatId, '✅ Вы успешно вошли в CineSync!\n\nНажмите кнопку ниже чтобы вернуться в приложение:', {
-          reply_markup: {
-            inline_keyboard: [[
-              { text: '🎬 Открыть CineSync', url: `${authBaseUrl}/api/v1/auth/telegram/redirect` },
-            ]],
-          },
-        });
+        await this.sendTelegramMessage(chatId, '✅ Вы успешно вошли в CineSync!\n\nНажмите стрелку «назад» вверху экрана чтобы вернуться в приложение ←');
         logger.info('Telegram polling auth completed', { userId: user._id, telegramId });
         return;
       }
