@@ -110,10 +110,11 @@ export class TelegramAuthService {
           JSON.stringify({ accessToken, refreshToken, user }),
         );
 
-        await this.sendTelegramMessage(chatId, '✅ Вы вошли в CineSync! Нажмите кнопку ниже чтобы вернуться в приложение.', {
+        const authBaseUrl = process.env.AUTH_SERVICE_URL ?? `https://auth-production-47a8.up.railway.app`;
+        await this.sendTelegramMessage(chatId, '✅ Вы успешно вошли в CineSync!\n\nНажмите кнопку ниже чтобы вернуться в приложение:', {
           reply_markup: {
             inline_keyboard: [[
-              { text: '🎬 Открыть CineSync', url: 'cinesync://auth/callback' },
+              { text: '🎬 Открыть CineSync', url: `${authBaseUrl}/api/v1/auth/telegram/redirect` },
             ]],
           },
         });

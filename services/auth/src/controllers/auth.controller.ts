@@ -395,6 +395,10 @@ export class AuthController {
     }
   };
 
+  telegramRedirect = (_req: Request, res: Response): void => {
+    res.redirect('cinesync://auth/callback');
+  };
+
   telegramPoll = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { state } = req.query as { state: string };

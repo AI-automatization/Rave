@@ -88,6 +88,7 @@ export const createAuthRouter = (redis: Redis): Router => {
   router.post('/telegram/init', authRateLimiter, authController.telegramInit);     // polling flow init
   router.post('/telegram/webhook', authController.telegramWebhook);                // bot updates
   router.get('/telegram/poll', authController.telegramPoll);                       // polling check
+  router.get('/telegram/redirect', authController.telegramRedirect);               // deep link redirect
 
   // POST /auth/internal/create-staff — superadmin creates admin/operator/moderator account
   router.post('/internal/create-staff', requireInternalSecret, authController.createStaffAccount);
