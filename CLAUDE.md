@@ -189,35 +189,86 @@ Format: `T-XXX | Pn | [KATEGORIYA] | Sarlavha | pending[Ism]`
 ### T-C006 | P2 | IKKALASI | Socket event types shared      | pending[Saidazim]
 ```
 
-## TASK TIMESTAMP — ЗАКОН (ОБЯЗАТЕЛЬНО)
+## TASK TIMESTAMP + META — ЗАКОН (ОБЯЗАТЕЛЬНО)
 
 > **ЭТО АБСОЛЮТНОЕ ПРАВИЛО. КАЖДЫЙ TASK. БЕЗ ИСКЛЮЧЕНИЙ.**
 
-**Har yangi task yaratilganda MAJBURIY `- **Yaratilgan:** YYYY-MM-DD HH:MM` qatori qo'shiladi.**
+**Har yangi task yaratilganda quyidagi maydonlar MAJBURIY:**
 
 ```markdown
 ### T-S057 | P1 | [BACKEND] | Sarlavha
 
 - **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Emirhan                   ← MAJBURIY — taskni kim qo'shdi/topdi
 - **Yaratilgan:** 2026-04-20 16:00        ← MAJBURIY — task yaratilgan sana va vaqt
 - **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** opus                 ← MAJBURIY — Claude analiz qilib tanlaydi
+- **Model sababi:** Murakkab arxitektura, ko'p fayllik refactor  ← nima uchun shu model
 - **Sabab:** ...
 ```
 
-**Qoidalar:**
+### Timestamp qoidalari
 - Timestamp = task `docs/Tasks.md` ga yozilgan paytdagi aniq sana + vaqt
 - Format: `YYYY-MM-DD HH:MM` (24 soat, UTC+5 Toshkent vaqti)
 - Mavjud tasklarga retroaktiv qo'shish — sessiya boshida eski tasklarda timestamp yo'q bo'lsa qo'shiladi
 - `date '+%Y-%m-%d %H:%M'` buyrug'i bilan hozirgi vaqtni olish
 
+### Beruvchi / Bajaruvchi qoidalari
+- **Beruvchi** — taskni kim yaratdi yoki kim topdi (Saidazim, Emirhan, Claude, yoki tashqi)
+- **Bajaruvchi** — taskni kim bajargan (Done.md ga ko'chirilganda yoziladi)
+- Agar Claude o'zi bug topsa → `Beruvchi: Claude`
+- Agar foydalanuvchi so'rasa → `Beruvchi: [foydalanuvchi ismi]`
+
+### MODEL TAVSIYASI — ЗАКОН (ОБЯЗАТЕЛЬНО)
+
+> **Claude har yangi task yaratganda qaysi model eng samarali ekanini ANALIZ QILISHI va yozishi SHART.**
+
+**Model tanlash mezonlari:**
+
+| Model | Qachon ishlatiladi | Misollar |
+|-------|-------------------|----------|
+| **opus** | Murakkab arxitektura, ko'p fayllik refactor, cross-zone ishlar, debug qiyin buglar, yangi tizim dizayni | Multi-agent orchestration, WebRTC integration, complex state management |
+| **sonnet** | O'rtacha murakkablik — feature qo'shish, 2-5 fayl o'zgartirish, API endpoint, UI ekran, bug fix | Yangi screen, hook yaratish, component refactor, API integration |
+| **haiku** | Oddiy tasklar — 1 fayl, typo fix, i18n key qo'shish, config o'zgartirish, kichik bug | Rename, style fix, constant qo'shish, import tuzatish |
+
+**Task boshlashdan OLDIN Claude so'rashi SHART:**
+
+```
+📋 Task: T-E111 | "Push notification deep link fix"
+🤖 Tavsiya etilgan model: sonnet
+📝 Sabab: 2-3 fayl, navigation logic fix — sonnet optimal
+
+✅ Shu model bilan boshlaylikmi? (yoki boshqa model tanlang)
+```
+
+**Foydalanuvchi tasdiqlagan yoki boshqa model tanlagan keyin — ISH BOSHLANADI.**
+
+### Done.md ga ko'chirish formati (yangilangan)
+
 **Fix bo'lgandan keyin:**
 1. `docs/Tasks.md` dan o'chiriladi
-2. `docs/Done.md` ga ko'chiriladi (sana + qisqa yechim)
+2. `docs/Done.md` ga ko'chiriladi — quyidagi format bilan:
+
+```markdown
+### F-XXX | T-E111 | Push notification deep link fix
+
+- **Beruvchi:** Emirhan
+- **Bajaruvchi:** Emirhan (Claude sonnet yordamida)
+- **Yaratilgan:** 2026-04-27 14:30
+- **Bajarilgan:** 2026-04-27 15:45           ← MAJBURIY — tugagan sana + vaqt
+- **Model:** sonnet
+- **O'zgarishlar:** 3 fayl — AppNavigator.tsx, useDeepLink.ts, notificationHandler.ts
+- **Xulosa:** Deep link parsing fixed, WatchParty invite navigate correctly
+```
 
 **Qoidalar:**
 - Bug/task topilgan paytda DARHOL yoziladi
 - Har sessiyada avval `docs/Tasks.md` o'qib, T-raqamni davom ettirish
 - Takroriy task yaratmaslik, mavjudini yangilash
+- **Beruvchi** maydoni MAJBURIY — taskni kim yaratganini yozish
+- **Tavsiya model** maydoni MAJBURIY — Claude analiz qilib optimal modelni yozish
+- Task boshlashdan OLDIN model tavsiyasini ko'rsatib, foydalanuvchidan tasdiqlash olish
+- Done.md ga ko'chirganda **Bajarilgan** vaqti + **Bajaruvchi** + **Model** MAJBURIY
 
 ---
 
