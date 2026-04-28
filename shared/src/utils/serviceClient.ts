@@ -11,7 +11,11 @@ const internalHeaders = {
 };
 
 // ─── User Service ──────────────────────────────────────────────────────────────
-const userServiceUrl = process.env.USER_SERVICE_URL ?? 'http://localhost:3002';
+const userServiceUrl =
+  process.env.USER_SERVICE_URL ??
+  (process.env.RAILWAY_SERVICE_USER_URL
+    ? `https://${process.env.RAILWAY_SERVICE_USER_URL}`
+    : 'http://localhost:3002');
 
 export async function addUserPoints(userId: string, points: number): Promise<void> {
   // Queue bor bo'lsa — retry bilan queue ga yuborish (reliability)
@@ -124,7 +128,11 @@ export async function getAllPushTokens(): Promise<string[]> {
 }
 
 // ─── Notification Service ──────────────────────────────────────────────────────
-const notificationServiceUrl = process.env.NOTIFICATION_SERVICE_URL ?? 'http://localhost:3007';
+const notificationServiceUrl =
+  process.env.NOTIFICATION_SERVICE_URL ??
+  (process.env.RAILWAY_SERVICE_NOTIFICATION_URL
+    ? `https://${process.env.RAILWAY_SERVICE_NOTIFICATION_URL}`
+    : 'http://localhost:3007');
 
 export async function sendInternalNotification(payload: {
   userId: string;
