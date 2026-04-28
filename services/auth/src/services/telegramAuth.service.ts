@@ -64,6 +64,8 @@ export class TelegramAuthService {
       user.role as UserRole,
       null,
       'Telegram Login',
+      user.isEmailVerified,
+      user.username,
     );
 
     logger.info('Telegram login successful', { userId: user._id, telegramId: data.id });
@@ -102,6 +104,8 @@ export class TelegramAuthService {
           user.role as UserRole,
           null,
           'Telegram Bot',
+          user.isEmailVerified,
+          user.username,
         );
 
         await this.redis.del(REDIS_KEYS.tgState(param));

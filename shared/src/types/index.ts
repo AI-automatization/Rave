@@ -67,6 +67,7 @@ export interface IUserPublic {
 export interface JwtPayload {
   userId: string;
   email: string;
+  username?: string;
   role: UserRole;
   isEmailVerified?: boolean;
   iat?: number;

@@ -199,6 +199,7 @@ export class PasswordAuthService {
     const payload: JwtPayload = {
       userId: user._id.toString(),
       email: user.email,
+      username: user.username,
       role: user.role as UserRole,
       isEmailVerified: user.isEmailVerified,
     };
@@ -265,6 +266,7 @@ export class PasswordAuthService {
     const payload: JwtPayload = {
       userId: user._id.toString(),
       email: user.email,
+      username: user.username,
       role: user.role as UserRole,
       isEmailVerified: user.isEmailVerified,
     };
@@ -414,8 +416,9 @@ export class PasswordAuthService {
     ip: string | null = null,
     userAgent: string | null = null,
     isEmailVerified = true,
+    username?: string,
   ): Promise<{ accessToken: string; refreshToken: string }> {
-    const payload: JwtPayload = { userId, email, role, isEmailVerified };
+    const payload: JwtPayload = { userId, email, username, role, isEmailVerified };
     const { accessToken, refreshToken } = this.generateTokens(payload);
 
     await RefreshToken.create({

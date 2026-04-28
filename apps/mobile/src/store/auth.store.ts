@@ -102,7 +102,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                   user: {
                     _id: payload.userId ?? userId ?? '',
                     email: payload.email ?? '',
-                    username: payload.email?.split('@')[0] ?? 'User',
+                    username: payload.username ?? payload.email?.split('@')[0] ?? 'User',
                     avatar: null,
                     bio: '',
                     role: payload.role ?? 'user',
