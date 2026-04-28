@@ -6,9 +6,10 @@ import { useQueryClient } from '@tanstack/react-query';
 import { userApi } from '@api/user.api';
 import { useAuthStore } from '@store/auth.store';
 
-// Foreground: show notification banner
+// Foreground: show notification banner (shouldShowAlert = Android, shouldShowBanner = iOS)
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
+    shouldShowAlert: true,
     shouldShowBanner: true,
     shouldShowList: true,
     shouldPlaySound: true,
