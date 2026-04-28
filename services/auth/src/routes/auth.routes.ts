@@ -93,6 +93,15 @@ export const createAuthRouter = (redis: Redis): Router => {
   // POST /auth/internal/create-staff — superadmin creates admin/operator/moderator account
   router.post('/internal/create-staff', requireInternalSecret, authController.createStaffAccount);
 
+  // GET /auth/internal/users/find — temporary: find user by email or telegramId
+  router.get('/internal/users/find', requireInternalSecret, async (req, res) => {
+    const { email, telegramId } = req.query as { email?: string; telegramId?: string };
+    const User = (await import('../models/user.model')).User;
+    const query = email ? { email } : { telegramId };
+    const user = await User.findOne(query).select('_id username email telegramId role');
+    res.json({ data: user });
+  });
+
   // DELETE /auth/internal/users/:userId — admin deletes user from auth DB
   router.delete('/internal/users/:userId', requireInternalSecret, authController.deleteUser);
 
