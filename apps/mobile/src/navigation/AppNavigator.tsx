@@ -49,7 +49,7 @@ export function AppNavigator() {
     const screen = data.screen;
 
     if (data.inviteCode) {
-      navigationRef.navigate('Modal', { screen: 'WatchPartyJoin' });
+      navigationRef.navigate('Modal', { screen: 'WatchPartyJoin', params: { inviteCode: data.inviteCode } });
     } else if (data.roomId) {
       navigationRef.navigate('Modal', { screen: 'WatchParty', params: { roomId: data.roomId } });
     } else if (data.battleId) {
