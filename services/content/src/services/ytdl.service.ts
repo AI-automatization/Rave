@@ -34,8 +34,17 @@ const ytAgent: ytdl.Agent | undefined = (() => {
   if (!raw) return undefined;
   try {
     const cookies = JSON.parse(raw) as ytdl.Cookie[];
-    const agent = ytdl.createAgent(cookies);
-    logger.info('ytdl-core: cookie agent created', { cookieCount: cookies.length });
+    const poToken = process.env.YOUTUBE_PO_TOKEN;
+    const visitorData = process.env.YOUTUBE_VISITOR_DATA;
+    const agent = ytdl.createAgent(cookies, {
+      ...(poToken ? { poToken } : {}),
+      ...(visitorData ? { visitorData } : {}),
+    });
+    logger.info('ytdl-core: cookie agent created', {
+      cookieCount: cookies.length,
+      hasPoToken: !!poToken,
+      hasVisitorData: !!visitorData,
+    });
     return agent;
   } catch (e) {
     logger.warn('ytdl-core: YOUTUBE_COOKIES_JSON parse failed, running without agent', {
@@ -59,14 +68,20 @@ const YT_HEADERS: Record<string, string> = {
   ...(!ytAgent && process.env.YOUTUBE_COOKIES ? { 'Cookie': process.env.YOUTUBE_COOKIES } : {}),
 };
 
+const FETCH_TIMEOUT_MS = 15_000;
+
 async function fetchYtInfoWithRetry(youtubeUrl: string): Promise<ytdl.videoInfo> {
   let lastErr: unknown;
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     try {
-      return await ytdl.getInfo(youtubeUrl, {
+      const fetchPromise = ytdl.getInfo(youtubeUrl, {
         ...(ytAgent ? { agent: ytAgent } : {}),
         requestOptions: { headers: YT_HEADERS },
       });
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('ytdl timeout')), FETCH_TIMEOUT_MS),
+      );
+      return await Promise.race([fetchPromise, timeoutPromise]);
     } catch (err) {
       lastErr = err;
       if (attempt < MAX_RETRIES - 1) {
