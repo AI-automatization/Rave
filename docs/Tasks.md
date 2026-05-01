@@ -4,6 +4,35 @@
 
 ---
 
+### T-S072 | P1 | [BACKEND] | YouTube embed: return videoId instead of proxy stream | pending[Saidazim]
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-05-01 10:50
+- **Holat:** 🔄 Bajarilmoqda
+- **Tavsiya model:** sonnet
+- **Model sababi:** 2 fayl, aniq o'zgarish — VideoExtractResult type + YouTube branch
+- **Sabab:** YouTube URL uchun yt-dlp/proxy ishlatmasdan, faqat videoId qaytarish. Tezroq, arzonroq, serve xavfi yo'q.
+- **Qilish kerak:**
+  - [x] `types.ts` — VideoType ga `'embed'` qo'shish, `videoId?: string` qo'shish
+  - [x] `index.ts` — YouTube branch: videoId extract qilib, embed result qaytarish
+
+---
+
+### T-E116 | P1 | [MOBILE] | YouTube embed: handle embed type from backend | pending[Saidazim]
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-05-01 10:50
+- **Holat:** 🔄 Bajarilmoqda
+- **Tavsiya model:** haiku
+- **Model sababi:** 1 fayl, faqat type definition qo'shish
+- **Sabab:** Backend `type:'embed'` va `videoId` qaytarganda, mobile to'g'ri qabul qilsin. Proxy URL qayta yozish logikasi allaqachon `useProxy: false` tekshiradi.
+- **Qilish kerak:**
+  - [x] `content.api.ts` — `videoId?: string` va `'embed'` type qo'shish
+
+---
+
 ### T-S067 | P0 | [ADMIN] | Admin UI — Production redesign: Sidebar + Layout + Header | pending[Saidazim]
 
 - **Mas'ul:** pending[Saidazim]

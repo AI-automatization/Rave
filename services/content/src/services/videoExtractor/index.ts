@@ -29,6 +29,18 @@ import { ytdlService } from '../ytdl.service';
 
 const CACHE_PREFIX = 'vextract:';
 
+function extractYouTubeVideoId(url: string): string | null {
+  const watchMatch = url.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
+  if (watchMatch) return watchMatch[1];
+  const shortMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
+  if (shortMatch) return shortMatch[1];
+  const shortsMatch = url.match(/\/shorts\/([a-zA-Z0-9_-]{11})/);
+  if (shortsMatch) return shortsMatch[1];
+  const embedMatch = url.match(/\/embed\/([a-zA-Z0-9_-]{11})/);
+  if (embedMatch) return embedMatch[1];
+  return null;
+}
+
 /** Cache TTL in seconds by platform (T-S047) */
 const CACHE_TTL_BY_PLATFORM: Partial<Record<VideoPlatform, number>> & { default: number } = {
   youtube:    7_200,   // 2h — YouTube URLs expire in ~6h
@@ -115,34 +127,49 @@ export async function extractVideo(
 
   // 5. Platform-specific extraction
   if (platform === 'youtube') {
-    try {
-      const info = await ytdlService.getStreamInfo(rawUrl);
-      const type = info.mimeType.includes('m3u8') ? 'hls' : 'mp4';
+    const videoId = extractYouTubeVideoId(rawUrl);
+    if (videoId) {
+      // Return embed result — no proxy needed, YouTube iframe handles playback
       result = {
-        title: info.title,
-        videoUrl: rawUrl, // keep original YT URL so proxy can re-extract via ytdlService
-        poster: info.thumbnail,
+        title: parsedUrl.hostname,
+        videoUrl: '',
+        videoId,
+        poster: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
         platform: 'youtube',
-        type,
-        duration: info.duration,
-        isLive: info.isLive,
-        useProxy: true,
+        type: 'embed',
+        useProxy: false,
         sourceType: 'type2',
         extractionMethod: 'yt-dlp',
         cacheable: true,
       };
-    } catch (ytdlErr) {
-      logger.warn('ytdl-core failed, falling back to yt-dlp', {
-        url: rawUrl,
-        error: (ytdlErr as Error).message,
-      });
+    } else {
+      // Unusual YouTube URL without parseable videoId — fall back to stream extraction
       try {
-        result = await ytDlpExtractor(rawUrl);
-      } catch (dlpErr) {
-        if (dlpErr instanceof YtDlpDrmError) throw new VideoExtractError('drm');
-        throw dlpErr;
+        const info = await ytdlService.getStreamInfo(rawUrl);
+        const type = info.mimeType.includes('m3u8') ? 'hls' : 'mp4';
+        result = {
+          title: info.title,
+          videoUrl: rawUrl,
+          poster: info.thumbnail,
+          platform: 'youtube',
+          type,
+          duration: info.duration,
+          isLive: info.isLive,
+          useProxy: true,
+          sourceType: 'type2',
+          extractionMethod: 'yt-dlp',
+          cacheable: true,
+        };
+      } catch (ytdlErr) {
+        logger.warn('ytdl-core failed, falling back to yt-dlp', { url: rawUrl, error: (ytdlErr as Error).message });
+        try {
+          result = await ytDlpExtractor(rawUrl);
+        } catch (dlpErr) {
+          if (dlpErr instanceof YtDlpDrmError) throw new VideoExtractError('drm');
+          throw dlpErr;
+        }
+        if (result) result = { ...result, platform: 'youtube', videoUrl: rawUrl, useProxy: true, sourceType: 'type2', extractionMethod: 'yt-dlp', cacheable: true };
       }
-      if (result) result = { ...result, platform: 'youtube', videoUrl: rawUrl, useProxy: true, sourceType: 'type2', extractionMethod: 'yt-dlp', cacheable: true };
     }
 
   } else if (platform === 'playerjs') {

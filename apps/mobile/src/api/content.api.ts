@@ -17,9 +17,10 @@ export interface VideoEpisode {
 export interface VideoExtractResult {
   title: string;
   videoUrl: string;
+  videoId?: string;   // YouTube videoId when type === 'embed'
   poster: string;
   platform: 'youtube' | 'vimeo' | 'tiktok' | 'dailymotion' | 'rutube' | 'facebook' | 'instagram' | 'twitch' | 'vk' | 'streamable' | 'reddit' | 'twitter' | 'generic' | 'unknown';
-  type: 'mp4' | 'hls';
+  type: 'mp4' | 'hls' | 'embed';
   duration?: number;
   isLive?: boolean;
   useProxy?: boolean;

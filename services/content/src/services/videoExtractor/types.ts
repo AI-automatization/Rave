@@ -32,11 +32,12 @@ export type VideoPlatform =
   | 'generic'
   | 'unknown';
 
-export type VideoType = 'mp4' | 'hls';
+export type VideoType = 'mp4' | 'hls' | 'embed';
 
 export interface VideoExtractResult {
   title: string;
-  videoUrl: string;   // direct stream URL (mp4 or m3u8)
+  videoUrl: string;   // direct stream URL (mp4 or m3u8), empty for embed type
+  videoId?: string;   // YouTube videoId when type === 'embed'
   poster: string;     // thumbnail URL
   platform: VideoPlatform;
   type: VideoType;
