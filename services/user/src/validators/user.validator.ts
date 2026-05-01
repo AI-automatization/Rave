@@ -18,7 +18,8 @@ const validate =
   };
 
 export const updateProfileSchema = Joi.object({
-  bio: Joi.string().max(200).optional(),
+  username: Joi.string().min(3).max(20).pattern(/^[a-zA-Z0-9_]+$/).optional(),
+  bio: Joi.string().max(200).allow('').optional(),
 });
 
 export const updateSettingsSchema = Joi.object({

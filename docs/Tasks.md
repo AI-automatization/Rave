@@ -1,6 +1,6 @@
 # CineSync — OCHIQ VAZIFALAR
 
-# Yangilangan: 2026-04-24
+# Yangilangan: 2026-05-01
 
 ---
 
@@ -160,6 +160,77 @@
   - [ ] kinogo.cc — extract + play + sync
   - [ ] Direct .mp4 URL — play + sync
   - [ ] Natijalarni matritsa sifatida Done.md ga yozish
+
+---
+
+### T-E112 | P1 | [MOBILE] | WatchParty — show active members list with names in room
+
+- **Mas'ul:** pending[Emirhan]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-05-01 03:10
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** WatchPartyScreen UI component qo'shish — 2-3 fayl, o'rta murakkablik
+- **Sabab:** Foydalanuvchi komnatada kim borligini ko'rishi kerak — hozir activeMembers ro'yxati ko'rsatilmaydi
+- **Qilish kerak:**
+  - [ ] WatchPartyScreen — aktiv a'zolar paneli (avatar + username)
+  - [ ] Socket `activeMembers` arrayidan ma'lumot olish (allaqachon hook da bor)
+  - [ ] UI: horizontal scroll yoki collapsed members strip
+  - [ ] Owner badge ko'rsatish
+
+---
+
+### T-E113 | P1 | [MOBILE] | WatchParty Chat — show sender username on each message
+
+- **Mas'ul:** pending[Emirhan]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-05-01 03:10
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** haiku
+- **Model sababi:** Oddiy UI o'zgarish — chat bubble ga username qo'shish, 1-2 fayl
+- **Sabab:** Chat da kim yozganini bilish mumkin emas — sender ismi ko'rinmaydi
+- **Qilish kerak:**
+  - [ ] Chat message bubble — sender username ko'rsatish (o'z xabaringda emas, boshqalarda)
+  - [ ] Message object da `senderName` yoki `sender.username` mavjudligini tekshirish
+  - [ ] Agar backend da yo'q bo'lsa — T-S task yaratish
+
+---
+
+### T-E114 | P1 | [MOBILE] | WatchParty Chat — reply to message (Telegram style)
+
+- **Mas'ul:** pending[Emirhan]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-05-01 03:10
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** Swipe gesture + reply UI + Socket event — 3-5 fayl, o'rta murakkablik
+- **Sabab:** Foydalanuvchi xabarga javob berolmaydi — Telegram uslubida reply kerak
+- **Qilish kerak:**
+  - [ ] Swipe right gesture — reply modega kirish
+  - [ ] Long press → context menu → "Javob berish" tugmasi
+  - [ ] Reply preview UI — input yuqorisida original xabar snippet
+  - [ ] Message da `replyTo: { messageId, senderName, text }` maydon
+  - [ ] Chat bubble da reply reference ko'rsatish (Telegram kabi)
+  - [ ] Backend Socket event ga `replyTo` field qo'shish (T-S task kerak bo'lishi mumkin)
+
+---
+
+### T-E115 | P0 | [MOBILE] | Bug: push notification invite tap does not navigate to WatchParty room
+
+- **Mas'ul:** pending[Emirhan]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-05-01 03:10
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** Deep link debug — notification payload + AppNavigator handler tekshirish, 2-3 fayl
+- **Sabab:** Taklif kelganda bildirishnomaga bosish foydalanuvchini komnataga o'tkazmaydi
+- **Qilish kerak:**
+  - [ ] `useLastNotificationResponse` handler ni tekshirish (AppNavigator.tsx)
+  - [ ] Notification payload da `inviteCode` / `roomId` mavjudligini console log bilan tasdiqlash
+  - [ ] Backend — notification service invite push da payload fieldlarini tekshirish
+  - [ ] iOS foreground vs background notification handling farqini tekshirish
+  - [ ] `shouldShowAlert` Android handler bilan bog'liq muammo bormi tekshirish
+- **Bog'liq:** services/notification — invite push payload
 
 ---
 

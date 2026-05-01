@@ -27,7 +27,7 @@ export function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const s = useStyles();
-  const { user, logout } = useAuthStore();
+  const { user, logout, updateUser } = useAuthStore();
   const { profileQuery, statsQuery, updateProfileMutation } = useMyProfile();
   const stats = statsQuery.data;
   const { t } = useT();
@@ -73,7 +73,8 @@ export function ProfileScreen() {
 
       formData.append('avatar', { uri, name: fileName, type: mimeType } as unknown as Blob);
       const { avatarUrl } = await userApi.uploadAvatar(formData);
-      updateProfileMutation.mutate({ avatar: avatarUrl });
+      if (user) updateUser({ ...user, avatar: avatarUrl });
+      profileQuery.refetch();
     } catch {
       Alert.alert(t('common', 'error'), t('profile', 'avatarUploadError') || 'Upload failed');
     }

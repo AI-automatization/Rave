@@ -40,8 +40,8 @@ export class UserController {
   updateProfile = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { userId } = (req as AuthenticatedRequest).user;
-      const { bio } = req.body as { bio?: string };
-      const user = await this.userService.updateProfile(userId, { bio });
+      const { username, bio } = req.body as { username?: string; bio?: string };
+      const user = await this.userService.updateProfile(userId, { username, bio });
       res.json(apiResponse.success(user, 'Profile updated'));
     } catch (error) {
       next(error);
@@ -143,7 +143,7 @@ export class UserController {
       }
       const avatarPath = `/uploads/avatars/${req.file.filename}`;
       const user = await this.userService.updateAvatar(userId, avatarPath);
-      res.json(apiResponse.success({ avatar: user.avatar }, 'Avatar updated'));
+      res.json(apiResponse.success({ avatarUrl: user.avatar }, 'Avatar updated'));
     } catch (error) {
       next(error);
     }

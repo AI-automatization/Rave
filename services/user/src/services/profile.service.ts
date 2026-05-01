@@ -26,8 +26,12 @@ export class ProfileService {
     return Object.assign(user.toJSON(), { isOnline }) as unknown as IUserDocument & { isOnline: boolean };
   }
 
-  async updateProfile(userId: string, updates: { bio?: string; avatar?: string }): Promise<IUserDocument> {
-    if (updates.bio) updates.bio = xss(updates.bio);
+  async updateProfile(userId: string, updates: { username?: string; bio?: string; avatar?: string }): Promise<IUserDocument> {
+    if (updates.bio !== undefined) updates.bio = xss(updates.bio);
+    if (updates.username) {
+      const taken = await User.findOne({ username: updates.username, authId: { $ne: userId } }).lean();
+      if (taken) throw new BadRequestError('Username already taken');
+    }
     const user = await User.findOneAndUpdate(
       { authId: userId },
       { $set: updates },
