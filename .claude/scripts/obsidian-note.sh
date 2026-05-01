@@ -4,17 +4,18 @@
 # Usage:
 #   obsidian-note.sh <type> <project> "<title>" "<body>" [executor]
 #
-# type:    decision | bug | idea | todo | fix | note
+# type:    decision | bug | idea | todo | fix | note | tezcode
 # project: weWatch | tezCode | general
 
 set -euo pipefail
 
 VAULT="${OBSIDIAN_VAULT:-$HOME/Documents/Obsidian Vault}"
+DEV="${VAULT_DEVELOPER:-Saidazim}"
 TYPE="${1:-}"
 PROJECT="${2:-weWatch}"
 TITLE="${3:-}"
 BODY="${4:-}"
-EXECUTOR="${5:-Saidazim}"
+EXECUTOR="${5:-$DEV}"
 NOW=$(date '+%Y-%m-%d %H:%M')
 DATE=$(date '+%Y-%m-%d')
 SLUG=$(echo "$TITLE" | tr '[:upper:]' '[:lower:]' | tr ' /' '--' | tr -cd '[:alnum:]-' | cut -c1-50)
@@ -22,7 +23,8 @@ SLUG=$(echo "$TITLE" | tr '[:upper:]' '[:lower:]' | tr ' /' '--' | tr -cd '[:aln
 [[ -z "$TYPE" || -z "$TITLE" ]] && { echo "Usage: obsidian-note.sh <type> <project> <title> <body>"; exit 1; }
 [[ ! -d "$VAULT" ]] && { echo "⚠️  Vault not found: $VAULT"; exit 0; }
 
-DAILY_FILE="$VAULT/DAILY/$DATE.md"
+mkdir -p "$VAULT/DAILY/$DEV"
+DAILY_FILE="$VAULT/DAILY/$DEV/$DATE.md"
 PROJECT_DIR="$VAULT/PROJECTS/$PROJECT"
 mkdir -p "$PROJECT_DIR/decisions"
 
@@ -31,10 +33,10 @@ if [[ ! -f "$DAILY_FILE" ]]; then
   cat > "$DAILY_FILE" << HEREDOC
 ---
 date: $DATE
-developer: Saidazim
+developer: $DEV
 ---
 
-# 📅 $DATE
+# 📅 $DATE — $DEV
 
 ## Sessions
 ## Decisions
@@ -102,7 +104,6 @@ note)
   ;;
 
 tezcode)
-  # Специальный тип — важное сообщение из tezCode Telegram
   echo -e "\n### 💬 $TITLE\n> $BODY\n> $NOW" >> "$VAULT/PROJECTS/tezCode/_telegram.md"
   echo -e "\n### 💬 tezCode: $TITLE\n> $BODY" >> "$DAILY_FILE"
   echo "✅ tezcode msg → tezCode/_telegram.md"

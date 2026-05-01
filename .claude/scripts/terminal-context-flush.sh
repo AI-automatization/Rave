@@ -20,10 +20,12 @@ set -euo pipefail
 
 BUFFER="$HOME/.terminal_context_buffer"
 VAULT="${OBSIDIAN_VAULT:-$HOME/Documents/Obsidian Vault}"
+DEV="${VAULT_DEVELOPER:-Saidazim}"
 PROJECT_ROOT="/Users/muhammad/Desktop/Rave"
 NOW="$(date '+%Y-%m-%d %H:%M')"
 DATE="$(date '+%Y-%m-%d')"
-DAILY="$VAULT/DAILY/${DATE}.md"
+mkdir -p "$VAULT/DAILY/$DEV"
+DAILY="$VAULT/DAILY/$DEV/${DATE}.md"
 
 # ── Аргументы ────────────────────────────────────────────────────────────────
 MODE="flush"
@@ -91,15 +93,15 @@ if [[ ! -d "$VAULT" ]]; then
 fi
 
 # Создаём DAILY если нет
-mkdir -p "$VAULT/DAILY"
+mkdir -p "$VAULT/DAILY/$DEV"
 if [[ ! -f "$DAILY" ]]; then
     cat > "$DAILY" << HEREDOC
 ---
 date: $DATE
-developer: Saidazim
+developer: $DEV
 ---
 
-# 📅 $DATE
+# 📅 $DATE — $DEV
 
 ## Sessions
 ## Terminal
