@@ -1,7 +1,7 @@
 // CineSync Mobile — UniversalPlayer
 // URL ga qarab to'g'ri player tanlaydi: expo-av (direct) yoki WebView (youtube/boshqalar)
 import React, { forwardRef, useImperativeHandle, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
 import { WebViewPlayer, WebViewPlayerRef } from './WebViewPlayer';
@@ -83,7 +83,12 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
     }
 
     const hasExtracted = !!extractedUrl;
-    const useWebview = mode === 'webview-session' || videoError || (!hasExtracted && (platform === 'youtube' || platform === 'webview'));
+    // When we have a proxy/extracted URL, never fall back to YouTube iframe embed on error —
+    // the embed player breaks synchronization and many videos have embedding disabled.
+    // Instead show an error UI with retry.
+    const useWebview = mode === 'webview-session' ||
+      (!hasExtracted && videoError) ||
+      (!hasExtracted && (platform === 'youtube' || platform === 'webview'));
     const directSource = hasExtracted ? extractedUrl : url;
 
     useImperativeHandle(ref, () => ({
@@ -133,6 +138,21 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
       );
     }
 
+    if (hasExtracted && videoError) {
+      return (
+        <View style={styles.center}>
+          <Ionicons name="warning-outline" size={48} color={colors.error} />
+          <Text style={styles.errorText}>Video yuklanmadi</Text>
+          <TouchableOpacity
+            style={styles.retryBtn}
+            onPress={() => { setVideoError(false); setAvLoaded(false); }}
+          >
+            <Text style={styles.retryText}>Qayta urinish</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
     const avSource = referer ? { uri: directSource, headers: { Referer: referer } } : { uri: directSource };
     return (
       <View style={styles.video}>
@@ -160,4 +180,6 @@ const styles = StyleSheet.create({
   errorText: { ...typography.body, color: colors.textPrimary, fontWeight: '600' },
   errorHint: { ...typography.caption, color: colors.textMuted, textAlign: 'center' },
   extractingText: { ...typography.body, color: colors.textSecondary, marginTop: spacing.sm },
+  retryBtn: { paddingHorizontal: spacing.xl, paddingVertical: spacing.sm, backgroundColor: colors.primary, borderRadius: 10, marginTop: spacing.xs },
+  retryText: { ...typography.body, color: '#fff', fontWeight: '600' },
 });
