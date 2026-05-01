@@ -1,6 +1,6 @@
 # CineSync E2E — Home → MovieDetail → VideoPlayer
 # Run: maestro test .maestro/02_home_to_movie_detail.yaml
-appId: com.cinesync.mobile
+appId: com.cinesync.app
 
 ---
 

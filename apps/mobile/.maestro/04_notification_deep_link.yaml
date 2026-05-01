@@ -1,6 +1,6 @@
 # CineSync E2E — Notification deep link navigation
 # Run: maestro test .maestro/04_notification_deep_link.yaml
-appId: com.cinesync.mobile
+appId: com.cinesync.app
 
 ---
 

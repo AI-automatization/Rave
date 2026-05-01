@@ -46,6 +46,7 @@ export function useWatchParty(roomId: string) {
     useWatchPartyStore();
 
   const isOwner = room?.ownerId === userId;
+  if (__DEV__) console.log('[isOwner]', { ownerId: room?.ownerId, userId, isOwner });
   const [adminMonitoring, setAdminMonitoring] = useState(false);
   const [roomClosed, setRoomClosed] = useState<RoomClosedData | null>(null);
   const [heartbeat, setHeartbeat] = useState<HeartbeatData | null>(null);
@@ -83,7 +84,16 @@ export function useWatchParty(roomId: string) {
       setPlaylist(data.room.playlist ?? []);
     });
 
-    socket.on(SERVER_EVENTS.ROOM_UPDATED, (updated: IWatchPartyRoom) => setRoom(updated));
+    socket.on(SERVER_EVENTS.ROOM_UPDATED, (updated: IWatchPartyRoom) => {
+      if (__DEV__) console.log('[ROOM_UPDATED] ownerId:', updated.ownerId, 'keys:', Object.keys(updated));
+      // Guard: if server sends a partial update without ownerId (e.g. old server code
+      // before playlist-next fix), preserve the ownerId from the current store state.
+      // Without this, isOwner = room.ownerId === userId becomes false after playlist advance.
+      const roomToSet = updated.ownerId
+        ? updated
+        : { ...updated, ownerId: useWatchPartyStore.getState().room?.ownerId ?? '' };
+      setRoom(roomToSet);
+    });
     socket.on(SERVER_EVENTS.VIDEO_SYNC, (state: SyncState) => setSyncState(state));
     socket.on(SERVER_EVENTS.VIDEO_PLAY, (state: SyncState) => setSyncState(state));
     socket.on(SERVER_EVENTS.VIDEO_PAUSE, (state: SyncState) => setSyncState(state));

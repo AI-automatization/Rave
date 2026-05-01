@@ -90,9 +90,21 @@ export class GoogleAuthService {
     let user = await User.findOne({ googleId: profile.id }).select('+googleId');
 
     if (!user) {
-      user = await User.findOne({ email: profile.email });
-      if (user) {
-        await User.updateOne({ _id: user._id }, { googleId: profile.id });
+      const existingByEmail = await User.findOne({ email: profile.email });
+      if (existingByEmail) {
+        // findOneAndUpdate returns fresh document (not stale like updateOne)
+        // Also update avatar from Google if the existing account has none
+        const updated = await User.findOneAndUpdate(
+          { _id: existingByEmail._id },
+          {
+            $set: {
+              googleId: profile.id,
+              ...(!existingByEmail.avatar && profile.picture ? { avatar: profile.picture } : {}),
+            },
+          },
+          { new: true },
+        );
+        user = updated ?? existingByEmail;
       } else {
         const username = await generateUniqueUsername(profile.displayName);
         user = await User.create({

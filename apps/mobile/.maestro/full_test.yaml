@@ -1,0 +1,102 @@
+# CineSync Full App Test — все экраны
+appId: com.cinesync.app
+
+---
+
+# ─── STEP 1: Language Select ───────────────────────────────────────────────
+- launchApp:
+    clearState: false
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# Если показывается Language Select — выбрать O'zbek и продолжить
+- runFlow:
+    when:
+      visible: "Tilni tanlang"
+    commands:
+      - tapOn: "O'zbek"
+      - tapOn: "Davom etish"
+      - waitForAnimationToEnd:
+          timeout: 3000
+
+# ─── STEP 2: Onboarding ───────────────────────────────────────────────────
+- runFlow:
+    when:
+      visible: "Boshlash"
+    commands:
+      - takeScreenshot: onboarding_screen
+      - tapOn: "Boshlash"
+      - waitForAnimationToEnd:
+          timeout: 2000
+
+# ─── STEP 3: Login Screen ─────────────────────────────────────────────────
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: login_screen
+
+- runFlow:
+    when:
+      visible: "CINESYNC"
+    commands:
+      - tapOn:
+          text: "Kirish"
+          optional: true
+
+# Try login if on login screen
+- runFlow:
+    when:
+      visible: "Kirish"
+    commands:
+      - tapOn:
+          index: 0
+          type: "TextField"
+      - inputText: "test@test.com"
+      - tapOn:
+          index: 1
+          type: "TextField"
+      - inputText: "Test1234!"
+      - hideKeyboard
+      - tapOn: "Kirish"
+      - waitForAnimationToEnd:
+          timeout: 8000
+      - takeScreenshot: after_login
+
+# ─── STEP 4: Home Screen ─────────────────────────────────────────────────
+- runFlow:
+    when:
+      visible: "CINESYNC"
+    commands:
+      - takeScreenshot: home_screen
+
+# ─── STEP 5: Navigate to Rooms Tab ───────────────────────────────────────
+- runFlow:
+    when:
+      visible: "CINESYNC"
+    commands:
+      - tapOn:
+          index: 1
+          type: "Button"
+      - waitForAnimationToEnd:
+          timeout: 2000
+      - takeScreenshot: rooms_tab
+
+# ─── STEP 6: Source Picker (+ FAB) ───────────────────────────────────────
+- runFlow:
+    when:
+      visible: "CINESYNC"
+    commands:
+      - tapOn: "Выберите источник"
+      - waitForAnimationToEnd:
+          timeout: 2000
+      - takeScreenshot: source_picker
+      - pressKey: Back
+
+# ─── STEP 7: Navigate to Friends Tab ─────────────────────────────────────
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: friends_tab
+
+# ─── STEP 8: Navigate to Profile Tab ─────────────────────────────────────
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: profile_tab

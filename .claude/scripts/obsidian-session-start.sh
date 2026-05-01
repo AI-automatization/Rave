@@ -1,155 +1,147 @@
 #!/usr/bin/env bash
-# CineSync — Claude Code SessionStart hook
-# Runs automatically when a new Claude Code session begins
-# OUTPUT is shown to Claude as system context — это и есть "память"
+# SessionStart hook — читает vault и выдаёт Клоду память + TezCode Telegram
 
 set -euo pipefail
 
-VAULT="${CINESYNC_VAULT:-$HOME/Documents/CineSync-Vault}"
+VAULT="${OBSIDIAN_VAULT:-$HOME/Documents/Obsidian Vault}"
 DATE=$(date '+%Y-%m-%d')
 NOW=$(date '+%Y-%m-%d %H:%M')
 WEEK=$(date '+%Y-W%V')
 
 [[ ! -d "$VAULT" ]] && exit 0
 
-# ── Pull latest vault from git (Emirhan's changes) ────────────────
-if [[ -d "$VAULT/.git" ]]; then
-  git -C "$VAULT" pull -q --rebase origin main 2>/dev/null || true
-fi
+# ── Pull vault из git (если настроен) ─────────────────────────────
+[[ -d "$VAULT/.git" ]] && git -C "$VAULT" pull -q --rebase origin main 2>/dev/null || true
 
-DAILY_FILE="$VAULT/DAILY/$DATE.md"
-DEV=$(git config user.name 2>/dev/null || echo "Developer")
-
-# ── Create daily note ──────────────────────────────────────────────
-if [[ ! -f "$DAILY_FILE" ]]; then
-  cat > "$DAILY_FILE" << HEREDOC
+# ── Daily note ────────────────────────────────────────────────────
+DAILY="$VAULT/DAILY/$DATE.md"
+if [[ ! -f "$DAILY" ]]; then
+  cat > "$DAILY" << HEREDOC
 ---
 date: $DATE
-developer: $DEV
-type: daily
+developer: Saidazim
 ---
 
-# 📅 $DATE — $DEV
+# 📅 $DATE
 
 ## Sessions
-
-### 🟢 Session started: $NOW
-
 ## Decisions
-
-## Bugs Found
-
-## Fixes Applied
-
+## Bugs
+## Ideas
+## Fixes
 ## TODOs
 HEREDOC
-else
-  echo -e "\n### 🟢 Session started: $NOW" >> "$DAILY_FILE"
 fi
+echo -e "\n### 🟢 Session started: $NOW" >> "$DAILY"
 
-# ── Create weekly note ─────────────────────────────────────────────
-WEEKLY_FILE="$VAULT/WEEKLY/$WEEK.md"
-if [[ ! -f "$WEEKLY_FILE" ]]; then
+# ── Weekly note ───────────────────────────────────────────────────
+WEEKLY="$VAULT/WEEKLY/$WEEK.md"
+if [[ ! -f "$WEEKLY" ]]; then
   mkdir -p "$VAULT/WEEKLY"
-  cat > "$WEEKLY_FILE" << HEREDOC
+  cat > "$WEEKLY" << HEREDOC
 ---
 week: $WEEK
-developer: $DEV
-type: weekly
+developer: Saidazim
 ---
 
 # 📅 Week $WEEK
 
-## 🎯 Goals This Week
+## 🎯 Goals
 - [ ]
 
 ## ✅ Completed
 
 ## 🚧 Blockers
 
-## 📊 Sessions
+## Sessions
 HEREDOC
 fi
-echo "🔗 $NOW" >> "$WEEKLY_FILE"
+echo "- $NOW" >> "$WEEKLY"
 
-# ── Sync tasks ─────────────────────────────────────────────────────
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SYNC_LOCK="$VAULT/.last-sync"
-SHOULD_SYNC=true
-if [[ -f "$SYNC_LOCK" ]]; then
-  LAST=$(cat "$SYNC_LOCK")
-  NOW_EPOCH=$(date +%s)
-  LAST_EPOCH=$(date -d "$LAST" +%s 2>/dev/null || echo 0)
-  DIFF=$(( NOW_EPOCH - LAST_EPOCH ))
-  [[ $DIFF -lt 1800 ]] && SHOULD_SYNC=false
-fi
-if $SHOULD_SYNC; then
-  bash "$SCRIPT_DIR/obsidian-tasks-sync.sh" 2>/dev/null || true
-  echo "$NOW" > "$SYNC_LOCK"
-fi
+# ════════════════════════════════════════════════════════════════════
+# OUTPUT TO CLAUDE — всё что ниже Claude видит как контекст памяти
+# ════════════════════════════════════════════════════════════════════
 
-# ── OUTPUT TO CLAUDE ──────────────────────────────────────────────
-# Всё что в stdout — Claude видит как system-reminder
-# Это главный механизм памяти между сессиями
+echo "════════════════════════════════════════════════"
+echo "🧠 OBSIDIAN VAULT — ПАМЯТЬ КЛОДА"
+echo "════════════════════════════════════════════════"
 
-BRAIN="$VAULT/AI_CONTEXT/project-brain.md"
-LESSONS="$VAULT/AI_CONTEXT/lessons-learned.md"
+# ── Как работать с Saidazim ──────────────────────────────────────
 HOWTO="$VAULT/AI_CONTEXT/how-saidazim-works.md"
+if [[ -f "$HOWTO" ]]; then
+  echo ""
+  echo "━━━ 👤 ПРОФИЛЬ: КАК РАБОТАТЬ С SAIDAZIM ━━━"
+  tail -n +5 "$HOWTO"
+fi
+
+# ── Ошибки которые нельзя повторять ──────────────────────────────
+LESSONS="$VAULT/AI_CONTEXT/lessons-learned.md"
+if [[ -f "$LESSONS" ]] && [[ $(wc -l < "$LESSONS") -gt 6 ]]; then
+  echo ""
+  echo "━━━ ❌ НЕЛЬЗЯ ПОВТОРЯТЬ ━━━"
+  tail -n +5 "$LESSONS"
+fi
+
+# ── weWatch контекст ─────────────────────────────────────────────
+BRAIN="$VAULT/PROJECTS/weWatch/_context.md"
+if [[ -f "$BRAIN" ]]; then
+  echo ""
+  echo "━━━ 🎬 weWatch — АРХИТЕКТУРА ━━━"
+  tail -n +5 "$BRAIN"
+fi
+
+# ── Handoff — что было в прошлой сессии ─────────────────────────
 HANDOFF="$VAULT/AI_CONTEXT/handoff.md"
+if [[ -f "$HANDOFF" ]] && [[ $(wc -l < "$HANDOFF") -gt 8 ]]; then
+  echo ""
+  echo "━━━ 🔄 ПРОШЛАЯ СЕССИЯ — HANDOFF ━━━"
+  tail -n +5 "$HANDOFF"
+fi
 
-echo "════════════════════════════════════════════"
-echo "🧠 RAVE — ПОЛНАЯ ПАМЯТЬ КЛОДА"
-echo "════════════════════════════════════════════"
-
+# ── TezCode Telegram ─────────────────────────────────────────────
 echo ""
-echo "━━━ 👤 КАК РАБОТАТЬ С SAIDAZIM ━━━"
-if [[ -f "$HOWTO" ]]; then tail -n +6 "$HOWTO"; fi
+echo "━━━ 💬 TEZCODE — TELEGRAM (последние 24ч) ━━━"
 
-echo ""
-echo "━━━ ❌ ОШИБКИ КОТОРЫЕ НЕЛЬЗЯ ПОВТОРЯТЬ ━━━"
-if [[ -f "$LESSONS" ]]; then tail -n +6 "$LESSONS"; fi
-
-echo ""
-echo "━━━ 🏗 ПРОЕКТ: АРХИТЕКТУРА И КОНТЕКСТ ━━━"
-if [[ -f "$BRAIN" ]]; then tail -n +6 "$BRAIN"; fi
-
-echo ""
-echo "━━━ 🔄 СЕЙЧАС: СТАТУС И ЗАДАЧИ ━━━"
-if [[ -f "$HANDOFF" ]]; then tail -n +6 "$HANDOFF"; fi
-
-echo ""
-echo "━━━ 💬 TEZCODE — ПОСЛЕДНИЕ СООБЩЕНИЯ ━━━"
 TG_LOG="$HOME/tg_messages.log"
-SINCE_EPOCH=$(date -d '24 hours ago' +%s 2>/dev/null || date -v-24H +%s 2>/dev/null || echo 0)
+TODAY=$(date '+%Y-%m-%d')
+YESTERDAY=$(date -v-1d '+%Y-%m-%d' 2>/dev/null || date -d 'yesterday' '+%Y-%m-%d' 2>/dev/null || echo "")
 
 if [[ -f "$TG_LOG" ]]; then
-  TODAY=$(date '+%Y-%m-%d')
-  YESTERDAY=$(date -d 'yesterday' '+%Y-%m-%d' 2>/dev/null || date -v-1d '+%Y-%m-%d' 2>/dev/null || echo "")
+  # Сообщения из группы TEZCODE
+  GROUP=$(grep -E "^\[($TODAY|$YESTERDAY)" "$TG_LOG" 2>/dev/null | grep "TEZCODE" || true)
+  # Личные от участников tezCode
+  MEMBERS="Бекзод|Abubakir|Diyor|Sardor|Сардор|Akmal|Акмал"
+  PRIVATE=$(grep -E "^\[($TODAY|$YESTERDAY)" "$TG_LOG" 2>/dev/null | grep "\[private\]" | grep -E "$MEMBERS" || true)
 
-  # Group messages — today + yesterday
-  GROUP_MSGS=$(grep -E "^\[($TODAY|$YESTERDAY)" "$TG_LOG" | grep "\[group\] TEZCODE" 2>/dev/null || true)
-
-  # Private messages from known tezCode members — today + yesterday
-  TEZCODE_MEMBERS="Бекзод|Abubakir|Diyor|Sardor|Сардор|Akmal|Акмал"
-  PRIVATE_MSGS=$(grep -E "^\[($TODAY|$YESTERDAY)" "$TG_LOG" | grep "\[private\]" | grep -E "$TEZCODE_MEMBERS" 2>/dev/null || true)
-
-  if [[ -n "$GROUP_MSGS" ]]; then
-    echo "📢 tezCode группа (сегодня/вчера):"
-    echo "$GROUP_MSGS" | sed 's/\[group\] TEZCODE Team Managment | //'
+  if [[ -n "$GROUP" ]]; then
+    echo "📢 Группа tezCode:"
+    echo "$GROUP" | tail -20
   else
-    echo "📢 tezCode группа: нет сообщений за последние 24ч"
+    echo "📢 Группа: нет сообщений за 24ч"
   fi
 
-  if [[ -n "$PRIVATE_MSGS" ]]; then
+  if [[ -n "$PRIVATE" ]]; then
     echo ""
-    echo "📩 Личные от участников tezCode:"
-    echo "$PRIVATE_MSGS" | sed 's/\[private\] //'
+    echo "📩 Личные от участников:"
+    echo "$PRIVATE" | tail -10
+
+    # Сохраняем важные в vault
+    TGFILE="$VAULT/PROJECTS/tezCode/_telegram.md"
+    echo -e "\n### 📩 $NOW — Личные сообщения\n\`\`\`\n$PRIVATE\n\`\`\`" >> "$TGFILE"
+  fi
+
+  # Если есть что-то адресованное Saidazim — выделяем
+  MENTIONED=$(grep -E "^\[($TODAY|$YESTERDAY)" "$TG_LOG" 2>/dev/null | grep -iE "saidazim|саидазим|backend|серверная" || true)
+  if [[ -n "$MENTIONED" ]]; then
+    echo ""
+    echo "⚠️  УПОМИНАНИЯ (требуют внимания):"
+    echo "$MENTIONED"
   fi
 else
-  echo "⚠️  tg_messages.log не найден — запусти tg_autobot.py"
+  echo "⚠️  tg_messages.log не найден — запусти tg_autobot.py на сервере"
 fi
 
 echo ""
-echo "════════════════════════════════════════════"
+echo "════════════════════════════════════════════════"
 
 exit 0

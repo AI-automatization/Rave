@@ -1,6 +1,6 @@
 # CineSync E2E — Login flow
 # Run: maestro test .maestro/01_auth_login.yaml
-appId: com.cinesync.mobile
+appId: com.cinesync.app
 
 ---
 
@@ -11,7 +11,7 @@ appId: com.cinesync.mobile
 - runFlow:
     when:
       visible: "Boshlash"
-    flow:
+    commands:
       - tapOn: "Boshlash"
 
 # Login form

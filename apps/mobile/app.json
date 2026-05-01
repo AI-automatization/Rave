@@ -53,7 +53,8 @@
         }
       ],
       "expo-secure-store",
-      "expo-av"
+      "expo-av",
+      "expo-web-browser"
     ],
     "extra": {
       "eas": {

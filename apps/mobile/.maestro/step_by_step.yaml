@@ -1,0 +1,58 @@
+appId: com.cinesync.app
+---
+
+# ── 1. Language Select ──────────────────────────────────────────────────────
+- assertVisible: "Tilni tanlang"
+- assertVisible: "English"
+- assertVisible: "Русский"
+- assertVisible: "O'zbek"
+- tapOn: "O'zbek"
+- tapOn: "Davom etish"
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# ── 2. Onboarding ───────────────────────────────────────────────────────────
+- waitForAnimationToEnd:
+    timeout: 3000
+- runFlow:
+    when:
+      visible: "Boshlash"
+    commands:
+      - tapOn: "Boshlash"
+      - waitForAnimationToEnd:
+          timeout: 2000
+
+# ── 3. Login Screen ─────────────────────────────────────────────────────────
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible: "CINESYNC"
+
+# Test: empty form submit (should show error)
+- tapOn: "Kirish"
+- waitForAnimationToEnd:
+    timeout: 2000
+
+# Test: fill email only
+- tapOn:
+    index: 0
+    type: "TextField"
+- inputText: "invalid-email"
+- tapOn: "Kirish"
+- waitForAnimationToEnd:
+    timeout: 2000
+
+# Clear and fill valid email + password
+- clearText
+- tapOn:
+    index: 0
+    type: "TextField"
+- clearText
+- inputText: "test@cinesync.com"
+- tapOn:
+    index: 1
+    type: "TextField"
+- inputText: "Test1234!"
+- hideKeyboard
+- tapOn: "Kirish"
+- waitForAnimationToEnd:
+    timeout: 10000

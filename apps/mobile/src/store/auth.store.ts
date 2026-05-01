@@ -39,13 +39,25 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const fullUser = await Promise.race([userApi.getMe(), timeout]);
       // User service has its own _id (different from auth service ID).
       // Override with auth service ID so isOwner comparison works in WatchParty.
-      set({ user: { ...fullUser, _id: authServiceId }, needsProfileSetup: !setupDone });
+      // Prefer auth service email and avatar (latest OAuth data) — user service may have stale
+      // data from a previous session with a different OAuth provider.
+      set({
+        user: {
+          ...fullUser,
+          _id: authServiceId,
+          email: user.email,
+          avatar: user.avatar ?? fullUser.avatar,
+        },
+        needsProfileSetup: !setupDone,
+      });
     } catch {
       // User service down yoki timeout — auth user bilan davom etamiz
     }
   },
 
-  updateUser: (user) => set({ user }),
+  updateUser: (user) => set((state) => ({
+    user: state.user ? { ...user, _id: state.user._id } : user,
+  })),
 
   clearProfileSetup: () => {
     const userId = get().user?._id;

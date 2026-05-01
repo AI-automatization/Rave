@@ -1,6 +1,6 @@
 # CineSync E2E — WatchParty Create → Screen → Leave
 # Run: maestro test .maestro/03_watchparty_create_join.yaml
-appId: com.cinesync.mobile
+appId: com.cinesync.app
 
 ---
 

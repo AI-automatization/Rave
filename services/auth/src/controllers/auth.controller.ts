@@ -261,7 +261,7 @@ export class AuthController {
         req.ip ?? null, req.headers['user-agent'] ?? null,
       );
       await this.authService.storeMobileGoogleResult(mobileState, {
-        user: user.toObject(),
+        user: user.toJSON(),
         accessToken,
         refreshToken,
       });

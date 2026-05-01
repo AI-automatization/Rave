@@ -825,7 +825,7 @@ Barcha agentlar quyidagi skilllarni avtomatik ishlatadi:
 
 > **Obsidian — loyiha xotirasi. Claude har muhim qaror, bug va g'oyani DARHOL yozadi.**
 
-**Vault joyi:** `~/Documents/CineSync-Vault` (o'zgartirilishi mumkin: `CINESYNC_VAULT` env var)
+**Vault joyi:** `~/Documents/Obsidian Vault` (env var: `OBSIDIAN_VAULT`)
 
 ### Qachon yoziladi (MAJBURIY)
 
@@ -840,38 +840,43 @@ Barcha agentlar quyidagi skilllarni avtomatik ishlatadi:
 ### Skript
 
 ```bash
-.claude/scripts/obsidian-note.sh <type> <service> "<title>" "<body>" [executor]
+.claude/scripts/obsidian-note.sh <type> <project> "<title>" "<body>" [executor]
 ```
 
-**type:** `decision` | `bug` | `idea` | `todo` | `fix`
+**type:** `decision` | `bug` | `idea` | `todo` | `fix` | `note` | `tezcode`
 
-**service:** `auth` | `user` | `content` | `watch-party` | `battle` | `notification` | `admin` | `mobile` | `shared` | `general`
+**project:** `weWatch` | `tezCode` | `general`
 
 ### Misollar
 
 ```bash
 # Arxitektura qaror:
-.claude/scripts/obsidian-note.sh decision watch-party \
+.claude/scripts/obsidian-note.sh decision weWatch \
   "Redis pub/sub over Socket.io rooms for sync" \
-  "Chose Redis pub/sub to decouple sync state from socket connections — allows reconnect without losing state" \
+  "Chose Redis pub/sub to decouple sync state from socket connections" \
   Saidazim
 
 # Bug topildi:
-.claude/scripts/obsidian-note.sh bug content \
+.claude/scripts/obsidian-note.sh bug weWatch \
   "Elasticsearch index not updated on movie edit" \
-  "Movie.findByIdAndUpdate bypasses Mongoose post-save hook — Elasticsearch stays stale" \
+  "Movie.findByIdAndUpdate bypasses Mongoose post-save hook" \
   Saidazim
 
 # G'oya:
-.claude/scripts/obsidian-note.sh idea battle \
+.claude/scripts/obsidian-note.sh idea weWatch \
   "Spectator mode for battles" \
-  "Allow non-participants to watch live battle stats — increases engagement"
+  "Allow non-participants to watch live battle stats"
 
 # Fix qo'llanildi:
-.claude/scripts/obsidian-note.sh fix notification \
+.claude/scripts/obsidian-note.sh fix weWatch \
   "FCM token dedup on login" \
-  "Added Set-based dedup before saving fcmTokens array — prevents 10x duplicate sends" \
+  "Added Set-based dedup before saving fcmTokens array" \
   Saidazim
+
+# TezCode guruhdan muhim xabar:
+.claude/scripts/obsidian-note.sh tezcode tezCode \
+  "Bekzod aka: yangi sprint boshlandi" \
+  "Sprint 9 boshlandi, deadline — 2026-05-07"
 ```
 
 ### Hooks (avtomatik)

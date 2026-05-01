@@ -1,0 +1,15 @@
+# CineSync — Connect to Expo dev server (run once before tests)
+appId: com.cinesync.app
+
+---
+
+- launchApp
+- runFlow:
+    when:
+      visible: "localhost:8081"
+    commands:
+      - tapOn: "localhost:8081"
+      - waitForAnimationToEnd:
+          timeout: 15000
+- waitForAnimationToEnd:
+    timeout: 5000

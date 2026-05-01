@@ -1,0 +1,6 @@
+appId: com.cinesync.app
+---
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 6000
+- takeScreenshot: 01_launch

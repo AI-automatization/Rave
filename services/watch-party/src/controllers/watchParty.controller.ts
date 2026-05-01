@@ -138,13 +138,7 @@ export class WatchPartyController {
 
       const room = await this.watchPartyService.playNextFromPlaylist(userId, roomId);
       this.io.to(roomId).emit(SERVER_EVENTS.PLAYLIST_UPDATED, { playlist: room.playlist });
-      this.io.to(roomId).emit(SERVER_EVENTS.ROOM_UPDATED, {
-        videoUrl:      room.videoUrl,
-        videoTitle:    room.videoTitle,
-        videoPlatform: room.videoPlatform,
-        currentTime:   0,
-        isPlaying:     false,
-      });
+      this.io.to(roomId).emit(SERVER_EVENTS.ROOM_UPDATED, room);
       res.json(apiResponse.success({
         videoUrl:      room.videoUrl,
         videoTitle:    room.videoTitle,
