@@ -625,34 +625,63 @@ Dark mode ONLY — barcha platform.
 
 ---
 
-## MULTI-AGENT PROTOCOL
+## MULTI-AGENT PROTOCOL — ТОКЕН-ОПТИМИЗИРОВАННАЯ СИСТЕМА
 
-> To'liq arxitektura: `docs/MULTI_AGENT_ARCHITECTURE.md`
+> Полная система: `.claude/agents/` — каждый агент получает только свой контекст (~100 строк вместо 1400+)
 
-### Agent turlari
+### Агенты проекта
 
-| Agent | Tool | Zona | Vazifasi |
-|-------|------|------|----------|
-| **Orchestrator** | Main CLI session | docs/, git | Task parsing, dispatch, merge, archive |
-| **Backend Agent** | `Agent(subagent_type: "general-purpose", isolation: "worktree")` | services/*, apps/admin-ui/ | Express, MongoDB, Socket.io, Bull |
-| **Mobile Agent** | `Agent(subagent_type: "general-purpose", isolation: "worktree")` | apps/mobile/ | React Native, Firebase, navigation |
-| **Web Agent** | `Agent(subagent_type: "general-purpose", isolation: "worktree")` | apps/web/ | Next.js, TailwindCSS, SEO |
-| **QA Agent** | `Agent(subagent_type: "general-purpose")` | read-only, barcha fayllar | tsc, build, lint, test |
-| **Explorer** | `Agent(subagent_type: "Explore")` | read-only | Code research, bug analysis |
-| **Planner** | `Agent(subagent_type: "Plan")` | read-only | Architecture, decomposition |
+| Агент | Контекст файл | Зона | Subagent type |
+|-------|--------------|------|---------------|
+| **Auth Agent** | `.claude/agents/auth-agent.md` | services/auth/ | general-purpose |
+| **Content Agent** | `.claude/agents/content-agent.md` | services/content/ | general-purpose |
+| **WatchParty Agent** | `.claude/agents/watchparty-agent.md` | services/watch-party/ | general-purpose |
+| **User+Battle+Notif Agent** | `.claude/agents/user-battle-notification-agent.md` | services/user/, battle/, notification/ | general-purpose |
+| **Admin Agent** | `.claude/agents/admin-agent.md` | services/admin/ + apps/admin-ui/ | general-purpose |
+| **Mobile Agent** | `.claude/agents/mobile-agent.md` | apps/mobile/ | general-purpose |
+| **Web Agent** | `.claude/agents/web-agent.md` | apps/web/ | general-purpose |
+| **Shared Agent** | `.claude/agents/shared-agent.md` | shared/ | general-purpose |
+| **QA Agent** | `.claude/agents/qa-agent.md` | read-only | general-purpose |
+| **Explorer** | (нет файла) | read-only | **Explore** |
+| **Planner** | (нет файла) | read-only | **Plan** |
+| **Orchestrator** | `.claude/agents/orchestrator.md` | docs/, git | main session |
 
-### Ishlash tartibi (Mode B)
+### Токен-оптимизация — ЗАКОН
 
 ```
-1. PLAN     — Orchestrator: Tasks.md o'qish → dependency graph → parallel batch
-2. DISPATCH — Parallel agentlar ishga tushirish (worktree isolation)
-   ├─ Backend Agent  → backend tasks (worktree A)
-   ├─ Mobile Agent   → mobile tasks  (worktree B)
-   ├─ Web Agent      → web tasks     (worktree C)
-   └─ Explorer Agent → research (read-only, agar kerak)
-3. VALIDATE — QA Agent: tsc + build (MAJBURIY, har merge dan oldin)
-4. MERGE    — Orchestrator: worktree → main, conflict resolve
-5. ARCHIVE  — Tasks.md → Done.md ko'chirish
+❌ СТАРЫЙ СПОСОБ (расточительный):
+   Каждый агент получал: CLAUDE.md (906 строк) + CLAUDE_BACKEND.md (511 строк) = 1417 строк
+   5 агентов × 1417 = 7085 строк повторяющегося контекста
+
+✅ НОВЫЙ СПОСОБ (оптимизированный):
+   Каждый агент получает: .claude/agents/{agent}.md (~100 строк) + TASK SPEC (~30 строк)
+   5 агентов × 130 = 650 строк. Экономия: ~91% токенов.
+
+КАК DISPATCH (всегда):
+  1. Прочитай .claude/agents/{agent}.md
+  2. Составь TASK SPEC (конкретно: file:line, что изменить, как проверить)
+  3. Agent(prompt: [содержимое агент-файла] + [task spec])
+  4. НЕ добавляй CLAUDE.md — агент уже знает свои правила
+```
+
+### Режим A (Single Task)
+
+```
+1. Определи зону задачи → выбери агента по таблице
+2. Прочитай .claude/agents/{agent}.md
+3. Запусти Agent с task spec
+4. QA Agent → Critic Agent → merge
+```
+
+### Режим B (Multi-Agent)
+
+```
+1. Читай Tasks.md → группируй по зонам
+2. Claim все задачи в одном git commit
+3. Параллельно dispatch (разные зоны — нет конфликтов):
+   Auth Agent (worktree A) + Mobile Agent (worktree B) + Admin Agent (worktree C)
+4. QA Agent → Critic Agent → merge каждого
+5. Done.md + tg-notify
 ```
 
 ### Zone qoidalari — QATTIQ
@@ -801,23 +830,91 @@ QA FAIL bo'lsa → merge TAQIQLANGAN → agent xatoni tuzatishi kerak.
 
 ---
 
-## AGENT SKILLS (.claude/skills/)
+## АКТИВНОЕ ИСПОЛЬЗОВАНИЕ СКИЛЛОВ — ЗАКОН (ОБЯЗАТЕЛЬНО)
 
-Barcha agentlar quyidagi skilllarni avtomatik ishlatadi:
+> **ЭТО АБСОЛЮТНОЕ ПРАВИЛО. СКИЛЛЫ — НЕ ОПЦИЯ. ОНИ ЗАПУСКАЮТСЯ АВТОМАТИЧЕСКИ.**
+> Claude НЕ ЖДЁТ разрешения. Скилл запускается как только наступает его триггер.
 
-| Skill | Fayl | Vazifa |
-|-------|------|--------|
-| Self-Reflection | `.claude/skills/self-reflection.md` | 7-step anti-hallucination check |
-| Critic Agent | `.claude/skills/critic-agent.md` | 3-judge code review before merge |
-| Execute-Judge Loop | `.claude/skills/execute-judge-loop.md` | Write→Compile→Check→Fix cycle |
-| Subagent Dispatch | `.claude/skills/subagent-dispatch.md` | Agent coordination + zone enforcement |
-| Auto Tests | `.claude/skills/auto-tests.md` | Parallel test writing and fixing |
-| Visual Testing | `.claude/skills/visual-testing.md` | Screenshot UI verification |
-| Root Cause Tracing | `.claude/skills/root-cause-tracing.md` | 5-step backward debugging |
-| Spec-Driven Implement | `.claude/skills/spec-driven-implement.md` | Spec→Code→Verify pipeline |
+### ТРИГГЕРНАЯ ТАБЛИЦА — КОГДА КАКОЙ СКИЛЛ
 
-**Har agent ishni tugatganda Self-Reflection (7 step) bajarishi MAJBURIY.**
-**Har merge dan oldin Critic Agent (3 judge) tekshirishi MAJBURIY.**
+| Скилл | Файл | Триггер — КОГДА запускать | Нельзя пропускать если... |
+|-------|------|--------------------------|--------------------------|
+| **Spec-Driven Implement** | `.claude/skills/spec-driven-implement.md` | ПЕРЕД написанием любого кода | Начинается новая задача / фича / фикс |
+| **Root Cause Tracing** | `.claude/skills/root-cause-tracing.md` | Когда сообщают о баге или тест упал | Есть ошибка — нельзя гадать причину |
+| **Execute-Judge Loop** | `.claude/skills/execute-judge-loop.md` | В ПРОЦЕССЕ реализации каждого таска | Пишется или изменяется код |
+| **Self-Reflection** | `.claude/skills/self-reflection.md` | ПОСЛЕ завершения кода, ДО сабмита | Любые изменения в коде перед коммитом |
+| **Critic Agent** | `.claude/skills/critic-agent.md` | ПЕРЕД каждым merge в main | Код готов и прошёл Self-Reflection |
+| **Auto Tests** | `.claude/skills/auto-tests.md` | ПОСЛЕ одобрения Critic Agent | Critic сказал APPROVE |
+| **Visual Testing** | `.claude/skills/visual-testing.md` | При изменениях UI (screens, components) | Изменились .tsx/.css файлы в apps/ |
+| **Subagent Dispatch** | `.claude/skills/subagent-dispatch.md` | При Mode B (Multi-Agent) | Выбран режим B или задача > 5 файлов |
+
+---
+
+### ОБЯЗАТЕЛЬНЫЙ ПОРЯДОК ДЛЯ КАЖДОЙ ЗАДАЧИ
+
+```
+ЗАДАЧА ПОЛУЧЕНА
+      │
+      ▼
+1. [spec-driven-implement] — написать SPEC перед кодом
+      │
+      ▼
+2. [root-cause-tracing]    — ТОЛЬКО если это баг (трассировать причину)
+      │
+      ▼
+3. [execute-judge-loop]    — писать → tsc → проверять → фиксить → повторять
+      │
+      ▼
+4. [self-reflection]       — 7 шагов анти-галлюцинации перед сабмитом
+      │
+      ▼
+5. [critic-agent]          — 3 судьи: Correctness + Architecture + Integration
+      │
+      ├── REJECT → вернуться к шагу 3
+      │
+      └── APPROVE ≥7/10
+            │
+            ▼
+6. [auto-tests]            — написать тесты на изменённый код
+      │
+      ▼
+7. [visual-testing]        — скриншоты (только если UI изменился)
+      │
+      ▼
+8. git commit + tg-notify + Done.md
+```
+
+---
+
+### ПРАВИЛА ЗАПУСКА
+
+```
+❌ НЕЛЬЗЯ:
+  - Начать писать код без Spec-Driven Implement
+  - Угадывать причину бага без Root Cause Tracing
+  - Закоммитить без Self-Reflection (7 шагов)
+  - Merge без Critic Agent (3 судьи, средний балл ≥7)
+  - Пропускать Auto Tests после Critic APPROVE
+  - Игнорировать Visual Testing при изменении UI
+
+✅ ИСКЛЮЧЕНИЯ (только для):
+  - Typo fix (1 символ) → Self-Reflection обязателен, остальные по желанию
+  - Docs/Tasks.md изменение → без скиллов
+  - Config/env изменение → Self-Reflection step 6 (forbidden patterns) достаточно
+```
+
+---
+
+### CLI СКИЛЛЫ (вызываемые через /skill)
+
+| Скилл | Команда | Когда использовать |
+|-------|---------|-------------------|
+| **simplify** | `/simplify` | После завершения реализации — проверить качество, убрать дублирование |
+| **security-review** | `/security-review` | При изменении auth, JWT, middleware, API endpoints |
+| **review** | `/review` | Перед созданием PR — полный code review ветки |
+| **fewer-permission-prompts** | `/fewer-permission-prompts` | Когда Claude часто запрашивает разрешения на одни и те же команды |
+
+**Claude предлагает запустить CLI скилл сам**, если видит что момент подходящий (например, завершён auth-related таск → предлагает `/security-review`).
 
 ---
 

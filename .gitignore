@@ -2,6 +2,7 @@
 .claude/*
 !.claude/skills/
 !.claude/scripts/
+!.claude/agents/
 !.claude/settings.json
 .claude/locks/
 .claude/settings.local.json
