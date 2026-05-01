@@ -50,11 +50,13 @@ export function useSourcePicker() {
     setIsExtracting(true);
     try {
       const extracted = await contentApi.extractVideo(trimmed);
+      // Always store the original URL, not the extracted stream URL.
+      // Each client re-extracts on join so they get their own fresh proxy URL.
       if (params.mode === 'change') {
         if (!params.roomId) return;
         getSocket()?.emit(CLIENT_EVENTS.CHANGE_MEDIA, {
           roomId: params.roomId,
-          videoUrl: extracted.videoUrl,
+          videoUrl: trimmed,
           videoTitle: extracted.title || trimmed,
           videoPlatform: extracted.platform,
         });
@@ -64,7 +66,7 @@ export function useSourcePicker() {
       if (params.mode === 'queue') {
         if (!params.roomId) return;
         await watchPartyApi.addToPlaylist(params.roomId, {
-          videoUrl: extracted.videoUrl,
+          videoUrl: trimmed,
           videoTitle: extracted.title || trimmed,
           videoPlatform: extracted.platform,
         });
@@ -73,7 +75,7 @@ export function useSourcePicker() {
       }
       const room = await watchPartyApi.createRoom({
         name: (extracted.title || trimmed).slice(0, 60),
-        videoUrl: extracted.videoUrl,
+        videoUrl: trimmed,
         videoTitle: extracted.title || trimmed,
         videoPlatform: extracted.platform,
       });

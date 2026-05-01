@@ -120,7 +120,7 @@ export async function extractVideo(
       const type = info.mimeType.includes('m3u8') ? 'hls' : 'mp4';
       result = {
         title: info.title,
-        videoUrl: info.url,
+        videoUrl: rawUrl, // keep original YT URL so proxy can re-extract via ytdlService
         poster: info.thumbnail,
         platform: 'youtube',
         type,
@@ -142,7 +142,7 @@ export async function extractVideo(
         if (dlpErr instanceof YtDlpDrmError) throw new VideoExtractError('drm');
         throw dlpErr;
       }
-      if (result) result = { ...result, platform: 'youtube', useProxy: false, sourceType: 'type2', extractionMethod: 'yt-dlp', cacheable: true };
+      if (result) result = { ...result, platform: 'youtube', videoUrl: rawUrl, useProxy: true, sourceType: 'type2', extractionMethod: 'yt-dlp', cacheable: true };
     }
 
   } else if (platform === 'playerjs') {
