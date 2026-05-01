@@ -1,6 +1,18 @@
 # CineSync — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-04-25
+# Yangilangan: 2026-05-01
+
+---
+
+### F-001 | T-S072 + T-E116 | YouTube embed — videoId instead of proxy stream
+
+- **Beruvchi:** Saidazim
+- **Bajaruvchi:** Saidazim (Claude sonnet yordamida)
+- **Yaratilgan:** 2026-05-01 10:50
+- **Bajarilgan:** 2026-05-01 10:58
+- **Model:** sonnet
+- **O'zgarishlar:** 3 fayl — videoExtractor/types.ts, videoExtractor/index.ts, content.api.ts
+- **Xulosa:** YouTube URL uchun yt-dlp/proxy yo'q. extractYouTubeVideoId() → `{type:'embed', videoId, useProxy:false}`. Mobile WebView flow o'zgarishsiz ishlaydi — `useProxy:false` proxy URL qayta yozishni skip qiladi, `isWebViewMode=true` YouTube iframe ochadi.
 
 ---
 
