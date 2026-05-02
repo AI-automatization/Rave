@@ -1,6 +1,6 @@
 // CineSync Mobile — Movie Card Component
-import React, { memo } from 'react';
-import { View, Text, TouchableOpacity, Dimensions } from 'react-native';
+import React, { memo, useRef, useCallback } from 'react';
+import { View, Text, TouchableOpacity, Dimensions, Animated } from 'react-native';
 import { Image } from 'expo-image';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -21,12 +21,24 @@ export const MovieCard = memo(function MovieCard({ movie, width = CARD_WIDTH, on
   const navigation = useNavigation<Nav>();
   const height = width * 1.5;
   const styles = useStyles();
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const onPressIn = useCallback(() => {
+    Animated.spring(scaleAnim, { toValue: 0.97, useNativeDriver: true, friction: 15, tension: 300 }).start();
+  }, [scaleAnim]);
+
+  const onPressOut = useCallback(() => {
+    Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, friction: 8, tension: 150 }).start();
+  }, [scaleAnim]);
 
   return (
+    <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
     <TouchableOpacity
       style={[styles.card, { width, height }]}
       onPress={onPress ?? (() => navigation.navigate('MovieDetail', { movieId: movie._id }))}
-      activeOpacity={0.8}
+      onPressIn={onPressIn}
+      onPressOut={onPressOut}
+      activeOpacity={1}
     >
       <Image
         source={{ uri: movie.posterUrl }}
@@ -46,6 +58,7 @@ export const MovieCard = memo(function MovieCard({ movie, width = CARD_WIDTH, on
         <Text style={styles.year}>{movie.year}</Text>
       </View>
     </TouchableOpacity>
+    </Animated.View>
   );
 });
 

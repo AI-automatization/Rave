@@ -1,5 +1,5 @@
 // CineSync Mobile — FriendsScreen
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,8 @@ import {
   ActivityIndicator,
   RefreshControl,
   Alert,
-  ListRenderItemInfo,
+  Animated,
+  SectionListData,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -18,54 +19,156 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useFriends } from '@hooks/useFriends';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
-import { IUserPublic } from '@app-types/index';
-import { FriendsStackParamList } from '@app-types/index';
+import { IUserPublic, FriendsStackParamList } from '@app-types/index';
 import { RANK_COLORS } from '@theme/index';
 import { useT } from '@i18n/index';
 import { DEFAULT_AVATAR } from '@utils/assets';
 
 type Nav = NativeStackNavigationProp<FriendsStackParamList, 'Friends'>;
+type FriendsSection = SectionListData<IUserPublic, { title: string; data: IUserPublic[]; isOnline: boolean }>;
 
+// ─── Friend Row ───────────────────────────────────────────────────────────────
 const FriendRow = React.memo(function FriendRow({
   item,
   isOnline,
   onPress,
-  pointsLabel,
 }: {
   item: IUserPublic;
   isOnline: boolean;
   onPress: () => void;
-  pointsLabel: string;
 }) {
   const { colors } = useTheme();
   const styles = useStyles();
+  const rankColor = RANK_COLORS[item.rank];
+  const scale = useRef(new Animated.Value(1)).current;
+  const onIn = () => Animated.spring(scale, { toValue: 0.97, useNativeDriver: true, friction: 15, tension: 300 }).start();
+  const onOut = () => Animated.spring(scale, { toValue: 1, useNativeDriver: true, friction: 8, tension: 150 }).start();
 
   return (
-    <TouchableOpacity style={styles.row} onPress={onPress} activeOpacity={0.8}>
-      <View style={styles.avatarWrap}>
-        <Image
-          source={item.avatar ? { uri: item.avatar } : DEFAULT_AVATAR}
-          style={styles.avatar}
-          contentFit="cover"
-          cachePolicy="memory-disk"
-        />
-        <View style={[styles.onlineDot, { backgroundColor: isOnline ? colors.success : colors.textMuted }]} />
-      </View>
-      <View style={styles.rowInfo}>
-        <Text style={styles.username}>{item.username}</Text>
-        <View style={styles.rankRow}>
-          <View style={[styles.rankDot, { backgroundColor: RANK_COLORS[item.rank] }]} />
-          <Text style={styles.rankText}>{item.rank}</Text>
-          <Text style={styles.points}>{item.totalPoints} {pointsLabel}</Text>
+    <Animated.View style={{ transform: [{ scale }] }}>
+      <TouchableOpacity
+        style={styles.row}
+        onPress={onPress}
+        onPressIn={onIn}
+        onPressOut={onOut}
+        activeOpacity={1}
+      >
+        <View style={styles.avatarWrap}>
+          <View style={[styles.avatarRing, { borderColor: rankColor + '80' }]}>
+            <Image
+              source={item.avatar ? { uri: item.avatar } : DEFAULT_AVATAR}
+              style={styles.avatar}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+            />
+          </View>
+          <View style={[styles.onlineDot, {
+            backgroundColor: isOnline ? colors.success : colors.bgMuted,
+            borderColor: colors.bgElevated,
+          }]} />
         </View>
-      </View>
-      <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-    </TouchableOpacity>
+
+        <View style={styles.rowInfo}>
+          <Text style={styles.rowUsername}>{item.username}</Text>
+          <View style={styles.rowMeta}>
+            <View style={[styles.rankPill, { borderColor: rankColor + '50' }]}>
+              <View style={[styles.rankDot, { backgroundColor: rankColor }]} />
+              <Text style={[styles.rankLabel, { color: rankColor }]}>{item.rank}</Text>
+            </View>
+            <Text style={styles.rowPoints}>⭐ {item.totalPoints}</Text>
+          </View>
+        </View>
+
+        <View style={styles.rowRight}>
+          {isOnline && (
+            <View style={styles.onlinePill}>
+              <View style={styles.onlinePillDot} />
+              <Text style={styles.onlinePillText}>online</Text>
+            </View>
+          )}
+          <Ionicons name="chevron-forward" size={16} color={colors.textDim} />
+        </View>
+      </TouchableOpacity>
+    </Animated.View>
   );
 });
 
+// ─── Request Card ─────────────────────────────────────────────────────────────
+const RequestCard = React.memo(function RequestCard({
+  item,
+  onAccept,
+  onReject,
+}: {
+  item: { _id: string; requester: IUserPublic };
+  onAccept: () => void;
+  onReject: () => void;
+}) {
+  const { colors } = useTheme();
+  const styles = useStyles();
+  const rankColor = RANK_COLORS[item.requester.rank];
+
+  return (
+    <View style={styles.requestCard}>
+      <View style={styles.avatarWrap}>
+        <View style={[styles.avatarRing, { borderColor: rankColor + '80' }]}>
+          <Image
+            source={item.requester.avatar ? { uri: item.requester.avatar } : DEFAULT_AVATAR}
+            style={styles.avatar}
+            contentFit="cover"
+          />
+        </View>
+      </View>
+      <View style={styles.rowInfo}>
+        <Text style={styles.rowUsername}>{item.requester.username}</Text>
+        <View style={styles.rowMeta}>
+          <View style={[styles.rankPill, { borderColor: rankColor + '50' }]}>
+            <View style={[styles.rankDot, { backgroundColor: rankColor }]} />
+            <Text style={[styles.rankLabel, { color: rankColor }]}>{item.requester.rank}</Text>
+          </View>
+        </View>
+      </View>
+      <View style={styles.requestBtns}>
+        <TouchableOpacity style={styles.acceptBtn} onPress={onAccept} activeOpacity={0.85}>
+          <Ionicons name="checkmark" size={15} color="#fff" />
+          <Text style={styles.acceptBtnText}>Принять</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.rejectBtn} onPress={onReject} activeOpacity={0.8}>
+          <Ionicons name="close" size={17} color={colors.textMuted} />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+});
+
+// ─── Empty State ─────────────────────────────────────────────────────────────
+function EmptyState({ icon, title, subtitle, action, onAction }: {
+  icon: string;
+  title: string;
+  subtitle?: string;
+  action?: string;
+  onAction?: () => void;
+}) {
+  const { colors } = useTheme();
+  const styles = useStyles();
+  return (
+    <View style={styles.empty}>
+      <View style={styles.emptyIconWrap}>
+        <Ionicons name={icon as any} size={34} color={colors.primary} />
+      </View>
+      <Text style={styles.emptyTitle}>{title}</Text>
+      {subtitle ? <Text style={styles.emptySubtext}>{subtitle}</Text> : null}
+      {action && onAction ? (
+        <TouchableOpacity style={styles.emptyBtn} onPress={onAction} activeOpacity={0.85}>
+          <Text style={styles.emptyBtnText}>{action}</Text>
+        </TouchableOpacity>
+      ) : null}
+    </View>
+  );
+}
+
 const TAB_BAR_HEIGHT = 60;
 
+// ─── Screen ───────────────────────────────────────────────────────────────────
 export function FriendsScreen() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
@@ -76,10 +179,13 @@ export function FriendsScreen() {
   type Tab = (typeof tabs)[number];
   const [tab, setTab] = useState<Tab>(tabs[0]);
   const [refreshing, setRefreshing] = useState(false);
-  const { friends, pendingRequests, onlineStatus, friendsLoading, friendsError, requestsLoading, requestsError, acceptMutation, rejectMutation, refetchFriends, refetchRequests } =
-    useFriends();
 
-  // Ekranga qaytganda do'stlar va so'rovlarni yangilash
+  const {
+    friends, pendingRequests, onlineStatus,
+    friendsLoading, friendsError, requestsLoading, requestsError,
+    acceptMutation, rejectMutation, refetchFriends, refetchRequests,
+  } = useFriends();
+
   useFocusEffect(
     useCallback(() => {
       refetchFriends();
@@ -93,9 +199,7 @@ export function FriendsScreen() {
     setRefreshing(false);
   };
 
-  const handleAccept = (friendshipId: string) => {
-    acceptMutation.mutate(friendshipId);
-  };
+  const handleAccept = (friendshipId: string) => acceptMutation.mutate(friendshipId);
 
   const handleReject = (friendshipId: string) => {
     Alert.alert(t('friends', 'rejectTitle'), t('friends', 'rejectMsg'), [
@@ -109,25 +213,48 @@ export function FriendsScreen() {
       item={item}
       isOnline={onlineStatus[item._id] ?? item.isOnline}
       onPress={() => navigation.navigate('FriendProfile', { userId: item._id })}
-      pointsLabel={t('profile', 'points')}
     />
   );
+
+  const onlineFriends = friends.filter(f => onlineStatus[f._id] ?? f.isOnline);
+  const offlineFriends = friends.filter(f => !(onlineStatus[f._id] ?? f.isOnline));
+  const sections: FriendsSection[] = [
+    ...(onlineFriends.length > 0 ? [{ title: t('friends', 'online'), data: onlineFriends, isOnline: true }] : []),
+    ...(offlineFriends.length > 0 ? [{ title: t('friends', 'offline'), data: offlineFriends, isOnline: false }] : []),
+  ];
 
   return (
     <View style={styles.root}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
-        <Text style={styles.title}>{t('friends', 'title')}</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('FriendSearch')} style={styles.searchBtn}>
-          <Ionicons name="person-add-outline" size={22} color={colors.primary} />
+        <View>
+          <Text style={styles.title}>{t('friends', 'title')}</Text>
+          {friends.length > 0 && (
+            <Text style={styles.subtitle}>{friends.length} {t('friends', 'friendsCount')}</Text>
+          )}
+        </View>
+        <TouchableOpacity
+          style={styles.addFriendBtn}
+          onPress={() => navigation.navigate('FriendSearch')}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="person-add-outline" size={16} color="#fff" />
+          <Text style={styles.addFriendBtnText}>Добавить</Text>
         </TouchableOpacity>
       </View>
 
       {/* Tabs */}
       <View style={styles.tabs}>
         {tabs.map(tabItem => (
-          <TouchableOpacity key={tabItem} style={[styles.tab, tab === tabItem && styles.tabActive]} onPress={() => setTab(tabItem)}>
-            <Text style={[styles.tabText, tab === tabItem && styles.tabTextActive]}>{tabItem}</Text>
+          <TouchableOpacity
+            key={tabItem}
+            style={[styles.tab, tab === tabItem && styles.tabActive]}
+            onPress={() => setTab(tabItem)}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.tabText, tab === tabItem && styles.tabTextActive]}>
+              {tabItem}
+            </Text>
             {tabItem === tabs[1] && pendingRequests.length > 0 && (
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>{pendingRequests.length}</Text>
@@ -137,59 +264,53 @@ export function FriendsScreen() {
         ))}
       </View>
 
-      {/* Friends list — SectionList: Online | Oflayn */}
-      {tab === tabs[0] && (() => {
-        const onlineFriends = friends.filter(f => onlineStatus[f._id] ?? f.isOnline);
-        const offlineFriends = friends.filter(f => !(onlineStatus[f._id] ?? f.isOnline));
-        const sections = [
-          ...(onlineFriends.length > 0 ? [{ title: t('friends', 'online'), data: onlineFriends }] : []),
-          ...(offlineFriends.length > 0 ? [{ title: t('friends', 'offline'), data: offlineFriends }] : []),
-        ];
-
-        if (friendsLoading) {
-          return <ActivityIndicator color={colors.primary} style={styles.loader} />;
-        }
-        if (friendsError) {
-          return (
-            <View style={styles.empty}>
-              <Ionicons name="alert-circle-outline" size={48} color={colors.textMuted} />
-              <Text style={styles.emptyText}>{t('common', 'error')}</Text>
-              <TouchableOpacity onPress={() => refetchFriends()}>
-                <Text style={styles.emptyAction}>{t('common', 'retry')}</Text>
-              </TouchableOpacity>
-            </View>
-          );
-        }
-        if (friends.length === 0) {
-          return (
-            <View style={styles.empty}>
-              <Ionicons name="people-outline" size={48} color={colors.textMuted} />
-              <Text style={styles.emptyText}>{t('friends', 'noFriends')}</Text>
-              <TouchableOpacity onPress={() => navigation.navigate('FriendSearch')}>
-                <Text style={styles.emptyAction}>{t('friends', 'findFriends')}</Text>
-              </TouchableOpacity>
-            </View>
-          );
-        }
-        return (
-          <SectionList
-            sections={sections}
-            keyExtractor={item => item._id}
-            renderItem={renderFriend}
-            maxToRenderPerBatch={15}
-            windowSize={7}
-            renderSectionHeader={({ section }) => (
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionHeaderText}>{section.title}</Text>
-                <Text style={styles.sectionCount}>{section.data.length}</Text>
-              </View>
-            )}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />}
-            contentContainerStyle={[styles.list, { paddingBottom: TAB_BAR_HEIGHT + insets.bottom }]}
-            stickySectionHeadersEnabled={false}
-          />
-        );
-      })()}
+      {/* Friends list */}
+      {tab === tabs[0] && (
+        <>
+          {friendsLoading ? (
+            <ActivityIndicator color={colors.primary} style={styles.loader} />
+          ) : friendsError ? (
+            <EmptyState
+              icon="alert-circle-outline"
+              title={t('common', 'error')}
+              action={t('common', 'retry')}
+              onAction={refetchFriends}
+            />
+          ) : friends.length === 0 ? (
+            <EmptyState
+              icon="people"
+              title={t('friends', 'noFriends')}
+              subtitle="Найди друзей и смотрите кино вместе"
+              action={t('friends', 'findFriends')}
+              onAction={() => navigation.navigate('FriendSearch')}
+            />
+          ) : (
+            <SectionList<IUserPublic, FriendsSection>
+              sections={sections}
+              keyExtractor={item => item._id}
+              renderItem={renderFriend}
+              maxToRenderPerBatch={15}
+              windowSize={7}
+              renderSectionHeader={({ section }) => (
+                <View style={styles.sectionHeader}>
+                  <View style={[styles.sectionDot, {
+                    backgroundColor: section.isOnline ? colors.success : colors.textDim,
+                  }]} />
+                  <Text style={styles.sectionHeaderText}>{section.title}</Text>
+                  <View style={styles.sectionCountPill}>
+                    <Text style={styles.sectionCountText}>{section.data.length}</Text>
+                  </View>
+                </View>
+              )}
+              refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />
+              }
+              contentContainerStyle={[styles.list, { paddingBottom: TAB_BAR_HEIGHT + insets.bottom }]}
+              stickySectionHeadersEnabled={false}
+            />
+          )}
+        </>
+      )}
 
       {/* Pending requests */}
       {tab === tabs[1] && (
@@ -197,77 +318,83 @@ export function FriendsScreen() {
           data={pendingRequests}
           keyExtractor={item => item._id}
           renderItem={({ item }) => (
-            <View style={styles.requestRow}>
-              <View style={styles.avatarWrap}>
-                <Image
-                  source={item.requester.avatar ? { uri: item.requester.avatar } : DEFAULT_AVATAR}
-                  style={styles.avatar}
-                  contentFit="cover"
-                />
-              </View>
-              <View style={styles.rowInfo}>
-                <Text style={styles.username}>{item.requester.username}</Text>
-                <Text style={styles.rankText}>{item.requester.rank}</Text>
-              </View>
-              <View style={styles.requestActions}>
-                <TouchableOpacity style={styles.acceptBtn} onPress={() => handleAccept(item._id)}>
-                  <Ionicons name="checkmark" size={18} color={colors.textPrimary} />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.rejectBtn} onPress={() => handleReject(item._id)}>
-                  <Ionicons name="close" size={18} color={colors.textPrimary} />
-                </TouchableOpacity>
-              </View>
-            </View>
+            <RequestCard
+              item={item}
+              onAccept={() => handleAccept(item._id)}
+              onReject={() => handleReject(item._id)}
+            />
           )}
           ListEmptyComponent={
             requestsLoading ? (
               <ActivityIndicator color={colors.primary} style={styles.loader} />
             ) : requestsError ? (
-              <View style={styles.empty}>
-                <Ionicons name="alert-circle-outline" size={48} color={colors.textMuted} />
-                <Text style={styles.emptyText}>{t('common', 'error')}</Text>
-                <TouchableOpacity onPress={() => refetchRequests()}>
-                  <Text style={styles.emptyAction}>{t('common', 'retry')}</Text>
-                </TouchableOpacity>
-              </View>
+              <EmptyState
+                icon="alert-circle-outline"
+                title={t('common', 'error')}
+                action={t('common', 'retry')}
+                onAction={refetchRequests}
+              />
             ) : (
-              <View style={styles.empty}>
-                <Ionicons name="mail-outline" size={48} color={colors.textMuted} />
-                <Text style={styles.emptyText}>{t('friends', 'noRequests')}</Text>
-              </View>
+              <EmptyState
+                icon="mail"
+                title={t('friends', 'noRequests')}
+                subtitle="Новые запросы появятся здесь"
+              />
             )
           }
-          contentContainerStyle={[styles.list, { paddingBottom: TAB_BAR_HEIGHT + insets.bottom }]}
+          contentContainerStyle={[styles.list, { paddingBottom: TAB_BAR_HEIGHT + insets.bottom, flexGrow: 1 }]}
         />
       )}
     </View>
   );
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
 const useStyles = createThemedStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bgBase },
+
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
   },
   title: { ...typography.h1, color: colors.textPrimary },
-  searchBtn: { padding: spacing.xs },
-  tabs: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: colors.border },
-  tab: {
-    flex: 1,
+  subtitle: { ...typography.caption, color: colors.textMuted, marginTop: 2 },
+  addFriendBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.md,
     gap: spacing.xs,
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.full,
   },
-  tabActive: { borderBottomWidth: 2, borderBottomColor: colors.primary },
-  tabText: { ...typography.body, color: colors.textMuted, fontWeight: '600' },
+  addFriendBtnText: { fontSize: 13, color: '#fff', fontWeight: '700' },
+
+  tabs: {
+    flexDirection: 'row',
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
+    gap: spacing.sm,
+  },
+  tab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.xs + 2,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.bgElevated,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  tabActive: {
+    backgroundColor: colors.primary + '18',
+    borderColor: colors.primary + '55',
+  },
+  tabText: { ...typography.label, color: colors.textMuted },
   tabTextActive: { color: colors.primary },
   badge: {
     backgroundColor: colors.error,
@@ -278,48 +405,158 @@ const useStyles = createThemedStyles((colors) => ({
     justifyContent: 'center',
     paddingHorizontal: 4,
   },
-  badgeText: { color: colors.textPrimary, fontSize: 11, fontWeight: '700' },
-  list: { padding: spacing.md, gap: spacing.sm, flexGrow: 1 },
+  badgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
+
+  list: { padding: spacing.md, gap: spacing.sm },
+
+  // Friend Row
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.bgSurface,
-    borderRadius: borderRadius.md,
+    backgroundColor: colors.bgElevated,
+    borderRadius: borderRadius.xl,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    gap: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  avatarWrap: { position: 'relative', alignSelf: 'flex-start' },
+  avatarRing: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatar: { width: 44, height: 44, borderRadius: 22 },
+  onlineDot: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 13,
+    height: 13,
+    borderRadius: 7,
+    borderWidth: 2,
+  },
+  rowInfo: { flex: 1, gap: 5 },
+  rowUsername: { ...typography.body, color: colors.textPrimary, fontWeight: '700' },
+  rowMeta: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  rankPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: borderRadius.full,
+    borderWidth: 1,
+  },
+  rankDot: { width: 7, height: 7, borderRadius: 4 },
+  rankLabel: { fontSize: 11, fontWeight: '700' },
+  rowPoints: { ...typography.caption, color: colors.textMuted },
+  rowRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  onlinePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.success + '18',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: borderRadius.full,
+  },
+  onlinePillDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.success },
+  onlinePillText: { fontSize: 10, color: colors.success, fontWeight: '700' },
+
+  // Request Card
+  requestCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.bgElevated,
+    borderRadius: borderRadius.xl,
     padding: spacing.md,
     gap: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  avatarWrap: { position: 'relative' },
-  avatar: { width: 44, height: 44, borderRadius: borderRadius.full },
-  onlineDot: { position: 'absolute', bottom: 1, right: 1, width: 12, height: 12, borderRadius: 6, borderWidth: 2, borderColor: colors.bgSurface },
-  rowInfo: { flex: 1, gap: 3 },
-  username: { ...typography.body, color: colors.textPrimary, fontWeight: '600' },
-  rankRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
-  rankDot: { width: 8, height: 8, borderRadius: 4 },
-  rankText: { ...typography.caption, color: colors.textMuted },
-  points: { ...typography.caption, color: colors.textMuted },
-  requestRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.bgSurface, borderRadius: borderRadius.md, padding: spacing.md, gap: spacing.md },
-  requestActions: { flexDirection: 'row', gap: spacing.sm },
-  acceptBtn: { width: 36, height: 36, backgroundColor: colors.success, borderRadius: borderRadius.full, alignItems: 'center', justifyContent: 'center' },
-  rejectBtn: { width: 36, height: 36, backgroundColor: colors.error, borderRadius: borderRadius.full, alignItems: 'center', justifyContent: 'center' },
-  loader: { marginTop: 40 },
-  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, paddingTop: 80 },
-  emptyText: { ...typography.body, color: colors.textMuted },
-  emptyAction: { ...typography.body, color: colors.primary, fontWeight: '600' },
+  requestBtns: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  acceptBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.success,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.full,
+  },
+  acceptBtnText: { fontSize: 12, color: '#fff', fontWeight: '700' },
+  rejectBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: colors.bgSurface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+
+  // Section header
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.xs,
     paddingTop: spacing.md,
-    paddingBottom: spacing.xs,
+    paddingBottom: spacing.sm,
   },
-  sectionHeaderText: { ...typography.label, color: colors.textMuted },
-  sectionCount: {
-    ...typography.caption,
+  sectionDot: { width: 8, height: 8, borderRadius: 4 },
+  sectionHeaderText: {
+    fontSize: 11,
+    fontWeight: '700',
     color: colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    flex: 1,
+  },
+  sectionCountPill: {
     backgroundColor: colors.bgElevated,
     borderRadius: borderRadius.full,
     paddingHorizontal: spacing.sm,
-    paddingVertical: 1,
+    paddingVertical: 2,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
+  sectionCountText: { ...typography.caption, color: colors.textMuted, fontWeight: '600' },
+
+  // Empty state
+  loader: { marginTop: 48 },
+  empty: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingTop: 72,
+    paddingHorizontal: spacing.xxxl,
+  },
+  emptyIconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: colors.primary + '12',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.primary + '25',
+  },
+  emptyTitle: { ...typography.body, color: colors.textPrimary, fontWeight: '700', textAlign: 'center' },
+  emptySubtext: { ...typography.caption, color: colors.textMuted, textAlign: 'center', lineHeight: 18 },
+  emptyBtn: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm + 2,
+    borderRadius: borderRadius.full,
+    marginTop: spacing.sm,
+  },
+  emptyBtnText: { ...typography.label, color: '#fff' },
 }));

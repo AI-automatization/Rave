@@ -57,19 +57,6 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   const labelAnims = useRef(
     TABS.map((_, i) => new Animated.Value(state.index === getVisibleTabIndex(i) ? 1 : 0))
   ).current;
-  const fabPulse = useRef(new Animated.Value(1)).current;
-
-  // FAB pulsing glow loop
-  useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(fabPulse, { toValue: 1.04, duration: 1000, useNativeDriver: true }),
-        Animated.timing(fabPulse, { toValue: 1.0, duration: 1000, useNativeDriver: true }),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [fabPulse]);
 
   // Animate indicator + labels on tab change
   useEffect(() => {
@@ -93,9 +80,8 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
     (tabName: keyof MainTabParamList, arrayIdx: number) => {
       const anim = bounceAnims[arrayIdx];
       Animated.sequence([
-        Animated.spring(anim, { toValue: 0.85, useNativeDriver: true, friction: 5, tension: 200 }),
-        Animated.spring(anim, { toValue: 1.05, useNativeDriver: true, friction: 5, tension: 200 }),
-        Animated.spring(anim, { toValue: 1.0, useNativeDriver: true, friction: 5, tension: 200 }),
+        Animated.spring(anim, { toValue: 0.88, useNativeDriver: true, friction: 15, tension: 300 }),
+        Animated.spring(anim, { toValue: 1.0, useNativeDriver: true, friction: 10, tension: 200 }),
       ]).start();
       navigation.navigate(tabName);
     },
@@ -155,7 +141,7 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
         onPress={() => rootNav.navigate('Modal', { screen: 'SourcePicker', params: { mode: 'create' } })}
         activeOpacity={0.85}
       >
-        <Animated.View style={[styles.fabShadowWrap, { transform: [{ scale: fabPulse }] }]}>
+        <View style={styles.fabShadowWrap}>
           <LinearGradient
             colors={[colors.primary, '#9333EA']}
             start={{ x: 0, y: 0 }}
@@ -164,7 +150,7 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
           >
             <Ionicons name="add" size={28} color="#fff" />
           </LinearGradient>
-        </Animated.View>
+        </View>
       </TouchableOpacity>
     </View>
   );

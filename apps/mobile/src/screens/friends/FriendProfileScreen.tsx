@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRoute, useNavigation, RouteProp, NavigationProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,12 +24,16 @@ import { DEFAULT_AVATAR } from '@utils/assets';
 type RouteType = RouteProp<FriendsStackParamList, 'FriendProfile'>;
 type RootNav = NavigationProp<RootStackParamList>;
 
-function StatCard({ icon, label, value }: { icon: string; label: string; value: string | number }) {
+// ─── Stat Card ────────────────────────────────────────────────────────────────
+function StatCard({ icon, label, value, iconColor }: {
+  icon: string; label: string; value: string | number; iconColor: string;
+}) {
   const styles = useStyles();
-
   return (
     <View style={styles.statCard}>
-      <Text style={styles.statIcon}>{icon}</Text>
+      <View style={[styles.statIconWrap, { backgroundColor: iconColor + '18' }]}>
+        <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={20} color={iconColor} />
+      </View>
       <Text style={styles.statValue}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
     </View>
@@ -37,6 +42,7 @@ function StatCard({ icon, label, value }: { icon: string; label: string; value: 
 
 const TAB_BAR_HEIGHT = 60;
 
+// ─── Screen ───────────────────────────────────────────────────────────────────
 export function FriendProfileScreen() {
   const { params } = useRoute<RouteType>();
   const navigation = useNavigation();
@@ -48,10 +54,7 @@ export function FriendProfileScreen() {
   const friends = useFriendsStore(s => s.friends);
   const onlineStatus = useFriendsStore(s => s.onlineStatus);
 
-  const { profileQuery, statsQuery, sendRequestMutation, removeMutation } = useFriendProfile(
-    params.userId,
-  );
-
+  const { profileQuery, statsQuery, sendRequestMutation, removeMutation } = useFriendProfile(params.userId);
   const profile = profileQuery.data;
   const stats = statsQuery.data;
   const isFriend = friends.some(f => f._id === params.userId);
@@ -63,8 +66,7 @@ export function FriendProfileScreen() {
       {
         text: t('friends', 'removeBtn'),
         style: 'destructive',
-        onPress: () =>
-          removeMutation.mutate(undefined, { onSuccess: () => navigation.goBack() }),
+        onPress: () => removeMutation.mutate(undefined, { onSuccess: () => navigation.goBack() }),
       },
     ]);
   };
@@ -98,95 +100,104 @@ export function FriendProfileScreen() {
     );
   }
 
+  const rankColor = RANK_COLORS[profile.rank];
+
   return (
     <View style={styles.root}>
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
+      {/* Floating back button */}
+      <View style={[styles.floatingHeader, { paddingTop: insets.top + spacing.sm }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
+          <Ionicons name="arrow-back" size={22} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>
-          {profile.username}
-        </Text>
-        <View style={{ width: 40 }} />
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Profile card */}
-        <View style={styles.profileCard}>
+        {/* Hero with rank-color gradient */}
+        <LinearGradient
+          colors={[rankColor + '40', rankColor + '12', colors.bgBase]}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={[styles.hero, { paddingTop: insets.top + 56 }]}
+        >
+          {/* Avatar */}
           <View style={styles.avatarWrap}>
-            <Image
-              source={profile.avatar ? { uri: profile.avatar } : DEFAULT_AVATAR}
-              style={styles.avatar}
-              contentFit="cover"
-            />
-            <View style={[styles.onlineDot, { backgroundColor: isOnline ? colors.success : colors.textMuted }]} />
+            <View style={[styles.avatarRing, { borderColor: rankColor }]}>
+              <Image
+                source={profile.avatar ? { uri: profile.avatar } : DEFAULT_AVATAR}
+                style={styles.avatar}
+                contentFit="cover"
+              />
+            </View>
+            <View style={[styles.onlineDot, {
+              backgroundColor: isOnline ? colors.success : colors.bgMuted,
+              borderColor: colors.bgBase,
+            }]} />
           </View>
+
           <Text style={styles.username}>{profile.username}</Text>
 
-          <View style={styles.rankBadge}>
-            <View style={[styles.rankDot, { backgroundColor: RANK_COLORS[profile.rank] }]} />
-            <Text style={[styles.rankText, { color: RANK_COLORS[profile.rank] }]}>{profile.rank}</Text>
+          {/* Rank pill */}
+          <View style={[styles.rankPill, { backgroundColor: rankColor + '22', borderColor: rankColor + '55' }]}>
+            <View style={[styles.rankDot, { backgroundColor: rankColor }]} />
+            <Text style={[styles.rankText, { color: rankColor }]}>{profile.rank}</Text>
           </View>
 
-          <Text style={styles.onlineStatus}>{isOnline ? `● ${t('friends', 'online')}` : `○ ${t('friends', 'offline')}`}</Text>
+          {/* Online status */}
+          <View style={[styles.statusRow, { backgroundColor: isOnline ? colors.success + '15' : colors.bgElevated }]}>
+            <View style={[styles.statusDot, { backgroundColor: isOnline ? colors.success : colors.textDim }]} />
+            <Text style={[styles.statusText, { color: isOnline ? colors.success : colors.textMuted }]}>
+              {isOnline ? t('friends', 'online') : t('friends', 'offline')}
+            </Text>
+          </View>
 
-          {profile.bio ? <Text style={styles.bio}>{profile.bio}</Text> : null}
-        </View>
+          {profile.bio ? (
+            <Text style={styles.bio}>{profile.bio}</Text>
+          ) : null}
+        </LinearGradient>
 
         {/* Stats */}
-        {statsQuery.isLoading ? (
-          <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.xl }} />
-        ) : statsQuery.isError ? (
-          <View style={styles.statsError}>
-            <Text style={styles.statsErrorText}>{t('common', 'error')}</Text>
+        <View style={styles.statsSection}>
+          <Text style={styles.sectionLabel}>{t('friends', 'statistics')}</Text>
+          {statsQuery.isLoading ? (
+            <ActivityIndicator color={colors.primary} style={{ marginVertical: spacing.xl }} />
+          ) : statsQuery.isError ? (
             <TouchableOpacity onPress={() => statsQuery.refetch()}>
               <Text style={styles.retryText}>{t('common', 'retry')}</Text>
             </TouchableOpacity>
-          </View>
-        ) : stats ? (
-          <View style={styles.statsSection}>
-            <Text style={styles.sectionTitle}>{t('friends', 'statistics')}</Text>
+          ) : stats ? (
             <View style={styles.statsGrid}>
-              <StatCard icon="🎬" label={t('profile', 'movies')} value={stats.totalWatched} />
-              <StatCard icon="⚔️" label={t('profile', 'wins')} value={stats.battlesWon} />
-              <StatCard icon="🏆" label={t('profile', 'points')} value={stats.totalPoints} />
-              <StatCard icon="👥" label={t('friends', 'friendsCount')} value={stats.friendsCount} />
+              <StatCard icon="film-outline"    label={t('profile', 'movies')}          value={stats.totalWatched} iconColor={colors.primary}   />
+              <StatCard icon="trophy-outline"  label={t('profile', 'wins')}            value={stats.battlesWon}   iconColor={colors.gold}      />
+              <StatCard icon="star-outline"    label={t('profile', 'points')}          value={stats.totalPoints}  iconColor={colors.secondary} />
+              <StatCard icon="people-outline"  label={t('friends', 'friendsCount')}    value={stats.friendsCount} iconColor={colors.success}   />
             </View>
-          </View>
-        ) : null}
+          ) : null}
+        </View>
 
-        {/* Social actions (only for friends) */}
+        {/* Social actions — friends only */}
         {isFriend && (
           <View style={styles.socialActions}>
             <TouchableOpacity
               style={styles.battleBtn}
-              onPress={() =>
-                rootNav.navigate('Modal', {
-                  screen: 'BattleCreate',
-                  params: { initialFriendId: params.userId },
-                })
-              }
+              onPress={() => rootNav.navigate('Modal', { screen: 'BattleCreate', params: { initialFriendId: params.userId } })}
               activeOpacity={0.85}
             >
-              <Ionicons name="trophy-outline" size={18} color={colors.gold} />
+              <Ionicons name="trophy" size={18} color={colors.gold} />
               <Text style={styles.battleBtnText}>{t('battle', 'startBattle')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.watchPartyBtn}
-              onPress={() =>
-                rootNav.navigate('Modal', { screen: 'WatchPartyCreate' })
-              }
+              onPress={() => rootNav.navigate('Modal', { screen: 'WatchPartyCreate' })}
               activeOpacity={0.85}
             >
-              <Ionicons name="people-outline" size={18} color={colors.secondary} />
+              <Ionicons name="people" size={18} color="#fff" />
               <Text style={styles.watchPartyBtnText}>Watch Party</Text>
             </TouchableOpacity>
           </View>
         )}
 
-        {/* Actions */}
+        {/* Add / Remove friend */}
         <View style={styles.actions}>
           {isFriend ? (
             <TouchableOpacity
@@ -200,7 +211,7 @@ export function FriendProfileScreen() {
             </TouchableOpacity>
           ) : sendRequestMutation.isSuccess ? (
             <View style={styles.sentCard}>
-              <Ionicons name="checkmark-circle" size={18} color={colors.success} />
+              <Ionicons name="checkmark-circle" size={20} color={colors.success} />
               <Text style={styles.sentText}>{t('friends', 'requestSent')}</Text>
             </View>
           ) : (
@@ -208,13 +219,13 @@ export function FriendProfileScreen() {
               style={styles.addBtn}
               onPress={handleAddFriend}
               disabled={sendRequestMutation.isPending}
-              activeOpacity={0.8}
+              activeOpacity={0.85}
             >
               {sendRequestMutation.isPending ? (
-                <ActivityIndicator color={colors.textPrimary} size="small" />
+                <ActivityIndicator color="#fff" size="small" />
               ) : (
                 <>
-                  <Ionicons name="person-add-outline" size={18} color={colors.textPrimary} />
+                  <Ionicons name="person-add" size={18} color="#fff" />
                   <Text style={styles.addBtnText}>{t('friends', 'addFriend')}</Text>
                 </>
               )}
@@ -228,94 +239,120 @@ export function FriendProfileScreen() {
   );
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
 const useStyles = createThemedStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bgBase },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md },
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.md,
+    backgroundColor: colors.bgBase,
+  },
   errorText: { ...typography.body, color: colors.textMuted },
   retryBtn: { paddingVertical: spacing.sm, paddingHorizontal: spacing.lg },
   retryText: { ...typography.body, color: colors.primary, fontWeight: '600' },
-  statsError: { alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.xl },
-  statsErrorText: { ...typography.caption, color: colors.textMuted },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+
+  floatingHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    paddingBottom: spacing.sm,
+    zIndex: 10,
   },
-  backBtn: { padding: spacing.xs },
-  headerTitle: { ...typography.h3, color: colors.textPrimary, flex: 1, textAlign: 'center' },
-  profileCard: {
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.40)',
     alignItems: 'center',
-    padding: spacing.xxl,
+    justifyContent: 'center',
+  },
+
+  // Hero
+  hero: {
+    alignItems: 'center',
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.xxxl,
     gap: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
   },
   avatarWrap: { position: 'relative', marginBottom: spacing.sm },
-  avatar: { width: 88, height: 88, borderRadius: borderRadius.full },
+  avatarRing: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatar: { width: 92, height: 92, borderRadius: 46 },
   onlineDot: {
     position: 'absolute',
-    bottom: 4,
-    right: 4,
+    bottom: 3,
+    right: 3,
     width: 18,
     height: 18,
     borderRadius: 9,
     borderWidth: 3,
-    borderColor: colors.bgBase,
   },
-  username: { ...typography.h2, color: colors.textPrimary },
-  rankBadge: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
-  rankDot: { width: 10, height: 10, borderRadius: 5 },
-  rankText: { ...typography.body, fontWeight: '600', color: colors.textSecondary },
-  onlineStatus: { ...typography.caption, color: colors.textMuted },
-  bio: { ...typography.body, color: colors.textSecondary, textAlign: 'center', paddingHorizontal: spacing.xl },
-  statsSection: { padding: spacing.lg, gap: spacing.md },
-  sectionTitle: { ...typography.label, color: colors.textMuted },
+  username: { ...typography.h1, color: colors.textPrimary, fontWeight: '800' },
+  rankPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.full,
+    borderWidth: 1,
+  },
+  rankDot: { width: 8, height: 8, borderRadius: 4 },
+  rankText: { fontSize: 13, fontWeight: '700' },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 5,
+    borderRadius: borderRadius.full,
+  },
+  statusDot: { width: 7, height: 7, borderRadius: 4 },
+  statusText: { fontSize: 12, fontWeight: '600' },
+  bio: { ...typography.body, color: colors.textSecondary, textAlign: 'center', lineHeight: 22, marginTop: spacing.xs },
+
+  // Stats
+  statsSection: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg, gap: spacing.md },
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
   statsGrid: { flexDirection: 'row', gap: spacing.sm },
   statCard: {
     flex: 1,
-    backgroundColor: colors.bgSurface,
-    borderRadius: borderRadius.md,
+    backgroundColor: colors.bgElevated,
+    borderRadius: borderRadius.xl,
     padding: spacing.md,
     alignItems: 'center',
     gap: spacing.xs,
-  },
-  statIcon: { fontSize: 20 },
-  statValue: { ...typography.h3, color: colors.textPrimary },
-  statLabel: { ...typography.caption, color: colors.textMuted },
-  actions: { padding: spacing.lg },
-  addBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    backgroundColor: colors.primary,
-    padding: spacing.lg,
-    borderRadius: borderRadius.lg,
-  },
-  addBtnText: { ...typography.body, color: colors.textPrimary, fontWeight: '600' },
-  removeBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
     borderWidth: 1,
-    borderColor: colors.error,
-    padding: spacing.lg,
-    borderRadius: borderRadius.lg,
+    borderColor: colors.border,
   },
-  removeBtnText: { ...typography.body, color: colors.error, fontWeight: '600' },
-  sentCard: {
-    flexDirection: 'row',
+  statIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.sm,
-    padding: spacing.lg,
+    marginBottom: 2,
   },
-  sentText: { ...typography.body, color: colors.success },
+  statValue: { ...typography.h3, color: colors.textPrimary, fontWeight: '700' },
+  statLabel: { ...typography.caption, color: colors.textMuted, textAlign: 'center' },
+
+  // Social actions
   socialActions: {
     flexDirection: 'row',
     gap: spacing.sm,
@@ -328,22 +365,59 @@ const useStyles = createThemedStyles((colors) => ({
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.xs,
+    backgroundColor: colors.gold + '18',
     borderWidth: 1,
-    borderColor: colors.gold,
-    padding: spacing.md,
-    borderRadius: borderRadius.lg,
+    borderColor: colors.gold + '55',
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.xl,
   },
-  battleBtnText: { ...typography.caption, color: colors.gold, fontWeight: '600' },
+  battleBtnText: { ...typography.body, color: colors.gold, fontWeight: '700' },
   watchPartyBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.xs,
-    borderWidth: 1,
-    borderColor: colors.secondary,
-    padding: spacing.md,
-    borderRadius: borderRadius.lg,
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.xl,
   },
-  watchPartyBtnText: { ...typography.caption, color: colors.secondary, fontWeight: '600' },
+  watchPartyBtnText: { ...typography.body, color: '#fff', fontWeight: '700' },
+
+  // Actions
+  actions: { padding: spacing.lg, paddingTop: spacing.md },
+  addBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.lg,
+    borderRadius: borderRadius.xl,
+  },
+  addBtnText: { ...typography.body, color: '#fff', fontWeight: '700' },
+  removeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.error + '50',
+    backgroundColor: colors.error + '08',
+    paddingVertical: spacing.lg,
+    borderRadius: borderRadius.xl,
+  },
+  removeBtnText: { ...typography.body, color: colors.error, fontWeight: '600' },
+  sentCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    padding: spacing.lg,
+    backgroundColor: colors.success + '10',
+    borderRadius: borderRadius.xl,
+    borderWidth: 1,
+    borderColor: colors.success + '30',
+  },
+  sentText: { ...typography.body, color: colors.success, fontWeight: '600' },
 }));

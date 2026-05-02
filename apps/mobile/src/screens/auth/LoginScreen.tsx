@@ -10,6 +10,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Animated,
+  Easing,
   StatusBar,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -47,7 +48,7 @@ export function LoginScreen() {
   const [blockedReason, setBlockedReason] = useState('');
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(30)).current;
+  const slideAnim = useRef(new Animated.Value(16)).current;
 
   const {
     googleLoading,
@@ -60,9 +61,10 @@ export function LoginScreen() {
   } = useSocialAuth();
 
   useEffect(() => {
+    const easing = Easing.out(Easing.cubic);
     Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
-      Animated.timing(slideAnim, { toValue: 0, duration: 700, useNativeDriver: true }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 320, easing, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 320, easing, useNativeDriver: true }),
     ]).start();
   }, []);
 

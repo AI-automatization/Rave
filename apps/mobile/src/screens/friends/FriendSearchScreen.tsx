@@ -42,16 +42,9 @@ export function FriendSearchScreen() {
 
   const sendRequest = useMutation({
     mutationFn: (userId: string) => userApi.sendFriendRequest(userId),
-    onMutate: (userId) => {
-      // Optimistic: darhol sent qilib belgilash (race condition oldini olish)
-      addSentRequest(userId);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['friend-requests'] });
-    },
-    onError: (_, userId) => {
-      Alert.alert(t('common', 'error'), t('friends', 'requestError'));
-    },
+    onMutate: (userId) => { addSentRequest(userId); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['friend-requests'] }); },
+    onError: () => { Alert.alert(t('common', 'error'), t('friends', 'requestError')); },
   });
 
   const friendIds = new Set(friends.map(f => f._id));
@@ -64,51 +57,68 @@ export function FriendSearchScreen() {
 
   const renderItem = ({ item }: ListRenderItemInfo<IUserPublic>) => {
     const state = getActionState(item._id);
+    const rankColor = RANK_COLORS[item.rank];
+
     return (
-      <View style={styles.row}>
-        <TouchableOpacity
-          style={styles.rowLeft}
-          onPress={() => navigation.navigate('FriendProfile', { userId: item._id })}
-          activeOpacity={0.8}
-        >
-          <View style={styles.avatarWrap}>
+      <TouchableOpacity
+        style={styles.row}
+        onPress={() => navigation.navigate('FriendProfile', { userId: item._id })}
+        activeOpacity={0.85}
+      >
+        {/* Avatar with rank ring */}
+        <View style={styles.avatarWrap}>
+          <View style={[styles.avatarRing, { borderColor: rankColor + '80' }]}>
             <Image
               source={item.avatar ? { uri: item.avatar } : DEFAULT_AVATAR}
               style={styles.avatar}
               contentFit="cover"
             />
-            {item.isOnline && <View style={styles.onlineDot} />}
           </View>
-          <View style={styles.info}>
-            <Text style={styles.username}>{item.username}</Text>
-            <View style={styles.rankRow}>
-              <View style={[styles.rankDot, { backgroundColor: RANK_COLORS[item.rank] }]} />
-              <Text style={styles.rankText}>{item.rank} · {item.totalPoints} {t('profile', 'points')}</Text>
-            </View>
-            {item.bio ? <Text style={styles.bio} numberOfLines={1}>{item.bio}</Text> : null}
-          </View>
-        </TouchableOpacity>
+          {item.isOnline && (
+            <View style={[styles.onlineDot, { borderColor: colors.bgElevated }]} />
+          )}
+        </View>
 
-        {state === 'friend' ? (
-          <View style={styles.friendBadge}>
-            <Ionicons name="checkmark" size={14} color={colors.success} />
-            <Text style={styles.friendBadgeText}>{t('friends', 'alreadyFriends')}</Text>
+        {/* Info */}
+        <View style={styles.info}>
+          <Text style={styles.username}>{item.username}</Text>
+          <View style={styles.metaRow}>
+            <View style={[styles.rankPill, { borderColor: rankColor + '50' }]}>
+              <View style={[styles.rankDot, { backgroundColor: rankColor }]} />
+              <Text style={[styles.rankLabel, { color: rankColor }]}>{item.rank}</Text>
+            </View>
+            <Text style={styles.points}>⭐ {item.totalPoints}</Text>
           </View>
-        ) : state === 'sent' ? (
-          <View style={styles.sentBadge}>
-            <Text style={styles.sentText}>{t('friends', 'requestSent')}</Text>
-          </View>
-        ) : (
-          <TouchableOpacity
-            style={styles.addBtn}
-            onPress={() => sendRequest.mutate(item._id)}
-            disabled={sendRequest.isPending}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="person-add-outline" size={16} color={colors.textPrimary} />
-          </TouchableOpacity>
-        )}
-      </View>
+          {item.bio ? (
+            <Text style={styles.bio} numberOfLines={1}>{item.bio}</Text>
+          ) : null}
+        </View>
+
+        {/* Action */}
+        <View style={styles.actionWrap}>
+          {state === 'friend' ? (
+            <View style={styles.friendPill}>
+              <Ionicons name="checkmark-circle" size={14} color={colors.success} />
+              <Text style={styles.friendPillText}>Друзья</Text>
+            </View>
+          ) : state === 'sent' ? (
+            <View style={styles.sentPill}>
+              <Ionicons name="time-outline" size={13} color={colors.textMuted} />
+              <Text style={styles.sentPillText}>Отправлено</Text>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={styles.addBtn}
+              onPress={() => sendRequest.mutate(item._id)}
+              disabled={sendRequest.isPending}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="person-add-outline" size={14} color="#fff" />
+              <Text style={styles.addBtnText}>Добавить</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </TouchableOpacity>
     );
   };
 
@@ -120,7 +130,7 @@ export function FriendSearchScreen() {
           <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </TouchableOpacity>
         <View style={styles.searchBox}>
-          <Ionicons name="search" size={16} color={colors.textMuted} />
+          <Ionicons name="search" size={16} color={isFetching ? colors.primary : colors.textMuted} />
           <TextInput
             style={styles.searchInput}
             value={query}
@@ -129,9 +139,11 @@ export function FriendSearchScreen() {
             placeholderTextColor={colors.textMuted}
             autoFocus
             returnKeyType="search"
+            autoCapitalize="none"
+            autoCorrect={false}
           />
           {query.length > 0 && (
-            <TouchableOpacity onPress={() => setQuery('')}>
+            <TouchableOpacity onPress={() => setQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Ionicons name="close-circle" size={16} color={colors.textMuted} />
             </TouchableOpacity>
           )}
@@ -149,13 +161,19 @@ export function FriendSearchScreen() {
           ListEmptyComponent={
             query.length >= 1 && !isFetching ? (
               <View style={styles.empty}>
-                <Ionicons name="person-outline" size={40} color={colors.textMuted} />
-                <Text style={styles.emptyText}>"{query}" {t('search', 'noResults')}</Text>
+                <View style={styles.emptyIconWrap}>
+                  <Ionicons name="person-outline" size={32} color={colors.primary} />
+                </View>
+                <Text style={styles.emptyTitle}>Никого не найдено</Text>
+                <Text style={styles.emptySubtext}>«{query}» не совпадает ни с одним пользователем</Text>
               </View>
             ) : (
               <View style={styles.empty}>
-                <Ionicons name="search-outline" size={40} color={colors.textMuted} />
-                <Text style={styles.emptyText}>{t('friends', 'searchPlaceholder')}</Text>
+                <View style={styles.emptyIconWrap}>
+                  <Ionicons name="search-outline" size={32} color={colors.primary} />
+                </View>
+                <Text style={styles.emptyTitle}>Поиск пользователей</Text>
+                <Text style={styles.emptySubtext}>Введи имя пользователя для поиска</Text>
               </View>
             )
           }
@@ -166,72 +184,147 @@ export function FriendSearchScreen() {
   );
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
 const useStyles = createThemedStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bgBase },
+
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    padding: spacing.md,
     paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  backBtn: { padding: spacing.xs },
+  backBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: colors.bgElevated,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   searchBox: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.bgElevated,
-    borderRadius: borderRadius.full,
+    borderRadius: borderRadius.xl,
     paddingHorizontal: spacing.md,
     gap: spacing.sm,
-    height: 40,
+    height: 44,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  searchInput: { flex: 1, color: colors.textPrimary, fontSize: 14 },
-  loader: { marginTop: 40 },
+  searchInput: { flex: 1, color: colors.textPrimary, fontSize: 15, paddingVertical: 0 },
+
+  loader: { marginTop: 48 },
   list: { padding: spacing.md, gap: spacing.sm, flexGrow: 1 },
+
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.bgSurface,
-    borderRadius: borderRadius.md,
+    backgroundColor: colors.bgElevated,
+    borderRadius: borderRadius.xl,
     padding: spacing.md,
     gap: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  rowLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  avatarWrap: { position: 'relative' },
-  avatar: { width: 44, height: 44, borderRadius: borderRadius.full },
-  onlineDot: {
-    position: 'absolute',
-    bottom: 1,
-    right: 1,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: colors.success,
+
+  avatarWrap: { position: 'relative', alignSelf: 'flex-start' },
+  avatarRing: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     borderWidth: 2,
-    borderColor: colors.bgSurface,
-  },
-  info: { flex: 1, gap: 3 },
-  username: { ...typography.body, color: colors.textPrimary, fontWeight: '600' },
-  rankRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
-  rankDot: { width: 8, height: 8, borderRadius: 4 },
-  rankText: { ...typography.caption, color: colors.textMuted },
-  bio: { ...typography.caption, color: colors.textMuted },
-  addBtn: {
-    width: 36,
-    height: 36,
-    backgroundColor: colors.primary,
-    borderRadius: borderRadius.full,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  friendBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: spacing.sm },
-  friendBadgeText: { ...typography.caption, color: colors.success },
-  sentBadge: { paddingHorizontal: spacing.sm },
-  sentText: { ...typography.caption, color: colors.textMuted },
-  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, paddingTop: 80 },
-  emptyText: { ...typography.body, color: colors.textMuted },
-  hint: { ...typography.caption, color: colors.textMuted, textAlign: 'center', marginTop: 40 },
+  avatar: { width: 44, height: 44, borderRadius: 22 },
+  onlineDot: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 13,
+    height: 13,
+    borderRadius: 7,
+    backgroundColor: colors.success,
+    borderWidth: 2,
+  },
+
+  info: { flex: 1, gap: 4 },
+  username: { ...typography.body, color: colors.textPrimary, fontWeight: '700' },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  rankPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: borderRadius.full,
+    borderWidth: 1,
+  },
+  rankDot: { width: 7, height: 7, borderRadius: 4 },
+  rankLabel: { fontSize: 11, fontWeight: '700' },
+  points: { ...typography.caption, color: colors.textMuted },
+  bio: { ...typography.caption, color: colors.textMuted },
+
+  actionWrap: { flexShrink: 0 },
+  addBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.full,
+  },
+  addBtnText: { fontSize: 12, color: '#fff', fontWeight: '700' },
+  friendPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.success + '15',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.full,
+    borderWidth: 1,
+    borderColor: colors.success + '40',
+  },
+  friendPillText: { fontSize: 11, color: colors.success, fontWeight: '600' },
+  sentPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.bgSurface,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.full,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  sentPillText: { fontSize: 11, color: colors.textMuted, fontWeight: '600' },
+
+  empty: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingTop: 72,
+    paddingHorizontal: spacing.xxxl,
+  },
+  emptyIconWrap: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: colors.primary + '12',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.primary + '25',
+  },
+  emptyTitle: { ...typography.body, color: colors.textPrimary, fontWeight: '700', textAlign: 'center' },
+  emptySubtext: { ...typography.caption, color: colors.textMuted, textAlign: 'center', lineHeight: 18 },
 }));

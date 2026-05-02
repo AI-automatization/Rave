@@ -1,6 +1,6 @@
 // CineSync Mobile — Home Hero CTA (Watch Together button)
-import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import React, { useRef } from 'react';
+import { View, Text, TouchableOpacity, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, createThemedStyles, spacing, typography, borderRadius } from '@theme/index';
 
@@ -11,6 +11,14 @@ interface HomeCTAProps {
 export function HomeCTA({ onPress }: HomeCTAProps) {
   const { colors } = useTheme();
   const s = useStyles();
+  const btnScale = useRef(new Animated.Value(1)).current;
+
+  const onPressIn = () => {
+    Animated.spring(btnScale, { toValue: 0.97, useNativeDriver: true, friction: 15, tension: 300 }).start();
+  };
+  const onPressOut = () => {
+    Animated.spring(btnScale, { toValue: 1, useNativeDriver: true, friction: 8, tension: 150 }).start();
+  };
 
   return (
     <View style={s.card}>
@@ -25,10 +33,12 @@ export function HomeCTA({ onPress }: HomeCTAProps) {
           </Text>
         </View>
       </View>
-      <TouchableOpacity style={s.btn} onPress={onPress} activeOpacity={0.8}>
-        <Ionicons name="play-circle" size={18} color={colors.white} />
-        <Text style={s.btnText}>Video tanlash</Text>
-      </TouchableOpacity>
+      <Animated.View style={{ transform: [{ scale: btnScale }] }}>
+        <TouchableOpacity style={s.btn} onPress={onPress} onPressIn={onPressIn} onPressOut={onPressOut} activeOpacity={1}>
+          <Ionicons name="play-circle" size={18} color={colors.white} />
+          <Text style={s.btnText}>Video tanlash</Text>
+        </TouchableOpacity>
+      </Animated.View>
     </View>
   );
 }
