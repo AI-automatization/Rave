@@ -55,7 +55,7 @@ function inferVideoType(url: string): 'mp4' | 'hls' {
  */
 function buildYouTubeProxyUrl(videoUrl: string, token: string): string {
   const encoded = encodeURIComponent(videoUrl);
-  return `${CONTENT_BASE_URL}/api/v1/youtube/stream?url=${encoded}&token=${token}`;
+  return `${CONTENT_BASE_URL}/youtube/stream?url=${encoded}&token=${token}`;
 }
 
 /**
@@ -102,7 +102,16 @@ export function useVideoExtraction(): UseVideoExtractionReturn {
     setIsExtracting(true);
 
     try {
-      // 1. Direct video URL — skip extraction entirely
+      // 1. googlevideo.com URLs are IP-locked to the extraction server — cannot be played directly.
+      //    This happens when an old room stored the extracted CDN URL instead of the original URL.
+      if (/googlevideo\.com/.test(url)) {
+        if (__DEV__) console.log('[useVideoExtraction] googlevideo.com CDN URL — IP-locked, cannot play directly');
+        setError('video_source_expired');
+        setFallbackMode(true);
+        return;
+      }
+
+      // 2. Direct video URL — skip extraction entirely
       if (isDirectVideoUrl(url)) {
         const directResult: VideoExtractResult = {
           title: '',

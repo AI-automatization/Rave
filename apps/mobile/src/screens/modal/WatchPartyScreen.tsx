@@ -31,7 +31,7 @@ export function WatchPartyScreen() {
     playerRef, userId, room, messages, activeMembers, isOwner, adminMonitoring, connectTimeout,
     showChat, showVoice, showInvite, isPlaying, isFullscreen, videoIsLive,
     videoCurrentTime, videoDuration, floatingEmojis, showQualityMenu, showEpisodeMenu,
-    extractQualities, extractEpisodes, currentVideoUrl,
+    extractQualities, extractEpisodes, currentVideoUrl, extractionError,
     originalVideoUrl, extractedVideoUrl, isWebViewMode, isExtracting,
     playlist, handleAddToQueue, handlePlaylistRemove, handlePlaylistNext,
     setShowChat, setShowVoice, setShowInvite, setShowQualityMenu, setShowEpisodeMenu, setVideoIsLive,
@@ -56,6 +56,16 @@ export function WatchPartyScreen() {
 
   return (
     <View style={s.root}>
+      {extractionError === 'video_source_expired' && (
+        <View style={s.expiredBanner}>
+          <Ionicons name="warning-outline" size={16} color="#F59E0B" />
+          <Text style={s.expiredText}>
+            {isOwner
+              ? 'Видео источник устарел — обновите видео через «+»'
+              : 'Видео источник устарел. Попросите владельца обновить видео'}
+          </Text>
+        </View>
+      )}
       <VideoSection
         playerRef={playerRef}
         videoUrl={originalVideoUrl}
@@ -220,6 +230,8 @@ const useStyles = createThemedStyles((colors) => ({
   errorSub: { fontSize: 14, color: colors.textMuted, textAlign: 'center' },
   errorBtn: { backgroundColor: colors.primary, paddingHorizontal: spacing.xxl, paddingVertical: spacing.md, borderRadius: 12 },
   errorBtnText: { color: colors.white, fontWeight: '700', fontSize: 15 },
+  expiredBanner: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, backgroundColor: 'rgba(245,158,11,0.12)', paddingVertical: spacing.sm, paddingHorizontal: spacing.md, borderBottomWidth: 1, borderBottomColor: 'rgba(245,158,11,0.25)' },
+  expiredText: { ...typography.caption, color: '#F59E0B', fontWeight: '600', flex: 1 },
   adminBanner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs, backgroundColor: 'rgba(245,158,11,0.12)', paddingVertical: spacing.xs, paddingHorizontal: spacing.md },
   adminBannerText: { ...typography.caption, color: colors.warning, fontWeight: '600' },
   playlistSheet: {

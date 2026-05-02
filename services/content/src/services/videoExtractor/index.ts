@@ -128,47 +128,42 @@ export async function extractVideo(
   // 5. Platform-specific extraction
   if (platform === 'youtube') {
     const videoId = extractYouTubeVideoId(rawUrl);
-    if (videoId) {
-      // Return embed result — no proxy needed, YouTube iframe handles playback
+    // Always use ytdl-core proxy — iframe embed is blocked for many videos
+    // Mobile builds: /youtube/stream?url=<encoded_yt_url>&token=<jwt>
+    try {
+      const info = await ytdlService.getStreamInfo(rawUrl);
+      const type = info.mimeType.includes('m3u8') ? 'hls' : 'mp4';
       result = {
-        title: parsedUrl.hostname,
-        videoUrl: '',
-        videoId,
-        poster: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+        title: info.title,
+        videoUrl: rawUrl,
+        poster: videoId
+          ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
+          : info.thumbnail,
         platform: 'youtube',
-        type: 'embed',
-        useProxy: false,
+        type,
+        duration: info.duration,
+        isLive: info.isLive,
+        useProxy: true,
         sourceType: 'type2',
         extractionMethod: 'yt-dlp',
         cacheable: true,
       };
-    } else {
-      // Unusual YouTube URL without parseable videoId — fall back to stream extraction
+    } catch (ytdlErr) {
+      logger.warn('ytdl-core failed for YouTube, falling back to yt-dlp', { url: rawUrl, error: (ytdlErr as Error).message });
       try {
-        const info = await ytdlService.getStreamInfo(rawUrl);
-        const type = info.mimeType.includes('m3u8') ? 'hls' : 'mp4';
+        result = await ytDlpExtractor(rawUrl);
+      } catch (dlpErr) {
+        if (dlpErr instanceof YtDlpDrmError) throw new VideoExtractError('drm');
+        throw dlpErr;
+      }
+      if (result) {
         result = {
-          title: info.title,
-          videoUrl: rawUrl,
-          poster: info.thumbnail,
+          ...result,
           platform: 'youtube',
-          type,
-          duration: info.duration,
-          isLive: info.isLive,
-          useProxy: true,
           sourceType: 'type2',
           extractionMethod: 'yt-dlp',
-          cacheable: true,
+          cacheable: false,
         };
-      } catch (ytdlErr) {
-        logger.warn('ytdl-core failed, falling back to yt-dlp', { url: rawUrl, error: (ytdlErr as Error).message });
-        try {
-          result = await ytDlpExtractor(rawUrl);
-        } catch (dlpErr) {
-          if (dlpErr instanceof YtDlpDrmError) throw new VideoExtractError('drm');
-          throw dlpErr;
-        }
-        if (result) result = { ...result, platform: 'youtube', videoUrl: rawUrl, useProxy: true, sourceType: 'type2', extractionMethod: 'yt-dlp', cacheable: true };
       }
     }
 

@@ -44,7 +44,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
 
   const { room, syncState, messages, activeMembers, playlist, isOwner, adminMonitoring, roomClosed, heartbeat, bufferingUsers, lastReaction,
     emitPlay, emitPause, emitSeek, emitHeartbeat, sendMessage, sendEmoji } = useWatchParty(roomId);
-  const { isExtracting, result: extractResult, fallbackMode: extractFallback, extract, reset: resetExtraction } = useVideoExtraction();
+  const { isExtracting, result: extractResult, fallbackMode: extractFallback, error: extractionError, extract, reset: resetExtraction } = useVideoExtraction();
 
   const playerRef = useRef<UniversalPlayerRef>(null);
   const isSyncing = useRef(false);
@@ -382,7 +382,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
 
   return {
     playerRef, userId, room, messages, activeMembers, isOwner, adminMonitoring, connectTimeout,
-    isExtracting, extractResult, showChat, showVoice, showInvite, isPlaying, isFullscreen,
+    isExtracting, extractResult, extractionError, showChat, showVoice, showInvite, isPlaying, isFullscreen,
     videoIsLive, videoCurrentTime, videoDuration, floatingEmojis, showQualityMenu, showEpisodeMenu,
     extractQualities, extractEpisodes, currentVideoUrl, bufferingUsers,
     originalVideoUrl, extractedVideoUrl, isWebViewMode,

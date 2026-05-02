@@ -72,8 +72,10 @@ export function useMediaDetection() {
     setIsBackendExtracting(true);
     try {
       const result = await contentApi.extractVideo(url, cookiesRef.current || undefined);
+      // Store the original URL (not the extracted CDN URL) so each client can
+      // re-extract on join and get their own fresh proxy URL. Matches useSourcePicker behaviour.
       const media: RoomMedia = {
-        videoUrl: result.videoUrl,
+        videoUrl: url,
         videoTitle: result.title || 'Video',
         videoPlatform: result.platform === 'youtube' ? 'youtube' : 'direct',
         videoThumbnail: result.poster || undefined,
