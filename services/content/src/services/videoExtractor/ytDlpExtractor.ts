@@ -87,11 +87,10 @@ const YT_COOKIE_FILE: string | null = (() => {
 const YT_PO_TOKEN = process.env.YOUTUBE_PO_TOKEN;
 const YT_VISITOR_DATA = process.env.YOUTUBE_VISITOR_DATA;
 
-function buildYouTubeExtractorArgs(): string | null {
-  if (!YT_PO_TOKEN) return null;
-  // Use MWEB client — less strict bot detection than WEB
-  const parts = ['player-client=MWEB'];
-  parts.push(`po_token=MWEB+${YT_PO_TOKEN}`);
+function buildYouTubeExtractorArgs(): string {
+  // ios client: no poToken required, better datacenter IP tolerance than WEB/MWEB
+  const parts = ['player-client=ios,web'];
+  if (YT_PO_TOKEN) parts.push(`po_token=ios+${YT_PO_TOKEN}`);
   if (YT_VISITOR_DATA) parts.push(`visitor_data=${YT_VISITOR_DATA}`);
   return `youtube:${parts.join(';')}`;
 }
@@ -139,15 +138,10 @@ export async function ytDlpExtractor(
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
     ];
 
-    // YouTube-specific: use cookie file + poToken
+    // YouTube-specific: ios player client + cookies
     if (isYouTube) {
-      if (YT_COOKIE_FILE) {
-        args.push('--cookies', YT_COOKIE_FILE);
-      }
-      const extractorArgs = buildYouTubeExtractorArgs();
-      if (extractorArgs) {
-        args.push('--extractor-args', extractorArgs);
-      }
+      args.push('--extractor-args', buildYouTubeExtractorArgs());
+      if (YT_COOKIE_FILE) args.push('--cookies', YT_COOKIE_FILE);
     }
 
     // Per-request cookie header (for auth-protected non-YouTube sites, T-S045)

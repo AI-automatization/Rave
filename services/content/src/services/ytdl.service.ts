@@ -29,12 +29,25 @@ const infoCache = new LRUCache<string, CachedInfo>({ max: 100, ttl: CACHE_TTL })
 // YOUTUBE_COOKIES_JSON: JSON array exported from browser via "Cookie-Editor" extension
 // Format: [{"name":"...", "value":"...", "domain":".youtube.com", "path":"/", ...}]
 // Note: @distube/ytdl-core v4.x does NOT support poToken — cookies only.
-// YOUTUBE_PO_TOKEN / YOUTUBE_VISITOR_DATA env vars are intentionally unused here.
 const ytAgent: ytdl.Agent | undefined = (() => {
   const raw = process.env.YOUTUBE_COOKIES_JSON;
   if (!raw) return undefined;
   try {
     const cookies = JSON.parse(raw) as ytdl.Cookie[];
+
+    // T-S076: warn if any critical cookie expires within 30 days
+    const CRITICAL = new Set(['SAPISID', 'SID', '__Secure-3PSID', 'SSID']);
+    const nowSec = Date.now() / 1000;
+    const warn30 = 30 * 24 * 3600;
+    for (const c of cookies) {
+      if (CRITICAL.has(c.name) && c.expirationDate && c.expirationDate - nowSec < warn30) {
+        const days = Math.floor((c.expirationDate - nowSec) / 86400);
+        logger.warn('ytdl-core: YouTube cookie expiring soon — update YOUTUBE_COOKIES_JSON on Railway', {
+          cookie: c.name, daysLeft: days,
+        });
+      }
+    }
+
     const agent = ytdl.createAgent(cookies);
     logger.info('ytdl-core: cookie agent created', { cookieCount: cookies.length });
     return agent;
