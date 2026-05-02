@@ -16,17 +16,27 @@ DAILY="$VAULT/DAILY/$DEV/$DATE.md"
 # ── Маркер конца сессии ───────────────────────────────────────────
 [[ -f "$DAILY" ]] && echo -e "\n### 🔴 Session ended: $NOW" >> "$DAILY"
 
-# ── Auto-snapshot handoff (git state + pending tasks) ─────────────
+# ── Auto-snapshot: git state + pending tasks → handoff.md ────────────
 HANDOFF="$VAULT/AI_CONTEXT/handoff.md"
 REPO="${REPO_PATH:-$HOME/Desktop/Rave}"
 
 LAST_COMMIT=""
 UNCOMMITTED=0
 LAST_5=""
+PENDING_S=""
+PENDING_E=""
+MODIFIED=""
 if [[ -d "$REPO/.git" ]]; then
   LAST_COMMIT=$(git -C "$REPO" log --oneline -1 2>/dev/null || echo "")
   UNCOMMITTED=$(git -C "$REPO" status --porcelain 2>/dev/null | wc -l | tr -d ' ' || echo "0")
-  LAST_5=$(git -C "$REPO" log --oneline -5 2>/dev/null || echo "")
+  LAST_5=$(git -C "$REPO" log --oneline -5 2>/dev/null | sed 's/^/- /' || echo "")
+  MODIFIED=$(git -C "$REPO" diff --name-only HEAD 2>/dev/null | head -8 | sed 's/^/  - /' || echo "")
+fi
+
+TASKS_FILE="$REPO/docs/Tasks.md"
+if [[ -f "$TASKS_FILE" ]]; then
+  PENDING_S=$(grep "pending\[Saidazim\]" "$TASKS_FILE" 2>/dev/null | grep "^###" | sed 's/^### /- /' | head -5 || true)
+  PENDING_E=$(grep "pending\[Emirhan\]" "$TASKS_FILE" 2>/dev/null | grep "^###" | sed 's/^### /- /' | head -5 || true)
 fi
 
 cat > "$HANDOFF" << HEREDOC
@@ -43,13 +53,19 @@ updated: $NOW
 $LAST_COMMIT
 
 ## Незакоммиченных файлов
-$UNCOMMITTED файлов
+$UNCOMMITTED
+
+## Изменённые файлы
+$MODIFIED
 
 ## Последние 5 коммитов
-$(echo "$LAST_5" | sed 's/^/- /')
+$LAST_5
 
-## Следующий шаг
-<!-- Обновляется через: obsidian-note.sh progress -->
+## Pending задачи — Saidazim
+${PENDING_S:-  нет}
+
+## Pending задачи — Emirhan
+${PENDING_E:-  нет}
 HEREDOC
 
 # ── Flush терминального буфера ────────────────────────────────────
