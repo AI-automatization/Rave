@@ -109,8 +109,47 @@ tezcode)
   echo "✅ tezcode msg → tezCode/_telegram.md"
   ;;
 
+progress)
+  # Записывает незавершённый прогресс задачи — читается при следующем старте сессии
+  # BODY = многострочный markdown с секциями: Активный таск, Сделано, Не сделано, Следующий шаг
+  IN_PROGRESS="$VAULT/AI_CONTEXT/in-progress.md"
+  cat > "$IN_PROGRESS" << HEREDOC
+---
+updated: $NOW
+developer: $EXECUTOR
+status: active
+---
+
+# 🚧 В ПРОЦЕССЕ — $EXECUTOR
+
+## Таск: $TITLE
+
+$BODY
+HEREDOC
+  echo -e "\n### 🚧 В процессе: $TITLE\n> Обновлено: $NOW" >> "$DAILY_FILE"
+  echo "✅ progress → AI_CONTEXT/in-progress.md"
+  ;;
+
+clear-progress)
+  # Вызывается когда задача ПОЛНОСТЬЮ завершена
+  IN_PROGRESS="$VAULT/AI_CONTEXT/in-progress.md"
+  cat > "$IN_PROGRESS" << HEREDOC
+---
+updated: $NOW
+developer: $EXECUTOR
+status: clear
+---
+
+# ✅ Нет незавершённых задач
+
+Последнее завершено: $TITLE ($NOW)
+HEREDOC
+  echo -e "\n### ✅ Завершено: $TITLE\n> $NOW" >> "$DAILY_FILE"
+  echo "✅ progress cleared → AI_CONTEXT/in-progress.md"
+  ;;
+
 *)
-  echo "Unknown type: $TYPE (decision|bug|idea|todo|fix|note|tezcode)"
+  echo "Unknown type: $TYPE (decision|bug|idea|todo|fix|note|tezcode|progress|clear-progress)"
   exit 1
   ;;
 esac
