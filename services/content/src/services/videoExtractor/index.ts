@@ -128,6 +128,8 @@ export async function extractVideo(
   // 5. Platform-specific extraction
   if (platform === 'youtube') {
     const videoId = extractYouTubeVideoId(rawUrl);
+    // No video ID means it's a YouTube homepage / search / channel — not extractable
+    if (!videoId) throw new VideoExtractError('unsupported_site', `No YouTube video ID found in URL: ${rawUrl}`);
     const embedFallback: VideoExtractResult = {
       title: '',
       videoUrl: '',
@@ -162,7 +164,6 @@ export async function extractVideo(
       // yt-dlp returns a googlevideo.com URL (IP-locked to server) — unusable on mobile.
       // Skip yt-dlp to avoid 10-15s extra latency; fall back to embed immediately.
       logger.warn('ytdl-core failed for YouTube, falling back to embed', { url: rawUrl, error: (ytdlErr as Error).message });
-      if (!videoId) throw new VideoExtractError('unsupported_site', 'YouTube extraction failed and no videoId available for embed fallback');
       result = embedFallback;
     }
 

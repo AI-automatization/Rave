@@ -133,6 +133,8 @@ export async function ytDlpExtractor(
       '--no-playlist',
       '--no-warnings',
       '--socket-timeout', '10',
+      // Use flexible format selection — specific formats may not be available on some videos
+      '--format', 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best',
       '--user-agent',
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
     ];
