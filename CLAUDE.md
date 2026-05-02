@@ -830,91 +830,80 @@ QA FAIL bo'lsa → merge TAQIQLANGAN → agent xatoni tuzatishi kerak.
 
 ---
 
-## АКТИВНОЕ ИСПОЛЬЗОВАНИЕ СКИЛЛОВ — ЗАКОН (ОБЯЗАТЕЛЬНО)
+## СКИЛЛЫ — КОГДА И КАК ИСПОЛЬЗОВАТЬ (ЗАКОН)
 
-> **ЭТО АБСОЛЮТНОЕ ПРАВИЛО. СКИЛЛЫ — НЕ ОПЦИЯ. ОНИ ЗАПУСКАЮТСЯ АВТОМАТИЧЕСКИ.**
-> Claude НЕ ЖДЁТ разрешения. Скилл запускается как только наступает его триггер.
-
-### ТРИГГЕРНАЯ ТАБЛИЦА — КОГДА КАКОЙ СКИЛЛ
-
-| Скилл | Файл | Триггер — КОГДА запускать | Нельзя пропускать если... |
-|-------|------|--------------------------|--------------------------|
-| **Spec-Driven Implement** | `.claude/skills/spec-driven-implement.md` | ПЕРЕД написанием любого кода | Начинается новая задача / фича / фикс |
-| **Root Cause Tracing** | `.claude/skills/root-cause-tracing.md` | Когда сообщают о баге или тест упал | Есть ошибка — нельзя гадать причину |
-| **Execute-Judge Loop** | `.claude/skills/execute-judge-loop.md` | В ПРОЦЕССЕ реализации каждого таска | Пишется или изменяется код |
-| **Self-Reflection** | `.claude/skills/self-reflection.md` | ПОСЛЕ завершения кода, ДО сабмита | Любые изменения в коде перед коммитом |
-| **Critic Agent** | `.claude/skills/critic-agent.md` | ПЕРЕД каждым merge в main | Код готов и прошёл Self-Reflection |
-| **Auto Tests** | `.claude/skills/auto-tests.md` | ПОСЛЕ одобрения Critic Agent | Critic сказал APPROVE |
-| **Visual Testing** | `.claude/skills/visual-testing.md` | При изменениях UI (screens, components) | Изменились .tsx/.css файлы в apps/ |
-| **Subagent Dispatch** | `.claude/skills/subagent-dispatch.md` | При Mode B (Multi-Agent) | Выбран режим B или задача > 5 файлов |
+> Скиллы — это файлы в `.claude/skills/`. Claude ЧИТАЕТ нужный файл в момент триггера.
+> Нет автоматики — есть дерево решений ниже. Следуй ему точно.
 
 ---
 
-### ОБЯЗАТЕЛЬНЫЙ ПОРЯДОК ДЛЯ КАЖДОЙ ЗАДАЧИ
+### ДЕРЕВО РЕШЕНИЙ — выполняется сверху вниз для каждой задачи
 
 ```
-ЗАДАЧА ПОЛУЧЕНА
-      │
-      ▼
-1. [spec-driven-implement] — написать SPEC перед кодом
-      │
-      ▼
-2. [root-cause-tracing]    — ТОЛЬКО если это баг (трассировать причину)
-      │
-      ▼
-3. [execute-judge-loop]    — писать → tsc → проверять → фиксить → повторять
-      │
-      ▼
-4. [self-reflection]       — 7 шагов анти-галлюцинации перед сабмитом
-      │
-      ▼
-5. [critic-agent]          — 3 судьи: Correctness + Architecture + Integration
-      │
-      ├── REJECT → вернуться к шагу 3
-      │
-      └── APPROVE ≥7/10
-            │
-            ▼
-6. [auto-tests]            — написать тесты на изменённый код
-      │
-      ▼
-7. [visual-testing]        — скриншоты (только если UI изменился)
-      │
-      ▼
-8. git commit + tg-notify + Done.md
+┌─ ПОЛУЧИЛ ЗАДАЧУ
+│
+├─ Это БАГ / ошибка / тест упал?
+│   └─ ДА → СНАЧАЛА прочитай `.claude/skills/root-cause-tracing.md`
+│            Выполни 5-шаговый трейс. Только потом пиши код.
+│
+├─ Это Mode B / задача > 5 файлов / разные зоны?
+│   └─ ДА → прочитай `.claude/skills/subagent-dispatch.md`
+│            Диспатч агентов по таблице в orchestrator.md
+│
+├─ Пишу код (любой таск)
+│   ├─ 1. SPEC сначала — прочитай `.claude/skills/spec-driven-implement.md`
+│   │      Напиши YAML-спек (problem / solution / files / verification)
+│   │      Без спека — код не пишется.
+│   │
+│   ├─ 2. LOOP — прочитай `.claude/skills/execute-judge-loop.md`
+│   │      write → tsc --noEmit → self-check → judge (1-10) → fix если < 7
+│   │      Повторять пока score ≥ 7.
+│   │
+│   ├─ 3. SELF-REFLECTION перед каждым коммитом
+│   │      Прочитай `.claude/skills/self-reflection.md`
+│   │      7 шагов: imports / functions / socket events / api / tsc / forbidden / zone
+│   │      Все 7 должны быть ✅. Если нет — исправь, не коммить.
+│   │
+│   ├─ 4. CRITIC перед merge
+│   │      Прочитай `.claude/skills/critic-agent.md`
+│   │      3 судьи: Correctness + Architecture + Integration
+│   │      Средний балл ≥ 7/10 → APPROVE. Меньше → вернуться к шагу 2.
+│   │
+│   ├─ 5. TESTS после APPROVE
+│   │      Прочитай `.claude/skills/auto-tests.md`
+│   │      Написать тесты на изменённый код. Запустить. Все должны пройти.
+│   │
+│   └─ 6. VISUAL (только если изменились .tsx / .css / StyleSheet файлы)
+│          Прочитай `.claude/skills/visual-testing.md`
+│          Скриншоты в screenshots/. Проверить регрессии.
+│
+└─ ГОТОВО → checkpoint clear + Done.md + tg-notify + git commit
 ```
 
 ---
 
-### ПРАВИЛА ЗАПУСКА
+### ИСКЛЮЧЕНИЯ (единственные)
 
-```
-❌ НЕЛЬЗЯ:
-  - Начать писать код без Spec-Driven Implement
-  - Угадывать причину бага без Root Cause Tracing
-  - Закоммитить без Self-Reflection (7 шагов)
-  - Merge без Critic Agent (3 судьи, средний балл ≥7)
-  - Пропускать Auto Tests после Critic APPROVE
-  - Игнорировать Visual Testing при изменении UI
+| Ситуация | Что пропустить |
+|----------|---------------|
+| Typo / 1 символ | Только Self-Reflection шаг 6 (forbidden patterns) |
+| docs/Tasks.md / Done.md | Все скиллы пропустить |
+| Config / .env изменение | Только Self-Reflection шаг 6 |
 
-✅ ИСКЛЮЧЕНИЯ (только для):
-  - Typo fix (1 символ) → Self-Reflection обязателен, остальные по желанию
-  - Docs/Tasks.md изменение → без скиллов
-  - Config/env изменение → Self-Reflection step 6 (forbidden patterns) достаточно
-```
+Всё остальное → полный цикл без исключений.
 
 ---
 
-### CLI СКИЛЛЫ (вызываемые через /skill)
+### CLI-СКИЛЛЫ (запускаются через `/`)
 
-| Скилл | Команда | Когда использовать |
-|-------|---------|-------------------|
-| **simplify** | `/simplify` | После завершения реализации — проверить качество, убрать дублирование |
-| **security-review** | `/security-review` | При изменении auth, JWT, middleware, API endpoints |
-| **review** | `/review` | Перед созданием PR — полный code review ветки |
-| **fewer-permission-prompts** | `/fewer-permission-prompts` | Когда Claude часто запрашивает разрешения на одни и те же команды |
+| Команда | Когда |
+|---------|-------|
+| `/simplify` | После завершения — убрать дублирование, упростить |
+| `/security-review` | Изменился auth / JWT / middleware / API endpoint |
+| `/review` | Перед созданием PR |
+| `/fewer-permission-prompts` | Claude слишком часто спрашивает разрешения |
 
-**Claude предлагает запустить CLI скилл сам**, если видит что момент подходящий (например, завершён auth-related таск → предлагает `/security-review`).
+Claude сам предлагает CLI-скилл когда видит подходящий момент.
 
 ---
 

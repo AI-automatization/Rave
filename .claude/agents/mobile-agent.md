@@ -54,16 +54,74 @@ T-E113 P1: Chat — show sender username on messages
 T-E114 P1: Chat — reply to message (Telegram style, swipe gesture)
 T-E115 P0: Bug — push notification invite tap doesn't navigate to WatchParty room
 
-## SKILLS ORDER
-1. spec-driven-implement → SPEC before code
-2. root-cause-tracing   → bugs only (T-E115 is a bug)
-3. execute-judge-loop   → write → tsc → check → fix
-4. self-reflection      → step 3 critical (socket event consistency)
-5. visual-testing       → Maestro flows for UI changes
+## SKILL EXECUTION — ОБЯЗАТЕЛЬНЫЙ ПОРЯДОК
 
-## SELF-CHECK
-- tsc: cd apps/mobile && npx tsc --noEmit
-- No console.log (only __DEV__ blocks)
-- No inline styles
-- Socket events from shared/constants only
-- Zone: only apps/mobile/ files
+### 1. SPEC (перед любым кодом)
+```yaml
+TASK_SPEC:
+  id: T-XXXX
+  problem:
+    what: [точное описание]
+    where: [file:line]
+    evidence: [grep output / error text]
+  solution:
+    approach: [конкретные шаги]
+    files_to_modify:
+      - path/file.tsx: [что изменить]
+  verification:
+    compile: "cd apps/mobile && npx tsc --noEmit"
+    manual: [шаги проверки]
+```
+
+### 2. ROOT CAUSE (только для багов — T-E115 и подобные)
+Трейс: symptom → where (grep) → why (read code) → root cause → minimal fix
+НЕ угадывать. НЕ чинить симптом. Только root cause.
+
+### 3. EXECUTE LOOP
+```
+write code → tsc --noEmit → если ошибки → fix → повтор
+judge 1-10: решает проблему? (0-3) + минимально? (0-2) + tsc clean? (0-3) + senior одобрит? (0-2)
+если < 7 → fix → повтор. Max 3 итерации.
+```
+
+### 4. SELF-REFLECTION (перед сабмитом — все 7)
+```bash
+# 1. Все импорты существуют?
+ls apps/mobile/src/api/content.api.ts   # для каждого нового импорта
+
+# 2. Все вызываемые функции существуют?
+grep -n "functionName" apps/mobile/src/...
+
+# 3. Socket события совпадают?
+grep "SERVER_EVENTS\." apps/mobile/src/ -r   # client listen
+grep "emit.*SERVER_EVENTS\." services/ -r     # server emit — должны совпадать
+
+# 4. API endpoint существует на backend?
+grep -rn "POST /api/v1/..." services/*/src/routes/
+
+# 5. tsc clean?
+cd apps/mobile && npx tsc --noEmit
+
+# 6. Запрещённые паттерны?
+git diff --name-only | xargs grep -l "console\.log\|any\b\|StyleSheet\.create" 2>/dev/null
+
+# 7. Зона соблюдена?
+git diff --name-only | grep -v "^apps/mobile/"   # должно быть пусто
+```
+
+### 5. CRITIC (перед merge)
+```
+Judge 1 Correctness  (1-10): решает задачу? реальные функции? правильные event names?
+Judge 2 Architecture (1-10): SOLID? < 300 строк? нет дублирования?
+Judge 3 Integration  (1-10): backend↔mobile не сломано? типы совпадают?
+Среднее ≥ 7 → APPROVE. Меньше → fix и повтор.
+```
+
+### 6. CHECKPOINT (после каждого изменённого файла)
+```bash
+bash .claude/scripts/obsidian-checkpoint.sh T-XXXX 40 "что сделано" "следующий файл:строка"
+```
+
+### 7. VISUAL (если изменились .tsx / StyleSheet файлы)
+Maestro: `cd apps/mobile && maestro test .maestro/`
+Скриншоты → `screenshots/`

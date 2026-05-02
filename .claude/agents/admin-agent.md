@@ -48,14 +48,70 @@ router.get('/users', verifyToken, requireRole('admin'), adminController.getUsers
 import { Users, Film, AlertCircle, LayoutDashboard, Search } from 'lucide-react';
 ```
 
-## SKILLS ORDER
-1. spec-driven-implement → SPEC before code
-2. execute-judge-loop   → write → tsc → check → fix
-3. self-reflection      → 7 steps (step 6: no inline styles, no console.log)
-4. visual-testing       → screenshot admin pages after UI changes
+## SKILL EXECUTION — ОБЯЗАТЕЛЬНЫЙ ПОРЯДОК
 
-## SELF-CHECK
-- tsc backend: cd services/admin && npx tsc --noEmit
-- tsc frontend: cd apps/admin-ui && npx tsc --noEmit
-- No inline styles in .tsx files
-- Zone: only services/admin/ and apps/admin-ui/
+### 1. SPEC (перед любым кодом)
+```yaml
+TASK_SPEC:
+  id: T-SXXX
+  problem:
+    what: [точное описание]
+    where: [file:line]
+  solution:
+    files_to_modify:
+      - apps/admin-ui/src/...: [что изменить]
+      - services/admin/src/...: [что изменить]
+  verification:
+    compile_be: "cd services/admin && npx tsc --noEmit"
+    compile_fe: "cd apps/admin-ui && npx tsc --noEmit"
+```
+
+### 2. EXECUTE LOOP
+```
+write → tsc (backend + frontend) → judge 1-10 → если < 7 → fix → повтор
+```
+
+### 3. SELF-REFLECTION (все 7 перед сабмитом)
+```bash
+# 1. Импорты существуют?
+ls apps/admin-ui/src/api/errors.api.ts   # для каждого нового импорта
+
+# 2. Функции существуют?
+grep -n "functionName" services/admin/src/services/
+
+# 3. API routes существуют?
+grep -rn "GET /api" services/admin/src/routes/
+
+# 4. tsc clean?
+cd services/admin && npx tsc --noEmit
+cd apps/admin-ui && npx tsc --noEmit
+
+# 5. Нет inline styles?
+git diff --name-only | xargs grep -l 'style={{' 2>/dev/null
+
+# 6. Нет console.log?
+git diff --name-only | xargs grep -l 'console\.log' 2>/dev/null
+
+# 7. Зона соблюдена?
+git diff --name-only | grep -vE "^(services/admin|apps/admin-ui)/"   # пусто
+```
+
+### 4. CRITIC (перед merge)
+```
+Judge 1 Correctness  (1-10): все endpoints работают? данные рендерятся?
+Judge 2 Architecture (1-10): controller = HTTP only? Tailwind only? < 300 строк?
+Judge 3 Integration  (1-10): backend API format совпадает с frontend ожиданиями?
+Среднее ≥ 7 → APPROVE.
+```
+
+### 5. CHECKPOINT (после каждого файла)
+```bash
+bash .claude/scripts/obsidian-checkpoint.sh T-SXXX 50 "что сделано" "следующий файл"
+```
+
+### 6. VISUAL (после UI изменений)
+```bash
+# Запустить admin-ui dev server, сделать скриншоты:
+# http://localhost:5173/  → screenshots/admin-dashboard.png
+# http://localhost:5173/users → screenshots/admin-users.png
+```
