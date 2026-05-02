@@ -20,7 +20,7 @@ interface CachedInfo {
 }
 
 const CACHE_TTL = 2 * 60 * 60 * 1000; // 2h
-const MAX_RETRIES = 3;
+const MAX_RETRIES = 1;
 const RETRY_DELAY_MS = 1500;
 
 const infoCache = new LRUCache<string, CachedInfo>({ max: 100, ttl: CACHE_TTL });
@@ -68,7 +68,7 @@ const YT_HEADERS: Record<string, string> = {
   ...(!ytAgent && process.env.YOUTUBE_COOKIES ? { 'Cookie': process.env.YOUTUBE_COOKIES } : {}),
 };
 
-const FETCH_TIMEOUT_MS = 15_000;
+const FETCH_TIMEOUT_MS = 8_000;
 
 async function fetchYtInfoWithRetry(youtubeUrl: string): Promise<ytdl.videoInfo> {
   let lastErr: unknown;

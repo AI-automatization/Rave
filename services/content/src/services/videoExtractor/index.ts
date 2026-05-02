@@ -159,15 +159,9 @@ export async function extractVideo(
         cacheable: true,
       };
     } catch (ytdlErr) {
-      logger.warn('ytdl-core failed for YouTube, trying embed fallback', { url: rawUrl, error: (ytdlErr as Error).message });
-      // yt-dlp would return a googlevideo.com URL (IP-locked to server) — unusable on mobile.
-      // Try yt-dlp only to detect DRM; on success still prefer embed.
-      try {
-        await ytDlpExtractor(rawUrl);
-      } catch (dlpErr) {
-        if (dlpErr instanceof YtDlpDrmError) throw new VideoExtractError('drm');
-        // yt-dlp also failed — fall through to embed below
-      }
+      // yt-dlp returns a googlevideo.com URL (IP-locked to server) — unusable on mobile.
+      // Skip yt-dlp to avoid 10-15s extra latency; fall back to embed immediately.
+      logger.warn('ytdl-core failed for YouTube, falling back to embed', { url: rawUrl, error: (ytdlErr as Error).message });
       if (!videoId) throw new VideoExtractError('unsupported_site', 'YouTube extraction failed and no videoId available for embed fallback');
       result = embedFallback;
     }
