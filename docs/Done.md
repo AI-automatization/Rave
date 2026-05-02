@@ -1,6 +1,30 @@
 # CineSync — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-05-01
+# Yangilangan: 2026-05-02
+
+---
+
+### F-002 | T-S073 | YouTube embed fallback when proxy extraction fails
+
+- **Beruvchi:** Saidazim
+- **Bajaruvchi:** Saidazim (Claude sonnet)
+- **Yaratilgan:** 2026-05-02 10:40
+- **Bajarilgan:** 2026-05-02 11:00
+- **Model:** sonnet
+- **O'zgarishlar:** 2 fayl — videoExtractor/index.ts, UniversalPlayer.tsx
+- **Xulosa:** Backend returns type='embed'+videoId when ytdl-core fails instead of IP-locked URL. Mobile switches to YouTube IFrame on proxy failure.
+
+---
+
+### F-003 | T-S074 + T-S075 + T-S076 | YouTube stream proxy via yt-dlp + iOS client + cookie expiry
+
+- **Beruvchi:** Saidazim
+- **Bajaruvchi:** Saidazim (Claude sonnet)
+- **Yaratilgan:** 2026-05-02 11:35
+- **Bajarilgan:** 2026-05-02 12:00
+- **Model:** sonnet
+- **O'zgarishlar:** 4 fayl — ytdl.controller.ts, ytdlpStream.service.ts, ytDlpExtractor.ts, ytdl.service.ts
+- **Xulosa:** /youtube/stream now uses yt-dlp as fallback with server-side pipe (range support). yt-dlp uses ios player client. Cookie expiry warning added at service startup.
 
 ---
 

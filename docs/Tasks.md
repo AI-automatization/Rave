@@ -4,50 +4,8 @@
 
 ---
 
-### T-S074 | P0 | [BACKEND] | YouTube proxy — переключить /youtube/stream с ytdl-core на yt-dlp | pending[Saidazim]
 
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Saidazim
-- **Yaratilgan:** 2026-05-02 11:35
-- **Holat:** ❌ Boshlanmagan
-- **Tavsiya model:** sonnet
-- **Model sababi:** 2-3 fayl, endpoint refactor
-- **Sabab:** ytdl-core сломан (invalid onError method), yt-dlp работает. Proxy endpoint `/youtube/stream` должен использовать yt-dlp для извлечения URL и pipe стрима клиенту.
-- **Qilish kerak:**
-  - [ ] ytdl.controller.ts — заменить ytdlService.getCachedInfo() на yt-dlp извлечение
-  - [ ] Кэшировать yt-dlp результат (googlevideo URL валиден ~6h)
-  - [ ] Если yt-dlp тоже fails → embed fallback (videoId в ответе)
 
----
-
-### T-S075 | P0 | [BACKEND] | yt-dlp: передать IOS player client для обхода bot-detection | pending[Saidazim]
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Saidazim
-- **Yaratilgan:** 2026-05-02 11:35
-- **Holat:** ❌ Boshlanmagan
-- **Tavsiya model:** haiku
-- **Model sababi:** 1 fayl, 1 argument qo'shish
-- **Sabab:** yt-dlp поддерживает `--extractor-args youtube:player_client=ios` — iOS клиент не требует poToken и лучше обходит datacenter IP блокировку.
-- **Qilish kerak:**
-  - [ ] ytDlpExtractor.ts — добавить `--extractor-args youtube:player_client=ios,web` для YouTube URL
-
----
-
-### T-S076 | P1 | [BACKEND] | YouTube куки — Railway cron автообновление напоминание + скрипт | pending[Saidazim]
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Saidazim
-- **Yaratilgan:** 2026-05-02 11:35
-- **Holat:** ❌ Boshlanmagan
-- **Tavsiya model:** haiku
-- **Model sababi:** скрипт + документация
-- **Sabab:** YouTube session cookies протухают через ~1 год. Нет механизма напоминания или обновления.
-- **Qilish kerak:**
-  - [ ] Скрипт проверки срока куков: читает YOUTUBE_COOKIES_JSON → выводит expiration dates
-  - [ ] Если куки истекают < 30 дней → warning в логах при старте сервиса
-
----
 
 ### T-S067 | P0 | [ADMIN] | Admin UI — Production redesign: Sidebar + Layout + Header | pending[Saidazim]
 
