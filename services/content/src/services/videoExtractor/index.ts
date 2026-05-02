@@ -128,14 +128,24 @@ export async function extractVideo(
   // 5. Platform-specific extraction
   if (platform === 'youtube') {
     const videoId = extractYouTubeVideoId(rawUrl);
-    // Always use ytdl-core proxy — iframe embed is blocked for many videos
-    // Mobile builds: /youtube/stream?url=<encoded_yt_url>&token=<jwt>
+    const embedFallback: VideoExtractResult = {
+      title: '',
+      videoUrl: '',
+      videoId: videoId ?? undefined,
+      poster: videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : '',
+      platform: 'youtube',
+      type: 'embed',
+      sourceType: 'type2',
+      extractionMethod: 'yt-dlp',
+      cacheable: false,
+    };
     try {
       const info = await ytdlService.getStreamInfo(rawUrl);
       const type = info.mimeType.includes('m3u8') ? 'hls' : 'mp4';
       result = {
         title: info.title,
         videoUrl: rawUrl,
+        videoId: videoId ?? undefined,
         poster: videoId
           ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
           : info.thumbnail,
@@ -149,22 +159,17 @@ export async function extractVideo(
         cacheable: true,
       };
     } catch (ytdlErr) {
-      logger.warn('ytdl-core failed for YouTube, falling back to yt-dlp', { url: rawUrl, error: (ytdlErr as Error).message });
+      logger.warn('ytdl-core failed for YouTube, trying embed fallback', { url: rawUrl, error: (ytdlErr as Error).message });
+      // yt-dlp would return a googlevideo.com URL (IP-locked to server) — unusable on mobile.
+      // Try yt-dlp only to detect DRM; on success still prefer embed.
       try {
-        result = await ytDlpExtractor(rawUrl);
+        await ytDlpExtractor(rawUrl);
       } catch (dlpErr) {
         if (dlpErr instanceof YtDlpDrmError) throw new VideoExtractError('drm');
-        throw dlpErr;
+        // yt-dlp also failed — fall through to embed below
       }
-      if (result) {
-        result = {
-          ...result,
-          platform: 'youtube',
-          sourceType: 'type2',
-          extractionMethod: 'yt-dlp',
-          cacheable: false,
-        };
-      }
+      if (!videoId) throw new VideoExtractError('unsupported_site', 'YouTube extraction failed and no videoId available for embed fallback');
+      result = embedFallback;
     }
 
   } else if (platform === 'playerjs') {

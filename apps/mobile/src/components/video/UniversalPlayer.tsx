@@ -83,10 +83,12 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
     }
 
     const hasExtracted = !!extractedUrl;
-    // When we have a proxy/extracted URL, never fall back to YouTube iframe embed on error —
-    // the embed player breaks synchronization and many videos have embedding disabled.
-    // Instead show an error UI with retry.
+    // Prefer proxy for YouTube (better sync). Fall back to YouTube IFrame embed only if
+    // the extracted/proxy URL fails at playback time and we have a YouTube videoId available.
+    const youtubeId = platform === 'youtube' ? extractYouTubeVideoId(url) : null;
+    const proxyFailed = hasExtracted && videoError && platform === 'youtube' && !!youtubeId;
     const useWebview = mode === 'webview-session' ||
+      proxyFailed ||
       (!hasExtracted && videoError) ||
       (!hasExtracted && (platform === 'youtube' || platform === 'webview'));
     const directSource = hasExtracted ? extractedUrl : url;
@@ -138,7 +140,7 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
       );
     }
 
-    if (hasExtracted && videoError) {
+    if (hasExtracted && videoError && !proxyFailed) {
       return (
         <View style={styles.center}>
           <Ionicons name="warning-outline" size={48} color={colors.error} />
