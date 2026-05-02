@@ -28,23 +28,15 @@ const infoCache = new LRUCache<string, CachedInfo>({ max: 100, ttl: CACHE_TTL })
 // ── Cookie-based agent ─────────────────────────────────────────────────────────
 // YOUTUBE_COOKIES_JSON: JSON array exported from browser via "Cookie-Editor" extension
 // Format: [{"name":"...", "value":"...", "domain":".youtube.com", "path":"/", ...}]
-// This is the most reliable way to bypass bot-detection on Railway
+// Note: @distube/ytdl-core v4.x does NOT support poToken — cookies only.
+// YOUTUBE_PO_TOKEN / YOUTUBE_VISITOR_DATA env vars are intentionally unused here.
 const ytAgent: ytdl.Agent | undefined = (() => {
   const raw = process.env.YOUTUBE_COOKIES_JSON;
   if (!raw) return undefined;
   try {
     const cookies = JSON.parse(raw) as ytdl.Cookie[];
-    const poToken = process.env.YOUTUBE_PO_TOKEN;
-    const visitorData = process.env.YOUTUBE_VISITOR_DATA;
-    const agent = ytdl.createAgent(cookies, {
-      ...(poToken ? { poToken } : {}),
-      ...(visitorData ? { visitorData } : {}),
-    });
-    logger.info('ytdl-core: cookie agent created', {
-      cookieCount: cookies.length,
-      hasPoToken: !!poToken,
-      hasVisitorData: !!visitorData,
-    });
+    const agent = ytdl.createAgent(cookies);
+    logger.info('ytdl-core: cookie agent created', { cookieCount: cookies.length });
     return agent;
   } catch (e) {
     logger.warn('ytdl-core: YOUTUBE_COOKIES_JSON parse failed, running without agent', {
@@ -77,6 +69,8 @@ async function fetchYtInfoWithRetry(youtubeUrl: string): Promise<ytdl.videoInfo>
       const fetchPromise = ytdl.getInfo(youtubeUrl, {
         ...(ytAgent ? { agent: ytAgent } : {}),
         requestOptions: { headers: YT_HEADERS },
+        // IOS client doesn't require poToken — best option for server-side extraction
+        playerClients: ['IOS', 'WEB_EMBEDDED'],
       });
       const timeoutPromise = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('ytdl timeout')), FETCH_TIMEOUT_MS),
