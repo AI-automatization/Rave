@@ -122,7 +122,6 @@ async def fetch_history(days: int, important_only: bool = False):
         return
 
     group_id = cfg['TG_GROUP']
-    # Try to parse as int (numeric group ID)
     try:
         group_id = int(group_id)
     except ValueError:
@@ -132,7 +131,15 @@ async def fetch_history(days: int, important_only: bool = False):
     messages = []
 
     try:
-        entity = await client.get_entity(group_id)
+        # For private groups (no username) find entity via dialogs
+        entity = None
+        if isinstance(group_id, int):
+            async for dialog in client.iter_dialogs():
+                if dialog.entity.id == group_id:
+                    entity = dialog.entity
+                    break
+        if entity is None:
+            entity = await client.get_entity(group_id)
         async for msg in client.iter_messages(entity, offset_date=None, reverse=False):
             if msg.date < cutoff:
                 break
@@ -255,7 +262,14 @@ async def watch_mode():
         pass
 
     try:
-        entity = await client.get_entity(group_id)
+        entity = None
+        if isinstance(group_id, int):
+            async for dialog in client.iter_dialogs():
+                if dialog.entity.id == group_id:
+                    entity = dialog.entity
+                    break
+        if entity is None:
+            entity = await client.get_entity(group_id)
         group_peer_id = entity.id
     except Exception:
         await client.disconnect()
