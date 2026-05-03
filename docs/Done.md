@@ -4,6 +4,18 @@
 
 ---
 
+### F-001 | T-S067 | Admin UI — Production redesign: Sidebar + Layout + Header + Login
+
+- **Beruvchi:** Saidazim
+- **Bajaruvchi:** Saidazim (Claude sonnet)
+- **Yaratilgan:** 2026-04-24 23:08
+- **Bajarilgan:** 2026-05-02 09:26
+- **Model:** sonnet
+- **O'zgarishlar:** 3 fayl — Sidebar.tsx, Layout.tsx (+ GlobalSearch), LoginPage.tsx
+- **Xulosa:** lucide-react icons + NavGroups + error badge in Sidebar. Desktop header: breadcrumb, ⌘K search, notification bell, avatar. Login redesign: glow orbs, card, animations.
+
+---
+
 ### F-002 | T-S073 | YouTube embed fallback when proxy extraction fails
 
 - **Beruvchi:** Saidazim

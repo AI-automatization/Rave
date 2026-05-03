@@ -7,18 +7,6 @@
 
 
 
-### T-S067 | P0 | [ADMIN] | Admin UI — Production redesign: Sidebar + Layout + Header | pending[Saidazim]
-
-- **Mas'ul:** pending[Saidazim]
-- **Yaratilgan:** 2026-04-24 23:08
-- **Holat:** 🔄 Bajarilmoqda
-- **Sabab:** Sidebar'da ikonkalar yo'q, desktop header yo'q, UI "доска" ko'rinishida
-- **Qilish kerak:**
-  - [ ] lucide-react o'rnatish
-  - [ ] Sidebar: ikonkalar, badge (error count), guruhlar, active state
-  - [ ] Layout: desktop header (breadcrumb, search, notifications, avatar)
-  - [ ] Login page redesign
-
 ---
 
 ### T-S068 | P0 | [ADMIN] | Admin UI — User Detail page (/users/:id) + Contact user | pending[Saidazim]
