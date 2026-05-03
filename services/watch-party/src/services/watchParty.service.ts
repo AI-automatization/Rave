@@ -47,6 +47,11 @@ export class WatchPartyService {
       if (PRIVATE_URL.test(videoUrl)) {
         throw new BadRequestError('videoUrl points to a private or internal address');
       }
+      // Reject IP-locked CDN URLs — googlevideo.com URLs are tied to the extraction server
+      // and cannot be played on mobile clients. Store the original platform URL instead.
+      if (/googlevideo\.com/i.test(videoUrl)) {
+        throw new BadRequestError('IP-locked CDN URLs cannot be stored. Use the original video URL.');
+      }
     }
 
     const inviteCode = crypto.randomBytes(3).toString('hex').toUpperCase(); // 6 chars
@@ -311,6 +316,9 @@ export class WatchPartyService {
     if (!/^https?:\/\//i.test(media.videoUrl)) {
       throw new BadRequestError('videoUrl must start with http:// or https://');
     }
+    if (/googlevideo\.com/i.test(media.videoUrl)) {
+      throw new BadRequestError('IP-locked CDN URLs cannot be stored. Use the original video URL.');
+    }
 
     // Atomic ownership check + update: eliminates TOCTOU between findById and updateOne
     const updated = await WatchPartyRoom.findOneAndUpdate(
@@ -416,6 +424,9 @@ export class WatchPartyService {
     }
     if (this.PRIVATE_URL.test(item.videoUrl)) {
       throw new BadRequestError('videoUrl points to a private or internal address');
+    }
+    if (/googlevideo\.com/i.test(item.videoUrl)) {
+      throw new BadRequestError('IP-locked CDN URLs cannot be stored. Use the original video URL.');
     }
 
     const result = await WatchPartyRoom.findOneAndUpdate(
