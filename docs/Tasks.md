@@ -7,6 +7,21 @@
 
 
 
+### T-E116 | P1 | [MOBILE] | WatchParty — video_source_expired: улучшить UX для owner | pending[Emirhan]
+
+- **Mas'ul:** pending[Emirhan]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-05-03 00:00
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** haiku
+- **Model sababi:** 1-2 fayl, oddiy UI o'zgarish — haiku optimal
+- **Sabab:** Eski komnatada `room.videoUrl = googlevideo.com/...` bo'lganda foydalanuvchi "Видео источник устарел — обновите видео через «+»" ko'radi, lekin "+" tugmasi kam ko'rinadi
+- **Qilish kerak:**
+  - [ ] `WatchPartyScreen.tsx`: `video_source_expired` holatida owner uchun overlay ichiga to'g'ridan "Обновить источник" tugmasini qo'shish (SourcePicker ga yo'naltiradi)
+  - [ ] Non-owner uchun: "Видео хозяин обновит источник" matni ko'rsatish
+  - [ ] Backend endi `googlevideo.com` URLlarni rad etadi (T-S backend fix allaqachon tayyor)
+- **Bog'liq:** services/watch-party — `googlevideo.com` validation added in fix(watch-party)
+
 ---
 
 ### T-S068 | P0 | [ADMIN] | Admin UI — User Detail page (/users/:id) + Contact user | pending[Saidazim]
