@@ -124,43 +124,41 @@ if [[ -f "$HANDOFF" ]] && [[ $(wc -l < "$HANDOFF") -gt 8 ]]; then
   tail -n +5 "$HANDOFF"
 fi
 
-# ── TezCode Telegram ──────────────────────────────────────────────
+# ── TezCode Telegram — live history read ─────────────────────────
 echo ""
-echo "━━━ 💬 TEZCODE — TELEGRAM (последние 24ч) ━━━"
 
-TG_LOG="$HOME/tg_messages.log"
-TODAY=$(date '+%Y-%m-%d')
-YESTERDAY=$(date -v-1d '+%Y-%m-%d' 2>/dev/null || date -d 'yesterday' '+%Y-%m-%d' 2>/dev/null || echo "")
+VENV="$HOME/.tg_autobot_venv"
+AUTOBOT="$(dirname "${BASH_SOURCE[0]}")/tg_autobot.py"
+CONFIG_FILE="$HOME/.config/tg_autobot/config.env"
 
-if [[ -f "$TG_LOG" ]]; then
-  GROUP=$(grep -E "^\[($TODAY|$YESTERDAY)" "$TG_LOG" 2>/dev/null | grep "TEZCODE" || true)
-  MEMBERS="Бекзод|Abubakir|Diyor|Sardor|Сардор|Akmal|Акмал"
-  PRIVATE=$(grep -E "^\[($TODAY|$YESTERDAY)" "$TG_LOG" 2>/dev/null | grep "\[private\]" | grep -E "$MEMBERS" || true)
+if [[ -f "$VENV/bin/python" ]] && [[ -f "$CONFIG_FILE" ]] && ! grep -q "YOUR_API_ID" "$CONFIG_FILE" 2>/dev/null; then
+  # Запускаем фоновый мониторинг (если не запущен)
+  bash "$(dirname "${BASH_SOURCE[0]}")/tg-watch.sh" start 2>/dev/null || true
 
-  if [[ -n "$GROUP" ]]; then
-    echo "📢 Группа tezCode:"
-    echo "$GROUP" | tail -20
+  # Читаем историю за 3 дня (timeout 20s — не блокируем сессию)
+  TG_OUT=$(timeout 20 "$VENV/bin/python" "$AUTOBOT" --history 3 2>/dev/null || echo "")
+  if [[ -n "$TG_OUT" ]]; then
+    echo "$TG_OUT"
   else
-    echo "📢 Группа: нет сообщений за 24ч"
-  fi
-
-  if [[ -n "$PRIVATE" ]]; then
-    echo ""
-    echo "📩 Личные от участников:"
-    echo "$PRIVATE" | tail -10
-    TGFILE="$VAULT/PROJECTS/tezCode/_telegram.md"
-    echo -e "\n### 📩 $NOW — Личные сообщения\n\`\`\`\n$PRIVATE\n\`\`\`" >> "$TGFILE" 2>/dev/null || true
-  fi
-
-  # Упоминания текущего разработчика
-  MENTIONED=$(grep -E "^\[($TODAY|$YESTERDAY)" "$TG_LOG" 2>/dev/null | grep -iE "${DEV_LOWER}|backend|mobile|серверная|мобил" || true)
-  if [[ -n "$MENTIONED" ]]; then
-    echo ""
-    echo "⚠️  УПОМИНАНИЯ (требуют внимания):"
-    echo "$MENTIONED"
+    echo "━━━ 💬 TEZCODE — (нет ответа за 20с, мониторинг запущен) ━━━"
   fi
 else
-  echo "⚠️  tg_messages.log не найден — запусти tg_autobot.py на сервере"
+  # Fallback: читаем tg_messages.log если есть
+  TG_LOG="$HOME/tg_messages.log"
+  TODAY=$(date '+%Y-%m-%d')
+  YESTERDAY=$(date -v-1d '+%Y-%m-%d' 2>/dev/null || date -d 'yesterday' '+%Y-%m-%d' 2>/dev/null || echo "")
+
+  echo "━━━ 💬 TEZCODE — TELEGRAM (кэш) ━━━"
+  if [[ -f "$TG_LOG" ]]; then
+    GROUP=$(grep -E "^\[($TODAY|$YESTERDAY)" "$TG_LOG" 2>/dev/null | grep "TEZCODE" || true)
+    if [[ -n "$GROUP" ]]; then
+      echo "$GROUP" | tail -15
+    else
+      echo "⚠️  tg_messages.log есть, но нет сообщений за 24ч"
+    fi
+  else
+    echo "⚠️  tg_autobot не настроен → запусти: bash .claude/scripts/tg-setup.sh"
+  fi
 fi
 
 echo ""

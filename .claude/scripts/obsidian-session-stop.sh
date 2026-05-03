@@ -68,6 +68,22 @@ ${PENDING_S:-  нет}
 ${PENDING_E:-  нет}
 HEREDOC
 
+# ── TezCode Telegram — session report ────────────────────────────
+VENV="$HOME/.tg_autobot_venv"
+AUTOBOT="$(dirname "${BASH_SOURCE[0]}")/tg_autobot.py"
+CONFIG_FILE="$HOME/.config/tg_autobot/config.env"
+
+if [[ -f "$VENV/bin/python" ]] && [[ -f "$CONFIG_FILE" ]] && ! grep -q "YOUR_API_ID" "$CONFIG_FILE" 2>/dev/null; then
+  # Отчёт за сессию
+  TG_REPORT=$(timeout 5 "$VENV/bin/python" "$AUTOBOT" --session-report 2>/dev/null || echo "")
+  if [[ -n "$TG_REPORT" ]]; then
+    # Добавить в daily note
+    echo -e "\n$TG_REPORT" >> "$DAILY" 2>/dev/null || true
+  fi
+  # Остановить фоновый мониторинг
+  bash "$(dirname "${BASH_SOURCE[0]}")/tg-watch.sh" stop 2>/dev/null || true
+fi
+
 # ── Flush терминального буфера ────────────────────────────────────
 BUFFER="$HOME/.terminal_context_buffer"
 if [[ -f "$BUFFER" && -s "$BUFFER" ]]; then

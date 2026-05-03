@@ -53,32 +53,52 @@ Javob kelgach:
 
 > **Har yangi sessiyada Claude TEZCODE xabarlarini o'qishi SHART.**
 
-**tg_autobot.py** barcha xabarlarni `/home/saidazim/tg_messages.log` ga yozadi.
+**Система:** `tg_autobot.py` (Telethon) + `tg-watch.sh` (daemon)
 
-SessionStart hook avtomatik o'qiydi — lekin Claude ham kontekstni TUSHUNISHI kerak:
-
-### Nima tekshiriladi
-
-1. **TEZCODE guruh** — so'nggi 24 soat xabarlari
-2. **TEZCODE a'zolaridan shaxsiy xabarlar** — Бекзод ака, Abubakir, Diyor aka, Сардор, Akmal
-
-### Nima ahamiyatli
+### Архитектура
 
 ```
-⚠️  Senga tafsiya qilingan task  → docs/Tasks.md ga qo'sh
-⚠️  Muhim qaror / o'zgarish      → kontekstga ol
-⚠️  Bug yoki muammo              → texnik bo'lsa — tekshir
-⚠️  Uchrashuvga taklif           → Saidazimga eslatma ber
+SessionStart hook
+  └─ obsidian-session-start.sh
+       ├─ tg-watch.sh start          ← запуск фонового монитора
+       └─ tg_autobot.py --history 3  ← история 3 дня → Claude видит
+
+Во время сессии (фон):
+  tg_autobot.py --watch
+       ├─ ~/tg_messages.log   ← все сообщения накапливаются
+       └─ ~/tg_session.log    ← только сообщения этой сессии
+
+Stop hook
+  └─ obsidian-session-stop.sh
+       ├─ tg_autobot.py --session-report  ← Claude видит итог
+       └─ tg-watch.sh stop               ← остановить монитор
 ```
 
-### Qo'lda tekshirish (agar kerak bo'lsa)
+### Первоначальная настройка (один раз)
 
 ```bash
-# So'nggi 24 soat — TEZCODE guruh
-grep "$(date '+%Y-%m-%d')" ~/tg_messages.log | grep "TEZCODE"
+bash .claude/scripts/tg-setup.sh
+```
 
-# Barcha shaxsiy xabarlar
-grep "\[private\]" ~/tg_messages.log | tail -20
+Нужны: **API_ID** и **API_HASH** с https://my.telegram.org → App configuration.
+Конфиг сохраняется в `~/.config/tg_autobot/config.env` (не в git).
+
+### Что Claude делает с данными
+
+```
+⚠️ URGENT (score ≥ 7)     → сразу в Obsidian + показать пользователю
+📋 TASK (score ≥ 4)        → спросить: добавить в docs/Tasks.md?
+🐛 BUG                     → спросить: создать T-S/E task?
+🚀 DEPLOY/RELEASE          → напомнить про merge freeze
+👤 MENTION (saidazim/api)  → обязательно показать
+```
+
+### Ручная проверка
+
+```bash
+bash .claude/scripts/tg-watch.sh history 3   # история 3 дня
+bash .claude/scripts/tg-watch.sh status      # статус демона
+bash .claude/scripts/tg-watch.sh report      # сессионный отчёт
 ```
 
 > **Nima uchun?** 2 ta dasturchi 2 xil platforma. Noto'g'ri zona fayliga teginish = merge conflict + production crash.
