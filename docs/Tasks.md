@@ -112,6 +112,65 @@
 
 ---
 
+### T-E111 | P1 | [MOBILE] | Content Filter — Static adult domain blacklist in MediaWebViewScreen
+
+- **Mas'ul:** pending[Emirhan]
+- **Beruvchi:** Emirhan
+- **Yaratilgan:** 2026-05-07 00:00
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** 2-3 fayl, xavfsiz qo'shish (context buzilmasin)
+- **Sabab:** Play Store adult kontentga ruxsat beruvchi WebView ilovalarni bloklaydi. MediaWebViewScreen da hech qanday URL filtri yo'q.
+- **Qilish kerak:**
+  - [ ] `apps/mobile/src/constants/blockedDomains.ts` — Set<string> ro'yxat + `isDomainBlocked(url)` utility
+  - [ ] `MediaWebViewScreen.tsx` — `onShouldStartLoadWithRequest` callback qo'shish (MEDIA_DETECTION_JS, socket events TEGMA)
+  - [ ] Bloklanganda Toast/Alert: "Bu sayt bloklangan" + orqaga qaytish tugmasi
+  - [ ] Top 200+ adult domen ro'yxati (pornhub, xvideos, xnxx, ...)
+- **Kontekst himoyasi:**
+  - `MEDIA_DETECTION_JS` — O'ZGARTIRMA
+  - `useWatchParty.ts` / socket events — O'ZGARTIRMA
+  - `useVideoExtraction.ts` — O'ZGARTIRMA
+  - Faqat `onShouldStartLoadWithRequest` prop qo'shiladi (page load dan OLDIN ishlaydi)
+
+---
+
+### T-S072 | P2 | [BACKEND] | URL Telemetry — Anonymous domain analytics endpoint
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Emirhan
+- **Yaratilgan:** 2026-05-07 00:00
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** Yangi endpoint + MongoDB schema, 3-4 fayl
+- **Sabab:** Foydalanuvchilar qaysi saytlarga kirayotganini bilmasdan blacklist yangilab bo'lmaydi. Dinamik auto-detection uchun data kerak.
+- **Qilish kerak:**
+  - [ ] `POST /api/v1/content/url-visit` endpoint — domain + country (IP dan) + timestamp saqlash
+  - [ ] MongoDB `url_visits` collection: `{ domain, country, count, lastSeen, flagged }`
+  - [ ] Anonim: userId SAQLANMAYDI, faqat domain + country + timestamp
+  - [ ] Rate limit: 10 req/min per IP
+  - [ ] Cron: har kun top visited domains → `flagged: true` (adult keywords pattern bilan)
+- **Privacy:** Privacy Policy da yozilishi kerak
+
+---
+
+### T-S073 | P3 | [ADMIN] | Admin UI — Domain Block Management (Pending Review page)
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Emirhan
+- **Yaratilgan:** 2026-05-07 00:00
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** Admin UI yangi sahifa, T-S072 dan keyin
+- **Sabab:** Avtomatik flaglangan domenlarni Saidazim ko'rib chiqishi va tasdiqlashi kerak
+- **Bog'liq:** T-S072 tugagandan keyin
+- **Qilish kerak:**
+  - [ ] `/content/domains` Admin sahifasi — flagged domenlar ro'yxati
+  - [ ] "Block" / "Allow" tugmalari — Saidazim tasdiqlaydi
+  - [ ] Tasdiqlangan → `blocked_domains` collection ga qo'shiladi
+  - [ ] Mobile app remote config dan yangilangan ro'yxatni oladi (T-E111 Phase 2)
+
+---
+
 
 
 
