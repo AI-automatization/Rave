@@ -114,7 +114,7 @@
 
 ### T-E111 | P1 | [MOBILE] | Content Filter — Static adult domain blacklist in MediaWebViewScreen
 
-- **Mas'ul:** pending[Emirhan]
+- **Mas'ul:** pending[Emirhan] ✅ claimed
 - **Beruvchi:** Emirhan
 - **Yaratilgan:** 2026-05-07 00:00
 - **Holat:** ❌ Boshlanmagan
