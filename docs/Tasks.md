@@ -6,7 +6,7 @@
 
 ### T-E118 | P1 | [MOBILE] | In-app Support Chat — user can contact support + see replies | pending[Emirhan]
 
-- **Mas'ul:** pending[Emirhan]
+- **Mas'ul:** pending[Emirhan] ✅ claimed
 - **Beruvchi:** Saidazim
 - **Yaratilgan:** 2026-05-09 14:06
 - **Holat:** ❌ Boshlanmagan
