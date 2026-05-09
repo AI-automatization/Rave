@@ -24,15 +24,21 @@
 - **Mas'ul:** pending[Emirhan]
 - **Beruvchi:** Saidazim
 - **Yaratilgan:** 2026-05-09 14:56
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 Qisman — `content.api.ts` ✅ push qilindi, `MediaWebViewScreen.tsx` qoldi
 - **Tavsiya model:** haiku
-- **Model sababi:** 2 fayl, oddiy API call — fire-and-forget
+- **Model sababi:** 1 fayl qoldi, oddiy — fire-and-forget call qo'shish
 - **Sabab:** Backend T-S085 tayyor — endi mobile domenni yuborishi kerak, aks holda UrlVisit kolleksiyasi bo'm-bo'sh qoladi
 - **Qilish kerak:**
-  - [ ] `apps/mobile/src/api/content.api.ts` — `trackDomainVisit(domain: string): Promise<void>` funksiyasi qo'shish (`contentClient.post('/domains/visit', { domain })`)
-  - [ ] `apps/mobile/src/screens/modal/MediaWebViewScreen.tsx` — `onShouldStartLoadWithRequest` da domen blocked emas bo'lsa hostname ajratib fire-and-forget yuborish
-  - Import: `import { contentApi } from '@api/content.api'`
-  - Tracking faqat bloklenmagan domenlar uchun, xato bo'lsa `.catch(() => {})` bilan yutib yuborish
+  - [x] `apps/mobile/src/api/content.api.ts` — `trackDomainVisit(domain: string): Promise<void>` DONE (commit 45eede8)
+  - [ ] `apps/mobile/src/screens/modal/MediaWebViewScreen.tsx` — `onShouldStartLoadWithRequest` ichiga qo'shish:
+    ```
+    import { contentApi } from '@api/content.api';
+    // setBlockedDomain(null) dan keyin:
+    try {
+      const hostname = new URL(req.url).hostname.replace(/^www\./, '');
+      contentApi.trackDomainVisit(hostname).catch(() => {});
+    } catch { /* skip */ }
+    ```
 - **Bog'liq:** T-S085 (backend tayyor)
 
 ---
