@@ -236,7 +236,7 @@
 - **Mas'ul:** pending[Saidazim]
 - **Beruvchi:** Saidazim
 - **Yaratilgan:** 2026-05-08 22:30
-- **Holat:** ⏸️ Paused — admin UI blokidan keyin boshlanadi
+- **Holat:** 🔄 Bajarilmoqda
 - **Tavsiya model:** sonnet
 - **Model sababi:** Admin UI yangi sahifa, jadval + filter + action tugmalar — sonnet optimal
 - **Sabab:** Admin barcha tashrif buyurilgan domenlarni ko'rishi va xavflilarni bloklashi kerak
