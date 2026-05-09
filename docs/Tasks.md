@@ -37,39 +37,19 @@
 
 ---
 
-### T-E118 | P1 | [MOBILE] | In-app Support Chat — user can contact support + see replies | pending[Emirhan]
+### T-S087 | P1 | [BACKEND] | Support chat internal routes — JWT auth instead of internal secret | pending[Saidazim]
 
-- **Mas'ul:** pending[Emirhan] ✅ claimed
-- **Beruvchi:** Saidazim
-- **Yaratilgan:** 2026-05-09 14:06
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Emirhan (mobile implementatsiyasi chog'ida topildi)
+- **Yaratilgan:** 2026-05-09 16:00
 - **Holat:** ❌ Boshlanmagan
-- **Tavsiya model:** sonnet
-- **Model sababi:** Yangi screen + API integration + navigation, 3-5 fayl
-- **Sabab:** Foydalanuvchi muammosi bo'lganda ilovadan chiqmasdan support bilan bog'lanolsin
-- **Qilish kerak:**
-  - [ ] `SupportChatScreen.tsx` — message history + input
-  - [ ] API: GET /internal/support/user/:userId/conversations, POST messages
-  - [ ] Profile/Settings sahifasida "Support" tugmasi
-  - [ ] Conversation yo'q bo'lsa — avtomatik yaratish
-  - [ ] Push notification handler — support reply kelganda chatga o'tish
-- **Bog'liq:** T-S084 (backend), T-E119 (push)
-
----
-
-### T-E119 | P2 | [MOBILE] | Push notification — support reply received | pending[Emirhan]
-
-- **Mas'ul:** pending[Emirhan]
-- **Beruvchi:** Saidazim
-- **Yaratilgan:** 2026-05-09 14:06
-- **Holat:** ❌ Boshlanmagan
-- **Holat:** ❌ Boshlanmagan — T-E118 tugagandan keyin
 - **Tavsiya model:** haiku
-- **Model sababi:** Notification handler + deep link — 1-2 fayl, oddiy
-- **Sabab:** Admin javob berganda foydalanuvchi bilmaydi — push notification kerak
+- **Model sababi:** 1 fayl, route middleware o'zgartirish — support.routes.ts
+- **Sabab:** `/internal/support/user/:userId` va `/internal/support/user/:userId/message` routelari `requireInternalSecret` ishlatadi. Mobile `adminClient` JWT token yuboradi — 401 keladi. `verifyToken` ga o'tkazish va `req.user.id === req.params.userId` tekshirish kerak.
 - **Qilish kerak:**
-  - [ ] Backend (T-S084 ichida): admin message post → FCM push to userId
-  - [ ] Mobile: notification type `support_reply` → navigate to SupportChatScreen
-- **Bog'liq:** T-E118
+  - [ ] `services/admin/src/routes/support.routes.ts` — internal routes: `requireInternalSecret` → `verifyToken` + userId ownership check
+  - [ ] Controller: `userSendMessage` — `req.user.id` dan userId olish (security: URL param emas)
+- **Bog'liq:** T-E118 (mobile tayyor, backend fix kutmoqda)
 
 ---
 

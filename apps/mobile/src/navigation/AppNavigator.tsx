@@ -58,6 +58,8 @@ export function AppNavigator() {
       navigationRef.navigate('Modal', { screen: 'WatchParty', params: { roomId: data.roomId } });
     } else if (data.battleId) {
       navigationRef.navigate('Modal', { screen: 'Battle', params: { battleId: data.battleId } });
+    } else if (data.type === 'support_reply' || screen === 'SupportChat') {
+      navigationRef.navigate('Modal', { screen: 'SupportChat' });
     } else if (screen === 'Friends') {
       navigationRef.navigate('Main');
     } else if (screen === 'Notifications') {

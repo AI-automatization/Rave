@@ -4,6 +4,24 @@
 
 ---
 
+### F-217 | T-E118 + T-E119 | In-app Support Chat + push notification handler
+
+- **Beruvchi:** Saidazim
+- **Bajaruvchi:** Emirhan (Claude sonnet yordamida)
+- **Yaratilgan:** 2026-05-09 14:06
+- **Bajarilgan:** 2026-05-09 16:00
+- **Model:** sonnet
+- **O'zgarishlar:** 6 fayl — support.api.ts (yangi), SupportChatScreen.tsx (yangi), ModalNavigator.tsx, types/index.ts, SettingsScreen.tsx, AppNavigator.tsx
+- **Xulosa:**
+  - `support.api.ts`: `getConversations(userId)` + `sendMessage(userId, text, conversationId?)` — adminClient JWT orqali
+  - `SupportChatScreen.tsx`: TanStack Query + message list + multiline input + KeyboardAvoidingView
+  - Settings → "Написать в поддержку" tugmasi → SupportChat modal
+  - AppNavigator: `data.type === 'support_reply'` → SupportChatScreen navigate (cold-start safe)
+  - `SupportChat` ModalStackParamList ga qo'shildi
+  - ⚠️ Blocker: T-S087 (Saidazim) — internal routes JWT auth ga o'tkazilgunga qadar API 401 qaytaradi
+
+---
+
 ### F-212 | T-E115 | Bug: push notification cold-start → WatchParty navigate fix
 
 - **Beruvchi:** Saidazim

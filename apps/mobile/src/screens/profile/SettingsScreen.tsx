@@ -1,7 +1,8 @@
 // CineSync Mobile — SettingsScreen (composed)
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
+import { RootStackParamList } from '@app-types/index';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
@@ -35,7 +36,7 @@ type ActiveModal = 'editProfile' | 'changePassword' | null;
 const TAB_BAR_HEIGHT = 60;
 
 export function SettingsScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const insets = useSafeAreaInsets();
   const { user, logout } = useAuthStore();
   const { updateProfileMutation } = useMyProfile();
@@ -182,6 +183,20 @@ export function SettingsScreen() {
                 />
               </View>
             ))}
+          </View>
+
+          {/* Support */}
+          <SectionHeader title="Помощь" />
+          <View style={styles.card}>
+            <TouchableOpacity
+              style={styles.navRow}
+              onPress={() => navigation.navigate('Modal', { screen: 'SupportChat' })}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="headset-outline" size={18} color={colors.textSecondary} />
+              <Text style={styles.navLabel}>Написать в поддержку</Text>
+              <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+            </TouchableOpacity>
           </View>
 
           {/* App info */}

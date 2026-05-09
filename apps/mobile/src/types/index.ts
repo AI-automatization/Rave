@@ -152,6 +152,7 @@ export type ModalStackParamList = {
     mode: 'create' | 'change' | 'queue';
     roomId?: string;
   };
+  SupportChat: undefined;
 };
 
 export type RoomsStackParamList = {

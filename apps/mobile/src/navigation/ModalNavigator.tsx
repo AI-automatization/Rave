@@ -10,6 +10,7 @@ import { BattleScreen } from '@screens/modal/BattleScreen';
 import { NotificationsScreen } from '@screens/modal/NotificationsScreen';
 import { SourcePickerScreen } from '@screens/modal/SourcePickerScreen';
 import { MediaWebViewScreen } from '@screens/modal/MediaWebViewScreen';
+import { SupportChatScreen } from '@screens/modal/SupportChatScreen';
 import { PlaceholderScreen } from './PlaceholderScreen';
 
 const Modal = createNativeStackNavigator<ModalStackParamList>();
@@ -27,6 +28,7 @@ export function ModalNavigator() {
       <Modal.Screen name="BattleCreate" component={BattleCreateScreen} />
       <Modal.Screen name="Battle" component={BattleScreen} />
       <Modal.Screen name="Notifications" component={NotificationsScreen} />
+      <Modal.Screen name="SupportChat" component={SupportChatScreen} options={{ animation: 'slide_from_right' }} />
     </Modal.Navigator>
   );
 }
