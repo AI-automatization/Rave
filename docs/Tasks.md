@@ -290,7 +290,7 @@
 
 ### T-E115 | P0 | [MOBILE] | Bug: push notification invite tap does not navigate to WatchParty room
 
-- **Mas'ul:** pending[Emirhan]
+- **Mas'ul:** pending[Emirhan] ✅ claimed
 - **Beruvchi:** Saidazim
 - **Yaratilgan:** 2026-05-01 03:10
 - **Holat:** ❌ Boshlanmagan
