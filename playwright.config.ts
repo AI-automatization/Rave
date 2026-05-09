@@ -58,6 +58,21 @@ export default defineConfig({
 
   projects: [
 
+    // ═══ ADMIN UI E2E TESTS ═══════════════════════════════════════════════
+
+    {
+      name: 'admin-ui',
+      testDir: './tests/admin-ui',
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: process.env.TEST_ADMIN_UI_URL ?? 'https://admin-ui-production-702c.up.railway.app',
+        viewport: { width: 1440, height: 900 },
+        screenshot: 'on',
+        video: 'retain-on-failure',
+        trace: 'retain-on-failure',
+      },
+    },
+
     // ═══ WEB UI TESTS (Next.js :3000) ═══════════════════════════════════
 
     {
