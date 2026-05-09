@@ -6,33 +6,30 @@ on:
 
 jobs:
   deploy-staging:
-    name: Deploy to Staging
+    name: Deploy to Railway (Staging)
     runs-on: ubuntu-latest
     environment: staging
+
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        service:
+          - auth
+          - user
+          - content
+          - watch-party
+          - battle
+          - notification
+          - admin
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Wait for Docker Build
-        uses: lewagon/wait-on-check-action@v1.3.4
-        with:
-          ref: ${{ github.sha }}
-          check-name: 'Build — auth'
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          wait-interval: 30
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
 
-      - name: Deploy to staging server
-        run: |
-          echo "🚀 Deploying to staging server..."
-          echo "Branch: ${{ github.ref_name }}"
-          echo "Commit: ${{ github.sha }}"
-          # TODO: Add actual deployment commands
-          # Example: ssh deploy@staging.cinesync.app 'cd /app && docker-compose pull && docker-compose up -d'
+      - name: Deploy ${{ matrix.service }} to Railway (staging)
+        run: railway up --service ${{ matrix.service }}-staging --detach
         env:
-          STAGING_HOST: ${{ secrets.STAGING_HOST }}
-          STAGING_KEY: ${{ secrets.STAGING_SSH_KEY }}
-
-      - name: Notify deployment
-        if: always()
-        run: |
-          echo "Deployment status: ${{ job.status }}"
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_STAGING }}

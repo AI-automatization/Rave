@@ -1,49 +1,61 @@
 name: Deploy — Production
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       confirm:
         description: "Production ga deploy qilmoqchimisiz? (yes)"
         required: true
         default: 'no'
-  push:
-    branches: [main]
 
 jobs:
   deploy-prod:
-    name: Deploy to Production
+    name: Deploy to Railway (Production)
     runs-on: ubuntu-latest
     environment: production
     if: |
-      github.event_name == 'workflow_dispatch' && github.event.inputs.confirm == 'yes' ||
-      github.event_name == 'push' && github.ref == 'refs/heads/main'
+      github.event_name == 'push' ||
+      github.event_name == 'workflow_dispatch' && github.event.inputs.confirm == 'yes'
+
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        service:
+          - auth
+          - user
+          - content
+          - watch-party
+          - battle
+          - notification
+          - admin
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Confirm production deployment
-        run: |
-          echo "⚠️  PRODUCTION DEPLOYMENT"
-          echo "Branch: ${{ github.ref_name }}"
-          echo "Commit: ${{ github.sha }}"
-          echo "Triggered by: ${{ github.actor }}"
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
 
-      - name: Deploy to production
-        run: |
-          echo "🚀 Deploying to production..."
-          # TODO: Add actual deployment commands
-          # Example: ssh deploy@prod.cinesync.app 'cd /app && docker-compose pull && docker-compose up -d'
+      - name: Deploy ${{ matrix.service }} to Railway
+        run: railway up --service ${{ matrix.service }} --detach
         env:
-          PROD_HOST: ${{ secrets.PROD_HOST }}
-          PROD_KEY: ${{ secrets.PROD_SSH_KEY }}
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
-      - name: Health check
+      - name: Health check — ${{ matrix.service }}
         run: |
-          echo "Checking production health..."
-          # TODO: curl https://api.cinesync.app/health
-
-      - name: Notify team
-        if: always()
-        run: |
-          echo "Production deployment: ${{ job.status }}"
+          sleep 15
+          SERVICE_URL=""
+          case "${{ matrix.service }}" in
+            auth)         SERVICE_URL="${{ secrets.PROD_AUTH_URL }}" ;;
+            user)         SERVICE_URL="${{ secrets.PROD_USER_URL }}" ;;
+            content)      SERVICE_URL="${{ secrets.PROD_CONTENT_URL }}" ;;
+            watch-party)  SERVICE_URL="${{ secrets.PROD_WATCH_PARTY_URL }}" ;;
+            battle)       SERVICE_URL="${{ secrets.PROD_BATTLE_URL }}" ;;
+            notification) SERVICE_URL="${{ secrets.PROD_NOTIFICATION_URL }}" ;;
+            admin)        SERVICE_URL="${{ secrets.PROD_ADMIN_URL }}" ;;
+          esac
+          if [ -n "$SERVICE_URL" ]; then
+            curl --fail --retry 3 --retry-delay 5 "$SERVICE_URL/health" || exit 1
+          fi
