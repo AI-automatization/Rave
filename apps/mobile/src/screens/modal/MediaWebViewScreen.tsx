@@ -1,6 +1,6 @@
 // CineSync Mobile — MediaWebViewScreen
 // In-app browser: video topilganda pastda "Watch Party" bar chiqadi — popup yo'q
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View, Text, TouchableOpacity, ActivityIndicator, StyleSheet,
 } from 'react-native';
@@ -11,9 +11,11 @@ import { colors, spacing, borderRadius, typography } from '@theme/index';
 import { useMediaDetection, WEBVIEW_INJECT_JS } from '@hooks/useMediaDetection';
 import { MediaBottomBar } from '@components/watchParty/MediaBottomBar';
 import { MOBILE_UA } from '@utils/webViewScripts';
+import { isDomainBlocked } from '@constants/blockedDomains';
 
 export function MediaWebViewScreen() {
   const insets = useSafeAreaInsets();
+  const [blockedDomain, setBlockedDomain] = useState<string | null>(null);
   const {
     webViewRef, params,
     canGoBack, canGoForward, isLoading, pageTitle, isImporting,
@@ -67,7 +69,19 @@ export function MediaWebViewScreen() {
         source={{ uri: params.defaultUrl }}
         userAgent={MOBILE_UA}
         injectedJavaScript={WEBVIEW_INJECT_JS}
-        onShouldStartLoadWithRequest={(req) => req.url.startsWith('http')}
+        onShouldStartLoadWithRequest={(req) => {
+          if (!req.url.startsWith('http')) return false;
+          if (isDomainBlocked(req.url)) {
+            try {
+              setBlockedDomain(new URL(req.url).hostname.replace(/^www\./, ''));
+            } catch {
+              setBlockedDomain(req.url);
+            }
+            return false;
+          }
+          setBlockedDomain(null);
+          return true;
+        }}
         onNavigationStateChange={onNavigationStateChange}
         onLoadStart={() => setIsLoading(true)}
         onLoadEnd={() => setIsLoading(false)}
@@ -85,6 +99,26 @@ export function MediaWebViewScreen() {
           </View>
         )}
       />
+
+      {blockedDomain && (
+        <View style={s.blockedOverlay}>
+          <Ionicons name="shield-checkmark" size={52} color={colors.primary} />
+          <Text style={s.blockedTitle}>Сайт заблокирован</Text>
+          <Text style={s.blockedDomain}>{blockedDomain}</Text>
+          <Text style={s.blockedSub}>
+            Этот сайт недоступен в Rave. Выберите другой источник.
+          </Text>
+          <TouchableOpacity
+            style={s.blockedBtn}
+            onPress={() => {
+              setBlockedDomain(null);
+              webViewRef.current?.goBack();
+            }}
+          >
+            <Text style={s.blockedBtnText}>← Назад</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       <MediaBottomBar
         detectedMedia={detectedMedia}
@@ -132,4 +166,25 @@ const s = StyleSheet.create({
     paddingHorizontal: spacing.xxl, paddingVertical: spacing.md, borderRadius: borderRadius.lg,
   },
   reloadText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  blockedOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#0A0A0F',
+    alignItems: 'center', justifyContent: 'center',
+    padding: spacing.xl, gap: spacing.md, zIndex: 10,
+  },
+  blockedTitle: { fontSize: 20, fontWeight: '700', color: '#fff' },
+  blockedDomain: {
+    fontSize: 13, color: colors.primary, fontWeight: '600',
+    backgroundColor: 'rgba(229,9,20,0.1)', paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs, borderRadius: borderRadius.lg,
+  },
+  blockedSub: {
+    fontSize: 14, color: '#6B7280', textAlign: 'center', lineHeight: 20,
+  },
+  blockedBtn: {
+    marginTop: spacing.sm, backgroundColor: 'rgba(255,255,255,0.08)',
+    paddingHorizontal: spacing.xxl, paddingVertical: spacing.md,
+    borderRadius: borderRadius.lg,
+  },
+  blockedBtnText: { color: '#fff', fontWeight: '600', fontSize: 15 },
 });
