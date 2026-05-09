@@ -60,6 +60,20 @@ export const authRateLimiter = rateLimit({
   }),
 });
 
+// Init-admin rate limiter — 5 req/15min per IP (strict — protects against brute force)
+export const initAdminRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  passOnStoreError: false,
+  handler: tooManyRequestsHandler,
+  store: new RedisStore({
+    sendCommand: sendRedisCommand,
+    prefix: 'rl:init-admin:',
+  }),
+});
+
 // Per-user rate limiter — 200 requests per 15 minutes per authenticated user
 export const userRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,

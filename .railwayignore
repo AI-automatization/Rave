@@ -1,0 +1,11 @@
+**/node_modules
+**/dist
+**/.next
+**/.turbo
+**/build
+**/*.dmg
+**/*.png
+**/.git
+**/coverage
+**/test-results
+**/screenshots

@@ -1,6 +1,78 @@
 # CineSync — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-05-02
+# Yangilangan: 2026-05-08
+
+---
+
+### F-077 | T-S076 | Security: /internal/user-watch-stats — requireInternalSecret
+
+- **Beruvchi:** Абдулазиз (audit 2026-05-08)
+- **Bajaruvchi:** Saidazim (Claude sonnet yordamida)
+- **Yaratilgan:** 2026-05-08 22:47
+- **Bajarilgan:** 2026-05-08 23:42
+- **Model:** haiku
+- **O'zgarishlar:** content.routes.ts (1 qator — requireInternalSecret allaqachon qo'yilgan edi)
+- **Xulosa:** CRITICAL issue — endpoint already had requireInternalSecret, no code change needed
+
+---
+
+### F-078 | T-S077 | Security: prod URLs playwright.config dan o'chirish
+
+- **Beruvchi:** Абдулазиз (audit 2026-05-08)
+- **Bajaruvchi:** Saidazim (Claude sonnet yordamida)
+- **Yaratilgan:** 2026-05-08 22:47
+- **Bajarilgan:** 2026-05-08 23:42
+- **Model:** haiku
+- **O'zgarishlar:** playwright.config.ts, .env.dev.example, .gitignore
+- **Xulosa:** 7 ta Railway prod URL → process.env.TEST_*_URL (localhost fallback), .env.test → .gitignore
+
+---
+
+### F-079 | T-S078 | Security: /init-admin rate limit + /clear-attempts auth
+
+- **Beruvchi:** Абдулазиз (audit 2026-05-08)
+- **Bajaruvchi:** Saidazim (Claude sonnet yordamida)
+- **Yaratilgan:** 2026-05-08 23:33
+- **Bajarilgan:** 2026-05-08 23:42
+- **Model:** haiku
+- **O'zgarishlar:** rateLimiter.middleware.ts (initAdminRateLimiter 5/15min), auth.routes.ts
+- **Xulosa:** POST+PUT /init-admin → initAdminRateLimiter (5/15min), DELETE /clear-attempts → requireInternalSecret
+
+---
+
+### F-080 | T-S079 | Security: JWT access token 6h → 15min
+
+- **Beruvchi:** Абдулазиз (audit 2026-05-08)
+- **Bajaruvchi:** Saidazim (Claude sonnet yordamida)
+- **Yaratilgan:** 2026-05-08 23:33
+- **Bajarilgan:** 2026-05-08 23:42
+- **Model:** haiku
+- **O'zgarishlar:** services/auth/src/config/index.ts, services/auth/.env.example
+- **Xulosa:** accessTokenExpiry: '6h' → process.env.JWT_EXPIRES_IN ?? '15m'
+
+---
+
+### F-081 | T-S080 | Security: requireNotBlocked fail-closed
+
+- **Beruvchi:** Абдулазиз (audit 2026-05-08)
+- **Bajaruvchi:** Saidazim (Claude sonnet yordamida)
+- **Yaratilgan:** 2026-05-08 23:33
+- **Bajarilgan:** 2026-05-08 23:42
+- **Model:** haiku
+- **O'zgarishlar:** shared/src/middleware/auth.middleware.ts
+- **Xulosa:** Redis xatosida next() o'rniga next(Error) — fail-closed, 503 qaytariladi
+
+---
+
+### F-082 | T-S081 | Security: NEXTAUTH_SECRET docker-compose dan o'chirish
+
+- **Beruvchi:** Абдулазиз (audit 2026-05-08)
+- **Bajaruvchi:** Saidazim (Claude sonnet yordamida)
+- **Yaratilgan:** 2026-05-08 23:33
+- **Bajarilgan:** 2026-05-08 23:42
+- **Model:** haiku
+- **O'zgarishlar:** docker-compose.dev.yml, .env.dev.example
+- **Xulosa:** hardcode "cinesync_dev_nextauth_secret_2026" → ${NEXTAUTH_SECRET} env reference
 
 ---
 

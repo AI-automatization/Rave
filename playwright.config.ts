@@ -100,37 +100,37 @@ export default defineConfig({
     {
       name: 'api-auth',
       testDir: './tests/api/auth',
-      use: { baseURL: 'https://auth-production-47a8.up.railway.app' },
+      use: { baseURL: process.env.TEST_AUTH_URL ?? 'http://localhost:3001' },
     },
     {
       name: 'api-user',
       testDir: './tests/api/user',
-      use: { baseURL: 'https://user-production-86ed.up.railway.app' },
+      use: { baseURL: process.env.TEST_USER_URL ?? 'http://localhost:3002' },
     },
     {
       name: 'api-content',
       testDir: './tests/api/content',
-      use: { baseURL: 'https://content-production-4e08.up.railway.app' },
+      use: { baseURL: process.env.TEST_CONTENT_URL ?? 'http://localhost:3003' },
     },
     {
       name: 'api-watch-party',
       testDir: './tests/api/watch-party',
-      use: { baseURL: 'https://watch-part-production.up.railway.app' },
+      use: { baseURL: process.env.TEST_WATCH_PARTY_URL ?? 'http://localhost:3004' },
     },
     {
       name: 'api-battle',
       testDir: './tests/api/battle',
-      use: { baseURL: 'https://battle-production-238a.up.railway.app' },
+      use: { baseURL: process.env.TEST_BATTLE_URL ?? 'http://localhost:3005' },
     },
     {
       name: 'api-notification',
       testDir: './tests/api/notification',
-      use: { baseURL: 'https://notification-production-9c30.up.railway.app' },
+      use: { baseURL: process.env.TEST_NOTIFICATION_URL ?? 'http://localhost:3007' },
     },
     {
       name: 'api-admin',
       testDir: './tests/api/admin',
-      use: { baseURL: 'https://admin-production-8d2a.up.railway.app' },
+      use: { baseURL: process.env.TEST_ADMIN_URL ?? 'http://localhost:3008' },
     },
   ],
 });

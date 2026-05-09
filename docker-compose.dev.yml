@@ -232,7 +232,7 @@ services:
       CONTENT_SERVICE_URL: "http://content:3003/api/v1"
       WATCH_PARTY_SERVICE_URL: "http://watch-party:3004/api/v1"
       NEXTAUTH_URL: "http://localhost:3000"
-      NEXTAUTH_SECRET: "cinesync_dev_nextauth_secret_2026"
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
       NEXT_PUBLIC_GOOGLE_CLIENT_ID: "dev_google_client_id"
     volumes:
       - ./apps/web/src:/app/src

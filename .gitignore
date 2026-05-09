@@ -18,6 +18,7 @@ yarn-error.log*
 # Environment variables — NEVER commit
 .env
 .env.dev
+.env.test
 .env.local
 .env.*.local
 !.env.example

@@ -129,7 +129,7 @@ export const createContentRouter = (redis: Redis, elastic: ElasticsearchClient):
   router.delete('/ratings/:ratingId', verifyToken, notBlocked, requireRole('operator', 'admin', 'superadmin'), contentController.deleteRatingModerator);
 
   // GET /content/internal/user-watch-stats/:userId — internal: user service calls this for stats aggregation
-  router.get('/internal/user-watch-stats/:userId', contentController.getUserWatchStats);
+  router.get('/internal/user-watch-stats/:userId', requireInternalSecret, contentController.getUserWatchStats);
 
   // ── Admin Internal ────────────────────────────────────────
   router.get('/internal/admin/movies', requireInternalSecret, contentController.adminListMovies);

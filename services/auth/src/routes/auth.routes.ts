@@ -2,7 +2,7 @@ import { Router } from 'express';
 import passport from 'passport';
 import { AuthController } from '../controllers/auth.controller';
 import { AuthService } from '../services/auth.service';
-import { authRateLimiter } from '@shared/middleware/rateLimiter.middleware';
+import { authRateLimiter, initAdminRateLimiter } from '@shared/middleware/rateLimiter.middleware';
 import { verifyToken, requireNotBlocked } from '@shared/middleware/auth.middleware';
 import { requireInternalSecret } from '@shared/utils/serviceClient';
 import {
@@ -100,13 +100,13 @@ export const createAuthRouter = (redis: Redis): Router => {
   router.post('/internal/users/:userId/revoke-sessions', requireInternalSecret, authController.revokeUserSessions);
 
   // POST /auth/init-admin — bir martalik superadmin yaratish (ADMIN_INIT_SECRET bilan himoyalangan)
-  router.post('/init-admin', authRateLimiter, authController.initAdmin);
+  router.post('/init-admin', initAdminRateLimiter, authController.initAdmin);
 
   // PUT /auth/init-admin — superadmin credentials yangilash (upsert)
-  router.put('/init-admin', authController.upsertAdmin);
+  router.put('/init-admin', initAdminRateLimiter, authController.upsertAdmin);
 
-  // DELETE /auth/clear-attempts — brute force lock tozalash
-  router.delete('/clear-attempts', authController.clearAttempts);
+  // DELETE /auth/clear-attempts — brute force lock tozalash (internal only)
+  router.delete('/clear-attempts', requireInternalSecret, authController.clearAttempts);
 
   return router;
 };

@@ -18,7 +18,7 @@ export const config = {
   jwt: {
     privateKey: requireEnv('JWT_PRIVATE_KEY').replace(/\\n/g, '\n').trim(),
     publicKey: requireEnv('JWT_PUBLIC_KEY').replace(/\\n/g, '\n').trim(),
-    accessTokenExpiry: '6h',
+    accessTokenExpiry: process.env.JWT_EXPIRES_IN ?? '15m',
     refreshTokenExpiry: 30 * 24 * 60 * 60 * 1000, // 30 days in ms
   },
 

@@ -7,33 +7,77 @@
 
 
 
-### T-S076 | P0 | [BACKEND] | Security: /internal/user-watch-stats — добавить аутентификацию | pending[Saidazim]
-
+### T-S077 | P0 | [BACKEND] | Security: prod URLs playwright.config dan o'chirish | pending[Saidazim]
 - **Mas'ul:** pending[Saidazim]
 - **Beruvchi:** Абдулазиз (audit 2026-05-08)
 - **Yaratilgan:** 2026-05-08 22:47
 - **Holat:** ❌ Boshlanmagan
 - **Tavsiya model:** haiku
-- **Model sababi:** 1 fayl, 1 qator — middleware qo'shish
-- **Sabab:** CRITICAL — /internal/user-watch-stats autentifikatsiyasiz. Har qanday userId bilan user ma'lumotlarini o'qish mumkin.
+- **Model sababi:** 1 fayl, env o'zgaruvchilari
+- **Sabab:** CRITICAL — prod URL'lar public repoda
 - **Qilish kerak:**
-  - [ ] `content.routes.ts`: `/internal/user-watch-stats/:userId` ga `requireInternalSecret` middleware qo'shish
+  - [ ] `playwright.config.ts` — `process.env.*` orqali olish
+  - [ ] `.env.example` ga placeholder
+  - [ ] `.gitignore` da `.env.test` borligini tekshirish
 
 ---
 
-### T-S077 | P0 | [BACKEND] | Security: production Railway URLs — playwright.config dan o'chirish | pending[Saidazim]
+### T-S078 | P0 | [BACKEND] | Security: /init-admin va /clear-attempts — rate limit + auth | pending[Saidazim]
 
 - **Mas'ul:** pending[Saidazim]
 - **Beruvchi:** Абдулазиз (audit 2026-05-08)
-- **Yaratilgan:** 2026-05-08 22:47
+- **Yaratilgan:** 2026-05-08 23:33
 - **Holat:** ❌ Boshlanmagan
 - **Tavsiya model:** haiku
-- **Model sababi:** 1 fayl, config o'zgartirish
-- **Sabab:** CRITICAL — 7 ta backend service URL'lari playwright.config da public repoda ochiq. Hacker ularni ko'ra oladi.
+- **Model sababi:** 2 ta route, middleware qo'shish
+- **Sabab:** HIGH — /init-admin brute-force mumkin, /clear-attempts auth yo'q
 - **Qilish kerak:**
-  - [ ] `playwright.config.ts` (yoki `.env.test`) — prod URL'larni `process.env.*` orqali olish
-  - [ ] `.env.example` ga placeholder qo'shish
-  - [ ] `.gitignore` da `.env.test` borligini tekshirish
+  - [ ] `PUT /init-admin` — rate limit (5 req/15min per IP)
+  - [ ] `DELETE /clear-attempts` — `requireInternalSecret` yoki superadmin auth qo'shish
+
+---
+
+### T-S079 | P0 | [BACKEND] | Security: JWT access token 6h → 15min | pending[Saidazim]
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Абдулазиз (audit 2026-05-08)
+- **Yaratilgan:** 2026-05-08 23:33
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** haiku
+- **Model sababi:** config o'zgartirish, 1 fayl
+- **Sabab:** HIGH — 6 soatlik token xavfli, 15 daqiqa bo'lishi kerak
+- **Qilish kerak:**
+  - [ ] Auth service config: `JWT_EXPIRES_IN=15m`
+  - [ ] `.env.example` yangilash
+
+---
+
+### T-S080 | P0 | [BACKEND] | Security: requireNotBlocked fail-closed qilish | pending[Saidazim]
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Абдулазиз (audit 2026-05-08)
+- **Yaratilgan:** 2026-05-08 23:33
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** haiku
+- **Model sababi:** 1 fayl, error handling o'zgartirish
+- **Sabab:** HIGH — Redis xatosida foydalanuvchi bloklangani tekshirilmaydi (fail-open)
+- **Qilish kerak:**
+  - [ ] `shared/middleware/auth.middleware.ts`: Redis xatosida → 503 qaytarish, kirish berilmaydi
+
+---
+
+### T-S081 | P1 | [DEVOPS] | Security: NEXTAUTH_SECRET docker-compose dan o'chirish | pending[Saidazim]
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Абдулазиз (audit 2026-05-08)
+- **Yaratilgan:** 2026-05-08 23:33
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** haiku
+- **Model sababi:** config fayl, 1 qator o'zgartirish
+- **Sabab:** HIGH — NEXTAUTH_SECRET docker-compose da hardcode
+- **Qilish kerak:**
+  - [ ] `docker-compose*.yml`: hardcode secret → `${NEXTAUTH_SECRET}` env reference
+  - [ ] `.env.example` ga qo'shish
 
 ---
 
@@ -182,75 +226,6 @@
 
 ---
 
-### T-S072 | P2 | [BACKEND] | URL Telemetry — Anonymous domain analytics endpoint
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Emirhan
-- **Yaratilgan:** 2026-05-07 00:00
-- **Holat:** ❌ Boshlanmagan
-- **Tavsiya model:** sonnet
-- **Model sababi:** Yangi endpoint + MongoDB schema, 3-4 fayl
-- **Sabab:** Foydalanuvchilar qaysi saytlarga kirayotganini bilmasdan blacklist yangilab bo'lmaydi. Dinamik auto-detection uchun data kerak.
-- **Qilish kerak:**
-  - [ ] `POST /api/v1/content/url-visit` endpoint — domain + country (IP dan) + timestamp saqlash
-  - [ ] MongoDB `url_visits` collection: `{ domain, country, count, lastSeen, flagged }`
-  - [ ] Anonim: userId SAQLANMAYDI, faqat domain + country + timestamp
-  - [ ] Rate limit: 10 req/min per IP
-  - [ ] Cron: har kun top visited domains → `flagged: true` (adult keywords pattern bilan)
-- **Privacy:** Privacy Policy da yozilishi kerak
-
----
-
-### T-S073 | P3 | [ADMIN] | Admin UI — Domain Block Management (Pending Review page)
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Emirhan
-- **Yaratilgan:** 2026-05-07 00:00
-- **Holat:** ⏸️ Paused — заменён на T-S075 (расширенная версия)
-- **Bog'liq:** T-S075 ga qarang
-
----
-
-### T-S074 | P1 | [BACKEND] | Domain Management API — block/unblock + public blocked-domains endpoint
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Saidazim
-- **Yaratilgan:** 2026-05-08 22:30
-- **Holat:** ✅ Tugadi — 2026-05-08 22:45
-- **Tavsiya model:** sonnet
-- **Model sababi:** 2-3 fayl, yangi endpointlar + Redis cache — sonnet optimal
-- **Sabab:** Admin domenlarni bloklashi uchun backend API kerak. Mobilelar dinamik ro'yxatni olishi kerak.
-- **Bog'liq:** T-S072 ✅ tugagan
-- **Qilish kerak:**
-  - [ ] `UrlVisit` modeliga `blocked: boolean` field qo'shish (`flagged` = auto, `blocked` = manual admin)
-  - [ ] `PATCH /internal/admin/domains/:domain/block` — admin bloklashtiradi (requireInternalSecret)
-  - [ ] `PATCH /internal/admin/domains/:domain/unblock` — admin blokni oladi
-  - [ ] `GET /internal/admin/domains` — barcha domenlar ro'yxati, pagination + filter (all/flagged/blocked) + search
-  - [ ] `GET /api/v1/content/blocked-domains` — public endpoint, blocked domenlar array, Redis cache 1 soat
-  - [ ] Cache invalidation: block/unblock qilinganda Redis cache tozalanadi
-
----
-
-### T-S075 | P1 | [ADMIN] | Admin UI — Domain Management page (dynamic blocking)
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Saidazim
-- **Yaratilgan:** 2026-05-08 22:30
-- **Holat:** ✅ Tugadi — 2026-05-08 23:10
-- **Tavsiya model:** sonnet
-- **Model sababi:** Admin UI yangi sahifa, jadval + filter + action tugmalar — sonnet optimal
-- **Sabab:** Admin barcha tashrif buyurilgan domenlarni ko'rishi va xavflilarni bloklashi kerak
-- **Bog'liq:** T-S074 tugagandan keyin
-- **Qilish kerak:**
-  - [ ] `/content/domains` sahifasi — barcha domenlar jadvali
-  - [ ] Ustunlar: Domain, Tashriflar soni, Mamlakat, Oxirgi ko'rilgan, Auto-flagged, Holat, Amallar
-  - [ ] Filter tablar: Hammasi / Auto-flagged / Bloklangan
-  - [ ] Domain bo'yicha qidiruv
-  - [ ] "Block" tugmasi → `PATCH /internal/admin/domains/:domain/block`
-  - [ ] "Unblock" tugmasi → `PATCH /internal/admin/domains/:domain/unblock`
-  - [ ] Bloklanganda jadval qatori qizil rangga o'tadi
-
----
 
 
 
