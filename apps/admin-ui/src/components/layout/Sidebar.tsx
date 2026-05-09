@@ -3,10 +3,11 @@ import { useEffect, useState } from 'react';
 import {
   LayoutDashboard, Users, Film, Swords, Tv2, MessageSquare,
   ScrollText, Activity, ShieldCheck, UserCog, Bug, LogOut,
-  ChevronRight, Globe,
+  ChevronRight, Globe, HeadphonesIcon,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/auth.store';
 import { errorsApi } from '../../api/errors.api';
+import { supportApi } from '../../api/support.api';
 
 interface NavItem {
   to: string;
@@ -64,14 +65,17 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const { user, logout } = useAuthStore();
   const isSuperAdmin = user?.role === 'superadmin';
   const location = useLocation();
-  const [newErrorCount, setNewErrorCount] = useState(0);
+  const [newErrorCount, setNewErrorCount]     = useState(0);
+  const [openSupportCount, setOpenSupportCount] = useState(0);
 
   useEffect(() => { onClose(); }, [location.pathname]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     errorsApi.stats().then((s) => setNewErrorCount(s.new)).catch(() => {});
+    supportApi.openCount().then(setOpenSupportCount).catch(() => {});
     const t = setInterval(() => {
       errorsApi.stats().then((s) => setNewErrorCount(s.new)).catch(() => {});
+      supportApi.openCount().then(setOpenSupportCount).catch(() => {});
     }, 30_000);
     return () => clearInterval(t);
   }, []);
@@ -89,6 +93,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
   const monitoringItems: NavItem[] = [
     { to: '/errors', label: 'Mobile Errors', icon: <Bug size={16} />, badge: newErrorCount },
+    { to: '/support', label: 'Поддержка', icon: <HeadphonesIcon size={16} />, badge: openSupportCount },
     { to: '/feedback', label: 'Feedback', icon: <MessageSquare size={16} /> },
     { to: '/logs', label: 'Logs', icon: <ScrollText size={16} /> },
     { to: '/user-activity', label: 'Активность', icon: <Activity size={16} /> },

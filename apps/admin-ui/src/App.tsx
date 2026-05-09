@@ -16,6 +16,7 @@ import { StaffPage } from './pages/StaffPage';
 import { ErrorsPage } from './pages/ErrorsPage';
 import { UserDetailPage } from './pages/UserDetailPage';
 import { DomainsPage } from './pages/DomainsPage';
+import { SupportPage } from './pages/SupportPage';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -50,6 +51,7 @@ export default function App() {
           <Route path="errors" element={<ErrorsPage />} />
           <Route path="users/:id" element={<UserDetailPage />} />
           <Route path="domains" element={<DomainsPage />} />
+          <Route path="support" element={<SupportPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

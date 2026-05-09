@@ -1,8 +1,9 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Mail, User, X, AlertTriangle, Clock, Smartphone, ChevronDown, ChevronRight, Cpu, Globe, Layers, Zap, Tag, MonitorSmartphone, Code2, Database, Shield } from 'lucide-react';
+import { Search, Mail, User, X, AlertTriangle, Clock, Smartphone, ChevronDown, ChevronRight, Cpu, Globe, Layers, Zap, Tag, MonitorSmartphone, Code2, Database, Shield, MessageCircle, Send } from 'lucide-react';
 import { errorsApi, MobileIssue, MobileEvent, IssueStatus, ErrorStats } from '../api/errors.api';
 import { usersApi } from '../api/users.api';
+import { supportApi, SupportMessage } from '../api/support.api';
 import { Badge } from '../components/ui/Badge';
 import { Pagination } from '../components/ui/Pagination';
 import type { AdminUser } from '../types';
@@ -100,6 +101,107 @@ function UserCard({ userId }: { userId: string }) {
           <User size={11} /> Профиль
         </Link>
       </div>
+    </div>
+  );
+}
+
+// ── UserChatPanel ─────────────────────────────────────────────────────────────
+
+function UserChatPanel({ userId }: { userId: string }) {
+  const [open, setOpen]         = useState(false);
+  const [convId, setConvId]     = useState<string | null>(null);
+  const [messages, setMessages] = useState<SupportMessage[]>([]);
+  const [text, setText]         = useState('');
+  const [loading, setLoading]   = useState(false);
+  const [sending, setSending]   = useState(false);
+  const bottomRef               = useRef<HTMLDivElement>(null);
+
+  const loadConv = useCallback(async () => {
+    setLoading(true);
+    try {
+      const conv = await supportApi.getOrCreate(userId);
+      setConvId(conv.id);
+      const msgs = await supportApi.getMessages(conv.id);
+      setMessages(msgs.data);
+    } catch { /* ignore */ }
+    finally { setLoading(false); }
+  }, [userId]);
+
+  useEffect(() => {
+    if (!open) return;
+    loadConv();
+  }, [open, loadConv]);
+
+  useEffect(() => {
+    if (open) bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, open]);
+
+  const send = async () => {
+    if (!convId || !text.trim() || sending) return;
+    setSending(true);
+    try {
+      const msg = await supportApi.sendMessage(convId, text.trim());
+      setMessages((prev) => [...prev, msg]);
+      setText('');
+    } catch { /* ignore */ }
+    finally { setSending(false); }
+  };
+
+  return (
+    <div className="mt-2">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/20 hover:bg-purple-500/20 transition-colors"
+      >
+        <MessageCircle size={11} /> Написать в чат
+      </button>
+
+      {open && (
+        <div className="mt-2 rounded-xl border border-purple-500/20 bg-[#0d0d18] overflow-hidden">
+          <div className="px-3 py-2 border-b border-white/[0.05] flex items-center justify-between">
+            <span className="text-[11px] font-semibold text-purple-300">Чат поддержки</span>
+            <button onClick={() => setOpen(false)} className="text-text-dim hover:text-white">
+              <X size={12} />
+            </button>
+          </div>
+
+          <div className="h-40 overflow-y-auto px-3 py-2 flex flex-col gap-1.5">
+            {loading && <p className="text-[11px] text-text-dim text-center py-6">Загрузка…</p>}
+            {!loading && messages.length === 0 && (
+              <p className="text-[11px] text-text-dim text-center py-6">Начните диалог</p>
+            )}
+            {messages.map((m) => (
+              <div key={m.id} className={`flex ${m.senderRole === 'admin' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[75%] px-2.5 py-1.5 rounded-xl text-[11px] leading-relaxed ${
+                  m.senderRole === 'admin'
+                    ? 'bg-purple-600/30 text-purple-100 border border-purple-500/20'
+                    : 'bg-white/[0.06] text-white border border-white/[0.07]'
+                }`}>
+                  {m.text}
+                </div>
+              </div>
+            ))}
+            <div ref={bottomRef} />
+          </div>
+
+          <div className="px-2 py-2 border-t border-white/[0.05] flex gap-1.5">
+            <input
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
+              placeholder="Ваш ответ…"
+              className="flex-1 bg-white/[0.05] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-[11px] text-white placeholder-text-dim outline-none focus:border-purple-500/40 transition-colors"
+            />
+            <button
+              onClick={send}
+              disabled={!text.trim() || sending}
+              className="flex items-center justify-center w-8 h-7 rounded-lg bg-purple-600 hover:bg-purple-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
+            >
+              <Send size={12} className="text-white" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -413,7 +515,12 @@ function EventDrawer({ issue, onClose }: { issue: MobileIssue; onClose: () => vo
                   )}
 
                   {/* ── User ── */}
-                  {ev.userId && <UserCard userId={ev.userId} />}
+                  {ev.userId && (
+                    <div>
+                      <UserCard userId={ev.userId} />
+                      <UserChatPanel userId={ev.userId} />
+                    </div>
+                  )}
 
                   {/* ── Stack trace ── */}
                   {stackFrames.length > 0 && (

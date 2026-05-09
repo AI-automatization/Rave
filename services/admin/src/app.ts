@@ -12,6 +12,7 @@ import { apiLogger } from '@shared/middleware/apiLogger.middleware';
 import { createAdminRouter } from './routes/admin.routes';
 import { createOperatorRouter } from './routes/operator.routes';
 import { createErrorsRouter } from './routes/errors.routes';
+import { createSupportRouter } from './routes/support.routes';
 import { swaggerSpec } from './utils/swagger';
 import { config } from './config/index';
 
@@ -40,6 +41,7 @@ export const createApp = (redis: Redis): express.Application => {
   app.use('/api/v1/admin', createAdminRouter(redis));
   app.use('/api/v1/operator', createOperatorRouter(redis));
   app.use('/api/v1/errors', createErrorsRouter());
+  app.use('/api/v1', createSupportRouter());
 
   app.use(notFoundHandler);
   app.use(errorHandler);
