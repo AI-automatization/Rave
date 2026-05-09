@@ -17,6 +17,7 @@ export class YtDlpDrmError extends Error {
 }
 
 const DRM_RE = /drm|widevine|encrypted|protected/i;
+const NETWORK_ERR_RE = /urlopen error|connection reset|network is unreachable|temporary failure|eof occurred|ssl.*error|read timed out/i;
 const YTDLP_TIMEOUT_MS = 20_000;
 
 interface YtDlpJson {
@@ -87,6 +88,10 @@ const YT_COOKIE_FILE: string | null = (() => {
 const YT_PO_TOKEN = process.env.YOUTUBE_PO_TOKEN;
 const YT_VISITOR_DATA = process.env.YOUTUBE_VISITOR_DATA;
 
+if (!YT_PO_TOKEN) {
+  logger.warn('yt-dlp: YOUTUBE_PO_TOKEN is not set — YouTube extraction may fail bot checks. Set it in .env');
+}
+
 function buildYouTubeExtractorArgs(): string {
   // ios client: no poToken required, better datacenter IP tolerance than WEB/MWEB
   const parts = ['player-client=ios,web'];
@@ -120,6 +125,7 @@ function pickBestUrl(data: YtDlpJson): { url: string; type: VideoType } | null {
 export async function ytDlpExtractor(
   rawUrl: string,
   cookies?: string,
+  _isRetry = false,
 ): Promise<VideoExtractResult | null> {
   return new Promise((resolve, reject) => {
     let stdout = '';
@@ -167,6 +173,14 @@ export async function ytDlpExtractor(
       if (code !== 0 || !stdout.trim()) {
         if (DRM_RE.test(stderr)) {
           reject(new YtDlpDrmError());
+          return;
+        }
+        if (NETWORK_ERR_RE.test(stderr) && !_isRetry) {
+          logger.warn('yt-dlp: network error, retrying in 1s', { url: rawUrl, stderr: stderr.slice(0, 200) });
+          // Retry once after 1s — resolves the outer promise via recursive call
+          setTimeout(() => {
+            ytDlpExtractor(rawUrl, cookies, true).then(resolve).catch(reject);
+          }, 1_000);
           return;
         }
         if (isYouTube) {

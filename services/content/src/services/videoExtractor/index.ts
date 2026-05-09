@@ -45,8 +45,8 @@ function extractYouTubeVideoId(url: string): string | null {
 const CACHE_TTL_BY_PLATFORM: Partial<Record<VideoPlatform, number>> & { default: number } = {
   youtube:    7_200,   // 2h — YouTube URLs expire in ~6h
   playerjs:   86_400,  // 24h — static MP4, no expiry
-  lookmovie2: 86_400,  // 24h — Security API returns 29h valid URLs
-  moviesapi:  86_400,  // 24h — static API
+  lookmovie2: 28_800,  // 8h — Security API returns 29h valid URLs, 8h conservative margin
+  moviesapi:  3_600,   // 1h — API token-signed URLs rotate ~1-2h
   generic:    21_600,  // 6h — CIS sites (kinogo, filmix via proxy) slow to re-extract
   default:    7_200,   // 2h fallback
 };
@@ -56,6 +56,10 @@ const YTDLP_PLATFORMS: ReadonlySet<VideoPlatform> = new Set([
   'vimeo', 'tiktok', 'dailymotion', 'rutube', 'facebook',
   'instagram', 'twitch', 'vk', 'streamable', 'reddit', 'twitter',
 ]);
+
+/** Playwright concurrency guard — max 2 browser instances at a time */
+let playwrightRunning = 0;
+const PLAYWRIGHT_MAX_CONCURRENT = 2;
 
 /** Sites geo-blocked from our UAE server (T-S046) */
 const GEO_BLOCKED_DOMAINS = new Set([
@@ -77,7 +81,16 @@ export async function extractVideo(
   if (GEO_BLOCKED_DOMAINS.has(parsedUrl.hostname.replace(/^www\./, ''))) {
     // T-S049: if GEO_PROXY_URL is configured → try extraction via proxy
     if (hasGeoProxy()) {
-      const geoResult = await geoExtractor(rawUrl);
+      let geoResult: Awaited<ReturnType<typeof geoExtractor>>;
+      try {
+        geoResult = await geoExtractor(rawUrl);
+      } catch (geoErr) {
+        logger.warn('geo-proxy extraction failed, falling through to geo_blocked error', {
+          url: rawUrl,
+          error: (geoErr as Error).message,
+        });
+        geoResult = null;
+      }
 
       if (geoResult?.video) {
         // Playerjs found directly on geo-blocked page — cache & return
@@ -244,8 +257,17 @@ export async function extractVideo(
     }
     // Playwright: only for known JS-heavy platforms (slow — last resort)
     if (!result && isPlaywrightPlatform(parsedUrl)) {
-      logger.info('Falling back to Playwright extractor', { url: rawUrl });
-      result = await playwrightExtractor(rawUrl);
+      if (playwrightRunning >= PLAYWRIGHT_MAX_CONCURRENT) {
+        logger.warn('Playwright concurrency limit reached, skipping', { url: rawUrl, active: playwrightRunning });
+      } else {
+        playwrightRunning++;
+        try {
+          logger.info('Falling back to Playwright extractor', { url: rawUrl });
+          result = await playwrightExtractor(rawUrl);
+        } finally {
+          playwrightRunning--;
+        }
+      }
     }
     if (result) result = {
       ...result,
