@@ -28,7 +28,7 @@
 
 - **Mas'ul:** pending[Saidazim]
 - **Yaratilgan:** 2026-04-24 23:08
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** ⏸️ Paused
 - **Sabab:** Admin xatosi bo'lgan foydalanuvchi bilan bog'lana olmaydi
 - **Qilish kerak:**
   - [ ] /users/:id sahifasi — avatar, email, username, role, joined
@@ -42,7 +42,7 @@
 
 - **Mas'ul:** pending[Saidazim]
 - **Yaratilgan:** 2026-04-24 23:08
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** ⏸️ Paused
 - **Sabab:** Xato bo'lgan foydalanuvchining kontakt ma'lumotlari ko'rinmaydi
 - **Qilish kerak:**
   - [ ] EventDrawer: userId bo'lsa → user API dan email/username olish
@@ -56,7 +56,7 @@
 
 - **Mas'ul:** pending[Saidazim]
 - **Yaratilgan:** 2026-04-24 23:08
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** ⏸️ Paused
 - **Sabab:** Dashboard faqat statistika ko'rsatadi, real-time hodisalar yo'q
 - **Qilish kerak:**
   - [ ] Real-time activity feed (yangi xatolar, yangi foydalanuvchilar)
@@ -69,7 +69,7 @@
 
 - **Mas'ul:** pending[Saidazim]
 - **Yaratilgan:** 2026-04-24 23:08
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** ⏸️ Paused
 - **Sabab:** Foydalanuvchilarni, xatolarni, filmlarni tezda topish imkoni yo'q
 - **Qilish kerak:**
   - [ ] Cmd+K / Ctrl+K shortcut → modal
@@ -158,7 +158,7 @@
 - **Mas'ul:** pending[Saidazim]
 - **Beruvchi:** Emirhan
 - **Yaratilgan:** 2026-05-07 00:00
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** ⏸️ Paused
 - **Tavsiya model:** sonnet
 - **Model sababi:** Admin UI yangi sahifa, T-S072 dan keyin
 - **Sabab:** Avtomatik flaglangan domenlarni Saidazim ko'rib chiqishi va tasdiqlashi kerak

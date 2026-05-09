@@ -7,6 +7,7 @@ import { logger } from '@shared/utils/logger';
 import { initServiceQueues } from '@shared/utils/serviceQueue';
 import { initElasticsearchIndex } from './utils/elastic.init';
 import { startHlsWorker } from './workers/hls.worker';
+import { startUrlVisitCron } from './workers/urlVisitCron.worker';
 
 const main = async (): Promise<void> => {
   await mongoose.connect(config.mongoUri);
@@ -35,6 +36,7 @@ const main = async (): Promise<void> => {
 
   initServiceQueues(config.redisUrl);
   startHlsWorker();
+  startUrlVisitCron();
 
   const app = createApp(redis, elastic);
 
