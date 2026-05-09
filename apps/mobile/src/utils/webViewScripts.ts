@@ -1,19 +1,32 @@
 // CineSync — WebView JS injection scripts & helpers for MediaWebViewScreen
 import { Platform } from 'react-native';
 
+// Desktop UA — prevents YouTube/Google from redirecting to sign-in in WebView
 const IOS_UA =
-  'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 ' +
-  '(KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 ' +
+  '(KHTML, like Gecko) Version/17.4 Safari/605.1.15';
 
 const ANDROID_UA =
-  'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 ' +
-  '(KHTML, like Gecko) Chrome/120.0.6099.144 Mobile Safari/537.36';
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
+  '(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
 
 export const MOBILE_UA = Platform.OS === 'ios' ? IOS_UA : ANDROID_UA;
 
+// Auth/utility domains where IFRAME_SCAN must not run — they contain iframes unrelated to video
+const AUTH_DOMAINS = [
+  'accounts.google.com', 'google.com/signin', 'login.live.com',
+  'auth.vk.com', 'oauth.vk.com', 'recaptcha.google.com',
+];
+
 // Fires after page load to detect cross-origin player iframes (ashdi.vip, bazon.tv, etc.)
+// Skipped on auth/sign-in pages to prevent redirect to reCAPTCHA/analytics iframes
 export const IFRAME_SCAN_JS = `
 (function() {
+  var authDomains = ${JSON.stringify(AUTH_DOMAINS)};
+  var host = window.location.hostname + window.location.pathname;
+  for (var i = 0; i < authDomains.length; i++) {
+    if (host.indexOf(authDomains[i]) !== -1) return;
+  }
   function scanIframes() {
     try {
       var iframes = document.querySelectorAll('iframe[src]');
