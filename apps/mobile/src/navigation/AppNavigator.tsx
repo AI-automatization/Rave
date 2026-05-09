@@ -31,6 +31,7 @@ export function AppNavigator() {
 
   const [blockedVisible, setBlockedVisible] = useState(false);
   const [blockedReason, setBlockedReason] = useState('');
+  const [isNavReady, setIsNavReady] = useState(false);
 
   usePushNotifications();
 
@@ -43,8 +44,11 @@ export function AppNavigator() {
   }, []);
 
   // Deep link: notification tapped (background/killed)
+  // isNavReady dependency ensures cold-start case works:
+  // killed app → lastResponse set → NavigationContainer not ready → isNavReady=false
+  // onReady fires → isNavReady=true → this effect re-runs → navigate succeeds
   useEffect(() => {
-    if (!lastResponse || !navigationRef.isReady()) return;
+    if (!lastResponse || !isNavReady || !isAuthenticated || needsProfileSetup) return;
     const data = lastResponse.notification.request.content.data as Record<string, string>;
     const screen = data.screen;
 
@@ -59,7 +63,7 @@ export function AppNavigator() {
     } else if (screen === 'Notifications') {
       navigationRef.navigate('Modal', { screen: 'Notifications' });
     }
-  }, [lastResponse, navigationRef]);
+  }, [lastResponse, isNavReady, isAuthenticated, needsProfileSetup, navigationRef]);
 
   // Deep link: cinesync://join/:inviteCode
   useEffect(() => {
@@ -115,7 +119,7 @@ export function AppNavigator() {
 
   return (
     <>
-    <NavigationContainer ref={navigationRef}>
+    <NavigationContainer ref={navigationRef} onReady={() => setIsNavReady(true)}>
       <LanguageTransition>
         <Stack.Navigator screenOptions={{ headerShown: false, animation: 'fade' }}>
           {isAuthenticated ? (
