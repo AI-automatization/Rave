@@ -34,6 +34,9 @@ import {
   adminGetBattleStats,
   createStaffAccount,
   syncAdminProfile,
+  adminListDomains,
+  adminBlockDomain,
+  adminUnblockDomain,
 } from '@shared/utils/serviceClient';
 
 export interface DashboardStats {
@@ -445,5 +448,19 @@ export class AdminService {
     );
 
     return results;
+  }
+
+  async listDomains(filters: { page?: number; limit?: number; filter?: string; search?: string }): Promise<unknown> {
+    return adminListDomains(filters);
+  }
+
+  async blockDomain(domain: string): Promise<void> {
+    await adminBlockDomain(domain);
+    logger.info('Domain blocked by admin', { domain });
+  }
+
+  async unblockDomain(domain: string): Promise<void> {
+    await adminUnblockDomain(domain);
+    logger.info('Domain unblocked by admin', { domain });
   }
 }

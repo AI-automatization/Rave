@@ -18,6 +18,7 @@ const ROUTE_LABELS: Record<string, string> = {
   '/user-activity': 'Активность',
   '/audit-logs': 'Audit Logs',
   '/staff': 'Сотрудники',
+  '/domains': 'Домены',
 };
 
 interface SearchResult {

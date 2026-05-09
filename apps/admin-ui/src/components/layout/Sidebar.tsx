@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import {
   LayoutDashboard, Users, Film, Swords, Tv2, MessageSquare,
   ScrollText, Activity, ShieldCheck, UserCog, Bug, LogOut,
-  ChevronRight,
+  ChevronRight, Globe,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/auth.store';
 import { errorsApi } from '../../api/errors.api';
@@ -93,6 +93,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     { to: '/logs', label: 'Logs', icon: <ScrollText size={16} /> },
     { to: '/user-activity', label: 'Активность', icon: <Activity size={16} /> },
     { to: '/audit-logs', label: 'Audit Logs', icon: <ShieldCheck size={16} /> },
+    { to: '/domains', label: 'Домены', icon: <Globe size={16} /> },
   ];
 
   const superAdminItems: NavItem[] = [

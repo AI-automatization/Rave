@@ -94,5 +94,10 @@ export const createAdminRouter = (redis: Redis): Router => {
   // ── System Health ─────────────────────────────────────────────
   router.get('/system/health', adminController.getSystemHealth);
 
+  // ── Domain Management ─────────────────────────────────────────
+  router.get('/content/domains',                       adminController.listDomains);
+  router.patch('/content/domains/:domain/block',       adminController.blockDomain);
+  router.patch('/content/domains/:domain/unblock',     adminController.unblockDomain);
+
   return router;
 };

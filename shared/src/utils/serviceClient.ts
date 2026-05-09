@@ -262,6 +262,37 @@ export async function adminOperatorUpdateMovie(movieId: string, data: Record<str
   await axios.patch(`${contentServiceUrl}/api/v1/content/internal/admin/movies/${movieId}`, data, { headers: internalHeaders, timeout: 5000 });
 }
 
+export async function adminListDomains(filters: {
+  page?: number; limit?: number; filter?: string; search?: string;
+}): Promise<unknown> {
+  const params = new URLSearchParams();
+  if (filters.page)   params.set('page',   String(filters.page));
+  if (filters.limit)  params.set('limit',  String(filters.limit));
+  if (filters.filter) params.set('filter', filters.filter);
+  if (filters.search) params.set('search', filters.search);
+  const res = await axios.get(
+    `${contentServiceUrl}/api/v1/content/internal/admin/domains?${params.toString()}`,
+    { headers: internalHeaders, timeout: 5000 },
+  );
+  return (res.data as { data: unknown; meta: unknown });
+}
+
+export async function adminBlockDomain(domain: string): Promise<void> {
+  await axios.patch(
+    `${contentServiceUrl}/api/v1/content/internal/admin/domains/${encodeURIComponent(domain)}/block`,
+    {},
+    { headers: internalHeaders, timeout: 5000 },
+  );
+}
+
+export async function adminUnblockDomain(domain: string): Promise<void> {
+  await axios.patch(
+    `${contentServiceUrl}/api/v1/content/internal/admin/domains/${encodeURIComponent(domain)}/unblock`,
+    {},
+    { headers: internalHeaders, timeout: 5000 },
+  );
+}
+
 export async function adminGetContentStats(): Promise<{
   genreDistribution: Array<{ genre: string; count: number }>;
   topMovies: Array<{ _id: string; title: string; viewCount: number }>;

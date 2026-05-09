@@ -364,5 +364,29 @@ export class AdminController {
       res.json(apiResponse.success(health));
     } catch (error) { next(error); }
   };
+
+  // ── Domain Management ──────────────────────────────────────
+
+  listDomains = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { page, limit, filter, search } = req.query as Record<string, string>;
+      const result = await this.adminService.listDomains({ page: Number(page) || 1, limit: Number(limit) || 50, filter, search });
+      res.json(result);
+    } catch (error) { next(error); }
+  };
+
+  blockDomain = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      await this.adminService.blockDomain(req.params.domain);
+      res.json(apiResponse.success(null, 'Domain blocked'));
+    } catch (error) { next(error); }
+  };
+
+  unblockDomain = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      await this.adminService.unblockDomain(req.params.domain);
+      res.json(apiResponse.success(null, 'Domain unblocked'));
+    } catch (error) { next(error); }
+  };
 }
 
