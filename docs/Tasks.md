@@ -165,6 +165,22 @@
 
 ---
 
+### T-S084 | P2 | [BACKEND] | WatchParty chat — add username to ROOM_MESSAGE socket payload | pending[Saidazim]
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Emirhan
+- **Yaratilgan:** 2026-05-09 00:00
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** haiku
+- **Model sababi:** 1 fayl, faqat username field qo'shish — chatEvents.handler.ts
+- **Sabab:** ROOM_MESSAGE socket event da username yo'q — faqat userId yuboriladi. Mobile QueryClient cache orqali vaqtincha hal qilindi, lekin backend fix kerak.
+- **Qilish kerak:**
+  - [ ] `services/watch-party/src/socket/chatEvents.handler.ts` — `authSocket.user.username` ni ROOM_MESSAGE payload ga qo'shish
+  - [ ] Mobile `MessageEvent` type ga `username?: string` qo'shish (T-E113 follow-up)
+- **Bog'liq:** T-E113 (mobile vaqtincha fix allaqachon bajarildi)
+
+---
+
 # ═══════════════════════════════════════
 
 # 🟢 EMIRHAN — EXPO REACT NATIVE MOBILE + WEB

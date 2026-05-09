@@ -195,7 +195,8 @@ export function useWatchParty(roomId: string) {
   );
 
   const sendMessage = useCallback(
-    (text: string) => getSocket()?.emit(CLIENT_EVENTS.SEND_MESSAGE, { message: text }),
+    (text: string, replyTo?: { messageId: string; senderName: string; text: string }) =>
+      getSocket()?.emit(CLIENT_EVENTS.SEND_MESSAGE, { message: text, replyTo }),
     [],
   );
 

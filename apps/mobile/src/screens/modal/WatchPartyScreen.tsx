@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Platform } from 'react-native';
 import { useRoute, RouteProp } from '@react-navigation/native';
-import { ChatPanel } from '@components/watchParty/ChatPanel';
+import { ChatPanel, ChatMessage } from '@components/watchParty/ChatPanel';
 import { VoiceChat } from '@components/watchParty/VoiceChat';
 import { EmojiPickerBar } from '@components/watchParty/EmojiFloat';
 import { VideoSection } from '@components/watchParty/VideoSection';
