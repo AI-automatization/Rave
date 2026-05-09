@@ -16,6 +16,7 @@ import { useTheme, createThemedStyles, spacing, borderRadius, typography } from 
 import { ModalStackParamList } from '@app-types/index';
 import { useT } from '@i18n/index';
 import { useWatchPartyRoom } from '@hooks/useWatchPartyRoom';
+import { MembersStrip } from '@components/watchParty/MembersStrip';
 
 type RouteType = RouteProp<ModalStackParamList, 'WatchParty'>;
 
@@ -69,6 +70,14 @@ export function WatchPartyScreen() {
           )}
         </View>
       )}
+      {!isFullscreen && room && (
+        <MembersStrip
+          activeMembers={activeMembers}
+          ownerId={room.ownerId}
+          currentUserId={userId}
+        />
+      )}
+
       <VideoSection
         playerRef={playerRef}
         videoUrl={extractionError === 'video_source_expired' ? '' : originalVideoUrl}
