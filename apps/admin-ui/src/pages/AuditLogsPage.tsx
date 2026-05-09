@@ -17,7 +17,8 @@ const ACTION_CONFIG: Record<string, { label: string; variant: 'red' | 'yellow' |
   broadcast_notification: { label: 'Broadcast',   variant: 'blue' },
 };
 
-function formatDetails(details: Record<string, unknown>): string {
+function formatDetails(details: Record<string, unknown> | undefined | null): string {
+  if (!details) return '—';
   const parts: string[] = [];
   if (details.reason)  parts.push(`причина: "${String(details.reason)}"`);
   if (details.newRole) parts.push(`роль: ${String(details.newRole)}`);
