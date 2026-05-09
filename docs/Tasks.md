@@ -4,6 +4,39 @@
 
 ---
 
+### T-S085 | P1 | [BACKEND] | Domain tracking — POST /domains/visit endpoint | done[Saidazim]
+
+- **Mas'ul:** done[Saidazim]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-05-09 14:56
+- **Holat:** ✅ Bajarildi
+- **Tavsiya model:** sonnet
+- **Model sababi:** Controller + route + validation, 2 fayl
+- **Sabab:** Adminlar foydalanuvchilar qaysi domenlarni ochishini ko'ra olsin + bloklashi mumkin bo'lsin
+- **O'zgarishlar:**
+  - `services/content/src/controllers/domain.controller.ts` — `trackVisit` metodi qo'shildi (upsert, auto-flag, validate)
+  - `services/content/src/routes/domain.routes.ts` — `POST /domains/visit` (verifyToken + rateLimit)
+
+---
+
+### T-E120 | P1 | [MOBILE] | Domain tracking — WebView da tashrif buyurilgan domenni backendga yuborish | pending[Emirhan]
+
+- **Mas'ul:** pending[Emirhan]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-05-09 14:56
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** haiku
+- **Model sababi:** 2 fayl, oddiy API call — fire-and-forget
+- **Sabab:** Backend T-S085 tayyor — endi mobile domenni yuborishi kerak, aks holda UrlVisit kolleksiyasi bo'm-bo'sh qoladi
+- **Qilish kerak:**
+  - [ ] `apps/mobile/src/api/content.api.ts` — `trackDomainVisit(domain: string): Promise<void>` funksiyasi qo'shish (`contentClient.post('/domains/visit', { domain })`)
+  - [ ] `apps/mobile/src/screens/modal/MediaWebViewScreen.tsx` — `onShouldStartLoadWithRequest` da domen blocked emas bo'lsa hostname ajratib fire-and-forget yuborish
+  - Import: `import { contentApi } from '@api/content.api'`
+  - Tracking faqat bloklenmagan domenlar uchun, xato bo'lsa `.catch(() => {})` bilan yutib yuborish
+- **Bog'liq:** T-S085 (backend tayyor)
+
+---
+
 ### T-E118 | P1 | [MOBILE] | In-app Support Chat — user can contact support + see replies | pending[Emirhan]
 
 - **Mas'ul:** pending[Emirhan] ✅ claimed
