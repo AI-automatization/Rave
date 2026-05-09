@@ -2518,3 +2518,13 @@ _docs/Done.md | CineSync | Yangilangan: 2026-04-18_
 - **Model:** sonnet
 - **O'zgarishlar:** 4 yangi fayl — urlVisit.model.ts, urlVisit.controller.ts, urlVisit.routes.ts, urlVisitCron.worker.ts + app.ts, server.ts
 - **Xulosa:** POST /api/v1/content/url-visit — anon domain analytics. Rate limit 10/min per IP. Auto-flag adult domains on write + 24h cron. No userId stored.
+
+### F-075 | T-S074 | Domain Management API — block/unblock + public blocked-domains endpoint
+
+- **Beruvchi:** Saidazim
+- **Bajaruvchi:** Saidazim (Claude Sonnet yordamida)
+- **Yaratilgan:** 2026-05-08 22:30
+- **Bajarilgan:** 2026-05-08 22:45
+- **Model:** sonnet
+- **O'zgarishlar:** 3 yangi fayl — domain.controller.ts, domain.routes.ts + urlVisit.model.ts updated, app.ts
+- **Xulosa:** GET /blocked-domains (public, Redis 1h cache), GET/PATCH /internal/admin/domains (pagination+filter+search), block/unblock invalidates cache
