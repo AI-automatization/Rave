@@ -112,25 +112,43 @@
 
 ---
 
-### T-E111 | P1 | [MOBILE] | Content Filter — Static adult domain blacklist in MediaWebViewScreen
+### T-E111 | P1 | [MOBILE] | Content Filter — Dynamic blocked-domains + WebView protection
 
 - **Mas'ul:** pending[Emirhan] ✅ claimed
 - **Beruvchi:** Emirhan
 - **Yaratilgan:** 2026-05-07 00:00
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** ❌ Boshlanmagan — arxitektura o'zgardi (T-S074 tugagandan keyin boshlanadi)
 - **Tavsiya model:** sonnet
-- **Model sababi:** 2-3 fayl, xavfsiz qo'shish (context buzilmasin)
-- **Sabab:** Play Store adult kontentga ruxsat beruvchi WebView ilovalarni bloklaydi. MediaWebViewScreen da hech qanday URL filtri yo'q.
+- **Model sababi:** hook + AsyncStorage + WebView callback — 3-4 fayl
+- **Sabab:** Play Store adult kontentga ruxsat beruvchi WebView ilovalarni bloklaydi. Ro'yxat endi dinamik — backenddan keladi.
+- **Bog'liq:** T-S074 tugagandan keyin (GET /api/v1/content/blocked-domains tayyor bo'lishi kerak)
 - **Qilish kerak:**
-  - [ ] `apps/mobile/src/constants/blockedDomains.ts` — Set<string> ro'yxat + `isDomainBlocked(url)` utility
-  - [ ] `MediaWebViewScreen.tsx` — `onShouldStartLoadWithRequest` callback qo'shish (MEDIA_DETECTION_JS, socket events TEGMA)
-  - [ ] Bloklanganda Toast/Alert: "Bu sayt bloklangan" + orqaga qaytish tugmasi
-  - [ ] Top 200+ adult domen ro'yxati (pornhub, xvideos, xnxx, ...)
+  - [ ] `useBlockedDomains.ts` hook — app start da `GET /api/v1/content/blocked-domains` → AsyncStorage cache, 24h refresh
+  - [ ] `isDomainBlocked(url, blockedList)` utility — hostname parse + list check
+  - [ ] `MediaWebViewScreen.tsx` — `onShouldStartLoadWithRequest` callback (MEDIA_DETECTION_JS TEGMA)
+  - [ ] Bloklanganda Toast: "Bu sayt bloklangan" + orqaga qaytish
+  - [ ] Fallback: network yo'q bo'lsa → AsyncStorage dagi oxirgi ro'yxatdan foydalanish
+  - [ ] `url-visit` endpoint ga domain yuborish (T-S072 ✅)
 - **Kontekst himoyasi:**
   - `MEDIA_DETECTION_JS` — O'ZGARTIRMA
   - `useWatchParty.ts` / socket events — O'ZGARTIRMA
   - `useVideoExtraction.ts` — O'ZGARTIRMA
-  - Faqat `onShouldStartLoadWithRequest` prop qo'shiladi (page load dan OLDIN ishlaydi)
+
+---
+
+### T-E117 | P2 | [MOBILE] | Background domain list refresh — AppState foreground trigger
+
+- **Mas'ul:** pending[Emirhan]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-05-08 22:30
+- **Holat:** ❌ Boshlanmagan — T-E111 tugagandan keyin
+- **Tavsiya model:** haiku
+- **Model sababi:** AppState listener qo'shish — 1 fayl, oddiy
+- **Sabab:** Foydalanuvchi ilovani background dan qaytarsa — yangilangan bloklangan ro'yxatni olishi kerak
+- **Bog'liq:** T-E111 tugagandan keyin
+- **Qilish kerak:**
+  - [ ] `AppState` change listener — `active` holatga o'tganda va oxirgi refreshdan 24h o'tgan bo'lsa → yangilash
+  - [ ] `useBlockedDomains` hook ichiga qo'shish
 
 ---
 
@@ -158,16 +176,49 @@
 - **Mas'ul:** pending[Saidazim]
 - **Beruvchi:** Emirhan
 - **Yaratilgan:** 2026-05-07 00:00
-- **Holat:** ⏸️ Paused
+- **Holat:** ⏸️ Paused — заменён на T-S075 (расширенная версия)
+- **Bog'liq:** T-S075 ga qarang
+
+---
+
+### T-S074 | P1 | [BACKEND] | Domain Management API — block/unblock + public blocked-domains endpoint
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-05-08 22:30
+- **Holat:** ❌ Boshlanmagan
 - **Tavsiya model:** sonnet
-- **Model sababi:** Admin UI yangi sahifa, T-S072 dan keyin
-- **Sabab:** Avtomatik flaglangan domenlarni Saidazim ko'rib chiqishi va tasdiqlashi kerak
-- **Bog'liq:** T-S072 tugagandan keyin
+- **Model sababi:** 2-3 fayl, yangi endpointlar + Redis cache — sonnet optimal
+- **Sabab:** Admin domenlarni bloklashi uchun backend API kerak. Mobilelar dinamik ro'yxatni olishi kerak.
+- **Bog'liq:** T-S072 ✅ tugagan
 - **Qilish kerak:**
-  - [ ] `/content/domains` Admin sahifasi — flagged domenlar ro'yxati
-  - [ ] "Block" / "Allow" tugmalari — Saidazim tasdiqlaydi
-  - [ ] Tasdiqlangan → `blocked_domains` collection ga qo'shiladi
-  - [ ] Mobile app remote config dan yangilangan ro'yxatni oladi (T-E111 Phase 2)
+  - [ ] `UrlVisit` modeliga `blocked: boolean` field qo'shish (`flagged` = auto, `blocked` = manual admin)
+  - [ ] `PATCH /internal/admin/domains/:domain/block` — admin bloklashtiradi (requireInternalSecret)
+  - [ ] `PATCH /internal/admin/domains/:domain/unblock` — admin blokni oladi
+  - [ ] `GET /internal/admin/domains` — barcha domenlar ro'yxati, pagination + filter (all/flagged/blocked) + search
+  - [ ] `GET /api/v1/content/blocked-domains` — public endpoint, blocked domenlar array, Redis cache 1 soat
+  - [ ] Cache invalidation: block/unblock qilinganda Redis cache tozalanadi
+
+---
+
+### T-S075 | P1 | [ADMIN] | Admin UI — Domain Management page (dynamic blocking)
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-05-08 22:30
+- **Holat:** ⏸️ Paused — admin UI blokidan keyin boshlanadi
+- **Tavsiya model:** sonnet
+- **Model sababi:** Admin UI yangi sahifa, jadval + filter + action tugmalar — sonnet optimal
+- **Sabab:** Admin barcha tashrif buyurilgan domenlarni ko'rishi va xavflilarni bloklashi kerak
+- **Bog'liq:** T-S074 tugagandan keyin
+- **Qilish kerak:**
+  - [ ] `/content/domains` sahifasi — barcha domenlar jadvali
+  - [ ] Ustunlar: Domain, Tashriflar soni, Mamlakat, Oxirgi ko'rilgan, Auto-flagged, Holat, Amallar
+  - [ ] Filter tablar: Hammasi / Auto-flagged / Bloklangan
+  - [ ] Domain bo'yicha qidiruv
+  - [ ] "Block" tugmasi → `PATCH /internal/admin/domains/:domain/block`
+  - [ ] "Unblock" tugmasi → `PATCH /internal/admin/domains/:domain/unblock`
+  - [ ] Bloklanganda jadval qatori qizil rangga o'tadi
 
 ---
 
