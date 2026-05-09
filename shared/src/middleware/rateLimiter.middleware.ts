@@ -37,7 +37,7 @@ export const apiRateLimiter = rateLimit({
   max: 100,
   standardHeaders: true,
   legacyHeaders: false,
-  passOnStoreError: true,
+  passOnStoreError: false,
   handler: tooManyRequestsHandler,
   store: new RedisStore({
     sendCommand: sendRedisCommand,
@@ -52,7 +52,7 @@ export const authRateLimiter = rateLimit({
   max: isDev ? 200 : 30,
   standardHeaders: true,
   legacyHeaders: false,
-  passOnStoreError: true,
+  passOnStoreError: false,
   handler: tooManyRequestsHandler,
   store: new RedisStore({
     sendCommand: sendRedisCommand,
@@ -80,7 +80,7 @@ export const userRateLimiter = rateLimit({
   max: 200,
   standardHeaders: true,
   legacyHeaders: false,
-  passOnStoreError: true,
+  passOnStoreError: false,
   keyGenerator: (req: Request) => {
     const userId = (req as AuthenticatedRequest).user?.userId;
     return userId ?? req.ip ?? 'unknown';

@@ -4,6 +4,27 @@
 
 ---
 
+### F-083 | T-S082-group | Security MEDIUM/LOW — issues #8,#9,#11,#12,#13,#15,#17,#18,#19
+
+- **Beruvchi:** Абдулазиз (audit 2026-05-08)
+- **Bajaruvchi:** Saidazim (Claude sonnet yordamida)
+- **Yaratilgan:** 2026-05-08 23:55
+- **Bajarilgan:** 2026-05-08 23:55
+- **Model:** sonnet
+- **O'zgarishlar:** auth.controller.ts, auth.config/index.ts, admin/app.ts, content/app.ts, rateLimiter.middleware.ts, docker-compose.dev.yml
+- **Xulosa:**
+  - #8: OTP response dan olib tashlandi → console.warn (dev only)
+  - #9: ES ports → 127.0.0.1 (loopback only), comment added for prod
+  - #11: Admin CORS wildcard '*' olib tashlandi → adminUrl only
+  - #12: HLS static → verifyToken middleware qo'shildi
+  - #13: passOnStoreError: true → false (barcha rate limiterlar)
+  - #15: superadminEmail hardcode → requireEnv('SUPERADMIN_EMAIL')
+  - #17: Telegram webhook secret: optional → mandatory (fail if not set)
+  - #18: Content CORS — existing behavior acceptable (server-to-server standard)
+  - #19: Redis fallback password → :? (fails loudly if not set)
+
+---
+
 ### F-077 | T-S076 | Security: /internal/user-watch-stats — requireInternalSecret
 
 - **Beruvchi:** Абдулазиз (audit 2026-05-08)

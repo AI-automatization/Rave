@@ -22,8 +22,8 @@ export const createApp = (redis: Redis): express.Application => {
   app.set('trust proxy', 1);
 
   app.use(helmet());
-  // Admin service: restricted CORS — admin UI + mobile ingest
-  app.use(cors({ origin: [config.adminUrl, '*'], credentials: true }));
+  // Admin service: restricted CORS — admin UI only (no wildcard)
+  app.use(cors({ origin: [config.adminUrl], credentials: true }));
   app.use(morgan('combined', { stream: morganStream }));
   app.use(express.json({ limit: '512kb' }));
   app.use(requestId);

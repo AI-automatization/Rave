@@ -10,9 +10,12 @@ export class AuthController {
     try {
       const { email, username, password } = req.body as { email: string; username: string; password: string };
       const devCode = await this.authService.initiateRegistration(email, username, password);
-      // In development, return OTP code in response (SMTP won't deliver in dev)
-      const data = devCode !== null ? { _dev_otp: devCode } : null;
-      res.status(200).json(apiResponse.success(data, 'Verification code sent to your email'));
+      if (devCode !== null) {
+        // Dev-only: log OTP to server console — never expose in API response
+        // eslint-disable-next-line no-console
+        console.warn(`[DEV] OTP for ${email}: ${devCode}`);
+      }
+      res.status(200).json(apiResponse.success(null, 'Verification code sent to your email'));
     } catch (error) {
       next(error);
     }
@@ -400,7 +403,7 @@ export class AuthController {
     try {
       const expectedSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
       const receivedSecret = req.headers['x-telegram-bot-api-secret-token'];
-      if (expectedSecret && receivedSecret !== expectedSecret) {
+      if (!expectedSecret || receivedSecret !== expectedSecret) {
         res.status(403).json(apiResponse.error('Forbidden'));
         return;
       }

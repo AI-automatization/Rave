@@ -42,7 +42,7 @@ services:
     restart: unless-stopped
     ports:
       - '6380:6379'
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-cinesync_redis_dev}
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required in .env.dev}
     volumes:
       - redis_data:/data
     networks:
@@ -54,11 +54,11 @@ services:
     restart: unless-stopped
     environment:
       - discovery.type=single-node
-      - xpack.security.enabled=false
+      - xpack.security.enabled=false  # dev only — enable in production with ELASTIC_PASSWORD
       - 'ES_JAVA_OPTS=-Xms512m -Xmx512m'
     ports:
-      - '9200:9200'
-      - '9300:9300'
+      - '127.0.0.1:9200:9200'
+      - '127.0.0.1:9300:9300'
     volumes:
       - es_data:/usr/share/elasticsearch/data
     networks:

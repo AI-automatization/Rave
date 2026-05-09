@@ -11,6 +11,7 @@ import { requestId } from '@shared/middleware/requestId.middleware';
 import { timeout } from '@shared/middleware/timeout.middleware';
 import { apiLogger } from '@shared/middleware/apiLogger.middleware';
 import { morganStream } from '@shared/utils/logger';
+import { verifyToken } from '@shared/middleware/auth.middleware';
 import { createContentRouter } from './routes/content.routes';
 import { createExternalVideoRouter } from './routes/externalVideo.routes';
 import { createWatchProgressRouter } from './routes/watchProgress.routes';
@@ -51,11 +52,9 @@ export const createApp = (redis: Redis, elastic: ElasticsearchClient): express.A
   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
   app.get('/api-docs.json', (_req, res) => res.json(swaggerSpec));
 
-  // HLS static files — authenticated access to transcoded segments (T-S005b)
-  // GET /api/v1/content/hls-files/:jobId/playlist.m3u8
-  // GET /api/v1/content/hls-files/:jobId/segment-000.ts
+  // HLS static files — JWT-protected (T-S005b)
   const hlsDir = process.env.HLS_OUTPUT_DIR ?? path.join('/tmp', 'cinesync-hls');
-  app.use('/api/v1/content/hls-files', express.static(hlsDir, { maxAge: 0 }));
+  app.use('/api/v1/content/hls-files', verifyToken, express.static(hlsDir, { maxAge: 0 }));
 
   app.use('/api/v1/content', createContentRouter(redis, elastic));
   app.use('/api/v1/content/external-videos', createExternalVideoRouter());

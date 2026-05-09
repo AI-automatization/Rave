@@ -1,83 +1,36 @@
 # CineSync — OCHIQ VAZIFALAR
 
-# Yangilangan: 2026-05-02
+# Yangilangan: 2026-05-08
 
 ---
 
+### T-S082 | P2 | [DEVOPS] | Security: Deploy workflows — CI/CD pipeline qo'shish | pending[Saidazim]
 
-
-
-### T-S077 | P0 | [BACKEND] | Security: prod URLs playwright.config dan o'chirish | pending[Saidazim]
 - **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Абдулазиз (audit 2026-05-08)
-- **Yaratilgan:** 2026-05-08 22:47
+- **Beruvchi:** Абдулазиз (audit 2026-05-08, issue #10)
+- **Yaratilgan:** 2026-05-08 23:55
 - **Holat:** ❌ Boshlanmagan
-- **Tavsiya model:** haiku
-- **Model sababi:** 1 fayl, env o'zgaruvchilari
-- **Sabab:** CRITICAL — prod URL'lar public repoda
+- **Tavsiya model:** sonnet
+- **Model sababi:** GitHub Actions workflow — yangi fayl, o'rta murakkablik
+- **Sabab:** MEDIUM — deploy workflows TODO stub, haqiqiy CI/CD yo'q
 - **Qilish kerak:**
-  - [ ] `playwright.config.ts` — `process.env.*` orqali olish
-  - [ ] `.env.example` ga placeholder
-  - [ ] `.gitignore` da `.env.test` borligini tekshirish
+  - [ ] `.github/workflows/ci.yml` — tsc + test har PR da
+  - [ ] `.github/workflows/deploy.yml` — Railway deploy main ga merge bo'lganda
 
 ---
 
-### T-S078 | P0 | [BACKEND] | Security: /init-admin va /clear-attempts — rate limit + auth | pending[Saidazim]
+### T-S083 | P3 | [BACKEND] | Quality: 26 god files (>15KB) — split eng katta 3 tasi | pending[Saidazim]
 
 - **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Абдулазиз (audit 2026-05-08)
-- **Yaratilgan:** 2026-05-08 23:33
+- **Beruvchi:** Абдулазиз (audit 2026-05-08, issue #16)
+- **Yaratilgan:** 2026-05-08 23:55
 - **Holat:** ❌ Boshlanmagan
-- **Tavsiya model:** haiku
-- **Model sababi:** 2 ta route, middleware qo'shish
-- **Sabab:** HIGH — /init-admin brute-force mumkin, /clear-attempts auth yo'q
+- **Tavsiya model:** opus
+- **Model sababi:** Ko'p fayllik refactor, SOLID, ichki arxitektura tushunish kerak
+- **Sabab:** MEDIUM maintainability — 26 fayl 15KB dan oshgan
 - **Qilish kerak:**
-  - [ ] `PUT /init-admin` — rate limit (5 req/15min per IP)
-  - [ ] `DELETE /clear-attempts` — `requireInternalSecret` yoki superadmin auth qo'shish
-
----
-
-### T-S079 | P0 | [BACKEND] | Security: JWT access token 6h → 15min | pending[Saidazim]
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Абдулазиз (audit 2026-05-08)
-- **Yaratilgan:** 2026-05-08 23:33
-- **Holat:** ❌ Boshlanmagan
-- **Tavsiya model:** haiku
-- **Model sababi:** config o'zgartirish, 1 fayl
-- **Sabab:** HIGH — 6 soatlik token xavfli, 15 daqiqa bo'lishi kerak
-- **Qilish kerak:**
-  - [ ] Auth service config: `JWT_EXPIRES_IN=15m`
-  - [ ] `.env.example` yangilash
-
----
-
-### T-S080 | P0 | [BACKEND] | Security: requireNotBlocked fail-closed qilish | pending[Saidazim]
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Абдулазиз (audit 2026-05-08)
-- **Yaratilgan:** 2026-05-08 23:33
-- **Holat:** ❌ Boshlanmagan
-- **Tavsiya model:** haiku
-- **Model sababi:** 1 fayl, error handling o'zgartirish
-- **Sabab:** HIGH — Redis xatosida foydalanuvchi bloklangani tekshirilmaydi (fail-open)
-- **Qilish kerak:**
-  - [ ] `shared/middleware/auth.middleware.ts`: Redis xatosida → 503 qaytarish, kirish berilmaydi
-
----
-
-### T-S081 | P1 | [DEVOPS] | Security: NEXTAUTH_SECRET docker-compose dan o'chirish | pending[Saidazim]
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Абдулазиз (audit 2026-05-08)
-- **Yaratilgan:** 2026-05-08 23:33
-- **Holat:** ❌ Boshlanmagan
-- **Tavsiya model:** haiku
-- **Model sababi:** config fayl, 1 qator o'zgartirish
-- **Sabab:** HIGH — NEXTAUTH_SECRET docker-compose da hardcode
-- **Qilish kerak:**
-  - [ ] `docker-compose*.yml`: hardcode secret → `${NEXTAUTH_SECRET}` env reference
-  - [ ] `.env.example` ga qo'shish
+  - [ ] `find . -name "*.ts" | xargs wc -l | sort -rn | head -30` — eng katta fayllar
+  - [ ] Top 3 faylni sub-modulga ajratish
 
 ---
 
