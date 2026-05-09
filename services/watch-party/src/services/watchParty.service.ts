@@ -369,6 +369,25 @@ export class WatchPartyService {
     }
   }
 
+  // Update currentTime in Redis + MongoDB without creating a full SyncState (used by heartbeat)
+  async updateCurrentTime(roomId: string, currentTime: number): Promise<void> {
+    const existing = await this.getSyncState(roomId);
+    if (existing) {
+      await this.cacheRoomState(roomId, { ...existing, currentTime, serverTimestamp: Date.now() });
+    }
+    await WatchPartyRoom.updateOne({ _id: roomId }, { currentTime, lastActivityAt: new Date() });
+  }
+
+  // Mark user as recently joined (30s grace window — join-buffer won't pause the room)
+  async trackJoin(roomId: string, userId: string): Promise<void> {
+    await this.redis.set(`party:joining:${roomId}:${userId}`, '1', 'EX', 30);
+  }
+
+  // Returns true if user joined less than 30s ago
+  async isRecentJoiner(roomId: string, userId: string): Promise<boolean> {
+    return (await this.redis.exists(`party:joining:${roomId}:${userId}`)) === 1;
+  }
+
   // Returns new buffering count — if 1, caller should pause the room
   async markBuffering(roomId: string, userId: string): Promise<number> {
     const key = REDIS_KEYS.bufferingUsers(roomId);

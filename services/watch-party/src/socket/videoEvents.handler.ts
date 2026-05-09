@@ -83,8 +83,8 @@ export const registerVideoEvents = (
       const room = await watchPartyService.getRoom(roomId);
       if (room.ownerId !== userId) return;
 
-      await watchPartyService.updateActivity(roomId);
-      await watchPartyService.getSyncState(roomId); // keep Redis TTL fresh
+      // Persist current position so BUFFER_START/resumeRoom always have fresh currentTime
+      await watchPartyService.updateCurrentTime(roomId, data.currentTime);
 
       const heartbeat = {
         currentTime: data.currentTime,
@@ -108,11 +108,15 @@ export const registerVideoEvents = (
     const existing = bufferTimeouts.get(roomId);
     if (existing) { clearTimeout(existing); bufferTimeouts.delete(roomId); }
 
-    const room = await watchPartyService.getRoom(roomId);
-    const syncState = await watchPartyService.syncState(roomId, room.ownerId, room.currentTime, true);
+    // Use Redis syncState for currentTime — always fresher than MongoDB (heartbeat keeps it updated)
+    const cached = await watchPartyService.getSyncState(roomId);
+    const ownerId = cached?.updatedBy ?? (await watchPartyService.getRoom(roomId)).ownerId;
+    const currentTime = cached?.currentTime ?? 0;
+
+    const syncState = await watchPartyService.syncState(roomId, ownerId, currentTime, true);
     io.to(roomId).emit(SERVER_EVENTS.VIDEO_PLAY, syncState);
     io.to(roomId).emit(SERVER_EVENTS.VIDEO_BUFFER, { userId, buffering: false });
-    logger.info('Buffer wait over — resumed room', { roomId });
+    logger.info('Buffer wait over — resumed room', { roomId, currentTime });
   };
 
   socket.on(CLIENT_EVENTS.BUFFER_START, async () => {
@@ -120,15 +124,25 @@ export const registerVideoEvents = (
     const roomId = authSocket.roomId;
 
     try {
+      // Grace period: new joiners buffer while loading — don't pause everyone for them
+      const isJoiner = await watchPartyService.isRecentJoiner(roomId, userId);
+      if (isJoiner) {
+        io.to(roomId).emit(SERVER_EVENTS.VIDEO_BUFFER, { userId, buffering: true });
+        return;
+      }
+
       const count = await watchPartyService.markBuffering(roomId, userId);
       io.to(roomId).emit(SERVER_EVENTS.VIDEO_BUFFER, { userId, buffering: true });
 
       if (count === 1) {
-        // First buffer — pause everyone
-        const room = await watchPartyService.getRoom(roomId);
-        const syncState = await watchPartyService.syncState(roomId, room.ownerId, room.currentTime, false);
+        // First buffer — pause everyone at the freshest known position (Redis, not MongoDB)
+        const cached = await watchPartyService.getSyncState(roomId);
+        const ownerId = cached?.updatedBy ?? (await watchPartyService.getRoom(roomId)).ownerId;
+        const currentTime = cached?.currentTime ?? 0;
+
+        const syncState = await watchPartyService.syncState(roomId, ownerId, currentTime, false);
         io.to(roomId).emit(SERVER_EVENTS.VIDEO_PAUSE, syncState);
-        logger.info('Democratic buffer pause', { roomId, userId });
+        logger.info('Democratic buffer pause', { roomId, userId, currentTime });
 
         // Safety: force resume after 30s
         const timeout = setTimeout(() => resumeRoom(roomId), MAX_BUFFER_WAIT_MS);
@@ -144,6 +158,13 @@ export const registerVideoEvents = (
     const roomId = authSocket.roomId;
 
     try {
+      // Grace period joiner — was never added to buffering set, just clear the indicator
+      const isJoiner = await watchPartyService.isRecentJoiner(roomId, userId);
+      if (isJoiner) {
+        io.to(roomId).emit(SERVER_EVENTS.VIDEO_BUFFER, { userId, buffering: false });
+        return;
+      }
+
       const remaining = await watchPartyService.unmarkBuffering(roomId, userId);
       if (remaining === 0) {
         await resumeRoom(roomId);

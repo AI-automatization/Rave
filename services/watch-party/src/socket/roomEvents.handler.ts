@@ -53,6 +53,9 @@ export const registerRoomEvents = (
 
       const syncState = await watchPartyService.getSyncState(data.roomId);
 
+      // Mark as recent joiner — 30s grace: their buffering won't pause the room
+      await watchPartyService.trackJoin(data.roomId, userId);
+
       socket.emit(SERVER_EVENTS.ROOM_JOINED, { room, syncState });
       socket.to(data.roomId).emit(SERVER_EVENTS.MEMBER_JOINED, { userId });
 
