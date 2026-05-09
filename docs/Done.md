@@ -4,6 +4,66 @@
 
 ---
 
+### F-212 | T-E115 | Bug: push notification cold-start → WatchParty navigate fix
+
+- **Beruvchi:** Saidazim
+- **Bajaruvchi:** Emirhan (Claude sonnet)
+- **Yaratilgan:** 2026-05-01 03:10
+- **Bajarilgan:** 2026-05-09 00:00
+- **Model:** sonnet
+- **O'zgarishlar:** 1 fayl — AppNavigator.tsx
+- **Xulosa:** `isNavReady` state + NavigationContainer `onReady` callback. Cold start: lastResponse set → NavigationContainer ready bo'lguncha wait. `isAuthenticated` + `needsProfileSetup` guard.
+
+---
+
+### F-213 | T-E116 | WatchParty video_source_expired — owner inline update button
+
+- **Beruvchi:** Saidazim
+- **Bajaruvchi:** Emirhan (Claude sonnet)
+- **Yaratilgan:** 2026-05-03 00:00
+- **Bajarilgan:** 2026-05-09 00:00
+- **Model:** sonnet
+- **O'zgarishlar:** 1 fayl — WatchPartyScreen.tsx
+- **Xulosa:** expiredBanner ichiga owner uchun "Обновить источник" tugmasi (handleChangeMedia). Non-owner: "хозяин обновит".
+
+---
+
+### F-214 | T-E112 | WatchParty active members strip
+
+- **Beruvchi:** Saidazim
+- **Bajaruvchi:** Emirhan (Claude sonnet)
+- **Yaratilgan:** 2026-05-01 03:10
+- **Bajarilgan:** 2026-05-09 00:00
+- **Model:** sonnet
+- **O'zgarishlar:** 2 fayl — MembersStrip.tsx (yangi), WatchPartyScreen.tsx
+- **Xulosa:** Horizontal scroll, `getPublicProfile` query (TanStack cache), avatar/doira+initials, owner ⭐, self highlight, +N overflow.
+
+---
+
+### F-215 | T-E113 | WatchParty Chat sender username
+
+- **Beruvchi:** Saidazim
+- **Bajaruvchi:** Emirhan (Claude sonnet)
+- **Yaratilgan:** 2026-05-01 03:10
+- **Bajarilgan:** 2026-05-09 00:00
+- **Model:** sonnet
+- **O'zgarishlar:** 1 fayl — useWatchParty.ts
+- **Xulosa:** ROOM_MESSAGE da username yo'q (T-S084). Mobile: QueryClient `user-public` cache dan username resolve. Fallback: userId[-4:].
+
+---
+
+### F-216 | T-E114 | WatchParty Chat reply to message (Telegram style)
+
+- **Beruvchi:** Saidazim
+- **Bajaruvchi:** Emirhan (Claude sonnet)
+- **Yaratilgan:** 2026-05-01 03:10
+- **Bajarilgan:** 2026-05-09 00:00
+- **Model:** sonnet
+- **O'zgarishlar:** 3 fayl — ChatPanel.tsx, useWatchParty.ts, WatchPartyScreen.tsx
+- **Xulosa:** Long press → replyTo state. Input yuqori: preview bar (sender + snippet + X). Bubble ichida reply reference. sendMessage emit da replyTo payload.
+
+---
+
 ### F-084 | T-S084 T-S085 T-S086 | Support Chat system — backend + admin UI
 
 - **Beruvchi:** Saidazim
