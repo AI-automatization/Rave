@@ -2507,3 +2507,14 @@ MESH_JOIN/LEAVE бродкастятся всей комнате. Автомат
 ---
 
 _docs/Done.md | CineSync | Yangilangan: 2026-04-18_
+
+
+### F-074 | T-S072 | URL Telemetry — Anonymous domain analytics endpoint
+
+- **Beruvchi:** Emirhan
+- **Bajaruvchi:** Saidazim (Claude Sonnet yordamida)
+- **Yaratilgan:** 2026-05-07 00:00
+- **Bajarilgan:** 2026-05-08 22:25
+- **Model:** sonnet
+- **O'zgarishlar:** 4 yangi fayl — urlVisit.model.ts, urlVisit.controller.ts, urlVisit.routes.ts, urlVisitCron.worker.ts + app.ts, server.ts
+- **Xulosa:** POST /api/v1/content/url-visit — anon domain analytics. Rate limit 10/min per IP. Auto-flag adult domains on write + 24h cron. No userId stored.
