@@ -2528,3 +2528,13 @@ _docs/Done.md | CineSync | Yangilangan: 2026-04-18_
 - **Model:** sonnet
 - **O'zgarishlar:** 3 yangi fayl — domain.controller.ts, domain.routes.ts + urlVisit.model.ts updated, app.ts
 - **Xulosa:** GET /blocked-domains (public, Redis 1h cache), GET/PATCH /internal/admin/domains (pagination+filter+search), block/unblock invalidates cache
+
+### F-076 | T-S075 | Admin UI — Domain Management page (dynamic blocking)
+
+- **Beruvchi:** Saidazim
+- **Bajaruvchi:** Saidazim (Claude Sonnet yordamida)
+- **Yaratilgan:** 2026-05-08 22:30
+- **Bajarilgan:** 2026-05-08 23:10
+- **Model:** sonnet
+- **O'zgarishlar:** domains.api.ts, DomainsPage.tsx, App.tsx, Sidebar.tsx, Layout.tsx, admin.routes.ts, admin.controller.ts, admin.service.ts, serviceClient.ts
+- **Xulosa:** /domains sahifasi — barcha domenlar jadvali, filter (all/flagged/blocked), search, block/unblock tugmalar, Redis cache invalidation
