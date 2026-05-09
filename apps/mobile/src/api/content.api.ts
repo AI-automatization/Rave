@@ -204,6 +204,10 @@ export const contentApi = {
     });
     return res.data.data ?? [];
   },
+
+  async trackDomainVisit(domain: string): Promise<void> {
+    await contentClient.post('/domains/visit', { domain });
+  },
 };
 
 export interface VideoSearchItem {
