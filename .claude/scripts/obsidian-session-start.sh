@@ -140,7 +140,21 @@ if [[ -f "$VENV/bin/python" ]] && [[ -f "$CONFIG_FILE" ]] && ! grep -q "YOUR_API
   if [[ -n "$TG_OUT" ]]; then
     echo "$TG_OUT"
   else
-    echo "━━━ 💬 TEZCODE — (нет ответа за 20с, мониторинг запущен) ━━━"
+    # Fallback: читаем tg_messages.log напрямую
+    TG_LOG="$HOME/tg_messages.log"
+    TODAY=$(date '+%Y-%m-%d')
+    YESTERDAY=$(date -v-1d '+%Y-%m-%d' 2>/dev/null || date -d 'yesterday' '+%Y-%m-%d' 2>/dev/null || echo "")
+    echo "━━━ 💬 TEZCODE — TELEGRAM (последние сообщения) ━━━"
+    if [[ -f "$TG_LOG" ]]; then
+      MSGS=$(grep -E "^\[($TODAY|$YESTERDAY)" "$TG_LOG" 2>/dev/null | grep "TEZCODE" | tail -20 || true)
+      if [[ -n "$MSGS" ]]; then
+        echo "$MSGS"
+      else
+        echo "(нет сообщений за последние 2 дня)"
+      fi
+    else
+      echo "(tg_messages.log не найден — мониторинг запущен в фоне)"
+    fi
   fi
 else
   # Fallback: читаем tg_messages.log если есть

@@ -1,6 +1,101 @@
 # CineSync — OCHIQ VAZIFALAR
 
-# Yangilangan: 2026-05-08
+# Yangilangan: 2026-05-09
+
+---
+
+### T-S084 | P1 | [BACKEND] | Support Chat — backend service: conversations + messages API | pending[Saidazim]
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-05-09 14:06
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** Yangi MongoDB kolleksiyalar + REST API, 4-6 fayl, o'rta murakkablik
+- **Sabab:** Admin errorlar sahifasida foydalanuvchi bilan chat kerak + alohida support sahifasi
+- **Qilish kerak:**
+  - [ ] `SupportConversation` model — `{ userId, issueRef?, status, createdAt }`
+  - [ ] `SupportMessage` model — `{ conversationId, senderId, senderRole, text, createdAt }`
+  - [ ] Admin service routes: POST /support/conversations, GET /support/conversations, GET /support/conversations/:id/messages, POST /support/conversations/:id/messages
+  - [ ] Internal route: GET /internal/support/user/:userId/conversations (mobile uchun)
+  - [ ] Pagination + status filter (open/closed)
+  - [ ] Socket.io event: `support:new_message` (real-time)
+- **Bog'liq:** T-S085 (admin routes), T-E118 (mobile)
+
+---
+
+### T-S085 | P1 | [ADMIN] | Admin UI — ErrorsPage: chat panel in EventDrawer | pending[Saidazim]
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-05-09 14:06
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** Admin UI React component — EventDrawer ichiga chat panel, 2-3 fayl
+- **Sabab:** Admin error detallarini ko'rganida o'sha foydalanuvchiga darhol xabar yozolmaydi
+- **Qilish kerak:**
+  - [ ] `errors.api.ts` ga support API calls qo'shish
+  - [ ] EventDrawer — yangi "Chat with user" tab/section
+  - [ ] Conversation yaratish yoki mavjudini topish (by userId)
+  - [ ] Message list + message input
+  - [ ] Poll yoki WebSocket — yangi xabarlar avtomatik ko'rinsin
+- **Bog'liq:** T-S084 (backend), T-S086 (SupportPage)
+
+---
+
+### T-S086 | P1 | [ADMIN] | Admin UI — new SupportPage: ticket list + conversation view | pending[Saidazim]
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-05-09 14:06
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** Yangi sahifa — conversation list + chat view, 3-4 fayl (page + api + components)
+- **Sabab:** Support uchun alohida sahifa kerak — barcha foydalanuvchi murojaat qilgan joylari
+- **Qilish kerak:**
+  - [ ] `apps/admin-ui/src/pages/SupportPage.tsx` — yangi sahifa
+  - [ ] Left: conversation list (status filter: open/closed/all, search by username)
+  - [ ] Right: selected conversation — message history + reply input
+  - [ ] "Close conversation" tugmasi
+  - [ ] Route qo'shish: `/support`
+  - [ ] Sidebar ga "Support" link qo'shish (badge: open count)
+- **Bog'liq:** T-S084, T-S085
+
+---
+
+### T-E118 | P1 | [MOBILE] | In-app Support Chat — user can contact support + see replies | pending[Emirhan]
+
+- **Mas'ul:** pending[Emirhan]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-05-09 14:06
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** Yangi screen + API integration + navigation, 3-5 fayl
+- **Sabab:** Foydalanuvchi muammosi bo'lganda ilovadan chiqmasdan support bilan bog'lanolsin
+- **Qilish kerak:**
+  - [ ] `SupportChatScreen.tsx` — message history + input
+  - [ ] API: GET /internal/support/user/:userId/conversations, POST messages
+  - [ ] Profile/Settings sahifasida "Support" tugmasi
+  - [ ] Conversation yo'q bo'lsa — avtomatik yaratish
+  - [ ] Push notification handler — support reply kelganda chatga o'tish
+- **Bog'liq:** T-S084 (backend), T-E119 (push)
+
+---
+
+### T-E119 | P2 | [MOBILE] | Push notification — support reply received | pending[Emirhan]
+
+- **Mas'ul:** pending[Emirhan]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-05-09 14:06
+- **Holat:** ❌ Boshlanmagan
+- **Holat:** ❌ Boshlanmagan — T-E118 tugagandan keyin
+- **Tavsiya model:** haiku
+- **Model sababi:** Notification handler + deep link — 1-2 fayl, oddiy
+- **Sabab:** Admin javob berganda foydalanuvchi bilmaydi — push notification kerak
+- **Qilish kerak:**
+  - [ ] Backend (T-S084 ichida): admin message post → FCM push to userId
+  - [ ] Mobile: notification type `support_reply` → navigate to SupportChatScreen
+- **Bog'liq:** T-E118
 
 ---
 
