@@ -60,10 +60,13 @@ export function WatchPartyScreen() {
         <View style={s.expiredBanner}>
           <Ionicons name="warning-outline" size={16} color="#F59E0B" />
           <Text style={s.expiredText}>
-            {isOwner
-              ? 'Видео источник устарел — обновите видео через «+»'
-              : 'Видео источник устарел. Попросите владельца обновить видео'}
+            {isOwner ? 'Видео источник устарел' : 'Видео источник устарел — хозяин обновит'}
           </Text>
+          {isOwner && (
+            <TouchableOpacity style={s.expiredBtn} onPress={handleChangeMedia}>
+              <Text style={s.expiredBtnText}>Обновить источник</Text>
+            </TouchableOpacity>
+          )}
         </View>
       )}
       <VideoSection
@@ -232,6 +235,8 @@ const useStyles = createThemedStyles((colors) => ({
   errorBtnText: { color: colors.white, fontWeight: '700', fontSize: 15 },
   expiredBanner: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, backgroundColor: 'rgba(245,158,11,0.12)', paddingVertical: spacing.sm, paddingHorizontal: spacing.md, borderBottomWidth: 1, borderBottomColor: 'rgba(245,158,11,0.25)' },
   expiredText: { ...typography.caption, color: '#F59E0B', fontWeight: '600', flex: 1 },
+  expiredBtn: { backgroundColor: '#F59E0B', paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: borderRadius.lg },
+  expiredBtnText: { color: '#000', fontWeight: '700', fontSize: 12 },
   adminBanner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs, backgroundColor: 'rgba(245,158,11,0.12)', paddingVertical: spacing.xs, paddingHorizontal: spacing.md },
   adminBannerText: { ...typography.caption, color: colors.warning, fontWeight: '600' },
   playlistSheet: {
