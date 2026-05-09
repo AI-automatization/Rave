@@ -1,7 +1,21 @@
 # CineSync — BAJARILGAN ISHLAR ARXIVI
 
-<<<<<<< HEAD
-# Yangilangan: 2026-05-08
+# Yangilangan: 2026-05-09
+
+---
+
+### F-084 | T-S084 T-S085 T-S086 | Support Chat system — backend + admin UI
+
+- **Beruvchi:** Saidazim
+- **Bajaruvchi:** Saidazim (Claude sonnet yordamida)
+- **Yaratilgan:** 2026-05-09 14:06
+- **Bajarilgan:** 2026-05-09 14:22
+- **Model:** sonnet
+- **O'zgarishlar:** 11 fayl — supportConversation.model.ts, supportMessage.model.ts, support.service.ts, support.controller.ts, support.routes.ts, admin/app.ts, support.api.ts, ErrorsPage.tsx, SupportPage.tsx, App.tsx, Sidebar.tsx
+- **Xulosa:**
+  - T-S084: SupportConversation + SupportMessage MongoDB models; REST API (getOrCreate, list, messages, send, close); internal routes for mobile; FCM push on admin reply
+  - T-S085: ErrorsPage — UserChatPanel компонент встроен в EventDrawer, inline чат с пользователем
+  - T-S086: SupportPage — ticket list (status filter, search, pagination) + conversation chat view + reply input + close button; Sidebar badge с количеством открытых диалогов
 
 ---
 
@@ -95,8 +109,6 @@
 - **Model:** haiku
 - **O'zgarishlar:** docker-compose.dev.yml, .env.dev.example
 - **Xulosa:** hardcode "cinesync_dev_nextauth_secret_2026" → ${NEXTAUTH_SECRET} env reference
-=======
-# Yangilangan: 2026-05-09
 
 ---
 
@@ -109,7 +121,6 @@
 - **Model:** sonnet
 - **O'zgarishlar:** 2 fayl — `blockedDomains.ts` (yangi), `MediaWebViewScreen.tsx`
 - **Xulosa:** 150+ adult domen blacklist, `isDomainBlocked()` utility, `onShouldStartLoadWithRequest` intercept (MEDIA_DETECTION_JS/socket events TEGMAGAN), blocked overlay UI (shield icon + domain name + "← Назад"). tsc: CLEAN.
->>>>>>> 41ae39e (fix(mobile): T-E111 done — move to Done.md, update Tasks.md [Emirhan])
 
 ---
 
