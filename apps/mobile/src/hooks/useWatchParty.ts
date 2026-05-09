@@ -1,9 +1,10 @@
 // CineSync Mobile — useWatchParty hook
 import { useEffect, useCallback, useState, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useWatchPartyStore } from '@store/watchParty.store';
 import { useAuthStore } from '@store/auth.store';
 import { connectSocket, disconnectSocket, getSocket, SERVER_EVENTS, CLIENT_EVENTS } from '@socket/client';
-import { SyncState, IWatchPartyRoom, VideoPlatform } from '@app-types/index';
+import { SyncState, IWatchPartyRoom, VideoPlatform, IUserPublic } from '@app-types/index';
 
 interface MemberEvent {
   userId: string;
@@ -38,6 +39,7 @@ export interface ReactionBroadcast {
 const VIDEO_HEARTBEAT_EVENT = 'video:heartbeat';
 
 export function useWatchParty(roomId: string) {
+  const queryClient = useQueryClient();
   const token = useAuthStore(s => s.accessToken);
   const tokenRef = useRef(token);
   tokenRef.current = token;
@@ -100,7 +102,8 @@ export function useWatchParty(roomId: string) {
     socket.on(SERVER_EVENTS.VIDEO_SEEK, (state: SyncState) => setSyncState(state));
 
     socket.on(SERVER_EVENTS.ROOM_MESSAGE, (msg: MessageEvent) => {
-      addMessage({ id: `${msg.userId}-${msg.timestamp}`, userId: msg.userId, username: '', avatar: null, text: msg.message, timestamp: msg.timestamp });
+      const cached = queryClient.getQueryData<IUserPublic>(['user-public', msg.userId]);
+      addMessage({ id: `${msg.userId}-${msg.timestamp}`, userId: msg.userId, username: cached?.username ?? msg.userId.slice(-4), avatar: cached?.avatar ?? null, text: msg.message, timestamp: msg.timestamp });
     });
 
     socket.on(SERVER_EVENTS.MEMBER_JOINED, (data: MemberEvent) => addMember(data.userId));
