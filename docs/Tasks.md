@@ -7,6 +7,36 @@
 
 
 
+### T-S076 | P0 | [BACKEND] | Security: /internal/user-watch-stats — добавить аутентификацию | pending[Saidazim]
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Абдулазиз (audit 2026-05-08)
+- **Yaratilgan:** 2026-05-08 22:47
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** haiku
+- **Model sababi:** 1 fayl, 1 qator — middleware qo'shish
+- **Sabab:** CRITICAL — /internal/user-watch-stats autentifikatsiyasiz. Har qanday userId bilan user ma'lumotlarini o'qish mumkin.
+- **Qilish kerak:**
+  - [ ] `content.routes.ts`: `/internal/user-watch-stats/:userId` ga `requireInternalSecret` middleware qo'shish
+
+---
+
+### T-S077 | P0 | [BACKEND] | Security: production Railway URLs — playwright.config dan o'chirish | pending[Saidazim]
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Абдулазиз (audit 2026-05-08)
+- **Yaratilgan:** 2026-05-08 22:47
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** haiku
+- **Model sababi:** 1 fayl, config o'zgartirish
+- **Sabab:** CRITICAL — 7 ta backend service URL'lari playwright.config da public repoda ochiq. Hacker ularni ko'ra oladi.
+- **Qilish kerak:**
+  - [ ] `playwright.config.ts` (yoki `.env.test`) — prod URL'larni `process.env.*` orqali olish
+  - [ ] `.env.example` ga placeholder qo'shish
+  - [ ] `.gitignore` da `.env.test` borligini tekshirish
+
+---
+
 ### T-E116 | P1 | [MOBILE] | WatchParty — video_source_expired: улучшить UX для owner | pending[Emirhan]
 
 - **Mas'ul:** pending[Emirhan]
