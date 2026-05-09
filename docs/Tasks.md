@@ -141,21 +141,20 @@
 
 ### T-E111 | P1 | [MOBILE] | Content Filter — Dynamic blocked-domains + WebView protection
 
-- **Mas'ul:** pending[Emirhan] ✅ claimed
+- **Mas'ul:** pending[Emirhan]
 - **Beruvchi:** Emirhan
 - **Yaratilgan:** 2026-05-07 00:00
-- **Holat:** ❌ Boshlanmagan — arxitektura o'zgardi (T-S074 tugagandan keyin boshlanadi)
+- **Holat:** 🔄 Qisman (static blacklist ✅) — T-S074 tugagandan keyin dinamik qism boshlanadi
 - **Tavsiya model:** sonnet
 - **Model sababi:** hook + AsyncStorage + WebView callback — 3-4 fayl
 - **Sabab:** Play Store adult kontentga ruxsat beruvchi WebView ilovalarni bloklaydi. Ro'yxat endi dinamik — backenddan keladi.
 - **Bog'liq:** T-S074 tugagandan keyin (GET /api/v1/content/blocked-domains tayyor bo'lishi kerak)
 - **Qilish kerak:**
+  - [x] `blockedDomains.ts` — 150+ static domen + `isDomainBlocked()` utility (DONE F-190)
+  - [x] `MediaWebViewScreen.tsx` — `onShouldStartLoadWithRequest` + blocked overlay (DONE F-190)
   - [ ] `useBlockedDomains.ts` hook — app start da `GET /api/v1/content/blocked-domains` → AsyncStorage cache, 24h refresh
-  - [ ] `isDomainBlocked(url, blockedList)` utility — hostname parse + list check
-  - [ ] `MediaWebViewScreen.tsx` — `onShouldStartLoadWithRequest` callback (MEDIA_DETECTION_JS TEGMA)
-  - [ ] Bloklanganda Toast: "Bu sayt bloklangan" + orqaga qaytish
-  - [ ] Fallback: network yo'q bo'lsa → AsyncStorage dagi oxirgi ro'yxatdan foydalanish
-  - [ ] `url-visit` endpoint ga domain yuborish (T-S072 ✅)
+  - [ ] `isDomainBlocked` ni dinamik ro'yxat bilan yangilash
+  - [ ] Fallback: network yo'q bo'lsa → static blacklist dan foydalanish
 - **Kontekst himoyasi:**
   - `MEDIA_DETECTION_JS` — O'ZGARTIRMA
   - `useWatchParty.ts` / socket events — O'ZGARTIRMA

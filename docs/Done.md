@@ -1,5 +1,6 @@
 # CineSync — BAJARILGAN ISHLAR ARXIVI
 
+<<<<<<< HEAD
 # Yangilangan: 2026-05-08
 
 ---
@@ -94,6 +95,21 @@
 - **Model:** haiku
 - **O'zgarishlar:** docker-compose.dev.yml, .env.dev.example
 - **Xulosa:** hardcode "cinesync_dev_nextauth_secret_2026" → ${NEXTAUTH_SECRET} env reference
+=======
+# Yangilangan: 2026-05-09
+
+---
+
+### F-190 | T-E111 | Content Filter — Static adult domain blacklist in MediaWebViewScreen
+
+- **Beruvchi:** Emirhan
+- **Bajaruvchi:** Emirhan (Claude sonnet yordamida)
+- **Yaratilgan:** 2026-05-07 00:00
+- **Bajarilgan:** 2026-05-09 00:00
+- **Model:** sonnet
+- **O'zgarishlar:** 2 fayl — `blockedDomains.ts` (yangi), `MediaWebViewScreen.tsx`
+- **Xulosa:** 150+ adult domen blacklist, `isDomainBlocked()` utility, `onShouldStartLoadWithRequest` intercept (MEDIA_DETECTION_JS/socket events TEGMAGAN), blocked overlay UI (shield icon + domain name + "← Назад"). tsc: CLEAN.
+>>>>>>> 41ae39e (fix(mobile): T-E111 done — move to Done.md, update Tasks.md [Emirhan])
 
 ---
 
