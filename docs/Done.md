@@ -4,6 +4,18 @@
 
 ---
 
+### F-193 | T-S088 | Support chat — internal messages endpoint for mobile
+
+- **Beruvchi:** Saidazim (bug topildi)
+- **Bajaruvchi:** Saidazim (Claude sonnet yordamida)
+- **Yaratilgan:** 2026-05-09 18:00
+- **Bajarilgan:** 2026-05-09 18:05
+- **Model:** haiku
+- **O'zgarishlar:** 2 fayl — support.routes.ts, support.controller.ts
+- **Xulosa:** GET /internal/support/user/:userId/conversations/:convId/messages qo'shildi — verifyToken + ownership check. T-E121 (Emirhan) uchun unblock.
+
+---
+
 ### F-191 | T-S087 | Support chat internal routes — JWT auth instead of internal secret
 
 - **Beruvchi:** Emirhan (mobile implementatsiyasi chog'ida topildi)

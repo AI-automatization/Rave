@@ -44,18 +44,6 @@
 ---
 
 
-### T-S088 | P0 | [BACKEND] | Support chat — internal messages endpoint for mobile | wip[Saidazim]
-
-- **Mas'ul:** wip[Saidazim]
-- **Beruvchi:** Saidazim (bug topildi)
-- **Yaratilgan:** 2026-05-09 18:00
-- **Holat:** 🔄 Bajarilmoqda
-- **Tavsiya model:** haiku
-- **Model sababi:** 1 route + 1 controller method
-- **Sabab:** GET /support/conversations/:id/messages faqat admin uchun — mobile sms ololmaydi, SupportChatScreen har doim bo'sh
-
----
-
 ### T-S082 | P2 | [DEVOPS] | Security: Deploy workflows — CI/CD pipeline qo'shish | pending[Saidazim]
 
 - **Mas'ul:** pending[Saidazim]
