@@ -37,7 +37,7 @@
 
 ---
 
-### T-S087 | P1 | [BACKEND] | Support chat internal routes — JWT auth instead of internal secret | pending[Saidazim]
+### T-S087 | P1 | [BACKEND] | Support chat internal routes — JWT auth instead of internal secret | wip[Saidazim]
 
 - **Mas'ul:** pending[Saidazim]
 - **Beruvchi:** Emirhan (mobile implementatsiyasi chog'ida topildi)
@@ -162,7 +162,7 @@
 
 ---
 
-### T-S084 | P2 | [BACKEND] | WatchParty chat — add username to ROOM_MESSAGE socket payload | pending[Saidazim]
+### T-S084 | P2 | [BACKEND] | WatchParty chat — add username to ROOM_MESSAGE socket payload | wip[Saidazim]
 
 - **Mas'ul:** pending[Saidazim]
 - **Beruvchi:** Emirhan
