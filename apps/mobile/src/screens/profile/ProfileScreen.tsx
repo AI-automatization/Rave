@@ -101,7 +101,7 @@ export function ProfileScreen() {
   if (!displayUser) {
     return (
       <ProfileEmptyState
-        isLoading={profileQuery.isLoading}
+        isLoading={profileQuery.isLoading && !profileQuery.isError}
         titleLabel={t('profile', 'title')}
         retryLabel={t('common', 'retry') || 'Retry'}
         onRetry={() => profileQuery.refetch()}

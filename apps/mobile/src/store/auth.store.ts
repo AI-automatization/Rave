@@ -110,26 +110,34 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               // Bu isOwner ni to'g'ri ishlashi uchun zarur (userId = null bo'lsa isOwner false)
               try {
                 const payload = JSON.parse(atob(accessToken.split('.')[1]));
-                set({
-                  user: {
-                    _id: payload.userId ?? userId ?? '',
-                    email: payload.email ?? '',
-                    username: payload.username ?? payload.email?.split('@')[0] ?? 'User',
-                    avatar: null,
-                    bio: '',
-                    role: payload.role ?? 'user',
-                    rank: 'Bronze',
-                    totalPoints: 0,
-                    isEmailVerified: payload.isEmailVerified ?? false,
-                    isBlocked: false,
-                    fcmTokens: [],
-                    lastLoginAt: null,
-                    createdAt: new Date(),
-                    updatedAt: new Date(),
-                  },
-                });
+                // Expired JWT bilan app ni authenticated holatda qoldirmaslik
+                if (payload.exp && payload.exp * 1000 < Date.now()) {
+                  await tokenStorage.clear();
+                  set({ accessToken: null, isAuthenticated: false });
+                } else {
+                  set({
+                    user: {
+                      _id: payload.userId ?? userId ?? '',
+                      email: payload.email ?? '',
+                      username: payload.username ?? payload.email?.split('@')[0] ?? 'User',
+                      avatar: null,
+                      bio: '',
+                      role: payload.role ?? 'user',
+                      rank: 'Bronze',
+                      totalPoints: 0,
+                      isEmailVerified: payload.isEmailVerified ?? false,
+                      isBlocked: false,
+                      fcmTokens: [],
+                      lastLoginAt: null,
+                      createdAt: new Date(),
+                      updatedAt: new Date(),
+                    },
+                  });
+                }
               } catch {
-                // JWT decode failed — user qoladi null
+                // JWT decode failed — invalid token, clean state
+                await tokenStorage.clear();
+                set({ accessToken: null, isAuthenticated: false });
               }
             }
             // Token saqlanadi, keyingi sessiyada getMe qayta urinadi
