@@ -1,4 +1,5 @@
 import { adminClient } from './client';
+import { useAuthStore } from '@store/auth.store';
 
 export interface Appeal {
   _id: string;
@@ -12,7 +13,12 @@ export interface Appeal {
 
 export const appealApi = {
   create: async (message: string, banReason?: string): Promise<Appeal> => {
-    const { data } = await adminClient.post<{ data: Appeal }>('/api/v1/internal/moderation/appeals', { message, banReason });
+    // Include userId from store so blocked users (no JWT) can still be identified
+    const userId = useAuthStore.getState().user?._id;
+    const { data } = await adminClient.post<{ data: Appeal }>(
+      '/api/v1/internal/moderation/appeals',
+      { message, banReason, ...(userId ? { userId } : {}) },
+    );
     return data.data;
   },
 };

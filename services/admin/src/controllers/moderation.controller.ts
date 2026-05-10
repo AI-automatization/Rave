@@ -27,11 +27,13 @@ export class ModerationController {
   // POST /internal/moderation/appeals — mobile
   createAppeal = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const user = (req as Request & { user?: { userId: string } }).user;
-      if (!user) { res.status(401).json(apiResponse.error('Unauthorized')); return; }
-      const { message, banReason } = req.body as { message: string; banReason?: string };
+      // Blocked users have no valid JWT — accept userId from body as fallback
+      const jwtUser = (req as Request & { user?: { userId: string } }).user;
+      const { message, banReason, userId: bodyUserId } = req.body as { message: string; banReason?: string; userId?: string };
+      const userId = jwtUser?.userId ?? bodyUserId;
+      if (!userId) { res.status(400).json(apiResponse.error('userId required')); return; }
       if (!message?.trim()) { res.status(400).json(apiResponse.error('message required')); return; }
-      const appeal = await this.service.createAppeal(user.userId, message.trim(), banReason);
+      const appeal = await this.service.createAppeal(userId, message.trim(), banReason);
       res.status(201).json(apiResponse.success(appeal));
     } catch (err) { next(err); }
   };
