@@ -168,7 +168,11 @@ export function SupportChatScreen() {
       if (activeConv?._id) {
         queryClient.setQueryData<SupportMessage[]>(
           ['support-messages', activeConv._id],
-          (old) => [...(old ?? []), newMsg],
+          (old) => {
+            const existing = old ?? [];
+            if (existing.some(m => m._id === newMsg._id)) return existing;
+            return [...existing, newMsg];
+          },
         );
       }
     },
