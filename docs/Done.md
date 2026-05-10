@@ -4,6 +4,18 @@
 
 ---
 
+### F-194 | T-E121 | Support chat — fix messages not loading + not appearing after send
+
+- **Beruvchi:** Saidazim (bug topildi)
+- **Bajaruvchi:** Saidazim (Claude sonnet yordamida)
+- **Yaratilgan:** 2026-05-09 18:00
+- **Bajarilgan:** 2026-05-09 18:10
+- **Model:** haiku
+- **O'zgarishlar:** 2 fayl — support.api.ts, SupportChatScreen.tsx
+- **Xulosa:** queryFn har doim [] qaytarardi — endi listMessages() chaqiriladi. onSuccess optimistic update qo'shildi — xabar darhol ko'rinadi.
+
+---
+
 ### F-193 | T-S088 | Support chat — internal messages endpoint for mobile
 
 - **Beruvchi:** Saidazim (bug topildi)
