@@ -27,6 +27,14 @@ export const supportApi = {
     return data.data;
   },
 
+  listMessages: async (userId: string, convId: string, page = 1): Promise<SupportMessage[]> => {
+    const { data } = await adminClient.get<{ data: SupportMessage[] }>(
+      `/internal/support/user/${userId}/conversations/${convId}/messages`,
+      { params: { page, limit: 50 } },
+    );
+    return data.data ?? [];
+  },
+
   sendMessage: async (userId: string, text: string, conversationId?: string): Promise<SupportMessage> => {
     const { data } = await adminClient.post<{ data: SupportMessage }>(
       `/internal/support/user/${userId}/message`,

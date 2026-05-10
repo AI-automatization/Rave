@@ -55,21 +55,18 @@ export function SupportChatScreen() {
 
   const { data: messages, isLoading: msgLoading } = useQuery<SupportMessage[]>({
     queryKey: ['support-messages', activeConv?._id],
-    queryFn: async () => {
-      if (!activeConv) return [];
-      // Reload conversations list as messages — messages are embedded via userSendMessage flow
-      // We refetch conversations to get the latest state; messages come from a separate reload
-      return [];
-    },
+    queryFn: () => supportApi.listMessages(userId, activeConv!._id),
     enabled: !!activeConv,
   });
 
   const sendMutation = useMutation({
     mutationFn: (text: string) =>
       supportApi.sendMessage(userId, text, activeConv?._id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['support-conversations', userId] });
-      queryClient.invalidateQueries({ queryKey: ['support-messages', activeConv?._id] });
+    onSuccess: (newMsg) => {
+      queryClient.setQueryData<SupportMessage[]>(
+        ['support-messages', activeConv?._id],
+        (old) => [...(old ?? []), newMsg],
+      );
     },
   });
 
