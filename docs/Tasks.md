@@ -44,6 +44,18 @@
 ---
 
 
+### T-S088 | P0 | [BACKEND] | Support chat — internal messages endpoint for mobile | wip[Saidazim]
+
+- **Mas'ul:** wip[Saidazim]
+- **Beruvchi:** Saidazim (bug topildi)
+- **Yaratilgan:** 2026-05-09 18:00
+- **Holat:** 🔄 Bajarilmoqda
+- **Tavsiya model:** haiku
+- **Model sababi:** 1 route + 1 controller method
+- **Sabab:** GET /support/conversations/:id/messages faqat admin uchun — mobile sms ololmaydi, SupportChatScreen har doim bo'sh
+
+---
+
 ### T-S082 | P2 | [DEVOPS] | Security: Deploy workflows — CI/CD pipeline qo'shish | pending[Saidazim]
 
 - **Mas'ul:** pending[Saidazim]
@@ -161,6 +173,35 @@
 ---
 
 *(Sprint 1..7 TUGADI — Sprint 8: MVP Release — Sprint 9: Sync Optimizatsiya)*
+
+---
+
+### T-E121 | P0 | [MOBILE] | Support chat — fix messages not loading + not appearing after send | pending[Emirhan]
+
+- **Mas'ul:** pending[Emirhan]
+- **Beruvchi:** Saidazim (bug topildi)
+- **Yaratilgan:** 2026-05-09 18:00
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** haiku
+- **Model sababi:** 2 fayl, bug fix — queryFn va api method
+- **Sabab:** SupportChatScreen.tsx queryFn har doim [] qaytaradi — API chaqirilmaydi. support.api.ts da listMessages metodi yo'q.
+- **Bog'liq:** T-S088 (backend internal route tayyor bo'lishi kerak — bugun bajariladi)
+- **Qilish kerak:**
+  - [ ] `apps/mobile/src/api/support.api.ts` — `listMessages(userId, convId, page?)` metodi qo'shish:
+    ```typescript
+    listMessages: async (userId: string, convId: string, page = 1): Promise<SupportMessage[]> => {
+      const { data } = await adminClient.get<{ data: SupportMessage[] }>(
+        `/internal/support/user/${userId}/conversations/${convId}/messages`,
+        { params: { page, limit: 50 } },
+      );
+      return data.data;
+    },
+    ```
+  - [ ] `apps/mobile/src/screens/modal/SupportChatScreen.tsx` — queryFn ni to'g'irlash (hozir har doim [] qaytaradi):
+    ```typescript
+    queryFn: () => supportApi.listMessages(userId, activeConv._id),
+    ```
+  - [ ] `SupportChatScreen.tsx` — sendMutation onSuccess da optimistic update: yangi xabarni listga qo'shib qo'yish (refetch dan oldin ko'rinsin)
 
 ---
 
