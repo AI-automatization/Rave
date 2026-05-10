@@ -88,34 +88,36 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   hydrate: async () => {
     // SecureStore Android emulator da hang qilishi mumkin — 5s timeout
+    // IMPORTANT: isAuthenticated must NOT be set before user is resolved.
+    // Setting isAuthenticated=true with user=null causes an infinite spinner in ProfileScreen.
     const timeout = new Promise<void>((resolve) => setTimeout(resolve, 5000));
     const work = async () => {
       try {
         const { accessToken, userId } = await tokenStorage.getAll();
         if (accessToken && userId) {
-          set({ accessToken, isAuthenticated: true });
           try {
             const user = await userApi.getMe();
             // tokenStorage userId = auth service ID (saved in setAuth) = room.ownerId in WatchParty
             if (userId) user._id = userId;
-            set({ user });
+            // Set all three atomically — no window where isAuthenticated=true + user=null
+            set({ accessToken, isAuthenticated: true, user });
           } catch (err: unknown) {
             const status = (err as { response?: { status?: number } })?.response?.status;
             if (status === 401 || status === 403) {
-              // Token expired yoki invalid → logout
+              // Token expired yoki invalid → clear
               await tokenStorage.clear();
-              set({ accessToken: null, isAuthenticated: false });
             } else {
-              // 404, network error, yoki boshqa xatolik — JWT dan minimal user yaratamiz
-              // Bu isOwner ni to'g'ri ishlashi uchun zarur (userId = null bo'lsa isOwner false)
+              // Network error / service down — JWT dan minimal user yaratamiz
+              // Bu isOwner ni to'g'ri ishlashi uchun zarur
               try {
                 const payload = JSON.parse(atob(accessToken.split('.')[1]));
                 // Expired JWT bilan app ni authenticated holatda qoldirmaslik
                 if (payload.exp && payload.exp * 1000 < Date.now()) {
                   await tokenStorage.clear();
-                  set({ accessToken: null, isAuthenticated: false });
                 } else {
                   set({
+                    accessToken,
+                    isAuthenticated: true,
                     user: {
                       _id: payload.userId ?? userId ?? '',
                       email: payload.email ?? '',
@@ -135,17 +137,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                   });
                 }
               } catch {
-                // JWT decode failed — invalid token, clean state
+                // JWT decode failed — invalid token, clear
                 await tokenStorage.clear();
-                set({ accessToken: null, isAuthenticated: false });
               }
             }
-            // Token saqlanadi, keyingi sessiyada getMe qayta urinadi
           }
         }
       } catch {
-        // SecureStore xatosi — clean state
-        set({ accessToken: null, isAuthenticated: false });
+        // SecureStore error — clean state
+        await tokenStorage.clear();
       } finally {
         set({ isHydrated: true });
       }
