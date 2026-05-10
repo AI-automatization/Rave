@@ -63,10 +63,15 @@ export function SupportChatScreen() {
     mutationFn: (text: string) =>
       supportApi.sendMessage(userId, text, activeConv?._id),
     onSuccess: (newMsg) => {
-      queryClient.setQueryData<SupportMessage[]>(
-        ['support-messages', activeConv?._id],
-        (old) => [...(old ?? []), newMsg],
-      );
+      // Always refresh conversations — picks up newly created conv (first message) or updates lastMessageAt
+      void queryClient.invalidateQueries({ queryKey: ['support-conversations', userId] });
+      // Optimistic update only when conversation already existed
+      if (activeConv?._id) {
+        queryClient.setQueryData<SupportMessage[]>(
+          ['support-messages', activeConv._id],
+          (old) => [...(old ?? []), newMsg],
+        );
+      }
     },
   });
 

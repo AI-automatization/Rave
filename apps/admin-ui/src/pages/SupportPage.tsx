@@ -80,7 +80,12 @@ export function SupportPage() {
     finally { setLoading(false); }
   }, [status, page]);
 
-  useEffect(() => { loadList(); }, [loadList]);
+  useEffect(() => {
+    loadList();
+    // Poll conversation list every 15s so new messages from mobile appear without manual refresh
+    const listPoll = setInterval(() => { void loadList(); }, 15_000);
+    return () => clearInterval(listPoll);
+  }, [loadList]);
 
   const loadMessages = useCallback(async (conv: SupportConversation) => {
     setMsgLoading(true);
