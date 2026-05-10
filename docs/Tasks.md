@@ -4,6 +4,40 @@
 
 ---
 
+### T-S089 | P1 | [BACKEND] | Support chat — Socket.io real-time namespace /support | pending[Saidazim]
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-05-09 19:26
+- **Holat:** 🔄 Bajarilmoqda
+- **Tavsiya model:** sonnet
+- **Model sababi:** Socket.io setup, namespace, auth, emit — 3-4 fayl
+- **Sabab:** Polling o'rniga real-time WebSocket — admin reply mobilda darhol ko'rinsin
+
+---
+
+### T-S090 | P1 | [ADMIN] | Support chat — Admin UI Socket.io client real-time | pending[Saidazim]
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-05-09 19:26
+- **Holat:** 🔄 Bajarilmoqda
+- **Tavsiya model:** sonnet
+- **Model sababi:** socket.io-client, SupportPage update — 2 fayl
+
+---
+
+### T-E122 | P1 | [MOBILE] | Support chat — Socket.io client real-time, polling olib tashlash | pending[Saidazim]
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-05-09 19:26
+- **Holat:** 🔄 Bajarilmoqda
+- **Tavsiya model:** sonnet
+- **Model sababi:** useSupportSocket hook + SupportChatScreen — 2 fayl
+
+---
+
 ### T-S085 | P1 | [BACKEND] | Domain tracking — POST /domains/visit endpoint | done[Saidazim]
 
 - **Mas'ul:** done[Saidazim]
