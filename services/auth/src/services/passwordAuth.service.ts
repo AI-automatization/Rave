@@ -174,7 +174,9 @@ export class PasswordAuthService {
       throw new UnauthorizedError('Invalid email or password');
     }
 
-    if (user.isBlocked) {
+    // Check MongoDB flag AND Redis flag (admin panel sets Redis directly without updating auth DB)
+    const redisBlocked = await this.redis.get(REDIS_KEYS.blockedUser(String(user._id))).catch(() => null);
+    if (user.isBlocked || redisBlocked) {
       const reason = user.blockReason ?? 'No reason provided';
       const err = new Error(reason) as Error & { statusCode: number; code: string; reason: string };
       err.statusCode = 403;
@@ -251,7 +253,8 @@ export class PasswordAuthService {
     if (!user) {
       throw new UnauthorizedError('User not found');
     }
-    if (user.isBlocked) {
+    const redisBlockedOnRefresh = await this.redis.get(REDIS_KEYS.blockedUser(String(user._id))).catch(() => null);
+    if (user.isBlocked || redisBlockedOnRefresh) {
       const reason = user.blockReason ?? 'No reason provided';
       const err = new Error(reason) as Error & { statusCode: number; code: string; reason: string };
       err.statusCode = 403;

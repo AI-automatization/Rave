@@ -5,6 +5,7 @@ import { User, IUserDocument } from '../models/user.model';
 import { config } from '../config/index';
 import { logger } from '@shared/utils/logger';
 import { UnauthorizedError } from '@shared/utils/errors';
+import { REDIS_KEYS } from '@shared/constants';
 import { generateUniqueUsername, syncUserProfileWithRetry } from './passwordAuth.service';
 
 const MOBILE_STATE_TTL = 300;  // 5 min — user has time to complete Google login
@@ -121,7 +122,8 @@ export class GoogleAuthService {
       }
     }
 
-    if (user.isBlocked) {
+    const redisBlocked = await this.redis.get(REDIS_KEYS.blockedUser(String(user._id))).catch(() => null);
+    if (user.isBlocked || redisBlocked) {
       const reason = user.blockReason ?? 'No reason provided';
       const err = new Error(reason) as Error & { statusCode: number; code: string; reason: string };
       err.statusCode = 403;

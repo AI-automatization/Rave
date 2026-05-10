@@ -108,13 +108,20 @@ export const requireVerified = (
 };
 
 export const requireNotBlocked = (redis: Redis) =>
-  async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const user = (req as AuthenticatedRequest).user;
     if (!user) return next();
     try {
       const blocked = await redis.get(REDIS_KEYS.blockedUser(user.userId));
       if (blocked) {
-        return next(new ForbiddenError('Account is blocked'));
+        res.status(403).json({
+          success: false,
+          data: null,
+          code: 'ACCOUNT_BLOCKED',
+          message: 'Account is blocked',
+          reason: 'Your account has been suspended',
+        });
+        return;
       }
     } catch (err) {
       logger.error('requireNotBlocked: Redis unavailable, denying access (fail-closed)', {
