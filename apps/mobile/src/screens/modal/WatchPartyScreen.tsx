@@ -1,6 +1,7 @@
 // CineSync Mobile — WatchPartyScreen
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Platform } from 'react-native';
+import { ReportRoomModal } from '@components/common/ReportRoomModal';
 import { useRoute, RouteProp } from '@react-navigation/native';
 import { ChatPanel, ChatMessage } from '@components/watchParty/ChatPanel';
 import { VoiceChat } from '@components/watchParty/VoiceChat';
@@ -27,6 +28,7 @@ export function WatchPartyScreen() {
   const { t } = useT();
 
   const [showPlaylist, setShowPlaylist] = useState(false);
+  const [showReport, setShowReport] = useState(false);
 
   const {
     playerRef, userId, room, messages, activeMembers, isOwner, adminMonitoring, connectTimeout,
@@ -195,6 +197,15 @@ export function WatchPartyScreen() {
 
           <QualityMenu visible={showQualityMenu} qualities={extractQualities} currentUrl={currentVideoUrl || room?.videoUrl || ''} onSelect={handleQualitySelect} onClose={() => setShowQualityMenu(false)} />
           <EpisodeMenu visible={showEpisodeMenu} episodes={extractEpisodes} currentUrl={currentVideoUrl || room?.videoUrl || ''} onSelect={handleEpisodeSelect} onClose={() => setShowEpisodeMenu(false)} />
+
+          {!isOwner && (
+            <TouchableOpacity style={s.reportFab} onPress={() => setShowReport(true)}>
+              <Ionicons name="flag-outline" size={18} color="rgba(255,255,255,0.5)" />
+            </TouchableOpacity>
+          )}
+          {room && (
+            <ReportRoomModal visible={showReport} roomId={params.roomId} onClose={() => setShowReport(false)} />
+          )}
         </>
       )}
     </View>
@@ -246,6 +257,13 @@ const useStyles = createThemedStyles((colors) => ({
   expiredText: { ...typography.caption, color: '#F59E0B', fontWeight: '600', flex: 1 },
   expiredBtn: { backgroundColor: '#F59E0B', paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: borderRadius.lg },
   expiredBtnText: { color: '#000', fontWeight: '700', fontSize: 12 },
+  reportFab: {
+    position: 'absolute', left: spacing.lg, bottom: FAB_BOTTOM,
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    alignItems: 'center', justifyContent: 'center',
+    zIndex: 20,
+  },
   adminBanner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs, backgroundColor: 'rgba(245,158,11,0.12)', paddingVertical: spacing.xs, paddingHorizontal: spacing.md },
   adminBannerText: { ...typography.caption, color: colors.warning, fontWeight: '600' },
   playlistSheet: {

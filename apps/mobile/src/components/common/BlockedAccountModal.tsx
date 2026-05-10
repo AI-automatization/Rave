@@ -1,11 +1,10 @@
 // CineSync Mobile — BlockedAccountModal
-import React from 'react';
-import { View, Text, TouchableOpacity, Modal, Linking } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, Modal, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { useT } from '@i18n/index';
-
-const SUPPORT_EMAIL = 'support@cinesync.app';
+import { appealApi } from '@api/appeal.api';
 
 interface BlockedAccountModalProps {
   visible: boolean;
@@ -13,42 +12,105 @@ interface BlockedAccountModalProps {
   onClose: () => void;
 }
 
+type ScreenView = 'blocked' | 'appeal' | 'done';
+
 export function BlockedAccountModal({ visible, reason, onClose }: BlockedAccountModalProps) {
   const { colors } = useTheme();
   const styles = useStyles();
   const { t } = useT();
+  const [view, setView] = useState<ScreenView>('blocked');
+  const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleContact = () => {
-    Linking.openURL(`mailto:${SUPPORT_EMAIL}`);
+  const handleSubmitAppeal = async () => {
+    if (!message.trim()) return;
+    setLoading(true);
+    try {
+      await appealApi.create(message.trim(), reason);
+      setView('done');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClose = () => {
+    setView('blocked');
+    setMessage('');
+    onClose();
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <View style={styles.card}>
-          <View style={styles.iconWrap}>
-            <Ionicons name="ban-outline" size={48} color={colors.error} />
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={handleClose}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+        <View style={styles.overlay}>
+          <View style={styles.card}>
+            {view === 'blocked' && (
+              <>
+                <View style={styles.iconWrap}>
+                  <Ionicons name="ban-outline" size={48} color={colors.error} />
+                </View>
+                <Text style={styles.title}>{t('blocked', 'title')}</Text>
+                <Text style={styles.message}>{t('blocked', 'message')}</Text>
+                <View style={styles.reasonBox}>
+                  <Text style={styles.reasonText}>{reason || t('blocked', 'noReason')}</Text>
+                </View>
+                <TouchableOpacity style={styles.appealBtn} onPress={() => setView('appeal')}>
+                  <Ionicons name="document-text-outline" size={18} color="#fff" />
+                  <Text style={styles.appealBtnText}>Подать апелляцию</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.okBtn} onPress={handleClose}>
+                  <Text style={styles.okText}>{t('common', 'ok')}</Text>
+                </TouchableOpacity>
+              </>
+            )}
+
+            {view === 'appeal' && (
+              <>
+                <TouchableOpacity style={styles.backRow} onPress={() => setView('blocked')}>
+                  <Ionicons name="chevron-back" size={18} color={colors.textSecondary} />
+                  <Text style={styles.backText}>Назад</Text>
+                </TouchableOpacity>
+                <Text style={styles.title}>Апелляция</Text>
+                <Text style={styles.message}>Объясните, почему считаете блокировку несправедливой. Мы рассмотрим в течение 3 рабочих дней.</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Ваше сообщение..."
+                  placeholderTextColor={colors.textSecondary}
+                  value={message}
+                  onChangeText={setMessage}
+                  multiline
+                  numberOfLines={5}
+                  textAlignVertical="top"
+                />
+                <TouchableOpacity
+                  style={[styles.appealBtn, !message.trim() && styles.disabledBtn]}
+                  onPress={handleSubmitAppeal}
+                  disabled={!message.trim() || loading}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <Text style={styles.appealBtnText}>Отправить</Text>
+                  )}
+                </TouchableOpacity>
+              </>
+            )}
+
+            {view === 'done' && (
+              <>
+                <View style={[styles.iconWrap, styles.iconSuccess]}>
+                  <Ionicons name="checkmark-circle-outline" size={48} color={colors.primary} />
+                </View>
+                <Text style={[styles.title, { color: colors.textPrimary }]}>Апелляция отправлена</Text>
+                <Text style={styles.message}>Мы рассмотрим ваш запрос и свяжемся с вами.</Text>
+                <TouchableOpacity style={styles.okBtn} onPress={handleClose}>
+                  <Text style={styles.okText}>Закрыть</Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
-
-          <Text style={styles.title}>{t('blocked', 'title')}</Text>
-          <Text style={styles.message}>{t('blocked', 'message')}</Text>
-
-          <View style={styles.reasonBox}>
-            <Text style={styles.reasonText}>
-              {reason || t('blocked', 'noReason')}
-            </Text>
-          </View>
-
-          <TouchableOpacity style={styles.contactBtn} onPress={handleContact}>
-            <Ionicons name="mail-outline" size={18} color={colors.primary} />
-            <Text style={styles.contactText}>{t('common', 'contact')}</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.okBtn} onPress={onClose}>
-            <Text style={styles.okText}>{t('common', 'ok')}</Text>
-          </TouchableOpacity>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -77,6 +139,9 @@ const useStyles = createThemedStyles((colors) => ({
     justifyContent: 'center',
     marginBottom: spacing.lg,
   },
+  iconSuccess: {
+    backgroundColor: 'rgba(123,114,248,0.12)',
+  },
   title: {
     ...typography.h2,
     color: colors.error,
@@ -101,26 +166,58 @@ const useStyles = createThemedStyles((colors) => ({
     color: colors.textPrimary,
     textAlign: 'center',
   },
-  contactBtn: {
+  backRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    alignSelf: 'flex-start',
+    gap: spacing.xs,
     marginBottom: spacing.lg,
   },
-  contactText: {
+  backText: {
     ...typography.body,
-    color: colors.primary,
-    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  input: {
+    backgroundColor: colors.bgOverlay,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    color: colors.textPrimary,
+    ...typography.body,
+    width: '100%',
+    minHeight: 100,
+    marginBottom: spacing.lg,
+  },
+  appealBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.xxl,
+    paddingVertical: spacing.md,
+    width: '100%',
+    marginBottom: spacing.md,
+  },
+  appealBtnText: {
+    ...typography.body,
+    color: '#fff',
+    fontWeight: '700',
+  },
+  disabledBtn: {
+    opacity: 0.4,
   },
   okBtn: {
-    backgroundColor: colors.error,
     borderRadius: borderRadius.md,
     paddingHorizontal: spacing.xxxl,
     paddingVertical: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginTop: spacing.xs,
   },
   okText: {
     ...typography.body,
-    color: colors.textPrimary,
-    fontWeight: '700',
+    color: colors.textSecondary,
+    fontWeight: '600',
   },
 }));

@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import {
   LayoutDashboard, Users, Film, Swords, Tv2, MessageSquare,
   ScrollText, Activity, ShieldCheck, UserCog, Bug, LogOut,
-  ChevronRight, Globe, HeadphonesIcon,
+  ChevronRight, Globe, HeadphonesIcon, Flag, Scale,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/auth.store';
 import { errorsApi } from '../../api/errors.api';
@@ -67,13 +67,21 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const location = useLocation();
   const [newErrorCount, setNewErrorCount]     = useState(0);
   const [openSupportCount, setOpenSupportCount] = useState(0);
+  const [pendingReports, setPendingReports]   = useState(0);
+  const [pendingAppeals, setPendingAppeals]   = useState(0);
 
   useEffect(() => { onClose(); }, [location.pathname]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
+    import('../../api/moderation.api').then(({ moderationApi }) => {
+      moderationApi.getCounts().then(c => { setPendingReports(c.reports); setPendingAppeals(c.appeals); }).catch(() => {});
+    });
     errorsApi.stats().then((s) => setNewErrorCount(s.new)).catch(() => {});
     supportApi.openCount().then(setOpenSupportCount).catch(() => {});
     const t = setInterval(() => {
+      import('../../api/moderation.api').then(({ moderationApi }) => {
+        moderationApi.getCounts().then(c => { setPendingReports(c.reports); setPendingAppeals(c.appeals); }).catch(() => {});
+      });
       errorsApi.stats().then((s) => setNewErrorCount(s.new)).catch(() => {});
       supportApi.openCount().then(setOpenSupportCount).catch(() => {});
     }, 30_000);
@@ -94,6 +102,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const monitoringItems: NavItem[] = [
     { to: '/errors', label: 'Mobile Errors', icon: <Bug size={16} />, badge: newErrorCount },
     { to: '/support', label: 'Поддержка', icon: <HeadphonesIcon size={16} />, badge: openSupportCount },
+    { to: '/room-reports', label: 'Жалобы', icon: <Flag size={16} />, badge: pendingReports },
+    { to: '/appeals', label: 'Апелляции', icon: <Scale size={16} />, badge: pendingAppeals },
     { to: '/feedback', label: 'Feedback', icon: <MessageSquare size={16} /> },
     { to: '/logs', label: 'Logs', icon: <ScrollText size={16} /> },
     { to: '/user-activity', label: 'Активность', icon: <Activity size={16} /> },
