@@ -15,8 +15,10 @@ export const createSupportRouter = (): Router => {
   router.post('/internal/support/user/:userId/conversations/:convId/rate', verifyToken, controller.rateConversation);
 
   // Admin routes — JWT protected
-  router.use(verifyToken);
-  router.use(requireRole('admin', 'superadmin', 'moderator'));
+  // Use path-scoped middleware so unrelated internal routes (e.g. /internal/moderation/appeals)
+  // are not rejected by verifyToken when they pass through this router without matching a route.
+  router.use('/support', verifyToken);
+  router.use('/support', requireRole('admin', 'superadmin', 'moderator'));
 
   router.get('/support/open-count', controller.openCount);
   router.post('/support/conversations', controller.getOrCreate);
