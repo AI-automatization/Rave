@@ -2,6 +2,8 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { Search, X, CheckCircle, Clock, MessageCircle, Send, User } from 'lucide-react';
 import { supportApi, SupportConversation, SupportMessage } from '../api/support.api';
 import { usersApi } from '../api/users.api';
+import { useAuthStore } from '../store/auth.store';
+import { supportSocket } from '../socket/supportSocket';
 import type { AdminUser } from '../types';
 
 function relativeTime(iso: string): string {
@@ -69,7 +71,39 @@ export function SupportPage() {
   const [closing, setClosing] = useState(false);
   const bottomRef             = useRef<HTMLDivElement>(null);
   const pollRef               = useRef<ReturnType<typeof setInterval> | null>(null);
+  const prevConvId            = useRef<string | null>(null);
 
+  // ── Socket: connect on mount, disconnect on unmount ──────────────────────
+  useEffect(() => {
+    const token = useAuthStore.getState().token;
+    if (token) supportSocket.connect(token);
+    return () => supportSocket.disconnect();
+  }, []);
+
+  // ── Socket: join/leave conversation room when selected changes ────────────
+  useEffect(() => {
+    if (prevConvId.current) supportSocket.leaveConv(prevConvId.current);
+    if (selected?.id) {
+      supportSocket.joinConv(selected.id);
+      prevConvId.current = selected.id;
+    } else {
+      prevConvId.current = null;
+    }
+  }, [selected?.id]);
+
+  // ── Socket: listen for new messages ──────────────────────────────────────
+  useEffect(() => {
+    const handler = (msg: SupportMessage) => {
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === msg.id)) return prev;
+        return [...prev, msg];
+      });
+    };
+    supportSocket.onMessage(handler);
+    return () => supportSocket.offMessage(handler);
+  }, []);
+
+  // ── Conversation list: load + poll every 15s ──────────────────────────────
   const loadList = useCallback(async () => {
     setLoading(true);
     try {
@@ -82,11 +116,11 @@ export function SupportPage() {
 
   useEffect(() => {
     loadList();
-    // Poll conversation list every 15s so new messages from mobile appear without manual refresh
     const listPoll = setInterval(() => { void loadList(); }, 15_000);
     return () => clearInterval(listPoll);
   }, [loadList]);
 
+  // ── Messages: load initial + poll every 30s as socket fallback ────────────
   const loadMessages = useCallback(async (conv: SupportConversation) => {
     setMsgLoading(true);
     try {
@@ -99,8 +133,7 @@ export function SupportPage() {
   useEffect(() => {
     if (!selected) return;
     loadMessages(selected);
-
-    pollRef.current = setInterval(() => loadMessages(selected), 8000);
+    pollRef.current = setInterval(() => loadMessages(selected), 30_000);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [selected, loadMessages]);
 
@@ -113,7 +146,10 @@ export function SupportPage() {
     setSending(true);
     try {
       const msg = await supportApi.sendMessage(selected.id, text.trim());
-      setMessages((prev) => [...prev, msg]);
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === msg.id)) return prev;
+        return [...prev, msg];
+      });
       setText('');
     } catch { /* ignore */ }
     finally { setSending(false); }
@@ -146,7 +182,6 @@ export function SupportPage() {
             <span className="ml-auto text-[10px] bg-white/[0.06] text-text-dim px-1.5 py-0.5 rounded-md">{total}</span>
           </h2>
 
-          {/* Status filter */}
           <div className="flex gap-1 mb-2">
             {(['open', 'closed', 'all'] as const).map((s) => (
               <button
@@ -214,7 +249,6 @@ export function SupportPage() {
       ) : (
         <div className="flex-1 flex flex-col min-h-0">
 
-          {/* Chat header */}
           <div className="px-4 py-3 border-b border-white/[0.06] flex items-center gap-3 shrink-0 bg-[#0d0d16]">
             <UserAvatar userId={selected.userId} />
             <div className="flex-1 min-w-0">
@@ -244,7 +278,6 @@ export function SupportPage() {
             </div>
           </div>
 
-          {/* Messages */}
           <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 flex flex-col gap-2">
             {msgLoading && Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className={`h-8 rounded-xl animate-pulse bg-white/[0.04] ${i % 2 ? 'self-end w-40' : 'w-56'}`} />
@@ -270,18 +303,17 @@ export function SupportPage() {
             <div ref={bottomRef} />
           </div>
 
-          {/* Input */}
           {selected.status === 'open' && (
             <div className="px-4 py-3 border-t border-white/[0.06] flex gap-2 shrink-0 bg-[#0d0d16]">
               <input
                 value={text}
                 onChange={(e) => setText(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
+                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send(); } }}
                 placeholder="Ответить пользователю…"
                 className="flex-1 bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2 text-xs text-white placeholder-text-dim outline-none focus:border-accent/30 transition-colors"
               />
               <button
-                onClick={send}
+                onClick={() => void send()}
                 disabled={!text.trim() || sending}
                 className="flex items-center justify-center w-9 h-9 rounded-xl bg-accent hover:bg-accent/80 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
               >

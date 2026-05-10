@@ -12,6 +12,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@store/auth.store';
 import { supportApi, SupportMessage, SupportConversation } from '@api/support.api';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
+import { useSupportSocket } from '@hooks/useSupportSocket';
 
 function MessageItem({ item }: { item: SupportMessage }) {
   const styles = useStyles();
@@ -57,16 +58,28 @@ export function SupportChatScreen() {
     queryKey: ['support-messages', activeConv?._id],
     queryFn: () => supportApi.listMessages(userId, activeConv!._id),
     enabled: !!activeConv,
-    refetchInterval: 8000,
+    refetchInterval: 30_000,
   });
+
+  const handleNewMessage = useCallback((msg: SupportMessage) => {
+    if (!activeConv?._id) return;
+    queryClient.setQueryData<SupportMessage[]>(
+      ['support-messages', activeConv._id],
+      (old) => {
+        const existing = old ?? [];
+        if (existing.some(m => m._id === msg._id)) return existing;
+        return [...existing, msg];
+      },
+    );
+  }, [activeConv?._id, queryClient]);
+
+  useSupportSocket({ convId: activeConv?._id, onMessage: handleNewMessage });
 
   const sendMutation = useMutation({
     mutationFn: (text: string) =>
       supportApi.sendMessage(userId, text, activeConv?._id),
     onSuccess: (newMsg) => {
-      // Always refresh conversations — picks up newly created conv (first message) or updates lastMessageAt
       void queryClient.invalidateQueries({ queryKey: ['support-conversations', userId] });
-      // Optimistic update only when conversation already existed
       if (activeConv?._id) {
         queryClient.setQueryData<SupportMessage[]>(
           ['support-messages', activeConv._id],
@@ -84,7 +97,6 @@ export function SupportChatScreen() {
   }, [input, sendMutation]);
 
   const isLoading = convLoading || msgLoading;
-
   const allMessages: SupportMessage[] = messages ?? [];
 
   return (
@@ -93,7 +105,6 @@ export function SupportChatScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={insets.bottom}
     >
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
@@ -134,7 +145,6 @@ export function SupportChatScreen() {
         </>
       )}
 
-      {/* Input */}
       <View style={[styles.inputRow, { paddingBottom: insets.bottom + spacing.xs }]}>
         <TextInput
           style={styles.input}

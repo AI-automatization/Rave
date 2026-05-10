@@ -3,6 +3,7 @@ import { SupportConversation } from '../models/supportConversation.model';
 import { SupportMessage } from '../models/supportMessage.model';
 import { sendInternalNotification } from '@shared/utils/serviceClient';
 import { logger } from '@shared/utils/logger';
+import { emitSupportMessage } from '../socket/supportSocket';
 
 export class SupportService {
   async getOrCreateConversation(userId: string, issueRef?: string) {
@@ -45,6 +46,8 @@ export class SupportService {
 
   async addMessage(conversationId: string, senderId: string, senderRole: 'user' | 'admin', text: string) {
     const msg = await SupportMessage.create({ conversationId: new Types.ObjectId(conversationId), senderId, senderRole, text });
+
+    emitSupportMessage(conversationId, msg);
 
     await SupportConversation.findByIdAndUpdate(conversationId, { lastMessageAt: new Date() });
 

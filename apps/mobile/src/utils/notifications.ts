@@ -12,6 +12,7 @@ export const NOTIFICATION_ROUTES: Record<NotificationType, string> = {
   achievement_unlocked: 'Achievements',
   friend_online: 'Friends',
   friend_watching: 'WatchParty',
+  support_reply: 'SupportChat',
 };
 
 Notifications.setNotificationHandler({

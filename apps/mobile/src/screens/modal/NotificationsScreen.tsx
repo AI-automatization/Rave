@@ -54,6 +54,7 @@ export function NotificationsScreen() {
     achievement_unlocked: { icon: 'ribbon-outline',           color: colors.primary },
     friend_online:        { icon: 'radio-button-on-outline',  color: colors.success },
     friend_watching:      { icon: 'eye-outline',              color: colors.secondary },
+    support_reply:        { icon: 'headset-outline',          color: colors.primary },
   };
 
   const renderItem = ({ item }: ListRenderItemInfo<INotification>) => {
