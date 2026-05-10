@@ -47,6 +47,21 @@ export const errorHandler = (
     return;
   }
 
+  // Plain Error thrown from services with custom statusCode/code/reason (e.g. ACCOUNT_BLOCKED)
+  const customErr = error as Error & { statusCode?: number; code?: string; reason?: string };
+  if (customErr.statusCode && typeof customErr.statusCode === 'number' && customErr.statusCode < 500) {
+    logger.warn('Service error', { message: error.message, statusCode: customErr.statusCode, code: customErr.code, path: req.path });
+    res.status(customErr.statusCode).json({
+      success: false,
+      data: null,
+      code: customErr.code,
+      message: error.message,
+      reason: customErr.reason,
+      errors: null,
+    });
+    return;
+  }
+
   // Unhandled errors
   logger.error('Unhandled error', {
     message: error.message,
