@@ -123,6 +123,19 @@ export class SupportController {
     } catch (err) { next(err); }
   };
 
+  // POST /internal/support/user/:userId/conversations — mobile: create new conversation
+  createUserConversation = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const user = (req as Request & { user?: { userId: string } }).user;
+      if (!user || user.userId !== req.params.userId) {
+        res.status(403).json(apiResponse.error('Forbidden'));
+        return;
+      }
+      const conv = await this.service.getOrCreateConversation(user.userId);
+      res.status(201).json(apiResponse.success(conv));
+    } catch (err) { next(err); }
+  };
+
   // POST /internal/support/user/:userId/message — mobile: user sends message
   userSendMessage = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {

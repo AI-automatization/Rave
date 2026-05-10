@@ -101,6 +101,7 @@ export function SupportChatScreen() {
   const [ratingScore, setRatingScore] = useState(0);
   const [ratingComment, setRatingComment] = useState('');
   const [submittingRating, setSubmittingRating] = useState(false);
+  const [creatingConv, setCreatingConv] = useState(false);
 
   const { data: conversations, isLoading: convLoading } = useQuery<SupportConversation[]>({
     queryKey: ['support-conversations', userId],
@@ -179,6 +180,20 @@ export function SupportChatScreen() {
     sendMutation.mutate(trimmed);
     setInput('');
   }, [input, sendMutation]);
+
+  const startNewChat = useCallback(async () => {
+    if (creatingConv) return;
+    setCreatingConv(true);
+    try {
+      await supportApi.createConversation(userId);
+      setRatingDone(false);
+      setRatingScore(0);
+      setRatingComment('');
+      setShowRating(false);
+      void queryClient.invalidateQueries({ queryKey: ['support-conversations', userId] });
+    } catch { /* ignore */ }
+    finally { setCreatingConv(false); }
+  }, [creatingConv, userId, queryClient]);
 
   const submitRating = useCallback(async () => {
     if (!activeConv || !ratingScore || submittingRating) return;
@@ -261,6 +276,21 @@ export function SupportChatScreen() {
           ) : (
             <Text style={styles.closedText}>Диалог закрыт</Text>
           )}
+          <TouchableOpacity
+            style={styles.newChatBtn}
+            onPress={() => void startNewChat()}
+            disabled={creatingConv}
+            activeOpacity={0.8}
+          >
+            {creatingConv ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <>
+                <Ionicons name="add-circle-outline" size={16} color="#fff" />
+                <Text style={styles.newChatText}>Новый чат</Text>
+              </>
+            )}
+          </TouchableOpacity>
         </View>
       ) : (
         <View style={[styles.inputRow, { paddingBottom: insets.bottom + spacing.xs }]}>
@@ -364,9 +394,18 @@ const useStyles = createThemedStyles((colors) => ({
     padding: spacing.md,
     borderTopWidth: 1, borderTopColor: colors.border,
     backgroundColor: colors.bgSurface,
-    alignItems: 'center', gap: spacing.xs,
+    alignItems: 'center', gap: spacing.sm,
+    paddingBottom: spacing.lg,
   },
   closedText: { ...typography.caption, color: colors.textMuted },
+  newChatBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.xs,
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.lg, paddingVertical: spacing.sm,
+    borderRadius: borderRadius.full, marginTop: spacing.xs,
+    minWidth: 120, justifyContent: 'center',
+  },
+  newChatText: { ...typography.body, color: '#fff', fontWeight: '600' },
 }));
 
 const useRatingStyles = createThemedStyles((colors) => ({

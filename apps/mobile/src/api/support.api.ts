@@ -48,6 +48,14 @@ export const supportApi = {
     return data.data;
   },
 
+  createConversation: async (userId: string): Promise<SupportConversation> => {
+    const { data } = await adminClient.post<{ data: SupportConversation }>(
+      `/internal/support/user/${userId}/conversations`,
+      {},
+    );
+    return data.data;
+  },
+
   rateConversation: async (userId: string, convId: string, score: number, comment?: string): Promise<SupportConversation> => {
     const { data } = await adminClient.post<{ data: SupportConversation }>(
       `/internal/support/user/${userId}/conversations/${convId}/rate`,
