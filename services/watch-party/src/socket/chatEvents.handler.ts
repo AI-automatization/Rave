@@ -13,7 +13,7 @@ export const registerChatEvents = (
   authSocket: AuthenticatedSocket,
   checkRateLimit: (userId: string) => boolean,
 ): void => {
-  const { userId } = authSocket.user;
+  const { userId, username = '' } = authSocket.user;
 
   // CHAT MESSAGE — broadcast to all in room (including sender)
   socket.on(CLIENT_EVENTS.SEND_MESSAGE, (data: { message: string }) => {
@@ -26,12 +26,14 @@ export const registerChatEvents = (
     // Use socket.nsp to reach all in room (equivalent to io.to from handler context)
     socket.to(authSocket.roomId).emit(SERVER_EVENTS.ROOM_MESSAGE, {
       userId,
+      username,
       message: safeMessage,
       timestamp: Date.now(),
     });
     // Also emit to self so sender sees own message (matches original io.to behavior)
     socket.emit(SERVER_EVENTS.ROOM_MESSAGE, {
       userId,
+      username,
       message: safeMessage,
       timestamp: Date.now(),
     });

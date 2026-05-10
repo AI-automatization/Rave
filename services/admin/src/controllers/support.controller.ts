@@ -77,6 +77,11 @@ export class SupportController {
   // GET /internal/support/user/:userId — mobile: get user's conversations
   getUserConversations = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
+      const user = (req as Request & { user?: { userId: string } }).user;
+      if (!user || user.userId !== req.params.userId) {
+        res.status(403).json(apiResponse.error('Forbidden'));
+        return;
+      }
       const convs = await this.service.getUserConversations(req.params.userId);
       res.json(apiResponse.success(convs));
     } catch (err) { next(err); }
@@ -85,15 +90,20 @@ export class SupportController {
   // POST /internal/support/user/:userId/message — mobile: user sends message
   userSendMessage = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
+      const user = (req as Request & { user?: { userId: string } }).user;
+      if (!user || user.userId !== req.params.userId) {
+        res.status(403).json(apiResponse.error('Forbidden'));
+        return;
+      }
       const { text, conversationId } = req.body as { text: string; conversationId?: string };
       if (!text?.trim()) { res.status(400).json(apiResponse.error('text required')); return; }
 
       let convId = conversationId;
       if (!convId) {
-        const conv = await this.service.getOrCreateConversation(req.params.userId);
+        const conv = await this.service.getOrCreateConversation(user.userId);
         convId = String(conv._id);
       }
-      const msg = await this.service.addMessage(convId, req.params.userId, 'user', text.trim());
+      const msg = await this.service.addMessage(convId, user.userId, 'user', text.trim());
       res.status(201).json(apiResponse.success(msg));
     } catch (err) { next(err); }
   };

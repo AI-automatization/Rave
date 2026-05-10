@@ -2,15 +2,14 @@ import { Router } from 'express';
 import { SupportController } from '../controllers/support.controller';
 import { SupportService } from '../services/support.service';
 import { verifyToken, requireRole } from '@shared/middleware/auth.middleware';
-import { requireInternalSecret } from '@shared/utils/serviceClient';
 
 export const createSupportRouter = (): Router => {
   const router = Router();
   const controller = new SupportController(new SupportService());
 
-  // Internal routes — called from mobile app
-  router.get('/internal/support/user/:userId', requireInternalSecret, controller.getUserConversations);
-  router.post('/internal/support/user/:userId/message', requireInternalSecret, controller.userSendMessage);
+  // Internal routes — called from mobile app with JWT Bearer token
+  router.get('/internal/support/user/:userId', verifyToken, controller.getUserConversations);
+  router.post('/internal/support/user/:userId/message', verifyToken, controller.userSendMessage);
 
   // Admin routes — JWT protected
   router.use(verifyToken);
