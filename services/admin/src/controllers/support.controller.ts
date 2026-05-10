@@ -51,7 +51,7 @@ export class SupportController {
       const { text, senderRole } = req.body as { text: string; senderRole?: 'user' | 'admin' };
       if (!text?.trim()) { res.status(400).json(apiResponse.error('text required')); return; }
       const role: 'user' | 'admin' = senderRole === 'user' ? 'user' : 'admin';
-      const adminId = (req as Request & { user?: { id: string } }).user?.id ?? 'admin';
+      const adminId = (req as Request & { user?: { userId: string } }).user?.userId ?? 'admin';
       const msg = await this.service.addMessage(req.params.id, adminId, role, text.trim());
       res.status(201).json(apiResponse.success(msg));
     } catch (err) { next(err); }
