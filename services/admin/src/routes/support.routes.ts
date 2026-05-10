@@ -10,6 +10,7 @@ export const createSupportRouter = (): Router => {
   // Internal routes — called from mobile app with JWT Bearer token
   router.get('/internal/support/user/:userId', verifyToken, controller.getUserConversations);
   router.post('/internal/support/user/:userId/message', verifyToken, controller.userSendMessage);
+  router.get('/internal/support/user/:userId/conversations/:convId/messages', verifyToken, controller.getUserMessages);
 
   // Admin routes — JWT protected
   router.use(verifyToken);

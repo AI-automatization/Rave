@@ -87,6 +87,21 @@ export class SupportController {
     } catch (err) { next(err); }
   };
 
+  // GET /internal/support/user/:userId/conversations/:convId/messages — mobile: fetch conversation messages
+  getUserMessages = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const user = (req as Request & { user?: { userId: string } }).user;
+      if (!user || user.userId !== req.params.userId) {
+        res.status(403).json(apiResponse.error('Forbidden'));
+        return;
+      }
+      const page = Math.max(1, Number(req.query.page) || 1);
+      const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 50));
+      const { messages, total } = await this.service.listMessages(req.params.convId, page, limit);
+      res.json({ ...apiResponse.success(messages), meta: buildPaginationMeta(total, page, limit) });
+    } catch (err) { next(err); }
+  };
+
   // POST /internal/support/user/:userId/message — mobile: user sends message
   userSendMessage = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
