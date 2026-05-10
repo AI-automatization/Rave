@@ -57,6 +57,7 @@ export function SupportChatScreen() {
     queryKey: ['support-messages', activeConv?._id],
     queryFn: () => supportApi.listMessages(userId, activeConv!._id),
     enabled: !!activeConv,
+    refetchInterval: 8000,
   });
 
   const sendMutation = useMutation({

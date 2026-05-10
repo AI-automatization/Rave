@@ -20,7 +20,7 @@ const notificationSchema = new Schema<INotificationDocument>(
       enum: [
         'friend_request', 'friend_accepted', 'watch_party_invite',
         'battle_invite', 'battle_result', 'achievement_unlocked',
-        'friend_online', 'friend_watching',
+        'friend_online', 'friend_watching', 'support_reply',
       ],
       required: true,
     },
