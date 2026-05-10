@@ -11,6 +11,7 @@ export const createSupportRouter = (): Router => {
   router.get('/internal/support/user/:userId', verifyToken, controller.getUserConversations);
   router.post('/internal/support/user/:userId/message', verifyToken, controller.userSendMessage);
   router.get('/internal/support/user/:userId/conversations/:convId/messages', verifyToken, controller.getUserMessages);
+  router.post('/internal/support/user/:userId/conversations/:convId/rate', verifyToken, controller.rateConversation);
 
   // Admin routes — JWT protected
   router.use(verifyToken);

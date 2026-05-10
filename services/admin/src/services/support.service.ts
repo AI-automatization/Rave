@@ -3,7 +3,7 @@ import { SupportConversation } from '../models/supportConversation.model';
 import { SupportMessage } from '../models/supportMessage.model';
 import { sendInternalNotification } from '@shared/utils/serviceClient';
 import { logger } from '@shared/utils/logger';
-import { emitSupportMessage } from '../socket/supportSocket';
+import { emitSupportMessage, emitSupportClosed } from '../socket/supportSocket';
 
 export class SupportService {
   async getOrCreateConversation(userId: string, issueRef?: string) {
@@ -72,7 +72,22 @@ export class SupportService {
   }
 
   async closeConversation(id: string) {
-    return SupportConversation.findByIdAndUpdate(id, { status: 'closed' }, { new: true });
+    const conv = await SupportConversation.findByIdAndUpdate(id, { status: 'closed' }, { new: true });
+    if (conv) emitSupportClosed(id);
+    return conv;
+  }
+
+  async rateConversation(convId: string, userId: string, score: number, comment?: string) {
+    const conv = await SupportConversation.findById(convId);
+    if (!conv) throw new Error('Not found');
+    if (conv.userId !== userId) throw new Error('Forbidden');
+    if (conv.status !== 'closed') throw new Error('Conversation is not closed');
+    if (conv.rating?.score) throw new Error('Already rated');
+    return SupportConversation.findByIdAndUpdate(
+      convId,
+      { rating: { score, comment: comment ?? null, ratedAt: new Date() } },
+      { new: true },
+    );
   }
 
   async getUserConversations(userId: string) {

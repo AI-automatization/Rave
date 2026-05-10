@@ -47,6 +47,18 @@ function initials(str: string) {
   return str.slice(0, 2).toUpperCase();
 }
 
+function StarRating({ score, size = 12 }: { score: number; size?: number }) {
+  return (
+    <span className="flex items-center gap-0.5">
+      {[1,2,3,4,5].map(n => (
+        <span key={n} style={{ fontSize: size }} className={n <= score ? 'text-yellow-400' : 'text-white/15'}>
+          ★
+        </span>
+      ))}
+    </span>
+  );
+}
+
 function avatarColor(id: string) {
   const colors = [
     ['#1e1340', '#a78bfa'], ['#0d1f35', '#60a5fa'], ['#0e2318', '#4ade80'],
@@ -129,6 +141,12 @@ function ConvItem({
         <p className="text-[11px] text-white/35 truncate">
           {user?.email ?? conv.userId}
         </p>
+        {conv.rating?.score && (
+          <div className="flex items-center gap-0.5 mt-0.5">
+            <StarRating score={conv.rating.score} size={10} />
+            <span className="text-[10px] text-yellow-400/70 font-medium">{conv.rating.score}/5</span>
+          </div>
+        )}
       </div>
     </button>
   );
@@ -207,8 +225,8 @@ function CopyBtn({ value }: { value: string }) {
 // ─── UserPanel ───────────────────────────────────────────────────────────────
 
 function UserPanel({
-  userId, onBlockChange,
-}: { userId: string; onBlockChange: () => void }) {
+  userId, onBlockChange, rating,
+}: { userId: string; onBlockChange: () => void; rating?: { score: number; comment?: string | null; ratedAt: string } | null }) {
   const navigate = useNavigate();
   const user = useUser(userId);
   const [blocking, setBlocking] = useState(false);
@@ -296,6 +314,24 @@ function UserPanel({
           </div>
         )}
       </div>
+
+      {/* Rating */}
+      {rating?.score && (
+        <div className="px-4 py-4 border-b border-white/[0.05] space-y-2">
+          <p className="text-[9px] text-white/20 uppercase tracking-[0.12em] font-semibold">Оценка поддержки</p>
+          <div className="flex items-center gap-2">
+            <StarRating score={rating.score} size={16} />
+            <span className="text-[13px] font-bold text-yellow-400">{rating.score}</span>
+            <span className="text-[11px] text-white/30">/ 5</span>
+          </div>
+          {rating.comment && (
+            <p className="text-[11px] text-white/50 leading-snug italic">"{rating.comment}"</p>
+          )}
+          <p className="text-[10px] text-white/20">
+            {new Date(rating.ratedAt).toLocaleDateString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+          </p>
+        </div>
+      )}
 
       {/* Quick links */}
       <div className="px-4 py-4 border-b border-white/[0.05] space-y-0.5">
@@ -703,6 +739,12 @@ export function SupportPage() {
                 ].join(' ')}>
                   {selected.status === 'open' ? 'открыт' : 'закрыт'}
                 </span>
+                {selected.rating?.score && (
+                  <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-yellow-400/10 border border-yellow-400/20">
+                    <StarRating score={selected.rating.score} size={11} />
+                    <span className="text-[10px] text-yellow-400 font-medium">{selected.rating.score}/5</span>
+                  </div>
+                )}
               </div>
               <p className="text-[11px] text-white/30 truncate">
                 {selectedUser?.email ?? selected.userId}
@@ -854,6 +896,7 @@ export function SupportPage() {
         <UserPanel
           userId={selected.userId}
           onBlockChange={() => setSelected(s => s ? { ...s } : null)}
+          rating={selected.rating}
         />
       )}
     </div>

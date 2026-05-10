@@ -9,9 +9,10 @@ const SOCKET_BASE = ADMIN_URL.replace(/\/api\/v1\/?$/, '');
 interface UseSupportSocketParams {
   convId: string | undefined;
   onMessage: (msg: SupportMessage) => void;
+  onClosed?: () => void;
 }
 
-export function useSupportSocket({ convId, onMessage }: UseSupportSocketParams): { connected: boolean } {
+export function useSupportSocket({ convId, onMessage, onClosed }: UseSupportSocketParams): { connected: boolean } {
   const socketRef = useRef<Socket | null>(null);
   const [connected, setConnected] = useState(false);
 
@@ -42,6 +43,10 @@ export function useSupportSocket({ convId, onMessage }: UseSupportSocketParams):
 
       socket.on('support:message', (msg: SupportMessage) => {
         onMessage(msg);
+      });
+
+      socket.on('support:closed', () => {
+        if (mounted && onClosed) onClosed();
       });
 
       if (__DEV__) {

@@ -102,6 +102,27 @@ export class SupportController {
     } catch (err) { next(err); }
   };
 
+  // POST /internal/support/user/:userId/conversations/:convId/rate — mobile: rate closed conversation
+  rateConversation = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const user = (req as Request & { user?: { userId: string } }).user;
+      if (!user || user.userId !== req.params.userId) {
+        res.status(403).json(apiResponse.error('Forbidden'));
+        return;
+      }
+      const { score, comment } = req.body as { score: unknown; comment?: string };
+      const s = Number(score);
+      if (!s || s < 1 || s > 5) {
+        res.status(400).json(apiResponse.error('score must be 1–5'));
+        return;
+      }
+      const conv = await this.service.rateConversation(
+        req.params.convId, user.userId, s, comment,
+      );
+      res.json(apiResponse.success(conv));
+    } catch (err) { next(err); }
+  };
+
   // POST /internal/support/user/:userId/message — mobile: user sends message
   userSendMessage = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {

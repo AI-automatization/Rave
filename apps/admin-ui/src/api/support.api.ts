@@ -10,6 +10,11 @@ export interface SupportConversation {
   status: ConversationStatus;
   lastMessageAt: string;
   createdAt: string;
+  rating?: {
+    score: number;
+    comment?: string | null;
+    ratedAt: string;
+  } | null;
 }
 
 export interface SupportMessage {

@@ -72,3 +72,11 @@ export function emitSupportMessage(convId: string, message: unknown): void {
   }
   supportNs.to(`conv:${convId}`).emit('support:message', message);
 }
+
+export function emitSupportClosed(convId: string): void {
+  if (!supportNs) {
+    logger.warn('[SupportSocket] not initialized', { convId });
+    return;
+  }
+  supportNs.to(`conv:${convId}`).emit('support:closed', { convId });
+}

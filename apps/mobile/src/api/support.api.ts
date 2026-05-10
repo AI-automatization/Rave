@@ -8,6 +8,11 @@ export interface SupportConversation {
   issueRef?: string;
   lastMessageAt?: string;
   createdAt: string;
+  rating?: {
+    score: number;
+    comment?: string | null;
+    ratedAt: string;
+  } | null;
 }
 
 export interface SupportMessage {
@@ -39,6 +44,14 @@ export const supportApi = {
     const { data } = await adminClient.post<{ data: SupportMessage }>(
       `/internal/support/user/${userId}/message`,
       { text, conversationId },
+    );
+    return data.data;
+  },
+
+  rateConversation: async (userId: string, convId: string, score: number, comment?: string): Promise<SupportConversation> => {
+    const { data } = await adminClient.post<{ data: SupportConversation }>(
+      `/internal/support/user/${userId}/conversations/${convId}/rate`,
+      { score, comment },
     );
     return data.data;
   },
