@@ -16,7 +16,7 @@ export const appealApi = {
     // Include userId from store so blocked users (no JWT) can still be identified
     const userId = useAuthStore.getState().user?._id;
     const { data } = await adminClient.post<{ data: Appeal }>(
-      '/api/v1/internal/moderation/appeals',
+      '/internal/moderation/appeals',
       { message, banReason, ...(userId ? { userId } : {}) },
     );
     return data.data;

@@ -4,6 +4,6 @@ export type ReportReason = 'prohibited_content' | 'spam' | 'violence' | 'harassm
 
 export const reportApi = {
   reportRoom: async (roomId: string, reason: ReportReason, comment?: string): Promise<void> => {
-    await adminClient.post(`/api/v1/internal/moderation/rooms/${roomId}/report`, { reason, comment });
+    await adminClient.post(`/internal/moderation/rooms/${roomId}/report`, { reason, comment });
   },
 };
