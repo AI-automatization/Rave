@@ -119,4 +119,4 @@ export const contentClient = createClient(URLS.content);
 export const notificationClient = createClient(URLS.notification);
 export const watchPartyClient = createClient(URLS.watchParty);
 export const battleClient = createClient(URLS.battle);
-export const adminClient = createClient(`${process.env.EXPO_PUBLIC_ADMIN_URL ?? ''}/api/v1`);
+export const adminClient = createClient(`${process.env.EXPO_PUBLIC_ADMIN_URL ?? ''}`);
