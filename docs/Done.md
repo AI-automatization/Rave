@@ -4,6 +4,30 @@
 
 ---
 
+### F-191 | T-S087 | Support chat internal routes — JWT auth instead of internal secret
+
+- **Beruvchi:** Emirhan (mobile implementatsiyasi chog'ida topildi)
+- **Bajaruvchi:** Saidazim (Claude sonnet yordamida)
+- **Yaratilgan:** 2026-05-09 16:00
+- **Bajarilgan:** 2026-05-09 17:17
+- **Model:** sonnet
+- **O'zgarishlar:** 2 fayl — support.routes.ts, support.controller.ts
+- **Xulosa:** requireInternalSecret → verifyToken + ownership check (user.userId === :userId), userId URL param o'rniga JWT dan olinadi
+
+---
+
+### F-192 | T-S084 | WatchParty chat — username in ROOM_MESSAGE socket payload
+
+- **Beruvchi:** Emirhan
+- **Bajaruvchi:** Saidazim (Claude sonnet yordamida)
+- **Yaratilgan:** 2026-05-09 00:00
+- **Bajarilgan:** 2026-05-09 17:17
+- **Model:** sonnet
+- **O'zgarishlar:** 1 fayl — chatEvents.handler.ts
+- **Xulosa:** username JwtPayload dan olinib ROOM_MESSAGE payloadiga qo'shildi — mobile QueryClient cache workaround endi kerak emas
+
+---
+
 ### F-217 | T-E118 + T-E119 | In-app Support Chat + push notification handler
 
 - **Beruvchi:** Saidazim

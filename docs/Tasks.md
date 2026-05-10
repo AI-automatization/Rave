@@ -37,21 +37,6 @@
 
 ---
 
-### T-S087 | P1 | [BACKEND] | Support chat internal routes — JWT auth instead of internal secret | wip[Saidazim]
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Emirhan (mobile implementatsiyasi chog'ida topildi)
-- **Yaratilgan:** 2026-05-09 16:00
-- **Holat:** ❌ Boshlanmagan
-- **Tavsiya model:** haiku
-- **Model sababi:** 1 fayl, route middleware o'zgartirish — support.routes.ts
-- **Sabab:** `/internal/support/user/:userId` va `/internal/support/user/:userId/message` routelari `requireInternalSecret` ishlatadi. Mobile `adminClient` JWT token yuboradi — 401 keladi. `verifyToken` ga o'tkazish va `req.user.id === req.params.userId` tekshirish kerak.
-- **Qilish kerak:**
-  - [ ] `services/admin/src/routes/support.routes.ts` — internal routes: `requireInternalSecret` → `verifyToken` + userId ownership check
-  - [ ] Controller: `userSendMessage` — `req.user.id` dan userId olish (security: URL param emas)
-- **Bog'liq:** T-E118 (mobile tayyor, backend fix kutmoqda)
-
----
 
 ### T-S082 | P2 | [DEVOPS] | Security: Deploy workflows — CI/CD pipeline qo'shish | pending[Saidazim]
 
@@ -162,21 +147,6 @@
 
 ---
 
-### T-S084 | P2 | [BACKEND] | WatchParty chat — add username to ROOM_MESSAGE socket payload | wip[Saidazim]
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Emirhan
-- **Yaratilgan:** 2026-05-09 00:00
-- **Holat:** ❌ Boshlanmagan
-- **Tavsiya model:** haiku
-- **Model sababi:** 1 fayl, faqat username field qo'shish — chatEvents.handler.ts
-- **Sabab:** ROOM_MESSAGE socket event da username yo'q — faqat userId yuboriladi. Mobile QueryClient cache orqali vaqtincha hal qilindi, lekin backend fix kerak.
-- **Qilish kerak:**
-  - [ ] `services/watch-party/src/socket/chatEvents.handler.ts` — `authSocket.user.username` ni ROOM_MESSAGE payload ga qo'shish
-  - [ ] Mobile `MessageEvent` type ga `username?: string` qo'shish (T-E113 follow-up)
-- **Bog'liq:** T-E113 (mobile vaqtincha fix allaqachon bajarildi)
-
----
 
 # ═══════════════════════════════════════
 
