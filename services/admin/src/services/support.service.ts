@@ -24,14 +24,13 @@ export class SupportService {
     const conversations = await SupportConversation.find(query)
       .sort({ lastMessageAt: -1 })
       .skip((filters.page - 1) * filters.limit)
-      .limit(filters.limit)
-      .lean();
+      .limit(filters.limit);
 
     return { conversations, total };
   }
 
   async getConversation(id: string) {
-    return SupportConversation.findById(id).lean();
+    return SupportConversation.findById(id);
   }
 
   async listMessages(conversationId: string, page: number, limit: number) {
@@ -40,8 +39,7 @@ export class SupportService {
     const messages = await SupportMessage.find(query)
       .sort({ createdAt: 1 })
       .skip((page - 1) * limit)
-      .limit(limit)
-      .lean();
+      .limit(limit);
     return { messages, total };
   }
 
@@ -71,11 +69,11 @@ export class SupportService {
   }
 
   async closeConversation(id: string) {
-    return SupportConversation.findByIdAndUpdate(id, { status: 'closed' }, { new: true }).lean();
+    return SupportConversation.findByIdAndUpdate(id, { status: 'closed' }, { new: true });
   }
 
   async getUserConversations(userId: string) {
-    return SupportConversation.find({ userId }).sort({ lastMessageAt: -1 }).lean();
+    return SupportConversation.find({ userId }).sort({ lastMessageAt: -1 });
   }
 
   async openCount() {
