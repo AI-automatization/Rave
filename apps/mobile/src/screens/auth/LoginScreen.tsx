@@ -55,6 +55,7 @@ export function LoginScreen() {
     telegramLoading,
     googleDisabled,
     socialError,
+    blockedReason: socialBlockedReason,
     clearSocialError,
     promptGoogleAsync,
     handleTelegramLogin,
@@ -75,6 +76,14 @@ export function LoginScreen() {
       clearSocialError();
     }
   }, [socialError]);
+
+  // Google OAuth returned ACCOUNT_BLOCKED — show blocked modal
+  useEffect(() => {
+    if (socialBlockedReason) {
+      setBlockedReason(socialBlockedReason);
+      setBlockedVisible(true);
+    }
+  }, [socialBlockedReason]);
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) { setError(t('login', 'errorEmpty')); return; }

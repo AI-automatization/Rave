@@ -16,6 +16,7 @@ interface UseSocialAuthResult {
   telegramLoading: boolean;
   googleDisabled: boolean;
   socialError: string;
+  blockedReason: string;
   clearSocialError: () => void;
   promptGoogleAsync: () => void;
   handleTelegramLogin: () => Promise<void>;
@@ -28,6 +29,7 @@ export function useSocialAuth(): UseSocialAuthResult {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [telegramLoading, setTelegramLoading] = useState(false);
   const [socialError, setSocialError] = useState('');
+  const [blockedReason, setBlockedReason] = useState('');
   const googleIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const telegramIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const telegramAppStateRef = useRef<ReturnType<typeof AppState.addEventListener> | null>(null);
@@ -68,7 +70,12 @@ export function useSocialAuth(): UseSocialAuthResult {
             googleIntervalRef.current = null;
             setGoogleLoading(false);
             WebBrowser.dismissBrowser();
-            await setAuth(result.user, result.accessToken, result.refreshToken);
+            const maybeBlocked = result as unknown as { error?: string; reason?: string };
+            if (maybeBlocked.error === 'ACCOUNT_BLOCKED') {
+              setBlockedReason(maybeBlocked.reason ?? '');
+            } else {
+              await setAuth(result.user, result.accessToken, result.refreshToken);
+            }
           }
         } catch {
           // keep polling silently
@@ -159,6 +166,7 @@ export function useSocialAuth(): UseSocialAuthResult {
     telegramLoading,
     googleDisabled: false,
     socialError,
+    blockedReason,
     clearSocialError: () => setSocialError(''),
     promptGoogleAsync,
     handleTelegramLogin,

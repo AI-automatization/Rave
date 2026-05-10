@@ -269,8 +269,17 @@ export class AuthController {
         refreshToken,
       });
       res.send(successHtml);
-    } catch {
-      res.send(errorHtml);
+    } catch (err) {
+      const error = err as { code?: string; reason?: string };
+      if (error.code === 'ACCOUNT_BLOCKED') {
+        await this.authService.storeMobileGoogleResult(mobileState, {
+          error: 'ACCOUNT_BLOCKED',
+          reason: error.reason ?? 'Your account has been suspended',
+        }).catch(() => {});
+        res.send(successHtml); // redirect back to app — it will detect the block via poll
+      } else {
+        res.send(errorHtml);
+      }
     }
   };
 
