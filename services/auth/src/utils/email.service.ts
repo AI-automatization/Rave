@@ -178,6 +178,48 @@ export const emailService = {
     }
   },
 
+  async sendAppealDecisionEmail(opts: {
+    to: string;
+    status: 'approved' | 'rejected';
+    note?: string;
+  }): Promise<void> {
+    const isApproved = opts.status === 'approved';
+    const subject = isApproved
+      ? 'Ваша апелляция одобрена — CineSync'
+      : 'Ваша апелляция отклонена — CineSync';
+    const statusColor = isApproved ? '#22c55e' : '#ef4444';
+    const statusText = isApproved ? 'Апелляция одобрена' : 'Апелляция отклонена';
+    const bodyText = isApproved
+      ? 'Мы рассмотрели вашу апелляцию и решили восстановить доступ к вашему аккаунту. Вы можете войти снова.'
+      : 'Мы рассмотрели вашу апелляцию, однако приняли решение оставить ограничение в силе.';
+
+    try {
+      await transporter.sendMail({
+        from: `"CineSync" <${config.email.from}>`,
+        to: opts.to,
+        subject,
+        html: `
+          <div style="font-family: DM Sans, sans-serif; max-width: 600px; margin: 0 auto; background: #0A0A0F; color: #fff; padding: 40px; border-radius: 12px;">
+            <h1 style="color: #7C3AED; margin-bottom: 8px;">CineSync</h1>
+            <div style="display: inline-block; background: ${statusColor}22; border: 1px solid ${statusColor}; border-radius: 8px; padding: 8px 16px; margin-bottom: 24px;">
+              <span style="color: ${statusColor}; font-weight: 600;">${statusText}</span>
+            </div>
+            <p style="color: #ccc; font-size: 15px; line-height: 1.6;">${bodyText}</p>
+            ${opts.note ? `
+            <div style="background: #16161F; border-left: 3px solid #7C3AED; border-radius: 4px; padding: 16px; margin: 20px 0;">
+              <p style="color: #888; font-size: 12px; margin: 0 0 6px;">Комментарий модератора:</p>
+              <p style="color: #fff; margin: 0; font-size: 14px;">${opts.note}</p>
+            </div>` : ''}
+            <p style="color: #666; font-size: 12px; margin-top: 32px;">Команда CineSync</p>
+          </div>
+        `,
+      });
+      logger.info('Appeal decision email sent', { to: '[REDACTED]', status: opts.status });
+    } catch (error) {
+      logger.error('Failed to send appeal decision email', { error: (error as Error).message });
+    }
+  },
+
   async verifyConnection(): Promise<boolean> {
     try {
       await transporter.verify();

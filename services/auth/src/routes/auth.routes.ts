@@ -99,6 +99,9 @@ export const createAuthRouter = (redis: Redis): Router => {
   // POST /auth/internal/users/:userId/revoke-sessions — admin blocks user, revoke all refresh tokens
   router.post('/internal/users/:userId/revoke-sessions', requireInternalSecret, authController.revokeUserSessions);
 
+  // POST /auth/internal/appeal-decision-email — send appeal result to user email
+  router.post('/internal/appeal-decision-email', requireInternalSecret, authController.sendAppealDecisionEmail);
+
   // POST /auth/init-admin — bir martalik superadmin yaratish (ADMIN_INIT_SECRET bilan himoyalangan)
   router.post('/init-admin', initAdminRateLimiter, authController.initAdmin);
 

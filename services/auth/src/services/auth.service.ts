@@ -1,5 +1,7 @@
 import Redis from 'ioredis';
 import { JwtPayload } from '@shared/types';
+import { User } from '../models/user.model';
+import { emailService } from '../utils/email.service';
 
 // Re-export sub-services for direct use if needed
 export { PasswordAuthService } from './passwordAuth.service';
@@ -132,4 +134,10 @@ export class AuthService {
 
   findOrCreateTelegramUser = (profile: Parameters<TelegramAuthService['findOrCreateTelegramUser']>[0]) =>
     this.telegram.findOrCreateTelegramUser(profile);
+
+  async sendAppealDecisionEmail(userId: string, status: 'approved' | 'rejected', note?: string): Promise<void> {
+    const user = await User.findById(userId).select('email').lean();
+    if (!user?.email) return;
+    await emailService.sendAppealDecisionEmail({ to: user.email, status, note });
+  }
 }

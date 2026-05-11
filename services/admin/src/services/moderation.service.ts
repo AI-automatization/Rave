@@ -1,6 +1,6 @@
 import { RoomReport, ReportReason, ReportStatus } from '../models/roomReport.model';
 import { Appeal, AppealStatus } from '../models/appeal.model';
-import { adminUnblockUser } from '@shared/utils/adminServiceClient';
+import { adminUnblockUser, adminSendAppealDecisionEmail } from '@shared/utils/adminServiceClient';
 import { logger } from '@shared/utils/logger';
 
 export class ModerationService {
@@ -60,13 +60,19 @@ export class ModerationService {
       { status, reviewedBy: adminId, reviewNote: note ?? null, reviewedAt: new Date() },
       { new: true },
     );
-    if (appeal && status === 'approved') {
-      try {
-        await adminUnblockUser(appeal.userId);
-        logger.info('[ModerationService] user unblocked via appeal', { userId: appeal.userId, adminId });
-      } catch (err) {
-        logger.error('[ModerationService] unblock failed', { userId: appeal.userId, err });
+    if (appeal) {
+      if (status === 'approved') {
+        try {
+          await adminUnblockUser(appeal.userId);
+          logger.info('[ModerationService] user unblocked via appeal', { userId: appeal.userId, adminId });
+        } catch (err) {
+          logger.error('[ModerationService] unblock failed', { userId: appeal.userId, err });
+        }
       }
+      // Fire-and-forget — email failure must not break the review response
+      adminSendAppealDecisionEmail(appeal.userId, status, note).catch((err: unknown) =>
+        logger.warn('[ModerationService] appeal email failed', { userId: appeal.userId, err }),
+      );
     }
     return appeal;
   }

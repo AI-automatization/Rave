@@ -157,6 +157,17 @@ export class AuthController {
     }
   };
 
+  sendAppealDecisionEmail = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId, status, note } = req.body as { userId: string; status: 'approved' | 'rejected'; note?: string };
+      if (!userId || !status) { res.status(400).json(apiResponse.error('userId and status required')); return; }
+      await this.authService.sendAppealDecisionEmail(userId, status, note);
+      res.json(apiResponse.success(null, 'Email sent'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   verifyEmail = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { token } = req.body as { token: string };

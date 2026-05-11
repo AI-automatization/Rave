@@ -2,7 +2,7 @@ import { logger } from './logger';
 import {
   axios, AxiosError,
   internalHeaders,
-  userServiceUrl, contentServiceUrl, notificationServiceUrl,
+  authServiceUrl, userServiceUrl, contentServiceUrl, notificationServiceUrl,
   battleServiceUrl, watchPartyServiceUrl,
 } from './serviceConfig';
 
@@ -252,4 +252,16 @@ export async function adminListStaff(): Promise<unknown[]> {
     logger.error('[adminServiceClient] adminListStaff failed', { message: error.message });
     return [];
   }
+}
+
+export async function adminSendAppealDecisionEmail(
+  userId: string,
+  status: 'approved' | 'rejected',
+  note?: string,
+): Promise<void> {
+  await axios.post(
+    `${authServiceUrl}/api/v1/auth/internal/appeal-decision-email`,
+    { userId, status, note },
+    { headers: internalHeaders, timeout: 5000 },
+  );
 }
