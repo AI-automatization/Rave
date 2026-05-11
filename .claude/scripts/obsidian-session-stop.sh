@@ -17,7 +17,7 @@ DAILY="$VAULT/DAILY/$DEV/$DATE.md"
 [[ -f "$DAILY" ]] && echo -e "\n### 🔴 Session ended: $NOW" >> "$DAILY"
 
 # ── Auto-snapshot: git state + pending tasks → handoff.md ────────────
-HANDOFF="$VAULT/AI_CONTEXT/handoff.md"
+HANDOFF="$VAULT/AI_CONTEXT/handoff-${DEV_LOWER}.md"
 REPO="${REPO_PATH:-$HOME/Desktop/Rave}"
 
 LAST_COMMIT=""

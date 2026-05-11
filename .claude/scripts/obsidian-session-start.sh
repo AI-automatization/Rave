@@ -69,7 +69,7 @@ echo "- $NOW" >> "$WEEKLY"
 # ════════════════════════════════════════════════════════════════════
 # IN-PROGRESS — ПОКАЗЫВАЕТСЯ ПЕРВЫМ (незавершённые задачи)
 # ════════════════════════════════════════════════════════════════════
-IN_PROGRESS="$VAULT/AI_CONTEXT/in-progress.md"
+IN_PROGRESS="$VAULT/AI_CONTEXT/in-progress-${DEV_LOWER}.md"
 if [[ -f "$IN_PROGRESS" ]]; then
   IP_STATUS=$(grep "^status:" "$IN_PROGRESS" 2>/dev/null | head -1 | awk '{print $2}' || echo "clear")
   IP_UPDATED=$(grep "^updated:" "$IN_PROGRESS" 2>/dev/null | head -1 | awk '{print $2}' || echo "")
@@ -117,7 +117,7 @@ if [[ -f "$BRAIN" ]]; then
 fi
 
 # ── Handoff — что было в прошлой сессии ──────────────────────────
-HANDOFF="$VAULT/AI_CONTEXT/handoff.md"
+HANDOFF="$VAULT/AI_CONTEXT/handoff-${DEV_LOWER}.md"
 if [[ -f "$HANDOFF" ]] && [[ $(wc -l < "$HANDOFF") -gt 8 ]]; then
   echo ""
   echo "━━━ 🔄 ПРОШЛАЯ СЕССИЯ — HANDOFF ━━━"
