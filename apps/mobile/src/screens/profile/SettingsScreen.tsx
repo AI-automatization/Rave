@@ -1,6 +1,6 @@
 // CineSync Mobile — SettingsScreen (composed)
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Alert, Linking } from 'react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { RootStackParamList } from '@app-types/index';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -211,6 +211,29 @@ export function SettingsScreen() {
                 <Text style={styles.infoValue}>{item.value}</Text>
               </View>
             ))}
+          </View>
+
+          {/* Legal */}
+          <SectionHeader title="Правовая информация" />
+          <View style={styles.card}>
+            <TouchableOpacity
+              style={[styles.navRow, styles.rowBorder]}
+              onPress={() => Linking.openURL('https://wewatch.app/privacy')}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="shield-checkmark-outline" size={18} color={colors.textMuted} />
+              <Text style={styles.navLabel}>Политика конфиденциальности</Text>
+              <Ionicons name="open-outline" size={16} color={colors.textMuted} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.navRow}
+              onPress={() => Linking.openURL('https://wewatch.app/terms')}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="document-text-outline" size={18} color={colors.textMuted} />
+              <Text style={styles.navLabel}>Условия использования</Text>
+              <Ionicons name="open-outline" size={16} color={colors.textMuted} />
+            </TouchableOpacity>
           </View>
 
           {/* Danger zone */}

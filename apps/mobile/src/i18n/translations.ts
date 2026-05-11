@@ -102,6 +102,11 @@ export const translations = {
     errPasswordMatch: { uz: 'Parollar mos emas', ru: 'Пароли не совпадают', en: 'Passwords do not match' },
     passwordsMatch: { uz: 'Parollar mos', ru: 'Пароли совпадают', en: 'Passwords match' },
     errGeneral: { uz: "Ro'yxatdan o'tishda xato", ru: 'Ошибка при регистрации', en: 'Registration failed' },
+    tosText: { uz: 'Men ', ru: 'Я принимаю ', en: 'I accept ' },
+    tosTerms: { uz: 'Foydalanish shartlari', ru: 'Условия использования', en: 'Terms of Service' },
+    tosAnd: { uz: ' va ', ru: ' и ', en: ' and ' },
+    tosPrivacy: { uz: 'Maxfiylik siyosati', ru: 'Политику конфиденциальности', en: 'Privacy Policy' },
+    tosEnd: { uz: 'ni qabul qilaman', ru: '', en: '' },
   },
 
   // ─── Auth — Verify Email ───

@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Animated,
   StatusBar,
+  Linking,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
@@ -43,6 +44,7 @@ export function RegisterScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [tosAccepted, setTosAccepted] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
@@ -164,9 +166,30 @@ export function RegisterScreen() {
               onBlur={() => setFocusedField(null)}
             />
 
-            <TouchableOpacity onPress={handleRegister} disabled={loading} activeOpacity={0.85} style={s.registerBtnWrap}>
+            <TouchableOpacity
+              style={s.tosRow}
+              onPress={() => setTosAccepted(!tosAccepted)}
+              activeOpacity={0.7}
+            >
+              <View style={[s.checkbox, tosAccepted && s.checkboxChecked]}>
+                {tosAccepted && <Ionicons name="checkmark" size={14} color={colors.white} />}
+              </View>
+              <Text style={s.tosText}>
+                <Text>{t('register', 'tosText')}</Text>
+                <Text style={s.tosLink} onPress={() => Linking.openURL('https://wewatch.app/terms')}>
+                  {t('register', 'tosTerms')}
+                </Text>
+                <Text>{t('register', 'tosAnd')}</Text>
+                <Text style={s.tosLink} onPress={() => Linking.openURL('https://wewatch.app/privacy')}>
+                  {t('register', 'tosPrivacy')}
+                </Text>
+                {t('register', 'tosEnd') ? <Text>{t('register', 'tosEnd')}</Text> : null}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={handleRegister} disabled={loading || !tosAccepted} activeOpacity={0.85} style={s.registerBtnWrap}>
               <LinearGradient
-                colors={loading ? [colors.bgLoading, colors.bgLoading] : [colors.primary, colors.primaryLight]}
+                colors={loading || !tosAccepted ? [colors.bgLoading, colors.bgLoading] : [colors.primary, colors.primaryLight]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={s.primaryBtn}
@@ -228,7 +251,18 @@ const useStyles = createThemedStyles((colors) => ({
   },
   errorText: { color: colors.error, fontSize: 13, flex: 1 },
 
-  registerBtnWrap: { marginTop: 20 },
+  tosRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginTop: 20, marginBottom: 4 },
+  checkbox: {
+    width: 22, height: 22, borderRadius: 6,
+    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.25)',
+    alignItems: 'center', justifyContent: 'center',
+    marginTop: 1, flexShrink: 0,
+  },
+  checkboxChecked: { backgroundColor: '#7B72F8', borderColor: '#7B72F8' },
+  tosText: { flex: 1, fontSize: 13, color: 'rgba(255,255,255,0.55)', lineHeight: 20 },
+  tosLink: { color: '#7B72F8', fontWeight: '600' },
+
+  registerBtnWrap: { marginTop: 12 },
   primaryBtn: { height: 54, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   primaryBtnText: { color: colors.white, fontSize: 16, fontWeight: '700', letterSpacing: 0.5 },
 
