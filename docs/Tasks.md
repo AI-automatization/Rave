@@ -181,40 +181,6 @@
 
 ---
 
-### T-E118 | P1 | [MOBILE] | Жалоба на пользователя — ReportUserModal + кнопки
-
-- **Mas'ul:** pending[Emirhan]
-- **Beruvchi:** Saidazim
-- **Yaratilgan:** 2026-05-11 17:30
-- **Holat:** ❌ Boshlanmagan — T-S095 tayyor bo'lgandan keyin
-- **Tavsiya model:** sonnet
-- **Model sababi:** yangi modal komponent + API + 2 ekranga qo'shish — 4 fayl
-- **Bog'liq:** T-S095 (backend endpoint) tayyor bo'lishi kerak
-- **Sabab:** Foydalanuvchilar boshqa userlarni admin moderatsiyasiga yuborishsin
-- **Qilish kerak:**
-  - [ ] `report.api.ts` — `reportUser(userId, reason, comment?)` qo'shish (`POST /internal/moderation/users/:userId/report`)
-  - [ ] `ReportUserModal.tsx` — `ReportRoomModal` ga o'xshash, title "Пожаловаться на пользователя"
-  - [ ] `FriendProfileScreen.tsx` — 3-nokta menyu yoki "Пожаловаться" tugmasi qo'shish
-  - [ ] `WatchPartyScreen.tsx` — participants listida userni bosib → ReportUserModal
-- **Eslatma:** `ReportRoomModal.tsx` dan copy qilib adapt qilish — struktura bir xil
-
----
-
-### T-E119 | P2 | [MOBILE] | Жалоба на комнату из RoomsScreen (вступление не требуется)
-
-- **Mas'ul:** pending[Emirhan]
-- **Beruvchi:** Saidazim
-- **Yaratilgan:** 2026-05-11 17:30
-- **Holat:** ❌ Boshlanmagan
-- **Tavsiya model:** haiku
-- **Model sababi:** 1 fayl — mavjud modal ishlatish, faqat tugma qo'shish
-- **Sabab:** Hozir faqat WatchPartyScreen ichidan shikoyat qilish mumkin. Foydalanuvchi kirmasdan ham shikoyat qilolsin.
-- **Eslatma:** `ReportRoomModal` allaqachon tayyor — faqat RoomsScreen dagi har bir room kartochkasiga long-press yoki "..." menyu qo'sh
-- **Qilish kerak:**
-  - [ ] `RoomsScreen.tsx` — room kartochkasiga long-press → bottom sheet: "Войти" / "Пожаловаться"
-  - [ ] `<ReportRoomModal visible={...} roomId={room._id} />` ni import qilish
-
----
 
 
 

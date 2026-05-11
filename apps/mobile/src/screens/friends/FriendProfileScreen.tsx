@@ -1,5 +1,5 @@
 // CineSync Mobile — FriendProfileScreen
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -20,6 +20,7 @@ import { RANK_COLORS } from '@theme/index';
 import { FriendsStackParamList, RootStackParamList } from '@app-types/index';
 import { useT } from '@i18n/index';
 import { DEFAULT_AVATAR } from '@utils/assets';
+import { ReportUserModal } from '@components/common/ReportUserModal';
 
 type RouteType = RouteProp<FriendsStackParamList, 'FriendProfile'>;
 type RootNav = NavigationProp<RootStackParamList>;
@@ -54,6 +55,7 @@ export function FriendProfileScreen() {
   const friends = useFriendsStore(s => s.friends);
   const onlineStatus = useFriendsStore(s => s.onlineStatus);
 
+  const [showReport, setShowReport] = useState(false);
   const { profileQuery, statsQuery, sendRequestMutation, removeMutation } = useFriendProfile(params.userId);
   const profile = profileQuery.data;
   const stats = statsQuery.data;
@@ -233,8 +235,20 @@ export function FriendProfileScreen() {
           )}
         </View>
 
+        <TouchableOpacity style={styles.reportBtn} onPress={() => setShowReport(true)}>
+          <Ionicons name="flag-outline" size={15} color={colors.textMuted} />
+          <Text style={styles.reportBtnText}>Пожаловаться на пользователя</Text>
+        </TouchableOpacity>
+
         <View style={{ height: TAB_BAR_HEIGHT + insets.bottom + spacing.xl }} />
       </ScrollView>
+
+      <ReportUserModal
+        visible={showReport}
+        userId={params.userId}
+        username={profile?.username}
+        onClose={() => setShowReport(false)}
+      />
     </View>
   );
 }
@@ -408,6 +422,19 @@ const useStyles = createThemedStyles((colors) => ({
     borderRadius: borderRadius.xl,
   },
   removeBtnText: { ...typography.body, color: colors.error, fontWeight: '600' },
+  reportBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.md,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.xs,
+  },
+  reportBtnText: {
+    ...typography.caption,
+    color: colors.textMuted,
+  },
   sentCard: {
     flexDirection: 'row',
     alignItems: 'center',

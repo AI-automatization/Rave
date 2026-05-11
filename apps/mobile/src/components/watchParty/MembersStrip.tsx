@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
@@ -10,6 +10,7 @@ interface Props {
   activeMembers: string[];
   ownerId: string;
   currentUserId: string;
+  onMemberPress?: (userId: string) => void;
 }
 
 const AVATAR_SIZE = 36;
@@ -22,7 +23,7 @@ function memberColor(userId: string): string {
   return palette[Math.abs(hash) % palette.length];
 }
 
-function MemberAvatar({ userId, isOwner, isSelf }: { userId: string; isOwner: boolean; isSelf: boolean }) {
+function MemberAvatar({ userId, isOwner, isSelf, onPress }: { userId: string; isOwner: boolean; isSelf: boolean; onPress?: () => void }) {
   const { data } = useQuery({
     queryKey: ['user-public', userId],
     queryFn: () => userApi.getPublicProfile(userId),
@@ -32,7 +33,7 @@ function MemberAvatar({ userId, isOwner, isSelf }: { userId: string; isOwner: bo
   const bg = memberColor(userId);
   const label = data?.username?.slice(0, 2).toUpperCase() ?? '??';
 
-  return (
+  const inner = (
     <View style={s.avatarWrap}>
       <View style={[s.avatarBorder, isSelf && s.selfBorder]}>
         {data?.avatar ? (
@@ -53,9 +54,18 @@ function MemberAvatar({ userId, isOwner, isSelf }: { userId: string; isOwner: bo
       </Text>
     </View>
   );
+
+  if (onPress) {
+    return (
+      <TouchableOpacity onPress={onPress} activeOpacity={0.7} delayLongPress={400}>
+        {inner}
+      </TouchableOpacity>
+    );
+  }
+  return inner;
 }
 
-export function MembersStrip({ activeMembers, ownerId, currentUserId }: Props) {
+export function MembersStrip({ activeMembers, ownerId, currentUserId, onMemberPress }: Props) {
   if (activeMembers.length === 0) return null;
 
   const visible = activeMembers.slice(0, MAX_VISIBLE);
@@ -70,6 +80,7 @@ export function MembersStrip({ activeMembers, ownerId, currentUserId }: Props) {
             userId={uid}
             isOwner={uid === ownerId}
             isSelf={uid === currentUserId}
+            onPress={onMemberPress && uid !== currentUserId ? () => onMemberPress(uid) : undefined}
           />
         ))}
         {overflow > 0 && (

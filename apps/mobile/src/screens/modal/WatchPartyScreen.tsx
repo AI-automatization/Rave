@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Platform } from 'react-native';
 import { ReportRoomModal } from '@components/common/ReportRoomModal';
+import { ReportUserModal } from '@components/common/ReportUserModal';
 import { useRoute, RouteProp } from '@react-navigation/native';
 import { ChatPanel, ChatMessage } from '@components/watchParty/ChatPanel';
 import { VoiceChat } from '@components/watchParty/VoiceChat';
@@ -29,6 +30,7 @@ export function WatchPartyScreen() {
 
   const [showPlaylist, setShowPlaylist] = useState(false);
   const [showReport, setShowReport] = useState(false);
+  const [reportUserId, setReportUserId] = useState<string | null>(null);
 
   const {
     playerRef, userId, room, messages, activeMembers, isOwner, adminMonitoring, connectTimeout,
@@ -77,6 +79,7 @@ export function WatchPartyScreen() {
           activeMembers={activeMembers}
           ownerId={room.ownerId}
           currentUserId={userId}
+          onMemberPress={(uid) => setReportUserId(uid)}
         />
       )}
 
@@ -205,6 +208,9 @@ export function WatchPartyScreen() {
           )}
           {room && (
             <ReportRoomModal visible={showReport} roomId={params.roomId} onClose={() => setShowReport(false)} />
+          )}
+          {reportUserId && (
+            <ReportUserModal visible userId={reportUserId} onClose={() => setReportUserId(null)} />
           )}
         </>
       )}

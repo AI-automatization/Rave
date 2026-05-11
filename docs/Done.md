@@ -4,6 +4,18 @@
 
 ---
 
+### F-202 | T-E118 + T-E119 | ReportUserModal + RoomsScreen long-press report
+
+- **Beruvchi:** Saidazim
+- **Bajaruvchi:** Emirhan (Claude sonnet yordamida)
+- **Yaratilgan:** 2026-05-11 17:30
+- **Bajarilgan:** 2026-05-11
+- **Model:** sonnet
+- **O'zgarishlar:** 6 fayl — report.api.ts, ReportUserModal.tsx (new), FriendProfileScreen.tsx, MembersStrip.tsx, WatchPartyScreen.tsx, RoomsScreen.tsx
+- **Xulosa:** T-E118: ReportUserModal yaratildi, FriendProfileScreen + WatchPartyScreen (MembersStrip tap) ga qo'shildi. T-E119: RoomsScreen da long-press → ReportRoomModal. tsc: CLEAN.
+
+---
+
 ### F-201 | T-S093 | Play Store: Cascade account deletion across all services
 
 - **Beruvchi:** Saidazim

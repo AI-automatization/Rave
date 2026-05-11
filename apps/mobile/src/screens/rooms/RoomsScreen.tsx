@@ -1,5 +1,5 @@
 // CineSync Mobile — Rooms Screen (all open watch party rooms)
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   Animated,
   StatusBar,
 } from 'react-native';
+import { ReportRoomModal } from '@components/common/ReportRoomModal';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -33,7 +34,7 @@ const STATUS_MAP: Record<WatchPartyStatus, { icon: string; labelKey: string; col
 };
 
 // ─── Animated card ──────────────────────────────────────────────
-function RoomListCard({ room, index, onPress, t }: { room: IWatchPartyRoom; index: number; onPress: () => void; t: TFn }) {
+function RoomListCard({ room, index, onPress, onLongPress, t }: { room: IWatchPartyRoom; index: number; onPress: () => void; onLongPress?: () => void; t: TFn }) {
   const { colors } = useTheme();
   const s = useStyles();
   const opacity = useRef(new Animated.Value(0)).current;
@@ -68,6 +69,8 @@ function RoomListCard({ room, index, onPress, t }: { room: IWatchPartyRoom; inde
       <TouchableOpacity
         style={[s.card, isEnded && s.cardEnded]}
         onPress={onPress}
+        onLongPress={onLongPress}
+        delayLongPress={400}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         activeOpacity={1}
@@ -145,6 +148,7 @@ export function RoomsScreen() {
   const s = useStyles();
   const { t } = useT();
   const { data: rooms, isLoading, refetch, isRefetching } = useWatchPartyRooms();
+  const [reportRoomId, setReportRoomId] = useState<string | null>(null);
 
   const liveRooms = (rooms ?? []).filter(r => r.status === 'playing');
   const waitingRooms = (rooms ?? []).filter(r => r.status === 'waiting');
@@ -257,6 +261,7 @@ export function RoomsScreen() {
                   room={room}
                   index={i}
                   onPress={() => handleRoomPress(room._id)}
+                  onLongPress={() => setReportRoomId(room._id)}
                   t={t}
                 />
               ))}
@@ -282,6 +287,12 @@ export function RoomsScreen() {
           <View style={{ height: TAB_BAR_HEIGHT + insets.bottom + spacing.xl }} />
         </ScrollView>
       )}
+
+      <ReportRoomModal
+        visible={!!reportRoomId}
+        roomId={reportRoomId ?? ''}
+        onClose={() => setReportRoomId(null)}
+      />
     </View>
   );
 }
