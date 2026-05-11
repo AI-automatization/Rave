@@ -29,10 +29,9 @@
       },
       "permissions": [
         "android.permission.CAMERA",
-        "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_MEDIA_IMAGES",
         "android.permission.VIBRATE",
-        "android.permission.RECEIVE_BOOT_COMPLETED"
+        "android.permission.INTERNET"
       ]
     },
     "plugins": [
