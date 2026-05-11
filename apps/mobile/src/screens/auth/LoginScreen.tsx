@@ -46,6 +46,7 @@ export function LoginScreen() {
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [blockedVisible, setBlockedVisible] = useState(false);
   const [blockedReason, setBlockedReason] = useState('');
+  const [blockedUserId, setBlockedUserId] = useState('');
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(16)).current;
@@ -56,6 +57,7 @@ export function LoginScreen() {
     googleDisabled,
     socialError,
     blockedReason: socialBlockedReason,
+    blockedUserId: socialBlockedUserId,
     clearSocialError,
     promptGoogleAsync,
     handleTelegramLogin,
@@ -81,6 +83,7 @@ export function LoginScreen() {
   useEffect(() => {
     if (socialBlockedReason) {
       setBlockedReason(socialBlockedReason);
+      setBlockedUserId(socialBlockedUserId);
       setBlockedVisible(true);
     }
   }, [socialBlockedReason]);
@@ -95,9 +98,10 @@ export function LoginScreen() {
       });
       await setAuth(user, accessToken, refreshToken);
     } catch (err: unknown) {
-      const resp = (err as { response?: { status?: number; data?: { code?: string; reason?: string; message?: string; errors?: string[] } } })?.response;
+      const resp = (err as { response?: { status?: number; data?: { code?: string; reason?: string; message?: string; errors?: string[]; userId?: string } } })?.response;
       if (resp?.status === 403 && resp.data?.code === 'ACCOUNT_BLOCKED') {
         setBlockedReason(resp.data.reason ?? '');
+        setBlockedUserId(resp.data.userId ?? '');
         setBlockedVisible(true);
         return;
       }
@@ -220,6 +224,7 @@ export function LoginScreen() {
       <BlockedAccountModal
         visible={blockedVisible}
         reason={blockedReason}
+        userId={blockedUserId}
         onClose={() => setBlockedVisible(false)}
       />
     </View>

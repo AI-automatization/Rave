@@ -31,9 +31,7 @@ export function BlockedAccountModal({ visible, reason, userId, onClose }: Blocke
     try {
       await appealApi.create(message.trim(), reason, userId);
       setView('done');
-    } catch (err: unknown) {
-      const e = err as { response?: { status: number; data: unknown }; message?: string };
-      console.error('[Appeal] submit failed', e?.response?.status, JSON.stringify(e?.response?.data), e?.message);
+    } catch {
       setError('Не удалось отправить. Проверьте соединение и попробуйте снова.');
     } finally {
       setLoading(false);
