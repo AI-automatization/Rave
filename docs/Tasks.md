@@ -1,40 +1,122 @@
 # CineSync — OCHIQ VAZIFALAR
 
-# Yangilangan: 2026-05-09
+# Yangilangan: 2026-05-11
 
 ---
 
-### T-S089 | P1 | [BACKEND] | Support chat — Socket.io real-time namespace /support | pending[Saidazim]
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Saidazim
-- **Yaratilgan:** 2026-05-09 19:26
-- **Holat:** 🔄 Bajarilmoqda
-- **Tavsiya model:** sonnet
-- **Model sababi:** Socket.io setup, namespace, auth, emit — 3-4 fayl
-- **Sabab:** Polling o'rniga real-time WebSocket — admin reply mobilda darhol ko'rinsin
+# 🟠 PLAY STORE COMPLIANCE — MVP uchun majburiy
 
 ---
 
-### T-S090 | P1 | [ADMIN] | Support chat — Admin UI Socket.io client real-time | pending[Saidazim]
+### T-S091 | P1 | [BACKEND] | Play Store: YouTube — yt-dlp fallback olib tashlash, doim embed | pending[Saidazim]
 
 - **Mas'ul:** pending[Saidazim]
 - **Beruvchi:** Saidazim
-- **Yaratilgan:** 2026-05-09 19:26
-- **Holat:** 🔄 Bajarilmoqda
-- **Tavsiya model:** sonnet
-- **Model sababi:** socket.io-client, SupportPage update — 2 fayl
+- **Yaratilgan:** 2026-05-11 13:39
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** haiku
+- **Model sababi:** 1 fayl, 1 blok o'chirish — oddiy
+- **Sabab:** Google (YouTube egasi) = Play Store egasi. yt-dlp YouTube uchun ishlamaydi (IP-locked URL), lekin kod bor — xavf. Doim embed ishlatish kerak.
+- **Qilish kerak:**
+  - [ ] `services/content/src/services/videoExtractor/index.ts` — YouTube bloki ichidagi `ytdlService.getStreamInfo()` try/catch ni o'chirib, to'g'ridan embed qaytarish
+  - [ ] YouTube uchun `extractionMethod: 'embed'` yozish (hozir noto'g'ri `'yt-dlp'` yozilgan)
 
 ---
 
-### T-E122 | P1 | [MOBILE] | Support chat — Socket.io client real-time, polling olib tashlash | pending[Saidazim]
+### T-S092 | P1 | [BACKEND] | Play Store: Server-side cookie jar — COOKIE_COLLECTION_JS o'rniga | pending[Saidazim]
 
 - **Mas'ul:** pending[Saidazim]
 - **Beruvchi:** Saidazim
-- **Yaratilgan:** 2026-05-09 19:26
-- **Holat:** 🔄 Bajarilmoqda
+- **Yaratilgan:** 2026-05-11 13:39
+- **Holat:** ❌ Boshlanmagan
 - **Tavsiya model:** sonnet
-- **Model sababi:** useSupportSocket hook + SupportChatScreen — 2 fayl
+- **Model sababi:** Redis + Playwright integration, 2-3 fayl
+- **Sabab:** `COOKIE_COLLECTION_JS` foydalanuvchi cookielerini o'g'irlaydi — Play Store skaneri bu patternnni spyware deb belgilaydi. Serverning o'z cookie jar kerak.
+- **Arxitektura:**
+  - Playwright birinchi marta saytga kirganida cookies ni oladi → Redis ga saqlaydi (`cookie:{domain}`, TTL 24h)
+  - Keyingi extraction da Redis dan cookies ni olib yt-dlp ga beradi
+  - Foydalanuvchi cookielari umuman kerak emas
+- **Qilish kerak:**
+  - [ ] `services/content/src/services/videoExtractor/cookieStore.ts` — `getCookies(domain)` / `setCookies(domain, cookies)` Redis da
+  - [ ] `playwrightExtractor.ts` — extraction keyin cookies ni `cookieStore.setCookies()` orqali saqlash
+  - [ ] `ytDlpExtractor.ts` — per-request cookies parametrini `cookieStore.getCookies(domain)` dan olish
+  - [ ] `useMediaDetection.ts` — `COOKIE_COLLECTION_JS` ni `WEBVIEW_INJECT_JS` dan chiqarish
+  - [ ] `webViewScripts.ts` — `COOKIE_COLLECTION_JS` exportini o'chirish
+
+---
+
+### T-E123 | P1 | [MOBILE] | Play Store: Keraksiz ruxsatlarni o'chirish (app.json) | pending[Emirhan]
+
+- **Mas'ul:** pending[Emirhan]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-05-11 13:39
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** haiku
+- **Model sababi:** 1 fayl, config o'zgartirish
+- **Sabab:** Play Store "over-privileged app" deb belgilaydi — ishlatilmagan ruxsatlar avtomatik flag
+- **Qilish kerak:**
+  - [ ] `apps/mobile/app.json` — `RECEIVE_BOOT_COMPLETED` o'chirish (hech qayerda ishlatilmaydi)
+  - [ ] `apps/mobile/app.json` — `RECORD_AUDIO` o'chirish (mikrofondan foydalanish yo'q)
+  - [ ] `apps/mobile/app.json` — `READ_EXTERNAL_STORAGE` → `READ_MEDIA_IMAGES` (Android 13+ uchun yangi standart)
+
+---
+
+### T-E124 | P1 | [MOBILE] | Play Store: ToS checkbox + Privacy Policy havolasi ro'yxatdan o'tishda | pending[Emirhan]
+
+- **Mas'ul:** pending[Emirhan]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-05-11 13:39
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** RegisterScreen + SettingsScreen, 2 fayl
+- **Sabab:** Play Store talab qiladi — foydalanuvchi akaunt ochishdan oldin ToS ga rozi bo'lishi shart (explicit consent)
+- **Qilish kerak:**
+  - [ ] `apps/mobile/src/screens/auth/RegisterScreen.tsx` — checkbox qo'shish: "Foydalanish shartlari va Maxfiylik siyosatiga roziman"
+  - [ ] Checkbox bosilmasa "Ro'yxatdan o'tish" tugmasi disabled bo'lsin
+  - [ ] `apps/mobile/src/screens/profile/SettingsScreen.tsx` — "Maxfiylik siyosati" havolasi qo'shish
+  - [ ] Havola: `https://wewатch.app/privacy` (landing tayyor bo'lgandan keyin)
+
+---
+
+### T-S093 | P1 | [BACKEND] | Play Store: Akauntni to'liq o'chirish — barcha servislar bo'yicha kaskad | pending[Saidazim]
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-05-11 13:39
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** 4-5 servis, kaskad o'chirish logikasi
+- **Sabab:** Play Store talab qiladi — akaunt o'chirilganda BARCHA ma'lumotlar o'chirilishi shart. Hozir faqat User + Friendship o'chadi.
+- **Hozir o'chirilmayotgan ma'lumotlar:**
+  - Auth service: `auth` kolleksiyasidagi yozuv (userId saqlanib qoladi!)
+  - FCM tokenlar (push notification service)
+  - Support chat xabarlari
+  - Battle tarixi
+  - Watch history
+  - Notifications
+- **Qilish kerak:**
+  - [ ] `services/user/src/services/profile.service.ts` — `deleteAccount()` ni kengaytirish
+  - [ ] Auth service ga `DELETE /internal/auth/:userId` endpoint qo'shish
+  - [ ] Notification service FCM tokenlarni o'chirish
+  - [ ] Battle, watch-history, notification records — userId bo'yicha o'chirish
+  - [ ] Inter-service calls `requireInternalSecret` middleware bilan himoyalash
+
+---
+
+### T-S094 | P2 | [DEVOPS] | Play Store: Privacy Policy + DMCA sahifasi | pending[Saidazim]
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-05-11 13:39
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** Landing page yoki static page, o'rta murakkablik
+- **Sabab:** Play Console submission uchun majburiy — Privacy Policy URL bo'lmasa app publish bo'lmaydi
+- **Qilish kerak:**
+  - [ ] Privacy Policy sahifasi yozish — nima yig'iladi, qanday ishlatiladi, kim bilan ulashiladi
+  - [ ] DMCA / Copyright page — `copyright@wewatch.app` email + jarayon
+  - [ ] Sahifani public URL da joylash (GitHub Pages yoki landing)
+  - [ ] URL ni Play Console ga qo'shish
 
 ---
 
