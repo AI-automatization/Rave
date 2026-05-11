@@ -162,44 +162,6 @@
 
 ---
 
-### T-E111 | P1 | [MOBILE] | Content Filter — Dynamic blocked-domains + WebView protection
-
-- **Mas'ul:** pending[Emirhan]
-- **Beruvchi:** Emirhan
-- **Yaratilgan:** 2026-05-07 00:00
-- **Holat:** 🔄 Qisman (static blacklist ✅) — T-S074 tugagandan keyin dinamik qism boshlanadi
-- **Tavsiya model:** sonnet
-- **Model sababi:** hook + AsyncStorage + WebView callback — 3-4 fayl
-- **Sabab:** Play Store adult kontentga ruxsat beruvchi WebView ilovalarni bloklaydi. Ro'yxat endi dinamik — backenddan keladi.
-- **Bog'liq:** T-S074 tugagandan keyin (GET /api/v1/content/blocked-domains tayyor bo'lishi kerak)
-- **Qilish kerak:**
-  - [x] `blockedDomains.ts` — 150+ static domen + `isDomainBlocked()` utility (DONE F-190)
-  - [x] `MediaWebViewScreen.tsx` — `onShouldStartLoadWithRequest` + blocked overlay (DONE F-190)
-  - [ ] `useBlockedDomains.ts` hook — app start da `GET /api/v1/content/blocked-domains` → AsyncStorage cache, 24h refresh
-  - [ ] `isDomainBlocked` ni dinamik ro'yxat bilan yangilash
-  - [ ] Fallback: network yo'q bo'lsa → static blacklist dan foydalanish
-- **Kontekst himoyasi:**
-  - `MEDIA_DETECTION_JS` — O'ZGARTIRMA
-  - `useWatchParty.ts` / socket events — O'ZGARTIRMA
-  - `useVideoExtraction.ts` — O'ZGARTIRMA
-
----
-
-### T-E117 | P2 | [MOBILE] | Background domain list refresh — AppState foreground trigger
-
-- **Mas'ul:** pending[Emirhan]
-- **Beruvchi:** Saidazim
-- **Yaratilgan:** 2026-05-08 22:30
-- **Holat:** ❌ Boshlanmagan — T-E111 tugagandan keyin
-- **Tavsiya model:** haiku
-- **Model sababi:** AppState listener qo'shish — 1 fayl, oddiy
-- **Sabab:** Foydalanuvchi ilovani background dan qaytarsa — yangilangan bloklangan ro'yxatni olishi kerak
-- **Bog'liq:** T-E111 tugagandan keyin
-- **Qilish kerak:**
-  - [ ] `AppState` change listener — `active` holatga o'tganda va oxirgi refreshdan 24h o'tgan bo'lsa → yangilash
-  - [ ] `useBlockedDomains` hook ichiga qo'shish
-
----
 
 
 
