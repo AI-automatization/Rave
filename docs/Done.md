@@ -1,6 +1,92 @@
 # CineSync — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-05-09
+# Yangilangan: 2026-05-11
+
+---
+
+### F-201 | T-S093 | Play Store: Cascade account deletion across all services
+
+- **Beruvchi:** Saidazim
+- **Bajaruvchi:** Saidazim (Claude sonnet yordamida)
+- **Yaratilgan:** 2026-05-11 13:39
+- **Bajarilgan:** 2026-05-11 14:20
+- **Model:** sonnet
+- **O'zgarishlar:** 15 fayl — profile.service.ts, serviceClient.ts, serviceConfig.ts + internal DELETE endpoints in notification/battle/content/admin services
+- **Xulosa:** cascadeDeleteUser() via Promise.allSettled — deletes all user data across services. One failure doesn't block others.
+
+---
+
+### F-200 | T-E111 + T-E117 | Play Store: Dynamic blocked-domains hook with cache + foreground refresh
+
+- **Beruvchi:** Saidazim
+- **Bajaruvchi:** Saidazim (Claude sonnet yordamida)
+- **Yaratilgan:** 2026-05-11 13:39
+- **Bajarilgan:** 2026-05-11 14:20
+- **Model:** sonnet
+- **O'zgarishlar:** 4 fayl — useDynamicBlockedDomains.ts (new), blockedDomains.ts, content.api.ts, App.tsx
+- **Xulosa:** Fetches admin-blocked domains from API, caches in SecureStore 24h. AppState foreground trigger for stale refresh. Falls back to static list if network unavailable.
+
+---
+
+### F-199 | T-E124 | Play Store: ToS checkbox on register + Privacy Policy link in Settings
+
+- **Beruvchi:** Saidazim
+- **Bajaruvchi:** Saidazim (Claude sonnet yordamida)
+- **Yaratilgan:** 2026-05-11 13:39
+- **Bajarilgan:** 2026-05-11 14:20
+- **Model:** sonnet
+- **O'zgarishlar:** 3 fayl — RegisterScreen.tsx, SettingsScreen.tsx, translations.ts
+- **Xulosa:** Explicit ToS checkbox before registration. Register button disabled until checked. Privacy Policy + Terms links in Settings screen.
+
+---
+
+### F-198 | T-E120 | Domain tracking — trackDomainVisit in MediaWebViewScreen
+
+- **Beruvchi:** Saidazim
+- **Bajaruvchi:** Saidazim (Claude sonnet yordamida)
+- **Yaratilgan:** 2026-05-09 14:56
+- **Bajarilgan:** 2026-05-11 14:20
+- **Model:** haiku
+- **O'zgarishlar:** 1 fayl — MediaWebViewScreen.tsx
+- **Xulosa:** Fire-and-forget trackDomainVisit call in onShouldStartLoadWithRequest. Operators can now see which domains users visit.
+
+---
+
+### F-197 | T-E123 | Play Store: Remove unused/deprecated Android permissions
+
+- **Beruvchi:** Saidazim
+- **Bajaruvchi:** Saidazim (Claude sonnet yordamida)
+- **Yaratilgan:** 2026-05-11 13:39
+- **Bajarilgan:** 2026-05-11 14:20
+- **Model:** haiku
+- **O'zgarishlar:** 1 fayl — app.json
+- **Xulosa:** Removed RECEIVE_BOOT_COMPLETED, RECORD_AUDIO. Replaced READ_EXTERNAL_STORAGE with READ_MEDIA_IMAGES (Android 13+). Added INTERNET.
+
+---
+
+### F-196 | T-S092 | Play Store: Server-side cookie jar — remove COOKIE_COLLECTION_JS spyware
+
+- **Beruvchi:** Saidazim
+- **Bajaruvchi:** Saidazim (Claude sonnet yordamida)
+- **Yaratilgan:** 2026-05-11 13:39
+- **Bajarilgan:** 2026-05-11 14:20
+- **Model:** sonnet
+- **O'zgarishlar:** 5 fayl — cookieStore.ts (new), playwrightExtractor.ts, videoExtractor/index.ts, webViewScripts.ts, useMediaDetection.ts
+- **Xulosa:** Playwright collects cookies server-side → Redis per-domain (TTL 24h) → yt-dlp reads. Removed mobile COOKIE_COLLECTION_JS (document.cookie injection = Play Store spyware).
+
+---
+
+### F-195 | T-S091 | Play Store: YouTube always embed — remove yt-dlp fallback
+
+- **Beruvchi:** Saidazim
+- **Bajaruvchi:** Saidazim (Claude sonnet yordamida)
+- **Yaratilgan:** 2026-05-11 13:39
+- **Bajarilgan:** 2026-05-11 14:20
+- **Model:** haiku
+- **O'zgarishlar:** 1 fayl — videoExtractor/index.ts
+- **Xulosa:** YouTube extraction now always returns official IFrame embed. Removed yt-dlp try/catch (was dead code — returned IP-locked URLs). extractionMethod: 'embed-api'.
+
+---
 
 ---
 
