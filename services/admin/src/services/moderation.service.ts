@@ -69,10 +69,12 @@ export class ModerationService {
           logger.error('[ModerationService] unblock failed', { userId: appeal.userId, err });
         }
       }
-      // Fire-and-forget — email failure must not break the review response
-      adminSendAppealDecisionEmail(appeal.userId, status, note).catch((err: unknown) =>
-        logger.warn('[ModerationService] appeal email failed', { userId: appeal.userId, err }),
-      );
+      // Fire-and-forget — only for final decisions, not 'pending'
+      if (status === 'approved' || status === 'rejected') {
+        adminSendAppealDecisionEmail(appeal.userId, status, note).catch((err: unknown) =>
+          logger.warn('[ModerationService] appeal email failed', { userId: appeal.userId, err }),
+        );
+      }
     }
     return appeal;
   }
