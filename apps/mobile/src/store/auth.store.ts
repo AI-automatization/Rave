@@ -41,6 +41,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // Override with auth service ID so isOwner comparison works in WatchParty.
       // Prefer auth service email and avatar (latest OAuth data) — user service may have stale
       // data from a previous session with a different OAuth provider.
+
+      // If local flag is missing but account is older than 10 min, it's an existing user
+      // (e.g. after unblock on a fresh Expo/device — their setup was done long ago).
+      const TEN_MIN = 10 * 60 * 1000;
+      const isExistingUser = !setupDone &&
+        new Date(fullUser.createdAt).getTime() < Date.now() - TEN_MIN;
+      if (isExistingUser) {
+        await profileSetupStorage.markDone(authServiceId);
+      }
+      const finalNeedsSetup = !setupDone && !isExistingUser;
+
       set({
         user: {
           ...fullUser,
@@ -48,7 +59,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           email: user.email,
           avatar: user.avatar ?? fullUser.avatar,
         },
-        needsProfileSetup: !setupDone,
+        needsProfileSetup: finalNeedsSetup,
       });
     } catch {
       // User service down yoki timeout — auth user bilan davom etamiz
