@@ -208,6 +208,11 @@ export const contentApi = {
   async trackDomainVisit(domain: string): Promise<void> {
     await contentClient.post('/domains/visit', { domain });
   },
+
+  async getBlockedDomains(): Promise<string[]> {
+    const res = await contentClient.get<{ success: boolean; data: string[] }>('/blocked-domains');
+    return res.data.data ?? [];
+  },
 };
 
 export interface VideoSearchItem {

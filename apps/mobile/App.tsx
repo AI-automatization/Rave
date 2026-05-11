@@ -15,6 +15,7 @@ import { ErrorBoundary } from '@components/common/ErrorBoundary';
 import { BlockedAccountModal } from '@components/common/BlockedAccountModal';
 import { OfflineBanner } from '@components/common/OfflineBanner';
 import { useNetworkStatus } from '@hooks/useNetworkStatus';
+import { useDynamicBlockedDomains } from '@hooks/useDynamicBlockedDomains';
 import { ThemeProvider, useTheme } from '@theme/index';
 
 initErrorLogger();
@@ -59,6 +60,7 @@ function RootApp() {
 
   const { isDark } = useTheme();
   const { isOnline, recheck } = useNetworkStatus();
+  useDynamicBlockedDomains();
 
   return (
     <>

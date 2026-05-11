@@ -89,6 +89,9 @@ const BLOCKED_DOMAINS = new Set([
   'fetlife.com',
 ]);
 
+// T-E111: dynamic list check — populated by useDynamicBlockedDomains hook at app startup
+import { isDynamicDomainBlocked } from '@hooks/useDynamicBlockedDomains';
+
 export function isDomainBlocked(url: string): boolean {
   try {
     const hostname = new URL(url).hostname.toLowerCase().replace(/^www\./, '');
@@ -97,7 +100,7 @@ export function isDomainBlocked(url: string): boolean {
     for (let i = 1; i < parts.length - 1; i++) {
       if (BLOCKED_DOMAINS.has(parts.slice(i).join('.'))) return true;
     }
-    return false;
+    return isDynamicDomainBlocked(hostname);
   } catch {
     return false;
   }
