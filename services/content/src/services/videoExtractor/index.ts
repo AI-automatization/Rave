@@ -2,7 +2,7 @@
 //
 // Flow:
 //   URL → validateUrl() + SSRF check → detectPlatform()
-//     → youtube    : ytdlService.getStreamInfo() → yt-dlp fallback
+//     → youtube    : official embed (IFrame API) — always, no yt-dlp (T-S091)
 //     → playerjs   : playerjsExtractor() (inline <script> JSON parse)
 //     → lookmovie2 : lookmovie2Extractor() (Security API)
 //     → moviesapi  : moviesapiExtractor() (JSON API by TMDB ID)
@@ -25,7 +25,6 @@ import { lookmovie2Extractor } from './lookmovie2Extractor';
 import { moviesapiExtractor } from './moviesapiExtractor';
 import { VideoExtractResult, VideoPlatform, VideoExtractError } from './types';
 import { geoExtractor, hasGeoProxy } from './geoExtractor';
-import { ytdlService } from '../ytdl.service';
 
 const CACHE_PREFIX = 'vextract:';
 
@@ -143,42 +142,19 @@ export async function extractVideo(
     const videoId = extractYouTubeVideoId(rawUrl);
     // No video ID means it's a YouTube homepage / search / channel — not extractable
     if (!videoId) throw new VideoExtractError('unsupported_site', `No YouTube video ID found in URL: ${rawUrl}`);
-    const embedFallback: VideoExtractResult = {
+    // YouTube always returns official embed — yt-dlp produces IP-locked googlevideo.com URLs
+    // unusable on mobile, and Google owns both YouTube and Play Store (T-S091)
+    result = {
       title: '',
       videoUrl: '',
-      videoId: videoId ?? undefined,
-      poster: videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : '',
+      videoId,
+      poster: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
       platform: 'youtube',
       type: 'embed',
       sourceType: 'type2',
-      extractionMethod: 'yt-dlp',
+      extractionMethod: 'embed-api',
       cacheable: false,
     };
-    try {
-      const info = await ytdlService.getStreamInfo(rawUrl);
-      const type = info.mimeType.includes('m3u8') ? 'hls' : 'mp4';
-      result = {
-        title: info.title,
-        videoUrl: rawUrl,
-        videoId: videoId ?? undefined,
-        poster: videoId
-          ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
-          : info.thumbnail,
-        platform: 'youtube',
-        type,
-        duration: info.duration,
-        isLive: info.isLive,
-        useProxy: true,
-        sourceType: 'type2',
-        extractionMethod: 'yt-dlp',
-        cacheable: true,
-      };
-    } catch (ytdlErr) {
-      // yt-dlp returns a googlevideo.com URL (IP-locked to server) — unusable on mobile.
-      // Skip yt-dlp to avoid 10-15s extra latency; fall back to embed immediately.
-      logger.warn('ytdl-core failed for YouTube, falling back to embed', { url: rawUrl, error: (ytdlErr as Error).message });
-      result = embedFallback;
-    }
 
   } else if (platform === 'playerjs') {
     result = await playerjsExtractor(rawUrl);
