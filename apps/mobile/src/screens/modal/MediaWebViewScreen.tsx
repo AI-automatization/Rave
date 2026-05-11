@@ -12,6 +12,7 @@ import { useMediaDetection, WEBVIEW_INJECT_JS } from '@hooks/useMediaDetection';
 import { MediaBottomBar } from '@components/watchParty/MediaBottomBar';
 import { MOBILE_UA } from '@utils/webViewScripts';
 import { isDomainBlocked } from '@constants/blockedDomains';
+import { contentApi } from '@api/content.api';
 
 export function MediaWebViewScreen() {
   const insets = useSafeAreaInsets();
@@ -80,6 +81,7 @@ export function MediaWebViewScreen() {
             return false;
           }
           setBlockedDomain(null);
+          void contentApi.trackDomainVisit(new URL(req.url).hostname.replace(/^www\./, '')).catch(() => {});
           return true;
         }}
         onNavigationStateChange={onNavigationStateChange}
