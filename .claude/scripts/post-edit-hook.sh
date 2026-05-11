@@ -3,7 +3,7 @@
 # Автоматически обновляет in-progress.md со списком изменённых файлов
 # Stdin: JSON {"tool_name":"Edit","tool_input":{"file_path":"..."},...}
 
-VAULT="${OBSIDIAN_VAULT:-$HOME/Documents/Obsidian Vault}"
+VAULT="${OBSIDIAN_VAULT:-$HOME/Documents/weWatch-obsidian}"
 IN_PROGRESS="$VAULT/AI_CONTEXT/in-progress.md"
 NOW=$(date '+%H:%M')
 

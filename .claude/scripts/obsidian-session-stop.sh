@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Stop hook — конец сессии: маркер в DAILY + flush терминала + vault commit
 
-set -euo pipefail
+set -uo pipefail
 
-VAULT="${OBSIDIAN_VAULT:-$HOME/Documents/Obsidian Vault}"
+VAULT="${OBSIDIAN_VAULT:-$HOME/Documents/weWatch-obsidian}"
 DEV="${VAULT_DEVELOPER:-Saidazim}"
 DATE=$(date '+%Y-%m-%d')
 NOW=$(date '+%Y-%m-%d %H:%M')
@@ -39,6 +39,7 @@ if [[ -f "$TASKS_FILE" ]]; then
   PENDING_E=$(grep "pending\[Emirhan\]" "$TASKS_FILE" 2>/dev/null | grep "^###" | sed 's/^### /- /' | head -5 || true)
 fi
 
+mkdir -p "$(dirname "$HANDOFF")"
 cat > "$HANDOFF" << HEREDOC
 ---
 type: handoff

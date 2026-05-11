@@ -1,1116 +1,282 @@
 # CLAUDE.md — CineSync
-# Ijtimoiy Onlayn Kinoteatr Ilovasi
-# Claude CLI tomonidan avtomatik o'qiladi
 
 ---
 
-## ЯЗЫК ОБЩЕНИЯ — ЗАКОН (ОБЯЗАТЕЛЬНО)
+## ЯЗЫК — ЗАКОН
 
-> **ЭТО АБСОЛЮТНОЕ ПРАВИЛО. ИСКЛЮЧЕНИЙ НЕТ.**
-
-**Claude ВСЕГДА отвечает ТОЛЬКО на русском языке.**
-- Пользователь пишет на узбекском → ответ на **русском**
-- Пользователь пишет на английском → ответ на **русском**
-- Пользователь пишет на турецком → ответ на **русском**
-- Пользователь пишет на ЛЮБОМ языке → ответ на **русском**
-
-**Код, комментарии в коде и технические термины** остаются на английском (это стандарт программирования).
-
-**Всё остальное — объяснения, вопросы, отчёты, планы, ответы — СТРОГО на русском языке. Без исключений.**
+**Claude ВСЕГДА отвечает ТОЛЬКО на русском языке.** Любой язык входа → русский выход.
+Код, комментарии, технические термины — английский.
 
 ---
 
-## BIRINCHI QADAM (MAJBURIY)
+## ПЕРВЫЙ ШАГ (ОБЯЗАТЕЛЬНО)
 
-**Har yangi terminal sessiyasida Claude quyidagini so'rashi SHART:**
-
-```
-Salom! Men CineSync loyihasidaman.
-
-Kimligingizni aniqlay olmayman — ismingiz kim?
-  1. Saidazim (Backend + Admin + Operator)
-  2. Emirhan  (React Native Mobile + Web)
-
-Ishlash rejimi:
-  A. Single Task  — 1 agent, oddiy task
-  B. Multi-Agent  — parallel agentlar, sprint mode
-  C. Review Only  — QA + code review
-```
-
-Javob kelgach:
-1. Tegishli faylni o'qib kontekstga kirish:
-   - Saidazim → `CLAUDE_BACKEND.md`
-   - Emirhan  → `CLAUDE_MOBILE.md`
-2. `git pull origin main` — eng yangi holatni olish
-3. `docs/Tasks.md` o'qib ochiq tasklarni ko'rish + `pending[X]` statuslarni tekshirish
-4. Task boshlashdan oldin **GIT-BASED TASK LOCKING** protokolini bajarish (pastda)
-5. **Mode B** tanlansa → Multi-Agent Protocol (pastda) faollashadi
-6. **TEZCODE xabarlarini tekshirish** — pastdagi qoidaga ko'ra (MAJBURIY)
+Узнать кто за терминалом: Saidazim (Backend+Admin) или Emirhan (Mobile+Web).
+Затем: читай `CLAUDE_BACKEND.md` / `CLAUDE_MOBILE.md` → `git pull origin main` → `docs/Tasks.md`.
+Перед задачей — **GIT-BASED TASK LOCKING** (ниже). TEZCODE сообщения — проверить.
 
 ---
 
-## TEZCODE MONITORING — ЗАКОН (ОБЯЗАТЕЛЬНО)
+## TEZCODE МОНИТОРИНГ — ЗАКОН
 
-> **Har yangi sessiyada Claude TEZCODE xabarlarini o'qishi SHART.**
-
-**Система:** `tg_autobot.py` (Telethon) + `tg-watch.sh` (daemon)
-
-### Архитектура
-
-```
-SessionStart hook
-  └─ obsidian-session-start.sh
-       ├─ tg-watch.sh start          ← запуск фонового монитора
-       └─ tg_autobot.py --history 3  ← история 3 дня → Claude видит
-
-Во время сессии (фон):
-  tg_autobot.py --watch
-       ├─ ~/tg_messages.log   ← все сообщения накапливаются
-       └─ ~/tg_session.log    ← только сообщения этой сессии
-
-Stop hook
-  └─ obsidian-session-stop.sh
-       ├─ tg_autobot.py --session-report  ← Claude видит итог
-       └─ tg-watch.sh stop               ← остановить монитор
-```
-
-### Первоначальная настройка (один раз)
-
+SessionStart hook читает историю Telegram 3 дня автоматически. Ручная проверка:
 ```bash
-bash .claude/scripts/tg-setup.sh
+bash .claude/scripts/tg-watch.sh history 3
 ```
-
-Нужны: **API_ID** и **API_HASH** с https://my.telegram.org → App configuration.
-Конфиг сохраняется в `~/.config/tg_autobot/config.env` (не в git).
-
-### Что Claude делает с данными
-
-```
-⚠️ URGENT (score ≥ 7)     → сразу в Obsidian + показать пользователю
-📋 TASK (score ≥ 4)        → спросить: добавить в docs/Tasks.md?
-🐛 BUG                     → спросить: создать T-S/E task?
-🚀 DEPLOY/RELEASE          → напомнить про merge freeze
-👤 MENTION (saidazim/api)  → обязательно показать
-```
-
-### Ручная проверка
-
-```bash
-bash .claude/scripts/tg-watch.sh history 3   # история 3 дня
-bash .claude/scripts/tg-watch.sh status      # статус демона
-bash .claude/scripts/tg-watch.sh report      # сессионный отчёт
-```
-
-> **Nima uchun?** 2 ta dasturchi 2 xil platforma. Noto'g'ri zona fayliga teginish = merge conflict + production crash.
+Действия: URGENT(≥7) → показать сразу | TASK(≥4) → спросить добавить в Tasks.md | BUG → создать T-S/E task | MENTION → показать.
 
 ---
 
-## LOYIHA
+## ПРОЕКТ
 
-**CineSync** — ijtimoiy onlayn kinoteatr ilovasi. Do'stlar bilan birga film ko'rish, battle, achievement va gamifikatsiya.
+CineSync — соцсеть для совместного просмотра фильмов.
 
-| Layer | Tech | Port |
-|-------|------|------|
-| Auth Service | Node.js + Express + MongoDB | 3001 |
-| User Service | Node.js + Express + MongoDB | 3002 |
-| Content Service | Node.js + Express + Elasticsearch | 3003 |
-| Watch Party Service | Express + Socket.io + Redis | 3004 |
-| Battle Service | Express + MongoDB + Redis | 3005 |
-| Notification Service | Express + Firebase FCM + Bull | 3007 |
-| Admin Service | Express + MongoDB | 3008 |
-| Mobile App | React Native + TypeScript | — |
-| Web Client | Next.js 14 + TailwindCSS | 3000 |
-| Admin UI | React + Vite + TailwindCSS | 5173 |
-| Database | MongoDB (Atlas / Replica Set) | 27017 |
-| Cache/Queue | Redis 7 (AOF persistence) | 6380 |
+| Сервис | Tech | Port |
+|--------|------|------|
+| auth | Node.js+Express+MongoDB | 3001 |
+| user | Node.js+Express+MongoDB | 3002 |
+| content | Node.js+Express+Elasticsearch | 3003 |
+| watch-party | Express+Socket.io+Redis | 3004 |
+| battle | Express+MongoDB+Redis | 3005 |
+| notification | Express+Firebase FCM+Bull | 3007 |
+| admin | Express+MongoDB | 3008 |
+| mobile | React Native+TypeScript | — |
+| admin-ui | React+Vite+Tailwind | 5173 |
+| DB | MongoDB Atlas | 27017 |
+| Cache | Redis 7 | 6380 |
 | Search | Elasticsearch | 9200 |
-| Reverse Proxy | Nginx | 80/443 |
-
-**Arxitektura:** Microservices Monorepo
 
 ```
-cinesync/
-├── services/
-│   ├── auth/          → Saidazim (port 3001)
-│   ├── user/          → Saidazim (port 3002)
-│   ├── content/       → Saidazim (port 3003)
-│   ├── watch-party/   → Saidazim (port 3004)
-│   ├── battle/        → Saidazim (port 3005)
-│   ├── notification/  → Saidazim (port 3007)
-│   └── admin/         → Saidazim (port 3008)
-├── apps/
-│   ├── mobile/        → Emirhan (React Native)
-│   ├── web/           → (hozircha mas'ul yo'q)
-│   └── admin-ui/      → Saidazim (React + Vite)
-├── shared/
-│   ├── types/         → UMUMIY — kelishib o'zgartirish
-│   ├── utils/         → UMUMIY — kelishib o'zgartirish
-│   ├── middleware/    → Saidazim (lekin hammaga import)
-│   └── constants/     → UMUMIY — kelishib o'zgartirish
-├── docker-compose.yml
-├── docker-compose.dev.yml
-├── docker-compose.prod.yml
-└── nginx/
-    └── nginx.conf
+services/auth,user,content,watch-party,battle,notification,admin → Saidazim
+apps/mobile → Emirhan | apps/admin-ui → Saidazim
+shared/types,utils,constants → ОБЩЕЕ (lock protocol)
 ```
 
 ---
 
-## CLEAN CODE PRINSIPLARI
+## CLEAN CODE
 
-### SOLID
-- **S** — Single Responsibility: Har fayl BIR vazifa. Controller = HTTP, Service = logika, Screen = render.
-- **O** — Open/Closed: Yangi funksionallik uchun mavjud kodni o'zgartirma, kengaytir (middleware, decorator).
-- **L** — Liskov: Interface va'da qilganini bajar. `any` type TAQIQLANGAN.
-- **I** — Interface Segregation: Kichik, aniq interfeys. Katta "god service" TAQIQLANGAN.
-- **D** — Dependency Inversion: Service → abstract ga bog'lan, konkret implementatsiyaga emas.
-
-### DRY + KISS
-- Bir xil kod 2+ joyda → `shared/utils/` ga chiqar.
-- Murakkab yechimdan oldin oddiy yechimni sinab ko'r.
-- Premature optimization qilma — avval ishlat, keyin optimizatsiya qil.
-
-### TAQIQLANGAN
 ```
-❌ any type (TypeScript strict mode)
-❌ console.log (Backend: Winston Logger, Mobile: __DEV__, Web: development only)
-❌ 400+ qatorli fayl — bo'lish kerak
-❌ Inline styles (Web: Tailwind, Mobile: StyleSheet)
-❌ Magic numbers (const bilan nomlash)
-❌ Nested try/catch (flat error handling)
-❌ Hardcoded secrets (.env ishlatish)
-❌ O'zga dasturchining zonasiga teginish
-❌ shared/* ni kelishmasdan o'zgartirish
-❌ main branch ga to'g'ridan-to'g'ri push
+❌ any type          ❌ console.log (использовать logger)   ❌ 400+ строк в файле
+❌ Magic numbers     ❌ Nested try/catch                    ❌ Hardcoded secrets
+❌ Чужая зона        ❌ shared/* без lock/согласования      ❌ push в main напрямую
 ```
+Дубли → `shared/utils/`. Controller = HTTP, Service = логика, Screen = render.
 
 ---
 
-## TASK TRACKING (MAJBURIY)
+## TASK TRACKING — ЗАКОН
 
-**Loyiha vazifalari 2 ta faylda boshqariladi:**
+Файлы: `docs/Tasks.md` (открытые) | `docs/Done.md` (архив)
 
-| Fayl | Vazifasi |
-|------|----------|
-| `docs/Tasks.md` | Barcha ochiq vazifalar — bug, error, feature, devops |
-| `docs/Done.md` | Bajarilgan ishlar arxivi — fix, feature, test natijalari |
-
-**Yangi bug/error/task topilganda `docs/Tasks.md` ga qo'shiladi:**
-
-Format: `T-XXX | Pn | [KATEGORIYA] | Sarlavha | pending[Ism]`
-- Kategoriyalar: BACKEND, MOBILE, WEB, ADMIN, DEVOPS, IKKALASI
-- Prioritetlar: P0 (kritik), P1 (muhim), P2 (o'rta), P3 (past)
-
-**Tasks.md da status format:**
+**Формат новой задачи — все поля ОБЯЗАТЕЛЬНЫ:**
 ```markdown
-### T-S016 | P1 | BACKEND  | Auth refresh token bug        | pending[Saidazim]
-### T-E012 | P2 | MOBILE   | Push notification iOS fix     | pending[Emirhan]
-### T-J008 | P1 | WEB      | OG image dynamic endpoint     |              ← ochiq, hech kim olmagan
-### T-C006 | P2 | IKKALASI | Socket event types shared      | pending[Saidazim]
-```
-
-## TASK TIMESTAMP + META — ЗАКОН (ОБЯЗАТЕЛЬНО)
-
-> **ЭТО АБСОЛЮТНОЕ ПРАВИЛО. КАЖДЫЙ TASK. БЕЗ ИСКЛЮЧЕНИЙ.**
-
-**Har yangi task yaratilganda quyidagi maydonlar MAJBURIY:**
-
-```markdown
-### T-S057 | P1 | [BACKEND] | Sarlavha
+### T-S057 | P1 | [BACKEND] | Название
 
 - **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Emirhan                   ← MAJBURIY — taskni kim qo'shdi/topdi
-- **Yaratilgan:** 2026-04-20 16:00        ← MAJBURIY — task yaratilgan sana va vaqt
+- **Beruvchi:** Emirhan
+- **Yaratilgan:** 2026-04-20 16:00
 - **Holat:** ❌ Boshlanmagan
-- **Tavsiya model:** opus                 ← MAJBURIY — Claude analiz qilib tanlaydi
-- **Model sababi:** Murakkab arxitektura, ko'p fayllik refactor  ← nima uchun shu model
+- **Tavsiya model:** sonnet
+- **Model sababi:** 2-4 fayl, API endpoint
 - **Sabab:** ...
 ```
 
-### Timestamp qoidalari
-- Timestamp = task `docs/Tasks.md` ga yozilgan paytdagi aniq sana + vaqt
-- Format: `YYYY-MM-DD HH:MM` (24 soat, UTC+5 Toshkent vaqti)
-- Mavjud tasklarga retroaktiv qo'shish — sessiya boshida eski tasklarda timestamp yo'q bo'lsa qo'shiladi
-- `date '+%Y-%m-%d %H:%M'` buyrug'i bilan hozirgi vaqtni olish
+**Модели:** opus = сложная архитектура/рефактор | sonnet = фича, 2-5 файлов | haiku = 1 файл, опечатки
 
-### Beruvchi / Bajaruvchi qoidalari
-- **Beruvchi** — taskni kim yaratdi yoki kim topdi (Saidazim, Emirhan, Claude, yoki tashqi)
-- **Bajaruvchi** — taskni kim bajargan (Done.md ga ko'chirilganda yoziladi)
-- Agar Claude o'zi bug topsa → `Beruvchi: Claude`
-- Agar foydalanuvchi so'rasa → `Beruvchi: [foydalanuvchi ismi]`
+Перед стартом показать пользователю: `📋 T-XXX | 🤖 sonnet | 📝 причина → подтвердить`
 
-### MODEL TAVSIYASI — ЗАКОН (ОБЯЗАТЕЛЬНО)
-
-> **Claude har yangi task yaratganda qaysi model eng samarali ekanini ANALIZ QILISHI va yozishi SHART.**
-
-**Model tanlash mezonlari:**
-
-| Model | Qachon ishlatiladi | Misollar |
-|-------|-------------------|----------|
-| **opus** | Murakkab arxitektura, ko'p fayllik refactor, cross-zone ishlar, debug qiyin buglar, yangi tizim dizayni | Multi-agent orchestration, WebRTC integration, complex state management |
-| **sonnet** | O'rtacha murakkablik — feature qo'shish, 2-5 fayl o'zgartirish, API endpoint, UI ekran, bug fix | Yangi screen, hook yaratish, component refactor, API integration |
-| **haiku** | Oddiy tasklar — 1 fayl, typo fix, i18n key qo'shish, config o'zgartirish, kichik bug | Rename, style fix, constant qo'shish, import tuzatish |
-
-**Task boshlashdan OLDIN Claude so'rashi SHART:**
-
-```
-📋 Task: T-E111 | "Push notification deep link fix"
-🤖 Tavsiya etilgan model: sonnet
-📝 Sabab: 2-3 fayl, navigation logic fix — sonnet optimal
-
-✅ Shu model bilan boshlaylikmi? (yoki boshqa model tanlang)
-```
-
-**Foydalanuvchi tasdiqlagan yoki boshqa model tanlagan keyin — ISH BOSHLANADI.**
-
-### Done.md ga ko'chirish formati (yangilangan)
-
-**Fix bo'lgandan keyin:**
-1. `docs/Tasks.md` dan o'chiriladi
-2. `docs/Done.md` ga ko'chiriladi — quyidagi format bilan:
-
+**Done.md формат:**
 ```markdown
-### F-XXX | T-E111 | Push notification deep link fix
-
-- **Beruvchi:** Emirhan
-- **Bajaruvchi:** Emirhan (Claude sonnet yordamida)
-- **Yaratilgan:** 2026-04-27 14:30
-- **Bajarilgan:** 2026-04-27 15:45           ← MAJBURIY — tugagan sana + vaqt
-- **Model:** sonnet
-- **O'zgarishlar:** 3 fayl — AppNavigator.tsx, useDeepLink.ts, notificationHandler.ts
-- **Xulosa:** Deep link parsing fixed, WatchParty invite navigate correctly
+### F-XXX | T-S057 | Название
+- **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-04-20 16:00  **Model:** sonnet
+- **O'zgarishlar:** файлы  **Xulosa:** что сделано
 ```
-
-**Qoidalar:**
-- Bug/task topilgan paytda DARHOL yoziladi
-- Har sessiyada avval `docs/Tasks.md` o'qib, T-raqamni davom ettirish
-- Takroriy task yaratmaslik, mavjudini yangilash
-- **Beruvchi** maydoni MAJBURIY — taskni kim yaratganini yozish
-- **Tavsiya model** maydoni MAJBURIY — Claude analiz qilib optimal modelni yozish
-- Task boshlashdan OLDIN model tavsiyasini ko'rsatib, foydalanuvchidan tasdiqlash olish
-- Done.md ga ko'chirganda **Bajarilgan** vaqti + **Bajaruvchi** + **Model** MAJBURIY
 
 ---
 
-## TELEGRAM NOTIFICATIONS — ЗАКОН (ОБЯЗАТЕЛЬНО)
+## TELEGRAM УВЕДОМЛЕНИЯ — ЗАКОН
 
-> **ЭТО АБСОЛЮТНОЕ ПРАВИЛО. КАЖДЫЙ РАЗ. БЕЗ ИСКЛЮЧЕНИЙ.**
-
-**При ЛЮБОМ изменении задач Claude ОБЯЗАН отправить Telegram уведомление.**
-
-### Скрипт
-
+**При ЛЮБОМ изменении задач — отправить уведомление:**
 ```bash
 .claude/scripts/tg-notify.sh <action> <task_id> <task_meta> <title> [executor] [details]
+# actions: new | claim | done | update | blocked
+# T-S*** → Saidazim | T-E*** → Emirhan | T-C*** → оба
 ```
-
-| Параметр | Описание | Пример |
-|----------|----------|--------|
-| `action` | Событие | `new` / `claim` / `done` / `update` / `blocked` |
-| `task_id` | ID задачи | `T-S057` |
-| `task_meta` | Приоритет + категория | `"P2 \| BACKEND"` |
-| `title` | Название задачи | `"Sarlavha matni"` |
-| `executor` | Исполнитель (опц.) | `Saidazim` |
-| `details` | Подробности (опц.) | `"tsc: CLEAN, 3 fayl"` |
-
-### Кому отправляется (автоматически по префиксу)
-
-```
-T-S***  →  только Saidazim  (chat: 6299152655)
-T-E***  →  только Emirhan   (chat: 569913655)
-T-C***  →  оба              (оба chat ID)
-```
-
-### Примеры использования
-
+Примеры:
 ```bash
-# Новая задача:
-.claude/scripts/tg-notify.sh new T-S057 "P2 | BACKEND" "Battle leaderboard endpoint"
-
-# Взять задачу:
-.claude/scripts/tg-notify.sh claim T-S057 "P2 | BACKEND" "Battle leaderboard endpoint" Saidazim
-
-# Выполнить задачу (с деталями):
-.claude/scripts/tg-notify.sh done T-S057 "P2 | BACKEND" "Battle leaderboard endpoint" Saidazim \
-  "3 fayl o'zgartirildi: controller, service, routes | tsc: CLEAN"
-
-# Обновление совместной задачи:
-.claude/scripts/tg-notify.sh update T-C012 "P0 | IKKALASI" "MVP E2E test" "Saidazim+Emirhan" \
-  "YouTube OK, Rutube FAIL — issue topildi"
-
-# Заблокировано:
-.claude/scripts/tg-notify.sh blocked T-S058 "P1 | BACKEND" "Mesh handler" Saidazim \
-  "T-E096 tugashini kutmoqda"
-```
-
-### Порядок действий при claim (обновлённый)
-
-```
-1. git pull origin main
-2. docs/Tasks.md ni o'qi
-3. pending[SeniningIsming] yoz
-4. git add docs/Tasks.md
-5. git commit -m "task: claim T-XXX [Ism]"
-6. git push origin main
-7. .claude/scripts/tg-notify.sh claim T-XXX "Pn | KAT" "Sarlavha" Ism   ← MAJBURIY
-8. ENDI ishni boshlash mumkin
-```
-
-### Порядок действий при выполнении (обновлённый)
-
-```
-1. Tasks.md dan o'chirish
-2. Done.md ga ko'chirish
-3. git add + git commit + git push
-4. .claude/scripts/tg-notify.sh done T-XXX "Pn | KAT" "Sarlavha" Ism "Bajarilgan ishlar"  ← MAJBURIY
+.claude/scripts/tg-notify.sh claim T-S057 "P1 | BACKEND" "Название" Saidazim
+.claude/scripts/tg-notify.sh done T-S057 "P1 | BACKEND" "Название" Saidazim "3 fayl, tsc: CLEAN"
 ```
 
 ---
 
-## GIT-BASED TASK LOCKING (MAJBURIY)
+## GIT TASK LOCKING — ЗАКОН
 
-**Taskni boshlashdan OLDIN quyidagi qadamlar bajariladi:**
-
+**Перед стартом задачи:**
 ```
-1. git pull origin main                             ← eng yangi holatni ol
-2. docs/Tasks.md ni o'qi                            ← pending[boshqa_dasturchi] bormi tekshir
-3. Agar task pending[boshqa_dasturchi] bo'lsa       ← TEGIZMA, boshqa task ol
-4. Task ochiq bo'lsa → pending[SeniningIsming] yoz  ← masalan: pending[Saidazim]
-5. git add docs/Tasks.md
-6. git commit -m "task: claim T-XXX [Saidazim]"
-7. git push origin main                             ← boshqalar ko'rishi uchun
-8. ENDI ishni boshlash mumkin
+1. git pull origin main
+2. docs/Tasks.md → проверить pending[другой] → если занято — не трогать
+3. Написать pending[СвоёИмя] → git add docs/Tasks.md
+4. git commit -m "task: claim T-XXX [Имя]" → git push origin main
+5. tg-notify.sh claim ...  →  ТЕПЕРЬ можно работать
 ```
-
-**Task tugaganda:**
-```
-1. Tasks.md dan taskni o'chirish
-2. Done.md ga ko'chirish
-3. git add docs/Tasks.md docs/Done.md
-4. git commit -m "fix(auth): T-XXX yechildi [Saidazim]"
-5. git push origin main
-```
-
-**Xavflardan himoya:**
-- `git push` reject bo'lsa → `git pull --rebase` qilib qayta push
-- 1 soatdan ortiq `pending[X]` o'zgarishsiz tursa → task "stuck" deb hisoblanadi, boshqasi olishi mumkin
-- Multi-agent mode da: barcha batch tasklarni BIR commit da claim qilish (conflict kamaytirish)
+**После завершения:** Tasks.md удалить → Done.md добавить → git commit+push → tg-notify done
 
 ---
 
 ## SHARED FILE PROTOCOL
 
-`shared/types/`, `shared/utils/`, `shared/constants/` o'zgartirish kerak bo'lsa:
+`shared/types/`, `shared/utils/`, `shared/constants/` — уведомить в Telegram, получить подтверждение, затем изменять. Commit: `shared: [что добавлено] ([имя])`.
+Multi-Agent: `.claude/locks/shared-{zone}.lock` (TTL 30 мин).
 
-**Single mode:**
-```
-1. Telegram guruhda boshqa dasturchilarga xabar ber
-2. Tasdiq olingach o'zgartir
-3. Commit: "shared: [nima qo'shildi] ([ism])"
-4. Boshqa dasturchilari DARHOL pull qiladi
-```
+---
 
-**Multi-Agent mode:**
+## GIT ПРАВИЛА
+
 ```
-1. Orchestrator lock faylni tekshiradi
-2. Lock bo'sh → .claude/locks/shared-{zone}.lock yaratadi
-3. Agent o'zgarishni bajaradi
-4. Tugagach lock faylni o'chiradi
-5. Ikkinchi agent endi ishlashi mumkin
+Branch: saidazim/feat-xxx | emirhan/feat-xxx
+Commits: feat(auth): ... | fix(watch-party): ... | refactor(content): ...
+main → production (protected) | develop → integration
 ```
 
 ---
 
-## GIT QOIDALARI
+## ЛОГИРОВАНИЕ
 
-```bash
-# Har kuni boshida:
-git pull origin main
-
-# Branch format:
-saidazim/feat-[feature-name]
-emirhan/feat-[feature-name]
-
-# Commit format (Conventional Commits):
-feat(auth): add Google OAuth callback
-fix(watch-party): correct sync timestamp drift
-refactor(content): split search into elasticsearch adapter
-chore(docker): add elasticsearch container
-test(battle): add unit test for score calculation
-
-# Branch Strategy:
-main     → production (protected, manual deploy)
-develop  → integration branch (PR orqali)
-feature/ → individual work
-fix/     → bug fixes
-```
-
----
-
-## LOGGING STANDARTLARI
-
-### Backend — Winston Logger
 ```typescript
-// console.log EMAS — Winston Logger:
 import { logger } from '@shared/utils/logger';
-
-logger.info('User registered', { userId, email });
-logger.warn('Rate limit approaching', { ip, remaining: 5 });
-logger.error('MongoDB connection failed', { error: err.message, stack: err.stack });
-
-// Transports: Console + File + MongoDB (api_logs collection)
-// Rotation: kunlik, max 30 kun
-// Sensitive: password, token, secret → [REDACTED]
-```
-
-### Mobile — `__DEV__` only
-```typescript
-if (__DEV__) console.log('[debug]', data);
-// Production: Sentry crash reporting
-```
-
-### Web — development only
-```typescript
-if (process.env.NODE_ENV === 'development') console.log('[debug]', data);
-// Production: Sentry + Vercel Analytics
+logger.info('msg', { userId });  // НЕ console.log
+// Mobile: if (__DEV__) console.log  |  Web: if (process.env.NODE_ENV === 'development')
 ```
 
 ---
 
-## SECURITY CHECKLIST
+## SECURITY
 
 ```
-✓ JWT: Access token (15min, RS256) + Refresh token (30kun, MongoDB)
-✓ Password: bcrypt (12 rounds)
-✓ Input: Joi/Zod validation (barcha endpointlar)
-✓ NoSQL injection: mongoose-sanitize
-✓ XSS: helmet + DOMPurify
-✓ CORS: whitelist (mobile + web + admin)
-✓ Rate limit: per IP + per user (express-rate-limit + Redis)
-✓ Helmet: security headers
-✓ Brute force: 5 xato → 15 min blok (Redis)
-✓ Secrets: .env faylda, Docker secrets (prod)
-✓ File upload: mimetype + size validation (Multer)
-✓ Socket.io: JWT verify middleware
+JWT: 15min RS256 + 30d refresh | bcrypt 12r | Joi/Zod validation все endpoints
+mongoose-sanitize | helmet+DOMPurify | CORS whitelist | rate-limit Redis
+Brute force: 5 попыток → 15min блок | Socket.io JWT verify
 ```
 
 ---
 
-## LOCAL DEVELOPMENT
+## MULTI-AGENT ПРОТОКОЛ
 
+Полный протокол: `.claude/agents/` (каждый агент ~100 строк вместо 1100+)
+
+| Агент | Файл | Зона |
+|-------|------|------|
+| Auth | `.claude/agents/auth-agent.md` | services/auth/ |
+| Content | `.claude/agents/content-agent.md` | services/content/ |
+| WatchParty | `.claude/agents/watchparty-agent.md` | services/watch-party/ |
+| User+Battle+Notif | `.claude/agents/user-battle-notification-agent.md` | services/user,battle,notification/ |
+| Admin | `.claude/agents/admin-agent.md` | services/admin/ + apps/admin-ui/ |
+| Mobile | `.claude/agents/mobile-agent.md` | apps/mobile/ |
+| Web | `.claude/agents/web-agent.md` | apps/web/ |
+| QA | `.claude/agents/qa-agent.md` | read-only |
+
+**Dispatch:** прочитай `.claude/agents/{agent}.md` → составь task spec (file:line, что изменить) → `Agent(prompt: [агент-файл] + [task spec])`. НЕ добавлять CLAUDE.md в prompt агента.
+
+**Zone matrix:** Backend Agent — только services/* и admin-ui/ | Mobile — только apps/mobile/ | Web — только apps/web/ | shared — lock protocol | QA — read-only везде.
+
+**QA перед merge:** tsc --noEmit (все сервисы) + jest + Playwright (если web). Fail → merge запрещён.
+
+**Размер задачи:** <30 мин, 1-2 файла → Single Agent | >60 мин, 5+ файлов → Multi-Agent + worktrees | IKKALASI → Backend сначала, потом Mobile/Web.
+
+---
+
+## ОПАСНЫЕ ЗОНЫ
+
+```
+❌ MongoDB collection drop        ❌ .env в коммит           ❌ Socket.io event rename (ломает 3 платформы)
+❌ Чужая зона без согласования    ❌ shared/* без lock        ❌ API response format change без shared/types
+❌ Production DB вручную          ❌ QA skip перед merge
+```
+
+---
+
+## СКИЛЛЫ — ДЕРЕВО РЕШЕНИЙ
+
+```
+БАГ/ошибка?         → .claude/skills/root-cause-tracing.md  (5-шаговый трейс ПЕРЕД кодом)
+Mode B / >5 файлов? → .claude/skills/subagent-dispatch.md
+
+Пишу код:
+  1. SPEC   → .claude/skills/spec-driven-implement.md  (YAML-спек обязателен)
+  2. LOOP   → .claude/skills/execute-judge-loop.md     (write→tsc→judge≥7→fix)
+  3. REFLECT→ .claude/skills/self-reflection.md        (7 шагов: imports/tsc/zone/forbidden — все ✅)
+  4. CRITIC → .claude/skills/critic-agent.md           (3 судьи ≥7/10 → APPROVE)
+  5. TESTS  → .claude/skills/auto-tests.md
+  6. VISUAL → .claude/skills/visual-testing.md         (только если .tsx/.css/StyleSheet)
+
+ГОТОВО → checkpoint clear + Done.md + tg-notify + git commit
+```
+
+Исключения: typo/1 символ, docs/Tasks.md, config — пропустить REFLECT шаг 6.
+CLI-скиллы: `/simplify` | `/security-review` | `/review` | `/fewer-permission-prompts`
+
+---
+
+## НЕЗАВЕРШЁННЫЕ ЗАДАЧИ — ЗАКОН
+
+**При старте сессии (все 4 шага ОБЯЗАТЕЛЬНЫ):**
+
+**ШАГ 1** — SessionStart hook показывает `AI_CONTEXT/in-progress.md`. Если `status=active` → сообщить пользователю что незавершено, спросить продолжать или новое. НЕ переходить к новому пока не ответил.
+
+**ШАГ 2** — Прочитать Daily Note:
 ```bash
-# 1. Infra — BARCHA DASTURCHILAR UCHUN (MongoDB + Redis + Elasticsearch):
-docker compose -f docker-compose.dev.yml up -d
-
-# Faqat infra (backend servislarsiz):
-docker compose -f docker-compose.dev.yml up -d mongo redis elasticsearch
-
-# 2. Backend services (alohida terminallarda):
-cd services/auth && npm run dev         # :3001
-cd services/user && npm run dev         # :3002
-cd services/content && npm run dev      # :3003
-cd services/watch-party && npm run dev  # :3004
-cd services/battle && npm run dev       # :3005
-cd services/notification && npm run dev # :3007
-cd services/admin && npm run dev        # :3008
-
-# 3. Frontend:
-cd apps/web && npm run dev              # :3000
-cd apps/mobile && npx expo start
-cd apps/admin-ui && npm run dev         # :5173
-
-# 4. Type check:
-npm run typecheck  # barcha workspaces
+cat ~/Documents/weWatch-obsidian/DAILY/Saidazim/$(date '+%Y-%m-%d').md
 ```
+Найти `🚧 Checkpoint T-XXX`. Если нет `✅ Завершено: T-XXX` после него И нет в Done.md → задача НЕ завершена → доделать.
 
----
+**ШАГ 3** — Прочитать `docs/Tasks.md`, проверить статусы `🔄 Bajarilmoqda`.
 
-## DOCKER (BARCHA DASTURCHILAR UCHUN)
+**ШАГ 4** — Только после шагов 1-3 переходить к новым задачам.
 
-### Asosiy buyruqlar
-
+**Checkpoint обязателен:**
 ```bash
-# Barcha konteynerlarni ishga tushirish:
-docker compose -f docker-compose.dev.yml up -d
-
-# Faqat infra (Emirhan uchun — backend lokal ishlatmasdan):
-docker compose -f docker-compose.dev.yml up -d mongo redis elasticsearch
-
-# Holat tekshirish:
-docker compose -f docker-compose.dev.yml ps
-
-# To'xtatish (ma'lumotlar saqlanadi):
-docker compose -f docker-compose.dev.yml stop
-
-# To'liq o'chirish (ma'lumotlar o'chadi!):
-docker compose -f docker-compose.dev.yml down -v
-```
-
-### Loglarni ko'rish
-
-```bash
-# Barcha servislar:
-docker compose -f docker-compose.dev.yml logs -f
-
-# Alohida servis:
-docker compose -f docker-compose.dev.yml logs -f auth
-docker compose -f docker-compose.dev.yml logs -f mongo
-docker compose -f docker-compose.dev.yml logs -f redis
-```
-
-### DB Shell (Saidazim)
-
-```bash
-# MongoDB:
-docker exec -it cinesync_mongo mongosh -u $MONGO_ROOT_USER -p $MONGO_ROOT_PASSWORD
-
-# Redis:
-docker exec -it cinesync_redis redis-cli -a $REDIS_PASSWORD
-```
-
-### Konteyner restart
-
-```bash
-# Bitta servis qayta ishga tushirish:
-docker compose -f docker-compose.dev.yml restart auth
-
-# Build qilib qayta ishga tushirish:
-docker compose -f docker-compose.dev.yml up -d --build auth
-```
-
-### Emirhan uchun minimal ishga tushirish
-
-```bash
-# 1. Infrani ko'tar:
-docker compose -f docker-compose.dev.yml up -d
-
-# 2. O'z appingni ishga tushir:
-#    Emirhan: cd apps/mobile && npx expo start
-
-# Backend lokal ishlatish shart emas — Docker konteynerlar ishlaydi.
-```
-
----
-
-## SCREENSHOT VA TEMP FAYLLAR
-
-**Root papkani musorga to'ldirmaslik uchun:**
-
-| Fayl/Papka | Maqsad | .gitignore |
-|------------|--------|------------|
-| `screenshots/` | Debug, MCP screenshotlar | ✅ ignore |
-| `test-results/` | Playwright test natijalari | ✅ ignore |
-| `*.png` (root) | Tasodifiy screenshot | ✅ ignore |
-| `tmp_*.json` | Vaqtinchalik debug JSON | ✅ ignore |
-
-**Qoidalar:**
-- Screenshot olsang — `screenshots/` papkaga saqla, root'ga EMAS
-- Root'da `.png` yoki `tmp_*.json` paydo bo'lsa — tegishli papkaga ko'chirish
-
----
-
-## DEFINITIONS
-
-| Atama | Ma'nosi |
-|-------|---------|
-| `WatchParty` | Do'stlar bilan sinxron film ko'rish (Socket.io room) |
-| `Battle` | 1v1 yoki guruh: kim ko'proq film ko'radi (3/5/7 kun) |
-| `Achievement` | Gamifikatsiya badge (oddiy, franchise, maxfiy) |
-| `Heartbeat` | Online status yangilash (har 2 min, Redis TTL: 3 min) |
-| `Sync Event` | Watch Party da video holat sinxronizatsiyasi |
-| `Owner` | Watch Party xona egasi (play/pause/seek huquqi) |
-| `Member` | Watch Party a'zosi (faqat ko'rish, chat, emoji) |
-| `FCM` | Firebase Cloud Messaging (push notification) |
-| `HLS` | HTTP Live Streaming (m3u8 video format) |
-
----
-
-## DESIGN SYSTEM
-
-```
-Primary:      #7B72F8 (Rave violet)
-Background:   #0A0A0F (dark base)
-Surface:      #111118 (elevated)
-Overlay:      #16161F
-Gold:         #FFD700 (achievement)
-Diamond:      #88CCFF (top rank)
-
-Fonts:
-  Display: Bebas Neue (headings)
-  Body:    DM Sans (text)
-  Mono:    JetBrains Mono (code)
-
-Dark mode ONLY — barcha platform.
-```
-
----
-
-## MULTI-AGENT PROTOCOL — ТОКЕН-ОПТИМИЗИРОВАННАЯ СИСТЕМА
-
-> Полная система: `.claude/agents/` — каждый агент получает только свой контекст (~100 строк вместо 1400+)
-
-### Агенты проекта
-
-| Агент | Контекст файл | Зона | Subagent type |
-|-------|--------------|------|---------------|
-| **Auth Agent** | `.claude/agents/auth-agent.md` | services/auth/ | general-purpose |
-| **Content Agent** | `.claude/agents/content-agent.md` | services/content/ | general-purpose |
-| **WatchParty Agent** | `.claude/agents/watchparty-agent.md` | services/watch-party/ | general-purpose |
-| **User+Battle+Notif Agent** | `.claude/agents/user-battle-notification-agent.md` | services/user/, battle/, notification/ | general-purpose |
-| **Admin Agent** | `.claude/agents/admin-agent.md` | services/admin/ + apps/admin-ui/ | general-purpose |
-| **Mobile Agent** | `.claude/agents/mobile-agent.md` | apps/mobile/ | general-purpose |
-| **Web Agent** | `.claude/agents/web-agent.md` | apps/web/ | general-purpose |
-| **Shared Agent** | `.claude/agents/shared-agent.md` | shared/ | general-purpose |
-| **QA Agent** | `.claude/agents/qa-agent.md` | read-only | general-purpose |
-| **Explorer** | (нет файла) | read-only | **Explore** |
-| **Planner** | (нет файла) | read-only | **Plan** |
-| **Orchestrator** | `.claude/agents/orchestrator.md` | docs/, git | main session |
-
-### Токен-оптимизация — ЗАКОН
-
-```
-❌ СТАРЫЙ СПОСОБ (расточительный):
-   Каждый агент получал: CLAUDE.md (906 строк) + CLAUDE_BACKEND.md (511 строк) = 1417 строк
-   5 агентов × 1417 = 7085 строк повторяющегося контекста
-
-✅ НОВЫЙ СПОСОБ (оптимизированный):
-   Каждый агент получает: .claude/agents/{agent}.md (~100 строк) + TASK SPEC (~30 строк)
-   5 агентов × 130 = 650 строк. Экономия: ~91% токенов.
-
-КАК DISPATCH (всегда):
-  1. Прочитай .claude/agents/{agent}.md
-  2. Составь TASK SPEC (конкретно: file:line, что изменить, как проверить)
-  3. Agent(prompt: [содержимое агент-файла] + [task spec])
-  4. НЕ добавляй CLAUDE.md — агент уже знает свои правила
-```
-
-### Режим A (Single Task)
-
-```
-1. Определи зону задачи → выбери агента по таблице
-2. Прочитай .claude/agents/{agent}.md
-3. Запусти Agent с task spec
-4. QA Agent → Critic Agent → merge
-```
-
-### Режим B (Multi-Agent)
-
-```
-1. Читай Tasks.md → группируй по зонам
-2. Claim все задачи в одном git commit
-3. Параллельно dispatch (разные зоны — нет конфликтов):
-   Auth Agent (worktree A) + Mobile Agent (worktree B) + Admin Agent (worktree C)
-4. QA Agent → Critic Agent → merge каждого
-5. Done.md + tg-notify
-```
-
-### Zone qoidalari — QATTIQ
-
-```
-ZONE MATRIX:
-                  Backend    Mobile     Web        Shared    Docs
-  Backend Agent:    ✅ o'zi    ❌ tegma   ❌ tegma   🔒 lock   ❌ tegma
-  Mobile Agent:     ❌ tegma   ✅ o'zi    ❌ tegma   🔒 lock   ❌ tegma
-  Web Agent:        ❌ tegma   ❌ tegma   ✅ o'zi    🔒 lock   ❌ tegma
-  QA Agent:         👁 read    👁 read    👁 read    👁 read   ❌ tegma
-  Orchestrator:     👁 read    👁 read    👁 read    ✅ merge  ✅ yozadi
-
-ZONE MAP:
-  backend = services/*, apps/admin-ui/
-  mobile  = apps/mobile/
-  web     = apps/web/
-  shared  = shared/types/, shared/utils/, shared/constants/
-  docs    = docs/, CLAUDE*.md
-```
-
-### Lock protocol (shared/* uchun)
-
-```
-Lock fayl: .claude/locks/{zone}.lock
-Format:    {"agent":"...", "task":"T-XXX", "locked_at":"ISO", "ttl_minutes":30}
-
-Qoidalar:
-  1. O'zgartirish OLDIN lock tekshir
-  2. Lock mavjud → KUTISH yoki boshqa task
-  3. Lock TTL 30 daqiqa — expired lock = bo'sh
-  4. O'zgartirish tugagach → lock o'chirish
-  5. Orchestrator expired lock larni tozalashi mumkin
-```
-
-### Agent prompt template
-
-Har sub-agent ga beriladigan prompt formati:
-
-```
-You are {ROLE} AGENT for CineSync.
-
-ZONE:       {allowed directories}
-FORBIDDEN:  {restricted directories — DO NOT touch}
-RULES:      {top 5 rules from CLAUDE_BACKEND/MOBILE/WEB.md}
-
-TASK:
-  ID:    T-{XXX}
-  Title: {task title}
-  Files: {expected files to modify}
-  Deps:  {prerequisite tasks — already done}
-
-DELIVERABLES:
-  1. Code changes within your ZONE only
-  2. Self-check: tsc --noEmit for your app
-  3. Summary: files changed + what + why
-
-CONSTRAINTS:
-  - DO NOT touch files outside your zone
-  - DO NOT modify docs/Tasks.md or docs/Done.md
-  - DO NOT commit — Orchestrator handles git
-  - NO `any` type — TypeScript strict
-  - NO console.log — use Winston/logger
-  - If blocked → return error, do not guess
-```
-
-### Task classification
-
-```
-Task fayllariga qarab agent tanlanadi:
-
-  services/**              → Backend Agent
-  apps/admin-ui/**         → Backend Agent
-  apps/mobile/**           → Mobile Agent
-  apps/web/**              → Web Agent
-  shared/**                → Lock → birinchi kelgan agent
-  IKKALASI tasks           → Sequential: Backend → Mobile/Web
-
-Task hajmi → mode:
-  < 30 min, 1-2 fayl    → Single Agent (worktree'siz)
-  30-60 min, 3-5 fayl   → Single Agent + worktree
-  > 60 min, 5+ fayl     → Multi-Agent + worktrees
-  Cross-zone (IKKALASI)  → Sequential: Backend birinchi, keyin Mobile/Web
-```
-
-### QA Agent — MAJBURIY validatsiya
-
-```
-Har merge dan OLDIN QA Agent quyidagilarni tekshiradi:
-
-  1. npm run typecheck (barcha workspaces)
-  2. services/*/: tsc --noEmit (har bir service)
-  3. apps/web/: tsc --noEmit
-  4. apps/mobile/: tsc --noEmit
-  5. apps/admin-ui/: tsc --noEmit
-  6. cd apps/mobile && npx jest --passWithNoTests
-  7. Maestro E2E: cd apps/mobile && maestro test .maestro/
-  8. Playwright: cd apps/web && npx playwright test (agar web o'zgargan bo'lsa)
-
-### Critic Agent — MAJBURIY code review
-
-Har merge dan OLDIN Critic Agent 3 ta perspective dan tekshiradi:
-  1. CORRECTNESS — Kod muammoni hal qiladimi? API/Socket mos keladi?
-  2. ARCHITECTURE — SOLID, zone, 300-line limit?
-  3. INTEGRATION — Backend↔Mobile↔Web buzilmaydi?
-
-Agar o'rtacha ball < 7/10 → merge TAQIQLANGAN.
-Skill: `.claude/skills/critic-agent.md`
-
-QA FAIL bo'lsa → merge TAQIQLANGAN → agent xatoni tuzatishi kerak.
-```
-
-### Parallel ishlash misoli
-
-```
-  Saidazim (Terminal 1)                  Emirhan (Terminal 2)
-  ══════════════════════                 ══════════════════
-  Mode B → Backend Orch.                 Mode B → Mobile Orch.
-    │                                      │
-    ├─ Agent: T-S052 (Mesh handler)        ├─ Agent: T-E092 (FAB tugma)
-    ├─ Agent: T-S053 (Scope cleanup)       ├─ Agent: T-E096 (MeshClient)
-    ├─ QA: tsc services                    ├─ QA: tsc mobile
-    ├─ git commit + push                   ├─ git commit + push
-    └─ Done.md update                      └─ Done.md update
-
-  PARALLEL OK: backend zone ≠ mobile zone → conflict YO'Q
-  SHARED ZONE: shared/* → LOCK protocol faollashadi
-```
-
----
-
-## XAVFLI ZONALAR (UCHALA DASTURCHI UCHUN)
-
-```
-❌ MongoDB collection drop           — BARCHA data yo'qoladi!
-❌ main branch ga to'g'ridan push    — PR orqali
-❌ .env faylni commit qilish          — .gitignore da bo'lishi kerak
-❌ O'zga dasturchining zonasiga teginish (services ↔ mobile ↔ web)
-❌ shared/* kelishmasdan o'zgartirish (yoki lock protocol)
-❌ Production DB ga qo'lda query
-❌ Socket.io event nomini o'zgartirish — 3 platformani buzadi!
-❌ API response formatini o'zgartirish — shared/types orqali kelishish
-❌ Multi-Agent: agent zone dan tashqari fayl o'zgartirish TAQIQLANGAN
-❌ Multi-Agent: QA Agent tekshirmasdan merge qilish TAQIQLANGAN
-```
-
----
-
-## СКИЛЛЫ — КОГДА И КАК ИСПОЛЬЗОВАТЬ (ЗАКОН)
-
-> Скиллы — это файлы в `.claude/skills/`. Claude ЧИТАЕТ нужный файл в момент триггера.
-> Нет автоматики — есть дерево решений ниже. Следуй ему точно.
-
----
-
-### ДЕРЕВО РЕШЕНИЙ — выполняется сверху вниз для каждой задачи
-
-```
-┌─ ПОЛУЧИЛ ЗАДАЧУ
-│
-├─ Это БАГ / ошибка / тест упал?
-│   └─ ДА → СНАЧАЛА прочитай `.claude/skills/root-cause-tracing.md`
-│            Выполни 5-шаговый трейс. Только потом пиши код.
-│
-├─ Это Mode B / задача > 5 файлов / разные зоны?
-│   └─ ДА → прочитай `.claude/skills/subagent-dispatch.md`
-│            Диспатч агентов по таблице в orchestrator.md
-│
-├─ Пишу код (любой таск)
-│   ├─ 1. SPEC сначала — прочитай `.claude/skills/spec-driven-implement.md`
-│   │      Напиши YAML-спек (problem / solution / files / verification)
-│   │      Без спека — код не пишется.
-│   │
-│   ├─ 2. LOOP — прочитай `.claude/skills/execute-judge-loop.md`
-│   │      write → tsc --noEmit → self-check → judge (1-10) → fix если < 7
-│   │      Повторять пока score ≥ 7.
-│   │
-│   ├─ 3. SELF-REFLECTION перед каждым коммитом
-│   │      Прочитай `.claude/skills/self-reflection.md`
-│   │      7 шагов: imports / functions / socket events / api / tsc / forbidden / zone
-│   │      Все 7 должны быть ✅. Если нет — исправь, не коммить.
-│   │
-│   ├─ 4. CRITIC перед merge
-│   │      Прочитай `.claude/skills/critic-agent.md`
-│   │      3 судьи: Correctness + Architecture + Integration
-│   │      Средний балл ≥ 7/10 → APPROVE. Меньше → вернуться к шагу 2.
-│   │
-│   ├─ 5. TESTS после APPROVE
-│   │      Прочитай `.claude/skills/auto-tests.md`
-│   │      Написать тесты на изменённый код. Запустить. Все должны пройти.
-│   │
-│   └─ 6. VISUAL (только если изменились .tsx / .css / StyleSheet файлы)
-│          Прочитай `.claude/skills/visual-testing.md`
-│          Скриншоты в screenshots/. Проверить регрессии.
-│
-└─ ГОТОВО → checkpoint clear + Done.md + tg-notify + git commit
-```
-
----
-
-### ИСКЛЮЧЕНИЯ (единственные)
-
-| Ситуация | Что пропустить |
-|----------|---------------|
-| Typo / 1 символ | Только Self-Reflection шаг 6 (forbidden patterns) |
-| docs/Tasks.md / Done.md | Все скиллы пропустить |
-| Config / .env изменение | Только Self-Reflection шаг 6 |
-
-Всё остальное → полный цикл без исключений.
-
----
-
-### CLI-СКИЛЛЫ (запускаются через `/`)
-
-| Команда | Когда |
-|---------|-------|
-| `/simplify` | После завершения — убрать дублирование, упростить |
-| `/security-review` | Изменился auth / JWT / middleware / API endpoint |
-| `/review` | Перед созданием PR |
-| `/fewer-permission-prompts` | Claude слишком часто спрашивает разрешения |
-
-Claude сам предлагает CLI-скилл когда видит подходящий момент.
-
----
-
-## НЕЗАВЕРШЁННЫЕ ЗАДАЧИ — ЗАКОН (ОБЯЗАТЕЛЬНО)
-
-> **ЭТО АБСОЛЮТНОЕ ПРАВИЛО. БЕЗ ИСКЛЮЧЕНИЙ. НАРУШЕНИЕ = ПОТЕРЯ РАБОТЫ.**
-
-### При старте сессии — СТРОГИЙ ПОРЯДОК (все 4 шага ОБЯЗАТЕЛЬНЫ)
-
-**ШАГ 1 — in-progress.md**
-
-SessionStart hook показывает `AI_CONTEXT/in-progress.md`.
-**Если status=active** → Claude ОБЯЗАН сказать:
-
-```
-⚠️ В прошлый раз мы не закончили:
-   Таск: [ID] — [название]
-   Сделано: [список]
-   Не сделано: [список]
-   Следующий шаг: [конкретный файл/действие]
-
-Продолжаем или начинаем новое?
-```
-
-Claude НЕ переходит к новым задачам пока пользователь не ответил.
-
-**ШАГ 2 — ОБЯЗАТЕЛЬНО читать Obsidian Daily Note разработчика**
-
-```bash
-# Saidazim:
-cat ~/Documents/Obsidian\ Vault/DAILY/Saidazim/$(date '+%Y-%m-%d').md
-
-# Emirhan:
-cat ~/Documents/Obsidian\ Vault/DAILY/Emirhan/$(date '+%Y-%m-%d').md
-```
-
-**Что искать в daily note:**
-- `🚧 Checkpoint T-XXX (N%)` — незакрытый checkpoint
-- Проверить: есть ли после него `✅ Завершено: T-XXX`?
-- Если `🚧` есть, а `✅` нет → задача НЕ завершена, даже если in-progress.md говорит `clear`
-
-**Алгоритм проверки checkpoint:**
-
-```
-ДЛЯ КАЖДОГО 🚧 Checkpoint T-XXX в daily note:
-  1. Есть ли ✅ Завершено: T-XXX ПОСЛЕ него? → ДА: задача закрыта
-  2. Есть ли T-XXX в docs/Done.md? → ДА: закрыта корректно
-  3. Если НЕТ ни того ни другого:
-     → Прочитать файлы из checkpoint "Next: файл:строка"
-     → Убедиться что код реально реализован
-     → Если не реализован → ДОДЕЛАТЬ перед новыми задачами
-     → Если реализован → закрыть в Done.md + Tasks.md + git commit + tg-notify
-```
-
-> **Почему**: `in-progress.md` очищается stop-hook'ом автоматически, даже если задача не закрыта.
-> Daily note — единственное место где checkpoint не исчезает. Именно там видно реальную незавершённость.
-
-**ШАГ 3 — Tasks.md**
-
-Прочитать `docs/Tasks.md`, убедиться что статусы актуальны.
-Задачи со статусом `🔄 Bajarilmoqda` — проверить совпадение с daily note.
-
-**ШАГ 4 — Только после шагов 1-3 переходить к новым задачам**
-
----
-
-### При старте любого таска — ОБЯЗАТЕЛЬНО
-
-Сразу после claim, ДО написания кода — одна строка:
-
-```bash
+# Старт задачи:
 .claude/scripts/obsidian-checkpoint.sh T-XXX 0 "" "первый шаг — файл:строка"
-```
-
-### После КАЖДОГО изменённого файла — ОБЯЗАТЕЛЬНО
-
-Лимит контекста может кончиться в любой момент — не только на 50%.
-Правило: **изменил файл → сразу checkpoint**. Одна строка:
-
-```bash
-.claude/scripts/obsidian-checkpoint.sh T-XXX 40 "Sidebar.tsx готов" "следующий — Header.tsx"
-```
-
-Процент — приблизительный, не важен точно. Важно что в `next` написан **конкретный следующий шаг**.
-Скрипт сам собирает: изменённые файлы из git, название задачи из Tasks.md, время. Claude передаёт только 4 коротких параметра.
-
-### При завершении задачи — ОБЯЗАТЕЛЬНО (до Done.md)
-
-```bash
+# После каждого изменённого файла:
+.claude/scripts/obsidian-checkpoint.sh T-XXX 40 "Файл.tsx готов" "следующий — Header.tsx"
+# Завершение:
 .claude/scripts/obsidian-checkpoint.sh clear "T-XXX"
 ```
 
-### Запрещено
-
 ```
-❌ Начать таск без записи в in-progress.md
-❌ Пройти 2+ шага без обновления in-progress.md
-❌ Закрыть Done.md без clear-progress
-❌ Игнорировать ⚠️ in-progress при старте сессии
-❌ НЕ читать Daily Note при старте сессии — это нарушение закона
-❌ Игнорировать 🚧 Checkpoint без проверки кода
-❌ "Задача завершена" без проверки в Done.md
-❌ "Я помню что делал" — без checkpoint это ложь (лимит контекста стирает память)
-❌ Переходить к новым задачам пока незакрытые checkpoint есть в daily note
+❌ Старт задачи без checkpoint   ❌ 2+ файла без обновления   ❌ Done.md без clear
+❌ Игнорировать in-progress      ❌ Игнорировать 🚧 в daily note без проверки кода
 ```
 
 ---
 
-## OBSIDIAN MEMORY — ЗАКОН (ОБЯЗАТЕЛЬНО)
+## OBSIDIAN ПАМЯТЬ — ЗАКОН
 
-> **Obsidian — loyiha xotirasi. Claude har muhim qaror, bug va g'oyani DARHOL yozadi.**
+Vault: `~/Documents/weWatch-obsidian` (env: `OBSIDIAN_VAULT`)
 
-**Vault joyi:** `~/Documents/Obsidian Vault` (env var: `OBSIDIAN_VAULT`)
-
-### Qachon yoziladi (MAJBURIY)
-
-| Holat | Buyruq |
-|-------|--------|
-| Arxitektura qaror qabul qilinganda | `decision` |
-| Bug root cause topilganda | `bug` |
-| Non-obvious g'oya/yechim chiqqanda | `idea` |
-| Muhim TODO paydo bo'lganda | `todo` |
-| Fix/patch qo'llanilganda | `fix` |
-
-### Skript
+| Когда | Тип |
+|-------|-----|
+| Архитектурное решение | `decision` |
+| Root cause бага | `bug` |
+| Нетривиальная идея | `idea` |
+| Fix применён | `fix` |
 
 ```bash
-.claude/scripts/obsidian-note.sh <type> <project> "<title>" "<body>" [executor]
+.claude/scripts/obsidian-note.sh <decision|bug|idea|fix|todo|note> weWatch "<title>" "<body>" [executor]
 ```
-
-**type:** `decision` | `bug` | `idea` | `todo` | `fix` | `note` | `tezcode`
-
-**project:** `weWatch` | `tezCode` | `general`
-
-### Misollar
-
-```bash
-# Arxitektura qaror:
-.claude/scripts/obsidian-note.sh decision weWatch \
-  "Redis pub/sub over Socket.io rooms for sync" \
-  "Chose Redis pub/sub to decouple sync state from socket connections" \
-  Saidazim
-
-# Bug topildi:
-.claude/scripts/obsidian-note.sh bug weWatch \
-  "Elasticsearch index not updated on movie edit" \
-  "Movie.findByIdAndUpdate bypasses Mongoose post-save hook" \
-  Saidazim
-
-# G'oya:
-.claude/scripts/obsidian-note.sh idea weWatch \
-  "Spectator mode for battles" \
-  "Allow non-participants to watch live battle stats"
-
-# Fix qo'llanildi:
-.claude/scripts/obsidian-note.sh fix weWatch \
-  "FCM token dedup on login" \
-  "Added Set-based dedup before saving fcmTokens array" \
-  Saidazim
-
-# TezCode guruhdan muhim xabar:
-.claude/scripts/obsidian-note.sh tezcode tezCode \
-  "Bekzod aka: yangi sprint boshlandi" \
-  "Sprint 9 boshlandi, deadline — 2026-05-07"
-```
-
-### Hooks (avtomatik)
-
-```
-SessionStart → obsidian-session-start.sh  (daily note + tasks sync)
-Stop         → obsidian-session-stop.sh   (git context sync + vault commit)
-```
-
-> **Birinchi marta sozlash:** `bash .claude/scripts/obsidian-setup.sh`
 
 ---
 
-## KEYIN O'QILADIGAN FAYLLAR
+## ЧИТАТЬ ДОПОЛНИТЕЛЬНО
 
-| Fayl | Kim uchun |
-|------|-----------|
-| `CLAUDE_BACKEND.md` | Saidazim — services, DB, Socket.io, Admin |
-| `CLAUDE_MOBILE.md` | Emirhan — React Native, Firebase, navigation |
-| `CLAUDE_WEB.md` | (hozircha mas'ul yo'q) — Next.js, SEO, landing, web app |
-| `docs/Tasks.md` | Hammaga — ochiq vazifalar |
-| `docs/Done.md` | Hammaga — bajarilgan ishlar |
+| Файл | Кому |
+|------|------|
+| `CLAUDE_BACKEND.md` | Saidazim |
+| `CLAUDE_MOBILE.md` | Emirhan |
+| `docs/Tasks.md` | Все |
+| `docs/Done.md` | Все |
 
 ---
-
-*CLAUDE.md | CineSync — Ijtimoiy Onlayn Kinoteatr | v2.1 | 2026-04-21*
+*CLAUDE.md | CineSync | v3.0 | 2026-05-11*

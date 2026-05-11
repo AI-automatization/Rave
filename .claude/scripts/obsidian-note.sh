@@ -9,7 +9,7 @@
 
 set -euo pipefail
 
-VAULT="${OBSIDIAN_VAULT:-$HOME/Documents/Obsidian Vault}"
+VAULT="${OBSIDIAN_VAULT:-$HOME/Documents/weWatch-obsidian}"
 DEV="${VAULT_DEVELOPER:-Saidazim}"
 TYPE="${1:-}"
 PROJECT="${2:-weWatch}"

@@ -31,14 +31,16 @@ export function AppNavigator() {
 
   const [blockedVisible, setBlockedVisible] = useState(false);
   const [blockedReason, setBlockedReason] = useState('');
+  const [blockedUserId, setBlockedUserId] = useState('');
   const [isNavReady, setIsNavReady] = useState(false);
 
   usePushNotifications();
 
   // Global ACCOUNT_BLOCKED listener
   useEffect(() => {
-    return onAccountBlocked((reason) => {
+    return onAccountBlocked(({ reason, userId }) => {
       setBlockedReason(reason);
+      setBlockedUserId(userId);
       setBlockedVisible(true);
     });
   }, []);
@@ -147,6 +149,7 @@ export function AppNavigator() {
     <BlockedAccountModal
       visible={blockedVisible}
       reason={blockedReason}
+      userId={blockedUserId}
       onClose={() => setBlockedVisible(false)}
     />
   </>

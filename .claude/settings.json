@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/scripts/obsidian-session-start.sh",
+            "command": "bash /Users/saidazim/Desktop/Rave/.claude/scripts/obsidian-session-start.sh",
             "timeout": 15000
           }
         ]
@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/scripts/obsidian-session-stop.sh",
+            "command": "bash /Users/saidazim/Desktop/Rave/.claude/scripts/obsidian-session-stop.sh",
             "timeout": 10000
           }
         ]
@@ -28,7 +28,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/scripts/post-edit-hook.sh",
+            "command": "bash /Users/saidazim/Desktop/Rave/.claude/scripts/post-edit-hook.sh",
             "timeout": 3000
           }
         ]
@@ -38,7 +38,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/scripts/post-edit-hook.sh",
+            "command": "bash /Users/saidazim/Desktop/Rave/.claude/scripts/post-edit-hook.sh",
             "timeout": 3000
           }
         ]

@@ -2,9 +2,9 @@
 # SessionStart hook — читает vault и выдаёт Клоду память + TezCode Telegram
 # VAULT_DEVELOPER=Saidazim|Emirhan (из ~/.zshrc каждого разработчика)
 
-set -euo pipefail
+set -uo pipefail
 
-VAULT="${OBSIDIAN_VAULT:-$HOME/Documents/Obsidian Vault}"
+VAULT="${OBSIDIAN_VAULT:-$HOME/Documents/weWatch-obsidian}"
 DEV="${VAULT_DEVELOPER:-Saidazim}"
 DEV_LOWER=$(echo "$DEV" | tr '[:upper:]' '[:lower:]')
 DATE=$(date '+%Y-%m-%d')

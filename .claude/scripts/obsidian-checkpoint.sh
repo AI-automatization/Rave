@@ -14,7 +14,7 @@
 
 set -euo pipefail
 
-VAULT="${OBSIDIAN_VAULT:-$HOME/Documents/Obsidian Vault}"
+VAULT="${OBSIDIAN_VAULT:-$HOME/Documents/weWatch-obsidian}"
 DEV="${VAULT_DEVELOPER:-Saidazim}"
 REPO="${REPO_PATH:-$HOME/Desktop/Rave}"
 NOW=$(date '+%Y-%m-%d %H:%M')

@@ -3,14 +3,15 @@ import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 import { tokenStorage } from '@utils/storage';
 
 // Global blocked account state — any screen can subscribe
-type BlockedListener = (reason: string) => void;
+type BlockedPayload = { reason: string; userId: string };
+type BlockedListener = (payload: BlockedPayload) => void;
 const blockedListeners: Set<BlockedListener> = new Set();
 export function onAccountBlocked(listener: BlockedListener): () => void {
   blockedListeners.add(listener);
   return () => { blockedListeners.delete(listener); };
 }
-function notifyBlocked(reason: string): void {
-  blockedListeners.forEach(fn => fn(reason));
+function notifyBlocked(payload: BlockedPayload): void {
+  blockedListeners.forEach(fn => fn(payload));
 }
 
 const URLS = {
@@ -62,9 +63,13 @@ function createClient(baseURL: string): AxiosInstance {
         (error.response?.data?.code === 'ACCOUNT_BLOCKED' ||
          (error.response?.data?.message ?? '').toLowerCase().includes('blocked'))) {
         const reason = error.response.data.reason ?? error.response.data.message ?? '';
+        // userId: prefer server response (available even on first login), fallback to tokenStorage
+        const userId = error.response.data.userId
+          ?? (await tokenStorage.getUserId())
+          ?? '';
         const { useAuthStore } = await import('@store/auth.store');
         await useAuthStore.getState().logout();
-        notifyBlocked(reason);
+        notifyBlocked({ reason, userId });
         return Promise.reject(error);
       }
 

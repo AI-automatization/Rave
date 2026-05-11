@@ -56,13 +56,14 @@ export class AuthController {
         ),
       );
     } catch (error) {
-      const err = error as { code?: string; reason?: string };
+      const err = error as { code?: string; reason?: string; userId?: string };
       if (err.code === 'ACCOUNT_BLOCKED') {
         res.status(403).json({
           success: false,
           code: 'ACCOUNT_BLOCKED',
           message: 'Account is blocked',
           reason: err.reason ?? 'No reason provided',
+          userId: err.userId ?? null,
           data: null,
           errors: null,
         });
@@ -81,13 +82,14 @@ export class AuthController {
       const tokens = await this.authService.refreshTokens(refreshToken, ip, userAgent);
       res.json(apiResponse.success(tokens, 'Tokens refreshed'));
     } catch (error) {
-      const err = error as { code?: string; reason?: string };
+      const err = error as { code?: string; reason?: string; userId?: string };
       if (err.code === 'ACCOUNT_BLOCKED') {
         res.status(403).json({
           success: false,
           code: 'ACCOUNT_BLOCKED',
           message: 'Account is blocked',
           reason: err.reason ?? 'No reason provided',
+          userId: err.userId ?? null,
           data: null,
           errors: null,
         });
@@ -334,13 +336,14 @@ export class AuthController {
 
       res.json(apiResponse.success({ user, accessToken, refreshToken }, 'Google login successful'));
     } catch (error) {
-      const err = error as { code?: string; reason?: string };
+      const err = error as { code?: string; reason?: string; userId?: string };
       if (err.code === 'ACCOUNT_BLOCKED') {
         res.status(403).json({
           success: false,
           code: 'ACCOUNT_BLOCKED',
           message: 'Account is blocked',
           reason: err.reason ?? 'No reason provided',
+          userId: err.userId ?? null,
           data: null,
           errors: null,
         });

@@ -9,25 +9,30 @@ import { appealApi } from '@api/appeal.api';
 interface BlockedAccountModalProps {
   visible: boolean;
   reason?: string;
+  userId?: string;
   onClose: () => void;
 }
 
 type ScreenView = 'blocked' | 'appeal' | 'done';
 
-export function BlockedAccountModal({ visible, reason, onClose }: BlockedAccountModalProps) {
+export function BlockedAccountModal({ visible, reason, userId, onClose }: BlockedAccountModalProps) {
   const { colors } = useTheme();
   const styles = useStyles();
   const { t } = useT();
   const [view, setView] = useState<ScreenView>('blocked');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSubmitAppeal = async () => {
     if (!message.trim()) return;
     setLoading(true);
+    setError('');
     try {
-      await appealApi.create(message.trim(), reason);
+      await appealApi.create(message.trim(), reason, userId);
       setView('done');
+    } catch {
+      setError('Не удалось отправить. Проверьте соединение и попробуйте снова.');
     } finally {
       setLoading(false);
     }
@@ -82,6 +87,7 @@ export function BlockedAccountModal({ visible, reason, onClose }: BlockedAccount
                   numberOfLines={5}
                   textAlignVertical="top"
                 />
+                {!!error && <Text style={styles.errorText}>{error}</Text>}
                 <TouchableOpacity
                   style={[styles.appealBtn, !message.trim() && styles.disabledBtn]}
                   onPress={handleSubmitAppeal}
@@ -206,6 +212,12 @@ const useStyles = createThemedStyles((colors) => ({
   },
   disabledBtn: {
     opacity: 0.4,
+  },
+  errorText: {
+    ...typography.caption,
+    color: colors.error,
+    textAlign: 'center',
+    marginBottom: spacing.sm,
   },
   okBtn: {
     borderRadius: borderRadius.md,

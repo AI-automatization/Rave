@@ -33,6 +33,7 @@ function RootApp() {
   const hydrate = useAuthStore((s) => s.hydrate);
   const isHydrated = useAuthStore((s) => s.isHydrated);
   const [blockedReason, setBlockedReason] = useState<string | null>(null);
+  const [blockedUserId, setBlockedUserId] = useState<string>('');
 
   useEffect(() => {
     hydrate();
@@ -41,8 +42,9 @@ function RootApp() {
 
   // Listen for account blocked events from API interceptor
   useEffect(() => {
-    return onAccountBlocked((reason) => {
+    return onAccountBlocked(({ reason, userId }) => {
       setBlockedReason(reason || '');
+      setBlockedUserId(userId);
     });
   }, []);
 
@@ -69,6 +71,7 @@ function RootApp() {
       <BlockedAccountModal
         visible={blockedReason !== null}
         reason={blockedReason ?? undefined}
+        userId={blockedUserId}
         onClose={handleBlockedClose}
       />
       <OfflineBanner isOnline={isOnline} onRetry={recheck} />
