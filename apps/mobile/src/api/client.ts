@@ -103,6 +103,18 @@ function createClient(baseURL: string): AxiosInstance {
           return instance(originalRequest);
         } catch (err) {
           processQueue(err, null);
+          const refreshErr = err as { response?: { status?: number; data?: { code?: string; reason?: string; userId?: string; message?: string } } };
+          const isBlocked = refreshErr.response?.status === 403 &&
+            (refreshErr.response?.data?.code === 'ACCOUNT_BLOCKED' ||
+             (refreshErr.response?.data?.message ?? '').toLowerCase().includes('blocked'));
+          if (isBlocked) {
+            const reason = refreshErr.response!.data?.reason ?? refreshErr.response!.data?.message ?? '';
+            const userId = refreshErr.response!.data?.userId ?? (await tokenStorage.getUserId()) ?? '';
+            const { useAuthStore } = await import('@store/auth.store');
+            await useAuthStore.getState().logout();
+            notifyBlocked({ reason, userId });
+            return Promise.reject(err);
+          }
           const { useAuthStore } = await import('@store/auth.store');
           await useAuthStore.getState().logout();
           return Promise.reject(error);
