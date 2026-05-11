@@ -17,7 +17,7 @@ import {
   type RoomMedia,
 } from '@utils/mediaDetector';
 import {
-  IFRAME_SCAN_JS, BOT_PROTECTION_JS, COOKIE_COLLECTION_JS,
+  IFRAME_SCAN_JS, BOT_PROTECTION_JS,
   isPlaceholderVideoUrl,
 } from '@utils/webViewScripts';
 import type { ModalStackParamList } from '@app-types/index';
@@ -25,7 +25,7 @@ import type { ModalStackParamList } from '@app-types/index';
 type Nav = NativeStackNavigationProp<ModalStackParamList>;
 type RouteType = RouteProp<ModalStackParamList, 'MediaWebView'>;
 
-export const WEBVIEW_INJECT_JS = MEDIA_DETECTION_JS + COOKIE_COLLECTION_JS + BOT_PROTECTION_JS + IFRAME_SCAN_JS;
+export const WEBVIEW_INJECT_JS = MEDIA_DETECTION_JS + BOT_PROTECTION_JS + IFRAME_SCAN_JS;
 
 export function useMediaDetection() {
   const navigation = useNavigation<Nav>();
@@ -44,7 +44,6 @@ export function useMediaDetection() {
   const barAnim = useRef(new Animated.Value(0)).current;
   const lastKnownUrlRef = useRef(params.defaultUrl);
   const isImportingRef = useRef(false);
-  const cookiesRef = useRef<string>('');
   const importMediaRef = useRef<(media: RoomMedia) => Promise<void>>(async () => {});
   const detectedUrlRef = useRef('');
   const backendFoundVideoRef = useRef(false);
@@ -71,7 +70,7 @@ export function useMediaDetection() {
     detectedUrlRef.current = '';
     setIsBackendExtracting(true);
     try {
-      const result = await contentApi.extractVideo(url, cookiesRef.current || undefined);
+      const result = await contentApi.extractVideo(url);
       // Store the original URL (not the extracted CDN URL) so each client can
       // re-extract on join and get their own fresh proxy URL. Matches useSourcePicker behaviour.
       const media: RoomMedia = {
@@ -143,10 +142,9 @@ export function useMediaDetection() {
     isImportingRef.current = true;
     setIsImporting(true);
     try {
-      const sessionCookies = media.mode === 'webview-session' ? cookiesRef.current : undefined;
       const room = await watchPartyApi.createRoom({
         name: media.videoTitle.slice(0, 60), videoUrl: media.videoUrl,
-        videoTitle: media.videoTitle, videoPlatform: media.videoPlatform, cookies: sessionCookies,
+        videoTitle: media.videoTitle, videoPlatform: media.videoPlatform,
       });
       navigation.navigate('WatchParty', { roomId: room._id, videoReferer: media.videoReferer });
     } catch (err: unknown) {
@@ -167,11 +165,9 @@ export function useMediaDetection() {
     try {
       const data = JSON.parse(event.nativeEvent.data) as
         | MediaDetectedPayload | BlobVideoFoundPayload
-        | { type: 'COOKIE_UPDATE'; cookies: string; domain: string }
         | { type: 'BOT_PROTECTION_DETECTED' }
         | { type: 'IFRAME_FOUND'; urls: string[] };
 
-      if (data.type === 'COOKIE_UPDATE') { if (data.cookies) cookiesRef.current = data.cookies; return; }
       if (data.type === 'BOT_PROTECTION_DETECTED') { setIsBotProtected(true); return; }
       if (data.type === 'IFRAME_FOUND') {
         if (Array.isArray(data.urls) && data.urls[0] && !backendFoundVideoRef.current) {

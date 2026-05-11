@@ -25,6 +25,7 @@ import { lookmovie2Extractor } from './lookmovie2Extractor';
 import { moviesapiExtractor } from './moviesapiExtractor';
 import { VideoExtractResult, VideoPlatform, VideoExtractError } from './types';
 import { geoExtractor, hasGeoProxy } from './geoExtractor';
+import { loadCookies } from '../cookieStore';
 
 const CACHE_PREFIX = 'vextract:';
 
@@ -137,6 +138,10 @@ export async function extractVideo(
 
   let result: VideoExtractResult | null = null;
 
+  // Server-side cookie jar (T-S092): prefer cookies Playwright collected over mobile-provided
+  const serverCookies = await loadCookies(redis, parsedUrl.hostname);
+  const effectiveCookies = serverCookies ?? options?.cookies;
+
   // 5. Platform-specific extraction
   if (platform === 'youtube') {
     const videoId = extractYouTubeVideoId(rawUrl);
@@ -195,7 +200,7 @@ export async function extractVideo(
 
   } else if (YTDLP_PLATFORMS.has(platform)) {
     try {
-      result = await ytDlpExtractor(rawUrl, options?.cookies);
+      result = await ytDlpExtractor(rawUrl, effectiveCookies);
     } catch (dlpErr) {
       if (dlpErr instanceof YtDlpDrmError) throw new VideoExtractError('drm');
       throw dlpErr;
@@ -221,7 +226,7 @@ export async function extractVideo(
     result = await genericExtractor(parsedUrl);
     if (!result) {
       try {
-        result = await ytDlpExtractor(rawUrl, options?.cookies);
+        result = await ytDlpExtractor(rawUrl, effectiveCookies);
       } catch (dlpErr) {
         if (dlpErr instanceof YtDlpDrmError) throw new VideoExtractError('drm');
         // yt-dlp failed for other reason — fall through to Playwright
@@ -239,7 +244,7 @@ export async function extractVideo(
         playwrightRunning++;
         try {
           logger.info('Falling back to Playwright extractor', { url: rawUrl });
-          result = await playwrightExtractor(rawUrl);
+          result = await playwrightExtractor(rawUrl, redis);
         } finally {
           playwrightRunning--;
         }

@@ -66,25 +66,6 @@ export const BOT_PROTECTION_JS = `
 })();
 `;
 
-// Collect document.cookie and send via postMessage
-export const COOKIE_COLLECTION_JS = `
-(function() {
-  function sendCookies() {
-    try {
-      var raw = document.cookie;
-      if (!raw) return;
-      window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({
-        type: 'COOKIE_UPDATE', cookies: raw, domain: window.location.hostname,
-      }));
-    } catch(e) {}
-  }
-  sendCookies();
-  setTimeout(sendCookies, 2000);
-  setTimeout(sendCookies, 5000);
-  true;
-})();
-`;
-
 // Known placeholder / ad video URL patterns — skip these during detection
 export function isPlaceholderVideoUrl(url: string): boolean {
   const lower = url.toLowerCase();

@@ -5,8 +5,10 @@
 
 import { chromium } from 'playwright-chromium';
 import type { Browser, Page, Response } from 'playwright-chromium';
+import Redis from 'ioredis';
 import { logger } from '@shared/utils/logger';
 import { VideoExtractResult } from './types';
+import { playwrightCookiesToHeader, saveCookies } from '../cookieStore';
 
 const NAVIGATE_TIMEOUT_MS = 25_000;
 const POST_LOAD_WAIT_MS   = 5_000;  // extra wait for deferred video requests
@@ -56,7 +58,7 @@ function release(): void {
 // Matches HLS manifests, DASH manifests, and MP4 streams
 const MEDIA_URL_RE = /\.(m3u8|mpd|mp4)(\?[^"'\s]*)?$/i;
 
-export async function playwrightExtractor(url: string): Promise<VideoExtractResult | null> {
+export async function playwrightExtractor(url: string, redis?: Redis): Promise<VideoExtractResult | null> {
   await acquire();
 
   let browser: Browser | null = null;
@@ -134,6 +136,17 @@ export async function playwrightExtractor(url: string): Promise<VideoExtractResu
     if (!foundUrl) return null;
 
     const title = await page.title().catch(() => '') || new URL(url).hostname;
+
+    // Save cookies to Redis so yt-dlp can reuse them on the next request (T-S092)
+    if (redis) {
+      try {
+        const cookies = await page.context().cookies(url);
+        if (cookies.length > 0) {
+          const domain = new URL(url).hostname;
+          await saveCookies(redis, domain, playwrightCookiesToHeader(cookies));
+        }
+      } catch { /* non-fatal */ }
+    }
 
     return {
       title,
