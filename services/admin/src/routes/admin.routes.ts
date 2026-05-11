@@ -3,6 +3,7 @@ import Redis from 'ioredis';
 import { AdminController } from '../controllers/admin.controller';
 import { AdminService } from '../services/admin.service';
 import { verifyToken, requireRole } from '@shared/middleware/auth.middleware';
+import { requireInternalSecret } from '@shared/utils/serviceClient';
 
 const FEATURE_BATTLES = process.env.FEATURE_BATTLES !== 'false';
 const battlesDisabled = (_req: Request, res: Response): void => {
@@ -13,6 +14,9 @@ export const createAdminRouter = (redis: Redis): Router => {
   const router = Router();
   const adminService = new AdminService(redis);
   const adminController = new AdminController(adminService);
+
+  // Internal: DELETE /admin/internal/users/:userId — cascade account deletion (T-S093)
+  router.delete('/internal/users/:userId', requireInternalSecret, adminController.deleteUserData);
 
   // All admin routes require authentication + admin role
   router.use(verifyToken);

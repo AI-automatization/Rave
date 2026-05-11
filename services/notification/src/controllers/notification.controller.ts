@@ -121,4 +121,15 @@ export class NotificationController {
       next(error);
     }
   };
+
+  // DELETE /notifications/internal/users/:userId — cascade account deletion (T-S093)
+  deleteUserData = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = req.params as { userId: string };
+      await this.notificationService.deleteUserData(userId);
+      res.json(apiResponse.success(null, 'User notification data deleted'));
+    } catch (error) {
+      next(error);
+    }
+  };
 }

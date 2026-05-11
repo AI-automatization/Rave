@@ -131,6 +131,9 @@ export const createContentRouter = (redis: Redis, elastic: ElasticsearchClient):
   // GET /content/internal/user-watch-stats/:userId — internal: user service calls this for stats aggregation
   router.get('/internal/user-watch-stats/:userId', requireInternalSecret, contentController.getUserWatchStats);
 
+  // DELETE /content/internal/users/:userId — cascade account deletion (T-S093)
+  router.delete('/internal/users/:userId', requireInternalSecret, contentController.deleteUserData);
+
   // ── Admin Internal ────────────────────────────────────────
   router.get('/internal/admin/movies', requireInternalSecret, contentController.adminListMovies);
   router.get('/internal/admin/stats', requireInternalSecret, contentController.adminGetStats);

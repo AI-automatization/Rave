@@ -3,6 +3,10 @@ import { Client as ElasticsearchClient } from '@elastic/elasticsearch';
 import { MovieService } from './movie.service';
 import { SearchService } from './search.service';
 import { WatchHistoryService } from './watchHistory.service';
+import { WatchHistory } from '../models/watchHistory.model';
+import { WatchProgress } from '../models/watchProgress.model';
+import { Rating } from '../models/rating.model';
+import { logger } from '@shared/utils/logger';
 
 export { MovieService } from './movie.service';
 export { SearchService } from './search.service';
@@ -40,4 +44,13 @@ export class ContentService {
   getMovieRatings = (movieId: string, page?: number, limit?: number) => this.history.getMovieRatings(movieId, page, limit);
   deleteUserRating = (userId: string, movieId: string) => this.history.deleteUserRating(userId, movieId);
   deleteRatingByModerator = (ratingId: string) => this.history.deleteRatingByModerator(ratingId);
+
+  async deleteUserData(userId: string): Promise<void> {
+    await Promise.all([
+      WatchHistory.deleteMany({ userId }),
+      WatchProgress.deleteMany({ userId }),
+      Rating.deleteMany({ userId }),
+    ]);
+    logger.info('ContentService: deleted user data', { userId });
+  }
 }

@@ -4,6 +4,9 @@ import { logger } from '@shared/utils/logger';
 import { BadRequestError } from '@shared/utils/errors';
 import { REDIS_KEYS } from '@shared/constants';
 import { Feedback } from '../models/feedback.model';
+import { SupportConversation } from '../models/supportConversation.model';
+import { SupportMessage } from '../models/supportMessage.model';
+import { Appeal } from '../models/appeal.model';
 import { getLogsModel } from '@shared/middleware/apiLogger.middleware';
 import { AuditLog } from '../models/auditLog.model';
 import {
@@ -462,5 +465,16 @@ export class AdminService {
   async unblockDomain(domain: string): Promise<void> {
     await adminUnblockDomain(domain);
     logger.info('Domain unblocked by admin', { domain });
+  }
+
+  async deleteUserData(userId: string): Promise<void> {
+    const convIds = await SupportConversation.find({ userId }).distinct('_id');
+    await Promise.all([
+      SupportMessage.deleteMany({ conversationId: { $in: convIds } }),
+      SupportConversation.deleteMany({ userId }),
+      Appeal.deleteMany({ userId }),
+      Feedback.deleteMany({ userId }),
+    ]);
+    logger.info('AdminService: deleted user data', { userId });
   }
 }

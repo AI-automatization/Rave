@@ -7,7 +7,7 @@ import { logger } from '@shared/utils/logger';
 import { NotFoundError, BadRequestError } from '@shared/utils/errors';
 import { REDIS_KEYS, TTL, RANKS } from '@shared/constants';
 import { UserRank } from '@shared/types';
-import { getUserWatchStats, getUserBattleStats, revokeUserSessions, disconnectUserSocket } from '@shared/utils/serviceClient';
+import { getUserWatchStats, getUserBattleStats, revokeUserSessions, disconnectUserSocket, cascadeDeleteUser } from '@shared/utils/serviceClient';
 
 export class ProfileService {
   constructor(private redis: Redis) {}
@@ -338,13 +338,21 @@ export class ProfileService {
   }
 
   async deleteAccount(userId: string): Promise<void> {
-    await Friendship.deleteMany({
-      $or: [{ requesterId: userId }, { receiverId: userId }],
-    });
-    const result = await User.deleteOne({ authId: userId });
-    if (result.deletedCount === 0) throw new NotFoundError('User not found');
-    await this.redis.del(REDIS_KEYS.heartbeat(userId));
-    logger.warn('User account deleted', { userId });
+    // Verify user exists before deleting anything
+    const user = await User.findOne({ authId: userId });
+    if (!user) throw new NotFoundError('User not found');
+
+    // Delete local data first
+    await Promise.all([
+      Friendship.deleteMany({ $or: [{ requesterId: userId }, { receiverId: userId }] }),
+      User.deleteOne({ authId: userId }),
+      this.redis.del(REDIS_KEYS.heartbeat(userId)),
+    ]);
+
+    // Cascade to all other services (fire-and-continue — errors logged internally)
+    await cascadeDeleteUser(userId);
+
+    logger.warn('User account fully deleted (cascade)', { userId });
   }
 
   private async recalculateRank(userId: string): Promise<void> {

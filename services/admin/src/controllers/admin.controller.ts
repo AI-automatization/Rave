@@ -388,5 +388,12 @@ export class AdminController {
       res.json(apiResponse.success(null, 'Domain unblocked'));
     } catch (error) { next(error); }
   };
+
+  deleteUserData = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      await this.adminService.deleteUserData(req.params.userId);
+      res.json(apiResponse.success(null, 'User admin data deleted'));
+    } catch (error) { next(error); }
+  };
 }
 

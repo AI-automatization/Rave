@@ -4,7 +4,7 @@ import { isQueueReady, queueAddPoints, queueTriggerAchievement } from './service
 import {
   axios, AxiosError, INTERNAL_SECRET, internalHeaders,
   userServiceUrl, contentServiceUrl, notificationServiceUrl,
-  battleServiceUrl, watchPartyServiceUrl, authServiceUrl,
+  battleServiceUrl, watchPartyServiceUrl, authServiceUrl, adminServiceUrl,
 } from './serviceConfig';
 
 // Re-export admin client functions for backwards compatibility
@@ -253,6 +253,37 @@ export async function disconnectUserSocket(userId: string): Promise<void> {
     const error = err as AxiosError;
     logger.error('[serviceClient] disconnectUserSocket failed', { userId, message: error.message });
   }
+}
+
+// ─── Cascade account deletion (T-S093) ───────────────────────────────────────
+// Called by user service deleteAccount() — deletes user data across all microservices.
+// Each call is fire-and-continue (errors logged, not thrown) so one service failure
+// doesn't block the rest.
+
+export async function cascadeDeleteUser(userId: string): Promise<void> {
+  const calls: Array<[string, string]> = [
+    [authServiceUrl,         `/api/v1/auth/internal/users/${userId}`],
+    [notificationServiceUrl, `/api/v1/notifications/internal/users/${userId}`],
+    [battleServiceUrl,       `/api/v1/battles/internal/users/${userId}`],
+    [contentServiceUrl,      `/api/v1/content/internal/users/${userId}`],
+    [adminServiceUrl,        `/api/v1/admin/internal/users/${userId}`],
+  ];
+
+  await Promise.allSettled(
+    calls.map(async ([base, path]) => {
+      try {
+        await axios.delete(`${base}${path}`, { headers: internalHeaders, timeout: 8000 });
+        logger.info(`[cascadeDeleteUser] OK ${base}${path}`, { userId });
+      } catch (err) {
+        const error = err as AxiosError;
+        logger.error(`[cascadeDeleteUser] FAILED ${base}${path}`, {
+          userId,
+          status: error.response?.status,
+          message: error.message,
+        });
+      }
+    }),
+  );
 }
 
 // ─── Internal secret middleware ────────────────────────────────────────────────

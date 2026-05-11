@@ -190,4 +190,13 @@ export class BattleController {
       next(error);
     }
   };
+
+  deleteUserData = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      await this.battleService.deleteUserData(req.params.userId);
+      res.json(apiResponse.success(null, 'User battle data deleted'));
+    } catch (error) {
+      next(error);
+    }
+  };
 }

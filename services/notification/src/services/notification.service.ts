@@ -174,4 +174,9 @@ export class NotificationService {
     logger.info('sendBroadcast: sending to tokens', { total: tokens.length, title });
     await this.sendPush(tokens, title, body, { type, screen: 'Home' });
   }
+
+  async deleteUserData(userId: string): Promise<void> {
+    await Notification.deleteMany({ userId });
+    logger.info('NotificationService: deleted user data', { userId });
+  }
 }

@@ -32,3 +32,6 @@ export const battleServiceUrl =
 
 export const authServiceUrl =
   process.env.AUTH_SERVICE_URL ?? 'http://localhost:3001';
+
+export const adminServiceUrl =
+  process.env.ADMIN_SERVICE_URL ?? 'http://localhost:3008';

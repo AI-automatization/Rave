@@ -194,4 +194,11 @@ export class BattleService {
 
     logger.info('Battle resolved', { battleId, winnerId });
   }
+
+  async deleteUserData(userId: string): Promise<void> {
+    await BattleParticipant.deleteMany({ userId });
+    // Remove user as creatorId from battles — cancel their pending battles
+    await Battle.deleteMany({ creatorId: userId, status: 'pending' });
+    logger.info('BattleService: deleted user data', { userId });
+  }
 }

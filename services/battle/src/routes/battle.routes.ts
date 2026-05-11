@@ -19,6 +19,9 @@ export const createBattleRouter = (redis: Redis): Router => {
   // Internal: GET /battles/internal/user-stats/:userId — for user service aggregation
   router.get('/internal/user-stats/:userId', requireInternalSecret, battleController.getUserStats);
 
+  // Internal: DELETE /battles/internal/users/:userId — cascade account deletion (T-S093)
+  router.delete('/internal/users/:userId', requireInternalSecret, battleController.deleteUserData);
+
   // Internal Admin: GET /battles/internal/admin/stats — today's stats
   router.get('/internal/admin/stats', requireInternalSecret, battleController.adminGetStats);
 
