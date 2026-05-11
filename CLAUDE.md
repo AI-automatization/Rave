@@ -223,11 +223,14 @@ CLI-скиллы: `/simplify` | `/security-review` | `/review` | `/fewer-permiss
 
 **При старте сессии (все 4 шага ОБЯЗАТЕЛЬНЫ):**
 
-**ШАГ 1** — SessionStart hook показывает `AI_CONTEXT/in-progress.md`. Если `status=active` → сообщить пользователю что незавершено, спросить продолжать или новое. НЕ переходить к новому пока не ответил.
+**ШАГ 1** — SessionStart hook показывает `AI_CONTEXT/in-progress-{developer}.md`. Если `status=active` → сообщить пользователю что незавершено, спросить продолжать или новое. НЕ переходить к новому пока не ответил.
 
-**ШАГ 2** — Прочитать Daily Note:
+**ШАГ 2** — Прочитать Daily Note (путь зависит от разработчика):
 ```bash
+# Saidazim:
 cat ~/Documents/weWatch-obsidian/DAILY/Saidazim/$(date '+%Y-%m-%d').md
+# Emirhan:
+cat ~/Documents/weWatch-obsidian/DAILY/Emirhan/$(date '+%Y-%m-%d').md
 ```
 Найти `🚧 Checkpoint T-XXX`. Если нет `✅ Завершено: T-XXX` после него И нет в Done.md → задача НЕ завершена → доделать.
 
@@ -274,9 +277,12 @@ Vault: `~/Documents/weWatch-obsidian` (env: `OBSIDIAN_VAULT`)
 | Файл | Кому |
 |------|------|
 | `CLAUDE_BACKEND.md` | Saidazim |
-| `CLAUDE_MOBILE.md` | Emirhan |
+| `CLAUDE_MOBILE.md` | Emirhan (детали зоны) |
+| `CLAUDE_EMIRHAN.md` | Emirhan (Claude конфиг + сессия) |
 | `docs/Tasks.md` | Все |
 | `docs/Done.md` | Все |
 
+**Настройка Emirhan (один раз):** `bash .claude/scripts/emirhan-setup.sh`
+
 ---
-*CLAUDE.md | CineSync | v3.0 | 2026-05-11*
+*CLAUDE.md | CineSync | v3.1 | 2026-05-11*

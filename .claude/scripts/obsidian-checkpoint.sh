@@ -16,13 +16,14 @@ set -euo pipefail
 
 VAULT="${OBSIDIAN_VAULT:-$HOME/Documents/weWatch-obsidian}"
 DEV="${VAULT_DEVELOPER:-Saidazim}"
+DEV_LOWER=$(echo "$DEV" | tr '[:upper:]' '[:lower:]')
 REPO="${REPO_PATH:-$HOME/Desktop/Rave}"
 NOW=$(date '+%Y-%m-%d %H:%M')
 DATE=$(date '+%Y-%m-%d')
 
 [[ ! -d "$VAULT" ]] && exit 0
 
-IN_PROGRESS="$VAULT/AI_CONTEXT/in-progress.md"
+IN_PROGRESS="$VAULT/AI_CONTEXT/in-progress-${DEV_LOWER}.md"
 DAILY="$VAULT/DAILY/$DEV/$DATE.md"
 
 TASK_ID="${1:-}"

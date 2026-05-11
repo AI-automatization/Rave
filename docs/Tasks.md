@@ -73,6 +73,25 @@
 ---
 
 
+### T-S095 | P1 | [BACKEND] | Moderation: UserReport model + endpoint (жалоба на пользователя)
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-05-11 17:30
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** yangi model + service metod + controller + route — 4 fayl, RoomReport bilan parallel struktura
+- **Sabab:** T-E118 uchun backend kerak — foydalanuvchilarga shikoyat qilish imkoniyati
+- **Qilish kerak:**
+  - [ ] `services/admin/src/models/userReport.model.ts` — `UserReport` schema (reportedUserId, reporterId, reason, comment, status, reviewedBy, reviewNote, reviewedAt)
+  - [ ] `ModerationService` — `createUserReport`, `listUserReports`, `reviewUserReport`, `pendingUserReportCount` metodlari
+  - [ ] `ModerationController` — `reportUser` (POST, JWT required), `listUserReports`, `reviewUserReport` (admin)
+  - [ ] `moderation.routes.ts` — `POST /internal/moderation/users/:userId/report` (verifyToken), admin routes
+  - [ ] Admin counts endpointiga `pendingUserReports` qo'shish
+- **Bog'liq:** T-E118 (mobile) bu bilan ishlaydi
+
+---
+
 ### T-S068 | P0 | [ADMIN] | Admin UI — User Detail page (/users/:id) + Contact user | pending[Saidazim]
 
 - **Mas'ul:** pending[Saidazim]
@@ -139,7 +158,7 @@
 3. Fix bo'lgach → shu yerdan O'CHIRISH → docs/Done.md ga KO'CHIRISH
 4. Prioritet: P0=kritik, P1=muhim, P2=o'rta, P3=past
 5. Sprint: S1=hozir, S2=keyingi hafta, S3=keyingi sprint, S4-5=keyin
-6. Oxirgi T-raqam: S→064, E→110, C→016
+6. Oxirgi T-raqam: S→095, E→119, C→016
 7. Yangilangan: 2026-04-22
 ```
 
@@ -162,6 +181,40 @@
 
 ---
 
+### T-E118 | P1 | [MOBILE] | Жалоба на пользователя — ReportUserModal + кнопки
+
+- **Mas'ul:** pending[Emirhan]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-05-11 17:30
+- **Holat:** ❌ Boshlanmagan — T-S095 tayyor bo'lgandan keyin
+- **Tavsiya model:** sonnet
+- **Model sababi:** yangi modal komponent + API + 2 ekranga qo'shish — 4 fayl
+- **Bog'liq:** T-S095 (backend endpoint) tayyor bo'lishi kerak
+- **Sabab:** Foydalanuvchilar boshqa userlarni admin moderatsiyasiga yuborishsin
+- **Qilish kerak:**
+  - [ ] `report.api.ts` — `reportUser(userId, reason, comment?)` qo'shish (`POST /internal/moderation/users/:userId/report`)
+  - [ ] `ReportUserModal.tsx` — `ReportRoomModal` ga o'xshash, title "Пожаловаться на пользователя"
+  - [ ] `FriendProfileScreen.tsx` — 3-nokta menyu yoki "Пожаловаться" tugmasi qo'shish
+  - [ ] `WatchPartyScreen.tsx` — participants listida userni bosib → ReportUserModal
+- **Eslatma:** `ReportRoomModal.tsx` dan copy qilib adapt qilish — struktura bir xil
+
+---
+
+### T-E119 | P2 | [MOBILE] | Жалоба на комнату из RoomsScreen (вступление не требуется)
+
+- **Mas'ul:** pending[Emirhan]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-05-11 17:30
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** haiku
+- **Model sababi:** 1 fayl — mavjud modal ishlatish, faqat tugma qo'shish
+- **Sabab:** Hozir faqat WatchPartyScreen ichidan shikoyat qilish mumkin. Foydalanuvchi kirmasdan ham shikoyat qilolsin.
+- **Eslatma:** `ReportRoomModal` allaqachon tayyor — faqat RoomsScreen dagi har bir room kartochkasiga long-press yoki "..." menyu qo'sh
+- **Qilish kerak:**
+  - [ ] `RoomsScreen.tsx` — room kartochkasiga long-press → bottom sheet: "Войти" / "Пожаловаться"
+  - [ ] `<ReportRoomModal visible={...} roomId={room._id} />` ni import qilish
+
+---
 
 
 
