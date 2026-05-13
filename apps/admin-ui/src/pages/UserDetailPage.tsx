@@ -143,7 +143,7 @@ export function UserDetailPage() {
       )}
 
       {/* Profile card */}
-      <div className="bg-[#0d0d14] border border-white/[0.06] rounded-2xl overflow-hidden">
+      <div className="bg-card border border-white/[0.06] rounded-2xl overflow-hidden">
         {/* Header banner */}
         <div className="h-24 bg-gradient-to-br from-accent/20 via-accent/5 to-transparent" />
 
@@ -228,7 +228,7 @@ export function UserDetailPage() {
       </div>
 
       {/* Restrictions section */}
-      <div className="bg-[#0d0d14] border border-white/[0.06] rounded-2xl overflow-hidden">
+      <div className="bg-card border border-white/[0.06] rounded-2xl overflow-hidden">
         <div className="px-5 py-4 border-b border-white/[0.06] flex items-center gap-2">
           <ShieldOff size={16} className="text-amber-400" />
           <h2 className="text-sm font-semibold text-white">Ограничения</h2>
@@ -261,7 +261,7 @@ export function UserDetailPage() {
       </div>
 
       {/* Errors section */}
-      <div className="bg-[#0d0d14] border border-white/[0.06] rounded-2xl overflow-hidden">
+      <div className="bg-card border border-white/[0.06] rounded-2xl overflow-hidden">
         <div className="px-5 py-4 border-b border-white/[0.06] flex items-center gap-2">
           <Bug size={16} className="text-red-400" />
           <h2 className="text-sm font-semibold text-white">Ошибки пользователя</h2>

@@ -110,7 +110,7 @@ function ConvItem({
       className={[
         'w-full flex items-center gap-3 px-3 py-3 text-left relative transition-all duration-150 group',
         active
-          ? 'bg-[#7B72F8]/[0.12] after:absolute after:left-0 after:top-0 after:bottom-0 after:w-[3px] after:bg-[#7B72F8] after:rounded-r'
+          ? 'bg-accent/[0.12] after:absolute after:left-0 after:top-0 after:bottom-0 after:w-[3px] after:bg-accent after:rounded-r'
           : 'hover:bg-white/[0.03]',
       ].join(' ')}
     >
@@ -177,8 +177,8 @@ function MsgBubble({
         <div className={[
           'max-w-[420px] px-4 py-2.5 text-[13px] leading-relaxed rounded-2xl',
           isAdmin
-            ? 'bg-gradient-to-br from-[#7B72F8] to-[#5d55e8] text-white rounded-tr-sm shadow-lg shadow-[#7B72F8]/20'
-            : 'bg-[#14141f] text-white/85 border border-white/[0.07] rounded-tl-sm',
+            ? 'bg-gradient-to-br from-accent to-[#5d55e8] text-white rounded-tr-sm shadow-lg shadow-accent/20'
+            : 'bg-raised text-white/85 border border-white/[0.07] rounded-tl-sm',
         ].join(' ')}>
           <p className="whitespace-pre-wrap break-words">{msg.text}</p>
         </div>
@@ -246,7 +246,7 @@ function UserPanel({
   };
 
   return (
-    <div className="w-[260px] shrink-0 border-l border-white/[0.05] flex flex-col bg-[#07070e] overflow-y-auto">
+    <div className="w-[260px] shrink-0 border-l border-white/[0.05] flex flex-col bg-void overflow-y-auto">
 
       {/* Avatar section */}
       <div className="flex flex-col items-center px-5 pt-6 pb-5 border-b border-white/[0.05]">
@@ -263,7 +263,7 @@ function UserPanel({
 
         {/* Badges */}
         <div className="flex flex-wrap gap-1.5 justify-center">
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#7B72F8]/15 text-[#7B72F8] font-medium border border-[#7B72F8]/20">
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-accent/15 text-accent font-medium border border-accent/20">
             {user?.role ?? 'user'}
           </span>
           {user?.isEmailVerified && (
@@ -587,7 +587,7 @@ export function SupportPage() {
   const openCount = conversations.filter(c => c.status === 'open').length;
 
   return (
-    <div className="flex h-full min-h-0 bg-[#07070e]">
+    <div className="flex h-full min-h-0 bg-void">
 
       {/* ═══════════════════════════════ SIDEBAR ════════════════════════════ */}
       <div className="w-[260px] shrink-0 border-r border-white/[0.05] flex flex-col">
@@ -596,13 +596,13 @@ export function SupportPage() {
         <div className="px-4 pt-4 pb-3 border-b border-white/[0.05]">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-[#7B72F8]/15 flex items-center justify-center">
-                <MessageSquare size={13} className="text-[#7B72F8]" />
+              <div className="w-7 h-7 rounded-lg bg-accent/15 flex items-center justify-center">
+                <MessageSquare size={13} className="text-accent" />
               </div>
               <span className="text-[13px] font-semibold text-white">Поддержка</span>
             </div>
             {openCount > 0 && (
-              <span className="text-[10px] bg-[#7B72F8] text-white px-2 py-0.5 rounded-full font-bold min-w-[20px] text-center animate-pulse">
+              <span className="text-[10px] bg-accent text-white px-2 py-0.5 rounded-full font-bold min-w-[20px] text-center animate-pulse">
                 {openCount}
               </span>
             )}
@@ -634,7 +634,7 @@ export function SupportPage() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Поиск… (⌘K)"
-              className="w-full bg-white/[0.04] border border-white/[0.05] rounded-lg pl-8 pr-3 py-2 text-[11px] text-white placeholder-white/20 outline-none focus:border-[#7B72F8]/40 transition-colors"
+              className="w-full bg-white/[0.04] border border-white/[0.05] rounded-lg pl-8 pr-3 py-2 text-[11px] text-white placeholder-white/20 outline-none focus:border-accent/40 transition-colors"
             />
             {search && (
               <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/25 hover:text-white/60">
@@ -819,7 +819,7 @@ export function SupportPage() {
                 <button
                   key={c}
                   onClick={() => { setText(c); setShowCanned(false); textareaRef.current?.focus(); }}
-                  className="text-[11px] px-3 py-1.5 rounded-full bg-[#7B72F8]/10 text-[#7B72F8]/80 hover:bg-[#7B72F8]/20 hover:text-[#7B72F8] transition-all border border-[#7B72F8]/15"
+                  className="text-[11px] px-3 py-1.5 rounded-full bg-accent/10 text-accent/80 hover:bg-accent/20 hover:text-accent transition-all border border-accent/15"
                 >
                   {c.length > 50 ? c.slice(0, 50) + '…' : c}
                 </button>
@@ -830,13 +830,13 @@ export function SupportPage() {
           {/* Input area */}
           {selected.status === 'open' ? (
             <div className="px-4 py-3 border-t border-white/[0.05] shrink-0">
-              <div className="flex items-end gap-2 bg-white/[0.04] border border-white/[0.07] rounded-2xl px-3 py-2.5 focus-within:border-[#7B72F8]/40 transition-colors">
+              <div className="flex items-end gap-2 bg-white/[0.04] border border-white/[0.07] rounded-2xl px-3 py-2.5 focus-within:border-accent/40 transition-colors">
                 <button
                   onClick={() => setShowCanned(v => !v)}
                   className={[
                     'shrink-0 p-1.5 rounded-lg transition-all mb-0.5',
                     showCanned
-                      ? 'bg-[#7B72F8]/20 text-[#7B72F8]'
+                      ? 'bg-accent/20 text-accent'
                       : 'text-white/20 hover:text-white/60 hover:bg-white/[0.06]',
                   ].join(' ')}
                   title="Быстрые ответы (⚡)"
@@ -871,7 +871,7 @@ export function SupportPage() {
                   <button
                     onClick={() => void send()}
                     disabled={!text.trim() || sending}
-                    className="w-8 h-8 rounded-xl bg-[#7B72F8] hover:bg-[#6B62E8] disabled:opacity-25 disabled:cursor-not-allowed transition-all flex items-center justify-center shadow-lg shadow-[#7B72F8]/20"
+                    className="w-8 h-8 rounded-xl bg-accent hover:bg-accent-dim disabled:opacity-25 disabled:cursor-not-allowed transition-all flex items-center justify-center shadow-lg shadow-accent/20"
                   >
                     <Send size={13} className="text-white" />
                   </button>

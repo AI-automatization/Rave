@@ -73,7 +73,7 @@ function GlobalSearch({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]" onClick={onClose}>
       <div className="w-full max-w-xl mx-4" onClick={(e) => e.stopPropagation()}>
-        <div className="bg-[#13131f] border border-white/10 rounded-xl shadow-2xl overflow-hidden">
+        <div className="bg-raised border border-white/10 rounded-xl shadow-2xl overflow-hidden">
           <div className="flex items-center gap-3 px-4 py-3 border-b border-white/[0.06]">
             <Search size={16} className="text-text-dim shrink-0" />
             <input
@@ -146,12 +146,12 @@ export function Layout() {
   }, []);
 
   return (
-    <div className="flex min-h-screen bg-[#0a0a10]">
+    <div className="flex min-h-screen bg-bg">
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Header */}
-        <header className="sticky top-0 z-10 h-14 flex items-center gap-4 px-5 border-b border-white/[0.06] bg-[#0a0a10]/80 backdrop-blur-md">
+        <header className="sticky top-0 z-10 h-14 flex items-center gap-4 px-5 border-b border-white/[0.06] bg-bg/80 backdrop-blur-md">
           {/* Mobile menu */}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}

@@ -99,7 +99,7 @@ function RoomCard({
           ? 'border-red-500/30 bg-red-500/5 hover:border-red-500/50'
           : room.isAdminBlocked
           ? 'border-amber-500/30 bg-amber-500/5 hover:border-amber-500/50'
-          : 'border-white/[0.06] bg-[#0d0d14] hover:border-white/[0.12]'
+          : 'border-white/[0.06] bg-card hover:border-white/[0.12]'
       }`}
     >
       {/* Thumbnail / banner */}
@@ -331,7 +331,7 @@ function MonitorPanel({
   const pct = progressPct(syncState.currentTime, initialRoom.videoDuration);
 
   return (
-    <div className="flex flex-col h-full bg-[#0a0a10] border-l border-white/[0.06]">
+    <div className="flex flex-col h-full bg-bg border-l border-white/[0.06]">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-white/[0.06] shrink-0">
         <div className="flex-1 min-w-0">
@@ -698,7 +698,7 @@ export function WatchPartiesPage() {
               { label: 'Ожидают', value: rooms.filter((r) => r.status === 'waiting').length, color: 'text-amber-400' },
               { label: 'Подозр.', value: suspicious, color: 'text-red-400' },
             ].map((s) => (
-              <div key={s.label} className="bg-[#0d0d14] border border-white/[0.06] rounded-xl px-3 py-2.5">
+              <div key={s.label} className="bg-card border border-white/[0.06] rounded-xl px-3 py-2.5">
                 <p className={`text-xl font-bold ${s.color}`}>{s.value}</p>
                 <p className="text-[11px] text-text-dim mt-0.5">{s.label}</p>
               </div>
@@ -720,7 +720,7 @@ export function WatchPartiesPage() {
                 className={`h-8 px-3 rounded-xl text-xs border transition-all ${
                   statusFilter === v
                     ? 'bg-accent/15 border-accent/30 text-accent'
-                    : 'bg-[#0d0d14] border-white/[0.06] text-text-muted hover:border-white/20 hover:text-white'
+                    : 'bg-card border-white/[0.06] text-text-muted hover:border-white/20 hover:text-white'
                 }`}
               >
                 {label}
@@ -731,7 +731,7 @@ export function WatchPartiesPage() {
               className={`h-8 px-3 rounded-xl text-xs border transition-all flex items-center gap-1.5 ${
                 suspiciousOnly
                   ? 'bg-red-500/15 border-red-500/30 text-red-400'
-                  : 'bg-[#0d0d14] border-white/[0.06] text-text-muted hover:border-white/20 hover:text-white'
+                  : 'bg-card border-white/[0.06] text-text-muted hover:border-white/20 hover:text-white'
               }`}
             >
               <AlertTriangle size={11} /> Подозрительные
@@ -742,7 +742,7 @@ export function WatchPartiesPage() {
           {loading ? (
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
               {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="rounded-2xl border border-white/[0.06] bg-[#0d0d14] overflow-hidden">
+                <div key={i} className="rounded-2xl border border-white/[0.06] bg-card overflow-hidden">
                   <div className="h-28 bg-white/[0.03] animate-pulse" />
                   <div className="p-3 flex flex-col gap-2">
                     <div className="h-3.5 bg-white/[0.05] rounded animate-pulse w-3/4" />

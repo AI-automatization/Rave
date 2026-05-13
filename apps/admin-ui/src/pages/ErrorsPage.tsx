@@ -158,7 +158,7 @@ function UserChatPanel({ userId }: { userId: string }) {
       </button>
 
       {open && (
-        <div className="mt-2 rounded-xl border border-purple-500/20 bg-[#0d0d18] overflow-hidden">
+        <div className="mt-2 rounded-xl border border-purple-500/20 bg-overlay overflow-hidden">
           <div className="px-3 py-2 border-b border-white/[0.05] flex items-center justify-between">
             <span className="text-[11px] font-semibold text-purple-300">Чат поддержки</span>
             <button onClick={() => setOpen(false)} className="text-text-dim hover:text-white">
@@ -302,7 +302,7 @@ function EventDrawer({ issue, onClose }: { issue: MobileIssue; onClose: () => vo
             const isExpanded = expandedEvent === ev.id;
 
             return (
-              <div key={ev.id} className="rounded-2xl border border-white/[0.07] overflow-hidden bg-[#0d0d14]">
+              <div key={ev.id} className="rounded-2xl border border-white/[0.07] overflow-hidden bg-card">
 
                 {/* ── Event top bar — click to expand ── */}
                 <button
@@ -531,7 +531,7 @@ function EventDrawer({ issue, onClose }: { issue: MobileIssue; onClose: () => vo
                         <span className="text-[10px] text-text-dim uppercase tracking-wider font-semibold">Stack Trace</span>
                         <span className="text-[10px] text-text-dim bg-white/[0.05] px-1.5 py-0.5 rounded">{stackFrames.length} frames</span>
                       </div>
-                      <div className="bg-[#080810] rounded-xl border border-white/[0.06] overflow-hidden">
+                      <div className="bg-void rounded-xl border border-white/[0.06] overflow-hidden">
                         <div className="overflow-x-auto max-h-56 p-3 flex flex-col gap-0.5">
                           {[...stackFrames].reverse().map((f, i) => {
                             const filename = f.filename?.split('/').pop() ?? f.filename ?? '?';
@@ -559,7 +559,7 @@ function EventDrawer({ issue, onClose }: { issue: MobileIssue; onClose: () => vo
                         <Cpu size={11} className="text-text-dim" />
                         <span className="text-[10px] text-text-dim uppercase tracking-wider font-semibold">Component Stack</span>
                       </div>
-                      <div className="bg-[#080810] rounded-xl p-3 text-[11px] font-mono text-amber-300/80 overflow-x-auto max-h-28 whitespace-pre border border-white/[0.06]">
+                      <div className="bg-void rounded-xl p-3 text-[11px] font-mono text-amber-300/80 overflow-x-auto max-h-28 whitespace-pre border border-white/[0.06]">
                         {raw.componentStack.trim()}
                       </div>
                     </div>
@@ -574,7 +574,7 @@ function EventDrawer({ issue, onClose }: { issue: MobileIssue; onClose: () => vo
                     Raw JSON
                   </button>
                   {isRawExpanded && (
-                    <div className="bg-[#080810] rounded-xl p-3 text-[11px] font-mono text-text-muted overflow-x-auto max-h-48 whitespace-pre border border-white/[0.06]">
+                    <div className="bg-void rounded-xl p-3 text-[11px] font-mono text-text-muted overflow-x-auto max-h-48 whitespace-pre border border-white/[0.06]">
                       {JSON.stringify(ev.context, null, 2)}
                     </div>
                   )}

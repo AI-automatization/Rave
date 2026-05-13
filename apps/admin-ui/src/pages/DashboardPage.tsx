@@ -1,26 +1,67 @@
 import { useEffect, useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { Users, Film, Swords, Tv2, Activity } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import {
+  Users, Film, Swords, Tv2, Activity,
+  AlertCircle, Zap, UserPlus, TrendingUp, Monitor,
+} from 'lucide-react';
 import { dashboardApi } from '../api/dashboard.api';
 import { errorsApi } from '../api/errors.api';
 import { StatCard } from '../components/ui/StatCard';
 import type { DashboardStats, Analytics } from '../types';
 import type { ErrorStats } from '../api/errors.api';
 
-const CHART_STYLE = {
-  tooltip: { background: '#14141f', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, fontSize: 12, color: '#fff' },
-  cursor:  { fill: 'rgba(255,255,255,0.03)' },
+const CHART_TOOLTIP_STYLE = {
+  contentStyle: {
+    background: '#0e0e22',
+    border: '1px solid rgba(255,255,255,0.08)',
+    borderRadius: 12,
+    fontSize: 12,
+    color: '#F4F4FC',
+    padding: '8px 12px',
+    boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+  },
+  cursor: { fill: 'rgba(255,255,255,0.025)' },
 };
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <h2 className="text-sm font-semibold text-white mb-4">{children}</h2>;
+function useCountdown(resetSignal: number) {
+  const [n, setN] = useState(30);
+  useEffect(() => { setN(30); }, [resetSignal]);
+  useEffect(() => {
+    const t = setInterval(() => setN((v) => (v <= 1 ? 30 : v - 1)), 1000);
+    return () => clearInterval(t);
+  }, []);
+  return n;
+}
+
+function SkeletonCard() {
+  return <div className="h-[108px] bg-card rounded-2xl shimmer-bg" />;
+}
+
+function SectionPanel({ title, sub, icon, children }: {
+  title: string; sub?: string; icon: React.ReactNode; children: React.ReactNode;
+}) {
+  return (
+    <div className="bg-card rounded-2xl p-5 shadow-card relative overflow-hidden">
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.09] to-transparent" />
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-sm font-semibold text-white flex items-center gap-2">
+          {icon}
+          {title}
+        </h2>
+        {sub && <span className="text-[11px] text-text-dim">{sub}</span>}
+      </div>
+      {children}
+    </div>
+  );
 }
 
 export function DashboardPage() {
-  const [stats, setStats]       = useState<DashboardStats | null>(null);
+  const [stats, setStats]         = useState<DashboardStats | null>(null);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
-  const [errors, setErrors]     = useState<ErrorStats | null>(null);
-  const [loading, setLoading]   = useState(true);
+  const [errors, setErrors]       = useState<ErrorStats | null>(null);
+  const [loading, setLoading]     = useState(true);
+  const [resetSig, setResetSig]   = useState(0);
+  const countdown = useCountdown(resetSig);
 
   useEffect(() => {
     const load = async () => {
@@ -31,6 +72,7 @@ export function DashboardPage() {
           errorsApi.stats(),
         ]);
         setStats(s); setAnalytics(a); setErrors(e);
+        setResetSig((n) => n + 1);
       } catch { /* silent */ }
       finally { setLoading(false); }
     };
@@ -39,111 +81,183 @@ export function DashboardPage() {
     return () => clearInterval(t);
   }, []);
 
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const dateStr = new Date().toLocaleDateString('en-US', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+  });
+
   if (loading) return (
-    <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} className="h-28 bg-card rounded-2xl animate-pulse" />
-      ))}
+    <div className="flex flex-col gap-6 animate-fade-in">
+      <div className="h-16 bg-card rounded-2xl shimmer-bg" />
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+        {Array.from({ length: 5 }).map((_, i) => <SkeletonCard key={i} />)}
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="h-52 bg-card rounded-2xl shimmer-bg" />
+        <div className="h-52 bg-card rounded-2xl shimmer-bg" />
+      </div>
     </div>
   );
 
-  const activityData = analytics ? [
-    { name: 'Новые сегодня', value: analytics.newUsersToday ?? 0 },
-    { name: 'За неделю', value: analytics.newUsersThisWeek ?? 0 },
-    { name: 'Watch Party', value: analytics.watchPartiesCreatedToday ?? 0 },
-    { name: 'Battles', value: analytics.battlesCreatedToday ?? 0 },
+  const errorTotal = errors
+    ? errors.new + errors.in_progress + errors.resolved + errors.ignored
+    : 0;
+
+  const errorRows = errors ? [
+    { label: 'Новые',      value: errors.new,         dot: 'bg-red-400',      bar: 'bg-red-500' },
+    { label: 'В работе',   value: errors.in_progress, dot: 'bg-amber-400',    bar: 'bg-amber-500' },
+    { label: 'Исправлено', value: errors.resolved,    dot: 'bg-emerald-400',  bar: 'bg-emerald-500' },
+    { label: 'Игнор',      value: errors.ignored,     dot: 'bg-text-muted',   bar: 'bg-white/20' },
+  ] : [];
+
+  const activityItems = analytics ? [
+    { icon: <UserPlus size={15} />, label: 'Новых сегодня',  value: analytics.newUsersToday,           color: 'text-blue-400',    bg: 'bg-blue-500/10' },
+    { icon: <TrendingUp size={15} />, label: 'За неделю',     value: analytics.newUsersThisWeek,        color: 'text-violet-400',  bg: 'bg-violet-500/10' },
+    { icon: <Monitor size={15} />,  label: 'Watch Parties',  value: analytics.watchPartiesCreatedToday, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+    { icon: <Swords size={15} />,   label: 'Battles',        value: analytics.battlesCreatedToday,     color: 'text-amber-400',   bg: 'bg-amber-500/10' },
   ] : [];
 
   return (
     <div className="flex flex-col gap-6 animate-fade-in">
-      {/* Page title */}
-      <div>
-        <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-        <p className="text-text-muted text-sm mt-0.5">Обновляется каждые 30 секунд</p>
-      </div>
 
-      {/* Main KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
-        <StatCard label="Всего пользователей" value={stats?.totalUsers ?? 0}   LIcon={Users}    color="violet" />
-        <StatCard label="Активных"            value={stats?.activeUsers ?? 0}   LIcon={Activity} color="emerald" />
-        <StatCard label="Контент"             value={stats?.totalMovies ?? 0}   LIcon={Film}     color="blue" />
-        <StatCard label="Battles"             value={stats?.activeBattles ?? 0} LIcon={Swords}   color="amber" />
-        <StatCard label="Watch Parties"       value={stats?.activeWatchParties ?? 0} LIcon={Tv2} color="rose" />
-      </div>
-
-      {/* Error summary */}
-      {errors && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {[
-            { label: 'Новые ошибки',   value: errors.new,         color: 'red',   dot: 'bg-red-400' },
-            { label: 'В работе',       value: errors.in_progress, color: 'amber', dot: 'bg-amber-400' },
-            { label: 'Исправлено',     value: errors.resolved,    color: 'emerald', dot: 'bg-emerald-400' },
-            { label: 'Игнорируется',   value: errors.ignored,     color: 'gray',  dot: 'bg-text-muted' },
-          ].map((e) => (
-            <div key={e.label} className="bg-card rounded-2xl px-4 py-3 flex items-center gap-3 shadow-card">
-              <span className={`w-2 h-2 rounded-full ${e.dot}`} />
-              <div>
-                <p className="text-text-muted text-xs">{e.label}</p>
-                <p className="text-lg font-bold text-white">{e.value}</p>
-              </div>
-            </div>
-          ))}
+      {/* ── Page header ───────────────────────────────────── */}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-white tracking-tight">{greeting}, Admin</h1>
+          <p className="text-text-muted text-sm mt-0.5">{dateStr}</p>
         </div>
-      )}
+        <div className="flex items-center gap-1.5 shrink-0 px-3 py-1.5 rounded-full bg-card border border-white/[0.07] text-xs text-text-dim">
+          <span className="relative flex h-2 w-2 shrink-0">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
+          </span>
+          Live&nbsp;·&nbsp;{countdown}s
+        </div>
+      </div>
 
-      {/* Charts row */}
-      {analytics && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* Top Movies */}
-          <div className="bg-card rounded-2xl p-5 shadow-card">
-            <SectionTitle>Топ фильмов по просмотрам</SectionTitle>
-            {analytics.topMovies?.length ? (
-              <ResponsiveContainer width="100%" height={230}>
-                <BarChart data={analytics.topMovies} layout="vertical" margin={{ left: 0, right: 16, top: 0, bottom: 0 }}>
-                  <XAxis type="number" tick={{ fill: '#5a5b70', fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <YAxis
-                    type="category" dataKey="title" width={110}
-                    tick={{ fill: '#8b8ca8', fontSize: 11 }} axisLine={false} tickLine={false}
-                    tickFormatter={(v: string) => v.length > 14 ? v.slice(0, 14) + '…' : v}
-                  />
-                  <Tooltip contentStyle={CHART_STYLE.tooltip} cursor={CHART_STYLE.cursor} />
-                  <Bar dataKey="viewCount" radius={[0, 6, 6, 0]}>
-                    {analytics.topMovies.map((_, i) => (
-                      <Cell key={i} fill={i === 0 ? '#7B72F8' : i < 3 ? '#5B52D8' : '#2a2a45'} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            ) : <p className="text-text-muted text-sm">Нет данных</p>}
-          </div>
+      {/* ── KPI stat cards ────────────────────────────────── */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+        <StatCard label="Пользователей"  value={stats?.totalUsers ?? 0}          LIcon={Users}    color="violet"  />
+        <StatCard label="Активных"        value={stats?.activeUsers ?? 0}         LIcon={Activity} color="emerald" />
+        <StatCard label="Контент"         value={stats?.totalMovies ?? 0}         LIcon={Film}     color="blue"    />
+        <StatCard label="Battles"         value={stats?.activeBattles ?? 0}       LIcon={Swords}   color="amber"   />
+        <StatCard label="Watch Parties"   value={stats?.activeWatchParties ?? 0}  LIcon={Tv2}      color="rose"    />
+      </div>
 
-          {/* Genre distribution */}
-          <div className="bg-card rounded-2xl p-5 shadow-card">
-            <SectionTitle>Жанры</SectionTitle>
-            {analytics.genreDistribution?.length ? (
-              <ResponsiveContainer width="100%" height={230}>
-                <BarChart data={analytics.genreDistribution}>
-                  <XAxis dataKey="genre" tick={{ fill: '#5a5b70', fontSize: 10 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill: '#5a5b70', fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={CHART_STYLE.tooltip} cursor={CHART_STYLE.cursor} />
-                  <Bar dataKey="count" fill="#7B72F8" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : <p className="text-text-muted text-sm">Нет данных</p>}
-          </div>
+      {/* ── Middle row: error health + today activity ─────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
-          {/* Today activity */}
-          <div className="bg-card rounded-2xl p-5 shadow-card lg:col-span-2">
-            <SectionTitle>Активность сегодня</SectionTitle>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {activityData.map((item) => (
-                <div key={item.name} className="bg-surface rounded-xl p-4 flex flex-col gap-1">
-                  <p className="text-2xl font-bold text-white tabular-nums">{item.value}</p>
-                  <p className="text-xs text-text-muted leading-tight">{item.name}</p>
+        {/* Error health */}
+        {errors && (
+          <SectionPanel
+            title="Ошибки мобильного"
+            sub={errors.new > 0 ? `${errors.new} новых` : undefined}
+            icon={<AlertCircle size={14} className="text-red-400" />}
+          >
+            <div className="grid grid-cols-2 gap-2">
+              {errorRows.map((e) => (
+                <div key={e.label} className="bg-surface rounded-xl px-3.5 py-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[11px] text-text-muted">{e.label}</span>
+                    <span className={`w-1.5 h-1.5 rounded-full ${e.dot}`} />
+                  </div>
+                  <p className="text-xl font-bold text-white tabular-nums">{e.value}</p>
+                  {errorTotal > 0 && (
+                    <div className="mt-2 h-0.5 bg-white/[0.05] rounded-full overflow-hidden">
+                      <div
+                        className={`h-full ${e.bar} rounded-full transition-all duration-700`}
+                        style={{ width: `${Math.round((e.value / errorTotal) * 100)}%` }}
+                      />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
-          </div>
+          </SectionPanel>
+        )}
+
+        {/* Today activity */}
+        {analytics && (
+          <SectionPanel
+            title="Активность сегодня"
+            icon={<Zap size={14} className="text-amber-400" />}
+          >
+            <div className="grid grid-cols-2 gap-2">
+              {activityItems.map((item) => (
+                <div key={item.label} className="bg-surface rounded-xl px-3.5 py-3">
+                  <div className={`w-7 h-7 rounded-lg ${item.bg} ${item.color} flex items-center justify-center mb-2.5`}>
+                    {item.icon}
+                  </div>
+                  <p className="text-xl font-bold text-white tabular-nums">{item.value}</p>
+                  <p className="text-[11px] text-text-muted mt-0.5 leading-tight">{item.label}</p>
+                </div>
+              ))}
+            </div>
+          </SectionPanel>
+        )}
+      </div>
+
+      {/* ── Charts ────────────────────────────────────────── */}
+      {analytics && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+          {/* Top movies */}
+          <SectionPanel
+            title="Топ по просмотрам"
+            sub={`${analytics.topMovies?.length ?? 0} фильмов`}
+            icon={<Film size={14} className="text-blue-400" />}
+          >
+            {analytics.topMovies?.length ? (
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={analytics.topMovies} layout="vertical" margin={{ left: 0, right: 24, top: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="barGradH" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor="#6C63FF" stopOpacity={1} />
+                      <stop offset="100%" stopColor="#9B95FF" stopOpacity={0.75} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis type="number" tick={{ fill: '#4E4D6A', fontSize: 10 }} axisLine={false} tickLine={false} />
+                  <YAxis
+                    type="category" dataKey="title" width={96}
+                    tick={{ fill: '#8886AA', fontSize: 10 }} axisLine={false} tickLine={false}
+                    tickFormatter={(v: string) => v.length > 13 ? v.slice(0, 13) + '…' : v}
+                  />
+                  <Tooltip {...CHART_TOOLTIP_STYLE} />
+                  <Bar dataKey="viewCount" fill="url(#barGradH)" radius={[0, 6, 6, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : <p className="text-text-muted text-sm py-10 text-center">Нет данных</p>}
+          </SectionPanel>
+
+          {/* Genre distribution */}
+          <SectionPanel
+            title="По жанрам"
+            sub={`${analytics.genreDistribution?.length ?? 0} жанров`}
+            icon={<Activity size={14} className="text-violet-400" />}
+          >
+            {analytics.genreDistribution?.length ? (
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={analytics.genreDistribution} margin={{ left: 0, right: 0, top: 0, bottom: 28 }}>
+                  <defs>
+                    <linearGradient id="barGradV" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#6C63FF" stopOpacity={1} />
+                      <stop offset="100%" stopColor="#4940C5" stopOpacity={0.55} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis
+                    dataKey="genre"
+                    tick={{ fill: '#4E4D6A', fontSize: 9 }}
+                    axisLine={false} tickLine={false}
+                    angle={-30} textAnchor="end"
+                  />
+                  <YAxis tick={{ fill: '#4E4D6A', fontSize: 10 }} axisLine={false} tickLine={false} />
+                  <Tooltip {...CHART_TOOLTIP_STYLE} />
+                  <Bar dataKey="count" fill="url(#barGradV)" radius={[5, 5, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : <p className="text-text-muted text-sm py-10 text-center">Нет данных</p>}
+          </SectionPanel>
         </div>
       )}
     </div>

@@ -151,7 +151,7 @@ export function AppealsPage() {
                 value={note}
                 onChange={e => setNote(e.target.value)}
                 rows={3}
-                className="w-full bg-[#0a0a12] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white placeholder-text-dim focus:outline-none focus:border-accent/50 resize-none"
+                className="w-full bg-surface border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white placeholder-text-dim focus:outline-none focus:border-accent/50 resize-none"
                 placeholder="Причина решения..."
               />
             </div>

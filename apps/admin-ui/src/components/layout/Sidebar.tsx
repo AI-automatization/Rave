@@ -123,7 +123,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       )}
 
       <aside className={`
-        fixed inset-y-0 left-0 z-30 w-56 bg-[#0d0d14] border-r border-white/[0.06] flex flex-col
+        fixed inset-y-0 left-0 z-30 w-56 bg-surface border-r border-white/[0.06] flex flex-col
         transition-transform duration-200 ease-in-out
         md:static md:translate-x-0 md:h-screen md:sticky md:top-0 md:shrink-0
         ${open ? 'translate-x-0' : '-translate-x-full'}
