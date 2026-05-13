@@ -277,8 +277,8 @@ export class ProfileService {
     );
     if (result.matchedCount === 0) throw new NotFoundError('User not found');
 
-    // Set Redis blocked flag — requireNotBlocked middleware rejects all future requests immediately
-    await this.redis.set(REDIS_KEYS.blockedUser(userId), '1', 'EX', TTL.BLOCKED_USER);
+    // Set Redis blocked flag — store reason so auth service can read it without cross-DB sync
+    await this.redis.set(REDIS_KEYS.blockedUser(userId), reason ?? '', 'EX', TTL.BLOCKED_USER);
     // Delete heartbeat (show as offline)
     await this.redis.del(REDIS_KEYS.heartbeat(userId));
 

@@ -122,9 +122,10 @@ export class GoogleAuthService {
       }
     }
 
-    const redisBlocked = await this.redis.get(REDIS_KEYS.blockedUser(String(user._id))).catch(() => null);
-    if (user.isBlocked || redisBlocked) {
-      const reason = user.blockReason ?? 'No reason provided';
+    const redisBlockedValue = await this.redis.get(REDIS_KEYS.blockedUser(String(user._id))).catch(() => null);
+    if (user.isBlocked || redisBlockedValue !== null) {
+      const redisReason = redisBlockedValue && redisBlockedValue !== '1' ? redisBlockedValue : null;
+      const reason = user.blockReason ?? redisReason ?? 'No reason provided';
       const err = new Error(reason) as Error & { statusCode: number; code: string; reason: string; userId: string };
       err.statusCode = 403;
       err.code = 'ACCOUNT_BLOCKED';

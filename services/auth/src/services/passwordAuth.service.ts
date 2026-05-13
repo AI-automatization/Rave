@@ -175,9 +175,11 @@ export class PasswordAuthService {
     }
 
     // Check MongoDB flag AND Redis flag (admin panel sets Redis directly without updating auth DB)
-    const redisBlocked = await this.redis.get(REDIS_KEYS.blockedUser(String(user._id))).catch(() => null);
-    if (user.isBlocked || redisBlocked) {
-      const reason = user.blockReason ?? 'No reason provided';
+    const redisBlockedValue = await this.redis.get(REDIS_KEYS.blockedUser(String(user._id))).catch(() => null);
+    if (user.isBlocked || redisBlockedValue !== null) {
+      // Redis value stores the block reason (or '' / '1' for legacy entries)
+      const redisReason = redisBlockedValue && redisBlockedValue !== '1' ? redisBlockedValue : null;
+      const reason = user.blockReason ?? redisReason ?? 'No reason provided';
       const err = new Error(reason) as Error & { statusCode: number; code: string; reason: string; userId: string };
       err.statusCode = 403;
       err.code = 'ACCOUNT_BLOCKED';
@@ -255,8 +257,9 @@ export class PasswordAuthService {
       throw new UnauthorizedError('User not found');
     }
     const redisBlockedOnRefresh = await this.redis.get(REDIS_KEYS.blockedUser(String(user._id))).catch(() => null);
-    if (user.isBlocked || redisBlockedOnRefresh) {
-      const reason = user.blockReason ?? 'No reason provided';
+    if (user.isBlocked || redisBlockedOnRefresh !== null) {
+      const redisReason = redisBlockedOnRefresh && redisBlockedOnRefresh !== '1' ? redisBlockedOnRefresh : null;
+      const reason = user.blockReason ?? redisReason ?? 'No reason provided';
       const err = new Error(reason) as Error & { statusCode: number; code: string; reason: string; userId: string };
       err.statusCode = 403;
       err.code = 'ACCOUNT_BLOCKED';
