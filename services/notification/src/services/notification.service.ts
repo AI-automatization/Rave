@@ -178,7 +178,7 @@ export class NotificationService {
   async sendToUsers(userIds: string[], title: string, body: string): Promise<void> {
     await Promise.all(
       userIds.map((userId) =>
-        this.sendInApp(userId, 'announcement' as NotificationType, title, body, { source: 'admin_warning' }),
+        this.sendInApp(userId, 'admin_warning', title, body, { source: 'admin_warning' }),
       ),
     );
     logger.info('sendToUsers: in-app warnings sent', { total: userIds.length, title });

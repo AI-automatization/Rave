@@ -239,7 +239,8 @@ export type NotificationType =
   | 'achievement_unlocked'
   | 'friend_online'
   | 'friend_watching'
-  | 'support_reply';
+  | 'support_reply'
+  | 'admin_warning';
 
 export interface INotification {
   _id: string;

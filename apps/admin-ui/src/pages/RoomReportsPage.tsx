@@ -1,5 +1,9 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Flag, Search, ChevronDown, Users, Link, Shield, AlertTriangle, Copy, CheckCheck, Play, Pause, Film } from 'lucide-react';
+import {
+  Flag, Search, ChevronDown, Users, ExternalLink, Shield,
+  AlertTriangle, Copy, CheckCheck, Play, Pause, Film,
+  User, Clock, Globe, Lock,
+} from 'lucide-react';
 import { moderationApi, RoomReport, RoomDetails, ReportStatus } from '../api/moderation.api';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
@@ -17,29 +21,28 @@ const REASON_LABEL: Record<string, string> = {
 };
 
 const STATUS_VARIANT: Record<ReportStatus, 'gray' | 'yellow' | 'green' | 'blue' | 'red'> = {
-  pending: 'yellow',
+  pending:  'yellow',
   reviewed: 'blue',
-  dismissed: 'gray',
+  dismissed:'gray',
   actioned: 'green',
 };
 const STATUS_LABEL: Record<ReportStatus, string> = {
-  pending: 'Ожидает',
+  pending:  'Ожидает',
   reviewed: 'Рассмотрено',
-  dismissed: 'Отклонено',
+  dismissed:'Отклонено',
   actioned: 'Меры приняты',
 };
-
 const PLATFORM_LABEL: Record<string, string> = {
-  youtube: 'YouTube',
-  direct: 'Direct',
-  vimeo: 'Vimeo',
-  twitch: 'Twitch',
+  youtube: 'YouTube', direct: 'Direct', vimeo: 'Vimeo', twitch: 'Twitch',
 };
 
-function formatTime(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
+function fmtTime(sec: number): string {
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
   return `${m}:${s.toString().padStart(2, '0')}`;
+}
+function shortId(id: string): string {
+  return id.length > 12 ? `${id.slice(0, 8)}…` : id;
 }
 
 export function RoomReportsPage() {
@@ -51,16 +54,17 @@ export function RoomReportsPage() {
   const [search, setSearch]     = useState('');
 
   const [modal, setModal]       = useState<{ report: RoomReport } | null>(null);
-  const [roomDetails, setRoomDetails] = useState<RoomDetails | null>(null);
+  const [roomDetails, setRoomDetails]       = useState<RoomDetails | null>(null);
   const [roomDetailsLoading, setRoomDetailsLoading] = useState(false);
+  const [roomDetailsError, setRoomDetailsError]     = useState<string | null>(null);
   const [note, setNote]         = useState('');
   const [warnMsg, setWarnMsg]   = useState('');
-  const [actionLoading, setActionLoading]  = useState(false);
-  const [warnLoading, setWarnLoading]      = useState(false);
-  const [blockLoading, setBlockLoading]    = useState(false);
-  const [warnResult, setWarnResult]        = useState<string | null>(null);
-  const [blockResult, setBlockResult]      = useState<string | null>(null);
-  const [copiedId, setCopiedId]            = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [warnLoading, setWarnLoading]     = useState(false);
+  const [blockLoading, setBlockLoading]   = useState(false);
+  const [warnResult, setWarnResult]       = useState<{ ok: boolean; msg: string } | null>(null);
+  const [blockResult, setBlockResult]     = useState<{ ok: boolean; msg: string } | null>(null);
+  const [copiedId, setCopiedId]           = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -81,12 +85,21 @@ export function RoomReportsPage() {
     setWarnResult(null);
     setBlockResult(null);
     setRoomDetails(null);
+    setRoomDetailsError(null);
     setRoomDetailsLoading(true);
     try {
       const details = await moderationApi.getRoomDetails(report.roomId, report.reporterId);
       setRoomDetails(details);
-    } catch { /* room may be closed */ }
+    } catch (err) {
+      setRoomDetailsError((err as Error).message ?? 'Не удалось загрузить данные');
+    }
     finally { setRoomDetailsLoading(false); }
+  }, []);
+
+  const closeModal = useCallback(() => {
+    setModal(null);
+    setRoomDetails(null);
+    setRoomDetailsError(null);
   }, []);
 
   const handleAction = async (status: ReportStatus) => {
@@ -94,8 +107,7 @@ export function RoomReportsPage() {
     setActionLoading(true);
     try {
       await moderationApi.reviewReport(modal.report._id, status, note || undefined);
-      setModal(null);
-      setNote('');
+      closeModal();
       void load();
     } catch { /* silent */ }
     finally { setActionLoading(false); }
@@ -106,20 +118,25 @@ export function RoomReportsPage() {
     setWarnLoading(true);
     try {
       const res = await moderationApi.warnRoomUsers(modal.report._id, warnMsg.trim());
-      setWarnResult(`✓ Предупреждение отправлено ${res.warned} пользователям`);
+      setWarnResult({ ok: true, msg: `Предупреждение отправлено ${res.warned} пользователям` });
       setWarnMsg('');
-    } catch { setWarnResult('Ошибка отправки'); }
+    } catch {
+      setWarnResult({ ok: false, msg: 'Ошибка отправки — попробуйте снова' });
+    }
     finally { setWarnLoading(false); }
   };
 
   const handleBlockOwner = async () => {
     if (!modal) return;
-    if (!confirm('Заблокировать владельца комнаты?')) return;
+    if (!confirm(`Заблокировать владельца комнаты?\n\n${roomDetails?.ownerUsername ? '@' + roomDetails.ownerUsername : modal.report.roomId}`)) return;
     setBlockLoading(true);
     try {
       const res = await moderationApi.blockRoomOwner(modal.report._id, `Room report: ${modal.report.reason}`);
-      setBlockResult(`✓ Пользователь ${res.blockedUserId.slice(0, 8)}… заблокирован`);
-    } catch { setBlockResult('Ошибка блокировки'); }
+      const name = roomDetails?.ownerUsername ? `@${roomDetails.ownerUsername}` : shortId(res.blockedUserId);
+      setBlockResult({ ok: true, msg: `${name} заблокирован` });
+    } catch {
+      setBlockResult({ ok: false, msg: 'Ошибка блокировки' });
+    }
     finally { setBlockLoading(false); }
   };
 
@@ -130,11 +147,42 @@ export function RoomReportsPage() {
   };
 
   const filtered = search
-    ? reports.filter(r => r.roomId.includes(search) || r.reporterId.includes(search))
+    ? reports.filter(r =>
+        r.roomId.toLowerCase().includes(search.toLowerCase()) ||
+        r.reporterId.toLowerCase().includes(search.toLowerCase()),
+      )
     : reports;
+
+  // ── Subcomponents ──────────────────────────────────────────────────────────
+
+  const UserChip = ({ id, username }: { id: string; username?: string | null }) => (
+    <div className="flex items-center gap-1.5">
+      <div className="w-5 h-5 rounded-full bg-white/[0.08] flex items-center justify-center flex-shrink-0">
+        <User size={10} className="text-text-dim" />
+      </div>
+      {username ? (
+        <span className="text-xs font-medium text-white">@{username}</span>
+      ) : (
+        <button
+          className="flex items-center gap-1 font-mono text-xs text-text-muted hover:text-white transition-colors"
+          onClick={() => copyId(id)}
+          title={id}
+        >
+          <span>{shortId(id)}</span>
+          {copiedId === id ? <CheckCheck size={10} className="text-green-400" /> : <Copy size={10} className="opacity-50" />}
+        </button>
+      )}
+      {username && (
+        <button onClick={() => copyId(id)} title={id} className="opacity-40 hover:opacity-80 transition-opacity">
+          {copiedId === id ? <CheckCheck size={10} className="text-green-400" /> : <Copy size={10} className="text-text-dim" />}
+        </button>
+      )}
+    </div>
+  );
 
   return (
     <div className="space-y-5">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center">
@@ -153,10 +201,10 @@ export function RoomReportsPage() {
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-dim" />
           <input
             type="text"
-            placeholder="Поиск по ID комнаты..."
+            placeholder="ID комнаты или пользователя..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="pl-9 pr-4 py-2 bg-surface border border-white/[0.08] rounded-lg text-sm text-white placeholder-text-dim focus:outline-none focus:border-accent/50 w-64"
+            className="pl-9 pr-4 py-2 bg-surface border border-white/[0.08] rounded-lg text-sm text-white placeholder-text-dim focus:outline-none focus:border-accent/50 w-72"
           />
         </div>
         <div className="relative">
@@ -188,16 +236,19 @@ export function RoomReportsPage() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-white/[0.06]">
-                {['ID комнаты', 'Жалобщик', 'Причина', 'Статус', 'Дата', ''].map(h => (
-                  <th key={h} className="px-4 py-3 text-left text-xs text-text-dim font-medium">{h}</th>
-                ))}
+                <th className="px-4 py-3 text-left text-xs text-text-dim font-medium">ID комнаты</th>
+                <th className="px-4 py-3 text-left text-xs text-text-dim font-medium">Жалобщик</th>
+                <th className="px-4 py-3 text-left text-xs text-text-dim font-medium">Причина</th>
+                <th className="px-4 py-3 text-left text-xs text-text-dim font-medium">Статус</th>
+                <th className="px-4 py-3 text-left text-xs text-text-dim font-medium">Дата</th>
+                <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody>
               {filtered.map(r => (
                 <tr key={r._id} className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors">
-                  <td className="px-4 py-3 font-mono text-xs text-text-muted max-w-[130px] truncate">{r.roomId}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-text-muted max-w-[130px] truncate">{r.reporterId}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-text-muted">{shortId(r.roomId)}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-text-muted">{shortId(r.reporterId)}</td>
                   <td className="px-4 py-3">
                     <Badge variant="orange">{REASON_LABEL[r.reason] ?? r.reason}</Badge>
                   </td>
@@ -221,209 +272,258 @@ export function RoomReportsPage() {
 
       <Pagination page={meta.page} totalPages={meta.totalPages} total={meta.total} limit={meta.limit} onChange={setPage} />
 
-      {/* Review modal */}
+      {/* ── Review modal ───────────────────────────────────────── */}
       {modal && (
-        <Modal open={!!modal} title="Рассмотрение жалобы" onClose={() => setModal(null)} size="xl">
-          <div className="space-y-4">
+        <Modal open={!!modal} title="Рассмотрение жалобы" onClose={closeModal} size="xl">
+          <div className="space-y-4 max-h-[80vh] overflow-y-auto pr-1">
 
-            {/* ── Жалоба ── */}
-            <div className="bg-white/[0.04] rounded-lg p-3 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-text-dim">ID комнаты</span>
-                <button
-                  className="flex items-center gap-1.5 font-mono text-xs text-white hover:text-accent transition-colors"
-                  onClick={() => copyId(modal.report.roomId)}
-                >
-                  <span className="max-w-[200px] truncate">{modal.report.roomId}</span>
-                  {copiedId === modal.report.roomId ? <CheckCheck size={12} className="text-green-400" /> : <Copy size={12} />}
-                </button>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-text-dim">Жалобщик</span>
-                <div className="flex items-center gap-2">
-                  {roomDetails?.reporterUsername && (
-                    <span className="text-xs text-accent font-medium">@{roomDetails.reporterUsername}</span>
+            {/* ── Row 1: Жалоба + Комната side by side ── */}
+            <div className="grid grid-cols-2 gap-3">
+
+              {/* Жалоба */}
+              <div className="bg-white/[0.03] rounded-xl border border-white/[0.07] p-4 space-y-3">
+                <p className="text-xs font-semibold text-text-muted uppercase tracking-wider">Жалоба</p>
+
+                <div className="space-y-2.5">
+                  <div>
+                    <p className="text-[10px] text-text-dim mb-1">От кого</p>
+                    <UserChip id={modal.report.reporterId} username={roomDetails?.reporterUsername} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-text-dim mb-1">ID комнаты</p>
+                    <button
+                      onClick={() => copyId(modal.report.roomId)}
+                      className="flex items-center gap-1.5 font-mono text-xs text-text-muted hover:text-white transition-colors"
+                      title={modal.report.roomId}
+                    >
+                      <span>{shortId(modal.report.roomId)}</span>
+                      {copiedId === modal.report.roomId
+                        ? <CheckCheck size={11} className="text-green-400" />
+                        : <Copy size={11} className="opacity-50" />}
+                    </button>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-text-dim mb-1">Причина</p>
+                    <Badge variant="orange">{REASON_LABEL[modal.report.reason] ?? modal.report.reason}</Badge>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-text-dim mb-1">Дата</p>
+                    <p className="text-xs text-text-muted">{new Date(modal.report.createdAt).toLocaleString('ru')}</p>
+                  </div>
+                  {modal.report.comment && (
+                    <div className="pt-2 border-t border-white/[0.06]">
+                      <p className="text-[10px] text-text-dim mb-1">Комментарий</p>
+                      <p className="text-xs text-white italic leading-relaxed">"{modal.report.comment}"</p>
+                    </div>
                   )}
-                  <button
-                    className="flex items-center gap-1.5 font-mono text-xs text-text-muted hover:text-white transition-colors"
-                    onClick={() => copyId(modal.report.reporterId)}
-                  >
-                    <span className="max-w-[120px] truncate">{modal.report.reporterId}</span>
-                    {copiedId === modal.report.reporterId ? <CheckCheck size={12} className="text-green-400" /> : <Copy size={12} />}
-                  </button>
                 </div>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-text-dim">Причина</span>
-                <Badge variant="orange">{REASON_LABEL[modal.report.reason] ?? modal.report.reason}</Badge>
+
+              {/* Комната */}
+              <div className="bg-white/[0.03] rounded-xl border border-white/[0.07] p-4 space-y-3">
+                <p className="text-xs font-semibold text-text-muted uppercase tracking-wider">Комната</p>
+
+                {roomDetailsLoading ? (
+                  <div className="flex items-center gap-2 py-4">
+                    <div className="w-3 h-3 rounded-full bg-accent/40 animate-pulse" />
+                    <span className="text-xs text-text-dim">Загрузка...</span>
+                  </div>
+                ) : roomDetailsError ? (
+                  <div className="py-3">
+                    <p className="text-xs text-red-400">{roomDetailsError}</p>
+                    <p className="text-xs text-text-dim mt-1">Комната, возможно, уже закрыта</p>
+                  </div>
+                ) : roomDetails ? (
+                  <div className="space-y-2.5">
+                    <div>
+                      <p className="text-[10px] text-text-dim mb-1">Владелец</p>
+                      <UserChip id={roomDetails.ownerId} username={roomDetails.ownerUsername} />
+                    </div>
+                    <div className="flex gap-4">
+                      <div>
+                        <p className="text-[10px] text-text-dim mb-1">Участников</p>
+                        <div className="flex items-center gap-1">
+                          <Users size={11} className="text-text-dim" />
+                          <span className="text-xs text-white">{roomDetails.members.length}</span>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-text-dim mb-1">Тип</p>
+                        <div className="flex items-center gap-1">
+                          {roomDetails.isPublic
+                            ? <Globe size={11} className="text-blue-400" />
+                            : <Lock size={11} className="text-text-dim" />}
+                          <span className="text-xs text-white">{roomDetails.isPublic ? 'Публичная' : 'Приватная'}</span>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-text-dim mb-1">Статус</p>
+                        <Badge variant={roomDetails.status === 'playing' ? 'green' : roomDetails.status === 'waiting' ? 'yellow' : 'gray'}>
+                          {roomDetails.status}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-text-dim mb-1">Название</p>
+                      <p className="text-xs text-white font-medium leading-snug line-clamp-2">
+                        {roomDetails.name || <span className="text-text-dim italic">Без названия</span>}
+                      </p>
+                    </div>
+                  </div>
+                ) : null}
               </div>
-              {modal.report.comment && (
-                <div className="pt-1 border-t border-white/[0.06]">
-                  <p className="text-xs text-text-dim">Комментарий:</p>
-                  <p className="text-xs text-white mt-0.5 italic">"{modal.report.comment}"</p>
-                </div>
-              )}
             </div>
 
-            {/* ── Детали комнаты ── */}
-            <div className="bg-white/[0.03] rounded-lg p-3 border border-white/[0.06]">
-              <div className="flex items-center gap-2 mb-2">
-                <Shield size={13} className="text-accent" />
-                <span className="text-xs font-medium text-text-muted">Информация о комнате</span>
-              </div>
-              {roomDetailsLoading ? (
-                <p className="text-xs text-text-dim">Загрузка...</p>
-              ) : roomDetails ? (
-                <div className="space-y-1.5">
-                  {/* Video preview block */}
-                  {(roomDetails.videoTitle || roomDetails.videoThumbnail) && (
-                    <div className="flex gap-3 p-2 bg-white/[0.03] rounded-lg border border-white/[0.06] mb-2">
-                      {roomDetails.videoThumbnail ? (
-                        <img
-                          src={roomDetails.videoThumbnail}
-                          alt="thumbnail"
-                          className="w-20 h-12 object-cover rounded flex-shrink-0"
-                        />
-                      ) : (
-                        <div className="w-20 h-12 bg-white/[0.06] rounded flex items-center justify-center flex-shrink-0">
-                          <Film size={18} className="text-text-dim" />
+            {/* ── Видео ── */}
+            {roomDetails && (roomDetails.videoUrl || roomDetails.videoTitle) && (
+              <div className="bg-white/[0.03] rounded-xl border border-white/[0.07] p-4">
+                <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-3">Видео</p>
+                <div className="flex gap-4">
+                  {/* Thumbnail */}
+                  <div className="flex-shrink-0">
+                    {roomDetails.videoThumbnail ? (
+                      <img
+                        src={roomDetails.videoThumbnail}
+                        alt="thumbnail"
+                        className="w-28 h-16 object-cover rounded-lg border border-white/[0.08]"
+                      />
+                    ) : (
+                      <div className="w-28 h-16 bg-white/[0.05] rounded-lg border border-white/[0.06] flex items-center justify-center">
+                        <Film size={20} className="text-text-dim opacity-50" />
+                      </div>
+                    )}
+                  </div>
+                  {/* Info */}
+                  <div className="flex-1 min-w-0 space-y-2">
+                    <p className="text-sm text-white font-medium leading-snug line-clamp-2">
+                      {roomDetails.videoTitle ?? 'Без названия'}
+                    </p>
+                    <div className="flex items-center flex-wrap gap-2">
+                      {roomDetails.videoPlatform && (
+                        <Badge variant="blue">{PLATFORM_LABEL[roomDetails.videoPlatform] ?? roomDetails.videoPlatform}</Badge>
+                      )}
+                      {roomDetails.currentTime > 0 && (
+                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-yellow-500/10 border border-yellow-500/20">
+                          {roomDetails.isPlaying
+                            ? <Play size={10} className="text-yellow-400 fill-current" />
+                            : <Pause size={10} className="text-yellow-400" />}
+                          <Clock size={10} className="text-yellow-400" />
+                          <span className="text-xs text-yellow-400 font-mono font-semibold" title="Момент воспроизведения при отправке жалобы">
+                            {fmtTime(roomDetails.currentTime)}
+                          </span>
                         </div>
                       )}
-                      <div className="flex-1 min-w-0 space-y-1">
-                        <p className="text-xs text-white font-medium leading-tight line-clamp-2">
-                          {roomDetails.videoTitle ?? 'Без названия'}
+                    </div>
+                    {roomDetails.videoUrl && (
+                      <div className="flex items-start gap-1.5">
+                        <ExternalLink size={11} className="text-text-dim mt-0.5 flex-shrink-0" />
+                        <p className="text-xs text-blue-400 font-mono break-all leading-relaxed line-clamp-2">
+                          {roomDetails.videoUrl}
                         </p>
-                        <div className="flex items-center gap-2">
-                          {roomDetails.videoPlatform && (
-                            <Badge variant="blue">{PLATFORM_LABEL[roomDetails.videoPlatform] ?? roomDetails.videoPlatform}</Badge>
-                          )}
-                          {roomDetails.currentTime > 0 && (
-                            <span className="flex items-center gap-1 text-xs text-yellow-400 font-mono">
-                              {roomDetails.isPlaying ? <Play size={10} className="fill-current" /> : <Pause size={10} />}
-                              <span title="Момент когда отправлена жалоба">{formatTime(roomDetails.currentTime)}</span>
-                            </span>
-                          )}
-                        </div>
                       </div>
-                    </div>
-                  )}
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-text-dim">Название комнаты</span>
-                    <span className="text-xs text-white font-medium">{roomDetails.name || '—'}</span>
+                    )}
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-text-dim flex items-center gap-1"><Users size={11} /> Участников</span>
-                    <span className="text-xs text-white">{roomDetails.members.length}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-text-dim">Тип</span>
-                    <Badge variant={roomDetails.isPublic ? 'blue' : 'gray'}>{roomDetails.isPublic ? 'Публичная' : 'Приватная'}</Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-text-dim">Статус</span>
-                    <Badge variant={roomDetails.status === 'active' ? 'green' : 'gray'}>{roomDetails.status}</Badge>
-                  </div>
-                  <div className="pt-1.5 border-t border-white/[0.06]">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-text-dim">Владелец</span>
-                      <div className="flex items-center gap-2">
-                        {roomDetails.ownerUsername && (
-                          <span className="text-xs text-orange-400 font-medium">@{roomDetails.ownerUsername}</span>
-                        )}
-                        <button
-                          className="flex items-center gap-1.5 font-mono text-xs text-text-muted hover:text-white transition-colors"
-                          onClick={() => copyId(roomDetails.ownerId)}
-                        >
-                          <span className="max-w-[120px] truncate">{roomDetails.ownerId}</span>
-                          {copiedId === roomDetails.ownerId ? <CheckCheck size={12} className="text-green-400" /> : <Copy size={12} />}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                  {roomDetails.videoUrl && (
-                    <div className="pt-1.5 border-t border-white/[0.06]">
-                      <div className="flex items-center gap-1.5 text-xs text-text-dim mb-1"><Link size={11} /> URL</div>
-                      <p className="text-xs text-blue-400 break-all font-mono leading-relaxed">{roomDetails.videoUrl}</p>
-                    </div>
-                  )}
                 </div>
-              ) : (
-                <p className="text-xs text-text-dim">Комната не найдена или уже закрыта</p>
-              )}
-            </div>
+              </div>
+            )}
 
-            {/* ── Предупреждение пользователям ── */}
-            <div className="bg-yellow-500/[0.05] border border-yellow-500/20 rounded-lg p-3 space-y-2">
+            {/* ── Предупреждение ── */}
+            <div className="bg-yellow-500/[0.04] border border-yellow-500/20 rounded-xl p-4 space-y-3">
               <div className="flex items-center gap-2">
-                <AlertTriangle size={13} className="text-yellow-400" />
-                <span className="text-xs font-medium text-yellow-400">Предупреждение участникам</span>
+                <AlertTriangle size={14} className="text-yellow-400" />
+                <p className="text-xs font-semibold text-yellow-400 uppercase tracking-wider">Предупреждение участникам</p>
+                {roomDetails && (
+                  <span className="ml-auto text-xs text-text-dim">{roomDetails.members.length} чел.</span>
+                )}
               </div>
               <textarea
                 value={warnMsg}
                 onChange={e => setWarnMsg(e.target.value)}
                 rows={2}
-                placeholder="Текст предупреждения для всех участников комнаты..."
-                className="w-full bg-[#0a0a12] border border-white/[0.08] rounded-lg px-3 py-2 text-xs text-white placeholder-text-dim focus:outline-none focus:border-yellow-500/40 resize-none"
+                placeholder="Текст уведомления для всех участников комнаты..."
+                className="w-full bg-black/30 border border-white/[0.08] rounded-lg px-3 py-2 text-xs text-white placeholder-text-dim focus:outline-none focus:border-yellow-500/40 resize-none"
               />
               {warnResult && (
-                <p className={`text-xs ${warnResult.startsWith('✓') ? 'text-green-400' : 'text-red-400'}`}>{warnResult}</p>
+                <div className={`flex items-center gap-1.5 text-xs ${warnResult.ok ? 'text-green-400' : 'text-red-400'}`}>
+                  {warnResult.ok ? <CheckCheck size={12} /> : <AlertTriangle size={12} />}
+                  {warnResult.msg}
+                </div>
               )}
               <Button
                 size="sm"
                 variant="ghost"
-                className="w-full border border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10"
+                className="w-full border border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10 disabled:opacity-40"
                 onClick={() => void handleWarn()}
                 disabled={warnLoading || !warnMsg.trim() || !roomDetails}
               >
-                {warnLoading ? 'Отправка...' : `Отправить всем участникам (${roomDetails?.members.length ?? '…'})`}
+                {warnLoading
+                  ? 'Отправка...'
+                  : `Отправить всем (${roomDetails?.members.length ?? '…'})`}
               </Button>
             </div>
 
-            {/* ── Заблокировать владельца ── */}
-            <div className="bg-red-500/[0.05] border border-red-500/20 rounded-lg p-3 space-y-2">
+            {/* ── Заблокировать ── */}
+            <div className="bg-red-500/[0.04] border border-red-500/20 rounded-xl p-4 space-y-3">
               <div className="flex items-center gap-2">
-                <Shield size={13} className="text-red-400" />
-                <span className="text-xs font-medium text-red-400">Блокировка владельца</span>
+                <Shield size={14} className="text-red-400" />
+                <p className="text-xs font-semibold text-red-400 uppercase tracking-wider">Блокировка владельца</p>
               </div>
-              <p className="text-xs text-text-dim">
-                Владелец будет заблокирован. Аккаунт потеряет доступ к платформе.
-              </p>
+              {roomDetails?.ownerUsername && (
+                <p className="text-xs text-text-dim">
+                  Аккаунт <span className="text-white font-medium">@{roomDetails.ownerUsername}</span> потеряет доступ к платформе.
+                </p>
+              )}
               {blockResult && (
-                <p className={`text-xs ${blockResult.startsWith('✓') ? 'text-green-400' : 'text-red-400'}`}>{blockResult}</p>
+                <div className={`flex items-center gap-1.5 text-xs ${blockResult.ok ? 'text-green-400' : 'text-red-400'}`}>
+                  {blockResult.ok ? <CheckCheck size={12} /> : <AlertTriangle size={12} />}
+                  {blockResult.msg}
+                </div>
               )}
               <Button
                 size="sm"
                 variant="ghost"
-                className="w-full border border-red-500/40 text-red-400 hover:bg-red-500/10"
+                className="w-full border border-red-500/40 text-red-400 hover:bg-red-500/10 disabled:opacity-40"
                 onClick={() => void handleBlockOwner()}
-                disabled={blockLoading || !roomDetails || !!blockResult}
+                disabled={blockLoading || !roomDetails || blockResult?.ok === true}
               >
-                {blockLoading ? 'Блокировка...' : 'Заблокировать владельца'}
+                {blockLoading
+                  ? 'Блокировка...'
+                  : roomDetails?.ownerUsername
+                    ? `Заблокировать @${roomDetails.ownerUsername}`
+                    : 'Заблокировать владельца'}
               </Button>
             </div>
 
             {/* ── Примечание + решение ── */}
-            <div>
-              <label className="text-xs text-text-dim block mb-1.5">Примечание для команды (необязательно)</label>
-              <textarea
-                value={note}
-                onChange={e => setNote(e.target.value)}
-                rows={2}
-                className="w-full bg-[#0a0a12] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white placeholder-text-dim focus:outline-none focus:border-accent/50 resize-none"
-                placeholder="Заметка для команды..."
-              />
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-text-dim block mb-1.5">Примечание для команды (необязательно)</label>
+                <textarea
+                  value={note}
+                  onChange={e => setNote(e.target.value)}
+                  rows={2}
+                  className="w-full bg-black/30 border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white placeholder-text-dim focus:outline-none focus:border-accent/50 resize-none"
+                  placeholder="Заметка о принятом решении..."
+                />
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <Button variant="ghost" onClick={() => void handleAction('dismissed')} disabled={actionLoading}>
+                  Отклонить
+                </Button>
+                <Button variant="ghost" onClick={() => void handleAction('reviewed')} disabled={actionLoading}>
+                  Рассмотрено
+                </Button>
+                <Button
+                  variant="primary"
+                  className="bg-red-500/80 hover:bg-red-500"
+                  onClick={() => void handleAction('actioned')}
+                  disabled={actionLoading}
+                >
+                  Меры приняты
+                </Button>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <Button variant="ghost" className="flex-1" onClick={() => void handleAction('dismissed')} disabled={actionLoading}>
-                Отклонить
-              </Button>
-              <Button variant="ghost" className="flex-1" onClick={() => void handleAction('reviewed')} disabled={actionLoading}>
-                Рассмотрено
-              </Button>
-              <Button variant="primary" className="flex-1 bg-red-500/80 hover:bg-red-500" onClick={() => void handleAction('actioned')} disabled={actionLoading}>
-                Меры приняты
-              </Button>
-            </div>
+
           </div>
         </Modal>
       )}
