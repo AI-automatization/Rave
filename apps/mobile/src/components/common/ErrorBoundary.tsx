@@ -1,7 +1,6 @@
 // CineSync Mobile — ErrorBoundary
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { crash } from '@utils/crash';
 import { captureError } from '@utils/errorLogger';
 import { colors, spacing, borderRadius, typography } from '@theme/index';
 
@@ -26,7 +25,6 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
-    crash.captureException(error, { componentStack: info.componentStack ?? '' });
     captureError(error, { componentStack: info.componentStack ?? '' });
   }
 

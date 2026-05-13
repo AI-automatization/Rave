@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import { Search, Mail, User, X, AlertTriangle, Clock, Smartphone, ChevronDown, ChevronRight, Cpu, Globe, Layers, Zap, Tag, MonitorSmartphone, Code2, Database, Shield, MessageCircle, Send } from 'lucide-react';
 import { errorsApi, MobileIssue, MobileEvent, IssueStatus, ErrorStats } from '../api/errors.api';
@@ -598,6 +599,9 @@ function EventDrawer({ issue, onClose }: { issue: MobileIssue; onClose: () => vo
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export function ErrorsPage() {
+  const [searchParams] = useSearchParams();
+  const userIdFromUrl = useMemo(() => searchParams.get('userId') ?? '', [searchParams]);
+
   const [issues, setIssues]     = useState<MobileIssue[]>([]);
   const [stats, setStats]       = useState<ErrorStats>({ new: 0, in_progress: 0, resolved: 0, ignored: 0 });
   const [total, setTotal]       = useState(0);
@@ -605,6 +609,7 @@ export function ErrorsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading]   = useState(true);
   const [statusFilter, setStatusFilter] = useState<IssueStatus | ''>('');
+  const [platformFilter, setPlatformFilter] = useState<'ios' | 'android' | ''>('');
   const [search, setSearch]     = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [selected, setSelected] = useState<MobileIssue | null>(null);
@@ -617,13 +622,19 @@ export function ErrorsPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await errorsApi.list({ page, limit: 20, status: statusFilter || undefined, search: search || undefined });
+      const res = await errorsApi.list({
+        page, limit: 20,
+        status: statusFilter || undefined,
+        platform: platformFilter || undefined,
+        search: search || undefined,
+        userId: userIdFromUrl || undefined,
+      });
       setIssues(res.data);
       setTotal(res.meta.total);
       setTotalPages(res.meta.totalPages);
     } catch { /* silent */ }
     finally { setLoading(false); }
-  }, [page, statusFilter, search]);
+  }, [page, statusFilter, platformFilter, search, userIdFromUrl]);
 
   useEffect(() => { loadStats(); }, [loadStats]);
   useEffect(() => { void load(); }, [load]);
@@ -658,6 +669,17 @@ export function ErrorsPage() {
         </div>
       </div>
 
+      {/* User filter banner */}
+      {userIdFromUrl && (
+        <div className="flex items-center gap-3 bg-accent/[0.07] border border-accent/20 rounded-xl px-4 py-2.5">
+          <User size={14} className="text-accent shrink-0" />
+          <span className="text-sm text-white">Ошибки пользователя: <span className="font-mono text-accent">{userIdFromUrl}</span></span>
+          <Link to="/errors" className="ml-auto text-xs text-text-dim hover:text-white transition-colors flex items-center gap-1">
+            <X size={12} /> Сбросить фильтр
+          </Link>
+        </div>
+      )}
+
       {/* Stat filters */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatFilter value={stats.new}         label="Новые"        color="red"   active={statusFilter === 'new'}         onClick={() => { setStatusFilter(statusFilter === 'new' ? '' : 'new'); setPage(1); }} />
@@ -666,7 +688,7 @@ export function ErrorsPage() {
         <StatFilter value={stats.ignored}     label="Игнорируется" color="gray"  active={statusFilter === 'ignored'}     onClick={() => { setStatusFilter(statusFilter === 'ignored' ? '' : 'ignored'); setPage(1); }} />
       </div>
 
-      {/* Search + status */}
+      {/* Search + filters */}
       <div className="flex flex-wrap items-center gap-2.5">
         <form onSubmit={handleSearch} className="relative flex-1 min-w-[220px] max-w-sm">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-dim" />
@@ -688,6 +710,21 @@ export function ErrorsPage() {
           <option value="resolved">Исправлено</option>
           <option value="ignored">Игнорируется</option>
         </select>
+        <div className="flex items-center gap-1.5">
+          {(['', 'ios', 'android'] as const).map((p) => (
+            <button
+              key={p}
+              onClick={() => { setPlatformFilter(p); setPage(1); }}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs border transition-all ${
+                platformFilter === p
+                  ? 'bg-accent/15 border-accent/30 text-accent'
+                  : 'bg-surface border-border text-text-muted hover:border-border-md'
+              }`}
+            >
+              {p === '' ? 'Все' : p === 'ios' ? '🍎 iOS' : '🤖 Android'}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Table */}

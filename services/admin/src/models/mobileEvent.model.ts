@@ -35,6 +35,10 @@ const schema = new Schema<IMobileEventDocument>(
   },
 );
 
+schema.index({ userId: 1 });
+schema.index({ issueId: 1, userId: 1 });
+// Sparse unique on eventId — prevents duplicate ingestion on mobile retry
+schema.index({ eventId: 1 }, { unique: true, sparse: true });
 // Keep events for 90 days
 schema.index({ timestamp: 1 }, { expireAfterSeconds: 90 * 24 * 60 * 60 });
 

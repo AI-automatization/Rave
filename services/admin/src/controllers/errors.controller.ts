@@ -35,7 +35,10 @@ export class ErrorsController {
       const limit = parseInt(req.query.limit as string) || 20;
       const status = req.query.status as IssueStatus | undefined;
       const search = req.query.search as string | undefined;
-      const result = await this.service.listIssues({ page, limit, status, search });
+      const userId = req.query.userId as string | undefined;
+      const platform = req.query.platform as string | undefined;
+      const appVersion = req.query.appVersion as string | undefined;
+      const result = await this.service.listIssues({ page, limit, status, search, userId, platform, appVersion });
       res.json(apiResponse.paginated(result.data, buildPaginationMeta(page, limit, result.total)));
     } catch (error) {
       next(error);

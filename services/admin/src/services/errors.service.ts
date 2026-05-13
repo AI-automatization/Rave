@@ -77,18 +77,25 @@ function extractOsVersion(event: SentryEvent): string {
   return `${os.name ?? ''} ${os.version ?? ''}${apiLevel}`.trim();
 }
 
+const VALID_LEVELS = new Set(['fatal', 'error', 'warning', 'info']);
+
 export class ErrorsService {
   async ingestEvent(event: SentryEvent): Promise<void> {
+    // Deduplicate by event_id — skip if already stored
+    if (event.event_id) {
+      const exists = await MobileEvent.exists({ eventId: event.event_id });
+      if (exists) return;
+    }
+
     const fingerprint = buildFingerprint(event);
     const title = extractTitle(event);
     const message = extractMessage(event);
     const platform = extractPlatform(event);
     const appVersion = event.release ?? event.contexts?.app?.app_version ?? '';
     const environment = event.environment ?? 'production';
-    const userId = event.user?.id ?? null;
+    const userId = event.user?.id ? String(event.user.id) : null;
     const now = new Date();
 
-    // Upsert issue — if same fingerprint exists, increment count
     let issue: IMobileIssueDocument | null = await MobileIssue.findOne({ fingerprint });
 
     if (!issue) {
@@ -98,20 +105,29 @@ export class ErrorsService {
         firstSeen: now, lastSeen: now,
       });
     } else {
-      const update: Record<string, unknown> = {
-        $inc: { count: 1 },
-        $set: { lastSeen: now, appVersion, message },
-      };
-      if (userId) update.$inc = { count: 1, affectedUsers: 1 };
-      await MobileIssue.updateOne({ _id: issue._id }, update);
+      // Check if this specific user has already triggered this issue (avoid inflating affectedUsers)
+      const isNewUser = userId
+        ? !(await MobileEvent.exists({ issueId: issue._id, userId }))
+        : false;
+
+      await MobileIssue.updateOne(
+        { _id: issue._id },
+        {
+          $inc: { count: 1, ...(isNewUser ? { affectedUsers: 1 } : {}) },
+          $set: { lastSeen: now, appVersion, message },
+        },
+      );
     }
 
-    // Store individual event
+    const level = VALID_LEVELS.has(event.level ?? '')
+      ? (event.level as 'fatal' | 'error' | 'warning' | 'info')
+      : 'error';
+
     await MobileEvent.create({
       issueId: issue._id,
       eventId: event.event_id ?? '',
-      userId: userId ? String(userId) : null,
-      level: (['fatal','error','warning','info'].includes(event.level ?? '') ? event.level : 'error') as 'fatal' | 'error' | 'warning' | 'info',
+      userId,
+      level,
       platform: event.platform ?? platform,
       appVersion,
       osVersion: extractOsVersion(event),
@@ -133,15 +149,26 @@ export class ErrorsService {
     limit: number;
     status?: IssueStatus;
     search?: string;
+    userId?: string;
+    platform?: string;
+    appVersion?: string;
   }): Promise<{ data: Record<string, unknown>[]; total: number; page: number; limit: number; totalPages: number }> {
-    const { page, limit, status, search } = params;
+    const { page, limit, status, search, userId, platform, appVersion } = params;
     const filter: Record<string, unknown> = {};
     if (status) filter.status = status;
+    if (platform) filter.platform = platform;
+    if (appVersion) filter.appVersion = appVersion;
     if (search) {
       filter.$or = [
         { title: { $regex: search, $options: 'i' } },
         { message: { $regex: search, $options: 'i' } },
       ];
+    }
+
+    // Filter by userId: look up issueIds from MobileEvent
+    if (userId) {
+      const issueIds = await MobileEvent.distinct('issueId', { userId });
+      filter._id = { $in: issueIds };
     }
 
     const [data, total] = await Promise.all([
@@ -183,4 +210,3 @@ export class ErrorsService {
     ]);
   }
 }
-

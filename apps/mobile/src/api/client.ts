@@ -58,6 +58,16 @@ function createClient(baseURL: string): AxiosInstance {
     async (error) => {
       const originalRequest = error.config;
 
+      // Capture server-side 5xx errors for crash reporting
+      if (error.response?.status >= 500) {
+        const { captureApiError } = await import('@utils/errorLogger');
+        const url = originalRequest?.url ?? 'unknown';
+        const body = typeof error.response.data === 'string'
+          ? error.response.data
+          : JSON.stringify(error.response.data ?? '');
+        captureApiError(url, error.response.status as number, body);
+      }
+
       // ACCOUNT_BLOCKED — global handler
       if (error.response?.status === 403 &&
         (error.response?.data?.code === 'ACCOUNT_BLOCKED' ||

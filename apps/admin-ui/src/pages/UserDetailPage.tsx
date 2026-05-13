@@ -57,7 +57,7 @@ export function UserDetailPage() {
     setLoading(true);
     Promise.all([
       usersApi.getById(id),
-      errorsApi.list({ search: id, limit: 10 }),
+      errorsApi.list({ userId: id, limit: 10 }),
     ])
       .then(([u, e]) => { setUser(u); setErrors(e.data); })
       .catch(() => navigate('/users'))
@@ -194,8 +194,15 @@ export function UserDetailPage() {
           <Bug size={16} className="text-red-400" />
           <h2 className="text-sm font-semibold text-white">Ошибки пользователя</h2>
           {errors.length > 0 && (
-            <span className="ml-auto text-xs text-red-400 bg-red-500/10 px-2 py-0.5 rounded-full">{errors.length}</span>
+            <span className="text-xs text-red-400 bg-red-500/10 px-2 py-0.5 rounded-full">{errors.length}</span>
           )}
+          <Link
+            to={`/errors?userId=${user._id}`}
+            className="ml-auto flex items-center gap-1 text-xs text-text-dim hover:text-white transition-colors"
+          >
+            <ExternalLink size={12} />
+            Все ошибки
+          </Link>
         </div>
         {errors.length === 0 ? (
           <div className="px-5 py-8 text-center text-text-muted text-sm">Ошибок не найдено 🎉</div>
@@ -207,10 +214,14 @@ export function UserDetailPage() {
                   <p className="text-sm text-white font-medium truncate">{e.title}</p>
                   <p className="text-xs text-text-muted truncate">{e.message || '—'}</p>
                 </div>
-                <span className="text-xs text-text-dim font-mono">{e.count}×</span>
-                <Link to="/errors" className="text-text-dim hover:text-white transition-colors">
-                  <ExternalLink size={14} />
-                </Link>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-xs text-text-dim font-mono">{e.count}×</span>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${
+                    e.platform === 'ios' ? 'bg-blue-500/10 text-blue-400' :
+                    e.platform === 'android' ? 'bg-green-500/10 text-green-400' :
+                    'bg-white/5 text-text-dim'
+                  }`}>{e.platform}</span>
+                </div>
               </div>
             ))}
           </div>

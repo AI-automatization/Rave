@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { IUser } from '@app-types/index';
 import { tokenStorage, profileSetupStorage } from '@utils/storage';
 import { userApi } from '@api/user.api';
+import { setErrorUser, clearErrorUser } from '@utils/errorLogger';
 
 interface AuthState {
   user: IUser | null;
@@ -26,6 +27,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   needsProfileSetup: false,
 
   setAuth: async (user, accessToken, refreshToken) => {
+    setErrorUser(user._id);
     await tokenStorage.saveTokens(accessToken, refreshToken, user._id);
     const authServiceId = user._id;
     // Show profile setup only if user has never completed/skipped it on this device
@@ -77,6 +79,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   logout: async () => {
+    clearErrorUser();
     // Remove FCM token before logout (prevent stale push notifications)
     try {
       const { userApi } = await import('@api/user.api');

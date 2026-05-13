@@ -51,6 +51,9 @@ export const errorsApi = {
     limit?: number;
     status?: IssueStatus;
     search?: string;
+    userId?: string;
+    platform?: string;
+    appVersion?: string;
   }): Promise<PaginatedResponse<MobileIssue>> => {
     const res = await apiClient.get<PaginatedResponse<MobileIssue>>('/errors', { params });
     return res.data;

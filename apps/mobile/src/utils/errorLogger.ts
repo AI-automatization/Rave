@@ -51,6 +51,18 @@ interface ErrorPayload {
   tags?: Record<string, string>;
 }
 
+// Current authenticated user — set by auth store on login/logout
+let _currentUserId: string | null = null;
+export function setErrorUser(userId: string): void { _currentUserId = userId; }
+export function clearErrorUser(): void { _currentUserId = null; }
+
+function generateEventId(): string {
+  const ts = Date.now().toString(36);
+  const r1 = Math.random().toString(36).slice(2, 8);
+  const r2 = Math.random().toString(36).slice(2, 8);
+  return `${ts}-${r1}-${r2}`;
+}
+
 function parseStack(stack: string): StackFrame[] {
   return stack
     .split('\n')
@@ -175,8 +187,8 @@ function getDeviceContexts(): ErrorPayload['contexts'] {
 }
 
 function buildPayload(error: Error, extra?: Record<string, unknown>): ErrorPayload {
-  return {
-    event_id: Math.random().toString(36).slice(2),
+  const payload: ErrorPayload = {
+    event_id: generateEventId(),
     timestamp: new Date().toISOString(),
     level: 'error',
     platform: Platform.OS,
@@ -199,6 +211,8 @@ function buildPayload(error: Error, extra?: Record<string, unknown>): ErrorPaylo
       app_version: Constants.expoConfig?.version ?? '0.0.0',
     },
   };
+  if (_currentUserId) payload.user = { id: _currentUserId };
+  return payload;
 }
 
 async function send(payload: ErrorPayload): Promise<void> {
@@ -228,8 +242,8 @@ export function captureError(error: Error, extra?: Record<string, unknown>): voi
 }
 
 export function captureMessage(message: string, level: 'info' | 'warning' = 'info'): void {
-  void send({
-    event_id: Math.random().toString(36).slice(2),
+  const payload: ErrorPayload = {
+    event_id: generateEventId(),
     timestamp: new Date().toISOString(),
     level,
     platform: Platform.OS,
@@ -241,7 +255,16 @@ export function captureMessage(message: string, level: 'info' | 'warning' = 'inf
       platform: Platform.OS,
       environment: __DEV__ ? 'development' : 'production',
     },
-  });
+  };
+  if (_currentUserId) payload.user = { id: _currentUserId };
+  void send(payload);
+}
+
+// Capture axios/fetch API errors — call from response interceptor for 5xx
+export function captureApiError(url: string, status: number, responseBody?: string): void {
+  const err = new Error(`API ${status}: ${url}`);
+  err.name = 'ApiError';
+  captureError(err, { url, httpStatus: status, response: responseBody?.slice(0, 500) });
 }
 
 let _initialized = false;
@@ -252,10 +275,23 @@ export function initErrorLogger(): void {
 
   if (__DEV__) console.log('[ErrorLogger] init, INGEST_URL:', INGEST_URL);
 
+  // Global JS error handler (crashes, sync exceptions)
   const originalHandler = ErrorUtils.getGlobalHandler();
   ErrorUtils.setGlobalHandler((error: Error, isFatal?: boolean) => {
     if (__DEV__) console.log('[ErrorLogger] caught:', error.message, 'fatal:', isFatal);
     void send({ ...buildPayload(error), level: isFatal ? 'fatal' : 'error' });
     originalHandler?.(error, isFatal);
   });
+
+  // Unhandled promise rejections
+  const globalAny = global as Record<string, unknown>;
+  const originalPromiseRejection = globalAny['onunhandledrejection'] as ((event: PromiseRejectionEvent) => void) | undefined;
+  globalAny['onunhandledrejection'] = (event: PromiseRejectionEvent) => {
+    const reason = event?.reason;
+    const err = reason instanceof Error ? reason : new Error(String(reason ?? 'Unhandled Promise Rejection'));
+    if (err.name === 'ApiError') { originalPromiseRejection?.(event); return; } // already captured
+    err.name = err.name === 'Error' ? 'UnhandledRejection' : err.name;
+    void send({ ...buildPayload(err), level: 'error' });
+    originalPromiseRejection?.(event);
+  };
 }
