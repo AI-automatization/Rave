@@ -1,11 +1,20 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Scale, ChevronDown } from 'lucide-react';
+import { Scale } from 'lucide-react';
 import { moderationApi, Appeal, AppealStatus } from '../api/moderation.api';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { Pagination } from '../components/ui/Pagination';
+import { PageHeader } from '../components/ui/PageHeader';
+import { FilterTabs } from '../components/ui/FilterTabs';
 import type { PaginationMeta } from '../types';
+
+const STATUS_TABS = [
+  { value: '',         label: 'All' },
+  { value: 'pending',  label: 'Pending' },
+  { value: 'approved', label: 'Approved' },
+  { value: 'rejected', label: 'Rejected' },
+];
 
 const STATUS_VARIANT: Record<AppealStatus, 'yellow' | 'green' | 'red'> = {
   pending: 'yellow',
@@ -13,10 +22,22 @@ const STATUS_VARIANT: Record<AppealStatus, 'yellow' | 'green' | 'red'> = {
   rejected: 'red',
 };
 const STATUS_LABEL: Record<AppealStatus, string> = {
-  pending: 'Ожидает',
-  approved: 'Одобрено',
-  rejected: 'Отклонено',
+  pending: 'Pending',
+  approved: 'Approved',
+  rejected: 'Rejected',
 };
+
+function SkeletonRow() {
+  return (
+    <tr>
+      {[22, 20, 30, 12, 12, 8].map((w, i) => (
+        <td key={i} className="px-5 py-4">
+          <div className="h-4 shimmer-bg rounded" style={{ width: `${w}%` }} />
+        </td>
+      ))}
+    </tr>
+  );
+}
 
 export function AppealsPage() {
   const [appeals, setAppeals]   = useState<Appeal[]>([]);
@@ -54,131 +75,124 @@ export function AppealsPage() {
   };
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center">
-            <Scale size={16} className="text-violet-400" />
-          </div>
-          <div>
-            <h1 className="text-white font-semibold text-lg leading-none">Апелляции</h1>
-            <p className="text-text-dim text-xs mt-0.5">{meta.total} всего</p>
-          </div>
-        </div>
-      </div>
+    <div className="flex flex-col gap-5 animate-fade-in">
+      <PageHeader title="Appeals" meta={`${meta.total.toLocaleString('en')} total`} />
 
-      {/* Filter */}
-      <div className="flex items-center gap-3">
-        <div className="relative">
-          <select
-            value={statusFilter}
-            onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
-            className="appearance-none pl-3 pr-8 py-2 bg-surface border border-white/[0.08] rounded-lg text-sm text-white focus:outline-none focus:border-accent/50"
-          >
-            <option value="">Все</option>
-            <option value="pending">Ожидают</option>
-            <option value="approved">Одобрены</option>
-            <option value="rejected">Отклонены</option>
-          </select>
-          <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-dim pointer-events-none" />
-        </div>
-      </div>
+      <FilterTabs
+        options={STATUS_TABS}
+        value={statusFilter}
+        onChange={(v) => { setStatusFilter(v); setPage(1); }}
+      />
 
-      {/* Table */}
-      <div className="bg-surface rounded-xl border border-white/[0.06] overflow-hidden">
-        {loading ? (
-          <div className="flex items-center justify-center h-40 text-text-dim text-sm">Загрузка...</div>
-        ) : appeals.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-40 gap-2">
-            <Scale size={32} className="text-text-dim opacity-40" />
-            <p className="text-text-dim text-sm">Апелляций нет</p>
-          </div>
-        ) : (
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-white/[0.06]">
-                {['Пользователь', 'Причина бана', 'Сообщение', 'Статус', 'Дата', ''].map(h => (
-                  <th key={h} className="px-4 py-3 text-left text-xs text-text-dim font-medium">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {appeals.map(a => (
-                <tr key={a._id} className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors">
-                  <td className="px-4 py-3 font-mono text-xs text-text-muted max-w-[120px] truncate">{a.userId}</td>
-                  <td className="px-4 py-3 text-xs text-text-dim max-w-[120px] truncate">{a.banReason ?? '—'}</td>
-                  <td className="px-4 py-3 text-xs text-white max-w-[200px] truncate">{a.message}</td>
-                  <td className="px-4 py-3">
-                    <Badge variant={STATUS_VARIANT[a.status]}>{STATUS_LABEL[a.status]}</Badge>
+      <div className="bg-card rounded-2xl shadow-card overflow-hidden">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-white/[0.05]">
+              {['User', 'Ban reason', 'Message', 'Status', 'Date', ''].map((h) => (
+                <th key={h} className="text-left px-5 py-3.5 text-[10px] font-semibold text-text-dim uppercase tracking-[0.08em]">
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-white/[0.03]">
+            {loading
+              ? Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)
+              : appeals.length === 0
+              ? (
+                <tr>
+                  <td colSpan={6} className="py-16 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="w-11 h-11 rounded-2xl bg-white/[0.04] flex items-center justify-center">
+                        <Scale size={20} className="text-text-dim" />
+                      </div>
+                      <p className="text-text-muted text-sm font-medium">No appeals found</p>
+                    </div>
                   </td>
-                  <td className="px-4 py-3 text-xs text-text-dim">
-                    {new Date(a.createdAt).toLocaleDateString('ru')}
+                </tr>
+              )
+              : appeals.map((a) => (
+                <tr key={a._id} className="tr-hover">
+                  <td className="px-5 py-4 font-mono text-[12px] text-text-muted max-w-[120px] truncate">{a.userId}</td>
+                  <td className="px-5 py-4 text-[12px] text-text-dim max-w-[120px] truncate">{a.banReason ?? '—'}</td>
+                  <td className="px-5 py-4 text-[13px] text-white max-w-[200px] truncate">{a.message}</td>
+                  <td className="px-5 py-4">
+                    <Badge variant={STATUS_VARIANT[a.status]} dot>{STATUS_LABEL[a.status]}</Badge>
                   </td>
-                  <td className="px-4 py-3">
-                    {a.status === 'pending' && (
-                      <Button size="sm" variant="ghost" onClick={() => { setModal({ appeal: a }); setNote(''); }}>
-                        Рассмотреть
+                  <td className="px-5 py-4 text-[12px] text-text-muted">
+                    {new Date(a.createdAt).toLocaleDateString('en-US', { day: '2-digit', month: 'short' })}
+                  </td>
+                  <td className="px-5 py-4">
+                    {a.status === 'pending' ? (
+                      <Button size="xs" variant="primary" onClick={() => { setModal({ appeal: a }); setNote(''); }}>
+                        Review
                       </Button>
-                    )}
-                    {a.status !== 'pending' && a.reviewNote && (
-                      <span className="text-xs text-text-dim truncate max-w-[120px] block">{a.reviewNote}</span>
-                    )}
+                    ) : a.reviewNote ? (
+                      <span className="text-[12px] text-text-dim truncate max-w-[120px] block">{a.reviewNote}</span>
+                    ) : null}
                   </td>
                 </tr>
               ))}
-            </tbody>
-          </table>
+          </tbody>
+        </table>
+
+        {meta.totalPages > 1 && (
+          <div className="px-5 border-t border-white/[0.04]">
+            <Pagination page={meta.page} totalPages={meta.totalPages} total={meta.total} limit={meta.limit} onChange={setPage} />
+          </div>
         )}
       </div>
 
-      <Pagination page={meta.page} totalPages={meta.totalPages} total={meta.total} limit={meta.limit} onChange={setPage} />
-
-      {/* Review modal */}
-      {modal && (
-        <Modal open={!!modal} title="Рассмотрение апелляции" onClose={() => setModal(null)}>
-          <div className="space-y-4">
-            <div className="bg-white/[0.04] rounded-lg p-3 space-y-2">
-              <p className="text-xs text-text-dim">Пользователь: <span className="text-white font-mono">{modal.appeal.userId}</span></p>
+      <Modal open={!!modal} title="Review appeal" onClose={() => setModal(null)}>
+        {modal && (
+          <div className="flex flex-col gap-4">
+            <div className="bg-surface rounded-xl p-3.5 border border-white/[0.06] space-y-2">
+              <p className="text-[12px] text-text-dim">
+                User: <span className="text-white font-mono">{modal.appeal.userId}</span>
+              </p>
               {modal.appeal.banReason && (
-                <p className="text-xs text-text-dim">Причина бана: <span className="text-white">{modal.appeal.banReason}</span></p>
+                <p className="text-[12px] text-text-dim">
+                  Ban reason: <span className="text-white">{modal.appeal.banReason}</span>
+                </p>
               )}
-              <p className="text-xs text-text-dim">Сообщение пользователя:</p>
-              <p className="text-sm text-white bg-white/[0.03] rounded p-2">{modal.appeal.message}</p>
+              <p className="text-[12px] text-text-dim">Message:</p>
+              <p className="text-[13px] text-white leading-relaxed">{modal.appeal.message}</p>
             </div>
             <div>
-              <label className="text-xs text-text-dim block mb-1.5">Примечание (необязательно)</label>
+              <label className="text-[11px] text-text-dim block mb-1.5 uppercase tracking-[0.06em]">Note (optional)</label>
               <textarea
                 value={note}
-                onChange={e => setNote(e.target.value)}
+                onChange={(e) => setNote(e.target.value)}
                 rows={3}
-                className="w-full bg-surface border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white placeholder-text-dim focus:outline-none focus:border-accent/50 resize-none"
-                placeholder="Причина решения..."
+                className="w-full bg-surface border border-border rounded-xl px-3 py-2.5 text-[13px] text-white placeholder-text-dim focus:outline-none focus:ring-2 focus:ring-accent/25 focus:border-accent/40 resize-none transition-all"
+                placeholder="Reason for decision..."
               />
             </div>
-            <p className="text-xs text-amber-400 bg-amber-500/10 rounded-lg p-2">
-              Одобрение автоматически разблокирует пользователя.
+            <p className="text-[12px] text-amber-400 bg-amber-500/10 rounded-xl p-3 border border-amber-500/20">
+              Approving will automatically unblock the user.
             </p>
             <div className="flex gap-2">
               <Button
                 variant="ghost"
                 className="flex-1 border border-red-500/30 text-red-400 hover:bg-red-500/10"
-                onClick={() => handleAction('rejected')}
+                onClick={() => void handleAction('rejected')}
                 disabled={actionLoading}
               >
-                Отклонить
+                Reject
               </Button>
               <Button
                 variant="primary"
                 className="flex-1"
-                onClick={() => handleAction('approved')}
+                onClick={() => void handleAction('approved')}
                 disabled={actionLoading}
+                loading={actionLoading}
               >
-                Одобрить и разблокировать
+                Approve & unblock
               </Button>
             </div>
           </div>
-        </Modal>
-      )}
+        )}
+      </Modal>
     </div>
   );
 }

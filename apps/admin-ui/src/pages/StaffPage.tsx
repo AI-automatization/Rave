@@ -7,6 +7,7 @@ import { Button } from '../components/ui/Button';
 import { Input, Select } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
 import { Pagination } from '../components/ui/Pagination';
+import { PageHeader } from '../components/ui/PageHeader';
 import type { StaffMember, StaffRole, PaginationMeta } from '../types';
 
 const ROLE_BADGE: Record<StaffRole, 'red' | 'blue' | 'green' | 'yellow'> = {
@@ -21,6 +22,18 @@ interface CreateForm {
   role: 'admin' | 'operator' | 'moderator';
 }
 const INITIAL_FORM: CreateForm = { email: '', username: '', password: '', confirmPassword: '', role: 'admin' };
+
+function SkeletonRow() {
+  return (
+    <tr>
+      {[28, 22, 12, 16, 8].map((w, i) => (
+        <td key={i} className="px-5 py-4">
+          <div className="h-4 shimmer-bg rounded" style={{ width: `${w}%` }} />
+        </td>
+      ))}
+    </tr>
+  );
+}
 
 export function StaffPage() {
   const currentUser  = useAuthStore((s) => s.user);
@@ -54,16 +67,16 @@ export function StaffPage() {
   const handleCreate = async () => {
     setFormError('');
     if (!form.email || !form.username || !form.password || !form.role) {
-      setFormError('Заполните все поля'); return;
+      setFormError('Fill in all fields'); return;
     }
     if (form.password !== form.confirmPassword) {
-      setFormError('Пароли не совпадают'); return;
+      setFormError('Passwords do not match'); return;
     }
     if (!/^[a-zA-Z0-9_]{3,20}$/.test(form.username)) {
-      setFormError('Username: 3-20 символов, буквы/цифры/_'); return;
+      setFormError('Username: 3-20 chars, letters/digits/_'); return;
     }
     if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$/.test(form.password)) {
-      setFormError('Пароль: мин. 8 символов, заглавная + строчная + цифра'); return;
+      setFormError('Password: min 8 chars, uppercase + lowercase + digit'); return;
     }
     setCreating(true);
     try {
@@ -73,7 +86,7 @@ export function StaffPage() {
       await load();
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      setFormError(msg ?? 'Ошибка при создании');
+      setFormError(msg ?? 'Error creating staff member');
     } finally { setCreating(false); }
   };
 
@@ -87,88 +100,85 @@ export function StaffPage() {
   if (!isSuperAdmin) {
     return (
       <div className="flex items-center justify-center h-64 bg-card rounded-2xl shadow-card border border-white/[0.06]">
-        <p className="text-text-muted text-sm">Доступ только для Superadmin</p>
+        <p className="text-text-muted text-sm">Superadmin access only</p>
       </div>
     );
   }
 
   return (
     <div className="flex flex-col gap-5 animate-fade-in">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Персонал</h1>
-          <p className="text-text-muted text-sm mt-0.5">{meta.total} сотрудников</p>
-        </div>
-        <Button variant="primary" onClick={() => { setCreateModal(true); setForm(INITIAL_FORM); setFormError(''); }}>
-          <Plus size={15} /> Добавить
-        </Button>
-      </div>
+      <PageHeader
+        title="Staff"
+        meta={`${meta.total} members`}
+        actions={
+          <Button variant="primary" onClick={() => { setCreateModal(true); setForm(INITIAL_FORM); setFormError(''); }}>
+            <Plus size={14} className="mr-1.5" />
+            Add member
+          </Button>
+        }
+      />
 
-      {/* Table */}
       <div className="bg-card rounded-2xl shadow-card overflow-hidden">
-        <table className="w-full text-sm">
+        <table className="w-full">
           <thead>
             <tr className="border-b border-white/[0.05]">
-              {['Сотрудник', 'Email', 'Роль', 'Последний вход', ''].map((h) => (
-                <th key={h} className="text-left px-5 py-3.5 text-[11px] font-semibold text-text-dim uppercase tracking-wider last:text-right">
+              {['Member', 'Email', 'Role', 'Last login', ''].map((h) => (
+                <th key={h} className="text-left px-5 py-3.5 text-[10px] font-semibold text-text-dim uppercase tracking-[0.08em] last:text-right">
                   {h}
                 </th>
               ))}
             </tr>
           </thead>
           <tbody className="divide-y divide-white/[0.03]">
-            {loading ? (
-              Array.from({ length: 4 }).map((_, i) => (
-                <tr key={i}>
-                  {Array.from({ length: 5 }).map((__, j) => (
-                    <td key={j} className="px-5 py-4">
-                      <div className="h-4 bg-white/[0.05] rounded animate-pulse" style={{ width: `${55 + (i * j * 9) % 35}%` }} />
-                    </td>
-                  ))}
-                </tr>
-              ))
-            ) : staff.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-5 py-12 text-center text-text-muted">
-                  <UserCog size={32} className="text-text-dim mx-auto mb-3" />
-                  Сотрудников нет
-                </td>
-              </tr>
-            ) : staff.map((member) => {
-              const hue = (member.email.charCodeAt(0) * 137) % 360;
-              return (
-                <tr key={member._id} className="tr-hover">
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold shrink-0"
-                        style={{ background: `hsl(${hue},40%,20%)`, color: `hsl(${hue},70%,70%)` }}
-                      >
-                        {member.username.slice(0, 2).toUpperCase()}
+            {loading
+              ? Array.from({ length: 4 }).map((_, i) => <SkeletonRow key={i} />)
+              : staff.length === 0
+              ? (
+                <tr>
+                  <td colSpan={5} className="py-16 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="w-11 h-11 rounded-2xl bg-white/[0.04] flex items-center justify-center">
+                        <UserCog size={20} className="text-text-dim" />
                       </div>
-                      <span className="font-medium text-white">{member.username}</span>
+                      <p className="text-text-muted text-sm font-medium">No staff members</p>
                     </div>
                   </td>
-                  <td className="px-5 py-4 text-text-muted text-xs">{member.email}</td>
-                  <td className="px-5 py-4">
-                    <Badge variant={ROLE_BADGE[member.role]}>{ROLE_LABEL[member.role]}</Badge>
-                  </td>
-                  <td className="px-5 py-4 text-text-muted text-xs">
-                    {member.lastLoginAt
-                      ? new Date(member.lastLoginAt).toLocaleDateString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
-                      : '—'}
-                  </td>
-                  <td className="px-5 py-4 text-right">
-                    {member.role !== 'superadmin' && (
-                      <Button size="sm" variant="danger" onClick={() => setDeleteConfirm(member)}>
-                        Удалить
-                      </Button>
-                    )}
-                  </td>
                 </tr>
-              );
-            })}
+              )
+              : staff.map((member) => {
+                const hue = (member.email.charCodeAt(0) * 137) % 360;
+                return (
+                  <tr key={member._id} className="tr-hover">
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold shrink-0"
+                          style={{ background: `hsl(${hue},40%,18%)`, color: `hsl(${hue},70%,65%)` }}
+                        >
+                          {member.username.slice(0, 2).toUpperCase()}
+                        </div>
+                        <span className="text-[13px] font-medium text-white">{member.username}</span>
+                      </div>
+                    </td>
+                    <td className="px-5 py-4 text-text-muted text-[12px]">{member.email}</td>
+                    <td className="px-5 py-4">
+                      <Badge variant={ROLE_BADGE[member.role]}>{ROLE_LABEL[member.role]}</Badge>
+                    </td>
+                    <td className="px-5 py-4 text-text-muted text-[12px]">
+                      {member.lastLoginAt
+                        ? new Date(member.lastLoginAt).toLocaleDateString('en-US', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+                        : '—'}
+                    </td>
+                    <td className="px-5 py-4 text-right">
+                      {member.role !== 'superadmin' && (
+                        <Button size="xs" variant="danger" onClick={() => setDeleteConfirm(member)}>
+                          Remove
+                        </Button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
           </tbody>
         </table>
 
@@ -179,52 +189,47 @@ export function StaffPage() {
         )}
       </div>
 
-      {/* Create modal */}
-      <Modal open={createModal} onClose={() => setCreateModal(false)} title="Новый сотрудник">
+      <Modal open={createModal} onClose={() => setCreateModal(false)} title="New staff member">
         <div className="flex flex-col gap-4">
-          <div className="bg-amber-500/[0.08] border border-amber-500/20 rounded-xl px-3 py-2.5 text-xs text-amber-400">
-            Если этот email уже зарегистрирован как пользователь — аккаунт будет переведён в статус сотрудника.
+          <div className="bg-amber-500/[0.08] border border-amber-500/20 rounded-xl px-3 py-2.5 text-[12px] text-amber-400">
+            If this email is already registered as a user — the account will be converted to a staff role.
           </div>
-
-          <Select label="Роль" value={form.role} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as CreateForm['role'] }))}>
+          <Select label="Role" value={form.role} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as CreateForm['role'] }))}>
             <option value="admin">Admin</option>
             <option value="operator">Operator</option>
             <option value="moderator">Moderator</option>
           </Select>
           <Input label="Email" type="email" placeholder="staff@rave.com" value={form.email}
             onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} />
-          <Input label="Username" placeholder="username (3–20 знаков)" value={form.username}
+          <Input label="Username" placeholder="username (3–20 chars)" value={form.username}
             onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))} />
-          <Input label="Пароль" type="password" placeholder="Мин. 8 знаков" value={form.password}
+          <Input label="Password" type="password" placeholder="Min 8 chars" value={form.password}
             onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} />
-          <Input label="Подтвердить пароль" type="password" placeholder="Повторите пароль" value={form.confirmPassword}
+          <Input label="Confirm password" type="password" placeholder="Repeat password" value={form.confirmPassword}
             onChange={(e) => setForm((f) => ({ ...f, confirmPassword: e.target.value }))} />
-
           {formError && (
-            <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2.5 text-xs text-red-400">
+            <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2.5 text-[12px] text-red-400">
               {formError}
             </div>
           )}
-
           <div className="flex gap-2 justify-end">
-            <Button variant="ghost" onClick={() => setCreateModal(false)}>Отмена</Button>
-            <Button variant="primary" loading={creating} onClick={() => void handleCreate()}>Создать</Button>
+            <Button variant="ghost" onClick={() => setCreateModal(false)}>Cancel</Button>
+            <Button variant="primary" loading={creating} onClick={() => void handleCreate()}>Create</Button>
           </div>
         </div>
       </Modal>
 
-      {/* Delete confirm */}
-      <Modal open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="Удалить сотрудника">
+      <Modal open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="Remove staff member">
         {deleteConfirm && (
           <div className="flex flex-col gap-4">
-            <p className="text-sm text-text-muted">
-              Удалить <span className="text-white font-medium">{deleteConfirm.username}</span>{' '}
+            <p className="text-[13px] text-text-muted">
+              Remove <span className="text-white font-medium">{deleteConfirm.username}</span>{' '}
               (<span className="text-text-dim">{deleteConfirm.email}</span>)?
-              Действие необратимо.
+              This action is irreversible.
             </p>
             <div className="flex gap-2 justify-end">
-              <Button variant="ghost" onClick={() => setDeleteConfirm(null)}>Отмена</Button>
-              <Button variant="danger" loading={deleting} onClick={() => void handleDelete()}>Удалить</Button>
+              <Button variant="ghost" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+              <Button variant="danger" loading={deleting} onClick={() => void handleDelete()}>Remove</Button>
             </div>
           </div>
         )}

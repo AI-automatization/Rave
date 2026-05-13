@@ -2,6 +2,7 @@ import { Fragment, useEffect, useState, useCallback } from 'react';
 import { RefreshCw, ChevronDown } from 'lucide-react';
 import { logsApi } from '../api/logs.api';
 import { Pagination } from '../components/ui/Pagination';
+import { PageHeader } from '../components/ui/PageHeader';
 import type { ApiLog, PaginationMeta } from '../types';
 
 function parseDevice(userAgent: string | null): string {
@@ -90,37 +91,36 @@ export function LogsPage() {
 
   return (
     <div className="flex flex-col gap-5 animate-fade-in">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">API Логи</h1>
-          <p className="text-text-muted text-sm mt-0.5 font-mono">{meta.total.toLocaleString('ru')} записей · TTL 30 дней</p>
-        </div>
-        <button
-          onClick={() => void load()}
-          disabled={loading}
-          className="flex items-center gap-1.5 text-xs text-text-dim hover:text-white px-3 py-2 rounded-xl border border-white/[0.07] hover:border-white/[0.12] transition-colors"
-        >
-          <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
-          Обновить
-        </button>
-      </div>
+      <PageHeader
+        title="API Logs"
+        meta={`${meta.total.toLocaleString('en')} records · TTL 30d`}
+        actions={
+          <button
+            onClick={() => void load()}
+            disabled={loading}
+            className="flex items-center gap-1.5 text-[12px] text-text-dim hover:text-white px-3 py-2 rounded-xl border border-white/[0.07] hover:border-white/[0.12] transition-colors"
+          >
+            <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
+            Refresh
+          </button>
+        }
+      />
 
       {/* Summary chips */}
       <div className="flex gap-2.5 flex-wrap">
-        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-card border border-white/[0.06] shadow-card text-xs">
+        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-card border border-white/[0.06] shadow-card text-[12px]">
           <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
-          <span className="text-text-muted">Ошибок на странице</span>
+          <span className="text-text-muted">Errors on page</span>
           <span className="font-mono font-semibold text-white">{errorCount}</span>
         </div>
-        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-card border border-white/[0.06] shadow-card text-xs">
+        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-card border border-white/[0.06] shadow-card text-[12px]">
           <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-          <span className="text-text-muted">Задетых юзеров</span>
+          <span className="text-text-muted">Affected users</span>
           <span className="font-mono font-semibold text-white">{affectedUsers}</span>
         </div>
-        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-card border border-white/[0.06] shadow-card text-xs">
-          <span className="text-text-muted">Всего</span>
-          <span className="font-mono font-semibold text-white">{meta.total.toLocaleString('ru')}</span>
+        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-card border border-white/[0.06] shadow-card text-[12px]">
+          <span className="text-text-muted">Total</span>
+          <span className="font-mono font-semibold text-white">{meta.total.toLocaleString('en')}</span>
         </div>
       </div>
 
@@ -193,9 +193,17 @@ export function LogsPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={8} className="px-4 py-10 text-center text-text-dim">Загрузка...</td></tr>
+                Array.from({ length: 8 }).map((_, i) => (
+                <tr key={i} className="border-b border-white/[0.03]">
+                  {[10, 12, 8, 8, 10, 14, 20, 4].map((w, j) => (
+                    <td key={j} className="px-4 py-2.5">
+                      <div className="h-3 shimmer-bg rounded" style={{ width: `${w + i}%` }} />
+                    </td>
+                  ))}
+                </tr>
+              ))
               ) : logs.length === 0 ? (
-                <tr><td colSpan={8} className="px-4 py-10 text-center text-text-dim">Логи не найдены</td></tr>
+                <tr><td colSpan={8} className="px-4 py-10 text-center text-text-dim">No logs found</td></tr>
               ) : logs.map((log) => (
                 <Fragment key={log._id}>
                   <tr

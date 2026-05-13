@@ -6,33 +6,51 @@ import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { Pagination } from '../components/ui/Pagination';
+import { PageHeader } from '../components/ui/PageHeader';
+import { FilterTabs } from '../components/ui/FilterTabs';
 import type { AdminBattle, PaginationMeta } from '../types';
 
-function statusBadge(status: AdminBattle['status']) {
-  const map: Record<AdminBattle['status'], { variant: 'green' | 'yellow' | 'blue' | 'gray' | 'red'; label: string }> = {
-    active:    { variant: 'green',  label: 'Активный' },
-    pending:   { variant: 'yellow', label: 'Ожидает' },
-    completed: { variant: 'blue',   label: 'Завершён' },
-    cancelled: { variant: 'gray',   label: 'Отменён' },
-    rejected:  { variant: 'red',    label: 'Отклонён' },
-  };
-  const { variant, label } = map[status];
-  return <Badge variant={variant} dot>{label}</Badge>;
-}
+const STATUS_TABS = [
+  { value: '',          label: 'All' },
+  { value: 'active',    label: 'Active' },
+  { value: 'pending',   label: 'Pending' },
+  { value: 'completed', label: 'Done' },
+  { value: 'cancelled', label: 'Cancelled' },
+];
+
+const STATUS_MAP: Record<AdminBattle['status'], { variant: 'green' | 'yellow' | 'blue' | 'gray' | 'red'; label: string }> = {
+  active:    { variant: 'green',  label: 'Active' },
+  pending:   { variant: 'yellow', label: 'Pending' },
+  completed: { variant: 'blue',   label: 'Completed' },
+  cancelled: { variant: 'gray',   label: 'Cancelled' },
+  rejected:  { variant: 'red',    label: 'Rejected' },
+};
 
 function formatDate(iso: string | null): string {
   if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('ru-RU', { day: '2-digit', month: 'short', year: '2-digit' });
+  return new Date(iso).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: '2-digit' });
+}
+
+function SkeletonRow() {
+  return (
+    <tr>
+      {[35, 14, 10, 12, 12, 14, 8].map((w, i) => (
+        <td key={i} className="px-5 py-4">
+          <div className="h-4 shimmer-bg rounded" style={{ width: `${w}%` }} />
+        </td>
+      ))}
+    </tr>
+  );
 }
 
 export function BattlesPage() {
   const navigate = useNavigate();
 
-  const [battles, setBattles] = useState<AdminBattle[]>([]);
-  const [meta, setMeta]       = useState<PaginationMeta>({ page: 1, limit: 20, total: 0, totalPages: 1 });
-  const [loading, setLoading] = useState(true);
+  const [battles, setBattles]   = useState<AdminBattle[]>([]);
+  const [meta, setMeta]         = useState<PaginationMeta>({ page: 1, limit: 20, total: 0, totalPages: 1 });
+  const [loading, setLoading]   = useState(true);
   const [statusFilter, setStatusFilter] = useState('');
-  const [page, setPage]       = useState(1);
+  const [page, setPage]         = useState(1);
 
   const [detailModal, setDetailModal] = useState<AdminBattle | null>(null);
   const [actionModal, setActionModal] = useState<{ battle: AdminBattle; action: 'end' | 'cancel' } | null>(null);
@@ -64,114 +82,108 @@ export function BattlesPage() {
     } finally { setActionLoading(null); }
   };
 
-  const totalParticipants  = (b: AdminBattle) => b.participants?.length ?? 0;
-  const acceptedCount      = (b: AdminBattle) => b.participants?.filter((p) => p.hasAccepted).length ?? 0;
-  const topScore           = (b: AdminBattle) => b.participants ? Math.max(0, ...b.participants.map((p) => p.score)) : 0;
+  const totalParticipants = (b: AdminBattle) => b.participants?.length ?? 0;
+  const acceptedCount     = (b: AdminBattle) => b.participants?.filter((p) => p.hasAccepted).length ?? 0;
+  const topScore          = (b: AdminBattle) => b.participants ? Math.max(0, ...b.participants.map((p) => p.score)) : 0;
 
   return (
     <div className="flex flex-col gap-5 animate-fade-in">
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Battles</h1>
-          <p className="text-text-muted text-sm mt-0.5">{meta.total.toLocaleString('ru')} всего</p>
-        </div>
-        <div className="flex items-center gap-2 text-xs text-text-dim bg-card rounded-xl px-3 py-2 border border-white/[0.06]">
-          <Swords size={13} />
-          <span>Соревнования</span>
-        </div>
-      </div>
+      <PageHeader title="Battles" meta={`${meta.total.toLocaleString('en')} total`} />
 
-      {/* Filter */}
-      <div className="flex flex-wrap gap-2.5">
-        <select
-          value={statusFilter}
-          onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-          className="bg-surface border border-border hover:border-border-md rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent/30 transition-all"
-        >
-          <option value="">Все статусы</option>
-          <option value="pending">Ожидает</option>
-          <option value="active">Активный</option>
-          <option value="completed">Завершён</option>
-          <option value="cancelled">Отменён</option>
-          <option value="rejected">Отклонён</option>
-        </select>
-      </div>
+      <FilterTabs
+        options={STATUS_TABS}
+        value={statusFilter}
+        onChange={(v) => { setStatusFilter(v); setPage(1); }}
+      />
 
       {/* Table */}
       <div className="bg-card rounded-2xl shadow-card overflow-hidden">
-        <table className="w-full text-sm">
+        <table className="w-full">
           <thead>
             <tr className="border-b border-white/[0.05]">
-              {['Название', 'Статус', 'Длит.', 'Участники', 'Лучший балл', 'Конец', ''].map((h) => (
-                <th key={h} className="text-left px-5 py-3.5 text-[11px] font-semibold text-text-dim uppercase tracking-wider last:text-right">
+              {['Title', 'Status', 'Duration', 'Participants', 'Top score', 'End date', ''].map((h) => (
+                <th key={h} className="text-left px-5 py-3.5 text-[10px] font-semibold text-text-dim uppercase tracking-[0.08em] last:text-right">
                   {h}
                 </th>
               ))}
             </tr>
           </thead>
           <tbody className="divide-y divide-white/[0.03]">
-            {loading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <tr key={i}>
-                  {Array.from({ length: 7 }).map((__, j) => (
-                    <td key={j} className="px-5 py-4">
-                      <div className="h-4 bg-white/[0.05] rounded animate-pulse" style={{ width: `${50 + (i * j * 13) % 40}%` }} />
-                    </td>
-                  ))}
-                </tr>
-              ))
-            ) : battles.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="px-5 py-12 text-center text-text-muted">Battle не найден</td>
-              </tr>
-            ) : battles.map((battle) => (
-              <tr key={battle._id} className="tr-hover cursor-pointer" onClick={() => setDetailModal(battle)}>
-                <td className="px-5 py-4">
-                  <p className="font-medium text-white">{battle.title}</p>
-                  <p className="text-xs text-text-dim font-mono mt-0.5">{battle.creatorId.slice(-10)}</p>
-                </td>
-                <td className="px-5 py-4">{statusBadge(battle.status)}</td>
-                <td className="px-5 py-4 text-text-muted text-xs whitespace-nowrap">{battle.duration} дн.</td>
-                <td className="px-5 py-4">
-                  <div className="flex items-center gap-1">
-                    <Users size={12} className="text-text-dim" />
-                    <span className="text-white">{acceptedCount(battle)}</span>
-                    <span className="text-text-dim">/{totalParticipants(battle)}</span>
-                  </div>
-                </td>
-                <td className="px-5 py-4">
-                  {topScore(battle) > 0 ? (
-                    <div className="flex items-center gap-1">
-                      <Trophy size={12} className="text-amber-400" />
-                      <span className="text-amber-400 font-mono text-xs font-semibold">{topScore(battle)}</span>
+            {loading
+              ? Array.from({ length: 6 }).map((_, i) => <SkeletonRow key={i} />)
+              : battles.length === 0
+              ? (
+                <tr>
+                  <td colSpan={7} className="py-16 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="w-11 h-11 rounded-2xl bg-white/[0.04] flex items-center justify-center">
+                        <Swords size={20} className="text-text-dim" />
+                      </div>
+                      <p className="text-text-muted text-sm font-medium">No battles found</p>
                     </div>
-                  ) : <span className="text-text-dim">—</span>}
-                </td>
-                <td className="px-5 py-4 text-text-muted text-xs whitespace-nowrap">
-                  <div className="flex items-center gap-1">
-                    <Clock size={11} className="text-text-dim" />
-                    {formatDate(battle.endDate)}
-                  </div>
-                </td>
-                <td className="px-5 py-4" onClick={(e) => e.stopPropagation()}>
-                  <div className="flex items-center justify-end gap-1.5">
-                    {battle.status === 'active' && (
-                      <Button size="sm" variant="danger" loading={actionLoading === battle._id}
-                        onClick={() => setActionModal({ battle, action: 'end' })}>
-                        Завершить
-                      </Button>
-                    )}
-                    {battle.status === 'pending' && (
-                      <Button size="sm" variant="secondary" loading={actionLoading === battle._id}
-                        onClick={() => setActionModal({ battle, action: 'cancel' })}>
-                        Отменить
-                      </Button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
+                  </td>
+                </tr>
+              )
+              : battles.map((battle) => {
+                const sm = STATUS_MAP[battle.status];
+                return (
+                  <tr key={battle._id} className="tr-hover group cursor-pointer" onClick={() => setDetailModal(battle)}>
+                    <td className="px-5 py-4">
+                      <p className="text-[13px] font-medium text-white">{battle.title}</p>
+                      <p className="text-[10px] text-text-dim font-mono mt-0.5">{battle.creatorId.slice(-10)}</p>
+                    </td>
+
+                    <td className="px-5 py-4">
+                      <Badge variant={sm.variant} dot>{sm.label}</Badge>
+                    </td>
+
+                    <td className="px-5 py-4">
+                      <span className="text-[12px] text-text-muted tabular-nums">{battle.duration}d</span>
+                    </td>
+
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-1.5">
+                        <Users size={12} className="text-text-dim" />
+                        <span className="text-[12px] text-white tabular-nums">{acceptedCount(battle)}</span>
+                        <span className="text-[12px] text-text-dim">/{totalParticipants(battle)}</span>
+                      </div>
+                    </td>
+
+                    <td className="px-5 py-4">
+                      {topScore(battle) > 0 ? (
+                        <div className="flex items-center gap-1">
+                          <Trophy size={11} className="text-amber-400 shrink-0" />
+                          <span className="text-[12px] text-amber-400 font-semibold tabular-nums">{topScore(battle)}</span>
+                        </div>
+                      ) : <span className="text-text-dim text-[12px]">—</span>}
+                    </td>
+
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-1">
+                        <Clock size={11} className="text-text-dim" />
+                        <span className="text-[12px] text-text-muted whitespace-nowrap">{formatDate(battle.endDate)}</span>
+                      </div>
+                    </td>
+
+                    <td className="px-5 py-4" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {battle.status === 'active' && (
+                          <Button size="xs" variant="danger" loading={actionLoading === battle._id}
+                            onClick={() => setActionModal({ battle, action: 'end' })}>
+                            End
+                          </Button>
+                        )}
+                        {battle.status === 'pending' && (
+                          <Button size="xs" variant="secondary" loading={actionLoading === battle._id}
+                            onClick={() => setActionModal({ battle, action: 'cancel' })}>
+                            Cancel
+                          </Button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
           </tbody>
         </table>
 
@@ -186,80 +198,84 @@ export function BattlesPage() {
       <Modal open={!!detailModal} onClose={() => setDetailModal(null)} title={detailModal?.title ?? 'Battle'} size="md">
         {detailModal && (
           <div className="flex flex-col gap-4">
-            <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="grid grid-cols-2 gap-2">
               {[
-                { label: 'Статус',    value: statusBadge(detailModal.status), raw: true },
-                { label: 'Длит.',     value: `${detailModal.duration} дней` },
-                { label: 'Начало',    value: formatDate(detailModal.startDate) },
-                { label: 'Конец',     value: formatDate(detailModal.endDate) },
+                { label: 'Status',   value: <Badge variant={STATUS_MAP[detailModal.status].variant} dot>{STATUS_MAP[detailModal.status].label}</Badge> },
+                { label: 'Duration', value: `${detailModal.duration} days` },
+                { label: 'Start',    value: formatDate(detailModal.startDate) },
+                { label: 'End',      value: formatDate(detailModal.endDate) },
               ].map((item) => (
-                <div key={item.label} className="bg-bg/60 rounded-lg px-3 py-2 border border-white/[0.04]">
-                  <p className="text-[10px] text-text-dim uppercase tracking-wider mb-1">{item.label}</p>
-                  {'raw' in item ? item.value : <p className="text-white font-medium">{item.value}</p>}
+                <div key={item.label} className="bg-surface rounded-xl px-3 py-2.5 border border-white/[0.04]">
+                  <p className="text-[10px] text-text-dim uppercase tracking-[0.08em] mb-1.5">{item.label}</p>
+                  {typeof item.value === 'string'
+                    ? <p className="text-[13px] text-white font-medium">{item.value}</p>
+                    : item.value}
                 </div>
               ))}
-              <div className="col-span-2 bg-bg/60 rounded-lg px-3 py-2 border border-white/[0.04]">
-                <p className="text-[10px] text-text-dim uppercase tracking-wider mb-1">Creator</p>
-                <p className="text-white font-mono text-xs">{detailModal.creatorId}</p>
+              <div className="col-span-2 bg-surface rounded-xl px-3 py-2.5 border border-white/[0.04]">
+                <p className="text-[10px] text-text-dim uppercase tracking-[0.08em] mb-1.5">Creator ID</p>
+                <p className="text-[12px] text-white font-mono">{detailModal.creatorId}</p>
               </div>
               {detailModal.winnerId && (
-                <div className="col-span-2 bg-amber-500/[0.07] rounded-lg px-3 py-2 border border-amber-500/20">
-                  <p className="text-[10px] text-amber-400/70 uppercase tracking-wider mb-1">🏆 Победитель</p>
-                  <p className="text-amber-400 font-mono text-xs">{detailModal.winnerId}</p>
+                <div className="col-span-2 bg-amber-500/[0.06] rounded-xl px-3 py-2.5 border border-amber-500/20">
+                  <p className="text-[10px] text-amber-400/60 uppercase tracking-[0.08em] mb-1.5">🏆 Winner</p>
+                  <p className="text-[12px] text-amber-400 font-mono">{detailModal.winnerId}</p>
                 </div>
               )}
             </div>
 
             {/* Participants */}
-            <div>
-              <p className="text-[10px] text-text-dim uppercase tracking-wider mb-2 font-semibold">
-                Участники ({detailModal.participants?.length ?? 0})
-              </p>
-              {!detailModal.participants?.length ? (
-                <p className="text-text-dim text-xs">Нет участников</p>
-              ) : (
+            {!!detailModal.participants?.length && (
+              <div>
+                <p className="text-[10px] text-text-dim uppercase tracking-[0.08em] mb-2">
+                  Participants ({detailModal.participants.length})
+                </p>
                 <div className="flex flex-col gap-1">
                   {[...detailModal.participants].sort((a, b) => b.score - a.score).map((p, i) => (
-                    <div key={p.userId} className={`flex items-center justify-between rounded-lg px-3 py-2 text-xs ${i === 0 && p.score > 0 ? 'bg-amber-500/[0.07] border border-amber-500/20' : 'bg-bg/60 border border-white/[0.04]'}`}>
-                      <div className="flex items-center gap-2">
-                        <span className={`font-bold w-4 text-center ${i === 0 && p.score > 0 ? 'text-amber-400' : 'text-text-dim'}`}>
+                    <div key={p.userId} className={`flex items-center justify-between rounded-xl px-3 py-2.5 ${
+                      i === 0 && p.score > 0
+                        ? 'bg-amber-500/[0.06] border border-amber-500/20'
+                        : 'bg-surface border border-white/[0.04]'
+                    }`}>
+                      <div className="flex items-center gap-2.5">
+                        <span className={`text-[11px] font-bold w-4 text-center ${i === 0 && p.score > 0 ? 'text-amber-400' : 'text-text-dim'}`}>
                           {i + 1}
                         </span>
                         <div>
                           <button
-                            className="font-mono text-text-muted hover:text-white transition-colors"
+                            className="text-[12px] font-mono text-text-muted hover:text-white transition-colors"
                             onClick={() => { setDetailModal(null); navigate(`/user-activity?userId=${p.userId}`); }}
                           >
                             {p.userId.slice(-12)}
                           </button>
-                          <div className="flex gap-3 text-text-dim mt-0.5">
-                            <span>{p.moviesWatched} фильмов</span>
-                            <span>{Math.floor(p.minutesWatched / 60)}ч {p.minutesWatched % 60}м</span>
-                            {!p.hasAccepted && <span className="text-amber-400/70">не принял</span>}
+                          <div className="flex gap-3 text-[10px] text-text-dim mt-0.5">
+                            <span>{p.moviesWatched} movies</span>
+                            <span>{Math.floor(p.minutesWatched / 60)}h {p.minutesWatched % 60}m</span>
+                            {!p.hasAccepted && <span className="text-amber-400/70">not accepted</span>}
                           </div>
                         </div>
                       </div>
-                      <span className={`font-bold tabular-nums ${i === 0 && p.score > 0 ? 'text-amber-400' : 'text-white'}`}>
+                      <span className={`text-[13px] font-bold tabular-nums ${i === 0 && p.score > 0 ? 'text-amber-400' : 'text-white'}`}>
                         {p.score}
                       </span>
                     </div>
                   ))}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
             <div className="flex gap-2 justify-end pt-1 border-t border-white/[0.05]">
-              <Button variant="ghost" onClick={() => setDetailModal(null)}>Закрыть</Button>
+              <Button variant="ghost" onClick={() => setDetailModal(null)}>Close</Button>
               {detailModal.status === 'pending' && (
                 <Button variant="secondary" loading={actionLoading === detailModal._id}
                   onClick={() => { setDetailModal(null); setActionModal({ battle: detailModal, action: 'cancel' }); }}>
-                  Отменить
+                  Cancel battle
                 </Button>
               )}
               {detailModal.status === 'active' && (
                 <Button variant="danger" loading={actionLoading === detailModal._id}
                   onClick={() => { setDetailModal(null); setActionModal({ battle: detailModal, action: 'end' }); }}>
-                  Завершить
+                  End battle
                 </Button>
               )}
             </div>
@@ -267,28 +283,25 @@ export function BattlesPage() {
         )}
       </Modal>
 
-      {/* Confirm action modal */}
-      <Modal
-        open={!!actionModal}
-        onClose={() => setActionModal(null)}
-        title={actionModal?.action === 'end' ? 'Завершить battle' : 'Отменить battle'}
-      >
+      {/* Confirm modal */}
+      <Modal open={!!actionModal} onClose={() => setActionModal(null)}
+        title={actionModal?.action === 'end' ? 'End battle' : 'Cancel battle'}>
         {actionModal && (
           <div className="flex flex-col gap-4">
-            <p className="text-sm text-text-muted">
+            <p className="text-[13px] text-text-muted">
               {actionModal.action === 'end'
-                ? 'Принудительно завершить? Победитель определится по текущим баллам.'
-                : 'Отменить этот battle?'}
-              {' '}<span className="text-white font-medium">«{actionModal.battle.title}»</span>
+                ? 'Force-end this battle? Winner will be determined by current scores.'
+                : 'Cancel this battle?'}{' '}
+              <span className="text-white font-medium">"{actionModal.battle.title}"</span>
             </p>
             <div className="flex gap-2 justify-end">
-              <Button variant="ghost" onClick={() => setActionModal(null)}>Отмена</Button>
+              <Button variant="ghost" onClick={() => setActionModal(null)}>Cancel</Button>
               <Button
                 variant={actionModal.action === 'end' ? 'danger' : 'secondary'}
                 loading={!!actionLoading}
                 onClick={() => void handleAction()}
               >
-                {actionModal.action === 'end' ? 'Завершить' : 'Отменить'}
+                {actionModal.action === 'end' ? 'End battle' : 'Cancel battle'}
               </Button>
             </div>
           </div>
