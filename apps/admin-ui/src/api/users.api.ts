@@ -33,4 +33,8 @@ export const usersApi = {
   delete: async (id: string): Promise<void> => {
     await apiClient.delete(`/admin/users/${id}`);
   },
+
+  setRestrictions: async (id: string, restrictions: string[]): Promise<void> => {
+    await apiClient.patch(`/admin/users/${id}/restrictions`, { restrictions });
+  },
 };

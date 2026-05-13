@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Tv2, Play, Pause, SkipForward, UserMinus, XCircle, Search } from 'lucide-react';
+import { Tv2, Play, Pause, SkipForward, UserMinus, XCircle, Search, ShieldOff, Link as LinkIcon } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { watchPartiesApi } from '../api/watchparties.api';
 import { useAuthStore } from '../store/auth.store';
 import { Badge } from '../components/ui/Badge';
@@ -41,11 +42,15 @@ export function WatchPartiesPage() {
   const [meta, setMeta]         = useState<PaginationMeta>({ page: 1, limit: 20, total: 0, totalPages: 1 });
   const [loading, setLoading]   = useState(true);
   const [statusFilter, setStatusFilter] = useState('');
+  const [suspiciousOnly, setSuspiciousOnly] = useState(false);
   const [page, setPage]         = useState(1);
 
   const [confirmModal, setConfirmModal] = useState<{ room: AdminWatchParty } | null>(null);
   const [closeReason, setCloseReason]   = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  const [blockModal, setBlockModal] = useState<{ room: AdminWatchParty } | null>(null);
+  const [blockReason, setBlockReason] = useState('');
 
   const [adminPanel, setAdminPanel] = useState<{ room: AdminWatchParty } | null>(null);
   const [seekTime, setSeekTime]     = useState('');
@@ -54,14 +59,15 @@ export function WatchPartiesPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const params: { page: number; limit: number; status?: string } = { page, limit: 20 };
+      const params: { page: number; limit: number; status?: string; suspicious?: boolean } = { page, limit: 20 };
       if (statusFilter) params.status = statusFilter;
+      if (suspiciousOnly) params.suspicious = true;
       const res = await watchPartiesApi.list(params);
       setRooms(res.data);
       setMeta(res.meta);
     } catch { /* silent */ }
     finally { setLoading(false); }
-  }, [page, statusFilter]);
+  }, [page, statusFilter, suspiciousOnly]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -72,6 +78,17 @@ export function WatchPartiesPage() {
       await watchPartiesApi.closeRoom(confirmModal.room._id, closeReason.trim() || undefined);
       setConfirmModal(null);
       setCloseReason('');
+      await load();
+    } finally { setActionLoading(null); }
+  };
+
+  const handleBlockRoom = async () => {
+    if (!blockModal) return;
+    setActionLoading(blockModal.room._id);
+    try {
+      await watchPartiesApi.blockRoom(blockModal.room._id, blockReason.trim() || undefined);
+      setBlockModal(null);
+      setBlockReason('');
       await load();
     } finally { setActionLoading(null); }
   };
@@ -123,7 +140,7 @@ export function WatchPartiesPage() {
       </div>
 
       {/* Filter */}
-      <div className="flex flex-wrap gap-2.5">
+      <div className="flex flex-wrap gap-2.5 items-center">
         <select
           value={statusFilter}
           onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
@@ -135,6 +152,18 @@ export function WatchPartiesPage() {
           <option value="paused">Пауза</option>
           <option value="ended">Завершён</option>
         </select>
+
+        <button
+          onClick={() => { setSuspiciousOnly((v) => !v); setPage(1); }}
+          className={`flex items-center gap-2 h-10 px-3.5 rounded-xl text-sm border transition-all ${
+            suspiciousOnly
+              ? 'bg-red-500/15 border-red-500/30 text-red-400'
+              : 'bg-surface border-border text-text-muted hover:border-border-md hover:text-white'
+          }`}
+        >
+          <ShieldOff size={14} />
+          Подозрительные
+        </button>
       </div>
 
       {/* Table */}
@@ -142,7 +171,7 @@ export function WatchPartiesPage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-white/[0.05]">
-              {['Комната', 'Статус', 'Контент', 'Участники', 'Создана', ''].map((h) => (
+              {['Комната', 'Статус', 'Домен', 'Контент', 'Участники', 'Создана', ''].map((h) => (
                 <th key={h} className="text-left px-5 py-3.5 text-[11px] font-semibold text-text-dim uppercase tracking-wider last:text-right">
                   {h}
                 </th>
@@ -153,7 +182,7 @@ export function WatchPartiesPage() {
             {loading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <tr key={i}>
-                  {Array.from({ length: 6 }).map((__, j) => (
+                  {Array.from({ length: 7 }).map((__, j) => (
                     <td key={j} className="px-5 py-4">
                       <div className="h-4 bg-white/[0.05] rounded animate-pulse" style={{ width: `${50 + (i * j * 9) % 40}%` }} />
                     </td>
@@ -162,15 +191,38 @@ export function WatchPartiesPage() {
               ))
             ) : rooms.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-5 py-12 text-center text-text-muted">Watch Party не найден</td>
+                <td colSpan={7} className="px-5 py-12 text-center text-text-muted">Watch Party не найден</td>
               </tr>
             ) : rooms.map((room) => (
               <tr key={room._id} className="tr-hover">
                 <td className="px-5 py-4">
-                  <p className="font-medium text-white">{room.name ?? room.inviteCode}</p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-medium text-white">{room.name ?? room.inviteCode}</p>
+                    {room.isSuspicious && (
+                      <span
+                        title={room.suspiciousReason ?? 'Подозрительная активность'}
+                        className="inline-flex items-center gap-1 text-[11px] font-medium bg-red-500/10 text-red-400 border border-red-500/20 px-1.5 py-0.5 rounded cursor-help"
+                      >
+                        ⚠️ Подозр.
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-text-dim font-mono mt-0.5">{room.ownerId.slice(-8)}</p>
                 </td>
                 <td className="px-5 py-4">{statusBadge(room.status)}</td>
+                <td className="px-5 py-4">
+                  {room.domain ? (
+                    <Link
+                      to="/domains"
+                      className="flex items-center gap-1 text-xs text-accent hover:text-accent/80 transition-colors"
+                    >
+                      <LinkIcon size={11} />
+                      {room.domain}
+                    </Link>
+                  ) : (
+                    <span className="text-text-dim text-xs">—</span>
+                  )}
+                </td>
                 <td className="px-5 py-4 max-w-[200px]">
                   {room.videoTitle ? (
                     <p className="text-white text-xs truncate">{room.videoTitle}</p>
@@ -208,6 +260,16 @@ export function WatchPartiesPage() {
                         title="Войти как наблюдатель"
                       >
                         <Search size={15} />
+                      </button>
+                    )}
+                    {isSuperAdmin && room.status !== 'ended' && (
+                      <button
+                        onClick={() => setBlockModal({ room })}
+                        disabled={actionLoading === room._id}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg text-text-dim hover:text-amber-400 hover:bg-amber-400/10 transition-colors"
+                        title="Заблокировать комнату"
+                      >
+                        <ShieldOff size={15} />
                       </button>
                     )}
                     {isSuperAdmin && room.status !== 'ended' && (
@@ -304,6 +366,30 @@ export function WatchPartiesPage() {
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Block room modal */}
+      <Modal open={!!blockModal} onClose={() => { setBlockModal(null); setBlockReason(''); }} title="Заблокировать комнату">
+        {blockModal && (
+          <div className="flex flex-col gap-4">
+            <p className="text-sm text-text-muted">
+              Заблокировать комнату{' '}
+              <span className="text-white font-medium font-mono">{blockModal.room.inviteCode}</span>?
+              Комната будет недоступна для всех участников.
+            </p>
+            <textarea
+              placeholder="Причина блокировки (опционально)..."
+              value={blockReason}
+              onChange={(e) => setBlockReason(e.target.value)}
+              rows={2}
+              className="bg-surface border border-border rounded-xl px-3 py-2.5 text-sm text-white placeholder-text-dim focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent/50 resize-none transition-all"
+            />
+            <div className="flex gap-2 justify-end">
+              <Button variant="ghost" onClick={() => { setBlockModal(null); setBlockReason(''); }}>Отмена</Button>
+              <Button variant="danger" loading={!!actionLoading} onClick={() => void handleBlockRoom()}>Заблокировать</Button>
             </div>
           </div>
         )}

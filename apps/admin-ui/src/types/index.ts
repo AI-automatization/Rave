@@ -57,6 +57,7 @@ export interface AdminUser {
   isEmailVerified: boolean;
   createdAt: string;
   lastLoginAt: string | null;
+  restrictions?: string[];
 }
 
 // ── Staff ─────────────────────────────────────────────────────
@@ -163,6 +164,9 @@ export interface AdminWatchParty {
   maxMembers: number;
   lastActivityAt: string;
   createdAt: string;
+  domain?: string | null;
+  isSuspicious?: boolean;
+  suspiciousReason?: string | null;
 }
 
 export interface AuditLog {

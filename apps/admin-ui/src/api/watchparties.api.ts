@@ -6,9 +6,14 @@ export const watchPartiesApi = {
     page?: number;
     limit?: number;
     status?: string;
+    suspicious?: boolean;
   }): Promise<PaginatedResponse<AdminWatchParty>> => {
     const res = await apiClient.get<PaginatedResponse<AdminWatchParty>>('/admin/watchparties', { params });
     return res.data;
+  },
+
+  blockRoom: async (id: string, reason?: string): Promise<void> => {
+    await apiClient.patch<ApiResponse<null>>(`/admin/watchparties/${id}/block-room`, { reason });
   },
 
   closeRoom: async (id: string, reason?: string): Promise<void> => {

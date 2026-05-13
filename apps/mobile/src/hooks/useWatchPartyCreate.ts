@@ -6,6 +6,8 @@ import { watchPartyApi } from '@api/watchParty.api';
 import { contentApi } from '@api/content.api';
 import { userApi } from '@api/user.api';
 import { useVideoExtraction } from '@hooks/useVideoExtraction';
+import { isDomainBlocked } from '@constants/blockedDomains';
+import { extractDomain } from '@utils/videoPlayer';
 import type { IMovie, IUserPublic } from '@app-types/index';
 
 const MAX_MEMBERS_OPTIONS = [2, 4, 6, 8, 10] as const;
@@ -30,6 +32,7 @@ interface UseWatchPartyCreateReturn {
   selectedMovie: IMovie | null;
   videoUrl: string;
   setVideoUrl: (v: string) => void;
+  urlError: string | null;
 
   // Film mode actions
   switchToCatalog: () => void;
@@ -67,6 +70,7 @@ export function useWatchPartyCreate(): UseWatchPartyCreateReturn {
   const [searching, setSearching] = useState(false);
   const [selectedMovie, setSelectedMovie] = useState<IMovie | null>(null);
   const [videoUrl, setVideoUrl] = useState('');
+  const [urlError, setUrlError] = useState<string | null>(null);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const extractTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -127,9 +131,20 @@ export function useWatchPartyCreate(): UseWatchPartyCreateReturn {
     };
   }, [videoUrl, filmMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const handleVideoUrlChange = useCallback((value: string) => {
+    setVideoUrl(value);
+    const domain = extractDomain(value.trim());
+    if (domain && isDomainBlocked(value.trim())) {
+      setUrlError('Этот сайт заблокирован политикой платформы');
+    } else {
+      setUrlError(null);
+    }
+  }, []);
+
   const switchToCatalog = useCallback(() => {
     setFilmMode('catalog');
     setVideoUrl('');
+    setUrlError(null);
     resetExtract();
   }, [resetExtract]);
 
@@ -173,6 +188,10 @@ export function useWatchPartyCreate(): UseWatchPartyCreateReturn {
       Alert.alert('Xato', 'Video URL kiriting');
       return;
     }
+    if (filmMode === 'url' && videoUrl.trim() && isDomainBlocked(videoUrl.trim())) {
+      Alert.alert('Xato', 'Этот сайт заблокирован политикой платформы');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -203,10 +222,16 @@ export function useWatchPartyCreate(): UseWatchPartyCreateReturn {
     } catch (err: unknown) {
       let msg = 'Xona yaratib bo\'lmadi. Qayta urinib ko\'ring.';
       if (err && typeof err === 'object' && 'response' in err) {
-        const resp = (err as { response?: { data?: { message?: string }; status?: number } }).response;
-        if (resp?.data?.message) msg = resp.data.message;
-        else if (resp?.status === 401) msg = 'Sessiya tugagan. Qayta kiring.';
-        else if (resp?.status === 403) msg = 'Ruxsat berilmagan.';
+        const resp = (err as { response?: { data?: { message?: string; code?: string }; status?: number } }).response;
+        if (resp?.data?.code === 'USER_RESTRICTED') {
+          msg = 'Ваш аккаунт ограничен и не может выполнять это действие';
+        } else if (resp?.data?.message) {
+          msg = resp.data.message;
+        } else if (resp?.status === 401) {
+          msg = 'Sessiya tugagan. Qayta kiring.';
+        } else if (resp?.status === 403) {
+          msg = 'Ruxsat berilmagan.';
+        }
       }
       Alert.alert('Xato', msg);
     } finally {
@@ -231,7 +256,8 @@ export function useWatchPartyCreate(): UseWatchPartyCreateReturn {
     searching,
     selectedMovie,
     videoUrl,
-    setVideoUrl,
+    setVideoUrl: handleVideoUrlChange,
+    urlError,
 
     switchToCatalog,
     switchToUrl,

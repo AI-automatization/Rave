@@ -6,6 +6,8 @@ import { logger } from '@shared/utils/logger';
 import { NotFoundError, ForbiddenError, BadRequestError, UnauthorizedError } from '@shared/utils/errors';
 import { SyncState, VideoPlatform, VideoItem } from '@shared/types';
 import { REDIS_KEYS, TTL, LIMITS } from '@shared/constants';
+import { checkContent, extractDomain } from '../utils/contentFilter';
+import { logDomainVisit, isDomainBlocked, getUserRestrictions } from '@shared/utils/serviceClient';
 
 const SYNC_THRESHOLD_SECONDS = 2;
 // WebView sync ~150-400ms extra latency — 0.5s qo'shimcha tolerance
@@ -38,6 +40,12 @@ export class WatchPartyService {
       throw new BadRequestError('Either movieId or videoUrl is required');
     }
 
+    // Check user restrictions
+    const restrictions = await getUserRestrictions(ownerId);
+    if (restrictions.includes('create_room')) {
+      throw new ForbiddenError('USER_RESTRICTED: You are not allowed to create rooms');
+    }
+
     if (videoUrl) {
       if (!/^https?:\/\//i.test(videoUrl)) {
         throw new BadRequestError('videoUrl must start with http:// or https://');
@@ -54,6 +62,22 @@ export class WatchPartyService {
       }
     }
 
+    // Check content and extract domain
+    const title = options.videoTitle ?? '';
+    const url = options.videoUrl ?? '';
+    const domain = extractDomain(url);
+    const filterResult = checkContent(`${title} ${url}`);
+
+    // Block critical content (CSAM etc.) immediately
+    if (filterResult.severity === 'critical') {
+      throw new ForbiddenError('Content not allowed on this platform');
+    }
+
+    // Check if domain is in admin-blocked list
+    if (domain && await isDomainBlocked(domain)) {
+      throw new ForbiddenError('Domain is blocked by platform policy');
+    }
+
     const inviteCode = crypto.randomBytes(3).toString('hex').toUpperCase(); // 6 chars
 
     // Hash password only for private rooms with a password set
@@ -63,20 +87,26 @@ export class WatchPartyService {
     }
 
     const room = await WatchPartyRoom.create({
-      name:           name ?? null,
-      movieId:        movieId ?? null,
-      videoUrl:       videoUrl ?? null,
-      videoTitle:     videoTitle ?? null,
-      videoThumbnail: videoThumbnail ?? null,
-      videoPlatform:  videoPlatform ?? null,
+      name:             name ?? null,
+      movieId:          movieId ?? null,
+      videoUrl:         videoUrl ?? null,
+      videoTitle:       videoTitle ?? null,
+      videoThumbnail:   videoThumbnail ?? null,
+      videoPlatform:    videoPlatform ?? null,
       ownerId,
-      members: [ownerId],
-      maxMembers: Math.min(maxMembers, LIMITS.MAX_WATCH_PARTY_MEMBERS),
+      members:          [ownerId],
+      maxMembers:       Math.min(maxMembers, LIMITS.MAX_WATCH_PARTY_MEMBERS),
       inviteCode,
       isPrivate,
-      password:       passwordHash,
-      currentTime:    startTime,
+      password:         passwordHash,
+      currentTime:      startTime,
+      isSuspicious:     filterResult.isSuspicious,
+      suspiciousReason: filterResult.reason ?? null,
+      domain:           domain ?? null,
     });
+
+    // Non-blocking domain visit log — don't fail room creation on error
+    if (domain) void logDomainVisit(domain, ownerId);
 
     await this.cacheRoomState(room._id.toString(), {
       currentTime: startTime,

@@ -320,6 +320,12 @@ export class ProfileService {
     logger.info('User role changed via admin API', { userId, newRole });
   }
 
+  async adminSetRestrictions(userId: string, restrictions: string[]): Promise<void> {
+    const result = await User.updateOne({ authId: userId }, { restrictions });
+    if (result.matchedCount === 0) throw new NotFoundError('User not found');
+    logger.info('User restrictions updated', { userId, restrictions });
+  }
+
   async adminDeleteUser(userId: string): Promise<void> {
     const result = await User.deleteOne({ authId: userId });
     if (result.deletedCount === 0) throw new NotFoundError('User not found');

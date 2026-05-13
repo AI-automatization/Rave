@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -13,6 +13,7 @@ import { verifyToken, optionalAuth, requireRole, requireNotBlocked } from '@shar
 import { apiRateLimiter, userRateLimiter } from '@shared/middleware/rateLimiter.middleware';
 import { requireInternalSecret } from '@shared/utils/serviceClient';
 import { validate, createMovieSchema } from '../validators/content.validator';
+import { UrlVisit } from '../models/urlVisit.model';
 
 // diskStorage — memoryStorage 2GB OOM crash dan himoya
 const videoUploadDir = process.env.VIDEO_UPLOAD_TMP ?? '/tmp/cinesync-video-uploads';
@@ -141,6 +142,19 @@ export const createContentRouter = (redis: Redis, elastic: ElasticsearchClient):
   router.post('/internal/admin/movies/:id/unpublish', requireInternalSecret, contentController.adminUnpublishMovie);
   router.delete('/internal/admin/movies/:id', requireInternalSecret, contentController.adminDeleteMovie);
   router.patch('/internal/admin/movies/:id', requireInternalSecret, contentController.adminOperatorUpdateMovie);
+
+  // ── Internal Domain Logging ───────────────────────────────
+  // POST /content/internal/domains/visit — called by watch-party service on room creation
+  router.post('/internal/domains/visit', requireInternalSecret, async (req: Request, res: Response) => {
+    const { domain, userId } = req.body as { domain: string; userId?: string };
+    if (!domain) { res.status(400).json({ ok: false }); return; }
+    await UrlVisit.updateOne(
+      { domain },
+      { $inc: { count: 1 }, $set: { lastSeen: new Date() }, $setOnInsert: { domain } },
+      { upsert: true },
+    );
+    res.json({ ok: true });
+  });
 
   return router;
 };

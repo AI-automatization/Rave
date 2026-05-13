@@ -52,6 +52,20 @@ export async function triggerAchievement(userId: string, event: AchievementEvent
   }
 }
 
+export async function getUserRestrictions(userId: string): Promise<string[]> {
+  try {
+    const res = await axios.get<{ data: { restrictions: string[] } }>(
+      `${userServiceUrl}/api/v1/users/internal/users/${userId}/restrictions`,
+      { headers: internalHeaders, timeout: 3000 },
+    );
+    return res.data.data?.restrictions ?? [];
+  } catch (err) {
+    const error = err as AxiosError;
+    logger.error('[serviceClient] getUserRestrictions failed', { userId, message: error.message });
+    return [];
+  }
+}
+
 export async function getUserFcmTokens(userId: string): Promise<string[]> {
   try {
     const res = await axios.get<{ data: { tokens: string[] } }>(
@@ -142,6 +156,26 @@ export async function sendInternalNotification(payload: {
 }
 
 // ─── Content Service ───────────────────────────────────────────────────────────
+
+export async function logDomainVisit(domain: string, userId: string): Promise<void> {
+  try {
+    await axios.post(
+      `${contentServiceUrl}/api/v1/content/internal/domains/visit`,
+      { domain, userId }, { headers: internalHeaders, timeout: 3000 },
+    );
+  } catch { /* non-blocking — don't fail room creation */ }
+}
+
+export async function isDomainBlocked(domain: string): Promise<boolean> {
+  try {
+    const res = await axios.get<{ data: string[] }>(
+      `${contentServiceUrl}/api/v1/content/blocked-domains`,
+      { timeout: 2000 },
+    );
+    const blocked: string[] = res.data?.data ?? [];
+    return blocked.includes(domain);
+  } catch { return false; }
+}
 
 export async function getMovieInfo(movieId: string): Promise<{ title: string; duration: number } | null> {
   try {

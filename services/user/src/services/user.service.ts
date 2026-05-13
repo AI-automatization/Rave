@@ -39,6 +39,7 @@ export class UserService {
   syncAdminProfile = (authId: string, email: string, username: string, role: string) => this.profile.syncAdminProfile(authId, email, username, role);
   adminChangeUserRole = (userId: string, role: string) => this.profile.adminChangeUserRole(userId, role);
   adminDeleteUser = (userId: string) => this.profile.adminDeleteUser(userId);
+  adminSetRestrictions = (userId: string, restrictions: string[]) => this.profile.adminSetRestrictions(userId, restrictions);
   adminGetStats = () => this.profile.adminGetStats();
   deleteAccount = (userId: string) => this.profile.deleteAccount(userId);
   sendFriendRequestByProfileId = (requesterId: string, profileId: string) => this.friendship.sendFriendRequestByProfileId(requesterId, profileId);

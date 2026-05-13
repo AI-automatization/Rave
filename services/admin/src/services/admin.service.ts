@@ -40,6 +40,7 @@ import {
   adminListDomains,
   adminBlockDomain,
   adminUnblockDomain,
+  adminSetUserRestrictions,
 } from '@shared/utils/serviceClient';
 
 export interface DashboardStats {
@@ -465,6 +466,10 @@ export class AdminService {
   async unblockDomain(domain: string): Promise<void> {
     await adminUnblockDomain(domain);
     logger.info('Domain unblocked by admin', { domain });
+  }
+
+  async setUserRestrictions(userId: string, restrictions: string[]): Promise<void> {
+    await adminSetUserRestrictions(userId, restrictions);
   }
 
   async deleteUserData(userId: string): Promise<void> {

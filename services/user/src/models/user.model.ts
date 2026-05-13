@@ -27,6 +27,7 @@ export interface IUserDocument extends Document {
   lastDevice: string | null;
   fcmTokens: string[];
   lastSeenAt: Date | null;
+  restrictions: string[];
   settings: { notifications: INotificationSettings };
   createdAt: Date;
   updatedAt: Date;
@@ -56,6 +57,7 @@ const userSchema = new Schema<IUserDocument>(
     lastDevice: { type: String, default: null },
     fcmTokens: [{ type: String }],
     lastSeenAt: { type: Date, default: null },
+    restrictions: { type: [String], default: [] },
     settings: {
       type: new Schema(
         {

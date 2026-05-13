@@ -19,6 +19,10 @@ export interface IWatchPartyRoomDocument extends Document {
   password: string | null;  // bcrypt hash — null for public rooms
   playlist: VideoItem[];
   lastActivityAt: Date;
+  isSuspicious: boolean;
+  suspiciousReason: string | null;
+  isAdminBlocked: boolean;
+  domain: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -55,6 +59,10 @@ const watchPartyRoomSchema = new Schema<IWatchPartyRoomDocument>(
       default: [],
     },
     lastActivityAt: { type: Date, default: Date.now },
+    isSuspicious:     { type: Boolean, default: false },
+    suspiciousReason: { type: String,  default: null },
+    isAdminBlocked:   { type: Boolean, default: false },
+    domain:           { type: String,  default: null },
   },
   {
     timestamps: true,

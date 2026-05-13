@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft, Mail, Shield, Calendar, Smartphone, Clock,
-  Ban, CheckCircle, AlertTriangle, ExternalLink, Bug,
+  Ban, CheckCircle, AlertTriangle, ExternalLink, Bug, ShieldOff,
 } from 'lucide-react';
 import { usersApi } from '../api/users.api';
 import { errorsApi, MobileIssue } from '../api/errors.api';
@@ -33,6 +33,16 @@ const ROLE_COLOR: Record<string, string> = {
   user: 'bg-zinc-500/15 text-zinc-400 ring-1 ring-zinc-500/30',
 };
 
+const RESTRICTION_OPTIONS = [
+  { key: 'create_room',     label: 'Создавать комнаты',       icon: '🎬' },
+  { key: 'join_room',       label: 'Вступать в комнаты',      icon: '🚪' },
+  { key: 'change_username', label: 'Менять никнейм',          icon: '✏️' },
+  { key: 'upload_avatar',   label: 'Менять аватар',           icon: '🖼️' },
+  { key: 'send_message',    label: 'Отправлять сообщения',    icon: '💬' },
+  { key: 'use_chat',        label: 'Использовать чат',        icon: '📝' },
+  { key: 'create_battle',   label: 'Создавать баттлы',        icon: '⚔️' },
+];
+
 function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-center gap-3 py-3 border-b border-white/[0.04] last:border-0">
@@ -52,6 +62,10 @@ export function UserDetailPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [msg, setMsg] = useState('');
 
+  const [restrictions, setRestrictions] = useState<string[]>([]);
+  const [restrictionLoading, setRestrictionLoading] = useState(false);
+  const [restrictionMsg, setRestrictionMsg] = useState('');
+
   useEffect(() => {
     if (!id) return;
     setLoading(true);
@@ -64,6 +78,10 @@ export function UserDetailPage() {
       .finally(() => setLoading(false));
   }, [id, navigate]);
 
+  useEffect(() => {
+    if (user) setRestrictions(user.restrictions ?? []);
+  }, [user]);
+
   const flash = (m: string) => { setMsg(m); setTimeout(() => setMsg(''), 3000); };
 
   const handleBlock = async () => {
@@ -75,6 +93,27 @@ export function UserDetailPage() {
       const updated = await usersApi.getById(user._id);
       setUser(updated);
     } catch { flash('Ошибка'); } finally { setActionLoading(false); }
+  };
+
+  const toggleRestriction = (key: string) => {
+    setRestrictions((prev) =>
+      prev.includes(key) ? prev.filter((r) => r !== key) : [...prev, key],
+    );
+  };
+
+  const handleSaveRestrictions = async () => {
+    if (!user) return;
+    setRestrictionLoading(true);
+    try {
+      await usersApi.setRestrictions(user._id, restrictions);
+      setRestrictionMsg('Ограничения сохранены');
+      setTimeout(() => setRestrictionMsg(''), 3000);
+    } catch {
+      setRestrictionMsg('Ошибка сохранения');
+      setTimeout(() => setRestrictionMsg(''), 3000);
+    } finally {
+      setRestrictionLoading(false);
+    }
   };
 
   if (loading) {
@@ -185,6 +224,39 @@ export function UserDetailPage() {
               <span className="font-mono text-xs text-text-dim">{user.authId}</span>
             } />
           </div>
+        </div>
+      </div>
+
+      {/* Restrictions section */}
+      <div className="bg-[#0d0d14] border border-white/[0.06] rounded-2xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-white/[0.06] flex items-center gap-2">
+          <ShieldOff size={16} className="text-amber-400" />
+          <h2 className="text-sm font-semibold text-white">Ограничения</h2>
+        </div>
+        <div className="px-5 py-4">
+          <div className="grid grid-cols-2 gap-2 mb-4">
+            {RESTRICTION_OPTIONS.map((opt) => (
+              <label key={opt.key} className="flex items-center gap-2.5 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={restrictions.includes(opt.key)}
+                  onChange={() => toggleRestriction(opt.key)}
+                  className="w-4 h-4 rounded border-white/20 bg-white/5 text-red-500 cursor-pointer"
+                />
+                <span className="text-sm text-text-muted group-hover:text-white transition-colors">
+                  {opt.icon} {opt.label}
+                </span>
+              </label>
+            ))}
+          </div>
+          <button
+            onClick={() => void handleSaveRestrictions()}
+            disabled={restrictionLoading}
+            className="flex items-center gap-2 h-8 px-4 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs hover:bg-amber-500/20 transition-colors disabled:opacity-50"
+          >
+            {restrictionLoading ? '...' : 'Сохранить ограничения'}
+          </button>
+          {restrictionMsg && <p className="text-xs text-emerald-400 mt-2">{restrictionMsg}</p>}
         </div>
       </div>
 

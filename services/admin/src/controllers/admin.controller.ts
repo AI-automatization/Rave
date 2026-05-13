@@ -395,5 +395,13 @@ export class AdminController {
       res.json(apiResponse.success(null, 'User admin data deleted'));
     } catch (error) { next(error); }
   };
+
+  setUserRestrictions = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { restrictions } = req.body as { restrictions: string[] };
+      await this.adminService.setUserRestrictions(req.params.id, Array.isArray(restrictions) ? restrictions : []);
+      res.json(apiResponse.success(null, 'Restrictions updated'));
+    } catch (error) { next(error); }
+  };
 }
 

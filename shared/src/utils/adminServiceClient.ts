@@ -48,6 +48,13 @@ export async function adminDeleteUser(userId: string): Promise<void> {
   await axios.delete(`${userServiceUrl}/api/v1/users/internal/admin/users/${userId}`, { headers: internalHeaders, timeout: 5000 });
 }
 
+export async function adminSetUserRestrictions(userId: string, restrictions: string[]): Promise<void> {
+  await axios.patch(
+    `${userServiceUrl}/api/v1/users/internal/admin/users/${userId}/restrictions`,
+    { restrictions }, { headers: internalHeaders, timeout: 5000 },
+  );
+}
+
 // ─── Admin: Content Service ────────────────────────────────────────────────────
 
 export async function adminListMovies(filters: {

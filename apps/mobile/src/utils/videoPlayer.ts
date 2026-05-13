@@ -49,6 +49,14 @@ export function fmtTime(ms: number): string {
   return `${mn}:${pad(sec)}`;
 }
 
+export function extractDomain(url: string): string | null {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return null;
+  }
+}
+
 export type VideoPlatform = 'direct' | 'youtube' | 'webview';
 
 export function detectVideoPlatform(url: string): VideoPlatform {

@@ -51,6 +51,7 @@ export function CreateTab({ navigation, t }: Props) {
             searching={wp.searching} searchResults={wp.searchResults}
             videoUrl={wp.videoUrl} onVideoUrlChange={wp.setVideoUrl}
             isExtracting={wp.isExtracting} extractResult={wp.extractResult} fallbackMode={wp.fallbackMode}
+            urlError={wp.urlError}
           />
         </FadeSlideIn>
 

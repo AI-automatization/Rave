@@ -384,6 +384,21 @@ export class UserController {
     } catch (error) { next(error); }
   };
 
+  adminSetRestrictions = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { restrictions } = req.body as { restrictions: string[] };
+      await this.userService.adminSetRestrictions(req.params.id, Array.isArray(restrictions) ? restrictions : []);
+      res.json(apiResponse.success(null, 'Restrictions updated'));
+    } catch (error) { next(error); }
+  };
+
+  internalGetRestrictions = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const user = await this.userService.getProfile(req.params.id);
+      res.json(apiResponse.success({ restrictions: user.restrictions ?? [] }));
+    } catch (error) { next(error); }
+  };
+
   adminDeleteUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       await this.userService.adminDeleteUser(req.params.id);

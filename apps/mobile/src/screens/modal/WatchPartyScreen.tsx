@@ -13,12 +13,15 @@ import { InviteCard } from '@components/watchParty/InviteCard';
 import { QualityMenu } from '@components/watchParty/QualityMenu';
 import { EpisodeMenu } from '@components/watchParty/EpisodeMenu';
 import { PlaylistPanel } from '@components/watchParty/PlaylistPanel';
+import { BlockedDomainView } from '@components/common/BlockedDomainView';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { ModalStackParamList } from '@app-types/index';
 import { useT } from '@i18n/index';
 import { useWatchPartyRoom } from '@hooks/useWatchPartyRoom';
 import { MembersStrip } from '@components/watchParty/MembersStrip';
+import { isDomainBlocked } from '@constants/blockedDomains';
+import { extractDomain } from '@utils/videoPlayer';
 
 type RouteType = RouteProp<ModalStackParamList, 'WatchParty'>;
 
@@ -57,6 +60,14 @@ export function WatchPartyScreen() {
         </TouchableOpacity>
       </View>
     );
+  }
+
+  const activeVideoUrl = room?.videoUrl ?? originalVideoUrl ?? '';
+  const domainName = activeVideoUrl ? extractDomain(activeVideoUrl) : null;
+  const domainBlocked = domainName ? isDomainBlocked(activeVideoUrl) : false;
+
+  if (domainBlocked && domainName) {
+    return <BlockedDomainView domain={domainName} onClose={handleLeave} />;
   }
 
   return (

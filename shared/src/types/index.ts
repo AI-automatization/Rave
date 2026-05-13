@@ -230,6 +230,15 @@ export interface IBattleParticipant {
 // Notification
 // ─────────────────────────────────────────────
 
+export type UserRestriction =
+  | 'create_room'
+  | 'change_username'
+  | 'send_message'
+  | 'join_room'
+  | 'upload_avatar'
+  | 'use_chat'
+  | 'create_battle';
+
 export type NotificationType =
   | 'friend_request'
   | 'friend_accepted'

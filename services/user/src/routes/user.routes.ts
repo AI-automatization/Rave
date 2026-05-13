@@ -134,6 +134,8 @@ export const createUserRouter = (redis: Redis): Router => {
   router.get('/internal/admin/all-push-tokens', requireInternalSecret, userController.getAllPushTokensInternal);
 
   // ── Admin Internal ────────────────────────────────────────
+  router.patch('/internal/admin/users/:id/restrictions', requireInternalSecret, userController.adminSetRestrictions);
+  router.get('/internal/users/:id/restrictions', requireInternalSecret, userController.internalGetRestrictions);
   router.get('/internal/admin/users/:id', requireInternalSecret, userController.adminGetUser);
   router.get('/internal/admin/users', requireInternalSecret, userController.adminListUsers);
   router.get('/internal/admin/stats', requireInternalSecret, userController.adminGetStats);
