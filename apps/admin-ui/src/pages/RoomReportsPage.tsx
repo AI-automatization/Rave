@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Flag, Search, ChevronDown } from 'lucide-react';
-import { moderationApi, RoomReport, ReportStatus } from '../api/moderation.api';
+import { Flag, Search, ChevronDown, Users, Link, Shield, AlertTriangle, Copy, CheckCheck } from 'lucide-react';
+import { moderationApi, RoomReport, RoomDetails, ReportStatus } from '../api/moderation.api';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
@@ -37,9 +37,17 @@ export function RoomReportsPage() {
   const [page, setPage]         = useState(1);
   const [search, setSearch]     = useState('');
 
-  const [modal, setModal] = useState<{ report: RoomReport } | null>(null);
-  const [note, setNote]   = useState('');
-  const [actionLoading, setActionLoading] = useState(false);
+  const [modal, setModal]       = useState<{ report: RoomReport } | null>(null);
+  const [roomDetails, setRoomDetails] = useState<RoomDetails | null>(null);
+  const [roomDetailsLoading, setRoomDetailsLoading] = useState(false);
+  const [note, setNote]         = useState('');
+  const [warnMsg, setWarnMsg]   = useState('');
+  const [actionLoading, setActionLoading]  = useState(false);
+  const [warnLoading, setWarnLoading]      = useState(false);
+  const [blockLoading, setBlockLoading]    = useState(false);
+  const [warnResult, setWarnResult]        = useState<string | null>(null);
+  const [blockResult, setBlockResult]      = useState<string | null>(null);
+  const [copiedId, setCopiedId]            = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -53,6 +61,21 @@ export function RoomReportsPage() {
 
   useEffect(() => { void load(); }, [load]);
 
+  const openModal = useCallback(async (report: RoomReport) => {
+    setModal({ report });
+    setNote('');
+    setWarnMsg('');
+    setWarnResult(null);
+    setBlockResult(null);
+    setRoomDetails(null);
+    setRoomDetailsLoading(true);
+    try {
+      const details = await moderationApi.getRoomDetails(report.roomId);
+      setRoomDetails(details);
+    } catch { /* room may be closed */ }
+    finally { setRoomDetailsLoading(false); }
+  }, []);
+
   const handleAction = async (status: ReportStatus) => {
     if (!modal) return;
     setActionLoading(true);
@@ -63,6 +86,34 @@ export function RoomReportsPage() {
       void load();
     } catch { /* silent */ }
     finally { setActionLoading(false); }
+  };
+
+  const handleWarn = async () => {
+    if (!modal || !warnMsg.trim()) return;
+    setWarnLoading(true);
+    try {
+      const res = await moderationApi.warnRoomUsers(modal.report._id, warnMsg.trim());
+      setWarnResult(`✓ Предупреждение отправлено ${res.warned} пользователям`);
+      setWarnMsg('');
+    } catch { setWarnResult('Ошибка отправки'); }
+    finally { setWarnLoading(false); }
+  };
+
+  const handleBlockOwner = async () => {
+    if (!modal) return;
+    if (!confirm('Заблокировать владельца комнаты?')) return;
+    setBlockLoading(true);
+    try {
+      const res = await moderationApi.blockRoomOwner(modal.report._id, `Room report: ${modal.report.reason}`);
+      setBlockResult(`✓ Пользователь ${res.blockedUserId.slice(0, 8)}… заблокирован`);
+    } catch { setBlockResult('Ошибка блокировки'); }
+    finally { setBlockLoading(false); }
+  };
+
+  const copyId = (id: string) => {
+    void navigator.clipboard.writeText(id);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
   const filtered = search
@@ -145,7 +196,7 @@ export function RoomReportsPage() {
                   </td>
                   <td className="px-4 py-3">
                     {r.status === 'pending' && (
-                      <Button size="sm" variant="ghost" onClick={() => { setModal({ report: r }); setNote(''); }}>
+                      <Button size="sm" variant="ghost" onClick={() => void openModal(r)}>
                         Рассмотреть
                       </Button>
                     )}
@@ -163,31 +214,164 @@ export function RoomReportsPage() {
       {modal && (
         <Modal open={!!modal} title="Рассмотрение жалобы" onClose={() => setModal(null)}>
           <div className="space-y-4">
+
+            {/* ── Жалоба ── */}
             <div className="bg-white/[0.04] rounded-lg p-3 space-y-2">
-              <p className="text-xs text-text-dim">Комната: <span className="text-white font-mono">{modal.report.roomId}</span></p>
-              <p className="text-xs text-text-dim">Причина: <span className="text-white">{REASON_LABEL[modal.report.reason] ?? modal.report.reason}</span></p>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-text-dim">Комната</span>
+                <button
+                  className="flex items-center gap-1.5 font-mono text-xs text-white hover:text-accent transition-colors"
+                  onClick={() => copyId(modal.report.roomId)}
+                >
+                  <span className="max-w-[180px] truncate">{modal.report.roomId}</span>
+                  {copiedId === modal.report.roomId ? <CheckCheck size={12} className="text-green-400" /> : <Copy size={12} />}
+                </button>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-text-dim">Жалобщик</span>
+                <button
+                  className="flex items-center gap-1.5 font-mono text-xs text-white hover:text-accent transition-colors"
+                  onClick={() => copyId(modal.report.reporterId)}
+                >
+                  <span className="max-w-[180px] truncate">{modal.report.reporterId}</span>
+                  {copiedId === modal.report.reporterId ? <CheckCheck size={12} className="text-green-400" /> : <Copy size={12} />}
+                </button>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-text-dim">Причина</span>
+                <Badge variant="orange">{REASON_LABEL[modal.report.reason] ?? modal.report.reason}</Badge>
+              </div>
               {modal.report.comment && (
-                <p className="text-xs text-text-dim">Комментарий: <span className="text-white">{modal.report.comment}</span></p>
+                <div className="pt-1 border-t border-white/[0.06]">
+                  <p className="text-xs text-text-dim">Комментарий пользователя:</p>
+                  <p className="text-xs text-white mt-0.5 italic">"{modal.report.comment}"</p>
+                </div>
               )}
             </div>
+
+            {/* ── Детали комнаты ── */}
+            <div className="bg-white/[0.03] rounded-lg p-3 border border-white/[0.06]">
+              <div className="flex items-center gap-2 mb-2">
+                <Shield size={13} className="text-accent" />
+                <span className="text-xs font-medium text-text-muted">Информация о комнате</span>
+              </div>
+              {roomDetailsLoading ? (
+                <p className="text-xs text-text-dim">Загрузка...</p>
+              ) : roomDetails ? (
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-text-dim">Название</span>
+                    <span className="text-xs text-white font-medium">{roomDetails.name || '—'}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-text-dim flex items-center gap-1"><Users size={11} /> Участников</span>
+                    <span className="text-xs text-white">{roomDetails.members.length}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-text-dim">Тип</span>
+                    <Badge variant={roomDetails.isPublic ? 'blue' : 'gray'}>{roomDetails.isPublic ? 'Публичная' : 'Приватная'}</Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-text-dim">Статус</span>
+                    <Badge variant={roomDetails.status === 'active' ? 'green' : 'gray'}>{roomDetails.status}</Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-text-dim">Создана</span>
+                    <span className="text-xs text-text-muted">{new Date(roomDetails.createdAt).toLocaleString('ru')}</span>
+                  </div>
+                  {roomDetails.videoUrl && (
+                    <div className="pt-1.5 border-t border-white/[0.06]">
+                      <div className="flex items-center gap-1.5 text-xs text-text-dim mb-1"><Link size={11} /> Видео</div>
+                      <p className="text-xs text-blue-400 break-all font-mono leading-relaxed">{roomDetails.videoUrl}</p>
+                    </div>
+                  )}
+                  <div className="pt-1.5 border-t border-white/[0.06]">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-text-dim">Владелец (ID)</span>
+                      <button
+                        className="flex items-center gap-1.5 font-mono text-xs text-red-400 hover:text-red-300 transition-colors"
+                        onClick={() => copyId(roomDetails.ownerId)}
+                      >
+                        <span className="max-w-[160px] truncate">{roomDetails.ownerId}</span>
+                        {copiedId === roomDetails.ownerId ? <CheckCheck size={12} className="text-green-400" /> : <Copy size={12} />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-text-dim">Комната не найдена или уже закрыта</p>
+              )}
+            </div>
+
+            {/* ── Предупреждение пользователям ── */}
+            <div className="bg-yellow-500/[0.05] border border-yellow-500/20 rounded-lg p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <AlertTriangle size={13} className="text-yellow-400" />
+                <span className="text-xs font-medium text-yellow-400">Предупреждение участникам</span>
+              </div>
+              <textarea
+                value={warnMsg}
+                onChange={e => setWarnMsg(e.target.value)}
+                rows={2}
+                placeholder="Текст предупреждения для всех участников комнаты..."
+                className="w-full bg-[#0a0a12] border border-white/[0.08] rounded-lg px-3 py-2 text-xs text-white placeholder-text-dim focus:outline-none focus:border-yellow-500/40 resize-none"
+              />
+              {warnResult && (
+                <p className={`text-xs ${warnResult.startsWith('✓') ? 'text-green-400' : 'text-red-400'}`}>{warnResult}</p>
+              )}
+              <Button
+                size="sm"
+                variant="ghost"
+                className="w-full border border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10"
+                onClick={() => void handleWarn()}
+                disabled={warnLoading || !warnMsg.trim() || !roomDetails}
+              >
+                {warnLoading ? 'Отправка...' : `Отправить всем участникам (${roomDetails?.members.length ?? '…'})`}
+              </Button>
+            </div>
+
+            {/* ── Заблокировать владельца ── */}
+            <div className="bg-red-500/[0.05] border border-red-500/20 rounded-lg p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <Shield size={13} className="text-red-400" />
+                <span className="text-xs font-medium text-red-400">Блокировка владельца</span>
+              </div>
+              <p className="text-xs text-text-dim">
+                Владелец будет заблокирован. Аккаунт потеряет доступ к платформе.
+              </p>
+              {blockResult && (
+                <p className={`text-xs ${blockResult.startsWith('✓') ? 'text-green-400' : 'text-red-400'}`}>{blockResult}</p>
+              )}
+              <Button
+                size="sm"
+                variant="ghost"
+                className="w-full border border-red-500/40 text-red-400 hover:bg-red-500/10"
+                onClick={() => void handleBlockOwner()}
+                disabled={blockLoading || !roomDetails || !!blockResult}
+              >
+                {blockLoading ? 'Блокировка...' : 'Заблокировать владельца'}
+              </Button>
+            </div>
+
+            {/* ── Примечание + решение ── */}
             <div>
-              <label className="text-xs text-text-dim block mb-1.5">Примечание (необязательно)</label>
+              <label className="text-xs text-text-dim block mb-1.5">Примечание для команды (необязательно)</label>
               <textarea
                 value={note}
                 onChange={e => setNote(e.target.value)}
-                rows={3}
+                rows={2}
                 className="w-full bg-[#0a0a12] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white placeholder-text-dim focus:outline-none focus:border-accent/50 resize-none"
                 placeholder="Заметка для команды..."
               />
             </div>
             <div className="flex gap-2">
-              <Button variant="ghost" className="flex-1" onClick={() => handleAction('dismissed')} disabled={actionLoading}>
+              <Button variant="ghost" className="flex-1" onClick={() => void handleAction('dismissed')} disabled={actionLoading}>
                 Отклонить
               </Button>
-              <Button variant="ghost" className="flex-1" onClick={() => handleAction('reviewed')} disabled={actionLoading}>
+              <Button variant="ghost" className="flex-1" onClick={() => void handleAction('reviewed')} disabled={actionLoading}>
                 Рассмотрено
               </Button>
-              <Button variant="primary" className="flex-1 bg-red-500/80 hover:bg-red-500" onClick={() => handleAction('actioned')} disabled={actionLoading}>
+              <Button variant="primary" className="flex-1 bg-red-500/80 hover:bg-red-500" onClick={() => void handleAction('actioned')} disabled={actionLoading}>
                 Меры приняты
               </Button>
             </div>

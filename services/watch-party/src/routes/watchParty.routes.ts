@@ -24,6 +24,9 @@ export const createWatchPartyRouter = (redis: Redis, io: SocketServer): Router =
   // Internal Admin: GET /watch-party/internal/admin/list — list all rooms (admin)
   router.get('/internal/admin/list', requireInternalSecret, watchPartyController.adminListRooms);
 
+  // Internal Admin: GET /watch-party/internal/admin/:id/details — room details for moderation
+  router.get('/internal/admin/:id/details', requireInternalSecret, watchPartyController.adminGetRoomDetails);
+
   // Internal Admin: DELETE /watch-party/internal/admin/:id — force close room (admin)
   router.delete('/internal/admin/:id', requireInternalSecret, watchPartyController.adminCloseRoom);
 

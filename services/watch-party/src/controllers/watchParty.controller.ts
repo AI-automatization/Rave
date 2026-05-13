@@ -247,6 +247,14 @@ export class WatchPartyController {
     }
   };
 
+  adminGetRoomDetails = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const room = await WatchPartyRoom.findById(req.params.id).lean();
+      if (!room) { res.status(404).json(apiResponse.error('Room not found')); return; }
+      res.json(apiResponse.success(room));
+    } catch (error) { next(error); }
+  };
+
   adminListRooms = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const page = Math.max(1, parseInt((req.query.page as string) ?? '1', 10) || 1);

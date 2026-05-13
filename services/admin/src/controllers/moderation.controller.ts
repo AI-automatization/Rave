@@ -91,6 +91,42 @@ export class ModerationController {
     } catch (err) { next(err); }
   };
 
+  // GET /moderation/reports/room/:roomId/details — admin
+  roomDetails = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const room = await this.service.getRoomDetails(req.params.roomId);
+      res.json(apiResponse.success(room));
+    } catch (err) {
+      res.status(404).json(apiResponse.error((err as Error).message));
+    }
+  };
+
+  // POST /moderation/reports/:id/warn — admin
+  warnUsers = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const admin = (req as Request & { user?: { userId: string } }).user;
+      const { message } = req.body as { message: string };
+      if (!message?.trim()) { res.status(400).json(apiResponse.error('message required')); return; }
+      const result = await this.service.warnRoomUsers(req.params.id, message.trim(), admin?.userId ?? 'admin');
+      res.json(apiResponse.success(result, `Предупреждение отправлено ${result.warned} пользователям`));
+    } catch (err) { next(err); }
+  };
+
+  // POST /moderation/reports/:id/block-owner — admin
+  blockOwner = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const admin = (req as Request & { user?: { userId: string; email?: string } }).user;
+      const { reason } = req.body as { reason?: string };
+      const result = await this.service.blockRoomOwner(
+        req.params.id,
+        admin?.userId ?? 'admin',
+        (admin as { email?: string } | undefined)?.email ?? 'admin@cinesync',
+        reason,
+      );
+      res.json(apiResponse.success(result, 'Владелец комнаты заблокирован'));
+    } catch (err) { next(err); }
+  };
+
   // GET /moderation/counts — admin
   counts = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {

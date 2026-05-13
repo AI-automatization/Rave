@@ -1,6 +1,12 @@
 import { RoomReport, ReportReason, ReportStatus } from '../models/roomReport.model';
 import { Appeal, AppealStatus } from '../models/appeal.model';
-import { adminUnblockUser, adminSendAppealDecisionEmail } from '@shared/utils/adminServiceClient';
+import {
+  adminUnblockUser,
+  adminSendAppealDecisionEmail,
+  adminGetWatchPartyRoom,
+  adminNotifyUsers,
+  adminBlockUser,
+} from '@shared/utils/adminServiceClient';
 import { logger } from '@shared/utils/logger';
 
 export class ModerationService {
@@ -33,6 +39,39 @@ export class ModerationService {
 
   async pendingReportCount() {
     return RoomReport.countDocuments({ status: 'pending' });
+  }
+
+  async getRoomDetails(roomId: string) {
+    return adminGetWatchPartyRoom(roomId);
+  }
+
+  async warnRoomUsers(reportId: string, message: string, adminId: string) {
+    const report = await RoomReport.findById(reportId);
+    if (!report) throw new Error('Report not found');
+    let room;
+    try {
+      room = await adminGetWatchPartyRoom(report.roomId);
+    } catch {
+      throw new Error('Room not found or already closed');
+    }
+    const allUsers = Array.from(new Set([room.ownerId, ...room.members]));
+    await adminNotifyUsers(allUsers, '⚠️ Предупреждение от администрации', message);
+    logger.info('[ModerationService] room users warned', { reportId, roomId: report.roomId, count: allUsers.length, adminId });
+    return { warned: allUsers.length };
+  }
+
+  async blockRoomOwner(reportId: string, adminId: string, adminEmail: string, reason?: string) {
+    const report = await RoomReport.findById(reportId);
+    if (!report) throw new Error('Report not found');
+    let room;
+    try {
+      room = await adminGetWatchPartyRoom(report.roomId);
+    } catch {
+      throw new Error('Room not found or already closed');
+    }
+    await adminBlockUser(room.ownerId, reason ?? `Room report: ${report.reason}`);
+    logger.info('[ModerationService] room owner blocked', { reportId, ownerId: room.ownerId, adminId });
+    return { blockedUserId: room.ownerId };
   }
 
   // ─── Appeals ──────────────────────────────────────────────────────────────

@@ -17,6 +17,9 @@ export const createNotificationRouter = (redisUrl: string): Router => {
   // POST /notifications/internal/admin/broadcast — broadcast notification to all users (admin)
   router.post('/internal/admin/broadcast', requireInternalSecret, notificationController.broadcastInternal);
 
+  // POST /notifications/internal/admin/notify-users — send warning to specific users (moderation)
+  router.post('/internal/admin/notify-users', requireInternalSecret, notificationController.notifyUsersInternal);
+
   // DELETE /notifications/internal/users/:userId — cascade account deletion (T-S093)
   router.delete('/internal/users/:userId', requireInternalSecret, notificationController.deleteUserData);
 

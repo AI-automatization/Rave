@@ -175,6 +175,15 @@ export class NotificationService {
     await this.sendPush(tokens, title, body, { type, screen: 'Home' });
   }
 
+  async sendToUsers(userIds: string[], title: string, body: string): Promise<void> {
+    await Promise.all(
+      userIds.map((userId) =>
+        this.sendInApp(userId, 'announcement' as NotificationType, title, body, { source: 'admin_warning' }),
+      ),
+    );
+    logger.info('sendToUsers: in-app warnings sent', { total: userIds.length, title });
+  }
+
   async deleteUserData(userId: string): Promise<void> {
     await Notification.deleteMany({ userId });
     logger.info('NotificationService: deleted user data', { userId });

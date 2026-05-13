@@ -122,6 +122,19 @@ export class NotificationController {
     }
   };
 
+  // POST /notifications/internal/admin/notify-users — send warning to specific users (moderation)
+  notifyUsersInternal = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userIds, title, body } = req.body as { userIds: string[]; title: string; body: string };
+      if (!Array.isArray(userIds) || userIds.length === 0 || !title || !body) {
+        res.status(400).json(apiResponse.error('userIds (array), title, body required'));
+        return;
+      }
+      await this.notificationService.sendToUsers(userIds, title, body);
+      res.json(apiResponse.success(null, `Warning sent to ${userIds.length} users`));
+    } catch (error) { next(error); }
+  };
+
   // DELETE /notifications/internal/users/:userId — cascade account deletion (T-S093)
   deleteUserData = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {

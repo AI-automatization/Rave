@@ -21,6 +21,9 @@ export const createModerationRouter = (): Router => {
   router.get('/moderation/counts', controller.counts);
   router.get('/moderation/reports', controller.listReports);
   router.patch('/moderation/reports/:id', controller.reviewReport);
+  router.get('/moderation/reports/room/:roomId/details', controller.roomDetails);
+  router.post('/moderation/reports/:id/warn', controller.warnUsers);
+  router.post('/moderation/reports/:id/block-owner', controller.blockOwner);
   router.get('/moderation/appeals', controller.listAppeals);
   router.patch('/moderation/appeals/:id', controller.reviewAppeal);
 

@@ -166,6 +166,25 @@ export async function adminCancelBattle(battleId: string): Promise<void> {
 
 // ─── Admin: Watch Party Service ────────────────────────────────────────────────
 
+export async function adminGetWatchPartyRoom(roomId: string): Promise<{
+  _id: string; name: string; ownerId: string; members: string[];
+  videoUrl: string | null; status: string; isPublic: boolean; createdAt: string;
+}> {
+  const res = await axios.get<{ data: { _id: string; name: string; ownerId: string; members: string[]; videoUrl: string | null; status: string; isPublic: boolean; createdAt: string } }>(
+    `${watchPartyServiceUrl}/api/v1/watch-party/internal/admin/${roomId}/details`,
+    { headers: internalHeaders, timeout: 5000 },
+  );
+  return res.data.data;
+}
+
+export async function adminNotifyUsers(userIds: string[], title: string, body: string): Promise<void> {
+  await axios.post(
+    `${notificationServiceUrl}/api/v1/notifications/internal/admin/notify-users`,
+    { userIds, title, body },
+    { headers: internalHeaders, timeout: 10000 },
+  );
+}
+
 export async function adminGetWatchPartyStats(): Promise<{ createdToday: number; activeNow: number }> {
   try {
     const res = await axios.get<{ data: { createdToday: number; activeNow: number } }>(

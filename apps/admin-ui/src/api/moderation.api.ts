@@ -18,6 +18,17 @@ export interface RoomReport {
   createdAt: string;
 }
 
+export interface RoomDetails {
+  _id: string;
+  name: string;
+  ownerId: string;
+  members: string[];
+  videoUrl: string | null;
+  status: string;
+  isPublic: boolean;
+  createdAt: string;
+}
+
 export interface Appeal {
   _id: string;
   userId: string;
@@ -54,5 +65,20 @@ export const moderationApi = {
   reviewAppeal: async (id: string, status: 'approved' | 'rejected', note?: string): Promise<Appeal> => {
     const res = await apiClient.patch<ApiResponse<Appeal>>(`/moderation/appeals/${id}`, { status, note });
     return res.data.data as Appeal;
+  },
+
+  getRoomDetails: async (roomId: string): Promise<RoomDetails> => {
+    const res = await apiClient.get<ApiResponse<RoomDetails>>(`/moderation/reports/room/${roomId}/details`);
+    return res.data.data as RoomDetails;
+  },
+
+  warnRoomUsers: async (reportId: string, message: string): Promise<{ warned: number }> => {
+    const res = await apiClient.post<ApiResponse<{ warned: number }>>(`/moderation/reports/${reportId}/warn`, { message });
+    return res.data.data as { warned: number };
+  },
+
+  blockRoomOwner: async (reportId: string, reason?: string): Promise<{ blockedUserId: string }> => {
+    const res = await apiClient.post<ApiResponse<{ blockedUserId: string }>>(`/moderation/reports/${reportId}/block-owner`, { reason });
+    return res.data.data as { blockedUserId: string };
   },
 };
