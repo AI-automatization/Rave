@@ -7,6 +7,7 @@ import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { Pagination } from '../components/ui/Pagination';
+import { BlockReasonPicker } from '../components/ui/BlockReasonPicker';
 import type { AdminUser, PaginationMeta } from '../types';
 
 const ROLE_BADGE: Record<AdminUser['role'], JSX.Element> = {
@@ -281,19 +282,23 @@ export function UsersPage() {
       </div>
 
       {/* Block modal */}
-      <Modal open={!!blockModal} onClose={() => setBlockModal(null)} title={`Заблокировать ${blockModal?.user.username}`}>
+      <Modal open={!!blockModal} onClose={() => { setBlockModal(null); setBlockReason(''); }} title={`Заблокировать @${blockModal?.user.username}`}>
         <div className="flex flex-col gap-4">
-          <p className="text-text-muted text-sm">Укажите причину блокировки:</p>
-          <textarea
-            value={blockReason}
-            onChange={(e) => setBlockReason(e.target.value)}
-            placeholder="Причина..."
-            rows={3}
-            className="bg-surface border border-border rounded-xl px-3 py-2.5 text-sm text-white placeholder-text-dim focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent/50 resize-none transition-all"
-          />
+          <p className="text-text-muted text-sm">Выберите или введите причину блокировки:</p>
+          <BlockReasonPicker value={blockReason} onChange={setBlockReason} />
+          {blockReason.trim().length > 0 && blockReason.trim().length < 3 && (
+            <p className="text-xs text-red-400">Минимум 3 символа</p>
+          )}
           <div className="flex gap-2 justify-end">
-            <Button variant="ghost" onClick={() => setBlockModal(null)}>Отмена</Button>
-            <Button variant="danger" loading={!!actionLoading} onClick={() => void handleBlockConfirm()}>Заблокировать</Button>
+            <Button variant="ghost" onClick={() => { setBlockModal(null); setBlockReason(''); }}>Отмена</Button>
+            <Button
+              variant="danger"
+              loading={!!actionLoading}
+              disabled={blockReason.trim().length < 3}
+              onClick={() => void handleBlockConfirm()}
+            >
+              Заблокировать
+            </Button>
           </div>
         </div>
       </Modal>

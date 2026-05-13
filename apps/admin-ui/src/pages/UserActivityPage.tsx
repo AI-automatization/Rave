@@ -6,6 +6,7 @@ import { usersApi } from '../api/users.api';
 import { Pagination } from '../components/ui/Pagination';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
+import { BlockReasonPicker } from '../components/ui/BlockReasonPicker';
 import type { ApiLog, PaginationMeta } from '../types';
 
 // ── Action mapping ────────────────────────────────────────────
@@ -296,18 +297,19 @@ export function UserActivityPage() {
       <Modal open={blockModal === 'block'} onClose={() => { setBlockModal(null); setBlockReason(''); }} title="Заблокировать пользователя">
         <div className="flex flex-col gap-4">
           <p className="text-sm text-text-muted">
-            User: <span className="text-white font-mono">…{appliedUserId.slice(-12)}</span>
+            ID: <span className="text-white font-mono text-xs">…{appliedUserId.slice(-12)}</span>
           </p>
-          <textarea
-            placeholder="Причина блокировки..."
-            value={blockReason}
-            onChange={(e) => setBlockReason(e.target.value)}
-            rows={2}
-            className="bg-surface border border-border rounded-xl px-3 py-2.5 text-sm text-white placeholder-text-dim focus:outline-none focus:ring-2 focus:ring-accent/30 resize-none transition-all"
-          />
+          <BlockReasonPicker value={blockReason} onChange={setBlockReason} />
           <div className="flex gap-2 justify-end">
             <Button variant="ghost" onClick={() => { setBlockModal(null); setBlockReason(''); }}>Отмена</Button>
-            <Button variant="danger" loading={blockLoading} onClick={() => void handleBlock()}>Заблокировать</Button>
+            <Button
+              variant="danger"
+              loading={blockLoading}
+              disabled={blockReason.trim().length < 3}
+              onClick={() => void handleBlock()}
+            >
+              Заблокировать
+            </Button>
           </div>
         </div>
       </Modal>

@@ -5,6 +5,7 @@ import {
   User, Clock, Globe, Lock,
 } from 'lucide-react';
 import { moderationApi, RoomReport, RoomDetails, ReportStatus } from '../api/moderation.api';
+import { BLOCK_REASON_FROM_REPORT } from '../components/ui/BlockReasonPicker';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
@@ -128,10 +129,12 @@ export function RoomReportsPage() {
 
   const handleBlockOwner = async () => {
     if (!modal) return;
-    if (!confirm(`Заблокировать владельца комнаты?\n\n${roomDetails?.ownerUsername ? '@' + roomDetails.ownerUsername : modal.report.roomId}`)) return;
+    const ownerLabel = roomDetails?.ownerUsername ? `@${roomDetails.ownerUsername}` : shortId(modal.report.roomId);
+    const blockReason = BLOCK_REASON_FROM_REPORT[modal.report.reason] ?? 'Нарушение правил платформы';
+    if (!confirm(`Заблокировать владельца комнаты ${ownerLabel}?\n\nПричина: "${blockReason}"`)) return;
     setBlockLoading(true);
     try {
-      const res = await moderationApi.blockRoomOwner(modal.report._id, `Room report: ${modal.report.reason}`);
+      const res = await moderationApi.blockRoomOwner(modal.report._id, blockReason);
       const name = roomDetails?.ownerUsername ? `@${roomDetails.ownerUsername}` : shortId(res.blockedUserId);
       setBlockResult({ ok: true, msg: `${name} заблокирован` });
     } catch {
@@ -468,11 +471,21 @@ export function RoomReportsPage() {
                 <Shield size={14} className="text-red-400" />
                 <p className="text-xs font-semibold text-red-400 uppercase tracking-wider">Блокировка владельца</p>
               </div>
-              {roomDetails?.ownerUsername && (
-                <p className="text-xs text-text-dim">
-                  Аккаунт <span className="text-white font-medium">@{roomDetails.ownerUsername}</span> потеряет доступ к платформе.
-                </p>
-              )}
+              <div className="space-y-1.5">
+                {roomDetails?.ownerUsername && (
+                  <p className="text-xs text-text-dim">
+                    Аккаунт <span className="text-white font-medium">@{roomDetails.ownerUsername}</span> потеряет доступ к платформе.
+                  </p>
+                )}
+                {modal && (
+                  <div className="flex items-start gap-1.5 px-2.5 py-1.5 bg-red-500/[0.08] border border-red-500/15 rounded-lg">
+                    <span className="text-[10px] text-red-400/70 mt-0.5 flex-shrink-0">Причина:</span>
+                    <span className="text-[11px] text-red-300 leading-snug">
+                      {BLOCK_REASON_FROM_REPORT[modal.report.reason] ?? 'Нарушение правил платформы'}
+                    </span>
+                  </div>
+                )}
+              </div>
               {blockResult && (
                 <div className={`flex items-center gap-1.5 text-xs ${blockResult.ok ? 'text-green-400' : 'text-red-400'}`}>
                   {blockResult.ok ? <CheckCheck size={12} /> : <AlertTriangle size={12} />}

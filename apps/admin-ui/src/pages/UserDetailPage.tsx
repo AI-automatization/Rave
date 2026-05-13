@@ -174,9 +174,11 @@ export function UserDetailPage() {
               user.lastLoginAt ? `${formatDate(user.lastLoginAt)} (${relativeTime(user.lastLoginAt)})` : '—'
             } />
             <InfoRow icon={<Smartphone size={15} />} label="Устройство" value={user.lastDevice ?? '—'} />
-            {user.isBlocked && user.blockReason && (
+            {user.isBlocked && (
               <InfoRow icon={<Ban size={15} />} label="Причина блока" value={
-                <span className="text-red-400">{user.blockReason}</span>
+                user.blockReason
+                  ? <span className="text-red-400 leading-snug">{user.blockReason}</span>
+                  : <span className="text-text-dim italic text-xs">Не указана</span>
               } />
             )}
             <InfoRow icon={<Shield size={15} />} label="Auth ID" value={
