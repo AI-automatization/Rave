@@ -92,7 +92,7 @@ export class ModerationController {
   };
 
   // GET /moderation/reports/room/:roomId/details — admin
-  roomDetails = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  roomDetails = async (req: Request, res: Response, _next: NextFunction): Promise<void> => {
     try {
       const reporterId = (req.query.reporterId as string) || undefined;
       const room = await this.service.getRoomDetails(req.params.roomId, reporterId);

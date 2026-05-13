@@ -72,7 +72,7 @@ export class ModerationService {
     return { warned: allUsers.length };
   }
 
-  async blockRoomOwner(reportId: string, adminId: string, adminEmail: string, reason?: string) {
+  async blockRoomOwner(reportId: string, adminId: string, _adminEmail: string, reason?: string) {
     const report = await RoomReport.findById(reportId);
     if (!report) throw new Error('Report not found');
     let room;
