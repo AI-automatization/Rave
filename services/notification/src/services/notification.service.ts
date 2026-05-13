@@ -5,7 +5,7 @@ import { getEmailQueue, enqueueEmail, EmailJobData } from '../queues/email.queue
 import { logger } from '@shared/utils/logger';
 import { NotFoundError } from '@shared/utils/errors';
 import { NotificationType, PaginationMeta } from '@shared/types';
-import { getAllPushTokens, removeBadFcmTokens } from '@shared/utils/serviceClient';
+import { getAllPushTokens, getAllUserIds, removeBadFcmTokens } from '@shared/utils/serviceClient';
 
 const EXPO_PUSH_URL    = 'https://exp.host/--/api/v2/push/send';
 const EXPO_TOKEN_PREFIX = 'ExponentPushToken[';
@@ -166,13 +166,23 @@ export class NotificationService {
   }
 
   async sendBroadcast(title: string, body: string, type: string): Promise<void> {
-    const tokens = await getAllPushTokens();
-    if (!tokens.length) {
-      logger.warn('sendBroadcast: no push tokens registered, skipping');
-      return;
-    }
-    logger.info('sendBroadcast: sending to tokens', { total: tokens.length, title });
-    await this.sendPush(tokens, title, body, { type, screen: 'Home' });
+    const [tokens, userIds] = await Promise.all([getAllPushTokens(), getAllUserIds()]);
+
+    logger.info('sendBroadcast: sending', { tokens: tokens.length, users: userIds.length, title });
+
+    await Promise.all([
+      tokens.length > 0
+        ? this.sendPush(tokens, title, body, { type, screen: 'Home' })
+        : Promise.resolve(),
+      userIds.length > 0
+        ? Notification.insertMany(
+            userIds.map((userId) => ({ userId, type, title, body, data: { source: 'broadcast' } })),
+            { ordered: false },
+          ).catch((err) =>
+            logger.error('sendBroadcast in-app insert error', { error: (err as Error).message }),
+          )
+        : Promise.resolve(),
+    ]);
   }
 
   async sendToUsers(userIds: string[], title: string, body: string): Promise<void> {

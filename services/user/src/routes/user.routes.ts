@@ -132,6 +132,8 @@ export const createUserRouter = (redis: Redis): Router => {
 
   // Notification broadcast — get all push tokens for all users
   router.get('/internal/admin/all-push-tokens', requireInternalSecret, userController.getAllPushTokensInternal);
+  // Notification broadcast — get all user IDs (for in-app notification creation)
+  router.get('/internal/admin/all-user-ids', requireInternalSecret, userController.getAllUserIdsInternal);
 
   // ── Admin Internal ────────────────────────────────────────
   router.patch('/internal/admin/users/:id/restrictions', requireInternalSecret, userController.adminSetRestrictions);

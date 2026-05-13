@@ -29,6 +29,7 @@ export class UserService {
   removeBadFcmTokens = (tokens: string[]) => this.profile.removeBadFcmTokens(tokens);
   getFcmTokens = (userId: string) => this.profile.getFcmTokens(userId);
   getAllPushTokens = () => this.profile.getAllPushTokens();
+  getAllUserIds = () => this.profile.getAllUserIds();
   searchUsers = (query: string, requesterId: string) => this.profile.searchUsers(query, requesterId);
   addPoints = (userId: string, points: number) => this.profile.addPoints(userId, points);
   getUserStats = (userId: string) => this.profile.getUserStats(userId);

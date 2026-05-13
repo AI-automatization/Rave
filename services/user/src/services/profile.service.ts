@@ -148,6 +148,11 @@ export class ProfileService {
     return [...new Set(tokens)];
   }
 
+  async getAllUserIds(): Promise<string[]> {
+    const users = await User.find({}).select('_id').lean();
+    return users.map((u) => String(u._id));
+  }
+
   async searchUsers(query: string, requesterId: string): Promise<Record<string, unknown>[]> {
     if (!query || query.trim().length < 1) return [];
 

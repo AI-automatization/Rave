@@ -425,4 +425,13 @@ export class UserController {
       next(error);
     }
   };
+
+  getAllUserIdsInternal = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userIds = await this.userService.getAllUserIds();
+      res.json(apiResponse.success({ userIds }));
+    } catch (error) {
+      next(error);
+    }
+  };
 }

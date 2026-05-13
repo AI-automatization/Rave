@@ -108,6 +108,20 @@ export async function getAllPushTokens(): Promise<string[]> {
   }
 }
 
+export async function getAllUserIds(): Promise<string[]> {
+  try {
+    const res = await axios.get<{ data: { userIds: string[] } }>(
+      `${userServiceUrl}/api/v1/users/internal/admin/all-user-ids`,
+      { headers: internalHeaders, timeout: 10000 },
+    );
+    return res.data.data?.userIds ?? [];
+  } catch (err) {
+    const error = err as AxiosError;
+    logger.error('[serviceClient] getAllUserIds failed', { message: error.message });
+    return [];
+  }
+}
+
 export async function createUserProfile(authId: string, email: string, username: string): Promise<void> {
   try {
     await axios.post(
