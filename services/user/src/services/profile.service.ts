@@ -282,8 +282,8 @@ export class ProfileService {
     // Delete heartbeat (show as offline)
     await this.redis.del(REDIS_KEYS.heartbeat(userId));
 
-    // Non-blocking: revoke refresh tokens + disconnect sockets
-    void revokeUserSessions(userId);
+    // Non-blocking: revoke refresh tokens + persist block reason in auth DB
+    void revokeUserSessions(userId, reason);
     void disconnectUserSocket(userId);
 
     logger.info('User blocked via admin API', { userId, reason });

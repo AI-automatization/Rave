@@ -57,6 +57,9 @@ export class AuthService {
   logoutAll = (userId: string) =>
     this.password.logoutAll(userId);
 
+  revokeAndMarkBlocked = (userId: string, reason?: string) =>
+    this.password.revokeAndMarkBlocked(userId, reason);
+
   verifyEmail = (token: string) =>
     this.password.verifyEmail(token);
 

@@ -229,11 +229,11 @@ export async function deleteAuthUser(userId: string): Promise<void> {
   }
 }
 
-export async function revokeUserSessions(userId: string): Promise<void> {
+export async function revokeUserSessions(userId: string, reason?: string): Promise<void> {
   try {
     await axios.post(
       `${authServiceUrl}/api/v1/auth/internal/users/${userId}/revoke-sessions`,
-      {}, { headers: internalHeaders, timeout: 5000 },
+      { reason }, { headers: internalHeaders, timeout: 5000 },
     );
     logger.info('[serviceClient] revokeUserSessions', { userId });
   } catch (err) {

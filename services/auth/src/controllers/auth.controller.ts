@@ -150,7 +150,8 @@ export class AuthController {
   revokeUserSessions = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { userId } = req.params;
-      await this.authService.logoutAll(userId);
+      const { reason } = req.body as { reason?: string };
+      await this.authService.revokeAndMarkBlocked(userId, reason);
       res.json(apiResponse.success(null, 'All sessions revoked'));
     } catch (error) {
       next(error);

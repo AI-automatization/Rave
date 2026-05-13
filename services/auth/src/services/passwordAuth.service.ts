@@ -302,6 +302,15 @@ export class PasswordAuthService {
     logger.info('All sessions terminated', { userId });
   }
 
+  async revokeAndMarkBlocked(userId: string, reason?: string): Promise<void> {
+    await RefreshToken.deleteMany({ userId });
+    await User.updateOne(
+      { _id: userId },
+      { isBlocked: true, blockReason: reason ?? null, blockedAt: new Date() },
+    );
+    logger.info('All sessions revoked + block reason persisted in auth DB', { userId, reason });
+  }
+
   async verifyEmail(token: string): Promise<void> {
     const tokenHash = this.hashToken(token);
     const user = await User.findOne({
