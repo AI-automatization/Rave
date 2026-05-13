@@ -92,6 +92,7 @@ export const createAdminRouter = (redis: Redis): Router => {
 
   // ── Notifications ─────────────────────────────────────────────
   router.post('/notifications/broadcast', requireRole('admin', 'superadmin'), adminController.broadcastNotification);
+  router.post('/notifications/send',      requireRole('admin', 'superadmin'), adminController.sendNotificationToUser);
 
   // ── Staff Management (superadmin only) ───────────────────────
   router.get('/staff', requireRole('superadmin'), adminController.listStaff);

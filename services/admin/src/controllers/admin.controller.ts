@@ -356,6 +356,19 @@ export class AdminController {
     } catch (error) { next(error); }
   };
 
+  sendNotificationToUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId: adminId } = (req as AuthenticatedRequest).user;
+      const { userId, title, body, type } = req.body as { userId: string; title: string; body: string; type?: string };
+      if (!userId || !title || !body) {
+        res.status(400).json(apiResponse.error('userId, title and body required'));
+        return;
+      }
+      await this.adminService.sendNotificationToUser(userId, title, body, type ?? 'system', adminId);
+      res.json(apiResponse.success(null, 'Notification sent'));
+    } catch (error) { next(error); }
+  };
+
   // ── System Health ──────────────────────────────────────────
 
   getSystemHealth = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {

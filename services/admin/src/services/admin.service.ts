@@ -30,6 +30,7 @@ import {
   adminControlWatchParty,
   adminKickWatchPartyMember,
   adminBroadcastNotification,
+  adminSendNotificationToUser,
   adminGetContentStats,
   deleteAuthUser,
   revokeUserSessions,
@@ -370,6 +371,11 @@ export class AdminService {
   async broadcastNotification(title: string, body: string, type: string, adminId: string): Promise<void> {
     await adminBroadcastNotification({ title, body, type });
     logger.info('Broadcast notification sent by admin', { title, adminId });
+  }
+
+  async sendNotificationToUser(userId: string, title: string, body: string, type: string, adminId: string): Promise<void> {
+    await adminSendNotificationToUser({ userId, title, body, type });
+    logger.info('Direct notification sent by admin', { userId, title, adminId });
   }
 
   // ── Staff Management (superadmin only) ────────────────────

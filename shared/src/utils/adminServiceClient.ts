@@ -289,6 +289,16 @@ export async function adminBroadcastNotification(payload: {
   );
 }
 
+export async function adminSendNotificationToUser(payload: {
+  userId: string; title: string; body: string; type?: string;
+}): Promise<void> {
+  await axios.post(
+    `${notificationServiceUrl}/api/v1/notifications/internal/send`,
+    { ...payload, type: payload.type ?? 'system' },
+    { headers: internalHeaders, timeout: 10000 },
+  );
+}
+
 // ─── Admin: Staff Management ───────────────────────────────────────────────────
 
 export async function adminListStaff(): Promise<unknown[]> {
