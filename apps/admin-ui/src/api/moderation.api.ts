@@ -22,11 +22,20 @@ export interface RoomDetails {
   _id: string;
   name: string;
   ownerId: string;
+  ownerUsername: string | null;
+  ownerAvatar: string | null;
   members: string[];
   videoUrl: string | null;
+  videoTitle: string | null;
+  videoThumbnail: string | null;
+  videoPlatform: string | null;
+  currentTime: number;
+  isPlaying: boolean;
   status: string;
   isPublic: boolean;
   createdAt: string;
+  reporterUsername: string | null;
+  reporterAvatar: string | null;
 }
 
 export interface Appeal {
@@ -67,8 +76,9 @@ export const moderationApi = {
     return res.data.data as Appeal;
   },
 
-  getRoomDetails: async (roomId: string): Promise<RoomDetails> => {
-    const res = await apiClient.get<ApiResponse<RoomDetails>>(`/moderation/reports/room/${roomId}/details`);
+  getRoomDetails: async (roomId: string, reporterId?: string): Promise<RoomDetails> => {
+    const params = reporterId ? `?reporterId=${encodeURIComponent(reporterId)}` : '';
+    const res = await apiClient.get<ApiResponse<RoomDetails>>(`/moderation/reports/room/${roomId}/details${params}`);
     return res.data.data as RoomDetails;
   },
 

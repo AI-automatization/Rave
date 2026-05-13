@@ -32,6 +32,7 @@ export class UserService {
   searchUsers = (query: string, requesterId: string) => this.profile.searchUsers(query, requesterId);
   addPoints = (userId: string, points: number) => this.profile.addPoints(userId, points);
   getUserStats = (userId: string) => this.profile.getUserStats(userId);
+  adminGetUser = (userId: string) => this.profile.adminGetUser(userId);
   adminListUsers = (filters: Parameters<ProfileService['adminListUsers']>[0]) => this.profile.adminListUsers(filters);
   adminBlockUser = (userId: string, reason?: string) => this.profile.adminBlockUser(userId, reason);
   adminUnblockUser = (userId: string) => this.profile.adminUnblockUser(userId);

@@ -238,6 +238,12 @@ export class ProfileService {
 
   // ── Admin Internal Methods ────────────────────────────────────
 
+  async adminGetUser(userId: string): Promise<{ authId: string; username: string; avatar: string | null } | null> {
+    const user = await User.findOne({ authId: userId }).select('authId username avatar').lean();
+    if (!user) return null;
+    return { authId: user.authId, username: user.username, avatar: user.avatar ?? null };
+  }
+
   async adminListUsers(filters: {
     page: number;
     limit: number;

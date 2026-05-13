@@ -376,6 +376,14 @@ export class UserController {
     }
   };
 
+  adminGetUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const user = await this.userService.adminGetUser(req.params.id);
+      if (!user) { res.status(404).json(apiResponse.error('User not found')); return; }
+      res.json(apiResponse.success(user));
+    } catch (error) { next(error); }
+  };
+
   adminDeleteUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       await this.userService.adminDeleteUser(req.params.id);

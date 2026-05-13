@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Flag, Search, ChevronDown, Users, Link, Shield, AlertTriangle, Copy, CheckCheck } from 'lucide-react';
+import { Flag, Search, ChevronDown, Users, Link, Shield, AlertTriangle, Copy, CheckCheck, Play, Pause, Film } from 'lucide-react';
 import { moderationApi, RoomReport, RoomDetails, ReportStatus } from '../api/moderation.api';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
@@ -28,6 +28,19 @@ const STATUS_LABEL: Record<ReportStatus, string> = {
   dismissed: 'Отклонено',
   actioned: 'Меры приняты',
 };
+
+const PLATFORM_LABEL: Record<string, string> = {
+  youtube: 'YouTube',
+  direct: 'Direct',
+  vimeo: 'Vimeo',
+  twitch: 'Twitch',
+};
+
+function formatTime(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
 
 export function RoomReportsPage() {
   const [reports, setReports]   = useState<RoomReport[]>([]);
@@ -70,7 +83,7 @@ export function RoomReportsPage() {
     setRoomDetails(null);
     setRoomDetailsLoading(true);
     try {
-      const details = await moderationApi.getRoomDetails(report.roomId);
+      const details = await moderationApi.getRoomDetails(report.roomId, report.reporterId);
       setRoomDetails(details);
     } catch { /* room may be closed */ }
     finally { setRoomDetailsLoading(false); }
@@ -175,7 +188,7 @@ export function RoomReportsPage() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-white/[0.06]">
-                {['Комната', 'От', 'Причина', 'Статус', 'Дата', ''].map(h => (
+                {['ID комнаты', 'Жалобщик', 'Причина', 'Статус', 'Дата', ''].map(h => (
                   <th key={h} className="px-4 py-3 text-left text-xs text-text-dim font-medium">{h}</th>
                 ))}
               </tr>
@@ -183,23 +196,21 @@ export function RoomReportsPage() {
             <tbody>
               {filtered.map(r => (
                 <tr key={r._id} className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors">
-                  <td className="px-4 py-3 font-mono text-xs text-text-muted max-w-[120px] truncate">{r.roomId}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-text-muted max-w-[120px] truncate">{r.reporterId}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-text-muted max-w-[130px] truncate">{r.roomId}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-text-muted max-w-[130px] truncate">{r.reporterId}</td>
                   <td className="px-4 py-3">
                     <Badge variant="orange">{REASON_LABEL[r.reason] ?? r.reason}</Badge>
                   </td>
                   <td className="px-4 py-3">
                     <Badge variant={STATUS_VARIANT[r.status]}>{STATUS_LABEL[r.status]}</Badge>
                   </td>
-                  <td className="px-4 py-3 text-xs text-text-dim">
+                  <td className="px-4 py-3 text-xs text-text-dim whitespace-nowrap">
                     {new Date(r.createdAt).toLocaleDateString('ru')}
                   </td>
                   <td className="px-4 py-3">
-                    {r.status === 'pending' && (
-                      <Button size="sm" variant="ghost" onClick={() => void openModal(r)}>
-                        Рассмотреть
-                      </Button>
-                    )}
+                    <Button size="sm" variant="ghost" onClick={() => void openModal(r)}>
+                      {r.status === 'pending' ? 'Рассмотреть' : 'Открыть'}
+                    </Button>
                   </td>
                 </tr>
               ))}
@@ -212,30 +223,35 @@ export function RoomReportsPage() {
 
       {/* Review modal */}
       {modal && (
-        <Modal open={!!modal} title="Рассмотрение жалобы" onClose={() => setModal(null)}>
+        <Modal open={!!modal} title="Рассмотрение жалобы" onClose={() => setModal(null)} size="xl">
           <div className="space-y-4">
 
             {/* ── Жалоба ── */}
             <div className="bg-white/[0.04] rounded-lg p-3 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-text-dim">Комната</span>
+                <span className="text-xs text-text-dim">ID комнаты</span>
                 <button
                   className="flex items-center gap-1.5 font-mono text-xs text-white hover:text-accent transition-colors"
                   onClick={() => copyId(modal.report.roomId)}
                 >
-                  <span className="max-w-[180px] truncate">{modal.report.roomId}</span>
+                  <span className="max-w-[200px] truncate">{modal.report.roomId}</span>
                   {copiedId === modal.report.roomId ? <CheckCheck size={12} className="text-green-400" /> : <Copy size={12} />}
                 </button>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-text-dim">Жалобщик</span>
-                <button
-                  className="flex items-center gap-1.5 font-mono text-xs text-white hover:text-accent transition-colors"
-                  onClick={() => copyId(modal.report.reporterId)}
-                >
-                  <span className="max-w-[180px] truncate">{modal.report.reporterId}</span>
-                  {copiedId === modal.report.reporterId ? <CheckCheck size={12} className="text-green-400" /> : <Copy size={12} />}
-                </button>
+                <div className="flex items-center gap-2">
+                  {roomDetails?.reporterUsername && (
+                    <span className="text-xs text-accent font-medium">@{roomDetails.reporterUsername}</span>
+                  )}
+                  <button
+                    className="flex items-center gap-1.5 font-mono text-xs text-text-muted hover:text-white transition-colors"
+                    onClick={() => copyId(modal.report.reporterId)}
+                  >
+                    <span className="max-w-[120px] truncate">{modal.report.reporterId}</span>
+                    {copiedId === modal.report.reporterId ? <CheckCheck size={12} className="text-green-400" /> : <Copy size={12} />}
+                  </button>
+                </div>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-text-dim">Причина</span>
@@ -243,7 +259,7 @@ export function RoomReportsPage() {
               </div>
               {modal.report.comment && (
                 <div className="pt-1 border-t border-white/[0.06]">
-                  <p className="text-xs text-text-dim">Комментарий пользователя:</p>
+                  <p className="text-xs text-text-dim">Комментарий:</p>
                   <p className="text-xs text-white mt-0.5 italic">"{modal.report.comment}"</p>
                 </div>
               )}
@@ -259,8 +275,40 @@ export function RoomReportsPage() {
                 <p className="text-xs text-text-dim">Загрузка...</p>
               ) : roomDetails ? (
                 <div className="space-y-1.5">
+                  {/* Video preview block */}
+                  {(roomDetails.videoTitle || roomDetails.videoThumbnail) && (
+                    <div className="flex gap-3 p-2 bg-white/[0.03] rounded-lg border border-white/[0.06] mb-2">
+                      {roomDetails.videoThumbnail ? (
+                        <img
+                          src={roomDetails.videoThumbnail}
+                          alt="thumbnail"
+                          className="w-20 h-12 object-cover rounded flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-20 h-12 bg-white/[0.06] rounded flex items-center justify-center flex-shrink-0">
+                          <Film size={18} className="text-text-dim" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <p className="text-xs text-white font-medium leading-tight line-clamp-2">
+                          {roomDetails.videoTitle ?? 'Без названия'}
+                        </p>
+                        <div className="flex items-center gap-2">
+                          {roomDetails.videoPlatform && (
+                            <Badge variant="blue">{PLATFORM_LABEL[roomDetails.videoPlatform] ?? roomDetails.videoPlatform}</Badge>
+                          )}
+                          {roomDetails.currentTime > 0 && (
+                            <span className="flex items-center gap-1 text-xs text-yellow-400 font-mono">
+                              {roomDetails.isPlaying ? <Play size={10} className="fill-current" /> : <Pause size={10} />}
+                              <span title="Момент когда отправлена жалоба">{formatTime(roomDetails.currentTime)}</span>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-text-dim">Название</span>
+                    <span className="text-xs text-text-dim">Название комнаты</span>
                     <span className="text-xs text-white font-medium">{roomDetails.name || '—'}</span>
                   </div>
                   <div className="flex items-center justify-between">
@@ -275,28 +323,29 @@ export function RoomReportsPage() {
                     <span className="text-xs text-text-dim">Статус</span>
                     <Badge variant={roomDetails.status === 'active' ? 'green' : 'gray'}>{roomDetails.status}</Badge>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-text-dim">Создана</span>
-                    <span className="text-xs text-text-muted">{new Date(roomDetails.createdAt).toLocaleString('ru')}</span>
+                  <div className="pt-1.5 border-t border-white/[0.06]">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-text-dim">Владелец</span>
+                      <div className="flex items-center gap-2">
+                        {roomDetails.ownerUsername && (
+                          <span className="text-xs text-orange-400 font-medium">@{roomDetails.ownerUsername}</span>
+                        )}
+                        <button
+                          className="flex items-center gap-1.5 font-mono text-xs text-text-muted hover:text-white transition-colors"
+                          onClick={() => copyId(roomDetails.ownerId)}
+                        >
+                          <span className="max-w-[120px] truncate">{roomDetails.ownerId}</span>
+                          {copiedId === roomDetails.ownerId ? <CheckCheck size={12} className="text-green-400" /> : <Copy size={12} />}
+                        </button>
+                      </div>
+                    </div>
                   </div>
                   {roomDetails.videoUrl && (
                     <div className="pt-1.5 border-t border-white/[0.06]">
-                      <div className="flex items-center gap-1.5 text-xs text-text-dim mb-1"><Link size={11} /> Видео</div>
+                      <div className="flex items-center gap-1.5 text-xs text-text-dim mb-1"><Link size={11} /> URL</div>
                       <p className="text-xs text-blue-400 break-all font-mono leading-relaxed">{roomDetails.videoUrl}</p>
                     </div>
                   )}
-                  <div className="pt-1.5 border-t border-white/[0.06]">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-text-dim">Владелец (ID)</span>
-                      <button
-                        className="flex items-center gap-1.5 font-mono text-xs text-red-400 hover:text-red-300 transition-colors"
-                        onClick={() => copyId(roomDetails.ownerId)}
-                      >
-                        <span className="max-w-[160px] truncate">{roomDetails.ownerId}</span>
-                        {copiedId === roomDetails.ownerId ? <CheckCheck size={12} className="text-green-400" /> : <Copy size={12} />}
-                      </button>
-                    </div>
-                  </div>
                 </div>
               ) : (
                 <p className="text-xs text-text-dim">Комната не найдена или уже закрыта</p>

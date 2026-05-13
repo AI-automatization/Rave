@@ -6,6 +6,7 @@ import {
   adminGetWatchPartyRoom,
   adminNotifyUsers,
   adminBlockUser,
+  adminGetUser,
 } from '@shared/utils/adminServiceClient';
 import { logger } from '@shared/utils/logger';
 
@@ -41,8 +42,19 @@ export class ModerationService {
     return RoomReport.countDocuments({ status: 'pending' });
   }
 
-  async getRoomDetails(roomId: string) {
-    return adminGetWatchPartyRoom(roomId);
+  async getRoomDetails(roomId: string, reporterId?: string) {
+    const room = await adminGetWatchPartyRoom(roomId);
+    const [ownerInfo, reporterInfo] = await Promise.all([
+      adminGetUser(room.ownerId),
+      reporterId ? adminGetUser(reporterId) : Promise.resolve(null),
+    ]);
+    return {
+      ...room,
+      ownerUsername: ownerInfo?.username ?? null,
+      ownerAvatar:   ownerInfo?.avatar   ?? null,
+      reporterUsername: reporterInfo?.username ?? null,
+      reporterAvatar:   reporterInfo?.avatar   ?? null,
+    };
   }
 
   async warnRoomUsers(reportId: string, message: string, adminId: string) {

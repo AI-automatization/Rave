@@ -94,7 +94,8 @@ export class ModerationController {
   // GET /moderation/reports/room/:roomId/details — admin
   roomDetails = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const room = await this.service.getRoomDetails(req.params.roomId);
+      const reporterId = (req.query.reporterId as string) || undefined;
+      const room = await this.service.getRoomDetails(req.params.roomId, reporterId);
       res.json(apiResponse.success(room));
     } catch (err) {
       res.status(404).json(apiResponse.error((err as Error).message));

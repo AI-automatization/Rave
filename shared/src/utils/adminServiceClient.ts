@@ -166,15 +166,40 @@ export async function adminCancelBattle(battleId: string): Promise<void> {
 
 // ─── Admin: Watch Party Service ────────────────────────────────────────────────
 
-export async function adminGetWatchPartyRoom(roomId: string): Promise<{
-  _id: string; name: string; ownerId: string; members: string[];
-  videoUrl: string | null; status: string; isPublic: boolean; createdAt: string;
-}> {
-  const res = await axios.get<{ data: { _id: string; name: string; ownerId: string; members: string[]; videoUrl: string | null; status: string; isPublic: boolean; createdAt: string } }>(
+export interface WatchPartyRoomDetails {
+  _id: string;
+  name: string;
+  ownerId: string;
+  members: string[];
+  videoUrl: string | null;
+  videoTitle: string | null;
+  videoThumbnail: string | null;
+  videoPlatform: string | null;
+  currentTime: number;
+  isPlaying: boolean;
+  status: string;
+  isPublic: boolean;
+  createdAt: string;
+}
+
+export async function adminGetWatchPartyRoom(roomId: string): Promise<WatchPartyRoomDetails> {
+  const res = await axios.get<{ data: WatchPartyRoomDetails }>(
     `${watchPartyServiceUrl}/api/v1/watch-party/internal/admin/${roomId}/details`,
     { headers: internalHeaders, timeout: 5000 },
   );
   return res.data.data;
+}
+
+export async function adminGetUser(userId: string): Promise<{ authId: string; username: string; avatar: string | null } | null> {
+  try {
+    const res = await axios.get<{ data: { authId: string; username: string; avatar: string | null } }>(
+      `${userServiceUrl}/api/v1/users/internal/admin/users/${userId}`,
+      { headers: internalHeaders, timeout: 5000 },
+    );
+    return res.data.data ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export async function adminNotifyUsers(userIds: string[], title: string, body: string): Promise<void> {
