@@ -199,4 +199,47 @@ export const registerRoomEvents = (
       logger.error('Socket mute error', { userId, error });
     }
   });
+
+  // ── Admin monitoring join — bypasses member check, observer-only ──────────
+  socket.on(CLIENT_EVENTS.ADMIN_JOIN_ROOM, async (data: { roomId: string }) => {
+    const role = authSocket.user.role as string;
+    if (role !== 'admin' && role !== 'superadmin') {
+      socket.emit(SERVER_EVENTS.ERROR, { message: 'Admin access required' });
+      return;
+    }
+    try {
+      const room = await watchPartyService.getRoom(data.roomId);
+      await socket.join(data.roomId);
+      authSocket.roomId = data.roomId;
+
+      const syncState = await watchPartyService.getSyncState(data.roomId);
+
+      socket.emit(SERVER_EVENTS.ROOM_JOINED, { room, syncState });
+
+      // Notify room members that admin is watching
+      socket.to(data.roomId).emit(SERVER_EVENTS.ADMIN_MONITORING, {
+        adminId: userId,
+        timestamp: Date.now(),
+      });
+
+      logger.info('Admin joined room as observer', { adminId: userId, roomId: data.roomId });
+    } catch (error) {
+      socket.emit(SERVER_EVENTS.ERROR, { message: 'Failed to join room as admin' });
+      logger.error('Admin join room error', { adminId: userId, error });
+    }
+  });
+
+  socket.on(CLIENT_EVENTS.ADMIN_LEAVE_ROOM, async () => {
+    if (!authSocket.roomId) return;
+    const roomId = authSocket.roomId;
+    authSocket.roomId = undefined;
+    await socket.leave(roomId);
+
+    socket.to(roomId).emit(SERVER_EVENTS.ADMIN_LEFT_ROOM, {
+      adminId: userId,
+      timestamp: Date.now(),
+    });
+
+    logger.info('Admin left room', { adminId: userId, roomId });
+  });
 };

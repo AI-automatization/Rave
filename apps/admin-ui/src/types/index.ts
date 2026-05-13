@@ -156,7 +156,9 @@ export interface AdminWatchParty {
   movieId: string | null;
   videoUrl?: string | null;
   videoTitle?: string | null;
+  videoThumbnail?: string | null;
   videoPlatform?: string | null;
+  videoDuration?: number;
   currentTime: number;
   isPlaying: boolean;
   isPrivate: boolean;
@@ -167,6 +169,7 @@ export interface AdminWatchParty {
   domain?: string | null;
   isSuspicious?: boolean;
   suspiciousReason?: string | null;
+  isAdminBlocked?: boolean;
 }
 
 export interface AuditLog {

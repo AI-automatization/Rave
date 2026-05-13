@@ -43,11 +43,17 @@ export const SERVER_EVENTS = Object.freeze({
   MESH_PEER_JOINED:  'mesh:peer_joined',
   MESH_PEER_LEFT:    'mesh:peer_left',
 
+  ADMIN_MONITORING: 'admin:monitoring',
+  ADMIN_LEFT_ROOM:  'admin:left',
+
   ERROR: 'error',
 } as const);
 
 // Client → Server events
 export const CLIENT_EVENTS = Object.freeze({
+  ADMIN_JOIN_ROOM:  'admin:join',
+  ADMIN_LEAVE_ROOM: 'admin:leave',
+
   JOIN_ROOM: 'room:join',
   LEAVE_ROOM: 'room:leave',
 
