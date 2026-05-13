@@ -2,14 +2,13 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Tv2, Play, Pause, SkipForward, UserMinus, XCircle, ShieldOff,
-  Link as LinkIcon, RefreshCw, Users, Clock, Eye, AlertTriangle,
+  Link as LinkIcon, RefreshCw, Users, Clock, AlertTriangle,
   Radio, Send, MessageSquare, X, ChevronRight, Lock, Globe,
   Ban,
 } from 'lucide-react';
 import { watchPartiesApi } from '../api/watchparties.api';
 import { useAuthStore } from '../store/auth.store';
 import { watchPartySocket, RoomMessage } from '../socket/watchPartySocket';
-import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { Pagination } from '../components/ui/Pagination';
