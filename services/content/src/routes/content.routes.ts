@@ -146,7 +146,7 @@ export const createContentRouter = (redis: Redis, elastic: ElasticsearchClient):
   // ── Internal Domain Logging ───────────────────────────────
   // POST /content/internal/domains/visit — called by watch-party service on room creation
   router.post('/internal/domains/visit', requireInternalSecret, async (req: Request, res: Response) => {
-    const { domain, userId } = req.body as { domain: string; userId?: string };
+    const { domain } = req.body as { domain: string; userId?: string };
     if (!domain) { res.status(400).json({ ok: false }); return; }
     await UrlVisit.updateOne(
       { domain },
