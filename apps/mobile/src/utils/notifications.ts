@@ -13,6 +13,7 @@ export const NOTIFICATION_ROUTES: Record<NotificationType, string> = {
   friend_online: 'Friends',
   friend_watching: 'WatchParty',
   support_reply: 'SupportChat',
+  admin_warning: 'Notifications',
 };
 
 Notifications.setNotificationHandler({

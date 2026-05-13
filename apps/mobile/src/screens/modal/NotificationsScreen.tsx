@@ -55,6 +55,7 @@ export function NotificationsScreen() {
     friend_online:        { icon: 'radio-button-on-outline',  color: colors.success },
     friend_watching:      { icon: 'eye-outline',              color: colors.secondary },
     support_reply:        { icon: 'headset-outline',          color: colors.primary },
+    admin_warning:        { icon: 'warning-outline',           color: colors.error },
   };
 
   const renderItem = ({ item }: ListRenderItemInfo<INotification>) => {
