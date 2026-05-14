@@ -2,6 +2,7 @@ import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import morgan from 'morgan';
+import mongoose from 'mongoose';
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import Redis from 'ioredis';
@@ -68,9 +69,17 @@ export const createApp = (redis: Redis): express.Application => {
   }
   app.use(passport.initialize());
 
-  // Health check
-  app.get('/health', (_req, res) => {
-    res.json({ status: 'ok', service: 'auth', port: config.port });
+  // Health check (#32)
+  app.get('/health', async (_req, res) => {
+    const mongoOk = mongoose.connection.readyState === 1;
+    let redisOk = false;
+    try { await redis.ping(); redisOk = true; } catch { redisOk = false; }
+    const healthy = mongoOk && redisOk;
+    res.status(healthy ? 200 : 503).json({
+      status: healthy ? 'ok' : 'degraded',
+      service: 'auth',
+      checks: { mongo: mongoOk ? 'ok' : 'down', redis: redisOk ? 'ok' : 'down' },
+    });
   });
 
   // API Docs

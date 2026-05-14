@@ -5,6 +5,7 @@ import { createAdapter } from '@socket.io/redis-adapter';
 import helmet from 'helmet';
 import cors from 'cors';
 import morgan from 'morgan';
+import mongoose from 'mongoose';
 import Redis from 'ioredis';
 import swaggerUi from 'swagger-ui-express';
 import { errorHandler, notFoundHandler } from '@shared/middleware/error.middleware';
@@ -57,8 +58,16 @@ export const createApp = (redis: Redis): { app: express.Application; io: SocketS
   app.use(requestId);
   app.use(timeout());
 
-  app.get('/health', (_req, res) => {
-    res.json({ status: 'ok', service: 'watch-party', port: config.port });
+  app.get('/health', async (_req, res) => {
+    const mongoOk = mongoose.connection.readyState === 1;
+    let redisOk = false;
+    try { await redis.ping(); redisOk = true; } catch { redisOk = false; }
+    const healthy = mongoOk && redisOk;
+    res.status(healthy ? 200 : 503).json({
+      status: healthy ? 'ok' : 'degraded',
+      service: 'watch-party',
+      checks: { mongo: mongoOk ? 'ok' : 'down', redis: redisOk ? 'ok' : 'down' },
+    });
   });
 
   if (process.env.NODE_ENV !== 'production') { app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));

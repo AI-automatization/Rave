@@ -2,6 +2,7 @@ import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import morgan from 'morgan';
+import mongoose from 'mongoose';
 import admin from 'firebase-admin';
 import swaggerUi from 'swagger-ui-express';
 import { errorHandler, notFoundHandler } from '@shared/middleware/error.middleware';
@@ -61,7 +62,12 @@ export const createApp = (): express.Application => {
   app.use(timeout());
 
   app.get('/health', (_req, res) => {
-    res.json({ status: 'ok', service: 'notification', port: config.port });
+    const mongoOk = mongoose.connection.readyState === 1;
+    res.status(mongoOk ? 200 : 503).json({
+      status: mongoOk ? 'ok' : 'degraded',
+      service: 'notification',
+      checks: { mongo: mongoOk ? 'ok' : 'down' },
+    });
   });
 
   if (process.env.NODE_ENV !== 'production') { app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));

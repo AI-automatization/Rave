@@ -2,6 +2,7 @@ import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import morgan from 'morgan';
+import mongoose from 'mongoose';
 import path from 'path';
 import Redis from 'ioredis';
 import { Client as ElasticsearchClient } from '@elastic/elasticsearch';
@@ -45,8 +46,18 @@ export const createApp = (redis: Redis, elastic: ElasticsearchClient): express.A
   app.use(apiLogger('content'));
   app.use(timeout());
 
-  app.get('/health', (_req, res) => {
-    res.json({ status: 'ok', service: 'content', port: config.port });
+  app.get('/health', async (_req, res) => {
+    const mongoOk = mongoose.connection.readyState === 1;
+    let redisOk = false;
+    let esOk = false;
+    try { await redis.ping(); redisOk = true; } catch { redisOk = false; }
+    try { await elastic.ping(); esOk = true; } catch { esOk = false; }
+    const healthy = mongoOk && redisOk && esOk;
+    res.status(healthy ? 200 : 503).json({
+      status: healthy ? 'ok' : 'degraded',
+      service: 'content',
+      checks: { mongo: mongoOk ? 'ok' : 'down', redis: redisOk ? 'ok' : 'down', elasticsearch: esOk ? 'ok' : 'down' },
+    });
   });
 
   if (process.env.NODE_ENV !== 'production') { app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
