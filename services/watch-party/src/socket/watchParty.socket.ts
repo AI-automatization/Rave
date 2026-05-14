@@ -107,6 +107,18 @@ export const registerWatchPartySocket = (io: SocketServer, watchPartyService: Wa
 
     logger.info('Socket connected', { userId, socketId: socket.id });
 
+    // #31 — re-check block status every 30s so freshly-blocked users are kicked
+    const blockedCheckInterval = setInterval(async () => {
+      try {
+        const isBlocked = await redis.get(`auth:blocked:${userId}`);
+        if (isBlocked !== null) {
+          socket.emit(SERVER_EVENTS.ERROR, { code: 'ACCOUNT_BLOCKED', message: 'Your account has been blocked' });
+          socket.disconnect(true);
+          logger.info('Blocked user disconnected from socket', { userId });
+        }
+      } catch { /* Redis unavailable — keep connection alive */ }
+    }, 30_000);
+
     // Register all event handlers
     registerRoomEvents(io, socket, authSocket, watchPartyService);
     registerVideoEvents(io, socket, authSocket, watchPartyService);
@@ -118,6 +130,7 @@ export const registerWatchPartySocket = (io: SocketServer, watchPartyService: Wa
     // DISCONNECT — do NOT remove user from members (allows reconnect).
     // Only clean up voice and notify others. Explicit leave happens via room:leave event or HTTP API.
     socket.on('disconnect', async () => {
+      clearInterval(blockedCheckInterval);
       const roomId = authSocket.roomId;
       if (roomId) {
         // Clean up voice room

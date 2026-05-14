@@ -29,9 +29,18 @@ export const registerMeshHandlers = (
     logger.info('Mesh peer left', { userId, roomId: authSocket.roomId });
   });
 
+  // #30 — verify toUserId is in the same room before relaying WebRTC signal
+  const verifyPeer = async (toUserId: string): Promise<boolean> => {
+    const roomId = authSocket.roomId;
+    if (!roomId) return false;
+    const sockets = await io.in(roomId).fetchSockets();
+    return sockets.some((s) => (s as unknown as AuthenticatedSocket).user?.userId === toUserId);
+  };
+
   // PEER_OFFER — relay SDP offer to target peer via personal room
-  socket.on(CLIENT_EVENTS.PEER_OFFER, (data: Pick<MeshSignalPayload, 'toUserId' | 'sdp'>) => {
-    if (!data.toUserId || !data.sdp) return;
+  socket.on(CLIENT_EVENTS.PEER_OFFER, async (data: Pick<MeshSignalPayload, 'toUserId' | 'sdp'>) => {
+    if (!data.toUserId || !data.sdp || !authSocket.roomId) return;
+    if (!(await verifyPeer(data.toUserId))) return;
     io.to(`user:${data.toUserId}`).emit(SERVER_EVENTS.PEER_OFFER, {
       fromUserId: userId,
       toUserId: data.toUserId,
@@ -41,8 +50,9 @@ export const registerMeshHandlers = (
   });
 
   // PEER_ANSWER — relay SDP answer back to the offerer
-  socket.on(CLIENT_EVENTS.PEER_ANSWER, (data: Pick<MeshSignalPayload, 'toUserId' | 'sdp'>) => {
-    if (!data.toUserId || !data.sdp) return;
+  socket.on(CLIENT_EVENTS.PEER_ANSWER, async (data: Pick<MeshSignalPayload, 'toUserId' | 'sdp'>) => {
+    if (!data.toUserId || !data.sdp || !authSocket.roomId) return;
+    if (!(await verifyPeer(data.toUserId))) return;
     io.to(`user:${data.toUserId}`).emit(SERVER_EVENTS.PEER_ANSWER, {
       fromUserId: userId,
       toUserId: data.toUserId,
@@ -52,8 +62,9 @@ export const registerMeshHandlers = (
   });
 
   // PEER_ICE — relay ICE candidate to target peer
-  socket.on(CLIENT_EVENTS.PEER_ICE, (data: Pick<MeshSignalPayload, 'toUserId' | 'candidate'>) => {
-    if (!data.toUserId || !data.candidate) return;
+  socket.on(CLIENT_EVENTS.PEER_ICE, async (data: Pick<MeshSignalPayload, 'toUserId' | 'candidate'>) => {
+    if (!data.toUserId || !data.candidate || !authSocket.roomId) return;
+    if (!(await verifyPeer(data.toUserId))) return;
     io.to(`user:${data.toUserId}`).emit(SERVER_EVENTS.PEER_ICE, {
       fromUserId: userId,
       toUserId: data.toUserId,
