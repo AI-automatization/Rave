@@ -53,7 +53,7 @@ export const createApp = (redis: Redis, elastic: ElasticsearchClient): express.A
     let esOk = false;
     try { await redis.ping(); redisOk = true; } catch { redisOk = false; }
     try { await elastic.ping(); esOk = true; } catch { esOk = false; }
-    const healthy = mongoOk && redisOk && esOk;
+    const healthy = mongoOk && redisOk; // Elasticsearch is optional (not available in all envs)
     res.status(healthy ? 200 : 503).json({
       status: healthy ? 'ok' : 'degraded',
       service: 'content',
