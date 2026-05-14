@@ -16,6 +16,7 @@ services:
       resources:
         limits:
           memory: 1G
+          cpus: '1.0'
     healthcheck:
       test: ['CMD', 'mongosh', '--eval', 'db.adminCommand("ping")']
       interval: 10s
@@ -32,6 +33,11 @@ services:
       - redis_data_prod:/data
     networks:
       - cinesync_network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
     healthcheck:
       test: ['CMD', 'redis-cli', '-a', '${REDIS_PASSWORD}', 'ping']
       interval: 10s
@@ -53,6 +59,11 @@ services:
       - es_data_prod:/usr/share/elasticsearch/data
     networks:
       - cinesync_network
+    deploy:
+      resources:
+        limits:
+          memory: 1.5G
+          cpus: '1.0'
     healthcheck:
       test: ['CMD-SHELL', 'curl -sf http://localhost:9200/_cluster/health?wait_for_status=yellow || exit 1']
       interval: 15s
@@ -74,6 +85,11 @@ services:
         condition: service_healthy
     networks:
       - cinesync_network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
 
   user:
     build:
@@ -89,6 +105,11 @@ services:
         condition: service_healthy
     networks:
       - cinesync_network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
 
   content:
     build:
@@ -106,6 +127,11 @@ services:
         condition: service_healthy
     networks:
       - cinesync_network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
 
   watch-party:
     build:
@@ -121,6 +147,11 @@ services:
         condition: service_healthy
     networks:
       - cinesync_network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.75'
 
   battle:
     build:
@@ -136,6 +167,11 @@ services:
         condition: service_healthy
     networks:
       - cinesync_network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
 
   notification:
     build:
@@ -151,6 +187,11 @@ services:
         condition: service_healthy
     networks:
       - cinesync_network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
 
   admin:
     build:
@@ -166,6 +207,11 @@ services:
         condition: service_healthy
     networks:
       - cinesync_network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
 
   nginx:
     image: nginx:1.25-alpine
@@ -187,6 +233,11 @@ services:
       - admin
     networks:
       - cinesync_network
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.25'
 
 volumes:
   mongo_data_prod:
