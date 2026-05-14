@@ -1,5 +1,6 @@
 import { RoomReport, ReportReason, ReportStatus } from '../models/roomReport.model';
 import { Appeal, AppealStatus } from '../models/appeal.model';
+import { UserReport, UserReportReason, UserReportStatus } from '../models/userReport.model';
 import {
   adminUnblockUser,
   adminSendAppealDecisionEmail,
@@ -132,5 +133,36 @@ export class ModerationService {
 
   async pendingAppealCount() {
     return Appeal.countDocuments({ status: 'pending' });
+  }
+
+  // ─── User Reports ─────────────────────────────────────────────────────────
+
+  async createUserReport(reportedUserId: string, reporterId: string, reason: UserReportReason, comment?: string) {
+    const existing = await UserReport.findOne({ reportedUserId, reporterId });
+    if (existing) return existing;
+    return UserReport.create({ reportedUserId, reporterId, reason, comment });
+  }
+
+  async listUserReports(filters: { status?: string; page: number; limit: number }) {
+    const query: Record<string, unknown> = {};
+    if (filters.status && filters.status !== 'all') query.status = filters.status;
+    const total = await UserReport.countDocuments(query);
+    const reports = await UserReport.find(query)
+      .sort({ createdAt: -1 })
+      .skip((filters.page - 1) * filters.limit)
+      .limit(filters.limit);
+    return { reports, total };
+  }
+
+  async reviewUserReport(id: string, adminId: string, status: UserReportStatus, note?: string) {
+    return UserReport.findByIdAndUpdate(
+      id,
+      { status, reviewedBy: adminId, reviewNote: note ?? null, reviewedAt: new Date() },
+      { new: true },
+    );
+  }
+
+  async pendingUserReportCount() {
+    return UserReport.countDocuments({ status: 'pending' });
   }
 }

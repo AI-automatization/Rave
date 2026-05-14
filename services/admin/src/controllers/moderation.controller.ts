@@ -3,8 +3,10 @@ import { ModerationService } from '../services/moderation.service';
 import { apiResponse, buildPaginationMeta } from '@shared/utils/apiResponse';
 import { ReportReason } from '../models/roomReport.model';
 import { AppealStatus } from '../models/appeal.model';
+import { UserReportReason, UserReportStatus } from '../models/userReport.model';
 
 const VALID_REASONS: ReportReason[] = ['prohibited_content', 'spam', 'violence', 'harassment', 'copyright', 'other'];
+const VALID_USER_REASONS: UserReportReason[] = ['harassment', 'spam', 'inappropriate_content', 'fake_account', 'hate_speech', 'other'];
 
 export class ModerationController {
   constructor(private service: ModerationService) {}
@@ -128,14 +130,61 @@ export class ModerationController {
     } catch (err) { next(err); }
   };
 
+  // POST /internal/moderation/users/:userId/report — mobile (JWT required)
+  reportUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const user = (req as Request & { user?: { userId: string } }).user;
+      if (!user) { res.status(401).json(apiResponse.error('Unauthorized')); return; }
+      const { reason, comment } = req.body as { reason: UserReportReason; comment?: string };
+      if (!VALID_USER_REASONS.includes(reason)) {
+        res.status(400).json(apiResponse.error('Invalid reason'));
+        return;
+      }
+      if (user.userId === req.params.userId) {
+        res.status(400).json(apiResponse.error('Cannot report yourself'));
+        return;
+      }
+      const report = await this.service.createUserReport(req.params.userId, user.userId, reason, comment);
+      res.status(201).json(apiResponse.success(report));
+    } catch (err) { next(err); }
+  };
+
+  // GET /moderation/user-reports — admin
+  listUserReports = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const page = Math.max(1, Number(req.query.page) || 1);
+      const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 20));
+      const status = (req.query.status as string) || 'all';
+      const { reports, total } = await this.service.listUserReports({ status, page, limit });
+      res.json({ ...apiResponse.success(reports), meta: buildPaginationMeta(total, page, limit) });
+    } catch (err) { next(err); }
+  };
+
+  // PATCH /moderation/user-reports/:id — admin
+  reviewUserReport = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const admin = (req as Request & { user?: { userId: string } }).user;
+      const { status, note } = req.body as { status: UserReportStatus; note?: string };
+      const validStatuses: UserReportStatus[] = ['reviewed', 'dismissed', 'actioned'];
+      if (!validStatuses.includes(status)) {
+        res.status(400).json(apiResponse.error('Invalid status'));
+        return;
+      }
+      const report = await this.service.reviewUserReport(req.params.id, admin?.userId ?? 'admin', status, note);
+      if (!report) { res.status(404).json(apiResponse.error('Not found')); return; }
+      res.json(apiResponse.success(report));
+    } catch (err) { next(err); }
+  };
+
   // GET /moderation/counts — admin
   counts = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const [reports, appeals] = await Promise.all([
+      const [reports, appeals, userReports] = await Promise.all([
         this.service.pendingReportCount(),
         this.service.pendingAppealCount(),
+        this.service.pendingUserReportCount(),
       ]);
-      res.json(apiResponse.success({ reports, appeals }));
+      res.json(apiResponse.success({ reports, appeals, userReports }));
     } catch (err) { next(err); }
   };
 }

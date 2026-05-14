@@ -8,10 +8,9 @@ export const createModerationRouter = (): Router => {
   const controller = new ModerationController(new ModerationService());
 
   // Internal routes — mobile
-  // Room report requires JWT (user must be authenticated to report a room)
   router.post('/internal/moderation/rooms/:roomId/report', verifyToken, controller.reportRoom);
-  // Appeal does NOT require JWT — blocked users have tokens cleared on block;
-  // userId is accepted from body as fallback when no valid token is present
+  router.post('/internal/moderation/users/:userId/report', verifyToken, controller.reportUser);
+  // Appeal does NOT require JWT — blocked users have tokens cleared on block
   router.post('/internal/moderation/appeals', controller.createAppeal);
 
   // Admin routes
@@ -24,6 +23,8 @@ export const createModerationRouter = (): Router => {
   router.get('/moderation/reports/room/:roomId/details', controller.roomDetails);
   router.post('/moderation/reports/:id/warn', controller.warnUsers);
   router.post('/moderation/reports/:id/block-owner', controller.blockOwner);
+  router.get('/moderation/user-reports', controller.listUserReports);
+  router.patch('/moderation/user-reports/:id', controller.reviewUserReport);
   router.get('/moderation/appeals', controller.listAppeals);
   router.patch('/moderation/appeals/:id', controller.reviewAppeal);
 
