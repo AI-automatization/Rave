@@ -7,6 +7,7 @@ import { createDomainAdminController } from '../controllers/domain.admin.control
 import { verifyToken, requireNotBlocked } from '@shared/middleware/auth.middleware';
 import { requireInternalSecret } from '@shared/utils/serviceClient';
 import { createRoomLimiter, joinRoomLimiter } from '../middleware/rateLimiter';
+import { validate, createRoomSchema, joinRoomSchema } from '../validators/watchParty.validator';
 
 export const createWatchPartyRouter = (redis: Redis, io: SocketServer): Router => {
   const router = Router();
@@ -57,13 +58,13 @@ export const createWatchPartyRouter = (redis: Redis, io: SocketServer): Router =
   router.get('/rooms', verifyToken, notBlocked, watchPartyController.getRooms);
 
   // POST /watch-party/rooms — create room (max 5/min per IP)
-  router.post('/rooms', verifyToken, notBlocked, createLimiter, watchPartyController.createRoom);
+  router.post('/rooms', verifyToken, notBlocked, createLimiter, validate(createRoomSchema), watchPartyController.createRoom);
 
   // GET /watch-party/rooms/:id — get room details
   router.get('/rooms/:id', verifyToken, notBlocked, watchPartyController.getRoom);
 
   // POST /watch-party/rooms/join/:inviteCode — join room (max 10/min per user)
-  router.post('/rooms/join/:inviteCode', verifyToken, notBlocked, joinLimiter, watchPartyController.joinRoom);
+  router.post('/rooms/join/:inviteCode', verifyToken, notBlocked, joinLimiter, validate(joinRoomSchema), watchPartyController.joinRoom);
 
   // DELETE /watch-party/rooms/:id — close room (owner only) (T-S028)
   router.delete('/rooms/:id', verifyToken, notBlocked, watchPartyController.closeRoom);
@@ -85,7 +86,7 @@ export const createWatchPartyRouter = (redis: Redis, io: SocketServer): Router =
 
   // POST aliases — mobile uses POST instead of DELETE for leave, and /join without /rooms prefix
   router.post('/rooms/:id/leave', verifyToken, notBlocked, watchPartyController.leaveRoom);
-  router.post('/join/:inviteCode', verifyToken, notBlocked, joinLimiter, watchPartyController.joinRoom);
+  router.post('/join/:inviteCode', verifyToken, notBlocked, joinLimiter, validate(joinRoomSchema), watchPartyController.joinRoom);
 
   return router;
 };

@@ -4,6 +4,7 @@ import { NotificationService } from '../services/notification.service';
 import { TelegramController } from '../controllers/telegram.controller';
 import { verifyToken } from '@shared/middleware/auth.middleware';
 import { requireInternalSecret } from '@shared/utils/serviceClient';
+import { validate, sendInternalSchema, broadcastSchema, notifyUsersSchema } from '../validators/notification.validator';
 
 export const createNotificationRouter = (redisUrl: string): Router => {
   const router = Router();
@@ -12,13 +13,13 @@ export const createNotificationRouter = (redisUrl: string): Router => {
   const telegramController = new TelegramController();
 
   // POST /notifications/internal/send — service-to-service (X-Internal-Secret header)
-  router.post('/internal/send', requireInternalSecret, notificationController.sendInternal);
+  router.post('/internal/send', requireInternalSecret, validate(sendInternalSchema), notificationController.sendInternal);
 
   // POST /notifications/internal/admin/broadcast — broadcast notification to all users (admin)
-  router.post('/internal/admin/broadcast', requireInternalSecret, notificationController.broadcastInternal);
+  router.post('/internal/admin/broadcast', requireInternalSecret, validate(broadcastSchema), notificationController.broadcastInternal);
 
   // POST /notifications/internal/admin/notify-users — send warning to specific users (moderation)
-  router.post('/internal/admin/notify-users', requireInternalSecret, notificationController.notifyUsersInternal);
+  router.post('/internal/admin/notify-users', requireInternalSecret, validate(notifyUsersSchema), notificationController.notifyUsersInternal);
 
   // DELETE /notifications/internal/users/:userId — cascade account deletion (T-S093)
   router.delete('/internal/users/:userId', requireInternalSecret, notificationController.deleteUserData);

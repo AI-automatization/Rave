@@ -4,6 +4,11 @@ import { AdminController } from '../controllers/admin.controller';
 import { AdminService } from '../services/admin.service';
 import { verifyToken, requireRole } from '@shared/middleware/auth.middleware';
 import { requireInternalSecret } from '@shared/utils/serviceClient';
+import {
+  validate, blockUserSchema, changeRoleSchema, replyFeedbackSchema,
+  broadcastNotificationSchema, sendNotificationSchema, createStaffSchema,
+  addDomainSchema, setRestrictionsSchema, controlWatchPartySchema,
+} from '../validators/admin.validator';
 
 const FEATURE_BATTLES = process.env.FEATURE_BATTLES !== 'false';
 const battlesDisabled = (_req: Request, res: Response): void => {
@@ -29,10 +34,10 @@ export const createAdminRouter = (redis: Redis): Router => {
   router.get('/users', adminController.listUsers);
 
   // PATCH /admin/users/:id/restrictions
-  router.patch('/users/:id/restrictions', adminController.setUserRestrictions);
+  router.patch('/users/:id/restrictions', validate(setRestrictionsSchema), adminController.setUserRestrictions);
 
   // PATCH /admin/users/:id/block
-  router.patch('/users/:id/block', adminController.blockUser);
+  router.patch('/users/:id/block', validate(blockUserSchema), adminController.blockUser);
 
   // PATCH /admin/users/:id/unblock
   router.patch('/users/:id/unblock', adminController.unblockUser);
@@ -41,6 +46,7 @@ export const createAdminRouter = (redis: Redis): Router => {
   router.patch(
     '/users/:id/role',
     requireRole('superadmin'),
+    validate(changeRoleSchema),
     adminController.changeUserRole,
   );
 
@@ -62,7 +68,7 @@ export const createAdminRouter = (redis: Redis): Router => {
 
   // ── Feedback ──────────────────────────────────────────────────
   router.get('/feedback', adminController.listFeedback);
-  router.patch('/feedback/:id/reply', adminController.replyFeedback);
+  router.patch('/feedback/:id/reply', validate(replyFeedbackSchema), adminController.replyFeedback);
 
   // ── Analytics ─────────────────────────────────────────────────
   router.get('/analytics', adminController.getAnalytics);
@@ -84,19 +90,19 @@ export const createAdminRouter = (redis: Redis): Router => {
   router.get('/watchparties', adminController.listWatchParties);
   router.delete('/watchparties/:id', requireRole('superadmin'), adminController.closeWatchParty);
   router.post('/watchparties/:id/join', adminController.joinWatchParty);
-  router.post('/watchparties/:id/control', adminController.controlWatchParty);
+  router.post('/watchparties/:id/control', validate(controlWatchPartySchema), adminController.controlWatchParty);
   router.delete('/watchparties/:id/members/:userId', adminController.kickWatchPartyMember);
 
   // ── Audit Logs ────────────────────────────────────────────────
   router.get('/audit-logs', adminController.getAuditLogs);
 
   // ── Notifications ─────────────────────────────────────────────
-  router.post('/notifications/broadcast', requireRole('admin', 'superadmin'), adminController.broadcastNotification);
-  router.post('/notifications/send',      requireRole('admin', 'superadmin'), adminController.sendNotificationToUser);
+  router.post('/notifications/broadcast', requireRole('admin', 'superadmin'), validate(broadcastNotificationSchema), adminController.broadcastNotification);
+  router.post('/notifications/send',      requireRole('admin', 'superadmin'), validate(sendNotificationSchema), adminController.sendNotificationToUser);
 
   // ── Staff Management (superadmin only) ───────────────────────
   router.get('/staff', requireRole('superadmin'), adminController.listStaff);
-  router.post('/staff', requireRole('superadmin'), adminController.createStaff);
+  router.post('/staff', requireRole('superadmin'), validate(createStaffSchema), adminController.createStaff);
   router.delete('/staff/:id', requireRole('superadmin'), adminController.deleteStaff);
 
   // ── System Health ─────────────────────────────────────────────
@@ -104,7 +110,7 @@ export const createAdminRouter = (redis: Redis): Router => {
 
   // ── Domain Management ─────────────────────────────────────────
   router.get('/content/domains',                       adminController.listDomains);
-  router.post('/content/domains',                      adminController.addBlockedDomain);
+  router.post('/content/domains',                      validate(addDomainSchema), adminController.addBlockedDomain);
   router.patch('/content/domains/:domain/block',       adminController.blockDomain);
   router.patch('/content/domains/:domain/unblock',     adminController.unblockDomain);
 

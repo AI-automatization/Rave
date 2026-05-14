@@ -38,12 +38,14 @@ import {
   adminGetBattleStats,
   createStaffAccount,
   syncAdminProfile,
+} from '@shared/utils/serviceClient';
+import {
   adminListDomains,
   adminBlockDomain,
   adminUnblockDomain,
   adminAddBlockedDomain,
   adminSetUserRestrictions,
-} from '@shared/utils/serviceClient';
+} from '@shared/utils/adminServiceClient';
 
 export interface DashboardStats {
   totalUsers: number;

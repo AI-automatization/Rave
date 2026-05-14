@@ -4,6 +4,7 @@ import { BattleController } from '../controllers/battle.controller';
 import { BattleService } from '../services/battle.service';
 import { verifyToken } from '@shared/middleware/auth.middleware';
 import { requireInternalSecret } from '@shared/utils/serviceClient';
+import { validate, createBattleSchema, inviteParticipantSchema } from '../validators/battle.validator';
 
 export const createBattleRouter = (redis: Redis): Router => {
   const router = Router();
@@ -11,7 +12,7 @@ export const createBattleRouter = (redis: Redis): Router => {
   const battleController = new BattleController(battleService);
 
   // POST /battles — create
-  router.post('/', verifyToken, battleController.createBattle);
+  router.post('/', verifyToken, validate(createBattleSchema), battleController.createBattle);
 
   // GET /battles/me — my battles
   router.get('/me', verifyToken, battleController.getMyBattles);
@@ -38,7 +39,7 @@ export const createBattleRouter = (redis: Redis): Router => {
   router.get('/:id', verifyToken, battleController.getBattle);
 
   // POST /battles/:id/invite
-  router.post('/:id/invite', verifyToken, battleController.inviteParticipant);
+  router.post('/:id/invite', verifyToken, validate(inviteParticipantSchema), battleController.inviteParticipant);
 
   // POST /battles/:id/accept
   router.post('/:id/accept', verifyToken, battleController.acceptInvite);
