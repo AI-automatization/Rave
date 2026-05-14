@@ -6,10 +6,16 @@ on:
   push:
     branches: [develop]
 
+permissions:
+  contents: read
+
 jobs:
   typecheck:
     name: Typecheck — ${{ matrix.service }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
     strategy:
       fail-fast: false
       matrix:
@@ -33,10 +39,10 @@ jobs:
             path: services/admin
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@1d0ff469b549b2bf1c05b7dac02bab2a6cc7e047 # v4.2.0
         with:
           node-version: '20'
           cache: 'npm'
