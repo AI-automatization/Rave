@@ -41,8 +41,9 @@ export const createWatchPartyRouter = (redis: Redis, io: SocketServer): Router =
   // Internal Admin: DELETE /watch-party/internal/admin/:id/members/:userId — kick any member
   router.delete('/internal/admin/:id/members/:userId', requireInternalSecret, watchPartyController.adminKickMember);
 
-  // Internal Admin: domain management (reads from WatchPartyRoom.domain, blocked set in Redis)
+  // Internal Admin: domain management
   router.get('/internal/admin/domains',                       requireInternalSecret, domainAdminCtrl.listDomains);
+  router.post('/internal/admin/domains',                      requireInternalSecret, domainAdminCtrl.addDomain);
   router.patch('/internal/admin/domains/:domain/block',       requireInternalSecret, domainAdminCtrl.blockDomain);
   router.patch('/internal/admin/domains/:domain/unblock',     requireInternalSecret, domainAdminCtrl.unblockDomain);
 

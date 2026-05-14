@@ -104,6 +104,7 @@ export const createAdminRouter = (redis: Redis): Router => {
 
   // ── Domain Management ─────────────────────────────────────────
   router.get('/content/domains',                       adminController.listDomains);
+  router.post('/content/domains',                      adminController.addBlockedDomain);
   router.patch('/content/domains/:domain/block',       adminController.blockDomain);
   router.patch('/content/domains/:domain/unblock',     adminController.unblockDomain);
 

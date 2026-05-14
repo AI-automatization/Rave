@@ -402,6 +402,13 @@ export class AdminController {
     } catch (error) { next(error); }
   };
 
+  addBlockedDomain = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const result = await this.adminService.addBlockedDomain(req.body.domain);
+      res.status(201).json(apiResponse.success(result, 'Domain added to blocklist'));
+    } catch (error) { next(error); }
+  };
+
   deleteUserData = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       await this.adminService.deleteUserData(req.params.userId);

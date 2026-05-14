@@ -1,5 +1,5 @@
-import { useEffect, useState, useCallback } from 'react';
-import { Search, ShieldOff, ShieldCheck, Globe, AlertTriangle } from 'lucide-react';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { Search, ShieldOff, ShieldCheck, Globe, AlertTriangle, Plus, X } from 'lucide-react';
 import { domainsApi, type DomainEntry, type DomainsMeta } from '../api/domains.api';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
@@ -44,6 +44,11 @@ export function DomainsPage() {
   const [search, setSearch]   = useState('');
   const [page, setPage]       = useState(1);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [addInput, setAddInput]       = useState('');
+  const [addLoading, setAddLoading]   = useState(false);
+  const [addError, setAddError]       = useState('');
+  const addInputRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -69,9 +74,54 @@ export function DomainsPage() {
     finally { setActionLoading(null); }
   };
 
+  const openAddForm = () => {
+    setAddInput(''); setAddError(''); setShowAddForm(true);
+    setTimeout(() => addInputRef.current?.focus(), 50);
+  };
+
+  const handleAdd = async () => {
+    const val = addInput.trim();
+    if (!val) { setAddError('Enter a domain'); return; }
+    setAddLoading(true); setAddError('');
+    try {
+      await domainsApi.add(val);
+      setShowAddForm(false);
+      setAddInput('');
+      await load();
+    } catch {
+      setAddError('Failed to add domain');
+    } finally {
+      setAddLoading(false);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-5 animate-fade-in">
       <PageHeader title="Domains" meta={`${meta.total.toLocaleString('en')} domains`} />
+
+      {/* Add domain form */}
+      {showAddForm && (
+        <div className="bg-card rounded-2xl shadow-card p-4 flex items-center gap-3">
+          <div className="relative flex-1">
+            <Globe size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-dim pointer-events-none" />
+            <input
+              ref={addInputRef}
+              value={addInput}
+              onChange={(e) => { setAddInput(e.target.value); setAddError(''); }}
+              onKeyDown={(e) => { if (e.key === 'Enter') void handleAdd(); if (e.key === 'Escape') setShowAddForm(false); }}
+              placeholder="example.com"
+              className="input-base pl-9 w-full"
+            />
+          </div>
+          {addError && <span className="text-red-400 text-xs shrink-0">{addError}</span>}
+          <Button variant="danger" size="sm" loading={addLoading} onClick={() => void handleAdd()}>
+            Block
+          </Button>
+          <button onClick={() => setShowAddForm(false)} className="text-text-dim hover:text-white transition-colors">
+            <X size={16} />
+          </button>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex flex-wrap gap-2.5 items-center">
@@ -89,6 +139,10 @@ export function DomainsPage() {
           value={filter}
           onChange={(v) => { setFilter(v as Filter); setPage(1); }}
         />
+        <Button variant="primary" size="sm" onClick={openAddForm}>
+          <Plus size={13} className="mr-1.5" />
+          Add Domain
+        </Button>
       </div>
 
       {/* Table */}

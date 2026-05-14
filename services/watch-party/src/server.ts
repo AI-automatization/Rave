@@ -3,6 +3,7 @@ import Redis from 'ioredis';
 import { createApp } from './app';
 import { config } from './config/index';
 import { logger } from '@shared/utils/logger';
+import { seedStaticBlockedDomains } from './controllers/domain.admin.controller';
 
 const main = async (): Promise<void> => {
   await mongoose.connect(config.mongoUri);
@@ -19,6 +20,7 @@ const main = async (): Promise<void> => {
   try {
     await redis.connect();
     logger.info('Redis connected', { service: 'watch-party' });
+    await seedStaticBlockedDomains(redis);
   } catch (err) {
     logger.warn('Redis unavailable at startup — Socket.io adapter disabled', { error: (err as Error).message });
   }

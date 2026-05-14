@@ -41,6 +41,7 @@ import {
   adminListDomains,
   adminBlockDomain,
   adminUnblockDomain,
+  adminAddBlockedDomain,
   adminSetUserRestrictions,
 } from '@shared/utils/serviceClient';
 
@@ -472,6 +473,10 @@ export class AdminService {
   async unblockDomain(domain: string): Promise<void> {
     await adminUnblockDomain(domain);
     logger.info('Domain unblocked by admin', { domain });
+  }
+
+  async addBlockedDomain(domain: string): Promise<{ domain: string }> {
+    return adminAddBlockedDomain(domain);
   }
 
   async setUserRestrictions(userId: string, restrictions: string[]): Promise<void> {

@@ -280,6 +280,15 @@ export async function adminKickWatchPartyMember(roomId: string, userId: string):
 
 // ─── Admin: Notification Broadcast ────────────────────────────────────────────
 
+export async function adminAddBlockedDomain(domain: string): Promise<{ domain: string }> {
+  const res = await axios.post<{ data: { domain: string } }>(
+    `${watchPartyServiceUrl}/api/v1/watch-party/internal/admin/domains`,
+    { domain },
+    { headers: internalHeaders, timeout: 5000 },
+  );
+  return res.data.data;
+}
+
 export async function adminBroadcastNotification(payload: {
   title: string; body: string; type?: string;
 }): Promise<void> {

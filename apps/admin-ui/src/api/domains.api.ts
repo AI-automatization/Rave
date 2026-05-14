@@ -39,4 +39,10 @@ export const domainsApi = {
       .patch<{ success: boolean }>(`/admin/content/domains/${encodeURIComponent(domain)}/unblock`)
       .then((r) => r.data);
   },
+
+  add(domain: string) {
+    return apiClient
+      .post<{ success: boolean; data: { domain: string } }>('/admin/content/domains', { domain })
+      .then((r) => r.data);
+  },
 };
