@@ -350,6 +350,11 @@ export class WatchPartyService {
       throw new BadRequestError('IP-locked CDN URLs cannot be stored. Use the original video URL.');
     }
 
+    const domain = extractDomain(media.videoUrl);
+    if (domain && await isDomainBlocked(domain)) {
+      throw new ForbiddenError('Domain is blocked by platform policy');
+    }
+
     // Atomic ownership check + update: eliminates TOCTOU between findById and updateOne
     const updated = await WatchPartyRoom.findOneAndUpdate(
       { _id: roomId, ownerId },
@@ -382,6 +387,7 @@ export class WatchPartyService {
       updatedBy: ownerId,
     });
 
+    if (domain) void logDomainVisit(domain, ownerId);
     logger.info('Watch party media updated', { roomId, ownerId, videoUrl: media.videoUrl });
     return updated;
   }
