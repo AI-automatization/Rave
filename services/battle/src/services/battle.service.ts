@@ -189,8 +189,8 @@ export class BattleService {
       { $inc: { score: POINTS.BATTLE_WIN } },
     );
 
-    addUserPoints(winnerId, POINTS.BATTLE_WIN).catch(() => undefined);
-    triggerAchievement(winnerId, 'battle', { battleId }).catch(() => undefined);
+    addUserPoints(winnerId, POINTS.BATTLE_WIN).catch((err: unknown) => { logger.warn('addUserPoints failed', { winnerId, err }); });
+    triggerAchievement(winnerId, 'battle', { battleId }).catch((err: unknown) => { logger.warn('triggerAchievement failed', { winnerId, battleId, err }); });
 
     logger.info('Battle resolved', { battleId, winnerId });
   }

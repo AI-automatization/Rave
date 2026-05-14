@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { AuthService } from '../services/auth.service';
 import { apiResponse } from '@shared/utils/apiResponse';
 import { AuthenticatedRequest } from '../types/index';
+import { logger } from '@shared/utils/logger';
 
 export class AuthController {
   constructor(private authService: AuthService) {}
@@ -290,7 +291,7 @@ export class AuthController {
           error: 'ACCOUNT_BLOCKED',
           reason: error.reason ?? 'Your account has been suspended',
           userId: error.userId ?? '',
-        }).catch(() => {});
+        }).catch((storeErr: unknown) => { logger.warn('Failed to store mobile Google result', { storeErr }); });
         res.send(successHtml); // redirect back to app — it will detect the block via poll
       } else {
         res.send(errorHtml);
