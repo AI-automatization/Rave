@@ -6,15 +6,12 @@ import Redis from 'ioredis';
 import { createApp } from './app';
 import { config } from './config/index';
 import { logger } from '@shared/utils/logger';
+import { MONGO_OPTIONS } from '@shared/constants';
 
 let redisClient: Redis;
 
 const connectMongo = async (): Promise<void> => {
-  await mongoose.connect(config.mongoUri, {
-    maxPoolSize: 5,
-    serverSelectionTimeoutMS: 5000,
-    socketTimeoutMS: 45000,
-  });
+  await mongoose.connect(config.mongoUri, MONGO_OPTIONS);
   logger.info('MongoDB connected', { service: 'auth' });
 };
 

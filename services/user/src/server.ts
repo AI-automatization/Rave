@@ -2,6 +2,7 @@ import { initSentry } from '@shared/utils/sentry';
 initSentry('user');
 
 import mongoose from 'mongoose';
+import { MONGO_OPTIONS } from '@shared/constants';
 import Redis from 'ioredis';
 import { createApp } from './app';
 import { config } from './config/index';
@@ -25,7 +26,7 @@ process.on('unhandledRejection', (reason: unknown) => {
 let redisClient: Redis;
 
 const main = async (): Promise<void> => {
-  await mongoose.connect(config.mongoUri);
+  await mongoose.connect(config.mongoUri, MONGO_OPTIONS);
   logger.info('MongoDB connected', { service: 'user' });
 
   redisClient = new Redis(config.redisUrl, {

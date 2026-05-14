@@ -106,6 +106,31 @@ export const LIMITS = {
   BIO_MAX_LENGTH: 200,
   USERNAME_MIN: 3,
   USERNAME_MAX: 20,
+  MAX_WS_CONN_PER_MINUTE: 10,
+  MAX_WS_MSG_PER_WINDOW: 10,
+} as const;
+
+// ─────────────────────────────────────────────
+// Timing (milliseconds unless noted)
+// ─────────────────────────────────────────────
+
+export const TIMING = {
+  BRUTE_FORCE_DELAY_MS: 500,          // base delay per failed attempt
+  ROOM_INACTIVE_MINUTES: 10,          // close room after N minutes idle
+  SYNC_DRIFT_WINDOW_MS: 150,          // tolerated sync drift before correction
+  ES_MAX_RESULT_WINDOW: 10_000,       // Elasticsearch max_result_window
+  WS_CONN_RATE_WINDOW_MS: 60_000,     // WebSocket connection rate window
+  WS_MSG_RATE_WINDOW_MS: 5_000,       // WebSocket message rate window
+} as const;
+
+// ─────────────────────────────────────────────
+// MongoDB Connection Options
+// ─────────────────────────────────────────────
+
+export const MONGO_OPTIONS = {
+  maxPoolSize: 5,
+  serverSelectionTimeoutMS: 5_000,
+  socketTimeoutMS: 45_000,
 } as const;
 
 // ─────────────────────────────────────────────

@@ -59,14 +59,13 @@ jobs:
       - name: Build shared
         run: cd shared && npm run build
 
-      # #28 — removed --if-present so missing test script fails visibly
       - name: Run tests — ${{ matrix.service }}
         run: |
           cd ${{ matrix.path }}
-          if npm run test --if-present 2>/dev/null; then
-            echo "Tests passed for ${{ matrix.service }}"
+          if [ -z "$(node -e "const p=require('./package.json'); process.stdout.write(p.scripts&&p.scripts.test||'')")" ]; then
+            echo "::warning::No test script in ${{ matrix.service }}/package.json — add one"
           else
-            echo "::warning::No tests found for ${{ matrix.service }} — add a test script to package.json"
+            npm test
           fi
         env:
           MONGO_URI: mongodb://localhost:27017/cinesync_test

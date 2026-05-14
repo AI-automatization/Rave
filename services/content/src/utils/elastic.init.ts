@@ -1,5 +1,6 @@
 import { Client as ElasticsearchClient } from '@elastic/elasticsearch';
 import { logger } from '@shared/utils/logger';
+import { TIMING } from '@shared/constants';
 
 const MOVIE_INDEX = 'movies';
 
@@ -94,7 +95,7 @@ export async function initElasticsearchIndex(elastic: ElasticsearchClient): Prom
         // Performance settings
         number_of_shards: 1,
         number_of_replicas: 0, // Dev uchun 0, production da 1
-        max_result_window: 10000,
+        max_result_window: TIMING.ES_MAX_RESULT_WINDOW,
       },
       mappings: {
         properties: {

@@ -15,6 +15,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.cinesync.app",
+      "buildNumber": "1",
       "infoPlist": {
         "NSCameraUsageDescription": "Profil surati uchun",
         "NSPhotoLibraryUsageDescription": "Profil surati uchun",
@@ -23,6 +24,7 @@
     },
     "android": {
       "package": "com.cinesync.app",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#0A0A0F",
         "foregroundImage": "./assets/android-icon-foreground.png"

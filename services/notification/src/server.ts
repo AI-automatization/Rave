@@ -2,6 +2,7 @@ import { initSentry } from '@shared/utils/sentry';
 initSentry('notification');
 
 import mongoose from 'mongoose';
+import { MONGO_OPTIONS } from '@shared/constants';
 import { createApp } from './app';
 import { config } from './config/index';
 import { logger } from '@shared/utils/logger';
@@ -9,7 +10,7 @@ import { registerWebhook } from './services/telegram.service';
 
 const main = async (): Promise<void> => {
   logger.info('[1/4] Connecting to MongoDB...');
-  await mongoose.connect(config.mongoUri);
+  await mongoose.connect(config.mongoUri, MONGO_OPTIONS);
   logger.info('[2/4] MongoDB connected — creating app...', { service: 'notification' });
 
   const app = createApp();

@@ -43,6 +43,28 @@ jobs:
             cd services/$svc && npm run typecheck && cd ../..
           done
 
+      - name: Run unit tests (gate)
+        run: |
+          FAILED=0
+          for svc in auth user content battle notification admin; do
+            echo "Testing $svc..."
+            cd services/$svc
+            if npm run test --if-present 2>/dev/null; then
+              echo "✅ $svc tests passed"
+            else
+              EXIT_CODE=$?
+              if [ $EXIT_CODE -ne 0 ]; then
+                echo "❌ $svc tests FAILED"
+                FAILED=1
+              fi
+            fi
+            cd ../..
+          done
+          if [ $FAILED -ne 0 ]; then
+            echo "::error::One or more services failed tests — deploy blocked"
+            exit 1
+          fi
+
   deploy-prod:
     name: Deploy to Railway (Production)
     runs-on: ubuntu-latest

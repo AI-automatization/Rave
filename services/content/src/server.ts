@@ -2,6 +2,7 @@ import { initSentry } from '@shared/utils/sentry';
 initSentry('content');
 
 import mongoose from 'mongoose';
+import { MONGO_OPTIONS } from '@shared/constants';
 import Redis from 'ioredis';
 import { Client as ElasticsearchClient } from '@elastic/elasticsearch';
 import { createApp } from './app';
@@ -13,7 +14,7 @@ import { startHlsWorker } from './workers/hls.worker';
 import { startUrlVisitCron } from './workers/urlVisitCron.worker';
 
 const main = async (): Promise<void> => {
-  await mongoose.connect(config.mongoUri);
+  await mongoose.connect(config.mongoUri, MONGO_OPTIONS);
   logger.info('MongoDB connected', { service: 'content' });
 
   const redis = new Redis(config.redisUrl, {

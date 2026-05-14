@@ -5,6 +5,7 @@ import { logger } from '@shared/utils/logger';
 import { SERVER_EVENTS } from '@shared/constants/socketEvents';
 import { JwtPayload } from '@shared/types';
 import { config } from '../config/index';
+import { TIMING, LIMITS } from '@shared/constants';
 import { registerRoomEvents, roomCloseTimers } from './roomEvents.handler';
 import { registerVideoEvents } from './videoEvents.handler';
 import { registerChatEvents } from './chatEvents.handler';
@@ -23,8 +24,8 @@ const verifySocketToken = (token: string): JwtPayload => {
 };
 
 // #45 — WebSocket connection rate limit: 10 connections per minute per IP
-const CONN_LIMIT = 10;
-const CONN_WINDOW_MS = 60_000;
+const CONN_LIMIT = LIMITS.MAX_WS_CONN_PER_MINUTE ?? 10;
+const CONN_WINDOW_MS = TIMING.WS_CONN_RATE_WINDOW_MS;
 const connRateMap = new Map<string, { count: number; resetAt: number }>();
 
 const checkConnRateLimit = (ip: string): boolean => {
@@ -44,11 +45,11 @@ setInterval(() => {
   for (const [ip, entry] of connRateMap.entries()) {
     if (now >= entry.resetAt) connRateMap.delete(ip);
   }
-}, 60_000);
+}, TIMING.WS_CONN_RATE_WINDOW_MS);
 
 // Rate limiter: per user, 10 messages per 5 seconds (chat + emoji)
-const MSG_LIMIT = 10;
-const MSG_WINDOW_MS = 5000;
+const MSG_LIMIT = LIMITS.MAX_WS_MSG_PER_WINDOW;
+const MSG_WINDOW_MS = TIMING.WS_MSG_RATE_WINDOW_MS;
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 
 const checkRateLimit = (userId: string): boolean => {
@@ -71,7 +72,7 @@ setInterval(() => {
       rateLimitMap.delete(userId);
     }
   }
-}, 60_000);
+}, TIMING.WS_CONN_RATE_WINDOW_MS);
 
 // In-memory voice rooms: roomId → Set of userIds currently in voice
 const voiceRooms = new Map<string, Set<string>>();

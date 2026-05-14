@@ -5,7 +5,7 @@ import { WatchPartyRoom, IWatchPartyRoomDocument } from '../models/watchPartyRoo
 import { logger } from '@shared/utils/logger';
 import { NotFoundError, ForbiddenError, BadRequestError, UnauthorizedError } from '@shared/utils/errors';
 import { SyncState, VideoPlatform, VideoItem } from '@shared/types';
-import { REDIS_KEYS, TTL, LIMITS } from '@shared/constants';
+import { REDIS_KEYS, TTL, LIMITS, TIMING } from '@shared/constants';
 import { checkContent, extractDomain } from '../utils/contentFilter';
 import { getUserRestrictions } from '@shared/utils/serviceClient';
 
@@ -209,7 +209,7 @@ export class WatchPartyService {
 
   /** List all active rooms inactive <10 min, sorted by member count (descending) */
   async getRooms(limit = 50): Promise<Array<IWatchPartyRoomDocument & { memberCount: number }>> {
-    const cutoff = new Date(Date.now() - 10 * 60 * 1000); // 10 minutes ago
+    const cutoff = new Date(Date.now() - TIMING.ROOM_INACTIVE_MINUTES * 60 * 1000); // 10 minutes ago
     const rooms = await WatchPartyRoom.find({
       status: { $ne: 'ended' },
       lastActivityAt: { $gt: cutoff },
@@ -240,7 +240,7 @@ export class WatchPartyService {
       isPlaying,
       serverTimestamp: now,
       updatedBy: ownerId,
-      scheduledAt: now + 150, // 150ms window — peers execute at exact same UTC timestamp
+      scheduledAt: now + TIMING.SYNC_DRIFT_WINDOW_MS,
     };
 
     await this.cacheRoomState(roomId, syncState);
@@ -606,7 +606,7 @@ export class WatchPartyService {
       return JSON.parse(cached) as Array<IWatchPartyRoomDocument & { memberCount: number }>;
     }
 
-    const cutoff = new Date(Date.now() - 10 * 60 * 1000);
+    const cutoff = new Date(Date.now() - TIMING.ROOM_INACTIVE_MINUTES * 60 * 1000);
     const rooms = await WatchPartyRoom.find({
       isPrivate: false,
       status: { $in: ['waiting', 'playing', 'paused'] },

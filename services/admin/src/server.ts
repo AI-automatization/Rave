@@ -3,6 +3,7 @@ initSentry('admin');
 
 import http from 'http';
 import mongoose from 'mongoose';
+import { MONGO_OPTIONS } from '@shared/constants';
 import Redis from 'ioredis';
 import { createApp } from './app';
 import { config } from './config/index';
@@ -10,7 +11,7 @@ import { logger } from '@shared/utils/logger';
 import { initSupportSocket } from './socket/supportSocket';
 
 const main = async (): Promise<void> => {
-  await mongoose.connect(config.mongoUri);
+  await mongoose.connect(config.mongoUri, MONGO_OPTIONS);
   logger.info('MongoDB connected', { service: 'admin' });
 
   const redis = new Redis(config.redisUrl, {

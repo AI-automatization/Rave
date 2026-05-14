@@ -15,7 +15,7 @@ import {
 } from '@shared/utils/errors';
 import { createUserProfile, syncAdminProfile } from '@shared/utils/serviceClient';
 import { JwtPayload, UserRole } from '@shared/types';
-import { REDIS_KEYS } from '@shared/constants';
+import { REDIS_KEYS, TIMING } from '@shared/constants';
 
 const BCRYPT_ROUNDS = 12;
 const MAX_LOGIN_ATTEMPTS = 5;
@@ -48,7 +48,7 @@ export async function syncUserProfileWithRetry(authId: string, email: string, us
       return;
     } catch (err) {
       logger.warn('User profile sync attempt failed', { authId, attempt, error: (err as Error).message });
-      if (attempt < 3) await new Promise((r) => setTimeout(r, attempt * 500));
+      if (attempt < 3) await new Promise((r) => setTimeout(r, attempt * TIMING.BRUTE_FORCE_DELAY_MS));
     }
   }
   logger.error('User profile sync failed after 3 attempts', { authId, email });
