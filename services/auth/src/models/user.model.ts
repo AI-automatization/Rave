@@ -85,5 +85,9 @@ const userSchema = new Schema<IUserDocument>(
 
 // email va username unique: true orqali allaqachon index qilingan
 userSchema.index({ createdAt: -1 });
+userSchema.index({ googleId: 1 },   { sparse: true });
+userSchema.index({ telegramId: 1 }, { sparse: true });
+userSchema.index({ emailVerifyToken: 1 }, { sparse: true });
+userSchema.index({ passwordResetToken: 1 }, { sparse: true });
 
 export const User = model<IUserDocument>('User', userSchema);

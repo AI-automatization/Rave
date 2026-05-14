@@ -2,7 +2,13 @@ import axios, { AxiosError } from 'axios';
 
 export { axios, AxiosError };
 
-export const INTERNAL_SECRET = process.env.INTERNAL_SECRET ?? '';
+const _secret = process.env.INTERNAL_SECRET ?? '';
+if (_secret.length < 32) {
+  const msg = `[SECURITY] INTERNAL_SECRET must be >= 32 chars (got ${_secret.length}). Set a strong secret in environment variables.`;
+  if (process.env.NODE_ENV === 'production') throw new Error(msg);
+  else if (process.env.NODE_ENV !== 'test') console.error(msg);
+}
+export const INTERNAL_SECRET = _secret;
 
 export const internalHeaders = {
   'Content-Type': 'application/json',

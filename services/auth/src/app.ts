@@ -74,8 +74,8 @@ export const createApp = (redis: Redis): express.Application => {
   });
 
   // API Docs
-  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-  app.get('/api-docs.json', (_req, res) => res.json(swaggerSpec));
+  if (process.env.NODE_ENV !== 'production') { app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+    app.get('/api-docs.json', (_req, res) => res.json(swaggerSpec)); }
 
   // Routes
   app.use('/api/v1/auth', createAuthRouter(redis));

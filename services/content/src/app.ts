@@ -49,8 +49,8 @@ export const createApp = (redis: Redis, elastic: ElasticsearchClient): express.A
     res.json({ status: 'ok', service: 'content', port: config.port });
   });
 
-  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-  app.get('/api-docs.json', (_req, res) => res.json(swaggerSpec));
+  if (process.env.NODE_ENV !== 'production') { app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+    app.get('/api-docs.json', (_req, res) => res.json(swaggerSpec)); }
 
   // HLS static files — JWT-protected (T-S005b)
   const hlsDir = process.env.HLS_OUTPUT_DIR ?? path.join('/tmp', 'cinesync-hls');

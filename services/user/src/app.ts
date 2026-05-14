@@ -47,8 +47,8 @@ export const createApp = (redis: Redis): express.Application => {
     res.json({ status: 'ok', service: 'user', port: config.port });
   });
 
-  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-  app.get('/api-docs.json', (_req, res) => res.json(swaggerSpec));
+  if (process.env.NODE_ENV !== 'production') { app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+    app.get('/api-docs.json', (_req, res) => res.json(swaggerSpec)); }
 
   app.use('/api/v1/users', createUserRouter(redis));
   app.use('/api/v1/achievements', createAchievementRouter());

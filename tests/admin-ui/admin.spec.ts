@@ -1,8 +1,8 @@
 import { test, expect, Page } from '@playwright/test';
 
-const BASE = 'https://admin-ui-production-702c.up.railway.app';
-const EMAIL = 'saidazim186@gmail.com';
-const PASSWORD = 'Parol123';
+const BASE = process.env.ADMIN_TEST_BASE_URL ?? 'https://admin-ui-production-702c.up.railway.app';
+const EMAIL = process.env.ADMIN_TEST_EMAIL ?? '';
+const PASSWORD = process.env.ADMIN_TEST_PASSWORD ?? '';
 
 // ── helpers ────────────────────────────────────────────────────────────────────
 

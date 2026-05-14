@@ -40,8 +40,8 @@ export const createApp = (redis: Redis): express.Application => {
     res.json({ status: 'ok', service: 'battle', port: config.port });
   });
 
-  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-  app.get('/api-docs.json', (_req, res) => res.json(swaggerSpec));
+  if (process.env.NODE_ENV !== 'production') { app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+    app.get('/api-docs.json', (_req, res) => res.json(swaggerSpec)); }
 
   if (config.featureBattles) {
     app.use('/api/v1/battles', createBattleRouter(redis));
