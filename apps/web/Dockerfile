@@ -1,4 +1,4 @@
-FROM node:20.14.0-slim AS builder
+FROM node:20-slim AS builder
 WORKDIR /app
 
 COPY apps/web/package*.json ./
@@ -10,7 +10,7 @@ COPY apps/web/ ./
 RUN npm run build
 
 # ─── Production ───────────────────────────────────────────────────────────────
-FROM node:20.14.0-slim AS production
+FROM node:20-slim AS production
 WORKDIR /app
 
 ENV NODE_ENV=production

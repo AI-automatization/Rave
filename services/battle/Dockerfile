@@ -1,4 +1,4 @@
-FROM node:20.14.0-alpine AS builder
+FROM node:20-alpine AS builder
 WORKDIR /app
 
 COPY package*.json ./
@@ -20,7 +20,7 @@ COPY services/battle/ ./services/battle/
 RUN npm run build --workspace=@cinesync/shared
 RUN npm run build --workspace=@cinesync/battle -- --project tsconfig.build.json
 
-FROM node:20.14.0-alpine AS production
+FROM node:20-alpine AS production
 WORKDIR /app
 ENV NODE_ENV=production
 
