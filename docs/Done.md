@@ -4,6 +4,16 @@
 
 ---
 
+### F-203 | T-S068 + T-S069 | Admin UI — UserDetailPage + ErrorsPage user info
+
+- **Bajaruvchi:** Saidazim (Claude sonnet yordamida)
+- **Bajarilgan:** 2026-05-14
+- **Model:** sonnet
+- **O'zgarishlar:** apps/admin-ui/src/pages/UserDetailPage.tsx, ErrorsPage.tsx
+- **Xulosa:** UserDetailPage (/users/:id) — avatar, email, role, block/unblock, restrictions, errors section. ErrorsPage EventDrawer — UserCard (email, "Связаться" mailto, "Профиль" link) + UserChatPanel (in-app support chat). Маршруты в App.tsx настроены.
+
+---
+
 ### F-202 | T-E118 + T-E119 | ReportUserModal + RoomsScreen long-press report
 
 - **Beruvchi:** Saidazim
