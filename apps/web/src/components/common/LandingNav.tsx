@@ -62,12 +62,14 @@ export function LandingNav() {
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center gap-3">
             <LanguageSwitcher />
-            <Link href="/login" className="h-8 px-4 rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 transition-all text-sm font-medium flex items-center">
-              {t('login')}
-            </Link>
-            <Link href="/register" className="h-8 px-4 rounded-lg bg-[#7B72F8] text-white hover:bg-[#6B63E8] hover:shadow-[0_0_20px_rgba(123,114,248,0.4)] transition-all text-sm font-semibold flex items-center shadow-[0_0_12px_rgba(123,114,248,0.3)]">
+            <a
+              href="https://play.google.com/store"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="h-8 px-4 rounded-lg bg-[#7B72F8] text-white hover:bg-[#6B63E8] hover:shadow-[0_0_20px_rgba(123,114,248,0.4)] transition-all text-sm font-semibold flex items-center shadow-[0_0_12px_rgba(123,114,248,0.3)]"
+            >
               {t('getStarted')}
-            </Link>
+            </a>
           </div>
 
           {/* Mobile burger */}
@@ -161,21 +163,16 @@ export function LandingNav() {
             <LanguageSwitcher />
           </div>
 
-          {/* Auth buttons */}
-          <Link
-            href="/login"
-            onClick={() => setMenuOpen(false)}
-            className="flex items-center justify-center h-11 rounded-xl border border-zinc-700 text-zinc-300 hover:border-zinc-500 hover:text-white transition-all text-sm font-medium w-full"
-          >
-            {t('login')}
-          </Link>
-          <Link
-            href="/register"
+          {/* CTA button */}
+          <a
+            href="https://play.google.com/store"
+            target="_blank"
+            rel="noopener noreferrer"
             onClick={() => setMenuOpen(false)}
             className="flex items-center justify-center h-11 rounded-xl bg-[#7B72F8] text-white hover:bg-[#6B63E8] hover:shadow-[0_0_30px_rgba(123,114,248,0.5)] transition-all text-sm font-semibold w-full shadow-[0_0_15px_rgba(123,114,248,0.35)]"
           >
             {t('getStarted')}
-          </Link>
+          </a>
         </div>
       </div>
     </>

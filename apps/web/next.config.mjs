@@ -3,16 +3,9 @@ const nextConfig = {
   output: 'standalone',
   images: {
     remotePatterns: [
-      { protocol: 'https', hostname: '**.tmdb.org' },
       { protocol: 'https', hostname: '**.cloudinary.com' },
-      { protocol: 'https', hostname: '**.cinesync.uz' },
-      { protocol: 'https', hostname: '**.railway.app' },
       { protocol: 'https', hostname: 'images.unsplash.com' },
       { protocol: 'https', hostname: 'i.pravatar.cc' },
-      { protocol: 'https', hostname: 'i.ytimg.com' },
-      { protocol: 'https', hostname: 'img.youtube.com' },
-      { protocol: 'https', hostname: 'i.vimeocdn.com' },
-      { protocol: 'https', hostname: 'vumbnail.com' },
     ],
   },
   experimental: {
@@ -39,45 +32,19 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.youtube.com https://s.ytimg.com",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
               "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' data: blob: https: http:",
+              "img-src 'self' data: blob: https:",
               "font-src 'self' data: https://fonts.gstatic.com",
-              "connect-src 'self' https: wss: ws:",
-              "frame-src 'self' https://www.youtube.com https://player.vimeo.com https://player.twitch.tv https://www.dailymotion.com",
-              "media-src 'self' blob: https:",
+              "connect-src 'self' https:",
+              "frame-src 'none'",
+              "media-src 'none'",
               "object-src 'none'",
               "base-uri 'self'",
             ].join('; '),
           },
         ],
       },
-    ];
-  },
-  async rewrites() {
-    const authUrl = process.env.AUTH_SERVICE_URL?.replace('/api/v1/auth', '') ?? 'https://auth-production-47a8.up.railway.app';
-    const userUrl = process.env.USER_SERVICE_URL?.replace('/api/v1', '') ?? 'https://user-production-86ed.up.railway.app';
-    const contentUrl = process.env.CONTENT_SERVICE_URL?.replace('/api/v1', '') ?? 'https://content-production-4e08.up.railway.app';
-    const watchUrl = process.env.NEXT_PUBLIC_SOCKET_URL ?? 'https://watch-part-production.up.railway.app';
-    const battleUrl = process.env.BATTLE_SERVICE_URL?.replace('/api/v1', '') ?? 'https://battle-production-238a.up.railway.app';
-    const notifUrl = process.env.NOTIFICATION_SERVICE_URL?.replace('/api/v1', '') ?? 'https://notification-production-9c30.up.railway.app';
-    const adminUrl = process.env.ADMIN_SERVICE_URL?.replace('/api/v1', '') ?? 'https://admin-production-8d2a.up.railway.app';
-
-    return [
-      { source: '/auth/:path*', destination: `${authUrl}/api/v1/auth/:path*` },
-      { source: '/users/:path*', destination: `${userUrl}/api/v1/users/:path*` },
-      { source: '/movies',        destination: `${contentUrl}/api/v1/content/movies` },
-      { source: '/movies/:path*', destination: `${contentUrl}/api/v1/content/movies/:path*` },
-      { source: '/watch-party/:path*', destination: `${watchUrl}/api/v1/watch-party/:path*` },
-      { source: '/battles/:path*', destination: `${battleUrl}/api/v1/battles/:path*` },
-      { source: '/notifications', destination: `${notifUrl}/api/v1/notifications` },
-      { source: '/notifications/:path*', destination: `${notifUrl}/api/v1/notifications/:path*` },
-      { source: '/admin/:path*', destination: `${adminUrl}/api/v1/admin/:path*` },
-      { source: '/external-videos/:path*', destination: `${contentUrl}/api/v1/content/external-videos/:path*` },
-      { source: '/external-videos', destination: `${contentUrl}/api/v1/content/external-videos` },
-      { source: '/watch-progress/:path*', destination: `${contentUrl}/api/v1/content/watch-progress/:path*` },
-      { source: '/watch-progress', destination: `${contentUrl}/api/v1/content/watch-progress` },
-      { source: '/youtube/:path*', destination: `${contentUrl}/api/v1/content/youtube/:path*` },
     ];
   },
 };

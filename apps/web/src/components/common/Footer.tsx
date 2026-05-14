@@ -28,14 +28,13 @@ export function Footer() {
               <ul className="space-y-2">
                 <li><Link href="/features" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">Imkoniyatlar</Link></li>
                 <li><Link href="/pricing"  className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">Narxlar</Link></li>
-                <li><Link href="/register" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">Ro&apos;yxatdan o&apos;tish</Link></li>
               </ul>
             </div>
             <div>
-              <p className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-3">Akkaunt</p>
+              <p className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-3">Huquqiy</p>
               <ul className="space-y-2">
-                <li><Link href="/login"    className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">Kirish</Link></li>
-                <li><Link href="/register" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">Ro&apos;yxatdan o&apos;tish</Link></li>
+                <li><Link href="/privacy-policy" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">Maxfiylik siyosati</Link></li>
+                <li><a href="mailto:copyright@wewatch.app" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">DMCA / Copyright</a></li>
               </ul>
             </div>
           </div>
