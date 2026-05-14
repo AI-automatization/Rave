@@ -9,6 +9,7 @@ import mongoose from 'mongoose';
 import Redis from 'ioredis';
 import swaggerUi from 'swagger-ui-express';
 import { errorHandler, notFoundHandler } from '@shared/middleware/error.middleware';
+import { setupSentryErrorHandler } from '@shared/utils/sentry';
 import { requestId } from '@shared/middleware/requestId.middleware';
 import { timeout } from '@shared/middleware/timeout.middleware';
 import { morganStream } from '@shared/utils/logger';
@@ -80,6 +81,9 @@ export const createApp = (redis: Redis): { app: express.Application; io: SocketS
   registerWatchPartySocket(io, watchPartyService, redis);
 
   app.use(notFoundHandler);
+
+  // Sentry error capture (#24)
+  setupSentryErrorHandler(app);
   app.use(errorHandler);
 
   return { app: app as express.Application, io, httpServer };

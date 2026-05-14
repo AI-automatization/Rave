@@ -6,6 +6,7 @@ import mongoose from 'mongoose';
 import Redis from 'ioredis';
 import swaggerUi from 'swagger-ui-express';
 import { errorHandler, notFoundHandler } from '@shared/middleware/error.middleware';
+import { setupSentryErrorHandler } from '@shared/utils/sentry';
 import { requestId } from '@shared/middleware/requestId.middleware';
 import { timeout } from '@shared/middleware/timeout.middleware';
 import { apiLogger } from '@shared/middleware/apiLogger.middleware';
@@ -61,6 +62,9 @@ export const createApp = (redis: Redis): express.Application => {
   }
 
   app.use(notFoundHandler);
+
+  // Sentry error capture (#24)
+  setupSentryErrorHandler(app);
   app.use(errorHandler);
 
   return app;

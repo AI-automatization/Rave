@@ -1,3 +1,6 @@
+import { initSentry } from '@shared/utils/sentry';
+initSentry('auth');
+
 import mongoose from 'mongoose';
 import Redis from 'ioredis';
 import { createApp } from './app';

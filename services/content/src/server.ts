@@ -1,3 +1,6 @@
+import { initSentry } from '@shared/utils/sentry';
+initSentry('content');
+
 import mongoose from 'mongoose';
 import Redis from 'ioredis';
 import { Client as ElasticsearchClient } from '@elastic/elasticsearch';

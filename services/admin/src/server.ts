@@ -1,3 +1,6 @@
+import { initSentry } from '@shared/utils/sentry';
+initSentry('admin');
+
 import http from 'http';
 import mongoose from 'mongoose';
 import Redis from 'ioredis';

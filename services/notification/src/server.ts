@@ -1,3 +1,6 @@
+import { initSentry } from '@shared/utils/sentry';
+initSentry('notification');
+
 import mongoose from 'mongoose';
 import { createApp } from './app';
 import { config } from './config/index';
