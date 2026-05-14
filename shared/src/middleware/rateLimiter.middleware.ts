@@ -91,3 +91,31 @@ export const userRateLimiter = rateLimit({
     prefix: 'rl:user:',
   }),
 });
+
+// #45 — Refresh token rate limiter — 20 req/15min per IP (prevents token rotation abuse)
+export const refreshRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  passOnStoreError: false,
+  handler: tooManyRequestsHandler,
+  store: new RedisStore({
+    sendCommand: sendRedisCommand,
+    prefix: 'rl:refresh:',
+  }),
+});
+
+// #45 — Poll rate limiter — 30 req/min per IP (OAuth/Telegram polling flows)
+export const pollRateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  passOnStoreError: false,
+  handler: tooManyRequestsHandler,
+  store: new RedisStore({
+    sendCommand: sendRedisCommand,
+    prefix: 'rl:poll:',
+  }),
+});

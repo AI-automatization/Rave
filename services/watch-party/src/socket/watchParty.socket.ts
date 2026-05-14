@@ -22,6 +22,30 @@ const verifySocketToken = (token: string): JwtPayload => {
   return jwt.verify(token, publicKey, { algorithms: ['RS256'] }) as JwtPayload;
 };
 
+// #45 — WebSocket connection rate limit: 10 connections per minute per IP
+const CONN_LIMIT = 10;
+const CONN_WINDOW_MS = 60_000;
+const connRateMap = new Map<string, { count: number; resetAt: number }>();
+
+const checkConnRateLimit = (ip: string): boolean => {
+  const now = Date.now();
+  const entry = connRateMap.get(ip);
+  if (!entry || now >= entry.resetAt) {
+    connRateMap.set(ip, { count: 1, resetAt: now + CONN_WINDOW_MS });
+    return true;
+  }
+  if (entry.count >= CONN_LIMIT) return false;
+  entry.count++;
+  return true;
+};
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, entry] of connRateMap.entries()) {
+    if (now >= entry.resetAt) connRateMap.delete(ip);
+  }
+}, 60_000);
+
 // Rate limiter: per user, 10 messages per 5 seconds (chat + emoji)
 const MSG_LIMIT = 10;
 const MSG_WINDOW_MS = 5000;
@@ -80,6 +104,17 @@ export const registerWatchPartySocket = (io: SocketServer, watchPartyService: Wa
   // Clean up on process exit
   process.on('SIGTERM', () => clearInterval(cleanupInterval));
   process.on('SIGINT',  () => clearInterval(cleanupInterval));
+
+  // #45 — connection rate limit middleware
+  io.use((socket: Socket, next) => {
+    const ip = socket.handshake.headers['x-forwarded-for']?.toString().split(',')[0]?.trim()
+      ?? socket.handshake.address
+      ?? 'unknown';
+    if (!checkConnRateLimit(ip)) {
+      return next(new Error('Too many connections from this IP'));
+    }
+    next();
+  });
 
   // JWT middleware for socket connections
   io.use((socket: Socket, next) => {

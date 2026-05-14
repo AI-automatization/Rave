@@ -2,7 +2,7 @@ import { Router } from 'express';
 import passport from 'passport';
 import { AuthController } from '../controllers/auth.controller';
 import { AuthService } from '../services/auth.service';
-import { authRateLimiter, initAdminRateLimiter } from '@shared/middleware/rateLimiter.middleware';
+import { authRateLimiter, initAdminRateLimiter, refreshRateLimiter, pollRateLimiter } from '@shared/middleware/rateLimiter.middleware';
 import { verifyToken, requireNotBlocked } from '@shared/middleware/auth.middleware';
 import { requireInternalSecret } from '@shared/utils/serviceClient';
 import {
@@ -35,11 +35,11 @@ export const createAuthRouter = (redis: Redis): Router => {
   // POST /auth/login
   router.post('/login', authRateLimiter, validate(loginSchema), authController.login);
 
-  // POST /auth/refresh
-  router.post('/refresh', validate(refreshTokenSchema), authController.refresh);
+  // POST /auth/refresh — #45 rate limited
+  router.post('/refresh', refreshRateLimiter, validate(refreshTokenSchema), authController.refresh);
 
-  // POST /auth/logout
-  router.post('/logout', validate(refreshTokenSchema), authController.logout);
+  // POST /auth/logout — #45 rate limited
+  router.post('/logout', refreshRateLimiter, validate(refreshTokenSchema), authController.logout);
 
   const notBlocked = requireNotBlocked(redis);
 
@@ -81,13 +81,13 @@ export const createAuthRouter = (redis: Redis): Router => {
   // Mobile polling flow (works in Expo Go without a build)
   router.post('/google/init', authRateLimiter, authController.googleMobileInit);
   router.get('/google/mobile', authController.googleMobileRedirect);
-  router.get('/google/poll', authController.googleMobilePoll);
+  router.get('/google/poll', pollRateLimiter, authController.googleMobilePoll);
 
   // Telegram auth (mobile)
   router.post('/telegram/login', authRateLimiter, authController.telegramLogin);   // hash verify → JWT
   router.post('/telegram/init', authRateLimiter, authController.telegramInit);     // polling flow init
   router.post('/telegram/webhook', authController.telegramWebhook);                // bot updates
-  router.get('/telegram/poll', authController.telegramPoll);                       // polling check
+  router.get('/telegram/poll', pollRateLimiter, authController.telegramPoll);       // polling check
   router.get('/telegram/redirect', authController.telegramRedirect);               // deep link redirect
 
   // POST /auth/internal/create-staff — superadmin creates admin/operator/moderator account
