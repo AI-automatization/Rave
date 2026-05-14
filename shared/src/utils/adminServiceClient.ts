@@ -98,22 +98,22 @@ export async function adminListDomains(filters: {
   if (filters.filter) params.set('filter', filters.filter);
   if (filters.search) params.set('search', filters.search);
   const res = await axios.get(
-    `${contentServiceUrl}/api/v1/content/internal/admin/domains?${params.toString()}`,
+    `${watchPartyServiceUrl}/api/v1/watch-party/internal/admin/domains?${params.toString()}`,
     { headers: internalHeaders, timeout: 5000 },
   );
-  return (res.data as { data: unknown; meta: unknown });
+  return res.data as { data: unknown; meta: unknown };
 }
 
 export async function adminBlockDomain(domain: string): Promise<void> {
   await axios.patch(
-    `${contentServiceUrl}/api/v1/content/internal/admin/domains/${encodeURIComponent(domain)}/block`,
+    `${watchPartyServiceUrl}/api/v1/watch-party/internal/admin/domains/${encodeURIComponent(domain)}/block`,
     {}, { headers: internalHeaders, timeout: 5000 },
   );
 }
 
 export async function adminUnblockDomain(domain: string): Promise<void> {
   await axios.patch(
-    `${contentServiceUrl}/api/v1/content/internal/admin/domains/${encodeURIComponent(domain)}/unblock`,
+    `${watchPartyServiceUrl}/api/v1/watch-party/internal/admin/domains/${encodeURIComponent(domain)}/unblock`,
     {}, { headers: internalHeaders, timeout: 5000 },
   );
 }

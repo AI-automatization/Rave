@@ -7,7 +7,9 @@ import { NotFoundError, ForbiddenError, BadRequestError, UnauthorizedError } fro
 import { SyncState, VideoPlatform, VideoItem } from '@shared/types';
 import { REDIS_KEYS, TTL, LIMITS } from '@shared/constants';
 import { checkContent, extractDomain } from '../utils/contentFilter';
-import { logDomainVisit, isDomainBlocked, getUserRestrictions } from '@shared/utils/serviceClient';
+import { getUserRestrictions } from '@shared/utils/serviceClient';
+
+const BLOCKED_DOMAINS_KEY = 'watch_party:blocked_domains';
 
 const SYNC_THRESHOLD_SECONDS = 2;
 // WebView sync ~150-400ms extra latency — 0.5s qo'shimcha tolerance
@@ -73,8 +75,8 @@ export class WatchPartyService {
       throw new ForbiddenError('Content not allowed on this platform');
     }
 
-    // Check if domain is in admin-blocked list
-    if (domain && await isDomainBlocked(domain)) {
+    // Check if domain is in admin-blocked list (Redis set, no inter-service HTTP)
+    if (domain && (await this.redis.sismember(BLOCKED_DOMAINS_KEY, domain)) === 1) {
       throw new ForbiddenError('Domain is blocked by platform policy');
     }
 
@@ -105,8 +107,7 @@ export class WatchPartyService {
       domain:           domain ?? null,
     });
 
-    // Non-blocking domain visit log — don't fail room creation on error
-    if (domain) void logDomainVisit(domain, ownerId);
+    // domain is already persisted in the room document — no inter-service call needed
 
     await this.cacheRoomState(room._id.toString(), {
       currentTime: startTime,
@@ -351,7 +352,7 @@ export class WatchPartyService {
     }
 
     const domain = extractDomain(media.videoUrl);
-    if (domain && await isDomainBlocked(domain)) {
+    if (domain && (await this.redis.sismember(BLOCKED_DOMAINS_KEY, domain)) === 1) {
       throw new ForbiddenError('Domain is blocked by platform policy');
     }
 
@@ -387,7 +388,6 @@ export class WatchPartyService {
       updatedBy: ownerId,
     });
 
-    if (domain) void logDomainVisit(domain, ownerId);
     logger.info('Watch party media updated', { roomId, ownerId, videoUrl: media.videoUrl });
     return updated;
   }
