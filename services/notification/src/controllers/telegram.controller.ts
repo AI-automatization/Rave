@@ -9,8 +9,12 @@ export class TelegramController {
   // Called by Telegram servers when user sends a message to the bot
   handleWebhook = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      // Validate X-Telegram-Bot-Api-Secret-Token header (optional but recommended)
+      // Validate X-Telegram-Bot-Api-Secret-Token header — mandatory in production
       const secret = config.telegram.webhookSecret;
+      if (!secret && process.env.NODE_ENV === 'production') {
+        res.status(503).json(apiResponse.error('Webhook secret not configured'));
+        return;
+      }
       if (secret) {
         const incoming = req.headers['x-telegram-bot-api-secret-token'] as string | undefined;
         if (incoming !== secret) {

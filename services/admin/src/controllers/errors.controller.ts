@@ -3,7 +3,7 @@ import { ErrorsService } from '../services/errors.service';
 import { apiResponse, buildPaginationMeta } from '@shared/utils/apiResponse';
 import { IssueStatus } from '../models/mobileIssue.model';
 
-const MOBILE_INGEST_KEY = process.env.MOBILE_ERROR_KEY ?? 'rave-mobile-errors';
+const MOBILE_INGEST_KEY = process.env.MOBILE_ERROR_KEY;
 
 export class ErrorsController {
   constructor(private service: ErrorsService) {}
@@ -11,6 +11,10 @@ export class ErrorsController {
   // POST /errors/ingest — public, API key protected
   ingest = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
+      if (!MOBILE_INGEST_KEY) {
+        res.status(503).json(apiResponse.error('Error ingestion not configured'));
+        return;
+      }
       const key = req.headers['x-error-key'] ?? req.query['key'];
       if (key !== MOBILE_INGEST_KEY) {
         res.status(401).json(apiResponse.error('Unauthorized'));

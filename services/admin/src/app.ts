@@ -26,9 +26,7 @@ export const createApp = (redis: Redis): express.Application => {
   app.set('trust proxy', 1);
 
   app.use(helmet());
-  // /internal/* routes are called by mobile/other services — no browser origin, skip CORS restriction
-  app.use('/api/v1/internal', cors({ origin: '*' }));
-  // Admin UI routes: restricted CORS
+  // Admin UI routes: restricted CORS. /internal routes rely on verifyToken or requireInternalSecret — no wildcard needed.
   app.use(cors({ origin: [config.adminUrl], credentials: true }));
   app.use(morgan('combined', { stream: morganStream }));
   app.use(express.json({ limit: '512kb' }));

@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { ExternalVideoService, extractVideoMetadata } from '../services/externalVideo.service';
+import { ExternalVideoService, extractVideoMetadata, isSafeUrl } from '../services/externalVideo.service';
 import { apiResponse } from '@shared/utils/apiResponse';
 import { AuthenticatedRequest } from '@shared/types';
 
@@ -12,6 +12,7 @@ export class ExternalVideoController {
     try {
       const { url } = req.body as { url?: string };
       if (!url) { res.status(400).json(apiResponse.error('url is required')); return; }
+      if (!isSafeUrl(url)) { res.status(400).json(apiResponse.error('Invalid or disallowed URL')); return; }
       const meta = await extractVideoMetadata(url);
       res.json(apiResponse.success(meta));
     } catch (error) { next(error); }

@@ -16,7 +16,7 @@ export const createUrlVisitRouter = (redis: Redis): Router => {
     max: 10,
     standardHeaders: true,
     legacyHeaders: false,
-    passOnStoreError: true,
+    passOnStoreError: false,
     keyGenerator: (req) => req.ip ?? 'unknown',
     handler: (_req, res) => res.status(429).json({ success: false, message: 'Too many requests' }),
     store: new RedisStore({ sendCommand, prefix: 'rl:urlvisit:' }),

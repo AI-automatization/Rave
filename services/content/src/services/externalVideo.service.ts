@@ -2,6 +2,23 @@ import { ExternalVideo, VideoPlatform } from '../models/externalVideo.model';
 import { NotFoundError, ForbiddenError, BadRequestError } from '@shared/utils/errors';
 import { logger } from '@shared/utils/logger';
 
+// ── SSRF guard — block private/loopback/link-local IP ranges ─────────────────
+
+const PRIVATE_IP_RE = /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|::1$|fc|fd)/i;
+
+export function isSafeUrl(raw: string): boolean {
+  try {
+    const u = new URL(raw);
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return false;
+    const host = u.hostname;
+    if (host === 'localhost') return false;
+    if (PRIVATE_IP_RE.test(host)) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // ── Platform detection ────────────────────────────────────────────────────────
 
 function detectPlatform(url: string): VideoPlatform {
