@@ -17,7 +17,7 @@
 # ── Конфиг ───────────────────────────────────────────────────────────────────
 _TC_BUFFER="$HOME/.terminal_context_buffer"
 _TC_PROJECT_ROOT="/Users/muhammad/Desktop/Rave"
-_TC_VAULT="${OBSIDIAN_VAULT:-$HOME/Documents/Obsidian Vault}"
+_TC_VAULT="${OBSIDIAN_VAULT:-$HOME/Documents/weWatch-obsidian}"
 _TC_FLUSH_INTERVAL=900   # секунд (15 мин)
 _TC_LAST_FLUSH_FILE="$HOME/.terminal_context_last_flush"
 

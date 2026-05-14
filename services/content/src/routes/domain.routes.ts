@@ -12,6 +12,9 @@ export const createDomainRouter = (redis: Redis): Router => {
   // Authenticated — mobile reports a domain visit from the in-app browser
   router.post('/domains/visit', verifyToken, apiRateLimiter, ctrl.trackVisit);
 
+  // Internal — watch-party service reports a domain visit on room creation
+  router.post('/internal/domains/visit', requireInternalSecret, ctrl.trackVisit);
+
   // Public — mobile fetches blocked list on startup (cached 1h in Redis)
   router.get('/blocked-domains', apiRateLimiter, ctrl.getBlockedDomains);
 

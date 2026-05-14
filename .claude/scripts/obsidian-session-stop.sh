@@ -5,6 +5,7 @@ set -uo pipefail
 
 VAULT="${OBSIDIAN_VAULT:-$HOME/Documents/weWatch-obsidian}"
 DEV="${VAULT_DEVELOPER:-Saidazim}"
+DEV_LOWER=$(echo "$DEV" | tr '[:upper:]' '[:lower:]')
 DATE=$(date '+%Y-%m-%d')
 NOW=$(date '+%Y-%m-%d %H:%M')
 
