@@ -70,8 +70,7 @@ function createClient(baseURL: string): AxiosInstance {
 
       // ACCOUNT_BLOCKED — global handler
       if (error.response?.status === 403 &&
-        (error.response?.data?.code === 'ACCOUNT_BLOCKED' ||
-         (error.response?.data?.message ?? '').toLowerCase().includes('blocked'))) {
+        error.response?.data?.code === 'ACCOUNT_BLOCKED') {
         const reason = error.response.data.reason ?? error.response.data.message ?? '';
         // userId: prefer server response (available even on first login), fallback to tokenStorage
         const userId = error.response.data.userId
@@ -115,8 +114,7 @@ function createClient(baseURL: string): AxiosInstance {
           processQueue(err, null);
           const refreshErr = err as { response?: { status?: number; data?: { code?: string; reason?: string; userId?: string; message?: string } } };
           const isBlocked = refreshErr.response?.status === 403 &&
-            (refreshErr.response?.data?.code === 'ACCOUNT_BLOCKED' ||
-             (refreshErr.response?.data?.message ?? '').toLowerCase().includes('blocked'));
+            refreshErr.response?.data?.code === 'ACCOUNT_BLOCKED';
           if (isBlocked) {
             const reason = refreshErr.response!.data?.reason ?? refreshErr.response!.data?.message ?? '';
             const userId = refreshErr.response!.data?.userId ?? (await tokenStorage.getUserId()) ?? '';
