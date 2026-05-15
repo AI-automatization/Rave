@@ -352,12 +352,21 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const androidPlayUrl = Platform.OS === 'android'
     ? (extractedVideoUrl ?? (platform !== 'youtube' && platform !== 'webview' ? originalVideoUrl : undefined))
     : undefined;
-  // Referer for the CDN request: room param takes priority, then yt-dlp http_headers
-  const cdnReferer = videoReferer
-    ?? extractedVideoHeaders?.['Referer']
-    ?? extractedVideoHeaders?.['referer'];
+  // Forward all yt-dlp http_headers to the proxy so CDNs (VK, Rutube, etc.)
+  // receive the same headers yt-dlp used during extraction (Referer, Accept, etc.).
+  // User-Agent is excluded — the proxy always sends Chrome UA.
+  const proxyUpstreamHeaders: Record<string, string> = {};
+  if (extractedVideoHeaders) {
+    for (const [k, v] of Object.entries(extractedVideoHeaders)) {
+      if (!/^user-agent$/i.test(k)) proxyUpstreamHeaders[k] = v;
+    }
+  }
+  if (videoReferer) proxyUpstreamHeaders['Referer'] = videoReferer;
+  const proxyHeadersParam = Object.keys(proxyUpstreamHeaders).length > 0
+    ? `&h=${encodeURIComponent(JSON.stringify(proxyUpstreamHeaders))}`
+    : '';
   const extractedVideoProxyUrl = (androidPlayUrl && accessToken)
-    ? `${CONTENT_BASE_URL}/content/proxy/stream?url=${encodeURIComponent(androidPlayUrl)}&token=${encodeURIComponent(accessToken)}${cdnReferer ? `&referer=${encodeURIComponent(cdnReferer)}` : ''}`
+    ? `${CONTENT_BASE_URL}/content/proxy/stream?url=${encodeURIComponent(androidPlayUrl)}&token=${encodeURIComponent(accessToken)}${proxyHeadersParam}`
     : undefined;
   const isWebViewMode = !extractedVideoUrl && (iosWebmBlocked || ['youtube', 'webview'].includes(detectVideoPlatform(originalVideoUrl)) || extractFallback);
 

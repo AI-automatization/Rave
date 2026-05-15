@@ -29,7 +29,7 @@ export const videoProxyController = {
    *  Range requests forwarded for seeking support.
    */
   async stream(req: Request, res: Response, next: NextFunction): Promise<void> {
-    const { url, token, referer } = req.query as { url?: string; token?: string; referer?: string };
+    const { url, token, h } = req.query as { url?: string; token?: string; h?: string };
 
     if (!url) { res.status(400).json({ success: false, message: 'url required' }); return; }
     if (!verifyQueryToken(token)) { res.status(401).json({ success: false, message: 'Unauthorized' }); return; }
@@ -49,12 +49,16 @@ export const videoProxyController = {
     }
 
     try {
+      // Decode extra headers from yt-dlp (Referer, Accept, etc.) forwarded by mobile
+      let extraHeaders: Record<string, string> = {};
+      if (h) {
+        try { extraHeaders = JSON.parse(h) as Record<string, string>; } catch { /* ignore */ }
+      }
       const upstreamHeaders: Record<string, string> = {
-        'User-Agent': CHROME_UA,
+        ...extraHeaders,           // yt-dlp headers first (Referer, Accept-Language, etc.)
+        'User-Agent': CHROME_UA,   // always override UA — Chrome fingerprint beats yt-dlp UA
         'Accept': '*/*',
-        'Accept-Language': 'en-US,en;q=0.9',
       };
-      if (referer) upstreamHeaders['Referer'] = referer;
 
       const rangeHeader = req.headers.range;
       if (rangeHeader) upstreamHeaders['Range'] = rangeHeader;
