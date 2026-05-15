@@ -1,6 +1,6 @@
 // CineSync Mobile — WatchPartyScreen
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, Platform, StyleSheet } from 'react-native';
 import { ReportRoomModal } from '@components/common/ReportRoomModal';
 import { ReportUserModal } from '@components/common/ReportUserModal';
 import { useRoute, RouteProp } from '@react-navigation/native';
@@ -15,7 +15,7 @@ import { EpisodeMenu } from '@components/watchParty/EpisodeMenu';
 import { PlaylistPanel } from '@components/watchParty/PlaylistPanel';
 import { BlockedDomainView } from '@components/common/BlockedDomainView';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
+import { useTheme, spacing, borderRadius, typography } from '@theme/index';
 import { ModalStackParamList } from '@app-types/index';
 import { useT } from '@i18n/index';
 import { useWatchPartyRoom } from '@hooks/useWatchPartyRoom';
@@ -28,7 +28,6 @@ type RouteType = RouteProp<ModalStackParamList, 'WatchParty'>;
 export function WatchPartyScreen() {
   const { params } = useRoute<RouteType>();
   const { colors } = useTheme();
-  const s = useStyles();
   const { t } = useT();
 
   const [showPlaylist, setShowPlaylist] = useState(false);
@@ -53,9 +52,12 @@ export function WatchPartyScreen() {
   if (connectTimeout && !room) {
     return (
       <View style={s.errorRoot}>
-        <Text style={s.errorTitle}>Ulanib bo'lmadi</Text>
+        <View style={s.errorIconWrap}>
+          <Ionicons name="wifi-outline" size={32} color="rgba(255,255,255,0.3)" />
+        </View>
+        <Text style={s.errorTitle}>Ulanib bo&apos;lmadi</Text>
         <Text style={s.errorSub}>Socket serverga ulanishda xatolik yuz berdi</Text>
-        <TouchableOpacity style={s.errorBtn} onPress={handleLeave}>
+        <TouchableOpacity style={s.errorBtn} onPress={handleLeave} activeOpacity={0.8}>
           <Text style={s.errorBtnText}>Orqaga qaytish</Text>
         </TouchableOpacity>
       </View>
@@ -70,30 +72,38 @@ export function WatchPartyScreen() {
     return <BlockedDomainView domain={domainName} onClose={handleLeave} />;
   }
 
+  // Hide members strip when chat/voice is shown — gives more vertical space
+  const showMembers = !isFullscreen && !!room && !showChat && !showVoice;
+
   return (
     <View style={s.root}>
+
+      {/* Expired source banner */}
       {extractionError === 'video_source_expired' && (
         <View style={s.expiredBanner}>
-          <Ionicons name="warning-outline" size={16} color="#F59E0B" />
+          <Ionicons name="warning-outline" size={14} color="#F59E0B" />
           <Text style={s.expiredText}>
             {isOwner ? 'Видео источник устарел' : 'Видео источник устарел — хозяин обновит'}
           </Text>
           {isOwner && (
-            <TouchableOpacity style={s.expiredBtn} onPress={handleChangeMedia}>
-              <Text style={s.expiredBtnText}>Обновить источник</Text>
+            <TouchableOpacity style={s.expiredBtn} onPress={handleChangeMedia} activeOpacity={0.8}>
+              <Text style={s.expiredBtnText}>Yangilash</Text>
             </TouchableOpacity>
           )}
         </View>
       )}
-      {!isFullscreen && room && (
+
+      {/* Members strip — hidden when chat/voice open */}
+      {showMembers && (
         <MembersStrip
           activeMembers={activeMembers}
-          ownerId={room.ownerId}
+          ownerId={room!.ownerId}
           currentUserId={userId}
-          onMemberPress={(uid) => setReportUserId(uid)}
+          onMemberPress={uid => setReportUserId(uid)}
         />
       )}
 
+      {/* Video */}
       <VideoSection
         playerRef={playerRef}
         videoUrl={extractionError === 'video_source_expired' ? '' : originalVideoUrl}
@@ -125,6 +135,7 @@ export function WatchPartyScreen() {
 
       {!isFullscreen && (
         <>
+          {/* Room info bar */}
           <RoomInfoBar
             roomName={room?.name ?? 'Watch Party'}
             memberCount={activeMembers.length}
@@ -136,66 +147,64 @@ export function WatchPartyScreen() {
             onLeave={handleLeave}
           />
 
-          {isOwner && !showPlaylist && (
-            <TouchableOpacity style={s.changeMediaFab} onPress={handleChangeMedia}>
-              <Ionicons name="add" size={28} color="#fff" />
-            </TouchableOpacity>
-          )}
-
-          {!showPlaylist && (
-            <TouchableOpacity
-              style={[s.playlistFab, playlist.length > 0 && s.playlistFabActive]}
-              onPress={() => setShowPlaylist(v => !v)}
-            >
-              <Ionicons name="list" size={20} color="#fff" />
-              {playlist.length > 0 && (
-                <View style={s.playlistBadge}>
-                  <Text style={s.playlistBadgeText}>{playlist.length}</Text>
-                </View>
-              )}
-            </TouchableOpacity>
-          )}
-
-          {isOwner && (extractQualities.length > 0 || extractEpisodes.length > 0) && (
+          {/* Quality / Episode gear row */}
+          {isOwner && !showPlaylist && (extractQualities.length > 0 || extractEpisodes.length > 0) && (
             <View style={s.gearRow}>
               {extractQualities.length > 0 && (
-                <TouchableOpacity style={s.gearBtn} onPress={() => setShowQualityMenu(true)}>
-                  <Ionicons name="settings-outline" size={14} color={colors.textMuted} />
-                  <Text style={s.gearBtnText}>Сифат</Text>
+                <TouchableOpacity style={s.gearChip} onPress={() => setShowQualityMenu(true)} activeOpacity={0.75}>
+                  <Ionicons name="settings-outline" size={13} color="rgba(255,255,255,0.5)" />
+                  <Text style={s.gearChipText}>Sifat</Text>
                 </TouchableOpacity>
               )}
               {extractEpisodes.length > 0 && (
-                <TouchableOpacity style={s.gearBtn} onPress={() => setShowEpisodeMenu(true)}>
-                  <Ionicons name="list-outline" size={14} color={colors.textMuted} />
-                  <Text style={s.gearBtnText}>Эпизодлар</Text>
+                <TouchableOpacity style={s.gearChip} onPress={() => setShowEpisodeMenu(true)} activeOpacity={0.75}>
+                  <Ionicons name="list-outline" size={13} color="rgba(255,255,255,0.5)" />
+                  <Text style={s.gearChipText}>Epizodlar</Text>
                 </TouchableOpacity>
               )}
             </View>
           )}
 
+          {/* Admin monitoring banner */}
           {adminMonitoring && (
             <View style={s.adminBanner}>
-              <Ionicons name="shield-checkmark-outline" size={14} color={colors.warning} />
+              <Ionicons name="shield-checkmark-outline" size={13} color="#F59E0B" />
               <Text style={s.adminBannerText}>{t('blocked', 'adminMonitoring')}</Text>
             </View>
           )}
 
+          {/* Invite card */}
           {showInvite && room?.inviteCode && (
-            <InviteCard inviteCode={room.inviteCode} roomId={params.roomId} roomName={room.name ?? 'Watch Party'} />
+            <InviteCard
+              inviteCode={room.inviteCode}
+              roomId={params.roomId}
+              roomName={room.name ?? 'Watch Party'}
+            />
           )}
 
-          <View style={[s.emojiBar, Platform.OS === 'ios' ? null : s.emojiBarAndroid]}>
+          {/* Emoji reaction bar */}
+          <View style={[s.emojiBar, Platform.OS !== 'ios' && s.emojiBarAndroid]}>
             <EmojiPickerBar onSelect={handleEmojiSelect} />
           </View>
 
-          {showVoice && <VoiceChat roomId={params.roomId} currentUserId={userId} visible={showVoice} onClose={() => setShowVoice(false)} />}
+          {/* Voice chat panel */}
+          {showVoice && (
+            <VoiceChat
+              roomId={params.roomId}
+              currentUserId={userId}
+              visible={showVoice}
+              onClose={() => setShowVoice(false)}
+            />
+          )}
 
+          {/* Chat panel */}
           {showChat && (
             <View style={s.chatPanel}>
               <ChatPanel messages={messages} currentUserId={userId} onSend={sendMessage} />
             </View>
           )}
 
+          {/* Playlist overlay */}
           {showPlaylist && (
             <View style={s.playlistSheet}>
               <PlaylistPanel
@@ -209,19 +218,64 @@ export function WatchPartyScreen() {
             </View>
           )}
 
-          <QualityMenu visible={showQualityMenu} qualities={extractQualities} currentUrl={currentVideoUrl || room?.videoUrl || ''} onSelect={handleQualitySelect} onClose={() => setShowQualityMenu(false)} />
-          <EpisodeMenu visible={showEpisodeMenu} episodes={extractEpisodes} currentUrl={currentVideoUrl || room?.videoUrl || ''} onSelect={handleEpisodeSelect} onClose={() => setShowEpisodeMenu(false)} />
-
-          {!isOwner && (
-            <TouchableOpacity style={s.reportFab} onPress={() => setShowReport(true)}>
-              <Ionicons name="flag-outline" size={18} color="rgba(255,255,255,0.5)" />
+          {/* FAB: Change media (owner) */}
+          {isOwner && !showPlaylist && (
+            <TouchableOpacity style={s.fabPrimary} onPress={handleChangeMedia} activeOpacity={0.85}>
+              <Ionicons name="add" size={26} color="#fff" />
             </TouchableOpacity>
           )}
+
+          {/* FAB: Playlist */}
+          {!showPlaylist && (
+            <TouchableOpacity
+              style={[s.fabSecondary, playlist.length > 0 && s.fabSecondaryActive]}
+              onPress={() => setShowPlaylist(v => !v)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="list" size={19} color="#fff" />
+              {playlist.length > 0 && (
+                <View style={s.fabBadge}>
+                  <Text style={s.fabBadgeText}>{playlist.length}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          )}
+
+          {/* FAB: Report (viewer only) */}
+          {!isOwner && (
+            <TouchableOpacity style={s.fabReport} onPress={() => setShowReport(true)} activeOpacity={0.8}>
+              <Ionicons name="flag-outline" size={17} color="rgba(255,255,255,0.45)" />
+            </TouchableOpacity>
+          )}
+
+          {/* Menus & modals */}
+          <QualityMenu
+            visible={showQualityMenu}
+            qualities={extractQualities}
+            currentUrl={currentVideoUrl || room?.videoUrl || ''}
+            onSelect={handleQualitySelect}
+            onClose={() => setShowQualityMenu(false)}
+          />
+          <EpisodeMenu
+            visible={showEpisodeMenu}
+            episodes={extractEpisodes}
+            currentUrl={currentVideoUrl || room?.videoUrl || ''}
+            onSelect={handleEpisodeSelect}
+            onClose={() => setShowEpisodeMenu(false)}
+          />
           {room && (
-            <ReportRoomModal visible={showReport} roomId={params.roomId} onClose={() => setShowReport(false)} />
+            <ReportRoomModal
+              visible={showReport}
+              roomId={params.roomId}
+              onClose={() => setShowReport(false)}
+            />
           )}
           {reportUserId && (
-            <ReportUserModal visible userId={reportUserId} onClose={() => setReportUserId(null)} />
+            <ReportUserModal
+              visible
+              userId={reportUserId}
+              onClose={() => setReportUserId(null)}
+            />
           )}
         </>
       )}
@@ -229,64 +283,212 @@ export function WatchPartyScreen() {
   );
 }
 
-const FAB_BOTTOM = 72;
+const FAB_BOTTOM = 70;
 const FAB_PRIMARY_SIZE = 52;
 
-const useStyles = createThemedStyles((colors) => ({
-  root: { flex: 1, backgroundColor: colors.bgVoid },
-  changeMediaFab: {
-    position: 'absolute', right: spacing.lg, bottom: FAB_BOTTOM,
-    width: 52, height: 52, borderRadius: 26,
-    backgroundColor: colors.primary,
-    alignItems: 'center', justifyContent: 'center',
-    zIndex: 20, elevation: 8,
-    shadowColor: '#000', shadowOpacity: 0.4,
-    shadowOffset: { width: 0, height: 4 }, shadowRadius: 8,
+const s = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: '#08080E',
   },
-  playlistFab: {
-    position: 'absolute', right: spacing.lg, bottom: FAB_BOTTOM + FAB_PRIMARY_SIZE + spacing.sm,
+
+  // ── Error screen ────────────────────────────────────────────────
+  errorRoot: {
+    flex: 1,
+    backgroundColor: '#0D0D1A',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+    padding: 32,
+  },
+  errorIconWrap: {
+    width: 72, height: 72, borderRadius: 36,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: 8,
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  errorSub: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.45)',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  errorBtn: {
+    backgroundColor: '#7B72F8',
+    paddingHorizontal: 32,
+    paddingVertical: 13,
+    borderRadius: 14,
+    marginTop: 8,
+    shadowColor: '#7B72F8',
+    shadowOpacity: 0.45,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
+  },
+  errorBtnText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+
+  // ── Expired banner ──────────────────────────────────────────────
+  expiredBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(245,158,11,0.10)',
+    paddingVertical: 9,
+    paddingHorizontal: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(245,158,11,0.20)',
+  },
+  expiredText: {
+    fontSize: 12,
+    color: '#F59E0B',
+    fontWeight: '600',
+    flex: 1,
+    lineHeight: 16,
+  },
+  expiredBtn: {
+    backgroundColor: '#F59E0B',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  expiredBtnText: {
+    color: '#000',
+    fontWeight: '800',
+    fontSize: 11,
+  },
+
+  // ── Gear row ────────────────────────────────────────────────────
+  gearRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    backgroundColor: '#0D0D1A',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.04)',
+  },
+  gearChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  gearChipText: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.55)',
+    fontWeight: '500',
+  },
+
+  // ── Admin banner ────────────────────────────────────────────────
+  adminBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(245,158,11,0.08)',
+    paddingVertical: 7,
+    paddingHorizontal: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(245,158,11,0.12)',
+  },
+  adminBannerText: {
+    fontSize: 11,
+    color: '#F59E0B',
+    fontWeight: '600',
+  },
+
+  // ── Emoji bar ───────────────────────────────────────────────────
+  emojiBar: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    backgroundColor: '#0D0D1A',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.04)',
+  },
+  emojiBarAndroid: {
+    paddingTop: 12,
+  },
+
+  // ── Chat / Voice panels ─────────────────────────────────────────
+  chatPanel: { flex: 1 },
+
+  // ── Playlist overlay ────────────────────────────────────────────
+  playlistSheet: {
+    position: 'absolute',
+    bottom: 0, left: 0, right: 0,
+    zIndex: 15, elevation: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.4,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: -6 },
+  },
+
+  // ── FABs ────────────────────────────────────────────────────────
+  fabPrimary: {
+    position: 'absolute',
+    right: 16,
+    bottom: FAB_BOTTOM,
+    width: FAB_PRIMARY_SIZE,
+    height: FAB_PRIMARY_SIZE,
+    borderRadius: FAB_PRIMARY_SIZE / 2,
+    backgroundColor: '#7B72F8',
+    alignItems: 'center', justifyContent: 'center',
+    zIndex: 20, elevation: 10,
+    shadowColor: '#7B72F8',
+    shadowOpacity: 0.5,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 16,
+  },
+  fabSecondary: {
+    position: 'absolute',
+    right: 16,
+    bottom: FAB_BOTTOM + FAB_PRIMARY_SIZE + 10,
     width: 44, height: 44, borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: 'rgba(255,255,255,0.10)',
     alignItems: 'center', justifyContent: 'center',
     zIndex: 20, elevation: 7,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
   },
-  playlistFabActive: { backgroundColor: 'rgba(123,114,248,0.5)' },
-  playlistBadge: {
+  fabSecondaryActive: {
+    backgroundColor: 'rgba(123,114,248,0.40)',
+    borderColor: 'rgba(123,114,248,0.50)',
+  },
+  fabBadge: {
     position: 'absolute', top: -4, right: -4,
     minWidth: 18, height: 18, borderRadius: 9,
-    backgroundColor: colors.primary,
+    backgroundColor: '#7B72F8',
     alignItems: 'center', justifyContent: 'center',
     paddingHorizontal: 3,
+    borderWidth: 1.5,
+    borderColor: '#08080E',
   },
-  playlistBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
-  gearRow: { flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.lg, paddingVertical: spacing.xs, borderBottomWidth: 0.5, borderBottomColor: 'rgba(255,255,255,0.05)' },
-  gearBtn: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingHorizontal: spacing.md, paddingVertical: spacing.xs, backgroundColor: colors.bgSurface, borderRadius: borderRadius.full },
-  gearBtnText: { ...typography.caption, color: colors.textMuted },
-  emojiBar: { padding: spacing.md, alignItems: 'center' },
-  emojiBarAndroid: { marginTop: spacing.sm },
-  chatPanel: { flex: 1 },
-  errorRoot: { flex: 1, backgroundColor: colors.bgBase, alignItems: 'center', justifyContent: 'center', gap: spacing.lg, padding: spacing.xl },
-  errorTitle: { fontSize: 20, fontWeight: '700', color: colors.textPrimary },
-  errorSub: { fontSize: 14, color: colors.textMuted, textAlign: 'center' },
-  errorBtn: { backgroundColor: colors.primary, paddingHorizontal: spacing.xxl, paddingVertical: spacing.md, borderRadius: 12 },
-  errorBtnText: { color: colors.white, fontWeight: '700', fontSize: 15 },
-  expiredBanner: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, backgroundColor: 'rgba(245,158,11,0.12)', paddingVertical: spacing.sm, paddingHorizontal: spacing.md, borderBottomWidth: 1, borderBottomColor: 'rgba(245,158,11,0.25)' },
-  expiredText: { ...typography.caption, color: '#F59E0B', fontWeight: '600', flex: 1 },
-  expiredBtn: { backgroundColor: '#F59E0B', paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: borderRadius.lg },
-  expiredBtnText: { color: '#000', fontWeight: '700', fontSize: 12 },
-  reportFab: {
-    position: 'absolute', left: spacing.lg, bottom: FAB_BOTTOM,
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.07)',
+  fabBadgeText: { color: '#fff', fontSize: 10, fontWeight: '800' },
+
+  fabReport: {
+    position: 'absolute',
+    left: 16,
+    bottom: FAB_BOTTOM,
+    width: 38, height: 38, borderRadius: 19,
+    backgroundColor: 'rgba(255,255,255,0.06)',
     alignItems: 'center', justifyContent: 'center',
     zIndex: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.07)',
   },
-  adminBanner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs, backgroundColor: 'rgba(245,158,11,0.12)', paddingVertical: spacing.xs, paddingHorizontal: spacing.md },
-  adminBannerText: { ...typography.caption, color: colors.warning, fontWeight: '600' },
-  playlistSheet: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
-    zIndex: 15, elevation: 16,
-    shadowColor: '#000', shadowOpacity: 0.35,
-    shadowRadius: 20, shadowOffset: { width: 0, height: -4 },
-  },
-}));
+});

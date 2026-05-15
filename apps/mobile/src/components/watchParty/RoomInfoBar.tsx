@@ -1,8 +1,7 @@
 // CineSync Mobile — WatchParty RoomInfoBar
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 
 interface RoomInfoBarProps {
   roomName: string;
@@ -25,61 +24,141 @@ export const RoomInfoBar = React.memo(function RoomInfoBar({
   onToggleVoice,
   onLeave,
 }: RoomInfoBarProps) {
-  const { colors } = useTheme();
-  const styles = useStyles();
   return (
-    <View style={styles.infoBar}>
-      <View style={styles.infoLeft}>
-        <Text style={styles.roomName} numberOfLines={1}>{roomName}</Text>
-        <View style={styles.memberCount}>
-          <Ionicons name="people-outline" size={14} color={colors.textMuted} />
-          <Text style={styles.memberCountText}>{memberCount}</Text>
+    <View style={s.container}>
+      {/* Left: room info */}
+      <View style={s.left}>
+        <View style={s.liveIndicator}>
+          <View style={s.livePip} />
+        </View>
+        <View style={s.textGroup}>
+          <Text style={s.roomName} numberOfLines={1}>{roomName}</Text>
+          <View style={s.metaRow}>
+            <Ionicons name="people" size={11} color="rgba(255,255,255,0.35)" />
+            <Text style={s.metaText}>{memberCount} ishtirokchi</Text>
+            {isOwner && (
+              <>
+                <View style={s.separator} />
+                <Ionicons name="star" size={10} color="#FFD700" />
+                <Text style={s.ownerLabel}>Egasi</Text>
+              </>
+            )}
+          </View>
         </View>
       </View>
 
-      <View style={styles.infoActions}>
-        <TouchableOpacity onPress={onToggleInvite} style={styles.iconBtn}>
-          <Ionicons name="person-add-outline" size={20} color={colors.secondary} />
+      {/* Right: actions */}
+      <View style={s.actions}>
+        <TouchableOpacity onPress={onToggleInvite} style={s.actionBtn} activeOpacity={0.7}>
+          <Ionicons name="person-add-outline" size={19} color="rgba(255,255,255,0.70)" />
         </TouchableOpacity>
-        <TouchableOpacity onPress={onToggleChat} style={styles.iconBtn}>
-          <Ionicons name="chatbubble-outline" size={20} color={colors.textSecondary} />
-          {hasMessages && <View style={styles.chatDot} />}
+
+        <TouchableOpacity onPress={onToggleChat} style={s.actionBtn} activeOpacity={0.7}>
+          <Ionicons name="chatbubble-outline" size={19} color="rgba(255,255,255,0.70)" />
+          {hasMessages && <View style={s.notifDot} />}
         </TouchableOpacity>
-        <TouchableOpacity onPress={onToggleVoice} style={styles.iconBtn}>
-          <Ionicons name="mic-outline" size={20} color={colors.textSecondary} />
+
+        <TouchableOpacity onPress={onToggleVoice} style={s.actionBtn} activeOpacity={0.7}>
+          <Ionicons name="mic-outline" size={19} color="rgba(255,255,255,0.70)" />
         </TouchableOpacity>
-        <TouchableOpacity onPress={onLeave} style={styles.iconBtn}>
-          <Ionicons name="exit-outline" size={20} color={colors.error} />
+
+        <TouchableOpacity onPress={onLeave} style={[s.actionBtn, s.leaveBtn]} activeOpacity={0.7}>
+          <Ionicons name="exit-outline" size={19} color="#F87171" />
         </TouchableOpacity>
       </View>
     </View>
   );
 });
 
-const useStyles = createThemedStyles((colors) => ({
-  infoBar: {
+const s = StyleSheet.create({
+  container: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: spacing.md,
-    paddingHorizontal: spacing.lg,
-    backgroundColor: colors.bgSurface,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    backgroundColor: '#0F0F1C',
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: 'rgba(255,255,255,0.05)',
+    gap: 12,
+    minHeight: 56,
   },
-  infoLeft: { flex: 1, gap: 2 },
-  roomName: { ...typography.h3, color: colors.textPrimary },
-  memberCount: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  memberCountText: { ...typography.caption, color: colors.textMuted },
-  infoActions: { flexDirection: 'row', gap: spacing.sm },
-  iconBtn: { padding: spacing.sm },
-  chatDot: {
+
+  left: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    minWidth: 0,
+  },
+
+  liveIndicator: {
+    width: 10, height: 10, borderRadius: 5,
+    backgroundColor: 'rgba(74,222,128,0.18)',
+    alignItems: 'center', justifyContent: 'center',
+    flexShrink: 0,
+  },
+  livePip: {
+    width: 5, height: 5, borderRadius: 2.5,
+    backgroundColor: '#4ADE80',
+  },
+
+  textGroup: { flex: 1, minWidth: 0 },
+
+  roomName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.1,
+  },
+
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 2,
+    flexWrap: 'nowrap',
+  },
+  metaText: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.38)',
+  },
+  separator: {
+    width: 2, height: 2, borderRadius: 1,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    marginHorizontal: 2,
+  },
+  ownerLabel: {
+    fontSize: 11,
+    color: '#FFD700',
+    fontWeight: '600',
+  },
+
+  actions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    flexShrink: 0,
+  },
+
+  actionBtn: {
+    width: 38, height: 38,
+    borderRadius: 19,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+
+  leaveBtn: {
+    backgroundColor: 'rgba(248,113,113,0.10)',
+    marginLeft: 2,
+  },
+
+  notifDot: {
     position: 'absolute',
-    top: 6,
-    right: 6,
-    width: 8,
-    height: 8,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.error,
+    top: 7, right: 7,
+    width: 7, height: 7, borderRadius: 3.5,
+    backgroundColor: '#7B72F8',
+    borderWidth: 1.5,
+    borderColor: '#0F0F1C',
   },
-}));
+});
