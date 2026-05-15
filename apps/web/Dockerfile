@@ -1,4 +1,4 @@
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 WORKDIR /app
 
 # Copy root workspace manifest (needed for workspace resolution)
@@ -22,7 +22,7 @@ WORKDIR /app/apps/web
 RUN npm run build
 
 # ─── Production ───────────────────────────────────────────────────────────────
-FROM node:20-alpine AS production
+FROM node:20-slim AS production
 WORKDIR /app
 
 ENV NODE_ENV=production
