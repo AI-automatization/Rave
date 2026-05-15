@@ -50,7 +50,7 @@ export function WatchPartyScreen() {
     onPlaybackStatusUpdate, handleWebViewPlay, handleWebViewPause, handleWebViewSeek,
     handleWebViewBuffering, handleProgress, handleProgressSeek, handlePlayPause, handleStop,
     handleToggleFullscreen, handleSeekDirection, handleEmojiSelect, handleRemoveEmoji,
-    handleChangeMedia, handleQualitySelect, handleEpisodeSelect, handleLeave,
+    handleChangeMedia, handleQualitySelect, handleEpisodeSelect, handleLeave, handlePlayerReady,
   } = useWatchPartyRoom(params.roomId, params.videoReferer);
 
   // Lock orientation: landscape in fullscreen, portrait otherwise
@@ -145,6 +145,7 @@ export function WatchPartyScreen() {
         onProgress={handleProgress}
         onBuffering={handleWebViewBuffering}
         onStreamResolved={({ isLive }) => setVideoIsLive(isLive)}
+        onReady={handlePlayerReady}
         onPlayPause={handlePlayPause}
         currentTime={videoCurrentTime}
         duration={videoDuration}

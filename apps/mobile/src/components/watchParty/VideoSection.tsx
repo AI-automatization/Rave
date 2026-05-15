@@ -36,6 +36,7 @@ interface VideoSectionProps {
   onStreamResolved: (info: { isLive: boolean }) => void;
   onProgress?: (currentTimeSecs: number, durationSecs: number) => void;
   onBuffering?: (isBuffering: boolean) => void;
+  onReady?: () => void;
   onPlayPause: () => void;
   onStop: () => void;
   onSeekDirection: (direction: 'forward' | 'back') => void;
@@ -52,7 +53,7 @@ const SHOW_MS = 3500; // controls visible duration after tap / mount
 export const VideoSection = React.memo(function VideoSection({
   playerRef, videoUrl, extractedUrl, videoReferer, videoHeaders, videoProxyUrl, isReady, isOwner, isPlaying,
   isFullscreen, videoIsLive, floatingEmojis, onPlay, onPause, onSeek,
-  onPlaybackStatusUpdate, onStreamResolved, onProgress, onBuffering, onPlayPause, onStop,
+  onPlaybackStatusUpdate, onStreamResolved, onProgress, onBuffering, onReady, onPlayPause, onStop,
   onSeekDirection, onToggleFullscreen, onRemoveEmoji,
   currentTime = 0, duration = 0, onProgressSeek, isWebView = false,
 }: VideoSectionProps) {
@@ -134,6 +135,7 @@ export const VideoSection = React.memo(function VideoSection({
           onStreamResolved={onStreamResolved}
           onProgress={onProgress}
           onBuffering={onBuffering}
+          onReady={onReady}
         />
       )}
 

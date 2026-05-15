@@ -33,6 +33,7 @@ interface Props {
   onProgress?: (currentTimeSecs: number, durationSecs: number) => void;
   onBuffering?: (isBuffering: boolean) => void;
   onStreamResolved?: (info: { isLive: boolean; title: string }) => void;
+  onReady?: () => void;
   extractedUrl?: string;
   extractedType?: 'mp4' | 'hls';
   isExtracting?: boolean;
@@ -72,14 +73,18 @@ function buildEmbedHtml(url: string, embed: EmbedPlatform): { html: string; base
 }
 
 export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
-  ({ url, isOwner, onPlay, onPause, onSeek, onPlaybackStatusUpdate, onProgress, onBuffering, extractedUrl, isExtracting, referer, httpHeaders, proxyUrl, mode }, ref) => {
+  ({ url, isOwner, onPlay, onPause, onSeek, onPlaybackStatusUpdate, onProgress, onBuffering, onReady,
+     extractedUrl, isExtracting, referer, httpHeaders, proxyUrl, mode }, ref) => {
     const videoRef = useRef<Video>(null);
     const webviewRef = useRef<WebViewPlayerRef>(null);
     const platform = detectVideoPlatform(url);
     const [videoError, setVideoError] = useState(false);
     const [avLoaded, setAvLoaded] = useState(false);
-    // Android: when CDN URL fails, retry via server proxy before showing error
     const [usingProxy, setUsingProxy] = useState(false);
+    // Fires onReady exactly once per video load cycle
+    const readyFiredRef = useRef(false);
+    const onReadyRef = useRef(onReady);
+    onReadyRef.current = onReady;
 
     const prevExtractedUrlRef = useRef(extractedUrl);
     if (prevExtractedUrlRef.current !== extractedUrl) {
@@ -87,14 +92,18 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
       setVideoError(false);
       setAvLoaded(false);
       setUsingProxy(false);
+      readyFiredRef.current = false;
     }
+
+    const fireReady = () => {
+      if (readyFiredRef.current) return;
+      readyFiredRef.current = true;
+      onReadyRef.current?.();
+    };
 
     const hasExtracted = !!extractedUrl;
     const youtubeId = platform === 'youtube' ? extractYouTubeVideoId(url) : null;
-    // YouTube: proxy URL failed → fall back to IFrame embed
     const proxyFailed = hasExtracted && videoError && platform === 'youtube' && !!youtubeId;
-    // VK / generic webview: extracted direct URL failed → fall back to embed iframe
-    // VK CDN URLs are often IP-bound to extraction server, unusable on mobile device directly
     const webviewEmbedFailed = hasExtracted && videoError && platform === 'webview' && !!detectEmbedPlatform(url);
     const useWebview = mode === 'webview-session' ||
       proxyFailed ||
@@ -142,10 +151,12 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
       const embedPlatform = platform === 'webview' ? detectEmbedPlatform(url) : null;
       const embedHtml = embedPlatform ? buildEmbedHtml(url, embedPlatform) : null;
       const displayUrl = (!ytId && platform === 'youtube') ? getYouTubeMobileUrl(url) : url;
+      // Signal ready on first play event from the WebView
+      const wrappedOnPlay = (secs: number) => { fireReady(); onPlay(secs); };
       return (
         <WebViewPlayer ref={webviewRef} url={displayUrl} youtubeVideoId={ytId ?? undefined}
           htmlContent={embedHtml?.html} htmlBaseUrl={embedHtml?.baseUrl}
-          isOwner={isOwner} onPlay={onPlay} onPause={onPause} onSeek={onSeek} onProgress={onProgress} onBuffering={onBuffering}
+          isOwner={isOwner} onPlay={wrappedOnPlay} onPause={onPause} onSeek={onSeek} onProgress={onProgress} onBuffering={onBuffering}
           userAgent={MOBILE_UA} referer={platform !== 'youtube' && !embedHtml ? referer : undefined} />
       );
     }
@@ -157,7 +168,7 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
           <Text style={styles.errorText}>Video yuklanmadi</Text>
           <TouchableOpacity
             style={styles.retryBtn}
-            onPress={() => { setVideoError(false); setAvLoaded(false); setUsingProxy(false); }}
+            onPress={() => { setVideoError(false); setAvLoaded(false); setUsingProxy(false); readyFiredRef.current = false; }}
           >
             <Text style={styles.retryText}>Qayta urinish</Text>
           </TouchableOpacity>
@@ -165,11 +176,7 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
       );
     }
 
-    // Android: on first attempt use CDN URL directly; on retry (usingProxy) use backend proxy.
-    // Backend proxy fetches from CDN server-side → bypasses ExoPlayer TLS/UA restrictions.
     const avUri = (Platform.OS === 'android' && usingProxy && proxyUrl) ? proxyUrl : (directSource ?? url);
-    // Always send browser UA so CDN UA filters don't block ExoPlayer.
-    // Merge: MOBILE_UA base → backend http_headers (yt-dlp required headers) → Referer override.
     const avHeaders: Record<string, string> = {
       'User-Agent': MOBILE_UA,
       ...httpHeaders,
@@ -181,14 +188,19 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
         <Video ref={videoRef} source={avSource} style={StyleSheet.absoluteFill} resizeMode={ResizeMode.CONTAIN}
           shouldPlay={false} useNativeControls={false}
           onPlaybackStatusUpdate={(status) => {
+            if (status.isLoaded) {
+              // Signal ready before propagating so the parent can apply pending sync
+              // before processing this status update
+              fireReady();
+              setAvLoaded(true);
+            }
             onPlaybackStatusUpdate?.(status);
-            if (status.isLoaded) setAvLoaded(true);
           }}
           onError={() => {
             if (Platform.OS === 'android' && proxyUrl && !usingProxy) {
-              // First Android failure: retry via server proxy
               setUsingProxy(true);
               setAvLoaded(false);
+              readyFiredRef.current = false;
             } else {
               setVideoError(true);
             }

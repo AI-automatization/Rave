@@ -63,13 +63,9 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const bufferDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reactionTimestampsRef = useRef<number[]>([]);
   const isBufferingRef = useRef(false);
-  // T-E103: WebView pendingSync — defer seekTo until ad finishes
+  // Unified pending sync — deferred until player signals onReady (works for both expo-av and WebView)
+  const playerReadyRef = useRef(false);
   const pendingSyncRef = useRef<{ currentTime: number; isPlaying: boolean } | null>(null);
-  const pendingSyncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const webViewReadyRef = useRef(false);
-  // expo-av pendingSync — defer seekTo until video is loaded (fixes Android join sync)
-  const avReadyRef = useRef(false);
-  const pendingAVSyncRef = useRef<{ currentTime: number; isPlaying: boolean } | null>(null);
 
   const [showChat, setShowChat] = useState(false);
   const [showVoice, setShowVoice] = useState(false);
@@ -135,20 +131,9 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     lastSyncId.current = syncId;
     intendedPlayingRef.current = syncState.isPlaying;
 
-    // T-E103: WebView not ready (ad playing) — defer seek until first play event
-    if (isWebViewModeRef.current && !webViewReadyRef.current) {
+    // Player not ready yet — defer until handlePlayerReady fires (same for expo-av and WebView)
+    if (!playerReadyRef.current) {
       pendingSyncRef.current = { currentTime: syncState.currentTime, isPlaying: syncState.isPlaying };
-      if (pendingSyncTimeoutRef.current) clearTimeout(pendingSyncTimeoutRef.current);
-      pendingSyncTimeoutRef.current = setTimeout(() => {
-        pendingSyncRef.current = null;
-        pendingSyncTimeoutRef.current = null;
-      }, 30_000);
-      return;
-    }
-
-    // expo-av not loaded yet — defer seek until onPlaybackStatusUpdate fires with isLoaded
-    if (!isWebViewModeRef.current && !avReadyRef.current) {
-      pendingAVSyncRef.current = { currentTime: syncState.currentTime, isPlaying: syncState.isPlaying };
       return;
     }
 
@@ -244,47 +229,15 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
 
   const onPlaybackStatusUpdate = useCallback((status: AVPlaybackStatus) => {
     if (!status.isLoaded) return;
-
-    // First time video is loaded — apply any deferred initial sync (viewer only)
-    if (!avReadyRef.current) {
-      avReadyRef.current = true;
-      if (!isOwner && pendingAVSyncRef.current) {
-        const { currentTime, isPlaying: pendingPlaying } = pendingAVSyncRef.current;
-        pendingAVSyncRef.current = null;
-        isSyncing.current = true;
-        playerRef.current?.seekTo(currentTime * 1000)
-          .then(() => pendingPlaying ? playerRef.current?.play() : playerRef.current?.pause())
-          .catch(() => {})
-          .finally(() => { setTimeout(() => { isSyncing.current = false; }, 400); });
-        return;
-      }
-    }
-
     if (!isSyncing.current) { setIsPlaying(status.isPlaying); intendedPlayingRef.current = status.isPlaying; }
     setVideoCurrentTime(status.positionMillis / 1000);
     if (status.durationMillis) setVideoDuration(status.durationMillis / 1000);
-    // T-E101: Detect buffering from expo-av (isBuffering field)
     if (status.isBuffering !== undefined) emitBufferState(status.isBuffering);
     if (isOwner && !isSyncing.current && status.didJustFinish) emitPause(status.durationMillis ? status.durationMillis / 1000 : 0);
     prevIsPlayingRef.current = status.isPlaying;
   }, [isOwner, emitPause, emitBufferState]);
 
   const handleWebViewPlay = useCallback((secs: number) => {
-    // T-E103: first play after ad — apply deferred sync
-    if (!webViewReadyRef.current) {
-      webViewReadyRef.current = true;
-      if (pendingSyncRef.current) {
-        const { currentTime, isPlaying } = pendingSyncRef.current;
-        pendingSyncRef.current = null;
-        if (pendingSyncTimeoutRef.current) { clearTimeout(pendingSyncTimeoutRef.current); pendingSyncTimeoutRef.current = null; }
-        isSyncing.current = true;
-        playerRef.current?.seekTo(currentTime * 1000)
-          .then(() => isPlaying ? playerRef.current?.play() : playerRef.current?.pause())
-          .catch(() => {})
-          .finally(() => { setTimeout(() => { isSyncing.current = false; }, 400); });
-        return;
-      }
-    }
     setIsPlaying(true);
     if (isOwner && !isSyncing.current) emitPlay(secs);
   }, [isOwner, emitPlay]);
@@ -404,21 +357,26 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     : undefined;
   const isWebViewMode = !extractedVideoUrl && (iosWebmBlocked || ['youtube', 'webview'].includes(detectVideoPlatform(originalVideoUrl)) || extractFallback);
 
-  // T-E103: keep ref in sync for use inside effects without dependency issues
-  const isWebViewModeRef = useRef(false);
-  isWebViewModeRef.current = isWebViewMode;
-
-  // Reset ready flags when video URL changes (new media)
+  // Reset player ready state when video URL changes (new media)
   useEffect(() => {
-    webViewReadyRef.current = false;
+    playerReadyRef.current = false;
     pendingSyncRef.current = null;
-    if (pendingSyncTimeoutRef.current) { clearTimeout(pendingSyncTimeoutRef.current); pendingSyncTimeoutRef.current = null; }
-    avReadyRef.current = false;
-    pendingAVSyncRef.current = null;
   }, [room?.videoUrl]);
 
-  // T-E103: cleanup pendingSync timeout on unmount
-  useEffect(() => () => { if (pendingSyncTimeoutRef.current) clearTimeout(pendingSyncTimeoutRef.current); }, []);
+  // Called by UniversalPlayer when the player is ready to receive seek/play commands.
+  // Applies the last deferred sync if one was stored while the player was loading.
+  const handlePlayerReady = useCallback(() => {
+    if (playerReadyRef.current) return;
+    playerReadyRef.current = true;
+    if (!pendingSyncRef.current) return;
+    const { currentTime, isPlaying: pendingPlaying } = pendingSyncRef.current;
+    pendingSyncRef.current = null;
+    isSyncing.current = true;
+    playerRef.current?.seekTo(currentTime * 1000)
+      .then(() => pendingPlaying ? playerRef.current?.play() : playerRef.current?.pause())
+      .catch(() => {})
+      .finally(() => { setTimeout(() => { isSyncing.current = false; }, 400); });
+  }, []);
 
   return {
     playerRef, userId, room, messages, activeMembers, isOwner, adminMonitoring, connectTimeout,
@@ -432,7 +390,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     handleWebViewBuffering, handleProgress, handleProgressSeek, handlePlayPause, handleStop,
     handleToggleFullscreen: useCallback(() => setIsFullscreen(v => !v), []),
     handleSeekDirection, handleEmojiSelect, handleRemoveEmoji,
-    handleChangeMedia, handleQualitySelect, handleEpisodeSelect, handleLeave,
+    handleChangeMedia, handleQualitySelect, handleEpisodeSelect, handleLeave, handlePlayerReady,
     playlist, handleAddToQueue, handlePlaylistRemove, handlePlaylistNext,
   };
 }
