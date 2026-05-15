@@ -80,7 +80,6 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
     const platform = detectVideoPlatform(url);
     const [videoError, setVideoError] = useState(false);
     const [avLoaded, setAvLoaded] = useState(false);
-    const [usingProxy, setUsingProxy] = useState(false);
     // Fires onReady exactly once per video load cycle
     const readyFiredRef = useRef(false);
     const onReadyRef = useRef(onReady);
@@ -91,7 +90,6 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
       prevExtractedUrlRef.current = extractedUrl;
       setVideoError(false);
       setAvLoaded(false);
-      setUsingProxy(false);
       readyFiredRef.current = false;
     }
 
@@ -161,14 +159,14 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
       );
     }
 
-    if (hasExtracted && videoError && !proxyFailed && !usingProxy) {
+    if (hasExtracted && videoError && !proxyFailed) {
       return (
         <View style={styles.center}>
           <Ionicons name="warning-outline" size={48} color={colors.error} />
           <Text style={styles.errorText}>Video yuklanmadi</Text>
           <TouchableOpacity
             style={styles.retryBtn}
-            onPress={() => { setVideoError(false); setAvLoaded(false); setUsingProxy(false); readyFiredRef.current = false; }}
+            onPress={() => { setVideoError(false); setAvLoaded(false); readyFiredRef.current = false; }}
           >
             <Text style={styles.retryText}>Qayta urinish</Text>
           </TouchableOpacity>
@@ -176,7 +174,10 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
       );
     }
 
-    const avUri = (Platform.OS === 'android' && usingProxy && proxyUrl) ? proxyUrl : (directSource ?? url);
+    // Android: use proxy immediately — ExoPlayer's TLS fingerprint is often blocked by CDNs
+    // and hangs indefinitely instead of firing onError, making retry-based fallback unreliable.
+    // iOS: AVPlayer handles CDN URLs fine, use direct.
+    const avUri = (Platform.OS === 'android' && proxyUrl) ? proxyUrl : (directSource ?? url);
     const avHeaders: Record<string, string> = {
       'User-Agent': MOBILE_UA,
       ...httpHeaders,
@@ -189,22 +190,12 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
           shouldPlay={false} useNativeControls={false}
           onPlaybackStatusUpdate={(status) => {
             if (status.isLoaded) {
-              // Signal ready before propagating so the parent can apply pending sync
-              // before processing this status update
               fireReady();
               setAvLoaded(true);
             }
             onPlaybackStatusUpdate?.(status);
           }}
-          onError={() => {
-            if (Platform.OS === 'android' && proxyUrl && !usingProxy) {
-              setUsingProxy(true);
-              setAvLoaded(false);
-              readyFiredRef.current = false;
-            } else {
-              setVideoError(true);
-            }
-          }} />
+          onError={() => { setVideoError(true); }} />
         {!avLoaded && (
           <View style={styles.bufferingOverlay} pointerEvents="none">
             <ActivityIndicator size="large" color={colors.primary} />
