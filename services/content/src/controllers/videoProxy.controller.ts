@@ -29,7 +29,7 @@ export const videoProxyController = {
    *  Range requests forwarded for seeking support.
    */
   async stream(req: Request, res: Response, next: NextFunction): Promise<void> {
-    const { url, token } = req.query as { url?: string; token?: string };
+    const { url, token, referer } = req.query as { url?: string; token?: string; referer?: string };
 
     if (!url) { res.status(400).json({ success: false, message: 'url required' }); return; }
     if (!verifyQueryToken(token)) { res.status(401).json({ success: false, message: 'Unauthorized' }); return; }
@@ -54,6 +54,7 @@ export const videoProxyController = {
         'Accept': '*/*',
         'Accept-Language': 'en-US,en;q=0.9',
       };
+      if (referer) upstreamHeaders['Referer'] = referer;
 
       const rangeHeader = req.headers.range;
       if (rangeHeader) upstreamHeaders['Range'] = rangeHeader;

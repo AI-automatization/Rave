@@ -352,8 +352,12 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const androidPlayUrl = Platform.OS === 'android'
     ? (extractedVideoUrl ?? (platform !== 'youtube' && platform !== 'webview' ? originalVideoUrl : undefined))
     : undefined;
+  // Referer for the CDN request: room param takes priority, then yt-dlp http_headers
+  const cdnReferer = videoReferer
+    ?? extractedVideoHeaders?.['Referer']
+    ?? extractedVideoHeaders?.['referer'];
   const extractedVideoProxyUrl = (androidPlayUrl && accessToken)
-    ? `${CONTENT_BASE_URL}/content/proxy/stream?url=${encodeURIComponent(androidPlayUrl)}&token=${encodeURIComponent(accessToken)}`
+    ? `${CONTENT_BASE_URL}/content/proxy/stream?url=${encodeURIComponent(androidPlayUrl)}&token=${encodeURIComponent(accessToken)}${cdnReferer ? `&referer=${encodeURIComponent(cdnReferer)}` : ''}`
     : undefined;
   const isWebViewMode = !extractedVideoUrl && (iosWebmBlocked || ['youtube', 'webview'].includes(detectVideoPlatform(originalVideoUrl)) || extractFallback);
 
