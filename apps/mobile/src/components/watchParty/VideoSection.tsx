@@ -45,7 +45,7 @@ interface VideoSectionProps {
   isWebView?: boolean;
 }
 
-const HIDE_DELAY = 3200;
+const SHOW_MS = 3500; // controls visible duration after tap / mount
 
 export const VideoSection = React.memo(function VideoSection({
   playerRef, videoUrl, extractedUrl, videoReferer, isReady, isOwner, isPlaying,
@@ -58,51 +58,50 @@ export const VideoSection = React.memo(function VideoSection({
 
   const ctrlOpacity = useRef(new Animated.Value(1)).current;
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const ctrlVisibleRef = useRef(true);
   const [ctrlVisible, setCtrlVisible] = useState(true);
 
-  const clearHideTimer = useCallback(() => {
-    if (hideTimer.current) {
-      clearTimeout(hideTimer.current);
-      hideTimer.current = null;
-    }
-  }, []);
+  const doHide = useCallback(() => {
+    if (hideTimer.current) clearTimeout(hideTimer.current);
+    hideTimer.current = null;
+    ctrlVisibleRef.current = false;
+    setCtrlVisible(false);
+    Animated.timing(ctrlOpacity, { toValue: 0, duration: 260, useNativeDriver: true }).start();
+  }, [ctrlOpacity]);
 
-  const revealControls = useCallback(() => {
-    clearHideTimer();
+  const doShow = useCallback((autoHideMs = SHOW_MS) => {
+    if (hideTimer.current) clearTimeout(hideTimer.current);
+    ctrlVisibleRef.current = true;
     setCtrlVisible(true);
     Animated.timing(ctrlOpacity, { toValue: 1, duration: 180, useNativeDriver: true }).start();
-  }, [clearHideTimer, ctrlOpacity]);
+    hideTimer.current = setTimeout(doHide, autoHideMs);
+  }, [ctrlOpacity, doHide]);
 
-  const scheduleHide = useCallback(() => {
-    clearHideTimer();
-    hideTimer.current = setTimeout(() => {
-      setCtrlVisible(false);
-      Animated.timing(ctrlOpacity, { toValue: 0, duration: 240, useNativeDriver: true }).start();
-    }, HIDE_DELAY);
-  }, [clearHideTimer, ctrlOpacity]);
-
+  // Show briefly on mount, then auto-hide
   useEffect(() => {
-    if (isPlaying) {
-      scheduleHide();
-    } else {
-      clearHideTimer();
-      revealControls();
+    doShow(SHOW_MS);
+    return () => {
+      if (hideTimer.current) clearTimeout(hideTimer.current);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Show controls whenever play/pause state changes (user action feedback)
+  const prevIsPlaying = useRef(isPlaying);
+  useEffect(() => {
+    if (prevIsPlaying.current !== isPlaying) {
+      prevIsPlaying.current = isPlaying;
+      doShow(SHOW_MS);
     }
-    return clearHideTimer;
-  }, [isPlaying, scheduleHide, clearHideTimer, revealControls]);
+  }, [isPlaying, doShow]);
 
   const handleVideoTap = useCallback(() => {
-    if (ctrlVisible) {
-      if (isPlaying) {
-        clearHideTimer();
-        setCtrlVisible(false);
-        Animated.timing(ctrlOpacity, { toValue: 0, duration: 220, useNativeDriver: true }).start();
-      }
+    if (ctrlVisibleRef.current) {
+      doHide();
     } else {
-      revealControls();
-      if (isPlaying) scheduleHide();
+      doShow(SHOW_MS);
     }
-  }, [ctrlVisible, isPlaying, clearHideTimer, ctrlOpacity, revealControls, scheduleHide]);
+  }, [doHide, doShow]);
 
   const isOwnerMode = isOwner && !isWebView;
   const showProgress = !videoIsLive && duration > 0;
