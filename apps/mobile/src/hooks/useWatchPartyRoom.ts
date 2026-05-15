@@ -7,6 +7,8 @@ import { AVPlaybackStatus } from 'expo-av';
 import { useWatchParty } from '@hooks/useWatchParty';
 import { useVideoExtraction } from '@hooks/useVideoExtraction';
 import { useAuthStore } from '@store/auth.store';
+
+const CONTENT_BASE_URL = process.env.EXPO_PUBLIC_CONTENT_URL ?? '';
 import { useWatchPartyStore } from '@store/watchParty.store';
 import { watchPartyApi } from '@api/watchParty.api';
 import { disconnectSocket, getSocket, CLIENT_EVENTS } from '@socket/client';
@@ -361,10 +363,15 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
 
   // Video URL computation
   const originalVideoUrl = room?.videoUrl ?? '';
+  const accessToken = useAuthStore(s => s.accessToken);
   const rawExtractedUrl = (!extractFallback && extractResult?.videoUrl) ? extractResult.videoUrl : undefined;
   const iosWebmBlocked = !!(rawExtractedUrl && Platform.OS === 'ios' && /\.webm(\?|#|$)/i.test(rawExtractedUrl));
   const extractedVideoUrl = iosWebmBlocked ? undefined : rawExtractedUrl;
   const extractedVideoHeaders = extractedVideoUrl ? extractResult?.httpHeaders : undefined;
+  // Android proxy: stream CDN URL through our server to bypass ExoPlayer TLS/UA restrictions
+  const extractedVideoProxyUrl = (Platform.OS === 'android' && extractedVideoUrl && accessToken)
+    ? `${CONTENT_BASE_URL}/content/proxy/stream?url=${encodeURIComponent(extractedVideoUrl)}&token=${encodeURIComponent(accessToken)}`
+    : undefined;
   const isWebViewMode = !extractedVideoUrl && (iosWebmBlocked || ['youtube', 'webview'].includes(detectVideoPlatform(originalVideoUrl)) || extractFallback);
 
   // T-E103: keep ref in sync for use inside effects without dependency issues
@@ -386,7 +393,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     isExtracting, extractResult, extractionError, showChat, showVoice, showInvite, isPlaying, isFullscreen,
     videoIsLive, videoCurrentTime, videoDuration, floatingEmojis, showQualityMenu, showEpisodeMenu,
     extractQualities, extractEpisodes, currentVideoUrl, bufferingUsers,
-    originalVideoUrl, extractedVideoUrl, extractedVideoHeaders, isWebViewMode,
+    originalVideoUrl, extractedVideoUrl, extractedVideoHeaders, extractedVideoProxyUrl, isWebViewMode,
     setShowChat, setShowVoice, setShowInvite, setShowQualityMenu, setShowEpisodeMenu, setVideoIsLive,
     sendMessage, sendEmoji,
     onPlaybackStatusUpdate, handleWebViewPlay, handleWebViewPause, handleWebViewSeek,

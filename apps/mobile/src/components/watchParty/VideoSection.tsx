@@ -22,6 +22,7 @@ interface VideoSectionProps {
   extractedUrl?: string;
   videoReferer?: string;
   videoHeaders?: Record<string, string>;
+  videoProxyUrl?: string;
   isReady: boolean;
   isOwner: boolean;
   isPlaying: boolean;
@@ -49,7 +50,7 @@ interface VideoSectionProps {
 const SHOW_MS = 3500; // controls visible duration after tap / mount
 
 export const VideoSection = React.memo(function VideoSection({
-  playerRef, videoUrl, extractedUrl, videoReferer, videoHeaders, isReady, isOwner, isPlaying,
+  playerRef, videoUrl, extractedUrl, videoReferer, videoHeaders, videoProxyUrl, isReady, isOwner, isPlaying,
   isFullscreen, videoIsLive, floatingEmojis, onPlay, onPause, onSeek,
   onPlaybackStatusUpdate, onStreamResolved, onProgress, onBuffering, onPlayPause, onStop,
   onSeekDirection, onToggleFullscreen, onRemoveEmoji,
@@ -124,6 +125,7 @@ export const VideoSection = React.memo(function VideoSection({
           extractedUrl={extractedUrl}
           referer={videoReferer}
           httpHeaders={videoHeaders}
+          proxyUrl={videoProxyUrl}
           isOwner={isOwner}
           onPlay={onPlay}
           onPause={onPause}

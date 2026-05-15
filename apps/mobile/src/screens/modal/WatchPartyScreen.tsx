@@ -43,7 +43,7 @@ export function WatchPartyScreen() {
     showChat, showVoice, showInvite, isPlaying, isFullscreen, videoIsLive,
     videoCurrentTime, videoDuration, floatingEmojis, showQualityMenu, showEpisodeMenu,
     extractQualities, extractEpisodes, currentVideoUrl, extractionError,
-    originalVideoUrl, extractedVideoUrl, extractedVideoHeaders, isWebViewMode, isExtracting,
+    originalVideoUrl, extractedVideoUrl, extractedVideoHeaders, extractedVideoProxyUrl, isWebViewMode, isExtracting,
     playlist, handleAddToQueue, handlePlaylistRemove, handlePlaylistNext,
     setShowChat, setShowVoice, setShowInvite, setShowQualityMenu, setShowEpisodeMenu, setVideoIsLive,
     sendMessage,
@@ -130,6 +130,7 @@ export function WatchPartyScreen() {
         extractedUrl={extractionError === 'video_source_expired' ? undefined : extractedVideoUrl}
         videoReferer={params.videoReferer}
         videoHeaders={extractionError === 'video_source_expired' ? undefined : extractedVideoHeaders}
+        videoProxyUrl={extractionError === 'video_source_expired' ? undefined : extractedVideoProxyUrl}
         isWebView={extractionError === 'video_source_expired' ? false : isWebViewMode}
         isReady={extractionError === 'video_source_expired' ? true : !!room && (!isExtracting || isWebViewMode)}
         isOwner={isOwner}

@@ -21,6 +21,7 @@ import { createYtdlRouter } from './routes/ytdl.routes';
 import { createVideoSearchRouter } from './routes/videoSearch.routes';
 import { createUrlVisitRouter } from './routes/urlVisit.routes';
 import { createDomainRouter } from './routes/domain.routes';
+import { createVideoProxyRouter } from './routes/videoProxy.routes';
 import { swaggerSpec } from './utils/swagger';
 import { config } from './config/index';
 
@@ -35,7 +36,7 @@ export const createApp = (redis: Redis, elastic: ElasticsearchClient): express.A
   app.use(helmet());
   app.use(cors({
     origin: (origin, callback) => {
-      if (!origin) return callback(null, true);
+      if (!origin) return callback(null, true); // server-to-server (Railway internal) — no Origin header
       if (allowedOrigins.includes(origin)) return callback(null, true);
       return callback(null, false);
     },
@@ -75,6 +76,7 @@ export const createApp = (redis: Redis, elastic: ElasticsearchClient): express.A
   app.use('/api/v1/youtube', createYtdlRouter());
   app.use('/api/v1/content/video-search', createVideoSearchRouter());
   app.use('/api/v1/content/url-visit', createUrlVisitRouter(redis));
+  app.use('/api/v1/content/proxy', createVideoProxyRouter());
   app.use('/api/v1/content', createDomainRouter(redis));
 
   app.use(notFoundHandler);

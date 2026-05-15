@@ -1,7 +1,7 @@
 // CineSync Mobile — UniversalPlayer
 // URL ga qarab to'g'ri player tanlaydi: expo-av (direct) yoki WebView (youtube/boshqalar)
 import React, { forwardRef, useImperativeHandle, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Platform } from 'react-native';
 import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
 import { WebViewPlayer, WebViewPlayerRef } from './WebViewPlayer';
@@ -38,6 +38,7 @@ interface Props {
   isExtracting?: boolean;
   referer?: string;
   httpHeaders?: Record<string, string>;
+  proxyUrl?: string;
   mode?: 'extracted' | 'webview-session';
 }
 
@@ -71,18 +72,21 @@ function buildEmbedHtml(url: string, embed: EmbedPlatform): { html: string; base
 }
 
 export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
-  ({ url, isOwner, onPlay, onPause, onSeek, onPlaybackStatusUpdate, onProgress, onBuffering, extractedUrl, isExtracting, referer, httpHeaders, mode }, ref) => {
+  ({ url, isOwner, onPlay, onPause, onSeek, onPlaybackStatusUpdate, onProgress, onBuffering, extractedUrl, isExtracting, referer, httpHeaders, proxyUrl, mode }, ref) => {
     const videoRef = useRef<Video>(null);
     const webviewRef = useRef<WebViewPlayerRef>(null);
     const platform = detectVideoPlatform(url);
     const [videoError, setVideoError] = useState(false);
     const [avLoaded, setAvLoaded] = useState(false);
+    // Android: when CDN URL fails, retry via server proxy before showing error
+    const [usingProxy, setUsingProxy] = useState(false);
 
     const prevExtractedUrlRef = useRef(extractedUrl);
     if (prevExtractedUrlRef.current !== extractedUrl) {
       prevExtractedUrlRef.current = extractedUrl;
       setVideoError(false);
       setAvLoaded(false);
+      setUsingProxy(false);
     }
 
     const hasExtracted = !!extractedUrl;
@@ -146,14 +150,14 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
       );
     }
 
-    if (hasExtracted && videoError && !proxyFailed) {
+    if (hasExtracted && videoError && !proxyFailed && !usingProxy) {
       return (
         <View style={styles.center}>
           <Ionicons name="warning-outline" size={48} color={colors.error} />
           <Text style={styles.errorText}>Video yuklanmadi</Text>
           <TouchableOpacity
             style={styles.retryBtn}
-            onPress={() => { setVideoError(false); setAvLoaded(false); }}
+            onPress={() => { setVideoError(false); setAvLoaded(false); setUsingProxy(false); }}
           >
             <Text style={styles.retryText}>Qayta urinish</Text>
           </TouchableOpacity>
@@ -161,14 +165,17 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
       );
     }
 
-    // Always send browser UA so Android ExoPlayer isn't blocked by CDN UA filters.
+    // Android: on first attempt use CDN URL directly; on retry (usingProxy) use backend proxy.
+    // Backend proxy fetches from CDN server-side → bypasses ExoPlayer TLS/UA restrictions.
+    const avUri = (Platform.OS === 'android' && usingProxy && proxyUrl) ? proxyUrl : (directSource ?? url);
+    // Always send browser UA so CDN UA filters don't block ExoPlayer.
     // Merge: MOBILE_UA base → backend http_headers (yt-dlp required headers) → Referer override.
     const avHeaders: Record<string, string> = {
       'User-Agent': MOBILE_UA,
       ...httpHeaders,
       ...(referer ? { Referer: referer } : {}),
     };
-    const avSource = { uri: directSource ?? url, headers: avHeaders };
+    const avSource = { uri: avUri, headers: avHeaders };
     return (
       <View style={styles.video}>
         <Video ref={videoRef} source={avSource} style={StyleSheet.absoluteFill} resizeMode={ResizeMode.CONTAIN}
@@ -177,7 +184,15 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
             onPlaybackStatusUpdate?.(status);
             if (status.isLoaded) setAvLoaded(true);
           }}
-          onError={() => setVideoError(true)} />
+          onError={() => {
+            if (Platform.OS === 'android' && proxyUrl && !usingProxy) {
+              // First Android failure: retry via server proxy
+              setUsingProxy(true);
+              setAvLoaded(false);
+            } else {
+              setVideoError(true);
+            }
+          }} />
         {!avLoaded && (
           <View style={styles.bufferingOverlay} pointerEvents="none">
             <ActivityIndicator size="large" color={colors.primary} />
