@@ -46,9 +46,11 @@ export function detectEmbedPlatform(url: string): EmbedPlatform {
   if (!url) return null;
   try {
     const { hostname, pathname } = new URL(url);
-    const host = hostname.replace(/^www\./, '');
+    // strip www. and m. (handles m.vk.com, m.vkvideo.ru)
+    const host = hostname.replace(/^(www\.|m\.)/, '');
     if (host === 'twitch.tv' || host === 'clips.twitch.tv') return 'twitch';
-    if (host === 'vk.com' && /^\/video/.test(pathname)) return 'vk';
+    // vk.com/video..., vkvideo.ru (new VK video domain), m.vk.com, m.vkvideo.ru
+    if ((host === 'vk.com' && /^\/video/.test(pathname)) || host === 'vkvideo.ru') return 'vk';
     if (host === 'rutube.ru') return 'rutube';
     if (host === 'vimeo.com' || host === 'player.vimeo.com') return 'vimeo';
     if (host.includes('dailymotion.com') || host === 'dai.ly') return 'dailymotion';
@@ -83,12 +85,15 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
     }
 
     const hasExtracted = !!extractedUrl;
-    // Prefer proxy for YouTube (better sync). Fall back to YouTube IFrame embed only if
-    // the extracted/proxy URL fails at playback time and we have a YouTube videoId available.
     const youtubeId = platform === 'youtube' ? extractYouTubeVideoId(url) : null;
+    // YouTube: proxy URL failed → fall back to IFrame embed
     const proxyFailed = hasExtracted && videoError && platform === 'youtube' && !!youtubeId;
+    // VK / generic webview: extracted direct URL failed → fall back to embed iframe
+    // VK CDN URLs are often IP-bound to extraction server, unusable on mobile device directly
+    const webviewEmbedFailed = hasExtracted && videoError && platform === 'webview' && !!detectEmbedPlatform(url);
     const useWebview = mode === 'webview-session' ||
       proxyFailed ||
+      webviewEmbedFailed ||
       (!hasExtracted && videoError) ||
       (!hasExtracted && (platform === 'youtube' || platform === 'webview'));
     const directSource = hasExtracted ? extractedUrl : url;

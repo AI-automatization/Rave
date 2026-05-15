@@ -214,7 +214,8 @@ export function extractTwitchId(url: string): { type: 'channel' | 'vod'; id: str
 export function extractVKVideoIds(url: string): { ownerId: string; videoId: string } | null {
   try {
     const { hostname, pathname, searchParams } = new URL(url);
-    const host = hostname.replace(/^www\./, '');
+    // strip www. and m. prefixes (m.vk.com, m.vkvideo.ru)
+    const host = hostname.replace(/^(www\.|m\.)/, '');
     if (host !== 'vk.com' && host !== 'vkvideo.ru') return null;
     const rawId =
       searchParams.get('z')?.replace(/^video/, '') ??
