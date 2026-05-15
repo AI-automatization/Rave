@@ -1,6 +1,7 @@
 // CineSync Mobile — WatchPartyScreen
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Platform, StyleSheet, Dimensions } from 'react-native';
+import * as ScreenOrientation from 'expo-screen-orientation';
 import { ReportRoomModal } from '@components/common/ReportRoomModal';
 import { ReportUserModal } from '@components/common/ReportUserModal';
 import { useRoute, RouteProp } from '@react-navigation/native';
@@ -51,6 +52,22 @@ export function WatchPartyScreen() {
     handleToggleFullscreen, handleSeekDirection, handleEmojiSelect, handleRemoveEmoji,
     handleChangeMedia, handleQualitySelect, handleEpisodeSelect, handleLeave,
   } = useWatchPartyRoom(params.roomId, params.videoReferer);
+
+  // Lock orientation: landscape in fullscreen, portrait otherwise
+  useEffect(() => {
+    if (isFullscreen) {
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+    } else {
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+    }
+  }, [isFullscreen]);
+
+  // Restore portrait when leaving the screen
+  useEffect(() => {
+    return () => {
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+    };
+  }, []);
 
   if (connectTimeout && !room) {
     return (
