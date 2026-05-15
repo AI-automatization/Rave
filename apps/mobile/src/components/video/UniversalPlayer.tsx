@@ -80,6 +80,7 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
     const platform = detectVideoPlatform(url);
     const [videoError, setVideoError] = useState(false);
     const [avLoaded, setAvLoaded] = useState(false);
+    const [usingProxy, setUsingProxy] = useState(false);
     // Fires onReady exactly once per video load cycle
     const readyFiredRef = useRef(false);
     const onReadyRef = useRef(onReady);
@@ -90,6 +91,7 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
       prevExtractedUrlRef.current = extractedUrl;
       setVideoError(false);
       setAvLoaded(false);
+      setUsingProxy(false);
       readyFiredRef.current = false;
     }
 
@@ -100,6 +102,12 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
     };
 
     const hasExtracted = !!extractedUrl;
+    // true when yt-dlp extracted a different CDN URL (VK, Rutube, etc.)
+    // false when extractedUrl === original URL (direct MP4 passthrough) or no extraction
+    const isExtractedCdn = hasExtracted && extractedUrl !== url;
+    // For non-extracted URLs on Android, proxy immediately (ExoPlayer TLS fingerprint blocked by CDNs)
+    // For extracted CDN URLs, try direct with httpHeaders first (VK CDN doesn't block on TLS), fallback to proxy on error
+    const useProxyImmediately = Platform.OS === 'android' && !isExtractedCdn && !!proxyUrl;
     const youtubeId = platform === 'youtube' ? extractYouTubeVideoId(url) : null;
     const proxyFailed = hasExtracted && videoError && platform === 'youtube' && !!youtubeId;
     const webviewEmbedFailed = hasExtracted && videoError && platform === 'webview' && !!detectEmbedPlatform(url);
@@ -174,10 +182,7 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
       );
     }
 
-    // Android: use proxy immediately — ExoPlayer's TLS fingerprint is often blocked by CDNs
-    // and hangs indefinitely instead of firing onError, making retry-based fallback unreliable.
-    // iOS: AVPlayer handles CDN URLs fine, use direct.
-    const avUri = (Platform.OS === 'android' && proxyUrl) ? proxyUrl : (directSource ?? url);
+    const avUri = (useProxyImmediately || (usingProxy && !!proxyUrl)) ? proxyUrl! : (directSource ?? url);
     const avHeaders: Record<string, string> = {
       'User-Agent': MOBILE_UA,
       ...httpHeaders,
@@ -195,7 +200,16 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
             }
             onPlaybackStatusUpdate?.(status);
           }}
-          onError={() => { setVideoError(true); }} />
+          onError={() => {
+            // For extracted CDN URLs (VK, Rutube): direct attempt failed → retry via proxy
+            if (isExtractedCdn && !usingProxy && proxyUrl) {
+              setUsingProxy(true);
+              setAvLoaded(false);
+              readyFiredRef.current = false;
+            } else {
+              setVideoError(true);
+            }
+          }} />
         {!avLoaded && (
           <View style={styles.bufferingOverlay} pointerEvents="none">
             <ActivityIndicator size="large" color={colors.primary} />
