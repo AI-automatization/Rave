@@ -67,6 +67,9 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const pendingSyncRef = useRef<{ currentTime: number; isPlaying: boolean } | null>(null);
   const pendingSyncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const webViewReadyRef = useRef(false);
+  // expo-av pendingSync — defer seekTo until video is loaded (fixes Android join sync)
+  const avReadyRef = useRef(false);
+  const pendingAVSyncRef = useRef<{ currentTime: number; isPlaying: boolean } | null>(null);
 
   const [showChat, setShowChat] = useState(false);
   const [showVoice, setShowVoice] = useState(false);
@@ -140,6 +143,12 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
         pendingSyncRef.current = null;
         pendingSyncTimeoutRef.current = null;
       }, 30_000);
+      return;
+    }
+
+    // expo-av not loaded yet — defer seek until onPlaybackStatusUpdate fires with isLoaded
+    if (!isWebViewModeRef.current && !avReadyRef.current) {
+      pendingAVSyncRef.current = { currentTime: syncState.currentTime, isPlaying: syncState.isPlaying };
       return;
     }
 
@@ -235,6 +244,22 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
 
   const onPlaybackStatusUpdate = useCallback((status: AVPlaybackStatus) => {
     if (!status.isLoaded) return;
+
+    // First time video is loaded — apply any deferred initial sync (viewer only)
+    if (!avReadyRef.current) {
+      avReadyRef.current = true;
+      if (!isOwner && pendingAVSyncRef.current) {
+        const { currentTime, isPlaying: pendingPlaying } = pendingAVSyncRef.current;
+        pendingAVSyncRef.current = null;
+        isSyncing.current = true;
+        playerRef.current?.seekTo(currentTime * 1000)
+          .then(() => pendingPlaying ? playerRef.current?.play() : playerRef.current?.pause())
+          .catch(() => {})
+          .finally(() => { setTimeout(() => { isSyncing.current = false; }, 400); });
+        return;
+      }
+    }
+
     if (!isSyncing.current) { setIsPlaying(status.isPlaying); intendedPlayingRef.current = status.isPlaying; }
     setVideoCurrentTime(status.positionMillis / 1000);
     if (status.durationMillis) setVideoDuration(status.durationMillis / 1000);
@@ -368,9 +393,14 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const iosWebmBlocked = !!(rawExtractedUrl && Platform.OS === 'ios' && /\.webm(\?|#|$)/i.test(rawExtractedUrl));
   const extractedVideoUrl = iosWebmBlocked ? undefined : rawExtractedUrl;
   const extractedVideoHeaders = extractedVideoUrl ? extractResult?.httpHeaders : undefined;
-  // Android proxy: stream CDN URL through our server to bypass ExoPlayer TLS/UA restrictions
-  const extractedVideoProxyUrl = (Platform.OS === 'android' && extractedVideoUrl && accessToken)
-    ? `${CONTENT_BASE_URL}/content/proxy/stream?url=${encodeURIComponent(extractedVideoUrl)}&token=${encodeURIComponent(accessToken)}`
+  // Android proxy: stream video through our server to bypass ExoPlayer TLS/UA restrictions.
+  // Works for both extracted CDN URLs and direct video files (.mp4/.m3u8/etc).
+  const platform = detectVideoPlatform(originalVideoUrl);
+  const androidPlayUrl = Platform.OS === 'android'
+    ? (extractedVideoUrl ?? (platform !== 'youtube' && platform !== 'webview' ? originalVideoUrl : undefined))
+    : undefined;
+  const extractedVideoProxyUrl = (androidPlayUrl && accessToken)
+    ? `${CONTENT_BASE_URL}/content/proxy/stream?url=${encodeURIComponent(androidPlayUrl)}&token=${encodeURIComponent(accessToken)}`
     : undefined;
   const isWebViewMode = !extractedVideoUrl && (iosWebmBlocked || ['youtube', 'webview'].includes(detectVideoPlatform(originalVideoUrl)) || extractFallback);
 
@@ -378,11 +408,13 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const isWebViewModeRef = useRef(false);
   isWebViewModeRef.current = isWebViewMode;
 
-  // T-E103: reset WebView ready state when video URL changes (new media → ad may play again)
+  // Reset ready flags when video URL changes (new media)
   useEffect(() => {
     webViewReadyRef.current = false;
     pendingSyncRef.current = null;
     if (pendingSyncTimeoutRef.current) { clearTimeout(pendingSyncTimeoutRef.current); pendingSyncTimeoutRef.current = null; }
+    avReadyRef.current = false;
+    pendingAVSyncRef.current = null;
   }, [room?.videoUrl]);
 
   // T-E103: cleanup pendingSync timeout on unmount
