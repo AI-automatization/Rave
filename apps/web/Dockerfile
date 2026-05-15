@@ -1,25 +1,23 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Copy root workspace manifest
+# Copy root workspace manifest (needed for workspace resolution)
 COPY package*.json ./
 COPY tsconfig.base.json ./
 
-# Copy package manifests for the workspaces we need
-COPY shared/package*.json ./shared/
+# Copy only the web app package manifest
 COPY apps/web/package*.json ./apps/web/
 
-# Install workspace deps (shared + web only)
-RUN npm ci --legacy-peer-deps --include-workspace-root -w @cinesync/shared -w web
+# Install web app deps (workspace-isolated, no shared build deps needed)
+RUN npm ci --legacy-peer-deps -w web
 
-# Copy source
-COPY shared/ ./shared/
+# Copy shared source (needed for @shared/* tsconfig path alias — type-only, stripped by SWC)
+COPY shared/src/ ./shared/src/
+
+# Copy web app source
 COPY apps/web/ ./apps/web/
 
-# Build shared types (needed by @shared/* tsconfig path)
-RUN npm run build --workspace=@cinesync/shared
-
-# Build Next.js (standalone output)
+# Build Next.js (standalone output); SWC strips @shared/* type-only imports at compile time
 WORKDIR /app/apps/web
 RUN npm run build
 
