@@ -1,6 +1,6 @@
 // CineSync Mobile — WatchPartyScreen
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Platform, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Platform, StyleSheet, Dimensions } from 'react-native';
 import { ReportRoomModal } from '@components/common/ReportRoomModal';
 import { ReportUserModal } from '@components/common/ReportUserModal';
 import { useRoute, RouteProp } from '@react-navigation/native';
@@ -20,8 +20,11 @@ import { ModalStackParamList } from '@app-types/index';
 import { useT } from '@i18n/index';
 import { useWatchPartyRoom } from '@hooks/useWatchPartyRoom';
 import { MembersStrip } from '@components/watchParty/MembersStrip';
+import { VideoProgressBar } from '@components/watchParty/VideoProgressBar';
 import { isDomainBlocked } from '@constants/blockedDomains';
 import { extractDomain } from '@utils/videoPlayer';
+
+const SCREEN_H = Dimensions.get('window').height;
 
 type RouteType = RouteProp<ModalStackParamList, 'WatchParty'>;
 
@@ -132,6 +135,79 @@ export function WatchPartyScreen() {
         onToggleFullscreen={handleToggleFullscreen}
         onRemoveEmoji={handleRemoveEmoji}
       />
+
+      {/* ── Fullscreen overlay (renders above absolute VideoSection) ── */}
+      {isFullscreen && (
+        <View style={s.fsOverlay} pointerEvents="box-none">
+
+          {/* Chat panel */}
+          {showChat && (
+            <View style={s.fsChatWrap}>
+              <ChatPanel messages={messages} currentUserId={userId} onSend={sendMessage} />
+            </View>
+          )}
+
+          {/* Voice chat */}
+          {showVoice && (
+            <VoiceChat
+              roomId={params.roomId}
+              currentUserId={userId}
+              visible={showVoice}
+              onClose={() => setShowVoice(false)}
+            />
+          )}
+
+          {/* Progress bar */}
+          {!videoIsLive && videoDuration > 0 && (
+            <View style={s.fsProgressWrap}>
+              <VideoProgressBar
+                currentTime={videoCurrentTime}
+                duration={videoDuration}
+                isOwner={isOwner}
+                isLive={videoIsLive}
+                onSeek={handleProgressSeek}
+              />
+            </View>
+          )}
+
+          {/* Bottom action bar */}
+          <View style={s.fsBar}>
+            <EmojiPickerBar onSelect={handleEmojiSelect} />
+            <View style={s.fsBarActions}>
+              <TouchableOpacity
+                style={[s.fsBarBtn, showChat && s.fsBarBtnChatActive]}
+                onPress={() => { setShowChat(v => !v); setShowVoice(false); }}
+                activeOpacity={0.8}
+              >
+                <Ionicons
+                  name={showChat ? 'chatbubble' : 'chatbubble-outline'}
+                  size={20}
+                  color={showChat ? '#7B72F8' : 'rgba(255,255,255,0.75)'}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[s.fsBarBtn, showVoice && s.fsBarBtnVoiceActive]}
+                onPress={() => { setShowVoice(v => !v); setShowChat(false); }}
+                activeOpacity={0.8}
+              >
+                <Ionicons
+                  name={showVoice ? 'mic' : 'mic-outline'}
+                  size={20}
+                  color={showVoice ? '#4ADE80' : 'rgba(255,255,255,0.75)'}
+                />
+              </TouchableOpacity>
+              {isOwner && (
+                <TouchableOpacity style={s.fsBarBtn} onPress={handleChangeMedia} activeOpacity={0.8}>
+                  <Ionicons name="add-circle-outline" size={20} color="rgba(255,255,255,0.75)" />
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity style={s.fsBarBtn} onPress={handleToggleFullscreen} activeOpacity={0.8}>
+                <Ionicons name="contract-outline" size={20} color="rgba(255,255,255,0.75)" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
 
       {!isFullscreen && (
         <>
@@ -490,5 +566,53 @@ const s = StyleSheet.create({
     zIndex: 20,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.07)',
+  },
+
+  // ── Fullscreen overlay ──────────────────────────────────────────
+  fsOverlay: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    justifyContent: 'flex-end',
+  },
+  fsChatWrap: {
+    height: Math.round(SCREEN_H * 0.38),
+    backgroundColor: '#0D0D1A',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.07)',
+  },
+  fsProgressWrap: {
+    backgroundColor: 'rgba(0,0,0,0.72)',
+    paddingVertical: 2,
+  },
+  fsBar: {
+    backgroundColor: 'rgba(8,8,18,0.95)',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.07)',
+    paddingTop: 8,
+    paddingBottom: Platform.OS === 'ios' ? 28 : 14,
+    gap: 6,
+  },
+  fsBarActions: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingBottom: 4,
+  },
+  fsBarBtn: {
+    width: 46, height: 46, borderRadius: 23,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+  },
+  fsBarBtnChatActive: {
+    backgroundColor: 'rgba(123,114,248,0.18)',
+    borderColor: 'rgba(123,114,248,0.55)',
+  },
+  fsBarBtnVoiceActive: {
+    backgroundColor: 'rgba(74,222,128,0.15)',
+    borderColor: 'rgba(74,222,128,0.50)',
   },
 });

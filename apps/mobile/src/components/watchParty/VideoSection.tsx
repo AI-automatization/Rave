@@ -218,8 +218,8 @@ export const VideoSection = React.memo(function VideoSection({
         </Animated.View>
       )}
 
-      {/* Bottom bar: progress */}
-      {showProgress && (
+      {/* Bottom bar: progress (hidden in fullscreen — rendered in WatchPartyScreen overlay) */}
+      {showProgress && !isFullscreen && (
         <Animated.View
           style={[s.bottomBar, { opacity: ctrlOpacity }]}
           pointerEvents={ctrlPointerEvents}
@@ -252,7 +252,7 @@ const s = StyleSheet.create({
     position: 'absolute',
     top: 0, left: 0, right: 0, bottom: 0,
     height: undefined,
-    zIndex: 100,
+    // render order handles stacking over other WatchPartyScreen elements
   },
 
   loadingBox: {
@@ -270,14 +270,14 @@ const s = StyleSheet.create({
   gradientTop: {
     position: 'absolute',
     top: 0, left: 0, right: 0,
-    height: 90,
-    backgroundColor: 'rgba(0,0,0,0.52)',
+    height: 56,
+    backgroundColor: 'rgba(0,0,0,0.48)',
   },
   gradientBottom: {
     position: 'absolute',
     bottom: 0, left: 0, right: 0,
-    height: 90,
-    backgroundColor: 'rgba(0,0,0,0.62)',
+    height: 56,
+    backgroundColor: 'rgba(0,0,0,0.55)',
   },
 
   topBar: {
