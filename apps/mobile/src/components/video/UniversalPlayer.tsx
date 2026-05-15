@@ -37,6 +37,7 @@ interface Props {
   extractedType?: 'mp4' | 'hls';
   isExtracting?: boolean;
   referer?: string;
+  httpHeaders?: Record<string, string>;
   mode?: 'extracted' | 'webview-session';
 }
 
@@ -70,7 +71,7 @@ function buildEmbedHtml(url: string, embed: EmbedPlatform): { html: string; base
 }
 
 export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
-  ({ url, isOwner, onPlay, onPause, onSeek, onPlaybackStatusUpdate, onProgress, onBuffering, extractedUrl, isExtracting, referer, mode }, ref) => {
+  ({ url, isOwner, onPlay, onPause, onSeek, onPlaybackStatusUpdate, onProgress, onBuffering, extractedUrl, isExtracting, referer, httpHeaders, mode }, ref) => {
     const videoRef = useRef<Video>(null);
     const webviewRef = useRef<WebViewPlayerRef>(null);
     const platform = detectVideoPlatform(url);
@@ -160,7 +161,14 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
       );
     }
 
-    const avSource = referer ? { uri: directSource, headers: { Referer: referer } } : { uri: directSource };
+    // Always send browser UA so Android ExoPlayer isn't blocked by CDN UA filters.
+    // Merge: MOBILE_UA base → backend http_headers (yt-dlp required headers) → Referer override.
+    const avHeaders: Record<string, string> = {
+      'User-Agent': MOBILE_UA,
+      ...httpHeaders,
+      ...(referer ? { Referer: referer } : {}),
+    };
+    const avSource = { uri: directSource ?? url, headers: avHeaders };
     return (
       <View style={styles.video}>
         <Video ref={videoRef} source={avSource} style={StyleSheet.absoluteFill} resizeMode={ResizeMode.CONTAIN}

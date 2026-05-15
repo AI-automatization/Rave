@@ -50,6 +50,8 @@ export interface VideoExtractResult {
   extractionMethod?: ExtractionMethod;
   // HLS proxy needed (CDN requires Referer/Origin on segments)
   proxyRequired?: boolean;
+  // HTTP headers required to access the video URL (from yt-dlp http_headers)
+  httpHeaders?: Record<string, string>;
   // Whether this result can be cached (tokenized short-lived URLs: false)
   cacheable?: boolean;
   // Episode list for series (Playerjs multi-episode format)

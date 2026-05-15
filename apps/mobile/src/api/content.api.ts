@@ -24,6 +24,7 @@ export interface VideoExtractResult {
   duration?: number;
   isLive?: boolean;
   useProxy?: boolean;
+  httpHeaders?: Record<string, string>;
   /** E68-5: Sifat variantlari — {label:'1080p', url} */
   qualities?: VideoQualityOption[];
   /** E68-5: Seriya/episode ro'yxati */

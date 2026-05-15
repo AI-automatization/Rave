@@ -364,6 +364,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const rawExtractedUrl = (!extractFallback && extractResult?.videoUrl) ? extractResult.videoUrl : undefined;
   const iosWebmBlocked = !!(rawExtractedUrl && Platform.OS === 'ios' && /\.webm(\?|#|$)/i.test(rawExtractedUrl));
   const extractedVideoUrl = iosWebmBlocked ? undefined : rawExtractedUrl;
+  const extractedVideoHeaders = extractedVideoUrl ? extractResult?.httpHeaders : undefined;
   const isWebViewMode = !extractedVideoUrl && (iosWebmBlocked || ['youtube', 'webview'].includes(detectVideoPlatform(originalVideoUrl)) || extractFallback);
 
   // T-E103: keep ref in sync for use inside effects without dependency issues
@@ -385,7 +386,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     isExtracting, extractResult, extractionError, showChat, showVoice, showInvite, isPlaying, isFullscreen,
     videoIsLive, videoCurrentTime, videoDuration, floatingEmojis, showQualityMenu, showEpisodeMenu,
     extractQualities, extractEpisodes, currentVideoUrl, bufferingUsers,
-    originalVideoUrl, extractedVideoUrl, isWebViewMode,
+    originalVideoUrl, extractedVideoUrl, extractedVideoHeaders, isWebViewMode,
     setShowChat, setShowVoice, setShowInvite, setShowQualityMenu, setShowEpisodeMenu, setVideoIsLive,
     sendMessage, sendEmoji,
     onPlaybackStatusUpdate, handleWebViewPlay, handleWebViewPause, handleWebViewSeek,

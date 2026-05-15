@@ -34,10 +34,12 @@ interface YtDlpJson {
     protocol?: string;
     format_note?: string;
     height?: number;
+    http_headers?: Record<string, string>;
   }>;
   extractor?: string;
   is_live?: boolean;
   protocol?: string;
+  http_headers?: Record<string, string>;
 }
 
 // ── YouTube cookie file ────────────────────────────────────────────────────────
@@ -101,10 +103,10 @@ function buildYouTubeExtractorArgs(): string {
 }
 
 // ── Format selection ───────────────────────────────────────────────────────────
-function pickBestUrl(data: YtDlpJson): { url: string; type: VideoType } | null {
+function pickBestUrl(data: YtDlpJson): { url: string; type: VideoType; headers?: Record<string, string> } | null {
   if (data.url) {
     const type: VideoType = /m3u8|hls/.test(data.protocol ?? '') ? 'hls' : 'mp4';
-    return { url: data.url, type };
+    return { url: data.url, type, headers: data.http_headers };
   }
   if (!data.formats?.length) return null;
 
@@ -119,7 +121,7 @@ function pickBestUrl(data: YtDlpJson): { url: string; type: VideoType } | null {
 
   const proto = capped.protocol ?? '';
   const type: VideoType = /m3u8|hls/.test(proto) || capped.ext === 'm3u8' ? 'hls' : 'mp4';
-  return { url: capped.url, type };
+  return { url: capped.url, type, headers: capped.http_headers ?? data.http_headers };
 }
 
 export async function ytDlpExtractor(
@@ -210,6 +212,7 @@ export async function ytDlpExtractor(
           type: best.type,
           duration: typeof data.duration === 'number' ? data.duration : undefined,
           isLive: data.is_live ?? false,
+          httpHeaders: best.headers,
         });
       } catch {
         resolve(null);
