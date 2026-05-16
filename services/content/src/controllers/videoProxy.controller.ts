@@ -85,7 +85,12 @@ export const videoProxyController = {
         return;
       }
 
-      const contentType = upstream.headers.get('Content-Type') ?? 'video/mp4';
+      // Normalise Content-Type: ExoPlayer needs a real video/* MIME type.
+      // Some CDNs return application/octet-stream — treat that as video/mp4.
+      const rawContentType = upstream.headers.get('Content-Type') ?? '';
+      const contentType = (rawContentType.startsWith('video/') || rawContentType === 'application/x-mpegURL')
+        ? rawContentType
+        : 'video/mp4';
       const contentLength = upstream.headers.get('Content-Length');
       const contentRange = upstream.headers.get('Content-Range');
       const acceptRanges = upstream.headers.get('Accept-Ranges');
