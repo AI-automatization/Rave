@@ -89,6 +89,17 @@ export class ErrorsController {
     }
   };
 
+  // GET /errors/trend?days=7
+  getTrend = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const days = Math.min(30, Math.max(1, Number(req.query.days) || 7));
+      const trend = await this.service.getErrorTrend(days);
+      res.json(apiResponse.success(trend));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   // DELETE /admin/errors/:id
   deleteIssue = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {

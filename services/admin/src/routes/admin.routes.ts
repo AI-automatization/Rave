@@ -30,6 +30,9 @@ export const createAdminRouter = (redis: Redis): Router => {
   // GET /admin/dashboard
   router.get('/dashboard', adminController.getDashboard);
 
+  // GET /admin/dashboard/activity
+  router.get('/dashboard/activity', adminController.getActivityFeed);
+
   // GET /admin/users
   router.get('/users', adminController.listUsers);
 

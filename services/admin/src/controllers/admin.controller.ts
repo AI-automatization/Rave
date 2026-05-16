@@ -423,5 +423,14 @@ export class AdminController {
       res.json(apiResponse.success(null, 'Restrictions updated'));
     } catch (error) { next(error); }
   };
+
+  // GET /admin/dashboard/activity
+  getActivityFeed = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 20));
+      const feed = await this.adminService.getActivityFeed(limit);
+      res.json(apiResponse.success(feed));
+    } catch (error) { next(error); }
+  };
 }
 

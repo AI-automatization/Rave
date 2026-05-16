@@ -15,6 +15,7 @@ export const createErrorsRouter = (): Router => {
   router.use(requireRole('admin', 'superadmin'));
 
   router.get('/stats', controller.getStats);
+  router.get('/trend', controller.getTrend);
   router.get('/', controller.listIssues);
   router.patch('/:id/status', controller.updateStatus);
   router.get('/:id/events', controller.getEvents);

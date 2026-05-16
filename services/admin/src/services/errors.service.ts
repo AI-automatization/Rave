@@ -209,4 +209,26 @@ export class ErrorsService {
       MobileEvent.deleteMany({ issueId: id }),
     ]);
   }
+
+  async getErrorTrend(days: number = 7): Promise<Array<{ date: string; count: number }>> {
+    const since = new Date();
+    since.setDate(since.getDate() - (days - 1));
+    since.setHours(0, 0, 0, 0);
+
+    const result = await MobileEvent.aggregate<{ _id: string; count: number }>([
+      { $match: { timestamp: { $gte: since } } },
+      { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$timestamp' } }, count: { $sum: 1 } } },
+      { $sort: { _id: 1 } },
+    ]);
+
+    const map = new Map(result.map((r) => [r._id, r.count]));
+    const trend: Array<{ date: string; count: number }> = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().slice(0, 10);
+      trend.push({ date: dateStr, count: map.get(dateStr) ?? 0 });
+    }
+    return trend;
+  }
 }

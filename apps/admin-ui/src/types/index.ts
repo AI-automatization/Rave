@@ -202,3 +202,18 @@ export interface Analytics {
   topMovies: Array<{ _id: string; title: string; viewCount: number }>;
   genreDistribution: Array<{ genre: string; count: number }>;
 }
+
+export type ActivityItemType = 'error' | 'admin_action' | 'report';
+
+export interface ActivityFeedItem {
+  id: string;
+  type: ActivityItemType;
+  title: string;
+  detail: string;
+  timestamp: string;
+}
+
+export interface ErrorTrendPoint {
+  date: string;
+  count: number;
+}

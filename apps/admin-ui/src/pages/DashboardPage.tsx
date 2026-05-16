@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import {
   Users, Film, Swords, Tv2, Activity,
-  AlertCircle, Zap, UserPlus, TrendingUp, Monitor,
+  AlertCircle, Zap, UserPlus, TrendingUp, Monitor, ShieldAlert, Settings,
 } from 'lucide-react';
 import { dashboardApi } from '../api/dashboard.api';
 import { errorsApi } from '../api/errors.api';
 import { StatCard } from '../components/ui/StatCard';
-import type { DashboardStats, Analytics } from '../types';
+import type { DashboardStats, Analytics, ActivityFeedItem } from '../types';
 import type { ErrorStats } from '../api/errors.api';
 
 const CHART_TOOLTIP_STYLE = {
@@ -65,6 +65,8 @@ export function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [errors, setErrors] = useState<ErrorStats | null>(null);
+  const [errorTrend, setErrorTrend] = useState<Array<{ date: string; count: number }>>([]);
+  const [activityFeed, setActivityFeed] = useState<ActivityFeedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [resetSig, setResetSig] = useState(0);
   const countdown = useCountdown(resetSig);
@@ -72,14 +74,18 @@ export function DashboardPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const [s, a, e] = await Promise.all([
+        const [s, a, e, trend, feed] = await Promise.all([
           dashboardApi.getStats(),
           dashboardApi.getAnalytics(),
           errorsApi.stats(),
+          errorsApi.trend(7),
+          dashboardApi.getActivityFeed(20),
         ]);
         setStats(s);
         setAnalytics(a);
         setErrors(e);
+        setErrorTrend(trend);
+        setActivityFeed(feed);
         setResetSig((n) => n + 1);
       } catch { /* silent */ }
       finally { setLoading(false); }
@@ -266,7 +272,74 @@ export function DashboardPage() {
             )}
           </SectionPanel>
 
-          {/* Genre distribution */}
+          {/* Error Trend — replaces By Genre */}
+          <SectionPanel
+            title="Error Trend"
+            sub="last 7 days"
+            icon={<TrendingUp size={13} className="text-red-400" />}
+          >
+            {errorTrend.length ? (
+              <ResponsiveContainer width="100%" height={220}>
+                <LineChart data={errorTrend} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#f87171" stopOpacity={0.4} />
+                      <stop offset="100%" stopColor="#f87171" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fill: '#4E4D6A', fontSize: 9 }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(v: string) => v.slice(5)}
+                  />
+                  <YAxis
+                    tick={{ fill: '#4E4D6A', fontSize: 10 }}
+                    axisLine={false}
+                    tickLine={false}
+                    allowDecimals={false}
+                  />
+                  <Tooltip {...CHART_TOOLTIP_STYLE} />
+                  <Line
+                    type="monotone"
+                    dataKey="count"
+                    stroke="#f87171"
+                    strokeWidth={2}
+                    dot={{ r: 3, fill: '#f87171', strokeWidth: 0 }}
+                    activeDot={{ r: 5 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="text-text-muted text-sm py-10 text-center">No data</p>
+            )}
+          </SectionPanel>
+        </div>
+      )}
+
+      {/* ── Activity Feed + Genre Chart ────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+        {/* Activity Feed */}
+        <SectionPanel
+          title="Activity Feed"
+          sub="last 48 hours"
+          icon={<Activity size={13} className="text-emerald-400" />}
+        >
+          {activityFeed.length === 0 ? (
+            <p className="text-text-muted text-sm py-10 text-center">No recent activity</p>
+          ) : (
+            <div className="flex flex-col gap-1.5 max-h-[280px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-white/[0.06]">
+              {activityFeed.map((item) => (
+                <ActivityFeedRow key={item.id} item={item} />
+              ))}
+            </div>
+          )}
+        </SectionPanel>
+
+        {/* Genre distribution */}
+        {analytics && (
           <SectionPanel
             title="By Genre"
             sub={`${analytics.genreDistribution?.length ?? 0} genres`}
@@ -305,8 +378,42 @@ export function DashboardPage() {
               <p className="text-text-muted text-sm py-10 text-center">No data</p>
             )}
           </SectionPanel>
-        </div>
-      )}
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Activity Feed Row ────────────────────────────────────────
+
+const ACTIVITY_CONFIG = {
+  error:        { icon: <AlertCircle size={12} />, color: 'text-red-400',     bg: 'bg-red-500/[0.1]' },
+  admin_action: { icon: <Settings size={12} />,    color: 'text-blue-400',    bg: 'bg-blue-500/[0.1]' },
+  report:       { icon: <ShieldAlert size={12} />, color: 'text-amber-400',   bg: 'bg-amber-500/[0.1]' },
+} as const;
+
+function ActivityFeedRow({ item }: { item: ActivityFeedItem }) {
+  const cfg = ACTIVITY_CONFIG[item.type];
+  const timeAgo = (() => {
+    const diff = Date.now() - new Date(item.timestamp).getTime();
+    const mins = Math.floor(diff / 60_000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    return `${Math.floor(hrs / 24)}d ago`;
+  })();
+
+  return (
+    <div className="flex items-start gap-2.5 px-3 py-2.5 rounded-xl hover:bg-white/[0.025] transition-colors">
+      <div className={`w-6 h-6 rounded-md ${cfg.bg} ${cfg.color} flex items-center justify-center shrink-0 mt-0.5`}>
+        {cfg.icon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[12px] font-medium text-white truncate">{item.title}</p>
+        <p className="text-[11px] text-text-muted truncate">{item.detail}</p>
+      </div>
+      <span className="text-[10px] text-text-dim shrink-0 mt-0.5">{timeAgo}</span>
     </div>
   );
 }

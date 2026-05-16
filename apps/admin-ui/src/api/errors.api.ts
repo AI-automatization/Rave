@@ -72,4 +72,9 @@ export const errorsApi = {
   deleteIssue: async (id: string): Promise<void> => {
     await apiClient.delete(`/errors/${id}`);
   },
+
+  trend: async (days = 7): Promise<Array<{ date: string; count: number }>> => {
+    const res = await apiClient.get<{ data: Array<{ date: string; count: number }> }>('/errors/trend', { params: { days } });
+    return res.data.data ?? [];
+  },
 };

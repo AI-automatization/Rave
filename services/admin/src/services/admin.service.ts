@@ -4,6 +4,9 @@ import { logger } from '@shared/utils/logger';
 import { BadRequestError } from '@shared/utils/errors';
 import { REDIS_KEYS } from '@shared/constants';
 import { Feedback } from '../models/feedback.model';
+import { MobileIssue } from '../models/mobileIssue.model';
+import { RoomReport } from '../models/roomReport.model';
+import { UserReport } from '../models/userReport.model';
 import { SupportConversation } from '../models/supportConversation.model';
 import { SupportMessage } from '../models/supportMessage.model';
 import { Appeal } from '../models/appeal.model';
@@ -494,5 +497,58 @@ export class AdminService {
       Feedback.deleteMany({ userId }),
     ]);
     logger.info('AdminService: deleted user data', { userId });
+  }
+
+  // ── Activity Feed ──────────────────────────────────────────
+
+  async getActivityFeed(limit: number = 20): Promise<Array<{
+    id: string;
+    type: 'error' | 'admin_action' | 'report';
+    title: string;
+    detail: string;
+    timestamp: string;
+  }>> {
+    const since = new Date(Date.now() - 48 * 60 * 60 * 1000);
+
+    const [recentErrors, recentAuditLogs, recentRoomReports, recentUserReports] = await Promise.all([
+      MobileIssue.find({ firstSeen: { $gte: since } }).sort({ firstSeen: -1 }).limit(limit).lean(),
+      AuditLog.find({ createdAt: { $gte: since } }).sort({ createdAt: -1 }).limit(limit).lean(),
+      RoomReport.find({ createdAt: { $gte: since } }).sort({ createdAt: -1 }).limit(limit).lean(),
+      UserReport.find({ createdAt: { $gte: since } }).sort({ createdAt: -1 }).limit(limit).lean(),
+    ]);
+
+    const items = [
+      ...recentErrors.map((i) => ({
+        id: String(i._id),
+        type: 'error' as const,
+        title: i.title,
+        detail: `${i.platform} · ${i.appVersion}`,
+        timestamp: (i.firstSeen as Date).toISOString(),
+      })),
+      ...recentAuditLogs.map((a) => ({
+        id: String(a._id),
+        type: 'admin_action' as const,
+        title: String(a.action),
+        detail: String(a.adminEmail),
+        timestamp: String(a.createdAt),
+      })),
+      ...recentRoomReports.map((r) => ({
+        id: String(r._id),
+        type: 'report' as const,
+        title: `Room report: ${String(r.reason)}`,
+        detail: `Room ${String(r.roomId)}`,
+        timestamp: String(r.createdAt),
+      })),
+      ...recentUserReports.map((r) => ({
+        id: String(r._id),
+        type: 'report' as const,
+        title: `User report: ${String(r.reason)}`,
+        detail: `User ${String(r.reportedUserId)}`,
+        timestamp: String(r.createdAt),
+      })),
+    ];
+
+    items.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    return items.slice(0, limit);
   }
 }

@@ -4,6 +4,16 @@
 
 ---
 
+### F-204 | T-S095 | Moderation: UserReport model + endpoint
+
+- **Bajaruvchi:** Saidazim (Claude sonnet yordamida)
+- **Bajarilgan:** 2026-05-16
+- **Model:** sonnet
+- **O'zgarishlar:** services/admin/src/models/userReport.model.ts, moderation.service.ts, moderation.controller.ts, moderation.routes.ts
+- **Xulosa:** UserReport schema (reportedUserId, reporterId, reason, status, reviewNote), ModerationService metodlari (createUserReport, listUserReports, reviewUserReport, pendingUserReportCount), ModerationController (reportUser POST, listUserReports GET, reviewUserReport PATCH), /moderation/counts da pendingUserReports. T-E118 bilan mos ishlaydi.
+
+---
+
 ### F-203 | T-S068 + T-S069 | Admin UI — UserDetailPage + ErrorsPage user info
 
 - **Bajaruvchi:** Saidazim (Claude sonnet yordamida)

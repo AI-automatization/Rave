@@ -73,24 +73,6 @@
 ---
 
 
-### T-S095 | P1 | [BACKEND] | Moderation: UserReport model + endpoint (жалоба на пользователя)
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Saidazim
-- **Yaratilgan:** 2026-05-11 17:30
-- **Holat:** ❌ Boshlanmagan
-- **Tavsiya model:** sonnet
-- **Model sababi:** yangi model + service metod + controller + route — 4 fayl, RoomReport bilan parallel struktura
-- **Sabab:** T-E118 uchun backend kerak — foydalanuvchilarga shikoyat qilish imkoniyati
-- **Qilish kerak:**
-  - [ ] `services/admin/src/models/userReport.model.ts` — `UserReport` schema (reportedUserId, reporterId, reason, comment, status, reviewedBy, reviewNote, reviewedAt)
-  - [ ] `ModerationService` — `createUserReport`, `listUserReports`, `reviewUserReport`, `pendingUserReportCount` metodlari
-  - [ ] `ModerationController` — `reportUser` (POST, JWT required), `listUserReports`, `reviewUserReport` (admin)
-  - [ ] `moderation.routes.ts` — `POST /internal/moderation/users/:userId/report` (verifyToken), admin routes
-  - [ ] Admin counts endpointiga `pendingUserReports` qo'shish
-- **Bog'liq:** T-E118 (mobile) bu bilan ishlaydi
-
----
 
 
 ### T-S070 | P1 | [ADMIN] | Admin UI — Dashboard redesign: activity feed + error trend chart | pending[Saidazim]
