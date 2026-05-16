@@ -370,6 +370,13 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     : undefined;
   const isWebViewMode = !extractedVideoUrl && (iosWebmBlocked || detectVideoPlatform(originalVideoUrl) === 'youtube' || extractFallback);
 
+  // Android + webview platforms (VK, Rutube, Twitch…): ExoPlayer's TLS fingerprint is blocked
+  // by these CDNs — proxy fetches via Node.js/Chrome UA which CDNs accept.
+  // Make proxy the PRIMARY URL so we skip the always-failing direct CDN attempt.
+  const isAndroidWebview = Platform.OS === 'android' && platform === 'webview';
+  const playerExtractedUrl = (isAndroidWebview && extractedVideoProxyUrl) ? extractedVideoProxyUrl : extractedVideoUrl;
+  const playerProxyUrl = isAndroidWebview ? undefined : extractedVideoProxyUrl;
+
   // Reset player ready state when video URL changes (new media)
   useEffect(() => {
     playerReadyRef.current = false;
@@ -396,7 +403,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     isExtracting, extractResult, extractionError, showChat, showVoice, showInvite, isPlaying, isFullscreen,
     videoIsLive, videoCurrentTime, videoDuration, floatingEmojis, showQualityMenu, showEpisodeMenu,
     extractQualities, extractEpisodes, currentVideoUrl, bufferingUsers,
-    originalVideoUrl, extractedVideoUrl, extractedVideoHeaders, extractedVideoProxyUrl, isWebViewMode,
+    originalVideoUrl, extractedVideoUrl: playerExtractedUrl, extractedVideoHeaders, extractedVideoProxyUrl: playerProxyUrl, isWebViewMode,
     setShowChat, setShowVoice, setShowInvite, setShowQualityMenu, setShowEpisodeMenu, setVideoIsLive,
     sendMessage, sendEmoji,
     onPlaybackStatusUpdate, handleWebViewPlay, handleWebViewPause, handleWebViewSeek,
