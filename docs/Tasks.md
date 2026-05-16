@@ -75,18 +75,6 @@
 
 
 
-### T-S070 | P1 | [ADMIN] | Admin UI — Dashboard redesign: activity feed + error trend chart | pending[Saidazim]
-
-- **Mas'ul:** pending[Saidazim]
-- **Yaratilgan:** 2026-04-24 23:08
-- **Holat:** ⏸️ Paused
-- **Sabab:** Dashboard faqat statistika ko'rsatadi, real-time hodisalar yo'q
-- **Qilish kerak:**
-  - [ ] Real-time activity feed (yangi xatolar, yangi foydalanuvchilar)
-  - [ ] Error trend chart (kunlik xatolar grafigi)
-  - [ ] Quick stats — bugungi yangi userlar, xatolar
-
----
 
 ### T-S071 | P2 | [ADMIN] | Admin UI — Global search Cmd+K | pending[Saidazim]
 

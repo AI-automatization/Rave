@@ -4,6 +4,16 @@
 
 ---
 
+### F-205 | T-S070 | Admin UI — Dashboard: activity feed + error trend chart
+
+- **Bajaruvchi:** Saidazim (Claude sonnet yordamida)
+- **Bajarilgan:** 2026-05-16
+- **Model:** sonnet
+- **O'zgarishlar:** errors.service.ts (getErrorTrend), admin.service.ts (getActivityFeed + model imports), errors.controller.ts + routes (GET /errors/trend), admin.controller.ts + routes (GET /admin/dashboard/activity), dashboard.api.ts, errors.api.ts, types/index.ts, DashboardPage.tsx
+- **Xulosa:** LineChart — 7 kunlik xatolar trendi. Activity feed — oxirgi 48 soat: yangi xatolar + admin harakatlari + shikoyatlar, icon + timeAgo bilan. tsc: CLEAN.
+
+---
+
 ### F-204 | T-S095 | Moderation: UserReport model + endpoint
 
 - **Bajaruvchi:** Saidazim (Claude sonnet yordamida)
