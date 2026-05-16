@@ -368,7 +368,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const extractedVideoProxyUrl = (androidPlayUrl && accessToken)
     ? `${CONTENT_BASE_URL}/content/proxy/stream?url=${encodeURIComponent(androidPlayUrl)}&token=${encodeURIComponent(accessToken)}${proxyHeadersParam}`
     : undefined;
-  const isWebViewMode = !extractedVideoUrl && (iosWebmBlocked || ['youtube', 'webview'].includes(detectVideoPlatform(originalVideoUrl)) || extractFallback);
+  const isWebViewMode = !extractedVideoUrl && (iosWebmBlocked || detectVideoPlatform(originalVideoUrl) === 'youtube' || extractFallback);
 
   // Reset player ready state when video URL changes (new media)
   useEffect(() => {
