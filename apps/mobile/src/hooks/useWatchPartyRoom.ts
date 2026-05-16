@@ -12,7 +12,7 @@ const CONTENT_BASE_URL = process.env.EXPO_PUBLIC_CONTENT_URL ?? '';
 import { useWatchPartyStore } from '@store/watchParty.store';
 import { watchPartyApi } from '@api/watchParty.api';
 import { disconnectSocket, getSocket, CLIENT_EVENTS } from '@socket/client';
-import { UniversalPlayerRef, detectVideoPlatform } from '@components/video/UniversalPlayer';
+import { UniversalPlayerRef, detectVideoPlatform, detectEmbedPlatform } from '@components/video/UniversalPlayer';
 import type { FloatingEmoji } from '@components/watchParty/VideoSection';
 import type { QualityOption } from '@components/watchParty/QualityMenu';
 import type { Episode } from '@components/watchParty/EpisodeMenu';
@@ -370,12 +370,15 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     : undefined;
   const isWebViewMode = !extractedVideoUrl && (iosWebmBlocked || detectVideoPlatform(originalVideoUrl) === 'youtube' || extractFallback);
 
-  // Android + webview platforms (VK, Rutube, Twitch…): ExoPlayer's TLS fingerprint is blocked
-  // by these CDNs — proxy fetches via Node.js/Chrome UA which CDNs accept.
-  // Make proxy the PRIMARY URL so we skip the always-failing direct CDN attempt.
-  const isAndroidWebview = Platform.OS === 'android' && platform === 'webview';
-  const playerExtractedUrl = (isAndroidWebview && extractedVideoProxyUrl) ? extractedVideoProxyUrl : extractedVideoUrl;
-  const playerProxyUrl = isAndroidWebview ? undefined : extractedVideoProxyUrl;
+  // Android + embeddable webview platforms (VK, Rutube, Twitch, Vimeo, Dailymotion):
+  // These CDNs block ExoPlayer via TLS fingerprint — proxy (Node.js/Chrome UA) is primary.
+  // Generic webview sites (kinogo, etc.) keep CDN-direct behaviour: their CDNs
+  // are standard (Cloudflare/Akamai) and ExoPlayer can reach them without issue.
+  const isAndroidEmbeddable = Platform.OS === 'android'
+    && platform === 'webview'
+    && !!detectEmbedPlatform(originalVideoUrl);
+  const playerExtractedUrl = (isAndroidEmbeddable && extractedVideoProxyUrl) ? extractedVideoProxyUrl : extractedVideoUrl;
+  const playerProxyUrl = isAndroidEmbeddable ? undefined : extractedVideoProxyUrl;
 
   // Reset player ready state when video URL changes (new media)
   useEffect(() => {

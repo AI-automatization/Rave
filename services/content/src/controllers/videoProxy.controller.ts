@@ -55,9 +55,14 @@ export const videoProxyController = {
         try { extraHeaders = JSON.parse(h) as Record<string, string>; } catch { /* ignore */ }
       }
       const upstreamHeaders: Record<string, string> = {
-        ...extraHeaders,           // yt-dlp headers first (Referer, Accept-Language, etc.)
-        'User-Agent': CHROME_UA,   // always override UA — Chrome fingerprint beats yt-dlp UA
+        ...extraHeaders,               // yt-dlp headers first (Referer, Origin, Accept-Language…)
+        'User-Agent': CHROME_UA,       // always override UA — Chrome fingerprint beats yt-dlp UA
         'Accept': '*/*',
+        'Accept-Encoding': 'identity', // prevent gzip/br — pipe raw bytes directly to ExoPlayer
+        'Accept-Language': extraHeaders['Accept-Language'] ?? 'en-US,en;q=0.9',
+        'Sec-Fetch-Dest': 'video',
+        'Sec-Fetch-Mode': 'no-cors',
+        'Sec-Fetch-Site': 'cross-site',
       };
 
       const rangeHeader = req.headers.range;
@@ -65,11 +70,17 @@ export const videoProxyController = {
 
       const upstream = await fetch(parsed.href, {
         headers: upstreamHeaders,
+        redirect: 'follow',
         signal: AbortSignal.timeout(30_000),
       });
 
       if (!upstream.ok && upstream.status !== 206) {
-        logger.warn('videoProxy: upstream error', { status: upstream.status, url: parsed.hostname });
+        logger.warn('videoProxy: upstream error', {
+          status: upstream.status,
+          host: parsed.hostname,
+          referer: extraHeaders['Referer'] ?? '—',
+          range: rangeHeader ?? '—',
+        });
         res.status(502).json({ success: false, message: `Upstream returned ${upstream.status}` });
         return;
       }
