@@ -4,6 +4,16 @@
 
 ---
 
+### F-206 | T-S071 | Admin UI — Global search Cmd+K (Users + Errors + Movies)
+
+- **Bajaruvchi:** Saidazim (Claude sonnet yordamida)
+- **Bajarilgan:** 2026-05-16
+- **Model:** sonnet
+- **O'zgarishlar:** apps/admin-ui/src/components/layout/Layout.tsx
+- **Xulosa:** GlobalSearch Cmd+K/Ctrl+K: users + errors (mavjud) + movies qidiruviga qo'shildi. Movie natijalar violet FILM badge bilan /movies ga o'tadi. tsc: CLEAN.
+
+---
+
 ### F-205 | T-S070 | Admin UI — Dashboard: activity feed + error trend chart
 
 - **Bajaruvchi:** Saidazim (Claude sonnet yordamida)

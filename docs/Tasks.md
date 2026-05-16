@@ -76,18 +76,6 @@
 
 
 
-### T-S071 | P2 | [ADMIN] | Admin UI — Global search Cmd+K | pending[Saidazim]
-
-- **Mas'ul:** pending[Saidazim]
-- **Yaratilgan:** 2026-04-24 23:08
-- **Holat:** ⏸️ Paused
-- **Sabab:** Foydalanuvchilarni, xatolarni, filmlarni tezda topish imkoni yo'q
-- **Qilish kerak:**
-  - [ ] Cmd+K / Ctrl+K shortcut → modal
-  - [ ] Users, Errors, Movies bo'yicha qidiruv
-  - [ ] Natijani bosish → tegishli sahifaga o'tish
-
----
 
 # 2 dasturchi: Saidazim (Backend) | Emirhan (Mobile + Web)
 
