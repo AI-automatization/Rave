@@ -104,7 +104,7 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
     const hasExtracted = !!extractedUrl;
     const youtubeId = platform === 'youtube' ? extractYouTubeVideoId(url) : null;
     const proxyFailed = hasExtracted && videoError && platform === 'youtube' && !!youtubeId;
-    const webviewEmbedFailed = !hasExtracted && videoError && platform === 'webview' && !!detectEmbedPlatform(url);
+    const webviewEmbedFailed = videoError && platform === 'webview' && !!detectEmbedPlatform(url);
     const useWebview = mode === 'webview-session' ||
       proxyFailed ||
       webviewEmbedFailed ||
