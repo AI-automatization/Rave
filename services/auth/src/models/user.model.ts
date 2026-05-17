@@ -3,12 +3,14 @@
 import { Schema, model, Document } from 'mongoose';
 import { UserRole } from '@shared/types';
 
+// Auth service owns: identity, credentials, sessions, email verification, OAuth IDs.
+// Canonical field ownership: avatar = stored here only for OAuth initial sync (user service is canonical);
+// bio, rank, fcmTokens = user service only; isBlocked = both (auth checks it to reject logins, user service owns writes).
 export interface IUserDocument extends Document {
   email: string;
   username: string;
   passwordHash: string;
-  avatar: string | null;
-  bio: string;
+  avatar: string | null; // OAuth initial sync — user service is canonical source
   role: UserRole;
   isEmailVerified: boolean;
   isBlocked: boolean;
@@ -19,7 +21,6 @@ export interface IUserDocument extends Document {
   emailVerifyTokenExpiry: Date | null;
   passwordResetToken: string | null;
   passwordResetTokenExpiry: Date | null;
-  fcmTokens: string[];
   lastLoginAt: Date | null;
   googleId: string | null;
   telegramId: string | null;
@@ -49,7 +50,6 @@ const userSchema = new Schema<IUserDocument>(
       select: false,
     },
     avatar: { type: String, default: null },
-    bio: { type: String, maxlength: 200, default: '' },
     role: {
       type: String,
       enum: ['user', 'operator', 'moderator', 'admin', 'superadmin'],
@@ -64,7 +64,6 @@ const userSchema = new Schema<IUserDocument>(
     emailVerifyTokenExpiry: { type: Date, default: null, select: false },
     passwordResetToken: { type: String, default: null, select: false },
     passwordResetTokenExpiry: { type: Date, default: null, select: false },
-    fcmTokens: [{ type: String }],
     lastLoginAt: { type: Date, default: null },
     googleId: { type: String, default: null, select: false },
     telegramId: { type: String, default: null, select: false },

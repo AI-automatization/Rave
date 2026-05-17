@@ -135,7 +135,7 @@ export interface IMovie {
 // ─────────────────────────────────────────────
 
 export type WatchPartyStatus = 'waiting' | 'playing' | 'paused' | 'ended';
-export type VideoPlatform = 'youtube' | 'direct' | 'webview';
+export type VideoPlatform = 'youtube' | 'vimeo' | 'twitch' | 'dailymotion' | 'direct' | 'webview' | 'other';
 
 export interface VideoItem {
   videoUrl: string;

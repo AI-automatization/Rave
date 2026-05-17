@@ -4,19 +4,58 @@ import Redis from 'ioredis';
 import { WatchPartyRoom, IWatchPartyRoomDocument } from '../models/watchPartyRoom.model';
 import { logger } from '@shared/utils/logger';
 import { NotFoundError, ForbiddenError, BadRequestError, UnauthorizedError } from '@shared/utils/errors';
-import { SyncState, VideoPlatform, VideoItem } from '@shared/types';
+import { SyncState, VideoPlatform } from '@shared/types';
 import { REDIS_KEYS, TTL, LIMITS, TIMING } from '@shared/constants';
 import { checkContent, extractDomain } from '../utils/contentFilter';
 import { getUserRestrictions } from '@shared/utils/serviceClient';
+import { WatchPartyPlaylistService } from './watchPartyPlaylist.service';
+import { WatchPartyMembersService } from './watchPartyMembers.service';
 
 const BLOCKED_DOMAINS_KEY = 'watch_party:blocked_domains';
-
 const SYNC_THRESHOLD_SECONDS = 2;
-// WebView sync ~150-400ms extra latency — 0.5s qo'shimcha tolerance
 const SYNC_THRESHOLD_WEBVIEW_SECONDS = 2.5;
 
 export class WatchPartyService {
-  constructor(private redis: Redis) {}
+  readonly playlist: WatchPartyPlaylistService;
+  readonly members: WatchPartyMembersService;
+
+  // Facade delegates — assigned in constructor after sub-services are ready
+  updateRoomMedia!: WatchPartyPlaylistService['updateRoomMedia'];
+  addToPlaylist!: WatchPartyPlaylistService['addToPlaylist'];
+  removeFromPlaylist!: WatchPartyPlaylistService['removeFromPlaylist'];
+  playNextFromPlaylist!: WatchPartyPlaylistService['playNextFromPlaylist'];
+  kickMember!: WatchPartyMembersService['kickMember'];
+  markBuffering!: WatchPartyMembersService['markBuffering'];
+  unmarkBuffering!: WatchPartyMembersService['unmarkBuffering'];
+  clearAllBuffering!: WatchPartyMembersService['clearAllBuffering'];
+  setMuteState!: WatchPartyMembersService['setMuteState'];
+  getMutedMembers!: WatchPartyMembersService['getMutedMembers'];
+  isMuted!: WatchPartyMembersService['isMuted'];
+  getRecentRooms!: WatchPartyMembersService['getRecentRooms'];
+  getPublicActiveRooms!: WatchPartyMembersService['getPublicActiveRooms'];
+  invalidatePublicRoomsCache!: WatchPartyMembersService['invalidatePublicRoomsCache'];
+
+  constructor(private redis: Redis) {
+    this.playlist = new WatchPartyPlaylistService(redis);
+    this.members = new WatchPartyMembersService(redis);
+
+    this.updateRoomMedia = this.playlist.updateRoomMedia.bind(this.playlist);
+    this.addToPlaylist = this.playlist.addToPlaylist.bind(this.playlist);
+    this.removeFromPlaylist = this.playlist.removeFromPlaylist.bind(this.playlist);
+    this.playNextFromPlaylist = this.playlist.playNextFromPlaylist.bind(this.playlist);
+    this.kickMember = this.members.kickMember.bind(this.members);
+    this.markBuffering = this.members.markBuffering.bind(this.members);
+    this.unmarkBuffering = this.members.unmarkBuffering.bind(this.members);
+    this.clearAllBuffering = this.members.clearAllBuffering.bind(this.members);
+    this.setMuteState = this.members.setMuteState.bind(this.members);
+    this.getMutedMembers = this.members.getMutedMembers.bind(this.members);
+    this.isMuted = this.members.isMuted.bind(this.members);
+    this.getRecentRooms = this.members.getRecentRooms.bind(this.members);
+    this.getPublicActiveRooms = this.members.getPublicActiveRooms.bind(this.members);
+    this.invalidatePublicRoomsCache = this.members.invalidatePublicRoomsCache.bind(this.members);
+  }
+
+  // ── Room Lifecycle ─────────────────────────────────────────────
 
   async createRoom(
     ownerId: string,
@@ -42,7 +81,6 @@ export class WatchPartyService {
       throw new BadRequestError('Either movieId or videoUrl is required');
     }
 
-    // Check user restrictions
     const restrictions = await getUserRestrictions(ownerId);
     if (restrictions.includes('create_room')) {
       throw new ForbiddenError('USER_RESTRICTED: You are not allowed to create rooms');
@@ -52,37 +90,31 @@ export class WatchPartyService {
       if (!/^https?:\/\//i.test(videoUrl)) {
         throw new BadRequestError('videoUrl must start with http:// or https://');
       }
-      // Reject internal/private network URLs (SSRF prevention)
       const PRIVATE_URL = /^https?:\/\/(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/i;
       if (PRIVATE_URL.test(videoUrl)) {
         throw new BadRequestError('videoUrl points to a private or internal address');
       }
-      // Reject IP-locked CDN URLs — googlevideo.com URLs are tied to the extraction server
-      // and cannot be played on mobile clients. Store the original platform URL instead.
+      // IP-locked CDN URLs cannot be played on mobile clients — store original platform URL
       if (/googlevideo\.com/i.test(videoUrl)) {
         throw new BadRequestError('IP-locked CDN URLs cannot be stored. Use the original video URL.');
       }
     }
 
-    // Check content and extract domain
     const title = options.videoTitle ?? '';
     const url = options.videoUrl ?? '';
     const domain = extractDomain(url);
     const filterResult = checkContent(`${title} ${url}`);
 
-    // Block critical content (CSAM etc.) immediately
     if (filterResult.severity === 'critical') {
       throw new ForbiddenError('Content not allowed on this platform');
     }
 
-    // Check if domain is in admin-blocked list (Redis set, no inter-service HTTP)
     if (domain && (await this.redis.sismember(BLOCKED_DOMAINS_KEY, domain)) === 1) {
       throw new ForbiddenError('Domain is blocked by platform policy');
     }
 
-    const inviteCode = crypto.randomBytes(3).toString('hex').toUpperCase(); // 6 chars
+    const inviteCode = crypto.randomBytes(3).toString('hex').toUpperCase();
 
-    // Hash password only for private rooms with a password set
     let passwordHash: string | null = null;
     if (isPrivate && password) {
       passwordHash = await bcrypt.hash(password, 10);
@@ -107,8 +139,6 @@ export class WatchPartyService {
       domain:           domain ?? null,
     });
 
-    // domain is already persisted in the room document — no inter-service call needed
-
     await this.cacheRoomState(room._id.toString(), {
       currentTime: startTime,
       isPlaying: false,
@@ -124,22 +154,14 @@ export class WatchPartyService {
   async joinRoom(userId: string, inviteCode: string, password?: string): Promise<IWatchPartyRoomDocument> {
     const room = await WatchPartyRoom.findOne({ inviteCode, status: { $ne: 'ended' } });
     if (!room) throw new NotFoundError('Room not found or has ended');
+    if (room.members.includes(userId)) return room;
 
-    if (room.members.includes(userId)) return room; // Already member
-
-    // Private room: verify password
     if (room.isPrivate && room.password) {
-      if (!password) {
-        throw new UnauthorizedError('password_required');
-      }
+      if (!password) throw new UnauthorizedError('password_required');
       const ok = await bcrypt.compare(password, room.password);
-      if (!ok) {
-        throw new ForbiddenError('Noto\'g\'ri parol');
-      }
+      if (!ok) throw new ForbiddenError('Noto\'g\'ri parol');
     }
 
-    // Atomic push: only succeeds if members.length < maxMembers at the DB level
-    // This prevents TOCTOU race where two users both pass the length check and both get added
     const updated = await WatchPartyRoom.findOneAndUpdate(
       {
         _id: room._id,
@@ -155,47 +177,38 @@ export class WatchPartyService {
     );
 
     if (!updated) {
-      // Re-check to give accurate error message
       const rechk = await WatchPartyRoom.findById(room._id).select('members maxMembers status');
       if (!rechk || rechk.status === 'ended') throw new NotFoundError('Room not found or has ended');
       if ((rechk.members as string[]).includes(userId)) return rechk as IWatchPartyRoomDocument;
       throw new BadRequestError('Room is full');
     }
 
-    void this.invalidateRecentRoomsCache([userId]);
+    void this.members.invalidateRecentRoomsCache([userId]);
     void this.invalidatePublicRoomsCache();
     logger.info('User joined watch party', { roomId: room._id, userId });
     return updated;
   }
 
-  async leaveRoom(
-    userId: string,
-    roomId: string,
-  ): Promise<{ closed: boolean; newOwnerId?: string }> {
+  async leaveRoom(userId: string, roomId: string): Promise<{ closed: boolean; newOwnerId?: string }> {
     const room = await WatchPartyRoom.findById(roomId);
     if (!room) return { closed: false };
 
     if (room.ownerId === userId) {
       const remainingMembers = room.members.filter((m) => m !== userId);
-
       if (remainingMembers.length === 0) {
         await WatchPartyRoom.deleteOne({ _id: roomId });
         await this.redis.del(REDIS_KEYS.watchPartyRoom(roomId));
         logger.info('Watch party room deleted (no members)', { roomId });
         return { closed: true };
       }
-
       const newOwnerId = remainingMembers[0];
-      await WatchPartyRoom.updateOne(
-        { _id: roomId },
-        { ownerId: newOwnerId, members: remainingMembers },
-      );
+      await WatchPartyRoom.updateOne({ _id: roomId }, { ownerId: newOwnerId, members: remainingMembers });
       logger.info('Watch party ownership transferred', { roomId, from: userId, to: newOwnerId });
       return { closed: false, newOwnerId };
     }
 
     await WatchPartyRoom.updateOne({ _id: roomId }, { $pull: { members: userId } });
-    void this.invalidateRecentRoomsCache([userId]);
+    void this.members.invalidateRecentRoomsCache([userId]);
     void this.invalidatePublicRoomsCache();
     logger.info('User left watch party', { roomId, userId });
     return { closed: false };
@@ -207,33 +220,28 @@ export class WatchPartyService {
     return room;
   }
 
-  /** List all active rooms inactive <10 min, sorted by member count (descending) */
   async getRooms(limit = 50): Promise<Array<IWatchPartyRoomDocument & { memberCount: number }>> {
-    const cutoff = new Date(Date.now() - TIMING.ROOM_INACTIVE_MINUTES * 60 * 1000); // 10 minutes ago
+    const cutoff = new Date(Date.now() - TIMING.ROOM_INACTIVE_MINUTES * 60 * 1000);
     const rooms = await WatchPartyRoom.find({
       status: { $ne: 'ended' },
       lastActivityAt: { $gt: cutoff },
     })
       .sort({ createdAt: -1 })
-      .limit(limit * 3) // fetch more then sort in JS by memberCount
+      .limit(limit * 3)
       .lean();
 
     const sorted = rooms
       .map((r) => ({ ...r, memberCount: r.members.length }))
       .sort((a, b) => b.memberCount - a.memberCount)
       .slice(0, limit)
-      // Remove password hash even from lean results
       .map(({ password: _p, ...rest }) => rest as typeof rest & { memberCount: number });
 
     return sorted as unknown as Array<IWatchPartyRoomDocument & { memberCount: number }>;
   }
 
-  async syncState(
-    roomId: string,
-    ownerId: string,
-    currentTime: number,
-    isPlaying: boolean,
-  ): Promise<SyncState> {
+  // ── Sync ──────────────────────────────────────────────────────
+
+  async syncState(roomId: string, ownerId: string, currentTime: number, isPlaying: boolean): Promise<SyncState> {
     const now = Date.now();
     const syncState: SyncState = {
       currentTime,
@@ -242,20 +250,16 @@ export class WatchPartyService {
       updatedBy: ownerId,
       scheduledAt: now + TIMING.SYNC_DRIFT_WINDOW_MS,
     };
-
     await this.cacheRoomState(roomId, syncState);
-
     await WatchPartyRoom.updateOne(
       { _id: roomId },
       { currentTime, isPlaying, status: isPlaying ? 'playing' : 'paused', lastActivityAt: new Date() },
     );
-
     return syncState;
   }
 
   async getSyncState(roomId: string): Promise<SyncState | null> {
-    const key = REDIS_KEYS.watchPartyRoom(roomId);
-    const cached = await this.redis.get(key);
+    const cached = await this.redis.get(REDIS_KEYS.watchPartyRoom(roomId));
     return cached ? JSON.parse(cached) as SyncState : null;
   }
 
@@ -265,46 +269,33 @@ export class WatchPartyService {
   }
 
   private async cacheRoomState(roomId: string, state: SyncState): Promise<void> {
-    const key = REDIS_KEYS.watchPartyRoom(roomId);
-    await this.redis.set(key, JSON.stringify(state), 'EX', TTL.WATCH_PARTY_ROOM);
+    await this.redis.set(REDIS_KEYS.watchPartyRoom(roomId), JSON.stringify(state), 'EX', TTL.WATCH_PARTY_ROOM);
   }
 
-  /** Update lastActivityAt — call on any meaningful event (join, play, pause, seek) */
+  // ── Lifecycle helpers ──────────────────────────────────────────
+
   async updateActivity(roomId: string): Promise<void> {
     await WatchPartyRoom.updateOne({ _id: roomId }, { lastActivityAt: new Date() });
   }
 
-  /** Mark rooms inactive for more than `thresholdMinutes` as 'ended'. Returns closed room IDs. */
   async closeInactiveRooms(thresholdMinutes = 5): Promise<string[]> {
     const cutoff = new Date(Date.now() - thresholdMinutes * 60 * 1000);
-
     const stale = await WatchPartyRoom.find({
       status: { $in: ['waiting', 'playing', 'paused'] },
       lastActivityAt: { $lt: cutoff },
     }).select('_id');
 
     if (stale.length === 0) return [];
-
     const ids = stale.map((r) => r._id.toString());
-
     await WatchPartyRoom.updateMany({ _id: { $in: ids } }, { status: 'ended' });
-
-    // Remove Redis cache for each closed room
-    await Promise.all(
-      ids.map((id) => this.redis.del(REDIS_KEYS.watchPartyRoom(id))),
-    );
-
+    await Promise.all(ids.map((id) => this.redis.del(REDIS_KEYS.watchPartyRoom(id))));
     logger.info('Closed inactive watch party rooms', { count: ids.length, roomIds: ids });
     return ids;
   }
 
-  /** Permanently delete rooms that have been 'ended' for longer than `olderThanMinutes`. */
   async purgeEndedRooms(olderThanMinutes = 60): Promise<void> {
     const cutoff = new Date(Date.now() - olderThanMinutes * 60 * 1000);
-    const result = await WatchPartyRoom.deleteMany({
-      status: 'ended',
-      updatedAt: { $lt: cutoff },
-    });
+    const result = await WatchPartyRoom.deleteMany({ status: 'ended', updatedAt: { $lt: cutoff } });
     if (result.deletedCount > 0) {
       logger.info('Purged old ended watch party rooms', { count: result.deletedCount });
     }
@@ -314,98 +305,20 @@ export class WatchPartyService {
     const room = await WatchPartyRoom.findById(roomId);
     if (!room) throw new NotFoundError('Room not found');
     if (room.ownerId !== ownerId) throw new ForbiddenError('Only the room owner can close this room');
-
     await WatchPartyRoom.updateOne({ _id: roomId }, { status: 'ended' });
     await this.redis.del(REDIS_KEYS.watchPartyRoom(roomId));
     void this.invalidatePublicRoomsCache();
     logger.info('Watch party room closed by owner', { roomId, ownerId });
   }
 
-  // Called by inactivity auto-close — no owner check needed
   async closeRoomBySystem(roomId: string): Promise<void> {
     const room = await WatchPartyRoom.findById(roomId);
-    if (!room || room.status === 'ended') return; // already closed
+    if (!room || room.status === 'ended') return;
     await WatchPartyRoom.updateOne({ _id: roomId }, { status: 'ended' });
     await this.redis.del(REDIS_KEYS.watchPartyRoom(roomId));
     logger.info('Watch party room auto-closed by system', { roomId });
   }
 
-  /**
-   * Owner xona mediasini almashtiradi.
-   * currentTime → 0, isPlaying → false, status → 'waiting' ga reset qilinadi.
-   * Redis sync state ham yangilanadi — yangi media noldan boshlanadi.
-   */
-  async updateRoomMedia(
-    ownerId: string,
-    roomId: string,
-    media: {
-      videoUrl: string;
-      videoTitle?: string | null;
-      videoPlatform?: VideoPlatform | null;
-    },
-  ): Promise<IWatchPartyRoomDocument> {
-    if (!/^https?:\/\//i.test(media.videoUrl)) {
-      throw new BadRequestError('videoUrl must start with http:// or https://');
-    }
-    if (/googlevideo\.com/i.test(media.videoUrl)) {
-      throw new BadRequestError('IP-locked CDN URLs cannot be stored. Use the original video URL.');
-    }
-
-    const domain = extractDomain(media.videoUrl);
-    if (domain && (await this.redis.sismember(BLOCKED_DOMAINS_KEY, domain)) === 1) {
-      throw new ForbiddenError('Domain is blocked by platform policy');
-    }
-
-    // Atomic ownership check + update: eliminates TOCTOU between findById and updateOne
-    const updated = await WatchPartyRoom.findOneAndUpdate(
-      { _id: roomId, ownerId },
-      {
-        $set: {
-          videoUrl:       media.videoUrl,
-          videoTitle:     media.videoTitle   ?? null,
-          videoPlatform:  media.videoPlatform ?? null,
-          videoThumbnail: null,
-          currentTime:    0,
-          isPlaying:      false,
-          status:         'waiting',
-          lastActivityAt: new Date(),
-        },
-      },
-      { new: true },
-    );
-
-    if (!updated) {
-      const exists = await WatchPartyRoom.exists({ _id: roomId });
-      if (!exists) throw new NotFoundError('Room not found');
-      throw new ForbiddenError('Only the room owner can change media');
-    }
-
-    // Reset Redis sync state — yangi media noldan boshlanadi
-    await this.cacheRoomState(roomId, {
-      currentTime: 0,
-      isPlaying: false,
-      serverTimestamp: Date.now(),
-      updatedBy: ownerId,
-    });
-
-    logger.info('Watch party media updated', { roomId, ownerId, videoUrl: media.videoUrl });
-    return updated;
-  }
-
-  async kickMember(ownerId: string, roomId: string, targetUserId: string): Promise<void> {
-    // Atomic ownership check + kick: eliminates TOCTOU between findById and updateOne
-    const result = await WatchPartyRoom.updateOne(
-      { _id: roomId, ownerId },
-      { $pull: { members: targetUserId } },
-    );
-    if (result.matchedCount === 0) {
-      const exists = await WatchPartyRoom.exists({ _id: roomId });
-      if (!exists) throw new NotFoundError('Room not found');
-      throw new ForbiddenError('Only the room owner can kick members');
-    }
-  }
-
-  // Update currentTime in Redis + MongoDB without creating a full SyncState (used by heartbeat)
   async updateCurrentTime(roomId: string, currentTime: number): Promise<void> {
     const existing = await this.getSyncState(roomId);
     if (existing) {
@@ -414,219 +327,11 @@ export class WatchPartyService {
     await WatchPartyRoom.updateOne({ _id: roomId }, { currentTime, lastActivityAt: new Date() });
   }
 
-  // Mark user as recently joined (30s grace window — join-buffer won't pause the room)
   async trackJoin(roomId: string, userId: string): Promise<void> {
     await this.redis.set(`party:joining:${roomId}:${userId}`, '1', 'EX', 30);
   }
 
-  // Returns true if user joined less than 30s ago
   async isRecentJoiner(roomId: string, userId: string): Promise<boolean> {
     return (await this.redis.exists(`party:joining:${roomId}:${userId}`)) === 1;
-  }
-
-  // Returns new buffering count — if 1, caller should pause the room
-  async markBuffering(roomId: string, userId: string): Promise<number> {
-    const key = REDIS_KEYS.bufferingUsers(roomId);
-    await this.redis.sadd(key, userId);
-    await this.redis.expire(key, 60); // auto-clear after 60s in case of missed BUFFER_END
-    return this.redis.scard(key);
-  }
-
-  // Returns remaining count — if 0, caller should resume the room
-  async unmarkBuffering(roomId: string, userId: string): Promise<number> {
-    const key = REDIS_KEYS.bufferingUsers(roomId);
-    await this.redis.srem(key, userId);
-    return this.redis.scard(key);
-  }
-
-  async clearAllBuffering(roomId: string): Promise<void> {
-    await this.redis.del(REDIS_KEYS.bufferingUsers(roomId));
-  }
-
-  async setMuteState(roomId: string, userId: string, isMuted: boolean): Promise<void> {
-    const key = `watch_party:muted:${roomId}`;
-    if (isMuted) {
-      await this.redis.sadd(key, userId);
-      await this.redis.expire(key, TTL.WATCH_PARTY_ROOM);
-    } else {
-      await this.redis.srem(key, userId);
-    }
-  }
-
-  async getMutedMembers(roomId: string): Promise<string[]> {
-    const key = `watch_party:muted:${roomId}`;
-    return this.redis.smembers(key);
-  }
-
-  async isMuted(roomId: string, userId: string): Promise<boolean> {
-    const key = `watch_party:muted:${roomId}`;
-    const result = await this.redis.sismember(key, userId);
-    return result === 1;
-  }
-
-  // ── T-S060: Playlist ────────────────────────────────────────────
-
-  private readonly PRIVATE_URL = /^https?:\/\/(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/i;
-  private readonly MAX_PLAYLIST = 50;
-
-  async addToPlaylist(
-    ownerId: string,
-    roomId: string,
-    item: { videoUrl: string; videoTitle?: string | null; videoPlatform?: VideoPlatform | null },
-  ): Promise<IWatchPartyRoomDocument> {
-    if (!/^https?:\/\//i.test(item.videoUrl)) {
-      throw new BadRequestError('videoUrl must start with http:// or https://');
-    }
-    if (this.PRIVATE_URL.test(item.videoUrl)) {
-      throw new BadRequestError('videoUrl points to a private or internal address');
-    }
-    if (/googlevideo\.com/i.test(item.videoUrl)) {
-      throw new BadRequestError('IP-locked CDN URLs cannot be stored. Use the original video URL.');
-    }
-
-    const result = await WatchPartyRoom.findOneAndUpdate(
-      {
-        _id: roomId,
-        ownerId,
-        status: { $ne: 'ended' },
-        $expr: { $lt: [{ $size: '$playlist' }, this.MAX_PLAYLIST] },
-      },
-      {
-        $push: {
-          playlist: {
-            videoUrl:      item.videoUrl,
-            videoTitle:    item.videoTitle ?? null,
-            videoPlatform: item.videoPlatform ?? null,
-            addedBy:       ownerId,
-            addedAt:       new Date(),
-          },
-        },
-        $set: { lastActivityAt: new Date() },
-      },
-      { new: true },
-    );
-
-    if (!result) {
-      const exists = await WatchPartyRoom.exists({ _id: roomId });
-      if (!exists) throw new NotFoundError('Room not found');
-      const room = await WatchPartyRoom.findById(roomId).select('playlist');
-      if (room && room.playlist.length >= this.MAX_PLAYLIST) {
-        throw new BadRequestError(`Playlist limit is ${this.MAX_PLAYLIST} items`);
-      }
-      throw new ForbiddenError('Only the room owner can manage the playlist');
-    }
-
-    logger.info('Playlist item added', { roomId, ownerId });
-    return result;
-  }
-
-  async removeFromPlaylist(ownerId: string, roomId: string, index: number): Promise<IWatchPartyRoomDocument> {
-    const room = await WatchPartyRoom.findOne({ _id: roomId, ownerId, status: { $ne: 'ended' } });
-    if (!room) {
-      const exists = await WatchPartyRoom.exists({ _id: roomId });
-      if (!exists) throw new NotFoundError('Room not found');
-      throw new ForbiddenError('Only the room owner can manage the playlist');
-    }
-    if (index < 0 || index >= room.playlist.length) {
-      throw new BadRequestError('Invalid playlist index');
-    }
-
-    room.playlist.splice(index, 1);
-    room.lastActivityAt = new Date();
-    await room.save();
-
-    logger.info('Playlist item removed', { roomId, ownerId, index });
-    return room;
-  }
-
-  // Advances to next item: sets room videoUrl/videoTitle/videoPlatform to playlist[0], removes it from queue
-  async playNextFromPlaylist(ownerId: string, roomId: string): Promise<IWatchPartyRoomDocument> {
-    const room = await WatchPartyRoom.findOne({ _id: roomId, ownerId, status: { $ne: 'ended' } });
-    if (!room) {
-      const exists = await WatchPartyRoom.exists({ _id: roomId });
-      if (!exists) throw new NotFoundError('Room not found');
-      throw new ForbiddenError('Only the room owner can advance the playlist');
-    }
-    if (room.playlist.length === 0) {
-      throw new BadRequestError('Playlist is empty');
-    }
-
-    const next = room.playlist[0] as VideoItem;
-    room.playlist.splice(0, 1);
-    room.videoUrl      = next.videoUrl;
-    room.videoTitle    = next.videoTitle;
-    room.videoPlatform = next.videoPlatform;
-    room.currentTime   = 0;
-    room.isPlaying     = false;
-    room.status        = 'waiting';
-    room.lastActivityAt = new Date();
-    await room.save();
-
-    await this.cacheRoomState(roomId, {
-      currentTime: 0,
-      isPlaying: false,
-      serverTimestamp: Date.now(),
-      updatedBy: ownerId,
-    });
-
-    logger.info('Playlist advanced to next item', { roomId, ownerId, nextUrl: next.videoUrl });
-    return room;
-  }
-
-  // ── T-S061: Recent rooms ────────────────────────────────────────
-
-  async getRecentRooms(userId: string, limit = 10): Promise<IWatchPartyRoomDocument[]> {
-    const cacheKey = REDIS_KEYS.recentRooms(userId);
-    const cached = await this.redis.get(cacheKey);
-    if (cached) {
-      return JSON.parse(cached) as IWatchPartyRoomDocument[];
-    }
-
-    const rooms = await WatchPartyRoom.find({ members: userId })
-      .sort({ lastActivityAt: -1 })
-      .limit(limit)
-      .select('-password')
-      .lean();
-
-    await this.redis.set(cacheKey, JSON.stringify(rooms), 'EX', 5 * 60); // 5 min TTL
-    return rooms as unknown as IWatchPartyRoomDocument[];
-  }
-
-  private async invalidateRecentRoomsCache(userIds: string[]): Promise<void> {
-    if (userIds.length === 0) return;
-    await Promise.all(userIds.map((id) => this.redis.del(REDIS_KEYS.recentRooms(id))));
-  }
-
-  // ── T-S062: Public active rooms ────────────────────────────────
-
-  async getPublicActiveRooms(limit = 50): Promise<Array<IWatchPartyRoomDocument & { memberCount: number }>> {
-    const cacheKey = REDIS_KEYS.publicRoomsCache();
-    const cached = await this.redis.get(cacheKey);
-    if (cached) {
-      return JSON.parse(cached) as Array<IWatchPartyRoomDocument & { memberCount: number }>;
-    }
-
-    const cutoff = new Date(Date.now() - TIMING.ROOM_INACTIVE_MINUTES * 60 * 1000);
-    const rooms = await WatchPartyRoom.find({
-      isPrivate: false,
-      status: { $in: ['waiting', 'playing', 'paused'] },
-      lastActivityAt: { $gt: cutoff },
-    })
-      .select('-password')
-      .sort({ lastActivityAt: -1 })
-      .limit(limit * 2)
-      .lean();
-
-    const sorted = rooms
-      .map((r) => ({ ...r, memberCount: r.members.length }))
-      .sort((a, b) => b.memberCount - a.memberCount)
-      .slice(0, limit);
-
-    await this.redis.set(cacheKey, JSON.stringify(sorted), 'EX', 30); // 30s TTL
-    return sorted as unknown as Array<IWatchPartyRoomDocument & { memberCount: number }>;
-  }
-
-  async invalidatePublicRoomsCache(): Promise<void> {
-    await this.redis.del(REDIS_KEYS.publicRoomsCache());
   }
 }

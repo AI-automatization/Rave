@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import passport from 'passport';
 import { AuthController } from '../controllers/auth.controller';
+import { OAuthController } from '../controllers/oauth.controller';
 import { AuthService } from '../services/auth.service';
 import { authRateLimiter, initAdminRateLimiter, refreshRateLimiter, pollRateLimiter } from '@shared/middleware/rateLimiter.middleware';
 import { verifyToken, requireNotBlocked } from '@shared/middleware/auth.middleware';
@@ -22,6 +23,7 @@ export const createAuthRouter = (redis: Redis): Router => {
   const router = Router();
   const authService = new AuthService(redis);
   const authController = new AuthController(authService);
+  const oauthController = new OAuthController(authService);
 
   // POST /auth/register — OTP yuborish
   router.post('/register', authRateLimiter, validate(registerSchema), authController.initiateRegister);
@@ -67,28 +69,28 @@ export const createAuthRouter = (redis: Redis): Router => {
   router.get('/google/callback', (req, res, next) => {
     const state = req.query.state as string | undefined;
     if (state?.startsWith('m:')) {
-      authController.googleMobileCallback(req, res, next);
+      oauthController.googleMobileCallback(req, res, next);
       return;
     }
     googlePassportCallback(req, res, next);
-  }, authController.googleCallback);
+  }, oauthController.googleCallback);
   // POST /auth/google/token — Mobile: idToken → accessToken + refreshToken
-  router.post('/google/token', authRateLimiter, validate(googleIdTokenSchema), authController.googleNativeToken);
+  router.post('/google/token', authRateLimiter, validate(googleIdTokenSchema), oauthController.googleNativeToken);
 
   // POST /auth/google/exchange — temp code → tokens (one-time, 2 min TTL)
-  router.post('/google/exchange', authRateLimiter, authController.googleExchange);
+  router.post('/google/exchange', authRateLimiter, oauthController.googleExchange);
 
   // Mobile polling flow (works in Expo Go without a build)
-  router.post('/google/init', authRateLimiter, authController.googleMobileInit);
-  router.get('/google/mobile', authController.googleMobileRedirect);
-  router.get('/google/poll', pollRateLimiter, authController.googleMobilePoll);
+  router.post('/google/init', authRateLimiter, oauthController.googleMobileInit);
+  router.get('/google/mobile', oauthController.googleMobileRedirect);
+  router.get('/google/poll', pollRateLimiter, oauthController.googleMobilePoll);
 
   // Telegram auth (mobile)
-  router.post('/telegram/login', authRateLimiter, authController.telegramLogin);   // hash verify → JWT
-  router.post('/telegram/init', authRateLimiter, authController.telegramInit);     // polling flow init
-  router.post('/telegram/webhook', authController.telegramWebhook);                // bot updates
-  router.get('/telegram/poll', pollRateLimiter, authController.telegramPoll);       // polling check
-  router.get('/telegram/redirect', authController.telegramRedirect);               // deep link redirect
+  router.post('/telegram/login', authRateLimiter, oauthController.telegramLogin);   // hash verify → JWT
+  router.post('/telegram/init', authRateLimiter, oauthController.telegramInit);     // polling flow init
+  router.post('/telegram/webhook', oauthController.telegramWebhook);                // bot updates
+  router.get('/telegram/poll', pollRateLimiter, oauthController.telegramPoll);       // polling check
+  router.get('/telegram/redirect', oauthController.telegramRedirect);               // deep link redirect
 
   // POST /auth/internal/create-staff — superadmin creates admin/operator/moderator account
   router.post('/internal/create-staff', requireInternalSecret, authController.createStaffAccount);

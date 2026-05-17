@@ -15,6 +15,7 @@ export type {
   FriendshipStatus,
   JwtPayload,
   IUserPublic,
+  VideoPlatform,
 } from '@shared/types';
 
 // Import and re-export PaginationMeta; extend ApiResponse for web
@@ -90,8 +91,6 @@ export interface IWatchPartyRoom extends Omit<IWatchPartyRoomShared, 'createdAt'
   updatedAt?: string;
 }
 
-/** VideoPlatform for web — extended with additional platforms */
-export type VideoPlatform = 'youtube' | 'direct' | 'webview' | 'vimeo' | 'twitch' | 'dailymotion' | 'other';
 export type VideoStatus = 'pending' | 'approved' | 'rejected';
 
 /** BattleStatus for web — subset commonly used in web UI */

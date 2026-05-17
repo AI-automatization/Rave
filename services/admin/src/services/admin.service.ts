@@ -2,53 +2,24 @@ import axios from 'axios';
 import Redis from 'ioredis';
 import { logger } from '@shared/utils/logger';
 import { BadRequestError } from '@shared/utils/errors';
-import { REDIS_KEYS } from '@shared/constants';
 import { Feedback } from '../models/feedback.model';
 import { MobileIssue } from '../models/mobileIssue.model';
 import { RoomReport } from '../models/roomReport.model';
 import { UserReport } from '../models/userReport.model';
-import { SupportConversation } from '../models/supportConversation.model';
-import { SupportMessage } from '../models/supportMessage.model';
-import { Appeal } from '../models/appeal.model';
-import { getLogsModel } from '@shared/middleware/apiLogger.middleware';
 import { AuditLog } from '../models/auditLog.model';
+import { getLogsModel } from '@shared/middleware/apiLogger.middleware';
 import {
-  adminListUsers,
   adminGetUserStats,
-  adminBlockUser,
-  adminUnblockUser,
-  adminChangeUserRole,
-  adminDeleteUser,
   adminListMovies,
-  adminPublishMovie,
-  adminUnpublishMovie,
-  adminDeleteMovie,
-  adminOperatorUpdateMovie,
-  adminListBattles,
-  adminEndBattle,
-  adminCancelBattle,
-  adminListWatchParties,
-  adminCloseWatchParty,
-  adminJoinWatchParty,
-  adminControlWatchParty,
-  adminKickWatchPartyMember,
-  adminBroadcastNotification,
-  adminSendNotificationToUser,
   adminGetContentStats,
-  deleteAuthUser,
-  revokeUserSessions,
   adminGetWatchPartyStats,
   adminGetBattleStats,
-  createStaffAccount,
-  syncAdminProfile,
+  adminBroadcastNotification,
+  adminSendNotificationToUser,
 } from '@shared/utils/serviceClient';
-import {
-  adminListDomains,
-  adminBlockDomain,
-  adminUnblockDomain,
-  adminAddBlockedDomain,
-  adminSetUserRestrictions,
-} from '@shared/utils/adminServiceClient';
+import { AdminUserService } from './adminUser.service';
+import { AdminContentService } from './adminContent.service';
+import { AdminRoomService } from './adminRoom.service';
 
 export interface DashboardStats {
   totalUsers: number;
@@ -59,11 +30,74 @@ export interface DashboardStats {
 }
 
 export class AdminService {
-  private redis: Redis;
+  readonly users: AdminUserService;
+  readonly content: AdminContentService;
+  readonly rooms: AdminRoomService;
+
+  // Delegate signatures — assigned in constructor after sub-services are ready
+  listUsers!: AdminUserService['listUsers'];
+  blockUser!: AdminUserService['blockUser'];
+  unblockUser!: AdminUserService['unblockUser'];
+  changeUserRole!: AdminUserService['changeUserRole'];
+  deleteUser!: AdminUserService['deleteUser'];
+  createStaff!: AdminUserService['createStaff'];
+  listStaff!: AdminUserService['listStaff'];
+  deleteStaff!: AdminUserService['deleteStaff'];
+  setUserRestrictions!: AdminUserService['setUserRestrictions'];
+  deleteUserData!: AdminUserService['deleteUserData'];
+  listMovies!: AdminContentService['listMovies'];
+  publishMovie!: AdminContentService['publishMovie'];
+  unpublishMovie!: AdminContentService['unpublishMovie'];
+  deleteMovie!: AdminContentService['deleteMovie'];
+  operatorUpdateMovie!: AdminContentService['operatorUpdateMovie'];
+  listDomains!: AdminContentService['listDomains'];
+  blockDomain!: AdminContentService['blockDomain'];
+  unblockDomain!: AdminContentService['unblockDomain'];
+  addBlockedDomain!: AdminContentService['addBlockedDomain'];
+  listBattles!: AdminRoomService['listBattles'];
+  endBattle!: AdminRoomService['endBattle'];
+  cancelBattle!: AdminRoomService['cancelBattle'];
+  listWatchParties!: AdminRoomService['listWatchParties'];
+  closeWatchParty!: AdminRoomService['closeWatchParty'];
+  joinWatchParty!: AdminRoomService['joinWatchParty'];
+  controlWatchParty!: AdminRoomService['controlWatchParty'];
+  kickWatchPartyMember!: AdminRoomService['kickWatchPartyMember'];
 
   constructor(redisClient: Redis) {
-    this.redis = redisClient;
+    this.users = new AdminUserService(redisClient);
+    this.content = new AdminContentService();
+    this.rooms = new AdminRoomService();
+
+    this.listUsers = this.users.listUsers.bind(this.users);
+    this.blockUser = this.users.blockUser.bind(this.users);
+    this.unblockUser = this.users.unblockUser.bind(this.users);
+    this.changeUserRole = this.users.changeUserRole.bind(this.users);
+    this.deleteUser = this.users.deleteUser.bind(this.users);
+    this.createStaff = this.users.createStaff.bind(this.users);
+    this.listStaff = this.users.listStaff.bind(this.users);
+    this.deleteStaff = this.users.deleteStaff.bind(this.users);
+    this.setUserRestrictions = this.users.setUserRestrictions.bind(this.users);
+    this.deleteUserData = this.users.deleteUserData.bind(this.users);
+    this.listMovies = this.content.listMovies.bind(this.content);
+    this.publishMovie = this.content.publishMovie.bind(this.content);
+    this.unpublishMovie = this.content.unpublishMovie.bind(this.content);
+    this.deleteMovie = this.content.deleteMovie.bind(this.content);
+    this.operatorUpdateMovie = this.content.operatorUpdateMovie.bind(this.content);
+    this.listDomains = this.content.listDomains.bind(this.content);
+    this.blockDomain = this.content.blockDomain.bind(this.content);
+    this.unblockDomain = this.content.unblockDomain.bind(this.content);
+    this.addBlockedDomain = this.content.addBlockedDomain.bind(this.content);
+    this.listBattles = this.rooms.listBattles.bind(this.rooms);
+    this.endBattle = this.rooms.endBattle.bind(this.rooms);
+    this.cancelBattle = this.rooms.cancelBattle.bind(this.rooms);
+    this.listWatchParties = this.rooms.listWatchParties.bind(this.rooms);
+    this.closeWatchParty = this.rooms.closeWatchParty.bind(this.rooms);
+    this.joinWatchParty = this.rooms.joinWatchParty.bind(this.rooms);
+    this.controlWatchParty = this.rooms.controlWatchParty.bind(this.rooms);
+    this.kickWatchPartyMember = this.rooms.kickWatchPartyMember.bind(this.rooms);
   }
+
+  // ── Dashboard + Analytics ──────────────────────────────────
 
   async getDashboardStats(): Promise<DashboardStats> {
     const [userStats, movieResult, watchPartyStats, battleStats] = await Promise.all([
@@ -72,7 +106,6 @@ export class AdminService {
       adminGetWatchPartyStats(),
       adminGetBattleStats(),
     ]);
-
     return {
       totalUsers: userStats.totalUsers,
       activeUsers: userStats.activeUsers,
@@ -81,137 +114,6 @@ export class AdminService {
       activeWatchParties: watchPartyStats.activeNow,
     };
   }
-
-  async listUsers(filters: {
-    page: number;
-    limit: number;
-    role?: string;
-    isBlocked?: boolean;
-    search?: string;
-  }): Promise<{ users: unknown[]; total: number }> {
-    return adminListUsers(filters);
-  }
-
-  private async logAudit(
-    adminId: string,
-    adminEmail: string,
-    action: string,
-    details: Record<string, unknown>,
-    targetId?: string,
-    targetType?: string,
-  ): Promise<void> {
-    try {
-      await AuditLog.create({ adminId, adminEmail, action, targetId, targetType, details });
-    } catch (err) {
-      logger.warn('Audit log write failed', { error: (err as Error).message, action, adminId });
-    }
-  }
-
-  async blockUser(userId: string, adminId: string, adminEmail: string, reason?: string): Promise<void> {
-    await adminBlockUser(userId, reason);
-    await this.redis.del(REDIS_KEYS.userSession(userId));
-    await this.redis.set(REDIS_KEYS.blockedUser(userId), '1');
-    logger.info('User blocked by admin', { userId, adminId, reason });
-    await this.logAudit(adminId, adminEmail, 'block_user', { reason: reason ?? null }, userId, 'user');
-  }
-
-  async unblockUser(userId: string, adminId: string, adminEmail: string): Promise<void> {
-    await adminUnblockUser(userId);
-    await this.redis.del(REDIS_KEYS.blockedUser(userId));
-    logger.info('User unblocked by admin', { userId, adminId });
-    await this.logAudit(adminId, adminEmail, 'unblock_user', {}, userId, 'user');
-  }
-
-  async changeUserRole(userId: string, newRole: string, adminId: string, adminEmail: string): Promise<void> {
-    await adminChangeUserRole(userId, newRole);
-    logger.info('User role changed by admin', { userId, newRole, adminId });
-    await this.logAudit(adminId, adminEmail, 'change_role', { newRole }, userId, 'user');
-  }
-
-  async deleteUser(userId: string, adminId: string, adminEmail: string): Promise<void> {
-    // Delete from user service DB (profile)
-    await adminDeleteUser(userId);
-    // Delete from auth service DB (credentials + refresh tokens)
-    await deleteAuthUser(userId);
-    // Revoke active sessions
-    await revokeUserSessions(userId);
-    // Clear blocked user flag from Redis
-    await this.redis.del(REDIS_KEYS.blockedUser(userId));
-    await this.redis.del(REDIS_KEYS.userSession(userId));
-    logger.warn('User fully deleted by admin (user + auth DB)', { userId, adminId });
-    await this.logAudit(adminId, adminEmail, 'delete_user', {}, userId, 'user');
-  }
-
-  // ── Movie Management ────────────────────────────────────────
-
-  async listMovies(filters: {
-    page: number;
-    limit: number;
-    isPublished?: boolean;
-    search?: string;
-    genre?: string;
-  }): Promise<{ movies: unknown[]; total: number }> {
-    return adminListMovies(filters);
-  }
-
-  async publishMovie(movieId: string, adminId: string): Promise<void> {
-    await adminPublishMovie(movieId);
-    logger.info('Movie published by admin', { movieId, adminId });
-  }
-
-  async unpublishMovie(movieId: string, adminId: string): Promise<void> {
-    await adminUnpublishMovie(movieId);
-    logger.info('Movie unpublished by admin', { movieId, adminId });
-  }
-
-  async deleteMovie(movieId: string, adminId: string): Promise<void> {
-    await adminDeleteMovie(movieId);
-    logger.warn('Movie deleted by admin', { movieId, adminId });
-  }
-
-  // ── Feedback Management ──────────────────────────────────────
-
-  async listFeedback(filters: {
-    page: number;
-    limit: number;
-    status?: string;
-    type?: string;
-  }): Promise<{ feedbacks: unknown[]; total: number }> {
-    const query: Record<string, unknown> = {};
-    if (filters.status) query.status = filters.status;
-    if (filters.type) query.type = filters.type;
-
-    const skip = (filters.page - 1) * filters.limit;
-    const [feedbacks, total] = await Promise.all([
-      Feedback.find(query).sort({ createdAt: -1 }).skip(skip).limit(filters.limit).lean(),
-      Feedback.countDocuments(query),
-    ]);
-    return { feedbacks, total };
-  }
-
-  async replyFeedback(
-    feedbackId: string,
-    adminId: string,
-    reply: string,
-    status: 'resolved' | 'in_progress' | 'closed',
-  ): Promise<void> {
-    const feedback = await Feedback.findByIdAndUpdate(
-      feedbackId,
-      {
-        $set: {
-          adminReply: reply,
-          status,
-          repliedAt: new Date(),
-          repliedBy: adminId,
-        },
-      },
-      { new: true },
-    );
-    if (!feedback) throw new BadRequestError('Feedback not found');
-    logger.info('Feedback replied', { feedbackId, adminId });
-  }
-
-  // ── Analytics ────────────────────────────────────────────────
 
   async getAnalytics(): Promise<{
     totalUsers: number;
@@ -229,7 +131,6 @@ export class AdminService {
       adminGetBattleStats(),
       adminGetUserStats(),
     ]);
-
     return {
       totalUsers: userStats.totalUsers,
       newUsersThisWeek: userStats.newUsersThisWeek,
@@ -242,7 +143,7 @@ export class AdminService {
     };
   }
 
-  // ── API Logs ─────────────────────────────────────────────────
+  // ── Logs ──────────────────────────────────────────────────
 
   async getLogs(filters: {
     page: number;
@@ -262,7 +163,6 @@ export class AdminService {
       if (filters.dateFrom) (query.timestamp as Record<string, unknown>).$gte = filters.dateFrom;
       if (filters.dateTo) (query.timestamp as Record<string, unknown>).$lte = filters.dateTo;
     }
-
     const skip = (filters.page - 1) * filters.limit;
     const LogModel = getLogsModel();
     if (!LogModel) return { logs: [], total: 0 };
@@ -271,81 +171,6 @@ export class AdminService {
       LogModel.countDocuments(query),
     ]);
     return { logs, total };
-  }
-
-  // ── Operator endpoints ─────────────────────────────────────
-
-  async operatorUpdateMovie(movieId: string, operatorId: string, data: Record<string, unknown>): Promise<void> {
-    await adminOperatorUpdateMovie(movieId, data);
-    logger.info('Movie updated by operator', { movieId, operatorId });
-  }
-
-  async submitFeedback(userId: string, type: string, content: string): Promise<void> {
-    const validTypes = ['bug', 'feature', 'other'];
-    if (!validTypes.includes(type)) throw new BadRequestError('Invalid feedback type');
-
-    await Feedback.create({ userId, type, content });
-    logger.info('Feedback submitted', { userId, type });
-  }
-
-  // ── Battle Management ──────────────────────────────────────
-
-  async listBattles(filters: {
-    page: number;
-    limit: number;
-    status?: string;
-  }): Promise<{ battles: unknown[]; total: number }> {
-    return adminListBattles(filters);
-  }
-
-  async endBattle(battleId: string, adminId: string): Promise<void> {
-    await adminEndBattle(battleId);
-    logger.info('Battle force-ended by admin', { battleId, adminId });
-  }
-
-  async cancelBattle(battleId: string, adminId: string): Promise<void> {
-    await adminCancelBattle(battleId);
-    logger.info('Battle cancelled by admin', { battleId, adminId });
-  }
-
-  // ── Watch Party Management ─────────────────────────────────
-
-  async listWatchParties(filters: {
-    page: number;
-    limit: number;
-    status?: string;
-  }): Promise<{ rooms: unknown[]; total: number }> {
-    return adminListWatchParties(filters);
-  }
-
-  async closeWatchParty(roomId: string, adminId: string, adminEmail: string, closeReason?: string): Promise<void> {
-    await adminCloseWatchParty(roomId, adminEmail, closeReason);
-    logger.info('WatchParty force-closed by admin', { roomId, adminId, closeReason });
-    await this.logAudit(adminId, adminEmail, 'close_watchparty', { closeReason }, roomId, 'watchparty');
-  }
-
-  async joinWatchParty(roomId: string, adminId: string): Promise<{ room: unknown }> {
-    const result = await adminJoinWatchParty(roomId);
-    logger.info('Admin joined WatchParty', { roomId, adminId });
-    return result;
-  }
-
-  async controlWatchParty(
-    roomId: string,
-    action: 'play' | 'pause' | 'seek',
-    currentTime: number | undefined,
-    adminId: string,
-    adminEmail: string,
-  ): Promise<void> {
-    await adminControlWatchParty(roomId, action, currentTime);
-    logger.info('Admin controlled WatchParty', { roomId, action, adminId });
-    await this.logAudit(adminId, adminEmail, 'control_watchparty', { action, currentTime }, roomId, 'watchparty');
-  }
-
-  async kickWatchPartyMember(roomId: string, userId: string, adminId: string, adminEmail: string): Promise<void> {
-    await adminKickWatchPartyMember(roomId, userId);
-    logger.info('Admin kicked WatchParty member', { roomId, userId, adminId });
-    await this.logAudit(adminId, adminEmail, 'kick_member', { userId }, roomId, 'watchparty');
   }
 
   async getAuditLogs(filters: {
@@ -372,7 +197,7 @@ export class AdminService {
     return { logs, total };
   }
 
-  // ── Notification Broadcast ────────────────────────────────
+  // ── Notifications ──────────────────────────────────────────
 
   async broadcastNotification(title: string, body: string, type: string, adminId: string): Promise<void> {
     await adminBroadcastNotification({ title, body, type });
@@ -384,57 +209,45 @@ export class AdminService {
     logger.info('Direct notification sent by admin', { userId, title, adminId });
   }
 
-  // ── Staff Management (superadmin only) ────────────────────
+  // ── Feedback ───────────────────────────────────────────────
 
-  async createStaff(
-    email: string,
-    username: string,
-    password: string,
-    role: 'admin' | 'operator' | 'moderator',
-    createdByAdminId: string,
-    createdByAdminEmail: string,
-  ): Promise<{ authId: string }> {
-    const result = await createStaffAccount(email, username, password, role);
-    // Sync staff profile to user service (non-blocking — don't fail if user service is slow)
-    void syncAdminProfile(result.authId, email, username, role);
-    await AuditLog.create({
-      adminId: createdByAdminId,
-      adminEmail: createdByAdminEmail,
-      action: 'create_staff',
-      targetId: result.authId,
-      details: { email, username, role },
-    });
-    logger.info('Staff account created by admin', { email, role, createdByAdminId });
-    return result;
+  async listFeedback(filters: {
+    page: number;
+    limit: number;
+    status?: string;
+    type?: string;
+  }): Promise<{ feedbacks: unknown[]; total: number }> {
+    const query: Record<string, unknown> = {};
+    if (filters.status) query.status = filters.status;
+    if (filters.type) query.type = filters.type;
+    const skip = (filters.page - 1) * filters.limit;
+    const [feedbacks, total] = await Promise.all([
+      Feedback.find(query).sort({ createdAt: -1 }).skip(skip).limit(filters.limit).lean(),
+      Feedback.countDocuments(query),
+    ]);
+    return { feedbacks, total };
   }
 
-  async listStaff(page: number, limit: number): Promise<{ users: unknown[]; total: number }> {
-    return adminListUsers({
-      page,
-      limit,
-      role: 'admin,operator,moderator,superadmin',
-    });
-  }
-
-  async deleteStaff(
-    targetAuthId: string,
+  async replyFeedback(
+    feedbackId: string,
     adminId: string,
-    adminEmail: string,
+    reply: string,
+    status: 'resolved' | 'in_progress' | 'closed',
   ): Promise<void> {
-    // Delete from user service DB (profile)
-    await adminDeleteUser(targetAuthId);
-    // Delete from auth service DB (credentials + refresh tokens)
-    await deleteAuthUser(targetAuthId);
-    // Revoke active sessions
-    await revokeUserSessions(targetAuthId);
-    await AuditLog.create({
-      adminId,
-      adminEmail,
-      action: 'delete_staff',
-      targetId: targetAuthId,
-      details: {},
-    });
-    logger.warn('Staff account fully deleted by superadmin', { targetAuthId, adminId });
+    const feedback = await Feedback.findByIdAndUpdate(
+      feedbackId,
+      { $set: { adminReply: reply, status, repliedAt: new Date(), repliedBy: adminId } },
+      { new: true },
+    );
+    if (!feedback) throw new BadRequestError('Feedback not found');
+    logger.info('Feedback replied', { feedbackId, adminId });
+  }
+
+  async submitFeedback(userId: string, type: string, content: string): Promise<void> {
+    const validTypes = ['bug', 'feature', 'other'];
+    if (!validTypes.includes(type)) throw new BadRequestError('Invalid feedback type');
+    await Feedback.create({ userId, type, content });
+    logger.info('Feedback submitted', { userId, type });
   }
 
   // ── System Health ──────────────────────────────────────────
@@ -448,9 +261,7 @@ export class AdminService {
       { name: 'battle', url: process.env.BATTLE_SERVICE_URL ?? 'http://localhost:3005' },
       { name: 'notification', url: process.env.NOTIFICATION_SERVICE_URL ?? 'http://localhost:3007' },
     ];
-
     const results: Record<string, { status: 'ok' | 'error'; latency?: number }> = {};
-
     await Promise.all(
       services.map(async (svc) => {
         const start = Date.now();
@@ -462,41 +273,7 @@ export class AdminService {
         }
       }),
     );
-
     return results;
-  }
-
-  async listDomains(filters: { page?: number; limit?: number; filter?: string; search?: string }): Promise<unknown> {
-    return adminListDomains(filters);
-  }
-
-  async blockDomain(domain: string): Promise<void> {
-    await adminBlockDomain(domain);
-    logger.info('Domain blocked by admin', { domain });
-  }
-
-  async unblockDomain(domain: string): Promise<void> {
-    await adminUnblockDomain(domain);
-    logger.info('Domain unblocked by admin', { domain });
-  }
-
-  async addBlockedDomain(domain: string): Promise<{ domain: string }> {
-    return adminAddBlockedDomain(domain);
-  }
-
-  async setUserRestrictions(userId: string, restrictions: string[]): Promise<void> {
-    await adminSetUserRestrictions(userId, restrictions);
-  }
-
-  async deleteUserData(userId: string): Promise<void> {
-    const convIds = await SupportConversation.find({ userId }).distinct('_id');
-    await Promise.all([
-      SupportMessage.deleteMany({ conversationId: { $in: convIds } }),
-      SupportConversation.deleteMany({ userId }),
-      Appeal.deleteMany({ userId }),
-      Feedback.deleteMany({ userId }),
-    ]);
-    logger.info('AdminService: deleted user data', { userId });
   }
 
   // ── Activity Feed ──────────────────────────────────────────
@@ -509,14 +286,12 @@ export class AdminService {
     timestamp: string;
   }>> {
     const since = new Date(Date.now() - 48 * 60 * 60 * 1000);
-
     const [recentErrors, recentAuditLogs, recentRoomReports, recentUserReports] = await Promise.all([
       MobileIssue.find({ firstSeen: { $gte: since } }).sort({ firstSeen: -1 }).limit(limit).lean(),
       AuditLog.find({ createdAt: { $gte: since } }).sort({ createdAt: -1 }).limit(limit).lean(),
       RoomReport.find({ createdAt: { $gte: since } }).sort({ createdAt: -1 }).limit(limit).lean(),
       UserReport.find({ createdAt: { $gte: since } }).sort({ createdAt: -1 }).limit(limit).lean(),
     ]);
-
     const items = [
       ...recentErrors.map((i) => ({
         id: String(i._id),
@@ -547,7 +322,6 @@ export class AdminService {
         timestamp: String(r.createdAt),
       })),
     ];
-
     items.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     return items.slice(0, limit);
   }
