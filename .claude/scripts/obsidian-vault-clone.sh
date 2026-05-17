@@ -8,7 +8,7 @@
 
 set -euo pipefail
 
-VAULT="${CINESYNC_VAULT:-$HOME/Documents/CineSync-Vault}"
+VAULT="${CINESYNC_VAULT:-/c/Users/User/OneDrive/Рабочий стол/weWatch-obsidian}"
 REPO_URL="${1:-}"
 
 if [[ -z "$REPO_URL" ]]; then

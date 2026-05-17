@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-VAULT="${CINESYNC_VAULT:-$HOME/Documents/CineSync-Vault}"
+VAULT="${CINESYNC_VAULT:-/c/Users/User/OneDrive/Рабочий стол/weWatch-obsidian}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel 2>/dev/null || echo "")"
 NOW=$(date '+%Y-%m-%d %H:%M')

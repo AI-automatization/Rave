@@ -507,4 +507,4 @@ Bu ikkalasini Emirhan o'z api/*.ts fayllarida tuzatadi.
 
 ---
 
-*CLAUDE_BACKEND.md | CineSync | Saidazim | v1.0*
+*CLAUDE_BACKEND.md | WeWatch | Saidazim | v1.0*

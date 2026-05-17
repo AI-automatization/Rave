@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-VAULT="${CINESYNC_VAULT:-$HOME/Documents/CineSync-Vault}"
+VAULT="${CINESYNC_VAULT:-/c/Users/User/OneDrive/Рабочий стол/weWatch-obsidian}"
 SERVICES=(auth user content watch-party battle notification admin)
 NOW=$(date '+%Y-%m-%d')
 

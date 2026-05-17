@@ -14,10 +14,10 @@
 
 set -euo pipefail
 
-VAULT="${OBSIDIAN_VAULT:-$HOME/Documents/weWatch-obsidian}"
+VAULT="${OBSIDIAN_VAULT:-/c/Users/User/OneDrive/Рабочий стол/weWatch-obsidian}"
 DEV="${VAULT_DEVELOPER:-Saidazim}"
 DEV_LOWER=$(echo "$DEV" | tr '[:upper:]' '[:lower:]')
-REPO="${REPO_PATH:-$HOME/Desktop/Rave}"
+REPO="${REPO_PATH:-/c/Users/User/OneDrive/Рабочий стол/Rave}"
 NOW=$(date '+%Y-%m-%d %H:%M')
 DATE=$(date '+%Y-%m-%d')
 

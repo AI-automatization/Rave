@@ -1,4 +1,4 @@
-# CLAUDE.md — CineSync
+# CLAUDE.md — WeWatch
 
 ---
 
@@ -29,7 +29,7 @@ bash .claude/scripts/tg-watch.sh history 3
 
 ## ПРОЕКТ
 
-CineSync — соцсеть для совместного просмотра фильмов.
+WeWatch — соцсеть для совместного просмотра фильмов.
 
 | Сервис | Tech | Port |
 |--------|------|------|
@@ -285,4 +285,4 @@ Vault: `~/Documents/weWatch-obsidian` (env: `OBSIDIAN_VAULT`)
 **Настройка Emirhan (один раз):** `bash .claude/scripts/emirhan-setup.sh`
 
 ---
-*CLAUDE.md | CineSync | v3.1 | 2026-05-11*
+*CLAUDE.md | WeWatch | v3.2 | 2026-05-17*

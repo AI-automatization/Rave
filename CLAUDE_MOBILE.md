@@ -617,4 +617,4 @@ TTL:              30 daqiqa
 
 ---
 
-*CLAUDE_MOBILE.md | CineSync | Emirhan | Expo SDK 54 | v2.0 | 2026-03-10*
+*CLAUDE_MOBILE.md | WeWatch | Emirhan | Expo SDK 54 | v2.0 | 2026-03-10*

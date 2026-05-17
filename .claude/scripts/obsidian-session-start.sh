@@ -4,7 +4,7 @@
 
 set -uo pipefail
 
-VAULT="${OBSIDIAN_VAULT:-$HOME/Documents/weWatch-obsidian}"
+VAULT="${OBSIDIAN_VAULT:-/c/Users/User/OneDrive/Рабочий стол/weWatch-obsidian}"
 DEV="${VAULT_DEVELOPER:-Saidazim}"
 DEV_LOWER=$(echo "$DEV" | tr '[:upper:]' '[:lower:]')
 DATE=$(date '+%Y-%m-%d')
@@ -36,7 +36,10 @@ developer: $DEV
 ## TODOs
 HEREDOC
 fi
-echo -e "\n### 🟢 Session started: $NOW" >> "$DAILY"
+# Дубликат oldini olish
+if ! grep -qF "Session started: $NOW" "$DAILY" 2>/dev/null; then
+  echo -e "\n### 🟢 Session started: $NOW" >> "$DAILY"
+fi
 
 # ── Weekly note ────────────────────────────────────────────────────
 mkdir -p "$VAULT/WEEKLY/$DEV"
@@ -60,7 +63,10 @@ developer: $DEV
 ## Sessions
 HEREDOC
 fi
-echo "- $NOW" >> "$WEEKLY"
+# Дубликат oldini olish — agar oxirgi qator shu vaqt bo'lsa, qayta yozmaslik
+if ! grep -qF "- $NOW" "$WEEKLY" 2>/dev/null; then
+  echo "- $NOW" >> "$WEEKLY"
+fi
 
 # ════════════════════════════════════════════════════════════════════
 # OUTPUT TO CLAUDE — контекст памяти

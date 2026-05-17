@@ -3,7 +3,7 @@
 
 set -uo pipefail
 
-VAULT="${OBSIDIAN_VAULT:-$HOME/Documents/weWatch-obsidian}"
+VAULT="${OBSIDIAN_VAULT:-/c/Users/User/OneDrive/Рабочий стол/weWatch-obsidian}"
 DEV="${VAULT_DEVELOPER:-Saidazim}"
 DEV_LOWER=$(echo "$DEV" | tr '[:upper:]' '[:lower:]')
 DATE=$(date '+%Y-%m-%d')
@@ -19,7 +19,7 @@ DAILY="$VAULT/DAILY/$DEV/$DATE.md"
 
 # ── Auto-snapshot: git state + pending tasks → handoff.md ────────────
 HANDOFF="$VAULT/AI_CONTEXT/handoff-${DEV_LOWER}.md"
-REPO="${REPO_PATH:-$HOME/Desktop/Rave}"
+REPO="${REPO_PATH:-/c/Users/User/OneDrive/Рабочий стол/Rave}"
 
 LAST_COMMIT=""
 UNCOMMITTED=0
