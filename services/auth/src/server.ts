@@ -1,5 +1,7 @@
 import { initSentry } from '@shared/utils/sentry';
+import { initMetrics } from '@shared/utils/metrics';
 initSentry('auth');
+initMetrics('auth');
 
 import mongoose from 'mongoose';
 import Redis from 'ioredis';

@@ -18,10 +18,10 @@ export interface IMobileIssueDocument extends Document {
 
 const schema = new Schema<IMobileIssueDocument>(
   {
-    fingerprint:   { type: String, required: true, unique: true, index: true },
+    fingerprint:   { type: String, required: true, unique: true },
     title:         { type: String, required: true },
     message:       { type: String, default: '' },
-    status:        { type: String, enum: ['new', 'in_progress', 'resolved', 'ignored'], default: 'new', index: true },
+    status:        { type: String, enum: ['new', 'in_progress', 'resolved', 'ignored'], default: 'new' },
     count:         { type: Number, default: 1 },
     affectedUsers: { type: Number, default: 0 },
     platform:      { type: String, enum: ['ios', 'android', 'unknown'], default: 'unknown' },

@@ -12,7 +12,7 @@ export const config = {
   port: parseInt(process.env.PORT ?? '3003', 10),
   mongoUri: requireEnv('MONGO_URI'),
   redisUrl: requireEnv('REDIS_URL'),
-  elasticsearchUrl: process.env.ELASTICSEARCH_URL ?? 'http://localhost:9200',
+  elasticsearchUrl: process.env.ELASTICSEARCH_URL ?? 'http://elastic:changeme_dev@localhost:9200',
   jwtPublicKey: requireEnv('JWT_PUBLIC_KEY').replace(/\\n/g, '\n').trim(),
   corsOrigins: process.env.CORS_ORIGINS ?? 'http://localhost:3000,http://localhost:5173,http://localhost:8081',
   cloudinary: {

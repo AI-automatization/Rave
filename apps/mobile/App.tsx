@@ -1,6 +1,8 @@
 // CineSync — Root App Component
 import React, { useEffect, useState, useCallback } from 'react';
 import { initErrorLogger } from '@utils/errorLogger';
+import { initCrashReporting } from '@utils/crash';
+initCrashReporting();
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';

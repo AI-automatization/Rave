@@ -22,7 +22,7 @@ export function BlockedDomainView({ domain, onClose }: Props) {
       <Text style={styles.title}>Сайт заблокирован</Text>
       <Text style={styles.domain}>{domain}</Text>
       <Text style={styles.message}>
-        Этот ресурс нарушает политику конфиденциальности CineSync и недоступен на платформе.
+        Этот ресурс нарушает политику конфиденциальности weWatch и недоступен на платформе.
       </Text>
       {onClose && (
         <TouchableOpacity style={styles.btn} onPress={onClose}>

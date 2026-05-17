@@ -47,7 +47,7 @@ const watchPartyRoomSchema = new Schema<IWatchPartyRoomDocument>(
     isPlaying: { type: Boolean, default: false },
     inviteCode: { type: String, required: true, unique: true },
     isPrivate: { type: Boolean, default: false },
-    password: { type: String, default: null },
+    password: { type: String, default: null, maxlength: 128 },
     playlist: {
       type: [{
         videoUrl:       { type: String, required: true },

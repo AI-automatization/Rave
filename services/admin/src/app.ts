@@ -7,6 +7,7 @@ import Redis from 'ioredis';
 import swaggerUi from 'swagger-ui-express';
 import { errorHandler, notFoundHandler } from '@shared/middleware/error.middleware';
 import { setupSentryErrorHandler } from '@shared/utils/sentry';
+import { metricsMiddleware, registerMetricsEndpoint } from '@shared/utils/metrics';
 import { requestId } from '@shared/middleware/requestId.middleware';
 import { timeout } from '@shared/middleware/timeout.middleware';
 import { morganStream } from '@shared/utils/logger';
@@ -31,6 +32,7 @@ export const createApp = (redis: Redis): express.Application => {
   app.use(morgan('combined', { stream: morganStream }));
   app.use(express.json({ limit: '512kb' }));
   app.use(requestId);
+  app.use(metricsMiddleware());
   app.use(apiLogger('admin'));
   app.use(timeout());
 
@@ -58,6 +60,7 @@ export const createApp = (redis: Redis): express.Application => {
   app.use(notFoundHandler);
 
   // Sentry error capture (#24)
+  registerMetricsEndpoint(app);
   setupSentryErrorHandler(app);
   app.use(errorHandler);
 

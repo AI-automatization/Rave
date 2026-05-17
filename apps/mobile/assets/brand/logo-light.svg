@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 296 80" fill="none">
+  <defs>
+    <!-- W gradient (slightly deeper for light bg) -->
+    <linearGradient id="wGL" x1="8" y1="7" x2="68" y2="73" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#8B5CF6"/>
+      <stop offset="100%" stop-color="#6D28D9"/>
+    </linearGradient>
+
+    <!-- Arm shadow (purple tinted for light bg) -->
+    <filter id="sdL" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="0" stdDeviation="3.5" flood-color="#7C3AED" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <!-- ── W Mark ─────────────────────────────────────────────── -->
+
+  <!-- Right arm -->
+  <path
+    d="M 79,14 L 56,65 L 45,37 L 30,14"
+    stroke="#7C3AED"
+    stroke-width="16.5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+    transform="translate(0,3)"
+  />
+
+  <!-- Left arm -->
+  <path
+    d="M 11,14 L 35,65 L 45,37 L 60,14"
+    stroke="url(#wGL)"
+    stroke-width="16.5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+    filter="url(#sdL)"
+    transform="translate(0,3)"
+  />
+
+  <!-- ── Wordmark ──────────────────────────────────────────── -->
+  <text
+    x="103"
+    y="52"
+    font-family="Inter, -apple-system, 'Helvetica Neue', sans-serif"
+    font-size="38"
+    letter-spacing="-0.5"
+    fill="#18132B"
+  >
+    <tspan font-weight="300" fill="rgba(24,19,43,0.50)">we</tspan><tspan font-weight="800">Watch</tspan>
+  </text>
+</svg>

@@ -42,7 +42,13 @@ const externalVideoSchema = new Schema<IExternalVideoDocument>(
     rating:          { type: Number, default: 0, min: 0, max: 10 },
     ratingCount:     { type: Number, default: 0 },
     ratingSum:       { type: Number, default: 0 },
-    ratedBy:         [{ type: String }],
+    ratedBy: {
+      type: [{ type: String }],
+      validate: {
+        validator: (v: string[]) => v.length <= 50_000,
+        message: 'ratedBy array exceeds maximum allowed size',
+      },
+    },
     rejectionReason: { type: String, default: null },
     approvedBy:      { type: String, default: null },
     approvedAt:      { type: Date, default: null },

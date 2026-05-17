@@ -17,7 +17,7 @@ import { useRankMeta, formatDate } from '@hooks/useProfileData';
 import { ProfileHeader } from '@components/profile/ProfileHeader';
 import { ProfileEmptyState } from '@components/profile/ProfileEmptyState';
 import { ProfileEditModal } from '@components/profile/ProfileEditModal';
-import { StatCard, InfoRow, NavItem } from '@components/profile/ProfileWidgets';
+import { InfoRow, NavItem } from '@components/profile/ProfileWidgets';
 import { FadeInView } from '@components/profile/ProfileAnimations';
 
 type Nav = NativeStackNavigationProp<ProfileStackParamList, 'Profile'>;
@@ -130,19 +130,6 @@ export function ProfileScreen() {
           joinDate={joinDate}
         />
 
-        {/* Stats grid — web style 2x2 */}
-        <View style={s.section}>
-          <FadeInView delay={150}>
-            <Text style={s.sectionTitle}>{t('profile', 'stats')}</Text>
-          </FadeInView>
-          <View style={s.statsGrid}>
-            <StatCard icon="film-outline" value={stats?.totalWatched ?? '—'} label={t('profile', 'movies')} delay={200} iconColor={colors.primary} />
-            <StatCard icon="time-outline" value={`${Math.round((stats?.totalMinutes ?? 0) / 60)}h`} label={t('profile', 'hours')} delay={250} iconColor={colors.secondary} />
-            <StatCard icon="flash-outline" value={stats?.battlesWon ?? 0} label={t('profile', 'wins')} delay={300} iconColor={colors.error} />
-            <StatCard icon="ribbon-outline" value={stats?.achievementsCount ?? 0} label={t('profile', 'badges')} delay={350} iconColor={colors.gold} />
-          </View>
-        </View>
-
         {/* Account info card */}
         <View style={s.section}>
           <FadeInView delay={350}>
@@ -173,11 +160,7 @@ export function ProfileScreen() {
 
         {/* Nav links */}
         <View style={s.section}>
-          <NavItem icon="bar-chart-outline" label={t('profile', 'stats')} onPress={() => navigation.navigate('Stats')} delay={450} />
-          <View style={{ height: spacing.sm }} />
-          <NavItem icon="ribbon-outline" label={t('profile', 'achievements')} onPress={() => navigation.navigate('Achievements')} delay={500} />
-          <View style={{ height: spacing.sm }} />
-          <NavItem icon="time-outline" label="Ko'rish tarixi" onPress={() => navigation.navigate('WatchHistory')} delay={550} />
+          <NavItem icon="time-outline" label="Ko'rish tarixi" onPress={() => navigation.navigate('WatchHistory')} delay={450} />
         </View>
 
         {/* Logout */}
@@ -219,11 +202,6 @@ const useStyles = createThemedStyles((colors) => ({
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: spacing.sm,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
   },
   accountCard: {
     backgroundColor: colors.bgElevated,

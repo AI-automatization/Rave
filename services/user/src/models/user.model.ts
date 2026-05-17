@@ -35,7 +35,7 @@ export interface IUserDocument extends Document {
 
 const userSchema = new Schema<IUserDocument>(
   {
-    authId: { type: String, required: true, unique: true, index: true },
+    authId: { type: String, required: true, unique: true },
     email: { type: String, required: true, unique: true, lowercase: true },
     username: { type: String, required: true, unique: true, trim: true },
     avatar: { type: String, default: null },

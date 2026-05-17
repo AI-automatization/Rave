@@ -54,7 +54,9 @@ services:
     restart: unless-stopped
     environment:
       - discovery.type=single-node
-      - xpack.security.enabled=false  # dev only — enable in production with ELASTIC_PASSWORD
+      - xpack.security.enabled=true
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD:-changeme_dev}
+      - xpack.security.http.ssl.enabled=false
       - 'ES_JAVA_OPTS=-Xms512m -Xmx512m'
     ports:
       - '127.0.0.1:9200:9200'

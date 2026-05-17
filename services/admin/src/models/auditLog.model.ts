@@ -31,8 +31,7 @@ const auditLogSchema = new Schema<IAuditLogDocument>(
 auditLogSchema.index({ adminId: 1 });
 auditLogSchema.index({ action: 1 });
 auditLogSchema.index({ targetId: 1 });
-auditLogSchema.index({ createdAt: -1 });
-// 90 kun TTL
+// TTL 90 days — also covers createdAt range queries (replaces separate createdAt: -1 index)
 auditLogSchema.index({ createdAt: 1 }, { expireAfterSeconds: 90 * 24 * 60 * 60 });
 
 export const AuditLog = model<IAuditLogDocument>('AuditLog', auditLogSchema);

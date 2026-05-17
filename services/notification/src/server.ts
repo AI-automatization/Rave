@@ -1,5 +1,7 @@
 import { initSentry } from '@shared/utils/sentry';
+import { initMetrics } from '@shared/utils/metrics';
 initSentry('notification');
+initMetrics('notification');
 
 import mongoose from 'mongoose';
 import { MONGO_OPTIONS } from '@shared/constants';

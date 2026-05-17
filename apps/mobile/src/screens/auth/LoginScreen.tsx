@@ -27,6 +27,7 @@ import { AuthGridBackground } from '@components/auth/AuthGridBackground';
 import { SocialAuthButtons } from '@components/auth/SocialAuthButtons';
 import { BlockedAccountModal } from '@components/common/BlockedAccountModal';
 import { useSocialAuth } from '@hooks/useSocialAuth';
+import { WeWatchLogo } from '@components/common/WeWatchLogo';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 
@@ -126,7 +127,7 @@ export function LoginScreen() {
 
             {/* Logo */}
             <View style={s.header}>
-              <Text style={s.logo}>CINE<Text style={s.logoAccent}>SYNC</Text></Text>
+              <WeWatchLogo variant="stacked" size={80} theme="dark" />
               <Text style={s.subtitle}>{t('login', 'subtitle')}</Text>
             </View>
 
@@ -239,9 +240,7 @@ const useStyles = createThemedStyles((colors) => ({
     paddingHorizontal: 28, paddingBottom: 40,
   },
 
-  header: { alignItems: 'center', marginBottom: 44 },
-  logo: { fontSize: 42, fontWeight: '900', color: colors.textPrimary, letterSpacing: 6, marginBottom: 8 },
-  logoAccent: { color: colors.link },
+  header: { alignItems: 'center', marginBottom: 44, gap: 14 },
   subtitle: { fontSize: 14, color: colors.textMuted, letterSpacing: 0.5 },
 
   errorBox: {

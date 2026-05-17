@@ -1,4 +1,12 @@
 import axios, { AxiosError } from 'axios';
+import { getRequestId } from './requestContext';
+
+// Propagate X-Request-ID to all inter-service calls
+axios.interceptors.request.use((config) => {
+  const rid = getRequestId();
+  if (rid) config.headers['x-request-id'] = rid;
+  return config;
+});
 
 export { axios, AxiosError };
 

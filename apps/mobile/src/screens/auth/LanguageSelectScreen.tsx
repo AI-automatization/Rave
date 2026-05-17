@@ -9,6 +9,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
+import { WeWatchLogo } from '@components/common/WeWatchLogo';
 import { AuthStackParamList } from '@app-types/index';
 import { useLanguageStore, Language } from '@store/language.store';
 import { t as translate } from '@i18n/translations';
@@ -46,8 +47,7 @@ export function LanguageSelectScreen() {
     <View style={styles.container}>
       {/* Logo */}
       <View style={styles.logoWrap}>
-        <Text style={styles.logo}>CINE</Text>
-        <Text style={styles.logoAccent}>SYNC</Text>
+        <WeWatchLogo variant="stacked" size={80} theme="dark" />
       </View>
 
       {/* Title */}
@@ -93,21 +93,8 @@ const useStyles = createThemedStyles((colors) => ({
     paddingHorizontal: spacing.xl,
   },
   logoWrap: {
-    flexDirection: 'row',
     alignItems: 'center',
     marginBottom: spacing.xxxl,
-  },
-  logo: {
-    fontSize: 40,
-    fontWeight: '900',
-    color: colors.textPrimary,
-    letterSpacing: 2,
-  },
-  logoAccent: {
-    fontSize: 40,
-    fontWeight: '900',
-    color: colors.primary,
-    letterSpacing: 2,
   },
   title: {
     ...typography.h1,

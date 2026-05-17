@@ -4,6 +4,7 @@ import { View, Text, Animated, Dimensions } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme, createThemedStyles, typography } from '@theme/index';
+import { WeWatchLogo } from '@components/common/WeWatchLogo';
 import { AuthStackParamList } from '@app-types/index';
 import { useAuthStore } from '@store/auth.store';
 import { useT } from '@i18n/index';
@@ -49,8 +50,7 @@ export function SplashScreen() {
   return (
     <View style={styles.container}>
       <Animated.View style={[styles.logoWrap, { opacity, transform: [{ scale }] }]}>
-        <Text style={styles.logo}>CINE</Text>
-        <Text style={styles.logoAccent}>SYNC</Text>
+        <WeWatchLogo variant="stacked" size={100} theme="dark" />
       </Animated.View>
       <Animated.Text style={[styles.tagline, { opacity }]}>
         {t('splash', 'tagline')}
@@ -72,20 +72,7 @@ const useStyles = createThemedStyles((colors) => ({
     justifyContent: 'center',
   },
   logoWrap: {
-    flexDirection: 'row',
     alignItems: 'center',
-  },
-  logo: {
-    fontSize: 48,
-    fontWeight: '900',
-    color: colors.textPrimary,
-    letterSpacing: 2,
-  },
-  logoAccent: {
-    fontSize: 48,
-    fontWeight: '900',
-    color: colors.primary,
-    letterSpacing: 2,
   },
   tagline: {
     ...typography.body,

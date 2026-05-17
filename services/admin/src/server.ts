@@ -1,5 +1,7 @@
 import { initSentry } from '@shared/utils/sentry';
+import { initMetrics } from '@shared/utils/metrics';
 initSentry('admin');
+initMetrics('admin');
 
 import http from 'http';
 import mongoose from 'mongoose';

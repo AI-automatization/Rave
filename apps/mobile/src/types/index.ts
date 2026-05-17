@@ -126,8 +126,6 @@ export type FriendsStackParamList = {
 
 export type ProfileStackParamList = {
   Profile: undefined;
-  Stats: undefined;
-  Achievements: undefined;
   Settings: undefined;
   WatchHistory: undefined;
 };

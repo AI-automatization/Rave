@@ -23,7 +23,7 @@ export function useSourcePicker() {
 
   function handleSourcePress(source: MediaSource) {
     if (source.support === 'internal') {
-      Alert.alert(source.label, 'Эта функция скоро появится в CineSync!', [{ text: 'OK' }]);
+      Alert.alert(source.label, 'Эта функция скоро появится в weWatch!', [{ text: 'OK' }]);
       return;
     }
     if (source.support === 'drm') {

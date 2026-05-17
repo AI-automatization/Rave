@@ -1,5 +1,6 @@
 import fs from 'fs';
 import winston, { createLogger, format, transports } from 'winston';
+import { getRequestId } from './requestContext';
 
 const { combine, timestamp, json, colorize, printf } = format;
 
@@ -27,17 +28,28 @@ const redactSensitive = format((info) => {
   return redact(info as unknown as Record<string, unknown>) as winston.Logform.TransformableInfo;
 })();
 
+const injectRequestId = format((info) => {
+  const rid = getRequestId();
+  if (rid) (info as Record<string, unknown>).requestId = rid;
+  return info;
+})();
+
+const serviceName = process.env.SERVICE_NAME ?? process.env.npm_package_name ?? 'unknown';
+
 const devFormat = combine(
   timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
   colorize(),
-  printf(({ timestamp: ts, level, message, ...meta }) => {
+  printf(({ timestamp: ts, level, message, requestId: rid, ...meta }) => {
+    const ridStr = rid ? ` [${rid}]` : '';
     const metaStr = Object.keys(meta).length ? ` ${JSON.stringify(meta)}` : '';
-    return `[${ts}] ${level}: ${message as string}${metaStr}`;
+    return `[${ts}] [${serviceName}]${ridStr} ${level}: ${message as string}${metaStr}`;
   }),
 );
 
 const prodFormat = combine(
   redactSensitive,
+  injectRequestId,
+  format((info) => { (info as Record<string, unknown>).service = serviceName; return info; })(),
   timestamp(),
   json(),
 );

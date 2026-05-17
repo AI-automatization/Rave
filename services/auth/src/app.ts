@@ -9,6 +9,7 @@ import Redis from 'ioredis';
 import swaggerUi from 'swagger-ui-express';
 import { errorHandler, notFoundHandler } from '@shared/middleware/error.middleware';
 import { setupSentryErrorHandler } from '@shared/utils/sentry';
+import { metricsMiddleware, registerMetricsEndpoint } from '@shared/utils/metrics';
 import { requestId } from '@shared/middleware/requestId.middleware';
 import { timeout } from '@shared/middleware/timeout.middleware';
 import { apiLogger } from '@shared/middleware/apiLogger.middleware';
@@ -41,6 +42,7 @@ export const createApp = (redis: Redis): express.Application => {
 
   // Request ID tracking
   app.use(requestId);
+  app.use(metricsMiddleware());
   app.use(apiLogger('auth'));
 
   // Request timeout — 30 seconds
@@ -94,6 +96,7 @@ export const createApp = (redis: Redis): express.Application => {
   app.use(notFoundHandler);
 
   // Sentry error capture (before custom error handler) — #24
+  registerMetricsEndpoint(app);
   setupSentryErrorHandler(app);
 
   // Global error handler

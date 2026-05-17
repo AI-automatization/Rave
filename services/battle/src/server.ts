@@ -1,5 +1,7 @@
 import { initSentry } from '@shared/utils/sentry';
+import { initMetrics } from '@shared/utils/metrics';
 initSentry('battle');
+initMetrics('battle');
 
 import mongoose from 'mongoose';
 import { MONGO_OPTIONS } from '@shared/constants';
