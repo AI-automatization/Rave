@@ -114,10 +114,9 @@ export class ProfileService {
   }
 
   async addFcmToken(userId: string, token: string): Promise<void> {
-    await User.updateOne(
-      { authId: userId },
-      { $addToSet: { fcmTokens: token } },
-    );
+    // Remove from all other users before adding — prevents cross-user token sharing
+    await User.updateMany({ authId: { $ne: userId } }, { $pull: { fcmTokens: token } });
+    await User.updateOne({ authId: userId }, { $addToSet: { fcmTokens: token } });
   }
 
   async removeFcmToken(userId: string, token: string): Promise<void> {
@@ -125,6 +124,10 @@ export class ProfileService {
       { authId: userId },
       { $pull: { fcmTokens: token } },
     );
+  }
+
+  async removeAllFcmTokens(userId: string): Promise<void> {
+    await User.updateOne({ authId: userId }, { $set: { fcmTokens: [] } });
   }
 
   async removeBadFcmTokens(tokens: string[]): Promise<void> {

@@ -281,7 +281,12 @@ export class UserController {
       const { userId } = (req as AuthenticatedRequest).user;
       const body = req.body as { token?: string; fcmToken?: string };
       const token = body.token ?? body.fcmToken ?? '';
-      if (!token) { res.status(400).json(apiResponse.error('token is required')); return; }
+      if (!token) {
+        // No specific token → logout scenario: remove all tokens for this user
+        await this.userService.removeAllFcmTokens(userId);
+        res.json(apiResponse.success(null, 'FCM tokens cleared'));
+        return;
+      }
       await this.userService.removeFcmToken(userId, token);
       res.json(apiResponse.success(null, 'FCM token removed'));
     } catch (error) {
