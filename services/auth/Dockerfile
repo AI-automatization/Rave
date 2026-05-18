@@ -9,7 +9,6 @@ COPY services/auth/package*.json ./services/auth/
 COPY services/user/package*.json ./services/user/
 COPY services/content/package*.json ./services/content/
 COPY services/watch-party/package*.json ./services/watch-party/
-COPY services/battle/package*.json ./services/battle/
 COPY services/notification/package*.json ./services/notification/
 COPY services/admin/package*.json ./services/admin/
 
@@ -38,7 +37,6 @@ COPY services/auth/package*.json ./services/auth/
 COPY services/user/package*.json ./services/user/
 COPY services/content/package*.json ./services/content/
 COPY services/watch-party/package*.json ./services/watch-party/
-COPY services/battle/package*.json ./services/battle/
 COPY services/notification/package*.json ./services/notification/
 COPY services/admin/package*.json ./services/admin/
 
