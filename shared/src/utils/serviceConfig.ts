@@ -41,9 +41,6 @@ export const contentServiceUrl =
 export const watchPartyServiceUrl =
   process.env.WATCH_PARTY_SERVICE_URL ?? 'http://localhost:3004';
 
-export const battleServiceUrl =
-  process.env.BATTLE_SERVICE_URL ?? 'http://localhost:3005';
-
 export const authServiceUrl =
   process.env.AUTH_SERVICE_URL ?? 'http://localhost:3001';
 

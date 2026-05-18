@@ -73,8 +73,6 @@ export const REDIS_KEYS = {
   recentRooms: (userId: string) => `party:recent_rooms:${userId}`,
   publicRoomsCache: () => `party:public_rooms_cache`,
 
-  // Battle
-  battleLeaderboard: (battleId: string) => `battle:leaderboard:${battleId}`,
 } as const;
 
 // ─────────────────────────────────────────────

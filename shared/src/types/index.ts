@@ -198,35 +198,6 @@ export interface SyncMessage {
 }
 
 // ─────────────────────────────────────────────
-// Battle
-// ─────────────────────────────────────────────
-
-export type BattleStatus = 'pending' | 'active' | 'completed' | 'cancelled' | 'rejected';
-export type BattleDuration = 3 | 5 | 7; // days
-
-export interface IBattle {
-  _id: string;
-  title: string;
-  creatorId: string;
-  participants: IBattleParticipant[];
-  duration: BattleDuration;
-  status: BattleStatus;
-  startDate: Date;
-  endDate: Date;
-  winnerId: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface IBattleParticipant {
-  userId: string;
-  score: number;
-  moviesWatched: number;
-  minutesWatched: number;
-  joinedAt: Date;
-}
-
-// ─────────────────────────────────────────────
 // Notification
 // ─────────────────────────────────────────────
 
@@ -236,15 +207,12 @@ export type UserRestriction =
   | 'send_message'
   | 'join_room'
   | 'upload_avatar'
-  | 'use_chat'
-  | 'create_battle';
+  | 'use_chat';
 
 export type NotificationType =
   | 'friend_request'
   | 'friend_accepted'
   | 'watch_party_invite'
-  | 'battle_invite'
-  | 'battle_result'
   | 'achievement_unlocked'
   | 'friend_online'
   | 'friend_watching'

@@ -4,7 +4,7 @@ import { isQueueReady, queueAddPoints, queueTriggerAchievement } from './service
 import {
   axios, AxiosError, INTERNAL_SECRET, internalHeaders,
   userServiceUrl, contentServiceUrl, notificationServiceUrl,
-  battleServiceUrl, watchPartyServiceUrl, authServiceUrl, adminServiceUrl,
+  watchPartyServiceUrl, authServiceUrl, adminServiceUrl,
 } from './serviceConfig';
 
 // Re-export admin client functions for backwards compatibility
@@ -13,7 +13,7 @@ export * from './adminServiceClient';
 // ─── User Service ──────────────────────────────────────────────────────────────
 
 export type AchievementEvent =
-  | 'movie_watched' | 'watch_party' | 'battle' | 'friend'
+  | 'movie_watched' | 'watch_party' | 'friend'
   | 'review' | 'streak' | 'rank' | 'watch_time' | 'daily_minutes';
 
 export async function addUserPoints(userId: string, points: number): Promise<void> {
@@ -171,6 +171,26 @@ export async function sendInternalNotification(payload: {
 
 // ─── Content Service ───────────────────────────────────────────────────────────
 
+export async function recordWatchHistoryInternal(
+  userId: string,
+  movieId: string,
+  progress: number,
+  durationWatched: number,
+  currentTimeSeconds: number,
+  videoUrl?: string | null,
+): Promise<void> {
+  try {
+    await axios.post(
+      `${contentServiceUrl}/api/v1/content/internal/history`,
+      { userId, movieId, progress, durationWatched, currentTimeSeconds, videoUrl },
+      { headers: internalHeaders, timeout: 5000 },
+    );
+  } catch (err) {
+    const error = err as AxiosError;
+    logger.error('[serviceClient] recordWatchHistoryInternal failed', { userId, movieId, message: error.message });
+  }
+}
+
 export async function logDomainVisit(domain: string, userId: string): Promise<void> {
   try {
     await axios.post(
@@ -217,24 +237,6 @@ export async function getUserWatchStats(userId: string): Promise<{
   } catch (err) {
     const error = err as AxiosError;
     logger.error('[serviceClient] getUserWatchStats failed', { userId, message: error.message });
-    return null;
-  }
-}
-
-// ─── Battle Service ────────────────────────────────────────────────────────────
-
-export async function getUserBattleStats(userId: string): Promise<{
-  battlesWon: number; battlesTotal: number;
-} | null> {
-  try {
-    const res = await axios.get<{ success: boolean; data: { battlesWon: number; battlesTotal: number } }>(
-      `${battleServiceUrl}/api/v1/battles/internal/user-stats/${userId}`,
-      { headers: internalHeaders, timeout: 5000 },
-    );
-    return res.data.data;
-  } catch (err) {
-    const error = err as AxiosError;
-    logger.error('[serviceClient] getUserBattleStats failed', { userId, message: error.message });
     return null;
   }
 }
@@ -312,7 +314,6 @@ export async function cascadeDeleteUser(userId: string): Promise<void> {
   const calls: Array<[string, string]> = [
     [authServiceUrl,         `/api/v1/auth/internal/users/${userId}`],
     [notificationServiceUrl, `/api/v1/notifications/internal/users/${userId}`],
-    [battleServiceUrl,       `/api/v1/battles/internal/users/${userId}`],
     [contentServiceUrl,      `/api/v1/content/internal/users/${userId}`],
     [adminServiceUrl,        `/api/v1/admin/internal/users/${userId}`],
   ];

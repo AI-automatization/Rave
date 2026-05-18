@@ -206,37 +206,6 @@ export class AdminController {
     }
   };
 
-  // ── Battles ───────────────────────────────────────────────
-
-  listBattles = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const page = Math.max(1, parseInt((req.query.page as string) ?? '1', 10) || 1);
-      const limit = Math.min(Math.max(1, parseInt((req.query.limit as string) ?? '20', 10) || 20), 100);
-      const { battles, total } = await this.adminService.listBattles({
-        page,
-        limit,
-        status: req.query.status as string | undefined,
-      });
-      res.json(apiResponse.paginated(battles, buildPaginationMeta(page, limit, total)));
-    } catch (error) { next(error); }
-  };
-
-  endBattle = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const { userId: adminId } = (req as AuthenticatedRequest).user;
-      await this.adminService.endBattle(req.params.id, adminId);
-      res.json(apiResponse.success(null, 'Battle ended'));
-    } catch (error) { next(error); }
-  };
-
-  cancelBattle = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const { userId: adminId } = (req as AuthenticatedRequest).user;
-      await this.adminService.cancelBattle(req.params.id, adminId);
-      res.json(apiResponse.success(null, 'Battle cancelled'));
-    } catch (error) { next(error); }
-  };
-
   // ── Watch Parties ─────────────────────────────────────────
 
   listWatchParties = async (req: Request, res: Response, next: NextFunction): Promise<void> => {

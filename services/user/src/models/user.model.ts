@@ -5,8 +5,6 @@ export interface INotificationSettings {
   friendRequest: boolean;
   friendAccepted: boolean;
   watchPartyInvite: boolean;
-  battleInvite: boolean;
-  battleResult: boolean;
   achievementUnlocked: boolean;
   friendOnline: boolean;
   emailDigest: boolean;
@@ -67,8 +65,6 @@ const userSchema = new Schema<IUserDocument>(
                 friendRequest:       { type: Boolean, default: true },
                 friendAccepted:      { type: Boolean, default: true },
                 watchPartyInvite:    { type: Boolean, default: true },
-                battleInvite:        { type: Boolean, default: true },
-                battleResult:        { type: Boolean, default: true },
                 achievementUnlocked: { type: Boolean, default: true },
                 friendOnline:        { type: Boolean, default: false },
                 emailDigest:         { type: Boolean, default: true },

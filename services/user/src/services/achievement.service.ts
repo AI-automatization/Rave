@@ -9,13 +9,11 @@ export type AchievementEvent =
   | { type: 'movie_watched'; totalMovies: number; genre?: string }
   | { type: 'watch_party_joined'; totalJoined: number }
   | { type: 'watch_party_hosted'; totalHosted: number }
-  | { type: 'battle_won'; totalWins: number }
-  | { type: 'battle_participated'; totalBattles: number }
   | { type: 'friend_added'; totalFriends: number }
   | { type: 'review_written'; totalReviews: number }
   | { type: 'daily_streak'; currentStreak: number }
   | { type: 'rank_reached'; rank: string }
-  | { type: 'watch_time'; hour: number }             // Watch Party da soat (0-23)
+  | { type: 'watch_time'; hour: number }
   | { type: 'daily_watch_minutes'; minutes: number };
 
 interface UnlockResult {
@@ -129,12 +127,6 @@ export class AchievementService {
 
       case 'watch_party_hosted':
         return (cond.count as number) <= event.totalHosted;
-
-      case 'battle_won':
-        return (cond.count as number) <= event.totalWins;
-
-      case 'battle_participated':
-        return (cond.count as number) <= event.totalBattles;
 
       case 'friend_added':
         return (cond.count as number) <= event.totalFriends;

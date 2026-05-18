@@ -7,7 +7,7 @@ import { logger } from '@shared/utils/logger';
 import { NotFoundError, BadRequestError } from '@shared/utils/errors';
 import { REDIS_KEYS, TTL, RANKS } from '@shared/constants';
 import { UserRank } from '@shared/types';
-import { getUserWatchStats, getUserBattleStats, revokeUserSessions, disconnectUserSocket, cascadeDeleteUser } from '@shared/utils/serviceClient';
+import { getUserWatchStats, revokeUserSessions, disconnectUserSocket, cascadeDeleteUser } from '@shared/utils/serviceClient';
 
 export class ProfileService {
   constructor(private redis: Redis) {}
@@ -192,8 +192,6 @@ export class ProfileService {
     totalPoints: number;
     rank: string;
     rankProgress: number;
-    battlesWon: number;
-    battlesTotal: number;
     achievementsCount: number;
     friendsCount: number;
     currentStreak: number;
@@ -215,14 +213,13 @@ export class ProfileService {
       ? 100
       : Math.min(100, Math.floor(((user.totalPoints - rankInfo.min) / (rankInfo.max - rankInfo.min)) * 100));
 
-    const [friendsCount, achievementsCount, watchStats, battleStats] = await Promise.all([
+    const [friendsCount, achievementsCount, watchStats] = await Promise.all([
       Friendship.countDocuments({
         $or: [{ requesterId: userId }, { receiverId: userId }],
         status: 'accepted',
       }),
       UserAchievement.countDocuments({ userId }),
       getUserWatchStats(userId),
-      getUserBattleStats(userId),
     ]);
 
     return {
@@ -231,8 +228,6 @@ export class ProfileService {
       totalPoints:    user.totalPoints,
       rank:           user.rank,
       rankProgress,
-      battlesWon:     battleStats?.battlesWon ?? 0,
-      battlesTotal:   battleStats?.battlesTotal ?? 0,
       achievementsCount,
       friendsCount,
       currentStreak:  watchStats?.currentStreak ?? 0,

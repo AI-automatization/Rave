@@ -13,7 +13,6 @@ import {
   adminListMovies,
   adminGetContentStats,
   adminGetWatchPartyStats,
-  adminGetBattleStats,
   adminBroadcastNotification,
   adminSendNotificationToUser,
 } from '@shared/utils/serviceClient';
@@ -25,7 +24,6 @@ export interface DashboardStats {
   totalUsers: number;
   activeUsers: number;
   totalMovies: number;
-  activeBattles: number;
   activeWatchParties: number;
 }
 
@@ -54,9 +52,6 @@ export class AdminService {
   blockDomain!: AdminContentService['blockDomain'];
   unblockDomain!: AdminContentService['unblockDomain'];
   addBlockedDomain!: AdminContentService['addBlockedDomain'];
-  listBattles!: AdminRoomService['listBattles'];
-  endBattle!: AdminRoomService['endBattle'];
-  cancelBattle!: AdminRoomService['cancelBattle'];
   listWatchParties!: AdminRoomService['listWatchParties'];
   closeWatchParty!: AdminRoomService['closeWatchParty'];
   joinWatchParty!: AdminRoomService['joinWatchParty'];
@@ -87,9 +82,6 @@ export class AdminService {
     this.blockDomain = this.content.blockDomain.bind(this.content);
     this.unblockDomain = this.content.unblockDomain.bind(this.content);
     this.addBlockedDomain = this.content.addBlockedDomain.bind(this.content);
-    this.listBattles = this.rooms.listBattles.bind(this.rooms);
-    this.endBattle = this.rooms.endBattle.bind(this.rooms);
-    this.cancelBattle = this.rooms.cancelBattle.bind(this.rooms);
     this.listWatchParties = this.rooms.listWatchParties.bind(this.rooms);
     this.closeWatchParty = this.rooms.closeWatchParty.bind(this.rooms);
     this.joinWatchParty = this.rooms.joinWatchParty.bind(this.rooms);
@@ -100,17 +92,15 @@ export class AdminService {
   // ── Dashboard + Analytics ──────────────────────────────────
 
   async getDashboardStats(): Promise<DashboardStats> {
-    const [userStats, movieResult, watchPartyStats, battleStats] = await Promise.all([
+    const [userStats, movieResult, watchPartyStats] = await Promise.all([
       adminGetUserStats(),
       adminListMovies({ limit: 1 }),
       adminGetWatchPartyStats(),
-      adminGetBattleStats(),
     ]);
     return {
       totalUsers: userStats.totalUsers,
       activeUsers: userStats.activeUsers,
       totalMovies: movieResult.total,
-      activeBattles: battleStats.activeNow,
       activeWatchParties: watchPartyStats.activeNow,
     };
   }
@@ -119,25 +109,20 @@ export class AdminService {
     totalUsers: number;
     newUsersThisWeek: number;
     watchPartiesCreatedToday: number;
-    battlesCreatedToday: number;
     activeWatchParties: number;
-    activeBattles: number;
     topMovies: Array<{ _id: string; title: string; viewCount: number }>;
     genreDistribution: Array<{ genre: string; count: number }>;
   }> {
-    const [contentStats, watchPartyStats, battleStats, userStats] = await Promise.all([
+    const [contentStats, watchPartyStats, userStats] = await Promise.all([
       adminGetContentStats(),
       adminGetWatchPartyStats(),
-      adminGetBattleStats(),
       adminGetUserStats(),
     ]);
     return {
       totalUsers: userStats.totalUsers,
       newUsersThisWeek: userStats.newUsersThisWeek,
       watchPartiesCreatedToday: watchPartyStats.createdToday,
-      battlesCreatedToday: battleStats.createdToday,
       activeWatchParties: watchPartyStats.activeNow,
-      activeBattles: battleStats.activeNow,
       topMovies: contentStats.topMovies,
       genreDistribution: contentStats.genreDistribution,
     };
@@ -258,7 +243,6 @@ export class AdminService {
       { name: 'user', url: process.env.USER_SERVICE_URL ?? 'http://localhost:3002' },
       { name: 'content', url: process.env.CONTENT_SERVICE_URL ?? 'http://localhost:3003' },
       { name: 'watch-party', url: process.env.WATCH_PARTY_SERVICE_URL ?? 'http://localhost:3004' },
-      { name: 'battle', url: process.env.BATTLE_SERVICE_URL ?? 'http://localhost:3005' },
       { name: 'notification', url: process.env.NOTIFICATION_SERVICE_URL ?? 'http://localhost:3007' },
     ];
     const results: Record<string, { status: 'ok' | 'error'; latency?: number }> = {};

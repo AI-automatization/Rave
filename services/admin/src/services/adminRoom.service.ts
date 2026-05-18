@@ -1,9 +1,6 @@
 import { logger } from '@shared/utils/logger';
 import { AuditLog } from '../models/auditLog.model';
 import {
-  adminListBattles,
-  adminEndBattle,
-  adminCancelBattle,
   adminListWatchParties,
   adminCloseWatchParty,
   adminJoinWatchParty,
@@ -25,24 +22,6 @@ export class AdminRoomService {
     } catch (err) {
       logger.warn('Audit log write failed', { error: (err as Error).message, action, adminId });
     }
-  }
-
-  async listBattles(filters: {
-    page: number;
-    limit: number;
-    status?: string;
-  }): Promise<{ battles: unknown[]; total: number }> {
-    return adminListBattles(filters);
-  }
-
-  async endBattle(battleId: string, adminId: string): Promise<void> {
-    await adminEndBattle(battleId);
-    logger.info('Battle force-ended by admin', { battleId, adminId });
-  }
-
-  async cancelBattle(battleId: string, adminId: string): Promise<void> {
-    await adminCancelBattle(battleId);
-    logger.info('Battle cancelled by admin', { battleId, adminId });
   }
 
   async listWatchParties(filters: {
