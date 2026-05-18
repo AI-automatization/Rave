@@ -82,14 +82,6 @@ export function MovieDetailScreen({ route, navigation }: Props) {
     navigation.navigate('VideoPlayer', { movieId: movie._id, videoUrl: movie.videoUrl, title: movie.title });
   };
 
-  const handleBattle = () => {
-    if (!movie) return;
-    rootNav.navigate('Modal', {
-      screen: 'BattleCreate',
-      params: { initialMovieTitle: movie.title },
-    });
-  };
-
   if (isLoading) {
     return (
       <View style={s.center}>
@@ -145,11 +137,9 @@ export function MovieDetailScreen({ route, navigation }: Props) {
             watchProgress={watchProgress}
             onWatch={handleWatch}
             onWatchParty={() => rootNav.navigate('Modal', { screen: 'WatchPartyCreate' })}
-            onBattle={handleBattle}
             playLabel={t('movie', 'play')}
             continueLabel={t('movie', 'continueWatching')}
             watchPartyLabel={t('movie', 'watchPartyCreate')}
-            battleLabel={t('movie', 'startBattle')}
             showMoreLabel={t('movie', 'showMore')}
             showLessLabel={t('movie', 'showLess')}
           />

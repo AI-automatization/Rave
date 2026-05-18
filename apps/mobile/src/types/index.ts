@@ -18,10 +18,6 @@ export type {
   VideoPlatform,
   VideoItem,
   SyncState,
-  IBattle,
-  IBattleParticipant,
-  BattleStatus,
-  BattleDuration,
   INotification,
   NotificationType,
   IAchievement,
@@ -81,8 +77,6 @@ export interface IUserStats {
   totalPoints: number;
   rank: import('@shared/types/index').UserRank;
   rankProgress: number; // 0-100
-  battlesWon: number;
-  battlesTotal: number;
   achievementsCount: number;
   friendsCount: number;
   currentStreak: number;
@@ -134,8 +128,6 @@ export type ModalStackParamList = {
   WatchParty: { roomId: string; videoReferer?: string };
   WatchPartyCreate: undefined;
   WatchPartyJoin: { inviteCode?: string } | undefined;
-  Battle: { battleId?: string };
-  BattleCreate: { initialMovieTitle?: string; initialFriendId?: string } | undefined;
   Notifications: undefined;
   /** Source picker — выбор платформы (YouTube, Web, VK, etc.) */
   SourcePicker: {

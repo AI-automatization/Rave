@@ -218,7 +218,7 @@ export function SettingsScreen() {
           <View style={styles.card}>
             <TouchableOpacity
               style={[styles.navRow, styles.rowBorder]}
-              onPress={() => Linking.openURL('https://wewatch.app/privacy')}
+              onPress={() => Linking.openURL('https://ai-automatization.github.io/Rave/privacy-policy.html')}
               activeOpacity={0.8}
             >
               <Ionicons name="shield-checkmark-outline" size={18} color={colors.textMuted} />
@@ -227,7 +227,7 @@ export function SettingsScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.navRow}
-              onPress={() => Linking.openURL('https://wewatch.app/terms')}
+              onPress={() => Linking.openURL('https://ai-automatization.github.io/Rave/terms.html')}
               activeOpacity={0.8}
             >
               <Ionicons name="document-text-outline" size={18} color={colors.textMuted} />

@@ -1,0 +1,16 @@
+appId: host.exp.Exponent
+---
+- waitForAnimationToEnd
+- takeScreenshot: home_screen
+- tapOn:
+    id: "rooms-tab"
+- waitForAnimationToEnd
+- takeScreenshot: rooms_tab
+- tapOn:
+    id: "friends-tab"
+- waitForAnimationToEnd
+- takeScreenshot: friends_tab
+- tapOn:
+    id: "profile-tab"
+- waitForAnimationToEnd
+- takeScreenshot: profile_tab

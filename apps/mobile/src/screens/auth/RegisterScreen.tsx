@@ -176,11 +176,11 @@ export function RegisterScreen() {
               </View>
               <Text style={s.tosText}>
                 <Text>{t('register', 'tosText')}</Text>
-                <Text style={s.tosLink} onPress={() => Linking.openURL('https://wewatch.app/terms')}>
+                <Text style={s.tosLink} onPress={() => Linking.openURL('https://ai-automatization.github.io/Rave/terms.html')}>
                   {t('register', 'tosTerms')}
                 </Text>
                 <Text>{t('register', 'tosAnd')}</Text>
-                <Text style={s.tosLink} onPress={() => Linking.openURL('https://wewatch.app/privacy')}>
+                <Text style={s.tosLink} onPress={() => Linking.openURL('https://ai-automatization.github.io/Rave/privacy-policy.html')}>
                   {t('register', 'tosPrivacy')}
                 </Text>
                 {t('register', 'tosEnd') ? <Text>{t('register', 'tosEnd')}</Text> : null}

@@ -12,11 +12,13 @@ import { useMediaDetection, WEBVIEW_INJECT_JS } from '@hooks/useMediaDetection';
 import { MediaBottomBar } from '@components/watchParty/MediaBottomBar';
 import { MOBILE_UA } from '@utils/webViewScripts';
 import { isDomainBlocked } from '@constants/blockedDomains';
+import { useDynamicBlockedDomains } from '@hooks/useDynamicBlockedDomains';
 import { contentApi } from '@api/content.api';
 
 export function MediaWebViewScreen() {
   const insets = useSafeAreaInsets();
   const [blockedDomain, setBlockedDomain] = useState<string | null>(null);
+  useDynamicBlockedDomains();
   const {
     webViewRef, params,
     canGoBack, canGoForward, isLoading, pageTitle, isImporting,

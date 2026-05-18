@@ -1,0 +1,18 @@
+appId: host.exp.Exponent
+---
+- launchApp:
+    clearState: false
+- waitForAnimationToEnd
+- assertVisible: "Войти"
+- tapOn:
+    text: "Email"
+- inputText: "kamerkamu77@gmail.com"
+- tapOn:
+    text: "Пароль"
+- inputText: "Test1234!"
+- tapOn:
+    text: "Войти"
+- waitForAnimationToEnd:
+    timeout: 8000
+- assertNotVisible: "Войти"
+- takeScreenshot: login_success

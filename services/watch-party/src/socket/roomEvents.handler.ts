@@ -3,6 +3,7 @@ import { WatchPartyService } from '../services/watchParty.service';
 import { logger } from '@shared/utils/logger';
 import { SERVER_EVENTS, CLIENT_EVENTS } from '@shared/constants/socketEvents';
 import { JwtPayload, VideoPlatform } from '@shared/types';
+import { recordWatchHistoryInternal } from '@shared/utils/serviceClient';
 
 interface AuthenticatedSocket extends Socket {
   user: JwtPayload;
@@ -70,6 +71,23 @@ export const registerRoomEvents = (
     if (!authSocket.roomId) return;
     const roomId = authSocket.roomId;
     authSocket.roomId = undefined;
+
+    // Save watch position before leaving (non-blocking)
+    void (async () => {
+      try {
+        const [syncState, room] = await Promise.all([
+          watchPartyService.getSyncState(roomId),
+          watchPartyService.getRoom(roomId).catch(() => null),
+        ]);
+        if (room && syncState && (room.movieId || room.videoUrl)) {
+          const currentTimeSeconds = Math.floor(syncState.currentTime ?? 0);
+          const movieId = room.movieId ?? `ext_${Buffer.from(room.videoUrl ?? '').toString('base64').slice(0, 16)}`;
+          await recordWatchHistoryInternal(userId, movieId, 0, currentTimeSeconds, currentTimeSeconds, room.videoUrl);
+        }
+      } catch (e) {
+        logger.warn('Failed to save watch history on room leave', { userId, roomId, error: e });
+      }
+    })();
 
     await socket.leave(roomId);
 

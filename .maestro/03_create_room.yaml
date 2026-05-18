@@ -1,0 +1,16 @@
+appId: host.exp.Exponent
+---
+- waitForAnimationToEnd
+- tapOn:
+    id: "create-room-btn"
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: source_picker
+- assertVisible: "YouTube"
+- assertVisible: "VK"
+- assertVisible: "Rutube"
+- tapOn:
+    text: "YouTube"
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: youtube_webview

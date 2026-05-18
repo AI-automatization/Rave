@@ -7,6 +7,8 @@ export interface IWatchHistoryDocument extends Document {
   progress: number; // 0-100 percentage
   completed: boolean;
   durationWatched: number; // seconds
+  currentTimeSeconds: number; // exact playback position saved on leave
+  videoUrl: string | null; // external video URL when no internal movieId
   createdAt: Date;
   updatedAt: Date;
 }
@@ -19,6 +21,8 @@ const watchHistorySchema = new Schema<IWatchHistoryDocument>(
     progress: { type: Number, default: 0, min: 0, max: 100 },
     completed: { type: Boolean, default: false },
     durationWatched: { type: Number, default: 0 },
+    currentTimeSeconds: { type: Number, default: 0 },
+    videoUrl: { type: String, default: null },
   },
   {
     timestamps: true,

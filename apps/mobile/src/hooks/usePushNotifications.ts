@@ -35,9 +35,6 @@ export function usePushNotifications() {
         void queryClient.invalidateQueries({ queryKey: ['friends'] });
         void queryClient.invalidateQueries({ queryKey: ['friend-requests'] });
       }
-      if (type === 'battle_invite' || type === 'battle_result') {
-        void queryClient.invalidateQueries({ queryKey: ['my-battles'] });
-      }
       // Always refresh notifications list
       void queryClient.invalidateQueries({ queryKey: ['notifications'] });
     });

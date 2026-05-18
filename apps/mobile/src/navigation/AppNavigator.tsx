@@ -58,8 +58,6 @@ export function AppNavigator() {
       navigationRef.navigate('Modal', { screen: 'WatchPartyJoin', params: { inviteCode: data.inviteCode } });
     } else if (data.roomId) {
       navigationRef.navigate('Modal', { screen: 'WatchParty', params: { roomId: data.roomId } });
-    } else if (data.battleId) {
-      navigationRef.navigate('Modal', { screen: 'Battle', params: { battleId: data.battleId } });
     } else if (data.type === 'support_reply' || screen === 'SupportChat') {
       navigationRef.navigate('Modal', { screen: 'SupportChat' });
     } else if (screen === 'Friends') {
@@ -69,12 +67,12 @@ export function AppNavigator() {
     }
   }, [lastResponse, isNavReady, isAuthenticated, needsProfileSetup, navigationRef]);
 
-  // Deep link: cinesync://join/:inviteCode
+  // Deep link: wewatch://join/:inviteCode
   useEffect(() => {
     if (!isAuthenticated || !navigationRef.isReady()) return;
 
     const handleDeepLink = (url: string) => {
-      const match = url.match(/cinesync:\/\/join\/([A-Fa-f0-9]{6})/i);
+      const match = url.match(/wewatch:\/\/join\/([A-Fa-f0-9]{6})/i);
       if (match) {
         navigationRef.navigate('Modal', {
           screen: 'WatchPartyJoin',

@@ -18,12 +18,12 @@ export const emailService = {
   async sendVerificationEmail(to: string, code: string): Promise<void> {
     try {
       await transporter.sendMail({
-        from: `"CineSync" <${config.email.from}>`,
+        from: `"WeWatch" <${config.email.from}>`,
         to,
-        subject: 'Tasdiqlash kodi — CineSync',
+        subject: 'Tasdiqlash kodi — WeWatch',
         html: `
           <div style="font-family: DM Sans, sans-serif; max-width: 600px; margin: 0 auto; background: #0A0A0F; color: #fff; padding: 40px; border-radius: 12px;">
-            <h1 style="color: #E50914; margin-bottom: 8px;">CineSync</h1>
+            <h1 style="color: #E50914; margin-bottom: 8px;">WeWatch</h1>
             <p style="font-size: 18px; margin-bottom: 24px;">Email manzilingizni tasdiqlang</p>
             <p style="color: #ccc;">Ro'yxatdan o'tganingiz uchun rahmat! Quyidagi 6 raqamli kodni ilovaga kiriting:</p>
             <div style="background: #16161F; border: 2px solid #E50914; border-radius: 12px; padding: 24px; text-align: center; margin: 24px 0;">
@@ -46,12 +46,12 @@ export const emailService = {
 
     try {
       await transporter.sendMail({
-        from: `"CineSync" <${config.email.from}>`,
+        from: `"WeWatch" <${config.email.from}>`,
         to,
-        subject: 'Parolni tiklash — CineSync',
+        subject: 'Parolni tiklash — WeWatch',
         html: `
           <div style="font-family: DM Sans, sans-serif; max-width: 600px; margin: 0 auto; background: #0A0A0F; color: #fff; padding: 40px; border-radius: 12px;">
-            <h1 style="color: #E50914; margin-bottom: 8px;">CineSync</h1>
+            <h1 style="color: #E50914; margin-bottom: 8px;">WeWatch</h1>
             <p style="font-size: 18px; margin-bottom: 24px;">Parolni tiklash</p>
             <p style="color: #ccc;">Yangi parol o'rnatish uchun quyidagi tugmani bosing:</p>
             <a href="${resetUrl}"
@@ -81,7 +81,7 @@ export const emailService = {
 
     const alertHtml = `
       <div style="font-family: monospace; max-width: 560px; margin: 0 auto; background: #09090b; color: #e4e4e7; padding: 32px; border-radius: 8px; border: 1px solid #27272a;">
-        <p style="color: #71717a; font-size: 11px; margin: 0 0 20px; text-transform: uppercase; letter-spacing: 2px;">CineSync Admin Alert</p>
+        <p style="color: #71717a; font-size: 11px; margin: 0 0 20px; text-transform: uppercase; letter-spacing: 2px;">WeWatch Admin Alert</p>
         <h2 style="color: #fff; margin: 0 0 24px; font-size: 18px; font-weight: 600;">Admin panel login detected</h2>
         <table style="width: 100%; border-collapse: collapse;">
           <tr>
@@ -113,7 +113,7 @@ export const emailService = {
 
     const selfHtml = `
       <div style="font-family: monospace; max-width: 560px; margin: 0 auto; background: #09090b; color: #e4e4e7; padding: 32px; border-radius: 8px; border: 1px solid #27272a;">
-        <p style="color: #71717a; font-size: 11px; margin: 0 0 20px; text-transform: uppercase; letter-spacing: 2px;">CineSync Security</p>
+        <p style="color: #71717a; font-size: 11px; margin: 0 0 20px; text-transform: uppercase; letter-spacing: 2px;">WeWatch Security</p>
         <h2 style="color: #fff; margin: 0 0 24px; font-size: 18px; font-weight: 600;">Akkauntingizga kirish amalga oshirildi</h2>
         <table style="width: 100%; border-collapse: collapse;">
           <tr>
@@ -151,7 +151,7 @@ export const emailService = {
     // 1. Always send self-notification to the logged-in staff member
     sends.push(
       transporter.sendMail({
-        from: `"CineSync Security" <${config.email.from}>`,
+        from: `"WeWatch Security" <${config.email.from}>`,
         to: opts.adminEmail,
         subject: `🔐 Akkauntga kirish — ${time}`,
         html: selfHtml,
@@ -162,7 +162,7 @@ export const emailService = {
     if (!isSuperadminLogin) {
       sends.push(
         transporter.sendMail({
-          from: `"CineSync Security" <${config.email.from}>`,
+          from: `"WeWatch Security" <${config.email.from}>`,
           to: superadminEmail,
           subject: `⚠️ Admin login — ${opts.adminEmail} (${opts.role})`,
           html: alertHtml,
@@ -185,8 +185,8 @@ export const emailService = {
   }): Promise<void> {
     const isApproved = opts.status === 'approved';
     const subject = isApproved
-      ? 'Ваша апелляция одобрена — CineSync'
-      : 'Ваша апелляция отклонена — CineSync';
+      ? 'Ваша апелляция одобрена — WeWatch'
+      : 'Ваша апелляция отклонена — WeWatch';
     const statusColor = isApproved ? '#22c55e' : '#ef4444';
     const statusText = isApproved ? 'Апелляция одобрена' : 'Апелляция отклонена';
     const bodyText = isApproved
@@ -195,12 +195,12 @@ export const emailService = {
 
     try {
       await transporter.sendMail({
-        from: `"CineSync" <${config.email.from}>`,
+        from: `"WeWatch" <${config.email.from}>`,
         to: opts.to,
         subject,
         html: `
           <div style="font-family: DM Sans, sans-serif; max-width: 600px; margin: 0 auto; background: #0A0A0F; color: #fff; padding: 40px; border-radius: 12px;">
-            <h1 style="color: #7C3AED; margin-bottom: 8px;">CineSync</h1>
+            <h1 style="color: #7C3AED; margin-bottom: 8px;">WeWatch</h1>
             <div style="display: inline-block; background: ${statusColor}22; border: 1px solid ${statusColor}; border-radius: 8px; padding: 8px 16px; margin-bottom: 24px;">
               <span style="color: ${statusColor}; font-weight: 600;">${statusText}</span>
             </div>
@@ -210,7 +210,7 @@ export const emailService = {
               <p style="color: #888; font-size: 12px; margin: 0 0 6px;">Комментарий модератора:</p>
               <p style="color: #fff; margin: 0; font-size: 14px;">${opts.note}</p>
             </div>` : ''}
-            <p style="color: #666; font-size: 12px; margin-top: 32px;">Команда CineSync</p>
+            <p style="color: #666; font-size: 12px; margin-top: 32px;">Команда WeWatch</p>
           </div>
         `,
       });

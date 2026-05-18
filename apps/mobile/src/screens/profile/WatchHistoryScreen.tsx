@@ -8,15 +8,18 @@ import {
   ActivityIndicator,
   RefreshControl,
   ListRenderItemInfo,
+  Alert,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { contentApi } from '@api/content.api';
+import { watchPartyApi } from '@api/watchParty.api';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { useT } from '@i18n/index';
+import { RootStackParamList } from '@app-types/index';
 
 type HistoryItem = {
   movieId: string;
@@ -25,6 +28,8 @@ type HistoryItem = {
   progress: number;
   watchedAt: string;
   completed: boolean;
+  currentTimeSeconds: number;
+  videoUrl?: string | null;
 };
 
 type Filter = 'all' | 'completed' | 'in_progress';
@@ -35,6 +40,14 @@ function formatDate(iso: string): string {
   } catch {
     return '';
   }
+}
+
+function formatSeconds(secs: number): string {
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  const s = secs % 60;
+  if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  return `${m}:${String(s).padStart(2, '0')}`;
 }
 
 function ProgressBar({ value }: { value: number }) {
@@ -48,10 +61,11 @@ function ProgressBar({ value }: { value: number }) {
   );
 }
 
-function HistoryCard({ item }: { item: HistoryItem }) {
+function HistoryCard({ item, onResume }: { item: HistoryItem; onResume: (item: HistoryItem) => void }) {
   const styles = useStyles();
   const { colors } = useTheme();
   const pct = Math.min(Math.round(item.progress), 100);
+  const canResume = (item.currentTimeSeconds ?? 0) > 0;
 
   return (
     <View style={styles.card}>
@@ -73,21 +87,30 @@ function HistoryCard({ item }: { item: HistoryItem }) {
         <View style={styles.progressRow}>
           <ProgressBar value={pct} />
           <Text style={[styles.pct, item.completed && styles.pctDone]}>
-            {item.completed ? '✓ Ko\'rildi' : `${pct}%`}
+            {item.completed ? "✓ Ko'rildi" : `${pct}%`}
           </Text>
         </View>
+        {canResume && (
+          <TouchableOpacity style={styles.resumeBtn} onPress={() => onResume(item)}>
+            <Ionicons name="play-circle" size={14} color={colors.primary} />
+            <Text style={styles.resumeText}>
+              {`Продолжить с ${formatSeconds(item.currentTimeSeconds)}`}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
 }
 
 export function WatchHistoryScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const insets = useSafeAreaInsets();
   const styles = useStyles();
   const { colors } = useTheme();
   const { t } = useT();
   const [filter, setFilter] = useState<Filter>('all');
+  const [resuming, setResuming] = useState<string | null>(null);
 
   const query = useInfiniteQuery({
     queryKey: ['watch-history'],
@@ -113,7 +136,28 @@ export function WatchHistoryScreen() {
     }
   }, [query]);
 
-  const renderItem = ({ item }: ListRenderItemInfo<HistoryItem>) => <HistoryCard item={item} />;
+  const handleResume = useCallback(async (item: HistoryItem) => {
+    if (resuming) return;
+    setResuming(item.movieId);
+    try {
+      const isExternal = item.movieId.startsWith('ext_');
+      const room = await watchPartyApi.createRoom({
+        ...(isExternal
+          ? { videoUrl: item.videoUrl ?? undefined, videoTitle: item.title }
+          : { movieId: item.movieId }),
+        startTime: item.currentTimeSeconds,
+      });
+      navigation.navigate('Modal', { screen: 'WatchParty', params: { roomId: room._id as string } });
+    } catch {
+      Alert.alert('Ошибка', 'Не удалось создать комнату. Попробуйте ещё раз.');
+    } finally {
+      setResuming(null);
+    }
+  }, [navigation, resuming]);
+
+  const renderItem = ({ item }: ListRenderItemInfo<HistoryItem>) => (
+    <HistoryCard item={item} onResume={handleResume} />
+  );
 
   const FILTERS: { key: Filter; label: string }[] = [
     { key: 'all', label: 'Barchasi' },
@@ -223,4 +267,9 @@ const useStyles = createThemedStyles((colors) => ({
   barFill: { height: '100%', borderRadius: borderRadius.full },
   pct: { ...typography.caption, color: colors.textSecondary, minWidth: 40, textAlign: 'right' },
   pctDone: { color: colors.success, fontWeight: '600' },
+  resumeBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    marginTop: 2,
+  },
+  resumeText: { ...typography.caption, color: colors.primary, fontWeight: '600', fontSize: 11 },
 }));

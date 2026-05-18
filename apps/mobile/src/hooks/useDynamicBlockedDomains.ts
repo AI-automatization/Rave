@@ -8,7 +8,7 @@ import { AppState, AppStateStatus } from 'react-native';
 import { contentApi } from '@api/content.api';
 
 const STORAGE_KEY = 'dynamic_blocked_domains_v1';
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24h
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 min — admin changes propagate quickly
 
 interface CacheEntry {
   domains: string[];

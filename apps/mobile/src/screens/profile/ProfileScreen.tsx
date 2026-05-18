@@ -10,15 +10,14 @@ import { useMyProfile } from '@hooks/useProfile';
 import { useAuthStore } from '@store/auth.store';
 import { userApi } from '@api/user.api';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
+import { FadeInView } from '@components/profile/ProfileAnimations';
 import { ProfileStackParamList } from '@app-types/index';
 import { useT } from '@i18n/index';
-import type { UserRank } from '@app-types/index';
-import { useRankMeta, formatDate } from '@hooks/useProfileData';
+import { formatDate } from '@hooks/useProfileData';
 import { ProfileHeader } from '@components/profile/ProfileHeader';
 import { ProfileEmptyState } from '@components/profile/ProfileEmptyState';
 import { ProfileEditModal } from '@components/profile/ProfileEditModal';
-import { InfoRow, NavItem } from '@components/profile/ProfileWidgets';
-import { FadeInView } from '@components/profile/ProfileAnimations';
+import { NavItem, ComingSoonItem, SectionHeader } from '@components/profile/ProfileWidgets';
 
 type Nav = NativeStackNavigationProp<ProfileStackParamList, 'Profile'>;
 
@@ -95,8 +94,6 @@ export function ProfileScreen() {
   };
 
   const displayUser = profileQuery.data ?? user;
-  const rank = ((displayUser?.rank ?? 'Bronze') as UserRank);
-  const rankMeta = useRankMeta(rank, displayUser?.totalPoints ?? 0);
 
   if (!displayUser) {
     return (
@@ -120,7 +117,7 @@ export function ProfileScreen() {
           username={u.username}
           bio={u.bio}
           isOnline={u.isOnline}
-          rankMeta={rankMeta}
+          points={u.totalPoints ?? 0}
           paddingTop={insets.top}
           onPickAvatar={handlePickAvatar}
           onEditPress={openEditModal}
@@ -128,43 +125,48 @@ export function ProfileScreen() {
           titleLabel={t('profile', 'title')}
           pointsLabel={t('profile', 'points')}
           joinDate={joinDate}
+          email={u.email}
+          friendsCount={stats?.friendsCount}
         />
 
-        {/* Account info card */}
+        {/* Activity */}
         <View style={s.section}>
-          <FadeInView delay={350}>
-            <Text style={s.sectionTitle}>{t('profile', 'accountInfo')}</Text>
-          </FadeInView>
-          <FadeInView delay={400} style={s.accountCard}>
-            <InfoRow icon="mail-outline" label="Email" value={u.email ?? '—'} />
-            <View style={s.infoDivider} />
-            <InfoRow icon="shield-checkmark-outline" label={t('profile', 'role')} value={u.role ?? '—'} />
-            <View style={s.infoDivider} />
-            <InfoRow icon="calendar-outline" label={t('profile', 'joined')} value={joinDate} />
-            <View style={s.infoDivider} />
-            <InfoRow icon="time-outline" label={t('profile', 'lastLogin')} value={formatDate(u.lastLoginAt)} />
-            {stats?.friendsCount !== undefined && (
-              <>
-                <View style={s.infoDivider} />
-                <InfoRow icon="people-outline" label={t('profile', 'friends')} value={String(stats.friendsCount)} />
-              </>
-            )}
-            {stats?.currentStreak !== undefined && stats.currentStreak > 0 && (
-              <>
-                <View style={s.infoDivider} />
-                <InfoRow icon="flame-outline" label={t('profile', 'streak')} value={`${stats.currentStreak} ${t('stats', 'days')}`} />
-              </>
-            )}
-          </FadeInView>
-        </View>
-
-        {/* Nav links */}
-        <View style={s.section}>
+          <SectionHeader label="Активность" />
           <NavItem icon="time-outline" label="Ko'rish tarixi" onPress={() => navigation.navigate('WatchHistory')} delay={450} />
         </View>
 
+        {/* Coming Soon — Subscription & Purchases */}
+        <View style={s.section}>
+          <SectionHeader label="Подписки и покупки" />
+          <View style={s.navGroup}>
+            <ComingSoonItem
+              icon="card-outline"
+              label="История подписок"
+              subtitle="Просмотр активных и прошлых планов"
+              delay={500}
+            />
+            <ComingSoonItem
+              icon="receipt-outline"
+              label="История покупок"
+              subtitle="Покупки внутри приложения"
+              delay={540}
+            />
+          </View>
+        </View>
+
+        {/* Settings shortcut */}
+        <View style={s.section}>
+          <SectionHeader label="Аккаунт" />
+          <NavItem
+            icon="settings-outline"
+            label="Настройки"
+            onPress={() => navigation.navigate('Settings')}
+            delay={660}
+          />
+        </View>
+
         {/* Logout */}
-        <FadeInView delay={550} style={s.section}>
+        <FadeInView delay={700} style={s.section}>
           <TouchableOpacity style={s.logoutBtn} onPress={handleLogout} activeOpacity={0.7}>
             <Ionicons name="log-out-outline" size={20} color={colors.error} />
             <Text style={s.logoutText}>{t('profile', 'logoutBtn')}</Text>
@@ -196,21 +198,7 @@ export function ProfileScreen() {
 const useStyles = createThemedStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bgBase },
   section: { paddingHorizontal: spacing.lg, marginTop: spacing.lg },
-  sectionTitle: {
-    ...typography.label,
-    color: colors.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: spacing.sm,
-  },
-  accountCard: {
-    backgroundColor: colors.bgElevated,
-    borderRadius: borderRadius.xl,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  infoDivider: { height: 1, backgroundColor: colors.border, marginLeft: 44 },
+  navGroup: { gap: spacing.sm },
   logoutBtn: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -46,7 +46,7 @@ export const IFRAME_SCAN_JS = `
 })();
 `;
 
-// DDoS-Guard / Cloudflare challenge detection
+// DDoS-Guard / Cloudflare / Google reCAPTCHA challenge detection
 export const BOT_PROTECTION_JS = `
 (function() {
   function check() {
@@ -55,7 +55,8 @@ export const BOT_PROTECTION_JS = `
       var html = document.documentElement ? document.documentElement.innerHTML : '';
       var isDdos = title.indexOf('DDoS-Guard') !== -1 || html.indexOf('ddos-guard.net') !== -1 || !!document.querySelector('script[src*="ddos-guard"]');
       var isCf = title.indexOf('Just a moment') !== -1 || !!document.querySelector('#cf-wrapper') || !!document.querySelector('.cf-browser-verification');
-      if ((isDdos || isCf) && window.ReactNativeWebView) {
+      var isRecaptcha = !!document.querySelector('.g-recaptcha') || !!document.querySelector('iframe[src*="recaptcha"]') || title.indexOf('reCAPTCHA') !== -1 || window.location.hostname === 'www.google.com' && html.indexOf('recaptcha') !== -1;
+      if ((isDdos || isCf || isRecaptcha) && window.ReactNativeWebView) {
         window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'BOT_PROTECTION_DETECTED' }));
       }
     } catch(e) {}

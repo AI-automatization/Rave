@@ -1,0 +1,5 @@
+appId: com.cinesync.app
+---
+- runFlow: 01_login.yaml
+- runFlow: 02_home_tabs.yaml
+- runFlow: 03_create_room.yaml

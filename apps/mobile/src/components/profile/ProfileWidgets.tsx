@@ -88,6 +88,55 @@ export const NavItem = React.memo(function NavItem({
   );
 });
 
+// ─── ComingSoonItem ────────────────────────────────────────────
+
+interface ComingSoonItemProps {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  subtitle?: string;
+  delay?: number;
+  iconColor?: string;
+}
+
+export const ComingSoonItem = React.memo(function ComingSoonItem({
+  icon,
+  label,
+  subtitle,
+  delay = 0,
+  iconColor,
+}: ComingSoonItemProps) {
+  const { colors } = useTheme();
+  const s = useStyles();
+
+  return (
+    <FadeInView delay={delay}>
+      <View style={[s.navLink, s.comingSoonRow]}>
+        <View style={[s.navIconWrap, { backgroundColor: (iconColor ?? colors.primary) + '15' }]}>
+          <Ionicons name={icon} size={20} color={iconColor ?? colors.primary} />
+        </View>
+        <View style={s.comingSoonText}>
+          <Text style={[s.navLinkText, s.comingSoonLabel]}>{label}</Text>
+          {subtitle ? <Text style={s.comingSoonSub}>{subtitle}</Text> : null}
+        </View>
+        <View style={s.soonBadge}>
+          <Text style={s.soonBadgeText}>SOON</Text>
+        </View>
+      </View>
+    </FadeInView>
+  );
+});
+
+// ─── SectionHeader ─────────────────────────────────────────────
+
+interface SectionHeaderProps {
+  label: string;
+}
+
+export const SectionHeader = React.memo(function SectionHeader({ label }: SectionHeaderProps) {
+  const s = useStyles();
+  return <Text style={s.sectionHeader}>{label}</Text>;
+});
+
 const useStyles = createThemedStyles((colors) => ({
   // StatCard — web style: card bg-base-200, centered content
   statCard: {
@@ -157,4 +206,35 @@ const useStyles = createThemedStyles((colors) => ({
     justifyContent: 'center',
   },
   navLinkText: { ...typography.body, color: colors.textPrimary, flex: 1, fontWeight: '500' },
+
+  // ComingSoonItem
+  comingSoonRow: { opacity: 0.65 },
+  comingSoonText: { flex: 1, gap: 2 },
+  comingSoonLabel: { flex: 0 },
+  comingSoonSub: { ...typography.caption, color: colors.textMuted, fontSize: 11 },
+  soonBadge: {
+    backgroundColor: colors.primary + '20',
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderWidth: 1,
+    borderColor: colors.primary + '40',
+  },
+  soonBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.primary,
+    letterSpacing: 0.5,
+  },
+
+  // SectionHeader
+  sectionHeader: {
+    ...typography.caption,
+    color: colors.textMuted,
+    fontWeight: '600',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginBottom: spacing.sm,
+    paddingHorizontal: 2,
+  },
 }));

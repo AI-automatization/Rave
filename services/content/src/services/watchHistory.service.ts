@@ -17,13 +17,15 @@ export class WatchHistoryService {
     movieId: string,
     progress: number,
     durationWatched: number,
+    currentTimeSeconds = 0,
+    videoUrl: string | null = null,
   ): Promise<void> {
     const completed = progress >= 90;
 
     await WatchHistory.findOneAndUpdate(
       { userId, movieId },
       {
-        $set: { progress, durationWatched, completed, watchedAt: new Date() },
+        $set: { progress, durationWatched, completed, watchedAt: new Date(), currentTimeSeconds, videoUrl },
       },
       { upsert: true },
     );
@@ -36,10 +38,28 @@ export class WatchHistoryService {
 
   async getWatchHistory(userId: string, page = 1, limit = 20): Promise<{ history: unknown[]; meta: PaginationMeta }> {
     const skip = (page - 1) * limit;
-    const [history, total] = await Promise.all([
+    const [rawHistory, total] = await Promise.all([
       WatchHistory.find({ userId }).sort({ watchedAt: -1 }).skip(skip).limit(limit).lean(),
       WatchHistory.countDocuments({ userId }),
     ]);
+
+    const movieIds = rawHistory.map((h) => h.movieId);
+    const movies = await Movie.find({ _id: { $in: movieIds } }).select('_id title poster').lean();
+    const movieMap = new Map(movies.map((m) => [String(m._id), m]));
+
+    const history = rawHistory.map((h) => {
+      const movie = movieMap.get(h.movieId);
+      return {
+        movieId: h.movieId,
+        title: movie?.title ?? h.movieId,
+        poster: (movie as { poster?: string })?.poster ?? undefined,
+        progress: h.progress,
+        watchedAt: h.watchedAt,
+        completed: h.completed,
+        currentTimeSeconds: h.currentTimeSeconds ?? 0,
+        videoUrl: h.videoUrl ?? null,
+      };
+    });
 
     return {
       history,

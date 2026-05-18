@@ -44,13 +44,12 @@ export const useProfileHeaderStyles = createThemedStyles((colors) => ({
     width: 32, height: 32, borderRadius: borderRadius.md,
     backgroundColor: colors.bgSurface, alignItems: 'center', justifyContent: 'center',
   },
-  rankBadge: {
-    alignSelf: 'flex-start', paddingHorizontal: spacing.md, paddingVertical: spacing.xs,
-    borderRadius: borderRadius.full, borderWidth: 1,
-  },
-  rankText: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
   metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, alignItems: 'center' },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   metaValue: { fontSize: 13, fontWeight: '600', color: colors.textPrimary },
   metaLabel: { ...typography.caption, color: colors.textMuted },
+  cardDivider: { height: 1, backgroundColor: colors.border, marginTop: spacing.sm, marginBottom: spacing.sm },
+  infoChips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  infoChip: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  infoChipText: { ...typography.caption, color: colors.textMuted, flexShrink: 1 },
 }));

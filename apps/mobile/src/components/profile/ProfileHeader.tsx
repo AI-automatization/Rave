@@ -6,14 +6,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme, spacing } from '@theme/index';
 import { useProfileHeaderStyles } from './ProfileHeader.styles';
 import { FadeInView, PulsingDot } from './ProfileAnimations';
-import type { RankMeta } from '@hooks/useProfileData';
 
 interface ProfileHeaderProps {
   avatarUri?: string | null;
   username: string;
   bio?: string | null;
   isOnline?: boolean;
-  rankMeta: RankMeta;
+  points?: number;
   paddingTop: number;
   onPickAvatar: () => void;
   onEditPress: () => void;
@@ -21,16 +20,18 @@ interface ProfileHeaderProps {
   titleLabel: string;
   pointsLabel: string;
   joinDate?: string;
+  email?: string | null;
+  friendsCount?: number;
 }
 
 export const ProfileHeader = React.memo(function ProfileHeader({
-  avatarUri, username, bio, isOnline, rankMeta, paddingTop,
+  avatarUri, username, bio, isOnline, points = 0, paddingTop,
   onPickAvatar, onEditPress, onSettingsPress, titleLabel, pointsLabel, joinDate,
+  email, friendsCount,
 }: ProfileHeaderProps) {
   const { colors } = useTheme();
   const s = useProfileHeaderStyles();
   const avatarScale = useRef(new Animated.Value(1)).current;
-  const { rank, rankColor, totalPts } = rankMeta;
 
   const handlePressAvatar = () => {
     Animated.sequence([
@@ -52,7 +53,7 @@ export const ProfileHeader = React.memo(function ProfileHeader({
       <FadeInView delay={100} style={s.profileCard}>
         <View style={s.cardContent}>
           <TouchableOpacity onPress={handlePressAvatar} activeOpacity={0.85}>
-            <Animated.View style={[s.avatarRing, { borderColor: rankColor, transform: [{ scale: avatarScale }] }]}>
+            <Animated.View style={[s.avatarRing, { borderColor: colors.primary, transform: [{ scale: avatarScale }] }]}>
               <Image
                 source={avatarUri ? { uri: avatarUri } : require('../../../assets/icon.png')}
                 style={s.avatar} contentFit="cover"
@@ -74,16 +75,11 @@ export const ProfileHeader = React.memo(function ProfileHeader({
                 <Ionicons name="create-outline" size={16} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
-            <FadeInView delay={200}>
-              <View style={[s.rankBadge, { backgroundColor: rankColor + '15', borderColor: rankColor + '30' }]}>
-                <Text style={[s.rankText, { color: rankColor }]}>{rank}</Text>
-              </View>
-            </FadeInView>
             <FadeInView delay={300}>
               <View style={s.metaRow}>
                 <View style={s.metaItem}>
                   <Ionicons name="star" size={14} color={colors.gold} />
-                  <Text style={s.metaValue}>{totalPts.toLocaleString()}</Text>
+                  <Text style={s.metaValue}>{points.toLocaleString()}</Text>
                   <Text style={s.metaLabel}>{pointsLabel}</Text>
                 </View>
                 {joinDate ? (
@@ -100,6 +96,25 @@ export const ProfileHeader = React.memo(function ProfileHeader({
                 </View>
               </View>
             </FadeInView>
+            {(email || friendsCount !== undefined) && (
+              <FadeInView delay={380}>
+                <View style={s.cardDivider} />
+                <View style={s.infoChips}>
+                  {email ? (
+                    <View style={s.infoChip}>
+                      <Ionicons name="mail-outline" size={13} color={colors.textMuted} />
+                      <Text style={s.infoChipText} numberOfLines={1}>{email}</Text>
+                    </View>
+                  ) : null}
+                  {friendsCount !== undefined ? (
+                    <View style={s.infoChip}>
+                      <Ionicons name="people-outline" size={13} color={colors.textMuted} />
+                      <Text style={s.infoChipText}>{friendsCount}</Text>
+                    </View>
+                  ) : null}
+                </View>
+              </FadeInView>
+            )}
           </View>
         </View>
       </FadeInView>

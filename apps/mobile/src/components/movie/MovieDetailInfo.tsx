@@ -11,11 +11,9 @@ interface MovieDetailInfoProps {
   watchProgress?: IWatchProgress | null;
   onWatch: () => void;
   onWatchParty: () => void;
-  onBattle?: () => void;
   playLabel: string;
   continueLabel: string;
   watchPartyLabel: string;
-  battleLabel?: string;
   showMoreLabel: string;
   showLessLabel: string;
 }
@@ -25,11 +23,9 @@ export const MovieDetailInfo = React.memo(function MovieDetailInfo({
   watchProgress,
   onWatch,
   onWatchParty,
-  onBattle,
   playLabel,
   continueLabel,
   watchPartyLabel,
-  battleLabel,
   showMoreLabel,
   showLessLabel,
 }: MovieDetailInfoProps) {
@@ -94,13 +90,6 @@ export const MovieDetailInfo = React.memo(function MovieDetailInfo({
         <Text style={s.watchPartyText}>{watchPartyLabel}</Text>
       </TouchableOpacity>
 
-      {/* Battle Button */}
-      {onBattle && battleLabel && (
-        <TouchableOpacity style={s.battleBtn} onPress={onBattle} activeOpacity={0.85}>
-          <Ionicons name="trophy-outline" size={20} color={colors.gold} />
-          <Text style={s.battleText}>{battleLabel}</Text>
-        </TouchableOpacity>
-      )}
     </View>
   );
 });
@@ -158,16 +147,4 @@ const useStyles = createThemedStyles((colors) => ({
     borderColor: colors.primary,
   },
   watchPartyText: { ...typography.h3, color: colors.primary },
-  battleBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    paddingVertical: spacing.md,
-    borderRadius: borderRadius.lg,
-    marginBottom: spacing.xl,
-    borderWidth: 1,
-    borderColor: colors.gold,
-  },
-  battleText: { ...typography.h3, color: colors.gold },
 }));

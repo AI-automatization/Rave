@@ -169,7 +169,6 @@ export function FriendProfileScreen() {
           ) : stats ? (
             <View style={styles.statsGrid}>
               <StatCard icon="film-outline"    label={t('profile', 'movies')}          value={stats.totalWatched} iconColor={colors.primary}   />
-              <StatCard icon="trophy-outline"  label={t('profile', 'wins')}            value={stats.battlesWon}   iconColor={colors.gold}      />
               <StatCard icon="star-outline"    label={t('profile', 'points')}          value={stats.totalPoints}  iconColor={colors.secondary} />
               <StatCard icon="people-outline"  label={t('friends', 'friendsCount')}    value={stats.friendsCount} iconColor={colors.success}   />
             </View>
@@ -179,15 +178,6 @@ export function FriendProfileScreen() {
         {/* Social actions — friends only */}
         {isFriend && (
           <View style={styles.socialActions}>
-            <TouchableOpacity
-              style={styles.battleBtn}
-              onPress={() => rootNav.navigate('Modal', { screen: 'BattleCreate', params: { initialFriendId: params.userId } })}
-              activeOpacity={0.85}
-            >
-              <Ionicons name="trophy" size={18} color={colors.gold} />
-              <Text style={styles.battleBtnText}>{t('battle', 'startBattle')}</Text>
-            </TouchableOpacity>
-
             <TouchableOpacity
               style={styles.watchPartyBtn}
               onPress={() => rootNav.navigate('Modal', { screen: 'WatchPartyCreate' })}
@@ -373,19 +363,6 @@ const useStyles = createThemedStyles((colors) => ({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.lg,
   },
-  battleBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.xs,
-    backgroundColor: colors.gold + '18',
-    borderWidth: 1,
-    borderColor: colors.gold + '55',
-    paddingVertical: spacing.md,
-    borderRadius: borderRadius.xl,
-  },
-  battleBtnText: { ...typography.body, color: colors.gold, fontWeight: '700' },
   watchPartyBtn: {
     flex: 1,
     flexDirection: 'row',

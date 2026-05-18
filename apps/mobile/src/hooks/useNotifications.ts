@@ -13,7 +13,6 @@ import { useT } from '@i18n/index';
 export interface NotificationData {
   friendshipId?: string;
   roomId?: string;
-  battleId?: string;
   [key: string]: unknown;
 }
 
@@ -104,10 +103,6 @@ export function useNotifications() {
         break;
       case 'watch_party_invite':
         if (typeof data.roomId === 'string') navigation.navigate('WatchParty', { roomId: data.roomId });
-        break;
-      case 'battle_invite':
-      case 'battle_result':
-        if (typeof data.battleId === 'string') navigation.navigate('Battle', { battleId: data.battleId });
         break;
       default:
         break;

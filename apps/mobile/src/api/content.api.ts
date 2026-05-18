@@ -169,21 +169,29 @@ export const contentApi = {
       progress: number;
       watchedAt: string;
       completed: boolean;
+      currentTimeSeconds: number;
+      videoUrl?: string | null;
     }>;
     meta: PaginationMeta;
   }> {
-    const res = await contentClient.get<ApiResponse<{
-      history: Array<{
+    const res = await contentClient.get<{
+      success: boolean;
+      data: Array<{
         movieId: string;
         title: string;
         poster?: string;
         progress: number;
         watchedAt: string;
         completed: boolean;
+        currentTimeSeconds: number;
+        videoUrl?: string | null;
       }>;
       meta: PaginationMeta;
-    }>>('/content/history', { params: { page } });
-    return res.data.data ?? { history: [], meta: { page: 1, limit: 20, total: 0, totalPages: 0 } };
+    }>('/content/history', { params: { page } });
+    return {
+      history: res.data.data ?? [],
+      meta: res.data.meta ?? { page: 1, limit: 20, total: 0, totalPages: 0 },
+    };
   },
 
   async addFavorite(movieId: string): Promise<void> {

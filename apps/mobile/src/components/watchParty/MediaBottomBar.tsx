@@ -60,7 +60,7 @@ export function MediaBottomBar({
       <View style={[s.hintBar, s.hintBarWarning, pb]}>
         <Ionicons name="shield-outline" size={15} color="#F59E0B" />
         <Text style={[s.hintText, s.hintTextWarning]} numberOfLines={3}>
-          Сайт заблокировал встроенный браузер (DDoS-Guard / Cloudflare). Подождите несколько секунд или выберите другой источник.
+          Сайт показал защиту (reCAPTCHA / DDoS-Guard). Google не работает в встроенном браузере — используйте поиск Yandex или другой источник.
         </Text>
       </View>
     );

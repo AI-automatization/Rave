@@ -7,7 +7,6 @@ import { UsersPage } from './pages/UsersPage';
 import { MoviesPage } from './pages/MoviesPage';
 import { FeedbackPage } from './pages/FeedbackPage';
 import { LogsPage } from './pages/LogsPage';
-import { BattlesPage } from './pages/BattlesPage';
 import { WatchPartiesPage } from './pages/WatchPartiesPage';
 import { SystemPage } from './pages/SystemPage';
 import { AuditLogsPage } from './pages/AuditLogsPage';
@@ -45,7 +44,6 @@ export default function App() {
           <Route path="movies" element={<MoviesPage />} />
           <Route path="feedback" element={<FeedbackPage />} />
           <Route path="logs" element={<LogsPage />} />
-          <Route path="battles" element={<BattlesPage />} />
           <Route path="watchparties" element={<WatchPartiesPage />} />
           <Route path="system" element={<SystemPage />} />
           <Route path="audit-logs" element={<AuditLogsPage />} />

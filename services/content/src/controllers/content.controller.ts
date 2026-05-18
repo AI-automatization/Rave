@@ -99,12 +99,30 @@ export class ContentController {
   recordWatchHistory = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { userId } = (req as AuthenticatedRequest).user;
-      const { movieId, progress, durationWatched } = req.body as {
+      const { movieId, progress, durationWatched, currentTimeSeconds } = req.body as {
         movieId: string;
         progress: number;
         durationWatched: number;
+        currentTimeSeconds?: number;
       };
-      await this.contentService.recordWatchHistory(userId, movieId, progress, durationWatched);
+      await this.contentService.recordWatchHistory(userId, movieId, progress, durationWatched, currentTimeSeconds ?? 0);
+      res.json(apiResponse.success(null, 'Watch history recorded'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  recordWatchHistoryInternal = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId, movieId, progress, durationWatched, currentTimeSeconds, videoUrl } = req.body as {
+        userId: string;
+        movieId: string;
+        progress: number;
+        durationWatched: number;
+        currentTimeSeconds?: number;
+        videoUrl?: string | null;
+      };
+      await this.contentService.recordWatchHistory(userId, movieId, progress, durationWatched, currentTimeSeconds ?? 0, videoUrl ?? null);
       res.json(apiResponse.success(null, 'Watch history recorded'));
     } catch (error) {
       next(error);

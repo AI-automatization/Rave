@@ -2,9 +2,9 @@
 import * as SecureStore from 'expo-secure-store';
 
 const KEYS = {
-  ACCESS_TOKEN: 'cinesync_access_token',
-  REFRESH_TOKEN: 'cinesync_refresh_token',
-  USER_ID: 'cinesync_user_id',
+  ACCESS_TOKEN: 'wewatch_access_token',
+  REFRESH_TOKEN: 'wewatch_refresh_token',
+  USER_ID: 'wewatch_user_id',
 } as const;
 
 async function set(key: string, value: string): Promise<void> {
@@ -22,11 +22,11 @@ async function remove(key: string): Promise<void> {
 // Per-user flag: was profile setup screen already shown?
 export const profileSetupStorage = {
   async isDone(userId: string): Promise<boolean> {
-    const val = await get(`cinesync_profile_setup_done_${userId}`);
+    const val = await get(`wewatch_profile_setup_done_${userId}`);
     return val === '1';
   },
   async markDone(userId: string): Promise<void> {
-    await set(`cinesync_profile_setup_done_${userId}`, '1');
+    await set(`wewatch_profile_setup_done_${userId}`, '1');
   },
 };
 

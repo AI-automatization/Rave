@@ -129,6 +129,9 @@ export const createContentRouter = (redis: Redis, elastic: ElasticsearchClient):
   // DELETE /content/ratings/:ratingId — operator/admin moderatsiya
   router.delete('/ratings/:ratingId', verifyToken, notBlocked, requireRole('operator', 'admin', 'superadmin'), contentController.deleteRatingModerator);
 
+  // POST /content/internal/history — called by watch-party service when user leaves a room
+  router.post('/internal/history', requireInternalSecret, contentController.recordWatchHistoryInternal);
+
   // GET /content/internal/user-watch-stats/:userId — internal: user service calls this for stats aggregation
   router.get('/internal/user-watch-stats/:userId', requireInternalSecret, contentController.getUserWatchStats);
 

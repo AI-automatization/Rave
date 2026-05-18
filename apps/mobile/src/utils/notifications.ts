@@ -7,9 +7,7 @@ export const NOTIFICATION_ROUTES: Record<NotificationType, string> = {
   friend_request: 'Friends',
   friend_accepted: 'Friends',
   watch_party_invite: 'WatchParty',
-  battle_invite: 'BattleCreate',
-  battle_result: 'Battle',
-  achievement_unlocked: 'Achievements',
+  achievement_unlocked: 'Notifications',
   friend_online: 'Friends',
   friend_watching: 'WatchParty',
   support_reply: 'SupportChat',
@@ -41,7 +39,7 @@ export async function requestNotificationPermission(): Promise<boolean> {
 
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
-      name: 'CineSync',
+      name: 'WeWatch',
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
       lightColor: '#7C3AED',

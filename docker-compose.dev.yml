@@ -151,25 +151,6 @@ services:
       - *shared2
       - ./services/watch-party/src:/app/services/watch-party/src
 
-  battle:
-    <<: *backend
-    container_name: cinesync_battle
-    working_dir: /app/services/battle
-    command: npm run dev
-    ports:
-      - '3005:3005'
-    env_file: ./services/battle/.env
-    environment:
-      MONGO_URI: "mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASSWORD}@mongo:27017/cinesync_battle?authSource=admin"
-      REDIS_URL: "redis://:${REDIS_PASSWORD}@redis:6379"
-    depends_on:
-      - mongo
-      - redis
-    volumes:
-      - *shared1
-      - *shared2
-      - ./services/battle/src:/app/services/battle/src
-
   notification:
     <<: *backend
     container_name: cinesync_notification
@@ -202,6 +183,11 @@ services:
       CONTENT_MONGO_URI: "mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASSWORD}@mongo:27017/cinesync_content?authSource=admin"
       USER_MONGO_URI: "mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASSWORD}@mongo:27017/cinesync_user?authSource=admin"
       REDIS_URL: "redis://:${REDIS_PASSWORD}@redis:6379"
+      AUTH_SERVICE_URL: "http://auth:3001"
+      USER_SERVICE_URL: "http://user:3002"
+      CONTENT_SERVICE_URL: "http://content:3003"
+      WATCH_PARTY_SERVICE_URL: "http://watch-party:3004"
+      NOTIFICATION_SERVICE_URL: "http://notification:3007"
     depends_on:
       - mongo
       - redis
@@ -246,7 +232,6 @@ services:
       - user
       - content
       - watch-party
-      - battle
       - notification
 
 # ═══════════════════════════════════════════════════════════════
