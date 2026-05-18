@@ -46,6 +46,8 @@ export const SERVER_EVENTS = Object.freeze({
   ADMIN_MONITORING: 'admin:monitoring',
   ADMIN_LEFT_ROOM:  'admin:left',
 
+  NOTIFICATION_NEW: 'notification:new',
+
   ERROR: 'error',
 } as const);
 

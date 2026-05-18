@@ -1,11 +1,15 @@
 import { Request, Response, NextFunction } from 'express';
+import type Redis from 'ioredis';
 import { NotificationService } from '../services/notification.service';
 import { apiResponse } from '@shared/utils/apiResponse';
 import { AuthenticatedRequest, NotificationType } from '@shared/types';
 import { getUserFcmTokens } from '@shared/utils/serviceClient';
 
 export class NotificationController {
-  constructor(private notificationService: NotificationService) {}
+  constructor(
+    private notificationService: NotificationService,
+    private redisPub: Redis | null = null,
+  ) {}
 
   getNotifications = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
@@ -94,13 +98,21 @@ export class NotificationController {
         return;
       }
 
-      await this.notificationService.sendInApp(
+      const notification = await this.notificationService.sendInApp(
         userId,
         type as NotificationType,
         title,
         body,
         data ?? {},
       );
+
+      // Real-time delivery via Redis pub/sub → watch-party socket
+      if (this.redisPub) {
+        void this.redisPub.publish(
+          'notification:new',
+          JSON.stringify({ userId, notification: notification.toObject() }),
+        );
+      }
 
       // Send FCM push non-blocking
       void (async () => {

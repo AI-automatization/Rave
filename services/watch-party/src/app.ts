@@ -13,7 +13,8 @@ import { setupSentryErrorHandler } from '@shared/utils/sentry';
 import { metricsMiddleware, registerMetricsEndpoint } from '@shared/utils/metrics';
 import { requestId } from '@shared/middleware/requestId.middleware';
 import { timeout } from '@shared/middleware/timeout.middleware';
-import { morganStream } from '@shared/utils/logger';
+import { morganStream, logger } from '@shared/utils/logger';
+import { SERVER_EVENTS } from '@shared/constants/socketEvents';
 import { createWatchPartyRouter } from './routes/watchParty.routes';
 import { WatchPartyService } from './services/watchParty.service';
 import { registerWatchPartySocket } from './socket/watchParty.socket';
@@ -45,6 +46,26 @@ export const createApp = (redis: Redis): { app: express.Application; io: SocketS
   const pubClient = redis.duplicate();
   const subClient = redis.duplicate();
   io.adapter(createAdapter(pubClient, subClient));
+
+  // Notification relay: subscribe to notification:new → emit to user's socket room
+  const notifSubClient = redis.duplicate();
+  void notifSubClient.subscribe('notification:new').then(() => {
+    logger.info('Watch-party: subscribed to notification:new Redis channel');
+  }).catch((err: Error) => logger.warn('Watch-party: failed to subscribe notification:new', { error: err.message }));
+
+  notifSubClient.on('message', (channel: string, message: string) => {
+    if (channel !== 'notification:new') return;
+    try {
+      const { userId, notification } = JSON.parse(message) as { userId: string; notification: unknown };
+      if (typeof userId === 'string') {
+        io.to(`user:${userId}`).emit(SERVER_EVENTS.NOTIFICATION_NEW, notification);
+      }
+    } catch (err) {
+      logger.warn('Watch-party: malformed notification:new Redis message', { error: (err as Error).message });
+    }
+  });
+
+  process.on('SIGTERM', () => { void notifSubClient.quit(); });
 
   app.use(helmet());
   app.use(cors({

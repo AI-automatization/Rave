@@ -1,15 +1,24 @@
 import { Router } from 'express';
+import Redis from 'ioredis';
 import { NotificationController } from '../controllers/notification.controller';
 import { NotificationService } from '../services/notification.service';
 import { TelegramController } from '../controllers/telegram.controller';
 import { verifyToken } from '@shared/middleware/auth.middleware';
 import { requireInternalSecret } from '@shared/utils/serviceClient';
 import { validate, sendInternalSchema, broadcastSchema, notifyUsersSchema } from '../validators/notification.validator';
+import { logger } from '@shared/utils/logger';
 
 export const createNotificationRouter = (redisUrl: string): Router => {
   const router = Router();
   const notificationService = new NotificationService(redisUrl);
-  const notificationController = new NotificationController(notificationService);
+
+  let redisPub: Redis | null = null;
+  if (redisUrl) {
+    redisPub = new Redis(redisUrl, { maxRetriesPerRequest: null, enableReadyCheck: false });
+    redisPub.on('error', (err: Error) => logger.warn('Notification redisPub error', { error: err.message }));
+  }
+
+  const notificationController = new NotificationController(notificationService, redisPub);
   const telegramController = new TelegramController();
 
   // POST /notifications/internal/send — service-to-service (X-Internal-Secret header)
