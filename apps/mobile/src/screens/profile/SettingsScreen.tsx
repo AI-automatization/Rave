@@ -5,7 +5,7 @@ import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { RootStackParamList } from '@app-types/index';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
+import { useTheme, spacing } from '@theme/index';
 import { userApi } from '@api/user.api';
 import { authApi } from '@api/auth.api';
 import { useAuthStore } from '@store/auth.store';
@@ -22,6 +22,7 @@ import {
   NOTIFICATION_TOGGLES,
   PRIVACY_TOGGLES,
 } from '@components/settings';
+import { useStyles } from './SettingsScreen.styles';
 
 const LANGUAGES: { code: Language; label: string; flag: string }[] = [
   { code: 'uz', label: "O'zbekcha", flag: '\u{1F1FA}\u{1F1FF}' },
@@ -301,29 +302,3 @@ export function SettingsScreen() {
   );
 }
 
-const useStyles = createThemedStyles((colors) => ({
-  root: { flex: 1, backgroundColor: colors.bgBase },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  backBtn: { padding: spacing.xs },
-  title: { ...typography.h2, color: colors.textPrimary },
-  spacer: { width: 40 },
-  content: { padding: spacing.lg, gap: spacing.xs },
-  card: { backgroundColor: colors.bgSurface, borderRadius: borderRadius.lg, overflow: 'hidden' },
-  rowBorder: { borderBottomWidth: 1, borderBottomColor: colors.border },
-  navRow: { flexDirection: 'row', alignItems: 'center', padding: spacing.md, gap: spacing.md },
-  navLabel: { ...typography.body, color: colors.textPrimary, flex: 1 },
-  langRow: { flexDirection: 'row', alignItems: 'center', padding: spacing.md, gap: spacing.md },
-  langFlag: { fontSize: 20 },
-  langLabel: { ...typography.body, color: colors.textPrimary, flex: 1 },
-  infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: spacing.md },
-  infoLabel: { ...typography.body, color: colors.textSecondary },
-  infoValue: { ...typography.body, color: colors.textMuted },
-}));
