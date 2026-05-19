@@ -4,6 +4,20 @@
 
 ---
 
+### F-209 | T-E120/121/122 | WeWatch Marketing — Promo Reel (3 konsept, Higgsfield AI)
+
+- **Bajaruvchi:** Emirhan (Claude sonnet + Higgsfield Seedance 1.5 Pro)
+- **Bajarilgan:** 2026-05-19
+- **Model:** seedance_1_5 (Higgsfield)
+- **O'zgarishlar:** marketing/videos/ (3 ta video), marketing/briefs/promo-reel-brief.md, marketing/images/, marketing/briefs/
+- **Xulosa:** WeWatch uchun 3 ta promo reel yaratildi. Concept 1 "Purple Pulse" (8s) — split-screen sync konsepti, dark purple brand. Concept 2 "Three Cities" (4s) — Tokyo/London/Istanbul TikTok versiya. Concept 3 "Macro Mood" (8s) — ultra-cinematic macro fingertip. Jami 24 kredit sarflandi (65.6 → 41.6). Barcha video 9:16, 720p, audio bilan.
+- **Video URLs:**
+  - Concept 1: hf_20260519_093729_a1afd628 (8s, 9.6 kredit)
+  - Concept 2: hf_20260519_094113_ca3347db (4s, 4.8 kredit)
+  - Concept 3: hf_20260519_094134_17aaf4fb (8s, 9.6 kredit)
+
+---
+
 ### F-206 | T-S071 | Admin UI — Global search Cmd+K (Users + Errors + Movies)
 
 - **Bajaruvchi:** Saidazim (Claude sonnet yordamida)
