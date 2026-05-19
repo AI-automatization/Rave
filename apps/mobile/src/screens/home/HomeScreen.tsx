@@ -1,4 +1,4 @@
-// CineSync Mobile — Home Screen
+// WeWatch Mobile — Home Screen
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { captureError } from '@utils/errorLogger';
 import {
@@ -9,11 +9,8 @@ import {
   TextInput,
   RefreshControl,
   StatusBar,
-  Alert,
-  Image,
   Animated,
   ActivityIndicator,
-  Dimensions,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -22,260 +19,22 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ReportRoomModal } from '@components/common/ReportRoomModal';
 import { useTheme, createThemedStyles, spacing, typography, borderRadius } from '@theme/index';
-import { HomeStackParamList, RootStackParamList, IWatchPartyRoom, WatchPartyStatus } from '@app-types/index';
+import { HomeStackParamList, RootStackParamList } from '@app-types/index';
 import { useDebounce } from '@hooks/useSearch';
 import { useVideoSearch } from '@hooks/useVideoSearch';
 import { useWatchPartyRooms } from '@hooks/useWatchPartyRooms';
-import { watchPartyApi } from '@api/watchParty.api';
-import type { VideoSearchItem } from '@api/content.api';
+import { useCreateWatchParty } from '@hooks/useCreateWatchParty';
 import { VideoSearchResults } from '@components/home/VideoSearchResults';
 import { HomeCTA } from '@components/home/HomeCTA';
 import { WeWatchLogo } from '@components/common/WeWatchLogo';
+import { SkeletonGridCard, RoomGrid, CARD_GAP } from '@components/home/RoomGridCard';
 import { useNotificationStore } from '@store/notification.store';
 import { useT } from '@i18n/index';
-import type { translations } from '@i18n/index';
-
-const { width: SCREEN_W } = Dimensions.get('window');
-const CARD_GAP  = spacing.sm;
-const CARD_W    = (SCREEN_W - spacing.xl * 2 - CARD_GAP) / 2;
-const CARD_H    = CARD_W * 1.48;
-
-type HomeNav = NativeStackNavigationProp<HomeStackParamList>;
-type RootNav = NativeStackNavigationProp<RootStackParamList>;
-type TFn     = (section: keyof typeof translations, key: string) => string;
 
 const TAB_BAR_HEIGHT = 60;
 
-const STATUS_MAP: Record<WatchPartyStatus, { colorKey: 'success' | 'warning' | 'secondary' | 'textDim' }> = {
-  waiting: { colorKey: 'warning' },
-  playing: { colorKey: 'success' },
-  paused:  { colorKey: 'secondary' },
-  ended:   { colorKey: 'textDim' },
-};
-
-// ─── Skeleton grid card ───────────────────────────────────────────────────────
-
-function SkeletonGridCard() {
-  const { colors } = useTheme();
-  const anim = useRef(new Animated.Value(0.28)).current;
-
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(anim, { toValue: 0.65, duration: 720, useNativeDriver: true }),
-        Animated.timing(anim, { toValue: 0.28, duration: 720, useNativeDriver: true }),
-      ])
-    ).start();
-  }, [anim]);
-
-  return (
-    <Animated.View style={{
-      width: CARD_W,
-      height: CARD_H,
-      borderRadius: borderRadius.lg,
-      backgroundColor: colors.bgElevated,
-      borderWidth: 1,
-      borderColor: colors.border,
-      opacity: anim,
-    }} />
-  );
-}
-
-// ─── Room grid card ───────────────────────────────────────────────────────────
-
-function RoomGridCard({ room, index, onPress, onLongPress }: {
-  room: IWatchPartyRoom;
-  index: number;
-  onPress: () => void;
-  onLongPress?: () => void;
-}) {
-  const { colors } = useTheme();
-
-  const opacity    = useRef(new Animated.Value(0)).current;
-  const cardScale  = useRef(new Animated.Value(0.86)).current;
-  const pressScale = useRef(new Animated.Value(1)).current;
-
-  const pulseScale   = useRef(new Animated.Value(1)).current;
-  const pulseOpacity = useRef(new Animated.Value(0.85)).current;
-
-  const memberCount = room.memberCount ?? room.members?.length ?? 0;
-  const isPlaying   = room.status === 'playing';
-  const isPaused    = room.status === 'paused';
-  const isWaiting   = room.status === 'waiting';
-  const isEnded     = room.status === 'ended';
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      Animated.parallel([
-        Animated.timing(opacity,   { toValue: 1, duration: 260, useNativeDriver: true }),
-        Animated.spring(cardScale, { toValue: 1, useNativeDriver: true, tension: 95, friction: 11 }),
-      ]).start();
-    }, index * 55);
-    return () => clearTimeout(timer);
-  }, [index, opacity, cardScale]);
-
-  useEffect(() => {
-    if (!isPlaying) return;
-    Animated.loop(
-      Animated.sequence([
-        Animated.parallel([
-          Animated.timing(pulseScale,   { toValue: 2.6,  duration: 850, useNativeDriver: true }),
-          Animated.timing(pulseOpacity, { toValue: 0,    duration: 850, useNativeDriver: true }),
-        ]),
-        Animated.parallel([
-          Animated.timing(pulseScale,   { toValue: 1,    duration: 0, useNativeDriver: true }),
-          Animated.timing(pulseOpacity, { toValue: 0.85, duration: 0, useNativeDriver: true }),
-        ]),
-        Animated.delay(350),
-      ])
-    ).start();
-  }, [isPlaying, pulseScale, pulseOpacity]);
-
-  const onPressIn  = () =>
-    Animated.spring(pressScale, { toValue: 0.94, useNativeDriver: true, tension: 300, friction: 15 }).start();
-  const onPressOut = () =>
-    Animated.spring(pressScale, { toValue: 1,    useNativeDriver: true, tension: 180, friction: 10 }).start();
-
-  const combinedScale = Animated.multiply(cardScale, pressScale);
-
-  const borderColor = isPlaying
-    ? colors.success + '45'
-    : isPaused
-      ? colors.secondary + '35'
-      : colors.border;
-
-  return (
-    <Animated.View style={{ opacity, transform: [{ scale: combinedScale }], width: CARD_W }}>
-      <TouchableOpacity
-        style={{
-          width: CARD_W,
-          height: CARD_H,
-          borderRadius: borderRadius.lg,
-          overflow: 'hidden',
-          backgroundColor: colors.bgElevated,
-          borderWidth: 1,
-          borderColor,
-          opacity: isEnded ? 0.42 : 1,
-        }}
-        onPress={onPress}
-        onLongPress={onLongPress}
-        delayLongPress={400}
-        onPressIn={onPressIn}
-        onPressOut={onPressOut}
-        activeOpacity={1}
-        disabled={isEnded}
-      >
-        {/* Thumbnail */}
-        {room.videoThumbnail ? (
-          <Image
-            source={{ uri: room.videoThumbnail }}
-            style={{ position: 'absolute', width: '100%', height: '100%' }}
-            resizeMode="cover"
-          />
-        ) : (
-          <View style={{ position: 'absolute', width: '100%', height: '100%', backgroundColor: colors.bgSurface, alignItems: 'center', justifyContent: 'center' }}>
-            <Ionicons
-              name={isPlaying ? 'play-circle' : isEnded ? 'checkmark-circle-outline' : 'film-outline'}
-              size={44}
-              color={isPlaying ? colors.primary + '88' : colors.textDim}
-            />
-          </View>
-        )}
-
-        {/* Gradient */}
-        <LinearGradient
-          colors={['transparent', 'rgba(0,0,0,0.52)', 'rgba(0,0,0,0.94)']}
-          locations={[0.22, 0.58, 1]}
-          style={{
-            position: 'absolute', bottom: 0, left: 0, right: 0,
-            paddingHorizontal: spacing.sm,
-            paddingBottom: spacing.sm,
-            paddingTop: spacing.xl * 1.6,
-            gap: 4,
-          }}
-        >
-          {/* Top badges */}
-          {isPlaying && (
-            <View style={{ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(239,68,68,0.88)', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2, marginBottom: 3 }}>
-              <View style={{ width: 8, height: 8, alignItems: 'center', justifyContent: 'center' }}>
-                <Animated.View style={{ position: 'absolute', width: 8, height: 8, borderRadius: 4, backgroundColor: '#fff', transform: [{ scale: pulseScale }], opacity: pulseOpacity }} />
-                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#fff' }} />
-              </View>
-              <Text style={{ fontSize: 9, color: '#fff', fontWeight: '800', letterSpacing: 0.7 }}>LIVE</Text>
-            </View>
-          )}
-
-          {isWaiting && (
-            <View style={{ alignSelf: 'flex-start', backgroundColor: colors.warning + '22', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2, marginBottom: 3, borderWidth: 1, borderColor: colors.warning + '40' }}>
-              <Text style={{ fontSize: 9, color: colors.warning, fontWeight: '700', letterSpacing: 0.5 }}>KUTMOQDA</Text>
-            </View>
-          )}
-
-          {isPaused && (
-            <View style={{ alignSelf: 'flex-start', backgroundColor: colors.secondary + '22', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2, marginBottom: 3, borderWidth: 1, borderColor: colors.secondary + '40' }}>
-              <Text style={{ fontSize: 9, color: colors.secondary, fontWeight: '700', letterSpacing: 0.5 }}>TO'XTATILGAN</Text>
-            </View>
-          )}
-
-          {isEnded && (
-            <View style={{ alignSelf: 'flex-start', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2, marginBottom: 3 }}>
-              <Text style={{ fontSize: 9, color: '#9CA3AF', fontWeight: '700', letterSpacing: 0.5 }}>TUGAGAN</Text>
-            </View>
-          )}
-
-          {/* Title */}
-          <Text style={{ fontSize: 12, color: '#fff', fontWeight: '700', lineHeight: 16 }} numberOfLines={2}>
-            {room.videoTitle ?? room.name ?? 'Watch Party'}
-          </Text>
-
-          {/* Meta row */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 }}>
-            <Ionicons name="people" size={11} color="rgba(255,255,255,0.58)" />
-            <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.58)', fontWeight: '500' }}>
-              {memberCount}/{room.maxMembers}
-            </Text>
-            <View style={{ flex: 1 }} />
-            <Ionicons
-              name={room.isPrivate ? 'lock-closed' : 'globe-outline'}
-              size={11}
-              color={room.isPrivate ? colors.warning + 'BB' : colors.success + 'BB'}
-            />
-          </View>
-        </LinearGradient>
-      </TouchableOpacity>
-    </Animated.View>
-  );
-}
-
-// ─── Room grid (2 cols, odd last item full width) ─────────────────────────────
-
-function RoomGrid({ rooms, onPress, onLongPress }: {
-  rooms: IWatchPartyRoom[];
-  onPress: (id: string) => void;
-  onLongPress: (id: string) => void;
-}) {
-  const rows: IWatchPartyRoom[][] = [];
-  for (let i = 0; i < rooms.length; i += 2) {
-    rows.push(rooms.slice(i, i + 2));
-  }
-  return (
-    <View style={{ gap: CARD_GAP }}>
-      {rows.map((row, ri) => (
-        <View key={ri} style={{ flexDirection: 'row', gap: CARD_GAP }}>
-          {row.map((room, ci) => (
-            <RoomGridCard
-              key={room._id}
-              room={room}
-              index={ri * 2 + ci}
-              onPress={() => onPress(room._id)}
-              onLongPress={() => onLongPress(room._id)}
-            />
-          ))}
-        </View>
-      ))}
-    </View>
-  );
-}
+type HomeNav = NativeStackNavigationProp<HomeStackParamList>;
+type RootNav = NativeStackNavigationProp<RootStackParamList>;
 
 // ─── Home Screen ──────────────────────────────────────────────────────────────
 
@@ -293,7 +52,6 @@ export function HomeScreen() {
   const [refreshing,    setRefreshing]    = useState(false);
   const [query,         setQuery]         = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
-  const [creating,      setCreating]      = useState(false);
   const [reportRoomId,  setReportRoomId]  = useState<string | null>(null);
 
   const bellAnim   = useRef(new Animated.Value(0)).current;
@@ -301,6 +59,7 @@ export function HomeScreen() {
 
   const debouncedQuery = useDebounce(query);
   const { data: videoResults = [], isLoading: searchLoading } = useVideoSearch(debouncedQuery);
+  const { creating, createFromVideo } = useCreateWatchParty(() => setQuery(''));
 
   // TEST ERROR — удалить после теста
   useEffect(() => {
@@ -311,7 +70,6 @@ export function HomeScreen() {
       captureError(e as Error, { screen: 'HomeScreen', trigger: 'mount' });
     }
   }, []);
-
 
   useEffect(() => {
     if (unreadCount > 0 && unreadCount !== prevUnread.current) {
@@ -344,25 +102,6 @@ export function HomeScreen() {
   const handleRoomPress = useCallback((roomId: string) => {
     rootNav.navigate('Modal', { screen: 'WatchParty', params: { roomId } });
   }, [rootNav]);
-
-  const handleVideoSelect = useCallback(async (item: VideoSearchItem) => {
-    if (creating) return;
-    setCreating(true);
-    try {
-      const room = await watchPartyApi.createRoom({
-        videoUrl:       item.url,
-        videoTitle:     item.title,
-        videoThumbnail: item.thumbnail || undefined,
-        videoPlatform:  item.platform,
-      });
-      setQuery('');
-      rootNav.navigate('Modal', { screen: 'WatchParty', params: { roomId: room._id } });
-    } catch {
-      Alert.alert('Ошибка', 'Не удалось создать комнату');
-    } finally {
-      setCreating(false);
-    }
-  }, [creating, rootNav]);
 
   const isSearchActive = debouncedQuery.trim().length >= 2;
 
@@ -440,7 +179,7 @@ export function HomeScreen() {
         }
       >
         {isSearchActive ? (
-          <VideoSearchResults results={videoResults} isLoading={searchLoading} onSelect={handleVideoSelect} />
+          <VideoSearchResults results={videoResults} isLoading={searchLoading} onSelect={createFromVideo} />
         ) : (
           <>
             {/* ── Hero CTA ──────────────────────────────────── */}
@@ -561,7 +300,7 @@ const useStyles = createThemedStyles((colors) => ({
     paddingHorizontal: 3,
     borderWidth: 1.5, borderColor: colors.bgBase,
   },
-  badgeText: { color: '#fff', fontSize: 9, fontWeight: '800' },
+  badgeText: { color: colors.white, fontSize: 9, fontWeight: '800' },
 
   // ── Search ──────────────────────────────────────────────────────
   searchRow:        { paddingHorizontal: spacing.lg, marginBottom: spacing.md },
