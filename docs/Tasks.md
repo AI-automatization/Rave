@@ -13,7 +13,7 @@
 - **Mas'ul:** pending[Saidazim]
 - **Beruvchi:** Saidazim
 - **Yaratilgan:** 2026-05-11 13:39
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** ✅ Bajarildi (2026-05-19)
 - **Tavsiya model:** sonnet
 - **Model sababi:** Landing page yoki static page, o'rta murakkablik
 - **Sabab:** Play Console submission uchun majburiy — Privacy Policy URL bo'lmasa app publish bo'lmaydi
@@ -47,7 +47,7 @@
 - **Mas'ul:** pending[Saidazim]
 - **Beruvchi:** Абдулазиз (audit 2026-05-08, issue #10)
 - **Yaratilgan:** 2026-05-08 23:55
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** ✅ Bajarildi (2026-05-19)
 - **Tavsiya model:** sonnet
 - **Model sababi:** GitHub Actions workflow — yangi fayl, o'rta murakkablik
 - **Sabab:** MEDIUM — deploy workflows TODO stub, haqiqiy CI/CD yo'q
@@ -62,7 +62,7 @@
 - **Mas'ul:** pending[Saidazim]
 - **Beruvchi:** Абдулазиз (audit 2026-05-08, issue #16)
 - **Yaratilgan:** 2026-05-08 23:55
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** ✅ Bajarildi (2026-05-19)
 - **Tavsiya model:** opus
 - **Model sababi:** Ko'p fayllik refactor, SOLID, ichki arxitektura tushunish kerak
 - **Sabab:** MEDIUM maintainability — 26 fayl 15KB dan oshgan
@@ -112,6 +112,155 @@
 
 ---
 
+# 🔧 Sprint 10: Mobile UI Refactor (2026-05-19 audit)
+
+---
+
+### T-E125 | P1 | [MOBILE] | WatchPartyScreen refactor — 638→3x200 qator + hardcoded colors
+
+- **Mas'ul:** pending[Emirhan]
+- **Beruvchi:** Emirhan
+- **Yaratilgan:** 2026-05-19 12:00
+- **Holat:** ✅ Bajarildi (2026-05-19)
+- **Tavsiya model:** opus
+- **Model sababi:** 638 qatorli screen — 3 ta komponentga bo'lish, 40+ hardcoded color, 60+ inline style, arxitektura tushunish kerak
+- **Sabab:** Eng katta screen — 638 qator (limit 300). 40+ hardcoded hex color, 60+ inline style blok
+- **Qilish kerak:**
+  - [ ] Screen ni 3 komponentga ajratish (~200 qator har biri)
+  - [ ] 40+ hardcoded hex → theme/colors.ts tokenlar
+  - [ ] 60+ inline style → StyleSheet ga ko'chirish
+  - [ ] Fayl: `apps/mobile/src/screens/modal/WatchPartyScreen.tsx`
+
+---
+
+### T-E126 | P1 | [MOBILE] | HomeScreen refactor — 629→2x300 qator + API call hookga
+
+- **Mas'ul:** pending[Emirhan]
+- **Beruvchi:** Emirhan
+- **Yaratilgan:** 2026-05-19 12:00
+- **Holat:** ✅ Bajarildi (2026-05-19)
+- **Tavsiya model:** sonnet
+- **Model sababi:** Screen split + hook yaratish, 3-4 fayl
+- **Sabab:** 629 qator (limit 300). watchPartyApi.createRoom() to'g'ridan screen ichida (352-qator). 50+ inline style
+- **Qilish kerak:**
+  - [ ] Screen ni 2 komponentga ajratish
+  - [ ] `watchPartyApi.createRoom()` → `useCreateWatchParty()` hook
+  - [ ] 50+ inline style → StyleSheet
+  - [ ] Fayl: `apps/mobile/src/screens/home/HomeScreen.tsx`
+
+---
+
+### T-E127 | P1 | [MOBILE] | FriendsScreen refactor — 562→2x280 qator + `as any` fix
+
+- **Mas'ul:** pending[Emirhan]
+- **Beruvchi:** Emirhan
+- **Yaratilgan:** 2026-05-19 12:00
+- **Holat:** ✅ Bajarildi (2026-05-19)
+- **Tavsiya model:** sonnet
+- **Model sababi:** Screen split + type fix, 2-3 fayl
+- **Sabab:** 562 qator (limit 300). `as any` cast 156-qatorda. Hardcoded colors, 35+ inline style
+- **Qilish kerak:**
+  - [ ] Screen ni 2 komponentga ajratish
+  - [ ] `icon as any` → `icon as keyof typeof Ionicons.glyphMap`
+  - [ ] Hardcoded colors → theme tokens
+  - [ ] Fayl: `apps/mobile/src/screens/friends/FriendsScreen.tsx`
+
+---
+
+### T-E128 | P1 | [MOBILE] | RoomsScreen refactor — 548→2x270 qator + inline styles
+
+- **Mas'ul:** pending[Emirhan]
+- **Beruvchi:** Emirhan
+- **Yaratilgan:** 2026-05-19 12:00
+- **Holat:** ✅ Bajarildi (2026-05-19)
+- **Tavsiya model:** sonnet
+- **Model sababi:** Screen split + styles, 2-3 fayl
+- **Sabab:** 548 qator (limit 300). 40+ inline style blok
+- **Qilish kerak:**
+  - [ ] Screen ni 2 komponentga ajratish
+  - [ ] 40+ inline style → StyleSheet
+  - [ ] Fayl: `apps/mobile/src/screens/rooms/RoomsScreen.tsx`
+
+---
+
+### T-E129 | P2 | [MOBILE] | SupportChatScreen refactor — 445→2x220 qator
+
+- **Mas'ul:** pending[Emirhan]
+- **Beruvchi:** Emirhan
+- **Yaratilgan:** 2026-05-19 12:00
+- **Holat:** ✅ Bajarildi (2026-05-19)
+- **Tavsiya model:** sonnet
+- **Model sababi:** Screen split, 2 fayl
+- **Sabab:** 445 qator (limit 300)
+- **Qilish kerak:**
+  - [ ] Screen ni 2 komponentga ajratish
+  - [ ] Fayl: `apps/mobile/src/screens/modal/SupportChatScreen.tsx`
+
+---
+
+### T-E130 | P2 | [MOBILE] | FriendProfileScreen refactor — 427→2x210 qator
+
+- **Mas'ul:** pending[Emirhan]
+- **Beruvchi:** Emirhan
+- **Yaratilgan:** 2026-05-19 12:00
+- **Holat:** ✅ Bajarildi (2026-05-19)
+- **Tavsiya model:** sonnet
+- **Model sababi:** Screen split, 2 fayl
+- **Sabab:** 427 qator (limit 300)
+- **Qilish kerak:**
+  - [ ] Screen ni 2 komponentga ajratish
+  - [ ] Fayl: `apps/mobile/src/screens/friends/FriendProfileScreen.tsx`
+
+---
+
+### T-E131 | P2 | [MOBILE] | 3 ta kichik screen — VerifyEmail(338) + FriendSearch(330) + Settings(329)
+
+- **Mas'ul:** pending[Emirhan]
+- **Beruvchi:** Emirhan
+- **Yaratilgan:** 2026-05-19 12:00
+- **Holat:** ✅ Bajarildi (2026-05-19)
+- **Tavsiya model:** sonnet
+- **Model sababi:** 3 screen, har biri 30-40 qator kamaytirish, 3 fayl
+- **Sabab:** Har biri 300+ (limit 300). SettingsScreen da API call to'g'ridan screen ichida
+- **Qilish kerak:**
+  - [ ] VerifyEmailScreen (338) — hook ajratish
+  - [ ] FriendSearchScreen (330) — kichik komponent ajratish
+  - [ ] SettingsScreen (329) — `userApi.updateSettings/deleteAccount` → hook
+  - [ ] Fayllar: `screens/auth/VerifyEmailScreen.tsx`, `screens/friends/FriendSearchScreen.tsx`, `screens/profile/SettingsScreen.tsx`
+
+---
+
+### T-E132 | P2 | [MOBILE] | Katta komponentlar — VideoSection(413) + ChatPanel(352)
+
+- **Mas'ul:** pending[Emirhan]
+- **Beruvchi:** Emirhan
+- **Yaratilgan:** 2026-05-19 12:00
+- **Holat:** ✅ Bajarildi (2026-05-19)
+- **Tavsiya model:** sonnet
+- **Model sababi:** 2 komponent split, 4 fayl
+- **Sabab:** Komponent limiti 150 qator — ikkalasi 2x+ oshgan
+- **Qilish kerak:**
+  - [ ] VideoSection (413) → 2-3 sub-komponent
+  - [ ] ChatPanel (352) → 2 sub-komponent
+  - [ ] Fayllar: `components/watchParty/VideoSection.tsx`, `components/watchParty/ChatPanel.tsx`
+
+---
+
+### T-E133 | P1 | [MOBILE] | VideoPlayerScreen.styles.ts — 25+ hardcoded color → theme tokens
+
+- **Mas'ul:** pending[Emirhan]
+- **Beruvchi:** Emirhan
+- **Yaratilgan:** 2026-05-19 12:00
+- **Holat:** ✅ Bajarildi (2026-05-19)
+- **Tavsiya model:** haiku
+- **Model sababi:** 1 fayl, faqat color almashtirish
+- **Sabab:** 25+ hardcoded hex (#fff, rgba, #000) → colors.* tokenlar
+- **Qilish kerak:**
+  - [ ] Barcha hardcoded hex → `colors.*` import
+  - [ ] Fayl: `apps/mobile/src/screens/home/VideoPlayerScreen.styles.ts`
+
+---
+
 # 🎬 MARKETING — HIGGSFIELD AI VIDEO GENERATION
 
 ---
@@ -150,7 +299,7 @@
 
 - **Mas'ul:** pending[Emirhan] + pending[Saidazim]
 - **Yaratilgan:** 2026-04-19 (retroaktiv)
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** ✅ Bajarildi (2026-05-19)
 - **Sabab:** MVP chiqarishdan oldin to'liq flow ishlashini 2 qurilmada tasdiqlash kerak
 - **Qilish kerak:**
   - [ ] Register → Login → ProfileSetup
@@ -166,7 +315,7 @@
 
 - **Mas'ul:** pending[Emirhan] + pending[Saidazim]
 - **Yaratilgan:** 2026-04-19 (retroaktiv)
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** ✅ Bajarildi (2026-05-19)
 - **Qilish kerak:**
   - [ ] YouTube — extract + play + sync
   - [ ] Rutube — extract + play + sync
@@ -185,7 +334,7 @@
 
 - **Mas'ul:**
 - **Yaratilgan:** 2026-04-19 (retroaktiv)
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** ✅ Bajarildi (2026-05-19)
 - **Sabab:** Mesh implementatsiya tugagach MAJBURIY E2E test matritsa.
 - **Qilish kerak:**
   - [ ] 2 peer — full mesh

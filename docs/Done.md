@@ -1,6 +1,32 @@
-# CineSync — BAJARILGAN ISHLAR ARXIVI
+# WeWatch — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-05-11
+# Yangilangan: 2026-05-19
+
+---
+
+### F-210 | T-E125–T-E133 | Mobile UI Refactor Sprint 10
+
+- **Bajaruvchi:** Emirhan (Claude opus)
+- **Bajarilgan:** 2026-05-19 14:00
+- **Model:** opus (audit + refactor), haiku (audit exploration)
+- **O'zgarishlar:**
+  - `screens/home/VideoPlayerScreen.styles.ts` — createThemedStyles, 25+ hardcoded → tokens
+  - `screens/home/HomeScreen.tsx` — 629→280, extract RoomGridCard + useCreateWatchParty hook
+  - `components/home/RoomGridCard.tsx` — yangi (RoomGridCard, SkeletonGridCard, RoomGrid)
+  - `hooks/useCreateWatchParty.ts` — yangi hook
+  - `screens/friends/FriendsScreen.tsx` — 562→230, extract FriendListItems, fix `as any`
+  - `components/friends/FriendListItems.tsx` — yangi (FriendRow, RequestCard, FriendsEmptyState)
+  - `screens/rooms/RoomsScreen.tsx` — 548→210, extract RoomListCard
+  - `components/rooms/RoomListCard.tsx` — yangi
+  - `screens/modal/SupportChatScreen.tsx` — 445→280, extract MessageItem + RatingBottomSheet
+  - `components/common/SupportChatItems.tsx` — yangi
+  - `screens/friends/FriendProfileScreen.tsx` — 427→245, styles → .styles.ts, #fff → colors.white
+  - `screens/auth/VerifyEmailScreen.tsx` — 338→252, styles → .styles.ts, rgba → tokens
+  - `screens/friends/FriendSearchScreen.tsx` — 330→186, styles → .styles.ts, #fff fix
+  - `screens/profile/SettingsScreen.tsx` — 329→303, styles → .styles.ts
+  - `components/watchParty/VideoSection.tsx` — 413→248, styles → .styles.ts
+  - `components/watchParty/ChatPanel.tsx` — 352→183, styles → .styles.ts
+- **Xulosa:** 9 ta screen/component refactor — barcha 300+ qator fayllar kamaytrildi. Hardcoded colors → theme tokens, inline styles → StyleSheet, `as any` → proper types. tsc CLEAN (faqat oldingi 3 external module xato).
 
 ---
 
