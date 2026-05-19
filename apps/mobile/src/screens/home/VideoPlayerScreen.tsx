@@ -16,7 +16,7 @@ import { HomeStackParamList } from '@app-types/index';
 import { useTheme } from '@theme/index';
 import { useVideoPlayer } from '@hooks/useVideoPlayer';
 import { YOUTUBE_RE, MOBILE_UA, getYouTubeMobileUrl, fmtTime, SEEK_SEC } from '@utils/videoPlayer';
-import { s } from './VideoPlayerScreen.styles';
+import { useVideoPlayerStyles } from './VideoPlayerScreen.styles';
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'VideoPlayer'>;
 const { width: SW } = Dimensions.get('window');
@@ -34,6 +34,7 @@ export function VideoPlayerScreen({ route, navigation }: Props) {
 function YouTubePlayer({
   url, title, navigation,
 }: { url: string; title: string; navigation: Props['navigation'] }) {
+  const s = useVideoPlayerStyles();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const [loading, setLoading] = useState(true);
@@ -78,7 +79,7 @@ function YouTubePlayer({
         <View style={[s.ytBackWrap, { top: insets.top + 12 }]}>
           <BlurView intensity={50} tint="dark" style={s.ytBackBlur}>
             <TouchableOpacity style={s.ytBackBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
-              <Ionicons name="chevron-back" size={18} color="#fff" />
+              <Ionicons name="chevron-back" size={18} color={colors.white} />
               <Text style={s.ytBackText} numberOfLines={1}>{title}</Text>
             </TouchableOpacity>
           </BlurView>
@@ -92,6 +93,7 @@ function YouTubePlayer({
 function DirectPlayer({
   movieId, videoUrl, title, navigation,
 }: { movieId: string; videoUrl: string; title: string; navigation: Props['navigation'] }) {
+  const s = useVideoPlayerStyles();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const {
@@ -139,7 +141,7 @@ function DirectPlayer({
                 style={StyleSheet.absoluteFill}
               />
               <View style={s.dtBubble}>
-                <Ionicons name={doubleTapSide === 'left' ? 'play-back' : 'play-forward'} size={22} color="#fff" />
+                <Ionicons name={doubleTapSide === 'left' ? 'play-back' : 'play-forward'} size={22} color={colors.white} />
                 <Text style={s.dtText}>{SEEK_SEC} сек</Text>
               </View>
             </Animated.View>
@@ -155,7 +157,7 @@ function DirectPlayer({
               >
                 <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} activeOpacity={0.7}>
                   <BlurView intensity={30} tint="dark" style={s.backBtnBlur}>
-                    <Ionicons name="chevron-back" size={20} color="#fff" />
+                    <Ionicons name="chevron-back" size={20} color={colors.white} />
                   </BlurView>
                 </TouchableOpacity>
                 <View style={s.titleWrap}>
@@ -168,25 +170,25 @@ function DirectPlayer({
               {/* Center play/pause/skip */}
               <View style={s.centerWrap}>
                 {buffering ? (
-                  <ActivityIndicator color="#fff" size="large" />
+                  <ActivityIndicator color={colors.white} size="large" />
                 ) : (
                   <View style={s.centerRow}>
                     <TouchableOpacity onPress={() => skipBy(-SEEK_SEC)} activeOpacity={0.7}>
                       <View style={s.skipButton}>
-                        <Ionicons name="play-back" size={22} color="#fff" />
+                        <Ionicons name="play-back" size={22} color={colors.white} />
                         <Text style={s.skipText}>{SEEK_SEC}</Text>
                       </View>
                     </TouchableOpacity>
                     <Animated.View style={{ transform: [{ scale: playBtnScale }] }}>
                       <TouchableOpacity onPress={togglePlay} activeOpacity={0.8}>
                         <LinearGradient colors={['rgba(255,255,255,0.25)', 'rgba(255,255,255,0.1)']} style={s.playButton}>
-                          <Ionicons name={playing ? 'pause' : 'play'} size={36} color="#fff" style={playing ? undefined : { marginLeft: 4 }} />
+                          <Ionicons name={playing ? 'pause' : 'play'} size={36} color={colors.white} style={playing ? undefined : { marginLeft: 4 }} />
                         </LinearGradient>
                       </TouchableOpacity>
                     </Animated.View>
                     <TouchableOpacity onPress={() => skipBy(SEEK_SEC)} activeOpacity={0.7}>
                       <View style={s.skipButton}>
-                        <Ionicons name="play-forward" size={22} color="#fff" />
+                        <Ionicons name="play-forward" size={22} color={colors.white} />
                         <Text style={s.skipText}>{SEEK_SEC}</Text>
                       </View>
                     </TouchableOpacity>
@@ -234,6 +236,7 @@ function DirectPlayer({
 function ErrorScreen({
   message, onBack, colors,
 }: { message: string; onBack: () => void; colors: ReturnType<typeof useTheme>['colors'] }) {
+  const s = useVideoPlayerStyles();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
@@ -249,7 +252,7 @@ function ErrorScreen({
       <Text style={s.errorTitle}>Video xatosi</Text>
       <Text style={[s.errorMsg, { color: colors.textMuted }]}>{message}</Text>
       <TouchableOpacity style={[s.errorBtn, { backgroundColor: colors.primary }]} onPress={onBack} activeOpacity={0.8}>
-        <Ionicons name="arrow-back" size={18} color="#fff" />
+        <Ionicons name="arrow-back" size={18} color={colors.white} />
         <Text style={s.errorBtnText}>Orqaga qaytish</Text>
       </TouchableOpacity>
     </Animated.View>
