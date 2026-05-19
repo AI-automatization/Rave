@@ -112,6 +112,57 @@
 
 ---
 
+# 🎬 MARKETING — HIGGSFIELD AI VIDEO GENERATION
+
+---
+
+### T-E120 | P1 | [MARKETING] | WeWatch Promo Reel — Concept 1 "Purple Pulse" (8 sek)
+
+- **Mas'ul:** pending[Emirhan]
+- **Beruvchi:** Emirhan
+- **Yaratilgan:** 2026-05-19 14:34
+- **Holat:** 🔄 Bajarilmoqda
+- **Tavsiya model:** higgsfield / seedance_1_5
+- **Model sababi:** Higgsfield AI video generation, 9:16, 8 sek, 9.6 kredit
+- **Sabab:** WeWatch uchun premium promo reel — dark cosmic, purple brand colors, split-screen sync konsepti
+- **Qilish kerak:**
+  - [x] Marketing papka tuzilmasi yaratish (`marketing/videos`, `marketing/images`, `marketing/briefs`)
+  - [ ] Concept 1 videoni generate qilish (Seedance 1.5 Pro, 8s, 9:16)
+  - [ ] Natijani `marketing/videos/concept1-purple-pulse.mp4` ga saqlash
+  - [ ] Sifatni baholash va kerak bo'lsa qayta generate
+
+---
+
+### T-E121 | P2 | [MARKETING] | WeWatch Promo Reel — Concept 2 "Three Cities" (4 sek)
+
+- **Mas'ul:** pending[Emirhan]
+- **Beruvchi:** Emirhan
+- **Yaratilgan:** 2026-05-19 14:34
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** higgsfield / seedance_1_5
+- **Model sababi:** Higgsfield AI video generation, 9:16, 4 sek, 4.8 kredit
+- **Sabab:** TikTok/Instagram Reels uchun tez punchy versiya — 3 shahar, bir vaqtda reakciya
+- **Qilish kerak:**
+  - [ ] Concept 2 videoni generate qilish (Seedance 1.5 Pro, 4s, 9:16)
+  - [ ] Natijani `marketing/videos/concept2-three-cities.mp4` ga saqlash
+
+---
+
+### T-E122 | P2 | [MARKETING] | WeWatch Promo Reel — Concept 3 "Macro Mood" (8 sek)
+
+- **Mas'ul:** pending[Emirhan]
+- **Beruvchi:** Emirhan
+- **Yaratilgan:** 2026-05-19 14:34
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** higgsfield / seedance_1_5
+- **Model sababi:** Higgsfield AI video generation, 9:16, 8 sek, 9.6 kredit
+- **Sabab:** Ultra-cinematic macro versiya — fingertip, glass reflection, premium feel
+- **Qilish kerak:**
+  - [ ] Concept 3 videoni generate qilish (Seedance 1.5 Pro, 8s, 9:16)
+  - [ ] Natijani `marketing/videos/concept3-macro-mood.mp4` ga saqlash
+
+---
+
 
 
 
