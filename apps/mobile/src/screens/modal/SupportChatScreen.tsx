@@ -1,4 +1,4 @@
-// CineSync Mobile — Support Chat Screen
+// WeWatch Mobile — Support Chat Screen
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   View, Text, FlatList, TextInput, TouchableOpacity,
@@ -13,84 +13,14 @@ import { useAuthStore } from '@store/auth.store';
 import { supportApi, SupportMessage, SupportConversation } from '@api/support.api';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { useSupportSocket } from '@hooks/useSupportSocket';
-
-function MessageItem({ item }: { item: SupportMessage }) {
-  const styles = useStyles();
-  const isUser = item.senderRole === 'user';
-  return (
-    <View style={[styles.row, isUser && styles.rowMine]}>
-      {!isUser && (
-        <View style={styles.avatar}>
-          <Ionicons name="headset-outline" size={14} color="#fff" />
-        </View>
-      )}
-      <View style={[styles.bubble, isUser ? styles.bubbleMine : styles.bubbleOther]}>
-        {!isUser && <Text style={styles.senderLabel}>Поддержка</Text>}
-        <Text style={styles.msgText}>{item.text}</Text>
-        <Text style={styles.timestamp}>
-          {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-        </Text>
-      </View>
-    </View>
-  );
-}
-
-function RatingBottomSheet({
-  score, setScore, comment, setComment, onSubmit, onSkip, submitting,
-}: {
-  score: number; setScore: (n: number) => void;
-  comment: string; setComment: (s: string) => void;
-  onSubmit: () => void; onSkip: () => void; submitting: boolean;
-}) {
-  const { colors } = useTheme();
-  const styles = useRatingStyles();
-  return (
-    <View style={styles.overlay}>
-      <View style={styles.sheet}>
-        <Text style={styles.title}>Оцените поддержку</Text>
-        <Text style={styles.sub}>Как прошёл наш разговор?</Text>
-        <View style={styles.stars}>
-          {[1, 2, 3, 4, 5].map(n => (
-            <TouchableOpacity key={n} onPress={() => setScore(n)} activeOpacity={0.7}>
-              <Ionicons
-                name={n <= score ? 'star' : 'star-outline'}
-                size={36}
-                color={n <= score ? '#FFD700' : colors.textMuted}
-              />
-            </TouchableOpacity>
-          ))}
-        </View>
-        <TextInput
-          style={styles.commentInput}
-          value={comment}
-          onChangeText={setComment}
-          placeholder="Оставьте комментарий (необязательно)"
-          placeholderTextColor={colors.textMuted}
-          multiline
-          maxLength={200}
-        />
-        <TouchableOpacity
-          style={[styles.submitBtn, (!score || submitting) && { opacity: 0.4 }]}
-          onPress={onSubmit}
-          disabled={!score || submitting}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.submitText}>{submitting ? 'Отправляем…' : 'Отправить'}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={onSkip} style={styles.skipBtn}>
-          <Text style={styles.skipText}>Пропустить</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-}
+import { MessageItem, RatingBottomSheet } from '@components/common/SupportChatItems';
 
 export function SupportChatScreen() {
   const { user } = useAuthStore();
   const userId = user?._id ?? '';
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const styles = useStyles();
+  const s = useStyles();
   const { colors } = useTheme();
   const queryClient = useQueryClient();
   const listRef = useRef<FlatList<SupportMessage>>(null);
@@ -111,7 +41,6 @@ export function SupportChatScreen() {
 
   const activeConv = conversations?.find(c => c.status === 'open') ?? conversations?.[0];
 
-  // Initialize rating state from existing conversation data
   useEffect(() => {
     if (activeConv?.rating?.score) {
       setRatingDone(true);
@@ -119,13 +48,8 @@ export function SupportChatScreen() {
     }
   }, [activeConv?._id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Watch for conversation status change to 'closed'
   useEffect(() => {
-    if (
-      activeConv?.status === 'closed' &&
-      !ratingDone &&
-      !activeConv?.rating?.score
-    ) {
+    if (activeConv?.status === 'closed' && !ratingDone && !activeConv?.rating?.score) {
       setShowRating(true);
     }
   }, [activeConv?.status, ratingDone, activeConv?.rating?.score]);
@@ -161,8 +85,7 @@ export function SupportChatScreen() {
   });
 
   const sendMutation = useMutation({
-    mutationFn: (text: string) =>
-      supportApi.sendMessage(userId, text, activeConv?._id),
+    mutationFn: (text: string) => supportApi.sendMessage(userId, text, activeConv?._id),
     onSuccess: (newMsg) => {
       void queryClient.invalidateQueries({ queryKey: ['support-conversations', userId] });
       if (activeConv?._id) {
@@ -217,44 +140,40 @@ export function SupportChatScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={[styles.root, { paddingTop: insets.top }]}
+      style={[s.root, { paddingTop: insets.top }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={insets.bottom}
     >
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+      <View style={s.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
           <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </TouchableOpacity>
-        <View style={styles.headerInfo}>
+        <View style={s.headerInfo}>
           <Ionicons name="headset-outline" size={18} color={colors.primary} />
-          <Text style={styles.headerTitle}>Поддержка</Text>
+          <Text style={s.headerTitle}>Поддержка</Text>
         </View>
-        <View style={styles.spacer} />
+        <View style={s.spacer} />
       </View>
 
       {isLoading ? (
-        <View style={styles.center}>
+        <View style={s.center}>
           <ActivityIndicator color={colors.primary} />
         </View>
       ) : (
         <>
           {allMessages.length === 0 && (
-            <View style={styles.empty}>
+            <View style={s.empty}>
               <Ionicons name="chatbubble-ellipses-outline" size={48} color={colors.textMuted} />
-              <Text style={styles.emptyTitle}>Нет сообщений</Text>
-              <Text style={styles.emptySub}>
-                Напишите нам — мы ответим как можно скорее
-              </Text>
+              <Text style={s.emptyTitle}>Нет сообщений</Text>
+              <Text style={s.emptySub}>Напишите нам — мы ответим как можно скорее</Text>
             </View>
           )}
           <FlatList
             ref={listRef}
             data={allMessages}
             keyExtractor={item => item._id}
-            renderItem={({ item }: ListRenderItemInfo<SupportMessage>) => (
-              <MessageItem item={item} />
-            )}
-            contentContainerStyle={styles.list}
+            renderItem={({ item }: ListRenderItemInfo<SupportMessage>) => <MessageItem item={item} />}
+            contentContainerStyle={s.list}
             onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
             showsVerticalScrollIndicator={false}
           />
@@ -262,44 +181,37 @@ export function SupportChatScreen() {
       )}
 
       {isClosed ? (
-        <View style={styles.closedBanner}>
+        <View style={s.closedBanner}>
           {ratingDone || activeConv?.rating?.score ? (
             <>
-              <Text style={styles.closedText}>Спасибо за оценку!</Text>
+              <Text style={s.closedText}>Спасибо за оценку!</Text>
               <View style={{ flexDirection: 'row', gap: 2 }}>
                 {[1, 2, 3, 4, 5].map(n => (
-                  <Ionicons
-                    key={n}
+                  <Ionicons key={n}
                     name={n <= (ratingScore || activeConv?.rating?.score || 0) ? 'star' : 'star-outline'}
-                    size={14}
-                    color="#FFD700"
+                    size={14} color={colors.gold}
                   />
                 ))}
               </View>
             </>
           ) : (
-            <Text style={styles.closedText}>Диалог закрыт</Text>
+            <Text style={s.closedText}>Диалог закрыт</Text>
           )}
-          <TouchableOpacity
-            style={styles.newChatBtn}
-            onPress={() => void startNewChat()}
-            disabled={creatingConv}
-            activeOpacity={0.8}
-          >
+          <TouchableOpacity style={s.newChatBtn} onPress={() => void startNewChat()} disabled={creatingConv} activeOpacity={0.8}>
             {creatingConv ? (
-              <ActivityIndicator size="small" color="#fff" />
+              <ActivityIndicator size="small" color={colors.white} />
             ) : (
               <>
-                <Ionicons name="add-circle-outline" size={16} color="#fff" />
-                <Text style={styles.newChatText}>Новый чат</Text>
+                <Ionicons name="add-circle-outline" size={16} color={colors.white} />
+                <Text style={s.newChatText}>Новый чат</Text>
               </>
             )}
           </TouchableOpacity>
         </View>
       ) : (
-        <View style={[styles.inputRow, { paddingBottom: insets.bottom + spacing.xs }]}>
+        <View style={[s.inputRow, { paddingBottom: insets.bottom + spacing.xs }]}>
           <TextInput
-            style={styles.input}
+            style={s.input}
             value={input}
             onChangeText={setInput}
             placeholder="Написать сообщение..."
@@ -309,15 +221,15 @@ export function SupportChatScreen() {
             returnKeyType="default"
           />
           <TouchableOpacity
-            style={[styles.sendBtn, (!input.trim() || sendMutation.isPending) && styles.sendBtnDisabled]}
+            style={[s.sendBtn, (!input.trim() || sendMutation.isPending) && s.sendBtnDisabled]}
             onPress={handleSend}
             disabled={!input.trim() || sendMutation.isPending}
             activeOpacity={0.8}
           >
             {sendMutation.isPending ? (
-              <ActivityIndicator size="small" color="#fff" />
+              <ActivityIndicator size="small" color={colors.white} />
             ) : (
-              <Ionicons name="send" size={18} color="#fff" />
+              <Ionicons name="send" size={18} color={colors.white} />
             )}
           </TouchableOpacity>
         </View>
@@ -325,12 +237,9 @@ export function SupportChatScreen() {
 
       {showRating && !ratingDone && (
         <RatingBottomSheet
-          score={ratingScore}
-          setScore={setRatingScore}
-          comment={ratingComment}
-          setComment={setRatingComment}
-          onSubmit={() => void submitRating()}
-          onSkip={() => setShowRating(false)}
+          score={ratingScore} setScore={setRatingScore}
+          comment={ratingComment} setComment={setRatingComment}
+          onSubmit={() => void submitRating()} onSkip={() => setShowRating(false)}
           submitting={submittingRating}
         />
       )}
@@ -341,12 +250,9 @@ export function SupportChatScreen() {
 const useStyles = createThemedStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.bgBase },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: spacing.md, paddingVertical: spacing.md,
+    borderBottomWidth: 1, borderBottomColor: colors.border,
   },
   backBtn: { padding: spacing.xs },
   headerInfo: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, justifyContent: 'center' },
@@ -357,48 +263,25 @@ const useStyles = createThemedStyles((colors) => ({
   emptyTitle: { ...typography.h3, color: colors.textSecondary },
   emptySub: { ...typography.body, color: colors.textMuted, textAlign: 'center' },
   list: { padding: spacing.md, gap: spacing.md, flexGrow: 1 },
-  row: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.xs },
-  rowMine: { flexDirection: 'row-reverse' },
-  avatar: {
-    width: 28, height: 28, borderRadius: borderRadius.full,
-    backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center',
-  },
-  bubble: { maxWidth: '78%', padding: spacing.sm, borderRadius: borderRadius.md, gap: 2 },
-  bubbleMine: { backgroundColor: colors.primary },
-  bubbleOther: { backgroundColor: colors.bgElevated },
-  senderLabel: { fontSize: 10, fontWeight: '700', color: colors.secondary, marginBottom: 2 },
-  msgText: { ...typography.body, color: colors.textPrimary },
-  timestamp: { fontSize: 10, color: 'rgba(255,255,255,0.4)', alignSelf: 'flex-end', marginTop: 2 },
   inputRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    padding: spacing.sm,
-    gap: spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
+    flexDirection: 'row', alignItems: 'flex-end',
+    padding: spacing.sm, gap: spacing.sm,
+    borderTopWidth: 1, borderTopColor: colors.border,
     backgroundColor: colors.bgSurface,
   },
   input: {
-    flex: 1,
-    backgroundColor: colors.bgElevated,
-    color: colors.textPrimary,
-    borderRadius: borderRadius.lg,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    fontSize: 14,
-    maxHeight: 120,
+    flex: 1, backgroundColor: colors.bgElevated, color: colors.textPrimary,
+    borderRadius: borderRadius.lg, paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm, fontSize: 14, maxHeight: 120,
   },
   sendBtn: {
     width: 40, height: 40, borderRadius: borderRadius.full,
-    backgroundColor: colors.primary,
-    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center',
   },
   sendBtnDisabled: { opacity: 0.4 },
   closedBanner: {
-    padding: spacing.md,
-    borderTopWidth: 1, borderTopColor: colors.border,
-    backgroundColor: colors.bgSurface,
-    alignItems: 'center', gap: spacing.sm,
+    padding: spacing.md, borderTopWidth: 1, borderTopColor: colors.border,
+    backgroundColor: colors.bgSurface, alignItems: 'center', gap: spacing.sm,
     paddingBottom: spacing.lg,
   },
   closedText: { ...typography.caption, color: colors.textMuted },
@@ -409,37 +292,5 @@ const useStyles = createThemedStyles((colors) => ({
     borderRadius: borderRadius.full, marginTop: spacing.xs,
     minWidth: 120, justifyContent: 'center',
   },
-  newChatText: { ...typography.body, color: '#fff', fontWeight: '600' },
-}));
-
-const useRatingStyles = createThemedStyles((colors) => ({
-  overlay: {
-    position: 'absolute', bottom: 0, left: 0, right: 0, top: 0,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'flex-end',
-    zIndex: 100,
-  },
-  sheet: {
-    backgroundColor: colors.bgSurface,
-    borderTopLeftRadius: 24, borderTopRightRadius: 24,
-    padding: spacing.xl, paddingBottom: spacing.xl + 16,
-    alignItems: 'center', gap: spacing.md,
-  },
-  title: { ...typography.h2, color: colors.textPrimary, textAlign: 'center' },
-  sub: { ...typography.body, color: colors.textSecondary, textAlign: 'center' },
-  stars: { flexDirection: 'row', gap: spacing.sm, paddingVertical: spacing.sm },
-  commentInput: {
-    width: '100%', backgroundColor: colors.bgElevated,
-    color: colors.textPrimary, borderRadius: borderRadius.md,
-    padding: spacing.md, fontSize: 14, minHeight: 72,
-    textAlignVertical: 'top',
-  },
-  submitBtn: {
-    width: '100%', backgroundColor: colors.primary,
-    borderRadius: borderRadius.lg, paddingVertical: spacing.md,
-    alignItems: 'center',
-  },
-  submitText: { ...typography.body, color: '#fff', fontWeight: '700' },
-  skipBtn: { paddingVertical: spacing.sm },
-  skipText: { ...typography.caption, color: colors.textMuted },
+  newChatText: { ...typography.body, color: colors.white, fontWeight: '600' },
 }));
