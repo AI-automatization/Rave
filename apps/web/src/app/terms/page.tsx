@@ -52,8 +52,8 @@ export default function TermsPage() {
 
         <Section title="1. Eligibility">
           <ul>
-            <li>You must be at least <strong className="text-zinc-200">13 years old</strong> to use the Service (17+ for App Store access due to user-generated content).</li>
-            <li>If you are between 13 and 18, you represent that your parent or legal guardian has reviewed and agreed to these Terms on your behalf.</li>
+            <li>You must be at least <strong className="text-zinc-200">17 years old</strong> to use the Service. The app carries a 17+ rating on the App Store due to user-generated content and mature video content that users may share in watch party rooms.</li>
+            <li>If you are under 18, you represent that your parent or legal guardian has reviewed and agreed to these Terms on your behalf.</li>
             <li>You must provide accurate, complete, and current information when creating your account.</li>
             <li>You may not create an account if you have previously been banned from the Service.</li>
             <li>The Service is available worldwide, subject to applicable local laws. You are responsible for compliance with your jurisdiction&apos;s laws.</li>

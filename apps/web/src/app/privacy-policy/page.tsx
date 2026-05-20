@@ -62,21 +62,33 @@ export default function PrivacyPolicyPage() {
           <SubHeading>1.2 Information Collected Automatically</SubHeading>
           <ul>
             <li><strong className="text-zinc-200">Usage data</strong> — watch history, watch party sessions you create or join, video URLs you share within the Service, room membership records</li>
-            <li><strong className="text-zinc-200">Device identifiers</strong> — device type, operating system version, Expo / APNs / FCM push notification token (for notifications you opt into)</li>
+            <li><strong className="text-zinc-200">Device identifiers</strong> — device type, operating system version, Expo / APNs / FCM push notification token (for notifications you opt into). We do <strong className="text-zinc-200">not</strong> collect or use the Apple Advertising Identifier (IDFA) or any equivalent advertising identifier.</li>
             <li><strong className="text-zinc-200">Log data</strong> — IP address, request timestamps, HTTP status codes, error reports (retained 90 days for security and debugging)</li>
             <li><strong className="text-zinc-200">Interaction data</strong> — points, ranks, achievements, friend relationships, and gamification events</li>
+            <li><strong className="text-zinc-200">In-app browser domain data</strong> — when you use the in-app browser to visit websites, we log the domain name (e.g., <em>youtube.com</em>) of sites visited, but not the full URL path or page content. This is used solely for abuse detection and blocked-domain enforcement. Third-party websites you visit through the in-app browser are governed by their own privacy policies, which WeWatch does not control.</li>
           </ul>
 
-          <SubHeading>1.3 Information from Third-Party Sign-In</SubHeading>
+          <SubHeading>1.3a Device Permissions We Request</SubHeading>
+          <p className="mb-2">The app requests the following device permissions. All are optional for core functionality unless noted:</p>
+          <ul>
+            <li><strong className="text-zinc-200">Photos / Media Library</strong> — requested only when you choose to upload a profile photo. We access only the image you select; we do not scan or access your full photo library.</li>
+            <li><strong className="text-zinc-200">Microphone</strong> — requested only when you join a voice chat channel inside a watch party room. Audio is transmitted peer-to-peer via WebRTC and is not recorded or stored by WeWatch.</li>
+            <li><strong className="text-zinc-200">Push Notifications</strong> — requested at account setup for watch party invites, friend requests, and other in-app events. You can withdraw this permission at any time via <em>iOS Settings → Notifications → WeWatch</em> or inside the app under <em>Settings → Notifications</em>.</li>
+          </ul>
+
+          <SubHeading>1.4 Information from Third-Party Sign-In</SubHeading>
           <p className="mb-2">When you sign in with Google or Apple, we receive:</p>
           <ul>
-            <li>Your unique identifier from that provider (Google ID / Apple ID)</li>
+            <li>Your unique identifier from that provider (Google ID / Apple sub)</li>
             <li>Email address (if you have not hidden it)</li>
             <li>Display name and profile photo (if provided by the platform)</li>
           </ul>
           <p className="mt-2">
-            We do not receive your passwords from these providers. Apple Sign In is available and
-            supported — you may use a private relay email address.
+            We do not receive your passwords from these providers. We do{' '}
+            <strong className="text-zinc-200">not</strong> store your Google or Apple OAuth access
+            tokens or refresh tokens on our servers — only the provider&apos;s stable user identifier
+            is stored to link your WeWatch account. Apple Sign In is available and supported —
+            you may use a private relay email address.
           </p>
         </Section>
 
@@ -186,12 +198,14 @@ export default function PrivacyPolicyPage() {
           <ul>
             <li>
               <strong className="text-zinc-200">Service Providers</strong> — third parties who help us
-              operate the Service:
+              operate the Service. Each provider is contractually bound to protect your data to at
+              least the same standard described in this Privacy Policy and is prohibited from using
+              your data for any purpose other than providing services to us:
               <ul className="mt-1 ml-4">
-                <li><em>MongoDB Atlas</em> — database hosting (data stored in US region)</li>
-                <li><em>Railway.app</em> — cloud server infrastructure</li>
-                <li><em>Google Firebase (FCM / APNs)</em> — push notification delivery</li>
-                <li><em>Sentry.io</em> — error monitoring (no personal data in error payloads by design)</li>
+                <li><em>MongoDB Atlas (MongoDB, Inc.)</em> — database hosting (data stored in US region). <a href="https://www.mongodb.com/legal/privacy-policy" className="text-[#7B72F8] hover:underline" target="_blank" rel="noopener noreferrer">Privacy Policy</a></li>
+                <li><em>Railway.app</em> — cloud server infrastructure. <a href="https://railway.app/legal/privacy" className="text-[#7B72F8] hover:underline" target="_blank" rel="noopener noreferrer">Privacy Policy</a></li>
+                <li><em>Google Firebase (FCM)</em> — push notification delivery. Only your FCM device token is shared, not message content. <a href="https://firebase.google.com/support/privacy" className="text-[#7B72F8] hover:underline" target="_blank" rel="noopener noreferrer">Privacy Policy</a></li>
+                <li><em>Sentry.io</em> — error monitoring. Error reports contain no personal data by design (user identifiers and personal fields are scrubbed before transmission). <a href="https://sentry.io/privacy/" className="text-[#7B72F8] hover:underline" target="_blank" rel="noopener noreferrer">Privacy Policy</a></li>
               </ul>
             </li>
             <li>
@@ -212,6 +226,9 @@ export default function PrivacyPolicyPage() {
           <p className="mt-3">
             We do <strong className="text-zinc-200">not</strong> sell personal data. We do{' '}
             <strong className="text-zinc-200">not</strong> share data with advertising networks.
+            We do <strong className="text-zinc-200">not</strong> share data with third-party
+            AI services. We do <strong className="text-zinc-200">not</strong> use data collected
+            in WeWatch to target advertising in any other app or context.
           </p>
         </Section>
 
@@ -258,17 +275,24 @@ export default function PrivacyPolicyPage() {
           </p>
         </Section>
 
-        <Section title="7. Children's Privacy (COPPA)">
+        <Section title="7. Age Requirements & Children's Privacy (COPPA)">
           <p>
-            {APP_NAME} is not directed to children under the age of 13 (or 16 in the EEA). We do
-            not knowingly collect personal information from anyone under 13. If we discover that a
-            child under 13 has provided us with personal data, we will delete it immediately. If you
-            believe a child has registered without parental consent, contact us at{' '}
-            <a href={`mailto:${PRIVACY_EMAIL}`} className="text-[#7B72F8] hover:underline">{PRIVACY_EMAIL}</a>.
+            {APP_NAME} is intended for users aged <strong className="text-zinc-200">17 and older</strong>.
+            The app carries a <strong className="text-zinc-200">17+</strong> age rating on the App Store
+            due to user-generated content and the potential for mature video content shared by users in
+            watch party rooms.
           </p>
           <p className="mt-2">
-            The App Store age rating for {APP_NAME} is <strong className="text-zinc-200">17+</strong>{' '}
-            due to user-generated content and the potential for mature video content shared by users.
+            We do not knowingly collect personal information from anyone under the age of 13
+            (or 16 in the EEA/UK, per GDPR). If we discover that a person under 13 has provided
+            us with personal data without verifiable parental consent, we will delete that data
+            immediately in compliance with the Children&apos;s Online Privacy Protection Act (COPPA)
+            and applicable law.
+          </p>
+          <p className="mt-2">
+            If you believe a minor has registered on the Service, please contact us immediately at{' '}
+            <a href={`mailto:${PRIVACY_EMAIL}`} className="text-[#7B72F8] hover:underline">{PRIVACY_EMAIL}</a>{' '}
+            and we will investigate and remove the account promptly.
           </p>
         </Section>
 
@@ -287,13 +311,35 @@ export default function PrivacyPolicyPage() {
           </p>
         </Section>
 
-        <Section title="9. Cookies & Tracking">
-          <p>
-            The {APP_NAME} mobile application does not use browser cookies. Our website may use
-            technically necessary cookies (e.g., session identifiers). We do not use tracking cookies,
-            advertising cookies, or third-party analytics cookies. We do not participate in cross-site
-            tracking.
-          </p>
+        <Section title="9. Cookies, Tracking & Advertising Identifiers">
+          <ul>
+            <li>
+              <strong className="text-zinc-200">No cross-app tracking.</strong> WeWatch does not track
+              your activity across other companies&apos; apps or websites. We do not participate in
+              cross-context behavioral advertising.
+            </li>
+            <li>
+              <strong className="text-zinc-200">No IDFA.</strong> We do not collect, access, or use
+              the Apple Advertising Identifier (IDFA) or any equivalent advertising or device
+              identifier for tracking purposes. We have not integrated any ad networks or tracking SDKs.
+            </li>
+            <li>
+              <strong className="text-zinc-200">App Tracking Transparency.</strong> Because WeWatch
+              does not track users, we do not display an App Tracking Transparency (ATT) prompt. No
+              tracking permission is requested or required.
+            </li>
+            <li>
+              <strong className="text-zinc-200">Cookies.</strong> The WeWatch mobile app does not use
+              browser cookies. Our website may use technically necessary session cookies only. No
+              advertising, analytics, or third-party tracking cookies are used.
+            </li>
+            <li>
+              <strong className="text-zinc-200">Push notification consent.</strong> You can withdraw
+              consent for push notifications at any time via <em>iOS Settings → Notifications → WeWatch</em>{' '}
+              or within the app under <em>Settings → Notifications</em>. Withdrawing this consent does
+              not affect your ability to use any other feature of the Service.
+            </li>
+          </ul>
         </Section>
 
         <Section title="10. International Data Transfers">
