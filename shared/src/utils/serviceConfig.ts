@@ -36,13 +36,25 @@ export const notificationServiceUrl =
     : 'http://localhost:3007');
 
 export const contentServiceUrl =
-  process.env.CONTENT_SERVICE_URL ?? 'http://localhost:3003';
+  process.env.CONTENT_SERVICE_URL ??
+  (process.env.RAILWAY_SERVICE_CONTENT_URL
+    ? `https://${process.env.RAILWAY_SERVICE_CONTENT_URL}`
+    : 'http://localhost:3003');
 
 export const watchPartyServiceUrl =
-  process.env.WATCH_PARTY_SERVICE_URL ?? 'http://localhost:3004';
+  process.env.WATCH_PARTY_SERVICE_URL ??
+  (process.env.RAILWAY_SERVICE_WATCH_PART_URL
+    ? `https://${process.env.RAILWAY_SERVICE_WATCH_PART_URL}`
+    : 'http://localhost:3004');
 
 export const authServiceUrl =
-  process.env.AUTH_SERVICE_URL ?? 'http://localhost:3001';
+  process.env.AUTH_SERVICE_URL ??
+  (process.env.RAILWAY_SERVICE_AUTH_URL
+    ? `https://${process.env.RAILWAY_SERVICE_AUTH_URL}`
+    : 'http://localhost:3001');
 
 export const adminServiceUrl =
-  process.env.ADMIN_SERVICE_URL ?? 'http://localhost:3008';
+  process.env.ADMIN_SERVICE_URL ??
+  (process.env.RAILWAY_SERVICE_ADMIN_URL
+    ? `https://${process.env.RAILWAY_SERVICE_ADMIN_URL}`
+    : 'http://localhost:3008');
