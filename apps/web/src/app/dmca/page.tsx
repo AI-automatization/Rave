@@ -43,9 +43,11 @@ export default function DmcaPage() {
           <strong className="text-zinc-200 block mb-1">Our Position on Copyright</strong>
           {COMPANY} (&quot;WeWatch&quot;) respects intellectual property rights and complies with the
           Digital Millennium Copyright Act (DMCA), 17 U.S.C. § 512, and equivalent copyright laws
-          in other jurisdictions. WeWatch does not host, store, or distribute video content — we
-          operate a watch party coordination platform where users share URLs to externally hosted
-          content. This policy explains how we handle copyright concerns related to our platform.
+          in other jurisdictions. WeWatch operates an <strong className="text-zinc-200">in-app browser
+          with social watch party coordination</strong> — we do not host, store, proxy, or distribute
+          video content. Video data travels directly from source websites to users&apos; devices; our
+          servers only store URLs (references), not the video content itself. This policy explains
+          how we handle copyright concerns related to our platform.
         </div>
 
         <Section title="1. How WeWatch Handles Video Content">
@@ -200,12 +202,35 @@ export default function DmcaPage() {
         </Section>
 
         <Section title="6. Safe Harbor">
-          <p>
-            WeWatch qualifies for safe harbor protection under 17 U.S.C. § 512(c) (DMCA) as a
-            service provider that stores information at the direction of users, provided that we
-            respond expeditiously to valid DMCA notices and meet the other requirements of the statute.
-            WeWatch does not have actual knowledge of infringing content shared by users, and we do
-            not financially benefit from infringing activity in a direct and obvious way.
+          <p className="mb-3">
+            WeWatch qualifies for safe harbor protection under the Digital Millennium Copyright Act
+            on two grounds:
+          </p>
+          <ul>
+            <li>
+              <strong className="text-zinc-200">17 U.S.C. § 512(d) — Information Location Tools.</strong>{' '}
+              WeWatch&apos;s primary function is to refer users to content located on third-party servers
+              via URLs. We do not have actual knowledge of infringing activity; upon obtaining such
+              knowledge, we act expeditiously to block the infringing URL within our Service.
+            </li>
+            <li>
+              <strong className="text-zinc-200">17 U.S.C. § 512(c) — Storage at User Direction.</strong>{' '}
+              To the extent WeWatch stores watch party room data (including URLs) at the direction
+              of users, we qualify for storage safe harbor. We do not financially benefit directly
+              from infringing activity, and we respond expeditiously to valid DMCA takedown notices.
+            </li>
+          </ul>
+          <p className="mt-3">
+            WeWatch does not exercise editorial control over user-submitted URLs. We do not receive
+            a direct financial benefit attributable to infringing activity. We have designated a
+            copyright agent and maintain a repeat infringer policy, as required by § 512(i).
+          </p>
+          <p className="mt-2 text-xs text-zinc-500">
+            Note: Because WeWatch does not host, store, or proxy video content — it only stores
+            URLs pointing to externally hosted content — copyright takedown actions must ultimately
+            be directed to the platform hosting the video (YouTube, Vimeo, etc.) to achieve full
+            removal. WeWatch can block the URL within our Service; we cannot remove content from
+            third-party platforms.
           </p>
         </Section>
 

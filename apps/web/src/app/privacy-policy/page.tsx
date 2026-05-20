@@ -98,44 +98,84 @@ export default function PrivacyPolicyPage() {
           </p>
         </Section>
 
-        <Section title="3. Video Content & Stream Processing">
+        <Section title="3. Video Content, In-App Browser & Stream Processing">
           <p className="mb-3">
-            {APP_NAME} is a <strong className="text-zinc-200">social watch party platform</strong>.
-            Users share URLs of publicly accessible video content, and {APP_NAME} facilitates
-            synchronized playback of that content for participants in the same room.
+            {APP_NAME} is a <strong className="text-zinc-200">social watch party platform</strong>{' '}
+            built around an integrated web browser (WebView). The core user flow is:
+            a user opens a website inside the in-app browser, the website loads a video on the
+            user&apos;s own device (exactly as it would in Safari or Chrome), {APP_NAME} detects the
+            video stream URL that the website has already loaded, and then facilitates synchronized
+            playback of that URL for all participants in the same watch party room.
           </p>
+
+          <SubHeading>3.1 No Server-Side Proxying or Storing of Video</SubHeading>
           <ul>
             <li>
-              <strong className="text-zinc-200">We do not host, store, upload, or redistribute video files.</strong>{' '}
-              No video content is copied to our servers.
+              <strong className="text-zinc-200">WeWatch is not a video proxy or CDN.</strong>{' '}
+              Video data travels directly from the source website&apos;s servers to the user&apos;s device.
+              WeWatch servers never receive, buffer, cache, store, or retransmit video content.
             </li>
             <li>
-              <strong className="text-zinc-200">Stream URL resolution</strong> — our backend may resolve
-              a user-provided URL to a playable media stream (e.g., HLS manifest), similar to how a
-              web browser follows HTTP redirects to locate a media resource. This technical step is
-              necessary to enable in-app playback and does not create a copy of the underlying content.
+              <strong className="text-zinc-200">Client-side URL detection.</strong> The app detects
+              media stream URLs (e.g., HLS/MPEG-DASH manifests) that the in-app browser has already
+              loaded from the source website. This detection runs locally on the user&apos;s device — no
+              video request is made by our servers. It is technically equivalent to copying the
+              address bar URL of a video that is playing in a browser.
             </li>
             <li>
               <strong className="text-zinc-200">No DRM circumvention.</strong> {APP_NAME} does not
-              bypass digital rights management (DRM), decrypt encrypted content, or access
-              subscription-only or paywalled content on behalf of users.
+              bypass, decrypt, or circumvent any digital rights management (DRM) system, encryption,
+              or technical protection measure (as defined under 17 U.S.C. § 1201). Content protected
+              by DRM (Widevine, FairPlay, PlayReady) cannot be extracted or played by this method —
+              only publicly playable streams accessible without DRM are detectable.
             </li>
             <li>
               <strong className="text-zinc-200">No content downloading.</strong> The app does not
-              provide functionality to download, save, or permanently store video files on the user&apos;s
-              device from third-party sources.
-            </li>
-            <li>
-              <strong className="text-zinc-200">User responsibility.</strong> Users are solely
-              responsible for ensuring they have lawful access to any content they share via the
-              Service. Sharing links to copyrighted content without authorization violates our
-              Terms of Service and may violate applicable law.
+              provide any functionality to download, save, or permanently store video files on the
+              user&apos;s device or our servers from third-party sources.
             </li>
           </ul>
+
+          <SubHeading>3.2 In-App Browser & Third-Party Websites</SubHeading>
+          <ul>
+            <li>
+              The in-app browser is a standard WebView component. When you navigate to a
+              third-party website, that website loads in its entirety on your device. WeWatch has
+              no special access to the content of those websites beyond what a standard browser provides.
+            </li>
+            <li>
+              <strong className="text-zinc-200">Third-party privacy policies apply.</strong> When you
+              use the in-app browser to visit any third-party website, that website&apos;s own privacy
+              policy and terms of service govern how it collects and processes your data. WeWatch
+              is not responsible for the data practices of third-party websites.
+            </li>
+            <li>
+              <strong className="text-zinc-200">WebView storage.</strong> Cookies and local storage
+              set by third-party websites within the in-app browser are stored in an isolated
+              WebView container on your device and are not shared with WeWatch or transmitted to
+              our servers.
+            </li>
+          </ul>
+
+          <SubHeading>3.3 User Responsibility</SubHeading>
+          <ul>
+            <li>
+              Users are solely responsible for ensuring they have lawful access to any content
+              they share or watch via the Service, including compliance with the terms of service
+              of any third-party website they visit through the in-app browser.
+            </li>
+            <li>
+              Sharing URLs to copyrighted content without authorization violates our Terms of
+              Service and applicable copyright law.
+            </li>
+          </ul>
+
           <p className="mt-3">
-            URLs you share within a watch party room are processed to facilitate playback and may
-            be temporarily cached in memory for session continuity. We log domain-level visit data
-            (the domain, not the full URL) for abuse detection and blocked-domain enforcement.
+            URLs shared within a watch party room are stored on our servers solely to maintain
+            room state and enable session continuity for participants. We log the domain (not
+            the full URL path) of sites visited for abuse detection and blocked-domain enforcement.
+            Full URLs shared in rooms are retained for the lifetime of the room (auto-purged 30
+            days after the room ends).
           </p>
         </Section>
 

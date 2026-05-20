@@ -74,28 +74,57 @@ export default function TermsPage() {
           <p className="mb-3">
             WeWatch provides a social platform enabling users to watch video content simultaneously in
             synchronized &quot;watch party&quot; rooms. The Service functions as a{' '}
-            <strong className="text-zinc-200">playback coordination layer</strong> — we do not
-            own, host, upload, store, or distribute the video content itself.
+            <strong className="text-zinc-200">social coordination and in-app browser layer</strong> —
+            we do not own, host, upload, store, or distribute video content.
           </p>
 
           <SubHeading>3.1 How Video Playback Works</SubHeading>
-          <ul>
-            <li>Users share URLs of video content accessible on the public internet.</li>
-            <li>Our Service synchronizes playback state (play, pause, seek position, timestamp) across all participants in a room.</li>
+          <p className="mb-2">The WeWatch video flow has three steps:</p>
+          <ol className="list-decimal pl-5 space-y-2">
             <li>
-              To enable in-app playback, our backend may resolve a user-provided URL to its underlying
-              media stream (e.g., HLS/MPEG-DASH manifest). This is a technical necessity equivalent
-              to how a web browser resolves a page&apos;s media resources — no copy of the video is made.
+              <strong className="text-zinc-200">User browses via in-app browser.</strong> The app
+              contains an integrated web browser (WebView). Users navigate to any website, which
+              loads entirely on their device — exactly as in Safari or Chrome. WeWatch does not
+              intercept, proxy, or modify the traffic between the user&apos;s device and the website.
             </li>
-            <li>No video data is stored on our servers. Streams are played directly from the original source to each user&apos;s device.</li>
-          </ul>
+            <li>
+              <strong className="text-zinc-200">Client-side video URL detection.</strong> When the
+              in-app browser loads a page containing video, the app detects the media stream URL
+              (e.g., HLS manifest) that the browser has already fetched from the source website.
+              This detection is local to the user&apos;s device — no network request is made by WeWatch
+              servers for this step. No copy of the video is made.
+            </li>
+            <li>
+              <strong className="text-zinc-200">Playback synchronization.</strong> WeWatch transmits
+              only playback control signals (play, pause, seek timestamp) between room participants.
+              Video data travels directly from the source website&apos;s servers to each user&apos;s device.
+              WeWatch servers never receive or retransmit video data.
+            </li>
+          </ol>
 
           <SubHeading>3.2 What the Service Does NOT Do</SubHeading>
           <ul>
             <li><strong className="text-zinc-200">Does not download or save video files</strong> to our servers or to users&apos; devices from third-party sources</li>
-            <li><strong className="text-zinc-200">Does not circumvent DRM</strong> or decrypt protected content</li>
-            <li><strong className="text-zinc-200">Does not provide access to paywalled content</strong> — users must independently have authorization to view content they share</li>
+            <li><strong className="text-zinc-200">Does not circumvent DRM</strong> — content protected by Widevine, FairPlay, or PlayReady cannot be extracted by our method and is not accessible through WeWatch</li>
+            <li><strong className="text-zinc-200">Does not proxy video traffic</strong> through WeWatch servers — all video data goes source → user device directly</li>
+            <li><strong className="text-zinc-200">Does not provide access to paywalled content</strong> — users must independently have authorization to view content they access via the in-app browser</li>
             <li><strong className="text-zinc-200">Does not reproduce or redistribute</strong> copyrighted video content</li>
+          </ul>
+
+          <SubHeading>3.3 Third-Party Website Access</SubHeading>
+          <p className="mb-2">
+            When users browse third-party websites through the in-app browser:
+          </p>
+          <ul>
+            <li>Users remain solely responsible for complying with the terms of service of any third-party website they visit</li>
+            <li>WeWatch has no affiliation with, endorsement of, or control over third-party websites</li>
+            <li>WeWatch is not responsible for the content, availability, or practices of any third-party website</li>
+            <li>
+              <strong className="text-zinc-200">Platform ToS compliance.</strong> Certain platforms
+              (e.g., Netflix, Disney+, Hulu) prohibit access through non-approved applications.
+              Users are responsible for reviewing and complying with the terms of any platform they
+              access. WeWatch does not encourage or facilitate violations of third-party ToS.
+            </li>
           </ul>
         </Section>
 
