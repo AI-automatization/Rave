@@ -1,7 +1,12 @@
+'use client';
+
 import Link from 'next/link';
 import { FaPlay } from 'react-icons/fa';
+import { useTranslations } from 'next-intl';
 
 export function Footer() {
+  const t = useTranslations('footer');
+
   return (
     <footer className="bg-[#0A0A0F] border-t border-zinc-800/60 mt-auto">
       <div className="max-w-7xl mx-auto px-4 py-10">
@@ -13,36 +18,36 @@ export function Footer() {
                 <FaPlay size={9} className="text-white ml-0.5" />
               </div>
               <span className="text-lg font-display text-white tracking-wide">
-                CINE<span className="text-[#7B72F8]">SYNC</span>
+                WE<span className="text-[#7B72F8]">WATCH</span>
               </span>
             </Link>
             <p className="text-zinc-600 text-sm max-w-[200px] leading-relaxed">
-              Ijtimoiy onlayn kinoteatr platformasi.
+              {t('tagline')}
             </p>
           </div>
 
           {/* Links */}
           <div className="flex gap-12">
             <div>
-              <p className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-3">Platforma</p>
+              <p className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-3">{t('platform')}</p>
               <ul className="space-y-2">
-                <li><Link href="/features" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">Imkoniyatlar</Link></li>
-                <li><Link href="/pricing"  className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">Narxlar</Link></li>
+                <li><Link href="/features" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('features')}</Link></li>
+                <li><Link href="/pricing"  className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('pricing')}</Link></li>
               </ul>
             </div>
             <div>
-              <p className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-3">Huquqiy</p>
+              <p className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-3">{t('legal')}</p>
               <ul className="space-y-2">
-                <li><Link href="/privacy-policy" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">Maxfiylik siyosati</Link></li>
-                <li><a href="mailto:copyright@wewatch.app" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">DMCA / Copyright</a></li>
+                <li><Link href="/privacy-policy" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('privacy')}</Link></li>
+                <li><a href="mailto:copyright@wewatch.app" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('dmca')}</a></li>
               </ul>
             </div>
           </div>
         </div>
 
         <div className="border-t border-zinc-800/60 mt-8 pt-6 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p className="text-zinc-700 text-xs">© {new Date().getFullYear()} CineSync. Barcha huquqlar himoyalangan.</p>
-          <p className="text-zinc-700 text-xs">Uzbekiston · Ijtimoiy kinoteatr</p>
+          <p className="text-zinc-700 text-xs">© {new Date().getFullYear()} WeWatch. {t('rights')}</p>
+          <p className="text-zinc-700 text-xs">{t('country')}</p>
         </div>
       </div>
     </footer>

@@ -7,6 +7,7 @@ import {
   FaChevronRight, FaCheck, FaLink, FaHeart, FaUserFriends,
 } from 'react-icons/fa';
 import { GiCrossedSwords } from 'react-icons/gi';
+import { useTranslations } from 'next-intl';
 import { LandingNav } from '@/components/common/LandingNav';
 import { Footer } from '@/components/common/Footer';
 
@@ -24,29 +25,10 @@ const screenVariants: Variants = {
 const PLAY_STORE = 'https://play.google.com/store';
 const TYPING_URL = 'youtube.com/watch?v=dQw4w9Wgxcw';
 
-const FEATURES = [
-  { icon: FaUsers,        color: '#7B72F8', title: 'Watch Party',  desc: 'Istalgan saytdan video URLini joylashtiring — do\'stlaringiz bilan real-vaqt sinxronda ko\'ring. Chat, emoji, reaksiyalar.' },
-  { icon: GiCrossedSwords,color: '#FFD700', title: 'Battle',       desc: '3, 5 yoki 7 kunlik video ko\'rish musobaqasi. Kim ko\'proq ko\'radi? G\'olib points va achievement oladi.' },
-  { icon: FaTrophy,       color: '#88CCFF', title: 'Yutuqlar',     desc: '25+ noyob achievement. Maxfiy yutuqlarni kashf eting va profilingizni bezating.' },
-  { icon: FaUserFriends,  color: '#a855f7', title: 'Do\'stlar',    desc: 'Do\'stlaringiz onlayn ekanini ko\'ring, video tavsiya qiling va birga Watch Party boshlang.' },
-];
-
-const DEMO_STEPS = [
-  { step: '01', title: 'URL joylashtiring', sub: 'Istalgan saytdan video linki', icon: FaLink  },
-  { step: '02', title: 'Do\'stlarni taklif', sub: 'Bir havola bilan bir zumda',  icon: FaUsers },
-  { step: '03', title: 'Birga tomosha',      sub: 'Sinxron player + chat',        icon: FaPlay  },
-];
-
 const BATTLE_USERS = [
   { rank: 1, name: 'Sardor_90', videos: 48, initials: 'S', color: '#FFD700', bg: 'rgba(255,215,0,0.12)' },
   { rank: 2, name: 'Zulfiya_N', videos: 41, initials: 'Z', color: '#C0C0C0', bg: 'rgba(192,192,192,0.12)' },
   { rank: 3, name: 'Bobur_K',   videos: 37, initials: 'B', color: '#CD7F32', bg: 'rgba(205,127,50,0.12)' },
-];
-
-const CHAT_MSGS = [
-  { u: 'A', msg: '🔥 Bu sahna juda zo\'r!',          color: '#7B72F8' },
-  { u: 'N', msg: '😍 To\'xtating, replay qilaylik!', color: '#a855f7' },
-  { u: 'B', msg: '🍿 Men ham shu sahnani!',           color: '#6B63E8' },
 ];
 
 const HERO_BUBBLES = [
@@ -58,7 +40,9 @@ const HERO_BUBBLES = [
 
 // ─── Phone screens ────────────────────────────────────────────────────────────
 
-function ScreenHome() {
+type TFn = ReturnType<typeof useTranslations<'landing'>>;
+
+function ScreenHome({ t }: { t: TFn }) {
   return (
     <div className="h-full flex flex-col bg-[#0A0A0F] select-none">
       <div className="flex justify-between items-center px-5 pt-2.5">
@@ -70,11 +54,11 @@ function ScreenHome() {
           <div className="w-5 h-5 rounded-md bg-[#7B72F8] flex items-center justify-center shadow-[0_0_8px_rgba(123,114,248,0.6)]">
             <FaPlay size={6} className="text-white ml-0.5" />
           </div>
-          <span className="text-[11px] font-bold text-white tracking-wide">CineSync</span>
+          <span className="text-[11px] font-bold text-white tracking-wide">WeWatch</span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-          <span className="text-[8px] text-green-400">2 ta do&apos;st onlayn</span>
+          <span className="text-[8px] text-green-400">2 {t('screenOnline')}</span>
         </div>
       </div>
 
@@ -85,16 +69,16 @@ function ScreenHome() {
           animate={{ opacity: [0.5, 1, 0.5] }}
           transition={{ repeat: Infinity, duration: 2.5 }}
         >
-          Video URL ni bu yerga joylashtiring...
+          {t('screenUrlHint')}
         </motion.span>
       </div>
 
       <div className="flex-1 px-3 pt-3 overflow-hidden">
-        <p className="text-[7px] text-zinc-600 uppercase tracking-widest mb-2">Aktiv xonalar</p>
+        <p className="text-[7px] text-zinc-600 uppercase tracking-widest mb-2">{t('screenActiveRooms')}</p>
         <div className="space-y-2">
           {[
-            { name: 'Sardor + 2', status: 'Ko\'ryapti...', color: '#7B72F8', initials: 'S' },
-            { name: 'Nilufar + 1', status: 'Boshlashni kutmoqda', color: '#a855f7', initials: 'N' },
+            { name: 'Sardor + 2', status: t('screenWatching'), color: '#7B72F8', initials: 'S' },
+            { name: 'Nilufar + 1', status: t('screenWaiting'), color: '#a855f7', initials: 'N' },
           ].map((room, i) => (
             <motion.div
               key={room.name}
@@ -124,22 +108,22 @@ function ScreenHome() {
         transition={{ repeat: Infinity, duration: 2.5 }}
       >
         <FaUsers size={11} className="text-white flex-shrink-0" />
-        <span className="text-white text-[10px] font-semibold">Watch Party yaratish</span>
+        <span className="text-white text-[10px] font-semibold">{t('screenCreateParty')}</span>
         <FaChevronRight size={8} className="text-white/60 ml-auto" />
       </motion.div>
     </div>
   );
 }
 
-function ScreenRoom() {
+function ScreenRoom({ t }: { t: TFn }) {
   return (
     <div className="h-full flex flex-col bg-[#0A0A0F] select-none">
       <div className="flex items-center gap-2 px-4 pt-4 pb-3 border-b border-zinc-800/50">
         <span className="text-zinc-600 text-xs">←</span>
-        <span className="text-[11px] font-semibold text-white">Watch Party</span>
+        <span className="text-[11px] font-semibold text-white">{t('screenWPLabel')}</span>
         <div className="ml-auto flex items-center gap-1">
           <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-          <span className="text-[8px] text-green-400">Tayyor</span>
+          <span className="text-[8px] text-green-400">{t('screenReady')}</span>
         </div>
       </div>
 
@@ -161,9 +145,9 @@ function ScreenRoom() {
       </div>
 
       <div className="px-3 mt-3">
-        <p className="text-[7px] text-zinc-600 uppercase tracking-widest mb-2">Ishtirokchilar (3/4)</p>
+        <p className="text-[7px] text-zinc-600 uppercase tracking-widest mb-2">{t('screenParticipants')}</p>
         <div className="flex gap-2 items-center">
-          {(['A', '#7B72F8'], ['N', '#a855f7'], ['B', '#6B63E8']).map(([l, c], i) => (
+          {[['A', '#7B72F8'], ['N', '#a855f7'], ['B', '#6B63E8']].map(([l, c], i) => (
             <motion.div
               key={String(l)}
               initial={{ scale: 0 }} animate={{ scale: 1 }}
@@ -184,8 +168,8 @@ function ScreenRoom() {
       </div>
 
       <div className="mx-3 mt-3 rounded-lg bg-[#111118] border border-zinc-800 px-3 py-2 flex items-center gap-2">
-        <span className="text-[8px] text-zinc-500 flex-1 truncate">cinesync.app/join/xK9pQr</span>
-        <span className="text-[8px] text-[#7B72F8] font-semibold flex-shrink-0">Nusxa</span>
+        <span className="text-[8px] text-zinc-500 flex-1 truncate">wewatch.app/join/xK9pQr</span>
+        <span className="text-[8px] text-[#7B72F8] font-semibold flex-shrink-0">{t('screenCopy')}</span>
       </div>
 
       <motion.div
@@ -195,13 +179,13 @@ function ScreenRoom() {
         transition={{ repeat: Infinity, duration: 1.8 }}
       >
         <FaPlay size={9} className="text-white" />
-        <span className="text-white text-[11px] font-bold">Boshlash</span>
+        <span className="text-white text-[11px] font-bold">{t('screenStartBtn')}</span>
       </motion.div>
     </div>
   );
 }
 
-function ScreenWatching({ visibleChats }: { visibleChats: number[] }) {
+function ScreenWatching({ t, chatMsgs, visibleChats }: { t: TFn; chatMsgs: { u: string; msg: string; color: string }[]; visibleChats: number[] }) {
   return (
     <div className="h-full flex flex-col bg-[#0A0A0F] select-none">
       <div
@@ -211,7 +195,7 @@ function ScreenWatching({ visibleChats }: { visibleChats: number[] }) {
         <div className="absolute top-2 left-2 right-2 flex items-center justify-between">
           <div className="flex items-center gap-1 bg-black/40 rounded-full px-2 py-0.5">
             <div className="w-1 h-1 rounded-full bg-green-400 animate-pulse" />
-            <span className="text-[7px] text-white/70">Sinxron</span>
+            <span className="text-[7px] text-white/70">{t('screenSyncLabel')}</span>
           </div>
           <div className="flex -space-x-1">
             {['A', 'N', 'B'].map((l, i) => (
@@ -246,11 +230,11 @@ function ScreenWatching({ visibleChats }: { visibleChats: number[] }) {
       <div className="flex-1 flex flex-col overflow-hidden">
         <div className="px-3 pt-2 pb-1.5 border-b border-zinc-800/50 flex items-center gap-1.5">
           <FaComment size={8} className="text-zinc-600" />
-          <span className="text-[8px] text-zinc-500">Real-vaqt chat</span>
-          <span className="ml-auto text-[7px] text-zinc-700">3 kishi onlayn</span>
+          <span className="text-[8px] text-zinc-500">{t('screenRealtimeChat')}</span>
+          <span className="ml-auto text-[7px] text-zinc-700">3 {t('screenPeopleOnline')}</span>
         </div>
         <div className="flex-1 px-3 py-2 space-y-2 overflow-hidden">
-          {CHAT_MSGS.map((msg, i) => (
+          {chatMsgs.map((msg, i) => (
             <AnimatePresence key={i}>
               {visibleChats.includes(i) && (
                 <motion.div
@@ -272,14 +256,14 @@ function ScreenWatching({ visibleChats }: { visibleChats: number[] }) {
           ))}
         </div>
         <div className="mx-3 mb-4 rounded-lg bg-[#111118] border border-zinc-800 px-3 py-2">
-          <span className="text-[8px] text-zinc-600">Xabar yozing...</span>
+          <span className="text-[8px] text-zinc-600">{t('screenChatHint')}</span>
         </div>
       </div>
     </div>
   );
 }
 
-function PhoneMockup({ activeScreen, visibleChats }: { activeScreen: number; visibleChats: number[] }) {
+function PhoneMockup({ t, activeScreen, visibleChats, chatMsgs }: { t: TFn; activeScreen: number; visibleChats: number[]; chatMsgs: { u: string; msg: string; color: string }[] }) {
   return (
     <motion.div
       className="relative mx-auto"
@@ -306,17 +290,17 @@ function PhoneMockup({ activeScreen, visibleChats }: { activeScreen: number; vis
             <AnimatePresence mode="wait">
               {activeScreen === 0 && (
                 <motion.div key="home" className="absolute inset-0" variants={screenVariants} initial="enter" animate="center" exit="exit">
-                  <ScreenHome />
+                  <ScreenHome t={t} />
                 </motion.div>
               )}
               {activeScreen === 1 && (
                 <motion.div key="room" className="absolute inset-0" variants={screenVariants} initial="enter" animate="center" exit="exit">
-                  <ScreenRoom />
+                  <ScreenRoom t={t} />
                 </motion.div>
               )}
               {activeScreen === 2 && (
                 <motion.div key="watching" className="absolute inset-0" variants={screenVariants} initial="enter" animate="center" exit="exit">
-                  <ScreenWatching visibleChats={visibleChats} />
+                  <ScreenWatching t={t} chatMsgs={chatMsgs} visibleChats={visibleChats} />
                 </motion.div>
               )}
             </AnimatePresence>
@@ -335,9 +319,48 @@ function PhoneMockup({ activeScreen, visibleChats }: { activeScreen: number; vis
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export function LandingContent() {
+  const t = useTranslations('landing');
+
   const [activeScreen, setActiveScreen] = useState(0);
   const [visibleChats, setVisibleChats] = useState<number[]>([]);
   const [urlText, setUrlText] = useState('');
+
+  const FEATURES = [
+    { icon: FaUsers,        color: '#7B72F8', title: t('f1title'), desc: t('f1desc') },
+    { icon: GiCrossedSwords,color: '#FFD700', title: t('f2title'), desc: t('f2desc') },
+    { icon: FaTrophy,       color: '#88CCFF', title: t('f3title'), desc: t('f3desc') },
+    { icon: FaUserFriends,  color: '#a855f7', title: t('f4title'), desc: t('f4desc') },
+  ];
+
+  const DEMO_STEPS = [
+    { step: '01', title: t('demoStep1title'), sub: t('demoStep1sub'), icon: FaLink  },
+    { step: '02', title: t('demoStep2title'), sub: t('demoStep2sub'), icon: FaUsers },
+    { step: '03', title: t('demoStep3title'), sub: t('demoStep3sub'), icon: FaPlay  },
+  ];
+
+  const CHAT_MSGS = [
+    { u: 'A', msg: t('chatMsg1'), color: '#7B72F8' },
+    { u: 'N', msg: t('chatMsg2'), color: '#a855f7' },
+    { u: 'B', msg: t('chatMsg3'), color: '#6B63E8' },
+  ];
+
+  const SYNC_NAMES = [
+    { name: t('syncYou'),           initials: 'S', color: '#7B72F8', pos: 58 },
+    { name: t('syncSectionName2'),  initials: 'N', color: '#a855f7', pos: 58 },
+    { name: t('syncSectionName3'),  initials: 'B', color: '#6B63E8', pos: 57 },
+  ];
+
+  const SYNC_BULLETS = [
+    t('syncBullet1'), t('syncBullet2'), t('syncBullet3'), t('syncBullet4'), t('syncBullet5'),
+  ];
+
+  const BATTLE_BULLETS = [
+    t('battleBullet1'), t('battleBullet2'), t('battleBullet3'), t('battleBullet4'),
+  ];
+
+  const APP_FEATURES = [
+    t('appFeat1'), t('appFeat2'), t('appFeat3'), t('appFeat4'), t('appFeat5'),
+  ];
 
   // URL typing animation
   useEffect(() => {
@@ -360,11 +383,11 @@ export function LandingContent() {
   // Auto-cycle screens
   useEffect(() => {
     const DURATIONS = [3500, 3500, 5000];
-    const t = setTimeout(() => {
+    const timeout = setTimeout(() => {
       setActiveScreen(s => (s + 1) % 3);
       setVisibleChats([]);
     }, DURATIONS[activeScreen]);
-    return () => clearTimeout(t);
+    return () => clearTimeout(timeout);
   }, [activeScreen]);
 
   // Progressive chat messages
@@ -374,6 +397,7 @@ export function LandingContent() {
       setTimeout(() => setVisibleChats(p => [...p, i]), i * 900 + 700)
     );
     return () => timers.forEach(clearTimeout);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeScreen]);
 
   const switchScreen = (i: number) => { setActiveScreen(i); setVisibleChats([]); };
@@ -421,14 +445,14 @@ export function LandingContent() {
               initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.8 }}
             >
               <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-              <span className="text-xs text-white/60">Sinxron</span>
+              <span className="text-xs text-white/60">{t('labelSyncActive')}</span>
             </motion.div>
             <motion.div
               className="absolute hidden md:flex rounded-xl px-3 py-2 backdrop-blur-sm max-w-[160px]"
               style={{ bottom: '32%', left: '6%', background: 'rgba(168,85,247,0.12)', border: '1px solid rgba(168,85,247,0.3)' }}
               initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 1.2 }}
             >
-              <span className="text-xs text-white/60">🔥 Bu sahna juda zo&apos;r!</span>
+              <span className="text-xs text-white/60">{t('labelHotScene')}</span>
             </motion.div>
           </div>
 
@@ -438,7 +462,7 @@ export function LandingContent() {
               className="inline-flex items-center gap-2 mb-8 px-4 py-2 rounded-full border border-[#7B72F8]/40 bg-[#7B72F8]/10 backdrop-blur-sm text-sm text-white/80 shadow-[0_0_28px_rgba(123,114,248,0.25)]"
             >
               <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-              📱 Android — hozir bepul yuklab oling
+              {t('heroBadge')}
             </motion.div>
 
             <motion.h1
@@ -446,9 +470,9 @@ export function LandingContent() {
               className="text-5xl sm:text-7xl md:text-8xl font-display uppercase leading-none tracking-tight mb-6 text-white"
               style={{ textShadow: '0 0 100px rgba(123,114,248,0.3)' }}
             >
-              YAQINLIK —<br />
+              {t('heroTitle1')}<br />
               <span className="text-[#7B72F8]" style={{ textShadow: '0 0 60px rgba(123,114,248,0.8)' }}>
-                SINXRONDA
+                {t('heroTitle2')}
               </span>
             </motion.h1>
 
@@ -456,8 +480,7 @@ export function LandingContent() {
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6, delay: 0.3 }}
               className="text-zinc-400 text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed"
             >
-              Istalgan saytdan video URLini joylashtiring — do&apos;stlaringiz bilan
-              real-vaqt sinxronda ko&apos;ring. Masofa muhim emas, his-tuyg&apos;ular — bitta.
+              {t('heroSub')}
             </motion.p>
 
             <motion.div
@@ -480,7 +503,7 @@ export function LandingContent() {
                 href="#demo"
                 className="inline-flex items-center gap-2 h-14 px-7 rounded-xl border border-zinc-700 text-zinc-400 hover:border-[#7B72F8]/60 hover:text-zinc-200 transition-all duration-300 active:scale-95 text-sm"
               >
-                Qanday ishlaydi?
+                {t('heroHowBtn')}
                 <FaChevronRight size={11} />
               </a>
             </motion.div>
@@ -500,20 +523,19 @@ export function LandingContent() {
           <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-[#0A0A0F] to-transparent pointer-events-none" />
         </section>
 
-        {/* ── URL → BIRGA KO'RING ── */}
+        {/* ── URL → WATCH TOGETHER ── */}
         <section className="py-24 px-4 bg-[#0D0D16] relative overflow-hidden">
           <div className="absolute inset-0 pointer-events-none">
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-[#7B72F8]/6 rounded-full blur-[100px]" />
           </div>
           <div className="max-w-5xl mx-auto relative z-10">
             <motion.div variants={stagger} initial="hidden" whileInView="visible" viewport={{ once: true }} className="text-center mb-16">
-              <motion.p variants={fadeUp} className="text-[#7B72F8] text-xs uppercase tracking-widest font-semibold mb-3">Qanday ishlaydi</motion.p>
+              <motion.p variants={fadeUp} className="text-[#7B72F8] text-xs uppercase tracking-widest font-semibold mb-3">{t('urlTag')}</motion.p>
               <motion.h2 variants={fadeUp} className="text-4xl md:text-5xl font-display uppercase text-white mb-4">
-                URL → BIRGA KO&apos;RING
+                {t('urlTitle')}
               </motion.h2>
               <motion.p variants={fadeUp} className="text-zinc-500 text-lg max-w-lg mx-auto">
-                Biron saytdan video topsangiz — URLni nusxa oling va Watch Party yarating.
-                Hammasini biz hal qilamiz.
+                {t('urlSub')}
               </motion.p>
             </motion.div>
 
@@ -527,13 +549,13 @@ export function LandingContent() {
                 <div className="rounded-xl bg-[#111118] border border-[#7B72F8]/40 px-4 py-3.5 flex items-center gap-3 shadow-[0_0_30px_rgba(123,114,248,0.12)]">
                   <FaLink size={14} className="text-[#7B72F8] flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <div className="text-[10px] text-zinc-600 mb-1 uppercase tracking-wider">Video URL</div>
+                    <div className="text-[10px] text-zinc-600 mb-1 uppercase tracking-wider">{t('urlInputLabel')}</div>
                     <span className="text-sm text-zinc-300 font-mono">
                       {urlText}<span className="animate-pulse text-[#7B72F8]">|</span>
                     </span>
                   </div>
                 </div>
-                <p className="text-xs text-zinc-600 text-center mt-2">YouTube va boshqa saytlar</p>
+                <p className="text-xs text-zinc-600 text-center mt-2">{t('urlFromSites')}</p>
               </div>
 
               <motion.div animate={{ x: [0, 6, 0] }} transition={{ repeat: Infinity, duration: 1.4 }} className="text-[#7B72F8]">
@@ -544,8 +566,8 @@ export function LandingContent() {
                 <div className="rounded-xl bg-[#111118] border border-green-500/30 px-4 py-3.5 shadow-[0_0_30px_rgba(34,197,94,0.08)]">
                   <div className="flex items-center gap-2 mb-2.5">
                     <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                    <span className="text-xs text-green-400 font-medium">Sinxron o&apos;ynatilmoqda</span>
-                    <span className="ml-auto text-[10px] text-zinc-600">3 kishi</span>
+                    <span className="text-xs text-green-400 font-medium">{t('urlSyncActive')}</span>
+                    <span className="ml-auto text-[10px] text-zinc-600">{t('urlPeople')}</span>
                   </div>
                   <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden mb-2">
                     <motion.div
@@ -559,7 +581,7 @@ export function LandingContent() {
                     <span className="text-[10px] text-zinc-600">48:00</span>
                   </div>
                 </div>
-                <p className="text-xs text-zinc-600 text-center mt-2">Barcha do&apos;stlar bir xil kadrda</p>
+                <p className="text-xs text-zinc-600 text-center mt-2">{t('urlAllFrame')}</p>
               </div>
             </motion.div>
 
@@ -569,9 +591,9 @@ export function LandingContent() {
               className="grid grid-cols-1 md:grid-cols-3 gap-5"
             >
               {[
-                { n: '01', icon: FaLink,   color: '#7B72F8', title: 'URL oling',             desc: 'YouTube yoki boshqa saytdan video toping va URLni nusxa oling.' },
-                { n: '02', icon: FaUsers,  color: '#a855f7', title: 'Do\'stlarni taklif qiling', desc: 'Watch Party yarating va havolani do\'stlaringizga yuboring.' },
-                { n: '03', icon: FaHeart,  color: '#f43f5e', title: 'Birga his qiling',       desc: 'Real-vaqt sinxron, chat va reaksiyalar bilan birgalikda his qiling.' },
+                { n: '01', icon: FaLink,  color: '#7B72F8', title: t('urlStep1title'), desc: t('urlStep1desc') },
+                { n: '02', icon: FaUsers, color: '#a855f7', title: t('urlStep2title'), desc: t('urlStep2desc') },
+                { n: '03', icon: FaHeart, color: '#f43f5e', title: t('urlStep3title'), desc: t('urlStep3desc') },
               ].map(({ n, icon: Icon, color, title, desc }) => (
                 <motion.div
                   key={n} variants={fadeUp}
@@ -589,7 +611,7 @@ export function LandingContent() {
           </div>
         </section>
 
-        {/* ── SINXRON + HIS-TUYG'ULAR ── */}
+        {/* ── SYNC ── */}
         <section className="py-24 px-4 bg-[#0A0A0F] relative overflow-hidden">
           <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <motion.div
@@ -599,18 +621,14 @@ export function LandingContent() {
             >
               <div className="bg-[#111118] rounded-2xl border border-zinc-800 p-6 shadow-[0_4px_50px_rgba(123,114,248,0.06)]">
                 <div className="flex items-center justify-between mb-6">
-                  <span className="text-white font-semibold text-sm">Real-vaqt sinxronizatsiya</span>
+                  <span className="text-white font-semibold text-sm">{t('syncCardTitle')}</span>
                   <div className="flex items-center gap-1.5 bg-green-500/10 border border-green-500/25 rounded-full px-2.5 py-1">
                     <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                    <span className="text-[10px] text-green-400 font-medium">Aktiv</span>
+                    <span className="text-[10px] text-green-400 font-medium">{t('syncCardActive')}</span>
                   </div>
                 </div>
                 <div className="space-y-4">
-                  {[
-                    { name: 'Siz',    initials: 'S', color: '#7B72F8', pos: 58 },
-                    { name: 'Nilufar', initials: 'N', color: '#a855f7', pos: 58 },
-                    { name: 'Bobur',   initials: 'B', color: '#6B63E8', pos: 57 },
-                  ].map(({ name, initials, color, pos }, i) => (
+                  {SYNC_NAMES.map(({ name, initials, color, pos }, i) => (
                     <div key={name}>
                       <div className="flex items-center gap-3 mb-1.5">
                         <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0" style={{ background: `${color}25`, border: `1px solid ${color}50` }}>{initials}</div>
@@ -632,7 +650,7 @@ export function LandingContent() {
                 </div>
                 <div className="mt-6 pt-4 border-t border-zinc-800 flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-green-400" />
-                  <span className="text-xs text-zinc-500">Barcha ishtirokchilar bir xil kadrda — ±0 ms</span>
+                  <span className="text-xs text-zinc-500">{t('syncCardFooter')}</span>
                 </div>
               </div>
               <div className="absolute -inset-6 bg-[#7B72F8]/5 rounded-3xl blur-3xl -z-10" />
@@ -643,25 +661,17 @@ export function LandingContent() {
               viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.15 }}
             >
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#7B72F8]/10 border border-[#7B72F8]/30 text-[#7B72F8] text-xs font-semibold uppercase tracking-widest mb-6">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#7B72F8]" /> Sinxronizatsiya
+                <div className="w-1.5 h-1.5 rounded-full bg-[#7B72F8]" /> {t('syncTag')}
               </div>
               <h2 className="text-4xl md:text-5xl font-display uppercase text-white leading-tight mb-6">
-                BIR XILDA<br />
-                <span className="text-[#7B72F8]">HIS QILING</span>
+                {t('syncTitle1')}<br />
+                <span className="text-[#7B72F8]">{t('syncTitle2')}</span>
               </h2>
               <p className="text-zinc-400 text-lg mb-8 leading-relaxed">
-                CineSync barcha ishtirokchilarni millisekund darajasida sinxronlaydi.
-                Siz kuladigan sahnada do&apos;stingiz ham kuladi.
-                Siz yig&apos;laydigan sahnada — u ham.
+                {t('syncDesc')}
               </p>
               <div className="space-y-3">
-                {[
-                  'Millisekund aniqligida sinxron',
-                  'Avtomatik lag kompensatsiyasi',
-                  'Tomosha paytida real-vaqt chat',
-                  'Emoji va his-tuyg\'u reaksiyalari',
-                  'Masofa muhim emas',
-                ].map(item => (
+                {SYNC_BULLETS.map(item => (
                   <div key={item} className="flex items-center gap-3 text-sm text-zinc-300">
                     <FaCheck size={11} className="text-[#7B72F8] flex-shrink-0" />
                     {item}
@@ -679,10 +689,10 @@ export function LandingContent() {
           </div>
           <div className="max-w-6xl mx-auto relative z-10">
             <motion.div variants={stagger} initial="hidden" whileInView="visible" viewport={{ once: true }} className="text-center mb-16">
-              <motion.p variants={fadeUp} className="text-[#7B72F8] text-xs uppercase tracking-widest font-semibold mb-3">Ilova</motion.p>
-              <motion.h2 variants={fadeUp} className="text-4xl md:text-5xl font-display uppercase text-white mb-4">3 QADAM</motion.h2>
+              <motion.p variants={fadeUp} className="text-[#7B72F8] text-xs uppercase tracking-widest font-semibold mb-3">{t('appTag')}</motion.p>
+              <motion.h2 variants={fadeUp} className="text-4xl md:text-5xl font-display uppercase text-white mb-4">{t('appTitle')}</motion.h2>
               <motion.p variants={fadeUp} className="text-zinc-500 text-lg max-w-lg mx-auto">
-                URL joylashtiring → do&apos;stlarni taklif qiling → birga tomosha qiling
+                {t('appSub')}
               </motion.p>
             </motion.div>
 
@@ -712,7 +722,7 @@ export function LandingContent() {
               </div>
 
               <div className="order-1 lg:order-2 flex-1 flex flex-col items-center gap-8">
-                <PhoneMockup activeScreen={activeScreen} visibleChats={visibleChats} />
+                <PhoneMockup t={t} activeScreen={activeScreen} visibleChats={visibleChats} chatMsgs={CHAT_MSGS} />
                 <div className="flex gap-2.5">
                   {[0, 1, 2].map(i => (
                     <button key={i} onClick={() => switchScreen(i)}
@@ -724,8 +734,8 @@ export function LandingContent() {
 
               <div className="hidden lg:flex lg:flex-col gap-3 lg:w-60 order-3">
                 <div className="rounded-xl border border-zinc-800/50 p-4 bg-[#111118]/60">
-                  <p className="text-[9px] text-zinc-600 uppercase tracking-widest mb-3">Watch Party imkoniyatlari</p>
-                  {['Real-vaqt sinxron oynatish', 'Chat, emoji va reaksiyalar', 'Xona egasi boshqaruvi', 'Taklif havolasi', 'YouTube va boshqa saytlar'].map(f => (
+                  <p className="text-[9px] text-zinc-600 uppercase tracking-widest mb-3">{t('appFeatTitle')}</p>
+                  {APP_FEATURES.map(f => (
                     <div key={f} className="flex items-center gap-2 py-1">
                       <FaCheck size={8} className="text-[#7B72F8] flex-shrink-0" />
                       <span className="text-[11px] text-zinc-400">{f}</span>
@@ -735,9 +745,9 @@ export function LandingContent() {
                 <div className="rounded-xl border border-[#FFD700]/20 p-4 bg-[#FFD700]/5">
                   <div className="flex items-center gap-2 mb-2">
                     <GiCrossedSwords size={12} className="text-[#FFD700]" />
-                    <span className="text-[10px] text-[#FFD700] font-bold uppercase tracking-wide">Battle Mode</span>
+                    <span className="text-[10px] text-[#FFD700] font-bold uppercase tracking-wide">{t('appBattleTag')}</span>
                   </div>
-                  <p className="text-[11px] text-zinc-500 leading-relaxed">Kim ko&apos;proq video ko&apos;radi? Raqibingizga challenge yuboring!</p>
+                  <p className="text-[11px] text-zinc-500 leading-relaxed">{t('appBattleDesc')}</p>
                 </div>
               </div>
             </div>
@@ -748,8 +758,8 @@ export function LandingContent() {
         <section className="py-20 px-4 bg-[#111118]">
           <div className="max-w-6xl mx-auto">
             <motion.div variants={stagger} initial="hidden" whileInView="visible" viewport={{ once: true }} className="text-center mb-14">
-              <motion.h2 variants={fadeUp} className="text-4xl font-display uppercase mb-3 text-white">NIMA BERAMIZ?</motion.h2>
-              <motion.p variants={fadeUp} className="text-zinc-500">Video ko&apos;rishni ijtimoiy tajribaga aylantiramiz</motion.p>
+              <motion.h2 variants={fadeUp} className="text-4xl font-display uppercase mb-3 text-white">{t('featTitle')}</motion.h2>
+              <motion.p variants={fadeUp} className="text-zinc-500">{t('featSub')}</motion.p>
             </motion.div>
             <motion.div variants={stagger} initial="hidden" whileInView="visible" viewport={{ once: true }} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
               {FEATURES.map(({ icon: Icon, color, title, desc }) => (
@@ -775,8 +785,8 @@ export function LandingContent() {
             >
               <div className="bg-[#111118] rounded-2xl border border-zinc-800 p-6 shadow-[0_4px_50px_rgba(255,215,0,0.07)]">
                 <div className="flex items-center justify-between mb-6">
-                  <span className="text-[#FFD700] font-display uppercase text-sm flex items-center gap-2"><GiCrossedSwords size={16} /> Battle Aktiv</span>
-                  <span className="px-2.5 py-1 rounded-full bg-[#7B72F8]/10 border border-[#7B72F8]/25 text-[#7B72F8] text-xs font-semibold">5 kun qoldi</span>
+                  <span className="text-[#FFD700] font-display uppercase text-sm flex items-center gap-2"><GiCrossedSwords size={16} /> {t('battleCardTitle')}</span>
+                  <span className="px-2.5 py-1 rounded-full bg-[#7B72F8]/10 border border-[#7B72F8]/25 text-[#7B72F8] text-xs font-semibold">{t('battleDaysLeft')}</span>
                 </div>
                 <div className="space-y-1">
                   {BATTLE_USERS.map(({ rank, name, videos, initials, color, bg }) => (
@@ -785,7 +795,7 @@ export function LandingContent() {
                       <div className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center font-bold text-sm border" style={{ backgroundColor: bg, color, borderColor: `${color}35` }}>{initials}</div>
                       <div className="flex-1 min-w-0">
                         <p className="text-white text-sm font-medium">{name}</p>
-                        <p className="text-zinc-500 text-xs">{videos} video ko&apos;rildi</p>
+                        <p className="text-zinc-500 text-xs">{videos} {t('battleVideosWatched')}</p>
                       </div>
                       <div className="h-1.5 w-24 bg-zinc-800 rounded-full overflow-hidden flex-shrink-0">
                         <motion.div
@@ -801,8 +811,8 @@ export function LandingContent() {
                   ))}
                 </div>
                 <div className="mt-5 pt-4 border-t border-zinc-800 flex items-center justify-between">
-                  <span className="text-zinc-600 text-xs">Sizning o&apos;rningiz</span>
-                  <span className="text-zinc-400 text-sm font-medium">#? — Challenge qiling!</span>
+                  <span className="text-zinc-600 text-xs">{t('battleYourPos')}</span>
+                  <span className="text-zinc-400 text-sm font-medium">{t('battleChallenge')}</span>
                 </div>
               </div>
               <div className="absolute -inset-6 bg-[#FFD700]/5 rounded-3xl blur-3xl -z-10" />
@@ -813,19 +823,17 @@ export function LandingContent() {
               viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.15 }}
             >
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FFD700]/10 border border-[#FFD700]/30 text-[#FFD700] text-xs font-semibold uppercase tracking-widest mb-6">
-                <FaFire size={10} /> Battle Mode
+                <FaFire size={10} /> {t('battleSectionTag')}
               </div>
               <h2 className="text-4xl md:text-5xl font-display uppercase text-white leading-tight mb-6">
-                KIM KO&apos;PROQ<br />
-                <span className="text-[#FFD700]">VIDEO KO&apos;RADI?</span>
+                {t('battleTitle1')}<br />
+                <span className="text-[#FFD700]">{t('battleTitle2')}</span>
               </h2>
               <p className="text-zinc-400 text-lg mb-8 leading-relaxed">
-                Raqibingizga 3, 5 yoki 7 kunlik challenge yuboring.
-                Leaderboard orqali real-vaqtda natijani ko&apos;ring.
-                G&apos;olib points va achievement oladi.
+                {t('battleDesc')}
               </p>
               <div className="space-y-3">
-                {['3 / 5 / 7 kunlik musobaqa', 'Real-vaqt leaderboard', "G'olibga points va achievement", "Do'stlar va notanishlar bilan"].map(item => (
+                {BATTLE_BULLETS.map(item => (
                   <div key={item} className="flex items-center gap-3 text-sm text-zinc-300">
                     <FaCheck size={11} className="text-[#FFD700] flex-shrink-0" />
                     {item}
@@ -844,17 +852,17 @@ export function LandingContent() {
           </div>
           <motion.div variants={stagger} initial="hidden" whileInView="visible" viewport={{ once: true }} className="relative z-10 max-w-2xl mx-auto">
             <motion.div variants={fadeUp} className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#7B72F8]/15 border border-[#7B72F8]/40 text-[#7B72F8] text-xs font-semibold uppercase tracking-widest mb-8 shadow-[0_0_20px_rgba(123,114,248,0.3)]">
-              <FaPlay size={8} /> CineSync
+              <FaPlay size={8} /> WeWatch
             </motion.div>
             <motion.h2
               variants={fadeUp}
               className="text-4xl md:text-6xl font-display uppercase text-white leading-tight mb-6"
               style={{ textShadow: '0 0 80px rgba(123,114,248,0.5)' }}
             >
-              HOZIROQ<br />BOSHLANG
+              {t('ctaTitle1')}<br />{t('ctaTitle2')}
             </motion.h2>
             <motion.p variants={fadeUp} className="text-zinc-400 text-lg mb-10 max-w-md mx-auto leading-relaxed">
-              Do&apos;stlaringizni taklif qiling va birinchi Watch Party-ni boshlang. Bepul yuklab oling.
+              {t('ctaDesc')}
             </motion.p>
             <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <a
@@ -864,9 +872,9 @@ export function LandingContent() {
                 <svg viewBox="0 0 22 24" width="20" height="22" fill="currentColor" aria-hidden="true">
                   <path d="M1.22 0c-.55.3-.93.87-.93 1.55v20.9c0 .68.38 1.25.93 1.55l.1.06L12.36 12 1.32-.06 1.22 0zM15.75 8.67L4.17 1.38l9.7 9.7-1.12.96 2.99 1.72V8.67zM15.75 15.33v-3.1l-2.99 1.73 1.12.95-9.7 9.71 11.57-7.3.01-.99zM4.17 22.62l11.57-7.29v1.1L4.17 22.62z" />
                 </svg>
-                Google Play — Bepul
+                {t('ctaPlayBtn')}
               </a>
-              <span className="text-zinc-600 text-sm">iOS versiyasi tez kunda</span>
+              <span className="text-zinc-600 text-sm">{t('ctaIosSoon')}</span>
             </motion.div>
           </motion.div>
         </section>
