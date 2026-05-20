@@ -1,6 +1,8 @@
 FROM node:20-slim AS builder
-LABEL build-id="20260520-1"
+LABEL build-id="20260520-2"
 WORKDIR /app
+
+ENV NODE_OPTIONS="--max-old-space-size=2048"
 
 # Copy shared src for @shared/* tsconfig path alias (type-only, stripped by SWC)
 COPY shared/src/ ./shared/src/
