@@ -7,8 +7,6 @@ const EXTRACTION_TIMEOUT_MS = 15_000;
 
 const CONTENT_BASE_URL = process.env.EXPO_PUBLIC_CONTENT_URL ?? '';
 
-/** File extensions that indicate a direct playable URL (no extraction needed) */
-const DIRECT_EXTENSIONS = ['.mp4', '.m3u8', '.webm', '.mkv', '.avi', '.mov'];
 
 interface UseVideoExtractionReturn {
   isExtracting: boolean;
@@ -24,25 +22,36 @@ interface UseVideoExtractionReturn {
 }
 
 /**
- * Detects if a URL points directly to a video file (no extraction needed).
- * Strips query params before checking the extension.
+ * Mirror of isRealVideoSrc() in mediaDetector.ts — must match exactly so a URL
+ * that JS detection accepts is also accepted here (no iframe fallback gap).
  */
 function isDirectVideoUrl(url: string): boolean {
   try {
-    const pathname = new URL(url).pathname.toLowerCase();
-    return DIRECT_EXTENSIONS.some((ext) => pathname.endsWith(ext));
+    if (!url.startsWith('http')) return false;
+    const lower = url.toLowerCase();
+    if (lower.includes('videoplayback') || lower.includes('googlevideo')) return false;
+    if (/\.(mp4|m3u8|webm|ogg|mov|ts|mkv|mpd)(\?|#|$)/i.test(lower)) return true;
+    if (/\/(stream|playlist\.m3u8|manifest\.m3u8|master\.m3u8|manifest|hls|dash|chunklist)/i.test(lower)) return true;
+    if (/\/(video|vod|cdn|media)\/[^/]+\/(index|master|720p|480p|360p|1080p|hls)/i.test(lower)) return true;
+    if (lower.includes('fbcdn.net') && lower.includes('.mp4')) return true;
+    if (lower.includes('cdninstagram.com') && lower.includes('.mp4')) return true;
+    if (lower.includes('v.redd.it')) return true;
+    if (lower.includes('streamable.com') && lower.includes('.mp4')) return true;
+    return false;
   } catch {
     return false;
   }
 }
 
 /**
- * Infers the video type from a direct URL extension.
+ * Infers the video type from a direct URL extension or CDN path.
  */
 function inferVideoType(url: string): 'mp4' | 'hls' {
   try {
     const pathname = new URL(url).pathname.toLowerCase();
     if (pathname.endsWith('.m3u8')) return 'hls';
+    // CDN HLS paths without extension (e.g. /hls/stream, /video/abc/index)
+    if (/\/(hls|stream|playlist|manifest|chunklist|master|index)/i.test(pathname)) return 'hls';
   } catch {
     // fallback
   }

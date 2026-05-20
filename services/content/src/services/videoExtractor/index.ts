@@ -208,8 +208,11 @@ export async function extractVideo(
     if (result) result = { ...result, platform, sourceType: 'type1', extractionMethod: 'yt-dlp', cacheable: true };
 
   } else if (platform === 'generic') {
-    // Direct stream URL — return as-is
-    const type = /\.(m3u8|mpd)/i.test(rawUrl) ? 'hls' : 'mp4';
+    // Direct stream URL — return as-is. Type detection: extension first, then CDN path patterns.
+    const type: 'hls' | 'mp4' = /\.(m3u8|mpd)/i.test(rawUrl) ? 'hls'
+      : /\/(stream|playlist\.m3u8|manifest\.m3u8|master\.m3u8|manifest|hls|dash|chunklist)/i.test(rawUrl) ? 'hls'
+      : /\/(video|vod|cdn|media)\/[^/]+\/(index|master|720p|480p|360p|1080p|hls)/i.test(rawUrl) ? 'hls'
+      : 'mp4';
     result = {
       title: parsedUrl.hostname,
       videoUrl: rawUrl,

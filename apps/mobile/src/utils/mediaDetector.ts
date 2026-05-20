@@ -40,12 +40,11 @@ export interface BlobVideoFoundPayload {
 
 /** Преобразует raw detection payload в RoomMedia */
 export function normalizeDetectedMedia(payload: MediaDetectedPayload): RoomMedia {
+  // Trust the JS-side platform flag: isRealVideoSrc() already validated the URL via
+  // extension check + CDN path patterns. Re-checking only extension here would downgrade
+  // extensionless CDN HLS streams (e.g. /hls/stream, /video/abc/index) to 'webview'.
   const platform: VideoPlatform =
-    payload.platform === 'youtube'
-      ? 'youtube'
-      : /\.(mp4|m3u8|webm|mpd)(\?.*)?$/i.test(payload.videoUrl)
-      ? 'direct'
-      : 'webview';
+    payload.platform === 'youtube' ? 'youtube' : 'direct';
 
   return {
     videoUrl: payload.videoUrl,
@@ -86,7 +85,9 @@ export const MEDIA_DETECTION_JS = `
   if (window._csMediaDetectorSetup) return;
   window._csMediaDetectorSetup = true;
 
-  var lastReportedVideoUrl = '';
+  // Sync with early-injection script (injectedJavaScriptBeforeContentLoaded) so
+  // URLs detected before page JS ran don't get reported a second time.
+  var lastReportedVideoUrl = window._csEarlyReportedUrl || '';
   var fallbackTimer = null;
 
   // Search engine result pages — no real video, skip detection
@@ -206,6 +207,22 @@ export const MEDIA_DETECTION_JS = `
         return true;
       }
     }
+
+    // Performance entries scan — catches HLS.js m3u8 fetches that happened before our
+    // XHR intercept was installed (Android evaluateJavascript race) OR after async player init.
+    // Including this in scanVideos() means the fallback timer ALSO retries it.
+    try {
+      if (typeof performance !== 'undefined' && performance.getEntriesByType) {
+        var perfEntries = performance.getEntriesByType('resource');
+        for (var pi = 0; pi < perfEntries.length; pi++) {
+          if (isRealVideoSrc(perfEntries[pi].name)) {
+            reportVideoUrl(perfEntries[pi].name);
+            return true;
+          }
+        }
+      }
+    } catch(e) {}
+
     return false;
   }
 
@@ -224,76 +241,77 @@ export const MEDIA_DETECTION_JS = `
   });
   observer.observe(document.documentElement, { childList: true, subtree: true });
 
-  // E64-2: HTMLMediaElement.src setter intercept
-  try {
-    var origDescriptor = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'src');
-    if (origDescriptor && origDescriptor.set) {
-      Object.defineProperty(HTMLMediaElement.prototype, 'src', {
-        set: function(val) {
-          origDescriptor.set.call(this, val);
-          if (!val) return;
-          if (val.indexOf('blob:') === 0) {
-            reportBlobVideo();
-          } else if (isRealVideoSrc(val)) {
-            reportVideoUrl(val);
-          }
-        },
-        get: origDescriptor.get,
-        configurable: true,
-      });
-    }
-  } catch(e) {}
-
-  // E64-7: 'play' event — capture phase fires before any Playerjs/HLS.js handler.
-  // When user presses Play, currentSrc is guaranteed to be set.
-  // This catches cases where src setter was overwritten by the video library (race condition).
-  document.addEventListener('play', function(e) {
-    var target = e.target;
-    if (!target || target.tagName !== 'VIDEO') return;
-    var src = target.currentSrc || target.src;
-    if (!src) return;
-    if (src.indexOf('blob:') === 0) {
-      reportBlobVideo();
-    } else if (isRealVideoSrc(src)) {
-      reportVideoUrl(src);
-    }
-  }, true);
-
-  // E64-8: XHR interception — catches m3u8/mp4 requests from HLS.js / Playerjs.
-  // When the video library fetches the manifest, we report the URL immediately.
-  try {
-    var origXhrOpen = XMLHttpRequest.prototype.open;
-    XMLHttpRequest.prototype.open = function(method, xhrUrl) {
-      if (typeof xhrUrl === 'string' && isRealVideoSrc(xhrUrl)) {
-        reportVideoUrl(xhrUrl);
+  // E64-2/7/8/9: These intercepts run in injectedJavaScriptBeforeContentLoaded (MEDIA_INTERCEPT_EARLY_JS)
+  // on Android so they catch player library requests before page JS fires.
+  // Skip re-registering them here if the early script already set them up.
+  if (!window._csMediaInterceptSetup) {
+    try {
+      var origDescriptor = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'src');
+      if (origDescriptor && origDescriptor.set) {
+        Object.defineProperty(HTMLMediaElement.prototype, 'src', {
+          set: function(val) {
+            origDescriptor.set.call(this, val);
+            if (!val) return;
+            if (val.indexOf('blob:') === 0) {
+              reportBlobVideo();
+            } else if (isRealVideoSrc(val)) {
+              reportVideoUrl(val);
+            }
+          },
+          get: origDescriptor.get,
+          configurable: true,
+        });
       }
-      return origXhrOpen.apply(this, arguments);
-    };
-  } catch(e) {}
+    } catch(e) {}
 
-  // E64-9: fetch() interception — HLS.js v1+ uses fetch instead of XHR for HLS manifests.
-  // Playerjs on uzmovi.uz, mover.uz and other CIS sites may use newer HLS.js.
-  try {
-    var origFetch = window.fetch;
-    if (typeof origFetch === 'function') {
-      window.fetch = function(input, init) {
-        var url = typeof input === 'string' ? input
-          : (input && typeof input === 'object' && 'url' in input ? input.url : '');
-        if (url && isRealVideoSrc(url)) {
-          reportVideoUrl(url);
+    document.addEventListener('play', function(e) {
+      var target = e.target;
+      if (!target || target.tagName !== 'VIDEO') return;
+      var src = target.currentSrc || target.src;
+      if (!src) return;
+      if (src.indexOf('blob:') === 0) {
+        reportBlobVideo();
+      } else if (isRealVideoSrc(src)) {
+        reportVideoUrl(src);
+      }
+    }, true);
+
+    try {
+      var origXhrOpen = XMLHttpRequest.prototype.open;
+      XMLHttpRequest.prototype.open = function(method, xhrUrl) {
+        if (typeof xhrUrl === 'string' && isRealVideoSrc(xhrUrl)) {
+          reportVideoUrl(xhrUrl);
         }
-        return origFetch.apply(this, arguments);
+        return origXhrOpen.apply(this, arguments);
       };
-    }
-  } catch(e) {}
+    } catch(e) {}
 
-  // E64-6: Timeout fallback — 5s, then retry once after 500ms
+    try {
+      var origFetch = window.fetch;
+      if (typeof origFetch === 'function') {
+        window.fetch = function(input, init) {
+          var url = typeof input === 'string' ? input
+            : (input && typeof input === 'object' && 'url' in input ? input.url : '');
+          if (url && isRealVideoSrc(url)) {
+            reportVideoUrl(url);
+          }
+          return origFetch.apply(this, arguments);
+        };
+      }
+    } catch(e) {}
+  }
+
+  // E64-6: Multi-stage fallback — HLS.js typically inits 1-3s after page load.
+  // Scanning at 1s and 3s catches it before the user taps import (usually at 2-4s).
+  // 5s scan is the safety net; 7s retry handles slow CDNs and lazy-init players.
   function startFallbackTimer() {
     clearTimeout(fallbackTimer);
+    setTimeout(scanVideos, 1000);
+    setTimeout(scanVideos, 3000);
     fallbackTimer = setTimeout(function() {
       var found = scanVideos();
       if (!found) {
-        setTimeout(scanVideos, 500);
+        setTimeout(scanVideos, 2000);
       }
     }, 5000);
   }
@@ -309,20 +327,161 @@ export const MEDIA_DETECTION_JS = `
   history.pushState = function() {
     ph.apply(history, arguments);
     lastReportedVideoUrl = '';
+    window._csEarlyReportedUrl = '';
     scanVideos();
     startFallbackTimer();
   };
   history.replaceState = function() {
     rh.apply(history, arguments);
     lastReportedVideoUrl = '';
+    window._csEarlyReportedUrl = '';
     scanVideos();
     startFallbackTimer();
   };
   window.addEventListener('popstate', function() {
     lastReportedVideoUrl = '';
+    window._csEarlyReportedUrl = '';
     scanVideos();
     startFallbackTimer();
   });
+
+  // Synchronous scan of already-fetched resources — works on all Android WebView (Chrome 25+).
+  // Catches m3u8/mp4 URLs that HLS.js fetched BEFORE our XHR intercept was installed,
+  // which happens when Android's evaluateJavascript queues the early script too late.
+  // Must run BEFORE PerformanceObserver so deduplication (lastReportedVideoUrl) works correctly.
+  try {
+    if (typeof performance !== 'undefined' && performance.getEntriesByType) {
+      var perfEntries = performance.getEntriesByType('resource');
+      for (var pi = 0; pi < perfEntries.length; pi++) {
+        if (isRealVideoSrc(perfEntries[pi].name)) {
+          reportVideoUrl(perfEntries[pi].name);
+          break;
+        }
+      }
+    }
+  } catch(e) {}
+
+  // PerformanceObserver: forward-looking — catches m3u8/mp4 URLs from HLS.js that loads
+  // AFTER page load event (async/lazy scripts). Complements the sync scan above.
+  // Uses buffered:true (Chrome 73+) with graceful fallback to entryTypes for older WebView.
+  try {
+    if (typeof PerformanceObserver !== 'undefined') {
+      var perfObs = new PerformanceObserver(function(list) {
+        var entries = list.getEntries();
+        for (var ei = 0; ei < entries.length; ei++) {
+          if (isRealVideoSrc(entries[ei].name)) {
+            reportVideoUrl(entries[ei].name);
+            return;
+          }
+        }
+      });
+      try {
+        perfObs.observe({ type: 'resource', buffered: true });
+      } catch(e) {
+        perfObs.observe({ entryTypes: ['resource'] });
+      }
+    }
+  } catch(e) {}
+
+  true;
+})();
+`;
+
+/**
+ * Early-injection script for injectedJavaScriptBeforeContentLoaded.
+ * Runs before any page JavaScript on Android so XHR/fetch intercepts catch
+ * HLS.js / Playerjs manifest requests before the player library fires them.
+ * Sets window._csMediaInterceptSetup = true so MEDIA_DETECTION_JS skips
+ * re-registering the same intercepts.
+ */
+export const MEDIA_INTERCEPT_EARLY_JS = `
+(function() {
+  if (window._csMediaInterceptSetup) return true;
+  window._csMediaInterceptSetup = true;
+  window._csEarlyReportedUrl = '';
+
+  function rn(obj) {
+    try { window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify(obj)); } catch(e) {}
+  }
+
+  function isRealVideoSrc(src) {
+    if (!src || src.indexOf('http') !== 0) return false;
+    if (src.indexOf('data:') === 0) return false;
+    var lower = src.toLowerCase();
+    if (/\\.(mp4|m3u8|webm|ogg|mov|ts|mkv|mpd)(\\?|$)/.test(lower)) return true;
+    if (lower.indexOf('videoplayback') !== -1) return false;
+    if (lower.indexOf('.googlevideo.com') !== -1) return false;
+    if (lower.indexOf('googlevideo') !== -1) return false;
+    if (/\\/(stream|playlist\\.m3u8|manifest\\.m3u8|master\\.m3u8|manifest|hls|dash|chunklist)/.test(lower)) return true;
+    if (/\\/(video|vod|cdn|media)\\/[^/]+\\/(index|master|720p|480p|360p|1080p|hls)/.test(lower)) return true;
+    if (lower.indexOf('fbcdn.net') !== -1 && lower.indexOf('.mp4') !== -1) return true;
+    if (lower.indexOf('cdninstagram.com') !== -1 && lower.indexOf('.mp4') !== -1) return true;
+    if (lower.indexOf('v.redd.it') !== -1) return true;
+    if (lower.indexOf('streamable.com') !== -1 && lower.indexOf('.mp4') !== -1) return true;
+    return false;
+  }
+
+  function reportBlobVideo() {
+    var key = 'blob:' + window.location.href;
+    if (key === window._csEarlyReportedUrl) return;
+    window._csEarlyReportedUrl = key;
+    rn({ type: 'BLOB_VIDEO_FOUND', pageUrl: window.location.href, pageTitle: document.title || 'Video' });
+  }
+
+  function reportVideoUrl(src) {
+    if (src === window._csEarlyReportedUrl) return;
+    window._csEarlyReportedUrl = src;
+    rn({ type: 'MEDIA_DETECTED', platform: 'direct', videoUrl: src, pageTitle: document.title || 'Video', pageUrl: window.location.href });
+  }
+
+  // HTMLMediaElement.src setter — catches player libs calling video.src = url
+  try {
+    var origDescriptor = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'src');
+    if (origDescriptor && origDescriptor.set) {
+      Object.defineProperty(HTMLMediaElement.prototype, 'src', {
+        set: function(val) {
+          origDescriptor.set.call(this, val);
+          if (!val) return;
+          if (val.indexOf('blob:') === 0) { reportBlobVideo(); }
+          else if (isRealVideoSrc(val)) { reportVideoUrl(val); }
+        },
+        get: origDescriptor.get,
+        configurable: true,
+      });
+    }
+  } catch(e) {}
+
+  // play event capture — currentSrc is guaranteed set when play fires
+  document.addEventListener('play', function(e) {
+    var target = e.target;
+    if (!target || target.tagName !== 'VIDEO') return;
+    var src = target.currentSrc || target.src;
+    if (!src) return;
+    if (src.indexOf('blob:') === 0) { reportBlobVideo(); }
+    else if (isRealVideoSrc(src)) { reportVideoUrl(src); }
+  }, true);
+
+  // XHR intercept — HLS.js / Playerjs fetch manifest via XHR
+  try {
+    var origXhrOpen = XMLHttpRequest.prototype.open;
+    XMLHttpRequest.prototype.open = function(method, xhrUrl) {
+      if (typeof xhrUrl === 'string' && isRealVideoSrc(xhrUrl)) { reportVideoUrl(xhrUrl); }
+      return origXhrOpen.apply(this, arguments);
+    };
+  } catch(e) {}
+
+  // fetch intercept — HLS.js v1+ uses fetch for HLS manifests
+  try {
+    var origFetch = window.fetch;
+    if (typeof origFetch === 'function') {
+      window.fetch = function(input, init) {
+        var url = typeof input === 'string' ? input
+          : (input && typeof input === 'object' && 'url' in input ? input.url : '');
+        if (url && isRealVideoSrc(url)) { reportVideoUrl(url); }
+        return origFetch.apply(this, arguments);
+      };
+    }
+  } catch(e) {}
 
   true;
 })();

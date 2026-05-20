@@ -27,6 +27,11 @@ const PLATFORM_PATTERNS: Array<{ re: RegExp; platform: VideoPlatform }> = [
   // misclassified as playerjs/youtube sites whose domain also appears in the URL.
   { re: /\.(mp4|webm|mov|avi|ts|mkv)(\?|#|$)/i, platform: 'generic' },
   { re: /\.(m3u8|mpd)(\?|#|$)/i, platform: 'generic' },
+  // CDN HLS/DASH streams without file extension — same as isRealVideoSrc path patterns.
+  // Without these, extensionless CDN URLs fall to 'unknown' → genericExtractor tries to
+  // scrape a binary stream as HTML → always fails → extractFallback = true → iframe.
+  { re: /\/(stream|playlist\.m3u8|manifest\.m3u8|master\.m3u8|manifest|hls|dash|chunklist)/i, platform: 'generic' },
+  { re: /\/(video|vod|cdn|media)\/[^/]+\/(index|master|720p|480p|360p|1080p|hls)/i, platform: 'generic' },
   // ── Known platforms ──────────────────────────────────────────────────────
   { re: /youtube\.com|youtu\.be/i, platform: 'youtube' },
   { re: /vimeo\.com/i, platform: 'vimeo' },

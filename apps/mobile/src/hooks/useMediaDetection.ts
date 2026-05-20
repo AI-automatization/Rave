@@ -10,6 +10,7 @@ import { contentApi } from '@api/content.api';
 import { getSocket, CLIENT_EVENTS } from '@socket/client';
 import {
   MEDIA_DETECTION_JS,
+  MEDIA_INTERCEPT_EARLY_JS,
   normalizeDetectedMedia,
   normalizeBlobMedia,
   type MediaDetectedPayload,
@@ -26,6 +27,9 @@ type Nav = NativeStackNavigationProp<ModalStackParamList>;
 type RouteType = RouteProp<ModalStackParamList, 'MediaWebView'>;
 
 export const WEBVIEW_INJECT_JS = MEDIA_DETECTION_JS + BOT_PROTECTION_JS + IFRAME_SCAN_JS;
+// Injected before page JS (injectedJavaScriptBeforeContentLoaded) — sets up XHR/fetch
+// intercepts early on Android so player library manifest requests are caught.
+export const WEBVIEW_EARLY_JS = MEDIA_INTERCEPT_EARLY_JS;
 
 export function useMediaDetection() {
   const navigation = useNavigation<Nav>();
@@ -47,6 +51,20 @@ export function useMediaDetection() {
   const importMediaRef = useRef<(media: RoomMedia) => Promise<void>>(async () => {});
   const detectedUrlRef = useRef('');
   const backendFoundVideoRef = useRef(false);
+  // Set to true when a direct media URL (m3u8/mp4) is confirmed via XHR intercept.
+  // Unlike detectedUrlRef, this is NOT reset by tryBackendExtract — only by navigation.
+  // Prevents IFRAME_FOUND and BLOB_VIDEO_FOUND from overriding a clean URL.
+  const cleanUrlFoundRef = useRef(false);
+  // Sync ref — always holds the latest detected media even before React re-renders.
+  // importMedia reads this so a direct URL found by XHR intercept is used even if
+  // the state setter hasn't flushed yet when the user taps the import button.
+  const detectedMediaRef = useRef<RoomMedia | null>(null);
+  // Timer ref for delayed backend extraction — lets XHR intercept win the race on Android.
+  // On Android, injectedJavaScriptBeforeContentLoaded is async (evaluateJavascript from
+  // onPageStarted). HLS.js can init and fetch m3u8 in 1-3s. By delaying backend extraction
+  // 1.5s, the XHR intercept / performance scan has time to find the direct URL first.
+  // If XHR fires in that window, backend extraction is cancelled entirely.
+  const backendExtractTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Animate bottom bar in/out
   useEffect(() => {
@@ -61,6 +79,7 @@ export function useMediaDetection() {
   const setDetectedMediaOnce = useCallback((media: RoomMedia) => {
     if (detectedUrlRef.current === media.videoUrl) return;
     detectedUrlRef.current = media.videoUrl;
+    detectedMediaRef.current = media;
     setDetectedMedia(media);
   }, []);
 
@@ -71,10 +90,32 @@ export function useMediaDetection() {
     setIsBackendExtracting(true);
     try {
       const result = await contentApi.extractVideo(url);
-      // Store the original URL (not the extracted CDN URL) so each client can
-      // re-extract on join and get their own fresh proxy URL. Matches useSourcePicker behaviour.
+      // If XHR intercept already found a direct m3u8/mp4 while backend was extracting,
+      // don't override it with the page URL — the direct URL is better for playback.
+      // Still mark backendFoundVideoRef to prevent blob from overriding the clean URL.
+      if (cleanUrlFoundRef.current) {
+        backendFoundVideoRef.current = true;
+        return true;
+      }
+      // If backend extracted a direct CDN stream URL (m3u8/mp4), store it directly.
+      // This eliminates the WatchParty re-extraction dependency — if the Redis cache
+      // expired or the backend restarted between import and room join, re-extraction
+      // would fail for JS-rendered sites and fall back to WebView (no clean video).
+      // For iframe/embed results (not a direct stream), keep PAGE_URL so WatchParty
+      // can re-extract a fresh CDN URL on join (embed URLs have shorter TTLs).
+      // videoReferer always stores the page URL for CDN hotlink protection headers.
+      const extractedUrl = result.videoUrl ?? '';
+      const isDirectCdnUrl = !!(extractedUrl
+        && !extractedUrl.includes('videoplayback')
+        && !extractedUrl.includes('googlevideo')
+        && (
+          /\.(mp4|m3u8|webm|ogg|mov|ts|mkv|mpd)(\?|#|$)/i.test(extractedUrl)
+          || /\/(stream|playlist\.m3u8|manifest\.m3u8|master\.m3u8|manifest|hls|dash|chunklist)/i.test(extractedUrl)
+          || /\/(video|vod|cdn|media)\/[^/]+\/(index|master|720p|480p|360p|1080p|hls)/i.test(extractedUrl)
+        )
+      );
       const media: RoomMedia = {
-        videoUrl: url,
+        videoUrl: isDirectCdnUrl ? extractedUrl : url,
         videoTitle: result.title || 'Video',
         videoPlatform: result.platform === 'youtube' ? 'youtube' : 'direct',
         videoThumbnail: result.poster || undefined,
@@ -91,6 +132,16 @@ export function useMediaDetection() {
     }
   }, [setDetectedMediaOnce]);
 
+  const scheduledBackendExtract = useCallback((url: string) => {
+    if (backendExtractTimerRef.current) clearTimeout(backendExtractTimerRef.current);
+    // Delay 1.5s so the XHR intercept / performance scan can fire first (Android race).
+    // If cleanUrlFoundRef becomes true in that window, the backend call is skipped.
+    backendExtractTimerRef.current = setTimeout(() => {
+      backendExtractTimerRef.current = null;
+      if (!cleanUrlFoundRef.current) void tryBackendExtract(url);
+    }, 1500);
+  }, [tryBackendExtract]);
+
   const onNavigationStateChange = useCallback((state: WebViewNavigation) => {
     setCanGoBack(state.canGoBack);
     setCanGoForward(state.canGoForward);
@@ -101,28 +152,60 @@ export function useMediaDetection() {
       lastKnownUrlRef.current = state.url;
       detectedUrlRef.current = '';
       backendFoundVideoRef.current = false;
+      cleanUrlFoundRef.current = false;
+      detectedMediaRef.current = null;
       setDetectedMedia(null);
+      if (backendExtractTimerRef.current) { clearTimeout(backendExtractTimerRef.current); backendExtractTimerRef.current = null; }
       if (/\.(mp4|m3u8|webm|mkv|ts|mov|mpd)(\?|#|$)/i.test(state.url) && !isPlaceholderVideoUrl(state.url)) {
         const fileName = state.url.split('/').pop()?.split('?')[0] ?? 'Video';
         setDetectedMediaOnce({ videoUrl: state.url, videoTitle: state.title || fileName, videoPlatform: 'direct', mode: 'extracted' });
         return;
       }
-      void tryBackendExtract(state.url);
+      scheduledBackendExtract(state.url);
     }
-  }, [tryBackendExtract, setDetectedMediaOnce]);
+  }, [scheduledBackendExtract, setDetectedMediaOnce]);
 
-  useEffect(() => { void tryBackendExtract(params.defaultUrl); }, []);
+  useEffect(() => {
+    scheduledBackendExtract(params.defaultUrl);
+    return () => { if (backendExtractTimerRef.current) clearTimeout(backendExtractTimerRef.current); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Keep importMedia ref always up-to-date (avoids stale closure in WebView callbacks)
   React.useEffect(() => { importMediaRef.current = importMedia; });
 
   async function importMedia(media: RoomMedia) {
     if (isImportingRef.current) return;
+    // On Android, the XHR/performance scan may find the CDN URL 1-3s AFTER the backend
+    // extraction shows the import bar (backend fires at 1.5s, scan at 1s/3s/5s).
+    // If the user taps Import before the scan fires, we'd use the page URL instead of the
+    // CDN URL. Wait up to 3s for CDN confirmation — resolves immediately if already found.
+    // Skip the wait entirely when Fix #22 already stored a direct CDN URL in media (videoUrl
+    // matches a stream pattern) — no need to poll since the URL is already the right one.
+    const mediaAlreadyHasCdnUrl = media.videoPlatform === 'direct' && !!(
+      /\.(mp4|m3u8|webm|ogg|mov|ts|mkv|mpd)(\?|#|$)/i.test(media.videoUrl)
+      || /\/(stream|hls|manifest|playlist\.m3u8|master\.m3u8|chunklist)/i.test(media.videoUrl)
+    );
+    if (backendFoundVideoRef.current && !cleanUrlFoundRef.current && !mediaAlreadyHasCdnUrl) {
+      await new Promise<void>(resolve => {
+        if (cleanUrlFoundRef.current) { resolve(); return; }
+        const timer = setTimeout(resolve, 3000);
+        const poll = setInterval(() => {
+          if (cleanUrlFoundRef.current) { clearTimeout(timer); clearInterval(poll); resolve(); }
+        }, 100);
+      });
+    }
+    // If XHR intercept found a direct URL (or scan confirmed it above), prefer it.
+    // cleanUrlFoundRef is set synchronously; detectedMediaRef mirrors setDetectedMediaOnce
+    // synchronously — both may be ahead of the React state that was passed as `media`.
+    const effective =
+      cleanUrlFoundRef.current && detectedMediaRef.current?.videoPlatform === 'direct'
+        ? detectedMediaRef.current
+        : media;
     if (params.mode === 'change') {
       if (!params.roomId) return;
       getSocket()?.emit(CLIENT_EVENTS.CHANGE_MEDIA, {
-        roomId: params.roomId, videoUrl: media.videoUrl,
-        videoTitle: media.videoTitle, videoPlatform: media.videoPlatform,
+        roomId: params.roomId, videoUrl: effective.videoUrl,
+        videoTitle: effective.videoTitle, videoPlatform: effective.videoPlatform,
       });
       navigation.navigate('WatchParty', { roomId: params.roomId });
       return;
@@ -131,9 +214,9 @@ export function useMediaDetection() {
       if (!params.roomId) return;
       try {
         await watchPartyApi.addToPlaylist(params.roomId, {
-          videoUrl: media.videoUrl,
-          videoTitle: media.videoTitle,
-          videoPlatform: media.videoPlatform,
+          videoUrl: effective.videoUrl,
+          videoTitle: effective.videoTitle,
+          videoPlatform: effective.videoPlatform,
         });
       } catch {}
       navigation.navigate('WatchParty', { roomId: params.roomId });
@@ -143,10 +226,10 @@ export function useMediaDetection() {
     setIsImporting(true);
     try {
       const room = await watchPartyApi.createRoom({
-        name: media.videoTitle.slice(0, 60), videoUrl: media.videoUrl,
-        videoTitle: media.videoTitle, videoPlatform: media.videoPlatform,
+        name: effective.videoTitle.slice(0, 60), videoUrl: effective.videoUrl,
+        videoTitle: effective.videoTitle, videoPlatform: effective.videoPlatform,
       });
-      navigation.navigate('WatchParty', { roomId: room._id, videoReferer: media.videoReferer });
+      navigation.navigate('WatchParty', { roomId: room._id, videoReferer: effective.videoReferer });
     } catch (err: unknown) {
       if (__DEV__) console.log('[MediaWebView] createRoom error:', err);
       const axiosErr = err as { response?: { data?: { message?: string } }; code?: string; message?: string };
@@ -170,6 +253,9 @@ export function useMediaDetection() {
 
       if (data.type === 'BOT_PROTECTION_DETECTED') { setIsBotProtected(true); return; }
       if (data.type === 'IFRAME_FOUND') {
+        // A direct URL was already found via XHR intercept — iframe extraction would reset
+        // detectedUrlRef (inside tryBackendExtract) and lose the clean URL.
+        if (cleanUrlFoundRef.current) return;
         if (Array.isArray(data.urls) && data.urls[0] && !backendFoundVideoRef.current) {
           const iframeUrl = data.urls[0];
           void tryBackendExtract(iframeUrl).then((success) => {
@@ -180,11 +266,33 @@ export function useMediaDetection() {
         }
         return;
       }
-      if (backendFoundVideoRef.current) return;
-      if (data.type === 'BLOB_VIDEO_FOUND') { setDetectedMediaOnce(normalizeBlobMedia(data)); return; }
+      if (data.type === 'BLOB_VIDEO_FOUND') {
+        // Blob is always a fallback (HLS.js internal) — skip if anything real already found.
+        if (cleanUrlFoundRef.current || backendFoundVideoRef.current) return;
+        setDetectedMediaOnce(normalizeBlobMedia(data));
+        return;
+      }
       if (data.type !== 'MEDIA_DETECTED') return;
       const normalized = normalizeDetectedMedia(data);
-      if (!isPlaceholderVideoUrl(normalized.videoUrl)) setDetectedMediaOnce(normalized);
+      if (isPlaceholderVideoUrl(normalized.videoUrl)) return;
+      if (normalized.videoPlatform === 'direct') {
+        if (cleanUrlFoundRef.current) {
+          // A direct URL is already locked — ignore subsequent ones (e.g. .ts segments after m3u8).
+          // HLS.js fetches the m3u8 manifest first, then hundreds of .ts segments.
+          // Without this guard each segment URL would override the manifest, and
+          // the room would be created with a single 5-second clip instead of the stream.
+          return;
+        }
+        // First direct URL found: cancel pending backend extraction (no longer needed),
+        // override any backend-stored pageUrl, and lock in the clean CDN URL.
+        if (backendExtractTimerRef.current) { clearTimeout(backendExtractTimerRef.current); backendExtractTimerRef.current = null; }
+        cleanUrlFoundRef.current = true;
+        backendFoundVideoRef.current = true;
+        detectedUrlRef.current = '';
+        setDetectedMediaOnce(normalized);
+      } else if (!backendFoundVideoRef.current) {
+        setDetectedMediaOnce(normalized);
+      }
     } catch { /* Non-JSON messages ignored */ }
   }, [setDetectedMediaOnce, tryBackendExtract]);
 

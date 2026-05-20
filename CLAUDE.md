@@ -202,6 +202,7 @@ Brute force: 5 попыток → 15min блок | Socket.io JWT verify
 ```
 БАГ/ошибка?         → .claude/skills/root-cause-tracing.md  (5-шаговый трейс ПЕРЕД кодом)
 Mode B / >5 файлов? → .claude/skills/subagent-dispatch.md
+Идеи / решения?     → .claude/skills/brainstorm.md          (/brainstorm [тема] — 5 фаз, sequential-thinking MCP)
 
 Пишу код:
   1. SPEC   → .claude/skills/spec-driven-implement.md  (YAML-спек обязателен)
@@ -215,7 +216,7 @@ Mode B / >5 файлов? → .claude/skills/subagent-dispatch.md
 ```
 
 Исключения: typo/1 символ, docs/Tasks.md, config — пропустить REFLECT шаг 6.
-CLI-скиллы: `/simplify` | `/security-review` | `/review` | `/fewer-permission-prompts`
+CLI-скиллы: `/simplify` | `/security-review` | `/review` | `/fewer-permission-prompts` | `/brainstorm`
 
 ---
 

@@ -7,6 +7,7 @@ import { JwtPayload } from '@shared/types';
 interface AuthenticatedSocket extends Socket {
   user: JwtPayload;
   roomId?: string;
+  roomOwnerId?: string; // cached on JOIN_ROOM to skip MongoDB on every video event
 }
 
 export const registerVideoEvents = (
@@ -17,21 +18,34 @@ export const registerVideoEvents = (
 ): void => {
   const { userId } = authSocket.user;
 
+  // Resolves owner check with fallback: if roomOwnerId is cached use it directly (fast path).
+  // If undefined (socket emits before JOIN_ROOM response completes — Android timing race),
+  // do a single MongoDB lookup, cache the result, then re-check.
+  const resolveIsOwner = async (): Promise<boolean> => {
+    if (!authSocket.roomId) return false;
+    if (authSocket.roomOwnerId !== undefined) return authSocket.roomOwnerId === userId;
+    try {
+      const room = await watchPartyService.getRoom(authSocket.roomId);
+      authSocket.roomOwnerId = room.ownerId;
+      return room.ownerId === userId;
+    } catch {
+      return false;
+    }
+  };
+
   // PLAY — owner only
   socket.on(CLIENT_EVENTS.PLAY, async (data: { currentTime: number }) => {
     if (!authSocket.roomId) {
       logger.warn('Video play: no roomId set', { userId });
       return;
     }
+    if (!await resolveIsOwner()) {
+      logger.warn('Video play rejected: not owner', { userId, ownerId: authSocket.roomOwnerId, roomId: authSocket.roomId });
+      return;
+    }
     const roomId = authSocket.roomId;
 
     try {
-      const room = await watchPartyService.getRoom(roomId);
-      if (room.ownerId !== userId) {
-        logger.warn('Video play rejected: not owner', { userId, ownerId: room.ownerId, roomId });
-        return;
-      }
-
       const syncState = await watchPartyService.syncState(roomId, userId, data.currentTime, true);
       socket.to(roomId).emit(SERVER_EVENTS.VIDEO_PLAY, syncState);
       logger.info('Video sync: play', { roomId, userId, currentTime: data.currentTime });
@@ -42,13 +56,10 @@ export const registerVideoEvents = (
 
   // PAUSE — owner only
   socket.on(CLIENT_EVENTS.PAUSE, async (data: { currentTime: number }) => {
-    if (!authSocket.roomId) return;
+    if (!authSocket.roomId || !await resolveIsOwner()) return;
     const roomId = authSocket.roomId;
 
     try {
-      const room = await watchPartyService.getRoom(roomId);
-      if (room.ownerId !== userId) return;
-
       const syncState = await watchPartyService.syncState(roomId, userId, data.currentTime, false);
       socket.to(roomId).emit(SERVER_EVENTS.VIDEO_PAUSE, syncState);
       logger.info('Video sync: pause', { roomId, userId, currentTime: data.currentTime });
@@ -59,14 +70,14 @@ export const registerVideoEvents = (
 
   // SEEK — owner only
   socket.on(CLIENT_EVENTS.SEEK, async (data: { currentTime: number }) => {
-    if (!authSocket.roomId) return;
+    if (!authSocket.roomId || !await resolveIsOwner()) return;
     const roomId = authSocket.roomId;
 
     try {
-      const room = await watchPartyService.getRoom(roomId);
-      if (room.ownerId !== userId) return;
-
-      const syncState = await watchPartyService.syncState(roomId, userId, data.currentTime, room.isPlaying);
+      // Read isPlaying from Redis (fast) rather than MongoDB
+      const cached = await watchPartyService.getSyncState(roomId);
+      const isPlaying = cached?.isPlaying ?? false;
+      const syncState = await watchPartyService.syncState(roomId, userId, data.currentTime, isPlaying);
       socket.to(roomId).emit(SERVER_EVENTS.VIDEO_SEEK, syncState);
       logger.info('Video sync: seek', { roomId, userId, currentTime: data.currentTime });
     } catch (error) {
@@ -76,13 +87,10 @@ export const registerVideoEvents = (
 
   // HEARTBEAT — owner position ping, no scheduledAt, no seekTo on peers
   socket.on(CLIENT_EVENTS.HEARTBEAT, async (data: { currentTime: number }) => {
-    if (!authSocket.roomId) return;
+    if (!authSocket.roomId || !await resolveIsOwner()) return;
     const roomId = authSocket.roomId;
 
     try {
-      const room = await watchPartyService.getRoom(roomId);
-      if (room.ownerId !== userId) return;
-
       // Persist current position so BUFFER_START/resumeRoom always have fresh currentTime
       await watchPartyService.updateCurrentTime(roomId, data.currentTime);
 
@@ -115,7 +123,7 @@ export const registerVideoEvents = (
 
     const syncState = await watchPartyService.syncState(roomId, ownerId, currentTime, true);
     io.to(roomId).emit(SERVER_EVENTS.VIDEO_PLAY, syncState);
-    io.to(roomId).emit(SERVER_EVENTS.VIDEO_BUFFER, { userId, buffering: false });
+    io.to(roomId).emit(SERVER_EVENTS.VIDEO_BUFFER, { userId, isBuffering: false });
     logger.info('Buffer wait over — resumed room', { roomId, currentTime });
   };
 
@@ -127,12 +135,12 @@ export const registerVideoEvents = (
       // Grace period: new joiners buffer while loading — don't pause everyone for them
       const isJoiner = await watchPartyService.isRecentJoiner(roomId, userId);
       if (isJoiner) {
-        io.to(roomId).emit(SERVER_EVENTS.VIDEO_BUFFER, { userId, buffering: true });
+        io.to(roomId).emit(SERVER_EVENTS.VIDEO_BUFFER, { userId, isBuffering: true });
         return;
       }
 
       const count = await watchPartyService.markBuffering(roomId, userId);
-      io.to(roomId).emit(SERVER_EVENTS.VIDEO_BUFFER, { userId, buffering: true });
+      io.to(roomId).emit(SERVER_EVENTS.VIDEO_BUFFER, { userId, isBuffering: true });
 
       if (count === 1) {
         // First buffer — pause everyone at the freshest known position (Redis, not MongoDB)
@@ -161,7 +169,7 @@ export const registerVideoEvents = (
       // Grace period joiner — was never added to buffering set, just clear the indicator
       const isJoiner = await watchPartyService.isRecentJoiner(roomId, userId);
       if (isJoiner) {
-        io.to(roomId).emit(SERVER_EVENTS.VIDEO_BUFFER, { userId, buffering: false });
+        io.to(roomId).emit(SERVER_EVENTS.VIDEO_BUFFER, { userId, isBuffering: false });
         return;
       }
 
@@ -169,7 +177,7 @@ export const registerVideoEvents = (
       if (remaining === 0) {
         await resumeRoom(roomId);
       } else {
-        io.to(roomId).emit(SERVER_EVENTS.VIDEO_BUFFER, { userId, buffering: false });
+        io.to(roomId).emit(SERVER_EVENTS.VIDEO_BUFFER, { userId, isBuffering: false });
         logger.info('Buffer wait: still waiting', { roomId, remaining });
       }
     } catch (error) {

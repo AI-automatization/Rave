@@ -29,14 +29,13 @@ interface PredictiveSyncState {
 }
 
 // T-E099: Drift correction thresholds
-const DRIFT_FORCE_SEEK_SECS = 2.0;   // >2s → hard seekTo
-const DRIFT_RATE_ADJUST_SECS = 0.3;  // 0.3-2s → playbackRate correction
-const DRIFT_RATE_SLOW = 0.95;
-const DRIFT_RATE_FAST = 1.05;
-const DRIFT_RATE_RESET_MS = 3000;    // reset to 1.0 after 3s
+// Rate correction removed: at 1.02x over 5s window it corrects only 0.1s — for 1.5s drift
+// that takes ~75 heartbeat cycles (6 min). Hard seek is instant and reliable.
+const DRIFT_FORCE_SEEK_SECS = 2.0;   // >2s → hard seekTo (was 3.0 — drifts of 1.5-3s were never corrected)
 
-// T-E101: Buffer event debounce
-const BUFFER_DEBOUNCE_MS = 500;
+// T-E101: Buffer event debounce — 2000ms so brief HLS segment-loading stalls (normal ExoPlayer
+// behaviour, typically <1s) don't trigger democratic pause for all viewers.
+const BUFFER_DEBOUNCE_MS = 2000;
 const REACTION_RATE_LIMIT = 10;
 
 export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
@@ -59,13 +58,22 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   extractFnRef.current = extract;
   const resetExtractionFnRef = useRef(resetExtraction);
   resetExtractionFnRef.current = resetExtraction;
-  const driftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bufferDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const suppressBufferRef = useRef(false);     // true for 5s after a sync seek (HLS proxy buffering window)
+  const suppressBufferTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const suppressDriftRef = useRef(false);      // true for 8s after sync/ready (Android proxy buffer time)
+  const suppressDriftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reactionTimestampsRef = useRef<number[]>([]);
   const isBufferingRef = useRef(false);
+  const videoCurrentTimeRef = useRef(0);
   // Unified pending sync — deferred until player signals onReady (works for both expo-av and WebView)
   const playerReadyRef = useRef(false);
-  const pendingSyncRef = useRef<{ currentTime: number; isPlaying: boolean } | null>(null);
+  const pendingSyncRef = useRef<{ currentTime: number; isPlaying: boolean; serverTimestamp: number } | null>(null);
+  // Tracks the last sync actually executed so proxy-fallback reloads can re-sync.
+  // When CDN URL fails and ExoPlayer switches to proxy, UniversalPlayer fires onReady again.
+  // Without this, handlePlayerReady returns early (playerReadyRef already true) and the
+  // proxy source starts from position 0 — completely out of sync with the owner.
+  const lastExecutedSyncRef = useRef<{ currentTime: number; isPlaying: boolean; serverTimestamp: number } | null>(null);
 
   const [showChat, setShowChat] = useState(false);
   const [showVoice, setShowVoice] = useState(false);
@@ -133,17 +141,44 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
 
     // Player not ready yet — defer until handlePlayerReady fires (same for expo-av and WebView)
     if (!playerReadyRef.current) {
-      pendingSyncRef.current = { currentTime: syncState.currentTime, isPlaying: syncState.isPlaying };
+      pendingSyncRef.current = { currentTime: syncState.currentTime, isPlaying: syncState.isPlaying, serverTimestamp: syncState.serverTimestamp };
       return;
     }
 
     isSyncing.current = true;
 
     const scheduled = (syncState as PredictiveSyncState).scheduledAt;
+    const serverTs = syncState.serverTimestamp;
 
-    const executeSync = (compensationSecs: number) => {
+    // Suppress sync-induced buffer events for 5s so they don't trigger democratic pause.
+    // Was 2s — HLS proxy buffering after seekTo can take 1-2s on Android.
+    const startSuppressBuffer = () => {
+      suppressBufferRef.current = true;
+      if (suppressBufferTimerRef.current) clearTimeout(suppressBufferTimerRef.current);
+      suppressBufferTimerRef.current = setTimeout(() => {
+        suppressBufferRef.current = false;
+        suppressBufferTimerRef.current = null;
+      }, 5000);
+    };
+
+    // Compute compensation at execution time: how long has passed since the server
+    // processed this event. Only apply when playing — pause freezes at currentTime.
+    const executeSync = () => {
+      // Player not mounted yet — sync will be re-attempted via pendingSyncRef when ready.
+      if (!playerRef.current) { isSyncing.current = false; return; }
+      lastExecutedSyncRef.current = { currentTime: syncState.currentTime, isPlaying: syncState.isPlaying, serverTimestamp: syncState.serverTimestamp };
+      startSuppressBuffer();
+      // Suppress drift correction for 8s after each sync — ExoPlayer HLS proxy needs
+      // 1-2s to buffer the new position; without this the next heartbeat (every 5s)
+      // sees that buffering latency as drift and fires a redundant rate correction.
+      suppressDriftRef.current = true;
+      if (suppressDriftTimerRef.current) clearTimeout(suppressDriftTimerRef.current);
+      suppressDriftTimerRef.current = setTimeout(() => { suppressDriftRef.current = false; suppressDriftTimerRef.current = null; }, 8000);
+      const compensationSecs = syncState.isPlaying
+        ? Math.max(0, (Date.now() - serverTs) / 1000)
+        : 0;
       const targetMs = (syncState.currentTime + compensationSecs) * 1000;
-      playerRef.current?.seekTo(targetMs)
+      playerRef.current.seekTo(targetMs)
         .then(() => syncState.isPlaying ? playerRef.current?.play() : playerRef.current?.pause())
         .catch(() => {})
         .finally(() => { setTimeout(() => { isSyncing.current = false; }, 400); });
@@ -152,15 +187,15 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     if (scheduled && scheduled > 0) {
       const delay = scheduled - Date.now();
       if (delay > 0) {
-        // Future: wait until scheduledAt, then execute
-        const timerId = setTimeout(() => executeSync(0), delay);
+        // Future: wait until scheduledAt, then execute with elapsed-time compensation
+        const timerId = setTimeout(executeSync, delay);
         return () => clearTimeout(timerId);
       }
-      // Past: compensate for elapsed time
-      executeSync(Math.abs(delay) / 1000);
+      // Past scheduledAt: execute immediately with elapsed-time compensation
+      executeSync();
     } else {
-      // No scheduledAt (backend T-S054 not deployed yet) — immediate
-      executeSync(0);
+      // No scheduledAt — execute immediately
+      executeSync();
     }
   }, [syncState]);
 
@@ -174,34 +209,36 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     return () => clearInterval(interval);
   }, [isOwner, room, isPlaying, emitHeartbeat]);
 
-  // T-E099: Drift correction — only for members (not owner), on heartbeat
+  // Keep videoCurrentTimeRef up-to-date without triggering drift correction on every position tick.
+  // Drift correction reads the ref so videoCurrentTime is not in its deps array.
+  useEffect(() => { videoCurrentTimeRef.current = videoCurrentTime; }, [videoCurrentTime]);
+
+  // T-E099: Drift correction — only for members (not owner), fires on heartbeat change only.
+  // videoCurrentTime intentionally excluded from deps — we read the ref to avoid re-running
+  // every 500ms (expo-av position update) which caused false correction loops.
+  // Rate correction removed: at 1.02x/5s window it corrects only 0.1s per heartbeat cycle,
+  // taking 75+ cycles (6 min) to fix 1.5s drift. Hard seek is instant and reliable.
+  // After drift-correction seek: suppress buffer (5s) and drift (8s) so ExoPlayer's HLS
+  // segment buffering doesn't cascade into democratic pause, and the next heartbeat doesn't
+  // immediately re-trigger another seek.
   useEffect(() => {
-    if (isOwner || !heartbeat || !isPlaying || isSyncing.current) return;
+    if (isOwner || !heartbeat || !isPlaying || isSyncing.current || suppressDriftRef.current) return;
 
     const expected = heartbeat.currentTime + (Date.now() - heartbeat.timestamp) / 1000;
-    const drift = videoCurrentTime - expected;
-    const absDrift = Math.abs(drift);
+    const absDrift = Math.abs(videoCurrentTimeRef.current - expected);
 
     if (absDrift > DRIFT_FORCE_SEEK_SECS) {
-      // Large drift — force seek to correct position
+      suppressBufferRef.current = true;
+      if (suppressBufferTimerRef.current) clearTimeout(suppressBufferTimerRef.current);
+      suppressBufferTimerRef.current = setTimeout(() => { suppressBufferRef.current = false; suppressBufferTimerRef.current = null; }, 5000);
+      suppressDriftRef.current = true;
+      if (suppressDriftTimerRef.current) clearTimeout(suppressDriftTimerRef.current);
+      suppressDriftTimerRef.current = setTimeout(() => { suppressDriftRef.current = false; suppressDriftTimerRef.current = null; }, 8000);
+      isSyncing.current = true;
       playerRef.current?.seekTo(expected * 1000);
-    } else if (absDrift > DRIFT_RATE_ADJUST_SECS) {
-      // Moderate drift — gradual correction via playbackRate
-      const rate = drift > 0 ? DRIFT_RATE_SLOW : DRIFT_RATE_FAST;
-      playerRef.current?.setRate(rate);
-
-      // Clear previous timer if exists
-      if (driftTimerRef.current) clearTimeout(driftTimerRef.current);
-      driftTimerRef.current = setTimeout(() => {
-        playerRef.current?.setRate(1.0);
-        driftTimerRef.current = null;
-      }, DRIFT_RATE_RESET_MS);
+      setTimeout(() => { isSyncing.current = false; }, 2000);
     }
-    // drift < 0.3s → ignore, acceptable sync
-  }, [heartbeat, isOwner, isPlaying, videoCurrentTime]);
-
-  // Cleanup drift timer on unmount
-  useEffect(() => () => { if (driftTimerRef.current) clearTimeout(driftTimerRef.current); }, []);
+  }, [heartbeat, isOwner, isPlaying]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // T-E106: Show incoming reactions from other members as floating emoji
   useEffect(() => {
@@ -212,8 +249,9 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     ]);
   }, [lastReaction, userId]);
 
-  // T-E101: Buffer signal — debounced emit to server
+  // T-E101: Buffer signal — debounced emit to server; suppressed for 2s after sync seek
   const emitBufferState = useCallback((buffering: boolean) => {
+    if (suppressBufferRef.current) return; // sync-induced buffering — don't trigger democratic pause
     if (bufferDebounceRef.current) clearTimeout(bufferDebounceRef.current);
     bufferDebounceRef.current = setTimeout(() => {
       if (isBufferingRef.current === buffering) return; // no change
@@ -224,15 +262,21 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     }, BUFFER_DEBOUNCE_MS);
   }, [roomId]);
 
-  // Cleanup buffer debounce on unmount
-  useEffect(() => () => { if (bufferDebounceRef.current) clearTimeout(bufferDebounceRef.current); }, []);
+  // Cleanup timers on unmount
+  useEffect(() => () => {
+    if (bufferDebounceRef.current) clearTimeout(bufferDebounceRef.current);
+    if (suppressBufferTimerRef.current) clearTimeout(suppressBufferTimerRef.current);
+    if (suppressDriftTimerRef.current) clearTimeout(suppressDriftTimerRef.current);
+  }, []);
 
   const onPlaybackStatusUpdate = useCallback((status: AVPlaybackStatus) => {
     if (!status.isLoaded) return;
     if (!isSyncing.current) { setIsPlaying(status.isPlaying); intendedPlayingRef.current = status.isPlaying; }
     setVideoCurrentTime(status.positionMillis / 1000);
     if (status.durationMillis) setVideoDuration(status.durationMillis / 1000);
-    if (status.isBuffering !== undefined) emitBufferState(status.isBuffering);
+    // Only signal buffering when video is supposed to be playing — avoids BUFFER_START
+    // during initial load / owner-paused state which would trigger democratic pause incorrectly.
+    if (status.isBuffering !== undefined && intendedPlayingRef.current) emitBufferState(status.isBuffering);
     if (isOwner && !isSyncing.current && status.didJustFinish) emitPause(status.durationMillis ? status.durationMillis / 1000 : 0);
     prevIsPlayingRef.current = status.isPlaying;
   }, [isOwner, emitPause, emitBufferState]);
@@ -345,20 +389,39 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const rawExtractedUrl = (!extractFallback && extractResult?.videoUrl) ? extractResult.videoUrl : undefined;
   const iosWebmBlocked = !!(rawExtractedUrl && Platform.OS === 'ios' && /\.webm(\?|#|$)/i.test(rawExtractedUrl));
   const extractedVideoUrl = iosWebmBlocked ? undefined : rawExtractedUrl;
-  const extractedVideoHeaders = extractedVideoUrl ? extractResult?.httpHeaders : undefined;
-  // Android proxy: stream video through our server to bypass ExoPlayer TLS/UA restrictions.
-  // Works for both extracted CDN URLs and direct video files (.mp4/.m3u8/etc).
+
   const platform = detectVideoPlatform(originalVideoUrl);
+
+  // Android: no WebView fallback — all non-YouTube content uses native ExoPlayer.
+  // When extraction fails (edge case), use originalVideoUrl directly (room stores CDN URL after Fix #22).
   const androidPlayUrl = Platform.OS === 'android'
-    ? (extractedVideoUrl ?? (platform !== 'youtube' && platform !== 'webview' ? originalVideoUrl : undefined))
+    ? (extractedVideoUrl ?? (platform !== 'youtube' ? originalVideoUrl : undefined))
     : undefined;
-  // Forward all yt-dlp http_headers to the proxy so CDNs (VK, Rutube, etc.)
-  // receive the same headers yt-dlp used during extraction (Referer, Accept, etc.).
-  // User-Agent is excluded — the proxy always sends Chrome UA.
+
+  // HLS detection: prefer extractResult.type when available; infer from URL patterns as fallback
+  // so the HLS proxy is used even when extraction failed but room already has a CDN HLS URL.
+  const isHlsStream = extractResult?.type === 'hls'
+    || (!extractResult && !!(androidPlayUrl && (
+      /\.(m3u8|mpd)(\?|#|$)/i.test(androidPlayUrl)
+      || /\/(hls|stream|manifest|playlist\.m3u8|master\.m3u8|chunklist)/i.test(androidPlayUrl)
+      || /\/(video|vod|cdn|media)\/[^/]+\/(index|master|720p|480p|360p|1080p|hls)/i.test(androidPlayUrl)
+    )));
+
+  const baseExtractedHeaders = extractedVideoUrl ? extractResult?.httpHeaders : undefined;
+  const extractedVideoHeaders: Record<string, string> | undefined = (isHlsStream && accessToken)
+    ? { ...baseExtractedHeaders, Authorization: `Bearer ${accessToken}` }
+    : baseExtractedHeaders;
+
+  // For HLS streams use the HLS proxy (/content/hls-proxy) which rewrites every segment URL
+  // in the m3u8 manifest to also go through the proxy server with the correct Referer header.
+  // Without this, ExoPlayer fetches segments directly from CDN — CDN blocks mobile device IP
+  // or fingerprint → 403 → frequent buffer stalls → choppy playback.
+  // For mp4 / non-HLS, the generic proxy (/content/proxy/stream) is sufficient (single file).
+  const proxyReferer = videoReferer ?? originalVideoUrl;
   const proxyUpstreamHeaders: Record<string, string> = {};
   if (extractedVideoHeaders) {
     for (const [k, v] of Object.entries(extractedVideoHeaders)) {
-      if (!/^user-agent$/i.test(k)) proxyUpstreamHeaders[k] = v;
+      if (!/^(user-agent|authorization)$/i.test(k)) proxyUpstreamHeaders[k] = v;
     }
   }
   if (videoReferer) proxyUpstreamHeaders['Referer'] = videoReferer;
@@ -366,9 +429,15 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     ? `&h=${encodeURIComponent(JSON.stringify(proxyUpstreamHeaders))}`
     : '';
   const extractedVideoProxyUrl = (androidPlayUrl && accessToken)
-    ? `${CONTENT_BASE_URL}/content/proxy/stream?url=${encodeURIComponent(androidPlayUrl)}&token=${encodeURIComponent(accessToken)}${proxyHeadersParam}`
+    ? isHlsStream
+      ? `${CONTENT_BASE_URL}/content/hls-proxy?url=${encodeURIComponent(androidPlayUrl)}&referer=${encodeURIComponent(proxyReferer)}`
+      : `${CONTENT_BASE_URL}/content/proxy/stream?url=${encodeURIComponent(androidPlayUrl)}&token=${encodeURIComponent(accessToken)}${proxyHeadersParam}`
     : undefined;
-  const isWebViewMode = !extractedVideoUrl && (iosWebmBlocked || detectVideoPlatform(originalVideoUrl) === 'youtube' || extractFallback);
+  // Android: only YouTube uses WebView (needs JS iframe API); all other content is native ExoPlayer.
+  // iOS: keep existing fallback behaviour (iosWebmBlocked, extractFallback → WebView).
+  const isWebViewMode = Platform.OS === 'ios'
+    ? (!extractedVideoUrl && (iosWebmBlocked || platform === 'youtube' || extractFallback))
+    : (!extractedVideoUrl && platform === 'youtube');
 
   // Android + embeddable webview platforms (VK, Rutube, Twitch, Vimeo, Dailymotion):
   // These CDNs block ExoPlayer via TLS fingerprint — proxy (Node.js/Chrome UA) is primary.
@@ -384,19 +453,43 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   useEffect(() => {
     playerReadyRef.current = false;
     pendingSyncRef.current = null;
+    lastExecutedSyncRef.current = null;
   }, [room?.videoUrl]);
 
   // Called by UniversalPlayer when the player is ready to receive seek/play commands.
-  // Applies the last deferred sync if one was stored while the player was loading.
+  // Also called when ExoPlayer switches from a failed direct CDN URL to the HLS proxy
+  // (UniversalPlayer resets readyFiredRef on source change → fires onReady again).
+  // Uses pendingSyncRef (first join, player not ready yet) OR lastExecutedSyncRef (proxy
+  // fallback re-sync) — with elapsed-time compensation in both cases.
   const handlePlayerReady = useCallback(() => {
-    if (playerReadyRef.current) return;
     playerReadyRef.current = true;
-    if (!pendingSyncRef.current) return;
-    const { currentTime, isPlaying: pendingPlaying } = pendingSyncRef.current;
+    // Pending sync (deferred because player wasn't ready yet) takes priority.
+    // Fall back to lastExecutedSyncRef so proxy-fallback re-loads re-sync to the correct position
+    // instead of starting from 0 (which leaves isPlaying=false → drift correction never fires).
+    const syncToExecute = pendingSyncRef.current ?? lastExecutedSyncRef.current;
     pendingSyncRef.current = null;
+    if (!syncToExecute) return;
+    lastExecutedSyncRef.current = syncToExecute; // update in case this is a fresh pendingSync
     isSyncing.current = true;
-    playerRef.current?.seekTo(currentTime * 1000)
-      .then(() => pendingPlaying ? playerRef.current?.play() : playerRef.current?.pause())
+    intendedPlayingRef.current = syncToExecute.isPlaying; // needed so drift/buffer guards work correctly
+    suppressBufferRef.current = true;
+    if (suppressBufferTimerRef.current) clearTimeout(suppressBufferTimerRef.current);
+    suppressBufferTimerRef.current = setTimeout(() => { suppressBufferRef.current = false; suppressBufferTimerRef.current = null; }, 5000);
+    suppressDriftRef.current = true;
+    if (suppressDriftTimerRef.current) clearTimeout(suppressDriftTimerRef.current);
+    suppressDriftTimerRef.current = setTimeout(() => { suppressDriftRef.current = false; suppressDriftTimerRef.current = null; }, 8000);
+    // Compensate for elapsed time since server event — catches up to current owner position.
+    // Works for both initial join AND proxy-fallback: compensation grows with elapsed time.
+    // Cap compensation at 30s — if lastExecutedSyncRef is stale (minutes old, e.g. after
+    // a long proxy-fallback delay), uncapped compensation would seek hundreds of seconds past
+    // the actual position and land past the video end.
+    const compensationSecs = syncToExecute.isPlaying
+      ? Math.min(30, Math.max(0, (Date.now() - syncToExecute.serverTimestamp) / 1000))
+      : 0;
+    const targetMs = (syncToExecute.currentTime + compensationSecs) * 1000;
+    if (!playerRef.current) { isSyncing.current = false; return; }
+    playerRef.current.seekTo(targetMs)
+      .then(() => syncToExecute.isPlaying ? playerRef.current?.play() : playerRef.current?.pause())
       .catch(() => {})
       .finally(() => { setTimeout(() => { isSyncing.current = false; }, 400); });
   }, []);

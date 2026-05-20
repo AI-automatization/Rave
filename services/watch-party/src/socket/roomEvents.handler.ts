@@ -8,6 +8,7 @@ import { recordWatchHistoryInternal } from '@shared/utils/serviceClient';
 interface AuthenticatedSocket extends Socket {
   user: JwtPayload;
   roomId?: string;
+  roomOwnerId?: string; // cached to avoid DB lookup on every video event
 }
 
 // In-memory map of roomId → inactivity close timer
@@ -51,6 +52,7 @@ export const registerRoomEvents = (
 
       await socket.join(data.roomId);
       authSocket.roomId = data.roomId;
+      authSocket.roomOwnerId = room.ownerId;
 
       const syncState = await watchPartyService.getSyncState(data.roomId);
 
@@ -96,6 +98,11 @@ export const registerRoomEvents = (
       if (result.closed) {
         io.to(roomId).emit(SERVER_EVENTS.ROOM_CLOSED, { reason: 'owner_left' });
       } else if (result.newOwnerId) {
+        // Update cached ownerId on all sockets in the room so video events skip DB
+        const roomSockets = await io.in(roomId).fetchSockets();
+        for (const s of roomSockets) {
+          (s as unknown as AuthenticatedSocket).roomOwnerId = result.newOwnerId;
+        }
         socket.to(roomId).emit(SERVER_EVENTS.MEMBER_LEFT, { userId });
         io.to(roomId).emit(SERVER_EVENTS.OWNER_TRANSFERRED, { newOwnerId: result.newOwnerId });
       } else {

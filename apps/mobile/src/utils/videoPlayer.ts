@@ -61,8 +61,11 @@ export type VideoPlatform = 'direct' | 'youtube' | 'webview';
 
 export function detectVideoPlatform(url: string): VideoPlatform {
   if (!url) return 'direct';
-  if (/\.(mp4|m3u8|webm|ogg|mov)(\?.*)?$/i.test(url)) return 'direct';
+  if (/\.(mp4|m3u8|webm|ogg|mov|ts|mkv|mpd)(\?.*)?$/i.test(url)) return 'direct';
   if (YOUTUBE_RE.test(url)) return 'youtube';
   if (/\/youtube\/stream(\?|$)/i.test(url)) return 'direct';
+  // CDN HLS/DASH streams without file extension — mirrors isRealVideoSrc / isDirectVideoUrl patterns
+  if (/\/(stream|playlist\.m3u8|manifest\.m3u8|master\.m3u8|manifest|hls|dash|chunklist)/i.test(url)) return 'direct';
+  if (/\/(video|vod|cdn|media)\/[^/]+\/(index|master|720p|480p|360p|1080p|hls)/i.test(url)) return 'direct';
   return 'webview';
 }

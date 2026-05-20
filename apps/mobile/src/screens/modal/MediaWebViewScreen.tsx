@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import WebView from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius, typography } from '@theme/index';
-import { useMediaDetection, WEBVIEW_INJECT_JS } from '@hooks/useMediaDetection';
+import { useMediaDetection, WEBVIEW_INJECT_JS, WEBVIEW_EARLY_JS } from '@hooks/useMediaDetection';
 import { MediaBottomBar } from '@components/watchParty/MediaBottomBar';
 import { MOBILE_UA } from '@utils/webViewScripts';
 import { isDomainBlocked } from '@constants/blockedDomains';
@@ -71,6 +71,7 @@ export function MediaWebViewScreen() {
         ref={webViewRef}
         source={{ uri: params.defaultUrl }}
         userAgent={MOBILE_UA}
+        injectedJavaScriptBeforeContentLoaded={WEBVIEW_EARLY_JS}
         injectedJavaScript={WEBVIEW_INJECT_JS}
         onShouldStartLoadWithRequest={(req) => {
           if (!req.url.startsWith('http')) return false;
