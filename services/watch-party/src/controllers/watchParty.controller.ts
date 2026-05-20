@@ -6,6 +6,7 @@ import { AuthenticatedRequest, VideoPlatform } from '@shared/types';
 import { sendInternalNotification } from '@shared/utils/serviceClient';
 import { SERVER_EVENTS } from '@shared/constants/socketEvents';
 import { WatchPartyRoom } from '../models/watchPartyRoom.model';
+import { logger } from '@shared/utils/logger';
 
 export class WatchPartyController {
   constructor(
