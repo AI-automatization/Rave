@@ -1,4 +1,32 @@
-node_modules
-.next
+# Exclude everything the web Dockerfile doesn't need
+# Web Dockerfile only COPYs: shared/src/ and apps/web/
+# Paths are relative to the repo root (build context)
+
+# Backend services — not needed
+services/
+
+# Other apps — not needed
+apps/admin-ui/
+apps/mobile/
+
+# Docs, scripts, CI config — not needed
+docs/
+.claude/
+.github/
+*.md
+*.sh
+
+# Build artifacts (all services)
+**/node_modules
+**/.next
+**/dist
+**/logs
+**/build
+
+# Env, secrets
 .env*
-*.log
+**/.env*
+
+# Misc
+**/.git
+**/*.log
