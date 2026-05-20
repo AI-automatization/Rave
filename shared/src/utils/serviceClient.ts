@@ -316,6 +316,7 @@ export async function cascadeDeleteUser(userId: string): Promise<void> {
     [notificationServiceUrl, `/api/v1/notifications/internal/users/${userId}`],
     [contentServiceUrl,      `/api/v1/content/internal/users/${userId}`],
     [adminServiceUrl,        `/api/v1/admin/internal/users/${userId}`],
+    [watchPartyServiceUrl,   `/api/v1/watch-party/internal/users/${userId}`],
   ];
 
   await Promise.allSettled(

@@ -360,6 +360,7 @@ export class ProfileService {
     // Delete local data first
     await Promise.all([
       Friendship.deleteMany({ $or: [{ requesterId: userId }, { receiverId: userId }] }),
+      UserAchievement.deleteMany({ userId }),
       User.deleteOne({ authId: userId }),
       this.redis.del(REDIS_KEYS.heartbeat(userId)),
     ]);

@@ -21,6 +21,9 @@ export const createWatchPartyRouter = (redis: Redis, io: SocketServer): Router =
   // Internal — force-disconnect blocked user from all sockets
   router.post('/internal/users/:userId/disconnect', requireInternalSecret, watchPartyController.disconnectUser);
 
+  // Internal — cascade account deletion (GDPR/App Store compliance)
+  router.delete('/internal/users/:userId', requireInternalSecret, watchPartyController.deleteUserData);
+
   // Internal Admin: GET /watch-party/internal/admin/stats — today's stats (admin)
   router.get('/internal/admin/stats', requireInternalSecret, watchPartyController.adminGetStats);
 

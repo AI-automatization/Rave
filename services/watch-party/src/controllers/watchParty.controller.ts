@@ -396,4 +396,33 @@ export class WatchPartyController {
       next(error);
     }
   };
+
+  // DELETE /internal/users/:userId — cascade account deletion (GDPR/App Store compliance)
+  // Deletes: rooms owned by user, removes user from member arrays of other rooms
+  deleteUserData = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = req.params;
+
+      // Close (mark ended) all rooms owned by this user and disconnect their members
+      const ownedRooms = await WatchPartyRoom.find({ ownerId: userId, status: { $ne: 'ended' } });
+      for (const room of ownedRooms) {
+        this.io.to(room.id).emit(SERVER_EVENTS.ROOM_CLOSED, { reason: 'owner_left' });
+      }
+
+      await Promise.all([
+        // Delete all rooms created by this user
+        WatchPartyRoom.deleteMany({ ownerId: userId }),
+        // Remove this userId from members arrays in rooms they joined
+        WatchPartyRoom.updateMany(
+          { members: userId },
+          { $pull: { members: userId } },
+        ),
+      ]);
+
+      logger.info('WatchPartyService: deleted user data', { userId });
+      res.json(apiResponse.success(null, 'User watch party data deleted'));
+    } catch (error) {
+      next(error);
+    }
+  };
 }

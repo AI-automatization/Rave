@@ -5,6 +5,7 @@ import { SupportConversation } from '../models/supportConversation.model';
 import { SupportMessage } from '../models/supportMessage.model';
 import { Appeal } from '../models/appeal.model';
 import { Feedback } from '../models/feedback.model';
+import { UserReport } from '../models/userReport.model';
 import { AuditLog } from '../models/auditLog.model';
 import {
   adminListUsers,
@@ -128,6 +129,8 @@ export class AdminUserService {
       SupportConversation.deleteMany({ userId }),
       Appeal.deleteMany({ userId }),
       Feedback.deleteMany({ userId }),
+      // Delete reports filed by this user; reports ABOUT this user are kept for moderation history
+      UserReport.deleteMany({ reporterId: userId }),
     ]);
     logger.info('AdminService: deleted user data', { userId });
   }
