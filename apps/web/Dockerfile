@@ -1,4 +1,5 @@
 FROM node:20-slim AS builder
+ARG BUILD_DATE
 WORKDIR /app
 
 # Copy shared src for @shared/* tsconfig path alias (type-only, stripped by SWC)
