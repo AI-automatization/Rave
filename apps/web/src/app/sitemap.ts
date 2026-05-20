@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next';
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://cinesync.uz';
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.app';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
@@ -11,27 +11,21 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 1,
     },
     {
-      url: `${BASE_URL}/features`,
-      lastModified: new Date(),
+      url: `${BASE_URL}/privacy-policy`,
+      lastModified: new Date('2026-05-20'),
       changeFrequency: 'monthly',
-      priority: 0.8,
+      priority: 0.6,
     },
     {
-      url: `${BASE_URL}/pricing`,
-      lastModified: new Date(),
+      url: `${BASE_URL}/terms`,
+      lastModified: new Date('2026-05-20'),
       changeFrequency: 'monthly',
-      priority: 0.7,
+      priority: 0.6,
     },
     {
-      url: `${BASE_URL}/login`,
-      lastModified: new Date(),
-      changeFrequency: 'yearly',
-      priority: 0.5,
-    },
-    {
-      url: `${BASE_URL}/register`,
-      lastModified: new Date(),
-      changeFrequency: 'yearly',
+      url: `${BASE_URL}/dmca`,
+      lastModified: new Date('2026-05-20'),
+      changeFrequency: 'monthly',
       priority: 0.5,
     },
   ];

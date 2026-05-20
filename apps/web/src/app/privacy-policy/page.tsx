@@ -3,172 +3,310 @@ import Link from 'next/link';
 import { FaPlay } from 'react-icons/fa';
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy — CineSync',
-  description: 'CineSync Privacy Policy and DMCA information.',
+  title: 'Privacy Policy — WeWatch',
+  description: 'WeWatch Privacy Policy — how we collect, use, and protect your personal data.',
   robots: { index: true, follow: true },
 };
+
+const EFFECTIVE_DATE = 'May 20, 2026';
+const APP_NAME = 'WeWatch';
+const COMPANY = 'WeWatch (Rave)';
+const PRIVACY_EMAIL = 'privacy@wewatch.app';
+const SUPPORT_EMAIL = 'support@wewatch.app';
+const APP_URL = 'https://wewatch.app';
 
 export default function PrivacyPolicyPage() {
   return (
     <div className="min-h-screen bg-[#0A0A0F] text-zinc-300">
-      {/* Simple nav */}
       <header className="sticky top-0 z-50 bg-[#0A0A0F]/90 backdrop-blur-md border-b border-zinc-800/60">
-        <div className="max-w-4xl mx-auto px-6 py-4">
+        <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link href="/" className="inline-flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-[#7B72F8] flex items-center justify-center">
               <FaPlay size={9} className="text-white ml-0.5" />
             </div>
             <span className="text-xl font-bold tracking-wider text-white">
-              CINE<span className="text-[#7B72F8]">SYNC</span>
+              WE<span className="text-[#7B72F8]">WATCH</span>
             </span>
           </Link>
+          <div className="flex gap-4 text-sm text-zinc-500">
+            <Link href="/terms" className="hover:text-zinc-300 transition-colors">Terms</Link>
+            <Link href="/dmca" className="hover:text-zinc-300 transition-colors">DMCA</Link>
+          </div>
         </div>
       </header>
 
       <main className="max-w-4xl mx-auto px-6 py-16">
         <h1 className="text-4xl font-bold text-white mb-2">Privacy Policy</h1>
         <p className="text-zinc-500 text-sm mb-12">
-          Last updated: May 14, 2026 &nbsp;·&nbsp; Effective: May 14, 2026
+          Last updated: {EFFECTIVE_DATE} &nbsp;·&nbsp; Effective: {EFFECTIVE_DATE}
         </p>
 
-        <div className="bg-[#111118] border-l-4 border-[#7B72F8] rounded-r-xl px-6 py-5 mb-10 text-zinc-400">
-          Rave (&quot;we&quot;, &quot;our&quot;, &quot;us&quot;) operates the CineSync mobile application and
-          related services. This Privacy Policy explains what information we collect, how we use it,
-          and your rights.
+        <div className="bg-[#111118] border-l-4 border-[#7B72F8] rounded-r-xl px-6 py-5 mb-10 text-zinc-400 text-sm leading-7">
+          <strong className="text-zinc-200 block mb-1">About This Policy</strong>
+          {COMPANY} (&quot;WeWatch&quot;, &quot;we&quot;, &quot;our&quot;, &quot;us&quot;) operates the{' '}
+          <strong className="text-zinc-200">{APP_NAME}</strong> mobile application, website ({APP_URL}),
+          and related services (collectively, the &quot;Service&quot;). This Privacy Policy describes
+          what personal information we collect, how we use it, with whom we share it, and your rights.
+          By using the Service, you agree to the practices described here.
         </div>
 
         <Section title="1. Information We Collect">
+          <SubHeading>1.1 Information You Provide Directly</SubHeading>
           <ul>
-            <li><strong className="text-zinc-200">Account data</strong> — email address, username, password hash (bcrypt), profile photo</li>
-            <li><strong className="text-zinc-200">OAuth data</strong> — Google/Telegram profile ID and display name when you sign in via OAuth</li>
-            <li><strong className="text-zinc-200">Usage data</strong> — watch history, watch party sessions, battle participation, points and rank</li>
-            <li><strong className="text-zinc-200">Device data</strong> — device type, OS version, Expo push token for notifications</li>
-            <li><strong className="text-zinc-200">Technical logs</strong> — IP address, request timestamps, error reports (for debugging)</li>
+            <li><strong className="text-zinc-200">Account data</strong> — email address, username, password (stored as a bcrypt hash — we never store plaintext passwords)</li>
+            <li><strong className="text-zinc-200">Profile data</strong> — display name, optional profile photo you upload</li>
+            <li><strong className="text-zinc-200">Support messages</strong> — content of messages you send to our support team</li>
+            <li><strong className="text-zinc-200">User-generated content</strong> — chat messages and emoji reactions sent in watch party rooms</li>
           </ul>
+
+          <SubHeading>1.2 Information Collected Automatically</SubHeading>
+          <ul>
+            <li><strong className="text-zinc-200">Usage data</strong> — watch history, watch party sessions you create or join, video URLs you share within the Service, room membership records</li>
+            <li><strong className="text-zinc-200">Device identifiers</strong> — device type, operating system version, Expo / APNs / FCM push notification token (for notifications you opt into)</li>
+            <li><strong className="text-zinc-200">Log data</strong> — IP address, request timestamps, HTTP status codes, error reports (retained 90 days for security and debugging)</li>
+            <li><strong className="text-zinc-200">Interaction data</strong> — points, ranks, achievements, friend relationships, and gamification events</li>
+          </ul>
+
+          <SubHeading>1.3 Information from Third-Party Sign-In</SubHeading>
+          <p className="mb-2">When you sign in with Google or Apple, we receive:</p>
+          <ul>
+            <li>Your unique identifier from that provider (Google ID / Apple ID)</li>
+            <li>Email address (if you have not hidden it)</li>
+            <li>Display name and profile photo (if provided by the platform)</li>
+          </ul>
+          <p className="mt-2">
+            We do not receive your passwords from these providers. Apple Sign In is available and
+            supported — you may use a private relay email address.
+          </p>
         </Section>
 
         <Section title="2. How We Use Your Information">
           <ul>
-            <li>Provide, maintain, and improve the CineSync service</li>
-            <li>Authenticate your account and keep sessions secure</li>
-            <li>Send push notifications you have opted into</li>
-            <li>Calculate rankings, achievements, and gamification rewards</li>
-            <li>Detect and prevent abuse, fraud, and policy violations</li>
-            <li>Respond to support requests</li>
+            <li>Create and authenticate your account; maintain session security</li>
+            <li>Provide synchronized watch party experiences — streaming video playback state to all room participants</li>
+            <li>Deliver push notifications you have opted into (new friend requests, watch party invites, etc.)</li>
+            <li>Calculate and display points, ranks, streaks, and achievements</li>
+            <li>Enable social features — friend lists, user search, public profiles</li>
+            <li>Moderate content and enforce our Terms of Service (detect spam, abuse, illegal material)</li>
+            <li>Respond to support requests and handle appeals</li>
+            <li>Comply with legal obligations and respond to lawful requests from authorities</li>
+            <li>Improve and develop the Service (aggregated, non-identifiable analytics only)</li>
           </ul>
+          <p className="mt-3">
+            We <strong className="text-zinc-200">do not</strong> use your data for behavioral advertising,
+            cross-context tracking, or sell it to third parties.
+          </p>
         </Section>
 
-        <Section title="3. Information We Do Not Collect">
+        <Section title="3. Video Content & Stream Processing">
+          <p className="mb-3">
+            {APP_NAME} is a <strong className="text-zinc-200">social watch party platform</strong>.
+            Users share URLs of publicly accessible video content, and {APP_NAME} facilitates
+            synchronized playback of that content for participants in the same room.
+          </p>
           <ul>
-            <li>We do not collect payment or financial information</li>
-            <li>We do not sell your personal data to third parties</li>
-            <li>We do not use your data for advertising profiling</li>
+            <li>
+              <strong className="text-zinc-200">We do not host, store, upload, or redistribute video files.</strong>{' '}
+              No video content is copied to our servers.
+            </li>
+            <li>
+              <strong className="text-zinc-200">Stream URL resolution</strong> — our backend may resolve
+              a user-provided URL to a playable media stream (e.g., HLS manifest), similar to how a
+              web browser follows HTTP redirects to locate a media resource. This technical step is
+              necessary to enable in-app playback and does not create a copy of the underlying content.
+            </li>
+            <li>
+              <strong className="text-zinc-200">No DRM circumvention.</strong> {APP_NAME} does not
+              bypass digital rights management (DRM), decrypt encrypted content, or access
+              subscription-only or paywalled content on behalf of users.
+            </li>
+            <li>
+              <strong className="text-zinc-200">No content downloading.</strong> The app does not
+              provide functionality to download, save, or permanently store video files on the user&apos;s
+              device from third-party sources.
+            </li>
+            <li>
+              <strong className="text-zinc-200">User responsibility.</strong> Users are solely
+              responsible for ensuring they have lawful access to any content they share via the
+              Service. Sharing links to copyrighted content without authorization violates our
+              Terms of Service and may violate applicable law.
+            </li>
           </ul>
+          <p className="mt-3">
+            URLs you share within a watch party room are processed to facilitate playback and may
+            be temporarily cached in memory for session continuity. We log domain-level visit data
+            (the domain, not the full URL) for abuse detection and blocked-domain enforcement.
+          </p>
         </Section>
 
-        <Section title="4. Data Sharing">
-          <p className="mb-3">We share data only with:</p>
+        <Section title="4. Data Sharing & Disclosure">
+          <p className="mb-3">
+            We share personal data only in the following circumstances:
+          </p>
           <ul>
-            <li><strong className="text-zinc-200">MongoDB Atlas</strong> — database hosting (data processed in the US)</li>
-            <li><strong className="text-zinc-200">Railway.app</strong> — server infrastructure</li>
-            <li><strong className="text-zinc-200">Google Firebase</strong> — push notification delivery</li>
-            <li><strong className="text-zinc-200">Telegram</strong> — Telegram OAuth and bot integration</li>
-            <li>Law enforcement when required by applicable law</li>
+            <li>
+              <strong className="text-zinc-200">Service Providers</strong> — third parties who help us
+              operate the Service:
+              <ul className="mt-1 ml-4">
+                <li><em>MongoDB Atlas</em> — database hosting (data stored in US region)</li>
+                <li><em>Railway.app</em> — cloud server infrastructure</li>
+                <li><em>Google Firebase (FCM / APNs)</em> — push notification delivery</li>
+                <li><em>Sentry.io</em> — error monitoring (no personal data in error payloads by design)</li>
+              </ul>
+            </li>
+            <li>
+              <strong className="text-zinc-200">Legal Requirements</strong> — we disclose data when
+              required by applicable law, court order, or governmental authority, or when necessary to
+              protect our rights, users, or the public from harm.
+            </li>
+            <li>
+              <strong className="text-zinc-200">Business Transfers</strong> — in the event of a merger,
+              acquisition, or sale of assets, your data may be transferred. We will notify you via
+              in-app notice or email before your data becomes subject to a different privacy policy.
+            </li>
+            <li>
+              <strong className="text-zinc-200">With Your Consent</strong> — for any other purpose,
+              only with your explicit consent.
+            </li>
           </ul>
+          <p className="mt-3">
+            We do <strong className="text-zinc-200">not</strong> sell personal data. We do{' '}
+            <strong className="text-zinc-200">not</strong> share data with advertising networks.
+          </p>
         </Section>
 
         <Section title="5. Data Retention">
           <ul>
-            <li>Active accounts: retained for the lifetime of the account</li>
-            <li>Deleted accounts: personal data removed within 30 days of deletion request</li>
-            <li>Access logs: retained for 90 days for security purposes</li>
+            <li><strong className="text-zinc-200">Active accounts</strong> — retained for the lifetime of the account</li>
+            <li><strong className="text-zinc-200">Deleted accounts</strong> — all personal data removed within 30 days of deletion request; moderation records may be retained in anonymized form up to 1 year</li>
+            <li><strong className="text-zinc-200">Access logs</strong> — retained 90 days for security</li>
+            <li><strong className="text-zinc-200">Watch party room data</strong> — automatically purged 30 days after a room ends</li>
+            <li><strong className="text-zinc-200">Chat messages</strong> — deleted when the watch party room is deleted</li>
+            <li><strong className="text-zinc-200">Support tickets</strong> — retained for up to 2 years to maintain support history</li>
           </ul>
         </Section>
 
-        <Section title="6. Your Rights">
-          <p className="mb-3">You have the right to:</p>
+        <Section title="6. Your Privacy Rights">
+          <p className="mb-3">
+            Depending on your jurisdiction, you may have the following rights:
+          </p>
           <ul>
-            <li>Access the personal data we hold about you</li>
-            <li>Request correction of inaccurate data</li>
-            <li>Request deletion of your account and associated data</li>
-            <li>Export your data in a portable format</li>
-            <li>Withdraw consent for optional data processing</li>
+            <li><strong className="text-zinc-200">Access</strong> — request a copy of the personal data we hold about you</li>
+            <li><strong className="text-zinc-200">Correction</strong> — request correction of inaccurate or incomplete data</li>
+            <li><strong className="text-zinc-200">Deletion</strong> — request deletion of your account and all associated personal data (available in-app under Settings → Account → Delete Account)</li>
+            <li><strong className="text-zinc-200">Portability</strong> — receive your data in a machine-readable format</li>
+            <li><strong className="text-zinc-200">Restriction</strong> — request we restrict processing of your data</li>
+            <li><strong className="text-zinc-200">Objection</strong> — object to processing based on legitimate interests</li>
+            <li><strong className="text-zinc-200">Withdraw Consent</strong> — withdraw consent for optional processing (e.g., push notifications) at any time</li>
           </ul>
           <p className="mt-4">
             To exercise any of these rights, contact us at{' '}
-            <a href="mailto:privacy@wewatch.app" className="text-[#7B72F8] hover:underline">
-              privacy@wewatch.app
-            </a>.
+            <a href={`mailto:${PRIVACY_EMAIL}`} className="text-[#7B72F8] hover:underline">{PRIVACY_EMAIL}</a>.
+            We will respond within 30 days (as required by GDPR) or 45 days (as required by CCPA).
+          </p>
+          <p className="mt-3">
+            <strong className="text-zinc-200">GDPR (EEA/UK users)</strong> — our legal bases for processing are:
+            performance of contract (providing the Service), legitimate interests (security, abuse prevention),
+            legal obligation, and consent (optional features). You may lodge a complaint with your local
+            supervisory authority.
+          </p>
+          <p className="mt-3">
+            <strong className="text-zinc-200">CCPA (California residents)</strong> — we do not sell or
+            share personal information for cross-context behavioral advertising. You have the right to
+            know, delete, and opt out. To submit a verifiable consumer request, email{' '}
+            <a href={`mailto:${PRIVACY_EMAIL}`} className="text-[#7B72F8] hover:underline">{PRIVACY_EMAIL}</a>.
           </p>
         </Section>
 
-        <Section title="7. Security">
+        <Section title="7. Children's Privacy (COPPA)">
           <p>
-            We protect your data using industry-standard measures: bcrypt password hashing,
-            RS256 JWT tokens with short expiry, Redis-backed rate limiting, TLS in transit,
-            and MongoDB Atlas encryption at rest.
+            {APP_NAME} is not directed to children under the age of 13 (or 16 in the EEA). We do
+            not knowingly collect personal information from anyone under 13. If we discover that a
+            child under 13 has provided us with personal data, we will delete it immediately. If you
+            believe a child has registered without parental consent, contact us at{' '}
+            <a href={`mailto:${PRIVACY_EMAIL}`} className="text-[#7B72F8] hover:underline">{PRIVACY_EMAIL}</a>.
+          </p>
+          <p className="mt-2">
+            The App Store age rating for {APP_NAME} is <strong className="text-zinc-200">17+</strong>{' '}
+            due to user-generated content and the potential for mature video content shared by users.
           </p>
         </Section>
 
-        <Section title="8. Children&apos;s Privacy">
-          <p>
-            CineSync is not directed to children under 13. We do not knowingly collect personal
-            information from children under 13. If you believe a child has provided us personal
-            information, contact us at{' '}
-            <a href="mailto:privacy@wewatch.app" className="text-[#7B72F8] hover:underline">
-              privacy@wewatch.app
-            </a>.
-          </p>
-        </Section>
-
-        <Section title="9. Changes to This Policy">
-          <p>
-            We may update this policy periodically. We will notify you of material changes via
-            the app or email. Continued use after changes constitutes acceptance.
-          </p>
-        </Section>
-
-        <Section title="10. DMCA / Copyright">
-          <p className="mb-3">
-            CineSync allows users to share links to publicly available video content. We do not
-            host video files. If you believe content linked through our service infringes your
-            copyright, contact us at{' '}
-            <a href="mailto:copyright@wewatch.app" className="text-[#7B72F8] hover:underline">
-              copyright@wewatch.app
-            </a>{' '}
-            with:
-          </p>
+        <Section title="8. Security">
           <ul>
-            <li>Identification of the copyrighted work</li>
-            <li>Identification of the infringing link</li>
-            <li>Your contact information</li>
-            <li>A statement of good faith belief that the use is not authorized</li>
+            <li>Passwords stored as bcrypt hashes (12 rounds) — never plaintext</li>
+            <li>All API communication over TLS 1.2+</li>
+            <li>RS256-signed JWT access tokens with 15-minute expiry</li>
+            <li>Redis-backed rate limiting and brute-force protection (5 attempts → 15-minute lockout)</li>
+            <li>MongoDB Atlas encryption at rest</li>
+            <li>Internal service-to-service calls authenticated with a shared secret over private network</li>
           </ul>
-          <p className="mt-4">We will review and respond within 5 business days.</p>
+          <p className="mt-3">
+            No system is 100% secure. If you discover a vulnerability, please disclose responsibly
+            to <a href={`mailto:${SUPPORT_EMAIL}`} className="text-[#7B72F8] hover:underline">{SUPPORT_EMAIL}</a>.
+          </p>
         </Section>
 
-        <Section title="11. Contact">
-          <p className="space-y-1">
-            <strong className="text-zinc-200 block">CineSync (Rave)</strong>
-            Privacy:{' '}
-            <a href="mailto:privacy@wewatch.app" className="text-[#7B72F8] hover:underline">
-              privacy@wewatch.app
-            </a>
-            <br />
-            Copyright:{' '}
-            <a href="mailto:copyright@wewatch.app" className="text-[#7B72F8] hover:underline">
-              copyright@wewatch.app
-            </a>
+        <Section title="9. Cookies & Tracking">
+          <p>
+            The {APP_NAME} mobile application does not use browser cookies. Our website may use
+            technically necessary cookies (e.g., session identifiers). We do not use tracking cookies,
+            advertising cookies, or third-party analytics cookies. We do not participate in cross-site
+            tracking.
           </p>
+        </Section>
+
+        <Section title="10. International Data Transfers">
+          <p>
+            Our servers are hosted in the United States via Railway.app. Database data is stored in
+            MongoDB Atlas (US region). If you are located in the EEA, UK, or other jurisdictions with
+            data transfer restrictions, by using the Service you acknowledge that your data is transferred
+            to the US under standard contractual clauses or equivalent safeguards as applicable.
+          </p>
+        </Section>
+
+        <Section title="11. Changes to This Policy">
+          <p>
+            We may update this Privacy Policy from time to time. We will notify you of material
+            changes via in-app notification or email at least 7 days before the change takes effect.
+            The &quot;Last updated&quot; date at the top of this page reflects the most recent revision.
+            Continued use of the Service after the effective date constitutes acceptance of the updated policy.
+          </p>
+        </Section>
+
+        <Section title="12. Contact">
+          <div className="space-y-1">
+            <strong className="text-zinc-200 block">{COMPANY}</strong>
+            <p>
+              Privacy inquiries:{' '}
+              <a href={`mailto:${PRIVACY_EMAIL}`} className="text-[#7B72F8] hover:underline">{PRIVACY_EMAIL}</a>
+            </p>
+            <p>
+              DMCA / Copyright:{' '}
+              <a href="mailto:copyright@wewatch.app" className="text-[#7B72F8] hover:underline">copyright@wewatch.app</a>
+            </p>
+            <p>
+              General support:{' '}
+              <a href={`mailto:${SUPPORT_EMAIL}`} className="text-[#7B72F8] hover:underline">{SUPPORT_EMAIL}</a>
+            </p>
+            <p className="mt-3">
+              Additional policies:{' '}
+              <Link href="/terms" className="text-[#7B72F8] hover:underline">Terms of Service</Link>
+              {' '}·{' '}
+              <Link href="/dmca" className="text-[#7B72F8] hover:underline">DMCA Policy</Link>
+            </p>
+          </div>
         </Section>
       </main>
 
       <footer className="border-t border-zinc-800/60 py-6 mt-8">
         <div className="max-w-4xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p className="text-zinc-600 text-xs">© {new Date().getFullYear()} CineSync. All rights reserved.</p>
-          <Link href="/" className="text-zinc-600 text-xs hover:text-zinc-400 transition-colors">
-            ← Back to Home
-          </Link>
+          <p className="text-zinc-600 text-xs">© {new Date().getFullYear()} {COMPANY}. All rights reserved.</p>
+          <div className="flex gap-4 text-zinc-600 text-xs">
+            <Link href="/terms" className="hover:text-zinc-400 transition-colors">Terms</Link>
+            <Link href="/dmca" className="hover:text-zinc-400 transition-colors">DMCA</Link>
+            <Link href="/" className="hover:text-zinc-400 transition-colors">← Home</Link>
+          </div>
         </div>
       </footer>
     </div>
@@ -184,4 +322,8 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       </div>
     </section>
   );
+}
+
+function SubHeading({ children }: { children: React.ReactNode }) {
+  return <h3 className="text-zinc-200 font-medium mt-4 mb-2">{children}</h3>;
 }
