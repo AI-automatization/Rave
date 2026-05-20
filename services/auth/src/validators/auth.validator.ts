@@ -44,6 +44,13 @@ export const googleIdTokenSchema = Joi.object({
   idToken: Joi.string().required(),
 });
 
+export const appleIdTokenSchema = Joi.object({
+  identityToken: Joi.string().required(),
+  firstName: Joi.string().max(50).optional(),
+  lastName: Joi.string().max(50).optional(),
+  email: Joi.string().email().optional(),
+});
+
 export const changePasswordSchema = Joi.object({
   oldPassword: Joi.string().required(),
   newPassword: Joi.string().pattern(PATTERNS.PASSWORD).required().messages({

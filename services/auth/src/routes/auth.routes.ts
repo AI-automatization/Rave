@@ -14,6 +14,7 @@ import {
   forgotPasswordSchema,
   resetPasswordSchema,
   googleIdTokenSchema,
+  appleIdTokenSchema,
   changePasswordSchema,
   validate,
 } from '../validators/auth.validator';
@@ -84,6 +85,9 @@ export const createAuthRouter = (redis: Redis): Router => {
   router.post('/google/init', authRateLimiter, oauthController.googleMobileInit);
   router.get('/google/mobile', oauthController.googleMobileRedirect);
   router.get('/google/poll', pollRateLimiter, oauthController.googleMobilePoll);
+
+  // Apple Sign-In
+  router.post('/apple/token', authRateLimiter, validate(appleIdTokenSchema), oauthController.appleToken);
 
   // Telegram auth (mobile)
   router.post('/telegram/login', authRateLimiter, oauthController.telegramLogin);   // hash verify → JWT

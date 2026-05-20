@@ -246,4 +246,45 @@ export class OAuthController {
       next(error);
     }
   };
+
+  // ─── APPLE SIGN-IN ──────────────────────────────────────────────────────────
+
+  appleToken = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { identityToken, firstName, lastName, email } = req.body as {
+        identityToken: string;
+        firstName?: string;
+        lastName?: string;
+        email?: string;
+      };
+      const payload = await this.authService.verifyAppleIdToken(identityToken);
+      const user = await this.authService.findOrCreateAppleUser({
+        sub: payload.sub,
+        email: email ?? payload.email,
+        firstName,
+        lastName,
+      });
+      const { accessToken, refreshToken } = await this.authService.generateAndStoreTokens(
+        user._id.toString(),
+        user.email,
+        user.role as import('@shared/types').UserRole,
+        req.ip ?? null,
+        req.headers['user-agent'] ?? null,
+      );
+      res.json(apiResponse.success({ user, accessToken, refreshToken }, 'Apple login successful'));
+    } catch (error) {
+      const err = error as { code?: string; reason?: string; userId?: string };
+      if (err.code === 'ACCOUNT_BLOCKED') {
+        res.status(403).json({
+          success: false, code: 'ACCOUNT_BLOCKED',
+          message: 'Account is blocked',
+          reason: err.reason ?? 'No reason provided',
+          userId: err.userId ?? null,
+          data: null, errors: null,
+        });
+        return;
+      }
+      next(error);
+    }
+  };
 }

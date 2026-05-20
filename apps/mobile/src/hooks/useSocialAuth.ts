@@ -1,8 +1,10 @@
-// CineSync Mobile — Shared social auth hook (Google + Telegram)
+// CineSync Mobile — Shared social auth hook (Google + Telegram + Apple)
 // Google uses backend polling flow (works in Expo Go without a native build).
+// Apple uses expo-apple-authentication native module (requires EAS build / dev client).
 import { useState, useEffect, useRef } from 'react';
-import { Linking, AppState } from 'react-native';
+import { Linking, AppState, Platform } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { authApi } from '@api/auth.api';
 import { useAuthStore } from '@store/auth.store';
 import { useT } from '@i18n/index';
@@ -14,6 +16,8 @@ const MAX_POLL_ATTEMPTS = 90; // 3 min
 interface UseSocialAuthResult {
   googleLoading: boolean;
   telegramLoading: boolean;
+  appleLoading: boolean;
+  appleAvailable: boolean;
   googleDisabled: boolean;
   socialError: string;
   blockedReason: string;
@@ -21,6 +25,7 @@ interface UseSocialAuthResult {
   clearSocialError: () => void;
   promptGoogleAsync: () => void;
   handleTelegramLogin: () => Promise<void>;
+  handleAppleLogin: () => Promise<void>;
 }
 
 export function useSocialAuth(): UseSocialAuthResult {
@@ -29,6 +34,8 @@ export function useSocialAuth(): UseSocialAuthResult {
 
   const [googleLoading, setGoogleLoading] = useState(false);
   const [telegramLoading, setTelegramLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
+  const [appleAvailable, setAppleAvailable] = useState(false);
   const [socialError, setSocialError] = useState('');
   const [blockedReason, setBlockedReason] = useState('');
   const [blockedUserId, setBlockedUserId] = useState('');
@@ -37,6 +44,9 @@ export function useSocialAuth(): UseSocialAuthResult {
   const telegramAppStateRef = useRef<ReturnType<typeof AppState.addEventListener> | null>(null);
 
   useEffect(() => {
+    if (Platform.OS === 'ios') {
+      AppleAuthentication.isAvailableAsync().then(setAppleAvailable).catch(() => null);
+    }
     return () => {
       if (googleIntervalRef.current) clearInterval(googleIntervalRef.current);
       if (telegramIntervalRef.current) clearInterval(telegramIntervalRef.current);
@@ -164,9 +174,45 @@ export function useSocialAuth(): UseSocialAuthResult {
     }
   };
 
+  const handleAppleLogin = async () => {
+    setAppleLoading(true);
+    setSocialError('');
+    try {
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+      if (!credential.identityToken) throw new Error('No identity token');
+      const result = await authApi.appleLogin(credential.identityToken, {
+        firstName: credential.fullName?.givenName ?? undefined,
+        lastName: credential.fullName?.familyName ?? undefined,
+        email: credential.email ?? undefined,
+      });
+      const maybeBlocked = result as unknown as { error?: string; reason?: string; userId?: string };
+      if (maybeBlocked.error === 'ACCOUNT_BLOCKED') {
+        setBlockedReason(maybeBlocked.reason ?? '');
+        setBlockedUserId(maybeBlocked.userId ?? '');
+      } else {
+        await setAuth(result.user, result.accessToken, result.refreshToken);
+      }
+    } catch (err) {
+      const appleErr = err as { code?: string };
+      // ERR_CANCELED means user dismissed the dialog — not an error
+      if (appleErr.code !== 'ERR_CANCELED') {
+        setSocialError(t('login', 'errorApple'));
+      }
+    } finally {
+      setAppleLoading(false);
+    }
+  };
+
   return {
     googleLoading,
     telegramLoading,
+    appleLoading,
+    appleAvailable,
     googleDisabled: false,
     socialError,
     blockedReason,
@@ -174,5 +220,6 @@ export function useSocialAuth(): UseSocialAuthResult {
     clearSocialError: () => setSocialError(''),
     promptGoogleAsync,
     handleTelegramLogin,
+    handleAppleLogin,
   };
 }

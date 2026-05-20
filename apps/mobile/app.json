@@ -16,6 +16,7 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.wewatch.app",
       "buildNumber": "1",
+      "usesAppleSignIn": true,
       "infoPlist": {
         "NSCameraUsageDescription": "Profil surati uchun",
         "NSPhotoLibraryUsageDescription": "Profil surati uchun",
@@ -55,7 +56,8 @@
       ],
       "expo-secure-store",
       "expo-av",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-apple-authentication"
     ],
     "extra": {
       "eas": {

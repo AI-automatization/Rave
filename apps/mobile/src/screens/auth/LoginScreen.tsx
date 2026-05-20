@@ -55,6 +55,8 @@ export function LoginScreen() {
   const {
     googleLoading,
     telegramLoading,
+    appleLoading,
+    appleAvailable,
     googleDisabled,
     socialError,
     blockedReason: socialBlockedReason,
@@ -62,6 +64,7 @@ export function LoginScreen() {
     clearSocialError,
     promptGoogleAsync,
     handleTelegramLogin,
+    handleAppleLogin,
   } = useSocialAuth();
 
   useEffect(() => {
@@ -206,9 +209,12 @@ export function LoginScreen() {
             <SocialAuthButtons
               googleLoading={googleLoading}
               telegramLoading={telegramLoading}
+              appleLoading={appleLoading}
+              appleAvailable={appleAvailable}
               googleDisabled={googleDisabled}
               onGooglePress={promptGoogleAsync}
               onTelegramPress={handleTelegramLogin}
+              onApplePress={handleAppleLogin}
             />
 
             {/* Footer */}

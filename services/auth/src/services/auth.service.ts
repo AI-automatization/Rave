@@ -12,17 +12,20 @@ export { generateUniqueUsername, syncUserProfile } from './passwordAuth.service'
 import { PasswordAuthService } from './passwordAuth.service';
 import { GoogleAuthService } from './googleAuth.service';
 import { TelegramAuthService } from './telegramAuth.service';
+import { AppleAuthService } from './appleAuth.service';
 
 // AuthService facade — backward compatible with all existing controller imports
 export class AuthService {
   public readonly password: PasswordAuthService;
   public readonly google: GoogleAuthService;
   public readonly telegram: TelegramAuthService;
+  public readonly apple: AppleAuthService;
 
   constructor(redis: Redis) {
     this.password = new PasswordAuthService(redis);
     this.google = new GoogleAuthService(this.password, redis);
     this.telegram = new TelegramAuthService(redis, this.password);
+    this.apple = new AppleAuthService(redis);
   }
 
   // ─── Password Auth delegates ────────────────────────────────────────────────
@@ -137,6 +140,14 @@ export class AuthService {
 
   findOrCreateTelegramUser = (profile: Parameters<TelegramAuthService['findOrCreateTelegramUser']>[0]) =>
     this.telegram.findOrCreateTelegramUser(profile);
+
+  // ─── Apple Auth delegates ─────────────────────────────────────────────────────
+
+  verifyAppleIdToken = (identityToken: string) =>
+    this.apple.verifyAppleIdToken(identityToken);
+
+  findOrCreateAppleUser = (profile: Parameters<AppleAuthService['findOrCreateAppleUser']>[0]) =>
+    this.apple.findOrCreateAppleUser(profile);
 
   async sendAppealDecisionEmail(userId: string, status: 'approved' | 'rejected', note?: string): Promise<void> {
     const user = await User.findById(userId).select('email').lean();

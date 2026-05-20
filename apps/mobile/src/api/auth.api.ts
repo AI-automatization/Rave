@@ -81,6 +81,20 @@ export const authApi = {
     return res.data.data ?? null;
   },
 
+  async appleLogin(
+    identityToken: string,
+    user?: { firstName?: string; lastName?: string; email?: string },
+  ): Promise<LoginResponse> {
+    const res = await authClient.post<ApiResponse<LoginResponse>>('/auth/apple/token', {
+      identityToken,
+      firstName: user?.firstName,
+      lastName: user?.lastName,
+      email: user?.email,
+    });
+    if (!res.data.data) throw new Error('Apple login response is empty');
+    return res.data.data;
+  },
+
   async logoutAll(): Promise<void> {
     await authClient.post('/auth/logout-all');
   },

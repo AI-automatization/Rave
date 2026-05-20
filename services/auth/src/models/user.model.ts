@@ -24,6 +24,7 @@ export interface IUserDocument extends Document {
   lastLoginAt: Date | null;
   googleId: string | null;
   telegramId: string | null;
+  appleId: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -67,6 +68,7 @@ const userSchema = new Schema<IUserDocument>(
     lastLoginAt: { type: Date, default: null },
     googleId: { type: String, default: null, select: false },
     telegramId: { type: String, default: null, select: false },
+    appleId: { type: String, default: null, select: false },
   },
   {
     timestamps: true,
@@ -74,7 +76,7 @@ const userSchema = new Schema<IUserDocument>(
       virtuals: true,
       transform: (_doc, ret) => {
         ['passwordHash', 'emailVerifyToken', 'emailVerifyTokenExpiry',
-          'passwordResetToken', 'passwordResetTokenExpiry', 'googleId', 'telegramId', '__v',
+          'passwordResetToken', 'passwordResetTokenExpiry', 'googleId', 'telegramId', 'appleId', '__v',
         ].forEach((field) => Reflect.deleteProperty(ret, field));
         return ret;
       },
@@ -86,6 +88,7 @@ const userSchema = new Schema<IUserDocument>(
 userSchema.index({ createdAt: -1 });
 userSchema.index({ googleId: 1 },   { sparse: true });
 userSchema.index({ telegramId: 1 }, { sparse: true });
+userSchema.index({ appleId: 1 },    { sparse: true });
 userSchema.index({ emailVerifyToken: 1 }, { sparse: true });
 userSchema.index({ passwordResetToken: 1 }, { sparse: true });
 

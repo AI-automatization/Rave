@@ -1,8 +1,9 @@
-// CineSync Mobile — Social auth buttons (Google + Telegram)
+// WeWatch Mobile — Social auth buttons (Apple + Google + Telegram)
 import React from 'react';
-import { View, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { FontAwesome5 } from '@expo/vector-icons';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import MaskedView from '@react-native-masked-view/masked-view';
 import { useTheme, createThemedStyles, BRAND_COLORS } from '@theme/index';
 
@@ -27,66 +28,92 @@ function GradientGoogleIcon() {
 interface SocialAuthButtonsProps {
   googleLoading: boolean;
   telegramLoading: boolean;
+  appleLoading?: boolean;
+  appleAvailable?: boolean;
   googleDisabled?: boolean;
   onGooglePress: () => void;
   onTelegramPress: () => void;
+  onApplePress?: () => void;
 }
 
 export function SocialAuthButtons({
   googleLoading,
   telegramLoading,
+  appleLoading = false,
+  appleAvailable = false,
   googleDisabled,
   onGooglePress,
   onTelegramPress,
+  onApplePress,
 }: SocialAuthButtonsProps) {
   const { colors } = useTheme();
   const s = useStyles();
 
-  return (
-    <View style={s.socialRow}>
-      <TouchableOpacity
-        onPress={onGooglePress}
-        disabled={googleLoading || googleDisabled}
-        activeOpacity={0.85}
-        style={[s.socialHalf, googleLoading && s.btnDisabled]}
-      >
-        <LinearGradient
-          colors={[...BRAND_COLORS.googleGradient]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={s.socialBorder}
-        >
-          <View style={s.socialInner}>
-            {googleLoading ? (
-              <ActivityIndicator color={colors.textPrimary} size="small" />
-            ) : (
-              <GradientGoogleIcon />
-            )}
-          </View>
-        </LinearGradient>
-      </TouchableOpacity>
+  const showApple = Platform.OS === 'ios' && appleAvailable && !!onApplePress;
 
-      <TouchableOpacity
-        onPress={onTelegramPress}
-        disabled={telegramLoading}
-        activeOpacity={0.85}
-        style={[s.socialHalf, telegramLoading && s.btnDisabled]}
-      >
-        <LinearGradient
-          colors={[...BRAND_COLORS.telegramGradient]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={s.socialBorder}
-        >
-          <View style={s.socialInner}>
-            {telegramLoading ? (
-              <ActivityIndicator color={colors.white} size="small" />
-            ) : (
-              <FontAwesome5 name="telegram-plane" size={20} color={BRAND_COLORS.telegramBlue} />
-            )}
+  return (
+    <View style={s.container}>
+      {showApple && (
+        appleLoading ? (
+          <View style={s.appleLoading}>
+            <ActivityIndicator color={colors.white} size="small" />
           </View>
-        </LinearGradient>
-      </TouchableOpacity>
+        ) : (
+          <AppleAuthentication.AppleAuthenticationButton
+            buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+            buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+            cornerRadius={16}
+            style={s.appleBtn}
+            onPress={onApplePress!}
+          />
+        )
+      )}
+
+      <View style={s.socialRow}>
+        <TouchableOpacity
+          onPress={onGooglePress}
+          disabled={googleLoading || googleDisabled}
+          activeOpacity={0.85}
+          style={[s.socialHalf, googleLoading && s.btnDisabled]}
+        >
+          <LinearGradient
+            colors={[...BRAND_COLORS.googleGradient]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={s.socialBorder}
+          >
+            <View style={s.socialInner}>
+              {googleLoading ? (
+                <ActivityIndicator color={colors.textPrimary} size="small" />
+              ) : (
+                <GradientGoogleIcon />
+              )}
+            </View>
+          </LinearGradient>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={onTelegramPress}
+          disabled={telegramLoading}
+          activeOpacity={0.85}
+          style={[s.socialHalf, telegramLoading && s.btnDisabled]}
+        >
+          <LinearGradient
+            colors={[...BRAND_COLORS.telegramGradient]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={s.socialBorder}
+          >
+            <View style={s.socialInner}>
+              {telegramLoading ? (
+                <ActivityIndicator color={colors.white} size="small" />
+              ) : (
+                <FontAwesome5 name="telegram-plane" size={20} color={BRAND_COLORS.telegramBlue} />
+              )}
+            </View>
+          </LinearGradient>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -95,6 +122,15 @@ export function SocialAuthButtons({
 const s_iconHidden = { opacity: 0 };
 
 const useStyles = createThemedStyles((colors) => ({
+  container: { gap: 12 },
+  appleBtn: { width: '100%', height: 56 },
+  appleLoading: {
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: colors.black,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   socialRow: { flexDirection: 'row', gap: 14 },
   socialHalf: { flex: 1 },
   socialBorder: { height: 56, borderRadius: 16, padding: 1.5 },

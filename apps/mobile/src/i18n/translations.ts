@@ -73,6 +73,7 @@ export const translations = {
     errorGoogle: { uz: "Google orqali kirib bo'lmadi", ru: 'Не удалось войти через Google', en: 'Failed to sign in with Google' },
     errorTelegram: { uz: "Telegram orqali kirib bo'lmadi", ru: 'Не удалось войти через Telegram', en: 'Failed to sign in with Telegram' },
     errorTelegramTimeout: { uz: "Amal qilmadi, qayta urinib ko'ring", ru: 'Время вышло, попробуйте снова', en: 'Timed out, please try again' },
+    errorApple: { uz: "Apple orqali kirib bo'lmadi", ru: 'Не удалось войти через Apple', en: 'Failed to sign in with Apple' },
   },
 
   // ─── Auth — Register ───

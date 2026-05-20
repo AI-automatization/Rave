@@ -211,9 +211,12 @@ export function RegisterScreen() {
             <SocialAuthButtons
               googleLoading={social.googleLoading}
               telegramLoading={social.telegramLoading}
+              appleLoading={social.appleLoading}
+              appleAvailable={social.appleAvailable}
               googleDisabled={social.googleDisabled}
               onGooglePress={social.promptGoogleAsync}
               onTelegramPress={social.handleTelegramLogin}
+              onApplePress={social.handleAppleLogin}
             />
 
             <View style={s.footer}>
