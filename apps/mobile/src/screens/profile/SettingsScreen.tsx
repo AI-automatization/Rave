@@ -187,7 +187,7 @@ export function SettingsScreen() {
           </View>
 
           {/* Support */}
-          <SectionHeader title="Помощь" />
+          <SectionHeader title={t('settings', 'helpSection')} />
           <View style={styles.card}>
             <TouchableOpacity
               style={styles.navRow}
@@ -195,7 +195,7 @@ export function SettingsScreen() {
               activeOpacity={0.8}
             >
               <Ionicons name="headset-outline" size={18} color={colors.textSecondary} />
-              <Text style={styles.navLabel}>Написать в поддержку</Text>
+              <Text style={styles.navLabel}>{t('settings', 'writeSupport')}</Text>
               <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
             </TouchableOpacity>
           </View>
@@ -215,24 +215,24 @@ export function SettingsScreen() {
           </View>
 
           {/* Legal */}
-          <SectionHeader title="Правовая информация" />
+          <SectionHeader title={t('settings', 'legalSection')} />
           <View style={styles.card}>
             <TouchableOpacity
               style={[styles.navRow, styles.rowBorder]}
-              onPress={() => Linking.openURL('https://ai-automatization.github.io/Rave/privacy-policy.html')}
+              onPress={() => Linking.openURL('https://wewatch.app/privacy-policy')}
               activeOpacity={0.8}
             >
               <Ionicons name="shield-checkmark-outline" size={18} color={colors.textMuted} />
-              <Text style={styles.navLabel}>Политика конфиденциальности</Text>
+              <Text style={styles.navLabel}>{t('settings', 'privacyLabel')}</Text>
               <Ionicons name="open-outline" size={16} color={colors.textMuted} />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.navRow}
-              onPress={() => Linking.openURL('https://ai-automatization.github.io/Rave/terms.html')}
+              onPress={() => Linking.openURL('https://wewatch.app/terms')}
               activeOpacity={0.8}
             >
               <Ionicons name="document-text-outline" size={18} color={colors.textMuted} />
-              <Text style={styles.navLabel}>Условия использования</Text>
+              <Text style={styles.navLabel}>{t('settings', 'termsLabel')}</Text>
               <Ionicons name="open-outline" size={16} color={colors.textMuted} />
             </TouchableOpacity>
           </View>

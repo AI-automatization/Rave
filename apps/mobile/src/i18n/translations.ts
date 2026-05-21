@@ -318,6 +318,11 @@ export const translations = {
     deleteAccountWrongWord: { uz: "Noto'g'ri tasdiqlash so'zi", ru: 'Неверное слово подтверждения', en: 'Wrong confirmation word' },
     deleteAccountError: { uz: "Hisob o'chirishda xatolik yuz berdi", ru: 'Ошибка при удалении аккаунта', en: 'Failed to delete account' },
     deleteAccountWord: { uz: 'TASDIQLASH', ru: 'ПОДТВЕРЖДЕНИЕ', en: 'CONFIRM' },
+    helpSection: { uz: 'YORDAM', ru: 'ПОМОЩЬ', en: 'HELP' },
+    writeSupport: { uz: 'Yordam xizmatiga yozish', ru: 'Написать в поддержку', en: 'Contact support' },
+    legalSection: { uz: "HUQUQIY MA'LUMOT", ru: 'ПРАВОВАЯ ИНФОРМАЦИЯ', en: 'LEGAL' },
+    privacyLabel: { uz: 'Maxfiylik siyosati', ru: 'Политика конфиденциальности', en: 'Privacy Policy' },
+    termsLabel: { uz: 'Foydalanish shartlari', ru: 'Условия использования', en: 'Terms of Service' },
   },
 
   // ─── Notifications ───
