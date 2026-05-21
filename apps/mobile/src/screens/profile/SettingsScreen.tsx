@@ -205,7 +205,6 @@ export function SettingsScreen() {
           <View style={styles.card}>
             {[
               { label: t('settings', 'version'), value: '1.0.0' },
-              { label: t('settings', 'platform'), value: 'Expo SDK 54' },
             ].map((item, i) => (
               <View key={item.label} style={[styles.infoRow, i === 0 && styles.rowBorder]}>
                 <Text style={styles.infoLabel}>{item.label}</Text>

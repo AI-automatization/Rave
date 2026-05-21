@@ -20,7 +20,8 @@
       "infoPlist": {
         "NSCameraUsageDescription": "WeWatch uses your camera to set your profile photo.",
         "NSPhotoLibraryUsageDescription": "WeWatch uses your photo library to set your profile photo.",
-        "NSMicrophoneUsageDescription": "WeWatch uses your microphone for the Voice Chat feature in Watch Party rooms, allowing you to talk with friends while watching together."
+        "NSMicrophoneUsageDescription": "WeWatch uses your microphone for the Voice Chat feature in Watch Party rooms, allowing you to talk with friends while watching together.",
+        "NSUserTrackingUsageDescription": "WeWatch uses crash and error reports to improve app stability. No personal data is shared with advertisers."
       }
     },
     "android": {

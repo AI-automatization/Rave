@@ -9,6 +9,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Animated,
+  Alert,
   StatusBar,
   Linking,
 } from 'react-native';
@@ -50,6 +51,18 @@ export function RegisterScreen() {
   const slideAnim = useRef(new Animated.Value(30)).current;
 
   const social = useSocialAuth();
+
+  const requireTos = (action: () => void) => {
+    if (!tosAccepted) {
+      Alert.alert(
+        t('register', 'tosTitle') || 'Shartlarni qabul qiling',
+        t('register', 'tosRequired') || 'Davom etish uchun Foydalanish shartlari va Maxfiylik siyosatini qabul qilishingiz kerak.',
+        [{ text: t('common', 'ok') || 'OK' }],
+      );
+      return;
+    }
+    action();
+  };
 
   useEffect(() => {
     Animated.parallel([
@@ -204,7 +217,7 @@ export function RegisterScreen() {
 
             <View style={s.divider}>
               <View style={s.dividerLine} />
-              <Text style={s.dividerText}>{t('common', 'or')}</Text>
+              <Text style={s.dividerText}>{t('login', 'orContinueWith') || 'или войти через'}</Text>
               <View style={s.dividerLine} />
             </View>
 
@@ -213,10 +226,10 @@ export function RegisterScreen() {
               telegramLoading={social.telegramLoading}
               appleLoading={social.appleLoading}
               appleAvailable={social.appleAvailable}
-              googleDisabled={social.googleDisabled}
-              onGooglePress={social.promptGoogleAsync}
-              onTelegramPress={social.handleTelegramLogin}
-              onApplePress={social.handleAppleLogin}
+              googleDisabled={social.googleDisabled || !tosAccepted}
+              onGooglePress={() => requireTos(social.promptGoogleAsync)}
+              onTelegramPress={() => requireTos(social.handleTelegramLogin)}
+              onApplePress={() => requireTos(social.handleAppleLogin)}
             />
 
             <View style={s.footer}>
@@ -269,9 +282,9 @@ const useStyles = createThemedStyles((colors) => ({
   primaryBtn: { height: 54, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   primaryBtnText: { color: colors.white, fontSize: 16, fontWeight: '700', letterSpacing: 0.5 },
 
-  divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 24, gap: 14 },
-  dividerLine: { flex: 1, height: 0.5, backgroundColor: 'rgba(255,255,255,0.1)' },
-  dividerText: { color: colors.textDim, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 },
+  divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 20, gap: 12 },
+  dividerLine: { flex: 1, height: 0.5, backgroundColor: 'rgba(255,255,255,0.08)' },
+  dividerText: { color: colors.textDim, fontSize: 11, letterSpacing: 0.3 },
 
   footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 28, gap: 4 },
   footerText: { color: colors.textMuted, fontSize: 14 },

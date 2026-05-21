@@ -32,7 +32,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const authServiceId = user._id;
     // Show profile setup only if user has never completed/skipped it on this device
     const setupDone = await profileSetupStorage.isDone(user._id);
-    set({ user, accessToken, isAuthenticated: true, needsProfileSetup: !setupDone });
+    // Start with needsProfileSetup: false — we only flip it to true AFTER getMe() confirms
+    // this is a genuinely new account. This prevents ProfileSetup from flashing for existing
+    // users who reinstalled the app (setupDone=false on fresh install but account is old).
+    set({ user, accessToken, isAuthenticated: true, needsProfileSetup: false });
     // User service dan to'liq profil olish — 5s timeout (SecureStore Android hang himoyasi)
     try {
       const timeout = new Promise<never>((_, reject) =>
@@ -65,6 +68,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
     } catch {
       // User service down yoki timeout — auth user bilan davom etamiz
+      // needsProfileSetup stays false (safe fallback — better to skip setup than wrongly show it)
     }
   },
 

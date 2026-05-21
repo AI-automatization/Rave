@@ -160,9 +160,9 @@ export function WatchHistoryScreen() {
   );
 
   const FILTERS: { key: Filter; label: string }[] = [
-    { key: 'all', label: 'Barchasi' },
-    { key: 'completed', label: "Ko'rildi" },
-    { key: 'in_progress', label: 'Davom etadi' },
+    { key: 'all', label: t('common', 'all') },
+    { key: 'completed', label: t('profile', 'filterWatched') },
+    { key: 'in_progress', label: t('profile', 'filterInProgress') },
   ];
 
   return (
@@ -172,7 +172,7 @@ export function WatchHistoryScreen() {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Ko'rish tarixi</Text>
+        <Text style={styles.headerTitle}>{t('profile', 'watchHistory')}</Text>
         <View style={styles.spacer} />
       </View>
 
@@ -214,7 +214,7 @@ export function WatchHistoryScreen() {
           ListEmptyComponent={
             <View style={styles.center}>
               <Ionicons name="film-outline" size={48} color={colors.textMuted} />
-              <Text style={styles.emptyText}>Ko'rish tarixi yo'q</Text>
+              <Text style={styles.emptyText}>{t('profile', 'watchHistoryEmpty')}</Text>
             </View>
           }
         />

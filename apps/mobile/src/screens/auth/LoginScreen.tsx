@@ -201,7 +201,7 @@ export function LoginScreen() {
             {/* Divider */}
             <View style={s.divider}>
               <View style={s.dividerLine} />
-              <Text style={s.dividerText}>{t('common', 'or')}</Text>
+              <Text style={s.dividerText}>{t('login', 'orContinueWith') || 'или войти через'}</Text>
               <View style={s.dividerLine} />
             </View>
 
@@ -220,7 +220,7 @@ export function LoginScreen() {
             {/* Footer */}
             <View style={s.footer}>
               <Text style={s.footerText}>{t('login', 'noAccount')}</Text>
-              <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+              <TouchableOpacity onPress={() => navigation.navigate('Register')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                 <Text style={s.footerLink}>{t('login', 'register')}</Text>
               </TouchableOpacity>
             </View>
@@ -277,9 +277,9 @@ const useStyles = createThemedStyles((colors) => ({
   primaryBtn: { height: 54, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginBottom: 28 },
   primaryBtnText: { color: colors.white, fontSize: 16, fontWeight: '700', letterSpacing: 0.5 },
 
-  divider: { flexDirection: 'row', alignItems: 'center', marginBottom: 24, gap: 14 },
-  dividerLine: { flex: 1, height: 0.5, backgroundColor: 'rgba(255,255,255,0.1)' },
-  dividerText: { color: colors.textDim, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 },
+  divider: { flexDirection: 'row', alignItems: 'center', marginBottom: 20, marginTop: 4, gap: 12 },
+  dividerLine: { flex: 1, height: 0.5, backgroundColor: 'rgba(255,255,255,0.08)' },
+  dividerText: { color: colors.textDim, fontSize: 11, letterSpacing: 0.3 },
 
   footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 32, gap: 4 },
   footerText: { color: colors.textMuted, fontSize: 14 },

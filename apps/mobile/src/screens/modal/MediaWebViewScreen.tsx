@@ -46,7 +46,10 @@ export function MediaWebViewScreen() {
           ) : (
             <Ionicons name="lock-closed-outline" size={12} color="#6B7280" style={s.lockIcon} />
           )}
-          <Text style={s.headerTitle} numberOfLines={1}>{pageTitle}</Text>
+          <View style={s.titleTextWrap}>
+            <Text style={s.headerTitle} numberOfLines={1}>{pageTitle}</Text>
+            <Text style={s.headerHint} numberOfLines={1}>Video detecting for Watch Party sync</Text>
+          </View>
         </View>
 
         <View style={s.navBtns}>
@@ -152,11 +155,13 @@ const s = StyleSheet.create({
   titleWrap: {
     flex: 1, flexDirection: 'row', alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: borderRadius.lg,
-    paddingHorizontal: spacing.md, paddingVertical: spacing.xs + 2,
-    gap: spacing.xs, minHeight: 34,
+    paddingHorizontal: spacing.md, paddingVertical: spacing.xs,
+    gap: spacing.xs, minHeight: 38,
   },
   lockIcon: { marginRight: 2 },
-  headerTitle: { flex: 1, ...typography.caption, color: '#9CA3AF', fontSize: 12 },
+  titleTextWrap: { flex: 1, justifyContent: 'center' },
+  headerTitle: { ...typography.caption, color: '#9CA3AF', fontSize: 12 },
+  headerHint: { fontSize: 10, color: '#4B5563', marginTop: 1 },
   navBtns: { flexDirection: 'row', gap: spacing.xs },
   loadingBar: { height: 2, backgroundColor: colors.primary, width: '60%' },
   webview: { flex: 1, backgroundColor: '#0A0A0F' },

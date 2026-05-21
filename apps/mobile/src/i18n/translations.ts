@@ -74,6 +74,7 @@ export const translations = {
     errorTelegram: { uz: "Telegram orqali kirib bo'lmadi", ru: 'Не удалось войти через Telegram', en: 'Failed to sign in with Telegram' },
     errorTelegramTimeout: { uz: "Amal qilmadi, qayta urinib ko'ring", ru: 'Время вышло, попробуйте снова', en: 'Timed out, please try again' },
     errorApple: { uz: "Apple orqali kirib bo'lmadi", ru: 'Не удалось войти через Apple', en: 'Failed to sign in with Apple' },
+    orContinueWith: { uz: 'yoki davom eting', ru: 'или войти через', en: 'or continue with' },
   },
 
   // ─── Auth — Register ───
@@ -108,6 +109,8 @@ export const translations = {
     tosAnd: { uz: ' va ', ru: ' и ', en: ' and ' },
     tosPrivacy: { uz: 'Maxfiylik siyosati', ru: 'Политику конфиденциальности', en: 'Privacy Policy' },
     tosEnd: { uz: 'ni qabul qilaman', ru: '', en: '' },
+    tosTitle: { uz: 'Shartlarni qabul qiling', ru: 'Примите условия', en: 'Accept Terms' },
+    tosRequired: { uz: "Davom etish uchun Foydalanish shartlari va Maxfiylik siyosatini qabul qilishingiz kerak.", ru: 'Для продолжения необходимо принять Условия использования и Политику конфиденциальности.', en: 'You must accept the Terms of Service and Privacy Policy to continue.' },
   },
 
   // ─── Auth — Verify Email ───
@@ -235,6 +238,11 @@ export const translations = {
     lastLogin: { uz: 'Oxirgi kirish', ru: 'Последний вход', en: 'Last Login' },
     friends: { uz: "Do'stlar", ru: 'Друзья', en: 'Friends' },
     streak: { uz: 'Seriya', ru: 'Серия', en: 'Streak' },
+    watchHistory: { uz: "Ko'rish tarixi", ru: 'История просмотров', en: 'Watch History' },
+    watchHistoryEmpty: { uz: "Ko'rish tarixi yo'q", ru: 'История просмотров пуста', en: 'No watch history yet' },
+    filterWatched: { uz: "Ko'rildi", ru: 'Просмотрено', en: 'Watched' },
+    filterInProgress: { uz: 'Davom etadi', ru: 'В процессе', en: 'In Progress' },
+    activity: { uz: 'Faollik', ru: 'Активность', en: 'Activity' },
   },
 
   // ─── Stats ───
@@ -323,6 +331,10 @@ export const translations = {
     legalSection: { uz: "HUQUQIY MA'LUMOT", ru: 'ПРАВОВАЯ ИНФОРМАЦИЯ', en: 'LEGAL' },
     privacyLabel: { uz: 'Maxfiylik siyosati', ru: 'Политика конфиденциальности', en: 'Privacy Policy' },
     termsLabel: { uz: 'Foydalanish shartlari', ru: 'Условия использования', en: 'Terms of Service' },
+    logoutAll: { uz: 'Barcha qurilmalardan chiqish', ru: 'Выйти со всех устройств', en: 'Sign Out All Devices' },
+    logoutAllTitle: { uz: 'Barcha qurilmalardan chiqish', ru: 'Выйти со всех устройств', en: 'Sign Out All Devices' },
+    logoutAllMsg: { uz: 'Barcha sessiyalar tugatiladi. Davom etasizmi?', ru: 'Все сессии будут завершены. Продолжить?', en: 'All sessions will be terminated. Continue?' },
+    logoutAllBtn: { uz: 'Chiqish', ru: 'Выйти', en: 'Sign Out' },
   },
 
   // ─── Notifications ───

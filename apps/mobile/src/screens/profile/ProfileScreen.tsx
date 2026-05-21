@@ -131,8 +131,8 @@ export function ProfileScreen() {
 
         {/* Activity */}
         <View style={s.section}>
-          <SectionHeader label="Активность" />
-          <NavItem icon="time-outline" label="Ko'rish tarixi" onPress={() => navigation.navigate('WatchHistory')} delay={450} />
+          <SectionHeader label={t('profile', 'activity')} />
+          <NavItem icon="time-outline" label={t('profile', 'watchHistory')} onPress={() => navigation.navigate('WatchHistory')} delay={450} />
         </View>
 
         {/* Coming Soon — Subscription & Purchases */}
