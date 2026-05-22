@@ -31,16 +31,17 @@ const FAB_SIZE = 54;
 const INDICATOR_WIDTH = 24;
 const INDICATOR_HEIGHT = 2;
 const SCREEN_WIDTH = Dimensions.get('window').width;
-const SLOT_WIDTH = SCREEN_WIDTH / 4; // 4 slots: Home, FAB, Friends, Profile
+const SLOT_WIDTH = SCREEN_WIDTH / 5; // 5 slots: Home, Map(disabled), FAB, Friends, Profile
 
 /** Map tab array index (0-2) to navigation state index (0, skip FAB=1, then 2,3) */
 function getVisibleTabIndex(arrayIndex: number): number {
   return arrayIndex < 1 ? arrayIndex : arrayIndex + 1;
 }
 
-/** Calculate indicator X from navigation state index (4 slots including FAB) */
+/** Calculate indicator X — accounts for disabled map tab at visual slot 1 */
 function getIndicatorX(stateIndex: number): number {
-  return stateIndex * SLOT_WIDTH + (SLOT_WIDTH - INDICATOR_WIDTH) / 2;
+  const visualSlot = stateIndex === 0 ? 0 : stateIndex + 1;
+  return visualSlot * SLOT_WIDTH + (SLOT_WIDTH - INDICATOR_WIDTH) / 2;
 }
 
 // ─── Custom Tab Bar ───────────────────────────────────────────────────────────
@@ -128,6 +129,9 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
           {/* Tab row */}
           <View style={styles.bar}>
             {TABS.slice(0, 1).map((tab, i) => renderTab(tab, i))}
+            <View style={styles.tabItem} pointerEvents="none">
+              <Ionicons name="map-outline" size={24} color={colors.textDim} style={{ opacity: 0.35 }} />
+            </View>
             <View style={styles.fabPlaceholder} />
             {TABS.slice(1).map((tab, i) => renderTab(tab, i + 1))}
           </View>
