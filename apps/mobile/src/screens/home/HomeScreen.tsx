@@ -1,6 +1,5 @@
 // WeWatch Mobile — Home Screen
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { captureError } from '@utils/errorLogger';
 import {
   View,
   ScrollView,
@@ -60,16 +59,6 @@ export function HomeScreen() {
   const debouncedQuery = useDebounce(query);
   const { data: videoResults = [], isLoading: searchLoading } = useVideoSearch(debouncedQuery);
   const { creating, createFromVideo } = useCreateWatchParty(() => setQuery(''));
-
-  // TEST ERROR — удалить после теста
-  useEffect(() => {
-    try {
-      const obj = undefined as unknown as { name: string };
-      void obj.name;
-    } catch (e) {
-      captureError(e as Error, { screen: 'HomeScreen', trigger: 'mount' });
-    }
-  }, []);
 
   useEffect(() => {
     if (unreadCount > 0 && unreadCount !== prevUnread.current) {
