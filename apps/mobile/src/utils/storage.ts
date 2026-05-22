@@ -19,15 +19,16 @@ async function remove(key: string): Promise<void> {
   await SecureStore.deleteItemAsync(key);
 }
 
-// Global flag: has user accepted the privacy policy?
-// Versioned key — bump version in privacyPolicy.ts to re-prompt on policy updates.
+// Per-user privacy policy acceptance flag.
+// Keyed by userId so deleting an account and re-registering always re-prompts.
+// Bump the version suffix in privacyPolicy.ts to re-prompt all users on policy updates.
 export const privacyPolicyStorage = {
-  async isAccepted(): Promise<boolean> {
-    const val = await get('wewatch_privacy_v1');
+  async isAccepted(userId: string): Promise<boolean> {
+    const val = await get(`wewatch_privacy_v1_${userId}`);
     return val === '1';
   },
-  async markAccepted(): Promise<void> {
-    await set('wewatch_privacy_v1', '1');
+  async markAccepted(userId: string): Promise<void> {
+    await set(`wewatch_privacy_v1_${userId}`, '1');
   },
 };
 

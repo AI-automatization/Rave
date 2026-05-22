@@ -20,6 +20,7 @@ import { useT } from '@i18n/index';
 import { useTheme } from '@theme/index';
 import { privacyPolicyStorage } from '@utils/storage';
 import { PRIVACY_POLICY } from '@constants/privacyPolicy';
+import { useAuthStore } from '@store/auth.store';
 
 interface Props {
   onAccepted: () => void;
@@ -30,6 +31,7 @@ const BOTTOM_THRESHOLD = 60; // px from bottom to consider "read"
 export function PrivacyPolicyScreen({ onAccepted }: Props) {
   const { t, lang } = useT();
   const { colors } = useTheme();
+  const userId = useAuthStore((s) => s.user?._id ?? '');
 
   const scrollRef = useRef<ScrollView>(null);
   const [hasReadToBottom, setHasReadToBottom] = useState(false);
@@ -67,9 +69,9 @@ export function PrivacyPolicyScreen({ onAccepted }: Props) {
   const handleAccept = useCallback(async () => {
     if (!hasReadToBottom || isAccepting) return;
     setIsAccepting(true);
-    await privacyPolicyStorage.markAccepted();
+    await privacyPolicyStorage.markAccepted(userId);
     onAccepted();
-  }, [hasReadToBottom, isAccepting, onAccepted]);
+  }, [hasReadToBottom, isAccepting, userId, onAccepted]);
 
   const policyText = PRIVACY_POLICY[lang as 'uz' | 'ru' | 'en'] ?? PRIVACY_POLICY.ru;
 

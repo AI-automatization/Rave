@@ -25,7 +25,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 const HEARTBEAT_INTERVAL_MS = 2 * 60 * 1000; // 2 daqiqa (Redis TTL: 3 daqiqa)
 
 export function AppNavigator() {
-  const { isAuthenticated, isHydrated, needsProfileSetup } = useAuthStore();
+  const { isAuthenticated, isHydrated, needsProfileSetup, user } = useAuthStore();
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const navigationRef = useNavigationContainerRef<RootStackParamList>();
   const lastResponse = Notifications.useLastNotificationResponse();
@@ -39,14 +39,14 @@ export function AppNavigator() {
 
   usePushNotifications();
 
-  // Check privacy acceptance when user logs in
+  // Check privacy acceptance when user logs in (per-user, keyed by userId)
   useEffect(() => {
-    if (!isAuthenticated || !isHydrated) {
+    if (!isAuthenticated || !isHydrated || !user?._id) {
       setPrivacyAccepted(null);
       return;
     }
-    privacyPolicyStorage.isAccepted().then(setPrivacyAccepted);
-  }, [isAuthenticated, isHydrated]);
+    privacyPolicyStorage.isAccepted(user._id).then(setPrivacyAccepted);
+  }, [isAuthenticated, isHydrated, user?._id]);
 
   // Global ACCOUNT_BLOCKED listener
   useEffect(() => {

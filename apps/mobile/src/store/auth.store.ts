@@ -121,8 +121,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             set({ accessToken, isAuthenticated: true, user });
           } catch (err: unknown) {
             const status = (err as { response?: { status?: number } })?.response?.status;
-            if (status === 401 || status === 403) {
-              // Token expired yoki invalid → clear
+            if (status === 401 || status === 403 || status === 404) {
+              // Token expired, invalid, or user deleted → clear
               await tokenStorage.clear();
             } else {
               // Network error / service down — JWT dan minimal user yaratamiz
