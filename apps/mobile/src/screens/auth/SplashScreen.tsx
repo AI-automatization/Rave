@@ -8,7 +8,6 @@ import { WeWatchLogo } from '@components/common/WeWatchLogo';
 import { AuthStackParamList } from '@app-types/index';
 import { useAuthStore } from '@store/auth.store';
 import { useT } from '@i18n/index';
-import { privacyPolicyStorage } from '@utils/storage';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Splash'>;
 
@@ -35,10 +34,9 @@ export function SplashScreen() {
   useEffect(() => {
     if (!isHydrated) return;
     // hideAsync App.tsx da chaqiriladi — bu yerda faqat navigatsiya
-    const timer = setTimeout(async () => {
+    const timer = setTimeout(() => {
       if (isAuthenticated) return; // AppNavigator handles redirect
-      const privacyAccepted = await privacyPolicyStorage.isAccepted();
-      navigation.replace(privacyAccepted ? 'LanguageSelect' : 'PrivacyPolicy');
+      navigation.replace('LanguageSelect');
     }, 1800);
 
     return () => clearTimeout(timer);

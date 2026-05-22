@@ -3,7 +3,6 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '@app-types/index';
 import { SplashScreen } from '@screens/auth/SplashScreen';
-import { PrivacyPolicyScreen } from '@screens/auth/PrivacyPolicyScreen';
 import { LanguageSelectScreen } from '@screens/auth/LanguageSelectScreen';
 import { OnboardingScreen } from '@screens/auth/OnboardingScreen';
 import { LoginScreen } from '@screens/auth/LoginScreen';
@@ -20,7 +19,6 @@ export function AuthNavigator() {
       screenOptions={{ headerShown: false, animation: 'slide_from_right', animationDuration: 300 }}
     >
       <Stack.Screen name="Splash" component={SplashScreen} options={{ animation: 'fade' }} />
-      <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} options={{ animation: 'fade', gestureEnabled: false }} />
       <Stack.Screen name="LanguageSelect" component={LanguageSelectScreen} options={{ animation: 'fade' }} />
       <Stack.Screen name="Onboarding" component={OnboardingScreen} />
       <Stack.Screen name="Login" component={LoginScreen} />

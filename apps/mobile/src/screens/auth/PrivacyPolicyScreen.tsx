@@ -1,6 +1,7 @@
 // WeWatch — Privacy Policy Screen
 // Shows full legal text; Accept button unlocks only after user scrolls to the bottom.
 // "Skip to end" fast-path: scrolls to bottom and immediately enables Accept.
+// Rendered as a full-screen overlay by AppNavigator after successful auth.
 import React, { useRef, useState, useCallback } from 'react';
 import {
   View,
@@ -15,20 +16,18 @@ import {
   StatusBar,
   Platform,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { AuthStackParamList } from '@app-types/index';
 import { useT } from '@i18n/index';
 import { useTheme } from '@theme/index';
 import { privacyPolicyStorage } from '@utils/storage';
 import { PRIVACY_POLICY } from '@constants/privacyPolicy';
 
-type Nav = NativeStackNavigationProp<AuthStackParamList, 'PrivacyPolicy'>;
+interface Props {
+  onAccepted: () => void;
+}
 
 const BOTTOM_THRESHOLD = 60; // px from bottom to consider "read"
 
-export function PrivacyPolicyScreen() {
-  const navigation = useNavigation<Nav>();
+export function PrivacyPolicyScreen({ onAccepted }: Props) {
   const { t, lang } = useT();
   const { colors } = useTheme();
 
@@ -69,8 +68,8 @@ export function PrivacyPolicyScreen() {
     if (!hasReadToBottom || isAccepting) return;
     setIsAccepting(true);
     await privacyPolicyStorage.markAccepted();
-    navigation.replace('LanguageSelect');
-  }, [hasReadToBottom, isAccepting, navigation]);
+    onAccepted();
+  }, [hasReadToBottom, isAccepting, onAccepted]);
 
   const policyText = PRIVACY_POLICY[lang as 'uz' | 'ru' | 'en'] ?? PRIVACY_POLICY.ru;
 

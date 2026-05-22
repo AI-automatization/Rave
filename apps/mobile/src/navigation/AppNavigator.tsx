@@ -12,11 +12,13 @@ import { AuthNavigator } from './AuthNavigator';
 import { MainNavigator } from './MainNavigator';
 import { ModalNavigator } from './ModalNavigator';
 import { ProfileSetupScreen } from '@screens/auth/ProfileSetupScreen';
+import { PrivacyPolicyScreen } from '@screens/auth/PrivacyPolicyScreen';
 import { userApi } from '@api/user.api';
 import { usePushNotifications } from '@hooks/usePushNotifications';
 import { LanguageTransition } from '@components/common/LanguageTransition';
 import { BlockedAccountModal } from '@components/common/BlockedAccountModal';
 import { onAccountBlocked } from '@api/client';
+import { privacyPolicyStorage } from '@utils/storage';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -33,8 +35,18 @@ export function AppNavigator() {
   const [blockedReason, setBlockedReason] = useState('');
   const [blockedUserId, setBlockedUserId] = useState('');
   const [isNavReady, setIsNavReady] = useState(false);
+  const [privacyAccepted, setPrivacyAccepted] = useState<boolean | null>(null);
 
   usePushNotifications();
+
+  // Check privacy acceptance when user logs in
+  useEffect(() => {
+    if (!isAuthenticated || !isHydrated) {
+      setPrivacyAccepted(null);
+      return;
+    }
+    privacyPolicyStorage.isAccepted().then(setPrivacyAccepted);
+  }, [isAuthenticated, isHydrated]);
 
   // Global ACCOUNT_BLOCKED listener
   useEffect(() => {
@@ -117,7 +129,9 @@ export function AppNavigator() {
     };
   }, [isAuthenticated]);
 
-  if (!isHydrated) return <View style={{ flex: 1, backgroundColor: colors.bgBase }} />;
+  if (!isHydrated || (isAuthenticated && privacyAccepted === null)) {
+    return <View style={{ flex: 1, backgroundColor: colors.bgBase }} />;
+  }
 
   return (
     <>
@@ -125,7 +139,11 @@ export function AppNavigator() {
       <LanguageTransition>
         <Stack.Navigator screenOptions={{ headerShown: false, animation: 'fade' }}>
           {isAuthenticated ? (
-            needsProfileSetup ? (
+            !privacyAccepted ? (
+              <Stack.Screen name="PrivacyPolicy" options={{ gestureEnabled: false }}>
+                {() => <PrivacyPolicyScreen onAccepted={() => setPrivacyAccepted(true)} />}
+              </Stack.Screen>
+            ) : needsProfileSetup ? (
               <Stack.Screen name="ProfileSetup" component={ProfileSetupScreen} />
             ) : (
               <>

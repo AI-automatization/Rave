@@ -90,7 +90,6 @@ export interface IUserStats {
 
 export type AuthStackParamList = {
   Splash: undefined;
-  PrivacyPolicy: undefined;
   LanguageSelect: undefined;
   Onboarding: undefined;
   Login: undefined;
@@ -162,5 +161,6 @@ export type RootStackParamList = {
   Auth: undefined;
   Main: undefined;
   ProfileSetup: undefined;
+  PrivacyPolicy: undefined;
   Modal: { screen: keyof ModalStackParamList; params?: ModalStackParamList[keyof ModalStackParamList] };
 };
