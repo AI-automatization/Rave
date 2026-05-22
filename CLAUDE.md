@@ -200,23 +200,31 @@ Brute force: 5 попыток → 15min блок | Socket.io JWT verify
 ## СКИЛЛЫ — ДЕРЕВО РЕШЕНИЙ
 
 ```
-БАГ/ошибка?         → .claude/skills/root-cause-tracing.md  (5-шаговый трейс ПЕРЕД кодом)
+БАГ/ошибка?         → .claude/skills/root-cause-tracing.md    (5-шаговый трейс ПЕРЕД кодом)
 Mode B / >5 файлов? → .claude/skills/subagent-dispatch.md
-Идеи / решения?     → .claude/skills/brainstorm.md          (/brainstorm [тема] — 5 фаз, sequential-thinking MCP)
+Идеи / решения?     → .claude/skills/brainstorm.md            (/brainstorm [тема] — 5 фаз)
+Новая фича?         → .claude/skills/feature-dev.md           (7 фаз: discovery→arch→impl→review)
 
 Пишу код:
-  0. WORKFLOW → .claude/skills/dev-workflow.md         (PRE-CHECK обязателен если ≥3 файла или >20 мин)
-  1. SPEC   → .claude/skills/spec-driven-implement.md  (YAML-спек обязателен)
-  2. LOOP   → .claude/skills/execute-judge-loop.md     (write→tsc→judge≥7→fix)
-  3. REFLECT→ .claude/skills/self-reflection.md        (7 шагов: imports/tsc/zone/forbidden — все ✅)
-  4. CRITIC → .claude/skills/critic-agent.md           (3 судьи ≥7/10 → APPROVE)
+  0. WORKFLOW → .claude/skills/dev-workflow.md           (PRE-CHECK обязателен если ≥3 файла или >20 мин)
+  1. SPEC   → .claude/skills/spec-driven-implement.md    (YAML-спек обязателен)
+  2. LOOP   → .claude/skills/execute-judge-loop.md       (write→tsc→judge≥7→fix)
+  3. REFLECT→ .claude/skills/self-reflection.md          (7 шагов: imports/tsc/zone/forbidden — все ✅)
+  4. CRITIC → .claude/skills/critic-agent.md             (3 судьи ≥7/10 → APPROVE)
   5. TESTS  → .claude/skills/auto-tests.md
-  6. VISUAL → .claude/skills/visual-testing.md         (только если .tsx/.css/StyleSheet)
+  6. VISUAL → .claude/skills/visual-testing.md           (только если .tsx/.css/StyleSheet)
 
 Frontend UI/UX:
-  • DESIGN  → .claude/skills/frontend-design.md        (WeWatch dark glass UI, Bebas Neue, no AI slop)
-  • UI/UX   → .claude/skills/ui-ux-pro-max.md          (99 правил, accessibility/touch CRITICAL)
-  • TEST    → .claude/skills/webapp-testing.md         (Playwright — скрины, auth flow, локали)
+  • DESIGN  → .claude/skills/frontend-design.md          (WeWatch dark glass UI, Bebas Neue, no AI slop)
+  • UI/UX   → .claude/skills/ui-ux-pro-max.md            (99 правил, accessibility/touch CRITICAL)
+  • TEST    → .claude/skills/webapp-testing.md           (Playwright — скрины, auth flow, локали)
+
+Качество / DevOps:
+  • REVIEW  → .claude/skills/code-review.md              (/code-review [PR] — multi-agent, CLAUDE.md+bugs+security)
+  • REFACTOR→ .claude/skills/refactor.md                 (dead code, simplify, guard clauses, 400-line limit)
+  • SECURITY→ .claude/skills/security-audit.md           (OWASP, secrets scan, JWT/auth, deps)
+  • ARCH    → .claude/skills/architecture-review.md      (design review + ADR writing)
+  • DEPLOY  → .claude/skills/deploy.md                   (Railway pre-checks → health verify → rollback)
 
 ГОТОВО → POST-CHECK (dev-workflow) + checkpoint clear + Done.md + tg-notify + git commit
 ```
