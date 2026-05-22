@@ -136,7 +136,7 @@ export function MovieDetailScreen({ route, navigation }: Props) {
             movie={movie}
             watchProgress={watchProgress}
             onWatch={handleWatch}
-            onWatchParty={() => rootNav.navigate('Modal', { screen: 'WatchPartyCreate' })}
+            onWatchParty={() => rootNav.navigate('Modal', { screen: 'SourcePicker', params: { mode: 'create' } })}
             playLabel={t('movie', 'play')}
             continueLabel={t('movie', 'continueWatching')}
             watchPartyLabel={t('movie', 'watchPartyCreate')}

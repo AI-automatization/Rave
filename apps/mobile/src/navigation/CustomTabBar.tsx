@@ -22,7 +22,6 @@ type TabEntry = {
 
 export const TABS: TabEntry[] = [
   { name: 'HomeTab',    icon: 'home-outline',   iconActive: 'home',   labelKey: 'home' },
-  { name: 'RoomsTab',   icon: 'tv-outline',     iconActive: 'tv',     labelKey: 'rooms' },
   { name: 'FriendsTab', icon: 'people-outline', iconActive: 'people', labelKey: 'friends' },
   { name: 'ProfileTab', icon: 'person-outline', iconActive: 'person', labelKey: 'profile' },
 ];
@@ -32,14 +31,14 @@ const FAB_SIZE = 54;
 const INDICATOR_WIDTH = 24;
 const INDICATOR_HEIGHT = 2;
 const SCREEN_WIDTH = Dimensions.get('window').width;
-const SLOT_WIDTH = SCREEN_WIDTH / 5;
+const SLOT_WIDTH = SCREEN_WIDTH / 4; // 4 slots: Home, FAB, Friends, Profile
 
-/** Map tab array index (0-3) to navigation state index (0,1 skip FAB=2, then 3,4) */
+/** Map tab array index (0-2) to navigation state index (0, skip FAB=1, then 2,3) */
 function getVisibleTabIndex(arrayIndex: number): number {
-  return arrayIndex < 2 ? arrayIndex : arrayIndex + 1;
+  return arrayIndex < 1 ? arrayIndex : arrayIndex + 1;
 }
 
-/** Calculate indicator X from navigation state index (5 slots including FAB) */
+/** Calculate indicator X from navigation state index (4 slots including FAB) */
 function getIndicatorX(stateIndex: number): number {
   return stateIndex * SLOT_WIDTH + (SLOT_WIDTH - INDICATOR_WIDTH) / 2;
 }
@@ -128,9 +127,9 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
           />
           {/* Tab row */}
           <View style={styles.bar}>
-            {TABS.slice(0, 2).map((tab, i) => renderTab(tab, i))}
+            {TABS.slice(0, 1).map((tab, i) => renderTab(tab, i))}
             <View style={styles.fabPlaceholder} />
-            {TABS.slice(2).map((tab, i) => renderTab(tab, i + 2))}
+            {TABS.slice(1).map((tab, i) => renderTab(tab, i + 1))}
           </View>
         </View>
       </BlurView>

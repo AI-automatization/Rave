@@ -181,7 +181,7 @@ export function FriendProfileScreen() {
           <View style={styles.socialActions}>
             <TouchableOpacity
               style={styles.watchPartyBtn}
-              onPress={() => rootNav.navigate('Modal', { screen: 'WatchPartyCreate' })}
+              onPress={() => rootNav.navigate('Modal', { screen: 'SourcePicker', params: { mode: 'create' } })}
               activeOpacity={0.85}
             >
               <Ionicons name="people" size={18} color={colors.white} />

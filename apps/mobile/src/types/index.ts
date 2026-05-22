@@ -151,7 +151,6 @@ export type RoomsStackParamList = {
 
 export type MainTabParamList = {
   HomeTab: undefined;
-  RoomsTab: undefined;
   CreateTab: undefined;
   FriendsTab: undefined;
   ProfileTab: undefined;

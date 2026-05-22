@@ -119,7 +119,16 @@ export function HomeScreen() {
       <View style={[s.header, { paddingTop: insets.top + spacing.sm }]}>
         <WeWatchLogo variant="horizontal" size={40} theme="dark" />
 
-        <TouchableOpacity
+        <View style={s.headerRight}>
+          <TouchableOpacity
+            style={s.joinCodeBtn}
+            onPress={() => rootNav.navigate('Modal', { screen: 'WatchPartyJoin' })}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="key-outline" size={16} color={colors.secondary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
           style={s.notifBtn}
           onPress={() => rootNav.navigate('Modal', { screen: 'Notifications' })}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -135,6 +144,7 @@ export function HomeScreen() {
             )}
           </View>
         </TouchableOpacity>
+        </View>
       </View>
 
       {/* ── Search ────────────────────────────────────────────── */}
@@ -281,6 +291,16 @@ const useStyles = createThemedStyles((colors) => ({
     alignItems: 'center',
     paddingHorizontal: spacing.xl,
     paddingBottom: spacing.md,
+  },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  joinCodeBtn: {
+    width: 44, height: 44,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.secondary + '15',
+    borderWidth: 1,
+    borderColor: colors.secondary + '30',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   notifBtn: { padding: 4 },
   notifBox: {
