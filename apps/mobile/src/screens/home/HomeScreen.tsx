@@ -129,21 +129,21 @@ export function HomeScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
-          style={s.notifBtn}
-          onPress={() => rootNav.navigate('Modal', { screen: 'Notifications' })}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <View style={s.notifBox}>
-            <Animated.View style={{ transform: [{ rotate: bellRotate }] }}>
-              <Ionicons name="notifications-outline" size={22} color={colors.textPrimary} />
-            </Animated.View>
-            {unreadCount > 0 && (
-              <View style={s.badge}>
-                <Text style={s.badgeText}>{unreadCount > 9 ? '9+' : String(unreadCount)}</Text>
-              </View>
-            )}
-          </View>
-        </TouchableOpacity>
+            style={s.notifBtn}
+            onPress={() => rootNav.navigate('Modal', { screen: 'Notifications' })}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <View style={s.notifBox}>
+              <Animated.View style={{ transform: [{ rotate: bellRotate }] }}>
+                <Ionicons name="notifications-outline" size={22} color={colors.textPrimary} />
+              </Animated.View>
+              {unreadCount > 0 && (
+                <View style={s.badge}>
+                  <Text style={s.badgeText}>{unreadCount > 9 ? '9+' : String(unreadCount)}</Text>
+                </View>
+              )}
+            </View>
+          </TouchableOpacity>
         </View>
       </View>
 

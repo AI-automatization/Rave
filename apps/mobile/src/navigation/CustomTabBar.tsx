@@ -210,7 +210,7 @@ const useStyles = createThemedStyles((colors) => ({
     fontWeight: '500',
   },
   fabPlaceholder: {
-    width: FAB_SIZE + 16,
+    flex: 1,
   },
   fab: {
     position: 'absolute',
