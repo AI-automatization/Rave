@@ -90,6 +90,7 @@ export interface IUserStats {
 
 export type AuthStackParamList = {
   Splash: undefined;
+  PrivacyPolicy: undefined;
   LanguageSelect: undefined;
   Onboarding: undefined;
   Login: undefined;

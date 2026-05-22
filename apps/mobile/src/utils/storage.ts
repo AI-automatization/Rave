@@ -19,6 +19,18 @@ async function remove(key: string): Promise<void> {
   await SecureStore.deleteItemAsync(key);
 }
 
+// Global flag: has user accepted the privacy policy?
+// Versioned key — bump version in privacyPolicy.ts to re-prompt on policy updates.
+export const privacyPolicyStorage = {
+  async isAccepted(): Promise<boolean> {
+    const val = await get('wewatch_privacy_v1');
+    return val === '1';
+  },
+  async markAccepted(): Promise<void> {
+    await set('wewatch_privacy_v1', '1');
+  },
+};
+
 // Per-user flag: was profile setup screen already shown?
 export const profileSetupStorage = {
   async isDone(userId: string): Promise<boolean> {

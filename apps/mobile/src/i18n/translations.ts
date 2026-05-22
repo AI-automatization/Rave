@@ -55,6 +55,17 @@ export const translations = {
     slide5Sub: { uz: "Bronzadan Diamondgacha — ko'proq ko'ring, yuqoriroq rank oling.", ru: 'От Бронзы до Алмаза — смотрите больше, повышайте ранг.', en: 'From Bronze to Diamond — watch more, rank up higher.' },
   },
 
+  // ─── Privacy Policy ───
+  privacyPolicy: {
+    title: { uz: 'Maxfiylik siyosati', ru: 'Политика конфиденциальности', en: 'Privacy Policy' },
+    subtitle: { uz: 'Qabul qilish uchun oxirigacha o\'qing', ru: 'Прочитайте до конца чтобы принять', en: 'Read to the end to accept' },
+    scrollHint: { uz: 'Pastga aylantiring...', ru: 'Прокрутите вниз...', en: 'Scroll down...' },
+    scrolledHint: { uz: 'Siz hamma narsani o\'qidingiz', ru: 'Вы всё прочитали', en: 'You\'ve read everything' },
+    skipToEnd: { uz: 'Oxiriga o\'tish va qabul qilish', ru: 'Пролистать до конца и принять', en: 'Skip to end and accept' },
+    accept: { uz: 'Qabul qilaman', ru: 'Принять', en: 'Accept' },
+    version: { uz: 'Versiya 1.0 · 2025-yil 1-yanvar', ru: 'Версия 1.0 · 1 января 2025', en: 'Version 1.0 · January 1, 2025' },
+  },
+
   // ─── Auth — Login ───
   login: {
     welcome: { uz: 'Xush kelibsiz', ru: 'Добро пожаловать', en: 'Welcome back' },
