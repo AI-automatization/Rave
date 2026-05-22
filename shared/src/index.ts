@@ -7,6 +7,7 @@ export * from './utils/apiResponse';
 export { logger, morganStream } from './utils/logger';
 export * from './utils/serviceClient';
 export { initServiceQueues, isQueueReady } from './utils/serviceQueue';
+export { containsBannedWord, invalidateBannedWordsCache } from './utils/bannedWords';
 
 // Models
 export * from './models/apiLog.model';

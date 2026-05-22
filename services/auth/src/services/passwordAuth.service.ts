@@ -14,6 +14,7 @@ import {
   BadRequestError,
 } from '@shared/utils/errors';
 import { createUserProfile, syncAdminProfile } from '@shared/utils/serviceClient';
+import { containsBannedWord } from '@shared/utils/bannedWords';
 import { JwtPayload, UserRole } from '@shared/types';
 import { REDIS_KEYS, TIMING } from '@shared/constants';
 
@@ -83,6 +84,10 @@ export class PasswordAuthService {
   }
 
   async initiateRegistration(email: string, username: string, password: string): Promise<string | null> {
+    if (await containsBannedWord(username)) {
+      throw new BadRequestError('Username contains prohibited content');
+    }
+
     const existing = await User.findOne({ $or: [{ email }, { username }] });
     if (existing) {
       throw new ConflictError(

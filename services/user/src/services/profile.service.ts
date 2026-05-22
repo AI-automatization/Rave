@@ -8,6 +8,7 @@ import { NotFoundError, BadRequestError } from '@shared/utils/errors';
 import { REDIS_KEYS, TTL, RANKS } from '@shared/constants';
 import { UserRank } from '@shared/types';
 import { getUserWatchStats, revokeUserSessions, disconnectUserSocket, cascadeDeleteUser } from '@shared/utils/serviceClient';
+import { containsBannedWord } from '@shared/utils/bannedWords';
 
 export class ProfileService {
   constructor(private redis: Redis) {}
@@ -29,9 +30,11 @@ export class ProfileService {
   async updateProfile(userId: string, updates: { username?: string; bio?: string; avatar?: string }): Promise<IUserDocument> {
     if (updates.bio !== undefined) updates.bio = xss(updates.bio);
     if (updates.username) {
+      if (await containsBannedWord(updates.username)) throw new BadRequestError('Username contains prohibited content');
       const taken = await User.findOne({ username: updates.username, authId: { $ne: userId } }).lean();
       if (taken) throw new BadRequestError('Username already taken');
     }
+    if (updates.bio && await containsBannedWord(updates.bio)) throw new BadRequestError('Bio contains prohibited content');
     const user = await User.findOneAndUpdate(
       { authId: userId },
       { $set: updates },
