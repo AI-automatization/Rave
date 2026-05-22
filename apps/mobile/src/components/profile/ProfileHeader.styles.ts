@@ -1,4 +1,4 @@
-// CineSync — ProfileHeader styles
+// WeWatch — ProfileHeader styles
 import { createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 
 export const useProfileHeaderStyles = createThemedStyles((colors) => ({

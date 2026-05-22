@@ -1,4 +1,4 @@
-/// CineSync Mobile — Media Source Definitions
+/// WeWatch Mobile — Media Source Definitions
 // Список источников медиа для Source Picker (аналог Rave)
 
 export type MediaSupportLevel =

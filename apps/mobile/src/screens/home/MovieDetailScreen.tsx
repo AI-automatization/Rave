@@ -1,4 +1,4 @@
-// CineSync Mobile — Movie Detail Screen
+// WeWatch Mobile — Movie Detail Screen
 import React, { useRef, useState, useEffect } from 'react';
 import { View, StyleSheet, Animated, StatusBar, ActivityIndicator, Text } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';

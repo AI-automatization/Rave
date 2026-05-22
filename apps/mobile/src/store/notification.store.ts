@@ -1,4 +1,4 @@
-// CineSync Mobile — Notification Store (Zustand)
+// WeWatch Mobile — Notification Store (Zustand)
 import { create } from 'zustand';
 import { INotification } from '@app-types/index';
 

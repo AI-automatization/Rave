@@ -1,4 +1,4 @@
-// CineSync Mobile — Movie Row (horizontal FlatList)
+// WeWatch Mobile — Movie Row (horizontal FlatList)
 import React, { memo } from 'react';
 import { View, Text, FlatList, ListRenderItem } from 'react-native';
 import { IMovie } from '@app-types/index';

@@ -1,4 +1,4 @@
-// CineSync — Mesh WebRTC types
+// WeWatch — Mesh WebRTC types
 // react-native-webrtc exports EventTarget-based classes; we use
 // loose interface wrappers to avoid conflicts with global WebRTC types.
 import type { SyncMessage, MeshSignalPayload } from '@app-types/index';

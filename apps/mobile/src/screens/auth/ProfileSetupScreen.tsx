@@ -1,4 +1,4 @@
-// CineSync Mobile — Profile Setup Screen (after registration)
+// WeWatch Mobile — Profile Setup Screen (after registration)
 import React, { useState } from 'react';
 import {
   View,

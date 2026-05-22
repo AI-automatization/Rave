@@ -1,4 +1,4 @@
-// CineSync Mobile — useRecentRooms: last visited rooms (T-E108)
+// WeWatch Mobile — useRecentRooms: last visited rooms (T-E108)
 import { useQuery } from '@tanstack/react-query';
 import { watchPartyApi } from '@api/watchParty.api';
 

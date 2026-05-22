@@ -3,7 +3,7 @@
     "name": "WeWatch",
     "slug": "wewatch",
     "version": "1.0.0",
-    "orientation": "default",
+    "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "scheme": "wewatch",
@@ -17,11 +17,25 @@
       "bundleIdentifier": "com.wewatch.app",
       "buildNumber": "1",
       "usesAppleSignIn": true,
+      "minimumOsVersion": "16.0",
       "infoPlist": {
         "NSCameraUsageDescription": "WeWatch uses your camera to set your profile photo.",
         "NSPhotoLibraryUsageDescription": "WeWatch uses your photo library to set your profile photo.",
-        "NSMicrophoneUsageDescription": "WeWatch uses your microphone for the Voice Chat feature in Watch Party rooms, allowing you to talk with friends while watching together.",
-        "NSUserTrackingUsageDescription": "WeWatch uses crash and error reports to improve app stability. No personal data is shared with advertisers."
+        "NSMicrophoneUsageDescription": "WeWatch uses your microphone for the Voice Chat feature in Watch Party rooms, allowing you to talk with friends while watching together."
+      },
+      "privacyManifests": {
+        "NSPrivacyAccessedAPITypes": [
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
+            "NSPrivacyAccessedAPITypeReasons": ["CA92.1"]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryFileTimestamp",
+            "NSPrivacyAccessedAPITypeReasons": ["C617.1"]
+          }
+        ],
+        "NSPrivacyCollectedDataTypes": [],
+        "NSPrivacyTracking": false
       }
     },
     "android": {

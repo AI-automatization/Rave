@@ -1,4 +1,4 @@
-// CineSync Mobile — Color Definitions
+// WeWatch Mobile — Color Definitions
 // Separate file to avoid circular dependency between index.ts and ThemeContext.tsx
 import { UserRank } from '@app-types/index';
 

@@ -1,4 +1,4 @@
-// CineSync Mobile — useNotifications hook
+// WeWatch Mobile — useNotifications hook
 import { useCallback, useEffect } from 'react';
 import { Alert } from 'react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';

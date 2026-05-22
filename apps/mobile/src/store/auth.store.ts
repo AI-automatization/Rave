@@ -1,4 +1,4 @@
-// CineSync Mobile — Auth Store (Zustand)
+// WeWatch Mobile — Auth Store (Zustand)
 import { create } from 'zustand';
 import { IUser } from '@app-types/index';
 import { tokenStorage, profileSetupStorage } from '@utils/storage';

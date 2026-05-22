@@ -1,4 +1,4 @@
-// CineSync Mobile — useHomeData hook unit tests
+// WeWatch Mobile — useHomeData hook unit tests
 
 jest.mock('../../api/client', () => ({
   contentClient: { get: jest.fn() },

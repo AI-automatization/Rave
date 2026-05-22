@@ -1,4 +1,4 @@
-// CineSync — Generic fade+slide-in animation wrapper
+// WeWatch — Generic fade+slide-in animation wrapper
 import React, { useRef, useEffect } from 'react';
 import { Animated, Easing } from 'react-native';
 

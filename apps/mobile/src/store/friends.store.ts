@@ -1,4 +1,4 @@
-// CineSync Mobile — Friends Store (Zustand)
+// WeWatch Mobile — Friends Store (Zustand)
 import { create } from 'zustand';
 import { IUserPublic } from '@app-types/index';
 

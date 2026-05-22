@@ -1,4 +1,4 @@
-// CineSync Mobile — FilmSelector component
+// WeWatch Mobile — FilmSelector component
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';

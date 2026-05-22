@@ -1,4 +1,4 @@
-// CineSync Mobile — Verify Email Screen
+// WeWatch Mobile — Verify Email Screen
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import {
   View,

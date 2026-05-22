@@ -1,4 +1,4 @@
-// CineSync Mobile — MediaWebViewScreen
+// WeWatch Mobile — MediaWebViewScreen
 // In-app browser: video topilganda pastda "Watch Party" bar chiqadi — popup yo'q
 import React, { useState } from 'react';
 import {
@@ -14,9 +14,11 @@ import { MOBILE_UA } from '@utils/webViewScripts';
 import { isDomainBlocked } from '@constants/blockedDomains';
 import { useDynamicBlockedDomains } from '@hooks/useDynamicBlockedDomains';
 import { contentApi } from '@api/content.api';
+import { useT } from '@i18n/index';
 
 export function MediaWebViewScreen() {
   const insets = useSafeAreaInsets();
+  const { t } = useT();
   const [blockedDomain, setBlockedDomain] = useState<string | null>(null);
   useDynamicBlockedDomains();
   const {
@@ -48,7 +50,7 @@ export function MediaWebViewScreen() {
           )}
           <View style={s.titleTextWrap}>
             <Text style={s.headerTitle} numberOfLines={1}>{pageTitle}</Text>
-            <Text style={s.headerHint} numberOfLines={1}>Video detecting for Watch Party sync</Text>
+            <Text style={s.headerHint} numberOfLines={1}>{t('browser', 'videoDetecting')}</Text>
           </View>
         </View>
 
@@ -99,10 +101,10 @@ export function MediaWebViewScreen() {
         renderError={() => (
           <View style={s.errorView}>
             <Ionicons name="wifi-outline" size={48} color="#4B5563" />
-            <Text style={s.errorTitle}>Страница недоступна</Text>
-            <Text style={s.errorSub}>Сайт заблокировал встроенный браузер или недоступен.</Text>
+            <Text style={s.errorTitle}>{t('browser', 'pageUnavailable')}</Text>
+            <Text style={s.errorSub}>{t('browser', 'siteBlockedBrowser')}</Text>
             <TouchableOpacity style={s.reloadBtn} onPress={() => webViewRef.current?.reload()}>
-              <Text style={s.reloadText}>Обновить</Text>
+              <Text style={s.reloadText}>{t('browser', 'reload')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -111,11 +113,9 @@ export function MediaWebViewScreen() {
       {blockedDomain && (
         <View style={s.blockedOverlay}>
           <Ionicons name="shield-checkmark" size={52} color={colors.primary} />
-          <Text style={s.blockedTitle}>Сайт заблокирован</Text>
+          <Text style={s.blockedTitle}>{t('browser', 'domainBlocked')}</Text>
           <Text style={s.blockedDomain}>{blockedDomain}</Text>
-          <Text style={s.blockedSub}>
-            Этот сайт недоступен в Rave. Выберите другой источник.
-          </Text>
+          <Text style={s.blockedSub}>{t('browser', 'domainBlockedMsg')}</Text>
           <TouchableOpacity
             style={s.blockedBtn}
             onPress={() => {
@@ -123,7 +123,7 @@ export function MediaWebViewScreen() {
               webViewRef.current?.goBack();
             }}
           >
-            <Text style={s.blockedBtnText}>← Назад</Text>
+            <Text style={s.blockedBtnText}>{t('browser', 'back')}</Text>
           </TouchableOpacity>
         </View>
       )}

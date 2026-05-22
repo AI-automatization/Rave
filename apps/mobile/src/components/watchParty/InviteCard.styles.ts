@@ -1,4 +1,4 @@
-// CineSync — InviteCard styles
+// WeWatch — InviteCard styles
 import { createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 
 export const useInviteCardStyles = createThemedStyles((colors) => ({

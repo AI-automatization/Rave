@@ -1,4 +1,4 @@
-// CineSync — useMediaDetection: JS injection, video detection, backend extraction, import flow
+// WeWatch — useMediaDetection: JS injection, video detection, backend extraction, import flow
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { Animated, Alert } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';

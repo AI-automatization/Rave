@@ -1,4 +1,4 @@
-// CineSync — SourcePickerScreen styles
+// WeWatch — SourcePickerScreen styles
 import { StyleSheet } from 'react-native';
 import { colors, spacing, borderRadius, typography } from '@theme/index';
 

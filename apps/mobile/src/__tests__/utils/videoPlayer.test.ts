@@ -1,4 +1,4 @@
-// CineSync Mobile — videoPlayer utility tests
+// WeWatch Mobile — videoPlayer utility tests
 import {
   SEEK_SEC, DOUBLE_TAP_MS, CONTROLS_TIMEOUT, YOUTUBE_RE, MOBILE_UA,
   getYouTubeMobileUrl, extractYouTubeVideoId, fmtTime, detectVideoPlatform,

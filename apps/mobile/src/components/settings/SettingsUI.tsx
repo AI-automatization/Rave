@@ -1,4 +1,4 @@
-// CineSync Mobile — Shared settings UI primitives
+// WeWatch Mobile — Shared settings UI primitives
 import React from 'react';
 import { View, Text, Switch } from 'react-native';
 import { useTheme, createThemedStyles, spacing, typography } from '@theme/index';

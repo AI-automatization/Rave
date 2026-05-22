@@ -1,4 +1,4 @@
-// CineSync — VoiceChat hook (WebRTC peer connections, socket signaling, audio tracks)
+// WeWatch — VoiceChat hook (WebRTC peer connections, socket signaling, audio tracks)
 // Requires expo-dev-client — react-native-webrtc won't work in Expo Go.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getSocket, SERVER_EVENTS, CLIENT_EVENTS } from '@socket/client';

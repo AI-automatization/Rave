@@ -1,4 +1,4 @@
-// CineSync Mobile — Movie Detail: Header Action Buttons
+// WeWatch Mobile — Movie Detail: Header Action Buttons
 import React from 'react';
 import { View, TouchableOpacity, Share } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';

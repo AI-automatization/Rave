@@ -1,4 +1,4 @@
-// CineSync Mobile — content.api unit tests
+// WeWatch Mobile — content.api unit tests
 import { contentApi } from '../../api/content.api';
 
 // Mock the HTTP client

@@ -1,4 +1,4 @@
-// CineSync Mobile — Profile animation primitives
+// WeWatch Mobile — Profile animation primitives
 import React, { useEffect, useRef } from 'react';
 import { View, Animated } from 'react-native';
 import { useTheme, createThemedStyles, borderRadius } from '@theme/index';

@@ -1,4 +1,4 @@
-// CineSync Mobile — Movie detail info block (poster + meta + genres + desc + buttons)
+// WeWatch Mobile — Movie detail info block (poster + meta + genres + desc + buttons)
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';

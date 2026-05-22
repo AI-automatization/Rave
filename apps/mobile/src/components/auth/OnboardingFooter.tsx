@@ -1,4 +1,4 @@
-// CineSync Mobile — Onboarding bottom section (dots, counter, buttons)
+// WeWatch Mobile — Onboarding bottom section (dots, counter, buttons)
 import React from 'react';
 import {
   View,

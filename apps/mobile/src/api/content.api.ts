@@ -1,4 +1,4 @@
-// CineSync Mobile — Content API
+// WeWatch Mobile — Content API
 import { contentClient } from './client';
 import { ApiResponse, IMovie, ContentGenre, PaginationMeta, IWatchProgress } from '@app-types/index';
 

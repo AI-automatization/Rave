@@ -1,4 +1,4 @@
-// CineSync Mobile — Notification API
+// WeWatch Mobile — Notification API
 import { notificationClient } from './client';
 import { ApiResponse, INotification } from '@app-types/index';
 

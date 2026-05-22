@@ -1,4 +1,4 @@
-// CineSync — useWebViewPlayer: WebView state, callbacks, ref imperative handle
+// WeWatch — useWebViewPlayer: WebView state, callbacks, ref imperative handle
 import { useRef, useState, useCallback, useMemo, useEffect } from 'react';
 import { StatusBar } from 'react-native';
 import WebView from 'react-native-webview';

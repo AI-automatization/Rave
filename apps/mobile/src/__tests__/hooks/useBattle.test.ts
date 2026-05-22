@@ -1,4 +1,4 @@
-// CineSync Mobile — useBattle hook unit tests
+// WeWatch Mobile — useBattle hook unit tests
 
 jest.mock('../../api/client', () => ({
   contentClient: { get: jest.fn() },

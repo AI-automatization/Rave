@@ -1,4 +1,4 @@
-// CineSync Mobile — GenreBrowse component
+// WeWatch Mobile — GenreBrowse component
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { createThemedStyles, spacing, borderRadius, typography } from '@theme/index';

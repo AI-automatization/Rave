@@ -1,4 +1,4 @@
-// CineSync Mobile — Profile small reusable widgets (web-style cards)
+// WeWatch Mobile — Profile small reusable widgets (web-style cards)
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';

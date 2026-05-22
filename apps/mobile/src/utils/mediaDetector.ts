@@ -1,4 +1,4 @@
-// CineSync Mobile — Media Detector Utility
+// WeWatch Mobile — Media Detector Utility
 // Нормализация URL в RoomMedia + JS injection для WebView
 
 import type { VideoPlatform } from '@components/video/UniversalPlayer';

@@ -1,4 +1,4 @@
-// CineSync Mobile — Main Tab Navigator
+// WeWatch Mobile — Main Tab Navigator
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';

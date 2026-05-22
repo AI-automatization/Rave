@@ -1,4 +1,4 @@
-// CineSync Mobile — WebViewAdapters
+// WeWatch Mobile — WebViewAdapters
 // Saytga moslashgan video element topish strategiyalari
 // M7: uzmovi.tv, kinogo.cc va generic fallback
 

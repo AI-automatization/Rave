@@ -1,4 +1,4 @@
-// CineSync Mobile — Forgot Password Screen
+// WeWatch Mobile — Forgot Password Screen
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,

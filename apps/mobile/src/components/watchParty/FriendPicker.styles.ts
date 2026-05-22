@@ -1,4 +1,4 @@
-// CineSync — FriendPicker styles
+// WeWatch — FriendPicker styles
 import { createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 
 export const useFriendPickerStyles = createThemedStyles((colors) => ({

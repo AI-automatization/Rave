@@ -1,4 +1,4 @@
-// CineSync Mobile — Profile card header (web-style horizontal layout)
+// WeWatch Mobile — Profile card header (web-style horizontal layout)
 import React, { useRef } from 'react';
 import { View, Text, TouchableOpacity, Animated } from 'react-native';
 import { Image } from 'expo-image';

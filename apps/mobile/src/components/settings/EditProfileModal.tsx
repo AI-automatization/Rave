@@ -1,4 +1,4 @@
-// CineSync Mobile — Edit Profile Modal
+// WeWatch Mobile — Edit Profile Modal
 import React from 'react';
 import {
   View,

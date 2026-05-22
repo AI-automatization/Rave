@@ -1,4 +1,4 @@
-// CineSync Mobile — SettingsScreen (composed)
+// WeWatch Mobile — SettingsScreen (composed)
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert, Linking } from 'react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
@@ -30,7 +30,7 @@ const LANGUAGES: { code: Language; label: string; flag: string }[] = [
   { code: 'en', label: 'English', flag: '\u{1F1EC}\u{1F1E7}' },
 ];
 
-// CineSync — Dark mode ONLY. Light tema o'chirilgan.
+// WeWatch — Dark mode ONLY. Light tema o'chirilgan.
 
 type ActiveModal = 'editProfile' | 'changePassword' | null;
 

@@ -1,4 +1,4 @@
-// CineSync Mobile — ExtractStatus component
+// WeWatch Mobile — ExtractStatus component
 // Shows video URL extraction state: loading, success, or fallback
 import React from 'react';
 import {

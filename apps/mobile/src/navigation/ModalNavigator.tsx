@@ -1,4 +1,4 @@
-// CineSync Mobile — Modal Stack Navigator
+// WeWatch Mobile — Modal Stack Navigator
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ModalStackParamList } from '@app-types/index';

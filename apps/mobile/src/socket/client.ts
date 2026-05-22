@@ -1,4 +1,4 @@
-// CineSync Mobile — Socket.io Client
+// WeWatch Mobile — Socket.io Client
 import { io, Socket } from 'socket.io-client';
 import { SERVER_EVENTS, CLIENT_EVENTS } from '@shared/constants/socketEvents';
 import { tokenStorage } from '@utils/storage';

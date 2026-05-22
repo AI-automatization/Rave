@@ -1,4 +1,4 @@
-// CineSync Mobile — Home data hook
+// WeWatch Mobile — Home data hook
 import { useQuery } from '@tanstack/react-query';
 import { contentApi } from '@api/content.api';
 

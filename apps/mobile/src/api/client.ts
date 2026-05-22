@@ -1,4 +1,4 @@
-// CineSync Mobile — Axios API Clients (per-service)
+// WeWatch Mobile — Axios API Clients (per-service)
 import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 import { tokenStorage } from '@utils/storage';
 

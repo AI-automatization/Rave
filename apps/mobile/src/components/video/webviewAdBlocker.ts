@@ -1,4 +1,4 @@
-// CineSync Mobile — WebView ad blocking + URL utilities
+// WeWatch Mobile — WebView ad blocking + URL utilities
 
 export const AD_HOSTNAMES = [
   'doubleclick.net',

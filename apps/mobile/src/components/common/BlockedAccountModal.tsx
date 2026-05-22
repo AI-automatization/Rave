@@ -1,4 +1,4 @@
-// CineSync Mobile — BlockedAccountModal
+// WeWatch Mobile — BlockedAccountModal
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';

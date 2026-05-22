@@ -1,4 +1,4 @@
-// CineSync Mobile — Shared social auth hook (Google + Telegram + Apple)
+// WeWatch Mobile — Shared social auth hook (Google + Telegram + Apple)
 // Google uses backend polling flow (works in Expo Go without a native build).
 // Apple uses expo-apple-authentication native module (requires EAS build / dev client).
 import { useState, useEffect, useRef } from 'react';

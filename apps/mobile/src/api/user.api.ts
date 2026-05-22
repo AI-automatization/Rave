@@ -1,4 +1,4 @@
-// CineSync Mobile — User API
+// WeWatch Mobile — User API
 import { userClient } from './client';
 import { ApiResponse, IUser, IUserPublic, IUserStats } from '@app-types/index';
 

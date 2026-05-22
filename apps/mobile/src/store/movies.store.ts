@@ -1,4 +1,4 @@
-// CineSync Mobile — Movies Store (Zustand)
+// WeWatch Mobile — Movies Store (Zustand)
 import { create } from 'zustand';
 import { IMovie } from '@app-types/index';
 

@@ -153,7 +153,7 @@ function getDeviceContexts(): ErrorPayload['contexts'] {
         Constants.expoConfig?.android?.versionCode ??
         '0',
     ),
-    app_name: Constants.expoConfig?.name ?? 'CineSync',
+    app_name: Constants.expoConfig?.name ?? 'WeWatch',
     execution_env: Constants.executionEnvironment ?? 'unknown',
     is_expo_go: Constants.executionEnvironment === ExecutionEnvironment.StoreClient,
     app_state: AppState.currentState,

@@ -1,4 +1,4 @@
-// CineSync — MediaBottomBar: video found, analyzing, bot-protection, and hint states
+// WeWatch — MediaBottomBar: video found, analyzing, bot-protection, and hint states
 import React from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';

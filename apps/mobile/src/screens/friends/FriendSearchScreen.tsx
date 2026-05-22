@@ -1,4 +1,4 @@
-// CineSync Mobile — FriendSearchScreen
+// WeWatch Mobile — FriendSearchScreen
 import React, { useState } from 'react';
 import {
   View,

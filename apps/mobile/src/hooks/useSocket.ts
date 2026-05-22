@@ -1,4 +1,4 @@
-// CineSync Mobile — useSocket hook
+// WeWatch Mobile — useSocket hook
 import { useEffect } from 'react';
 import { useAuthStore } from '@store/auth.store';
 import { connectSocket, disconnectSocket } from '@socket/client';

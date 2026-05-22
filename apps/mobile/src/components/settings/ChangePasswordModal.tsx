@@ -1,4 +1,4 @@
-// CineSync Mobile — Change Password Modal
+// WeWatch Mobile — Change Password Modal
 import React, { useState } from 'react';
 import {
   View,

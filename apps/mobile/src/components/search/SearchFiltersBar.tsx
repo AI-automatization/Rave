@@ -1,4 +1,4 @@
-// CineSync Mobile — Search Filters Bar (genre + year + sort chips)
+// WeWatch Mobile — Search Filters Bar (genre + year + sort chips)
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { createThemedStyles, spacing, borderRadius, typography } from '@theme/index';

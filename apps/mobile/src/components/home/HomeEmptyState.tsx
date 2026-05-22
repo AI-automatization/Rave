@@ -1,4 +1,4 @@
-// CineSync Mobile — Home empty state (film database is empty in MVP)
+// WeWatch Mobile — Home empty state (film database is empty in MVP)
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';

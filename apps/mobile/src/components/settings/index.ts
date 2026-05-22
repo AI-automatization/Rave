@@ -1,4 +1,4 @@
-// CineSync Mobile — Settings components barrel
+// WeWatch Mobile — Settings components barrel
 export { EditProfileModal } from './EditProfileModal';
 export { ChangePasswordModal } from './ChangePasswordModal';
 export { SectionHeader, ToggleRow } from './SettingsUI';

@@ -1,4 +1,4 @@
-// CineSync — WatchPartyCreate shared styles (used by RoomsTab, CreateTab, JoinTab, WatchPartyCreateScreen)
+// WeWatch — WatchPartyCreate shared styles (used by RoomsTab, CreateTab, JoinTab, WatchPartyCreateScreen)
 import { createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 
 export const useWatchPartyCreateStyles = createThemedStyles((colors) => ({

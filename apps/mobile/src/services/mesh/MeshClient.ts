@@ -1,4 +1,4 @@
-// CineSync — MeshClient: WebRTC peer connection manager
+// WeWatch — MeshClient: WebRTC peer connection manager
 // Manages RTCPeerConnection lifecycle, DataChannel creation, and signalling
 import {
   RTCPeerConnection,

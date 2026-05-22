@@ -1,4 +1,4 @@
-// CineSync Mobile — auth.store unit tests
+// WeWatch Mobile — auth.store unit tests
 import { useAuthStore } from '../../store/auth.store';
 
 const mockSaveTokens = jest.fn();

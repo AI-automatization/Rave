@@ -1,4 +1,4 @@
-// CineSync Mobile — WatchParty Emoji Float
+// WeWatch Mobile — WatchParty Emoji Float
 import React, { useEffect, useRef } from 'react';
 import { StyleSheet, Text, Animated, TouchableOpacity, View } from 'react-native';
 

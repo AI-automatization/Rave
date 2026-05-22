@@ -1,4 +1,4 @@
-// CineSync Mobile — Movie Card Component
+// WeWatch Mobile — Movie Card Component
 import React, { memo, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, Dimensions, Animated } from 'react-native';
 import { Image } from 'expo-image';

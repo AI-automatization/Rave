@@ -1,4 +1,4 @@
-// CineSync Mobile — Push Notifications (expo-notifications)
+// WeWatch Mobile — Push Notifications (expo-notifications)
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { NotificationType } from '@app-types/index';

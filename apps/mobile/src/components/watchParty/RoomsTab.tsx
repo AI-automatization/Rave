@@ -1,4 +1,4 @@
-// CineSync — Rooms tab for WatchPartyCreateScreen (T-E108 + T-E109)
+// WeWatch — Rooms tab for WatchPartyCreateScreen (T-E108 + T-E109)
 import React, { useState } from 'react';
 import {
   View, Text, ScrollView, ActivityIndicator, Alert,

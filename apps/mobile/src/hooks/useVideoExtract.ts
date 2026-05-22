@@ -1,4 +1,4 @@
-// CineSync Mobile — Video extract state + handlers
+// WeWatch Mobile — Video extract state + handlers
 import { useState, useCallback } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';

@@ -1,4 +1,4 @@
-// CineSync Mobile — SourcePickerScreen
+// WeWatch Mobile — SourcePickerScreen
 import React, { useState, useMemo } from 'react';
 import { View, Text, TouchableOpacity, FlatList, TextInput, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -11,12 +11,14 @@ import { SourceCard } from '@components/watchParty/SourceCard';
 import { useSourcePicker } from '@hooks/useSourcePicker';
 import { s } from './SourcePickerScreen.styles';
 import type { ModalStackParamList } from '@app-types/index';
+import { useT } from '@i18n/index';
 
 type Nav = NativeStackNavigationProp<ModalStackParamList>;
 
 export function SourcePickerScreen() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
+  const { t } = useT();
   const [query, setQuery] = useState('');
   const { params, urlInput, isExtracting, urlError, handleSourcePress, handleUrlExtract, handleCreateRoom, handleUrlChange } = useSourcePicker();
 
@@ -34,7 +36,7 @@ export function SourcePickerScreen() {
         <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
           <Ionicons name="chevron-back" size={26} color="#fff" />
         </TouchableOpacity>
-        <Text style={s.title}>Выберите источник</Text>
+        <Text style={s.title}>{t('sourcePicker', 'title')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -42,7 +44,7 @@ export function SourcePickerScreen() {
         <Ionicons name="search-outline" size={18} color="#9CA3AF" style={s.searchIcon} />
         <TextInput
           style={s.searchInput}
-          placeholder="Искать видео, сериал или фильм..."
+          placeholder={t('sourcePicker', 'searchPlaceholder')}
           placeholderTextColor="#6B7280"
           value={query}
           onChangeText={setQuery}
@@ -57,7 +59,7 @@ export function SourcePickerScreen() {
       </View>
 
       <View style={s.urlSection}>
-        <Text style={s.urlLabel}>Или вставьте прямую ссылку на видео</Text>
+        <Text style={s.urlLabel}>{t('sourcePicker', 'directLinkLabel')}</Text>
         <View style={s.urlRow}>
           <TextInput
             style={s.urlInput}
@@ -97,14 +99,14 @@ export function SourcePickerScreen() {
           params.mode === 'create' ? (
             <TouchableOpacity style={s.createRoomBtn} onPress={handleCreateRoom}>
               <Ionicons name="people-outline" size={18} color="#E50914" />
-              <Text style={s.createRoomText}>Создать комнату без медиа</Text>
+              <Text style={s.createRoomText}>{t('sourcePicker', 'createRoomNoMedia')}</Text>
             </TouchableOpacity>
           ) : null
         }
         ListEmptyComponent={
           <View style={s.empty}>
             <Ionicons name="search-outline" size={40} color="#4B5563" />
-            <Text style={s.emptyText}>Ничего не найдено</Text>
+            <Text style={s.emptyText}>{t('sourcePicker', 'nothingFound')}</Text>
           </View>
         }
       />

@@ -1,4 +1,4 @@
-// CineSync Mobile — QualityMenu (E68-1)
+// WeWatch Mobile — QualityMenu (E68-1)
 // Bottom sheet modal — video sifat tanlash
 import React from 'react';
 import {

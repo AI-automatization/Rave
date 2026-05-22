@@ -1,4 +1,4 @@
-// CineSync Mobile — Settings persistence hook (backend API + local fallback)
+// WeWatch Mobile — Settings persistence hook (backend API + local fallback)
 import { useState, useEffect, useRef, useCallback } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import { userApi, UserSettings } from '@api/user.api';

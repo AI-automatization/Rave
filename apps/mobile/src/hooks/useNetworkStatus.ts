@@ -1,4 +1,4 @@
-// CineSync Mobile — Network Status Hook
+// WeWatch Mobile — Network Status Hook
 // Uses AppState + fetch/AbortController (no extra packages needed)
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { AppState, AppStateStatus } from 'react-native';

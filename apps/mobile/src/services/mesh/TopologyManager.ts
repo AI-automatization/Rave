@@ -1,4 +1,4 @@
-// CineSync — TopologyManager: selects mesh topology based on peer count
+// WeWatch — TopologyManager: selects mesh topology based on peer count
 // ≤6 → full mesh, 7-15 → star (owner hub), 16+ → Socket.io only
 
 export type Topology = 'full_mesh' | 'star' | 'socket_only';

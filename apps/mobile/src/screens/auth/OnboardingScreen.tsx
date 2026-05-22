@@ -1,4 +1,4 @@
-// CineSync Mobile — Onboarding Screen (refactored)
+// WeWatch Mobile — Onboarding Screen (refactored)
 import React, { useRef, useState, useCallback } from 'react';
 import {
   View,

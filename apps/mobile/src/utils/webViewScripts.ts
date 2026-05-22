@@ -1,4 +1,4 @@
-// CineSync — WebView JS injection scripts & helpers for MediaWebViewScreen
+// WeWatch — WebView JS injection scripts & helpers for MediaWebViewScreen
 import { Platform } from 'react-native';
 
 // Desktop UA — prevents YouTube/Google from redirecting to sign-in in WebView

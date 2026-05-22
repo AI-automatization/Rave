@@ -1,4 +1,4 @@
-// CineSync Mobile — Onboarding animation logic
+// WeWatch Mobile — Onboarding animation logic
 import { useRef, useEffect, useCallback } from 'react';
 import { Animated } from 'react-native';
 

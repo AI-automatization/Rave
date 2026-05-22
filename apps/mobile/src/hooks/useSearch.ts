@@ -1,4 +1,4 @@
-// CineSync Mobile — Search Hook
+// WeWatch Mobile — Search Hook
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import * as SecureStore from 'expo-secure-store';

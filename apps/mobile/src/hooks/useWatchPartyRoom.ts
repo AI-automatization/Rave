@@ -1,4 +1,4 @@
-// CineSync — useWatchPartyRoom: socket sync, playback callbacks, room state management
+// WeWatch — useWatchPartyRoom: socket sync, playback callbacks, room state management
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { Alert, Dimensions, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';

@@ -1,4 +1,4 @@
-// CineSync Mobile — Home Loading Skeleton
+// WeWatch Mobile — Home Loading Skeleton
 import React, { useEffect, useRef } from 'react';
 import { View, Animated, Dimensions } from 'react-native';
 import { useTheme, createThemedStyles, spacing, borderRadius } from '@theme/index';

@@ -1,4 +1,4 @@
-// CineSync Mobile — useFriends hook
+// WeWatch Mobile — useFriends hook
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Alert } from 'react-native';
 import { userApi } from '@api/user.api';

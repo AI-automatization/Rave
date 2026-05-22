@@ -1,4 +1,4 @@
-// CineSync — Mesh WebRTC config (ICE servers)
+// WeWatch — Mesh WebRTC config (ICE servers)
 import type { MeshConfig } from './types';
 
 const DATA_CHANNEL_LABEL = 'cinesync-sync';

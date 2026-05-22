@@ -1,4 +1,4 @@
-// CineSync Mobile — Onboarding slide data
+// WeWatch Mobile — Onboarding slide data
 import { Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 

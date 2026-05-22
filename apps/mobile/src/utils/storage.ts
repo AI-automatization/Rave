@@ -1,4 +1,4 @@
-// CineSync Mobile — Secure Token Storage (expo-secure-store)
+// WeWatch Mobile — Secure Token Storage (expo-secure-store)
 import * as SecureStore from 'expo-secure-store';
 
 const KEYS = {

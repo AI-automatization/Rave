@@ -1,4 +1,4 @@
-// CineSync Mobile — OnboardingSlide styles
+// WeWatch Mobile — OnboardingSlide styles
 import { Dimensions } from 'react-native';
 import { createThemedStyles, spacing, typography } from '@theme/index';
 import { ICON_RING_SIZE } from './onboardingSlides';

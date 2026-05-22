@@ -1,4 +1,4 @@
-// CineSync — Video Player utility functions & constants
+// WeWatch — Video Player utility functions & constants
 import { Platform } from 'react-native';
 
 export const SEEK_SEC = 10;

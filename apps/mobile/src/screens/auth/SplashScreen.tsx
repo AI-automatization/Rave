@@ -1,4 +1,4 @@
-// CineSync Mobile — Splash Screen
+// WeWatch Mobile — Splash Screen
 import React, { useEffect, useRef } from 'react';
 import { View, Text, Animated, Dimensions } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';

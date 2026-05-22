@@ -1,4 +1,4 @@
-// CineSync Mobile — crash utils unit test
+// WeWatch Mobile — crash utils unit test
 import { crash } from '../utils/crash';
 
 describe('crash utils', () => {

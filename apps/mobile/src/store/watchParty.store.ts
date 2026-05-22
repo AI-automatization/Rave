@@ -1,4 +1,4 @@
-// CineSync Mobile — Watch Party Store (Zustand)
+// WeWatch Mobile — Watch Party Store (Zustand)
 import { create } from 'zustand';
 import { IWatchPartyRoom, SyncState, VideoItem } from '@app-types/index';
 

@@ -1,4 +1,4 @@
-// CineSync Mobile — Auth screen grid background
+// WeWatch Mobile — Auth screen grid background
 import React from 'react';
 import { View, StyleSheet, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';

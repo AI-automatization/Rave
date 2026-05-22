@@ -1,4 +1,4 @@
-// CineSync Mobile — Movie Detail: Parallax Hero
+// WeWatch Mobile — Movie Detail: Parallax Hero
 import React from 'react';
 import { StyleSheet, Dimensions, Animated } from 'react-native';
 import { Image } from 'expo-image';

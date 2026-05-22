@@ -1,4 +1,4 @@
-// CineSync Mobile — Hero Banner (top 5 auto-scroll)
+// WeWatch Mobile — Hero Banner (top 5 auto-scroll)
 import React, { memo, useEffect, useRef, useState } from 'react';
 import { View, Text, Dimensions, FlatList, TouchableOpacity, ListRenderItem, Alert } from 'react-native';
 import { Image } from 'expo-image';

@@ -1,4 +1,4 @@
-// CineSync Mobile — Auth API
+// WeWatch Mobile — Auth API
 import { authClient } from './client';
 import { ApiResponse, LoginRequest, LoginResponse, RegisterRequest } from '@app-types/index';
 

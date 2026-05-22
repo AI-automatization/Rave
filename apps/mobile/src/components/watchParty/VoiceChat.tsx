@@ -1,4 +1,4 @@
-// CineSync Mobile — VoiceChat
+// WeWatch Mobile — VoiceChat
 // WebRTC peer-to-peer audio for watch party rooms.
 // Requires expo-dev-client (won't work in Expo Go — native modules needed).
 import React from 'react';

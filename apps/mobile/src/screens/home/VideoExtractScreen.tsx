@@ -1,4 +1,4 @@
-// CineSync Mobile — Video Extract Screen
+// WeWatch Mobile — Video Extract Screen
 import React, { useRef } from 'react';
 import { View, Text, ActivityIndicator, StatusBar } from 'react-native';
 import { useNavigation } from '@react-navigation/native';

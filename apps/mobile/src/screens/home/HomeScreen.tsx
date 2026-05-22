@@ -142,7 +142,7 @@ export function HomeScreen() {
           <Ionicons name="search-outline" size={17} color={searchFocused ? colors.primary : colors.textDim} />
           <TextInput
             style={s.searchInput}
-            placeholder="Video qidirish..."
+            placeholder={t('home', 'videoSearchPlaceholder')}
             placeholderTextColor={colors.textDim}
             value={query}
             onChangeText={setQuery}

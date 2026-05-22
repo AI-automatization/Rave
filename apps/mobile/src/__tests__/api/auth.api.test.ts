@@ -1,4 +1,4 @@
-// CineSync Mobile — auth.api unit tests
+// WeWatch Mobile — auth.api unit tests
 import { authApi } from '../../api/auth.api';
 
 const mockPost = jest.fn();

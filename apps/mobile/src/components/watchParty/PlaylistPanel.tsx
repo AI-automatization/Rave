@@ -1,4 +1,4 @@
-// CineSync Mobile — WatchParty Playlist Panel (T-E107)
+// WeWatch Mobile — WatchParty Playlist Panel (T-E107)
 import React from 'react';
 import { View, Text, TouchableOpacity, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';

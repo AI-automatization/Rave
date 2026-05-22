@@ -1,4 +1,4 @@
-// CineSync — FilmSelector styles
+// WeWatch — FilmSelector styles
 import { createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 
 export const useFilmSelectorStyles = createThemedStyles((colors) => ({

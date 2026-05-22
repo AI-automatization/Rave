@@ -1,4 +1,4 @@
-// CineSync Mobile — useSearch hook unit tests
+// WeWatch Mobile — useSearch hook unit tests
 import { GENRES } from '../../hooks/useSearch';
 
 // Mock expo-secure-store (used by useSearchHistory)

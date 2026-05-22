@@ -1,4 +1,4 @@
-// CineSync Mobile — GenreChips component
+// WeWatch Mobile — GenreChips component
 import React from 'react';
 import { ScrollView, TouchableOpacity, Text } from 'react-native';
 import { createThemedStyles, spacing, borderRadius, typography } from '@theme/index';

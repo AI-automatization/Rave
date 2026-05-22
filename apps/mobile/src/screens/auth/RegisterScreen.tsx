@@ -1,4 +1,4 @@
-// CineSync Mobile — Register Screen
+// WeWatch Mobile — Register Screen
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,

@@ -1,4 +1,4 @@
-// CineSync — VoiceChat action buttons (join, leave, mute/unmute)
+// WeWatch — VoiceChat action buttons (join, leave, mute/unmute)
 import React from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';

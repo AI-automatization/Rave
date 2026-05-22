@@ -1,4 +1,4 @@
-// CineSync Mobile — NotificationsScreen
+// WeWatch Mobile — NotificationsScreen
 import React from 'react';
 import {
   View,

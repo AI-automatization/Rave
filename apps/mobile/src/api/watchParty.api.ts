@@ -1,4 +1,4 @@
-// CineSync Mobile — Watch Party API
+// WeWatch Mobile — Watch Party API
 import { watchPartyClient } from './client';
 import { ApiResponse, IWatchPartyRoom, VideoItem } from '@app-types/index';
 

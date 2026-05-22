@@ -1,4 +1,4 @@
-// CineSync Mobile — WatchParty InviteCard
+// WeWatch Mobile — WatchParty InviteCard
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, TouchableOpacity, FlatList, ActivityIndicator, Alert, Share, Linking } from 'react-native';
 import * as Clipboard from 'expo-clipboard';

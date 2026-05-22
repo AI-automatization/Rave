@@ -1,4 +1,4 @@
-// CineSync — useSourcePicker: URL extraction, source navigation, room creation
+// WeWatch — useSourcePicker: URL extraction, source navigation, room creation
 import { useState } from 'react';
 import { Alert } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';

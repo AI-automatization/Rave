@@ -1,4 +1,4 @@
-// CineSync — Video Player hook (progress save, playback status, controls, double-tap)
+// WeWatch — Video Player hook (progress save, playback status, controls, double-tap)
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { Animated, Dimensions } from 'react-native';
 import { Video, AVPlaybackStatus } from 'expo-av';

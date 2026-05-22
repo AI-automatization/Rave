@@ -1,4 +1,4 @@
-// CineSync Mobile — WatchParty VideoSection
+// WeWatch Mobile — WatchParty VideoSection
 import React, { useRef, useCallback, useEffect, useState } from 'react';
 import {
   View, Text, TouchableOpacity, Animated,

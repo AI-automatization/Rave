@@ -1,4 +1,4 @@
-// CineSync Mobile — VideoProgressBar
+// WeWatch Mobile — VideoProgressBar
 import React, { useRef, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, PanResponder } from 'react-native';
 import { colors, typography } from '@theme/index';

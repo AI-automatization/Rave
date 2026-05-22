@@ -1,4 +1,4 @@
-// CineSync — SyncBroadcaster: dual-path sync (mesh DataChannel + Socket.io fallback)
+// WeWatch — SyncBroadcaster: dual-path sync (mesh DataChannel + Socket.io fallback)
 // Chooses path based on TopologyManager topology and mesh connection state
 import { AppState, type AppStateStatus } from 'react-native';
 import { getSocket, CLIENT_EVENTS } from '@socket/client';

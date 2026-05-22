@@ -1,4 +1,4 @@
-// CineSync Mobile — WatchParty ChatPanel
+// WeWatch Mobile — WatchParty ChatPanel
 import React, { useRef, useState } from 'react';
 import {
   View, Text, FlatList, TextInput, TouchableOpacity,

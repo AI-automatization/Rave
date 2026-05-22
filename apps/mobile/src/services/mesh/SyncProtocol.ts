@@ -1,4 +1,4 @@
-// CineSync — SyncProtocol: mesh-level sync message creation + drift correction
+// WeWatch — SyncProtocol: mesh-level sync message creation + drift correction
 import type { SyncMessage } from './types';
 
 const DRIFT_FORCE_SEEK_MS = 2000;

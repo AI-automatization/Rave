@@ -1,4 +1,4 @@
-// CineSync Mobile — Search Results Screen
+// WeWatch Mobile — Search Results Screen
 import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,

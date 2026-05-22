@@ -1,4 +1,4 @@
-// CineSync Mobile — Root Navigator
+// WeWatch Mobile — Root Navigator
 import React, { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';

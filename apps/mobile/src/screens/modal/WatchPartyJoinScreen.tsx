@@ -1,4 +1,4 @@
-// CineSync Mobile — WatchParty Join by Invite Code
+// WeWatch Mobile — WatchParty Join by Invite Code
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View,

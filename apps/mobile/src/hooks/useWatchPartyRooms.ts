@@ -1,4 +1,4 @@
-// CineSync Mobile — useWatchPartyRooms hook
+// WeWatch Mobile — useWatchPartyRooms hook
 import { useQuery } from '@tanstack/react-query';
 import { watchPartyApi } from '@api/watchParty.api';
 

@@ -1,4 +1,4 @@
-// CineSync Mobile — Video Controls Overlay (themed + animated)
+// WeWatch Mobile — Video Controls Overlay (themed + animated)
 import React, { useRef, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, GestureResponderEvent,

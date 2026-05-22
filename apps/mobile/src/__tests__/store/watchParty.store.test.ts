@@ -1,4 +1,4 @@
-// CineSync Mobile — watchParty.store unit tests
+// WeWatch Mobile — watchParty.store unit tests
 import { useWatchPartyStore, selectIsWatchPartyOpen } from '../../store/watchParty.store';
 
 const ROOM_STUB = {

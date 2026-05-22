@@ -1,4 +1,4 @@
-// CineSync Mobile — ErrorBoundary
+// WeWatch Mobile — ErrorBoundary
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { captureError } from '@utils/errorLogger';

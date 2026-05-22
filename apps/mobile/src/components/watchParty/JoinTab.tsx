@@ -1,4 +1,4 @@
-// CineSync — Join tab for WatchPartyCreateScreen
+// WeWatch — Join tab for WatchPartyCreateScreen
 import React, { useState, useRef, useCallback } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';

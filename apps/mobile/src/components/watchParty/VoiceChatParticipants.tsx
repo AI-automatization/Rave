@@ -1,4 +1,4 @@
-// CineSync — VoiceChat participant list
+// WeWatch — VoiceChat participant list
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';

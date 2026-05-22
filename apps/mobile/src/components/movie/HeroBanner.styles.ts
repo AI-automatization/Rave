@@ -1,4 +1,4 @@
-// CineSync — HeroBanner styles
+// WeWatch — HeroBanner styles
 import { Dimensions } from 'react-native';
 import { createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 

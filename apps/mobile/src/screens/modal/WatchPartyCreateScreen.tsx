@@ -1,4 +1,4 @@
-// CineSync Mobile — WatchPartyCreateScreen (3-tab: Rooms / Create / Join)
+// WeWatch Mobile — WatchPartyCreateScreen (3-tab: Rooms / Create / Join)
 import React, { useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, Animated } from 'react-native';
 import { useNavigation } from '@react-navigation/native';

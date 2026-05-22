@@ -1,4 +1,4 @@
-// CineSync Mobile — Movie Detail: Cast horizontal list
+// WeWatch Mobile — Movie Detail: Cast horizontal list
 import React from 'react';
 import { View, Text, ScrollView } from 'react-native';
 import { Image } from 'expo-image';

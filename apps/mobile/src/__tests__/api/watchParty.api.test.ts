@@ -1,4 +1,4 @@
-// CineSync Mobile — watchParty.api unit tests
+// WeWatch Mobile — watchParty.api unit tests
 import { watchPartyApi } from '../../api/watchParty.api';
 
 const mockGet = jest.fn();

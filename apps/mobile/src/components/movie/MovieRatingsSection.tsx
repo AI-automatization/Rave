@@ -1,4 +1,4 @@
-// CineSync Mobile — Movie Ratings Section
+// WeWatch Mobile — Movie Ratings Section
 // Shows all user ratings for a movie with delete option for own rating
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';

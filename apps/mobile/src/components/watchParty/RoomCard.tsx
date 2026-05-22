@@ -1,4 +1,4 @@
-// CineSync Mobile — WatchParty Room Card
+// WeWatch Mobile — WatchParty Room Card
 import React, { useRef, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Image, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';

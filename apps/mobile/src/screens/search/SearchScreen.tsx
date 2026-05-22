@@ -1,4 +1,4 @@
-// CineSync Mobile — Search Screen
+// WeWatch Mobile — Search Screen
 import React, { useState, useCallback } from 'react';
 import { View, Text, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';

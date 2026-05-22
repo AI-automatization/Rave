@@ -1,4 +1,4 @@
-// CineSync Mobile — Movie Detail: Similar movies horizontal list
+// WeWatch Mobile — Movie Detail: Similar movies horizontal list
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';

@@ -1,4 +1,4 @@
-// CineSync — VideoControls styles
+// WeWatch — VideoControls styles
 import { StyleSheet } from 'react-native';
 import { spacing, typography, borderRadius } from '@theme/index';
 

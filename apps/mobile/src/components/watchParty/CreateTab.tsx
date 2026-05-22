@@ -1,4 +1,4 @@
-// CineSync — Create tab for WatchPartyCreateScreen
+// WeWatch — Create tab for WatchPartyCreateScreen
 import React, { useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView,

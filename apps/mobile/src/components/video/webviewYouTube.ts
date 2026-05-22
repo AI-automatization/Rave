@@ -1,4 +1,4 @@
-// CineSync Mobile — YouTube IFrame API HTML page builder
+// WeWatch Mobile — YouTube IFrame API HTML page builder
 // source={{ html }} rejimi — URI orqali cross-origin restriction yo'q
 // window._csVideo proxy: play/pause/seekTo ref metodlari uchun
 

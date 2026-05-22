@@ -1,4 +1,4 @@
-// CineSync Mobile — ProfileScreen (web-style card layout + animations)
+// WeWatch Mobile — ProfileScreen (web-style card layout + animations)
 import React, { useState, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';

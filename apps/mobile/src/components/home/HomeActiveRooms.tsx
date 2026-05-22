@@ -1,4 +1,4 @@
-// CineSync Mobile — Live rooms card grid with thumbnails
+// WeWatch Mobile — Live rooms card grid with thumbnails
 import React from 'react';
 import {
   View,

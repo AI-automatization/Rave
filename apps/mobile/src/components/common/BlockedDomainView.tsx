@@ -1,4 +1,4 @@
-// CineSync Mobile — BlockedDomainView
+// WeWatch Mobile — BlockedDomainView
 // Shown instead of the video player when a domain is blocked by platform policy.
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';

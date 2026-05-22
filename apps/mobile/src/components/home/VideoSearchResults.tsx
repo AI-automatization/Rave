@@ -1,4 +1,4 @@
-// CineSync Mobile — Video search results list
+// WeWatch Mobile — Video search results list
 import React from 'react';
 import {
   View,

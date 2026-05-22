@@ -1,7 +1,8 @@
-// CineSync Mobile — usePushNotifications hook
+// WeWatch Mobile — usePushNotifications hook
 import { useEffect, useRef } from 'react';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import { useQueryClient } from '@tanstack/react-query';
 import { userApi } from '@api/user.api';
 import { useAuthStore } from '@store/auth.store';
@@ -46,6 +47,11 @@ export function usePushNotifications() {
 }
 
 async function registerForPushNotifications(): Promise<void> {
+  if (!Constants.isDevice) {
+    if (__DEV__) console.log('[Push] Simulator detected — push token registration skipped');
+    return;
+  }
+
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
       name: 'default',

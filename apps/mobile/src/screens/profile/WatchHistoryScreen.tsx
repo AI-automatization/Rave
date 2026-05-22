@@ -1,4 +1,4 @@
-// CineSync Mobile — Watch History Screen
+// WeWatch Mobile — Watch History Screen
 import React, { useState, useCallback } from 'react';
 import {
   View,

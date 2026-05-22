@@ -1,4 +1,4 @@
-// CineSync Mobile — Design Tokens
+// WeWatch Mobile — Design Tokens
 // WEB_DESIGN_GUIDE.md bilan moslashtirilgan (2026-03-15)
 
 // ── Colors re-exported from separate file (avoids circular dep with ThemeContext) ──

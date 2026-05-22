@@ -1,4 +1,4 @@
-// CineSync Mobile — mediaDetector utility tests
+// WeWatch Mobile — mediaDetector utility tests
 import { normalizeDetectedMedia, normalizeBlobMedia } from '../../utils/mediaDetector';
 import { isPlaceholderVideoUrl } from '../../utils/webViewScripts';
 

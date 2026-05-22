@@ -173,6 +173,7 @@ export const translations = {
     seeAll: { uz: 'Barchasi', ru: 'Все', en: 'See All' },
     empty: { uz: "Hozircha hech narsa yo'q", ru: 'Пока ничего нет', en: 'Nothing here yet' },
     topRated: { uz: 'Top Rated', ru: 'Лучшие', en: 'Top Rated' },
+    videoSearchPlaceholder: { uz: 'Video qidirish...', ru: 'Поиск видео...', en: 'Search videos...' },
   },
 
   // ─── Search ───
@@ -224,6 +225,7 @@ export const translations = {
     offline: { uz: 'Oflayn', ru: 'Офлайн', en: 'Offline' },
     statistics: { uz: 'STATISTIKA', ru: 'СТАТИСТИКА', en: 'STATISTICS' },
     friendsCount: { uz: "Do'stlar", ru: 'Друзья', en: 'Friends' },
+    reportUser: { uz: 'Foydalanuvchi haqida shikoyat', ru: 'Пожаловаться на пользователя', en: 'Report user' },
   },
 
   // ─── Profile ───
@@ -400,10 +402,10 @@ export const translations = {
     inviteFailed: { uz: 'Taklif yuborib bo\'lmadi', ru: 'Не удалось отправить приглашение', en: 'Failed to send invite' },
     noFriendsYet: { uz: "Hali do'stlaringiz yo'q", ru: 'У вас пока нет друзей', en: 'No friends yet' },
     shareInvite: { uz: 'Ulashish', ru: 'Поделиться', en: 'Share' },
-    shareText: { uz: "Rave Watch Party ga qo'shiling!", ru: 'Присоединяйтесь к Rave Watch Party!', en: 'Join Rave Watch Party!' },
+    shareText: { uz: "WeWatch Watch Party ga qo'shiling!", ru: 'Присоединяйтесь к WeWatch Watch Party!', en: 'Join WeWatch Watch Party!' },
     shareViaTelegram: { uz: 'Telegram orqali ulashish', ru: 'Поделиться через Telegram', en: 'Share via Telegram' },
     shareNative: { uz: 'Boshqa ilovalar', ru: 'Другие приложения', en: 'Other apps' },
-    shareRoomMessage: { uz: "Menga Rave da qo'shiling! 🎬", ru: 'Присоединяйся ко мне в Rave! 🎬', en: 'Join me on Rave! 🎬' },
+    shareRoomMessage: { uz: "Menga WeWatch da qo'shiling! 🎬", ru: 'Присоединяйся ко мне в WeWatch! 🎬', en: 'Join me on WeWatch! 🎬' },
     // Tabs
     tabRooms: { uz: 'Xonalar', ru: 'Комнаты', en: 'Rooms' },
     tabCreate: { uz: 'Yaratish', ru: 'Создать', en: 'Create' },
@@ -451,6 +453,15 @@ export const translations = {
     closedOwnerLeft: { uz: 'Xona egasi xonani yopdi', ru: 'Владелец закрыл комнату', en: 'Room owner closed the room' },
     closedByAdmin: { uz: 'Xona admin tomonidan yopildi', ru: 'Комната закрыта администратором', en: 'Room closed by admin' },
     reason: { uz: 'Sabab', ru: 'Причина', en: 'Reason' },
+    // Connection / playback
+    connectionError: { uz: "Ulanib bo'lmadi", ru: 'Не удалось подключиться', en: 'Connection failed' },
+    connectionErrorSub: { uz: 'Socket serverga ulanishda xatolik yuz berdi', ru: 'Ошибка подключения к серверу', en: 'Failed to connect to server' },
+    videoSourceExpiredOwner: { uz: 'Video manbasi eskirdi', ru: 'Видео источник устарел', en: 'Video source expired' },
+    videoSourceExpiredViewer: { uz: "Video manbasi eskirdi — egasi yangilaydi", ru: 'Видео источник устарел — хозяин обновит', en: 'Video source expired — owner will update' },
+    updateSource: { uz: 'Yangilash', ru: 'Обновить', en: 'Update' },
+    quality: { uz: 'Sifat', ru: 'Качество', en: 'Quality' },
+    episodes: { uz: 'Epizodlar', ru: 'Эпизоды', en: 'Episodes' },
+    goBack: { uz: 'Orqaga qaytish', ru: 'Вернуться назад', en: 'Go back' },
   },
 
   // ─── Battle ───
@@ -531,6 +542,26 @@ export const translations = {
     animation: { uz: 'Animatsiya', ru: 'Анимация', en: 'Animation' },
     documentary: { uz: 'Hujjatli', ru: 'Документальный', en: 'Documentary' },
     fantasy: { uz: 'Fantaziya', ru: 'Фэнтези', en: 'Fantasy' },
+  },
+
+  // ─── Source Picker ───
+  sourcePicker: {
+    title: { uz: 'Manba tanlang', ru: 'Выберите источник', en: 'Choose Source' },
+    searchPlaceholder: { uz: 'Video, serial yoki film...', ru: 'Искать видео, сериал или фильм...', en: 'Search video, series or movie...' },
+    directLinkLabel: { uz: "Yoki to'g'ri video havolasini joylashtiring", ru: 'Или вставьте прямую ссылку на видео', en: 'Or paste a direct video link' },
+    createRoomNoMedia: { uz: 'Mediasiz xona yaratish', ru: 'Создать комнату без медиа', en: 'Create room without media' },
+    nothingFound: { uz: 'Hech narsa topilmadi', ru: 'Ничего не найдено', en: 'Nothing found' },
+  },
+
+  // ─── In-App Browser ───
+  browser: {
+    pageUnavailable: { uz: 'Sahifa mavjud emas', ru: 'Страница недоступна', en: 'Page unavailable' },
+    siteBlockedBrowser: { uz: "Sayt ichki brauzerni blokladi yoki mavjud emas.", ru: 'Сайт заблокировал встроенный браузер или недоступен.', en: 'Site blocked the in-app browser or is unavailable.' },
+    reload: { uz: 'Qayta yuklash', ru: 'Обновить', en: 'Reload' },
+    domainBlocked: { uz: 'Sayt bloklangan', ru: 'Сайт заблокирован', en: 'Site Blocked' },
+    domainBlockedMsg: { uz: "Bu sayt WeWatch da mavjud emas. Boshqa manba tanlang.", ru: 'Этот сайт недоступен в WeWatch. Выберите другой источник.', en: 'This site is unavailable in WeWatch. Choose another source.' },
+    back: { uz: '← Orqaga', ru: '← Назад', en: '← Back' },
+    videoDetecting: { uz: 'Watch Party uchun video aniqlanmoqda', ru: 'Определение видео для Watch Party', en: 'Detecting video for Watch Party sync' },
   },
 
   // ─── Tab bar labels ───

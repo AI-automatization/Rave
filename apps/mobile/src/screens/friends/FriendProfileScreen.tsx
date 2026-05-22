@@ -1,4 +1,4 @@
-// CineSync Mobile — FriendProfileScreen
+// WeWatch Mobile — FriendProfileScreen
 import React, { useState } from 'react';
 import {
   View,
@@ -228,7 +228,7 @@ export function FriendProfileScreen() {
 
         <TouchableOpacity style={styles.reportBtn} onPress={() => setShowReport(true)}>
           <Ionicons name="flag-outline" size={15} color={colors.textMuted} />
-          <Text style={styles.reportBtnText}>Пожаловаться на пользователя</Text>
+          <Text style={styles.reportBtnText}>{t('friends', 'reportUser')}</Text>
         </TouchableOpacity>
 
         <View style={{ height: TAB_BAR_HEIGHT + insets.bottom + spacing.xl }} />

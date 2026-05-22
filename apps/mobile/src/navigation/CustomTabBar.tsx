@@ -1,4 +1,4 @@
-// CineSync Mobile — Glassmorphism Tab Bar
+// WeWatch Mobile — Glassmorphism Tab Bar
 import React, { useEffect, useRef, useCallback } from 'react';
 import { View, TouchableOpacity, Animated, Dimensions } from 'react-native';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';

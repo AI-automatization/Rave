@@ -1,4 +1,4 @@
-// CineSync Mobile — Home Hero CTA (Watch Together button)
+// WeWatch Mobile — Home Hero CTA (Watch Together button)
 import React, { useRef } from 'react';
 import { View, Text, TouchableOpacity, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';

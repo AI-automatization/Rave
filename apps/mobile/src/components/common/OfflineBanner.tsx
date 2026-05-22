@@ -1,4 +1,4 @@
-// CineSync Mobile — Offline Banner Component
+// WeWatch Mobile — Offline Banner Component
 // Positions correctly below status bar using safe area insets.
 // Slides in from ABOVE the screen (not from behind the status bar).
 import React, { useEffect, useRef } from 'react';

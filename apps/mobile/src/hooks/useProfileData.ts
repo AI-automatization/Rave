@@ -1,4 +1,4 @@
-// CineSync Mobile — Profile rank calculations and helpers
+// WeWatch Mobile — Profile rank calculations and helpers
 import { useMemo } from 'react';
 import { RANK_COLORS } from '@theme/index';
 import { Ionicons } from '@expo/vector-icons';

@@ -1,4 +1,4 @@
-// CineSync Mobile — Video extraction hook
+// WeWatch Mobile — Video extraction hook
 import { useState, useCallback } from 'react';
 import { contentApi, VideoExtractResult } from '@api/content.api';
 import { useAuthStore } from '@store/auth.store';

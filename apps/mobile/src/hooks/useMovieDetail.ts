@@ -1,4 +1,4 @@
-// CineSync Mobile — Movie Detail hook
+// WeWatch Mobile — Movie Detail hook
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { contentApi } from '@api/content.api';
 import { IMovie, IWatchProgress } from '@app-types/index';

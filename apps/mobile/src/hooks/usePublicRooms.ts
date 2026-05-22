@@ -1,4 +1,4 @@
-// CineSync Mobile — usePublicRooms: public active rooms discovery (T-E109)
+// WeWatch Mobile — usePublicRooms: public active rooms discovery (T-E109)
 import { useQuery } from '@tanstack/react-query';
 import { watchPartyApi } from '@api/watchParty.api';
 

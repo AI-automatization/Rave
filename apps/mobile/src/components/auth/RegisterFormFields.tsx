@@ -1,4 +1,4 @@
-// CineSync Mobile — Register form fields with password strength
+// WeWatch Mobile — Register form fields with password strength
 import React, { useEffect, useRef } from 'react';
 import { View, Text, Animated } from 'react-native';
 import { useTheme, createThemedStyles } from '@theme/index';

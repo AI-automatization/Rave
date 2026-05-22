@@ -1,4 +1,4 @@
-// CineSync Mobile — ErrorBoundary unit test
+// WeWatch Mobile — ErrorBoundary unit test
 import React from 'react';
 import { act, create } from 'react-test-renderer';
 import { ErrorBoundary } from '../components/common/ErrorBoundary';

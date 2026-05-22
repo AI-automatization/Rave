@@ -1,4 +1,4 @@
-// CineSync Mobile — Language Select Screen
+// WeWatch Mobile — Language Select Screen
 import React, { useState } from 'react';
 import {
   View,

@@ -1,4 +1,4 @@
-// CineSync Mobile — useWatchParty hook unit tests
+// WeWatch Mobile — useWatchParty hook unit tests
 // Tests the socket event handlers and emit helpers via mocked socket
 
 jest.mock('../../api/client', () => ({

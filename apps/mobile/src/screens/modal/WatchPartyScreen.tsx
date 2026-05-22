@@ -1,4 +1,4 @@
-// CineSync Mobile — WatchPartyScreen
+// WeWatch Mobile — WatchPartyScreen
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Platform, StyleSheet, Dimensions } from 'react-native';
 import * as ScreenOrientation from 'expo-screen-orientation';
@@ -75,10 +75,10 @@ export function WatchPartyScreen() {
         <View style={s.errorIconWrap}>
           <Ionicons name="wifi-outline" size={32} color="rgba(255,255,255,0.3)" />
         </View>
-        <Text style={s.errorTitle}>Ulanib bo&apos;lmadi</Text>
-        <Text style={s.errorSub}>Socket serverga ulanishda xatolik yuz berdi</Text>
+        <Text style={s.errorTitle}>{t('watchParty', 'connectionError')}</Text>
+        <Text style={s.errorSub}>{t('watchParty', 'connectionErrorSub')}</Text>
         <TouchableOpacity style={s.errorBtn} onPress={handleLeave} activeOpacity={0.8}>
-          <Text style={s.errorBtnText}>Orqaga qaytish</Text>
+          <Text style={s.errorBtnText}>{t('watchParty', 'goBack')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -103,11 +103,11 @@ export function WatchPartyScreen() {
         <View style={s.expiredBanner}>
           <Ionicons name="warning-outline" size={14} color="#F59E0B" />
           <Text style={s.expiredText}>
-            {isOwner ? 'Видео источник устарел' : 'Видео источник устарел — хозяин обновит'}
+            {isOwner ? t('watchParty', 'videoSourceExpiredOwner') : t('watchParty', 'videoSourceExpiredViewer')}
           </Text>
           {isOwner && (
             <TouchableOpacity style={s.expiredBtn} onPress={handleChangeMedia} activeOpacity={0.8}>
-              <Text style={s.expiredBtnText}>Yangilash</Text>
+              <Text style={s.expiredBtnText}>{t('watchParty', 'updateSource')}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -249,13 +249,13 @@ export function WatchPartyScreen() {
               {extractQualities.length > 0 && (
                 <TouchableOpacity style={s.gearChip} onPress={() => setShowQualityMenu(true)} activeOpacity={0.75}>
                   <Ionicons name="settings-outline" size={13} color="rgba(255,255,255,0.5)" />
-                  <Text style={s.gearChipText}>Sifat</Text>
+                  <Text style={s.gearChipText}>{t('watchParty', 'quality')}</Text>
                 </TouchableOpacity>
               )}
               {extractEpisodes.length > 0 && (
                 <TouchableOpacity style={s.gearChip} onPress={() => setShowEpisodeMenu(true)} activeOpacity={0.75}>
                   <Ionicons name="list-outline" size={13} color="rgba(255,255,255,0.5)" />
-                  <Text style={s.gearChipText}>Epizodlar</Text>
+                  <Text style={s.gearChipText}>{t('watchParty', 'episodes')}</Text>
                 </TouchableOpacity>
               )}
             </View>

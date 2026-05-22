@@ -6,7 +6,7 @@ interface ThemeContextValue {
   isDark: boolean;
 }
 
-// CineSync — Dark mode ONLY (barcha platform)
+// WeWatch — Dark mode ONLY (barcha platform)
 const THEME_VALUE: ThemeContextValue = {
   colors: darkColors,
   isDark: true,

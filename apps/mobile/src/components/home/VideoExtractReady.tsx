@@ -1,4 +1,4 @@
-// CineSync Mobile — Video extract ready state: player + info + actions
+// WeWatch Mobile — Video extract ready state: player + info + actions
 import React from 'react';
 import { View, Text, TouchableOpacity, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';

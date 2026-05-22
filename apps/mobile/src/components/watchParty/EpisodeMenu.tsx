@@ -1,4 +1,4 @@
-// CineSync Mobile — EpisodeMenu (E68-2)
+// WeWatch Mobile — EpisodeMenu (E68-2)
 // Season/episode accordion modal
 import React, { useState } from 'react';
 import {

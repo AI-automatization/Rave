@@ -1,4 +1,4 @@
-// CineSync Mobile — Single onboarding slide component
+// WeWatch Mobile — Single onboarding slide component
 import React from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';

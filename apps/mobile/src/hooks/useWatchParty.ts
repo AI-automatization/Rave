@@ -1,4 +1,4 @@
-// CineSync Mobile — useWatchParty hook
+// WeWatch Mobile — useWatchParty hook
 import { useEffect, useCallback, useState, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useWatchPartyStore } from '@store/watchParty.store';

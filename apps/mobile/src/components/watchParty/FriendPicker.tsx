@@ -1,4 +1,4 @@
-// CineSync Mobile — FriendPicker component (themed + animated)
+// WeWatch Mobile — FriendPicker component (themed + animated)
 import React, { useRef, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';

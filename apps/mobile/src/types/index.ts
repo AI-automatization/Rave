@@ -1,4 +1,4 @@
-// CineSync Mobile — Type Definitions
+// WeWatch Mobile — Type Definitions
 // Shared types dan re-export + mobile-specific types
 
 export type {

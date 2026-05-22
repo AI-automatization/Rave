@@ -1,4 +1,4 @@
-// CineSync Mobile — Video Player Screen
+// WeWatch Mobile — Video Player Screen
 // YouTube → m.youtube.com WebView | Direct → expo-av + custom controls
 import React, { useRef, useEffect, useState } from 'react';
 import {

@@ -1,4 +1,4 @@
-// CineSync Mobile — useWatchPartyCreate hook
+// WeWatch Mobile — useWatchPartyCreate hook
 // Extracted from WatchPartyCreateScreen for SRP compliance
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Alert } from 'react-native';

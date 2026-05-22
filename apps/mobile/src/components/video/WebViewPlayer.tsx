@@ -1,4 +1,4 @@
-// CineSync Mobile — WebViewPlayer
+// WeWatch Mobile — WebViewPlayer
 // react-native-webview asosida har qanday saytdan video o'ynatish
 import React, { forwardRef } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet, TouchableOpacity, Linking } from 'react-native';

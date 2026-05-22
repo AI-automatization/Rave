@@ -1,4 +1,4 @@
-// CineSync Mobile — useProfile hook
+// WeWatch Mobile — useProfile hook
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { userApi } from '@api/user.api';
 import { useAuthStore } from '@store/auth.store';

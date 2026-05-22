@@ -1,4 +1,4 @@
-// CineSync Mobile — Support API (admin service)
+// WeWatch Mobile — Support API (admin service)
 import { adminClient } from './client';
 
 export interface SupportConversation {

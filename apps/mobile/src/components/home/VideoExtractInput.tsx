@@ -1,4 +1,4 @@
-// CineSync Mobile — Video extract input + error UI
+// WeWatch Mobile — Video extract input + error UI
 import React from 'react';
 import {
   View,

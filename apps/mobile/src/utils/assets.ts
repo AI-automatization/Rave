@@ -1,4 +1,4 @@
-// CineSync Mobile — Asset constants
+// WeWatch Mobile — Asset constants
 // Fragile relative require paths o'rniga shu yerdan import qilish
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires

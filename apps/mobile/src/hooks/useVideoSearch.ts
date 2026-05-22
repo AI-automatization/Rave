@@ -1,4 +1,4 @@
-// CineSync Mobile — Video search across YouTube, Rutube, VK
+// WeWatch Mobile — Video search across YouTube, Rutube, VK
 import { useQuery } from '@tanstack/react-query';
 import { contentApi } from '@api/content.api';
 

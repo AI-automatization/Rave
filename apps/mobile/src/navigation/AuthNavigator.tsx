@@ -1,4 +1,4 @@
-// CineSync Mobile — Auth Stack Navigator
+// WeWatch Mobile — Auth Stack Navigator
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '@app-types/index';
