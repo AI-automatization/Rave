@@ -22,6 +22,7 @@ export interface IWatchPartyRoomDocument extends Document {
   isSuspicious: boolean;
   suspiciousReason: string | null;
   isAdminBlocked: boolean;
+  videoReferer: string | null;
   domain: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -62,6 +63,7 @@ const watchPartyRoomSchema = new Schema<IWatchPartyRoomDocument>(
     isSuspicious:     { type: Boolean, default: false },
     suspiciousReason: { type: String,  default: null },
     isAdminBlocked:   { type: Boolean, default: false },
+    videoReferer:     { type: String,  default: null },
     domain:           { type: String,  default: null },
   },
   {

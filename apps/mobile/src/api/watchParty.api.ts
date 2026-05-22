@@ -14,6 +14,8 @@ export const watchPartyApi = {
     maxMembers?: number;
     /** Resume from this position in seconds */
     startTime?: number;
+    /** Page URL used as Referer header for CDN hotlink protection */
+    videoReferer?: string;
     /** E67-3: WebView session cookies — faqat webview-session rejimida */
     cookies?: string;
   }): Promise<IWatchPartyRoom> {

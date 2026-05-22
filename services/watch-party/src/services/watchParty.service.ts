@@ -66,6 +66,7 @@ export class WatchPartyService {
       videoTitle?: string | null;
       videoThumbnail?: string | null;
       videoPlatform?: VideoPlatform | null;
+      videoReferer?: string | null;
       maxMembers?: number;
       isPrivate?: boolean;
       password?: string;
@@ -73,7 +74,7 @@ export class WatchPartyService {
     },
   ): Promise<IWatchPartyRoomDocument> {
     const {
-      name, movieId, videoUrl, videoTitle, videoThumbnail, videoPlatform,
+      name, movieId, videoUrl, videoTitle, videoThumbnail, videoPlatform, videoReferer,
       maxMembers = 10, isPrivate = false, password, startTime = 0,
     } = options;
 
@@ -127,6 +128,7 @@ export class WatchPartyService {
       videoTitle:       videoTitle ?? null,
       videoThumbnail:   videoThumbnail ?? null,
       videoPlatform:    videoPlatform ?? null,
+      videoReferer:     videoReferer ?? null,
       ownerId,
       members:          [ownerId],
       maxMembers:       Math.min(maxMembers, LIMITS.MAX_WATCH_PARTY_MEMBERS),

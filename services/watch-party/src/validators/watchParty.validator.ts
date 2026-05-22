@@ -8,11 +8,12 @@ export const createRoomSchema = Joi.object({
   videoUrl: Joi.string().uri().max(2048).optional(),
   videoTitle: Joi.string().trim().max(200).optional(),
   videoThumbnail: Joi.string().uri().max(2048).optional(),
-  videoPlatform: Joi.string().valid('youtube', 'vimeo', 'direct', 'other').optional(),
+  videoPlatform: Joi.string().valid('youtube', 'vimeo', 'twitch', 'dailymotion', 'direct', 'webview', 'other').optional(),
   maxMembers: Joi.number().integer().min(2).max(50).optional(),
   isPrivate: Joi.boolean().optional(),
   password: Joi.string().min(1).max(100).optional(),
   startTime: Joi.number().integer().min(0).optional(),
+  videoReferer: Joi.string().uri().allow('').max(2048).optional(),
 });
 
 export const joinRoomSchema = Joi.object({
@@ -22,7 +23,7 @@ export const joinRoomSchema = Joi.object({
 export const updateMediaSchema = Joi.object({
   videoUrl: Joi.string().uri().max(2048).required(),
   videoTitle: Joi.string().trim().max(200).optional(),
-  videoPlatform: Joi.string().valid('youtube', 'vimeo', 'direct', 'other').optional(),
+  videoPlatform: Joi.string().valid('youtube', 'vimeo', 'twitch', 'dailymotion', 'direct', 'webview', 'other').optional(),
 });
 
 export const validate = (schema: Joi.ObjectSchema) =>

@@ -153,6 +153,7 @@ export interface IWatchPartyRoom {
   videoTitle?: string | null;
   videoThumbnail?: string | null;
   videoPlatform?: VideoPlatform | null;
+  videoReferer?: string | null;
   ownerId: string;
   members: string[];
   maxMembers: number;

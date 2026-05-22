@@ -228,6 +228,7 @@ export function useMediaDetection() {
       const room = await watchPartyApi.createRoom({
         name: effective.videoTitle.slice(0, 60), videoUrl: effective.videoUrl,
         videoTitle: effective.videoTitle, videoPlatform: effective.videoPlatform,
+        videoReferer: effective.videoReferer,
       });
       navigation.navigate('WatchParty', { roomId: room._id, videoReferer: effective.videoReferer });
     } catch (err: unknown) {

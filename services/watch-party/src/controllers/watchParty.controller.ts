@@ -19,7 +19,7 @@ export class WatchPartyController {
       const { userId } = (req as AuthenticatedRequest).user;
       const {
         name, movieId, videoUrl, videoTitle, videoThumbnail, videoPlatform,
-        maxMembers, isPrivate, password, startTime,
+        maxMembers, isPrivate, password, startTime, videoReferer,
       } = req.body as {
         name?: string;
         movieId?: string;
@@ -31,11 +31,12 @@ export class WatchPartyController {
         isPrivate?: boolean;
         password?: string;
         startTime?: number;
+        videoReferer?: string;
       };
 
       const room = await this.watchPartyService.createRoom(userId, {
         name, movieId, videoUrl, videoTitle, videoThumbnail, videoPlatform,
-        maxMembers, isPrivate, password, startTime,
+        maxMembers, isPrivate, password, startTime, videoReferer,
       });
       res.status(201).json(apiResponse.success(room, 'Room created'));
     } catch (error) {

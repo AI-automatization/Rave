@@ -417,7 +417,8 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   // Without this, ExoPlayer fetches segments directly from CDN — CDN blocks mobile device IP
   // or fingerprint → 403 → frequent buffer stalls → choppy playback.
   // For mp4 / non-HLS, the generic proxy (/content/proxy/stream) is sufficient (single file).
-  const proxyReferer = videoReferer ?? originalVideoUrl;
+  // videoReferer: navigation param (owner), room?.videoReferer: stored on create (members via invite link).
+  const proxyReferer = videoReferer ?? room?.videoReferer ?? originalVideoUrl;
   const proxyUpstreamHeaders: Record<string, string> = {};
   if (extractedVideoHeaders) {
     for (const [k, v] of Object.entries(extractedVideoHeaders)) {
@@ -441,13 +442,23 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
 
   // Android + embeddable webview platforms (VK, Rutube, Twitch, Vimeo, Dailymotion):
   // These CDNs block ExoPlayer via TLS fingerprint — proxy (Node.js/Chrome UA) is primary.
-  // Generic webview sites (kinogo, etc.) keep CDN-direct behaviour: their CDNs
-  // are standard (Cloudflare/Akamai) and ExoPlayer can reach them without issue.
+  // Android HLS: ExoPlayer does NOT forward custom headers (Referer) to segment requests,
+  // only to the initial m3u8 fetch. HLS proxy rewrites all segment URLs → server adds Referer.
+  // Without this CDN 403s all segments silently → choppy buffering stalls.
   const isAndroidEmbeddable = Platform.OS === 'android'
     && platform === 'webview'
     && !!detectEmbedPlatform(originalVideoUrl);
-  const playerExtractedUrl = (isAndroidEmbeddable && extractedVideoProxyUrl) ? extractedVideoProxyUrl : extractedVideoUrl;
-  const playerProxyUrl = isAndroidEmbeddable ? undefined : extractedVideoProxyUrl;
+  const isAndroidHls = Platform.OS === 'android' && isHlsStream && !!extractedVideoProxyUrl;
+  const playerExtractedUrl = isAndroidEmbeddable && extractedVideoProxyUrl
+    ? extractedVideoProxyUrl
+    : isAndroidHls
+      ? extractedVideoProxyUrl  // HLS proxy is primary on Android — correct Referer on all segments
+      : extractedVideoUrl;
+  const playerProxyUrl = isAndroidEmbeddable
+    ? undefined
+    : isAndroidHls
+      ? extractedVideoUrl  // CDN direct is fallback (if proxy fails, UniversalPlayer switches here)
+      : extractedVideoProxyUrl;
 
   // Reset player ready state when video URL changes (new media)
   useEffect(() => {
