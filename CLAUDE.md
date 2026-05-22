@@ -213,6 +213,11 @@ Mode B / >5 файлов? → .claude/skills/subagent-dispatch.md
   5. TESTS  → .claude/skills/auto-tests.md
   6. VISUAL → .claude/skills/visual-testing.md         (только если .tsx/.css/StyleSheet)
 
+Frontend UI/UX:
+  • DESIGN  → .claude/skills/frontend-design.md        (WeWatch dark glass UI, Bebas Neue, no AI slop)
+  • UI/UX   → .claude/skills/ui-ux-pro-max.md          (99 правил, accessibility/touch CRITICAL)
+  • TEST    → .claude/skills/webapp-testing.md         (Playwright — скрины, auth flow, локали)
+
 ГОТОВО → POST-CHECK (dev-workflow) + checkpoint clear + Done.md + tg-notify + git commit
 ```
 
