@@ -205,6 +205,7 @@ Mode B / >5 файлов? → .claude/skills/subagent-dispatch.md
 Идеи / решения?     → .claude/skills/brainstorm.md          (/brainstorm [тема] — 5 фаз, sequential-thinking MCP)
 
 Пишу код:
+  0. WORKFLOW → .claude/skills/dev-workflow.md         (PRE-CHECK обязателен если ≥3 файла или >20 мин)
   1. SPEC   → .claude/skills/spec-driven-implement.md  (YAML-спек обязателен)
   2. LOOP   → .claude/skills/execute-judge-loop.md     (write→tsc→judge≥7→fix)
   3. REFLECT→ .claude/skills/self-reflection.md        (7 шагов: imports/tsc/zone/forbidden — все ✅)
@@ -212,10 +213,10 @@ Mode B / >5 файлов? → .claude/skills/subagent-dispatch.md
   5. TESTS  → .claude/skills/auto-tests.md
   6. VISUAL → .claude/skills/visual-testing.md         (только если .tsx/.css/StyleSheet)
 
-ГОТОВО → checkpoint clear + Done.md + tg-notify + git commit
+ГОТОВО → POST-CHECK (dev-workflow) + checkpoint clear + Done.md + tg-notify + git commit
 ```
 
-Исключения: typo/1 символ, docs/Tasks.md, config — пропустить REFLECT шаг 6.
+Исключения (dev-workflow пропустить): typo/1 символ, docs/Tasks.md, config, messages/*.json.
 CLI-скиллы: `/simplify` | `/security-review` | `/review` | `/fewer-permission-prompts` | `/brainstorm`
 
 ---
