@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, useScroll, useTransform, useReducedMotion, type Variants } from 'framer-motion';
 import {
   FaPlay, FaUsers, FaTrophy, FaFire, FaComment,
-  FaChevronRight, FaCheck, FaLink, FaHeart, FaUserFriends, FaStar,
+  FaChevronRight, FaCheck, FaLink, FaHeart, FaUserFriends, FaGlobe,
 } from 'react-icons/fa';
 import { GiCrossedSwords } from 'react-icons/gi';
 import { useTranslations } from 'next-intl';
@@ -27,7 +27,7 @@ const screenVariants: Variants = {
 };
 
 const PLAY_STORE  = 'https://play.google.com/store';
-const TYPING_URL  = 'youtube.com/watch?v=dQw4w9Wgxcw';
+const TYPING_URL  = 'kinogo.cc';
 
 const BATTLE_USERS = [
   { rank: 1, name: 'Sardor_90', videos: 48, initials: 'S', color: '#FFD700', bg: 'rgba(255,215,0,0.12)' },
@@ -50,16 +50,37 @@ const MARQUEE_ITEMS = [
 ];
 
 const STATS = [
-  { value: '50K+',  label: 'Пользователей' },
-  { value: '2M+',   label: 'Часов вместе'  },
-  { value: '99.9%', label: 'Синхронность'  },
-  { value: '150+',  label: 'Платформ'      },
+  { value: '∞',   label: 'Сайтов'     },
+  { value: '25+', label: 'Достижений' },
+  { value: '5',   label: 'Рангов'     },
+  { value: '0',   label: 'Подписок'   },
 ];
 
-const TESTIMONIALS = [
-  { name: 'Sardor M.', location: 'Tashkent', text: 'WeWatch изменил как я смотрю с друзьями за рубежом. Синхронизация идеальная!', rating: 5, color: '#7B72F8', initials: 'S' },
-  { name: 'Nilufar K.', location: 'Moscow',  text: 'Battle Mode — это что-то! Уже на золотом ранге. Конкуренция реальная.', rating: 5, color: '#a855f7', initials: 'N' },
-  { name: 'Bobur A.',   location: 'Istanbul', text: 'Ни одного кадра рассинхрона. Наконец-то смотрим кино всей семьёй онлайн.', rating: 5, color: '#22d3ee', initials: 'B' },
+const WHY_ITEMS = [
+  {
+    icon: FaGlobe,
+    color: '#7B72F8',
+    bg: 'rgba(123,114,248,0.12)',
+    border: 'rgba(123,114,248,0.25)',
+    title: 'Встроенный браузер',
+    text: 'YouTube, Kinogo, Rezka — переходи на любой сайт прямо в приложении. Не нужно ничего копировать.',
+  },
+  {
+    icon: FaUsers,
+    color: '#22d3ee',
+    bg: 'rgba(34,211,238,0.10)',
+    border: 'rgba(34,211,238,0.22)',
+    title: 'Все на одном кадре',
+    text: 'Ставишь на паузу — пауза у всех. Перематываешь — все перематывают. Расстояние не помеха.',
+  },
+  {
+    icon: FaCheck,
+    color: '#22c55e',
+    bg: 'rgba(34,197,94,0.10)',
+    border: 'rgba(34,197,94,0.22)',
+    title: 'Бесплатно навсегда',
+    text: 'Watch Party, Battle Mode, 25+ достижений — всё без подписки. Скачай и пользуйся сразу.',
+  },
 ];
 
 // ── Noise overlay (static, не перерисовывается) ────────────────────────────
@@ -243,40 +264,30 @@ function BentoFeatures({ t }: { t: ReturnType<typeof useTranslations<'landing'>>
   );
 }
 
-// ── Testimonials ─────────────────────────────────────────────────────────
-function Testimonials() {
+// ── WhyWeWatch ───────────────────────────────────────────────────────────
+function WhyWeWatch() {
   return (
-    <section className="py-20 px-4 bg-[#0D0D16] relative overflow-hidden" aria-labelledby="testimonials-heading">
+    <section className="py-20 px-4 bg-[#0D0D16] relative overflow-hidden" aria-labelledby="why-heading">
       <div className="max-w-6xl mx-auto">
         <motion.div variants={stagger} initial="hidden" whileInView="visible" viewport={{ once: true }} className="text-center mb-14">
-          <motion.p variants={fadeUp} className="text-[#7B72F8] text-xs uppercase tracking-widest font-semibold mb-3">Отзывы</motion.p>
-          <motion.h2 variants={fadeUp} id="testimonials-heading" className="text-3xl md:text-4xl font-display uppercase text-white">
-            Что говорят пользователи
+          <motion.p variants={fadeUp} className="text-[#7B72F8] text-xs uppercase tracking-widest font-semibold mb-3">Почему WeWatch</motion.p>
+          <motion.h2 variants={fadeUp} id="why-heading" className="text-3xl md:text-4xl font-display uppercase text-white">
+            Три причины попробовать
           </motion.h2>
         </motion.div>
 
         <motion.div variants={stagger} initial="hidden" whileInView="visible" viewport={{ once: true }}
           className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {TESTIMONIALS.map(({ name, location, text, rating, color, initials }) => (
-            <motion.div key={name} variants={fadeUp}>
-              <GlassCard className="p-6 h-full flex flex-col gap-4" glowColor={color}>
-                <div className="flex gap-1" aria-label={`Оценка: ${rating} из 5`} role="img">
-                  {[...Array(rating)].map((_, i) => (
-                    <FaStar key={i} size={13} className="text-[#FFD700]" aria-hidden="true" />
-                  ))}
+          {WHY_ITEMS.map(({ icon: Icon, color, bg, border, title, text }) => (
+            <motion.div key={title} variants={fadeUp}>
+              <GlassCard className="p-6 h-full flex flex-col gap-5" glowColor={color}>
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: bg, border: `1px solid ${border}` }}>
+                  <Icon size={22} style={{ color }} aria-hidden="true" />
                 </div>
-                <blockquote className="text-zinc-300 text-sm leading-relaxed flex-1">
-                  &ldquo;{text}&rdquo;
-                </blockquote>
-                <div className="flex items-center gap-3 pt-2 border-t border-zinc-800/50">
-                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
-                    style={{ background: color }}>
-                    {initials}
-                  </div>
-                  <div>
-                    <p className="text-white text-sm font-semibold">{name}</p>
-                    <p className="text-zinc-600 text-xs">{location}</p>
-                  </div>
+                <div className="flex-1">
+                  <h3 className="text-white font-semibold text-lg mb-2">{title}</h3>
+                  <p className="text-zinc-400 text-sm leading-relaxed">{text}</p>
                 </div>
               </GlassCard>
             </motion.div>
@@ -309,14 +320,33 @@ function ScreenHome({ t }: { t: TFn }) {
           <span className="text-[8px] text-green-400">2 {t('screenOnline')}</span>
         </div>
       </div>
-      <div className="mx-3 rounded-xl bg-[#111118] border border-[#7B72F8]/30 px-3 py-2.5 flex items-center gap-2">
-        <FaLink size={9} className="text-[#7B72F8] flex-shrink-0" aria-hidden="true" />
-        <motion.span className="text-[9px] text-zinc-500 flex-1 truncate font-mono"
-          animate={{ opacity: [0.5, 1, 0.5] }} transition={{ repeat: Infinity, duration: 2.5 }}>
-          {t('screenUrlHint')}
-        </motion.span>
+      {/* Browser selector — key differentiator */}
+      <div className="mx-3 rounded-xl bg-[#111118] border border-[#7B72F8]/25 p-3 mb-2.5">
+        <p className="text-[7px] text-zinc-600 uppercase tracking-widest mb-2">Открыть сайт</p>
+        <div className="grid grid-cols-3 gap-1.5 mb-2.5">
+          {[
+            { label: 'YouTube', color: '#FF4444', bg: 'rgba(255,68,68,0.12)' },
+            { label: 'Kinogo',  color: '#7B72F8', bg: 'rgba(123,114,248,0.12)' },
+            { label: 'Rezka',   color: '#a855f7', bg: 'rgba(168,85,247,0.12)' },
+          ].map(({ label, color, bg }, i) => (
+            <motion.div key={label} className="rounded-lg py-2 text-center cursor-pointer"
+              style={{ background: bg, border: `1px solid ${color}30` }}
+              animate={i === 1 ? { scale: [1, 1.04, 1] } : {}}
+              transition={{ repeat: Infinity, duration: 2.2, delay: i * 0.4 }}>
+              <span className="text-[8px] font-semibold" style={{ color }}>{label}</span>
+            </motion.div>
+          ))}
+        </div>
+        <motion.div className="rounded-lg px-3 py-2 flex items-center gap-2"
+          style={{ background: 'linear-gradient(135deg, #7B72F8, #5B4FD8)' }}
+          animate={{ boxShadow: ['0 0 8px rgba(123,114,248,0.35)', '0 0 20px rgba(123,114,248,0.65)', '0 0 8px rgba(123,114,248,0.35)'] }}
+          transition={{ repeat: Infinity, duration: 2.5 }}>
+          <FaGlobe size={9} className="text-white flex-shrink-0" aria-hidden="true" />
+          <span className="text-white text-[10px] font-semibold">Открыть браузер</span>
+          <FaChevronRight size={7} className="text-white/60 ml-auto" aria-hidden="true" />
+        </motion.div>
       </div>
-      <div className="flex-1 px-3 pt-3 overflow-hidden">
+      <div className="flex-1 px-3 overflow-hidden">
         <p className="text-[7px] text-zinc-600 uppercase tracking-widest mb-2">{t('screenActiveRooms')}</p>
         <div className="space-y-2">
           {[
@@ -336,14 +366,12 @@ function ScreenHome({ t }: { t: TFn }) {
           ))}
         </div>
       </div>
-      <motion.div className="mx-3 mb-5 rounded-xl p-3 flex items-center gap-2.5"
-        style={{ background: 'linear-gradient(135deg, #7B72F8, #5B4FD8)' }}
-        animate={{ boxShadow: ['0 0 10px rgba(123,114,248,0.35)', '0 0 24px rgba(123,114,248,0.65)', '0 0 10px rgba(123,114,248,0.35)'] }}
-        transition={{ repeat: Infinity, duration: 2.5 }}>
-        <FaUsers size={11} className="text-white flex-shrink-0" aria-hidden="true" />
-        <span className="text-white text-[10px] font-semibold">{t('screenCreateParty')}</span>
-        <FaChevronRight size={8} className="text-white/60 ml-auto" aria-hidden="true" />
-      </motion.div>
+      <div className="mx-3 mb-5 rounded-xl p-3 flex items-center gap-2.5 border border-[#7B72F8]/25"
+        style={{ background: 'rgba(123,114,248,0.07)' }}>
+        <FaUsers size={11} className="text-[#7B72F8] flex-shrink-0" aria-hidden="true" />
+        <span className="text-[#7B72F8] text-[10px] font-semibold">{t('screenCreateParty')}</span>
+        <FaChevronRight size={8} className="text-[#7B72F8]/60 ml-auto" aria-hidden="true" />
+      </div>
     </div>
   );
 }
@@ -511,7 +539,7 @@ export function LandingContent() {
   const [urlText, setUrlText] = useState('');
 
   const DEMO_STEPS = [
-    { step: '01', title: t('demoStep1title'), sub: t('demoStep1sub'), icon: FaLink  },
+    { step: '01', title: t('demoStep1title'), sub: t('demoStep1sub'), icon: FaGlobe },
     { step: '02', title: t('demoStep2title'), sub: t('demoStep2sub'), icon: FaUsers },
     { step: '03', title: t('demoStep3title'), sub: t('demoStep3sub'), icon: FaPlay  },
   ];
@@ -654,13 +682,10 @@ export function LandingContent() {
               </a>
             </motion.div>
 
-            {/* Social proof — §6: numbers for credibility */}
             <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.75 }}
-              className="mt-10 flex items-center justify-center gap-1.5 text-zinc-500 text-sm">
-              <span className="flex gap-0.5" aria-label="Оценка 5 из 5" role="img">
-                {[...Array(5)].map((_, i) => <FaStar key={i} size={12} className="text-[#FFD700]" aria-hidden="true" />)}
-              </span>
-              <span className="ml-1">50 000+ пользователей</span>
+              className="mt-10 flex items-center justify-center gap-2 text-zinc-600 text-sm">
+              <FaGlobe size={12} aria-hidden="true" />
+              <span>Android · iOS скоро · Бесплатно</span>
             </motion.p>
           </div>
 
@@ -698,18 +723,33 @@ export function LandingContent() {
             <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}
               className="flex flex-col md:flex-row items-center gap-6 justify-center mb-20">
               <GlassCard className="flex-1 max-w-sm w-full p-4" glowColor="#7B72F8">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 mb-3">
                   <div className="w-8 h-8 rounded-lg bg-[#7B72F8]/15 flex items-center justify-center border border-[#7B72F8]/25 flex-shrink-0">
-                    <FaLink size={12} className="text-[#7B72F8]" aria-hidden="true" />
+                    <FaGlobe size={12} className="text-[#7B72F8]" aria-hidden="true" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[10px] text-zinc-600 mb-1 uppercase tracking-wider">{t('urlInputLabel')}</div>
-                    <span className="text-sm text-zinc-300 font-mono" aria-label={`Пример URL: ${urlText}`}>
-                      {urlText}<span className="animate-pulse text-[#7B72F8]" aria-hidden="true">|</span>
-                    </span>
-                  </div>
+                  <span className="text-[10px] text-zinc-500 uppercase tracking-wider">{t('urlInputLabel')}</span>
                 </div>
-                <p className="text-xs text-zinc-600 text-center mt-3">{t('urlFromSites')}</p>
+                {/* Browser address bar */}
+                <div className="rounded-lg bg-[#0a0a14] border border-zinc-800 px-3 py-2 flex items-center gap-2 mb-3">
+                  <div className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0" aria-hidden="true" />
+                  <span className="text-[10px] text-zinc-400 font-mono flex-1 truncate" aria-label={`Открывается: ${urlText}`}>
+                    {urlText}<span className="animate-pulse text-[#7B72F8]" aria-hidden="true">|</span>
+                  </span>
+                </div>
+                {/* Site tiles */}
+                <div className="grid grid-cols-3 gap-1.5 mb-2">
+                  {[
+                    { name: 'YouTube', c: '#FF4444' },
+                    { name: 'Kinogo',  c: '#7B72F8' },
+                    { name: 'Rezka',   c: '#a855f7' },
+                  ].map(({ name, c }) => (
+                    <div key={name} className="rounded-lg py-1.5 text-center"
+                      style={{ background: `${c}12`, border: `1px solid ${c}25` }}>
+                      <span className="text-[8px] font-medium" style={{ color: c }}>{name}</span>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[10px] text-zinc-600 text-center">{t('urlFromSites')}</p>
               </GlassCard>
 
               <motion.div animate={shouldReduceMotion ? {} : { x: [0, 6, 0] }} transition={{ repeat: Infinity, duration: 1.4 }}
@@ -741,7 +781,7 @@ export function LandingContent() {
               <div className="hidden md:block absolute top-10 left-1/6 right-1/6 h-px" aria-hidden="true"
                 style={{ background: 'linear-gradient(90deg, transparent, #7B72F8, #a855f7, #7B72F8, transparent)', opacity: 0.2 }} />
               {[
-                { n: '01', icon: FaLink,  color: '#7B72F8', title: t('urlStep1title'), desc: t('urlStep1desc') },
+                { n: '01', icon: FaGlobe, color: '#7B72F8', title: t('urlStep1title'), desc: t('urlStep1desc') },
                 { n: '02', icon: FaUsers, color: '#a855f7', title: t('urlStep2title'), desc: t('urlStep2desc') },
                 { n: '03', icon: FaHeart, color: '#f43f5e', title: t('urlStep3title'), desc: t('urlStep3desc') },
               ].map(({ n, icon: Icon, color, title, desc }) => (
@@ -912,8 +952,8 @@ export function LandingContent() {
         {/* ── BENTO FEATURES ── */}
         <BentoFeatures t={t} />
 
-        {/* ── TESTIMONIALS ── */}
-        <Testimonials />
+        {/* ── WHY WEWATCH ── */}
+        <WhyWeWatch />
 
         {/* ── BATTLE ── */}
         <section className="py-28 px-4 bg-[#0A0A0F] relative overflow-hidden" aria-labelledby="battle-heading">
@@ -1022,11 +1062,8 @@ export function LandingContent() {
               <span className="text-zinc-600 text-sm">{t('ctaIosSoon')}</span>
             </motion.div>
 
-            <motion.p variants={fadeUp} className="mt-10 flex items-center justify-center gap-1.5 text-zinc-500 text-sm">
-              <span className="flex gap-0.5" aria-label="Оценка 5 из 5 звёзд" role="img">
-                {[...Array(5)].map((_, i) => <FaStar key={i} size={14} className="text-[#FFD700]" aria-hidden="true" />)}
-              </span>
-              <span className="ml-1">50 000+ пользователей по всему миру</span>
+            <motion.p variants={fadeUp} className="mt-10 text-zinc-600 text-sm">
+              Бесплатно · Android · iOS скоро
             </motion.p>
           </motion.div>
         </section>
