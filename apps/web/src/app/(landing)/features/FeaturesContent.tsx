@@ -31,9 +31,9 @@ export function FeaturesContent() {
       features: [
         'Sinxron video playback (±2s)',
         'Real-vaqt chat va emoji',
+        'Ovozli chat (WebRTC)',
         'Xona egasi nazorati',
-        "A'zolarni boshqarish",
-        'Taklif havolasi',
+        'Taklif havolasi / invite kodi',
       ],
     },
     {
@@ -42,13 +42,13 @@ export function FeaturesContent() {
       tagline: t('f2tagline'),
       color: '#FFD700',
       glow: 'rgba(255,215,0,0.2)',
-      badge: tl('mostPopular'),
+      badge: tl('comingSoon'),
       features: [
         '3 / 5 / 7 kunlik musobaqa',
         'Real-vaqt leaderboard',
-        "G'olibga points",
+        "G'olibga points va yutuq",
         'Statistika va tarix',
-        'Guruhli battle (tez kunda)',
+        'Guruhli battle',
       ],
     },
     {
@@ -59,10 +59,10 @@ export function FeaturesContent() {
       glow: 'rgba(136,204,255,0.2)',
       badge: t('badge25'),
       features: [
-        '5 rarity daraja',
-        'Maxfiy yutuqlar',
+        '5 rarity: common → legendary → secret',
+        'Maxfiy yutuqlar (kashf eting)',
         'Unlock animatsiyasi',
-        'Points mukofoti',
+        'Bronze → Diamond rank tizimi',
         "Profilda ko'rsatish",
       ],
     },

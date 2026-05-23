@@ -1,6 +1,28 @@
 # WeWatch — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-05-19
+# Yangilangan: 2026-05-23
+
+---
+
+### F-211 | T-E201–T-E207 | Web Landing — Mobile bilan sinxronizatsiya va bug tuzatishlar
+
+- **Bajaruvchi:** Emirhan (Claude sonnet)  **Bajarilgan:** 2026-05-23 12:00  **Model:** sonnet
+- **O'zgarishlar:**
+  - `apps/web/messages/uz.json` — 20+ yangi kalitlar, urlFromSites to'g'rilandi
+  - `apps/web/messages/en.json` — 20+ yangi kalitlar, urlFromSites to'g'rilandi
+  - `apps/web/messages/ru.json` — 20+ yangi kalitlar, urlFromSites to'g'rilandi
+  - `apps/web/src/app/LandingContent.tsx` — MARQUEE (Netflix/Kinogo/Rezka → VK/Rutube/Cinerama/Twitch), TYPING_URL (kinogo.cc → youtube.com), STATS i18n, WHY_ITEMS i18n, site tiles to'g'irlandi, APP_FEATURES voice chat qo'shildi, Battle "Tez kunda" badge, hero/CTA footer i18n
+  - `apps/web/src/app/(landing)/features/FeaturesContent.tsx` — Watch Party: voice chat (WebRTC) qo'shildi; Battle: "Tez kunda" badge; Achievement: rank tizimi (Bronze→Diamond) va rarity zanjiri ko'rsatildi
+  - `apps/web/src/components/common/Providers.tsx` — hydration mismatch tuzatildi (useState 'uz' fixed init)
+- **Xulosa:**
+  - **T-E201**: Translation kalitlari (plan1name, plan2name, mostPopular, statUsers, statMovies, startShort, comingSoon, appFeat6, whyTitle, whySubtitle, statsLabels, heroFooter, ctaFooter, openSite, openBrowser va boshqalar) — 3 tilda qo'shildi
+  - **T-E202**: Manba saytlar tuzatildi — Netflix/Vimeo/Kinogo/Rezka/Filmix o'chirildi, VK/Rutube/Cinerama/Twitch/Instagram/Drive qo'shildi
+  - **T-E203**: Battle mode "Tez kunda" belgisi qo'shildi (mobile'da amalga oshirilmagan)
+  - **T-E204**: Watch Party — Ovozli chat (WebRTC) qo'shildi
+  - **T-E205**: Achievement — 5 rarity zanjiri (common→legendary→secret) va Bronze→Diamond rank tizimi ko'rsatildi
+  - **T-E206**: WHY_ITEMS va STATS — hardcoded Russian → i18n (3 til)
+  - **T-E207**: Hydration mismatch tuzatildi — Providers.tsx useState 'uz' sabit init, useEffect'da yangilanadi
+  - Console: 0 errors barcha sahifalarda (/, /features, /pricing)
 
 ---
 
