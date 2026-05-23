@@ -1,6 +1,6 @@
 // WeWatch Mobile — Content API
 import { contentClient } from './client';
-import { ApiResponse, IMovie, ContentGenre, PaginationMeta, IWatchProgress } from '@app-types/index';
+import { ApiResponse } from '@app-types/index';
 
 export interface VideoQualityOption {
   label: string;
@@ -17,7 +17,7 @@ export interface VideoEpisode {
 export interface VideoExtractResult {
   title: string;
   videoUrl: string;
-  videoId?: string;   // YouTube videoId when type === 'embed'
+  videoId?: string;
   poster: string;
   platform: 'youtube' | 'vimeo' | 'tiktok' | 'dailymotion' | 'rutube' | 'facebook' | 'instagram' | 'twitch' | 'vk' | 'streamable' | 'reddit' | 'twitter' | 'generic' | 'unknown';
   type: 'mp4' | 'hls' | 'embed';
@@ -25,9 +25,7 @@ export interface VideoExtractResult {
   isLive?: boolean;
   useProxy?: boolean;
   httpHeaders?: Record<string, string>;
-  /** E68-5: Sifat variantlari — {label:'1080p', url} */
   qualities?: VideoQualityOption[];
-  /** E68-5: Seriya/episode ro'yxati */
   episodes?: VideoEpisode[];
 }
 
@@ -41,101 +39,17 @@ export interface YtStreamInfo {
   isLive: boolean;
 }
 
-interface MoviesResponse {
-  movies: IMovie[];
-  meta: PaginationMeta;
+export interface VideoSearchItem {
+  title: string;
+  thumbnail: string;
+  url: string;
+  platform: 'youtube' | 'rutube' | 'vk';
+  duration?: number;
+  viewCount?: number;
 }
 
 export const contentApi = {
-  async getTrending(limit = 10): Promise<IMovie[]> {
-    const res = await contentClient.get<ApiResponse<IMovie[]>>('/content/trending', {
-      params: { limit },
-    });
-    return res.data.data ?? [];
-  },
-
-  async getTopRated(limit = 10): Promise<IMovie[]> {
-    const res = await contentClient.get<ApiResponse<IMovie[]>>('/content/top-rated', {
-      params: { limit },
-    });
-    return res.data.data ?? [];
-  },
-
-  async getNewReleases(limit = 10): Promise<IMovie[]> {
-    const res = await contentClient.get<ApiResponse<IMovie[]>>('/content/movies', {
-      params: { sort: 'newest', limit },
-    });
-    return res.data.data ?? [];
-  },
-
-  async getMovies(params?: {
-    page?: number;
-    limit?: number;
-    genre?: ContentGenre;
-    search?: string;
-    year?: number;
-    sort?: 'rating' | 'year' | 'title';
-  }): Promise<MoviesResponse> {
-    const res = await contentClient.get<ApiResponse<IMovie[]>>('/content/movies', { params });
-    return {
-      movies: res.data.data ?? [],
-      meta: res.data.meta ?? { page: 1, limit: 10, total: 0, totalPages: 0 },
-    };
-  },
-
-  async getMovieById(movieId: string): Promise<IMovie> {
-    const res = await contentClient.get<ApiResponse<IMovie>>(`/content/movies/${movieId}`);
-    return res.data.data!;
-  },
-
-  async search(query: string, page = 1, limit = 20): Promise<MoviesResponse> {
-    const res = await contentClient.get<ApiResponse<IMovie[]>>('/content/search', {
-      params: { q: query, page, limit },
-    });
-    return {
-      movies: res.data.data ?? [],
-      meta: res.data.meta ?? { page: 1, limit: 20, total: 0, totalPages: 0 },
-    };
-  },
-
-  async getContinueWatching(): Promise<Array<IMovie & { progress: number }>> {
-    const res = await contentClient.get<ApiResponse<Array<IMovie & { progress: number }>>>(
-      '/content/continue-watching',
-    );
-    return res.data.data ?? [];
-  },
-
-  async updateProgress(movieId: string, progress: number, duration: number): Promise<void> {
-    await contentClient.post(`/content/movies/${movieId}/progress`, { progress, duration });
-  },
-
-  async markComplete(movieId: string): Promise<void> {
-    await contentClient.post(`/content/movies/${movieId}/complete`);
-  },
-
-  async rateMovie(movieId: string, score: number, review?: string): Promise<{ isNew: boolean }> {
-    const res = await contentClient.post(`/content/movies/${movieId}/rate`, { score, review });
-    return { isNew: res.status === 201 };
-  },
-
-  async getMovieRatings(movieId: string, page = 1): Promise<{
-    ratings: Array<{ userId: string; username: string; score: number; review?: string; createdAt: string }>;
-    meta: PaginationMeta;
-  }> {
-    const res = await contentClient.get<ApiResponse<{
-      ratings: Array<{ userId: string; username: string; score: number; review?: string; createdAt: string }>;
-      meta: PaginationMeta;
-    }>>(`/content/movies/${movieId}/ratings`, { params: { page } });
-    return res.data.data ?? { ratings: [], meta: { page: 1, limit: 10, total: 0, totalPages: 0 } };
-  },
-
-  async deleteMyRating(movieId: string): Promise<void> {
-    await contentClient.delete(`/content/movies/${movieId}/rate`);
-  },
-
   async extractVideo(url: string, cookies?: string): Promise<VideoExtractResult> {
-    // E67-3: cookies faqat webview-session rejimida yuboriladi
-    // E67-5: cookies ni hech qachon log ga yozma
     const body: Record<string, string> = { url };
     if (cookies) body.cookies = cookies;
     const res = await contentClient.post<ApiResponse<VideoExtractResult>>('/content/extract', body);
@@ -148,63 +62,6 @@ export const contentApi = {
       params: { url: youtubeUrl },
     });
     return res.data.data!;
-  },
-
-  async getWatchProgress(movieId: string): Promise<IWatchProgress | null> {
-    try {
-      const res = await contentClient.get<ApiResponse<IWatchProgress>>(
-        `/content/movies/${movieId}/progress`,
-      );
-      return res.data.data;
-    } catch {
-      return null;
-    }
-  },
-
-  async getWatchHistory(page = 1): Promise<{
-    history: Array<{
-      movieId: string;
-      title: string;
-      poster?: string;
-      progress: number;
-      watchedAt: string;
-      completed: boolean;
-      currentTimeSeconds: number;
-      videoUrl?: string | null;
-    }>;
-    meta: PaginationMeta;
-  }> {
-    const res = await contentClient.get<{
-      success: boolean;
-      data: Array<{
-        movieId: string;
-        title: string;
-        poster?: string;
-        progress: number;
-        watchedAt: string;
-        completed: boolean;
-        currentTimeSeconds: number;
-        videoUrl?: string | null;
-      }>;
-      meta: PaginationMeta;
-    }>('/content/history', { params: { page } });
-    return {
-      history: res.data.data ?? [],
-      meta: res.data.meta ?? { page: 1, limit: 20, total: 0, totalPages: 0 },
-    };
-  },
-
-  async addFavorite(movieId: string): Promise<void> {
-    await contentClient.post(`/content/movies/${movieId}/favorite`);
-  },
-
-  async removeFavorite(movieId: string): Promise<void> {
-    await contentClient.delete(`/content/movies/${movieId}/favorite`);
-  },
-
-  async getFavorites(): Promise<IMovie[]> {
-    const res = await contentClient.get<ApiResponse<IMovie[]>>('/content/favorites');
-    return res.data.data ?? [];
   },
 
   async searchVideos(q: string): Promise<VideoSearchItem[]> {
@@ -223,12 +80,3 @@ export const contentApi = {
     return res.data.data ?? [];
   },
 };
-
-export interface VideoSearchItem {
-  title: string;
-  thumbnail: string;
-  url: string;
-  platform: 'youtube' | 'rutube' | 'vk';
-  duration?: number;
-  viewCount?: number;
-}

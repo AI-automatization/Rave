@@ -1,19 +1,16 @@
 // WeWatch Mobile — useWatchPartyCreate hook
-// Extracted from WatchPartyCreateScreen for SRP compliance
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Alert } from 'react-native';
 import { watchPartyApi } from '@api/watchParty.api';
-import { contentApi } from '@api/content.api';
 import { userApi } from '@api/user.api';
 import { useVideoExtraction } from '@hooks/useVideoExtraction';
 import { isDomainBlocked } from '@constants/blockedDomains';
 import { extractDomain } from '@utils/videoPlayer';
-import type { IMovie, IUserPublic } from '@app-types/index';
+import type { IUserPublic } from '@app-types/index';
 
 const MAX_MEMBERS_OPTIONS = [2, 4, 6, 8, 10] as const;
 
 interface UseWatchPartyCreateReturn {
-  // Form
   roomName: string;
   setRoomName: (v: string) => void;
   isPrivate: boolean;
@@ -23,58 +20,32 @@ interface UseWatchPartyCreateReturn {
   loading: boolean;
   maxMembersOptions: readonly number[];
 
-  // Film selection
-  filmMode: 'catalog' | 'url';
-  searchQuery: string;
-  setSearchQuery: (v: string) => void;
-  searchResults: IMovie[];
-  searching: boolean;
-  selectedMovie: IMovie | null;
   videoUrl: string;
   setVideoUrl: (v: string) => void;
   urlError: string | null;
 
-  // Film mode actions
-  switchToCatalog: () => void;
-  switchToUrl: () => void;
-  selectMovie: (movie: IMovie) => void;
-  clearSelectedMovie: () => void;
-
-  // Extraction
   isExtracting: boolean;
   extractResult: ReturnType<typeof useVideoExtraction>['result'];
   fallbackMode: boolean;
   resetExtract: () => void;
 
-  // Friends
   friends: IUserPublic[];
   selectedFriendIds: string[];
   selectedFriends: IUserPublic[];
   toggleFriend: (id: string) => void;
 
-  // Actions
   handleCreate: (onSuccess: (roomId: string) => void) => Promise<void>;
 }
 
 export function useWatchPartyCreate(): UseWatchPartyCreateReturn {
-  // Form state
   const [roomName, setRoomName] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
   const [maxMembers, setMaxMembers] = useState(4);
   const [loading, setLoading] = useState(false);
-
-  // Film selection state
-  const [filmMode, setFilmMode] = useState<'catalog' | 'url'>('catalog');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<IMovie[]>([]);
-  const [searching, setSearching] = useState(false);
-  const [selectedMovie, setSelectedMovie] = useState<IMovie | null>(null);
   const [videoUrl, setVideoUrl] = useState('');
   const [urlError, setUrlError] = useState<string | null>(null);
-  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const extractTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Video extraction
   const {
     isExtracting,
     result: extractResult,
@@ -83,53 +54,26 @@ export function useWatchPartyCreate(): UseWatchPartyCreateReturn {
     reset: resetExtract,
   } = useVideoExtraction();
 
-  // Friends state
   const [friends, setFriends] = useState<IUserPublic[]>([]);
   const [selectedFriendIds, setSelectedFriendIds] = useState<string[]>([]);
 
-  // Fetch friends on mount
   useEffect(() => {
     userApi.getFriends().then(setFriends).catch(() => {});
   }, []);
 
-  // Search debounce (400ms)
-  useEffect(() => {
-    if (searchTimer.current) clearTimeout(searchTimer.current);
-    if (!searchQuery.trim()) {
-      setSearchResults([]);
-      setSearching(false);
-      return;
-    }
-    setSearching(true);
-    searchTimer.current = setTimeout(async () => {
-      try {
-        const result = await contentApi.search(searchQuery.trim());
-        setSearchResults(result.movies.slice(0, 5));
-      } catch {
-        setSearchResults([]);
-      } finally {
-        setSearching(false);
-      }
-    }, 400);
-    return () => {
-      if (searchTimer.current) clearTimeout(searchTimer.current);
-    };
-  }, [searchQuery]);
-
-  // URL extraction debounce (800ms)
+  // URL extraction debounce
   useEffect(() => {
     if (extractTimer.current) clearTimeout(extractTimer.current);
     resetExtract();
     const trimmed = videoUrl.trim();
-    if (!trimmed || filmMode !== 'url') return;
-    if (!/^https?:\/\/.+/i.test(trimmed)) return;
+    if (!trimmed || !/^https?:\/\/.+/i.test(trimmed)) return;
     extractTimer.current = setTimeout(() => {
       extract(trimmed);
     }, 800);
     return () => {
       if (extractTimer.current) clearTimeout(extractTimer.current);
     };
-  }, [videoUrl, filmMode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [videoUrl]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleVideoUrlChange = useCallback((value: string) => {
     setVideoUrl(value);
@@ -139,31 +83,6 @@ export function useWatchPartyCreate(): UseWatchPartyCreateReturn {
     } else {
       setUrlError(null);
     }
-  }, []);
-
-  const switchToCatalog = useCallback(() => {
-    setFilmMode('catalog');
-    setVideoUrl('');
-    setUrlError(null);
-    resetExtract();
-  }, [resetExtract]);
-
-  const switchToUrl = useCallback(() => {
-    setFilmMode('url');
-    setSelectedMovie(null);
-    setSearchQuery('');
-    setSearchResults([]);
-  }, []);
-
-  const selectMovie = useCallback((movie: IMovie) => {
-    setSelectedMovie(movie);
-    setSearchResults([]);
-    setSearchQuery('');
-  }, []);
-
-  const clearSelectedMovie = useCallback(() => {
-    setSelectedMovie(null);
-    setSearchQuery('');
   }, []);
 
   const toggleFriend = useCallback((id: string) => {
@@ -179,45 +98,23 @@ export function useWatchPartyCreate(): UseWatchPartyCreateReturn {
       Alert.alert('Xato', 'Xona nomi kiriting');
       return;
     }
-
-    if (filmMode === 'catalog' && !selectedMovie) {
-      Alert.alert('Xato', 'Katalogdan film tanlang yoki URL rejimiga o\'ting');
-      return;
-    }
-    if (filmMode === 'url' && !videoUrl.trim()) {
+    if (!videoUrl.trim()) {
       Alert.alert('Xato', 'Video URL kiriting');
       return;
     }
-    if (filmMode === 'url' && videoUrl.trim() && isDomainBlocked(videoUrl.trim())) {
+    if (isDomainBlocked(videoUrl.trim())) {
       Alert.alert('Xato', 'Этот сайт заблокирован политикой платформы');
       return;
     }
 
     setLoading(true);
     try {
-      const payload: Parameters<typeof watchPartyApi.createRoom>[0] = {
+      const room = await watchPartyApi.createRoom({
         name: roomName.trim(),
         isPrivate,
         maxMembers,
-      };
-      if (filmMode === 'catalog' && selectedMovie) {
-        payload.movieId = selectedMovie._id;
-        if (!selectedMovie.videoUrl) {
-          Alert.alert(
-            'Video mavjud emas',
-            'Bu filmda video fayl hali yuklanmagan. URL orqali kiriting yoki boshqa film tanlang.',
-          );
-          setLoading(false);
-          return;
-        }
-        payload.videoUrl = selectedMovie.videoUrl;
-      } else if (filmMode === 'url' && videoUrl.trim()) {
-        // Always store the RAW original URL, not the extracted/proxy URL.
-        // WatchPartyScreen (T-E076) re-extracts per-user so each member gets
-        // their own fresh proxy URL with their own access token.
-        payload.videoUrl = videoUrl.trim();
-      }
-      const room = await watchPartyApi.createRoom(payload);
+        videoUrl: videoUrl.trim(),
+      });
       onSuccess(room._id);
     } catch (err: unknown) {
       let msg = 'Xona yaratib bo\'lmadi. Qayta urinib ko\'ring.';
@@ -248,32 +145,17 @@ export function useWatchPartyCreate(): UseWatchPartyCreateReturn {
     setMaxMembers,
     loading,
     maxMembersOptions: MAX_MEMBERS_OPTIONS,
-
-    filmMode,
-    searchQuery,
-    setSearchQuery,
-    searchResults,
-    searching,
-    selectedMovie,
     videoUrl,
     setVideoUrl: handleVideoUrlChange,
     urlError,
-
-    switchToCatalog,
-    switchToUrl,
-    selectMovie,
-    clearSelectedMovie,
-
     isExtracting,
     extractResult,
     fallbackMode,
     resetExtract,
-
     friends,
     selectedFriendIds,
     selectedFriends,
     toggleFriend,
-
     handleCreate,
   };
 }

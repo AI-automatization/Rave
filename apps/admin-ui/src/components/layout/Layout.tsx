@@ -5,7 +5,6 @@ import { Sidebar } from './Sidebar';
 import { useAuthStore } from '../../store/auth.store';
 import { errorsApi } from '../../api/errors.api';
 import { usersApi } from '../../api/users.api';
-import { moviesApi } from '../../api/movies.api';
 
 const ROUTE_LABELS: Record<string, string> = {
   '/': 'Dashboard',
@@ -27,7 +26,7 @@ const ROUTE_LABELS: Record<string, string> = {
 };
 
 interface SearchResult {
-  type: 'user' | 'error' | 'movie';
+  type: 'user' | 'error';
   id: string;
   title: string;
   subtitle: string;
@@ -48,10 +47,9 @@ function GlobalSearch({ onClose }: { onClose: () => void }) {
     const t = setTimeout(async () => {
       setLoading(true);
       try {
-        const [users, errors, movies] = await Promise.allSettled([
+        const [users, errors] = await Promise.allSettled([
           usersApi.list({ search: q, limit: 5 }),
           errorsApi.list({ search: q, limit: 5 }),
-          moviesApi.list({ search: q, limit: 5 }),
         ]);
         const r: SearchResult[] = [];
         if (users.status === 'fulfilled') {
@@ -68,14 +66,6 @@ function GlobalSearch({ onClose }: { onClose: () => void }) {
             title: e.title,
             subtitle: e.message || e.platform,
             to: '/errors',
-          }));
-        }
-        if (movies.status === 'fulfilled') {
-          movies.value.data.forEach((m) => r.push({
-            type: 'movie', id: m._id,
-            title: m.title,
-            subtitle: `${m.year} · ${m.type}`,
-            to: '/movies',
           }));
         }
         setResults(r);
@@ -123,11 +113,9 @@ function GlobalSearch({ onClose }: { onClose: () => void }) {
                   className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-white/[0.04] transition-colors text-left group"
                 >
                   <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider ${
-                    r.type === 'user'  ? 'bg-blue-500/15 text-blue-400' :
-                    r.type === 'movie' ? 'bg-violet-500/15 text-violet-400' :
-                                        'bg-red-500/15 text-red-400'
+                    r.type === 'user' ? 'bg-blue-500/15 text-blue-400' : 'bg-red-500/15 text-red-400'
                   }`}>
-                    {r.type === 'user' ? 'USER' : r.type === 'movie' ? 'FILM' : 'ERR'}
+                    {r.type === 'user' ? 'USER' : 'ERR'}
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="text-[13px] text-white truncate group-hover:text-white">{r.title}</p>

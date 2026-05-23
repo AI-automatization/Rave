@@ -55,15 +55,6 @@ export const createAdminRouter = (redis: Redis): Router => {
     adminController.deleteUser,
   );
 
-  // ── Movies (admin only: publish/unpublish/delete) ─────────────
-  router.get('/movies', adminController.listMovies);
-  router.patch('/movies/:id/publish', adminController.publishMovie);
-  router.patch('/movies/:id/unpublish', adminController.unpublishMovie);
-  router.delete('/movies/:id', requireRole('superadmin'), adminController.deleteMovie);
-
-  // Operator routes (qo'shimcha — operator ham kirishi uchun global middleware dan pastga)
-  // NOTE: operator role larini alohida router da boshqaramiz — pastda
-
   // ── Feedback ──────────────────────────────────────────────────
   router.get('/feedback', adminController.listFeedback);
   router.patch('/feedback/:id/reply', validate(replyFeedbackSchema), adminController.replyFeedback);

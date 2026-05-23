@@ -9,10 +9,6 @@ export type {
   UserRole,
   UserRank,
   JwtPayload,
-  IMovie,
-  ICastMember,
-  ContentType,
-  ContentGenre,
   IWatchPartyRoom,
   WatchPartyStatus,
   VideoPlatform,
@@ -20,8 +16,6 @@ export type {
   SyncState,
   INotification,
   NotificationType,
-  IAchievement,
-  AchievementRarity,
   IFriendship,
   FriendshipStatus,
   SyncMessage,
@@ -56,18 +50,6 @@ export interface TokenStorage {
 }
 
 // ─────────────────────────────────────────────
-// Watch History
-// ─────────────────────────────────────────────
-
-export interface IWatchProgress {
-  movieId: string;
-  progress: number; // seconds
-  duration: number; // seconds
-  isCompleted: boolean;
-  updatedAt: Date;
-}
-
-// ─────────────────────────────────────────────
 // User Stats
 // ─────────────────────────────────────────────
 
@@ -77,7 +59,6 @@ export interface IUserStats {
   totalPoints: number;
   rank: import('@shared/types/index').UserRank;
   rankProgress: number; // 0-100
-  achievementsCount: number;
   friendsCount: number;
   currentStreak: number;
   longestStreak: number;
@@ -101,8 +82,7 @@ export type AuthStackParamList = {
 
 export type HomeStackParamList = {
   Home: undefined;
-  MovieDetail: { movieId: string };
-  VideoPlayer: { movieId: string; videoUrl: string; title: string };
+  VideoPlayer: { videoUrl: string; title: string };
   VideoExtract: undefined;
   SearchResults: { query: string };
 };
@@ -129,12 +109,10 @@ export type ModalStackParamList = {
   WatchPartyCreate: undefined;
   WatchPartyJoin: { inviteCode?: string } | undefined;
   Notifications: undefined;
-  /** Source picker — выбор платформы (YouTube, Web, VK, etc.) */
   SourcePicker: {
     mode: 'create' | 'change' | 'queue';
     roomId?: string;
   };
-  /** Встроенный браузер для просмотра и импорта медиа */
   MediaWebView: {
     sourceId: string;
     sourceName: string;

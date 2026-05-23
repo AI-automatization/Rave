@@ -18,7 +18,6 @@ import { FriendSearchScreen } from '@screens/friends/FriendSearchScreen';
 import { ProfileScreen } from '@screens/profile/ProfileScreen';
 import { SettingsScreen } from '@screens/profile/SettingsScreen';
 import { WatchHistoryScreen } from '@screens/profile/WatchHistoryScreen';
-import { MovieDetailScreen } from '@screens/home/MovieDetailScreen';
 import { VideoPlayerScreen } from '@screens/home/VideoPlayerScreen';
 import { VideoExtractScreen } from '@screens/home/VideoExtractScreen';
 import { SearchResultsScreen } from '@screens/search/SearchResultsScreen';
@@ -37,7 +36,6 @@ function HomeStackNavigator() {
       screenOptions={{ headerShown: false, animation: 'slide_from_right', animationDuration: 250 }}
     >
       <HomeStack.Screen name="Home" component={HomeScreen} />
-      <HomeStack.Screen name="MovieDetail" component={MovieDetailScreen} options={{ animation: 'slide_from_bottom' }} />
       <HomeStack.Screen name="VideoPlayer" component={VideoPlayerScreen} options={{ animation: 'fade' }} />
       <HomeStack.Screen name="VideoExtract" component={VideoExtractScreen} options={{ animation: 'fade' }} />
       <HomeStack.Screen name="SearchResults" component={SearchResultsScreen} options={{ animation: 'slide_from_right' }} />

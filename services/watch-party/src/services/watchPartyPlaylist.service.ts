@@ -4,8 +4,6 @@ import { logger } from '@shared/utils/logger';
 import { NotFoundError, ForbiddenError, BadRequestError } from '@shared/utils/errors';
 import { SyncState, VideoPlatform, VideoItem } from '@shared/types';
 import { REDIS_KEYS, TTL } from '@shared/constants';
-import { extractDomain } from '../utils/contentFilter';
-
 const BLOCKED_DOMAINS_KEY = 'watch_party:blocked_domains';
 const PRIVATE_URL = /^https?:\/\/(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/i;
 const MAX_PLAYLIST = 50;
@@ -33,7 +31,7 @@ export class WatchPartyPlaylistService {
       throw new BadRequestError('IP-locked CDN URLs cannot be stored. Use the original video URL.');
     }
 
-    const domain = extractDomain(media.videoUrl);
+    const domain = (() => { try { return new URL(media.videoUrl).hostname.replace(/^www\./, ''); } catch { return null; } })();
     if (domain && (await this.redis.sismember(BLOCKED_DOMAINS_KEY, domain)) === 1) {
       throw new ForbiddenError('Domain is blocked by platform policy');
     }

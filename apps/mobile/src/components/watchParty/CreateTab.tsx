@@ -45,10 +45,6 @@ export function CreateTab({ navigation, t }: Props) {
       <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <FadeSlideIn delay={100}>
           <FilmSelector
-            filmMode={wp.filmMode} onSwitchToCatalog={wp.switchToCatalog} onSwitchToUrl={wp.switchToUrl}
-            selectedMovie={wp.selectedMovie} onSelectMovie={wp.selectMovie} onClearMovie={wp.clearSelectedMovie}
-            searchQuery={wp.searchQuery} onSearchChange={wp.setSearchQuery}
-            searching={wp.searching} searchResults={wp.searchResults}
             videoUrl={wp.videoUrl} onVideoUrlChange={wp.setVideoUrl}
             isExtracting={wp.isExtracting} extractResult={wp.extractResult} fallbackMode={wp.fallbackMode}
             urlError={wp.urlError}

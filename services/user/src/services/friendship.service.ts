@@ -3,7 +3,7 @@ import { Friendship, IFriendshipDocument } from '../models/friendship.model';
 import { logger } from '@shared/utils/logger';
 import { NotFoundError, ConflictError, BadRequestError } from '@shared/utils/errors';
 import { LIMITS, POINTS } from '@shared/constants';
-import { triggerAchievement, sendInternalNotification } from '@shared/utils/serviceClient';
+import { sendInternalNotification } from '@shared/utils/serviceClient';
 
 export class FriendshipService {
   async sendFriendRequestByProfileId(requesterId: string, profileId: string): Promise<void> {
@@ -162,9 +162,6 @@ export class FriendshipService {
       User.updateOne({ _id: userId }, { $inc: { totalPoints: POINTS.FRIEND_ADDED } }),
       User.updateOne({ _id: requesterId }, { $inc: { totalPoints: POINTS.FRIEND_ADDED } }),
     ]);
-
-    void triggerAchievement(userId, 'friend', { friendId: requesterId });
-    void triggerAchievement(requesterId, 'friend', { friendId: userId });
 
     const accepter = await User.findById(userId).select('username').lean();
     void sendInternalNotification({

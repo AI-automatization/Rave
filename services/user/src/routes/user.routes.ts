@@ -60,9 +60,6 @@ export const createUserRouter = (redis: Redis): Router => {
   // Stats
   router.get('/me/stats', verifyToken, notBlocked, userController.getMyStats);
 
-  // Achievements proxy
-  router.get('/me/achievements', verifyToken, notBlocked, userController.getMyAchievementsProxy);
-
   // Avatar upload
   router.patch('/me/avatar', verifyToken, notBlocked, avatarUpload.single('avatar'), userController.uploadAvatar);
 
@@ -114,9 +111,6 @@ export const createUserRouter = (redis: Redis): Router => {
   router.get('/:id', apiRateLimiter, userController.getPublicProfile);
 
   // ── Internal (service-to-service) ────────────────────────
-  // Battle/other services call this to award points
-  router.post('/internal/add-points', requireInternalSecret, userController.addPoints);
-
   // Notification service calls this to get FCM tokens for push delivery
   router.get('/internal/:userId/fcm-tokens', requireInternalSecret, userController.getFcmTokensInternal);
 

@@ -2,11 +2,9 @@ import Redis from 'ioredis';
 import xss from 'xss';
 import { User, IUserDocument, INotificationSettings } from '../models/user.model';
 import { Friendship } from '../models/friendship.model';
-import { UserAchievement } from '../models/userAchievement.model';
 import { logger } from '@shared/utils/logger';
 import { NotFoundError, BadRequestError } from '@shared/utils/errors';
-import { REDIS_KEYS, TTL, RANKS } from '@shared/constants';
-import { UserRank } from '@shared/types';
+import { REDIS_KEYS, TTL } from '@shared/constants';
 import { getUserWatchStats, revokeUserSessions, disconnectUserSocket, cascadeDeleteUser } from '@shared/utils/serviceClient';
 import { containsBannedWord } from '@shared/utils/bannedWords';
 
@@ -175,18 +173,12 @@ export class ProfileService {
     }));
   }
 
-  async addPoints(userId: string, points: number): Promise<void> {
-    await User.updateOne({ _id: userId }, { $inc: { totalPoints: points } });
-    await this.recalculateRank(userId);
-  }
-
   async getUserStats(userId: string): Promise<{
     totalWatched: number;
     totalMinutes: number;
     totalPoints: number;
     rank: string;
     rankProgress: number;
-    achievementsCount: number;
     friendsCount: number;
     currentStreak: number;
     longestStreak: number;
@@ -207,12 +199,11 @@ export class ProfileService {
       ? 100
       : Math.min(100, Math.floor(((user.totalPoints - rankInfo.min) / (rankInfo.max - rankInfo.min)) * 100));
 
-    const [friendsCount, achievementsCount, watchStats] = await Promise.all([
+    const [friendsCount, watchStats] = await Promise.all([
       Friendship.countDocuments({
         $or: [{ requesterId: userId }, { receiverId: userId }],
         status: 'accepted',
       }),
-      UserAchievement.countDocuments({ userId }),
       getUserWatchStats(userId),
     ]);
 
@@ -222,7 +213,6 @@ export class ProfileService {
       totalPoints:    user.totalPoints,
       rank:           user.rank,
       rankProgress,
-      achievementsCount,
       friendsCount,
       currentStreak:  watchStats?.currentStreak ?? 0,
       longestStreak:  watchStats?.longestStreak ?? 0,
@@ -339,7 +329,6 @@ export class ProfileService {
 
     await Promise.all([
       Friendship.deleteMany({ $or: [{ requesterId: userId }, { receiverId: userId }] }),
-      UserAchievement.deleteMany({ userId }),
       User.deleteOne({ _id: userId }),
       this.redis.del(REDIS_KEYS.heartbeat(userId)),
     ]);
@@ -350,18 +339,4 @@ export class ProfileService {
     logger.warn('User account fully deleted (cascade)', { userId });
   }
 
-  private async recalculateRank(userId: string): Promise<void> {
-    const user = await User.findById(userId, { totalPoints: 1 });
-    if (!user) return;
-
-    let newRank: UserRank = 'Bronze';
-    for (const [rank, range] of Object.entries(RANKS)) {
-      if (user.totalPoints >= range.min && user.totalPoints <= range.max) {
-        newRank = rank as UserRank;
-        break;
-      }
-    }
-
-    await User.updateOne({ _id: userId }, { rank: newRank });
-  }
 }

@@ -27,7 +27,6 @@ export const updateSettingsSchema = Joi.object({
     friendRequest: Joi.boolean().optional(),
     friendAccepted: Joi.boolean().optional(),
     watchPartyInvite: Joi.boolean().optional(),
-    achievementUnlocked: Joi.boolean().optional(),
     friendOnline: Joi.boolean().optional(),
     emailDigest: Joi.boolean().optional(),
   }).optional(),

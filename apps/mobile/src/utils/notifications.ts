@@ -7,7 +7,6 @@ export const NOTIFICATION_ROUTES: Record<NotificationType, string> = {
   friend_request: 'Friends',
   friend_accepted: 'Friends',
   watch_party_invite: 'WatchParty',
-  achievement_unlocked: 'Notifications',
   friend_online: 'Friends',
   friend_watching: 'WatchParty',
   support_reply: 'SupportChat',

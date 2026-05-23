@@ -4,7 +4,6 @@ import { Layout } from './components/layout/Layout';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { UsersPage } from './pages/UsersPage';
-import { MoviesPage } from './pages/MoviesPage';
 import { FeedbackPage } from './pages/FeedbackPage';
 import { LogsPage } from './pages/LogsPage';
 import { WatchPartiesPage } from './pages/WatchPartiesPage';
@@ -41,7 +40,6 @@ export default function App() {
         >
           <Route index element={<DashboardPage />} />
           <Route path="users" element={<UsersPage />} />
-          <Route path="movies" element={<MoviesPage />} />
           <Route path="feedback" element={<FeedbackPage />} />
           <Route path="logs" element={<LogsPage />} />
           <Route path="watchparties" element={<WatchPartiesPage />} />

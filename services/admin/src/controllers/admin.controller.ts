@@ -74,65 +74,6 @@ export class AdminController {
     }
   };
 
-  // ── Movies ──────────────────────────────────────────────────
-
-  listMovies = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const page = Math.max(1, parseInt(req.query.page as string ?? '1', 10) || 1);
-      const limit = Math.min(Math.max(1, parseInt(req.query.limit as string ?? '20', 10) || 20), 100);
-      const isPublished = req.query.isPublished === 'true' ? true : req.query.isPublished === 'false' ? false : undefined;
-
-      const { movies, total } = await this.adminService.listMovies({
-        page, limit, isPublished,
-        search: req.query.search as string | undefined,
-        genre: req.query.genre as string | undefined,
-      });
-      res.json(apiResponse.paginated(movies, buildPaginationMeta(page, limit, total)));
-    } catch (error) {
-      next(error);
-    }
-  };
-
-  publishMovie = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const { userId: adminId } = (req as AuthenticatedRequest).user;
-      await this.adminService.publishMovie(req.params.id, adminId);
-      res.json(apiResponse.success(null, 'Movie published'));
-    } catch (error) {
-      next(error);
-    }
-  };
-
-  unpublishMovie = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const { userId: adminId } = (req as AuthenticatedRequest).user;
-      await this.adminService.unpublishMovie(req.params.id, adminId);
-      res.json(apiResponse.success(null, 'Movie unpublished'));
-    } catch (error) {
-      next(error);
-    }
-  };
-
-  deleteMovie = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const { userId: adminId } = (req as AuthenticatedRequest).user;
-      await this.adminService.deleteMovie(req.params.id, adminId);
-      res.json(apiResponse.success(null, 'Movie deleted'));
-    } catch (error) {
-      next(error);
-    }
-  };
-
-  operatorUpdateMovie = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const { userId } = (req as AuthenticatedRequest).user;
-      await this.adminService.operatorUpdateMovie(req.params.id, userId, req.body as Record<string, unknown>);
-      res.json(apiResponse.success(null, 'Movie updated'));
-    } catch (error) {
-      next(error);
-    }
-  };
-
   // ── Feedback ─────────────────────────────────────────────────
 
   listFeedback = async (req: Request, res: Response, next: NextFunction): Promise<void> => {

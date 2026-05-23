@@ -23,11 +23,11 @@ const { width: SW } = Dimensions.get('window');
 
 // ─── Main Router ──────────────────────────────────────────────────────────────
 export function VideoPlayerScreen({ route, navigation }: Props) {
-  const { movieId, videoUrl, title } = route.params;
+  const { videoUrl, title } = route.params;
   if (YOUTUBE_RE.test(videoUrl)) {
     return <YouTubePlayer url={videoUrl} title={title} navigation={navigation} />;
   }
-  return <DirectPlayer movieId={movieId} videoUrl={videoUrl} title={title} navigation={navigation} />;
+  return <DirectPlayer videoUrl={videoUrl} title={title} navigation={navigation} />;
 }
 
 // ─── YouTube Player ───────────────────────────────────────────────────────────
@@ -91,8 +91,8 @@ function YouTubePlayer({
 
 // ─── Direct Player ────────────────────────────────────────────────────────────
 function DirectPlayer({
-  movieId, videoUrl, title, navigation,
-}: { movieId: string; videoUrl: string; title: string; navigation: Props['navigation'] }) {
+  videoUrl, title, navigation,
+}: { videoUrl: string; title: string; navigation: Props['navigation'] }) {
   const s = useVideoPlayerStyles();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
@@ -101,7 +101,7 @@ function DirectPlayer({
     seekBarW, setSeekBarW, doubleTapSide, progress,
     controlsOpacity, playBtnScale, doubleTapAnim, loadingRotate,
     onStatus, togglePlay, skipBy, seekTo, handleScreenTap,
-  } = useVideoPlayer(movieId);
+  } = useVideoPlayer();
 
   if (err) return <ErrorScreen message={err} onBack={() => navigation.goBack()} colors={colors} />;
 

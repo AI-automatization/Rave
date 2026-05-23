@@ -33,7 +33,6 @@ export interface IUser {
   username: string;
   avatar: string | null;
   bio: string;
-  favoriteGenres?: ContentGenre[];
   role: UserRole;
   rank: UserRank;
   totalPoints: number;
@@ -80,54 +79,6 @@ export interface AuthenticatedRequest extends Request {
 
 export interface OptionalAuthRequest extends Request {
   user?: JwtPayload;
-}
-
-// ─────────────────────────────────────────────
-// Movie / Content
-// ─────────────────────────────────────────────
-
-export type ContentType = 'movie' | 'series' | 'short';
-
-export type ContentGenre =
-  | 'action'
-  | 'comedy'
-  | 'drama'
-  | 'horror'
-  | 'thriller'
-  | 'romance'
-  | 'sci-fi'
-  | 'animation'
-  | 'documentary'
-  | 'fantasy';
-
-export interface ICastMember {
-  name: string;
-  photoUrl?: string;
-}
-
-export interface IMovie {
-  _id: string;
-  title: string;
-  originalTitle: string;
-  slug?: string;
-  description: string;
-  type: ContentType;
-  genre: ContentGenre[];
-  year: number;
-  duration: number; // minutes
-  rating: number; // 0-10
-  reviewCount?: number;
-  posterUrl: string;
-  backdropUrl: string;
-  videoUrl: string; // HLS m3u8
-  trailerUrl: string;
-  isPublished: boolean;
-  viewCount: number;
-  director?: string;
-  cast?: ICastMember[];
-  addedBy: string; // operator/admin userId
-  createdAt: Date;
-  updatedAt: Date;
 }
 
 // ─────────────────────────────────────────────
@@ -214,7 +165,6 @@ export type NotificationType =
   | 'friend_request'
   | 'friend_accepted'
   | 'watch_party_invite'
-  | 'achievement_unlocked'
   | 'friend_online'
   | 'friend_watching'
   | 'support_reply'
@@ -229,23 +179,6 @@ export interface INotification {
   data: Record<string, unknown>;
   isRead: boolean;
   createdAt: Date;
-}
-
-// ─────────────────────────────────────────────
-// Achievement
-// ─────────────────────────────────────────────
-
-export type AchievementRarity = 'common' | 'rare' | 'epic' | 'legendary' | 'secret';
-
-export interface IAchievement {
-  _id: string;
-  key: string;
-  title: string;
-  description: string;
-  iconUrl: string;
-  rarity: AchievementRarity;
-  points: number;
-  condition: Record<string, unknown>;
 }
 
 // ─────────────────────────────────────────────

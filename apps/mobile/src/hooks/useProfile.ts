@@ -44,12 +44,6 @@ export function useMyProfile() {
     enabled: isAuthenticated,
   });
 
-  const achievementsQuery = useQuery({
-    queryKey: ['my-achievements'],
-    queryFn: () => userApi.getMyAchievements(),
-    staleTime: 5 * 60 * 1000,
-  });
-
   const updateProfileMutation = useMutation({
     mutationFn: (data: { username?: string; bio?: string; avatar?: string }) =>
       userApi.updateProfile(data),
@@ -66,5 +60,5 @@ export function useMyProfile() {
     }
   }, [isAuthenticated, user, profileQuery.isError, logout]);
 
-  return { profileQuery, statsQuery, achievementsQuery, updateProfileMutation };
+  return { profileQuery, statsQuery, updateProfileMutation };
 }

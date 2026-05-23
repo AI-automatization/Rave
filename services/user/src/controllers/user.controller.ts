@@ -220,33 +220,6 @@ export class UserController {
     }
   };
 
-  getMyAchievementsProxy = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const { userId } = (req as AuthenticatedRequest).user;
-      const { AchievementService } = await import('../services/achievement.service');
-      const achievementService = new AchievementService();
-      const achievements = await achievementService.getUserAchievements(userId, false);
-      res.json(apiResponse.success(achievements));
-    } catch (error) {
-      next(error);
-    }
-  };
-
-  // Internal endpoint — battle/other services call this to award points
-  addPoints = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const { userId, points } = req.body as { userId: string; points: number };
-      if (!userId || typeof points !== 'number' || points <= 0) {
-        res.status(400).json(apiResponse.error('userId and positive points are required'));
-        return;
-      }
-      await this.userService.addPoints(userId, points);
-      res.json(apiResponse.success(null, 'Points added'));
-    } catch (error) {
-      next(error);
-    }
-  };
-
   addFcmToken = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { userId } = (req as AuthenticatedRequest).user;

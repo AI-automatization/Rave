@@ -1,7 +1,7 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import {
-  LayoutDashboard, Users, Film, Tv2,
+  LayoutDashboard, Users, Tv2,
   ScrollText, Activity, ShieldCheck, UserCog, Bug, LogOut,
   Globe, Flag, Scale, Settings, Sparkles, MessageSquare, Bell,
 } from 'lucide-react';
@@ -109,7 +109,6 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
   const platformItems: NavItem[] = [
     { to: '/users',         label: 'Users',         icon: <Users size={15} /> },
-    { to: '/movies',        label: 'Content',        icon: <Film size={15} /> },
     { to: '/watchparties',  label: 'Watch Parties',  icon: <Tv2 size={15} /> },
     { to: '/notifications', label: 'Notifications',  icon: <Bell size={15} /> },
   ];

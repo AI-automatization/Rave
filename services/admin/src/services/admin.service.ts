@@ -10,12 +10,10 @@ import { AuditLog } from '../models/auditLog.model';
 import { getLogsModel } from '@shared/middleware/apiLogger.middleware';
 import {
   adminGetUserStats,
-  adminListMovies,
-  adminGetContentStats,
   adminGetWatchPartyStats,
   adminBroadcastNotification,
   adminSendNotificationToUser,
-} from '@shared/utils/serviceClient';
+} from '@shared/utils/adminServiceClient';
 import { AdminUserService } from './adminUser.service';
 import { AdminContentService } from './adminContent.service';
 import { AdminRoomService } from './adminRoom.service';
@@ -23,7 +21,6 @@ import { AdminRoomService } from './adminRoom.service';
 export interface DashboardStats {
   totalUsers: number;
   activeUsers: number;
-  totalMovies: number;
   activeWatchParties: number;
 }
 
@@ -32,7 +29,6 @@ export class AdminService {
   readonly content: AdminContentService;
   readonly rooms: AdminRoomService;
 
-  // Delegate signatures — assigned in constructor after sub-services are ready
   listUsers!: AdminUserService['listUsers'];
   blockUser!: AdminUserService['blockUser'];
   unblockUser!: AdminUserService['unblockUser'];
@@ -43,11 +39,6 @@ export class AdminService {
   deleteStaff!: AdminUserService['deleteStaff'];
   setUserRestrictions!: AdminUserService['setUserRestrictions'];
   deleteUserData!: AdminUserService['deleteUserData'];
-  listMovies!: AdminContentService['listMovies'];
-  publishMovie!: AdminContentService['publishMovie'];
-  unpublishMovie!: AdminContentService['unpublishMovie'];
-  deleteMovie!: AdminContentService['deleteMovie'];
-  operatorUpdateMovie!: AdminContentService['operatorUpdateMovie'];
   listDomains!: AdminContentService['listDomains'];
   blockDomain!: AdminContentService['blockDomain'];
   unblockDomain!: AdminContentService['unblockDomain'];
@@ -73,11 +64,6 @@ export class AdminService {
     this.deleteStaff = this.users.deleteStaff.bind(this.users);
     this.setUserRestrictions = this.users.setUserRestrictions.bind(this.users);
     this.deleteUserData = this.users.deleteUserData.bind(this.users);
-    this.listMovies = this.content.listMovies.bind(this.content);
-    this.publishMovie = this.content.publishMovie.bind(this.content);
-    this.unpublishMovie = this.content.unpublishMovie.bind(this.content);
-    this.deleteMovie = this.content.deleteMovie.bind(this.content);
-    this.operatorUpdateMovie = this.content.operatorUpdateMovie.bind(this.content);
     this.listDomains = this.content.listDomains.bind(this.content);
     this.blockDomain = this.content.blockDomain.bind(this.content);
     this.unblockDomain = this.content.unblockDomain.bind(this.content);
@@ -92,15 +78,13 @@ export class AdminService {
   // ── Dashboard + Analytics ──────────────────────────────────
 
   async getDashboardStats(): Promise<DashboardStats> {
-    const [userStats, movieResult, watchPartyStats] = await Promise.all([
+    const [userStats, watchPartyStats] = await Promise.all([
       adminGetUserStats(),
-      adminListMovies({ limit: 1 }),
       adminGetWatchPartyStats(),
     ]);
     return {
       totalUsers: userStats.totalUsers,
       activeUsers: userStats.activeUsers,
-      totalMovies: movieResult.total,
       activeWatchParties: watchPartyStats.activeNow,
     };
   }
@@ -110,11 +94,8 @@ export class AdminService {
     newUsersThisWeek: number;
     watchPartiesCreatedToday: number;
     activeWatchParties: number;
-    topMovies: Array<{ _id: string; title: string; viewCount: number }>;
-    genreDistribution: Array<{ genre: string; count: number }>;
   }> {
-    const [contentStats, watchPartyStats, userStats] = await Promise.all([
-      adminGetContentStats(),
+    const [watchPartyStats, userStats] = await Promise.all([
       adminGetWatchPartyStats(),
       adminGetUserStats(),
     ]);
@@ -123,8 +104,6 @@ export class AdminService {
       newUsersThisWeek: userStats.newUsersThisWeek,
       watchPartiesCreatedToday: watchPartyStats.createdToday,
       activeWatchParties: watchPartyStats.activeNow,
-      topMovies: contentStats.topMovies,
-      genreDistribution: contentStats.genreDistribution,
     };
   }
 

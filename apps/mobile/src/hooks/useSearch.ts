@@ -1,9 +1,8 @@
-// WeWatch Mobile — Search Hook
+// WeWatch Mobile — Search Hook (external video search)
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import * as SecureStore from 'expo-secure-store';
 import { contentApi } from '@api/content.api';
-import { ContentGenre, IMovie } from '@app-types/index';
 
 const HISTORY_KEY = 'cinesync_search_history';
 const MAX_HISTORY = 10;
@@ -52,26 +51,10 @@ export function useSearchHistory() {
   return { history, addToHistory, removeFromHistory, clearHistory };
 }
 
-export type SearchSortOption = 'rating' | 'year' | 'title';
-
-export function useSearchResults(
-  query: string,
-  genre: ContentGenre | null,
-  page: number,
-  year?: number | null,
-  sort?: SearchSortOption | null,
-) {
+export function useVideoSearch(query: string) {
   return useQuery({
-    queryKey: ['search', query, genre, page, year, sort],
-    queryFn: () =>
-      contentApi.getMovies({
-        search: query,
-        genre: genre ?? undefined,
-        page,
-        limit: 20,
-        year: year ?? undefined,
-        sort: sort ?? undefined,
-      }),
+    queryKey: ['videoSearch', query],
+    queryFn: () => contentApi.searchVideos(query),
     enabled: query.trim().length > 0,
     staleTime: 2 * 60 * 1000,
   });
@@ -91,16 +74,3 @@ export function useDebounce(value: string, delay = DEBOUNCE_MS): string {
 
   return debounced;
 }
-
-export const GENRES: Array<{ label: string; value: ContentGenre }> = [
-  { label: 'Action', value: 'action' },
-  { label: 'Comedy', value: 'comedy' },
-  { label: 'Drama', value: 'drama' },
-  { label: 'Horror', value: 'horror' },
-  { label: 'Thriller', value: 'thriller' },
-  { label: 'Romance', value: 'romance' },
-  { label: 'Sci-Fi', value: 'sci-fi' },
-  { label: 'Animation', value: 'animation' },
-  { label: 'Documentary', value: 'documentary' },
-  { label: 'Fantasy', value: 'fantasy' },
-];

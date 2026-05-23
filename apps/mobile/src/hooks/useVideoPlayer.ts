@@ -1,13 +1,12 @@
-// WeWatch — Video Player hook (progress save, playback status, controls, double-tap)
+// WeWatch — Video Player hook (playback status, controls, double-tap)
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { Animated, Dimensions } from 'react-native';
 import { Video, AVPlaybackStatus } from 'expo-av';
-import { contentApi } from '@api/content.api';
 import { CONTROLS_TIMEOUT, SEEK_SEC, DOUBLE_TAP_MS } from '@utils/videoPlayer';
 
 const { width: SW } = Dimensions.get('window');
 
-export function useVideoPlayer(movieId: string) {
+export function useVideoPlayer() {
   const videoRef = useRef<Video>(null);
 
   const [playing, setPlaying] = useState(false);
@@ -26,21 +25,8 @@ export function useVideoPlayer(movieId: string) {
   const loadingRotate = useRef(new Animated.Value(0)).current;
 
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const progressSaveRef = useRef(0);
-  const completedRef = useRef(false);
   const lastTapRef = useRef(0);
   const lastSideRef = useRef<'left' | 'right' | null>(null);
-  const resumedRef = useRef(false);
-  const resumePositionRef = useRef<number | null>(null);
-
-  // Resume position fetch on mount
-  useEffect(() => {
-    contentApi.getWatchProgress(movieId).then((prog) => {
-      if (prog && !prog.isCompleted && prog.progress > 0) {
-        resumePositionRef.current = prog.progress * 1000;
-      }
-    }).catch(() => {});
-  }, [movieId]);
 
   // Spinner rotation animation while loading
   useEffect(() => {
@@ -58,53 +44,24 @@ export function useVideoPlayer(movieId: string) {
     Animated.timing(controlsOpacity, { toValue: 1, duration: 200, useNativeDriver: true }).start();
     if (hideTimer.current) clearTimeout(hideTimer.current);
     hideTimer.current = setTimeout(() => {
-      if (!playing) return;
-      Animated.timing(controlsOpacity, { toValue: 0, duration: 400, useNativeDriver: true }).start(
+      Animated.timing(controlsOpacity, { toValue: 0, duration: 300, useNativeDriver: true }).start(
         () => setShowControls(false),
       );
     }, CONTROLS_TIMEOUT);
-  }, [controlsOpacity, playing]);
+  }, [controlsOpacity]);
 
-  useEffect(() => {
-    revealControls();
-    return () => {
-      if (hideTimer.current) clearTimeout(hideTimer.current);
-    };
-  }, [revealControls]);
-
-  // Handle expo-av playback status updates
   const onStatus = useCallback((st: AVPlaybackStatus) => {
     if (!st.isLoaded) {
       if (st.error) setErr(st.error);
       return;
     }
-    setLoading(false);
-    setPos(st.positionMillis);
+
+    if (loading && st.isLoaded) setLoading(false);
     setPlaying(st.isPlaying);
     setBuffering(st.isBuffering);
+    setPos(st.positionMillis);
     if (st.durationMillis) setDur(st.durationMillis);
-
-    // Seek to saved position once video is ready
-    if (!resumedRef.current && resumePositionRef.current && videoRef.current && st.durationMillis) {
-      resumedRef.current = true;
-      videoRef.current.setPositionAsync(resumePositionRef.current);
-    }
-
-    // Auto-save progress every 30 s
-    const now = Date.now();
-    if (now - progressSaveRef.current >= 30_000 && st.durationMillis) {
-      progressSaveRef.current = now;
-      contentApi
-        .updateProgress(movieId, Math.floor(st.positionMillis / 1000), Math.floor(st.durationMillis / 1000))
-        .catch(() => {});
-    }
-
-    // Mark completed at 90 %
-    if (!completedRef.current && st.durationMillis && st.positionMillis / st.durationMillis >= 0.9) {
-      completedRef.current = true;
-      contentApi.markComplete(movieId).catch(() => {});
-    }
-  }, [movieId]);
+  }, [loading]);
 
   const togglePlay = useCallback(async () => {
     if (!videoRef.current) return;

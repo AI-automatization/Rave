@@ -6,7 +6,6 @@ import { logger } from '@shared/utils/logger';
 import { NotFoundError, ForbiddenError, BadRequestError, UnauthorizedError } from '@shared/utils/errors';
 import { SyncState, VideoPlatform } from '@shared/types';
 import { REDIS_KEYS, TTL, LIMITS, TIMING } from '@shared/constants';
-import { checkContent, extractDomain } from '../utils/contentFilter';
 import { getUserRestrictions } from '@shared/utils/serviceClient';
 import { WatchPartyPlaylistService } from './watchPartyPlaylist.service';
 import { WatchPartyMembersService } from './watchPartyMembers.service';
@@ -101,14 +100,8 @@ export class WatchPartyService {
       }
     }
 
-    const title = options.videoTitle ?? '';
     const url = options.videoUrl ?? '';
-    const domain = extractDomain(url);
-    const filterResult = checkContent(`${title} ${url}`);
-
-    if (filterResult.severity === 'critical') {
-      throw new ForbiddenError('Content not allowed on this platform');
-    }
+    const domain = url ? (() => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return null; } })() : null;
 
     if (domain && (await this.redis.sismember(BLOCKED_DOMAINS_KEY, domain)) === 1) {
       throw new ForbiddenError('Domain is blocked by platform policy');
@@ -136,8 +129,6 @@ export class WatchPartyService {
       isPrivate,
       password:         passwordHash,
       currentTime:      startTime,
-      isSuspicious:     filterResult.isSuspicious,
-      suspiciousReason: filterResult.reason ?? null,
       domain:           domain ?? null,
     });
 

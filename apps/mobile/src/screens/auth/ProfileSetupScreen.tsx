@@ -13,27 +13,11 @@ import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
-import { ContentGenre } from '@app-types/index';
 import { userApi } from '@api/user.api';
 import { useAuthStore } from '@store/auth.store';
 import { useT } from '@i18n/index';
 
 const BIO_MAX = 200;
-
-const GENRE_KEYS: Record<ContentGenre, string> = {
-  action:      'action',
-  comedy:      'comedy',
-  drama:       'drama',
-  horror:      'horror',
-  thriller:    'thriller',
-  romance:     'romance',
-  'sci-fi':    'scifi',
-  animation:   'animation',
-  documentary: 'documentary',
-  fantasy:     'fantasy',
-};
-
-const ALL_GENRES = Object.keys(GENRE_KEYS) as ContentGenre[];
 
 export function ProfileSetupScreen() {
   const insets = useSafeAreaInsets();
@@ -45,7 +29,6 @@ export function ProfileSetupScreen() {
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [username, setUsername] = useState(user?.username ?? '');
   const [bio, setBio] = useState('');
-  const [selectedGenres, setSelectedGenres] = useState<ContentGenre[]>([]);
   const [loading, setLoading] = useState(false);
 
   const handlePickAvatar = async () => {
@@ -65,12 +48,6 @@ export function ProfileSetupScreen() {
     }
   };
 
-  const toggleGenre = (genre: ContentGenre) => {
-    setSelectedGenres((prev) =>
-      prev.includes(genre) ? prev.filter((g) => g !== genre) : [...prev, genre],
-    );
-  };
-
   const handleSave = async () => {
     setLoading(true);
     try {
@@ -78,7 +55,6 @@ export function ProfileSetupScreen() {
         username: username.trim() || undefined,
         bio: bio.trim() || undefined,
         avatar: avatarUri ?? undefined,
-        favoriteGenres: selectedGenres.length > 0 ? selectedGenres : undefined,
       });
       updateUser(updated);
     } catch {
@@ -139,28 +115,6 @@ export function ProfileSetupScreen() {
           textAlignVertical="top"
         />
         <Text style={styles.bioCount}>{bio.length}/{BIO_MAX}</Text>
-      </View>
-
-      {/* Genre chips */}
-      <View style={styles.genreSection}>
-        <Text style={styles.genreLabel}>{t('profileSetup', 'favoriteGenres')}</Text>
-        <View style={styles.chipGrid}>
-          {ALL_GENRES.map((genre) => {
-            const active = selectedGenres.includes(genre);
-            return (
-              <TouchableOpacity
-                key={genre}
-                style={[styles.chip, active && styles.chipActive]}
-                onPress={() => toggleGenre(genre)}
-                activeOpacity={0.8}
-              >
-                <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                  {t('genres', GENRE_KEYS[genre])}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
       </View>
 
       {/* Buttons */}

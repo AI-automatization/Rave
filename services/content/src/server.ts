@@ -11,8 +11,6 @@ import { createApp } from './app';
 import { config } from './config/index';
 import { logger } from '@shared/utils/logger';
 import { initServiceQueues } from '@shared/utils/serviceQueue';
-import { initElasticsearchIndex } from './utils/elastic.init';
-import { startHlsWorker } from './workers/hls.worker';
 import { startUrlVisitCron } from './workers/urlVisitCron.worker';
 
 const main = async (): Promise<void> => {
@@ -37,11 +35,7 @@ const main = async (): Promise<void> => {
   const elastic = new ElasticsearchClient({ node: config.elasticsearchUrl });
   logger.info('Elasticsearch client initialized', { url: config.elasticsearchUrl });
 
-  // Index va mapping yaratish (mavjud bo'lsa skip qiladi)
-  await initElasticsearchIndex(elastic);
-
   initServiceQueues(config.redisUrl);
-  startHlsWorker();
   startUrlVisitCron();
 
   const app = createApp(redis, elastic);
