@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { type Variants } from 'framer-motion';
 import {
-  FaPlay, FaUsers, FaTrophy, FaBell, FaStar,
+  FaPlay, FaUsers, FaBell,
   FaWifi, FaShieldAlt, FaCheck, FaArrowRight,
 } from 'react-icons/fa';
 import { GiCrossedSwords } from 'react-icons/gi';
@@ -52,21 +52,6 @@ export function FeaturesContent() {
       ],
     },
     {
-      icon: FaTrophy,
-      key: 'Achievement',
-      tagline: t('f3tagline'),
-      color: '#88CCFF',
-      glow: 'rgba(136,204,255,0.2)',
-      badge: t('badge25'),
-      features: [
-        '5 rarity: common → legendary → secret',
-        'Maxfiy yutuqlar (kashf eting)',
-        'Unlock animatsiyasi',
-        'Bronze → Diamond rank tizimi',
-        "Profilda ko'rsatish",
-      ],
-    },
-    {
       icon: FaUsers,
       key: t('f4key'),
       tagline: t('f4tagline'),
@@ -94,21 +79,6 @@ export function FeaturesContent() {
         'Battle natijasi',
         'Watch Party taklifi',
         'Achievement unlock',
-      ],
-    },
-    {
-      icon: FaStar,
-      key: t('f6key'),
-      tagline: t('f6tagline'),
-      color: '#FFD700',
-      glow: 'rgba(255,215,0,0.15)',
-      badge: null,
-      features: [
-        'Film reyting (1-10)',
-        'Sharhlar yozish',
-        "O'rtacha reyting",
-        "Ko'rish tarixi",
-        'Davom etish',
       ],
     },
     {
@@ -144,10 +114,10 @@ export function FeaturesContent() {
   ];
 
   const STATS = [
-    { val: '10K+', label: tl('statUsers') },
-    { val: '50K+', label: tl('statMovies') },
-    { val: '25+',  label: t('statAchievements') },
-    { val: '4K',   label: t('statQuality') },
+    { val: '∞',   label: tl('statsLabel1') },
+    { val: '4K',  label: t('statQuality') },
+    { val: '±2s', label: t('statSync') },
+    { val: '0',   label: tl('statsLabel4') },
   ];
 
   return (

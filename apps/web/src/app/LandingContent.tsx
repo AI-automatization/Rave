@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, useScroll, useTransform, useReducedMotion, type Variants } from 'framer-motion';
 import {
-  FaPlay, FaUsers, FaTrophy, FaFire, FaComment,
+  FaPlay, FaUsers, FaFire, FaComment, FaApple,
   FaChevronRight, FaCheck, FaLink, FaHeart, FaUserFriends, FaGlobe,
 } from 'react-icons/fa';
 import { GiCrossedSwords } from 'react-icons/gi';
@@ -26,14 +26,9 @@ const screenVariants: Variants = {
   exit:   { opacity: 0, y: -8,  transition: { duration: 0.18 } },
 };
 
-const PLAY_STORE  = 'https://play.google.com/store';
+const APP_STORE = 'https://apps.apple.com';
 const TYPING_URL  = 'youtube.com';
 
-const BATTLE_USERS = [
-  { rank: 1, name: 'Sardor_90', videos: 48, initials: 'S', color: '#FFD700', bg: 'rgba(255,215,0,0.12)' },
-  { rank: 2, name: 'Zulfiya_N', videos: 41, initials: 'Z', color: '#C0C0C0', bg: 'rgba(192,192,192,0.12)' },
-  { rank: 3, name: 'Bobur_K',   videos: 37, initials: 'B', color: '#CD7F32', bg: 'rgba(205,127,50,0.12)' },
-];
 
 const HERO_BUBBLES = [
   { top: '28%', left: '7%',  label: 'Sardor',  color: '#7B72F8', delay: 0   },
@@ -43,8 +38,8 @@ const HERO_BUBBLES = [
 ] as const;
 
 const MARQUEE_ITEMS = [
-  'YouTube', 'VK', 'Rutube', 'Cinerama', 'Twitch', 'Instagram', 'Google Drive',
-  'YouTube', 'VK', 'Rutube', 'Cinerama', 'Twitch', 'Instagram', 'Google Drive',
+  'YouTube', 'VK', 'Rutube', 'Uzmove', 'Cinerama', 'Twitch', 'Instagram', 'Google Drive',
+  'YouTube', 'VK', 'Rutube', 'Uzmove', 'Cinerama', 'Twitch', 'Instagram', 'Google Drive',
 ];
 
 
@@ -186,27 +181,27 @@ function BentoFeatures({ t }: { t: ReturnType<typeof useTranslations<'landing'>>
             </GlassCard>
           </motion.div>
 
-          {/* [2] Battle (1 col × 1 row) */}
+          {/* [2] Real-time Chat (1 col × 1 row) */}
           <motion.div variants={fadeUp}>
-            <GlassCard className="h-full p-6" glowColor="#FFD700">
+            <GlassCard className="h-full p-6" glowColor="#22d3ee">
               <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-4"
-                style={{ background: 'rgba(255,215,0,0.12)', border: '1px solid rgba(255,215,0,0.25)' }}>
-                <GiCrossedSwords size={20} className="text-[#FFD700]" aria-hidden="true" />
+                style={{ background: 'rgba(34,211,238,0.10)', border: '1px solid rgba(34,211,238,0.22)' }}>
+                <FaComment size={18} className="text-[#22d3ee]" aria-hidden="true" />
               </div>
-              <h3 className="font-display text-lg uppercase text-white mb-1.5">{t('f2title')}</h3>
-              <p className="text-zinc-500 text-sm leading-relaxed">{t('f2desc')}</p>
+              <h3 className="font-display text-lg uppercase text-white mb-1.5">{t('f5title')}</h3>
+              <p className="text-zinc-500 text-sm leading-relaxed">{t('f5desc')}</p>
             </GlassCard>
           </motion.div>
 
-          {/* [3] Leaderboard (1 col × 1 row) */}
+          {/* [3] Built-in Browser (1 col × 1 row) */}
           <motion.div variants={fadeUp}>
-            <GlassCard className="h-full p-6" glowColor="#88CCFF">
+            <GlassCard className="h-full p-6" glowColor="#7B72F8">
               <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-4"
-                style={{ background: 'rgba(136,204,255,0.10)', border: '1px solid rgba(136,204,255,0.22)' }}>
-                <FaTrophy size={18} className="text-[#88CCFF]" aria-hidden="true" />
+                style={{ background: 'rgba(123,114,248,0.14)', border: '1px solid rgba(123,114,248,0.28)' }}>
+                <FaGlobe size={18} className="text-[#7B72F8]" aria-hidden="true" />
               </div>
-              <h3 className="font-display text-lg uppercase text-white mb-1.5">{t('f3title')}</h3>
-              <p className="text-zinc-500 text-sm leading-relaxed">{t('f3desc')}</p>
+              <h3 className="font-display text-lg uppercase text-white mb-1.5">{t('f6title')}</h3>
+              <p className="text-zinc-500 text-sm leading-relaxed">{t('f6desc')}</p>
             </GlassCard>
           </motion.div>
 
@@ -662,16 +657,14 @@ export function LandingContent() {
             {/* CTA buttons — §1: cursor-pointer, min h-14 (>44px touch target) */}
             <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, delay: 0.45 }}
               className="flex gap-4 justify-center flex-wrap">
-              <a href={PLAY_STORE} target="_blank" rel="noopener noreferrer"
+              <a href={APP_STORE} target="_blank" rel="noopener noreferrer"
                 className="group inline-flex items-center gap-3 h-14 px-8 rounded-xl text-white font-semibold transition-all duration-200 active:scale-95 cursor-pointer"
                 style={{ background: 'linear-gradient(135deg, #7B72F8, #6B63E8)', boxShadow: '0 0 32px rgba(123,114,248,0.55), inset 0 1px 0 rgba(255,255,255,0.12)' }}
-                aria-label="Скачать WeWatch в Google Play">
-                <svg viewBox="0 0 22 24" width="20" height="22" fill="currentColor" aria-hidden="true">
-                  <path d="M1.22 0c-.55.3-.93.87-.93 1.55v20.9c0 .68.38 1.25.93 1.55l.1.06L12.36 12 1.32-.06 1.22 0zM15.75 8.67L4.17 1.38l9.7 9.7-1.12.96 2.99 1.72V8.67zM15.75 15.33v-3.1l-2.99 1.73 1.12.95-9.7 9.71 11.57-7.3.01-.99zM4.17 22.62l11.57-7.29v1.1L4.17 22.62z" />
-                </svg>
+                aria-label="WeWatch-ni App Store-dan yuklab oling">
+                <FaApple size={22} aria-hidden="true" />
                 <div className="text-left leading-tight">
-                  <div className="text-[10px] opacity-70">Get it on</div>
-                  <div className="text-[15px] font-bold">Google Play</div>
+                  <div className="text-[10px] opacity-70">Download on the</div>
+                  <div className="text-[15px] font-bold">App Store</div>
                 </div>
               </a>
               <a href="#demo"
@@ -937,13 +930,6 @@ export function LandingContent() {
                     ))}
                   </ul>
                 </GlassCard>
-                <GlassCard className="p-5" glowColor="#FFD700">
-                  <div className="flex items-center gap-2 mb-2.5">
-                    <GiCrossedSwords size={13} className="text-[#FFD700]" aria-hidden="true" />
-                    <span className="text-[10px] text-[#FFD700] font-bold uppercase tracking-wide">{t('appBattleTag')}</span>
-                  </div>
-                  <p className="text-[11px] text-zinc-500 leading-relaxed">{t('appBattleDesc')}</p>
-                </GlassCard>
               </div>
             </div>
           </div>
@@ -959,37 +945,16 @@ export function LandingContent() {
         <section className="py-28 px-4 bg-[#0A0A0F] relative overflow-hidden" aria-labelledby="battle-heading">
           <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <motion.div initial={{ opacity: 0, x: -28 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.55 }} className="relative">
-              <GlassCard className="p-6" glowColor="#FFD700">
-                <div className="flex items-center justify-between mb-6">
-                  <span className="text-[#FFD700] font-display uppercase text-sm flex items-center gap-2">
-                    <GiCrossedSwords size={16} aria-hidden="true" /> {t('battleCardTitle')}
-                  </span>
-                  <span className="px-2.5 py-1 rounded-full bg-[#7B72F8]/10 border border-[#7B72F8]/22 text-[#7B72F8] text-xs font-semibold">{t('battleDaysLeft')}</span>
+              <GlassCard className="p-10 flex flex-col items-center justify-center text-center min-h-[280px]" glowColor="#FFD700">
+                <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6"
+                  style={{ background: 'rgba(255,215,0,0.12)', border: '1px solid rgba(255,215,0,0.28)' }}>
+                  <GiCrossedSwords size={28} className="text-[#FFD700]" aria-hidden="true" />
                 </div>
-                <ol className="space-y-1" aria-label="Топ участников">
-                  {BATTLE_USERS.map(({ rank, name, videos, initials, color, bg }) => (
-                    <li key={rank} className="flex items-center gap-3 py-3 border-b border-zinc-800/50 last:border-0">
-                      <span className="font-display text-xl w-8 flex-shrink-0" style={{ color }} aria-label={`Место ${rank}`}>{rank}</span>
-                      <div className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center font-bold text-sm border"
-                        style={{ backgroundColor: bg, color, borderColor: `${color}30` }}>{initials}</div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-white text-sm font-medium">{name}</p>
-                        <p className="text-zinc-500 text-xs">{videos} {t('battleVideosWatched')}</p>
-                      </div>
-                      <div className="h-1.5 w-20 bg-zinc-800 rounded-full overflow-hidden flex-shrink-0"
-                        role="progressbar" aria-valuenow={videos} aria-valuemax={48} aria-label={`${videos} видео`}>
-                        <motion.div className="h-full rounded-full" initial={{ width: 0 }}
-                          whileInView={{ width: `${(videos / 48) * 100}%` }} viewport={{ once: true }}
-                          transition={{ duration: 1, delay: rank * 0.15, ease: 'easeOut' }}
-                          style={{ background: `linear-gradient(90deg, ${color}, ${color}cc)` }} />
-                      </div>
-                    </li>
-                  ))}
-                </ol>
-                <div className="mt-5 pt-4 border-t border-zinc-800/60 flex items-center justify-between">
-                  <span className="text-zinc-600 text-xs">{t('battleYourPos')}</span>
-                  <span className="text-zinc-400 text-sm font-medium">{t('battleChallenge')}</span>
-                </div>
+                <h3 className="font-display text-2xl uppercase text-[#FFD700] mb-3">{t('battleCardTitle')}</h3>
+                <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-zinc-800/80 border border-zinc-700/60 text-zinc-400 text-xs font-semibold uppercase tracking-wider mb-5">
+                  {t('comingSoon')}
+                </span>
+                <p className="text-zinc-500 text-sm leading-relaxed max-w-xs">{t('battleDesc')}</p>
               </GlassCard>
               <div className="absolute -inset-8 bg-[#FFD700]/04 rounded-3xl blur-3xl -z-10" aria-hidden="true" />
             </motion.div>
@@ -1055,13 +1020,11 @@ export function LandingContent() {
             </motion.p>
 
             <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <a href={PLAY_STORE} target="_blank" rel="noopener noreferrer"
+              <a href={APP_STORE} target="_blank" rel="noopener noreferrer"
                 className="inline-flex items-center gap-3 h-16 px-12 rounded-xl text-white font-bold transition-all duration-200 active:scale-95 text-base cursor-pointer"
                 style={{ background: 'linear-gradient(135deg, #7B72F8, #6B63E8)', boxShadow: '0 0 50px rgba(123,114,248,0.65), inset 0 1px 0 rgba(255,255,255,0.12)' }}
-                aria-label="Скачать WeWatch бесплатно в Google Play">
-                <svg viewBox="0 0 22 24" width="22" height="24" fill="currentColor" aria-hidden="true">
-                  <path d="M1.22 0c-.55.3-.93.87-.93 1.55v20.9c0 .68.38 1.25.93 1.55l.1.06L12.36 12 1.32-.06 1.22 0zM15.75 8.67L4.17 1.38l9.7 9.7-1.12.96 2.99 1.72V8.67zM15.75 15.33v-3.1l-2.99 1.73 1.12.95-9.7 9.71 11.57-7.3.01-.99zM4.17 22.62l11.57-7.29v1.1L4.17 22.62z" />
-                </svg>
+                aria-label="WeWatch-ni App Store-dan bepul yuklab oling">
+                <FaApple size={24} aria-hidden="true" />
                 {t('ctaPlayBtn')}
               </a>
               <span className="text-zinc-600 text-sm">{t('ctaIosSoon')}</span>
