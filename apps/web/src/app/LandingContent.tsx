@@ -373,55 +373,103 @@ function ScreenHome({ t }: { t: TFn }) {
 
 function ScreenRoom({ t }: { t: TFn }) {
   return (
-    <div className="h-full flex flex-col bg-[#0A0A0F] select-none">
-      <div className="flex items-center gap-2 px-4 pt-4 pb-3 border-b border-zinc-800/50">
-        <span className="text-zinc-600 text-xs" aria-hidden="true">←</span>
-        <span className="text-[11px] font-semibold text-white">{t('screenWPLabel')}</span>
-        <div className="ml-auto flex items-center gap-1">
-          <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" aria-hidden="true" />
-          <span className="text-[8px] text-green-400">{t('screenReady')}</span>
+    <div className="h-full flex flex-col bg-[#080812] select-none">
+      {/* Header */}
+      <div className="flex items-center gap-2.5 px-4 pt-4 pb-3 border-b border-white/[0.05]">
+        <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
+          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}>
+          <FaChevronRight size={7} className="text-zinc-500 rotate-180" aria-hidden="true" />
+        </div>
+        <span className="text-[11px] font-bold text-white tracking-wide flex-1">{t('screenWPLabel')}</span>
+        <div className="flex items-center gap-1.5 rounded-full px-2 py-0.5"
+          style={{ background: 'rgba(74,222,128,0.10)', border: '1px solid rgba(74,222,128,0.22)' }}>
+          <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"
+            style={{ boxShadow: '0 0 5px #4ade80' }} aria-hidden="true" />
+          <span className="text-[8px] text-green-400 font-semibold">{t('screenReady')}</span>
         </div>
       </div>
-      <div className="mx-3 mt-3 rounded-xl overflow-hidden border border-[#7B72F8]/20 flex flex-col justify-center gap-2 px-3 py-3"
-        style={{ background: 'linear-gradient(135deg, #0d0520, #1a0a2e)' }}>
-        <div className="flex items-center gap-2">
-          <FaLink size={8} className="text-[#7B72F8] flex-shrink-0" aria-hidden="true" />
-          <span className="text-[8px] text-zinc-400 font-mono truncate flex-1">youtube.com/watch?v=dQw...</span>
-          <div className="w-5 h-5 rounded-full bg-[#7B72F8]/20 flex items-center justify-center border border-[#7B72F8]/40 flex-shrink-0">
-            <FaPlay size={5} className="text-[#7B72F8] ml-0.5" aria-hidden="true" />
+
+      {/* Video preview card */}
+      <div className="mx-3 mt-3 rounded-2xl overflow-hidden"
+        style={{ border: '1px solid rgba(123,114,248,0.22)', background: 'linear-gradient(145deg, #12073a 0%, #0d0520 60%, #080318 100%)' }}>
+        {/* Thumbnail */}
+        <div className="relative h-[52px] flex items-center justify-center overflow-hidden">
+          <div className="absolute inset-0 opacity-[0.07]"
+            style={{ backgroundImage: 'linear-gradient(rgba(123,114,248,1) 1px,transparent 1px),linear-gradient(90deg,rgba(123,114,248,1) 1px,transparent 1px)', backgroundSize: '14px 14px' }}
+            aria-hidden="true" />
+          <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center, rgba(123,114,248,0.15) 0%, transparent 70%)' }} aria-hidden="true" />
+          <motion.div
+            className="w-9 h-9 rounded-full flex items-center justify-center relative z-10"
+            style={{ background: 'rgba(123,114,248,0.22)', border: '1.5px solid rgba(123,114,248,0.55)' }}
+            animate={{ boxShadow: ['0 0 0px rgba(123,114,248,0.3)', '0 0 18px rgba(123,114,248,0.7)', '0 0 0px rgba(123,114,248,0.3)'] }}
+            transition={{ repeat: Infinity, duration: 2.2 }}>
+            <FaPlay size={10} className="text-[#7B72F8] ml-0.5" aria-hidden="true" />
+          </motion.div>
+        </div>
+        {/* URL row + progress */}
+        <div className="px-3 py-2.5 border-t border-white/[0.05]">
+          <div className="flex items-center gap-2 mb-2">
+            <FaLink size={7} className="text-[#7B72F8]/60 flex-shrink-0" aria-hidden="true" />
+            <span className="text-[8px] text-zinc-400 font-mono truncate flex-1">youtube.com/watch?v=dQw...</span>
+          </div>
+          <div className="h-[3px] rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.07)' }}>
+            <div className="h-full w-0 rounded-full" style={{ background: 'linear-gradient(90deg, #7B72F8, #a855f7)' }} />
           </div>
         </div>
-        <div className="h-0.5 bg-zinc-800 rounded-full" />
-        <div className="h-1 bg-zinc-800/80 rounded-full overflow-hidden">
-          <div className="h-full w-0 bg-[#7B72F8]/40 rounded-full" />
-        </div>
       </div>
-      <div className="px-3 mt-3">
-        <p className="text-[7px] text-zinc-600 uppercase tracking-widest mb-2">{t('screenParticipants')}</p>
-        <div className="flex gap-2 items-center">
+
+      {/* Participants */}
+      <div className="px-3 mt-4">
+        <div className="flex items-center justify-between mb-2.5">
+          <p className="text-[7px] text-zinc-600 uppercase tracking-[0.13em] font-semibold">{t('screenParticipants')}</p>
+          <span className="text-[8px] font-bold" style={{ color: '#7B72F8' }}>3 / 4</span>
+        </div>
+        <div className="flex gap-3 items-center">
           {[['A', '#7B72F8'], ['N', '#a855f7'], ['B', '#6B63E8']].map(([l, c], i) => (
-            <motion.div key={String(l)} initial={{ scale: 0 }} animate={{ scale: 1 }}
-              transition={{ delay: i * 0.12 + 0.15, type: 'spring', stiffness: 260, damping: 20 }}
-              className="flex flex-col items-center gap-1">
-              <div className="w-8 h-8 rounded-full flex items-center justify-center text-[9px] font-bold text-white border-2"
-                style={{ background: `${String(c)}25`, borderColor: String(c) }}>{String(l)}</div>
-              <div className="w-1.5 h-1.5 rounded-full bg-green-400" aria-hidden="true" />
+            <motion.div key={String(l)} initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: i * 0.1 + 0.15, type: 'spring', stiffness: 300, damping: 22 }}>
+              <div className="relative">
+                <div className="w-9 h-9 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
+                  style={{
+                    background: `linear-gradient(135deg, ${String(c)}35, ${String(c)}14)`,
+                    border: `2px solid ${String(c)}`,
+                    boxShadow: `0 0 10px ${String(c)}45`,
+                  }}>{String(l)}</div>
+                <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#080812]"
+                  style={{ background: '#4ade80', boxShadow: '0 0 5px rgba(74,222,128,0.7)' }} aria-hidden="true" />
+              </div>
             </motion.div>
           ))}
-          <div className="flex flex-col items-center gap-1">
-            <div className="w-8 h-8 rounded-full border border-dashed border-zinc-700 flex items-center justify-center text-zinc-600 text-xs">+</div>
+          <div className="w-9 h-9 rounded-full flex items-center justify-center"
+            style={{ border: '1.5px dashed rgba(255,255,255,0.18)' }}>
+            <span className="text-zinc-600 text-xs font-semibold">+</span>
           </div>
         </div>
       </div>
-      <div className="mx-3 mt-3 rounded-lg bg-[#111118] border border-zinc-800 px-3 py-2 flex items-center gap-2">
-        <span className="text-[8px] text-zinc-500 flex-1 truncate">wewatch.app/join/xK9pQr</span>
-        <span className="text-[8px] text-[#7B72F8] font-semibold flex-shrink-0">{t('screenCopy')}</span>
+
+      {/* Invite link */}
+      <div className="mx-3 mt-3.5 rounded-xl px-3 py-2.5 flex items-center gap-2.5"
+        style={{ background: 'rgba(123,114,248,0.07)', border: '1px solid rgba(123,114,248,0.20)' }}>
+        <span className="text-[8px] text-zinc-500 font-mono flex-1 truncate">wewatch.app/join/xK9pQr</span>
+        <div className="rounded-full px-2 py-0.5 flex-shrink-0"
+          style={{ background: 'rgba(123,114,248,0.22)', border: '1px solid rgba(123,114,248,0.45)' }}>
+          <span className="text-[8px] font-bold" style={{ color: '#7B72F8' }}>{t('screenCopy')}</span>
+        </div>
       </div>
-      <motion.div className="mx-3 mt-auto mb-5 rounded-xl py-3 flex items-center justify-center gap-2"
-        style={{ background: 'linear-gradient(135deg, #7B72F8, #5B4FD8)' }}
-        animate={{ scale: [1, 1.018, 1] }} transition={{ repeat: Infinity, duration: 1.8 }}>
-        <FaPlay size={9} className="text-white" aria-hidden="true" />
-        <span className="text-white text-[11px] font-bold">{t('screenStartBtn')}</span>
+
+      {/* Start button */}
+      <motion.div
+        className="mx-3 mt-auto mb-5 rounded-2xl py-3.5 flex items-center justify-center gap-2.5 relative overflow-hidden cursor-pointer"
+        style={{
+          background: 'linear-gradient(135deg, #7B72F8 0%, #6460E8 50%, #5348D4 100%)',
+          boxShadow: '0 0 32px rgba(123,114,248,0.55), 0 4px 20px rgba(0,0,0,0.5)',
+        }}
+        animate={{ scale: [1, 1.016, 1] }}
+        transition={{ repeat: Infinity, duration: 1.9 }}>
+        <div className="absolute inset-0 opacity-[0.15]"
+          style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.5) 0%, transparent 55%)' }} aria-hidden="true" />
+        <FaPlay size={10} className="text-white relative z-10" aria-hidden="true" />
+        <span className="text-white text-[12px] font-bold tracking-wide relative z-10">{t('screenStartBtn')}</span>
       </motion.div>
     </div>
   );
