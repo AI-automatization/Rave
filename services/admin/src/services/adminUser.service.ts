@@ -16,7 +16,6 @@ import {
   deleteAuthUser,
   revokeUserSessions,
   createStaffAccount,
-  syncAdminProfile,
 } from '@shared/utils/serviceClient';
 import { adminSetUserRestrictions } from '@shared/utils/adminServiceClient';
 
@@ -86,14 +85,13 @@ export class AdminUserService {
     role: 'admin' | 'operator' | 'moderator',
     createdByAdminId: string,
     createdByAdminEmail: string,
-  ): Promise<{ authId: string }> {
+  ): Promise<{ userId: string }> {
     const result = await createStaffAccount(email, username, password, role);
-    void syncAdminProfile(result.authId, email, username, role);
     await AuditLog.create({
       adminId: createdByAdminId,
       adminEmail: createdByAdminEmail,
       action: 'create_staff',
-      targetId: result.authId,
+      targetId: result.userId,
       details: { email, username, role },
     });
     logger.info('Staff account created by admin', { email, role, createdByAdminId });

@@ -13,10 +13,9 @@ import {
   TooManyRequestsError,
   BadRequestError,
 } from '@shared/utils/errors';
-import { createUserProfile, syncAdminProfile } from '@shared/utils/serviceClient';
 import { containsBannedWord } from '@shared/utils/bannedWords';
 import { JwtPayload, UserRole } from '@shared/types';
-import { REDIS_KEYS, TIMING } from '@shared/constants';
+import { REDIS_KEYS } from '@shared/constants';
 
 const BCRYPT_ROUNDS = 12;
 const MAX_LOGIN_ATTEMPTS = 5;
@@ -36,24 +35,6 @@ export async function generateUniqueUsername(displayName: string): Promise<strin
   return username;
 }
 
-export async function syncUserProfile(authId: string, email: string, username: string): Promise<void> {
-  await createUserProfile(authId, email, username);
-  logger.info('User profile synced to user service', { authId });
-}
-
-/** Retry wrapper — ensures profile is created in user service (3 attempts, 500ms backoff) */
-export async function syncUserProfileWithRetry(authId: string, email: string, username: string): Promise<void> {
-  for (let attempt = 1; attempt <= 3; attempt++) {
-    try {
-      await syncUserProfile(authId, email, username);
-      return;
-    } catch (err) {
-      logger.warn('User profile sync attempt failed', { authId, attempt, error: (err as Error).message });
-      if (attempt < 3) await new Promise((r) => setTimeout(r, attempt * TIMING.BRUTE_FORCE_DELAY_MS));
-    }
-  }
-  logger.error('User profile sync failed after 3 attempts', { authId, email });
-}
 
 // ─── PasswordAuthService ─────────────────────────────────────────────────────
 
@@ -154,13 +135,15 @@ export class PasswordAuthService {
       username: pending.username,
       passwordHash: pending.passwordHash,
       isEmailVerified: true,
+      rank: 'Bronze',
+      totalPoints: 0,
+      fcmTokens: [],
+      bio: '',
+      restrictions: [],
+      settings: { notifications: {} },
     });
 
     logger.info('User registered and verified', { userId: user._id, email });
-
-    // Sync profile to user service (non-blocking with retry)
-    void syncUserProfileWithRetry(user._id.toString(), email, pending.username);
-
     return user;
   }
 
@@ -227,9 +210,6 @@ export class PasswordAuthService {
     await User.updateOne({ _id: user._id }, { lastLoginAt: new Date(), lastDevice: userAgent ?? null });
 
     logger.info('User logged in', { userId: user._id });
-
-    // Background: ensure user profile exists in user service (heals accounts where sync failed at registration)
-    void syncUserProfileWithRetry(user._id.toString(), user.email, user.username);
 
     // Staff login → send self-notification + alert superadmin
     if (['admin', 'superadmin', 'operator', 'moderator'].includes(user.role)) {
@@ -474,17 +454,20 @@ export class PasswordAuthService {
       throw new ConflictError('Superadmin already exists');
     }
     const passwordHash = await this.hashPassword(password);
-    const created = await User.create({
+    await User.create({
       email,
       username,
       passwordHash,
       role: 'superadmin',
-      isVerified: true,
+      isEmailVerified: true,
+      rank: 'Bronze',
+      totalPoints: 0,
+      fcmTokens: [],
+      bio: '',
+      restrictions: [],
+      settings: { notifications: {} },
     });
     logger.info('Superadmin created', { email, username });
-
-    // Sync role to user service DB (non-blocking)
-    void syncAdminProfile((created._id as object).toString(), email, username, 'superadmin');
   }
 
   // Internal — called by admin service to create/replace staff account
@@ -493,19 +476,14 @@ export class PasswordAuthService {
     username: string,
     password: string,
     role: 'admin' | 'operator' | 'moderator',
-  ): Promise<{ authId: string }> {
-    // Check username uniqueness before deleting old email user
+  ): Promise<{ userId: string }> {
     const existingByUsername = await User.findOne({ username, email: { $ne: email } });
     if (existingByUsername) {
       throw new ConflictError(`Username "${username}" is already taken`);
     }
 
     const passwordHash = await this.hashPassword(password);
-
-    // Remove any existing user with this email (both regular users and old staff)
     await User.deleteOne({ email });
-
-    // Also remove brute force lock if existed
     await this.redis.del(REDIS_KEYS.loginAttempts(email));
 
     const created = await User.create({
@@ -515,25 +493,22 @@ export class PasswordAuthService {
       role,
       isEmailVerified: true,
       isBlocked: false,
+      rank: 'Bronze',
+      totalPoints: 0,
+      fcmTokens: [],
+      bio: '',
+      restrictions: [],
+      settings: { notifications: {} },
     });
 
-    const authId = (created._id as object).toString();
-    logger.info('Staff account created', { email, username, role, authId });
-
-    // Sync role to user DB
-    void syncAdminProfile(authId, email, username, role);
-
-    return { authId };
+    const userId = (created._id as object).toString();
+    logger.info('Staff account created', { email, username, role, userId });
+    return { userId };
   }
 
   async upsertSuperAdmin(email: string, username: string, password: string): Promise<'created' | 'updated'> {
     const passwordHash = await this.hashPassword(password);
-
-    // Remove any conflicting user with this email that is NOT the superadmin
     await User.deleteOne({ email, role: { $ne: 'superadmin' } });
-
-    let authId: string;
-    let result: 'created' | 'updated';
 
     const existing = await User.findOne({ role: 'superadmin' });
     if (existing) {
@@ -541,20 +516,17 @@ export class PasswordAuthService {
         { _id: existing._id },
         { $set: { email, username, passwordHash, isEmailVerified: true } },
       );
-      authId = existing._id.toString();
-      result = 'updated';
       logger.info('Superadmin credentials updated', { email });
+      return 'updated';
     } else {
-      const created = await User.create({ email, username, passwordHash, role: 'superadmin', isEmailVerified: true });
-      authId = (created._id as object).toString();
-      result = 'created';
+      await User.create({
+        email, username, passwordHash, role: 'superadmin', isEmailVerified: true,
+        rank: 'Bronze', totalPoints: 0, fcmTokens: [], bio: '', restrictions: [],
+        settings: { notifications: {} },
+      });
       logger.info('Superadmin created', { email });
+      return 'created';
     }
-
-    // Sync role to user service DB (non-blocking) — prevents role mismatch in users list
-    void syncAdminProfile(authId, email, username, 'superadmin');
-
-    return result;
   }
 
   async deleteUser(userId: string): Promise<void> {

@@ -246,9 +246,9 @@ export async function getUserWatchStats(userId: string): Promise<{
 export async function createStaffAccount(
   email: string, username: string, password: string,
   role: 'admin' | 'operator' | 'moderator',
-): Promise<{ authId: string }> {
+): Promise<{ userId: string }> {
   try {
-    const res = await axios.post<{ success: boolean; data: { authId: string } }>(
+    const res = await axios.post<{ success: boolean; data: { userId: string } }>(
       `${authServiceUrl}/api/v1/auth/internal/create-staff`,
       { email, username, password, role },
       { headers: internalHeaders, timeout: 10000 },

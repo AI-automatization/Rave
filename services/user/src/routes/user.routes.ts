@@ -12,7 +12,6 @@ import {
   validate,
   updateProfileSchema,
   updateSettingsSchema,
-  createProfileSchema,
 } from '../validators/user.validator';
 import { config } from '../config/index';
 import { LIMITS } from '@shared/constants';
@@ -115,14 +114,8 @@ export const createUserRouter = (redis: Redis): Router => {
   router.get('/:id', apiRateLimiter, userController.getPublicProfile);
 
   // ── Internal (service-to-service) ────────────────────────
-  // Auth service calls this after user registration
-  router.post('/internal/profile', requireInternalSecret, validate(createProfileSchema), userController.createProfile);
-
   // Battle/other services call this to award points
   router.post('/internal/add-points', requireInternalSecret, userController.addPoints);
-
-  // Auth service calls this after superadmin create/update to sync role to user DB
-  router.post('/internal/sync-admin-profile', requireInternalSecret, userController.syncAdminProfileInternal);
 
   // Notification service calls this to get FCM tokens for push delivery
   router.get('/internal/:userId/fcm-tokens', requireInternalSecret, userController.getFcmTokensInternal);

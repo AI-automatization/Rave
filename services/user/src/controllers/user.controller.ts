@@ -232,21 +232,6 @@ export class UserController {
     }
   };
 
-  // Internal endpoint — auth service calls this after register
-  createProfile = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const { authId, email, username } = req.body as {
-        authId: string;
-        email: string;
-        username: string;
-      };
-      const user = await this.userService.createProfile(authId, email, username);
-      res.status(201).json(apiResponse.success(user, 'Profile created'));
-    } catch (error) {
-      next(error);
-    }
-  };
-
   // Internal endpoint — battle/other services call this to award points
   addPoints = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
@@ -289,21 +274,6 @@ export class UserController {
       }
       await this.userService.removeFcmToken(userId, token);
       res.json(apiResponse.success(null, 'FCM token removed'));
-    } catch (error) {
-      next(error);
-    }
-  };
-
-  // Internal — called by auth service after superadmin create/update
-  syncAdminProfileInternal = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const { authId, email, username, role } = req.body as { authId: string; email: string; username: string; role: string };
-      if (!authId || !email || !username || !role) {
-        res.status(400).json(apiResponse.error('Missing required fields'));
-        return;
-      }
-      await this.userService.syncAdminProfile(authId, email, username, role);
-      res.json(apiResponse.success(null, 'Admin profile synced'));
     } catch (error) {
       next(error);
     }

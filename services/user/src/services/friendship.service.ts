@@ -7,9 +7,7 @@ import { triggerAchievement, sendInternalNotification } from '@shared/utils/serv
 
 export class FriendshipService {
   async sendFriendRequestByProfileId(requesterId: string, profileId: string): Promise<void> {
-    const receiver = await User.findById(profileId).select('authId').lean();
-    if (!receiver) throw new NotFoundError('User not found');
-    await this.sendFriendRequest(requesterId, receiver.authId as string);
+    await this.sendFriendRequest(requesterId, profileId);
   }
 
   async sendFriendRequest(requesterId: string, receiverId: string): Promise<void> {
@@ -17,7 +15,7 @@ export class FriendshipService {
       throw new BadRequestError('Cannot send friend request to yourself');
     }
 
-    const receiver = await User.findOne({ authId: receiverId });
+    const receiver = await User.findById(receiverId);
     if (!receiver) throw new NotFoundError('User not found');
 
     const existing = await Friendship.findOne({
@@ -45,8 +43,7 @@ export class FriendshipService {
 
     const friendship = await Friendship.create({ requesterId, receiverId });
 
-    // Notify receiver about the new friend request (non-blocking)
-    const requester = await User.findOne({ authId: requesterId }).select('username').lean();
+    const requester = await User.findById(requesterId).select('username').lean();
     void sendInternalNotification({
       userId: receiverId,
       type: 'friend_request',
@@ -113,18 +110,18 @@ export class FriendshipService {
     }).lean();
 
     const requesterIds = requests.map((f) => f.requesterId);
-    const users = await User.find({ authId: { $in: requesterIds } })
-      .select('authId username avatar rank')
+    const users = await User.find({ _id: { $in: requesterIds } })
+      .select('_id username avatar rank')
       .lean();
 
-    const userMap = new Map(users.map((u) => [u.authId, u]));
+    const userMap = new Map(users.map((u) => [String(u._id), u]));
 
     return requests.map((f) => {
       const u = userMap.get(f.requesterId);
       return {
         ...f,
         requester: u
-          ? { _id: u.authId, username: u.username, avatar: u.avatar, rank: u.rank }
+          ? { _id: String(u._id), username: u.username, avatar: u.avatar, rank: u.rank }
           : { _id: f.requesterId, username: 'Unknown', rank: 'Bronze' },
       };
     });
@@ -140,12 +137,12 @@ export class FriendshipService {
       String(f.requesterId) === String(userId) ? f.receiverId : f.requesterId,
     );
 
-    const users = await User.find({ authId: { $in: friendIds } })
-      .select('authId username avatar bio rank totalPoints')
+    const users = await User.find({ _id: { $in: friendIds } })
+      .select('_id username avatar bio rank totalPoints')
       .lean();
 
     return users.map((u) => ({
-      _id: u.authId,
+      _id: String(u._id),
       username: u.username,
       avatar: u.avatar,
       bio: u.bio,
@@ -162,16 +159,14 @@ export class FriendshipService {
     await friendship.save();
 
     await Promise.all([
-      User.updateOne({ authId: userId }, { $inc: { totalPoints: POINTS.FRIEND_ADDED } }),
-      User.updateOne({ authId: requesterId }, { $inc: { totalPoints: POINTS.FRIEND_ADDED } }),
+      User.updateOne({ _id: userId }, { $inc: { totalPoints: POINTS.FRIEND_ADDED } }),
+      User.updateOne({ _id: requesterId }, { $inc: { totalPoints: POINTS.FRIEND_ADDED } }),
     ]);
 
-    // Trigger achievement for both users (non-blocking — do NOT await)
     void triggerAchievement(userId, 'friend', { friendId: requesterId });
     void triggerAchievement(requesterId, 'friend', { friendId: userId });
 
-    // Notify the original requester that their request was accepted (non-blocking)
-    const accepter = await User.findOne({ authId: userId }).select('username').lean();
+    const accepter = await User.findById(userId).select('username').lean();
     void sendInternalNotification({
       userId: requesterId,
       type: 'friend_accepted',

@@ -50,7 +50,7 @@ export class AchievementService {
       // Points award
       const pointsAwarded = ach.points + POINTS.ACHIEVEMENT_BASE;
       if (pointsAwarded > 0) {
-        await User.updateOne({ authId: userId }, { $inc: { totalPoints: pointsAwarded } });
+        await User.updateOne({ _id: userId }, { $inc: { totalPoints: pointsAwarded } });
       }
 
       newUnlocks.push({ achievement: ach, pointsAwarded });

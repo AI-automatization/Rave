@@ -5,7 +5,7 @@ import { User, IUserDocument } from '../models/user.model';
 import { logger } from '@shared/utils/logger';
 import { UnauthorizedError } from '@shared/utils/errors';
 import { REDIS_KEYS } from '@shared/constants';
-import { generateUniqueUsername, syncUserProfileWithRetry } from './passwordAuth.service';
+import { generateUniqueUsername } from './passwordAuth.service';
 
 const APPLE_JWKS_URL = 'https://appleid.apple.com/auth/keys';
 const APPLE_ISSUER = 'https://appleid.apple.com';
@@ -110,9 +110,14 @@ export class AppleAuthService {
           username,
           appleId: profile.sub,
           isEmailVerified: !!profile.email,
+          rank: 'Bronze',
+          totalPoints: 0,
+          fcmTokens: [],
+          bio: '',
+          restrictions: [],
+          settings: { notifications: {} },
         });
         logger.info('Apple Sign-In user created', { userId: user._id });
-        void syncUserProfileWithRetry(user._id.toString(), email, username);
       }
     }
 
@@ -128,7 +133,6 @@ export class AppleAuthService {
       throw err;
     }
 
-    void syncUserProfileWithRetry(user._id.toString(), user.email, user.username);
     return user;
   }
 }

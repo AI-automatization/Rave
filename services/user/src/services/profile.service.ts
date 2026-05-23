@@ -14,13 +14,13 @@ export class ProfileService {
   constructor(private redis: Redis) {}
 
   async getProfile(userId: string): Promise<IUserDocument> {
-    const user = await User.findOne({ authId: userId });
+    const user = await User.findById(userId);
     if (!user) throw new NotFoundError('User not found');
     return user;
   }
 
   async getPublicProfile(userId: string): Promise<IUserDocument & { isOnline: boolean }> {
-    const user = await User.findOne({ authId: userId });
+    const user = await User.findById(userId);
     if (!user) throw new NotFoundError('User not found');
 
     const isOnline = await this.isUserOnline(userId);
@@ -31,12 +31,12 @@ export class ProfileService {
     if (updates.bio !== undefined) updates.bio = xss(updates.bio);
     if (updates.username) {
       if (await containsBannedWord(updates.username)) throw new BadRequestError('Username contains prohibited content');
-      const taken = await User.findOne({ username: updates.username, authId: { $ne: userId } }).lean();
+      const taken = await User.findOne({ username: updates.username, _id: { $ne: userId } }).lean();
       if (taken) throw new BadRequestError('Username already taken');
     }
     if (updates.bio && await containsBannedWord(updates.bio)) throw new BadRequestError('Bio contains prohibited content');
-    const user = await User.findOneAndUpdate(
-      { authId: userId },
+    const user = await User.findByIdAndUpdate(
+      userId,
       { $set: updates },
       { new: true, runValidators: true },
     );
@@ -67,8 +67,8 @@ export class ProfileService {
   }
 
   async updateAvatar(userId: string, avatarPath: string): Promise<IUserDocument> {
-    const user = await User.findOneAndUpdate(
-      { authId: userId },
+    const user = await User.findByIdAndUpdate(
+      userId,
       { $set: { avatar: avatarPath } },
       { new: true },
     );
@@ -79,7 +79,7 @@ export class ProfileService {
   }
 
   async getSettings(userId: string): Promise<IUserDocument['settings']> {
-    const user = await User.findOne({ authId: userId }, { settings: 1 });
+    const user = await User.findById(userId, { settings: 1 });
     if (!user) throw new NotFoundError('User not found');
     return user.settings;
   }
@@ -96,8 +96,8 @@ export class ProfileService {
       }
     }
 
-    const user = await User.findOneAndUpdate(
-      { authId: userId },
+    const user = await User.findByIdAndUpdate(
+      userId,
       { $set: updateFields },
       { new: true, select: 'settings' },
     );
@@ -107,30 +107,18 @@ export class ProfileService {
     return user.settings;
   }
 
-  async createProfile(authId: string, email: string, username: string): Promise<IUserDocument> {
-    const existing = await User.findOne({ authId });
-    if (existing) return existing;
-
-    const user = await User.create({ authId, email, username });
-    logger.info('User profile created', { authId, email });
-    return user;
-  }
-
   async addFcmToken(userId: string, token: string): Promise<void> {
     // Remove from all other users before adding — prevents cross-user token sharing
-    await User.updateMany({ authId: { $ne: userId } }, { $pull: { fcmTokens: token } });
-    await User.updateOne({ authId: userId }, { $addToSet: { fcmTokens: token } });
+    await User.updateMany({ _id: { $ne: userId } }, { $pull: { fcmTokens: token } });
+    await User.updateOne({ _id: userId }, { $addToSet: { fcmTokens: token } });
   }
 
   async removeFcmToken(userId: string, token: string): Promise<void> {
-    await User.updateOne(
-      { authId: userId },
-      { $pull: { fcmTokens: token } },
-    );
+    await User.updateOne({ _id: userId }, { $pull: { fcmTokens: token } });
   }
 
   async removeAllFcmTokens(userId: string): Promise<void> {
-    await User.updateOne({ authId: userId }, { $set: { fcmTokens: [] } });
+    await User.updateOne({ _id: userId }, { $set: { fcmTokens: [] } });
   }
 
   async removeBadFcmTokens(tokens: string[]): Promise<void> {
@@ -139,7 +127,7 @@ export class ProfileService {
   }
 
   async getFcmTokens(userId: string): Promise<string[]> {
-    const user = await User.findOne({ authId: userId }).select('fcmTokens').lean();
+    const user = await User.findById(userId).select('fcmTokens').lean();
     return user?.fcmTokens ?? [];
   }
 
@@ -165,19 +153,19 @@ export class ProfileService {
     const escaped = query.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const users = await User.find({
       username: { $regex: escaped, $options: 'i' },
-      authId: { $ne: requesterId },
+      _id: { $ne: requesterId },
       isBlocked: false,
     })
-      .select('authId username avatar bio rank totalPoints')
+      .select('_id username avatar bio rank totalPoints')
       .limit(20)
       .lean();
 
     const onlineChecks = await Promise.all(
-      users.map((u) => this.isUserOnline(u.authId as string)),
+      users.map((u) => this.isUserOnline(String(u._id))),
     );
 
     return users.map((u, i) => ({
-      _id: u.authId,
+      _id: String(u._id),
       username: u.username,
       avatar: u.avatar,
       bio: u.bio,
@@ -188,7 +176,7 @@ export class ProfileService {
   }
 
   async addPoints(userId: string, points: number): Promise<void> {
-    await User.updateOne({ authId: userId }, { $inc: { totalPoints: points } });
+    await User.updateOne({ _id: userId }, { $inc: { totalPoints: points } });
     await this.recalculateRank(userId);
   }
 
@@ -204,7 +192,7 @@ export class ProfileService {
     longestStreak: number;
     weeklyActivity: number[];
   }> {
-    const user = await User.findOne({ authId: userId }, { totalPoints: 1, rank: 1 }).lean();
+    const user = await User.findById(userId, { totalPoints: 1, rank: 1 }).lean();
     if (!user) throw new NotFoundError('User not found');
 
     const RANK_THRESHOLDS: Record<string, { min: number; max: number }> = {
@@ -244,10 +232,10 @@ export class ProfileService {
 
   // ── Admin Internal Methods ────────────────────────────────────
 
-  async adminGetUser(userId: string): Promise<{ authId: string; username: string; avatar: string | null } | null> {
-    const user = await User.findOne({ authId: userId }).select('authId username avatar').lean();
+  async adminGetUser(userId: string): Promise<{ _id: string; username: string; avatar: string | null } | null> {
+    const user = await User.findById(userId).select('_id username avatar').lean();
     if (!user) return null;
-    return { authId: user.authId, username: user.username, avatar: user.avatar ?? null };
+    return { _id: String(user._id), username: user.username, avatar: user.avatar ?? null };
   }
 
   async adminListUsers(filters: {
@@ -278,7 +266,7 @@ export class ProfileService {
 
   async adminBlockUser(userId: string, reason?: string): Promise<void> {
     const result = await User.updateOne(
-      { authId: userId },
+      { _id: userId },
       { isBlocked: true, blockReason: reason ?? null, blockedAt: new Date() },
     );
     if (result.matchedCount === 0) throw new NotFoundError('User not found');
@@ -297,7 +285,7 @@ export class ProfileService {
 
   async adminUnblockUser(userId: string): Promise<void> {
     const result = await User.updateOne(
-      { authId: userId },
+      { _id: userId },
       { isBlocked: false, blockReason: null, blockedAt: null },
     );
     if (result.matchedCount === 0) throw new NotFoundError('User not found');
@@ -308,32 +296,22 @@ export class ProfileService {
     logger.info('User unblocked via admin API', { userId });
   }
 
-  // Called by auth service after superadmin create/update to keep both DBs in sync
-  async syncAdminProfile(authId: string, email: string, username: string, role: string): Promise<void> {
-    await User.findOneAndUpdate(
-      { authId },
-      { $set: { email, username, role, isEmailVerified: true } },
-      { upsert: true },
-    );
-    logger.info('Admin profile synced to user DB', { authId, role });
-  }
-
   async adminChangeUserRole(userId: string, newRole: string): Promise<void> {
     const validRoles = ['user', 'operator', 'admin', 'superadmin'];
     if (!validRoles.includes(newRole)) throw new BadRequestError('Invalid role');
-    const result = await User.updateOne({ authId: userId }, { role: newRole });
+    const result = await User.updateOne({ _id: userId }, { role: newRole });
     if (result.matchedCount === 0) throw new NotFoundError('User not found');
     logger.info('User role changed via admin API', { userId, newRole });
   }
 
   async adminSetRestrictions(userId: string, restrictions: string[]): Promise<void> {
-    const result = await User.updateOne({ authId: userId }, { restrictions });
+    const result = await User.updateOne({ _id: userId }, { restrictions });
     if (result.matchedCount === 0) throw new NotFoundError('User not found');
     logger.info('User restrictions updated', { userId, restrictions });
   }
 
   async adminDeleteUser(userId: string): Promise<void> {
-    const result = await User.deleteOne({ authId: userId });
+    const result = await User.deleteOne({ _id: userId });
     if (result.deletedCount === 0) throw new NotFoundError('User not found');
     await this.redis.del(REDIS_KEYS.heartbeat(userId));
     logger.warn('User deleted via admin API', { userId });
@@ -356,15 +334,13 @@ export class ProfileService {
   }
 
   async deleteAccount(userId: string): Promise<void> {
-    // Verify user exists before deleting anything
-    const user = await User.findOne({ authId: userId });
+    const user = await User.findById(userId);
     if (!user) throw new NotFoundError('User not found');
 
-    // Delete local data first
     await Promise.all([
       Friendship.deleteMany({ $or: [{ requesterId: userId }, { receiverId: userId }] }),
       UserAchievement.deleteMany({ userId }),
-      User.deleteOne({ authId: userId }),
+      User.deleteOne({ _id: userId }),
       this.redis.del(REDIS_KEYS.heartbeat(userId)),
     ]);
 
@@ -375,7 +351,7 @@ export class ProfileService {
   }
 
   private async recalculateRank(userId: string): Promise<void> {
-    const user = await User.findOne({ authId: userId }, { totalPoints: 1 });
+    const user = await User.findById(userId, { totalPoints: 1 });
     if (!user) return;
 
     let newRank: UserRank = 'Bronze';
@@ -386,6 +362,6 @@ export class ProfileService {
       }
     }
 
-    await User.updateOne({ authId: userId }, { rank: newRank });
+    await User.updateOne({ _id: userId }, { rank: newRank });
   }
 }

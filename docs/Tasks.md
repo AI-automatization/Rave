@@ -89,8 +89,8 @@
 3. Fix bo'lgach → shu yerdan O'CHIRISH → docs/Done.md ga KO'CHIRISH
 4. Prioritet: P0=kritik, P1=muhim, P2=o'rta, P3=past
 5. Sprint: S1=hozir, S2=keyingi hafta, S3=keyingi sprint, S4-5=keyin
-6. Oxirgi T-raqam: S→095, E→119, C→016
-7. Yangilangan: 2026-04-22
+6. Oxirgi T-raqam: S→102, E→133, C→016
+7. Yangilangan: 2026-05-23
 ```
 
 ---
@@ -101,6 +101,128 @@
 
 ---
 
+# 🏗️ Sprint 11: Migration — Единая БД cinesync (2026-05-23)
+
+> Решение: [[decisions/2026-05-23-migration-единая-бд-cinesync-для-всех-сервисов]]
+> Зависимости: T-S096 → T-S097 → T-S098 → T-S099 → T-S100 → T-S101 → T-S102
+
+---
+
+### T-S096 | P1 | [BACKEND] | Migration: Аудит — найти все authId references
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-05-23 00:00
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** haiku
+- **Model sababi:** Faqat grep + read, kod yozilmaydi
+- **Sabab:** Migratsiyadan oldin barcha authId ishlatilgan joylarni bilish kerak
+- **Qilish kerak:**
+  - [ ] `grep -rn "authId" services/` — barcha references
+  - [ ] Har bir servis uchun: qaysi controller/query authId ishlatadi
+  - [ ] Ro'yxat: fayl:qator → nima qilish kerak
+
+---
+
+### T-S097 | P1 | [BACKEND] | Migration: Объединённая схема users
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-05-23 00:00
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** 2 model birlashtirish, TypeScript strict
+- **Sabab:** auth.users + user.users → bitta users kolleksiyasi, authId yo'q
+- **Qilish kerak:**
+  - [ ] `services/auth/src/models/user.model.ts` — qo'shish: rank, fcmTokens[], settings, avatar
+  - [ ] `services/user/src/models/user.model.ts` — o'chirish: authId field
+  - [ ] Ikkala model bir xil `IUserDocument` interface ishlatsin
+
+---
+
+### T-S098 | P1 | [BACKEND] | Migration: Auth service — .env cinesync + register full user
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-05-23 00:00
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** .env + controller, 2 fayl
+- **Sabab:** register() to'liq user yaratishi kerak — rank, fcmTokens, settings defaults bilan
+- **Qilish kerak:**
+  - [ ] `services/auth/.env` — `MONGO_URI=...cinesync`
+  - [ ] `auth.controller.ts` register — `rank: 'bronze', fcmTokens: [], settings: { notifications: true }` qo'shish
+  - [ ] tsc --noEmit
+
+---
+
+### T-S099 | P1 | [BACKEND] | Migration: User service — .env cinesync + getMe по _id
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-05-23 00:00
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** .env + controller refactor, 3 fayl
+- **Sabab:** authId FK o'rniga _id to'g'ridan ishlatish
+- **Qilish kerak:**
+  - [ ] `services/user/.env` — `MONGO_URI=...cinesync`
+  - [ ] `user.controller.ts` getMe — `User.findById(req.user.id)` (authId yo'q)
+  - [ ] `user.controller.ts` updateProfile — `User.findByIdAndUpdate(req.user.id, ...)`
+  - [ ] tsc --noEmit
+
+---
+
+### T-S100 | P2 | [BACKEND] | Migration: 4 сервис — .env → cinesync
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-05-23 00:00
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** haiku
+- **Model sababi:** Faqat .env o'zgarish, 4 fayl
+- **Sabab:** Barcha servislar bir xil cinesync DB ishlatsin
+- **Qilish kerak:**
+  - [ ] `services/content/.env` — MONGO_URI → cinesync
+  - [ ] `services/watch-party/.env` — MONGO_URI → cinesync
+  - [ ] `services/notification/.env` — MONGO_URI → cinesync
+  - [ ] `services/admin/.env` — MONGO_URI allaqachon cinesync (tekshirish)
+
+---
+
+### T-S101 | P2 | [BACKEND] | Migration: Скрипт миграции данных
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-05-23 00:00
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** Migration script — bir marta ishga tushiriladi
+- **Sabab:** Mavjud ma'lumotlarni cinesync_auth + cinesync_user → cinesync ga ko'chirish
+- **Qilish kerak:**
+  - [ ] `scripts/migrate-to-single-db.ts` yaratish
+  - [ ] cinesync_auth.users + cinesync_user.users → email bo'yicha birlashtirish
+  - [ ] Natijani cinesync.users ga yozish
+  - [ ] Dry-run mode qo'shish (`--dry-run` flag)
+
+---
+
+### T-S102 | P3 | [BACKEND] | Migration: tsc clean + db-architecture.html yangilash
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-05-23 00:00
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** haiku
+- **Model sababi:** tsc + HTML update, yakuniy tekshirish
+- **Sabab:** Migratsiya tugagach — barcha servislar tsc clean bo'lishi kerak
+- **Qilish kerak:**
+  - [ ] `cd services/auth && npx tsc --noEmit`
+  - [ ] `cd services/user && npx tsc --noEmit`
+  - [ ] Boshqa 4 servis ham tsc clean
+  - [ ] `docs/db-architecture.html` — yangi arxitektura (bitta cinesync, merged users)
+
+---
 
 # ═══════════════════════════════════════
 

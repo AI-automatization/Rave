@@ -6,7 +6,7 @@ import { config } from '../config/index';
 import { logger } from '@shared/utils/logger';
 import { UnauthorizedError } from '@shared/utils/errors';
 import { REDIS_KEYS } from '@shared/constants';
-import { generateUniqueUsername, syncUserProfileWithRetry } from './passwordAuth.service';
+import { generateUniqueUsername } from './passwordAuth.service';
 
 const MOBILE_STATE_TTL = 300;  // 5 min — user has time to complete Google login
 const MOBILE_RESULT_TTL = 120; // 2 min — result kept until mobile polls
@@ -114,11 +114,14 @@ export class GoogleAuthService {
           googleId: profile.id,
           avatar: profile.picture,
           isEmailVerified: true,
+          rank: 'Bronze',
+          totalPoints: 0,
+          fcmTokens: [],
+          bio: '',
+          restrictions: [],
+          settings: { notifications: {} },
         });
         logger.info('Google OAuth user created', { userId: user._id, email: profile.email });
-
-        // User service ga profil yaratish
-        void syncUserProfileWithRetry(user._id.toString(), profile.email, username);
       }
     }
 
@@ -133,9 +136,6 @@ export class GoogleAuthService {
       err.userId = String(user._id);
       throw err;
     }
-
-    // Auto-heal: ensure profile exists in user service on every login
-    void syncUserProfileWithRetry(user._id.toString(), user.email, user.username);
 
     return user;
   }

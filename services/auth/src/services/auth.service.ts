@@ -7,7 +7,7 @@ import { emailService } from '../utils/email.service';
 export { PasswordAuthService } from './passwordAuth.service';
 export { GoogleAuthService } from './googleAuth.service';
 export { TelegramAuthService } from './telegramAuth.service';
-export { generateUniqueUsername, syncUserProfile } from './passwordAuth.service';
+export { generateUniqueUsername } from './passwordAuth.service';
 
 import { PasswordAuthService } from './passwordAuth.service';
 import { GoogleAuthService } from './googleAuth.service';

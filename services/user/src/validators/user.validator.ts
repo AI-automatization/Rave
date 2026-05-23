@@ -33,12 +33,6 @@ export const updateSettingsSchema = Joi.object({
   }).optional(),
 });
 
-export const createProfileSchema = Joi.object({
-  authId: Joi.string().required(),
-  email: Joi.string().email().required(),
-  username: Joi.string().min(3).max(20).pattern(/^[a-zA-Z0-9_]+$/).required(),
-});
-
 export const fcmTokenSchema = Joi.object({
   token: Joi.string().required(),
 });

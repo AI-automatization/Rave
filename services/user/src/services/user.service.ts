@@ -23,7 +23,6 @@ export class UserService {
   updateAvatar = (userId: string, path: string) => this.profile.updateAvatar(userId, path);
   getSettings = (userId: string) => this.profile.getSettings(userId);
   updateSettings = (...args: Parameters<ProfileService['updateSettings']>) => this.profile.updateSettings(...args);
-  createProfile = (authId: string, email: string, username: string) => this.profile.createProfile(authId, email, username);
   addFcmToken = (userId: string, token: string) => this.profile.addFcmToken(userId, token);
   removeFcmToken = (userId: string, token: string) => this.profile.removeFcmToken(userId, token);
   removeAllFcmTokens = (userId: string) => this.profile.removeAllFcmTokens(userId);
@@ -38,7 +37,6 @@ export class UserService {
   adminListUsers = (filters: Parameters<ProfileService['adminListUsers']>[0]) => this.profile.adminListUsers(filters);
   adminBlockUser = (userId: string, reason?: string) => this.profile.adminBlockUser(userId, reason);
   adminUnblockUser = (userId: string) => this.profile.adminUnblockUser(userId);
-  syncAdminProfile = (authId: string, email: string, username: string, role: string) => this.profile.syncAdminProfile(authId, email, username, role);
   adminChangeUserRole = (userId: string, role: string) => this.profile.adminChangeUserRole(userId, role);
   adminDeleteUser = (userId: string) => this.profile.adminDeleteUser(userId);
   adminSetRestrictions = (userId: string, restrictions: string[]) => this.profile.adminSetRestrictions(userId, restrictions);

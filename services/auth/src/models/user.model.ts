@@ -1,16 +1,14 @@
 
 
 import { Schema, model, Document } from 'mongoose';
-import { UserRole } from '@shared/types';
+import { UserRole, UserRank } from '@shared/types';
 
-// Auth service owns: identity, credentials, sessions, email verification, OAuth IDs.
-// Canonical field ownership: avatar = stored here only for OAuth initial sync (user service is canonical);
-// bio, rank, fcmTokens = user service only; isBlocked = both (auth checks it to reject logins, user service owns writes).
 export interface IUserDocument extends Document {
+  // Identity & credentials
   email: string;
   username: string;
   passwordHash: string;
-  avatar: string | null; // OAuth initial sync — user service is canonical source
+  avatar: string | null;
   role: UserRole;
   isEmailVerified: boolean;
   isBlocked: boolean;
@@ -25,31 +23,32 @@ export interface IUserDocument extends Document {
   googleId: string | null;
   telegramId: string | null;
   appleId: string | null;
+  // Profile (owned by user service, created with defaults at registration)
+  bio: string;
+  rank: UserRank;
+  totalPoints: number;
+  fcmTokens: string[];
+  lastSeenAt: Date | null;
+  restrictions: string[];
+  settings: {
+    notifications: {
+      friendRequest: boolean;
+      friendAccepted: boolean;
+      watchPartyInvite: boolean;
+      achievementUnlocked: boolean;
+      friendOnline: boolean;
+      emailDigest: boolean;
+    };
+  };
   createdAt: Date;
   updatedAt: Date;
 }
 
 const userSchema = new Schema<IUserDocument>(
   {
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-      lowercase: true,
-      trim: true,
-    },
-    username: {
-      type: String,
-      required: true,
-      unique: true,
-      trim: true,
-      match: /^[a-zA-Z0-9_]{3,20}$/,
-    },
-    passwordHash: {
-      type: String,
-      required: false, // optional for OAuth users
-      select: false,
-    },
+    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+    username: { type: String, required: true, unique: true, trim: true, match: /^[a-zA-Z0-9_]{3,20}$/ },
+    passwordHash: { type: String, required: false, select: false },
     avatar: { type: String, default: null },
     role: {
       type: String,
@@ -69,6 +68,39 @@ const userSchema = new Schema<IUserDocument>(
     googleId: { type: String, default: null, select: false },
     telegramId: { type: String, default: null, select: false },
     appleId: { type: String, default: null, select: false },
+    // Profile fields — set at registration with defaults
+    bio: { type: String, maxlength: 200, default: '' },
+    rank: {
+      type: String,
+      enum: ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond'],
+      default: 'Bronze',
+    },
+    totalPoints: { type: Number, default: 0 },
+    fcmTokens: [{ type: String }],
+    lastSeenAt: { type: Date, default: null },
+    restrictions: { type: [String], default: [] },
+    settings: {
+      type: new Schema(
+        {
+          notifications: {
+            type: new Schema(
+              {
+                friendRequest:       { type: Boolean, default: true },
+                friendAccepted:      { type: Boolean, default: true },
+                watchPartyInvite:    { type: Boolean, default: true },
+                achievementUnlocked: { type: Boolean, default: true },
+                friendOnline:        { type: Boolean, default: false },
+                emailDigest:         { type: Boolean, default: true },
+              },
+              { _id: false },
+            ),
+            default: {},
+          },
+        },
+        { _id: false },
+      ),
+      default: {},
+    },
   },
   {
     timestamps: true,
@@ -84,8 +116,9 @@ const userSchema = new Schema<IUserDocument>(
   },
 );
 
-// email va username unique: true orqali allaqachon index qilingan
 userSchema.index({ createdAt: -1 });
+userSchema.index({ totalPoints: -1 });
+userSchema.index({ rank: 1 });
 userSchema.index({ googleId: 1 },   { sparse: true });
 userSchema.index({ telegramId: 1 }, { sparse: true });
 userSchema.index({ appleId: 1 },    { sparse: true });
