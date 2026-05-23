@@ -476,61 +476,126 @@ function ScreenRoom({ t }: { t: TFn }) {
 }
 
 function ScreenWatching({ t, chatMsgs, visibleChats }: { t: TFn; chatMsgs: { u: string; msg: string; color: string }[]; visibleChats: number[] }) {
+  const reduce = useReducedMotion();
   return (
-    <div className="h-full flex flex-col bg-[#0A0A0F] select-none">
-      <div className="relative flex-shrink-0"
-        style={{ height: '44%', background: 'radial-gradient(ellipse at 40% 35%, #2d1060, #0d0520 55%, #060010)' }}>
-        <div className="absolute top-2 left-2 right-2 flex items-center justify-between">
-          <div className="flex items-center gap-1 bg-black/40 rounded-full px-2 py-0.5">
-            <div className="w-1 h-1 rounded-full bg-green-400 animate-pulse" aria-hidden="true" />
-            <span className="text-[7px] text-white/70">{t('screenSyncLabel')}</span>
+    <div className="h-full flex flex-col bg-[#080812] select-none">
+      {/* Video area */}
+      <div className="relative flex-shrink-0 overflow-hidden"
+        style={{ height: '42%', background: 'radial-gradient(ellipse at 30% 40%, #1a0640 0%, #0d0420 55%, #050010 100%)' }}>
+        {/* subtle grid texture */}
+        <div className="absolute inset-0 opacity-[0.06]"
+          style={{ backgroundImage: 'linear-gradient(rgba(123,114,248,1) 1px,transparent 1px),linear-gradient(90deg,rgba(123,114,248,1) 1px,transparent 1px)', backgroundSize: '16px 16px' }}
+          aria-hidden="true" />
+        {/* center glow */}
+        <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center, rgba(123,114,248,0.16) 0%, transparent 65%)' }} aria-hidden="true" />
+
+        {/* Top bar: back + title (left) — sync pill + avatars (right) */}
+        <div className="absolute top-2 left-2.5 right-2.5 flex items-start justify-between z-10">
+          <div className="flex items-center gap-1.5">
+            <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 backdrop-blur-md"
+              style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.10)' }}>
+              <FaChevronRight size={6} className="text-white/70 rotate-180" aria-hidden="true" />
+            </div>
+            <span className="text-[9px] font-bold text-white tracking-wide"
+              style={{ textShadow: '0 0 8px rgba(123,114,248,0.55)' }}>Inception</span>
           </div>
-          <div className="flex -space-x-1">
-            {['A', 'N', 'B'].map((l, i) => (
-              <div key={l} className="w-5 h-5 rounded-full border border-[#0A0A0F] flex items-center justify-center text-[7px] font-bold text-white"
-                style={{ background: ['#7B72F8', '#a855f7', '#6B63E8'][i] }}>{l}</div>
-            ))}
+          <div className="flex flex-col items-end gap-1.5">
+            <div className="flex items-center gap-1 rounded-full px-1.5 py-0.5 backdrop-blur-md"
+              style={{ background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.24)' }}>
+              <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"
+                style={{ boxShadow: '0 0 5px #4ade80' }} aria-hidden="true" />
+              <span className="text-[7px] text-green-400 font-semibold">{t('screenSyncLabel')}</span>
+            </div>
+            <div className="flex -space-x-1.5">
+              {[['A', '#7B72F8'], ['N', '#a855f7'], ['B', '#6B63E8']].map(([l, c]) => (
+                <div key={String(l)} className="w-6 h-6 rounded-full flex items-center justify-center text-[7px] font-bold text-white"
+                  style={{
+                    background: `linear-gradient(135deg, ${String(c)}45, ${String(c)}18)`,
+                    border: `1.5px solid ${String(c)}`,
+                    boxShadow: `0 0 6px ${String(c)}55`,
+                  }}>{String(l)}</div>
+              ))}
+            </div>
           </div>
         </div>
+
+        {/* Center play button */}
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-10 h-10 rounded-full bg-white/15 backdrop-blur-sm flex items-center justify-center border border-white/20">
-            <FaPlay size={10} className="text-white ml-0.5" aria-hidden="true" />
-          </div>
+          <motion.div
+            className="w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md"
+            style={{ background: 'rgba(123,114,248,0.22)', border: '1.5px solid rgba(123,114,248,0.55)' }}
+            animate={reduce ? undefined : { boxShadow: ['0 0 0px rgba(123,114,248,0.3)', '0 0 18px rgba(123,114,248,0.7)', '0 0 0px rgba(123,114,248,0.3)'] }}
+            transition={{ repeat: Infinity, duration: 2.2 }}>
+            <FaPlay size={11} className="text-[#7B72F8] ml-0.5" aria-hidden="true" />
+          </motion.div>
         </div>
-        <div className="absolute bottom-2 left-3 right-3">
-          <div className="h-0.5 bg-white/15 rounded-full overflow-hidden">
-            <motion.div className="h-full bg-[#7B72F8] rounded-full" initial={{ width: '28%' }} animate={{ width: '60%' }} transition={{ duration: 10, ease: 'linear' }} />
+
+        {/* Bottom controls bar */}
+        <div className="absolute bottom-2 left-3 right-3 z-10">
+          <div className="h-[3px] rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.14)' }}>
+            <motion.div className="h-full rounded-full"
+              style={{ background: 'linear-gradient(90deg, #7B72F8, #a855f7)', boxShadow: '0 0 6px rgba(123,114,248,0.6)' }}
+              initial={{ width: reduce ? '60%' : '28%' }}
+              animate={{ width: '60%' }}
+              transition={reduce ? { duration: 0 } : { duration: 10, ease: 'linear' }} />
           </div>
-          <div className="flex justify-between mt-1">
-            <span className="text-[7px] text-white/40">12:35</span>
-            <span className="text-[7px] text-white/40">48:00</span>
+          <div className="flex items-center justify-between mt-1">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[7px] text-white/55 font-medium tabular-nums">12:35</span>
+              <FaUsers size={6} className="text-white/35" aria-hidden="true" />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <FaGlobe size={6} className="text-white/35" aria-hidden="true" />
+              <span className="text-[7px] text-white/55 font-medium tabular-nums">48:00</span>
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Chat panel */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="px-3 pt-2 pb-1.5 border-b border-zinc-800/50 flex items-center gap-1.5">
-          <FaComment size={8} className="text-zinc-600" aria-hidden="true" />
-          <span className="text-[8px] text-zinc-500">{t('screenRealtimeChat')}</span>
-          <span className="ml-auto text-[7px] text-zinc-700">3 {t('screenPeopleOnline')}</span>
+        {/* Chat header */}
+        <div className="px-3 pt-2.5 pb-2 border-b border-white/[0.06] flex items-center gap-1.5">
+          <FaComment size={8} style={{ color: '#22d3ee' }} aria-hidden="true" />
+          <span className="text-[8px] text-white/70 font-medium">{t('screenRealtimeChat')}</span>
+          <div className="ml-auto flex items-center gap-1">
+            <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"
+              style={{ boxShadow: '0 0 5px #4ade80' }} aria-hidden="true" />
+            <span className="text-[7px] text-white/45">3 {t('screenPeopleOnline')}</span>
+          </div>
         </div>
-        <div className="flex-1 px-3 py-2 space-y-2 overflow-hidden">
+
+        {/* Messages */}
+        <div className="flex-1 px-3 py-2.5 space-y-2 overflow-hidden">
           {chatMsgs.map((msg, i) => (
             <AnimatePresence key={i}>
               {visibleChats.includes(i) && (
-                <motion.div initial={{ opacity: 0, x: -10, y: 4 }} animate={{ opacity: 1, x: 0, y: 0 }}
+                <motion.div initial={{ opacity: 0, x: -10, y: 4, scale: 0.95 }} animate={{ opacity: 1, x: 0, y: 0, scale: 1 }}
                   transition={{ duration: 0.25, ease: 'easeOut' }} className="flex items-start gap-1.5">
-                  <div className="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center text-[7px] font-bold text-white"
-                    style={{ background: msg.color }}>{msg.u}</div>
-                  <div className="rounded-lg px-2 py-1 bg-[#111118] border border-zinc-800/60 max-w-[80%]">
-                    <span className="text-[9px] text-zinc-300">{msg.msg}</span>
+                  <div className="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-[7px] font-bold text-white"
+                    style={{
+                      background: `linear-gradient(135deg, ${msg.color}, ${msg.color}99)`,
+                      boxShadow: `0 0 6px ${msg.color}45`,
+                    }}>{msg.u}</div>
+                  <div className="rounded-2xl px-2.5 py-1.5 max-w-[80%]"
+                    style={{ background: '#111122', border: '1px solid rgba(255,255,255,0.07)', borderLeft: `2px solid ${msg.color}` }}>
+                    <span className="text-[9px] text-zinc-200 leading-snug">{msg.msg}</span>
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
           ))}
         </div>
-        <div className="mx-3 mb-4 rounded-lg bg-[#111118] border border-zinc-800 px-3 py-2">
-          <span className="text-[8px] text-zinc-600">{t('screenChatHint')}</span>
+
+        {/* Chat input */}
+        <div className="mx-3 mb-4 rounded-2xl flex items-center gap-2 pl-2.5 pr-1.5 py-1.5"
+          style={{ background: '#0e0e1a', border: '1px solid rgba(123,114,248,0.18)' }}>
+          <FaComment size={9} className="text-[#7B72F8]/40 flex-shrink-0" aria-hidden="true" />
+          <span className="text-[8px] text-zinc-600 flex-1 truncate">{t('screenChatHint')}</span>
+          <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ background: 'linear-gradient(135deg, #7B72F8, #6460E8)', boxShadow: '0 0 10px rgba(123,114,248,0.5)' }}>
+            <FaChevronRight size={9} className="text-white" aria-hidden="true" />
+          </div>
         </div>
       </div>
     </div>
