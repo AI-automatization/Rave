@@ -27,7 +27,7 @@ const screenVariants: Variants = {
 };
 
 const PLAY_STORE  = 'https://play.google.com/store';
-const TYPING_URL  = 'kinogo.cc';
+const TYPING_URL  = 'youtube.com';
 
 const BATTLE_USERS = [
   { rank: 1, name: 'Sardor_90', videos: 48, initials: 'S', color: '#FFD700', bg: 'rgba(255,215,0,0.12)' },
@@ -43,45 +43,11 @@ const HERO_BUBBLES = [
 ] as const;
 
 const MARQUEE_ITEMS = [
-  'YouTube', 'Twitch', 'Netflix', 'Vimeo', 'Dailymotion',
-  'TikTok', 'Rutube', 'Kinogo', 'Rezka', 'Filmix',
-  'YouTube', 'Twitch', 'Netflix', 'Vimeo', 'Dailymotion',
-  'TikTok', 'Rutube', 'Kinogo', 'Rezka', 'Filmix',
+  'YouTube', 'VK', 'Rutube', 'Cinerama', 'Twitch', 'Instagram', 'Google Drive',
+  'YouTube', 'VK', 'Rutube', 'Cinerama', 'Twitch', 'Instagram', 'Google Drive',
 ];
 
-const STATS = [
-  { value: '∞',   label: 'Сайтов'     },
-  { value: '25+', label: 'Достижений' },
-  { value: '5',   label: 'Рангов'     },
-  { value: '0',   label: 'Подписок'   },
-];
 
-const WHY_ITEMS = [
-  {
-    icon: FaGlobe,
-    color: '#7B72F8',
-    bg: 'rgba(123,114,248,0.12)',
-    border: 'rgba(123,114,248,0.25)',
-    title: 'Встроенный браузер',
-    text: 'YouTube, Kinogo, Rezka — переходи на любой сайт прямо в приложении. Не нужно ничего копировать.',
-  },
-  {
-    icon: FaUsers,
-    color: '#22d3ee',
-    bg: 'rgba(34,211,238,0.10)',
-    border: 'rgba(34,211,238,0.22)',
-    title: 'Все на одном кадре',
-    text: 'Ставишь на паузу — пауза у всех. Перематываешь — все перематывают. Расстояние не помеха.',
-  },
-  {
-    icon: FaCheck,
-    color: '#22c55e',
-    bg: 'rgba(34,197,94,0.10)',
-    border: 'rgba(34,197,94,0.22)',
-    title: 'Бесплатно навсегда',
-    text: 'Watch Party, Battle Mode, 25+ достижений — всё без подписки. Скачай и пользуйся сразу.',
-  },
-];
 
 // ── Noise overlay (static, не перерисовывается) ────────────────────────────
 function NoiseOverlay() {
@@ -121,6 +87,13 @@ function Marquee() {
 
 // ── Stats Bar ────────────────────────────────────────────────────────────
 function StatsBar() {
+  const t = useTranslations('landing');
+  const STATS = [
+    { value: '∞',   label: t('statsLabel1') },
+    { value: '25+', label: t('statsLabel2') },
+    { value: '5',   label: t('statsLabel3') },
+    { value: '0',   label: t('statsLabel4') },
+  ];
   return (
     <section className="py-14 px-4 relative overflow-hidden" aria-label="Статистика">
       <div className="absolute inset-0 bg-gradient-to-b from-[#0A0A0F] via-[#0D0D1A] to-[#0A0A0F]" aria-hidden="true" />
@@ -266,13 +239,40 @@ function BentoFeatures({ t }: { t: ReturnType<typeof useTranslations<'landing'>>
 
 // ── WhyWeWatch ───────────────────────────────────────────────────────────
 function WhyWeWatch() {
+  const t = useTranslations('landing');
+  const WHY_ITEMS = [
+    {
+      icon: FaGlobe,
+      color: '#7B72F8',
+      bg: 'rgba(123,114,248,0.12)',
+      border: 'rgba(123,114,248,0.25)',
+      title: t('whyBrowserTitle'),
+      text: t('whyBrowserText'),
+    },
+    {
+      icon: FaUsers,
+      color: '#22d3ee',
+      bg: 'rgba(34,211,238,0.10)',
+      border: 'rgba(34,211,238,0.22)',
+      title: t('whySyncTitle'),
+      text: t('whySyncText'),
+    },
+    {
+      icon: FaCheck,
+      color: '#22c55e',
+      bg: 'rgba(34,197,94,0.10)',
+      border: 'rgba(34,197,94,0.22)',
+      title: t('whyFreeTitle'),
+      text: t('whyFreeText'),
+    },
+  ];
   return (
     <section className="py-20 px-4 bg-[#0D0D16] relative overflow-hidden" aria-labelledby="why-heading">
       <div className="max-w-6xl mx-auto">
         <motion.div variants={stagger} initial="hidden" whileInView="visible" viewport={{ once: true }} className="text-center mb-14">
-          <motion.p variants={fadeUp} className="text-[#7B72F8] text-xs uppercase tracking-widest font-semibold mb-3">Почему WeWatch</motion.p>
+          <motion.p variants={fadeUp} className="text-[#7B72F8] text-xs uppercase tracking-widest font-semibold mb-3">{t('whyTitle')}</motion.p>
           <motion.h2 variants={fadeUp} id="why-heading" className="text-3xl md:text-4xl font-display uppercase text-white">
-            Три причины попробовать
+            {t('whySubtitle')}
           </motion.h2>
         </motion.div>
 
@@ -322,12 +322,12 @@ function ScreenHome({ t }: { t: TFn }) {
       </div>
       {/* Browser selector — key differentiator */}
       <div className="mx-3 rounded-xl bg-[#111118] border border-[#7B72F8]/25 p-3 mb-2.5">
-        <p className="text-[7px] text-zinc-600 uppercase tracking-widest mb-2">Открыть сайт</p>
+        <p className="text-[7px] text-zinc-600 uppercase tracking-widest mb-2">{t('openSite')}</p>
         <div className="grid grid-cols-3 gap-1.5 mb-2.5">
           {[
             { label: 'YouTube', color: '#FF4444', bg: 'rgba(255,68,68,0.12)' },
-            { label: 'Kinogo',  color: '#7B72F8', bg: 'rgba(123,114,248,0.12)' },
-            { label: 'Rezka',   color: '#a855f7', bg: 'rgba(168,85,247,0.12)' },
+            { label: 'VK',      color: '#2787F5', bg: 'rgba(39,135,245,0.12)' },
+            { label: 'Rutube',  color: '#E53935', bg: 'rgba(229,57,53,0.12)' },
           ].map(({ label, color, bg }, i) => (
             <motion.div key={label} className="rounded-lg py-2 text-center cursor-pointer"
               style={{ background: bg, border: `1px solid ${color}30` }}
@@ -342,7 +342,7 @@ function ScreenHome({ t }: { t: TFn }) {
           animate={{ boxShadow: ['0 0 8px rgba(123,114,248,0.35)', '0 0 20px rgba(123,114,248,0.65)', '0 0 8px rgba(123,114,248,0.35)'] }}
           transition={{ repeat: Infinity, duration: 2.5 }}>
           <FaGlobe size={9} className="text-white flex-shrink-0" aria-hidden="true" />
-          <span className="text-white text-[10px] font-semibold">Открыть браузер</span>
+          <span className="text-white text-[10px] font-semibold">{t('openBrowser')}</span>
           <FaChevronRight size={7} className="text-white/60 ml-auto" aria-hidden="true" />
         </motion.div>
       </div>
@@ -558,7 +558,7 @@ export function LandingContent() {
 
   const SYNC_BULLETS   = [t('syncBullet1'), t('syncBullet2'), t('syncBullet3'), t('syncBullet4'), t('syncBullet5')];
   const BATTLE_BULLETS = [t('battleBullet1'), t('battleBullet2'), t('battleBullet3'), t('battleBullet4')];
-  const APP_FEATURES   = [t('appFeat1'), t('appFeat2'), t('appFeat3'), t('appFeat4'), t('appFeat5')];
+  const APP_FEATURES   = [t('appFeat1'), t('appFeat2'), t('appFeat3'), t('appFeat4'), t('appFeat5'), t('appFeat6')];
 
   // URL typing animation
   useEffect(() => {
@@ -685,7 +685,7 @@ export function LandingContent() {
             <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.75 }}
               className="mt-10 flex items-center justify-center gap-2 text-zinc-600 text-sm">
               <FaGlobe size={12} aria-hidden="true" />
-              <span>Android · iOS скоро · Бесплатно</span>
+              <span>{t('heroFooter')}</span>
             </motion.p>
           </div>
 
@@ -740,8 +740,8 @@ export function LandingContent() {
                 <div className="grid grid-cols-3 gap-1.5 mb-2">
                   {[
                     { name: 'YouTube', c: '#FF4444' },
-                    { name: 'Kinogo',  c: '#7B72F8' },
-                    { name: 'Rezka',   c: '#a855f7' },
+                    { name: 'VK',      c: '#2787F5' },
+                    { name: 'Rutube',  c: '#E53935' },
                   ].map(({ name, c }) => (
                     <div key={name} className="rounded-lg py-1.5 text-center"
                       style={{ background: `${c}12`, border: `1px solid ${c}25` }}>
@@ -995,8 +995,13 @@ export function LandingContent() {
             </motion.div>
 
             <motion.div initial={{ opacity: 0, x: 28 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.55, delay: 0.12 }}>
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#FFD700]/10 border border-[#FFD700]/28 text-[#FFD700] text-xs font-semibold uppercase tracking-widest mb-6">
-                <FaFire size={10} aria-hidden="true" /> {t('battleSectionTag')}
+              <div className="flex items-center gap-3 mb-6 flex-wrap">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#FFD700]/10 border border-[#FFD700]/28 text-[#FFD700] text-xs font-semibold uppercase tracking-widest">
+                  <FaFire size={10} aria-hidden="true" /> {t('battleSectionTag')}
+                </div>
+                <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-zinc-800/80 border border-zinc-700/60 text-zinc-400 text-xs font-semibold uppercase tracking-wider">
+                  {t('comingSoon')}
+                </span>
               </div>
               <h2 id="battle-heading" className="text-4xl md:text-5xl lg:text-6xl font-display uppercase text-white leading-tight mb-6">
                 {t('battleTitle1')}<br />
@@ -1063,7 +1068,7 @@ export function LandingContent() {
             </motion.div>
 
             <motion.p variants={fadeUp} className="mt-10 text-zinc-600 text-sm">
-              Бесплатно · Android · iOS скоро
+              {t('ctaFooter')}
             </motion.p>
           </motion.div>
         </section>

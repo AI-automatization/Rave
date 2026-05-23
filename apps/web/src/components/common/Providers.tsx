@@ -18,10 +18,13 @@ type Locale = 'uz' | 'ru' | 'en';
 export function Providers({ children }: { children: React.ReactNode }) {
   const localeFromStore = useLocaleStore((s) => s.locale);
 
-  // Read from cookie synchronously to avoid flash of wrong locale.
-  // Cookie is set by locale.store.ts on every language change.
-  // Falls back to 'uz' if no cookie (first visit or SSR).
-  const [locale, setLocale] = useState<Locale>(readLocaleFromCookie);
+  // Always start with 'uz' to match SSR output and avoid hydration mismatch.
+  // After mount, update from cookie/store (causes a re-render, not an error).
+  const [locale, setLocale] = useState<Locale>('uz');
+
+  useEffect(() => {
+    setLocale(readLocaleFromCookie());
+  }, []);
 
   useEffect(() => {
     setLocale(localeFromStore);
