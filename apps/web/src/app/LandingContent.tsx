@@ -85,8 +85,8 @@ function StatsBar() {
   const t = useTranslations('landing');
   const STATS = [
     { value: '∞',   label: t('statsLabel1') },
-    { value: '25+', label: t('statsLabel2') },
-    { value: '5',   label: t('statsLabel3') },
+    { value: '4K',  label: t('statsLabel2') },
+    { value: '±2s', label: t('statsLabel3') },
     { value: '0',   label: t('statsLabel4') },
   ];
   return (
