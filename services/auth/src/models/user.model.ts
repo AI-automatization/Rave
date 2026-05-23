@@ -35,7 +35,6 @@ export interface IUserDocument extends Document {
       friendRequest: boolean;
       friendAccepted: boolean;
       watchPartyInvite: boolean;
-      achievementUnlocked: boolean;
       friendOnline: boolean;
       emailDigest: boolean;
     };
@@ -85,12 +84,11 @@ const userSchema = new Schema<IUserDocument>(
           notifications: {
             type: new Schema(
               {
-                friendRequest:       { type: Boolean, default: true },
-                friendAccepted:      { type: Boolean, default: true },
-                watchPartyInvite:    { type: Boolean, default: true },
-                achievementUnlocked: { type: Boolean, default: true },
-                friendOnline:        { type: Boolean, default: false },
-                emailDigest:         { type: Boolean, default: true },
+                friendRequest:    { type: Boolean, default: true },
+                friendAccepted:   { type: Boolean, default: true },
+                watchPartyInvite: { type: Boolean, default: true },
+                friendOnline:     { type: Boolean, default: false },
+                emailDigest:      { type: Boolean, default: true },
               },
               { _id: false },
             ),

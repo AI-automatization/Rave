@@ -15,8 +15,6 @@ interface ToggleItem {
 export const NOTIFICATION_TOGGLES: ToggleItem[] = [
   { key: 'friendRequest', labelKey: 'friendRequest' },
   { key: 'watchPartyInvite', labelKey: 'watchPartyInvite' },
-  { key: 'battleInvite', labelKey: 'battleInvite' },
-  { key: 'achievementUnlocked', labelKey: 'achievementUnlocked' },
   { key: 'dailyReminder', labelKey: 'dailyReminder', subKey: 'dailyReminderSub' },
 ];
 
@@ -51,8 +49,6 @@ export function useSettingsStorage() {
             if (remote.notifications) {
               notif.friendRequest = remote.notifications.push;
               notif.watchPartyInvite = remote.notifications.push;
-              notif.battleInvite = remote.notifications.push;
-              notif.achievementUnlocked = remote.notifications.push;
               notif.dailyReminder = remote.notifications.email;
             }
             const privacy: Record<string, boolean> = { ...DEFAULT_PRIVACY };
@@ -99,9 +95,7 @@ export function useSettingsStorage() {
     // Backend (fire-and-forget)
     if (isAuthenticated) {
       const pushEnabled = notif.friendRequest !== false
-        || notif.watchPartyInvite !== false
-        || notif.battleInvite !== false
-        || notif.achievementUnlocked !== false;
+        || notif.watchPartyInvite !== false;
       const emailEnabled = notif.dailyReminder !== false;
       const showActivity = privacy.showOnlineStatus !== false;
 

@@ -9,8 +9,6 @@ import { usersApi } from '../../api/users.api';
 const ROUTE_LABELS: Record<string, string> = {
   '/': 'Dashboard',
   '/users': 'Users',
-  '/movies': 'Content',
-  '/battles': 'Battles',
   '/watchparties': 'Watch Parties',
   '/errors': 'Mobile Errors',
   '/support': 'Support',

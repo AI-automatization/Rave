@@ -36,8 +36,6 @@ export interface LoginResponse {
 export interface DashboardStats {
   totalUsers: number;
   activeUsers: number;
-  totalMovies: number;
-  activeBattles: number;
   activeWatchParties: number;
 }
 
@@ -76,23 +74,6 @@ export interface StaffMember {
   lastLoginAt: string | null;
 }
 
-// ── Movies ────────────────────────────────────────────────────
-
-export interface AdminMovie {
-  _id: string;
-  title: string;
-  originalTitle: string;
-  type: 'movie' | 'series' | 'short';
-  genre: string[];
-  year: number;
-  duration: number;
-  rating: number;
-  posterUrl: string;
-  isPublished: boolean;
-  viewCount: number;
-  createdAt: string;
-}
-
 // ── Feedback ──────────────────────────────────────────────────
 
 export interface Feedback {
@@ -122,27 +103,6 @@ export interface ApiLog {
   userId: string | null;
   ip: string | null;
   userAgent: string | null;
-}
-
-// ── Battles ───────────────────────────────────────────────────
-
-export interface AdminBattle {
-  _id: string;
-  title: string;
-  creatorId: string;
-  status: 'pending' | 'active' | 'completed' | 'cancelled' | 'rejected';
-  duration: 3 | 5 | 7;
-  startDate: string | null;
-  endDate: string | null;
-  winnerId: string | null;
-  createdAt: string;
-  participants?: Array<{
-    userId: string;
-    score: number;
-    moviesWatched: number;
-    minutesWatched: number;
-    hasAccepted: boolean;
-  }>;
 }
 
 // ── Watch Parties ─────────────────────────────────────────────
@@ -198,9 +158,6 @@ export interface Analytics {
   newUsersToday: number;
   newUsersThisWeek: number;
   watchPartiesCreatedToday: number;
-  battlesCreatedToday: number;
-  topMovies: Array<{ _id: string; title: string; viewCount: number }>;
-  genreDistribution: Array<{ genre: string; count: number }>;
 }
 
 export type ActivityItemType = 'error' | 'admin_action' | 'report';

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import {
-  Users, Film, Swords, Tv2, Activity,
+  Users, Tv2, Activity,
   AlertCircle, Zap, UserPlus, TrendingUp, Monitor, ShieldAlert, Settings,
 } from 'lucide-react';
 import { dashboardApi } from '../api/dashboard.api';
@@ -137,10 +137,9 @@ export function DashboardPage() {
   ] : [];
 
   const activityItems = analytics ? [
-    { icon: <UserPlus size={14} />,  label: 'New today',     value: analytics.newUsersToday,            color: 'text-blue-400',    bg: 'bg-blue-500/[0.1]' },
-    { icon: <TrendingUp size={14} />, label: 'This week',    value: analytics.newUsersThisWeek,         color: 'text-violet-400',  bg: 'bg-violet-500/[0.1]' },
-    { icon: <Monitor size={14} />,   label: 'Watch Parties', value: analytics.watchPartiesCreatedToday, color: 'text-emerald-400', bg: 'bg-emerald-500/[0.1]' },
-    { icon: <Swords size={14} />,    label: 'Battles',       value: analytics.battlesCreatedToday,      color: 'text-amber-400',   bg: 'bg-amber-500/[0.1]' },
+    { icon: <UserPlus size={14} />,   label: 'New today',     value: analytics.newUsersToday,            color: 'text-blue-400',    bg: 'bg-blue-500/[0.1]' },
+    { icon: <TrendingUp size={14} />, label: 'This week',     value: analytics.newUsersThisWeek,         color: 'text-violet-400',  bg: 'bg-violet-500/[0.1]' },
+    { icon: <Monitor size={14} />,    label: 'Watch Parties', value: analytics.watchPartiesCreatedToday, color: 'text-emerald-400', bg: 'bg-emerald-500/[0.1]' },
   ] : [];
 
   return (
@@ -166,12 +165,10 @@ export function DashboardPage() {
       </div>
 
       {/* ── KPI stat cards ────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
-        <StatCard label="Users"        value={stats?.totalUsers ?? 0}          LIcon={Users}    color="violet"  />
-        <StatCard label="Active"        value={stats?.activeUsers ?? 0}         LIcon={Activity} color="emerald" />
-        <StatCard label="Content"       value={stats?.totalMovies ?? 0}         LIcon={Film}     color="blue"    />
-        <StatCard label="Battles"       value={stats?.activeBattles ?? 0}       LIcon={Swords}   color="amber"   />
-        <StatCard label="Watch Parties" value={stats?.activeWatchParties ?? 0}  LIcon={Tv2}      color="rose"    />
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <StatCard label="Users"         value={stats?.totalUsers ?? 0}         LIcon={Users}    color="violet"  />
+        <StatCard label="Active"        value={stats?.activeUsers ?? 0}        LIcon={Activity} color="emerald" />
+        <StatCard label="Watch Parties" value={stats?.activeWatchParties ?? 0} LIcon={Tv2}      color="rose"    />
       </div>
 
       {/* ── Middle: error health + today activity ─────────────── */}
@@ -225,161 +222,66 @@ export function DashboardPage() {
         )}
       </div>
 
-      {/* ── Charts ────────────────────────────────────────────── */}
-      {analytics && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-
-          {/* Top movies */}
-          <SectionPanel
-            title="Top by Views"
-            sub={`${analytics.topMovies?.length ?? 0} movies`}
-            icon={<Film size={13} className="text-blue-400" />}
-          >
-            {analytics.topMovies?.length ? (
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart
-                  data={analytics.topMovies}
-                  layout="vertical"
-                  margin={{ left: 0, right: 24, top: 0, bottom: 0 }}
-                >
-                  <defs>
-                    <linearGradient id="barGradH" x1="0" y1="0" x2="1" y2="0">
-                      <stop offset="0%" stopColor="#6C63FF" stopOpacity={1} />
-                      <stop offset="100%" stopColor="#9B95FF" stopOpacity={0.7} />
-                    </linearGradient>
-                  </defs>
-                  <XAxis
-                    type="number"
-                    tick={{ fill: '#4E4D6A', fontSize: 10 }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    type="category"
-                    dataKey="title"
-                    width={96}
-                    tick={{ fill: '#8886AA', fontSize: 10 }}
-                    axisLine={false}
-                    tickLine={false}
-                    tickFormatter={(v: string) => v.length > 13 ? v.slice(0, 13) + '…' : v}
-                  />
-                  <Tooltip {...CHART_TOOLTIP_STYLE} />
-                  <Bar dataKey="viewCount" fill="url(#barGradH)" radius={[0, 6, 6, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <p className="text-text-muted text-sm py-10 text-center">No data</p>
-            )}
-          </SectionPanel>
-
-          {/* Error Trend — replaces By Genre */}
-          <SectionPanel
-            title="Error Trend"
-            sub="last 7 days"
-            icon={<TrendingUp size={13} className="text-red-400" />}
-          >
-            {errorTrend.length ? (
-              <ResponsiveContainer width="100%" height={220}>
-                <LineChart data={errorTrend} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#f87171" stopOpacity={0.4} />
-                      <stop offset="100%" stopColor="#f87171" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <XAxis
-                    dataKey="date"
-                    tick={{ fill: '#4E4D6A', fontSize: 9 }}
-                    axisLine={false}
-                    tickLine={false}
-                    tickFormatter={(v: string) => v.slice(5)}
-                  />
-                  <YAxis
-                    tick={{ fill: '#4E4D6A', fontSize: 10 }}
-                    axisLine={false}
-                    tickLine={false}
-                    allowDecimals={false}
-                  />
-                  <Tooltip {...CHART_TOOLTIP_STYLE} />
-                  <Line
-                    type="monotone"
-                    dataKey="count"
-                    stroke="#f87171"
-                    strokeWidth={2}
-                    dot={{ r: 3, fill: '#f87171', strokeWidth: 0 }}
-                    activeDot={{ r: 5 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            ) : (
-              <p className="text-text-muted text-sm py-10 text-center">No data</p>
-            )}
-          </SectionPanel>
-        </div>
-      )}
-
-      {/* ── Activity Feed + Genre Chart ────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-
-        {/* Activity Feed */}
-        <SectionPanel
-          title="Activity Feed"
-          sub="last 48 hours"
-          icon={<Activity size={13} className="text-emerald-400" />}
-        >
-          {activityFeed.length === 0 ? (
-            <p className="text-text-muted text-sm py-10 text-center">No recent activity</p>
-          ) : (
-            <div className="flex flex-col gap-1.5 max-h-[280px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-white/[0.06]">
-              {activityFeed.map((item) => (
-                <ActivityFeedRow key={item.id} item={item} />
-              ))}
-            </div>
-          )}
-        </SectionPanel>
-
-        {/* Genre distribution */}
-        {analytics && (
-          <SectionPanel
-            title="By Genre"
-            sub={`${analytics.genreDistribution?.length ?? 0} genres`}
-            icon={<Activity size={13} className="text-violet-400" />}
-          >
-            {analytics.genreDistribution?.length ? (
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart
-                  data={analytics.genreDistribution}
-                  margin={{ left: 0, right: 0, top: 0, bottom: 28 }}
-                >
-                  <defs>
-                    <linearGradient id="barGradV" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#6C63FF" stopOpacity={1} />
-                      <stop offset="100%" stopColor="#4940C5" stopOpacity={0.5} />
-                    </linearGradient>
-                  </defs>
-                  <XAxis
-                    dataKey="genre"
-                    tick={{ fill: '#4E4D6A', fontSize: 9 }}
-                    axisLine={false}
-                    tickLine={false}
-                    angle={-30}
-                    textAnchor="end"
-                  />
-                  <YAxis
-                    tick={{ fill: '#4E4D6A', fontSize: 10 }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <Tooltip {...CHART_TOOLTIP_STYLE} />
-                  <Bar dataKey="count" fill="url(#barGradV)" radius={[5, 5, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <p className="text-text-muted text-sm py-10 text-center">No data</p>
-            )}
-          </SectionPanel>
+      {/* ── Error Trend ───────────────────────────────────────── */}
+      <SectionPanel
+        title="Error Trend"
+        sub="last 7 days"
+        icon={<TrendingUp size={13} className="text-red-400" />}
+      >
+        {errorTrend.length ? (
+          <ResponsiveContainer width="100%" height={220}>
+            <LineChart data={errorTrend} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
+              <defs>
+                <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#f87171" stopOpacity={0.4} />
+                  <stop offset="100%" stopColor="#f87171" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <XAxis
+                dataKey="date"
+                tick={{ fill: '#4E4D6A', fontSize: 9 }}
+                axisLine={false}
+                tickLine={false}
+                tickFormatter={(v: string) => v.slice(5)}
+              />
+              <YAxis
+                tick={{ fill: '#4E4D6A', fontSize: 10 }}
+                axisLine={false}
+                tickLine={false}
+                allowDecimals={false}
+              />
+              <Tooltip {...CHART_TOOLTIP_STYLE} />
+              <Line
+                type="monotone"
+                dataKey="count"
+                stroke="#f87171"
+                strokeWidth={2}
+                dot={{ r: 3, fill: '#f87171', strokeWidth: 0 }}
+                activeDot={{ r: 5 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        ) : (
+          <p className="text-text-muted text-sm py-10 text-center">No data</p>
         )}
-      </div>
+      </SectionPanel>
+
+      {/* ── Activity Feed ─────────────────────────────────────── */}
+      <SectionPanel
+        title="Activity Feed"
+        sub="last 48 hours"
+        icon={<Activity size={13} className="text-emerald-400" />}
+      >
+        {activityFeed.length === 0 ? (
+          <p className="text-text-muted text-sm py-10 text-center">No recent activity</p>
+        ) : (
+          <div className="flex flex-col gap-1.5 max-h-[280px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-white/[0.06]">
+            {activityFeed.map((item) => (
+              <ActivityFeedRow key={item.id} item={item} />
+            ))}
+          </div>
+        )}
+      </SectionPanel>
     </div>
   );
 }
