@@ -86,6 +86,9 @@ if [[ -f "$VENV/bin/python" ]] && [[ -f "$CONFIG_FILE" ]] && ! grep -q "YOUR_API
   bash "$(dirname "${BASH_SOURCE[0]}")/tg-watch.sh" stop 2>/dev/null || true
 fi
 
+# ── Обновить LAST_SESSION.md ─────────────────────────────────────
+bash "$(dirname "${BASH_SOURCE[0]}")/update-last-session.sh" "" "" "" 2>/dev/null || true
+
 # ── Flush терминального буфера ────────────────────────────────────
 BUFFER="$HOME/.terminal_context_buffer"
 if [[ -f "$BUFFER" && -s "$BUFFER" ]]; then

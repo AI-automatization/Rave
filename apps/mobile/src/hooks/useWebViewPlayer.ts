@@ -63,7 +63,9 @@ export function useWebViewPlayer(
     [url, isHtmlMode],
   );
 
-  const [loading, setLoading] = useState(true);
+  // Inline HTML (YouTube embed, custom html) loads instantly — no loading overlay needed.
+  // URL-based sources need the overlay until onLoadEnd fires.
+  const [loading, setLoading] = useState(!isHtmlMode);
   const [error, setError] = useState(false);
   const [redirectWarning, setRedirectWarning] = useState<string | null>(null);
   const [ytEmbedBlocked, setYtEmbedBlocked] = useState(false);

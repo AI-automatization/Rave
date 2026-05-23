@@ -15,7 +15,7 @@ export function buildYouTubeHtml(videoId: string): string {
 </head>
 <body>
   <div id="yt"></div>
-  <script src="https://www.youtube.com/iframe_api"></script>
+  <script src="https://www.youtube.com/iframe_api" async></script>
   <script>
     var ytPlayer = null;
     var progressTimer = null;

@@ -1,5 +1,5 @@
 # MOBILE AGENT — CineSync
-# apps/mobile/ | React Native + Expo | Emirhan zone
+# apps/mobile/ | React Native + Expo | Saidazim + Emirhan zone
 
 ZONE:      apps/mobile/
 FORBIDDEN: services/, apps/web/, apps/admin-ui/, shared/ (read only)

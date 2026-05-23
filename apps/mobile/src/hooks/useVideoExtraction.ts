@@ -161,7 +161,16 @@ export function useVideoExtraction(): UseVideoExtractionReturn {
 
       if (__DEV__) console.log('[useVideoExtraction] Extracted:', extracted.platform, extracted.type);
 
-      // 3. YouTube proxy rewrite when backend says so
+      // 3. If the backend returned a googlevideo.com CDN URL (stale Redis cache from before
+      //    the embed-only approach was adopted), treat it as fallback — these URLs are IP-locked
+      //    to the extraction server and cannot be played on a mobile device.
+      if (extracted.videoUrl && /googlevideo\.com/.test(extracted.videoUrl)) {
+        if (__DEV__) console.log('[useVideoExtraction] Extracted googlevideo.com URL — stale cache, falling back to WebView');
+        setFallbackMode(true);
+        return;
+      }
+
+      // 4. YouTube proxy rewrite when backend says so
       if (extracted.useProxy && extracted.platform === 'youtube') {
         extracted.videoUrl = buildYouTubeProxyUrl(extracted.videoUrl, accessToken ?? '');
 

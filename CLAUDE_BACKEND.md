@@ -20,7 +20,8 @@ docker-compose*.yml      → Infra config
 nginx/                   → Reverse proxy
 ```
 
-**🚫 TEGINMA:** `apps/mobile/` (Emirhan), `apps/web/` (Jafar)
+**🚫 TEGINMA:** `apps/web/` (Jafar)
+**✅ RUXSAT:** `apps/mobile/` — Saidazim + Emirhan (ikkala ishlamoqda)
 
 ---
 
@@ -365,7 +366,7 @@ const logger = createLogger({
 ## 🚫 TAQIQLANGAN
 
 ```
-❌ apps/mobile/ papkasiga TEGINMA (Emirhan)
+✅ apps/mobile/ — Saidazim + Emirhan (ikkala ishlamoqda)
 ❌ apps/web/ papkasiga TEGINMA (Jafar)
 ❌ any type — TypeScript strict
 ❌ console.log — Winston Logger ishlatish

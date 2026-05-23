@@ -77,7 +77,7 @@
 
 
 
-# 2 dasturchi: Saidazim (Backend) | Emirhan (Mobile + Web)
+# 2 dasturchi: Saidazim (Backend + Mobile) | Emirhan (Mobile + Web)
 
 ---
 

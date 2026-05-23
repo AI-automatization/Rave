@@ -1,6 +1,6 @@
 # CLAUDE_MOBILE.md — Expo Mobile Engineer Guide
 # Expo SDK 54 · React Native · TypeScript · Zustand · TanStack Query · Socket.io · expo-av
-# Claude CLI bu faylni Emirhan tanlanganda o'qiydi
+# Claude CLI bu faylni Emirhan yoki Saidazim tanlanganda o'qiydi
 
 ---
 

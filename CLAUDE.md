@@ -11,7 +11,7 @@
 
 ## ПЕРВЫЙ ШАГ (ОБЯЗАТЕЛЬНО)
 
-Узнать кто за терминалом: Saidazim (Backend+Admin) или Emirhan (Mobile+Web).
+Узнать кто за терминалом: Saidazim (Backend+Admin+Mobile) или Emirhan (Mobile+Web).
 Затем: читай `CLAUDE_BACKEND.md` / `CLAUDE_MOBILE.md` → `git pull origin main` → `docs/Tasks.md`.
 Перед задачей — **GIT-BASED TASK LOCKING** (ниже). TEZCODE сообщения — проверить.
 
@@ -48,7 +48,7 @@ WeWatch — соцсеть для совместного просмотра фи
 
 ```
 services/auth,user,content,watch-party,battle,notification,admin → Saidazim
-apps/mobile → Emirhan | apps/admin-ui → Saidazim
+apps/mobile → Saidazim + Emirhan | apps/admin-ui → Saidazim
 shared/types,utils,constants → ОБЩЕЕ (lock protocol)
 ```
 
@@ -197,9 +197,60 @@ Brute force: 5 попыток → 15min блок | Socket.io JWT verify
 
 ---
 
+## MEMORY SYSTEM — ЗАКОН
+
+**Vault:** `~/Documents/weWatch-obsidian/PROJECTS/weWatch/`
+
+### При старте сессии (после 4-шагового протокола):
+```bash
+bash .claude/scripts/memory-load.sh quick   # быстрая загрузка
+bash .claude/scripts/memory-load.sh full    # полная загрузка
+```
+
+Файлы памяти (в порядке чтения):
+```
+CONSTRAINTS.md  → абсолютные запреты + anti-hallucination rules
+LAST_SESSION.md → где остановились, следующий шаг
+ARCHITECTURE.md → стек, паттерны, структура сервисов
+DECISIONS.md    → почему архитектура именно такая
+API.md          → все endpoints + env variables
+_bugs.md        → known bugs (не воспроизводить!)
+```
+
+### Обязательный workflow (5 фаз):
+```
+1. RESEARCH  → .claude/skills/research.md     — изучить перед кодом
+2. SUMMARY   → показать понимание задачи + что будет изменено
+3. PLAN      → пошаговый план, минимальные изменения
+4. EXECUTE   → только после research, existing patterns
+5. MEMORY UPDATE → обновить LAST_SESSION.md + Done.md + tg-notify
+```
+
+### Anti-hallucination (читать .claude/skills/read-before-write.md):
+```
+❌ Никогда не придумывать: файлы, endpoints, env vars, схему, функции
+✅ Перед изменением: find → Read полностью → проверить импорты → Edit
+✅ Перед созданием: убедиться что не существует → читать похожий файл
+```
+
+### В конце каждой сессии:
+```bash
+bash .claude/scripts/update-last-session.sh "T-SXXX" "что делали" "следующий шаг"
+```
+
+---
+
 ## СКИЛЛЫ — ДЕРЕВО РЕШЕНИЙ
 
 ```
+Память / контекст:
+  • MEMORY     → .claude/skills/memory.md           (read/write vault, resume session)
+  • STATUS     → .claude/skills/status.md           (current project state snapshot)
+  • RESEARCH   → .claude/skills/research.md         (explore before code — ОБЯЗАТЕЛЬНО)
+  • READ-FIRST → .claude/skills/read-before-write.md (never edit without reading)
+  • BUGS       → .claude/skills/bugs.md             (log bugs to vault)
+  • CONSTRAINTS→ .claude/skills/constraints.md      (zone check + anti-hallucination)
+
 БАГ/ошибка?         → .claude/skills/root-cause-tracing.md    (5-шаговый трейс ПЕРЕД кодом)
 Mode B / >5 файлов? → .claude/skills/subagent-dispatch.md
 Идеи / решения?     → .claude/skills/brainstorm.md            (/brainstorm [тема] — 5 фаз)
@@ -227,6 +278,7 @@ Frontend UI/UX:
   • DEPLOY  → .claude/skills/deploy.md                   (Railway pre-checks → health verify → rollback)
 
 ГОТОВО → POST-CHECK (dev-workflow) + checkpoint clear + Done.md + tg-notify + git commit
+         + bash .claude/scripts/update-last-session.sh "T-XXX" "что сделано" "следующий шаг"
 ```
 
 Исключения (dev-workflow пропустить): typo/1 символ, docs/Tasks.md, config, messages/*.json.

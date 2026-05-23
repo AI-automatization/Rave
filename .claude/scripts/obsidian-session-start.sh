@@ -114,7 +114,26 @@ if [[ -f "$LESSONS" ]] && [[ $(wc -l < "$LESSONS") -gt 6 ]]; then
   tail -n +5 "$LESSONS"
 fi
 
-# ── weWatch контекст ──────────────────────────────────────────────
+# ── CONSTRAINTS — anti-hallucination (ПЕРВЫМ из контента) ────────
+CONSTRAINTS_FILE="$VAULT/PROJECTS/weWatch/CONSTRAINTS.md"
+if [[ -f "$CONSTRAINTS_FILE" ]]; then
+  echo ""
+  echo "━━━ 🚫 CONSTRAINTS — ЗАПРЕТЫ (читать обязательно) ━━━"
+  grep "^❌\|^АБСОЛЮТНЫЕ\|^## АБСОЛЮТНЫЕ" "$CONSTRAINTS_FILE" 2>/dev/null | head -15
+  echo ""
+  echo "  Полный файл: PROJECTS/weWatch/CONSTRAINTS.md"
+fi
+
+# ── LAST_SESSION — где остановились ──────────────────────────────
+LAST_SESSION_FILE="$VAULT/PROJECTS/weWatch/LAST_SESSION.md"
+if [[ -f "$LAST_SESSION_FILE" ]]; then
+  echo ""
+  echo "━━━ 🔄 LAST SESSION — ГДЕ ОСТАНОВИЛИСЬ ━━━"
+  # Показать ключевые секции
+  awk '/^## Что делали/{p=1} /^## Что завершили/{p=1} /^## Где остановились/{p=1} /^## Следующий шаг/{p=1} /^## Открытые вопросы/{p=1} p && /^---/{p=0; next} p' "$LAST_SESSION_FILE" 2>/dev/null | head -40
+fi
+
+# ── weWatch контекст (architecture) ──────────────────────────────
 BRAIN="$VAULT/PROJECTS/weWatch/_context.md"
 if [[ -f "$BRAIN" ]]; then
   echo ""
@@ -122,11 +141,11 @@ if [[ -f "$BRAIN" ]]; then
   tail -n +5 "$BRAIN"
 fi
 
-# ── Handoff — что было в прошлой сессии ──────────────────────────
+# ── Handoff — git state from last session ────────────────────────
 HANDOFF="$VAULT/AI_CONTEXT/handoff-${DEV_LOWER}.md"
 if [[ -f "$HANDOFF" ]] && [[ $(wc -l < "$HANDOFF") -gt 8 ]]; then
   echo ""
-  echo "━━━ 🔄 ПРОШЛАЯ СЕССИЯ — HANDOFF ━━━"
+  echo "━━━ 📊 GIT STATE (прошлая сессия) ━━━"
   tail -n +5 "$HANDOFF"
 fi
 
