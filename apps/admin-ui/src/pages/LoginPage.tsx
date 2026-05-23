@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, Loader2, AlertCircle, Users, Film, Tv2, ShieldCheck } from 'lucide-react';
 import { authApi } from '../api/auth.api';
 import { useAuthStore } from '../store/auth.store';
+import { WeWatchLogo } from '../components/ui/WeWatchLogo';
 
 const FEATURES = [
   { icon: <Users size={13} />, text: 'Управление пользователями' },
@@ -55,12 +56,12 @@ export function LoginPage() {
         {/* ── Logo ── */}
         <div className="text-center mb-8">
           <div className="relative inline-flex items-center justify-center mb-4">
-            <div className="absolute inset-0 w-16 h-16 rounded-2xl bg-accent/20 blur-xl" />
-            <div className="relative w-14 h-14 rounded-2xl bg-accent/12 border border-accent/24 flex items-center justify-center shadow-[0_0_30px_rgba(108,99,255,0.22)]">
-              <span className="text-accent font-black text-2xl tracking-tighter">R</span>
+            <div className="absolute inset-0 w-20 h-20 rounded-3xl bg-accent/20 blur-2xl" />
+            <div className="relative w-16 h-16 rounded-2xl bg-[#0D0D1F] border border-accent/20 flex items-center justify-center shadow-[0_0_36px_rgba(124,58,237,0.30)]">
+              <WeWatchLogo variant="mark" className="w-10 h-10" />
             </div>
           </div>
-          <h1 className="text-white font-bold text-xl tracking-tight">Rave Admin</h1>
+          <h1 className="text-white font-bold text-xl tracking-tight">WeWatch Admin</h1>
           <p className="text-text-muted text-sm mt-1">Панель управления платформой</p>
         </div>
 
@@ -82,7 +83,7 @@ export function LoginPage() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="admin@rave.com"
+                    placeholder="admin@wewatch.uz"
                     required
                     autoFocus
                     className="input-base pl-9"
@@ -144,7 +145,7 @@ export function LoginPage() {
         </div>
 
         <p className="text-center text-text-ghost text-[11px] mt-5">
-          Rave Admin · Только для авторизованного персонала
+          WeWatch Admin · Только для авторизованного персонала
         </p>
       </div>
     </div>

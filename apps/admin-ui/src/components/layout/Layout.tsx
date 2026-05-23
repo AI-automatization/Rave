@@ -153,7 +153,7 @@ export function Layout() {
   const location = useLocation();
   const { user } = useAuthStore();
 
-  const pageLabel = ROUTE_LABELS[location.pathname] ?? 'Rave Admin';
+  const pageLabel = ROUTE_LABELS[location.pathname] ?? 'WeWatch Admin';
 
   // Avatar
   const hue = user?.email ? (user.email.charCodeAt(0) * 137) % 360 : 240;
@@ -202,7 +202,7 @@ export function Layout() {
 
           {/* Breadcrumb */}
           <div className="flex items-center gap-2 min-w-0">
-            <span className="text-text-dim text-[13px] hidden md:block select-none">Rave</span>
+            <span className="text-text-dim text-[13px] hidden md:block select-none">WeWatch</span>
             <span className="text-text-dim text-[13px] hidden md:block select-none">/</span>
             <span className="text-white text-[13px] font-medium truncate">{pageLabel}</span>
           </div>

@@ -3,11 +3,12 @@ import { useEffect, useState } from 'react';
 import {
   LayoutDashboard, Users, Tv2,
   ScrollText, Activity, ShieldCheck, UserCog, Bug, LogOut,
-  Globe, Flag, Scale, Settings, Sparkles, MessageSquare, Bell,
+  Globe, Flag, Scale, Settings, MessageSquare, Bell,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/auth.store';
 import { errorsApi } from '../../api/errors.api';
 import { supportApi } from '../../api/support.api';
+import { WeWatchLogo } from '../ui/WeWatchLogo';
 
 interface NavItem {
   to: string;
@@ -151,11 +152,9 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         {/* Logo — same height as header (53px) */}
         <div className="h-[53px] px-4 flex items-center border-b border-white/[0.055] shrink-0">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-accent to-accent-dim flex items-center justify-center shrink-0 shadow-glow-sm">
-              <Sparkles size={13} className="text-white" />
-            </div>
+            <WeWatchLogo variant="mark" className="w-7 h-7 shrink-0" />
             <div className="min-w-0">
-              <p className="text-white font-semibold text-[13px] leading-none">Rave</p>
+              <p className="text-white font-semibold text-[13px] leading-none">WeWatch</p>
               <p className="text-text-dim text-[10px] mt-0.5 leading-none">Admin Panel</p>
             </div>
           </div>

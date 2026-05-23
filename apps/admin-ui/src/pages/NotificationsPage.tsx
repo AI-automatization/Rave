@@ -54,7 +54,7 @@ function NotifPreview({ title, body, type }: { title: string; body: string; type
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between gap-1 mb-0.5">
-                <span className="text-[10px] font-semibold text-white">Rave</span>
+                <span className="text-[10px] font-semibold text-white">WeWatch</span>
                 <span className={`text-[9px] font-medium uppercase tracking-[0.06em] ${typeColor[type] ?? 'text-text-dim'}`}>
                   {type}
                 </span>
