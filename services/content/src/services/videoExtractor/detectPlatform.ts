@@ -10,6 +10,10 @@ export const PLAYWRIGHT_PLATFORMS = new Set([
   'smashystream.xyz',
   'flixcdn.cyou',
   'streamlare.com',
+  // uzmovi migrated from static Playerjs HTML to JS-injected Video.js — needs Playwright
+  'uzmovi.uz',
+  'uzmovi.net',
+  'uzmovie.tv',
 ]);
 
 export function isPlaywrightPlatform(url: URL): boolean {

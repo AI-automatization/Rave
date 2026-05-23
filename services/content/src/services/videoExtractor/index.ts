@@ -169,9 +169,27 @@ export async function extractVideo(
         result = await ytDlpExtractor(rawUrl);
       } catch (dlpErr) {
         if (dlpErr instanceof YtDlpDrmError) throw new VideoExtractError('drm');
-        throw dlpErr;
+        // yt-dlp also failed — fall through to Playwright for JS-heavy playerjs sites
+        logger.warn('playerjs: yt-dlp fallback failed, trying Playwright', {
+          url: rawUrl,
+          error: (dlpErr as Error).message,
+        });
       }
       if (result) result = { ...result, platform: 'playerjs', sourceType: 'type1', extractionMethod: 'yt-dlp', cacheable: true };
+    }
+    // Playwright last resort for playerjs sites that now load config via JS (e.g. uzmovi)
+    if (!result && isPlaywrightPlatform(parsedUrl)) {
+      if (playwrightRunning >= PLAYWRIGHT_MAX_CONCURRENT) {
+        logger.warn('Playwright concurrency limit reached for playerjs site', { url: rawUrl });
+      } else {
+        playwrightRunning++;
+        try {
+          logger.info('playerjs: falling back to Playwright', { url: rawUrl });
+          result = await playwrightExtractor(rawUrl, redis);
+        } finally {
+          playwrightRunning--;
+        }
+      }
     }
 
   } else if (platform === 'lookmovie2') {
