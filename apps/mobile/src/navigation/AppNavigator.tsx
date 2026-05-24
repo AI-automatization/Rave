@@ -20,7 +20,7 @@ import { BlockedAccountModal } from '@components/common/BlockedAccountModal';
 import { onAccountBlocked } from '@api/client';
 import { privacyPolicyStorage } from '@utils/storage';
 import { analyticsService } from '@services/analyticsService';
-import { useScreenTracking } from '@hooks/useScreenTracking';
+import { getActiveScreenName } from '@hooks/useScreenTracking';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -40,7 +40,6 @@ export function AppNavigator() {
   const [privacyAccepted, setPrivacyAccepted] = useState<boolean | null>(null);
 
   usePushNotifications();
-  useScreenTracking();
 
   // Check privacy acceptance when user logs in (per-user, keyed by userId)
   useEffect(() => {
@@ -153,7 +152,14 @@ export function AppNavigator() {
 
   return (
     <>
-    <NavigationContainer ref={navigationRef} onReady={() => setIsNavReady(true)}>
+    <NavigationContainer
+        ref={navigationRef}
+        onReady={() => setIsNavReady(true)}
+        onStateChange={(state) => {
+          const screen = getActiveScreenName(state);
+          if (screen) analyticsService.screenEnter(screen);
+        }}
+      >
       <LanguageTransition>
         <Stack.Navigator screenOptions={{ headerShown: false, animation: 'fade' }}>
           {isAuthenticated ? (
