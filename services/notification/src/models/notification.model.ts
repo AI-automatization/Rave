@@ -21,6 +21,8 @@ const notificationSchema = new Schema<INotificationDocument>(
         'friend_request', 'friend_accepted', 'watch_party_invite',
         'friend_online', 'friend_watching',
         'support_reply', 'admin_warning',
+        // Admin-broadcast types
+        'announcement', 'maintenance', 'promo', 'update', 'system', 'warning',
       ],
       required: true,
     },

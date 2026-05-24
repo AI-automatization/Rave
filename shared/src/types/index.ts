@@ -168,7 +168,14 @@ export type NotificationType =
   | 'friend_online'
   | 'friend_watching'
   | 'support_reply'
-  | 'admin_warning';
+  | 'admin_warning'
+  // Admin-broadcast types
+  | 'announcement'
+  | 'maintenance'
+  | 'promo'
+  | 'update'
+  | 'system'
+  | 'warning';
 
 export interface INotification {
   _id: string;

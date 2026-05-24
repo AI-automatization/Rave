@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import {
   LayoutDashboard, Users, Tv2,
   ScrollText, Activity, ShieldCheck, UserCog, Bug, LogOut,
-  Globe, Flag, Scale, Settings, MessageSquare, Bell, BarChart2,
+  Globe, Flag, Scale, Settings, MessageSquare, Bell, BarChart2, ShieldAlert,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/auth.store';
 import { errorsApi } from '../../api/errors.api';
@@ -77,6 +77,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const [newErrorCount, setNewErrorCount] = useState(0);
   const [openSupportCount, setOpenSupportCount] = useState(0);
   const [pendingReports, setPendingReports] = useState(0);
+  const [pendingUserReports, setPendingUserReports] = useState(0);
   const [pendingAppeals, setPendingAppeals] = useState(0);
   const [userHover, setUserHover] = useState(false);
 
@@ -87,7 +88,11 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     const fetchCounts = () => {
       import('../../api/moderation.api').then(({ moderationApi }) => {
         moderationApi.getCounts()
-          .then((c) => { setPendingReports(c.reports); setPendingAppeals(c.appeals); })
+          .then((c) => {
+            setPendingReports(c.reports);
+            setPendingAppeals(c.appeals);
+            setPendingUserReports(c.userReports);
+          })
           .catch(() => {});
       });
       errorsApi.stats().then((s) => setNewErrorCount(s.new)).catch(() => {});
@@ -118,15 +123,17 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const monitoringItems: NavItem[] = [
     { to: '/errors',      label: 'Mobile Errors', icon: <Bug size={15} />,           badge: newErrorCount },
     { to: '/support',     label: 'Support',       icon: <MessageSquare size={15} />, badge: openSupportCount },
-    { to: '/room-reports',label: 'Reports',       icon: <Flag size={15} />,          badge: pendingReports },
-    { to: '/appeals',     label: 'Appeals',       icon: <Scale size={15} />,         badge: pendingAppeals },
+    { to: '/room-reports', label: 'Room Reports',  icon: <Flag size={15} />,          badge: pendingReports },
+    { to: '/user-reports', label: 'User Reports', icon: <Flag size={15} />,          badge: pendingUserReports },
+    { to: '/appeals',      label: 'Appeals',      icon: <Scale size={15} />,         badge: pendingAppeals },
     { to: '/logs',        label: 'Logs',          icon: <ScrollText size={15} /> },
     { to: '/user-activity',label: 'Activity',     icon: <Activity size={15} /> },
     { to: '/audit-logs',  label: 'Audit Logs',    icon: <ShieldCheck size={15} /> },
   ];
 
   const systemItems: NavItem[] = [
-    { to: '/domains', label: 'Domains', icon: <Globe size={15} /> },
+    { to: '/domains',      label: 'Domains',      icon: <Globe size={15} /> },
+    { to: '/banned-words', label: 'Banned Words',  icon: <ShieldAlert size={15} /> },
     ...(isSuperAdmin ? [{ to: '/staff', label: 'Staff', icon: <UserCog size={15} /> }] : []),
     { to: '/settings', label: 'Settings', icon: <Settings size={15} /> },
   ];

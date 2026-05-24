@@ -4,6 +4,8 @@ import type { PaginatedResponse, ApiResponse } from '../types';
 export type ReportReason = 'prohibited_content' | 'spam' | 'violence' | 'harassment' | 'copyright' | 'other';
 export type ReportStatus = 'pending' | 'reviewed' | 'dismissed' | 'actioned';
 export type AppealStatus = 'pending' | 'approved' | 'rejected';
+export type UserReportReason = 'harassment' | 'spam' | 'inappropriate_content' | 'fake_account' | 'hate_speech' | 'other';
+export type UserReportStatus = 'pending' | 'reviewed' | 'dismissed' | 'actioned';
 
 export interface RoomReport {
   _id: string;
@@ -38,6 +40,19 @@ export interface RoomDetails {
   reporterAvatar: string | null;
 }
 
+export interface UserReport {
+  _id: string;
+  reportedUserId: string;
+  reporterId: string;
+  reason: UserReportReason;
+  comment?: string | null;
+  status: UserReportStatus;
+  reviewedBy?: string | null;
+  reviewNote?: string | null;
+  reviewedAt?: string | null;
+  createdAt: string;
+}
+
 export interface Appeal {
   _id: string;
   userId: string;
@@ -51,9 +66,9 @@ export interface Appeal {
 }
 
 export const moderationApi = {
-  getCounts: async (): Promise<{ reports: number; appeals: number }> => {
-    const res = await apiClient.get<ApiResponse<{ reports: number; appeals: number }>>('/moderation/counts');
-    return res.data.data ?? { reports: 0, appeals: 0 };
+  getCounts: async (): Promise<{ reports: number; appeals: number; userReports: number }> => {
+    const res = await apiClient.get<ApiResponse<{ reports: number; appeals: number; userReports: number }>>('/moderation/counts');
+    return res.data.data ?? { reports: 0, appeals: 0, userReports: 0 };
   },
 
   listReports: async (params: { page?: number; limit?: number; status?: string }): Promise<PaginatedResponse<RoomReport>> => {
@@ -89,6 +104,21 @@ export const moderationApi = {
 
   blockRoomOwner: async (reportId: string, reason?: string): Promise<{ blockedUserId: string }> => {
     const res = await apiClient.post<ApiResponse<{ blockedUserId: string }>>(`/moderation/reports/${reportId}/block-owner`, { reason });
+    return res.data.data as { blockedUserId: string };
+  },
+
+  listUserReports: async (params: { page?: number; limit?: number; status?: string }): Promise<PaginatedResponse<UserReport>> => {
+    const res = await apiClient.get<PaginatedResponse<UserReport>>('/moderation/user-reports', { params });
+    return res.data;
+  },
+
+  reviewUserReport: async (id: string, status: UserReportStatus, note?: string): Promise<UserReport> => {
+    const res = await apiClient.patch<ApiResponse<UserReport>>(`/moderation/user-reports/${id}`, { status, note });
+    return res.data.data as UserReport;
+  },
+
+  blockUser: async (userId: string, reason?: string): Promise<{ blockedUserId: string }> => {
+    const res = await apiClient.post<ApiResponse<{ blockedUserId: string }>>(`/users/${userId}/block`, { reason });
     return res.data.data as { blockedUserId: string };
   },
 };

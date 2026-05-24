@@ -4,6 +4,7 @@ import { NotificationService } from '../services/notification.service';
 import { apiResponse } from '@shared/utils/apiResponse';
 import { AuthenticatedRequest, NotificationType } from '@shared/types';
 import { getUserFcmTokens } from '@shared/utils/serviceClient';
+import { logger } from '@shared/utils/logger';
 
 export class NotificationController {
   constructor(
@@ -67,7 +68,7 @@ export class NotificationController {
   // Internal Admin endpoint — broadcast notification log (no JWT, uses X-Internal-Secret)
   broadcastInternal = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { title, body, type } = req.body as { title: string; body: string; type?: string };
+      const { title, body, type } = req.body as { title: string; body: string; type?: NotificationType };
 
       if (!title || !body) {
         res.status(400).json(apiResponse.error('Missing required fields: title, body'));
@@ -114,10 +115,14 @@ export class NotificationController {
         );
       }
 
-      // Send FCM push non-blocking
+      // Send FCM push non-blocking (fire-and-forget — do not await)
       void (async () => {
-        const tokens = await getUserFcmTokens(userId);
-        if (tokens.length > 0) {
+        try {
+          const tokens = await getUserFcmTokens(userId);
+          if (tokens.length === 0) {
+            logger.info('sendInternal: no FCM tokens for user — skipping push', { userId });
+            return;
+          }
           const fcmData: Record<string, string> = { type };
           if (data) {
             for (const [k, v] of Object.entries(data)) {
@@ -125,6 +130,8 @@ export class NotificationController {
             }
           }
           await this.notificationService.sendPush(tokens, title, body, fcmData);
+        } catch (pushErr) {
+          logger.error('sendInternal: FCM push failed', { userId, error: (pushErr as Error).message });
         }
       })();
 

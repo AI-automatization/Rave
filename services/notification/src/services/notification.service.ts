@@ -5,7 +5,7 @@ import { getEmailQueue, enqueueEmail, EmailJobData } from '../queues/email.queue
 import { logger } from '@shared/utils/logger';
 import { NotFoundError } from '@shared/utils/errors';
 import { NotificationType, PaginationMeta } from '@shared/types';
-import { getAllPushTokens, getAllUserIds, removeBadFcmTokens } from '@shared/utils/serviceClient';
+import { getAllPushTokens, getAllUserIds, removeBadFcmTokens, getUserFcmTokens } from '@shared/utils/serviceClient';
 
 const EXPO_PUSH_URL    = 'https://exp.host/--/api/v2/push/send';
 const EXPO_TOKEN_PREFIX = 'ExponentPushToken[';
@@ -165,10 +165,15 @@ export class NotificationService {
     if (result.deletedCount === 0) throw new NotFoundError('Notification not found');
   }
 
-  async sendBroadcast(title: string, body: string, type: string): Promise<void> {
+  async sendBroadcast(title: string, body: string, type: NotificationType): Promise<void> {
     const [tokens, userIds] = await Promise.all([getAllPushTokens(), getAllUserIds()]);
 
-    logger.info('sendBroadcast: sending', { tokens: tokens.length, users: userIds.length, title });
+    logger.info('sendBroadcast: sending', { tokens: tokens.length, users: userIds.length, title, type });
+
+    if (tokens.length === 0 && userIds.length === 0) {
+      logger.warn('sendBroadcast: no tokens or users found — nothing to send');
+      return;
+    }
 
     await Promise.all([
       tokens.length > 0
@@ -191,7 +196,24 @@ export class NotificationService {
         this.sendInApp(userId, 'admin_warning', title, body, { source: 'admin_warning' }),
       ),
     );
-    logger.info('sendToUsers: in-app warnings sent', { total: userIds.length, title });
+    logger.info('sendToUsers: in-app warnings saved', { total: userIds.length, title });
+
+    // Also deliver push notifications to each user's registered device
+    const tokenResults = await Promise.all(
+      userIds.map((userId) =>
+        getUserFcmTokens(userId).then((tokens) => ({ userId, tokens })),
+      ),
+    );
+    const pushTasks: Promise<void>[] = [];
+    for (const { tokens } of tokenResults) {
+      if (tokens.length > 0) {
+        pushTasks.push(this.sendPush(tokens, title, body, { type: 'admin_warning' }));
+      }
+    }
+    if (pushTasks.length > 0) {
+      await Promise.all(pushTasks);
+      logger.info('sendToUsers: push notifications sent', { pushed: pushTasks.length, title });
+    }
   }
 
   async deleteUserData(userId: string): Promise<void> {

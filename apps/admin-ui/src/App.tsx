@@ -16,9 +16,11 @@ import { UserDetailPage } from './pages/UserDetailPage';
 import { DomainsPage } from './pages/DomainsPage';
 import { SupportPage } from './pages/SupportPage';
 import { RoomReportsPage } from './pages/RoomReportsPage';
+import { UserReportsPage } from './pages/UserReportsPage';
 import { AppealsPage } from './pages/AppealsPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
+import { BannedWordsPage } from './pages/BannedWordsPage';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -53,9 +55,11 @@ export default function App() {
           <Route path="domains" element={<DomainsPage />} />
           <Route path="support" element={<SupportPage />} />
           <Route path="room-reports" element={<RoomReportsPage />} />
+          <Route path="user-reports" element={<UserReportsPage />} />
           <Route path="appeals" element={<AppealsPage />} />
           <Route path="notifications" element={<NotificationsPage />} />
           <Route path="analytics" element={<AnalyticsPage />} />
+          <Route path="banned-words" element={<BannedWordsPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

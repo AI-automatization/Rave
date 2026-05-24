@@ -1,6 +1,6 @@
 import { Schema, model, Document } from 'mongoose';
 
-export type BannedWordCategory = 'profanity' | 'sexual' | 'hate' | 'spam' | 'other';
+export type BannedWordCategory = 'room_name' | 'chat';
 
 export interface IBannedWordDocument extends Document {
   word: string;
@@ -13,7 +13,7 @@ export interface IBannedWordDocument extends Document {
 const schema = new Schema<IBannedWordDocument>(
   {
     word:     { type: String, required: true, unique: true, lowercase: true, trim: true },
-    category: { type: String, enum: ['profanity', 'sexual', 'hate', 'spam', 'other'], default: 'profanity' },
+    category: { type: String, enum: ['room_name', 'chat'], default: 'chat' },
     active:   { type: Boolean, default: true, index: true },
   },
   { timestamps: true, collection: 'bannedwords' },

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import Redis from 'ioredis';
 import { AdminController } from '../controllers/admin.controller';
+import { BannedWordsController } from '../controllers/bannedWords.controller';
 import { AdminService } from '../services/admin.service';
 import { verifyToken, requireRole } from '@shared/middleware/auth.middleware';
 import { requireInternalSecret } from '@shared/utils/serviceClient';
@@ -14,6 +15,7 @@ export const createAdminRouter = (redis: Redis): Router => {
   const router = Router();
   const adminService = new AdminService(redis);
   const adminController = new AdminController(adminService);
+  const bannedWordsController = new BannedWordsController();
 
   // Internal: DELETE /admin/internal/users/:userId — cascade account deletion (T-S093)
   router.delete('/internal/users/:userId', requireInternalSecret, adminController.deleteUserData);
@@ -92,6 +94,13 @@ export const createAdminRouter = (redis: Redis): Router => {
   router.post('/content/domains',                      validate(addDomainSchema), adminController.addBlockedDomain);
   router.patch('/content/domains/:domain/block',       adminController.blockDomain);
   router.patch('/content/domains/:domain/unblock',     adminController.unblockDomain);
+
+  // ── Banned Words ──────────────────────────────────────────────
+  router.get('/banned-words',          bannedWordsController.listWords);
+  router.post('/banned-words',         bannedWordsController.addWord);
+  router.post('/banned-words/bulk',    bannedWordsController.addWordsBulk);
+  router.delete('/banned-words/:id',   bannedWordsController.deleteWord);
+  router.patch('/banned-words/:id',    bannedWordsController.toggleWord);
 
   return router;
 };

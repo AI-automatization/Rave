@@ -7,12 +7,61 @@ import {
   Ban,
 } from 'lucide-react';
 import { watchPartiesApi } from '../api/watchparties.api';
+import { usersApi } from '../api/users.api';
 import { useAuthStore } from '../store/auth.store';
 import { watchPartySocket, RoomMessage } from '../socket/watchPartySocket';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { Pagination } from '../components/ui/Pagination';
-import type { AdminWatchParty, PaginationMeta } from '../types';
+import type { AdminWatchParty, AdminUser, PaginationMeta } from '../types';
+
+// ── User cache hook ────────────────────────────────────────────────────────────
+
+const userCache = new Map<string, AdminUser>();
+
+async function resolveUser(id: string): Promise<AdminUser | null> {
+  if (userCache.has(id)) return userCache.get(id)!;
+  try {
+    const user = await usersApi.getById(id);
+    userCache.set(id, user);
+    return user;
+  } catch {
+    return null;
+  }
+}
+
+function useUserLabel(id: string): string {
+  const [label, setLabel] = useState<string>(id.slice(-8));
+  useEffect(() => {
+    let cancelled = false;
+    void resolveUser(id).then((u) => {
+      if (!cancelled && u) setLabel(u.username || u.email || id.slice(-8));
+    });
+    return () => { cancelled = true; };
+  }, [id]);
+  return label;
+}
+
+/** Resolves a list of IDs to { id, label } pairs. */
+function useUserLabels(ids: string[]): Record<string, string> {
+  const [labels, setLabels] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+    const next: Record<string, string> = {};
+    const pending: Promise<void>[] = ids.map(async (id) => {
+      const u = await resolveUser(id);
+      next[id] = u ? (u.username || u.email || id.slice(-8)) : id.slice(-8);
+    });
+    void Promise.all(pending).then(() => {
+      if (!cancelled) setLabels(next);
+    });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ids.join(',')]);
+
+  return labels;
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -263,19 +312,30 @@ function MonitorPanel({
   const [connected, setConnected] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
+  const ownerLabel = useUserLabel(initialRoom.ownerId);
+  const memberLabels = useUserLabels(members);
+
   useEffect(() => {
+    // Reset state for the new room
+    setMessages([]);
+    setMembers(initialRoom.members);
+    setSyncState({ currentTime: initialRoom.currentTime, isPlaying: initialRoom.isPlaying });
+    setConnected(false);
+
+    // Always tear down old listeners before registering new ones
+    watchPartySocket.offAll();
+
     watchPartySocket.connect(token);
 
     watchPartySocket.onJoined((data) => {
       setConnected(true);
       const d = data as { room?: { members?: string[] }; syncState?: { currentTime: number; isPlaying: boolean } };
-      if (d.room?.members) setMembers(d.room.members);
-      if (d.syncState) setSyncState(d.syncState);
+      if (d.room?.members) setMembers(d.room.members as string[]);
+      if (d.syncState) setSyncState(d.syncState as { currentTime: number; isPlaying: boolean });
     });
 
     watchPartySocket.onMessage((msg) => {
       setMessages((prev) => [...prev.slice(-199), msg]);
-      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     });
 
     watchPartySocket.onVideoPlay((s) => setSyncState({ currentTime: s.currentTime, isPlaying: true }));
@@ -293,6 +353,7 @@ function MonitorPanel({
       setConnected(false);
     });
 
+    // Join after listeners are registered so no events are missed
     watchPartySocket.joinRoom(initialRoom._id);
 
     return () => {
@@ -302,8 +363,11 @@ function MonitorPanel({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialRoom._id, token]);
 
+  // Auto-scroll chat to bottom when new messages arrive or tab is opened
   useEffect(() => {
-    if (activeTab === 'chat') chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (activeTab === 'chat') {
+      setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+    }
   }, [messages, activeTab]);
 
   const handleSendMsg = () => {
@@ -432,14 +496,19 @@ function MonitorPanel({
       </div>
 
       {/* Tab content */}
-      <div className="flex-1 overflow-y-auto min-h-0">
+      <div className={`flex-1 min-h-0 ${activeTab === 'chat' ? 'overflow-hidden flex flex-col' : 'overflow-y-auto'}`}>
 
         {/* INFO TAB */}
         {activeTab === 'info' && (
           <div className="p-4 flex flex-col gap-3">
             <InfoRow label="Комната ID" value={<span className="font-mono text-xs">{initialRoom._id.slice(-12)}</span>} />
             <InfoRow label="Invite Code" value={<span className="font-mono text-accent">{initialRoom.inviteCode}</span>} />
-            <InfoRow label="Владелец" value={<span className="font-mono text-xs">{initialRoom.ownerId.slice(-12)}</span>} />
+            <InfoRow label="Владелец" value={
+              <span className="text-xs">
+                <span className="text-white">{ownerLabel}</span>
+                <span className="font-mono text-text-dim ml-1">({initialRoom.ownerId.slice(-8)})</span>
+              </span>
+            } />
             <InfoRow label="Приватная" value={initialRoom.isPrivate ? <span className="text-amber-400">Да</span> : <span className="text-text-muted">Нет</span>} />
             {initialRoom.videoUrl && (
               <InfoRow label="URL" value={
@@ -484,34 +553,32 @@ function MonitorPanel({
 
         {/* CHAT TAB */}
         {activeTab === 'chat' && (
-          <div className="flex flex-col h-full">
-            <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-1.5">
-              {messages.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-32 text-text-dim">
-                  <MessageSquare size={20} className="mb-2 opacity-30" />
-                  <p className="text-xs">Сообщений пока нет</p>
+          <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-1.5">
+            {messages.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-32 text-text-dim">
+                <MessageSquare size={20} className="mb-2 opacity-30" />
+                <p className="text-xs">Сообщений пока нет</p>
+              </div>
+            ) : messages.map((msg, i) => (
+              <div key={i} className={`flex flex-col gap-0.5 ${msg.isAdmin ? 'items-end' : 'items-start'}`}>
+                <div className={`max-w-[85%] px-3 py-1.5 rounded-2xl text-xs leading-relaxed ${
+                  msg.isAdmin
+                    ? 'bg-accent/20 text-white rounded-br-sm'
+                    : 'bg-white/[0.06] text-white rounded-bl-sm'
+                }`}>
+                  {!msg.isAdmin && (
+                    <p className="text-[10px] text-text-dim font-medium mb-0.5">
+                      {msg.username ?? msg.userId.slice(-6)}
+                    </p>
+                  )}
+                  {msg.message}
                 </div>
-              ) : messages.map((msg, i) => (
-                <div key={i} className={`flex flex-col gap-0.5 ${msg.isAdmin ? 'items-end' : 'items-start'}`}>
-                  <div className={`max-w-[85%] px-3 py-1.5 rounded-2xl text-xs leading-relaxed ${
-                    msg.isAdmin
-                      ? 'bg-accent/20 text-white rounded-br-sm'
-                      : 'bg-white/[0.06] text-white rounded-bl-sm'
-                  }`}>
-                    {!msg.isAdmin && (
-                      <p className="text-[10px] text-text-dim font-medium mb-0.5">
-                        {msg.username ?? msg.userId.slice(-6)}
-                      </p>
-                    )}
-                    {msg.message}
-                  </div>
-                  <p className="text-[10px] text-text-dim px-1">
-                    {new Date(msg.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
-                  </p>
-                </div>
-              ))}
-              <div ref={chatEndRef} />
-            </div>
+                <p className="text-[10px] text-text-dim px-1">
+                  {new Date(msg.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                </p>
+              </div>
+            ))}
+            <div ref={chatEndRef} />
           </div>
         )}
 
@@ -520,31 +587,37 @@ function MonitorPanel({
           <div className="p-3 flex flex-col gap-1.5">
             {members.length === 0 ? (
               <div className="py-8 text-center text-text-muted text-xs">Участников нет</div>
-            ) : members.map((uid) => (
-              <div key={uid} className="flex items-center justify-between bg-white/[0.03] rounded-xl px-3 py-2.5 border border-white/[0.04]">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-full bg-accent/20 flex items-center justify-center text-accent text-xs font-bold">
-                    {uid.slice(-2).toUpperCase()}
+            ) : members.map((uid) => {
+              const displayName = memberLabels[uid] ?? uid.slice(-8);
+              const initials = displayName.slice(0, 2).toUpperCase();
+              return (
+                <div key={uid} className="flex items-center justify-between bg-white/[0.03] rounded-xl px-3 py-2.5 border border-white/[0.04]">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-full bg-accent/20 flex items-center justify-center text-accent text-xs font-bold">
+                      {initials}
+                    </div>
+                    <div>
+                      <p className="text-xs text-white font-medium">{displayName}</p>
+                      <p className="font-mono text-[10px] text-text-dim">{uid.slice(-8)}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs text-white font-medium">Участник</p>
-                    <p className="font-mono text-[10px] text-text-dim">{uid.slice(-12)}</p>
+                  <div className="flex items-center gap-1.5">
+                    {uid === initialRoom.ownerId && (
+                      <span className="text-[10px] text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-full">Владелец</span>
+                    )}
+                    {isSuperAdmin && uid !== initialRoom.ownerId && (
+                      <button
+                        onClick={() => void onKick(uid)}
+                        className="w-7 h-7 flex items-center justify-center rounded-lg text-text-dim hover:text-red-400 hover:bg-red-400/10 transition-colors"
+                        title="Выгнать"
+                      >
+                        <UserMinus size={12} />
+                      </button>
+                    )}
                   </div>
                 </div>
-                {uid === initialRoom.ownerId && (
-                  <span className="text-[10px] text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-full">Владелец</span>
-                )}
-                {isSuperAdmin && uid !== initialRoom.ownerId && (
-                  <button
-                    onClick={() => void onKick(uid)}
-                    className="w-7 h-7 flex items-center justify-center rounded-lg text-text-dim hover:text-red-400 hover:bg-red-400/10 transition-colors"
-                    title="Выгнать"
-                  >
-                    <UserMinus size={12} />
-                  </button>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -606,6 +679,8 @@ export function WatchPartiesPage() {
   const [blockReason, setBlockReason] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
+  const loadRef = useRef<((silent?: boolean) => Promise<void>) | null>(null);
+
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     else setRefreshing(true);
@@ -620,6 +695,9 @@ export function WatchPartiesPage() {
     finally { setLoading(false); setRefreshing(false); }
   }, [page, statusFilter, suspiciousOnly]);
 
+  // Keep a stable ref so socket callbacks always call the latest load()
+  useEffect(() => { loadRef.current = load; }, [load]);
+
   useEffect(() => { void load(); }, [load]);
 
   // Auto-refresh every 30s
@@ -627,6 +705,27 @@ export function WatchPartiesPage() {
     const id = setInterval(() => void load(true), 30_000);
     return () => clearInterval(id);
   }, [load]);
+
+  // Real-time list updates via socket: when a room is closed or updated globally
+  // (admin is not inside a specific room panel — use a shared socket subscription)
+  useEffect(() => {
+    if (!token) return;
+    watchPartySocket.connect(token);
+
+    // When any room emits room:closed or room:updated, silently refresh the list.
+    // These events only arrive when MonitorPanel is NOT open (offAll is called there).
+    // We register them here at the page level so that even without a selected room,
+    // the list stays fresh.
+    const handleGlobalUpdate = () => { void loadRef.current?.(true); };
+
+    watchPartySocket.onRoomClosed(handleGlobalUpdate);
+    watchPartySocket.onRoomUpdated(handleGlobalUpdate);
+
+    return () => {
+      watchPartySocket.offGlobal();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
   const handleForceClose = async () => {
     if (!confirmModal) return;
