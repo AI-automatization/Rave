@@ -17,6 +17,7 @@ import { createOperatorRouter } from './routes/operator.routes';
 import { createErrorsRouter } from './routes/errors.routes';
 import { createSupportRouter } from './routes/support.routes';
 import { createModerationRouter } from './routes/moderation.routes';
+import { createAnalyticsRouter } from './routes/analytics.routes';
 import { swaggerSpec } from './utils/swagger';
 import { config } from './config/index';
 
@@ -56,6 +57,7 @@ export const createApp = (redis: Redis): express.Application => {
   app.use('/api/v1/errors', createErrorsRouter());
   app.use('/api/v1', createSupportRouter());
   app.use('/api/v1', createModerationRouter());
+  app.use('/api/v1', createAnalyticsRouter());
 
   app.use(notFoundHandler);
 

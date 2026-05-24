@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import {
   LayoutDashboard, Users, Tv2,
   ScrollText, Activity, ShieldCheck, UserCog, Bug, LogOut,
-  Globe, Flag, Scale, Settings, MessageSquare, Bell,
+  Globe, Flag, Scale, Settings, MessageSquare, Bell, BarChart2,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/auth.store';
 import { errorsApi } from '../../api/errors.api';
@@ -105,7 +105,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const initials = (user?.email ?? 'A').slice(0, 2).toUpperCase();
 
   const overviewItems: NavItem[] = [
-    { to: '/', label: 'Dashboard', icon: <LayoutDashboard size={15} />, end: true },
+    { to: '/',          label: 'Dashboard', icon: <LayoutDashboard size={15} />, end: true },
+    { to: '/analytics', label: 'Analytics', icon: <BarChart2 size={15} /> },
   ];
 
   const platformItems: NavItem[] = [

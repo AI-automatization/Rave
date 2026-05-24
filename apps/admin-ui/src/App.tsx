@@ -18,6 +18,7 @@ import { SupportPage } from './pages/SupportPage';
 import { RoomReportsPage } from './pages/RoomReportsPage';
 import { AppealsPage } from './pages/AppealsPage';
 import { NotificationsPage } from './pages/NotificationsPage';
+import { AnalyticsPage } from './pages/AnalyticsPage';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -54,6 +55,7 @@ export default function App() {
           <Route path="room-reports" element={<RoomReportsPage />} />
           <Route path="appeals" element={<AppealsPage />} />
           <Route path="notifications" element={<NotificationsPage />} />
+          <Route path="analytics" element={<AnalyticsPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

@@ -19,6 +19,8 @@ import { LanguageTransition } from '@components/common/LanguageTransition';
 import { BlockedAccountModal } from '@components/common/BlockedAccountModal';
 import { onAccountBlocked } from '@api/client';
 import { privacyPolicyStorage } from '@utils/storage';
+import { analyticsService } from '@services/analyticsService';
+import { useScreenTracking } from '@hooks/useScreenTracking';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -38,6 +40,7 @@ export function AppNavigator() {
   const [privacyAccepted, setPrivacyAccepted] = useState<boolean | null>(null);
 
   usePushNotifications();
+  useScreenTracking();
 
   // Check privacy acceptance when user logs in (per-user, keyed by userId)
   useEffect(() => {
@@ -105,6 +108,21 @@ export function AppNavigator() {
 
     return () => subscription.remove();
   }, [isAuthenticated, navigationRef]);
+
+  // Analytics: init/update session when auth state changes
+  useEffect(() => {
+    if (isHydrated) {
+      if (isAuthenticated && user?._id) {
+        analyticsService.setUser(user._id);
+      }
+    }
+  }, [isAuthenticated, isHydrated, user?._id]);
+
+  // Analytics: init session on mount
+  useEffect(() => {
+    analyticsService.init(undefined, false);
+    return () => { void analyticsService.end(); };
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated) {

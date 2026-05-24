@@ -43,6 +43,9 @@
       ],
       "@shared/*": [
         "../../shared/src/*"
+      ],
+      "@services/*": [
+        "src/services/*"
       ]
     }
   },
