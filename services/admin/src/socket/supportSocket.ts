@@ -18,7 +18,7 @@ let supportNs: Namespace | null = null;
 export function initSupportSocket(httpServer: http.Server): void {
   const io = new Server(httpServer, {
     cors: {
-      origin: config.adminUrl,
+      origin: config.adminUrls,
       methods: ['GET', 'POST'],
       credentials: true,
     },

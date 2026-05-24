@@ -28,7 +28,7 @@ export const createApp = (redis: Redis): express.Application => {
 
   app.use(helmet());
   // Admin UI routes: restricted CORS. /internal routes rely on verifyToken or requireInternalSecret — no wildcard needed.
-  app.use(cors({ origin: [config.adminUrl], credentials: true }));
+  app.use(cors({ origin: config.adminUrls, credentials: true }));
   app.use(morgan('combined', { stream: morganStream }));
   app.use(express.json({ limit: '512kb' }));
   app.use(requestId);

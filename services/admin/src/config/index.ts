@@ -13,5 +13,5 @@ export const config = {
   mongoUri: requireEnv('MONGO_URI'),
   redisUrl: requireEnv('REDIS_URL'),
   jwtPublicKey: requireEnv('JWT_PUBLIC_KEY').replace(/\\n/g, '\n'),
-  adminUrl: process.env.ADMIN_URL ?? 'http://localhost:5173',
+  adminUrls: (process.env.ADMIN_URL ?? 'http://localhost:5173').split(',').map((u) => u.trim()).filter(Boolean),
 } as const;

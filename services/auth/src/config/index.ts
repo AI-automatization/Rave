@@ -39,7 +39,7 @@ export const config = {
   },
 
   clientUrl: process.env.CLIENT_URL ?? 'http://localhost:3000',
-  adminUrl: process.env.ADMIN_URL ?? 'http://localhost:5173',
+  adminUrls: (process.env.ADMIN_URL ?? 'http://localhost:5173').split(',').map((u) => u.trim()).filter(Boolean),
   superadminEmail: requireEnv('SUPERADMIN_EMAIL'),
   userServiceUrl: process.env.USER_SERVICE_URL ?? 'http://localhost:3002',
 } as const;

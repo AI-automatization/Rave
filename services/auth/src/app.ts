@@ -27,7 +27,7 @@ export const createApp = (redis: Redis): express.Application => {
   // Security middleware
   app.use(helmet());
   app.use(cors({
-    origin: [config.clientUrl, config.adminUrl],
+    origin: [config.clientUrl, ...config.adminUrls],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
