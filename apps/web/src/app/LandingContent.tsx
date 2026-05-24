@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence, useScroll, useTransform, useReducedMotion, type Variants } from 'framer-motion';
 import {
   FaPlay, FaUsers, FaFire, FaComment, FaApple,
@@ -12,18 +12,24 @@ import { LandingNav } from '@/components/common/LandingNav';
 import { Footer } from '@/components/common/Footer';
 
 // ── Motion config ─────────────────────────────────────────────────────────────
-// All durations comply with skill rule §7: 150–400ms
+// Spring physics — natural feel (skill §spring-physics)
+const springConfig = { type: 'spring' as const, stiffness: 280, damping: 24 };
+
 const fadeUp: Variants = {
   hidden:  { opacity: 0, y: 24 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.25, 0.1, 0.25, 1] } },
+  visible: { opacity: 1, y: 0, transition: { ...springConfig, stiffness: 200 } },
+};
+const fadeUpScale: Variants = {
+  hidden:  { opacity: 0, y: 28, scale: 0.96 },
+  visible: { opacity: 1, y: 0, scale: 1, transition: springConfig },
 };
 const stagger: Variants = {
-  visible: { transition: { staggerChildren: 0.08 } },
+  visible: { transition: { staggerChildren: 0.06 } },
 };
 const screenVariants: Variants = {
-  enter:  { opacity: 0, y: 12 },
-  center: { opacity: 1, y: 0,   transition: { duration: 0.3, ease: 'easeOut' } },
-  exit:   { opacity: 0, y: -8,  transition: { duration: 0.18 } },
+  enter:  { opacity: 0, y: 12, scale: 0.98 },
+  center: { opacity: 1, y: 0, scale: 1, transition: { ...springConfig, stiffness: 320 } },
+  exit:   { opacity: 0, y: -8, scale: 0.98, transition: { duration: 0.15 } },
 };
 
 const APP_STORE = 'https://apps.apple.com';
@@ -80,14 +86,37 @@ function Marquee() {
   );
 }
 
+// ── Animated Counter Hook ─────────────────────────────────────────────────
+function useCountUp(end: number, duration = 1.8) {
+  const [count, setCount] = useState(0);
+  const [hasStarted, setHasStarted] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!hasStarted) return;
+    let startTime: number;
+    const animate = (time: number) => {
+      if (!startTime) startTime = time;
+      const progress = Math.min((time - startTime) / (duration * 1000), 1);
+      // Ease out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setCount(Math.round(eased * end));
+      if (progress < 1) requestAnimationFrame(animate);
+    };
+    requestAnimationFrame(animate);
+  }, [hasStarted, end, duration]);
+
+  return { count, ref, setHasStarted };
+}
+
 // ── Stats Bar ────────────────────────────────────────────────────────────
 function StatsBar() {
   const t = useTranslations('landing');
   const STATS = [
-    { value: '∞',   label: t('statsLabel1') },
-    { value: '4K',  label: t('statsLabel2') },
-    { value: '±2s', label: t('statsLabel3') },
-    { value: '0',   label: t('statsLabel4') },
+    { value: '∞',   label: t('statsLabel1'), numeric: false },
+    { value: '4K',  label: t('statsLabel2'), numeric: false },
+    { value: '±2s', label: t('statsLabel3'), numeric: false },
+    { value: '0',   label: t('statsLabel4'), numeric: true, numVal: 0 },
   ];
   return (
     <section className="py-14 px-4 relative overflow-hidden" aria-label="Статистика">
@@ -95,16 +124,19 @@ function StatsBar() {
       <div className="relative z-10 max-w-5xl mx-auto">
         <dl className="grid grid-cols-2 md:grid-cols-4 gap-px bg-zinc-800/30 rounded-2xl overflow-hidden border border-zinc-800/50 shadow-[0_0_60px_rgba(123,114,248,0.06)]">
           {STATS.map(({ value, label }, i) => (
-            <motion.div key={label} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }} transition={{ duration: 0.45, delay: i * 0.08 }}
-              className="flex flex-col items-center justify-center py-10 px-6 bg-[#0D0D16]/90 relative group cursor-default">
-              <div className="absolute inset-0 bg-[#7B72F8]/0 group-hover:bg-[#7B72F8]/4 transition-colors duration-300" aria-hidden="true" />
+            <motion.div key={label} initial={{ opacity: 0, y: 20, scale: 0.95 }} whileInView={{ opacity: 1, y: 0, scale: 1 }}
+              viewport={{ once: true }} transition={{ ...springConfig, delay: i * 0.06 }}
+              className="flex flex-col items-center justify-center py-10 px-6 bg-[#0D0D16]/90 relative group cursor-default"
+              whileHover={{ backgroundColor: 'rgba(123,114,248,0.06)' }}>
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+                style={{ background: 'radial-gradient(circle at 50% 50%, rgba(123,114,248,0.08) 0%, transparent 70%)' }} aria-hidden="true" />
               <dt className="sr-only">{label}</dt>
-              <dd className="text-4xl md:text-5xl font-display font-bold bg-clip-text text-transparent mb-1"
-                style={{ backgroundImage: 'linear-gradient(135deg, #7B72F8, #a855f7)' }}>
+              <motion.dd className="text-4xl md:text-5xl font-display font-bold bg-clip-text text-transparent mb-1"
+                style={{ backgroundImage: 'linear-gradient(135deg, #7B72F8, #a855f7)' }}
+                whileHover={{ scale: 1.08 }} transition={{ type: 'spring', stiffness: 400, damping: 15 }}>
                 {value}
-              </dd>
-              <span className="text-xs text-zinc-500 uppercase tracking-widest font-medium">{label}</span>
+              </motion.dd>
+              <span className="text-xs text-zinc-500 uppercase tracking-widest font-medium group-hover:text-zinc-400 transition-colors duration-200">{label}</span>
             </motion.div>
           ))}
         </dl>
@@ -113,19 +145,37 @@ function StatsBar() {
   );
 }
 
-// ── GlassCard ────────────────────────────────────────────────────────────
-function GlassCard({ children, className = '', glowColor = '#7B72F8' }: {
-  children: React.ReactNode; className?: string; glowColor?: string;
+// ── GlassCard with mouse-tracking glow ──────────────────────────────────
+function GlassCard({ children, className = '', glowColor = '#7B72F8', hover = true }: {
+  children: React.ReactNode; className?: string; glowColor?: string; hover?: boolean;
 }) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const glowRef = useRef<HTMLDivElement>(null);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!cardRef.current || !glowRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    glowRef.current.style.background = `radial-gradient(400px circle at ${x}% ${y}%, ${glowColor}14 0%, transparent 65%)`;
+  }, [glowColor]);
+
   return (
-    <div className={`relative rounded-2xl border border-zinc-800/60 backdrop-blur-sm overflow-hidden group transition-all duration-300 hover:border-zinc-700/80 ${className}`}
-      style={{ background: 'linear-gradient(145deg, rgba(17,17,24,0.96), rgba(13,13,22,0.99))' }}>
-      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
-        style={{ background: `radial-gradient(circle at 50% 0%, ${glowColor}0c 0%, transparent 65%)` }} aria-hidden="true" />
+    <motion.div ref={cardRef} onMouseMove={handleMouseMove}
+      className={`relative rounded-2xl border border-zinc-800/60 backdrop-blur-sm overflow-hidden group transition-colors duration-300 hover:border-zinc-700/80 ${className}`}
+      style={{ background: 'linear-gradient(145deg, rgba(17,17,24,0.96), rgba(13,13,22,0.99))' }}
+      whileHover={hover ? { scale: 1.02, y: -4 } : undefined}
+      transition={{ type: 'spring', stiffness: 300, damping: 22 }}>
+      {/* Dynamic glow following cursor */}
+      <div ref={glowRef} className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+        style={{ background: `radial-gradient(400px circle at 50% 0%, ${glowColor}14 0%, transparent 65%)` }} aria-hidden="true" />
       <div className="absolute top-0 left-0 right-0 h-px opacity-35"
         style={{ background: `linear-gradient(90deg, transparent, ${glowColor}55, transparent)` }} aria-hidden="true" />
+      {/* Bottom shine on hover */}
+      <div className="absolute bottom-0 left-0 right-0 h-px opacity-0 group-hover:opacity-25 transition-opacity duration-300"
+        style={{ background: `linear-gradient(90deg, transparent, ${glowColor}44, transparent)` }} aria-hidden="true" />
       {children}
-    </div>
+    </motion.div>
   );
 }
 
@@ -150,7 +200,7 @@ function BentoFeatures({ t }: { t: ReturnType<typeof useTranslations<'landing'>>
           className="grid grid-cols-1 md:grid-cols-3 gap-4 auto-rows-[200px]">
 
           {/* [1] Large — Watch Together (2 cols × 2 rows) */}
-          <motion.div variants={fadeUp} className="md:col-span-2 md:row-span-2">
+          <motion.div variants={fadeUpScale} className="md:col-span-2 md:row-span-2">
             <GlassCard className="h-full p-8 flex flex-col justify-between" glowColor="#7B72F8">
               <div>
                 <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5"
@@ -182,7 +232,7 @@ function BentoFeatures({ t }: { t: ReturnType<typeof useTranslations<'landing'>>
           </motion.div>
 
           {/* [2] Real-time Chat (1 col × 1 row) */}
-          <motion.div variants={fadeUp}>
+          <motion.div variants={fadeUpScale}>
             <GlassCard className="h-full p-6" glowColor="#22d3ee">
               <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-4"
                 style={{ background: 'rgba(34,211,238,0.10)', border: '1px solid rgba(34,211,238,0.22)' }}>
@@ -194,7 +244,7 @@ function BentoFeatures({ t }: { t: ReturnType<typeof useTranslations<'landing'>>
           </motion.div>
 
           {/* [3] Built-in Browser (1 col × 1 row) */}
-          <motion.div variants={fadeUp}>
+          <motion.div variants={fadeUpScale}>
             <GlassCard className="h-full p-6" glowColor="#7B72F8">
               <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-4"
                 style={{ background: 'rgba(123,114,248,0.14)', border: '1px solid rgba(123,114,248,0.28)' }}>
@@ -206,7 +256,7 @@ function BentoFeatures({ t }: { t: ReturnType<typeof useTranslations<'landing'>>
           </motion.div>
 
           {/* [4] Friends — wide bottom (3 cols × 1 row) */}
-          <motion.div variants={fadeUp} className="md:col-span-3">
+          <motion.div variants={fadeUpScale} className="md:col-span-3">
             <GlassCard className="h-full p-6 flex flex-col md:flex-row items-center gap-6" glowColor="#a855f7">
               <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
                 style={{ background: 'rgba(168,85,247,0.12)', border: '1px solid rgba(168,85,247,0.25)' }}>
@@ -274,7 +324,7 @@ function WhyWeWatch() {
         <motion.div variants={stagger} initial="hidden" whileInView="visible" viewport={{ once: true }}
           className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {WHY_ITEMS.map(({ icon: Icon, color, bg, border, title, text }) => (
-            <motion.div key={title} variants={fadeUp}>
+            <motion.div key={title} variants={fadeUpScale}>
               <GlassCard className="p-6 h-full flex flex-col gap-5" glowColor={color}>
                 <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
                   style={{ background: bg, border: `1px solid ${border}` }}>
@@ -809,10 +859,12 @@ export function LandingContent() {
 
           <div className="relative z-10 text-center px-4 max-w-5xl mx-auto pt-32 pb-24">
             {/* Badge */}
-            <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }}
-              className="inline-flex items-center gap-2 mb-8 px-5 py-2.5 rounded-full border border-[#7B72F8]/35 bg-[#7B72F8]/08 backdrop-blur-md text-sm text-white/80"
+            <motion.div initial={{ opacity: 0, y: -16, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 22 }}
+              whileHover={{ scale: 1.05, boxShadow: '0 0 40px rgba(123,114,248,0.35), inset 0 1px 0 rgba(255,255,255,0.08)' }}
+              className="inline-flex items-center gap-2 mb-8 px-5 py-2.5 rounded-full border border-[#7B72F8]/35 bg-[#7B72F8]/08 backdrop-blur-md text-sm text-white/80 cursor-default"
               style={{ boxShadow: '0 0 32px rgba(123,114,248,0.22), inset 0 1px 0 rgba(255,255,255,0.06)' }}>
-              <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" aria-hidden="true" />
+              <FaApple size={14} className="text-white/90" aria-hidden="true" />
               {t('heroBadge')}
             </motion.div>
 
@@ -841,22 +893,31 @@ export function LandingContent() {
             {/* CTA buttons — §1: cursor-pointer, min h-14 (>44px touch target) */}
             <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, delay: 0.45 }}
               className="flex gap-4 justify-center flex-wrap">
-              <a href={APP_STORE} target="_blank" rel="noopener noreferrer"
-                className="group inline-flex items-center gap-3 h-14 px-8 rounded-xl text-white font-semibold transition-all duration-200 active:scale-95 cursor-pointer"
+              <motion.a href={APP_STORE} target="_blank" rel="noopener noreferrer"
+                className="group relative inline-flex items-center gap-3 h-14 px-8 rounded-xl text-white font-semibold cursor-pointer overflow-hidden"
                 style={{ background: 'linear-gradient(135deg, #7B72F8, #6B63E8)', boxShadow: '0 0 32px rgba(123,114,248,0.55), inset 0 1px 0 rgba(255,255,255,0.12)' }}
+                whileHover={{ scale: 1.05, boxShadow: '0 0 48px rgba(123,114,248,0.75), inset 0 1px 0 rgba(255,255,255,0.15)' }}
+                whileTap={{ scale: 0.97 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 20 }}
                 aria-label="WeWatch-ni App Store-dan yuklab oling">
-                <FaApple size={22} aria-hidden="true" />
-                <div className="text-left leading-tight">
+                <motion.div className="absolute inset-0 pointer-events-none" aria-hidden="true"
+                  style={{ background: 'linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.15) 50%, transparent 60%)' }}
+                  animate={{ x: ['-100%', '200%'] }}
+                  transition={{ repeat: Infinity, duration: 3.5, ease: 'linear', repeatDelay: 2.5 }} />
+                <FaApple size={22} className="relative z-10" aria-hidden="true" />
+                <div className="text-left leading-tight relative z-10">
                   <div className="text-[10px] opacity-70">Download on the</div>
                   <div className="text-[15px] font-bold">App Store</div>
                 </div>
-              </a>
-              <a href="#demo"
-                className="inline-flex items-center gap-2 h-14 px-8 rounded-xl border border-zinc-700/80 text-zinc-400 hover:border-[#7B72F8]/50 hover:text-zinc-200 hover:bg-[#7B72F8]/05 transition-all duration-200 active:scale-95 text-sm backdrop-blur-sm cursor-pointer"
+              </motion.a>
+              <motion.a href="#demo"
+                className="inline-flex items-center gap-2 h-14 px-8 rounded-xl border border-zinc-700/80 text-zinc-400 hover:border-[#7B72F8]/50 hover:text-zinc-200 hover:bg-[#7B72F8]/05 transition-colors duration-200 text-sm backdrop-blur-sm cursor-pointer"
+                whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 20 }}
                 aria-label="Посмотреть как работает WeWatch">
                 {t('heroHowBtn')}
                 <FaChevronRight size={11} aria-hidden="true" />
-              </a>
+              </motion.a>
             </motion.div>
 
             <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.75 }}
@@ -929,9 +990,17 @@ export function LandingContent() {
                 <p className="text-[10px] text-zinc-600 text-center">{t('urlFromSites')}</p>
               </GlassCard>
 
-              <motion.div animate={shouldReduceMotion ? {} : { x: [0, 6, 0] }} transition={{ repeat: Infinity, duration: 1.4 }}
-                className="text-[#7B72F8]" aria-hidden="true">
-                <FaChevronRight size={22} />
+              <motion.div className="relative flex items-center" aria-hidden="true">
+                <motion.div animate={shouldReduceMotion ? {} : { x: [0, 8, 0], opacity: [0.4, 1, 0.4] }}
+                  transition={{ repeat: Infinity, duration: 1.6, ease: 'easeInOut' }}
+                  className="text-[#7B72F8]">
+                  <FaChevronRight size={22} />
+                </motion.div>
+                <motion.div animate={shouldReduceMotion ? {} : { x: [0, 8, 0], opacity: [0, 0.6, 0] }}
+                  transition={{ repeat: Infinity, duration: 1.6, ease: 'easeInOut', delay: 0.2 }}
+                  className="absolute left-0 text-[#a855f7]">
+                  <FaChevronRight size={22} />
+                </motion.div>
               </motion.div>
 
               <GlassCard className="flex-1 max-w-sm w-full p-4" glowColor="#22c55e">
@@ -1204,13 +1273,21 @@ export function LandingContent() {
             </motion.p>
 
             <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <a href={APP_STORE} target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-3 h-16 px-12 rounded-xl text-white font-bold transition-all duration-200 active:scale-95 text-base cursor-pointer"
+              <motion.a href={APP_STORE} target="_blank" rel="noopener noreferrer"
+                className="relative inline-flex items-center gap-3 h-16 px-12 rounded-xl text-white font-bold text-base cursor-pointer overflow-hidden"
                 style={{ background: 'linear-gradient(135deg, #7B72F8, #6B63E8)', boxShadow: '0 0 50px rgba(123,114,248,0.65), inset 0 1px 0 rgba(255,255,255,0.12)' }}
+                whileHover={{ scale: 1.05, boxShadow: '0 0 70px rgba(123,114,248,0.85), inset 0 1px 0 rgba(255,255,255,0.15)' }}
+                whileTap={{ scale: 0.97 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 20 }}
                 aria-label="WeWatch-ni App Store-dan bepul yuklab oling">
-                <FaApple size={24} aria-hidden="true" />
-                {t('ctaPlayBtn')}
-              </a>
+                {/* Animated shine sweep */}
+                <motion.div className="absolute inset-0 pointer-events-none" aria-hidden="true"
+                  style={{ background: 'linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.18) 50%, transparent 60%)' }}
+                  animate={{ x: ['-100%', '200%'] }}
+                  transition={{ repeat: Infinity, duration: 3, ease: 'linear', repeatDelay: 2 }} />
+                <FaApple size={24} className="relative z-10" aria-hidden="true" />
+                <span className="relative z-10">{t('ctaPlayBtn')}</span>
+              </motion.a>
               <span className="text-zinc-600 text-sm">{t('ctaIosSoon')}</span>
             </motion.div>
 
