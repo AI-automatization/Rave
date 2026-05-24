@@ -43,10 +43,18 @@ export class AnalyticsController {
 
   listSessions = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const page   = Math.max(1, parseInt(req.query.page as string ?? '1', 10) || 1);
-      const limit  = Math.min(Math.max(1, parseInt(req.query.limit as string ?? '20', 10) || 20), 100);
-      const userId = req.query.userId as string | undefined;
-      const { sessions, total } = await analyticsService.listSessions(page, limit, userId) as { sessions: unknown[]; total: number };
+      const page        = Math.max(1, parseInt(req.query.page as string ?? '1', 10) || 1);
+      const limit       = Math.min(Math.max(1, parseInt(req.query.limit as string ?? '20', 10) || 20), 100);
+      const userId      = req.query.userId as string | undefined;
+      const platform    = req.query.platform as string | undefined;
+      const exitContext = req.query.exitContext as string | undefined;
+      const isNewUserQ  = req.query.isNewUser as string | undefined;
+      const isNewUser   = isNewUserQ === 'true' ? true : isNewUserQ === 'false' ? false : undefined;
+
+      const { sessions, total } = await analyticsService.listSessions(page, limit, {
+        userId, platform, exitContext, isNewUser,
+      }) as { sessions: unknown[]; total: number };
+
       res.json(apiResponse.paginated(sessions, buildPaginationMeta(page, limit, total)));
     } catch (error) {
       next(error);
@@ -66,6 +74,15 @@ export class AnalyticsController {
     try {
       const days = Math.min(parseInt(req.query.days as string ?? '7', 10) || 7, 90);
       const data = await analyticsService.getDropOff(days);
+      res.json(apiResponse.success(data));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getRetention = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const data = await analyticsService.getRetention();
       res.json(apiResponse.success(data));
     } catch (error) {
       next(error);

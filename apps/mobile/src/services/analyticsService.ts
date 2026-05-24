@@ -125,6 +125,10 @@ export const analyticsService = {
     userId = uid;
   },
 
+  markAsNewUser(): void {
+    isNewUser = true;
+  },
+
   track(event: string, screen?: string, meta?: Record<string, unknown>): void {
     if (!sessionId) return;
     events.push({ event, screen, ts: Date.now(), meta });

@@ -4,6 +4,7 @@ import type { ApiResponse } from '../types';
 export interface OverviewData {
   totalSessions: number;
   todaySessions: number;
+  activeNow: number;
   avgSessionDuration: number;
   avgEngagementScore: number;
   platformBreakdown: Array<{ _id: string; count: number }>;
@@ -11,6 +12,12 @@ export interface OverviewData {
   topExitScreens: Array<{ _id: string; count: number }>;
   newVsReturning: { new: number; returning: number };
   dailyActivity: Array<{ date: string; sessions: number; uniqueUsers: number }>;
+  versionBreakdown: Array<{ _id: string; count: number }>;
+  prevPeriodDelta: {
+    sessions:   number | null;
+    duration:   number | null;
+    engagement: number | null;
+  };
 }
 
 export interface FunnelStep {
@@ -45,6 +52,20 @@ export interface DropOffData {
   shortSessions: number;
 }
 
+export interface RetentionData {
+  d1:  number | null;
+  d7:  number | null;
+  d30: number | null;
+  cohortSize: number;
+}
+
+export interface SessionFilters {
+  platform?:    string;
+  isNewUser?:   'true' | 'false';
+  exitContext?: string;
+  userId?:      string;
+}
+
 export const analyticsApi = {
   getOverview: async (days = 7): Promise<OverviewData> => {
     const res = await apiClient.get<ApiResponse<OverviewData>>('/admin/analytics/overview', { params: { days } });
@@ -58,8 +79,8 @@ export const analyticsApi = {
     return res.data.data;
   },
 
-  getSessions: async (page = 1, limit = 20, userId?: string): Promise<{ sessions: SessionItem[]; total: number }> => {
-    const res = await apiClient.get('/admin/analytics/sessions', { params: { page, limit, userId } });
+  getSessions: async (page = 1, limit = 20, filters: SessionFilters = {}): Promise<{ sessions: SessionItem[]; total: number }> => {
+    const res = await apiClient.get('/admin/analytics/sessions', { params: { page, limit, ...filters } });
     return { sessions: res.data.data ?? [], total: res.data.meta?.total ?? 0 };
   },
 
@@ -73,6 +94,12 @@ export const analyticsApi = {
 
   getDropOff: async (days = 7): Promise<DropOffData> => {
     const res = await apiClient.get<ApiResponse<DropOffData>>('/admin/analytics/dropoff', { params: { days } });
+    if (!res.data.success || !res.data.data) throw new Error(res.data.message);
+    return res.data.data;
+  },
+
+  getRetention: async (): Promise<RetentionData> => {
+    const res = await apiClient.get<ApiResponse<RetentionData>>('/admin/analytics/retention');
     if (!res.data.success || !res.data.data) throw new Error(res.data.message);
     return res.data.data;
   },

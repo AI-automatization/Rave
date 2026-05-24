@@ -23,6 +23,7 @@ import { AuthStackParamList } from '@app-types/index';
 import { authApi } from '@api/auth.api';
 import { useAuthStore } from '@store/auth.store';
 import { useT } from '@i18n/index';
+import { analyticsService } from '@services/analyticsService';
 import { AuthGridBackground } from '@components/auth/AuthGridBackground';
 import { SocialAuthButtons } from '@components/auth/SocialAuthButtons';
 import { BlockedAccountModal } from '@components/common/BlockedAccountModal';
@@ -100,6 +101,7 @@ export function LoginScreen() {
       const { user, accessToken, refreshToken } = await authApi.login({
         email: email.trim().toLowerCase(), password,
       });
+      analyticsService.track('action:login');
       await setAuth(user, accessToken, refreshToken);
     } catch (err: unknown) {
       const resp = (err as { response?: { status?: number; data?: { code?: string; reason?: string; message?: string; errors?: string[]; userId?: string } } })?.response;

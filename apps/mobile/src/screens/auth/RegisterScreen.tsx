@@ -27,6 +27,7 @@ import { useSocialAuth } from '@hooks/useSocialAuth';
 import { AuthGridBackground } from '@components/auth/AuthGridBackground';
 import { SocialAuthButtons } from '@components/auth/SocialAuthButtons';
 import { RegisterFormFields } from '@components/auth/RegisterFormFields';
+import { analyticsService } from '@services/analyticsService';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Register'>;
 
@@ -103,6 +104,8 @@ export function RegisterScreen() {
         email: email.trim().toLowerCase(),
         password,
       });
+      analyticsService.markAsNewUser();
+      analyticsService.track('action:register');
       // Avtomatik login — ro'yxatdan o'tgandan keyin darhol asosiy ekranga o'tish (10s timeout)
       try {
         const loginTimeout = new Promise<never>((_, reject) =>

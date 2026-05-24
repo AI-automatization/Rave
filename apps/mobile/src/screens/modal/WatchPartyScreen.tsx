@@ -20,6 +20,7 @@ import { useTheme, spacing, borderRadius, typography } from '@theme/index';
 import { ModalStackParamList } from '@app-types/index';
 import { useT } from '@i18n/index';
 import { useWatchPartyRoom } from '@hooks/useWatchPartyRoom';
+import { analyticsService } from '@services/analyticsService';
 import { MembersStrip } from '@components/watchParty/MembersStrip';
 import { VideoProgressBar } from '@components/watchParty/VideoProgressBar';
 import { isDomainBlocked } from '@constants/blockedDomains';
@@ -67,6 +68,12 @@ export function WatchPartyScreen() {
     return () => {
       ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
     };
+  }, []);
+
+  // Analytics: watch party session tracking
+  useEffect(() => {
+    analyticsService.watchPartyEnter();
+    return () => { analyticsService.watchPartyExit(); };
   }, []);
 
   if (connectTimeout && !room) {

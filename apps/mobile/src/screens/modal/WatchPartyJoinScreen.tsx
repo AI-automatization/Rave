@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { ModalStackParamList } from '@app-types/index';
 import { watchPartyApi } from '@api/watchParty.api';
+import { analyticsService } from '@services/analyticsService';
 
 type Nav = NativeStackNavigationProp<ModalStackParamList, 'WatchPartyJoin'>;
 type Route = RouteProp<ModalStackParamList, 'WatchPartyJoin'>;
@@ -56,6 +57,7 @@ export function WatchPartyJoinScreen() {
     setLoading(true);
     try {
       const room = await watchPartyApi.joinByInviteCode(joinCode);
+      analyticsService.track('action:room_join', undefined, { roomId: room._id });
       navigation.replace('WatchParty', { roomId: room._id });
     } catch {
       Alert.alert('Xato', 'Noto\'g\'ri kod yoki xona topilmadi');
