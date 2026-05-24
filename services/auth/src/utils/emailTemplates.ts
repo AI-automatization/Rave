@@ -19,16 +19,17 @@ const C = {
   warn:      '#F59E0B',
 };
 
-// ── HTML logo (pure CSS, no images) ──────────────────────────────────────────
+// ── Logo: real SVG via img tag + text fallback when Gmail blocks images ───────
+// Gmail initially blocks external images. After first "Show images" click it
+// remembers and loads automatically for all future emails from this sender.
 const LOGO_HTML = `
-<table cellpadding="0" cellspacing="0"><tr>
-  <td width="42" height="42" style="width:42px;height:42px;background:#15102A;border:1px solid #3D2875;border-radius:10px;text-align:center;vertical-align:middle;">
-    <span style="font-size:22px;font-weight:900;color:#A78BFA;font-family:Arial Black,Arial,sans-serif;display:block;line-height:42px;">W</span>
-  </td>
-  <td style="padding-left:11px;vertical-align:middle;white-space:nowrap;">
-    <span style="font-size:22px;font-weight:300;color:rgba(255,255,255,0.45);font-family:Arial,sans-serif;">we</span><span style="font-size:22px;font-weight:800;color:#FFFFFF;font-family:Arial,sans-serif;">Watch</span>
-  </td>
-</tr></table>`;
+<img src="https://admin.wewatch.uz/logo-email.svg"
+     width="168" height="49"
+     alt="weWatch"
+     style="display:block;border:0;max-width:168px;height:auto;"/>
+<div style="display:none;mso-hide:all;">
+  <span style="font-size:22px;font-weight:300;color:rgba(255,255,255,0.45);font-family:Arial,sans-serif;">we</span><span style="font-size:22px;font-weight:800;color:#FFFFFF;font-family:Arial,sans-serif;">Watch</span>
+</div>`;
 
 // ── Base layout ───────────────────────────────────────────────────────────────
 function base(accentTop: string, body: string): string {
