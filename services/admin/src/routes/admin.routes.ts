@@ -2,6 +2,7 @@ import { Router } from 'express';
 import Redis from 'ioredis';
 import { AdminController } from '../controllers/admin.controller';
 import { BannedWordsController } from '../controllers/bannedWords.controller';
+import { SettingsController } from '../controllers/settings.controller';
 import { AdminService } from '../services/admin.service';
 import { verifyToken, requireRole } from '@shared/middleware/auth.middleware';
 import { requireInternalSecret } from '@shared/utils/serviceClient';
@@ -16,6 +17,7 @@ export const createAdminRouter = (redis: Redis): Router => {
   const adminService = new AdminService(redis);
   const adminController = new AdminController(adminService);
   const bannedWordsController = new BannedWordsController();
+  const settingsController = new SettingsController();
 
   // Internal: DELETE /admin/internal/users/:userId — cascade account deletion (T-S093)
   router.delete('/internal/users/:userId', requireInternalSecret, adminController.deleteUserData);
@@ -94,6 +96,11 @@ export const createAdminRouter = (redis: Redis): Router => {
   router.post('/content/domains',                      validate(addDomainSchema), adminController.addBlockedDomain);
   router.patch('/content/domains/:domain/block',       adminController.blockDomain);
   router.patch('/content/domains/:domain/unblock',     adminController.unblockDomain);
+
+  // ── App Settings ──────────────────────────────────────────────
+  router.get('/settings',                requireRole('admin', 'superadmin'), settingsController.getAll);
+  router.patch('/settings/:key',         requireRole('admin', 'superadmin'), settingsController.set);
+  router.delete('/settings/:key/reset',  requireRole('superadmin'),          settingsController.reset);
 
   // ── Banned Words ──────────────────────────────────────────────
   router.get('/banned-words',          bannedWordsController.listWords);

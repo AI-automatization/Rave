@@ -9,6 +9,7 @@ export interface IMobileIssueDocument extends Document {
   status: IssueStatus;
   count: number;
   affectedUsers: number;
+  lastUserId: string | null;
   platform: 'ios' | 'android' | 'unknown';
   appVersion: string;
   environment: string;
@@ -24,6 +25,7 @@ const schema = new Schema<IMobileIssueDocument>(
     status:        { type: String, enum: ['new', 'in_progress', 'resolved', 'ignored'], default: 'new' },
     count:         { type: Number, default: 1 },
     affectedUsers: { type: Number, default: 0 },
+    lastUserId:    { type: String, default: null },
     platform:      { type: String, enum: ['ios', 'android', 'unknown'], default: 'unknown' },
     appVersion:    { type: String, default: '' },
     environment:   { type: String, default: 'production' },

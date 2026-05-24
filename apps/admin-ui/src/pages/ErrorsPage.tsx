@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Link } from 'react-router-dom';
-import { Search, Mail, User, X, AlertTriangle, Clock, Smartphone, ChevronDown, ChevronRight, Cpu, Globe, Layers, Zap, Tag, MonitorSmartphone, Code2, Database, Shield, MessageCircle, Send } from 'lucide-react';
+import { Search, Mail, User, X, AlertTriangle, Clock, Smartphone, ChevronDown, ChevronRight, Cpu, Globe, Layers, Zap, Tag, MonitorSmartphone, Code2, Database, Shield, MessageCircle, Send, ExternalLink } from 'lucide-react';
 import { errorsApi, MobileIssue, MobileEvent, IssueStatus, ErrorStats } from '../api/errors.api';
 import { usersApi } from '../api/users.api';
 import { supportApi, SupportMessage } from '../api/support.api';
@@ -101,6 +101,46 @@ function UserCard({ userId }: { userId: string }) {
         >
           <User size={11} /> Профиль
         </Link>
+      </div>
+    </div>
+  );
+}
+
+// ── UserMini (for table rows) ─────────────────────────────────────────────────
+
+function UserMini({ userId }: { userId: string }) {
+  const [user, setUser] = useState<AdminUser | null>(null);
+  useEffect(() => { usersApi.getById(userId).then(setUser).catch(() => {}); }, [userId]);
+  if (!user) return <span className="font-mono text-[10px] text-text-dim">{userId.slice(-8)}…</span>;
+  const hue = (user.email.charCodeAt(0) * 137) % 360;
+  return (
+    <div className="flex items-center gap-1.5">
+      <div
+        className="w-5 h-5 rounded-md flex items-center justify-center text-[9px] font-bold shrink-0"
+        style={{ background: `hsl(${hue},40%,20%)`, color: `hsl(${hue},70%,70%)` }}
+      >
+        {(user.username || user.email).slice(0, 2).toUpperCase()}
+      </div>
+      <div className="min-w-0">
+        <p className="text-[11px] font-medium text-white truncate max-w-[100px]">{user.username || user.email}</p>
+        <div className="flex items-center gap-1">
+          <a
+            href={`mailto:${user.email}`}
+            onClick={(e) => e.stopPropagation()}
+            title={`Написать ${user.email}`}
+            className="text-[10px] text-accent hover:text-accent/80 transition-colors"
+          >
+            <Mail size={10} />
+          </a>
+          <Link
+            to={`/users/${user._id}`}
+            onClick={(e) => e.stopPropagation()}
+            title="Профиль"
+            className="text-[10px] text-text-dim hover:text-white transition-colors"
+          >
+            <ExternalLink size={10} />
+          </Link>
+        </div>
       </div>
     </div>
   );
@@ -732,7 +772,7 @@ export function ErrorsPage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-white/[0.05]">
-              {['Ошибка', 'Платформа', 'Событий', 'Юзеров', 'Последний', 'Статус'].map((h) => (
+              {['Ошибка', 'Пользователь', 'Платформа', 'Событий', 'Юзеров', 'Последний', 'Статус'].map((h) => (
                 <th key={h} className="text-left px-5 py-3.5 text-[11px] font-semibold text-text-dim uppercase tracking-wider">
                   {h}
                 </th>
@@ -743,7 +783,7 @@ export function ErrorsPage() {
             {loading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <tr key={i}>
-                  {Array.from({ length: 6 }).map((__, j) => (
+                  {Array.from({ length: 7 }).map((__, j) => (
                     <td key={j} className="px-5 py-4">
                       <div className="h-4 bg-white/[0.05] rounded animate-pulse" style={{ width: `${50 + (i * j * 11) % 40}%` }} />
                     </td>
@@ -752,13 +792,19 @@ export function ErrorsPage() {
               ))
             ) : issues.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-5 py-12 text-center text-text-muted">Ошибок нет 🎉</td>
+                <td colSpan={7} className="px-5 py-12 text-center text-text-muted">Ошибок нет 🎉</td>
               </tr>
             ) : issues.map((issue) => (
               <tr key={issue.id} className="tr-hover cursor-pointer" onClick={() => setSelected(issue)}>
                 <td className="px-5 py-4 max-w-xs">
                   <p className="font-medium text-white truncate">{issue.title}</p>
                   <p className="text-xs text-text-muted truncate mt-0.5">{issue.message || '—'}</p>
+                </td>
+                <td className="px-5 py-4" onClick={(e) => e.stopPropagation()}>
+                  {issue.lastUserId
+                    ? <UserMini userId={issue.lastUserId} />
+                    : <span className="text-text-dim text-xs">—</span>
+                  }
                 </td>
                 <td className="px-5 py-4 text-text-muted text-xs whitespace-nowrap">
                   {PLATFORM_ICON[issue.platform]} {issue.platform}
@@ -770,21 +816,24 @@ export function ErrorsPage() {
                 <td className="px-5 py-4 text-text-muted">{issue.affectedUsers}</td>
                 <td className="px-5 py-4 text-text-muted text-xs whitespace-nowrap">{relativeTime(issue.lastSeen)}</td>
                 <td className="px-5 py-4" onClick={(e) => e.stopPropagation()}>
-                  <select
-                    value={issue.status}
-                    disabled={updating === issue.id}
-                    onChange={(e) => void handleStatusChange(issue, e.target.value as IssueStatus)}
-                    className={`text-xs rounded-lg px-2.5 py-1 border focus:outline-none cursor-pointer transition-all appearance-none ${
-                      issue.status === 'new'         ? 'bg-red-500/10 text-red-400 border-red-500/20' :
-                      issue.status === 'in_progress' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                      issue.status === 'resolved'    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                      'bg-white/5 text-text-muted border-white/10'
-                    }`}
-                  >
-                    {Object.entries(STATUS_CONFIG).map(([val, { label }]) => (
-                      <option key={val} value={val}>{label}</option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <select
+                      value={issue.status}
+                      disabled={updating === issue.id}
+                      onChange={(e) => void handleStatusChange(issue, e.target.value as IssueStatus)}
+                      className={`text-xs rounded-lg pl-2.5 pr-7 py-1 border focus:outline-none cursor-pointer transition-all ${
+                        issue.status === 'new'         ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                        issue.status === 'in_progress' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                        issue.status === 'resolved'    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                        'bg-white/5 text-text-muted border-white/10'
+                      }`}
+                    >
+                      {Object.entries(STATUS_CONFIG).map(([val, { label }]) => (
+                        <option key={val} value={val}>{label}</option>
+                      ))}
+                    </select>
+                    <ChevronDown size={11} className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-current opacity-60" />
+                  </div>
                 </td>
               </tr>
             ))}

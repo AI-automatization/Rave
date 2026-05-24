@@ -11,6 +11,7 @@ export interface MobileIssue {
   status: IssueStatus;
   count: number;
   affectedUsers: number;
+  lastUserId: string | null;
   platform: 'ios' | 'android' | 'unknown';
   appVersion: string;
   environment: string;

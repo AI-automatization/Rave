@@ -102,6 +102,7 @@ export class ErrorsService {
       issue = await MobileIssue.create({
         fingerprint, title, message, platform, appVersion, environment,
         count: 1, affectedUsers: userId ? 1 : 0,
+        lastUserId: userId,
         firstSeen: now, lastSeen: now,
       });
     } else {
@@ -114,7 +115,7 @@ export class ErrorsService {
         { _id: issue._id },
         {
           $inc: { count: 1, ...(isNewUser ? { affectedUsers: 1 } : {}) },
-          $set: { lastSeen: now, appVersion, message },
+          $set: { lastSeen: now, appVersion, message, ...(userId ? { lastUserId: userId } : {}) },
         },
       );
     }
