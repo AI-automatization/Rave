@@ -29,6 +29,7 @@ export class AdminService {
   readonly content: AdminContentService;
   readonly rooms: AdminRoomService;
 
+  getUserById!: AdminUserService['getUserById'];
   listUsers!: AdminUserService['listUsers'];
   blockUser!: AdminUserService['blockUser'];
   unblockUser!: AdminUserService['unblockUser'];
@@ -54,6 +55,7 @@ export class AdminService {
     this.content = new AdminContentService();
     this.rooms = new AdminRoomService();
 
+    this.getUserById = this.users.getUserById.bind(this.users);
     this.listUsers = this.users.listUsers.bind(this.users);
     this.blockUser = this.users.blockUser.bind(this.users);
     this.unblockUser = this.users.unblockUser.bind(this.users);

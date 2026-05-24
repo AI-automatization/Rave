@@ -32,6 +32,15 @@ export class AdminController {
     }
   };
 
+  getUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const user = await this.adminService.getUserById(req.params.id);
+      res.json(apiResponse.success(user));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   blockUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { userId: adminId, email: adminEmail } = (req as AuthenticatedRequest).user;

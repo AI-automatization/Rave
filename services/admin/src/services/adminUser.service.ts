@@ -17,7 +17,7 @@ import {
   revokeUserSessions,
   createStaffAccount,
 } from '@shared/utils/serviceClient';
-import { adminSetUserRestrictions } from '@shared/utils/adminServiceClient';
+import { adminSetUserRestrictions, adminGetUserById } from '@shared/utils/adminServiceClient';
 
 export class AdminUserService {
   constructor(private redis: Redis) {}
@@ -35,6 +35,12 @@ export class AdminUserService {
     } catch (err) {
       logger.warn('Audit log write failed', { error: (err as Error).message, action, adminId });
     }
+  }
+
+  async getUserById(userId: string): Promise<unknown> {
+    const user = await adminGetUserById(userId);
+    if (!user) throw new Error('User not found');
+    return user;
   }
 
   async listUsers(filters: {

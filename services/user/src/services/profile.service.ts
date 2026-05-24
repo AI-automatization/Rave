@@ -222,10 +222,10 @@ export class ProfileService {
 
   // ── Admin Internal Methods ────────────────────────────────────
 
-  async adminGetUser(userId: string): Promise<{ _id: string; username: string; avatar: string | null } | null> {
-    const user = await User.findById(userId).select('_id username avatar').lean();
+  async adminGetUser(userId: string): Promise<unknown | null> {
+    const user = await User.findById(userId).lean();
     if (!user) return null;
-    return { _id: String(user._id), username: user.username, avatar: user.avatar ?? null };
+    return user;
   }
 
   async adminListUsers(filters: {

@@ -173,6 +173,18 @@ export async function adminGetUser(userId: string): Promise<{ authId: string; us
   }
 }
 
+export async function adminGetUserById(userId: string): Promise<unknown | null> {
+  try {
+    const res = await axios.get<{ data: unknown }>(
+      `${userServiceUrl}/api/v1/users/internal/admin/users/${userId}`,
+      { headers: internalHeaders, timeout: 5000 },
+    );
+    return res.data.data ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function adminNotifyUsers(userIds: string[], title: string, body: string): Promise<void> {
   await axios.post(
     `${notificationServiceUrl}/api/v1/notifications/internal/admin/notify-users`,

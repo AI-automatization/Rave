@@ -59,6 +59,7 @@ export function UserDetailPage() {
   const [user, setUser] = useState<AdminUser | null>(null);
   const [errors, setErrors] = useState<MobileIssue[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [msg, setMsg] = useState('');
 
@@ -67,14 +68,14 @@ export function UserDetailPage() {
   const [restrictionMsg, setRestrictionMsg] = useState('');
 
   useEffect(() => {
-    if (!id) return;
+    if (!id) { navigate('/users'); return; }
     setLoading(true);
     Promise.all([
       usersApi.getById(id),
       errorsApi.list({ userId: id, limit: 10 }),
     ])
       .then(([u, e]) => { setUser(u); setErrors(e.data); })
-      .catch(() => navigate('/users'))
+      .catch(() => { setLoadError(true); })
       .finally(() => setLoading(false));
   }, [id, navigate]);
 
@@ -123,7 +124,19 @@ export function UserDetailPage() {
       </div>
     );
   }
-  if (!user) return null;
+  if (loadError || !user) {
+    return (
+      <div className="flex flex-col gap-4">
+        <button onClick={() => navigate('/users')} className="flex items-center gap-2 text-text-muted hover:text-white text-sm transition-colors w-fit">
+          <ArrowLeft size={16} /> Назад к пользователям
+        </button>
+        <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-5 py-4 text-red-400 flex items-center gap-3">
+          <AlertTriangle size={16} />
+          <span>Пользователь не найден или недоступен</span>
+        </div>
+      </div>
+    );
+  }
 
   const initials = (user.username || user.email).slice(0, 2).toUpperCase();
 

@@ -35,6 +35,9 @@ export const createAdminRouter = (redis: Redis): Router => {
   // GET /admin/users
   router.get('/users', adminController.listUsers);
 
+  // GET /admin/users/:id
+  router.get('/users/:id', adminController.getUser);
+
   // PATCH /admin/users/:id/restrictions
   router.patch('/users/:id/restrictions', validate(setRestrictionsSchema), adminController.setUserRestrictions);
 
