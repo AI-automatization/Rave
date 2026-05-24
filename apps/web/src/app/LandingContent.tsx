@@ -411,6 +411,259 @@ function BentoFeatures({ t }: { t: ReturnType<typeof useTranslations<'landing'>>
   );
 }
 
+// ── LiveWatchGlobe ───────────────────────────────────────────────────────
+const GLOBE_CONNECTIONS = [
+  { from: { x: 38, y: 28, city: 'Moskva' }, to: { x: 48, y: 38, city: 'Toshkent' }, user1: 'Bobur', user2: 'Sevara', movie: 'Inception' },
+  { from: { x: 52, y: 30, city: 'Istanbul' }, to: { x: 55, y: 32, city: 'Anqara' }, user1: 'Emir', user2: 'Ayşe', movie: 'Dark Knight' },
+  { from: { x: 20, y: 30, city: 'London' }, to: { x: 12, y: 32, city: 'New York' }, user1: 'John', user2: 'Emma', movie: 'Interstellar' },
+  { from: { x: 78, y: 28, city: 'Tokyo' }, to: { x: 74, y: 30, city: 'Seoul' }, user1: 'Yuki', user2: 'Min', movie: 'Parasite' },
+  { from: { x: 45, y: 38, city: 'Dubai' }, to: { x: 38, y: 28, city: 'Moskva' }, user1: 'Ali', user2: 'Dmitry', movie: 'Dune' },
+];
+
+function LiveWatchGlobe() {
+  const t = useTranslations('landing');
+  const [activeConnection, setActiveConnection] = useState(0);
+  const [showTooltip, setShowTooltip] = useState(false);
+  const [globeDots, setGlobeDots] = useState<{ cx: number; cy: number; r: number }[]>([]);
+
+  useEffect(() => {
+    const dots: { cx: number; cy: number; r: number }[] = [];
+    const seed = [
+      ...Array.from({ length: 18 }, () => ({ cx: 35 + Math.random() * 15, cy: 22 + Math.random() * 14, r: 0.4 + Math.random() * 0.3 })),
+      ...Array.from({ length: 25 }, () => ({ cx: 50 + Math.random() * 30, cy: 20 + Math.random() * 20, r: 0.4 + Math.random() * 0.3 })),
+      ...Array.from({ length: 15 }, () => ({ cx: 38 + Math.random() * 12, cy: 38 + Math.random() * 20, r: 0.4 + Math.random() * 0.3 })),
+      ...Array.from({ length: 20 }, () => ({ cx: 5 + Math.random() * 20, cy: 20 + Math.random() * 18, r: 0.4 + Math.random() * 0.3 })),
+      ...Array.from({ length: 12 }, () => ({ cx: 15 + Math.random() * 10, cy: 42 + Math.random() * 18, r: 0.4 + Math.random() * 0.3 })),
+      ...Array.from({ length: 8 }, () => ({ cx: 75 + Math.random() * 12, cy: 52 + Math.random() * 10, r: 0.4 + Math.random() * 0.3 })),
+    ];
+    seed.forEach(d => {
+      const dx = d.cx - 50;
+      const dy = d.cy - 40;
+      if (Math.sqrt(dx * dx + dy * dy) < 38) dots.push(d);
+    });
+    setGlobeDots(dots);
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setShowTooltip(false);
+      setTimeout(() => {
+        setActiveConnection(prev => (prev + 1) % GLOBE_CONNECTIONS.length);
+        setShowTooltip(true);
+      }, 600);
+    }, 4500);
+    setShowTooltip(true);
+    return () => clearInterval(interval);
+  }, []);
+
+  const conn = GLOBE_CONNECTIONS[activeConnection];
+
+  const cities = [
+    { x: 38, y: 28, name: 'Moskva' },
+    { x: 48, y: 38, name: 'Toshkent' },
+    { x: 52, y: 30, name: 'Istanbul' },
+    { x: 20, y: 30, name: 'London' },
+    { x: 12, y: 32, name: 'New York' },
+    { x: 78, y: 28, name: 'Tokyo' },
+    { x: 74, y: 30, name: 'Seoul' },
+    { x: 55, y: 32, name: 'Anqara' },
+    { x: 45, y: 38, name: 'Dubai' },
+  ];
+
+  const arcPath = (x1: number, y1: number, x2: number, y2: number) => {
+    const mx = (x1 + x2) / 2;
+    const my = Math.min(y1, y2) - 8 - Math.abs(x2 - x1) * 0.15;
+    return `M ${x1} ${y1} Q ${mx} ${my} ${x2} ${y2}`;
+  };
+
+  return (
+    <section className="py-24 px-4 bg-[#0A0A0F] relative overflow-hidden" aria-label="Global watch">
+      {/* Background glow */}
+      <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+        <motion.div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full blur-[150px]"
+          style={{ background: 'radial-gradient(circle, rgba(123,114,248,0.08) 0%, transparent 60%)' }}
+          animate={{ scale: [0.9, 1.1, 0.9], opacity: [0.4, 0.7, 0.4] }}
+          transition={{ repeat: Infinity, duration: 8, ease: 'easeInOut' }}
+        />
+      </div>
+
+      <div className="max-w-6xl mx-auto relative z-10">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+          className="text-center mb-12"
+        >
+          <span className="text-[#7B72F8] text-xs uppercase tracking-[0.2em] font-semibold">{t('globeTag')}</span>
+          <h2 className="text-4xl md:text-5xl font-display uppercase text-white mt-3 mb-2">
+            {t('globeTitle')}{' '}
+            <span className="bg-clip-text text-transparent" style={{ backgroundImage: 'linear-gradient(135deg, #7B72F8, #a855f7)' }}>
+              {t('globeSubtitle')}
+            </span>
+          </h2>
+          <p className="text-zinc-500 max-w-md mx-auto mt-3">{t('globeDesc')}</p>
+        </motion.div>
+
+        {/* Globe */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7 }}
+          className="relative max-w-2xl mx-auto"
+        >
+          <svg viewBox="0 0 100 80" className="w-full" aria-hidden="true">
+            {/* Globe circle background */}
+            <defs>
+              <radialGradient id="globe-bg" cx="50%" cy="40%" r="50%">
+                <stop offset="0%" stopColor="rgba(123,114,248,0.06)" />
+                <stop offset="70%" stopColor="rgba(123,114,248,0.02)" />
+                <stop offset="100%" stopColor="transparent" />
+              </radialGradient>
+              <radialGradient id="globe-edge" cx="50%" cy="50%" r="50%">
+                <stop offset="85%" stopColor="transparent" />
+                <stop offset="100%" stopColor="rgba(123,114,248,0.1)" />
+              </radialGradient>
+              <linearGradient id="arc-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#7B72F8" />
+                <stop offset="50%" stopColor="#a855f7" />
+                <stop offset="100%" stopColor="#7B72F8" />
+              </linearGradient>
+            </defs>
+
+            {/* Globe background circle */}
+            <circle cx="50" cy="40" r="36" fill="url(#globe-bg)" stroke="rgba(123,114,248,0.12)" strokeWidth="0.3" />
+            <circle cx="50" cy="40" r="36" fill="url(#globe-edge)" />
+
+            {/* Grid lines (latitude/longitude) */}
+            {[20, 30, 40, 50, 60].map(y => (
+              <ellipse key={`lat-${y}`} cx="50" cy="40" rx={36 - Math.abs(y - 40) * 0.6} ry={0.3}
+                transform={`translate(0, ${y - 40})`}
+                fill="none" stroke="rgba(123,114,248,0.06)" strokeWidth="0.15" />
+            ))}
+            {[30, 40, 50, 60, 70].map(x => (
+              <line key={`lon-${x}`} x1={x} y1="6" x2={x} y2="74"
+                stroke="rgba(123,114,248,0.04)" strokeWidth="0.15" />
+            ))}
+
+            {/* Continent dots */}
+            {globeDots.map((dot, i) => (
+              <circle key={i} cx={dot.cx} cy={dot.cy} r={dot.r}
+                fill="rgba(123,114,248,0.25)" />
+            ))}
+
+            {/* City dots */}
+            {cities.map((city, i) => (
+              <g key={city.name}>
+                {/* Outer pulse ring */}
+                <circle cx={city.x} cy={city.y} r="1.5"
+                  fill="none" stroke="rgba(123,114,248,0.3)" strokeWidth="0.15">
+                  <animate attributeName="r" values="1.5;3;1.5" dur={`${2 + i * 0.3}s`} repeatCount="indefinite" />
+                  <animate attributeName="opacity" values="0.6;0;0.6" dur={`${2 + i * 0.3}s`} repeatCount="indefinite" />
+                </circle>
+                {/* City dot */}
+                <circle cx={city.x} cy={city.y} r="0.8"
+                  fill="#7B72F8">
+                  <animate attributeName="r" values="0.6;0.9;0.6" dur="2s" begin={`${i * 0.2}s`} repeatCount="indefinite" />
+                </circle>
+                {/* City label */}
+                <text x={city.x} y={city.y - 2.5} textAnchor="middle"
+                  fill="rgba(123,114,248,0.5)" fontSize="1.8" fontFamily="sans-serif" fontWeight="600">
+                  {city.name}
+                </text>
+              </g>
+            ))}
+
+            {/* Active connection arc */}
+            <path
+              d={arcPath(conn.from.x, conn.from.y, conn.to.x, conn.to.y)}
+              fill="none" stroke="url(#arc-gradient)" strokeWidth="0.4" strokeLinecap="round"
+              opacity="0.8">
+              <animate attributeName="stroke-dasharray" values="0,200;60,200;0,200" dur="4.5s" repeatCount="indefinite" />
+            </path>
+
+            {/* Signal dot moving along arc */}
+            <circle r="0.7" fill="#a855f7">
+              <animateMotion
+                path={arcPath(conn.from.x, conn.from.y, conn.to.x, conn.to.y)}
+                dur="2s" repeatCount="indefinite" />
+              <animate attributeName="r" values="0.5;1;0.5" dur="2s" repeatCount="indefinite" />
+            </circle>
+
+            {/* Active city highlights */}
+            <circle cx={conn.from.x} cy={conn.from.y} r="1.2" fill="none" stroke="#7B72F8" strokeWidth="0.3">
+              <animate attributeName="r" values="1.2;2.5;1.2" dur="1.5s" repeatCount="indefinite" />
+              <animate attributeName="opacity" values="1;0;1" dur="1.5s" repeatCount="indefinite" />
+            </circle>
+            <circle cx={conn.to.x} cy={conn.to.y} r="1.2" fill="none" stroke="#a855f7" strokeWidth="0.3">
+              <animate attributeName="r" values="1.2;2.5;1.2" dur="1.5s" repeatCount="indefinite" />
+              <animate attributeName="opacity" values="1;0;1" dur="1.5s" repeatCount="indefinite" />
+            </circle>
+          </svg>
+
+          {/* Tooltip card */}
+          <AnimatePresence mode="wait">
+            {showTooltip && (
+              <motion.div
+                key={activeConnection}
+                initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -10, scale: 0.9 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 22 }}
+                className="absolute bottom-4 left-1/2 -translate-x-1/2 px-5 py-3 rounded-xl border border-zinc-800/60 backdrop-blur-md shadow-[0_0_40px_rgba(123,114,248,0.1)]"
+                style={{ background: 'linear-gradient(145deg, rgba(17,17,24,0.95), rgba(13,13,22,0.98))' }}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse flex-shrink-0" />
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-white font-semibold">{conn.user1}</span>
+                    <span className="text-zinc-600">→</span>
+                    <span className="text-white font-semibold">{conn.user2}</span>
+                  </div>
+                  <div className="h-4 w-px bg-zinc-800" />
+                  <span className="text-[#7B72F8] text-xs font-medium">🎬 {conn.movie}</span>
+                </div>
+                <p className="text-zinc-600 text-[10px] mt-1 text-center">
+                  {conn.from.city} → {conn.to.city}
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+
+        {/* Stats below globe */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="flex justify-center gap-12 mt-8"
+        >
+          {[
+            { val: t('globeStat1'), label: t('globeStat1Label') },
+            { val: t('globeStat2'), label: t('globeStat2Label') },
+          ].map(({ val, label }) => (
+            <div key={label} className="text-center group cursor-default">
+              <motion.p
+                className="text-3xl font-display font-bold bg-clip-text text-transparent"
+                style={{ backgroundImage: 'linear-gradient(135deg, #7B72F8, #a855f7)' }}
+                whileHover={{ scale: 1.1 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+              >
+                {val}
+              </motion.p>
+              <p className="text-zinc-600 text-xs uppercase tracking-widest mt-1 group-hover:text-zinc-400 transition-colors">{label}</p>
+            </div>
+          ))}
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
 // ── WhyWeWatch ───────────────────────────────────────────────────────────
 function WhyWeWatch() {
   const t = useTranslations('landing');
@@ -1420,6 +1673,9 @@ export function LandingContent() {
 
         {/* ── BENTO FEATURES ── */}
         <BentoFeatures t={t} />
+
+        {/* ── LIVE WATCH GLOBE ── */}
+        <LiveWatchGlobe />
 
         {/* ── WHY WEWATCH ── */}
         <WhyWeWatch />
