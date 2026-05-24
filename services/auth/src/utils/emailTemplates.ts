@@ -1,5 +1,22 @@
 // WeWatch — Branded Email Templates
-// Logo is pure HTML/CSS — no external images, works in Gmail/Outlook/Apple Mail.
+// Logo is embedded via CID attachment (inline) — always visible in Gmail/Outlook/Apple Mail,
+// no "Show images" click needed.
+
+export const LOGO_CID = 'wewatch-logo@wewatch.uz';
+
+// SVG inline content — attached to every email as multipart/related image
+export const LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 56" fill="none">
+  <defs>
+    <linearGradient id="wG" x1="4" y1="6" x2="44" y2="50" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#A78BFA"/>
+      <stop offset="100%" stop-color="#7C3AED"/>
+    </linearGradient>
+  </defs>
+  <path d="M 50,9 L 35,47 L 28,28 L 18,9" stroke="#5B21B6" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 6,9 L 21,47 L 28,28 L 40,9" stroke="url(#wG)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="68" y="39" font-family="Arial,Helvetica,sans-serif" font-size="28" fill="rgba(255,255,255,0.50)" font-weight="300">we</text>
+  <text x="103" y="39" font-family="Arial,Helvetica,sans-serif" font-size="28" fill="#FFFFFF" font-weight="800">Watch</text>
+</svg>`;
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const C = {
@@ -19,17 +36,10 @@ const C = {
   warn:      '#F59E0B',
 };
 
-// ── Logo: real SVG via img tag + text fallback when Gmail blocks images ───────
-// Gmail initially blocks external images. After first "Show images" click it
-// remembers and loads automatically for all future emails from this sender.
+// ── Logo: CID-embedded image (always visible, no external URL) ────────────────
 const LOGO_HTML = `
-<img src="https://admin.wewatch.uz/logo-email.svg"
-     width="168" height="49"
-     alt="weWatch"
-     style="display:block;border:0;max-width:168px;height:auto;"/>
-<div style="display:none;mso-hide:all;">
-  <span style="font-size:22px;font-weight:300;color:rgba(255,255,255,0.45);font-family:Arial,sans-serif;">we</span><span style="font-size:22px;font-weight:800;color:#FFFFFF;font-family:Arial,sans-serif;">Watch</span>
-</div>`;
+<img src="cid:${LOGO_CID}" width="168" height="49" alt="weWatch"
+     style="display:block;border:0;max-width:168px;height:auto;"/>`;
 
 // ── Base layout ───────────────────────────────────────────────────────────────
 function base(accentTop: string, body: string): string {

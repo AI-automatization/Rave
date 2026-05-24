@@ -7,7 +7,17 @@ import {
   adminLoginSelfEmail,
   adminLoginAlertEmail,
   appealDecisionEmail,
+  LOGO_CID,
+  LOGO_SVG,
 } from './emailTemplates';
+
+// CID attachment — embedded inline so logo always shows without "Show images" click
+const LOGO_ATTACHMENT = {
+  filename: 'logo.svg',
+  content: Buffer.from(LOGO_SVG),
+  cid: LOGO_CID,
+  contentType: 'image/svg+xml',
+};
 
 const transporter = nodemailer.createTransport({
   host: config.email.host,
@@ -29,6 +39,7 @@ export const emailService = {
         to,
         subject: `${code} — код подтверждения WeWatch`,
         html: verificationEmail(code),
+        attachments: [LOGO_ATTACHMENT],
       });
       logger.info('Verification email sent', { to: '[REDACTED]' });
     } catch (error) {
@@ -45,6 +56,7 @@ export const emailService = {
         to,
         subject: 'Сброс пароля — WeWatch',
         html: passwordResetEmail(resetUrl),
+        attachments: [LOGO_ATTACHMENT],
       });
       logger.info('Password reset email sent', { to: '[REDACTED]' });
     } catch (error) {
@@ -73,6 +85,7 @@ export const emailService = {
         to: opts.adminEmail,
         subject: `🔐 Вход в Admin Panel — ${time}`,
         html: adminLoginSelfEmail(emailOpts),
+        attachments: [LOGO_ATTACHMENT],
       }).then(() => undefined),
     );
 
@@ -83,6 +96,7 @@ export const emailService = {
           to: superadminEmail,
           subject: `⚠️ Admin login — ${opts.adminEmail} (${opts.role})`,
           html: adminLoginAlertEmail(emailOpts),
+          attachments: [LOGO_ATTACHMENT],
         }).then(() => undefined),
       );
     }
@@ -111,6 +125,7 @@ export const emailService = {
         to: opts.to,
         subject,
         html: appealDecisionEmail(opts),
+        attachments: [LOGO_ATTACHMENT],
       });
       logger.info('Appeal decision email sent', { to: '[REDACTED]', status: opts.status });
     } catch (error) {
