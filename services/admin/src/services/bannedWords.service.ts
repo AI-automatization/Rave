@@ -17,7 +17,7 @@ export class BannedWordsService {
     return { words, total, page: filters.page, limit: filters.limit };
   }
 
-  async addWord(word: string, category: BannedWordCategory = 'profanity') {
+  async addWord(word: string, category: BannedWordCategory = 'chat') {
     const normalized = word.toLowerCase().trim();
     const existing = await BannedWord.findOne({ word: normalized });
     if (existing) {
@@ -29,7 +29,7 @@ export class BannedWordsService {
     return BannedWord.create({ word: normalized, category });
   }
 
-  async addWordsBulk(words: string[], category: BannedWordCategory = 'profanity') {
+  async addWordsBulk(words: string[], category: BannedWordCategory = 'chat') {
     const normalized = words.map((w) => w.toLowerCase().trim()).filter(Boolean);
     const ops = normalized.map((word) => ({
       updateOne: {
