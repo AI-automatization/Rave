@@ -424,25 +424,41 @@ function LiveWatchGlobe() {
   const t = useTranslations('landing');
   const [activeConnection, setActiveConnection] = useState(0);
   const [showTooltip, setShowTooltip] = useState(false);
-  const [globeDots, setGlobeDots] = useState<{ cx: number; cy: number; r: number }[]>([]);
-
-  useEffect(() => {
-    const dots: { cx: number; cy: number; r: number }[] = [];
-    const seed = [
-      ...Array.from({ length: 18 }, () => ({ cx: 35 + Math.random() * 15, cy: 22 + Math.random() * 14, r: 0.4 + Math.random() * 0.3 })),
-      ...Array.from({ length: 25 }, () => ({ cx: 50 + Math.random() * 30, cy: 20 + Math.random() * 20, r: 0.4 + Math.random() * 0.3 })),
-      ...Array.from({ length: 15 }, () => ({ cx: 38 + Math.random() * 12, cy: 38 + Math.random() * 20, r: 0.4 + Math.random() * 0.3 })),
-      ...Array.from({ length: 20 }, () => ({ cx: 5 + Math.random() * 20, cy: 20 + Math.random() * 18, r: 0.4 + Math.random() * 0.3 })),
-      ...Array.from({ length: 12 }, () => ({ cx: 15 + Math.random() * 10, cy: 42 + Math.random() * 18, r: 0.4 + Math.random() * 0.3 })),
-      ...Array.from({ length: 8 }, () => ({ cx: 75 + Math.random() * 12, cy: 52 + Math.random() * 10, r: 0.4 + Math.random() * 0.3 })),
-    ];
-    seed.forEach(d => {
-      const dx = d.cx - 50;
-      const dy = d.cy - 40;
-      if (Math.sqrt(dx * dx + dy * dy) < 38) dots.push(d);
-    });
-    setGlobeDots(dots);
-  }, []);
+  // Continent outline paths (viewBox 0 0 100 80, center 50,40, r36)
+  const continentPaths = [
+    // North America
+    'M 16,12 L 18,10 L 21,10.5 L 23,12 L 25,14 L 26,17 L 26,20 L 25,23 L 23,25 L 21,27 L 19,29 L 17,30.5 L 16,29 L 15,26 L 14.5,23 L 14,20 L 14.5,16 L 15,14 Z',
+    // Alaska
+    'M 14,12 L 16,11 L 16,12 L 15,13 L 13.5,13 Z',
+    // Central America
+    'M 17,30.5 L 18,32 L 19,34 L 18,35.5 L 17,34 L 16.5,32 Z',
+    // South America
+    'M 19,36 L 21,35 L 23,36 L 25,38 L 26,41 L 26,45 L 25,49 L 24,53 L 22,56 L 20,57 L 19,55 L 18,51 L 17.5,47 L 17.5,43 L 18,40 Z',
+    // Europe
+    'M 33,20 L 35,18 L 37,17.5 L 39,18 L 41,17.5 L 43,18 L 44,20 L 44.5,22 L 43.5,24 L 44.5,25.5 L 43,27 L 41,28 L 39,27.5 L 37,28 L 35,27 L 33.5,25.5 L 32.5,23 L 32,21.5 Z',
+    // Scandinavia
+    'M 35,14 L 37,12.5 L 38.5,14 L 38,17 L 36.5,17.5 L 35.5,16.5 L 35,15 Z',
+    // UK
+    'M 30,20 L 31.5,18.5 L 32.5,19.5 L 32,21 L 30.5,21 Z',
+    // Asia (mainland)
+    'M 44.5,17 L 48,15 L 52,13 L 57,11 L 62,10.5 L 67,12 L 71,14 L 74,17 L 76,20 L 77,24 L 75,27 L 73,29 L 70,31 L 67,33 L 63,34 L 59,35 L 55,34 L 52,32 L 49,30 L 47,27 L 45.5,24 L 44.5,20 Z',
+    // India
+    'M 56,34 L 58,36 L 59,39 L 58.5,42 L 57,41 L 55.5,38 L 55.5,35 Z',
+    // SE Asia
+    'M 67,33 L 69,35 L 71,37 L 70,39 L 68,38 L 66.5,36 Z',
+    // Korea
+    'M 74,27 L 75,25 L 76,27 L 75.5,29 L 74.5,28.5 Z',
+    // Japan
+    'M 78,19 L 79.5,17 L 80,19 L 79.5,22 L 78.5,23 L 78,21 Z',
+    // Africa
+    'M 35,29 L 38,28.5 L 41,29.5 L 43,31 L 44.5,33 L 46,36 L 47,40 L 47,44 L 46,48 L 44.5,51 L 42.5,53 L 40.5,54 L 39,53 L 37,51 L 36,48 L 35,44 L 34,40 L 34,36 L 34,33 L 34.5,31 Z',
+    // Madagascar
+    'M 48,47 L 49,45.5 L 49.5,48 L 48.5,49.5 Z',
+    // Australia
+    'M 69,46 L 72,44 L 75,43.5 L 78,45 L 79,48 L 78,51 L 75,52 L 72,52 L 70,50.5 L 69,48 Z',
+    // New Zealand
+    'M 81,51 L 82,49.5 L 82.5,51.5 L 82,53 L 81,52.5 Z',
+  ];
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -532,28 +548,35 @@ function LiveWatchGlobe() {
                 <stop offset="50%" stopColor="#a855f7" />
                 <stop offset="100%" stopColor="#7B72F8" />
               </linearGradient>
+              <clipPath id="globe-clip">
+                <circle cx="50" cy="40" r="36" />
+              </clipPath>
             </defs>
 
             {/* Globe background circle */}
             <circle cx="50" cy="40" r="36" fill="url(#globe-bg)" stroke="rgba(123,114,248,0.12)" strokeWidth="0.3" />
             <circle cx="50" cy="40" r="36" fill="url(#globe-edge)" />
 
-            {/* Grid lines (latitude/longitude) */}
-            {[20, 30, 40, 50, 60].map(y => (
-              <ellipse key={`lat-${y}`} cx="50" cy="40" rx={36 - Math.abs(y - 40) * 0.6} ry={0.3}
-                transform={`translate(0, ${y - 40})`}
-                fill="none" stroke="rgba(123,114,248,0.06)" strokeWidth="0.15" />
-            ))}
-            {[30, 40, 50, 60, 70].map(x => (
-              <line key={`lon-${x}`} x1={x} y1="6" x2={x} y2="74"
-                stroke="rgba(123,114,248,0.04)" strokeWidth="0.15" />
-            ))}
+            {/* Grid + continents clipped to globe circle */}
+            <g clipPath="url(#globe-clip)">
+              {/* Grid lines (latitude/longitude) */}
+              {[20, 30, 40, 50, 60].map(y => (
+                <ellipse key={`lat-${y}`} cx="50" cy="40" rx={36 - Math.abs(y - 40) * 0.6} ry={0.3}
+                  transform={`translate(0, ${y - 40})`}
+                  fill="none" stroke="rgba(123,114,248,0.06)" strokeWidth="0.15" />
+              ))}
+              {[30, 40, 50, 60, 70].map(x => (
+                <line key={`lon-${x}`} x1={x} y1="4" x2={x} y2="76"
+                  stroke="rgba(123,114,248,0.04)" strokeWidth="0.15" />
+              ))}
 
-            {/* Continent dots */}
-            {globeDots.map((dot, i) => (
-              <circle key={i} cx={dot.cx} cy={dot.cy} r={dot.r}
-                fill="rgba(123,114,248,0.25)" />
-            ))}
+              {/* Continent outlines */}
+              {continentPaths.map((d, i) => (
+                <path key={`continent-${i}`} d={d}
+                  fill="rgba(123,114,248,0.06)" stroke="rgba(123,114,248,0.2)" strokeWidth="0.25"
+                  strokeLinejoin="round" strokeLinecap="round" />
+              ))}
+            </g>
 
             {/* City dots */}
             {cities.map((city, i) => (
