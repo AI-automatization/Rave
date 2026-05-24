@@ -89,8 +89,8 @@
 3. Fix bo'lgach → shu yerdan O'CHIRISH → docs/Done.md ga KO'CHIRISH
 4. Prioritet: P0=kritik, P1=muhim, P2=o'rta, P3=past
 5. Sprint: S1=hozir, S2=keyingi hafta, S3=keyingi sprint, S4-5=keyin
-6. Oxirgi T-raqam: S→102, E→133, C→016
-7. Yangilangan: 2026-05-23
+6. Oxirgi T-raqam: S→102, E→134, C→016
+7. Yangilangan: 2026-05-24
 ```
 
 ---
@@ -380,6 +380,26 @@
 - **Qilish kerak:**
   - [ ] Barcha hardcoded hex → `colors.*` import
   - [ ] Fayl: `apps/mobile/src/screens/home/VideoPlayerScreen.styles.ts`
+
+---
+
+### T-E134 | P1 | [WEB] | Branding: CineSync → WeWatch — barcha web fayllar
+
+- **Mas'ul:** pending[Emirhan]
+- **Beruvchi:** Emirhan
+- **Yaratilgan:** 2026-05-24 12:00
+- **Holat:** 🔄 Bajarilmoqda
+- **Tavsiya model:** sonnet
+- **Model sababi:** 15 fayl, sodda find-replace, branding o'zgartirish
+- **Sabab:** Web saytda CineSync nomi qolgan — WeWatch ga o'zgartirish kerak
+- **Qilish kerak:**
+  - [ ] Metadata (layout.tsx, page.tsx, features, pricing) — CineSync → WeWatch
+  - [ ] messages/*.json — CineSync → WeWatch
+  - [ ] manifest.json, robots.txt — CineSync/cinesync → WeWatch/wewatch
+  - [ ] locale.store.ts — cookie nomi cinesync-locale → wewatch-locale
+  - [ ] Kommentariyalar (.env.example, types, test fayllar)
+  - [ ] LandingNav logo text — CINESYNC → WEWATCH
+  - [ ] Footer logo text — o'zgartirish
 
 ---
 
