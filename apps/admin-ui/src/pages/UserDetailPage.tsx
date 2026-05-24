@@ -70,12 +70,12 @@ export function UserDetailPage() {
   useEffect(() => {
     if (!id) { navigate('/users'); return; }
     setLoading(true);
-    Promise.all([
-      usersApi.getById(id),
-      errorsApi.list({ userId: id, limit: 10 }),
-    ])
-      .then(([u, e]) => { setUser(u); setErrors(e.data); })
-      .catch(() => { setLoadError(true); })
+    usersApi.getById(id)
+      .then((u) => {
+        setUser(u);
+        errorsApi.list({ userId: id, limit: 10 }).then((e) => setErrors(e.data)).catch(() => {});
+      })
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
   }, [id, navigate]);
 
