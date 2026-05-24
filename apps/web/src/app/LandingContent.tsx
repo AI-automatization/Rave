@@ -3,10 +3,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence, useScroll, useTransform, useReducedMotion, type Variants } from 'framer-motion';
 import {
-  FaPlay, FaUsers, FaFire, FaComment, FaApple,
-  FaChevronRight, FaCheck, FaLink, FaHeart, FaUserFriends, FaGlobe,
+  FaPlay, FaUsers, FaComment, FaApple,
+  FaChevronRight, FaCheck, FaLink, FaHeart, FaUserFriends, FaGlobe, FaShieldAlt,
 } from 'react-icons/fa';
-import { GiCrossedSwords } from 'react-icons/gi';
 import { useTranslations } from 'next-intl';
 import { LandingNav } from '@/components/common/LandingNav';
 import { Footer } from '@/components/common/Footer';
@@ -43,11 +42,6 @@ const HERO_BUBBLES = [
   { top: '65%', right: '5%', label: 'Akbar',   color: '#f43f5e', delay: 1.5 },
 ] as const;
 
-const MARQUEE_ITEMS = [
-  'YouTube', 'VK', 'Rutube', 'Uzmove', 'Cinerama',
-  'YouTube', 'VK', 'Rutube', 'Uzmove', 'Cinerama',
-];
-
 
 
 // ── Noise overlay (static, не перерисовывается) ────────────────────────────
@@ -64,24 +58,77 @@ function NoiseOverlay() {
 }
 
 // ── Marquee ────────────────────────────────────────────────────────────────
-function Marquee() {
+function MarqueeItem({ name, color }: { name: string; color: string }) {
   return (
-    <div className="relative overflow-hidden py-5 border-y border-zinc-800/50 bg-[#0D0D16]/80 backdrop-blur-sm" role="marquee" aria-label="Поддерживаемые платформы">
-      <div className="absolute left-0 top-0 h-full w-20 z-10 bg-gradient-to-r from-[#0D0D16] to-transparent pointer-events-none" aria-hidden="true" />
-      <div className="absolute right-0 top-0 h-full w-20 z-10 bg-gradient-to-l from-[#0D0D16] to-transparent pointer-events-none" aria-hidden="true" />
-      <motion.div
-        className="marquee-track flex gap-10 whitespace-nowrap will-change-transform"
-        animate={{ x: ['0%', '-50%'] }}
-        transition={{ repeat: Infinity, duration: 22, ease: 'linear' }}
+    <motion.div
+      className="group relative flex items-center gap-3 px-6 py-2.5 rounded-xl cursor-default flex-shrink-0 transition-colors duration-300"
+      style={{ background: 'transparent' }}
+      whileHover={{
+        background: `${color}12`,
+        scale: 1.08,
+        y: -2,
+      }}
+      transition={{ type: 'spring', stiffness: 400, damping: 22 }}
+    >
+      {/* Glow dot */}
+      <motion.span
+        className="w-2 h-2 rounded-full flex-shrink-0"
+        style={{ background: color, boxShadow: `0 0 6px ${color}60` }}
+        whileHover={{ scale: 1.5, boxShadow: `0 0 14px ${color}` }}
         aria-hidden="true"
+      />
+      {/* Platform name */}
+      <span
+        className="text-sm font-semibold tracking-wide transition-colors duration-300 group-hover:text-white"
+        style={{ color: 'rgba(161,161,170,0.7)' }}
       >
-        {MARQUEE_ITEMS.map((item, i) => (
-          <span key={i} className="flex items-center gap-2.5 text-sm text-zinc-500 font-medium tracking-wide flex-shrink-0">
-            <span className="w-1 h-1 rounded-full bg-[#7B72F8]/60 flex-shrink-0" aria-hidden="true" />
-            {item}
-          </span>
-        ))}
-      </motion.div>
+        {name}
+      </span>
+      {/* Hover underline */}
+      <motion.div
+        className="absolute bottom-1 left-6 right-6 h-px opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+        style={{ background: `linear-gradient(90deg, transparent, ${color}, transparent)` }}
+        aria-hidden="true"
+      />
+    </motion.div>
+  );
+}
+
+function Marquee() {
+  const items = [
+    { name: 'YouTube', color: '#FF4444' },
+    { name: 'VK', color: '#2787F5' },
+    { name: 'Rutube', color: '#E53935' },
+    { name: 'Uzmove', color: '#22d3ee' },
+    { name: 'Cinerama', color: '#a855f7' },
+  ];
+
+  const renderSet = () =>
+    items.map((item, i) => <MarqueeItem key={i} name={item.name} color={item.color} />);
+
+  return (
+    <div className="relative overflow-hidden py-6 border-y border-zinc-800/40 bg-[#0D0D16]/80 backdrop-blur-sm" role="marquee" aria-label="Поддерживаемые платформы">
+      {/* Edge fade gradients */}
+      <div className="absolute left-0 top-0 h-full w-24 z-10 bg-gradient-to-r from-[#0D0D16] to-transparent pointer-events-none" aria-hidden="true" />
+      <div className="absolute right-0 top-0 h-full w-24 z-10 bg-gradient-to-l from-[#0D0D16] to-transparent pointer-events-none" aria-hidden="true" />
+      {/* Subtle top glow line */}
+      <div className="absolute top-0 left-0 right-0 h-px opacity-30" style={{ background: 'linear-gradient(90deg, transparent, #7B72F8, transparent)' }} aria-hidden="true" />
+
+      {/* CSS animation marquee — two identical tracks side by side */}
+      <div className="flex w-max animate-marquee-scroll" aria-hidden="true">
+        {/* Track 1 */}
+        <div className="flex gap-2 pr-2">
+          {renderSet()}
+          {renderSet()}
+          {renderSet()}
+        </div>
+        {/* Track 2 — identical copy for seamless loop */}
+        <div className="flex gap-2 pr-2">
+          {renderSet()}
+          {renderSet()}
+          {renderSet()}
+        </div>
+      </div>
     </div>
   );
 }
@@ -112,11 +159,13 @@ function useCountUp(end: number, duration = 1.8) {
 // ── Stats Bar ────────────────────────────────────────────────────────────
 function StatsBar() {
   const t = useTranslations('landing');
+  const { count, setHasStarted } = useCountUp(150, 2.2);
+
   const STATS = [
-    { value: '∞',   label: t('statsLabel1'), numeric: false },
-    { value: '4K',  label: t('statsLabel2'), numeric: false },
-    { value: '±2s', label: t('statsLabel3'), numeric: false },
-    { value: '0',   label: t('statsLabel4'), numeric: true, numVal: 0 },
+    { value: '∞',   label: t('statsLabel1') },
+    { value: '4K',  label: t('statsLabel2') },
+    { value: '±2s', label: t('statsLabel3') },
+    { value: 'counter', label: t('statsLabel4') },
   ];
   return (
     <section className="py-14 px-4 relative overflow-hidden" aria-label="Статистика">
@@ -126,17 +175,27 @@ function StatsBar() {
           {STATS.map(({ value, label }, i) => (
             <motion.div key={label} initial={{ opacity: 0, y: 20, scale: 0.95 }} whileInView={{ opacity: 1, y: 0, scale: 1 }}
               viewport={{ once: true }} transition={{ ...springConfig, delay: i * 0.06 }}
-              className="flex flex-col items-center justify-center py-10 px-6 bg-[#0D0D16]/90 relative group cursor-default"
-              whileHover={{ backgroundColor: 'rgba(123,114,248,0.06)' }}>
+              className="flex flex-col items-center justify-center py-10 px-6 bg-[#0D0D16]/90 relative group cursor-default hover:bg-[#7B72F8]/[0.04] transition-colors duration-300"
+              onViewportEnter={value === 'counter' ? () => setHasStarted(true) : undefined}>
+              {/* Top glow line on hover */}
+              <div className="absolute top-0 left-0 right-0 h-px opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                style={{ background: 'linear-gradient(90deg, transparent, #7B72F8, transparent)' }} aria-hidden="true" />
+              {/* Radial glow */}
               <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
-                style={{ background: 'radial-gradient(circle at 50% 50%, rgba(123,114,248,0.08) 0%, transparent 70%)' }} aria-hidden="true" />
+                style={{ background: 'radial-gradient(circle at 50% 30%, rgba(123,114,248,0.12) 0%, transparent 60%)' }} aria-hidden="true" />
+              {/* Bottom gradient */}
+              <div className="absolute bottom-0 left-[20%] right-[20%] h-12 opacity-0 group-hover:opacity-30 transition-opacity duration-500 blur-[25px] pointer-events-none bg-[#7B72F8]" aria-hidden="true" />
               <dt className="sr-only">{label}</dt>
-              <motion.dd className="text-4xl md:text-5xl font-display font-bold bg-clip-text text-transparent mb-1"
+              <motion.dd className="text-4xl md:text-5xl font-display font-bold bg-clip-text text-transparent mb-1 relative"
                 style={{ backgroundImage: 'linear-gradient(135deg, #7B72F8, #a855f7)' }}
-                whileHover={{ scale: 1.08 }} transition={{ type: 'spring', stiffness: 400, damping: 15 }}>
-                {value}
+                initial={{ scale: 0, opacity: 0 }}
+                whileInView={{ scale: 1, opacity: 1 }}
+                viewport={{ once: true }}
+                whileHover={{ scale: 1.15, textShadow: '0 0 30px rgba(123,114,248,0.6)' }}
+                transition={{ type: 'spring', stiffness: 400, damping: 15 }}>
+                {value === 'counter' ? `${count}+` : value}
               </motion.dd>
-              <span className="text-xs text-zinc-500 uppercase tracking-widest font-medium group-hover:text-zinc-400 transition-colors duration-200">{label}</span>
+              <span className="text-xs text-zinc-500 uppercase tracking-widest font-medium group-hover:text-zinc-400 group-hover:tracking-[0.2em] transition-all duration-300">{label}</span>
             </motion.div>
           ))}
         </dl>
@@ -200,79 +259,149 @@ function BentoFeatures({ t }: { t: ReturnType<typeof useTranslations<'landing'>>
           className="grid grid-cols-1 md:grid-cols-3 gap-4 auto-rows-[200px]">
 
           {/* [1] Large — Watch Together (2 cols × 2 rows) */}
-          <motion.div variants={fadeUpScale} className="md:col-span-2 md:row-span-2">
+          <motion.div variants={fadeUpScale} className="md:col-span-2 md:row-span-2" whileHover={{ y: -6, transition: { type: 'spring', stiffness: 300, damping: 20 } }}>
             <GlassCard className="h-full p-8 flex flex-col justify-between" glowColor="#7B72F8">
-              <div>
-                <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5"
-                  style={{ background: 'rgba(123,114,248,0.14)', border: '1px solid rgba(123,114,248,0.28)' }}>
+              <div className="relative">
+                <motion.div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5 relative"
+                  style={{ background: 'rgba(123,114,248,0.14)', border: '1px solid rgba(123,114,248,0.28)' }}
+                  whileHover={{ scale: 1.12, rotate: 5, boxShadow: '0 0 24px rgba(123,114,248,0.4)' }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 15 }}>
                   <FaUsers size={24} className="text-[#7B72F8]" aria-hidden="true" />
-                </div>
+                  {/* Pulse ring */}
+                  <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                    style={{ boxShadow: '0 0 0 3px rgba(123,114,248,0.15), 0 0 0 7px rgba(123,114,248,0.06)' }} />
+                </motion.div>
                 <h3 className="font-display text-2xl uppercase text-white mb-3">{t('f1title')}</h3>
                 <p className="text-zinc-400 leading-relaxed max-w-sm">{t('f1desc')}</p>
+                {/* Floating connection lines */}
+                <div className="absolute top-4 right-4 opacity-30 group-hover:opacity-60 transition-opacity duration-500">
+                  <motion.div
+                    className="w-16 h-16"
+                    animate={{ rotate: 360 }}
+                    transition={{ repeat: Infinity, duration: 20, ease: 'linear' }}>
+                    <svg viewBox="0 0 64 64" fill="none">
+                      <circle cx="12" cy="12" r="3" fill="#7B72F8" />
+                      <circle cx="52" cy="12" r="3" fill="#a855f7" />
+                      <circle cx="32" cy="52" r="3" fill="#6B63E8" />
+                      <line x1="12" y1="12" x2="52" y2="12" stroke="#7B72F8" strokeWidth="0.5" strokeDasharray="4 2" />
+                      <line x1="52" y1="12" x2="32" y2="52" stroke="#a855f7" strokeWidth="0.5" strokeDasharray="4 2" />
+                      <line x1="32" y1="52" x2="12" y2="12" stroke="#6B63E8" strokeWidth="0.5" strokeDasharray="4 2" />
+                    </svg>
+                  </motion.div>
+                </div>
               </div>
-              {/* Mini sync visual */}
-              <div className="flex gap-2 mt-4">
+              {/* Animated sync visual */}
+              <div className="flex gap-3 mt-6">
                 {[['S', '#7B72F8', 58], ['N', '#a855f7', 58], ['B', '#6B63E8', 57]].map(([l, c, p], i) => (
-                  <div key={String(l)} className="flex-1">
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <div className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold text-white flex-shrink-0"
-                        style={{ background: `${String(c)}22`, border: `1px solid ${String(c)}44` }}>{String(l)}</div>
-                      <span className="text-[10px] text-zinc-600">{String(p)}%</span>
+                  <motion.div key={String(l)} className="flex-1"
+                    initial={{ opacity: 0, y: 10 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: i * 0.12, type: 'spring', stiffness: 300, damping: 22 }}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <motion.div
+                        className="w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0"
+                        style={{ background: `${String(c)}25`, border: `1.5px solid ${String(c)}55`, boxShadow: `0 0 12px ${String(c)}30` }}
+                        animate={{ scale: [1, 1.1, 1], boxShadow: [`0 0 8px ${String(c)}20`, `0 0 16px ${String(c)}50`, `0 0 8px ${String(c)}20`] }}
+                        transition={{ repeat: Infinity, duration: 2.5, delay: i * 0.4 }}>
+                        {String(l)}
+                      </motion.div>
+                      <div className="flex flex-col">
+                        <span className="text-[10px] text-zinc-400 font-medium">{String(p)}%</span>
+                        <motion.div className="w-1.5 h-1.5 rounded-full bg-green-400"
+                          animate={{ opacity: [0.4, 1, 0.4] }}
+                          transition={{ repeat: Infinity, duration: 1.5, delay: i * 0.3 }} />
+                      </div>
                     </div>
-                    <div className="h-1 bg-zinc-800 rounded-full overflow-hidden">
+                    <div className="h-1.5 bg-zinc-800/80 rounded-full overflow-hidden">
                       <motion.div className="h-full rounded-full" initial={{ width: 0 }}
                         whileInView={{ width: `${Number(p) + i}%` }} viewport={{ once: true }}
-                        transition={{ duration: 1, delay: i * 0.15, ease: 'easeOut' }}
-                        style={{ background: `linear-gradient(90deg, ${String(c)}, ${String(c)}cc)` }} />
+                        transition={{ duration: 1.2, delay: i * 0.2, ease: 'easeOut' }}
+                        style={{ background: `linear-gradient(90deg, ${String(c)}, ${String(c)}cc)`, boxShadow: `0 0 8px ${String(c)}60` }} />
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
             </GlassCard>
           </motion.div>
 
           {/* [2] Real-time Chat (1 col × 1 row) */}
-          <motion.div variants={fadeUpScale}>
-            <GlassCard className="h-full p-6" glowColor="#22d3ee">
-              <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-4"
-                style={{ background: 'rgba(34,211,238,0.10)', border: '1px solid rgba(34,211,238,0.22)' }}>
+          <motion.div variants={fadeUpScale} whileHover={{ y: -6, transition: { type: 'spring', stiffness: 300, damping: 20 } }}>
+            <GlassCard className="h-full p-6 relative overflow-hidden" glowColor="#22d3ee">
+              <motion.div className="w-11 h-11 rounded-xl flex items-center justify-center mb-4 relative"
+                style={{ background: 'rgba(34,211,238,0.10)', border: '1px solid rgba(34,211,238,0.22)' }}
+                whileHover={{ scale: 1.12, rotate: -5, boxShadow: '0 0 20px rgba(34,211,238,0.35)' }}
+                transition={{ type: 'spring', stiffness: 400, damping: 15 }}>
                 <FaComment size={18} className="text-[#22d3ee]" aria-hidden="true" />
-              </div>
+              </motion.div>
               <h3 className="font-display text-lg uppercase text-white mb-1.5">{t('f5title')}</h3>
               <p className="text-zinc-500 text-sm leading-relaxed">{t('f5desc')}</p>
+              {/* Floating chat dots */}
+              <div className="absolute bottom-3 right-3 flex gap-1 opacity-20 group-hover:opacity-50 transition-opacity duration-500" aria-hidden="true">
+                <motion.div className="w-1.5 h-1.5 rounded-full bg-[#22d3ee]"
+                  animate={{ y: [0, -4, 0] }} transition={{ repeat: Infinity, duration: 1.2, delay: 0 }} />
+                <motion.div className="w-1.5 h-1.5 rounded-full bg-[#22d3ee]"
+                  animate={{ y: [0, -4, 0] }} transition={{ repeat: Infinity, duration: 1.2, delay: 0.2 }} />
+                <motion.div className="w-1.5 h-1.5 rounded-full bg-[#22d3ee]"
+                  animate={{ y: [0, -4, 0] }} transition={{ repeat: Infinity, duration: 1.2, delay: 0.4 }} />
+              </div>
             </GlassCard>
           </motion.div>
 
           {/* [3] Built-in Browser (1 col × 1 row) */}
-          <motion.div variants={fadeUpScale}>
-            <GlassCard className="h-full p-6" glowColor="#7B72F8">
-              <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-4"
-                style={{ background: 'rgba(123,114,248,0.14)', border: '1px solid rgba(123,114,248,0.28)' }}>
+          <motion.div variants={fadeUpScale} whileHover={{ y: -6, transition: { type: 'spring', stiffness: 300, damping: 20 } }}>
+            <GlassCard className="h-full p-6 relative overflow-hidden" glowColor="#7B72F8">
+              <motion.div className="w-11 h-11 rounded-xl flex items-center justify-center mb-4 relative"
+                style={{ background: 'rgba(123,114,248,0.14)', border: '1px solid rgba(123,114,248,0.28)' }}
+                whileHover={{ scale: 1.12, boxShadow: '0 0 20px rgba(123,114,248,0.35)' }}
+                transition={{ type: 'spring', stiffness: 400, damping: 15 }}>
                 <FaGlobe size={18} className="text-[#7B72F8]" aria-hidden="true" />
-              </div>
+              </motion.div>
               <h3 className="font-display text-lg uppercase text-white mb-1.5">{t('f6title')}</h3>
               <p className="text-zinc-500 text-sm leading-relaxed">{t('f6desc')}</p>
+              {/* Orbiting dot */}
+              <div className="absolute bottom-4 right-4 w-8 h-8 opacity-15 group-hover:opacity-40 transition-opacity duration-500" aria-hidden="true">
+                <motion.div className="w-full h-full"
+                  animate={{ rotate: 360 }}
+                  transition={{ repeat: Infinity, duration: 8, ease: 'linear' }}>
+                  <div className="w-2 h-2 rounded-full bg-[#7B72F8] absolute top-0 left-1/2 -translate-x-1/2" />
+                </motion.div>
+              </div>
             </GlassCard>
           </motion.div>
 
           {/* [4] Friends — wide bottom (3 cols × 1 row) */}
-          <motion.div variants={fadeUpScale} className="md:col-span-3">
+          <motion.div variants={fadeUpScale} className="md:col-span-3" whileHover={{ y: -4, transition: { type: 'spring', stiffness: 300, damping: 20 } }}>
             <GlassCard className="h-full p-6 flex flex-col md:flex-row items-center gap-6" glowColor="#a855f7">
-              <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
-                style={{ background: 'rgba(168,85,247,0.12)', border: '1px solid rgba(168,85,247,0.25)' }}>
+              <motion.div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
+                style={{ background: 'rgba(168,85,247,0.12)', border: '1px solid rgba(168,85,247,0.25)' }}
+                whileHover={{ scale: 1.12, rotate: 5, boxShadow: '0 0 20px rgba(168,85,247,0.35)' }}
+                transition={{ type: 'spring', stiffness: 400, damping: 15 }}>
                 <FaUserFriends size={20} className="text-[#a855f7]" aria-hidden="true" />
-              </div>
+              </motion.div>
               <div className="flex-1">
                 <h3 className="font-display text-xl uppercase text-white mb-1">{t('f4title')}</h3>
                 <p className="text-zinc-400 text-sm leading-relaxed">{t('f4desc')}</p>
               </div>
               {/* Friend avatars mini */}
               <div className="flex -space-x-2 flex-shrink-0">
-                {[['S', '#7B72F8'], ['N', '#a855f7'], ['B', '#6B63E8'], ['A', '#f43f5e']].map(([l, c]) => (
-                  <div key={String(l)} className="w-9 h-9 rounded-full border-2 border-[#0A0A0F] flex items-center justify-center text-xs font-bold text-white"
-                    style={{ background: `${String(c)}` }}>{String(l)}</div>
+                {[['S', '#7B72F8'], ['N', '#a855f7'], ['B', '#6B63E8'], ['A', '#f43f5e']].map(([l, c], ai) => (
+                  <motion.div key={String(l)} className="w-9 h-9 rounded-full border-2 border-[#0A0A0F] flex items-center justify-center text-xs font-bold text-white cursor-default"
+                    style={{ background: `${String(c)}` }}
+                    initial={{ scale: 0, opacity: 0 }}
+                    whileInView={{ scale: 1, opacity: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 15, delay: ai * 0.08 }}
+                    whileHover={{ scale: 1.25, y: -4, zIndex: 10, boxShadow: `0 0 16px ${String(c)}60` }}>
+                    {String(l)}
+                  </motion.div>
                 ))}
-                <div className="w-9 h-9 rounded-full border-2 border-[#0A0A0F] border-dashed border-zinc-600 flex items-center justify-center text-zinc-500 text-xs">+</div>
+                <motion.div className="w-9 h-9 rounded-full border-2 border-[#0A0A0F] border-dashed border-zinc-600 flex items-center justify-center text-zinc-500 text-xs cursor-default"
+                  whileHover={{ scale: 1.2, borderColor: '#7B72F8', color: '#7B72F8' }}
+                  animate={{ rotate: [0, 90, 180, 270, 360] }}
+                  transition={{ rotate: { repeat: Infinity, duration: 12, ease: 'linear' } }}>
+                  +
+                </motion.div>
               </div>
             </GlassCard>
           </motion.div>
@@ -293,6 +422,7 @@ function WhyWeWatch() {
       border: 'rgba(123,114,248,0.25)',
       title: t('whyBrowserTitle'),
       text: t('whyBrowserText'),
+      gradient: 'linear-gradient(135deg, rgba(123,114,248,0.15) 0%, transparent 60%)',
     },
     {
       icon: FaUsers,
@@ -301,14 +431,16 @@ function WhyWeWatch() {
       border: 'rgba(34,211,238,0.22)',
       title: t('whySyncTitle'),
       text: t('whySyncText'),
+      gradient: 'linear-gradient(135deg, rgba(34,211,238,0.12) 0%, transparent 60%)',
     },
     {
-      icon: FaCheck,
-      color: '#22c55e',
-      bg: 'rgba(34,197,94,0.10)',
-      border: 'rgba(34,197,94,0.22)',
-      title: t('whyFreeTitle'),
-      text: t('whyFreeText'),
+      icon: FaShieldAlt,
+      color: '#4ade80',
+      bg: 'rgba(74,222,128,0.10)',
+      border: 'rgba(74,222,128,0.22)',
+      title: t('whySecureTitle'),
+      text: t('whySecureText'),
+      gradient: 'linear-gradient(135deg, rgba(74,222,128,0.12) 0%, transparent 60%)',
     },
   ];
   return (
@@ -321,23 +453,70 @@ function WhyWeWatch() {
           </motion.h2>
         </motion.div>
 
-        <motion.div variants={stagger} initial="hidden" whileInView="visible" viewport={{ once: true }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {WHY_ITEMS.map(({ icon: Icon, color, bg, border, title, text }) => (
-            <motion.div key={title} variants={fadeUpScale}>
-              <GlassCard className="p-6 h-full flex flex-col gap-5" glowColor={color}>
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: bg, border: `1px solid ${border}` }}>
-                  <Icon size={22} style={{ color }} aria-hidden="true" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-white font-semibold text-lg mb-2">{title}</h3>
-                  <p className="text-zinc-400 text-sm leading-relaxed">{text}</p>
-                </div>
-              </GlassCard>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {WHY_ITEMS.map(({ icon: Icon, color, bg, border, title, text, gradient }, i) => (
+            <motion.div key={title}
+              initial={{ opacity: 0, y: 30, scale: 0.96 }}
+              whileInView={{ opacity: 1, y: 0, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: i * 0.1, ease: [0.25, 0.1, 0.25, 1] }}
+              whileHover={{ y: -8, transition: { type: 'spring', stiffness: 300, damping: 18 } }}
+              className="group relative rounded-2xl border border-zinc-800/60 p-7 flex flex-col gap-5 cursor-default overflow-hidden"
+              style={{ background: 'linear-gradient(165deg, #111118 0%, #0D0D14 100%)' }}
+              onMouseEnter={(e) => {
+                const el = e.currentTarget as HTMLElement;
+                el.style.borderColor = `${color}50`;
+                el.style.boxShadow = `0 0 50px ${color}20, 0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 ${color}25`;
+              }}
+              onMouseLeave={(e) => {
+                const el = e.currentTarget as HTMLElement;
+                el.style.borderColor = '';
+                el.style.boxShadow = '';
+              }}
+            >
+              {/* Top glow line */}
+              <div className="absolute top-0 left-0 right-0 h-px opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                style={{ background: `linear-gradient(90deg, transparent, ${color}, transparent)` }} />
+              {/* Corner gradient glow */}
+              <div className="absolute -top-16 -left-16 w-48 h-48 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700 blur-[60px] pointer-events-none"
+                style={{ background: color }} aria-hidden="true" />
+              {/* Bottom glow */}
+              <div className="absolute bottom-0 left-[15%] right-[15%] h-16 opacity-0 group-hover:opacity-40 transition-opacity duration-500 blur-[40px] pointer-events-none"
+                style={{ background: color }} aria-hidden="true" />
+
+              {/* Icon */}
+              <motion.div
+                className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 relative z-10"
+                style={{ background: bg, border: `1px solid ${border}` }}
+                whileHover={{ scale: 1.12, rotate: 8, boxShadow: `0 0 24px ${color}40` }}
+                transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+              >
+                <Icon size={24} style={{ color }} aria-hidden="true" />
+                {/* Pulse ring */}
+                <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                  style={{ boxShadow: `0 0 0 3px ${color}20, 0 0 0 7px ${color}08` }} />
+              </motion.div>
+
+              {/* Text */}
+              <div className="flex-1 relative z-10">
+                <h3 className="text-white font-semibold text-lg mb-2 group-hover:text-opacity-100 transition-all duration-300"
+                  style={{ textShadow: 'none' }}
+                  onMouseEnter={(e) => { (e.target as HTMLElement).style.textShadow = `0 0 20px ${color}40`; }}
+                  onMouseLeave={(e) => { (e.target as HTMLElement).style.textShadow = 'none'; }}
+                >
+                  {title}
+                </h3>
+                <p className="text-zinc-500 text-sm leading-relaxed group-hover:text-zinc-400 transition-colors duration-300">{text}</p>
+              </div>
+
+              {/* Number indicator */}
+              <div className="absolute top-5 right-5 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold opacity-20 group-hover:opacity-60 transition-opacity duration-300"
+                style={{ color, border: `1px solid ${color}30` }}>
+                {i + 1}
+              </div>
             </motion.div>
           ))}
-        </motion.div>
+        </div>
       </div>
     </section>
   );
@@ -625,8 +804,8 @@ function ScreenWatching({ t, chatMsgs, visibleChats }: { t: TFn; chatMsgs: { u: 
           {chatMsgs.map((msg, i) => (
             <AnimatePresence key={i}>
               {visibleChats.includes(i) && (
-                <motion.div initial={{ opacity: 0, x: -10, y: 4, scale: 0.95 }} animate={{ opacity: 1, x: 0, y: 0, scale: 1 }}
-                  transition={{ duration: 0.25, ease: 'easeOut' }} className="flex items-start gap-2">
+                <motion.div initial={{ opacity: 0, x: -10, y: 4, scale: 0.95 }} animate={{ opacity: 1, x: 0, y: [0, -3, 0], scale: 1 }}
+                  transition={{ opacity: { duration: 0.25 }, x: { duration: 0.25 }, y: { repeat: Infinity, duration: 2.5, delay: i * 0.3 }, scale: { duration: 0.25 } }} className="flex items-start gap-2">
                   <div className="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center text-[8px] font-bold text-white"
                     style={{
                       background: `linear-gradient(135deg, ${msg.color}, ${msg.color}99)`,
@@ -754,6 +933,52 @@ function PhoneMockup({ t, activeScreen, visibleChats, chatMsgs }: {
   );
 }
 
+// ── Star particles background ────────────────────────────────────────────
+function StarField({ count = 40 }: { count?: number }) {
+  const [stars, setStars] = useState<{ top: string; left: string; size: number; delay: number; duration: number }[]>([]);
+
+  useEffect(() => {
+    setStars(
+      Array.from({ length: count }, () => ({
+        top: `${Math.random() * 100}%`,
+        left: `${Math.random() * 100}%`,
+        size: Math.random() * 2 + 1,
+        delay: Math.random() * 4,
+        duration: Math.random() * 2 + 2,
+      }))
+    );
+  }, [count]);
+
+  if (stars.length === 0) return null;
+
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+      {stars.map((star, i) => (
+        <motion.div
+          key={i}
+          className="absolute rounded-full bg-white"
+          style={{
+            top: star.top,
+            left: star.left,
+            width: star.size,
+            height: star.size,
+          }}
+          animate={{
+            opacity: [0, 0.8, 0],
+            scale: [0.5, 1.2, 0.5],
+          }}
+          transition={{
+            repeat: Infinity,
+            duration: star.duration,
+            delay: star.delay,
+            ease: 'easeInOut',
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 // ── Main ───────────────────────────────────────────────────────────────────
 export function LandingContent() {
   const t = useTranslations('landing');
@@ -786,7 +1011,6 @@ export function LandingContent() {
   ];
 
   const SYNC_BULLETS   = [t('syncBullet1'), t('syncBullet2'), t('syncBullet3'), t('syncBullet4'), t('syncBullet5')];
-  const BATTLE_BULLETS = [t('battleBullet1'), t('battleBullet2'), t('battleBullet3'), t('battleBullet4')];
   const APP_FEATURES   = [t('appFeat1'), t('appFeat2'), t('appFeat3'), t('appFeat4'), t('appFeat5'), t('appFeat6')];
 
   // URL typing animation
@@ -828,8 +1052,10 @@ export function LandingContent() {
           aria-labelledby="hero-heading">
           <motion.div className="absolute inset-0 pointer-events-none" style={{ y: heroY, opacity: heroOpacity }} aria-hidden="true">
             {/* Mesh gradient */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[700px] rounded-full blur-[180px]"
-              style={{ background: 'radial-gradient(ellipse, rgba(123,114,248,0.18) 0%, rgba(168,85,247,0.08) 50%, transparent 70%)' }} />
+            <motion.div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[700px] rounded-full blur-[180px]"
+              style={{ background: 'radial-gradient(ellipse, rgba(123,114,248,0.18) 0%, rgba(168,85,247,0.08) 50%, transparent 70%)' }}
+              animate={{ scale: [0.95, 1.08, 0.95], opacity: [0.7, 1, 0.7] }}
+              transition={{ repeat: Infinity, duration: 6, ease: 'easeInOut' }} />
             <div className="absolute top-1/4 left-1/5 w-[500px] h-[500px] rounded-full blur-[130px]"
               style={{ background: 'radial-gradient(circle, rgba(168,85,247,0.07) 0%, transparent 70%)' }} />
             <div className="absolute bottom-1/3 right-1/5 w-[400px] h-[400px] rounded-full blur-[110px]"
@@ -843,6 +1069,7 @@ export function LandingContent() {
               </defs>
               <rect width="100%" height="100%" fill="url(#grid)" />
             </svg>
+            <StarField />
             {/* Floating user bubbles */}
             {HERO_BUBBLES.map((b, i) => (
               <motion.div key={i}
@@ -861,7 +1088,7 @@ export function LandingContent() {
             {/* Badge */}
             <motion.div initial={{ opacity: 0, y: -16, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ type: 'spring', stiffness: 300, damping: 22 }}
-              whileHover={{ scale: 1.05, boxShadow: '0 0 40px rgba(123,114,248,0.35), inset 0 1px 0 rgba(255,255,255,0.08)' }}
+              whileHover={{ scale: 1.05, rotate: 2, boxShadow: '0 0 40px rgba(123,114,248,0.35), inset 0 1px 0 rgba(255,255,255,0.08)' }}
               className="inline-flex items-center gap-2 mb-8 px-5 py-2.5 rounded-full border border-[#7B72F8]/35 bg-[#7B72F8]/08 backdrop-blur-md text-sm text-white/80 cursor-default"
               style={{ boxShadow: '0 0 32px rgba(123,114,248,0.22), inset 0 1px 0 rgba(255,255,255,0.06)' }}>
               <FaApple size={14} className="text-white/90" aria-hidden="true" />
@@ -875,9 +1102,12 @@ export function LandingContent() {
               style={{ textShadow: '0 0 120px rgba(123,114,248,0.28)' }}>
               {t('heroTitle1')}<br />
               <span className="relative inline-block">
-                <span className="bg-clip-text text-transparent" style={{ backgroundImage: 'linear-gradient(135deg, #7B72F8 0%, #a855f7 50%, #7B72F8 100%)' }}>
+                <motion.span className="bg-clip-text text-transparent"
+                  style={{ backgroundImage: 'linear-gradient(135deg, #7B72F8 0%, #a855f7 50%, #7B72F8 100%)', backgroundSize: '200% 200%' }}
+                  animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
+                  transition={{ repeat: Infinity, duration: 5, ease: 'easeInOut' }}>
                   {t('heroTitle2')}
-                </span>
+                </motion.span>
                 <motion.span className="absolute -bottom-1 left-0 right-0 h-0.5 rounded-full" aria-hidden="true"
                   style={{ background: 'linear-gradient(90deg, transparent, #7B72F8, #a855f7, transparent)', opacity: 0.6 }}
                   animate={shouldReduceMotion ? {} : { scaleX: [0, 1] }} transition={{ delay: 0.9, duration: 0.6 }} />
@@ -896,7 +1126,7 @@ export function LandingContent() {
               <motion.a href={APP_STORE} target="_blank" rel="noopener noreferrer"
                 className="group relative inline-flex items-center gap-3 h-14 px-8 rounded-xl text-white font-semibold cursor-pointer overflow-hidden"
                 style={{ background: 'linear-gradient(135deg, #7B72F8, #6B63E8)', boxShadow: '0 0 32px rgba(123,114,248,0.55), inset 0 1px 0 rgba(255,255,255,0.12)' }}
-                whileHover={{ scale: 1.05, boxShadow: '0 0 48px rgba(123,114,248,0.75), inset 0 1px 0 rgba(255,255,255,0.15)' }}
+                whileHover={{ scale: 1.06, y: -2, boxShadow: '0 0 48px rgba(123,114,248,0.75), inset 0 1px 0 rgba(255,255,255,0.15)' }}
                 whileTap={{ scale: 0.97 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 20 }}
                 aria-label="WeWatch-ni App Store-dan yuklab oling">
@@ -930,7 +1160,7 @@ export function LandingContent() {
           {/* Scroll indicator */}
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.4 }}
             className="absolute bottom-10 left-1/2 -translate-x-1/2" aria-hidden="true">
-            <motion.div animate={shouldReduceMotion ? {} : { y: [0, 7, 0] }} transition={{ repeat: Infinity, duration: 2.2 }}
+            <motion.div animate={shouldReduceMotion ? {} : { y: [0, 7, 0], borderColor: ['rgba(63,63,77,0.7)', 'rgba(123,114,248,0.5)', 'rgba(63,63,77,0.7)'] }} transition={{ repeat: Infinity, duration: 2.2 }}
               className="w-5 h-8 rounded-full border border-zinc-700/70 flex items-start justify-center pt-1.5">
               <div className="w-1 h-2 rounded-full bg-zinc-600" />
             </motion.div>
@@ -1194,54 +1424,6 @@ export function LandingContent() {
         {/* ── WHY WEWATCH ── */}
         <WhyWeWatch />
 
-        {/* ── BATTLE ── */}
-        <section className="py-28 px-4 bg-[#0A0A0F] relative overflow-hidden" aria-labelledby="battle-heading">
-          <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            <motion.div initial={{ opacity: 0, x: -28 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.55 }} className="relative">
-              <GlassCard className="p-10 flex flex-col items-center justify-center text-center min-h-[280px]" glowColor="#FFD700">
-                <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6"
-                  style={{ background: 'rgba(255,215,0,0.12)', border: '1px solid rgba(255,215,0,0.28)' }}>
-                  <GiCrossedSwords size={28} className="text-[#FFD700]" aria-hidden="true" />
-                </div>
-                <h3 className="font-display text-2xl uppercase text-[#FFD700] mb-3">{t('battleCardTitle')}</h3>
-                <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-zinc-800/80 border border-zinc-700/60 text-zinc-400 text-xs font-semibold uppercase tracking-wider mb-5">
-                  {t('comingSoon')}
-                </span>
-                <p className="text-zinc-500 text-sm leading-relaxed max-w-xs">{t('battleDesc')}</p>
-              </GlassCard>
-              <div className="absolute -inset-8 bg-[#FFD700]/04 rounded-3xl blur-3xl -z-10" aria-hidden="true" />
-            </motion.div>
-
-            <motion.div initial={{ opacity: 0, x: 28 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.55, delay: 0.12 }}>
-              <div className="flex items-center gap-3 mb-6 flex-wrap">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#FFD700]/10 border border-[#FFD700]/28 text-[#FFD700] text-xs font-semibold uppercase tracking-widest">
-                  <FaFire size={10} aria-hidden="true" /> {t('battleSectionTag')}
-                </div>
-                <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-zinc-800/80 border border-zinc-700/60 text-zinc-400 text-xs font-semibold uppercase tracking-wider">
-                  {t('comingSoon')}
-                </span>
-              </div>
-              <h2 id="battle-heading" className="text-4xl md:text-5xl lg:text-6xl font-display uppercase text-white leading-tight mb-6">
-                {t('battleTitle1')}<br />
-                <span className="bg-clip-text text-transparent" style={{ backgroundImage: 'linear-gradient(135deg, #FFD700, #FFA500)' }}>
-                  {t('battleTitle2')}
-                </span>
-              </h2>
-              <p className="text-zinc-400 text-lg mb-8 leading-relaxed">{t('battleDesc')}</p>
-              <ul className="space-y-3" aria-label="Особенности режима Battle">
-                {BATTLE_BULLETS.map(item => (
-                  <li key={item} className="flex items-center gap-3 text-sm text-zinc-300">
-                    <div className="w-5 h-5 rounded-full bg-[#FFD700]/12 border border-[#FFD700]/28 flex items-center justify-center flex-shrink-0">
-                      <FaCheck size={8} className="text-[#FFD700]" aria-hidden="true" />
-                    </div>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </motion.div>
-          </div>
-        </section>
-
         {/* ── CTA ── */}
         <section className="py-32 px-4 text-center relative overflow-hidden" aria-labelledby="cta-heading">
           <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
@@ -1263,9 +1445,12 @@ export function LandingContent() {
               className="text-4xl md:text-6xl lg:text-7xl font-display uppercase text-white leading-tight mb-6"
               style={{ textShadow: '0 0 100px rgba(123,114,248,0.5)' }}>
               {t('ctaTitle1')}<br />
-              <span className="bg-clip-text text-transparent" style={{ backgroundImage: 'linear-gradient(135deg, #7B72F8 0%, #a855f7 50%, #7B72F8 100%)' }}>
-                {t('ctaTitle2')}
-              </span>
+              <motion.span className="bg-clip-text text-transparent"
+                  style={{ backgroundImage: 'linear-gradient(135deg, #7B72F8 0%, #a855f7 50%, #7B72F8 100%)', backgroundSize: '200% 200%' }}
+                  animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
+                  transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}>
+                  {t('ctaTitle2')}
+                </motion.span>
             </motion.h2>
 
             <motion.p variants={fadeUp} className="text-zinc-400 text-lg mb-12 max-w-md mx-auto leading-relaxed">

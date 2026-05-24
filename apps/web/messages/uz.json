@@ -137,6 +137,8 @@
     "whySyncText": "Pauza qilsangiz — hammada pauza. O'tkazsangiz — hammasi o'tkazadi. Masofa to'siq emas.",
     "whyFreeTitle": "Abadiy bepul",
     "whyFreeText": "Watch Party, sinxron tomosha, do'stlar bilan birga — hammasi obunasiz. Yuklab oling va boshlang.",
+    "whySecureTitle": "Xavfsiz va tezkor",
+    "whySecureText": "JWT shifrlash, brute-force himoya va tezkor serverlar. Ma'lumotlaringiz xavfsiz, video lag'siz.",
     "statsLabel1": "Sayt",
     "statsLabel2": "Video sifat",
     "statsLabel3": "Sinxron",

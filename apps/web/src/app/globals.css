@@ -118,8 +118,23 @@ button, a, [role="button"] {
   touch-action: manipulation;
 }
 
+/* ── Seamless marquee scroll ── */
+@keyframes marquee-scroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee-scroll {
+  animation: marquee-scroll 30s linear infinite;
+}
+
+.animate-marquee-scroll:hover {
+  animation-play-state: paused;
+}
+
 /* ── Marquee pause on reduced-motion ── */
 @media (prefers-reduced-motion: reduce) {
+  .animate-marquee-scroll,
   .marquee-track {
     animation: none !important;
   }

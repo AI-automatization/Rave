@@ -16,8 +16,6 @@ export function PricingContent() {
       desc: t('plan1desc'),
       features: [
         { label: 'Watch Party', val: '4 kishi' },
-        { label: 'Battle', val: '3 ta' },
-        { label: 'Achievement', val: '15 ta' },
         { label: t('rowQuality'), val: 'HD 720p' },
         { label: t('rowAds'), val: t('rowAdsYes') },
         { label: t('rowSearch'), val: '✓' },
@@ -35,8 +33,6 @@ export function PricingContent() {
       desc: '',
       features: [
         { label: 'Watch Party', val: '10 kishi' },
-        { label: 'Battle', val: '∞' },
-        { label: 'Achievement', val: '25+ ta' },
         { label: t('rowQuality'), val: '4K 2160p' },
         { label: t('rowAds'), val: t('rowAdsNo') },
         { label: t('rowSearch'), val: '✓' },
