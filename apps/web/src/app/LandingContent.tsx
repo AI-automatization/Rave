@@ -38,8 +38,8 @@ const HERO_BUBBLES = [
 ] as const;
 
 const MARQUEE_ITEMS = [
-  'YouTube', 'VK', 'Rutube', 'Uzmove', 'Cinerama', 'Twitch', 'Instagram', 'Google Drive',
-  'YouTube', 'VK', 'Rutube', 'Uzmove', 'Cinerama', 'Twitch', 'Instagram', 'Google Drive',
+  'YouTube', 'VK', 'Rutube', 'Uzmove', 'Cinerama',
+  'YouTube', 'VK', 'Rutube', 'Uzmove', 'Cinerama',
 ];
 
 

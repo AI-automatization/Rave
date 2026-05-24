@@ -63,7 +63,7 @@ export function LandingNav() {
           <div className="hidden md:flex items-center gap-3">
             <LanguageSwitcher />
             <a
-              href="https://play.google.com/store"
+              href="https://apps.apple.com"
               target="_blank"
               rel="noopener noreferrer"
               className="h-8 px-4 rounded-lg bg-[#7B72F8] text-white hover:bg-[#6B63E8] hover:shadow-[0_0_20px_rgba(123,114,248,0.4)] transition-all text-sm font-semibold flex items-center shadow-[0_0_12px_rgba(123,114,248,0.3)]"
@@ -165,7 +165,7 @@ export function LandingNav() {
 
           {/* CTA button */}
           <a
-            href="https://play.google.com/store"
+            href="https://apps.apple.com"
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => setMenuOpen(false)}
