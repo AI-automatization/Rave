@@ -55,9 +55,9 @@ export const createApp = (redis: Redis): express.Application => {
   app.use('/api/v1/admin', createAdminRouter(redis));
   app.use('/api/v1/operator', createOperatorRouter(redis));
   app.use('/api/v1/errors', createErrorsRouter());
+  app.use('/api/v1', createAnalyticsRouter());
   app.use('/api/v1', createSupportRouter());
   app.use('/api/v1', createModerationRouter());
-  app.use('/api/v1', createAnalyticsRouter());
 
   app.use(notFoundHandler);
 

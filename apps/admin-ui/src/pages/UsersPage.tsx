@@ -97,7 +97,8 @@ export function UsersPage() {
 
   const handleUnblock = async (user: AdminUser) => {
     setActionLoading(user._id);
-    try { await usersApi.unblock(user.authId); await load(); }
+    try { await usersApi.unblock(user._id); await load(); }
+    catch (e) { alert(`Ошибка: ${e instanceof Error ? e.message : 'unknown'}`); }
     finally { setActionLoading(null); }
   };
 
@@ -105,24 +106,27 @@ export function UsersPage() {
     if (!blockModal || blockReason.trim().length < 3) return;
     setActionLoading(blockModal.user._id);
     try {
-      await usersApi.block(blockModal.user.authId, blockReason);
+      await usersApi.block(blockModal.user._id, blockReason);
       setBlockModal(null);
       setBlockReason('');
       await load();
-    } finally { setActionLoading(null); }
+    } catch (e) { alert(`Ошибка: ${e instanceof Error ? e.message : 'unknown'}`); }
+    finally { setActionLoading(null); }
   };
 
   const handleRoleChange = async () => {
     if (!roleModal || !newRole) return;
     setActionLoading(roleModal.user._id);
-    try { await usersApi.changeRole(roleModal.user.authId, newRole); setRoleModal(null); await load(); }
+    try { await usersApi.changeRole(roleModal.user._id, newRole); setRoleModal(null); await load(); }
+    catch (e) { alert(`Ошибка: ${e instanceof Error ? e.message : 'unknown'}`); }
     finally { setActionLoading(null); }
   };
 
   const handleDelete = async (user: AdminUser) => {
     if (!confirm(`Delete "${user.username}"? This action is irreversible.`)) return;
     setActionLoading(user._id);
-    try { await usersApi.delete(user.authId); await load(); }
+    try { await usersApi.delete(user._id); await load(); }
+    catch (e) { alert(`Ошибка удаления: ${e instanceof Error ? e.message : 'unknown'}`); }
     finally { setActionLoading(null); }
   };
 
