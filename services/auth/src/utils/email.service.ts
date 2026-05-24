@@ -1,6 +1,13 @@
 import nodemailer from 'nodemailer';
 import { config } from '../config/index';
 import { logger } from '@shared/utils/logger';
+import {
+  verificationEmail,
+  passwordResetEmail,
+  adminLoginSelfEmail,
+  adminLoginAlertEmail,
+  appealDecisionEmail,
+} from './emailTemplates';
 
 const transporter = nodemailer.createTransport({
   host: config.email.host,
@@ -20,24 +27,12 @@ export const emailService = {
       await transporter.sendMail({
         from: `"WeWatch" <${config.email.from}>`,
         to,
-        subject: 'Tasdiqlash kodi — WeWatch',
-        html: `
-          <div style="font-family: DM Sans, sans-serif; max-width: 600px; margin: 0 auto; background: #0A0A0F; color: #fff; padding: 40px; border-radius: 12px;">
-            <h1 style="color: #E50914; margin-bottom: 8px;">WeWatch</h1>
-            <p style="font-size: 18px; margin-bottom: 24px;">Email manzilingizni tasdiqlang</p>
-            <p style="color: #ccc;">Ro'yxatdan o'tganingiz uchun rahmat! Quyidagi 6 raqamli kodni ilovaga kiriting:</p>
-            <div style="background: #16161F; border: 2px solid #E50914; border-radius: 12px; padding: 24px; text-align: center; margin: 24px 0;">
-              <span style="font-size: 42px; font-weight: bold; letter-spacing: 12px; color: #fff;">${code}</span>
-            </div>
-            <p style="color: #888; font-size: 13px;">Kod 10 daqiqa davomida amal qiladi.</p>
-            <p style="color: #888; font-size: 13px;">Agar siz ro'yxatdan o'tmagan bo'lsangiz, bu xatni e'tiborsiz qoldiring.</p>
-          </div>
-        `,
+        subject: `${code} — код подтверждения WeWatch`,
+        html: verificationEmail(code),
       });
       logger.info('Verification email sent', { to: '[REDACTED]' });
     } catch (error) {
       logger.error('Failed to send verification email', { error: (error as Error).message });
-      // Email xatosi foydalanuvchini bloklashi kerak emas
     }
   },
 
@@ -48,20 +43,8 @@ export const emailService = {
       await transporter.sendMail({
         from: `"WeWatch" <${config.email.from}>`,
         to,
-        subject: 'Parolni tiklash — WeWatch',
-        html: `
-          <div style="font-family: DM Sans, sans-serif; max-width: 600px; margin: 0 auto; background: #0A0A0F; color: #fff; padding: 40px; border-radius: 12px;">
-            <h1 style="color: #E50914; margin-bottom: 8px;">WeWatch</h1>
-            <p style="font-size: 18px; margin-bottom: 24px;">Parolni tiklash</p>
-            <p style="color: #ccc;">Yangi parol o'rnatish uchun quyidagi tugmani bosing:</p>
-            <a href="${resetUrl}"
-               style="display: inline-block; background: #E50914; color: #fff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 24px 0;">
-              Parolni tiklash
-            </a>
-            <p style="color: #888; font-size: 13px;">Havola 10 daqiqa davomida amal qiladi.</p>
-            <p style="color: #888; font-size: 13px;">Agar siz so'rov yubormaganingizni hisoblasangiz, bu xatni e'tiborsiz qoldiring.</p>
-          </div>
-        `,
+        subject: 'Сброс пароля — WeWatch',
+        html: passwordResetEmail(resetUrl),
       });
       logger.info('Password reset email sent', { to: '[REDACTED]' });
     } catch (error) {
@@ -76,96 +59,30 @@ export const emailService = {
     role: string;
     timestamp: Date;
   }): Promise<void> {
-    const device = opts.userAgent ?? 'Unknown device';
     const time = opts.timestamp.toLocaleString('ru-RU', { timeZone: 'Asia/Tashkent' });
-
-    const alertHtml = `
-      <div style="font-family: monospace; max-width: 560px; margin: 0 auto; background: #09090b; color: #e4e4e7; padding: 32px; border-radius: 8px; border: 1px solid #27272a;">
-        <p style="color: #71717a; font-size: 11px; margin: 0 0 20px; text-transform: uppercase; letter-spacing: 2px;">WeWatch Admin Alert</p>
-        <h2 style="color: #fff; margin: 0 0 24px; font-size: 18px; font-weight: 600;">Admin panel login detected</h2>
-        <table style="width: 100%; border-collapse: collapse;">
-          <tr>
-            <td style="color: #71717a; padding: 6px 0; width: 120px; font-size: 13px;">Account</td>
-            <td style="color: #3b82f6; font-size: 13px;">${opts.adminEmail}</td>
-          </tr>
-          <tr>
-            <td style="color: #71717a; padding: 6px 0; font-size: 13px;">Role</td>
-            <td style="color: #fff; font-size: 13px;">${opts.role}</td>
-          </tr>
-          <tr>
-            <td style="color: #71717a; padding: 6px 0; font-size: 13px;">IP Address</td>
-            <td style="color: #fff; font-size: 13px;">${opts.ip ?? '—'}</td>
-          </tr>
-          <tr>
-            <td style="color: #71717a; padding: 6px 0; font-size: 13px;">Device / UA</td>
-            <td style="color: #a1a1aa; font-size: 12px; word-break: break-all;">${device}</td>
-          </tr>
-          <tr>
-            <td style="color: #71717a; padding: 6px 0; font-size: 13px;">Time (UZT)</td>
-            <td style="color: #fff; font-size: 13px;">${time}</td>
-          </tr>
-        </table>
-        <p style="margin: 24px 0 0; color: #52525b; font-size: 12px;">
-          If this was not you, immediately revoke all sessions via admin panel.
-        </p>
-      </div>
-    `;
-
-    const selfHtml = `
-      <div style="font-family: monospace; max-width: 560px; margin: 0 auto; background: #09090b; color: #e4e4e7; padding: 32px; border-radius: 8px; border: 1px solid #27272a;">
-        <p style="color: #71717a; font-size: 11px; margin: 0 0 20px; text-transform: uppercase; letter-spacing: 2px;">WeWatch Security</p>
-        <h2 style="color: #fff; margin: 0 0 24px; font-size: 18px; font-weight: 600;">Akkauntingizga kirish amalga oshirildi</h2>
-        <table style="width: 100%; border-collapse: collapse;">
-          <tr>
-            <td style="color: #71717a; padding: 6px 0; width: 120px; font-size: 13px;">Email</td>
-            <td style="color: #3b82f6; font-size: 13px;">${opts.adminEmail}</td>
-          </tr>
-          <tr>
-            <td style="color: #71717a; padding: 6px 0; font-size: 13px;">Lavozim</td>
-            <td style="color: #fff; font-size: 13px;">${opts.role}</td>
-          </tr>
-          <tr>
-            <td style="color: #71717a; padding: 6px 0; font-size: 13px;">IP manzil</td>
-            <td style="color: #fff; font-size: 13px;">${opts.ip ?? '—'}</td>
-          </tr>
-          <tr>
-            <td style="color: #71717a; padding: 6px 0; font-size: 13px;">Qurilma</td>
-            <td style="color: #a1a1aa; font-size: 12px; word-break: break-all;">${device}</td>
-          </tr>
-          <tr>
-            <td style="color: #71717a; padding: 6px 0; font-size: 13px;">Vaqt (UZT)</td>
-            <td style="color: #fff; font-size: 13px;">${time}</td>
-          </tr>
-        </table>
-        <p style="margin: 24px 0 0; color: #ef4444; font-size: 13px; font-weight: 600;">
-          Agar bu siz bo'lmasangiz — darhol admin-panel orqali barcha sessiyalarni o'chiring!
-        </p>
-      </div>
-    `;
 
     const superadminEmail = config.superadminEmail;
     const isSuperadminLogin = opts.adminEmail === superadminEmail;
+    const emailOpts = { ...opts, time };
 
     const sends: Promise<void>[] = [];
 
-    // 1. Always send self-notification to the logged-in staff member
     sends.push(
       transporter.sendMail({
         from: `"WeWatch Security" <${config.email.from}>`,
         to: opts.adminEmail,
-        subject: `🔐 Akkauntga kirish — ${time}`,
-        html: selfHtml,
+        subject: `🔐 Вход в Admin Panel — ${time}`,
+        html: adminLoginSelfEmail(emailOpts),
       }).then(() => undefined),
     );
 
-    // 2. Alert superadmin — unless it IS the superadmin logging in (no need to alert themselves twice)
     if (!isSuperadminLogin) {
       sends.push(
         transporter.sendMail({
           from: `"WeWatch Security" <${config.email.from}>`,
           to: superadminEmail,
           subject: `⚠️ Admin login — ${opts.adminEmail} (${opts.role})`,
-          html: alertHtml,
+          html: adminLoginAlertEmail(emailOpts),
         }).then(() => undefined),
       );
     }
@@ -187,32 +104,13 @@ export const emailService = {
     const subject = isApproved
       ? 'Ваша апелляция одобрена — WeWatch'
       : 'Ваша апелляция отклонена — WeWatch';
-    const statusColor = isApproved ? '#22c55e' : '#ef4444';
-    const statusText = isApproved ? 'Апелляция одобрена' : 'Апелляция отклонена';
-    const bodyText = isApproved
-      ? 'Мы рассмотрели вашу апелляцию и решили восстановить доступ к вашему аккаунту. Вы можете войти снова.'
-      : 'Мы рассмотрели вашу апелляцию, однако приняли решение оставить ограничение в силе.';
 
     try {
       await transporter.sendMail({
         from: `"WeWatch" <${config.email.from}>`,
         to: opts.to,
         subject,
-        html: `
-          <div style="font-family: DM Sans, sans-serif; max-width: 600px; margin: 0 auto; background: #0A0A0F; color: #fff; padding: 40px; border-radius: 12px;">
-            <h1 style="color: #7C3AED; margin-bottom: 8px;">WeWatch</h1>
-            <div style="display: inline-block; background: ${statusColor}22; border: 1px solid ${statusColor}; border-radius: 8px; padding: 8px 16px; margin-bottom: 24px;">
-              <span style="color: ${statusColor}; font-weight: 600;">${statusText}</span>
-            </div>
-            <p style="color: #ccc; font-size: 15px; line-height: 1.6;">${bodyText}</p>
-            ${opts.note ? `
-            <div style="background: #16161F; border-left: 3px solid #7C3AED; border-radius: 4px; padding: 16px; margin: 20px 0;">
-              <p style="color: #888; font-size: 12px; margin: 0 0 6px;">Комментарий модератора:</p>
-              <p style="color: #fff; margin: 0; font-size: 14px;">${opts.note}</p>
-            </div>` : ''}
-            <p style="color: #666; font-size: 12px; margin-top: 32px;">Команда WeWatch</p>
-          </div>
-        `,
+        html: appealDecisionEmail(opts),
       });
       logger.info('Appeal decision email sent', { to: '[REDACTED]', status: opts.status });
     } catch (error) {
