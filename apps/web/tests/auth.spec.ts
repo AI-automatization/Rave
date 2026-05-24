@@ -11,7 +11,7 @@ test.describe('Auth — Register & Login', () => {
 
   test('Register sahifasi yuklanadi', async ({ page }) => {
     await page.goto('/register');
-    await expect(page).toHaveTitle(/CineSync/i);
+    await expect(page).toHaveTitle(/WeWatch/i);
     await expect(page.locator('input[name="username"]')).toBeVisible();
     await expect(page.locator('input[name="email"]')).toBeVisible();
     await expect(page.locator('input[name="password"]')).toBeVisible();

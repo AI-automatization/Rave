@@ -38,7 +38,7 @@ export function LandingNav() {
               <FaPlay size={9} className="text-white ml-0.5" />
             </div>
             <span className="text-xl font-display tracking-wider text-white hover:text-[#7B72F8] transition-colors">
-              CINE<span className="text-[#7B72F8]">SYNC</span>
+              WE<span className="text-[#7B72F8]">WATCH</span>
             </span>
           </Link>
 
@@ -125,7 +125,7 @@ export function LandingNav() {
               <FaPlay size={8} className="text-white ml-0.5" />
             </div>
             <span className="font-display text-white tracking-wider">
-              CINE<span className="text-[#7B72F8]">SYNC</span>
+              WE<span className="text-[#7B72F8]">WATCH</span>
             </span>
           </Link>
           <button

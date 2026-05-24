@@ -8,7 +8,7 @@ interface LocaleStore {
   setLocale: (locale: Locale) => void;
 }
 
-const COOKIE_NAME = 'cinesync-locale';
+const COOKIE_NAME = 'wewatch-locale';
 const COOKIE_MAX_AGE = 365 * 24 * 60 * 60; // 1 year
 
 export const useLocaleStore = create<LocaleStore>()(
@@ -23,14 +23,14 @@ export const useLocaleStore = create<LocaleStore>()(
         set({ locale });
       },
     }),
-    { name: 'cinesync-locale' }
+    { name: 'wewatch-locale' }
   )
 );
 
 /** Read locale from cookie synchronously (works on client before React hydration). */
 export function readLocaleFromCookie(): Locale {
   if (typeof document === 'undefined') return 'uz';
-  const match = document.cookie.match(/(?:^|;\s*)cinesync-locale=([^;]+)/);
+  const match = document.cookie.match(/(?:^|;\s*)wewatch-locale=([^;]+)/);
   const v = match?.[1];
   return v === 'ru' || v === 'en' ? v : 'uz';
 }

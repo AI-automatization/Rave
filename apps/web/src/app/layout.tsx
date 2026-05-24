@@ -23,28 +23,28 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: {
-    default: 'CineSync — Do\'stlar bilan birga film ko\'ring',
-    template: '%s | CineSync',
+    default: 'WeWatch — Do\'stlar bilan birga film ko\'ring',
+    template: '%s | WeWatch',
   },
   description:
     'Ijtimoiy onlayn kinoteatr platformasi. Do\'stlar bilan sinxron film ko\'rish, battle va achievementlar.',
   keywords: ['kinoteatr', 'film', 'watch party', 'do\'stlar', 'online'],
-  authors: [{ name: 'CineSync' }],
-  creator: 'CineSync',
+  authors: [{ name: 'WeWatch' }],
+  creator: 'WeWatch',
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_APP_URL ?? 'https://cinesync.uz',
+    process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.app',
   ),
   openGraph: {
     type: 'website',
     locale: 'uz_UZ',
-    siteName: 'CineSync',
-    title: 'CineSync — Do\'stlar bilan birga film ko\'ring',
+    siteName: 'WeWatch',
+    title: 'WeWatch — Do\'stlar bilan birga film ko\'ring',
     description: 'Ijtimoiy onlayn kinoteatr platformasi.',
     images: [{ url: '/og-home.jpg', width: 1200, height: 630 }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'CineSync',
+    title: 'WeWatch',
     description: 'Ijtimoiy onlayn kinoteatr platformasi.',
     images: ['/og-home.jpg'],
   },

@@ -1,5 +1,5 @@
 /**
- * CineSync Web — Auth flow Playwright testi (backend yo'q, mock API)
+ * WeWatch Web — Auth flow Playwright testi (backend yo'q, mock API)
  * Ishlatish: node apps/web/test-auth.mjs
  */
 import { chromium } from 'playwright';

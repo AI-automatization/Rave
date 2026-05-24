@@ -1,4 +1,4 @@
-// CineSync Web — TypeScript Types
+// WeWatch Web — TypeScript Types
 // Re-export shared types and add web-specific extensions
 
 export type {

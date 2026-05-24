@@ -1,6 +1,6 @@
 {
-  "name": "CineSync",
-  "short_name": "CineSync",
+  "name": "WeWatch",
+  "short_name": "WeWatch",
   "description": "Ijtimoiy onlayn kinoteatr platformasi",
   "start_url": "/",
   "display": "standalone",

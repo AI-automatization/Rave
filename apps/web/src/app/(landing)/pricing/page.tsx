@@ -3,7 +3,7 @@ import { PricingContent } from './PricingContent';
 
 export const metadata: Metadata = {
   title: 'Narxlar',
-  description: "CineSync narx rejalari — Bepul va Pro. Asosiy funksiyalar hammaga bepul.",
+  description: "WeWatch narx rejalari — Bepul va Pro. Asosiy funksiyalar hammaga bepul.",
 };
 
 export default function PricingPage() {

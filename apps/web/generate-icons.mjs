@@ -1,5 +1,5 @@
 /**
- * CineSync PWA ikonkalari generatori (pure Node.js, bog'liqlik yo'q)
+ * WeWatch PWA ikonkalari generatori (pure Node.js, bog'liqlik yo'q)
  * Ishlatish: node apps/web/generate-icons.mjs
  */
 import { createWriteStream, mkdirSync } from 'fs';
