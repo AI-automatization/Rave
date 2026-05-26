@@ -13,7 +13,7 @@ const APP_NAME = 'WeWatch';
 const COMPANY = 'WeWatch (Rave)';
 const PRIVACY_EMAIL = 'privacy@wewatch.app';
 const SUPPORT_EMAIL = 'support@wewatch.app';
-const APP_URL = 'https://wewatch.app';
+const APP_URL = 'https://wewatch.uz';
 
 export default function PrivacyPolicyPage() {
   return (

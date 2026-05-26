@@ -12,7 +12,7 @@ const EFFECTIVE_DATE = 'May 20, 2026';
 const COMPANY = 'WeWatch (Rave)';
 const SUPPORT_EMAIL = 'support@wewatch.app';
 const LEGAL_EMAIL = 'legal@wewatch.app';
-const APP_URL = 'https://wewatch.app';
+const APP_URL = 'https://wewatch.uz';
 
 export default function TermsPage() {
   return (

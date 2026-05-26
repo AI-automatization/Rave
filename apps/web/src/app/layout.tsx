@@ -5,13 +5,13 @@ import { LocaleHtmlUpdater } from '@/components/common/LocaleHtmlUpdater';
 import './globals.css';
 
 const dmSans = DM_Sans({
-  subsets: ['latin'],
+  subsets: ['latin', 'latin-ext'],
   variable: '--font-dm-sans',
   display: 'swap',
 });
 
 const oswald = Oswald({
-  subsets: ['latin'],
+  subsets: ['latin', 'latin-ext'],
   variable: '--font-oswald',
   display: 'swap',
 });
@@ -19,44 +19,100 @@ const oswald = Oswald({
 export const viewport: Viewport = {
   themeColor: '#E50914',
   colorScheme: 'dark',
+  width: 'device-width',
+  initialScale: 1,
 };
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
+
 export const metadata: Metadata = {
+  metadataBase: new URL(APP_URL),
   title: {
-    default: 'WeWatch — Do\'stlar bilan birga film ko\'ring',
+    default: 'WeWatch — Смотрите видео вместе с друзьями онлайн',
     template: '%s | WeWatch',
   },
   description:
-    'Ijtimoiy onlayn kinoteatr platformasi. Do\'stlar bilan sinxron film ko\'rish, battle va achievementlar.',
-  keywords: ['kinoteatr', 'film', 'watch party', 'do\'stlar', 'online'],
-  authors: [{ name: 'WeWatch' }],
+    'WeWatch — приложение для совместного просмотра фильмов и видео онлайн. Смотри YouTube, VK, Rutube с друзьями в реальном времени. Синхронный просмотр, чат, эмодзи. Скачай бесплатно.',
+  keywords: [
+    'смотреть вместе',
+    'совместный просмотр фильмов',
+    'watch party',
+    'смотреть фильмы онлайн с друзьями',
+    'онлайн кинотеатр с друзьями',
+    'что делать когда друг далеко',
+    'смотреть YouTube вместе',
+    'видео с друзьями онлайн',
+    'синхронный просмотр видео',
+    'развлечения с друзьями онлайн',
+    'кино вместе',
+    'смотреть видео одновременно',
+    'WeWatch',
+    'приложение для просмотра фильмов',
+    'watch party приложение',
+    'смотреть онлайн вместе бесплатно',
+  ],
+  authors: [{ name: 'WeWatch', url: APP_URL }],
   creator: 'WeWatch',
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.app',
-  ),
+  publisher: 'WeWatch',
+  category: 'entertainment',
+  alternates: {
+    canonical: APP_URL,
+    languages: {
+      'ru': APP_URL,
+      'uz': APP_URL,
+      'en': APP_URL,
+      'x-default': APP_URL,
+    },
+  },
   openGraph: {
     type: 'website',
-    locale: 'uz_UZ',
+    locale: 'ru_RU',
+    alternateLocale: ['uz_UZ', 'en_US'],
     siteName: 'WeWatch',
-    title: 'WeWatch — Do\'stlar bilan birga film ko\'ring',
-    description: 'Ijtimoiy onlayn kinoteatr platformasi.',
-    images: [{ url: '/og-home.jpg', width: 1200, height: 630 }],
+    url: APP_URL,
+    title: 'WeWatch — Смотрите видео вместе с друзьями онлайн',
+    description:
+      'Совместный просмотр фильмов и видео в реальном времени. YouTube, VK, Rutube — смотри с друзьями где бы они ни находились.',
+    images: [
+      {
+        url: '/og-image',
+        width: 1200,
+        height: 630,
+        alt: 'WeWatch — смотрите видео вместе с друзьями',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'WeWatch',
-    description: 'Ijtimoiy onlayn kinoteatr platformasi.',
-    images: ['/og-home.jpg'],
+    site: '@wewatch_app',
+    creator: '@wewatch_app',
+    title: 'WeWatch — Смотрите видео вместе с друзьями',
+    description:
+      'Совместный просмотр фильмов и видео онлайн. Синхронизация, чат, эмодзи — всё бесплатно.',
+    images: ['/og-image'],
   },
-  robots: { index: true, follow: true },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, 'max-image-preview': 'large' },
+  },
   manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    title: 'WeWatch',
+    statusBarStyle: 'black-translucent',
+  },
+  formatDetection: { telephone: false },
+  verification: {
+    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION ?? '',
+  },
 };
 
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="uz" suppressHydrationWarning>
+    <html lang="ru" suppressHydrationWarning>
       <body className={`${dmSans.variable} ${oswald.variable} font-body antialiased bg-[#060608] text-white`}>
         <Providers>
           <LocaleHtmlUpdater />
