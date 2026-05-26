@@ -202,10 +202,9 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
       paddingBottom: 16,
     },
     policyText: {
-      fontSize: 13,
-      lineHeight: 22,
+      fontSize: 14,
+      lineHeight: 24,
       color: colors.textSecondary,
-      fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
     },
     versionText: {
       fontSize: 11,

@@ -7,405 +7,263 @@ export const PRIVACY_POLICY_VERSION = 'v1';
 export const PRIVACY_POLICY_STORAGE_KEY = `wewatch_privacy_${PRIVACY_POLICY_VERSION}`;
 
 export const PRIVACY_POLICY: Record<'uz' | 'ru' | 'en', string> = {
-  // ────────────────────────────────────────────────────────────────
-  uz: `MAXFIYLIK SIYOSATI — WeWatch
+
+  uz: `WeWatch — Maxfiylik Siyosati
 Kuchga kirish sanasi: 1-yanvar 2025-yil
 
-1. KIRISH
+👋 Salom!
 
-WeWatch ("biz", "bizning") sizning maxfiyligingizni hurmat qiladi. Ushbu Maxfiylik Siyosati WeWatch mobil ilovasidan ("Ilova") foydalanishda biz qanday shaxsiy ma'lumotlarni to'plashimiz, ulardan qanday foydalanishimiz, saqlashimiz va himoya qilishimizni tushuntiradi.
+Biz WeWatch'da sizning shaxsiy ma'lumotlaringizni to'liq hurmat qilamiz. Ushbu hujjat siz haqingizda qanday ma'lumot saqlanishi, nima uchun kerakligi va uni qanday himoya qilishimiz haqida oddiy tilda tushuntiradi.
 
-Ilovadan foydalanib, siz ushbu Siyosatga rozilik bildirasiz. Agar siz rozi bo'lmasangiz — Ilovadan foydalanmang.
+📋 Biz nima to'playmiz?
 
-──────────────────────────────
-
-2. BIZ TO'PLAYDIGAN MA'LUMOTLAR
-
-2.1. Siz bizga taqdim etadigan ma'lumotlar:
-• Foydalanuvchi nomi (taxallus)
-• Elektron pochta manzili
-• Parol (shifrlangan holda saqlanadi; biz hech qachon parolingizni ko'rmaymiz)
-• Profil rasmi (agar yuklab qo'ysangiz)
+Siz bizga:
+• Foydalanuvchi nomi va email manzil
+• Parol (shifrlangan holda — biz hech qachon ko'rmaymiz)
+• Profil rasmi (ixtiyoriy)
 • Watch Party tarixi va pleylistlar
 
-2.2. Avtomatik to'planadigan ma'lumotlar:
-• Push-bildirishnoma tokeni (taklif va voqealar haqida xabar berish uchun)
-• Qurilma operatsion tizimi turi va versiyasi
-• Anonim xato hisobotlari (texnik nosozliklar)
-• Oxirgi faollik sanasi va vaqti
+Avtomatik ravishda:
+• Push-bildirishnoma tokeni — taklif va xabarlar uchun
+• Qurilma OT turi — texnik muammolarni hal qilish uchun
+• Anonim xato hisobotlari
 
-2.3. Biz TO'PLAMAYDIGAN ma'lumotlar:
-• Aniq joylashuv (GPS)
-• Telefon kitobi kontaktlari
+Biz hech qachon to'PLAMAYMIZ:
+• GPS joylashuv
+• Telefon kitobi
 • Biometrik ma'lumotlar
-• Moliyaviy ma'lumotlar yoki bank karta raqamlari
+• Bank karta yoki moliyaviy ma'lumotlar
 
-──────────────────────────────
+🎯 Nima uchun kerak?
 
-3. MA'LUMOTLARDAN FOYDALANISH MAQSADLARI
+• Akkauntingizni yaratish va boshqarish
+• Watch Party va birga tomosha funksiyalarini ishlashi
+• Push-bildirishnomalar yuborish (taklif, xabar)
+• Platformani xavfsiz saqlash
+• Texnik nosozliklarni bartaraf etish
 
-Biz ma'lumotlaringizdan quyidagi maqsadlarda foydalanamiz:
-• Akkaunt yaratish va boshqarish
-• Watch Party va sinxron tomosha funksiyalarini ta'minlash
-• Watch Party takliflari va qo'llab-quvvatlash javoblari haqida push-bildirishnomalar yuborish
-• Firibgarlikni oldini olish va platforma xavfsizligini ta'minlash
-• Texnik diagnostika va nosozliklarni bartaraf etish
-• Ilovaning funksionalligi va foydalanuvchi tajribasini yaxshilash
+🤝 Boshqalarga beramizmi?
 
-──────────────────────────────
+Ma'lumotlaringizni sotmaymiz va bermaymiz. Faqat ilovamiz ishlashi uchun zarur xizmatlar bilan ishlashadi:
 
-4. UCHINCHI TOMON XIZMATLARIGA MA'LUMOT UZATISH
+• MongoDB Atlas — ma'lumotlar bazasi (mongodb.com/legal/privacy-policy)
+• Railway — server hosting (railway.app/legal/privacy)
+• Firebase — push-bildirishnomalar (firebase.google.com/support/privacy)
+• Sentry — anonim xato hisobotlari (sentry.io/privacy)
+• Google Sign-In (policies.google.com/privacy)
+• Apple Sign In — iOS foydalanuvchilari uchun (apple.com/legal/privacy)
 
-Biz ma'lumotlaringizni sotmaymiz. Quyidagi ishonchli xizmatlarga ma'lumot uzatamiz:
+Barcha xizmatlar GDPR talablariga mos keladi.
 
-• MongoDB Atlas — bulutli ma'lumotlar bazasida saqlash
-  (mongodb.com/legal/privacy-policy)
-• Railway — ilova serverlarini joylash
-  (railway.app/legal/privacy)
-• Firebase (Google) — push-bildirishnomalar
-  (firebase.google.com/support/privacy)
-• Sentry — xato hisobotlari (anonim)
-  (sentry.io/privacy)
-• Google Sign-In — Google orqali autentifikatsiya
-  (policies.google.com/privacy)
-• Apple Sign In — Apple orqali autentifikatsiya (iOS)
-  (apple.com/legal/privacy)
+⏳ Qancha vaqt saqlanadi?
 
-Barbu hamkor-xizmatlar GDPR talablariga muvofiq tekshirilgan.
+• Akkaunt ma'lumotlari — akkaunt o'chirilgunga qadar
+• Texnik loglar — 90 kun
+• Push token — ilova o'chirilgunga qadar
+• Watch Party xona ma'lumotlari — xona yopilgandan 60 kun o'tgach
 
-──────────────────────────────
+Akkauntni o'chirsangiz (Sozlamalar → Akkauntni o'chirish), barcha ma'lumotlaringiz 30 kun ichida butunlay o'chiriladi.
 
-5. MA'LUMOTLARNI SAQLASH MUDDATI
+🔐 Xavfsizlik
 
-• Akkaunt ma'lumotlari — akkaunt o'chirilgunga qadar saqlanadi
-• Texnik loglar — 90 kundan ko'p bo'lmagan muddatda
-• Push-bildirishnoma tokenlari — ilova yoki akkaunt o'chirilgunga qadar
-• Watch Party xona ma'lumotlari — xona yopilganidan 60 kun o'tgach
+• Parollar bcrypt bilan shifrlangan (12 raund)
+• Barcha ulanishlar HTTPS/TLS orqali
+• JWT-tokenlar — 15 daqiqa muddatli
+• Qurilmada ma'lumotlar expo-secure-store bilan himoyalangan
 
-Akkauntni o'chirish ("Sozlamalar → Akkauntni o'chirish") orqali barcha ma'lumotlaringiz 30 kun ichida qaytarib bo'lmas tarzda o'chiriladi.
+✅ Sizning huquqlaringiz
 
-──────────────────────────────
+Istalgan vaqtda:
+• Ma'lumotlaringizni ko'rish yoki nusxasini olish
+• Noto'g'ri ma'lumotlarni tuzatish
+• Ma'lumotlaringizni o'chirish
+• Qayta ishlashni cheklash
+• Ma'lumotlarni boshqa formatda olish
 
-6. SIZNING HUQUQLARINGIZ
+So'rovlar uchun: support@wewatch.uz
+Ilova orqali: Sozlamalar → Qo'llab-quvvatlash
 
-Shaxsiy ma'lumotlaringiz bo'yicha quyidagi huquqlarga egasiz:
-• Kirish huquqi — siz haqingizda saqlanadigan ma'lumotlarning nusxasini olish
-• To'g'irlash huquqi — noto'g'ri ma'lumotlarni tuzatish
-• O'chirish huquqi — ma'lumotlaringizni o'chirish
-• Qayta ishlashni cheklash huquqi — qayta ishlashni vaqtincha cheklash
-• Ma'lumotlarni ko'chirish huquqi — ma'lumotlarni mashinacha o'qiladigan formatda olish
-• E'tiroz bildirish huquqi — qonuniy manfaat asosidagi qayta ishlashga e'tiroz
+👶 Bolalar
 
-Huquqlarni amalga oshirish uchun: support@wewatch.app
+WeWatch 13+ yoshdagi foydalanuvchilar uchun. 13 yoshdan kichik bolalar haqida atayin ma'lumot to'plamaymiz.
 
-O'zbekiston Respublikasida yashovchi foydalanuvchilar "Shaxsiy ma'lumotlar to'g'risida"gi Qonun (29.07.2019 yil, №ЎРҚ-547) bilan himoyalangan.
+🔄 O'zgarishlar
 
-──────────────────────────────
+Siyosat yangilanganda push-bildirishnoma yoki kirishda xabardor qilamiz.
 
-7. MA'LUMOTLAR XAVFSIZLIGI
+O'zbekiston foydalanuvchilari "Shaxsiy ma'lumotlar to'g'risida"gi Qonun (29.07.2019, №ЎРҚ-547) bilan himoyalangan.`,
 
-Biz quyidagi himoya choralarini qo'llaymiz:
-• Parollarni shifrlash (bcrypt, 12 raund)
-• Barcha ulanishlar uchun HTTPS/TLS
-• Qisqa muddatli JWT-tokenlar (15 daqiqa)
-• Yangilash tokenlari rotatsiyasi (30 kun)
-• Qurilamadagi ma'lumotlarni shifrlash (expo-secure-store)
 
-──────────────────────────────
-
-8. BOLALAR MAXFIYLIGI
-
-WeWatch 13 va undan katta yoshdagi foydalanuvchilarga mo'ljallangan. Biz 13 yoshdan kichik bolalarning ma'lumotlarini atayin to'plamaymiz. Agar bola shaxsiy ma'lumot taqdim etganini bilsangiz — darhol support@wewatch.app manziliga murojaat qiling.
-
-──────────────────────────────
-
-9. SIYOSATGA O'ZGARTIRISHLAR
-
-Biz ushbu Siyosatni yangilashimiz mumkin. Muhim o'zgarishlar haqida push-bildirishnoma yoki Ilovaga kirishda xabardor qilamiz. O'zgarishlardan so'ng Ilovadan foydalanishni davom ettirishingiz yangilangan Siyosatga roziligingizni bildiradi.
-
-──────────────────────────────
-
-10. BOG'LANISH MA'LUMOTLARI
-
-Maxfiylik bo'yicha barcha savollar uchun:
-• Email: support@wewatch.app
-• Ilova orqali: Sozlamalar → Qo'llab-quvvatlash → Bizga yozing`,
-
-  // ────────────────────────────────────────────────────────────────
-  ru: `ПОЛИТИКА КОНФИДЕНЦИАЛЬНОСТИ — WeWatch
+  ru: `WeWatch — Политика конфиденциальности
 Дата вступления в силу: 1 января 2025 г.
 
-1. ВВЕДЕНИЕ
+👋 Привет!
 
-WeWatch («мы», «наш», «нас») уважает вашу конфиденциальность. Настоящая Политика конфиденциальности описывает, как мы собираем, используем, храним и защищаем ваши персональные данные при использовании мобильного приложения WeWatch («Приложение»).
+В WeWatch мы относимся к вашим данным с уважением. Этот документ простым языком объясняет, какие данные мы храним, зачем они нужны и как мы их защищаем.
 
-Используя Приложение, вы соглашаетесь с настоящей Политикой. Если вы не согласны — не используйте Приложение.
+📋 Что мы собираем?
 
-──────────────────────────────
+Вы предоставляете нам:
+• Имя пользователя и email
+• Пароль (в зашифрованном виде — мы его никогда не видим)
+• Фото профиля (по желанию)
+• История Watch Party и плейлисты
 
-2. ДАННЫЕ, КОТОРЫЕ МЫ СОБИРАЕМ
+Автоматически:
+• Токен push-уведомлений — для приглашений и событий
+• Тип ОС устройства — для технической поддержки
+• Анонимные отчёты об ошибках
 
-2.1. Данные, которые вы предоставляете нам:
-• Имя пользователя (никнейм)
-• Адрес электронной почты
-• Пароль (хранится в зашифрованном виде; мы никогда не видим ваш пароль)
-• Фотография профиля (если вы её загружаете)
-• История Watch Party: комнаты, плейлисты
-
-2.2. Данные, которые мы собираем автоматически:
-• Токен push-уведомлений (для отправки уведомлений о приглашениях и событиях)
-• Тип и версия операционной системы устройства
-• Анонимные отчёты об ошибках (технические сбои)
-• Дата и время последней активности
-
-2.3. Данные, которые мы НЕ собираем:
-• Точное местоположение (GPS)
+Мы никогда НЕ собираем:
+• Геолокацию (GPS)
 • Контакты телефонной книги
 • Биометрические данные
-• Финансовые данные или данные банковских карт
+• Данные банковских карт
 
-──────────────────────────────
+🎯 Зачем нам эти данные?
 
-3. ЦЕЛИ ОБРАБОТКИ ДАННЫХ
+• Создание и управление вашим аккаунтом
+• Работа Watch Party и синхронного просмотра
+• Push-уведомления о приглашениях и событиях
+• Безопасность платформы
+• Устранение технических неполадок
 
-Мы используем ваши данные для:
-• Создания и управления вашим аккаунтом
-• Обеспечения работы функций Watch Party и синхронного просмотра
-• Отправки push-уведомлений о приглашениях, обновлениях и ответах поддержки
-• Предотвращения мошенничества и обеспечения безопасности платформы
-• Технической диагностики и устранения неисправностей
-• Улучшения функциональности и пользовательского опыта
+🤝 Передаём ли данные третьим лицам?
 
-──────────────────────────────
+Ваши данные не продаются. Они используются только сервисами, без которых приложение не работает:
 
-4. ПРАВОВЫЕ ОСНОВАНИЯ ОБРАБОТКИ (GDPR)
+• MongoDB Atlas — база данных (mongodb.com/legal/privacy-policy)
+• Railway — хостинг серверов (railway.app/legal/privacy)
+• Firebase — push-уведомления (firebase.google.com/support/privacy)
+• Sentry — анонимные отчёты об ошибках (sentry.io/privacy)
+• Google Sign-In (policies.google.com/privacy)
+• Apple Sign In — для пользователей iOS (apple.com/legal/privacy)
 
-Для пользователей из Европейского Союза:
-• Исполнение договора (ст. 6(1)(b) GDPR) — обработка необходима для предоставления услуг Приложения
-• Законный интерес (ст. 6(1)(f) GDPR) — безопасность платформы, предотвращение злоупотреблений
-• Согласие (ст. 6(1)(a) GDPR) — push-уведомления (отзывается в настройках устройства)
+Все сервисы соответствуют требованиям GDPR.
 
-──────────────────────────────
+⏳ Сколько хранятся данные?
 
-5. ПЕРЕДАЧА ДАННЫХ ТРЕТЬИМ ЛИЦАМ
-
-Мы не продаём ваши данные. Мы передаём данные следующим доверенным сервисам:
-
-• MongoDB Atlas — хранение данных в облачной базе данных
-  (mongodb.com/legal/privacy-policy)
-• Railway — хостинг серверов приложения
-  (railway.app/legal/privacy)
-• Firebase (Google) — push-уведомления
-  (firebase.google.com/support/privacy)
-• Sentry — отчёты об ошибках (анонимно)
-  (sentry.io/privacy)
-• Google Sign-In — авторизация через Google
-  (policies.google.com/privacy)
-• Apple Sign In — авторизация через Apple (iOS)
-  (apple.com/legal/privacy)
-
-Все указанные партнёры прошли проверку на соответствие требованиям GDPR.
-
-──────────────────────────────
-
-6. ХРАНЕНИЕ ДАННЫХ
-
-• Данные аккаунта — до момента удаления аккаунта
-• Технические логи — не более 90 дней
-• Токены push-уведомлений — до удаления приложения или аккаунта
+• Данные аккаунта — до его удаления
+• Технические логи — 90 дней
+• Push-токен — до удаления приложения или аккаунта
 • Данные комнат Watch Party — 60 дней после закрытия комнаты
 
-При удалении аккаунта («Настройки → Удалить аккаунт») все ваши данные безвозвратно удаляются в течение 30 дней.
+При удалении аккаунта (Настройки → Удалить аккаунт) все ваши данные безвозвратно удаляются в течение 30 дней.
 
-──────────────────────────────
+🔐 Как мы защищаем данные?
 
-7. ВАШИ ПРАВА
+• Пароли зашифрованы с помощью bcrypt (12 раундов)
+• Все соединения через HTTPS/TLS
+• JWT-токены действуют 15 минут
+• Данные на устройстве защищены expo-secure-store
 
-Вы имеете следующие права в отношении ваших персональных данных:
-• Право на доступ — получить копию хранимых данных о вас
-• Право на исправление — исправить неточные данные
-• Право на удаление — удалить свои данные («право на забвение»)
-• Право на ограничение обработки — временно ограничить обработку
-• Право на перенос данных — получить данные в машиночитаемом формате
-• Право на возражение — возразить против обработки на основании законного интереса
-• Право отозвать согласие — в любой момент отозвать согласие на уведомления
+✅ Ваши права
 
-Для реализации прав: support@wewatch.app
+В любой момент вы можете:
+• Просмотреть или получить копию своих данных
+• Исправить неточные данные
+• Удалить свои данные
+• Ограничить обработку
+• Получить данные в удобном формате
 
-Пользователи в Узбекистане защищены Законом «О персональных данных» (29.07.2019 №ЎРҚ-547).
+Для запросов: support@wewatch.uz
+Через приложение: Настройки → Поддержка
 
-──────────────────────────────
+Для пользователей ЕС: обработка данных основана на ст. 6(1)(b) и 6(1)(f) GDPR.
 
-8. БЕЗОПАСНОСТЬ ДАННЫХ
+👶 Дети
 
-Мы применяем следующие меры защиты:
-• Шифрование паролей (bcrypt, 12 раундов)
-• HTTPS/TLS для всех соединений
-• JWT-токены с коротким сроком действия (15 минут)
-• Токены обновления с ротацией (30 дней)
-• Шифрование данных на устройстве (expo-secure-store)
+WeWatch предназначен для пользователей от 13 лет. Мы не собираем данные детей младше 13 лет намеренно.
 
-──────────────────────────────
+🔄 Изменения политики
 
-9. ЗАЩИТА ДЕТЕЙ
+При обновлении политики вы получите уведомление или увидите сообщение при следующем входе.
 
-Приложение WeWatch предназначено для пользователей в возрасте 13 лет и старше. Мы сознательно не собираем данные детей младше 13 лет. Если вам известно, что ребёнок предоставил нам личную информацию — немедленно свяжитесь с нами: support@wewatch.app.
+Пользователи в Узбекистане защищены Законом «О персональных данных» (29.07.2019, №ЎРҚ-547).`,
 
-──────────────────────────────
 
-10. МЕЖДУНАРОДНАЯ ПЕРЕДАЧА ДАННЫХ
-
-Ваши данные могут обрабатываться на серверах, расположенных в разных странах. Мы обеспечиваем соответствие международной передачи данных требованиям GDPR (Стандартные договорные условия ЕС) и иным применимым законам.
-
-──────────────────────────────
-
-11. ИЗМЕНЕНИЯ ПОЛИТИКИ
-
-Мы можем обновлять настоящую Политику. О существенных изменениях вы будете уведомлены через push-уведомление или при следующем входе в Приложение. Продолжение использования Приложения после уведомления означает согласие с обновлённой Политикой.
-
-──────────────────────────────
-
-12. КОНТАКТНАЯ ИНФОРМАЦИЯ
-
-По всем вопросам конфиденциальности:
-• Email: support@wewatch.app
-• Через Приложение: Настройки → Поддержка → Написать нам`,
-
-  // ────────────────────────────────────────────────────────────────
-  en: `PRIVACY POLICY — WeWatch
+  en: `WeWatch — Privacy Policy
 Effective Date: January 1, 2025
 
-1. INTRODUCTION
+👋 Hello!
 
-WeWatch ("we", "our", "us") respects your privacy. This Privacy Policy explains how we collect, use, store, and protect your personal data when you use the WeWatch mobile application ("App").
+At WeWatch, we take your privacy seriously. This document explains in plain language what data we store, why we need it, and how we protect it.
 
-By using the App, you agree to this Policy. If you do not agree — please do not use the App.
+📋 What do we collect?
 
-──────────────────────────────
+You provide us with:
+• Username and email address
+• Password (encrypted — we never see it in plain text)
+• Profile photo (optional)
+• Watch Party history and playlists
 
-2. DATA WE COLLECT
+Automatically collected:
+• Push notification token — for invitations and events
+• Device OS type — for technical support
+• Anonymous crash reports
 
-2.1. Data you provide to us:
-• Username (display name)
-• Email address
-• Password (stored encrypted; we never see your plaintext password)
-• Profile photo (if you upload one)
-• Watch Party history: rooms and playlists
-
-2.2. Data we collect automatically:
-• Push notification token (to send invitations and event notifications)
-• Device operating system type and version
-• Anonymous crash reports (technical errors only)
-• Date and time of last activity
-
-2.3. Data we do NOT collect:
+We never collect:
 • Precise location (GPS)
 • Phone book contacts
 • Biometric data
-• Financial data or payment card numbers
+• Bank card or financial data
 
-──────────────────────────────
+🎯 Why do we need this data?
 
-3. PURPOSES OF DATA PROCESSING
+• Creating and managing your account
+• Running Watch Party and synchronized viewing features
+• Sending push notifications about invitations and events
+• Keeping the platform safe and secure
+• Resolving technical issues
 
-We use your data to:
-• Create and manage your account
-• Provide Watch Party and synchronized viewing features
-• Send push notifications about invitations, updates, and support replies
-• Prevent fraud and ensure platform security
-• Perform technical diagnostics and troubleshooting
-• Improve app functionality and user experience
+🤝 Do we share data with others?
 
-──────────────────────────────
+We do not sell your data. It is only shared with services essential for the app to function:
 
-4. LEGAL BASIS FOR PROCESSING (GDPR)
+• MongoDB Atlas — database storage (mongodb.com/legal/privacy-policy)
+• Railway — server hosting (railway.app/legal/privacy)
+• Firebase — push notifications (firebase.google.com/support/privacy)
+• Sentry — anonymous error reports (sentry.io/privacy)
+• Google Sign-In (policies.google.com/privacy)
+• Apple Sign In — for iOS users (apple.com/legal/privacy)
 
-For users in the European Union:
-• Performance of contract (Art. 6(1)(b) GDPR) — processing is necessary to provide App services
-• Legitimate interest (Art. 6(1)(f) GDPR) — platform security, abuse prevention
-• Consent (Art. 6(1)(a) GDPR) — push notifications (withdraw via device settings)
+All partners are verified for GDPR compliance.
 
-──────────────────────────────
-
-5. DATA SHARING WITH THIRD PARTIES
-
-We do not sell your data. We share data with the following trusted services:
-
-• MongoDB Atlas — cloud database storage
-  (mongodb.com/legal/privacy-policy)
-• Railway — application server hosting
-  (railway.app/legal/privacy)
-• Firebase (Google) — push notifications
-  (firebase.google.com/support/privacy)
-• Sentry — error reporting (anonymous)
-  (sentry.io/privacy)
-• Google Sign-In — authentication via Google
-  (policies.google.com/privacy)
-• Apple Sign In — authentication via Apple (iOS)
-  (apple.com/legal/privacy)
-
-All listed partners have been verified for GDPR compliance.
-
-──────────────────────────────
-
-6. DATA RETENTION
+⏳ How long is data retained?
 
 • Account data — until account deletion
-• Technical logs — no more than 90 days
-• Push notification tokens — until app or account deletion
+• Technical logs — 90 days
+• Push token — until app or account deletion
 • Watch Party room data — 60 days after room closure
 
-Upon account deletion ("Settings → Delete Account"), all your data is permanently deleted within 30 days.
+When you delete your account (Settings → Delete Account), all your data is permanently removed within 30 days.
 
-──────────────────────────────
+🔐 How do we protect your data?
 
-7. YOUR RIGHTS
-
-You have the following rights regarding your personal data:
-• Right of access — receive a copy of data stored about you
-• Right of rectification — correct inaccurate data
-• Right of erasure — delete your data ("right to be forgotten")
-• Right to restriction of processing — temporarily limit processing
-• Right to data portability — receive data in machine-readable format
-• Right to object — object to processing based on legitimate interest
-• Right to withdraw consent — withdraw notification consent at any time
-
-To exercise your rights: support@wewatch.app
-
-──────────────────────────────
-
-8. DATA SECURITY
-
-We implement the following security measures:
-• Password encryption (bcrypt, 12 rounds)
-• HTTPS/TLS for all connections
+• Passwords encrypted with bcrypt (12 rounds)
+• All connections via HTTPS/TLS
 • Short-lived JWT tokens (15 minutes)
-• Refresh token rotation (30 days)
-• On-device data encryption (expo-secure-store)
+• On-device data protected by expo-secure-store
 
-──────────────────────────────
+✅ Your rights
 
-9. CHILDREN'S PRIVACY
+At any time you can:
+• Access or receive a copy of your data
+• Correct inaccurate data
+• Delete your data ("right to be forgotten")
+• Restrict processing
+• Receive data in a portable format
 
-WeWatch is intended for users aged 13 and older. We do not knowingly collect data from children under 13. If you become aware that a child has provided us with personal information, please contact us immediately: support@wewatch.app.
+For requests: support@wewatch.uz
+Via the app: Settings → Support
 
-──────────────────────────────
+EU users: processing is based on Art. 6(1)(b) and 6(1)(f) GDPR.
 
-10. INTERNATIONAL DATA TRANSFERS
+👶 Children
 
-Your data may be processed on servers located in various countries. We ensure that any international data transfer complies with GDPR requirements (EU Standard Contractual Clauses) and other applicable laws.
+WeWatch is for users aged 13 and older. We do not knowingly collect data from children under 13.
 
-──────────────────────────────
+🔄 Policy updates
 
-11. CHANGES TO THIS POLICY
-
-We may update this Policy. You will be notified of significant changes via push notification or upon next login to the App. Continuing to use the App after notification constitutes agreement with the updated Policy.
-
-──────────────────────────────
-
-12. CONTACT INFORMATION
-
-For all privacy-related questions:
-• Email: support@wewatch.app
-• Via the App: Settings → Support → Contact Us`,
+You'll be notified of significant changes via push notification or upon next login.`,
 };
