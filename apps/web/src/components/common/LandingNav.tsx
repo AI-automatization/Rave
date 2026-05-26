@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { FaBars, FaTimes, FaPlay, FaChevronRight } from 'react-icons/fa';
+import { FaBars, FaTimes, FaChevronRight } from 'react-icons/fa';
 import { useTranslations } from 'next-intl';
 import { LanguageSwitcher } from './LanguageSwitcher';
 
@@ -33,11 +33,19 @@ export function LandingNav() {
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
 
           {/* Logo */}
-          <Link href="/" className="inline-flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-[#7B72F8] flex items-center justify-center shadow-[0_0_10px_rgba(123,114,248,0.4)]">
-              <FaPlay size={9} className="text-white ml-0.5" />
-            </div>
-            <span className="text-xl font-display tracking-wider text-white hover:text-[#7B72F8] transition-colors">
+          <Link href="/" className="inline-flex items-center gap-2 group">
+            <svg width="32" height="32" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <rect width="64" height="64" rx="14" fill="#0A0A0F"/>
+              <defs>
+                <linearGradient id="navWG" x1="8" y1="8" x2="56" y2="56" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stopColor="#A78BFA"/>
+                  <stop offset="100%" stopColor="#7C3AED"/>
+                </linearGradient>
+              </defs>
+              <path d="M 56,11 L 40,52 L 32,30 L 21,11" stroke="#7C3AED" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+              <path d="M 8,11 L 25,52 L 32,30 L 43,11" stroke="url(#navWG)" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+            </svg>
+            <span className="text-xl font-display tracking-wider text-white group-hover:text-[#7B72F8] transition-colors">
               WE<span className="text-[#7B72F8]">WATCH</span>
             </span>
           </Link>
@@ -121,9 +129,17 @@ export function LandingNav() {
         {/* Drawer header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-800/60">
           <Link href="/" onClick={() => setMenuOpen(false)} className="inline-flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-[#7B72F8] flex items-center justify-center">
-              <FaPlay size={8} className="text-white ml-0.5" />
-            </div>
+            <svg width="28" height="28" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <rect width="64" height="64" rx="14" fill="#0A0A0F"/>
+              <defs>
+                <linearGradient id="drawerWG" x1="8" y1="8" x2="56" y2="56" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stopColor="#A78BFA"/>
+                  <stop offset="100%" stopColor="#7C3AED"/>
+                </linearGradient>
+              </defs>
+              <path d="M 56,11 L 40,52 L 32,30 L 21,11" stroke="#7C3AED" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+              <path d="M 8,11 L 25,52 L 32,30 L 43,11" stroke="url(#drawerWG)" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+            </svg>
             <span className="font-display text-white tracking-wider">
               WE<span className="text-[#7B72F8]">WATCH</span>
             </span>
