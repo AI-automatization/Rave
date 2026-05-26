@@ -240,7 +240,7 @@ export function WatchPartyScreen() {
         <>
           {/* Room info bar */}
           <RoomInfoBar
-            roomName={room?.name ?? 'Watch Party'}
+            roomName={room?.videoTitle ?? room?.name ?? 'Watch Party'}
             memberCount={activeMembers.length}
             isOwner={isOwner}
             hasMessages={messages.length > 0}
@@ -281,7 +281,7 @@ export function WatchPartyScreen() {
             <InviteCard
               inviteCode={room.inviteCode}
               roomId={params.roomId}
-              roomName={room.name ?? 'Watch Party'}
+              roomName={room.videoTitle ?? room.name ?? 'Watch Party'}
             />
           )}
 
