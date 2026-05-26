@@ -9,41 +9,44 @@
 
 ---
 
-## ⛔ СТАРТ СЕССИИ — ВСЕ 7 ШАГОВ ОБЯЗАТЕЛЬНЫ. ПРОПУСК ЛЮБОГО = НАРУШЕНИЕ.
+## ⛔ СТАРТ СЕССИИ — 3 ШАГА (Hub-based, обязательно)
 
-**ЗАПРЕЩЕНО отвечать на задачи пока все 7 шагов не выполнены.**
+**ЗАПРЕЩЕНО отвечать на задачи пока все 3 шага не выполнены.**
 
 ```
-ШАГ 1 — Узнать разработчика: Saidazim (Backend+Admin+Mobile) или Emirhan (Mobile+Web)
-         → Прочитать CLAUDE_BACKEND.md (Saidazim) / CLAUDE_MOBILE.md + CLAUDE_EMIRHAN.md (Emirhan)
-
-ШАГ 2 — git pull origin main
+ШАГ 1 — git pull origin main
          → Если конфликт — СТОП, сообщить пользователю
 
-ШАГ 3 — Загрузить Obsidian память (ОБЯЗАТЕЛЬНО, БЕЗ ИСКЛЮЧЕНИЙ):
-         bash .claude/scripts/memory-load.sh quick
-         → Читать: CONSTRAINTS.md → LAST_SESSION.md → _bugs.md → ARCHITECTURE.md
+ШАГ 2 — Прочитать WeWatch Hub (ЕДИНСТВЕННЫЙ ИСТОЧНИК ПРАВДЫ):
+         Read ~/Documents/weWatch-obsidian/WeWatch-Hub.md
+         → Содержит: сервисы, зоны, правила, задачи, контакты, скиллы — ВСЁ
 
-ШАГ 4 — Проверить незавершённые задачи:
-         cat AI_CONTEXT/in-progress-{developer}.md
-         → Если status=active → сообщить пользователю, спросить продолжать или нет
-         → НЕ переходить к новому пока пользователь не ответил
-
-ШАГ 5 — Прочитать Daily Note:
-         Saidazim: cat ~/Documents/weWatch-obsidian/DAILY/Saidazim/$(date '+%Y-%m-%d').md
-         Emirhan:  cat ~/Documents/weWatch-obsidian/DAILY/Emirhan/$(date '+%Y-%m-%d').md
-         → Найти 🚧 Checkpoint без ✅ Завершено → если есть = задача не завершена → доделать
-
-ШАГ 6 — Прочитать docs/Tasks.md
-         → Проверить статусы 🔄 Bajarilmoqda
-         → Запомнить последний T-номер
-
-ШАГ 7 — Проверить Telegram (TEZCODE):
-         bash .claude/scripts/tg-watch.sh history 3
-         → URGENT(≥7) → показать сразу | TASK(≥4) → спросить добавить | BUG → создать task
+ШАГ 3 — Прочитать docs/Tasks.md
+         → Проверить активные задачи, последний T-номер
+         → Если есть 🔄 Bajarilmoqda → спросить продолжать или нет
 ```
 
-**После всех 7 шагов — показать пользователю сводку и ждать команды.**
+**После 3 шагов — показать сводку и ждать команды.**
+
+> Hub не найден? → читать: CONSTRAINTS.md + LAST_SESSION.md + ARCHITECTURE.md (fallback)
+
+---
+
+## SUB-AGENT SPAWN — HUB INLINE PATTERN
+
+При любом Agent() вызове — ОБЯЗАТЕЛЬНО передать Hub bundle:
+
+```
+== DOMAIN == weWatch
+== HUB BUNDLE ==
+{~/Documents/weWatch-obsidian/WeWatch-Hub.md — прочитать и вставить INLINE, не file path}
+== APPLICABLE RULES ==
+No Socket.io rename | No shared/* without lock | Anti-hallucination | Zone check
+== TASK ==
+{конкретная задача — file:line, что изменить}
+```
+
+> Orphan Rule 41: каждый новый файл = 2 шага: создать → СРАЗУ добавить в Hub нужный раздел.
 
 ---
 
