@@ -9,21 +9,93 @@
 
 ---
 
-## ПЕРВЫЙ ШАГ (ОБЯЗАТЕЛЬНО)
+## ⛔ СТАРТ СЕССИИ — ВСЕ 7 ШАГОВ ОБЯЗАТЕЛЬНЫ. ПРОПУСК ЛЮБОГО = НАРУШЕНИЕ.
 
-Узнать кто за терминалом: Saidazim (Backend+Admin+Mobile) или Emirhan (Mobile+Web).
-Затем: читай `CLAUDE_BACKEND.md` / `CLAUDE_MOBILE.md` → `git pull origin main` → `docs/Tasks.md`.
-Перед задачей — **GIT-BASED TASK LOCKING** (ниже). TEZCODE сообщения — проверить.
+**ЗАПРЕЩЕНО отвечать на задачи пока все 7 шагов не выполнены.**
+
+```
+ШАГ 1 — Узнать разработчика: Saidazim (Backend+Admin+Mobile) или Emirhan (Mobile+Web)
+         → Прочитать CLAUDE_BACKEND.md (Saidazim) / CLAUDE_MOBILE.md + CLAUDE_EMIRHAN.md (Emirhan)
+
+ШАГ 2 — git pull origin main
+         → Если конфликт — СТОП, сообщить пользователю
+
+ШАГ 3 — Загрузить Obsidian память (ОБЯЗАТЕЛЬНО, БЕЗ ИСКЛЮЧЕНИЙ):
+         bash .claude/scripts/memory-load.sh quick
+         → Читать: CONSTRAINTS.md → LAST_SESSION.md → _bugs.md → ARCHITECTURE.md
+
+ШАГ 4 — Проверить незавершённые задачи:
+         cat AI_CONTEXT/in-progress-{developer}.md
+         → Если status=active → сообщить пользователю, спросить продолжать или нет
+         → НЕ переходить к новому пока пользователь не ответил
+
+ШАГ 5 — Прочитать Daily Note:
+         Saidazim: cat ~/Documents/weWatch-obsidian/DAILY/Saidazim/$(date '+%Y-%m-%d').md
+         Emirhan:  cat ~/Documents/weWatch-obsidian/DAILY/Emirhan/$(date '+%Y-%m-%d').md
+         → Найти 🚧 Checkpoint без ✅ Завершено → если есть = задача не завершена → доделать
+
+ШАГ 6 — Прочитать docs/Tasks.md
+         → Проверить статусы 🔄 Bajarilmoqda
+         → Запомнить последний T-номер
+
+ШАГ 7 — Проверить Telegram (TEZCODE):
+         bash .claude/scripts/tg-watch.sh history 3
+         → URGENT(≥7) → показать сразу | TASK(≥4) → спросить добавить | BUG → создать task
+```
+
+**После всех 7 шагов — показать пользователю сводку и ждать команды.**
 
 ---
 
-## TEZCODE МОНИТОРИНГ — ЗАКОН
+## OBSIDIAN ZONE SYSTEM — ЗАКОН
 
-SessionStart hook читает историю Telegram 3 дня автоматически. Ручная проверка:
-```bash
-bash .claude/scripts/tg-watch.sh history 3
+**Каждая платформа/направление = отдельная зона в Obsidian.**
+
 ```
-Действия: URGENT(≥7) → показать сразу | TASK(≥4) → спросить добавить в Tasks.md | BUG → создать T-S/E task | MENTION → показать.
+Vault: ~/Documents/weWatch-obsidian/ZONES/
+  Instagram/        — Reels, slides, content, audio
+  WeWatch-Mobile/   — React Native, Expo, mobile features
+  WeWatch-Backend/  — services/*, Node.js, MongoDB
+  WeWatch-Web/      — apps/web/
+  Telegram/         — боты, уведомления, интеграции
+  AI-Agents/        — swarm agents, automation
+  Skills/           — все skill файлы с зонами
+  MCPs/             — MCP инструменты и конфиги
+  Plugins/          — плагины и расширения
+```
+
+### Автоматическое определение зоны (ОБЯЗАТЕЛЬНО):
+
+Когда пользователь говорит → немедленно загрузить зону:
+```
+"Instagram...", "Reel...", "slides..."   → bash .claude/scripts/zone-load.sh instagram
+"Mobile...", "React Native...", "Expo..."→ bash .claude/scripts/zone-load.sh mobile
+"Backend...", "service...", "API..."     → bash .claude/scripts/zone-load.sh backend
+"Web...", "Next.js...", "apps/web..."   → bash .claude/scripts/zone-load.sh web
+"Telegram...", "bot...", "guruh..."     → bash .claude/scripts/zone-load.sh telegram
+"agent...", "swarm...", "automation..." → bash .claude/scripts/zone-load.sh ai-agents
+```
+
+### После завершения работы с зоной (ОБЯЗАТЕЛЬНО):
+```bash
+# Зону обновить — что сделано, что следующее
+# Редактировать: ~/Documents/weWatch-obsidian/ZONES/<zone>/_context.md
+```
+
+---
+
+## ⛔ ДО СТАРТА КАЖДОЙ ЗАДАЧИ — ЧЕКЛИСТ (ЗАПРЕЩЕНО ПРОПУСКАТЬ)
+
+```
+□ 1. git pull origin main (даже если только что делал)
+□ 2. docs/Tasks.md → проверить pending[другой] на эту задачу
+□ 3. Написать pending[СвоёИмя] → git add docs/Tasks.md → git commit → git push
+□ 4. tg-notify.sh claim T-XXX ...
+□ 5. obsidian-checkpoint.sh T-XXX 0 "" "первый шаг — файл:строка"
+□ 6. Показать пользователю: 📋 T-XXX | 🤖 [model] | 📝 [причина] → получить подтверждение
+```
+
+**ЗАПРЕЩЕНО писать код до получения подтверждения от пользователя.**
 
 ---
 
@@ -84,8 +156,6 @@ shared/types,utils,constants → ОБЩЕЕ (lock protocol)
 
 **Модели:** opus = сложная архитектура/рефактор | sonnet = фича, 2-5 файлов | haiku = 1 файл, опечатки
 
-Перед стартом показать пользователю: `📋 T-XXX | 🤖 sonnet | 📝 причина → подтвердить`
-
 **Done.md формат:**
 ```markdown
 ### F-XXX | T-S057 | Название
@@ -97,7 +167,7 @@ shared/types,utils,constants → ОБЩЕЕ (lock protocol)
 
 ## TELEGRAM УВЕДОМЛЕНИЯ — ЗАКОН
 
-**При ЛЮБОМ изменении задач — отправить уведомление:**
+**При ЛЮБОМ изменении задач — отправить уведомление. ЗАПРЕЩЕНО молчать.**
 ```bash
 .claude/scripts/tg-notify.sh <action> <task_id> <task_meta> <title> [executor] [details]
 # actions: new | claim | done | update | blocked
@@ -187,12 +257,13 @@ Brute force: 5 попыток → 15min блок | Socket.io JWT verify
 
 ---
 
-## ОПАСНЫЕ ЗОНЫ
+## ⛔ ОПАСНЫЕ ЗОНЫ — АБСОЛЮТНЫЕ ЗАПРЕТЫ
 
 ```
 ❌ MongoDB collection drop        ❌ .env в коммит           ❌ Socket.io event rename (ломает 3 платформы)
 ❌ Чужая зона без согласования    ❌ shared/* без lock        ❌ API response format change без shared/types
-❌ Production DB вручную          ❌ QA skip перед merge
+❌ Production DB вручную          ❌ QA skip перед merge      ❌ push в main напрямую
+❌ Начать задачу без claim        ❌ Код без memory-load.sh   ❌ Завершить без tg-notify done
 ```
 
 ---
@@ -201,20 +272,20 @@ Brute force: 5 попыток → 15min блок | Socket.io JWT verify
 
 **Vault:** `~/Documents/weWatch-obsidian/PROJECTS/weWatch/`
 
-### При старте сессии (после 4-шагового протокола):
+### ⛔ ЗАПРЕЩЕНО начинать любую задачу без загрузки памяти:
 ```bash
-bash .claude/scripts/memory-load.sh quick   # быстрая загрузка
-bash .claude/scripts/memory-load.sh full    # полная загрузка
+bash .claude/scripts/memory-load.sh quick   # ОБЯЗАТЕЛЬНО при каждом старте сессии
+bash .claude/scripts/memory-load.sh full    # перед сложными задачами (opus-уровень)
 ```
 
 Файлы памяти (в порядке чтения):
 ```
 CONSTRAINTS.md  → абсолютные запреты + anti-hallucination rules
 LAST_SESSION.md → где остановились, следующий шаг
+_bugs.md        → known bugs (не воспроизводить!)
 ARCHITECTURE.md → стек, паттерны, структура сервисов
 DECISIONS.md    → почему архитектура именно такая
 API.md          → все endpoints + env variables
-_bugs.md        → known bugs (не воспроизводить!)
 ```
 
 ### Обязательный workflow (5 фаз):
@@ -226,16 +297,39 @@ _bugs.md        → known bugs (не воспроизводить!)
 5. MEMORY UPDATE → обновить LAST_SESSION.md + Done.md + tg-notify
 ```
 
-### Anti-hallucination (читать .claude/skills/read-before-write.md):
+### ⛔ Anti-hallucination — АБСОЛЮТНЫЙ ЗАПРЕТ:
 ```
 ❌ Никогда не придумывать: файлы, endpoints, env vars, схему, функции
+❌ Никогда не писать код по памяти — только после чтения реального файла
 ✅ Перед изменением: find → Read полностью → проверить импорты → Edit
 ✅ Перед созданием: убедиться что не существует → читать похожий файл
+✅ Если не уверен в существовании — grep сначала, потом отвечать
 ```
 
-### В конце каждой сессии:
+### В конце каждой сессии (ОБЯЗАТЕЛЬНО):
 ```bash
 bash .claude/scripts/update-last-session.sh "T-SXXX" "что делали" "следующий шаг"
+```
+
+---
+
+## CHECKPOINT — ЗАКОН
+
+**ЗАПРЕЩЕНО работать над задачей без активного checkpoint.**
+
+```bash
+# Старт задачи:
+.claude/scripts/obsidian-checkpoint.sh T-XXX 0 "" "первый шаг — файл:строка"
+# После каждого изменённого файла:
+.claude/scripts/obsidian-checkpoint.sh T-XXX 40 "Файл.tsx готов" "следующий — Header.tsx"
+# Завершение:
+.claude/scripts/obsidian-checkpoint.sh clear "T-XXX"
+```
+
+```
+❌ Старт задачи без checkpoint      ❌ 2+ файла без обновления checkpoint
+❌ Done.md без checkpoint clear     ❌ Игнорировать in-progress при старте
+❌ Игнорировать 🚧 в daily note     ❌ Завершить сессию без update-last-session.sh
 ```
 
 ---
@@ -286,42 +380,6 @@ CLI-скиллы: `/simplify` | `/security-review` | `/review` | `/fewer-permiss
 
 ---
 
-## НЕЗАВЕРШЁННЫЕ ЗАДАЧИ — ЗАКОН
-
-**При старте сессии (все 4 шага ОБЯЗАТЕЛЬНЫ):**
-
-**ШАГ 1** — SessionStart hook показывает `AI_CONTEXT/in-progress-{developer}.md`. Если `status=active` → сообщить пользователю что незавершено, спросить продолжать или новое. НЕ переходить к новому пока не ответил.
-
-**ШАГ 2** — Прочитать Daily Note (путь зависит от разработчика):
-```bash
-# Saidazim:
-cat ~/Documents/weWatch-obsidian/DAILY/Saidazim/$(date '+%Y-%m-%d').md
-# Emirhan:
-cat ~/Documents/weWatch-obsidian/DAILY/Emirhan/$(date '+%Y-%m-%d').md
-```
-Найти `🚧 Checkpoint T-XXX`. Если нет `✅ Завершено: T-XXX` после него И нет в Done.md → задача НЕ завершена → доделать.
-
-**ШАГ 3** — Прочитать `docs/Tasks.md`, проверить статусы `🔄 Bajarilmoqda`.
-
-**ШАГ 4** — Только после шагов 1-3 переходить к новым задачам.
-
-**Checkpoint обязателен:**
-```bash
-# Старт задачи:
-.claude/scripts/obsidian-checkpoint.sh T-XXX 0 "" "первый шаг — файл:строка"
-# После каждого изменённого файла:
-.claude/scripts/obsidian-checkpoint.sh T-XXX 40 "Файл.tsx готов" "следующий — Header.tsx"
-# Завершение:
-.claude/scripts/obsidian-checkpoint.sh clear "T-XXX"
-```
-
-```
-❌ Старт задачи без checkpoint   ❌ 2+ файла без обновления   ❌ Done.md без clear
-❌ Игнорировать in-progress      ❌ Игнорировать 🚧 в daily note без проверки кода
-```
-
----
-
 ## OBSIDIAN ПАМЯТЬ — ЗАКОН
 
 Vault: `~/Documents/weWatch-obsidian` (env: `OBSIDIAN_VAULT`)
@@ -352,4 +410,4 @@ Vault: `~/Documents/weWatch-obsidian` (env: `OBSIDIAN_VAULT`)
 **Настройка Emirhan (один раз):** `bash .claude/scripts/emirhan-setup.sh`
 
 ---
-*CLAUDE.md | WeWatch | v3.2 | 2026-05-17*
+*CLAUDE.md | WeWatch | v4.0 | 2026-05-25*
