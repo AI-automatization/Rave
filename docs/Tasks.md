@@ -414,7 +414,27 @@
 
 # 🎬 MARKETING — HIGGSFIELD AI VIDEO GENERATION
 
+> Bajarilganlar: T-E120 (Purple Pulse 8s) | T-E121 (Three Cities 4s) | T-E122 (Macro Mood 8s) | T-E123 (Macro Mood v2 + logo)
+> Fayl yo'li: `marketing/videos/` | Qolgan kredit: ~32
+
 ---
+
+### T-E124 | P2 | [MARKETING] | Play Store — Feature Graphic + 5 Screenshot
+
+- **Mas'ul:** pending[Emirhan]
+- **Beruvchi:** Emirhan
+- **Yaratilgan:** 2026-05-19 15:20
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** higgsfield / gpt_image_2
+- **Model sababi:** Image generation, text rendering, Play Store format
+- **Sabab:** MVP Play Store submission uchun majburiy — Feature Graphic (1024×500) va 5 ta screenshot
+- **Qilish kerak:**
+  - [ ] Feature Graphic — 16:9, dark purple, WeWatch logo + tagline
+  - [ ] Screenshot 1 — HomeScreen (film lenta)
+  - [ ] Screenshot 2 — WatchParty (split screen sync)
+  - [ ] Screenshot 3 — Friends (online do'stlar)
+  - [ ] Screenshot 4 — BattleScreen
+  - [ ] Screenshot 5 — AchievementsScreen
 
 ---
 
