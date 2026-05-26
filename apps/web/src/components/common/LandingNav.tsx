@@ -34,16 +34,20 @@ export function LandingNav() {
 
           {/* Logo */}
           <Link href="/" className="inline-flex items-center gap-2 group">
-            <svg width="32" height="32" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <rect width="64" height="64" rx="14" fill="#0A0A0F"/>
+            <svg width="34" height="34" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <rect width="200" height="200" rx="36" fill="#0A0A12"/>
               <defs>
-                <linearGradient id="navWG" x1="8" y1="8" x2="56" y2="56" gradientUnits="userSpaceOnUse">
+                <linearGradient id="navFG" x1="35" y1="20" x2="100" y2="175" gradientUnits="userSpaceOnUse">
                   <stop offset="0%" stopColor="#A78BFA"/>
-                  <stop offset="100%" stopColor="#7C3AED"/>
+                  <stop offset="100%" stopColor="#6D28D9"/>
+                </linearGradient>
+                <linearGradient id="navBG" x1="165" y1="20" x2="100" y2="175" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stopColor="#7C3AED"/>
+                  <stop offset="100%" stopColor="#4C1D95"/>
                 </linearGradient>
               </defs>
-              <path d="M 56,11 L 40,52 L 32,30 L 21,11" stroke="#7C3AED" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-              <path d="M 8,11 L 25,52 L 32,30 L 43,11" stroke="url(#navWG)" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+              <path d="M 100,72 L 118,172 L 165,22" stroke="url(#navBG)" strokeWidth="44" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M 35,22 L 82,172 L 100,72" stroke="url(#navFG)" strokeWidth="44" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
             <span className="text-xl font-display tracking-wider text-white group-hover:text-[#7B72F8] transition-colors">
               WE<span className="text-[#7B72F8]">WATCH</span>
@@ -129,16 +133,20 @@ export function LandingNav() {
         {/* Drawer header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-800/60">
           <Link href="/" onClick={() => setMenuOpen(false)} className="inline-flex items-center gap-2">
-            <svg width="28" height="28" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <rect width="64" height="64" rx="14" fill="#0A0A0F"/>
+            <svg width="30" height="30" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <rect width="200" height="200" rx="36" fill="#0A0A12"/>
               <defs>
-                <linearGradient id="drawerWG" x1="8" y1="8" x2="56" y2="56" gradientUnits="userSpaceOnUse">
+                <linearGradient id="drwFG" x1="35" y1="20" x2="100" y2="175" gradientUnits="userSpaceOnUse">
                   <stop offset="0%" stopColor="#A78BFA"/>
-                  <stop offset="100%" stopColor="#7C3AED"/>
+                  <stop offset="100%" stopColor="#6D28D9"/>
+                </linearGradient>
+                <linearGradient id="drwBG" x1="165" y1="20" x2="100" y2="175" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stopColor="#7C3AED"/>
+                  <stop offset="100%" stopColor="#4C1D95"/>
                 </linearGradient>
               </defs>
-              <path d="M 56,11 L 40,52 L 32,30 L 21,11" stroke="#7C3AED" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-              <path d="M 8,11 L 25,52 L 32,30 L 43,11" stroke="url(#drawerWG)" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+              <path d="M 100,72 L 118,172 L 165,22" stroke="url(#drwBG)" strokeWidth="44" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M 35,22 L 82,172 L 100,72" stroke="url(#drwFG)" strokeWidth="44" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
             <span className="font-display text-white tracking-wider">
               WE<span className="text-[#7B72F8]">WATCH</span>
