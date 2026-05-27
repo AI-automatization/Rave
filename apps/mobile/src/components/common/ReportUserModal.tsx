@@ -2,15 +2,15 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, TextInput, ActivityIndicator, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
-import { reportApi, ReportReason } from '@api/report.api';
+import { reportApi, UserReportReason } from '@api/report.api';
 
-const REASONS: { value: ReportReason; label: string }[] = [
-  { value: 'prohibited_content', label: 'Запрещённый контент' },
-  { value: 'spam',               label: 'Спам' },
-  { value: 'violence',           label: 'Насилие' },
-  { value: 'harassment',         label: 'Оскорбления' },
-  { value: 'copyright',          label: 'Нарушение авторских прав' },
-  { value: 'other',              label: 'Другое' },
+const REASONS: { value: UserReportReason; label: string }[] = [
+  { value: 'harassment',           label: 'Оскорбления / буллинг' },
+  { value: 'spam',                 label: 'Спам' },
+  { value: 'inappropriate_content',label: 'Неуместный контент' },
+  { value: 'fake_account',         label: 'Фейковый аккаунт' },
+  { value: 'hate_speech',          label: 'Язык ненависти' },
+  { value: 'other',                label: 'Другое' },
 ];
 
 interface ReportUserModalProps {
@@ -23,24 +23,29 @@ interface ReportUserModalProps {
 export function ReportUserModal({ visible, userId, username, onClose }: ReportUserModalProps) {
   const { colors } = useTheme();
   const s = useStyles();
-  const [selected, setSelected] = useState<ReportReason | null>(null);
+  const [selected, setSelected] = useState<UserReportReason | null>(null);
   const [comment, setComment] = useState('');
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleClose = () => {
     setSelected(null);
     setComment('');
     setDone(false);
+    setError(null);
     onClose();
   };
 
   const handleSubmit = async () => {
     if (!selected) return;
     setLoading(true);
+    setError(null);
     try {
       await reportApi.reportUser(userId, selected, comment.trim() || undefined);
       setDone(true);
+    } catch {
+      setError('Не удалось отправить жалобу. Попробуйте ещё раз.');
     } finally {
       setLoading(false);
     }
@@ -104,6 +109,7 @@ export function ReportUserModal({ visible, userId, username, onClose }: ReportUs
                 />
               </ScrollView>
 
+              {error && <Text style={s.errorText}>{error}</Text>}
               <TouchableOpacity
                 style={[s.submitBtn, !selected && s.submitBtnDisabled]}
                 onPress={handleSubmit}
@@ -265,5 +271,11 @@ const useStyles = createThemedStyles((colors) => ({
     ...typography.body,
     color: '#fff',
     fontWeight: '700',
+  },
+  errorText: {
+    ...typography.caption,
+    color: '#FF5757',
+    marginBottom: spacing.sm,
+    textAlign: 'center',
   },
 }));

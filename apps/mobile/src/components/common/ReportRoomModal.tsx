@@ -26,20 +26,25 @@ export function ReportRoomModal({ visible, roomId, onClose }: ReportRoomModalPro
   const [comment, setComment] = useState('');
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleClose = () => {
     setSelected(null);
     setComment('');
     setDone(false);
+    setError(null);
     onClose();
   };
 
   const handleSubmit = async () => {
     if (!selected) return;
     setLoading(true);
+    setError(null);
     try {
       await reportApi.reportRoom(roomId, selected, comment.trim() || undefined);
       setDone(true);
+    } catch {
+      setError('Не удалось отправить жалобу. Попробуйте ещё раз.');
     } finally {
       setLoading(false);
     }
@@ -100,6 +105,7 @@ export function ReportRoomModal({ visible, roomId, onClose }: ReportRoomModalPro
                 />
               </ScrollView>
 
+              {error && <Text style={s.errorText}>{error}</Text>}
               <TouchableOpacity
                 style={[s.submitBtn, !selected && s.submitBtnDisabled]}
                 onPress={handleSubmit}
@@ -256,5 +262,11 @@ const useStyles = createThemedStyles((colors) => ({
     ...typography.body,
     color: '#fff',
     fontWeight: '700',
+  },
+  errorText: {
+    ...typography.caption,
+    color: '#FF5757',
+    marginBottom: spacing.sm,
+    textAlign: 'center',
   },
 }));
