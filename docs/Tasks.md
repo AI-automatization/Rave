@@ -110,83 +110,53 @@
 
 ### T-S096 | P1 | [BACKEND] | Migration: Аудит — найти все authId references
 
-- **Mas'ul:** pending[Saidazim]
+- **Mas'ul:** done[Saidazim]
 - **Beruvchi:** Saidazim
 - **Yaratilgan:** 2026-05-23 00:00
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** ✅ Bajarildi (2026-05-27) — authId source kodda YO'Q, faqat dist/ artifacts
 - **Tavsiya model:** haiku
-- **Model sababi:** Faqat grep + read, kod yozilmaydi
-- **Sabab:** Migratsiyadan oldin barcha authId ishlatilgan joylarni bilish kerak
-- **Qilish kerak:**
-  - [ ] `grep -rn "authId" services/` — barcha references
-  - [ ] Har bir servis uchun: qaysi controller/query authId ishlatadi
-  - [ ] Ro'yxat: fayl:qator → nima qilish kerak
+- **Natija:** 0 authId references in src/**/*.ts — migration already complete in code
 
 ---
 
 ### T-S097 | P1 | [BACKEND] | Migration: Объединённая схема users
 
-- **Mas'ul:** pending[Saidazim]
+- **Mas'ul:** done[Saidazim]
 - **Beruvchi:** Saidazim
 - **Yaratilgan:** 2026-05-23 00:00
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** ✅ Bajarildi (2026-05-27) — ikkala model ham model('User', ...) → bitta cinesync.users
 - **Tavsiya model:** sonnet
-- **Model sababi:** 2 model birlashtirish, TypeScript strict
-- **Sabab:** auth.users + user.users → bitta users kolleksiyasi, authId yo'q
-- **Qilish kerak:**
-  - [ ] `services/auth/src/models/user.model.ts` — qo'shish: rank, fcmTokens[], settings, avatar
-  - [ ] `services/user/src/models/user.model.ts` — o'chirish: authId field
-  - [ ] Ikkala model bir xil `IUserDocument` interface ishlatsin
+- **Natija:** auth model has rank/fcmTokens/settings; user model has no authId; same collection
 
 ---
 
 ### T-S098 | P1 | [BACKEND] | Migration: Auth service — .env cinesync + register full user
 
-- **Mas'ul:** pending[Saidazim]
+- **Mas'ul:** done[Saidazim]
 - **Beruvchi:** Saidazim
 - **Yaratilgan:** 2026-05-23 00:00
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** ✅ Bajarildi (2026-05-27) — MONGO_URI=cinesync ✓, register: rank/fcmTokens/settings defaults ✓
 - **Tavsiya model:** sonnet
-- **Model sababi:** .env + controller, 2 fayl
-- **Sabab:** register() to'liq user yaratishi kerak — rank, fcmTokens, settings defaults bilan
-- **Qilish kerak:**
-  - [ ] `services/auth/.env` — `MONGO_URI=...cinesync`
-  - [ ] `auth.controller.ts` register — `rank: 'bronze', fcmTokens: [], settings: { notifications: true }` qo'shish
-  - [ ] tsc --noEmit
 
 ---
 
 ### T-S099 | P1 | [BACKEND] | Migration: User service — .env cinesync + getMe по _id
 
-- **Mas'ul:** pending[Saidazim]
+- **Mas'ul:** done[Saidazim]
 - **Beruvchi:** Saidazim
 - **Yaratilgan:** 2026-05-23 00:00
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** ✅ Bajarildi (2026-05-27) — profile.service.ts uses findById(userId) ✓
 - **Tavsiya model:** sonnet
-- **Model sababi:** .env + controller refactor, 3 fayl
-- **Sabab:** authId FK o'rniga _id to'g'ridan ishlatish
-- **Qilish kerak:**
-  - [ ] `services/user/.env` — `MONGO_URI=...cinesync`
-  - [ ] `user.controller.ts` getMe — `User.findById(req.user.id)` (authId yo'q)
-  - [ ] `user.controller.ts` updateProfile — `User.findByIdAndUpdate(req.user.id, ...)`
-  - [ ] tsc --noEmit
 
 ---
 
 ### T-S100 | P2 | [BACKEND] | Migration: 4 сервис — .env → cinesync
 
-- **Mas'ul:** pending[Saidazim]
+- **Mas'ul:** done[Saidazim]
 - **Beruvchi:** Saidazim
 - **Yaratilgan:** 2026-05-23 00:00
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** ✅ Bajarildi (2026-05-27) — content/watch-party/notification/admin/auth/user — все cinesync ✓
 - **Tavsiya model:** haiku
-- **Model sababi:** Faqat .env o'zgarish, 4 fayl
-- **Sabab:** Barcha servislar bir xil cinesync DB ishlatsin
-- **Qilish kerak:**
-  - [ ] `services/content/.env` — MONGO_URI → cinesync
-  - [ ] `services/watch-party/.env` — MONGO_URI → cinesync
-  - [ ] `services/notification/.env` — MONGO_URI → cinesync
-  - [ ] `services/admin/.env` — MONGO_URI allaqachon cinesync (tekshirish)
 
 ---
 

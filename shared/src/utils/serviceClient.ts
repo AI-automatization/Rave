@@ -122,34 +122,6 @@ export async function getAllUserIds(): Promise<string[]> {
   }
 }
 
-export async function createUserProfile(authId: string, email: string, username: string): Promise<void> {
-  try {
-    await axios.post(
-      `${userServiceUrl}/api/v1/users/internal/profile`,
-      { authId, email, username },
-      { headers: internalHeaders, timeout: 5000 },
-    );
-    logger.info('[serviceClient] createUserProfile', { authId });
-  } catch (err) {
-    const error = err as AxiosError;
-    logger.error('[serviceClient] createUserProfile failed', { authId, status: error.response?.status, message: error.message });
-    throw error;
-  }
-}
-
-export async function syncAdminProfile(authId: string, email: string, username: string, role: string): Promise<void> {
-  try {
-    await axios.post(
-      `${userServiceUrl}/api/v1/users/internal/sync-admin-profile`,
-      { authId, email, username, role },
-      { headers: internalHeaders, timeout: 5000 },
-    );
-    logger.info('[serviceClient] syncAdminProfile', { authId, role });
-  } catch (err) {
-    const error = err as AxiosError;
-    logger.error('[serviceClient] syncAdminProfile failed', { authId, message: error.message });
-  }
-}
 
 // ─── Notification Service ──────────────────────────────────────────────────────
 
