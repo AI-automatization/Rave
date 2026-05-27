@@ -1,12 +1,14 @@
 User-agent: *
 Allow: /
-Allow: /uz/
-Allow: /ru/
-Allow: /en/
+Allow: /og-image
 
 Disallow: /api/
 Disallow: /(app)/
 Disallow: /settings
 Disallow: /notifications
+Disallow: /auth/
+Disallow: /*?*token=
+Disallow: /*?*session=
 
-Sitemap: https://wewatch.app/sitemap.xml
+# Sitemap
+Sitemap: https://wewatch.uz/sitemap.xml

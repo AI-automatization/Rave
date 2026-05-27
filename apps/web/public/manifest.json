@@ -1,12 +1,16 @@
 {
-  "name": "WeWatch",
+  "name": "WeWatch — Смотри видео вместе с друзьями",
   "short_name": "WeWatch",
-  "description": "Ijtimoiy onlayn kinoteatr platformasi",
+  "description": "Бесплатный watch party — смотри YouTube, VK, Rutube с друзьями в реальном времени. Синхронизация, чат, эмодзи.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0A0A0F",
   "theme_color": "#E50914",
   "orientation": "portrait-primary",
+  "lang": "ru",
+  "dir": "ltr",
+  "scope": "/",
+  "id": "wewatch-app",
   "icons": [
     { "src": "/icons/icon-72x72.png",   "sizes": "72x72",   "type": "image/png" },
     { "src": "/icons/icon-96x96.png",   "sizes": "96x96",   "type": "image/png" },
@@ -17,6 +21,6 @@
     { "src": "/icons/icon-384x384.png", "sizes": "384x384", "type": "image/png" },
     { "src": "/icons/icon-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
   ],
-  "categories": ["entertainment", "social"],
-  "lang": "uz"
+  "categories": ["entertainment", "social", "lifestyle"],
+  "keywords": ["watch party", "кино вместе", "смотреть вместе", "совместный просмотр", "WeWatch"]
 }
