@@ -43,6 +43,31 @@ export const profileSetupStorage = {
   },
 };
 
+// Locally stored blocked user IDs — persisted per-device across sessions.
+// Backed by SecureStore JSON list. Used to comply with Apple rule 1.2 (block abusive users).
+export const blockedUsersStorage = {
+  async getAll(): Promise<string[]> {
+    try {
+      const raw = await get('wewatch_blocked_users_v1');
+      return raw ? (JSON.parse(raw) as string[]) : [];
+    } catch {
+      return [];
+    }
+  },
+
+  async add(userId: string): Promise<void> {
+    const current = await blockedUsersStorage.getAll();
+    if (!current.includes(userId)) {
+      await set('wewatch_blocked_users_v1', JSON.stringify([...current, userId]));
+    }
+  },
+
+  async isBlocked(userId: string): Promise<boolean> {
+    const list = await blockedUsersStorage.getAll();
+    return list.includes(userId);
+  },
+};
+
 export const tokenStorage = {
   async saveTokens(accessToken: string, refreshToken: string, userId: string): Promise<void> {
     await Promise.all([

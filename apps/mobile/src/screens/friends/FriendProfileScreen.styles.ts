@@ -100,12 +100,20 @@ export const useStyles = createThemedStyles((colors) => ({
     paddingVertical: spacing.lg, borderRadius: borderRadius.xl,
   },
   removeBtnText: { ...typography.body, color: colors.error, fontWeight: '600' },
-  reportBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: spacing.xs, paddingVertical: spacing.md,
+  moderationActions: {
+    flexDirection: 'row', justifyContent: 'center', gap: spacing.xl,
     marginHorizontal: spacing.lg, marginTop: spacing.xs,
   },
+  reportBtn: {
+    flexDirection: 'row', alignItems: 'center',
+    gap: spacing.xs, paddingVertical: spacing.md,
+  },
   reportBtnText: { ...typography.caption, color: colors.textMuted },
+  blockBtn: {
+    flexDirection: 'row', alignItems: 'center',
+    gap: spacing.xs, paddingVertical: spacing.md,
+  },
+  blockBtnText: { ...typography.caption, color: colors.error },
   sentCard: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: spacing.sm, padding: spacing.lg,

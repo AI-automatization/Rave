@@ -21,6 +21,8 @@ import { FriendsStackParamList, RootStackParamList } from '@app-types/index';
 import { useT } from '@i18n/index';
 import { DEFAULT_AVATAR } from '@utils/assets';
 import { ReportUserModal } from '@components/common/ReportUserModal';
+import { blockedUsersStorage } from '@utils/storage';
+import { userApi } from '@api/user.api';
 import { useStyles } from './FriendProfileScreen.styles';
 
 type RouteType = RouteProp<FriendsStackParamList, 'FriendProfile'>;
@@ -57,6 +59,7 @@ export function FriendProfileScreen() {
   const onlineStatus = useFriendsStore(s => s.onlineStatus);
 
   const [showReport, setShowReport] = useState(false);
+  const [blockLoading, setBlockLoading] = useState(false);
   const { profileQuery, statsQuery, sendRequestMutation, removeMutation } = useFriendProfile(params.userId);
   const profile = profileQuery.data;
   const stats = statsQuery.data;
@@ -72,6 +75,32 @@ export function FriendProfileScreen() {
         onPress: () => removeMutation.mutate(undefined, { onSuccess: () => navigation.goBack() }),
       },
     ]);
+  };
+
+  const handleBlockUser = () => {
+    Alert.alert(
+      t('friends', 'blockUserTitle') || 'Заблокировать пользователя',
+      `${profile?.username ? `@${profile.username} — ` : ''}${t('friends', 'blockUserMsg') || 'Пользователь будет заблокирован и убран из друзей.'}`,
+      [
+        { text: t('common', 'cancel'), style: 'cancel' },
+        {
+          text: t('friends', 'blockBtn') || 'Заблокировать',
+          style: 'destructive',
+          onPress: async () => {
+            setBlockLoading(true);
+            try {
+              await blockedUsersStorage.add(params.userId);
+              await userApi.blockUser(params.userId);
+              navigation.goBack();
+            } catch {
+              Alert.alert(t('common', 'error'), 'Не удалось заблокировать пользователя');
+            } finally {
+              setBlockLoading(false);
+            }
+          },
+        },
+      ],
+    );
   };
 
   const handleAddFriend = () => {
@@ -226,10 +255,16 @@ export function FriendProfileScreen() {
           )}
         </View>
 
-        <TouchableOpacity style={styles.reportBtn} onPress={() => setShowReport(true)}>
-          <Ionicons name="flag-outline" size={15} color={colors.textMuted} />
-          <Text style={styles.reportBtnText}>{t('friends', 'reportUser')}</Text>
-        </TouchableOpacity>
+        <View style={styles.moderationActions}>
+          <TouchableOpacity style={styles.reportBtn} onPress={() => setShowReport(true)}>
+            <Ionicons name="flag-outline" size={15} color={colors.textMuted} />
+            <Text style={styles.reportBtnText}>{t('friends', 'reportUser')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.blockBtn} onPress={handleBlockUser} disabled={blockLoading}>
+            <Ionicons name="ban-outline" size={15} color={colors.error} />
+            <Text style={styles.blockBtnText}>{t('friends', 'blockUser') || 'Заблокировать'}</Text>
+          </TouchableOpacity>
+        </View>
 
         <View style={{ height: TAB_BAR_HEIGHT + insets.bottom + spacing.xl }} />
       </ScrollView>

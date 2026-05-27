@@ -1,5 +1,5 @@
 // WeWatch Mobile — User API
-import { userClient } from './client';
+import { userClient, adminClient } from './client';
 import { ApiResponse, IUser, IUserPublic, IUserStats } from '@app-types/index';
 
 export interface UserSettings {
@@ -103,5 +103,14 @@ export const userApi = {
     });
     if (!res.data.data) throw new Error('uploadAvatar response is empty');
     return res.data.data;
+  },
+
+  // Block user: remove friendship (if any) + file a harassment report.
+  // The local blocked list is stored separately in blockedUsersStorage.
+  async blockUser(userId: string): Promise<void> {
+    await Promise.allSettled([
+      userClient.delete(`/users/me/friends/${userId}`),
+      adminClient.post(`/internal/moderation/users/${userId}/report`, { reason: 'harassment', comment: 'User blocked by reporter' }),
+    ]);
   },
 };

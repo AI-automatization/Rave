@@ -1,6 +1,6 @@
 // WeWatch Mobile — WatchPartyScreen
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Platform, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, Platform, StyleSheet, Dimensions, Alert } from 'react-native';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { ReportRoomModal } from '@components/common/ReportRoomModal';
 import { ReportUserModal } from '@components/common/ReportUserModal';
@@ -25,6 +25,8 @@ import { MembersStrip } from '@components/watchParty/MembersStrip';
 import { VideoProgressBar } from '@components/watchParty/VideoProgressBar';
 import { isDomainBlocked } from '@constants/blockedDomains';
 import { extractDomain } from '@utils/videoPlayer';
+import { blockedUsersStorage } from '@utils/storage';
+import { userApi } from '@api/user.api';
 
 const SCREEN_H = Dimensions.get('window').height;
 
@@ -38,6 +40,41 @@ export function WatchPartyScreen() {
   const [showPlaylist, setShowPlaylist] = useState(false);
   const [showReport, setShowReport] = useState(false);
   const [reportUserId, setReportUserId] = useState<string | null>(null);
+
+  const handleMemberPress = (uid: string) => {
+    Alert.alert(
+      'Участник',
+      'Что сделать с этим пользователем?',
+      [
+        {
+          text: 'Пожаловаться',
+          onPress: () => setReportUserId(uid),
+        },
+        {
+          text: 'Заблокировать',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert(
+              'Заблокировать пользователя',
+              'Пользователь будет заблокирован и жалоба будет отправлена модераторам.',
+              [
+                { text: 'Отмена', style: 'cancel' },
+                {
+                  text: 'Заблокировать',
+                  style: 'destructive',
+                  onPress: async () => {
+                    await blockedUsersStorage.add(uid);
+                    await userApi.blockUser(uid).catch(() => null);
+                  },
+                },
+              ],
+            );
+          },
+        },
+        { text: 'Отмена', style: 'cancel' },
+      ],
+    );
+  };
 
   const {
     playerRef, userId, room, messages, activeMembers, isOwner, adminMonitoring, connectTimeout,
@@ -126,7 +163,7 @@ export function WatchPartyScreen() {
           activeMembers={activeMembers}
           ownerId={room!.ownerId}
           currentUserId={userId}
-          onMemberPress={uid => setReportUserId(uid)}
+          onMemberPress={handleMemberPress}
         />
       )}
 
