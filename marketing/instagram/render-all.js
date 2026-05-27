@@ -10,6 +10,12 @@ const slides = [
   'Slide06-Features',
   'Slide07-Content',
   'Slide08-CTA',
+  // Intro post — Uzbek (Coremed style)
+  'Slide09-IntroUz',
+  'Slide10-ProblemUz',
+  'Slide11-FeaturesUz',
+  'Slide12-HowItWorksUz',
+  'Slide13-CTAUz',
 ];
 
 fs.mkdirSync('out', { recursive: true });

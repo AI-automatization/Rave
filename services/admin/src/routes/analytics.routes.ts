@@ -9,9 +9,9 @@ export const createAnalyticsRouter = (): Router => {
   // Public ingest — called from mobile/web (no auth required)
   router.post('/analytics/ingest', controller.ingest);
 
-  // Admin-only read endpoints
-  router.use(verifyToken);
-  router.use(requireRole('admin', 'superadmin'));
+  // Admin-only read endpoints — scope auth to /admin prefix only
+  router.use('/admin', verifyToken);
+  router.use('/admin', requireRole('admin', 'superadmin'));
 
   router.get('/admin/analytics/overview',             controller.getOverview);
   router.get('/admin/analytics/funnel',               controller.getFunnel);
