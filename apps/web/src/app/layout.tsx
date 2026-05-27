@@ -5,7 +5,7 @@ import { Providers } from '@/components/common/Providers';
 import { LocaleHtmlUpdater } from '@/components/common/LocaleHtmlUpdater';
 import './globals.css';
 
-const GA_ID = 'G-PNCV2BLGXR';
+const GA_ID = 'G-2S4DR8CBF0';
 
 const dmSans = DM_Sans({
   subsets: ['latin', 'latin-ext'],
