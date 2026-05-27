@@ -38,7 +38,7 @@ jobs:
 
       - name: Typecheck all services
         run: |
-          for svc in auth user content watch-party battle notification admin; do
+          for svc in auth user content watch-party notification admin; do
             echo "Checking $svc..."
             cd services/$svc && npm run typecheck && cd ../..
           done
@@ -46,7 +46,7 @@ jobs:
       - name: Run unit tests (gate)
         run: |
           FAILED=0
-          for svc in auth user content battle notification admin; do
+          for svc in auth user content notification admin; do
             echo "Testing $svc..."
             cd services/$svc
             if npm run test --if-present 2>/dev/null; then
@@ -83,7 +83,6 @@ jobs:
           - user
           - content
           - watch-party
-          - battle
           - notification
           - admin
 
@@ -107,7 +106,6 @@ jobs:
             user)         SERVICE_URL="${{ secrets.PROD_USER_URL }}" ;;
             content)      SERVICE_URL="${{ secrets.PROD_CONTENT_URL }}" ;;
             watch-party)  SERVICE_URL="${{ secrets.PROD_WATCH_PARTY_URL }}" ;;
-            battle)       SERVICE_URL="${{ secrets.PROD_BATTLE_URL }}" ;;
             notification) SERVICE_URL="${{ secrets.PROD_NOTIFICATION_URL }}" ;;
             admin)        SERVICE_URL="${{ secrets.PROD_ADMIN_URL }}" ;;
           esac

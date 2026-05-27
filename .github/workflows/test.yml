@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service: [auth, user, content, battle, notification, admin]
+        service: [auth, user, content, notification, admin]
         include:
           - service: auth
             path: services/auth
@@ -27,8 +27,6 @@ jobs:
             path: services/user
           - service: content
             path: services/content
-          - service: battle
-            path: services/battle
           - service: notification
             path: services/notification
           - service: admin

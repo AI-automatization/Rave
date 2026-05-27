@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service: [shared, auth, user, content, watch-party, battle, notification, admin]
+        service: [shared, auth, user, content, watch-party, notification, admin]
         include:
           - service: shared
             path: shared
@@ -31,8 +31,6 @@ jobs:
             path: services/content
           - service: watch-party
             path: services/watch-party
-          - service: battle
-            path: services/battle
           - service: notification
             path: services/notification
           - service: admin
