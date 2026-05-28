@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     template: '%s | WeWatch',
   },
   description:
-    'WeWatch — смотри YouTube, VK и Rutube с друзьями в реальном времени. Бесплатный watch party с синхронизацией, чатом и эмодзи. Скачай на iOS и Android.',
+    'WeWatch (wewatch) — смотри YouTube, VK и Rutube с друзьями в реальном времени. Бесплатный watch party: смотреть вместе онлайн бесплатно с синхронизацией, чатом и эмодзи. iOS и Android.',
   keywords: [
     // RU — высокочастотные запросы
     'смотреть вместе',
@@ -60,7 +60,10 @@ export const metadata: Metadata = {
     'развлечения с друзьями онлайн',
     'приложение для просмотра фильмов с друзьями',
     'WeWatch',
+    'wewatch',
     'wewatch.uz',
+    'wewatch app',
+    'вивотч',
     // UZ — o'zbek tilida
     "do'stlar bilan kino ko'rish",
     "do'stlar bilan birga film ko'rish",

@@ -25,13 +25,23 @@ const jsonLd = {
       '@id': `${APP_URL}/#website`,
       url: APP_URL,
       name: 'WeWatch',
+      alternateName: ['wewatch', 'wewatch.uz', 'WeWatch app', 'вивотч'],
       description: 'Бесплатный watch party — смотри YouTube, VK, Rutube с друзьями в реальном времени',
       inLanguage: ['ru', 'uz', 'en'],
+      potentialAction: {
+        '@type': 'SearchAction',
+        target: {
+          '@type': 'EntryPoint',
+          urlTemplate: `${APP_URL}/?q={search_term_string}`,
+        },
+        'query-input': 'required name=search_term_string',
+      },
     },
     {
       '@type': 'Organization',
       '@id': `${APP_URL}/#organization`,
       name: 'WeWatch',
+      alternateName: ['wewatch', 'wewatch.uz'],
       url: APP_URL,
       logo: {
         '@type': 'ImageObject',
@@ -39,6 +49,10 @@ const jsonLd = {
         width: 512,
         height: 512,
       },
+      sameAs: [
+        'https://apps.apple.com/app/wewatch',
+        'https://play.google.com/store/apps/details?id=uz.wewatch',
+      ],
     },
     {
       '@type': 'MobileApplication',
