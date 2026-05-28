@@ -1,5 +1,6 @@
 import { logger } from '@shared/utils/logger';
 import { config } from '../config/index';
+import { handleSwarmMessage } from './swarm.service';
 
 const TG_API = `https://api.telegram.org/bot${config.telegram.botToken}`;
 
@@ -10,7 +11,7 @@ interface TgUpdate {
   message?: {
     message_id: number;
     chat: { id: number; type: string };
-    from?: { id: number; first_name: string; username?: string };
+    from?: { id: number; first_name: string; username?: string; is_bot?: boolean };
     text?: string;
   };
 }
@@ -38,7 +39,7 @@ async function tgPost(method: string, body: Record<string, unknown>): Promise<vo
 async function sendMessage(
   chatId: number,
   text: string,
-  options?: { parse_mode?: 'HTML' | 'Markdown'; reply_markup?: Record<string, unknown> },
+  options?: { parse_mode?: 'HTML' | 'Markdown'; reply_markup?: Record<string, unknown>; reply_to_message_id?: number },
 ): Promise<void> {
   await tgPost('sendMessage', { chat_id: chatId, text, ...options });
 }
@@ -89,6 +90,16 @@ export const handleTelegramUpdate = async (update: TgUpdate): Promise<void> => {
   const chatId = msg.chat.id;
   const text   = msg.text.trim();
   const from   = msg.from?.first_name ?? 'Friend';
+
+  // Swarm protocol: all group messages with swarm hashtags (#question, #skill, etc.)
+  if (msg.chat.type === 'supergroup' || msg.chat.type === 'group') {
+    const isBot = msg.from?.is_bot ?? false;
+    await handleSwarmMessage(
+      { messageId: msg.message_id, chatId, fromId: msg.from?.id ?? 0, isBot, text },
+      (cid, replyText, replyToId) => sendMessage(cid, replyText, { reply_to_message_id: replyToId }),
+    );
+    return;
+  }
 
   // /start auth_{state} — Telegram login flow (belongs to auth service)
   if (text.startsWith('/start auth_')) {

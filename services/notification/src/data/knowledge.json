@@ -1,0 +1,42 @@
+[
+  {
+    "id": "project-name",
+    "keywords": ["name", "ism", "wewatch", "nom", "название", "переименовать", "альтернатива"],
+    "question": "WeWatch project alternatives / name change",
+    "answer": "WeWatch loyihasining nom alternativlari:\n• Rave — qisqa, party vibe, allaqachon codebase'da\n• Kinova — kino + nova, MDH uchun tushunarli\n• Cinepal — cinema + pal (do'st)\n• Flickroom — flick + room\n• Watchwave — watch + wave\n• Syncino — sync + cino\n\nSabab: 'wewatch' qidiruv tizimida keng tarqalgan (lampochkalar, kompaniyalar, kinoteatrlar).",
+    "source": "WeWatch naming brainstorm 2026-05-28",
+    "confidence": 0.9
+  },
+  {
+    "id": "project-overview",
+    "keywords": ["what", "nima", "project", "loyiha", "wewatch", "rave", "что такое"],
+    "question": "What is WeWatch / Rave?",
+    "answer": "WeWatch (Rave) — ijtimoiy onlayn kinoteatr. Do'stlar bilan bir vaqtda film ko'rish, sync, watch party, battle rejimi, gamification.\n\nTech stack: Node.js + Express + MongoDB + Redis + Socket.io + React Native + Expo.\nStatus: MVP bosqichi, Railway'da deploy qilingan.",
+    "source": "WeWatch Architecture docs",
+    "confidence": 0.95
+  },
+  {
+    "id": "obsidian-setup",
+    "keywords": ["obsidian", "vault", "memory", "xotira", "context", "zone", "hub"],
+    "question": "How is Obsidian set up for WeWatch?",
+    "answer": "WeWatch Obsidian Vault: ~/Documents/weWatch-obsidian/\n\n• WeWatch-Hub.md — Single Source of Truth (sessiya boshida o'qiladi)\n• ZONES/ — Instagram, WeWatch-Backend, WeWatch-Mobile, WeWatch-Web, Telegram, AI-Agents\n• DAILY/ — kunlik qaydlar\n• Skriptlar: obsidian-checkpoint.sh, obsidian-note.sh, memory-load.sh\n\nClaude Code bilan integratsiya: session start/stop hooklar, CLAUDE.md qoidalari, sub-agent spawn'da Hub inline paste qilinadi.",
+    "source": "CLAUDE.md + WeWatch-Hub.md",
+    "confidence": 0.9
+  },
+  {
+    "id": "services",
+    "keywords": ["service", "servis", "port", "backend", "api", "endpoint", "railway"],
+    "question": "WeWatch services / ports?",
+    "answer": "WeWatch servislari:\n• auth :3001 — JWT, Telegram login\n• user :3002 — profil, follow\n• content :3003 — filmlar, Elasticsearch\n• watch-party :3004 — Socket.io, Redis\n• battle :3005 — MongoDB, Redis\n• notification :3007 — FCM, Bull, Telegram bot\n• admin :3008 — boshqaruv\n• admin-ui :5173 — React + Vite\n\nInfra: MongoDB Atlas, Redis 6380, Elasticsearch 9200",
+    "source": "CLAUDE.md service registry",
+    "confidence": 0.95
+  },
+  {
+    "id": "tech-stack",
+    "keywords": ["tech", "stack", "технология", "framework", "mobile", "react native", "expo"],
+    "question": "WeWatch tech stack?",
+    "answer": "Backend: Node.js + Express + MongoDB + Redis + Socket.io + Bull + Firebase FCM\nMobile: React Native + TypeScript + Expo\nWeb: Next.js\nAdmin UI: React + Vite + Tailwind\nInfra: Railway, MongoDB Atlas, Redis 7, Elasticsearch 8",
+    "source": "CLAUDE.md",
+    "confidence": 0.95
+  }
+]
