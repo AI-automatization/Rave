@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     template: '%s | WeWatch',
   },
   description:
-    'WeWatch (wewatch) — смотри YouTube, VK и Rutube с друзьями в реальном времени. Бесплатный watch party: смотреть вместе онлайн бесплатно с синхронизацией, чатом и эмодзи. iOS и Android.',
+    'WeWatch (wewatch) — смотри YouTube, VK и Rutube вместе с друзьями. Один на iPhone, другой на сайте — синхронизация работает. Бесплатный watch party с чатом и эмодзи. iOS и Android.',
   keywords: [
     // RU — высокочастотные запросы
     'смотреть вместе',
@@ -82,6 +82,15 @@ export const metadata: Metadata = {
     'watch videos with friends online',
     'free watch party',
     'watch party free app',
+    // Cross-platform unique feature
+    'смотреть вместе с телефона и компьютера',
+    'watch party с телефона',
+    'watch party мобильное приложение',
+    'совместный просмотр через приложение',
+    'смотреть аниме вместе',
+    'смотреть аниме с другом онлайн',
+    'смотреть сериал вместе онлайн',
+    'смотреть сериалы вместе онлайн бесплатно',
   ],
   authors: [{ name: 'WeWatch', url: APP_URL }],
   creator: 'WeWatch',
