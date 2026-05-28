@@ -54,6 +54,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const isActionInFlight = useRef(false);
   const intendedPlayingRef = useRef(false);
   const extractStartedRef = useRef(false);
+  const prevVideoUrlRef = useRef<string | null | undefined>(undefined);
   const extractFnRef = useRef(extract);
   extractFnRef.current = extract;
   const resetExtractionFnRef = useRef(resetExtraction);
@@ -461,7 +462,13 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
       : extractedVideoProxyUrl;
 
   // Reset player ready state when video URL changes (new media)
+  // Skip reset on initial URL load — pendingSyncRef from ROOM_JOINED must survive until player is ready.
+  // Bug: ROOM_JOINED batches setRoom+setSyncState; syncState effect stores pendingSyncRef, then this
+  // effect fires (same render) and clears it → handlePlayerReady finds null → video stands still.
   useEffect(() => {
+    const prevUrl = prevVideoUrlRef.current;
+    prevVideoUrlRef.current = room?.videoUrl;
+    if (!prevUrl) return; // initial load — don't wipe pendingSyncRef
     playerReadyRef.current = false;
     pendingSyncRef.current = null;
     lastExecutedSyncRef.current = null;
