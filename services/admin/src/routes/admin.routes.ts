@@ -22,6 +22,10 @@ export const createAdminRouter = (redis: Redis): Router => {
   // Internal: DELETE /admin/internal/users/:userId — cascade account deletion (T-S093)
   router.delete('/internal/users/:userId', requireInternalSecret, adminController.deleteUserData);
 
+  // ── Public: mobile app config (no auth) ─────────────────────
+  // GET /admin/app-config — returns maintenanceMode + min versions
+  router.get('/app-config', settingsController.getPublic);
+
   // All admin routes require authentication + admin role
   router.use(verifyToken);
   router.use(requireRole('admin', 'superadmin'));

@@ -50,4 +50,17 @@ export class SettingsController {
       next(err);
     }
   };
+
+  // Public endpoint — only safe fields for mobile app startup check
+  getPublic = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const PUBLIC_KEYS = ['maintenanceMode', 'minAppVersionIos', 'minAppVersionAndroid', 'registrationEnabled'];
+      const docs = await AppSetting.find({ key: { $in: PUBLIC_KEYS } }).lean();
+      const saved = Object.fromEntries(docs.map((d) => [d.key, d.value]));
+      const config = Object.fromEntries(PUBLIC_KEYS.map(k => [k, saved[k] ?? DEFAULTS[k]]));
+      res.json(config);
+    } catch (err) {
+      next(err);
+    }
+  };
 }

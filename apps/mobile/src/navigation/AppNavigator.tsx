@@ -17,8 +17,10 @@ import { userApi } from '@api/user.api';
 import { usePushNotifications } from '@hooks/usePushNotifications';
 import { LanguageTransition } from '@components/common/LanguageTransition';
 import { BlockedAccountModal } from '@components/common/BlockedAccountModal';
+import { MaintenanceScreen } from '@components/common/MaintenanceScreen';
 import { onAccountBlocked } from '@api/client';
 import { privacyPolicyStorage } from '@utils/storage';
+import { adminApi } from '@api/admin.api';
 import { analyticsService } from '@services/analyticsService';
 import { getActiveScreenName } from '@hooks/useScreenTracking';
 
@@ -38,6 +40,44 @@ export function AppNavigator() {
   const [blockedUserId, setBlockedUserId] = useState('');
   const [isNavReady, setIsNavReady] = useState(false);
   const [privacyAccepted, setPrivacyAccepted] = useState<boolean | null>(null);
+
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
+  const [maintenanceChecking, setMaintenanceChecking] = useState(false);
+  const maintenanceTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const checkMaintenance = async () => {
+    try {
+      const config = await adminApi.getAppConfig();
+      setMaintenanceMode(config.maintenanceMode === true);
+    } catch {
+      // If endpoint unreachable — don't block the app
+    }
+  };
+
+  const handleMaintenanceRetry = async () => {
+    setMaintenanceChecking(true);
+    await checkMaintenance();
+    setMaintenanceChecking(false);
+  };
+
+  // Check on startup + poll every 3 minutes while in maintenance
+  useEffect(() => {
+    void checkMaintenance();
+  }, []);
+
+  useEffect(() => {
+    if (maintenanceMode) {
+      maintenanceTimerRef.current = setInterval(() => { void checkMaintenance(); }, 3 * 60 * 1000);
+    } else {
+      if (maintenanceTimerRef.current) {
+        clearInterval(maintenanceTimerRef.current);
+        maintenanceTimerRef.current = null;
+      }
+    }
+    return () => {
+      if (maintenanceTimerRef.current) clearInterval(maintenanceTimerRef.current);
+    };
+  }, [maintenanceMode]);
 
   usePushNotifications();
 
@@ -148,6 +188,10 @@ export function AppNavigator() {
 
   if (!isHydrated || (isAuthenticated && privacyAccepted === null)) {
     return <View style={{ flex: 1, backgroundColor: colors.bgBase }} />;
+  }
+
+  if (maintenanceMode) {
+    return <MaintenanceScreen onRetry={handleMaintenanceRetry} retrying={maintenanceChecking} />;
   }
 
   return (

@@ -27,6 +27,14 @@ export const translations = {
     adminMonitoring: { uz: 'Admin kuzatmoqda', ru: 'Администратор наблюдает', en: 'Admin is monitoring' },
   },
 
+  // ─── Maintenance ───
+  maintenance: {
+    tag:      { uz: 'Texnik ishlar', ru: 'Техническое обслуживание', en: 'Maintenance' },
+    title:    { uz: 'Texnik ishlar olib borilmoqda', ru: 'Ведётся техническое обслуживание', en: 'Under Maintenance' },
+    subtitle: { uz: 'Ilova vaqtincha ishlamayapti. Tez orada qaytamiz 🛠', ru: 'Приложение временно недоступно. Совсем скоро вернёмся 🛠', en: 'The app is temporarily unavailable. We\'ll be back soon 🛠' },
+    retry:    { uz: 'Qayta tekshirish', ru: 'Проверить снова', en: 'Check again' },
+  },
+
   // ─── Splash ───
   splash: {
     tagline: { uz: "Do'stlar bilan birga ko'ring", ru: 'Смотрите вместе с друзьями', en: 'Watch together with friends' },
