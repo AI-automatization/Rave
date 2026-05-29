@@ -7,6 +7,8 @@ import { sendInternalNotification } from '@shared/utils/serviceClient';
 import { SERVER_EVENTS } from '@shared/constants/socketEvents';
 import { WatchPartyRoom } from '../models/watchPartyRoom.model';
 import { logger } from '@shared/utils/logger';
+import { getAppSetting } from '@shared/utils/appSettings';
+import { ForbiddenError } from '@shared/utils/errors';
 
 export class WatchPartyController {
   constructor(
@@ -16,6 +18,11 @@ export class WatchPartyController {
 
   createRoom = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
+      const watchPartiesEnabled = await getAppSetting<boolean>('watchPartiesEnabled');
+      if (!watchPartiesEnabled) {
+        throw new ForbiddenError('Watch Parties are temporarily disabled');
+      }
+
       const { userId } = (req as AuthenticatedRequest).user;
       const {
         name, movieId, videoUrl, videoTitle, videoThumbnail, videoPlatform,

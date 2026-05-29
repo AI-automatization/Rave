@@ -18,15 +18,28 @@ import { usePushNotifications } from '@hooks/usePushNotifications';
 import { LanguageTransition } from '@components/common/LanguageTransition';
 import { BlockedAccountModal } from '@components/common/BlockedAccountModal';
 import { MaintenanceScreen } from '@components/common/MaintenanceScreen';
+import { UpdateRequiredScreen } from '@components/common/UpdateRequiredScreen';
 import { onAccountBlocked } from '@api/client';
 import { privacyPolicyStorage } from '@utils/storage';
 import { adminApi } from '@api/admin.api';
+import Constants from 'expo-constants';
 import { analyticsService } from '@services/analyticsService';
 import { getActiveScreenName } from '@hooks/useScreenTracking';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-const HEARTBEAT_INTERVAL_MS = 2 * 60 * 1000; // 2 daqiqa (Redis TTL: 3 daqiqa)
+const HEARTBEAT_INTERVAL_MS = 2 * 60 * 1000;
+
+// Returns -1 if a < b, 0 if equal, 1 if a > b
+function compareVersions(a: string, b: string): number {
+  const pa = a.split('.').map(Number);
+  const pb = b.split('.').map(Number);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const diff = (pa[i] ?? 0) - (pb[i] ?? 0);
+    if (diff !== 0) return diff > 0 ? 1 : -1;
+  }
+  return 0;
+} // 2 daqiqa (Redis TTL: 3 daqiqa)
 
 export function AppNavigator() {
   const { isAuthenticated, isHydrated, needsProfileSetup, user } = useAuthStore();
@@ -43,6 +56,7 @@ export function AppNavigator() {
 
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [maintenanceChecking, setMaintenanceChecking] = useState(false);
+  const [updateRequired, setUpdateRequired] = useState(false);
   const maintenanceTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
 
@@ -50,6 +64,15 @@ export function AppNavigator() {
     try {
       const cfg = await adminApi.getAppConfig();
       setMaintenanceMode(cfg.maintenanceMode === true);
+
+      // Check minimum required version
+      const appVersion: string = Constants.expoConfig?.version ?? '1.0.0';
+      const minVersion = cfg.minAppVersionIos;
+      if (minVersion && compareVersions(appVersion, minVersion) < 0) {
+        setUpdateRequired(true);
+      } else {
+        setUpdateRequired(false);
+      }
     } catch {
       // Unreachable endpoint — don't block the app
     }
@@ -195,6 +218,10 @@ export function AppNavigator() {
 
   if (!isHydrated || (isAuthenticated && privacyAccepted === null)) {
     return <View style={{ flex: 1, backgroundColor: colors.bgBase }} />;
+  }
+
+  if (updateRequired) {
+    return <UpdateRequiredScreen />;
   }
 
   if (maintenanceMode) {

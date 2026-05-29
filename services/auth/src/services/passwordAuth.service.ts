@@ -12,8 +12,10 @@ import {
   ConflictError,
   TooManyRequestsError,
   BadRequestError,
+  ForbiddenError,
 } from '@shared/utils/errors';
 import { containsBannedWord } from '@shared/utils/bannedWords';
+import { getAppSetting } from '@shared/utils/appSettings';
 import { JwtPayload, UserRole } from '@shared/types';
 import { REDIS_KEYS } from '@shared/constants';
 
@@ -65,6 +67,11 @@ export class PasswordAuthService {
   }
 
   async initiateRegistration(email: string, username: string, password: string): Promise<string | null> {
+    const registrationEnabled = await getAppSetting<boolean>('registrationEnabled');
+    if (!registrationEnabled) {
+      throw new ForbiddenError('Registration is temporarily disabled');
+    }
+
     if (await containsBannedWord(username)) {
       throw new BadRequestError('Username contains prohibited content');
     }

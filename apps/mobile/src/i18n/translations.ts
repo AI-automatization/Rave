@@ -27,6 +27,13 @@ export const translations = {
     adminMonitoring: { uz: 'Admin kuzatmoqda', ru: 'Администратор наблюдает', en: 'Admin is monitoring' },
   },
 
+  // ─── Update Required ───
+  update: {
+    title:    { uz: 'Yangilanish talab qilinadi', ru: 'Требуется обновление', en: 'Update Required' },
+    subtitle: { uz: 'Davom etish uchun ilovani yangilang. Yangi versiyada muhim yaxshilanishlar bor.', ru: 'Пожалуйста, обновите приложение для продолжения. В новой версии важные улучшения.', en: 'Please update the app to continue. The new version includes important improvements.' },
+    btn:      { uz: 'App Store\'dan yangilash', ru: 'Обновить в App Store', en: 'Update on App Store' },
+  },
+
   // ─── Maintenance ───
   maintenance: {
     tag:      { uz: 'Texnik ishlar', ru: 'Техническое обслуживание', en: 'Maintenance' },

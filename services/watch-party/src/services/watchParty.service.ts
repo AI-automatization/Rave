@@ -7,6 +7,7 @@ import { NotFoundError, ForbiddenError, BadRequestError, UnauthorizedError } fro
 import { SyncState, VideoPlatform } from '@shared/types';
 import { REDIS_KEYS, TTL, LIMITS, TIMING } from '@shared/constants';
 import { getUserRestrictions } from '@shared/utils/serviceClient';
+import { getAppSetting } from '@shared/utils/appSettings';
 import { WatchPartyPlaylistService } from './watchPartyPlaylist.service';
 import { WatchPartyMembersService } from './watchPartyMembers.service';
 
@@ -124,7 +125,7 @@ export class WatchPartyService {
       videoReferer:     videoReferer ?? null,
       ownerId,
       members:          [ownerId],
-      maxMembers:       Math.min(maxMembers, LIMITS.MAX_WATCH_PARTY_MEMBERS),
+      maxMembers:       Math.min(maxMembers, await getAppSetting<number>('maxRoomSize') || LIMITS.MAX_WATCH_PARTY_MEMBERS),
       inviteCode,
       isPrivate,
       password:         passwordHash,
