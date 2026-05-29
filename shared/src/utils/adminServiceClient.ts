@@ -311,3 +311,46 @@ export async function adminSendAppealDecisionEmail(
     { headers: internalHeaders, timeout: 5000 },
   );
 }
+
+// ─── Admin: Campaigns (Newsletter) ────────────────────────────────────────────
+
+const notifBase = `${notificationServiceUrl}/api/v1/notifications`;
+
+export async function adminListCampaigns(): Promise<unknown[]> {
+  const res = await axios.get<{ campaigns: unknown[] }>(`${notifBase}/campaigns/all`, { headers: internalHeaders, timeout: 5000 });
+  return res.data.campaigns ?? [];
+}
+
+export async function adminCreateCampaign(payload: { name: string; description?: string; emailSubject?: string; emailBody?: string }): Promise<unknown> {
+  const res = await axios.post<{ campaign: unknown }>(`${notifBase}/campaigns`, payload, { headers: internalHeaders, timeout: 5000 });
+  return res.data.campaign;
+}
+
+export async function adminUpdateCampaign(slug: string, payload: { name?: string; description?: string; emailSubject?: string; emailBody?: string }): Promise<unknown> {
+  const res = await axios.put<{ campaign: unknown }>(`${notifBase}/campaigns/${slug}`, payload, { headers: internalHeaders, timeout: 5000 });
+  return res.data.campaign;
+}
+
+export async function adminDeleteCampaign(slug: string): Promise<void> {
+  await axios.delete(`${notifBase}/campaigns/${slug}`, { headers: internalHeaders, timeout: 5000 });
+}
+
+export async function adminActivateCampaign(slug: string): Promise<unknown> {
+  const res = await axios.patch<{ campaign: unknown }>(`${notifBase}/campaigns/${slug}/activate`, {}, { headers: internalHeaders, timeout: 5000 });
+  return res.data.campaign;
+}
+
+export async function adminDeactivateCampaign(slug: string): Promise<unknown> {
+  const res = await axios.patch<{ campaign: unknown }>(`${notifBase}/campaigns/${slug}/deactivate`, {}, { headers: internalHeaders, timeout: 5000 });
+  return res.data.campaign;
+}
+
+export async function adminGetCampaignStats(slug: string): Promise<unknown> {
+  const res = await axios.get<{ campaign: unknown; stats: unknown }>(`${notifBase}/campaigns/${slug}/stats`, { headers: internalHeaders, timeout: 5000 });
+  return res.data;
+}
+
+export async function adminSendCampaign(slug: string): Promise<{ message: string; total: number }> {
+  const res = await axios.post<{ message: string; total: number }>(`${notifBase}/campaigns/${slug}/send`, {}, { headers: internalHeaders, timeout: 15000 });
+  return res.data;
+}

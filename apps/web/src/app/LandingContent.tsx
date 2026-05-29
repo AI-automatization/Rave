@@ -8,6 +8,90 @@ declare global {
 const trackEvent = (name: string, params?: Record<string, unknown>) => {
   window.gtag?.('event', name, params);
 };
+
+// ── Newsletter Campaigns Section ──────────────────────────────────────────────
+interface CampaignData { _id: string; name: string; slug: string; description: string; subscriberCount: number; }
+
+function NewsletterSection() {
+  const [campaigns, setCampaigns]           = useState<CampaignData[]>([]);
+  const [emails, setEmails]                 = useState<Record<string, string>>({});
+  const [done, setDone]                     = useState<Record<string, boolean>>({});
+  const [submitting, setSubmitting]         = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    fetch('/api/campaigns')
+      .then(r => r.json())
+      .then((d: { campaigns?: CampaignData[] }) => setCampaigns(d.campaigns ?? []))
+      .catch(() => {});
+  }, []);
+
+  if (campaigns.length === 0) return null;
+
+  const handleSubscribe = async (slug: string, e: React.FormEvent) => {
+    e.preventDefault();
+    const email = emails[slug] ?? '';
+    if (!email.includes('@')) return;
+    setSubmitting(p => ({ ...p, [slug]: true }));
+    try {
+      await fetch(`/api/campaigns/${slug}/subscribe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, locale: 'ru' }),
+      });
+      trackEvent('campaign_subscribe', { slug });
+      setDone(p => ({ ...p, [slug]: true }));
+    } catch { setDone(p => ({ ...p, [slug]: true })); }
+    finally { setSubmitting(p => ({ ...p, [slug]: false })); }
+  };
+
+  return (
+    <section className="py-20 px-4 bg-[#0A0A0F] relative" aria-label="Рассылки">
+      <div className="max-w-3xl mx-auto">
+        <motion.div variants={stagger} initial="hidden" whileInView="visible" viewport={{ once: true }} className="text-center mb-12">
+          <motion.p variants={fadeUp} className="text-[#7B72F8] text-xs uppercase tracking-widest font-semibold mb-3">Рассылки</motion.p>
+          <motion.h2 variants={fadeUp} className="text-3xl md:text-4xl font-display uppercase text-white">Будь в курсе</motion.h2>
+        </motion.div>
+        <div className="flex flex-col gap-4">
+          {campaigns.map((c, i) => (
+            <motion.div key={c._id} variants={fadeUpScale} initial="hidden" whileInView="visible" viewport={{ once: true }} transition={{ delay: i * 0.06 }}>
+              <GlassCard className="p-6" glowColor="#7B72F8">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-white font-semibold text-base mb-1">{c.name}</h3>
+                    {c.description && <p className="text-zinc-500 text-sm leading-relaxed">{c.description}</p>}
+                    {c.subscriberCount > 0 && (
+                      <p className="text-zinc-600 text-xs mt-1">{c.subscriberCount} подписчиков</p>
+                    )}
+                  </div>
+                  {done[c.slug] ? (
+                    <motion.p initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+                      className="text-green-400 text-sm flex items-center gap-1.5 shrink-0">
+                      <FaCheck size={11} /> Подписка оформлена
+                    </motion.p>
+                  ) : (
+                    <form onSubmit={e => handleSubscribe(c.slug, e)} className="flex gap-2 w-full sm:w-auto sm:min-w-[300px]">
+                      <input
+                        type="email" required
+                        value={emails[c.slug] ?? ''}
+                        onChange={e => setEmails(p => ({ ...p, [c.slug]: e.target.value }))}
+                        placeholder="твой@email.ru"
+                        className="flex-1 h-10 px-3 rounded-xl bg-zinc-900/80 border border-zinc-700/60 text-zinc-200 text-sm placeholder:text-zinc-600 focus:outline-none focus:border-[#7B72F8]/60 transition-colors"
+                      />
+                      <button type="submit" disabled={submitting[c.slug]}
+                        className="h-10 px-4 rounded-xl text-sm font-semibold text-white bg-[#7B72F8]/20 border border-[#7B72F8]/40 hover:bg-[#7B72F8]/30 transition-all cursor-pointer disabled:opacity-50 shrink-0">
+                        {submitting[c.slug] ? '...' : 'Подписаться'}
+                      </button>
+                    </form>
+                  )}
+                </div>
+              </GlassCard>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
 import { motion, AnimatePresence, useScroll, useTransform, useReducedMotion, type Variants } from 'framer-motion';
 import {
   FaPlay, FaUsers, FaComment, FaApple,
@@ -1728,6 +1812,9 @@ export function LandingContent() {
 
         {/* ── WHY WEWATCH ── */}
         <WhyWeWatch />
+
+        {/* ── NEWSLETTER CAMPAIGNS ── */}
+        <NewsletterSection />
 
         {/* ── CTA ── */}
         <section className="py-32 px-4 text-center relative overflow-hidden" aria-labelledby="cta-heading">

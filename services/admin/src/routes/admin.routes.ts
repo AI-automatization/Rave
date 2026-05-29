@@ -112,5 +112,15 @@ export const createAdminRouter = (redis: Redis): Router => {
   router.delete('/banned-words/:id',   bannedWordsController.deleteWord);
   router.patch('/banned-words/:id',    bannedWordsController.toggleWord);
 
+  // ── Campaigns (Newsletter) ────────────────────────────────────
+  router.get('/campaigns',                       adminController.listCampaigns);
+  router.post('/campaigns',                      adminController.createCampaign);
+  router.put('/campaigns/:slug',                 adminController.updateCampaign);
+  router.delete('/campaigns/:slug',              adminController.deleteCampaign);
+  router.patch('/campaigns/:slug/activate',      adminController.activateCampaign);
+  router.patch('/campaigns/:slug/deactivate',    adminController.deactivateCampaign);
+  router.get('/campaigns/:slug/stats',           adminController.getCampaignStats);
+  router.post('/campaigns/:slug/send',           requireRole('admin', 'superadmin'), adminController.sendCampaign);
+
   return router;
 };

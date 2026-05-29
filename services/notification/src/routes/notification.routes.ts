@@ -4,6 +4,7 @@ import { NotificationController } from '../controllers/notification.controller';
 import { NotificationService } from '../services/notification.service';
 import { TelegramController } from '../controllers/telegram.controller';
 import { WaitlistController } from '../controllers/waitlist.controller';
+import { CampaignController } from '../controllers/campaign.controller';
 import { verifyToken } from '@shared/middleware/auth.middleware';
 import { requireInternalSecret } from '@shared/utils/serviceClient';
 import { validate, sendInternalSchema, broadcastSchema, notifyUsersSchema } from '../validators/notification.validator';
@@ -22,6 +23,7 @@ export const createNotificationRouter = (redisUrl: string): Router => {
   const notificationController = new NotificationController(notificationService, redisPub);
   const telegramController = new TelegramController();
   const waitlistController = new WaitlistController();
+  const campaignController = new CampaignController();
 
   // POST /notifications/internal/send — service-to-service (X-Internal-Secret header)
   router.post('/internal/send', requireInternalSecret, validate(sendInternalSchema), notificationController.sendInternal);
@@ -59,6 +61,20 @@ export const createNotificationRouter = (redisUrl: string): Router => {
   router.post('/waitlist', waitlistController.join.bind(waitlistController));
   // GET /notifications/waitlist/count — internal only
   router.get('/waitlist/count', requireInternalSecret, waitlistController.count.bind(waitlistController));
+
+  // ── Campaigns (Newsletter) ─────────────────────────────────────
+  // Public
+  router.get('/campaigns',                     campaignController.listActive.bind(campaignController));
+  router.post('/campaigns/:slug/subscribe',    campaignController.subscribe.bind(campaignController));
+  // Internal (admin)
+  router.get('/campaigns/all',                 requireInternalSecret, campaignController.listAll.bind(campaignController));
+  router.post('/campaigns',                    requireInternalSecret, campaignController.create.bind(campaignController));
+  router.put('/campaigns/:slug',               requireInternalSecret, campaignController.update.bind(campaignController));
+  router.delete('/campaigns/:slug',            requireInternalSecret, campaignController.remove.bind(campaignController));
+  router.patch('/campaigns/:slug/activate',    requireInternalSecret, campaignController.activate.bind(campaignController));
+  router.patch('/campaigns/:slug/deactivate',  requireInternalSecret, campaignController.deactivate.bind(campaignController));
+  router.get('/campaigns/:slug/stats',         requireInternalSecret, campaignController.stats.bind(campaignController));
+  router.post('/campaigns/:slug/send',         requireInternalSecret, campaignController.send.bind(campaignController));
 
   // ── Telegram Bot (T-S063) ──────────────────────────────────────
   // POST /notifications/telegram/webhook — Telegram server calls this

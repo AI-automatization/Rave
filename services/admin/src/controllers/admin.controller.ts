@@ -351,5 +351,39 @@ export class AdminController {
       res.json(apiResponse.success(feed));
     } catch (error) { next(error); }
   };
+
+  // ── Campaigns ─────────────────────────────────────────────────
+  listCampaigns = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try { res.json(apiResponse.success(await this.adminService.listCampaigns())); }
+    catch (error) { next(error); }
+  };
+  createCampaign = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try { res.status(201).json(apiResponse.success(await this.adminService.createCampaign(req.body), 'Campaign created')); }
+    catch (error) { next(error); }
+  };
+  updateCampaign = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try { res.json(apiResponse.success(await this.adminService.updateCampaign(req.params.slug, req.body), 'Campaign updated')); }
+    catch (error) { next(error); }
+  };
+  deleteCampaign = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try { await this.adminService.deleteCampaign(req.params.slug); res.json(apiResponse.success(null, 'Deleted')); }
+    catch (error) { next(error); }
+  };
+  activateCampaign = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try { res.json(apiResponse.success(await this.adminService.activateCampaign(req.params.slug), 'Activated')); }
+    catch (error) { next(error); }
+  };
+  deactivateCampaign = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try { res.json(apiResponse.success(await this.adminService.deactivateCampaign(req.params.slug), 'Deactivated')); }
+    catch (error) { next(error); }
+  };
+  getCampaignStats = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try { res.json(apiResponse.success(await this.adminService.getCampaignStats(req.params.slug))); }
+    catch (error) { next(error); }
+  };
+  sendCampaign = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try { res.json(apiResponse.success(await this.adminService.sendCampaign(req.params.slug))); }
+    catch (error) { next(error); }
+  };
 }
 

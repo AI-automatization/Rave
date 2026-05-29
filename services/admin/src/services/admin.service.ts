@@ -13,6 +13,14 @@ import {
   adminGetWatchPartyStats,
   adminBroadcastNotification,
   adminSendNotificationToUser,
+  adminListCampaigns,
+  adminCreateCampaign,
+  adminUpdateCampaign,
+  adminDeleteCampaign,
+  adminActivateCampaign,
+  adminDeactivateCampaign,
+  adminGetCampaignStats,
+  adminSendCampaign,
 } from '@shared/utils/adminServiceClient';
 import { AdminUserService } from './adminUser.service';
 import { AdminContentService } from './adminContent.service';
@@ -290,4 +298,14 @@ export class AdminService {
     items.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     return items.slice(0, limit);
   }
+
+  // ── Campaigns ──────────────────────────────────────────────────
+  async listCampaigns()                                                        { return adminListCampaigns(); }
+  async createCampaign(p: { name: string; description?: string; emailSubject?: string; emailBody?: string }) { return adminCreateCampaign(p); }
+  async updateCampaign(slug: string, p: Record<string, string>)                { return adminUpdateCampaign(slug, p); }
+  async deleteCampaign(slug: string)                                           { return adminDeleteCampaign(slug); }
+  async activateCampaign(slug: string)                                         { return adminActivateCampaign(slug); }
+  async deactivateCampaign(slug: string)                                       { return adminDeactivateCampaign(slug); }
+  async getCampaignStats(slug: string)                                         { return adminGetCampaignStats(slug); }
+  async sendCampaign(slug: string)                                             { return adminSendCampaign(slug); }
 }

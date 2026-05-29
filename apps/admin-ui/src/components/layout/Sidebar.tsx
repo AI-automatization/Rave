@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import {
   LayoutDashboard, Users, Tv2,
   ScrollText, Activity, ShieldCheck, UserCog, Bug, LogOut,
-  Globe, Flag, Scale, Settings, MessageSquare, Bell, BarChart2, ShieldAlert,
+  Globe, Flag, Scale, Settings, MessageSquare, Bell, BarChart2, ShieldAlert, Mail,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/auth.store';
 import { errorsApi } from '../../api/errors.api';
@@ -118,6 +118,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     { to: '/users',         label: 'Users',         icon: <Users size={15} /> },
     { to: '/watchparties',  label: 'Watch Parties',  icon: <Tv2 size={15} /> },
     { to: '/notifications', label: 'Notifications',  icon: <Bell size={15} /> },
+    { to: '/campaigns',     label: 'Campaigns',      icon: <Mail size={15} /> },
   ];
 
   const monitoringItems: NavItem[] = [
