@@ -20,7 +20,7 @@ const oswald = Oswald({
 });
 
 export const viewport: Viewport = {
-  themeColor: '#E50914',
+  themeColor: '#7C3AED',
   colorScheme: 'dark',
   width: 'device-width',
   initialScale: 1,
@@ -98,6 +98,11 @@ export const metadata: Metadata = {
   category: 'entertainment',
   alternates: {
     canonical: APP_URL,
+    languages: {
+      'ru-RU': APP_URL,
+      'en-US': APP_URL,
+      'uz-UZ': APP_URL,
+    },
   },
   openGraph: {
     type: 'website',
@@ -167,12 +172,60 @@ export const metadata: Metadata = {
   },
 };
 
+const jsonLdApp = {
+  '@context': 'https://schema.org',
+  '@type': 'MobileApplication',
+  name: 'WeWatch',
+  applicationCategory: 'EntertainmentApplication',
+  applicationSubCategory: 'SocialNetworkingApplication',
+  operatingSystem: 'iOS, Android',
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+  description: 'Watch YouTube, VK and Rutube together with friends in real time. You pause — everyone pauses. Free watch party with chat, emoji and reactions.',
+  url: 'https://wewatch.uz',
+  inLanguage: ['ru', 'uz', 'en'],
+  aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.8', ratingCount: '150', bestRating: '5' },
+};
+
+const jsonLdFaq = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: [
+    {
+      '@type': 'Question',
+      name: 'Как смотреть YouTube вместе с другом онлайн?',
+      acceptedAnswer: { '@type': 'Answer', text: 'Скачайте WeWatch, создайте комнату, поделитесь ссылкой. Друг нажимает — и вы вместе. Синхронизация работает автоматически: вы паузите — все паузят.' },
+    },
+    {
+      '@type': 'Question',
+      name: 'Какие видеосервисы поддерживает WeWatch?',
+      acceptedAnswer: { '@type': 'Answer', text: 'WeWatch поддерживает YouTube, VK Видео, Rutube, Uzmove, Cinerama и другие сайты через встроенный браузер.' },
+    },
+    {
+      '@type': 'Question',
+      name: 'Бесплатен ли WeWatch?',
+      acceptedAnswer: { '@type': 'Answer', text: 'Да, WeWatch бесплатен. Базовый план не имеет ограничений по времени. Доступна Pro-подписка с дополнительными функциями.' },
+    },
+    {
+      '@type': 'Question',
+      name: 'Работает ли WeWatch на Android?',
+      acceptedAnswer: { '@type': 'Answer', text: 'iOS-версия доступна в App Store. Android-версия находится в разработке и выйдет в ближайшее время.' },
+    },
+    {
+      '@type': 'Question',
+      name: 'What is a watch party?',
+      acceptedAnswer: { '@type': 'Answer', text: 'A watch party is a synchronized video viewing session where multiple people watch the same video at the same time, even from different locations. WeWatch makes it free and easy — no browser extensions needed.' },
+    },
+  ],
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="ru" suppressHydrationWarning>
       <body className={`${dmSans.variable} ${oswald.variable} font-body antialiased bg-[#060608] text-white`}>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdApp) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdFaq) }} />
         <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="afterInteractive" />
         <Script id="gtag-init" strategy="afterInteractive">{`
           window.dataLayer = window.dataLayer || [];

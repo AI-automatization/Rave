@@ -1,0 +1,58 @@
+{
+  "apple": {
+    "info": {
+      "en-US": {
+        "title": "WeWatch — Watch Together",
+        "subtitle": "Watch Videos With Friends",
+        "promotionalText": "Watch Party is free. You pause — everyone pauses. No browser extensions needed.",
+        "description": "Watch YouTube, VK and Rutube together with friends in real time.\n\nNo plugins. No browser extensions. No copying links.\n\nOpen the built-in browser, pick any video, share the room link — everyone joins in seconds.\n\n✓ Sync play/pause/seek for all participants\n✓ Real-time chat and emoji reactions\n✓ Battle Mode — who watches more in 7 days?\n✓ 25+ unique achievements to unlock\n✓ iOS + Android cross-platform sync\n✓ Friends list with online status\n✓ Built-in browser — any video site\n✓ Free forever\n\nHOW IT WORKS\n1. Open the built-in browser and find a video\n2. Create a room and share the link with friends\n3. Everyone joins — you all watch the same frame\n\nWhen you pause, everyone pauses. When you skip, everyone skips. No spoilers for the friend who's still watching.\n\nBATTLE MODE\nChallenge a friend to a 3, 5, or 7-day video-watching competition. Track results on a live leaderboard. The winner earns points and achievements.\n\nFREE & NO ADS ON BASIC PLAN\nWeWatch is free to download and use. The basic plan has no time limits.",
+        "keywords": [
+          "watch party",
+          "watch together",
+          "watch youtube together",
+          "sync watch",
+          "watch party app",
+          "watch movies together",
+          "watch videos with friends",
+          "co-watch",
+          "watch party free",
+          "together app"
+        ],
+        "releaseNotes": "Initial App Store release.\n\n• Watch YouTube, VK, Rutube together\n• Built-in browser — no extensions needed\n• Real-time chat and emoji reactions\n• Battle Mode with leaderboard\n• 25+ achievements"
+      },
+      "ru-RU": {
+        "title": "WeWatch — Смотреть Вместе",
+        "subtitle": "Смотри видео с друзьями",
+        "promotionalText": "Ты паузишь — все паузят. Watch Party бесплатно. Без расширений для браузера.",
+        "description": "Смотри YouTube, VK и Rutube вместе с друзьями в реальном времени.\n\nБез плагинов. Без расширений для браузера. Без копирования ссылок.\n\nОткрой встроенный браузер, найди видео, поделись ссылкой на комнату — друзья присоединяются за секунды.\n\n✓ Синхронизация play/pause/перемотки для всех участников\n✓ Чат в реальном времени и эмодзи-реакции\n✓ Battle Mode — кто посмотрит больше за 7 дней?\n✓ 25+ уникальных достижений\n✓ Синхронизация iOS и Android\n✓ Список друзей с онлайн-статусом\n✓ Встроенный браузер — любой видеосайт\n✓ Бесплатно навсегда\n\nКАК ЭТО РАБОТАЕТ\n1. Открой встроенный браузер и найди видео\n2. Создай комнату и поделись ссылкой с друзьями\n3. Все заходят — смотрите одновременно один кадр\n\nКогда ты паузишь — все паузят. Когда перематываешь — все перематывают. Никаких спойлеров для того, кто ещё не досмотрел.\n\nBATTLE MODE\nПошли другу вызов на 3, 5 или 7 дней — кто посмотрит больше видео. Результаты в реальном времени. Победитель получает очки и достижения.\n\nБЕСПЛАТНО И БЕЗ РЕКЛАМЫ НА БАЗОВОМ ПЛАНЕ",
+        "keywords": [
+          "смотреть вместе",
+          "watch party",
+          "смотреть youtube вместе",
+          "кино с другом",
+          "совместный просмотр",
+          "watch party приложение",
+          "смотреть фильм с другом",
+          "синхронный просмотр",
+          "онлайн кинотеатр",
+          "кино вместе"
+        ],
+        "releaseNotes": "Первый релиз в App Store.\n\n• Смотри YouTube, VK, Rutube вместе\n• Встроенный браузер — без расширений\n• Чат и эмодзи в реальном времени\n• Battle Mode с рейтингом\n• 25+ достижений"
+      }
+    }
+  },
+  "google": {
+    "info": {
+      "en-US": {
+        "title": "WeWatch — Watch Together",
+        "shortDescription": "Watch YouTube, VK, Rutube with friends. You pause — everyone pauses. Free.",
+        "fullDescription": "Watch YouTube, VK and Rutube together with friends in real time.\n\nNo plugins. No browser extensions. No copying links.\n\nOpen the built-in browser, pick any video, share the room link — everyone joins in seconds.\n\n✓ Sync play/pause/seek for all participants\n✓ Real-time chat and emoji reactions\n✓ Battle Mode — who watches more in 7 days?\n✓ 25+ unique achievements to unlock\n✓ iOS + Android cross-platform sync\n✓ Friends list with online status\n✓ Built-in browser — any video site\n✓ Free forever"
+      },
+      "ru-RU": {
+        "title": "WeWatch — Смотреть Вместе",
+        "shortDescription": "Смотри YouTube, VK, Rutube с друзьями. Ты паузишь — все паузят. Бесплатно.",
+        "fullDescription": "Смотри YouTube, VK и Rutube вместе с друзьями в реальном времени.\n\nБез плагинов. Без расширений для браузера. Без копирования ссылок.\n\nОткрой встроенный браузер, найди видео, поделись ссылкой — друзья присоединяются за секунды.\n\n✓ Синхронизация play/pause/перемотки для всех\n✓ Чат и эмодзи в реальном времени\n✓ Battle Mode — кто посмотрит больше за 7 дней?\n✓ 25+ уникальных достижений\n✓ Синхронизация iOS и Android\n✓ Встроенный браузер — любой видеосайт\n✓ Бесплатно навсегда"
+      }
+    }
+  }
+}

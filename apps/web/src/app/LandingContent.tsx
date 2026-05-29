@@ -1,6 +1,13 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, type FormEvent } from 'react';
+
+declare global {
+  interface Window { gtag?: (...args: unknown[]) => void; }
+}
+const trackEvent = (name: string, params?: Record<string, unknown>) => {
+  window.gtag?.('event', name, params);
+};
 import { motion, AnimatePresence, useScroll, useTransform, useReducedMotion, type Variants } from 'framer-motion';
 import {
   FaPlay, FaUsers, FaComment, FaApple,
@@ -1267,6 +1274,15 @@ export function LandingContent() {
   const [activeScreen, setActiveScreen] = useState(0);
   const [visibleChats, setVisibleChats] = useState<number[]>([]);
   const [urlText, setUrlText] = useState('');
+  const [waitlistEmail, setWaitlistEmail] = useState('');
+  const [waitlistDone, setWaitlistDone] = useState(false);
+
+  const handleWaitlist = (e: FormEvent) => {
+    e.preventDefault();
+    if (!waitlistEmail.includes('@')) return;
+    trackEvent('android_waitlist_signup', { email: waitlistEmail });
+    setWaitlistDone(true);
+  };
 
   const DEMO_STEPS = [
     { step: '01', title: t('demoStep1title'), sub: t('demoStep1sub'), icon: FaGlobe },
@@ -1400,6 +1416,7 @@ export function LandingContent() {
             <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, delay: 0.45 }}
               className="flex gap-4 justify-center flex-wrap">
               <motion.a href={APP_STORE} target="_blank" rel="noopener noreferrer"
+                onClick={() => trackEvent('app_store_click', { location: 'hero' })}
                 className="group relative inline-flex items-center gap-3 h-14 px-8 rounded-xl text-white font-semibold cursor-pointer overflow-hidden"
                 style={{ background: 'linear-gradient(135deg, #7B72F8, #6B63E8)', boxShadow: '0 0 32px rgba(123,114,248,0.55), inset 0 1px 0 rgba(255,255,255,0.12)' }}
                 whileHover={{ scale: 1.06, y: -2, boxShadow: '0 0 48px rgba(123,114,248,0.75), inset 0 1px 0 rgba(255,255,255,0.15)' }}
@@ -1738,13 +1755,13 @@ export function LandingContent() {
 
             <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <motion.a href={APP_STORE} target="_blank" rel="noopener noreferrer"
+                onClick={() => trackEvent('app_store_click', { location: 'cta' })}
                 className="relative inline-flex items-center gap-3 h-16 px-12 rounded-xl text-white font-bold text-base cursor-pointer overflow-hidden"
                 style={{ background: 'linear-gradient(135deg, #7B72F8, #6B63E8)', boxShadow: '0 0 50px rgba(123,114,248,0.65), inset 0 1px 0 rgba(255,255,255,0.12)' }}
                 whileHover={{ scale: 1.05, boxShadow: '0 0 70px rgba(123,114,248,0.85), inset 0 1px 0 rgba(255,255,255,0.15)' }}
                 whileTap={{ scale: 0.97 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 20 }}
                 aria-label="WeWatch-ni App Store-dan bepul yuklab oling">
-                {/* Animated shine sweep */}
                 <motion.div className="absolute inset-0 pointer-events-none" aria-hidden="true"
                   style={{ background: 'linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.18) 50%, transparent 60%)' }}
                   animate={{ x: ['-100%', '200%'] }}
@@ -1752,7 +1769,36 @@ export function LandingContent() {
                 <FaApple size={24} className="relative z-10" aria-hidden="true" />
                 <span className="relative z-10">{t('ctaPlayBtn')}</span>
               </motion.a>
-              <span className="text-zinc-600 text-sm">{t('ctaIosSoon')}</span>
+
+              {/* Android Waitlist */}
+              {waitlistDone ? (
+                <motion.p
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-green-400 text-sm flex items-center gap-2"
+                >
+                  <span>✓</span>
+                  <span>{t('waitlistThanks')}</span>
+                </motion.p>
+              ) : (
+                <form onSubmit={handleWaitlist} className="flex items-center gap-2 w-full max-w-sm" aria-label="Android waitlist">
+                  <input
+                    type="email"
+                    value={waitlistEmail}
+                    onChange={e => setWaitlistEmail(e.target.value)}
+                    placeholder={t('waitlistPlaceholder')}
+                    required
+                    className="flex-1 h-11 px-4 rounded-xl bg-zinc-900/80 border border-zinc-700/60 text-zinc-200 text-sm placeholder:text-zinc-600 focus:outline-none focus:border-[#7B72F8]/60 focus:ring-1 focus:ring-[#7B72F8]/30 transition-colors"
+                    aria-label="Email для Android waitlist"
+                  />
+                  <button
+                    type="submit"
+                    className="h-11 px-5 rounded-xl text-sm font-semibold text-white border border-[#7B72F8]/50 bg-[#7B72F8]/12 hover:bg-[#7B72F8]/22 hover:border-[#7B72F8]/70 transition-all duration-200 whitespace-nowrap cursor-pointer"
+                  >
+                    {t('waitlistBtn')}
+                  </button>
+                </form>
+              )}
             </motion.div>
 
             <motion.p variants={fadeUp} className="mt-10 text-zinc-600 text-sm">
