@@ -175,9 +175,8 @@ export function CampaignsPage() {
     <div className="flex flex-col gap-6 p-6 max-w-5xl mx-auto">
       <PageHeader
         title="Campaigns"
-        subtitle="Create email newsletters — subscribers sign up from the landing page"
-        icon={<Mail size={18} />}
-        action={<Button variant="primary" size="sm" onClick={() => setCreateOpen(true)}><Plus size={13} /> New Campaign</Button>}
+        description="Create email newsletters — subscribers sign up from the landing page"
+        actions={<Button variant="primary" size="sm" onClick={() => setCreateOpen(true)}><Plus size={13} /> New Campaign</Button>}
       />
 
       {/* Toast */}
