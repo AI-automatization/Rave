@@ -7,6 +7,7 @@ import {
   adminLoginSelfEmail,
   adminLoginAlertEmail,
   appealDecisionEmail,
+  welcomeEmail,
   LOGO_CID,
   LOGO_SVG,
 } from './emailTemplates';
@@ -130,6 +131,21 @@ export const emailService = {
       logger.info('Appeal decision email sent', { to: '[REDACTED]', status: opts.status });
     } catch (error) {
       logger.error('Failed to send appeal decision email', { error: (error as Error).message });
+    }
+  },
+
+  async sendWelcomeEmail(to: string, username: string): Promise<void> {
+    try {
+      await transporter.sendMail({
+        from:        `"WeWatch" <${config.email.from}>`,
+        to,
+        subject:     `Добро пожаловать в WeWatch, ${username}! 🎬`,
+        html:        welcomeEmail(username),
+        attachments: [LOGO_ATTACHMENT],
+      });
+      logger.info('Welcome email sent', { to: '[REDACTED]' });
+    } catch (error) {
+      logger.warn('Failed to send welcome email', { error: (error as Error).message });
     }
   },
 

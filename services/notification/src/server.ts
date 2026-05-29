@@ -9,6 +9,7 @@ import { createApp } from './app';
 import { config } from './config/index';
 import { logger } from '@shared/utils/logger';
 import { registerWebhook } from './services/telegram.service';
+import { startReengagementQueue } from './queues/reengagement.queue';
 
 const main = async (): Promise<void> => {
   logger.info('[1/4] Connecting to MongoDB...');
@@ -25,6 +26,9 @@ const main = async (): Promise<void> => {
     });
     server.on('error', reject);
   });
+
+  // Start background jobs
+  startReengagementQueue(config.redisUrl);
 
   // Register Telegram webhook if configured (non-blocking)
   const tgWebhookUrl = process.env.TELEGRAM_WEBHOOK_URL ?? '';

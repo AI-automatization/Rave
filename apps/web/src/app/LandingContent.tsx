@@ -1277,9 +1277,18 @@ export function LandingContent() {
   const [waitlistEmail, setWaitlistEmail] = useState('');
   const [waitlistDone, setWaitlistDone] = useState(false);
 
-  const handleWaitlist = (e: FormEvent) => {
+  const handleWaitlist = async (e: FormEvent) => {
     e.preventDefault();
     if (!waitlistEmail.includes('@')) return;
+    try {
+      await fetch('/api/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: waitlistEmail, locale: 'ru' }),
+      });
+    } catch {
+      // fail silently — UI success regardless
+    }
     trackEvent('android_waitlist_signup', { email: waitlistEmail });
     setWaitlistDone(true);
   };

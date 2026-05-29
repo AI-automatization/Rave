@@ -363,3 +363,61 @@ export function appealDecisionEmail(opts: {
   `;
   return base(accentColor, body);
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 6. Welcome email (sent after email confirmation)
+// ═══════════════════════════════════════════════════════════════════════════════
+export function welcomeEmail(username: string): string {
+  const body = `
+    <p style="margin:0 0 8px;font-size:12px;font-weight:700;color:${C.accentLt};text-transform:uppercase;letter-spacing:0.12em;font-family:Arial,sans-serif;">
+      Добро пожаловать
+    </p>
+
+    <h1 style="margin:0 0 16px;font-size:28px;font-weight:800;color:${C.text};line-height:1.2;font-family:Arial,sans-serif;">
+      Привет, ${username}! 🎬
+    </h1>
+
+    <p style="margin:0 0 28px;font-size:15px;color:${C.muted};line-height:1.7;font-family:Arial,sans-serif;">
+      Твой аккаунт WeWatch готов. Теперь ты можешь смотреть YouTube, VK и Rutube
+      вместе с друзьями — в реальном времени, бесплатно.
+    </p>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
+      <tr>
+        <td style="background-color:${C.cardInner};border:1px solid ${C.border};border-radius:14px;padding:24px;">
+          <p style="margin:0 0 16px;font-size:13px;font-weight:700;color:${C.text};font-family:Arial,sans-serif;">С чего начать:</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            <tr><td style="padding:5px 0;font-size:14px;color:${C.muted};font-family:Arial,sans-serif;">
+              <span style="color:${C.accent};font-weight:700;">1.</span>&nbsp;
+              Открой браузер в приложении
+            </td></tr>
+            <tr><td style="padding:5px 0;font-size:14px;color:${C.muted};font-family:Arial,sans-serif;">
+              <span style="color:${C.accent};font-weight:700;">2.</span>&nbsp;
+              Найди видео на YouTube, VK или Rutube
+            </td></tr>
+            <tr><td style="padding:5px 0;font-size:14px;color:${C.muted};font-family:Arial,sans-serif;">
+              <span style="color:${C.accent};font-weight:700;">3.</span>&nbsp;
+              Создай комнату и пошли ссылку другу
+            </td></tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
+      <tr>
+        <td style="background-color:${C.accent};border-radius:12px;">
+          <a href="https://wewatch.uz"
+             style="display:inline-block;padding:16px 40px;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;font-family:Arial,sans-serif;">
+            Открыть WeWatch →
+          </a>
+        </td>
+      </tr>
+    </table>
+
+    <p style="margin:0;font-size:13px;color:${C.ghost};font-family:Arial,sans-serif;">
+      Рады видеть тебя в команде WeWatch 🎉
+    </p>
+  `;
+  return base(C.accent, body);
+}

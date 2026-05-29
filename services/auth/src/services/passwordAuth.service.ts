@@ -144,6 +144,12 @@ export class PasswordAuthService {
     });
 
     logger.info('User registered and verified', { userId: user._id, email });
+
+    // Send welcome email (non-blocking)
+    emailService.sendWelcomeEmail(email, user.username).catch((err) =>
+      logger.warn('Welcome email failed', { error: (err as Error).message }),
+    );
+
     return user;
   }
 
