@@ -1,6 +1,6 @@
 // WeWatch Mobile — Root Navigator
 import React, { useEffect, useRef, useState } from 'react';
-import { View } from 'react-native';
+import { View, AppState, type AppStateStatus } from 'react-native';
 import { NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';
 import * as Linking from 'expo-linking';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -44,13 +44,14 @@ export function AppNavigator() {
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [maintenanceChecking, setMaintenanceChecking] = useState(false);
   const maintenanceTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const appStateRef = useRef<AppStateStatus>(AppState.currentState);
 
   const checkMaintenance = async () => {
     try {
-      const config = await adminApi.getAppConfig();
-      setMaintenanceMode(config.maintenanceMode === true);
+      const cfg = await adminApi.getAppConfig();
+      setMaintenanceMode(cfg.maintenanceMode === true);
     } catch {
-      // If endpoint unreachable — don't block the app
+      // Unreachable endpoint — don't block the app
     }
   };
 
@@ -60,24 +61,30 @@ export function AppNavigator() {
     setMaintenanceChecking(false);
   };
 
-  // Check on startup + poll every 3 minutes while in maintenance
+  // Check on startup
   useEffect(() => {
     void checkMaintenance();
   }, []);
 
+  // Poll every 2 minutes regardless of maintenance status
+  // (so admin can turn it ON while user is already in the app)
   useEffect(() => {
-    if (maintenanceMode) {
-      maintenanceTimerRef.current = setInterval(() => { void checkMaintenance(); }, 3 * 60 * 1000);
-    } else {
-      if (maintenanceTimerRef.current) {
-        clearInterval(maintenanceTimerRef.current);
-        maintenanceTimerRef.current = null;
-      }
-    }
+    maintenanceTimerRef.current = setInterval(() => { void checkMaintenance(); }, 2 * 60 * 1000);
     return () => {
       if (maintenanceTimerRef.current) clearInterval(maintenanceTimerRef.current);
     };
-  }, [maintenanceMode]);
+  }, []);
+
+  // Check when app comes to foreground from background
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (next: AppStateStatus) => {
+      if (appStateRef.current.match(/inactive|background/) && next === 'active') {
+        void checkMaintenance();
+      }
+      appStateRef.current = next;
+    });
+    return () => sub.remove();
+  }, []);
 
   usePushNotifications();
 
