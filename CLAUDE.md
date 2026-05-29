@@ -374,6 +374,24 @@ Frontend UI/UX:
   • ARCH    → .claude/skills/architecture-review.md      (design review + ADR writing)
   • DEPLOY  → .claude/skills/deploy.md                   (Railway pre-checks → health verify → rollback)
 
+Маркетинг (coreyhaines31/marketingskills):
+  • marketing-launch          → .claude/skills/marketing-launch.md           (Product Hunt, GTM, release strategy)
+  • marketing-social          → .claude/skills/marketing-social.md           (Instagram, TikTok, Twitter posts)
+  • marketing-video           → .claude/skills/marketing-video.md            (video scripts, hooks, thumbnails)
+  • marketing-copywriting     → .claude/skills/marketing-copywriting.md      (headlines, CTAs, landing copy)
+  • marketing-seo-audit       → .claude/skills/marketing-seo-audit.md        (SEO issues, page audit)
+  • marketing-ai-seo          → .claude/skills/marketing-ai-seo.md           (AI-powered SEO optimisation)
+  • marketing-aso             → .claude/skills/marketing-aso.md              (App Store / Play Store optimisation)
+  • marketing-ads             → .claude/skills/marketing-ads.md              (paid campaigns)
+  • marketing-ad-creative     → .claude/skills/marketing-ad-creative.md      (ad copy + visual direction)
+  • marketing-analytics       → .claude/skills/marketing-analytics.md        (metrics, dashboards, attribution)
+  • marketing-onboarding      → .claude/skills/marketing-onboarding.md       (activation, first-run flow)
+  • marketing-referrals       → .claude/skills/marketing-referrals.md        (referral programs, word-of-mouth)
+  • marketing-pricing         → .claude/skills/marketing-pricing.md          (pricing strategy, paywalls)
+  • marketing-marketing-ideas → .claude/skills/marketing-marketing-ideas.md  (growth ideas brainstorm)
+  • marketing-emails          → .claude/skills/marketing-emails.md           (drip, transactional, promo)
+  # + 27 других скиллов в .claude/skills/marketing-*.md
+
 ГОТОВО → POST-CHECK (dev-workflow) + checkpoint clear + Done.md + tg-notify + git commit
          + bash .claude/scripts/update-last-session.sh "T-XXX" "что сделано" "следующий шаг"
 ```
