@@ -73,24 +73,31 @@ export function buildYouTubeHtml(videoId: string): string {
               e.target.playVideo();
             } else if (pendingPlay === false) {
               e.target.pauseVideo();
-            } else {
-              e.target.playVideo(); // default: autoplay
             }
+            // No default autoplay — sync command controls playback.
+            // Android WebView blocks autoplay without user gesture; letting
+            // the owner's first VIDEO_SYNC/PLAY event trigger play() instead
+            // avoids the silent failure where playVideo() is called but ignored.
             pendingPlay = null;
 
             rn({ type: 'VIDEO_FOUND' });
+            // 500ms interval so heartbeat drift correction has fresh position data.
+            // Was 2000ms — caused up to 2s position staleness in getPositionMs().
             progressTimer = setInterval(function() {
               if (ytPlayer && ytPlayer.getPlayerState() === YT.PlayerState.PLAYING) {
                 rn({ type: 'PROGRESS', currentTime: ytPlayer.getCurrentTime(), duration: ytPlayer.getDuration() || 0 });
               }
-            }, 2000);
+            }, 500);
           },
           onStateChange: function(e) {
             var ct = ytPlayer ? ytPlayer.getCurrentTime() : 0;
             if (e.data === YT.PlayerState.PLAYING) {
+              rn({ type: 'BUFFERING', isBuffering: false });
               rn({ type: 'PLAY', currentTime: ct });
             } else if (e.data === YT.PlayerState.PAUSED) {
               rn({ type: 'PAUSE', currentTime: ct });
+            } else if (e.data === YT.PlayerState.BUFFERING) {
+              rn({ type: 'BUFFERING', isBuffering: true });
             }
           },
           onError: function(e) {

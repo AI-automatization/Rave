@@ -179,7 +179,13 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
         ? Math.max(0, (Date.now() - serverTs) / 1000)
         : 0;
       const targetMs = (syncState.currentTime + compensationSecs) * 1000;
+      // WebView seekTo resolves immediately (JS injection is fire-and-forget).
+      // On Android WebView the actual seek takes 150-400ms; calling play() before
+      // that completes starts playback at the old position → visible ratchet effect.
+      // 250ms on Android / 0ms on iOS (expo-av seekTo is awaitable and reliable).
+      const seekPlayDelayMs = Platform.OS === 'android' ? 250 : 0;
       playerRef.current.seekTo(targetMs)
+        .then(() => new Promise<void>(resolve => { setTimeout(resolve, seekPlayDelayMs); }))
         .then(() => syncState.isPlaying ? playerRef.current?.play() : playerRef.current?.pause())
         .catch(() => {})
         .finally(() => { setTimeout(() => { isSyncing.current = false; }, 400); });
@@ -236,8 +242,10 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
       if (suppressDriftTimerRef.current) clearTimeout(suppressDriftTimerRef.current);
       suppressDriftTimerRef.current = setTimeout(() => { suppressDriftRef.current = false; suppressDriftTimerRef.current = null; }, 8000);
       isSyncing.current = true;
+      const seekPlayDelayMs = Platform.OS === 'android' ? 250 : 0;
       playerRef.current?.seekTo(expected * 1000);
-      setTimeout(() => { isSyncing.current = false; }, 2000);
+      // Match the sync delay so drift correction also waits for Android WebView seek.
+      setTimeout(() => { isSyncing.current = false; }, 2000 + seekPlayDelayMs);
     }
   }, [heartbeat, isOwner, isPlaying]); // eslint-disable-line react-hooks/exhaustive-deps
 

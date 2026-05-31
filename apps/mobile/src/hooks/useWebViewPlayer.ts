@@ -1,6 +1,6 @@
 // WeWatch — useWebViewPlayer: WebView state, callbacks, ref imperative handle
 import { useRef, useState, useCallback, useMemo, useEffect } from 'react';
-import { StatusBar } from 'react-native';
+import { StatusBar, Platform } from 'react-native';
 import WebView from 'react-native-webview';
 import type { WebViewMessageEvent } from 'react-native-webview';
 import type { ShouldStartLoadRequest, WebViewNavigation } from 'react-native-webview/lib/WebViewTypes';
@@ -35,7 +35,11 @@ type WebViewMessage =
   | { type: 'IFRAME_FOUND'; urls: string[] }
   | { type: 'YT_EMBED_ERROR'; code: number };
 
-const POSITION_POLL_INTERVAL_MS = 2000;
+// 500ms: heartbeat fires every 5s; with 2s polling the position sent by the owner
+// could be ~2s stale → members see that as drift and seek unnecessarily.
+const POSITION_POLL_INTERVAL_MS = 500;
+// Android WebView is slower to bootstrap; give it extra time before showing error.
+const LOAD_TIMEOUT_MS = Platform.OS === 'android' ? 12000 : 8000;
 const POSITION_POLL_JS = `
   if(window._csVideo && !window._csVideo.paused){
     window.ReactNativeWebView.postMessage(JSON.stringify({
@@ -57,6 +61,8 @@ export function useWebViewPlayer(
 
   const isHtmlMode = !!youtubeVideoId || !!htmlContent;
   const isYouTubeMode = !!youtubeVideoId;
+  // true after first message from WebView — used to gate load timeout
+  const receivedFirstMessageRef = useRef(false);
 
   const injectJs = useMemo(
     () => (isHtmlMode ? 'true;' : buildInjectJs(getAdapter(url))),
@@ -74,6 +80,17 @@ export function useWebViewPlayer(
     StatusBar.setHidden(true, 'slide');
     return () => StatusBar.setHidden(false, 'slide');
   }, []);
+
+  // Load timeout: if WebView sends no message within LOAD_TIMEOUT_MS → show error.
+  // Catches Android WebView silent failures where IFrame API loads but never fires onReady.
+  useEffect(() => {
+    if (!isHtmlMode) return; // URL-mode has its own onError/onHttpError
+    receivedFirstMessageRef.current = false;
+    const timer = setTimeout(() => {
+      if (!receivedFirstMessageRef.current) setError(true);
+    }, LOAD_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [isHtmlMode, youtubeVideoId, htmlContent]); // re-arm when video changes
 
   // T-E100: Periodic position polling — real currentTime from WebView every 2s
   useEffect(() => {
@@ -102,6 +119,7 @@ export function useWebViewPlayer(
   }));
 
   const handleMessage = useCallback((event: WebViewMessageEvent) => {
+    receivedFirstMessageRef.current = true;
     try {
       const data = JSON.parse(event.nativeEvent.data) as WebViewMessage;
       switch (data.type) {
