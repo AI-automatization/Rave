@@ -33,8 +33,10 @@ async function pipeRemoteStream(
 
   const upstream = await fetch(remoteUrl, { headers });
 
+  // Strip codec params for ExoPlayer compatibility (same as primary path above).
+  const safeMime = mimeType.split(';')[0].trim() || 'video/mp4';
   const responseHeaders: Record<string, string | number> = {
-    'Content-Type': mimeType,
+    'Content-Type': safeMime,
     'Accept-Ranges': 'bytes',
     'Cache-Control': 'no-cache',
   };
@@ -79,7 +81,11 @@ export const ytdlController = {
       if (isLive) { res.redirect(302, format.url); return; }
 
       const contentLength = parseInt(format.contentLength ?? '0', 10);
-      const mimeType = format.mimeType ?? 'video/mp4';
+      // Strip codec params — ExoPlayer on Android 14+ rejects Content-Type values
+      // like 'video/mp4; codecs="avc1.640028, mp4a.40.2"' for progressive streams.
+      // Plain 'video/mp4' or 'video/webm' is universally accepted by all clients.
+      const rawMime = format.mimeType ?? 'video/mp4';
+      const mimeType = rawMime.split(';')[0].trim() || 'video/mp4';
       const rangeHeader = req.headers.range;
 
       let startByte = 0;
@@ -103,6 +109,11 @@ export const ytdlController = {
       if (contentLength > 0 && rangeHeader) {
         responseHeaders['Content-Range'] = `bytes ${startByte}-${endByte}/${contentLength}`;
         responseHeaders['Content-Length'] = chunkSize;
+        res.writeHead(206, responseHeaders);
+      } else if (rangeHeader && !contentLength) {
+        // ExoPlayer sends Range even when Content-Length is unknown — respond 206
+        // with Transfer-Encoding: chunked so ExoPlayer treats it as seekable.
+        responseHeaders['Content-Range'] = `bytes ${startByte}-*/*`;
         res.writeHead(206, responseHeaders);
       } else {
         if (contentLength > 0) responseHeaders['Content-Length'] = contentLength;
