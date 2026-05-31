@@ -450,24 +450,22 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     : (!extractedVideoUrl && platform === 'youtube');
 
   // Android + embeddable webview platforms (VK, Rutube, Twitch, Vimeo, Dailymotion):
-  // These CDNs block ExoPlayer via TLS fingerprint — proxy (Node.js/Chrome UA) is primary.
-  // Android HLS: ExoPlayer does NOT forward custom headers (Referer) to segment requests,
-  // only to the initial m3u8 fetch. HLS proxy rewrites all segment URLs → server adds Referer.
-  // Without this CDN 403s all segments silently → choppy buffering stalls.
+  // Android embeddable (VK, Rutube, etc.) + HLS:
+  // Previous approach used HLS proxy as primary — but VK CDN URLs expire quickly (~30s)
+  // and the server-side proxy round-trip can take long enough that the URL expires before
+  // the proxy fetches the m3u8 (causes 400). iOS plays the raw URL directly from the device
+  // and it works (VK srcIp check is not enforced, auth is embedded in the URL).
+  // New approach mirrors iOS: try raw extracted URL from device first; HLS proxy as fallback.
+  // If the CDN requires Referer on segments (some generic CDNs), the raw URL will 403 on
+  // segments and UniversalPlayer will switch to the proxy URL via onError.
   const isAndroidEmbeddable = Platform.OS === 'android'
     && platform === 'webview'
     && !!detectEmbedPlatform(originalVideoUrl);
   const isAndroidHls = Platform.OS === 'android' && isHlsStream && !!extractedVideoProxyUrl;
-  const playerExtractedUrl = isAndroidEmbeddable && extractedVideoProxyUrl
-    ? extractedVideoProxyUrl
-    : isAndroidHls
-      ? extractedVideoProxyUrl  // HLS proxy is primary on Android — correct Referer on all segments
-      : extractedVideoUrl;
-  const playerProxyUrl = isAndroidEmbeddable
-    ? undefined
-    : isAndroidHls
-      ? extractedVideoUrl  // CDN direct is fallback (if proxy fails, UniversalPlayer switches here)
-      : extractedVideoProxyUrl;
+  const playerExtractedUrl = extractedVideoUrl; // raw URL first on all platforms (mirrors iOS)
+  const playerProxyUrl = isAndroidEmbeddable || isAndroidHls
+    ? extractedVideoProxyUrl  // HLS proxy / generic proxy as fallback when raw URL fails
+    : extractedVideoProxyUrl;
 
   // Reset player ready state when video URL changes (new media)
   // Skip reset on initial URL load — pendingSyncRef from ROOM_JOINED must survive until player is ready.
