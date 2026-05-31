@@ -9,8 +9,26 @@ import { Request, Response, NextFunction } from 'express';
 import https from 'https';
 import http from 'http';
 import { URL } from 'url';
+import jwt from 'jsonwebtoken';
 import { logger } from '@shared/utils/logger';
 import type { AuthenticatedRequest } from '@shared/types';
+
+const getPublicKey = () => (process.env.JWT_PUBLIC_KEY ?? '').replace(/\\n/g, '\n');
+
+/**
+ * Verifies a raw JWT string from the ?token= query param.
+ * Used for HLS segments — ExoPlayer on Android does not forward the Authorization
+ * header to individual segment requests, so the token must be embedded in the URL.
+ */
+function verifyQueryToken(token?: string): boolean {
+  if (!token) return false;
+  try {
+    jwt.verify(token, getPublicKey(), { algorithms: ['RS256'] });
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 // ── SSRF Guard ────────────────────────────────────────────────────────────────
 
@@ -105,8 +123,15 @@ function fetchBuffered(rawUrl: string, referer: string): Promise<UpstreamFetchRe
 
 const SEGMENT_PROXY_PATH = '/api/v1/content/hls-proxy/segment';
 
-function rewriteM3u8(content: string, baseUrl: string, referer: string): string {
+/**
+ * Rewrites all segment/key/map URLs in an m3u8 to go through the segment proxy.
+ * token — raw JWT extracted from the m3u8 request's Authorization header — is
+ * embedded in every segment URL so ExoPlayer can authenticate without a header.
+ * (ExoPlayer on Android does not forward Authorization to individual HLS segments.)
+ */
+function rewriteM3u8(content: string, baseUrl: string, referer: string, token?: string): string {
   const lines = content.split('\n');
+  const tokenParam = token ? `&token=${encodeURIComponent(token)}` : '';
 
   const proxySegment = (segUrl: string): string => {
     const absoluteUrl = segUrl.startsWith('http') ? segUrl : new URL(segUrl, baseUrl).toString();
@@ -115,7 +140,7 @@ function rewriteM3u8(content: string, baseUrl: string, referer: string): string 
       logger.warn('HLS rewrite: SSRF guard blocked segment URL', { url: absoluteUrl, ssrfError });
       return segUrl; // leave original — frontend will get a 403, not an SSRF
     }
-    return `${SEGMENT_PROXY_PATH}?url=${encodeURIComponent(absoluteUrl)}&referer=${encodeURIComponent(referer)}`;
+    return `${SEGMENT_PROXY_PATH}?url=${encodeURIComponent(absoluteUrl)}&referer=${encodeURIComponent(referer)}${tokenParam}`;
   };
 
   return lines.map((line) => {
@@ -176,7 +201,10 @@ export const hlsProxyController = {
         return;
       }
 
-      const rewritten = rewriteM3u8(result.body.toString('utf-8'), decodedUrl, decodedReferer);
+      // Extract the raw token so it can be embedded in rewritten segment URLs.
+      // ExoPlayer on Android does not forward Authorization to segment requests.
+      const rawToken = (req.headers.authorization ?? '').replace(/^Bearer\s+/i, '') || undefined;
+      const rewritten = rewriteM3u8(result.body.toString('utf-8'), decodedUrl, decodedReferer, rawToken);
 
       res.setHeader('Content-Type',                  'application/vnd.apple.mpegurl');
       res.setHeader('Cache-Control',                 'no-store');
@@ -196,10 +224,18 @@ export const hlsProxyController = {
    *  Supports Range requests for seeking.
    */
   proxySegment(req: Request, res: Response, next: NextFunction): void {
-    const { url, referer } = req.query as { url?: string; referer?: string };
+    const { url, referer, token } = req.query as { url?: string; referer?: string; token?: string };
 
     if (!url) {
       res.status(400).json({ success: false, message: 'url query param is required' });
+      return;
+    }
+
+    // Auth: accept token from query param (embedded by rewriteM3u8 for Android ExoPlayer)
+    // or from Authorization header (iOS AVPlayer forwards headers to all requests).
+    const bearerToken = (req.headers.authorization ?? '').replace(/^Bearer\s+/i, '') || undefined;
+    if (!verifyQueryToken(token) && !verifyQueryToken(bearerToken)) {
+      res.status(401).json({ success: false, message: 'Unauthorized' });
       return;
     }
 
