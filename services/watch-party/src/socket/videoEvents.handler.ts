@@ -116,10 +116,16 @@ export const registerVideoEvents = (
     const existing = bufferTimeouts.get(roomId);
     if (existing) { clearTimeout(existing); bufferTimeouts.delete(roomId); }
 
-    // Use Redis syncState for currentTime — always fresher than MongoDB (heartbeat keeps it updated)
+    // Use Redis syncState for currentTime — always fresher than MongoDB (heartbeat keeps it updated).
+    // Compensate for elapsed time since last heartbeat so resume lands at the real owner position,
+    // not a stale snapshot. Cap compensation at 10s to avoid overshooting on long pauses.
     const cached = await watchPartyService.getSyncState(roomId);
     const ownerId = cached?.updatedBy ?? (await watchPartyService.getRoom(roomId)).ownerId;
-    const currentTime = cached?.currentTime ?? 0;
+    const storedCurrentTime = cached?.currentTime ?? 0;
+    const storedTimestamp = cached?.serverTimestamp ?? Date.now();
+    const wasPlaying = cached?.isPlaying ?? false;
+    const elapsedSecs = wasPlaying ? Math.min(10, (Date.now() - storedTimestamp) / 1000) : 0;
+    const currentTime = storedCurrentTime + elapsedSecs;
 
     const syncState = await watchPartyService.syncState(roomId, ownerId, currentTime, true);
     io.to(roomId).emit(SERVER_EVENTS.VIDEO_PLAY, syncState);

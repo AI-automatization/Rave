@@ -54,6 +54,9 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const isActionInFlight = useRef(false);
   const intendedPlayingRef = useRef(false);
   const extractStartedRef = useRef(false);
+  // After initial join sync, owner skips server-pushed play/pause — owner is source of truth.
+  // Democratic buffer resume (io.to(roomId)) would otherwise seek owner backward to stale Redis pos.
+  const ownerInitialSyncedRef = useRef(false);
   const prevVideoUrlRef = useRef<string | null | undefined>(undefined);
   const extractFnRef = useRef(extract);
   extractFnRef.current = extract;
@@ -143,7 +146,22 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     // Player not ready yet — defer until handlePlayerReady fires (same for expo-av and WebView)
     if (!playerReadyRef.current) {
       pendingSyncRef.current = { currentTime: syncState.currentTime, isPlaying: syncState.isPlaying, serverTimestamp: syncState.serverTimestamp };
+      // Mark owner's initial sync as queued so subsequent buffer events are skipped even
+      // if the actual seek happens later via handlePlayerReady (pendingSyncRef path).
+      if (isOwner) ownerInitialSyncedRef.current = true;
       return;
+    }
+
+    // Owner is source of truth after the initial join sync.
+    // Server broadcasts democratic buffer pause/resume via io.to(roomId) which reaches the owner too.
+    // Without this guard the owner's video would jump to the stale Redis position on every
+    // member buffer event — particularly frequent on Android due to ExoPlayer HLS segment fetching.
+    if (isOwner) {
+      if (ownerInitialSyncedRef.current) {
+        intendedPlayingRef.current = syncState.isPlaying;
+        return;
+      }
+      ownerInitialSyncedRef.current = true;
     }
 
     isSyncing.current = true;
@@ -401,8 +419,9 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
 
   const platform = detectVideoPlatform(originalVideoUrl);
 
-  // Android: no WebView fallback — all non-YouTube content uses native ExoPlayer.
-  // When extraction fails (edge case), use originalVideoUrl directly (room stores CDN URL after Fix #22).
+  // Android: for YouTube and embed platforms (VK, Rutube, Twitch, Vimeo, Dailymotion) without
+  // an extracted URL, fall through to ExoPlayer only for direct/CDN content. Embed platforms
+  // need WebView (handled inside UniversalPlayer via useWebview=true when platform==='webview').
   const androidPlayUrl = Platform.OS === 'android'
     ? (extractedVideoUrl ?? (platform !== 'youtube' ? originalVideoUrl : undefined))
     : undefined;
@@ -443,29 +462,17 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
       ? `${CONTENT_BASE_URL}/content/hls-proxy?url=${encodeURIComponent(androidPlayUrl)}&referer=${encodeURIComponent(proxyReferer)}`
       : `${CONTENT_BASE_URL}/content/proxy/stream?url=${encodeURIComponent(androidPlayUrl)}&token=${encodeURIComponent(accessToken)}${proxyHeadersParam}`
     : undefined;
-  // Android: only YouTube uses WebView (needs JS iframe API); all other content is native ExoPlayer.
+  // Android: YouTube + embed platforms (VK, Rutube, Twitch, Vimeo, Dailymotion) without an
+  // extracted URL use WebView. Embed detection matches UniversalPlayer.useWebview logic so
+  // VideoSection shows the correct owner controls (isOwnerMode = isOwner && !isWebView).
   // iOS: keep existing fallback behaviour (iosWebmBlocked, extractFallback → WebView).
+  const embedPlatformDetected = !!detectEmbedPlatform(originalVideoUrl);
   const isWebViewMode = Platform.OS === 'ios'
     ? (!extractedVideoUrl && (iosWebmBlocked || platform === 'youtube' || extractFallback))
-    : (!extractedVideoUrl && platform === 'youtube');
+    : (!extractedVideoUrl && (platform === 'youtube' || embedPlatformDetected));
 
-  // Android + embeddable webview platforms (VK, Rutube, Twitch, Vimeo, Dailymotion):
-  // Android embeddable (VK, Rutube, etc.) + HLS:
-  // Previous approach used HLS proxy as primary — but VK CDN URLs expire quickly (~30s)
-  // and the server-side proxy round-trip can take long enough that the URL expires before
-  // the proxy fetches the m3u8 (causes 400). iOS plays the raw URL directly from the device
-  // and it works (VK srcIp check is not enforced, auth is embedded in the URL).
-  // New approach mirrors iOS: try raw extracted URL from device first; HLS proxy as fallback.
-  // If the CDN requires Referer on segments (some generic CDNs), the raw URL will 403 on
-  // segments and UniversalPlayer will switch to the proxy URL via onError.
-  const isAndroidEmbeddable = Platform.OS === 'android'
-    && platform === 'webview'
-    && !!detectEmbedPlatform(originalVideoUrl);
-  const isAndroidHls = Platform.OS === 'android' && isHlsStream && !!extractedVideoProxyUrl;
   const playerExtractedUrl = extractedVideoUrl; // raw URL first on all platforms (mirrors iOS)
-  const playerProxyUrl = isAndroidEmbeddable || isAndroidHls
-    ? extractedVideoProxyUrl  // HLS proxy / generic proxy as fallback when raw URL fails
-    : extractedVideoProxyUrl;
+  const playerProxyUrl = extractedVideoProxyUrl; // HLS proxy / generic proxy as fallback when raw URL fails
 
   // Reset player ready state when video URL changes (new media)
   // Skip reset on initial URL load — pendingSyncRef from ROOM_JOINED must survive until player is ready.
@@ -478,6 +485,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     playerReadyRef.current = false;
     pendingSyncRef.current = null;
     lastExecutedSyncRef.current = null;
+    ownerInitialSyncedRef.current = false; // new media — allow one initial sync for owner too
   }, [room?.videoUrl]);
 
   // Called by UniversalPlayer when the player is ready to receive seek/play commands.
