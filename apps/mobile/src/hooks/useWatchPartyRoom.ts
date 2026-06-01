@@ -28,10 +28,14 @@ interface PredictiveSyncState {
   scheduledAt?: number; // Unix ms — exact time all peers should execute action
 }
 
-// T-E099: Drift correction thresholds
-// Rate correction removed: at 1.02x over 5s window it corrects only 0.1s — for 1.5s drift
-// that takes ~75 heartbeat cycles (6 min). Hard seek is instant and reliable.
-const DRIFT_FORCE_SEEK_SECS = 2.0;   // >2s → hard seekTo (was 3.0 — drifts of 1.5-3s were never corrected)
+// T-E099: Drift correction — dual-mode TvMediaSynchronizer (Rave APK pattern)
+// Macro sync: hard seekTo for large drifts >2s (instant, covers join latency / network gaps)
+// Micro sync: playback rate adjustment for small drifts 0.3s–2.0s (Android only, non-disruptive)
+//   Rate proportional to drift magnitude: at ±5–15% correction converges in 2–4 heartbeats.
+//   Previous 1.02x attempt took 75+ cycles for 1.5s drift — this scales to the actual offset.
+const DRIFT_MACRO_SEEK_SECS = 2.0;    // macro: hard seekTo threshold
+const DRIFT_MICRO_RATE_SECS = 0.3;    // micro: start rate adjustment below macro threshold
+const DRIFT_RATE_MAX = 0.15;           // max rate offset ±15% from 1.0 (hit at ~2s drift)
 
 // T-E101: Buffer event debounce — 2000ms so brief HLS segment-loading stalls (normal ExoPlayer
 // behaviour, typically <1s) don't trigger democratic pause for all viewers.
@@ -70,6 +74,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const reactionTimestampsRef = useRef<number[]>([]);
   const isBufferingRef = useRef(false);
   const videoCurrentTimeRef = useRef(0);
+  const currentRateRef = useRef(1.0); // tracks active playback rate (micro-sync may change it)
   // Unified pending sync — deferred until player signals onReady (works for both expo-av and WebView)
   const playerReadyRef = useRef(false);
   const pendingSyncRef = useRef<{ currentTime: number; isPlaying: boolean; serverTimestamp: number } | null>(null);
@@ -185,6 +190,8 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     const executeSync = () => {
       // Player not mounted yet — sync will be re-attempted via pendingSyncRef when ready.
       if (!playerRef.current) { isSyncing.current = false; return; }
+      // Reset micro-sync rate before hard seek — rate correction must not fight against the seek
+      if (currentRateRef.current !== 1.0) { currentRateRef.current = 1.0; playerRef.current.setRate(1.0); }
       lastExecutedSyncRef.current = { currentTime: syncState.currentTime, isPlaying: syncState.isPlaying, serverTimestamp: syncState.serverTimestamp };
       startSuppressBuffer();
       // Suppress drift correction for 8s after each sync — ExoPlayer HLS proxy needs
@@ -238,21 +245,21 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   // Drift correction reads the ref so videoCurrentTime is not in its deps array.
   useEffect(() => { videoCurrentTimeRef.current = videoCurrentTime; }, [videoCurrentTime]);
 
-  // T-E099: Drift correction — only for members (not owner), fires on heartbeat change only.
-  // videoCurrentTime intentionally excluded from deps — we read the ref to avoid re-running
-  // every 500ms (expo-av position update) which caused false correction loops.
-  // Rate correction removed: at 1.02x/5s window it corrects only 0.1s per heartbeat cycle,
-  // taking 75+ cycles (6 min) to fix 1.5s drift. Hard seek is instant and reliable.
-  // After drift-correction seek: suppress buffer (5s) and drift (8s) so ExoPlayer's HLS
-  // segment buffering doesn't cascade into democratic pause, and the next heartbeat doesn't
-  // immediately re-trigger another seek.
+  // T-E099: Drift correction — dual-mode TvMediaSynchronizer (Rave APK pattern, Android only for micro).
+  // Fires on heartbeat change only; videoCurrentTime excluded from deps (ref read avoids 500ms loop).
+  // Macro: large drift >2s → hard seekTo + suppress buffer/drift to prevent cascade.
+  // Micro: small drift 0.3–2s (Android only) → rate adjustment proportional to magnitude.
+  //   Rate resets to 1.0 when drift falls below threshold (converged) or macro fires (reset before seek).
   useEffect(() => {
     if (isOwner || !heartbeat || !isPlaying || isSyncing.current || suppressDriftRef.current) return;
 
     const expected = heartbeat.currentTime + (Date.now() - heartbeat.timestamp) / 1000;
-    const absDrift = Math.abs(videoCurrentTimeRef.current - expected);
+    const drift = videoCurrentTimeRef.current - expected; // positive = ahead of owner, negative = behind
+    const absDrift = Math.abs(drift);
 
-    if (absDrift > DRIFT_FORCE_SEEK_SECS) {
+    if (absDrift > DRIFT_MACRO_SEEK_SECS) {
+      // Macro sync — reset micro-sync rate first, then hard seek
+      if (currentRateRef.current !== 1.0) { currentRateRef.current = 1.0; playerRef.current?.setRate(1.0); }
       suppressBufferRef.current = true;
       if (suppressBufferTimerRef.current) clearTimeout(suppressBufferTimerRef.current);
       suppressBufferTimerRef.current = setTimeout(() => { suppressBufferRef.current = false; suppressBufferTimerRef.current = null; }, 5000);
@@ -262,8 +269,22 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
       isSyncing.current = true;
       const seekPlayDelayMs = Platform.OS === 'android' ? 250 : 0;
       playerRef.current?.seekTo(expected * 1000);
-      // Match the sync delay so drift correction also waits for Android WebView seek.
       setTimeout(() => { isSyncing.current = false; }, 2000 + seekPlayDelayMs);
+    } else if (Platform.OS === 'android' && absDrift > DRIFT_MICRO_RATE_SECS) {
+      // Micro sync (Android only) — adjust rate proportional to drift magnitude (APK microSyncV2).
+      // fraction 0→1 as drift goes from DRIFT_MICRO_RATE_SECS→DRIFT_MACRO_SEEK_SECS.
+      // behind (drift < 0): speed up; ahead (drift > 0): slow down.
+      const fraction = (absDrift - DRIFT_MICRO_RATE_SECS) / (DRIFT_MACRO_SEEK_SECS - DRIFT_MICRO_RATE_SECS);
+      const rateOffset = fraction * DRIFT_RATE_MAX;
+      const targetRate = parseFloat((drift < 0 ? 1.0 + rateOffset : 1.0 - rateOffset).toFixed(3));
+      if (Math.abs(targetRate - currentRateRef.current) > 0.01) {
+        currentRateRef.current = targetRate;
+        playerRef.current?.setRate(targetRate);
+      }
+    } else if (currentRateRef.current !== 1.0) {
+      // Within sync threshold — restore normal speed
+      currentRateRef.current = 1.0;
+      playerRef.current?.setRate(1.0);
     }
   }, [heartbeat, isOwner, isPlaying]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -289,11 +310,12 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     }, BUFFER_DEBOUNCE_MS);
   }, [roomId]);
 
-  // Cleanup timers on unmount
+  // Cleanup timers on unmount; restore rate in case micro-sync left it non-1.0
   useEffect(() => () => {
     if (bufferDebounceRef.current) clearTimeout(bufferDebounceRef.current);
     if (suppressBufferTimerRef.current) clearTimeout(suppressBufferTimerRef.current);
     if (suppressDriftTimerRef.current) clearTimeout(suppressDriftTimerRef.current);
+    if (currentRateRef.current !== 1.0) { currentRateRef.current = 1.0; playerRef.current?.setRate(1.0); }
   }, []);
 
   const onPlaybackStatusUpdate = useCallback((status: AVPlaybackStatus) => {
@@ -504,6 +526,8 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     lastExecutedSyncRef.current = syncToExecute; // update in case this is a fresh pendingSync
     isSyncing.current = true;
     intendedPlayingRef.current = syncToExecute.isPlaying; // needed so drift/buffer guards work correctly
+    // Reset micro-sync rate before the initial seek
+    if (currentRateRef.current !== 1.0) { currentRateRef.current = 1.0; playerRef.current?.setRate(1.0); }
     suppressBufferRef.current = true;
     if (suppressBufferTimerRef.current) clearTimeout(suppressBufferTimerRef.current);
     suppressBufferTimerRef.current = setTimeout(() => { suppressBufferRef.current = false; suppressBufferTimerRef.current = null; }, 5000);
