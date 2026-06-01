@@ -1,6 +1,6 @@
 // WeWatch — useWatchPartyRoom: socket sync, playback callbacks, room state management
 import { useRef, useState, useEffect, useCallback } from 'react';
-import { Alert, Dimensions, Platform } from 'react-native';
+import { Alert, Dimensions, Platform, AppState } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AVPlaybackStatus } from 'expo-av';
@@ -36,6 +36,9 @@ interface PredictiveSyncState {
 const DRIFT_MACRO_SEEK_SECS = 2.0;    // macro: hard seekTo threshold
 const DRIFT_MICRO_RATE_SECS = 0.3;    // micro: start rate adjustment below macro threshold
 const DRIFT_RATE_MAX = 0.15;           // max rate offset ±15% from 1.0 (hit at ~2s drift)
+// Android: 2s heartbeat so micro-sync converges in 2–4 cycles (~6–8s).
+// iOS: 5s is fine — micro-sync not enabled on iOS.
+const HEARTBEAT_INTERVAL_MS = Platform.OS === 'android' ? 2000 : 5000;
 
 // T-E101: Buffer event debounce — 2000ms so brief HLS segment-loading stalls (normal ExoPlayer
 // behaviour, typically <1s) don't trigger democratic pause for all viewers.
@@ -75,6 +78,9 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const isBufferingRef = useRef(false);
   const videoCurrentTimeRef = useRef(0);
   const currentRateRef = useRef(1.0); // tracks active playback rate (micro-sync may change it)
+  const heartbeatRef = useRef(heartbeat); // latest heartbeat — read in AppState callback without adding to deps
+  heartbeatRef.current = heartbeat;
+  const isWebViewModeRef = useRef(false); // updated after isWebViewMode is computed each render
   // Unified pending sync — deferred until player signals onReady (works for both expo-av and WebView)
   const playerReadyRef = useRef(false);
   const pendingSyncRef = useRef<{ currentTime: number; isPlaying: boolean; serverTimestamp: number } | null>(null);
@@ -237,7 +243,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
       if (isSyncing.current) return;
       const posMs = (await playerRef.current?.getPositionMs()) ?? 0;
       if (isPlaying) emitHeartbeat(posMs / 1000);
-    }, 5000);
+    }, HEARTBEAT_INTERVAL_MS);
     return () => clearInterval(interval);
   }, [isOwner, room, isPlaying, emitHeartbeat]);
 
@@ -270,8 +276,10 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
       const seekPlayDelayMs = Platform.OS === 'android' ? 250 : 0;
       playerRef.current?.seekTo(expected * 1000);
       setTimeout(() => { isSyncing.current = false; }, 2000 + seekPlayDelayMs);
-    } else if (Platform.OS === 'android' && absDrift > DRIFT_MICRO_RATE_SECS) {
-      // Micro sync (Android only) — adjust rate proportional to drift magnitude (APK microSyncV2).
+    } else if (Platform.OS === 'android' && absDrift > DRIFT_MICRO_RATE_SECS && !isWebViewModeRef.current) {
+      // Micro sync (Android + expo-av only) — adjust rate proportional to drift magnitude (APK microSyncV2).
+      // WebView excluded: YouTube IFrame only accepts discrete rates [0.25,0.5,1,1.25,1.5,2] — 1.08 snaps to 1.0;
+      // also WebView position polling is 500ms so drift estimate has ±500ms noise (> micro threshold).
       // fraction 0→1 as drift goes from DRIFT_MICRO_RATE_SECS→DRIFT_MACRO_SEEK_SECS.
       // behind (drift < 0): speed up; ahead (drift > 0): slow down.
       const fraction = (absDrift - DRIFT_MICRO_RATE_SECS) / (DRIFT_MACRO_SEEK_SECS - DRIFT_MICRO_RATE_SECS);
@@ -317,6 +325,40 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     if (suppressDriftTimerRef.current) clearTimeout(suppressDriftTimerRef.current);
     if (currentRateRef.current !== 1.0) { currentRateRef.current = 1.0; playerRef.current?.setRate(1.0); }
   }, []);
+
+  // Android: re-sync when app comes back to foreground (background → active).
+  // ExoPlayer may have drifted or paused while backgrounded; heartbeat-based compensation
+  // brings the member back to the correct owner position immediately on return.
+  // Not needed on iOS — AVPlayer continues in background and doesn't drift.
+  useEffect(() => {
+    if (Platform.OS !== 'android' || isOwner) return;
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if (nextState !== 'active') return;
+      if (!playerRef.current || !playerReadyRef.current || isSyncing.current) return;
+      const hb = heartbeatRef.current;
+      if (!hb) return;
+      const elapsed = (Date.now() - hb.timestamp) / 1000;
+      // Cap at 120s: beyond 2min the video has likely been paused by owner anyway
+      const compensationSecs = intendedPlayingRef.current ? Math.min(120, Math.max(0, elapsed)) : 0;
+      const targetSecs = hb.currentTime + compensationSecs;
+      if (currentRateRef.current !== 1.0) { currentRateRef.current = 1.0; playerRef.current.setRate(1.0); }
+      isSyncing.current = true;
+      suppressBufferRef.current = true;
+      if (suppressBufferTimerRef.current) clearTimeout(suppressBufferTimerRef.current);
+      suppressBufferTimerRef.current = setTimeout(() => { suppressBufferRef.current = false; suppressBufferTimerRef.current = null; }, 5000);
+      suppressDriftRef.current = true;
+      if (suppressDriftTimerRef.current) clearTimeout(suppressDriftTimerRef.current);
+      suppressDriftTimerRef.current = setTimeout(() => { suppressDriftRef.current = false; suppressDriftTimerRef.current = null; }, 8000);
+      // 250ms delay for WebView seekTo (fire-and-forget); harmless for expo-av
+      const seekDelayMs = isWebViewModeRef.current ? 250 : 0;
+      playerRef.current.seekTo(targetSecs * 1000)
+        .then(() => new Promise<void>(resolve => { setTimeout(resolve, seekDelayMs); }))
+        .then(() => intendedPlayingRef.current ? playerRef.current?.play() : playerRef.current?.pause())
+        .catch(() => {})
+        .finally(() => { setTimeout(() => { isSyncing.current = false; }, 400); });
+    });
+    return () => sub.remove();
+  }, [isOwner]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const onPlaybackStatusUpdate = useCallback((status: AVPlaybackStatus) => {
     if (!status.isLoaded) return;
@@ -492,6 +534,8 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const isWebViewMode = Platform.OS === 'ios'
     ? (!extractedVideoUrl && (iosWebmBlocked || platform === 'youtube' || extractFallback))
     : (!extractedVideoUrl && (platform === 'youtube' || embedPlatformDetected));
+
+  isWebViewModeRef.current = isWebViewMode; // keep ref in sync so drift effect can read it without re-running
 
   const playerExtractedUrl = extractedVideoUrl; // raw URL first on all platforms (mirrors iOS)
   const playerProxyUrl = extractedVideoProxyUrl; // HLS proxy / generic proxy as fallback when raw URL fails
