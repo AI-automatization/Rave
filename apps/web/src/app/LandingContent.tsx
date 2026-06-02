@@ -905,12 +905,12 @@ function ScreenHome({ t }: { t: TFn }) {
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" aria-hidden="true" />
-          <span className="text-[9px] text-green-400 font-medium">2 {t('screenOnline')}</span>
+          <span className="text-[10px] text-green-400 font-medium">2 {t('screenOnline')}</span>
         </div>
       </div>
       {/* Browser selector — key differentiator */}
       <div className="mx-4 rounded-xl bg-[#111118] border border-[#7B72F8]/25 p-3.5 mb-3">
-        <p className="text-[8px] text-zinc-500 uppercase tracking-widest mb-2.5 font-medium">{t('openSite')}</p>
+        <p className="text-[9px] text-zinc-500 uppercase tracking-widest mb-2 font-medium">{t('openSite')}</p>
         <div className="grid grid-cols-3 gap-2 mb-3">
           {[
             { label: 'YouTube', color: '#FF4444', bg: 'rgba(255,68,68,0.12)' },
@@ -921,7 +921,7 @@ function ScreenHome({ t }: { t: TFn }) {
               style={{ background: bg, border: `1px solid ${color}30` }}
               animate={i === 1 ? { scale: [1, 1.04, 1] } : {}}
               transition={{ repeat: Infinity, duration: 2.2, delay: i * 0.4 }}>
-              <span className="text-[9px] font-semibold" style={{ color }}>{label}</span>
+              <span className="text-[10px] font-semibold" style={{ color }}>{label}</span>
             </motion.div>
           ))}
         </div>
@@ -935,7 +935,7 @@ function ScreenHome({ t }: { t: TFn }) {
         </motion.div>
       </div>
       <div className="flex-1 px-4 overflow-hidden">
-        <p className="text-[8px] text-zinc-500 uppercase tracking-widest mb-2.5 font-medium">{t('screenActiveRooms')}</p>
+        <p className="text-[9px] text-zinc-500 uppercase tracking-widest mb-2 font-medium">{t('screenActiveRooms')}</p>
         <div className="space-y-2.5">
           {[
             { name: 'Sardor + 2', status: t('screenWatching'), color: '#7B72F8', initials: 'S' },
@@ -943,11 +943,11 @@ function ScreenHome({ t }: { t: TFn }) {
           ].map((room, i) => (
             <motion.div key={room.name} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.1 }}
               className="flex items-center gap-3 rounded-xl bg-[#111118] border border-zinc-800/60 px-3.5 py-2.5">
-              <div className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0"
+              <div className="w-9 h-9 rounded-full flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0"
                 style={{ background: `${room.color}30`, border: `1.5px solid ${room.color}50` }}>{room.initials}</div>
               <div className="min-w-0">
-                <p className="text-[11px] text-white font-medium truncate">{room.name}</p>
-                <p className="text-[9px] text-zinc-400">{room.status}</p>
+                <p className="text-[12px] text-white font-medium truncate">{room.name}</p>
+                <p className="text-[10px] text-zinc-400">{room.status}</p>
               </div>
               <div className="ml-auto w-2 h-2 rounded-full bg-green-400 flex-shrink-0 animate-pulse" aria-hidden="true" />
             </motion.div>
@@ -957,7 +957,7 @@ function ScreenHome({ t }: { t: TFn }) {
       <div className="mx-4 mb-2 rounded-xl p-3.5 flex items-center gap-3 border border-[#7B72F8]/30"
         style={{ background: 'rgba(123,114,248,0.08)' }}>
         <FaUsers size={13} className="text-[#7B72F8] flex-shrink-0" aria-hidden="true" />
-        <span className="text-[#7B72F8] text-[11px] font-semibold">{t('screenCreateParty')}</span>
+        <span className="text-[#7B72F8] text-[12px] font-semibold">{t('screenCreateParty')}</span>
         <FaChevronRight size={9} className="text-[#7B72F8]/60 ml-auto" aria-hidden="true" />
       </div>
       <IPhoneHomeIndicator />
@@ -988,24 +988,24 @@ function ScreenRoom({ t }: { t: TFn }) {
       <div className="mx-4 mt-3.5 rounded-2xl overflow-hidden"
         style={{ border: '1.5px solid rgba(123,114,248,0.25)', background: 'linear-gradient(145deg, #12073a 0%, #0d0520 60%, #080318 100%)' }}>
         {/* Thumbnail */}
-        <div className="relative h-[68px] flex items-center justify-center overflow-hidden">
+        <div className="relative h-[90px] flex items-center justify-center overflow-hidden">
           <div className="absolute inset-0 opacity-[0.07]"
             style={{ backgroundImage: 'linear-gradient(rgba(123,114,248,1) 1px,transparent 1px),linear-gradient(90deg,rgba(123,114,248,1) 1px,transparent 1px)', backgroundSize: '16px 16px' }}
             aria-hidden="true" />
           <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center, rgba(123,114,248,0.18) 0%, transparent 70%)' }} aria-hidden="true" />
           <motion.div
-            className="w-11 h-11 rounded-full flex items-center justify-center relative z-10"
+            className="w-14 h-14 rounded-full flex items-center justify-center relative z-10"
             style={{ background: 'rgba(123,114,248,0.22)', border: '2px solid rgba(123,114,248,0.55)' }}
             animate={{ boxShadow: ['0 0 0px rgba(123,114,248,0.3)', '0 0 20px rgba(123,114,248,0.7)', '0 0 0px rgba(123,114,248,0.3)'] }}
             transition={{ repeat: Infinity, duration: 2.2 }}>
-            <FaPlay size={12} className="text-[#7B72F8] ml-0.5" aria-hidden="true" />
+            <FaPlay size={15} className="text-[#7B72F8] ml-0.5" aria-hidden="true" />
           </motion.div>
         </div>
         {/* URL row + progress */}
         <div className="px-3.5 py-3 border-t border-white/[0.06]">
           <div className="flex items-center gap-2 mb-2.5">
             <FaLink size={8} className="text-[#7B72F8]/60 flex-shrink-0" aria-hidden="true" />
-            <span className="text-[9px] text-zinc-400 font-mono truncate flex-1">youtube.com/watch?v=dQw...</span>
+            <span className="text-[10px] text-zinc-400 font-mono truncate flex-1">youtube.com/watch?v=dQw...</span>
           </div>
           <div className="h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
             <div className="h-full w-0 rounded-full" style={{ background: 'linear-gradient(90deg, #7B72F8, #a855f7)' }} />
@@ -1016,8 +1016,8 @@ function ScreenRoom({ t }: { t: TFn }) {
       {/* Participants */}
       <div className="px-4 mt-5">
         <div className="flex items-center justify-between mb-3">
-          <p className="text-[8px] text-zinc-500 uppercase tracking-[0.14em] font-semibold">{t('screenParticipants')}</p>
-          <span className="text-[9px] font-bold" style={{ color: '#7B72F8' }}>3 / 4</span>
+          <p className="text-[9px] text-zinc-500 uppercase tracking-[0.14em] font-semibold">{t('screenParticipants')}</p>
+          <span className="text-[10px] font-bold" style={{ color: '#7B72F8' }}>3 / 4</span>
         </div>
         <div className="flex gap-3.5 items-center">
           {[['A', '#7B72F8'], ['N', '#a855f7'], ['B', '#6B63E8']].map(([l, c], i) => (
@@ -1077,7 +1077,7 @@ function ScreenWatching({ t, chatMsgs, visibleChats }: { t: TFn; chatMsgs: { u: 
     <div className="h-full flex flex-col bg-[#080812] select-none">
       {/* Video area */}
       <div className="relative flex-shrink-0 overflow-hidden"
-        style={{ height: '42%', background: 'radial-gradient(ellipse at 30% 40%, #1a0640 0%, #0d0420 55%, #050010 100%)' }}>
+        style={{ height: '45%', background: 'radial-gradient(ellipse at 30% 40%, #1a0640 0%, #0d0420 55%, #050010 100%)' }}>
         {/* subtle grid texture */}
         <div className="absolute inset-0 opacity-[0.06]"
           style={{ backgroundImage: 'linear-gradient(rgba(123,114,248,1) 1px,transparent 1px),linear-gradient(90deg,rgba(123,114,248,1) 1px,transparent 1px)', backgroundSize: '18px 18px' }}
@@ -1158,7 +1158,7 @@ function ScreenWatching({ t, chatMsgs, visibleChats }: { t: TFn; chatMsgs: { u: 
         {/* Chat header */}
         <div className="px-4 pt-3 pb-2.5 border-b border-white/[0.07] flex items-center gap-2">
           <FaComment size={10} style={{ color: '#22d3ee' }} aria-hidden="true" />
-          <span className="text-[10px] text-white/75 font-medium">{t('screenRealtimeChat')}</span>
+          <span className="text-[11px] text-white/90 font-medium">{t('screenRealtimeChat')}</span>
           <div className="ml-auto flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"
               style={{ boxShadow: '0 0 6px #4ade80' }} aria-hidden="true" />
@@ -1179,8 +1179,8 @@ function ScreenWatching({ t, chatMsgs, visibleChats }: { t: TFn; chatMsgs: { u: 
                       boxShadow: `0 0 8px ${msg.color}45`,
                     }}>{msg.u}</div>
                   <div className="rounded-2xl px-3 py-2 max-w-[80%]"
-                    style={{ background: '#111122', border: '1px solid rgba(255,255,255,0.08)', borderLeft: `2px solid ${msg.color}` }}>
-                    <span className="text-[10px] text-zinc-200 leading-snug">{msg.msg}</span>
+                    style={{ background: '#181830', border: '1px solid rgba(255,255,255,0.13)', borderLeft: `2px solid ${msg.color}` }}>
+                    <span className="text-[11px] text-white leading-snug">{msg.msg}</span>
                   </div>
                 </motion.div>
               )}
@@ -1192,7 +1192,7 @@ function ScreenWatching({ t, chatMsgs, visibleChats }: { t: TFn; chatMsgs: { u: 
         <div className="mx-4 mb-1.5 rounded-2xl flex items-center gap-2.5 pl-3 pr-1.5 py-2"
           style={{ background: '#0e0e1a', border: '1px solid rgba(123,114,248,0.20)' }}>
           <FaComment size={10} className="text-[#7B72F8]/40 flex-shrink-0" aria-hidden="true" />
-          <span className="text-[9px] text-zinc-500 flex-1 truncate">{t('screenChatHint')}</span>
+          <span className="text-[10px] text-zinc-400 flex-1 truncate">{t('screenChatHint')}</span>
           <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
             style={{ background: 'linear-gradient(135deg, #7B72F8, #6460E8)', boxShadow: '0 0 12px rgba(123,114,248,0.5)' }}>
             <FaChevronRight size={10} className="text-white" aria-hidden="true" />

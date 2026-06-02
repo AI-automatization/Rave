@@ -4,6 +4,17 @@
 
 ---
 
+### F-212 | T-E135 | Web Landing — PhoneMockup UI fix
+
+- **Bajaruvchi:** Emirhan (Claude sonnet)  **Bajarilgan:** 2026-06-02  **Model:** sonnet
+- **O'zgarishlar:** `apps/web/src/app/LandingContent.tsx`
+- **Xulosa:**
+  - ScreenHome: online badge 9→10px, platform labels 9→10px, room avatars w-8→w-9, room name 11→12px, room status 9→10px, create party 11→12px
+  - ScreenRoom: video preview height 68→90px, play button w-11→w-14 (size 15), URL 9→10px, participants header 8→9px
+  - ScreenWatching: video area height 42→45%, chat header 10→11px text-white/75→white/90, chat messages bg #111122→#181830 border opacity 0.08→0.13 text 10→11px text-white, input hint 9→10px zinc-500→zinc-400
+
+---
+
 ### F-211 | T-E201–T-E207 | Web Landing — Mobile bilan sinxronizatsiya va bug tuzatishlar
 
 - **Bajaruvchi:** Emirhan (Claude sonnet)  **Bajarilgan:** 2026-05-23 12:00  **Model:** sonnet

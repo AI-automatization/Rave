@@ -367,18 +367,18 @@
 
 ### T-E135 | P1 | [WEB] | PhoneMockup UI fix — proportions, contrast, readability
 
-- **Mas'ul:** pending[Emirhan]
+- **Mas'ul:** done[Emirhan]
 - **Beruvchi:** Emirhan
 - **Yaratilgan:** 2026-05-24 13:00
-- **Holat:** 🔄 Bajarilmoqda
+- **Holat:** ✅ Bajarildi (2026-06-02)
 - **Tavsiya model:** sonnet
 - **Model sababi:** 1 fayl (LandingContent.tsx), UI fix, 4 ta funksiya o'zgartirish
 - **Sabab:** Landing page dagi telefon mockup UI juda yomon ko'rinadi — kichik, kontrastsiz, o'qib bo'lmaydi
 - **Qilish kerak:**
-  - [ ] PhoneMockup kengligini 240→280px, balandlikni 504→560px
-  - [ ] ScreenHome — elementlar kattaroq, spacing yaxshiroq
-  - [ ] ScreenRoom — video preview, participants kattalash
-  - [ ] ScreenWatching — video area, chat messages kontrast oshirish
+  - [x] PhoneMockup kengligini 240→280px, balandlikni 504→560px (width:280, height:580 — allaqachon)
+  - [x] ScreenHome — elementlar kattaroq, spacing yaxshiroq
+  - [x] ScreenRoom — video preview (68→90px), participants kattalash
+  - [x] ScreenWatching — video area (42→45%), chat messages kontrast oshirish
 
 ---
 
