@@ -173,6 +173,64 @@ const ADAPTERS: Record<string, VideoAdapter> = {
     `,
     scanDelay: 3000,
   },
+
+  // Android only: full-site VK (Rave method) — direct <video> control, no postMessage delay
+  'vk.com': {
+    selectors: ['.vkuiVideo video', '#mv_player video', '.videoplayer_media video', 'video'],
+    postAttachJs: `
+      (function() {
+        var s = document.createElement('style');
+        s.textContent = [
+          '[class*="UnauthorizedBanner__wrapper"]{display:none!important}',
+          '.vkuiFixedLayout__filled{background-color:#19191a!important}',
+          '[class*="OpenInAppPromoButton__fixedLayout"]{display:none!important}',
+          'html{background-color:transparent!important}',
+        ].join('');
+        document.head.appendChild(s);
+      })();
+    `,
+    scanDelay: 3000,
+  },
+
+  // vkvideo.ru — new VK video domain, same adapter as vk.com
+  'vkvideo.ru': {
+    selectors: ['.vkuiVideo video', '#mv_player video', '.videoplayer_media video', 'video'],
+    postAttachJs: `
+      (function() {
+        var s = document.createElement('style');
+        s.textContent = '[class*="UnauthorizedBanner__wrapper"]{display:none!important}[class*="OpenInAppPromoButton__fixedLayout"]{display:none!important}';
+        document.head.appendChild(s);
+      })();
+    `,
+    scanDelay: 3000,
+  },
+
+  // Android only: full-site Rutube (Rave method) — direct <video> control, no postMessage delay
+  'rutube.ru': {
+    selectors: [
+      '[class*="player-module"] video',
+      '[class*="video-player"] video',
+      '.plyr video',
+      'video',
+    ],
+    postAttachJs: `
+      (function() {
+        var s = document.createElement('style');
+        s.textContent = [
+          '[class*="cookie-message-module"]{display:none!important}',
+          '[class*="wdp-popup-overlay-module"]{display:none!important}',
+          '[class*="communication-banner-module"]{display:none!important}',
+          '[class*="bottom-bar-components-module"]{display:none!important}',
+          '[class*="wdp-notification-module"]{display:none!important}',
+          '[class*="menu-module__overlay"]{display:none!important}',
+        ].join('');
+        document.head.appendChild(s);
+        document.body.style.touchAction = 'pan-x pan-y';
+        document.body.style.overflowY = 'auto';
+      })();
+    `,
+    scanDelay: 2500,
+  },
 };
 
 const GENERIC_ADAPTER: VideoAdapter = {
@@ -182,7 +240,7 @@ const GENERIC_ADAPTER: VideoAdapter = {
 
 export function getAdapter(url: string): VideoAdapter {
   try {
-    const hostname = new URL(url).hostname.replace(/^www\./, '');
+    const hostname = new URL(url).hostname.replace(/^(www\.|m\.)/, '');
     return ADAPTERS[hostname] ?? GENERIC_ADAPTER;
   } catch {
     return GENERIC_ADAPTER;
@@ -309,7 +367,7 @@ export function buildTwitchHtml(id: string, type: 'channel' | 'vod'): string {
         rn({ type: 'VIDEO_FOUND' });
         progressTimer = setInterval(function() {
           rn({ type: 'PROGRESS', currentTime: window._csVideo.currentTime, duration: 0 });
-        }, 2000);
+        }, 500);
       });
       embed.addEventListener(Twitch.Embed.VIDEO_PLAY, function() {
         rn({ type: 'PLAY', currentTime: window._csVideo ? window._csVideo.currentTime : 0 });
@@ -357,7 +415,7 @@ export function buildVKVideoHtml(ownerId: string, videoId: string): string {
       if (progressTimer) clearInterval(progressTimer);
       progressTimer = setInterval(function() {
         if (!paused) rn({ type: 'PROGRESS', currentTime: ct, duration: dur });
-      }, 2000);
+      }, 500);
     }
     window.addEventListener('message', function(e) {
       try {
@@ -409,7 +467,7 @@ export function buildRutubeHtml(videoId: string): string {
       if (progressTimer) clearInterval(progressTimer);
       progressTimer = setInterval(function() {
         if (!paused) rn({ type: 'PROGRESS', currentTime: ct, duration: dur });
-      }, 2000);
+      }, 500);
     }
     window.addEventListener('message', function(e) {
       try {
@@ -473,7 +531,7 @@ export function buildVimeoHtml(videoId: string): string {
             }).catch(function() {});
           }).catch(function() {});
         }
-      }, 2000);
+      }, 500);
     }).catch(function() {});
     player.on('play', function(d) { window._csPaused = false; window._csCurrentTime = d.seconds || 0; rn({ type: 'PLAY', currentTime: d.seconds || 0 }); });
     player.on('pause', function(d) { window._csPaused = true; window._csCurrentTime = d.seconds || 0; rn({ type: 'PAUSE', currentTime: d.seconds || 0 }); });
@@ -512,7 +570,7 @@ export function buildDailymotionHtml(videoId: string): string {
       if (progressTimer) clearInterval(progressTimer);
       progressTimer = setInterval(function() {
         if (!paused) rn({ type: 'PROGRESS', currentTime: ct, duration: dur });
-      }, 2000);
+      }, 500);
     }
     window.addEventListener('message', function(e) {
       try {
@@ -579,7 +637,7 @@ export function buildInjectJs(adapter: VideoAdapter): string {
       if (window._csVideo && !window._csVideo.paused) {
         rn({ type: 'PROGRESS', currentTime: window._csVideo.currentTime, duration: window._csVideo.duration || 0 });
       }
-    }, 2000);
+    }, 500);
 
     ${postAttach}
     rn({ type: 'VIDEO_FOUND' });

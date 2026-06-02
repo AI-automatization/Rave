@@ -1,7 +1,7 @@
 // WeWatch Mobile — UniversalPlayer
 // URL ga qarab to'g'ri player tanlaydi: expo-av (direct) yoki WebView (youtube/boshqalar)
 import React, { forwardRef, useImperativeHandle, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Platform } from 'react-native';
 import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
 import { WebViewPlayer, WebViewPlayerRef } from './WebViewPlayer';
@@ -64,8 +64,16 @@ export function detectEmbedPlatform(url: string): EmbedPlatform {
 function buildEmbedHtml(url: string, embed: EmbedPlatform): { html: string; baseUrl: string } | null {
   switch (embed) {
     case 'twitch': { const i = extractTwitchId(url); return i ? { html: buildTwitchHtml(i.id, i.type), baseUrl: 'https://twitch.tv' } : null; }
-    case 'vk': { const i = extractVKVideoIds(url); return i ? { html: buildVKVideoHtml(i.ownerId, i.videoId), baseUrl: 'https://vk.com' } : null; }
-    case 'rutube': { const i = extractRutubeId(url); return i ? { html: buildRutubeHtml(i), baseUrl: 'https://rutube.ru' } : null; }
+    case 'vk': {
+      // Android: load full vk.com site — direct <video> control, no postMessage seek delay (Rave method)
+      if (Platform.OS === 'android') return null;
+      const i = extractVKVideoIds(url); return i ? { html: buildVKVideoHtml(i.ownerId, i.videoId), baseUrl: 'https://vk.com' } : null;
+    }
+    case 'rutube': {
+      // Android: load full rutube.ru site — direct <video> control
+      if (Platform.OS === 'android') return null;
+      const i = extractRutubeId(url); return i ? { html: buildRutubeHtml(i), baseUrl: 'https://rutube.ru' } : null;
+    }
     case 'vimeo': { const i = extractVimeoId(url); return i ? { html: buildVimeoHtml(i), baseUrl: 'https://player.vimeo.com' } : null; }
     case 'dailymotion': { const i = extractDailymotionId(url); return i ? { html: buildDailymotionHtml(i), baseUrl: 'https://geo.dailymotion.com' } : null; }
     default: return null;

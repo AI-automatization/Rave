@@ -81,6 +81,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const heartbeatRef = useRef(heartbeat); // latest heartbeat — read in AppState callback without adding to deps
   heartbeatRef.current = heartbeat;
   const isWebViewModeRef = useRef(false); // updated after isWebViewMode is computed each render
+  const isYouTubeEmbedRef = useRef(false); // true only for YouTube IFrame embed (discrete rates — micro-sync excluded)
   // Unified pending sync — deferred until player signals onReady (works for both expo-av and WebView)
   const playerReadyRef = useRef(false);
   const pendingSyncRef = useRef<{ currentTime: number; isPlaying: boolean; serverTimestamp: number } | null>(null);
@@ -276,10 +277,11 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
       const seekPlayDelayMs = Platform.OS === 'android' ? 250 : 0;
       playerRef.current?.seekTo(expected * 1000);
       setTimeout(() => { isSyncing.current = false; }, 2000 + seekPlayDelayMs);
-    } else if (Platform.OS === 'android' && absDrift > DRIFT_MICRO_RATE_SECS && !isWebViewModeRef.current) {
-      // Micro sync (Android + expo-av only) — adjust rate proportional to drift magnitude (APK microSyncV2).
-      // WebView excluded: YouTube IFrame only accepts discrete rates [0.25,0.5,1,1.25,1.5,2] — 1.08 snaps to 1.0;
-      // also WebView position polling is 500ms so drift estimate has ±500ms noise (> micro threshold).
+    } else if (Platform.OS === 'android' && absDrift > (isWebViewModeRef.current ? 0.6 : DRIFT_MICRO_RATE_SECS) && !isYouTubeEmbedRef.current) {
+      // Micro sync (Android only) — adjust rate proportional to drift magnitude.
+      // YouTube IFrame embed excluded: discrete rates [0.25,0.5,1,1.25,1.5,2] — 1.08 snaps to 1.0.
+      // VK/Rutube full-site (Android): direct video.playbackRate accepts any float — micro-sync enabled.
+      // WebView threshold 0.6s (vs 0.3s native) to absorb ±500ms position-poll noise.
       // fraction 0→1 as drift goes from DRIFT_MICRO_RATE_SECS→DRIFT_MACRO_SEEK_SECS.
       // behind (drift < 0): speed up; ahead (drift > 0): slow down.
       const fraction = (absDrift - DRIFT_MICRO_RATE_SECS) / (DRIFT_MACRO_SEEK_SECS - DRIFT_MICRO_RATE_SECS);
@@ -536,6 +538,9 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     : (!extractedVideoUrl && (platform === 'youtube' || embedPlatformDetected));
 
   isWebViewModeRef.current = isWebViewMode; // keep ref in sync so drift effect can read it without re-running
+  // YouTube IFrame embed uses discrete rates [0.25,0.5,1,1.25,1.5,2] — fractional rate snaps to 1.0.
+  // VK/Rutube full-site (Android) use direct video.playbackRate which accepts any float → micro-sync enabled.
+  isYouTubeEmbedRef.current = Platform.OS === 'android' && !extractedVideoUrl && platform === 'youtube';
 
   const playerExtractedUrl = extractedVideoUrl; // raw URL first on all platforms (mirrors iOS)
   const playerProxyUrl = extractedVideoProxyUrl; // HLS proxy / generic proxy as fallback when raw URL fails
