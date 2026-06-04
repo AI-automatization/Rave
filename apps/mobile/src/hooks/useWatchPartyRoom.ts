@@ -542,13 +542,8 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   // VK/Rutube full-site (Android) use direct video.playbackRate which accepts any float → micro-sync enabled.
   isYouTubeEmbedRef.current = Platform.OS === 'android' && !extractedVideoUrl && platform === 'youtube';
 
-  // Android HLS: ExoPlayer does not forward Referer/Authorization to individual .ts segment
-  // requests — CDN sees requests without the required Referer header and returns 403.
-  // Skip the raw CDN URL and use the HLS proxy as the primary source immediately.
-  // iOS AVFoundation forwards headers to every request in the session, so raw URL works fine.
-  const useProxyAsPrimary = Platform.OS === 'android' && isHlsStream && !!extractedVideoProxyUrl;
-  const playerExtractedUrl = useProxyAsPrimary ? extractedVideoProxyUrl : extractedVideoUrl;
-  const playerProxyUrl = useProxyAsPrimary ? undefined : extractedVideoProxyUrl;
+  const playerExtractedUrl = extractedVideoUrl; // raw URL first on all platforms (mirrors iOS)
+  const playerProxyUrl = extractedVideoProxyUrl; // HLS proxy / generic proxy as fallback when raw URL fails
 
   // Reset player ready state when video URL changes (new media)
   // Skip reset on initial URL load — pendingSyncRef from ROOM_JOINED must survive until player is ready.
