@@ -485,12 +485,16 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const extractedVideoUrl = iosWebmBlocked ? undefined : rawExtractedUrl;
 
   const platform = detectVideoPlatform(originalVideoUrl);
-  // Android: VK and Rutube always use embed iframe WebView — skip extracted URL so no HLS
-  // proxy URL is built. yt-dlp CDN URLs are IP-locked to Railway's outbound IP and fail
-  // when the HLS proxy request lands on a different Railway replica (srcIp mismatch).
+  // Android: VK and Rutube HLS CDN URLs are IP-locked to Railway → use embed iframe.
+  // Exception: if server extracted an mp4 (not HLS), allow direct ExoPlayer attempt —
+  // mp4 is a single-file download and may not have the same IP-lock as HLS chunked streams.
+  // On 403 error, UniversalPlayer falls back to embed WebView (webviewEmbedFailed path).
   const androidEmbedPlatform = detectEmbedPlatform(originalVideoUrl);
+  const vkRutubeExtractedMp4 = (androidEmbedPlatform === 'vk' || androidEmbedPlatform === 'rutube')
+    && extractResult?.type === 'mp4' && !!extractedVideoUrl;
   const isAndroidVkOrRutube = Platform.OS === 'android' &&
-    (androidEmbedPlatform === 'vk' || androidEmbedPlatform === 'rutube');
+    (androidEmbedPlatform === 'vk' || androidEmbedPlatform === 'rutube') &&
+    !vkRutubeExtractedMp4; // mp4 extraction → try ExoPlayer first, not embed
 
   const androidPlayUrl = Platform.OS === 'android' && !isAndroidVkOrRutube
     ? (extractedVideoUrl ?? (platform !== 'youtube' ? originalVideoUrl : undefined))

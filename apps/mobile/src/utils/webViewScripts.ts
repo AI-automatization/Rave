@@ -88,8 +88,9 @@ export function isPlaceholderVideoUrl(url: string): boolean {
 
 // Injected into hidden VK/Rutube sniffing WebView (Android only).
 // Overrides XHR/fetch/video.src before player scripts run — catches first CDN video URL.
-// The hidden WebView is loaded with source={{ uri }} (not html) so JS runs in vk.com/rutube.ru
+// The hidden WebView uses source={{ uri }} (not html) so JS runs in vk.com/rutube.ru
 // origin — same origin as the player's XHR calls — giving us access to intercept them.
+// Audio is muted via HTMLMediaElement.prototype.play override so the hidden WebView is silent.
 export const CDN_SNIFF_JS = `
 (function() {
   var sent = false;
@@ -120,6 +121,14 @@ export const CDN_SNIFF_JS = `
   try {
     var _f = window.fetch;
     window.fetch = function(r, o) { if (typeof r === 'string') tryReport(r); return _f.apply(this, arguments); };
+  } catch(e) {}
+  try {
+    var _play = HTMLMediaElement.prototype.play;
+    HTMLMediaElement.prototype.play = function() {
+      this.muted = true;
+      this.volume = 0;
+      return _play.call(this);
+    };
   } catch(e) {}
   true;
 })();

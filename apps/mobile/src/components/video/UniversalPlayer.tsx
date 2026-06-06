@@ -113,12 +113,14 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
     if (isVkRutubeAndroid && !sniffedUrl) {
       if (embedPlatform === 'vk') {
         const ids = extractVKVideoIds(url);
+        // autoplay=1: player must initialise and fetch the CDN manifest for XHR intercept to fire.
+        // Audio is silenced by the muted override in CDN_SNIFF_JS before VK scripts run.
         sniffUrl = ids
-          ? `https://vk.com/video_ext.php?oid=${ids.ownerId}&id=${ids.videoId}&hd=1&autoplay=0`
+          ? `https://vk.com/video_ext.php?oid=${ids.ownerId}&id=${ids.videoId}&hd=1&autoplay=1`
           : null;
       } else {
         const id = extractRutubeId(url);
-        sniffUrl = id ? `https://rutube.ru/play/embed/${id}?autoplay=0` : null;
+        sniffUrl = id ? `https://rutube.ru/play/embed/${id}?autoplay=1` : null;
       }
     }
 
@@ -290,7 +292,7 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
 
 const styles = StyleSheet.create({
   video: { width: '100%', height: '100%', backgroundColor: '#000' },
-  sniffHidden: { position: 'absolute', width: 0, height: 0, opacity: 0 },
+  sniffHidden: { position: 'absolute', width: 1, height: 1, opacity: 0 },
   bufferingOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bgVoid, gap: spacing.sm },
   errorText: { ...typography.body, color: colors.textPrimary, fontWeight: '600' },
