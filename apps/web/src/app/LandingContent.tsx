@@ -100,6 +100,7 @@ import {
 import { useTranslations } from 'next-intl';
 import { LandingNav } from '@/components/common/LandingNav';
 import { Footer } from '@/components/common/Footer';
+import { StatsWidget } from '@/components/common/StatsWidget';
 
 // ── Motion config ─────────────────────────────────────────────────────────────
 // Spring physics — natural feel (skill §spring-physics)
@@ -1430,6 +1431,7 @@ export function LandingContent() {
     <div className="min-h-dvh flex flex-col bg-[#0A0A0F] overflow-x-hidden">
       <NoiseOverlay />
       <LandingNav />
+      <StatsWidget />
       <main className="flex-1" id="main-content">
 
         {/* ── HERO ── */}
