@@ -544,8 +544,10 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   isWebViewModeRef.current = isWebViewMode; // keep ref in sync so drift effect can read it without re-running
   // YouTube IFrame embed uses discrete rates [0.25,0.5,1,1.25,1.5,2] — fractional rate snaps to 1.0.
   // VK/Rutube embed iframe: postMessage API has no playbackRate command → micro-sync excluded for both.
+  // Once CDN URL is sniffed (handleCdnUrlSniffed clears the flag), ExoPlayer is used and micro-sync works.
   isYouTubeEmbedRef.current = Platform.OS === 'android' && !extractedVideoUrl && platform === 'youtube';
-  isVkRutubeEmbedRef.current = isAndroidVkOrRutube;
+  // isVkRutubeEmbedRef is managed via handleCdnUrlSniffed below — starts true, cleared on sniff.
+  if (isAndroidVkOrRutube) isVkRutubeEmbedRef.current = true; // set on each render until sniff callback clears it
 
   const playerExtractedUrl = extractedVideoUrl; // raw URL first on all platforms (mirrors iOS)
   const playerProxyUrl = extractedVideoProxyUrl; // HLS proxy / generic proxy as fallback when raw URL fails
@@ -604,6 +606,12 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
       .finally(() => { setTimeout(() => { isSyncing.current = false; }, 400); });
   }, []);
 
+  // Called by UniversalPlayer when a CDN URL is sniffed from VK/Rutube hidden WebView.
+  // Clears isVkRutubeEmbedRef so micro-sync via ExoPlayer rate adjustment is re-enabled.
+  const handleCdnUrlSniffed = useCallback(() => {
+    isVkRutubeEmbedRef.current = false;
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   return {
     playerRef, userId, room, messages, activeMembers, isOwner, adminMonitoring, connectTimeout,
     isExtracting, extractResult, extractionError, showChat, showVoice, showInvite, isPlaying, isFullscreen,
@@ -617,6 +625,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     handleToggleFullscreen: useCallback(() => setIsFullscreen(v => !v), []),
     handleSeekDirection, handleEmojiSelect, handleRemoveEmoji,
     handleChangeMedia, handleQualitySelect, handleEpisodeSelect, handleLeave, handlePlayerReady,
+    handleCdnUrlSniffed,
     playlist, handleAddToQueue, handlePlaylistRemove, handlePlaylistNext,
   };
 }

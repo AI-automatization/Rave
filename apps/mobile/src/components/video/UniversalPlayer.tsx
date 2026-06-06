@@ -1,9 +1,11 @@
 // WeWatch Mobile — UniversalPlayer
 // URL ga qarab to'g'ri player tanlaydi: expo-av (direct) yoki WebView (youtube/boshqalar)
-import React, { forwardRef, useImperativeHandle, useRef, useState } from 'react';
+import React, { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Platform } from 'react-native';
 import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
+import WebView from 'react-native-webview';
+import type { WebViewMessageEvent } from 'react-native-webview';
 import { WebViewPlayer, WebViewPlayerRef } from './WebViewPlayer';
 import {
   extractTwitchId, extractVKVideoIds, extractRutubeId, extractVimeoId, extractDailymotionId,
@@ -11,6 +13,7 @@ import {
 } from './WebViewAdapters';
 import { colors, typography, spacing } from '@theme/index';
 import { detectVideoPlatform, extractYouTubeVideoId, getYouTubeMobileUrl, MOBILE_UA } from '@utils/videoPlayer';
+import { CDN_SNIFF_JS } from '@utils/webViewScripts';
 
 export type { VideoPlatform } from '@utils/videoPlayer';
 export { detectVideoPlatform } from '@utils/videoPlayer';
@@ -41,6 +44,7 @@ interface Props {
   httpHeaders?: Record<string, string>;
   proxyUrl?: string;
   mode?: 'extracted' | 'webview-session';
+  onCdnUrlSniffed?: (url: string) => void;
 }
 
 export type EmbedPlatform = 'twitch' | 'vk' | 'rutube' | 'vimeo' | 'dailymotion' | null;
@@ -78,17 +82,59 @@ function buildEmbedHtml(url: string, embed: EmbedPlatform): { html: string; base
 
 export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
   ({ url, isOwner, onPlay, onPause, onSeek, onPlaybackStatusUpdate, onProgress, onBuffering, onReady,
-     extractedUrl, isExtracting, referer, httpHeaders, proxyUrl, mode }, ref) => {
+     extractedUrl, isExtracting, referer, httpHeaders, proxyUrl, mode, onCdnUrlSniffed }, ref) => {
     const videoRef = useRef<Video>(null);
     const webviewRef = useRef<WebViewPlayerRef>(null);
     const platform = detectVideoPlatform(url);
-    // Android: VK and Rutube always use embed iframe WebView — even when an extracted URL
-    // is present. yt-dlp HLS CDN URLs are IP-locked to Railway's outbound IP and fail when
-    // the HLS proxy request lands on a different Railway replica (srcIp mismatch). Embed
-    // iframe approach is reliable and avoids IFRAME_FOUND navigation bug on full-site mode.
     const embedPlatform = platform === 'webview' ? detectEmbedPlatform(url) : null;
-    const forceAndroidWebView = Platform.OS === 'android' &&
+
+    // Android VK/Rutube sniffing: load embed URL directly in a hidden WebView (source.uri,
+    // not source.html) so our injected JS runs in vk.com/rutube.ru origin — same origin as
+    // the player's XHR calls — allowing us to intercept the CDN video URL before it's fetched.
+    // Once sniffed, switch to expo-av (ExoPlayer) with the CDN URL (token tied to phone IP).
+    const isVkRutubeAndroid = Platform.OS === 'android' &&
       (embedPlatform === 'vk' || embedPlatform === 'rutube');
+    const [sniffedUrl, setSniffedUrl] = useState<string | null>(null);
+
+    // Reset sniffed URL when the video URL changes (new media in the room).
+    const prevUrlForSniffRef = useRef(url);
+    if (prevUrlForSniffRef.current !== url) {
+      prevUrlForSniffRef.current = url;
+      setSniffedUrl(null);
+    }
+
+    // forceAndroidWebView: keep embed WebView active only while sniffing is in progress.
+    // Once sniffedUrl is set, fall through to expo-av path.
+    const forceAndroidWebView = isVkRutubeAndroid && !sniffedUrl;
+
+    // Build the hidden sniffing WebView URI (autoplay=0 → no audio, but player JS still
+    // initialises and fetches the manifest, which our XHR override intercepts).
+    let sniffUrl: string | null = null;
+    if (isVkRutubeAndroid && !sniffedUrl) {
+      if (embedPlatform === 'vk') {
+        const ids = extractVKVideoIds(url);
+        sniffUrl = ids
+          ? `https://vk.com/video_ext.php?oid=${ids.ownerId}&id=${ids.videoId}&hd=1&autoplay=0`
+          : null;
+      } else {
+        const id = extractRutubeId(url);
+        sniffUrl = id ? `https://rutube.ru/play/embed/${id}?autoplay=0` : null;
+      }
+    }
+
+    const onCdnUrlSniffedRef = useRef(onCdnUrlSniffed);
+    onCdnUrlSniffedRef.current = onCdnUrlSniffed;
+
+    const handleSniffMessage = useCallback((event: WebViewMessageEvent) => {
+      try {
+        const data = JSON.parse(event.nativeEvent.data);
+        if (data.type === 'CDN_URL_SNIFFED' && data.url) {
+          setSniffedUrl(data.url);
+          onCdnUrlSniffedRef.current?.(data.url);
+        }
+      } catch {}
+    }, []);
+
     const [videoError, setVideoError] = useState(false);
     const [avLoaded, setAvLoaded] = useState(false);
     const [usingProxy, setUsingProxy] = useState(false);
@@ -112,7 +158,9 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
       onReadyRef.current?.();
     };
 
-    const hasExtracted = !!extractedUrl;
+    // Use sniffed CDN URL (phone-IP-tied) when available, otherwise server-extracted URL.
+    const effectiveExtractedUrl = sniffedUrl ?? extractedUrl;
+    const hasExtracted = !!effectiveExtractedUrl;
     const youtubeId = platform === 'youtube' ? extractYouTubeVideoId(url) : null;
     const proxyFailed = hasExtracted && videoError && platform === 'youtube' && !!youtubeId;
     const webviewEmbedFailed = videoError && platform === 'webview' && !!detectEmbedPlatform(url);
@@ -122,7 +170,7 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
       webviewEmbedFailed ||
       (!hasExtracted && videoError) ||
       (!hasExtracted && (platform === 'youtube' || platform === 'webview'));
-    const directSource = hasExtracted ? extractedUrl : url;
+    const directSource = hasExtracted ? effectiveExtractedUrl : url;
 
     useImperativeHandle(ref, () => ({
       play: async () => { if (useWebview) webviewRef.current?.play(); else await videoRef.current?.playAsync(); },
@@ -165,10 +213,24 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
       // Signal ready on first play event from the WebView
       const wrappedOnPlay = (secs: number) => { fireReady(); onPlay(secs); };
       return (
-        <WebViewPlayer ref={webviewRef} url={displayUrl} youtubeVideoId={ytId ?? undefined}
-          htmlContent={embedHtml?.html} htmlBaseUrl={embedHtml?.baseUrl}
-          isOwner={isOwner} onPlay={wrappedOnPlay} onPause={onPause} onSeek={onSeek} onProgress={onProgress} onBuffering={onBuffering}
-          userAgent={MOBILE_UA} referer={platform !== 'youtube' && !embedHtml ? referer : undefined} />
+        <View style={styles.video}>
+          <WebViewPlayer ref={webviewRef} url={displayUrl} youtubeVideoId={ytId ?? undefined}
+            htmlContent={embedHtml?.html} htmlBaseUrl={embedHtml?.baseUrl}
+            isOwner={isOwner} onPlay={wrappedOnPlay} onPause={onPause} onSeek={onSeek} onProgress={onProgress} onBuffering={onBuffering}
+            userAgent={MOBILE_UA} referer={platform !== 'youtube' && !embedHtml ? referer : undefined} />
+          {sniffUrl !== null && (
+            <WebView
+              source={{ uri: sniffUrl }}
+              style={styles.sniffHidden}
+              injectedJavaScriptBeforeContentLoaded={CDN_SNIFF_JS}
+              javaScriptEnabled
+              onMessage={handleSniffMessage}
+              userAgent={MOBILE_UA}
+              mediaPlaybackRequiresUserAction={false}
+              allowsInlineMediaPlayback
+            />
+          )}
+        </View>
       );
     }
 
@@ -228,6 +290,7 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
 
 const styles = StyleSheet.create({
   video: { width: '100%', height: '100%', backgroundColor: '#000' },
+  sniffHidden: { position: 'absolute', width: 0, height: 0, opacity: 0 },
   bufferingOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bgVoid, gap: spacing.sm },
   errorText: { ...typography.body, color: colors.textPrimary, fontWeight: '600' },

@@ -89,6 +89,7 @@ export function WatchPartyScreen() {
     handleWebViewBuffering, handleProgress, handleProgressSeek, handlePlayPause, handleStop,
     handleToggleFullscreen, handleSeekDirection, handleEmojiSelect, handleRemoveEmoji,
     handleChangeMedia, handleQualitySelect, handleEpisodeSelect, handleLeave, handlePlayerReady,
+    handleCdnUrlSniffed,
   } = useWatchPartyRoom(params.roomId, params.videoReferer);
 
   // Lock orientation: landscape in fullscreen, portrait otherwise
@@ -198,6 +199,7 @@ export function WatchPartyScreen() {
         onSeekDirection={handleSeekDirection}
         onToggleFullscreen={handleToggleFullscreen}
         onRemoveEmoji={handleRemoveEmoji}
+        onCdnUrlSniffed={handleCdnUrlSniffed}
       />
 
       {/* ── Fullscreen overlay (renders above absolute VideoSection) ── */}

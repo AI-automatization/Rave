@@ -46,6 +46,7 @@ interface VideoSectionProps {
   duration?: number;
   onProgressSeek?: (secs: number) => void;
   isWebView?: boolean;
+  onCdnUrlSniffed?: (url: string) => void;
 }
 
 const SHOW_MS = 3500; // controls visible duration after tap / mount
@@ -55,7 +56,7 @@ export const VideoSection = React.memo(function VideoSection({
   isFullscreen, videoIsLive, floatingEmojis, onPlay, onPause, onSeek,
   onPlaybackStatusUpdate, onStreamResolved, onProgress, onBuffering, onReady, onPlayPause, onStop,
   onSeekDirection, onToggleFullscreen, onRemoveEmoji,
-  currentTime = 0, duration = 0, onProgressSeek, isWebView = false,
+  currentTime = 0, duration = 0, onProgressSeek, isWebView = false, onCdnUrlSniffed,
 }: VideoSectionProps) {
   const { colors } = useTheme();
 
@@ -136,6 +137,7 @@ export const VideoSection = React.memo(function VideoSection({
           onProgress={onProgress}
           onBuffering={onBuffering}
           onReady={onReady}
+          onCdnUrlSniffed={onCdnUrlSniffed}
         />
       )}
 

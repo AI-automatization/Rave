@@ -86,6 +86,45 @@ export function isPlaceholderVideoUrl(url: string): boolean {
   return false;
 }
 
+// Injected into hidden VK/Rutube sniffing WebView (Android only).
+// Overrides XHR/fetch/video.src before player scripts run — catches first CDN video URL.
+// The hidden WebView is loaded with source={{ uri }} (not html) so JS runs in vk.com/rutube.ru
+// origin — same origin as the player's XHR calls — giving us access to intercept them.
+export const CDN_SNIFF_JS = `
+(function() {
+  var sent = false;
+  function tryReport(url) {
+    if (sent || typeof url !== 'string' || url.length < 20) return;
+    var u = url.toLowerCase().split('?')[0];
+    var isStream = /\\.m3u8$|\\.mp4$|\\.ts$/.test(u)
+      || /\\/(hls|stream|chunklist)[\\/?]/.test(u)
+      || /\\/(index|master|playlist|video)\\.m3u8/.test(u);
+    if (!isStream) return;
+    if (/ads?[_\\-]|preroll|midroll|postroll/i.test(url)) return;
+    sent = true;
+    window.ReactNativeWebView && window.ReactNativeWebView.postMessage(
+      JSON.stringify({ type: 'CDN_URL_SNIFFED', url: url })
+    );
+  }
+  try {
+    var d = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'src');
+    if (d && d.set) Object.defineProperty(HTMLMediaElement.prototype, 'src', {
+      configurable: true, enumerable: true, get: d.get,
+      set: function(v) { tryReport(v); d.set.call(this, v); }
+    });
+  } catch(e) {}
+  try {
+    var _xo = XMLHttpRequest.prototype.open;
+    XMLHttpRequest.prototype.open = function(m, url) { tryReport(url); return _xo.apply(this, arguments); };
+  } catch(e) {}
+  try {
+    var _f = window.fetch;
+    window.fetch = function(r, o) { if (typeof r === 'string') tryReport(r); return _f.apply(this, arguments); };
+  } catch(e) {}
+  true;
+})();
+`;
+
 // Platform-specific hint text shown when no video is detected yet
 export function getSourceHint(sourceId: string): string {
   switch (sourceId) {
