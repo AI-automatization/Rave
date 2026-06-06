@@ -103,14 +103,16 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
       setSniffedUrl(null);
     }
 
-    // forceAndroidWebView: keep embed WebView active only while sniffing is in progress.
-    // Once sniffedUrl is set, fall through to expo-av path.
-    const forceAndroidWebView = isVkRutubeAndroid && !sniffedUrl;
+    // forceAndroidWebView: use embed WebView only when we have no CDN URL at all.
+    // If extractedUrl (server-extracted mp4/HLS) is provided → try ExoPlayer first,
+    // fall back to embed via webviewEmbedFailed on 403.
+    // If sniffedUrl (phone-IP-tied CDN URL from hidden WebView) is ready → use ExoPlayer.
+    // Only if neither is available → embed WebView + hidden sniffing WebView in parallel.
+    const forceAndroidWebView = isVkRutubeAndroid && !sniffedUrl && !extractedUrl;
 
-    // Build the hidden sniffing WebView URI (autoplay=0 → no audio, but player JS still
-    // initialises and fetches the manifest, which our XHR override intercepts).
+    // Build the hidden sniffing WebView URI — only needed when no URL is available yet.
     let sniffUrl: string | null = null;
-    if (isVkRutubeAndroid && !sniffedUrl) {
+    if (isVkRutubeAndroid && !sniffedUrl && !extractedUrl) {
       if (embedPlatform === 'vk') {
         const ids = extractVKVideoIds(url);
         // autoplay=1: player must initialise and fetch the CDN manifest for XHR intercept to fire.
