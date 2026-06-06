@@ -82,6 +82,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   heartbeatRef.current = heartbeat;
   const isWebViewModeRef = useRef(false); // updated after isWebViewMode is computed each render
   const isYouTubeEmbedRef = useRef(false); // true only for YouTube IFrame embed (discrete rates — micro-sync excluded)
+  const isVkRutubeEmbedRef = useRef(false); // true for VK/Rutube embed iframe — postMessage has no rate API, micro-sync excluded
   // Unified pending sync — deferred until player signals onReady (works for both expo-av and WebView)
   const playerReadyRef = useRef(false);
   const pendingSyncRef = useRef<{ currentTime: number; isPlaying: boolean; serverTimestamp: number } | null>(null);
@@ -277,10 +278,10 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
       const seekPlayDelayMs = Platform.OS === 'android' ? 250 : 0;
       playerRef.current?.seekTo(expected * 1000);
       setTimeout(() => { isSyncing.current = false; }, 2000 + seekPlayDelayMs);
-    } else if (Platform.OS === 'android' && absDrift > (isWebViewModeRef.current ? 0.6 : DRIFT_MICRO_RATE_SECS) && !isYouTubeEmbedRef.current) {
+    } else if (Platform.OS === 'android' && absDrift > (isWebViewModeRef.current ? 0.6 : DRIFT_MICRO_RATE_SECS) && !isYouTubeEmbedRef.current && !isVkRutubeEmbedRef.current) {
       // Micro sync (Android only) — adjust rate proportional to drift magnitude.
-      // YouTube IFrame embed excluded: discrete rates [0.25,0.5,1,1.25,1.5,2] — 1.08 snaps to 1.0.
-      // VK/Rutube full-site (Android): direct video.playbackRate accepts any float — micro-sync enabled.
+      // YouTube IFrame excluded: discrete rates [0.25,0.5,1,1.25,1.5,2] — fractional rate snaps to 1.0.
+      // VK/Rutube embed excluded: postMessage API has no playbackRate command, setRate is a no-op.
       // WebView threshold 0.6s (vs 0.3s native) to absorb ±500ms position-poll noise.
       // fraction 0→1 as drift goes from DRIFT_MICRO_RATE_SECS→DRIFT_MACRO_SEEK_SECS.
       // behind (drift < 0): speed up; ahead (drift > 0): slow down.
@@ -484,9 +485,9 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const extractedVideoUrl = iosWebmBlocked ? undefined : rawExtractedUrl;
 
   const platform = detectVideoPlatform(originalVideoUrl);
-  // Android: VK and Rutube always use full-site WebView (Rave method) — skip extracted URL
-  // so no HLS proxy URL is built. yt-dlp CDN URLs are IP-locked to Railway's outbound IP
-  // and fail when the HLS proxy request lands on a different Railway replica (srcIp mismatch).
+  // Android: VK and Rutube always use embed iframe WebView — skip extracted URL so no HLS
+  // proxy URL is built. yt-dlp CDN URLs are IP-locked to Railway's outbound IP and fail
+  // when the HLS proxy request lands on a different Railway replica (srcIp mismatch).
   const androidEmbedPlatform = detectEmbedPlatform(originalVideoUrl);
   const isAndroidVkOrRutube = Platform.OS === 'android' &&
     (androidEmbedPlatform === 'vk' || androidEmbedPlatform === 'rutube');
@@ -542,8 +543,9 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
 
   isWebViewModeRef.current = isWebViewMode; // keep ref in sync so drift effect can read it without re-running
   // YouTube IFrame embed uses discrete rates [0.25,0.5,1,1.25,1.5,2] — fractional rate snaps to 1.0.
-  // VK/Rutube full-site (Android) use direct video.playbackRate which accepts any float → micro-sync enabled.
+  // VK/Rutube embed iframe: postMessage API has no playbackRate command → micro-sync excluded for both.
   isYouTubeEmbedRef.current = Platform.OS === 'android' && !extractedVideoUrl && platform === 'youtube';
+  isVkRutubeEmbedRef.current = isAndroidVkOrRutube;
 
   const playerExtractedUrl = extractedVideoUrl; // raw URL first on all platforms (mirrors iOS)
   const playerProxyUrl = extractedVideoProxyUrl; // HLS proxy / generic proxy as fallback when raw URL fails

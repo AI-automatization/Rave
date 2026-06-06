@@ -65,13 +65,9 @@ function buildEmbedHtml(url: string, embed: EmbedPlatform): { html: string; base
   switch (embed) {
     case 'twitch': { const i = extractTwitchId(url); return i ? { html: buildTwitchHtml(i.id, i.type), baseUrl: 'https://twitch.tv' } : null; }
     case 'vk': {
-      // Android: load full vk.com site — direct <video> control, no postMessage seek delay (Rave method)
-      if (Platform.OS === 'android') return null;
       const i = extractVKVideoIds(url); return i ? { html: buildVKVideoHtml(i.ownerId, i.videoId), baseUrl: 'https://vk.com' } : null;
     }
     case 'rutube': {
-      // Android: load full rutube.ru site — direct <video> control
-      if (Platform.OS === 'android') return null;
       const i = extractRutubeId(url); return i ? { html: buildRutubeHtml(i), baseUrl: 'https://rutube.ru' } : null;
     }
     case 'vimeo': { const i = extractVimeoId(url); return i ? { html: buildVimeoHtml(i), baseUrl: 'https://player.vimeo.com' } : null; }
@@ -86,9 +82,10 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
     const videoRef = useRef<Video>(null);
     const webviewRef = useRef<WebViewPlayerRef>(null);
     const platform = detectVideoPlatform(url);
-    // Android: VK and Rutube always use full-site WebView (Rave method) — even when an
-    // extracted URL is present. yt-dlp HLS CDN URLs are IP-locked to Railway's outbound IP
-    // and fail when the HLS proxy request lands on a different Railway replica (srcIp mismatch).
+    // Android: VK and Rutube always use embed iframe WebView — even when an extracted URL
+    // is present. yt-dlp HLS CDN URLs are IP-locked to Railway's outbound IP and fail when
+    // the HLS proxy request lands on a different Railway replica (srcIp mismatch). Embed
+    // iframe approach is reliable and avoids IFRAME_FOUND navigation bug on full-site mode.
     const embedPlatform = platform === 'webview' ? detectEmbedPlatform(url) : null;
     const forceAndroidWebView = Platform.OS === 'android' &&
       (embedPlatform === 'vk' || embedPlatform === 'rutube');
