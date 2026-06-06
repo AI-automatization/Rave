@@ -484,11 +484,14 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const extractedVideoUrl = iosWebmBlocked ? undefined : rawExtractedUrl;
 
   const platform = detectVideoPlatform(originalVideoUrl);
+  // Android: VK and Rutube always use full-site WebView (Rave method) — skip extracted URL
+  // so no HLS proxy URL is built. yt-dlp CDN URLs are IP-locked to Railway's outbound IP
+  // and fail when the HLS proxy request lands on a different Railway replica (srcIp mismatch).
+  const androidEmbedPlatform = detectEmbedPlatform(originalVideoUrl);
+  const isAndroidVkOrRutube = Platform.OS === 'android' &&
+    (androidEmbedPlatform === 'vk' || androidEmbedPlatform === 'rutube');
 
-  // Android: for YouTube and embed platforms (VK, Rutube, Twitch, Vimeo, Dailymotion) without
-  // an extracted URL, fall through to ExoPlayer only for direct/CDN content. Embed platforms
-  // need WebView (handled inside UniversalPlayer via useWebview=true when platform==='webview').
-  const androidPlayUrl = Platform.OS === 'android'
+  const androidPlayUrl = Platform.OS === 'android' && !isAndroidVkOrRutube
     ? (extractedVideoUrl ?? (platform !== 'youtube' ? originalVideoUrl : undefined))
     : undefined;
 
@@ -532,10 +535,10 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   // extracted URL use WebView. Embed detection matches UniversalPlayer.useWebview logic so
   // VideoSection shows the correct owner controls (isOwnerMode = isOwner && !isWebView).
   // iOS: keep existing fallback behaviour (iosWebmBlocked, extractFallback → WebView).
-  const embedPlatformDetected = !!detectEmbedPlatform(originalVideoUrl);
+  const embedPlatformDetected = !!androidEmbedPlatform;
   const isWebViewMode = Platform.OS === 'ios'
     ? (!extractedVideoUrl && (iosWebmBlocked || platform === 'youtube' || extractFallback))
-    : (!extractedVideoUrl && (platform === 'youtube' || embedPlatformDetected));
+    : (isAndroidVkOrRutube || (!extractedVideoUrl && (platform === 'youtube' || embedPlatformDetected)));
 
   isWebViewModeRef.current = isWebViewMode; // keep ref in sync so drift effect can read it without re-running
   // YouTube IFrame embed uses discrete rates [0.25,0.5,1,1.25,1.5,2] — fractional rate snaps to 1.0.

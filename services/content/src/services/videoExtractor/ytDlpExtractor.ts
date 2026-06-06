@@ -103,17 +103,32 @@ function buildYouTubeExtractorArgs(): string {
 }
 
 // ── Format selection ───────────────────────────────────────────────────────────
+
+/** VK CDN: /type/5/ = ad pre-roll stream — prefer /type/3/ (main video) */
+const isVkAdStream = (url: string): boolean => /\/type\/5\//.test(url);
+
 function pickBestUrl(data: YtDlpJson): { url: string; type: VideoType; headers?: Record<string, string> } | null {
-  if (data.url) {
+  // Skip top-level URL if it's a VK ad stream — fall through to formats for a better pick
+  if (data.url && !isVkAdStream(data.url)) {
     const type: VideoType = /m3u8|hls/.test(data.protocol ?? '') ? 'hls' : 'mp4';
     return { url: data.url, type, headers: data.http_headers };
   }
-  if (!data.formats?.length) return null;
 
-  const combined = data.formats.filter(
+  if (!data.formats?.length) {
+    // No formats — return top-level URL even if it's a VK ad (better than null)
+    if (data.url) {
+      const type: VideoType = /m3u8|hls/.test(data.protocol ?? '') ? 'hls' : 'mp4';
+      return { url: data.url, type, headers: data.http_headers };
+    }
+    return null;
+  }
+
+  const nonAdFormats = data.formats.filter(f => !isVkAdStream(f.url ?? ''));
+  const formatsToRank = nonAdFormats.length > 0 ? nonAdFormats : data.formats;
+  const combined = formatsToRank.filter(
     (f) => f.vcodec && f.vcodec !== 'none' && f.acodec && f.acodec !== 'none',
   );
-  const ranked = [...(combined.length ? combined : data.formats)].sort(
+  const ranked = [...(combined.length ? combined : formatsToRank)].sort(
     (a, b) => (b.height ?? 0) - (a.height ?? 0),
   );
   const capped = ranked.find((f) => (f.height ?? 9999) <= 1080) ?? ranked[0];
