@@ -86,6 +86,12 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
     const videoRef = useRef<Video>(null);
     const webviewRef = useRef<WebViewPlayerRef>(null);
     const platform = detectVideoPlatform(url);
+    // Android: VK and Rutube always use full-site WebView (Rave method) — even when an
+    // extracted URL is present. yt-dlp HLS CDN URLs are IP-locked to Railway's outbound IP
+    // and fail when the HLS proxy request lands on a different Railway replica (srcIp mismatch).
+    const embedPlatform = platform === 'webview' ? detectEmbedPlatform(url) : null;
+    const forceAndroidWebView = Platform.OS === 'android' &&
+      (embedPlatform === 'vk' || embedPlatform === 'rutube');
     const [videoError, setVideoError] = useState(false);
     const [avLoaded, setAvLoaded] = useState(false);
     const [usingProxy, setUsingProxy] = useState(false);
@@ -113,7 +119,8 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
     const youtubeId = platform === 'youtube' ? extractYouTubeVideoId(url) : null;
     const proxyFailed = hasExtracted && videoError && platform === 'youtube' && !!youtubeId;
     const webviewEmbedFailed = videoError && platform === 'webview' && !!detectEmbedPlatform(url);
-    const useWebview = mode === 'webview-session' ||
+    const useWebview = forceAndroidWebView ||
+      mode === 'webview-session' ||
       proxyFailed ||
       webviewEmbedFailed ||
       (!hasExtracted && videoError) ||
@@ -156,7 +163,6 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
 
     if (useWebview) {
       const ytId = platform === 'youtube' ? extractYouTubeVideoId(url) : null;
-      const embedPlatform = platform === 'webview' ? detectEmbedPlatform(url) : null;
       const embedHtml = embedPlatform ? buildEmbedHtml(url, embedPlatform) : null;
       const displayUrl = (!ytId && platform === 'youtube') ? getYouTubeMobileUrl(url) : url;
       // Signal ready on first play event from the WebView
