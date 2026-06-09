@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { FaPlay } from 'react-icons/fa';
 import { useTranslations } from 'next-intl';
+import { WeWatchLogo } from './WeWatchLogo';
 
 export function Footer() {
   const t = useTranslations('footer');
@@ -13,14 +13,9 @@ export function Footer() {
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-8">
           {/* Brand */}
           <div className="flex-shrink-0">
-            <Link href="/" className="inline-flex items-center gap-2 mb-3">
-              <div className="w-7 h-7 rounded-lg bg-[#7B72F8] flex items-center justify-center shadow-[0_0_12px_rgba(123,114,248,0.4)]">
-                <FaPlay size={9} className="text-white ml-0.5" />
-              </div>
-              <span className="text-lg font-display text-white tracking-wide">
-                WE<span className="text-[#7B72F8]">WATCH</span>
-              </span>
-            </Link>
+            <div className="mb-3">
+              <WeWatchLogo iconSize={28} textSize="text-lg" />
+            </div>
             <p className="text-zinc-600 text-sm max-w-[200px] leading-relaxed">
               {t('tagline')}
             </p>

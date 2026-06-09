@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { FaBars, FaTimes, FaChevronRight } from 'react-icons/fa';
 import { useTranslations } from 'next-intl';
 import { LanguageSwitcher } from './LanguageSwitcher';
+import { WeWatchLogo } from './WeWatchLogo';
 
 export function LandingNav() {
   const pathname = usePathname();
@@ -33,26 +34,7 @@ export function LandingNav() {
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
 
           {/* Logo */}
-          <Link href="/" className="inline-flex items-center gap-2 group">
-            <svg width="34" height="34" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <rect width="200" height="200" rx="36" fill="#0A0A12"/>
-              <defs>
-                <linearGradient id="navFG" x1="35" y1="20" x2="100" y2="175" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stopColor="#A78BFA"/>
-                  <stop offset="100%" stopColor="#6D28D9"/>
-                </linearGradient>
-                <linearGradient id="navBG" x1="165" y1="20" x2="100" y2="175" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stopColor="#7C3AED"/>
-                  <stop offset="100%" stopColor="#4C1D95"/>
-                </linearGradient>
-              </defs>
-              <path d="M 100,72 L 118,172 L 165,22" stroke="url(#navBG)" strokeWidth="44" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M 35,22 L 82,172 L 100,72" stroke="url(#navFG)" strokeWidth="44" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            <span className="text-xl font-display tracking-wider text-white group-hover:text-[#7B72F8] transition-colors">
-              WE<span className="text-[#7B72F8]">WATCH</span>
-            </span>
-          </Link>
+          <WeWatchLogo iconSize={34} textSize="text-xl" />
 
           {/* Desktop nav */}
           <nav className="hidden md:flex items-center gap-7">
@@ -132,26 +114,7 @@ export function LandingNav() {
 
         {/* Drawer header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-800/60">
-          <Link href="/" onClick={() => setMenuOpen(false)} className="inline-flex items-center gap-2">
-            <svg width="30" height="30" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <rect width="200" height="200" rx="36" fill="#0A0A12"/>
-              <defs>
-                <linearGradient id="drwFG" x1="35" y1="20" x2="100" y2="175" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stopColor="#A78BFA"/>
-                  <stop offset="100%" stopColor="#6D28D9"/>
-                </linearGradient>
-                <linearGradient id="drwBG" x1="165" y1="20" x2="100" y2="175" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stopColor="#7C3AED"/>
-                  <stop offset="100%" stopColor="#4C1D95"/>
-                </linearGradient>
-              </defs>
-              <path d="M 100,72 L 118,172 L 165,22" stroke="url(#drwBG)" strokeWidth="44" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M 35,22 L 82,172 L 100,72" stroke="url(#drwFG)" strokeWidth="44" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            <span className="font-display text-white tracking-wider">
-              WE<span className="text-[#7B72F8]">WATCH</span>
-            </span>
-          </Link>
+          <WeWatchLogo iconSize={30} textSize="text-lg" />
           <button
             onClick={() => setMenuOpen(false)}
             className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-500 hover:text-white hover:bg-white/5 transition-all"

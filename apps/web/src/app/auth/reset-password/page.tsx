@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { ResetPasswordForm } from './ResetPasswordForm';
+import { WeWatchLogo } from '@/components/common/WeWatchLogo';
 
 export const metadata: Metadata = {
   title: 'Сброс пароля',
@@ -24,18 +25,7 @@ export default async function ResetPasswordPage({ searchParams }: Props) {
 
         {/* Logo */}
         <div className="flex justify-center mb-8">
-          <svg width="168" height="49" viewBox="0 0 200 56" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <linearGradient id="wG" x1="4" y1="6" x2="44" y2="50" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stopColor="#A78BFA" />
-                <stop offset="100%" stopColor="#7C3AED" />
-              </linearGradient>
-            </defs>
-            <path d="M 50,9 L 35,47 L 28,28 L 18,9" stroke="#5B21B6" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M 6,9 L 21,47 L 28,28 L 40,9" stroke="url(#wG)" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" />
-            <text x="68" y="39" fontFamily="Arial,Helvetica,sans-serif" fontSize="28" fill="rgba(255,255,255,0.50)" fontWeight="300">we</text>
-            <text x="103" y="39" fontFamily="Arial,Helvetica,sans-serif" fontSize="28" fill="#FFFFFF" fontWeight="800">Watch</text>
-          </svg>
+          <WeWatchLogo variant="stacked" iconSize={48} />
         </div>
 
         {/* Card */}

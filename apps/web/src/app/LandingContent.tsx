@@ -101,6 +101,7 @@ import { useTranslations } from 'next-intl';
 import { LandingNav } from '@/components/common/LandingNav';
 import { Footer } from '@/components/common/Footer';
 import { StatsWidget } from '@/components/common/StatsWidget';
+import { WIcon, BRAND_PURPLE } from '@/components/common/WeWatchLogo';
 
 // ── Motion config ─────────────────────────────────────────────────────────────
 // Spring physics — natural feel (skill §spring-physics)
@@ -898,11 +899,11 @@ function ScreenHome({ t }: { t: TFn }) {
     <div className="h-full flex flex-col bg-[#0A0A0F] select-none">
       <IPhoneStatusBar />
       <div className="flex items-center justify-between px-5 pt-1 pb-3">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-lg bg-[#7B72F8] flex items-center justify-center shadow-[0_0_10px_rgba(123,114,248,0.6)]">
-            <FaPlay size={7} className="text-white ml-0.5" aria-hidden="true" />
-          </div>
-          <span className="text-[13px] font-bold text-white tracking-wide">WeWatch</span>
+        <div className="flex items-center gap-1.5">
+          <WIcon size={20} />
+          <span className="text-[12px] font-extrabold text-white tracking-tight">
+            We<span style={{ color: BRAND_PURPLE }}>Watch</span>
+          </span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" aria-hidden="true" />
