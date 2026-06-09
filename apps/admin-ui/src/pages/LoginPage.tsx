@@ -30,7 +30,7 @@ export function LoginPage() {
         setError('Доступ запрещён — требуется роль admin или operator');
         return;
       }
-      setAuth(data.accessToken, data.user);
+      setAuth(data.accessToken, data.refreshToken, data.user);
       navigate('/');
     } catch {
       setError('Неверный email или пароль');
