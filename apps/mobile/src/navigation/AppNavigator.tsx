@@ -20,7 +20,7 @@ import { BlockedAccountModal } from '@components/common/BlockedAccountModal';
 import { MaintenanceScreen } from '@components/common/MaintenanceScreen';
 import { UpdateRequiredScreen } from '@components/common/UpdateRequiredScreen';
 import { onAccountBlocked } from '@api/client';
-import { privacyPolicyStorage } from '@utils/storage';
+import { privacyPolicyStorage, activeRoomStorage } from '@utils/storage';
 import { adminApi } from '@api/admin.api';
 import Constants from 'expo-constants';
 import { analyticsService } from '@services/analyticsService';
@@ -59,6 +59,7 @@ export function AppNavigator() {
   const [updateRequired, setUpdateRequired] = useState(false);
   const maintenanceTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
+  const activeRoomCheckedRef = useRef(false);
 
   const checkMaintenance = async () => {
     try {
@@ -215,6 +216,24 @@ export function AppNavigator() {
       }
     };
   }, [isAuthenticated]);
+
+  // Restore active watch party room on cold start (app killed while in a room)
+  useEffect(() => {
+    if (!isNavReady || !isAuthenticated || needsProfileSetup || privacyAccepted !== true) return;
+    if (activeRoomCheckedRef.current) return;
+    activeRoomCheckedRef.current = true;
+
+    const currentRoute = navigationRef.getCurrentRoute();
+    if ((currentRoute?.name as string) === 'WatchParty') return;
+
+    activeRoomStorage.get().then((saved) => {
+      if (!saved) return;
+      navigationRef.navigate('Modal', {
+        screen: 'WatchParty',
+        params: { roomId: saved.roomId, videoReferer: saved.videoReferer },
+      });
+    }).catch(() => {});
+  }, [isNavReady, isAuthenticated, needsProfileSetup, privacyAccepted, navigationRef]);
 
   if (!isHydrated || (isAuthenticated && privacyAccepted === null)) {
     return <View style={{ flex: 1, backgroundColor: colors.bgBase }} />;

@@ -68,6 +68,23 @@ export const blockedUsersStorage = {
   },
 };
 
+export const activeRoomStorage = {
+  async save(roomId: string, videoReferer?: string): Promise<void> {
+    await set('wewatch_active_room_v1', JSON.stringify({ roomId, videoReferer: videoReferer ?? null }));
+  },
+  async get(): Promise<{ roomId: string; videoReferer?: string } | null> {
+    try {
+      const raw = await get('wewatch_active_room_v1');
+      return raw ? (JSON.parse(raw) as { roomId: string; videoReferer?: string }) : null;
+    } catch {
+      return null;
+    }
+  },
+  async clear(): Promise<void> {
+    await remove('wewatch_active_room_v1');
+  },
+};
+
 export const tokenStorage = {
   async saveTokens(accessToken: string, refreshToken: string, userId: string): Promise<void> {
     await Promise.all([

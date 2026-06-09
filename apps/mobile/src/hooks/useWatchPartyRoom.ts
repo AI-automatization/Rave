@@ -11,6 +11,7 @@ import { useAuthStore } from '@store/auth.store';
 const CONTENT_BASE_URL = process.env.EXPO_PUBLIC_CONTENT_URL ?? '';
 import { useWatchPartyStore } from '@store/watchParty.store';
 import { watchPartyApi } from '@api/watchParty.api';
+import { activeRoomStorage } from '@utils/storage';
 import { disconnectSocket, getSocket, CLIENT_EVENTS } from '@socket/client';
 import { UniversalPlayerRef, detectVideoPlatform, detectEmbedPlatform } from '@components/video/UniversalPlayer';
 import type { FloatingEmoji } from '@components/watchParty/VideoSection';
@@ -111,6 +112,12 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const setWatchPartyOpen = useWatchPartyStore((s) => s.setWatchPartyOpen);
   useEffect(() => { setWatchPartyOpen(true); return () => setWatchPartyOpen(false); }, [setWatchPartyOpen]);
 
+  // Persist active room so AppNavigator can restore it on cold start
+  useEffect(() => {
+    if (!room) return;
+    void activeRoomStorage.save(roomId, videoReferer);
+  }, [room?._id, roomId, videoReferer]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     const rawUrl = room?.videoUrl;
     if (!rawUrl || extractStartedRef.current) return;
@@ -135,6 +142,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
 
   useEffect(() => {
     if (!roomClosed) return;
+    void activeRoomStorage.clear();
     const safeGoBack = () => { if (navigation.canGoBack()) navigation.goBack(); };
     if (roomClosed.reason === 'account_blocked') { safeGoBack(); return; }
     let message = '';
@@ -470,6 +478,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     Alert.alert('Chiqish', 'Watch Party dan chiqmoqchimisiz?', [
       { text: 'Bekor', style: 'cancel' },
       { text: isOwner ? 'Xonani yopish' : 'Chiqish', style: 'destructive', onPress: async () => {
+        void activeRoomStorage.clear();
         try { if (isOwner) await watchPartyApi.closeRoom(roomId); else await watchPartyApi.leaveRoom(roomId); } catch {}
         disconnectSocket();
         navigation.goBack();

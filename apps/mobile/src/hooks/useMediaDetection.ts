@@ -175,56 +175,57 @@ export function useMediaDetection() {
 
   async function importMedia(media: RoomMedia) {
     if (isImportingRef.current) return;
-    // On Android, the XHR/performance scan may find the CDN URL 1-3s AFTER the backend
-    // extraction shows the import bar (backend fires at 1.5s, scan at 1s/3s/5s).
-    // If the user taps Import before the scan fires, we'd use the page URL instead of the
-    // CDN URL. Wait up to 3s for CDN confirmation — resolves immediately if already found.
-    // Skip the wait entirely when Fix #22 already stored a direct CDN URL in media (videoUrl
-    // matches a stream pattern) — no need to poll since the URL is already the right one.
-    const mediaAlreadyHasCdnUrl = media.videoPlatform === 'direct' && !!(
-      /\.(mp4|m3u8|webm|ogg|mov|ts|mkv|mpd)(\?|#|$)/i.test(media.videoUrl)
-      || /\/(stream|hls|manifest|playlist\.m3u8|master\.m3u8|chunklist)/i.test(media.videoUrl)
-    );
-    if (backendFoundVideoRef.current && !cleanUrlFoundRef.current && !mediaAlreadyHasCdnUrl) {
-      await new Promise<void>(resolve => {
-        if (cleanUrlFoundRef.current) { resolve(); return; }
-        const timer = setTimeout(resolve, 3000);
-        const poll = setInterval(() => {
-          if (cleanUrlFoundRef.current) { clearTimeout(timer); clearInterval(poll); resolve(); }
-        }, 100);
-      });
-    }
-    // If XHR intercept found a direct URL (or scan confirmed it above), prefer it.
-    // cleanUrlFoundRef is set synchronously; detectedMediaRef mirrors setDetectedMediaOnce
-    // synchronously — both may be ahead of the React state that was passed as `media`.
-    const effective =
-      cleanUrlFoundRef.current && detectedMediaRef.current?.videoPlatform === 'direct'
-        ? detectedMediaRef.current
-        : media;
-    if (params.mode === 'change') {
-      if (!params.roomId) return;
-      getSocket()?.emit(CLIENT_EVENTS.CHANGE_MEDIA, {
-        roomId: params.roomId, videoUrl: effective.videoUrl,
-        videoTitle: effective.videoTitle, videoPlatform: effective.videoPlatform,
-      });
-      navigation.navigate('WatchParty', { roomId: params.roomId });
-      return;
-    }
-    if (params.mode === 'queue') {
-      if (!params.roomId) return;
-      try {
-        await watchPartyApi.addToPlaylist(params.roomId, {
-          videoUrl: effective.videoUrl,
-          videoTitle: effective.videoTitle,
-          videoPlatform: effective.videoPlatform,
-        });
-      } catch {}
-      navigation.navigate('WatchParty', { roomId: params.roomId });
-      return;
-    }
+    // Lock immediately — prevents double-tap creating duplicate rooms and shows loading at once
     isImportingRef.current = true;
     setIsImporting(true);
     try {
+      // On Android, the XHR/performance scan may find the CDN URL 1-3s AFTER the backend
+      // extraction shows the import bar (backend fires at 1.5s, scan at 1s/3s/5s).
+      // If the user taps Import before the scan fires, we'd use the page URL instead of the
+      // CDN URL. Wait up to 3s for CDN confirmation — resolves immediately if already found.
+      // Skip the wait entirely when Fix #22 already stored a direct CDN URL in media (videoUrl
+      // matches a stream pattern) — no need to poll since the URL is already the right one.
+      const mediaAlreadyHasCdnUrl = media.videoPlatform === 'direct' && !!(
+        /\.(mp4|m3u8|webm|ogg|mov|ts|mkv|mpd)(\?|#|$)/i.test(media.videoUrl)
+        || /\/(stream|hls|manifest|playlist\.m3u8|master\.m3u8|chunklist)/i.test(media.videoUrl)
+      );
+      if (backendFoundVideoRef.current && !cleanUrlFoundRef.current && !mediaAlreadyHasCdnUrl) {
+        await new Promise<void>(resolve => {
+          if (cleanUrlFoundRef.current) { resolve(); return; }
+          const timer = setTimeout(resolve, 3000);
+          const poll = setInterval(() => {
+            if (cleanUrlFoundRef.current) { clearTimeout(timer); clearInterval(poll); resolve(); }
+          }, 100);
+        });
+      }
+      // If XHR intercept found a direct URL (or scan confirmed it above), prefer it.
+      // cleanUrlFoundRef is set synchronously; detectedMediaRef mirrors setDetectedMediaOnce
+      // synchronously — both may be ahead of the React state that was passed as `media`.
+      const effective =
+        cleanUrlFoundRef.current && detectedMediaRef.current?.videoPlatform === 'direct'
+          ? detectedMediaRef.current
+          : media;
+      if (params.mode === 'change') {
+        if (!params.roomId) return;
+        getSocket()?.emit(CLIENT_EVENTS.CHANGE_MEDIA, {
+          roomId: params.roomId, videoUrl: effective.videoUrl,
+          videoTitle: effective.videoTitle, videoPlatform: effective.videoPlatform,
+        });
+        navigation.navigate('WatchParty', { roomId: params.roomId });
+        return;
+      }
+      if (params.mode === 'queue') {
+        if (!params.roomId) return;
+        try {
+          await watchPartyApi.addToPlaylist(params.roomId, {
+            videoUrl: effective.videoUrl,
+            videoTitle: effective.videoTitle,
+            videoPlatform: effective.videoPlatform,
+          });
+        } catch {}
+        navigation.navigate('WatchParty', { roomId: params.roomId });
+        return;
+      }
       const room = await watchPartyApi.createRoom({
         name: effective.videoTitle.slice(0, 60), videoUrl: effective.videoUrl,
         videoTitle: effective.videoTitle, videoPlatform: effective.videoPlatform,

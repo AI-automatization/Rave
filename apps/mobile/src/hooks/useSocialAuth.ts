@@ -1,17 +1,32 @@
 // WeWatch Mobile — Shared social auth hook (Google + Telegram + Apple)
-// Google uses backend polling flow (works in Expo Go without a native build).
+// Google: native GoogleSignin if RNGoogleSignin module is available (dev-client / APK),
+//         otherwise falls back to web-browser polling (Expo Go / old builds).
 // Apple uses expo-apple-authentication native module (requires EAS build / dev client).
 import { useState, useEffect, useRef } from 'react';
-import { Linking, AppState, Platform } from 'react-native';
+import { Linking, AppState, Platform, NativeModules } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { authApi } from '@api/auth.api';
 import { useAuthStore } from '@store/auth.store';
 import { useT } from '@i18n/index';
 
+const GOOGLE_WEB_CLIENT_ID = '756077214118-top29idd8ialmj2njm9p6m0hk053fk50.apps.googleusercontent.com';
 const AUTH_BASE_URL = (process.env.EXPO_PUBLIC_AUTH_URL ?? '').replace('/api/v1', '');
 const POLL_INTERVAL_MS = 2000;
-const MAX_POLL_ATTEMPTS = 90; // 3 min
+const MAX_POLL_ATTEMPTS = 90;
+
+// Lazy-require to avoid TurboModuleRegistry.getEnforcing crash in Expo Go
+const isNativeGoogleAvailable = !!NativeModules.RNGoogleSignin;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let GoogleSignin: any = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let statusCodes: any = {};
+if (isNativeGoogleAvailable) {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const m = require('@react-native-google-signin/google-signin') as typeof import('@react-native-google-signin/google-signin');
+  GoogleSignin = m.GoogleSignin;
+  statusCodes = m.statusCodes;
+}
 
 interface UseSocialAuthResult {
   googleLoading: boolean;
@@ -44,6 +59,9 @@ export function useSocialAuth(): UseSocialAuthResult {
   const telegramAppStateRef = useRef<ReturnType<typeof AppState.addEventListener> | null>(null);
 
   useEffect(() => {
+    if (isNativeGoogleAvailable) {
+      GoogleSignin.configure({ webClientId: GOOGLE_WEB_CLIENT_ID });
+    }
     if (Platform.OS === 'ios') {
       AppleAuthentication.isAvailableAsync().then(setAppleAvailable).catch(() => null);
     }
@@ -54,7 +72,35 @@ export function useSocialAuth(): UseSocialAuthResult {
     };
   }, []);
 
-  const promptGoogleAsync = async () => {
+  const promptGoogleNative = async () => {
+    setGoogleLoading(true);
+    setSocialError('');
+    try {
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      const userInfo = await GoogleSignin.signIn();
+      const idToken = userInfo.data?.idToken;
+      if (!idToken) throw new Error('No idToken');
+      const result = await authApi.googleToken(idToken);
+      const maybeBlocked = result as unknown as { error?: string; reason?: string; userId?: string };
+      if (maybeBlocked.error === 'ACCOUNT_BLOCKED') {
+        setBlockedReason(maybeBlocked.reason ?? '');
+        setBlockedUserId(maybeBlocked.userId ?? '');
+      } else {
+        await setAuth(result.user, result.accessToken, result.refreshToken);
+      }
+    } catch (err: unknown) {
+      const e = err as { code?: string };
+      if (e.code === statusCodes.SIGN_IN_CANCELLED || e.code === statusCodes.IN_PROGRESS) {
+        // user cancelled or already in progress — no error shown
+      } else {
+        setSocialError(t('login', 'errorGoogle'));
+      }
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  const promptGoogleWebFallback = async () => {
     if (googleIntervalRef.current) {
       clearInterval(googleIntervalRef.current);
       googleIntervalRef.current = null;
@@ -95,10 +141,8 @@ export function useSocialAuth(): UseSocialAuthResult {
         }
       }, POLL_INTERVAL_MS);
 
-      // Waits until user closes the browser (cancel or complete)
       await WebBrowser.openBrowserAsync(authUrl);
 
-      // Browser closed — give poll 6s to pick up the result before treating as cancel
       await new Promise<void>((resolve) => setTimeout(resolve, 6000));
       if (googleIntervalRef.current) {
         clearInterval(googleIntervalRef.current);
@@ -110,6 +154,8 @@ export function useSocialAuth(): UseSocialAuthResult {
       setSocialError(t('login', 'errorGoogle'));
     }
   };
+
+  const promptGoogleAsync = isNativeGoogleAvailable ? promptGoogleNative : promptGoogleWebFallback;
 
   const handleTelegramLogin = async () => {
     if (telegramIntervalRef.current) {
@@ -152,13 +198,11 @@ export function useSocialAuth(): UseSocialAuthResult {
         }
       }, POLL_INTERVAL_MS);
 
-      // When user returns to app from Telegram without completing auth, stop loading after grace period
       if (telegramAppStateRef.current) telegramAppStateRef.current.remove();
       telegramAppStateRef.current = AppState.addEventListener('change', (nextState) => {
         if (nextState === 'active') {
           telegramAppStateRef.current?.remove();
           telegramAppStateRef.current = null;
-          // Give 5s for the last poll to complete before resetting
           setTimeout(() => {
             if (telegramIntervalRef.current) {
               clearInterval(telegramIntervalRef.current);
@@ -199,7 +243,6 @@ export function useSocialAuth(): UseSocialAuthResult {
       }
     } catch (err) {
       const appleErr = err as { code?: string };
-      // ERR_CANCELED means user dismissed the dialog — not an error
       if (appleErr.code !== 'ERR_CANCELED') {
         setSocialError(t('login', 'errorApple'));
       }

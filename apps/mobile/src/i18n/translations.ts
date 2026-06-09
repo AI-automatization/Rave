@@ -576,7 +576,8 @@ export const translations = {
     domainBlocked: { uz: 'Sayt bloklangan', ru: 'Сайт заблокирован', en: 'Site Blocked' },
     domainBlockedMsg: { uz: "Bu sayt WeWatch da mavjud emas. Boshqa manba tanlang.", ru: 'Этот сайт недоступен в WeWatch. Выберите другой источник.', en: 'This site is unavailable in WeWatch. Choose another source.' },
     back: { uz: '← Orqaga', ru: '← Назад', en: '← Back' },
-    videoDetecting: { uz: 'Watch Party uchun video aniqlanmoqda', ru: 'Определение видео для Watch Party', en: 'Detecting video for Watch Party sync' },
+    videoDetecting: { uz: 'Video qidirilmoqda', ru: 'Поиск видео', en: 'Detecting video' },
+    videoFound: { uz: 'Video topildi', ru: 'Видео найдено', en: 'Video found' },
   },
 
   // ─── Tab bar labels ───
