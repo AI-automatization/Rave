@@ -23,6 +23,7 @@ import { AnalyticsPage } from './pages/AnalyticsPage';
 import { BannedWordsPage } from './pages/BannedWordsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { CampaignsPage } from './pages/CampaignsPage';
+import { DatabasePage } from './pages/DatabasePage';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -64,6 +65,7 @@ export default function App() {
           <Route path="banned-words" element={<BannedWordsPage />} />
           <Route path="campaigns" element={<CampaignsPage />} />
           <Route path="settings" element={<SettingsPage />} />
+          <Route path="database" element={<DatabasePage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

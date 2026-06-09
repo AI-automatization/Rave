@@ -5,7 +5,7 @@ import i18n from '../../i18n';
 import {
   LayoutDashboard, Users, Tv2,
   ScrollText, Activity, ShieldCheck, UserCog, Bug, LogOut,
-  Globe, Flag, Scale, Settings, MessageSquare, Bell, BarChart2, ShieldAlert, Mail, Languages,
+  Globe, Flag, Scale, Settings, MessageSquare, Bell, BarChart2, ShieldAlert, Mail, Languages, Database,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/auth.store';
 import { errorsApi } from '../../api/errors.api';
@@ -174,6 +174,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     { to: '/domains',      label: t('nav.domains'),      icon: <Globe size={15} /> },
     { to: '/banned-words', label: t('nav.bannedWords'),   icon: <ShieldAlert size={15} /> },
     ...(isSuperAdmin ? [{ to: '/staff', label: t('nav.staff'), icon: <UserCog size={15} /> }] : []),
+    ...(isSuperAdmin ? [{ to: '/database', label: t('nav.database'), icon: <Database size={15} /> }] : []),
     { to: '/settings',     label: t('nav.settings'),     icon: <Settings size={15} /> },
   ];
 

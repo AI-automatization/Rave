@@ -21,6 +21,7 @@
     "domains": "Domenlar",
     "bannedWords": "Taqiqlangan so'zlar",
     "staff": "Xodimlar",
+    "database": "Ma'lumotlar bazasi",
     "settings": "Sozlamalar"
   },
   "auth": {

@@ -21,6 +21,7 @@
     "domains": "Domains",
     "bannedWords": "Banned Words",
     "staff": "Staff",
+    "database": "Database",
     "settings": "Settings"
   },
   "auth": {
