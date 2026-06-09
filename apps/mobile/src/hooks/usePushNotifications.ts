@@ -47,10 +47,7 @@ export function usePushNotifications() {
 }
 
 async function registerForPushNotifications(): Promise<void> {
-  if (!Constants.isDevice) {
-    if (__DEV__) console.log('[Push] Simulator detected — push token registration skipped');
-    return;
-  }
+  if (!Constants.isDevice) return;
 
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
@@ -70,21 +67,39 @@ async function registerForPushNotifications(): Promise<void> {
 
   if (finalStatus !== 'granted') return;
 
-  // Use env var first, fall back to app.json extra.eas.projectId (works in release APK)
-  const projectId: string | undefined =
-    process.env.EXPO_PUBLIC_PROJECT_ID ??
-    (Constants.expoConfig?.extra as { eas?: { projectId?: string } } | undefined)?.eas?.projectId;
-
-  if (!projectId) {
-    if (__DEV__) console.warn('[Push] projectId not found — push token registration skipped');
-    return;
-  }
+  const token = await getPushToken();
+  if (!token) return;
 
   try {
-    const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
-    if (__DEV__) console.log('[Push] token registered:', token);
     await userApi.updateFcmToken(token);
   } catch (err) {
-    if (__DEV__) console.error('[Push] token registration failed:', err);
+    if (__DEV__) console.error('[Push] updateFcmToken failed:', err);
+  }
+}
+
+async function getPushToken(): Promise<string | null> {
+  // Try Expo push token first (routes through Expo's push service)
+  try {
+    const projectId: string | undefined =
+      process.env.EXPO_PUBLIC_PROJECT_ID ??
+      (Constants.expoConfig?.extra as { eas?: { projectId?: string } } | undefined)?.eas?.projectId;
+
+    if (projectId) {
+      const expoPushToken = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+      if (__DEV__) console.log('[Push] Expo token:', expoPushToken);
+      return expoPushToken;
+    }
+  } catch (expoErr) {
+    if (__DEV__) console.warn('[Push] getExpoPushTokenAsync failed, falling back to device token:', expoErr);
+  }
+
+  // Fallback: native FCM token (works without EAS credentials, sent via Firebase Admin SDK)
+  try {
+    const deviceToken = (await Notifications.getDevicePushTokenAsync()).data as string;
+    if (__DEV__) console.log('[Push] Device FCM token:', deviceToken);
+    return deviceToken;
+  } catch (deviceErr) {
+    if (__DEV__) console.error('[Push] getDevicePushTokenAsync failed:', deviceErr);
+    return null;
   }
 }
