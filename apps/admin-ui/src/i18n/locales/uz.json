@@ -1,0 +1,88 @@
+{
+  "nav": {
+    "overview": "Umumiy",
+    "platform": "Platforma",
+    "monitoring": "Monitoring",
+    "system": "Tizim",
+    "dashboard": "Boshqaruv paneli",
+    "analytics": "Tahlil",
+    "users": "Foydalanuvchilar",
+    "watchParties": "Watch Party",
+    "notifications": "Bildirishnomalar",
+    "campaigns": "Kampaniyalar",
+    "mobileErrors": "Ilova xatolari",
+    "support": "Yordam",
+    "roomReports": "Xona shikoyatlari",
+    "userReports": "Foydalanuvchi shikoyatlari",
+    "appeals": "Murojaatlar",
+    "logs": "Loglar",
+    "activity": "Faollik",
+    "auditLogs": "Audit",
+    "domains": "Domenlar",
+    "bannedWords": "Taqiqlangan so'zlar",
+    "staff": "Xodimlar",
+    "settings": "Sozlamalar"
+  },
+  "auth": {
+    "signIn": "Kirish",
+    "signOut": "Chiqish",
+    "email": "Email",
+    "password": "Parol",
+    "loading": "Kirish...",
+    "adminPanel": "Admin panel",
+    "invalidCredentials": "Noto'g'ri ma'lumotlar"
+  },
+  "common": {
+    "save": "Saqlash",
+    "cancel": "Bekor qilish",
+    "delete": "O'chirish",
+    "edit": "Tahrirlash",
+    "search": "Qidirish",
+    "filter": "Filtr",
+    "loading": "Yuklanmoqda...",
+    "noData": "Ma'lumot yo'q",
+    "error": "Xato",
+    "success": "Muvaffaqiyatli",
+    "confirm": "Tasdiqlash",
+    "close": "Yopish",
+    "back": "Orqaga",
+    "export": "Eksport",
+    "refresh": "Yangilash",
+    "actions": "Amallar",
+    "status": "Holat",
+    "createdAt": "Yaratilgan",
+    "updatedAt": "Yangilangan",
+    "total": "Jami",
+    "page": "Bet",
+    "of": "/"
+  },
+  "users": {
+    "title": "Foydalanuvchilar",
+    "block": "Bloklash",
+    "unblock": "Blokdan chiqarish",
+    "blockReason": "Bloklash sababi",
+    "blocked": "Bloklangan",
+    "active": "Faol",
+    "role": "Rol",
+    "lastLogin": "Oxirgi kirish",
+    "verified": "Tasdiqlangan"
+  },
+  "settings": {
+    "title": "Sozlamalar",
+    "maintenance": "Texnik xizmat rejimi",
+    "maintenanceDesc": "Yoqilganda barcha foydalanuvchi so'rovlari 503 qaytaradi",
+    "appConfig": "Ilova konfiguratsiyasi"
+  },
+  "dashboard": {
+    "title": "Boshqaruv paneli",
+    "totalUsers": "Jami foydalanuvchilar",
+    "activeUsers": "Faol foydalanuvchilar",
+    "watchParties": "Watch Party"
+  },
+  "language": {
+    "select": "Til",
+    "en": "Inglizcha",
+    "ru": "Ruscha",
+    "uz": "O'zbekcha"
+  }
+}

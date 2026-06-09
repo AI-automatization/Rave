@@ -1,0 +1,88 @@
+{
+  "nav": {
+    "overview": "Overview",
+    "platform": "Platform",
+    "monitoring": "Monitoring",
+    "system": "System",
+    "dashboard": "Dashboard",
+    "analytics": "Analytics",
+    "users": "Users",
+    "watchParties": "Watch Parties",
+    "notifications": "Notifications",
+    "campaigns": "Campaigns",
+    "mobileErrors": "Mobile Errors",
+    "support": "Support",
+    "roomReports": "Room Reports",
+    "userReports": "User Reports",
+    "appeals": "Appeals",
+    "logs": "Logs",
+    "activity": "Activity",
+    "auditLogs": "Audit Logs",
+    "domains": "Domains",
+    "bannedWords": "Banned Words",
+    "staff": "Staff",
+    "settings": "Settings"
+  },
+  "auth": {
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "email": "Email",
+    "password": "Password",
+    "loading": "Signing in...",
+    "adminPanel": "Admin Panel",
+    "invalidCredentials": "Invalid credentials"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "search": "Search",
+    "filter": "Filter",
+    "loading": "Loading...",
+    "noData": "No data",
+    "error": "Error",
+    "success": "Success",
+    "confirm": "Confirm",
+    "close": "Close",
+    "back": "Back",
+    "export": "Export",
+    "refresh": "Refresh",
+    "actions": "Actions",
+    "status": "Status",
+    "createdAt": "Created",
+    "updatedAt": "Updated",
+    "total": "Total",
+    "page": "Page",
+    "of": "of"
+  },
+  "users": {
+    "title": "Users",
+    "block": "Block",
+    "unblock": "Unblock",
+    "blockReason": "Block reason",
+    "blocked": "Blocked",
+    "active": "Active",
+    "role": "Role",
+    "lastLogin": "Last login",
+    "verified": "Verified"
+  },
+  "settings": {
+    "title": "Settings",
+    "maintenance": "Maintenance Mode",
+    "maintenanceDesc": "When enabled, all user API requests return 503",
+    "appConfig": "App Configuration"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "totalUsers": "Total Users",
+    "activeUsers": "Active Users",
+    "watchParties": "Watch Parties"
+  },
+  "language": {
+    "select": "Language",
+    "en": "English",
+    "ru": "Russian",
+    "uz": "Uzbek"
+  }
+}

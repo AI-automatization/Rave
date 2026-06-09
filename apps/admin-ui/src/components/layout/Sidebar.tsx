@@ -1,14 +1,51 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import i18n from '../../i18n';
 import {
   LayoutDashboard, Users, Tv2,
   ScrollText, Activity, ShieldCheck, UserCog, Bug, LogOut,
-  Globe, Flag, Scale, Settings, MessageSquare, Bell, BarChart2, ShieldAlert, Mail,
+  Globe, Flag, Scale, Settings, MessageSquare, Bell, BarChart2, ShieldAlert, Mail, Languages,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/auth.store';
 import { errorsApi } from '../../api/errors.api';
 import { supportApi } from '../../api/support.api';
 import { WeWatchLogo } from '../ui/WeWatchLogo';
+
+const LANGS = [
+  { code: 'ru', label: 'RU' },
+  { code: 'en', label: 'EN' },
+  { code: 'uz', label: 'UZ' },
+] as const;
+
+function LanguageSwitcher() {
+  const { i18n: i18nHook } = useTranslation();
+  const current = i18nHook.language.slice(0, 2) as 'ru' | 'en' | 'uz';
+
+  const change = (code: 'ru' | 'en' | 'uz') => {
+    void i18n.changeLanguage(code);
+    localStorage.setItem('admin-lang', code);
+  };
+
+  return (
+    <div className="flex items-center gap-1 px-2.5 py-2">
+      <Languages size={12} className="text-text-dim shrink-0 mr-1" />
+      {LANGS.map(({ code, label }) => (
+        <button
+          key={code}
+          onClick={() => change(code)}
+          className={`text-[11px] font-semibold px-1.5 py-0.5 rounded transition-all duration-150 ${
+            current === code
+              ? 'bg-accent/20 text-accent'
+              : 'text-text-dim hover:text-white'
+          }`}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 interface NavItem {
   to: string;
@@ -72,6 +109,7 @@ interface SidebarProps {
 
 export function Sidebar({ open, onClose }: SidebarProps) {
   const { user, logout } = useAuthStore();
+  const { t } = useTranslation();
   const isSuperAdmin = user?.role === 'superadmin';
   const location = useLocation();
   const [newErrorCount, setNewErrorCount] = useState(0);
@@ -110,33 +148,33 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const initials = (user?.email ?? 'A').slice(0, 2).toUpperCase();
 
   const overviewItems: NavItem[] = [
-    { to: '/',          label: 'Dashboard', icon: <LayoutDashboard size={15} />, end: true },
-    { to: '/analytics', label: 'Analytics', icon: <BarChart2 size={15} /> },
+    { to: '/',          label: t('nav.dashboard'), icon: <LayoutDashboard size={15} />, end: true },
+    { to: '/analytics', label: t('nav.analytics'), icon: <BarChart2 size={15} /> },
   ];
 
   const platformItems: NavItem[] = [
-    { to: '/users',         label: 'Users',         icon: <Users size={15} /> },
-    { to: '/watchparties',  label: 'Watch Parties',  icon: <Tv2 size={15} /> },
-    { to: '/notifications', label: 'Notifications',  icon: <Bell size={15} /> },
-    { to: '/campaigns',     label: 'Campaigns',      icon: <Mail size={15} /> },
+    { to: '/users',         label: t('nav.users'),         icon: <Users size={15} /> },
+    { to: '/watchparties',  label: t('nav.watchParties'),   icon: <Tv2 size={15} /> },
+    { to: '/notifications', label: t('nav.notifications'),  icon: <Bell size={15} /> },
+    { to: '/campaigns',     label: t('nav.campaigns'),      icon: <Mail size={15} /> },
   ];
 
   const monitoringItems: NavItem[] = [
-    { to: '/errors',      label: 'Mobile Errors', icon: <Bug size={15} />,           badge: newErrorCount },
-    { to: '/support',     label: 'Support',       icon: <MessageSquare size={15} />, badge: openSupportCount },
-    { to: '/room-reports', label: 'Room Reports',  icon: <Flag size={15} />,          badge: pendingReports },
-    { to: '/user-reports', label: 'User Reports', icon: <Flag size={15} />,          badge: pendingUserReports },
-    { to: '/appeals',      label: 'Appeals',      icon: <Scale size={15} />,         badge: pendingAppeals },
-    { to: '/logs',        label: 'Logs',          icon: <ScrollText size={15} /> },
-    { to: '/user-activity',label: 'Activity',     icon: <Activity size={15} /> },
-    { to: '/audit-logs',  label: 'Audit Logs',    icon: <ShieldCheck size={15} /> },
+    { to: '/errors',       label: t('nav.mobileErrors'),   icon: <Bug size={15} />,           badge: newErrorCount },
+    { to: '/support',      label: t('nav.support'),        icon: <MessageSquare size={15} />, badge: openSupportCount },
+    { to: '/room-reports', label: t('nav.roomReports'),    icon: <Flag size={15} />,          badge: pendingReports },
+    { to: '/user-reports', label: t('nav.userReports'),    icon: <Flag size={15} />,          badge: pendingUserReports },
+    { to: '/appeals',      label: t('nav.appeals'),        icon: <Scale size={15} />,         badge: pendingAppeals },
+    { to: '/logs',         label: t('nav.logs'),           icon: <ScrollText size={15} /> },
+    { to: '/user-activity',label: t('nav.activity'),       icon: <Activity size={15} /> },
+    { to: '/audit-logs',   label: t('nav.auditLogs'),      icon: <ShieldCheck size={15} /> },
   ];
 
   const systemItems: NavItem[] = [
-    { to: '/domains',      label: 'Domains',      icon: <Globe size={15} /> },
-    { to: '/banned-words', label: 'Banned Words',  icon: <ShieldAlert size={15} /> },
-    ...(isSuperAdmin ? [{ to: '/staff', label: 'Staff', icon: <UserCog size={15} /> }] : []),
-    { to: '/settings', label: 'Settings', icon: <Settings size={15} /> },
+    { to: '/domains',      label: t('nav.domains'),      icon: <Globe size={15} /> },
+    { to: '/banned-words', label: t('nav.bannedWords'),   icon: <ShieldAlert size={15} /> },
+    ...(isSuperAdmin ? [{ to: '/staff', label: t('nav.staff'), icon: <UserCog size={15} /> }] : []),
+    { to: '/settings',     label: t('nav.settings'),     icon: <Settings size={15} /> },
   ];
 
   return (
@@ -171,11 +209,16 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
         {/* Navigation */}
         <nav className="flex-1 py-2 px-2 flex flex-col overflow-y-auto no-scrollbar">
-          <NavGroup label="Overview"   items={overviewItems} />
-          <NavGroup label="Platform"   items={platformItems} />
-          <NavGroup label="Monitoring" items={monitoringItems} />
-          <NavGroup label="System"     items={systemItems} />
+          <NavGroup label={t('nav.overview')}   items={overviewItems} />
+          <NavGroup label={t('nav.platform')}   items={platformItems} />
+          <NavGroup label={t('nav.monitoring')} items={monitoringItems} />
+          <NavGroup label={t('nav.system')}     items={systemItems} />
         </nav>
+
+        {/* Language switcher */}
+        <div className="border-t border-white/[0.055] shrink-0">
+          <LanguageSwitcher />
+        </div>
 
         {/* User section */}
         <div className="px-2 py-3 border-t border-white/[0.055] shrink-0">

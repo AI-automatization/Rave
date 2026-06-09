@@ -1,0 +1,88 @@
+{
+  "nav": {
+    "overview": "Обзор",
+    "platform": "Платформа",
+    "monitoring": "Мониторинг",
+    "system": "Система",
+    "dashboard": "Дашборд",
+    "analytics": "Аналитика",
+    "users": "Пользователи",
+    "watchParties": "Watch Party",
+    "notifications": "Уведомления",
+    "campaigns": "Кампании",
+    "mobileErrors": "Ошибки приложения",
+    "support": "Поддержка",
+    "roomReports": "Жалобы на комнаты",
+    "userReports": "Жалобы на пользователей",
+    "appeals": "Апелляции",
+    "logs": "Логи",
+    "activity": "Активность",
+    "auditLogs": "Аудит",
+    "domains": "Домены",
+    "bannedWords": "Запрещённые слова",
+    "staff": "Сотрудники",
+    "settings": "Настройки"
+  },
+  "auth": {
+    "signIn": "Войти",
+    "signOut": "Выйти",
+    "email": "Email",
+    "password": "Пароль",
+    "loading": "Вход...",
+    "adminPanel": "Панель администратора",
+    "invalidCredentials": "Неверные данные"
+  },
+  "common": {
+    "save": "Сохранить",
+    "cancel": "Отмена",
+    "delete": "Удалить",
+    "edit": "Редактировать",
+    "search": "Поиск",
+    "filter": "Фильтр",
+    "loading": "Загрузка...",
+    "noData": "Нет данных",
+    "error": "Ошибка",
+    "success": "Успешно",
+    "confirm": "Подтвердить",
+    "close": "Закрыть",
+    "back": "Назад",
+    "export": "Экспорт",
+    "refresh": "Обновить",
+    "actions": "Действия",
+    "status": "Статус",
+    "createdAt": "Создано",
+    "updatedAt": "Обновлено",
+    "total": "Всего",
+    "page": "Стр.",
+    "of": "из"
+  },
+  "users": {
+    "title": "Пользователи",
+    "block": "Заблокировать",
+    "unblock": "Разблокировать",
+    "blockReason": "Причина блокировки",
+    "blocked": "Заблокирован",
+    "active": "Активен",
+    "role": "Роль",
+    "lastLogin": "Последний вход",
+    "verified": "Подтверждён"
+  },
+  "settings": {
+    "title": "Настройки",
+    "maintenance": "Режим обслуживания",
+    "maintenanceDesc": "При включении все запросы пользователей возвращают 503",
+    "appConfig": "Конфигурация приложения"
+  },
+  "dashboard": {
+    "title": "Дашборд",
+    "totalUsers": "Всего пользователей",
+    "activeUsers": "Активных пользователей",
+    "watchParties": "Watch Party"
+  },
+  "language": {
+    "select": "Язык",
+    "en": "Английский",
+    "ru": "Русский",
+    "uz": "Узбекский"
+  }
+}
