@@ -1,7 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
+import { timingSafeEqual } from 'crypto';
 import { AuthService } from '../services/auth.service';
 import { apiResponse } from '@shared/utils/apiResponse';
 import { AuthenticatedRequest } from '../types/index';
+
+const safeCompare = (a: string, b: string): boolean => {
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(Buffer.from(a), Buffer.from(b));
+};
 
 // OAuth (Google + Telegram) handlers live in ./oauth.controller.ts
 
@@ -209,7 +215,7 @@ export class AuthController {
     const secret = process.env.ADMIN_INIT_SECRET;
     if (!secret) { res.status(403).json(apiResponse.error('Not configured')); return; }
     const { initSecret, email } = req.body as { initSecret: string; email: string };
-    if (initSecret !== secret) { res.status(403).json(apiResponse.error('Invalid secret')); return; }
+    if (!safeCompare(initSecret, secret)) { res.status(403).json(apiResponse.error('Invalid secret')); return; }
     await this.authService.clearLoginAttempts(email);
     res.json(apiResponse.success(null, `Login attempts cleared for ${email}`));
   };
@@ -221,7 +227,7 @@ export class AuthController {
       const { initSecret, email, username, password } = req.body as {
         initSecret: string; email: string; username: string; password: string;
       };
-      if (initSecret !== secret) { res.status(403).json(apiResponse.error('Invalid secret')); return; }
+      if (!safeCompare(initSecret, secret)) { res.status(403).json(apiResponse.error('Invalid secret')); return; }
       const result = await this.authService.upsertSuperAdmin(email, username, password);
       res.json(apiResponse.success({ result }, `Superadmin ${result}`));
     } catch (error) {
@@ -236,7 +242,7 @@ export class AuthController {
       const { initSecret, email, username, password } = req.body as {
         initSecret: string; email: string; username: string; password: string;
       };
-      if (initSecret !== secret) { res.status(403).json(apiResponse.error('Invalid secret')); return; }
+      if (!safeCompare(initSecret, secret)) { res.status(403).json(apiResponse.error('Invalid secret')); return; }
       await this.authService.createSuperAdmin(email, username, password);
       res.json(apiResponse.success(null, 'Superadmin created'));
     } catch (error) {

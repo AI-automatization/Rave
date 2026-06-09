@@ -112,7 +112,7 @@ export class WatchPartyService {
 
     let passwordHash: string | null = null;
     if (isPrivate && password) {
-      passwordHash = await bcrypt.hash(password, 10);
+      passwordHash = await bcrypt.hash(password, 12);
     }
 
     const room = await WatchPartyRoom.create({
