@@ -23,6 +23,11 @@ const initFirebase = (): void => {
     return;
   }
 
+  if (admin.apps.length > 0) {
+    logger.info('Firebase Admin already initialized');
+    return;
+  }
+
   try {
     admin.initializeApp({
       credential: admin.credential.cert({
@@ -33,9 +38,7 @@ const initFirebase = (): void => {
     });
     logger.info('Firebase Admin initialized');
   } catch (err) {
-    logger.error('Firebase Admin init failed — push notifications disabled', {
-      message: (err as Error).message,
-    });
+    logger.error('Firebase Admin init failed', { message: (err as Error).message });
   }
 };
 
