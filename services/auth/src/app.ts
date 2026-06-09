@@ -12,6 +12,7 @@ import { setupSentryErrorHandler } from '@shared/utils/sentry';
 import { metricsMiddleware, registerMetricsEndpoint } from '@shared/utils/metrics';
 import { requestId } from '@shared/middleware/requestId.middleware';
 import { timeout } from '@shared/middleware/timeout.middleware';
+import { maintenanceGuard } from '@shared/middleware/maintenance.middleware';
 import { apiLogger } from '@shared/middleware/apiLogger.middleware';
 import { morganStream } from '@shared/utils/logger';
 import { createAuthRouter } from './routes/auth.routes';
@@ -47,6 +48,7 @@ export const createApp = (redis: Redis): express.Application => {
 
   // Request timeout — 30 seconds
   app.use(timeout());
+  app.use(maintenanceGuard);
 
   // Passport — Google OAuth (faqat clientId mavjud bo'lsa)
   if (config.google.clientId) {

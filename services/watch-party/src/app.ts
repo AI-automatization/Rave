@@ -13,6 +13,7 @@ import { setupSentryErrorHandler } from '@shared/utils/sentry';
 import { metricsMiddleware, registerMetricsEndpoint } from '@shared/utils/metrics';
 import { requestId } from '@shared/middleware/requestId.middleware';
 import { timeout } from '@shared/middleware/timeout.middleware';
+import { maintenanceGuard } from '@shared/middleware/maintenance.middleware';
 import { morganStream, logger } from '@shared/utils/logger';
 import { SERVER_EVENTS } from '@shared/constants/socketEvents';
 import { createWatchPartyRouter } from './routes/watchParty.routes';
@@ -81,6 +82,7 @@ export const createApp = (redis: Redis): { app: express.Application; io: SocketS
   app.use(requestId);
   app.use(metricsMiddleware());
   app.use(timeout());
+  app.use(maintenanceGuard);
 
   app.get('/health', async (_req, res) => {
     const mongoOk = mongoose.connection.readyState === 1;

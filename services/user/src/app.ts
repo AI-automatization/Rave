@@ -11,6 +11,7 @@ import { setupSentryErrorHandler } from '@shared/utils/sentry';
 import { metricsMiddleware, registerMetricsEndpoint } from '@shared/utils/metrics';
 import { requestId } from '@shared/middleware/requestId.middleware';
 import { timeout } from '@shared/middleware/timeout.middleware';
+import { maintenanceGuard } from '@shared/middleware/maintenance.middleware';
 import { apiLogger } from '@shared/middleware/apiLogger.middleware';
 import { morganStream } from '@shared/utils/logger';
 import { createUserRouter } from './routes/user.routes';
@@ -42,6 +43,7 @@ export const createApp = (redis: Redis): express.Application => {
   app.use(metricsMiddleware());
   app.use(apiLogger('user'));
   app.use(timeout());
+  app.use(maintenanceGuard);
 
   // Static uploads (avatar images)
   app.use('/uploads', express.static(path.resolve(config.uploadPath)));

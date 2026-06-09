@@ -10,6 +10,7 @@ import { setupSentryErrorHandler } from '@shared/utils/sentry';
 import { metricsMiddleware, registerMetricsEndpoint } from '@shared/utils/metrics';
 import { requestId } from '@shared/middleware/requestId.middleware';
 import { timeout } from '@shared/middleware/timeout.middleware';
+import { maintenanceGuard } from '@shared/middleware/maintenance.middleware';
 import { apiLogger } from '@shared/middleware/apiLogger.middleware';
 import { morganStream, logger } from '@shared/utils/logger';
 import { createNotificationRouter } from './routes/notification.routes';
@@ -63,6 +64,7 @@ export const createApp = (): express.Application => {
   app.use(metricsMiddleware());
   app.use(apiLogger('notification'));
   app.use(timeout());
+  app.use(maintenanceGuard);
 
   app.get('/health', (_req, res) => {
     const mongoOk = mongoose.connection.readyState === 1;

@@ -28,6 +28,7 @@ interface Props {
   onBuffering?: (isBuffering: boolean) => void;
   userAgent?: string;
   referer?: string;
+  onYtInnertubeUrl?: (url: string) => void;
 }
 
 export const WebViewPlayer = forwardRef<WebViewPlayerRef, Props>((props, ref) => {

@@ -70,12 +70,12 @@ export const blockedUsersStorage = {
 
 export const activeRoomStorage = {
   async save(roomId: string, videoReferer?: string): Promise<void> {
-    await set('wewatch_active_room_v1', JSON.stringify({ roomId, videoReferer: videoReferer ?? null }));
+    await set('wewatch_active_room_v1', JSON.stringify({ roomId, videoReferer: videoReferer ?? null, savedAt: Date.now() }));
   },
-  async get(): Promise<{ roomId: string; videoReferer?: string } | null> {
+  async get(): Promise<{ roomId: string; videoReferer?: string; savedAt?: number } | null> {
     try {
       const raw = await get('wewatch_active_room_v1');
-      return raw ? (JSON.parse(raw) as { roomId: string; videoReferer?: string }) : null;
+      return raw ? (JSON.parse(raw) as { roomId: string; videoReferer?: string; savedAt?: number }) : null;
     } catch {
       return null;
     }

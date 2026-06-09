@@ -12,6 +12,7 @@ import { setupSentryErrorHandler } from '@shared/utils/sentry';
 import { metricsMiddleware, registerMetricsEndpoint } from '@shared/utils/metrics';
 import { requestId } from '@shared/middleware/requestId.middleware';
 import { timeout } from '@shared/middleware/timeout.middleware';
+import { maintenanceGuard } from '@shared/middleware/maintenance.middleware';
 import { apiLogger } from '@shared/middleware/apiLogger.middleware';
 import { morganStream } from '@shared/utils/logger';
 import { verifyToken } from '@shared/middleware/auth.middleware';
@@ -49,6 +50,7 @@ export const createApp = (redis: Redis, elastic: ElasticsearchClient): express.A
   app.use(metricsMiddleware());
   app.use(apiLogger('content'));
   app.use(timeout());
+  app.use(maintenanceGuard);
 
   app.get('/health', async (_req, res) => {
     const mongoOk = mongoose.connection.readyState === 1;

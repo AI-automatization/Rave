@@ -70,9 +70,13 @@ async function registerForPushNotifications(): Promise<void> {
 
   if (finalStatus !== 'granted') return;
 
-  const projectId = process.env.EXPO_PUBLIC_PROJECT_ID;
+  // Use env var first, fall back to app.json extra.eas.projectId (works in release APK)
+  const projectId: string | undefined =
+    process.env.EXPO_PUBLIC_PROJECT_ID ??
+    (Constants.expoConfig?.extra as { eas?: { projectId?: string } } | undefined)?.eas?.projectId;
+
   if (!projectId) {
-    if (__DEV__) console.warn('[Push] EXPO_PUBLIC_PROJECT_ID is not set — push token registration skipped');
+    if (__DEV__) console.warn('[Push] projectId not found — push token registration skipped');
     return;
   }
 

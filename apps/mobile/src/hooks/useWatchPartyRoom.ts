@@ -136,7 +136,11 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
 
   useEffect(() => {
     if (room) return;
-    const timer = setTimeout(() => setConnectTimeout(true), 15000);
+    const timer = setTimeout(() => {
+      setConnectTimeout(true);
+      // Room not found within timeout — clear stale restore data
+      void activeRoomStorage.clear();
+    }, 15000);
     return () => clearTimeout(timer);
   }, [room]);
 

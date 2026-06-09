@@ -7,12 +7,12 @@ export const CONTROLS_TIMEOUT = 4000;
 export const YOUTUBE_RE = /(?:youtube\.com|youtu\.be)/i;
 
 const IOS_UA =
-  'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 ' +
-  '(KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
+  'Mozilla/5.0 (iPhone; CPU iPhone OS 18_3 like Mac OS X) AppleWebKit/605.1.15 ' +
+  '(KHTML, like Gecko) Version/18.3 Mobile/15E148 Safari/604.1';
 
 const ANDROID_UA =
-  'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 ' +
-  '(KHTML, like Gecko) Chrome/120.0.6099.144 Mobile Safari/537.36';
+  'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 ' +
+  '(KHTML, like Gecko) Chrome/136.0.0.0 Mobile Safari/537.36';
 
 export const MOBILE_UA = Platform.OS === 'ios' ? IOS_UA : ANDROID_UA;
 

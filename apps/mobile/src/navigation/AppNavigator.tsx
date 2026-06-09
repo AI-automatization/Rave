@@ -22,6 +22,7 @@ import { UpdateRequiredScreen } from '@components/common/UpdateRequiredScreen';
 import { onAccountBlocked } from '@api/client';
 import { privacyPolicyStorage, activeRoomStorage } from '@utils/storage';
 import { adminApi } from '@api/admin.api';
+import { watchPartyApi } from '@api/watchParty.api';
 import Constants from 'expo-constants';
 import { analyticsService } from '@services/analyticsService';
 import { getActiveScreenName } from '@hooks/useScreenTracking';
@@ -226,8 +227,24 @@ export function AppNavigator() {
     const currentRoute = navigationRef.getCurrentRoute();
     if ((currentRoute?.name as string) === 'WatchParty') return;
 
-    activeRoomStorage.get().then((saved) => {
+    activeRoomStorage.get().then(async (saved) => {
       if (!saved) return;
+
+      // Skip rooms older than 2 hours — inactivity closes them in 5 min anyway
+      const STALE_MS = 2 * 60 * 60 * 1000;
+      if (saved.savedAt && Date.now() - saved.savedAt > STALE_MS) {
+        void activeRoomStorage.clear();
+        return;
+      }
+
+      // Validate room still exists and is active before restoring
+      try {
+        await watchPartyApi.getRoomById(saved.roomId);
+      } catch {
+        void activeRoomStorage.clear();
+        return;
+      }
+
       navigationRef.navigate('Modal', {
         screen: 'WatchParty',
         params: { roomId: saved.roomId, videoReferer: saved.videoReferer },
