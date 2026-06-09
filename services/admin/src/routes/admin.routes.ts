@@ -3,6 +3,7 @@ import Redis from 'ioredis';
 import { AdminController } from '../controllers/admin.controller';
 import { BannedWordsController } from '../controllers/bannedWords.controller';
 import { SettingsController } from '../controllers/settings.controller';
+import { DatabaseController } from '../controllers/database.controller';
 import { AdminService } from '../services/admin.service';
 import { verifyToken, requireRole } from '@shared/middleware/auth.middleware';
 import { requireInternalSecret } from '@shared/utils/serviceClient';
@@ -18,6 +19,7 @@ export const createAdminRouter = (redis: Redis): Router => {
   const adminController = new AdminController(adminService);
   const bannedWordsController = new BannedWordsController();
   const settingsController = new SettingsController();
+  const dbController = new DatabaseController();
 
   // Internal: DELETE /admin/internal/users/:userId — cascade account deletion (T-S093)
   router.delete('/internal/users/:userId', requireInternalSecret, adminController.deleteUserData);
@@ -125,6 +127,12 @@ export const createAdminRouter = (redis: Redis): Router => {
   router.patch('/campaigns/:slug/deactivate',    adminController.deactivateCampaign);
   router.get('/campaigns/:slug/stats',           adminController.getCampaignStats);
   router.post('/campaigns/:slug/send',           requireRole('admin', 'superadmin'), adminController.sendCampaign);
+
+  // ── DB Browser (superadmin only) ──────────────────────────────
+  router.get('/db/collections',                                requireRole('superadmin'), dbController.listCollections);
+  router.get('/db/collections/:name/documents',                requireRole('superadmin'), dbController.listDocuments);
+  router.get('/db/collections/:name/documents/:id',            requireRole('superadmin'), dbController.getDocument);
+  router.delete('/db/collections/:name/documents/:id',         requireRole('superadmin'), dbController.deleteDocument);
 
   return router;
 };
