@@ -1,4 +1,4 @@
-# USER + BATTLE + NOTIFICATION AGENT — CineSync
+# КОННИ — USER + BATTLE + NOTIFICATION AGENT (Атакующий) — CineSync
 # services/user/ :3002 | services/battle/ :3005 | services/notification/ :3007
 # Combined — small services with similar patterns
 

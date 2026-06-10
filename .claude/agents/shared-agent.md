@@ -1,4 +1,4 @@
-# SHARED AGENT — CineSync
+# ЗИКЕ — SHARED AGENT (Атакующий) — CineSync
 # shared/ | Types, utils, middleware, constants | Lock protocol required
 
 ZONE:      shared/

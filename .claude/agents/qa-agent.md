@@ -1,4 +1,4 @@
-# QA AGENT — CineSync
+# ЭРВИН — QA AGENT (Атакующий) — CineSync
 # Read-only validation agent. Runs after Critic APPROVE. No code changes.
 
 ZONE:      READ-ONLY — all directories

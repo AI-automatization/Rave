@@ -1,4 +1,4 @@
-# WATCH-PARTY AGENT — CineSync
+# ЛЕВИ — WATCH-PARTY AGENT (Атакующий) — CineSync
 # services/watch-party/ | Port 3004 | Socket.io real-time sync
 
 ZONE:      services/watch-party/

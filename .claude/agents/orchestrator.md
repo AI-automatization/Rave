@@ -1,4 +1,4 @@
-# ORCHESTRATOR — CineSync Agent System
+# БЕРТ — ORCHESTRATOR (Колосс) — CineSync Agent System
 # Reads tasks → selects agents → dispatches with minimal context → validates → merges
 
 ## TOKEN OPTIMIZATION STRATEGY
@@ -23,9 +23,20 @@
 | apps/mobile/          | Mobile Agent                 | .claude/agents/mobile-agent.md         | general-purpose   |
 | apps/web/             | Web Agent                    | .claude/agents/web-agent.md            | general-purpose   |
 | shared/               | Shared Agent                 | .claude/agents/shared-agent.md         | general-purpose   |
+| .github/workflows/    | DevOps Agent                 | .claude/agents/devops-agent.md         | general-purpose   |
+| eas.json, app.json    | DevOps Agent                 | .claude/agents/devops-agent.md         | general-purpose   |
+| marketing/            | Marketing Agent              | .claude/agents/marketing-agent.md      | general-purpose   |
+| .claude/scripts/tg-*  | Telegram Agent               | .claude/agents/telegram-agent.md       | general-purpose   |
 | Исследование кода     | Explorer                     | (нет файла)                            | Explore           |
 | Архитектура           | Planner                      | (нет файла)                            | Plan              |
 | Валидация после merge | QA Agent                     | .claude/agents/qa-agent.md             | general-purpose   |
+
+## MULTI-AGENT PLAYBOOKS (готовые сценарии)
+
+| Задача                       | Файл                                        | Агенты                          |
+|------------------------------|---------------------------------------------|---------------------------------|
+| Sprint 11: T-S101 + T-S102  | .claude/agents/multi-sprint11-migration.md  | auth-agent × 2 (параллельно)   |
+| Play Store: T-E124 + T-S094 | .claude/agents/multi-playstore-launch.md    | marketing + devops (параллельно)|
 
 ## DISPATCH TEMPLATE (copy-paste для каждого агента)
 

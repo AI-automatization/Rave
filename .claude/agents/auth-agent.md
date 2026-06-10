@@ -1,4 +1,4 @@
-# AUTH AGENT — CineSync
+# ИСТОРИЯ — AUTH AGENT (Атакующий) — CineSync
 # services/auth/ | Port 3001 | JWT RS256 + bcrypt + brute-force
 
 ZONE:      services/auth/

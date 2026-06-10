@@ -1,4 +1,4 @@
-# MOBILE AGENT — CineSync
+# МИКАСА — MOBILE AGENT (Атакующий) — CineSync
 # apps/mobile/ | React Native + Expo | Saidazim + Emirhan zone
 
 ZONE:      apps/mobile/

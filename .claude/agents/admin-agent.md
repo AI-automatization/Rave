@@ -1,4 +1,4 @@
-# ADMIN AGENT — CineSync
+# САША — ADMIN AGENT (Атакующий) — CineSync
 # services/admin/ :3008 + apps/admin-ui/ | Backend API + React Dashboard
 
 ZONE:      services/admin/, apps/admin-ui/

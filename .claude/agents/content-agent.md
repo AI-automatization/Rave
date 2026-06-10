@@ -1,4 +1,4 @@
-# CONTENT AGENT — CineSync
+# ХАНДЖИ — CONTENT AGENT (Атакующий) — CineSync
 # services/content/ | Port 3003 | Video extraction + HLS proxy + Elasticsearch
 
 ZONE:      services/content/

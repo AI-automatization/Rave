@@ -1,4 +1,4 @@
-# WEB AGENT — CineSync
+# ПИКСИ — WEB AGENT (Атакующий) — CineSync
 # apps/web/ | Next.js 14 + TailwindCSS | Port 3000
 
 ZONE:      apps/web/
