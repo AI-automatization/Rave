@@ -87,3 +87,9 @@ T-S094 P2: Privacy Policy + DMCA page at https://wewatch.uz/privacy-policy
 2. EXECUTE → edit yaml/json файлы
 3. VERIFY → yaml lint + tsc (если затронуты ts конфиги)
 4. CHECKPOINT → obsidian-checkpoint.sh
+
+## СКИЛЛЫ
+- deploy             → Railway pre-checks → health → rollback
+- app-store-publish  → EAS build, Play Store, App Store
+- dev-workflow       → PRE/POST чеклист
+- security-audit     → secrets, ENV vars, CI/CD permissions

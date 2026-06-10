@@ -129,3 +129,9 @@ REVIEW REQUEST:
 Review the changes and give APPROVE or REJECT verdict.`
 })
 ```
+
+## СКИЛЛЫ
+- subagent-dispatch  → режим запуска агентов (Mode A/B)
+- dev-workflow       → PRE-CHECK перед диспатчем
+- constraints        → зоны, запреты, lock-протокол
+- status             → snapshot состояния перед планированием

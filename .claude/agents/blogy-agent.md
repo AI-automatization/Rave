@@ -121,3 +121,11 @@ print(result['text'])
 
 ~/Documents/weWatch-obsidian/PROJECTS/clients/Georgiy-Baluev.md
 ~/Documents/weWatch-obsidian/PROJECTS/clients/Blogy-Outreach-System.md
+
+## СКИЛЛЫ
+- telegram-integration      → Telethon, сессии, рассылки
+- telegram-bot-group        → работа с группами
+- marketing-cold-email      → холодный outreach текст
+- marketing-prospecting     → поиск и квалификация лидов
+- marketing-community-marketing → работа с TG-сообществами
+- marketing-copywriting     → тексты для рассылок

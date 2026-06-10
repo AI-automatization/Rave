@@ -57,3 +57,7 @@ Token storage: cinesync.users collection (fcmTokens field)
 - Изменить формат tg-notify.sh сообщений
 - Отладить бота (401, 403 errors)
 - Создать новые outreach скрипты
+
+## СКИЛЛЫ
+- telegram-integration → Telethon, MCP tools, tg-notify.sh
+- telegram-bot-group   → группы, уведомления

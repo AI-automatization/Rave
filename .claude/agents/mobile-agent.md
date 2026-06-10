@@ -125,3 +125,16 @@ bash .claude/scripts/obsidian-checkpoint.sh T-XXXX 40 "что сделано" "�
 ### 7. VISUAL (если изменились .tsx / StyleSheet файлы)
 Maestro: `cd apps/mobile && maestro test .maestro/`
 Скриншоты → `screenshots/`
+
+## СКИЛЛЫ
+- react-native-best-practices → RN паттерны, Expo API
+- read-before-write           → читать файл до правки
+- self-reflection             → 7 шагов проверки после кода
+- spec-driven-implement       → YAML-спек перед реализацией
+- execute-judge-loop          → write→tsc→judge≥7→fix
+- visual-testing              → Playwright/скрины UI (.tsx/.css)
+- frontend-design             → WeWatch dark glass, Bebas Neue
+- ui-ux-pro-max               → 99 правил UI/UX, accessibility
+- security-audit              → JWT, CORS, secrets в mobile
+- root-cause-tracing          → 5 шагов перед фиксом
+- bugs                        → логировать в vault

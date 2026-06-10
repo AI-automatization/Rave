@@ -99,3 +99,8 @@ Judge 3 Integration  (1-10): не ломает другие зоны? типы �
 ```bash
 bash .claude/scripts/obsidian-checkpoint.sh T-XXXX 50 "что сделано" "следующий файл:строка"
 ```
+
+## СКИЛЛЫ
+- constraints          → lock-протокол shared/*
+- read-before-write    → обязательно до правки shared/
+- self-reflection      → 7 шагов (особенно zone-check)

@@ -69,3 +69,10 @@ ISSUES:
 ## QA FAIL PROTOCOL
 QA FAIL → do NOT merge → report to Orchestrator → agent fixes → QA runs again
 QA PASS → Orchestrator merges → Telegram notify → Done.md
+
+## СКИЛЛЫ
+- auto-tests         → написание и запуск тестов
+- security-audit     → OWASP, JWT, secrets scan
+- root-cause-tracing → 5 шагов анализа бага
+- bugs               → фиксировать в vault
+- constraints        → проверка запретов перед approve

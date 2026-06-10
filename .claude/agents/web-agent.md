@@ -85,3 +85,12 @@ Judge 3 Integration  (1-10): не ломает другие зоны? типы �
 ```bash
 bash .claude/scripts/obsidian-checkpoint.sh T-XXXX 50 "что сделано" "следующий файл:строка"
 ```
+
+## СКИЛЛЫ
+- frontend-design      → WeWatch dark glass UI
+- ui-ux-pro-max        → 99 правил UI/UX
+- visual-testing       → Playwright скрины
+- webapp-testing       → auth flow, локали
+- read-before-write    → читать файл до правки
+- self-reflection      → 7 шагов
+- spec-driven-implement→ YAML-спек

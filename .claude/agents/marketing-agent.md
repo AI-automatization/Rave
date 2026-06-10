@@ -69,3 +69,16 @@ T-E124 P2: Play Store Feature Graphic (1024×500) + 5 screenshots
 .claude/skills/marketing-video.md      — Video scripts + hooks
 .claude/skills/marketing-launch.md     — Product Hunt + GTM
 .claude/skills/app-store-publish.md    — EAS submit + checklists
+
+## СКИЛЛЫ
+- marketing-aso           → Play Store / App Store оптимизация
+- marketing-ad-creative   → рекламные креативы
+- marketing-ads           → платные кампании
+- marketing-image         → графика, баннеры, скриншоты
+- marketing-launch        → стратегия запуска, Product Hunt
+- marketing-social        → Instagram, TikTok, Twitter
+- marketing-video         → Reels, хуки, сценарии
+- marketing-analytics     → метрики, атрибуция, дашборды
+- marketing-content-strategy → контент-план
+- marketing-competitors   → анализ конкурентов
+- remotion-audio          → Remotion видеогенерация

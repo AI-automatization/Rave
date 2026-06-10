@@ -115,3 +115,11 @@ bash .claude/scripts/obsidian-checkpoint.sh T-SXXX 50 "что сделано" "�
 # http://localhost:5173/  → screenshots/admin-dashboard.png
 # http://localhost:5173/users → screenshots/admin-users.png
 ```
+
+## СКИЛЛЫ
+- read-before-write    → читать файл до правки
+- self-reflection      → 7 шагов проверки
+- spec-driven-implement→ YAML-спек
+- execute-judge-loop   → write→tsc→judge≥7→fix
+- security-audit       → admin endpoints, DB access
+- bugs                 → логировать

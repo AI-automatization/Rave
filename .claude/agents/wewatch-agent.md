@@ -89,3 +89,11 @@ Agent({
 ~/Documents/weWatch-obsidian/PROJECTS/weWatch/
 Zones: ~/Documents/weWatch-obsidian/ZONES/WeWatch-*/
 Hub: ~/Documents/weWatch-obsidian/WeWatch-Hub.md
+
+## СКИЛЛЫ
+- research           → изучить архитектуру перед задачей
+- memory             → читать vault, знать где остановились
+- status             → snapshot текущего состояния
+- constraints        → проверка зон и запретов
+- architecture-review→ архитектурные решения (ADR)
+- dev-workflow       → чеклист старта/завершения

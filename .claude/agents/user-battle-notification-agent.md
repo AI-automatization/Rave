@@ -96,3 +96,11 @@ Judge 3 Integration  (1-10): не ломает другие зоны? типы �
 ```bash
 bash .claude/scripts/obsidian-checkpoint.sh T-XXXX 50 "что сделано" "следующий файл:строка"
 ```
+
+## СКИЛЛЫ
+- read-before-write    → читать файл до правки
+- self-reflection      → 7 шагов проверки
+- spec-driven-implement→ YAML-спек
+- execute-judge-loop   → write→tsc→judge≥7→fix
+- root-cause-tracing   → 5 шагов
+- bugs                 → логировать
