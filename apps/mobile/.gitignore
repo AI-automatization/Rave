@@ -35,7 +35,6 @@ yarn-error.*
 .env
 
 # Secrets
-google-services.json
 GoogleService-Info.plist
 *.keystore
 eas.json

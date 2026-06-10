@@ -115,6 +115,7 @@
       }
     },
     "android": {
+      "googleServicesFile": "./google-services.json",
       "package": "com.wewatch.app",
       "versionCode": 2,
       "adaptiveIcon": {
@@ -153,7 +154,20 @@
       "expo-secure-store",
       "expo-av",
       "expo-web-browser",
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableProguardInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
+          }
+        }
+      ],
+      [
+        "./plugins/withAbiFilters",
+        { "abiFilters": ["arm64-v8a"] }
+      ]
     ],
     "extra": {
       "eas": {
