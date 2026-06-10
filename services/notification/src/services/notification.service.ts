@@ -168,7 +168,7 @@ export class NotificationService {
   async sendBroadcast(title: string, body: string, type: NotificationType): Promise<void> {
     const [tokens, userIds] = await Promise.all([getAllPushTokens(), getAllUserIds()]);
 
-    logger.info('sendBroadcast: sending', { tokens: tokens.length, users: userIds.length, title, type });
+    logger.info('sendBroadcast: sending', { tokenCount: tokens.length, users: userIds.length, title, type });
 
     if (tokens.length === 0 && userIds.length === 0) {
       logger.warn('sendBroadcast: no tokens or users found — nothing to send');

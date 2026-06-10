@@ -65,15 +65,22 @@ async function registerForPushNotifications(): Promise<void> {
     finalStatus = status;
   }
 
-  if (finalStatus !== 'granted') return;
+  if (finalStatus !== 'granted') {
+    console.warn('[Push] Permission not granted — status:', finalStatus);
+    return;
+  }
 
   const token = await getPushToken();
-  if (!token) return;
+  if (!token) {
+    console.warn('[Push] No token returned — push notifications disabled');
+    return;
+  }
 
   try {
     await userApi.updateFcmToken(token);
+    if (__DEV__) console.log('[Push] Token registered successfully');
   } catch (err) {
-    if (__DEV__) console.error('[Push] updateFcmToken failed:', err);
+    console.error('[Push] updateFcmToken failed:', (err as Error).message);
   }
 }
 
@@ -89,8 +96,9 @@ async function getPushToken(): Promise<string | null> {
       if (__DEV__) console.log('[Push] Expo token:', expoPushToken);
       return expoPushToken;
     }
+    console.warn('[Push] No projectId found — skipping Expo push token');
   } catch (expoErr) {
-    if (__DEV__) console.warn('[Push] getExpoPushTokenAsync failed, falling back to device token:', expoErr);
+    console.warn('[Push] getExpoPushTokenAsync failed, falling back to device token:', (expoErr as Error).message);
   }
 
   // Fallback: native FCM token (works without EAS credentials, sent via Firebase Admin SDK)
@@ -99,7 +107,7 @@ async function getPushToken(): Promise<string | null> {
     if (__DEV__) console.log('[Push] Device FCM token:', deviceToken);
     return deviceToken;
   } catch (deviceErr) {
-    if (__DEV__) console.error('[Push] getDevicePushTokenAsync failed:', deviceErr);
+    console.error('[Push] getDevicePushTokenAsync failed:', (deviceErr as Error).message);
     return null;
   }
 }
