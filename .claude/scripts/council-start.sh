@@ -16,7 +16,8 @@ case "$cmd" in
       exit 0
     fi
     echo "🚀 Запускаю WeWatch Swarm Bot..."
-    nohup python3 -u "$LISTENER" >> "$LOG_FILE" 2>&1 &
+    # Watchdog: перезапускает при падении
+    nohup bash -c "while true; do python3 -u \"$LISTENER\" >> \"$LOG_FILE\" 2>&1; echo \"[watchdog] restart \$(date)\" >> \"$LOG_FILE\"; sleep 5; done" &
     echo $! > "$PID_FILE"
     sleep 2
     if kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
