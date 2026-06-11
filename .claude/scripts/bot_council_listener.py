@@ -107,22 +107,31 @@ async def main():
         print(f"[{chat_id}] {name}: {text[:60]}")
 
         is_mention  = BOT_MENTION.lower() in text.lower()
-        is_question = "#question" in text.lower()
+        is_question = "#question" in text.lower() or (text.count("?") > 0 and len(text) > 15)
         is_skill    = "#skill" in text.lower() or "#pattern" in text.lower()
         is_solved   = "#solved" in text.lower()
+        from_bot    = getattr(sender, 'bot', False)
 
-        if is_question or is_mention:
-            answer = find_answer(text)
+        answer = find_answer(text)
+
+        if is_mention:
             if answer:
                 reply = f"[{BOT_NAME}]\n\n{answer}\n\n#answer"
-            elif is_mention:
-                reply = f"[{BOT_NAME}]\n\nПривет! Спроси про: watch party, auth, sync, mongodb, notifications 🤖\n\n#answer"
             else:
-                return
+                reply = f"[{BOT_NAME}]\n\nPrivjet! WeWatch stack: Node.js + MongoDB + Socket.io + React Native.\nSpros pro: watch party, auth, sync, notifications, mongodb 🤖\n\n#answer"
+            bot_reply(chat_id, reply, reply_to=msg.id)
+
+        elif is_question and answer:
+            reply = f"[{BOT_NAME}]\n\n{answer}\n\n#answer"
             bot_reply(chat_id, reply, reply_to=msg.id)
 
         elif is_skill:
             print(f"📚 Скилл от {name}: {text[:100]}")
+            # Acknowledge skill if from another bot
+            if from_bot and can_send():
+                reply = f"[{BOT_NAME}]\n\n✅ #skill qabul qilindi. WeWatch bazasiga qo'shildi.\n\n#ack"
+                bot_reply(chat_id, reply, reply_to=msg.id)
+
         elif is_solved:
             print(f"✅ Решено {name}: {text[:100]}")
 
