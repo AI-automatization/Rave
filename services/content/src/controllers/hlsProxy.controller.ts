@@ -39,6 +39,8 @@ const PRIVATE_IP_PATTERNS: ReadonlyArray<RegExp> = [
   /^192\.168\./,
   /^169\.254\./,
   /^0\./,
+  // IPv4-mapped IPv6 covering same private ranges
+  /^::ffff:(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.)/i,
 ];
 
 const BLOCKED_HOSTNAMES = new Set(['localhost', '::1', '0.0.0.0']);
@@ -68,11 +70,17 @@ export function validateProxyUrl(rawUrl: string): string | null {
     }
   }
 
-  // IPv6 literal check
+  // IPv6 literal check (bracket notation: [::1], [fc00::1])
   const ipv6Match = hostname.match(/^\[(.+)\]$/);
   if (ipv6Match) {
     const ipv6 = ipv6Match[1].toLowerCase();
-    if (ipv6 === '::1' || ipv6.startsWith('fc') || ipv6.startsWith('fd') || ipv6.startsWith('fe80')) {
+    if (
+      ipv6 === '::1' ||
+      ipv6.startsWith('fc') ||
+      ipv6.startsWith('fd') ||
+      ipv6.startsWith('fe80') ||
+      ipv6.startsWith('::ffff:')
+    ) {
       return `Private/internal IPv6 blocked: ${hostname}`;
     }
   }

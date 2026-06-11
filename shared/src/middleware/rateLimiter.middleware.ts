@@ -32,12 +32,13 @@ const sendRedisCommand = ((...args: string[]) =>
   getRedisClient().call(...(args as [string, ...string[]]))) as unknown as SendCommandFn;
 
 // General API rate limiter — 100 requests per 15 minutes per IP
+// passOnStoreError: true — if Redis is down, allow requests (fail-open for non-auth endpoints)
 export const apiRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
   standardHeaders: true,
   legacyHeaders: false,
-  passOnStoreError: false,
+  passOnStoreError: true,
   handler: tooManyRequestsHandler,
   store: new RedisStore({
     sendCommand: sendRedisCommand,

@@ -23,29 +23,22 @@ const verifySocketToken = (token: string): JwtPayload => {
   return jwt.verify(token, publicKey, { algorithms: ['RS256'] }) as JwtPayload;
 };
 
-// #45 — WebSocket connection rate limit: 10 connections per minute per IP
+// #45 — WebSocket connection rate limit: 10 connections per minute per IP (Redis-backed)
 const CONN_LIMIT = LIMITS.MAX_WS_CONN_PER_MINUTE ?? 10;
-const CONN_WINDOW_MS = TIMING.WS_CONN_RATE_WINDOW_MS;
-const connRateMap = new Map<string, { count: number; resetAt: number }>();
+const CONN_WINDOW_SEC = Math.ceil((TIMING.WS_CONN_RATE_WINDOW_MS ?? 60_000) / 1000);
 
-const checkConnRateLimit = (ip: string): boolean => {
-  const now = Date.now();
-  const entry = connRateMap.get(ip);
-  if (!entry || now >= entry.resetAt) {
-    connRateMap.set(ip, { count: 1, resetAt: now + CONN_WINDOW_MS });
+// Redis key: ws:conn:{ip} — INCR + EXPIRE pattern, shared across all instances
+const checkConnRateLimit = async (redis: import('ioredis').default, ip: string): Promise<boolean> => {
+  try {
+    const key = `ws:conn:${ip}`;
+    const count = await redis.incr(key);
+    if (count === 1) await redis.expire(key, CONN_WINDOW_SEC);
+    return count <= CONN_LIMIT;
+  } catch {
+    // Redis unavailable — fail open (allow connection)
     return true;
   }
-  if (entry.count >= CONN_LIMIT) return false;
-  entry.count++;
-  return true;
 };
-
-setInterval(() => {
-  const now = Date.now();
-  for (const [ip, entry] of connRateMap.entries()) {
-    if (now >= entry.resetAt) connRateMap.delete(ip);
-  }
-}, TIMING.WS_CONN_RATE_WINDOW_MS);
 
 // Rate limiter: per user, 10 messages per 5 seconds (chat + emoji)
 const MSG_LIMIT = LIMITS.MAX_WS_MSG_PER_WINDOW;
@@ -106,12 +99,13 @@ export const registerWatchPartySocket = (io: SocketServer, watchPartyService: Wa
   process.on('SIGTERM', () => clearInterval(cleanupInterval));
   process.on('SIGINT',  () => clearInterval(cleanupInterval));
 
-  // #45 — connection rate limit middleware
-  io.use((socket: Socket, next) => {
+  // #45 — connection rate limit middleware (Redis-backed, shared across instances)
+  io.use(async (socket: Socket, next) => {
     const ip = socket.handshake.headers['x-forwarded-for']?.toString().split(',')[0]?.trim()
       ?? socket.handshake.address
       ?? 'unknown';
-    if (!checkConnRateLimit(ip)) {
+    const allowed = await checkConnRateLimit(redis, ip);
+    if (!allowed) {
       return next(new Error('Too many connections from this IP'));
     }
     next();

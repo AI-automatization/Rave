@@ -50,19 +50,27 @@ export const videoProxyController = {
 
     try {
       // Decode extra headers from yt-dlp (Referer, Accept, etc.) forwarded by mobile
+      // Only allow specific safe headers from client to prevent header injection
+      const ALLOWED_PROXY_HEADERS = new Set(['Referer', 'Origin', 'Accept-Language']);
       let extraHeaders: Record<string, string> = {};
       if (h) {
-        try { extraHeaders = JSON.parse(h) as Record<string, string>; } catch { /* ignore */ }
+        try {
+          const parsed = JSON.parse(h) as Record<string, unknown>;
+          for (const key of ALLOWED_PROXY_HEADERS) {
+            if (typeof parsed[key] === 'string') extraHeaders[key] = parsed[key] as string;
+          }
+        } catch { /* ignore malformed JSON */ }
       }
       const upstreamHeaders: Record<string, string> = {
-        ...extraHeaders,               // yt-dlp headers first (Referer, Origin, Accept-Language…)
-        'User-Agent': CHROME_UA,       // always override UA — Chrome fingerprint beats yt-dlp UA
+        'User-Agent': CHROME_UA,
         'Accept': '*/*',
-        'Accept-Encoding': 'identity', // prevent gzip/br — pipe raw bytes directly to ExoPlayer
+        'Accept-Encoding': 'identity',
         'Accept-Language': extraHeaders['Accept-Language'] ?? 'en-US,en;q=0.9',
         'Sec-Fetch-Dest': 'video',
         'Sec-Fetch-Mode': 'no-cors',
         'Sec-Fetch-Site': 'cross-site',
+        ...(extraHeaders['Referer'] ? { 'Referer': extraHeaders['Referer'] } : {}),
+        ...(extraHeaders['Origin']  ? { 'Origin':  extraHeaders['Origin']  } : {}),
       };
 
       const rangeHeader = req.headers.range;

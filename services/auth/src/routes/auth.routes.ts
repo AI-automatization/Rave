@@ -92,7 +92,7 @@ export const createAuthRouter = (redis: Redis): Router => {
   // Telegram auth (mobile)
   router.post('/telegram/login', authRateLimiter, oauthController.telegramLogin);   // hash verify → JWT
   router.post('/telegram/init', authRateLimiter, oauthController.telegramInit);     // polling flow init
-  router.post('/telegram/webhook', oauthController.telegramWebhook);                // bot updates
+  router.post('/telegram/webhook', authRateLimiter, oauthController.telegramWebhook); // bot updates
   router.get('/telegram/poll', pollRateLimiter, oauthController.telegramPoll);       // polling check
   router.get('/telegram/redirect', oauthController.telegramRedirect);               // deep link redirect
 

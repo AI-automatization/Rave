@@ -9,8 +9,9 @@ export class DatabaseController {
       if (!db) { res.status(503).json(apiResponse.error('Database not connected')); return; }
 
       const cols = await db.listCollections().toArray();
+      const appCols = cols.filter((col) => !this.isSystemCollection(col.name));
       const stats = await Promise.all(
-        cols.map(async (col) => {
+        appCols.map(async (col) => {
           const count = await db.collection(col.name).estimatedDocumentCount().catch(() => 0);
           return { name: col.name, count };
         }),
@@ -22,12 +23,20 @@ export class DatabaseController {
     }
   };
 
+  private isSystemCollection(name: string): boolean {
+    return /^(system\.|admin\b)/i.test(name);
+  }
+
   listDocuments = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const db = mongoose.connection.db;
       if (!db) { res.status(503).json(apiResponse.error('Database not connected')); return; }
 
       const { name } = req.params;
+      if (this.isSystemCollection(name)) {
+        res.status(403).json(apiResponse.error('Access to system collections is not allowed'));
+        return;
+      }
       const page  = Math.max(1, parseInt(req.query.page  as string, 10) || 1);
       const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string, 10) || 20));
       const search = ((req.query.search as string) || '').trim();
@@ -67,6 +76,10 @@ export class DatabaseController {
       if (!db) { res.status(503).json(apiResponse.error('Database not connected')); return; }
 
       const { name, id } = req.params;
+      if (this.isSystemCollection(name)) {
+        res.status(403).json(apiResponse.error('Access to system collections is not allowed'));
+        return;
+      }
       if (!/^[a-f\d]{24}$/i.test(id)) {
         res.status(400).json(apiResponse.error('Invalid document ID'));
         return;
@@ -86,6 +99,10 @@ export class DatabaseController {
       if (!db) { res.status(503).json(apiResponse.error('Database not connected')); return; }
 
       const { name, id } = req.params;
+      if (this.isSystemCollection(name)) {
+        res.status(403).json(apiResponse.error('Access to system collections is not allowed'));
+        return;
+      }
       if (!/^[a-f\d]{24}$/i.test(id)) {
         res.status(400).json(apiResponse.error('Invalid document ID'));
         return;

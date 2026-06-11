@@ -10,6 +10,7 @@ import { setupSentryErrorHandler } from '@shared/utils/sentry';
 import { metricsMiddleware, registerMetricsEndpoint } from '@shared/utils/metrics';
 import { requestId } from '@shared/middleware/requestId.middleware';
 import { timeout } from '@shared/middleware/timeout.middleware';
+import { maintenanceGuard } from '@shared/middleware/maintenance.middleware';
 import { morganStream } from '@shared/utils/logger';
 import { apiLogger } from '@shared/middleware/apiLogger.middleware';
 import { createAdminRouter } from './routes/admin.routes';
@@ -36,6 +37,7 @@ export const createApp = (redis: Redis): express.Application => {
   app.use(metricsMiddleware());
   app.use(apiLogger('admin'));
   app.use(timeout());
+  app.use(maintenanceGuard);
 
   app.get('/health', async (_req, res) => {
     const mongoOk = mongoose.connection.readyState === 1;

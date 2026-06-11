@@ -21,9 +21,9 @@ export function isPlaywrightPlatform(url: URL): boolean {
   return PLAYWRIGHT_PLATFORMS.has(hostname);
 }
 
-// Private/reserved IP ranges (SSRF protection)
+// Private/reserved IP ranges (SSRF protection — includes IPv4-mapped IPv6)
 const PRIVATE_IP_RE =
-  /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|::1$|fc00:|fe80:)/i;
+  /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|0\.|::1$|fc00:|fd|fe80:|::ffff:(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.))/i;
 
 const PLATFORM_PATTERNS: Array<{ re: RegExp; platform: VideoPlatform }> = [
   // ── Direct stream URLs — MUST be checked FIRST so CDN URLs with video extensions

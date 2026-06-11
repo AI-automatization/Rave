@@ -1,14 +1,15 @@
 import { Router } from 'express';
 import { ExternalVideoController } from '../controllers/externalVideo.controller';
 import { verifyToken, requireRole } from '@shared/middleware/auth.middleware';
+import { apiRateLimiter } from '@shared/middleware/rateLimiter.middleware';
 
 export const createExternalVideoRouter = (): Router => {
   const router = Router();
   const ctrl   = new ExternalVideoController();
 
-  // Public
-  router.post('/metadata', ctrl.extractMetadata);         // extract title/thumbnail from URL
-  router.post('/check',    ctrl.checkUrl);                // check if URL exists
+  // Rate-limited — require auth to prevent unauthenticated SSRF probing
+  router.post('/metadata', apiRateLimiter, verifyToken, ctrl.extractMetadata);
+  router.post('/check',    apiRateLimiter, verifyToken, ctrl.checkUrl);
   router.get('/',          ctrl.listPublic);              // approved public list
   router.post('/:id/view', ctrl.view);                    // increment view count
 

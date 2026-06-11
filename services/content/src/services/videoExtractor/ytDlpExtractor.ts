@@ -168,8 +168,10 @@ export async function ytDlpExtractor(
     }
 
     // Per-request cookie header (for auth-protected non-YouTube sites, T-S045)
+    // Strip CRLF to prevent header injection in yt-dlp's HTTP requests
     if (cookies && cookies.length <= 4096 && !isYouTube) {
-      args.push('--add-header', `Cookie:${cookies}`);
+      const safeCookies = cookies.replace(/[\r\n]/g, '');
+      args.push('--add-header', `Cookie:${safeCookies}`);
     }
 
     args.push(rawUrl);
