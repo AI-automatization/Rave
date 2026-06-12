@@ -8,11 +8,11 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-const EFFECTIVE_DATE = 'May 20, 2026';
+const EFFECTIVE_DATE = 'June 11, 2026';
 const APP_NAME = 'WeWatch';
-const COMPANY = 'WeWatch (Rave)';
-const PRIVACY_EMAIL = 'privacy@wewatch.app';
-const SUPPORT_EMAIL = 'support@wewatch.app';
+const COMPANY = 'WeWatch — TEZ KOD LLC';
+const PRIVACY_EMAIL = 'support@wewatch.uz';
+const SUPPORT_EMAIL = 'support@wewatch.uz';
 const APP_URL = 'https://wewatch.uz';
 
 export default function PrivacyPolicyPage() {
@@ -202,10 +202,11 @@ export default function PrivacyPolicyPage() {
               least the same standard described in this Privacy Policy and is prohibited from using
               your data for any purpose other than providing services to us:
               <ul className="mt-1 ml-4">
-                <li><em>MongoDB Atlas (MongoDB, Inc.)</em> — database hosting (data stored in US region). <a href="https://www.mongodb.com/legal/privacy-policy" className="text-[#7B72F8] hover:underline" target="_blank" rel="noopener noreferrer">Privacy Policy</a></li>
-                <li><em>Railway.app</em> — cloud server infrastructure. <a href="https://railway.app/legal/privacy" className="text-[#7B72F8] hover:underline" target="_blank" rel="noopener noreferrer">Privacy Policy</a></li>
+                <li><em>Railway.app</em> — all application servers and databases (MongoDB, Redis, Elasticsearch are self-hosted on Railway infrastructure — not a third-party database provider). <a href="https://railway.app/legal/privacy" className="text-[#7B72F8] hover:underline" target="_blank" rel="noopener noreferrer">Privacy Policy</a></li>
                 <li><em>Google Firebase (FCM)</em> — push notification delivery. Only your FCM device token is shared, not message content. <a href="https://firebase.google.com/support/privacy" className="text-[#7B72F8] hover:underline" target="_blank" rel="noopener noreferrer">Privacy Policy</a></li>
                 <li><em>Sentry.io</em> — error monitoring. Error reports contain no personal data by design (user identifiers and personal fields are scrubbed before transmission). <a href="https://sentry.io/privacy/" className="text-[#7B72F8] hover:underline" target="_blank" rel="noopener noreferrer">Privacy Policy</a></li>
+                <li><em>Google Sign-In</em> — authentication only if you choose this method. <a href="https://policies.google.com/privacy" className="text-[#7B72F8] hover:underline" target="_blank" rel="noopener noreferrer">Privacy Policy</a></li>
+                <li><em>Apple Sign In</em> — authentication only if you choose this method. <a href="https://www.apple.com/legal/privacy" className="text-[#7B72F8] hover:underline" target="_blank" rel="noopener noreferrer">Privacy Policy</a></li>
               </ul>
             </li>
             <li>
@@ -302,7 +303,7 @@ export default function PrivacyPolicyPage() {
             <li>All API communication over TLS 1.2+</li>
             <li>RS256-signed JWT access tokens with 15-minute expiry</li>
             <li>Redis-backed rate limiting and brute-force protection (5 attempts → 15-minute lockout)</li>
-            <li>MongoDB Atlas encryption at rest</li>
+            <li>Database encryption at rest (self-hosted MongoDB on Railway)</li>
             <li>Internal service-to-service calls authenticated with a shared secret over private network</li>
           </ul>
           <p className="mt-3">
@@ -363,17 +364,14 @@ export default function PrivacyPolicyPage() {
         <Section title="12. Contact">
           <div className="space-y-1">
             <strong className="text-zinc-200 block">{COMPANY}</strong>
+            <p className="text-zinc-500 text-xs">Registered in Tashkent, Republic of Uzbekistan</p>
             <p>
-              Privacy inquiries:{' '}
+              Privacy &amp; support:{' '}
               <a href={`mailto:${PRIVACY_EMAIL}`} className="text-[#7B72F8] hover:underline">{PRIVACY_EMAIL}</a>
             </p>
             <p>
               DMCA / Copyright:{' '}
-              <a href="mailto:copyright@wewatch.app" className="text-[#7B72F8] hover:underline">copyright@wewatch.app</a>
-            </p>
-            <p>
-              General support:{' '}
-              <a href={`mailto:${SUPPORT_EMAIL}`} className="text-[#7B72F8] hover:underline">{SUPPORT_EMAIL}</a>
+              <a href="mailto:support@wewatch.uz" className="text-[#7B72F8] hover:underline">support@wewatch.uz</a>
             </p>
             <p className="mt-3">
               Additional policies:{' '}
