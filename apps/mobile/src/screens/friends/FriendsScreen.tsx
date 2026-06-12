@@ -91,7 +91,7 @@ export function FriendsScreen() {
           activeOpacity={0.85}
         >
           <Ionicons name="person-add-outline" size={16} color={colors.white} />
-          <Text style={s.addFriendBtnText}>Добавить</Text>
+          <Text style={s.addFriendBtnText}>{t('friends', 'addBtn')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -132,7 +132,7 @@ export function FriendsScreen() {
             <FriendsEmptyState
               icon="people"
               title={t('friends', 'noFriends')}
-              subtitle="Найди друзей и смотрите кино вместе"
+              subtitle={t('friends', 'findSubtitle')}
               action={t('friends', 'findFriends')}
               onAction={() => navigation.navigate('FriendSearch')}
             />
@@ -190,7 +190,7 @@ export function FriendsScreen() {
               <FriendsEmptyState
                 icon="mail"
                 title={t('friends', 'noRequests')}
-                subtitle="Новые запросы появятся здесь"
+                subtitle={t('friends', 'requestsWillAppear')}
               />
             )
           }

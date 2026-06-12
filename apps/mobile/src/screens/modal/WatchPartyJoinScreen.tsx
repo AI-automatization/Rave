@@ -14,6 +14,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
+import { useT } from '@i18n/index';
 import { ModalStackParamList } from '@app-types/index';
 import { watchPartyApi } from '@api/watchParty.api';
 import { analyticsService } from '@services/analyticsService';
@@ -27,6 +28,7 @@ export function WatchPartyJoinScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const { colors } = useTheme();
+  const { t } = useT();
   const styles = useStyles();
   const deepLinkCode = route.params?.inviteCode;
   const [code, setCode] = useState(deepLinkCode?.toUpperCase().slice(0, CODE_LENGTH) ?? '');
@@ -60,7 +62,7 @@ export function WatchPartyJoinScreen() {
       analyticsService.track('action:room_join', undefined, { roomId: room._id });
       navigation.replace('WatchParty', { roomId: room._id });
     } catch {
-      Alert.alert('Xato', 'Noto\'g\'ri kod yoki xona topilmadi');
+      Alert.alert(t('common', 'error'), t('watchParty', 'joinFailed'));
     } finally {
       setLoading(false);
     }

@@ -43,24 +43,24 @@ export function WatchPartyScreen() {
 
   const handleMemberPress = (uid: string) => {
     Alert.alert(
-      'Участник',
-      'Что сделать с этим пользователем?',
+      t('friends', 'memberTitle'),
+      t('friends', 'memberActions'),
       [
         {
-          text: 'Пожаловаться',
+          text: t('friends', 'reportBtn'),
           onPress: () => setReportUserId(uid),
         },
         {
-          text: 'Заблокировать',
+          text: t('friends', 'blockUser'),
           style: 'destructive',
           onPress: () => {
             Alert.alert(
-              'Заблокировать пользователя',
-              'Пользователь будет заблокирован и жалоба будет отправлена модераторам.',
+              t('friends', 'blockUserTitle'),
+              t('friends', 'blockUserMsg'),
               [
-                { text: 'Отмена', style: 'cancel' },
+                { text: t('common', 'cancel'), style: 'cancel' },
                 {
-                  text: 'Заблокировать',
+                  text: t('friends', 'blockUser'),
                   style: 'destructive',
                   onPress: async () => {
                     await blockedUsersStorage.add(uid);
@@ -71,7 +71,7 @@ export function WatchPartyScreen() {
             );
           },
         },
-        { text: 'Отмена', style: 'cancel' },
+        { text: t('common', 'cancel'), style: 'cancel' },
       ],
     );
   };

@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, createThemedStyles, spacing, typography, borderRadius } from '@theme/index';
+import { useT } from '@i18n/index';
 import type { VideoSearchItem } from '@api/content.api';
 
 const PLATFORM_ICON: Record<VideoSearchItem['platform'], string> = {
@@ -83,12 +84,13 @@ function ResultCard({ item, onPress }: { item: VideoSearchItem; onPress: () => v
 export function VideoSearchResults({ results, isLoading, onSelect }: Props) {
   const s = useStyles();
   const { colors } = useTheme();
+  const { t } = useT();
 
   if (isLoading) {
     return (
       <View style={s.center}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={s.loadingText}>Ищем по YouTube, Rutube, VK...</Text>
+        <Text style={s.loadingText}>{t('watchParty', 'searchingPlatforms')}</Text>
       </View>
     );
   }

@@ -79,12 +79,12 @@ export function FriendProfileScreen() {
 
   const handleBlockUser = () => {
     Alert.alert(
-      t('friends', 'blockUserTitle') || 'Заблокировать пользователя',
-      `${profile?.username ? `@${profile.username} — ` : ''}${t('friends', 'blockUserMsg') || 'Пользователь будет заблокирован и убран из друзей.'}`,
+      t('friends', 'blockUserTitle'),
+      `${profile?.username ? `@${profile.username} — ` : ''}${t('friends', 'blockUserMsg')}`,
       [
         { text: t('common', 'cancel'), style: 'cancel' },
         {
-          text: t('friends', 'blockBtn') || 'Заблокировать',
+          text: t('friends', 'blockBtn'),
           style: 'destructive',
           onPress: async () => {
             setBlockLoading(true);
@@ -93,7 +93,7 @@ export function FriendProfileScreen() {
               await userApi.blockUser(params.userId);
               navigation.goBack();
             } catch {
-              Alert.alert(t('common', 'error'), 'Не удалось заблокировать пользователя');
+              Alert.alert(t('common', 'error'), t('common', 'error'));
             } finally {
               setBlockLoading(false);
             }
@@ -262,7 +262,7 @@ export function FriendProfileScreen() {
           </TouchableOpacity>
           <TouchableOpacity style={styles.blockBtn} onPress={handleBlockUser} disabled={blockLoading}>
             <Ionicons name="ban-outline" size={15} color={colors.error} />
-            <Text style={styles.blockBtnText}>{t('friends', 'blockUser') || 'Заблокировать'}</Text>
+            <Text style={styles.blockBtnText}>{t('friends', 'blockBtn')}</Text>
           </TouchableOpacity>
         </View>
 

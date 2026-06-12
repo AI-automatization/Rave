@@ -3,6 +3,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, createThemedStyles, spacing, typography, borderRadius } from '@theme/index';
+import { useT } from '@i18n/index';
 
 interface HomeEmptyStateProps {
   onPickVideo: () => void;
@@ -10,6 +11,7 @@ interface HomeEmptyStateProps {
 
 export function HomeEmptyState({ onPickVideo }: HomeEmptyStateProps) {
   const { colors } = useTheme();
+  const { t } = useT();
   const s = useStyles();
 
   return (
@@ -17,13 +19,11 @@ export function HomeEmptyState({ onPickVideo }: HomeEmptyStateProps) {
       <View style={s.iconWrap}>
         <Ionicons name="people-outline" size={52} color={colors.primary} />
       </View>
-      <Text style={s.title}>Film bazasi hozircha bo'sh</Text>
-      <Text style={s.sub}>
-        Video tanlang va do'stlaringiz bilan birga ko'ring!
-      </Text>
+      <Text style={s.title}>{t('home', 'emptyTitle')}</Text>
+      <Text style={s.sub}>{t('home', 'emptySub')}</Text>
       <TouchableOpacity style={s.btn} onPress={onPickVideo} activeOpacity={0.8}>
         <Ionicons name="play-circle-outline" size={18} color={colors.primary} />
-        <Text style={s.btnText}>Video tanlash va ko'rish</Text>
+        <Text style={s.btnText}>{t('home', 'emptyBtn')}</Text>
       </TouchableOpacity>
     </View>
   );

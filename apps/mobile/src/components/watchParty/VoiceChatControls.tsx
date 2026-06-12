@@ -3,6 +3,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius, typography } from '@theme/index';
+import { useT } from '@i18n/index';
 
 interface Props {
   isJoined: boolean;
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export function VoiceChatControls({ isJoined, isMuted, isLoading, onJoin, onLeave, onToggleMute }: Props) {
+  const { t } = useT();
   return (
     <View style={s.controls}>
       {isJoined ? (
@@ -21,12 +23,12 @@ export function VoiceChatControls({ isJoined, isMuted, isLoading, onJoin, onLeav
           <TouchableOpacity style={[s.controlBtn, isMuted && s.controlBtnMuted]} onPress={onToggleMute}>
             <Ionicons name={isMuted ? 'mic-off' : 'mic'} size={20} color={isMuted ? '#9CA3AF' : '#fff'} />
             <Text style={[s.controlText, isMuted && s.controlTextMuted]}>
-              {isMuted ? 'Включить' : 'Выключить'}
+              {isMuted ? t('watchParty', 'voiceUnmute') : t('watchParty', 'voiceMute')}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity style={s.leaveBtn} onPress={onLeave}>
             <Ionicons name="call" size={18} color="#fff" />
-            <Text style={s.leaveBtnText}>Выйти</Text>
+            <Text style={s.leaveBtnText}>{t('watchParty', 'leave')}</Text>
           </TouchableOpacity>
         </>
       ) : (
@@ -36,7 +38,7 @@ export function VoiceChatControls({ isJoined, isMuted, isLoading, onJoin, onLeav
           ) : (
             <Ionicons name="mic" size={20} color="#fff" />
           )}
-          <Text style={s.joinBtnText}>{isLoading ? 'Подключение...' : 'Войти в голосовой чат'}</Text>
+          <Text style={s.joinBtnText}>{isLoading ? t('watchParty', 'voiceConnecting') : t('watchParty', 'voiceJoin')}</Text>
         </TouchableOpacity>
       )}
     </View>

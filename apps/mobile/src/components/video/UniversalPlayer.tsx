@@ -12,6 +12,7 @@ import {
   buildTwitchHtml, buildVKVideoHtml, buildRutubeHtml, buildVimeoHtml, buildDailymotionHtml,
 } from './WebViewAdapters';
 import { colors, typography, spacing } from '@theme/index';
+import { useT } from '@i18n/index';
 import { detectVideoPlatform, extractYouTubeVideoId, getYouTubeMobileUrl, MOBILE_UA } from '@utils/videoPlayer';
 import { CDN_SNIFF_JS } from '@utils/webViewScripts';
 
@@ -83,6 +84,7 @@ function buildEmbedHtml(url: string, embed: EmbedPlatform): { html: string; base
 export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
   ({ url, isOwner, onPlay, onPause, onSeek, onPlaybackStatusUpdate, onProgress, onBuffering, onReady,
      extractedUrl, isExtracting, referer, httpHeaders, proxyUrl, mode, onCdnUrlSniffed }, ref) => {
+    const { t } = useT();
     const videoRef = useRef<Video>(null);
     const webviewRef = useRef<WebViewPlayerRef>(null);
     const platform = detectVideoPlatform(url);
@@ -198,7 +200,7 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
       return (
         <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.extractingText}>Video aniqlanmoqda...</Text>
+          <Text style={styles.extractingText}>{t('browser', 'videoDetecting')}...</Text>
         </View>
       );
     }
@@ -206,8 +208,8 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
       return (
         <View style={styles.center}>
           <Ionicons name="videocam-off-outline" size={48} color={colors.textMuted} />
-          <Text style={styles.errorText}>Video URL ko'rsatilmagan</Text>
-          <Text style={styles.errorHint}>Xona yaratishda video tanlang yoki URL kiriting</Text>
+          <Text style={styles.errorText}>{t('watchParty', 'noVideoUrlMsg')}</Text>
+          <Text style={styles.errorHint}>{t('watchParty', 'noVideoUrlHint')}</Text>
         </View>
       );
     }
@@ -245,12 +247,12 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
       return (
         <View style={styles.center}>
           <Ionicons name="warning-outline" size={48} color={colors.error} />
-          <Text style={styles.errorText}>Video yuklanmadi</Text>
+          <Text style={styles.errorText}>{t('watchParty', 'videoLoadFailed')}</Text>
           <TouchableOpacity
             style={styles.retryBtn}
             onPress={() => { setVideoError(false); setAvLoaded(false); readyFiredRef.current = false; }}
           >
-            <Text style={styles.retryText}>Qayta urinish</Text>
+            <Text style={styles.retryText}>{t('common', 'retry')}</Text>
           </TouchableOpacity>
         </View>
       );

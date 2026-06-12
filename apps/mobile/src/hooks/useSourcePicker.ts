@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { Alert } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useT } from '@i18n/index';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { contentApi } from '@api/content.api';
 import { watchPartyApi } from '@api/watchParty.api';
@@ -14,6 +15,7 @@ type Nav = NativeStackNavigationProp<ModalStackParamList>;
 type RouteType = RouteProp<ModalStackParamList, 'SourcePicker'>;
 
 export function useSourcePicker() {
+  const { t } = useT();
   const navigation = useNavigation<Nav>();
   const { params } = useRoute<RouteType>();
 
@@ -23,14 +25,14 @@ export function useSourcePicker() {
 
   function handleSourcePress(source: MediaSource) {
     if (source.support === 'internal') {
-      Alert.alert(source.label, 'Эта функция скоро появится в weWatch!', [{ text: 'OK' }]);
+      Alert.alert(source.label, t('watchParty', 'comingSoonFeature'), [{ text: t('common', 'ok') }]);
       return;
     }
     if (source.support === 'drm') {
       Alert.alert(
         `🔒 ${source.label}`,
-        source.drmMessage ?? 'Этот контент защищён DRM и не может быть воспроизведён внутри приложения.',
-        [{ text: 'Понятно' }],
+        source.drmMessage ?? t('watchParty', 'drmNotSupported'),
+        [{ text: t('watchParty', 'understood') }],
       );
       return;
     }
@@ -85,13 +87,13 @@ export function useSourcePicker() {
         new URL(trimmed);
         navigation.navigate('MediaWebView', {
           sourceId: 'custom',
-          sourceName: 'Видео',
+          sourceName: t('watchParty', 'videoDefault'),
           defaultUrl: trimmed,
           mode: params.mode,
           roomId: params.roomId,
         });
       } catch {
-        setUrlError('Не удалось извлечь видео. Проверьте ссылку.');
+        setUrlError(t('watchParty', 'errorExtract'));
       }
     } finally {
       setIsExtracting(false);

@@ -8,6 +8,7 @@ import { VideoExtractInput } from '@components/home/VideoExtractInput';
 import { VideoExtractReady } from '@components/home/VideoExtractReady';
 import { useVideoExtract } from '@hooks/useVideoExtract';
 import { useTheme, createThemedStyles, spacing, typography } from '@theme/index';
+import { useT } from '@i18n/index';
 import type { HomeStackParamList } from '@app-types/index';
 
 type Nav = NativeStackNavigationProp<HomeStackParamList, 'VideoExtract'>;
@@ -20,6 +21,7 @@ export function VideoExtractScreen() {
     handleExtract, handleReset, handleWatchParty,
   } = useVideoExtract();
   const { colors } = useTheme();
+  const { t } = useT();
   const styles = useStyles();
 
   if (state === 'input' || state === 'error') {
@@ -40,8 +42,8 @@ export function VideoExtractScreen() {
       <View style={styles.loading}>
         <StatusBar barStyle="light-content" backgroundColor={colors.bgBase} />
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingTitle}>Video tahlil qilinmoqda...</Text>
-        <Text style={styles.loadingHint}>Bu 3-30 soniya vaqt olishi mumkin</Text>
+        <Text style={styles.loadingTitle}>{t('watchParty', 'videoAnalyzing')}</Text>
+        <Text style={styles.loadingHint}>{t('watchParty', 'extractHint')}</Text>
       </View>
     );
   }

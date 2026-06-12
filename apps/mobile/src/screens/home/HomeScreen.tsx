@@ -163,7 +163,7 @@ export function HomeScreen() {
       {creating && (
         <View style={s.creatingBanner}>
           <ActivityIndicator size="small" color={colors.primary} />
-          <Text style={s.creatingText}>Xona yaratilmoqda...</Text>
+          <Text style={s.creatingText}>{t('home', 'creating')}</Text>
         </View>
       )}
 

@@ -100,12 +100,12 @@ export function FriendSearchScreen() {
           {state === 'friend' ? (
             <View style={styles.friendPill}>
               <Ionicons name="checkmark-circle" size={14} color={colors.success} />
-              <Text style={styles.friendPillText}>Друзья</Text>
+              <Text style={styles.friendPillText}>{t('friends', 'friendPill')}</Text>
             </View>
           ) : state === 'sent' ? (
             <View style={styles.sentPill}>
               <Ionicons name="time-outline" size={13} color={colors.textMuted} />
-              <Text style={styles.sentPillText}>Отправлено</Text>
+              <Text style={styles.sentPillText}>{t('friends', 'sentPill')}</Text>
             </View>
           ) : (
             <TouchableOpacity
@@ -115,7 +115,7 @@ export function FriendSearchScreen() {
               activeOpacity={0.85}
             >
               <Ionicons name="person-add-outline" size={14} color={colors.white} />
-              <Text style={styles.addBtnText}>Добавить</Text>
+              <Text style={styles.addBtnText}>{t('friends', 'addBtn')}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -165,7 +165,7 @@ export function FriendSearchScreen() {
                 <View style={styles.emptyIconWrap}>
                   <Ionicons name="person-outline" size={32} color={colors.primary} />
                 </View>
-                <Text style={styles.emptyTitle}>Никого не найдено</Text>
+                <Text style={styles.emptyTitle}>{t('watchParty', 'noSearchResults')}</Text>
                 <Text style={styles.emptySubtext}>«{query}» не совпадает ни с одним пользователем</Text>
               </View>
             ) : (
@@ -173,8 +173,8 @@ export function FriendSearchScreen() {
                 <View style={styles.emptyIconWrap}>
                   <Ionicons name="search-outline" size={32} color={colors.primary} />
                 </View>
-                <Text style={styles.emptyTitle}>Поиск пользователей</Text>
-                <Text style={styles.emptySubtext}>Введи имя пользователя для поиска</Text>
+                <Text style={styles.emptyTitle}>{t('friends', 'searchUsers')}</Text>
+                <Text style={styles.emptySubtext}>{t('friends', 'searchUsersHint')}</Text>
               </View>
             )
           }

@@ -5,11 +5,13 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
+import { useT } from '@i18n/index';
 import type { SupportMessage } from '@api/support.api';
 
 // ─── Message bubble ──────────────────────────────────────────────────────────
 
 export function MessageItem({ item }: { item: SupportMessage }) {
+  const { t } = useT();
   const s = useStyles();
   const isUser = item.senderRole === 'user';
   return (
@@ -20,7 +22,7 @@ export function MessageItem({ item }: { item: SupportMessage }) {
         </View>
       )}
       <View style={[s.bubble, isUser ? s.bubbleMine : s.bubbleOther]}>
-        {!isUser && <Text style={s.senderLabel}>Поддержка</Text>}
+        {!isUser && <Text style={s.senderLabel}>{t('settings', 'supportTitle')}</Text>}
         <Text style={s.msgText}>{item.text}</Text>
         <Text style={s.timestamp}>
           {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -40,12 +42,13 @@ export function RatingBottomSheet({
   onSubmit: () => void; onSkip: () => void; submitting: boolean;
 }) {
   const { colors } = useTheme();
+  const { t } = useT();
   const s = useRatingStyles();
   return (
     <View style={s.overlay}>
       <View style={s.sheet}>
-        <Text style={s.title}>Оцените поддержку</Text>
-        <Text style={s.sub}>Как прошёл наш разговор?</Text>
+        <Text style={s.title}>{t('settings', 'supportRateTitle')}</Text>
+        <Text style={s.sub}>{t('settings', 'supportRateSub')}</Text>
         <View style={s.stars}>
           {[1, 2, 3, 4, 5].map(n => (
             <TouchableOpacity key={n} onPress={() => setScore(n)} activeOpacity={0.7}>
@@ -61,7 +64,7 @@ export function RatingBottomSheet({
           style={s.commentInput}
           value={comment}
           onChangeText={setComment}
-          placeholder="Оставьте комментарий (необязательно)"
+          placeholder={t('settings', 'supportRateComment')}
           placeholderTextColor={colors.textMuted}
           multiline
           maxLength={200}
@@ -72,10 +75,10 @@ export function RatingBottomSheet({
           disabled={!score || submitting}
           activeOpacity={0.8}
         >
-          <Text style={s.submitText}>{submitting ? 'Отправляем…' : 'Отправить'}</Text>
+          <Text style={s.submitText}>{submitting ? t('settings', 'supportSending') : t('common', 'send')}</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={onSkip} style={s.skipBtn}>
-          <Text style={s.skipText}>Пропустить</Text>
+          <Text style={s.skipText}>{t('settings', 'supportSkip')}</Text>
         </TouchableOpacity>
       </View>
     </View>

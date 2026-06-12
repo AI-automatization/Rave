@@ -2,6 +2,7 @@
 // Requires expo-dev-client — react-native-webrtc won't work in Expo Go.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getSocket, SERVER_EVENTS, CLIENT_EVENTS } from '@socket/client';
+import { useT } from '@i18n/index';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -39,6 +40,7 @@ const ICE_SERVERS = [
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useVoiceChat(visible: boolean) {
+  const { t } = useT();
   const [isJoined, setIsJoined] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [participants, setParticipants] = useState<VoiceParticipant[]>([]);
@@ -187,7 +189,7 @@ export function useVoiceChat(visible: boolean) {
       getSocket()?.emit(CLIENT_EVENTS.VOICE_JOIN);
     } catch (err: unknown) {
       setIsLoading(false);
-      setErrorMsg((err as { message?: string })?.message ?? 'Не удалось получить доступ к микрофону.');
+      setErrorMsg((err as { message?: string })?.message ?? t('watchParty', 'micError'));
     }
   }, [isMuted]);
 

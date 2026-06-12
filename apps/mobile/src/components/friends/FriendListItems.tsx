@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { RANK_COLORS } from '@theme/index';
+import { useT } from '@i18n/index';
 import type { IUserPublic } from '@app-types/index';
 import { DEFAULT_AVATAR } from '@utils/assets';
 
@@ -89,6 +90,7 @@ export const RequestCard = React.memo(function RequestCard({
   onReject: () => void;
 }) {
   const { colors } = useTheme();
+  const { t } = useT();
   const s = useStyles();
   const rankColor = RANK_COLORS[item.requester.rank];
 
@@ -115,7 +117,7 @@ export const RequestCard = React.memo(function RequestCard({
       <View style={s.requestBtns}>
         <TouchableOpacity style={s.acceptBtn} onPress={onAccept} activeOpacity={0.85}>
           <Ionicons name="checkmark" size={15} color={colors.white} />
-          <Text style={s.acceptBtnText}>Принять</Text>
+          <Text style={s.acceptBtnText}>{t('friends', 'accept')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={s.rejectBtn} onPress={onReject} activeOpacity={0.8}>
           <Ionicons name="close" size={17} color={colors.textMuted} />

@@ -2,7 +2,6 @@
 import { useEffect, useRef } from 'react';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
-import Constants from 'expo-constants';
 import { useQueryClient } from '@tanstack/react-query';
 import { userApi } from '@api/user.api';
 import { useAuthStore } from '@store/auth.store';
@@ -47,8 +46,6 @@ export function usePushNotifications() {
 }
 
 async function registerForPushNotifications(): Promise<void> {
-  if (!Constants.isDevice) return;
-
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
       name: 'default',
@@ -85,26 +82,10 @@ async function registerForPushNotifications(): Promise<void> {
 }
 
 async function getPushToken(): Promise<string | null> {
-  // Try Expo push token first (routes through Expo's push service)
-  try {
-    const projectId: string | undefined =
-      process.env.EXPO_PUBLIC_PROJECT_ID ??
-      (Constants.expoConfig?.extra as { eas?: { projectId?: string } } | undefined)?.eas?.projectId;
-
-    if (projectId) {
-      const expoPushToken = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
-      if (__DEV__) console.log('[Push] Expo token:', expoPushToken);
-      return expoPushToken;
-    }
-    console.warn('[Push] No projectId found — skipping Expo push token');
-  } catch (expoErr) {
-    console.warn('[Push] getExpoPushTokenAsync failed, falling back to device token:', (expoErr as Error).message);
-  }
-
-  // Fallback: native FCM token (works without EAS credentials, sent via Firebase Admin SDK)
+  // Use native FCM device token directly — backend uses Firebase Admin SDK (sendEachForMulticast)
   try {
     const deviceToken = (await Notifications.getDevicePushTokenAsync()).data as string;
-    if (__DEV__) console.log('[Push] Device FCM token:', deviceToken);
+    if (__DEV__) console.log('[Push] Device FCM token obtained');
     return deviceToken;
   } catch (deviceErr) {
     console.error('[Push] getDevicePushTokenAsync failed:', (deviceErr as Error).message);

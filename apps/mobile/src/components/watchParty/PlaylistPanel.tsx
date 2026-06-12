@@ -3,6 +3,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
+import { useT } from '@i18n/index';
 import type { VideoItem } from '@app-types/index';
 
 interface PlaylistPanelProps {
@@ -15,6 +16,7 @@ interface PlaylistPanelProps {
 }
 
 export function PlaylistPanel({ playlist, isOwner, onAddToQueue, onRemove, onPlayNext, onClose }: PlaylistPanelProps) {
+  const { t } = useT();
   const s = useStyles();
   return (
     <View style={s.container}>
@@ -35,10 +37,10 @@ export function PlaylistPanel({ playlist, isOwner, onAddToQueue, onRemove, onPla
       {playlist.length === 0 ? (
         <View style={s.empty}>
           <Ionicons name="list-outline" size={28} color="rgba(255,255,255,0.2)" />
-          <Text style={s.emptyText}>Queue bo'sh</Text>
+          <Text style={s.emptyText}>{t('watchParty', 'queueEmpty')}</Text>
           {isOwner && (
             <TouchableOpacity style={s.addBtn} onPress={onAddToQueue}>
-              <Text style={s.addBtnText}>+ Video qo'shish</Text>
+              <Text style={s.addBtnText}>{t('watchParty', 'addToQueue')}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -47,7 +49,7 @@ export function PlaylistPanel({ playlist, isOwner, onAddToQueue, onRemove, onPla
           {isOwner && (
             <TouchableOpacity style={s.playNextBtn} onPress={onPlayNext}>
               <Ionicons name="play-skip-forward" size={16} color="#fff" />
-              <Text style={s.playNextText}>Keyingisini ijro et</Text>
+              <Text style={s.playNextText}>{t('watchParty', 'playNext')}</Text>
             </TouchableOpacity>
           )}
           <FlatList

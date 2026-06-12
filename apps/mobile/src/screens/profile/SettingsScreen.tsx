@@ -243,12 +243,12 @@ export function SettingsScreen() {
               style={[styles.navRow, styles.rowBorder]}
               onPress={() => {
                 Alert.alert(
-                  t('settings', 'logoutAllTitle') || 'Barcha qurilmalardan chiqish',
-                  t('settings', 'logoutAllMsg') || 'Barcha sessiyalar tugatiladi. Davom etasizmi?',
+                  t('settings', 'logoutAllTitle'),
+                  t('settings', 'logoutAllMsg'),
                   [
                     { text: t('common', 'cancel'), style: 'cancel' },
                     {
-                      text: t('settings', 'logoutAllBtn') || 'Chiqish',
+                      text: t('settings', 'logoutAllBtn'),
                       style: 'destructive',
                       onPress: async () => {
                         try {
@@ -267,7 +267,7 @@ export function SettingsScreen() {
             >
               <Ionicons name="log-out-outline" size={18} color={colors.warning} />
               <Text style={[styles.navLabel, { color: colors.warning }]}>
-                {t('settings', 'logoutAll') || 'Barcha qurilmalardan chiqish'}
+                {t('settings', 'logoutAll')}
               </Text>
               <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
             </TouchableOpacity>

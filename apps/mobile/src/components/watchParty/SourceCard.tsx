@@ -3,6 +3,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { spacing, borderRadius } from '@theme/index';
+import { useT } from '@i18n/index';
 import type { MediaSource } from '@constants/mediaSources';
 
 interface Props {
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export function SourceCard({ source, onPress }: Props) {
+  const { t } = useT();
   const isDrm = source.support === 'drm';
   const isInternal = source.support === 'internal';
   const opacity = isInternal ? 0.45 : 1;
@@ -33,7 +35,7 @@ export function SourceCard({ source, onPress }: Props) {
       )}
       {isInternal && (
         <View style={s.soonBadge}>
-          <Text style={s.soonText}>SOON</Text>
+          <Text style={s.soonText}>{t('common', 'soon')}</Text>
         </View>
       )}
     </TouchableOpacity>
