@@ -1,6 +1,6 @@
 # CineSync — OCHIQ VAZIFALAR
 
-# Yangilangan: 2026-05-11
+# Yangilangan: 2026-06-13
 
 ---
 
@@ -491,3 +491,81 @@
 
 ---
 
+
+---
+
+# 🟣 НОВЫЕ ФИЧИ — 2026-06-13
+
+---
+
+### T-S103 | P1 | [BACKEND] | Private DM Chat — backend: endpoints + schema
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-06-13 12:00
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** 3-5 fayl, yangi REST endpoints + MongoDB schema
+- **Sabab:** Watch Party komnatada foydalanuvchiga bosib → shaxsiy chat ochish kerak
+- **Qilish kerak:**
+  - [ ] Yangi `DirectMessage` MongoDB schema (senderId, receiverId, text, createdAt)
+  - [ ] `GET /messages/dm/:userId` — ikki foydalanuvchi o'rtasidagi tarix
+  - [ ] `POST /messages/dm/:userId` — xabar yuborish
+  - [ ] `GET /messages/dm/conversations` — barcha suhbatlar ro'yxati (so'nggi xabar bilan)
+  - [ ] Socket.io event: `dm:message` — real-time yetkazish
+  - [ ] services/notification — yangi xabar uchun push notification
+- **Bog'liq:** T-E136 (Mobile UI)
+
+---
+
+### T-E136 | P1 | [MOBILE] | Private DM Chat — UI: komnatada user tap → DM ekrani
+
+- **Mas'ul:** pending[Emirhan]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-06-13 12:00
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** 3-5 yangi screen/komponent, navigation
+- **Sabab:** Foydalanuvchi Watch Party komnatada kimgadir bosib → shaxsiy xabar yozishi kerak
+- **Qilish kerak:**
+  - [ ] Watch Party: foydalanuvchi nomiga bosish → BottomSheet/Dropdown (Profil ko'rish | Shaxsiy chat)
+  - [ ] Yangi `DMChatScreen` ekrani — chat bubbles, input, real-time
+  - [ ] `ConversationsScreen` — barcha DM suhbatlar ro'yxati
+  - [ ] Profil ekranida "Xabar yuborish" tugmasi
+  - [ ] Navigation: DM stack qo'shish
+  - [ ] Push notification tap → DM ekraniga o'tish
+- **Bog'liq:** T-S103 (Backend)
+
+---
+
+### T-C016 | P1 | [IKKALASI] | WeWatch Web App — to'liq platforma (auth + watch party + social)
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-06-13 12:00
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** opus
+- **Model sababi:** Katta arxitektura, 20+ fayl, yangi platforma
+- **Sabab:** Android + iOS bilan birga Web versiya kerak — apps/web/ Next.js bazasida
+- **Faza 1 — Auth + Base (minimal MVP):**
+  - [ ] Login / Register sahifalar (JWT, Google Sign-In)
+  - [ ] Home — faol xonalar ro'yxati
+  - [ ] Profil sahifasi
+  - [ ] Socket.io connection web uchun
+- **Faza 2 — Watch Party:**
+  - [ ] Komnat yaratish / kirish (URL orqali)
+  - [ ] WebView player yoki iframe player
+  - [ ] Sinxron playback (Socket.io events)
+  - [ ] Chat panel
+- **Faza 3 — Social:**
+  - [ ] Do'stlar, qidiruv
+  - [ ] DM chat (T-S103 backend ishlatadi)
+  - [ ] Profil tahrirlash
+  - [ ] Bildirishnomalar
+- **Texnik:**
+  - [ ] apps/web/ Next.js 14+ (App Router) — allaqachon mavjud, kengaytirish kerak
+  - [ ] Shared API client (shared/utils/ yoki apps/web/src/lib/api)
+  - [ ] Responsive design — mobile + desktop
+- **Bog'liq:** T-S103 | barcha backend services
+
+---
