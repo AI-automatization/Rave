@@ -219,6 +219,15 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
       if (!avLoaded) { setAvLoaded(true); fireReady(); }
     }, [evStatus, useWebview]); // eslint-disable-line react-hooks/exhaustive-deps
 
+    // On iOS expo-video can briefly emit error when replace() is called on a null-initialized
+    // player before settling into loading → readyToPlay. Clear any pending videoError so the
+    // transient error doesn't permanently block the native player.
+    useEffect(() => {
+      if (useWebview || evStatus !== 'loading') return;
+      setVideoError(false);
+      setAvLoaded(false);
+    }, [evStatus, useWebview]); // eslint-disable-line react-hooks/exhaustive-deps
+
     // Handle player error — try proxy fallback, then show error state
     useEffect(() => {
       if (useWebview || evStatus !== 'error') return;

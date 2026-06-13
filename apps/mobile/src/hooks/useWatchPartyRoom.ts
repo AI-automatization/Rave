@@ -523,7 +523,11 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     )));
 
   const baseExtractedHeaders = extractedVideoUrl ? extractResult?.httpHeaders : undefined;
-  const extractedVideoHeaders: Record<string, string> | undefined = (isHlsStream && accessToken)
+  // Authorization header is only for the WeWatch HLS proxy (/content/hls-proxy) which
+  // validates the token before fetching segments from CDN. On iOS there is no proxy
+  // (androidPlayUrl = undefined), so sending Authorization directly to the CDN is wrong —
+  // most CDNs ignore it but some return 403, causing expo-video to enter error state.
+  const extractedVideoHeaders: Record<string, string> | undefined = (isHlsStream && accessToken && !!androidPlayUrl)
     ? { ...baseExtractedHeaders, Authorization: `Bearer ${accessToken}` }
     : baseExtractedHeaders;
 
