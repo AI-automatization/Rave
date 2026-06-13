@@ -606,77 +606,82 @@
 
 ---
 
-## 🌐 WEB APP (Next.js)
+## 🌐 WEB APP (Next.js — мобилка функционалини вебга кўчириш)
 
-### T-C016 | P1 | [WEB] | Web: Auth — Login + Register sahifalari
+> apps/web/ — хозир фақат лендинг. Янги route group (app) ичига тўлиқ веб-илова қўшилади.
+> Мобил скринларни веб учун адаптация қилиш — логика бир хил, UI Next.js/React.
 
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Saidazim
-- **Yaratilgan:** 2026-06-13
-- **Holat:** ❌ Boshlanmagan
-- **Tavsiya model:** sonnet
-- **Model sababi:** 2-3 sahifa, API integration
-- **Sabab:** Web uchun kirish sahifalari kerak
-- **Qilish kerak:**
-  - [ ] `apps/web/src/app/login/page.tsx` — email+parol + Google Sign-In
-  - [ ] `apps/web/src/app/register/page.tsx`
-  - [ ] JWT token saqlash (httpOnly cookie yoki localStorage)
-  - [ ] Auth middleware / protected routes
-  - [ ] API client `apps/web/src/lib/api.ts` (barcha web so'rovlar uchun)
-
----
-
-### T-C017 | P1 | [WEB] | Web: Home — xonalar ro'yxati + xona yaratish
+### T-C016 | P1 | [WEB] | Web: Auth — /app/login + /app/register + API client
 
 - **Mas'ul:** pending[Saidazim]
 - **Beruvchi:** Saidazim
 - **Yaratilgan:** 2026-06-13
 - **Holat:** ❌ Boshlanmagan
 - **Tavsiya model:** sonnet
-- **Model sababi:** Home page + modal, 2-3 komponent
-- **Sabab:** Asosiy ekran — faol xonalar va yaratish
+- **Model sababi:** 3-4 fayl, auth flow
+- **Sabab:** Вебга кириш учун login/register sahifalar + token boshqarish
 - **Qilish kerak:**
-  - [ ] `apps/web/src/app/home/page.tsx` — xonalar grid/list
-  - [ ] Xona yaratish modal (URL kiritish, ism)
-  - [ ] Xonaga kirish (kod orqali)
-  - [ ] `GET /watch-party/rooms` API
-- **Bog'liq:** T-C016 (auth)
+  - [ ] `apps/web/src/app/(app)/layout.tsx` — yangi route group, auth check middleware
+  - [ ] `apps/web/src/app/(app)/login/page.tsx` — email+parol + Google Sign-In
+  - [ ] `apps/web/src/app/(app)/register/page.tsx`
+  - [ ] `apps/web/src/lib/api.ts` — barcha fetch so'rovlar uchun base client (JWT header)
+  - [ ] JWT cookie/localStorage saqlash + refresh
 
 ---
 
-### T-C018 | P1 | [WEB] | Web: Watch Party ekrani — video + sync + chat
+### T-C017 | P1 | [WEB] | Web: Home — /app/home — xonalar ro'yxati + yaratish
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-06-13
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** 2-3 komponent, mobile HomeScreen analogiyasi
+- **Sabab:** Asosiy ekran — faol xonalar, yaratish, kirish
+- **Qilish kerak:**
+  - [ ] `apps/web/src/app/(app)/home/page.tsx` — xonalar grid (mobile HomeScreen analog)
+  - [ ] Xona yaratish modal — ism + video URL
+  - [ ] Xonaga kirish modal — 6 xonali kod
+  - [ ] `GET /watch-party/rooms` dan ma'lumot
+- **Bog'liq:** T-C016
+
+---
+
+### T-C018 | P1 | [WEB] | Web: Watch Party — /app/room/[id] — video + sync + chat
 
 - **Mas'ul:** pending[Saidazim]
 - **Beruvchi:** Saidazim
 - **Yaratilgan:** 2026-06-13
 - **Holat:** ❌ Boshlanmagan
 - **Tavsiya model:** opus
-- **Model sababi:** Murakkab — iframe player, Socket.io sync, chat panel
-- **Sabab:** Webda asosiy Watch Party funksiyasi
+- **Model sababi:** Eng murakkab sahifa — iframe player + Socket.io sync + chat, mobile WatchPartyScreen analog
+- **Sabab:** Вебдаги асосий Watch Party функционали
 - **Qilish kerak:**
-  - [ ] `apps/web/src/app/room/[id]/page.tsx`
-  - [ ] iframe yoki WebView player (YouTube, boshqa saytlar)
-  - [ ] Socket.io ulanish — play/pause/seek sync
-  - [ ] Chat panel (o'ng tomon)
-  - [ ] Ishtirokchilar ro'yxati
+  - [ ] `apps/web/src/app/(app)/room/[id]/page.tsx`
+  - [ ] Iframe player — YouTube + boshqa saytlar (mobile WebViewPlayer analog)
+  - [ ] Socket.io ulanish — play/pause/seek/sync events (mobile kabi)
+  - [ ] Chat panel — o'ng tomon, real-time xabarlar
+  - [ ] Ishtirokchilar ro'yxati — avatar + ism
+  - [ ] Video URL kiritish / almashtirish
 - **Bog'liq:** T-C017
 
 ---
 
-### T-C019 | P2 | [WEB] | Web: Profil + Do'stlar + DM
+### T-C019 | P2 | [WEB] | Web: Profil + Do'stlar + DM — /app/profile, /app/friends, /app/messages
 
 - **Mas'ul:** pending[Saidazim]
 - **Beruvchi:** Saidazim
 - **Yaratilgan:** 2026-06-13
 - **Holat:** ❌ Boshlanmagan
 - **Tavsiya model:** sonnet
-- **Model sababi:** 3-4 sahifa, mavjud mobile screenlardan adapt
-- **Sabab:** Ijtimoiy funksiyalar web versiyada
+- **Model sababi:** 4-5 sahifa, mobile screenlar analogiyasi
+- **Sabab:** Ижтимоий функционал веб версияда
 - **Qilish kerak:**
-  - [ ] Profil sahifasi (avatar, statistika, rank)
-  - [ ] Do'stlar ro'yxati + qidiruv
-  - [ ] DM chat (T-S104 backend ishlatadi)
-  - [ ] Bildirishnomalar sahifasi
+  - [ ] `/app/profile` — avatar, statistika, rank, tahrirlash (mobile ProfileScreen analog)
+  - [ ] `/app/friends` — do'stlar ro'yxati + qidiruv (mobile FriendsScreen analog)
+  - [ ] `/app/messages` — barcha DM suhbatlar (mobile ConversationsScreen analog)
+  - [ ] `/app/messages/[userId]` — shaxsiy chat (mobile DMChatScreen analog)
+  - [ ] `/app/notifications` — bildirishnomalar
 - **Bog'liq:** T-S103 + T-S104 + T-C016
 
 ---
