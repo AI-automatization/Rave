@@ -5,6 +5,8 @@ import fs from 'fs';
 import Redis from 'ioredis';
 import { UserController } from '../controllers/user.controller';
 import { UserService } from '../services/user.service';
+import { DMController } from '../controllers/dm.controller';
+import { DMService } from '../services/dm.service';
 import { verifyToken, requireNotBlocked } from '@shared/middleware/auth.middleware';
 import { apiRateLimiter } from '@shared/middleware/rateLimiter.middleware';
 import { requireInternalSecret } from '@shared/utils/serviceClient';
@@ -49,6 +51,7 @@ export const createUserRouter = (redis: Redis): Router => {
   const router = Router();
   const userService = new UserService(redis);
   const userController = new UserController(userService);
+  const dmController = new DMController(new DMService());
   const notBlocked = requireNotBlocked(redis);
 
   // ── Profile ──────────────────────────────────────────────
@@ -109,6 +112,12 @@ export const createUserRouter = (redis: Redis): Router => {
 
   // Public profile — /:id must be LAST among GET routes
   router.get('/:id', apiRateLimiter, userController.getPublicProfile);
+
+  // ── DM Chat ───────────────────────────────────────────────
+  router.get('/dm/conversations', verifyToken, notBlocked, dmController.getConversations);
+  router.get('/dm/:userId', verifyToken, notBlocked, dmController.getHistory);
+  router.post('/dm/:userId', verifyToken, notBlocked, dmController.sendMessage);
+  router.patch('/dm/:userId/read', verifyToken, notBlocked, dmController.markRead);
 
   // ── Internal (service-to-service) ────────────────────────
   // Notification service calls this to get FCM tokens for push delivery
