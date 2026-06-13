@@ -553,13 +553,22 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
       ? `${CONTENT_BASE_URL}/content/hls-proxy?url=${encodeURIComponent(androidPlayUrl)}&referer=${encodeURIComponent(proxyReferer)}`
       : `${CONTENT_BASE_URL}/content/proxy/stream?url=${encodeURIComponent(androidPlayUrl)}&token=${encodeURIComponent(accessToken)}${proxyHeadersParam}`
     : undefined;
+  // iOS VK/Rutube: same CDN IP-lock issue as Android — the CDN HLS manifests are served from
+  // the Railway extraction server's IP. AVPlayer fetching segments from a different IP gets
+  // blocked/throttled, causing indefinite buffering. Use embed WebView instead (VK/Rutube
+  // iframes handle CDN auth internally). Exception: mp4 extracted URLs are single-file and
+  // often work without IP-lock, so let AVPlayer try first (falls back to embed on error).
+  const iosVkOrRutube = Platform.OS === 'ios' &&
+    (androidEmbedPlatform === 'vk' || androidEmbedPlatform === 'rutube') &&
+    !vkRutubeExtractedMp4;
+
   // Android: YouTube + embed platforms (VK, Rutube, Twitch, Vimeo, Dailymotion) without an
   // extracted URL use WebView. Embed detection matches UniversalPlayer.useWebview logic so
   // VideoSection shows the correct owner controls (isOwnerMode = isOwner && !isWebView).
-  // iOS: keep existing fallback behaviour (iosWebmBlocked, extractFallback → WebView).
+  // iOS: also use embed for VK/Rutube (IP-lock), plus existing fallbacks.
   const embedPlatformDetected = !!androidEmbedPlatform;
   const isWebViewMode = Platform.OS === 'ios'
-    ? (!extractedVideoUrl && (iosWebmBlocked || platform === 'youtube' || extractFallback))
+    ? (iosVkOrRutube || !extractedVideoUrl && (iosWebmBlocked || platform === 'youtube' || extractFallback))
     : (isAndroidVkOrRutube || (!extractedVideoUrl && (platform === 'youtube' || embedPlatformDetected)));
 
   isWebViewModeRef.current = isWebViewMode; // keep ref in sync so drift effect can read it without re-running
@@ -568,9 +577,11 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   // Once CDN URL is sniffed (handleCdnUrlSniffed clears the flag), ExoPlayer is used and micro-sync works.
   isYouTubeEmbedRef.current = Platform.OS === 'android' && !extractedVideoUrl && platform === 'youtube';
   // isVkRutubeEmbedRef is managed via handleCdnUrlSniffed below — starts true, cleared on sniff.
-  if (isAndroidVkOrRutube) isVkRutubeEmbedRef.current = true; // set on each render until sniff callback clears it
+  if (isAndroidVkOrRutube || iosVkOrRutube) isVkRutubeEmbedRef.current = true;
 
-  const playerExtractedUrl = extractedVideoUrl; // raw URL first on all platforms (mirrors iOS)
+  // Hide extractedUrl from player when using embed to prevent UniversalPlayer from
+  // trying the CDN URL before falling back (hasExtracted=false → useWebview=true in UniversalPlayer).
+  const playerExtractedUrl = (isAndroidVkOrRutube || iosVkOrRutube) ? undefined : extractedVideoUrl;
   const playerProxyUrl = extractedVideoProxyUrl; // HLS proxy / generic proxy as fallback when raw URL fails
 
   // Reset player ready state when video URL changes (new media)
