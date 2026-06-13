@@ -498,74 +498,185 @@
 
 ---
 
-### T-S103 | P1 | [BACKEND] | Private DM Chat — backend: endpoints + schema
+## 💬 DM CHAT (Личные сообщения)
+
+### T-S103 | P1 | [BACKEND] | DM Chat: DirectMessage schema + model
 
 - **Mas'ul:** pending[Saidazim]
 - **Beruvchi:** Saidazim
-- **Yaratilgan:** 2026-06-13 12:00
+- **Yaratilgan:** 2026-06-13
 - **Holat:** ❌ Boshlanmagan
-- **Tavsiya model:** sonnet
-- **Model sababi:** 3-5 fayl, yangi REST endpoints + MongoDB schema
-- **Sabab:** Watch Party komnatada foydalanuvchiga bosib → shaxsiy chat ochish kerak
+- **Tavsiya model:** haiku
+- **Model sababi:** 1 fayl — faqat schema + model
+- **Sabab:** DM uchun MongoDB schema kerak
 - **Qilish kerak:**
-  - [ ] Yangi `DirectMessage` MongoDB schema (senderId, receiverId, text, createdAt)
-  - [ ] `GET /messages/dm/:userId` — ikki foydalanuvchi o'rtasidagi tarix
-  - [ ] `POST /messages/dm/:userId` — xabar yuborish
-  - [ ] `GET /messages/dm/conversations` — barcha suhbatlar ro'yxati (so'nggi xabar bilan)
-  - [ ] Socket.io event: `dm:message` — real-time yetkazish
-  - [ ] services/notification — yangi xabar uchun push notification
-- **Bog'liq:** T-E136 (Mobile UI)
+  - [ ] `services/user/src/models/directMessage.model.ts` yaratish
+  - [ ] Schema: senderId, receiverId, text, read, createdAt
+  - [ ] Index: (senderId + receiverId) + createdAt
 
 ---
 
-### T-E136 | P1 | [MOBILE] | Private DM Chat — UI: komnatada user tap → DM ekrani
+### T-S104 | P1 | [BACKEND] | DM Chat: REST endpoints — tarix + yuborish + ro'yxat
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-06-13
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** controller + routes, 2-3 fayl
+- **Sabab:** DM uchun REST API
+- **Qilish kerak:**
+  - [ ] `GET /messages/dm/:userId` — ikki user o'rtasidagi xabarlar tarixi
+  - [ ] `POST /messages/dm/:userId` — yangi xabar yuborish
+  - [ ] `GET /messages/dm/conversations` — barcha suhbatlar (so'nggi xabar + o'qilmagan soni)
+  - [ ] `PATCH /messages/dm/:userId/read` — xabarlarni o'qilgan deb belgilash
+- **Bog'liq:** T-S103 (schema)
+
+---
+
+### T-S105 | P1 | [BACKEND] | DM Chat: Socket.io real-time + push notification
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-06-13
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** Socket.io event + notification service, 2 fayl
+- **Sabab:** Real-time yetkazish va push
+- **Qilish kerak:**
+  - [ ] Socket.io event `dm:send` → `dm:message` (yetkazish)
+  - [ ] Agar qabul qiluvchi offline bo'lsa → FCM push notification
+  - [ ] `dm:read` event — o'qilganda xabar berish
+- **Bog'liq:** T-S104
+
+---
+
+### T-E136 | P1 | [MOBILE] | DM Chat: WatchParty — user tap → BottomSheet
 
 - **Mas'ul:** pending[Emirhan]
 - **Beruvchi:** Saidazim
-- **Yaratilgan:** 2026-06-13 12:00
+- **Yaratilgan:** 2026-06-13
 - **Holat:** ❌ Boshlanmagan
-- **Tavsiya model:** sonnet
-- **Model sababi:** 3-5 yangi screen/komponent, navigation
-- **Sabab:** Foydalanuvchi Watch Party komnatada kimgadir bosib → shaxsiy xabar yozishi kerak
+- **Tavsiya model:** haiku
+- **Model sababi:** 1-2 fayl — faqat tap handler + BottomSheet
+- **Sabab:** Komnata ichida boshqa userni bosib → menu chiqishi kerak
 - **Qilish kerak:**
-  - [ ] Watch Party: foydalanuvchi nomiga bosish → BottomSheet/Dropdown (Profil ko'rish | Shaxsiy chat)
-  - [ ] Yangi `DMChatScreen` ekrani — chat bubbles, input, real-time
-  - [ ] `ConversationsScreen` — barcha DM suhbatlar ro'yxati
-  - [ ] Profil ekranida "Xabar yuborish" tugmasi
-  - [ ] Navigation: DM stack qo'shish
-  - [ ] Push notification tap → DM ekraniga o'tish
-- **Bog'liq:** T-S103 (Backend)
+  - [ ] VoiceChatParticipants yoki participantlar ro'yxatida userni bosish → BottomSheet
+  - [ ] BottomSheet ichida: "Profil ko'rish" | "Xabar yuborish"
+  - [ ] "Profil" → mavjud ProfileScreen ga navigate
+  - [ ] "Xabar" → DMChatScreen ga navigate (T-E137)
+- **Bog'liq:** T-S104 (backend tayyor bo'lishi kerak), T-E137
 
 ---
 
-### T-C016 | P1 | [IKKALASI] | WeWatch Web App — to'liq platforma (auth + watch party + social)
+### T-E137 | P1 | [MOBILE] | DM Chat: DMChatScreen ekrani
+
+- **Mas'ul:** pending[Emirhan]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-06-13
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** Yangi screen — chat bubbles, input, API, socket
+- **Sabab:** Ikki user o'rtasidagi personal chat ekrani
+- **Qilish kerak:**
+  - [ ] `DMChatScreen.tsx` — chat bubbles (o'zim/boshqa), timestamp
+  - [ ] Xabar inputi + yuborish tugmasi
+  - [ ] `GET /messages/dm/:userId` — tarixni yuklash
+  - [ ] Socket.io `dm:message` — real-time yangi xabarlar
+  - [ ] O'qilmagan indicator
+- **Bog'liq:** T-S103 + T-S104 + T-S105
+
+---
+
+### T-E138 | P2 | [MOBILE] | DM Chat: ConversationsScreen — barcha suhbatlar
+
+- **Mas'ul:** pending[Emirhan]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-06-13
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** Yangi screen + navigation integration
+- **Sabab:** Barcha DM suhbatlar ro'yxati kerak
+- **Qilish kerak:**
+  - [ ] `ConversationsScreen.tsx` — avatar, ism, so'nggi xabar, vaqt, unread badge
+  - [ ] `GET /messages/dm/conversations` dan ma'lumot
+  - [ ] Bottom tab yoki Friends tab ichiga qo'shish
+  - [ ] Push notification tap → to'g'ri DMChatScreen ga o'tish
+- **Bog'liq:** T-E137
+
+---
+
+## 🌐 WEB APP (Next.js)
+
+### T-C016 | P1 | [WEB] | Web: Auth — Login + Register sahifalari
 
 - **Mas'ul:** pending[Saidazim]
 - **Beruvchi:** Saidazim
-- **Yaratilgan:** 2026-06-13 12:00
+- **Yaratilgan:** 2026-06-13
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** 2-3 sahifa, API integration
+- **Sabab:** Web uchun kirish sahifalari kerak
+- **Qilish kerak:**
+  - [ ] `apps/web/src/app/login/page.tsx` — email+parol + Google Sign-In
+  - [ ] `apps/web/src/app/register/page.tsx`
+  - [ ] JWT token saqlash (httpOnly cookie yoki localStorage)
+  - [ ] Auth middleware / protected routes
+  - [ ] API client `apps/web/src/lib/api.ts` (barcha web so'rovlar uchun)
+
+---
+
+### T-C017 | P1 | [WEB] | Web: Home — xonalar ro'yxati + xona yaratish
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-06-13
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** Home page + modal, 2-3 komponent
+- **Sabab:** Asosiy ekran — faol xonalar va yaratish
+- **Qilish kerak:**
+  - [ ] `apps/web/src/app/home/page.tsx` — xonalar grid/list
+  - [ ] Xona yaratish modal (URL kiritish, ism)
+  - [ ] Xonaga kirish (kod orqali)
+  - [ ] `GET /watch-party/rooms` API
+- **Bog'liq:** T-C016 (auth)
+
+---
+
+### T-C018 | P1 | [WEB] | Web: Watch Party ekrani — video + sync + chat
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-06-13
 - **Holat:** ❌ Boshlanmagan
 - **Tavsiya model:** opus
-- **Model sababi:** Katta arxitektura, 20+ fayl, yangi platforma
-- **Sabab:** Android + iOS bilan birga Web versiya kerak — apps/web/ Next.js bazasida
-- **Faza 1 — Auth + Base (minimal MVP):**
-  - [ ] Login / Register sahifalar (JWT, Google Sign-In)
-  - [ ] Home — faol xonalar ro'yxati
-  - [ ] Profil sahifasi
-  - [ ] Socket.io connection web uchun
-- **Faza 2 — Watch Party:**
-  - [ ] Komnat yaratish / kirish (URL orqali)
-  - [ ] WebView player yoki iframe player
-  - [ ] Sinxron playback (Socket.io events)
-  - [ ] Chat panel
-- **Faza 3 — Social:**
-  - [ ] Do'stlar, qidiruv
-  - [ ] DM chat (T-S103 backend ishlatadi)
-  - [ ] Profil tahrirlash
-  - [ ] Bildirishnomalar
-- **Texnik:**
-  - [ ] apps/web/ Next.js 14+ (App Router) — allaqachon mavjud, kengaytirish kerak
-  - [ ] Shared API client (shared/utils/ yoki apps/web/src/lib/api)
-  - [ ] Responsive design — mobile + desktop
-- **Bog'liq:** T-S103 | barcha backend services
+- **Model sababi:** Murakkab — iframe player, Socket.io sync, chat panel
+- **Sabab:** Webda asosiy Watch Party funksiyasi
+- **Qilish kerak:**
+  - [ ] `apps/web/src/app/room/[id]/page.tsx`
+  - [ ] iframe yoki WebView player (YouTube, boshqa saytlar)
+  - [ ] Socket.io ulanish — play/pause/seek sync
+  - [ ] Chat panel (o'ng tomon)
+  - [ ] Ishtirokchilar ro'yxati
+- **Bog'liq:** T-C017
+
+---
+
+### T-C019 | P2 | [WEB] | Web: Profil + Do'stlar + DM
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-06-13
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** 3-4 sahifa, mavjud mobile screenlardan adapt
+- **Sabab:** Ijtimoiy funksiyalar web versiyada
+- **Qilish kerak:**
+  - [ ] Profil sahifasi (avatar, statistika, rank)
+  - [ ] Do'stlar ro'yxati + qidiruv
+  - [ ] DM chat (T-S104 backend ishlatadi)
+  - [ ] Bildirishnomalar sahifasi
+- **Bog'liq:** T-S103 + T-S104 + T-C016
 
 ---
