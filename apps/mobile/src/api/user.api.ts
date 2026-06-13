@@ -114,3 +114,29 @@ export const userApi = {
     ]);
   },
 };
+
+import { IDMMessage, IDMConversation } from '@app-types/index';
+
+export const dmApi = {
+  async getConversations(): Promise<IDMConversation[]> {
+    const res = await userClient.get<ApiResponse<IDMConversation[]>>('/users/dm/conversations');
+    return res.data.data ?? [];
+  },
+
+  async getHistory(peerId: string, before?: string): Promise<IDMMessage[]> {
+    const res = await userClient.get<ApiResponse<IDMMessage[]>>(`/users/dm/${peerId}`, {
+      params: before ? { before } : undefined,
+    });
+    return res.data.data ?? [];
+  },
+
+  async sendMessage(peerId: string, text: string): Promise<IDMMessage> {
+    const res = await userClient.post<ApiResponse<IDMMessage>>(`/users/dm/${peerId}`, { text });
+    if (!res.data.data) throw new Error('sendMessage response is empty');
+    return res.data.data;
+  },
+
+  async markRead(peerId: string): Promise<void> {
+    await userClient.patch(`/users/dm/${peerId}/read`);
+  },
+};

@@ -704,6 +704,19 @@ export const translations = {
     videoFound: { uz: 'Video topildi', ru: 'Видео найдено', en: 'Video found' },
   },
 
+  // ─── DM Chat ───
+  dm: {
+    title: { uz: 'Xabarlar', ru: 'Сообщения', en: 'Messages' },
+    emptyTitle: { uz: "Xabarlar yo'q", ru: 'Нет сообщений', en: 'No messages' },
+    emptySub: { uz: 'Birinchi xabar yuboring!', ru: 'Отправьте первое сообщение!', en: 'Send your first message!' },
+    placeholder: { uz: 'Xabar yozing...', ru: 'Написать...', en: 'Message...' },
+    sendMessage: { uz: 'Xabar yozish', ru: 'Написать', en: 'Message' },
+    viewProfile: { uz: "Profilni ko'rish", ru: 'Посмотреть профиль', en: 'View Profile' },
+    convEmpty: { uz: "Hali hech kim bilan yozmadingiz", ru: 'Вы ещё ни с кем не переписывались', en: 'No conversations yet' },
+    convEmptySub: { uz: "Watch Party'da birovga xabar yozing", ru: 'Напишите кому-нибудь в Watch Party', en: 'Message someone in a Watch Party' },
+    unread: { uz: 'o\'qilmagan', ru: 'непрочитано', en: 'unread' },
+  },
+
   // ─── Tab bar labels ───
   tabs: {
     home: { uz: 'Bosh', ru: 'Главная', en: 'Home' },

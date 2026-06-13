@@ -9,6 +9,8 @@ import { NotificationsScreen } from '@screens/modal/NotificationsScreen';
 import { SourcePickerScreen } from '@screens/modal/SourcePickerScreen';
 import { MediaWebViewScreen } from '@screens/modal/MediaWebViewScreen';
 import { SupportChatScreen } from '@screens/modal/SupportChatScreen';
+import { DMChatScreen } from '@screens/modal/DMChatScreen';
+import { ConversationsScreen } from '@screens/modal/ConversationsScreen';
 import { PlaceholderScreen } from './PlaceholderScreen';
 
 const Modal = createNativeStackNavigator<ModalStackParamList>();
@@ -25,6 +27,8 @@ export function ModalNavigator() {
       <Modal.Screen name="WatchParty" component={WatchPartyScreen} options={{ gestureEnabled: false }} />
       <Modal.Screen name="Notifications" component={NotificationsScreen} />
       <Modal.Screen name="SupportChat" component={SupportChatScreen} options={{ animation: 'slide_from_right' }} />
+      <Modal.Screen name="DMChat" component={DMChatScreen} options={{ animation: 'slide_from_right' }} />
+      <Modal.Screen name="DMConversations" component={ConversationsScreen} options={{ animation: 'slide_from_right' }} />
     </Modal.Navigator>
   );
 }

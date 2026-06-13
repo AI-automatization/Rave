@@ -121,7 +121,28 @@ export type ModalStackParamList = {
     roomId?: string;
   };
   SupportChat: undefined;
+  DMChat: { peerId: string; peerName: string };
+  DMConversations: undefined;
 };
+
+export interface IDMMessage {
+  _id: string;
+  senderId: string;
+  receiverId: string;
+  text: string;
+  read: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface IDMConversation {
+  peerId: string;
+  peerUsername: string;
+  peerAvatar: string | null;
+  lastMessage: string;
+  lastMessageAt: string;
+  unreadCount: number;
+}
 
 export type RoomsStackParamList = {
   Rooms: undefined;
