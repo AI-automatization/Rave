@@ -5,7 +5,7 @@ import {
   ActivityIndicator, StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { AVPlaybackStatus } from 'expo-av';
+import type { PlaybackStatus } from '@app-types/index';
 import { UniversalPlayer, UniversalPlayerRef } from '@components/video/UniversalPlayer';
 import { EmojiFloatItem } from '@components/watchParty/EmojiFloat';
 import { VideoProgressBar } from '@components/watchParty/VideoProgressBar';
@@ -33,7 +33,7 @@ interface VideoSectionProps {
   onPlay: (secs: number) => void;
   onPause: (secs: number) => void;
   onSeek: (secs: number) => void;
-  onPlaybackStatusUpdate: (status: AVPlaybackStatus) => void;
+  onPlaybackStatusUpdate: (status: PlaybackStatus) => void;
   onStreamResolved: (info: { isLive: boolean }) => void;
   onProgress?: (currentTimeSecs: number, durationSecs: number) => void;
   onBuffering?: (isBuffering: boolean) => void;

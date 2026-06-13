@@ -144,6 +144,24 @@ export interface IDMConversation {
   unreadCount: number;
 }
 
+// ─────────────────────────────────────────────
+// Video Playback (replaces expo-av AVPlaybackStatus)
+// ─────────────────────────────────────────────
+
+export type PlaybackStatus =
+  | {
+      isLoaded: true;
+      isPlaying: boolean;
+      positionMillis: number;
+      durationMillis?: number;
+      isBuffering: boolean;
+      didJustFinish?: boolean;
+    }
+  | {
+      isLoaded: false;
+      error?: string;
+    };
+
 export type RoomsStackParamList = {
   Rooms: undefined;
 };

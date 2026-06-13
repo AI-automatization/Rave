@@ -5,7 +5,7 @@ import {
   View, Text, StyleSheet, StatusBar, Dimensions,
   TouchableOpacity, TouchableWithoutFeedback, ActivityIndicator, Animated,
 } from 'react-native';
-import { Video, ResizeMode } from 'expo-av';
+import { VideoView } from 'expo-video';
 import WebView from 'react-native-webview';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -100,11 +100,11 @@ function DirectPlayer({
   const { colors } = useTheme();
   const { t } = useT();
   const {
-    videoRef, playing, pos, dur, showControls, buffering, err, loading,
+    expoPlayer, playing, pos, dur, showControls, buffering, err, loading,
     seekBarW, setSeekBarW, doubleTapSide, progress,
     controlsOpacity, playBtnScale, doubleTapAnim, loadingRotate,
-    onStatus, togglePlay, skipBy, seekTo, handleScreenTap,
-  } = useVideoPlayer();
+    togglePlay, skipBy, seekTo, handleScreenTap,
+  } = useVideoPlayer(videoUrl);
 
   if (err) return <ErrorScreen message={err} onBack={() => navigation.goBack()} colors={colors} />;
 
@@ -125,14 +125,12 @@ function DirectPlayer({
 
       <TouchableWithoutFeedback onPress={(e) => handleScreenTap(e.nativeEvent.locationX)}>
         <View style={s.fill}>
-          <Video
-            ref={videoRef}
-            source={{ uri: videoUrl }}
+          <VideoView
+            player={expoPlayer}
             style={s.fill}
-            resizeMode={ResizeMode.CONTAIN}
-            onPlaybackStatusUpdate={onStatus}
-            shouldPlay
-            useNativeControls={false}
+            contentFit="contain"
+            nativeControls={false}
+            fullscreenOptions={{ enable: false }}
           />
 
           {doubleTapSide && (

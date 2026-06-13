@@ -3,7 +3,7 @@ import { useRef, useState, useEffect, useCallback } from 'react';
 import { Alert, Dimensions, Platform, AppState } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { AVPlaybackStatus } from 'expo-av';
+import type { PlaybackStatus } from '@app-types/index';
 import { useWatchParty } from '@hooks/useWatchParty';
 import { useVideoExtraction } from '@hooks/useVideoExtraction';
 import { useAuthStore } from '@store/auth.store';
@@ -375,7 +375,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     return () => sub.remove();
   }, [isOwner]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const onPlaybackStatusUpdate = useCallback((status: AVPlaybackStatus) => {
+  const onPlaybackStatusUpdate = useCallback((status: PlaybackStatus) => {
     if (!status.isLoaded) return;
     if (!isSyncing.current) { setIsPlaying(status.isPlaying); intendedPlayingRef.current = status.isPlaying; }
     setVideoCurrentTime(status.positionMillis / 1000);

@@ -1,8 +1,9 @@
 // WeWatch Mobile — UniversalPlayer
-// URL ga qarab to'g'ri player tanlaydi: expo-av (direct) yoki WebView (youtube/boshqalar)
-import React, { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react';
+// URL ga qarab to'g'ri player tanlaydi: expo-video (direct) yoki WebView (youtube/boshqalar)
+import React, { forwardRef, useCallback, useImperativeHandle, useRef, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Platform } from 'react-native';
-import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
+import { VideoView, useVideoPlayer as createExpoPlayer } from 'expo-video';
+import { useEvent, useEventListener } from 'expo';
 import { Ionicons } from '@expo/vector-icons';
 import WebView from 'react-native-webview';
 import type { WebViewMessageEvent } from 'react-native-webview';
@@ -15,6 +16,7 @@ import { colors, typography, spacing } from '@theme/index';
 import { useT } from '@i18n/index';
 import { detectVideoPlatform, extractYouTubeVideoId, getYouTubeMobileUrl, MOBILE_UA } from '@utils/videoPlayer';
 import { CDN_SNIFF_JS } from '@utils/webViewScripts';
+import type { PlaybackStatus } from '@app-types/index';
 
 export type { VideoPlatform } from '@utils/videoPlayer';
 export { detectVideoPlatform } from '@utils/videoPlayer';
@@ -33,7 +35,7 @@ interface Props {
   onPlay: (currentTimeSecs: number) => void;
   onPause: (currentTimeSecs: number) => void;
   onSeek: (currentTimeSecs: number) => void;
-  onPlaybackStatusUpdate?: (status: AVPlaybackStatus) => void;
+  onPlaybackStatusUpdate?: (status: PlaybackStatus) => void;
   onProgress?: (currentTimeSecs: number, durationSecs: number) => void;
   onBuffering?: (isBuffering: boolean) => void;
   onStreamResolved?: (info: { isLive: boolean; title: string }) => void;
@@ -85,7 +87,6 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
   ({ url, isOwner, onPlay, onPause, onSeek, onPlaybackStatusUpdate, onProgress, onBuffering, onReady,
      extractedUrl, isExtracting, referer, httpHeaders, proxyUrl, mode, onCdnUrlSniffed }, ref) => {
     const { t } = useT();
-    const videoRef = useRef<Video>(null);
     const webviewRef = useRef<WebViewPlayerRef>(null);
     const platform = detectVideoPlatform(url);
     const embedPlatform = platform === 'webview' ? detectEmbedPlatform(url) : null;
@@ -93,7 +94,7 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
     // Android VK/Rutube sniffing: load embed URL directly in a hidden WebView (source.uri,
     // not source.html) so our injected JS runs in vk.com/rutube.ru origin — same origin as
     // the player's XHR calls — allowing us to intercept the CDN video URL before it's fetched.
-    // Once sniffed, switch to expo-av (ExoPlayer) with the CDN URL (token tied to phone IP).
+    // Once sniffed, switch to expo-video (ExoPlayer) with the CDN URL (token tied to phone IP).
     const isVkRutubeAndroid = Platform.OS === 'android' &&
       (embedPlatform === 'vk' || embedPlatform === 'rutube');
     const [sniffedUrl, setSniffedUrl] = useState<string | null>(null);
@@ -108,19 +109,13 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
     }
 
     // forceAndroidWebView: use embed WebView only when we have no CDN URL at all.
-    // If extractedUrl (server-extracted mp4/HLS) is provided → try ExoPlayer first,
-    // fall back to embed via webviewEmbedFailed on 403.
-    // If sniffedUrl (phone-IP-tied CDN URL from hidden WebView) is ready → use ExoPlayer.
-    // Only if neither is available → embed WebView + hidden sniffing WebView in parallel.
     const forceAndroidWebView = isVkRutubeAndroid && !sniffedUrl && !extractedUrl;
 
-    // Build the hidden sniffing WebView URI — only needed when no URL is available yet.
+    // Build the hidden sniffing WebView URI
     let sniffUrl: string | null = null;
     if (isVkRutubeAndroid && !sniffedUrl && !extractedUrl) {
       if (embedPlatform === 'vk') {
         const ids = extractVKVideoIds(url);
-        // autoplay=1: player must initialise and fetch the CDN manifest for XHR intercept to fire.
-        // Audio is silenced by the muted override in CDN_SNIFF_JS before VK scripts run.
         sniffUrl = ids
           ? `https://vk.com/video_ext.php?oid=${ids.ownerId}&id=${ids.videoId}&hd=1&autoplay=1`
           : null;
@@ -180,19 +175,87 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
       (!hasExtracted && (platform === 'youtube' || platform === 'webview'));
     const directSource = hasExtracted ? effectiveExtractedUrl : url;
 
+    // avUri/avHeaders — computed before early returns so hooks can reference them
+    const avUri = (usingProxy && !!proxyUrl) ? proxyUrl! : (directSource ?? url);
+    const avHeaders: Record<string, string> = {
+      'User-Agent': MOBILE_UA,
+      ...httpHeaders,
+      ...(referer ? { Referer: referer } : {}),
+    };
+
+    // expo-video player (hooks must be unconditional — no early returns before this)
+    const expoPlayer = createExpoPlayer(null);
+    const { status: evStatus } = useEvent(expoPlayer, 'statusChange', { status: expoPlayer.status });
+    const { isPlaying: evIsPlaying } = useEvent(expoPlayer, 'playingChange', { isPlaying: expoPlayer.playing, oldIsPlaying: expoPlayer.playing });
+    const { currentTime: evCurrentTime } = useEvent(expoPlayer, 'timeUpdate', { currentTime: 0, currentLiveTimestamp: null, currentOffsetFromLive: null, bufferedPosition: 0 });
+
+    const onPlaybackStatusUpdateRef = useRef(onPlaybackStatusUpdate);
+    onPlaybackStatusUpdateRef.current = onPlaybackStatusUpdate;
+
+    // Detect video end — synthesize didJustFinish for watch party owner pause
+    useEventListener(expoPlayer, 'playToEnd', () => {
+      onPlaybackStatusUpdateRef.current?.({
+        isLoaded: true,
+        isPlaying: false,
+        positionMillis: (expoPlayer.duration ?? 0) * 1000,
+        durationMillis: expoPlayer.duration ? expoPlayer.duration * 1000 : undefined,
+        isBuffering: false,
+        didJustFinish: true,
+      });
+    });
+
+    // Stable serialized headers key to detect real header changes without object identity churn
+    const avHeadersKey = JSON.stringify(avHeaders);
+
+    // Update player source when avUri/headers/mode changes
+    useEffect(() => {
+      if (useWebview || !avUri) return;
+      expoPlayer.replace({ uri: avUri, headers: avHeaders });
+    }, [avUri, avHeadersKey, useWebview]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Handle player ready — fire onReady exactly once, mark avLoaded
+    useEffect(() => {
+      if (useWebview || evStatus !== 'readyToPlay') return;
+      if (!avLoaded) { setAvLoaded(true); fireReady(); }
+    }, [evStatus, useWebview]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Handle player error — try proxy fallback, then show error state
+    useEffect(() => {
+      if (useWebview || evStatus !== 'error') return;
+      if (!usingProxy && proxyUrl) {
+        setUsingProxy(true);
+        setAvLoaded(false);
+        readyFiredRef.current = false;
+      } else {
+        setVideoError(true);
+      }
+    }, [evStatus, useWebview, usingProxy, proxyUrl]);
+
+    // Synthesize PlaybackStatus for watch party sync (~4x/sec via timeUpdate + on state changes)
+    useEffect(() => {
+      if (useWebview) return;
+      if (evStatus !== 'readyToPlay' && evStatus !== 'loading') return;
+      onPlaybackStatusUpdateRef.current?.({
+        isLoaded: true,
+        isPlaying: evIsPlaying,
+        positionMillis: evCurrentTime * 1000,
+        durationMillis: expoPlayer.duration ? expoPlayer.duration * 1000 : undefined,
+        isBuffering: evStatus === 'loading',
+        didJustFinish: false,
+      });
+    }, [evCurrentTime, evIsPlaying, evStatus, useWebview]); // eslint-disable-line react-hooks/exhaustive-deps
+
     useImperativeHandle(ref, () => ({
-      play: async () => { if (useWebview) webviewRef.current?.play(); else await videoRef.current?.playAsync(); },
-      pause: async () => { if (useWebview) webviewRef.current?.pause(); else await videoRef.current?.pauseAsync(); },
-      seekTo: async (ms: number) => { if (useWebview) webviewRef.current?.seekTo(ms); else await videoRef.current?.setPositionAsync(ms); },
+      play: async () => { if (useWebview) webviewRef.current?.play(); else expoPlayer.play(); },
+      pause: async () => { if (useWebview) webviewRef.current?.pause(); else expoPlayer.pause(); },
+      seekTo: async (ms: number) => { if (useWebview) webviewRef.current?.seekTo(ms); else expoPlayer.currentTime = ms / 1000; },
       getPositionMs: async () => {
         if (useWebview) return webviewRef.current?.getPositionMs() ?? 0;
-        const status = await videoRef.current?.getStatusAsync();
-        if (status?.isLoaded) return status.positionMillis;
-        return 0;
+        return expoPlayer.currentTime * 1000;
       },
       setRate: async (rate: number) => {
         if (useWebview) webviewRef.current?.setRate(rate);
-        else await videoRef.current?.setRateAsync(rate, true);
+        else expoPlayer.playbackRate = rate;
       },
     }), [useWebview]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -258,35 +321,15 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
       );
     }
 
-    // Both iOS and Android: try direct URL first with httpHeaders (same path).
-    // Proxy used only as fallback when onError fires and proxyUrl is available.
-    const avUri = (usingProxy && !!proxyUrl) ? proxyUrl! : (directSource ?? url);
-    const avHeaders: Record<string, string> = {
-      'User-Agent': MOBILE_UA,
-      ...httpHeaders,
-      ...(referer ? { Referer: referer } : {}),
-    };
-    const avSource = { uri: avUri, headers: avHeaders };
     return (
       <View style={styles.video}>
-        <Video ref={videoRef} source={avSource} style={StyleSheet.absoluteFill} resizeMode={ResizeMode.CONTAIN}
-          shouldPlay={false} useNativeControls={false}
-          onPlaybackStatusUpdate={(status) => {
-            if (status.isLoaded) {
-              fireReady();
-              setAvLoaded(true);
-            }
-            onPlaybackStatusUpdate?.(status);
-          }}
-          onError={() => {
-            if (!usingProxy && proxyUrl) {
-              setUsingProxy(true);
-              setAvLoaded(false);
-              readyFiredRef.current = false;
-            } else {
-              setVideoError(true);
-            }
-          }} />
+        <VideoView
+          player={expoPlayer}
+          style={StyleSheet.absoluteFill}
+          contentFit="contain"
+          nativeControls={false}
+          fullscreenOptions={{ enable: false }}
+        />
         {!avLoaded && (
           <View style={styles.bufferingOverlay} pointerEvents="none">
             <ActivityIndicator size="large" color={colors.primary} />

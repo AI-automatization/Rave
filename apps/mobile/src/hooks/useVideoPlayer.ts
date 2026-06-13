@@ -1,13 +1,16 @@
 // WeWatch — Video Player hook (playback status, controls, double-tap)
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { Animated, Dimensions } from 'react-native';
-import { Video, AVPlaybackStatus } from 'expo-av';
+import { useVideoPlayer as useExpoVideoPlayer } from 'expo-video';
+import { useEvent } from 'expo';
 import { CONTROLS_TIMEOUT, SEEK_SEC, DOUBLE_TAP_MS } from '@utils/videoPlayer';
 
 const { width: SW } = Dimensions.get('window');
 
-export function useVideoPlayer() {
-  const videoRef = useRef<Video>(null);
+export function useVideoPlayer(url: string) {
+  const expoPlayer = useExpoVideoPlayer({ uri: url }, (player) => {
+    player.play();
+  });
 
   const [playing, setPlaying] = useState(false);
   const [pos, setPos] = useState(0);
@@ -27,6 +30,33 @@ export function useVideoPlayer() {
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTapRef = useRef(0);
   const lastSideRef = useRef<'left' | 'right' | null>(null);
+  const loadedOnceRef = useRef(false);
+
+  // expo-video events (reactive state driven by player events)
+  const { status: evStatus } = useEvent(expoPlayer, 'statusChange', { status: expoPlayer.status });
+  const { isPlaying: evIsPlaying } = useEvent(expoPlayer, 'playingChange', { isPlaying: expoPlayer.playing, oldIsPlaying: expoPlayer.playing });
+  const { currentTime: evCurrentTime } = useEvent(expoPlayer, 'timeUpdate', { currentTime: 0, currentLiveTimestamp: null, currentOffsetFromLive: null, bufferedPosition: 0 });
+
+  useEffect(() => { setPlaying(evIsPlaying); }, [evIsPlaying]);
+
+  useEffect(() => {
+    setPos(evCurrentTime * 1000);
+    if (expoPlayer.duration) setDur(expoPlayer.duration * 1000);
+  }, [evCurrentTime, expoPlayer.duration]);
+
+  useEffect(() => {
+    if (evStatus === 'readyToPlay') {
+      if (!loadedOnceRef.current) { loadedOnceRef.current = true; setLoading(false); }
+      setBuffering(false);
+      if (expoPlayer.duration) setDur(expoPlayer.duration * 1000);
+    } else if (evStatus === 'loading') {
+      if (loadedOnceRef.current) setBuffering(true);
+    } else if (evStatus === 'error') {
+      setLoading(false);
+      setBuffering(false);
+      setErr('Video load error');
+    }
+  }, [evStatus, expoPlayer.duration]);
 
   // Spinner rotation animation while loading
   useEffect(() => {
@@ -50,41 +80,28 @@ export function useVideoPlayer() {
     }, CONTROLS_TIMEOUT);
   }, [controlsOpacity]);
 
-  const onStatus = useCallback((st: AVPlaybackStatus) => {
-    if (!st.isLoaded) {
-      if (st.error) setErr(st.error);
-      return;
-    }
-
-    if (loading && st.isLoaded) setLoading(false);
-    setPlaying(st.isPlaying);
-    setBuffering(st.isBuffering);
-    setPos(st.positionMillis);
-    if (st.durationMillis) setDur(st.durationMillis);
-  }, [loading]);
-
-  const togglePlay = useCallback(async () => {
-    if (!videoRef.current) return;
+  const togglePlay = useCallback(() => {
     Animated.sequence([
       Animated.timing(playBtnScale, { toValue: 0.75, duration: 80, useNativeDriver: true }),
       Animated.spring(playBtnScale, { toValue: 1, useNativeDriver: true, friction: 4, tension: 200 }),
     ]).start();
-    if (playing) await videoRef.current.pauseAsync();
-    else await videoRef.current.playAsync();
+    if (expoPlayer.playing) expoPlayer.pause();
+    else expoPlayer.play();
     revealControls();
-  }, [playing, revealControls, playBtnScale]);
+  }, [expoPlayer, revealControls, playBtnScale]);
 
-  const skipBy = useCallback(async (seconds: number) => {
-    if (!videoRef.current) return;
-    await videoRef.current.setPositionAsync(Math.max(0, Math.min(dur, pos + seconds * 1000)));
+  const skipBy = useCallback((seconds: number) => {
+    const newTime = Math.max(0, Math.min(expoPlayer.duration ?? 0, expoPlayer.currentTime + seconds));
+    expoPlayer.currentTime = newTime;
     revealControls();
-  }, [dur, pos, revealControls]);
+  }, [expoPlayer, revealControls]);
 
   const seekTo = useCallback((locationX: number) => {
-    if (!dur || !videoRef.current || seekBarW <= 1) return;
-    videoRef.current.setPositionAsync(Math.min(1, Math.max(0, locationX / seekBarW)) * dur);
+    const duration = expoPlayer.duration;
+    if (!duration || seekBarW <= 1) return;
+    expoPlayer.currentTime = Math.min(1, Math.max(0, locationX / seekBarW)) * duration;
     revealControls();
-  }, [dur, seekBarW, revealControls]);
+  }, [expoPlayer, seekBarW, revealControls]);
 
   const showDoubleTapFeedback = useCallback((side: 'left' | 'right') => {
     setDoubleTapSide(side);
@@ -110,12 +127,12 @@ export function useVideoPlayer() {
   }, [skipBy, revealControls, showDoubleTapFeedback]);
 
   return {
-    videoRef,
+    expoPlayer,
     playing, pos, dur, showControls, buffering, err, loading,
     seekBarW, setSeekBarW,
     doubleTapSide,
     progress: dur > 0 ? pos / dur : 0,
     controlsOpacity, playBtnScale, doubleTapAnim, loadingRotate,
-    onStatus, togglePlay, skipBy, seekTo, handleScreenTap,
+    togglePlay, skipBy, seekTo, handleScreenTap,
   };
 }
