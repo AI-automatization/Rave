@@ -35,7 +35,7 @@ function generateId(): string {
 }
 
 function getAppVersion(): string {
-  return (Constants.expoConfig?.version ?? Constants.manifest?.version ?? '0.0.0') as string;
+  return (Constants.expoConfig?.version ?? '0.0.0') as string;
 }
 
 function getDeviceInfo() {

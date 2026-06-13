@@ -30,7 +30,7 @@ export function OnboardingSlide({
     <View style={styles.slide}>
       <LinearGradient
         colors={item.gradientColors}
-        style={StyleSheet.absoluteFillObject}
+        style={StyleSheet.absoluteFill}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 0.5 }}
       />

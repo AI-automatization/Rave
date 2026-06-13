@@ -40,7 +40,7 @@ export function AuthGridBackground({
 const LINE_COLOR = 'rgba(255,255,255,0.03)';
 
 const s = StyleSheet.create({
-  bgGrid: { ...StyleSheet.absoluteFillObject },
+  bgGrid: { ...StyleSheet.absoluteFill },
   gridLineH: {
     position: 'absolute',
     left: 0,

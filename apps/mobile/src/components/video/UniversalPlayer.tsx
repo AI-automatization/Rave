@@ -300,7 +300,7 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
 const styles = StyleSheet.create({
   video: { width: '100%', height: '100%', backgroundColor: '#000' },
   sniffHidden: { position: 'absolute', width: 1, height: 1, opacity: 0 },
-  bufferingOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
+  bufferingOverlay: { ...StyleSheet.absoluteFill, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bgVoid, gap: spacing.sm },
   errorText: { ...typography.body, color: colors.textPrimary, fontWeight: '600' },
   errorHint: { ...typography.caption, color: colors.textMuted, textAlign: 'center' },

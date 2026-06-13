@@ -319,7 +319,7 @@ const s = StyleSheet.create({
 
   // Blocked domain
   blockedOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: colors.bgBase,
     alignItems: 'center', justifyContent: 'center',
     padding: spacing.xxl, gap: spacing.md, zIndex: 10,
