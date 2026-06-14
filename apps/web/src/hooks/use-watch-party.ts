@@ -10,7 +10,7 @@ export function useWatchParty(roomId: string) {
   const { socket, isConnected } = useSocket();
   const {
     setRoom, setMembers, addMember, removeMember,
-    addMessage, setSyncState, setConnected, reset,
+    addMessage, setSyncState, setHeartbeat, setConnected, reset,
   } = useWatchPartyStore();
 
   // Join room
@@ -59,6 +59,8 @@ export function useWatchParty(roomId: string) {
       setSyncState({ currentTime: state.currentTime, isPlaying: state.isPlaying });
     });
 
+    socket.on(SERVER_EVENTS.VIDEO_HEARTBEAT, setHeartbeat);
+
     socket.on(SERVER_EVENTS.ROOM_CLOSED, () => {
       reset();
     });
@@ -78,11 +80,12 @@ export function useWatchParty(roomId: string) {
       socket.off(SERVER_EVENTS.VIDEO_PAUSE);
       socket.off(SERVER_EVENTS.VIDEO_SEEK);
       socket.off(SERVER_EVENTS.VIDEO_SYNC);
+      socket.off(SERVER_EVENTS.VIDEO_HEARTBEAT);
       socket.off(SERVER_EVENTS.ROOM_CLOSED);
       socket.off(SERVER_EVENTS.ROOM_UPDATED);
       setConnected(false);
     };
-  }, [socket, isConnected, roomId, setRoom, setMembers, addMember, removeMember, addMessage, setSyncState, setConnected, reset]);
+  }, [socket, isConnected, roomId, setRoom, setMembers, addMember, removeMember, addMessage, setSyncState, setHeartbeat, setConnected, reset]);
 
   const sendMessage = useCallback((text: string) => {
     socket?.emit(CLIENT_EVENTS.SEND_MESSAGE, { roomId, text });
@@ -104,6 +107,18 @@ export function useWatchParty(roomId: string) {
     socket?.emit(CLIENT_EVENTS.SEND_EMOJI, { roomId, emoji });
   }, [socket, roomId]);
 
+  const sendHeartbeat = useCallback((currentTime: number) => {
+    socket?.emit(CLIENT_EVENTS.HEARTBEAT, { roomId, currentTime });
+  }, [socket, roomId]);
+
+  const sendBufferStart = useCallback(() => {
+    socket?.emit(CLIENT_EVENTS.BUFFER_START, { roomId });
+  }, [socket, roomId]);
+
+  const sendBufferEnd = useCallback(() => {
+    socket?.emit(CLIENT_EVENTS.BUFFER_END, { roomId });
+  }, [socket, roomId]);
+
   return {
     isConnected,
     sendMessage,
@@ -111,5 +126,8 @@ export function useWatchParty(roomId: string) {
     sendPause,
     sendSeek,
     sendEmoji,
+    sendHeartbeat,
+    sendBufferStart,
+    sendBufferEnd,
   };
 }

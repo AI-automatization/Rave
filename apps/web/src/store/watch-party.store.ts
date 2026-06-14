@@ -16,11 +16,18 @@ interface SyncState {
   duration: number;
 }
 
+interface Heartbeat {
+  currentTime: number;
+  timestamp: number;
+  updatedBy: string;
+}
+
 interface WatchPartyState {
   room: IWatchPartyRoom | null;
   members: WatchPartyMember[];
   messages: IChatMessage[];
   syncState: SyncState;
+  heartbeat: Heartbeat | null;
   isConnected: boolean;
 
   setRoom: (room: IWatchPartyRoom | null) => void;
@@ -29,6 +36,7 @@ interface WatchPartyState {
   removeMember: (userId: string) => void;
   addMessage: (message: IChatMessage) => void;
   setSyncState: (state: Partial<SyncState>) => void;
+  setHeartbeat: (hb: Heartbeat) => void;
   setConnected: (connected: boolean) => void;
   reset: () => void;
 }
@@ -44,6 +52,7 @@ export const useWatchPartyStore = create<WatchPartyState>((set) => ({
   members: [],
   messages: [],
   syncState: initialSyncState,
+  heartbeat: null,
   isConnected: false,
 
   setRoom: (room) => set({ room }),
@@ -60,6 +69,7 @@ export const useWatchPartyStore = create<WatchPartyState>((set) => ({
     set((s) => ({ messages: [...s.messages, message] })),
   setSyncState: (state) =>
     set((s) => ({ syncState: { ...s.syncState, ...state } })),
+  setHeartbeat: (hb) => set({ heartbeat: hb }),
   setConnected: (connected) => set({ isConnected: connected }),
   reset: () =>
     set({
@@ -67,6 +77,7 @@ export const useWatchPartyStore = create<WatchPartyState>((set) => ({
       members: [],
       messages: [],
       syncState: initialSyncState,
+      heartbeat: null,
       isConnected: false,
     }),
 }));

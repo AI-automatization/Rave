@@ -41,35 +41,20 @@ const checkConnRateLimit = async (redis: import('ioredis').default, ip: string):
   }
 };
 
-// Rate limiter: per user, 10 messages per 5 seconds (chat + emoji)
+// Rate limiter: per user, 10 messages per 5 seconds — Redis-backed, shared across instances
 const MSG_LIMIT = LIMITS.MAX_WS_MSG_PER_WINDOW;
-const MSG_WINDOW_MS = TIMING.WS_MSG_RATE_WINDOW_MS;
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const MSG_WINDOW_SEC = Math.ceil(TIMING.WS_MSG_RATE_WINDOW_MS / 1000);
 
-const checkRateLimit = (userId: string): boolean => {
-  const now = Date.now();
-  const entry = rateLimitMap.get(userId);
-  if (!entry || now >= entry.resetAt) {
-    rateLimitMap.set(userId, { count: 1, resetAt: now + MSG_WINDOW_MS });
-    return true;
+const checkMsgRateLimit = async (redis: import('ioredis').default, userId: string): Promise<boolean> => {
+  try {
+    const key = `ws:msg:${userId}`;
+    const count = await redis.incr(key);
+    if (count === 1) await redis.expire(key, MSG_WINDOW_SEC);
+    return count <= MSG_LIMIT;
+  } catch {
+    return true; // fail open if Redis is unavailable
   }
-  if (entry.count >= MSG_LIMIT) return false;
-  entry.count++;
-  return true;
 };
-
-// Clean up expired rate limit entries every minute to prevent memory leak
-setInterval(() => {
-  const now = Date.now();
-  for (const [userId, entry] of rateLimitMap.entries()) {
-    if (now >= entry.resetAt) {
-      rateLimitMap.delete(userId);
-    }
-  }
-}, TIMING.WS_CONN_RATE_WINDOW_MS);
-
-// In-memory voice rooms: roomId → Set of userIds currently in voice
-const voiceRooms = new Map<string, Set<string>>();
 
 const INACTIVE_CHECK_INTERVAL_MS = 60 * 1000; // check every 1 minute
 const INACTIVE_THRESHOLD_MINUTES = 5;
@@ -153,8 +138,8 @@ export const registerWatchPartySocket = (io: SocketServer, watchPartyService: Wa
     // Register all event handlers
     registerRoomEvents(io, socket, authSocket, watchPartyService);
     registerVideoEvents(io, socket, authSocket, watchPartyService);
-    registerChatEvents(socket, authSocket, checkRateLimit);
-    registerVoiceEvents(socket, authSocket, voiceRooms);
+    registerChatEvents(socket, authSocket, (uid) => checkMsgRateLimit(redis, uid));
+    registerVoiceEvents(socket, authSocket, redis);
     registerMeshHandlers(io, socket, authSocket);
     registerReactionEvents(io, socket, authSocket, redis);
     registerDMEvents(io, socket);
@@ -165,8 +150,9 @@ export const registerWatchPartySocket = (io: SocketServer, watchPartyService: Wa
       clearInterval(blockedCheckInterval);
       const roomId = authSocket.roomId;
       if (roomId) {
-        // Clean up voice room
-        if (voiceRooms.get(roomId)?.delete(userId)) {
+        // Clean up voice room (Redis-backed, shared across instances)
+        const voiceRemoved = await redis.srem(`voice:room:${roomId}`, userId);
+        if (voiceRemoved > 0) {
           socket.to(roomId).emit(SERVER_EVENTS.VOICE_USER_LEFT, { userId });
         }
 

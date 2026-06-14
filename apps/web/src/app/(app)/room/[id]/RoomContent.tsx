@@ -16,7 +16,7 @@ interface Props {
 }
 
 export function RoomContent({ roomId }: Props) {
-  const { sendMessage, sendPlay, sendPause, sendSeek, sendEmoji } = useWatchParty(roomId);
+  const { sendMessage, sendPlay, sendPause, sendSeek, sendEmoji, sendHeartbeat, sendBufferStart, sendBufferEnd } = useWatchParty(roomId);
   const [rightTab, setRightTab] = useState<'chat' | 'members'>('chat');
   const setRoom = useWatchPartyStore((s) => s.setRoom);
   const reset = useWatchPartyStore((s) => s.reset);
@@ -45,6 +45,9 @@ export function RoomContent({ roomId }: Props) {
             onPlay={sendPlay}
             onPause={sendPause}
             onSeek={sendSeek}
+            onHeartbeat={sendHeartbeat}
+            onBufferStart={sendBufferStart}
+            onBufferEnd={sendBufferEnd}
           />
           <EmojiReactions onSend={sendEmoji} />
         </div>

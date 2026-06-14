@@ -3,11 +3,15 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useWatchPartyStore } from '@/store/watch-party.store';
+import { useAuthStore } from '@/store/auth.store';
 
 interface Props {
   onPlay: (time: number) => void;
   onPause: (time: number) => void;
   onSeek: (time: number) => void;
+  onHeartbeat: (time: number) => void;
+  onBufferStart: () => void;
+  onBufferEnd: () => void;
 }
 
 function getYouTubeId(url: string): string | null {
@@ -28,10 +32,13 @@ function getRutubeEmbedUrl(url: string): string | null {
   return `https://rutube.ru/play/embed/${match[1]}/`;
 }
 
-export function VideoPlayer({ onPlay, onPause, onSeek }: Props) {
+export function VideoPlayer({ onPlay, onPause, onSeek, onHeartbeat, onBufferStart, onBufferEnd }: Props) {
   const room = useWatchPartyStore((s) => s.room);
   const isConnected = useWatchPartyStore((s) => s.isConnected);
   const syncState = useWatchPartyStore((s) => s.syncState);
+  const heartbeat = useWatchPartyStore((s) => s.heartbeat);
+  const currentUser = useAuthStore((s) => s.user);
+  const isOwner = !!(room && currentUser && room.ownerId === currentUser._id);
   const videoRef = useRef<HTMLVideoElement>(null);
   const isRemoteAction = useRef(false);
 
@@ -60,6 +67,33 @@ export function VideoPlayer({ onPlay, onPause, onSeek }: Props) {
 
     setTimeout(() => { isRemoteAction.current = false; }, 200);
   }, [syncState.currentTime, syncState.isPlaying, isEmbed]);
+
+  // Owner sends heartbeat every 2s so peers can do drift correction
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!isOwner || isEmbed || !video) return;
+    const id = setInterval(() => {
+      if (!video.paused) onHeartbeat(video.currentTime);
+    }, 2000);
+    return () => clearInterval(id);
+  }, [isOwner, isEmbed, onHeartbeat]);
+
+  // Non-owner: apply drift correction when heartbeat arrives
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || isEmbed || isOwner || !heartbeat || !syncState.isPlaying) return;
+    const expected = heartbeat.currentTime + (Date.now() - heartbeat.timestamp) / 1000;
+    const drift = expected - video.currentTime;
+    if (Math.abs(drift) > 3) {
+      isRemoteAction.current = true;
+      video.currentTime = expected;
+      setTimeout(() => { isRemoteAction.current = false; }, 200);
+    } else if (Math.abs(drift) > 0.3) {
+      video.playbackRate = drift > 0 ? 1.08 : 0.92;
+    } else {
+      video.playbackRate = 1.0;
+    }
+  }, [heartbeat, isEmbed, isOwner, syncState.isPlaying]);
 
   const handlePlay = useCallback(() => {
     if (!isRemoteAction.current && videoRef.current) {
@@ -162,6 +196,8 @@ export function VideoPlayer({ onPlay, onPause, onSeek }: Props) {
         onPlay={handlePlay}
         onPause={handlePause}
         onSeeked={handleSeeked}
+        onWaiting={onBufferStart}
+        onCanPlay={onBufferEnd}
       />
     </div>
   );
