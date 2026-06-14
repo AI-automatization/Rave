@@ -28,30 +28,30 @@ export function ProfileCard({ user }: Props) {
   }
 
   return (
-    <div className="card p-6 flex flex-col items-center gap-5">
+    <div className="card p-6 flex flex-col items-center gap-6">
       <AvatarUpload avatar={user.avatar} username={user.username} />
 
-      <div className="w-full flex flex-col gap-4">
+      <div className="w-full flex flex-col gap-5">
         {/* Username */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-medium text-slate-400">Username</label>
+        <div className="flex flex-col gap-2">
+          <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Username</label>
           <input
             type="text"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="w-full h-10 bg-[#13121F] border border-[#2A2840] rounded-xl px-3 text-sm text-white focus:outline-none focus:border-violet-500/60 focus:ring-1 focus:ring-violet-500/30 transition-all"
+            className="w-full h-[54px] bg-[#111118] border border-white/[0.06] rounded-2xl px-5 text-sm text-white focus:outline-none focus:border-violet-500/45 focus:bg-violet-500/5 transition-all"
           />
         </div>
 
         {/* Bio */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-medium text-slate-400">Bio</label>
+        <div className="flex flex-col gap-2">
+          <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Bio</label>
           <textarea
             value={bio}
             onChange={(e) => setBio(e.target.value)}
             rows={3}
             maxLength={200}
-            className="w-full bg-[#13121F] border border-[#2A2840] rounded-xl px-3 py-2 text-sm text-white resize-none focus:outline-none focus:border-violet-500/60 focus:ring-1 focus:ring-violet-500/30 transition-all"
+            className="w-full bg-[#111118] border border-white/[0.06] rounded-2xl px-5 py-4 text-sm text-white resize-none focus:outline-none focus:border-violet-500/45 focus:bg-violet-500/5 transition-all"
           />
         </div>
 
@@ -60,12 +60,12 @@ export function ProfileCard({ user }: Props) {
           <button
             onClick={handleSave}
             disabled={update.isPending}
-            className="w-full h-10 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2 active:scale-[0.98] transition-all cursor-pointer disabled:opacity-40"
+            className="w-full h-[54px] rounded-2xl text-sm font-bold text-white flex items-center justify-center gap-2 active:scale-[0.97] transition-all cursor-pointer disabled:opacity-40 shadow-lg shadow-violet-500/20"
             style={{ background: 'linear-gradient(135deg, #7C3AED, #5B21B6)' }}
           >
             {update.isPending
-              ? <><Loader2 size={14} className="animate-spin" />Saqlanmoqda...</>
-              : <><Check size={14} />Saqlash</>}
+              ? <><Loader2 size={16} className="animate-spin" />Saqlanmoqda...</>
+              : <><Check size={16} />Saqlash</>}
           </button>
         )}
       </div>

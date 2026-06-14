@@ -34,12 +34,14 @@ export function RoomContent({ roomId }: Props) {
 
         {/* Right: Chat / Members */}
         <div className="hidden md:flex flex-col w-80 border-l border-white/[0.06] bg-[#0A0A12]/30">
-          {/* Tabs */}
-          <div className="flex border-b border-white/[0.06]">
+          {/* Tabs — consistent with FriendsContent style */}
+          <div className="flex gap-1 p-1.5 m-2 bg-[#111118] rounded-xl border border-white/[0.06]">
             <button
               onClick={() => setRightTab('chat')}
-              className={`flex-1 h-10 flex items-center justify-center gap-1.5 text-xs font-medium transition-colors cursor-pointer ${
-                rightTab === 'chat' ? 'text-violet-400 border-b-2 border-violet-400' : 'text-slate-500 hover:text-slate-300'
+              className={`flex-1 h-9 flex items-center justify-center gap-1.5 text-xs font-medium rounded-lg transition-all cursor-pointer ${
+                rightTab === 'chat'
+                  ? 'bg-violet-600/18 text-violet-300 border border-violet-500/25'
+                  : 'text-slate-500 hover:text-slate-300 border border-transparent'
               }`}
             >
               <MessageCircle size={14} />
@@ -47,8 +49,10 @@ export function RoomContent({ roomId }: Props) {
             </button>
             <button
               onClick={() => setRightTab('members')}
-              className={`flex-1 h-10 flex items-center justify-center gap-1.5 text-xs font-medium transition-colors cursor-pointer ${
-                rightTab === 'members' ? 'text-violet-400 border-b-2 border-violet-400' : 'text-slate-500 hover:text-slate-300'
+              className={`flex-1 h-9 flex items-center justify-center gap-1.5 text-xs font-medium rounded-lg transition-all cursor-pointer ${
+                rightTab === 'members'
+                  ? 'bg-violet-600/18 text-violet-300 border border-violet-500/25'
+                  : 'text-slate-500 hover:text-slate-300 border border-transparent'
               }`}
             >
               <UsersIcon size={14} />

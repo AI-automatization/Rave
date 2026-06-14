@@ -31,19 +31,21 @@ export function FriendsContent() {
     <div className="max-w-xl mx-auto flex flex-col gap-5">
       <h1 className="text-2xl font-bold text-white">{t('title')}</h1>
 
-      {/* Tabs */}
-      <div className="flex gap-1 bg-white/[0.03] p-1 rounded-xl">
+      {/* Tabs — consistent rounded style */}
+      <div className="flex gap-1.5 bg-[#111118] p-1.5 rounded-2xl border border-white/[0.06]">
         {tabs.map(({ key, label, count }) => (
           <button
             key={key}
             onClick={() => setTab(key)}
-            className={`flex-1 h-9 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
-              tab === key ? 'bg-violet-600/20 text-violet-300' : 'text-slate-400 hover:text-white'
+            className={`flex-1 h-11 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-all cursor-pointer ${
+              tab === key
+                ? 'bg-violet-600/18 text-violet-300 border border-violet-500/25'
+                : 'text-slate-400 hover:text-white hover:bg-white/[0.04] border border-transparent'
             }`}
           >
             {label}
             {count !== undefined && count > 0 && (
-              <span className="bg-violet-600/30 text-violet-300 text-[10px] px-1.5 py-0.5 rounded-full">
+              <span className="bg-violet-500/30 text-violet-300 text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
                 {count}
               </span>
             )}
@@ -53,15 +55,17 @@ export function FriendsContent() {
 
       {/* Content */}
       {tab === 'friends' && (
-        <>
+        <div className="flex flex-col gap-2">
           {loadingFriends && (
             <div className="flex justify-center py-10">
               <Loader2 size={24} className="animate-spin text-violet-400" />
             </div>
           )}
           {!loadingFriends && (!friends || friends.length === 0) && (
-            <div className="flex flex-col items-center gap-3 py-10">
-              <Users size={28} className="text-slate-600" />
+            <div className="flex flex-col items-center gap-4 py-14">
+              <div className="w-[72px] h-[72px] rounded-full bg-violet-500/12 border border-violet-500/25 flex items-center justify-center">
+                <Users size={32} className="text-violet-400" />
+              </div>
               <p className="text-sm text-slate-400">{t('empty')}</p>
             </div>
           )}
@@ -75,11 +79,11 @@ export function FriendsContent() {
               />
             );
           })}
-        </>
+        </div>
       )}
 
       {tab === 'requests' && (
-        <>
+        <div className="flex flex-col gap-2">
           {loadingRequests && (
             <div className="flex justify-center py-10">
               <Loader2 size={24} className="animate-spin text-violet-400" />
@@ -91,7 +95,7 @@ export function FriendsContent() {
           {requests?.map((req) => (
             <RequestCard key={req._id} request={req} currentUserId={currentUser?._id ?? ''} />
           ))}
-        </>
+        </div>
       )}
 
       {tab === 'search' && <FriendSearch />}

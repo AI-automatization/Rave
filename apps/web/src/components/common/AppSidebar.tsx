@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Home, Users, MessageCircle, User, Tv } from 'lucide-react';
+import { Home, Users, MessageCircle, User } from 'lucide-react';
 
 const NAV_ITEMS = [
   { key: 'home', href: '/home', icon: Home },
@@ -26,10 +26,10 @@ export function AppSidebar() {
             <Link
               key={key}
               href={href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
                 active
-                  ? 'bg-violet-600/15 text-violet-300'
-                  : 'text-slate-400 hover:text-white hover:bg-white/[0.05]'
+                  ? 'bg-violet-600/15 text-violet-300 border border-violet-500/20'
+                  : 'text-slate-400 hover:text-white hover:bg-white/[0.05] border border-transparent'
               }`}
             >
               <Icon size={18} />
@@ -47,12 +47,12 @@ export function AppSidebar() {
             <Link
               key={key}
               href={href}
-              className={`flex flex-col items-center gap-0.5 text-[10px] transition-colors ${
+              className={`flex flex-col items-center gap-1 text-xs transition-colors min-w-[60px] ${
                 active ? 'text-violet-400' : 'text-slate-500'
               }`}
             >
-              <Icon size={20} />
-              {t(key)}
+              <Icon size={22} />
+              <span className="text-[11px] font-medium">{t(key)}</span>
             </Link>
           );
         })}
