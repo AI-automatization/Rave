@@ -46,9 +46,40 @@ export function LoginForm() {
     try {
       const res = await authApi.googleInit();
       const url = res.data?.url;
-      if (url) {
-        window.open(url, '_blank', 'width=500,height=600');
+      const state = res.data?.state;
+      if (!url || !state) { setError(t('genericError')); return; }
+
+      const popup = window.open(url, 'google-auth', 'width=500,height=600');
+
+      async function finishLogin() {
+        try {
+          const poll = await authApi.googlePoll(state!);
+          if (poll.data?.user) {
+            clearInterval(interval);
+            window.removeEventListener('message', onMessage);
+            try { popup?.close(); } catch { /* ignore */ }
+            setUser(poll.data.user);
+            router.push(searchParams.get('redirect') || '/home');
+          }
+        } catch { /* still pending */ }
       }
+
+      // Listen for postMessage from popup success page
+      async function onMessage(e: MessageEvent) {
+        if (e.data === 'google-auth-done') {
+          await finishLogin();
+        }
+      }
+      window.addEventListener('message', onMessage);
+
+      // Also poll as fallback every 2s
+      const interval = setInterval(finishLogin, 2000);
+
+      // Cleanup after 2 min
+      setTimeout(() => {
+        clearInterval(interval);
+        window.removeEventListener('message', onMessage);
+      }, 120_000);
     } catch {
       setError(t('genericError'));
     }

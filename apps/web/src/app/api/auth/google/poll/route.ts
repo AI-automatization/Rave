@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
 
     const baseUrl = ensureSuffix(AUTH_SERVICE_URL, '/api/v1/auth');
 
-    const res = await fetch(`${baseUrl}/google/poll?sessionId=${encodeURIComponent(sessionId)}`, {
+    const res = await fetch(`${baseUrl}/google/poll?state=${encodeURIComponent(sessionId)}`, {
       method: 'GET',
     });
 

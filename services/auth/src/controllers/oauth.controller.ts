@@ -44,7 +44,14 @@ export class OAuthController {
     const successHtml = `<!DOCTYPE html><html><head>
       <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
       <title>WeWatch</title>
-      <script>window.location.href='wewatch://auth/callback';</script>
+      <script>
+        // Notify parent web window (popup flow) then close
+        try { window.opener && window.opener.postMessage('google-auth-done', '*'); } catch(e){}
+        // Mobile deep link fallback
+        try { window.location.href='wewatch://auth/callback'; } catch(e){}
+        // Auto-close popup after short delay
+        setTimeout(function(){ try{ window.close(); }catch(e){} }, 1000);
+      </script>
       <style>*{box-sizing:border-box;margin:0;padding:0}
         body{display:flex;flex-direction:column;align-items:center;justify-content:center;
              min-height:100vh;background:#0A0A0F;color:#fff;font-family:-apple-system,sans-serif;
@@ -56,7 +63,7 @@ export class OAuthController {
       </head><body>
       <div style="font-size:64px">✅</div>
       <h2>Вы вошли в WeWatch!</h2>
-      <p>Возвращаемся в приложение...</p>
+      <p>Окно закроется автоматически...</p>
       <a href="wewatch://auth/callback">🎬 Открыть WeWatch</a>
     </body></html>`;
     const errorHtml = `<html><body style="background:#0A0A0F;color:#fff;font-family:sans-serif;text-align:center;padding:60px">

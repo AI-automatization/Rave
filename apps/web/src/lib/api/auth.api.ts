@@ -37,7 +37,7 @@ export const authApi = {
     apiClient('/api/auth/refresh', { method: 'POST', skipRefresh: true }),
 
   googleInit: () =>
-    apiClient<{ url: string }>('/api/auth/google/init', { method: 'GET' }),
+    apiClient<{ url: string; state: string }>('/api/auth/google/init', { method: 'GET' }),
 
   googlePoll: (sessionId: string) =>
     apiClient<{ user: IUser }>(`/api/auth/google/poll?sessionId=${sessionId}`, { method: 'GET' }),
