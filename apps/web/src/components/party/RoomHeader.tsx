@@ -11,7 +11,7 @@ export function RoomHeader() {
   const t = useTranslations('party');
   const router = useRouter();
   const room = useWatchPartyStore((s) => s.room);
-  const members = useWatchPartyStore((s) => s.members);
+  const storeMembers = useWatchPartyStore((s) => s.members);
   const isConnected = useWatchPartyStore((s) => s.isConnected);
   const [inviteOpen, setInviteOpen] = useState(false);
 
@@ -24,7 +24,7 @@ export function RoomHeader() {
           </h2>
           <div className="flex items-center gap-1 text-xs text-slate-400 shrink-0">
             <Users size={12} />
-            {members.length}
+            {((room as any)?.members as unknown[])?.length ?? storeMembers.length}
           </div>
           <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${isConnected ? 'bg-emerald-400' : 'bg-red-400'}`} />
         </div>

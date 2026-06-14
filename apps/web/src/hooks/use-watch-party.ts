@@ -4,7 +4,7 @@ import { useEffect, useCallback } from 'react';
 import { SERVER_EVENTS, CLIENT_EVENTS } from '@shared/constants/socketEvents';
 import { useSocket } from '@/hooks/use-socket';
 import { useWatchPartyStore } from '@/store/watch-party.store';
-import type { IChatMessage } from '@/types';
+import type { IChatMessage, IWatchPartyRoom } from '@/types';
 
 export function useWatchParty(roomId: string) {
   const { socket, isConnected } = useSocket();
@@ -21,13 +21,17 @@ export function useWatchParty(roomId: string) {
     socket.emit(CLIENT_EVENTS.JOIN_ROOM, { roomId });
 
     // Server events
-    socket.on(SERVER_EVENTS.ROOM_JOINED, (data: { room: any; members: any[] }) => {
+    socket.on(SERVER_EVENTS.ROOM_JOINED, (data: { room: IWatchPartyRoom; syncState: { currentTime: number; isPlaying: boolean } | null }) => {
       setRoom(data.room);
-      setMembers(data.members);
+      // room.members is string[] (user IDs from DB) — map to placeholder member objects for count display
+      const rawMembers = Array.isArray((data.room as any)?.members) ? (data.room as any).members as string[] : [];
+      setMembers(rawMembers.map((id) => ({ _id: id, username: '' })));
+      if (data.syncState) setSyncState(data.syncState);
     });
 
-    socket.on(SERVER_EVENTS.MEMBER_JOINED, (member: any) => {
-      addMember(member);
+    // Server sends { userId } — map to member shape
+    socket.on(SERVER_EVENTS.MEMBER_JOINED, (data: { userId: string }) => {
+      addMember({ _id: data.userId, username: '' });
     });
 
     socket.on(SERVER_EVENTS.MEMBER_LEFT, (data: { userId: string }) => {
@@ -38,28 +42,30 @@ export function useWatchParty(roomId: string) {
       addMessage(message);
     });
 
-    socket.on(SERVER_EVENTS.VIDEO_PLAY, (data: { currentTime: number }) => {
-      setSyncState({ isPlaying: true, currentTime: data.currentTime });
+    // Server sends syncState directly as payload (match mobile pattern)
+    socket.on(SERVER_EVENTS.VIDEO_PLAY, (state: { currentTime: number; isPlaying: boolean }) => {
+      setSyncState({ isPlaying: true, currentTime: state.currentTime });
     });
 
-    socket.on(SERVER_EVENTS.VIDEO_PAUSE, (data: { currentTime: number }) => {
-      setSyncState({ isPlaying: false, currentTime: data.currentTime });
+    socket.on(SERVER_EVENTS.VIDEO_PAUSE, (state: { currentTime: number; isPlaying: boolean }) => {
+      setSyncState({ isPlaying: false, currentTime: state.currentTime });
     });
 
-    socket.on(SERVER_EVENTS.VIDEO_SEEK, (data: { currentTime: number }) => {
-      setSyncState({ currentTime: data.currentTime });
+    socket.on(SERVER_EVENTS.VIDEO_SEEK, (state: { currentTime: number; isPlaying: boolean }) => {
+      setSyncState({ currentTime: state.currentTime });
     });
 
-    socket.on(SERVER_EVENTS.VIDEO_SYNC, (data: { currentTime: number; isPlaying: boolean }) => {
-      setSyncState({ currentTime: data.currentTime, isPlaying: data.isPlaying });
+    socket.on(SERVER_EVENTS.VIDEO_SYNC, (state: { currentTime: number; isPlaying: boolean }) => {
+      setSyncState({ currentTime: state.currentTime, isPlaying: state.isPlaying });
     });
 
     socket.on(SERVER_EVENTS.ROOM_CLOSED, () => {
       reset();
     });
 
-    socket.on(SERVER_EVENTS.ROOM_UPDATED, (data: { room: any }) => {
-      setRoom(data.room);
+    // Server sends updated room directly (not wrapped in { room: ... })
+    socket.on(SERVER_EVENTS.ROOM_UPDATED, (room: IWatchPartyRoom) => {
+      setRoom(room);
     });
 
     return () => {

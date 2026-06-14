@@ -47,7 +47,7 @@ export const useWatchPartyStore = create<WatchPartyState>((set) => ({
   isConnected: false,
 
   setRoom: (room) => set({ room }),
-  setMembers: (members) => set({ members }),
+  setMembers: (members) => set({ members: members ?? [] }),
   addMember: (member) =>
     set((s) => ({
       members: s.members.some((m) => m._id === member._id)

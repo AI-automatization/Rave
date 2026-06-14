@@ -19,7 +19,7 @@ export function MemberList() {
             )}
           </div>
 
-          <span className="text-sm text-slate-200 truncate">{member.username}</span>
+          <span className="text-sm text-slate-200 truncate">{member.username || `#${member._id.slice(-4)}`}</span>
         </div>
       ))}
     </div>
