@@ -502,106 +502,106 @@
 
 ### T-S103 | P1 | [BACKEND] | DM Chat: DirectMessage schema + model
 
-- **Mas'ul:** pending[Saidazim]
+- **Mas'ul:** done[Saidazim]
 - **Beruvchi:** Saidazim
 - **Yaratilgan:** 2026-06-13
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** ✅ Bajarildi (2026-06-14)
 - **Tavsiya model:** haiku
 - **Model sababi:** 1 fayl — faqat schema + model
 - **Sabab:** DM uchun MongoDB schema kerak
 - **Qilish kerak:**
-  - [ ] `services/user/src/models/directMessage.model.ts` yaratish
-  - [ ] Schema: senderId, receiverId, text, read, createdAt
-  - [ ] Index: (senderId + receiverId) + createdAt
+  - [x] `services/user/src/models/directMessage.model.ts` yaratish
+  - [x] Schema: senderId, receiverId, text, read, createdAt
+  - [x] Index: (senderId + receiverId) + createdAt
 
 ---
 
 ### T-S104 | P1 | [BACKEND] | DM Chat: REST endpoints — tarix + yuborish + ro'yxat
 
-- **Mas'ul:** pending[Saidazim]
+- **Mas'ul:** done[Saidazim]
 - **Beruvchi:** Saidazim
 - **Yaratilgan:** 2026-06-13
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** ✅ Bajarildi (2026-06-14)
 - **Tavsiya model:** sonnet
 - **Model sababi:** controller + routes, 2-3 fayl
 - **Sabab:** DM uchun REST API
 - **Qilish kerak:**
-  - [ ] `GET /messages/dm/:userId` — ikki user o'rtasidagi xabarlar tarixi
-  - [ ] `POST /messages/dm/:userId` — yangi xabar yuborish
-  - [ ] `GET /messages/dm/conversations` — barcha suhbatlar (so'nggi xabar + o'qilmagan soni)
-  - [ ] `PATCH /messages/dm/:userId/read` — xabarlarni o'qilgan deb belgilash
+  - [x] `GET /messages/dm/:userId` — ikki user o'rtasidagi xabarlar tarixi
+  - [x] `POST /messages/dm/:userId` — yangi xabar yuborish
+  - [x] `GET /messages/dm/conversations` — barcha suhbatlar (so'nggi xabar + o'qilmagan soni)
+  - [x] `PATCH /messages/dm/:userId/read` — xabarlarni o'qilgan deb belgilash
 - **Bog'liq:** T-S103 (schema)
 
 ---
 
 ### T-S105 | P1 | [BACKEND] | DM Chat: Socket.io real-time + push notification
 
-- **Mas'ul:** pending[Saidazim]
+- **Mas'ul:** done[Saidazim]
 - **Beruvchi:** Saidazim
 - **Yaratilgan:** 2026-06-13
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** ✅ Bajarildi (2026-06-14)
 - **Tavsiya model:** sonnet
 - **Model sababi:** Socket.io event + notification service, 2 fayl
 - **Sabab:** Real-time yetkazish va push
 - **Qilish kerak:**
-  - [ ] Socket.io event `dm:send` → `dm:message` (yetkazish)
-  - [ ] Agar qabul qiluvchi offline bo'lsa → FCM push notification
-  - [ ] `dm:read` event — o'qilganda xabar berish
+  - [x] Socket.io event `dm:send` → `dm:message` (yetkazish)
+  - [x] Agar qabul qiluvchi offline bo'lsa → FCM push notification
+  - [x] `dm:read` event — o'qilganda xabar berish
 - **Bog'liq:** T-S104
 
 ---
 
 ### T-E136 | P1 | [MOBILE] | DM Chat: WatchParty — user tap → BottomSheet
 
-- **Mas'ul:** pending[Emirhan]
+- **Mas'ul:** done[Saidazim]
 - **Beruvchi:** Saidazim
 - **Yaratilgan:** 2026-06-13
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** ✅ Bajarildi (2026-06-14)
 - **Tavsiya model:** haiku
 - **Model sababi:** 1-2 fayl — faqat tap handler + BottomSheet
 - **Sabab:** Komnata ichida boshqa userni bosib → menu chiqishi kerak
 - **Qilish kerak:**
-  - [ ] VoiceChatParticipants yoki participantlar ro'yxatida userni bosish → BottomSheet
-  - [ ] BottomSheet ichida: "Profil ko'rish" | "Xabar yuborish"
-  - [ ] "Profil" → mavjud ProfileScreen ga navigate
-  - [ ] "Xabar" → DMChatScreen ga navigate (T-E137)
+  - [x] VoiceChatParticipants yoki participantlar ro'yxatida userni bosish → BottomSheet
+  - [x] BottomSheet ichida: "Profil ko'rish" | "Xabar yuborish"
+  - [x] "Profil" → mavjud ProfileScreen ga navigate
+  - [x] "Xabar" → DMChatScreen ga navigate (T-E137)
 - **Bog'liq:** T-S104 (backend tayyor bo'lishi kerak), T-E137
 
 ---
 
 ### T-E137 | P1 | [MOBILE] | DM Chat: DMChatScreen ekrani
 
-- **Mas'ul:** pending[Emirhan]
+- **Mas'ul:** done[Saidazim]
 - **Beruvchi:** Saidazim
 - **Yaratilgan:** 2026-06-13
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** ✅ Bajarildi (2026-06-14)
 - **Tavsiya model:** sonnet
 - **Model sababi:** Yangi screen — chat bubbles, input, API, socket
 - **Sabab:** Ikki user o'rtasidagi personal chat ekrani
 - **Qilish kerak:**
-  - [ ] `DMChatScreen.tsx` — chat bubbles (o'zim/boshqa), timestamp
-  - [ ] Xabar inputi + yuborish tugmasi
-  - [ ] `GET /messages/dm/:userId` — tarixni yuklash
-  - [ ] Socket.io `dm:message` — real-time yangi xabarlar
-  - [ ] O'qilmagan indicator
+  - [x] `DMChatScreen.tsx` — chat bubbles (o'zim/boshqa), timestamp
+  - [x] Xabar inputi + yuborish tugmasi
+  - [x] `GET /messages/dm/:userId` — tarixni yuklash
+  - [x] Socket.io `dm:message` — real-time yangi xabarlar
+  - [x] O'qilmagan indicator
 - **Bog'liq:** T-S103 + T-S104 + T-S105
 
 ---
 
 ### T-E138 | P2 | [MOBILE] | DM Chat: ConversationsScreen — barcha suhbatlar
 
-- **Mas'ul:** pending[Emirhan]
+- **Mas'ul:** done[Saidazim]
 - **Beruvchi:** Saidazim
 - **Yaratilgan:** 2026-06-13
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** ✅ Bajarildi (2026-06-14)
 - **Tavsiya model:** sonnet
 - **Model sababi:** Yangi screen + navigation integration
 - **Sabab:** Barcha DM suhbatlar ro'yxati kerak
 - **Qilish kerak:**
-  - [ ] `ConversationsScreen.tsx` — avatar, ism, so'nggi xabar, vaqt, unread badge
-  - [ ] `GET /messages/dm/conversations` dan ma'lumot
-  - [ ] Bottom tab yoki Friends tab ichiga qo'shish
-  - [ ] Push notification tap → to'g'ri DMChatScreen ga o'tish
+  - [x] `ConversationsScreen.tsx` — avatar, ism, so'nggi xabar, vaqt, unread badge
+  - [x] `GET /messages/dm/conversations` dan ma'lumot
+  - [x] Bottom tab yoki Friends tab ichiga qo'shish
+  - [x] Push notification tap → to'g'ri DMChatScreen ga o'tish
 - **Bog'liq:** T-E137
 
 ---
