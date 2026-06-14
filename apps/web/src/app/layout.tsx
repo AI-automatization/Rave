@@ -186,37 +186,6 @@ const jsonLdApp = {
   featureList: ['watch party', 'YouTube sync', 'VK sync', 'Rutube sync', 'live chat', 'emoji reactions', 'cross-platform iOS Android Web'],
 };
 
-const jsonLdFaq = {
-  '@context': 'https://schema.org',
-  '@type': 'FAQPage',
-  mainEntity: [
-    {
-      '@type': 'Question',
-      name: 'Как смотреть YouTube вместе с другом онлайн?',
-      acceptedAnswer: { '@type': 'Answer', text: 'Скачайте WeWatch, создайте комнату, поделитесь ссылкой. Друг нажимает — и вы вместе. Синхронизация работает автоматически: вы паузите — все паузят.' },
-    },
-    {
-      '@type': 'Question',
-      name: 'Какие видеосервисы поддерживает WeWatch?',
-      acceptedAnswer: { '@type': 'Answer', text: 'WeWatch поддерживает YouTube, VK Видео, Rutube, Uzmove, Cinerama и другие сайты через встроенный браузер.' },
-    },
-    {
-      '@type': 'Question',
-      name: 'Бесплатен ли WeWatch?',
-      acceptedAnswer: { '@type': 'Answer', text: 'Да, WeWatch бесплатен. Базовый план не имеет ограничений по времени. Доступна Pro-подписка с дополнительными функциями.' },
-    },
-    {
-      '@type': 'Question',
-      name: 'Работает ли WeWatch на Android?',
-      acceptedAnswer: { '@type': 'Answer', text: 'iOS-версия доступна в App Store. Android-версия находится в разработке и выйдет в ближайшее время.' },
-    },
-    {
-      '@type': 'Question',
-      name: 'What is a watch party?',
-      acceptedAnswer: { '@type': 'Answer', text: 'A watch party is a synchronized video viewing session where multiple people watch the same video at the same time, even from different locations. WeWatch makes it free and easy — no browser extensions needed.' },
-    },
-  ],
-};
 
 export default function RootLayout({
   children,
@@ -225,7 +194,6 @@ export default function RootLayout({
     <html lang="ru" suppressHydrationWarning>
       <body className={`${dmSans.variable} ${oswald.variable} font-body antialiased bg-[#060608] text-white`}>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdApp) }} />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdFaq) }} />
         <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="afterInteractive" />
         <Script id="gtag-init" strategy="afterInteractive">{`
           window.dataLayer = window.dataLayer || [];
