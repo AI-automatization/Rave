@@ -16,7 +16,7 @@ export function RequestCard({ request, currentUserId }: Props) {
   const accept = useAcceptFriendRequest();
   const reject = useRejectFriendRequest();
 
-  const sender = request.requester._id === currentUserId ? request.receiver : request.requester;
+  const sender = request.requester._id === currentUserId ? (request.receiver ?? request.requester) : request.requester;
 
   async function handleAccept() {
     try {

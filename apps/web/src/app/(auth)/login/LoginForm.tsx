@@ -25,20 +25,22 @@ export function LoginForm() {
     e.preventDefault();
     if (!email || !password) return;
 
-    startTransition(async () => {
-      try {
-        const res = await authApi.login({ email, password });
-        setUser(res.data?.user ?? null);
-        const redirect = searchParams.get('redirect') || '/home';
-        router.push(redirect);
-      } catch (err) {
-        if (err instanceof ApiError) {
-          const data = err.data as { message?: string };
-          setError(data.message ?? t('wrongCredentials'));
-        } else {
-          setError(t('genericError'));
+    startTransition(() => {
+      void (async () => {
+        try {
+          const res = await authApi.login({ email, password });
+          setUser(res.data?.user ?? null);
+          const redirect = searchParams.get('redirect') || '/home';
+          router.push(redirect);
+        } catch (err) {
+          if (err instanceof ApiError) {
+            const data = err.data as { message?: string };
+            setError(data.message ?? t('wrongCredentials'));
+          } else {
+            setError(t('genericError'));
+          }
         }
-      }
+      })();
     });
   }
 
@@ -51,7 +53,7 @@ export function LoginForm() {
 
       const popup = window.open(url, 'google-auth', 'width=500,height=600');
 
-      async function finishLogin() {
+      const finishLogin = async () => {
         try {
           const poll = await authApi.googlePoll(state!);
           if (poll.data?.user) {
@@ -62,18 +64,18 @@ export function LoginForm() {
             router.push(searchParams.get('redirect') || '/home');
           }
         } catch { /* still pending */ }
-      }
+      };
 
       // Listen for postMessage from popup success page
-      async function onMessage(e: MessageEvent) {
+      const onMessage = async (e: MessageEvent) => {
         if (e.data === 'google-auth-done') {
           await finishLogin();
         }
-      }
+      };
       window.addEventListener('message', onMessage);
 
-      // Also poll as fallback every 2s
-      const interval = setInterval(finishLogin, 2000);
+      // Also poll as fallback every 800ms
+      const interval = setInterval(finishLogin, 800);
 
       // Cleanup after 2 min
       setTimeout(() => {

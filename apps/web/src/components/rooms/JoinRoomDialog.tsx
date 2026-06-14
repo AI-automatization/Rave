@@ -27,7 +27,7 @@ export function JoinRoomDialog({ open, onOpenChange }: Props) {
     try {
       const res = await joinRoom.mutateAsync(code.trim());
       onOpenChange(false);
-      const roomId = res.data?.room?._id;
+      const roomId = res.data?._id;
       if (roomId) {
         router.push(`/room/${roomId}`);
       }

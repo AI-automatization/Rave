@@ -63,21 +63,23 @@ export function VerifyEmail({ email }: Props) {
   }
 
   function submitCode(code: string) {
-    startTransition(async () => {
-      try {
-        const res = await authApi.confirmEmail({ email, code });
-        setUser(res.data?.user ?? null);
-        router.push('/home');
-      } catch (err) {
-        if (err instanceof ApiError) {
-          const data = err.data as { message?: string };
-          setError(data.message ?? t('genericError'));
-        } else {
-          setError(t('genericError'));
+    startTransition(() => {
+      void (async () => {
+        try {
+          const res = await authApi.confirmEmail({ email, code });
+          setUser(res.data?.user ?? null);
+          router.push('/home');
+        } catch (err) {
+          if (err instanceof ApiError) {
+            const data = err.data as { message?: string };
+            setError(data.message ?? t('genericError'));
+          } else {
+            setError(t('genericError'));
+          }
+          setDigits(Array(CODE_LENGTH).fill(''));
+          inputRefs.current[0]?.focus();
         }
-        setDigits(Array(CODE_LENGTH).fill(''));
-        inputRefs.current[0]?.focus();
-      }
+      })();
     });
   }
 

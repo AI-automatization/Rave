@@ -40,7 +40,7 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
         videoPlatform: selected?.platform ?? undefined,
       });
       onOpenChange(false);
-      const roomId = res.data?.room?._id;
+      const roomId = res.data?._id;
       if (roomId) {
         router.push(`/room/${roomId}`);
       }

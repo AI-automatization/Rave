@@ -10,16 +10,18 @@ interface CreateRoomPayload {
   isPrivate?: boolean;
 }
 
+// Backend returns rooms array directly in data (not wrapped as { rooms: [] })
+// createRoom/joinRoom return the room object directly in data
 export const roomsApi = {
   list: () =>
-    apiClient<{ rooms: IWatchPartyRoom[] }>('/api/rooms'),
+    apiClient<IWatchPartyRoom[]>('/api/rooms'),
 
   getById: (id: string) =>
-    apiClient<{ room: IWatchPartyRoom }>(`/api/rooms/${id}`),
+    apiClient<IWatchPartyRoom>(`/api/rooms/${id}`),
 
   create: (data: CreateRoomPayload) =>
-    apiClient<{ room: IWatchPartyRoom }>('/api/rooms', { method: 'POST', body: data }),
+    apiClient<IWatchPartyRoom>('/api/rooms', { method: 'POST', body: data }),
 
   joinByCode: (code: string) =>
-    apiClient<{ room: IWatchPartyRoom }>(`/api/rooms/join/${code}`, { method: 'POST' }),
+    apiClient<IWatchPartyRoom>(`/api/rooms/join/${code}`, { method: 'POST' }),
 };

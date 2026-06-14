@@ -232,7 +232,6 @@
     "enterPassword": "Enter password...",
     "cancel": "Cancel",
     "joining": "Joining...",
-    "join": "Join",
     "passwordNeeded": "Password required",
     "joinError": "Could not join room",
     "unknownVideo": "Unknown video",
@@ -466,7 +465,8 @@
     "films": "Films",
     "achievements": "Achievements",
     "friends": "Friends",
-    "achievementsTitle": "ACHIEVEMENTS"
+    "achievementsTitle": "ACHIEVEMENTS",
+    "rank": "Rank"
   },
   "dm": {
     "title": "Messages",

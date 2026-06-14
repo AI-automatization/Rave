@@ -18,8 +18,11 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    const data = await res.json() as unknown;
-    return NextResponse.json(data, { status: res.status });
+    const raw = await res.json() as { data?: unknown; success?: boolean };
+    if (!res.ok) return NextResponse.json(raw, { status: res.status });
+
+    // Backend returns { data: <userDoc> } — wrap as { data: { user } } for auth store
+    return NextResponse.json({ success: true, data: { user: raw.data } }, { status: 200 });
   } catch {
     return NextResponse.json({ message: 'Service unavailable' }, { status: 503 });
   }

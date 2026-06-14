@@ -29,18 +29,20 @@ export function RegisterForm({ onVerify }: Props) {
     e.preventDefault();
     if (mismatch || tooShort || !username || !email || !password) return;
 
-    startTransition(async () => {
-      try {
-        await authApi.register({ username, email, password });
-        onVerify(email);
-      } catch (err) {
-        if (err instanceof ApiError) {
-          const data = err.data as { message?: string };
-          setError(data.message ?? t('genericError'));
-        } else {
-          setError(t('genericError'));
+    startTransition(() => {
+      void (async () => {
+        try {
+          await authApi.register({ username, email, password });
+          onVerify(email);
+        } catch (err) {
+          if (err instanceof ApiError) {
+            const data = err.data as { message?: string };
+            setError(data.message ?? t('genericError'));
+          } else {
+            setError(t('genericError'));
+          }
         }
-      }
+      })();
     });
   }
 

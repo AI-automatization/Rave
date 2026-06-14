@@ -69,16 +69,13 @@ export function FriendsContent() {
               <p className="text-sm text-slate-400">{t('empty')}</p>
             </div>
           )}
-          {friends?.map((f) => {
-            const friend = f.requester._id === currentUser?._id ? f.receiver : f.requester;
-            return (
-              <FriendCard
-                key={f._id}
-                user={friend}
-                onMessage={() => router.push(`/messages?peer=${friend._id}`)}
-              />
-            );
-          })}
+          {friends?.map((f) => (
+            <FriendCard
+              key={f._id}
+              user={f}
+              onMessage={() => router.push(`/messages?peer=${f._id}`)}
+            />
+          ))}
         </div>
       )}
 

@@ -8,7 +8,7 @@ export function useFriends() {
     queryKey: ['friends'],
     queryFn: async () => {
       const res = await userApi.getFriends();
-      return res.data?.friends ?? [];
+      return Array.isArray(res.data) ? res.data : [];
     },
   });
 }
@@ -18,7 +18,7 @@ export function useFriendRequests() {
     queryKey: ['friend-requests'],
     queryFn: async () => {
       const res = await userApi.getFriendRequests();
-      return res.data?.requests ?? [];
+      return Array.isArray(res.data) ? res.data : [];
     },
   });
 }
@@ -60,7 +60,7 @@ export function useSearchUsers(query: string) {
     queryKey: ['user-search', query],
     queryFn: async () => {
       const res = await userApi.searchUsers(query);
-      return res.data?.users ?? [];
+      return Array.isArray(res.data) ? res.data : [];
     },
     enabled: query.length >= 2,
   });

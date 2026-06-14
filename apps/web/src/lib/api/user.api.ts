@@ -6,7 +6,7 @@ interface UpdateProfilePayload {
   bio?: string;
 }
 
-interface DmMessage {
+export interface DmMessage {
   _id: string;
   senderId: string;
   receiverId: string;
@@ -15,34 +15,35 @@ interface DmMessage {
   isRead?: boolean;
 }
 
-interface Conversation {
+export interface Conversation {
   peerId: string;
   peer: Pick<IUser, '_id' | 'username' | 'avatar' | 'isOnline'>;
   lastMessage: DmMessage;
   unreadCount: number;
 }
 
+// All backend responses return data directly (not wrapped in { user: }, { friends: }, etc.)
 export const userApi = {
   getProfile: () =>
-    apiClient<{ user: IUser }>('/api/user/me'),
+    apiClient<IUser>('/api/user/me'),
 
   updateProfile: (data: UpdateProfilePayload) =>
-    apiClient<{ user: IUser }>('/api/user/me', { method: 'PUT', body: data }),
+    apiClient<IUser>('/api/user/me', { method: 'PUT', body: data }),
 
   uploadAvatar: (file: File) => {
     const formData = new FormData();
     formData.append('avatar', file);
-    return apiClient<{ user: IUser }>('/api/user/me/avatar', {
+    return apiClient<{ avatarUrl: string }>('/api/user/me/avatar', {
       method: 'PATCH',
       body: formData,
     });
   },
 
   getFriends: () =>
-    apiClient<{ friends: IFriendship[] }>('/api/user/me/friends'),
+    apiClient<IUser[]>('/api/user/me/friends'),
 
   getFriendRequests: () =>
-    apiClient<{ requests: IFriendship[] }>('/api/user/me/friend-requests'),
+    apiClient<IFriendship[]>('/api/user/me/friend-requests'),
 
   sendFriendRequest: (userId: string) =>
     apiClient(`/api/user/${userId}/friend-request`, { method: 'POST' }),
@@ -54,14 +55,14 @@ export const userApi = {
     apiClient(`/api/user/friend-requests/${requestId}/reject`, { method: 'PUT' }),
 
   searchUsers: (query: string) =>
-    apiClient<{ users: IUser[] }>(`/api/user/search?q=${encodeURIComponent(query)}`),
+    apiClient<IUser[]>(`/api/user/search?q=${encodeURIComponent(query)}`),
 
   getConversations: () =>
-    apiClient<{ conversations: Conversation[] }>('/api/user/dm/conversations'),
+    apiClient<Conversation[]>('/api/user/dm/conversations'),
 
   getMessages: (peerId: string) =>
-    apiClient<{ messages: DmMessage[] }>(`/api/user/dm/${peerId}`),
+    apiClient<DmMessage[]>(`/api/user/dm/${peerId}`),
 
   sendDm: (peerId: string, text: string) =>
-    apiClient<{ message: DmMessage }>(`/api/user/dm/${peerId}`, { method: 'POST', body: { text } }),
+    apiClient<DmMessage>(`/api/user/dm/${peerId}`, { method: 'POST', body: { text } }),
 };

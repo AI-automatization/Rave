@@ -32,8 +32,10 @@ export function AppNav() {
         {user && (
           <div className="flex items-center gap-2.5">
             <Link href="/profile" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-              <div className="w-8 h-8 rounded-full bg-violet-600/30 flex items-center justify-center text-xs font-bold text-violet-300">
-                {user.username?.[0]?.toUpperCase() ?? '?'}
+              <div className="w-8 h-8 rounded-full bg-violet-600/30 flex items-center justify-center text-xs font-bold text-violet-300 overflow-hidden">
+                {user.avatar
+                  ? <img src={user.avatar} alt="" className="w-full h-full object-cover" />
+                  : user.username?.[0]?.toUpperCase() ?? '?'}
               </div>
               <span className="text-sm text-slate-300 hidden md:inline">{user.username}</span>
             </Link>

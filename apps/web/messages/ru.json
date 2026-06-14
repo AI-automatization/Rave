@@ -409,7 +409,8 @@
     "films": "Фильмы",
     "achievements": "Достижения",
     "friends": "Друзья",
-    "achievementsTitle": "ДОСТИЖЕНИЯ"
+    "achievementsTitle": "ДОСТИЖЕНИЯ",
+    "rank": "Ранг"
   },
   "dm": {
     "title": "Сообщения",

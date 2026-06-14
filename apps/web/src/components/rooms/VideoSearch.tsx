@@ -15,7 +15,7 @@ export function VideoSearch({ onSelect }: Props) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<IExternalVideo[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);

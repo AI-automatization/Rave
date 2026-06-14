@@ -26,7 +26,7 @@ export function ProfileContent() {
     <div className="max-w-xl mx-auto flex flex-col gap-6">
       <h1 className="text-2xl font-bold text-white">{t('title')}</h1>
       <ProfileCard user={user} />
-      <StatsGrid user={user} />
+      <StatsGrid />
     </div>
   );
 }

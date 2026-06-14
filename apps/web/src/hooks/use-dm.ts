@@ -4,23 +4,15 @@ import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { SERVER_EVENTS } from '@shared/constants/socketEvents';
 import { userApi } from '@/lib/api/user.api';
+import type { DmMessage } from '@/lib/api/user.api';
 import { getSocket } from '@/lib/socket';
-
-interface DmMessage {
-  _id: string;
-  senderId: string;
-  receiverId: string;
-  text: string;
-  createdAt: string;
-  isRead?: boolean;
-}
 
 export function useConversations() {
   return useQuery({
     queryKey: ['conversations'],
     queryFn: async () => {
       const res = await userApi.getConversations();
-      return res.data?.conversations ?? [];
+      return Array.isArray(res.data) ? res.data : [];
     },
   });
 }
@@ -31,7 +23,7 @@ export function useMessages(peerId: string | null) {
     queryFn: async () => {
       if (!peerId) return [];
       const res = await userApi.getMessages(peerId);
-      return res.data?.messages ?? [];
+      return Array.isArray(res.data) ? res.data : [];
     },
     enabled: !!peerId,
   });

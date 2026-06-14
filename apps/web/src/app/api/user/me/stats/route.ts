@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { CONTENT_SERVICE_URL, ensureSuffix } from '@/lib/service-urls';
+import { USER_SERVICE_URL, ensureSuffix } from '@/lib/service-urls';
 
-const baseUrl = () => ensureSuffix(CONTENT_SERVICE_URL, '/api/v1');
+const baseUrl = () => ensureSuffix(USER_SERVICE_URL, '/api/v1');
 
 export async function GET(req: NextRequest) {
   try {
@@ -10,10 +10,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
     }
 
-    const url = new URL(req.url);
-    const qs = url.searchParams.toString();
-
-    const res = await fetch(`${baseUrl()}/content/video-search${qs ? `?${qs}` : ''}`, {
+    const res = await fetch(`${baseUrl()}/users/me/stats`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
 

@@ -54,24 +54,26 @@ export function ResetPasswordForm({ token }: Props) {
     e.preventDefault();
     if (mismatch || tooShort || !password) return;
 
-    startTransition(async () => {
-      try {
-        const res = await fetch('/api/auth/reset-password', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token, newPassword: password }),
-        });
-        if (res.ok) {
-          setStatus('success');
-        } else {
-          const data = await res.json() as { message?: string };
-          setErrorMsg(data.message ?? 'Ошибка сброса пароля');
+    startTransition(() => {
+      void (async () => {
+        try {
+          const res = await fetch('/api/auth/reset-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token, newPassword: password }),
+          });
+          if (res.ok) {
+            setStatus('success');
+          } else {
+            const data = await res.json() as { message?: string };
+            setErrorMsg(data.message ?? 'Ошибка сброса пароля');
+            setStatus('error');
+          }
+        } catch {
+          setErrorMsg('Не удалось подключиться к серверу');
           setStatus('error');
         }
-      } catch {
-        setErrorMsg('Не удалось подключиться к серверу');
-        setStatus('error');
-      }
+      })();
     });
   }
 

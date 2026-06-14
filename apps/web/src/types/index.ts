@@ -177,11 +177,13 @@ export interface INotification {
   createdAt: string;
 }
 
-/** IFriendship for the web — requester/receiver are populated user objects */
+/** IFriendship for the web — requester is always populated; receiver only populated for outgoing requests */
 export interface IFriendship {
   _id: string;
+  requesterId?: string;
+  receiverId?: string;
   requester: IUser;
-  receiver: IUser;
+  receiver?: IUser;
   status: 'pending' | 'accepted' | 'blocked';
   createdAt: string;
   updatedAt?: string;

@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { useUpdateProfile } from '@/hooks/use-profile';
 import { AvatarUpload } from '@/components/profile/AvatarUpload';
 import { toast } from '@/store/toast.store';
+import { useAuthStore } from '@/store/auth.store';
 import type { IUser } from '@/types';
 
 interface Props {
@@ -15,6 +16,7 @@ interface Props {
 export function ProfileCard({ user }: Props) {
   const t = useTranslations('profile');
   const update = useUpdateProfile();
+  const setUser = useAuthStore((s) => s.setUser);
   const [username, setUsername] = useState(user.username ?? '');
   const [bio, setBio] = useState(user.bio ?? '');
 
@@ -22,7 +24,8 @@ export function ProfileCard({ user }: Props) {
 
   async function handleSave() {
     try {
-      await update.mutateAsync({ username, bio });
+      const res = await update.mutateAsync({ username, bio });
+      if (res.data) setUser(res.data);
       toast.success(t('saved'));
     } catch {
       toast.error(t('saveError'));
