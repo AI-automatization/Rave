@@ -6,6 +6,7 @@ export const BRAND_PURPLE = '#6231EF';
 interface WeWatchLogoProps {
   variant?: 'horizontal' | 'stacked' | 'icon-only';
   iconSize?: number;
+  textSize?: string;
   href?: string;
   className?: string;
 }
@@ -93,6 +94,7 @@ export function WIcon({ size = 36 }: { size?: number }) {
 export function WeWatchLogo({
   variant = 'horizontal',
   iconSize = 36,
+  textSize = 'text-xl',
   href = '/',
   className = '',
 }: WeWatchLogoProps) {
@@ -104,7 +106,7 @@ export function WeWatchLogo({
     inner = (
       <div className="flex flex-col items-center gap-2">
         <WIcon size={iconSize} />
-        <span className="font-extrabold text-xl tracking-tight text-white">
+        <span className={`font-extrabold ${textSize} tracking-tight text-white`}>
           We<span style={{ color: BRAND_PURPLE }}>Watch</span>
         </span>
       </div>
@@ -113,7 +115,7 @@ export function WeWatchLogo({
     inner = (
       <div className="inline-flex items-center gap-2">
         <WIcon size={iconSize} />
-        <span className="font-extrabold text-xl tracking-tight text-white">
+        <span className={`font-extrabold ${textSize} tracking-tight text-white`}>
           We<span style={{ color: BRAND_PURPLE }}>Watch</span>
         </span>
       </div>

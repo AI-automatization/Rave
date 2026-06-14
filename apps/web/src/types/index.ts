@@ -4,19 +4,29 @@
 export type {
   UserRole,
   UserRank,
-  ContentType,
-  ContentGenre,
-  ICastMember,
   WatchPartyStatus,
   SyncState,
-  BattleDuration,
   NotificationType,
-  AchievementRarity,
   FriendshipStatus,
   JwtPayload,
   IUserPublic,
   VideoPlatform,
 } from '@shared/types';
+
+// Import for local use within this file
+import type { VideoPlatform } from '@shared/types';
+
+// Web-only types (not in shared)
+export type ContentType = 'movie' | 'series' | 'anime' | 'documentary';
+export type ContentGenre = string;
+export type BattleDuration = '1h' | '3h' | '6h' | '12h' | '24h' | '48h' | '7d';
+export type AchievementRarity = 'common' | 'rare' | 'epic' | 'legendary' | 'secret';
+
+export interface ICastMember {
+  name: string;
+  role?: string;
+  avatar?: string;
+}
 
 // Import and re-export PaginationMeta; extend ApiResponse for web
 import type { ApiResponse as ApiResponseShared, PaginationMeta } from '@shared/types';
@@ -30,11 +40,7 @@ export interface ApiResponse<T = null> extends Omit<ApiResponseShared<T>, 'meta'
 
 import type {
   IUser as IUserShared,
-  IMovie as IMovieShared,
   IWatchPartyRoom as IWatchPartyRoomShared,
-  IBattle as IBattleShared,
-  IBattleParticipant as IBattleParticipantShared,
-  IAchievement as IAchievementShared,
 } from '@shared/types';
 
 // ─────────────────────────────────────────────
@@ -58,19 +64,25 @@ export interface IUser extends Omit<IUserShared, 'createdAt' | 'updatedAt' | 'la
   updatedAt?: string;
 }
 
-/** IMovie for the web — supports both shared field names and legacy web names */
-export interface IMovie extends Omit<IMovieShared, 'createdAt' | 'updatedAt' | 'originalTitle' | 'type' | 'genre' | 'posterUrl' | 'backdropUrl' | 'videoUrl' | 'trailerUrl' | 'addedBy' | 'cast' | 'reviewCount'> {
+/** IMovie for the web — standalone, dates as strings */
+export interface IMovie {
+  _id: string;
+  title: string;
   slug?: string;
   originalTitle?: string;
+  description?: string;
   type?: string;
   genre?: string[];
   genres?: string[];
+  year?: number;
+  duration?: number;
   poster?: string;
   posterUrl?: string;
   backdrop?: string;
   backdropUrl?: string;
   videoUrl?: string;
   trailerUrl?: string;
+  rating?: number;
   reviewCount?: number;
   director?: string;
   cast?: string[];
@@ -121,11 +133,14 @@ export interface IVideoMetadata {
   platform: VideoPlatform;
 }
 
-/** IBattle for the web — dates as strings, participants populated */
-export interface IBattle extends Omit<IBattleShared, 'creatorId' | 'startDate' | 'endDate' | 'winnerId' | 'createdAt' | 'updatedAt' | 'participants' | 'status'> {
+/** IBattle for the web — standalone */
+export interface IBattle {
+  _id: string;
+  title?: string;
   creatorId?: string;
   participants: IBattleParticipant[];
   status: BattleStatus;
+  duration: BattleDuration;
   startDate: string;
   endDate: string;
   winnerId?: string;
@@ -133,10 +148,11 @@ export interface IBattle extends Omit<IBattleShared, 'creatorId' | 'startDate' |
   updatedAt?: string;
 }
 
-/** IBattleParticipant for the web — user is populated */
-export interface IBattleParticipant extends Omit<IBattleParticipantShared, 'userId' | 'joinedAt'> {
+/** IBattleParticipant for the web */
+export interface IBattleParticipant {
   user: IUser;
   userId?: string;
+  score?: number;
   joinedAt?: string;
 }
 
@@ -178,11 +194,16 @@ export interface IChatMessage {
   timestamp: number;
 }
 
-/** IAchievement for the web — includes 'secret' rarity, icon as string (emoji) */
-export interface IAchievement extends Omit<IAchievementShared, 'iconUrl' | 'condition' | 'rarity'> {
+/** IAchievement for the web — standalone */
+export interface IAchievement {
+  _id: string;
+  name: string;
+  description: string;
   icon: string;
   iconUrl?: string;
-  rarity: 'common' | 'rare' | 'epic' | 'legendary' | 'secret';
+  rarity: AchievementRarity;
+  points?: number;
   condition?: Record<string, unknown>;
   unlockedAt?: string;
+  createdAt?: string;
 }
