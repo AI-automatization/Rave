@@ -27,6 +27,7 @@
     "test:report": "playwright show-report"
   },
   "devDependencies": {
+    "@expo/config-plugins": "^56.0.8",
     "@playwright/test": "^1.58.2",
     "@types/ms": "^0.7.34",
     "@types/node": "^20.11.5",
