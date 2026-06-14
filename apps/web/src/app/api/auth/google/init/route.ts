@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server';
 import { AUTH_SERVICE_URL, ensureSuffix } from '@/lib/service-urls';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const baseUrl = ensureSuffix(AUTH_SERVICE_URL, '/api/v1/auth');
 
-    const res = await fetch(`${baseUrl}/google/init`, { method: 'POST' });
+    const res = await fetch(`${baseUrl}/google/init`, { method: 'POST', cache: 'no-store' });
 
     const data = await res.json() as { data?: { state?: string }; success?: boolean };
 
