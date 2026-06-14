@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
     }
 
-    const res = await fetch(`${baseUrl()}/user/me`, {
+    const res = await fetch(`${baseUrl()}/users/me`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
 
@@ -30,7 +30,7 @@ export async function PUT(req: NextRequest) {
 
     const body = await req.json() as unknown;
 
-    const res = await fetch(`${baseUrl()}/user/me`, {
+    const res = await fetch(`${baseUrl()}/users/me`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',

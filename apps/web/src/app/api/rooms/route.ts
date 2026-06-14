@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
     const url = new URL(req.url);
     const qs = url.searchParams.toString();
 
-    const res = await fetch(`${baseUrl()}/rooms${qs ? `?${qs}` : ''}`, {
+    const res = await fetch(`${baseUrl()}/watch-party/rooms${qs ? `?${qs}` : ''}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
 
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json() as unknown;
 
-    const res = await fetch(`${baseUrl()}/rooms`, {
+    const res = await fetch(`${baseUrl()}/watch-party/rooms`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

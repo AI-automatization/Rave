@@ -12,7 +12,7 @@ export async function PATCH(req: NextRequest) {
 
     const formData = await req.formData();
 
-    const res = await fetch(`${baseUrl()}/user/me/avatar`, {
+    const res = await fetch(`${baseUrl()}/users/me/avatar`, {
       method: 'PATCH',
       headers: { Authorization: `Bearer ${accessToken}` },
       body: formData,

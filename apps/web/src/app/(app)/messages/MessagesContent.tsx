@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Loader2, MessageCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useConversations, useMessages, useSendDm } from '@/hooks/use-dm';
+import { useConversations, useMessages, useSendDm, useDmRealtime } from '@/hooks/use-dm';
 import { ConversationList } from '@/components/messages/ConversationList';
 import { ChatWindow } from '@/components/messages/ChatWindow';
 
@@ -18,6 +18,7 @@ export function MessagesContent() {
   const { data: conversations, isLoading: loadingConvos } = useConversations();
   const { data: messages, isLoading: loadingMessages } = useMessages(selectedPeer);
   const sendDm = useSendDm();
+  useDmRealtime(selectedPeer);
 
   // Update from search params
   useEffect(() => {

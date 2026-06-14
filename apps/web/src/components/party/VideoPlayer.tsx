@@ -14,21 +14,34 @@ function getYouTubeId(url: string): string | null {
   return match?.[1] ?? null;
 }
 
+function getVkEmbedUrl(url: string): string | null {
+  const match = url.match(/vk\.com\/video(-?\d+)_(\d+)/);
+  if (!match) return null;
+  return `https://vk.com/video_ext.php?oid=${match[1]}&id=${match[2]}&hd=1`;
+}
+
+function getRutubeEmbedUrl(url: string): string | null {
+  const match = url.match(/rutube\.ru\/video\/([a-zA-Z0-9]+)/);
+  if (!match) return null;
+  return `https://rutube.ru/play/embed/${match[1]}/`;
+}
+
 export function VideoPlayer({ onPlay, onPause, onSeek }: Props) {
   const room = useWatchPartyStore((s) => s.room);
   const syncState = useWatchPartyStore((s) => s.syncState);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
   const isRemoteAction = useRef(false);
 
   const videoUrl = room?.videoUrl ?? '';
   const ytId = getYouTubeId(videoUrl);
-  const isYouTube = !!ytId;
+  const vkEmbedUrl = !ytId ? getVkEmbedUrl(videoUrl) : null;
+  const rutubeEmbedUrl = !ytId && !vkEmbedUrl ? getRutubeEmbedUrl(videoUrl) : null;
+  const isEmbed = !!(ytId || vkEmbedUrl || rutubeEmbedUrl);
 
-  // Sync incoming state to video element
+  // Sync incoming state to HTML5 video element (not applicable to embeds)
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || isYouTube) return;
+    if (!video || isEmbed) return;
 
     isRemoteAction.current = true;
 
@@ -43,7 +56,7 @@ export function VideoPlayer({ onPlay, onPause, onSeek }: Props) {
     }
 
     setTimeout(() => { isRemoteAction.current = false; }, 200);
-  }, [syncState.currentTime, syncState.isPlaying, isYouTube]);
+  }, [syncState.currentTime, syncState.isPlaying, isEmbed]);
 
   const handlePlay = useCallback(() => {
     if (!isRemoteAction.current && videoRef.current) {
@@ -72,22 +85,51 @@ export function VideoPlayer({ onPlay, onPause, onSeek }: Props) {
   }
 
   // YouTube embed
-  if (isYouTube) {
+  if (ytId) {
     return (
       <div className="aspect-video bg-black rounded-xl overflow-hidden">
         <iframe
-          ref={iframeRef}
           src={`https://www.youtube.com/embed/${ytId}?autoplay=0&enablejsapi=1`}
           className="w-full h-full"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
-          title="Video player"
+          title="YouTube player"
         />
       </div>
     );
   }
 
-  // HTML5 video (VK, Rutube, direct links)
+  // VK embed
+  if (vkEmbedUrl) {
+    return (
+      <div className="aspect-video bg-black rounded-xl overflow-hidden">
+        <iframe
+          src={vkEmbedUrl}
+          className="w-full h-full"
+          allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+          allowFullScreen
+          title="VK player"
+        />
+      </div>
+    );
+  }
+
+  // Rutube embed
+  if (rutubeEmbedUrl) {
+    return (
+      <div className="aspect-video bg-black rounded-xl overflow-hidden">
+        <iframe
+          src={rutubeEmbedUrl}
+          className="w-full h-full"
+          allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+          allowFullScreen
+          title="Rutube player"
+        />
+      </div>
+    );
+  }
+
+  // HTML5 video (direct .mp4 / .m3u8 links)
   return (
     <div className="aspect-video bg-black rounded-xl overflow-hidden">
       <video

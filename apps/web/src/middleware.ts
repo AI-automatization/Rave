@@ -12,15 +12,14 @@ export function middleware(req: NextRequest) {
   const hasRefreshToken = req.cookies.has('refresh_token');
   const isAuthenticated = hasAccessToken || hasRefreshToken;
 
-  // TODO: backend tayyor bo'lganda qaytarish
   // Protected routes: redirect to /login if not authenticated
-  // if (PROTECTED_PATHS.some((p) => pathname.startsWith(p))) {
-  //   if (!isAuthenticated) {
-  //     const loginUrl = new URL('/login', req.url);
-  //     loginUrl.searchParams.set('redirect', pathname);
-  //     return NextResponse.redirect(loginUrl);
-  //   }
-  // }
+  if (PROTECTED_PATHS.some((p) => pathname.startsWith(p))) {
+    if (!isAuthenticated) {
+      const loginUrl = new URL('/login', req.url);
+      loginUrl.searchParams.set('redirect', pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+  }
 
   // Auth routes: redirect to /home if already authenticated
   if (AUTH_PATHS.some((p) => pathname.startsWith(p))) {

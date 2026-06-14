@@ -14,7 +14,7 @@ export async function PUT(
       return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
     }
 
-    const res = await fetch(`${baseUrl()}/user/friend-requests/${id}/reject`, {
+    const res = await fetch(`${baseUrl()}/users/friend-requests/${id}/reject`, {
       method: 'PUT',
       headers: { Authorization: `Bearer ${accessToken}` },
     });

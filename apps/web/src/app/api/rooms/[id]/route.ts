@@ -14,7 +14,7 @@ export async function GET(
       return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
     }
 
-    const res = await fetch(`${baseUrl()}/rooms/${id}`, {
+    const res = await fetch(`${baseUrl()}/watch-party/rooms/${id}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
 

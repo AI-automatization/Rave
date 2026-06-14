@@ -14,7 +14,7 @@ export async function POST(
       return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
     }
 
-    const res = await fetch(`${baseUrl()}/user/${id}/friend-request`, {
+    const res = await fetch(`${baseUrl()}/users/${id}/friend-request`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${accessToken}` },
     });

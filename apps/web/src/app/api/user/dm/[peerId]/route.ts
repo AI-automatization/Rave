@@ -17,7 +17,7 @@ export async function GET(
     const url = new URL(req.url);
     const qs = url.searchParams.toString();
 
-    const res = await fetch(`${baseUrl()}/user/dm/${peerId}${qs ? `?${qs}` : ''}`, {
+    const res = await fetch(`${baseUrl()}/users/dm/${peerId}${qs ? `?${qs}` : ''}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
 
@@ -41,7 +41,7 @@ export async function POST(
 
     const body = await req.json() as unknown;
 
-    const res = await fetch(`${baseUrl()}/user/dm/${peerId}`, {
+    const res = await fetch(`${baseUrl()}/users/dm/${peerId}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

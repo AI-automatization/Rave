@@ -14,7 +14,7 @@ export async function POST(
       return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
     }
 
-    const res = await fetch(`${baseUrl()}/rooms/join/${code}`, {
+    const res = await fetch(`${baseUrl()}/watch-party/rooms/join/${code}`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${accessToken}` },
     });
