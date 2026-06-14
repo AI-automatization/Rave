@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useCallback } from 'react';
+import { Loader2 } from 'lucide-react';
 import { useWatchPartyStore } from '@/store/watch-party.store';
 
 interface Props {
@@ -10,7 +11,8 @@ interface Props {
 }
 
 function getYouTubeId(url: string): string | null {
-  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([a-zA-Z0-9_-]{11})/);
+  // Handles: youtube.com/watch?v=, youtu.be/, youtube.com/shorts/, youtube.com/embed/
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([a-zA-Z0-9_-]{11})/);
   return match?.[1] ?? null;
 }
 
@@ -28,6 +30,7 @@ function getRutubeEmbedUrl(url: string): string | null {
 
 export function VideoPlayer({ onPlay, onPause, onSeek }: Props) {
   const room = useWatchPartyStore((s) => s.room);
+  const isConnected = useWatchPartyStore((s) => s.isConnected);
   const syncState = useWatchPartyStore((s) => s.syncState);
   const videoRef = useRef<HTMLVideoElement>(null);
   const isRemoteAction = useRef(false);
@@ -76,10 +79,26 @@ export function VideoPlayer({ onPlay, onPause, onSeek }: Props) {
     }
   }, [onSeek]);
 
-  if (!videoUrl) {
+  // Room is loading (REST fetch in progress or socket not yet joined)
+  if (!room) {
     return (
       <div className="aspect-video bg-[#0A0A12] rounded-xl flex items-center justify-center">
-        <p className="text-slate-500 text-sm">Video mavjud emas</p>
+        <Loader2 size={24} className="animate-spin text-violet-400" />
+      </div>
+    );
+  }
+
+  // Room loaded but no video URL set
+  if (!videoUrl) {
+    return (
+      <div className="aspect-video bg-[#0A0A12] rounded-xl flex flex-col items-center justify-center gap-2">
+        <p className="text-slate-400 text-sm font-medium">Видео не выбрано</p>
+        {!isConnected && (
+          <div className="flex items-center gap-2 text-xs text-slate-600">
+            <Loader2 size={12} className="animate-spin" />
+            Подключение...
+          </div>
+        )}
       </div>
     );
   }
@@ -130,12 +149,15 @@ export function VideoPlayer({ onPlay, onPause, onSeek }: Props) {
   }
 
   // HTML5 video (direct .mp4 / .m3u8 links)
+  // playsInline prevents macOS from opening video in a separate app/fullscreen
   return (
     <div className="aspect-video bg-black rounded-xl overflow-hidden">
       <video
         ref={videoRef}
         src={videoUrl}
         controls
+        playsInline
+        preload="metadata"
         className="w-full h-full"
         onPlay={handlePlay}
         onPause={handlePause}

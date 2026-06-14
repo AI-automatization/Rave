@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MessageCircle, Users as UsersIcon } from 'lucide-react';
 import { useWatchParty } from '@/hooks/use-watch-party';
 import { VideoPlayer } from '@/components/party/VideoPlayer';
@@ -8,6 +8,8 @@ import { ChatPanel } from '@/components/party/ChatPanel';
 import { MemberList } from '@/components/party/MemberList';
 import { RoomHeader } from '@/components/party/RoomHeader';
 import { EmojiReactions } from '@/components/party/EmojiReactions';
+import { roomsApi } from '@/lib/api/rooms.api';
+import { useWatchPartyStore } from '@/store/watch-party.store';
 
 interface Props {
   roomId: string;
@@ -16,6 +18,21 @@ interface Props {
 export function RoomContent({ roomId }: Props) {
   const { sendMessage, sendPlay, sendPause, sendSeek, sendEmoji } = useWatchParty(roomId);
   const [rightTab, setRightTab] = useState<'chat' | 'members'>('chat');
+  const setRoom = useWatchPartyStore((s) => s.setRoom);
+  const reset = useWatchPartyStore((s) => s.reset);
+
+  // Pre-load room via REST immediately — don't wait 2-3s for socket ROOM_JOINED
+  useEffect(() => {
+    let mounted = true;
+    roomsApi.getById(roomId).then((res) => {
+      if (mounted && res.data) setRoom(res.data);
+    }).catch(() => {});
+    return () => {
+      mounted = false;
+      // Reset store when leaving room so stale data doesn't flash on next room visit
+      reset();
+    };
+  }, [roomId, setRoom, reset]);
 
   return (
     <div className="flex flex-col h-[calc(100vh-3.5rem)] -m-4 md:-m-6 lg:-m-8">
@@ -34,7 +51,6 @@ export function RoomContent({ roomId }: Props) {
 
         {/* Right: Chat / Members */}
         <div className="hidden md:flex flex-col w-80 border-l border-white/[0.06] bg-[#0A0A12]/30">
-          {/* Tabs — consistent with FriendsContent style */}
           <div className="flex gap-1 p-1.5 m-2 bg-[#111118] rounded-xl border border-white/[0.06]">
             <button
               onClick={() => setRightTab('chat')}
