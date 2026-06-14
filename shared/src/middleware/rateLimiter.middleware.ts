@@ -1,7 +1,6 @@
 import rateLimit from 'express-rate-limit';
 import { RedisStore, type SendCommandFn } from 'rate-limit-redis';
 import Redis from 'ioredis';
-import { Request, Response } from 'express';
 import { apiResponse } from '../utils/apiResponse';
 import { AuthenticatedRequest } from '../types/index';
 
@@ -20,7 +19,8 @@ const getRedisClient = (): Redis => {
   return redisClient;
 };
 
-const tooManyRequestsHandler = (_req: Request, res: Response): void => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const tooManyRequestsHandler = (_req: unknown, res: any): void => {
   res.status(429).json(
     apiResponse.error('Too many requests. Please try again later.'),
   );
@@ -82,9 +82,9 @@ export const userRateLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   passOnStoreError: false,
-  keyGenerator: (req: Request) => {
-    const userId = (req as AuthenticatedRequest).user?.userId;
-    return userId ?? req.ip ?? 'unknown';
+  keyGenerator: (req: unknown) => {
+    const r = req as AuthenticatedRequest;
+    return r.user?.userId ?? r.ip ?? 'unknown';
   },
   handler: tooManyRequestsHandler,
   store: new RedisStore({
