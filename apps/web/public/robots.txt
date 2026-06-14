@@ -1,11 +1,20 @@
 User-agent: *
 Allow: /
+Allow: /faq
+Allow: /guides/
 Allow: /og-image
+Allow: /privacy-policy
+Allow: /terms
+Allow: /dmca
 
 Disallow: /api/
-Disallow: /(app)/
-Disallow: /settings
+Disallow: /home
+Disallow: /profile
+Disallow: /friends
+Disallow: /messages
 Disallow: /notifications
+Disallow: /settings
+Disallow: /room/
 Disallow: /auth/
 Disallow: /*?*token=
 Disallow: /*?*session=

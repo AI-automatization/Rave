@@ -183,7 +183,7 @@ const jsonLdApp = {
   description: 'Watch YouTube, VK and Rutube together with friends in real time. You pause — everyone pauses. Free watch party with chat, emoji and reactions.',
   url: 'https://wewatch.uz',
   inLanguage: ['ru', 'uz', 'en'],
-  aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.8', ratingCount: '150', bestRating: '5' },
+  featureList: ['watch party', 'YouTube sync', 'VK sync', 'Rutube sync', 'live chat', 'emoji reactions', 'cross-platform iOS Android Web'],
 };
 
 const jsonLdFaq = {
