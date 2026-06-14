@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import type { IUser } from '@/types';
 
 interface Conversation {
@@ -16,9 +17,11 @@ interface Props {
 }
 
 export function ConversationList({ conversations, selectedPeerId, onSelect }: Props) {
+  const t = useTranslations('dm');
+
   if (conversations.length === 0) {
     return (
-      <p className="text-sm text-slate-500 text-center py-8">Hali xabarlar yo&apos;q</p>
+      <p className="text-sm text-slate-500 text-center py-8">{t('empty')}</p>
     );
   }
 

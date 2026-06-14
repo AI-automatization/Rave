@@ -1,7 +1,7 @@
 import { FriendsContent } from './FriendsContent';
 
 export const metadata = {
-  title: "Do'stlar",
+  title: 'Friends',
 };
 
 export default function FriendsPage() {

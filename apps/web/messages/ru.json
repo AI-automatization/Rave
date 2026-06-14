@@ -194,6 +194,11 @@
     "error": "Произошла ошибка"
   },
   "home": {
+    "title": "Watch Party",
+    "join": "Присоединиться",
+    "create": "Создать",
+    "empty": "Пока нет комнат",
+    "createFirst": "Создайте первую комнату",
     "trending": "В тренде",
     "topRated": "Высокий рейтинг",
     "recent": "Новые поступления",
@@ -391,11 +396,42 @@
     "cooldown": "Подождите {seconds}с"
   },
   "profile": {
+    "title": "Профиль",
+    "notFound": "Профиль не найден",
+    "usernameLabel": "Имя пользователя",
+    "bioLabel": "О себе",
+    "save": "Сохранить",
+    "saving": "Сохранение...",
+    "saved": "Профиль сохранён",
+    "saveError": "Не удалось сохранить",
     "points": "очков",
     "lastSeen": "Последний раз:",
     "films": "Фильмы",
     "achievements": "Достижения",
     "friends": "Друзья",
     "achievementsTitle": "ДОСТИЖЕНИЯ"
+  },
+  "dm": {
+    "title": "Сообщения",
+    "empty": "Пока нет сообщений",
+    "selectChat": "Выберите чат",
+    "placeholder": "Напишите сообщение...",
+    "noMessages": "Пока нет сообщений"
+  },
+  "room": {
+    "createTitle": "Создать Watch Party",
+    "createDesc": "Найдите видео или введите URL",
+    "roomName": "Название комнаты (необязательно)",
+    "videoUrl": "URL видео",
+    "creating": "Создание...",
+    "createBtn": "Создать",
+    "createError": "Не удалось создать комнату",
+    "joinTitle": "Присоединиться к комнате",
+    "joinDesc": "Введите 6-значный код приглашения",
+    "joining": "Подключение...",
+    "joinBtn": "Присоединиться",
+    "joinError": "Не удалось присоединиться",
+    "searchLabel": "Или найдите видео",
+    "searchPlaceholder": "Название видео..."
   }
 }

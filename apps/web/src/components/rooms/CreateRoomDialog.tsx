@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export function CreateRoomDialog({ open, onOpenChange }: Props) {
+  const t = useTranslations('room');
   const router = useRouter();
   const createRoom = useCreateRoom();
   const [videoUrl, setVideoUrl] = useState('');
@@ -43,7 +45,7 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
         router.push(`/room/${roomId}`);
       }
     } catch {
-      toast.error('Xona yaratib bo\'lmadi');
+      toast.error(t('createError'));
     }
   }
 
@@ -51,16 +53,16 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-[#0F0E1A] border-white/[0.06] text-white max-w-lg">
         <DialogHeader>
-          <DialogTitle className="text-white text-lg">Watch Party yaratish</DialogTitle>
+          <DialogTitle className="text-white text-lg">{t('createTitle')}</DialogTitle>
           <DialogDescription className="text-slate-400">
-            Video qidiring yoki URL kiriting
+            {t('createDesc')}
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-5">
           {/* Room name */}
           <div className="flex flex-col gap-2">
-            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Xona nomi (ixtiyoriy)</label>
+            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide">{t('roomName')}</label>
             <input
               type="text"
               value={roomName}
@@ -71,7 +73,7 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
 
           {/* Video URL */}
           <div className="flex flex-col gap-2">
-            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Video URL</label>
+            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide">{t('videoUrl')}</label>
             <input
               type="url"
               value={videoUrl}
@@ -102,8 +104,8 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
             style={{ background: 'linear-gradient(135deg, #7C3AED, #5B21B6)' }}
           >
             {createRoom.isPending
-              ? <><Loader2 size={16} className="animate-spin" />Yaratilmoqda...</>
-              : 'Yaratish'}
+              ? <><Loader2 size={16} className="animate-spin" />{t('creating')}</>
+              : t('createBtn')}
           </button>
         </div>
       </DialogContent>

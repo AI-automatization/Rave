@@ -194,6 +194,11 @@
     "error": "Xato yuz berdi"
   },
   "home": {
+    "title": "Watch Party",
+    "join": "Qo'shilish",
+    "create": "Yaratish",
+    "empty": "Hali xonalar yo'q",
+    "createFirst": "Birinchi xonani yarating",
     "trending": "Trendda",
     "topRated": "Eng yuqori reyting",
     "recent": "Yangi qo'shilganlar",
@@ -391,11 +396,42 @@
     "cooldown": "{seconds}s kuting"
   },
   "profile": {
+    "title": "Profil",
+    "notFound": "Profil topilmadi",
+    "usernameLabel": "Foydalanuvchi nomi",
+    "bioLabel": "Bio",
+    "save": "Saqlash",
+    "saving": "Saqlanmoqda...",
+    "saved": "Profil saqlandi",
+    "saveError": "Saqlab bo'lmadi",
     "points": "points",
     "lastSeen": "Oxirgi:",
     "films": "Filmlar",
     "achievements": "Yutuqlar",
     "friends": "Do'stlar",
     "achievementsTitle": "YUTUQLAR"
+  },
+  "dm": {
+    "title": "Xabarlar",
+    "empty": "Hali xabarlar yo'q",
+    "selectChat": "Suhbatni tanlang",
+    "placeholder": "Xabar yozing...",
+    "noMessages": "Hali xabar yo'q"
+  },
+  "room": {
+    "createTitle": "Watch Party yaratish",
+    "createDesc": "Video qidiring yoki URL kiriting",
+    "roomName": "Xona nomi (ixtiyoriy)",
+    "videoUrl": "Video URL",
+    "creating": "Yaratilmoqda...",
+    "createBtn": "Yaratish",
+    "createError": "Xona yaratib bo'lmadi",
+    "joinTitle": "Xonaga qo'shilish",
+    "joinDesc": "6 xonali taklif kodini kiriting",
+    "joining": "Qo'shilmoqda...",
+    "joinBtn": "Qo'shilish",
+    "joinError": "Xonaga qo'shilib bo'lmadi",
+    "searchLabel": "Yoki video qidiring",
+    "searchPlaceholder": "Video nomi..."
   }
 }

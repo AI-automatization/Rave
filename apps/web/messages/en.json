@@ -204,6 +204,11 @@
     "error": "An error occurred"
   },
   "home": {
+    "title": "Watch Party",
+    "join": "Join",
+    "create": "Create",
+    "empty": "No rooms yet",
+    "createFirst": "Create your first room",
     "trending": "Trending",
     "topRated": "Top Rated",
     "recent": "Recently Added",
@@ -448,11 +453,42 @@
     "cooldown": "Wait {seconds}s"
   },
   "profile": {
+    "title": "Profile",
+    "notFound": "Profile not found",
+    "usernameLabel": "Username",
+    "bioLabel": "Bio",
+    "save": "Save",
+    "saving": "Saving...",
+    "saved": "Profile saved",
+    "saveError": "Failed to save",
     "points": "points",
     "lastSeen": "Last seen:",
     "films": "Films",
     "achievements": "Achievements",
     "friends": "Friends",
     "achievementsTitle": "ACHIEVEMENTS"
+  },
+  "dm": {
+    "title": "Messages",
+    "empty": "No messages yet",
+    "selectChat": "Select a chat",
+    "placeholder": "Write a message...",
+    "noMessages": "No messages yet"
+  },
+  "room": {
+    "createTitle": "Create Watch Party",
+    "createDesc": "Search for a video or enter URL",
+    "roomName": "Room name (optional)",
+    "videoUrl": "Video URL",
+    "creating": "Creating...",
+    "createBtn": "Create",
+    "createError": "Failed to create room",
+    "joinTitle": "Join Room",
+    "joinDesc": "Enter the 6-digit invite code",
+    "joining": "Joining...",
+    "joinBtn": "Join",
+    "joinError": "Failed to join room",
+    "searchLabel": "Or search for a video",
+    "searchPlaceholder": "Video title..."
   }
 }

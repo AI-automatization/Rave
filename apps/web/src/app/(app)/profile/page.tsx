@@ -1,7 +1,7 @@
 import { ProfileContent } from './ProfileContent';
 
 export const metadata = {
-  title: 'Profil',
+  title: 'Profile',
 };
 
 export default function ProfilePage() {

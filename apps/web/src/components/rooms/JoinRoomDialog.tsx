@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export function JoinRoomDialog({ open, onOpenChange }: Props) {
+  const t = useTranslations('room');
   const router = useRouter();
   const joinRoom = useJoinRoom();
   const [code, setCode] = useState('');
@@ -30,7 +32,7 @@ export function JoinRoomDialog({ open, onOpenChange }: Props) {
         router.push(`/room/${roomId}`);
       }
     } catch {
-      toast.error('Xonaga qo\'shilib bo\'lmadi');
+      toast.error(t('joinError'));
     }
   }
 
@@ -38,9 +40,9 @@ export function JoinRoomDialog({ open, onOpenChange }: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-[#0F0E1A] border-[#1E1D2E] text-white max-w-sm">
         <DialogHeader>
-          <DialogTitle className="text-white">Xonaga qo&apos;shilish</DialogTitle>
+          <DialogTitle className="text-white">{t('joinTitle')}</DialogTitle>
           <DialogDescription className="text-slate-400">
-            6 xonali taklif kodini kiriting
+            {t('joinDesc')}
           </DialogDescription>
         </DialogHeader>
 
@@ -62,8 +64,8 @@ export function JoinRoomDialog({ open, onOpenChange }: Props) {
             style={{ background: 'linear-gradient(135deg, #7C3AED, #5B21B6)' }}
           >
             {joinRoom.isPending
-              ? <><Loader2 size={15} className="animate-spin" />Qo&apos;shilmoqda...</>
-              : 'Qo\'shilish'}
+              ? <><Loader2 size={15} className="animate-spin" />{t('joining')}</>
+              : t('joinBtn')}
           </button>
         </div>
       </DialogContent>

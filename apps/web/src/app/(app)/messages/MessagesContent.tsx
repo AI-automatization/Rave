@@ -3,11 +3,13 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Loader2, MessageCircle } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useConversations, useMessages, useSendDm } from '@/hooks/use-dm';
 import { ConversationList } from '@/components/messages/ConversationList';
 import { ChatWindow } from '@/components/messages/ChatWindow';
 
 export function MessagesContent() {
+  const t = useTranslations('dm');
   const searchParams = useSearchParams();
   const [selectedPeer, setSelectedPeer] = useState<string | null>(
     searchParams.get('peer'),
@@ -33,7 +35,7 @@ export function MessagesContent() {
 
   return (
     <div className="max-w-4xl mx-auto h-[calc(100vh-7rem)] lg:h-[calc(100vh-5rem)]">
-      <h1 className="text-2xl font-bold text-white mb-4">Xabarlar</h1>
+      <h1 className="text-2xl font-bold text-white mb-4">{t('title')}</h1>
 
       <div className="flex h-[calc(100%-3rem)] card overflow-hidden">
         {/* Left panel: conversations */}
@@ -68,7 +70,7 @@ export function MessagesContent() {
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center gap-3">
               <MessageCircle size={32} className="text-slate-600" />
-              <p className="text-sm text-slate-400">Suhbatni tanlang</p>
+              <p className="text-sm text-slate-400">{t('selectChat')}</p>
             </div>
           )}
         </div>

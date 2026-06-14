@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Search, Loader2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { contentApi } from '@/lib/api/content.api';
 import type { IExternalVideo } from '@/types';
 
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export function VideoSearch({ onSelect }: Props) {
+  const t = useTranslations('room');
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<IExternalVideo[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -42,14 +44,14 @@ export function VideoSearch({ onSelect }: Props) {
 
   return (
     <div className="flex flex-col gap-2">
-      <label className="text-xs font-medium text-slate-400">Yoki video qidiring</label>
+      <label className="text-xs font-medium text-slate-400">{t('searchLabel')}</label>
       <div className="relative">
         <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Video nomi..."
+          placeholder={t('searchPlaceholder')}
           className="w-full h-10 bg-[#13121F] border border-[#2A2840] rounded-xl pl-9 pr-4 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-violet-500/60 focus:ring-1 focus:ring-violet-500/30 transition-all"
         />
         {isLoading && (

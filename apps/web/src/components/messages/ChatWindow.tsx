@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Send } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { MessageBubble } from '@/components/messages/MessageBubble';
 import { useAuthStore } from '@/store/auth.store';
 
@@ -27,6 +28,7 @@ function formatTime(dateStr: string): string {
 }
 
 export function ChatWindow({ messages, onSend, peerName }: Props) {
+  const t = useTranslations('dm');
   const currentUser = useAuthStore((s) => s.user);
   const [text, setText] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -69,7 +71,7 @@ export function ChatWindow({ messages, onSend, peerName }: Props) {
             type="text"
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="Xabar yozing..."
+            placeholder={t('placeholder')}
             maxLength={1000}
             className="flex-1 h-12 bg-[#1C1C28] border border-white/[0.07] rounded-full px-5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-violet-500/45 focus:bg-violet-500/5 transition-all"
           />

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Loader2, Check } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useUpdateProfile } from '@/hooks/use-profile';
 import { AvatarUpload } from '@/components/profile/AvatarUpload';
 import { toast } from '@/store/toast.store';
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export function ProfileCard({ user }: Props) {
+  const t = useTranslations('profile');
   const update = useUpdateProfile();
   const [username, setUsername] = useState(user.username ?? '');
   const [bio, setBio] = useState(user.bio ?? '');
@@ -21,9 +23,9 @@ export function ProfileCard({ user }: Props) {
   async function handleSave() {
     try {
       await update.mutateAsync({ username, bio });
-      toast.success('Profil saqlandi');
+      toast.success(t('saved'));
     } catch {
-      toast.error('Saqlab bo\'lmadi');
+      toast.error(t('saveError'));
     }
   }
 
@@ -34,7 +36,7 @@ export function ProfileCard({ user }: Props) {
       <div className="w-full flex flex-col gap-5">
         {/* Username */}
         <div className="flex flex-col gap-2">
-          <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Username</label>
+          <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide">{t('usernameLabel')}</label>
           <input
             type="text"
             value={username}
@@ -45,7 +47,7 @@ export function ProfileCard({ user }: Props) {
 
         {/* Bio */}
         <div className="flex flex-col gap-2">
-          <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Bio</label>
+          <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide">{t('bioLabel')}</label>
           <textarea
             value={bio}
             onChange={(e) => setBio(e.target.value)}
@@ -64,8 +66,8 @@ export function ProfileCard({ user }: Props) {
             style={{ background: 'linear-gradient(135deg, #7C3AED, #5B21B6)' }}
           >
             {update.isPending
-              ? <><Loader2 size={16} className="animate-spin" />Saqlanmoqda...</>
-              : <><Check size={16} />Saqlash</>}
+              ? <><Loader2 size={16} className="animate-spin" />{t('saving')}</>
+              : <><Check size={16} />{t('save')}</>}
           </button>
         )}
       </div>
