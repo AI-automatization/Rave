@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useCallback, useState } from 'react';
-import { Loader2, Play } from 'lucide-react';
+import { Loader2, Play, AlertCircle } from 'lucide-react';
 import { useWatchPartyStore } from '@/store/watch-party.store';
 import { useAuthStore } from '@/store/auth.store';
 
@@ -14,22 +14,96 @@ interface Props {
   onBufferEnd: () => void;
 }
 
+interface ExtractResult {
+  videoUrl: string;
+  type: 'mp4' | 'hls' | 'embed';
+  poster?: string;
+  httpHeaders?: Record<string, string>;
+}
+
 function getYouTubeId(url: string): string | null {
-  // Handles: youtube.com/watch?v=, youtu.be/, youtube.com/shorts/, youtube.com/embed/
   const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([a-zA-Z0-9_-]{11})/);
   return match?.[1] ?? null;
 }
 
-function getVkEmbedUrl(url: string): string | null {
-  const match = url.match(/(?:vk\.com|vkvideo\.ru)\/video(-?\d+)_(\d+)/);
-  if (!match) return null;
-  return `https://vk.com/video_ext.php?oid=${match[1]}&id=${match[2]}&hd=1`;
+function isVkUrl(url: string): boolean {
+  return /(?:vk\.com|vkvideo\.ru)\/video-?\d+_\d+/.test(url);
 }
 
-function getRutubeEmbedUrl(url: string): string | null {
-  const match = url.match(/rutube\.ru\/video\/([a-zA-Z0-9]+)/);
-  if (!match) return null;
-  return `https://rutube.ru/play/embed/${match[1]}/`;
+function isRutubeUrl(url: string): boolean {
+  return /rutube\.ru\/video\/[a-zA-Z0-9]+/.test(url);
+}
+
+async function extractVideoUrl(url: string): Promise<ExtractResult> {
+  const res = await fetch('/api/content/extract', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ url }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({})) as { message?: string };
+    throw new Error(err.message ?? `Extract failed: ${res.status}`);
+  }
+  const data = await res.json() as { data?: ExtractResult };
+  if (!data.data?.videoUrl) throw new Error('No video URL returned');
+  return data.data;
+}
+
+function NativeVideoPlayer({
+  src,
+  poster,
+  videoRef,
+  autoplayBlocked,
+  onPlay,
+  onPause,
+  onSeeked,
+  onBufferStart,
+  onBufferEnd,
+  onOverlayClick,
+}: {
+  src: string;
+  poster?: string;
+  videoRef: React.RefObject<HTMLVideoElement | null>;
+  autoplayBlocked: boolean;
+  onPlay: () => void;
+  onPause: () => void;
+  onSeeked: () => void;
+  onBufferStart: () => void;
+  onBufferEnd: () => void;
+  onOverlayClick: () => void;
+}) {
+  return (
+    <div className="aspect-video bg-black rounded-xl overflow-hidden relative">
+      <video
+        ref={videoRef}
+        src={src}
+        poster={poster}
+        controls
+        playsInline
+        preload="none"
+        disableRemotePlayback
+        className="w-full h-full"
+        onPlay={onPlay}
+        onPause={onPause}
+        onSeeked={onSeeked}
+        onWaiting={onBufferStart}
+        onCanPlay={onBufferEnd}
+      />
+      {autoplayBlocked && (
+        <button
+          onClick={onOverlayClick}
+          className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/60 cursor-pointer group"
+          aria-label="Нажмите чтобы воспроизвести"
+        >
+          <div className="w-16 h-16 rounded-full bg-white/10 border border-white/20 flex items-center justify-center group-hover:bg-white/20 transition-colors">
+            <Play size={28} className="text-white ml-1" fill="white" />
+          </div>
+          <span className="text-white/70 text-sm">Нажмите чтобы начать</span>
+        </button>
+      )}
+    </div>
+  );
 }
 
 export function VideoPlayer({ onPlay, onPause, onSeek, onHeartbeat, onBufferStart, onBufferEnd }: Props) {
@@ -39,20 +113,48 @@ export function VideoPlayer({ onPlay, onPause, onSeek, onHeartbeat, onBufferStar
   const heartbeat = useWatchPartyStore((s) => s.heartbeat);
   const currentUser = useAuthStore((s) => s.user);
   const isOwner = !!(room && currentUser && room.ownerId === currentUser._id);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const isRemoteAction = useRef(false);
   const [autoplayBlocked, setAutoplayBlocked] = useState(false);
 
+  // Extracted URL state for VK / Rutube
+  const [extractedUrl, setExtractedUrl] = useState<string | null>(null);
+  const [extractPoster, setExtractPoster] = useState<string | undefined>(undefined);
+  const [extracting, setExtracting] = useState(false);
+  const [extractError, setExtractError] = useState<string | null>(null);
+  const extractedForUrl = useRef<string>('');
+
   const videoUrl = room?.videoUrl ?? '';
   const ytId = getYouTubeId(videoUrl);
-  const vkEmbedUrl = !ytId ? getVkEmbedUrl(videoUrl) : null;
-  const rutubeEmbedUrl = !ytId && !vkEmbedUrl ? getRutubeEmbedUrl(videoUrl) : null;
-  const isEmbed = !!(ytId || vkEmbedUrl || rutubeEmbedUrl);
+  const needsExtract = !ytId && (isVkUrl(videoUrl) || isRutubeUrl(videoUrl));
+  // Direct HTML5 src: either extracted URL or raw URL (for .mp4 / .m3u8 direct links)
+  const directSrc = needsExtract ? extractedUrl : ((!ytId && videoUrl) || null);
+  const isEmbed = !!ytId || (needsExtract && !extractedUrl);
 
-  // Sync incoming state to HTML5 video element (not applicable to embeds)
+  // Trigger extraction once per unique URL
+  useEffect(() => {
+    if (!needsExtract || !videoUrl || extractedForUrl.current === videoUrl) return;
+    extractedForUrl.current = videoUrl;
+    setExtractedUrl(null);
+    setExtractPoster(undefined);
+    setExtractError(null);
+    setExtracting(true);
+
+    extractVideoUrl(videoUrl)
+      .then((result) => {
+        setExtractedUrl(result.videoUrl);
+        setExtractPoster(result.poster);
+      })
+      .catch((err: unknown) => {
+        setExtractError((err as Error).message ?? 'Extraction failed');
+      })
+      .finally(() => setExtracting(false));
+  }, [videoUrl, needsExtract]);
+
+  // Sync incoming state to HTML5 video element
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || isEmbed) return;
+    if (!video || isEmbed || !directSrc) return;
 
     isRemoteAction.current = true;
 
@@ -64,7 +166,6 @@ export function VideoPlayer({ onPlay, onPause, onSeek, onHeartbeat, onBufferStar
       video.play().then(() => {
         setAutoplayBlocked(false);
       }).catch(() => {
-        // Browser blocked autoplay — show overlay so user can start manually
         setAutoplayBlocked(true);
       });
     } else if (!syncState.isPlaying && !video.paused) {
@@ -73,9 +174,9 @@ export function VideoPlayer({ onPlay, onPause, onSeek, onHeartbeat, onBufferStar
     }
 
     setTimeout(() => { isRemoteAction.current = false; }, 200);
-  }, [syncState.currentTime, syncState.isPlaying, isEmbed]);
+  }, [syncState.currentTime, syncState.isPlaying, isEmbed, directSrc]);
 
-  // Owner sends heartbeat every 2s so peers can do drift correction
+  // Owner heartbeat
   useEffect(() => {
     const video = videoRef.current;
     if (!isOwner || isEmbed || !video) return;
@@ -85,7 +186,7 @@ export function VideoPlayer({ onPlay, onPause, onSeek, onHeartbeat, onBufferStar
     return () => clearInterval(id);
   }, [isOwner, isEmbed, onHeartbeat]);
 
-  // Non-owner: apply drift correction when heartbeat arrives
+  // Non-owner drift correction
   useEffect(() => {
     const video = videoRef.current;
     if (!video || isEmbed || isOwner || !heartbeat || !syncState.isPlaying) return;
@@ -127,7 +228,8 @@ export function VideoPlayer({ onPlay, onPause, onSeek, onHeartbeat, onBufferStar
     video.play().then(() => setAutoplayBlocked(false)).catch(() => {});
   }
 
-  // Room is loading (REST fetch in progress or socket not yet joined)
+  // ── Loading states ──────────────────────────────────────────────────────────
+
   if (!room) {
     return (
       <div className="aspect-video bg-[#0A0A12] rounded-xl flex items-center justify-center">
@@ -136,7 +238,6 @@ export function VideoPlayer({ onPlay, onPause, onSeek, onHeartbeat, onBufferStar
     );
   }
 
-  // Room loaded but no video URL set
   if (!videoUrl) {
     return (
       <div className="aspect-video bg-[#0A0A12] rounded-xl flex flex-col items-center justify-center gap-2">
@@ -151,7 +252,8 @@ export function VideoPlayer({ onPlay, onPause, onSeek, onHeartbeat, onBufferStar
     );
   }
 
-  // YouTube embed
+  // ── YouTube (always iframe — yt-dlp URLs are IP-locked) ────────────────────
+
   if (ytId) {
     return (
       <div className="aspect-video bg-black rounded-xl overflow-hidden">
@@ -166,67 +268,66 @@ export function VideoPlayer({ onPlay, onPause, onSeek, onHeartbeat, onBufferStar
     );
   }
 
-  // VK embed
-  if (vkEmbedUrl) {
-    return (
-      <div className="aspect-video bg-black rounded-xl overflow-hidden">
-        <iframe
-          src={vkEmbedUrl}
-          className="w-full h-full"
-          allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
-          allowFullScreen
-          title="VK player"
+  // ── VK / Rutube — extract direct URL via backend yt-dlp ───────────────────
+
+  if (needsExtract) {
+    if (extracting) {
+      return (
+        <div className="aspect-video bg-[#0A0A12] rounded-xl flex flex-col items-center justify-center gap-3">
+          <Loader2 size={28} className="animate-spin text-violet-400" />
+          <p className="text-slate-400 text-sm">Загрузка видео...</p>
+        </div>
+      );
+    }
+
+    if (extractError) {
+      return (
+        <div className="aspect-video bg-[#0A0A12] rounded-xl flex flex-col items-center justify-center gap-3 px-6 text-center">
+          <AlertCircle size={28} className="text-red-400" />
+          <p className="text-slate-300 text-sm font-medium">Не удалось загрузить видео</p>
+          <p className="text-slate-500 text-xs">{extractError}</p>
+        </div>
+      );
+    }
+
+    if (extractedUrl) {
+      return (
+        <NativeVideoPlayer
+          src={extractedUrl}
+          poster={extractPoster}
+          videoRef={videoRef}
+          autoplayBlocked={autoplayBlocked}
+          onPlay={handlePlay}
+          onPause={handlePause}
+          onSeeked={handleSeeked}
+          onBufferStart={onBufferStart}
+          onBufferEnd={onBufferEnd}
+          onOverlayClick={handleOverlayClick}
         />
+      );
+    }
+
+    // extracting=false, no error, no URL yet — shouldn't happen
+    return (
+      <div className="aspect-video bg-[#0A0A12] rounded-xl flex items-center justify-center">
+        <Loader2 size={24} className="animate-spin text-violet-400" />
       </div>
     );
   }
 
-  // Rutube embed
-  if (rutubeEmbedUrl) {
-    return (
-      <div className="aspect-video bg-black rounded-xl overflow-hidden">
-        <iframe
-          src={rutubeEmbedUrl}
-          className="w-full h-full"
-          allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
-          allowFullScreen
-          title="Rutube player"
-        />
-      </div>
-    );
-  }
+  // ── HTML5 video (direct .mp4 / .m3u8 links) ───────────────────────────────
 
-  // HTML5 video (direct .mp4 / .m3u8 links)
-  // disableRemotePlayback prevents macOS "Now Playing" HUD from appearing
-  // preload="none" avoids premature media registration with macOS before user interacts
   return (
-    <div className="aspect-video bg-black rounded-xl overflow-hidden relative">
-      <video
-        ref={videoRef}
-        src={videoUrl}
-        controls
-        playsInline
-        preload="none"
-        disableRemotePlayback
-        className="w-full h-full"
-        onPlay={handlePlay}
-        onPause={handlePause}
-        onSeeked={handleSeeked}
-        onWaiting={onBufferStart}
-        onCanPlay={onBufferEnd}
-      />
-      {autoplayBlocked && (
-        <button
-          onClick={handleOverlayClick}
-          className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/60 cursor-pointer group"
-          aria-label="Нажмите чтобы воспроизвести"
-        >
-          <div className="w-16 h-16 rounded-full bg-white/10 border border-white/20 flex items-center justify-center group-hover:bg-white/20 transition-colors">
-            <Play size={28} className="text-white ml-1" fill="white" />
-          </div>
-          <span className="text-white/70 text-sm">Нажмите чтобы начать</span>
-        </button>
-      )}
-    </div>
+    <NativeVideoPlayer
+      src={videoUrl}
+      videoRef={videoRef}
+      autoplayBlocked={autoplayBlocked}
+      onPlay={handlePlay}
+      onPause={handlePause}
+      onSeeked={handleSeeked}
+      onBufferStart={onBufferStart}
+      onBufferEnd={onBufferEnd}
+      onOverlayClick={handleOverlayClick}
+    />
   );
 }
