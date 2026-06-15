@@ -66,8 +66,15 @@ export class OAuthController {
       <p>Окно закроется автоматически...</p>
       <a href="wewatch://auth/callback">🎬 Открыть WeWatch</a>
     </body></html>`;
-    const errorHtml = `<html><body style="background:#0A0A0F;color:#fff;font-family:sans-serif;text-align:center;padding:60px">
-      <h2>❌ Ошибка входа</h2><p>Попробуйте снова в приложении.</p></body></html>`;
+    const errorHtml = `<!DOCTYPE html><html><head><meta charset="utf-8">
+      <script>
+        try { window.opener && window.opener.postMessage('google-auth-error', '*'); } catch(e){}
+        setTimeout(function(){ try{ window.close(); }catch(e){} }, 2000);
+      </script>
+      </head><body style="background:#0A0A0F;color:#fff;font-family:sans-serif;text-align:center;padding:60px">
+      <h2>❌ Ошибка входа</h2><p>Попробуйте снова в приложении.</p>
+      <p style="color:#555;font-size:13px;margin-top:16px">Окно закроется автоматически...</p>
+      </body></html>`;
 
     if (!code) { res.send(errorHtml); return; }
     try {
@@ -95,6 +102,7 @@ export class OAuthController {
         }).catch((storeErr: unknown) => { logger.warn('Failed to store mobile Google result', { storeErr }); });
         res.send(successHtml);
       } else {
+        logger.error('Google mobile callback error', { err: (err as Error).message, mobileState });
         res.send(errorHtml);
       }
     }

@@ -66,10 +66,19 @@ export function LoginForm() {
         } catch { /* still pending */ }
       };
 
-      // Listen for postMessage from popup success page
+      const cleanup = () => {
+        clearInterval(interval);
+        window.removeEventListener('message', onMessage);
+      };
+
+      // Listen for postMessage from popup
       const onMessage = async (e: MessageEvent) => {
         if (e.data === 'google-auth-done') {
           await finishLogin();
+        } else if (e.data === 'google-auth-error') {
+          cleanup();
+          try { popup?.close(); } catch { /* ignore */ }
+          setError(t('genericError'));
         }
       };
       window.addEventListener('message', onMessage);
@@ -78,10 +87,7 @@ export function LoginForm() {
       const interval = setInterval(finishLogin, 800);
 
       // Cleanup after 2 min
-      setTimeout(() => {
-        clearInterval(interval);
-        window.removeEventListener('message', onMessage);
-      }, 120_000);
+      setTimeout(cleanup, 120_000);
     } catch {
       setError(t('genericError'));
     }
