@@ -8,5 +8,8 @@ export async function GET() {
   const explicit = process.env.WATCH_PARTY_SOCKET_URL ?? process.env.SOCKET_URL;
   const socketUrl = railwayHost ? `https://${railwayHost}` : (explicit ?? 'http://localhost:3004');
 
-  return NextResponse.json({ data: { socketUrl } });
+  // Debug: list which Railway keys exist (values hidden for security)
+  const envKeys = Object.keys(process.env).filter((k) => k.includes('RAILWAY') || k.includes('SOCKET') || k.includes('WATCH'));
+
+  return NextResponse.json({ data: { socketUrl, _envKeys: envKeys } });
 }
