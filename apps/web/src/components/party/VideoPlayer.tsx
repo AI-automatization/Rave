@@ -52,13 +52,25 @@ async function extractVideoUrl(url: string): Promise<ExtractResult> {
   return data.data;
 }
 
-/** Build proxy URL that routes CDN stream through the web server (same Railway IP as yt-dlp). */
 function buildProxyUrl(cdnUrl: string, headers?: Record<string, string>): string {
   const h = headers ? encodeURIComponent(JSON.stringify(headers)) : '';
   return `/api/content/proxy-stream?url=${encodeURIComponent(cdnUrl)}&h=${h}`;
 }
 
-// ── Native video wrapper with HLS.js support ──────────────────────────────────
+// Prevent macOS from registering the video as system media (Now Playing HUD, AirPlay)
+function suppressMacOsPlayer() {
+  if (typeof navigator === 'undefined' || !('mediaSession' in navigator)) return;
+  navigator.mediaSession.metadata = null;
+  const actions: MediaSessionAction[] = [
+    'play', 'pause', 'seekto', 'seekbackward', 'seekforward',
+    'previoustrack', 'nexttrack', 'stop',
+  ];
+  for (const action of actions) {
+    try { navigator.mediaSession.setActionHandler(action, null); } catch { /* unsupported */ }
+  }
+}
+
+// ── Native video wrapper with HLS.js + macOS suppression ─────────────────────
 
 interface NativeProps {
   src: string;
@@ -66,6 +78,7 @@ interface NativeProps {
   poster?: string;
   videoRef: React.RefObject<HTMLVideoElement | null>;
   autoplayBlocked: boolean;
+  isOwner: boolean;
   onPlay: () => void;
   onPause: () => void;
   onSeeked: () => void;
@@ -80,6 +93,7 @@ function NativeVideoPlayer({
   poster,
   videoRef,
   autoplayBlocked,
+  isOwner,
   onPlay,
   onPause,
   onSeeked,
@@ -93,30 +107,27 @@ function NativeVideoPlayer({
     const video = videoRef.current;
     if (!video || !src) return;
 
-    // Native HLS (Safari) or non-HLS: use src directly
+    // Suppress macOS Now Playing / AirPlay on every src change
+    suppressMacOsPlayer();
+
     if (!isHls || video.canPlayType('application/vnd.apple.mpegurl')) {
       video.src = src;
       return;
     }
 
-    // Chrome/Firefox: need HLS.js
     import('hls.js').then(({ default: Hls }) => {
       if (!Hls.isSupported()) {
-        // Fallback: try native anyway
         video.src = src;
         return;
       }
-      // Destroy previous instance if src changed
       hlsRef.current?.destroy();
-
       const hls = new Hls({ enableWorker: true, lowLatencyMode: false });
       hlsRef.current = hls;
       hls.loadSource(src);
       hls.attachMedia(video);
-    }).catch(() => {
-      // hls.js import failed — try native
-      video.src = src;
-    });
+      // HLS.js attaching triggers mediaSession again — suppress after attach
+      hls.once(Hls.Events.MANIFEST_PARSED, suppressMacOsPlayer);
+    }).catch(() => { video.src = src; });
 
     return () => {
       hlsRef.current?.destroy();
@@ -132,11 +143,17 @@ function NativeVideoPlayer({
         controls
         playsInline
         preload="none"
+        // Prevents AirPlay / Remote Playback API (macOS native player)
         disableRemotePlayback
+        // eslint-disable-next-line react/no-unknown-property
+        {...({ 'x-webkit-airplay': 'deny' } as Record<string, string>)}
         className="w-full h-full"
-        onPlay={onPlay}
-        onPause={onPause}
-        onSeeked={onSeeked}
+        // Only owner events are broadcast to the room.
+        // Viewer can use controls locally (volume, fullscreen) but their
+        // play/pause/seek don't affect other participants.
+        onPlay={isOwner ? onPlay : undefined}
+        onPause={isOwner ? onPause : undefined}
+        onSeeked={isOwner ? onSeeked : undefined}
         onWaiting={onBufferStart}
         onCanPlay={onBufferEnd}
       />
@@ -172,6 +189,7 @@ export function VideoPlayer({
   const heartbeat = useWatchPartyStore((s) => s.heartbeat);
   const currentUser = useAuthStore((s) => s.user);
   const isOwner = !!(room && currentUser && room.ownerId === currentUser._id);
+
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const isRemoteAction = useRef(false);
   const [autoplayBlocked, setAutoplayBlocked] = useState(false);
@@ -189,7 +207,7 @@ export function VideoPlayer({
   const isEmbed = !!ytId;
   const directSrc = needsExtract ? proxySrc : (!ytId && videoUrl) || null;
 
-  // Extract → proxy URL
+  // Extract → proxy URL for VK / Rutube
   useEffect(() => {
     if (!needsExtract || !videoUrl || extractedForUrl.current === videoUrl) return;
     extractedForUrl.current = videoUrl;
@@ -200,8 +218,7 @@ export function VideoPlayer({
 
     extractVideoUrl(videoUrl)
       .then((result) => {
-        const proxy = buildProxyUrl(result.videoUrl, result.httpHeaders);
-        setProxySrc(proxy);
+        setProxySrc(buildProxyUrl(result.videoUrl, result.httpHeaders));
         setIsHls(result.type === 'hls');
         setExtractPoster(result.poster);
       })
@@ -211,25 +228,33 @@ export function VideoPlayer({
       .finally(() => setExtracting(false));
   }, [videoUrl, needsExtract]);
 
-  // Sync play/pause/seek from syncState
+  // ── Sync incoming state to HTML5 video ────────────────────────────────────
+  // Runs on every explicit PLAY / PAUSE / SEEK / SYNC event from server.
+  // Always seek to exact position — threshold is tiny (0.3s) just to avoid
+  // harmless float noise when the same event fires twice.
   useEffect(() => {
     const video = videoRef.current;
     if (!video || isEmbed || !directSrc) return;
 
     isRemoteAction.current = true;
-    if (Math.abs(video.currentTime - syncState.currentTime) > 2) {
+
+    if (Math.abs(video.currentTime - syncState.currentTime) > 0.3) {
       video.currentTime = syncState.currentTime;
     }
+
     if (syncState.isPlaying && video.paused) {
-      video.play().then(() => setAutoplayBlocked(false)).catch(() => setAutoplayBlocked(true));
+      video.play()
+        .then(() => setAutoplayBlocked(false))
+        .catch(() => setAutoplayBlocked(true));
     } else if (!syncState.isPlaying && !video.paused) {
       video.pause();
       setAutoplayBlocked(false);
     }
+
     setTimeout(() => { isRemoteAction.current = false; }, 200);
   }, [syncState.currentTime, syncState.isPlaying, isEmbed, directSrc]);
 
-  // Owner heartbeat
+  // Owner heartbeat every 2s
   useEffect(() => {
     const video = videoRef.current;
     if (!isOwner || isEmbed || !video) return;
@@ -239,7 +264,7 @@ export function VideoPlayer({
     return () => clearInterval(id);
   }, [isOwner, isEmbed, onHeartbeat]);
 
-  // Non-owner drift correction
+  // Non-owner drift correction via heartbeat
   useEffect(() => {
     const video = videoRef.current;
     if (!video || isEmbed || isOwner || !heartbeat || !syncState.isPlaying) return;
@@ -256,6 +281,7 @@ export function VideoPlayer({
     }
   }, [heartbeat, isEmbed, isOwner, syncState.isPlaying]);
 
+  // Owner event handlers (only owner's actions are sent to the room)
   const handlePlay = useCallback(() => {
     if (!isRemoteAction.current && videoRef.current) {
       setAutoplayBlocked(false);
@@ -303,7 +329,7 @@ export function VideoPlayer({
     );
   }
 
-  // ── YouTube ─────────────────────────────────────────────────────────────────
+  // ── YouTube (always iframe) ─────────────────────────────────────────────────
 
   if (ytId) {
     return (
@@ -330,7 +356,6 @@ export function VideoPlayer({
         </div>
       );
     }
-
     if (extractError) {
       return (
         <div className="aspect-video bg-[#0A0A12] rounded-xl flex flex-col items-center justify-center gap-3 px-6 text-center">
@@ -340,7 +365,6 @@ export function VideoPlayer({
         </div>
       );
     }
-
     if (proxySrc) {
       return (
         <NativeVideoPlayer
@@ -349,6 +373,7 @@ export function VideoPlayer({
           poster={extractPoster}
           videoRef={videoRef}
           autoplayBlocked={autoplayBlocked}
+          isOwner={isOwner}
           onPlay={handlePlay}
           onPause={handlePause}
           onSeeked={handleSeeked}
@@ -358,7 +383,6 @@ export function VideoPlayer({
         />
       );
     }
-
     return (
       <div className="aspect-video bg-[#0A0A12] rounded-xl flex items-center justify-center">
         <Loader2 size={24} className="animate-spin text-violet-400" />
@@ -376,6 +400,7 @@ export function VideoPlayer({
       isHls={srcIsHls}
       videoRef={videoRef}
       autoplayBlocked={autoplayBlocked}
+      isOwner={isOwner}
       onPlay={handlePlay}
       onPause={handlePause}
       onSeeked={handleSeeked}
