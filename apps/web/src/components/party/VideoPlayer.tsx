@@ -57,16 +57,23 @@ function buildProxyUrl(cdnUrl: string, headers?: Record<string, string>): string
   return `/api/content/proxy-stream?url=${encodeURIComponent(cdnUrl)}&h=${h}`;
 }
 
-// Prevent macOS from registering the video as system media (Now Playing HUD, AirPlay)
+// Prevent macOS from registering the video as system media (Now Playing HUD, AirPlay, PiP)
+// Must use empty () => {} handlers — setting null reverts to browser defaults (shows OS player).
+// Empty handlers tell the OS "app handles media itself → no system UI needed".
+const MEDIA_ACTIONS: MediaSessionAction[] = [
+  'play', 'pause', 'seekto', 'seekbackward', 'seekforward',
+  'previoustrack', 'nexttrack', 'stop',
+];
+const noop = () => {};
+
 function suppressMacOsPlayer() {
-  if (typeof navigator === 'undefined' || !('mediaSession' in navigator)) return;
-  navigator.mediaSession.metadata = null;
-  const actions: MediaSessionAction[] = [
-    'play', 'pause', 'seekto', 'seekbackward', 'seekforward',
-    'previoustrack', 'nexttrack', 'stop',
-  ];
-  for (const action of actions) {
-    try { navigator.mediaSession.setActionHandler(action, null); } catch { /* unsupported */ }
+  if (typeof navigator === 'undefined') return;
+  if ('mediaSession' in navigator) {
+    navigator.mediaSession.metadata = null;
+    navigator.mediaSession.playbackState = 'none';
+    for (const action of MEDIA_ACTIONS) {
+      try { navigator.mediaSession.setActionHandler(action, noop); } catch { /* unsupported */ }
+    }
   }
 }
 
@@ -112,6 +119,8 @@ function NativeVideoPlayer({
 
     if (!isHls || video.canPlayType('application/vnd.apple.mpegurl')) {
       video.src = src;
+      // Safari native HLS — still suppress on play
+      video.addEventListener('play', suppressMacOsPlayer, { passive: true });
       return;
     }
 
@@ -125,8 +134,9 @@ function NativeVideoPlayer({
       hlsRef.current = hls;
       hls.loadSource(src);
       hls.attachMedia(video);
-      // HLS.js attaching triggers mediaSession again — suppress after attach
+      // Suppress after manifest loads and after each play event
       hls.once(Hls.Events.MANIFEST_PARSED, suppressMacOsPlayer);
+      video.addEventListener('play', suppressMacOsPlayer, { passive: true });
     }).catch(() => { video.src = src; });
 
     return () => {
@@ -143,8 +153,8 @@ function NativeVideoPlayer({
         controls
         playsInline
         preload="none"
-        // Prevents AirPlay / Remote Playback API (macOS native player)
         disableRemotePlayback
+        disablePictureInPicture
         // eslint-disable-next-line react/no-unknown-property
         {...({ 'x-webkit-airplay': 'deny' } as Record<string, string>)}
         className="w-full h-full"

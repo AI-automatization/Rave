@@ -1,5 +1,5 @@
 FROM node:20-slim AS builder
-LABEL build-id="20260615-2"
+LABEL build-id="20260615-3"
 WORKDIR /app
 
 ENV NODE_OPTIONS="--max-old-space-size=2048"
