@@ -102,7 +102,10 @@ export class OAuthController {
         }).catch((storeErr: unknown) => { logger.warn('Failed to store mobile Google result', { storeErr }); });
         res.send(successHtml);
       } else {
-        logger.error('Google mobile callback error', { err: (err as Error).message, mobileState });
+        const errMsg = (err as Error).message ?? String(err);
+        // eslint-disable-next-line no-console
+        console.error('[GOOGLE_AUTH_ERROR]', errMsg, (err as Error).stack?.split('\n').slice(0,3).join(' | '));
+        logger.error(`Google mobile callback error: ${errMsg}`, { mobileState });
         res.send(errorHtml);
       }
     }
