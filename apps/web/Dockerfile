@@ -1,8 +1,26 @@
 FROM node:20-slim AS builder
-LABEL build-id="20260521-1"
+LABEL build-id="20260615-2"
 WORKDIR /app
 
 ENV NODE_OPTIONS="--max-old-space-size=2048"
+
+# Accept build-time public env vars so Next.js can inline them
+ARG NEXT_PUBLIC_SOCKET_URL=http://localhost:3004
+ARG NEXT_PUBLIC_APP_URL=https://wewatch.uz
+ENV NEXT_PUBLIC_SOCKET_URL=$NEXT_PUBLIC_SOCKET_URL
+ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
+
+# Accept runtime service URLs (inlined by Next.js webpack at build time)
+ARG WATCH_PARTY_SERVICE_URL=http://localhost:3004/api/v1
+ARG AUTH_SERVICE_URL=http://localhost:3001/api/v1/auth
+ARG USER_SERVICE_URL=http://localhost:3002/api/v1
+ARG CONTENT_SERVICE_URL=http://localhost:3003/api/v1
+ARG NOTIFICATION_SERVICE_URL=http://localhost:3007/api/v1
+ENV WATCH_PARTY_SERVICE_URL=$WATCH_PARTY_SERVICE_URL
+ENV AUTH_SERVICE_URL=$AUTH_SERVICE_URL
+ENV USER_SERVICE_URL=$USER_SERVICE_URL
+ENV CONTENT_SERVICE_URL=$CONTENT_SERVICE_URL
+ENV NOTIFICATION_SERVICE_URL=$NOTIFICATION_SERVICE_URL
 
 # Copy shared src for @shared/* tsconfig path alias (type-only, stripped by SWC)
 COPY shared/src/ ./shared/src/

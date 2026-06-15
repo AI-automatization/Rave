@@ -2,24 +2,21 @@ import { io, Socket } from 'socket.io-client';
 
 let socket: Socket | null = null;
 
+// NEXT_PUBLIC_* vars are inlined at Next.js build time — no runtime fetch needed.
+// Railway must have NEXT_PUBLIC_SOCKET_URL set BEFORE the Docker build runs.
+const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL ?? 'http://localhost:3004';
+
 export async function getSocket(): Promise<Socket> {
   if (socket?.connected) return socket;
 
-  // Fetch token and runtime config in parallel
-  const [tokenRes, configRes] = await Promise.all([
-    fetch('/api/auth/token', { credentials: 'include' }),
-    fetch('/api/config'),
-  ]);
+  // Get JWT from our proxy route (cookie → body)
+  const res = await fetch('/api/auth/token', { credentials: 'include' });
+  const data = await res.json() as { data?: { token?: string } };
+  const token = data.data?.token;
 
-  const tokenData = await tokenRes.json() as { data?: { token?: string } };
-  const configData = await configRes.json() as { data?: { socketUrl?: string } };
-
-  const token = tokenData.data?.token;
   if (!token) throw new Error('Not authenticated');
 
-  const socketUrl = configData.data?.socketUrl ?? 'http://localhost:3004';
-
-  socket = io(socketUrl, {
+  socket = io(SOCKET_URL, {
     auth: { token },
     transports: ['websocket'],
     reconnection: true,
