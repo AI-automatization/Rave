@@ -3,9 +3,6 @@ import { WATCH_PARTY_SERVICE_URL, ensureSuffix } from '@/lib/service-urls';
 
 const baseUrl = () => ensureSuffix(WATCH_PARTY_SERVICE_URL, '/api/v1');
 
-// eslint-disable-next-line no-console
-console.log('[rooms] WATCH_PARTY_SERVICE_URL resolved to:', WATCH_PARTY_SERVICE_URL);
-
 export async function GET(req: NextRequest) {
   try {
     const accessToken = req.cookies.get('access_token')?.value;
@@ -22,9 +19,7 @@ export async function GET(req: NextRequest) {
 
     const data = await res.json() as unknown;
     return NextResponse.json(data, { status: res.status });
-  } catch (e) {
-    // eslint-disable-next-line no-console
-    console.error('[rooms GET] fetch error:', (e as Error).message, 'url:', `${baseUrl()}/watch-party/rooms`);
+  } catch {
     return NextResponse.json({ message: 'Service unavailable' }, { status: 503 });
   }
 }
@@ -49,9 +44,7 @@ export async function POST(req: NextRequest) {
 
     const data = await res.json() as unknown;
     return NextResponse.json(data, { status: res.status });
-  } catch (e) {
-    // eslint-disable-next-line no-console
-    console.error('[rooms POST] fetch error:', (e as Error).message, 'url:', `${baseUrl()}/watch-party/rooms`);
+  } catch {
     return NextResponse.json({ message: 'Service unavailable' }, { status: 503 });
   }
 }

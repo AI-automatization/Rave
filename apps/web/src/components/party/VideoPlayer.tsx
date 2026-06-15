@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
-import { Loader2 } from 'lucide-react';
+import { useEffect, useRef, useCallback, useState } from 'react';
+import { Loader2, Play } from 'lucide-react';
 import { useWatchPartyStore } from '@/store/watch-party.store';
 import { useAuthStore } from '@/store/auth.store';
 
@@ -41,6 +41,7 @@ export function VideoPlayer({ onPlay, onPause, onSeek, onHeartbeat, onBufferStar
   const isOwner = !!(room && currentUser && room.ownerId === currentUser._id);
   const videoRef = useRef<HTMLVideoElement>(null);
   const isRemoteAction = useRef(false);
+  const [autoplayBlocked, setAutoplayBlocked] = useState(false);
 
   const videoUrl = room?.videoUrl ?? '';
   const ytId = getYouTubeId(videoUrl);
@@ -60,9 +61,15 @@ export function VideoPlayer({ onPlay, onPause, onSeek, onHeartbeat, onBufferStar
     }
 
     if (syncState.isPlaying && video.paused) {
-      video.play().catch(() => {});
+      video.play().then(() => {
+        setAutoplayBlocked(false);
+      }).catch(() => {
+        // Browser blocked autoplay — show overlay so user can start manually
+        setAutoplayBlocked(true);
+      });
     } else if (!syncState.isPlaying && !video.paused) {
       video.pause();
+      setAutoplayBlocked(false);
     }
 
     setTimeout(() => { isRemoteAction.current = false; }, 200);
@@ -97,6 +104,7 @@ export function VideoPlayer({ onPlay, onPause, onSeek, onHeartbeat, onBufferStar
 
   const handlePlay = useCallback(() => {
     if (!isRemoteAction.current && videoRef.current) {
+      setAutoplayBlocked(false);
       onPlay(videoRef.current.currentTime);
     }
   }, [onPlay]);
@@ -112,6 +120,12 @@ export function VideoPlayer({ onPlay, onPause, onSeek, onHeartbeat, onBufferStar
       onSeek(videoRef.current.currentTime);
     }
   }, [onSeek]);
+
+  function handleOverlayClick() {
+    const video = videoRef.current;
+    if (!video) return;
+    video.play().then(() => setAutoplayBlocked(false)).catch(() => {});
+  }
 
   // Room is loading (REST fetch in progress or socket not yet joined)
   if (!room) {
@@ -183,15 +197,17 @@ export function VideoPlayer({ onPlay, onPause, onSeek, onHeartbeat, onBufferStar
   }
 
   // HTML5 video (direct .mp4 / .m3u8 links)
-  // playsInline prevents macOS from opening video in a separate app/fullscreen
+  // disableRemotePlayback prevents macOS "Now Playing" HUD from appearing
+  // preload="none" avoids premature media registration with macOS before user interacts
   return (
-    <div className="aspect-video bg-black rounded-xl overflow-hidden">
+    <div className="aspect-video bg-black rounded-xl overflow-hidden relative">
       <video
         ref={videoRef}
         src={videoUrl}
         controls
         playsInline
-        preload="metadata"
+        preload="none"
+        disableRemotePlayback
         className="w-full h-full"
         onPlay={handlePlay}
         onPause={handlePause}
@@ -199,6 +215,18 @@ export function VideoPlayer({ onPlay, onPause, onSeek, onHeartbeat, onBufferStar
         onWaiting={onBufferStart}
         onCanPlay={onBufferEnd}
       />
+      {autoplayBlocked && (
+        <button
+          onClick={handleOverlayClick}
+          className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/60 cursor-pointer group"
+          aria-label="Нажмите чтобы воспроизвести"
+        >
+          <div className="w-16 h-16 rounded-full bg-white/10 border border-white/20 flex items-center justify-center group-hover:bg-white/20 transition-colors">
+            <Play size={28} className="text-white ml-1" fill="white" />
+          </div>
+          <span className="text-white/70 text-sm">Нажмите чтобы начать</span>
+        </button>
+      )}
     </div>
   );
 }
