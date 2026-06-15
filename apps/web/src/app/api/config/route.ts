@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server';
 export async function GET() {
   return NextResponse.json({
     data: {
-      socketUrl: process.env.SOCKET_URL ?? 'http://localhost:3004',
+      socketUrl: process.env.WATCH_PARTY_SOCKET_URL ?? process.env.SOCKET_URL ?? 'http://localhost:3004',
     },
   });
 }
