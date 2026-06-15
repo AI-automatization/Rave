@@ -22,7 +22,9 @@ interface ExtractResult {
 }
 
 function getYouTubeId(url: string): string | null {
-  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([a-zA-Z0-9_-]{11})/);
+  const match = url.match(
+    /(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([a-zA-Z0-9_-]{11})/,
+  );
   return match?.[1] ?? null;
 }
 
@@ -42,27 +44,25 @@ async function extractVideoUrl(url: string): Promise<ExtractResult> {
     body: JSON.stringify({ url }),
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({})) as { message?: string };
+    const err = (await res.json().catch(() => ({}))) as { message?: string };
     throw new Error(err.message ?? `Extract failed: ${res.status}`);
   }
-  const data = await res.json() as { data?: ExtractResult };
+  const data = (await res.json()) as { data?: ExtractResult };
   if (!data.data?.videoUrl) throw new Error('No video URL returned');
   return data.data;
 }
 
-function NativeVideoPlayer({
-  src,
-  poster,
-  videoRef,
-  autoplayBlocked,
-  onPlay,
-  onPause,
-  onSeeked,
-  onBufferStart,
-  onBufferEnd,
-  onOverlayClick,
-}: {
+/** Build proxy URL that routes CDN stream through the web server (same Railway IP as yt-dlp). */
+function buildProxyUrl(cdnUrl: string, headers?: Record<string, string>): string {
+  const h = headers ? encodeURIComponent(JSON.stringify(headers)) : '';
+  return `/api/content/proxy-stream?url=${encodeURIComponent(cdnUrl)}&h=${h}`;
+}
+
+// ── Native video wrapper with HLS.js support ──────────────────────────────────
+
+interface NativeProps {
   src: string;
+  isHls: boolean;
   poster?: string;
   videoRef: React.RefObject<HTMLVideoElement | null>;
   autoplayBlocked: boolean;
@@ -72,12 +72,62 @@ function NativeVideoPlayer({
   onBufferStart: () => void;
   onBufferEnd: () => void;
   onOverlayClick: () => void;
-}) {
+}
+
+function NativeVideoPlayer({
+  src,
+  isHls,
+  poster,
+  videoRef,
+  autoplayBlocked,
+  onPlay,
+  onPause,
+  onSeeked,
+  onBufferStart,
+  onBufferEnd,
+  onOverlayClick,
+}: NativeProps) {
+  const hlsRef = useRef<import('hls.js').default | null>(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !src) return;
+
+    // Native HLS (Safari) or non-HLS: use src directly
+    if (!isHls || video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = src;
+      return;
+    }
+
+    // Chrome/Firefox: need HLS.js
+    import('hls.js').then(({ default: Hls }) => {
+      if (!Hls.isSupported()) {
+        // Fallback: try native anyway
+        video.src = src;
+        return;
+      }
+      // Destroy previous instance if src changed
+      hlsRef.current?.destroy();
+
+      const hls = new Hls({ enableWorker: true, lowLatencyMode: false });
+      hlsRef.current = hls;
+      hls.loadSource(src);
+      hls.attachMedia(video);
+    }).catch(() => {
+      // hls.js import failed — try native
+      video.src = src;
+    });
+
+    return () => {
+      hlsRef.current?.destroy();
+      hlsRef.current = null;
+    };
+  }, [src, isHls, videoRef]);
+
   return (
     <div className="aspect-video bg-black rounded-xl overflow-hidden relative">
       <video
         ref={videoRef}
-        src={src}
         poster={poster}
         controls
         playsInline
@@ -106,7 +156,16 @@ function NativeVideoPlayer({
   );
 }
 
-export function VideoPlayer({ onPlay, onPause, onSeek, onHeartbeat, onBufferStart, onBufferEnd }: Props) {
+// ── Main component ─────────────────────────────────────────────────────────────
+
+export function VideoPlayer({
+  onPlay,
+  onPause,
+  onSeek,
+  onHeartbeat,
+  onBufferStart,
+  onBufferEnd,
+}: Props) {
   const room = useWatchPartyStore((s) => s.room);
   const isConnected = useWatchPartyStore((s) => s.isConnected);
   const syncState = useWatchPartyStore((s) => s.syncState);
@@ -117,8 +176,8 @@ export function VideoPlayer({ onPlay, onPause, onSeek, onHeartbeat, onBufferStar
   const isRemoteAction = useRef(false);
   const [autoplayBlocked, setAutoplayBlocked] = useState(false);
 
-  // Extracted URL state for VK / Rutube
-  const [extractedUrl, setExtractedUrl] = useState<string | null>(null);
+  const [proxySrc, setProxySrc] = useState<string | null>(null);
+  const [isHls, setIsHls] = useState(false);
   const [extractPoster, setExtractPoster] = useState<string | undefined>(undefined);
   const [extracting, setExtracting] = useState(false);
   const [extractError, setExtractError] = useState<string | null>(null);
@@ -127,22 +186,23 @@ export function VideoPlayer({ onPlay, onPause, onSeek, onHeartbeat, onBufferStar
   const videoUrl = room?.videoUrl ?? '';
   const ytId = getYouTubeId(videoUrl);
   const needsExtract = !ytId && (isVkUrl(videoUrl) || isRutubeUrl(videoUrl));
-  // Direct HTML5 src: either extracted URL or raw URL (for .mp4 / .m3u8 direct links)
-  const directSrc = needsExtract ? extractedUrl : ((!ytId && videoUrl) || null);
-  const isEmbed = !!ytId || (needsExtract && !extractedUrl);
+  const isEmbed = !!ytId;
+  const directSrc = needsExtract ? proxySrc : (!ytId && videoUrl) || null;
 
-  // Trigger extraction once per unique URL
+  // Extract → proxy URL
   useEffect(() => {
     if (!needsExtract || !videoUrl || extractedForUrl.current === videoUrl) return;
     extractedForUrl.current = videoUrl;
-    setExtractedUrl(null);
+    setProxySrc(null);
     setExtractPoster(undefined);
     setExtractError(null);
     setExtracting(true);
 
     extractVideoUrl(videoUrl)
       .then((result) => {
-        setExtractedUrl(result.videoUrl);
+        const proxy = buildProxyUrl(result.videoUrl, result.httpHeaders);
+        setProxySrc(proxy);
+        setIsHls(result.type === 'hls');
         setExtractPoster(result.poster);
       })
       .catch((err: unknown) => {
@@ -151,28 +211,21 @@ export function VideoPlayer({ onPlay, onPause, onSeek, onHeartbeat, onBufferStar
       .finally(() => setExtracting(false));
   }, [videoUrl, needsExtract]);
 
-  // Sync incoming state to HTML5 video element
+  // Sync play/pause/seek from syncState
   useEffect(() => {
     const video = videoRef.current;
     if (!video || isEmbed || !directSrc) return;
 
     isRemoteAction.current = true;
-
     if (Math.abs(video.currentTime - syncState.currentTime) > 2) {
       video.currentTime = syncState.currentTime;
     }
-
     if (syncState.isPlaying && video.paused) {
-      video.play().then(() => {
-        setAutoplayBlocked(false);
-      }).catch(() => {
-        setAutoplayBlocked(true);
-      });
+      video.play().then(() => setAutoplayBlocked(false)).catch(() => setAutoplayBlocked(true));
     } else if (!syncState.isPlaying && !video.paused) {
       video.pause();
       setAutoplayBlocked(false);
     }
-
     setTimeout(() => { isRemoteAction.current = false; }, 200);
   }, [syncState.currentTime, syncState.isPlaying, isEmbed, directSrc]);
 
@@ -223,12 +276,10 @@ export function VideoPlayer({ onPlay, onPause, onSeek, onHeartbeat, onBufferStar
   }, [onSeek]);
 
   function handleOverlayClick() {
-    const video = videoRef.current;
-    if (!video) return;
-    video.play().then(() => setAutoplayBlocked(false)).catch(() => {});
+    videoRef.current?.play().then(() => setAutoplayBlocked(false)).catch(() => {});
   }
 
-  // ── Loading states ──────────────────────────────────────────────────────────
+  // ── Loading / error states ──────────────────────────────────────────────────
 
   if (!room) {
     return (
@@ -252,7 +303,7 @@ export function VideoPlayer({ onPlay, onPause, onSeek, onHeartbeat, onBufferStar
     );
   }
 
-  // ── YouTube (always iframe — yt-dlp URLs are IP-locked) ────────────────────
+  // ── YouTube ─────────────────────────────────────────────────────────────────
 
   if (ytId) {
     return (
@@ -268,7 +319,7 @@ export function VideoPlayer({ onPlay, onPause, onSeek, onHeartbeat, onBufferStar
     );
   }
 
-  // ── VK / Rutube — extract direct URL via backend yt-dlp ───────────────────
+  // ── VK / Rutube — extract + proxy ──────────────────────────────────────────
 
   if (needsExtract) {
     if (extracting) {
@@ -290,10 +341,11 @@ export function VideoPlayer({ onPlay, onPause, onSeek, onHeartbeat, onBufferStar
       );
     }
 
-    if (extractedUrl) {
+    if (proxySrc) {
       return (
         <NativeVideoPlayer
-          src={extractedUrl}
+          src={proxySrc}
+          isHls={isHls}
           poster={extractPoster}
           videoRef={videoRef}
           autoplayBlocked={autoplayBlocked}
@@ -307,7 +359,6 @@ export function VideoPlayer({ onPlay, onPause, onSeek, onHeartbeat, onBufferStar
       );
     }
 
-    // extracting=false, no error, no URL yet — shouldn't happen
     return (
       <div className="aspect-video bg-[#0A0A12] rounded-xl flex items-center justify-center">
         <Loader2 size={24} className="animate-spin text-violet-400" />
@@ -315,11 +366,14 @@ export function VideoPlayer({ onPlay, onPause, onSeek, onHeartbeat, onBufferStar
     );
   }
 
-  // ── HTML5 video (direct .mp4 / .m3u8 links) ───────────────────────────────
+  // ── HTML5 direct (.mp4 / .m3u8) ────────────────────────────────────────────
+
+  const srcIsHls = /\.(m3u8|mpd)(\?|$)/i.test(videoUrl) || /\/hls\//i.test(videoUrl);
 
   return (
     <NativeVideoPlayer
       src={videoUrl}
+      isHls={srcIsHls}
       videoRef={videoRef}
       autoplayBlocked={autoplayBlocked}
       onPlay={handlePlay}
