@@ -9,3 +9,8 @@
 **/coverage
 **/test-results
 **/screenshots
+apps/mobile
+.playwright-mcp
+docs
+marketing
+.claude
