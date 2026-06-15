@@ -21,7 +21,7 @@ function getYouTubeId(url: string): string | null {
 }
 
 function getVkEmbedUrl(url: string): string | null {
-  const match = url.match(/vk\.com\/video(-?\d+)_(\d+)/);
+  const match = url.match(/(?:vk\.com|vkvideo\.ru)\/video(-?\d+)_(\d+)/);
   if (!match) return null;
   return `https://vk.com/video_ext.php?oid=${match[1]}&id=${match[2]}&hd=1`;
 }
