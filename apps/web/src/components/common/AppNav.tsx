@@ -9,7 +9,7 @@ import { LanguageSwitcher } from '@/components/common/LanguageSwitcher';
 
 export function AppNav() {
   const t = useTranslations('nav');
-  const { user, logout } = useAuthStore();
+  const { user, logout, isLoading } = useAuthStore();
 
   return (
     <header className="sticky top-0 z-50 h-14 bg-[#0A0A12]/80 backdrop-blur-xl border-b border-white/[0.06] px-4 flex items-center justify-between">
@@ -29,7 +29,14 @@ export function AppNav() {
           <Bell size={18} />
         </button>
 
-        {user && (
+        {isLoading && (
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-full bg-white/[0.08] animate-pulse" />
+            <div className="hidden md:block w-20 h-3.5 rounded bg-white/[0.08] animate-pulse" />
+          </div>
+        )}
+
+        {!isLoading && user && (
           <div className="flex items-center gap-2.5">
             <Link href="/profile" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
               <div className="w-8 h-8 rounded-full bg-violet-600/30 flex items-center justify-center text-xs font-bold text-violet-300 overflow-hidden">

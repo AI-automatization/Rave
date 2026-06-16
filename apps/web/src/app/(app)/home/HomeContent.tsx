@@ -1,39 +1,41 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, LogIn, Loader2, Tv } from 'lucide-react';
+import { Plus, LogIn, Loader2, Tv, WifiOff, RefreshCw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRooms } from '@/hooks/use-rooms';
+import { useQueryClient } from '@tanstack/react-query';
 import { RoomCard } from '@/components/rooms/RoomCard';
 import { CreateRoomDialog } from '@/components/rooms/CreateRoomDialog';
 import { JoinRoomDialog } from '@/components/rooms/JoinRoomDialog';
 
 export function HomeContent() {
   const t = useTranslations('home');
-  const { data: rooms, isLoading } = useRooms();
+  const { data: rooms, isLoading, isError } = useRooms();
+  const qc = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
 
   return (
     <div className="flex flex-col gap-6 max-w-5xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white">{t('title')}</h1>
-        <div className="flex items-center gap-2.5">
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-xl sm:text-2xl font-bold text-white truncate">{t('title')}</h1>
+        <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={() => setJoinOpen(true)}
-            className="h-9 px-4 rounded-lg text-sm font-medium text-slate-300 bg-white/[0.06] border border-white/[0.08] hover:bg-white/[0.1] transition-colors flex items-center gap-2 cursor-pointer"
+            className="h-9 px-3 sm:px-4 rounded-lg text-sm font-medium text-slate-300 bg-white/[0.06] border border-white/[0.08] hover:bg-white/[0.1] transition-colors flex items-center gap-1.5 cursor-pointer"
           >
             <LogIn size={14} />
-            {t('join')}
+            <span className="hidden xs:inline sm:inline">{t('join')}</span>
           </button>
           <button
             onClick={() => setCreateOpen(true)}
-            className="h-9 px-4 rounded-lg text-sm font-semibold text-white flex items-center gap-2 active:scale-[0.98] transition-all cursor-pointer"
+            className="h-9 px-3 sm:px-4 rounded-lg text-sm font-semibold text-white flex items-center gap-1.5 active:scale-[0.98] transition-all cursor-pointer"
             style={{ background: 'linear-gradient(135deg, #7C3AED, #5B21B6)' }}
           >
             <Plus size={14} />
-            {t('create')}
+            <span>{t('create')}</span>
           </button>
         </div>
       </div>
@@ -45,8 +47,28 @@ export function HomeContent() {
         </div>
       )}
 
+      {/* Error state */}
+      {isError && !isLoading && (
+        <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-red-500/10 flex items-center justify-center">
+            <WifiOff size={28} className="text-red-400" />
+          </div>
+          <div>
+            <p className="text-white font-medium text-sm mb-1">{t('errorTitle')}</p>
+            <p className="text-slate-500 text-xs">{t('errorDesc')}</p>
+          </div>
+          <button
+            onClick={() => qc.invalidateQueries({ queryKey: ['rooms'] })}
+            className="h-9 px-4 rounded-lg text-sm font-medium text-slate-300 bg-white/[0.06] border border-white/[0.08] hover:bg-white/[0.1] transition-colors flex items-center gap-2 cursor-pointer"
+          >
+            <RefreshCw size={14} />
+            {t('retry')}
+          </button>
+        </div>
+      )}
+
       {/* Empty state */}
-      {!isLoading && (!rooms || rooms.length === 0) && (
+      {!isLoading && !isError && (!rooms || rooms.length === 0) && (
         <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
           <div className="w-16 h-16 rounded-2xl bg-violet-600/10 flex items-center justify-center">
             <Tv size={28} className="text-violet-400" />
@@ -64,7 +86,7 @@ export function HomeContent() {
       )}
 
       {/* Room grid */}
-      {rooms && rooms.length > 0 && (
+      {!isError && rooms && rooms.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {rooms.map((room) => (
             <RoomCard key={room._id} room={room} />
