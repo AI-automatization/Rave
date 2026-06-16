@@ -376,6 +376,11 @@ export function VideoPlayer({
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const isRemoteAction = useRef(false);
+  // Tracks owner's deliberate pause to prevent democratic buffer resume from auto-playing.
+  // Set true only when owner explicitly pauses (!isRemoteAction), false when they explicitly play.
+  // This avoids the race condition where sync-effect pause (isRemoteAction=true) sets roomUserPaused
+  // on the server and then resumeRoom is permanently blocked.
+  const ownerExplicitlyPausedRef = useRef(false);
   const [autoplayBlocked, setAutoplayBlocked] = useState(false);
 
   const [proxySrc, setProxySrc] = useState<string | null>(null);
@@ -424,6 +429,12 @@ export function VideoPlayer({
     }
 
     if (syncState.isPlaying && video.paused) {
+      // Don't auto-resume if owner deliberately paused — only their own play click should resume.
+      // ownerExplicitlyPausedRef is cleared in handlePlay and set in handlePause (user-initiated only).
+      if (isOwner && ownerExplicitlyPausedRef.current) {
+        isRemoteAction.current = false;
+        return;
+      }
       video.play()
         .then(() => setAutoplayBlocked(false))
         .catch(() => setAutoplayBlocked(true));
@@ -470,16 +481,18 @@ export function VideoPlayer({
 
   const handlePlay = useCallback(() => {
     if (!isRemoteAction.current && videoRef.current) {
+      if (isOwner) ownerExplicitlyPausedRef.current = false;
       setAutoplayBlocked(false);
       onPlay(videoRef.current.currentTime);
     }
-  }, [onPlay]);
+  }, [onPlay, isOwner]);
 
   const handlePause = useCallback(() => {
     if (!isRemoteAction.current && videoRef.current) {
+      if (isOwner) ownerExplicitlyPausedRef.current = true;
       onPause(videoRef.current.currentTime);
     }
-  }, [onPause]);
+  }, [onPause, isOwner]);
 
   const handleSeeked = useCallback(() => {
     if (!isRemoteAction.current && videoRef.current) {

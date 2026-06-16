@@ -12,9 +12,7 @@ interface AuthenticatedSocket extends Socket {
 
 // Module-level state shared across all socket instances in this process.
 // bufferTimeouts: per-room pending resume timer — must be module-level so any socket can cancel it.
-// roomUserPaused: owner explicitly paused (not democratic buffer pause); blocks resumeRoom VIDEO_PLAY.
 const bufferTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
-const roomUserPaused = new Map<string, boolean>();
 
 export const registerVideoEvents = (
   io: SocketServer,
@@ -50,7 +48,6 @@ export const registerVideoEvents = (
       return;
     }
     const roomId = authSocket.roomId;
-    roomUserPaused.delete(roomId); // owner resumed — allow future resumeRoom VIDEO_PLAY
 
     try {
       const syncState = await watchPartyService.syncState(roomId, userId, data.currentTime, true);
@@ -66,12 +63,9 @@ export const registerVideoEvents = (
     if (!authSocket.roomId || !await resolveIsOwner()) return;
     const roomId = authSocket.roomId;
 
-    // Owner explicitly paused — cancel any pending buffer resume timer and mark as user-paused.
-    // This prevents resumeRoom from auto-playing after the buffer resolves (the 2s auto-resume bug).
-    roomUserPaused.set(roomId, true);
+    // Cancel any pending buffer resume timer so a buffering viewer can't auto-resume a paused room.
     const pendingResume = bufferTimeouts.get(roomId);
     if (pendingResume) { clearTimeout(pendingResume); bufferTimeouts.delete(roomId); }
-    await watchPartyService.clearAllBuffering(roomId);
 
     try {
       const syncState = await watchPartyService.syncState(roomId, userId, data.currentTime, false);
@@ -128,14 +122,6 @@ export const registerVideoEvents = (
     await watchPartyService.clearAllBuffering(roomId);
     const existing = bufferTimeouts.get(roomId);
     if (existing) { clearTimeout(existing); bufferTimeouts.delete(roomId); }
-
-    // If owner explicitly paused (not a democratic buffer pause), don't auto-resume.
-    // roomUserPaused is set by the PAUSE handler and cleared by the PLAY handler.
-    if (roomUserPaused.get(roomId)) {
-      io.to(roomId).emit(SERVER_EVENTS.VIDEO_BUFFER, { userId, isBuffering: false });
-      logger.info('Buffer resolved but room is user-paused — skip auto-resume', { roomId });
-      return;
-    }
 
     // Use Redis syncState for currentTime — always fresher than MongoDB (heartbeat keeps it updated).
     // Compensate for elapsed time since last heartbeat so resume lands at the real owner position,
