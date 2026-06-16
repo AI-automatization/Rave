@@ -94,6 +94,37 @@ if (!YT_PO_TOKEN) {
   logger.warn('yt-dlp: YOUTUBE_PO_TOKEN is not set — YouTube extraction may fail bot checks. Set it in .env');
 }
 
+// ── VK cookie file ─────────────────────────────────────────────────────────────
+// VK_COOKIES_JSON: JSON array from "Cookie-Editor" browser extension (logged-in vk.com session)
+// VK blocks datacenter IPs and requires an authenticated session for most videos.
+const VK_COOKIE_FILE: string | null = (() => {
+  const raw = process.env.VK_COOKIES_JSON;
+  if (!raw) return null;
+  try {
+    const cookies = JSON.parse(raw) as YtCookieEntry[];
+    // Default domain to .vk.com for entries without explicit domain
+    const netscape = (() => {
+      const lines = ['# Netscape HTTP Cookie File'];
+      for (const c of cookies) {
+        const domain = c.domain ?? '.vk.com';
+        const includeSubdomains = domain.startsWith('.') ? 'TRUE' : 'FALSE';
+        const path = c.path ?? '/';
+        const secure = c.secure ? 'TRUE' : 'FALSE';
+        const expires = Math.floor(c.expirationDate ?? 2147483647);
+        lines.push(`${domain}\t${includeSubdomains}\t${path}\t${secure}\t${expires}\t${c.name}\t${c.value}`);
+      }
+      return lines.join('\n');
+    })();
+    const filePath = join(tmpdir(), `vk_cookies_${process.pid}.txt`);
+    writeFileSync(filePath, netscape, 'utf8');
+    logger.info('yt-dlp: VK cookie file created', { path: filePath, cookieCount: cookies.length });
+    return filePath;
+  } catch (e) {
+    logger.warn('yt-dlp: VK cookie file creation failed', { error: (e as Error).message });
+    return null;
+  }
+})();
+
 function buildYouTubeExtractorArgs(): string {
   // ios client: no poToken required, better datacenter IP tolerance than WEB/MWEB
   const parts = ['player-client=ios,web'];
@@ -161,15 +192,22 @@ export async function ytDlpExtractor(
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
     ];
 
+    const isVk = /vk\.com|vkvideo\.ru/.test(rawUrl);
+
     // YouTube-specific: ios player client + cookies
     if (isYouTube) {
       args.push('--extractor-args', buildYouTubeExtractorArgs());
       if (YT_COOKIE_FILE) args.push('--cookies', YT_COOKIE_FILE);
     }
 
+    // VK requires authenticated session cookies — datacenter IPs are blocked without login
+    if (isVk && VK_COOKIE_FILE) {
+      args.push('--cookies', VK_COOKIE_FILE);
+    }
+
     // Per-request cookie header (for auth-protected non-YouTube sites, T-S045)
     // Strip CRLF to prevent header injection in yt-dlp's HTTP requests
-    if (cookies && cookies.length <= 4096 && !isYouTube) {
+    if (cookies && cookies.length <= 4096 && !isYouTube && !isVk) {
       const safeCookies = cookies.replace(/[\r\n]/g, '');
       args.push('--add-header', `Cookie:${safeCookies}`);
     }
@@ -208,6 +246,14 @@ export async function ytDlpExtractor(
             stderr: stderr.slice(0, 300),
             hasCookies: !!YT_COOKIE_FILE,
             hasPoToken: !!YT_PO_TOKEN,
+          });
+        }
+        if (isVk) {
+          logger.warn('yt-dlp VK extraction failed', {
+            code,
+            stderr: stderr.slice(0, 300),
+            hasCookies: !!VK_COOKIE_FILE,
+            hint: VK_COOKIE_FILE ? 'VK cookies loaded but extraction failed' : 'Set VK_COOKIES_JSON env var with vk.com session cookies',
           });
         }
         resolve(null);
