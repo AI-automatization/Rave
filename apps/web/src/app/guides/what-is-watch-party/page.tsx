@@ -10,14 +10,14 @@ export const metadata: Metadata = {
     'watch party приложение', 'синхронный просмотр', 'онлайн кинотеатр с друзьями',
     'смотреть кино вместе онлайн', 'watch party как работает',
   ],
-  alternates: { canonical: 'https://wewatch.uz/guides/what-is-watch-party' },
+  alternates: { canonical: 'https://wewatch.uz/guides/watch-party-besplatno' },
   openGraph: {
     title: 'Что такое Watch Party | WeWatch',
     description: 'Полное объяснение watch party: как работает синхронный просмотр видео с друзьями через интернет, какие платформы поддерживаются и как начать.',
-    url: 'https://wewatch.uz/guides/what-is-watch-party',
+    url: 'https://wewatch.uz/guides/watch-party-besplatno',
     type: 'article',
   },
-  robots: { index: true, follow: true },
+  robots: { index: false, follow: true },
 };
 
 const jsonLd = {

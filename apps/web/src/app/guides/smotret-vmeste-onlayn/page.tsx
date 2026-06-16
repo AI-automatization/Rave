@@ -9,7 +9,13 @@ export const metadata: Metadata = {
     'совместный просмотр онлайн', 'синхронный просмотр', 'смотреть фильм вместе онлайн',
     'смотреть видео вместе', 'онлайн кинотеатр с друзьями', 'вместе онлайн',
   ],
-  alternates: { canonical: 'https://wewatch.uz/guides/smotret-vmeste-onlayn' },
+  alternates: {
+    canonical: 'https://wewatch.uz/guides/smotret-vmeste-onlayn',
+    languages: {
+      'ru': 'https://wewatch.uz/guides/smotret-vmeste-onlayn',
+      'uz': 'https://wewatch.uz/uz/guides/birgalikda-tomosha-qilish',
+    },
+  },
   openGraph: {
     title: 'Смотреть вместе онлайн бесплатно | WeWatch',
     description: 'Синхронный просмотр фильмов и видео с друзьями онлайн. Работает на iPhone, Android и в браузере.',

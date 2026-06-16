@@ -11,14 +11,14 @@ export const metadata: Metadata = {
     'смотреть аниме вместе', 'смотреть кино вместе через интернет',
     "do'stlar bilan kino ko'rish", 'birga kino onlayn',
   ],
-  alternates: { canonical: 'https://wewatch.uz/guides/watch-movies-with-friends' },
+  alternates: { canonical: 'https://wewatch.uz/guides/kino-s-drugom-onlayn' },
   openGraph: {
     title: 'Смотреть кино с друзьями онлайн бесплатно | WeWatch',
     description: 'Бесплатный способ смотреть фильмы и сериалы вместе с друзьями через интернет — синхронно, с чатом, с любого устройства.',
-    url: 'https://wewatch.uz/guides/watch-movies-with-friends',
+    url: 'https://wewatch.uz/guides/kino-s-drugom-onlayn',
     type: 'article',
   },
-  robots: { index: true, follow: true },
+  robots: { index: false, follow: true },
 };
 
 const jsonLd = {

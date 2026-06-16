@@ -1,11 +1,5 @@
 User-agent: *
 Allow: /
-Allow: /faq
-Allow: /guides/
-Allow: /og-image
-Allow: /privacy-policy
-Allow: /terms
-Allow: /dmca
 
 Disallow: /api/
 Disallow: /home

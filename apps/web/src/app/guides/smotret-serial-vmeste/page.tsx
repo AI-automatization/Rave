@@ -5,7 +5,13 @@ export const metadata: Metadata = {
   title: 'Смотреть сериал вместе с другом онлайн бесплатно | WeWatch',
   description: 'Смотрите сериалы вместе с друзьями онлайн — синхронно, бесплатно через WeWatch. Пауза у одного = пауза у всех. iOS, Android и браузер.',
   keywords: ['смотреть сериал вместе', 'смотреть сериалы вместе онлайн', 'смотреть сериал с другом онлайн', 'сериалы вместе онлайн бесплатно', 'совместный просмотр сериалов'],
-  alternates: { canonical: 'https://wewatch.uz/guides/smotret-serial-vmeste' },
+  alternates: {
+    canonical: 'https://wewatch.uz/guides/smotret-serial-vmeste',
+    languages: {
+      'ru': 'https://wewatch.uz/guides/smotret-serial-vmeste',
+      'uz': 'https://wewatch.uz/uz/guides/serial-birgalikda',
+    },
+  },
   openGraph: {
     title: 'Смотреть сериал вместе с другом | WeWatch',
     description: 'Синхронный просмотр сериалов с друзьями онлайн. Бесплатно, iOS и Android.',

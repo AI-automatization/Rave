@@ -10,14 +10,14 @@ export const metadata: Metadata = {
     'youtube watch party', 'watch youtube together online free', 'ютуб совместный просмотр',
     'смотреть ютуб с другом', 'youtube вместе онлайн бесплатно', 'синхронный просмотр youtube',
   ],
-  alternates: { canonical: 'https://wewatch.uz/guides/watch-youtube-together' },
+  alternates: { canonical: 'https://wewatch.uz/guides/smotret-youtube-vmeste' },
   openGraph: {
     title: 'Как смотреть YouTube вместе с другом онлайн бесплатно | WeWatch',
     description: 'Пошаговый гайд: смотрите YouTube синхронно с друзьями — с телефона, с компьютера, между платформами. Без расширений, бесплатно.',
-    url: 'https://wewatch.uz/guides/watch-youtube-together',
+    url: 'https://wewatch.uz/guides/smotret-youtube-vmeste',
     type: 'article',
   },
-  robots: { index: true, follow: true },
+  robots: { index: false, follow: true },
 };
 
 const jsonLd = {

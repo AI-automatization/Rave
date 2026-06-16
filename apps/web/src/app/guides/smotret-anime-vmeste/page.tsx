@@ -5,7 +5,13 @@ export const metadata: Metadata = {
   title: 'Смотреть аниме вместе с другом онлайн бесплатно | WeWatch',
   description: 'Смотрите аниме вместе с друзьями онлайн синхронно — через WeWatch. Любой сайт с аниме, бесплатно, без задержек. iOS и Android.',
   keywords: ['смотреть аниме вместе', 'смотреть аниме с другом онлайн', 'аниме watch party', 'смотреть аниме онлайн вместе бесплатно', 'совместный просмотр аниме'],
-  alternates: { canonical: 'https://wewatch.uz/guides/smotret-anime-vmeste' },
+  alternates: {
+    canonical: 'https://wewatch.uz/guides/smotret-anime-vmeste',
+    languages: {
+      'ru': 'https://wewatch.uz/guides/smotret-anime-vmeste',
+      'uz': 'https://wewatch.uz/uz/guides/anime-birgalikda',
+    },
+  },
   openGraph: {
     title: 'Смотреть аниме вместе с другом | WeWatch',
     description: 'Синхронный просмотр аниме с друзьями — любой сайт, бесплатно, iOS и Android.',

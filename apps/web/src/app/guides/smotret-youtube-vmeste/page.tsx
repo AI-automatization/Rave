@@ -5,7 +5,13 @@ export const metadata: Metadata = {
   title: 'Смотреть YouTube вместе с другом онлайн бесплатно | WeWatch',
   description: 'Как смотреть YouTube с друзьями одновременно — синхронный просмотр через WeWatch. Один ставит паузу — все ставят паузу. Бесплатно, iOS и Android.',
   keywords: ['смотреть youtube вместе', 'смотреть ютуб вместе с другом', 'youtube watch party', 'смотреть youtube одновременно', 'совместный просмотр youtube', 'youtube с друзьями онлайн'],
-  alternates: { canonical: 'https://wewatch.uz/guides/smotret-youtube-vmeste' },
+  alternates: {
+    canonical: 'https://wewatch.uz/guides/smotret-youtube-vmeste',
+    languages: {
+      'ru': 'https://wewatch.uz/guides/smotret-youtube-vmeste',
+      'uz': 'https://wewatch.uz/uz/guides/youtube-birgalikda',
+    },
+  },
   openGraph: {
     title: 'Смотреть YouTube вместе с другом | WeWatch',
     description: 'Синхронный просмотр YouTube с друзьями — бесплатно через WeWatch. Работает на iPhone, Android и в браузере.',
