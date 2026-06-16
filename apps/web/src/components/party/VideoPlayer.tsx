@@ -257,13 +257,14 @@ function NativeVideoPlayer({
         onWaiting={() => {
           const v = videoRef.current;
           if (!v || v.paused) return; // skip if deliberately paused
-          // Owner never triggers democratic pause — owner's initial buffer would deadlock:
-          // BUFFER_START → VIDEO_PAUSE → Safari stops loading → canplay never fires → 30s loop.
-          // Viewers trigger it; owner just loads locally and its BUFFER_END helps reconcile.
+          // Owner never triggers democratic pause: BUFFER_START → VIDEO_PAUSE → Safari stops
+          // native HLS → canplay never fires → 30s deadlock loop. Owner loads independently.
           if (!isOwner) onBufferStart();
         }}
         onCanPlay={() => {
-          onBufferEnd(); // always send — harmless for owner (srem noop if not in set)
+          // Owner never sends BUFFER_END either: srem(owner) returns 0 → scard=0 → resumeRoom
+          // fires on every canplay event → VIDEO_PLAY → sync effect seeks → infinite unstable loop.
+          if (!isOwner) onBufferEnd();
         }}
       />
 
