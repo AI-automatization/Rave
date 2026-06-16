@@ -260,14 +260,13 @@ function NativeVideoPlayer({
         onSeeked={isOwner ? onSeeked : undefined}
         onWaiting={() => {
           const v = videoRef.current;
-          if (!v || v.paused) return; // skip if deliberately paused — prevents auto-resume bug
+          if (!v || v.paused) return; // skip if deliberately paused
           isGenuineBufferRef.current = true;
           onBufferStart();
         }}
         onCanPlay={() => {
-          if (!isGenuineBufferRef.current) return;
           isGenuineBufferRef.current = false;
-          onBufferEnd();
+          onBufferEnd(); // always send — let server reconcile; ownerExplicitlyPausedRef guards auto-resume
         }}
       />
 
