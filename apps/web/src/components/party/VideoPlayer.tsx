@@ -384,6 +384,14 @@ export function VideoPlayer({
   // This avoids the race condition where sync-effect pause (isRemoteAction=true) sets roomUserPaused
   // on the server and then resumeRoom is permanently blocked.
   const ownerExplicitlyPausedRef = useRef(false);
+  // Prevents calling video.play() a second time while the first promise is still pending.
+  // v.paused stays true until play() resolves, so rapid clicks would queue multiple play() calls
+  // each firing onPlay → sendPlay, causing a storm of PLAY events and viewer chaos.
+  const playPendingRef = useRef(false);
+  // Debounces socket emissions: rapid play→pause→play within 80ms collapses to one final event.
+  // Without this, each browser play/pause event fires a socket event, flooding the server
+  // and delivering conflicting VIDEO_PLAY/VIDEO_PAUSE to viewers faster than they can process.
+  const pendingEmitRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [autoplayBlocked, setAutoplayBlocked] = useState(false);
 
   const [proxySrc, setProxySrc] = useState<string | null>(null);
@@ -440,7 +448,10 @@ export function VideoPlayer({
       }
       video.play()
         .then(() => setAutoplayBlocked(false))
-        .catch(() => setAutoplayBlocked(true));
+        .catch((e: unknown) => {
+          // AbortError = play() interrupted by rapid pause — not a real block, don't show overlay
+          if ((e as DOMException)?.name !== 'AbortError') setAutoplayBlocked(true);
+        });
     } else if (!syncState.isPlaying && !video.paused) {
       video.pause();
       setAutoplayBlocked(false);
@@ -448,6 +459,9 @@ export function VideoPlayer({
 
     setTimeout(() => { isRemoteAction.current = false; }, 200);
   }, [syncState.currentTime, syncState.isPlaying, isEmbed, directSrc]);
+
+  // Cleanup debounce timer on unmount to avoid post-unmount state updates
+  useEffect(() => () => { if (pendingEmitRef.current) clearTimeout(pendingEmitRef.current); }, []);
 
   // Owner heartbeat every 1s (faster = tighter viewer sync)
   useEffect(() => {
@@ -483,18 +497,27 @@ export function VideoPlayer({
   }, [heartbeat, isEmbed, isOwner, syncState.isPlaying]);
 
   const handlePlay = useCallback(() => {
-    if (!isRemoteAction.current && videoRef.current) {
-      if (isOwner) ownerExplicitlyPausedRef.current = false;
-      setAutoplayBlocked(false);
-      onPlay(videoRef.current.currentTime);
-    }
+    if (isRemoteAction.current) return;
+    if (isOwner) ownerExplicitlyPausedRef.current = false;
+    setAutoplayBlocked(false);
+    playPendingRef.current = false; // play() resolved — clear guard
+    // Debounce: cancel any pending emit (e.g. a pause that followed this play within 80ms)
+    // and schedule the play emit. This collapses rapid play→pause→play into one final event.
+    if (pendingEmitRef.current) clearTimeout(pendingEmitRef.current);
+    pendingEmitRef.current = setTimeout(() => {
+      pendingEmitRef.current = null;
+      if (videoRef.current) onPlay(videoRef.current.currentTime);
+    }, 80);
   }, [onPlay, isOwner]);
 
   const handlePause = useCallback(() => {
-    if (!isRemoteAction.current && videoRef.current) {
-      if (isOwner) ownerExplicitlyPausedRef.current = true;
-      onPause(videoRef.current.currentTime);
-    }
+    if (isRemoteAction.current) return;
+    if (isOwner) ownerExplicitlyPausedRef.current = true;
+    if (pendingEmitRef.current) clearTimeout(pendingEmitRef.current);
+    pendingEmitRef.current = setTimeout(() => {
+      pendingEmitRef.current = null;
+      if (videoRef.current) onPause(videoRef.current.currentTime);
+    }, 80);
   }, [onPause, isOwner]);
 
   const handleSeeked = useCallback(() => {
@@ -504,7 +527,18 @@ export function VideoPlayer({
   }, [onSeek]);
 
   function handleOverlayClick() {
-    videoRef.current?.play().then(() => setAutoplayBlocked(false)).catch(() => {});
+    // Guard: v.paused stays true while play() promise is pending, so rapid clicks
+    // would queue multiple play() calls. Block until the first resolves.
+    if (playPendingRef.current) return;
+    const v = videoRef.current;
+    if (!v) return;
+    playPendingRef.current = true;
+    v.play()
+      .then(() => setAutoplayBlocked(false))
+      .catch((e: unknown) => {
+        playPendingRef.current = false;
+        if ((e as DOMException)?.name !== 'AbortError') setAutoplayBlocked(true);
+      });
   }
 
   // ── Loading / error states ──────────────────────────────────────────────────
