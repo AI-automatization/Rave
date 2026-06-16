@@ -87,6 +87,7 @@ interface NativeProps {
   videoRef: React.RefObject<HTMLVideoElement | null>;
   autoplayBlocked: boolean;
   isOwner: boolean;
+  startPosition?: number; // seek here immediately on load (join late → skip to owner position)
   onPlay: () => void;
   onPause: () => void;
   onSeeked: () => void;
@@ -102,6 +103,7 @@ function NativeVideoPlayer({
   videoRef,
   autoplayBlocked,
   isOwner,
+  startPosition,
   onPlay,
   onPause,
   onSeeked,
@@ -127,7 +129,13 @@ function NativeVideoPlayer({
     suppressMacOsPlayer();
 
     if (!isHls || video.canPlayType('application/vnd.apple.mpegurl')) {
+      // Safari native HLS or plain MP4 — seek after metadata loads
       video.src = src;
+      if (startPosition && startPosition > 0.5) {
+        video.addEventListener('loadedmetadata', () => {
+          if (Math.abs(video.currentTime - startPosition) > 0.3) video.currentTime = startPosition;
+        }, { once: true });
+      }
       video.addEventListener('play', suppressMacOsPlayer, { passive: true });
       return;
     }
@@ -135,7 +143,13 @@ function NativeVideoPlayer({
     import('hls.js').then(({ default: Hls }) => {
       if (!Hls.isSupported()) { video.src = src; return; }
       hlsRef.current?.destroy();
-      const hls = new Hls({ enableWorker: true, lowLatencyMode: false });
+      // startPosition in config tells HLS.js to buffer segments from owner's
+      // current position instead of from 0 — crucial when joining mid-playback
+      const hls = new Hls({
+        enableWorker: true,
+        lowLatencyMode: false,
+        startPosition: (startPosition && startPosition > 0.5) ? startPosition : -1,
+      });
       hlsRef.current = hls;
       hls.loadSource(src);
       hls.attachMedia(video);
@@ -527,6 +541,7 @@ export function VideoPlayer({
           videoRef={videoRef}
           autoplayBlocked={autoplayBlocked}
           isOwner={isOwner}
+          startPosition={syncState.currentTime}
           onPlay={handlePlay}
           onPause={handlePause}
           onSeeked={handleSeeked}
@@ -554,6 +569,7 @@ export function VideoPlayer({
       videoRef={videoRef}
       autoplayBlocked={autoplayBlocked}
       isOwner={isOwner}
+      startPosition={syncState.currentTime}
       onPlay={handlePlay}
       onPause={handlePause}
       onSeeked={handleSeeked}
