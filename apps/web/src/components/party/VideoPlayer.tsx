@@ -172,7 +172,13 @@ function NativeVideoPlayer({
     const video = videoRef.current;
     if (!video) return;
     const onPlayEvt = () => setIsPaused(false);
-    const onPauseEvt = () => setIsPaused(true);
+    const onPauseEvt = () => {
+      setIsPaused(true);
+      // Keep HLS.js loading even when paused so segments are ready on resume.
+      // Without this, democratic pause (sync-effect video.pause) stops HLS loading,
+      // canplay never fires, BUFFER_END is never sent, and 30s safety timeout loops.
+      if (hlsRef.current) hlsRef.current.startLoad();
+    };
     const onTimeUpdate = () => setCurrentTime(video.currentTime);
     const onMeta = () => { if (isFinite(video.duration)) setDuration(video.duration); };
     const onVolChange = () => setVolume(video.volume);
