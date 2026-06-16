@@ -519,6 +519,10 @@
     "joinBtn": "Join",
     "joinError": "Failed to join room",
     "searchLabel": "Or search for a video",
-    "searchPlaceholder": "Video title..."
+    "searchPlaceholder": "Video title...",
+    "sourceTitle": "Choose source",
+    "sourcePaste": "Or paste a direct link",
+    "noMedia": "Create without video",
+    "soonBadge": "Soon"
   }
 }

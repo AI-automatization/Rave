@@ -473,6 +473,10 @@
     "joinBtn": "Qo'shilish",
     "joinError": "Xonaga qo'shilib bo'lmadi",
     "searchLabel": "Yoki video qidiring",
-    "searchPlaceholder": "Video nomi..."
+    "searchPlaceholder": "Video nomi...",
+    "sourceTitle": "Manba tanlang",
+    "sourcePaste": "Yoki to'g'ridan-to'g'ri havola kiriting",
+    "noMedia": "Videosiz xona yaratish",
+    "soonBadge": "Tez kunda"
   }
 }

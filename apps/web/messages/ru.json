@@ -473,6 +473,10 @@
     "joinBtn": "Присоединиться",
     "joinError": "Не удалось присоединиться",
     "searchLabel": "Или найдите видео",
-    "searchPlaceholder": "Название видео..."
+    "searchPlaceholder": "Название видео...",
+    "sourceTitle": "Выберите источник",
+    "sourcePaste": "Или вставьте прямую ссылку",
+    "noMedia": "Создать без видео",
+    "soonBadge": "Скоро"
   }
 }
