@@ -114,6 +114,10 @@ function NativeVideoPlayer({
   const hlsRef = useRef<import('hls.js').default | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  // Only emit BUFFER_END if we previously emitted BUFFER_START while playing.
+  // Prevents auto-resume when owner deliberately pauses: onWaiting fires on paused video
+  // → guard skips BUFFER_START → isGenuineBuffer stays false → onCanPlay skips BUFFER_END.
+  const isGenuineBufferRef = useRef(false);
 
   const [isPaused, setIsPaused] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
@@ -248,8 +252,17 @@ function NativeVideoPlayer({
         onPlay={isOwner ? onPlay : undefined}
         onPause={isOwner ? onPause : undefined}
         onSeeked={isOwner ? onSeeked : undefined}
-        onWaiting={onBufferStart}
-        onCanPlay={onBufferEnd}
+        onWaiting={() => {
+          const v = videoRef.current;
+          if (!v || v.paused) return; // skip if deliberately paused — prevents auto-resume bug
+          isGenuineBufferRef.current = true;
+          onBufferStart();
+        }}
+        onCanPlay={() => {
+          if (!isGenuineBufferRef.current) return;
+          isGenuineBufferRef.current = false;
+          onBufferEnd();
+        }}
       />
 
       {/* Autoplay blocked overlay — visible to all (non-owner click starts local only) */}
@@ -422,27 +435,33 @@ export function VideoPlayer({
     setTimeout(() => { isRemoteAction.current = false; }, 200);
   }, [syncState.currentTime, syncState.isPlaying, isEmbed, directSrc]);
 
-  // Owner heartbeat every 2s
+  // Owner heartbeat every 1s (faster = tighter viewer sync)
   useEffect(() => {
     const video = videoRef.current;
     if (!isOwner || isEmbed || !video) return;
     const id = setInterval(() => {
       if (!video.paused) onHeartbeat(video.currentTime);
-    }, 2000);
+    }, 1000);
     return () => clearInterval(id);
   }, [isOwner, isEmbed, onHeartbeat]);
 
-  // Non-owner drift correction via heartbeat
+  // Non-owner drift correction via heartbeat.
+  // Tiered: >2s → hard seek; >0.5s → 1.15x rate; >0.2s → 1.08x rate; else restore.
+  // 1s heartbeat + tiered rates close 1s drift in ~6 cycles (~6s).
   useEffect(() => {
     const video = videoRef.current;
     if (!video || isEmbed || isOwner || !heartbeat || !syncState.isPlaying) return;
     const expected = heartbeat.currentTime + (Date.now() - heartbeat.timestamp) / 1000;
     const drift = expected - video.currentTime;
-    if (Math.abs(drift) > 3) {
+    const absDrift = Math.abs(drift);
+    if (absDrift > 2) {
       isRemoteAction.current = true;
+      video.playbackRate = 1.0;
       video.currentTime = expected;
       setTimeout(() => { isRemoteAction.current = false; }, 200);
-    } else if (Math.abs(drift) > 0.3) {
+    } else if (absDrift > 0.5) {
+      video.playbackRate = drift > 0 ? 1.15 : 0.85;
+    } else if (absDrift > 0.2) {
       video.playbackRate = drift > 0 ? 1.08 : 0.92;
     } else {
       video.playbackRate = 1.0;
