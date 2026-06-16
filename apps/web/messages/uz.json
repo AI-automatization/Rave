@@ -187,7 +187,18 @@
     "emailVerifyText": "6 raqamli tasdiqlash kodi yuborildi:",
     "goToLogin": "Kirish sahifasiga",
     "wrongCredentials": "Email yoki parol noto'g'ri",
-    "genericError": "Xatolik yuz berdi, qayta urinib ko'ring"
+    "genericError": "Xatolik yuz berdi, qayta urinib ko'ring",
+    "emailInvalid": "To'g'ri email kiriting",
+    "passwordEnter": "Parol kiriting",
+    "usernameMin": "Kamida 3 ta belgi",
+    "usernameMax": "Ko'pi bilan 30 ta belgi",
+    "usernameFormat": "Faqat harf, raqam va _",
+    "passwordMin": "Kamida 8 ta belgi",
+    "passwordUppercase": "Kamida 1 ta bosh harf",
+    "passwordLowercase": "Kamida 1 ta kichik harf",
+    "passwordNumber": "Kamida 1 ta raqam",
+    "passwordMismatch": "Parollar mos kelmadi",
+    "orDivider": "yoki"
   },
   "common": {
     "loading": "Yuklanmoqda...",
@@ -346,7 +357,30 @@
     "f8key": "Xavfsizlik",
     "f8tagline": "Sizning ma'lumotlaringiz xavfsiz",
     "badgePrimary": "Asosiy",
-    "badge25": "25+ yutuq"
+    "badge25": "25+ yutuq",
+    "f1b1": "Sinxron video playback (±2s)",
+    "f1b2": "Real-vaqt chat va emoji",
+    "f1b3": "Ovozli chat (WebRTC)",
+    "f1b4": "Xona egasi nazorati",
+    "f1b5": "Taklif havolasi / invite kodi",
+    "f4b1": "Do'st qo'shish / qabul qilish",
+    "f4b2": "Online status (real-vaqt)",
+    "f4b3": "Profilni ko'rish",
+    "f4b4": "Foydalanuvchilarni qidirish",
+    "f4b5": "Bloklash",
+    "f5b1": "Push bildirishnomalar (FCM)",
+    "f5b2": "Ilova ichida bildirishnomalar",
+    "f5b3": "Watch Party taklifi",
+    "f7b1": "HD/4K sifatli video",
+    "f7b2": "Keyboard shortcuts",
+    "f7b3": "To'liq ekran rejimi",
+    "f7b4": "Progress bar va preview",
+    "f7b5": "Barcha brauzerlar uchun",
+    "f8b1": "JWT RS256 autentifikatsiya",
+    "f8b2": "bcrypt 12 rounds",
+    "f8b3": "Rate limiting (Redis)",
+    "f8b4": "2FA Email tasdiqlash",
+    "f8b5": "Brute force himoya"
   },
   "pricingPage": {
     "title": "NARXLAR",
@@ -361,7 +395,10 @@
     "rowFriends": "Do'stlar",
     "rowHistory": "Tarix",
     "rowAdsYes": "Bor",
-    "rowAdsNo": "Yo'q"
+    "rowAdsNo": "Yo'q",
+    "plan1people": "4 kishi",
+    "plan2people": "10 kishi",
+    "plan1historyVal": "30 kun"
   },
   "party": {
     "creating": "Watch Party yaratilmoqda...",

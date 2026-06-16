@@ -200,10 +200,10 @@ const jsonLd = {
         },
         {
           '@type': 'Question',
-          name: "Do'stlar bilan kino qanday ko'rish mumkin?",
+          name: "Как смотреть кино с друзьями онлайн?",
           acceptedAnswer: {
             '@type': 'Answer',
-            text: "WeWatch ilovasini yuklab oling, o'rnatilgan brauzerda YouTube, VK yoki Rutubeda video toping, xona yarating va do'stingizga havola yuboring. Barchasi bir vaqtda sinxron ko'radi.",
+            text: "Скачайте приложение WeWatch, найдите видео во встроенном браузере на YouTube, VK или Rutube, создайте комнату и отправьте ссылку другу. Все смотрят синхронно в реальном времени.",
           },
         },
       ],

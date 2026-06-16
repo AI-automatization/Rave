@@ -197,7 +197,8 @@
     "passwordUppercase": "At least 1 uppercase letter",
     "passwordLowercase": "At least 1 lowercase letter",
     "passwordNumber": "At least 1 number",
-    "passwordMismatch": "Passwords do not match"
+    "passwordMismatch": "Passwords do not match",
+    "orDivider": "or"
   },
   "common": {
     "loading": "Loading...",
@@ -397,7 +398,30 @@
     "f8key": "Security",
     "f8tagline": "Your data is safe",
     "badgePrimary": "Core",
-    "badge25": "25+ achievements"
+    "badge25": "25+ achievements",
+    "f1b1": "Synchronized video playback (±2s)",
+    "f1b2": "Real-time chat and emojis",
+    "f1b3": "Voice chat (WebRTC)",
+    "f1b4": "Room owner controls",
+    "f1b5": "Invite link / invite code",
+    "f4b1": "Add / accept friends",
+    "f4b2": "Online status (real-time)",
+    "f4b3": "View profile",
+    "f4b4": "Search users",
+    "f4b5": "Block user",
+    "f5b1": "Push notifications (FCM)",
+    "f5b2": "In-app notifications",
+    "f5b3": "Watch Party invite",
+    "f7b1": "HD/4K video quality",
+    "f7b2": "Keyboard shortcuts",
+    "f7b3": "Fullscreen mode",
+    "f7b4": "Progress bar and preview",
+    "f7b5": "Works in all browsers",
+    "f8b1": "JWT RS256 authentication",
+    "f8b2": "bcrypt 12 rounds",
+    "f8b3": "Rate limiting (Redis)",
+    "f8b4": "2FA email verification",
+    "f8b5": "Brute force protection"
   },
   "pricingPage": {
     "title": "PRICING",
@@ -412,7 +436,10 @@
     "rowFriends": "Friends",
     "rowHistory": "History",
     "rowAdsYes": "Yes",
-    "rowAdsNo": "No"
+    "rowAdsNo": "No",
+    "plan1people": "4 people",
+    "plan2people": "10 people",
+    "plan1historyVal": "30 days"
   },
   "party": {
     "creating": "Creating Watch Party...",

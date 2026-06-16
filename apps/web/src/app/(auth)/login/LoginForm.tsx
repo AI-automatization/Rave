@@ -166,7 +166,7 @@ export function LoginForm() {
       {/* Divider */}
       <div className="relative flex items-center gap-3">
         <div className="flex-1 h-px bg-[#2A2840]" />
-        <span className="text-xs text-slate-500">or</span>
+        <span className="text-xs text-slate-500">{t('orDivider')}</span>
         <div className="flex-1 h-px bg-[#2A2840]" />
       </div>
 

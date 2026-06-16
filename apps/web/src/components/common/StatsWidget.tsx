@@ -24,7 +24,7 @@ export function StatsWidget() {
     return () => clearInterval(t);
   }, []);
 
-  if (!stats) return null;
+  if (!stats || stats.totalUsers === 0) return null;
 
   return (
     <div
@@ -44,7 +44,7 @@ export function StatsWidget() {
       <span style={{ color: '#4ade80' }}>{formatNumber(stats.activeUsers)}</span>
       <span className="text-zinc-600">·</span>
       <span style={{ color: '#7B72F8' }}>{formatNumber(stats.totalUsers)}</span>
-      <span className="text-zinc-600 text-[10px]">foydalanuvchi</span>
+      <span className="text-zinc-600 text-[10px]">онлайн</span>
     </div>
   );
 }

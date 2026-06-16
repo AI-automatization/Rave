@@ -105,7 +105,7 @@ export function RegisterForm({ onVerify }: Props) {
             {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
           </button>
         </div>
-        {tooShort && <p className="text-xs text-red-400">Min 8 ta belgi</p>}
+        {tooShort && <p className="text-xs text-red-400">{t('passwordMin')}</p>}
       </div>
 
       {/* Confirm */}
@@ -122,7 +122,7 @@ export function RegisterForm({ onVerify }: Props) {
             className="w-full h-11 bg-[#13121F] border border-[#2A2840] rounded-xl pl-9 pr-4 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-violet-500/60 focus:ring-1 focus:ring-violet-500/30 transition-all"
           />
         </div>
-        {mismatch && <p className="text-xs text-red-400">Parollar mos kelmayapti</p>}
+        {mismatch && <p className="text-xs text-red-400">{t('passwordMismatch')}</p>}
       </div>
 
       {/* Error */}

@@ -183,13 +183,7 @@ export function FeaturesContent() {
       color: '#7B72F8',
       glow: 'rgba(123,114,248,0.3)',
       badge: t('badgePrimary'),
-      features: [
-        'Sinxron video playback (±2s)',
-        'Real-vaqt chat va emoji',
-        'Ovozli chat (WebRTC)',
-        'Xona egasi nazorati',
-        'Taklif havolasi / invite kodi',
-      ],
+      features: [t('f1b1'), t('f1b2'), t('f1b3'), t('f1b4'), t('f1b5')],
     },
     {
       icon: FaUsers,
@@ -198,13 +192,7 @@ export function FeaturesContent() {
       color: '#22d3ee',
       glow: 'rgba(34,211,238,0.25)',
       badge: null,
-      features: [
-        "Do'st qo'shish/qabul",
-        'Online status (real-vaqt)',
-        "Profilni ko'rish",
-        'Qidiruv',
-        'Blok qilish',
-      ],
+      features: [t('f4b1'), t('f4b2'), t('f4b3'), t('f4b4'), t('f4b5')],
     },
     {
       icon: FaBell,
@@ -213,11 +201,7 @@ export function FeaturesContent() {
       color: '#f59e0b',
       glow: 'rgba(245,158,11,0.25)',
       badge: null,
-      features: [
-        'Push notifications (FCM)',
-        'In-app bildirishnomalar',
-        'Watch Party taklifi',
-      ],
+      features: [t('f5b1'), t('f5b2'), t('f5b3')],
     },
     {
       icon: FaWifi,
@@ -226,13 +210,7 @@ export function FeaturesContent() {
       color: '#f43f5e',
       glow: 'rgba(244,63,94,0.25)',
       badge: '4K',
-      features: [
-        'HD/4K sifatli video',
-        'Keyboard shortcuts',
-        "To'liq ekran rejimi",
-        'Progress bar va preview',
-        'Barcha brauzerlar uchun',
-      ],
+      features: [t('f7b1'), t('f7b2'), t('f7b3'), t('f7b4'), t('f7b5')],
     },
     {
       icon: FaShieldAlt,
@@ -241,13 +219,7 @@ export function FeaturesContent() {
       color: '#4ade80',
       glow: 'rgba(74,222,128,0.2)',
       badge: null,
-      features: [
-        'JWT RS256 autentifikatsiya',
-        'bcrypt 12 rounds',
-        'Rate limiting (Redis)',
-        '2FA Email tasdiqlash',
-        'Brute force himoya',
-      ],
+      features: [t('f8b1'), t('f8b2'), t('f8b3'), t('f8b4'), t('f8b5')],
     },
   ];
 

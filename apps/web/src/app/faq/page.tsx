@@ -57,12 +57,12 @@ const faqs = [
     a: 'В бесплатном плане — до 10 участников в одной комнате одновременно. В Pro-плане лимит увеличивается.',
   },
   {
-    q: "Do'stlar bilan YouTube ko'rish mumkinmi?",
-    a: "Ha, WeWatch ilovasi yoki wewatch.uz sayti orqali do'stlaringiz bilan YouTube, VK Video va Rutube videolarini bir vaqtda ko'rishingiz mumkin. Xona yarating, havolani yuboring — sinxronizatsiya avtomatik ishlaydi.",
+    q: "Можно ли смотреть YouTube вместе с друзьями?",
+    a: "Да, через приложение WeWatch или сайт wewatch.uz вы можете смотреть YouTube, VK Video и Rutube одновременно с друзьями. Создайте комнату, отправьте ссылку — синхронизация работает автоматически.",
   },
   {
-    q: "Birga kino ko'rish ilovasi bepulmi?",
-    a: "Ha, WeWatch asosiy rejimi to'liq bepul. Xona yaratish, do'stlarni taklif qilish va birgalikda video ko'rish vaqt cheklovisiz mavjud.",
+    q: "Приложение для совместного просмотра бесплатно?",
+    a: "Да, основной режим WeWatch полностью бесплатен. Создание комнат, приглашение друзей и совместный просмотр видео доступны без ограничений по времени.",
   },
 ];
 

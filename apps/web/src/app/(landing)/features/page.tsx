@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import { FeaturesContent } from './FeaturesContent';
 
 export const metadata: Metadata = {
-  title: 'Funksiyalar',
-  description: "WeWatch ning barcha funksiyalari — Watch Party, Battle, Achievement, bildirishnomalar va boshqalar.",
+  title: 'Возможности | WeWatch',
+  description: "Все функции WeWatch — Watch Party, Battle Mode, достижения, уведомления и многое другое. Смотрите видео вместе с друзьями бесплатно.",
 };
 
 export default function FeaturesPage() {
