@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useCallback, useState } from 'react';
-import { Loader2, Play, AlertCircle } from 'lucide-react';
+import { Loader2, Play, AlertCircle, Pause, Maximize } from 'lucide-react';
 import { useWatchPartyStore } from '@/store/watch-party.store';
 import { useAuthStore } from '@/store/auth.store';
 
@@ -57,8 +57,7 @@ function buildProxyUrl(cdnUrl: string, headers?: Record<string, string>): string
   return `/api/content/proxy-stream?url=${encodeURIComponent(cdnUrl)}&h=${h}`;
 }
 
-// Prevent macOS from registering the video as system media (Now Playing HUD, AirPlay, PiP)
-// Must use empty () => {} handlers — setting null reverts to browser defaults (shows OS player).
+// Must use noop () => {} handlers — null reverts to browser defaults (shows OS player).
 // Empty handlers tell the OS "app handles media itself → no system UI needed".
 const MEDIA_ACTIONS: MediaSessionAction[] = [
   'play', 'pause', 'seekto', 'seekbackward', 'seekforward',
@@ -77,7 +76,9 @@ function suppressMacOsPlayer() {
   }
 }
 
-// ── Native video wrapper with HLS.js + macOS suppression ─────────────────────
+// ── Custom video player — no native controls ───────────────────────────────────
+// Using native `controls` attribute triggers: macOS AirPlay/PiP buttons, Android Chrome
+// built-in controls, and macOS "Now Playing" HUD. Custom controls avoid all of this.
 
 interface NativeProps {
   src: string;
@@ -109,32 +110,35 @@ function NativeVideoPlayer({
   onOverlayClick,
 }: NativeProps) {
   const hlsRef = useRef<import('hls.js').default | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const hideTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
+  const [isPaused, setIsPaused] = useState(true);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(1);
+  const [showControls, setShowControls] = useState(false);
+
+  // HLS setup + macOS suppression
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !src) return;
 
-    // Suppress macOS Now Playing / AirPlay on every src change
     suppressMacOsPlayer();
 
     if (!isHls || video.canPlayType('application/vnd.apple.mpegurl')) {
       video.src = src;
-      // Safari native HLS — still suppress on play
       video.addEventListener('play', suppressMacOsPlayer, { passive: true });
       return;
     }
 
     import('hls.js').then(({ default: Hls }) => {
-      if (!Hls.isSupported()) {
-        video.src = src;
-        return;
-      }
+      if (!Hls.isSupported()) { video.src = src; return; }
       hlsRef.current?.destroy();
       const hls = new Hls({ enableWorker: true, lowLatencyMode: false });
       hlsRef.current = hls;
       hls.loadSource(src);
       hls.attachMedia(video);
-      // Suppress after manifest loads and after each play event
       hls.once(Hls.Events.MANIFEST_PARSED, suppressMacOsPlayer);
       video.addEventListener('play', suppressMacOsPlayer, { passive: true });
     }).catch(() => { video.src = src; });
@@ -145,12 +149,81 @@ function NativeVideoPlayer({
     };
   }, [src, isHls, videoRef]);
 
+  // Mirror video state for custom controls UI
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const onPlayEvt = () => setIsPaused(false);
+    const onPauseEvt = () => setIsPaused(true);
+    const onTimeUpdate = () => setCurrentTime(video.currentTime);
+    const onMeta = () => { if (isFinite(video.duration)) setDuration(video.duration); };
+    const onVolChange = () => setVolume(video.volume);
+    video.addEventListener('play', onPlayEvt);
+    video.addEventListener('pause', onPauseEvt);
+    video.addEventListener('timeupdate', onTimeUpdate, { passive: true });
+    video.addEventListener('loadedmetadata', onMeta);
+    video.addEventListener('durationchange', onMeta);
+    video.addEventListener('volumechange', onVolChange);
+    return () => {
+      video.removeEventListener('play', onPlayEvt);
+      video.removeEventListener('pause', onPauseEvt);
+      video.removeEventListener('timeupdate', onTimeUpdate);
+      video.removeEventListener('loadedmetadata', onMeta);
+      video.removeEventListener('durationchange', onMeta);
+      video.removeEventListener('volumechange', onVolChange);
+    };
+  }, [videoRef]);
+
+  // Show controls temporarily (for mobile tap)
+  function revealControls() {
+    setShowControls(true);
+    clearTimeout(hideTimer.current);
+    hideTimer.current = setTimeout(() => setShowControls(false), 3000);
+  }
+
+  function handleVideoAreaClick() {
+    revealControls();
+    if (!isOwner) return;
+    const v = videoRef.current;
+    if (!v) return;
+    if (v.paused) onOverlayClick();
+    else v.pause();
+  }
+
+  function handleSeek(e: React.ChangeEvent<HTMLInputElement>) {
+    if (!isOwner) return;
+    const v = videoRef.current;
+    if (v) v.currentTime = Number(e.target.value);
+  }
+
+  function handleVolume(e: React.ChangeEvent<HTMLInputElement>) {
+    const v = videoRef.current;
+    if (v) v.volume = Number(e.target.value);
+  }
+
+  function toggleFullscreen() {
+    const el = containerRef.current;
+    if (!el) return;
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    else el.requestFullscreen().catch(() => {});
+  }
+
+  function fmtTime(s: number) {
+    if (!isFinite(s) || s < 0) return '0:00';
+    return `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`;
+  }
+
+  const controlsVisible = showControls;
+
   return (
-    <div className="aspect-video bg-black rounded-xl overflow-hidden relative">
+    <div
+      ref={containerRef}
+      className="aspect-video bg-black rounded-xl overflow-hidden relative group select-none"
+    >
+      {/* Hidden video — no native controls to prevent Mac/Android native player */}
       <video
         ref={videoRef}
         poster={poster}
-        controls
         playsInline
         preload="none"
         disableRemotePlayback
@@ -158,26 +231,100 @@ function NativeVideoPlayer({
         // eslint-disable-next-line react/no-unknown-property
         {...({ 'x-webkit-airplay': 'deny' } as Record<string, string>)}
         className="w-full h-full"
-        // Only owner events are broadcast to the room.
-        // Viewer can use controls locally (volume, fullscreen) but their
-        // play/pause/seek don't affect other participants.
         onPlay={isOwner ? onPlay : undefined}
         onPause={isOwner ? onPause : undefined}
         onSeeked={isOwner ? onSeeked : undefined}
         onWaiting={onBufferStart}
         onCanPlay={onBufferEnd}
       />
+
+      {/* Autoplay blocked overlay — visible to all (non-owner click starts local only) */}
       {autoplayBlocked && (
         <button
           onClick={onOverlayClick}
-          className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/60 cursor-pointer group"
+          className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/60 cursor-pointer group/btn"
           aria-label="Нажмите чтобы воспроизвести"
         >
-          <div className="w-16 h-16 rounded-full bg-white/10 border border-white/20 flex items-center justify-center group-hover:bg-white/20 transition-colors">
+          <div className="w-16 h-16 rounded-full bg-white/10 border border-white/20 flex items-center justify-center group-hover/btn:bg-white/20 transition-colors">
             <Play size={28} className="text-white ml-1" fill="white" />
           </div>
           <span className="text-white/70 text-sm">Нажмите чтобы начать</span>
         </button>
+      )}
+
+      {/* Clickable area — tap reveals controls; owner tap also toggles play/pause */}
+      {!autoplayBlocked && (
+        <div
+          className="absolute inset-0 cursor-pointer"
+          onClick={handleVideoAreaClick}
+        />
+      )}
+
+      {/* Custom controls bar — hover (desktop) or tap (mobile) */}
+      {!autoplayBlocked && (
+        <div
+          className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent pt-10 pb-3 px-3 transition-opacity duration-200 pointer-events-none ${
+            controlsVisible ? 'opacity-100 pointer-events-auto' : 'opacity-0 group-hover:opacity-100 group-hover:pointer-events-auto'
+          }`}
+        >
+          {/* Seek bar — visible to all, seekable only by owner */}
+          <input
+            type="range"
+            min={0}
+            max={duration || 100}
+            step={0.5}
+            value={currentTime}
+            onChange={handleSeek}
+            disabled={!isOwner || !duration}
+            className="w-full h-1 mb-2 cursor-pointer disabled:cursor-default disabled:opacity-50"
+            style={{ accentColor: '#7c3aed' }}
+            aria-label="Прогресс"
+          />
+
+          <div className="flex items-center gap-2">
+            {/* Play/pause — owner only */}
+            {isOwner && (
+              <button
+                onClick={(e) => { e.stopPropagation(); handleVideoAreaClick(); }}
+                className="text-white hover:text-violet-300 transition-colors flex-shrink-0"
+                aria-label={isPaused ? 'Воспроизвести' : 'Пауза'}
+              >
+                {isPaused
+                  ? <Play size={18} fill="currentColor" />
+                  : <Pause size={18} fill="currentColor" />}
+              </button>
+            )}
+
+            {/* Time */}
+            <span className="text-white/50 text-xs tabular-nums flex-shrink-0">
+              {fmtTime(currentTime)}{duration > 0 ? ` / ${fmtTime(duration)}` : ''}
+            </span>
+
+            <div className="ml-auto flex items-center gap-3">
+              {/* Volume */}
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.05}
+                value={volume}
+                onChange={handleVolume}
+                onClick={(e) => e.stopPropagation()}
+                className="w-16 h-1 cursor-pointer"
+                style={{ accentColor: '#7c3aed' }}
+                aria-label="Громкость"
+              />
+              {/* Fullscreen */}
+              <button
+                onClick={(e) => { e.stopPropagation(); toggleFullscreen(); }}
+                className="text-white/60 hover:text-white transition-colors flex-shrink-0"
+                aria-label="Полный экран"
+              >
+                <Maximize size={15} />
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -239,9 +386,6 @@ export function VideoPlayer({
   }, [videoUrl, needsExtract]);
 
   // ── Sync incoming state to HTML5 video ────────────────────────────────────
-  // Runs on every explicit PLAY / PAUSE / SEEK / SYNC event from server.
-  // Always seek to exact position — threshold is tiny (0.3s) just to avoid
-  // harmless float noise when the same event fires twice.
   useEffect(() => {
     const video = videoRef.current;
     if (!video || isEmbed || !directSrc) return;
@@ -291,7 +435,6 @@ export function VideoPlayer({
     }
   }, [heartbeat, isEmbed, isOwner, syncState.isPlaying]);
 
-  // Owner event handlers (only owner's actions are sent to the room)
   const handlePlay = useCallback(() => {
     if (!isRemoteAction.current && videoRef.current) {
       setAutoplayBlocked(false);
