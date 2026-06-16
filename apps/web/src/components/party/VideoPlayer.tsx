@@ -114,10 +114,6 @@ function NativeVideoPlayer({
   const hlsRef = useRef<import('hls.js').default | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  // Only emit BUFFER_END if we previously emitted BUFFER_START while playing.
-  // Prevents auto-resume when owner deliberately pauses: onWaiting fires on paused video
-  // → guard skips BUFFER_START → isGenuineBuffer stays false → onCanPlay skips BUFFER_END.
-  const isGenuineBufferRef = useRef(false);
 
   const [isPaused, setIsPaused] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
@@ -261,12 +257,13 @@ function NativeVideoPlayer({
         onWaiting={() => {
           const v = videoRef.current;
           if (!v || v.paused) return; // skip if deliberately paused
-          isGenuineBufferRef.current = true;
-          onBufferStart();
+          // Owner never triggers democratic pause — owner's initial buffer would deadlock:
+          // BUFFER_START → VIDEO_PAUSE → Safari stops loading → canplay never fires → 30s loop.
+          // Viewers trigger it; owner just loads locally and its BUFFER_END helps reconcile.
+          if (!isOwner) onBufferStart();
         }}
         onCanPlay={() => {
-          isGenuineBufferRef.current = false;
-          onBufferEnd(); // always send — let server reconcile; ownerExplicitlyPausedRef guards auto-resume
+          onBufferEnd(); // always send — harmless for owner (srem noop if not in set)
         }}
       />
 
