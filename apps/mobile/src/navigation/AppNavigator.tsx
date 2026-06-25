@@ -6,6 +6,14 @@ import * as Linking from 'expo-linking';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as Notifications from 'expo-notifications';
 import { useAuthStore } from '@store/auth.store';
+
+const isExpoGo = Constants.appOwnership === 'expo';
+
+function useLastNotificationResponseSafe() {
+  // useLastNotificationResponse crashes in Expo Go SDK 53 — guard it
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  return isExpoGo ? null : Notifications.useLastNotificationResponse();
+}
 import { RootStackParamList } from '@app-types/index';
 import { useTheme } from '@theme/index';
 import { AuthNavigator } from './AuthNavigator';
@@ -46,7 +54,7 @@ export function AppNavigator() {
   const { isAuthenticated, isHydrated, needsProfileSetup, user } = useAuthStore();
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const navigationRef = useNavigationContainerRef<RootStackParamList>();
-  const lastResponse = Notifications.useLastNotificationResponse();
+  const lastResponse = useLastNotificationResponseSafe();
   const { colors } = useTheme();
 
   const [blockedVisible, setBlockedVisible] = useState(false);
