@@ -72,9 +72,11 @@ function buildEmbedHtml(url: string, embed: EmbedPlatform): { html: string; base
   switch (embed) {
     case 'twitch': { const i = extractTwitchId(url); return i ? { html: buildTwitchHtml(i.id, i.type), baseUrl: 'https://twitch.tv' } : null; }
     case 'vk': {
+      if (Platform.OS === 'android') return null;
       const i = extractVKVideoIds(url); return i ? { html: buildVKVideoHtml(i.ownerId, i.videoId), baseUrl: 'https://vk.com' } : null;
     }
     case 'rutube': {
+      if (Platform.OS === 'android') return null;
       const i = extractRutubeId(url); return i ? { html: buildRutubeHtml(i), baseUrl: 'https://rutube.ru' } : null;
     }
     case 'vimeo': { const i = extractVimeoId(url); return i ? { html: buildVimeoHtml(i), baseUrl: 'https://player.vimeo.com' } : null; }
