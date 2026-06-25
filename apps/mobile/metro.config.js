@@ -29,12 +29,27 @@ config.resolver.extraNodeModules = {
 // Intercept ALL react/* imports and redirect to mobile's React 19
 const reactModules = new Set(['react', 'react/jsx-runtime', 'react/jsx-dev-runtime']);
 
-// DevicePushTokenAutoRegistration.fx.js calls addPushTokenListener at module level,
-// which throws in Expo Go SDK 53+. Replace it with a no-op to prevent the crash.
+// expo-notifications native modules removed from Expo Go SDK 53+:
+// - DevicePushTokenAutoRegistration.fx.js: calls addPushTokenListener at module level → throws
+// - TopicSubscriptionModule.android.js: requireNativeModule('ExpoTopicSubscriptionModule') → throws
+// - ServerRegistrationModule.native.js: requireNativeModule('NotificationsServerRegistrationModule') → throws
+// - PushTokenManager.native.js: requireNativeModule('ExpoPushTokenManager') → throws
+// Replace all with no-ops to prevent crash in Expo Go (standalone builds are unaffected at runtime).
 const PUSH_TOKEN_FX_NOOP = path.resolve(
   projectRoot,
   'src/mocks/DevicePushTokenAutoRegistration.noop.js'
 );
+const NATIVE_MODULE_NOOP = path.resolve(
+  projectRoot,
+  'src/mocks/expo-notifications-native-noop.js'
+);
+
+// Modules that crash on import in Expo Go (removed native module)
+const EXPO_NOTIFICATIONS_NATIVE_BLOCKLIST = [
+  'TopicSubscriptionModule',
+  'PushTokenManager',
+  'ServerRegistrationModule',
+];
 
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   if (
@@ -43,6 +58,17 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
       context.originModulePath.includes('DevicePushTokenAutoRegistration'))
   ) {
     return { filePath: PUSH_TOKEN_FX_NOOP, type: 'sourceFile' };
+  }
+
+  // Block expo-notifications native modules unavailable in Expo Go
+  const isExpoNotificationsModule =
+    context.originModulePath &&
+    context.originModulePath.includes('expo-notifications');
+  if (
+    isExpoNotificationsModule &&
+    EXPO_NOTIFICATIONS_NATIVE_BLOCKLIST.some((name) => moduleName.includes(name))
+  ) {
+    return { filePath: NATIVE_MODULE_NOOP, type: 'sourceFile' };
   }
 
   if (reactModules.has(moduleName)) {
