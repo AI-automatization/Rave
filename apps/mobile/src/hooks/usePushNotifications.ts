@@ -1,21 +1,27 @@
 // WeWatch Mobile — usePushNotifications hook
 import { useEffect, useRef } from 'react';
 import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { userApi } from '@api/user.api';
 import { useAuthStore } from '@store/auth.store';
 
-// Foreground: show notification banner (shouldShowAlert = Android, shouldShowBanner = iOS)
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+// expo-notifications push registration removed from Expo Go SDK 53+
+// Only set handler in standalone / dev-client builds
+const isExpoGo = Constants.appOwnership === 'expo';
+
+if (!isExpoGo) {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+    }),
+  });
+}
 
 export function usePushNotifications() {
   const isAuthenticated = useAuthStore(s => s.isAuthenticated);
@@ -23,11 +29,10 @@ export function usePushNotifications() {
   const receivedRef = useRef<Notifications.EventSubscription | null>(null);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || isExpoGo) return;
 
     void registerForPushNotifications();
 
-    // Foreground notification — invalidate relevant queries
     receivedRef.current = Notifications.addNotificationReceivedListener((notification) => {
       const data = notification.request.content.data as Record<string, unknown> | undefined;
       const type = data?.type as string | undefined;
@@ -35,7 +40,6 @@ export function usePushNotifications() {
         void queryClient.invalidateQueries({ queryKey: ['friends'] });
         void queryClient.invalidateQueries({ queryKey: ['friend-requests'] });
       }
-      // Always refresh notifications list
       void queryClient.invalidateQueries({ queryKey: ['notifications'] });
     });
 
@@ -46,49 +50,43 @@ export function usePushNotifications() {
 }
 
 async function registerForPushNotifications(): Promise<void> {
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('default', {
-      name: 'default',
-      importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250],
-    });
-  }
-
-  const { status: existingStatus } = await Notifications.getPermissionsAsync();
-  let finalStatus = existingStatus;
-
-  if (existingStatus !== 'granted') {
-    const { status } = await Notifications.requestPermissionsAsync();
-    finalStatus = status;
-  }
-
-  if (finalStatus !== 'granted') {
-    console.warn('[Push] Permission not granted — status:', finalStatus);
-    return;
-  }
-
-  const token = await getPushToken();
-  if (!token) {
-    console.warn('[Push] No token returned — push notifications disabled');
-    return;
-  }
-
   try {
+    if (Platform.OS === 'android') {
+      await Notifications.setNotificationChannelAsync('default', {
+        name: 'default',
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+      });
+    }
+
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+
+    if (existingStatus !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+
+    if (finalStatus !== 'granted') {
+      if (__DEV__) console.log('[Push] Permission not granted — status:', finalStatus);
+      return;
+    }
+
+    const token = await getPushToken();
+    if (!token) return;
+
     await userApi.updateFcmToken(token);
     if (__DEV__) console.log('[Push] Token registered successfully');
   } catch (err) {
-    console.error('[Push] updateFcmToken failed:', (err as Error).message);
+    if (__DEV__) console.log('[Push] Registration skipped:', (err as Error).message);
   }
 }
 
 async function getPushToken(): Promise<string | null> {
-  // Use native FCM device token directly — backend uses Firebase Admin SDK (sendEachForMulticast)
   try {
     const deviceToken = (await Notifications.getDevicePushTokenAsync()).data as string;
-    if (__DEV__) console.log('[Push] Device FCM token obtained');
     return deviceToken;
-  } catch (deviceErr) {
-    console.error('[Push] getDevicePushTokenAsync failed:', (deviceErr as Error).message);
+  } catch {
     return null;
   }
 }
