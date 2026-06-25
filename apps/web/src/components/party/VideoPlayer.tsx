@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useRef, useCallback, useState } from 'react';
-import { Loader2, Play, AlertCircle, Pause, Maximize } from 'lucide-react';
+import { Loader2, Play, AlertCircle, Pause, Maximize, Minimize, Volume2, VolumeX, Volume1 } from 'lucide-react';
 import { useWatchPartyStore } from '@/store/watch-party.store';
 import { useAuthStore } from '@/store/auth.store';
+import { toast } from '@/hooks/use-toast';
 
 interface Props {
   onPlay: (time: number) => void;
@@ -26,14 +27,6 @@ function getYouTubeId(url: string): string | null {
     /(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([a-zA-Z0-9_-]{11})/,
   );
   return match?.[1] ?? null;
-}
-
-function isVkUrl(url: string): boolean {
-  return /(?:vk\.com|vkvideo\.ru)\/video-?\d+_\d+/.test(url);
-}
-
-function isRutubeUrl(url: string): boolean {
-  return /rutube\.ru\/video\/[a-zA-Z0-9]+/.test(url);
 }
 
 async function extractVideoUrl(url: string): Promise<ExtractResult> {
@@ -119,7 +112,9 @@ function NativeVideoPlayer({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
+  const [isMuted, setIsMuted] = useState(false);
   const [showControls, setShowControls] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // HLS setup + macOS suppression
   useEffect(() => {
@@ -149,6 +144,8 @@ function NativeVideoPlayer({
         enableWorker: true,
         lowLatencyMode: false,
         startPosition: (startPosition && startPosition > 0.5) ? startPosition : -1,
+        maxBufferLength: 8,      // fire canplay after 8s buffered, not default 30s
+        maxMaxBufferLength: 30,
       });
       hlsRef.current = hls;
       hls.loadSource(src);
@@ -177,7 +174,9 @@ function NativeVideoPlayer({
     };
     const onTimeUpdate = () => setCurrentTime(video.currentTime);
     const onMeta = () => { if (isFinite(video.duration)) setDuration(video.duration); };
-    const onVolChange = () => setVolume(video.volume);
+    const onVolChange = () => { setVolume(video.volume); setIsMuted(video.muted); };
+    const onFullscreenChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', onFullscreenChange);
     video.addEventListener('play', onPlayEvt);
     video.addEventListener('pause', onPauseEvt);
     video.addEventListener('timeupdate', onTimeUpdate, { passive: true });
@@ -191,6 +190,7 @@ function NativeVideoPlayer({
       video.removeEventListener('loadedmetadata', onMeta);
       video.removeEventListener('durationchange', onMeta);
       video.removeEventListener('volumechange', onVolChange);
+      document.removeEventListener('fullscreenchange', onFullscreenChange);
     };
   }, [videoRef]);
 
@@ -218,7 +218,18 @@ function NativeVideoPlayer({
 
   function handleVolume(e: React.ChangeEvent<HTMLInputElement>) {
     const v = videoRef.current;
-    if (v) v.volume = Number(e.target.value);
+    if (!v) return;
+    const val = Number(e.target.value);
+    v.volume = val;
+    v.muted = val === 0;
+    setIsMuted(val === 0);
+  }
+
+  function toggleMute() {
+    const v = videoRef.current;
+    if (!v) return;
+    v.muted = !v.muted;
+    setIsMuted(v.muted);
   }
 
   function toggleFullscreen() {
@@ -226,6 +237,12 @@ function NativeVideoPlayer({
     if (!el) return;
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     else el.requestFullscreen().catch(() => {});
+  }
+
+  function VolumeIcon({ size }: { size: number }) {
+    if (isMuted || volume === 0) return <VolumeX size={size} />;
+    if (volume < 0.5) return <Volume1 size={size} />;
+    return <Volume2 size={size} />;
   }
 
   function fmtTime(s: number) {
@@ -240,7 +257,7 @@ function NativeVideoPlayer({
       ref={containerRef}
       className="aspect-video bg-black rounded-xl overflow-hidden relative group select-none"
     >
-      {/* Hidden video — no native controls to prevent Mac/Android native player */}
+      {/* Video element */}
       <video
         ref={videoRef}
         poster={poster}
@@ -248,7 +265,6 @@ function NativeVideoPlayer({
         preload="none"
         disableRemotePlayback
         disablePictureInPicture
-        // eslint-disable-next-line react/no-unknown-property
         {...({ 'x-webkit-airplay': 'deny' } as Record<string, string>)}
         className="w-full h-full"
         onPlay={isOwner ? onPlay : undefined}
@@ -256,101 +272,134 @@ function NativeVideoPlayer({
         onSeeked={isOwner ? onSeeked : undefined}
         onWaiting={() => {
           const v = videoRef.current;
-          if (!v || v.paused) return; // skip if deliberately paused
-          // Owner never triggers democratic pause: BUFFER_START → VIDEO_PAUSE → Safari stops
-          // native HLS → canplay never fires → 30s deadlock loop. Owner loads independently.
+          if (!v || v.paused) return;
           if (!isOwner) onBufferStart();
         }}
         onCanPlay={() => {
-          // Owner never sends BUFFER_END either: srem(owner) returns 0 → scard=0 → resumeRoom
-          // fires on every canplay event → VIDEO_PLAY → sync effect seeks → infinite unstable loop.
           if (!isOwner) onBufferEnd();
         }}
       />
 
-      {/* Autoplay blocked overlay — visible to all (non-owner click starts local only) */}
+      {/* Autoplay blocked overlay */}
       {autoplayBlocked && (
         <button
           onClick={onOverlayClick}
-          className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/60 cursor-pointer group/btn"
+          className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-black/70 cursor-pointer group/btn"
           aria-label="Нажмите чтобы воспроизвести"
         >
-          <div className="w-16 h-16 rounded-full bg-white/10 border border-white/20 flex items-center justify-center group-hover/btn:bg-white/20 transition-colors">
-            <Play size={28} className="text-white ml-1" fill="white" />
+          <div className="w-20 h-20 rounded-full flex items-center justify-center transition-all group-hover/btn:scale-110"
+            style={{ background: 'rgba(124,58,237,0.85)', boxShadow: '0 0 40px rgba(124,58,237,0.5)' }}>
+            <Play size={32} className="text-white ml-1.5" fill="white" />
           </div>
-          <span className="text-white/70 text-sm">Нажмите чтобы начать</span>
+          <span className="text-white/60 text-sm font-medium">Нажмите чтобы начать</span>
         </button>
       )}
 
-      {/* Clickable area — tap reveals controls; owner tap also toggles play/pause */}
+      {/* Click area */}
       {!autoplayBlocked && (
-        <div
-          className="absolute inset-0 cursor-pointer"
-          onClick={handleVideoAreaClick}
-        />
+        <div className="absolute inset-0 cursor-pointer" onClick={handleVideoAreaClick} />
       )}
 
-      {/* Custom controls bar — hover (desktop) or tap (mobile) */}
+      {/* Controls overlay */}
       {!autoplayBlocked && (
         <div
-          className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent pt-10 pb-3 px-3 transition-opacity duration-200 pointer-events-none ${
+          className={`absolute bottom-0 left-0 right-0 transition-opacity duration-300 pointer-events-none ${
             controlsVisible ? 'opacity-100 pointer-events-auto' : 'opacity-0 group-hover:opacity-100 group-hover:pointer-events-auto'
           }`}
         >
-          {/* Seek bar — visible to all, seekable only by owner */}
-          <input
-            type="range"
-            min={0}
-            max={duration || 100}
-            step={0.5}
-            value={currentTime}
-            onChange={handleSeek}
-            disabled={!isOwner || !duration}
-            className="w-full h-1 mb-2 cursor-pointer disabled:cursor-default disabled:opacity-50"
-            style={{ accentColor: '#7c3aed' }}
-            aria-label="Прогресс"
-          />
+          {/* Deep gradient */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent pointer-events-none" />
 
-          <div className="flex items-center gap-2">
-            {/* Play/pause — owner only */}
-            {isOwner && (
-              <button
-                onClick={(e) => { e.stopPropagation(); handleVideoAreaClick(); }}
-                className="text-white hover:text-violet-300 transition-colors flex-shrink-0"
-                aria-label={isPaused ? 'Воспроизвести' : 'Пауза'}
-              >
-                {isPaused
-                  ? <Play size={18} fill="currentColor" />
-                  : <Pause size={18} fill="currentColor" />}
-              </button>
-            )}
-
-            {/* Time */}
-            <span className="text-white/50 text-xs tabular-nums flex-shrink-0">
-              {fmtTime(currentTime)}{duration > 0 ? ` / ${fmtTime(duration)}` : ''}
-            </span>
-
-            <div className="ml-auto flex items-center gap-3">
-              {/* Volume */}
+          <div className="relative px-4 pb-4 pt-10">
+            {/* Progress bar */}
+            <div className="relative mb-3 group/progress">
               <input
                 type="range"
                 min={0}
-                max={1}
-                step={0.05}
-                value={volume}
-                onChange={handleVolume}
-                onClick={(e) => e.stopPropagation()}
-                className="w-16 h-1 cursor-pointer"
-                style={{ accentColor: '#7c3aed' }}
-                aria-label="Громкость"
+                max={duration || 100}
+                step={0.5}
+                value={currentTime}
+                onChange={handleSeek}
+                disabled={!isOwner || !duration}
+                className="w-full cursor-pointer disabled:cursor-default"
+                style={{
+                  accentColor: '#7c3aed',
+                  height: '3px',
+                  appearance: 'none',
+                  background: `linear-gradient(to right, #7c3aed ${duration ? (currentTime / duration) * 100 : 0}%, rgba(255,255,255,0.2) 0%)`,
+                  borderRadius: '2px',
+                }}
+                aria-label="Прогресс"
               />
+            </div>
+
+            {/* Controls row */}
+            <div className="flex items-center gap-3">
+              {/* Play/Pause — owner only */}
+              {isOwner && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleVideoAreaClick(); }}
+                  className="w-9 h-9 rounded-full flex items-center justify-center text-white transition-all hover:bg-white/10 active:scale-90 flex-shrink-0"
+                  aria-label={isPaused ? 'Воспроизвести' : 'Пауза'}
+                >
+                  {isPaused
+                    ? <Play size={20} fill="currentColor" />
+                    : <Pause size={20} fill="currentColor" />}
+                </button>
+              )}
+
+              {/* Volume */}
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                <button
+                  onClick={(e) => { e.stopPropagation(); toggleMute(); }}
+                  className="text-white/70 hover:text-white transition-colors"
+                  aria-label="Mute"
+                >
+                  <VolumeIcon size={16} />
+                </button>
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  value={isMuted ? 0 : volume}
+                  onChange={handleVolume}
+                  onClick={(e) => e.stopPropagation()}
+                  className="w-16 cursor-pointer"
+                  style={{
+                    accentColor: '#7c3aed',
+                    height: '3px',
+                    appearance: 'none',
+                    background: `linear-gradient(to right, rgba(255,255,255,0.8) ${(isMuted ? 0 : volume) * 100}%, rgba(255,255,255,0.2) 0%)`,
+                    borderRadius: '2px',
+                  }}
+                  aria-label="Громкость"
+                />
+              </div>
+
+              {/* Time */}
+              <span className="text-white/60 text-xs tabular-nums flex-shrink-0">
+                {fmtTime(currentTime)}
+                {duration > 0 && <span className="text-white/30"> / {fmtTime(duration)}</span>}
+              </span>
+
+              {/* Spacer */}
+              <div className="flex-1" />
+
+              {/* Non-owner indicator */}
+              {!isOwner && (
+                <span className="text-[10px] text-white/30 font-medium uppercase tracking-wide flex-shrink-0">
+                  viewing
+                </span>
+              )}
+
               {/* Fullscreen */}
               <button
                 onClick={(e) => { e.stopPropagation(); toggleFullscreen(); }}
                 className="text-white/60 hover:text-white transition-colors flex-shrink-0"
-                aria-label="Полный экран"
+                aria-label={isFullscreen ? 'Выйти из полного экрана' : 'Полный экран'}
               >
-                <Maximize size={15} />
+                {isFullscreen ? <Minimize size={16} /> : <Maximize size={16} />}
               </button>
             </div>
           </div>
@@ -400,14 +449,17 @@ export function VideoPlayer({
   const [extracting, setExtracting] = useState(false);
   const [extractError, setExtractError] = useState<string | null>(null);
   const extractedForUrl = useRef<string>('');
+  const progressLoadedRef = useRef<string>('');
+  const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const videoUrl = room?.videoUrl ?? '';
   const ytId = getYouTubeId(videoUrl);
-  const needsExtract = !ytId && (isVkUrl(videoUrl) || isRutubeUrl(videoUrl));
   const isEmbed = !!ytId;
-  const directSrc = needsExtract ? proxySrc : (!ytId && videoUrl) || null;
+  // Extract all non-YouTube URLs — content service handles Rutube, VK, and all other platforms
+  const needsExtract = !!videoUrl && !ytId;
+  const directSrc = needsExtract ? proxySrc : null;
 
-  // Extract → proxy URL for VK / Rutube
+  // Extract → proxy URL for any non-YouTube source
   useEffect(() => {
     if (!needsExtract || !videoUrl || extractedForUrl.current === videoUrl) return;
     extractedForUrl.current = videoUrl;
@@ -461,9 +513,74 @@ export function VideoPlayer({
   }, [syncState.currentTime, syncState.isPlaying, isEmbed, directSrc]);
 
   // Cleanup debounce timer on unmount to avoid post-unmount state updates
-  useEffect(() => () => { if (pendingEmitRef.current) clearTimeout(pendingEmitRef.current); }, []);
+  useEffect(() => () => {
+    if (pendingEmitRef.current) clearTimeout(pendingEmitRef.current);
+    if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+  }, []);
 
-  // Owner heartbeat every 1s (faster = tighter viewer sync)
+  // Load saved progress for owner when a non-YouTube video is ready
+  useEffect(() => {
+    if (!isOwner || !videoUrl || !proxySrc || progressLoadedRef.current === videoUrl) return;
+    progressLoadedRef.current = videoUrl;
+
+    fetch(`/api/content/watch-progress?url=${encodeURIComponent(videoUrl)}`, {
+      credentials: 'include',
+    })
+      .then((r) => r.json())
+      .then((body: unknown) => {
+        const data = (body as { data?: { position?: number } }).data;
+        const position = data?.position ?? 0;
+        if (position > 30) {
+          const fmtTime = (s: number) =>
+            `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`;
+          toast({
+            title: `Continue from ${fmtTime(position)}?`,
+            description: 'You watched this before',
+            action: {
+              altText: 'Resume',
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } as any,
+          });
+          // Expose seek via a brief delay so videoRef is attached to src
+          setTimeout(() => {
+            if (videoRef.current) videoRef.current.currentTime = position;
+          }, 1500);
+        }
+      })
+      .catch(() => {});
+  }, [isOwner, videoUrl, proxySrc]);
+
+  // Save progress every 10s for owner
+  useEffect(() => {
+    if (!isOwner || isEmbed || !proxySrc) return;
+
+    if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+
+    progressIntervalRef.current = setInterval(() => {
+      const video = videoRef.current;
+      if (!video || !videoUrl || video.paused) return;
+      fetch('/api/content/watch-progress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          videoUrl,
+          position: video.currentTime,
+          duration: video.duration || 0,
+        }),
+      }).catch(() => {});
+    }, 10_000);
+
+    return () => {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+    };
+  }, [isOwner, isEmbed, proxySrc, videoUrl]);
+
+  // Owner heartbeat every 1s — dep on directSrc so interval starts after extraction completes
+  // and videoRef.current is guaranteed set (NativeVideoPlayer renders when proxySrc is ready)
   useEffect(() => {
     const video = videoRef.current;
     if (!isOwner || isEmbed || !video) return;
@@ -471,7 +588,7 @@ export function VideoPlayer({
       if (!video.paused) onHeartbeat(video.currentTime);
     }, 1000);
     return () => clearInterval(id);
-  }, [isOwner, isEmbed, onHeartbeat]);
+  }, [isOwner, isEmbed, onHeartbeat, directSrc]);
 
   // Non-owner drift correction via heartbeat.
   // Tiered: >2s → hard seek; >0.5s → 1.15x rate; >0.2s → 1.08x rate; else restore.
@@ -581,7 +698,7 @@ export function VideoPlayer({
     );
   }
 
-  // ── VK / Rutube — extract + proxy ──────────────────────────────────────────
+  // ── Any non-YouTube source (Rutube, VK, Vimeo, direct, etc.) — extract + proxy ───
 
   if (needsExtract) {
     if (extracting) {
@@ -627,24 +744,5 @@ export function VideoPlayer({
     );
   }
 
-  // ── HTML5 direct (.mp4 / .m3u8) ────────────────────────────────────────────
-
-  const srcIsHls = /\.(m3u8|mpd)(\?|$)/i.test(videoUrl) || /\/hls\//i.test(videoUrl);
-
-  return (
-    <NativeVideoPlayer
-      src={videoUrl}
-      isHls={srcIsHls}
-      videoRef={videoRef}
-      autoplayBlocked={autoplayBlocked}
-      isOwner={isOwner}
-      startPosition={syncState.currentTime}
-      onPlay={handlePlay}
-      onPause={handlePause}
-      onSeeked={handleSeeked}
-      onBufferStart={onBufferStart}
-      onBufferEnd={onBufferEnd}
-      onOverlayClick={handleOverlayClick}
-    />
-  );
+  return null;
 }

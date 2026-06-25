@@ -1,3 +1,5 @@
+import { withSentryConfig } from '@sentry/nextjs';
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
@@ -21,6 +23,13 @@ const nextConfig = {
   },
   async headers() {
     return [
+      {
+        // Never cache HTML pages in CDN — force revalidation on every deploy
+        source: '/((?!_next/static|_next/image|favicon\\.ico).*)',
+        headers: [
+          { key: 'Cache-Control', value: 'no-cache, must-revalidate' },
+        ],
+      },
       {
         source: '/(.*)',
         headers: [
@@ -57,4 +66,12 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  org: process.env.SENTRY_ORG ?? 'wewatch',
+  project: process.env.SENTRY_PROJECT ?? 'web',
+  silent: true,
+  widenClientFileUpload: true,
+  hideSourceMaps: true,
+  disableLogger: true,
+  automaticVercelMonitors: false,
+});

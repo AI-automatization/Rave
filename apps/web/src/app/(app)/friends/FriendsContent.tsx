@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, Users } from 'lucide-react';
+import { Loader2, Users, Bell } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useFriends, useFriendRequests } from '@/hooks/use-friends';
 import { useAuthStore } from '@/store/auth.store';
@@ -29,25 +29,23 @@ export function FriendsContent() {
 
   return (
     <div className="max-w-xl mx-auto flex flex-col gap-5">
-      <h1 className="text-2xl font-bold text-white">{t('title')}</h1>
+      <h1 className="text-xl font-semibold text-white">{t('title')}</h1>
 
-      {/* Tabs — consistent rounded style */}
-      <div className="flex gap-1.5 bg-[#111118] p-1.5 rounded-2xl border border-white/[0.06]">
+      {/* Tabs — pill style */}
+      <div className="liquid-glass-sm p-1 flex gap-1">
         {tabs.map(({ key, label, count }) => (
           <button
             key={key}
             onClick={() => setTab(key)}
-            className={`flex-1 h-11 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-all cursor-pointer ${
+            className={`flex-1 h-8 rounded-md flex items-center justify-center gap-1.5 text-sm font-medium transition-colors cursor-pointer ${
               tab === key
-                ? 'bg-violet-600/18 text-violet-300 border border-violet-500/25'
-                : 'text-slate-400 hover:text-white hover:bg-white/[0.04] border border-transparent'
+                ? 'bg-violet-600/20 text-violet-300'
+                : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.04]'
             }`}
           >
             {label}
             {count !== undefined && count > 0 && (
-              <span className="bg-violet-500/30 text-violet-300 text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
-                {count}
-              </span>
+              <span className={`text-[11px] ${tab === key ? 'text-violet-400' : 'text-zinc-600'}`}>{count}</span>
             )}
           </button>
         ))}
@@ -55,43 +53,48 @@ export function FriendsContent() {
 
       {/* Content */}
       {tab === 'friends' && (
-        <div className="flex flex-col gap-2">
+        <div className="liquid-glass overflow-hidden">
           {loadingFriends && (
             <div className="flex justify-center py-10">
-              <Loader2 size={24} className="animate-spin text-violet-400" />
+              <Loader2 size={20} className="animate-spin text-violet-400/60" />
             </div>
           )}
           {!loadingFriends && (!friends || friends.length === 0) && (
-            <div className="flex flex-col items-center gap-4 py-14">
-              <div className="w-[72px] h-[72px] rounded-full bg-violet-500/12 border border-violet-500/25 flex items-center justify-center">
-                <Users size={32} className="text-violet-400" />
-              </div>
-              <p className="text-sm text-slate-400">{t('empty')}</p>
+            <div className="flex flex-col items-center gap-3 py-16">
+              <Users size={24} className="text-zinc-700" />
+              <p className="text-sm text-zinc-500">{t('empty')}</p>
             </div>
           )}
-          {friends?.map((f) => (
-            <FriendCard
-              key={f._id}
-              user={f}
-              onMessage={() => router.push(`/messages?peer=${f._id}`)}
-            />
-          ))}
+          <div className="flex flex-col divide-y divide-white/[0.05]">
+            {friends?.map((f) => (
+              <FriendCard
+                key={f._id}
+                user={f}
+                onMessage={() => router.push(`/messages?peer=${f._id}`)}
+              />
+            ))}
+          </div>
         </div>
       )}
 
       {tab === 'requests' && (
-        <div className="flex flex-col gap-2">
+        <div className="liquid-glass overflow-hidden">
           {loadingRequests && (
             <div className="flex justify-center py-10">
-              <Loader2 size={24} className="animate-spin text-violet-400" />
+              <Loader2 size={20} className="animate-spin text-violet-400/60" />
             </div>
           )}
           {!loadingRequests && (!requests || requests.length === 0) && (
-            <p className="text-sm text-slate-400 text-center py-10">{t('noRequests')}</p>
+            <div className="flex flex-col items-center gap-3 py-16">
+              <Bell size={24} className="text-zinc-700" />
+              <p className="text-sm text-zinc-500">{t('noRequests')}</p>
+            </div>
           )}
-          {requests?.map((req) => (
-            <RequestCard key={req._id} request={req} currentUserId={currentUser?._id ?? ''} />
-          ))}
+          <div className="flex flex-col divide-y divide-white/[0.05]">
+            {requests?.map((req) => (
+              <RequestCard key={req._id} request={req} currentUserId={currentUser?._id ?? ''} />
+            ))}
+          </div>
         </div>
       )}
 

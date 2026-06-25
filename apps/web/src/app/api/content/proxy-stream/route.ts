@@ -55,13 +55,18 @@ export async function GET(req: NextRequest) {
   const range = req.headers.get('range');
   const headers = upstreamHeaders(hParam, range);
 
+  // Use a manual AbortController so the 30s timeout applies only to the initial
+  // connection (getting response headers), NOT to the entire stream duration.
+  // AbortSignal.timeout would abort large MP4 streams after ~30s → video cuts off.
+  const ac = new AbortController();
+  const connectTimer = setTimeout(() => ac.abort(), 30_000);
+
   let upstream: Response;
   try {
-    upstream = await fetch(parsed.href, {
-      headers,
-      signal: AbortSignal.timeout(30_000),
-    });
+    upstream = await fetch(parsed.href, { headers, signal: ac.signal });
+    clearTimeout(connectTimer);
   } catch {
+    clearTimeout(connectTimer);
     return new Response('Upstream fetch failed', { status: 502 });
   }
 

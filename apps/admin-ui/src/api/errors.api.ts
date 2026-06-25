@@ -12,7 +12,7 @@ export interface MobileIssue {
   count: number;
   affectedUsers: number;
   lastUserId: string | null;
-  platform: 'ios' | 'android' | 'unknown';
+  platform: 'ios' | 'android' | 'web' | 'unknown';
   appVersion: string;
   environment: string;
   firstSeen: string;

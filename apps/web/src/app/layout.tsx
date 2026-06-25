@@ -6,6 +6,7 @@ import { LocaleHtmlUpdater } from '@/components/common/LocaleHtmlUpdater';
 import './globals.css';
 
 const GA_ID = 'G-2S4DR8CBF0';
+const YM_ID = process.env.NEXT_PUBLIC_YM_ID ?? '';
 
 const dmSans = DM_Sans({
   subsets: ['latin', 'latin-ext'],
@@ -18,6 +19,9 @@ const oswald = Oswald({
   variable: '--font-oswald',
   display: 'swap',
 });
+
+// Force dynamic rendering so CDN never caches HTML (avoids stale content after deploys)
+export const dynamic = 'force-dynamic';
 
 export const viewport: Viewport = {
   themeColor: '#7C3AED',
@@ -205,6 +209,17 @@ export default function RootLayout({
           gtag('js', new Date());
           gtag('config', '${GA_ID}');
         `}</Script>
+        {YM_ID && (
+          <>
+            <Script src="https://mc.yandex.ru/metrika/tag.js" strategy="afterInteractive" />
+            <Script id="ym-init" strategy="afterInteractive">{`
+              window.ym = window.ym || function(){(window.ym.a = window.ym.a || []).push(arguments)};
+              window.ym.l = 1 * new Date();
+              ym(${YM_ID}, "init", { clickmap: true, trackLinks: true, accurateTrackBounce: true, webvisor: true });
+            `}</Script>
+            <noscript><img src={'https://mc.yandex.ru/watch/' + YM_ID} style={{ position: 'absolute', left: '-9999px' }} alt="" /></noscript>
+          </>
+        )}
         <Providers>
           <LocaleHtmlUpdater />
           {children}

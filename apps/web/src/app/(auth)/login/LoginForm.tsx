@@ -4,10 +4,14 @@ import { useState, useTransition } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { Mail, Lock, Eye, EyeOff, Loader2, XCircle } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Loader2, XCircle, ShieldX } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import { authApi } from '@/lib/api/auth.api';
 import { ApiError } from '@/lib/api-client';
+
+interface BanInfo {
+  reason: string | null;
+}
 
 export function LoginForm() {
   const t = useTranslations('auth');
@@ -19,7 +23,9 @@ export function LoginForm() {
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState('');
+  const [banInfo, setBanInfo] = useState<BanInfo | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -34,9 +40,16 @@ export function LoginForm() {
           router.push(redirect);
         } catch (err) {
           if (err instanceof ApiError) {
-            const data = err.data as { message?: string };
-            setError(data.message ?? t('wrongCredentials'));
+            const data = err.data as { message?: string; code?: string; reason?: string };
+            if (data.code === 'ACCOUNT_BLOCKED') {
+              setBanInfo({ reason: data.reason ?? null });
+              setError('');
+            } else {
+              setBanInfo(null);
+              setError(data.message ?? t('wrongCredentials'));
+            }
           } else {
+            setBanInfo(null);
             setError(t('genericError'));
           }
         }
@@ -44,58 +57,129 @@ export function LoginForm() {
     });
   }
 
+  function killPopup(p: Window | null) {
+    if (!p || p.closed) return;
+    // Navigate popup to our origin first (cross-origin popup.close can be unreliable)
+    try { p.location.href = `${window.location.origin}/auth/close`; } catch { /* ignore */ }
+    // Also attempt direct close at intervals as fallback
+    [200, 500, 1000].forEach((ms) =>
+      setTimeout(() => { try { if (!p.closed) p.close(); } catch { /* ignore */ } }, ms),
+    );
+  }
+
   async function handleGoogleLogin() {
+    setError('');
+    setIsGoogleLoading(true);
+
+    // Open popup BEFORE any await so Chrome doesn't block it (user-gesture context).
+    // Navigate to the real URL after we get it from the API.
+    const w = 500, h = 600;
+    const left = Math.round((window.screen.width - w) / 2);
+    const top = Math.round((window.screen.height - h) / 2);
+    const popup = window.open(
+      'about:blank',
+      'google-auth',
+      `width=${w},height=${h},left=${left},top=${top}`,
+    );
+
     try {
       const res = await authApi.googleInit();
       const url = res.data?.url;
       const state = res.data?.state;
-      if (!url || !state) { setError(t('genericError')); return; }
+      if (!url || !state) {
+        popup?.close();
+        setIsGoogleLoading(false);
+        setError(t('genericError'));
+        return;
+      }
 
-      const popup = window.open(url, 'google-auth', 'width=500,height=600');
+      // Navigate the already-open popup to the auth URL
+      if (popup) {
+        popup.location.href = url;
+      } else {
+        // Popup was blocked entirely — fall back to same-tab redirect
+        window.location.href = url;
+        return;
+      }
 
+      let done = false;
       const finishLogin = async () => {
+        if (done) return;
         try {
           const poll = await authApi.googlePoll(state!);
           if (poll.data?.user) {
+            done = true;
             clearInterval(interval);
+            clearInterval(closedCheck);
             window.removeEventListener('message', onMessage);
-            try { popup?.close(); } catch { /* ignore */ }
+            killPopup(popup);
             setUser(poll.data.user);
-            router.push(searchParams.get('redirect') || '/home');
+            // Full page reload — ensures freshly-set httpOnly cookies reach middleware
+            window.location.href = searchParams.get('redirect') || '/home';
           }
         } catch { /* still pending */ }
       };
 
-      const cleanup = () => {
+      const cleanup = (withError?: string) => {
         clearInterval(interval);
+        clearInterval(closedCheck);
         window.removeEventListener('message', onMessage);
+        setIsGoogleLoading(false);
+        if (withError) setError(withError);
       };
 
-      // Listen for postMessage from popup
       const onMessage = async (e: MessageEvent) => {
         if (e.data === 'google-auth-done') {
+          killPopup(popup);
           await finishLogin();
         } else if (e.data === 'google-auth-error') {
-          cleanup();
-          try { popup?.close(); } catch { /* ignore */ }
-          setError(t('genericError'));
+          killPopup(popup);
+          cleanup(t('genericError'));
         }
       };
       window.addEventListener('message', onMessage);
 
-      // Also poll as fallback every 800ms
+      // Popup may close because auth succeeded (backend's window.close timer).
+      // Give polling 3 extra seconds before treating closure as cancellation.
+      const closedCheck = setInterval(() => {
+        if (popup?.closed) {
+          clearInterval(closedCheck);
+          setTimeout(() => { if (!done) cleanup(); }, 3000);
+        }
+      }, 500);
+
+      // Fallback poll every 800ms in case postMessage is missed
       const interval = setInterval(finishLogin, 800);
 
       // Cleanup after 2 min
-      setTimeout(cleanup, 120_000);
+      setTimeout(() => cleanup(), 120_000);
     } catch {
+      setIsGoogleLoading(false);
       setError(t('genericError'));
     }
   }
 
+  // Full-screen loading while Google OAuth completes in popup
+  if (isGoogleLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-12">
+        <div
+          className="w-16 h-16 rounded-full flex items-center justify-center"
+          style={{ backgroundColor: 'rgba(123,114,248,0.12)' }}
+        >
+          <Loader2 size={32} className="animate-spin" style={{ color: '#7B72F8' }} />
+        </div>
+        <div className="text-center">
+          <p className="text-[16px] font-semibold text-white">{t('loggingIn')}</p>
+          <p className="text-[13px] text-white/35 mt-1">{t('loggingInSub')}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-      <h1 className="text-xl font-bold text-white text-center">{t('loginTitle')}</h1>
+      <h1 className="text-[17px] font-semibold text-white text-center">{t('loginTitle')}</h1>
 
       {/* Email */}
       <div className="flex flex-col gap-1.5">
@@ -110,7 +194,7 @@ export function LoginForm() {
             required
             autoFocus
             autoComplete="email"
-            className="w-full h-11 bg-[#13121F] border border-[#2A2840] rounded-xl pl-9 pr-4 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-violet-500/60 focus:ring-1 focus:ring-violet-500/30 transition-all"
+            className="w-full h-10 bg-white/[0.04] border border-white/[0.08] rounded-md pl-9 pr-4 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-violet-500/40 transition-colors"
           />
         </div>
       </div>
@@ -131,7 +215,7 @@ export function LoginForm() {
             onChange={(e) => { setPassword(e.target.value); setError(''); }}
             required
             autoComplete="current-password"
-            className="w-full h-11 bg-[#13121F] border border-[#2A2840] rounded-xl pl-9 pr-10 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-violet-500/60 focus:ring-1 focus:ring-violet-500/30 transition-all"
+            className="w-full h-10 bg-white/[0.04] border border-white/[0.08] rounded-md pl-9 pr-10 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-violet-500/40 transition-colors"
           />
           <button
             type="button"
@@ -142,6 +226,20 @@ export function LoginForm() {
           </button>
         </div>
       </div>
+
+      {/* Account banned */}
+      {banInfo && (
+        <div className="flex flex-col gap-2 bg-red-500/[0.08] border border-red-500/20 rounded-xl px-4 py-3.5">
+          <div className="flex items-center gap-2.5 text-red-400">
+            <ShieldX size={16} className="shrink-0" />
+            <span className="text-sm font-semibold">Аккаунт заблокирован</span>
+          </div>
+          {banInfo.reason && (
+            <p className="text-xs text-red-300/80 pl-[26px]">Причина: {banInfo.reason}</p>
+          )}
+          <p className="text-xs text-slate-500 pl-[26px]">Если вы считаете это ошибкой — обратитесь в поддержку.</p>
+        </div>
+      )}
 
       {/* Error */}
       {error && (
@@ -155,8 +253,7 @@ export function LoginForm() {
       <button
         type="submit"
         disabled={isPending || !email || !password}
-        className="w-full h-11 rounded-xl text-sm font-semibold text-white transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-[0.98] cursor-pointer"
-        style={{ background: 'linear-gradient(135deg, #7C3AED, #5B21B6)' }}
+        className="w-full h-10 rounded-md text-sm font-semibold text-white bg-violet-600 hover:bg-violet-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-[0.98] cursor-pointer"
       >
         {isPending
           ? <><Loader2 size={15} className="animate-spin" />{t('login')}...</>
@@ -165,16 +262,17 @@ export function LoginForm() {
 
       {/* Divider */}
       <div className="relative flex items-center gap-3">
-        <div className="flex-1 h-px bg-[#2A2840]" />
+        <div className="flex-1 h-px bg-white/[0.08]" />
         <span className="text-xs text-slate-500">{t('orDivider')}</span>
-        <div className="flex-1 h-px bg-[#2A2840]" />
+        <div className="flex-1 h-px bg-white/[0.08]" />
       </div>
 
       {/* Google */}
       <button
         type="button"
         onClick={handleGoogleLogin}
-        className="w-full h-11 rounded-xl text-sm font-medium text-white bg-[#13121F] border border-[#2A2840] hover:border-[#3A3860] transition-all flex items-center justify-center gap-2.5 cursor-pointer"
+        disabled={isPending}
+        className="w-full h-10 rounded-md text-sm font-medium text-white bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.07] hover:border-white/[0.14] transition-colors flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
           <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>

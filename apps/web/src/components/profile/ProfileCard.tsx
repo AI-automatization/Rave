@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { useUpdateProfile } from '@/hooks/use-profile';
 import { AvatarUpload } from '@/components/profile/AvatarUpload';
 import { toast } from '@/store/toast.store';
+import { parseApiError } from '@/lib/api-error';
 import { useAuthStore } from '@/store/auth.store';
 import type { IUser } from '@/types';
 
@@ -27,36 +28,36 @@ export function ProfileCard({ user }: Props) {
       const res = await update.mutateAsync({ username, bio });
       if (res.data) setUser(res.data);
       toast.success(t('saved'));
-    } catch {
-      toast.error(t('saveError'));
+    } catch (err) {
+      toast.error(parseApiError(err, t('saveError')));
     }
   }
 
   return (
-    <div className="card p-6 flex flex-col items-center gap-6">
+    <div className="liquid-glass p-6 flex flex-col items-center gap-5">
       <AvatarUpload avatar={user.avatar} username={user.username} />
 
-      <div className="w-full flex flex-col gap-5">
+      <div className="w-full flex flex-col gap-4">
         {/* Username */}
-        <div className="flex flex-col gap-2">
-          <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide">{t('usernameLabel')}</label>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[11px] font-medium text-zinc-500 uppercase tracking-wide">{t('usernameLabel')}</label>
           <input
             type="text"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="w-full h-[54px] bg-[#111118] border border-white/[0.06] rounded-2xl px-5 text-sm text-white focus:outline-none focus:border-violet-500/45 focus:bg-violet-500/5 transition-all"
+            className="glass-input w-full h-9 rounded-md px-3 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-violet-500/40 transition-colors"
           />
         </div>
 
         {/* Bio */}
-        <div className="flex flex-col gap-2">
-          <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide">{t('bioLabel')}</label>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[11px] font-medium text-zinc-500 uppercase tracking-wide">{t('bioLabel')}</label>
           <textarea
             value={bio}
             onChange={(e) => setBio(e.target.value)}
             rows={3}
             maxLength={200}
-            className="w-full bg-[#111118] border border-white/[0.06] rounded-2xl px-5 py-4 text-sm text-white resize-none focus:outline-none focus:border-violet-500/45 focus:bg-violet-500/5 transition-all"
+            className="glass-input w-full rounded-md px-3 py-2.5 text-sm text-white placeholder:text-zinc-600 resize-none focus:outline-none focus:border-violet-500/40 transition-colors"
           />
         </div>
 
@@ -65,12 +66,11 @@ export function ProfileCard({ user }: Props) {
           <button
             onClick={handleSave}
             disabled={update.isPending}
-            className="w-full h-[54px] rounded-2xl text-sm font-bold text-white flex items-center justify-center gap-2 active:scale-[0.97] transition-all cursor-pointer disabled:opacity-40 shadow-lg shadow-violet-500/20"
-            style={{ background: 'linear-gradient(135deg, #7C3AED, #5B21B6)' }}
+            className="self-start h-9 px-4 rounded-md text-sm font-medium text-white bg-violet-600 hover:bg-violet-500 disabled:opacity-40 flex items-center gap-2 transition-colors cursor-pointer active:scale-[0.97]"
           >
             {update.isPending
-              ? <><Loader2 size={16} className="animate-spin" />{t('saving')}</>
-              : <><Check size={16} />{t('save')}</>}
+              ? <><Loader2 size={14} className="animate-spin" />{t('saving')}</>
+              : <><Check size={14} />{t('save')}</>}
           </button>
         )}
       </div>

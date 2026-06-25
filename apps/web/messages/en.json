@@ -10,7 +10,9 @@
     "stats": "Statistics",
     "messages": "Messages",
     "profile": "Profile",
+    "myProfile": "My Profile",
     "notifications": "Notifications",
+    "support": "Support",
     "settings": "Settings",
     "logout": "Logout"
   },
@@ -198,7 +200,9 @@
     "passwordLowercase": "At least 1 lowercase letter",
     "passwordNumber": "At least 1 number",
     "passwordMismatch": "Passwords do not match",
-    "orDivider": "or"
+    "orDivider": "or",
+    "loggingIn": "Signing in...",
+    "loggingInSub": "Complete sign-in in the popup window"
   },
   "common": {
     "loading": "Loading...",
@@ -209,6 +213,7 @@
     "join": "Join",
     "create": "Create",
     "empty": "No rooms yet",
+    "emptyDesc": "Create a room and invite friends to watch together",
     "createFirst": "Create your first room",
     "errorTitle": "Failed to load rooms",
     "errorDesc": "Check your connection or try again",
@@ -240,7 +245,10 @@
     "joinError": "Could not join room",
     "unknownVideo": "Unknown video",
     "private": "Private",
-    "public": "Public"
+    "public": "Public",
+    "recentRooms": "Recent rooms",
+    "rejoin": "Rejoin",
+    "room": "Room"
   },
   "search": {
     "title": "SEARCH",
@@ -358,7 +366,26 @@
     "notifSystem": "System messages",
     "save": "Save",
     "saved": "Saved",
+    "changePassword": "CHANGE PASSWORD",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "confirmNewPassword": "Confirm new password",
+    "sessions": "SESSIONS",
+    "signOutAll": "Sign out of all devices",
+    "signOutConfirm": "This will sign you out of all devices. Continue?",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
     "dangerZone": "DANGER ZONE",
+    "deleteAccount": "Delete account",
+    "deleteMyAccount": "Delete my account",
+    "deleteConfirm": "This action is irreversible. Enter your password to confirm.",
+    "yourPassword": "Your password",
+    "pwMinLength": "New password must be at least 8 characters",
+    "pwMismatch": "Passwords do not match",
+    "pwRequired": "Password is required",
+    "pwChanged": "Password changed",
+    "pwChangedDesc": "Your password has been updated.",
+    "deleteFailed": "Failed to delete account",
     "logoutInfo": "Logging out will clear saved data on this device.",
     "logout": "Logout",
     "loadError": "Error loading settings",
@@ -462,7 +489,19 @@
     "leaveConfirmMsg": "You are the owner. If you leave, ownership transfers to the next member.",
     "stay": "Stay",
     "leaveRoom": "Leave",
-    "copyLink": "Copy link"
+    "copyLink": "Copy link",
+    "chat": "Chat",
+    "members": "Members",
+    "queue": "Queue",
+    "next": "Next",
+    "queueEmpty": "Queue is empty",
+    "videoUrlPlaceholder": "Video URL...",
+    "live": "Live",
+    "idle": "Idle",
+    "addToQueue": "Added to queue",
+    "addError": "Failed to add",
+    "removeError": "Failed to remove",
+    "skipError": "Failed to skip"
   },
   "movie": {
     "watch": "Watch",
@@ -500,10 +539,12 @@
   },
   "dm": {
     "title": "Messages",
-    "empty": "No messages yet",
-    "selectChat": "Select a chat",
+    "empty": "No conversations yet",
+    "selectChat": "Select a chat to start messaging",
     "placeholder": "Write a message...",
-    "noMessages": "No messages yet"
+    "noMessages": "No messages yet",
+    "emptyTitle": "No messages yet",
+    "emptySub": "Send a message to start the conversation"
   },
   "room": {
     "createTitle": "Create Watch Party",
@@ -523,6 +564,28 @@
     "sourceTitle": "Choose source",
     "sourcePaste": "Or paste a direct link",
     "noMedia": "Create without video",
-    "soonBadge": "Soon"
+    "soonBadge": "Soon",
+    "clipboardDetected": "Video from clipboard",
+    "hintPlatform": "Open a video and copy the link here",
+    "hintWeb": "Enter any website URL"
+  },
+  "support": {
+    "title": "Support",
+    "subtitle": "We usually reply within a few hours",
+    "newTicket": "New ticket",
+    "subject": "Subject",
+    "create": "Create",
+    "open": "Open",
+    "closed": "Closed",
+    "placeholder": "Write a message...",
+    "rateTitle": "How was your support?",
+    "rateThanks": "Thanks for your feedback!",
+    "empty": "No tickets yet",
+    "selectTicket": "Select a ticket",
+    "noMessages": "No messages yet",
+    "emptyTitle": "How can we help?",
+    "emptySub": "Start a chat and we'll get back to you shortly",
+    "startChat": "Start chat",
+    "newChat": "New chat"
   }
 }

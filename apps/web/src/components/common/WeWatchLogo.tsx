@@ -1,7 +1,6 @@
 import Link from 'next/link';
 
-/** Exact brand purple from Figma (#6231EF) */
-export const BRAND_PURPLE = '#6231EF';
+export const BRAND_PURPLE = '#7C3AED';
 
 interface WeWatchLogoProps {
   variant?: 'horizontal' | 'stacked' | 'icon-only';
@@ -11,82 +10,38 @@ interface WeWatchLogoProps {
   className?: string;
 }
 
-/**
- * Original Figma SVG — Group 1.svg — placed as-is, no manual recreation.
- * viewBox 935×611 (natural W aspect ratio). Size prop sets height; width is proportional.
- */
+/** W mark only — Group 3.svg (112×90) */
 export function WIcon({ size = 36 }: { size?: number }) {
-  const w = Math.round(size * 935 / 611);
-
+  const w = Math.round(size * 112 / 90);
   return (
-    <svg
-      width={w}
-      height={size}
-      viewBox="0 0 935 611"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
+    <svg width={w} height={size} viewBox="0 0 112 90" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M101.003 11.0027L70.0027 79.0027L54.0027 43.0027L36.0027 11.0027" stroke="#7C3AED" strokeWidth="22" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M11.0027 11.0027L42.0027 79.0027L59.5027 42.0027L76.0027 11.0027" stroke="url(#wiGrad)" strokeWidth="22" strokeLinecap="round" strokeLinejoin="round"/>
       <defs>
-        <filter id="wf0" x="389" y="35.2109" width="334.159" height="520.808"
-          filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
-          <feFlood floodOpacity="0" result="BackgroundImageFix"/>
-          <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
-          <feMorphology radius="2" operator="dilate" in="SourceAlpha" result="effect1_dropShadow"/>
-          <feOffset dy="4"/>
-          <feGaussianBlur stdDeviation="2"/>
-          <feComposite in2="hardAlpha" operator="out"/>
-          <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"/>
-          <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow"/>
-          <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow" result="shape"/>
-        </filter>
-        <filter id="wf1" x="532.289" y="7.16522" width="402.621" height="575.872"
-          filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
-          <feFlood floodOpacity="0" result="BackgroundImageFix"/>
-          <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
-          <feMorphology radius="1" operator="dilate" in="SourceAlpha" result="effect1_dropShadow"/>
-          <feOffset dx="3" dy="3"/>
-          <feGaussianBlur stdDeviation="15"/>
-          <feComposite in2="hardAlpha" operator="out"/>
-          <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.5 0"/>
-          <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow"/>
-          <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow" result="shape"/>
-        </filter>
-        <filter id="wf2" x="0" y="0" width="424.159" height="610.808"
-          filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
-          <feFlood floodOpacity="0" result="BackgroundImageFix"/>
-          <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
-          <feMorphology radius="1" operator="dilate" in="SourceAlpha" result="effect1_dropShadow"/>
-          <feOffset dx="2" dy="10"/>
-          <feGaussianBlur stdDeviation="25"/>
-          <feComposite in2="hardAlpha" operator="out"/>
-          <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"/>
-          <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow"/>
-          <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow" result="shape"/>
-        </filter>
+        <linearGradient id="wiGrad" x1="11.0027" y1="11.0027" x2="76.0027" y2="79.0027" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#A78BFA"/>
+          <stop offset="1" stopColor="#7C3AED"/>
+        </linearGradient>
       </defs>
+    </svg>
+  );
+}
 
-      {/* Rect 1 — back layer (no filter) */}
-      <rect x="581.327" y="79.9094" width="558.054" height="157.697" rx="78.8487"
-        transform="rotate(117.182 581.327 79.9094)" fill="#6735F4"/>
-
-      {/* Rect 2 — with drop shadow */}
-      <g filter="url(#wf0)">
-        <rect x="513.195" y="11.0813" width="544.84" height="159.065" rx="78.8487"
-          transform="rotate(65.0336 513.195 11.0813)" fill="#6735F4"/>
-      </g>
-
-      {/* Rect 3 — with drop shadow (right outer leg) */}
-      <g filter="url(#wf1)">
-        <rect x="928.205" y="79.9094" width="558.054" height="157.697" rx="78.8487"
-          transform="rotate(117.182 928.205 79.9094)" fill="#6231EF"/>
-      </g>
-
-      {/* Rect 4 — with drop shadow (left outer leg) */}
-      <g filter="url(#wf2)">
-        <rect x="167.195" y="14.8703" width="544.84" height="159.065" rx="78.8487"
-          transform="rotate(65.0336 167.195 14.8703)" fill="#6231EF"/>
-      </g>
+/** Full horizontal wordmark — Group 5-2.svg (274×68) */
+function WordmarkLogo({ height = 34 }: { height?: number }) {
+  const w = Math.round((height ?? 34) * 274 / 68);
+  return (
+    <svg width={w} height={height} viewBox="0 0 274 68" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M76.252 8.25203L53.252 59.252L40.752 32.752L27.252 8.25203" stroke="#7C3AED" strokeWidth="16.5" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M8.25195 8.25203L32.252 59.252L45.252 32.252L57.252 8.25203" stroke="url(#wlGrad)" strokeWidth="16.5" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M107.863 42.252L101.547 21.5248H104.894L109.374 37.3941H109.59L114.016 21.5248H117.417L121.789 37.3401H122.005L126.485 21.5248H129.831L123.516 42.252H120.385L115.851 26.3287H115.528L110.993 42.252H107.863ZM142.027 42.6838C140.03 42.6838 138.307 42.243 136.859 41.3614C135.419 40.4708 134.308 39.2293 133.526 37.637C132.752 36.0356 132.365 34.1734 132.365 32.0503C132.365 29.9272 132.752 28.056 133.526 26.4367C134.308 24.8084 135.397 23.5399 136.791 22.6313C138.195 21.7137 139.832 21.2549 141.703 21.2549C142.783 21.2549 143.849 21.4348 144.901 21.7946C145.954 22.1545 146.912 22.7392 147.776 23.5489C148.639 24.3496 149.327 25.4111 149.84 26.7336C150.353 28.056 150.609 29.6843 150.609 31.6185V32.9679H134.632V30.2151H147.371C147.371 29.0456 147.137 28.002 146.669 27.0844C146.21 26.1668 145.554 25.4426 144.699 24.9118C143.853 24.3811 142.855 24.1157 141.703 24.1157C140.435 24.1157 139.337 24.4305 138.411 25.0603C137.493 25.681 136.787 26.4907 136.292 27.4892C135.797 28.4878 135.55 29.5584 135.55 30.7009V32.5361C135.55 34.1015 135.82 35.4284 136.359 36.5169C136.908 37.5965 137.668 38.4196 138.64 38.9864C139.612 39.5442 140.741 39.8231 142.027 39.8231C142.864 39.8231 143.619 39.7061 144.294 39.4722C144.978 39.2293 145.567 38.8695 146.062 38.3927C146.557 37.9069 146.939 37.3041 147.209 36.5844L150.286 37.4481C149.962 38.4916 149.417 39.4092 148.653 40.2009C147.888 40.9836 146.943 41.5953 145.819 42.0361C144.694 42.4679 143.43 42.6838 142.027 42.6838Z" fill="white" fillOpacity="0.6"/>
+      <path d="M161.162 42.252L153.254 14.6157H159.637L164.212 33.8181H164.441L169.488 14.6157H174.953L179.987 33.8586H180.229L184.804 14.6157H191.187L183.279 42.252H177.585L172.322 24.1831H172.106L166.857 42.252H161.162ZM197.89 42.6434C196.568 42.6434 195.389 42.414 194.355 41.9552C193.32 41.4874 192.501 40.7991 191.899 39.8905C191.305 38.9729 191.008 37.8304 191.008 36.463C191.008 35.3115 191.219 34.3444 191.642 33.5617C192.065 32.779 192.641 32.1493 193.369 31.6725C194.098 31.1957 194.926 30.8358 195.852 30.5929C196.788 30.35 197.769 30.1791 198.794 30.0802C200 29.9542 200.971 29.8373 201.709 29.7293C202.447 29.6124 202.982 29.4414 203.315 29.2165C203.648 28.9916 203.814 28.6588 203.814 28.2179V28.137C203.814 27.2823 203.544 26.6211 203.004 26.1533C202.474 25.6855 201.718 25.4516 200.737 25.4516C199.703 25.4516 198.88 25.681 198.268 26.1398C197.656 26.5896 197.251 27.1564 197.053 27.8401L191.737 27.4083C192.007 26.1488 192.537 25.0603 193.329 24.1427C194.121 23.216 195.142 22.5053 196.392 22.0106C197.652 21.5068 199.109 21.2549 200.764 21.2549C201.916 21.2549 203.018 21.3898 204.07 21.6597C205.132 21.9296 206.072 22.3479 206.891 22.9147C207.718 23.4814 208.371 24.2101 208.847 25.1008C209.324 25.9824 209.563 27.0394 209.563 28.2719V42.252H204.111V39.3777H203.949C203.616 40.0255 203.171 40.5967 202.613 41.0915C202.055 41.5773 201.385 41.9597 200.602 42.2385C199.82 42.5084 198.916 42.6434 197.89 42.6434ZM199.536 38.676C200.382 38.676 201.129 38.5096 201.776 38.1767C202.424 37.8349 202.932 37.3761 203.301 36.8003C203.67 36.2246 203.855 35.5723 203.855 34.8436V32.6441C203.675 32.761 203.427 32.869 203.112 32.9679C202.807 33.0579 202.46 33.1434 202.073 33.2243C201.686 33.2963 201.3 33.3638 200.913 33.4267C200.526 33.4807 200.175 33.5302 199.86 33.5752C199.186 33.6741 198.596 33.8316 198.093 34.0475C197.589 34.2634 197.197 34.5558 196.919 34.9246C196.64 35.2845 196.5 35.7343 196.5 36.274C196.5 37.0567 196.784 37.655 197.35 38.0688C197.926 38.4736 198.655 38.676 199.536 38.676ZM225.047 21.5248V25.8429H212.565V21.5248H225.047ZM215.399 16.5588H221.148V35.8827C221.148 36.4135 221.229 36.8273 221.39 37.1242C221.552 37.4121 221.777 37.6145 222.065 37.7314C222.362 37.8484 222.704 37.9069 223.091 37.9069C223.361 37.9069 223.631 37.8844 223.9 37.8394C224.17 37.7854 224.377 37.7449 224.521 37.7179L225.425 41.9956C225.137 42.0856 224.733 42.1891 224.211 42.306C223.689 42.432 223.055 42.5084 222.308 42.5354C220.923 42.5894 219.708 42.405 218.665 41.9821C217.63 41.5593 216.825 40.9026 216.249 40.012C215.673 39.1213 215.39 37.9968 215.399 36.6384V16.5588ZM237.934 42.6569C235.811 42.6569 233.985 42.207 232.456 41.3074C230.935 40.3988 229.766 39.1393 228.947 37.529C228.138 35.9187 227.733 34.0655 227.733 31.9694C227.733 29.8463 228.142 27.984 228.961 26.3827C229.788 24.7724 230.962 23.5174 232.483 22.6178C234.003 21.7092 235.811 21.2549 237.907 21.2549C239.716 21.2549 241.299 21.5832 242.657 22.24C244.016 22.8967 245.091 23.8188 245.883 25.0063C246.674 26.1938 247.111 27.5882 247.192 29.1895H241.767C241.614 28.155 241.209 27.3228 240.552 26.6931C239.905 26.0543 239.055 25.735 238.002 25.735C237.111 25.735 236.333 25.9779 235.667 26.4637C235.011 26.9405 234.498 27.6377 234.129 28.5553C233.76 29.4729 233.576 30.5839 233.576 31.8884C233.576 33.2108 233.756 34.3354 234.116 35.262C234.484 36.1886 235.002 36.8948 235.667 37.3806C236.333 37.8664 237.111 38.1093 238.002 38.1093C238.659 38.1093 239.248 37.9743 239.77 37.7044C240.3 37.4346 240.737 37.0432 241.079 36.5304C241.43 36.0087 241.659 35.3834 241.767 34.6547H247.192C247.102 36.2381 246.67 37.6325 245.896 38.838C245.131 40.0345 244.074 40.9701 242.725 41.6448C241.376 42.3195 239.779 42.6569 237.934 42.6569ZM256.621 30.2691V42.252H250.872V14.6157H256.459V25.1817H256.702C257.17 23.9582 257.925 23.0001 258.969 22.3074C260.012 21.6057 261.321 21.2549 262.896 21.2549C264.335 21.2549 265.59 21.5697 266.661 22.1995C267.74 22.8202 268.577 23.7153 269.17 24.8848C269.773 26.0454 270.07 27.4353 270.061 29.0546V42.252H264.312V30.0802C264.321 28.8027 263.998 27.8086 263.341 27.0979C262.693 26.3872 261.785 26.0319 260.615 26.0319C259.832 26.0319 259.14 26.1983 258.537 26.5311C257.943 26.864 257.475 27.3498 257.134 27.9885C256.801 28.6183 256.63 29.3784 256.621 30.2691Z" fill="white"/>
+      <defs>
+        <linearGradient id="wlGrad" x1="5.25195" y1="1.25203" x2="65.252" y2="67.252" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#A78BFA"/>
+          <stop offset="1" stopColor="#7C3AED"/>
+        </linearGradient>
+      </defs>
     </svg>
   );
 }
@@ -112,14 +67,7 @@ export function WeWatchLogo({
       </div>
     );
   } else {
-    inner = (
-      <div className="inline-flex items-center gap-2">
-        <WIcon size={iconSize} />
-        <span className={`font-extrabold ${textSize} tracking-tight text-white`}>
-          We<span style={{ color: BRAND_PURPLE }}>Watch</span>
-        </span>
-      </div>
-    );
+    inner = <WordmarkLogo height={iconSize} />;
   }
 
   return (

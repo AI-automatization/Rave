@@ -10,7 +10,9 @@
     "stats": "Statistika",
     "messages": "Xabarlar",
     "profile": "Profil",
+    "myProfile": "Mening profilim",
     "notifications": "Bildirishnomalar",
+    "support": "Qo'llab-quvvatlash",
     "settings": "Sozlamalar",
     "logout": "Chiqish"
   },
@@ -198,7 +200,9 @@
     "passwordLowercase": "Kamida 1 ta kichik harf",
     "passwordNumber": "Kamida 1 ta raqam",
     "passwordMismatch": "Parollar mos kelmadi",
-    "orDivider": "yoki"
+    "orDivider": "yoki",
+    "loggingIn": "Kirish...",
+    "loggingInSub": "Ochilgan oynada kirishni yakunlang"
   },
   "common": {
     "loading": "Yuklanmoqda...",
@@ -209,6 +213,7 @@
     "join": "Qo'shilish",
     "create": "Yaratish",
     "empty": "Hali xonalar yo'q",
+    "emptyDesc": "Xona yarating va do'stlaringizni birga tomosha qilishga taklif qiling",
     "createFirst": "Birinchi xonani yarating",
     "errorTitle": "Xonalarni yuklab bo'lmadi",
     "errorDesc": "Internetni tekshiring yoki qayta urining",
@@ -216,7 +221,10 @@
     "trending": "Trendda",
     "topRated": "Eng yuqori reyting",
     "recent": "Yangi qo'shilganlar",
-    "seeAll": "Hammasi"
+    "seeAll": "Hammasi",
+    "recentRooms": "So'nggi xonalar",
+    "rejoin": "Qaytish",
+    "room": "Xona"
   },
   "search": {
     "title": "QIDIRISH",
@@ -305,7 +313,11 @@
   "notifications": {
     "title": "BILDIRISHNOMALAR",
     "markAllRead": "Barchasini o'qildi",
-    "empty": "Bildirishnomalar yo'q"
+    "empty": "Bildirishnomalar yo'q",
+    "loadError": "Yuklashda xato",
+    "markReadError": "Belgilashda xato",
+    "markAllReadError": "Barchasini belgilashda xato",
+    "deleteError": "O'chirishda xato"
   },
   "settings": {
     "title": "SOZLAMALAR",
@@ -320,9 +332,31 @@
     "notifSystem": "Tizim xabarlari",
     "save": "Saqlash",
     "saved": "Saqlandi",
+    "changePassword": "PAROLNI O'ZGARTIRISH",
+    "currentPassword": "Joriy parol",
+    "newPassword": "Yangi parol",
+    "confirmNewPassword": "Yangi parolni tasdiqlang",
+    "sessions": "SESSIYALAR",
+    "signOutAll": "Barcha qurilmalardan chiqish",
+    "signOutConfirm": "Barcha qurilmalardan chiqiladi. Davom etasizmi?",
+    "confirm": "Tasdiqlash",
+    "cancel": "Bekor qilish",
     "dangerZone": "XAVFLI HUDUD",
+    "deleteAccount": "Hisobni o'chirish",
+    "deleteMyAccount": "Mening hisobimni o'chirish",
+    "deleteConfirm": "Bu harakat qaytarib bo'lmaydi. Tasdiqlash uchun parolni kiriting.",
+    "yourPassword": "Parolingiz",
+    "pwMinLength": "Yangi parol kamida 8 belgidan iborat bo'lishi kerak",
+    "pwMismatch": "Parollar mos kelmayapti",
+    "pwRequired": "Parol majburiy",
+    "pwChanged": "Parol o'zgartirildi",
+    "pwChangedDesc": "Parolingiz yangilandi.",
+    "deleteFailed": "Hisobni o'chirib bo'lmadi",
     "logoutInfo": "Hisobdan chiqish qurilmada saqlangan ma'lumotlarni o'chiradi.",
-    "logout": "Chiqish"
+    "logout": "Chiqish",
+    "loadError": "Sozlamalarni yuklashda xato",
+    "saveError": "Sozlamalarni saqlashda xato",
+    "logoutError": "Chiqishda xato"
   },
   "footer": {
     "tagline": "Ijtimoiy video tomosha platformasi.",
@@ -416,7 +450,19 @@
     "ownerOnly": "Faqat xona egasi video ni boshqara oladi",
     "noVideo": "Video mavjud emas",
     "roomClosed": "Bu xona yopilgan",
-    "roomClosedInactive": "Xona 5 daqiqa faolsizligi sababli avtomatik yopildi."
+    "roomClosedInactive": "Xona 5 daqiqa faolsizligi sababli avtomatik yopildi.",
+    "chat": "Chat",
+    "members": "A'zolar",
+    "queue": "Navbat",
+    "next": "Keyingisi",
+    "queueEmpty": "Navbat bo'sh",
+    "videoUrlPlaceholder": "Video havolasi...",
+    "live": "Live",
+    "idle": "Faolsiz",
+    "addToQueue": "Navbatga qo'shildi",
+    "addError": "Qo'shib bo'lmadi",
+    "removeError": "O'chirib bo'lmadi",
+    "skipError": "O'tib bo'lmadi"
   },
   "movie": {
     "watch": "Ko'rish",
@@ -454,10 +500,12 @@
   },
   "dm": {
     "title": "Xabarlar",
-    "empty": "Hali xabarlar yo'q",
-    "selectChat": "Suhbatni tanlang",
+    "empty": "Hali suhbatlar yo'q",
+    "selectChat": "Xabar yozish uchun suhbat tanlang",
     "placeholder": "Xabar yozing...",
-    "noMessages": "Hali xabar yo'q"
+    "noMessages": "Hali xabar yo'q",
+    "emptyTitle": "Xabarlar yo'q",
+    "emptySub": "Suhbatni boshlash uchun xabar yuboring"
   },
   "room": {
     "createTitle": "Watch Party yaratish",
@@ -477,6 +525,28 @@
     "sourceTitle": "Manba tanlang",
     "sourcePaste": "Yoki to'g'ridan-to'g'ri havola kiriting",
     "noMedia": "Videosiz xona yaratish",
-    "soonBadge": "Tez kunda"
+    "soonBadge": "Tez kunda",
+    "clipboardDetected": "Bufer almashuvidan video",
+    "hintPlatform": "Videoni oching va havolani bu yerga nusxalang",
+    "hintWeb": "Istalgan sayt URL manzilini kiriting"
+  },
+  "support": {
+    "title": "Yordam",
+    "subtitle": "Odatda bir necha soat ichida javob beramiz",
+    "newTicket": "Yangi tiket",
+    "subject": "Mavzu",
+    "create": "Yaratish",
+    "open": "Ochiq",
+    "closed": "Yopiq",
+    "placeholder": "Xabar yozing...",
+    "rateTitle": "Qo'llab-quvvatlash qanday edi?",
+    "rateThanks": "Fikringiz uchun rahmat!",
+    "empty": "Hozircha tiketlar yo'q",
+    "selectTicket": "Tiket tanlang",
+    "noMessages": "Xabarlar yo'q",
+    "emptyTitle": "Qanday yordam bera olamiz?",
+    "emptySub": "Suhbat boshlang — tez orada javob beramiz",
+    "startChat": "Suhbatni boshlash",
+    "newChat": "Yangi suhbat"
   }
 }

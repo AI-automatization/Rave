@@ -48,7 +48,7 @@ export function RegisterForm({ onVerify }: Props) {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-      <h1 className="text-xl font-bold text-white text-center">{t('registerTitle')}</h1>
+      <h1 className="text-[17px] font-semibold text-white text-center">{t('registerTitle')}</h1>
 
       {/* Username */}
       <div className="flex flex-col gap-1.5">
@@ -62,7 +62,7 @@ export function RegisterForm({ onVerify }: Props) {
             required
             autoFocus
             autoComplete="username"
-            className="w-full h-11 bg-[#13121F] border border-[#2A2840] rounded-xl pl-9 pr-4 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-violet-500/60 focus:ring-1 focus:ring-violet-500/30 transition-all"
+            className="w-full h-10 bg-white/[0.04] border border-white/[0.08] rounded-md pl-9 pr-4 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-violet-500/40 transition-colors"
           />
         </div>
       </div>
@@ -79,7 +79,7 @@ export function RegisterForm({ onVerify }: Props) {
             placeholder="email@example.com"
             required
             autoComplete="email"
-            className="w-full h-11 bg-[#13121F] border border-[#2A2840] rounded-xl pl-9 pr-4 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-violet-500/60 focus:ring-1 focus:ring-violet-500/30 transition-all"
+            className="w-full h-10 bg-white/[0.04] border border-white/[0.08] rounded-md pl-9 pr-4 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-violet-500/40 transition-colors"
           />
         </div>
       </div>
@@ -95,7 +95,7 @@ export function RegisterForm({ onVerify }: Props) {
             onChange={(e) => { setPassword(e.target.value); setError(''); }}
             required
             autoComplete="new-password"
-            className="w-full h-11 bg-[#13121F] border border-[#2A2840] rounded-xl pl-9 pr-10 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-violet-500/60 focus:ring-1 focus:ring-violet-500/30 transition-all"
+            className="w-full h-10 bg-white/[0.04] border border-white/[0.08] rounded-md pl-9 pr-10 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-violet-500/40 transition-colors"
           />
           <button
             type="button"
@@ -119,7 +119,7 @@ export function RegisterForm({ onVerify }: Props) {
             onChange={(e) => { setConfirm(e.target.value); setError(''); }}
             required
             autoComplete="new-password"
-            className="w-full h-11 bg-[#13121F] border border-[#2A2840] rounded-xl pl-9 pr-4 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-violet-500/60 focus:ring-1 focus:ring-violet-500/30 transition-all"
+            className="w-full h-10 bg-white/[0.04] border border-white/[0.08] rounded-md pl-9 pr-4 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-violet-500/40 transition-colors"
           />
         </div>
         {mismatch && <p className="text-xs text-red-400">{t('passwordMismatch')}</p>}
@@ -137,8 +137,7 @@ export function RegisterForm({ onVerify }: Props) {
       <button
         type="submit"
         disabled={isPending || mismatch || tooShort || !username || !email || !password || !confirm}
-        className="w-full h-11 rounded-xl text-sm font-semibold text-white transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-[0.98] cursor-pointer"
-        style={{ background: 'linear-gradient(135deg, #7C3AED, #5B21B6)' }}
+        className="w-full h-10 rounded-md text-sm font-semibold text-white bg-violet-600 hover:bg-violet-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-[0.98] cursor-pointer"
       >
         {isPending
           ? <><Loader2 size={15} className="animate-spin" />{t('register')}...</>

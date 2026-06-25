@@ -31,6 +31,18 @@ export const WATCH_PARTY_SERVICE_URL = resolve(
   'http://localhost:3004/api/v1',
 );
 
+export const NOTIFICATION_SERVICE_URL = resolve(
+  process.env.RAILWAY_SERVICE_NOTIFICATION_URL,
+  process.env.NOTIFICATION_SERVICE_URL,
+  'http://localhost:3007/api/v1',
+);
+
+export const ADMIN_SERVICE_URL = resolve(
+  process.env.RAILWAY_SERVICE_ADMIN_URL,
+  process.env.ADMIN_SERVICE_URL,
+  'http://localhost:3008/api/v1',
+);
+
 /** Ensure URL ends with the given suffix */
 export function ensureSuffix(url: string, suffix: string): string {
   return url.endsWith(suffix) ? url : `${url}${suffix}`;

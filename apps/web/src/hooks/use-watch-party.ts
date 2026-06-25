@@ -1,13 +1,17 @@
 'use client';
 
 import { useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { SERVER_EVENTS, CLIENT_EVENTS } from '@shared/constants/socketEvents';
 import { useSocket } from '@/hooks/use-socket';
 import { useWatchPartyStore } from '@/store/watch-party.store';
+import { useAuthStore } from '@/store/auth.store';
+import { toast } from '@/store/toast.store';
 import type { IChatMessage, IWatchPartyRoom } from '@/types';
 
 export function useWatchParty(roomId: string) {
   const { socket, isConnected } = useSocket();
+  const router = useRouter();
   const {
     setRoom, setMembers, addMember, removeMember,
     addMessage, setSyncState, setHeartbeat, setConnected, reset,
@@ -70,6 +74,31 @@ export function useWatchParty(roomId: string) {
       setRoom(room);
     });
 
+    // Owner transferred — update ownerId in local room so video controls flip correctly
+    socket.on(SERVER_EVENTS.OWNER_TRANSFERRED, (data: { newOwnerId: string }) => {
+      const current = useWatchPartyStore.getState().room;
+      if (current) setRoom({ ...current, ownerId: data.newOwnerId });
+    });
+
+    // Kicked from room — notify and redirect home
+    socket.on(SERVER_EVENTS.MEMBER_KICKED, (data: { userId: string }) => {
+      const me = useAuthStore.getState().user;
+      if (me && data.userId === me._id) {
+        toast.warning('Вас исключили из комнаты');
+        router.push('/home');
+      }
+    });
+
+    // Server error — handle mid-session account ban
+    socket.on(SERVER_EVENTS.ERROR, (data: { code?: string; message?: string }) => {
+      if (data.code === 'ACCOUNT_BLOCKED') {
+        toast.error('Ваш аккаунт заблокирован');
+        void useAuthStore.getState().logout().then(() => {
+          router.push('/login');
+        });
+      }
+    });
+
     return () => {
       socket.emit(CLIENT_EVENTS.LEAVE_ROOM, { roomId });
       socket.off(SERVER_EVENTS.ROOM_JOINED);
@@ -83,9 +112,12 @@ export function useWatchParty(roomId: string) {
       socket.off(SERVER_EVENTS.VIDEO_HEARTBEAT);
       socket.off(SERVER_EVENTS.ROOM_CLOSED);
       socket.off(SERVER_EVENTS.ROOM_UPDATED);
+      socket.off(SERVER_EVENTS.OWNER_TRANSFERRED);
+      socket.off(SERVER_EVENTS.MEMBER_KICKED);
+      socket.off(SERVER_EVENTS.ERROR);
       setConnected(false);
     };
-  }, [socket, isConnected, roomId, setRoom, setMembers, addMember, removeMember, addMessage, setSyncState, setHeartbeat, setConnected, reset]);
+  }, [socket, isConnected, roomId, router, setRoom, setMembers, addMember, removeMember, addMessage, setSyncState, setHeartbeat, setConnected, reset]);
 
   const sendMessage = useCallback((text: string) => {
     socket?.emit(CLIENT_EVENTS.SEND_MESSAGE, { roomId, text });

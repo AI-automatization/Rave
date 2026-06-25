@@ -10,6 +10,16 @@ interface Props {
   onSend: (text: string) => void;
 }
 
+const AVATAR_COLORS = ['#7C3AED', '#2563EB', '#059669', '#D97706', '#DC2626', '#DB2777', '#0891B2'];
+
+function avatarColor(username: string): string {
+  let hash = 0;
+  for (let i = 0; i < username.length; i++) {
+    hash = username.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+
 export function ChatPanel({ onSend }: Props) {
   const t = useTranslations('chat');
   const messages = useWatchPartyStore((s) => s.messages);
@@ -17,7 +27,6 @@ export function ChatPanel({ onSend }: Props) {
   const [text, setText] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages.length]);
@@ -32,32 +41,29 @@ export function ChatPanel({ onSend }: Props) {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-3 flex flex-col gap-2 scrollbar-hide">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-2 py-2 flex flex-col gap-0.5 scrollbar-hide">
         {messages.length === 0 && (
-          <p className="text-slate-500 text-xs text-center py-4">{t('empty')}</p>
+          <p className="text-zinc-600 text-[11px] text-center py-6">{t('empty')}</p>
         )}
         {messages.map((msg) => {
           const isMe = msg.user._id === currentUser?._id;
+          const color = avatarColor(msg.user.username ?? '?');
+
           return (
-            <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[80%] px-3 py-1.5 rounded-xl text-sm ${
-                isMe
-                  ? 'bg-violet-600/30 text-violet-100'
-                  : 'bg-white/[0.06] text-slate-200'
-              }`}>
-                {!isMe && (
-                  <p className="text-[10px] font-semibold text-violet-400 mb-0.5">{msg.user.username}</p>
-                )}
-                <p className="break-words">{msg.text}</p>
-              </div>
+            <div key={msg.id} className="px-1 py-0.5 hover:bg-white/[0.03] rounded transition-colors">
+              <span className="text-[12px] font-semibold" style={{ color }}>
+                {msg.user.username ?? '?'}
+              </span>
+              <span className="text-[12px] text-zinc-400 mx-1">:</span>
+              <span className={`text-[12px] break-words ${isMe ? 'text-white' : 'text-zinc-200'}`}>
+                {msg.text}
+              </span>
             </div>
           );
         })}
       </div>
 
-      {/* Input */}
-      <form onSubmit={handleSubmit} className="p-3 border-t border-white/[0.06]">
+      <form onSubmit={handleSubmit} className="p-3 border-t border-white/[0.07]">
         <div className="flex items-center gap-2">
           <input
             type="text"
@@ -65,13 +71,12 @@ export function ChatPanel({ onSend }: Props) {
             onChange={(e) => setText(e.target.value)}
             placeholder={t('placeholder')}
             maxLength={500}
-            className="flex-1 h-9 bg-[#13121F] border border-[#2A2840] rounded-lg px-3 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-violet-500/60 transition-all"
+            className="flex-1 h-9 bg-white/[0.06] border border-white/[0.1] rounded-lg px-3 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-violet-500/50 transition-colors"
           />
           <button
             type="submit"
             disabled={!text.trim()}
-            className="h-9 w-9 rounded-lg flex items-center justify-center text-white disabled:opacity-30 transition-opacity cursor-pointer"
-            style={{ background: 'linear-gradient(135deg, #7C3AED, #5B21B6)' }}
+            className="h-9 w-9 rounded-lg flex items-center justify-center text-zinc-400 bg-white/[0.06] border border-white/[0.08] hover:bg-white/[0.1] hover:text-white disabled:opacity-30 transition-colors cursor-pointer"
           >
             <Send size={14} />
           </button>

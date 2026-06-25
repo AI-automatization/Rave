@@ -8,12 +8,12 @@ interface Props {
 
 export function EmojiReactions({ onSend }: Props) {
   return (
-    <div className="flex items-center gap-1.5 px-3 py-2">
+    <div className="flex items-center gap-1 px-4 py-2 border-t border-white/[0.04]">
       {EMOJIS.map((emoji) => (
         <button
           key={emoji}
           onClick={() => onSend(emoji)}
-          className="w-9 h-9 rounded-lg bg-white/[0.05] hover:bg-white/[0.12] transition-colors flex items-center justify-center text-base active:scale-90 cursor-pointer"
+          className="w-8 h-8 rounded-lg flex items-center justify-center text-base transition-transform duration-100 hover:scale-[1.15] active:scale-90 cursor-pointer"
         >
           {emoji}
         </button>

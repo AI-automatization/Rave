@@ -4,6 +4,7 @@ import { Loader2, Check, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useAcceptFriendRequest, useRejectFriendRequest } from '@/hooks/use-friends';
 import { toast } from '@/store/toast.store';
+import { parseApiError } from '@/lib/api-error';
 import type { IFriendship, IUser } from '@/types';
 
 interface Props {
@@ -22,24 +23,24 @@ export function RequestCard({ request, currentUserId }: Props) {
     try {
       await accept.mutateAsync(request._id);
       toast.success(t('acceptedToast'));
-    } catch {
-      toast.error(t('acceptError'));
+    } catch (err) {
+      toast.error(parseApiError(err, t('acceptError')));
     }
   }
 
   async function handleReject() {
     try {
       await reject.mutateAsync(request._id);
-    } catch {
-      toast.error(t('acceptError'));
+    } catch (err) {
+      toast.error(parseApiError(err, t('acceptError')));
     }
   }
 
   const isPending = accept.isPending || reject.isPending;
 
   return (
-    <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[0.03]">
-      <div className="w-10 h-10 rounded-full bg-violet-600/20 flex items-center justify-center text-sm font-bold text-violet-300">
+    <div className="flex items-center gap-3 px-4 py-3 hover:bg-violet-500/[0.04] transition-colors">
+      <div className="w-9 h-9 rounded-full bg-white/[0.06] flex items-center justify-center text-sm font-bold text-slate-300">
         {sender.username?.[0]?.toUpperCase() ?? '?'}
       </div>
 

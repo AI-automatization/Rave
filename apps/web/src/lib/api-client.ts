@@ -3,6 +3,7 @@
 // Handles 401 → refresh → retry automatically
 
 import type { ApiResponse } from '@/types';
+import { maintenanceFlag } from '@/store/maintenance.store';
 
 const BASE = '';
 
@@ -79,6 +80,9 @@ export async function apiClient<T = unknown>(
   const data = await res.json() as ApiResponse<T>;
 
   if (!res.ok) {
+    if ((data as { code?: string }).code === 'MAINTENANCE_MODE') {
+      maintenanceFlag.set(true);
+    }
     throw new ApiError(res.status, data);
   }
 

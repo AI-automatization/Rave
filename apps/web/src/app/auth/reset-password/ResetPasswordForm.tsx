@@ -38,8 +38,7 @@ export function ResetPasswordForm({ token }: Props) {
         </p>
         <a
           href="wewatch://"
-          className="mt-2 inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold text-white"
-          style={{ background: 'linear-gradient(135deg, #7C3AED, #5B21B6)' }}
+          className="mt-2 inline-flex items-center gap-2 px-6 py-2.5 rounded-md text-sm font-semibold text-white bg-violet-600 hover:bg-violet-500 transition-colors"
         >
           Открыть WeWatch
         </a>
@@ -91,7 +90,7 @@ export function ResetPasswordForm({ token }: Props) {
             placeholder="Минимум 8 символов"
             required
             autoFocus
-            className="w-full h-11 bg-[#13121F] border border-[#2A2840] rounded-xl pl-9 pr-10 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-violet-500/60 focus:ring-1 focus:ring-violet-500/30 transition-all"
+            className="w-full h-10 bg-white/[0.04] border border-white/[0.08] rounded-md pl-9 pr-10 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-violet-500/40 transition-colors"
           />
           <button
             type="button"
@@ -117,7 +116,7 @@ export function ResetPasswordForm({ token }: Props) {
             onChange={(e) => { setConfirm(e.target.value); setStatus('idle'); }}
             placeholder="Повторите пароль"
             required
-            className="w-full h-11 bg-[#13121F] border border-[#2A2840] rounded-xl pl-9 pr-10 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-violet-500/60 focus:ring-1 focus:ring-violet-500/30 transition-all"
+            className="w-full h-10 bg-white/[0.04] border border-white/[0.08] rounded-md pl-9 pr-10 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-violet-500/40 transition-colors"
           />
           <button
             type="button"
@@ -143,9 +142,7 @@ export function ResetPasswordForm({ token }: Props) {
       <button
         type="submit"
         disabled={isPending || mismatch || tooShort || !password || !confirm}
-        className="w-full mt-1 h-11 rounded-xl text-sm font-semibold text-white transition-all duration-150
-          disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-[0.98]"
-        style={{ background: 'linear-gradient(135deg, #7C3AED, #5B21B6)' }}
+        className="w-full mt-1 h-10 rounded-md text-sm font-semibold text-white bg-violet-600 hover:bg-violet-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-[0.98]"
       >
         {isPending
           ? <><Loader2 size={15} className="animate-spin" />Сохраняем...</>

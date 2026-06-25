@@ -29,7 +29,7 @@ export async function GET() {
             width: '600px',
             height: '600px',
             borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(229,9,20,0.15) 0%, transparent 70%)',
+            background: 'radial-gradient(circle, rgba(124,58,237,0.2) 0%, transparent 70%)',
           }}
         />
 
@@ -47,13 +47,14 @@ export async function GET() {
               width: '64px',
               height: '64px',
               borderRadius: '16px',
-              background: '#E50914',
+              background: 'linear-gradient(135deg, #1C0B38, #0A0912)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontSize: '32px',
               fontWeight: '900',
-              color: 'white',
+              color: '#7C3AED',
+              border: '1px solid rgba(124,58,237,0.4)',
             }}
           >
             W
@@ -84,7 +85,7 @@ export async function GET() {
         >
           СМОТРИТЕ ВИДЕО
           <br />
-          <span style={{ color: '#E50914' }}>ВМЕСТЕ</span>
+          <span style={{ color: '#7C3AED' }}>ВМЕСТЕ</span>
         </div>
 
         {/* Subtitle */}
