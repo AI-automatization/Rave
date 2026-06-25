@@ -8,19 +8,23 @@ import { userApi } from '@api/user.api';
 import { useAuthStore } from '@store/auth.store';
 
 // expo-notifications push registration removed from Expo Go SDK 53+
-// Only set handler in standalone / dev-client builds
-const isExpoGo = Constants.appOwnership === 'expo';
+// executionEnvironment 'storeClient' = Expo Go (appOwnership deprecated)
+const isExpoGo = Constants.executionEnvironment === 'storeClient';
 
 if (!isExpoGo) {
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowAlert: true,
-      shouldShowBanner: true,
-      shouldShowList: true,
-      shouldPlaySound: true,
-      shouldSetBadge: true,
-    }),
-  });
+  try {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldShowBanner: true,
+        shouldShowList: true,
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+      }),
+    });
+  } catch {
+    // expo-notifications push not supported in this environment
+  }
 }
 
 export function usePushNotifications() {

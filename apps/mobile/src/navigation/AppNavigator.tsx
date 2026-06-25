@@ -6,14 +6,6 @@ import * as Linking from 'expo-linking';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as Notifications from 'expo-notifications';
 import { useAuthStore } from '@store/auth.store';
-
-const isExpoGo = Constants.appOwnership === 'expo';
-
-function useLastNotificationResponseSafe() {
-  // useLastNotificationResponse crashes in Expo Go SDK 53 — guard it
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  return isExpoGo ? null : Notifications.useLastNotificationResponse();
-}
 import { RootStackParamList } from '@app-types/index';
 import { useTheme } from '@theme/index';
 import { AuthNavigator } from './AuthNavigator';
@@ -36,6 +28,15 @@ import { analyticsService } from '@services/analyticsService';
 import { getActiveScreenName } from '@hooks/useScreenTracking';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+
+// executionEnvironment 'storeClient' = Expo Go — appOwnership deprecated
+const isExpoGo = Constants.executionEnvironment === 'storeClient';
+
+function useLastNotificationResponseSafe() {
+  // useLastNotificationResponse calls addPushTokenListener internally → crashes Expo Go SDK 53
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  return isExpoGo ? null : Notifications.useLastNotificationResponse();
+}
 
 const HEARTBEAT_INTERVAL_MS = 2 * 60 * 1000;
 
