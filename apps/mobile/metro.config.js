@@ -28,7 +28,23 @@ config.resolver.extraNodeModules = {
 
 // Intercept ALL react/* imports and redirect to mobile's React 19
 const reactModules = new Set(['react', 'react/jsx-runtime', 'react/jsx-dev-runtime']);
+
+// DevicePushTokenAutoRegistration.fx.js calls addPushTokenListener at module level,
+// which throws in Expo Go SDK 53+. Replace it with a no-op to prevent the crash.
+const PUSH_TOKEN_FX_NOOP = path.resolve(
+  projectRoot,
+  'src/mocks/DevicePushTokenAutoRegistration.noop.js'
+);
+
 config.resolver.resolveRequest = (context, moduleName, platform) => {
+  if (
+    moduleName.includes('DevicePushTokenAutoRegistration') ||
+    (context.originModulePath &&
+      context.originModulePath.includes('DevicePushTokenAutoRegistration'))
+  ) {
+    return { filePath: PUSH_TOKEN_FX_NOOP, type: 'sourceFile' };
+  }
+
   if (reactModules.has(moduleName)) {
     const suffix = moduleName === 'react' ? 'index.js' : moduleName.split('/')[1] + '.js';
     return {
