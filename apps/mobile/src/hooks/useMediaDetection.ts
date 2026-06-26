@@ -256,8 +256,18 @@ export function useMediaDetection() {
       const data = JSON.parse(event.nativeEvent.data) as
         | MediaDetectedPayload | BlobVideoFoundPayload
         | { type: 'BOT_PROTECTION_DETECTED' }
-        | { type: 'IFRAME_FOUND'; urls: string[] };
+        | { type: 'IFRAME_FOUND'; urls: string[] }
+        | { type: 'COOKIE_PROBE'; cookie: string; url: string }
+        | { type: 'MANIFEST_PROBE'; status: number; ok?: boolean; error?: string; url: string };
 
+      if (data.type === 'COOKIE_PROBE') {
+        if (__DEV__) console.log('[VK-SNIFF] COOKIE_PROBE cookie=' + JSON.stringify(data.cookie) + ' url=' + data.url.slice(0, 80));
+        return;
+      }
+      if (data.type === 'MANIFEST_PROBE') {
+        if (__DEV__) console.log('[VK-SNIFF] MANIFEST_PROBE status=' + data.status + ' ok=' + data.ok + (data.error ? ' err=' + data.error : '') + ' url=' + data.url.slice(0, 80));
+        return;
+      }
       if (data.type === 'BOT_PROTECTION_DETECTED') { setIsBotProtected(true); return; }
       if (data.type === 'IFRAME_FOUND') {
         // A direct URL was already found via XHR intercept — iframe extraction would reset

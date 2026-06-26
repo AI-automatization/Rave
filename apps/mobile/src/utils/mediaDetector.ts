@@ -160,6 +160,20 @@ export const MEDIA_DETECTION_JS = `
       pageTitle: document.title || 'Video',
       pageUrl: window.location.href,
     });
+    // DIAG (option C): for session-protected manifests (.mpd / .m3u8) check whether the
+    // playback URL is reachable from inside the WebView (uses its cookie jar) and whether
+    // a token cookie is visible to JS (not httpOnly). Tells us if a cookie passthrough is
+    // viable without a native module.
+    try {
+      if (/\.(mpd|m3u8)(\?|#|$)/i.test(src)) {
+        rn({ type: 'COOKIE_PROBE', cookie: (document.cookie || '').slice(0, 300), url: src });
+        fetch(src, { method: 'GET' }).then(function(r) {
+          rn({ type: 'MANIFEST_PROBE', status: r.status, ok: r.ok, url: src });
+        }).catch(function(e) {
+          rn({ type: 'MANIFEST_PROBE', status: -1, error: String(e).slice(0, 120), url: src });
+        });
+      }
+    } catch(e) {}
   }
 
   // Universal extractor: pull the real master URL straight from common player libraries.
