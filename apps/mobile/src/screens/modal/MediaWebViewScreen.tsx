@@ -135,6 +135,12 @@ export function MediaWebViewScreen() {
         onLoadEnd={handleLoadEnd}
         onMessage={onMessage}
         javaScriptEnabled domStorageEnabled allowsBackForwardNavigationGestures
+        // Android: keep target="_blank" / window.open links inside our WebView instead of
+        // handing them to the external Chrome app. With multiple windows enabled (the
+        // default) such links bypass onShouldStartLoadWithRequest and open externally,
+        // breaking the in-app video-search flow.
+        setSupportMultipleWindows={false}
+        javaScriptCanOpenWindowsAutomatically={false}
         style={s.webview}
         renderError={() => (
           <View style={s.errorView}>
