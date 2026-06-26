@@ -117,6 +117,9 @@ export const MEDIA_DETECTION_JS = `
     if (!src || src.indexOf('http') !== 0) return false;
     if (src.indexOf('data:') === 0) return false;
     var lower = src.toLowerCase();
+    // Static assets are never video — must run BEFORE path checks below, otherwise a
+    // player SDK like .../player_sdk/hls/1.4.3/hls.min.js matches the /hls/ path rule.
+    if (/\\.(js|mjs|css|json|png|jpe?g|gif|svg|webp|ico|woff2?|ttf|eot|wasm|html?|map|txt|xml)(\\?|#|$)/.test(lower)) return false;
     // E64-4: file extension matching (.mpd = MPEG-DASH)
     if (/\\.(mp4|m3u8|webm|ogg|mov|ts|mkv|mpd)(\\?|$)/.test(lower)) return true;
     // Explicitly skip Google video CDN (YouTube internal playback URLs)

@@ -61,6 +61,9 @@ export type VideoPlatform = 'direct' | 'youtube' | 'webview';
 
 export function detectVideoPlatform(url: string): VideoPlatform {
   if (!url) return 'direct';
+  // Static assets are never a direct stream — must run before the /hls/ path check so a
+  // player SDK like .../hls/1.4.3/hls.min.js isn't mis-detected as a direct HLS stream.
+  if (/\.(js|mjs|css|json|png|jpe?g|gif|svg|webp|ico|woff2?|ttf|eot|wasm|html?|map|txt|xml)(\?|#|$)/i.test(url)) return 'webview';
   if (/\.(mp4|m3u8|webm|ogg|mov|ts|mkv|mpd)(\?.*)?$/i.test(url)) return 'direct';
   if (YOUTUBE_RE.test(url)) return 'youtube';
   if (/\/youtube\/stream(\?|$)/i.test(url)) return 'direct';

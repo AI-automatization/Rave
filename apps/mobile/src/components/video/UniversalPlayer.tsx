@@ -197,7 +197,9 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
     };
 
     // expo-video player (hooks must be unconditional — no early returns before this)
-    const expoPlayer = createExpoPlayer(null);
+    // timeUpdateEventInterval MUST be set or expo-video never emits 'timeUpdate' →
+    // evCurrentTime stays 0 → progress bar frozen at 0:00 + watch party sync gets no position.
+    const expoPlayer = createExpoPlayer(null, (p) => { p.timeUpdateEventInterval = 0.25; });
     const { status: evStatus } = useEvent(expoPlayer, 'statusChange', { status: expoPlayer.status });
     const { isPlaying: evIsPlaying } = useEvent(expoPlayer, 'playingChange', { isPlaying: expoPlayer.playing, oldIsPlaying: expoPlayer.playing });
     const { currentTime: evCurrentTime } = useEvent(expoPlayer, 'timeUpdate', { currentTime: 0, currentLiveTimestamp: null, currentOffsetFromLive: null, bufferedPosition: 0 });
