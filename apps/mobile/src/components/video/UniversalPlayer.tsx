@@ -198,14 +198,18 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
 
     // expo-video infers the source format from the URI extension. Our HLS proxy URL
     // (/content/hls-proxy?url=...) has no .m3u8 extension → ExoPlayer/AVPlayer default
-    // to a progressive parser → m3u8 fails to load (0 segment requests). Tell it 'hls'
-    // explicitly. (extractedType prop when present; else infer from the URL.)
+    // to a progressive parser → m3u8 fails to load (0 segment requests). Tell it the
+    // streaming format explicitly. (extractedType prop when present; else infer from URL.)
     const isHlsSource =
       extractedType === 'hls' ||
       avUri.includes('/hls-proxy') ||
       /\.m3u8(\?|#|$)/i.test(avUri) ||
       /\/(hls|manifest|playlist\.m3u8|master\.m3u8|chunklist)/i.test(avUri);
-    const avContentType: 'hls' | 'auto' = isHlsSource ? 'hls' : 'auto';
+    // DASH: .mpd manifest. Without contentType:'dash' expo-video tries a progressive
+    // parser → "inputStream does not contain a valid media presentation description".
+    const isDashSource = /\.mpd(\?|#|$)/i.test(avUri) || /\/(dash|manifest\.mpd)/i.test(avUri);
+    const avContentType: 'hls' | 'dash' | 'auto' =
+      isDashSource ? 'dash' : isHlsSource ? 'hls' : 'auto';
 
     // Some HLS master playlists must be flattened to a variant ON THE DEVICE before
     // ExoPlayer sees them (Rutube: bl.rutube.ru master is IP-locked + signed with raw
@@ -279,14 +283,16 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
     useEffect(() => {
       if (useWebview || evStatus !== 'error') return;
       if (__DEV__) console.log(`[VK-SNIFF] ❌ ExoPlayer error on uri=${avUri} | usingProxy=${usingProxy} | hasProxyFallback=${!!proxyUrl}`);
-      if (!usingProxy && proxyUrl) {
+      // DASH (.mpd) plays direct only — the generic proxy serves the manifest as a single
+      // file and breaks its relative segment URLs, so proxy fallback is pointless here.
+      if (!usingProxy && proxyUrl && !isDashSource) {
         setUsingProxy(true);
         setAvLoaded(false);
         readyFiredRef.current = false;
       } else {
         setVideoError(true);
       }
-    }, [evStatus, useWebview, usingProxy, proxyUrl]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [evStatus, useWebview, usingProxy, proxyUrl, isDashSource]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Synthesize PlaybackStatus for watch party sync (~4x/sec via timeUpdate + on state changes)
     useEffect(() => {
