@@ -129,45 +129,60 @@ function fetchBuffered(rawUrl: string, referer: string): Promise<UpstreamFetchRe
 
 // ── M3U8 rewriter ─────────────────────────────────────────────────────────────
 
+const M3U8_PROXY_PATH    = '/api/v1/content/hls-proxy';
 const SEGMENT_PROXY_PATH = '/api/v1/content/hls-proxy/segment';
 
 /**
- * Rewrites all segment/key/map URLs in an m3u8 to go through the segment proxy.
- * token — raw JWT extracted from the m3u8 request's Authorization header — is
- * embedded in every segment URL so ExoPlayer can authenticate without a header.
- * (ExoPlayer on Android does not forward Authorization to individual HLS segments.)
+ * Rewrites an m3u8 so every nested URL flows back through this proxy.
+ *
+ * Two playlist kinds need different handling:
+ *  - MASTER playlist (has #EXT-X-STREAM-INF): the URLs are variant *playlists*
+ *    (often on other CDN hosts, e.g. Rutube's bl.rutube.ru master → river-N nodes).
+ *    These must go through the m3u8 proxy (recursively rewritten), NOT the segment
+ *    proxy — otherwise their own relative segments are never rewritten and the player
+ *    can't resolve them.
+ *  - MEDIA playlist: the URLs are .ts/.mp4 segments → segment proxy.
+ *
+ * token — raw JWT — is embedded in every rewritten URL so ExoPlayer can authenticate
+ * without a header (it forwards Authorization to neither segments nor nested playlists).
  */
 function rewriteM3u8(content: string, baseUrl: string, referer: string, token?: string): string {
   const lines = content.split('\n');
   const tokenParam = token ? `&token=${encodeURIComponent(token)}` : '';
+  const isMaster = /#EXT-X-STREAM-INF/i.test(content);
 
-  const proxySegment = (segUrl: string): string => {
+  const proxyVia = (rawUrl: string, proxyPath: string): string => {
     let absoluteUrl: string;
     try {
-      absoluteUrl = segUrl.startsWith('http') ? segUrl : new URL(segUrl, baseUrl).toString();
+      absoluteUrl = rawUrl.startsWith('http') ? rawUrl : new URL(rawUrl, baseUrl).toString();
     } catch {
-      // Not a valid (relative) URL — e.g. a non-m3u8 body slipped through. Leave as-is.
-      return segUrl;
+      return rawUrl; // not a valid (relative) URL — leave as-is
     }
-    const ssrfError   = validateProxyUrl(absoluteUrl);
+    const ssrfError = validateProxyUrl(absoluteUrl);
     if (ssrfError) {
-      logger.warn('HLS rewrite: SSRF guard blocked segment URL', { url: absoluteUrl, ssrfError });
-      return segUrl; // leave original — frontend will get a 403, not an SSRF
+      logger.warn('HLS rewrite: SSRF guard blocked URL', { url: absoluteUrl, ssrfError });
+      return rawUrl;
     }
-    return `${SEGMENT_PROXY_PATH}?url=${encodeURIComponent(absoluteUrl)}&referer=${encodeURIComponent(referer)}${tokenParam}`;
+    return `${proxyPath}?url=${encodeURIComponent(absoluteUrl)}&referer=${encodeURIComponent(referer)}${tokenParam}`;
   };
+
+  const isPlaylistRef = (url: string): boolean =>
+    isMaster || /\.m3u8(\?|#|$)/i.test(url.split('#')[0]);
 
   return lines.map((line) => {
     const trimmed = line.trim();
+    if (!trimmed) return line;
 
-    // Rewrite URI="..." inside tags like #EXT-X-KEY, #EXT-X-MAP
+    // URI="..." inside tags. #EXT-X-MEDIA references a variant playlist (audio/subs);
+    // #EXT-X-KEY / #EXT-X-MAP reference a key / init segment.
     if (trimmed.startsWith('#') && trimmed.includes('URI="')) {
-      return trimmed.replace(/URI="([^"]+)"/g, (_m: string, uri: string) => `URI="${proxySegment(uri)}"`);
+      const path = /#EXT-X-MEDIA/i.test(trimmed) ? M3U8_PROXY_PATH : SEGMENT_PROXY_PATH;
+      return trimmed.replace(/URI="([^"]+)"/g, (_m: string, uri: string) => `URI="${proxyVia(uri, path)}"`);
     }
 
-    // Rewrite bare segment lines (non-comment, non-empty)
-    if (trimmed && !trimmed.startsWith('#')) {
-      return proxySegment(trimmed);
+    // Bare URL line: variant playlist (master) or segment (media).
+    if (!trimmed.startsWith('#')) {
+      return proxyVia(trimmed, isPlaylistRef(trimmed) ? M3U8_PROXY_PATH : SEGMENT_PROXY_PATH);
     }
 
     return line;
@@ -182,10 +197,20 @@ export const hlsProxyController = {
    *  Fetches the remote m3u8 and rewrites all segment URLs to go through /hls-proxy/segment.
    */
   async proxyM3u8(req: Request, res: Response, next: NextFunction): Promise<void> {
-    const { url, referer } = req.query as { url?: string; referer?: string };
+    const { url, referer, token } = req.query as { url?: string; referer?: string; token?: string };
 
     if (!url) {
       res.status(400).json({ success: false, message: 'url query param is required' });
+      return;
+    }
+
+    // Auth: the first (master) request carries Authorization, but ExoPlayer does NOT
+    // forward it to nested variant-playlist requests — those carry ?token= instead
+    // (embedded by rewriteM3u8). Accept either, matching proxySegment.
+    const bearerToken = (req.headers.authorization ?? '').replace(/^Bearer\s+/i, '') || undefined;
+    const rawToken = (verifyQueryToken(token) ? token : undefined) ?? bearerToken;
+    if (!verifyQueryToken(token) && !verifyQueryToken(bearerToken)) {
+      res.status(401).json({ success: false, message: 'Unauthorized' });
       return;
     }
 
@@ -226,9 +251,8 @@ export const hlsProxyController = {
         return;
       }
 
-      // Extract the raw token so it can be embedded in rewritten segment URLs.
-      // ExoPlayer on Android does not forward Authorization to segment requests.
-      const rawToken = (req.headers.authorization ?? '').replace(/^Bearer\s+/i, '') || undefined;
+      // rawToken (query ?token= or Authorization, resolved above) is embedded in every
+      // rewritten nested URL so ExoPlayer can auth without forwarding headers.
       const rewritten = rewriteM3u8(bodyText, decodedUrl, decodedReferer, rawToken);
 
       res.setHeader('Content-Type',                  'application/vnd.apple.mpegurl');
