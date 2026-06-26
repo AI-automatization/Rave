@@ -87,7 +87,7 @@ function buildEmbedHtml(url: string, embed: EmbedPlatform): { html: string; base
 
 export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
   ({ url, isOwner, onPlay, onPause, onSeek, onPlaybackStatusUpdate, onProgress, onBuffering, onReady,
-     extractedUrl, isExtracting, referer, httpHeaders, proxyUrl, mode, onCdnUrlSniffed }, ref) => {
+     extractedUrl, extractedType, isExtracting, referer, httpHeaders, proxyUrl, mode, onCdnUrlSniffed }, ref) => {
     const { t } = useT();
     const webviewRef = useRef<WebViewPlayerRef>(null);
     const platform = detectVideoPlatform(url);
@@ -196,11 +196,28 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
       ...(referer ? { Referer: referer } : {}),
     };
 
+    // expo-video infers the source format from the URI extension. Our HLS proxy URL
+    // (/content/hls-proxy?url=...) has no .m3u8 extension → ExoPlayer/AVPlayer default
+    // to a progressive parser → m3u8 fails to load (0 segment requests). Tell it 'hls'
+    // explicitly. (extractedType prop when present; else infer from the URL.)
+    const isHlsSource =
+      extractedType === 'hls' ||
+      avUri.includes('/hls-proxy') ||
+      /\.m3u8(\?|#|$)/i.test(avUri) ||
+      /\/(hls|manifest|playlist\.m3u8|master\.m3u8|chunklist)/i.test(avUri);
+    const avContentType: 'hls' | 'auto' = isHlsSource ? 'hls' : 'auto';
+
     // expo-video player (hooks must be unconditional — no early returns before this)
     // timeUpdateEventInterval MUST be set or expo-video never emits 'timeUpdate' →
     // evCurrentTime stays 0 → progress bar frozen at 0:00 + watch party sync gets no position.
     const expoPlayer = createExpoPlayer(null, (p) => { p.timeUpdateEventInterval = 0.25; });
-    const { status: evStatus } = useEvent(expoPlayer, 'statusChange', { status: expoPlayer.status });
+    const { status: evStatus, error: evError } = useEvent(expoPlayer, 'statusChange', { status: expoPlayer.status });
+    // Surface the real expo-video error (codec/HLS/network) — "ExoPlayer error" alone is opaque.
+    useEffect(() => {
+      if (__DEV__ && evStatus === 'error') {
+        console.log('[VK-SNIFF] expo-video error detail:', JSON.stringify(evError ?? expoPlayer.status));
+      }
+    }, [evStatus, evError]); // eslint-disable-line react-hooks/exhaustive-deps
     const { isPlaying: evIsPlaying } = useEvent(expoPlayer, 'playingChange', { isPlaying: expoPlayer.playing, oldIsPlaying: expoPlayer.playing });
     const { currentTime: evCurrentTime } = useEvent(expoPlayer, 'timeUpdate', { currentTime: 0, currentLiveTimestamp: null, currentOffsetFromLive: null, bufferedPosition: 0 });
 
@@ -225,8 +242,8 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
     // Update player source when avUri/headers/mode changes
     useEffect(() => {
       if (useWebview || !avUri) return;
-      expoPlayer.replace({ uri: avUri, headers: avHeaders });
-    }, [avUri, avHeadersKey, useWebview]); // eslint-disable-line react-hooks/exhaustive-deps
+      expoPlayer.replace({ uri: avUri, headers: avHeaders, contentType: avContentType });
+    }, [avUri, avHeadersKey, useWebview, avContentType]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Handle player ready — fire onReady exactly once, mark avLoaded
     useEffect(() => {
