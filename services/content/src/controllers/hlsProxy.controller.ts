@@ -133,6 +133,53 @@ const M3U8_PROXY_PATH    = '/api/v1/content/hls-proxy';
 const SEGMENT_PROXY_PATH = '/api/v1/content/hls-proxy/segment';
 
 /**
+ * Picks the best variant playlist URL from a MASTER playlist, capped at 1080p so we
+ * never serve 4K through the proxy. Returns an absolute URL or null.
+ *
+ * Flattening a master to a single media playlist server-side is far more reliable than
+ * asking ExoPlayer to follow a *proxied* master (nested ?url= masters confuse its
+ * relative-URL resolution → it silently refuses to fetch any variant). The player then
+ * only ever sees a plain segment list, which is the path that already works.
+ */
+function pickBestVariantUrl(masterContent: string, masterUrl: string): string | null {
+  const lines = masterContent.split('\n');
+  let best: { bandwidth: number; url: string } | null = null;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line.toUpperCase().startsWith('#EXT-X-STREAM-INF')) continue;
+
+    const resMatch = /RESOLUTION=(\d+)x(\d+)/i.exec(line);
+    const height = resMatch ? parseInt(resMatch[2], 10) : 0;
+    if (height > 1080) continue; // skip > 1080p
+
+    const bwMatch = /BANDWIDTH=(\d+)/i.exec(line);
+    const bandwidth = bwMatch ? parseInt(bwMatch[1], 10) : 0;
+
+    // The variant URL is the next non-comment, non-empty line
+    let url = '';
+    for (let j = i + 1; j < lines.length; j++) {
+      const cand = lines[j].trim();
+      if (!cand || cand.startsWith('#')) continue;
+      url = cand;
+      break;
+    }
+    if (!url) continue;
+
+    let absolute: string;
+    try {
+      absolute = url.startsWith('http') ? url : new URL(url, masterUrl).toString();
+    } catch {
+      continue;
+    }
+
+    if (!best || bandwidth > best.bandwidth) best = { bandwidth, url: absolute };
+  }
+
+  return best?.url ?? null;
+}
+
+/**
  * Rewrites an m3u8 so every nested URL flows back through this proxy.
  *
  * Two playlist kinds need different handling:
@@ -146,7 +193,7 @@ const SEGMENT_PROXY_PATH = '/api/v1/content/hls-proxy/segment';
  * token — raw JWT — is embedded in every rewritten URL so ExoPlayer can authenticate
  * without a header (it forwards Authorization to neither segments nor nested playlists).
  */
-function rewriteM3u8(content: string, baseUrl: string, referer: string, token?: string): string {
+function rewriteM3u8(content: string, baseUrl: string, referer: string, token: string | undefined, publicBase: string): string {
   const lines = content.split('\n');
   const tokenParam = token ? `&token=${encodeURIComponent(token)}` : '';
   const isMaster = /#EXT-X-STREAM-INF/i.test(content);
@@ -163,7 +210,10 @@ function rewriteM3u8(content: string, baseUrl: string, referer: string, token?: 
       logger.warn('HLS rewrite: SSRF guard blocked URL', { url: absoluteUrl, ssrfError });
       return rawUrl;
     }
-    return `${proxyPath}?url=${encodeURIComponent(absoluteUrl)}&referer=${encodeURIComponent(referer)}${tokenParam}`;
+    // Absolute URL (full origin) — ExoPlayer resolves relative refs against the *proxied*
+    // master URL (which itself carries a ?url= query), so absolute-path refs are ambiguous.
+    // A full https URL removes any base-resolution doubt.
+    return `${publicBase}${proxyPath}?url=${encodeURIComponent(absoluteUrl)}&referer=${encodeURIComponent(referer)}${tokenParam}`;
   };
 
   const isPlaylistRef = (url: string): boolean =>
@@ -251,9 +301,41 @@ export const hlsProxyController = {
         return;
       }
 
-      // rawToken (query ?token= or Authorization, resolved above) is embedded in every
-      // rewritten nested URL so ExoPlayer can auth without forwarding headers.
-      const rewritten = rewriteM3u8(bodyText, decodedUrl, decodedReferer, rawToken);
+      const publicBase = `${req.protocol}://${req.get('host')}`;
+
+      // Flatten a MASTER playlist to its best variant's MEDIA playlist server-side.
+      // ExoPlayer reliably plays a plain segment list but silently refuses to follow a
+      // *proxied* master (nested ?url= masters break its relative-URL resolution).
+      let playlistUrl  = decodedUrl;
+      let playlistBody = bodyText;
+      if (/#EXT-X-STREAM-INF/i.test(bodyText)) {
+        const variantUrl = pickBestVariantUrl(bodyText, decodedUrl);
+        if (variantUrl && !validateProxyUrl(variantUrl)) {
+          try {
+            const vResult = await fetchBuffered(variantUrl, decodedReferer);
+            const vBody   = vResult.body.toString('utf-8');
+            if (vResult.statusCode < 400 && vBody.trimStart().startsWith('#EXTM3U')) {
+              playlistUrl  = variantUrl;
+              playlistBody = vBody;
+            } else {
+              logger.warn('HLS proxy: variant fetch failed, falling back to master rewrite', { variantUrl, status: vResult.statusCode });
+            }
+          } catch (e) {
+            logger.warn('HLS proxy: variant fetch error, falling back to master rewrite', { variantUrl, error: (e as Error).message });
+          }
+        }
+      }
+
+      logger.info('HLS proxy: serving playlist', {
+        requested: decodedUrl,
+        served:    playlistUrl,
+        kind:      /#EXT-X-STREAM-INF/i.test(playlistBody) ? 'master' : 'media',
+        bytes:     playlistBody.length,
+      });
+
+      // rawToken (query ?token= or Authorization) is embedded in every rewritten URL so
+      // ExoPlayer can auth without forwarding headers. publicBase → absolute URLs.
+      const rewritten = rewriteM3u8(playlistBody, playlistUrl, decodedReferer, rawToken, publicBase);
 
       res.setHeader('Content-Type',                  'application/vnd.apple.mpegurl');
       res.setHeader('Cache-Control',                 'no-store');
