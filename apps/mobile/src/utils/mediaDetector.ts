@@ -392,6 +392,15 @@ export const MEDIA_DETECTION_JS = `
     }, 5000);
   }
 
+  // Continuous poll: keep scanning every 2s the whole time the site is open, so a video
+  // that only appears after a click / lazy player init (uzmovi Video.js, many CIS sites)
+  // is still detected → import popup shows up without the user reloading. scanVideos()
+  // dedupes via lastReportedVideoUrl, so re-finding the same URL is a no-op.
+  if (window._csPollTimer) clearInterval(window._csPollTimer);
+  window._csPollTimer = setInterval(function() {
+    try { scanVideos(); } catch(e) {}
+  }, 2000);
+
   // Initial scan
   scanVideos();
   startFallbackTimer();
