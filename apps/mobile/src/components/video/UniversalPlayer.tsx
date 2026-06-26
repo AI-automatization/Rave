@@ -14,7 +14,7 @@ import {
 } from './WebViewAdapters';
 import { colors, typography, spacing } from '@theme/index';
 import { useT } from '@i18n/index';
-import { detectVideoPlatform, extractYouTubeVideoId, getYouTubeMobileUrl, MOBILE_UA } from '@utils/videoPlayer';
+import { detectVideoPlatform, extractYouTubeVideoId, getYouTubeMobileUrl, MOBILE_UA, resolveHlsMasterToVariant } from '@utils/videoPlayer';
 import { CDN_SNIFF_JS } from '@utils/webViewScripts';
 import type { PlaybackStatus } from '@app-types/index';
 
@@ -207,6 +207,29 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
       /\/(hls|manifest|playlist\.m3u8|master\.m3u8|chunklist)/i.test(avUri);
     const avContentType: 'hls' | 'auto' = isHlsSource ? 'hls' : 'auto';
 
+    // Some HLS master playlists must be flattened to a variant ON THE DEVICE before
+    // ExoPlayer sees them (Rutube: bl.rutube.ru master is IP-locked + signed with raw
+    // commas ExoPlayer percent-encodes → 403). Fetching here (phone IP) yields a
+    // comma-free variant signed for this device. Heuristic: Rutube balancer master.
+    const needsClientFlatten = /bl\.rutube\.ru|\/route\/[^?]*\.m3u8\?.*guids=/i.test(avUri);
+    const [flattenedUri, setFlattenedUri] = useState<string | null>(null);
+    const flattenSourceRef = useRef<string | null>(null);
+    useEffect(() => {
+      if (!needsClientFlatten) { setFlattenedUri(null); flattenSourceRef.current = null; return; }
+      if (flattenSourceRef.current === avUri) return; // already resolving/resolved this URI
+      flattenSourceRef.current = avUri;
+      let cancelled = false;
+      void resolveHlsMasterToVariant(avUri, avHeaders).then((resolved) => {
+        if (cancelled) return;
+        if (__DEV__) console.log('[VK-SNIFF] client flatten:', resolved === avUri ? 'no-op' : 'variant ' + resolved.slice(0, 80));
+        setFlattenedUri(resolved);
+      });
+      return () => { cancelled = true; };
+    }, [avUri, needsClientFlatten]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Effective URI fed to ExoPlayer: the flattened variant when required, else avUri.
+    const playerUri = needsClientFlatten ? flattenedUri : avUri;
+
     // expo-video player (hooks must be unconditional — no early returns before this)
     // timeUpdateEventInterval MUST be set or expo-video never emits 'timeUpdate' →
     // evCurrentTime stays 0 → progress bar frozen at 0:00 + watch party sync gets no position.
@@ -239,11 +262,12 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
     // Stable serialized headers key to detect real header changes without object identity churn
     const avHeadersKey = JSON.stringify(avHeaders);
 
-    // Update player source when avUri/headers/mode changes
+    // Update player source when the (possibly flattened) URI / headers / mode changes.
+    // playerUri is null while a required client-flatten is in flight — don't load yet.
     useEffect(() => {
-      if (useWebview || !avUri) return;
-      expoPlayer.replace({ uri: avUri, headers: avHeaders, contentType: avContentType });
-    }, [avUri, avHeadersKey, useWebview, avContentType]); // eslint-disable-line react-hooks/exhaustive-deps
+      if (useWebview || !playerUri) return;
+      expoPlayer.replace({ uri: playerUri, headers: avHeaders, contentType: avContentType });
+    }, [playerUri, avHeadersKey, useWebview, avContentType]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Handle player ready — fire onReady exactly once, mark avLoaded
     useEffect(() => {

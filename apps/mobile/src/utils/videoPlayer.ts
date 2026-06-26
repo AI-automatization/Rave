@@ -72,3 +72,61 @@ export function detectVideoPlatform(url: string): VideoPlatform {
   if (/\/(video|vod|cdn|media)\/[^/]+\/(index|master|720p|480p|360p|1080p|hls)/i.test(url)) return 'direct';
   return 'webview';
 }
+
+/**
+ * Resolves an HLS MASTER playlist to its best variant MEDIA playlist URL, fetched from
+ * the device (residential IP). Needed for CDNs that:
+ *  - lock the variant token to the IP that fetched the master (Rutube, VK) — a server
+ *    proxy can't help because it fetches from a blocked datacenter IP; and/or
+ *  - sign the master URL with raw commas (Rutube `guids=a,b,c`) that ExoPlayer
+ *    percent-encodes → signature mismatch → 403.
+ *
+ * Fetching the master here (commas left raw) yields variant URLs already signed for THIS
+ * device's IP and without commas, so ExoPlayer can play them directly.
+ *
+ * Returns the best variant URL (≤1080p), or the original URL if it's already a media
+ * playlist / not fetchable. Never throws.
+ */
+export async function resolveHlsMasterToVariant(
+  masterUrl: string,
+  headers?: Record<string, string>,
+): Promise<string> {
+  try {
+    const res = await fetch(masterUrl, { headers });
+    if (!res.ok) return masterUrl;
+    const text = await res.text();
+    if (!/#EXT-X-STREAM-INF/i.test(text)) return masterUrl; // already a media playlist
+
+    const lines = text.split('\n');
+    let best: { bandwidth: number; url: string } | null = null;
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!/^#EXT-X-STREAM-INF/i.test(line)) continue;
+
+      const resMatch = /RESOLUTION=\d+x(\d+)/i.exec(line);
+      const height = resMatch ? parseInt(resMatch[1], 10) : 0;
+      if (height > 1080) continue; // cap at 1080p
+
+      const bwMatch = /BANDWIDTH=(\d+)/i.exec(line);
+      const bandwidth = bwMatch ? parseInt(bwMatch[1], 10) : 0;
+
+      let variant = '';
+      for (let j = i + 1; j < lines.length; j++) {
+        const cand = lines[j].trim();
+        if (!cand || cand.startsWith('#')) continue;
+        variant = cand;
+        break;
+      }
+      if (!variant) continue;
+
+      let absolute: string;
+      try { absolute = variant.startsWith('http') ? variant : new URL(variant, masterUrl).toString(); }
+      catch { continue; }
+
+      if (!best || bandwidth > best.bandwidth) best = { bandwidth, url: absolute };
+    }
+    return best?.url ?? masterUrl;
+  } catch {
+    return masterUrl;
+  }
+}
