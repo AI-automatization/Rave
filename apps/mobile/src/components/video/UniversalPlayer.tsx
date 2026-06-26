@@ -130,10 +130,21 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
     const onCdnUrlSniffedRef = useRef(onCdnUrlSniffed);
     onCdnUrlSniffedRef.current = onCdnUrlSniffed;
 
+    // Diagnostic: log VK/Rutube sniff decision once per state change
+    useEffect(() => {
+      if (!isVkRutubeAndroid) return;
+      if (__DEV__) console.log(`[VK-SNIFF] state: embed=${embedPlatform} sniffUrl=${sniffUrl ?? 'null'} sniffed=${sniffedUrl ?? 'null'} forceWebView=${forceAndroidWebView}`);
+    }, [isVkRutubeAndroid, embedPlatform, sniffUrl, sniffedUrl, forceAndroidWebView]);
+
     const handleSniffMessage = useCallback((event: WebViewMessageEvent) => {
       try {
         const data = JSON.parse(event.nativeEvent.data);
+        if (data.type === 'CDN_SNIFF_LOG') {
+          if (__DEV__) console.log(`[VK-SNIFF] ${data.stage}: ${data.url}`);
+          return;
+        }
         if (data.type === 'CDN_URL_SNIFFED' && data.url) {
+          if (__DEV__) console.log('[VK-SNIFF] ✅ CDN URL captured → switching to ExoPlayer:', data.url);
           setSniffedUrl(data.url);
           onCdnUrlSniffedRef.current?.(data.url);
         }
@@ -224,6 +235,7 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
     // Handle player error — try proxy fallback, then show error state
     useEffect(() => {
       if (useWebview || evStatus !== 'error') return;
+      if (__DEV__) console.log(`[VK-SNIFF] ❌ ExoPlayer error on uri=${avUri} | usingProxy=${usingProxy} | hasProxyFallback=${!!proxyUrl}`);
       if (!usingProxy && proxyUrl) {
         setUsingProxy(true);
         setAvLoaded(false);
@@ -231,7 +243,7 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
       } else {
         setVideoError(true);
       }
-    }, [evStatus, useWebview, usingProxy, proxyUrl]);
+    }, [evStatus, useWebview, usingProxy, proxyUrl]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Synthesize PlaybackStatus for watch party sync (~4x/sec via timeUpdate + on state changes)
     useEffect(() => {

@@ -94,6 +94,15 @@ export function isPlaceholderVideoUrl(url: string): boolean {
 export const CDN_SNIFF_JS = `
 (function() {
   var sent = false;
+  var DEBUG = true; // emits CDN_SNIFF_LOG diagnostics — gate off after VK fix verified
+  function dbg(stage, url) {
+    if (!DEBUG || !window.ReactNativeWebView) return;
+    try {
+      window.ReactNativeWebView.postMessage(
+        JSON.stringify({ type: 'CDN_SNIFF_LOG', stage: stage, url: (url || '').slice(0, 200) })
+      );
+    } catch(e) {}
+  }
   function tryReport(url) {
     if (sent || typeof url !== 'string' || url.length < 20) return;
     var u = url.toLowerCase().split('?')[0];
@@ -104,8 +113,10 @@ export const CDN_SNIFF_JS = `
       || /\\/(hls|stream|chunklist)[\\/?]/.test(u)
       || /\\/(index|master|playlist|video)\\.m3u8/.test(u);
     if (!isStream) return;
-    if (/ads?[_\\-]|preroll|midroll|postroll/i.test(url)) return;
+    dbg('candidate', url);
+    if (/ads?[_\\-]|preroll|midroll|postroll/i.test(url)) { dbg('skip-ad', url); return; }
     sent = true;
+    dbg('sniffed', url);
     window.ReactNativeWebView && window.ReactNativeWebView.postMessage(
       JSON.stringify({ type: 'CDN_URL_SNIFFED', url: url })
     );
@@ -123,7 +134,7 @@ export const CDN_SNIFF_JS = `
   } catch(e) {}
   try {
     var _f = window.fetch;
-    window.fetch = function(r, o) { if (typeof r === 'string') tryReport(r); return _f.apply(this, arguments); };
+    window.fetch = function(r, o) { if (typeof r === 'string') tryReport(r); else if (r && r.url) tryReport(r.url); return _f.apply(this, arguments); };
   } catch(e) {}
   try {
     var _play = HTMLMediaElement.prototype.play;
@@ -134,7 +145,11 @@ export const CDN_SNIFF_JS = `
       return _play.call(this);
     };
   } catch(e) {}
-  // Poll video elements every 500ms — catches src set after player init
+  dbg('installed', location.href);
+  // Poll every 500ms — catches src set after player init AND scans performance
+  // resource timing for the okcdn.ru m3u8 fetched BEFORE our hooks installed
+  // (Android injectedJavaScriptBeforeContentLoaded runs async/late — XHR/fetch
+  // hooks miss the initial request; VK <video>.src is a blob: URL, not the CDN URL).
   var pollCount = 0;
   var poll = setInterval(function() {
     if (sent || ++pollCount > 40) { clearInterval(poll); return; }
@@ -143,6 +158,14 @@ export const CDN_SNIFF_JS = `
       for (var i = 0; i < videos.length; i++) {
         var s = videos[i].src || videos[i].currentSrc;
         if (s) tryReport(s);
+      }
+    } catch(e) {}
+    try {
+      if (window.performance && performance.getEntriesByType) {
+        var res = performance.getEntriesByType('resource');
+        for (var j = 0; j < res.length; j++) {
+          if (res[j] && res[j].name) tryReport(res[j].name);
+        }
       }
     } catch(e) {}
   }, 500);
