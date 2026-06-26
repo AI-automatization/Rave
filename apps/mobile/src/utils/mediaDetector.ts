@@ -508,6 +508,18 @@ export const MEDIA_INTERCEPT_EARLY_JS = `
     if (src === window._csEarlyReportedUrl) return;
     window._csEarlyReportedUrl = src;
     rn({ type: 'MEDIA_DETECTED', platform: 'direct', videoUrl: src, pageTitle: document.title || 'Video', pageUrl: window.location.href });
+    // DIAG (option C): is the manifest reachable from inside the WebView (its cookie jar)
+    // and is a token cookie visible to JS (not httpOnly)? Determines cookie-passthrough viability.
+    try {
+      if (/\\.(mpd|m3u8)(\\?|#|$)/i.test(src)) {
+        rn({ type: 'COOKIE_PROBE', cookie: (document.cookie || '').slice(0, 300), url: src });
+        fetch(src, { method: 'GET' }).then(function(r) {
+          rn({ type: 'MANIFEST_PROBE', status: r.status, ok: r.ok, url: src });
+        }).catch(function(e) {
+          rn({ type: 'MANIFEST_PROBE', status: -1, error: String(e).slice(0, 120), url: src });
+        });
+      }
+    } catch(e) {}
   }
 
   // HTMLMediaElement.src setter — catches player libs calling video.src = url
