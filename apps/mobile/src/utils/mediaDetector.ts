@@ -162,6 +162,59 @@ export const MEDIA_DETECTION_JS = `
     });
   }
 
+  // Universal extractor: pull the real master URL straight from common player libraries.
+  // More reliable than network sniffing — the player resolved the final URL already, and
+  // it works even when the <video> element only shows a blob:/MSE source.
+  function scanPlayerApis() {
+    try {
+      // JWPlayer — window.jwplayer().getPlaylist()[i].file / .sources[].file
+      if (typeof window.jwplayer === 'function') {
+        var jw = window.jwplayer();
+        if (jw && typeof jw.getPlaylist === 'function') {
+          var pl = jw.getPlaylist() || [];
+          for (var a = 0; a < pl.length; a++) {
+            var item = pl[a] || {};
+            if (isRealVideoSrc(item.file)) { reportVideoUrl(item.file); return true; }
+            var srcs = item.sources || [];
+            for (var b = 0; b < srcs.length; b++) {
+              if (isRealVideoSrc(srcs[b] && srcs[b].file)) { reportVideoUrl(srcs[b].file); return true; }
+            }
+          }
+        }
+      }
+    } catch(e) {}
+    try {
+      // Video.js — window.videojs.getAllPlayers()[i].currentSrc()/src()
+      if (window.videojs && typeof window.videojs.getAllPlayers === 'function') {
+        var players = window.videojs.getAllPlayers() || [];
+        for (var c = 0; c < players.length; c++) {
+          var cur = players[c] && players[c].currentSrc && players[c].currentSrc();
+          if (isRealVideoSrc(cur)) { reportVideoUrl(cur); return true; }
+        }
+      }
+    } catch(e) {}
+    try {
+      // HLS.js — instances stash their master URL on .url; some sites keep them on window
+      var hk = Object.keys(window);
+      for (var d = 0; d < hk.length; d++) {
+        var obj = window[hk[d]];
+        if (obj && typeof obj === 'object' && typeof obj.url === 'string'
+            && obj.levels && isRealVideoSrc(obj.url)) {
+          reportVideoUrl(obj.url); return true;
+        }
+      }
+    } catch(e) {}
+    try {
+      // Plyr / Clappr / Flowplayer expose the source on the element/instance
+      var plyr = document.querySelector('.plyr video, .clappr-player video, .flowplayer video');
+      if (plyr) {
+        var ps = plyr.src || plyr.currentSrc;
+        if (isRealVideoSrc(ps)) { reportVideoUrl(ps); return true; }
+      }
+    } catch(e) {}
+    return false;
+  }
+
   function scanVideos() {
     var url = window.location.href;
     if (isSearchPage(url)) return false;
@@ -190,6 +243,12 @@ export const MEDIA_DETECTION_JS = `
       }
       return true;
     }
+
+    // Player-library API scan — runs BEFORE the HTML5 <video> scan because libraries
+    // expose the real master URL directly, even when the <video> element only has a
+    // blob:/MSE src. Universal extractor: covers JWPlayer, Video.js, HLS.js, Plyr,
+    // Clappr, Flowplayer — the players most CIS / unknown sites use.
+    if (scanPlayerApis()) return true;
 
     // HTML5 video scan
     var videos = document.querySelectorAll('video');
