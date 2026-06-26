@@ -256,6 +256,11 @@ export async function ytDlpExtractor(
             hint: VK_COOKIE_FILE ? 'VK cookies loaded but extraction failed' : 'Set VK_COOKIES_JSON env var with vk.com session cookies',
           });
         }
+        if (!isYouTube && !isVk) {
+          // Previously silent — masked Rutube/other failures (e.g. stale yt-dlp can't
+          // parse the page). Log stderr so the next failure is diagnosable.
+          logger.warn('yt-dlp extraction failed', { url: rawUrl, code, stderr: stderr.slice(0, 300) });
+        }
         resolve(null);
         return;
       }

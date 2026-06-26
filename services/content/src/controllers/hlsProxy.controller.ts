@@ -142,7 +142,13 @@ function rewriteM3u8(content: string, baseUrl: string, referer: string, token?: 
   const tokenParam = token ? `&token=${encodeURIComponent(token)}` : '';
 
   const proxySegment = (segUrl: string): string => {
-    const absoluteUrl = segUrl.startsWith('http') ? segUrl : new URL(segUrl, baseUrl).toString();
+    let absoluteUrl: string;
+    try {
+      absoluteUrl = segUrl.startsWith('http') ? segUrl : new URL(segUrl, baseUrl).toString();
+    } catch {
+      // Not a valid (relative) URL — e.g. a non-m3u8 body slipped through. Leave as-is.
+      return segUrl;
+    }
     const ssrfError   = validateProxyUrl(absoluteUrl);
     if (ssrfError) {
       logger.warn('HLS rewrite: SSRF guard blocked segment URL', { url: absoluteUrl, ssrfError });
@@ -209,10 +215,21 @@ export const hlsProxyController = {
         return;
       }
 
+      const bodyText = result.body.toString('utf-8');
+
+      // Guard: only rewrite genuine HLS playlists. A non-m3u8 body (e.g. the Rutube
+      // player's hls.min.js, mis-detected as a stream by a /hls/ path match) would
+      // otherwise be parsed line-by-line as segments → invalid-URL crash.
+      if (!bodyText.trimStart().startsWith('#EXTM3U')) {
+        logger.warn('HLS proxy: upstream is not an m3u8 playlist', { url: decodedUrl });
+        res.status(415).json({ success: false, message: 'Not an HLS playlist' });
+        return;
+      }
+
       // Extract the raw token so it can be embedded in rewritten segment URLs.
       // ExoPlayer on Android does not forward Authorization to segment requests.
       const rawToken = (req.headers.authorization ?? '').replace(/^Bearer\s+/i, '') || undefined;
-      const rewritten = rewriteM3u8(result.body.toString('utf-8'), decodedUrl, decodedReferer, rawToken);
+      const rewritten = rewriteM3u8(bodyText, decodedUrl, decodedReferer, rawToken);
 
       res.setHeader('Content-Type',                  'application/vnd.apple.mpegurl');
       res.setHeader('Cache-Control',                 'no-store');
