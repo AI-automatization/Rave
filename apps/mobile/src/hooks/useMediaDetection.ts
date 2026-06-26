@@ -105,7 +105,12 @@ export function useMediaDetection() {
       // can re-extract a fresh CDN URL on join (embed URLs have shorter TTLs).
       // videoReferer always stores the page URL for CDN hotlink protection headers.
       const extractedUrl = result.videoUrl ?? '';
-      const isDirectCdnUrl = !!(extractedUrl
+      // VK / Rutube CDN URLs are IP-locked to the extraction server (Railway datacenter IP
+      // → 403 from the user's phone, and the HLS proxy fetches from that same blocked IP).
+      // For these we must keep the PAGE_URL so WatchParty detects the embed platform and
+      // sniffs the CDN URL client-side (phone's residential IP), bypassing the IP lock.
+      const isIpLockedPlatform = /(^|\.)rutube\.ru|(^|\.)vk\.com|(^|\.)vkvideo\.ru/i.test(url);
+      const isDirectCdnUrl = !isIpLockedPlatform && !!(extractedUrl
         && !extractedUrl.includes('videoplayback')
         && !extractedUrl.includes('googlevideo')
         && (
