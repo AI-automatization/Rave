@@ -94,7 +94,8 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const lastExecutedSyncRef = useRef<{ currentTime: number; isPlaying: boolean; serverTimestamp: number } | null>(null);
 
   const [showChat, setShowChat] = useState(false);
-  const [showVoice, setShowVoice] = useState(false);
+  // Voice panel open by default — room entry shows voice chat first (not text chat)
+  const [showVoice, setShowVoice] = useState(true);
   const [showInvite, setShowInvite] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);

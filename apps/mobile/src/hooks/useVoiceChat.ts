@@ -42,7 +42,8 @@ const ICE_SERVERS = [
 export function useVoiceChat(visible: boolean) {
   const { t } = useT();
   const [isJoined, setIsJoined] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
+  // Mic OFF by default — user auto-joins voice muted on room entry
+  const [isMuted, setIsMuted] = useState(true);
   const [participants, setParticipants] = useState<VoiceParticipant[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -209,6 +210,17 @@ export function useVoiceChat(visible: boolean) {
       return next;
     });
   }, []);
+
+  // ─── Auto-join (muted) when voice becomes visible ─────────────────────────────
+  // User enters room → auto-connects to voice with mic OFF. Fires once per mount;
+  // a manual leaveVoice won't trigger re-join (ref stays true).
+  const autoJoinedRef = useRef(false);
+  useEffect(() => {
+    if (!visible || !isWebRTCAvailable) return;
+    if (autoJoinedRef.current || isJoined || isLoading) return;
+    autoJoinedRef.current = true;
+    joinVoice();
+  }, [visible, isJoined, isLoading, joinVoice]);
 
   return { isJoined, isMuted, participants, isLoading, errorMsg, joinVoice, leaveVoice, toggleMute };
 }
