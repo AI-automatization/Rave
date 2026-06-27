@@ -9,6 +9,7 @@ import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ChatPanel, ChatMessage } from '@components/watchParty/ChatPanel';
 import { VoiceChat } from '@components/watchParty/VoiceChat';
+import { useVoiceChat } from '@hooks/useVoiceChat';
 import { EmojiPickerBar } from '@components/watchParty/EmojiFloat';
 import { VideoSection } from '@components/watchParty/VideoSection';
 import { RoomInfoBar } from '@components/watchParty/RoomInfoBar';
@@ -116,6 +117,10 @@ export function WatchPartyScreen() {
     handleChangeMedia, handleQualitySelect, handleEpisodeSelect, handleLeave, handlePlayerReady,
     handleCdnUrlSniffed,
   } = useWatchPartyRoom(params.roomId, params.videoReferer);
+
+  // Voice connection lifted to screen level — stays alive across panel switches.
+  // Auto-joins muted once the room is loaded; persists while user views chat.
+  const voice = useVoiceChat(!!room);
 
   // Lock orientation: landscape in fullscreen, portrait otherwise
   useEffect(() => {
@@ -241,10 +246,17 @@ export function WatchPartyScreen() {
           {/* Voice chat */}
           {showVoice && (
             <VoiceChat
-              roomId={params.roomId}
               currentUserId={userId}
               visible={showVoice}
               onClose={() => setShowVoice(false)}
+              isJoined={voice.isJoined}
+              isMuted={voice.isMuted}
+              participants={voice.participants}
+              isLoading={voice.isLoading}
+              errorMsg={voice.errorMsg}
+              onJoin={voice.joinVoice}
+              onLeave={voice.leaveVoice}
+              onToggleMute={voice.toggleMute}
             />
           )}
 
@@ -357,10 +369,17 @@ export function WatchPartyScreen() {
           {/* Voice chat panel */}
           {showVoice && (
             <VoiceChat
-              roomId={params.roomId}
               currentUserId={userId}
               visible={showVoice}
               onClose={() => setShowVoice(false)}
+              isJoined={voice.isJoined}
+              isMuted={voice.isMuted}
+              participants={voice.participants}
+              isLoading={voice.isLoading}
+              errorMsg={voice.errorMsg}
+              onJoin={voice.joinVoice}
+              onLeave={voice.leaveVoice}
+              onToggleMute={voice.toggleMute}
             />
           )}
 

@@ -39,7 +39,9 @@ const ICE_SERVERS = [
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
-export function useVoiceChat(visible: boolean) {
+// `active` keeps the voice connection alive for the whole room session,
+// independent of which bottom panel (voice/chat) is currently visible.
+export function useVoiceChat(active: boolean) {
   const { t } = useT();
   const [isJoined, setIsJoined] = useState(false);
   // Mic OFF by default — user auto-joins voice muted on room entry
@@ -147,7 +149,7 @@ export function useVoiceChat(visible: boolean) {
   // ─── Socket registration ──────────────────────────────────────────────────────
 
   useEffect(() => {
-    if (!visible) return;
+    if (!active) return;
     const socket = getSocket();
     if (!socket) return;
     socket.on(SERVER_EVENTS.VOICE_JOINED, handleVoiceJoined);
@@ -166,7 +168,7 @@ export function useVoiceChat(visible: boolean) {
       socket.off(SERVER_EVENTS.VOICE_ICE, handleIce);
       socket.off(SERVER_EVENTS.VOICE_SPEAKING, handleSpeaking);
     };
-  }, [visible, handleVoiceJoined, handleUserJoined, handleUserLeft, handleOffer, handleAnswer, handleIce, handleSpeaking]);
+  }, [active, handleVoiceJoined, handleUserJoined, handleUserLeft, handleOffer, handleAnswer, handleIce, handleSpeaking]);
 
   useEffect(() => () => { leaveVoiceInternal(); }, [leaveVoiceInternal]);
 
@@ -216,11 +218,11 @@ export function useVoiceChat(visible: boolean) {
   // a manual leaveVoice won't trigger re-join (ref stays true).
   const autoJoinedRef = useRef(false);
   useEffect(() => {
-    if (!visible || !isWebRTCAvailable) return;
+    if (!active || !isWebRTCAvailable) return;
     if (autoJoinedRef.current || isJoined || isLoading) return;
     autoJoinedRef.current = true;
     joinVoice();
-  }, [visible, isJoined, isLoading, joinVoice]);
+  }, [active, isJoined, isLoading, joinVoice]);
 
   return { isJoined, isMuted, participants, isLoading, errorMsg, joinVoice, leaveVoice, toggleMute };
 }
