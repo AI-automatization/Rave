@@ -194,6 +194,74 @@
 
 ---
 
+# 🔄 Sprint 12: Mesh Sync Migration (2026-06-29)
+
+> Kontekst: real qurilmada Socket.io sync ishladi, ammo 1-2s kechikish bilan.
+> Mesh kodi YOZILGAN, ammo HALI ULANMAGAN — `SyncBroadcaster`/`MeshClient` faqat `services/mesh/` ichida, useWatchPartyRoom unga ulanmagan.
+> Vazifa: mavjud mesh karkasni ulash + 2 blocker (clock-offset, TURN) yopish.
+> Zo'rlik: T-S106 → T-S107 → T-C016 (ketma-ket)
+
+---
+
+### T-S106 | P1 | [MOBILE] | Mesh Faza 0: clock-sync handshake + TURN | pending[Saidazim]
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-06-29
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** 2-3 fayl, WebRTC DataChannel handshake + env config, o'rta murakkablik
+- **Sabab:** BLOCKER — `SyncProtocol.calcDrift` peer soatlari bir xil deb hisoblaydi (`Date.now() - ownerTimestamp`), bu noto'g'ri. TURN creds bo'sh → mobil CGNAT'da mesh ulanmaydi. Bularsiz mesh Socket.io'dan tezroq ishlamaydi.
+- **Qilish kerak:**
+  - [ ] DataChannel ping/pong → clock offset + RTT baholash (NTP-style)
+  - [ ] Offset'ni `SyncProtocol.calcDrift` va `scheduledAt` hisobiga qo'shish
+  - [ ] TURN: metered.ca account → `EXPO_PUBLIC_TURN_*` env to'ldirish (`config.ts`)
+  - [ ] 4G/sotuvchi tarmoqda 2 qurilma ICE connect tekshirish
+- **Fayllar:** `apps/mobile/src/services/mesh/SyncProtocol.ts`, `MeshClient.ts`, `config.ts`
+
+---
+
+### T-S107 | P1 | [MOBILE] | Mesh Faza 1: SyncBroadcaster'ni useWatchPartyRoom'ga ulash | pending[Saidazim]
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-06-29
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** opus
+- **Model sababi:** Ikkita parallel sync tizimini birlashtirish, owner-authority, late-join seed — arxitektura tushunish kerak
+- **Sabab:** Asosiy gap — mesh kodi ulanmagan. Owner play/pause/seek/heartbeat `SyncBroadcaster` orqali ketishi, follower'lar mesh xabarlarni qo'llashi kerak.
+- **Qilish kerak:**
+  - [ ] `useWatchPartyRoom` → `SyncBroadcaster` instance (owner flag bilan)
+  - [ ] Owner-only broadcast (echo-loop oldini olish)
+  - [ ] Kech qo'shilgan peer → Redis `getSyncState` dan boshlang'ich pozitsiya seed
+  - [ ] Socket.io fallback saqlanishini tekshirish (mesh fail → socket)
+  - [ ] 2 qurilma WiFi'da sync kechikishni o'lchash (maqsad <300ms)
+- **Bog'liq:** T-S106
+- **Fayllar:** `apps/mobile/src/hooks/useWatchPartyRoom.ts`, `services/mesh/SyncBroadcaster.ts`
+
+---
+
+### T-C016 | P2 | [IKKALASI] | Mesh Faza 2: star-topology + QA matritsa (2/5/10 peer, drift, fallback)
+
+- **Mas'ul:** pending[Saidazim] + pending[Emirhan]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-06-29
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** Star-hub routing + E2E test matritsa, 2-3 fayl + manual test
+- **Sabab:** `TopologyManager` 7-15 peer uchun `star` qaytaradi, ammo `MeshClient` doim full-mesh qiladi (n² ulanish). + T-C015 "done" deb belgilangan, ammo mesh ulanmagan edi — haqiqiy QA kerak.
+- **Qilish kerak:**
+  - [ ] Star-topology: owner hub orqali routing (7-15 peer)
+  - [ ] QA: 2 peer / 5 peer / 10 peer full sync
+  - [ ] Peer drop → qolganlar davom etadi | Owner drop → handling
+  - [ ] Drift test: sun'iy 3s drift → tiklanish
+  - [ ] Poor network → ICE fail → Socket.io fallback
+  - [ ] Natijani Done.md ga matritsa sifatida
+- **Bog'liq:** T-S107
+- **Fayllar:** `apps/mobile/src/services/mesh/MeshClient.ts`, `TopologyManager.ts`
+
+---
+
 # ═══════════════════════════════════════
 
 # 🟢 EMIRHAN — EXPO REACT NATIVE MOBILE + WEB
