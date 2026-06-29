@@ -7,7 +7,19 @@ import {
 } from 'react-native-webrtc';
 import { getSocket, CLIENT_EVENTS, SERVER_EVENTS } from '@socket/client';
 import { meshConfig } from './config';
+import { getIceServers } from './iceServers';
 import type { MeshPeer, MeshEventHandler, SyncMessage, MeshSignalPayload } from './types';
+
+// NTP-style clock sync exchanged over the DataChannel. Kept off the SyncMessage
+// union so it never reaches sync consumers — handled internally by MeshClient.
+interface ClockMsg {
+  __clock: 'ping' | 'pong';
+  t0: number;        // initiator send time (initiator clock)
+  t1?: number;       // responder receive/send time (responder clock)
+}
+
+const CLOCK_PING_ROUNDS = 5;
+const CLOCK_PING_INTERVAL_MS = 400;
 
 export class MeshClient {
   private peers = new Map<string, MeshPeer>();
@@ -15,6 +27,9 @@ export class MeshClient {
   private roomId: string;
   private onEvent: MeshEventHandler;
   private destroyed = false;
+  // Clock offset (ms) per peer: peerClock = ourClock + offset. Best (min-RTT) sample wins.
+  private clockOffsets = new Map<string, number>();
+  private bestRtt = new Map<string, number>();
 
   constructor(userId: string, roomId: string, onEvent: MeshEventHandler) {
     this.userId = userId;
@@ -79,8 +94,10 @@ export class MeshClient {
   // react-native-webrtc RTCPeerConnection extends EventTarget — event callback
   // properties (onicecandidate, etc.) are NOT in the .d.ts, but addEventListener works at runtime.
   // We cast to avoid TS conflicts between react-native-webrtc and global WebRTC types.
-  private createPeerConnection(peerId: string): RTCPeerConnection {
-    const pc = new RTCPeerConnection({ iceServers: meshConfig.iceServers });
+  private async createPeerConnection(peerId: string): Promise<RTCPeerConnection> {
+    // TURN creds from backend (cached); STUN fallback baked into getIceServers.
+    const iceServers = await getIceServers().catch(() => meshConfig.iceServers);
+    const pc = new RTCPeerConnection({ iceServers });
     const pcAny = pc as unknown as Record<string, unknown>;
 
     pcAny.onicecandidate = (event: { candidate: { candidate: string; sdpMid: string | null; sdpMLineIndex: number | null } | null }) => {
@@ -121,13 +138,24 @@ export class MeshClient {
 
     channel.onmessage = (event: { data: string }) => {
       try {
-        const msg = JSON.parse(event.data) as SyncMessage;
-        this.onEvent({ type: 'sync', peerId, syncMessage: msg });
+        const parsed = JSON.parse(event.data) as SyncMessage | ClockMsg;
+        if ((parsed as ClockMsg).__clock) {
+          this.handleClockMessage(peerId, parsed as ClockMsg);
+          return;
+        }
+        // Attach sender's clock offset so consumers can correct cross-device drift.
+        this.onEvent({
+          type: 'sync',
+          peerId,
+          syncMessage: parsed as SyncMessage,
+          clockOffset: this.clockOffsets.get(peerId) ?? 0,
+        });
       } catch { /* ignore malformed */ }
     };
 
     channel.onopen = () => {
       if (__DEV__) console.log(`[MeshClient] DataChannel open: ${peerId}`);
+      this.startClockSync(peerId);
     };
 
     channel.onclose = () => {
@@ -141,6 +169,53 @@ export class MeshClient {
     peer.dataChannel?.close();
     peer.connection.close();
     this.peers.delete(peerId);
+    this.clockOffsets.delete(peerId);
+    this.bestRtt.delete(peerId);
+  }
+
+  // ── Clock sync (NTP-style over DataChannel) ──────────────────────────
+  // Without this, drift math assumes both devices share a wall clock — they don't.
+  // peerClock = ourClock + offset; we keep the offset from the lowest-RTT round.
+
+  /** Get measured clock offset (ms) for a peer. peerClock = ourClock + offset. */
+  getClockOffset(peerId: string): number {
+    return this.clockOffsets.get(peerId) ?? 0;
+  }
+
+  private startClockSync(peerId: string): void {
+    let round = 0;
+    const tick = (): void => {
+      const peer = this.peers.get(peerId);
+      if (this.destroyed || !peer || peer.dataChannel?.readyState !== 'open') return;
+      const ping: ClockMsg = { __clock: 'ping', t0: Date.now() };
+      peer.dataChannel.send(JSON.stringify(ping));
+      if (++round < CLOCK_PING_ROUNDS) setTimeout(tick, CLOCK_PING_INTERVAL_MS);
+    };
+    tick();
+  }
+
+  private handleClockMessage(peerId: string, msg: ClockMsg): void {
+    const peer = this.peers.get(peerId);
+    if (!peer || peer.dataChannel?.readyState !== 'open') return;
+
+    if (msg.__clock === 'ping') {
+      // Responder: echo t0, stamp our clock as t1.
+      const pong: ClockMsg = { __clock: 'pong', t0: msg.t0, t1: Date.now() };
+      peer.dataChannel.send(JSON.stringify(pong));
+      return;
+    }
+
+    // Initiator received pong: t0=our send, t1=peer stamp, t2=our recv.
+    const t2 = Date.now();
+    const t1 = msg.t1 ?? t2;
+    const rtt = t2 - msg.t0;
+    const offset = t1 - (msg.t0 + t2) / 2; // peerClock - ourClock
+    const prevRtt = this.bestRtt.get(peerId) ?? Infinity;
+    if (rtt < prevRtt) {
+      this.bestRtt.set(peerId, rtt);
+      this.clockOffsets.set(peerId, offset);
+      if (__DEV__) console.log(`[MeshClient] clock ${peerId}: offset=${offset.toFixed(0)}ms rtt=${rtt}ms`);
+    }
   }
 
   // ── Private: Signalling handlers ─────────────────────────────────
@@ -157,7 +232,8 @@ export class MeshClient {
 
   private async createOffer(peerId: string): Promise<void> {
     try {
-      const pc = this.createPeerConnection(peerId);
+      const pc = await this.createPeerConnection(peerId);
+      if (this.destroyed) { pc.close(); return; }
       const channel = pc.createDataChannel(meshConfig.dataChannelLabel);
       const peer: MeshPeer = { userId: peerId, connection: pc, dataChannel: null, isConnected: false };
       this.peers.set(peerId, peer);
@@ -180,7 +256,8 @@ export class MeshClient {
     if (this.destroyed || !data.sdp) return;
     try {
       const peerId = data.fromUserId;
-      const pc = this.createPeerConnection(peerId);
+      const pc = await this.createPeerConnection(peerId);
+      if (this.destroyed) { pc.close(); return; }
       const peer: MeshPeer = { userId: peerId, connection: pc, dataChannel: null, isConnected: false };
       this.peers.set(peerId, peer);
 

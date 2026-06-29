@@ -27,6 +27,8 @@ export interface MeshEvent {
   peerId?: string;
   syncMessage?: SyncMessage;
   error?: string;
+  /** Clock offset (ms) of the sending peer relative to us: peerClock = ourClock + clockOffset */
+  clockOffset?: number;
 }
 
 export type MeshEventHandler = (event: MeshEvent) => void;
