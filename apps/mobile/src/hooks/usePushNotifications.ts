@@ -32,6 +32,15 @@ export function usePushNotifications() {
   const queryClient = useQueryClient();
   const receivedRef = useRef<Notifications.EventSubscription | null>(null);
 
+  // Ask for the OS notification permission as soon as the app opens — independent of
+  // login. On Android 13+ POST_NOTIFICATIONS is a runtime permission; without this the
+  // system dialog never appeared until after sign-in. Token registration still waits
+  // for auth (below) so it can be tied to the user.
+  useEffect(() => {
+    if (isExpoGo) return;
+    void ensureNotificationPermission();
+  }, []);
+
   useEffect(() => {
     if (!isAuthenticated || isExpoGo) return;
 
@@ -53,23 +62,27 @@ export function usePushNotifications() {
   }, [isAuthenticated, queryClient]);
 }
 
+// Sets up the Android channel and requests the OS notification permission (prompting
+// if still undetermined). Returns the final permission status. Safe to call repeatedly.
+export async function ensureNotificationPermission(): Promise<Notifications.PermissionStatus> {
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync('default', {
+      name: 'default',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+    });
+  }
+
+  const { status: existingStatus } = await Notifications.getPermissionsAsync();
+  if (existingStatus === 'granted') return existingStatus;
+
+  const { status } = await Notifications.requestPermissionsAsync();
+  return status;
+}
+
 async function registerForPushNotifications(): Promise<void> {
   try {
-    if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync('default', {
-        name: 'default',
-        importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 250, 250, 250],
-      });
-    }
-
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-
-    if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
+    const finalStatus = await ensureNotificationPermission();
 
     if (finalStatus !== 'granted') {
       if (__DEV__) console.log('[Push] Permission not granted — status:', finalStatus);

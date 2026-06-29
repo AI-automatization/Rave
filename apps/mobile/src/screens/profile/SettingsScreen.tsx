@@ -1,6 +1,7 @@
 // WeWatch Mobile — SettingsScreen (composed)
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Alert, Linking } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Alert, Linking, AppState } from 'react-native';
+import * as Notifications from 'expo-notifications';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { RootStackParamList } from '@app-types/index';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,6 +12,7 @@ import { authApi } from '@api/auth.api';
 import { useAuthStore } from '@store/auth.store';
 import { useMyProfile } from '@hooks/useProfile';
 import { useLanguageStore, Language } from '@store/language.store';
+import { ensureNotificationPermission } from '@hooks/usePushNotifications';
 // theme.store import removed — dark mode only
 import { useT } from '@i18n/index';
 import {
@@ -56,6 +58,29 @@ export function SettingsScreen() {
   const [activeModal, setActiveModal] = useState<ActiveModal>(null);
   const [editUsername, setEditUsername] = useState('');
   const [editBio, setEditBio] = useState('');
+
+  // System notification permission — drives the "Enable notifications" row visibility.
+  // Re-checked when the app returns to foreground (e.g. after the user toggles it in
+  // system settings) so the row disappears once granted.
+  const [notifGranted, setNotifGranted] = useState(true);
+  useEffect(() => {
+    const check = () => {
+      void Notifications.getPermissionsAsync().then(({ status }) => setNotifGranted(status === 'granted'));
+    };
+    check();
+    const sub = AppState.addEventListener('change', s => { if (s === 'active') check(); });
+    return () => sub.remove();
+  }, []);
+
+  const handleEnableNotifs = async () => {
+    const status = await ensureNotificationPermission();
+    if (status === 'granted') {
+      setNotifGranted(true);
+    } else {
+      // Already denied — the OS won't prompt again, so send the user to system settings.
+      void Linking.openSettings();
+    }
+  };
 
   const openEditProfile = () => {
     setEditUsername(user?.username ?? '');
@@ -159,6 +184,20 @@ export function SettingsScreen() {
 
           {/* Notifications */}
           <SectionHeader title={t('settings', 'notifSection')} />
+          {!notifGranted && (
+            <View style={styles.card}>
+              <TouchableOpacity style={styles.navRow} onPress={handleEnableNotifs} activeOpacity={0.8}>
+                <Ionicons name="notifications-off-outline" size={18} color={colors.primary} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.navLabel}>{t('settings', 'enableNotifs')}</Text>
+                  <Text style={{ color: colors.textMuted, fontSize: 12, marginTop: 2 }}>
+                    {t('settings', 'enableNotifsSub')}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+          )}
           <View style={styles.card}>
             {NOTIFICATION_TOGGLES.map((item, i) => (
               <View key={item.key} style={i < NOTIFICATION_TOGGLES.length - 1 ? styles.rowBorder : undefined}>

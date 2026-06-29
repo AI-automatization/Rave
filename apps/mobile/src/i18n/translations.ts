@@ -401,6 +401,8 @@ export const translations = {
     accountSection: { uz: 'HISOB', ru: 'АККАУНТ', en: 'ACCOUNT' },
     langSection: { uz: 'TIL', ru: 'ЯЗЫК', en: 'LANGUAGE' },
     notifSection: { uz: 'BILDIRISHNOMALAR', ru: 'УВЕДОМЛЕНИЯ', en: 'NOTIFICATIONS' },
+    enableNotifs: { uz: 'Bildirishnomalarni yoqish', ru: 'Включить уведомления', en: 'Enable notifications' },
+    enableNotifsSub: { uz: 'Tizim sozlamalarida bildirishnomalar o‘chirilgan', ru: 'Уведомления отключены в настройках системы', en: 'Notifications are turned off in system settings' },
     privacySection: { uz: 'MAXFIYLIK', ru: 'КОНФИДЕНЦИАЛЬНОСТЬ', en: 'PRIVACY' },
     appSection: { uz: 'ILOVA', ru: 'ПРИЛОЖЕНИЕ', en: 'APP' },
     themeSection: { uz: 'TEMA', ru: 'ТЕМА', en: 'THEME' },
