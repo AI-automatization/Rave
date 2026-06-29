@@ -9,6 +9,7 @@
 - `grep` / `find` по кодовой базе
 - `Read` нужных `.md` файлов (Hub, Tasks, контекст зоны)
 - `bash .claude/scripts/memory-load.sh quick` при старте сессии
+- `bash .claude/scripts/rag.sh q "<тема>"` — семантический recall по Obsidian vault перед нетривиальной задачей (grep = буквально, RAG = по смыслу; RU/UZ/EN, ~1с). Пересбор индекса: `rag.sh index`
 
 Код не пишется и ответ не формируется до прочтения реальных файлов.
 
@@ -363,6 +364,8 @@ Brute force: 5 попыток → 15min блок | Socket.io JWT verify
 ```bash
 bash .claude/scripts/memory-load.sh quick   # ОБЯЗАТЕЛЬНО при каждом старте сессии
 bash .claude/scripts/memory-load.sh full    # перед сложными задачами (opus-уровень)
+bash .claude/scripts/rag.sh q "<тема>"      # семантический recall по vault перед нетривиальной задачей
+                                            # (дополняет grep: grep = буквально, RAG = по смыслу)
 ```
 
 Файлы памяти (в порядке чтения):
@@ -425,6 +428,7 @@ bash .claude/scripts/update-last-session.sh "T-SXXX" "что делали" "сл
 
 ```
 Память / контекст:
+  • RAG        → bash .claude/scripts/rag.sh q "<тема>"  (семантический поиск по vault — RU/UZ/EN, ~1с; grep дополняет)
   • MEMORY     → .claude/skills/memory.md           (read/write vault, resume session)
   • STATUS     → .claude/skills/status.md           (current project state snapshot)
   • RESEARCH   → .claude/skills/research.md         (explore before code — ОБЯЗАТЕЛЬНО)
