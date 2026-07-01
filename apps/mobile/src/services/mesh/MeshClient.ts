@@ -1,14 +1,30 @@
 // WeWatch — MeshClient: WebRTC peer connection manager
 // Manages RTCPeerConnection lifecycle, DataChannel creation, and signalling
-import {
-  RTCPeerConnection,
-  RTCSessionDescription,
-  RTCIceCandidate,
-} from 'react-native-webrtc';
 import { getSocket, CLIENT_EVENTS, SERVER_EVENTS } from '@socket/client';
 import { meshConfig } from './config';
 import { getIceServers } from './iceServers';
 import type { MeshPeer, MeshEventHandler, SyncMessage, MeshSignalPayload } from './types';
+
+// ─── WebRTC lazy imports ──────────────────────────────────────────────────────
+// A static `import ... from 'react-native-webrtc'` initializes the native module
+// (NativeEventEmitter) at bundle-eval time. In Expo Go that module doesn't exist →
+// "Invariant Violation: native module doesn't exist" crashes the app on startup.
+// Load lazily so importing MeshClient is safe; mesh simply stays disabled without it.
+let RTCPeerConnection: typeof import('react-native-webrtc').RTCPeerConnection | null = null;
+let RTCSessionDescription: typeof import('react-native-webrtc').RTCSessionDescription | null = null;
+let RTCIceCandidate: typeof import('react-native-webrtc').RTCIceCandidate | null = null;
+let webrtcAvailable = false;
+
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const webrtc = require('react-native-webrtc') as typeof import('react-native-webrtc');
+  RTCPeerConnection = webrtc.RTCPeerConnection;
+  RTCSessionDescription = webrtc.RTCSessionDescription;
+  RTCIceCandidate = webrtc.RTCIceCandidate;
+  webrtcAvailable = !!RTCPeerConnection;
+} catch {
+  webrtcAvailable = false;
+}
 
 // NTP-style clock sync exchanged over the DataChannel. Kept off the SyncMessage
 // union so it never reaches sync consumers — handled internally by MeshClient.
@@ -35,6 +51,11 @@ export class MeshClient {
     this.userId = userId;
     this.roomId = roomId;
     this.onEvent = onEvent;
+  }
+
+  /** Whether react-native-webrtc native module is present (false in Expo Go). */
+  static isSupported(): boolean {
+    return webrtcAvailable;
   }
 
   /** Join mesh network — start listening for signals */
@@ -94,7 +115,8 @@ export class MeshClient {
   // react-native-webrtc RTCPeerConnection extends EventTarget — event callback
   // properties (onicecandidate, etc.) are NOT in the .d.ts, but addEventListener works at runtime.
   // We cast to avoid TS conflicts between react-native-webrtc and global WebRTC types.
-  private async createPeerConnection(peerId: string): Promise<RTCPeerConnection> {
+  private async createPeerConnection(peerId: string): Promise<InstanceType<NonNullable<typeof RTCPeerConnection>>> {
+    if (!RTCPeerConnection) throw new Error('WebRTC unavailable');
     // TURN creds from backend (cached); STUN fallback baked into getIceServers.
     const iceServers = await getIceServers().catch(() => meshConfig.iceServers);
     const pc = new RTCPeerConnection({ iceServers });
@@ -253,7 +275,7 @@ export class MeshClient {
   }
 
   private handleOffer = async (data: MeshSignalPayload): Promise<void> => {
-    if (this.destroyed || !data.sdp) return;
+    if (this.destroyed || !data.sdp || !RTCSessionDescription) return;
     try {
       const peerId = data.fromUserId;
       const pc = await this.createPeerConnection(peerId);
@@ -281,7 +303,7 @@ export class MeshClient {
   };
 
   private handleAnswer = async (data: MeshSignalPayload): Promise<void> => {
-    if (this.destroyed || !data.sdp) return;
+    if (this.destroyed || !data.sdp || !RTCSessionDescription) return;
     const peer = this.peers.get(data.fromUserId);
     if (!peer) return;
     try {
@@ -292,7 +314,7 @@ export class MeshClient {
   };
 
   private handleIce = async (data: MeshSignalPayload): Promise<void> => {
-    if (this.destroyed || !data.candidate) return;
+    if (this.destroyed || !data.candidate || !RTCIceCandidate) return;
     const peer = this.peers.get(data.fromUserId);
     if (!peer) return;
     try {

@@ -131,6 +131,8 @@ export class SyncBroadcaster {
 
   private startMesh(): void {
     if (this.meshClient || this.destroyed) return;
+    // No react-native-webrtc (e.g. Expo Go) → stay on Socket.io path only.
+    if (!MeshClient.isSupported()) return;
 
     this.meshClient = new MeshClient(
       this.config.userId,
