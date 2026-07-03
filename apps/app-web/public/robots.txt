@@ -1,0 +1,4 @@
+# app.wewatch.uz — application subdomain, not for indexing.
+# All SEO/marketing pages live on the landing domain (wewatch.uz).
+User-agent: *
+Disallow: /

@@ -22,12 +22,20 @@ export function Footer() {
           </div>
 
           {/* Links */}
-          <div className="flex gap-12">
+          <div className="flex flex-wrap gap-10 md:gap-12">
             <div>
               <p className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-3">{t('platform')}</p>
               <ul className="space-y-2">
                 <li><Link href="/features" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('features')}</Link></li>
+                <li><Link href="/how-it-works" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">Как это работает</Link></li>
                 <li><Link href="/pricing"  className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('pricing')}</Link></li>
+              </ul>
+            </div>
+            <div>
+              <p className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-3">Компания</p>
+              <ul className="space-y-2">
+                <li><Link href="/team" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">Команда</Link></li>
+                <li><Link href="/tezcode" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">tezcode</Link></li>
               </ul>
             </div>
             <div>

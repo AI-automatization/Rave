@@ -151,7 +151,9 @@ import { motion, AnimatePresence, useScroll, useTransform, useReducedMotion, typ
 import {
   FaPlay, FaUsers, FaComment, FaApple,
   FaChevronRight, FaCheck, FaLink, FaHeart, FaUserFriends, FaGlobe, FaShieldAlt,
+  FaFilm, FaTv, FaArrowRight,
 } from 'react-icons/fa';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { LandingNav } from '@/components/common/LandingNav';
 import { Footer } from '@/components/common/Footer';
@@ -1404,6 +1406,53 @@ function StarField({ count = 40 }: { count?: number }) {
 }
 
 // ── Main ───────────────────────────────────────────────────────────────────
+// ── Use-case scenarios (aisolution-style scannable cards) ──────────────────
+const USE_CASES = [
+  { icon: FaHeart,       title: 'Пара на расстоянии', desc: 'Смотрите фильм вместе, даже если вы в разных городах.', href: '/use-cases/dalnie-otnosheniya', hook: 'Как будто рядом' },
+  { icon: FaFilm,        title: 'Свидание онлайн',    desc: 'Киновечер вдвоём с чатом и реакциями.',                 href: '/use-cases/svidanie-online',    hook: 'Романтика' },
+  { icon: FaUserFriends, title: 'Друзья в разных городах', desc: 'Один клик — и смотрите одно видео синхронно.',    href: '/guides/smotret-film-vdvoem',   hook: 'Вместе' },
+  { icon: FaTv,          title: 'Сериал по эпизоду',  desc: 'Свой сериальный клуб — никто не спойлерит.',            href: '/guides/smotret-serialy-vmeste-besplatno', hook: 'Клуб' },
+  { icon: FaPlay,        title: 'Аниме-вечер',        desc: 'Смотрите аниме вместе с друзьями онлайн.',              href: '/guides/smotret-anime-vmeste',  hook: 'Otaku' },
+  { icon: FaGlobe,       title: 'YouTube вместе',     desc: 'YouTube, VK, Rutube — синхронно на всех устройствах.',  href: '/guides/smotret-youtube-vmeste', hook: '3 платформы' },
+];
+
+function UseCaseCards() {
+  return (
+    <section className="relative py-24 px-4 bg-[#0A0A0F] overflow-hidden" aria-labelledby="usecases-heading">
+      <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[500px] rounded-full blur-[150px]"
+          style={{ background: 'radial-gradient(ellipse, rgba(123,114,248,0.06) 0%, transparent 70%)' }} />
+      </div>
+      <div className="max-w-6xl mx-auto relative">
+        <div className="mb-12 text-center">
+          <p className="text-[#7B72F8] text-xs uppercase tracking-widest font-semibold mb-3">Сценарии</p>
+          <h2 id="usecases-heading" className="text-4xl md:text-5xl font-display uppercase text-white mb-4">Для чего WeWatch</h2>
+          <p className="text-zinc-500 text-lg max-w-xl mx-auto">Выберите свой сценарий — расстояние не помеха вечеру вместе.</p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {USE_CASES.map(({ icon: Icon, title, desc, href, hook }) => (
+            <Link key={href} href={href}
+              className="group relative rounded-2xl border border-zinc-800/60 p-6 overflow-hidden transition-all duration-300 hover:border-[#7B72F8]/50 hover:-translate-y-1"
+              style={{ background: 'linear-gradient(145deg, rgba(17,17,24,0.96), rgba(13,13,22,0.99))' }}>
+              <div className="absolute top-0 left-0 right-0 h-px opacity-40" style={{ background: 'linear-gradient(90deg, transparent, rgba(123,114,248,0.5), transparent)' }} />
+              <div className="flex items-start justify-between mb-5">
+                <div className="w-12 h-12 rounded-xl bg-[#7B72F8]/12 border border-[#7B72F8]/25 flex items-center justify-center">
+                  <Icon size={20} className="text-[#7B72F8]" />
+                </div>
+                <span className="text-[10px] uppercase tracking-widest text-[#a99cff] bg-[#7B72F8]/10 border border-[#7B72F8]/20 px-2.5 py-1 rounded-full">{hook}</span>
+              </div>
+              <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-[#a99cff] transition-colors">{title}</h3>
+              <p className="text-sm text-zinc-400 leading-relaxed mb-4">{desc}</p>
+              <span className="inline-flex items-center gap-1.5 text-sm font-medium text-[#7B72F8] group-hover:gap-2.5 transition-all">Подробнее <FaArrowRight size={11} /></span>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function LandingContent() {
   const t = useTranslations('landing');
   const shouldReduceMotion = useReducedMotion();
@@ -1611,6 +1660,9 @@ export function LandingContent() {
           </motion.div>
           <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-[#0A0A0F] to-transparent pointer-events-none" aria-hidden="true" />
         </section>
+
+        {/* ── USE CASES (scannable scenario cards) ── */}
+        <UseCaseCards />
 
         {/* ── STATS ── */}
         <StatsBar />

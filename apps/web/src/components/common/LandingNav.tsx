@@ -26,6 +26,8 @@ export function LandingNav() {
     { href: '/',         label: t('nav_home') },
     { href: '/features', label: t('nav_features') },
     { href: '/pricing',  label: t('nav_pricing') },
+    { href: '/team',     label: 'Команда' },
+    { href: '/tezcode',  label: 'Компания' },
   ];
 
   return (

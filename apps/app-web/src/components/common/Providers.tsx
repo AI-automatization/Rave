@@ -1,0 +1,44 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { NextIntlClientProvider } from 'next-intl';
+import { queryClient } from '@/lib/query-client';
+import { useLocaleStore, readLocaleFromCookie } from '@/store/locale.store';
+import { Toaster } from '@/components/common/Toaster';
+import uzMessages from '../../../messages/uz.json';
+import ruMessages from '../../../messages/ru.json';
+import enMessages from '../../../messages/en.json';
+
+const messages = { uz: uzMessages, ru: ruMessages, en: enMessages };
+
+type Locale = 'uz' | 'ru' | 'en';
+
+export function Providers({ children }: { children: React.ReactNode }) {
+  const localeFromStore = useLocaleStore((s) => s.locale);
+
+  // Always start with 'uz' to match SSR output and avoid hydration mismatch.
+  // After mount, update from cookie/store (causes a re-render, not an error).
+  const [locale, setLocale] = useState<Locale>('uz');
+
+  useEffect(() => {
+    setLocale(readLocaleFromCookie());
+  }, []);
+
+  useEffect(() => {
+    setLocale(localeFromStore);
+  }, [localeFromStore]);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <NextIntlClientProvider locale={locale} messages={messages[locale]}>
+        {children}
+        <Toaster />
+        {process.env.NODE_ENV === 'development' && (
+          <ReactQueryDevtools initialIsOpen={false} />
+        )}
+      </NextIntlClientProvider>
+    </QueryClientProvider>
+  );
+}

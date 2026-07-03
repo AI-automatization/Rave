@@ -194,6 +194,23 @@ const jsonLdApp = {
   featureList: ['watch party', 'YouTube sync', 'VK sync', 'Rutube sync', 'live chat', 'emoji reactions', 'cross-platform iOS Android Web'],
 };
 
+// Entity graph: ties WeWatch to its maker tezcode (tezcode.dev) so Google treats
+// them as related organizations (parentOrganization + reciprocal sameAs).
+const jsonLdOrg = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'WeWatch',
+  url: 'https://wewatch.uz',
+  logo: 'https://wewatch.uz/icons/icon-512x512.png',
+  sameAs: ['https://tezcode.dev'],
+  parentOrganization: {
+    '@type': 'Organization',
+    name: 'tezcode',
+    url: 'https://tezcode.dev',
+    sameAs: ['https://tezcode.dev'],
+  },
+};
+
 
 export default function RootLayout({
   children,
@@ -202,6 +219,7 @@ export default function RootLayout({
     <html lang="ru" suppressHydrationWarning>
       <body className={`${dmSans.variable} ${oswald.variable} font-body antialiased bg-[#060608] text-white`}>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdApp) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdOrg) }} />
         <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="afterInteractive" />
         <Script id="gtag-init" strategy="afterInteractive">{`
           window.dataLayer = window.dataLayer || [];
