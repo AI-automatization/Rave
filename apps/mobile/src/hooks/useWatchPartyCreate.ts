@@ -1,6 +1,6 @@
 // WeWatch Mobile — useWatchPartyCreate hook
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Alert } from 'react-native';
+
 import { watchPartyApi } from '@api/watchParty.api';
 import { userApi } from '@api/user.api';
 import { useVideoExtraction } from '@hooks/useVideoExtraction';
@@ -8,6 +8,7 @@ import { isDomainBlocked } from '@constants/blockedDomains';
 import { extractDomain } from '@utils/videoPlayer';
 import { useT } from '@i18n/index';
 import type { IUserPublic } from '@app-types/index';
+import { appAlert } from '@components/common/AppAlert';
 
 const MAX_MEMBERS_OPTIONS = [2, 4, 6, 8, 10] as const;
 
@@ -97,15 +98,15 @@ export function useWatchPartyCreate(): UseWatchPartyCreateReturn {
 
   const handleCreate = async (onSuccess: (roomId: string) => void) => {
     if (!roomName.trim()) {
-      Alert.alert(t('common', 'error'), t('watchParty', 'errorRoomName'));
+      appAlert(t('common', 'error'), t('watchParty', 'errorRoomName'));
       return;
     }
     if (!videoUrl.trim()) {
-      Alert.alert(t('common', 'error'), t('watchParty', 'errorUrl'));
+      appAlert(t('common', 'error'), t('watchParty', 'errorUrl'));
       return;
     }
     if (isDomainBlocked(videoUrl.trim())) {
-      Alert.alert(t('common', 'error'), t('watchParty', 'domainBlockedPlatform'));
+      appAlert(t('common', 'error'), t('watchParty', 'domainBlockedPlatform'));
       return;
     }
 
@@ -132,7 +133,7 @@ export function useWatchPartyCreate(): UseWatchPartyCreateReturn {
           msg = t('watchParty', 'forbidden');
         }
       }
-      Alert.alert(t('common', 'error'), msg);
+      appAlert(t('common', 'error'), msg);
     } finally {
       setLoading(false);
     }

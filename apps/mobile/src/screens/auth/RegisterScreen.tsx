@@ -1,18 +1,6 @@
 // WeWatch Mobile — Register Screen
 import React, { useState, useEffect, useRef } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  ActivityIndicator,
-  Animated,
-  Alert,
-  StatusBar,
-  Linking,
-} from 'react-native';
+import { View, Text, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Animated, StatusBar, Linking } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -28,6 +16,7 @@ import { AuthGridBackground } from '@components/auth/AuthGridBackground';
 import { SocialAuthButtons } from '@components/auth/SocialAuthButtons';
 import { RegisterFormFields } from '@components/auth/RegisterFormFields';
 import { analyticsService } from '@services/analyticsService';
+import { appAlert } from '@components/common/AppAlert';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, 'Register'>;
 
@@ -55,7 +44,7 @@ export function RegisterScreen() {
 
   const requireTos = (action: () => void) => {
     if (!tosAccepted) {
-      Alert.alert(
+      appAlert(
         t('register', 'tosTitle') || 'Shartlarni qabul qiling',
         t('register', 'tosRequired') || 'Davom etish uchun Foydalanish shartlari va Maxfiylik siyosatini qabul qilishingiz kerak.',
         [{ text: t('common', 'ok') || 'OK' }],

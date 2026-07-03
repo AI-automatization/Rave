@@ -1,6 +1,6 @@
 // WeWatch — useMediaDetection: JS injection, video detection, backend extraction, import flow
 import React, { useRef, useState, useCallback, useEffect } from 'react';
-import { Animated, Alert } from 'react-native';
+import { Animated } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import WebView from 'react-native-webview';
@@ -22,6 +22,7 @@ import {
   isPlaceholderVideoUrl,
 } from '@utils/webViewScripts';
 import type { ModalStackParamList } from '@app-types/index';
+import { appAlert } from '@components/common/AppAlert';
 
 type Nav = NativeStackNavigationProp<ModalStackParamList>;
 type RouteType = RouteProp<ModalStackParamList, 'MediaWebView'>;
@@ -244,7 +245,7 @@ export function useMediaDetection() {
       const msg = isTimeout || axiosErr.message === 'Network Error'
         ? 'Internet aloqasini tekshiring va qayta urinib ko\'ring.'
         : axiosErr.response?.data?.message ?? 'Xona yaratib bo\'lmadi.';
-      Alert.alert('Xato', msg);
+      appAlert('Xato', msg);
     } finally {
       isImportingRef.current = false;
       setIsImporting(false);

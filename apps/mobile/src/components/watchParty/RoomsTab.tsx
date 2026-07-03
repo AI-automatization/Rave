@@ -1,9 +1,6 @@
 // WeWatch — Rooms tab for WatchPartyCreateScreen (T-E108 + T-E109)
 import React, { useState } from 'react';
-import {
-  View, Text, ScrollView, ActivityIndicator, Alert,
-  RefreshControl, TouchableOpacity,
-} from 'react-native';
+import { View, Text, ScrollView, ActivityIndicator, RefreshControl, TouchableOpacity } from 'react-native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, spacing, createThemedStyles, borderRadius, typography } from '@theme/index';
@@ -16,6 +13,7 @@ import { FadeSlideIn } from '@components/common/FadeSlideIn';
 import { useWatchPartyCreateStyles } from './watchPartyCreate.styles';
 import type { ModalStackParamList, IWatchPartyRoom } from '@app-types/index';
 import { translations } from '@i18n/index';
+import { appAlert } from '@components/common/AppAlert';
 
 type Nav = NativeStackNavigationProp<ModalStackParamList, 'WatchPartyCreate'>;
 type TFn = (section: keyof typeof translations, key: string) => string;
@@ -50,7 +48,7 @@ export function RoomsTab({ navigation, t }: Props) {
       await watchPartyApi.joinRoomById(roomId);
       navigation.replace('WatchParty', { roomId });
     } catch {
-      Alert.alert(t('watchParty', 'error'), t('watchParty', 'joinError'));
+      appAlert(t('watchParty', 'error'), t('watchParty', 'joinError'));
     } finally {
       setJoining(null);
     }

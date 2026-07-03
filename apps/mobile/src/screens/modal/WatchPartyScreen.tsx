@@ -1,6 +1,6 @@
 // WeWatch Mobile — WatchPartyScreen
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Platform, StyleSheet, Dimensions, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, Platform, StyleSheet, Dimensions } from 'react-native';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { ReportRoomModal } from '@components/common/ReportRoomModal';
 import { ReportUserModal } from '@components/common/ReportUserModal';
@@ -31,6 +31,7 @@ import { extractDomain } from '@utils/videoPlayer';
 import { blockedUsersStorage } from '@utils/storage';
 import { userApi } from '@api/user.api';
 import { useQuery } from '@tanstack/react-query';
+import { appAlert } from '@components/common/AppAlert';
 
 type NavProp = NativeStackNavigationProp<ModalStackParamList, 'WatchParty'>;
 
@@ -85,7 +86,7 @@ export function WatchPartyScreen() {
     const uid = actionSheetUserId;
     setActionSheetUserId(null);
     if (!uid) return;
-    Alert.alert(
+    appAlert(
       t('friends', 'blockUserTitle'),
       t('friends', 'blockUserMsg'),
       [

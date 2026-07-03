@@ -162,9 +162,17 @@ export function AppNavigator() {
       navigationRef.navigate('Modal', { screen: 'WatchParty', params: { roomId: data.roomId } });
     } else if (data.type === 'support_reply' || screen === 'SupportChat') {
       navigationRef.navigate('Modal', { screen: 'SupportChat' });
-    } else if (screen === 'Friends') {
-      navigationRef.navigate('Main');
+    } else if (data.peerId) {
+      // Direct message → open the DM chat with that peer
+      navigationRef.navigate('Modal', { screen: 'DMChat', params: { peerId: data.peerId, peerName: data.peerName ?? '' } });
+    } else if (screen === 'Friends' || data.type === 'friend_request' || data.type === 'friend_accepted') {
+      // Friend request/accept → land on the Friends screen (not just Main)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (navigationRef.navigate as any)('Main', { screen: 'FriendsTab', params: { screen: 'Friends' } });
     } else if (screen === 'Notifications') {
+      navigationRef.navigate('Modal', { screen: 'Notifications' });
+    } else {
+      // Any other notification → open the notifications list
       navigationRef.navigate('Modal', { screen: 'Notifications' });
     }
   }, [lastResponse, isNavReady, isAuthenticated, needsProfileSetup, navigationRef]);

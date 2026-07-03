@@ -25,6 +25,7 @@ import {
   PRIVACY_TOGGLES,
 } from '@components/settings';
 import { useStyles } from './SettingsScreen.styles';
+import { appAlert } from '@components/common/AppAlert';
 
 const LANGUAGES: { code: Language; label: string; flag: string }[] = [
   { code: 'uz', label: "O'zbekcha", flag: '\u{1F1FA}\u{1F1FF}' },
@@ -97,7 +98,7 @@ export function SettingsScreen() {
   };
 
   const handleDeleteAccount = () => {
-    Alert.alert(
+    appAlert(
       t('settings', 'deleteConfirmTitle'),
       t('settings', 'deleteAccountConfirm'),
       [
@@ -116,14 +117,14 @@ export function SettingsScreen() {
                   style: 'destructive',
                   onPress: async (input?: string) => {
                     if (input !== t('settings', 'deleteAccountWord')) {
-                      Alert.alert(t('common', 'error'), t('settings', 'deleteAccountWrongWord'));
+                      appAlert(t('common', 'error'), t('settings', 'deleteAccountWrongWord'));
                       return;
                     }
                     try {
                       await userApi.deleteAccount();
                       logout();
                     } catch {
-                      Alert.alert(t('common', 'error'), t('settings', 'deleteAccountError'));
+                      appAlert(t('common', 'error'), t('settings', 'deleteAccountError'));
                     }
                   },
                 },
@@ -281,7 +282,7 @@ export function SettingsScreen() {
             <TouchableOpacity
               style={[styles.navRow, styles.rowBorder]}
               onPress={() => {
-                Alert.alert(
+                appAlert(
                   t('settings', 'logoutAllTitle'),
                   t('settings', 'logoutAllMsg'),
                   [

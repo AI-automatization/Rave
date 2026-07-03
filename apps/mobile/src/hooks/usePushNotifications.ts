@@ -2,7 +2,7 @@
 import { useEffect, useRef } from 'react';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
-import { Platform, Alert } from 'react-native';
+import { Platform } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { userApi } from '@api/user.api';
 import { useAuthStore } from '@store/auth.store';
@@ -96,32 +96,22 @@ export async function ensureNotificationPermission(): Promise<Notifications.Perm
   return status;
 }
 
-// TEMP DIAGNOSTIC build: surfaces the push-registration outcome via an on-screen
-// Alert so it can be read on a real device without adb/USB. Remove after diagnosis.
+// Register the FCM device token with the backend. Silent — logs only in dev.
 async function registerForPushNotifications(): Promise<void> {
-  let diag = '';
   try {
     const finalStatus = await ensureNotificationPermission();
-    diag += `permission: ${finalStatus}\n`;
-    if (finalStatus !== 'granted') {
-      Alert.alert('PUSH DIAG', `${diag}→ aborted: no permission`);
-      return;
-    }
+    if (finalStatus !== 'granted') return;
 
-    const { token, error } = await getPushToken();
-    diag += token ? `token: ${token.slice(0, 18)}… (len ${token.length})\n` : `token: NULL\n`;
-    // Always surface the diagnostic detail — a thrown error with an empty message
-    // would otherwise be invisible and look like a silent NULL.
-    diag += `detail: ${error ?? '(none)'}\n`;
+    const { token } = await getPushToken();
     if (!token) {
-      Alert.alert('PUSH DIAG', `${diag}→ aborted: no token`);
+      if (__DEV__) console.log('[push] FCM token unavailable');
       return;
     }
 
     await userApi.updateFcmToken(token);
-    Alert.alert('PUSH DIAG', `${diag}→ POST backend: OK ✅`);
+    if (__DEV__) console.log('[push] FCM token registered');
   } catch (err) {
-    Alert.alert('PUSH DIAG', `${diag}→ ERROR: ${(err as Error)?.message}`);
+    if (__DEV__) console.log('[push] registration failed:', (err as Error)?.message);
   }
 }
 
