@@ -109,11 +109,19 @@ const achievementSchema = new mongoose.Schema({
 const BCRYPT_ROUNDS = 12;
 const ADMIN_ID = new mongoose.Types.ObjectId();
 
+// Публичный репо — пароли сидов ТОЛЬКО из env, без fallback (иначе известные креды уезжают в прод)
+const SEED_ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD;
+const SEED_USER_PASSWORD = process.env.SEED_USER_PASSWORD;
+if (!SEED_ADMIN_PASSWORD || !SEED_USER_PASSWORD) {
+  console.error('SEED_ADMIN_PASSWORD and SEED_USER_PASSWORD env vars are required — refusing to seed with known credentials.');
+  process.exit(1);
+}
+
 const USERS = [
-  { id: ADMIN_ID, email: 'admin@cinesync.app', username: 'admin', password: 'Admin123!', role: 'superadmin', verified: true },
-  { id: new mongoose.Types.ObjectId(), email: 'test1@cinesync.app', username: 'testuser1', password: 'Test123!', role: 'user', verified: true },
-  { id: new mongoose.Types.ObjectId(), email: 'test2@cinesync.app', username: 'testuser2', password: 'Test123!', role: 'user', verified: true },
-  { id: new mongoose.Types.ObjectId(), email: 'operator@cinesync.app', username: 'operator1', password: 'Operator123!', role: 'operator', verified: true },
+  { id: ADMIN_ID, email: 'admin@cinesync.app', username: 'admin', password: SEED_ADMIN_PASSWORD, role: 'superadmin', verified: true },
+  { id: new mongoose.Types.ObjectId(), email: 'test1@cinesync.app', username: 'testuser1', password: SEED_USER_PASSWORD, role: 'user', verified: true },
+  { id: new mongoose.Types.ObjectId(), email: 'test2@cinesync.app', username: 'testuser2', password: SEED_USER_PASSWORD, role: 'user', verified: true },
+  { id: new mongoose.Types.ObjectId(), email: 'operator@cinesync.app', username: 'operator1', password: SEED_USER_PASSWORD, role: 'operator', verified: true },
 ];
 
 const MOVIES = [
