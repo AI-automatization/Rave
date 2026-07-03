@@ -10,7 +10,6 @@ import { setupSentryErrorHandler } from '@shared/utils/sentry';
 import { metricsMiddleware, registerMetricsEndpoint } from '@shared/utils/metrics';
 import { requestId } from '@shared/middleware/requestId.middleware';
 import { timeout } from '@shared/middleware/timeout.middleware';
-import { maintenanceGuard } from '@shared/middleware/maintenance.middleware';
 import { morganStream } from '@shared/utils/logger';
 import { apiLogger } from '@shared/middleware/apiLogger.middleware';
 import { createAdminRouter } from './routes/admin.routes';
@@ -37,7 +36,11 @@ export const createApp = (redis: Redis): express.Application => {
   app.use(metricsMiddleware());
   app.use(apiLogger('admin'));
   app.use(timeout());
-  app.use(maintenanceGuard);
+  // NOTE: the admin service is the maintenance control plane — it serves the
+  // settings UI that toggles maintenance and the /admin/app-config status endpoint
+  // every other service polls. Putting it behind maintenanceGuard deadlocks the
+  // system: once maintenance is on, app-config 503s itself, refreshes fail open and
+  // stay stuck on `true`, and staff can no longer turn it off. So admin is exempt.
 
   app.get('/health', async (_req, res) => {
     const mongoOk = mongoose.connection.readyState === 1;
