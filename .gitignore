@@ -73,3 +73,6 @@ apps/mobile/ios/Pods/
 # Telegram/Telethon auth sessions — secrets, never commit
 *.session
 *.session-journal
+
+# APK build artifacts (never commit — regenerate via eas build)
+*.apk
