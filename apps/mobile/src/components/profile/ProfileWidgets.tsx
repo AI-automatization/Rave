@@ -4,6 +4,7 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { FadeInView } from './ProfileAnimations';
+import { useT } from '@i18n/index';
 
 // ─── StatCard (web-style: icon → value → label, centered) ───────
 
@@ -106,6 +107,7 @@ export const ComingSoonItem = React.memo(function ComingSoonItem({
   iconColor,
 }: ComingSoonItemProps) {
   const { colors } = useTheme();
+  const { t } = useT();
   const s = useStyles();
 
   return (
@@ -119,7 +121,7 @@ export const ComingSoonItem = React.memo(function ComingSoonItem({
           {subtitle ? <Text style={s.comingSoonSub}>{subtitle}</Text> : null}
         </View>
         <View style={s.soonBadge}>
-          <Text style={s.soonBadgeText}>SOON</Text>
+          <Text style={s.soonBadgeText}>{t('common', 'soon')}</Text>
         </View>
       </View>
     </FadeInView>

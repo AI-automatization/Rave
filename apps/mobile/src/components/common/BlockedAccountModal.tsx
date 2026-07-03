@@ -32,7 +32,7 @@ export function BlockedAccountModal({ visible, reason, userId, onClose }: Blocke
       await appealApi.create(message.trim(), reason, userId);
       setView('done');
     } catch {
-      setError('Не удалось отправить. Проверьте соединение и попробуйте снова.');
+      setError(t('blocked', 'appealError'));
     } finally {
       setLoading(false);
     }
@@ -61,7 +61,7 @@ export function BlockedAccountModal({ visible, reason, userId, onClose }: Blocke
                 </View>
                 <TouchableOpacity style={styles.appealBtn} onPress={() => setView('appeal')}>
                   <Ionicons name="document-text-outline" size={18} color="#fff" />
-                  <Text style={styles.appealBtnText}>Подать апелляцию</Text>
+                  <Text style={styles.appealBtnText}>{t('blocked', 'appealBtn')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.okBtn} onPress={handleClose}>
                   <Text style={styles.okText}>{t('common', 'ok')}</Text>
@@ -73,13 +73,13 @@ export function BlockedAccountModal({ visible, reason, userId, onClose }: Blocke
               <>
                 <TouchableOpacity style={styles.backRow} onPress={() => setView('blocked')}>
                   <Ionicons name="chevron-back" size={18} color={colors.textSecondary} />
-                  <Text style={styles.backText}>Назад</Text>
+                  <Text style={styles.backText}>{t('common', 'back')}</Text>
                 </TouchableOpacity>
-                <Text style={styles.title}>Апелляция</Text>
-                <Text style={styles.message}>Объясните, почему считаете блокировку несправедливой. Мы рассмотрим в течение 3 рабочих дней.</Text>
+                <Text style={styles.title}>{t('blocked', 'appealTitle')}</Text>
+                <Text style={styles.message}>{t('blocked', 'appealMessage')}</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Ваше сообщение..."
+                  placeholder={t('blocked', 'appealPlaceholder')}
                   placeholderTextColor={colors.textSecondary}
                   value={message}
                   onChangeText={setMessage}
@@ -96,7 +96,7 @@ export function BlockedAccountModal({ visible, reason, userId, onClose }: Blocke
                   {loading ? (
                     <ActivityIndicator color="#fff" size="small" />
                   ) : (
-                    <Text style={styles.appealBtnText}>Отправить</Text>
+                    <Text style={styles.appealBtnText}>{t('common', 'send')}</Text>
                   )}
                 </TouchableOpacity>
               </>
@@ -107,10 +107,10 @@ export function BlockedAccountModal({ visible, reason, userId, onClose }: Blocke
                 <View style={[styles.iconWrap, styles.iconSuccess]}>
                   <Ionicons name="checkmark-circle-outline" size={48} color={colors.primary} />
                 </View>
-                <Text style={[styles.title, { color: colors.textPrimary }]}>Апелляция отправлена</Text>
-                <Text style={styles.message}>Мы рассмотрим ваш запрос и свяжемся с вами.</Text>
+                <Text style={[styles.title, { color: colors.textPrimary }]}>{t('blocked', 'appealSent')}</Text>
+                <Text style={styles.message}>{t('blocked', 'appealReview')}</Text>
                 <TouchableOpacity style={styles.okBtn} onPress={handleClose}>
-                  <Text style={styles.okText}>Закрыть</Text>
+                  <Text style={styles.okText}>{t('common', 'close')}</Text>
                 </TouchableOpacity>
               </>
             )}

@@ -92,6 +92,61 @@ function NewsletterSection() {
     </section>
   );
 }
+// ── FAQ Accordion ─────────────────────────────────────────────────────────────
+const FAQ_ITEMS = [
+  { q: 'Как смотреть видео вместе с друзьями онлайн?', a: 'Скачайте WeWatch, откройте встроенный браузер, найдите видео на YouTube, VK или Rutube, создайте комнату и отправьте ссылку другу. Все участники видят один и тот же кадр в реальном времени.' },
+  { q: 'WeWatch бесплатный?', a: 'Да, WeWatch полностью бесплатный. Скачайте приложение в App Store или Google Play и сразу начните смотреть с друзьями — регистрация по номеру телефона.' },
+  { q: 'Можно ли смотреть YouTube с друзьями одновременно?', a: 'Да. WeWatch поддерживает YouTube, VK Видео, Rutube, Uzmove и любые другие сайты через встроенный браузер. Пауза и перемотка работают для всех участников одновременно.' },
+  { q: 'Что делать, когда друг далеко?', a: 'Создайте Watch Party в WeWatch, пригласите друга по ссылке — и вы смотрите синхронно, как будто сидите рядом. Расстояние не имеет значения.' },
+  { q: 'Можно ли смотреть если один на телефоне, а другой на сайте?', a: 'Да — WeWatch синхронизирует просмотр между всеми платформами одновременно. iPhone, Android и браузер на компьютере работают в одной комнате без ограничений.' },
+  { q: 'Сколько человек может смотреть вместе?', a: 'Несколько участников одновременно. Создайте комнату, поделитесь ссылкой — все, кто перейдёт, будут смотреть синхронно.' },
+  { q: 'Можно ли смотреть аниме или сериалы вместе?', a: 'Да, WeWatch работает с любыми видеосайтами через встроенный браузер — включая сайты с аниме и сериалами. Просто откройте нужный сайт и создайте комнату.' },
+];
+
+function FAQAccordion() {
+  const [open, setOpen] = useState<number | null>(null);
+  return (
+    <div className="flex flex-col gap-2">
+      {FAQ_ITEMS.map(({ q, a }, i) => (
+        <motion.div
+          key={q}
+          variants={fadeUpScale}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          transition={{ delay: i * 0.04 }}
+        >
+          <button
+            type="button"
+            onClick={() => setOpen(open === i ? null : i)}
+            className="w-full text-left flex items-center justify-between gap-4 px-6 py-4 rounded-2xl bg-zinc-900/60 border border-zinc-800/60 hover:border-[#7B72F8]/40 transition-all duration-200 cursor-pointer"
+            aria-expanded={open === i}
+          >
+            <span className="text-white font-medium text-sm leading-snug">{q}</span>
+            <span className={`flex-shrink-0 w-5 h-5 rounded-full border border-zinc-700 flex items-center justify-center text-zinc-400 transition-transform duration-200 ${open === i ? 'rotate-45 border-[#7B72F8] text-[#7B72F8]' : ''}`} aria-hidden="true">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M5 1v8M1 5h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+            </span>
+          </button>
+          <AnimatePresence initial={false}>
+            {open === i && (
+              <motion.div
+                key="answer"
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.22, ease: 'easeInOut' }}
+                className="overflow-hidden"
+              >
+                <p className="px-6 pt-3 pb-5 text-zinc-400 text-sm leading-relaxed">{a}</p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      ))}
+    </div>
+  );
+}
+
 import { motion, AnimatePresence, useScroll, useTransform, useReducedMotion, type Variants } from 'framer-motion';
 import {
   FaPlay, FaUsers, FaComment, FaApple,
@@ -1820,6 +1875,17 @@ export function LandingContent() {
         <NewsletterSection />
 
         {/* ── CTA ── */}
+        {/* ── FAQ ──────────────────────────────────────────────────────────── */}
+        <section id="faq" className="py-24 px-4 relative bg-[#060608]" aria-labelledby="faq-heading">
+          <div className="max-w-2xl mx-auto">
+            <motion.div variants={stagger} initial="hidden" whileInView="visible" viewport={{ once: true }} className="text-center mb-14">
+              <motion.p variants={fadeUp} className="text-[#7B72F8] text-xs uppercase tracking-widest font-semibold mb-3">Вопросы и ответы</motion.p>
+              <motion.h2 id="faq-heading" variants={fadeUp} className="text-3xl md:text-4xl font-display uppercase text-white">Часто задаваемые вопросы</motion.h2>
+            </motion.div>
+            <FAQAccordion />
+          </div>
+        </section>
+
         <section className="py-32 px-4 text-center relative overflow-hidden" aria-labelledby="cta-heading">
           <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
             <div className="absolute inset-0 bg-[#0A0A0F]" />

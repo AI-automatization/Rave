@@ -4,9 +4,12 @@ import { View, Text, TouchableOpacity, Platform, StyleSheet, Dimensions, Alert }
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { ReportRoomModal } from '@components/common/ReportRoomModal';
 import { ReportUserModal } from '@components/common/ReportUserModal';
-import { useRoute, RouteProp } from '@react-navigation/native';
+import { UserActionSheet } from '@components/common/UserActionSheet';
+import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ChatPanel, ChatMessage } from '@components/watchParty/ChatPanel';
 import { VoiceChat } from '@components/watchParty/VoiceChat';
+import { useVoiceChat } from '@hooks/useVoiceChat';
 import { EmojiPickerBar } from '@components/watchParty/EmojiFloat';
 import { VideoSection } from '@components/watchParty/VideoSection';
 import { RoomInfoBar } from '@components/watchParty/RoomInfoBar';
@@ -27,6 +30,9 @@ import { isDomainBlocked } from '@constants/blockedDomains';
 import { extractDomain } from '@utils/videoPlayer';
 import { blockedUsersStorage } from '@utils/storage';
 import { userApi } from '@api/user.api';
+import { useQuery } from '@tanstack/react-query';
+
+type NavProp = NativeStackNavigationProp<ModalStackParamList, 'WatchParty'>;
 
 const SCREEN_H = Dimensions.get('window').height;
 
@@ -36,42 +42,62 @@ export function WatchPartyScreen() {
   const { params } = useRoute<RouteType>();
   const { colors } = useTheme();
   const { t } = useT();
+  const navigation = useNavigation<NavProp>();
 
   const [showPlaylist, setShowPlaylist] = useState(false);
   const [showReport, setShowReport] = useState(false);
   const [reportUserId, setReportUserId] = useState<string | null>(null);
+  const [actionSheetUserId, setActionSheetUserId] = useState<string | null>(null);
+
+  const { data: actionSheetProfile } = useQuery({
+    queryKey: ['user-public', actionSheetUserId],
+    queryFn: () => userApi.getPublicProfile(actionSheetUserId!),
+    enabled: !!actionSheetUserId,
+    staleTime: 5 * 60 * 1000,
+  });
 
   const handleMemberPress = (uid: string) => {
+    setActionSheetUserId(uid);
+  };
+
+  const handleActionSheetClose = () => setActionSheetUserId(null);
+
+  const handleActionSheetViewProfile = () => {
+    setActionSheetUserId(null);
+  };
+
+  const handleActionSheetSendMessage = () => {
+    const uid = actionSheetUserId;
+    const name = actionSheetProfile?.username ?? uid ?? '';
+    setActionSheetUserId(null);
+    if (uid) {
+      navigation.push('DMChat', { peerId: uid, peerName: name });
+    }
+  };
+
+  const handleActionSheetReport = () => {
+    const uid = actionSheetUserId;
+    setActionSheetUserId(null);
+    if (uid) setReportUserId(uid);
+  };
+
+  const handleActionSheetBlock = () => {
+    const uid = actionSheetUserId;
+    setActionSheetUserId(null);
+    if (!uid) return;
     Alert.alert(
-      'Участник',
-      'Что сделать с этим пользователем?',
+      t('friends', 'blockUserTitle'),
+      t('friends', 'blockUserMsg'),
       [
+        { text: t('common', 'cancel'), style: 'cancel' },
         {
-          text: 'Пожаловаться',
-          onPress: () => setReportUserId(uid),
-        },
-        {
-          text: 'Заблокировать',
+          text: t('friends', 'blockUser'),
           style: 'destructive',
-          onPress: () => {
-            Alert.alert(
-              'Заблокировать пользователя',
-              'Пользователь будет заблокирован и жалоба будет отправлена модераторам.',
-              [
-                { text: 'Отмена', style: 'cancel' },
-                {
-                  text: 'Заблокировать',
-                  style: 'destructive',
-                  onPress: async () => {
-                    await blockedUsersStorage.add(uid);
-                    await userApi.blockUser(uid).catch(() => null);
-                  },
-                },
-              ],
-            );
+          onPress: async () => {
+            await blockedUsersStorage.add(uid);
+            await userApi.blockUser(uid).catch(() => null);
           },
         },
-        { text: 'Отмена', style: 'cancel' },
       ],
     );
   };
@@ -91,6 +117,10 @@ export function WatchPartyScreen() {
     handleChangeMedia, handleQualitySelect, handleEpisodeSelect, handleLeave, handlePlayerReady,
     handleCdnUrlSniffed,
   } = useWatchPartyRoom(params.roomId, params.videoReferer);
+
+  // Voice connection lifted to screen level — stays alive across panel switches.
+  // Auto-joins muted once the room is loaded; persists while user views chat.
+  const voice = useVoiceChat(!!room);
 
   // Lock orientation: landscape in fullscreen, portrait otherwise
   useEffect(() => {
@@ -216,10 +246,17 @@ export function WatchPartyScreen() {
           {/* Voice chat */}
           {showVoice && (
             <VoiceChat
-              roomId={params.roomId}
               currentUserId={userId}
               visible={showVoice}
               onClose={() => setShowVoice(false)}
+              isJoined={voice.isJoined}
+              isMuted={voice.isMuted}
+              participants={voice.participants}
+              isLoading={voice.isLoading}
+              errorMsg={voice.errorMsg}
+              onJoin={voice.joinVoice}
+              onLeave={voice.leaveVoice}
+              onToggleMute={voice.toggleMute}
             />
           )}
 
@@ -332,10 +369,17 @@ export function WatchPartyScreen() {
           {/* Voice chat panel */}
           {showVoice && (
             <VoiceChat
-              roomId={params.roomId}
               currentUserId={userId}
               visible={showVoice}
               onClose={() => setShowVoice(false)}
+              isJoined={voice.isJoined}
+              isMuted={voice.isMuted}
+              participants={voice.participants}
+              isLoading={voice.isLoading}
+              errorMsg={voice.errorMsg}
+              onJoin={voice.joinVoice}
+              onLeave={voice.leaveVoice}
+              onToggleMute={voice.toggleMute}
             />
           )}
 
@@ -417,6 +461,20 @@ export function WatchPartyScreen() {
               visible
               userId={reportUserId}
               onClose={() => setReportUserId(null)}
+            />
+          )}
+          {actionSheetUserId && (
+            <UserActionSheet
+              visible
+              userId={actionSheetUserId}
+              username={actionSheetProfile?.username ?? '···'}
+              avatar={actionSheetProfile?.avatar ?? null}
+              isSelf={actionSheetUserId === userId}
+              onClose={handleActionSheetClose}
+              onViewProfile={handleActionSheetViewProfile}
+              onSendMessage={handleActionSheetSendMessage}
+              onReport={handleActionSheetReport}
+              onBlock={handleActionSheetBlock}
             />
           )}
         </>

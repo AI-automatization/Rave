@@ -1,4 +1,5 @@
 import { Socket } from 'socket.io';
+import Redis from 'ioredis';
 import { logger } from '@shared/utils/logger';
 import { SERVER_EVENTS, CLIENT_EVENTS } from '@shared/constants/socketEvents';
 import { JwtPayload } from '@shared/types';
@@ -8,35 +9,39 @@ interface AuthenticatedSocket extends Socket {
   roomId?: string;
 }
 
+const VOICE_ROOM_KEY = (roomId: string) => `voice:room:${roomId}`;
+const VOICE_TTL_SEC = 24 * 60 * 60;
+
 export const registerVoiceEvents = (
   socket: Socket,
   authSocket: AuthenticatedSocket,
-  voiceRooms: Map<string, Set<string>>,
+  redis: Redis,
 ): void => {
   const { userId } = authSocket.user;
 
   // JOIN VOICE — user must already be in a room
-  socket.on(CLIENT_EVENTS.VOICE_JOIN, () => {
+  socket.on(CLIENT_EVENTS.VOICE_JOIN, async () => {
     const roomId = authSocket.roomId;
     if (!roomId) return;
 
-    if (!voiceRooms.has(roomId)) voiceRooms.set(roomId, new Set());
-    voiceRooms.get(roomId)!.add(userId);
+    const key = VOICE_ROOM_KEY(roomId);
+    await redis.sadd(key, userId);
+    await redis.expire(key, VOICE_TTL_SEC);
 
     // Reply with currently in-voice members (excluding self)
-    const existingMembers = [...voiceRooms.get(roomId)!].filter((id) => id !== userId);
+    const members = await redis.smembers(key);
+    const existingMembers = members.filter((id) => id !== userId);
     socket.emit(SERVER_EVENTS.VOICE_JOINED, { members: existingMembers });
 
-    // Notify others in room
     socket.to(roomId).emit(SERVER_EVENTS.VOICE_USER_JOINED, { userId });
     logger.info('User joined voice chat', { userId, roomId });
   });
 
   // LEAVE VOICE
-  socket.on(CLIENT_EVENTS.VOICE_LEAVE, () => {
+  socket.on(CLIENT_EVENTS.VOICE_LEAVE, async () => {
     const roomId = authSocket.roomId;
     if (!roomId) return;
-    voiceRooms.get(roomId)?.delete(userId);
+    await redis.srem(VOICE_ROOM_KEY(roomId), userId);
     socket.to(roomId).emit(SERVER_EVENTS.VOICE_USER_LEFT, { userId });
     logger.info('User left voice chat', { userId, roomId });
   });

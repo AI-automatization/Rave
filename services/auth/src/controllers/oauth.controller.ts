@@ -44,7 +44,14 @@ export class OAuthController {
     const successHtml = `<!DOCTYPE html><html><head>
       <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
       <title>WeWatch</title>
-      <script>window.location.href='wewatch://auth/callback';</script>
+      <script>
+        // Notify parent web window (popup flow) then close
+        try { window.opener && window.opener.postMessage('google-auth-done', '*'); } catch(e){}
+        // Mobile deep link fallback
+        try { window.location.href='wewatch://auth/callback'; } catch(e){}
+        // Auto-close popup after short delay
+        setTimeout(function(){ try{ window.close(); }catch(e){} }, 1000);
+      </script>
       <style>*{box-sizing:border-box;margin:0;padding:0}
         body{display:flex;flex-direction:column;align-items:center;justify-content:center;
              min-height:100vh;background:#0A0A0F;color:#fff;font-family:-apple-system,sans-serif;
@@ -56,11 +63,18 @@ export class OAuthController {
       </head><body>
       <div style="font-size:64px">✅</div>
       <h2>Вы вошли в WeWatch!</h2>
-      <p>Возвращаемся в приложение...</p>
+      <p>Окно закроется автоматически...</p>
       <a href="wewatch://auth/callback">🎬 Открыть WeWatch</a>
     </body></html>`;
-    const errorHtml = `<html><body style="background:#0A0A0F;color:#fff;font-family:sans-serif;text-align:center;padding:60px">
-      <h2>❌ Ошибка входа</h2><p>Попробуйте снова в приложении.</p></body></html>`;
+    const errorHtml = `<!DOCTYPE html><html><head><meta charset="utf-8">
+      <script>
+        try { window.opener && window.opener.postMessage('google-auth-error', '*'); } catch(e){}
+        setTimeout(function(){ try{ window.close(); }catch(e){} }, 2000);
+      </script>
+      </head><body style="background:#0A0A0F;color:#fff;font-family:sans-serif;text-align:center;padding:60px">
+      <h2>❌ Ошибка входа</h2><p>Попробуйте снова в приложении.</p>
+      <p style="color:#555;font-size:13px;margin-top:16px">Окно закроется автоматически...</p>
+      </body></html>`;
 
     if (!code) { res.send(errorHtml); return; }
     try {
@@ -88,6 +102,10 @@ export class OAuthController {
         }).catch((storeErr: unknown) => { logger.warn('Failed to store mobile Google result', { storeErr }); });
         res.send(successHtml);
       } else {
+        const errMsg = (err as Error).message ?? String(err);
+        // eslint-disable-next-line no-console
+        console.error('[GOOGLE_AUTH_ERROR]', errMsg, (err as Error).stack?.split('\n').slice(0,3).join(' | '));
+        logger.error(`Google mobile callback error: ${errMsg}`, { mobileState });
         res.send(errorHtml);
       }
     }

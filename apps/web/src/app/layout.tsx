@@ -6,6 +6,7 @@ import { LocaleHtmlUpdater } from '@/components/common/LocaleHtmlUpdater';
 import './globals.css';
 
 const GA_ID = 'G-2S4DR8CBF0';
+const YM_ID = process.env.NEXT_PUBLIC_YM_ID ?? '';
 
 const dmSans = DM_Sans({
   subsets: ['latin', 'latin-ext'],
@@ -18,6 +19,9 @@ const oswald = Oswald({
   variable: '--font-oswald',
   display: 'swap',
 });
+
+// Force dynamic rendering so CDN never caches HTML (avoids stale content after deploys)
+export const dynamic = 'force-dynamic';
 
 export const viewport: Viewport = {
   themeColor: '#7C3AED',
@@ -146,12 +150,16 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/favicon-32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon-48.png', sizes: '48x48', type: 'image/png' },
       { url: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
       { url: '/icons/icon-512x512.png', sizes: '512x512', type: 'image/png' },
     ],
     apple: [
+      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
       { url: '/icons/icon-152x152.png', sizes: '152x152', type: 'image/png' },
     ],
+    shortcut: '/favicon-32.png',
   },
   appleWebApp: {
     capable: true,
@@ -183,40 +191,9 @@ const jsonLdApp = {
   description: 'Watch YouTube, VK and Rutube together with friends in real time. You pause — everyone pauses. Free watch party with chat, emoji and reactions.',
   url: 'https://wewatch.uz',
   inLanguage: ['ru', 'uz', 'en'],
-  aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.8', ratingCount: '150', bestRating: '5' },
+  featureList: ['watch party', 'YouTube sync', 'VK sync', 'Rutube sync', 'live chat', 'emoji reactions', 'cross-platform iOS Android Web'],
 };
 
-const jsonLdFaq = {
-  '@context': 'https://schema.org',
-  '@type': 'FAQPage',
-  mainEntity: [
-    {
-      '@type': 'Question',
-      name: 'Как смотреть YouTube вместе с другом онлайн?',
-      acceptedAnswer: { '@type': 'Answer', text: 'Скачайте WeWatch, создайте комнату, поделитесь ссылкой. Друг нажимает — и вы вместе. Синхронизация работает автоматически: вы паузите — все паузят.' },
-    },
-    {
-      '@type': 'Question',
-      name: 'Какие видеосервисы поддерживает WeWatch?',
-      acceptedAnswer: { '@type': 'Answer', text: 'WeWatch поддерживает YouTube, VK Видео, Rutube, Uzmove, Cinerama и другие сайты через встроенный браузер.' },
-    },
-    {
-      '@type': 'Question',
-      name: 'Бесплатен ли WeWatch?',
-      acceptedAnswer: { '@type': 'Answer', text: 'Да, WeWatch бесплатен. Базовый план не имеет ограничений по времени. Доступна Pro-подписка с дополнительными функциями.' },
-    },
-    {
-      '@type': 'Question',
-      name: 'Работает ли WeWatch на Android?',
-      acceptedAnswer: { '@type': 'Answer', text: 'iOS-версия доступна в App Store. Android-версия находится в разработке и выйдет в ближайшее время.' },
-    },
-    {
-      '@type': 'Question',
-      name: 'What is a watch party?',
-      acceptedAnswer: { '@type': 'Answer', text: 'A watch party is a synchronized video viewing session where multiple people watch the same video at the same time, even from different locations. WeWatch makes it free and easy — no browser extensions needed.' },
-    },
-  ],
-};
 
 export default function RootLayout({
   children,
@@ -225,7 +202,6 @@ export default function RootLayout({
     <html lang="ru" suppressHydrationWarning>
       <body className={`${dmSans.variable} ${oswald.variable} font-body antialiased bg-[#060608] text-white`}>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdApp) }} />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdFaq) }} />
         <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="afterInteractive" />
         <Script id="gtag-init" strategy="afterInteractive">{`
           window.dataLayer = window.dataLayer || [];
@@ -233,6 +209,17 @@ export default function RootLayout({
           gtag('js', new Date());
           gtag('config', '${GA_ID}');
         `}</Script>
+        {YM_ID && (
+          <>
+            <Script src="https://mc.yandex.ru/metrika/tag.js" strategy="afterInteractive" />
+            <Script id="ym-init" strategy="afterInteractive">{`
+              window.ym = window.ym || function(){(window.ym.a = window.ym.a || []).push(arguments)};
+              window.ym.l = 1 * new Date();
+              ym(${YM_ID}, "init", { clickmap: true, trackLinks: true, accurateTrackBounce: true, webvisor: true });
+            `}</Script>
+            <noscript><img src={'https://mc.yandex.ru/watch/' + YM_ID} style={{ position: 'absolute', left: '-9999px' }} alt="" /></noscript>
+          </>
+        )}
         <Providers>
           <LocaleHtmlUpdater />
           {children}

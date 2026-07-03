@@ -3,6 +3,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius } from '@theme/index';
+import { useT } from '@i18n/index';
 import type { RoomMedia } from '@utils/mediaDetector';
 import { getSourceHint } from '@utils/webViewScripts';
 
@@ -22,6 +23,7 @@ export function MediaBottomBar({
   detectedMedia, isBackendExtracting, isBotProtected, isLoading,
   isImporting, sourceId, paddingBottom, barTranslateY, onImport,
 }: Props) {
+  const { t } = useT();
   const pb = { paddingBottom: paddingBottom || spacing.sm };
 
   if (detectedMedia) {
@@ -29,7 +31,7 @@ export function MediaBottomBar({
       <Animated.View style={[s.videoBar, { transform: [{ translateY: barTranslateY }], paddingBottom: paddingBottom || spacing.md }]}>
         <View style={s.videoBarLeft}>
           <Ionicons name="play-circle" size={22} color={colors.primary} />
-          <Text style={s.videoBarTitle} numberOfLines={1}>{detectedMedia.videoTitle || 'Видео найдено'}</Text>
+          <Text style={s.videoBarTitle} numberOfLines={1}>{detectedMedia.videoTitle || t('watchParty', 'mediaDetected')}</Text>
         </View>
         <TouchableOpacity
           style={[s.videoBarBtn, isImporting && s.videoBarBtnDisabled]}
@@ -50,7 +52,7 @@ export function MediaBottomBar({
     return (
       <View style={[s.hintBar, pb]}>
         <ActivityIndicator size="small" color={colors.primary} />
-        <Text style={s.hintText}>Видео анализируется…</Text>
+        <Text style={s.hintText}>{t('watchParty', 'videoAnalyzing')}</Text>
       </View>
     );
   }

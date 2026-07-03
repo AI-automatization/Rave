@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, spacing, borderRadius, typography } from '@theme/index';
+import { useT } from '@i18n/index';
 
 export interface Episode {
   title: string;
@@ -61,6 +62,7 @@ function episodeLabel(ep: Episode): string {
 
 export function EpisodeMenu({ visible, episodes, currentUrl, onSelect, onClose }: Props) {
   const { colors } = useTheme();
+  const { t } = useT();
   const groups = groupBySeason(episodes);
   const [expandedSeasons, setExpandedSeasons] = useState<Set<number | null>>(
     () => new Set([groups[0]?.season ?? null]),
@@ -98,7 +100,7 @@ export function EpisodeMenu({ visible, episodes, currentUrl, onSelect, onClose }
 
   const renderGroup = ({ item }: ListRenderItemInfo<SeasonGroup>) => {
     const isExpanded = expandedSeasons.has(item.season);
-    const title = item.season !== null ? `Сезон ${item.season}` : 'Эпизоды';
+    const title = item.season !== null ? `${t('watchParty', 'season')} ${item.season}` : t('watchParty', 'episodes');
     return (
       <View style={styles.seasonBlock}>
         <TouchableOpacity
@@ -130,7 +132,7 @@ export function EpisodeMenu({ visible, episodes, currentUrl, onSelect, onClose }
       <SafeAreaView style={[styles.sheet, { backgroundColor: colors.bgElevated }]} pointerEvents="box-none">
         <View style={[styles.handle, { backgroundColor: colors.bgMuted }]} />
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          <Text style={[styles.title, { color: colors.textPrimary }]}>Эпизодлар</Text>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>{t('watchParty', 'episodes')}</Text>
           <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Ionicons name="close" size={22} color={colors.textMuted} />
           </TouchableOpacity>

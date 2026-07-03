@@ -129,39 +129,110 @@ function fetchBuffered(rawUrl: string, referer: string): Promise<UpstreamFetchRe
 
 // ── M3U8 rewriter ─────────────────────────────────────────────────────────────
 
+const M3U8_PROXY_PATH    = '/api/v1/content/hls-proxy';
 const SEGMENT_PROXY_PATH = '/api/v1/content/hls-proxy/segment';
 
 /**
- * Rewrites all segment/key/map URLs in an m3u8 to go through the segment proxy.
- * token — raw JWT extracted from the m3u8 request's Authorization header — is
- * embedded in every segment URL so ExoPlayer can authenticate without a header.
- * (ExoPlayer on Android does not forward Authorization to individual HLS segments.)
+ * Picks the best variant playlist URL from a MASTER playlist, capped at 1080p so we
+ * never serve 4K through the proxy. Returns an absolute URL or null.
+ *
+ * Flattening a master to a single media playlist server-side is far more reliable than
+ * asking ExoPlayer to follow a *proxied* master (nested ?url= masters confuse its
+ * relative-URL resolution → it silently refuses to fetch any variant). The player then
+ * only ever sees a plain segment list, which is the path that already works.
  */
-function rewriteM3u8(content: string, baseUrl: string, referer: string, token?: string): string {
+function pickBestVariantUrl(masterContent: string, masterUrl: string): string | null {
+  const lines = masterContent.split('\n');
+  let best: { bandwidth: number; url: string } | null = null;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line.toUpperCase().startsWith('#EXT-X-STREAM-INF')) continue;
+
+    const resMatch = /RESOLUTION=(\d+)x(\d+)/i.exec(line);
+    const height = resMatch ? parseInt(resMatch[2], 10) : 0;
+    if (height > 1080) continue; // skip > 1080p
+
+    const bwMatch = /BANDWIDTH=(\d+)/i.exec(line);
+    const bandwidth = bwMatch ? parseInt(bwMatch[1], 10) : 0;
+
+    // The variant URL is the next non-comment, non-empty line
+    let url = '';
+    for (let j = i + 1; j < lines.length; j++) {
+      const cand = lines[j].trim();
+      if (!cand || cand.startsWith('#')) continue;
+      url = cand;
+      break;
+    }
+    if (!url) continue;
+
+    let absolute: string;
+    try {
+      absolute = url.startsWith('http') ? url : new URL(url, masterUrl).toString();
+    } catch {
+      continue;
+    }
+
+    if (!best || bandwidth > best.bandwidth) best = { bandwidth, url: absolute };
+  }
+
+  return best?.url ?? null;
+}
+
+/**
+ * Rewrites an m3u8 so every nested URL flows back through this proxy.
+ *
+ * Two playlist kinds need different handling:
+ *  - MASTER playlist (has #EXT-X-STREAM-INF): the URLs are variant *playlists*
+ *    (often on other CDN hosts, e.g. Rutube's bl.rutube.ru master → river-N nodes).
+ *    These must go through the m3u8 proxy (recursively rewritten), NOT the segment
+ *    proxy — otherwise their own relative segments are never rewritten and the player
+ *    can't resolve them.
+ *  - MEDIA playlist: the URLs are .ts/.mp4 segments → segment proxy.
+ *
+ * token — raw JWT — is embedded in every rewritten URL so ExoPlayer can authenticate
+ * without a header (it forwards Authorization to neither segments nor nested playlists).
+ */
+function rewriteM3u8(content: string, baseUrl: string, referer: string, token: string | undefined, publicBase: string): string {
   const lines = content.split('\n');
   const tokenParam = token ? `&token=${encodeURIComponent(token)}` : '';
+  const isMaster = /#EXT-X-STREAM-INF/i.test(content);
 
-  const proxySegment = (segUrl: string): string => {
-    const absoluteUrl = segUrl.startsWith('http') ? segUrl : new URL(segUrl, baseUrl).toString();
-    const ssrfError   = validateProxyUrl(absoluteUrl);
-    if (ssrfError) {
-      logger.warn('HLS rewrite: SSRF guard blocked segment URL', { url: absoluteUrl, ssrfError });
-      return segUrl; // leave original — frontend will get a 403, not an SSRF
+  const proxyVia = (rawUrl: string, proxyPath: string): string => {
+    let absoluteUrl: string;
+    try {
+      absoluteUrl = rawUrl.startsWith('http') ? rawUrl : new URL(rawUrl, baseUrl).toString();
+    } catch {
+      return rawUrl; // not a valid (relative) URL — leave as-is
     }
-    return `${SEGMENT_PROXY_PATH}?url=${encodeURIComponent(absoluteUrl)}&referer=${encodeURIComponent(referer)}${tokenParam}`;
+    const ssrfError = validateProxyUrl(absoluteUrl);
+    if (ssrfError) {
+      logger.warn('HLS rewrite: SSRF guard blocked URL', { url: absoluteUrl, ssrfError });
+      return rawUrl;
+    }
+    // Absolute URL (full origin) — ExoPlayer resolves relative refs against the *proxied*
+    // master URL (which itself carries a ?url= query), so absolute-path refs are ambiguous.
+    // A full https URL removes any base-resolution doubt.
+    return `${publicBase}${proxyPath}?url=${encodeURIComponent(absoluteUrl)}&referer=${encodeURIComponent(referer)}${tokenParam}`;
   };
+
+  const isPlaylistRef = (url: string): boolean =>
+    isMaster || /\.m3u8(\?|#|$)/i.test(url.split('#')[0]);
 
   return lines.map((line) => {
     const trimmed = line.trim();
+    if (!trimmed) return line;
 
-    // Rewrite URI="..." inside tags like #EXT-X-KEY, #EXT-X-MAP
+    // URI="..." inside tags. #EXT-X-MEDIA references a variant playlist (audio/subs);
+    // #EXT-X-KEY / #EXT-X-MAP reference a key / init segment.
     if (trimmed.startsWith('#') && trimmed.includes('URI="')) {
-      return trimmed.replace(/URI="([^"]+)"/g, (_m: string, uri: string) => `URI="${proxySegment(uri)}"`);
+      const path = /#EXT-X-MEDIA/i.test(trimmed) ? M3U8_PROXY_PATH : SEGMENT_PROXY_PATH;
+      return trimmed.replace(/URI="([^"]+)"/g, (_m: string, uri: string) => `URI="${proxyVia(uri, path)}"`);
     }
 
-    // Rewrite bare segment lines (non-comment, non-empty)
-    if (trimmed && !trimmed.startsWith('#')) {
-      return proxySegment(trimmed);
+    // Bare URL line: variant playlist (master) or segment (media).
+    if (!trimmed.startsWith('#')) {
+      return proxyVia(trimmed, isPlaylistRef(trimmed) ? M3U8_PROXY_PATH : SEGMENT_PROXY_PATH);
     }
 
     return line;
@@ -176,10 +247,20 @@ export const hlsProxyController = {
    *  Fetches the remote m3u8 and rewrites all segment URLs to go through /hls-proxy/segment.
    */
   async proxyM3u8(req: Request, res: Response, next: NextFunction): Promise<void> {
-    const { url, referer } = req.query as { url?: string; referer?: string };
+    const { url, referer, token } = req.query as { url?: string; referer?: string; token?: string };
 
     if (!url) {
       res.status(400).json({ success: false, message: 'url query param is required' });
+      return;
+    }
+
+    // Auth: the first (master) request carries Authorization, but ExoPlayer does NOT
+    // forward it to nested variant-playlist requests — those carry ?token= instead
+    // (embedded by rewriteM3u8). Accept either, matching proxySegment.
+    const bearerToken = (req.headers.authorization ?? '').replace(/^Bearer\s+/i, '') || undefined;
+    const rawToken = (verifyQueryToken(token) ? token : undefined) ?? bearerToken;
+    if (!verifyQueryToken(token) && !verifyQueryToken(bearerToken)) {
+      res.status(401).json({ success: false, message: 'Unauthorized' });
       return;
     }
 
@@ -209,10 +290,52 @@ export const hlsProxyController = {
         return;
       }
 
-      // Extract the raw token so it can be embedded in rewritten segment URLs.
-      // ExoPlayer on Android does not forward Authorization to segment requests.
-      const rawToken = (req.headers.authorization ?? '').replace(/^Bearer\s+/i, '') || undefined;
-      const rewritten = rewriteM3u8(result.body.toString('utf-8'), decodedUrl, decodedReferer, rawToken);
+      const bodyText = result.body.toString('utf-8');
+
+      // Guard: only rewrite genuine HLS playlists. A non-m3u8 body (e.g. the Rutube
+      // player's hls.min.js, mis-detected as a stream by a /hls/ path match) would
+      // otherwise be parsed line-by-line as segments → invalid-URL crash.
+      if (!bodyText.trimStart().startsWith('#EXTM3U')) {
+        logger.warn('HLS proxy: upstream is not an m3u8 playlist', { url: decodedUrl });
+        res.status(415).json({ success: false, message: 'Not an HLS playlist' });
+        return;
+      }
+
+      const publicBase = `${req.protocol}://${req.get('host')}`;
+
+      // Flatten a MASTER playlist to its best variant's MEDIA playlist server-side.
+      // ExoPlayer reliably plays a plain segment list but silently refuses to follow a
+      // *proxied* master (nested ?url= masters break its relative-URL resolution).
+      let playlistUrl  = decodedUrl;
+      let playlistBody = bodyText;
+      if (/#EXT-X-STREAM-INF/i.test(bodyText)) {
+        const variantUrl = pickBestVariantUrl(bodyText, decodedUrl);
+        if (variantUrl && !validateProxyUrl(variantUrl)) {
+          try {
+            const vResult = await fetchBuffered(variantUrl, decodedReferer);
+            const vBody   = vResult.body.toString('utf-8');
+            if (vResult.statusCode < 400 && vBody.trimStart().startsWith('#EXTM3U')) {
+              playlistUrl  = variantUrl;
+              playlistBody = vBody;
+            } else {
+              logger.warn('HLS proxy: variant fetch failed, falling back to master rewrite', { variantUrl, status: vResult.statusCode });
+            }
+          } catch (e) {
+            logger.warn('HLS proxy: variant fetch error, falling back to master rewrite', { variantUrl, error: (e as Error).message });
+          }
+        }
+      }
+
+      logger.info('HLS proxy: serving playlist', {
+        requested: decodedUrl,
+        served:    playlistUrl,
+        kind:      /#EXT-X-STREAM-INF/i.test(playlistBody) ? 'master' : 'media',
+        bytes:     playlistBody.length,
+      });
+
+      // rawToken (query ?token= or Authorization) is embedded in every rewritten URL so
+      // ExoPlayer can auth without forwarding headers. publicBase → absolute URLs.
+      const rewritten = rewriteM3u8(playlistBody, playlistUrl, decodedReferer, rawToken, publicBase);
 
       res.setHeader('Content-Type',                  'application/vnd.apple.mpegurl');
       res.setHeader('Cache-Control',                 'no-store');

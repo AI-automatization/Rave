@@ -3,6 +3,7 @@ import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { captureError } from '@utils/errorLogger';
 import { colors, spacing, borderRadius, typography } from '@theme/index';
+import { useT } from '@i18n/index';
 
 interface Props {
   children: ReactNode;
@@ -12,6 +13,20 @@ interface Props {
 interface State {
   hasError: boolean;
   error: Error | null;
+}
+
+function ErrorFallbackUI({ errorMessage, onRetry }: { errorMessage: string | null; onRetry: () => void }) {
+  const { t } = useT();
+  return (
+    <View style={styles.container}>
+      <Text style={styles.emoji}>💥</Text>
+      <Text style={styles.title}>{t('common', 'appError')}</Text>
+      <Text style={styles.message}>{errorMessage ?? t('common', 'unknownError')}</Text>
+      <TouchableOpacity style={styles.retryBtn} onPress={onRetry} activeOpacity={0.8}>
+        <Text style={styles.retryText}>{t('common', 'retry')}</Text>
+      </TouchableOpacity>
+    </View>
+  );
 }
 
 export class ErrorBoundary extends Component<Props, State> {
@@ -35,19 +50,7 @@ export class ErrorBoundary extends Component<Props, State> {
   render(): ReactNode {
     if (this.state.hasError) {
       if (this.props.fallback) return this.props.fallback;
-
-      return (
-        <View style={styles.container}>
-          <Text style={styles.emoji}>💥</Text>
-          <Text style={styles.title}>Xatolik yuz berdi</Text>
-          <Text style={styles.message}>
-            {this.state.error?.message ?? 'Noma\'lum xatolik'}
-          </Text>
-          <TouchableOpacity style={styles.retryBtn} onPress={this.handleRetry} activeOpacity={0.8}>
-            <Text style={styles.retryText}>Qayta urinish</Text>
-          </TouchableOpacity>
-        </View>
-      );
+      return <ErrorFallbackUI errorMessage={this.state.error?.message ?? null} onRetry={this.handleRetry} />;
     }
 
     return this.props.children;

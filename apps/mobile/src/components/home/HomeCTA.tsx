@@ -3,6 +3,7 @@ import React, { useRef } from 'react';
 import { View, Text, TouchableOpacity, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, createThemedStyles, spacing, typography, borderRadius } from '@theme/index';
+import { useT } from '@i18n/index';
 
 interface HomeCTAProps {
   onPress: () => void;
@@ -10,6 +11,7 @@ interface HomeCTAProps {
 
 export function HomeCTA({ onPress }: HomeCTAProps) {
   const { colors } = useTheme();
+  const { t } = useT();
   const s = useStyles();
   const btnScale = useRef(new Animated.Value(1)).current;
 
@@ -27,16 +29,14 @@ export function HomeCTA({ onPress }: HomeCTAProps) {
           <Ionicons name="people" size={28} color={colors.primary} />
         </View>
         <View style={s.textWrap}>
-          <Text style={s.title}>Do'stlar bilan birga ko'rish</Text>
-          <Text style={s.sub} numberOfLines={2}>
-            YouTube, VK, Rutube va boshqa manbalardan video tanlang
-          </Text>
+          <Text style={s.title}>{t('home', 'ctaTitle')}</Text>
+          <Text style={s.sub} numberOfLines={2}>{t('home', 'ctaSub')}</Text>
         </View>
       </View>
       <Animated.View style={{ transform: [{ scale: btnScale }] }}>
         <TouchableOpacity style={s.btn} onPress={onPress} onPressIn={onPressIn} onPressOut={onPressOut} activeOpacity={1}>
           <Ionicons name="play-circle" size={18} color={colors.white} />
-          <Text style={s.btnText}>Video tanlash</Text>
+          <Text style={s.btnText}>{t('home', 'ctaBtn')}</Text>
         </TouchableOpacity>
       </Animated.View>
     </View>

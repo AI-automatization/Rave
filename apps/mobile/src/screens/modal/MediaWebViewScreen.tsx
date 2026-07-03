@@ -115,6 +115,12 @@ export function MediaWebViewScreen() {
         source={{ uri: startUrl }}
         userAgent={BROWSER_MOBILE_UA}
         injectedJavaScriptBeforeContentLoaded={WEBVIEW_EARLY_JS}
+        // Inject the network interceptor into EVERY frame, not just the top one. Most
+        // movie sites (kinogo→ashdi.vip/bazon.tv, yandex, kodik, alloha) host the player
+        // in a cross-origin iframe — the top-frame-only detector never sees its video.
+        // Running the XHR/fetch/video.src intercept inside each iframe catches the CDN
+        // manifest in the iframe's own origin (also the correct Referer for the CDN).
+        injectedJavaScriptBeforeContentLoadedForMainFrameOnly={false}
         injectedJavaScript={WEBVIEW_INJECT_JS}
         onShouldStartLoadWithRequest={(req) => {
           if (!req.url.startsWith('http')) return false;
@@ -135,6 +141,12 @@ export function MediaWebViewScreen() {
         onLoadEnd={handleLoadEnd}
         onMessage={onMessage}
         javaScriptEnabled domStorageEnabled allowsBackForwardNavigationGestures
+        // Android: keep target="_blank" / window.open links inside our WebView instead of
+        // handing them to the external Chrome app. With multiple windows enabled (the
+        // default) such links bypass onShouldStartLoadWithRequest and open externally,
+        // breaking the in-app video-search flow.
+        setSupportMultipleWindows={false}
+        javaScriptCanOpenWindowsAutomatically={false}
         style={s.webview}
         renderError={() => (
           <View style={s.errorView}>
@@ -319,7 +331,7 @@ const s = StyleSheet.create({
 
   // Blocked domain
   blockedOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: colors.bgBase,
     alignItems: 'center', justifyContent: 'center',
     padding: spacing.xxl, gap: spacing.md, zIndex: 10,

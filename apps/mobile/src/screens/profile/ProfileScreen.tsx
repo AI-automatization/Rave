@@ -137,18 +137,18 @@ export function ProfileScreen() {
 
         {/* Coming Soon — Subscription & Purchases */}
         <View style={s.section}>
-          <SectionHeader label="Подписки и покупки" />
+          <SectionHeader label={t('profile', 'subscriptions')} />
           <View style={s.navGroup}>
             <ComingSoonItem
               icon="card-outline"
-              label="История подписок"
-              subtitle="Просмотр активных и прошлых планов"
+              label={t('profile', 'subHistory')}
+              subtitle={t('profile', 'subHistorySub')}
               delay={500}
             />
             <ComingSoonItem
               icon="receipt-outline"
-              label="История покупок"
-              subtitle="Покупки внутри приложения"
+              label={t('profile', 'purchaseHistory')}
+              subtitle={t('profile', 'purchaseHistorySub')}
               delay={540}
             />
           </View>
@@ -156,10 +156,10 @@ export function ProfileScreen() {
 
         {/* Settings shortcut */}
         <View style={s.section}>
-          <SectionHeader label="Аккаунт" />
+          <SectionHeader label={t('profile', 'accountSection')} />
           <NavItem
             icon="settings-outline"
-            label="Настройки"
+            label={t('settings', 'title')}
             onPress={() => navigation.navigate('Settings')}
             delay={660}
           />

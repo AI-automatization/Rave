@@ -1,7 +1,7 @@
 {
   "cli": {
     "version": ">= 12.0.0",
-    "appVersionSource": "remote"
+    "appVersionSource": "local"
   },
   "build": {
     "development": {
@@ -58,6 +58,13 @@
         "serviceAccountKeyPath": "./google-services-key.json",
         "track": "internal"
       },
+      "ios": {
+        "appleId": "beelugacat@gmail.com",
+        "ascAppId": "FILL_IN_APP_STORE_CONNECT_APP_ID",
+        "ascApiKeyPath": "./AuthKey_FILL_IN.p8",
+        "ascApiKeyIssuerId": "FILL_IN_ISSUER_ID",
+        "ascApiKeyId": "FILL_IN_KEY_ID"
+      }
     }
   }
 }

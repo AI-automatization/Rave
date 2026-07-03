@@ -10,6 +10,7 @@
 
 ## AGENT SELECTION TABLE
 
+### Зональные агенты (WeWatch code)
 | Файлы задачи          | Агент                        | Файл контекста                          | Subagent type     |
 |-----------------------|------------------------------|----------------------------------------|-------------------|
 | services/auth/        | Auth Agent                   | .claude/agents/auth-agent.md           | general-purpose   |
@@ -27,9 +28,23 @@
 | eas.json, app.json    | DevOps Agent                 | .claude/agents/devops-agent.md         | general-purpose   |
 | marketing/            | Marketing Agent              | .claude/agents/marketing-agent.md      | general-purpose   |
 | .claude/scripts/tg-*  | Telegram Agent               | .claude/agents/telegram-agent.md       | general-purpose   |
-| Исследование кода     | Explorer                     | (нет файла)                            | Explore           |
-| Архитектура           | Planner                      | (нет файла)                            | Plan              |
-| Валидация после merge | QA Agent                     | .claude/agents/qa-agent.md             | general-purpose   |
+
+### Аналитические агенты (без кода, перед задачей)
+| Когда                          | Агент                  | Файл                                       |
+|-------------------------------|------------------------|-------------------------------------------|
+| Перед серьёзным изменением    | Architect Agent        | .claude/agents/architect-agent.md          |
+| Перед новой фичей             | PM Agent               | .claude/agents/pm-agent.md                 |
+| Анализ конкурентов/рынка      | Competitor Agent       | .claude/agents/competitor-agent.md         |
+| Security review               | Security Agent         | .claude/agents/security-agent.md           |
+| Code quality review           | Code Review Agent      | .claude/agents/code-review-agent.md        |
+| Obsidian/docs порядок         | Knowledge Curator      | .claude/agents/knowledge-curator-agent.md  |
+
+### Инфраструктурные агенты
+| Задача                | Агент      | Файл                    |
+|-----------------------|-----------|-------------------------|
+| Исследование кода     | Explorer  | subagent_type: Explore  |
+| Архитектурный план    | Planner   | subagent_type: Plan     |
+| Валидация после merge | QA Agent  | .claude/agents/qa-agent.md |
 
 ## MULTI-AGENT PLAYBOOKS (готовые сценарии)
 

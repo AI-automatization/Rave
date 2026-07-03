@@ -10,6 +10,10 @@ interface AuthenticatedSocket extends Socket {
   roomOwnerId?: string; // cached on JOIN_ROOM to skip MongoDB on every video event
 }
 
+// Module-level state shared across all socket instances in this process.
+// bufferTimeouts: per-room pending resume timer — must be module-level so any socket can cancel it.
+const bufferTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
+
 export const registerVideoEvents = (
   io: SocketServer,
   socket: Socket,
@@ -58,6 +62,10 @@ export const registerVideoEvents = (
   socket.on(CLIENT_EVENTS.PAUSE, async (data: { currentTime: number }) => {
     if (!authSocket.roomId || !await resolveIsOwner()) return;
     const roomId = authSocket.roomId;
+
+    // Cancel any pending buffer resume timer so a buffering viewer can't auto-resume a paused room.
+    const pendingResume = bufferTimeouts.get(roomId);
+    if (pendingResume) { clearTimeout(pendingResume); bufferTimeouts.delete(roomId); }
 
     try {
       const syncState = await watchPartyService.syncState(roomId, userId, data.currentTime, false);
@@ -108,7 +116,6 @@ export const registerVideoEvents = (
   });
 
   // BUFFER — democratic wait: pause all when first peer buffers, resume when all done
-  const bufferTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
   const MAX_BUFFER_WAIT_MS = 30_000;
 
   const resumeRoom = async (roomId: string) => {

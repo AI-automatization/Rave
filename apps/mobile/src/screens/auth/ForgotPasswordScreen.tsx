@@ -192,7 +192,7 @@ const useStyles = createThemedStyles((colors) => ({
   flex: { flex: 1 },
   container: { flex: 1, paddingHorizontal: 28 },
 
-  bgGrid: { ...StyleSheet.absoluteFillObject },
+  bgGrid: { ...StyleSheet.absoluteFill },
   gridLineH: { position: 'absolute', left: 0, right: 0, height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(255,255,255,0.03)' },
   gridLineV: { position: 'absolute', top: 0, bottom: 0, width: StyleSheet.hairlineWidth, backgroundColor: 'rgba(255,255,255,0.03)' },
   accentLine: { position: 'absolute', top: SCREEN_H * 0.12, left: 0, right: 0, height: 1 },

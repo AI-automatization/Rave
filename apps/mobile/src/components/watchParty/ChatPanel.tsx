@@ -5,6 +5,7 @@ import {
   KeyboardAvoidingView, Platform, ListRenderItemInfo,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useT } from '@i18n/index';
 import { chatStyles as s } from './ChatPanel.styles';
 
 export interface ReplyTo {
@@ -85,6 +86,7 @@ function MessageItem({
 }
 
 export function ChatPanel({ messages, currentUserId, onSend }: ChatPanelProps) {
+  const { t } = useT();
   const [input, setInput] = useState('');
   const [replyTo, setReplyTo] = useState<ReplyTo | null>(null);
   const listRef = useRef<FlatList<ChatMessage>>(null);
@@ -116,17 +118,17 @@ export function ChatPanel({ messages, currentUserId, onSend }: ChatPanelProps) {
       <View style={s.header}>
         <View style={s.headerLeft}>
           <Ionicons name="chatbubbles" size={14} color="#7B72F8" />
-          <Text style={s.headerTitle}>Xona chati</Text>
+          <Text style={s.headerTitle}>{t('watchParty', 'roomChat')}</Text>
         </View>
-        <Text style={s.msgCount}>{messages.length} xabar</Text>
+        <Text style={s.msgCount}>{messages.length}</Text>
       </View>
 
       {/* Messages / empty state */}
       {messages.length === 0 ? (
         <View style={s.emptyState}>
           <Ionicons name="chatbubble-outline" size={36} color="rgba(255,255,255,0.08)" />
-          <Text style={s.emptyTitle}>Hali xabarlar yo&apos;q</Text>
-          <Text style={s.emptySub}>Birinchi bo&apos;lib yozing!</Text>
+          <Text style={s.emptyTitle}>{t('watchParty', 'noMessages')}</Text>
+          <Text style={s.emptySub}>{t('watchParty', 'noMessagesHint')}</Text>
         </View>
       ) : (
         <FlatList
@@ -163,7 +165,7 @@ export function ChatPanel({ messages, currentUserId, onSend }: ChatPanelProps) {
           style={s.input}
           value={input}
           onChangeText={setInput}
-          placeholder="Xabar yozing..."
+          placeholder={t('watchParty', 'chatPlaceholder')}
           placeholderTextColor="rgba(255,255,255,0.28)"
           onSubmitEditing={handleSend}
           returnKeyType="send"

@@ -83,6 +83,7 @@ export const createAuthRouter = (redis: Redis): Router => {
 
   // Mobile polling flow (works in Expo Go without a build)
   router.post('/google/init', authRateLimiter, oauthController.googleMobileInit);
+  router.get('/google/init', authRateLimiter, oauthController.googleMobileInit); // web compat
   router.get('/google/mobile', oauthController.googleMobileRedirect);
   router.get('/google/poll', pollRateLimiter, oauthController.googleMobilePoll);
 

@@ -29,6 +29,15 @@ import { getActiveScreenName } from '@hooks/useScreenTracking';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
+// executionEnvironment 'storeClient' = Expo Go — appOwnership deprecated
+const isExpoGo = Constants.executionEnvironment === 'storeClient';
+
+function useLastNotificationResponseSafe() {
+  // useLastNotificationResponse calls addPushTokenListener internally → crashes Expo Go SDK 53
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  return isExpoGo ? null : Notifications.useLastNotificationResponse();
+}
+
 const HEARTBEAT_INTERVAL_MS = 2 * 60 * 1000;
 
 // Returns -1 if a < b, 0 if equal, 1 if a > b
@@ -46,7 +55,7 @@ export function AppNavigator() {
   const { isAuthenticated, isHydrated, needsProfileSetup, user } = useAuthStore();
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const navigationRef = useNavigationContainerRef<RootStackParamList>();
-  const lastResponse = Notifications.useLastNotificationResponse();
+  const lastResponse = useLastNotificationResponseSafe();
   const { colors } = useTheme();
 
   const [blockedVisible, setBlockedVisible] = useState(false);

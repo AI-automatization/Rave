@@ -4,6 +4,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
+import { useT } from '@i18n/index';
 
 interface Props {
   domain: string;
@@ -12,6 +13,7 @@ interface Props {
 
 export function BlockedDomainView({ domain, onClose }: Props) {
   const { colors } = useTheme();
+  const { t } = useT();
   const styles = useStyles();
 
   return (
@@ -19,14 +21,12 @@ export function BlockedDomainView({ domain, onClose }: Props) {
       <View style={styles.iconWrap}>
         <Ionicons name="ban" size={48} color={colors.error} />
       </View>
-      <Text style={styles.title}>Сайт заблокирован</Text>
+      <Text style={styles.title}>{t('browser', 'domainBlocked')}</Text>
       <Text style={styles.domain}>{domain}</Text>
-      <Text style={styles.message}>
-        Этот ресурс нарушает политику конфиденциальности weWatch и недоступен на платформе.
-      </Text>
+      <Text style={styles.message}>{t('browser', 'domainBlockedPolicy')}</Text>
       {onClose && (
         <TouchableOpacity style={styles.btn} onPress={onClose}>
-          <Text style={styles.btnText}>Закрыть</Text>
+          <Text style={styles.btnText}>{t('common', 'close')}</Text>
         </TouchableOpacity>
       )}
     </View>

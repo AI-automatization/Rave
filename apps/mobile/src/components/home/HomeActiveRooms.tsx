@@ -12,6 +12,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, createThemedStyles, spacing, typography, borderRadius } from '@theme/index';
+import { useT } from '@i18n/index';
 import type { IWatchPartyRoom } from '@app-types/index';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -73,11 +74,12 @@ function SkeletonCard() {
 
 export function HomeActiveRooms({ rooms, onRoomPress, isLoading }: HomeActiveRoomsProps) {
   const s = useStyles();
+  const { t } = useT();
 
   return (
     <View style={s.section}>
       <View style={s.sectionHeader}>
-        <Text style={s.sectionTitle}>ОТКРЫТЫЕ КОМНАТЫ</Text>
+        <Text style={s.sectionTitle}>{t('home', 'openRooms')}</Text>
         {isLoading && <ActivityIndicator size="small" color={s.activityColor.color} />}
       </View>
 
@@ -95,8 +97,8 @@ export function HomeActiveRooms({ rooms, onRoomPress, isLoading }: HomeActiveRoo
       ) : rooms.length === 0 ? (
         <View style={s.empty}>
           <Ionicons name="tv-outline" size={32} color={s.emptyIcon.color} />
-          <Text style={s.emptyText}>Нет активных комнат</Text>
-          <Text style={s.emptyHint}>Создай комнату и позови друзей</Text>
+          <Text style={s.emptyText}>{t('home', 'noActiveRooms')}</Text>
+          <Text style={s.emptyHint}>{t('home', 'noActiveRoomsHint')}</Text>
         </View>
       ) : (
         <FlatList

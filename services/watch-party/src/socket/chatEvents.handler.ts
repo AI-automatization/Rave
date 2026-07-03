@@ -11,14 +11,14 @@ interface AuthenticatedSocket extends Socket {
 export const registerChatEvents = (
   socket: Socket,
   authSocket: AuthenticatedSocket,
-  checkRateLimit: (userId: string) => boolean,
+  checkRateLimit: (userId: string) => Promise<boolean>,
 ): void => {
   const { userId, username = '' } = authSocket.user;
 
   // CHAT MESSAGE — broadcast to all in room (including sender)
-  socket.on(CLIENT_EVENTS.SEND_MESSAGE, (data: { message: string }) => {
+  socket.on(CLIENT_EVENTS.SEND_MESSAGE, async (data: { message: string }) => {
     if (!authSocket.roomId) return;
-    if (!checkRateLimit(userId)) {
+    if (!await checkRateLimit(userId)) {
       socket.emit('error', { message: 'Rate limit: sekundiga 10 ta xabar' });
       return;
     }
@@ -40,9 +40,9 @@ export const registerChatEvents = (
   });
 
   // EMOJI REACTION — broadcast to all in room (including sender)
-  socket.on(CLIENT_EVENTS.SEND_EMOJI, (data: { emoji: string }) => {
+  socket.on(CLIENT_EVENTS.SEND_EMOJI, async (data: { emoji: string }) => {
     if (!authSocket.roomId) return;
-    if (!checkRateLimit(userId)) return;
+    if (!await checkRateLimit(userId)) return;
     const safeEmoji = xss(data.emoji.slice(0, 10));
     socket.to(authSocket.roomId).emit(SERVER_EVENTS.ROOM_EMOJI, {
       userId,

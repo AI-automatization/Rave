@@ -2,6 +2,7 @@
 // Requires expo-dev-client — react-native-webrtc won't work in Expo Go.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getSocket, SERVER_EVENTS, CLIENT_EVENTS } from '@socket/client';
+import { useT } from '@i18n/index';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -38,9 +39,13 @@ const ICE_SERVERS = [
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
-export function useVoiceChat(visible: boolean) {
+// `active` keeps the voice connection alive for the whole room session,
+// independent of which bottom panel (voice/chat) is currently visible.
+export function useVoiceChat(active: boolean) {
+  const { t } = useT();
   const [isJoined, setIsJoined] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
+  // Mic OFF by default — user auto-joins voice muted on room entry
+  const [isMuted, setIsMuted] = useState(true);
   const [participants, setParticipants] = useState<VoiceParticipant[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -144,7 +149,7 @@ export function useVoiceChat(visible: boolean) {
   // ─── Socket registration ──────────────────────────────────────────────────────
 
   useEffect(() => {
-    if (!visible) return;
+    if (!active) return;
     const socket = getSocket();
     if (!socket) return;
     socket.on(SERVER_EVENTS.VOICE_JOINED, handleVoiceJoined);
@@ -163,7 +168,7 @@ export function useVoiceChat(visible: boolean) {
       socket.off(SERVER_EVENTS.VOICE_ICE, handleIce);
       socket.off(SERVER_EVENTS.VOICE_SPEAKING, handleSpeaking);
     };
-  }, [visible, handleVoiceJoined, handleUserJoined, handleUserLeft, handleOffer, handleAnswer, handleIce, handleSpeaking]);
+  }, [active, handleVoiceJoined, handleUserJoined, handleUserLeft, handleOffer, handleAnswer, handleIce, handleSpeaking]);
 
   useEffect(() => () => { leaveVoiceInternal(); }, [leaveVoiceInternal]);
 
@@ -187,7 +192,7 @@ export function useVoiceChat(visible: boolean) {
       getSocket()?.emit(CLIENT_EVENTS.VOICE_JOIN);
     } catch (err: unknown) {
       setIsLoading(false);
-      setErrorMsg((err as { message?: string })?.message ?? 'Не удалось получить доступ к микрофону.');
+      setErrorMsg((err as { message?: string })?.message ?? t('watchParty', 'micError'));
     }
   }, [isMuted]);
 
@@ -207,6 +212,17 @@ export function useVoiceChat(visible: boolean) {
       return next;
     });
   }, []);
+
+  // ─── Auto-join (muted) when voice becomes visible ─────────────────────────────
+  // User enters room → auto-connects to voice with mic OFF. Fires once per mount;
+  // a manual leaveVoice won't trigger re-join (ref stays true).
+  const autoJoinedRef = useRef(false);
+  useEffect(() => {
+    if (!active || !isWebRTCAvailable) return;
+    if (autoJoinedRef.current || isJoined || isLoading) return;
+    autoJoinedRef.current = true;
+    joinVoice();
+  }, [active, isJoined, isLoading, joinVoice]);
 
   return { isJoined, isMuted, participants, isLoading, errorMsg, joinVoice, leaveVoice, toggleMute };
 }
