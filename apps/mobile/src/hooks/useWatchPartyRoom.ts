@@ -93,9 +93,11 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   // proxy source starts from position 0 — completely out of sync with the owner.
   const lastExecutedSyncRef = useRef<{ currentTime: number; isPlaying: boolean; serverTimestamp: number } | null>(null);
 
-  const [showChat, setShowChat] = useState(false);
-  // Voice panel open by default — room entry shows voice chat first (not text chat)
-  const [showVoice, setShowVoice] = useState(true);
+  // Chat panel open by default — fills the space below the video and puts the main
+  // social surface right at hand on room entry. Voice still auto-joins muted in the
+  // background (see screen) and can be toggled from the room bar.
+  const [showChat, setShowChat] = useState(true);
+  const [showVoice, setShowVoice] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);

@@ -167,8 +167,9 @@ export function WatchPartyScreen() {
     return <BlockedDomainView domain={domainName} onClose={handleLeave} />;
   }
 
-  // Hide members strip when chat/voice is shown — gives more vertical space
-  const showMembers = !isFullscreen && !!room && !showChat && !showVoice;
+  // Keep the members strip visible with voice open (voice is about who's in the room).
+  // Only hide it for text chat, which needs the extra vertical space.
+  const showMembers = !isFullscreen && !!room && !showChat;
 
   return (
     <View style={s.root}>

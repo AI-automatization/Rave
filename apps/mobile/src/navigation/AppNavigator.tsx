@@ -1,7 +1,7 @@
 // WeWatch Mobile — Root Navigator
 import React, { useEffect, useRef, useState } from 'react';
 import { View, AppState, type AppStateStatus } from 'react-native';
-import { NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';
+import { NavigationContainer, useNavigationContainerRef, getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import * as Linking from 'expo-linking';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as Notifications from 'expo-notifications';
@@ -17,6 +17,7 @@ import { userApi } from '@api/user.api';
 import { usePushNotifications } from '@hooks/usePushNotifications';
 import { LanguageTransition } from '@components/common/LanguageTransition';
 import { BlockedAccountModal } from '@components/common/BlockedAccountModal';
+import { AppAlertHost } from '@components/common/AppAlert';
 import { MaintenanceScreen } from '@components/common/MaintenanceScreen';
 import { UpdateRequiredScreen } from '@components/common/UpdateRequiredScreen';
 import { onAccountBlocked } from '@api/client';
@@ -84,8 +85,14 @@ export function AppNavigator() {
       } else {
         setUpdateRequired(false);
       }
-    } catch {
-      // Unreachable endpoint — don't block the app
+    } catch (err) {
+      // If the config endpoint itself answers 503 MAINTENANCE_MODE, treat it as
+      // maintenance ON (don't fail open) — otherwise users hit raw 503s on every
+      // action with no explanation. Any other unreachable error: don't block.
+      const e = err as { response?: { status?: number; data?: { code?: string } } };
+      if (e.response?.status === 503 && e.response?.data?.code === 'MAINTENANCE_MODE') {
+        setMaintenanceMode(true);
+      }
     }
   };
 
@@ -298,7 +305,18 @@ export function AppNavigator() {
                 <Stack.Screen
                   name="Modal"
                   component={ModalNavigator}
-                  options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+                  options={({ route }) => {
+                    // Disable swipe-to-dismiss while an active watch party room is open —
+                    // a swipe-down would accidentally minimise the room. Users leave a room
+                    // via the explicit "leave" control instead. Other modal screens
+                    // (SourcePicker, DMChat, etc.) keep the convenient pull-down gesture.
+                    const focused = getFocusedRouteNameFromRoute(route);
+                    return {
+                      presentation: 'modal',
+                      animation: 'slide_from_bottom',
+                      gestureEnabled: focused !== 'WatchParty',
+                    };
+                  }}
                 />
               </>
             )
@@ -308,6 +326,8 @@ export function AppNavigator() {
         </Stack.Navigator>
       </LanguageTransition>
     </NavigationContainer>
+
+    <AppAlertHost />
 
     <BlockedAccountModal
       visible={blockedVisible}

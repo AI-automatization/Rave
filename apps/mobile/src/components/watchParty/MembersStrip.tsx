@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { userApi } from '@api/user.api';
 import { spacing } from '@theme/index';
+import { useT } from '@i18n/index';
 
 interface Props {
   activeMembers: string[];
@@ -28,6 +29,7 @@ function MemberAvatar({
 }: {
   userId: string; isOwner: boolean; isSelf: boolean; onPress?: () => void;
 }) {
+  const { t } = useT();
   const { data } = useQuery({
     queryKey: ['user-public', userId],
     queryFn: () => userApi.getPublicProfile(userId),
@@ -57,7 +59,7 @@ function MemberAvatar({
       )}
       <View style={s.onlineDot} />
       <Text style={[s.usernameLabel, isSelf && s.usernameLabelSelf]} numberOfLines={1}>
-        {isSelf ? 'Siz' : (data?.username ?? '···')}
+        {isSelf ? t('watchParty', 'youLabel') : (data?.username ?? '···')}
       </Text>
     </View>
   );
@@ -73,6 +75,7 @@ function MemberAvatar({
 }
 
 export function MembersStrip({ activeMembers, ownerId, currentUserId, onMemberPress }: Props) {
+  const { t } = useT();
   if (activeMembers.length === 0) return null;
 
   const visible = activeMembers.slice(0, MAX_VISIBLE);
@@ -81,10 +84,10 @@ export function MembersStrip({ activeMembers, ownerId, currentUserId, onMemberPr
   return (
     <View style={s.root}>
       <View style={s.header}>
-        <Text style={s.headerLabel}>Ishtirokchilar</Text>
+        <Text style={s.headerLabel}>{t('watchParty', 'membersLabel')}</Text>
         <View style={s.onlinePill}>
           <View style={s.onlinePip} />
-          <Text style={s.onlineText}>{activeMembers.length} onlayn</Text>
+          <Text style={s.onlineText}>{activeMembers.length} {t('watchParty', 'onlineSuffix')}</Text>
         </View>
       </View>
 
