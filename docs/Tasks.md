@@ -1,6 +1,32 @@
 # CineSync — OCHIQ VAZIFALAR
 
-# Yangilangan: 2026-06-13
+# Yangilangan: 2026-07-03
+
+---
+
+# 🔵 Sprint 13: Mobile UX fixes (2026-07-03 — manual QA Saidazim)
+
+---
+
+### T-S108 | P1 | [MOBILE+BACKEND] | Single active room guard + "Мои комнаты" на главном
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim (manual QA)
+- **Yaratilgan:** 2026-07-03
+- **Holat:** 🔄 Bajarilmoqda
+- **Tavsiya model:** sonnet
+- **Model sababi:** backend guard + mobile UI, 3-4 fayl, mavjud endpoint qayta ishlatiladi
+- **Sabab:** Foydalanuvchi bir vaqtda bir nechta xona ochishi mumkin (guard yo'q). Bor xonani topib bo'lmaydi — HomeScreen'da "mening xonalarim" yo'q.
+- **Qilish kerak:**
+  - [ ] Backend `createRoom`: agar `ownerId` da active (status != ended) xona bo'lsa → `409 ROOM_ALREADY_EXISTS` + roomId
+  - [ ] Mobile: create javobida shu kodni ushlab → mavjud xonaga navigate + toast
+  - [ ] Mobile HomeScreen: "Мои комнаты" seksiya (`getRecentRooms`, filter active), tap → xona ochish
+  - [ ] Deploy watch-party
+- **Fayllar:** `services/watch-party/src/controllers/watchParty.controller.ts` (+ service), `apps/mobile/src/screens/home/HomeScreen.tsx`, `apps/mobile/src/screens/rooms/RoomsScreen.tsx`
+
+### T-S107b | ✅ | [MOBILE] | Fix: свайп-вниз случайно сворачивает комнату
+
+- **Holat:** ✅ Bajarildi (2026-07-03) — outer Modal wrapper `gestureEnabled` off qachonki `WatchParty` active (`AppNavigator.tsx`)
 
 ---
 
