@@ -2,7 +2,7 @@
 import { useEffect, useRef } from 'react';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
-import { Platform } from 'react-native';
+import { Platform, Alert } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { userApi } from '@api/user.api';
 import { useAuthStore } from '@store/auth.store';
@@ -31,6 +31,7 @@ export function usePushNotifications() {
   const isAuthenticated = useAuthStore(s => s.isAuthenticated);
   const queryClient = useQueryClient();
   const receivedRef = useRef<Notifications.EventSubscription | null>(null);
+  const tokenSubRef = useRef<Notifications.EventSubscription | null>(null);
 
   // Ask for the OS notification permission as soon as the app opens — independent of
   // login. On Android 13+ POST_NOTIFICATIONS is a runtime permission; without this the
@@ -42,9 +43,23 @@ export function usePushNotifications() {
   }, []);
 
   useEffect(() => {
+    console.log('[PUSH] auth effect — isAuthenticated:', isAuthenticated, 'isExpoGo:', isExpoGo);
     if (!isAuthenticated || isExpoGo) return;
 
     void registerForPushNotifications();
+
+    // FCM may provision the device token asynchronously (onNewToken) — this fires
+    // seconds/minutes after getDevicePushTokenAsync() first came back empty, which is
+    // common on a fresh install or on OEM ROMs (Xiaomi/MIUI) that defer registration.
+    // Capture that late token and register it so we don't depend solely on the polling
+    // loop in registerForPushNotifications().
+    tokenSubRef.current = Notifications.addPushTokenListener((token) => {
+      const data = token?.data as string | undefined;
+      if (!data) return;
+      void userApi.updateFcmToken(data).catch(() => {
+        // best-effort: a failed backend POST is retried on next app open
+      });
+    });
 
     receivedRef.current = Notifications.addNotificationReceivedListener((notification) => {
       const data = notification.request.content.data as Record<string, unknown> | undefined;
@@ -58,6 +73,7 @@ export function usePushNotifications() {
 
     return () => {
       receivedRef.current?.remove();
+      tokenSubRef.current?.remove();
     };
   }, [isAuthenticated, queryClient]);
 }
@@ -80,30 +96,77 @@ export async function ensureNotificationPermission(): Promise<Notifications.Perm
   return status;
 }
 
+// TEMP DIAGNOSTIC build: surfaces the push-registration outcome via an on-screen
+// Alert so it can be read on a real device without adb/USB. Remove after diagnosis.
 async function registerForPushNotifications(): Promise<void> {
+  let diag = '';
   try {
     const finalStatus = await ensureNotificationPermission();
-
+    diag += `permission: ${finalStatus}\n`;
     if (finalStatus !== 'granted') {
-      if (__DEV__) console.log('[Push] Permission not granted — status:', finalStatus);
+      Alert.alert('PUSH DIAG', `${diag}→ aborted: no permission`);
       return;
     }
 
-    const token = await getPushToken();
-    if (!token) return;
+    const { token, error } = await getPushToken();
+    diag += token ? `token: ${token.slice(0, 18)}… (len ${token.length})\n` : `token: NULL\n`;
+    // Always surface the diagnostic detail — a thrown error with an empty message
+    // would otherwise be invisible and look like a silent NULL.
+    diag += `detail: ${error ?? '(none)'}\n`;
+    if (!token) {
+      Alert.alert('PUSH DIAG', `${diag}→ aborted: no token`);
+      return;
+    }
 
     await userApi.updateFcmToken(token);
-    if (__DEV__) console.log('[Push] Token registered successfully');
+    Alert.alert('PUSH DIAG', `${diag}→ POST backend: OK ✅`);
   } catch (err) {
-    if (__DEV__) console.log('[Push] Registration skipped:', (err as Error).message);
+    Alert.alert('PUSH DIAG', `${diag}→ ERROR: ${(err as Error)?.message}`);
   }
 }
 
-async function getPushToken(): Promise<string | null> {
-  try {
-    const deviceToken = (await Notifications.getDevicePushTokenAsync()).data as string;
-    return deviceToken;
-  } catch {
-    return null;
+// Fetch the FCM device token with retries. On a fresh install the very first
+// getDevicePushTokenAsync() call frequently comes back with data=null (FCM
+// SERVICE_NOT_AVAILABLE — the token is not provisioned yet) even when Firebase
+// is configured correctly. It becomes available a couple of seconds later, so
+// we retry with a backoff instead of giving up after one attempt.
+const TOKEN_MAX_ATTEMPTS = 5;
+const TOKEN_RETRY_DELAY_MS = 2500;
+
+async function getPushToken(): Promise<{ token: string | null; error?: string }> {
+  let lastDetail = '';
+  for (let attempt = 1; attempt <= TOKEN_MAX_ATTEMPTS; attempt++) {
+    try {
+      const res = await Notifications.getDevicePushTokenAsync();
+      const data = res?.data as string | undefined;
+      if (data) return { token: data, error: `ok on attempt ${attempt}` };
+      // Resolved without throwing but token is empty — show the RAW value coming out of
+      // the native bridge (the native module rejects on failure and resolves a non-empty
+      // string on success, so a falsy value here means the wrapper/bridge dropped it).
+      lastDetail = `attempt ${attempt}/${TOKEN_MAX_ATTEMPTS}: raw=${JSON.stringify(res)} typeof=${typeof res?.data}`;
+      if (attempt === 2) {
+        // Bypass the JS wrapper — call the native module directly to see whether the
+        // wrapper or the bridge is dropping the value.
+        try {
+          const { requireNativeModule } = await import('expo-modules-core');
+          const native = requireNativeModule('ExpoPushTokenManager');
+          const direct = await native.getDevicePushTokenAsync();
+          lastDetail += ` | direct=${JSON.stringify(direct)} typeof=${typeof direct}`;
+          if (typeof direct === 'string' && direct.length > 0) {
+            return { token: direct, error: 'direct native call ok (wrapper broken)' };
+          }
+        } catch (de) {
+          lastDetail += ` | direct threw: ${(de as Error)?.message}`;
+        }
+      }
+    } catch (e) {
+      const err = e as { name?: string; code?: string; message?: string };
+      // A thrown error may carry an empty message — surface name + code too.
+      lastDetail = `attempt ${attempt}/${TOKEN_MAX_ATTEMPTS} throw ${err.name ?? 'Error'} code=${err.code ?? '—'} msg="${err.message ?? ''}"`;
+    }
+    if (attempt < TOKEN_MAX_ATTEMPTS) {
+      await new Promise((resolve) => setTimeout(resolve, TOKEN_RETRY_DELAY_MS));
+    }
   }
+  return { token: null, error: lastDetail };
 }

@@ -15,3 +15,20 @@
 
 # expo-av missing class workaround for R8
 -dontwarn expo.modules.core.interfaces.services.KeepAwakeManager
+
+# Firebase Cloud Messaging (FCM) — keep so getDevicePushTokenAsync() works in
+# minified release builds. Without these, R8 obfuscated the FCM/GMS classes that
+# Firebase reaches via reflection and the device push token came back NULL.
+-keep class com.google.firebase.** { *; }
+-keep class com.google.android.gms.** { *; }
+-dontwarn com.google.firebase.**
+-dontwarn com.google.android.gms.**
+
+# Expo native modules bridge — keep so expo-notifications can reach its native impl.
+-keep class expo.modules.** { *; }
+
+# @react-native-google-signin — ships no consumer proguard rules, so R8 would
+# obfuscate its native module + GMS auth result classes and break sign-in.
+-keep class com.reactnativegooglesignin.** { *; }
+-keep class com.google.android.gms.auth.api.signin.** { *; }
+-dontwarn com.reactnativegooglesignin.**
