@@ -66,3 +66,10 @@ apps/mobile/android/.gradle/
 apps/mobile/android/app/build/
 apps/mobile/ios/build/
 apps/mobile/ios/Pods/
+
+# Test artifacts / junk
+.playwright-mcp/
+
+# Telegram/Telethon auth sessions — secrets, never commit
+*.session
+*.session-journal

@@ -1,0 +1,20 @@
+{"ts":1781634307296,"type":"REGISTER_FAILED","email":"ww_stress_0@wewatch-load-test.dev","error":"Validation failed"}
+{"ts":1781634308097,"type":"REGISTER_FAILED","email":"ww_stress_1@wewatch-load-test.dev","error":"Validation failed"}
+{"ts":1781634308911,"type":"REGISTER_FAILED","email":"ww_stress_2@wewatch-load-test.dev","error":"Validation failed"}
+{"ts":1781634309853,"type":"REGISTER_FAILED","email":"ww_stress_3@wewatch-load-test.dev","error":"Validation failed"}
+{"ts":1781634310680,"type":"REGISTER_FAILED","email":"ww_stress_4@wewatch-load-test.dev","error":"Validation failed"}
+{"ts":1781634311562,"type":"REGISTER_FAILED","email":"ww_stress_5@wewatch-load-test.dev","error":"Validation failed"}
+{"ts":1781634312366,"type":"REGISTER_FAILED","email":"ww_stress_6@wewatch-load-test.dev","error":"Validation failed"}
+{"ts":1781634313243,"type":"REGISTER_FAILED","email":"ww_stress_7@wewatch-load-test.dev","error":"Validation failed"}
+{"ts":1781634314066,"type":"REGISTER_FAILED","email":"ww_stress_8@wewatch-load-test.dev","error":"Validation failed"}
+{"ts":1781634314861,"type":"REGISTER_FAILED","email":"ww_stress_9@wewatch-load-test.dev","error":"Validation failed"}
+{"ts":1781634315746,"type":"REGISTER_FAILED","email":"ww_stress_10@wewatch-load-test.dev","error":"Validation failed"}
+{"ts":1781634316536,"type":"REGISTER_FAILED","email":"ww_stress_11@wewatch-load-test.dev","error":"Validation failed"}
+{"ts":1781634317336,"type":"REGISTER_FAILED","email":"ww_stress_12@wewatch-load-test.dev","error":"Validation failed"}
+{"ts":1781634318242,"type":"REGISTER_FAILED","email":"ww_stress_13@wewatch-load-test.dev","error":"Validation failed"}
+{"ts":1781634319200,"type":"REGISTER_FAILED","email":"ww_stress_14@wewatch-load-test.dev","error":"Validation failed"}
+{"ts":1781634319613,"type":"LOGIN_FAILED","email":"ww_stress_15@wewatch-load-test.dev","error":"Too many requests. Please try again later.","status":429}
+{"ts":1781634320031,"type":"LOGIN_FAILED","email":"ww_stress_16@wewatch-load-test.dev","error":"Too many requests. Please try again later.","status":429}
+{"ts":1781634320490,"type":"LOGIN_FAILED","email":"ww_stress_17@wewatch-load-test.dev","error":"Too many requests. Please try again later.","status":429}
+{"ts":1781634320913,"type":"LOGIN_FAILED","email":"ww_stress_18@wewatch-load-test.dev","error":"Too many requests. Please try again later.","status":429}
+{"ts":1781634321410,"type":"LOGIN_FAILED","email":"ww_stress_19@wewatch-load-test.dev","error":"Too many requests. Please try again later.","status":429}

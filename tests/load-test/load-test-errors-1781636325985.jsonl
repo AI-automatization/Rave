@@ -1,0 +1,9 @@
+{"ts":1781636577466,"type":"CONNECT_ERROR","label":"V:47:1","error":"websocket error"}
+{"ts":1781636577476,"type":"CONNECT_ERROR","label":"V:41:1","error":"websocket error"}
+{"ts":1781636577537,"type":"CONNECT_ERROR","label":"V:49:1","error":"websocket error"}
+{"ts":1781636587369,"type":"JOIN_TIMEOUT","label":"V:42:1","roomId":"6a319ddc699ae05158f9d2e8"}
+{"ts":1781636657916,"type":"JOIN_TIMEOUT","label":"V:59:3","roomId":"6a319e1e699ae05158f9d3ae"}
+{"ts":1781636658049,"type":"JOIN_TIMEOUT","label":"V:53:3","roomId":"6a319e1e699ae05158f9d3ab"}
+{"ts":1781636768299,"type":"CONNECT_ERROR","label":"V:70:2","error":"websocket error"}
+{"ts":1781636818095,"type":"ROOM_CREATE_FAILED","roomIndex":84,"error":"","status":502}
+{"ts":1781636818220,"type":"ROOM_CREATE_FAILED","roomIndex":86,"error":"","status":502}
