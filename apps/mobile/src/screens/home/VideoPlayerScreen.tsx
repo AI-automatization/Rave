@@ -5,7 +5,7 @@ import {
   View, Text, StyleSheet, StatusBar, Dimensions,
   TouchableOpacity, TouchableWithoutFeedback, ActivityIndicator, Animated,
 } from 'react-native';
-import { Video, ResizeMode } from 'expo-av';
+import { VideoView } from 'expo-video';
 import WebView from 'react-native-webview';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,6 +14,7 @@ import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { HomeStackParamList } from '@app-types/index';
 import { useTheme } from '@theme/index';
+import { useT } from '@i18n/index';
 import { useVideoPlayer } from '@hooks/useVideoPlayer';
 import { YOUTUBE_RE, MOBILE_UA, getYouTubeMobileUrl, fmtTime, SEEK_SEC } from '@utils/videoPlayer';
 import { useVideoPlayerStyles } from './VideoPlayerScreen.styles';
@@ -37,6 +38,7 @@ function YouTubePlayer({
   const s = useVideoPlayerStyles();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
+  const { t } = useT();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -47,7 +49,7 @@ function YouTubePlayer({
   }, [fadeAnim]);
 
   if (error) {
-    return <ErrorScreen message="YouTube video yuklanmadi" onBack={() => navigation.goBack()} colors={colors} />;
+    return <ErrorScreen message={t('watchParty', 'youtubeLoadFailed')} onBack={() => navigation.goBack()} colors={colors} />;
   }
 
   return (
@@ -72,7 +74,7 @@ function YouTubePlayer({
           <View style={s.ytLogoWrap}><Ionicons name="logo-youtube" size={52} color="#FF0000" /></View>
           <Text style={s.loadingTitle} numberOfLines={2}>{title}</Text>
           <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 16 }} />
-          <Text style={s.loadingHint}>Yuklanmoqda...</Text>
+          <Text style={s.loadingHint}>{t('common', 'loading')}</Text>
         </View>
       )}
       {!loading && (
@@ -96,12 +98,13 @@ function DirectPlayer({
   const s = useVideoPlayerStyles();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
+  const { t } = useT();
   const {
-    videoRef, playing, pos, dur, showControls, buffering, err, loading,
+    expoPlayer, playing, pos, dur, showControls, buffering, err, loading,
     seekBarW, setSeekBarW, doubleTapSide, progress,
     controlsOpacity, playBtnScale, doubleTapAnim, loadingRotate,
-    onStatus, togglePlay, skipBy, seekTo, handleScreenTap,
-  } = useVideoPlayer();
+    togglePlay, skipBy, seekTo, handleScreenTap,
+  } = useVideoPlayer(videoUrl);
 
   if (err) return <ErrorScreen message={err} onBack={() => navigation.goBack()} colors={colors} />;
 
@@ -116,20 +119,18 @@ function DirectPlayer({
             <View style={[s.loadingRing, { borderColor: colors.primary + '30', borderTopColor: colors.primary }]} />
           </Animated.View>
           <Text style={s.loadingTitle} numberOfLines={2}>{title}</Text>
-          <Text style={s.loadingHint}>Tayyorlanmoqda...</Text>
+          <Text style={s.loadingHint}>{t('common', 'preparing')}</Text>
         </View>
       )}
 
       <TouchableWithoutFeedback onPress={(e) => handleScreenTap(e.nativeEvent.locationX)}>
         <View style={s.fill}>
-          <Video
-            ref={videoRef}
-            source={{ uri: videoUrl }}
+          <VideoView
+            player={expoPlayer}
             style={s.fill}
-            resizeMode={ResizeMode.CONTAIN}
-            onPlaybackStatusUpdate={onStatus}
-            shouldPlay
-            useNativeControls={false}
+            contentFit="contain"
+            nativeControls={false}
+            fullscreenOptions={{ enable: false }}
           />
 
           {doubleTapSide && (
@@ -142,7 +143,7 @@ function DirectPlayer({
               />
               <View style={s.dtBubble}>
                 <Ionicons name={doubleTapSide === 'left' ? 'play-back' : 'play-forward'} size={22} color={colors.white} />
-                <Text style={s.dtText}>{SEEK_SEC} сек</Text>
+                <Text style={s.dtText}>{SEEK_SEC} {t('common', 'secAbbr')}</Text>
               </View>
             </Animated.View>
           )}
@@ -237,6 +238,7 @@ function ErrorScreen({
   message, onBack, colors,
 }: { message: string; onBack: () => void; colors: ReturnType<typeof useTheme>['colors'] }) {
   const s = useVideoPlayerStyles();
+  const { t } = useT();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
@@ -249,11 +251,11 @@ function ErrorScreen({
       <View style={[s.errorIconWrap, { backgroundColor: colors.error + '18' }]}>
         <Ionicons name="alert-circle" size={48} color={colors.error} />
       </View>
-      <Text style={s.errorTitle}>Video xatosi</Text>
+      <Text style={s.errorTitle}>{t('common', 'videoError')}</Text>
       <Text style={[s.errorMsg, { color: colors.textMuted }]}>{message}</Text>
       <TouchableOpacity style={[s.errorBtn, { backgroundColor: colors.primary }]} onPress={onBack} activeOpacity={0.8}>
         <Ionicons name="arrow-back" size={18} color={colors.white} />
-        <Text style={s.errorBtnText}>Orqaga qaytish</Text>
+        <Text style={s.errorBtnText}>{t('watchParty', 'goBack')}</Text>
       </TouchableOpacity>
     </Animated.View>
   );

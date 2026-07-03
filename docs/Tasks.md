@@ -1,6 +1,6 @@
 # CineSync — OCHIQ VAZIFALAR
 
-# Yangilangan: 2026-05-11
+# Yangilangan: 2026-06-13
 
 ---
 
@@ -191,6 +191,74 @@
   - [ ] `cd services/user && npx tsc --noEmit`
   - [ ] Boshqa 4 servis ham tsc clean
   - [ ] `docs/db-architecture.html` — yangi arxitektura (bitta cinesync, merged users)
+
+---
+
+# 🔄 Sprint 12: Mesh Sync Migration (2026-06-29)
+
+> Kontekst: real qurilmada Socket.io sync ishladi, ammo 1-2s kechikish bilan.
+> Mesh kodi YOZILGAN, ammo HALI ULANMAGAN — `SyncBroadcaster`/`MeshClient` faqat `services/mesh/` ichida, useWatchPartyRoom unga ulanmagan.
+> Vazifa: mavjud mesh karkasni ulash + 2 blocker (clock-offset, TURN) yopish.
+> Zo'rlik: T-S106 → T-S107 → T-C016 (ketma-ket)
+
+---
+
+### T-S106 | P1 | [MOBILE] | Mesh Faza 0: clock-sync handshake + TURN | pending[Saidazim]
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-06-29
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** 2-3 fayl, WebRTC DataChannel handshake + env config, o'rta murakkablik
+- **Sabab:** BLOCKER — `SyncProtocol.calcDrift` peer soatlari bir xil deb hisoblaydi (`Date.now() - ownerTimestamp`), bu noto'g'ri. TURN creds bo'sh → mobil CGNAT'da mesh ulanmaydi. Bularsiz mesh Socket.io'dan tezroq ishlamaydi.
+- **Qilish kerak:**
+  - [ ] DataChannel ping/pong → clock offset + RTT baholash (NTP-style)
+  - [ ] Offset'ni `SyncProtocol.calcDrift` va `scheduledAt` hisobiga qo'shish
+  - [ ] TURN: metered.ca account → `EXPO_PUBLIC_TURN_*` env to'ldirish (`config.ts`)
+  - [ ] 4G/sotuvchi tarmoqda 2 qurilma ICE connect tekshirish
+- **Fayllar:** `apps/mobile/src/services/mesh/SyncProtocol.ts`, `MeshClient.ts`, `config.ts`
+
+---
+
+### T-S107 | P1 | [MOBILE] | Mesh Faza 1: SyncBroadcaster'ni useWatchPartyRoom'ga ulash | pending[Saidazim]
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-06-29
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** opus
+- **Model sababi:** Ikkita parallel sync tizimini birlashtirish, owner-authority, late-join seed — arxitektura tushunish kerak
+- **Sabab:** Asosiy gap — mesh kodi ulanmagan. Owner play/pause/seek/heartbeat `SyncBroadcaster` orqali ketishi, follower'lar mesh xabarlarni qo'llashi kerak.
+- **Qilish kerak:**
+  - [ ] `useWatchPartyRoom` → `SyncBroadcaster` instance (owner flag bilan)
+  - [ ] Owner-only broadcast (echo-loop oldini olish)
+  - [ ] Kech qo'shilgan peer → Redis `getSyncState` dan boshlang'ich pozitsiya seed
+  - [ ] Socket.io fallback saqlanishini tekshirish (mesh fail → socket)
+  - [ ] 2 qurilma WiFi'da sync kechikishni o'lchash (maqsad <300ms)
+- **Bog'liq:** T-S106
+- **Fayllar:** `apps/mobile/src/hooks/useWatchPartyRoom.ts`, `services/mesh/SyncBroadcaster.ts`
+
+---
+
+### T-C016 | P2 | [IKKALASI] | Mesh Faza 2: star-topology + QA matritsa (2/5/10 peer, drift, fallback)
+
+- **Mas'ul:** pending[Saidazim] + pending[Emirhan]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-06-29
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** Star-hub routing + E2E test matritsa, 2-3 fayl + manual test
+- **Sabab:** `TopologyManager` 7-15 peer uchun `star` qaytaradi, ammo `MeshClient` doim full-mesh qiladi (n² ulanish). + T-C015 "done" deb belgilangan, ammo mesh ulanmagan edi — haqiqiy QA kerak.
+- **Qilish kerak:**
+  - [ ] Star-topology: owner hub orqali routing (7-15 peer)
+  - [ ] QA: 2 peer / 5 peer / 10 peer full sync
+  - [ ] Peer drop → qolganlar davom etadi | Owner drop → handling
+  - [ ] Drift test: sun'iy 3s drift → tiklanish
+  - [ ] Poor network → ICE fail → Socket.io fallback
+  - [ ] Natijani Done.md ga matritsa sifatida
+- **Bog'liq:** T-S107
+- **Fayllar:** `apps/mobile/src/services/mesh/MeshClient.ts`, `TopologyManager.ts`
 
 ---
 
@@ -490,4 +558,124 @@
 - **Bog'liq:** T-E096 + T-E097 dan keyin
 
 ---
+
+
+---
+
+# 🟣 НОВЫЕ ФИЧИ — 2026-06-13
+
+---
+
+## 💬 DM CHAT (Личные сообщения)
+
+### T-S103 | P1 | [BACKEND] | DM Chat: DirectMessage schema + model
+
+- **Mas'ul:** done[Saidazim]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-06-13
+- **Holat:** ✅ Bajarildi (2026-06-14)
+- **Tavsiya model:** haiku
+- **Model sababi:** 1 fayl — faqat schema + model
+- **Sabab:** DM uchun MongoDB schema kerak
+- **Qilish kerak:**
+  - [x] `services/user/src/models/directMessage.model.ts` yaratish
+  - [x] Schema: senderId, receiverId, text, read, createdAt
+  - [x] Index: (senderId + receiverId) + createdAt
+
+---
+
+### T-S104 | P1 | [BACKEND] | DM Chat: REST endpoints — tarix + yuborish + ro'yxat
+
+- **Mas'ul:** done[Saidazim]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-06-13
+- **Holat:** ✅ Bajarildi (2026-06-14)
+- **Tavsiya model:** sonnet
+- **Model sababi:** controller + routes, 2-3 fayl
+- **Sabab:** DM uchun REST API
+- **Qilish kerak:**
+  - [x] `GET /messages/dm/:userId` — ikki user o'rtasidagi xabarlar tarixi
+  - [x] `POST /messages/dm/:userId` — yangi xabar yuborish
+  - [x] `GET /messages/dm/conversations` — barcha suhbatlar (so'nggi xabar + o'qilmagan soni)
+  - [x] `PATCH /messages/dm/:userId/read` — xabarlarni o'qilgan deb belgilash
+- **Bog'liq:** T-S103 (schema)
+
+---
+
+### T-S105 | P1 | [BACKEND] | DM Chat: Socket.io real-time + push notification
+
+- **Mas'ul:** done[Saidazim]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-06-13
+- **Holat:** ✅ Bajarildi (2026-06-14)
+- **Tavsiya model:** sonnet
+- **Model sababi:** Socket.io event + notification service, 2 fayl
+- **Sabab:** Real-time yetkazish va push
+- **Qilish kerak:**
+  - [x] Socket.io event `dm:send` → `dm:message` (yetkazish)
+  - [x] Agar qabul qiluvchi offline bo'lsa → FCM push notification
+  - [x] `dm:read` event — o'qilganda xabar berish
+- **Bog'liq:** T-S104
+
+---
+
+### T-E136 | P1 | [MOBILE] | DM Chat: WatchParty — user tap → BottomSheet
+
+- **Mas'ul:** done[Saidazim]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-06-13
+- **Holat:** ✅ Bajarildi (2026-06-14)
+- **Tavsiya model:** haiku
+- **Model sababi:** 1-2 fayl — faqat tap handler + BottomSheet
+- **Sabab:** Komnata ichida boshqa userni bosib → menu chiqishi kerak
+- **Qilish kerak:**
+  - [x] VoiceChatParticipants yoki participantlar ro'yxatida userni bosish → BottomSheet
+  - [x] BottomSheet ichida: "Profil ko'rish" | "Xabar yuborish"
+  - [x] "Profil" → mavjud ProfileScreen ga navigate
+  - [x] "Xabar" → DMChatScreen ga navigate (T-E137)
+- **Bog'liq:** T-S104 (backend tayyor bo'lishi kerak), T-E137
+
+---
+
+### T-E137 | P1 | [MOBILE] | DM Chat: DMChatScreen ekrani
+
+- **Mas'ul:** done[Saidazim]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-06-13
+- **Holat:** ✅ Bajarildi (2026-06-14)
+- **Tavsiya model:** sonnet
+- **Model sababi:** Yangi screen — chat bubbles, input, API, socket
+- **Sabab:** Ikki user o'rtasidagi personal chat ekrani
+- **Qilish kerak:**
+  - [x] `DMChatScreen.tsx` — chat bubbles (o'zim/boshqa), timestamp
+  - [x] Xabar inputi + yuborish tugmasi
+  - [x] `GET /messages/dm/:userId` — tarixni yuklash
+  - [x] Socket.io `dm:message` — real-time yangi xabarlar
+  - [x] O'qilmagan indicator
+- **Bog'liq:** T-S103 + T-S104 + T-S105
+
+---
+
+### T-E138 | P2 | [MOBILE] | DM Chat: ConversationsScreen — barcha suhbatlar
+
+- **Mas'ul:** done[Saidazim]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-06-13
+- **Holat:** ✅ Bajarildi (2026-06-14)
+- **Tavsiya model:** sonnet
+- **Model sababi:** Yangi screen + navigation integration
+- **Sabab:** Barcha DM suhbatlar ro'yxati kerak
+- **Qilish kerak:**
+  - [x] `ConversationsScreen.tsx` — avatar, ism, so'nggi xabar, vaqt, unread badge
+  - [x] `GET /messages/dm/conversations` dan ma'lumot
+  - [x] Bottom tab yoki Friends tab ichiga qo'shish
+  - [x] Push notification tap → to'g'ri DMChatScreen ga o'tish
+- **Bog'liq:** T-E137
+
+---
+
+## 🌐 WEB APP (Next.js — мобилка функционалини вебга кўчириш)
+
+> apps/web/ — хозир фақат лендинг. Янги route group (app) ичига тўлиқ веб-илова қўшилади.
+> Мобил скринларни веб учун адаптация қилиш — логика бир хил, UI Next.js/React.
 

@@ -2,16 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, TextInput, ActivityIndicator, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
+import { useT } from '@i18n/index';
 import { reportApi, ReportReason } from '@api/report.api';
-
-const REASONS: { value: ReportReason; label: string }[] = [
-  { value: 'prohibited_content', label: 'Запрещённый контент' },
-  { value: 'spam',               label: 'Спам' },
-  { value: 'violence',           label: 'Насилие' },
-  { value: 'harassment',         label: 'Оскорбления' },
-  { value: 'copyright',          label: 'Нарушение авторских прав' },
-  { value: 'other',              label: 'Другое' },
-];
 
 interface ReportRoomModalProps {
   visible: boolean;
@@ -21,7 +13,16 @@ interface ReportRoomModalProps {
 
 export function ReportRoomModal({ visible, roomId, onClose }: ReportRoomModalProps) {
   const { colors } = useTheme();
+  const { t } = useT();
   const s = useStyles();
+  const REASONS: { value: ReportReason; label: string }[] = [
+    { value: 'prohibited_content', label: t('common', 'reasonProhibited') },
+    { value: 'spam',               label: t('common', 'reasonSpam') },
+    { value: 'violence',           label: t('common', 'reasonViolence') },
+    { value: 'harassment',         label: t('common', 'reasonHarassment') },
+    { value: 'copyright',          label: t('common', 'reasonCopyright') },
+    { value: 'other',              label: t('common', 'reasonOther') },
+  ];
   const [selected, setSelected] = useState<ReportReason | null>(null);
   const [comment, setComment] = useState('');
   const [loading, setLoading] = useState(false);
@@ -44,7 +45,7 @@ export function ReportRoomModal({ visible, roomId, onClose }: ReportRoomModalPro
       await reportApi.reportRoom(roomId, selected, comment.trim() || undefined);
       setDone(true);
     } catch {
-      setError('Не удалось отправить жалобу. Попробуйте ещё раз.');
+      setError(t('common', 'reportError'));
     } finally {
       setLoading(false);
     }
@@ -61,22 +62,22 @@ export function ReportRoomModal({ visible, roomId, onClose }: ReportRoomModalPro
               <View style={s.doneIcon}>
                 <Ionicons name="checkmark-circle" size={56} color={colors.primary} />
               </View>
-              <Text style={s.doneTitle}>Жалоба отправлена</Text>
-              <Text style={s.doneSub}>Мы рассмотрим её в ближайшее время</Text>
+              <Text style={s.doneTitle}>{t('common', 'reportSent')}</Text>
+              <Text style={s.doneSub}>{t('common', 'reportReview')}</Text>
               <TouchableOpacity style={s.closeBtn} onPress={handleClose}>
-                <Text style={s.closeBtnText}>Закрыть</Text>
+                <Text style={s.closeBtnText}>{t('common', 'close')}</Text>
               </TouchableOpacity>
             </View>
           ) : (
             <>
               <View style={s.header}>
-                <Text style={s.title}>Пожаловаться на комнату</Text>
+                <Text style={s.title}>{t('common', 'reportRoom')}</Text>
                 <TouchableOpacity onPress={handleClose} style={s.xBtn}>
                   <Ionicons name="close" size={20} color={colors.textSecondary} />
                 </TouchableOpacity>
               </View>
 
-              <Text style={s.label}>Причина</Text>
+              <Text style={s.label}>{t('common', 'reportReason')}</Text>
               <ScrollView style={s.reasons} showsVerticalScrollIndicator={false}>
                 {REASONS.map((r) => (
                   <TouchableOpacity
@@ -93,10 +94,10 @@ export function ReportRoomModal({ visible, roomId, onClose }: ReportRoomModalPro
                   </TouchableOpacity>
                 ))}
 
-                <Text style={[s.label, { marginTop: spacing.lg }]}>Комментарий (необязательно)</Text>
+                <Text style={[s.label, { marginTop: spacing.lg }]}>{t('common', 'reportComment')}</Text>
                 <TextInput
                   style={s.input}
-                  placeholder="Опишите подробнее..."
+                  placeholder={t('common', 'reportCommentPlaceholder')}
                   placeholderTextColor={colors.textSecondary}
                   value={comment}
                   onChangeText={setComment}
@@ -114,7 +115,7 @@ export function ReportRoomModal({ visible, roomId, onClose }: ReportRoomModalPro
                 {loading ? (
                   <ActivityIndicator color="#fff" size="small" />
                 ) : (
-                  <Text style={s.submitText}>Отправить жалобу</Text>
+                  <Text style={s.submitText}>{t('common', 'reportSend')}</Text>
                 )}
               </TouchableOpacity>
             </>

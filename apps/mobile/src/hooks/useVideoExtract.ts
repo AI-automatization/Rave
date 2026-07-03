@@ -1,6 +1,7 @@
 // WeWatch Mobile — Video extract state + handlers
 import { useState, useCallback } from 'react';
 import { useNavigation } from '@react-navigation/native';
+import { useT } from '@i18n/index';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { contentApi } from '@api/content.api';
 import type { VideoExtractResult } from '@api/content.api';
@@ -41,6 +42,7 @@ interface UseVideoExtractReturn {
 
 export function useVideoExtract(): UseVideoExtractReturn {
   const rootNav = useNavigation<RootNav>();
+  const { t } = useT();
 
   const [url, setUrl] = useState('');
   const [state, setState] = useState<ExtractState>('input');
@@ -69,10 +71,10 @@ export function useVideoExtract(): UseVideoExtractReturn {
       const msg = err instanceof Error ? err.message : 'Extraction failed';
       setErrorMsg(
         msg.includes('Invalid URL')
-          ? 'Noto\'g\'ri URL format'
+          ? t('watchParty', 'invalidUrlFormat')
           : msg.includes('Private')
-            ? 'Xususiy yoki ichki URL ruxsat etilmagan'
-            : 'Video topilmadi. Boshqa URL sinab ko\'ring',
+            ? t('watchParty', 'privateUrlBlocked')
+            : t('watchParty', 'videoNotFound'),
       );
       setState('error');
     }

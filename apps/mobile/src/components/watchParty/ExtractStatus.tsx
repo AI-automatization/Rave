@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius, typography } from '@theme/index';
+import { useT } from '@i18n/index';
 import type { VideoExtractResult } from '@api/content.api';
 
 interface ExtractStatusProps {
@@ -19,11 +20,12 @@ interface ExtractStatusProps {
 }
 
 export function ExtractStatus({ isExtracting, extractResult, fallbackMode }: ExtractStatusProps) {
+  const { t } = useT();
   if (isExtracting) {
     return (
       <View style={styles.status}>
         <ActivityIndicator size="small" color={colors.primary} />
-        <Text style={styles.statusText}>Video aniqlanmoqda...</Text>
+        <Text style={styles.statusText}>{t('watchParty', 'videoDetecting')}</Text>
       </View>
     );
   }

@@ -57,7 +57,7 @@ export const VideoControls = React.memo(function VideoControls({
   };
 
   return (
-    <Animated.View style={[StyleSheet.absoluteFillObject, { opacity: fadeAnim }]}>
+    <Animated.View style={[StyleSheet.absoluteFill, { opacity: fadeAnim }]}>
       <LinearGradient colors={['rgba(0,0,0,0.7)', 'transparent']} style={[s.topBar, { paddingTop }]}>
         <TouchableOpacity onPress={onBack} style={s.iconBtn} activeOpacity={0.7}>
           <Ionicons name="chevron-back" size={26} color="#fff" />

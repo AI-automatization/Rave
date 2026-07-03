@@ -111,8 +111,14 @@ export function validateUrl(rawUrl: string): URL {
   return parsed;
 }
 
+// Static asset extensions — never a video stream. Checked before PLATFORM_PATTERNS so a
+// player SDK path like /static/player_sdk/hls/1.4.3/hls.min.js isn't matched by the /hls/
+// generic-stream rule and mis-classified as a direct stream.
+const STATIC_ASSET_RE = /\.(js|mjs|css|json|png|jpe?g|gif|svg|webp|ico|woff2?|ttf|eot|wasm|html?|map|txt|xml)(\?|#|$)/i;
+
 export function detectPlatform(url: URL): VideoPlatform {
   const full = url.href;
+  if (STATIC_ASSET_RE.test(url.pathname)) return 'unknown';
   for (const { re, platform } of PLATFORM_PATTERNS) {
     if (re.test(full)) return platform;
   }

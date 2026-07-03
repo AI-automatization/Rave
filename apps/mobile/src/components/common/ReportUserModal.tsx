@@ -2,16 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, TextInput, ActivityIndicator, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
+import { useT } from '@i18n/index';
 import { reportApi, UserReportReason } from '@api/report.api';
-
-const REASONS: { value: UserReportReason; label: string }[] = [
-  { value: 'harassment',           label: 'Оскорбления / буллинг' },
-  { value: 'spam',                 label: 'Спам' },
-  { value: 'inappropriate_content',label: 'Неуместный контент' },
-  { value: 'fake_account',         label: 'Фейковый аккаунт' },
-  { value: 'hate_speech',          label: 'Язык ненависти' },
-  { value: 'other',                label: 'Другое' },
-];
 
 interface ReportUserModalProps {
   visible: boolean;
@@ -22,7 +14,16 @@ interface ReportUserModalProps {
 
 export function ReportUserModal({ visible, userId, username, onClose }: ReportUserModalProps) {
   const { colors } = useTheme();
+  const { t } = useT();
   const s = useStyles();
+  const REASONS: { value: UserReportReason; label: string }[] = [
+    { value: 'harassment',            label: t('common', 'reasonHarassment') },
+    { value: 'spam',                  label: t('common', 'reasonSpam') },
+    { value: 'inappropriate_content', label: t('common', 'reasonInappropriate') },
+    { value: 'fake_account',          label: t('common', 'reasonFakeAccount') },
+    { value: 'hate_speech',           label: t('common', 'reasonHateSpeech') },
+    { value: 'other',                 label: t('common', 'reasonOther') },
+  ];
   const [selected, setSelected] = useState<UserReportReason | null>(null);
   const [comment, setComment] = useState('');
   const [loading, setLoading] = useState(false);
@@ -45,7 +46,7 @@ export function ReportUserModal({ visible, userId, username, onClose }: ReportUs
       await reportApi.reportUser(userId, selected, comment.trim() || undefined);
       setDone(true);
     } catch {
-      setError('Не удалось отправить жалобу. Попробуйте ещё раз.');
+      setError(t('common', 'reportError'));
     } finally {
       setLoading(false);
     }
@@ -62,17 +63,17 @@ export function ReportUserModal({ visible, userId, username, onClose }: ReportUs
               <View style={s.doneIcon}>
                 <Ionicons name="checkmark-circle" size={56} color={colors.primary} />
               </View>
-              <Text style={s.doneTitle}>Жалоба отправлена</Text>
-              <Text style={s.doneSub}>Мы рассмотрим её в ближайшее время</Text>
+              <Text style={s.doneTitle}>{t('common', 'reportSent')}</Text>
+              <Text style={s.doneSub}>{t('common', 'reportReview')}</Text>
               <TouchableOpacity style={s.closeBtn} onPress={handleClose}>
-                <Text style={s.closeBtnText}>Закрыть</Text>
+                <Text style={s.closeBtnText}>{t('common', 'close')}</Text>
               </TouchableOpacity>
             </View>
           ) : (
             <>
               <View style={s.header}>
                 <View>
-                  <Text style={s.title}>Пожаловаться на пользователя</Text>
+                  <Text style={s.title}>{t('common', 'reportUser')}</Text>
                   {username && <Text style={s.subtitle}>@{username}</Text>}
                 </View>
                 <TouchableOpacity onPress={handleClose} style={s.xBtn}>
@@ -80,7 +81,7 @@ export function ReportUserModal({ visible, userId, username, onClose }: ReportUs
                 </TouchableOpacity>
               </View>
 
-              <Text style={s.label}>Причина</Text>
+              <Text style={s.label}>{t('common', 'reportReason')}</Text>
               <ScrollView style={s.reasons} showsVerticalScrollIndicator={false}>
                 {REASONS.map((r) => (
                   <TouchableOpacity
@@ -97,10 +98,10 @@ export function ReportUserModal({ visible, userId, username, onClose }: ReportUs
                   </TouchableOpacity>
                 ))}
 
-                <Text style={[s.label, { marginTop: spacing.lg }]}>Комментарий (необязательно)</Text>
+                <Text style={[s.label, { marginTop: spacing.lg }]}>{t('common', 'reportComment')}</Text>
                 <TextInput
                   style={s.input}
-                  placeholder="Опишите подробнее..."
+                  placeholder={t('common', 'reportCommentPlaceholder')}
                   placeholderTextColor={colors.textSecondary}
                   value={comment}
                   onChangeText={setComment}
@@ -118,7 +119,7 @@ export function ReportUserModal({ visible, userId, username, onClose }: ReportUs
                 {loading ? (
                   <ActivityIndicator color="#fff" size="small" />
                 ) : (
-                  <Text style={s.submitText}>Отправить жалобу</Text>
+                  <Text style={s.submitText}>{t('common', 'reportSend')}</Text>
                 )}
               </TouchableOpacity>
             </>

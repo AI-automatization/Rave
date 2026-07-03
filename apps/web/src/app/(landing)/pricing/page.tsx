@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import { PricingContent } from './PricingContent';
 
 export const metadata: Metadata = {
-  title: 'Narxlar',
-  description: "WeWatch narx rejalari — Bepul va Pro. Asosiy funksiyalar hammaga bepul.",
+  title: 'Цены | WeWatch',
+  description: "Тарифы WeWatch — Бесплатный и Pro. Основные функции бесплатны навсегда. Смотрите видео вместе с друзьями без подписки.",
 };
 
 export default function PricingPage() {

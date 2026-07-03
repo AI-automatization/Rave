@@ -6,6 +6,7 @@ import { View, Text, TouchableOpacity, Animated, StyleSheet } from 'react-native
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, spacing, typography } from '@theme/index';
+import { useT } from '@i18n/index';
 
 interface OfflineBannerProps {
   isOnline: boolean;
@@ -16,6 +17,7 @@ const CONTENT_HEIGHT = 40;
 
 export function OfflineBanner({ isOnline, onRetry }: OfflineBannerProps) {
   const { colors } = useTheme();
+  const { t } = useT();
   const insets = useSafeAreaInsets();
 
   // Total banner height = status bar area + content area
@@ -47,9 +49,9 @@ export function OfflineBanner({ isOnline, onRetry }: OfflineBannerProps) {
     >
       <View style={styles.content}>
         <Ionicons name="wifi-outline" size={16} color="#000" />
-        <Text style={styles.label}>Internet aloqasi yo'q</Text>
+        <Text style={styles.label}>{t('common', 'noInternet')}</Text>
         <TouchableOpacity onPress={onRetry} style={styles.retryBtn} activeOpacity={0.7}>
-          <Text style={styles.retryText}>Qayta urinish</Text>
+          <Text style={styles.retryText}>{t('common', 'retry')}</Text>
           <Ionicons name="refresh-outline" size={13} color="#000" />
         </TouchableOpacity>
       </View>

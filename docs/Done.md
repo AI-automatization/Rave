@@ -1,6 +1,26 @@
 # WeWatch — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-05-23
+# Yangilangan: 2026-06-15
+
+---
+
+### F-213 | T-C016+T-C017+T-C018+T-C019 | Web App — Auth + Home + Watch Party + Profile/Friends/DM
+
+- **Bajaruvchi:** Emirhan (Claude sonnet)  **Bajarilgan:** 2026-06-15  **Model:** sonnet
+- **O'zgarishlar:**
+  - `apps/web/src/app/(auth)/login/` — LoginForm (email+parol + Google OAuth popup)
+  - `apps/web/src/app/(auth)/register/` — RegisterForm + VerifyEmail
+  - `apps/web/src/app/(app)/layout.tsx` — auth check, AppNav + AppSidebar
+  - `apps/web/src/app/(app)/home/` — RoomCard grid, CreateRoomDialog, JoinRoomDialog
+  - `apps/web/src/app/(app)/room/[id]/` — VideoPlayer + ChatPanel + MemberList + Socket.io sync
+  - `apps/web/src/app/(app)/profile/` — ProfileCard + StatsGrid + AvatarUpload
+  - `apps/web/src/app/(app)/friends/` — FriendCard + FriendSearch + RequestCard
+  - `apps/web/src/app/(app)/messages/` — ConversationList + ChatWindow + DM real-time
+  - `apps/web/src/lib/api-client.ts` — base fetch client, 401→refresh→retry
+  - `apps/web/src/lib/api/` — auth.api, rooms.api, user.api, content.api
+  - `apps/web/src/store/auth.store.ts` — Zustand auth state
+  - `apps/web/src/hooks/` — use-rooms, use-watch-party, use-friends, use-profile, use-dm, use-socket
+- **Xulosa:** To'liq web ilova Next.js da — login/register (Google OAuth), home xonalar, watch party (iframe+sync), profil, do'stlar, DM chat. Mobile funksionalining web analogiyasi.
 
 ---
 

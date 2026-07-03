@@ -13,6 +13,7 @@ import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, createThemedStyles, spacing, typography } from '@theme/index';
+import { useT } from '@i18n/index';
 import { SearchStackParamList } from '@app-types/index';
 import { VideoSearchItem } from '@api/content.api';
 import { useVideoSearch } from '@hooks/useSearch';
@@ -24,6 +25,7 @@ export function SearchResultsScreen() {
   const route = useRoute<Route>();
   const navigation = useNavigation<Nav>();
   const { colors } = useTheme();
+  const { t } = useT();
   const styles = useStyles();
   const { query } = route.params;
   const { data: results = [], isLoading } = useVideoSearch(query);
@@ -54,7 +56,7 @@ export function SearchResultsScreen() {
           keyExtractor={(item, idx) => `${item.url}-${idx}`}
           contentContainerStyle={styles.list}
           ListEmptyComponent={
-            <Text style={[styles.empty, { color: colors.textSecondary }]}>Natijalar topilmadi</Text>
+            <Text style={[styles.empty, { color: colors.textSecondary }]}>{t('search', 'noResultsTitle')}</Text>
           }
         />
       )}

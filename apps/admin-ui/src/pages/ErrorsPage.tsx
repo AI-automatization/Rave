@@ -27,7 +27,7 @@ const STATUS_CONFIG: Record<IssueStatus, { label: string; variant: 'red' | 'yell
   ignored:     { label: 'Игнор',    variant: 'gray' },
 };
 
-const PLATFORM_ICON: Record<string, string> = { ios: '🍎', android: '🤖', unknown: '📱' };
+const PLATFORM_ICON: Record<string, string> = { ios: '🍎', android: '🤖', web: '🌐', unknown: '📱' };
 
 // ── Stat filter button ────────────────────────────────────────────────────────
 
@@ -649,7 +649,7 @@ export function ErrorsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading]   = useState(true);
   const [statusFilter, setStatusFilter] = useState<IssueStatus | ''>('');
-  const [platformFilter, setPlatformFilter] = useState<'ios' | 'android' | ''>('');
+  const [platformFilter, setPlatformFilter] = useState<'ios' | 'android' | 'web' | ''>('');
   const [search, setSearch]     = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [selected, setSelected] = useState<MobileIssue | null>(null);
@@ -751,7 +751,7 @@ export function ErrorsPage() {
           <option value="ignored">Игнорируется</option>
         </select>
         <div className="flex items-center gap-1.5">
-          {(['', 'ios', 'android'] as const).map((p) => (
+          {(['', 'ios', 'android', 'web'] as const).map((p) => (
             <button
               key={p}
               onClick={() => { setPlatformFilter(p); setPage(1); }}
@@ -761,7 +761,7 @@ export function ErrorsPage() {
                   : 'bg-surface border-border text-text-muted hover:border-border-md'
               }`}
             >
-              {p === '' ? 'Все' : p === 'ios' ? '🍎 iOS' : '🤖 Android'}
+              {p === '' ? 'Все' : p === 'ios' ? '🍎 iOS' : p === 'android' ? '🤖 Android' : '🌐 Web'}
             </button>
           ))}
         </div>

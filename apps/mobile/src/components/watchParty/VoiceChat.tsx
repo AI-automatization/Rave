@@ -4,21 +4,31 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useVoiceChat } from '@hooks/useVoiceChat';
+import type { VoiceParticipant } from '@hooks/useVoiceChat';
 import { VoiceChatParticipants } from './VoiceChatParticipants';
 import { VoiceChatControls } from './VoiceChatControls';
 
+// Presentational only — voice connection state is lifted to the room screen
+// so it persists across panel switches (Discord-style background voice).
 interface VoiceChatProps {
-  roomId: string;
   currentUserId: string;
   visible: boolean;
   onClose: () => void;
+  isJoined: boolean;
+  isMuted: boolean;
+  participants: VoiceParticipant[];
+  isLoading: boolean;
+  errorMsg: string | null;
+  onJoin: () => void;
+  onLeave: () => void;
+  onToggleMute: () => void;
 }
 
-export function VoiceChat({ roomId: _roomId, currentUserId, visible, onClose }: VoiceChatProps) {
-  const { isJoined, isMuted, participants, isLoading, errorMsg, joinVoice, leaveVoice, toggleMute } =
-    useVoiceChat(visible);
-
+export function VoiceChat({
+  currentUserId, visible, onClose,
+  isJoined, isMuted, participants, isLoading, errorMsg,
+  onJoin, onLeave, onToggleMute,
+}: VoiceChatProps) {
   if (!visible) return null;
 
   const micActive = isJoined && !isMuted;
@@ -76,9 +86,9 @@ export function VoiceChat({ roomId: _roomId, currentUserId, visible, onClose }: 
         isJoined={isJoined}
         isMuted={isMuted}
         isLoading={isLoading}
-        onJoin={joinVoice}
-        onLeave={leaveVoice}
-        onToggleMute={toggleMute}
+        onJoin={onJoin}
+        onLeave={onLeave}
+        onToggleMute={onToggleMute}
       />
     </View>
   );

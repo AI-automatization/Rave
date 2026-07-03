@@ -117,6 +117,9 @@ export const MEDIA_DETECTION_JS = `
     if (!src || src.indexOf('http') !== 0) return false;
     if (src.indexOf('data:') === 0) return false;
     var lower = src.toLowerCase();
+    // Static assets are never video — must run BEFORE path checks below, otherwise a
+    // player SDK like .../player_sdk/hls/1.4.3/hls.min.js matches the /hls/ path rule.
+    if (/\\.(js|mjs|css|json|png|jpe?g|gif|svg|webp|ico|woff2?|ttf|eot|wasm|html?|map|txt|xml)(\\?|#|$)/.test(lower)) return false;
     // E64-4: file extension matching (.mpd = MPEG-DASH)
     if (/\\.(mp4|m3u8|webm|ogg|mov|ts|mkv|mpd)(\\?|$)/.test(lower)) return true;
     // Explicitly skip Google video CDN (YouTube internal playback URLs)
@@ -157,6 +160,73 @@ export const MEDIA_DETECTION_JS = `
       pageTitle: document.title || 'Video',
       pageUrl: window.location.href,
     });
+    // DIAG (option C): for session-protected manifests (.mpd / .m3u8) check whether the
+    // playback URL is reachable from inside the WebView (uses its cookie jar) and whether
+    // a token cookie is visible to JS (not httpOnly). Tells us if a cookie passthrough is
+    // viable without a native module.
+    try {
+      if (/\.(mpd|m3u8)(\?|#|$)/i.test(src)) {
+        rn({ type: 'COOKIE_PROBE', cookie: (document.cookie || '').slice(0, 300), url: src });
+        fetch(src, { method: 'GET' }).then(function(r) {
+          rn({ type: 'MANIFEST_PROBE', status: r.status, ok: r.ok, url: src });
+        }).catch(function(e) {
+          rn({ type: 'MANIFEST_PROBE', status: -1, error: String(e).slice(0, 120), url: src });
+        });
+      }
+    } catch(e) {}
+  }
+
+  // Universal extractor: pull the real master URL straight from common player libraries.
+  // More reliable than network sniffing — the player resolved the final URL already, and
+  // it works even when the <video> element only shows a blob:/MSE source.
+  function scanPlayerApis() {
+    try {
+      // JWPlayer — window.jwplayer().getPlaylist()[i].file / .sources[].file
+      if (typeof window.jwplayer === 'function') {
+        var jw = window.jwplayer();
+        if (jw && typeof jw.getPlaylist === 'function') {
+          var pl = jw.getPlaylist() || [];
+          for (var a = 0; a < pl.length; a++) {
+            var item = pl[a] || {};
+            if (isRealVideoSrc(item.file)) { reportVideoUrl(item.file); return true; }
+            var srcs = item.sources || [];
+            for (var b = 0; b < srcs.length; b++) {
+              if (isRealVideoSrc(srcs[b] && srcs[b].file)) { reportVideoUrl(srcs[b].file); return true; }
+            }
+          }
+        }
+      }
+    } catch(e) {}
+    try {
+      // Video.js — window.videojs.getAllPlayers()[i].currentSrc()/src()
+      if (window.videojs && typeof window.videojs.getAllPlayers === 'function') {
+        var players = window.videojs.getAllPlayers() || [];
+        for (var c = 0; c < players.length; c++) {
+          var cur = players[c] && players[c].currentSrc && players[c].currentSrc();
+          if (isRealVideoSrc(cur)) { reportVideoUrl(cur); return true; }
+        }
+      }
+    } catch(e) {}
+    try {
+      // HLS.js — instances stash their master URL on .url; some sites keep them on window
+      var hk = Object.keys(window);
+      for (var d = 0; d < hk.length; d++) {
+        var obj = window[hk[d]];
+        if (obj && typeof obj === 'object' && typeof obj.url === 'string'
+            && obj.levels && isRealVideoSrc(obj.url)) {
+          reportVideoUrl(obj.url); return true;
+        }
+      }
+    } catch(e) {}
+    try {
+      // Plyr / Clappr / Flowplayer expose the source on the element/instance
+      var plyr = document.querySelector('.plyr video, .clappr-player video, .flowplayer video');
+      if (plyr) {
+        var ps = plyr.src || plyr.currentSrc;
+        if (isRealVideoSrc(ps)) { reportVideoUrl(ps); return true; }
+      }
+    } catch(e) {}
+    return false;
   }
 
   function scanVideos() {
@@ -187,6 +257,12 @@ export const MEDIA_DETECTION_JS = `
       }
       return true;
     }
+
+    // Player-library API scan — runs BEFORE the HTML5 <video> scan because libraries
+    // expose the real master URL directly, even when the <video> element only has a
+    // blob:/MSE src. Universal extractor: covers JWPlayer, Video.js, HLS.js, Plyr,
+    // Clappr, Flowplayer — the players most CIS / unknown sites use.
+    if (scanPlayerApis()) return true;
 
     // HTML5 video scan
     var videos = document.querySelectorAll('video');
@@ -316,6 +392,15 @@ export const MEDIA_DETECTION_JS = `
     }, 5000);
   }
 
+  // Continuous poll: keep scanning every 2s the whole time the site is open, so a video
+  // that only appears after a click / lazy player init (uzmovi Video.js, many CIS sites)
+  // is still detected → import popup shows up without the user reloading. scanVideos()
+  // dedupes via lastReportedVideoUrl, so re-finding the same URL is a no-op.
+  if (window._csPollTimer) clearInterval(window._csPollTimer);
+  window._csPollTimer = setInterval(function() {
+    try { scanVideos(); } catch(e) {}
+  }, 2000);
+
   // Initial scan
   scanVideos();
   startFallbackTimer();
@@ -432,6 +517,18 @@ export const MEDIA_INTERCEPT_EARLY_JS = `
     if (src === window._csEarlyReportedUrl) return;
     window._csEarlyReportedUrl = src;
     rn({ type: 'MEDIA_DETECTED', platform: 'direct', videoUrl: src, pageTitle: document.title || 'Video', pageUrl: window.location.href });
+    // DIAG (option C): is the manifest reachable from inside the WebView (its cookie jar)
+    // and is a token cookie visible to JS (not httpOnly)? Determines cookie-passthrough viability.
+    try {
+      if (/\\.(mpd|m3u8)(\\?|#|$)/i.test(src)) {
+        rn({ type: 'COOKIE_PROBE', cookie: (document.cookie || '').slice(0, 300), url: src });
+        fetch(src, { method: 'GET' }).then(function(r) {
+          rn({ type: 'MANIFEST_PROBE', status: r.status, ok: r.ok, url: src });
+        }).catch(function(e) {
+          rn({ type: 'MANIFEST_PROBE', status: -1, error: String(e).slice(0, 120), url: src });
+        });
+      }
+    } catch(e) {}
   }
 
   // HTMLMediaElement.src setter — catches player libs calling video.src = url

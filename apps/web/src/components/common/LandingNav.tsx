@@ -56,6 +56,12 @@ export function LandingNav() {
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center gap-3">
             <LanguageSwitcher />
+            <Link
+              href="/login"
+              className="h-8 px-4 rounded-lg border border-zinc-700 text-zinc-300 hover:text-white hover:border-zinc-500 transition-all text-sm font-medium flex items-center"
+            >
+              {t('login')}
+            </Link>
             <a
               href="https://apps.apple.com"
               target="_blank"
@@ -149,6 +155,15 @@ export function LandingNav() {
             <span className="text-zinc-600 text-xs uppercase tracking-widest">Til</span>
             <LanguageSwitcher />
           </div>
+
+          {/* Login button */}
+          <Link
+            href="/login"
+            onClick={() => setMenuOpen(false)}
+            className="flex items-center justify-center h-11 rounded-xl border border-zinc-700 text-zinc-300 hover:text-white hover:border-zinc-500 transition-all text-sm font-medium w-full"
+          >
+            {t('login')}
+          </Link>
 
           {/* CTA button */}
           <a

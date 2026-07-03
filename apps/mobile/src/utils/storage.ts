@@ -24,11 +24,11 @@ async function remove(key: string): Promise<void> {
 // Bump the version suffix in privacyPolicy.ts to re-prompt all users on policy updates.
 export const privacyPolicyStorage = {
   async isAccepted(userId: string): Promise<boolean> {
-    const val = await get(`wewatch_privacy_v1_${userId}`);
+    const val = await get(`wewatch_privacy_v2_${userId}`);
     return val === '1';
   },
   async markAccepted(userId: string): Promise<void> {
-    await set(`wewatch_privacy_v1_${userId}`, '1');
+    await set(`wewatch_privacy_v2_${userId}`, '1');
   },
 };
 

@@ -30,6 +30,9 @@ function isDirectVideoUrl(url: string): boolean {
     if (!url.startsWith('http')) return false;
     const lower = url.toLowerCase();
     if (lower.includes('videoplayback') || lower.includes('googlevideo')) return false;
+    // Static assets are never video — must run before the /hls/ path check below so a
+    // player SDK like .../hls/1.4.3/hls.min.js isn't mis-detected as an HLS stream.
+    if (/\.(js|mjs|css|json|png|jpe?g|gif|svg|webp|ico|woff2?|ttf|eot|wasm|html?|map|txt|xml)(\?|#|$)/i.test(lower)) return false;
     if (/\.(mp4|m3u8|webm|ogg|mov|ts|mkv|mpd)(\?|#|$)/i.test(lower)) return true;
     if (/\/(stream|playlist\.m3u8|manifest\.m3u8|master\.m3u8|manifest|hls|dash|chunklist)/i.test(lower)) return true;
     if (/\/(video|vod|cdn|media)\/[^/]+\/(index|master|720p|480p|360p|1080p|hls)/i.test(lower)) return true;

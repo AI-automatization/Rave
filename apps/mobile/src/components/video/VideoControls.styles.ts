@@ -15,7 +15,7 @@ export const s = StyleSheet.create({
   },
   titleText: { flex: 1, ...typography.h3, textAlign: 'center', color: '#fff' },
   centerControls: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 48,
   },
   skipBtn: { alignItems: 'center', gap: 2 },

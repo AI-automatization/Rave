@@ -21,12 +21,13 @@ export const createContentRouter = (redis: Redis, elastic: ElasticsearchClient):
   router.post('/extract', verifyToken, notBlocked, apiRateLimiter, videoExtractController.extract);
 
   // ── HLS Reverse Proxy ─────────────────────────────────────
-  // m3u8: Bearer header auth (ExoPlayer sends it for initial manifest request)
-  // segment: token embedded in URL by rewriteM3u8 — ExoPlayer does NOT forward
-  //   Authorization header to individual segment requests on Android; query-param
-  //   token is the only reliable auth mechanism for HLS segments on Android.
+  // m3u8 + segment: token via Authorization header (initial master request) OR ?token=
+  //   query (nested variant playlists + segments — ExoPlayer does NOT forward the
+  //   Authorization header to derived requests on Android). Both controllers verify
+  //   the token themselves, so no verifyToken middleware here (it would 401 the
+  //   header-less nested requests).
   router.get('/hls-proxy/segment', userRateLimiter, hlsProxyController.proxySegment);
-  router.get('/hls-proxy',         verifyToken, userRateLimiter, hlsProxyController.proxyM3u8);
+  router.get('/hls-proxy',         userRateLimiter, hlsProxyController.proxyM3u8);
 
   // ── Cascade account deletion ──────────────────────────────
   router.delete('/internal/users/:userId', requireInternalSecret, contentController.deleteUserData);

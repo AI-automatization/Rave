@@ -6,6 +6,7 @@ import { userApi } from '@api/user.api';
 import { useVideoExtraction } from '@hooks/useVideoExtraction';
 import { isDomainBlocked } from '@constants/blockedDomains';
 import { extractDomain } from '@utils/videoPlayer';
+import { useT } from '@i18n/index';
 import type { IUserPublic } from '@app-types/index';
 
 const MAX_MEMBERS_OPTIONS = [2, 4, 6, 8, 10] as const;
@@ -38,6 +39,7 @@ interface UseWatchPartyCreateReturn {
 }
 
 export function useWatchPartyCreate(): UseWatchPartyCreateReturn {
+  const { t } = useT();
   const [roomName, setRoomName] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
   const [maxMembers, setMaxMembers] = useState(4);
@@ -79,7 +81,7 @@ export function useWatchPartyCreate(): UseWatchPartyCreateReturn {
     setVideoUrl(value);
     const domain = extractDomain(value.trim());
     if (domain && isDomainBlocked(value.trim())) {
-      setUrlError('Этот сайт заблокирован политикой платформы');
+      setUrlError(t('watchParty', 'domainBlockedPlatform'));
     } else {
       setUrlError(null);
     }
@@ -95,15 +97,15 @@ export function useWatchPartyCreate(): UseWatchPartyCreateReturn {
 
   const handleCreate = async (onSuccess: (roomId: string) => void) => {
     if (!roomName.trim()) {
-      Alert.alert('Xato', 'Xona nomi kiriting');
+      Alert.alert(t('common', 'error'), t('watchParty', 'errorRoomName'));
       return;
     }
     if (!videoUrl.trim()) {
-      Alert.alert('Xato', 'Video URL kiriting');
+      Alert.alert(t('common', 'error'), t('watchParty', 'errorUrl'));
       return;
     }
     if (isDomainBlocked(videoUrl.trim())) {
-      Alert.alert('Xato', 'Этот сайт заблокирован политикой платформы');
+      Alert.alert(t('common', 'error'), t('watchParty', 'domainBlockedPlatform'));
       return;
     }
 
@@ -117,20 +119,20 @@ export function useWatchPartyCreate(): UseWatchPartyCreateReturn {
       });
       onSuccess(room._id);
     } catch (err: unknown) {
-      let msg = 'Xona yaratib bo\'lmadi. Qayta urinib ko\'ring.';
+      let msg = t('watchParty', 'errorCreate');
       if (err && typeof err === 'object' && 'response' in err) {
         const resp = (err as { response?: { data?: { message?: string; code?: string }; status?: number } }).response;
         if (resp?.data?.code === 'USER_RESTRICTED') {
-          msg = 'Ваш аккаунт ограничен и не может выполнять это действие';
+          msg = t('blocked', 'userRestricted');
         } else if (resp?.data?.message) {
           msg = resp.data.message;
         } else if (resp?.status === 401) {
-          msg = 'Sessiya tugagan. Qayta kiring.';
+          msg = t('watchParty', 'sessionExpired');
         } else if (resp?.status === 403) {
-          msg = 'Ruxsat berilmagan.';
+          msg = t('watchParty', 'forbidden');
         }
       }
-      Alert.alert('Xato', msg);
+      Alert.alert(t('common', 'error'), msg);
     } finally {
       setLoading(false);
     }

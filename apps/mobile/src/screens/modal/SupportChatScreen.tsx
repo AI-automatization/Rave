@@ -12,6 +12,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@store/auth.store';
 import { supportApi, SupportMessage, SupportConversation } from '@api/support.api';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
+import { useT } from '@i18n/index';
 import { useSupportSocket } from '@hooks/useSupportSocket';
 import { MessageItem, RatingBottomSheet } from '@components/common/SupportChatItems';
 
@@ -22,6 +23,7 @@ export function SupportChatScreen() {
   const insets = useSafeAreaInsets();
   const s = useStyles();
   const { colors } = useTheme();
+  const { t } = useT();
   const queryClient = useQueryClient();
   const listRef = useRef<FlatList<SupportMessage>>(null);
   const [input, setInput] = useState('');
@@ -150,7 +152,7 @@ export function SupportChatScreen() {
         </TouchableOpacity>
         <View style={s.headerInfo}>
           <Ionicons name="headset-outline" size={18} color={colors.primary} />
-          <Text style={s.headerTitle}>Поддержка</Text>
+          <Text style={s.headerTitle}>{t('settings', 'supportTitle')}</Text>
         </View>
         <View style={s.spacer} />
       </View>
@@ -164,8 +166,8 @@ export function SupportChatScreen() {
           {allMessages.length === 0 && (
             <View style={s.empty}>
               <Ionicons name="chatbubble-ellipses-outline" size={48} color={colors.textMuted} />
-              <Text style={s.emptyTitle}>Нет сообщений</Text>
-              <Text style={s.emptySub}>Напишите нам — мы ответим как можно скорее</Text>
+              <Text style={s.emptyTitle}>{t('settings', 'supportNoMessages')}</Text>
+              <Text style={s.emptySub}>{t('settings', 'supportNoMessagesSub')}</Text>
             </View>
           )}
           <FlatList
@@ -184,7 +186,7 @@ export function SupportChatScreen() {
         <View style={s.closedBanner}>
           {ratingDone || activeConv?.rating?.score ? (
             <>
-              <Text style={s.closedText}>Спасибо за оценку!</Text>
+              <Text style={s.closedText}>{t('settings', 'supportThanks')}</Text>
               <View style={{ flexDirection: 'row', gap: 2 }}>
                 {[1, 2, 3, 4, 5].map(n => (
                   <Ionicons key={n}
@@ -195,7 +197,7 @@ export function SupportChatScreen() {
               </View>
             </>
           ) : (
-            <Text style={s.closedText}>Диалог закрыт</Text>
+            <Text style={s.closedText}>{t('settings', 'conversationClosed')}</Text>
           )}
           <TouchableOpacity style={s.newChatBtn} onPress={() => void startNewChat()} disabled={creatingConv} activeOpacity={0.8}>
             {creatingConv ? (
@@ -203,7 +205,7 @@ export function SupportChatScreen() {
             ) : (
               <>
                 <Ionicons name="add-circle-outline" size={16} color={colors.white} />
-                <Text style={s.newChatText}>Новый чат</Text>
+                <Text style={s.newChatText}>{t('settings', 'newChat')}</Text>
               </>
             )}
           </TouchableOpacity>
@@ -214,7 +216,7 @@ export function SupportChatScreen() {
             style={s.input}
             value={input}
             onChangeText={setInput}
-            placeholder="Написать сообщение..."
+            placeholder={t('settings', 'writeMessage')}
             placeholderTextColor={colors.textMuted}
             multiline
             maxLength={500}

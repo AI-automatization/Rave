@@ -5,11 +5,12 @@ import {
   ActivityIndicator, StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { AVPlaybackStatus } from 'expo-av';
+import type { PlaybackStatus } from '@app-types/index';
 import { UniversalPlayer, UniversalPlayerRef } from '@components/video/UniversalPlayer';
 import { EmojiFloatItem } from '@components/watchParty/EmojiFloat';
 import { VideoProgressBar } from '@components/watchParty/VideoProgressBar';
 import { useTheme } from '@theme/index';
+import { useT } from '@i18n/index';
 import { VIDEO_HEIGHT, videoStyles as s } from './VideoSection.styles';
 
 export { VIDEO_HEIGHT };
@@ -32,7 +33,7 @@ interface VideoSectionProps {
   onPlay: (secs: number) => void;
   onPause: (secs: number) => void;
   onSeek: (secs: number) => void;
-  onPlaybackStatusUpdate: (status: AVPlaybackStatus) => void;
+  onPlaybackStatusUpdate: (status: PlaybackStatus) => void;
   onStreamResolved: (info: { isLive: boolean }) => void;
   onProgress?: (currentTimeSecs: number, durationSecs: number) => void;
   onBuffering?: (isBuffering: boolean) => void;
@@ -59,6 +60,7 @@ export const VideoSection = React.memo(function VideoSection({
   currentTime = 0, duration = 0, onProgressSeek, isWebView = false, onCdnUrlSniffed,
 }: VideoSectionProps) {
   const { colors } = useTheme();
+  const { t } = useT();
 
   const ctrlOpacity = useRef(new Animated.Value(1)).current;
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -118,7 +120,7 @@ export const VideoSection = React.memo(function VideoSection({
       {!isReady ? (
         <View style={s.loadingBox}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={s.loadingText}>Yuklanmoqda...</Text>
+          <Text style={s.loadingText}>{t('common', 'loading')}</Text>
         </View>
       ) : (
         <UniversalPlayer

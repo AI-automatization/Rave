@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
+import { useT } from '@i18n/index';
 import type { ExtractState } from '@hooks/useVideoExtract';
 
 interface Props {
@@ -25,6 +26,7 @@ interface Props {
 
 export function VideoExtractInput({ url, setUrl, state, errorMsg, onExtract, onBack }: Props) {
   const { colors } = useTheme();
+  const { t } = useT();
   const styles = useStyles();
 
   return (
@@ -38,7 +40,7 @@ export function VideoExtractInput({ url, setUrl, state, errorMsg, onExtract, onB
         <TouchableOpacity onPress={onBack} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Video qo'shish</Text>
+        <Text style={styles.headerTitle}>{t('watchParty', 'addVideoTitle')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -46,9 +48,7 @@ export function VideoExtractInput({ url, setUrl, state, errorMsg, onExtract, onB
         <View style={styles.iconRow}>
           <Ionicons name="link" size={40} color={colors.primary} />
         </View>
-        <Text style={styles.hint}>
-          Istalgan video sayt URL sini kiriting — YouTube, Vimeo, TikTok va boshqalar
-        </Text>
+        <Text style={styles.hint}>{t('watchParty', 'addVideoHint')}</Text>
 
         <View style={styles.inputWrap}>
           <Ionicons name="link-outline" size={18} color={colors.textMuted} style={styles.inputIcon} />

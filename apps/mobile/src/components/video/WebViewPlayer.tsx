@@ -6,6 +6,7 @@ import WebView from 'react-native-webview';
 import { colors, spacing, typography, borderRadius } from '@theme/index';
 import { getHostname } from './webviewAdBlocker';
 import { useWebViewPlayer } from '@hooks/useWebViewPlayer';
+import { useT } from '@i18n/index';
 
 export interface WebViewPlayerRef {
   play: () => void;
@@ -33,6 +34,7 @@ interface Props {
 
 export const WebViewPlayer = forwardRef<WebViewPlayerRef, Props>((props, ref) => {
   const { url, userAgent } = props;
+  const { t } = useT();
   const {
     webviewRef, injectJs, webViewSource,
     loading, error, redirectWarning, ytEmbedBlocked, youtubeVideoId,
@@ -47,7 +49,7 @@ export const WebViewPlayer = forwardRef<WebViewPlayerRef, Props>((props, ref) =>
         <View style={s.overlay}>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={s.loadingHost}>{getHostname(url)}</Text>
-          <Text style={s.loadingText}>Yuklanmoqda...</Text>
+          <Text style={s.loadingText}>{t('common', 'loading')}</Text>
         </View>
       )}
 
@@ -59,21 +61,21 @@ export const WebViewPlayer = forwardRef<WebViewPlayerRef, Props>((props, ref) =>
 
       {ytEmbedBlocked ? (
         <View style={s.errorContainer}>
-          <Text style={s.errorTitle}>Встроенный плеер недоступен</Text>
-          <Text style={s.errorHost}>Автор этого видео запретил встраивание</Text>
+          <Text style={s.errorTitle}>{t('watchParty', 'embeddedPlayerUnavailable')}</Text>
+          <Text style={s.errorHost}>{t('watchParty', 'embeddingForbidden')}</Text>
           <TouchableOpacity
             style={s.retryButton}
             onPress={() => Linking.openURL(`https://www.youtube.com/watch?v=${youtubeVideoId}`)}
           >
-            <Text style={s.retryText}>Открыть в YouTube</Text>
+            <Text style={s.retryText}>{t('watchParty', 'openInYouTube')}</Text>
           </TouchableOpacity>
         </View>
       ) : error ? (
         <View style={s.errorContainer}>
-          <Text style={s.errorTitle}>Sayt yuklanmadi</Text>
+          <Text style={s.errorTitle}>{t('watchParty', 'connectionError')}</Text>
           <Text style={s.errorHost}>{getHostname(url)}</Text>
           <TouchableOpacity style={s.retryButton} onPress={handleRetry}>
-            <Text style={s.retryText}>Qayta urinish</Text>
+            <Text style={s.retryText}>{t('common', 'retry')}</Text>
           </TouchableOpacity>
         </View>
       ) : (

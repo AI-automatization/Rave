@@ -15,12 +15,12 @@ export function PricingContent() {
       period: null,
       desc: t('plan1desc'),
       features: [
-        { label: 'Watch Party', val: '4 kishi' },
+        { label: 'Watch Party', val: t('plan1people') },
         { label: t('rowQuality'), val: 'HD 720p' },
         { label: t('rowAds'), val: t('rowAdsYes') },
         { label: t('rowSearch'), val: '✓' },
         { label: t('rowFriends'), val: '∞' },
-        { label: t('rowHistory'), val: '30 kun' },
+        { label: t('rowHistory'), val: t('plan1historyVal') },
       ],
       cta: tl('plan1cta'),
       href: '/register',
@@ -32,7 +32,7 @@ export function PricingContent() {
       period: tl('plan2period'),
       desc: '',
       features: [
-        { label: 'Watch Party', val: '10 kishi' },
+        { label: 'Watch Party', val: t('plan2people') },
         { label: t('rowQuality'), val: '4K 2160p' },
         { label: t('rowAds'), val: t('rowAdsNo') },
         { label: t('rowSearch'), val: '✓' },

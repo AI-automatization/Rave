@@ -3,6 +3,7 @@ import React from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius, typography } from '@theme/index';
+import { useT } from '@i18n/index';
 import type { VoiceParticipant } from '@hooks/useVoiceChat';
 
 interface Props {
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export function VoiceChatParticipants({ participants, currentUserId, isMuted }: Props) {
+  const { t } = useT();
   const self: VoiceParticipant = { userId: currentUserId, isMuted, isSpeaking: false };
 
   return (
@@ -22,14 +24,14 @@ export function VoiceChatParticipants({ participants, currentUserId, isMuted }: 
             <Ionicons name={p.isMuted ? 'mic-off' : 'mic'} size={14} color={p.isMuted ? '#6B7280' : colors.primary} />
           </View>
           <Text style={s.name} numberOfLines={1}>
-            {p.userId === currentUserId ? 'Вы' : p.userId.slice(-6)}
+            {p.userId === currentUserId ? t('watchParty', 'youLabel') : p.userId.slice(-6)}
           </Text>
           {p.isSpeaking && <View style={s.speakingDot} />}
           {p.isMuted && <Ionicons name="mic-off-outline" size={14} color="#6B7280" />}
         </View>
       ))}
       {participants.length === 0 && (
-        <Text style={s.empty}>Никого нет в голосовом чате</Text>
+        <Text style={s.empty}>{t('watchParty', 'voiceEmpty')}</Text>
       )}
     </ScrollView>
   );

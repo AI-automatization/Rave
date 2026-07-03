@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, spacing, borderRadius, typography } from '@theme/index';
+import { useT } from '@i18n/index';
 
 export interface QualityOption {
   label: string;
@@ -32,6 +33,7 @@ const SCREEN_H = Dimensions.get('window').height;
 
 export function QualityMenu({ visible, qualities, currentUrl, onSelect, onClose }: Props) {
   const { colors } = useTheme();
+  const { t } = useT();
 
   const renderItem = ({ item }: ListRenderItemInfo<QualityOption>) => {
     const isActive = item.url === currentUrl;
@@ -62,7 +64,7 @@ export function QualityMenu({ visible, qualities, currentUrl, onSelect, onClose 
       <SafeAreaView style={[styles.sheet, { backgroundColor: colors.bgElevated }]} pointerEvents="box-none">
         <View style={[styles.handle, { backgroundColor: colors.bgMuted }]} />
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          <Text style={[styles.title, { color: colors.textPrimary }]}>Сифат</Text>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>{t('watchParty', 'quality')}</Text>
           <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Ionicons name="close" size={22} color={colors.textMuted} />
           </TouchableOpacity>

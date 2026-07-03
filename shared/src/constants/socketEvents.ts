@@ -48,6 +48,9 @@ export const SERVER_EVENTS = Object.freeze({
 
   NOTIFICATION_NEW: 'notification:new',
 
+  DM_MESSAGE: 'dm:message',
+  DM_READ:    'dm:read',
+
   ERROR: 'error',
 } as const);
 
@@ -90,6 +93,8 @@ export const CLIENT_EVENTS = Object.freeze({
   PEER_ICE:    'mesh:peer_ice',
   MESH_JOIN:   'mesh:join',
   MESH_LEAVE:  'mesh:leave',
+
+  DM_SEND: 'dm:send',
 } as const);
 
 export type ServerEvent = (typeof SERVER_EVENTS)[keyof typeof SERVER_EVENTS];

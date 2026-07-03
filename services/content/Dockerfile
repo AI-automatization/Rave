@@ -39,9 +39,11 @@ COPY --from=builder /app/services/content/dist ./services/content/dist
 
 RUN ln -s /app/shared/dist /app/node_modules/@shared
 
-# yt-dlp via pip — min 2025.1.0 for poToken + MWEB client support
+# yt-dlp via pip — bump floor to force layer rebuild + fresh extractor logic.
+# Rutube/VK change their page structure often; a stale cached yt-dlp layer can no
+# longer extract them (2025.x failed on Rutube → 422). Keep this floor recent.
 RUN apk add --no-cache python3 py3-pip && \
-    pip3 install --no-cache-dir --break-system-packages "yt-dlp>=2025.1.0"
+    pip3 install --no-cache-dir --break-system-packages --upgrade "yt-dlp>=2026.6.9"
 
 # Playwright/Chromium support (T-S043) — system Chromium to avoid downloading ~150MB browser
 # chromium-driver package doesn't exist in Alpine — only chromium is needed for Playwright

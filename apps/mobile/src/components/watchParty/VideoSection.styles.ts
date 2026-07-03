@@ -17,7 +17,7 @@ export const videoStyles = StyleSheet.create({
   },
 
   loadingBox: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center', justifyContent: 'center', gap: 12,
   },
   loadingText: { fontSize: 12, color: 'rgba(255,255,255,0.38)', letterSpacing: 0.5 },

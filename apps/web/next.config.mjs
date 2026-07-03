@@ -1,3 +1,5 @@
+import { withSentryConfig } from '@sentry/nextjs';
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
@@ -22,6 +24,13 @@ const nextConfig = {
   async headers() {
     return [
       {
+        // Never cache HTML pages in CDN — force revalidation on every deploy
+        source: '/((?!_next/static|_next/image|favicon\\.ico).*)',
+        headers: [
+          { key: 'Cache-Control', value: 'no-cache, must-revalidate' },
+        ],
+      },
+      {
         source: '/(.*)',
         headers: [
           { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
@@ -40,13 +49,13 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com",
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https:",
               "font-src 'self' data: https://fonts.gstatic.com",
-              "connect-src 'self' https:",
-              "frame-src 'none'",
-              "media-src 'none'",
+              "connect-src 'self' https: wss:",
+              "frame-src https://www.youtube.com https://youtube.com https://vk.com https://rutube.ru",
+              "media-src 'self' https: blob:",
               "object-src 'none'",
               "base-uri 'self'",
             ].join('; '),
@@ -57,4 +66,12 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  org: process.env.SENTRY_ORG ?? 'wewatch',
+  project: process.env.SENTRY_PROJECT ?? 'web',
+  silent: true,
+  widenClientFileUpload: true,
+  hideSourceMaps: true,
+  disableLogger: true,
+  automaticVercelMonitors: false,
+});

@@ -203,7 +203,7 @@ export function LoginScreen() {
             {/* Divider */}
             <View style={s.divider}>
               <View style={s.dividerLine} />
-              <Text style={s.dividerText}>{t('login', 'orContinueWith') || 'или войти через'}</Text>
+              <Text style={s.dividerText}>{t('login', 'orContinueWith')}</Text>
               <View style={s.dividerLine} />
             </View>
 
