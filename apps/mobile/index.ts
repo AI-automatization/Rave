@@ -1,7 +1,48 @@
 import { registerRootComponent } from 'expo';
 import * as SplashScreen from 'expo-splash-screen';
+import Constants from 'expo-constants';
+import * as TaskManager from 'expo-task-manager';
+import * as Notifications from 'expo-notifications';
 
 SplashScreen.preventAutoHideAsync();
+
+// ── Friend-request push with Accept/Decline buttons ──────────────────────────
+// Remote FCM `notification` messages can't carry action buttons — the OS shows them
+// directly with no buttons. So the backend sends friend requests as DATA-ONLY, which
+// triggers this background task (fires in foreground/background/terminated on Android).
+// The task presents a LOCAL notification tagged with the 'friend_request' category, so
+// the Принять/Отклонить buttons render. Registered in the entry file per Expo docs.
+const BG_NOTIFICATION_TASK = 'WEWATCH_BG_NOTIFICATION';
+const isExpoGoEnv = Constants.executionEnvironment === 'storeClient';
+
+if (!isExpoGoEnv) {
+  void Notifications.setNotificationCategoryAsync('friend_request', [
+    { identifier: 'ACCEPT', buttonTitle: 'Принять', options: { opensAppToForeground: false } },
+    { identifier: 'DECLINE', buttonTitle: 'Отклонить', options: { opensAppToForeground: false, isDestructive: true } },
+  ]).catch(() => {});
+
+  TaskManager.defineTask(BG_NOTIFICATION_TASK, async ({ data, error }: { data: unknown; error: unknown }) => {
+    if (error) return;
+    try {
+      const d = data as Record<string, unknown> | undefined;
+      // FCM data can arrive under a couple of shapes depending on OS/app state.
+      const nested = (d?.notification as Record<string, unknown> | undefined)?.data as Record<string, unknown> | undefined;
+      const payload = nested ?? (d?.body as Record<string, unknown> | undefined) ?? d ?? {};
+      if (payload.categoryId !== 'friend_request') return;
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: String(payload.title ?? "Yangi do'st so'rovi"),
+          body: String(payload.body ?? ''),
+          data: payload,
+          categoryIdentifier: 'friend_request',
+        },
+        trigger: null,
+      });
+    } catch { /* ignore */ }
+  });
+
+  Notifications.registerTaskAsync(BG_NOTIFICATION_TASK).catch(() => {});
+}
 
 import App from './App';
 
