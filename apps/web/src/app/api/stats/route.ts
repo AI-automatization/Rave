@@ -10,6 +10,8 @@ export async function GET(): Promise<NextResponse> {
     const res = await fetch(`${USER_SERVICE_URL}/api/v1/users/internal/admin/stats`, {
       headers: { 'X-Internal-Secret': INTERNAL_SECRET },
       next: { revalidate: 30 },
+      // Fail fast (2.5s) so a down user-service never hangs the widget
+      signal: AbortSignal.timeout(2500),
     });
 
     if (!res.ok) {

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { FaBars, FaTimes, FaChevronRight } from 'react-icons/fa';
+import { FaBars, FaTimes, FaChevronRight, FaArrowRight } from 'react-icons/fa';
 import { useTranslations } from 'next-intl';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { WeWatchLogo } from './WeWatchLogo';
@@ -23,76 +23,104 @@ export function LandingNav() {
   useEffect(() => { setMenuOpen(false); }, [pathname]);
 
   const links = [
-    { href: '/',         label: t('nav_home') },
     { href: '/features', label: t('nav_features') },
     { href: '/pricing',  label: t('nav_pricing') },
+    { href: '/company',  label: t('nav_company') },
+    { href: '/about',    label: t('nav_about') },
+    { href: '/contact',  label: t('nav_contact') },
   ];
 
   return (
     <>
-      <header className="sticky top-0 z-50 bg-[#0A0A0F]/90 backdrop-blur-md border-b border-zinc-800/60">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+        <header className="fixed top-0 inset-x-0 z-50 px-3 sm:px-5 pt-3">
+        <div className="max-w-7xl mx-auto relative rounded-2xl border border-white/10 bg-[#0D0D14]/85 backdrop-blur-xl shadow-[0_10px_40px_rgba(0,0,0,0.45)]">
+          {/* top gradient hairline */}
+          <div className="absolute top-0 left-6 right-6 h-px rounded-full" aria-hidden="true"
+            style={{ background: 'linear-gradient(90deg, transparent, rgba(123,114,248,0.5), transparent)' }} />
+          {/* soft glow */}
+          <div className="absolute -top-14 left-1/2 -translate-x-1/2 w-72 h-28 rounded-full blur-[60px] opacity-25 pointer-events-none -z-10" aria-hidden="true"
+            style={{ background: 'rgba(123,114,248,0.25)' }} />
 
-          {/* Logo */}
-          <WeWatchLogo iconSize={34} textSize="text-xl" />
+          <div className="relative px-5 sm:px-7 py-3.5 flex items-center justify-between gap-4">
 
-          {/* Desktop nav */}
-          <nav className="hidden md:flex items-center gap-7">
-            {links.map(({ href, label }) => (
+            {/* Logo + tagline */}
+            <div className="flex items-center gap-3 min-w-0">
+              <WeWatchLogo iconSize={32} textSize="text-lg" />
+              <span className="hidden lg:block text-[9px] uppercase tracking-[0.14em] text-zinc-500 border-l border-zinc-700/70 pl-3 leading-tight max-w-[120px]">
+                {t('nav_tagline')}
+              </span>
+            </div>
+
+            {/* Desktop nav */}
+            <nav className="hidden md:flex items-center gap-5 lg:gap-7">
+              {links.map(({ href, label }) => {
+                const active = pathname === href;
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    className={`relative text-sm transition-colors ${
+                      active ? 'text-white font-medium' : 'text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    {label}
+                    {active && (
+                      <span
+                        className="absolute -bottom-1.5 left-0 right-0 h-0.5 rounded-full"
+                        style={{ background: 'linear-gradient(90deg, #7B72F8, #a855f7)' }}
+                        aria-hidden="true"
+                      />
+                    )}
+                  </Link>
+                );
+              })}
+            </nav>
+
+            {/* Desktop CTA — pill buttons */}
+            <div className="hidden md:flex items-center gap-2.5">
+              <LanguageSwitcher />
               <Link
-                key={href}
-                href={href}
-                className={`text-sm transition-colors ${
-                  pathname === href
-                    ? 'text-white font-medium'
-                    : 'text-zinc-500 hover:text-zinc-200'
-                }`}
+                href="/login"
+                className="h-9 px-4 rounded-full border border-zinc-700 text-zinc-300 hover:text-white hover:border-zinc-500 transition-all text-sm font-medium flex items-center"
               >
-                {label}
+                {t('login')}
               </Link>
-            ))}
-          </nav>
+              <a
+                href="https://apps.apple.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group h-9 pl-4 pr-3.5 rounded-full bg-[#7B72F8] text-white hover:bg-[#6B63E8] transition-all text-sm font-semibold flex items-center gap-1.5 shadow-[0_0_16px_rgba(123,114,248,0.35)] hover:shadow-[0_0_26px_rgba(123,114,248,0.55)]"
+              >
+                {t('getStarted')}
+                <FaArrowRight size={11} className="group-hover:translate-x-0.5 transition-transform" aria-hidden="true" />
+              </a>
+            </div>
 
-          {/* Desktop CTA */}
-          <div className="hidden md:flex items-center gap-3">
-            <LanguageSwitcher />
-            <Link
-              href="/login"
-              className="h-8 px-4 rounded-lg border border-zinc-700 text-zinc-300 hover:text-white hover:border-zinc-500 transition-all text-sm font-medium flex items-center"
+            {/* Mobile burger */}
+            <button
+              className="md:hidden relative z-[60] w-9 h-9 rounded-xl flex items-center justify-center text-zinc-300 hover:text-white bg-white/5 hover:bg-white/10 transition-all"
+              onClick={() => setMenuOpen((v) => !v)}
+              aria-label="Menu"
             >
-              {t('login')}
-            </Link>
-            <a
-              href="https://apps.apple.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="h-8 px-4 rounded-lg bg-[#7B72F8] text-white hover:bg-[#6B63E8] hover:shadow-[0_0_20px_rgba(123,114,248,0.4)] transition-all text-sm font-semibold flex items-center shadow-[0_0_12px_rgba(123,114,248,0.3)]"
-            >
-              {t('getStarted')}
-            </a>
+              <span
+                className="transition-all duration-300"
+                style={{ opacity: menuOpen ? 0 : 1, position: menuOpen ? 'absolute' : 'static' }}
+              >
+                <FaBars size={17} />
+              </span>
+              <span
+                className="transition-all duration-300"
+                style={{ opacity: menuOpen ? 1 : 0, position: menuOpen ? 'static' : 'absolute' }}
+              >
+                <FaTimes size={17} />
+              </span>
+            </button>
           </div>
-
-          {/* Mobile burger */}
-          <button
-            className="md:hidden relative z-[60] w-9 h-9 rounded-lg flex items-center justify-center text-zinc-400 hover:text-white hover:bg-white/5 transition-all"
-            onClick={() => setMenuOpen((v) => !v)}
-            aria-label="Menu"
-          >
-            <span
-              className="transition-all duration-300"
-              style={{ opacity: menuOpen ? 0 : 1, position: menuOpen ? 'absolute' : 'static' }}
-            >
-              <FaBars size={18} />
-            </span>
-            <span
-              className="transition-all duration-300"
-              style={{ opacity: menuOpen ? 1 : 0, position: menuOpen ? 'static' : 'absolute' }}
-            >
-              <FaTimes size={18} />
-            </span>
-          </button>
         </div>
       </header>
+
+      {/* Spacer — occupies the flow space of the fixed header */}
+      <div aria-hidden="true" className="h-[88px]" />
 
       {/* ── MOBILE DRAWER ───────────────────────────────────────── */}
 
