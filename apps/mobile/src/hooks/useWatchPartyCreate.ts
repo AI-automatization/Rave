@@ -122,7 +122,12 @@ export function useWatchPartyCreate(): UseWatchPartyCreateReturn {
     } catch (err: unknown) {
       let msg = t('watchParty', 'errorCreate');
       if (err && typeof err === 'object' && 'response' in err) {
-        const resp = (err as { response?: { data?: { message?: string; code?: string }; status?: number } }).response;
+        const resp = (err as { response?: { data?: { message?: string; code?: string; data?: { roomId?: string } }; status?: number } }).response;
+        // One active room per owner (409) → reopen the existing room instead of erroring.
+        if (resp?.status === 409 && resp.data?.message === 'ROOM_ALREADY_EXISTS' && resp.data?.data?.roomId) {
+          onSuccess(resp.data.data.roomId);
+          return;
+        }
         if (resp?.data?.code === 'USER_RESTRICTED') {
           msg = t('blocked', 'userRestricted');
         } else if (resp?.data?.message) {

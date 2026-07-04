@@ -240,7 +240,20 @@ export function useMediaDetection() {
       navigation.navigate('WatchParty', { roomId: room._id, videoReferer: effective.videoReferer });
     } catch (err: unknown) {
       if (__DEV__) console.log('[MediaWebView] createRoom error:', err);
-      const axiosErr = err as { response?: { data?: { message?: string } }; code?: string; message?: string };
+      const axiosErr = err as {
+        response?: { status?: number; data?: { message?: string; data?: { roomId?: string } } };
+        code?: string; message?: string;
+      };
+      const resp = axiosErr.response;
+      // Backend enforces one active room per owner (409 ROOM_ALREADY_EXISTS).
+      // Instead of showing the raw error, reopen the room the user already has.
+      if (resp?.status === 409 && resp.data?.message === 'ROOM_ALREADY_EXISTS') {
+        const existingId = resp.data?.data?.roomId;
+        if (existingId) {
+          navigation.navigate('WatchParty', { roomId: existingId, videoReferer: media.videoReferer });
+          return;
+        }
+      }
       const isTimeout = axiosErr.code === 'ECONNABORTED' || (axiosErr.message ?? '').includes('timeout');
       const msg = isTimeout || axiosErr.message === 'Network Error'
         ? 'Internet aloqasini tekshiring va qayta urinib ko\'ring.'
