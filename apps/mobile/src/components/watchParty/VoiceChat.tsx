@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { VoiceParticipant } from '@hooks/useVoiceChat';
 import { VoiceChatParticipants } from './VoiceChatParticipants';
 import { VoiceChatControls } from './VoiceChatControls';
+import { useT } from '@i18n/index';
 
 // Presentational only — voice connection state is lifted to the room screen
 // so it persists across panel switches (Discord-style background voice).
@@ -29,6 +30,7 @@ export function VoiceChat({
   isJoined, isMuted, participants, isLoading, errorMsg,
   onJoin, onLeave, onToggleMute,
 }: VoiceChatProps) {
+  const { t } = useT();
   if (!visible) return null;
 
   const micActive = isJoined && !isMuted;
@@ -49,11 +51,11 @@ export function VoiceChat({
             />
           </View>
           <View>
-            <Text style={s.title}>Ovozli chat</Text>
+            <Text style={s.title}>{t('watchParty', 'voiceTitle')}</Text>
             <Text style={s.subtitle}>
               {isJoined
-                ? `${participants.length} ishtirokchi ulangan`
-                : 'Real-vaqt WebRTC audio'}
+                ? `${participants.length} ${t('watchParty', 'voiceConnectedSuffix')}`
+                : t('watchParty', 'voiceIdle')}
             </Text>
           </View>
         </View>

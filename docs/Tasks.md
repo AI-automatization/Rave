@@ -1,6 +1,74 @@
 # CineSync — OCHIQ VAZIFALAR
 
-# Yangilangan: 2026-06-13
+# Yangilangan: 2026-07-03
+
+---
+
+# 🟣 Sprint 14: Staging + CI/CD (2026-07-03) — A1+B1+C2
+
+---
+
+### T-S109 | P1 | [DEVOPS] | Staging env + CI/CD (Railway Environments + native deploy)
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-07-03
+- **Holat:** ❌ Boshlanmagan (план одобрен: A1+B1+C2)
+- **Tavsiya model:** sonnet
+- **Sabab:** Нет staging-окружения; деплой ручной; CI/CD написан, но staging «стреляет в пустоту» (сервисов -staging нет). Решение: Railway Environments (prod+staging в 1 проекте), отдельные staging Mongo/Redis, деплой Railway-native (develop→staging, main→prod), Actions = только гейты на PR.
+
+**Фаза 1 — Railway staging env (A1+B1) [Railway dashboard/CLI]:**
+  - [ ] Создать окружение `staging` в проекте `rave` (Duplicate environment от production → клонирует все сервисы + свои volumes = отдельные staging Mongo/Redis автоматически = B1)
+  - [ ] Проверить staging Mongo/Redis: отдельные instance, `MONGO_URI`/`REDIS_URL` в staging указывают на staging-БД (Railway reference vars)
+  - [ ] Staging-переменные: домены (auth-staging.up.railway.app и т.д.), `NODE_ENV=staging`, свои JWT/INTERNAL секреты (НЕ прод)
+  - [ ] Сид тестовых данных в staging cinesync
+
+**Фаза 2 — Ветки + Railway deploy-триггеры (C2):**
+  - [ ] Создать ветку `dev` от main
+  - [ ] Railway: production env → deploy from `main`; staging env → deploy from `dev` (Settings → Environment → branch)
+  - [ ] Проверить: push в dev → авто-деплой staging; push в main → авто-деплой prod
+
+**Фаза 3 — CI гейты (GitHub Actions, только PR):**
+  - [ ] Оставить `lint.yml` + `test.yml` как PR-проверки (on pull_request → dev/main)
+  - [ ] Добавить `ci.yml`: typecheck (shared + все сервисы) + test + lint на PR
+  - [ ] Удалить/выпилить `deploy-prod.yml` + `deploy-staging.yml` (деплой теперь Railway-native) — или оставить как ручной `workflow_dispatch` fallback
+  - [ ] Добавить web/app-web/admin-ui в typecheck (сейчас только backend)
+
+**Фаза 4 — Branch protection (GitHub, via gh):**
+  - [ ] `main`: require PR + passing CI + 1 review
+  - [ ] `dev`: require PR + passing CI
+
+**Фаза 5 — Docs:**
+  - [ ] `docs/deployment.md`: схема веток → окружений, как деплоить, rollback
+
+- **Разделение:** Клод делает — develop-ветку, ci.yml, чистку workflow, branch protection (gh), docs. Saidazim (Railway dashboard) — duplicate environment, per-env deploy branch, staging переменные/домены. Часть через `railway` CLI попробую сам.
+- **Файлы:** `.github/workflows/*.yml`, `docs/deployment.md`
+
+---
+
+# 🔵 Sprint 13: Mobile UX fixes (2026-07-03 — manual QA Saidazim)
+
+---
+
+### T-S108 | P1 | [MOBILE+BACKEND] | Single active room guard + "Мои комнаты" на главном
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim (manual QA)
+- **Yaratilgan:** 2026-07-03
+- **Holat:** 🔄 Bajarilmoqda
+- **Tavsiya model:** sonnet
+- **Model sababi:** backend guard + mobile UI, 3-4 fayl, mavjud endpoint qayta ishlatiladi
+- **Sabab:** Foydalanuvchi bir vaqtda bir nechta xona ochishi mumkin (guard yo'q). Bor xonani topib bo'lmaydi — HomeScreen'da "mening xonalarim" yo'q.
+- **Qilish kerak:**
+  - [ ] Backend `createRoom`: agar `ownerId` da active (status != ended) xona bo'lsa → `409 ROOM_ALREADY_EXISTS` + roomId
+  - [ ] Mobile: create javobida shu kodni ushlab → mavjud xonaga navigate + toast
+  - [ ] Mobile HomeScreen: "Мои комнаты" seksiya (`getRecentRooms`, filter active), tap → xona ochish
+  - [ ] Deploy watch-party
+- **Fayllar:** `services/watch-party/src/controllers/watchParty.controller.ts` (+ service), `apps/mobile/src/screens/home/HomeScreen.tsx`, `apps/mobile/src/screens/rooms/RoomsScreen.tsx`
+
+### T-S107b | ✅ | [MOBILE] | Fix: свайп-вниз случайно сворачивает комнату
+
+- **Holat:** ✅ Bajarildi (2026-07-03) — outer Modal wrapper `gestureEnabled` off qachonki `WatchParty` active (`AppNavigator.tsx`)
 
 ---
 

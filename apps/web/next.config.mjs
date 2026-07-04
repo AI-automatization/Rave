@@ -21,6 +21,28 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ['framer-motion', 'lucide-react'],
   },
+  // Domain split: the application (dashboard) lives on app.wewatch.uz. Any app/auth
+  // path hit on the landing domain (wewatch.uz) is 301'd to the app domain so the two
+  // are cleanly separated for users, bookmarks and SEO. The landing keeps only marketing
+  // + guide pages. APP_DOMAIN is overridable per-env; defaults to production.
+  async redirects() {
+    const APP = process.env.NEXT_PUBLIC_APP_DOMAIN ?? 'https://app.wewatch.uz';
+    const appPaths = [
+      'home', 'room', 'friends', 'messages', 'profile',
+      'settings', 'notifications', 'support', 'login', 'register', 'auth',
+    ];
+    return appPaths.map((p) => ({
+      source: `/${p}/:path*`,
+      destination: `${APP}/${p}/:path*`,
+      permanent: true,
+    })).concat(
+      appPaths.map((p) => ({
+        source: `/${p}`,
+        destination: `${APP}/${p}`,
+        permanent: true,
+      })),
+    );
+  },
   async headers() {
     return [
       {

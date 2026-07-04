@@ -1,6 +1,6 @@
 // WeWatch Mobile — useNotifications hook
 import { useCallback, useEffect } from 'react';
-import { Alert } from 'react-native';
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { NavigationProp, useNavigation } from '@react-navigation/native';
 import { notificationApi } from '@api/notification.api';
@@ -9,6 +9,7 @@ import { useNotificationStore } from '@store/notification.store';
 import { getSocket } from '@socket/client';
 import { INotification, ModalStackParamList } from '@app-types/index';
 import { useT } from '@i18n/index';
+import { appAlert } from '@components/common/AppAlert';
 
 export interface NotificationData {
   friendshipId?: string;
@@ -83,10 +84,13 @@ export function useNotifications() {
     const handler = (notification: INotification) => {
       addNotification(notification);
       void refetch();
-      // Auto-refetch friends on friend_accepted
+      // Live-refresh the Friends screen when a friend request arrives or is accepted,
+      // so the incoming request shows up without re-entering the app.
+      if (notification.type === 'friend_request' || notification.type === 'friend_accepted') {
+        void queryClient.invalidateQueries({ queryKey: ['friend-requests'] });
+      }
       if (notification.type === 'friend_accepted') {
         void queryClient.invalidateQueries({ queryKey: ['friends'] });
-        void queryClient.invalidateQueries({ queryKey: ['friend-requests'] });
       }
     };
     socket.on(NOTIFICATION_NEW, handler);
@@ -110,7 +114,7 @@ export function useNotifications() {
   }, [markReadMutation, navigation]);
 
   const handleDelete = useCallback((id: string) => {
-    Alert.alert(t('notifications', 'deleteTitle'), t('notifications', 'deleteMsg'), [
+    appAlert(t('notifications', 'deleteTitle'), t('notifications', 'deleteMsg'), [
       { text: t('common', 'cancel'), style: 'cancel' },
       { text: t('notifications', 'deleteBtn'), style: 'destructive', onPress: () => deleteMutation.mutate(id) },
     ]);

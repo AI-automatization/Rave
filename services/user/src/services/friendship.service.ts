@@ -49,7 +49,7 @@ export class FriendshipService {
       type: 'friend_request',
       title: 'Yangi do\'st so\'rovi',
       body: `${requester?.username ?? 'Foydalanuvchi'} sizga do\'stlik so\'rovi yubordi`,
-      data: { requesterId, friendshipId: (friendship._id as object).toString(), screen: 'Friends' },
+      data: { requesterId, friendshipId: (friendship._id as object).toString(), screen: 'Friends', categoryId: 'friend_request' },
     });
 
     logger.info('Friend request sent', { requesterId, receiverId });

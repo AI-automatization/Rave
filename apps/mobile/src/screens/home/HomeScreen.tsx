@@ -22,11 +22,13 @@ import { HomeStackParamList, RootStackParamList } from '@app-types/index';
 import { useDebounce } from '@hooks/useSearch';
 import { useVideoSearch } from '@hooks/useVideoSearch';
 import { useWatchPartyRooms } from '@hooks/useWatchPartyRooms';
+import { useRecentRooms } from '@hooks/useRecentRooms';
 import { useCreateWatchParty } from '@hooks/useCreateWatchParty';
 import { VideoSearchResults } from '@components/home/VideoSearchResults';
 import { HomeCTA } from '@components/home/HomeCTA';
 import { WeWatchLogo } from '@components/common/WeWatchLogo';
 import { SkeletonGridCard, RoomGrid, CARD_GAP } from '@components/home/RoomGridCard';
+import { MyRoomsRow } from '@components/home/MyRoomsRow';
 import { useNotificationStore } from '@store/notification.store';
 import { useT } from '@i18n/index';
 
@@ -75,9 +77,33 @@ export function HomeScreen() {
 
   const bellRotate = bellAnim.interpolate({ inputRange: [-1, 1], outputRange: ['-18deg', '18deg'] });
 
+  const { data: recentRooms } = useRecentRooms();
+  // "My rooms" — rooms the user recently hosted/joined that are still open.
+  const myRooms = useMemo(
+    () => (recentRooms ?? []).filter(r => r.status !== 'ended'),
+    [recentRooms],
+  );
+  const myRoomIds = useMemo(() => new Set(myRooms.map(r => r._id)), [myRooms]);
+
   const allRooms    = rooms ?? [];
-  const activeRooms = useMemo(() => allRooms.filter(r => r.status !== 'ended'), [allRooms]);
+  // Exclude my own rooms from the public list — they get their own section on top.
+  const activeRooms = useMemo(
+    () => allRooms.filter(r => r.status !== 'ended' && !myRoomIds.has(r._id)),
+    [allRooms, myRoomIds],
+  );
   const endedRooms  = useMemo(() => allRooms.filter(r => r.status === 'ended'),  [allRooms]);
+
+  // Room search by name — filters the loaded rooms (mine + public active) by title.
+  const matchedRooms = useMemo(() => {
+    const q = debouncedQuery.trim().toLowerCase();
+    if (q.length < 2) return [];
+    const seen = new Set<string>();
+    return [...myRooms, ...activeRooms].filter(r => {
+      if (seen.has(r._id)) return false;
+      seen.add(r._id);
+      return (r.videoTitle ?? r.name ?? '').toLowerCase().includes(q);
+    });
+  }, [debouncedQuery, myRooms, activeRooms]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -178,7 +204,21 @@ export function HomeScreen() {
         }
       >
         {isSearchActive ? (
-          <VideoSearchResults results={videoResults} isLoading={searchLoading} onSelect={createFromVideo} />
+          <>
+            {/* Rooms matching the query (by name) */}
+            {matchedRooms.length > 0 && (
+              <View style={[s.roomsWrap, { paddingTop: spacing.md }]}>
+                <View style={s.roomsSectionHeader}>
+                  <Text style={s.roomsSectionLabel}>{t('watchParty', 'searchRoomsLabel').toUpperCase()}</Text>
+                  <View style={s.roomCountBadge}>
+                    <Text style={s.roomCountText}>{matchedRooms.length}</Text>
+                  </View>
+                </View>
+                <MyRoomsRow rooms={matchedRooms} onPress={handleRoomPress} />
+              </View>
+            )}
+            <VideoSearchResults results={videoResults} isLoading={searchLoading} onSelect={createFromVideo} />
+          </>
         ) : (
           <>
             {/* ── Hero CTA ──────────────────────────────────── */}
@@ -189,6 +229,19 @@ export function HomeScreen() {
 
             {/* ── Rooms grid ────────────────────────────────── */}
             <View style={s.roomsWrap}>
+              {/* My rooms — the user's own open rooms, so they can jump back in */}
+              {myRooms.length > 0 && (
+                <View style={s.roomsSectionBlock}>
+                  <View style={s.roomsSectionHeader}>
+                    <Text style={s.roomsSectionLabel}>{t('watchParty', 'myRooms').toUpperCase()}</Text>
+                    <View style={s.roomCountBadge}>
+                      <Text style={s.roomCountText}>{myRooms.length}</Text>
+                    </View>
+                  </View>
+                  <MyRoomsRow rooms={myRooms} onPress={handleRoomPress} />
+                </View>
+              )}
+
               {roomsLoading && allRooms.length === 0 ? (
                 <>
                   <View style={s.roomsSectionHeader}>
@@ -203,7 +256,7 @@ export function HomeScreen() {
                     </View>
                   </View>
                 </>
-              ) : allRooms.length === 0 ? (
+              ) : allRooms.length === 0 && myRooms.length === 0 ? (
                 <View style={s.emptyWrap}>
                   <View style={s.emptyIconRing}>
                     <Ionicons name="tv-outline" size={44} color={colors.primary + '70'} />

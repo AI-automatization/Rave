@@ -1,11 +1,14 @@
 // WeWatch Mobile — useFriends hook
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Alert } from 'react-native';
+
 import { userApi } from '@api/user.api';
+import { getSocket } from '@socket/client';
 import { useFriendsStore } from '@store/friends.store';
 import { useAuthStore } from '@store/auth.store';
 import { useDebounce } from '@hooks/useSearch';
 import { useT } from '@i18n/index';
+import { appAlert } from '@components/common/AppAlert';
 
 export function useFriends() {
   const { t } = useT();
@@ -44,19 +47,37 @@ export function useFriends() {
     refetchInterval: 2 * 60 * 1000,
   });
 
+  // Live-update the friends/requests lists via socket (notification:new) so an incoming
+  // request shows up instantly on the Friends screen without re-entering the app.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const socket = getSocket();
+    if (!socket) return;
+    const onNotification = (notification: { type?: string }) => {
+      if (notification?.type === 'friend_request' || notification?.type === 'friend_accepted') {
+        void queryClient.invalidateQueries({ queryKey: ['friend-requests'] });
+      }
+      if (notification?.type === 'friend_accepted') {
+        void queryClient.invalidateQueries({ queryKey: ['friends'] });
+      }
+    };
+    socket.on('notification:new', onNotification);
+    return () => { socket.off('notification:new', onNotification); };
+  }, [isAuthenticated, queryClient]);
+
   const acceptMutation = useMutation({
     mutationFn: (friendshipId: string) => userApi.acceptFriendRequest(friendshipId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['friends'] });
       queryClient.invalidateQueries({ queryKey: ['friend-requests'] });
     },
-    onError: () => Alert.alert(t('common', 'error'), t('friends', 'requestError')),
+    onError: () => appAlert(t('common', 'error'), t('friends', 'requestError')),
   });
 
   const rejectMutation = useMutation({
     mutationFn: (friendshipId: string) => userApi.rejectFriendRequest(friendshipId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['friend-requests'] }),
-    onError: () => Alert.alert(t('common', 'error'), t('friends', 'requestError')),
+    onError: () => appAlert(t('common', 'error'), t('friends', 'requestError')),
   });
 
   const sendRequestMutation = useMutation({
@@ -65,7 +86,7 @@ export function useFriends() {
       queryClient.invalidateQueries({ queryKey: ['friends'] });
       queryClient.invalidateQueries({ queryKey: ['friend-requests'] });
     },
-    onError: () => Alert.alert(t('common', 'error'), t('friends', 'requestError')),
+    onError: () => appAlert(t('common', 'error'), t('friends', 'requestError')),
   });
 
   const removeMutation = useMutation({
@@ -74,7 +95,7 @@ export function useFriends() {
       removeFriend(userId);
       queryClient.invalidateQueries({ queryKey: ['friends'] });
     },
-    onError: () => Alert.alert(t('common', 'error'), t('friends', 'requestError')),
+    onError: () => appAlert(t('common', 'error'), t('friends', 'requestError')),
   });
 
   return {
@@ -138,7 +159,7 @@ export function useFriendProfile(userId: string) {
       removeFriend(userId);
       queryClient.invalidateQueries({ queryKey: ['friends'] });
     },
-    onError: () => Alert.alert(t('common', 'error'), t('friends', 'requestError')),
+    onError: () => appAlert(t('common', 'error'), t('friends', 'requestError')),
   });
 
   return { profileQuery, statsQuery, sendRequestMutation, removeMutation };

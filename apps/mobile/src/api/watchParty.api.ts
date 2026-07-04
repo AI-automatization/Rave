@@ -27,6 +27,15 @@ export const watchPartyApi = {
     return res.data.data ?? [];
   },
 
+  // ICE servers for WebRTC (mesh sync + voice). Backend proxies Metered TURN —
+  // returns { iceServers } directly (not ApiResponse-wrapped). STUN-only if TURN unset.
+  async getTurnCredentials(): Promise<RTCIceServer[]> {
+    const res = await watchPartyClient.get<{ iceServers: RTCIceServer[] }>(
+      '/watch-party/turn/credentials',
+    );
+    return res.data.iceServers ?? [];
+  },
+
   async getRoomById(roomId: string): Promise<IWatchPartyRoom> {
     const res = await watchPartyClient.get<ApiResponse<IWatchPartyRoom>>(
       `/watch-party/rooms/${roomId}`,

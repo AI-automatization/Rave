@@ -153,9 +153,14 @@
         }
       ],
       "expo-secure-store",
-      "expo-av",
       "expo-web-browser",
       "expo-apple-authentication",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.756077214118-t309035asjucgjm96b365sp92n807ne1"
+        }
+      ],
       [
         "expo-build-properties",
         {

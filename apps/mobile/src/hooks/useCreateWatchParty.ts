@@ -1,7 +1,7 @@
 // WeWatch — Hook for creating a watch party room from video search
 import { useState, useCallback } from 'react';
-import { Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { showAlert } from '@components/common/AppAlert';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { watchPartyApi } from '@api/watchParty.api';
 import type { VideoSearchItem } from '@api/content.api';
@@ -25,8 +25,32 @@ export function useCreateWatchParty(onSuccess?: () => void) {
       });
       onSuccess?.();
       rootNav.navigate('Modal', { screen: 'WatchParty', params: { roomId: room._id } });
-    } catch {
-      Alert.alert('Xato', 'Xona yaratib bo\'lmadi');
+    } catch (err: unknown) {
+      // Backend enforces one active room per owner (409 ROOM_ALREADY_EXISTS).
+      // Instead of erroring, reopen the room the user already has.
+      const resp = (err as {
+        response?: { status?: number; data?: { message?: string; data?: { roomId?: string } } };
+      }).response;
+      const existingId =
+        resp?.status === 409 && resp.data?.message === 'ROOM_ALREADY_EXISTS'
+          ? resp.data.data?.roomId
+          : undefined;
+      if (existingId) {
+        onSuccess?.();
+        showAlert({
+          title: 'Sizda faol xona bor',
+          message: 'Mavjud xonangiz ochilmoqda.',
+          buttons: [
+            {
+              text: 'OK',
+              onPress: () =>
+                rootNav.navigate('Modal', { screen: 'WatchParty', params: { roomId: existingId } }),
+            },
+          ],
+        });
+        return;
+      }
+      showAlert({ title: 'Xato', message: 'Xona yaratib bo\'lmadi' });
     } finally {
       setCreating(false);
     }

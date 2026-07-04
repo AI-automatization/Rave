@@ -12,6 +12,13 @@ export const NOTIFICATION_ROUTES: Record<NotificationType, string> = {
   friend_watching: 'WatchParty',
   support_reply: 'SupportChat',
   admin_warning: 'Notifications',
+  // Admin-broadcast types → open the notifications list
+  announcement: 'Notifications',
+  maintenance: 'Notifications',
+  promo: 'Notifications',
+  update: 'Notifications',
+  system: 'Notifications',
+  warning: 'Notifications',
 };
 
 const isExpoGo = Constants.executionEnvironment === 'storeClient';

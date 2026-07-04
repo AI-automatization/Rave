@@ -1,6 +1,6 @@
 // WeWatch — Join tab for WatchPartyCreateScreen
 import React, { useState, useRef, useCallback } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,6 +10,7 @@ import { FadeSlideIn } from '@components/common/FadeSlideIn';
 import { useWatchPartyCreateStyles } from './watchPartyCreate.styles';
 import type { ModalStackParamList } from '@app-types/index';
 import { translations } from '@i18n/index';
+import { appAlert } from '@components/common/AppAlert';
 
 type Nav = NativeStackNavigationProp<ModalStackParamList, 'WatchPartyCreate'>;
 type TFn = (section: keyof typeof translations, key: string) => string;
@@ -34,7 +35,7 @@ export function JoinTab({ navigation, t }: Props) {
 
   const handleJoin = useCallback(async () => {
     if (code.length < CODE_LENGTH) {
-      Alert.alert(t('watchParty', 'error'), t('watchParty', 'joinCodeShort'));
+      appAlert(t('watchParty', 'error'), t('watchParty', 'joinCodeShort'));
       return;
     }
     setLoading(true);
@@ -42,7 +43,7 @@ export function JoinTab({ navigation, t }: Props) {
       const room = await watchPartyApi.joinByInviteCode(code);
       navigation.replace('WatchParty', { roomId: room._id });
     } catch {
-      Alert.alert(t('watchParty', 'error'), t('watchParty', 'joinError'));
+      appAlert(t('watchParty', 'error'), t('watchParty', 'joinError'));
     } finally {
       setLoading(false);
     }

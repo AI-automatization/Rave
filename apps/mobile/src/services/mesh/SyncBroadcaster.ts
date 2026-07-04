@@ -11,7 +11,8 @@ export interface SyncBroadcasterConfig {
   userId: string;
   roomId: string;
   isOwner: boolean;
-  onSyncMessage: (msg: SyncMessage) => void;
+  /** clockOffset (ms) is the sender peer's clock offset vs ours; undefined on Socket.io path */
+  onSyncMessage: (msg: SyncMessage, clockOffset?: number) => void;
   onTopologyChange?: (topology: Topology) => void;
   onPeerCountChange?: (count: number) => void;
 }
@@ -130,6 +131,8 @@ export class SyncBroadcaster {
 
   private startMesh(): void {
     if (this.meshClient || this.destroyed) return;
+    // No react-native-webrtc (e.g. Expo Go) → stay on Socket.io path only.
+    if (!MeshClient.isSupported()) return;
 
     this.meshClient = new MeshClient(
       this.config.userId,
@@ -150,7 +153,7 @@ export class SyncBroadcaster {
     switch (event.type) {
       case 'sync':
         if (event.syncMessage) {
-          this.config.onSyncMessage(event.syncMessage);
+          this.config.onSyncMessage(event.syncMessage, event.clockOffset);
         }
         break;
       case 'connected':
