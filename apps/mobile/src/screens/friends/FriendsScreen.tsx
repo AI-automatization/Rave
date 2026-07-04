@@ -7,13 +7,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFriends } from '@hooks/useFriends';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
-import { IUserPublic, FriendsStackParamList, RootStackParamList } from '@app-types/index';
+import { IUserPublic, FriendsStackParamList } from '@app-types/index';
 import { useT } from '@i18n/index';
 import { FriendRow, RequestCard, FriendsEmptyState } from '@components/friends/FriendListItems';
 import { appAlert } from '@components/common/AppAlert';
 
 type Nav = NativeStackNavigationProp<FriendsStackParamList, 'Friends'>;
-type RootNav = NativeStackNavigationProp<RootStackParamList>;
 type FriendsSection = SectionListData<IUserPublic, { title: string; data: IUserPublic[]; isOnline: boolean }>;
 
 const TAB_BAR_HEIGHT = 60;
@@ -22,7 +21,6 @@ const TAB_BAR_HEIGHT = 60;
 
 export function FriendsScreen() {
   const navigation = useNavigation<Nav>();
-  const rootNav = useNavigation<RootNav>();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const s = useStyles();
@@ -85,23 +83,14 @@ export function FriendsScreen() {
             <Text style={s.subtitle}>{friends.length} {t('friends', 'friendsCount')}</Text>
           )}
         </View>
-        <View style={s.headerActions}>
-          <TouchableOpacity
-            style={s.chatsBtn}
-            onPress={() => rootNav.navigate('Modal', { screen: 'DMConversations' })}
-            activeOpacity={0.85}
-          >
-            <Ionicons name="chatbubbles-outline" size={20} color={colors.primary} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={s.addFriendBtn}
-            onPress={() => navigation.navigate('FriendSearch')}
-            activeOpacity={0.85}
-          >
-            <Ionicons name="person-add-outline" size={16} color={colors.white} />
-            <Text style={s.addFriendBtnText}>{t('friends', 'addBtn')}</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          style={s.addFriendBtn}
+          onPress={() => navigation.navigate('FriendSearch')}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="person-add-outline" size={16} color={colors.white} />
+          <Text style={s.addFriendBtnText}>{t('friends', 'addBtn')}</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Tabs */}
@@ -221,13 +210,6 @@ const useStyles = createThemedStyles((colors) => ({
   },
   title: { ...typography.h1, color: colors.textPrimary },
   subtitle: { ...typography.caption, color: colors.textMuted, marginTop: 2 },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  chatsBtn: {
-    width: 40, height: 40, borderRadius: borderRadius.full,
-    alignItems: 'center', justifyContent: 'center',
-    backgroundColor: colors.primary + '18',
-    borderWidth: 1, borderColor: colors.primary + '40',
-  },
   addFriendBtn: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.xs,
     backgroundColor: colors.primary,

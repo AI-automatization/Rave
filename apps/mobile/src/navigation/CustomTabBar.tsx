@@ -1,6 +1,6 @@
 // WeWatch Mobile — Glassmorphism Tab Bar
 import React, { useEffect, useRef, useCallback } from 'react';
-import { View, TouchableOpacity, Animated, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, Animated, Dimensions } from 'react-native';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -31,21 +31,18 @@ const FAB_SIZE = 54;
 const INDICATOR_WIDTH = 24;
 const INDICATOR_HEIGHT = 2;
 const SCREEN_WIDTH = Dimensions.get('window').width;
+const SLOT_WIDTH = SCREEN_WIDTH / 5; // 5 slots: Home, Chats, FAB, Friends, Profile
 
 /** Map tab array index (0-2) to navigation state index (0, skip FAB=1, then 2,3) */
 function getVisibleTabIndex(arrayIndex: number): number {
   return arrayIndex < 1 ? arrayIndex : arrayIndex + 1;
 }
 
-/** Indicator X for the 3-tab / center-FAB layout: Home centered in the left third,
- * Friends + Profile split the right third. State indices: Home=0, FAB=1, Friends=2, Profile=3. */
+/** Indicator X — the Chats shortcut sits at visual slot 1 (between Home and the FAB),
+ * so the real tabs map to visual slots 0 (Home), 3 (Friends), 4 (Profile). */
 function getIndicatorX(stateIndex: number): number {
-  const W = SCREEN_WIDTH;
-  let center: number;
-  if (stateIndex === 0) center = W / 6;             // Home — centre of left third
-  else if (stateIndex === 2) center = (3 * W) / 4;  // Friends — first of right third
-  else center = (11 * W) / 12;                       // Profile — second of right third
-  return center - INDICATOR_WIDTH / 2;
+  const visualSlot = stateIndex === 0 ? 0 : stateIndex + 1;
+  return visualSlot * SLOT_WIDTH + (SLOT_WIDTH - INDICATOR_WIDTH) / 2;
 }
 
 // ─── Custom Tab Bar ───────────────────────────────────────────────────────────
@@ -132,12 +129,18 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
           />
           {/* Tab row */}
           <View style={styles.bar}>
-            <View style={styles.sideGroup}>{renderTab(TABS[0], 0)}</View>
+            {renderTab(TABS[0], 0)}
+            <TouchableOpacity
+              style={styles.tabItem}
+              onPress={() => rootNav.navigate('Modal', { screen: 'DMConversations' })}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="chatbubbles-outline" size={24} color={colors.textMuted} />
+              <Text style={[styles.label, { color: colors.textMuted }]}>{t('tabs', 'chats')}</Text>
+            </TouchableOpacity>
             <View style={styles.fabPlaceholder} />
-            <View style={styles.sideGroup}>
-              {renderTab(TABS[1], 1)}
-              {renderTab(TABS[2], 2)}
-            </View>
+            {renderTab(TABS[1], 1)}
+            {renderTab(TABS[2], 2)}
           </View>
         </View>
       </BlurView>
@@ -191,11 +194,6 @@ const useStyles = createThemedStyles((colors) => ({
   },
   bar: {
     height: BAR_HEIGHT,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  sideGroup: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
   },

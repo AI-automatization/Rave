@@ -731,6 +731,7 @@ export const translations = {
   // ─── Tab bar labels ───
   tabs: {
     home: { uz: 'Bosh', ru: 'Главная', en: 'Home' },
+    chats: { uz: 'Chatlar', ru: 'Чаты', en: 'Chats' },
     rooms: { uz: 'Xonalar', ru: 'Комнаты', en: 'Rooms' },
     friends: { uz: "Do'stlar", ru: 'Друзья', en: 'Friends' },
     profile: { uz: 'Profil', ru: 'Профиль', en: 'Profile' },
