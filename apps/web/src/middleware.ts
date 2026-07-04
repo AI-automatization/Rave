@@ -12,19 +12,25 @@ export function middleware(req: NextRequest) {
   const hasRefreshToken = req.cookies.has('refresh_token');
   const isAuthenticated = hasAccessToken || hasRefreshToken;
 
+  // Strip the /uz locale prefix before matching, so /uz/home is guarded
+  // exactly like /home. Keep the prefix for redirects to stay in-locale.
+  const hasUzPrefix = pathname === '/uz' || pathname.startsWith('/uz/');
+  const localePrefix = hasUzPrefix ? '/uz' : '';
+  const routePath = hasUzPrefix ? pathname.slice(localePrefix.length) || '/' : pathname;
+
   // Protected routes: redirect to /login if not authenticated
-  if (PROTECTED_PATHS.some((p) => pathname.startsWith(p))) {
+  if (PROTECTED_PATHS.some((p) => routePath.startsWith(p))) {
     if (!isAuthenticated) {
-      const loginUrl = new URL('/login', req.url);
+      const loginUrl = new URL(`${localePrefix}/login`, req.url);
       loginUrl.searchParams.set('redirect', pathname);
       return NextResponse.redirect(loginUrl);
     }
   }
 
   // Auth routes: redirect to /home if already authenticated
-  if (AUTH_PATHS.some((p) => pathname.startsWith(p))) {
+  if (AUTH_PATHS.some((p) => routePath.startsWith(p))) {
     if (isAuthenticated) {
-      return NextResponse.redirect(new URL('/home', req.url));
+      return NextResponse.redirect(new URL(`${localePrefix}/home`, req.url));
     }
   }
 
