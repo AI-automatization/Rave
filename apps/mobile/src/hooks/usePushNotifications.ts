@@ -2,7 +2,7 @@
 import { useEffect, useRef } from 'react';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
-import { Platform, Alert } from 'react-native';
+import { Platform } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { userApi } from '@api/user.api';
 import { useAuthStore } from '@store/auth.store';
@@ -37,25 +37,9 @@ export function usePushNotifications() {
   // login. On Android 13+ POST_NOTIFICATIONS is a runtime permission; without this the
   // system dialog never appeared until after sign-in. Token registration still waits
   // for auth (below) so it can be tied to the user.
-  // TEMP PUSH DIAG — surfaces the real on-device push state in one alert (no adb needed).
-  // Remove once the notification issue is diagnosed.
   useEffect(() => {
-    void (async () => {
-      try {
-        const execEnv = String(Constants.executionEnvironment ?? 'undef');
-        if (isExpoGo) { Alert.alert('PUSH DIAG', `execEnv=${execEnv}\nisExpoGo=TRUE → весь push пропущен`); return; }
-        const before = (await Notifications.getPermissionsAsync()).status;
-        const after = await ensureNotificationPermission();
-        let tokenInfo: string;
-        try {
-          const { token, error } = await getPushToken();
-          tokenInfo = token ? `${token.slice(0, 18)}… (len ${token.length})` : `NULL (${error ?? '-'})`;
-        } catch (te) { tokenInfo = 'THROW: ' + String((te as Error)?.message); }
-        Alert.alert('PUSH DIAG', `execEnv=${execEnv}\nisExpoGo=false\npermBefore=${before}\npermAfter=${after}\ntoken=${tokenInfo}`);
-      } catch (e) {
-        Alert.alert('PUSH DIAG ERROR', String((e as Error)?.message ?? e));
-      }
-    })();
+    if (isExpoGo) return;
+    void ensureNotificationPermission();
   }, []);
 
   useEffect(() => {
