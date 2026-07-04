@@ -9,7 +9,7 @@ import { verifyToken, requireRole } from '@shared/middleware/auth.middleware';
 import { requireInternalSecret } from '@shared/utils/serviceClient';
 import {
   validate, blockUserSchema, changeRoleSchema, replyFeedbackSchema,
-  broadcastNotificationSchema, sendNotificationSchema, createStaffSchema,
+  broadcastNotificationSchema, sendNotificationSchema, createStaffSchema, createTestUserSchema,
   addDomainSchema, setRestrictionsSchema, controlWatchPartySchema,
 } from '../validators/admin.validator';
 
@@ -95,6 +95,9 @@ export const createAdminRouter = (redis: Redis): Router => {
   // ── Staff Management (superadmin only) ───────────────────────
   router.get('/staff', requireRole('superadmin'), adminController.listStaff);
   router.post('/staff', requireRole('superadmin'), validate(createStaffSchema), adminController.createStaff);
+
+  // POST /admin/users/test — create a verified regular test account (no email OTP)
+  router.post('/users/test', requireRole('admin'), validate(createTestUserSchema), adminController.createTestUser);
   router.delete('/staff/:id', requireRole('superadmin'), adminController.deleteStaff);
 
   // ── System Health ─────────────────────────────────────────────

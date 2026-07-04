@@ -230,6 +230,23 @@ export class AdminController {
     } catch (error) { next(error); }
   };
 
+  createTestUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId: adminId, email: adminEmail } = (req as AuthenticatedRequest).user;
+      const { email, username, password } = req.body as {
+        email: string;
+        username: string;
+        password: string;
+      };
+      if (!email || !username || !password) {
+        res.status(400).json(apiResponse.error('email, username, password are required'));
+        return;
+      }
+      const result = await this.adminService.createTestUser(email, username, password, adminId, adminEmail);
+      res.status(201).json(apiResponse.success(result, 'Test user created'));
+    } catch (error) { next(error); }
+  };
+
   listStaff = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const page = Math.max(1, parseInt((req.query.page as string) ?? '1', 10) || 1);

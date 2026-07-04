@@ -100,6 +100,9 @@ export const createAuthRouter = (redis: Redis): Router => {
   // POST /auth/internal/create-staff — superadmin creates admin/operator/moderator account
   router.post('/internal/create-staff', requireInternalSecret, authController.createStaffAccount);
 
+  // POST /auth/internal/create-test-user — admin creates a verified regular test account
+  router.post('/internal/create-test-user', requireInternalSecret, authController.createTestUser);
+
   // DELETE /auth/internal/users/:userId — admin deletes user from auth DB
   router.delete('/internal/users/:userId', requireInternalSecret, authController.deleteUser);
 

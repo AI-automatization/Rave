@@ -16,6 +16,7 @@ import {
   deleteAuthUser,
   revokeUserSessions,
   createStaffAccount,
+  createTestUser,
 } from '@shared/utils/serviceClient';
 import { adminSetUserRestrictions, adminGetUserById } from '@shared/utils/adminServiceClient';
 
@@ -101,6 +102,25 @@ export class AdminUserService {
       details: { email, username, role },
     });
     logger.info('Staff account created by admin', { email, role, createdByAdminId });
+    return result;
+  }
+
+  async createTestUser(
+    email: string,
+    username: string,
+    password: string,
+    createdByAdminId: string,
+    createdByAdminEmail: string,
+  ): Promise<{ userId: string }> {
+    const result = await createTestUser(email, username, password);
+    await AuditLog.create({
+      adminId: createdByAdminId,
+      adminEmail: createdByAdminEmail,
+      action: 'create_test_user',
+      targetId: result.userId,
+      details: { email, username },
+    });
+    logger.info('Test user created by admin', { email, username, createdByAdminId });
     return result;
   }
 

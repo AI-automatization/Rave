@@ -238,6 +238,28 @@ export async function createStaffAccount(
   }
 }
 
+export async function createTestUser(
+  email: string, username: string, password: string,
+): Promise<{ userId: string }> {
+  try {
+    const res = await axios.post<{ success: boolean; data: { userId: string } }>(
+      `${authServiceUrl}/api/v1/auth/internal/create-test-user`,
+      { email, username, password },
+      { headers: internalHeaders, timeout: 10000 },
+    );
+    return res.data.data;
+  } catch (err) {
+    const axiosErr = err as AxiosError<{ message?: string }>;
+    const status = axiosErr.response?.status;
+    const message = axiosErr.response?.data?.message ?? axiosErr.message;
+    if (status === 409) throw new ConflictError(message ?? 'Account already exists');
+    if (status === 400) throw new BadRequestError(message ?? 'Invalid test user data');
+    if (status === 422) throw new ValidationError(message ?? 'Validation failed');
+    logger.error('[serviceClient] createTestUser failed', { status, message });
+    throw new InternalServerError('Failed to create test user');
+  }
+}
+
 export async function deleteAuthUser(userId: string): Promise<void> {
   try {
     await axios.delete(

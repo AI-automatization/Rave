@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Shield, Ban, CheckCircle, MoreHorizontal, UserX, Copy, Check, ExternalLink } from 'lucide-react';
+import { Search, Shield, Ban, CheckCircle, MoreHorizontal, UserX, Copy, Check, ExternalLink, Plus } from 'lucide-react';
 import { usersApi } from '../api/users.api';
 import { useAuthStore } from '../store/auth.store';
 import { Badge } from '../components/ui/Badge';
@@ -130,6 +130,31 @@ export function UsersPage() {
     finally { setActionLoading(null); }
   };
 
+  // Create test account
+  const [testOpen, setTestOpen] = useState(false);
+  const [testForm, setTestForm] = useState({ email: '', username: '', password: '' });
+  const [testLoading, setTestLoading] = useState(false);
+  const [testError, setTestError] = useState('');
+
+  const handleCreateTestUser = async () => {
+    if (!testForm.email.trim() || !/^[a-zA-Z0-9_]{3,20}$/.test(testForm.username) || testForm.password.length < 8) {
+      setTestError('Email, username (3-20, латиница/цифры) и пароль (мин. 8) обязательны');
+      return;
+    }
+    setTestLoading(true); setTestError('');
+    try {
+      await usersApi.createTestUser({ email: testForm.email.trim(), username: testForm.username.trim(), password: testForm.password });
+      setTestOpen(false);
+      setTestForm({ email: '', username: '', password: '' });
+      await load();
+    } catch (e) {
+      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setTestError(msg ?? 'Не удалось создать тест-аккаунт');
+    } finally {
+      setTestLoading(false);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-5 animate-fade-in">
 
@@ -137,6 +162,14 @@ export function UsersPage() {
       <PageHeader
         title="Users"
         meta={`${meta.total.toLocaleString('ru')} total`}
+        actions={
+          <button
+            onClick={() => { setTestError(''); setTestOpen(true); }}
+            className="flex items-center gap-1.5 bg-accent hover:bg-accent/90 text-white rounded-xl px-3.5 py-2 text-[13px] font-medium transition-colors"
+          >
+            <Plus size={15} /> Тест-аккаунт
+          </button>
+        }
       />
 
       {/* Filters */}
@@ -346,6 +379,43 @@ export function UsersPage() {
       </div>
 
       {/* Block modal */}
+      <Modal
+        open={testOpen}
+        onClose={() => setTestOpen(false)}
+        title="Создать тест-аккаунт"
+      >
+        <div className="flex flex-col gap-3">
+          <p className="text-[12px] text-text-dim">Верифицированный обычный аккаунт (role: user) без OTP. Помечается как тест.</p>
+          <input
+            value={testForm.email}
+            onChange={(e) => setTestForm((f) => ({ ...f, email: e.target.value }))}
+            placeholder="Email"
+            className="w-full bg-surface border border-border rounded-xl px-3 py-2 text-[13px] text-white placeholder-text-dim focus:outline-none focus:ring-2 focus:ring-accent/30"
+          />
+          <input
+            value={testForm.username}
+            onChange={(e) => setTestForm((f) => ({ ...f, username: e.target.value }))}
+            placeholder="Username (3-20, латиница/цифры/_)"
+            className="w-full bg-surface border border-border rounded-xl px-3 py-2 text-[13px] text-white placeholder-text-dim focus:outline-none focus:ring-2 focus:ring-accent/30"
+          />
+          <input
+            value={testForm.password}
+            onChange={(e) => setTestForm((f) => ({ ...f, password: e.target.value }))}
+            placeholder="Пароль (мин. 8)"
+            type="text"
+            className="w-full bg-surface border border-border rounded-xl px-3 py-2 text-[13px] text-white placeholder-text-dim focus:outline-none focus:ring-2 focus:ring-accent/30"
+          />
+          {testError && <p className="text-red-400 text-xs">{testError}</p>}
+          <button
+            onClick={handleCreateTestUser}
+            disabled={testLoading}
+            className="w-full bg-accent hover:bg-accent/90 disabled:opacity-50 text-white rounded-xl py-2.5 text-[13px] font-medium transition-colors"
+          >
+            {testLoading ? 'Создание...' : 'Создать тест-аккаунт'}
+          </button>
+        </div>
+      </Modal>
+
       <Modal
         open={!!blockModal}
         onClose={() => { setBlockModal(null); setBlockReason(''); }}

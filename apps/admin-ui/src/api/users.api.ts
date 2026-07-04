@@ -37,4 +37,9 @@ export const usersApi = {
   setRestrictions: async (id: string, restrictions: string[]): Promise<void> => {
     await apiClient.patch(`/admin/users/${id}/restrictions`, { restrictions });
   },
+
+  createTestUser: async (data: { email: string; username: string; password: string }): Promise<{ userId: string }> => {
+    const res = await apiClient.post<{ data: { userId: string } }>('/admin/users/test', data);
+    return res.data.data;
+  },
 };

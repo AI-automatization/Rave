@@ -38,6 +38,12 @@ export const createStaffSchema = Joi.object({
   role: Joi.string().valid('operator', 'moderator', 'admin').required(),
 });
 
+export const createTestUserSchema = Joi.object({
+  email: Joi.string().email().lowercase().trim().required(),
+  username: Joi.string().pattern(/^[a-zA-Z0-9_]{3,20}$/).required(),
+  password: Joi.string().min(8).required(),
+});
+
 export const addDomainSchema = Joi.object({
   domain: Joi.string().trim().min(1).max(253).required(),
 });
