@@ -83,7 +83,7 @@ export const createUserRouter = (redis: Redis): Router => {
   // ── Friends — all static routes BEFORE /:id ──────────────
   router.get('/me/friends', verifyToken, notBlocked, userController.getFriends);
   router.get('/me/friend-requests', verifyToken, notBlocked, userController.getPendingRequests);
-  router.delete('/me/friends/:userId', verifyToken, notBlocked, userController.removeFriend);
+  router.delete('/me/friends/:friendId', verifyToken, notBlocked, userController.removeFriend);
 
   router.get('/friends', verifyToken, notBlocked, userController.getFriends);
   router.get('/friends/requests', verifyToken, notBlocked, userController.getPendingRequests);
