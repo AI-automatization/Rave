@@ -112,6 +112,7 @@ export function DMChatScreen() {
           queryClient.setQueryData<IDMMessage[]>(['dm-history', peerId], (old = []) =>
             old.some(m => m._id === msg._id) ? old : [...old, msg],
           );
+          void queryClient.invalidateQueries({ queryKey: ['dm-conversations'] });
           setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
         })
         .catch(() => null);

@@ -1,11 +1,11 @@
 // WeWatch Mobile — DM Conversations Screen (T-E138)
-import React from 'react';
+import React, { useCallback } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity,
   ActivityIndicator, StyleSheet, ListRenderItemInfo,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
@@ -81,6 +81,14 @@ export function ConversationsScreen() {
     queryFn: () => dmApi.getConversations(),
     staleTime: 30_000,
   });
+
+  // Refetch whenever the Chats tab regains focus so a conversation started elsewhere
+  // (e.g. from a friend's profile) shows up immediately without restarting the app.
+  useFocusEffect(
+    useCallback(() => {
+      void refetch();
+    }, [refetch]),
+  );
 
   return (
     <View style={[s.root, { paddingTop: insets.top }]}>
