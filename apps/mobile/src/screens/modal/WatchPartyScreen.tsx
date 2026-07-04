@@ -64,7 +64,9 @@ export function WatchPartyScreen() {
   const handleActionSheetClose = () => setActionSheetUserId(null);
 
   const handleActionSheetViewProfile = () => {
+    const uid = actionSheetUserId;
     setActionSheetUserId(null);
+    if (uid) navigation.push('FriendProfile', { userId: uid });
   };
 
   const handleActionSheetSendMessage = () => {

@@ -31,17 +31,21 @@ const FAB_SIZE = 54;
 const INDICATOR_WIDTH = 24;
 const INDICATOR_HEIGHT = 2;
 const SCREEN_WIDTH = Dimensions.get('window').width;
-const SLOT_WIDTH = SCREEN_WIDTH / 5; // 5 slots: Home, Map(disabled), FAB, Friends, Profile
 
 /** Map tab array index (0-2) to navigation state index (0, skip FAB=1, then 2,3) */
 function getVisibleTabIndex(arrayIndex: number): number {
   return arrayIndex < 1 ? arrayIndex : arrayIndex + 1;
 }
 
-/** Calculate indicator X — accounts for disabled map tab at visual slot 1 */
+/** Indicator X for the 3-tab / center-FAB layout: Home centered in the left third,
+ * Friends + Profile split the right third. State indices: Home=0, FAB=1, Friends=2, Profile=3. */
 function getIndicatorX(stateIndex: number): number {
-  const visualSlot = stateIndex === 0 ? 0 : stateIndex + 1;
-  return visualSlot * SLOT_WIDTH + (SLOT_WIDTH - INDICATOR_WIDTH) / 2;
+  const W = SCREEN_WIDTH;
+  let center: number;
+  if (stateIndex === 0) center = W / 6;             // Home — centre of left third
+  else if (stateIndex === 2) center = (3 * W) / 4;  // Friends — first of right third
+  else center = (11 * W) / 12;                       // Profile — second of right third
+  return center - INDICATOR_WIDTH / 2;
 }
 
 // ─── Custom Tab Bar ───────────────────────────────────────────────────────────
@@ -128,12 +132,12 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
           />
           {/* Tab row */}
           <View style={styles.bar}>
-            {TABS.slice(0, 1).map((tab, i) => renderTab(tab, i))}
-            <View style={styles.tabItem} pointerEvents="none">
-              <Ionicons name="map-outline" size={24} color={colors.textDim} style={{ opacity: 0.35 }} />
-            </View>
+            <View style={styles.sideGroup}>{renderTab(TABS[0], 0)}</View>
             <View style={styles.fabPlaceholder} />
-            {TABS.slice(1).map((tab, i) => renderTab(tab, i + 1))}
+            <View style={styles.sideGroup}>
+              {renderTab(TABS[1], 1)}
+              {renderTab(TABS[2], 2)}
+            </View>
           </View>
         </View>
       </BlurView>
@@ -187,6 +191,11 @@ const useStyles = createThemedStyles((colors) => ({
   },
   bar: {
     height: BAR_HEIGHT,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  sideGroup: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
   },

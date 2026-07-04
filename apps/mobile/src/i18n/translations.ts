@@ -275,6 +275,8 @@ export const translations = {
     rejectBtn: { uz: 'Rad etish', ru: 'Отклонить', en: 'Decline' },
     searchPlaceholder: { uz: "Foydalanuvchi nomi bo'yicha izlash...", ru: 'Поиск по имени пользователя...', en: 'Search by username...' },
     addFriend: { uz: "Do'st qo'shish", ru: 'Добавить в друзья', en: 'Add Friend' },
+    dmBtn: { uz: 'Xabar yozish', ru: 'Написать', en: 'Message' },
+    chatsTitle: { uz: 'Chatlar', ru: 'Чаты', en: 'Chats' },
     requestSent: { uz: "So'rov yuborildi", ru: 'Запрос отправлен', en: 'Request Sent' },
     alreadyFriends: { uz: "Do'st", ru: 'Друг', en: 'Friend' },
     profileNotFound: { uz: 'Profil topilmadi', ru: 'Профиль не найден', en: 'Profile not found' },

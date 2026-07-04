@@ -123,6 +123,7 @@ export type ModalStackParamList = {
   SupportChat: undefined;
   DMChat: { peerId: string; peerName: string };
   DMConversations: undefined;
+  FriendProfile: { userId: string };
 };
 
 export interface IDMMessage {

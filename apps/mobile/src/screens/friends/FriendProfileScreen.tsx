@@ -210,6 +210,14 @@ export function FriendProfileScreen() {
               <Ionicons name="people" size={18} color={colors.white} />
               <Text style={styles.watchPartyBtnText}>Watch Party</Text>
             </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.messageBtn}
+              onPress={() => rootNav.navigate('Modal', { screen: 'DMChat', params: { peerId: params.userId, peerName: profile?.username ?? '' } })}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="chatbubble-ellipses-outline" size={18} color={colors.primary} />
+              <Text style={styles.messageBtnText}>{t('friends', 'dmBtn')}</Text>
+            </TouchableOpacity>
           </View>
         )}
 
