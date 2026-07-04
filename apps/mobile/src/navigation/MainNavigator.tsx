@@ -8,6 +8,7 @@ import {
   SearchStackParamList,
   FriendsStackParamList,
   ProfileStackParamList,
+  ChatsStackParamList,
 } from '@app-types/index';
 import { PlaceholderScreen } from './PlaceholderScreen';
 import { CustomTabBar } from './CustomTabBar';
@@ -21,12 +22,15 @@ import { WatchHistoryScreen } from '@screens/profile/WatchHistoryScreen';
 import { VideoPlayerScreen } from '@screens/home/VideoPlayerScreen';
 import { VideoExtractScreen } from '@screens/home/VideoExtractScreen';
 import { SearchResultsScreen } from '@screens/search/SearchResultsScreen';
+import { ConversationsScreen } from '@screens/modal/ConversationsScreen';
+import { DMChatScreen } from '@screens/modal/DMChatScreen';
 import { LanguageTransition } from '@components/common/LanguageTransition';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
 const FriendsStack = createNativeStackNavigator<FriendsStackParamList>();
 const ProfileStack = createNativeStackNavigator<ProfileStackParamList>();
+const ChatsStack = createNativeStackNavigator<ChatsStackParamList>();
 
 // ─── Stack Navigators with screen transitions ────────────────────────────────
 
@@ -55,6 +59,17 @@ function FriendsStackNavigator() {
   );
 }
 
+function ChatsStackNavigator() {
+  return (
+    <ChatsStack.Navigator
+      screenOptions={{ headerShown: false, animation: 'slide_from_right', animationDuration: 250 }}
+    >
+      <ChatsStack.Screen name="Conversations" component={ConversationsScreen} />
+      <ChatsStack.Screen name="DMChat" component={DMChatScreen} />
+    </ChatsStack.Navigator>
+  );
+}
+
 function ProfileStackNavigator() {
   return (
     <ProfileStack.Navigator
@@ -76,6 +91,7 @@ export function MainNavigator() {
         screenOptions={{ headerShown: false }}
       >
         <Tab.Screen name="HomeTab"    component={HomeStackNavigator} />
+        <Tab.Screen name="ChatsTab"   component={ChatsStackNavigator} />
         <Tab.Screen name="CreateTab"  component={PlaceholderScreen} />
         <Tab.Screen name="FriendsTab" component={FriendsStackNavigator} />
         <Tab.Screen name="ProfileTab" component={ProfileStackNavigator} />

@@ -1,6 +1,6 @@
 // WeWatch Mobile — Glassmorphism Tab Bar
 import React, { useEffect, useRef, useCallback } from 'react';
-import { View, Text, TouchableOpacity, Animated, Dimensions } from 'react-native';
+import { View, TouchableOpacity, Animated, Dimensions } from 'react-native';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -22,6 +22,7 @@ type TabEntry = {
 
 export const TABS: TabEntry[] = [
   { name: 'HomeTab',    icon: 'home-outline',   iconActive: 'home',   labelKey: 'home' },
+  { name: 'ChatsTab',   icon: 'chatbubble-ellipses-outline', iconActive: 'chatbubble-ellipses', labelKey: 'chats' },
   { name: 'FriendsTab', icon: 'people-outline', iconActive: 'people', labelKey: 'friends' },
   { name: 'ProfileTab', icon: 'person-outline', iconActive: 'person', labelKey: 'profile' },
 ];
@@ -33,16 +34,16 @@ const INDICATOR_HEIGHT = 2;
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SLOT_WIDTH = SCREEN_WIDTH / 5; // 5 slots: Home, Chats, FAB, Friends, Profile
 
-/** Map tab array index (0-2) to navigation state index (0, skip FAB=1, then 2,3) */
+/** Map tab array index (0-3) to navigation state index. FAB (CreateTab) sits at
+ * state index 2, so Home=0, Chats=1 pass through and Friends/Profile skip it. */
 function getVisibleTabIndex(arrayIndex: number): number {
-  return arrayIndex < 1 ? arrayIndex : arrayIndex + 1;
+  return arrayIndex < 2 ? arrayIndex : arrayIndex + 1;
 }
 
-/** Indicator X — the Chats shortcut sits at visual slot 1 (between Home and the FAB),
- * so the real tabs map to visual slots 0 (Home), 3 (Friends), 4 (Profile). */
+/** Indicator X — 5 visual slots [Home, Chats, FAB, Friends, Profile]; the state index
+ * maps 1:1 to the visual slot (CreateTab=2 is the FAB slot, never highlighted). */
 function getIndicatorX(stateIndex: number): number {
-  const visualSlot = stateIndex === 0 ? 0 : stateIndex + 1;
-  return visualSlot * SLOT_WIDTH + (SLOT_WIDTH - INDICATOR_WIDTH) / 2;
+  return stateIndex * SLOT_WIDTH + (SLOT_WIDTH - INDICATOR_WIDTH) / 2;
 }
 
 // ─── Custom Tab Bar ───────────────────────────────────────────────────────────
@@ -130,17 +131,10 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
           {/* Tab row */}
           <View style={styles.bar}>
             {renderTab(TABS[0], 0)}
-            <TouchableOpacity
-              style={styles.tabItem}
-              onPress={() => rootNav.navigate('Modal', { screen: 'DMConversations' })}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="chatbubbles-outline" size={24} color={colors.textMuted} />
-              <Text style={[styles.label, { color: colors.textMuted }]}>{t('tabs', 'chats')}</Text>
-            </TouchableOpacity>
-            <View style={styles.fabPlaceholder} />
             {renderTab(TABS[1], 1)}
+            <View style={styles.fabPlaceholder} />
             {renderTab(TABS[2], 2)}
+            {renderTab(TABS[3], 3)}
           </View>
         </View>
       </BlurView>

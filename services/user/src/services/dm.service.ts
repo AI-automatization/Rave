@@ -15,9 +15,9 @@ export interface DMMessage {
 }
 
 export interface Conversation {
-  userId: string;
-  username: string;
-  avatar: string | null;
+  peerId: string;
+  peerUsername: string;
+  peerAvatar: string | null;
   lastMessage: string;
   lastMessageAt: Date;
   unreadCount: number;
@@ -131,9 +131,9 @@ export class DMService {
       .map((r) => {
         const peer = peerMap.get(r._id)!;
         return {
-          userId: String(peer._id),
-          username: peer.username,
-          avatar: peer.avatar ?? null,
+          peerId: String(peer._id),
+          peerUsername: peer.username,
+          peerAvatar: peer.avatar ?? null,
           lastMessage: r.lastMessage,
           lastMessageAt: r.lastMessageAt,
           unreadCount: r.unreadCount,

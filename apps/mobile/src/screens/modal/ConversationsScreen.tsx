@@ -11,16 +11,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useQuery } from '@tanstack/react-query';
 import { dmApi } from '@api/user.api';
-import { IDMConversation, ModalStackParamList } from '@app-types/index';
+import { IDMConversation, ChatsStackParamList } from '@app-types/index';
 import { useT } from '@i18n/index';
 import { spacing } from '@theme/index';
 
-type NavProp = NativeStackNavigationProp<ModalStackParamList, 'DMConversations'>;
+type NavProp = NativeStackNavigationProp<ChatsStackParamList, 'Conversations'>;
 
 function memberColor(id: string): string {
   const palette = ['#7B72F8', '#F87171', '#34D399', '#FBBF24', '#60A5FA', '#F472B6', '#A78BFA'];
+  const key = id ?? '';
   let h = 0;
-  for (let i = 0; i < id.length; i++) h = id.charCodeAt(i) + ((h << 5) - h);
+  for (let i = 0; i < key.length; i++) h = key.charCodeAt(i) + ((h << 5) - h);
   return palette[Math.abs(h) % palette.length];
 }
 
@@ -85,11 +86,7 @@ export function ConversationsScreen() {
     <View style={[s.root, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={s.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} activeOpacity={0.75}>
-          <Ionicons name="chevron-back" size={24} color="#fff" />
-        </TouchableOpacity>
         <Text style={s.title}>{t('dm', 'title')}</Text>
-        <View style={s.headerRight} />
       </View>
 
       {isLoading ? (
@@ -145,11 +142,9 @@ const s = StyleSheet.create({
   },
   title: {
     flex: 1,
-    fontSize: 17,
-    fontWeight: '700',
+    fontSize: 22,
+    fontWeight: '800',
     color: '#fff',
-    textAlign: 'center',
-    marginRight: 36,
   },
   headerRight: {
     width: 36,

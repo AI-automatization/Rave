@@ -122,7 +122,6 @@ export type ModalStackParamList = {
   };
   SupportChat: undefined;
   DMChat: { peerId: string; peerName: string };
-  DMConversations: undefined;
   FriendProfile: { userId: string };
 };
 
@@ -169,9 +168,15 @@ export type RoomsStackParamList = {
 
 export type MainTabParamList = {
   HomeTab: undefined;
+  ChatsTab: undefined;
   CreateTab: undefined;
   FriendsTab: undefined;
   ProfileTab: undefined;
+};
+
+export type ChatsStackParamList = {
+  Conversations: undefined;
+  DMChat: { peerId: string; peerName: string };
 };
 
 export type RootStackParamList = {

@@ -10,7 +10,6 @@ import { SourcePickerScreen } from '@screens/modal/SourcePickerScreen';
 import { MediaWebViewScreen } from '@screens/modal/MediaWebViewScreen';
 import { SupportChatScreen } from '@screens/modal/SupportChatScreen';
 import { DMChatScreen } from '@screens/modal/DMChatScreen';
-import { ConversationsScreen } from '@screens/modal/ConversationsScreen';
 import { FriendProfileScreen } from '@screens/friends/FriendProfileScreen';
 import { PlaceholderScreen } from './PlaceholderScreen';
 
@@ -29,7 +28,6 @@ export function ModalNavigator() {
       <Modal.Screen name="Notifications" component={NotificationsScreen} />
       <Modal.Screen name="SupportChat" component={SupportChatScreen} options={{ animation: 'slide_from_right' }} />
       <Modal.Screen name="DMChat" component={DMChatScreen} options={{ animation: 'slide_from_right' }} />
-      <Modal.Screen name="DMConversations" component={ConversationsScreen} options={{ animation: 'slide_from_right' }} />
       <Modal.Screen name="FriendProfile" component={FriendProfileScreen} options={{ animation: 'slide_from_right' }} />
     </Modal.Navigator>
   );
