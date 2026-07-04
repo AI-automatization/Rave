@@ -22,6 +22,12 @@ if (!isExpoGo) {
         shouldSetBadge: true,
       }),
     });
+    // Friend-request push gets Accept/Decline action buttons — the FCM payload
+    // carries categoryId:'friend_request' so the OS renders these on the notification.
+    void Notifications.setNotificationCategoryAsync('friend_request', [
+      { identifier: 'ACCEPT', buttonTitle: 'Принять', options: { opensAppToForeground: false } },
+      { identifier: 'DECLINE', buttonTitle: 'Отклонить', options: { opensAppToForeground: false, isDestructive: true } },
+    ]).catch(() => {});
   } catch {
     // expo-notifications push not supported in this environment
   }
@@ -32,6 +38,7 @@ export function usePushNotifications() {
   const queryClient = useQueryClient();
   const receivedRef = useRef<Notifications.EventSubscription | null>(null);
   const tokenSubRef = useRef<Notifications.EventSubscription | null>(null);
+  const responseRef = useRef<Notifications.EventSubscription | null>(null);
 
   // Ask for the OS notification permission as soon as the app opens — independent of
   // login. On Android 13+ POST_NOTIFICATIONS is a runtime permission; without this the
@@ -71,9 +78,28 @@ export function usePushNotifications() {
       void queryClient.invalidateQueries({ queryKey: ['notifications'] });
     });
 
+    // Accept/Decline tapped straight on the friend-request notification (no app open).
+    responseRef.current = Notifications.addNotificationResponseReceivedListener((response) => {
+      const action = response.actionIdentifier;
+      if (action !== 'ACCEPT' && action !== 'DECLINE') return;
+      const data = response.notification.request.content.data as Record<string, unknown> | undefined;
+      const friendshipId = data?.friendshipId as string | undefined;
+      if (!friendshipId) return;
+      void (async () => {
+        try {
+          if (action === 'ACCEPT') await userApi.acceptFriendRequest(friendshipId);
+          else await userApi.rejectFriendRequest(friendshipId);
+          void queryClient.invalidateQueries({ queryKey: ['friend-requests'] });
+          void queryClient.invalidateQueries({ queryKey: ['friends'] });
+          void queryClient.invalidateQueries({ queryKey: ['notifications'] });
+        } catch { /* best-effort; user can retry in-app */ }
+      })();
+    });
+
     return () => {
       receivedRef.current?.remove();
       tokenSubRef.current?.remove();
+      responseRef.current?.remove();
     };
   }, [isAuthenticated, queryClient]);
 }

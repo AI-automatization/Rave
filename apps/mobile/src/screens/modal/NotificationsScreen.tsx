@@ -53,6 +53,12 @@ export function NotificationsScreen() {
     friend_watching:      { icon: 'eye-outline',              color: colors.secondary },
     support_reply:        { icon: 'headset-outline',          color: colors.primary },
     admin_warning:        { icon: 'warning-outline',           color: colors.error },
+    announcement:         { icon: 'megaphone-outline',         color: colors.primary },
+    maintenance:          { icon: 'construct-outline',         color: colors.error },
+    promo:                { icon: 'gift-outline',              color: colors.secondary },
+    update:               { icon: 'cloud-download-outline',    color: colors.primary },
+    system:               { icon: 'information-circle-outline', color: colors.textMuted },
+    warning:              { icon: 'warning-outline',           color: colors.error },
   };
 
   const renderItem = ({ item }: ListRenderItemInfo<INotification>) => {
