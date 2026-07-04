@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 import { View, TouchableOpacity, Animated, Dimensions } from 'react-native';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -118,6 +118,11 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
       </TouchableOpacity>
     );
   };
+
+  // Hide the tab bar while a DM chat is open — its message input sits at the bottom
+  // and the bar would otherwise cover it.
+  const activeNestedRoute = getFocusedRouteNameFromRoute(state.routes[state.index]);
+  if (activeNestedRoute === 'DMChat') return null;
 
   return (
     <View style={[styles.container, { paddingBottom: insets.bottom }]}>
