@@ -43,7 +43,7 @@ export const TEAM: Member[] = [
     key: 'Founder',
     name: 'Bekzod Mirzaaliyev',
     tag: 'lead',
-    photo: "/team/begzod_mirzaliyev.png",
+    photo: '/team/begzod_mirzaliyev.webp',
   },
   {
     key: 'Coo',

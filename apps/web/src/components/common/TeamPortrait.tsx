@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
+import Image from 'next/image';
 import { FaStar } from 'react-icons/fa';
 import { initials, AVATAR_COLORS } from '@/data/tezcode';
 
@@ -19,27 +20,21 @@ interface TeamPortraitProps {
  */
 export function TeamPortrait({ name, role, photo, index = 0, star = false }: TeamPortraitProps) {
   const [broken, setBroken] = useState(false);
-  const imgRef = useRef<HTMLImageElement>(null);
   const c1 = AVATAR_COLORS[index % AVATAR_COLORS.length];
   const c2 = AVATAR_COLORS[(index + 3) % AVATAR_COLORS.length];
-
-  useEffect(() => {
-    const img = imgRef.current;
-    if (img && img.complete && img.naturalWidth === 0) setBroken(true);
-  }, [photo]);
 
   const showPhoto = photo && !broken;
 
   return (
     <div className="group relative rounded-[28px] overflow-hidden aspect-[4/5] border border-white/10 bg-[#0D0D14]">
       {showPhoto ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          ref={imgRef}
+        <Image
           src={photo}
           alt={name}
+          fill
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 380px"
           onError={() => setBroken(true)}
-          className="absolute inset-0 w-full h-full object-cover transition-transform duration-[900ms] ease-out group-hover:scale-[1.06]"
+          className="object-cover transition-transform duration-[900ms] ease-out group-hover:scale-[1.06]"
         />
       ) : (
         <div
