@@ -85,15 +85,13 @@ export function LandingNav() {
               >
                 {t('login')}
               </Link>
-              <a
-                href="https://apps.apple.com"
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link
+                href="/register"
                 className="group h-9 pl-4 pr-3.5 rounded-full bg-[#7B72F8] text-white hover:bg-[#6B63E8] transition-all text-sm font-semibold flex items-center gap-1.5 shadow-[0_0_16px_rgba(123,114,248,0.35)] hover:shadow-[0_0_26px_rgba(123,114,248,0.55)]"
               >
                 {t('getStarted')}
                 <FaArrowRight size={11} className="group-hover:translate-x-0.5 transition-transform" aria-hidden="true" />
-              </a>
+              </Link>
             </div>
 
             {/* Mobile burger */}
@@ -194,15 +192,13 @@ export function LandingNav() {
           </Link>
 
           {/* CTA button */}
-          <a
-            href="https://apps.apple.com"
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link
+            href="/register"
             onClick={() => setMenuOpen(false)}
             className="flex items-center justify-center h-11 rounded-xl bg-[#7B72F8] text-white hover:bg-[#6B63E8] hover:shadow-[0_0_30px_rgba(123,114,248,0.5)] transition-all text-sm font-semibold w-full shadow-[0_0_15px_rgba(123,114,248,0.35)]"
           >
             {t('getStarted')}
-          </a>
+          </Link>
         </div>
       </div>
     </>

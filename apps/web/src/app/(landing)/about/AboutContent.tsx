@@ -3,11 +3,10 @@
 import Link from 'next/link';
 import { motion, useReducedMotion, type Variants } from 'framer-motion';
 import {
-  FaApple, FaGlobe, FaUsers, FaComment, FaBolt, FaArrowRight, FaChevronRight,
+  FaApple, FaGlobe, FaUsers, FaComment, FaBolt, FaChevronRight,
 } from 'react-icons/fa';
 import { useTranslations } from 'next-intl';
 
-const APP_STORE = 'https://apps.apple.com';
 const spring = { type: 'spring' as const, stiffness: 280, damping: 24 };
 const fadeUp: Variants = {
   hidden: { opacity: 0, y: 26 },
@@ -87,11 +86,12 @@ export function AboutContent() {
             {t('sub')}
           </motion.p>
 
-          <motion.a variants={fadeUp} href={APP_STORE} target="_blank" rel="noopener noreferrer"
-            className="inline-flex items-center gap-2.5 h-[52px] px-8 rounded-2xl text-white font-semibold transition-transform hover:scale-[1.04] active:scale-[0.98]"
-            style={{ background: 'linear-gradient(135deg, #7B72F8, #6B63E8)', boxShadow: '0 0 40px rgba(123,114,248,0.5)' }}>
+          <motion.span variants={fadeUp} aria-disabled="true"
+            className="inline-flex items-center gap-2.5 h-[52px] px-8 rounded-2xl text-white/90 font-semibold cursor-default select-none"
+            style={{ background: 'linear-gradient(135deg, #7B72F8, #6B63E8)', opacity: 0.9, boxShadow: '0 0 40px rgba(123,114,248,0.4)' }}>
             <FaApple size={18} aria-hidden="true" /> {t('download')}
-          </motion.a>
+            <span className="ml-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/20">{t('soon')}</span>
+          </motion.span>
         </motion.div>
       </section>
 
@@ -179,12 +179,12 @@ export function AboutContent() {
         <div className="relative z-10 max-w-xl mx-auto">
           <h2 className="font-display uppercase text-white mb-4" style={{ fontSize: 'clamp(2rem, 5vw, 3.2rem)' }}>{t('ctaTitle')}</h2>
           <p className="text-zinc-400 mb-9">{t('ctaSub')}</p>
-          <a href={APP_STORE} target="_blank" rel="noopener noreferrer"
-            className="inline-flex items-center gap-2.5 h-[54px] px-9 rounded-2xl text-white font-semibold transition-transform hover:scale-[1.04] active:scale-[0.98]"
-            style={{ background: 'linear-gradient(135deg, #7B72F8, #6B63E8)', boxShadow: '0 0 44px rgba(123,114,248,0.55)' }}>
+          <span aria-disabled="true"
+            className="inline-flex items-center gap-2.5 h-[54px] px-9 rounded-2xl text-white/90 font-semibold cursor-default select-none"
+            style={{ background: 'linear-gradient(135deg, #7B72F8, #6B63E8)', opacity: 0.9, boxShadow: '0 0 44px rgba(123,114,248,0.45)' }}>
             <FaApple size={19} aria-hidden="true" /> {t('download')}
-            <FaArrowRight size={13} className="opacity-70" aria-hidden="true" />
-          </a>
+            <span className="ml-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/20">{t('soon')}</span>
+          </span>
         </div>
       </section>
     </div>
