@@ -84,7 +84,11 @@ export function DMChatScreen() {
 
     queryClient.setQueryData<IDMMessage[]>(['dm-history', peerId], (old = []) => {
       if (old.some(m => m._id === msg._id)) return old;
-      return [...old, msg];
+      // Replace our optimistic placeholder once the server echoes the real message back.
+      const base = msg.senderId === myId
+        ? old.filter(m => !(m._id.startsWith('temp-') && m.text === msg.text))
+        : old;
+      return [...base, msg];
     });
     void queryClient.invalidateQueries({ queryKey: ['dm-conversations'] });
     setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
@@ -102,6 +106,17 @@ export function DMChatScreen() {
     if (!text) return;
     setInput('');
 
+    // Optimistic insert — the message shows instantly and never "disappears" if the
+    // socket echo is slow or lost. The real message (socket echo or REST reply) replaces it.
+    const tempId = `temp-${Date.now()}`;
+    const nowIso = new Date().toISOString();
+    const optimistic: IDMMessage = {
+      _id: tempId, senderId: myId, receiverId: peerId, text,
+      read: false, createdAt: nowIso, updatedAt: nowIso,
+    };
+    queryClient.setQueryData<IDMMessage[]>(['dm-history', peerId], (old = []) => [...old, optimistic]);
+    setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 60);
+
     const sock = getSocket();
     if (sock?.connected) {
       sock.emit(CLIENT_EVENTS.DM_SEND, { receiverId: peerId, text });
@@ -109,13 +124,14 @@ export function DMChatScreen() {
       // Fallback to REST when socket isn't connected
       void dmApi.sendMessage(peerId, text)
         .then(msg => {
-          queryClient.setQueryData<IDMMessage[]>(['dm-history', peerId], (old = []) =>
-            old.some(m => m._id === msg._id) ? old : [...old, msg],
-          );
+          queryClient.setQueryData<IDMMessage[]>(['dm-history', peerId], (old = []) => {
+            const withoutTemp = old.filter(m => m._id !== tempId);
+            return withoutTemp.some(m => m._id === msg._id) ? withoutTemp : [...withoutTemp, msg];
+          });
           void queryClient.invalidateQueries({ queryKey: ['dm-conversations'] });
           setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
         })
-        .catch(() => null);
+        .catch(() => { /* keep the optimistic message so it isn't lost */ });
     }
   };
 
