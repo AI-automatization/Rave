@@ -2,6 +2,7 @@ import { Types } from 'mongoose';
 import { DirectMessage } from '../models/directMessage.model';
 import { User } from '../models/user.model';
 import { NotFoundError, BadRequestError } from '@shared/utils/errors';
+import { encryptText, decryptText } from '../utils/dmCrypto';
 
 const PAGE_SIZE = 50;
 
@@ -51,7 +52,7 @@ export class DMService {
       id: String(m._id),
       senderId: m.senderId,
       receiverId: m.receiverId,
-      text: m.text,
+      text: decryptText(m.text),
       read: m.read,
       createdAt: m.createdAt,
     }));
@@ -67,13 +68,14 @@ export class DMService {
     if (!trimmed) throw new BadRequestError('Message cannot be empty');
     if (trimmed.length > 2000) throw new BadRequestError('Message too long');
 
-    const msg = await DirectMessage.create({ senderId, receiverId, text: trimmed });
+    // Encrypt at rest; the returned object keeps the plaintext for live delivery.
+    const msg = await DirectMessage.create({ senderId, receiverId, text: encryptText(trimmed) });
 
     return {
       id: String(msg._id),
       senderId: msg.senderId,
       receiverId: msg.receiverId,
-      text: msg.text,
+      text: trimmed,
       read: msg.read,
       createdAt: msg.createdAt,
     };
@@ -134,7 +136,7 @@ export class DMService {
           peerId: String(peer._id),
           peerUsername: peer.username,
           peerAvatar: peer.avatar ?? null,
-          lastMessage: r.lastMessage,
+          lastMessage: decryptText(r.lastMessage),
           lastMessageAt: r.lastMessageAt,
           unreadCount: r.unreadCount,
         };
