@@ -41,62 +41,6 @@ export const metadata: Metadata = {
   },
   description:
     'WeWatch (wewatch) — смотри YouTube, VK и Rutube вместе с друзьями. Один на iPhone, другой на сайте — синхронизация работает. Бесплатный watch party с чатом и эмодзи. iOS и Android.',
-  keywords: [
-    // RU — высокочастотные запросы
-    'смотреть вместе',
-    'смотреть вместе онлайн',
-    'смотреть фильм вместе онлайн',
-    'смотреть фильмы вместе онлайн бесплатно',
-    'смотреть кино вместе онлайн',
-    'смотреть кино с другом онлайн',
-    'смотреть YouTube вместе',
-    'смотреть видео с друзьями онлайн',
-    'смотреть видео одновременно',
-    'совместный просмотр фильмов',
-    'совместный просмотр видео онлайн',
-    'синхронный просмотр видео',
-    'онлайн кинотеатр с друзьями',
-    'кино вместе онлайн',
-    'кино с другом бесплатно',
-    'watch party',
-    'watch party приложение',
-    'watch party бесплатно',
-    'что делать когда друг далеко',
-    'развлечения с друзьями онлайн',
-    'приложение для просмотра фильмов с друзьями',
-    'WeWatch',
-    'wewatch',
-    'wewatch.uz',
-    'wewatch app',
-    'вивотч',
-    // UZ — o'zbek tilida
-    "do'stlar bilan kino ko'rish",
-    "do'stlar bilan birga film ko'rish",
-    "birga film ko'rish ilovasi",
-    "onlayn kino do'stlar bilan",
-    "do'stlar bilan video ko'rish",
-    "birga kino ko'rish",
-    "watch party o'zbekcha",
-    "bepul kino ko'rish ilovasi",
-    // EN — English search terms
-    'watch together online',
-    'watch party app',
-    'watch youtube together',
-    'watch movies together online free',
-    'sync watch with friends',
-    'watch videos with friends online',
-    'free watch party',
-    'watch party free app',
-    // Cross-platform unique feature
-    'смотреть вместе с телефона и компьютера',
-    'watch party с телефона',
-    'watch party мобильное приложение',
-    'совместный просмотр через приложение',
-    'смотреть аниме вместе',
-    'смотреть аниме с другом онлайн',
-    'смотреть сериал вместе онлайн',
-    'смотреть сериалы вместе онлайн бесплатно',
-  ],
   authors: [{ name: 'WeWatch', url: APP_URL }],
   creator: 'WeWatch',
   publisher: 'WeWatch',
@@ -104,12 +48,11 @@ export const metadata: Metadata = {
   alternates: {
     canonical: APP_URL,
     languages: {
-      // Bosh sahifa yagona URL'da (locale client-store orqali almashadi) —
-      // alohida /uz yoki /en homepage route YO'Q, shuning uchun x-default + ru.
-      // UZ homepage (/uz/page.tsx) yaratilgach → 'uz': `${APP_URL}/uz` qo'shiladi (Faza 3).
       'x-default': APP_URL,
       'ru': APP_URL,
       'ru-RU': APP_URL,
+      'uz': `${APP_URL}/uz`,
+      'en': `${APP_URL}/en`,
     },
   },
   openGraph: {
@@ -202,9 +145,13 @@ const jsonLdApp = {
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  // Middleware sets x-pathname only for /uz/* (see matcher) — absent header means ru
+  // Middleware sets x-pathname for /uz/* and /en/* (see matcher) — absent header means ru.
+  // SSR locale is derived from the URL so <html lang> matches the rendered copy
+  // (fixes uz content served under lang="ru") and is passed to Providers.
   const pathname = headers().get('x-pathname') ?? '';
-  const lang = pathname === '/uz' || pathname.startsWith('/uz/') ? 'uz' : 'ru';
+  const isUz = pathname === '/uz' || pathname.startsWith('/uz/');
+  const isEn = pathname === '/en' || pathname.startsWith('/en/');
+  const lang = isUz ? 'uz' : isEn ? 'en' : 'ru';
   return (
     <html lang={lang} suppressHydrationWarning>
       <body className={`${dmSans.variable} ${oswald.variable} font-body antialiased bg-[#060608] text-white`}>
@@ -227,7 +174,7 @@ export default function RootLayout({
             <noscript><img src={'https://mc.yandex.ru/watch/' + YM_ID} style={{ position: 'absolute', left: '-9999px' }} alt="" /></noscript>
           </>
         )}
-        <Providers>
+        <Providers initialLocale={lang}>
           <LocaleHtmlUpdater />
           {children}
         </Providers>

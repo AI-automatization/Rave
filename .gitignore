@@ -66,3 +66,6 @@ apps/mobile/android/.gradle/
 apps/mobile/android/app/build/
 apps/mobile/ios/build/
 apps/mobile/ios/Pods/
+
+# Playwright MCP snapshot/screenshot output
+.playwright-mcp/

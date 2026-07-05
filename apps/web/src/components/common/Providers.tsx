@@ -15,18 +15,32 @@ const messages = { uz: uzMessages, ru: ruMessages, en: enMessages };
 
 type Locale = 'uz' | 'ru' | 'en';
 
-export function Providers({ children }: { children: React.ReactNode }) {
+export function Providers({ children, initialLocale = 'ru' }: { children: React.ReactNode; initialLocale?: Locale }) {
   const localeFromStore = useLocaleStore((s) => s.locale);
 
-  // Always start with 'uz' to match SSR output and avoid hydration mismatch.
-  // After mount, update from cookie/store (causes a re-render, not an error).
-  const [locale, setLocale] = useState<Locale>('uz');
+  // Start from the URL-derived locale (passed by the server layout) so SSR output,
+  // <html lang> and first client render all agree — no hydration mismatch.
+  // After mount, update from cookie/store (a re-render, not an error).
+  const [locale, setLocale] = useState<Locale>(initialLocale);
+
+  // On the dedicated locale URLs (/uz, /en) the path is authoritative — the
+  // cookie/store must not override it, otherwise a ru-cookie visitor sees the
+  // English/Uzbek page flip back to Russian.
+  const urlLocale = (): Locale | null => {
+    if (typeof window === 'undefined') return null;
+    const p = window.location.pathname;
+    if (p === '/uz' || p.startsWith('/uz/')) return 'uz';
+    if (p === '/en' || p.startsWith('/en/')) return 'en';
+    return null;
+  };
 
   useEffect(() => {
-    setLocale(readLocaleFromCookie());
+    const forced = urlLocale();
+    setLocale(forced ?? readLocaleFromCookie());
   }, []);
 
   useEffect(() => {
+    if (urlLocale()) return; // URL locale wins on /uz and /en
     setLocale(localeFromStore);
   }, [localeFromStore]);
 
