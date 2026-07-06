@@ -1,0 +1,14 @@
+# Railway config — API gateway (nginx)
+# Root Directory in Railway dashboard: / (repo root)
+# Config File Path in Railway dashboard: services/gateway/railway.toml
+# Custom domains: api.wewatch.uz (production env) · dev.api.wewatch.uz (staging env)
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+healthcheckPath = "/health"
+healthcheckTimeout = 120
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10

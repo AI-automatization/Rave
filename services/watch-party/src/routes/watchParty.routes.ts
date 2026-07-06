@@ -4,6 +4,7 @@ import { Server as SocketServer } from 'socket.io';
 import { WatchPartyController } from '../controllers/watchParty.controller';
 import { WatchPartyService } from '../services/watchParty.service';
 import { createDomainAdminController } from '../controllers/domain.admin.controller';
+import { createTurnController } from '../controllers/turn.controller';
 import { verifyToken, requireNotBlocked } from '@shared/middleware/auth.middleware';
 import { requireInternalSecret } from '@shared/utils/serviceClient';
 import { createRoomLimiter, joinRoomLimiter } from '../middleware/rateLimiter';
@@ -14,6 +15,7 @@ export const createWatchPartyRouter = (redis: Redis, io: SocketServer): Router =
   const watchPartyService = new WatchPartyService(redis);
   const watchPartyController = new WatchPartyController(watchPartyService, io);
   const domainAdminCtrl = createDomainAdminController(redis);
+  const turnCtrl = createTurnController(redis);
   const notBlocked = requireNotBlocked(redis);
   const createLimiter = createRoomLimiter(redis);
   const joinLimiter = joinRoomLimiter(redis);
@@ -50,6 +52,9 @@ export const createWatchPartyRouter = (redis: Redis, io: SocketServer): Router =
   router.post('/internal/admin/domains',                      requireInternalSecret, domainAdminCtrl.addDomain);
   router.patch('/internal/admin/domains/:domain/block',       requireInternalSecret, domainAdminCtrl.blockDomain);
   router.patch('/internal/admin/domains/:domain/unblock',     requireInternalSecret, domainAdminCtrl.unblockDomain);
+
+  // GET /watch-party/turn/credentials — WebRTC ICE servers (mesh sync + voice)
+  router.get('/turn/credentials', verifyToken, turnCtrl.getCredentials);
 
   // GET /watch-party/rooms/my/recent — user's last 10 rooms (T-S061)
   router.get('/rooms/my/recent', verifyToken, notBlocked, watchPartyController.getRecentRooms);

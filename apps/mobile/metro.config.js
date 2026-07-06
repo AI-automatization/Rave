@@ -34,22 +34,30 @@ const reactModules = new Set(['react', 'react/jsx-runtime', 'react/jsx-dev-runti
 // - TopicSubscriptionModule.android.js: requireNativeModule('ExpoTopicSubscriptionModule') → throws
 // - ServerRegistrationModule.native.js: requireNativeModule('NotificationsServerRegistrationModule') → throws
 // - PushTokenManager.native.js: requireNativeModule('ExpoPushTokenManager') → throws
-// Replace all with no-ops to prevent crash in Expo Go (standalone builds are unaffected at runtime).
+// Redirect each to a compat shim that uses requireOptionalNativeModule: the REAL
+// native module in release/dev-client builds, a no-op stub only in Expo Go where it's
+// absent. (The previous unconditional no-op leaked into production bundles and silently
+// broke getDevicePushTokenAsync — the FCM token resolved null on every real device.)
 const PUSH_TOKEN_FX_NOOP = path.resolve(
   projectRoot,
   'src/mocks/DevicePushTokenAutoRegistration.noop.js'
 );
-const NATIVE_MODULE_NOOP = path.resolve(
-  projectRoot,
-  'src/mocks/expo-notifications-native-noop.js'
-);
 
-// Modules that crash on import in Expo Go (removed native module)
-const EXPO_NOTIFICATIONS_NATIVE_BLOCKLIST = [
-  'TopicSubscriptionModule',
-  'PushTokenManager',
-  'ServerRegistrationModule',
-];
+// module-name fragment → per-module compat shim (NOT one shared stub)
+const EXPO_NOTIFICATIONS_COMPAT_SHIMS = {
+  TopicSubscriptionModule: path.resolve(
+    projectRoot,
+    'src/mocks/expo-notifications-topic-subscription.compat.js'
+  ),
+  PushTokenManager: path.resolve(
+    projectRoot,
+    'src/mocks/expo-notifications-push-token-manager.compat.js'
+  ),
+  ServerRegistrationModule: path.resolve(
+    projectRoot,
+    'src/mocks/expo-notifications-server-registration.compat.js'
+  ),
+};
 
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   if (
@@ -60,15 +68,18 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
     return { filePath: PUSH_TOKEN_FX_NOOP, type: 'sourceFile' };
   }
 
-  // Block expo-notifications native modules unavailable in Expo Go
+  // Swap expo-notifications native-module wrappers for compat shims (real module in
+  // release/dev-client, stub only in Expo Go)
   const isExpoNotificationsModule =
     context.originModulePath &&
     context.originModulePath.includes('expo-notifications');
-  if (
-    isExpoNotificationsModule &&
-    EXPO_NOTIFICATIONS_NATIVE_BLOCKLIST.some((name) => moduleName.includes(name))
-  ) {
-    return { filePath: NATIVE_MODULE_NOOP, type: 'sourceFile' };
+  if (isExpoNotificationsModule) {
+    const shimKey = Object.keys(EXPO_NOTIFICATIONS_COMPAT_SHIMS).find((name) =>
+      moduleName.includes(name)
+    );
+    if (shimKey) {
+      return { filePath: EXPO_NOTIFICATIONS_COMPAT_SHIMS[shimKey], type: 'sourceFile' };
+    }
   }
 
   if (reactModules.has(moduleName)) {

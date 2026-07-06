@@ -1,0 +1,13 @@
+# Railway config — app-web (Next.js) service → app.wewatch.uz
+# Root Directory: / (repo root)
+# Config File Path: apps/app-web/railway.toml
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "apps/app-web/Dockerfile"
+
+[deploy]
+healthcheckPath = "/login"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10

@@ -1,6 +1,6 @@
 // WeWatch Mobile — ProfileScreen (web-style card layout + animations)
 import React, { useState, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,6 +18,7 @@ import { ProfileHeader } from '@components/profile/ProfileHeader';
 import { ProfileEmptyState } from '@components/profile/ProfileEmptyState';
 import { ProfileEditModal } from '@components/profile/ProfileEditModal';
 import { NavItem, ComingSoonItem, SectionHeader } from '@components/profile/ProfileWidgets';
+import { appAlert } from '@components/common/AppAlert';
 
 type Nav = NativeStackNavigationProp<ProfileStackParamList, 'Profile'>;
 
@@ -36,7 +37,7 @@ export function ProfileScreen() {
   const [editBio, setEditBio] = useState('');
 
   const handleLogout = () => {
-    Alert.alert(t('profile', 'logoutTitle'), t('profile', 'logoutMsg'), [
+    appAlert(t('profile', 'logoutTitle'), t('profile', 'logoutMsg'), [
       { text: t('common', 'cancel'), style: 'cancel' },
       { text: t('profile', 'logoutBtn'), style: 'destructive', onPress: logout },
     ]);
@@ -45,7 +46,7 @@ export function ProfileScreen() {
   const handlePickAvatar = useCallback(async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert(t('common', 'error'), t('profile', 'galleryPermission') || 'Gallery permission required');
+      appAlert(t('common', 'error'), t('profile', 'galleryPermission') || 'Gallery permission required');
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -59,7 +60,7 @@ export function ProfileScreen() {
     const asset = result.assets[0];
     const fileSize = asset.fileSize ?? 0;
     if (fileSize > 5 * 1024 * 1024) {
-      Alert.alert(t('common', 'error'), t('profile', 'avatarTooLarge') || 'Max 5MB');
+      appAlert(t('common', 'error'), t('profile', 'avatarTooLarge') || 'Max 5MB');
       return;
     }
 
@@ -75,7 +76,7 @@ export function ProfileScreen() {
       if (user) updateUser({ ...user, avatar: avatarUrl });
       profileQuery.refetch();
     } catch {
-      Alert.alert(t('common', 'error'), t('profile', 'avatarUploadError') || 'Upload failed');
+      appAlert(t('common', 'error'), t('profile', 'avatarUploadError') || 'Upload failed');
     }
   }, [t, updateProfileMutation]);
 

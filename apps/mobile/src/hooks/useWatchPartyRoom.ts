@@ -1,6 +1,6 @@
 // WeWatch — useWatchPartyRoom: socket sync, playback callbacks, room state management
 import { useRef, useState, useEffect, useCallback } from 'react';
-import { Alert, Dimensions, Platform, AppState } from 'react-native';
+import { Dimensions, Platform, AppState } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { PlaybackStatus } from '@app-types/index';
@@ -19,6 +19,7 @@ import type { QualityOption } from '@components/watchParty/QualityMenu';
 import type { Episode } from '@components/watchParty/EpisodeMenu';
 import { ModalStackParamList } from '@app-types/index';
 import { useT } from '@i18n/index';
+import { appAlert } from '@components/common/AppAlert';
 
 type NavProp = NativeStackNavigationProp<ModalStackParamList>;
 const { width: SCREEN_W } = Dimensions.get('window');
@@ -93,9 +94,11 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   // proxy source starts from position 0 — completely out of sync with the owner.
   const lastExecutedSyncRef = useRef<{ currentTime: number; isPlaying: boolean; serverTimestamp: number } | null>(null);
 
-  const [showChat, setShowChat] = useState(false);
-  // Voice panel open by default — room entry shows voice chat first (not text chat)
-  const [showVoice, setShowVoice] = useState(true);
+  // Chat panel open by default — fills the space below the video and puts the main
+  // social surface right at hand on room entry. Voice still auto-joins muted in the
+  // background (see screen) and can be toggled from the room bar.
+  const [showChat, setShowChat] = useState(true);
+  const [showVoice, setShowVoice] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -158,7 +161,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
       if (roomClosed.adminEmail) message += ` (${roomClosed.adminEmail})`;
       if (roomClosed.closeReason) message += `\n${t('watchParty', 'reason') ?? 'Sabab'}: ${roomClosed.closeReason}`;
     }
-    Alert.alert(t('watchParty', 'roomClosed') ?? 'Xona yopildi', message, [{ text: 'OK', onPress: safeGoBack }]);
+    appAlert(t('watchParty', 'roomClosed') ?? 'Xona yopildi', message, [{ text: 'OK', onPress: safeGoBack }]);
   }, [roomClosed, navigation, t]);
 
   // T-E098: Predictive sync — scheduledAt support
@@ -480,7 +483,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   }, [isOwner, roomId]);
 
   const handleLeave = useCallback(() => {
-    Alert.alert('Chiqish', 'Watch Party dan chiqmoqchimisiz?', [
+    appAlert('Chiqish', 'Watch Party dan chiqmoqchimisiz?', [
       { text: 'Bekor', style: 'cancel' },
       { text: isOwner ? 'Xonani yopish' : 'Chiqish', style: 'destructive', onPress: async () => {
         void activeRoomStorage.clear();

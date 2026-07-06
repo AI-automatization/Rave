@@ -1,6 +1,6 @@
 // WeWatch — useMediaDetection: JS injection, video detection, backend extraction, import flow
 import React, { useRef, useState, useCallback, useEffect } from 'react';
-import { Animated, Alert } from 'react-native';
+import { Animated } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import WebView from 'react-native-webview';
@@ -22,6 +22,7 @@ import {
   isPlaceholderVideoUrl,
 } from '@utils/webViewScripts';
 import type { ModalStackParamList } from '@app-types/index';
+import { appAlert } from '@components/common/AppAlert';
 
 type Nav = NativeStackNavigationProp<ModalStackParamList>;
 type RouteType = RouteProp<ModalStackParamList, 'MediaWebView'>;
@@ -239,12 +240,25 @@ export function useMediaDetection() {
       navigation.navigate('WatchParty', { roomId: room._id, videoReferer: effective.videoReferer });
     } catch (err: unknown) {
       if (__DEV__) console.log('[MediaWebView] createRoom error:', err);
-      const axiosErr = err as { response?: { data?: { message?: string } }; code?: string; message?: string };
+      const axiosErr = err as {
+        response?: { status?: number; data?: { message?: string; data?: { roomId?: string } } };
+        code?: string; message?: string;
+      };
+      const resp = axiosErr.response;
+      // Backend enforces one active room per owner (409 ROOM_ALREADY_EXISTS).
+      // Instead of showing the raw error, reopen the room the user already has.
+      if (resp?.status === 409 && resp.data?.message === 'ROOM_ALREADY_EXISTS') {
+        const existingId = resp.data?.data?.roomId;
+        if (existingId) {
+          navigation.navigate('WatchParty', { roomId: existingId, videoReferer: media.videoReferer });
+          return;
+        }
+      }
       const isTimeout = axiosErr.code === 'ECONNABORTED' || (axiosErr.message ?? '').includes('timeout');
       const msg = isTimeout || axiosErr.message === 'Network Error'
         ? 'Internet aloqasini tekshiring va qayta urinib ko\'ring.'
         : axiosErr.response?.data?.message ?? 'Xona yaratib bo\'lmadi.';
-      Alert.alert('Xato', msg);
+      appAlert('Xato', msg);
     } finally {
       isImportingRef.current = false;
       setIsImporting(false);

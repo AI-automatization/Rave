@@ -34,13 +34,18 @@ export class SyncProtocol {
   /**
    * Calculate drift correction action from a heartbeat message.
    * Returns: 'seek' if large drift, 'rate' with direction if moderate, 'none' if acceptable.
+   *
+   * @param clockOffset ms offset of the owner's clock relative to ours (peerClock = ourClock + offset).
+   *        Measured by MeshClient's NTP-style handshake. Defaults to 0 (Socket.io path uses server time).
    */
   calcDrift(
     ownerTime: number,
     ownerTimestamp: number,
     myPosition: number,
+    clockOffset = 0,
   ): { action: 'seek'; target: number } | { action: 'rate'; rate: number } | { action: 'none' } {
-    const expected = ownerTime + (Date.now() - ownerTimestamp) / 1000;
+    // ownerTimestamp is in the owner's clock; convert elapsed time into our clock via the offset.
+    const expected = ownerTime + (Date.now() - ownerTimestamp + clockOffset) / 1000;
     const driftMs = Math.abs(myPosition - expected) * 1000;
 
     if (driftMs > DRIFT_FORCE_SEEK_MS) {

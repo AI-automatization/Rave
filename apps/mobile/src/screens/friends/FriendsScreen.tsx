@@ -1,9 +1,6 @@
 // WeWatch Mobile — FriendsScreen
 import React, { useState, useCallback } from 'react';
-import {
-  View, Text, SectionList, FlatList, TouchableOpacity,
-  ActivityIndicator, RefreshControl, Alert, SectionListData,
-} from 'react-native';
+import { View, Text, SectionList, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, SectionListData } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -13,6 +10,7 @@ import { useTheme, createThemedStyles, spacing, borderRadius, typography } from 
 import { IUserPublic, FriendsStackParamList } from '@app-types/index';
 import { useT } from '@i18n/index';
 import { FriendRow, RequestCard, FriendsEmptyState } from '@components/friends/FriendListItems';
+import { appAlert } from '@components/common/AppAlert';
 
 type Nav = NativeStackNavigationProp<FriendsStackParamList, 'Friends'>;
 type FriendsSection = SectionListData<IUserPublic, { title: string; data: IUserPublic[]; isOnline: boolean }>;
@@ -54,7 +52,7 @@ export function FriendsScreen() {
   const handleAccept = (friendshipId: string) => acceptMutation.mutate(friendshipId);
 
   const handleReject = (friendshipId: string) => {
-    Alert.alert(t('friends', 'rejectTitle'), t('friends', 'rejectMsg'), [
+    appAlert(t('friends', 'rejectTitle'), t('friends', 'rejectMsg'), [
       { text: t('common', 'cancel'), style: 'cancel' },
       { text: t('friends', 'rejectBtn'), style: 'destructive', onPress: () => rejectMutation.mutate(friendshipId) },
     ]);

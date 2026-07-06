@@ -4,7 +4,6 @@
 **/.turbo
 **/build
 **/*.dmg
-**/*.png
 **/.git
 **/coverage
 **/test-results

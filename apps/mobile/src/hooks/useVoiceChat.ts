@@ -2,6 +2,7 @@
 // Requires expo-dev-client — react-native-webrtc won't work in Expo Go.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getSocket, SERVER_EVENTS, CLIENT_EVENTS } from '@socket/client';
+import { getIceServers } from '@services/mesh/iceServers';
 import { useT } from '@i18n/index';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -32,7 +33,9 @@ try {
   isWebRTCAvailable = false;
 }
 
-const ICE_SERVERS = [
+// STUN-only fallback used until backend TURN creds are fetched (or if fetch fails).
+// Without TURN, voice won't connect across symmetric/CGNAT (typical cellular).
+const ICE_SERVERS: RTCIceServer[] = [
   { urls: 'stun:stun.l.google.com:19302' },
   { urls: 'stun:stun1.l.google.com:19302' },
 ];
@@ -53,12 +56,14 @@ export function useVoiceChat(active: boolean) {
   const peerRefs = useRef<Map<string, InstanceType<NonNullable<typeof RTCPeerConnection>>>>(new Map());
   const localStreamRef = useRef<import('react-native-webrtc').MediaStream | null>(null);
   const speakingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // TURN+STUN from backend; starts as STUN, upgraded once getIceServers resolves.
+  const iceServersRef = useRef<RTCIceServer[]>(ICE_SERVERS);
 
   // ─── Peer helpers ────────────────────────────────────────────────────────────
 
   const getOrCreatePeer = useCallback((userId: string) => {
     if (peerRefs.current.has(userId)) return peerRefs.current.get(userId)!;
-    const pc = new RTCPeerConnection!({ iceServers: ICE_SERVERS });
+    const pc = new RTCPeerConnection!({ iceServers: iceServersRef.current });
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach((track) => pc.addTrack(track, localStreamRef.current!));
     }
@@ -147,6 +152,14 @@ export function useVoiceChat(active: boolean) {
   }, []);
 
   // ─── Socket registration ──────────────────────────────────────────────────────
+
+  // Fetch TURN creds as soon as voice becomes active, before any peer is created.
+  useEffect(() => {
+    if (!active || !isWebRTCAvailable) return;
+    let alive = true;
+    getIceServers().then((servers) => { if (alive && servers.length) iceServersRef.current = servers; }).catch(() => { /* keep STUN */ });
+    return () => { alive = false; };
+  }, [active]);
 
   useEffect(() => {
     if (!active) return;

@@ -2,6 +2,8 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useQuery } from '@tanstack/react-query';
+import { userApi } from '@api/user.api';
 import { colors, spacing, borderRadius, typography } from '@theme/index';
 import { useT } from '@i18n/index';
 import type { VoiceParticipant } from '@hooks/useVoiceChat';
@@ -12,6 +14,30 @@ interface Props {
   isMuted: boolean;
 }
 
+function ParticipantRow({ p, isSelf }: { p: VoiceParticipant; isSelf: boolean }) {
+  const { t } = useT();
+  // Same queryKey as MembersStrip → resolved username comes from cache (no extra fetch).
+  const { data } = useQuery({
+    queryKey: ['user-public', p.userId],
+    queryFn: () => userApi.getPublicProfile(p.userId),
+    staleTime: 5 * 60 * 1000,
+    enabled: !isSelf,
+  });
+
+  const name = isSelf ? t('watchParty', 'youLabel') : (data?.username ?? '···');
+
+  return (
+    <View style={s.row}>
+      <View style={[s.avatar, p.isSpeaking && s.avatarSpeaking]}>
+        <Ionicons name={p.isMuted ? 'mic-off' : 'mic'} size={14} color={p.isMuted ? '#6B7280' : colors.primary} />
+      </View>
+      <Text style={s.name} numberOfLines={1}>{name}</Text>
+      {p.isSpeaking && <View style={s.speakingDot} />}
+      {p.isMuted && <Ionicons name="mic-off-outline" size={14} color="#6B7280" />}
+    </View>
+  );
+}
+
 export function VoiceChatParticipants({ participants, currentUserId, isMuted }: Props) {
   const { t } = useT();
   const self: VoiceParticipant = { userId: currentUserId, isMuted, isSpeaking: false };
@@ -19,16 +45,7 @@ export function VoiceChatParticipants({ participants, currentUserId, isMuted }: 
   return (
     <ScrollView style={s.list} showsVerticalScrollIndicator={false}>
       {[self, ...participants].map(p => (
-        <View key={p.userId} style={s.row}>
-          <View style={[s.avatar, p.isSpeaking && s.avatarSpeaking]}>
-            <Ionicons name={p.isMuted ? 'mic-off' : 'mic'} size={14} color={p.isMuted ? '#6B7280' : colors.primary} />
-          </View>
-          <Text style={s.name} numberOfLines={1}>
-            {p.userId === currentUserId ? t('watchParty', 'youLabel') : p.userId.slice(-6)}
-          </Text>
-          {p.isSpeaking && <View style={s.speakingDot} />}
-          {p.isMuted && <Ionicons name="mic-off-outline" size={14} color="#6B7280" />}
-        </View>
+        <ParticipantRow key={p.userId} p={p} isSelf={p.userId === currentUserId} />
       ))}
       {participants.length === 0 && (
         <Text style={s.empty}>{t('watchParty', 'voiceEmpty')}</Text>
