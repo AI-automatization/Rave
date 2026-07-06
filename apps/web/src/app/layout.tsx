@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from 'next';
 import { DM_Sans, Oswald } from 'next/font/google';
-import { headers } from 'next/headers';
 import Script from 'next/script';
 import { Providers } from '@/components/common/Providers';
 import { LocaleHtmlUpdater } from '@/components/common/LocaleHtmlUpdater';
@@ -20,9 +19,6 @@ const oswald = Oswald({
   variable: '--font-oswald',
   display: 'swap',
 });
-
-// Force dynamic rendering so CDN never caches HTML (avoids stale content after deploys)
-export const dynamic = 'force-dynamic';
 
 export const viewport: Viewport = {
   themeColor: '#7C3AED',
@@ -145,16 +141,16 @@ const jsonLdApp = {
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  // Middleware sets x-pathname for /uz/* and /en/* (see matcher) — absent header means ru.
-  // SSR locale is derived from the URL so <html lang> matches the rendered copy
-  // (fixes uz content served under lang="ru") and is passed to Providers.
-  const pathname = headers().get('x-pathname') ?? '';
-  const isUz = pathname === '/uz' || pathname.startsWith('/uz/');
-  const isEn = pathname === '/en' || pathname.startsWith('/en/');
-  const lang = isUz ? 'uz' : isEn ? 'en' : 'ru';
+  // Static shell: lang defaults to ru so the page renders without reading request
+  // headers (which would force dynamic rendering of the whole tree). The /uz and
+  // /en subtrees render Uzbek/English content via their own LocaleBoundary layout,
+  // and the inline script below corrects <html lang> before hydration for those URLs.
   return (
-    <html lang={lang} suppressHydrationWarning>
+    <html lang="ru" suppressHydrationWarning>
       <body className={`${dmSans.variable} ${oswald.variable} font-body antialiased bg-[#060608] text-white`}>
+        <Script id="set-lang" strategy="beforeInteractive">{`
+          (function(){var p=location.pathname;document.documentElement.lang=(p==='/uz'||p.indexOf('/uz/')===0)?'uz':(p==='/en'||p.indexOf('/en/')===0)?'en':'ru';})();
+        `}</Script>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdApp) }} />
         <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="afterInteractive" />
         <Script id="gtag-init" strategy="afterInteractive">{`
@@ -174,7 +170,7 @@ export default function RootLayout({
             <noscript><img src={'https://mc.yandex.ru/watch/' + YM_ID} style={{ position: 'absolute', left: '-9999px' }} alt="" /></noscript>
           </>
         )}
-        <Providers initialLocale={lang}>
+        <Providers>
           <LocaleHtmlUpdater />
           {children}
         </Providers>
