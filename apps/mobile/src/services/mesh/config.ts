@@ -1,4 +1,10 @@
-// WeWatch — Mesh WebRTC config (ICE servers)
+// WeWatch — Mesh WebRTC config
+// Real ICE servers (TURN + STUN) come from getIceServers() in iceServers.ts, which fetches
+// TURN credentials from the backend and caches them for the session. `iceServers` below is
+// a sync STUN-only fallback for the one call site that can't await that fetch
+// (MeshClient.createPeerConnection's .catch()) — it previously also carried a dead TURN
+// hardcode pointing at a.relay.metered.ca with EXPO_PUBLIC_TURN_* env vars that don't exist
+// anywhere in the project, which was misleading. Removed; STUN only.
 import type { MeshConfig } from './types';
 
 const DATA_CHANNEL_LABEL = 'cinesync-sync';
@@ -7,18 +13,6 @@ export const meshConfig: MeshConfig = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
-    // Metered.ca free tier TURN (50GB/month)
-    // Replace with env vars in production
-    {
-      urls: 'turn:a.relay.metered.ca:80',
-      username: process.env.EXPO_PUBLIC_TURN_USERNAME ?? '',
-      credential: process.env.EXPO_PUBLIC_TURN_CREDENTIAL ?? '',
-    },
-    {
-      urls: 'turn:a.relay.metered.ca:443?transport=tcp',
-      username: process.env.EXPO_PUBLIC_TURN_USERNAME ?? '',
-      credential: process.env.EXPO_PUBLIC_TURN_CREDENTIAL ?? '',
-    },
   ],
   dataChannelLabel: DATA_CHANNEL_LABEL,
 };
