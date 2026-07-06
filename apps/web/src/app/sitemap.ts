@@ -12,6 +12,20 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 1.0,
     },
 
+    // ── Локализованные главные (/uz, /en) ─────────────────────────────────────
+    {
+      url: `${BASE}/uz`,
+      lastModified: new Date('2026-07-06'),
+      changeFrequency: 'weekly',
+      priority: 0.9,
+    },
+    {
+      url: `${BASE}/en`,
+      lastModified: new Date('2026-07-06'),
+      changeFrequency: 'weekly',
+      priority: 0.7,
+    },
+
     // ── Русские гайды (CНГ-приоритет) ────────────────────────────────────────
     {
       url: `${BASE}/guides/smotret-vmeste-onlayn`,
@@ -74,6 +88,38 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: new Date('2026-06-16'),
       changeFrequency: 'monthly',
       priority: 0.9,
+    },
+
+    // ── Лендинг-страницы продукта / компании ──────────────────────────────────
+    {
+      url: `${BASE}/features`,
+      lastModified: new Date('2026-07-04'),
+      changeFrequency: 'monthly',
+      priority: 0.7,
+    },
+    {
+      url: `${BASE}/pricing`,
+      lastModified: new Date('2026-07-04'),
+      changeFrequency: 'monthly',
+      priority: 0.7,
+    },
+    {
+      url: `${BASE}/products`,
+      lastModified: new Date('2026-07-04'),
+      changeFrequency: 'monthly',
+      priority: 0.5,
+    },
+    {
+      url: `${BASE}/company`,
+      lastModified: new Date('2026-07-04'),
+      changeFrequency: 'monthly',
+      priority: 0.5,
+    },
+    {
+      url: `${BASE}/contact`,
+      lastModified: new Date('2026-07-04'),
+      changeFrequency: 'monthly',
+      priority: 0.4,
     },
 
     // ── Сервисные страницы ────────────────────────────────────────────────────
