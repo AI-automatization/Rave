@@ -14,6 +14,9 @@ import { WatchPartyMembersService } from './watchPartyMembers.service';
 const BLOCKED_DOMAINS_KEY = 'watch_party:blocked_domains';
 const SYNC_THRESHOLD_SECONDS = 2;
 const SYNC_THRESHOLD_WEBVIEW_SECONDS = 2.5;
+// Heartbeat fires every ~2s per room — Redis is updated on every tick (late-join seed needs it fresh),
+// but MongoDB is only history/recovery storage and does not need per-heartbeat writes.
+const HEARTBEAT_MONGO_THROTTLE_MS = 15_000;
 
 export class WatchPartyService {
   readonly playlist: WatchPartyPlaylistService;
@@ -34,6 +37,10 @@ export class WatchPartyService {
   getRecentRooms!: WatchPartyMembersService['getRecentRooms'];
   getPublicActiveRooms!: WatchPartyMembersService['getPublicActiveRooms'];
   invalidatePublicRoomsCache!: WatchPartyMembersService['invalidatePublicRoomsCache'];
+
+  // Per-room timestamp of the last MongoDB heartbeat write — throttles updateCurrentTime()
+  // so a 2s heartbeat doesn't become a Mongo updateOne every 2s (see HEARTBEAT_MONGO_THROTTLE_MS).
+  private readonly lastMongoHeartbeatWrite = new Map<string, number>();
 
   constructor(private redis: Redis) {
     this.playlist = new WatchPartyPlaylistService(redis);
@@ -192,6 +199,7 @@ export class WatchPartyService {
       if (remainingMembers.length === 0) {
         await WatchPartyRoom.deleteOne({ _id: roomId });
         await this.redis.del(REDIS_KEYS.watchPartyRoom(roomId));
+        this.lastMongoHeartbeatWrite.delete(roomId);
         logger.info('Watch party room deleted (no members)', { roomId });
         return { closed: true };
       }
@@ -244,11 +252,16 @@ export class WatchPartyService {
       updatedBy: ownerId,
       scheduledAt: now + TIMING.SYNC_DRIFT_WINDOW_MS,
     };
+    // Redis is the source of truth for live sync — write it before returning so the emit path
+    // never blocks on it. MongoDB is history/recovery storage only, so its write is
+    // fire-and-forget: it must not delay the sync-state emit while Atlas round-trips.
     await this.cacheRoomState(roomId, syncState);
-    await WatchPartyRoom.updateOne(
+    void WatchPartyRoom.updateOne(
       { _id: roomId },
       { currentTime, isPlaying, status: isPlaying ? 'playing' : 'paused', lastActivityAt: new Date() },
-    );
+    ).catch((error) => {
+      logger.error('syncState: MongoDB persist failed', { roomId, error });
+    });
     return syncState;
   }
 
@@ -283,6 +296,7 @@ export class WatchPartyService {
     const ids = stale.map((r) => r._id.toString());
     await WatchPartyRoom.updateMany({ _id: { $in: ids } }, { status: 'ended' });
     await Promise.all(ids.map((id) => this.redis.del(REDIS_KEYS.watchPartyRoom(id))));
+    ids.forEach((id) => this.lastMongoHeartbeatWrite.delete(id));
     logger.info('Closed inactive watch party rooms', { count: ids.length, roomIds: ids });
     return ids;
   }
@@ -301,6 +315,7 @@ export class WatchPartyService {
     if (room.ownerId !== ownerId) throw new ForbiddenError('Only the room owner can close this room');
     await WatchPartyRoom.updateOne({ _id: roomId }, { status: 'ended' });
     await this.redis.del(REDIS_KEYS.watchPartyRoom(roomId));
+    this.lastMongoHeartbeatWrite.delete(roomId);
     void this.invalidatePublicRoomsCache();
     logger.info('Watch party room closed by owner', { roomId, ownerId });
   }
@@ -310,6 +325,7 @@ export class WatchPartyService {
     if (!room || room.status === 'ended') return;
     await WatchPartyRoom.updateOne({ _id: roomId }, { status: 'ended' });
     await this.redis.del(REDIS_KEYS.watchPartyRoom(roomId));
+    this.lastMongoHeartbeatWrite.delete(roomId);
     logger.info('Watch party room auto-closed by system', { roomId });
   }
 
@@ -318,6 +334,15 @@ export class WatchPartyService {
     if (existing) {
       await this.cacheRoomState(roomId, { ...existing, currentTime, serverTimestamp: Date.now() });
     }
+
+    // Redis is refreshed on every heartbeat (needed for late-join seed / BUFFER_START resume).
+    // MongoDB is only history/recovery storage, so throttle its write to avoid a Mongo
+    // updateOne on every 2s heartbeat tick per room.
+    const now = Date.now();
+    const lastWrite = this.lastMongoHeartbeatWrite.get(roomId) ?? 0;
+    if (now - lastWrite < HEARTBEAT_MONGO_THROTTLE_MS) return;
+    this.lastMongoHeartbeatWrite.set(roomId, now);
+
     await WatchPartyRoom.updateOne({ _id: roomId }, { currentTime, lastActivityAt: new Date() });
   }
 
