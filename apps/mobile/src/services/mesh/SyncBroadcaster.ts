@@ -1,7 +1,7 @@
-// WeWatch — SyncBroadcaster: dual-path sync (mesh DataChannel + Socket.io fallback)
-// Chooses path based on TopologyManager topology and mesh connection state
+// WeWatch — SyncBroadcaster: fast mesh overlay for sync (DataChannel).
+// The authoritative Socket.io path is owned by useWatchParty (emit*); this broadcaster only
+// delivers the low-latency mesh copy when a mesh is up. Members dedupe via meshFresh().
 import { AppState, type AppStateStatus } from 'react-native';
-import { getSocket, CLIENT_EVENTS } from '@socket/client';
 import { MeshClient } from './MeshClient';
 import { SyncProtocol } from './SyncProtocol';
 import { TopologyManager, type Topology } from './TopologyManager';
@@ -93,39 +93,15 @@ export class SyncBroadcaster {
   // ── Private ───────────────────────────────────────────────────────
 
   private send(msg: SyncMessage): void {
-    const topology = this.topologyManager.topology;
+    // Socket.io is intentionally NOT sent from here. useWatchParty's emit* already sends
+    // every action over the socket directly — that is the authoritative path: the server
+    // updates Redis (late-join seed + admin monitoring) and relays VIDEO_* to all members.
+    // This broadcaster only adds the faster mesh overlay on top; members dedupe the slower
+    // socket copy via meshFresh(). Emitting socket here too caused a double emit
+    // (2× syncState → 2× Redis/Mongo writes and double seeks on members).
     const meshAvailable = this.meshClient && this.meshClient.connectedCount > 0;
-
-    if (topology === 'socket_only' || !meshAvailable) {
-      // Socket.io only path
-      this.sendViaSocket(msg);
-    } else {
-      // Mesh primary + Socket.io as backup for unconnected peers
-      this.meshClient?.broadcast(msg);
-      // If not all peers connected via mesh, also send via socket
-      if (this.meshClient && this.meshClient.connectedCount < this.peerCount - 1) {
-        this.sendViaSocket(msg);
-      }
-    }
-  }
-
-  private sendViaSocket(msg: SyncMessage): void {
-    const socket = getSocket();
-    if (!socket) return;
-
-    switch (msg.type) {
-      case 'play':
-        socket.emit(CLIENT_EVENTS.PLAY, { roomId: this.config.roomId, currentTime: msg.currentTime });
-        break;
-      case 'pause':
-        socket.emit(CLIENT_EVENTS.PAUSE, { roomId: this.config.roomId, currentTime: msg.currentTime });
-        break;
-      case 'seek':
-        socket.emit(CLIENT_EVENTS.SEEK, { roomId: this.config.roomId, currentTime: msg.currentTime });
-        break;
-      case 'heartbeat':
-        socket.emit(CLIENT_EVENTS.HEARTBEAT, { roomId: this.config.roomId, currentTime: msg.currentTime });
-        break;
+    if (meshAvailable && this.topologyManager.topology !== 'socket_only') {
+      this.meshClient!.broadcast(msg);
     }
   }
 
