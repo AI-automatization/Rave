@@ -22,6 +22,13 @@ export const registerVideoEvents = (
 ): void => {
   const { userId } = authSocket.user;
 
+  // NTP-style clock sync: echo the client's ping timestamp plus our own receive time so the
+  // client can estimate the server↔client clock offset. Room-agnostic, cheap, no auth needed.
+  socket.on(CLIENT_EVENTS.CLOCK_PING, (data: { t0: number }) => {
+    if (typeof data?.t0 !== 'number') return;
+    socket.emit(SERVER_EVENTS.CLOCK_PONG, { t0: data.t0, t1: Date.now() });
+  });
+
   // Resolves owner check with fallback: if roomOwnerId is cached use it directly (fast path).
   // If undefined (socket emits before JOIN_ROOM response completes — Android timing race),
   // do a single MongoDB lookup, cache the result, then re-check.
