@@ -29,6 +29,10 @@
 
   body {
     min-height: 100vh;
+    /* Never allow horizontal page scroll — wide decorative glows / marquees
+       must never push a horizontal scrollbar. Header is position:fixed, so
+       this does not affect sticky. */
+    overflow-x: hidden;
     background:
       radial-gradient(ellipse 85% 60% at 62% 0%, rgba(124,58,237,0.48) 0%, rgba(109,40,217,0.20) 45%, transparent 70%),
       radial-gradient(ellipse 45% 40% at 12% 8%, rgba(124,58,237,0.22) 0%, transparent 55%),
@@ -171,6 +175,41 @@
 }
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
+}
+
+/* ── Custom brand scrollbar ─────────────────────────────────────── */
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(123, 114, 248, 0.55) transparent;
+}
+/* WebKit (Chrome, Edge, Safari) */
+::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  /* transparent border + padding-box = floating pill inside the track */
+  border: 3px solid transparent;
+  background-clip: padding-box;
+  background-color: #6b62e0;
+  background-image: linear-gradient(180deg, #7B72F8, #a855f7);
+  transition: background-image 0.2s ease;
+}
+::-webkit-scrollbar-thumb:hover {
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  background-image: linear-gradient(180deg, #8b82ff, #b96af7);
+}
+::-webkit-scrollbar-thumb:active {
+  background-image: linear-gradient(180deg, #a855f7, #7B72F8);
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 @keyframes shimmer {

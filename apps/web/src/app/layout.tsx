@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { DM_Sans, Oswald } from 'next/font/google';
+import { headers } from 'next/headers';
 import Script from 'next/script';
 import { Providers } from '@/components/common/Providers';
 import { LocaleHtmlUpdater } from '@/components/common/LocaleHtmlUpdater';
@@ -103,9 +104,12 @@ export const metadata: Metadata = {
   alternates: {
     canonical: APP_URL,
     languages: {
+      // Bosh sahifa yagona URL'da (locale client-store orqali almashadi) —
+      // alohida /uz yoki /en homepage route YO'Q, shuning uchun x-default + ru.
+      // UZ homepage (/uz/page.tsx) yaratilgach → 'uz': `${APP_URL}/uz` qo'shiladi (Faza 3).
+      'x-default': APP_URL,
+      'ru': APP_URL,
       'ru-RU': APP_URL,
-      'en-US': APP_URL,
-      'uz-UZ': APP_URL,
     },
   },
   openGraph: {
@@ -215,8 +219,11 @@ const jsonLdOrg = {
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // Middleware sets x-pathname only for /uz/* (see matcher) — absent header means ru
+  const pathname = headers().get('x-pathname') ?? '';
+  const lang = pathname === '/uz' || pathname.startsWith('/uz/') ? 'uz' : 'ru';
   return (
-    <html lang="ru" suppressHydrationWarning>
+    <html lang={lang} suppressHydrationWarning>
       <body className={`${dmSans.variable} ${oswald.variable} font-body antialiased bg-[#060608] text-white`}>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdApp) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdOrg) }} />

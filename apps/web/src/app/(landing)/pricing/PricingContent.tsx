@@ -1,26 +1,34 @@
 'use client';
 
 import Link from 'next/link';
-import { FaCheck } from 'react-icons/fa';
+import { motion, useReducedMotion, type Variants } from 'framer-motion';
+import { FaCheck, FaTimes, FaBolt, FaGift, FaSyncAlt, FaTag, FaArrowRight } from 'react-icons/fa';
 import { useTranslations } from 'next-intl';
+
+const spring = { type: 'spring' as const, stiffness: 280, damping: 24 };
+const fadeUp: Variants = {
+  hidden: { opacity: 0, y: 26 },
+  visible: { opacity: 1, y: 0, transition: { ...spring, stiffness: 200 } },
+};
+const stagger: Variants = { visible: { transition: { staggerChildren: 0.08 } } };
 
 export function PricingContent() {
   const t = useTranslations('pricingPage');
   const tl = useTranslations('landing');
+  const reduce = useReducedMotion();
 
   const PLANS = [
     {
       name: tl('plan1name'),
       price: '0',
-      period: null,
-      desc: t('plan1desc'),
+      priceNote: t('plan1desc'),
       features: [
-        { label: 'Watch Party', val: t('plan1people') },
-        { label: t('rowQuality'), val: 'HD 720p' },
-        { label: t('rowAds'), val: t('rowAdsYes') },
-        { label: t('rowSearch'), val: '✓' },
-        { label: t('rowFriends'), val: '∞' },
-        { label: t('rowHistory'), val: t('plan1historyVal') },
+        { label: 'Watch Party', val: t('plan1people'), on: true },
+        { label: t('rowQuality'), val: 'HD 720p', on: true },
+        { label: t('rowSearch'), val: '✓', on: true },
+        { label: t('rowFriends'), val: '∞', on: true },
+        { label: t('rowHistory'), val: t('plan1historyVal'), on: true },
+        { label: t('rowAds'), val: t('rowAdsYes'), on: false },
       ],
       cta: tl('plan1cta'),
       href: '/register',
@@ -28,16 +36,15 @@ export function PricingContent() {
     },
     {
       name: tl('plan2name'),
-      price: '29,000',
-      period: tl('plan2period'),
-      desc: '',
+      price: '29 000',
+      priceNote: tl('plan2period'),
       features: [
-        { label: 'Watch Party', val: t('plan2people') },
-        { label: t('rowQuality'), val: '4K 2160p' },
-        { label: t('rowAds'), val: t('rowAdsNo') },
-        { label: t('rowSearch'), val: '✓' },
-        { label: t('rowFriends'), val: '∞' },
-        { label: t('rowHistory'), val: '∞' },
+        { label: 'Watch Party', val: t('plan2people'), on: true },
+        { label: t('rowQuality'), val: '4K 2160p', on: true },
+        { label: t('rowSearch'), val: '✓', on: true },
+        { label: t('rowFriends'), val: '∞', on: true },
+        { label: t('rowHistory'), val: '∞', on: true },
+        { label: t('rowAds'), val: t('rowAdsNo'), on: true },
       ],
       cta: tl('plan2cta'),
       href: '/register?plan=pro',
@@ -45,72 +52,151 @@ export function PricingContent() {
     },
   ];
 
-  return (
-    <div className="min-h-screen bg-[#0A0A0F]">
-      <div className="max-w-4xl mx-auto px-4 py-20">
-        {/* Header */}
-        <div className="text-center mb-16">
-          <h1 className="text-5xl font-display uppercase text-white mb-4">
-            {t('title')}
-          </h1>
-          <p className="text-zinc-500">{t('subtitle')}</p>
-        </div>
+  const TRUST = [
+    { icon: FaGift, color: '#7B72F8', title: t('trust1'), sub: t('trust1sub') },
+    { icon: FaSyncAlt, color: '#22d3ee', title: t('trust2'), sub: t('trust2sub') },
+    { icon: FaTag, color: '#4ade80', title: t('trust3'), sub: t('trust3sub') },
+  ];
 
-        {/* Plans */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
-          {PLANS.map(({ name, price, period, desc, features, cta, href, highlighted }) => (
-            <div
-              key={name}
-              className={`rounded-2xl border p-8 transition-all duration-300 ${
-                highlighted
-                  ? 'bg-[#0e0720] border-[#7B72F8]/60 shadow-[0_0_60px_rgba(123,114,248,0.22)]'
-                  : 'bg-[#111118] border-zinc-800'
+  return (
+    <div className="bg-[#0A0A0F] text-white overflow-x-hidden">
+      {/* HERO */}
+      <section className="relative px-4 pt-28 pb-14 overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+          <motion.div
+            className="absolute top-[2%] left-1/2 -translate-x-1/2 w-[900px] h-[440px] rounded-full blur-[160px]"
+            style={{ background: 'radial-gradient(ellipse, rgba(123,114,248,0.18) 0%, rgba(168,85,247,0.06) 50%, transparent 70%)' }}
+            animate={reduce ? {} : { scale: [0.95, 1.07, 0.95], opacity: [0.6, 1, 0.6] }}
+            transition={{ repeat: Infinity, duration: 8, ease: 'easeInOut' }}
+          />
+        </div>
+        <motion.div variants={stagger} initial="hidden" animate="visible" className="relative z-10 max-w-2xl mx-auto text-center">
+          <motion.div variants={fadeUp}
+            className="inline-flex items-center gap-2 mb-6 px-4 py-1.5 rounded-full border border-[#7B72F8]/35 bg-[#7B72F8]/[0.08] backdrop-blur-md text-xs text-white/80">
+            <FaTag size={10} className="text-[#7B72F8]" aria-hidden="true" /> {t('badge')}
+          </motion.div>
+          <motion.h1 variants={fadeUp} className="font-display uppercase text-white leading-none mb-4"
+            style={{ fontSize: 'clamp(2.8rem, 9vw, 5rem)', textShadow: '0 0 90px rgba(123,114,248,0.25)' }}>
+            {t('title')}
+          </motion.h1>
+          <motion.p variants={fadeUp} className="text-zinc-400 text-lg">{t('subtitle')}</motion.p>
+        </motion.div>
+      </section>
+
+      {/* PLANS */}
+      <section className="px-4 pb-20">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-3xl mx-auto items-stretch">
+          {PLANS.map((p, i) => (
+            <motion.div
+              key={p.name}
+              initial={{ opacity: 0, y: 30, scale: 0.97 }}
+              whileInView={{ opacity: 1, y: 0, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ ...spring, delay: i * 0.1 }}
+              className={`relative rounded-[28px] border p-8 flex flex-col ${
+                p.highlighted
+                  ? 'border-[#7B72F8]/50 md:-mt-3 md:mb-3 shadow-[0_0_60px_rgba(123,114,248,0.22)]'
+                  : 'border-zinc-800/70'
               }`}
+              style={{
+                background: p.highlighted
+                  ? 'linear-gradient(165deg, rgba(123,114,248,0.14) 0%, #0C0C14 60%)'
+                  : 'linear-gradient(165deg, #111118 0%, #0D0D14 100%)',
+              }}
             >
-              {highlighted && (
-                <div className="inline-block px-2.5 py-1 rounded-full bg-[#7B72F8]/15 border border-[#7B72F8]/40 text-[#7B72F8] text-xs font-semibold uppercase tracking-widest mb-4">
-                  {t('recommended')}
-                </div>
+              {p.highlighted && (
+                <>
+                  <div className="absolute top-0 left-0 right-0 h-px rounded-full" aria-hidden="true"
+                    style={{ background: 'linear-gradient(90deg, transparent, rgba(123,114,248,0.7), transparent)' }} />
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 inline-flex items-center gap-1.5 px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest text-white whitespace-nowrap"
+                    style={{ background: 'linear-gradient(135deg, #7B72F8, #a855f7)', boxShadow: '0 0 20px rgba(123,114,248,0.5)' }}>
+                    <FaBolt size={9} aria-hidden="true" /> {t('popular')}
+                  </div>
+                </>
               )}
 
-              <h2 className="font-display text-3xl uppercase text-white mb-1">{name}</h2>
-              <div className="flex items-baseline gap-1.5 mb-1">
-                <span className="text-4xl font-display text-white">{price}</span>
-                <span className="text-zinc-500 text-sm">{period ?? desc}</span>
+              {/* Name */}
+              <div className="flex items-center gap-2 mb-4 mt-1">
+                <h2 className="font-display text-3xl uppercase text-white">{p.name}</h2>
+                {p.highlighted && <span className="text-[#7B72F8]">★</span>}
               </div>
 
-              <div className="border-t border-zinc-800 my-5" />
+              {/* Price */}
+              <div className="flex items-baseline gap-2 mb-1">
+                <span className="text-5xl font-display font-bold text-white">{p.price}</span>
+                <span className="text-zinc-500 text-sm">{p.priceNote}</span>
+              </div>
+              {p.price === '0' && (
+                <span className="inline-flex w-fit items-center gap-1 text-[10px] uppercase tracking-widest text-[#4ade80] mt-1">
+                  <FaCheck size={8} /> {t('freeTag')}
+                </span>
+              )}
 
-              <ul className="space-y-3 mb-8">
-                {features.map(({ label, val }) => (
+              <div className="border-t border-zinc-800/70 my-6" />
+
+              {/* Features */}
+              <ul className="space-y-3.5 mb-8 flex-1">
+                {p.features.map(({ label, val, on }) => (
                   <li key={label} className="flex items-center justify-between text-sm">
-                    <span className="text-zinc-500 flex items-center gap-2">
-                      <FaCheck size={10} className={highlighted ? 'text-[#7B72F8]' : 'text-zinc-700'} />
+                    <span className="text-zinc-400 flex items-center gap-2.5">
+                      <span className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
+                        on ? (p.highlighted ? 'bg-[#7B72F8]/20' : 'bg-zinc-800') : 'bg-zinc-800/60'
+                      }`}>
+                        {on
+                          ? <FaCheck size={9} className={p.highlighted ? 'text-[#7B72F8]' : 'text-zinc-400'} aria-hidden="true" />
+                          : <FaTimes size={9} className="text-zinc-600" aria-hidden="true" />}
+                      </span>
                       {label}
                     </span>
-                    <span className={`font-medium ${highlighted ? 'text-white' : 'text-zinc-300'}`}>{val}</span>
+                    <span className={`font-semibold ${on ? (p.highlighted ? 'text-white' : 'text-zinc-200') : 'text-zinc-600'}`}>{val}</span>
                   </li>
                 ))}
               </ul>
 
+              {/* CTA */}
               <Link
-                href={href}
-                className={`flex items-center justify-center h-11 rounded-lg font-semibold transition-all duration-300 active:scale-95 w-full ${
-                  highlighted
-                    ? 'bg-[#7B72F8] text-white hover:bg-[#6B63E8] hover:shadow-[0_0_30px_rgba(123,114,248,0.6)]'
-                    : 'border border-zinc-700 text-zinc-300 hover:border-zinc-500 hover:text-white'
+                href={p.href}
+                className={`group flex items-center justify-center gap-2 h-12 rounded-2xl font-semibold transition-all duration-300 active:scale-[0.98] w-full ${
+                  p.highlighted
+                    ? 'text-white hover:shadow-[0_0_34px_rgba(123,114,248,0.6)]'
+                    : 'border border-zinc-700 text-zinc-200 hover:border-[#7B72F8]/50 hover:text-white'
                 }`}
+                style={p.highlighted ? { background: 'linear-gradient(135deg, #7B72F8, #6B63E8)', boxShadow: '0 0 20px rgba(123,114,248,0.4)' } : undefined}
               >
-                {cta}
+                {p.cta}
+                <FaArrowRight size={11} className="group-hover:translate-x-0.5 transition-transform" aria-hidden="true" />
               </Link>
-            </div>
+            </motion.div>
           ))}
         </div>
 
-        <p className="text-center text-xs text-zinc-700 mt-10">
-          {t('footnote')}
-        </p>
-      </div>
+        <p className="text-center text-xs text-zinc-600 mt-8 max-w-md mx-auto">{t('footnote')}</p>
+      </section>
+
+      {/* TRUST STRIP */}
+      <section className="px-4 py-16 bg-[#0C0C14] border-t border-zinc-800/50">
+        <div className="max-w-4xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-5">
+          {TRUST.map(({ icon: Icon, color, title, sub }, i) => (
+            <motion.div
+              key={title}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ ...spring, delay: i * 0.08 }}
+              className="flex flex-col items-center text-center gap-3"
+            >
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center"
+                style={{ background: `${color}18`, border: `1px solid ${color}33` }}>
+                <Icon size={18} style={{ color }} aria-hidden="true" />
+              </div>
+              <div>
+                <p className="text-white font-semibold text-sm">{title}</p>
+                <p className="text-zinc-500 text-xs mt-0.5">{sub}</p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }

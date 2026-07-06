@@ -7,7 +7,16 @@ export const metadata: Metadata = {
   title: 'WeWatch — Смотреть вместе онлайн | Watch Party бесплатно',
   description:
     'WeWatch — смотри YouTube, VK и Rutube с друзьями в реальном времени. Бесплатный watch party с синхронизацией, чатом и эмодзи. Скачай на iOS и Android.',
-  alternates: { canonical: APP_URL },
+  alternates: {
+    canonical: APP_URL,
+    // Next merges `alternates` shallowly — without languages here the root
+    // layout's hreflang set is dropped on the homepage
+    languages: {
+      'x-default': APP_URL,
+      'ru': APP_URL,
+      'ru-RU': APP_URL,
+    },
+  },
   openGraph: {
     title: 'WeWatch — Смотреть вместе онлайн | Watch Party бесплатно',
     description:
