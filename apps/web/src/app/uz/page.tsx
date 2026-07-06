@@ -26,6 +26,17 @@ export const metadata: Metadata = {
     locale: 'uz_UZ',
     images: [{ url: '/og-image', width: 1200, height: 630, alt: "WeWatch — do'stlar bilan birga video ko'rish" }],
   },
+  // Full twitter block: Next.js replaces (not deep-merges) the root layout's
+  // Russian twitter metadata, so card/site/images must be repeated here.
+  twitter: {
+    card: 'summary_large_image',
+    site: '@wewatch_app',
+    creator: '@wewatch_app',
+    title: "WeWatch — Do'stlar bilan birga video ko'rish",
+    description:
+      "Bepul watch party — YouTube, VK, Rutube'ni do'stlar bilan real vaqtda birga ko'r. Chat, emoji. iOS va Android.",
+    images: ['/og-image'],
+  },
   robots: { index: true, follow: true },
 };
 
