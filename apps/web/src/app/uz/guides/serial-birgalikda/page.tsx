@@ -21,6 +21,7 @@ export const metadata: Metadata = {
     languages: {
       'ru': 'https://wewatch.uz/guides/smotret-serial-vmeste',
       'uz': 'https://wewatch.uz/uz/guides/serial-birgalikda',
+      'x-default': 'https://wewatch.uz/guides/smotret-serial-vmeste',
     },
   },
   openGraph: {

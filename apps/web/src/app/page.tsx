@@ -51,6 +51,7 @@ const jsonLd = {
       '@id': `${APP_URL}/#organization`,
       name: 'WeWatch',
       alternateName: ['wewatch', 'wewatch.uz'],
+      slogan: 'Ты паузишь — все паузят',
       url: APP_URL,
       logo: {
         '@type': 'ImageObject',
@@ -58,10 +59,6 @@ const jsonLd = {
         width: 512,
         height: 512,
       },
-      sameAs: [
-        'https://apps.apple.com/app/wewatch',
-        'https://play.google.com/store/apps/details?id=uz.wewatch',
-      ],
     },
     {
       '@type': 'MobileApplication',

@@ -5,11 +5,11 @@ export const metadata: Metadata = {
   alternates: {
     languages: {
       'ru': 'https://wewatch.uz',
-      'uz': 'https://wewatch.uz/uz',
+      'en': 'https://wewatch.uz/en',
     },
   },
 };
 
-export default function UzLayout({ children }: { children: React.ReactNode }) {
-  return <LocaleBoundary locale="uz">{children}</LocaleBoundary>;
+export default function EnLayout({ children }: { children: React.ReactNode }) {
+  return <LocaleBoundary locale="en">{children}</LocaleBoundary>;
 }

@@ -46,13 +46,13 @@ export function LandingNav() {
             {/* Logo + tagline */}
             <div className="flex items-center gap-3 min-w-0">
               <WeWatchLogo iconSize={32} textSize="text-lg" />
-              <span className="hidden lg:block text-[9px] uppercase tracking-[0.14em] text-zinc-500 border-l border-zinc-700/70 pl-3 leading-tight max-w-[120px]">
+              <span className="hidden xl:block text-[9px] uppercase tracking-[0.14em] text-zinc-500 border-l border-zinc-700/70 pl-3 leading-tight max-w-[120px]">
                 {t('nav_tagline')}
               </span>
             </div>
 
             {/* Desktop nav */}
-            <nav className="hidden md:flex items-center gap-5 lg:gap-7">
+            <nav className="hidden lg:flex items-center gap-5 xl:gap-7">
               {links.map(({ href, label }) => {
                 const active = pathname === href;
                 return (
@@ -77,7 +77,7 @@ export function LandingNav() {
             </nav>
 
             {/* Desktop CTA — pill buttons */}
-            <div className="hidden md:flex items-center gap-2.5">
+            <div className="hidden lg:flex items-center gap-2.5">
               <LanguageSwitcher />
               <Link
                 href="/login"
@@ -96,7 +96,7 @@ export function LandingNav() {
 
             {/* Mobile burger */}
             <button
-              className="md:hidden relative z-[60] w-9 h-9 rounded-xl flex items-center justify-center text-zinc-300 hover:text-white bg-white/5 hover:bg-white/10 transition-all"
+              className="lg:hidden relative z-[60] w-9 h-9 rounded-xl flex items-center justify-center text-zinc-300 hover:text-white bg-white/5 hover:bg-white/10 transition-all"
               onClick={() => setMenuOpen((v) => !v)}
               aria-label="Menu"
             >
@@ -124,7 +124,7 @@ export function LandingNav() {
 
       {/* Backdrop */}
       <div
-        className="md:hidden fixed inset-0 z-40 bg-black/70 backdrop-blur-sm transition-opacity duration-300"
+        className="lg:hidden fixed inset-0 z-40 bg-black/70 backdrop-blur-sm transition-opacity duration-300"
         style={{ opacity: menuOpen ? 1 : 0, pointerEvents: menuOpen ? 'auto' : 'none' }}
         onClick={() => setMenuOpen(false)}
         aria-hidden="true"
@@ -132,7 +132,7 @@ export function LandingNav() {
 
       {/* Drawer panel */}
       <div
-        className="md:hidden fixed top-0 right-0 bottom-0 z-50 w-72 flex flex-col transition-transform duration-300 ease-out"
+        className="lg:hidden fixed top-0 right-0 bottom-0 z-50 w-72 flex flex-col transition-transform duration-300 ease-out"
         style={{
           transform: menuOpen ? 'translateX(0)' : 'translateX(100%)',
           background: 'linear-gradient(160deg, #111120, #0d0d18)',
