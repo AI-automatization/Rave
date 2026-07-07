@@ -4,6 +4,12 @@
 
 ---
 
+### F-220 | T-S117 | Sync: democratic buffer-pause больше не паузит владельца (self play/pause loop)
+
+- **Bajaruvchi:** Saidazim (Claude opus)  **Bajarilgan:** 2026-07-07 23:00  **Model:** opus
+- **O'zgarishlar:** `services/watch-party/src/socket/videoEvents.handler.ts` (BUFFER_START: `if (members <= 1) return` перед democratic pause; VIDEO_PAUSE через `socket.to` вместо `io.to` — исключить буферящего отправителя), `apps/mobile/src/hooks/useWatchPartyRoom.ts` (`emitBufferState`: не слать BUFFER_START при `activeMembers <= 1` — зеркало серверного гарда).
+- **Xulosa:** Root cause подтверждён prod-логами: `Democratic buffer pause members=1` зацикливался с `resumed room` — владелец один в комнате, буферизуя на HLS-прокси, заставлял сервер паузить/возобновлять его самого (баг «play/pause сам по себе»). При members=2 буфер владельца через `io.to` клал всю комнату (владелец стоп, мембер идёт). Фикс: сервер не паузит соло-комнату и исключает буферящего отправителя. Задеплоено `railway up` watch-party (healthcheck ✅). tsc: CLEAN (только pre-existing rootDir/LanguageTransition). Commit `e31fe72`. ⚠️ Мобильный гард — defense-in-depth, попадёт в приложение со следующей сборкой APK.
+
 ### F-219 | T-S110 | SSRF DNS-rebinding fix — hls-proxy resolved-IP validation
 
 - **Bajaruvchi:** Saidazim (Claude)  **Bajarilgan:** 2026-07-06 22:26  **Model:** sonnet
