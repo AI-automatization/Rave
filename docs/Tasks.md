@@ -1,6 +1,19 @@
 # CineSync — OCHIQ VAZIFALAR
 
-# Yangilangan: 2026-07-03
+# Yangilangan: 2026-07-07
+
+---
+
+### T-S117 | P0 | [BACKEND+MOBILE] | Sync: democratic buffer-pause паузит владельца (self play/pause loop)
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim (тест APK на эмуляторе 2026-07-07)
+- **Yaratilgan:** 2026-07-07 22:40
+- **Holat:** 🔄 Bajarilmoqda
+- **Tavsiya model:** sonnet
+- **Model sababi:** 2 файла, server socket handler + mobile owner-guard
+- **Sabab:** Подтверждено production-логами watch-part: `Democratic buffer pause members=1` → `resumed room` по кругу = владелец один в комнате, а сервер сам паузит/возобновляет видео (bug #1: play/pause/play/pause сам по себе). При members=2 владелец буферит на HLS-прокси → `io.to` VIDEO_PAUSE кладёт всех включая владельца, мембер под suppress продолжает (bug #2). Корень: `services/watch-party/src/socket/videoEvents.handler.ts` democratic pause (а) срабатывает при members≤1, (б) шлётся через `io.to` включая буферящего отправителя. Плюс клиентский owner-guard в `useWatchPartyRoom.ts` пробивается на HLS/тайминге.
+- **Файлы:** `services/watch-party/src/socket/videoEvents.handler.ts`, `apps/mobile/src/hooks/useWatchPartyRoom.ts`
 
 ---
 
