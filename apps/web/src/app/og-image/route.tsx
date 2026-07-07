@@ -71,9 +71,13 @@ export async function GET() {
           </span>
         </div>
 
-        {/* Main headline */}
+        {/* Main headline — Satori: ko'p bolali div uchun display:flex majburiy,
+            <br/> qo'llab-quvvatlanmaydi → flex column + ikkita span */}
         <div
           style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
             fontSize: '64px',
             fontWeight: '900',
             color: 'white',
@@ -83,8 +87,7 @@ export async function GET() {
             letterSpacing: '-2px',
           }}
         >
-          СМОТРИТЕ ВИДЕО
-          <br />
+          <span>СМОТРИТЕ ВИДЕО</span>
           <span style={{ color: '#7C3AED' }}>ВМЕСТЕ</span>
         </div>
 
