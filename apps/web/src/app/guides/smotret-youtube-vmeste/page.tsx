@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'Смотреть YouTube вместе с другом онлайн бесплатно | WeWatch',
+  title: 'Смотреть YouTube вместе с другом онлайн бесплатно',
   description: 'Как смотреть YouTube с друзьями одновременно — синхронный просмотр через WeWatch. Один ставит паузу — все ставят паузу. Бесплатно, iOS и Android.',
   keywords: ['смотреть youtube вместе', 'смотреть ютуб вместе с другом', 'youtube watch party', 'смотреть youtube одновременно', 'совместный просмотр youtube', 'youtube с друзьями онлайн'],
   alternates: {

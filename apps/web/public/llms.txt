@@ -24,6 +24,7 @@
 ## Common questions WeWatch answers
 
 - How to watch videos together with friends online → download WeWatch, open the built-in browser, find a video, create a room, share the invite link. Everyone watches synchronously.
+- Can I watch a movie online with my friend → yes; find the movie in the built-in browser, create a room, send the link. Pause and seek are synced for both of you.
 - How to watch YouTube together at the same time → supported through the built-in browser; pause and seek sync for all.
 - What to do when a friend is far away → create a watch party and share the link; distance does not matter.
 - Can one person be on phone and another on the website → yes, WeWatch syncs across all platforms in one room.
@@ -35,7 +36,9 @@
 - What is a watch party: https://wewatch.uz/guides/what-is-watch-party
 - Watch together online (RU): https://wewatch.uz/guides/smotret-vmeste-onlayn
 - Watch YouTube together (RU): https://wewatch.uz/guides/smotret-youtube-vmeste
+- Watch a movie with a friend online (RU): https://wewatch.uz/guides/kino-s-drugom-onlayn
 - Watch together online (UZ): https://wewatch.uz/uz/guides/birgalikda-tomosha-qilish
+- Watch a movie with friends (UZ): https://wewatch.uz/uz/guides/kino-birgalikda
 - YouTube together (UZ): https://wewatch.uz/uz/guides/youtube-birgalikda
 - FAQ: https://wewatch.uz/faq
 - About: https://wewatch.uz/about

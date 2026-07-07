@@ -1,11 +1,33 @@
 'use client';
 
 import Link from 'next/link';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { WeWatchLogo } from './WeWatchLogo';
+
+// Locale-aware guide links: sitewide internal links are the main crawl path
+// to the SEO guide pages, so each locale points to its own language versions.
+const GUIDE_LINKS: Record<string, { watchTogether: string; movie: string; youtube: string }> = {
+  ru: {
+    watchTogether: '/guides/smotret-vmeste-onlayn',
+    movie: '/guides/kino-s-drugom-onlayn',
+    youtube: '/guides/smotret-youtube-vmeste',
+  },
+  uz: {
+    watchTogether: '/uz/guides/birgalikda-tomosha-qilish',
+    movie: '/uz/guides/kino-birgalikda',
+    youtube: '/uz/guides/youtube-birgalikda',
+  },
+  en: {
+    watchTogether: '/guides/what-is-watch-party',
+    movie: '/guides/watch-movies-with-friends',
+    youtube: '/guides/watch-youtube-together',
+  },
+};
 
 export function Footer() {
   const t = useTranslations('footer');
+  const locale = useLocale();
+  const guides = GUIDE_LINKS[locale] ?? GUIDE_LINKS.ru;
 
   return (
     <footer className="bg-[#0A0A0F] border-t border-zinc-800/60 mt-auto">
@@ -28,6 +50,14 @@ export function Footer() {
               <ul className="space-y-2">
                 <li><Link href="/features" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('features')}</Link></li>
                 <li><Link href="/pricing"  className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('pricing')}</Link></li>
+              </ul>
+            </div>
+            <div>
+              <p className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-3">{t('guides')}</p>
+              <ul className="space-y-2">
+                <li><Link href={guides.watchTogether} className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('guideWatchTogether')}</Link></li>
+                <li><Link href={guides.movie} className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('guideMovie')}</Link></li>
+                <li><Link href={guides.youtube} className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('guideYoutube')}</Link></li>
               </ul>
             </div>
             <div>

@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: "Serial do'stlar bilan birgalikda ko'rish onlayn — bepul | WeWatch",
+  title: "Serial do'stlar bilan birgalikda ko'rish onlayn — bepul",
   description:
     "WeWatch orqali seriallarni do'stlaringiz bilan onlayn sinxron tomosha qiling. Turkish seriallar, koreya dramalari, rus seriallar — bepul, ro'yxatdan o'tmasdan.",
   keywords: [
@@ -171,6 +171,7 @@ export default function SerialBirgalikdaPage() {
               <Link href="/uz/guides/birgalikda-tomosha-qilish" className="text-sm text-purple-400 hover:text-purple-300 transition-colors">Birgalikda tomosha →</Link>
               <Link href="/uz/guides/youtube-birgalikda" className="text-sm text-purple-400 hover:text-purple-300 transition-colors">YouTube birgalikda →</Link>
               <Link href="/uz/guides/anime-birgalikda" className="text-sm text-purple-400 hover:text-purple-300 transition-colors">Anime birgalikda →</Link>
+              <Link href="/uz/guides/kino-birgalikda" className="text-sm text-purple-400 hover:text-purple-300 transition-colors">Kino birgalikda →</Link>
               <Link href="/guides/smotret-serial-vmeste" className="text-sm text-zinc-500 hover:text-zinc-400 transition-colors">На русском →</Link>
             </div>
           </div>

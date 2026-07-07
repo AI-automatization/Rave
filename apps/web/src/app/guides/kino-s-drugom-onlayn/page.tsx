@@ -2,10 +2,17 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'Смотреть кино с другом онлайн бесплатно | WeWatch',
+  title: 'Смотреть кино с другом онлайн бесплатно',
   description: 'Смотрите фильмы и кино с другом онлайн бесплатно через WeWatch. Синхронный просмотр на iPhone, Android и компьютере. Расстояние не важно.',
   keywords: ['кино с другом онлайн', 'смотреть кино с другом', 'смотреть фильм с другом онлайн бесплатно', 'кино с другом бесплатно', 'смотреть кино вместе онлайн', 'фильм с другом онлайн'],
-  alternates: { canonical: 'https://wewatch.uz/guides/kino-s-drugom-onlayn' },
+  alternates: {
+    canonical: 'https://wewatch.uz/guides/kino-s-drugom-onlayn',
+    languages: {
+      'ru': 'https://wewatch.uz/guides/kino-s-drugom-onlayn',
+      'uz': 'https://wewatch.uz/uz/guides/kino-birgalikda',
+      'x-default': 'https://wewatch.uz/guides/kino-s-drugom-onlayn',
+    },
+  },
   openGraph: {
     title: 'Кино с другом онлайн бесплатно | WeWatch',
     description: 'Синхронный просмотр фильмов с другом онлайн. Бесплатно, iOS и Android.',
@@ -31,6 +38,7 @@ const RELATED = [
   { href: '/guides/smotret-vmeste-onlayn', label: 'Смотреть вместе онлайн' },
   { href: '/guides/watch-movies-with-friends', label: 'Watch movies with friends' },
   { href: '/guides/smotret-serial-vmeste', label: 'Смотреть сериал вместе' },
+  { href: '/uz/guides/kino-birgalikda', label: "O'zbekcha" },
 ];
 
 export default function KinoSDrugoOnlaynPage() {

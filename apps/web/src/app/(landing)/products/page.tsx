@@ -4,7 +4,7 @@ import { ProductsContent } from './ProductsContent';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 
 export const metadata: Metadata = {
-  title: 'Продукты tezcode.dev — AI Office, RAOS, CoreMed, WeWatch и другие',
+  title: { absolute: 'Продукты tezcode.dev — AI Office, RAOS, CoreMed, WeWatch и другие' },
   description:
     'Восемь продуктов tezcode.dev: AI Office, RAOS, CoreMed, WorkControl, AI-Trade, WeWatch, Ventra, Savdo-Builder. AI-решения для бизнеса и людей из Ташкента.',
   alternates: { canonical: `${APP_URL}/products` },

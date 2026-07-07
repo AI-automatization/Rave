@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { FaPlay } from 'react-icons/fa';
 
 export const metadata: Metadata = {
-  title: 'DMCA Policy — WeWatch',
+  title: 'DMCA Policy',
   description: 'WeWatch DMCA / Copyright Policy — how to report copyright infringement and our takedown process.',
   robots: { index: true, follow: true },
 };

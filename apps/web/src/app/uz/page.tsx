@@ -11,7 +11,7 @@ const LANGUAGES = {
 };
 
 export const metadata: Metadata = {
-  title: "WeWatch — Do'stlar bilan birga video ko'rish | Bepul Watch Party",
+  title: { absolute: "WeWatch — Do'stlar bilan birga video ko'rish | Bepul Watch Party" },
   description:
     "WeWatch — YouTube, VK va Rutube'ni do'stlaring bilan real vaqtda birga ko'r. Biri telefonda, biri saytda — sinxron ishlaydi. Bepul watch party: chat, emoji. iOS va Android.",
   alternates: {
@@ -50,7 +50,7 @@ const jsonLd = {
       '@id': `${APP_URL}/uz#website`,
       url: `${APP_URL}/uz`,
       name: 'WeWatch',
-      alternateName: ['wewatch', 'wewatch.uz', "birga video ko'rish", "birga kino ko'rish"],
+      alternateName: ['wewatch', 'wewatch.uz', "birga video ko'rish", "birga kino ko'rish", "do'stlar bilan kino ko'rish"],
       description: "Do'stlar bilan birga video va kino ko'rish — YouTube, VK, Rutube real vaqtda sinxron",
       inLanguage: 'uz',
     },

@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'Watch Party бесплатно — лучшее приложение 2026 | WeWatch',
+  title: 'Watch Party бесплатно — лучшее приложение 2026',
   description: 'Бесплатный Watch Party для iOS и Android. WeWatch — смотри YouTube, VK, Rutube синхронно с друзьями. Без подписки, без ограничений по времени.',
   keywords: ['watch party бесплатно', 'бесплатный watch party', 'watch party приложение бесплатно', 'watch party без регистрации', 'лучший watch party', 'watch party ios android'],
   alternates: { canonical: 'https://wewatch.uz/guides/watch-party-besplatno' },

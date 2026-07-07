@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'Смотреть аниме вместе с другом онлайн бесплатно | WeWatch',
+  title: 'Смотреть аниме вместе с другом онлайн бесплатно',
   description: 'Смотрите аниме вместе с друзьями онлайн синхронно — через WeWatch. Любой сайт с аниме, бесплатно, без задержек. iOS и Android.',
   keywords: ['смотреть аниме вместе', 'смотреть аниме с другом онлайн', 'аниме watch party', 'смотреть аниме онлайн вместе бесплатно', 'совместный просмотр аниме'],
   alternates: {
