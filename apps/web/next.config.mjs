@@ -21,6 +21,13 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ['framer-motion', 'lucide-react'],
   },
+  async redirects() {
+    // Eski indekslangan URL'lar (Google keshida qolgan) — haqiqiy sahifalarga
+    // 301 yo'naltiramiz, 404 o'rniga link-equity saqlanadi.
+    return [
+      { source: '/how-it-works', destination: '/', permanent: true },
+    ];
+  },
   async headers() {
     // Marketing / legal pages carry no personalization — safe to cache at the CDN
     // edge. A fresh build on every deploy regenerates them, so no staleness risk.
