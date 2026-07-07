@@ -7,7 +7,10 @@ import { encryptText, decryptText } from '../utils/dmCrypto';
 const PAGE_SIZE = 50;
 
 export interface DMMessage {
-  id: string;
+  // Must be `_id` (not `id`): the mobile client, keyExtractor and socket-echo
+  // dedup all key on `_id`. Returning `id` left every message with `_id: undefined`
+  // → broken FlatList keys → sent message flickered out until re-entering the chat.
+  _id: string;
   senderId: string;
   receiverId: string;
   text: string;
@@ -49,7 +52,7 @@ export class DMService {
       .lean();
 
     return msgs.reverse().map((m) => ({
-      id: String(m._id),
+      _id: String(m._id),
       senderId: m.senderId,
       receiverId: m.receiverId,
       text: decryptText(m.text),
@@ -72,7 +75,7 @@ export class DMService {
     const msg = await DirectMessage.create({ senderId, receiverId, text: encryptText(trimmed) });
 
     return {
-      id: String(msg._id),
+      _id: String(msg._id),
       senderId: msg.senderId,
       receiverId: msg.receiverId,
       text: trimmed,
