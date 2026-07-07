@@ -53,8 +53,8 @@ claude CLAUDE.md --channels plugin:telegram@claude-plugins-official --dangerousl
 
 | Бот | Назначение | Chat IDs |
 |-----|-----------|----------|
-| WeWatch бот (`8734969603:...`) | Основной — общение с Claude, задачи, код | личка Saidazim + группа |
-| Blogy бот (`8919149702:...`) | Отдельный агент для проекта Blogy (инфлюенсеры) | все чаты |
+| WeWatch бот (токен в env `CLAUDE_TG_BOT_TOKEN`) | Основной — общение с Claude, задачи, код | личка Saidazim + группа |
+| Blogy бот (токен в env) | Отдельный агент для проекта Blogy (инфлюенсеры) | все чаты |
 
 ---
 

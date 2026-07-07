@@ -10,7 +10,7 @@ VAULT="${OBSIDIAN_VAULT:-$HOME/Documents/weWatch-obsidian}"
 DATE=$(date '+%Y-%m-%d')
 TIME=$(date '+%H:%M')
 LOG_FILE="/tmp/nightly-run-$DATE.log"
-BOT_TOKEN="${CLAUDE_TG_BOT_TOKEN:-8734969603:AAF0FcbPp86XYgTkWf2Sveqqy8QOB_dh8P0}"
+BOT_TOKEN="${CLAUDE_TG_BOT_TOKEN:-}"
 CHAT_ID="${CLAUDE_TG_CHAT_ID:-6299152655}"
 RAVE="/Users/saidazim/Desktop/Rave"
 
@@ -18,6 +18,7 @@ log() { echo "[$TIME] $*" | tee -a "$LOG_FILE"; }
 
 tg_send() {
   local text="$1"
+  [ -z "$BOT_TOKEN" ] && return 0
   curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/sendMessage" \
     -d "chat_id=$CHAT_ID&text=$text&parse_mode=Markdown" > /dev/null 2>&1 || true
 }
