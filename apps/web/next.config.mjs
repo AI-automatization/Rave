@@ -8,9 +8,6 @@ const nextConfig = {
     // a web dep — suppress next build's type-check step in CI/Docker
     ignoreBuildErrors: true,
   },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: '**.cloudinary.com' },
@@ -94,6 +91,4 @@ export default withSentryConfig(nextConfig, {
   silent: true,
   widenClientFileUpload: true,
   hideSourceMaps: true,
-  disableLogger: true,
-  automaticVercelMonitors: false,
 });
