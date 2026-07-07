@@ -44,10 +44,25 @@ const nextConfig = {
     );
   },
   async headers() {
+    // Marketing / legal pages carry no personalization — safe to cache at the CDN
+    // edge. A fresh build on every deploy regenerates them, so no staleness risk.
+    const PUBLIC_CACHE = 'public, s-maxage=3600, stale-while-revalidate=86400';
+    const cacheablePaths = [
+      '/', '/uz', '/en',
+      '/features', '/pricing', '/products', '/company', '/contact',
+      '/about', '/faq', '/terms', '/privacy-policy', '/dmca', '/delete-account',
+      '/guides/:slug*', '/uz/guides/:slug*',
+    ];
     return [
+      ...cacheablePaths.map((source) => ({
+        source,
+        headers: [{ key: 'Cache-Control', value: PUBLIC_CACHE }],
+      })),
       {
-        // Never cache HTML pages in CDN — force revalidation on every deploy
-        source: '/((?!_next/static|_next/image|favicon\\.ico).*)',
+        // Everything else (app shells, auth, API) is never cached. The allowlist
+        // above wins for the public pages; this excludes them to avoid a double header.
+        source:
+          '/((?!_next/static|_next/image|favicon\\.ico|guides/|uz/guides/|uz$|en$|features$|pricing$|products$|company$|contact$|about$|faq$|terms$|privacy-policy$|dmca$|delete-account$|$).*)',
         headers: [
           { key: 'Cache-Control', value: 'no-cache, must-revalidate' },
         ],

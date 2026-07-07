@@ -34,12 +34,9 @@ export function middleware(req: NextRequest) {
     }
   }
 
-  // Pass pathname to server components — root layout reads it to set <html lang> in SSR
-  const requestHeaders = new Headers(req.headers);
-  requestHeaders.set('x-pathname', pathname);
-  return NextResponse.next({ request: { headers: requestHeaders } });
+  return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/home/:path*', '/room/:path*', '/profile/:path*', '/friends/:path*', '/messages/:path*', '/login', '/register/:path*', '/uz/:path*'],
+  matcher: ['/home/:path*', '/room/:path*', '/profile/:path*', '/friends/:path*', '/messages/:path*', '/login', '/register/:path*', '/uz/:path*', '/en/:path*'],
 };

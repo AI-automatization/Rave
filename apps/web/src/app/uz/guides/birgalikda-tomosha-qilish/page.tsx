@@ -21,6 +21,7 @@ export const metadata: Metadata = {
     languages: {
       'ru': 'https://wewatch.uz/guides/smotret-vmeste-onlayn',
       'uz': 'https://wewatch.uz/uz/guides/birgalikda-tomosha-qilish',
+      'x-default': 'https://wewatch.uz/guides/smotret-vmeste-onlayn',
     },
   },
   openGraph: {

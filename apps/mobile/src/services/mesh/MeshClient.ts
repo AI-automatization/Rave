@@ -36,6 +36,11 @@ interface ClockMsg {
 
 const CLOCK_PING_ROUNDS = 5;
 const CLOCK_PING_INTERVAL_MS = 400;
+// Clock drift accumulates over a long watch-party session — re-run the NTP-style exchange
+// periodically instead of trusting the one sample taken at DataChannel open.
+const CLOCK_RESYNC_INTERVAL_MS = 5 * 60 * 1000;
+// Give a failed connection one chance to recover via ICE restart before tearing it down.
+const ICE_RESTART_DELAY_MS = 2000;
 
 export class MeshClient {
   private peers = new Map<string, MeshPeer>();
@@ -46,6 +51,11 @@ export class MeshClient {
   // Clock offset (ms) per peer: peerClock = ourClock + offset. Best (min-RTT) sample wins.
   private clockOffsets = new Map<string, number>();
   private bestRtt = new Map<string, number>();
+  // Periodic re-sync timers per peer (setInterval while DataChannel is open).
+  private clockResyncTimers = new Map<string, ReturnType<typeof setInterval>>();
+  // Tracks which peers already used their one ICE-restart retry, and the pending retry timers.
+  private iceRestartAttempted = new Set<string>();
+  private iceRestartTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
   constructor(userId: string, roomId: string, onEvent: MeshEventHandler) {
     this.userId = userId;
@@ -108,6 +118,11 @@ export class MeshClient {
       peer.connection.close();
     }
     this.peers.clear();
+    for (const timer of this.clockResyncTimers.values()) clearInterval(timer);
+    this.clockResyncTimers.clear();
+    for (const timer of this.iceRestartTimers.values()) clearTimeout(timer);
+    this.iceRestartTimers.clear();
+    this.iceRestartAttempted.clear();
   }
 
   // ── Private: Peer connection management ──────────────────────────
@@ -142,15 +157,61 @@ export class MeshClient {
       const state = pc.connectionState;
       if (state === 'connected') {
         peer.isConnected = true;
+        // Connection recovered — a future failure gets its own fresh restart attempt.
+        this.iceRestartAttempted.delete(peerId);
         this.onEvent({ type: 'connected', peerId });
       } else if (state === 'disconnected' || state === 'failed' || state === 'closed') {
         peer.isConnected = false;
         this.onEvent({ type: 'disconnected', peerId });
-        if (state === 'failed') this.removePeer(peerId);
+        if (state === 'failed') {
+          if (!this.iceRestartAttempted.has(peerId)) {
+            this.scheduleIceRestart(peerId);
+          } else {
+            this.removePeer(peerId);
+          }
+        }
       }
     };
 
+    // __DEV__ telemetry only — lets us see whether a mesh actually came up (host/srflx/relay)
+    // without instrumenting every call site. getIceServers() already handles the real
+    // TURN/STUN selection; this just observes the outcome.
+    pcAny.oniceconnectionstatechange = () => {
+      if (__DEV__) console.log(`[MeshClient] ICE state ${peerId}: ${pc.iceConnectionState}`);
+    };
+
     return pc;
+  }
+
+  /** One-shot ICE restart retry, scheduled ~2s after a peer connection fails. */
+  private scheduleIceRestart(peerId: string): void {
+    this.iceRestartAttempted.add(peerId);
+    const timer = setTimeout(() => {
+      this.iceRestartTimers.delete(peerId);
+      void this.attemptIceRestart(peerId);
+    }, ICE_RESTART_DELAY_MS);
+    this.iceRestartTimers.set(peerId, timer);
+  }
+
+  private async attemptIceRestart(peerId: string): Promise<void> {
+    const peer = this.peers.get(peerId);
+    if (this.destroyed || !peer) return;
+    const pc = peer.connection as InstanceType<NonNullable<typeof RTCPeerConnection>>;
+    // Already recovered on its own, or moved past 'failed' (e.g. closed) — nothing to do.
+    if (pc.connectionState !== 'failed') return;
+    try {
+      if (__DEV__) console.log(`[MeshClient] ICE restart attempt: ${peerId}`);
+      const offer = await pc.createOffer({ iceRestart: true });
+      await pc.setLocalDescription(offer);
+      getSocket()?.emit(CLIENT_EVENTS.PEER_OFFER, {
+        roomId: this.roomId,
+        toUserId: peerId,
+        sdp: { type: 'offer', sdp: offer.sdp ?? '' },
+      });
+    } catch (err) {
+      if (__DEV__) console.log(`[MeshClient] ICE restart failed, removing peer: ${peerId}: ${err}`);
+      this.removePeer(peerId);
+    }
   }
 
   private setupDataChannel(peerId: string, channel: MeshPeer['dataChannel']): void {
@@ -178,10 +239,12 @@ export class MeshClient {
     channel.onopen = () => {
       if (__DEV__) console.log(`[MeshClient] DataChannel open: ${peerId}`);
       this.startClockSync(peerId);
+      this.startPeriodicClockResync(peerId);
     };
 
     channel.onclose = () => {
       if (__DEV__) console.log(`[MeshClient] DataChannel closed: ${peerId}`);
+      this.stopPeriodicClockResync(peerId);
     };
   }
 
@@ -193,6 +256,13 @@ export class MeshClient {
     this.peers.delete(peerId);
     this.clockOffsets.delete(peerId);
     this.bestRtt.delete(peerId);
+    this.stopPeriodicClockResync(peerId);
+    this.iceRestartAttempted.delete(peerId);
+    const iceTimer = this.iceRestartTimers.get(peerId);
+    if (iceTimer) {
+      clearTimeout(iceTimer);
+      this.iceRestartTimers.delete(peerId);
+    }
   }
 
   // ── Clock sync (NTP-style over DataChannel) ──────────────────────────
@@ -214,6 +284,29 @@ export class MeshClient {
       if (++round < CLOCK_PING_ROUNDS) setTimeout(tick, CLOCK_PING_INTERVAL_MS);
     };
     tick();
+  }
+
+  /** Re-run the clock sync burst every CLOCK_RESYNC_INTERVAL_MS while the channel stays open. */
+  private startPeriodicClockResync(peerId: string): void {
+    // Guard against a duplicate interval if onopen ever fires twice for the same peer.
+    this.stopPeriodicClockResync(peerId);
+    const timer = setInterval(() => {
+      const peer = this.peers.get(peerId);
+      if (this.destroyed || !peer || peer.dataChannel?.readyState !== 'open') {
+        this.stopPeriodicClockResync(peerId);
+        return;
+      }
+      this.startClockSync(peerId);
+    }, CLOCK_RESYNC_INTERVAL_MS);
+    this.clockResyncTimers.set(peerId, timer);
+  }
+
+  private stopPeriodicClockResync(peerId: string): void {
+    const timer = this.clockResyncTimers.get(peerId);
+    if (timer) {
+      clearInterval(timer);
+      this.clockResyncTimers.delete(peerId);
+    }
   }
 
   private handleClockMessage(peerId: string, msg: ClockMsg): void {

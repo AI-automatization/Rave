@@ -9,9 +9,10 @@ export function LocaleHtmlUpdater() {
   const pathname = usePathname();
 
   useEffect(() => {
-    // /uz routes are Uzbek by URL — never let the client store downgrade SSR's lang="uz"
+    // /uz and /en are locale-by-URL — never let the client store downgrade SSR's lang
     const isUzRoute = pathname === '/uz' || pathname.startsWith('/uz/');
-    document.documentElement.lang = isUzRoute ? 'uz' : locale;
+    const isEnRoute = pathname === '/en' || pathname.startsWith('/en/');
+    document.documentElement.lang = isUzRoute ? 'uz' : isEnRoute ? 'en' : locale;
   }, [locale, pathname]);
 
   return null;

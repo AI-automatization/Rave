@@ -13,6 +13,8 @@ const trackEvent = (name: string, params?: Record<string, unknown>) => {
 interface CampaignData { _id: string; name: string; slug: string; description: string; subscriberCount: number; }
 
 function NewsletterSection() {
+  const t = useTranslations('landing');
+  const locale = useLocale();
   const [campaigns, setCampaigns]           = useState<CampaignData[]>([]);
   const [emails, setEmails]                 = useState<Record<string, string>>({});
   const [done, setDone]                     = useState<Record<string, boolean>>({});
@@ -36,7 +38,7 @@ function NewsletterSection() {
       await fetch(`/api/campaigns/${slug}/subscribe`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, locale: 'ru' }),
+        body: JSON.stringify({ email, locale }),
       });
       trackEvent('campaign_subscribe', { slug });
       setDone(p => ({ ...p, [slug]: true }));
@@ -45,11 +47,11 @@ function NewsletterSection() {
   };
 
   return (
-    <section className="py-20 px-4 bg-[#0A0A0F] relative" aria-label="Рассылки">
+    <section className="py-20 px-4 bg-[#0A0A0F] relative" aria-label={t('newsletterEyebrow')}>
       <div className="max-w-3xl mx-auto">
         <motion.div variants={stagger} initial="hidden" whileInView="visible" viewport={{ once: true }} className="text-center mb-12">
-          <motion.p variants={fadeUp} className="text-[#7B72F8] text-xs uppercase tracking-widest font-semibold mb-3">Рассылки</motion.p>
-          <motion.h2 variants={fadeUp} className="text-3xl md:text-4xl font-display uppercase text-white">Будь в курсе</motion.h2>
+          <motion.p variants={fadeUp} className="text-[#7B72F8] text-xs uppercase tracking-widest font-semibold mb-3">{t('newsletterEyebrow')}</motion.p>
+          <motion.h2 variants={fadeUp} className="text-3xl md:text-4xl font-display uppercase text-white">{t('newsletterTitle')}</motion.h2>
         </motion.div>
         <div className="flex flex-col gap-4">
           {campaigns.map((c, i) => (
@@ -60,13 +62,13 @@ function NewsletterSection() {
                     <h3 className="text-white font-semibold text-base mb-1">{c.name}</h3>
                     {c.description && <p className="text-zinc-500 text-sm leading-relaxed">{c.description}</p>}
                     {c.subscriberCount > 0 && (
-                      <p className="text-zinc-600 text-xs mt-1">{c.subscriberCount} подписчиков</p>
+                      <p className="text-zinc-600 text-xs mt-1">{c.subscriberCount} {t('newsletterSubscribers')}</p>
                     )}
                   </div>
                   {done[c.slug] ? (
                     <motion.p initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
                       className="text-green-400 text-sm flex items-center gap-1.5 shrink-0">
-                      <FaCheck size={11} /> Подписка оформлена
+                      <FaCheck size={11} /> {t('newsletterDone')}
                     </motion.p>
                   ) : (
                     <form onSubmit={e => handleSubscribe(c.slug, e)} className="flex gap-2 w-full sm:w-auto sm:min-w-[300px]">
@@ -74,12 +76,12 @@ function NewsletterSection() {
                         type="email" required
                         value={emails[c.slug] ?? ''}
                         onChange={e => setEmails(p => ({ ...p, [c.slug]: e.target.value }))}
-                        placeholder="твой@email.ru"
+                        placeholder={t('newsletterPlaceholder')}
                         className="flex-1 h-10 px-3 rounded-xl bg-zinc-900/80 border border-zinc-700/60 text-zinc-200 text-sm placeholder:text-zinc-600 focus:outline-none focus:border-[#7B72F8]/60 transition-colors"
                       />
                       <button type="submit" disabled={submitting[c.slug]}
                         className="h-10 px-4 rounded-xl text-sm font-semibold text-white bg-[#7B72F8]/20 border border-[#7B72F8]/40 hover:bg-[#7B72F8]/30 transition-all cursor-pointer disabled:opacity-50 shrink-0">
-                        {submitting[c.slug] ? '...' : 'Подписаться'}
+                        {submitting[c.slug] ? '...' : t('newsletterSubscribe')}
                       </button>
                     </form>
                   )}
@@ -93,21 +95,13 @@ function NewsletterSection() {
   );
 }
 // ── FAQ Accordion ─────────────────────────────────────────────────────────────
-const FAQ_ITEMS = [
-  { q: 'Как смотреть видео вместе с друзьями онлайн?', a: 'Скачайте WeWatch, откройте встроенный браузер, найдите видео на YouTube, VK или Rutube, создайте комнату и отправьте ссылку другу. Все участники видят один и тот же кадр в реальном времени.' },
-  { q: 'WeWatch бесплатный?', a: 'Да, WeWatch полностью бесплатный. Скачайте приложение в App Store или Google Play и сразу начните смотреть с друзьями — регистрация по номеру телефона.' },
-  { q: 'Можно ли смотреть YouTube с друзьями одновременно?', a: 'Да. WeWatch поддерживает YouTube, VK Видео, Rutube, Uzmove и любые другие сайты через встроенный браузер. Пауза и перемотка работают для всех участников одновременно.' },
-  { q: 'Что делать, когда друг далеко?', a: 'Создайте Watch Party в WeWatch, пригласите друга по ссылке — и вы смотрите синхронно, как будто сидите рядом. Расстояние не имеет значения.' },
-  { q: 'Можно ли смотреть если один на телефоне, а другой на сайте?', a: 'Да — WeWatch синхронизирует просмотр между всеми платформами одновременно. iPhone, Android и браузер на компьютере работают в одной комнате без ограничений.' },
-  { q: 'Сколько человек может смотреть вместе?', a: 'Несколько участников одновременно. Создайте комнату, поделитесь ссылкой — все, кто перейдёт, будут смотреть синхронно.' },
-  { q: 'Можно ли смотреть аниме или сериалы вместе?', a: 'Да, WeWatch работает с любыми видеосайтами через встроенный браузер — включая сайты с аниме и сериалами. Просто откройте нужный сайт и создайте комнату.' },
-];
-
 function FAQAccordion() {
+  const t = useTranslations('landing');
+  const items = t.raw('faqItems') as { q: string; a: string }[];
   const [open, setOpen] = useState<number | null>(null);
   return (
     <div className="flex flex-col gap-2">
-      {FAQ_ITEMS.map(({ q, a }, i) => (
+      {items.map(({ q, a }, i) => (
         <motion.div
           key={q}
           variants={fadeUpScale}
@@ -154,7 +148,7 @@ import {
   FaFilm, FaTv, FaArrowRight,
 } from 'react-icons/fa';
 import Link from 'next/link';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { LandingNav } from '@/components/common/LandingNav';
 import { Footer } from '@/components/common/Footer';
 import { StatsWidget } from '@/components/common/StatsWidget';
@@ -181,17 +175,16 @@ const screenVariants: Variants = {
   exit:   { opacity: 0, y: -8, scale: 0.98, transition: { duration: 0.15 } },
 };
 
-const APP_STORE = 'https://apps.apple.com';
 const TYPING_URL  = 'youtube.com';
 
-
-const HERO_BUBBLES = [
-  { top: '28%', left: '7%',  label: 'Sardor',  color: '#7B72F8', delay: 0   },
-  { top: '62%', left: '5%',  label: 'Nilufar', color: '#a855f7', delay: 0.5 },
-  { top: '22%', right: '7%', label: 'Bobur',   color: '#22d3ee', delay: 1   },
-  { top: '65%', right: '5%', label: 'Akbar',   color: '#f43f5e', delay: 1.5 },
+// Hero preview — real thumbnails that cycle inside the mini watch-party card
+const HERO_MOVIES = [
+  { cat: 'Кино',     meta: '4K', bg: '#1a1230', img: 'https://beam-images.warnermediacdn.com/BEAM_LWM_DELIVERABLES/aa5b9295-8f9c-44f5-809b-3f2b84badfbf/8a7dd34b09c9c25336a3d850d4c431455e1aaaf0.jpg?host=wbd-images.prod-vod.h264.io&partner=beamcom&w=500' },
+  { cat: 'YouTube',  meta: 'HD', bg: '#2a1020', img: 'https://i.ytimg.com/vi/yGcXBa9lUco/hq720.jpg?sqp=-oaymwEhCK4FEIIDSFryq4qpAxMIARUAAAAAGAElAADIQj0AgKJD&rs=AOn4CLAj71HTI9a9MYcxHumJjckddZqMpA' },
+  { cat: 'YouTube',  meta: '4K', bg: '#102a38', img: 'https://i.ytimg.com/vi/BXX6vH4kr7Q/maxresdefault.jpg' },
+  { cat: 'Клип',     meta: 'HD', bg: '#301a40', img: 'https://i.ytimg.com/vi/xjrsvzKKYSg/maxresdefault.jpg' },
+  { cat: 'VK Видео', meta: 'HD', bg: '#14301f', img: 'https://sun9-50.userapi.com/impg/okCxVqdOOAzS8koDhTbej4dU46CTdWEnWGexHg/ZY8YieXzMNg.jpg?size=1152x648&quality=95&sign=96c3734375874b3e64eca8077a807080&type=video_thumb' },
 ] as const;
-
 
 
 // ── Noise overlay (static, не перерисовывается) ────────────────────────────
@@ -1464,6 +1457,7 @@ export function LandingContent() {
   const [activeScreen, setActiveScreen] = useState(0);
   const [visibleChats, setVisibleChats] = useState<number[]>([]);
   const [urlText, setUrlText] = useState('');
+  const [movieIdx, setMovieIdx] = useState(0);
   const [waitlistEmail, setWaitlistEmail] = useState('');
   const [waitlistDone, setWaitlistDone] = useState(false);
 
@@ -1515,6 +1509,13 @@ export function LandingContent() {
     return () => clearInterval(id);
   }, [shouldReduceMotion]);
 
+  // Hero preview — cycle content types in the mini watch-party card
+  useEffect(() => {
+    if (shouldReduceMotion) return;
+    const id = setInterval(() => setMovieIdx(i => (i + 1) % HERO_MOVIES.length), 3200);
+    return () => clearInterval(id);
+  }, [shouldReduceMotion]);
+
   // Auto-cycle screens — skill §7: interruptible, not blocking
   useEffect(() => {
     const DURATIONS = [3500, 3500, 5000];
@@ -1540,7 +1541,7 @@ export function LandingContent() {
       <main className="flex-1" id="main-content">
 
         {/* ── HERO ── */}
-        <section ref={heroRef} className="relative min-h-dvh flex items-center justify-center overflow-hidden bg-[#0A0A0F]"
+        <section ref={heroRef} className="relative min-h-dvh flex items-start justify-center overflow-hidden bg-[#0A0A0F]"
           aria-labelledby="hero-heading">
           <motion.div className="absolute inset-0 pointer-events-none" style={{ y: heroY, opacity: heroOpacity }} aria-hidden="true">
             {/* Mesh gradient */}
@@ -1562,92 +1563,224 @@ export function LandingContent() {
               <rect width="100%" height="100%" fill="url(#grid)" />
             </svg>
             <StarField />
-            {/* Floating user bubbles */}
-            {HERO_BUBBLES.map((b, i) => (
-              <motion.div key={i}
-                className="absolute hidden md:flex items-center gap-1.5 rounded-full px-3.5 py-2 backdrop-blur-md"
-                style={{ top: b.top, ...('left' in b ? { left: b.left } : { right: b.right }), background: `${b.color}14`, border: `1px solid ${b.color}30` }}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={shouldReduceMotion ? { opacity: 1, scale: 1 } : { opacity: [0, 1, 1, 0], scale: [0.8, 1, 1, 0.9], y: [0, -8, -8, 0] }}
-                transition={{ delay: b.delay, duration: 4.5, repeat: Infinity, repeatDelay: 2.5 }}>
-                <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: b.color }} aria-hidden="true" />
-                <span className="text-xs text-white/70 font-medium">{b.label}</span>
-              </motion.div>
-            ))}
           </motion.div>
 
-          <div className="relative z-10 text-center px-4 max-w-5xl mx-auto pt-32 pb-24">
-            {/* Badge */}
-            <motion.div initial={{ opacity: 0, y: -16, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 22 }}
-              whileHover={{ scale: 1.05, rotate: 2, boxShadow: '0 0 40px rgba(123,114,248,0.35), inset 0 1px 0 rgba(255,255,255,0.08)' }}
-              className="inline-flex items-center gap-2 mb-8 px-5 py-2.5 rounded-full border border-[#7B72F8]/35 bg-[#7B72F8]/08 backdrop-blur-md text-sm text-white/80 cursor-default"
-              style={{ boxShadow: '0 0 32px rgba(123,114,248,0.22), inset 0 1px 0 rgba(255,255,255,0.06)' }}>
-              <FaApple size={14} className="text-white/90" aria-hidden="true" />
-              {t('heroBadge')}
-            </motion.div>
+          <div className="relative z-10 w-full px-4 sm:px-6 max-w-7xl mx-auto pt-32 pb-24 grid lg:grid-cols-[1.05fr_0.95fr] gap-12 lg:gap-10 items-center">
+            {/* ── LEFT: copy ── */}
+            <div className="text-center lg:text-left">
+              {/* Badge */}
+              <motion.div initial={{ opacity: 0, y: -16, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 22 }}
+                whileHover={{ scale: 1.04, boxShadow: '0 0 40px rgba(123,114,248,0.35), inset 0 1px 0 rgba(255,255,255,0.08)' }}
+                className="inline-flex items-center gap-2 mb-7 px-4 py-2 rounded-full border border-[#7B72F8]/35 bg-[#7B72F8]/[0.08] backdrop-blur-md text-xs sm:text-sm text-white/80 cursor-default"
+                style={{ boxShadow: '0 0 32px rgba(123,114,248,0.22), inset 0 1px 0 rgba(255,255,255,0.06)' }}>
+                <span className="relative flex h-2 w-2" aria-hidden="true">
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-[#7B72F8] opacity-60 animate-ping" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-[#7B72F8]" />
+                </span>
+                {t('heroBadge')}
+              </motion.div>
 
-            {/* H1 — skill §6: bold display, clear hierarchy */}
-            <motion.h1 id="hero-heading" initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-display uppercase leading-none tracking-tight mb-6 text-white"
-              style={{ textShadow: '0 0 120px rgba(123,114,248,0.28)' }}>
-              {t('heroTitle1')}<br />
-              <span className="relative inline-block">
-                <motion.span className="bg-clip-text text-transparent"
-                  style={{ backgroundImage: 'linear-gradient(135deg, #7B72F8 0%, #a855f7 50%, #7B72F8 100%)', backgroundSize: '200% 200%' }}
-                  animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
-                  transition={{ repeat: Infinity, duration: 5, ease: 'easeInOut' }}>
-                  {t('heroTitle2')}
+              {/* H1 — skill §6: bold display, clear hierarchy */}
+              <motion.h1 id="hero-heading" initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.1 }}
+                className="text-5xl sm:text-6xl lg:text-6xl xl:text-7xl font-display uppercase leading-[0.9] tracking-tight mb-6 text-white"
+                style={{ textShadow: '0 0 120px rgba(123,114,248,0.28)' }}>
+                {t('heroTitle1')}<br />
+                <span className="relative inline-block">
+                  <motion.span className="bg-clip-text text-transparent"
+                    style={{ backgroundImage: 'linear-gradient(135deg, #7B72F8 0%, #a855f7 50%, #7B72F8 100%)', backgroundSize: '200% 200%' }}
+                    animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
+                    transition={{ repeat: Infinity, duration: 5, ease: 'easeInOut' }}>
+                    {t('heroTitle2')}
+                  </motion.span>
+                  <motion.span className="absolute -bottom-1 left-0 right-0 h-0.5 rounded-full" aria-hidden="true"
+                    style={{ background: 'linear-gradient(90deg, transparent, #7B72F8, #a855f7, transparent)', opacity: 0.6 }}
+                    animate={shouldReduceMotion ? {} : { scaleX: [0, 1] }} transition={{ delay: 0.9, duration: 0.6 }} />
+                </span>
+              </motion.h1>
+
+              {/* Subtitle — §6: 1.5 line-height, ≤65 chars/line */}
+              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.55, delay: 0.3 }}
+                className="text-zinc-400 text-lg md:text-xl max-w-xl mx-auto lg:mx-0 mb-8 leading-relaxed">
+                {t('heroSub')}
+              </motion.p>
+
+              {/* Feature checks */}
+              <motion.ul initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.4 }}
+                className="flex flex-wrap items-center justify-center lg:justify-start gap-x-6 gap-y-2.5 mb-9">
+                {[t('heroCheck1'), t('heroCheck2'), t('heroCheck3')].map((c) => (
+                  <li key={c} className="inline-flex items-center gap-2 text-sm text-zinc-300">
+                    <span className="flex items-center justify-center w-4 h-4 rounded-full bg-green-500/15" aria-hidden="true">
+                      <FaCheck size={9} className="text-green-400" />
+                    </span>
+                    {c}
+                  </li>
+                ))}
+              </motion.ul>
+
+              {/* CTA buttons — §1: cursor-pointer, min h-14 (>44px touch target) */}
+              <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, delay: 0.5 }}
+                className="flex gap-4 justify-center lg:justify-start flex-wrap">
+                <motion.span aria-disabled="true"
+                  className="group relative inline-flex items-center gap-3 h-14 px-8 rounded-xl text-white font-semibold cursor-default select-none overflow-hidden"
+                  style={{ background: 'linear-gradient(135deg, #7B72F8, #6B63E8)', opacity: 0.92, boxShadow: '0 0 32px rgba(123,114,248,0.5), inset 0 1px 0 rgba(255,255,255,0.12)' }}>
+                  <motion.div className="absolute inset-0 pointer-events-none" aria-hidden="true"
+                    style={{ background: 'linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.15) 50%, transparent 60%)' }}
+                    animate={{ x: ['-100%', '200%'] }}
+                    transition={{ repeat: Infinity, duration: 3.5, ease: 'linear', repeatDelay: 2.5 }} />
+                  <FaApple size={22} className="relative z-10" aria-hidden="true" />
+                  <div className="text-left leading-tight relative z-10">
+                    <div className="text-[10px] opacity-70">Download on the</div>
+                    <div className="text-[15px] font-bold">App Store</div>
+                  </div>
+                  <span className="relative z-10 ml-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/20">{t('soon')}</span>
                 </motion.span>
-                <motion.span className="absolute -bottom-1 left-0 right-0 h-0.5 rounded-full" aria-hidden="true"
-                  style={{ background: 'linear-gradient(90deg, transparent, #7B72F8, #a855f7, transparent)', opacity: 0.6 }}
-                  animate={shouldReduceMotion ? {} : { scaleX: [0, 1] }} transition={{ delay: 0.9, duration: 0.6 }} />
-              </span>
-            </motion.h1>
+                <motion.a href="#demo"
+                  className="inline-flex items-center gap-2 h-14 px-8 rounded-xl border border-zinc-700/80 text-zinc-300 hover:border-[#7B72F8]/50 hover:text-white hover:bg-[#7B72F8]/[0.06] transition-colors duration-200 text-sm backdrop-blur-sm cursor-pointer"
+                  whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                  aria-label="Посмотреть как работает WeWatch">
+                  <FaPlay size={11} aria-hidden="true" />
+                  {t('heroHowBtn')}
+                </motion.a>
+              </motion.div>
 
-            {/* Subtitle — §6: 1.5 line-height, ≤65 chars/line */}
-            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.55, delay: 0.3 }}
-              className="text-zinc-400 text-lg md:text-xl max-w-2xl mx-auto mb-12 leading-relaxed">
-              {t('heroSub')}
-            </motion.p>
+              {/* Trust badge */}
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}
+                className="mt-8 inline-flex items-center gap-2 px-4 py-2 rounded-full border border-zinc-800 bg-zinc-900/50 text-xs text-zinc-500">
+                <FaShieldAlt size={11} className="text-[#7B72F8]" aria-hidden="true" />
+                <span>{t('heroTrust')}</span>
+              </motion.div>
+            </div>
 
-            {/* CTA buttons — §1: cursor-pointer, min h-14 (>44px touch target) */}
-            <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, delay: 0.45 }}
-              className="flex gap-4 justify-center flex-wrap">
-              <motion.a href={APP_STORE} target="_blank" rel="noopener noreferrer"
-                onClick={() => trackEvent('app_store_click', { location: 'hero' })}
-                className="group relative inline-flex items-center gap-3 h-14 px-8 rounded-xl text-white font-semibold cursor-pointer overflow-hidden"
-                style={{ background: 'linear-gradient(135deg, #7B72F8, #6B63E8)', boxShadow: '0 0 32px rgba(123,114,248,0.55), inset 0 1px 0 rgba(255,255,255,0.12)' }}
-                whileHover={{ scale: 1.06, y: -2, boxShadow: '0 0 48px rgba(123,114,248,0.75), inset 0 1px 0 rgba(255,255,255,0.15)' }}
-                whileTap={{ scale: 0.97 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                aria-label="WeWatch-ni App Store-dan yuklab oling">
-                <motion.div className="absolute inset-0 pointer-events-none" aria-hidden="true"
-                  style={{ background: 'linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.15) 50%, transparent 60%)' }}
-                  animate={{ x: ['-100%', '200%'] }}
-                  transition={{ repeat: Infinity, duration: 3.5, ease: 'linear', repeatDelay: 2.5 }} />
-                <FaApple size={22} className="relative z-10" aria-hidden="true" />
-                <div className="text-left leading-tight relative z-10">
-                  <div className="text-[10px] opacity-70">Download on the</div>
-                  <div className="text-[15px] font-bold">App Store</div>
+            {/* ── RIGHT: live sync demo card ── */}
+            <motion.div initial={{ opacity: 0, y: 30, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 24, delay: 0.35 }}
+              className="relative mx-auto w-full max-w-md lg:max-w-none">
+              {/* floating badge — top */}
+              <motion.div
+                animate={shouldReduceMotion ? {} : { y: [0, -8, 0] }}
+                transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
+                className="absolute -top-4 right-3 z-20 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#12121b]/90 border border-zinc-700/70 backdrop-blur-md shadow-xl text-xs font-semibold text-white">
+                <FaUsers size={11} className="text-[#7B72F8]" aria-hidden="true" />
+                {t('heroCardBadge')}
+              </motion.div>
+
+              <GlassCard className="p-3.5 sm:p-4" glowColor="#7B72F8" hover={false}>
+                {/* browser chrome */}
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="flex gap-1.5 shrink-0" aria-hidden="true">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#f43f5e]/80" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#eab308]/80" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#22c55e]/80" />
+                  </div>
+                  <div className="flex-1 flex items-center gap-2 h-7 px-3 rounded-lg bg-[#0A0A0F]/80 border border-zinc-800 text-xs text-zinc-400">
+                    <FaGlobe size={10} className="text-zinc-600 shrink-0" aria-hidden="true" />
+                    <span className="truncate">{urlText}</span>
+                    <span className="w-px h-3.5 bg-[#7B72F8] animate-pulse" aria-hidden="true" />
+                  </div>
                 </div>
-              </motion.a>
-              <motion.a href="#demo"
-                className="inline-flex items-center gap-2 h-14 px-8 rounded-xl border border-zinc-700/80 text-zinc-400 hover:border-[#7B72F8]/50 hover:text-zinc-200 hover:bg-[#7B72F8]/05 transition-colors duration-200 text-sm backdrop-blur-sm cursor-pointer"
-                whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                aria-label="Посмотреть как работает WeWatch">
-                {t('heroHowBtn')}
-                <FaChevronRight size={11} aria-hidden="true" />
-              </motion.a>
-            </motion.div>
 
-            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.75 }}
-              className="mt-10 flex items-center justify-center gap-2 text-zinc-600 text-sm">
-              <FaGlobe size={12} aria-hidden="true" />
-              <span>{t('heroFooter')}</span>
-            </motion.p>
+                {/* video frame — content types cycle here */}
+                <div className="relative rounded-xl overflow-hidden border border-zinc-800 aspect-video mb-3 bg-[#0A0A0F]">
+                  {/* rotating thumbnail — crossfade + ken-burns */}
+                  <AnimatePresence>
+                    <motion.div key={movieIdx} className="absolute inset-0 bg-cover bg-center" aria-hidden="true"
+                      initial={{ opacity: 0, scale: 1.06 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
+                      transition={{ duration: 0.9, ease: 'easeInOut' }}
+                      style={{ backgroundColor: HERO_MOVIES[movieIdx].bg, backgroundImage: `url("${HERO_MOVIES[movieIdx].img}")` }}>
+                      {/* brand tint + legibility vignette */}
+                      <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(10,10,15,0.25) 0%, transparent 28%, transparent 52%, rgba(0,0,0,0.85) 100%)' }} />
+                      <div className="absolute inset-0 mix-blend-soft-light" style={{ background: 'linear-gradient(135deg, rgba(123,114,248,0.35), transparent 60%)' }} />
+                    </motion.div>
+                  </AnimatePresence>
+
+                  {/* source label — swaps cleanly on top of the crossfade */}
+                  <div className="absolute bottom-8 left-3 right-3 z-10 flex items-end justify-between gap-2">
+                    <motion.span key={movieIdx} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.15 }}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-black/45 backdrop-blur-sm border border-white/10 text-[10px] font-semibold uppercase tracking-wide text-white">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#7B72F8]" aria-hidden="true" />
+                      {HERO_MOVIES[movieIdx].cat}
+                    </motion.span>
+                    <motion.span key={`m${movieIdx}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.15 }}
+                      className="px-2 py-1 rounded-md bg-black/45 backdrop-blur-sm text-[10px] text-white font-medium shrink-0">{HERO_MOVIES[movieIdx].meta}</motion.span>
+                  </div>
+
+                  {/* LIVE badge */}
+                  <div className="absolute top-2.5 left-2.5 z-10 inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-black/50 backdrop-blur-sm text-[10px] font-bold text-white uppercase tracking-wide">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#f43f5e] animate-pulse" aria-hidden="true" /> Live
+                  </div>
+                  {/* viewers */}
+                  <div className="absolute top-2.5 right-2.5 z-10 inline-flex items-center gap-1 px-2 py-1 rounded-md bg-black/50 backdrop-blur-sm text-[10px] font-medium text-white">
+                    <FaUsers size={9} aria-hidden="true" /> 3
+                  </div>
+                  {/* play */}
+                  <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none" aria-hidden="true">
+                    <motion.div
+                      animate={shouldReduceMotion ? {} : { scale: [1, 1.09, 1] }}
+                      transition={{ repeat: Infinity, duration: 2.4, ease: 'easeInOut' }}
+                      className="w-14 h-14 rounded-full flex items-center justify-center"
+                      style={{ background: 'rgba(123,114,248,0.92)', boxShadow: '0 0 40px rgba(123,114,248,0.6)' }}>
+                      <FaPlay size={18} className="text-white ml-0.5" />
+                    </motion.div>
+                  </div>
+                  {/* sync scrubber — everyone clustered at the same frame */}
+                  <div className="absolute bottom-3 left-3 right-3 z-10" aria-hidden="true">
+                    <div className="relative h-1 rounded-full bg-white/20">
+                      <div className="absolute inset-y-0 left-0 w-[58%] rounded-full bg-[#7B72F8]" />
+                      <div className="absolute -top-[7px] left-[58%] -translate-x-1/2 flex -space-x-1.5">
+                        {['#7B72F8', '#a855f7', '#6B63E8'].map((c, i) => (
+                          <span key={i} className="w-4 h-4 rounded-full border-2 border-[#0A0A0F]" style={{ background: c }} />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* live chat */}
+                <div className="space-y-2 mb-3">
+                  {CHAT_MSGS.slice(0, 2).map((m, i) => (
+                    <motion.div key={i}
+                      initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.6 + i * 0.3 }}
+                      className="flex items-center gap-2">
+                      <span className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white shrink-0" style={{ background: m.color }}>{m.u}</span>
+                      <span className="px-2.5 py-1 rounded-lg rounded-tl-sm bg-[#0A0A0F]/70 border border-zinc-800 text-xs text-zinc-300 truncate">{m.msg}</span>
+                    </motion.div>
+                  ))}
+                </div>
+
+                {/* footer */}
+                <div className="flex items-center justify-between pt-3 border-t border-zinc-800/70">
+                  <span className="inline-flex items-center gap-1.5 text-xs font-medium">
+                    <span className="relative flex h-2 w-2" aria-hidden="true">
+                      <span className="absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-60 animate-ping" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-green-400" />
+                    </span>
+                    <span className="text-zinc-400"><span className="text-zinc-200 font-semibold">3</span> {t('heroCardStat')}</span>
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-green-500/10 text-green-400 text-xs font-medium">
+                    <FaCheck size={9} aria-hidden="true" /> ±2s {t('statsLabel3')}
+                  </span>
+                </div>
+              </GlassCard>
+
+              {/* floating badge — bottom (live reactions) */}
+              <motion.div
+                animate={shouldReduceMotion ? {} : { y: [0, 8, 0] }}
+                transition={{ repeat: Infinity, duration: 4.5, ease: 'easeInOut', delay: 0.5 }}
+                className="absolute -bottom-4 left-3 z-20 inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#12121b]/90 border border-zinc-700/70 backdrop-blur-md shadow-xl">
+                <span className="flex -space-x-1" aria-hidden="true">
+                  {['❤️', '🔥', '😂'].map((e, i) => (
+                    <motion.span key={i} className="text-sm"
+                      animate={shouldReduceMotion ? {} : { y: [0, -3, 0] }}
+                      transition={{ repeat: Infinity, duration: 1.6, delay: i * 0.2, ease: 'easeInOut' }}>{e}</motion.span>
+                  ))}
+                </span>
+                <span className="text-xs font-semibold text-zinc-300">+12</span>
+              </motion.div>
+            </motion.div>
           </div>
 
           {/* Scroll indicator */}
@@ -1931,8 +2064,8 @@ export function LandingContent() {
         <section id="faq" className="py-24 px-4 relative bg-[#060608]" aria-labelledby="faq-heading">
           <div className="max-w-2xl mx-auto">
             <motion.div variants={stagger} initial="hidden" whileInView="visible" viewport={{ once: true }} className="text-center mb-14">
-              <motion.p variants={fadeUp} className="text-[#7B72F8] text-xs uppercase tracking-widest font-semibold mb-3">Вопросы и ответы</motion.p>
-              <motion.h2 id="faq-heading" variants={fadeUp} className="text-3xl md:text-4xl font-display uppercase text-white">Часто задаваемые вопросы</motion.h2>
+              <motion.p variants={fadeUp} className="text-[#7B72F8] text-xs uppercase tracking-widest font-semibold mb-3">{t('faqEyebrow')}</motion.p>
+              <motion.h2 id="faq-heading" variants={fadeUp} className="text-3xl md:text-4xl font-display uppercase text-white">{t('faqTitle')}</motion.h2>
             </motion.div>
             <FAQAccordion />
           </div>
@@ -1971,21 +2104,17 @@ export function LandingContent() {
             </motion.p>
 
             <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <motion.a href={APP_STORE} target="_blank" rel="noopener noreferrer"
-                onClick={() => trackEvent('app_store_click', { location: 'cta' })}
-                className="relative inline-flex items-center gap-3 h-16 px-12 rounded-xl text-white font-bold text-base cursor-pointer overflow-hidden"
-                style={{ background: 'linear-gradient(135deg, #7B72F8, #6B63E8)', boxShadow: '0 0 50px rgba(123,114,248,0.65), inset 0 1px 0 rgba(255,255,255,0.12)' }}
-                whileHover={{ scale: 1.05, boxShadow: '0 0 70px rgba(123,114,248,0.85), inset 0 1px 0 rgba(255,255,255,0.15)' }}
-                whileTap={{ scale: 0.97 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                aria-label="WeWatch-ni App Store-dan bepul yuklab oling">
+              <motion.span aria-disabled="true"
+                className="relative inline-flex items-center gap-3 h-16 px-12 rounded-xl text-white font-bold text-base cursor-default select-none overflow-hidden"
+                style={{ background: 'linear-gradient(135deg, #7B72F8, #6B63E8)', opacity: 0.92, boxShadow: '0 0 50px rgba(123,114,248,0.6), inset 0 1px 0 rgba(255,255,255,0.12)' }}>
                 <motion.div className="absolute inset-0 pointer-events-none" aria-hidden="true"
                   style={{ background: 'linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.18) 50%, transparent 60%)' }}
                   animate={{ x: ['-100%', '200%'] }}
                   transition={{ repeat: Infinity, duration: 3, ease: 'linear', repeatDelay: 2 }} />
                 <FaApple size={24} className="relative z-10" aria-hidden="true" />
                 <span className="relative z-10">{t('ctaPlayBtn')}</span>
-              </motion.a>
+                <span className="relative z-10 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/20">{t('soon')}</span>
+              </motion.span>
 
               {/* Android Waitlist */}
               {waitlistDone ? (

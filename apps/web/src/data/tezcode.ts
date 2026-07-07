@@ -49,7 +49,7 @@ export const TEAM: Member[] = [
     key: 'Coo',
     name: 'Abdulaziz Yormatov',
     tag: 'lead',
-    photo: '/team/abdulaziz_yormatov.png',
+    photo: '/team/abdulaziz_yormatov.webp',
   },
   {
     key: 'Wewatch',
