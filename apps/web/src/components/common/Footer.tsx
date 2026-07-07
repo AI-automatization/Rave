@@ -72,7 +72,9 @@ export function Footer() {
               <p className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-3">{t('legal')}</p>
               <ul className="space-y-2">
                 <li><Link href="/privacy-policy" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('privacy')}</Link></li>
-                <li><a href="mailto:copyright@wewatch.uz" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('dmca')}</a></li>
+                <li><Link href="/terms" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('terms')}</Link></li>
+                <li><Link href="/dmca" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('dmca')}</Link></li>
+                <li><Link href="/faq" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('faq')}</Link></li>
               </ul>
             </div>
           </div>

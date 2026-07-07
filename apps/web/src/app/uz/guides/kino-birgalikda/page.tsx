@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
 
 export const metadata: Metadata = {
   title: "Do'stlar bilan onlayn kino ko'rish — bepul",
@@ -133,6 +134,7 @@ export default function KinoBirgalikdaPage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <GuideHeader locale="uz" />
       <main className="min-h-screen bg-[#060608] text-white">
         <div className="max-w-3xl mx-auto px-4 py-16">
           <nav className="text-sm text-zinc-500 mb-8">
@@ -254,6 +256,7 @@ export default function KinoBirgalikdaPage() {
           </div>
         </div>
       </main>
+      <GuideFooter locale="uz" />
     </>
   );
 }
