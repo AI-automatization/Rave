@@ -82,6 +82,13 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const currentRateRef = useRef(1.0); // tracks active playback rate (micro-sync may change it)
   const heartbeatRef = useRef(heartbeat); // latest heartbeat — read in AppState callback without adding to deps
   heartbeatRef.current = heartbeat;
+  // Live member count — read inside emitBufferState without re-creating the callback.
+  // Solo room (owner alone) must not emit buffer signals: there is nobody to keep in sync,
+  // and the server's democratic buffer-pause would otherwise pause the owner against itself
+  // (root cause of the "owner alone → video play/pause/play/pause by itself" loop). Mirrors
+  // the server-side `members <= 1` guard in videoEvents.handler.ts — defense in depth.
+  const activeMembersCountRef = useRef(1);
+  activeMembersCountRef.current = activeMembers.length;
   const isWebViewModeRef = useRef(false); // updated after isWebViewMode is computed each render
   const isYouTubeEmbedRef = useRef(false); // true only for YouTube IFrame embed (discrete rates — micro-sync excluded)
   const isVkRutubeEmbedRef = useRef(false); // true for VK/Rutube embed iframe — postMessage has no rate API, micro-sync excluded
@@ -326,6 +333,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
 
   // T-E101: Buffer signal — debounced emit to server; suppressed for 2s after sync seek
   const emitBufferState = useCallback((buffering: boolean) => {
+    if (activeMembersCountRef.current <= 1) return; // solo room — no one to sync, don't feed democratic pause loop
     if (suppressBufferRef.current) return; // sync-induced buffering — don't trigger democratic pause
     if (bufferDebounceRef.current) clearTimeout(bufferDebounceRef.current);
     bufferDebounceRef.current = setTimeout(() => {

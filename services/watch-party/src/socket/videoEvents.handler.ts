@@ -174,20 +174,32 @@ export const registerVideoEvents = (
       io.to(roomId).emit(SERVER_EVENTS.VIDEO_BUFFER, { userId, isBuffering: true });
 
       if (count === 1) {
-        // Large rooms: leave-and-catch-up — show the indicator but don't pause everyone.
         const members = await liveMemberCount(roomId);
+        // Solo room (only the buffering member present) — nobody to keep in sync, so a
+        // democratic pause would just pause the buffering member against itself. This is
+        // what caused the "owner alone → video play/pause/play/pause by itself" loop:
+        // the buffering owner triggered a pause on itself, then resumeRoom re-played it.
+        if (members <= 1) {
+          logger.info('Buffer (solo room) — no democratic pause', { roomId, userId, members });
+          return;
+        }
+        // Large rooms: leave-and-catch-up — show the indicator but don't pause everyone.
         if (members > DEMOCRATIC_PAUSE_MAX_MEMBERS) {
           logger.info('Buffer (large room) — no democratic pause', { roomId, userId, members });
           return;
         }
 
-        // Small rooms: democratic pause everyone at the freshest known position (Redis, not MongoDB)
+        // Small rooms: democratic pause the OTHER members at the freshest known position
+        // (Redis, not MongoDB). socket.to excludes the buffering sender — it is already
+        // stalled on its own buffer, so re-commanding it to pause is redundant and, for a
+        // buffering owner, would freeze the owner's own player (bug: owner stops while a
+        // member keeps playing). Others wait; the buffering member catches up on BUFFER_END.
         const cached = await watchPartyService.getSyncState(roomId);
         const ownerId = cached?.updatedBy ?? (await watchPartyService.getRoom(roomId)).ownerId;
         const currentTime = cached?.currentTime ?? 0;
 
         const syncState = await watchPartyService.syncState(roomId, ownerId, currentTime, false);
-        io.to(roomId).emit(SERVER_EVENTS.VIDEO_PAUSE, syncState);
+        socket.to(roomId).emit(SERVER_EVENTS.VIDEO_PAUSE, syncState);
         logger.info('Democratic buffer pause', { roomId, userId, currentTime, members });
 
         // Safety: force resume after 30s
