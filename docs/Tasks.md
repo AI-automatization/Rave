@@ -10,17 +10,6 @@
 
 ---
 
-### T-S110 | P1 | [SECURITY] | SSRF DNS-rebinding в hls-proxy — валидировать резолвнутый IP
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Saidazim (security audit)
-- **Yaratilgan:** 2026-07-04
-- **Holat:** ❌ Boshlanmagan
-- **Tavsiya model:** sonnet
-- **Model sababi:** 1 файл, точечная логика + DNS resolve
-- **Sabab:** `validateProxyUrl` проверяет строку hostname, а не резолвнутый IP. Домен атакующего, резолвящийся в `169.254.169.254` (облачная метадата) / `10.x` / внутренний сервис — обходит блок-лист, прокси фетчит внутренние ресурсы. Фикс: резолвить DNS (`dns.lookup`) и валидировать итоговый IP против приватных диапазонов перед fetch (или pin IP на connect).
-- **Файлы:** `services/content/src/controllers/hlsProxy.controller.ts` (validateProxyUrl)
-
 ---
 
 ### T-S111 | P1 | [SECURITY] | Deps: обновить high-уязвимости (ws/undici/nodemailer/next)
@@ -368,41 +357,23 @@
 
 ---
 
-### T-S106 | P1 | [MOBILE] | Mesh Faza 0: clock-sync handshake + TURN | pending[Saidazim]
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Saidazim
-- **Yaratilgan:** 2026-06-29
-- **Holat:** ❌ Boshlanmagan
-- **Tavsiya model:** sonnet
-- **Model sababi:** 2-3 fayl, WebRTC DataChannel handshake + env config, o'rta murakkablik
-- **Sabab:** BLOCKER — `SyncProtocol.calcDrift` peer soatlari bir xil deb hisoblaydi (`Date.now() - ownerTimestamp`), bu noto'g'ri. TURN creds bo'sh → mobil CGNAT'da mesh ulanmaydi. Bularsiz mesh Socket.io'dan tezroq ishlamaydi.
-- **Qilish kerak:**
-  - [ ] DataChannel ping/pong → clock offset + RTT baholash (NTP-style)
-  - [ ] Offset'ni `SyncProtocol.calcDrift` va `scheduledAt` hisobiga qo'shish
-  - [ ] TURN: metered.ca account → `EXPO_PUBLIC_TURN_*` env to'ldirish (`config.ts`)
-  - [ ] 4G/sotuvchi tarmoqda 2 qurilma ICE connect tekshirish
-- **Fayllar:** `apps/mobile/src/services/mesh/SyncProtocol.ts`, `MeshClient.ts`, `config.ts`
-
----
-
 ### T-S107 | P1 | [MOBILE] | Mesh Faza 1: SyncBroadcaster'ni useWatchPartyRoom'ga ulash | pending[Saidazim]
 
 - **Mas'ul:** pending[Saidazim]
 - **Beruvchi:** Saidazim
 - **Yaratilgan:** 2026-06-29
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 Bajarilmoqda (~95%) — kod ulangan (`useWatchPartyRoom` → `useWatchParty` → `SyncBroadcaster`), APK yig'ildi (wewatch-mesh-sync.apk). Qolgan: 2 qurilmada play/pause kechikishni o'lchash.
 - **Tavsiya model:** opus
 - **Model sababi:** Ikkita parallel sync tizimini birlashtirish, owner-authority, late-join seed — arxitektura tushunish kerak
 - **Sabab:** Asosiy gap — mesh kodi ulanmagan. Owner play/pause/seek/heartbeat `SyncBroadcaster` orqali ketishi, follower'lar mesh xabarlarni qo'llashi kerak.
 - **Qilish kerak:**
-  - [ ] `useWatchPartyRoom` → `SyncBroadcaster` instance (owner flag bilan)
-  - [ ] Owner-only broadcast (echo-loop oldini olish)
-  - [ ] Kech qo'shilgan peer → Redis `getSyncState` dan boshlang'ich pozitsiya seed
-  - [ ] Socket.io fallback saqlanishini tekshirish (mesh fail → socket)
-  - [ ] 2 qurilma WiFi'da sync kechikishni o'lchash (maqsad <300ms)
-- **Bog'liq:** T-S106
-- **Fayllar:** `apps/mobile/src/hooks/useWatchPartyRoom.ts`, `services/mesh/SyncBroadcaster.ts`
+  - [x] `useWatchPartyRoom` → `SyncBroadcaster` instance (owner flag bilan) — `useWatchParty.ts:267`
+  - [ ] Owner-only broadcast (echo-loop oldini olish) — tasdiqlash kerak
+  - [ ] Kech qo'shilgan peer → Redis `getSyncState` dan boshlang'ich pozitsiya seed — tasdiqlash kerak
+  - [ ] Socket.io fallback saqlanishini tekshirish (mesh fail → socket) — tasdiqlash kerak
+  - [ ] 2 qurilma WiFi'da sync kechikishni o'lchash (maqsad <300ms) — MANUAL, qurilma kerak
+- **Bog'liq:** T-S106 (✅ tugadi — Done.md)
+- **Fayllar:** `apps/mobile/src/hooks/useWatchPartyRoom.ts`, `apps/mobile/src/hooks/useWatchParty.ts`, `apps/mobile/src/services/mesh/SyncBroadcaster.ts`
 
 ---
 
