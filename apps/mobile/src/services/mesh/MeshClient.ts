@@ -155,6 +155,9 @@ export class MeshClient {
       const peer = this.peers.get(peerId);
       if (!peer) return;
       const state = pc.connectionState;
+      // MESH DIAG (release-visible, remove after transport is verified): shows the real P2P
+      // outcome in logcat, which react-native-webrtc does not log on its own.
+      console.log(`[mesh-diag] peer ${peerId} connectionState=${state}`);
       if (state === 'connected') {
         peer.isConnected = true;
         // Connection recovered — a future failure gets its own fresh restart attempt.
@@ -237,13 +240,14 @@ export class MeshClient {
     };
 
     channel.onopen = () => {
-      if (__DEV__) console.log(`[MeshClient] DataChannel open: ${peerId}`);
+      // MESH DIAG (release-visible): DataChannel open == the mesh P2P overlay is live for this peer.
+      console.log(`[mesh-diag] DataChannel OPEN → ${peerId} (mesh transport active)`);
       this.startClockSync(peerId);
       this.startPeriodicClockResync(peerId);
     };
 
     channel.onclose = () => {
-      if (__DEV__) console.log(`[MeshClient] DataChannel closed: ${peerId}`);
+      console.log(`[mesh-diag] DataChannel CLOSED → ${peerId}`);
       this.stopPeriodicClockResync(peerId);
     };
   }

@@ -54,6 +54,9 @@ const HEARTBEAT_INTERVAL_MS = Platform.OS === 'android' ? 2000 : 5000;
 const MAX_SYNC_SCHEDULE_WAIT_MS = 1500;
 const MAX_HEARTBEAT_EXTRAPOLATION_MS = 3000;
 const MAX_COMPENSATION_SECS = 30;
+// On play/pause, skip the hard seekTo if the player is already this close to the target — a seek
+// flushes ExoPlayer's HLS buffer (1-2s re-buffer). Small residual gaps are closed by drift micro-sync.
+const SEEK_SKIP_THRESHOLD_MS = 1000;
 
 // T-E101: Buffer event debounce — 2000ms so brief HLS segment-loading stalls (normal ExoPlayer
 // behaviour, typically <1s) don't trigger democratic pause for all viewers.
@@ -253,8 +256,20 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
       // that completes starts playback at the old position → visible ratchet effect.
       // 250ms on Android / 0ms on iOS (expo-av seekTo is awaitable and reliable).
       const seekPlayDelayMs = Platform.OS === 'android' ? 250 : 0;
-      playerRef.current.seekTo(targetMs)
-        .then(() => new Promise<void>(resolve => { setTimeout(resolve, seekPlayDelayMs); }))
+      // Skip the seek when we're already within SEEK_SKIP_THRESHOLD_MS of the target. A hard
+      // seekTo forces ExoPlayer to flush + re-buffer the HLS segment (1-2s stall), so on a
+      // play/pause where the member is already aligned it just adds 2-3s latency for nothing —
+      // just play/pause in place and let drift micro-sync close the small residual gap. A real
+      // seek (owner scrubbed elsewhere) lands far from current → we still do the hard seek.
+      Promise.resolve(playerRef.current.getPositionMs())
+        .then((curMs) => {
+          const needSeek = Math.abs((curMs ?? targetMs) - targetMs) > SEEK_SKIP_THRESHOLD_MS;
+          if (needSeek) {
+            return playerRef.current!.seekTo(targetMs)
+              .then(() => new Promise<void>(resolve => { setTimeout(resolve, seekPlayDelayMs); }));
+          }
+          return undefined;
+        })
         .then(() => syncState.isPlaying ? playerRef.current?.play() : playerRef.current?.pause())
         .catch(() => {})
         .finally(() => { setTimeout(() => { isSyncing.current = false; }, 400); });

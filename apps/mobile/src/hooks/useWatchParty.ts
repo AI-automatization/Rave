@@ -159,9 +159,11 @@ export function useWatchParty(roomId: string) {
     // socket copy of the same event (mesh already applied it). VIDEO_SYNC (full state,
     // e.g. late-join seed) is always applied — it's authoritative room state, not a dup.
     socket.on(SERVER_EVENTS.VIDEO_SYNC, (state: SyncState) => setSyncState(toLocalClock(state)));
-    socket.on(SERVER_EVENTS.VIDEO_PLAY, (state: SyncState) => { if (!meshFresh()) setSyncState(toLocalClock(state)); });
-    socket.on(SERVER_EVENTS.VIDEO_PAUSE, (state: SyncState) => { if (!meshFresh()) setSyncState(toLocalClock(state)); });
-    socket.on(SERVER_EVENTS.VIDEO_SEEK, (state: SyncState) => { if (!meshFresh()) setSyncState(toLocalClock(state)); });
+    // MESH DIAG (release-visible): which transport actually applied a play/pause/seek. If mesh is
+    // fresh the socket copy is skipped (mesh already applied it); otherwise socket is the transport.
+    socket.on(SERVER_EVENTS.VIDEO_PLAY, (state: SyncState) => { if (!meshFresh()) { console.log('[mesh-diag] play applied via SOCKET'); setSyncState(toLocalClock(state)); } });
+    socket.on(SERVER_EVENTS.VIDEO_PAUSE, (state: SyncState) => { if (!meshFresh()) { console.log('[mesh-diag] pause applied via SOCKET'); setSyncState(toLocalClock(state)); } });
+    socket.on(SERVER_EVENTS.VIDEO_SEEK, (state: SyncState) => { if (!meshFresh()) { console.log('[mesh-diag] seek applied via SOCKET'); setSyncState(toLocalClock(state)); } });
 
     socket.on(SERVER_EVENTS.ROOM_MESSAGE, (msg: MessageEvent) => {
       const cached = queryClient.getQueryData<IUserPublic>(['user-public', msg.userId]);
@@ -262,6 +264,8 @@ export function useWatchParty(roomId: string) {
         setHeartbeat({ currentTime: msg.currentTime, timestamp: localTs });
         return;
       }
+      // MESH DIAG (release-visible): a play/pause/seek arrived over the P2P DataChannel.
+      console.log(`[mesh-diag] ${msg.type} applied via MESH (p2p)`);
       const prevPlaying = useWatchPartyStore.getState().syncState?.isPlaying ?? false;
       setSyncState({
         currentTime: msg.currentTime,

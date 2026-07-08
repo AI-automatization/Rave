@@ -118,7 +118,7 @@
     "android": {
       "googleServicesFile": "./google-services.json",
       "package": "com.wewatch.app",
-      "versionCode": 4,
+      "versionCode": 5,
       "adaptiveIcon": {
         "backgroundColor": "#0A0A0F",
         "foregroundImage": "./assets/android-icon-foreground.png"
