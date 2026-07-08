@@ -17,6 +17,8 @@ const MESH_SCHEDULE_AHEAD_MS = 150;
 // same event arrives later and is skipped — no dual-apply. If mesh goes silent
 // (owner not on mesh / connection dropped), the member falls back to socket.
 const MESH_FRESH_MS = 6000;
+// Re-run the socket clock-offset burst this often so a long session doesn't accumulate skew.
+const CLOCK_RESYNC_INTERVAL_MS = 90 * 1000;
 
 interface MemberEvent {
   userId: string;
@@ -120,6 +122,11 @@ export function useWatchParty(roomId: string) {
     };
     socket.on('connect', runClockSync);
     if (socket.connected) runClockSync();
+    // Re-measure periodically: the phone clock drifts vs the server over a long watch-party, and
+    // the connect-time burst starts from a 0 offset. Without this the socket path keeps a stale
+    // offset and clock skew leaks into scheduledAt/heartbeat math (F3). Mesh already re-syncs its
+    // own peer offset every 5 min inside MeshClient.
+    const clockResyncInterval = setInterval(() => { if (socket.connected) runClockSync(); }, CLOCK_RESYNC_INTERVAL_MS);
 
     // Normalise a server-clock SyncState to the local clock (serverTimestamp + scheduledAt).
     const toLocalClock = (state: SyncState): SyncState => ({
@@ -209,6 +216,7 @@ export function useWatchParty(roomId: string) {
       socket.off('connect', joinRoom);
       socket.off('connect', runClockSync);
       socket.off(SERVER_EVENTS.CLOCK_PONG);
+      clearInterval(clockResyncInterval);
       socket.off('disconnect');
       // NOTE: Do NOT emit LEAVE_ROOM here — React StrictMode runs cleanup+remount
       // in dev, which would delete the room before the second mount can join it.

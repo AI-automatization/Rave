@@ -42,6 +42,19 @@ const DRIFT_RATE_MAX = 0.15;           // max rate offset ±15% from 1.0 (hit at
 // iOS: 5s is fine — micro-sync not enabled on iOS.
 const HEARTBEAT_INTERVAL_MS = Platform.OS === 'android' ? 2000 : 5000;
 
+// Clock-skew guards. Sync relies on absolute server/owner timestamps normalised by the
+// measured clock offset. If that offset is stale/0 (offset not yet measured, or the phone
+// clock drifted), the skew must NOT leak into playback. These cap the blast radius:
+//   MAX_SYNC_SCHEDULE_WAIT_MS — the scheduledAt window is only ~500ms (socket) / 150ms (mesh).
+//     A larger computed wait means clock skew, not a real schedule → execute now (F1).
+//   MAX_HEARTBEAT_EXTRAPOLATION_MS — how far we extrapolate the owner position from a heartbeat.
+//     Clamps a skewed "time since heartbeat" so it can't fabricate a multi-second phantom drift (F2).
+//   MAX_COMPENSATION_SECS — upper bound on elapsed-time catch-up; a late-join seed beyond this is
+//     recovered by drift correction instead of one huge (possibly skew-inflated) seek (F4/F5).
+const MAX_SYNC_SCHEDULE_WAIT_MS = 1500;
+const MAX_HEARTBEAT_EXTRAPOLATION_MS = 3000;
+const MAX_COMPENSATION_SECS = 30;
+
 // T-E101: Buffer event debounce — 2000ms so brief HLS segment-loading stalls (normal ExoPlayer
 // behaviour, typically <1s) don't trigger democratic pause for all viewers.
 const BUFFER_DEBOUNCE_MS = 2000;
@@ -232,7 +245,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
       if (suppressDriftTimerRef.current) clearTimeout(suppressDriftTimerRef.current);
       suppressDriftTimerRef.current = setTimeout(() => { suppressDriftRef.current = false; suppressDriftTimerRef.current = null; }, 8000);
       const compensationSecs = syncState.isPlaying
-        ? Math.max(0, (Date.now() - serverTs) / 1000)
+        ? Math.min(MAX_COMPENSATION_SECS, Math.max(0, (Date.now() - serverTs) / 1000))
         : 0;
       const targetMs = (syncState.currentTime + compensationSecs) * 1000;
       // WebView seekTo resolves immediately (JS injection is fire-and-forget).
@@ -249,12 +262,16 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
 
     if (scheduled && scheduled > 0) {
       const delay = scheduled - Date.now();
-      if (delay > 0) {
-        // Future: wait until scheduledAt, then execute with elapsed-time compensation
+      // Only honour a schedule within the real window (~500ms socket / 150ms mesh + jitter).
+      // A larger "delay" means the clock offset is stale/skewed, not a genuine future schedule —
+      // waiting it out would freeze the member for seconds while the owner plays on (F1). Execute
+      // now instead; executeSync's elapsed-time compensation lands the correct position.
+      if (delay > 0 && delay <= MAX_SYNC_SCHEDULE_WAIT_MS) {
+        // Future (within window): wait until scheduledAt, then execute with compensation
         const timerId = setTimeout(executeSync, delay);
         return () => clearTimeout(timerId);
       }
-      // Past scheduledAt: execute immediately with elapsed-time compensation
+      // Past scheduledAt, or delay too large (clock skew) → execute immediately
       executeSync();
     } else {
       // No scheduledAt — execute immediately
@@ -265,7 +282,10 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   useEffect(() => {
     if (!isOwner || !room) return;
     const interval = setInterval(async () => {
-      if (isSyncing.current) return;
+      // Skip while syncing or buffering: a heartbeat sent during an owner buffer stall carries a
+      // frozen position with an advancing timestamp, so members over-extrapolate and seek past the
+      // owner's real position (F6).
+      if (isSyncing.current || isBufferingRef.current) return;
       const posMs = (await playerRef.current?.getPositionMs()) ?? 0;
       if (isPlaying) emitHeartbeat(posMs / 1000);
     }, HEARTBEAT_INTERVAL_MS);
@@ -284,7 +304,12 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   useEffect(() => {
     if (isOwner || !heartbeat || !isPlaying || isSyncing.current || suppressDriftRef.current) return;
 
-    const expected = heartbeat.currentTime + (Date.now() - heartbeat.timestamp) / 1000;
+    // Extrapolate the owner position from the heartbeat, but clamp "time since heartbeat" to a
+    // sane bound. A stale/0 clock offset can make heartbeat.timestamp land in the future
+    // (negative elapsed) or far in the past → without this clamp the skew becomes a phantom
+    // multi-second drift and fires a spurious macro-seek every heartbeat (F2).
+    const sinceHeartbeatSecs = Math.min(MAX_HEARTBEAT_EXTRAPOLATION_MS, Math.max(0, Date.now() - heartbeat.timestamp)) / 1000;
+    const expected = heartbeat.currentTime + sinceHeartbeatSecs;
     const drift = videoCurrentTimeRef.current - expected; // positive = ahead of owner, negative = behind
     const absDrift = Math.abs(drift);
 
@@ -640,7 +665,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     // a long proxy-fallback delay), uncapped compensation would seek hundreds of seconds past
     // the actual position and land past the video end.
     const compensationSecs = syncToExecute.isPlaying
-      ? Math.min(30, Math.max(0, (Date.now() - syncToExecute.serverTimestamp) / 1000))
+      ? Math.min(MAX_COMPENSATION_SECS, Math.max(0, (Date.now() - syncToExecute.serverTimestamp) / 1000))
       : 0;
     const targetMs = (syncToExecute.currentTime + compensationSecs) * 1000;
     if (!playerRef.current) { isSyncing.current = false; return; }
