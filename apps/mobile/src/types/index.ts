@@ -122,7 +122,7 @@ export type ModalStackParamList = {
   };
   SupportChat: undefined;
   DMChat: { peerId: string; peerName: string };
-  DMConversations: undefined;
+  FriendProfile: { userId: string };
 };
 
 export interface IDMMessage {
@@ -131,6 +131,12 @@ export interface IDMMessage {
   receiverId: string;
   text: string;
   read: boolean;
+  // Reply — javob berilgan xabar snapshot'i (Telegram uslubi)
+  replyToId?: string | null;
+  replyToText?: string | null;
+  replyToSender?: string | null;
+  // Forward — boshqa suhbatdan uzatilgan bo'lsa, original muallif username'i
+  forwardFrom?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -168,9 +174,15 @@ export type RoomsStackParamList = {
 
 export type MainTabParamList = {
   HomeTab: undefined;
+  ChatsTab: undefined;
   CreateTab: undefined;
   FriendsTab: undefined;
   ProfileTab: undefined;
+};
+
+export type ChatsStackParamList = {
+  Conversations: undefined;
+  DMChat: { peerId: string; peerName: string };
 };
 
 export type RootStackParamList = {

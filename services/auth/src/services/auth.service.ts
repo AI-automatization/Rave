@@ -97,6 +97,9 @@ export class AuthService {
     role: 'admin' | 'operator' | 'moderator',
   ) => this.password.createStaffAccount(email, username, password, role);
 
+  createTestUser = (email: string, username: string, password: string) =>
+    this.password.createTestUser(email, username, password);
+
   deleteUser = (userId: string) => this.password.deleteUser(userId);
 
   clearLoginAttempts = (email: string) => this.password.clearLoginAttempts(email);

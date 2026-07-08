@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 import { View, TouchableOpacity, Animated, Dimensions } from 'react-native';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,6 +22,7 @@ type TabEntry = {
 
 export const TABS: TabEntry[] = [
   { name: 'HomeTab',    icon: 'home-outline',   iconActive: 'home',   labelKey: 'home' },
+  { name: 'ChatsTab',   icon: 'chatbubble-ellipses-outline', iconActive: 'chatbubble-ellipses', labelKey: 'chats' },
   { name: 'FriendsTab', icon: 'people-outline', iconActive: 'people', labelKey: 'friends' },
   { name: 'ProfileTab', icon: 'person-outline', iconActive: 'person', labelKey: 'profile' },
 ];
@@ -31,17 +32,18 @@ const FAB_SIZE = 54;
 const INDICATOR_WIDTH = 24;
 const INDICATOR_HEIGHT = 2;
 const SCREEN_WIDTH = Dimensions.get('window').width;
-const SLOT_WIDTH = SCREEN_WIDTH / 5; // 5 slots: Home, Map(disabled), FAB, Friends, Profile
+const SLOT_WIDTH = SCREEN_WIDTH / 5; // 5 slots: Home, Chats, FAB, Friends, Profile
 
-/** Map tab array index (0-2) to navigation state index (0, skip FAB=1, then 2,3) */
+/** Map tab array index (0-3) to navigation state index. FAB (CreateTab) sits at
+ * state index 2, so Home=0, Chats=1 pass through and Friends/Profile skip it. */
 function getVisibleTabIndex(arrayIndex: number): number {
-  return arrayIndex < 1 ? arrayIndex : arrayIndex + 1;
+  return arrayIndex < 2 ? arrayIndex : arrayIndex + 1;
 }
 
-/** Calculate indicator X — accounts for disabled map tab at visual slot 1 */
+/** Indicator X — 5 visual slots [Home, Chats, FAB, Friends, Profile]; the state index
+ * maps 1:1 to the visual slot (CreateTab=2 is the FAB slot, never highlighted). */
 function getIndicatorX(stateIndex: number): number {
-  const visualSlot = stateIndex === 0 ? 0 : stateIndex + 1;
-  return visualSlot * SLOT_WIDTH + (SLOT_WIDTH - INDICATOR_WIDTH) / 2;
+  return stateIndex * SLOT_WIDTH + (SLOT_WIDTH - INDICATOR_WIDTH) / 2;
 }
 
 // ─── Custom Tab Bar ───────────────────────────────────────────────────────────
@@ -117,6 +119,11 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
     );
   };
 
+  // Hide the tab bar while a DM chat is open — its message input sits at the bottom
+  // and the bar would otherwise cover it.
+  const activeNestedRoute = getFocusedRouteNameFromRoute(state.routes[state.index]);
+  if (activeNestedRoute === 'DMChat') return null;
+
   return (
     <View style={[styles.container, { paddingBottom: insets.bottom }]}>
       {/* Glassmorphism background */}
@@ -128,12 +135,11 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
           />
           {/* Tab row */}
           <View style={styles.bar}>
-            {TABS.slice(0, 1).map((tab, i) => renderTab(tab, i))}
-            <View style={styles.tabItem} pointerEvents="none">
-              <Ionicons name="map-outline" size={24} color={colors.textDim} style={{ opacity: 0.35 }} />
-            </View>
+            {renderTab(TABS[0], 0)}
+            {renderTab(TABS[1], 1)}
             <View style={styles.fabPlaceholder} />
-            {TABS.slice(1).map((tab, i) => renderTab(tab, i + 1))}
+            {renderTab(TABS[2], 2)}
+            {renderTab(TABS[3], 3)}
           </View>
         </View>
       </BlurView>

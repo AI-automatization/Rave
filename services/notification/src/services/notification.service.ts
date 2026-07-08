@@ -96,13 +96,26 @@ export class NotificationService {
           )
         : Promise.resolve(),
       fcmTokens.length > 0
-        ? admin.messaging().sendEachForMulticast({
-            tokens: fcmTokens,
-            notification: { title, body },
-            data,
-            android: { priority: 'high' },
-            apns: { payload: { aps: { sound: 'default' } } },
-          }).then((r) => {
+        ? admin.messaging().sendEachForMulticast(
+            data.categoryId
+              ? {
+                  // Interactive push (e.g. friend request): send DATA-ONLY on Android so
+                  // the app's background task can build a local notification WITH the
+                  // action buttons (a plain `notification` block can't carry buttons).
+                  // iOS shows it via the apns alert + category (its own button rendering).
+                  tokens: fcmTokens,
+                  data: { ...data, title, body },
+                  android: { priority: 'high' },
+                  apns: { payload: { aps: { alert: { title, body }, category: data.categoryId, sound: 'default' } } },
+                }
+              : {
+                  tokens: fcmTokens,
+                  notification: { title, body },
+                  data,
+                  android: { priority: 'high' },
+                  apns: { payload: { aps: { sound: 'default' } } },
+                },
+          ).then((r) => {
             logger.info('FCM push sent', { success: r.successCount, failure: r.failureCount });
             if (r.failureCount > 0) {
               const badTokens = r.responses

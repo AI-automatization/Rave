@@ -11,6 +11,8 @@ import { useAuthStore } from '@store/auth.store';
 import { useT } from '@i18n/index';
 
 const GOOGLE_WEB_CLIENT_ID = '756077214118-top29idd8ialmj2njm9p6m0hk053fk50.apps.googleusercontent.com';
+// iOS OAuth client (bundle com.wewatch.app) — required for native Google Sign-In on iOS.
+const GOOGLE_IOS_CLIENT_ID = '756077214118-t309035asjucgjm96b365sp92n807ne1.apps.googleusercontent.com';
 const AUTH_BASE_URL = (process.env.EXPO_PUBLIC_AUTH_URL ?? '').replace('/api/v1', '');
 const POLL_INTERVAL_MS = 2000;
 const MAX_POLL_ATTEMPTS = 90;
@@ -60,7 +62,12 @@ export function useSocialAuth(): UseSocialAuthResult {
 
   useEffect(() => {
     if (isNativeGoogleAvailable) {
-      GoogleSignin.configure({ webClientId: GOOGLE_WEB_CLIENT_ID });
+      // webClientId → idToken audience (backend verifies against it);
+      // iosClientId → native iOS sign-in flow (URL scheme from app.json plugin).
+      GoogleSignin.configure({
+        webClientId: GOOGLE_WEB_CLIENT_ID,
+        ...(Platform.OS === 'ios' ? { iosClientId: GOOGLE_IOS_CLIENT_ID } : {}),
+      });
     }
     if (Platform.OS === 'ios') {
       AppleAuthentication.isAvailableAsync().then(setAppleAvailable).catch(() => null);
@@ -77,6 +84,14 @@ export function useSocialAuth(): UseSocialAuthResult {
     setSocialError('');
     try {
       await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      // Clear any cached Google session first so the account chooser is ALWAYS
+      // shown. Without this, signIn() silently reuses the last-used account and
+      // the user can never switch to a different one.
+      try {
+        await GoogleSignin.signOut();
+      } catch {
+        // No active session to sign out of — safe to ignore.
+      }
       const userInfo = await GoogleSignin.signIn();
       const idToken = userInfo.data?.idToken;
       if (!idToken) throw new Error('No idToken');
@@ -89,9 +104,12 @@ export function useSocialAuth(): UseSocialAuthResult {
         await setAuth(result.user, result.accessToken, result.refreshToken);
       }
     } catch (err: unknown) {
-      const e = err as { code?: string };
+      const e = err as { code?: string; response?: { status?: number; data?: { code?: string; message?: string } } };
       if (e.code === statusCodes.SIGN_IN_CANCELLED || e.code === statusCodes.IN_PROGRESS) {
         // user cancelled or already in progress — no error shown
+      } else if (e.response?.status === 503 && e.response?.data?.code === 'MAINTENANCE_MODE') {
+        // Surface the backend's maintenance message instead of a generic error.
+        setSocialError(e.response.data.message ?? t('login', 'errorGoogle'));
       } else {
         setSocialError(t('login', 'errorGoogle'));
       }

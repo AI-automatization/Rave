@@ -22,6 +22,13 @@ export const registerVideoEvents = (
 ): void => {
   const { userId } = authSocket.user;
 
+  // NTP-style clock sync: echo the client's ping timestamp plus our own receive time so the
+  // client can estimate the server↔client clock offset. Room-agnostic, cheap, no auth needed.
+  socket.on(CLIENT_EVENTS.CLOCK_PING, (data: { t0: number }) => {
+    if (typeof data?.t0 !== 'number') return;
+    socket.emit(SERVER_EVENTS.CLOCK_PONG, { t0: data.t0, t1: Date.now() });
+  });
+
   // Resolves owner check with fallback: if roomOwnerId is cached use it directly (fast path).
   // If undefined (socket emits before JOIN_ROOM response completes — Android timing race),
   // do a single MongoDB lookup, cache the result, then re-check.
@@ -115,8 +122,19 @@ export const registerVideoEvents = (
     }
   });
 
-  // BUFFER — democratic wait: pause all when first peer buffers, resume when all done
+  // BUFFER — adaptive policy by room size:
+  //   ≤3 members → democratic wait: pause everyone when one buffers, resume together.
+  //     Right for couples/small groups — watching in sync matters, nobody misses a moment.
+  //   4+ members → leave-and-catch-up: don't pause the room for one slow connection.
+  //     The buffering member rejoins the owner position via the existing drift correction
+  //     (macro seek) once playback resumes. One bad link can't stall a big room.
   const MAX_BUFFER_WAIT_MS = 30_000;
+  const DEMOCRATIC_PAUSE_MAX_MEMBERS = 3;
+
+  const liveMemberCount = async (roomId: string): Promise<number> => {
+    const sockets = await io.in(roomId).fetchSockets();
+    return sockets.length;
+  };
 
   const resumeRoom = async (roomId: string) => {
     await watchPartyService.clearAllBuffering(roomId);
@@ -156,14 +174,21 @@ export const registerVideoEvents = (
       io.to(roomId).emit(SERVER_EVENTS.VIDEO_BUFFER, { userId, isBuffering: true });
 
       if (count === 1) {
-        // First buffer — pause everyone at the freshest known position (Redis, not MongoDB)
+        // Large rooms: leave-and-catch-up — show the indicator but don't pause everyone.
+        const members = await liveMemberCount(roomId);
+        if (members > DEMOCRATIC_PAUSE_MAX_MEMBERS) {
+          logger.info('Buffer (large room) — no democratic pause', { roomId, userId, members });
+          return;
+        }
+
+        // Small rooms: democratic pause everyone at the freshest known position (Redis, not MongoDB)
         const cached = await watchPartyService.getSyncState(roomId);
         const ownerId = cached?.updatedBy ?? (await watchPartyService.getRoom(roomId)).ownerId;
         const currentTime = cached?.currentTime ?? 0;
 
         const syncState = await watchPartyService.syncState(roomId, ownerId, currentTime, false);
         io.to(roomId).emit(SERVER_EVENTS.VIDEO_PAUSE, syncState);
-        logger.info('Democratic buffer pause', { roomId, userId, currentTime });
+        logger.info('Democratic buffer pause', { roomId, userId, currentTime, members });
 
         // Safety: force resume after 30s
         const timeout = setTimeout(() => resumeRoom(roomId), MAX_BUFFER_WAIT_MS);
@@ -187,11 +212,14 @@ export const registerVideoEvents = (
       }
 
       const remaining = await watchPartyService.unmarkBuffering(roomId, userId);
-      if (remaining === 0) {
+      // Only resume the room if a democratic pause is actually active (small-room path).
+      // In large rooms no pause was issued, so resuming would force-play everyone —
+      // the recovered member catches up on its own via drift correction instead.
+      if (remaining === 0 && bufferTimeouts.has(roomId)) {
         await resumeRoom(roomId);
       } else {
         io.to(roomId).emit(SERVER_EVENTS.VIDEO_BUFFER, { userId, isBuffering: false });
-        logger.info('Buffer wait: still waiting', { roomId, remaining });
+        logger.info('Buffer end', { roomId, remaining });
       }
     } catch (error) {
       logger.error('Socket buffer_end error', { userId, error });

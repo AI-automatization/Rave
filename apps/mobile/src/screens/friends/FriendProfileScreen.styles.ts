@@ -84,6 +84,13 @@ export const useStyles = createThemedStyles((colors) => ({
     paddingVertical: spacing.md, borderRadius: borderRadius.xl,
   },
   watchPartyBtnText: { ...typography.body, color: colors.white, fontWeight: '700' },
+  messageBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: spacing.xs, backgroundColor: colors.primary + '18',
+    borderWidth: 1, borderColor: colors.primary + '55',
+    paddingVertical: spacing.md, borderRadius: borderRadius.xl,
+  },
+  messageBtnText: { ...typography.body, color: colors.primary, fontWeight: '700' },
 
   // Actions
   actions: { padding: spacing.lg, paddingTop: spacing.md },

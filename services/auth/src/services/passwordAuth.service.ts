@@ -519,6 +519,43 @@ export class PasswordAuthService {
     return { userId };
   }
 
+  // Creates a ready-to-use regular test account (role 'user') with the email already
+  // verified — no OTP flow. Flagged isTestAccount so it can be told apart from real users.
+  async createTestUser(
+    email: string,
+    username: string,
+    password: string,
+  ): Promise<{ userId: string }> {
+    const existingByUsername = await User.findOne({ username, email: { $ne: email } });
+    if (existingByUsername) {
+      throw new ConflictError(`Username "${username}" is already taken`);
+    }
+
+    const passwordHash = await this.hashPassword(password);
+    await User.deleteOne({ email });
+    await this.redis.del(REDIS_KEYS.loginAttempts(email));
+
+    const created = await User.create({
+      email,
+      username,
+      passwordHash,
+      role: 'user',
+      isEmailVerified: true,
+      isTestAccount: true,
+      isBlocked: false,
+      rank: 'Bronze',
+      totalPoints: 0,
+      fcmTokens: [],
+      bio: '',
+      restrictions: [],
+      settings: { notifications: {} },
+    });
+
+    const userId = (created._id as object).toString();
+    logger.info('Test user created', { email, username, userId });
+    return { userId };
+  }
+
   async upsertSuperAdmin(email: string, username: string, password: string): Promise<'created' | 'updated'> {
     const passwordHash = await this.hashPassword(password);
     await User.deleteOne({ email, role: { $ne: 'superadmin' } });

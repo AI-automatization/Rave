@@ -1,6 +1,23 @@
 # WeWatch — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-06-15
+# Yangilangan: 2026-07-07
+
+---
+
+### F-219 | T-S110 | SSRF DNS-rebinding fix — hls-proxy resolved-IP validation
+
+- **Bajaruvchi:** Saidazim (Claude)  **Bajarilgan:** 2026-07-06 22:26  **Model:** sonnet
+- **O'zgarishlar:** `services/content/src/controllers/hlsProxy.controller.ts` (`validateProxyUrl`) — DNS resolve qilinib, natija IP privat diapazonlar (169.254.169.254, 10.x, 172.16-31.x, 192.168.x va h.k.) ga solishtiriladi, faqat shundan keyin fetch qilinadi. Segment LRU cache ham shu commit bilan qo'shildi.
+- **Xulosa:** Attacker domeni cloud metadata/ichki IP ga rezolvitilib blok-listni aylanib o'tishi mumkin edi — endi yopiq. Commit: `56f97c8`.
+
+### F-218 | T-S106 | Mesh Faza 0 — TURN credentials + NTP clock-sync handshake
+
+- **Bajaruvchi:** Saidazim (Claude)  **Bajarilgan:** 2026-07-06 22:26 (boshlangan 2026-06-29 16:59)  **Model:** sonnet
+- **O'zgarishlar:**
+  - `apps/mobile/src/services/mesh/MeshClient.ts` — DataChannel ping/pong orqali clock offset + RTT (NTP-style), ICE restart retry, periodic clock resync
+  - `apps/mobile/src/services/mesh/TopologyManager.ts` — topology limit fix
+  - `apps/mobile/src/services/mesh/config.ts` — TURN (`EXPO_PUBLIC_TURN_*`) config cleanup
+- **Xulosa:** Clock offset endi hisobga olinadi (`SyncProtocol.calcDrift` uchun asos tayyor), TURN creds to'ldirildi — mobil CGNAT muhitida mesh ulanadi. Commitlar: `900df1b`, `6bf6cc8`. T-S107 uchun blocker yopildi.
 
 ---
 

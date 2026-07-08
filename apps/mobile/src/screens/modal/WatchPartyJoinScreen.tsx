@@ -1,15 +1,6 @@
 // WeWatch Mobile — WatchParty Join by Invite Code
 import React, { useState, useRef, useEffect } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-} from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,6 +9,7 @@ import { useT } from '@i18n/index';
 import { ModalStackParamList } from '@app-types/index';
 import { watchPartyApi } from '@api/watchParty.api';
 import { analyticsService } from '@services/analyticsService';
+import { appAlert } from '@components/common/AppAlert';
 
 type Nav = NativeStackNavigationProp<ModalStackParamList, 'WatchPartyJoin'>;
 type Route = RouteProp<ModalStackParamList, 'WatchPartyJoin'>;
@@ -53,7 +45,7 @@ export function WatchPartyJoinScreen() {
   const handleJoin = async (overrideCode?: string) => {
     const joinCode = overrideCode ?? code;
     if (joinCode.length < CODE_LENGTH) {
-      Alert.alert('Xato', `${CODE_LENGTH} belgili kod kiriting`);
+      appAlert('Xato', `${CODE_LENGTH} belgili kod kiriting`);
       return;
     }
     setLoading(true);
@@ -62,7 +54,7 @@ export function WatchPartyJoinScreen() {
       analyticsService.track('action:room_join', undefined, { roomId: room._id });
       navigation.replace('WatchParty', { roomId: room._id });
     } catch {
-      Alert.alert(t('common', 'error'), t('watchParty', 'joinFailed'));
+      appAlert(t('common', 'error'), t('watchParty', 'joinFailed'));
     } finally {
       setLoading(false);
     }

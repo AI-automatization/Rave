@@ -14,4 +14,7 @@ export const config = {
   redisUrl: requireEnv('REDIS_URL'),
   jwtPublicKey: requireEnv('JWT_PUBLIC_KEY').replace(/\\n/g, '\n'),
   corsOrigins: process.env.CORS_ORIGINS ?? 'http://localhost:3000,http://localhost:5173,http://localhost:8081',
+  // Metered TURN — optional. If unset, /turn/credentials returns STUN-only (mesh still works on friendly NAT).
+  meteredDomain: process.env.METERED_DOMAIN ?? '',
+  meteredSecretKey: process.env.METERED_SECRET_KEY ?? '',
 } as const;

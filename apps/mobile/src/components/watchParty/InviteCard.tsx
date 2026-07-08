@@ -1,6 +1,6 @@
 // WeWatch Mobile — WatchParty InviteCard
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, FlatList, ActivityIndicator, Alert, Share, Linking } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, ActivityIndicator, Share, Linking } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@theme/index';
@@ -11,6 +11,7 @@ import { notificationApi } from '@api/notification.api';
 import { useAuthStore } from '@store/auth.store';
 import { useT } from '@i18n/index';
 import type { IUserPublic } from '@app-types/index';
+import { appAlert } from '@components/common/AppAlert';
 
 interface InviteCardProps { inviteCode: string; roomId: string; roomName: string; }
 
@@ -67,7 +68,7 @@ export const InviteCard = React.memo(function InviteCard({ inviteCode, roomId, r
       await watchPartyApi.inviteFriend(roomId, friendId, username);
       setInvitedIds(prev => new Set(prev).add(friendId));
     } catch {
-      Alert.alert(t('watchParty', 'inviteFailed'));
+      appAlert(t('watchParty', 'inviteFailed'));
     } finally { setInvitingId(null); }
   }, [roomId, username, t]);
 

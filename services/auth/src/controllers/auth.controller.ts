@@ -127,6 +127,18 @@ export class AuthController {
     }
   };
 
+  createTestUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { email, username, password } = req.body as {
+        email: string; username: string; password: string;
+      };
+      const result = await this.authService.createTestUser(email, username, password);
+      res.status(201).json(apiResponse.success(result, 'Test user created'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   deleteUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { userId } = req.params;

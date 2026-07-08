@@ -14,10 +14,40 @@ permissions:
   contents: read
 
 jobs:
+  # Detect which services actually changed — only those get redeployed.
+  # Filter name == Railway service name (note: dir services/watch-party → service "watch-part").
+  # shared/** change fans out to every backend service.
+  changes:
+    name: Detect changed services
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      services: ${{ steps.filter.outputs.changes }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            auth: ['services/auth/**', 'shared/**']
+            user: ['services/user/**', 'shared/**']
+            content: ['services/content/**', 'shared/**']
+            watch-part: ['services/watch-party/**', 'shared/**']
+            notification: ['services/notification/**', 'shared/**']
+            admin: ['services/admin/**', 'shared/**']
+            gateway: ['services/gateway/**']
+            web: ['apps/web/**']
+            app-web: ['apps/app-web/**']
+            admin-ui: ['apps/admin-ui/**']
+
   # #29 — typecheck must pass before any deploy
   typecheck-gate:
     name: Typecheck gate
     runs-on: ubuntu-latest
+    needs: [changes]
+    if: needs.changes.outputs.services != '[]'
     permissions:
       contents: read
 
@@ -69,22 +99,18 @@ jobs:
     name: Deploy to Railway (Production)
     runs-on: ubuntu-latest
     environment: production
-    needs: [typecheck-gate]  # #29 — never deploy if typecheck fails
+    needs: [changes, typecheck-gate]  # #29 — never deploy if typecheck fails
     if: |
-      github.event_name == 'push' ||
-      github.event_name == 'workflow_dispatch' && github.event.inputs.confirm == 'yes'
+      needs.changes.outputs.services != '[]' &&
+      (github.event_name == 'push' ||
+       (github.event_name == 'workflow_dispatch' && github.event.inputs.confirm == 'yes'))
 
     strategy:
       fail-fast: false
       max-parallel: 3
+      # Deploy only the services that changed in this push
       matrix:
-        service:
-          - auth
-          - user
-          - content
-          - watch-party
-          - notification
-          - admin
+        service: ${{ fromJSON(needs.changes.outputs.services) }}
 
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -101,14 +127,20 @@ jobs:
         run: |
           sleep 15
           SERVICE_URL=""
+          HEALTH_PATH="/health"
           case "${{ matrix.service }}" in
             auth)         SERVICE_URL="${{ secrets.PROD_AUTH_URL }}" ;;
             user)         SERVICE_URL="${{ secrets.PROD_USER_URL }}" ;;
             content)      SERVICE_URL="${{ secrets.PROD_CONTENT_URL }}" ;;
-            watch-party)  SERVICE_URL="${{ secrets.PROD_WATCH_PARTY_URL }}" ;;
+            watch-part)   SERVICE_URL="${{ secrets.PROD_WATCH_PARTY_URL }}" ;;
             notification) SERVICE_URL="${{ secrets.PROD_NOTIFICATION_URL }}" ;;
             admin)        SERVICE_URL="${{ secrets.PROD_ADMIN_URL }}" ;;
+            gateway)      SERVICE_URL="${{ secrets.PROD_GATEWAY_URL }}" ;;
+            # Front-end services have no /health endpoint — probe an existing path
+            web)          SERVICE_URL="${{ secrets.PROD_WEB_URL }}"; HEALTH_PATH="/" ;;
+            app-web)      SERVICE_URL="${{ secrets.PROD_APP_WEB_URL }}"; HEALTH_PATH="/login" ;;
+            admin-ui)     SERVICE_URL="${{ secrets.PROD_ADMIN_UI_URL }}"; HEALTH_PATH="/" ;;
           esac
           if [ -n "$SERVICE_URL" ]; then
-            curl --fail --retry 3 --retry-delay 5 "$SERVICE_URL/health" || exit 1
+            curl --fail --retry 3 --retry-delay 5 "$SERVICE_URL$HEALTH_PATH" || exit 1
           fi

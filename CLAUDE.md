@@ -9,6 +9,7 @@
 - `grep` / `find` по кодовой базе
 - `Read` нужных `.md` файлов (Hub, Tasks, контекст зоны)
 - `bash .claude/scripts/memory-load.sh quick` при старте сессии
+- `bash .claude/scripts/rag.sh q "<тема>"` — семантический recall по Obsidian vault перед нетривиальной задачей (grep = буквально, RAG = по смыслу; RU/UZ/EN, ~1с). Пересбор индекса: `rag.sh index`
 
 Код не пишется и ответ не формируется до прочтения реальных файлов.
 
@@ -363,6 +364,8 @@ Brute force: 5 попыток → 15min блок | Socket.io JWT verify
 ```bash
 bash .claude/scripts/memory-load.sh quick   # ОБЯЗАТЕЛЬНО при каждом старте сессии
 bash .claude/scripts/memory-load.sh full    # перед сложными задачами (opus-уровень)
+bash .claude/scripts/rag.sh q "<тема>"      # семантический recall по vault перед нетривиальной задачей
+                                            # (дополняет grep: grep = буквально, RAG = по смыслу)
 ```
 
 Файлы памяти (в порядке чтения):
@@ -380,8 +383,18 @@ API.md          → все endpoints + env variables
 1. RESEARCH  → .claude/skills/research.md     — изучить перед кодом
 2. SUMMARY   → показать понимание задачи + что будет изменено
 3. PLAN      → пошаговый план, минимальные изменения
+             → перед сложной задачей: agy -p "ревью плана, 3 слабых места" (.claude/skills/antigravity.md)
 4. EXECUTE   → только после research, existing patterns
 5. MEMORY UPDATE → обновить LAST_SESSION.md + Done.md + tg-notify
+             → перед отдачей результата: agy -p "ревью решения, что упустил" (внешнее второе мнение)
+```
+
+### 🛰️ ANTIGRAVITY (`agy`) — внешний критик
+```
+agy -p "<промпт>"   — single-shot второе мнение (Gemini/Claude/GPT-OSS, залогинен)
+Прогонять планы и решения через agy перед/после нетривиальной работы.
+Критику фильтровать через знание проекта — agy советник, не начальник.
+Детали: .claude/skills/antigravity.md | ZONES/MCPs/antigravity-cli.md
 ```
 
 ### ⛔ Anti-hallucination — АБСОЛЮТНЫЙ ЗАПРЕТ:
@@ -425,6 +438,7 @@ bash .claude/scripts/update-last-session.sh "T-SXXX" "что делали" "сл
 
 ```
 Память / контекст:
+  • RAG        → bash .claude/scripts/rag.sh q "<тема>"  (семантический поиск по vault — RU/UZ/EN, ~1с; grep дополняет)
   • MEMORY     → .claude/skills/memory.md           (read/write vault, resume session)
   • STATUS     → .claude/skills/status.md           (current project state snapshot)
   • RESEARCH   → .claude/skills/research.md         (explore before code — ОБЯЗАТЕЛЬНО)
@@ -443,6 +457,7 @@ Mode B / >5 файлов? → .claude/skills/subagent-dispatch.md
   2. LOOP   → .claude/skills/execute-judge-loop.md       (write→tsc→judge≥7→fix)
   3. REFLECT→ .claude/skills/self-reflection.md          (7 шагов: imports/tsc/zone/forbidden — все ✅)
   4. CRITIC → .claude/skills/critic-agent.md             (3 судьи ≥7/10 → APPROVE)
+  4b.AGY   → .claude/skills/antigravity.md               (agy -p "..." — внешнее второе мнение + self-critic, перед/после нетривиальной задачи)
   5. TESTS  → .claude/skills/auto-tests.md
   6. VISUAL → .claude/skills/visual-testing.md           (только если .tsx/.css/StyleSheet)
 

@@ -5,6 +5,18 @@ import { useWatchPartyStore } from '@store/watchParty.store';
 import { useAuthStore } from '@store/auth.store';
 import { connectSocket, disconnectSocket, getSocket, SERVER_EVENTS, CLIENT_EVENTS } from '@socket/client';
 import { SyncState, IWatchPartyRoom, VideoPlatform, IUserPublic } from '@app-types/index';
+import { SyncBroadcaster } from '@services/mesh/SyncBroadcaster';
+import type { SyncMessage } from '@services/mesh/types';
+
+// Mesh predictive window — owner schedules play/pause/seek this far ahead so peers
+// execute together. Much smaller than the 500ms socket window because direct
+// peer RTT (~30-150ms) has far less jitter than the UZ→US→UZ socket round-trip.
+const MESH_SCHEDULE_AHEAD_MS = 150;
+// A member treats mesh as its authoritative source while it received a mesh message
+// within this window. Mesh always beats socket on latency, so the socket copy of the
+// same event arrives later and is skipped — no dual-apply. If mesh goes silent
+// (owner not on mesh / connection dropped), the member falls back to socket.
+const MESH_FRESH_MS = 6000;
 
 interface MemberEvent {
   userId: string;
@@ -55,6 +67,18 @@ export function useWatchParty(roomId: string) {
   const [bufferingUsers, setBufferingUsers] = useState<Set<string>>(new Set());
   const [lastReaction, setLastReaction] = useState<ReactionBroadcast | null>(null);
 
+  // Mesh sync (P2P/TURN) — owner broadcasts here, members apply. Socket stays as fallback.
+  const broadcasterRef = useRef<SyncBroadcaster | null>(null);
+  // Date.now() of the last mesh message a member received — drives single-source selection.
+  const lastMeshAtRef = useRef(0);
+  const meshFresh = useCallback(() => Date.now() - lastMeshAtRef.current < MESH_FRESH_MS, []);
+  // serverClockOffset (ms) = serverClock − clientClock, measured over socket via CLOCK_PING/PONG.
+  // Server-origin timestamps (serverTimestamp, scheduledAt, heartbeat.timestamp) arrive in the
+  // server's clock; we subtract this offset to normalise them to the LOCAL clock, so downstream
+  // drift/compensation math (which uses Date.now()) is skew-free. The mesh path already delivers
+  // local-clock timestamps, so this keeps both transports uniform (no changes needed downstream).
+  const serverClockOffsetRef = useRef(0);
+
   useEffect(() => {
     // Har safar yangi xonaga kirda — eski ma'lumotlarni tozala
     clearParty();
@@ -76,13 +100,41 @@ export function useWatchParty(roomId: string) {
       joinRoom();
     }
 
+    // NTP-style socket clock sync: measure server↔client offset with a short ping burst on
+    // connect; keep the lowest-RTT sample. Lets us de-skew server-clock timestamps below.
+    const runClockSync = () => {
+      let round = 0;
+      let bestRtt = Infinity;
+      const tick = () => {
+        if (!socket.connected) return;
+        socket.emit(CLIENT_EVENTS.CLOCK_PING, { t0: Date.now() });
+        if (++round < 5) setTimeout(tick, 400);
+      };
+      socket.off(SERVER_EVENTS.CLOCK_PONG);
+      socket.on(SERVER_EVENTS.CLOCK_PONG, (d: { t0: number; t1: number }) => {
+        const t2 = Date.now();
+        const rtt = t2 - d.t0;
+        if (rtt < bestRtt) { bestRtt = rtt; serverClockOffsetRef.current = d.t1 - (d.t0 + t2) / 2; }
+      });
+      tick();
+    };
+    socket.on('connect', runClockSync);
+    if (socket.connected) runClockSync();
+
+    // Normalise a server-clock SyncState to the local clock (serverTimestamp + scheduledAt).
+    const toLocalClock = (state: SyncState): SyncState => ({
+      ...state,
+      serverTimestamp: state.serverTimestamp - serverClockOffsetRef.current,
+      scheduledAt: state.scheduledAt !== undefined ? state.scheduledAt - serverClockOffsetRef.current : state.scheduledAt,
+    });
+
     socket.on(SERVER_EVENTS.ROOM_JOINED, (data: { room: IWatchPartyRoom; syncState: SyncState }) => {
       setRoom(data.room);
       const memberIds = (data.room.members as unknown[]).map((m: unknown) =>
         typeof m === 'string' ? m : (m as { _id?: string; userId?: string })?._id ?? (m as { userId?: string })?.userId ?? '',
       );
       setActiveMembers(memberIds);
-      if (data.syncState) setSyncState(data.syncState);
+      if (data.syncState) setSyncState(toLocalClock(data.syncState));
       setPlaylist(data.room.playlist ?? []);
     });
 
@@ -96,10 +148,13 @@ export function useWatchParty(roomId: string) {
         : { ...updated, ownerId: useWatchPartyStore.getState().room?.ownerId ?? '' };
       setRoom(roomToSet);
     });
-    socket.on(SERVER_EVENTS.VIDEO_SYNC, (state: SyncState) => setSyncState(state));
-    socket.on(SERVER_EVENTS.VIDEO_PLAY, (state: SyncState) => setSyncState(state));
-    socket.on(SERVER_EVENTS.VIDEO_PAUSE, (state: SyncState) => setSyncState(state));
-    socket.on(SERVER_EVENTS.VIDEO_SEEK, (state: SyncState) => setSyncState(state));
+    // Single source: while mesh is delivering the owner's events, ignore the slower
+    // socket copy of the same event (mesh already applied it). VIDEO_SYNC (full state,
+    // e.g. late-join seed) is always applied — it's authoritative room state, not a dup.
+    socket.on(SERVER_EVENTS.VIDEO_SYNC, (state: SyncState) => setSyncState(toLocalClock(state)));
+    socket.on(SERVER_EVENTS.VIDEO_PLAY, (state: SyncState) => { if (!meshFresh()) setSyncState(toLocalClock(state)); });
+    socket.on(SERVER_EVENTS.VIDEO_PAUSE, (state: SyncState) => { if (!meshFresh()) setSyncState(toLocalClock(state)); });
+    socket.on(SERVER_EVENTS.VIDEO_SEEK, (state: SyncState) => { if (!meshFresh()) setSyncState(toLocalClock(state)); });
 
     socket.on(SERVER_EVENTS.ROOM_MESSAGE, (msg: MessageEvent) => {
       const cached = queryClient.getQueryData<IUserPublic>(['user-public', msg.userId]);
@@ -122,8 +177,11 @@ export function useWatchParty(roomId: string) {
       if (__DEV__) console.log('[useWatchParty] socket error:', err?.message);
     });
 
-    // T-E099: Heartbeat listener — separate from syncState (no seekTo trigger)
-    socket.on(VIDEO_HEARTBEAT_EVENT, (data: HeartbeatData) => setHeartbeat(data));
+    // T-E099: Heartbeat listener — separate from syncState (no seekTo trigger).
+    // Skipped while mesh is fresh: the mesh heartbeat (faster, clock-corrected) is the source.
+    socket.on(VIDEO_HEARTBEAT_EVENT, (data: HeartbeatData) => {
+      if (!meshFresh()) setHeartbeat({ currentTime: data.currentTime, timestamp: data.timestamp - serverClockOffsetRef.current });
+    });
 
     // T-E101: Buffer event — track who is buffering
     socket.on(SERVER_EVENTS.VIDEO_BUFFER, (data: { userId: string; isBuffering: boolean }) => {
@@ -149,6 +207,8 @@ export function useWatchParty(roomId: string) {
 
     return () => {
       socket.off('connect', joinRoom);
+      socket.off('connect', runClockSync);
+      socket.off(SERVER_EVENTS.CLOCK_PONG);
       socket.off('disconnect');
       // NOTE: Do NOT emit LEAVE_ROOM here — React StrictMode runs cleanup+remount
       // in dev, which would delete the room before the second mount can join it.
@@ -174,23 +234,83 @@ export function useWatchParty(roomId: string) {
     };
   }, [roomId]); // token intentionally excluded: refresh is handled inside socket/client.ts
 
+  // ─── Mesh sync lifecycle ───────────────────────────────────────────────────
+  // Created once the room (→ ownership) is known. Owner broadcasts play/pause/seek/
+  // heartbeat over the DataChannel; members apply incoming mesh messages into the SAME
+  // setSyncState/setHeartbeat the socket path uses, so all downstream drift logic is
+  // unchanged — mesh is just a faster transport. Socket remains the fallback.
+  useEffect(() => {
+    if (!room?._id || !userId) return;
+    const ownerNow = room.ownerId === userId;
+
+    const applyMeshSync = (msg: SyncMessage, clockOffset?: number) => {
+      // Translate the sender's wall clock into ours so existing elapsed-time
+      // compensation (Date.now() - serverTimestamp) stays correct across devices.
+      const offset = clockOffset ?? 0;
+      const localTs = msg.timestamp - offset;
+      lastMeshAtRef.current = Date.now();
+
+      if (msg.type === 'heartbeat') {
+        setHeartbeat({ currentTime: msg.currentTime, timestamp: localTs });
+        return;
+      }
+      const prevPlaying = useWatchPartyStore.getState().syncState?.isPlaying ?? false;
+      setSyncState({
+        currentTime: msg.currentTime,
+        isPlaying: msg.type === 'play' ? true : msg.type === 'pause' ? false : prevPlaying,
+        serverTimestamp: localTs,
+        updatedBy: msg.fromUserId,
+        scheduledAt: msg.scheduledAt !== undefined ? msg.scheduledAt - offset : undefined,
+      });
+    };
+
+    const broadcaster = new SyncBroadcaster({
+      userId,
+      roomId,
+      isOwner: ownerNow,
+      onSyncMessage: applyMeshSync,
+    });
+    broadcaster.start();
+    broadcasterRef.current = broadcaster;
+
+    return () => {
+      broadcaster.destroy();
+      broadcasterRef.current = null;
+      lastMeshAtRef.current = 0;
+    };
+  }, [room?._id, room?.ownerId, userId, roomId]);
+
   const emitPlay = useCallback(
-    (currentTime: number) => getSocket()?.emit(CLIENT_EVENTS.PLAY, { roomId, currentTime }),
+    (currentTime: number) => {
+      getSocket()?.emit(CLIENT_EVENTS.PLAY, { roomId, currentTime });
+      broadcasterRef.current?.broadcastPlay(currentTime, Date.now() + MESH_SCHEDULE_AHEAD_MS);
+    },
     [roomId],
   );
 
   const emitPause = useCallback(
-    (currentTime: number) => getSocket()?.emit(CLIENT_EVENTS.PAUSE, { roomId, currentTime }),
+    (currentTime: number) => {
+      getSocket()?.emit(CLIENT_EVENTS.PAUSE, { roomId, currentTime });
+      broadcasterRef.current?.broadcastPause(currentTime, Date.now() + MESH_SCHEDULE_AHEAD_MS);
+    },
     [roomId],
   );
 
   const emitSeek = useCallback(
-    (currentTime: number) => getSocket()?.emit(CLIENT_EVENTS.SEEK, { roomId, currentTime }),
+    (currentTime: number) => {
+      getSocket()?.emit(CLIENT_EVENTS.SEEK, { roomId, currentTime });
+      broadcasterRef.current?.broadcastSeek(currentTime, Date.now() + MESH_SCHEDULE_AHEAD_MS);
+    },
     [roomId],
   );
 
+  // Heartbeat goes over BOTH paths: socket keeps the server's Redis position fresh
+  // (late-join seed + admin monitoring), mesh delivers the fast clock-corrected copy.
   const emitHeartbeat = useCallback(
-    (currentTime: number) => getSocket()?.emit(CLIENT_EVENTS.HEARTBEAT, { roomId, currentTime }),
+    (currentTime: number) => {
+      getSocket()?.emit(CLIENT_EVENTS.HEARTBEAT, { roomId, currentTime });
+      broadcasterRef.current?.broadcastHeartbeat(currentTime);
+    },
     [roomId],
   );
 

@@ -16,6 +16,11 @@ export const SERVER_EVENTS = Object.freeze({
   VIDEO_BUFFER: 'video:buffer',
   VIDEO_HEARTBEAT: 'video:heartbeat',
 
+  // NTP-style clock sync: server echoes client ping with its own timestamp so the
+  // client can measure the server↔client clock offset (used to de-skew scheduledAt +
+  // drift math on the socket sync path). Mesh path has its own DataChannel NTP.
+  CLOCK_PONG: 'clock:pong',
+
   MEMBER_JOINED: 'member:joined',
   MEMBER_LEFT: 'member:left',
   MEMBER_KICKED: 'member:kicked',
@@ -68,6 +73,7 @@ export const CLIENT_EVENTS = Object.freeze({
   BUFFER_START: 'video:buffer_start',
   BUFFER_END: 'video:buffer_end',
   HEARTBEAT: 'video:heartbeat',
+  CLOCK_PING: 'clock:ping',
 
   SEND_MESSAGE: 'room:message',
   SEND_EMOJI: 'room:emoji',

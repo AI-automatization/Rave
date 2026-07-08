@@ -1,19 +1,10 @@
 // WeWatch Mobile — Change Password Modal
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  Modal,
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  Alert,
-} from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Modal, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { authApi } from '@api/auth.api';
 import { useT } from '@i18n/index';
+import { appAlert } from '@components/common/AppAlert';
 
 interface ChangePasswordModalProps {
   visible: boolean;
@@ -38,7 +29,7 @@ export function ChangePasswordModal({ visible, onClose }: ChangePasswordModalPro
     if (!oldPassword || !newPassword) return;
 
     if (newPassword.length < 6) {
-      Alert.alert(t('common', 'error'), t('settings', 'passwordTooShort'));
+      appAlert(t('common', 'error'), t('settings', 'passwordTooShort'));
       return;
     }
 
@@ -48,9 +39,9 @@ export function ChangePasswordModal({ visible, onClose }: ChangePasswordModalPro
       setOldPassword('');
       setNewPassword('');
       onClose();
-      Alert.alert(t('settings', 'success'), t('settings', 'passwordChanged'));
+      appAlert(t('settings', 'success'), t('settings', 'passwordChanged'));
     } catch {
-      Alert.alert(t('common', 'error'), t('settings', 'oldPasswordError'));
+      appAlert(t('common', 'error'), t('settings', 'oldPasswordError'));
     } finally {
       setLoading(false);
     }

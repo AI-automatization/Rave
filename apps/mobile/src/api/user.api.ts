@@ -5,7 +5,7 @@ import { ApiResponse, IUser, IUserPublic, IUserStats } from '@app-types/index';
 export interface UserSettings {
   language: string;
   notifications: { push: boolean; email: boolean };
-  privacy: { showActivity: boolean };
+  privacy: { showActivity: boolean; allowForward?: boolean };
 }
 
 export const userApi = {
@@ -130,9 +130,19 @@ export const dmApi = {
     return res.data.data ?? [];
   },
 
-  async sendMessage(peerId: string, text: string): Promise<IDMMessage> {
-    const res = await userClient.post<ApiResponse<IDMMessage>>(`/users/dm/${peerId}`, { text });
+  async sendMessage(peerId: string, text: string, replyToId?: string): Promise<IDMMessage> {
+    const res = await userClient.post<ApiResponse<IDMMessage>>(`/users/dm/${peerId}`, {
+      text,
+      ...(replyToId ? { replyToId } : {}),
+    });
     if (!res.data.data) throw new Error('sendMessage response is empty');
+    return res.data.data;
+  },
+
+  // Xabarni boshqa suhbatga forward qilish
+  async forwardMessage(peerId: string, messageId: string): Promise<IDMMessage> {
+    const res = await userClient.post<ApiResponse<IDMMessage>>(`/users/dm/${peerId}/forward`, { messageId });
+    if (!res.data.data) throw new Error('forwardMessage response is empty');
     return res.data.data;
   },
 

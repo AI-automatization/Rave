@@ -20,7 +20,7 @@ export function SourcePickerScreen() {
   const insets = useSafeAreaInsets();
   const { t } = useT();
   const [query, setQuery] = useState('');
-  const { params, urlInput, isExtracting, urlError, handleSourcePress, handleUrlExtract, handleCreateRoom, handleUrlChange } = useSourcePicker();
+  const { params, urlInput, isExtracting, urlError, handleSourcePress, handleUrlExtract, handleUrlChange } = useSourcePicker();
 
   const filtered = useMemo(() => {
     if (!query.trim()) return MEDIA_SOURCES;
@@ -95,14 +95,6 @@ export function SourcePickerScreen() {
         contentContainerStyle={s.grid}
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) => <SourceCard source={item} onPress={handleSourcePress} />}
-        ListFooterComponent={
-          params.mode === 'create' ? (
-            <TouchableOpacity style={s.createRoomBtn} onPress={handleCreateRoom}>
-              <Ionicons name="people-outline" size={18} color="#E50914" />
-              <Text style={s.createRoomText}>{t('sourcePicker', 'createRoomNoMedia')}</Text>
-            </TouchableOpacity>
-          ) : null
-        }
         ListEmptyComponent={
           <View style={s.empty}>
             <Ionicons name="search-outline" size={40} color="#4B5563" />

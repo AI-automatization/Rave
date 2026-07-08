@@ -83,7 +83,7 @@ export const createUserRouter = (redis: Redis): Router => {
   // ── Friends — all static routes BEFORE /:id ──────────────
   router.get('/me/friends', verifyToken, notBlocked, userController.getFriends);
   router.get('/me/friend-requests', verifyToken, notBlocked, userController.getPendingRequests);
-  router.delete('/me/friends/:userId', verifyToken, notBlocked, userController.removeFriend);
+  router.delete('/me/friends/:friendId', verifyToken, notBlocked, userController.removeFriend);
 
   router.get('/friends', verifyToken, notBlocked, userController.getFriends);
   router.get('/friends/requests', verifyToken, notBlocked, userController.getPendingRequests);
@@ -117,6 +117,7 @@ export const createUserRouter = (redis: Redis): Router => {
   router.get('/dm/conversations', verifyToken, notBlocked, dmController.getConversations);
   router.get('/dm/:userId', verifyToken, notBlocked, dmController.getHistory);
   router.post('/dm/:userId', verifyToken, notBlocked, dmController.sendMessage);
+  router.post('/dm/:userId/forward', verifyToken, notBlocked, dmController.forwardMessage);
   router.patch('/dm/:userId/read', verifyToken, notBlocked, dmController.markRead);
 
   // ── Internal (service-to-service) ────────────────────────

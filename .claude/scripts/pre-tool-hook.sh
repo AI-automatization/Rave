@@ -8,13 +8,16 @@ TOOL=$(echo "$INPUT" | python3 -c "import sys,json; d=json.load(sys.stdin); prin
 FILE=$(echo "$INPUT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('tool_input',{}).get('file_path',''))" 2>/dev/null)
 CMD=$(echo "$INPUT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('tool_input',{}).get('command',''))" 2>/dev/null)
 
-# ── ZONE GUARD: Emirhan zone protection ─────────────────────────────────────
+# ── ZONE GUARD: shared mobile zone (Saidazim + Emirhan) — load-zone-first discipline ──
+# apps/mobile is a SHARED zone per CLAUDE.md (Saidazim + Emirhan). We keep a soft guard so
+# edits happen only after the mobile zone context is loaded (zone-load.sh mobile), but it is
+# no longer an Emirhan-only hard block. Match is case-insensitive & substring: zone-load.sh
+# writes the vault basename "WeWatch-Mobile", so we look for "mobile" anywhere.
 if [[ "$TOOL" == "Edit" || "$TOOL" == "Write" ]]; then
   if echo "$FILE" | grep -qE "apps/mobile/"; then
-    # Allow if explicitly in a mobile task context
     ACTIVE_ZONE=$(cat /tmp/claude-active-zone 2>/dev/null || echo "")
-    if [[ "$ACTIVE_ZONE" != "mobile" ]]; then
-      echo '{"decision":"block","reason":"⛔ ZONE GUARD: apps/mobile/ — Emirhan zone. Load mobile zone first or get confirmation."}' >&2
+    if ! echo "$ACTIVE_ZONE" | grep -qiE "mobile"; then
+      echo '{"decision":"block","reason":"⛔ ZONE GUARD: apps/mobile/ is a shared zone (Saidazim+Emirhan). Run: bash .claude/scripts/zone-load.sh mobile — then retry."}' >&2
       exit 2
     fi
   fi

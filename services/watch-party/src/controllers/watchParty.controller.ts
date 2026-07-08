@@ -24,6 +24,24 @@ export class WatchPartyController {
       }
 
       const { userId } = (req as AuthenticatedRequest).user;
+
+      // One active room per owner — a user can only host a single room at a time.
+      // If they already own a non-ended room, return it (409) so the client reopens
+      // the existing room instead of silently creating duplicates.
+      const existingRoom = await WatchPartyRoom.findOne({
+        ownerId: userId,
+        status: { $ne: 'ended' },
+      }).select('_id').lean();
+      if (existingRoom) {
+        res.status(409).json({
+          success: false,
+          data: { roomId: String(existingRoom._id) },
+          message: 'ROOM_ALREADY_EXISTS',
+          errors: null,
+        });
+        return;
+      }
+
       const {
         name, movieId, videoUrl, videoTitle, videoThumbnail, videoPlatform,
         maxMembers, isPrivate, password, startTime, videoReferer,

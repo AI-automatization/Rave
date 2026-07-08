@@ -1,13 +1,6 @@
 // WeWatch Mobile — FriendProfileScreen
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-  Alert,
-} from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRoute, useNavigation, RouteProp, NavigationProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -24,6 +17,7 @@ import { ReportUserModal } from '@components/common/ReportUserModal';
 import { blockedUsersStorage } from '@utils/storage';
 import { userApi } from '@api/user.api';
 import { useStyles } from './FriendProfileScreen.styles';
+import { appAlert } from '@components/common/AppAlert';
 
 type RouteType = RouteProp<FriendsStackParamList, 'FriendProfile'>;
 type RootNav = NavigationProp<RootStackParamList>;
@@ -67,7 +61,7 @@ export function FriendProfileScreen() {
   const isOnline = profile ? (onlineStatus[profile._id] ?? profile.isOnline) : false;
 
   const handleRemoveFriend = () => {
-    Alert.alert(t('friends', 'removeFriend'), `${profile?.username} ${t('friends', 'removeFriendMsg')}`, [
+    appAlert(t('friends', 'removeFriend'), `${profile?.username} ${t('friends', 'removeFriendMsg')}`, [
       { text: t('common', 'cancel'), style: 'cancel' },
       {
         text: t('friends', 'removeBtn'),
@@ -78,7 +72,7 @@ export function FriendProfileScreen() {
   };
 
   const handleBlockUser = () => {
-    Alert.alert(
+    appAlert(
       t('friends', 'blockUserTitle'),
       `${profile?.username ? `@${profile.username} — ` : ''}${t('friends', 'blockUserMsg')}`,
       [
@@ -93,7 +87,7 @@ export function FriendProfileScreen() {
               await userApi.blockUser(params.userId);
               navigation.goBack();
             } catch {
-              Alert.alert(t('common', 'error'), t('common', 'error'));
+              appAlert(t('common', 'error'), t('common', 'error'));
             } finally {
               setBlockLoading(false);
             }
@@ -105,8 +99,8 @@ export function FriendProfileScreen() {
 
   const handleAddFriend = () => {
     sendRequestMutation.mutate(undefined, {
-      onSuccess: () => Alert.alert('✓', t('friends', 'requestSentAlert')),
-      onError: () => Alert.alert(t('common', 'error'), t('friends', 'requestError')),
+      onSuccess: () => appAlert('✓', t('friends', 'requestSentAlert')),
+      onError: () => appAlert(t('common', 'error'), t('friends', 'requestError')),
     });
   };
 
@@ -215,6 +209,14 @@ export function FriendProfileScreen() {
             >
               <Ionicons name="people" size={18} color={colors.white} />
               <Text style={styles.watchPartyBtnText}>Watch Party</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.messageBtn}
+              onPress={() => rootNav.navigate('Modal', { screen: 'DMChat', params: { peerId: params.userId, peerName: profile?.username ?? '' } })}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="chatbubble-ellipses-outline" size={18} color={colors.primary} />
+              <Text style={styles.messageBtnText}>{t('friends', 'dmBtn')}</Text>
             </TouchableOpacity>
           </View>
         )}

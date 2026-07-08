@@ -1,0 +1,1155 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>WeWatch — База данных</title>
+<style>
+  :root {
+    --bg: #07070f;
+    --surface: #0f0f1a;
+    --card: #13131f;
+    --border: #1e1e30;
+    --text: #e8e8f0;
+    --muted: #6b6b8a;
+    --accent: #7B72F8;
+    --auth:    #6366f1;
+    --user:    #22d3ee;
+    --content: #f59e0b;
+    --party:   #ec4899;
+    --notif:   #10b981;
+    --admin:   #ef4444;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui,sans-serif; font-size:13px; }
+
+  /* ШАПКА */
+  .header {
+    background:var(--surface);
+    border-bottom:1px solid var(--border);
+    padding:18px 32px;
+    position:sticky; top:0; z-index:100;
+  }
+  .header h1 { font-size:20px; color:var(--accent); margin-bottom:4px; }
+  .header p  { color:var(--muted); font-size:12px; }
+
+  /* ЛЕГЕНДА */
+  .legend {
+    display:flex; gap:20px; flex-wrap:wrap; margin-top:10px;
+  }
+  .leg { display:flex; align-items:center; gap:6px; font-size:11px; color:var(--muted); }
+  .leg-dot { width:10px; height:10px; border-radius:3px; }
+
+  /* ТАБЫ */
+  .tabs {
+    display:flex; gap:4px; padding:14px 32px 0;
+    background:var(--surface); border-bottom:1px solid var(--border);
+  }
+  .tab {
+    padding:9px 20px; border-radius:8px 8px 0 0;
+    border:1px solid transparent; border-bottom:none;
+    cursor:pointer; font-size:13px; color:var(--muted);
+    background:transparent; font-family:inherit; transition:all .15s;
+  }
+  .tab:hover { color:var(--text); background:var(--card); }
+  .tab.active { color:var(--text); background:var(--bg); border-color:var(--border); border-bottom:1px solid var(--bg); }
+
+  /* КОНТЕНТ */
+  .main { padding:32px; }
+  .page { display:none; }
+  .page.active { display:block; }
+
+  /* СЕРВИС */
+  .svc { margin-bottom:48px; }
+  .svc-head {
+    display:flex; align-items:center; gap:12px;
+    margin-bottom:20px; padding-bottom:12px; border-bottom:1px solid var(--border);
+  }
+  .svc-badge { padding:4px 12px; border-radius:5px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1px; }
+  .svc-name  { font-size:16px; font-weight:600; }
+  .svc-desc  { color:var(--muted); font-size:11px; }
+
+  /* СЕТКА КОЛЛЕКЦИЙ */
+  .grid { display:flex; flex-wrap:wrap; gap:20px; }
+
+  /* КАРТОЧКА КОЛЛЕКЦИИ */
+  .coll {
+    background:var(--card); border:1px solid var(--border);
+    border-radius:12px; width:320px; flex-shrink:0; overflow:hidden;
+  }
+  .coll-head {
+    padding:12px 16px; display:flex; align-items:center; gap:8px;
+    border-bottom:1px solid var(--border);
+  }
+  .coll-icon { font-size:16px; }
+  .coll-name { font-size:14px; font-weight:700; }
+  .coll-db   { margin-left:auto; font-size:10px; color:var(--muted); background:rgba(255,255,255,.05); padding:2px 7px; border-radius:10px; }
+
+  /* СТРОКА ПОЛЯ */
+  .field {
+    display:flex; align-items:center; padding:7px 16px;
+    border-bottom:1px solid rgba(255,255,255,.03); gap:6px;
+  }
+  .field:last-child { border-bottom:none; }
+  .field:hover { background:rgba(255,255,255,.02); }
+
+  .fname { flex:1; font-size:12px; font-weight:500; }
+  .fname.pk { color:#a78bfa; }
+  .fname.fk { color:#22d3ee; }
+
+  .ftype { color:var(--muted); font-size:11px; flex:1; }
+  .fdesc { color:#64748b; font-size:10px; flex:1.2; font-style:italic; }
+
+  .badges { display:flex; gap:3px; flex-shrink:0; }
+  .b { font-size:9px; padding:2px 5px; border-radius:3px; font-weight:700; }
+  .b-pk     { background:rgba(167,139,250,.2); color:#a78bfa; }
+  .b-fk     { background:rgba(34,211,238,.15); color:#22d3ee; }
+  .b-u      { background:rgba(245,158,11,.15); color:#f59e0b; }
+  .b-i      { background:rgba(16,185,129,.15); color:#10b981; }
+  .b-ttl    { background:rgba(239,68,68,.15); color:#ef4444; }
+  .b-hidden { background:rgba(107,107,138,.15); color:#6b7280; }
+  .b-enum   { background:rgba(236,72,153,.12); color:#ec4899; }
+
+  .sep { height:1px; background:rgba(255,255,255,.06); margin:3px 0; }
+
+  /* ИНДЕКСЫ */
+  .idx-block { padding:10px 16px 12px; background:rgba(0,0,0,.25); border-top:1px solid var(--border); }
+  .idx-title { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px; }
+  .idx-row   { font-size:11px; color:#10b981; margin-bottom:3px; line-height:1.4; }
+  .idx-row span { color:var(--muted); }
+
+  /* ══ ВКЛАДКА 2: ПОТОКИ ══ */
+  .flows { display:grid; grid-template-columns:repeat(auto-fill,minmax(480px,1fr)); gap:24px; }
+
+  .flow-card { background:var(--card); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+  .flow-head {
+    padding:14px 20px; border-bottom:1px solid var(--border);
+    display:flex; align-items:center; gap:10px;
+  }
+  .flow-title { font-size:15px; font-weight:700; }
+  .flow-svc { font-size:10px; padding:3px 9px; border-radius:10px; font-weight:700; }
+
+  .flow-body { padding:20px; }
+
+  /* Формула */
+  .formula {
+    display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+    background:rgba(0,0,0,.3); border:1px solid var(--border);
+    border-radius:8px; padding:12px 16px; margin-bottom:20px;
+  }
+  .fkey { padding:5px 12px; border-radius:6px; font-size:12px; font-weight:700; border:1px solid; }
+  .fop  { font-size:18px; color:var(--muted); }
+  .fres { padding:5px 14px; border-radius:6px; font-size:12px; font-weight:700; background:rgba(123,114,248,.2); border:1px solid #7B72F8; color:#a78bfa; }
+
+  /* Шаги */
+  .step { display:flex; gap:12px; margin-bottom:16px; }
+  .step:last-child { margin-bottom:0; }
+  .step-n {
+    width:24px; height:24px; border-radius:50%; flex-shrink:0;
+    background:rgba(123,114,248,.2); color:var(--accent);
+    font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; margin-top:2px;
+  }
+  .step-c { flex:1; }
+  .step-label { font-size:12px; color:var(--muted); margin-bottom:5px; font-weight:500; }
+  .step-box {
+    background:rgba(0,0,0,.4); border:1px solid rgba(255,255,255,.07);
+    border-radius:8px; padding:10px 14px; font-size:12px; line-height:1.6;
+  }
+  .step-box .k { color:#22d3ee; font-weight:600; }
+  .step-box .v { color:#f59e0b; }
+  .step-box .ok{ color:#10b981; font-weight:600; }
+  .step-box .er{ color:#ef4444; font-weight:600; }
+  .step-box .cm{ color:#6b7280; font-style:italic; }
+
+  .arrow { text-align:center; color:var(--muted); font-size:20px; margin:-4px 0 8px 36px; }
+
+  /* ══ ВКЛАДКА 3: СВЯЗИ ══ */
+  .rel-table { width:100%; border-collapse:collapse; }
+  .rel-table th {
+    padding:11px 16px; text-align:left; font-size:11px;
+    text-transform:uppercase; letter-spacing:1px; color:var(--muted);
+    border-bottom:2px solid var(--border); background:var(--card);
+  }
+  .rel-table td { padding:11px 16px; border-bottom:1px solid rgba(255,255,255,.04); font-size:12px; vertical-align:middle; }
+  .rel-table tr:hover td { background:rgba(255,255,255,.02); }
+  .c-from { color:#a78bfa; font-weight:600; }
+  .c-field { color:#22d3ee; font-family:monospace; }
+  .c-to   { color:#f59e0b; font-weight:600; }
+  .c-type { color:#ec4899; }
+  .c-desc { color:var(--muted); }
+  .arr    { color:#6b7280; font-size:18px; }
+
+  /* ══ ВКЛАДКА 4: REDIS ══ */
+  .redis-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(360px,1fr)); gap:20px; }
+  .redis-card { background:var(--card); border:1px solid rgba(249,115,22,.25); border-radius:12px; overflow:hidden; }
+  .redis-head {
+    padding:12px 16px; background:rgba(249,115,22,.07);
+    border-bottom:1px solid rgba(249,115,22,.2);
+    display:flex; align-items:center; gap:10px;
+  }
+  .rkey { font-size:13px; color:#f97316; font-weight:700; font-family:monospace; }
+  .rttl { margin-left:auto; font-size:10px; color:#ef4444; background:rgba(239,68,68,.15); padding:2px 7px; border-radius:10px; }
+  .redis-body { padding:16px; }
+  .redis-row { display:flex; gap:12px; margin-bottom:8px; font-size:12px; }
+  .redis-row:last-child { margin-bottom:0; }
+  .rl { color:var(--muted); width:110px; flex-shrink:0; }
+  .rv { color:var(--text); }
+
+  /* ПОДСКАЗКА */
+  .note {
+    color:var(--muted); font-size:12px; margin-bottom:20px;
+    padding:12px 16px; background:rgba(123,114,248,.06);
+    border:1px solid rgba(123,114,248,.2); border-radius:8px;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🗄️ WeWatch — Архитектура базы данных</h1>
+  <p>MongoDB Atlas · Redis 7 · Elasticsearch &nbsp;|&nbsp; 16 коллекций &nbsp;|&nbsp; обновлено: 2026-05-23</p>
+  <div class="legend">
+    <div class="leg"><div class="leg-dot" style="background:#a78bfa"></div>Первичный ключ (_id)</div>
+    <div class="leg"><div class="leg-dot" style="background:#22d3ee"></div>Внешний ключ (ссылка)</div>
+    <div class="leg"><div class="leg-dot" style="background:#f59e0b"></div>Уникальный индекс</div>
+    <div class="leg"><div class="leg-dot" style="background:#10b981"></div>Обычный индекс</div>
+    <div class="leg"><div class="leg-dot" style="background:#ef4444"></div>TTL (авто-удаление)</div>
+    <div class="leg"><div class="leg-dot" style="background:#6b7280"></div>Скрытое поле (не в ответе API)</div>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="show(0)">📦 Коллекции</button>
+  <button class="tab" onclick="show(1)">🔑 Как работают ключи</button>
+  <button class="tab" onclick="show(2)">🔗 Связи между таблицами</button>
+  <button class="tab" onclick="show(3)">⚡ Redis (кэш)</button>
+</div>
+
+<div class="main">
+
+<!-- ═══════════════════════════════════════════════════════
+     ВКЛАДКА 1 — КОЛЛЕКЦИИ
+═══════════════════════════════════════════════════════ -->
+<div class="page active" id="p0">
+
+  <!-- AUTH -->
+  <div class="svc">
+    <div class="svc-head">
+      <span class="svc-badge" style="background:rgba(99,102,241,.2);color:#6366f1">AUTH</span>
+      <span class="svc-name">Сервис авторизации</span>
+      <span class="svc-desc">порт 3001 &nbsp;·&nbsp; Вход, регистрация, токены, пароли, OAuth</span>
+    </div>
+    <div class="grid">
+
+      <div class="coll">
+        <div class="coll-head" style="border-top:3px solid #6366f1">
+          <span class="coll-icon">🔐</span>
+          <span class="coll-name">users <span style="color:var(--muted);font-size:11px;font-weight:400">(учётные данные)</span></span>
+          <span class="coll-db">auth DB</span>
+        </div>
+        <div class="field"><span class="fname pk">_id</span><span class="ftype">ObjectId</span><span class="fdesc">уникальный ID пользователя</span><div class="badges"><span class="b b-pk">PK</span></div></div>
+        <div class="field"><span class="fname">email</span><span class="ftype">String</span><span class="fdesc">почта для входа</span><div class="badges"><span class="b b-u">UNIQUE</span></div></div>
+        <div class="field"><span class="fname">username</span><span class="ftype">String</span><span class="fdesc">никнейм (3–20 символов)</span><div class="badges"><span class="b b-u">UNIQUE</span></div></div>
+        <div class="field"><span class="fname">passwordHash</span><span class="ftype">String (bcrypt)</span><span class="fdesc">хэш пароля, никогда не передаётся в API</span><div class="badges"><span class="b b-hidden">СКРЫТОЕ</span></div></div>
+        <div class="field"><span class="fname">role</span><span class="ftype">user · operator · admin · superadmin</span><span class="fdesc">права доступа</span><div class="badges"><span class="b b-enum">ENUM</span></div></div>
+        <div class="field"><span class="fname">isEmailVerified</span><span class="ftype">Boolean</span><span class="fdesc">подтверждена ли почта</span></div>
+        <div class="field"><span class="fname">isBlocked</span><span class="ftype">Boolean</span><span class="fdesc">заблокирован ли аккаунт</span></div>
+        <div class="field"><span class="fname">blockReason</span><span class="ftype">String | null</span><span class="fdesc">причина блокировки</span></div>
+        <div class="field"><span class="fname">lastDevice</span><span class="ftype">String | null</span><span class="fdesc">последнее устройство (iOS / Android)</span></div>
+        <div class="sep"></div>
+        <div class="field"><span class="fname">emailVerifyToken</span><span class="ftype">String | null</span><span class="fdesc">токен подтверждения почты</span><div class="badges"><span class="b b-hidden">СКРЫТОЕ</span><span class="b b-i">IDX</span></div></div>
+        <div class="field"><span class="fname">emailVerifyTokenExpiry</span><span class="ftype">Date | null</span><span class="fdesc">срок действия токена</span><div class="badges"><span class="b b-hidden">СКРЫТОЕ</span></div></div>
+        <div class="field"><span class="fname">passwordResetToken</span><span class="ftype">String | null</span><span class="fdesc">токен сброса пароля</span><div class="badges"><span class="b b-hidden">СКРЫТОЕ</span><span class="b b-i">IDX</span></div></div>
+        <div class="field"><span class="fname">passwordResetTokenExpiry</span><span class="ftype">Date | null</span><span class="fdesc">срок действия сброса</span><div class="badges"><span class="b b-hidden">СКРЫТОЕ</span></div></div>
+        <div class="sep"></div>
+        <div class="field"><span class="fname">googleId</span><span class="ftype">String | null</span><span class="fdesc">ID для входа через Google</span><div class="badges"><span class="b b-hidden">СКРЫТОЕ</span><span class="b b-i">IDX</span></div></div>
+        <div class="field"><span class="fname">telegramId</span><span class="ftype">String | null</span><span class="fdesc">ID для входа через Telegram</span><div class="badges"><span class="b b-hidden">СКРЫТОЕ</span><span class="b b-i">IDX</span></div></div>
+        <div class="field"><span class="fname">appleId</span><span class="ftype">String | null</span><span class="fdesc">ID для входа через Apple</span><div class="badges"><span class="b b-hidden">СКРЫТОЕ</span><span class="b b-i">IDX</span></div></div>
+        <div class="field"><span class="fname">lastLoginAt</span><span class="ftype">Date | null</span><span class="fdesc">последний вход в аккаунт</span></div>
+        <div class="field"><span class="fname">createdAt / updatedAt</span><span class="ftype">Date</span><span class="fdesc">дата создания / изменения</span><div class="badges"><span class="b b-i">IDX</span></div></div>
+        <div class="idx-block">
+          <div class="idx-title">Индексы</div>
+          <div class="idx-row">{ email } <span>— уникальный · поиск при входе</span></div>
+          <div class="idx-row">{ username } <span>— уникальный · проверка никнейма</span></div>
+          <div class="idx-row">{ googleId }, { telegramId }, { appleId } <span>— sparse · OAuth вход</span></div>
+          <div class="idx-row">{ emailVerifyToken } <span>— sparse · подтверждение почты</span></div>
+          <div class="idx-row">{ passwordResetToken } <span>— sparse · сброс пароля</span></div>
+          <div class="idx-row">{ createdAt: -1 } <span>— список пользователей по дате</span></div>
+        </div>
+      </div>
+
+      <div class="coll">
+        <div class="coll-head" style="border-top:3px solid #6366f1">
+          <span class="coll-icon">🔄</span>
+          <span class="coll-name">refreshtokens <span style="color:var(--muted);font-size:11px;font-weight:400">(сессии)</span></span>
+          <span class="coll-db">auth DB</span>
+        </div>
+        <div class="field"><span class="fname pk">_id</span><span class="ftype">ObjectId</span><span class="fdesc">ID сессии</span><div class="badges"><span class="b b-pk">PK</span></div></div>
+        <div class="field"><span class="fname fk">userId</span><span class="ftype">String</span><span class="fdesc">кому принадлежит сессия → auth.users._id</span><div class="badges"><span class="b b-fk">FK</span><span class="b b-i">IDX</span></div></div>
+        <div class="field"><span class="fname">tokenHash</span><span class="ftype">String (SHA-256)</span><span class="fdesc">хэш refresh-токена (не сам токен)</span><div class="badges"><span class="b b-u">UNIQUE</span></div></div>
+        <div class="field"><span class="fname">expiresAt</span><span class="ftype">Date (+30 дней)</span><span class="fdesc">MongoDB автоматически удалит запись</span><div class="badges"><span class="b b-ttl">TTL</span></div></div>
+        <div class="field"><span class="fname">ip</span><span class="ftype">String | null</span><span class="fdesc">IP-адрес при создании сессии</span></div>
+        <div class="field"><span class="fname">userAgent</span><span class="ftype">String | null</span><span class="fdesc">браузер / устройство</span></div>
+        <div class="field"><span class="fname">createdAt</span><span class="ftype">Date</span><span class="fdesc">дата входа</span></div>
+        <div class="idx-block">
+          <div class="idx-title">Индексы</div>
+          <div class="idx-row">{ tokenHash } <span>— уникальный · поиск при обновлении токена</span></div>
+          <div class="idx-row">{ userId } <span>— все сессии пользователя (выход со всех устройств)</span></div>
+          <div class="idx-row" style="color:#ef4444">{ expiresAt } TTL → <span>запись удаляется автоматически через 30 дней</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- USER -->
+  <div class="svc">
+    <div class="svc-head">
+      <span class="svc-badge" style="background:rgba(34,211,238,.15);color:#22d3ee">USER</span>
+      <span class="svc-name">Сервис пользователей</span>
+      <span class="svc-desc">порт 3002 &nbsp;·&nbsp; Профиль, друзья, очки, ранг</span>
+    </div>
+    <div class="grid">
+
+      <div class="coll">
+        <div class="coll-head" style="border-top:3px solid #22d3ee">
+          <span class="coll-icon">👤</span>
+          <span class="coll-name">users <span style="color:var(--muted);font-size:11px;font-weight:400">(профиль)</span></span>
+          <span class="coll-db">user DB</span>
+        </div>
+        <div class="field"><span class="fname pk">_id</span><span class="ftype">ObjectId</span><span class="fdesc">ID профиля</span><div class="badges"><span class="b b-pk">PK</span></div></div>
+        <div class="field"><span class="fname fk">authId</span><span class="ftype">String</span><span class="fdesc">связь с auth.users._id (разные сервисы!)</span><div class="badges"><span class="b b-fk">FK</span><span class="b b-u">UNIQUE</span></div></div>
+        <div class="field"><span class="fname">email / username</span><span class="ftype">String</span><span class="fdesc">дублируются для быстрого поиска</span><div class="badges"><span class="b b-u">UNIQUE</span></div></div>
+        <div class="field"><span class="fname">avatar</span><span class="ftype">String | null</span><span class="fdesc">URL фото профиля</span></div>
+        <div class="field"><span class="fname">bio</span><span class="ftype">String (макс 200)</span><span class="fdesc">описание профиля</span></div>
+        <div class="field"><span class="fname">rank</span><span class="ftype">Bronze → Silver → Gold → Platinum → Diamond</span><span class="fdesc">ранг</span><div class="badges"><span class="b b-i">IDX</span></div></div>
+        <div class="field"><span class="fname">totalPoints</span><span class="ftype">Number</span><span class="fdesc">очки за просмотры, победы, ачивки</span><div class="badges"><span class="b b-i">IDX</span></div></div>
+        <div class="field"><span class="fname">isBlocked</span><span class="ftype">Boolean</span><span class="fdesc">заблокирован администратором</span></div>
+        <div class="field"><span class="fname">fcmTokens</span><span class="ftype">String[]</span><span class="fdesc">токены для push-уведомлений (несколько устройств)</span></div>
+        <div class="field"><span class="fname">lastSeenAt</span><span class="ftype">Date | null</span><span class="fdesc">последний раз онлайн</span></div>
+        <div class="field"><span class="fname">settings.notifications</span><span class="ftype">Object</span><span class="fdesc">настройки: какие уведомления получать</span></div>
+        <div class="idx-block">
+          <div class="idx-title">Индексы</div>
+          <div class="idx-row">{ authId } <span>— уникальный · связь между сервисами</span></div>
+          <div class="idx-row">{ totalPoints: -1 } <span>— таблица лидеров (от большего к меньшему)</span></div>
+          <div class="idx-row">{ rank } <span>— фильтр по рангу</span></div>
+        </div>
+      </div>
+
+      <div class="coll">
+        <div class="coll-head" style="border-top:3px solid #22d3ee">
+          <span class="coll-icon">🤝</span>
+          <span class="coll-name">friendships <span style="color:var(--muted);font-size:11px;font-weight:400">(заявки в друзья)</span></span>
+          <span class="coll-db">user DB</span>
+        </div>
+        <div class="field"><span class="fname pk">_id</span><span class="ftype">ObjectId</span><span class="fdesc">ID записи</span><div class="badges"><span class="b b-pk">PK</span></div></div>
+        <div class="field"><span class="fname fk">requesterId</span><span class="ftype">String</span><span class="fdesc">кто отправил заявку → users._id</span><div class="badges"><span class="b b-fk">FK</span><span class="b b-i">IDX</span></div></div>
+        <div class="field"><span class="fname fk">receiverId</span><span class="ftype">String</span><span class="fdesc">кто получил заявку → users._id</span><div class="badges"><span class="b b-fk">FK</span><span class="b b-i">IDX</span></div></div>
+        <div class="field"><span class="fname">status</span><span class="ftype">pending · accepted · blocked</span><span class="fdesc">статус дружбы</span><div class="badges"><span class="b b-enum">ENUM</span></div></div>
+        <div class="field"><span class="fname">createdAt / updatedAt</span><span class="ftype">Date</span><span class="fdesc">когда отправлена / принята</span></div>
+        <div class="idx-block">
+          <div class="idx-title">Индексы</div>
+          <div class="idx-row">{ requesterId, receiverId } <span>— уникальный · нельзя отправить 2 заявки одному человеку</span></div>
+          <div class="idx-row">{ receiverId, status } <span>— входящие заявки (вкладка "Заявки")</span></div>
+          <div class="idx-row">{ requesterId, status } <span>— исходящие заявки</span></div>
+        </div>
+      </div>
+
+
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="svc">
+    <div class="svc-head">
+      <span class="svc-badge" style="background:rgba(245,158,11,.15);color:#f59e0b">CONTENT</span>
+      <span class="svc-name">Сервис контента</span>
+      <span class="svc-desc">порт 3003 &nbsp;·&nbsp; История просмотров, прогресс, внешние видео, домены</span>
+    </div>
+    <div class="grid">
+
+      <div class="coll">
+        <div class="coll-head" style="border-top:3px solid #f59e0b">
+          <span class="coll-icon">▶️</span>
+          <span class="coll-name">watchprogress <span style="color:var(--muted);font-size:11px;font-weight:400">(продолжить просмотр)</span></span>
+          <span class="coll-db">content DB</span>
+        </div>
+        <div class="field"><span class="fname pk">_id</span><span class="ftype">ObjectId</span><span class="fdesc">ID записи</span><div class="badges"><span class="b b-pk">PK</span></div></div>
+        <div class="field"><span class="fname fk">userId</span><span class="ftype">String</span><span class="fdesc">чей прогресс → users._id</span><div class="badges"><span class="b b-fk">FK</span></div></div>
+        <div class="field"><span class="fname">videoUrl</span><span class="ftype">String</span><span class="fdesc">ссылка на видео (ключ)</span></div>
+        <div class="field"><span class="fname">currentTime</span><span class="ftype">Number (секунды)</span><span class="fdesc">на какой секунде остановился</span></div>
+        <div class="field"><span class="fname">duration</span><span class="ftype">Number (секунды)</span><span class="fdesc">общая длина видео</span></div>
+        <div class="field"><span class="fname">percent</span><span class="ftype">Number (0–100)</span><span class="fdesc">процент просмотра</span></div>
+        <div class="field"><span class="fname">updatedAt</span><span class="ftype">Date</span><span class="fdesc">когда последний раз смотрел</span></div>
+        <div class="idx-block">
+          <div class="idx-title">Индексы</div>
+          <div class="idx-row">{ userId, videoUrl } <span>— уникальный · одна запись на видео</span></div>
+          <div class="idx-row">{ userId, updatedAt: -1 } <span>— "Продолжить просмотр" на HomeScreen</span></div>
+        </div>
+      </div>
+
+      <div class="coll">
+        <div class="coll-head" style="border-top:3px solid #f59e0b">
+          <span class="coll-icon">📜</span>
+          <span class="coll-name">watchhistory <span style="color:var(--muted);font-size:11px;font-weight:400">(история просмотров)</span></span>
+          <span class="coll-db">content DB</span>
+        </div>
+        <div class="field"><span class="fname pk">_id</span><span class="ftype">ObjectId</span><span class="fdesc">ID записи</span><div class="badges"><span class="b b-pk">PK</span></div></div>
+        <div class="field"><span class="fname fk">userId</span><span class="ftype">String</span><span class="fdesc">кто смотрел → users._id</span><div class="badges"><span class="b b-fk">FK</span><span class="b b-i">IDX</span></div></div>
+        <div class="field"><span class="fname">movieId</span><span class="ftype">String</span><span class="fdesc">ID просмотренного контента</span></div>
+        <div class="field"><span class="fname">watchedAt</span><span class="ftype">Date</span><span class="fdesc">когда смотрел</span></div>
+        <div class="field"><span class="fname">progress</span><span class="ftype">Number (0–100)</span><span class="fdesc">процент просмотра</span></div>
+        <div class="field"><span class="fname">completed</span><span class="ftype">Boolean</span><span class="fdesc">досмотрел до конца</span></div>
+        <div class="field"><span class="fname">durationWatched</span><span class="ftype">Number (секунды)</span><span class="fdesc">суммарно потрачено времени</span></div>
+        <div class="field"><span class="fname">currentTimeSeconds</span><span class="ftype">Number</span><span class="fdesc">точная позиция при выходе</span></div>
+        <div class="field"><span class="fname">videoUrl</span><span class="ftype">String | null</span><span class="fdesc">для внешних видео (YouTube и т.д.)</span></div>
+        <div class="idx-block">
+          <div class="idx-title">Индексы</div>
+          <div class="idx-row">{ userId, movieId } <span>— уникальный · одна запись на контент</span></div>
+          <div class="idx-row">{ userId, watchedAt: -1 } <span>— недавние просмотры</span></div>
+        </div>
+      </div>
+
+      <div class="coll">
+        <div class="coll-head" style="border-top:3px solid #f59e0b">
+          <span class="coll-icon">🔗</span>
+          <span class="coll-name">externalvideos <span style="color:var(--muted);font-size:11px;font-weight:400">(видео от пользователей)</span></span>
+          <span class="coll-db">content DB</span>
+        </div>
+        <div class="field"><span class="fname pk">_id</span><span class="ftype">ObjectId</span><div class="badges"><span class="b b-pk">PK</span></div></div>
+        <div class="field"><span class="fname">url</span><span class="ftype">String</span><span class="fdesc">ссылка на видео</span><div class="badges"><span class="b b-u">UNIQUE</span></div></div>
+        <div class="field"><span class="fname">title / description</span><span class="ftype">String</span><span class="fdesc">название и описание</span></div>
+        <div class="field"><span class="fname">platform</span><span class="ftype">youtube · vimeo · direct · other</span><span class="fdesc">платформа</span><div class="badges"><span class="b b-enum">ENUM</span></div></div>
+        <div class="field"><span class="fname fk">submittedBy</span><span class="ftype">String</span><span class="fdesc">кто добавил → users._id</span><div class="badges"><span class="b b-fk">FK</span><span class="b b-i">IDX</span></div></div>
+        <div class="field"><span class="fname">status</span><span class="ftype">pending · approved · rejected</span><span class="fdesc">модерация</span><div class="badges"><span class="b b-enum">ENUM</span><span class="b b-i">IDX</span></div></div>
+        <div class="field"><span class="fname">rating / ratingCount</span><span class="ftype">Number</span><span class="fdesc">средний рейтинг и количество оценок</span></div>
+        <div class="field"><span class="fname">ratedBy</span><span class="ftype">String[]</span><span class="fdesc">список кто уже оценил (защита от дублей)</span></div>
+      </div>
+
+      <div class="coll">
+        <div class="coll-head" style="border-top:3px solid #f59e0b">
+          <span class="coll-icon">🌐</span>
+          <span class="coll-name">urlvisits <span style="color:var(--muted);font-size:11px;font-weight:400">(статистика доменов)</span></span>
+          <span class="coll-db">content DB</span>
+        </div>
+        <div class="field"><span class="fname pk">_id</span><span class="ftype">ObjectId</span><div class="badges"><span class="b b-pk">PK</span></div></div>
+        <div class="field"><span class="fname">domain</span><span class="ftype">String</span><span class="fdesc">домен (например: rutube.ru)</span><div class="badges"><span class="b b-u">UNIQUE</span></div></div>
+        <div class="field"><span class="fname">country</span><span class="ftype">String (ISO)</span><span class="fdesc">страна пользователей</span></div>
+        <div class="field"><span class="fname">count</span><span class="ftype">Number</span><span class="fdesc">сколько раз открывали этот домен</span><div class="badges"><span class="b b-i">IDX</span></div></div>
+        <div class="field"><span class="fname">flagged</span><span class="ftype">Boolean</span><span class="fdesc">подозрительный (авто-определение)</span><div class="badges"><span class="b b-i">IDX</span></div></div>
+        <div class="field"><span class="fname">blocked</span><span class="ftype">Boolean</span><span class="fdesc">заблокирован администратором</span><div class="badges"><span class="b b-i">IDX</span></div></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- WATCH PARTY -->
+  <div class="svc">
+    <div class="svc-head">
+      <span class="svc-badge" style="background:rgba(236,72,153,.15);color:#ec4899">PARTY</span>
+      <span class="svc-name">Сервис совместного просмотра</span>
+      <span class="svc-desc">порт 3004 &nbsp;·&nbsp; Socket.io · Комнаты · Синхронизация видео</span>
+    </div>
+    <div class="grid">
+      <div class="coll" style="width:380px">
+        <div class="coll-head" style="border-top:3px solid #ec4899">
+          <span class="coll-icon">🎉</span>
+          <span class="coll-name">watchpartyrooms <span style="color:var(--muted);font-size:11px;font-weight:400">(комнаты)</span></span>
+          <span class="coll-db">party DB</span>
+        </div>
+        <div class="field"><span class="fname pk">_id</span><span class="ftype">ObjectId</span><span class="fdesc">ID комнаты</span><div class="badges"><span class="b b-pk">PK</span></div></div>
+        <div class="field"><span class="fname">name</span><span class="ftype">String | null</span><span class="fdesc">название комнаты (необязательно)</span></div>
+        <div class="field"><span class="fname">movieId</span><span class="ftype">String | null</span><span class="fdesc">ID внутреннего контента (если используется)</span></div>
+        <div class="field"><span class="fname">videoUrl</span><span class="ftype">String | null</span><span class="fdesc">внешняя ссылка (YouTube, Rutube…)</span></div>
+        <div class="field"><span class="fname">videoPlatform</span><span class="ftype">youtube · direct · webview</span><span class="fdesc">тип плеера</span><div class="badges"><span class="b b-enum">ENUM</span></div></div>
+        <div class="field"><span class="fname fk">ownerId</span><span class="ftype">String</span><span class="fdesc">создатель комнаты → users._id</span><div class="badges"><span class="b b-fk">FK</span><span class="b b-i">IDX</span></div></div>
+        <div class="field"><span class="fname fk">members</span><span class="ftype">String[]</span><span class="fdesc">участники → [users._id, …] (макс 10)</span><div class="badges"><span class="b b-fk">FK</span><span class="b b-i">IDX</span></div></div>
+        <div class="field"><span class="fname">maxMembers</span><span class="ftype">Number (2–10)</span><span class="fdesc">лимит участников</span></div>
+        <div class="field"><span class="fname">status</span><span class="ftype">waiting · playing · paused · ended</span><span class="fdesc">состояние комнаты</span><div class="badges"><span class="b b-enum">ENUM</span><span class="b b-i">IDX</span></div></div>
+        <div class="field"><span class="fname">currentTime</span><span class="ftype">Number (секунды)</span><span class="fdesc">текущая позиция видео</span></div>
+        <div class="field"><span class="fname">isPlaying</span><span class="ftype">Boolean</span><span class="fdesc">играет или на паузе</span></div>
+        <div class="field"><span class="fname">inviteCode</span><span class="ftype">String (6 символов)</span><span class="fdesc">код для входа в комнату</span><div class="badges"><span class="b b-u">UNIQUE</span></div></div>
+        <div class="field"><span class="fname">isPrivate</span><span class="ftype">Boolean</span><span class="fdesc">приватная (только по коду)</span><div class="badges"><span class="b b-i">IDX</span></div></div>
+        <div class="field"><span class="fname">password</span><span class="ftype">String | null (bcrypt)</span><span class="fdesc">пароль комнаты, никогда не передаётся в API</span><div class="badges"><span class="b b-hidden">СКРЫТОЕ</span></div></div>
+        <div class="field"><span class="fname">playlist</span><span class="ftype">VideoItem[]</span><span class="fdesc">очередь видео</span></div>
+        <div class="field"><span class="fname">lastActivityAt</span><span class="ftype">Date</span><span class="fdesc">последняя активность</span><div class="badges"><span class="b b-i">IDX</span></div></div>
+        <div class="field"><span class="fname">isSuspicious / isAdminBlocked</span><span class="ftype">Boolean</span><span class="fdesc">флаги модерации</span></div>
+        <div class="idx-block">
+          <div class="idx-title">Индексы</div>
+          <div class="idx-row">{ inviteCode } <span>— уникальный · вход по коду (быстрый lookup)</span></div>
+          <div class="idx-row">{ members, lastActivityAt: -1 } <span>— "Мои комнаты" на экране</span></div>
+          <div class="idx-row">{ isPrivate, status, lastActivityAt: -1 } <span>— лента публичных комнат</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NOTIFICATION -->
+  <div class="svc">
+    <div class="svc-head">
+      <span class="svc-badge" style="background:rgba(16,185,129,.15);color:#10b981">NOTIF</span>
+      <span class="svc-name">Сервис уведомлений</span>
+      <span class="svc-desc">порт 3007 &nbsp;·&nbsp; FCM push, in-app уведомления, очередь Bull · Авто-удаление через 90 дней</span>
+    </div>
+    <div class="grid">
+      <div class="coll">
+        <div class="coll-head" style="border-top:3px solid #10b981">
+          <span class="coll-icon">🔔</span>
+          <span class="coll-name">notifications <span style="color:var(--muted);font-size:11px;font-weight:400">(входящие уведомления)</span></span>
+          <span class="coll-db">notif DB · TTL 90д</span>
+        </div>
+        <div class="field"><span class="fname pk">_id</span><span class="ftype">ObjectId</span><div class="badges"><span class="b b-pk">PK</span></div></div>
+        <div class="field"><span class="fname fk">userId</span><span class="ftype">String</span><span class="fdesc">кому уведомление → users._id</span><div class="badges"><span class="b b-fk">FK</span><span class="b b-i">IDX</span></div></div>
+        <div class="field"><span class="fname">type</span><span class="ftype">friend_request · watch_party_invite · achievement_unlocked · …</span><div class="badges"><span class="b b-enum">ENUM</span></div></div>
+        <div class="field"><span class="fname">title / body</span><span class="ftype">String</span><span class="fdesc">заголовок и текст уведомления</span></div>
+        <div class="field"><span class="fname">data</span><span class="ftype">Object</span><span class="fdesc">доп. данные (roomId, fromUserId, …)</span></div>
+        <div class="field"><span class="fname">isRead</span><span class="ftype">Boolean</span><span class="fdesc">прочитано ли</span><div class="badges"><span class="b b-i">IDX</span></div></div>
+        <div class="field"><span class="fname">createdAt</span><span class="ftype">Date</span><span class="fdesc">MongoDB удалит автоматически через 90 дней</span><div class="badges"><span class="b b-ttl">TTL 90д</span></div></div>
+        <div class="idx-block">
+          <div class="idx-title">Индексы</div>
+          <div class="idx-row">{ userId, createdAt: -1 } <span>— список уведомлений (inbox)</span></div>
+          <div class="idx-row">{ userId, isRead } <span>— счётчик непрочитанных</span></div>
+          <div class="idx-row" style="color:#ef4444">{ createdAt } TTL → <span>авто-удаление через 90 дней</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADMIN -->
+  <div class="svc">
+    <div class="svc-head">
+      <span class="svc-badge" style="background:rgba(239,68,68,.15);color:#ef4444">ADMIN</span>
+      <span class="svc-name">Сервис администрирования</span>
+      <span class="svc-desc">порт 3008 &nbsp;·&nbsp; Жалобы, поддержка, аудит действий</span>
+    </div>
+    <div class="grid">
+
+      <div class="coll">
+        <div class="coll-head" style="border-top:3px solid #ef4444">
+          <span class="coll-icon">🚨</span>
+          <span class="coll-name">userreports <span style="color:var(--muted);font-size:11px;font-weight:400">(жалобы)</span></span>
+        </div>
+        <div class="field"><span class="fname pk">_id</span><span class="ftype">ObjectId</span><div class="badges"><span class="b b-pk">PK</span></div></div>
+        <div class="field"><span class="fname fk">reportedUserId</span><span class="ftype">String</span><span class="fdesc">на кого жалоба → users._id</span><div class="badges"><span class="b b-fk">FK</span><span class="b b-i">IDX</span></div></div>
+        <div class="field"><span class="fname fk">reporterId</span><span class="ftype">String</span><span class="fdesc">кто пожаловался → users._id</span><div class="badges"><span class="b b-fk">FK</span></div></div>
+        <div class="field"><span class="fname">reason</span><span class="ftype">harassment · spam · hate_speech · other</span><span class="fdesc">причина</span><div class="badges"><span class="b b-enum">ENUM</span></div></div>
+        <div class="field"><span class="fname">status</span><span class="ftype">pending · reviewed · actioned</span><span class="fdesc">обработана ли жалоба</span><div class="badges"><span class="b b-i">IDX</span></div></div>
+        <div class="field"><span class="fname">reviewedBy</span><span class="ftype">String | null</span><span class="fdesc">какой модератор рассмотрел</span></div>
+        <div class="idx-block">
+          <div class="idx-title">Индексы</div>
+          <div class="idx-row">{ reportedUserId, reporterId } <span>— уникальный · нельзя дважды пожаловаться на одного</span></div>
+          <div class="idx-row">{ status, createdAt: -1 } <span>— очередь жалоб для модератора</span></div>
+        </div>
+      </div>
+
+      <div class="coll">
+        <div class="coll-head" style="border-top:3px solid #ef4444">
+          <span class="coll-icon">💬</span>
+          <span class="coll-name">supportconversations <span style="color:var(--muted);font-size:11px;font-weight:400">(тикеты)</span></span>
+        </div>
+        <div class="field"><span class="fname pk">_id</span><span class="ftype">ObjectId</span><div class="badges"><span class="b b-pk">PK</span></div></div>
+        <div class="field"><span class="fname fk">userId</span><span class="ftype">String</span><span class="fdesc">чей тикет → users._id</span><div class="badges"><span class="b b-fk">FK</span><span class="b b-i">IDX</span></div></div>
+        <div class="field"><span class="fname">status</span><span class="ftype">open · closed</span><span class="fdesc">открыт или закрыт</span><div class="badges"><span class="b b-i">IDX</span></div></div>
+        <div class="field"><span class="fname">lastMessageAt</span><span class="ftype">Date</span><span class="fdesc">когда последнее сообщение</span></div>
+        <div class="field"><span class="fname">rating.score</span><span class="ftype">Number (1–5) | null</span><span class="fdesc">оценка качества поддержки</span></div>
+      </div>
+
+      <div class="coll">
+        <div class="coll-head" style="border-top:3px solid #ef4444">
+          <span class="coll-icon">📩</span>
+          <span class="coll-name">supportmessages <span style="color:var(--muted);font-size:11px;font-weight:400">(чат поддержки)</span></span>
+        </div>
+        <div class="field"><span class="fname pk">_id</span><span class="ftype">ObjectId</span><div class="badges"><span class="b b-pk">PK</span></div></div>
+        <div class="field"><span class="fname fk">conversationId</span><span class="ftype">ObjectId</span><span class="fdesc">к какому тикету → supportconversations._id</span><div class="badges"><span class="b b-fk">FK</span><span class="b b-i">IDX</span></div></div>
+        <div class="field"><span class="fname fk">senderId</span><span class="ftype">String</span><span class="fdesc">кто написал (пользователь или поддержка)</span><div class="badges"><span class="b b-fk">FK</span></div></div>
+        <div class="field"><span class="fname">senderRole</span><span class="ftype">user · admin</span><span class="fdesc">роль отправителя</span><div class="badges"><span class="b b-enum">ENUM</span></div></div>
+        <div class="field"><span class="fname">text</span><span class="ftype">String (макс 4000)</span><span class="fdesc">текст сообщения</span></div>
+        <div class="idx-block">
+          <div class="idx-title">Индексы</div>
+          <div class="idx-row">{ conversationId, createdAt } <span>— история чата в правильном порядке</span></div>
+        </div>
+      </div>
+
+      <div class="coll">
+        <div class="coll-head" style="border-top:3px solid #ef4444">
+          <span class="coll-icon">📋</span>
+          <span class="coll-name">auditlogs <span style="color:var(--muted);font-size:11px;font-weight:400">(журнал действий)</span></span>
+          <span class="coll-db">TTL 90д</span>
+        </div>
+        <div class="field"><span class="fname pk">_id</span><span class="ftype">ObjectId</span><div class="badges"><span class="b b-pk">PK</span></div></div>
+        <div class="field"><span class="fname fk">adminId</span><span class="ftype">String</span><span class="fdesc">кто выполнил → users._id (admin)</span><div class="badges"><span class="b b-fk">FK</span><span class="b b-i">IDX</span></div></div>
+        <div class="field"><span class="fname">adminEmail</span><span class="ftype">String</span><span class="fdesc">почта на момент действия (история)</span></div>
+        <div class="field"><span class="fname">action</span><span class="ftype">String</span><span class="fdesc">что сделал: block_user, delete_room…</span><div class="badges"><span class="b b-i">IDX</span></div></div>
+        <div class="field"><span class="fname">targetId / targetType</span><span class="ftype">String</span><span class="fdesc">над кем выполнено (userId, roomId…)</span><div class="badges"><span class="b b-i">IDX</span></div></div>
+        <div class="field"><span class="fname">details</span><span class="ftype">Object</span><span class="fdesc">подробности действия</span></div>
+        <div class="field"><span class="fname">createdAt</span><span class="ftype">Date</span><span class="fdesc">авто-удаление через 90 дней</span><div class="badges"><span class="b b-ttl">TTL 90д</span></div></div>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- конец вкладки 1 -->
+
+
+<!-- ═══════════════════════════════════════════════════════
+     ВКЛАДКА 2 — КАК РАБОТАЮТ КЛЮЧИ
+═══════════════════════════════════════════════════════ -->
+<div class="page" id="p1">
+  <div class="note">
+    💡 Здесь показано — какие поля комбинируются между собой, какие проверки происходят по шагам, и что мы получаем на выходе.
+  </div>
+  <div class="flows">
+
+    <!-- ВХОД -->
+    <div class="flow-card">
+      <div class="flow-head">
+        <span class="flow-title">🔐 Вход в аккаунт (Login)</span>
+        <span class="flow-svc" style="background:rgba(99,102,241,.2);color:#6366f1">AUTH</span>
+      </div>
+      <div class="flow-body">
+        <div class="formula">
+          <span class="fkey" style="color:#22d3ee;border-color:#22d3ee;background:rgba(34,211,238,.1)">email</span>
+          <span class="fop">+</span>
+          <span class="fkey" style="color:#f59e0b;border-color:#f59e0b;background:rgba(245,158,11,.1)">password</span>
+          <span class="fop">=</span>
+          <span class="fres">accessToken (15 мин) + refreshToken (30 дней)</span>
+        </div>
+        <div class="step">
+          <div class="step-n">1</div>
+          <div class="step-c">
+            <div class="step-label">Найти пользователя по email</div>
+            <div class="step-box">
+              Ищем в <span class="k">auth.users</span> по полю <span class="k">email</span><br>
+              Есть уникальный индекс → поиск мгновенный<br>
+              <span class="er">Не найден → 404 Пользователь не существует</span>
+            </div>
+          </div>
+        </div>
+        <div class="arrow">↓</div>
+        <div class="step">
+          <div class="step-n">2</div>
+          <div class="step-c">
+            <div class="step-label">Проверка блокировки и подтверждения почты</div>
+            <div class="step-box">
+              <span class="k">isBlocked</span> = true → <span class="er">403 Аккаунт заблокирован</span><br>
+              <span class="k">isEmailVerified</span> = false → <span class="er">403 Подтвердите почту</span>
+            </div>
+          </div>
+        </div>
+        <div class="arrow">↓</div>
+        <div class="step">
+          <div class="step-n">3</div>
+          <div class="step-c">
+            <div class="step-label">Защита от перебора пароля (Redis)</div>
+            <div class="step-box">
+              Проверяем Redis: <span class="k">login_attempts:{email}</span><br>
+              Если попыток ≥ 5 → <span class="er">429 Аккаунт заблокирован на 15 минут</span>
+            </div>
+          </div>
+        </div>
+        <div class="arrow">↓</div>
+        <div class="step">
+          <div class="step-n">4</div>
+          <div class="step-c">
+            <div class="step-label">Проверка пароля</div>
+            <div class="step-box">
+              Поле <span class="k">passwordHash</span> скрыто по умолчанию — запрашивается явно<br>
+              bcrypt.compare(<span class="k">password</span>, <span class="k">passwordHash</span>)<br>
+              <span class="er">Не совпадает → 401 Неверный пароль</span> + счётчик +1 в Redis
+            </div>
+          </div>
+        </div>
+        <div class="arrow">↓</div>
+        <div class="step">
+          <div class="step-n">5</div>
+          <div class="step-c">
+            <div class="step-label">Выдаём токены</div>
+            <div class="step-box">
+              <span class="ok">accessToken</span> = JWT RS256 { userId, email, role } — живёт 15 минут<br>
+              <span class="ok">refreshToken</span> = случайные байты → хэшируем → сохраняем в <span class="k">refreshtokens</span><br>
+              Redis: удаляем счётчик попыток <span class="cm">// сброс при успехе</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- РЕГИСТРАЦИЯ -->
+    <div class="flow-card">
+      <div class="flow-head">
+        <span class="flow-title">📝 Регистрация (Register)</span>
+        <span class="flow-svc" style="background:rgba(99,102,241,.2);color:#6366f1">AUTH</span>
+      </div>
+      <div class="flow-body">
+        <div class="formula">
+          <span class="fkey" style="color:#22d3ee;border-color:#22d3ee;background:rgba(34,211,238,.1)">email</span>
+          <span class="fop">+</span>
+          <span class="fkey" style="color:#f59e0b;border-color:#f59e0b;background:rgba(245,158,11,.1)">password</span>
+          <span class="fop">+</span>
+          <span class="fkey" style="color:#ec4899;border-color:#ec4899;background:rgba(236,72,153,.1)">username</span>
+          <span class="fop">=</span>
+          <span class="fres">новый аккаунт + письмо с кодом</span>
+        </div>
+        <div class="step">
+          <div class="step-n">1</div>
+          <div class="step-c">
+            <div class="step-label">Проверяем уникальность</div>
+            <div class="step-box">
+              Ищем в <span class="k">auth.users</span> по <span class="k">email</span> → <span class="er">409 Почта уже занята</span><br>
+              Ищем по <span class="k">username</span> → <span class="er">409 Никнейм уже занят</span>
+            </div>
+          </div>
+        </div>
+        <div class="arrow">↓</div>
+        <div class="step">
+          <div class="step-n">2</div>
+          <div class="step-c">
+            <div class="step-label">Хэшируем пароль и создаём запись</div>
+            <div class="step-box">
+              <span class="k">passwordHash</span> = bcrypt(password, соль 12 раундов)<br>
+              <span class="k">emailVerifyToken</span> = crypto.randomBytes(32)<br>
+              Создаём запись в <span class="k">auth.users</span>
+            </div>
+          </div>
+        </div>
+        <div class="arrow">↓</div>
+        <div class="step">
+          <div class="step-n">3</div>
+          <div class="step-c">
+            <div class="step-label">Создаём профиль в сервисе пользователей</div>
+            <div class="step-box">
+              Создаём запись в <span class="k">user.users</span> с полем <span class="k">authId</span> = новый _id<br>
+              <span class="cm">// два сервиса — две базы — связаны через authId</span>
+            </div>
+          </div>
+        </div>
+        <div class="arrow">↓</div>
+        <div class="step">
+          <div class="step-n">4</div>
+          <div class="step-c">
+            <div class="step-label">Отправляем письмо</div>
+            <div class="step-box">
+              На почту уходит ссылка с <span class="k">emailVerifyToken</span><br>
+              <span class="ok">201 Аккаунт создан — проверьте почту</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ПОДТВЕРЖДЕНИЕ ПОЧТЫ -->
+    <div class="flow-card">
+      <div class="flow-head">
+        <span class="flow-title">✉️ Подтверждение почты</span>
+        <span class="flow-svc" style="background:rgba(99,102,241,.2);color:#6366f1">AUTH</span>
+      </div>
+      <div class="flow-body">
+        <div class="formula">
+          <span class="fkey" style="color:#22d3ee;border-color:#22d3ee;background:rgba(34,211,238,.1)">emailVerifyToken</span>
+          <span class="fop">=</span>
+          <span class="fres">isEmailVerified = true → можно войти</span>
+        </div>
+        <div class="step">
+          <div class="step-n">1</div>
+          <div class="step-c">
+            <div class="step-label">Пользователь переходит по ссылке из письма</div>
+            <div class="step-box">
+              Ищем в <span class="k">auth.users</span> по <span class="k">emailVerifyToken</span><br>
+              <span class="cm">// поле скрытое — запрашиваем явно через .select()</span>
+            </div>
+          </div>
+        </div>
+        <div class="arrow">↓</div>
+        <div class="step">
+          <div class="step-n">2</div>
+          <div class="step-c">
+            <div class="step-label">Проверяем срок действия</div>
+            <div class="step-box">
+              <span class="k">emailVerifyTokenExpiry</span> &lt; текущее время → <span class="er">410 Ссылка истекла</span><br>
+              <span class="cm">// можно отправить новую ссылку</span>
+            </div>
+          </div>
+        </div>
+        <div class="arrow">↓</div>
+        <div class="step">
+          <div class="step-n">3</div>
+          <div class="step-c">
+            <div class="step-label">Активируем аккаунт</div>
+            <div class="step-box">
+              <span class="ok">isEmailVerified</span> = true<br>
+              <span class="k">emailVerifyToken</span> = null <span class="cm">// очищаем, больше не нужен</span><br>
+              <span class="ok">Теперь пользователь может войти</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ОБНОВЛЕНИЕ ТОКЕНА -->
+    <div class="flow-card">
+      <div class="flow-head">
+        <span class="flow-title">🔄 Обновление токена (без повторного входа)</span>
+        <span class="flow-svc" style="background:rgba(99,102,241,.2);color:#6366f1">AUTH</span>
+      </div>
+      <div class="flow-body">
+        <div class="formula">
+          <span class="fkey" style="color:#22d3ee;border-color:#22d3ee;background:rgba(34,211,238,.1)">refreshToken</span>
+          <span class="fop">=</span>
+          <span class="fres">новый accessToken (без ввода пароля)</span>
+        </div>
+        <div class="step">
+          <div class="step-n">1</div>
+          <div class="step-c">
+            <div class="step-label">Хэшируем входящий токен и ищем в БД</div>
+            <div class="step-box">
+              <span class="k">tokenHash</span> = SHA256(refreshToken)<br>
+              Ищем в <span class="k">refreshtokens</span> по <span class="k">tokenHash</span><br>
+              <span class="er">Не найден → 401 Токен недействителен (выход)</span>
+            </div>
+          </div>
+        </div>
+        <div class="arrow">↓</div>
+        <div class="step">
+          <div class="step-n">2</div>
+          <div class="step-c">
+            <div class="step-label">Проверяем срок действия</div>
+            <div class="step-box">
+              <span class="k">expiresAt</span> &lt; сейчас → <span class="er">401 Сессия истекла</span><br>
+              <span class="cm">// MongoDB TTL индекс удалит запись автоматически</span>
+            </div>
+          </div>
+        </div>
+        <div class="arrow">↓</div>
+        <div class="step">
+          <div class="step-n">3</div>
+          <div class="step-c">
+            <div class="step-label">Ротация: старый удаляем, новый создаём</div>
+            <div class="step-box">
+              Удаляем старую запись из <span class="k">refreshtokens</span> <span class="cm">// защита от кражи</span><br>
+              <span class="ok">Новый accessToken</span> = JWT(userId) 15 мин<br>
+              <span class="ok">Новый refreshToken</span> → сохраняем в <span class="k">refreshtokens</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ВХОД В КОМНАТУ -->
+    <div class="flow-card">
+      <div class="flow-head">
+        <span class="flow-title">🎉 Войти в комнату просмотра</span>
+        <span class="flow-svc" style="background:rgba(236,72,153,.15);color:#ec4899">PARTY</span>
+      </div>
+      <div class="flow-body">
+        <div class="formula">
+          <span class="fkey" style="color:#22d3ee;border-color:#22d3ee;background:rgba(34,211,238,.1)">inviteCode</span>
+          <span class="fop">+</span>
+          <span class="fkey" style="color:#f59e0b;border-color:#f59e0b;background:rgba(245,158,11,.1)">userId (из токена)</span>
+          <span class="fop">=</span>
+          <span class="fres">подключение к комнате + синхронизация видео</span>
+        </div>
+        <div class="step">
+          <div class="step-n">1</div>
+          <div class="step-c">
+            <div class="step-label">Находим комнату по коду</div>
+            <div class="step-box">
+              Ищем в <span class="k">watchpartyrooms</span> по <span class="k">inviteCode</span><br>
+              Уникальный индекс → мгновенно<br>
+              <span class="er">Не найдена → 404</span>
+            </div>
+          </div>
+        </div>
+        <div class="arrow">↓</div>
+        <div class="step">
+          <div class="step-n">2</div>
+          <div class="step-c">
+            <div class="step-label">Проверки перед входом</div>
+            <div class="step-box">
+              <span class="k">status</span> = 'ended' → <span class="er">404 Комната закрыта</span><br>
+              <span class="k">members.length</span> ≥ <span class="k">maxMembers</span> → <span class="er">403 Комната заполнена</span><br>
+              <span class="k">isPrivate</span> + <span class="k">password</span>: bcrypt.compare(введённый пароль)
+            </div>
+          </div>
+        </div>
+        <div class="arrow">↓</div>
+        <div class="step">
+          <div class="step-n">3</div>
+          <div class="step-c">
+            <div class="step-label">Добавляем участника и синхронизируем</div>
+            <div class="step-box">
+              Добавляем <span class="k">userId</span> в массив <span class="k">members</span><br>
+              Socket.io: подключаем к комнате<br>
+              <span class="ok">Отправляем текущее состояние видео</span>: { <span class="k">currentTime</span>, <span class="k">isPlaying</span> }
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ПРОДОЛЖИТЬ ПРОСМОТР -->
+    <div class="flow-card">
+      <div class="flow-head">
+        <span class="flow-title">▶️ Продолжить просмотр</span>
+        <span class="flow-svc" style="background:rgba(245,158,11,.15);color:#f59e0b">CONTENT</span>
+      </div>
+      <div class="flow-body">
+        <div class="formula">
+          <span class="fkey" style="color:#22d3ee;border-color:#22d3ee;background:rgba(34,211,238,.1)">userId</span>
+          <span class="fop">+</span>
+          <span class="fkey" style="color:#f59e0b;border-color:#f59e0b;background:rgba(245,158,11,.1)">videoUrl</span>
+          <span class="fop">=</span>
+          <span class="fres">позиция с которой остановились</span>
+        </div>
+        <div class="step">
+          <div class="step-n">1</div>
+          <div class="step-c">
+            <div class="step-label">HomeScreen: список незавершённых видео</div>
+            <div class="step-box">
+              Ищем в <span class="k">watchprogress</span> где <span class="k">userId</span> = я AND <span class="k">percent</span> &lt; 90<br>
+              Сортировка по <span class="k">updatedAt</span> (последние наверх)<br>
+              Составной индекс { userId, updatedAt } → быстро
+            </div>
+          </div>
+        </div>
+        <div class="arrow">↓</div>
+        <div class="step">
+          <div class="step-n">2</div>
+          <div class="step-c">
+            <div class="step-label">Сохраняем позицию каждые 5 секунд</div>
+            <div class="step-box">
+              Upsert в <span class="k">watchprogress</span> по ключу { <span class="k">userId</span>, <span class="k">videoUrl</span> }<br>
+              <span class="cm">// уникальный индекс = одна запись на одно видео</span><br>
+              Обновляем <span class="k">currentTime</span> и <span class="k">percent</span>
+            </div>
+          </div>
+        </div>
+        <div class="arrow">↓</div>
+        <div class="step">
+          <div class="step-n">3</div>
+          <div class="step-c">
+            <div class="step-label">При открытии видео — перематываем</div>
+            <div class="step-box">
+              Плеер получает <span class="ok">currentTime</span> → перематывает на нужную секунду<br>
+              <span class="cm">// пользователь продолжает с того места где остановился</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ЗАЯВКА В ДРУЗЬЯ -->
+    <div class="flow-card">
+      <div class="flow-head">
+        <span class="flow-title">🤝 Отправить заявку в друзья</span>
+        <span class="flow-svc" style="background:rgba(34,211,238,.15);color:#22d3ee">USER</span>
+      </div>
+      <div class="flow-body">
+        <div class="formula">
+          <span class="fkey" style="color:#22d3ee;border-color:#22d3ee;background:rgba(34,211,238,.1)">requesterId</span>
+          <span class="fop">+</span>
+          <span class="fkey" style="color:#f59e0b;border-color:#f59e0b;background:rgba(245,158,11,.1)">receiverId</span>
+          <span class="fop">=</span>
+          <span class="fres">запись в friendships + push-уведомление</span>
+        </div>
+        <div class="step">
+          <div class="step-n">1</div>
+          <div class="step-c">
+            <div class="step-label">Проверяем что заявки ещё нет</div>
+            <div class="step-box">
+              Ищем в <span class="k">friendships</span>: { <span class="k">requesterId</span>, <span class="k">receiverId</span> }<br>
+              Уже есть → <span class="er">409 Заявка уже отправлена</span>
+            </div>
+          </div>
+        </div>
+        <div class="arrow">↓</div>
+        <div class="step">
+          <div class="step-n">2</div>
+          <div class="step-c">
+            <div class="step-label">Создаём запись</div>
+            <div class="step-box">
+              Создаём в <span class="k">friendships</span>: { <span class="k">requesterId</span>, <span class="k">receiverId</span>, status: 'pending' }<br>
+              <span class="cm">// уникальный индекс защищает от дублей на уровне БД</span>
+            </div>
+          </div>
+        </div>
+        <div class="arrow">↓</div>
+        <div class="step">
+          <div class="step-n">3</div>
+          <div class="step-c">
+            <div class="step-label">Отправляем уведомление</div>
+            <div class="step-box">
+              Создаём в <span class="k">notifications</span>: { <span class="k">userId</span>: receiverId, type: 'friend_request' }<br>
+              FCM push на устройства из <span class="k">fcmTokens</span>[]
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     ВКЛАДКА 3 — СВЯЗИ
+═══════════════════════════════════════════════════════ -->
+<div class="page" id="p2">
+  <div class="note">
+    ⚠️ MongoDB не проверяет связи автоматически (в отличие от SQL). Целостность данных обеспечивается на уровне кода сервисов. Стрелки показывают логические ссылки.
+  </div>
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+    <table class="rel-table">
+      <thead>
+        <tr>
+          <th>Откуда (коллекция)</th>
+          <th>Поле-ссылка</th>
+          <th></th>
+          <th>Куда (коллекция)</th>
+          <th>Тип связи</th>
+          <th>Для чего используется</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="c-from">auth.users</td><td class="c-field">_id</td><td class="arr">→</td><td class="c-to">user.users.authId</td><td class="c-type">1 к 1</td><td class="c-desc">Учётные данные ↔ Профиль (два разных сервиса)</td></tr>
+        <tr><td class="c-from">refreshtokens</td><td class="c-field">userId</td><td class="arr">→</td><td class="c-to">auth.users._id</td><td class="c-type">N к 1</td><td class="c-desc">Несколько сессий (телефон + планшет) на одного юзера</td></tr>
+        <tr><td class="c-from">friendships</td><td class="c-field">requesterId</td><td class="arr">→</td><td class="c-to">user.users._id</td><td class="c-type">N к 1</td><td class="c-desc">Кто отправил заявку</td></tr>
+        <tr><td class="c-from">friendships</td><td class="c-field">receiverId</td><td class="arr">→</td><td class="c-to">user.users._id</td><td class="c-type">N к 1</td><td class="c-desc">Кто получил заявку</td></tr>
+        <tr><td class="c-from">watchhistory</td><td class="c-field">userId</td><td class="arr">→</td><td class="c-to">user.users._id</td><td class="c-type">N к 1</td><td class="c-desc">Кто смотрел</td></tr>
+        <tr><td class="c-from">watchprogress</td><td class="c-field">userId</td><td class="arr">→</td><td class="c-to">user.users._id</td><td class="c-type">N к 1</td><td class="c-desc">Чья позиция в видео</td></tr>
+        <tr><td class="c-from">watchpartyrooms</td><td class="c-field">ownerId</td><td class="arr">→</td><td class="c-to">user.users._id</td><td class="c-type">N к 1</td><td class="c-desc">Создатель комнаты</td></tr>
+        <tr><td class="c-from">watchpartyrooms</td><td class="c-field">members[ ]</td><td class="arr">→</td><td class="c-to">user.users._id</td><td class="c-type">N к M</td><td class="c-desc">Список участников (хранится прямо в документе)</td></tr>
+        <tr><td class="c-from">notifications</td><td class="c-field">userId</td><td class="arr">→</td><td class="c-to">user.users._id</td><td class="c-type">N к 1</td><td class="c-desc">Кому адресовано уведомление</td></tr>
+        <tr><td class="c-from">userreports</td><td class="c-field">reportedUserId</td><td class="arr">→</td><td class="c-to">user.users._id</td><td class="c-type">N к 1</td><td class="c-desc">На кого жалоба</td></tr>
+        <tr><td class="c-from">userreports</td><td class="c-field">reporterId</td><td class="arr">→</td><td class="c-to">user.users._id</td><td class="c-type">N к 1</td><td class="c-desc">Кто пожаловался</td></tr>
+        <tr><td class="c-from">supportconversations</td><td class="c-field">userId</td><td class="arr">→</td><td class="c-to">user.users._id</td><td class="c-type">N к 1</td><td class="c-desc">Чей тикет в поддержку</td></tr>
+        <tr><td class="c-from">supportmessages</td><td class="c-field">conversationId</td><td class="arr">→</td><td class="c-to">supportconversations._id</td><td class="c-type">N к 1</td><td class="c-desc">Сообщения принадлежат тикету</td></tr>
+        <tr><td class="c-from">auditlogs</td><td class="c-field">adminId</td><td class="arr">→</td><td class="c-to">user.users._id</td><td class="c-type">N к 1</td><td class="c-desc">Кто из администраторов выполнил действие</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     ВКЛАДКА 4 — REDIS
+═══════════════════════════════════════════════════════ -->
+<div class="page" id="p3">
+  <div class="note">
+    ⚡ Redis — хранилище в оперативной памяти. Используется для кэша, блокировок и очередей. Данные теряются при перезапуске (не критично — всё восстанавливается из MongoDB).
+  </div>
+  <div class="redis-grid">
+
+    <div class="redis-card">
+      <div class="redis-head">
+        <span class="rkey">login_attempts:{email}</span>
+        <span class="rttl">TTL 15 минут</span>
+      </div>
+      <div class="redis-body">
+        <div class="redis-row"><div class="rl">Что хранит</div><div class="rv">Счётчик неудачных попыток входа</div></div>
+        <div class="redis-row"><div class="rl">Значение</div><div class="rv">1, 2, 3, 4, 5…</div></div>
+        <div class="redis-row"><div class="rl">Логика</div><div class="rv">При 5 и более попытках → 429 ошибка, вход заблокирован на 15 минут</div></div>
+        <div class="redis-row"><div class="rl">Сброс</div><div class="rv">Удаляется при успешном входе</div></div>
+        <div class="redis-row"><div class="rl">Пример ключа</div><div class="rv">login_attempts:saidazim@mail.com</div></div>
+      </div>
+    </div>
+
+    <div class="redis-card">
+      <div class="redis-head">
+        <span class="rkey">trending:{limit}</span>
+        <span class="rttl">TTL 10 минут</span>
+      </div>
+      <div class="redis-body">
+        <div class="redis-row"><div class="rl">Что хранит</div><div class="rv">Список популярных фильмов (JSON)</div></div>
+        <div class="redis-row"><div class="rl">Логика</div><div class="rv">Есть в Redis → отдаём сразу. Нет → берём из MongoDB, кладём в Redis, отдаём</div></div>
+        <div class="redis-row"><div class="rl">Зачем</div><div class="rv">HomeScreen запрашивает при каждом открытии — Redis в 100× быстрее MongoDB</div></div>
+        <div class="redis-row"><div class="rl">Пример ключа</div><div class="rv">trending:10</div></div>
+      </div>
+    </div>
+
+    <div class="redis-card">
+      <div class="redis-head">
+        <span class="rkey">top-rated:{limit}</span>
+        <span class="rttl">TTL 10 минут</span>
+      </div>
+      <div class="redis-body">
+        <div class="redis-row"><div class="rl">Что хранит</div><div class="rv">Список лучших фильмов по рейтингу (JSON)</div></div>
+        <div class="redis-row"><div class="rl">Логика</div><div class="rv">Та же схема — кэш-aside</div></div>
+        <div class="redis-row"><div class="rl">Пример ключа</div><div class="rv">top-rated:10</div></div>
+      </div>
+    </div>
+
+    <div class="redis-card">
+      <div class="redis-head">
+        <span class="rkey">movie:{movieId}</span>
+        <span class="rttl">TTL 10 минут</span>
+      </div>
+      <div class="redis-body">
+        <div class="redis-row"><div class="rl">Что хранит</div><div class="rv">Данные конкретного фильма (JSON)</div></div>
+        <div class="redis-row"><div class="rl">Инвалидация</div><div class="rv">Удаляется при обновлении фильма администратором</div></div>
+        <div class="redis-row"><div class="rl">Зачем</div><div class="rv">Страница фильма открывается часто — не ходить в MongoDB каждый раз</div></div>
+      </div>
+    </div>
+
+    <div class="redis-card">
+      <div class="redis-head">
+        <span class="rkey">rate_limit:{ip}:{endpoint}</span>
+        <span class="rttl">TTL 60 секунд</span>
+      </div>
+      <div class="redis-body">
+        <div class="redis-row"><div class="rl">Что хранит</div><div class="rv">Счётчик запросов с одного IP</div></div>
+        <div class="redis-row"><div class="rl">Логика</div><div class="rv">Превышен лимит → 429 Слишком много запросов</div></div>
+        <div class="redis-row"><div class="rl">Зачем</div><div class="rv">Защита API от спама и DDoS-атак</div></div>
+        <div class="redis-row"><div class="rl">Пример</div><div class="rv">rate_limit:192.168.1.1:register → "3"</div></div>
+      </div>
+    </div>
+
+    <div class="redis-card">
+      <div class="redis-head">
+        <span class="rkey">room:state:{roomId}</span>
+        <span class="rttl">Пока активна</span>
+      </div>
+      <div class="redis-body">
+        <div class="redis-row"><div class="rl">Что хранит</div><div class="rv">Текущее состояние видео в комнате</div></div>
+        <div class="redis-row"><div class="rl">Поля</div><div class="rv">currentTime, isPlaying, serverTimestamp, updatedBy</div></div>
+        <div class="redis-row"><div class="rl">Зачем</div><div class="rv">При подключении нового участника → мгновенно даём ему актуальное состояние без запроса в MongoDB</div></div>
+      </div>
+    </div>
+
+    <div class="redis-card">
+      <div class="redis-head">
+        <span class="rkey">bull:notification:{jobId}</span>
+        <span class="rttl">Очередь</span>
+      </div>
+      <div class="redis-body">
+        <div class="redis-row"><div class="rl">Что хранит</div><div class="rv">Задача на отправку уведомления</div></div>
+        <div class="redis-row"><div class="rl">Содержит</div><div class="rv">{ userId, type, fcmTokens[], данные }</div></div>
+        <div class="redis-row"><div class="rl">Как работает</div><div class="rv">Воркер берёт задачу → отправляет FCM push или email → удаляет задачу</div></div>
+        <div class="redis-row"><div class="rl">Зачем</div><div class="rv">Уведомления не блокируют основной запрос, отправляются асинхронно</div></div>
+      </div>
+    </div>
+
+    <div class="redis-card">
+      <div class="redis-head">
+        <span class="rkey">socket:user:{userId}</span>
+        <span class="rttl">Пока онлайн</span>
+      </div>
+      <div class="redis-body">
+        <div class="redis-row"><div class="rl">Что хранит</div><div class="rv">ID активного Socket.io соединения</div></div>
+        <div class="redis-row"><div class="rl">Как работает</div><div class="rv">При подключении → сохраняем. При отключении → удаляем</div></div>
+        <div class="redis-row"><div class="rl">Зачем</div><div class="rv">Определяем онлайн ли пользователь + отправляем события напрямую нужному сокету</div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</div><!-- конец main -->
+
+<script>
+function show(i) {
+  document.querySelectorAll('.page').forEach((p,j) => p.classList.toggle('active', i===j));
+  document.querySelectorAll('.tab').forEach((t,j) => t.classList.toggle('active', i===j));
+}
+</script>
+</body>
+</html>

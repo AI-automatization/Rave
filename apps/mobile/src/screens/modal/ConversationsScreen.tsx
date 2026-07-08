@@ -1,40 +1,44 @@
 // WeWatch Mobile — DM Conversations Screen (T-E138)
-import React from 'react';
+import React, { useCallback, useEffect } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity,
   ActivityIndicator, StyleSheet, ListRenderItemInfo,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { dmApi } from '@api/user.api';
-import { IDMConversation, ModalStackParamList } from '@app-types/index';
+import { IDMConversation, IDMMessage, ChatsStackParamList } from '@app-types/index';
 import { useT } from '@i18n/index';
 import { spacing } from '@theme/index';
+import { useEnsureSocket } from '@hooks/useEnsureSocket';
+import { getSocket, SERVER_EVENTS } from '@socket/client';
 
-type NavProp = NativeStackNavigationProp<ModalStackParamList, 'DMConversations'>;
+type NavProp = NativeStackNavigationProp<ChatsStackParamList, 'Conversations'>;
 
 function memberColor(id: string): string {
   const palette = ['#7B72F8', '#F87171', '#34D399', '#FBBF24', '#60A5FA', '#F472B6', '#A78BFA'];
+  const key = id ?? '';
   let h = 0;
-  for (let i = 0; i < id.length; i++) h = id.charCodeAt(i) + ((h << 5) - h);
+  for (let i = 0; i < key.length; i++) h = key.charCodeAt(i) + ((h << 5) - h);
   return palette[Math.abs(h) % palette.length];
 }
 
-function formatRelative(dateStr: string): string {
+function formatRelative(dateStr: string, tr: (section: 'dm', key: string) => string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const min = Math.floor(diff / 60_000);
-  if (min < 1) return '<1 min';
-  if (min < 60) return `${min} min`;
+  if (min < 1) return tr('dm', 'timeNow');
+  if (min < 60) return `${min} ${tr('dm', 'timeMin')}`;
   const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr} h`;
-  return `${Math.floor(hr / 24)} d`;
+  if (hr < 24) return `${hr} ${tr('dm', 'timeHour')}`;
+  return `${Math.floor(hr / 24)} ${tr('dm', 'timeDay')}`;
 }
 
 function ConvItem({ item, onPress }: { item: IDMConversation; onPress: () => void }) {
+  const { t } = useT();
   const bg = memberColor(item.peerId);
   const initials = (item.peerUsername ?? '?').slice(0, 2).toUpperCase();
 
@@ -53,7 +57,7 @@ function ConvItem({ item, onPress }: { item: IDMConversation; onPress: () => voi
           <Text style={[s.username, item.unreadCount > 0 && s.usernameUnread]} numberOfLines={1}>
             {item.peerUsername}
           </Text>
-          <Text style={s.time}>{formatRelative(item.lastMessageAt)}</Text>
+          <Text style={s.time}>{formatRelative(item.lastMessageAt, t)}</Text>
         </View>
         <View style={s.bottomRow}>
           <Text style={[s.lastMsg, item.unreadCount > 0 && s.lastMsgUnread]} numberOfLines={1}>
@@ -74,6 +78,10 @@ export function ConversationsScreen() {
   const navigation = useNavigation<NavProp>();
   const insets = useSafeAreaInsets();
   const { t } = useT();
+  const queryClient = useQueryClient();
+
+  // DM realtime uchun socket ulanishini kafolatlash
+  useEnsureSocket();
 
   const { data: conversations = [], isLoading, refetch } = useQuery<IDMConversation[]>({
     queryKey: ['dm-conversations'],
@@ -81,15 +89,31 @@ export function ConversationsScreen() {
     staleTime: 30_000,
   });
 
+  // Refetch whenever the Chats tab regains focus so a conversation started elsewhere
+  // (e.g. from a friend's profile) shows up immediately without restarting the app.
+  useFocusEffect(
+    useCallback(() => {
+      void refetch();
+    }, [refetch]),
+  );
+
+  // Jonli yangilanish: yangi DM kelganda suhbatlar ro'yxatini (so'nggi xabar,
+  // unread badge) darhol yangilash — ekranni qayta ochmasdan.
+  useEffect(() => {
+    const sock = getSocket();
+    if (!sock) return;
+    const onDM = (_msg: IDMMessage) => {
+      void queryClient.invalidateQueries({ queryKey: ['dm-conversations'] });
+    };
+    sock.on(SERVER_EVENTS.DM_MESSAGE, onDM);
+    return () => { sock.off(SERVER_EVENTS.DM_MESSAGE, onDM); };
+  }, [queryClient]);
+
   return (
     <View style={[s.root, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={s.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} activeOpacity={0.75}>
-          <Ionicons name="chevron-back" size={24} color="#fff" />
-        </TouchableOpacity>
         <Text style={s.title}>{t('dm', 'title')}</Text>
-        <View style={s.headerRight} />
       </View>
 
       {isLoading ? (
@@ -145,11 +169,9 @@ const s = StyleSheet.create({
   },
   title: {
     flex: 1,
-    fontSize: 17,
-    fontWeight: '700',
+    fontSize: 22,
+    fontWeight: '800',
     color: '#fff',
-    textAlign: 'center',
-    marginRight: 36,
   },
   headerRight: {
     width: 36,

@@ -1,6 +1,160 @@
 # CineSync — OCHIQ VAZIFALAR
 
-# Yangilangan: 2026-06-13
+# Yangilangan: 2026-07-03
+
+---
+
+# 🔒 Sprint 15: Security Audit fixes (2026-07-04 — аудит Claude)
+
+> Полный аудит OWASP Top 10 + WeWatch-специфика. Фундамент крепкий (JWT/bcrypt/socket/internal/IDOR — ок). Ниже — найденные уязвимости. **Не начинать без claim.**
+
+---
+
+---
+
+### T-S111 | P1 | [SECURITY] | Deps: обновить high-уязвимости (ws/undici/nodemailer/next)
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim (security audit)
+- **Yaratilgan:** 2026-07-04
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** package bumps + smoke-тест
+- **Sabab:** 54 уязвимости (13 high). Реально достижимые в рантайме: `ws` (DoS memory exhaustion → socket.io/watch-party), `undici` (обход TLS-проверки), `nodemailer` (письмо не на тот домен → auth), `next` (DoS Image Optimizer → web). Фикс: `npm audit fix`, поднять ws/undici/nodemailer/next, проверить что socket.io/сборки не сломались.
+- **Файлы:** `package.json`, `package-lock.json` (overrides при необходимости)
+
+---
+
+### T-S112 | P2 | [SECURITY] | battle-сервис: добавить helmet()
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim (security audit)
+- **Yaratilgan:** 2026-07-04
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** haiku
+- **Model sababi:** 1 строка
+- **Sabab:** Единственный из 7 сервисов без security-заголовков (CSP/HSTS/X-Frame-Options). Фикс: `app.use(helmet())` как в остальных.
+- **Файлы:** `services/battle/src/app.ts`
+
+---
+
+### T-S113 | P2 | [SECURITY] | express-mongo-sanitize на всех сервисах (defense-in-depth)
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim (security audit)
+- **Yaratilgan:** 2026-07-04
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** middleware в 7 app.ts
+- **Sabab:** Нигде нет `express-mongo-sanitize`. Защита от NoSQL-инъекции ($ne/$gt в body/query) держится только на валидации. Прямых `req.body→query` не найдено (смягчено), но добавить middleware стоит. Фикс: подключить в каждый app.ts.
+- **Файлы:** `services/*/src/app.ts`, shared middleware
+
+---
+
+### T-S114 | P3 | [SECURITY] | hls-proxy: убрать wildcard CORS `*`
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim (security audit)
+- **Yaratilgan:** 2026-07-04
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** haiku
+- **Model sababi:** 2 строки
+- **Sabab:** hls-proxy отдаёт `Access-Control-Allow-Origin: *` — любой origin гоняет трафик через прокси (абуз bandwidth). Ограничить до своих доменов или rate-limit.
+- **Файлы:** `services/content/src/controllers/hlsProxy.controller.ts` (342, 421)
+
+---
+
+### T-S115 | P3 | [SECURITY] | Брутфорс: fail-closed при падении Redis
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim (security audit)
+- **Yaratilgan:** 2026-07-04
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** 1 файл, логика degraded-режима
+- **Sabab:** Если Redis лёг → проверка попыток логина пропускается (fail-open). Окно для брутфорса во время сбоя. Фикс: fail-closed либо in-memory fallback-счётчик.
+- **Файлы:** `services/auth/src/services/passwordAuth.service.ts`
+
+---
+
+### T-S116 | P3 | [SECURITY] | internal-secret → crypto.timingSafeEqual
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim (security audit)
+- **Yaratilgan:** 2026-07-04
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** haiku
+- **Model sababi:** 1 функция
+- **Sabab:** `secret === INTERNAL_SECRET` — не timing-safe. Теоретический тайминг-атак (риск низкий, внутренняя сеть). Фикс: `crypto.timingSafeEqual`.
+- **Файлы:** `shared/src/utils/serviceClient.ts` (validateInternalSecret)
+
+---
+
+# 🟣 Sprint 14: Staging + CI/CD (2026-07-03) — A1+B1+C2
+
+---
+
+### T-S109 | P1 | [DEVOPS] | Staging env + CI/CD (Railway Environments + native deploy)
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-07-03
+- **Holat:** ❌ Boshlanmagan (план одобрен: A1+B1+C2)
+- **Tavsiya model:** sonnet
+- **Sabab:** Нет staging-окружения; деплой ручной; CI/CD написан, но staging «стреляет в пустоту» (сервисов -staging нет). Решение: Railway Environments (prod+staging в 1 проекте), отдельные staging Mongo/Redis, деплой Railway-native (develop→staging, main→prod), Actions = только гейты на PR.
+
+**Фаза 1 — Railway staging env (A1+B1) [Railway dashboard/CLI]:**
+  - [ ] Создать окружение `staging` в проекте `rave` (Duplicate environment от production → клонирует все сервисы + свои volumes = отдельные staging Mongo/Redis автоматически = B1)
+  - [ ] Проверить staging Mongo/Redis: отдельные instance, `MONGO_URI`/`REDIS_URL` в staging указывают на staging-БД (Railway reference vars)
+  - [ ] Staging-переменные: домены (auth-staging.up.railway.app и т.д.), `NODE_ENV=staging`, свои JWT/INTERNAL секреты (НЕ прод)
+  - [ ] Сид тестовых данных в staging cinesync
+
+**Фаза 2 — Ветки + Railway deploy-триггеры (C2):**
+  - [ ] Создать ветку `dev` от main
+  - [ ] Railway: production env → deploy from `main`; staging env → deploy from `dev` (Settings → Environment → branch)
+  - [ ] Проверить: push в dev → авто-деплой staging; push в main → авто-деплой prod
+
+**Фаза 3 — CI гейты (GitHub Actions, только PR):**
+  - [ ] Оставить `lint.yml` + `test.yml` как PR-проверки (on pull_request → dev/main)
+  - [ ] Добавить `ci.yml`: typecheck (shared + все сервисы) + test + lint на PR
+  - [ ] Удалить/выпилить `deploy-prod.yml` + `deploy-staging.yml` (деплой теперь Railway-native) — или оставить как ручной `workflow_dispatch` fallback
+  - [ ] Добавить web/app-web/admin-ui в typecheck (сейчас только backend)
+
+**Фаза 4 — Branch protection (GitHub, via gh):**
+  - [ ] `main`: require PR + passing CI + 1 review
+  - [ ] `dev`: require PR + passing CI
+
+**Фаза 5 — Docs:**
+  - [ ] `docs/deployment.md`: схема веток → окружений, как деплоить, rollback
+
+- **Разделение:** Клод делает — develop-ветку, ci.yml, чистку workflow, branch protection (gh), docs. Saidazim (Railway dashboard) — duplicate environment, per-env deploy branch, staging переменные/домены. Часть через `railway` CLI попробую сам.
+- **Файлы:** `.github/workflows/*.yml`, `docs/deployment.md`
+
+---
+
+# 🔵 Sprint 13: Mobile UX fixes (2026-07-03 — manual QA Saidazim)
+
+---
+
+### T-S108 | P1 | [MOBILE+BACKEND] | Single active room guard + "Мои комнаты" на главном
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim (manual QA)
+- **Yaratilgan:** 2026-07-03
+- **Holat:** 🔄 Bajarilmoqda
+- **Tavsiya model:** sonnet
+- **Model sababi:** backend guard + mobile UI, 3-4 fayl, mavjud endpoint qayta ishlatiladi
+- **Sabab:** Foydalanuvchi bir vaqtda bir nechta xona ochishi mumkin (guard yo'q). Bor xonani topib bo'lmaydi — HomeScreen'da "mening xonalarim" yo'q.
+- **Qilish kerak:**
+  - [ ] Backend `createRoom`: agar `ownerId` da active (status != ended) xona bo'lsa → `409 ROOM_ALREADY_EXISTS` + roomId
+  - [ ] Mobile: create javobida shu kodni ushlab → mavjud xonaga navigate + toast
+  - [ ] Mobile HomeScreen: "Мои комнаты" seksiya (`getRecentRooms`, filter active), tap → xona ochish
+  - [ ] Deploy watch-party
+- **Fayllar:** `services/watch-party/src/controllers/watchParty.controller.ts` (+ service), `apps/mobile/src/screens/home/HomeScreen.tsx`, `apps/mobile/src/screens/rooms/RoomsScreen.tsx`
+
+### T-S107b | ✅ | [MOBILE] | Fix: свайп-вниз случайно сворачивает комнату
+
+- **Holat:** ✅ Bajarildi (2026-07-03) — outer Modal wrapper `gestureEnabled` off qachonki `WatchParty` active (`AppNavigator.tsx`)
 
 ---
 
@@ -203,41 +357,23 @@
 
 ---
 
-### T-S106 | P1 | [MOBILE] | Mesh Faza 0: clock-sync handshake + TURN | pending[Saidazim]
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Saidazim
-- **Yaratilgan:** 2026-06-29
-- **Holat:** ❌ Boshlanmagan
-- **Tavsiya model:** sonnet
-- **Model sababi:** 2-3 fayl, WebRTC DataChannel handshake + env config, o'rta murakkablik
-- **Sabab:** BLOCKER — `SyncProtocol.calcDrift` peer soatlari bir xil deb hisoblaydi (`Date.now() - ownerTimestamp`), bu noto'g'ri. TURN creds bo'sh → mobil CGNAT'da mesh ulanmaydi. Bularsiz mesh Socket.io'dan tezroq ishlamaydi.
-- **Qilish kerak:**
-  - [ ] DataChannel ping/pong → clock offset + RTT baholash (NTP-style)
-  - [ ] Offset'ni `SyncProtocol.calcDrift` va `scheduledAt` hisobiga qo'shish
-  - [ ] TURN: metered.ca account → `EXPO_PUBLIC_TURN_*` env to'ldirish (`config.ts`)
-  - [ ] 4G/sotuvchi tarmoqda 2 qurilma ICE connect tekshirish
-- **Fayllar:** `apps/mobile/src/services/mesh/SyncProtocol.ts`, `MeshClient.ts`, `config.ts`
-
----
-
 ### T-S107 | P1 | [MOBILE] | Mesh Faza 1: SyncBroadcaster'ni useWatchPartyRoom'ga ulash | pending[Saidazim]
 
 - **Mas'ul:** pending[Saidazim]
 - **Beruvchi:** Saidazim
 - **Yaratilgan:** 2026-06-29
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 Bajarilmoqda (~95%) — kod ulangan (`useWatchPartyRoom` → `useWatchParty` → `SyncBroadcaster`), APK yig'ildi (wewatch-mesh-sync.apk). Qolgan: 2 qurilmada play/pause kechikishni o'lchash.
 - **Tavsiya model:** opus
 - **Model sababi:** Ikkita parallel sync tizimini birlashtirish, owner-authority, late-join seed — arxitektura tushunish kerak
 - **Sabab:** Asosiy gap — mesh kodi ulanmagan. Owner play/pause/seek/heartbeat `SyncBroadcaster` orqali ketishi, follower'lar mesh xabarlarni qo'llashi kerak.
 - **Qilish kerak:**
-  - [ ] `useWatchPartyRoom` → `SyncBroadcaster` instance (owner flag bilan)
-  - [ ] Owner-only broadcast (echo-loop oldini olish)
-  - [ ] Kech qo'shilgan peer → Redis `getSyncState` dan boshlang'ich pozitsiya seed
-  - [ ] Socket.io fallback saqlanishini tekshirish (mesh fail → socket)
-  - [ ] 2 qurilma WiFi'da sync kechikishni o'lchash (maqsad <300ms)
-- **Bog'liq:** T-S106
-- **Fayllar:** `apps/mobile/src/hooks/useWatchPartyRoom.ts`, `services/mesh/SyncBroadcaster.ts`
+  - [x] `useWatchPartyRoom` → `SyncBroadcaster` instance (owner flag bilan) — `useWatchParty.ts:267`
+  - [ ] Owner-only broadcast (echo-loop oldini olish) — tasdiqlash kerak
+  - [ ] Kech qo'shilgan peer → Redis `getSyncState` dan boshlang'ich pozitsiya seed — tasdiqlash kerak
+  - [ ] Socket.io fallback saqlanishini tekshirish (mesh fail → socket) — tasdiqlash kerak
+  - [ ] 2 qurilma WiFi'da sync kechikishni o'lchash (maqsad <300ms) — MANUAL, qurilma kerak
+- **Bog'liq:** T-S106 (✅ tugadi — Done.md)
+- **Fayllar:** `apps/mobile/src/hooks/useWatchPartyRoom.ts`, `apps/mobile/src/hooks/useWatchParty.ts`, `apps/mobile/src/services/mesh/SyncBroadcaster.ts`
 
 ---
 
@@ -678,4 +814,108 @@
 
 > apps/web/ — хозир фақат лендинг. Янги route group (app) ичига тўлиқ веб-илова қўшилади.
 > Мобил скринларни веб учун адаптация қилиш — логика бир хил, UI Next.js/React.
+
+---
+
+## 💬 Sprint 16: DM Chat 2.0 (2026-07-07 — Jasur/Emirhan mobile)
+
+> Mobile DM chatni Telegram darajasiga ko'tarish: push+inline reply, reply, forward.
+> Frontend (apps/mobile) — Jasur bajaradi. Quyidagilar BACKEND tomonini talab qiladi.
+> **Boshlashdan oldin claim qilish shart.** Barchasi shared/types o'zgarishini o'z ichiga oladi → LOCK protocol.
+
+---
+
+### T-S117 | P1 | [BACKEND] | DM push notification — xabar kelganda FCM yuborish
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Jasur (mobile)
+- **Yaratilgan:** 2026-07-07
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** 2-3 fayl — dm.service + notification integratsiya
+- **Sabab:** Hozir `DMService.sendMessage` (services/user/src/services/dm.service.ts) push YUBORMAYDI. Telegram kabi — DM kelganda telefonga push kelishi kerak. Notification infra (FCM token) tayyor.
+- **Qilish kerak:**
+  - [ ] `dm.service.sendMessage` (yoki dmEvents.handler) → notification service orqali FCM push jo'natish
+  - [ ] Payload: `title=senderUsername`, `body=text` (yoki "Yangi xabar" agar shifrlangan bo'lsa), `data={ type:'dm', peerId:<senderId>, peerName:<senderUsername> }`
+  - [ ] Android channel: `dm_messages`, categoryId/tag: `dm_reply` (inline reply action uchun — frontend shu categoryId'ni kutadi)
+  - [ ] Faqat qabul qiluvchi socket'da OFFLINE bo'lsa push (online bo'lsa realtime socket yetkazadi) — yoki har doim, but delivered flag bilan
+  - [ ] Receiver'ning `notifications.push` sozlamasi false bo'lsa — push yubormaslik
+- **Bog'liq:** T-E137, frontend: DM inline reply (apps/mobile usePushNotifications)
+
+---
+
+### T-S118 | P1 | [BACKEND+SHARED] | DM reply — replyTo maydonini qo'shish
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Jasur (mobile)
+- **Yaratilgan:** 2026-07-07
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** model + service + shared/types (LOCK)
+- **Sabab:** Xabarga reply (javob) qilish — Telegram kabi. Xabar qaysi xabarga javob ekanini saqlash kerak.
+- **Qilish kerak:**
+  - [ ] `DirectMessage` model'ga `replyTo?: ObjectId` (ref DirectMessage) qo'shish
+  - [ ] `dm.service.sendMessage(senderId, receiverId, text, replyTo?)` — replyTo qabul qilish
+  - [ ] REST `POST /users/dm/:peerId` body'ga `replyTo` qo'shish
+  - [ ] Socket `dm:send` payload'ga `replyTo` qo'shish (dmEvents.handler)
+  - [ ] Javobda `replyTo` snapshotini qaytarish: `{ _id, text, senderId }` (asl xabar o'chsa ham ko'rinsin — snapshot/denormalize tavsiya)
+  - [ ] **shared/types** `IDMMessage`ga `replyTo?` qo'shish (LOCK protocol — Jasur bilan kelishilgan)
+- **Bog'liq:** T-S117
+
+---
+
+### T-S119 | P1 | [BACKEND+SHARED] | DM forward — xabarni boshqa chatga yo'naltirish
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Jasur (mobile)
+- **Yaratilgan:** 2026-07-07
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** model + service + shared/types (LOCK)
+- **Sabab:** Xabarni boshqa suhbatga forward qilish (Telegram kabi). Kim yozganini ko'rsatuvchi metadata kerak.
+- **Qilish kerak:**
+  - [ ] `DirectMessage` model'ga `forwardedFrom?: { userId, username }` qo'shish
+  - [ ] `dm.service` — forward: yangi xabar yaratish + forwardedFrom to'ldirish (asl matn ko'chiriladi)
+  - [ ] Endpoint yoki socket: `forwardMessage(originalMsgId, toPeerId)` — matnni o'qib, yangi peer'ga jo'natish
+  - [ ] T-S120 dagi `allowForwarding` sozlamasini tekshirish — asl muallif forward'ni o'chirgan bo'lsa 403
+  - [ ] **shared/types** `IDMMessage`ga `forwardedFrom?` qo'shish (LOCK)
+- **Bog'liq:** T-S118, T-S120
+
+---
+
+### T-S120 | P2 | [BACKEND+SHARED] | Forward on/off — maxfiylik sozlamasi
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Jasur (mobile)
+- **Yaratilgan:** 2026-07-07
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** haiku
+- **Model sababi:** settings schema'ga 1 bool maydon
+- **Sabab:** Foydalanuvchi o'z xabarlarini forward qilishga ruxsat berish/bermaslikni sozlamalardan boshqara olishi kerak. Frontend Settings toggle (Jasur) tayyor bo'ladi, backend saqlash+enforce kerak.
+- **Qilish kerak:**
+  - [ ] `UserSettings` (services/user) `privacy.allowForwarding: boolean` (default true) qo'shish
+  - [ ] `PATCH /users/me/settings` — allowForwarding qabul qilish
+  - [ ] T-S119 forward oqimida enforce qilish
+  - [ ] **shared/types** `UserSettings.privacy`ga `allowForwarding` qo'shish (LOCK) — frontend `UserSettings` interfeysi bilan mos
+- **Bog'liq:** T-S119
+
+---
+
+### T-S121 | P2 | [BACKEND] | DM read receipt — dm:read eventini sender'ga yuborish
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Jasur (mobile)
+- **Yaratilgan:** 2026-07-08
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** 2 fayl — markRead oqimi + socket emit
+- **Sabab:** Hozir `SERVER_EVENTS.DM_READ` ('dm:read') umuman EMIT qilinmaydi (grep bilan tasdiqlandi). Shu sababli mobil o'qildi belgisini (✓✓) ko'rsata olmaydi — sender xabari o'qilganini bilmaydi. Dizayn (Telegram uslubi) uchun kerak.
+- **Qilish kerak:**
+  - [ ] Qabul qiluvchi `markRead(myId, peerId)` qilganda → watch-party socket orqali `io.to(`user:${peerId}`).emit(DM_READ, { readerId: myId })` yuborish
+  - [ ] REST `PATCH /users/dm/:peerId/read` yoki dmEvents.handler'da hosila qilish (user service → watch-party internal event yoki to'g'ridan socket)
+  - [ ] Payload: `{ readerId, peerId?, at }` — mobil shu peer bilan bo'lgan o'z xabarlarini `read=true` qiladi
+  - [ ] Ixtiyoriy: DM message model'ga `readAt?: Date` qo'shish (aniq vaqt uchun)
+- **Bog'liq:** T-E137, frontend read-receipt UI (Jasur, Task 3 dizayn)
+
+---
 

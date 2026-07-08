@@ -44,6 +44,7 @@ export class AdminService {
   changeUserRole!: AdminUserService['changeUserRole'];
   deleteUser!: AdminUserService['deleteUser'];
   createStaff!: AdminUserService['createStaff'];
+  createTestUser!: AdminUserService['createTestUser'];
   listStaff!: AdminUserService['listStaff'];
   deleteStaff!: AdminUserService['deleteStaff'];
   setUserRestrictions!: AdminUserService['setUserRestrictions'];
@@ -70,6 +71,7 @@ export class AdminService {
     this.changeUserRole = this.users.changeUserRole.bind(this.users);
     this.deleteUser = this.users.deleteUser.bind(this.users);
     this.createStaff = this.users.createStaff.bind(this.users);
+    this.createTestUser = this.users.createTestUser.bind(this.users);
     this.listStaff = this.users.listStaff.bind(this.users);
     this.deleteStaff = this.users.deleteStaff.bind(this.users);
     this.setUserRestrictions = this.users.setUserRestrictions.bind(this.users);

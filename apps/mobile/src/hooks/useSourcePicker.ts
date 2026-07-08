@@ -1,6 +1,6 @@
 // WeWatch — useSourcePicker: URL extraction, source navigation, room creation
 import { useState } from 'react';
-import { Alert } from 'react-native';
+
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useT } from '@i18n/index';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -9,7 +9,7 @@ import { watchPartyApi } from '@api/watchParty.api';
 import { getSocket, CLIENT_EVENTS } from '@socket/client';
 import type { MediaSource } from '@constants/mediaSources';
 import type { ModalStackParamList } from '@app-types/index';
-
+import { appAlert } from '@components/common/AppAlert';
 
 type Nav = NativeStackNavigationProp<ModalStackParamList>;
 type RouteType = RouteProp<ModalStackParamList, 'SourcePicker'>;
@@ -25,11 +25,11 @@ export function useSourcePicker() {
 
   function handleSourcePress(source: MediaSource) {
     if (source.support === 'internal') {
-      Alert.alert(source.label, t('watchParty', 'comingSoonFeature'), [{ text: t('common', 'ok') }]);
+      appAlert(source.label, t('watchParty', 'comingSoonFeature'), [{ text: t('common', 'ok') }]);
       return;
     }
     if (source.support === 'drm') {
-      Alert.alert(
+      appAlert(
         `🔒 ${source.label}`,
         source.drmMessage ?? t('watchParty', 'drmNotSupported'),
         [{ text: t('watchParty', 'understood') }],

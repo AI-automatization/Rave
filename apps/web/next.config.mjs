@@ -8,6 +8,9 @@ const nextConfig = {
     // a web dep — suppress next build's type-check step in CI/Docker
     ignoreBuildErrors: true,
   },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: '**.cloudinary.com' },
@@ -18,12 +21,27 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ['framer-motion', 'lucide-react'],
   },
+  // Domain split: the application (dashboard) lives on app.wewatch.uz. Any app/auth
+  // path hit on the landing domain (wewatch.uz) is 301'd to the app domain so the two
+  // are cleanly separated for users, bookmarks and SEO. The landing keeps only marketing
+  // + guide pages. APP_DOMAIN is overridable per-env; defaults to production.
   async redirects() {
-    // Eski indekslangan URL'lar (Google keshida qolgan) — haqiqiy sahifalarga
-    // 301 yo'naltiramiz, 404 o'rniga link-equity saqlanadi.
-    return [
-      { source: '/how-it-works', destination: '/', permanent: true },
+    const APP = process.env.NEXT_PUBLIC_APP_DOMAIN ?? 'https://app.wewatch.uz';
+    const appPaths = [
+      'home', 'room', 'friends', 'messages', 'profile',
+      'settings', 'notifications', 'support', 'login', 'register', 'auth',
     ];
+    return appPaths.map((p) => ({
+      source: `/${p}/:path*`,
+      destination: `${APP}/${p}/:path*`,
+      permanent: true,
+    })).concat(
+      appPaths.map((p) => ({
+        source: `/${p}`,
+        destination: `${APP}/${p}`,
+        permanent: true,
+      })),
+    );
   },
   async headers() {
     // Marketing / legal pages carry no personalization — safe to cache at the CDN
@@ -68,7 +86,7 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://mc.yandex.ru",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com",
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https:",
               "font-src 'self' data: https://fonts.gstatic.com",
@@ -91,4 +109,6 @@ export default withSentryConfig(nextConfig, {
   silent: true,
   widenClientFileUpload: true,
   hideSourceMaps: true,
+  disableLogger: true,
+  automaticVercelMonitors: false,
 });

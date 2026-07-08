@@ -1,15 +1,6 @@
 // WeWatch Mobile — FriendSearchScreen
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  FlatList,
-  TouchableOpacity,
-  ActivityIndicator,
-  Alert,
-  ListRenderItemInfo,
-} from 'react-native';
+import { View, Text, TextInput, FlatList, TouchableOpacity, ActivityIndicator, ListRenderItemInfo } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -25,6 +16,7 @@ import { IUserPublic, FriendsStackParamList } from '@app-types/index';
 import { useT } from '@i18n/index';
 import { DEFAULT_AVATAR } from '@utils/assets';
 import { useStyles } from './FriendSearchScreen.styles';
+import { appAlert } from '@components/common/AppAlert';
 
 type Nav = NativeStackNavigationProp<FriendsStackParamList>;
 
@@ -45,7 +37,7 @@ export function FriendSearchScreen() {
     mutationFn: (userId: string) => userApi.sendFriendRequest(userId),
     onMutate: (userId) => { addSentRequest(userId); },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['friend-requests'] }); },
-    onError: () => { Alert.alert(t('common', 'error'), t('friends', 'requestError')); },
+    onError: () => { appAlert(t('common', 'error'), t('friends', 'requestError')); },
   });
 
   const friendIds = new Set(friends.map(f => f._id));
