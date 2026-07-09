@@ -94,6 +94,10 @@ export const registerVideoEvents = (
       const isPlaying = cached?.isPlaying ?? false;
       const syncState = await watchPartyService.syncState(roomId, userId, data.currentTime, isPlaying);
       socket.to(roomId).emit(SERVER_EVENTS.VIDEO_SEEK, syncState);
+      // Grace period: the seek that's about to land on owner+members will force an HLS
+      // re-buffer on whoever's player applies it — don't let that expected stall trip the
+      // democratic buffer-pause below (see isRecentSeek doc comment).
+      await watchPartyService.trackSeek(roomId);
       logger.info('Video sync: seek', { roomId, userId, currentTime: data.currentTime });
     } catch (error) {
       logger.error('Socket seek error', { userId, error });
@@ -167,6 +171,15 @@ export const registerVideoEvents = (
       const isJoiner = await watchPartyService.isRecentJoiner(roomId, userId);
       if (isJoiner) {
         io.to(roomId).emit(SERVER_EVENTS.VIDEO_BUFFER, { userId, isBuffering: true });
+        return;
+      }
+      // Grace period: a seek just landed — this buffer is the expected post-seek HLS
+      // rebuffer, not a stall. Democratic-pausing the other party here is exactly the
+      // "owner seeks → member buffers → owner gets paused" bug this guard closes.
+      const isPostSeekBuffer = await watchPartyService.isRecentSeek(roomId);
+      if (isPostSeekBuffer) {
+        io.to(roomId).emit(SERVER_EVENTS.VIDEO_BUFFER, { userId, isBuffering: true });
+        logger.info('Buffer (post-seek grace) — no democratic pause', { roomId, userId });
         return;
       }
 

@@ -353,4 +353,17 @@ export class WatchPartyService {
   async isRecentJoiner(roomId: string, userId: string): Promise<boolean> {
     return (await this.redis.exists(`party:joining:${roomId}:${userId}`)) === 1;
   }
+
+  // Room-level (not per-user): a seek forces an HLS re-buffer on whoever's player receives it —
+  // owner (local seekTo) and members (VIDEO_SEEK) alike. That buffer is expected, not a stall,
+  // so a BUFFER_START right after a seek must not trigger the democratic pause (it would pause
+  // the OTHER party — often the owner who just seeked — for a rebuffer that resolves in ~1-2s
+  // on its own). Mirrors the isRecentJoiner grace-period pattern.
+  async trackSeek(roomId: string): Promise<void> {
+    await this.redis.set(`party:recent-seek:${roomId}`, '1', 'EX', 4);
+  }
+
+  async isRecentSeek(roomId: string): Promise<boolean> {
+    return (await this.redis.exists(`party:recent-seek:${roomId}`)) === 1;
+  }
 }
