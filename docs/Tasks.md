@@ -1,6 +1,19 @@
 # CineSync — OCHIQ VAZIFALAR
 
-# Yangilangan: 2026-07-07
+# Yangilangan: 2026-07-09
+
+---
+
+### T-S118 | P2 | [BACKEND+MOBILE+ADMIN] | Sync quality stats — per-room telemetry (transport, drift, errors)
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim (по итогам mesh-sync тестирования)
+- **Yaratilgan:** 2026-07-09 11:50
+- **Holat:** 🔄 Bajarilmoqda
+- **Tavsiya model:** sonnet
+- **Model sababi:** новая Mongo-модель + ingest/query endpoints + mobile сбор метрик + новая admin-ui страница — 4 зоны, средняя сложность
+- **Sabab:** Ручное тестирование sync (P2P/TURN/Server, дрейф) через adb/logcat не масштабируется. Нужна постоянная наблюдаемость: клиент копит метрики за сессию комнаты (время в каждом транспорте, macro-seek/micro-adjust счётчики, ошибки mesh/player) и шлёт сводку при выходе из комнаты → сервер сохраняет в Mongo → admin-панель показывает список сессий.
+- **Файлы:** `services/admin/src/models/syncStats.model.ts`, `services/admin/src/services/syncStats.service.ts`, `services/admin/src/controllers/syncStats.controller.ts`, `services/admin/src/routes/syncStats.routes.ts`, `services/admin/src/app.ts`, `apps/mobile/src/hooks/useWatchPartyRoom.ts`, `apps/mobile/src/hooks/useWatchParty.ts`, `apps/admin-ui/src/pages/SyncStatsPage.tsx`, `apps/admin-ui/src/api/syncStats.api.ts`, `apps/admin-ui/src/App.tsx`
 
 ---
 
