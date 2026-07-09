@@ -4,6 +4,7 @@ import { logger } from '@shared/utils/logger';
 import { SERVER_EVENTS, CLIENT_EVENTS } from '@shared/constants/socketEvents';
 import { JwtPayload, VideoPlatform } from '@shared/types';
 import { recordWatchHistoryInternal } from '@shared/utils/serviceClient';
+import { bufferTimeouts, resumeBufferedRoom } from './videoEvents.handler';
 
 interface AuthenticatedSocket extends Socket {
   user: JwtPayload;
@@ -92,6 +93,19 @@ export const registerRoomEvents = (
     })();
 
     await socket.leave(roomId);
+
+    // BUG this fixes: LEAVE_ROOM never cleared this user's buffering flag (only a hard socket
+    // disconnect did). If the leaving member was the one a democratic pause was waiting on, the
+    // room (e.g. the owner) stayed paused indefinitely — nobody left to "catch up to", but
+    // nothing ever resumed. Mirrors the disconnect handler's same cleanup in videoEvents.handler.ts.
+    try {
+      const remaining = await watchPartyService.unmarkBuffering(roomId, userId);
+      if (remaining === 0 && bufferTimeouts.has(roomId)) {
+        await resumeBufferedRoom(io, watchPartyService, roomId, userId);
+      }
+    } catch (e) {
+      logger.warn('Failed to resolve buffer-pause on room leave', { userId, roomId, error: e });
+    }
 
     try {
       const result = await watchPartyService.leaveRoom(userId, roomId);

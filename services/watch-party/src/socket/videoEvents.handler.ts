@@ -12,7 +12,38 @@ interface AuthenticatedSocket extends Socket {
 
 // Module-level state shared across all socket instances in this process.
 // bufferTimeouts: per-room pending resume timer — must be module-level so any socket can cancel it.
-const bufferTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
+// Exported so roomEvents.handler.ts (LEAVE_ROOM) can check/resume it too — a member leaving
+// mid-buffer must not leave the democratic pause stuck with nobody left to catch up to.
+export const bufferTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
+
+// Standalone (no closure over a specific socket) so LEAVE_ROOM in roomEvents.handler.ts can
+// call the exact same resume path a disconnecting/leaving buffering member should trigger.
+export const resumeBufferedRoom = async (
+  io: SocketServer,
+  watchPartyService: WatchPartyService,
+  roomId: string,
+  triggeringUserId: string,
+): Promise<void> => {
+  await watchPartyService.clearAllBuffering(roomId);
+  const existing = bufferTimeouts.get(roomId);
+  if (existing) { clearTimeout(existing); bufferTimeouts.delete(roomId); }
+
+  // Use Redis syncState for currentTime — always fresher than MongoDB (heartbeat keeps it updated).
+  // Compensate for elapsed time since last heartbeat so resume lands at the real owner position,
+  // not a stale snapshot. Cap compensation at 10s to avoid overshooting on long pauses.
+  const cached = await watchPartyService.getSyncState(roomId);
+  const ownerId = cached?.updatedBy ?? (await watchPartyService.getRoom(roomId)).ownerId;
+  const storedCurrentTime = cached?.currentTime ?? 0;
+  const storedTimestamp = cached?.serverTimestamp ?? Date.now();
+  const wasPlaying = cached?.isPlaying ?? false;
+  const elapsedSecs = wasPlaying ? Math.min(10, (Date.now() - storedTimestamp) / 1000) : 0;
+  const currentTime = storedCurrentTime + elapsedSecs;
+
+  const syncState = await watchPartyService.syncState(roomId, ownerId, currentTime, true);
+  io.to(roomId).emit(SERVER_EVENTS.VIDEO_PLAY, syncState);
+  io.to(roomId).emit(SERVER_EVENTS.VIDEO_BUFFER, { userId: triggeringUserId, isBuffering: false });
+  logger.info('Buffer wait over — resumed room', { roomId, currentTime });
+};
 
 export const registerVideoEvents = (
   io: SocketServer,
@@ -140,27 +171,7 @@ export const registerVideoEvents = (
     return sockets.length;
   };
 
-  const resumeRoom = async (roomId: string) => {
-    await watchPartyService.clearAllBuffering(roomId);
-    const existing = bufferTimeouts.get(roomId);
-    if (existing) { clearTimeout(existing); bufferTimeouts.delete(roomId); }
-
-    // Use Redis syncState for currentTime — always fresher than MongoDB (heartbeat keeps it updated).
-    // Compensate for elapsed time since last heartbeat so resume lands at the real owner position,
-    // not a stale snapshot. Cap compensation at 10s to avoid overshooting on long pauses.
-    const cached = await watchPartyService.getSyncState(roomId);
-    const ownerId = cached?.updatedBy ?? (await watchPartyService.getRoom(roomId)).ownerId;
-    const storedCurrentTime = cached?.currentTime ?? 0;
-    const storedTimestamp = cached?.serverTimestamp ?? Date.now();
-    const wasPlaying = cached?.isPlaying ?? false;
-    const elapsedSecs = wasPlaying ? Math.min(10, (Date.now() - storedTimestamp) / 1000) : 0;
-    const currentTime = storedCurrentTime + elapsedSecs;
-
-    const syncState = await watchPartyService.syncState(roomId, ownerId, currentTime, true);
-    io.to(roomId).emit(SERVER_EVENTS.VIDEO_PLAY, syncState);
-    io.to(roomId).emit(SERVER_EVENTS.VIDEO_BUFFER, { userId, isBuffering: false });
-    logger.info('Buffer wait over — resumed room', { roomId, currentTime });
-  };
+  const resumeRoom = (roomId: string) => resumeBufferedRoom(io, watchPartyService, roomId, userId);
 
   socket.on(CLIENT_EVENTS.BUFFER_START, async () => {
     if (!authSocket.roomId) return;
@@ -257,10 +268,13 @@ export const registerVideoEvents = (
     const roomId = authSocket.roomId;
     try {
       const remaining = await watchPartyService.unmarkBuffering(roomId, userId);
-      if (remaining === 0) {
-        const existing = bufferTimeouts.get(roomId);
-        if (existing) { clearTimeout(existing); bufferTimeouts.delete(roomId); }
-        await watchPartyService.clearAllBuffering(roomId);
+      // BUG this fixes: this used to just clear the timeout without resuming, so a buffering
+      // member disconnecting mid-democratic-pause left the room (e.g. the owner) stuck paused
+      // forever — the 30s safety timer was cancelled but nothing ever re-emitted VIDEO_PLAY.
+      // Same condition/action as BUFFER_END: if this was the last buffering member and a
+      // pause is active, resume now instead of leaving everyone waiting on someone who left.
+      if (remaining === 0 && bufferTimeouts.has(roomId)) {
+        await resumeRoom(roomId);
       }
     } catch { /* ignore disconnect cleanup errors */ }
   });
