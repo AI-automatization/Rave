@@ -163,6 +163,28 @@ export class MeshClient {
         // Connection recovered — a future failure gets its own fresh restart attempt.
         this.iceRestartAttempted.delete(peerId);
         this.onEvent({ type: 'connected', peerId });
+        // MESH DIAG: log which candidate type actually won (host = same LAN, srflx = STUN
+        // public-IP, relay = TURN). onicecandidate only fires during gathering and doesn't say
+        // which pair was picked — getStats() on the nominated pair is the only way to know.
+        void (async () => {
+          try {
+            const stats: Map<string, Record<string, unknown>> = await (pc as unknown as { getStats: () => Promise<Map<string, Record<string, unknown>>> }).getStats();
+            const pair = [...stats.values()].find(
+              (s) => s.type === 'candidate-pair' && (s.nominated === true || s.selected === true),
+            );
+            if (!pair) { console.log(`[mesh-diag] peer ${peerId}: no nominated candidate-pair in stats`); return; }
+            const local = stats.get(pair.localCandidateId as string);
+            const remote = stats.get(pair.remoteCandidateId as string);
+            const usesRelay = local?.candidateType === 'relay' || remote?.candidateType === 'relay';
+            console.log(
+              `[mesh-diag] peer ${peerId} TRANSPORT: local=${local?.candidateType ?? '?'} remote=${remote?.candidateType ?? '?'}` +
+              ` (relay = TURN was needed; host/srflx = direct/STUN, no TURN)`,
+            );
+            this.onEvent({ type: 'transport', peerId, transportType: usesRelay ? 'turn' : 'p2p' });
+          } catch (e) {
+            console.log(`[mesh-diag] peer ${peerId}: getStats failed`, e);
+          }
+        })();
       } else if (state === 'disconnected' || state === 'failed' || state === 'closed') {
         peer.isConnected = false;
         this.onEvent({ type: 'disconnected', peerId });

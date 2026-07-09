@@ -106,7 +106,7 @@ export function WatchPartyScreen() {
   };
 
   const {
-    playerRef, userId, room, messages, activeMembers, isOwner, adminMonitoring, connectTimeout,
+    playerRef, userId, room, messages, activeMembers, isOwner, adminMonitoring, connectTimeout, activeTransport,
     showChat, showVoice, showInvite, isPlaying, isFullscreen, videoIsLive,
     videoCurrentTime, videoDuration, floatingEmojis, showQualityMenu, showEpisodeMenu,
     extractQualities, extractEpisodes, currentVideoUrl, extractionError,
@@ -322,6 +322,7 @@ export function WatchPartyScreen() {
           <RoomInfoBar
             roomName={room?.videoTitle ?? room?.name ?? 'Watch Party'}
             memberCount={activeMembers.length}
+            activeTransport={activeTransport}
             isOwner={isOwner}
             hasMessages={messages.length > 0}
             onToggleInvite={() => setShowInvite(v => !v)}

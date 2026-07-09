@@ -68,7 +68,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const userId = useAuthStore(s => s.user?._id) ?? '';
   const { t } = useT();
 
-  const { room, syncState, messages, activeMembers, playlist, isOwner, adminMonitoring, roomClosed, heartbeat, bufferingUsers, lastReaction,
+  const { room, syncState, messages, activeMembers, playlist, isOwner, adminMonitoring, roomClosed, heartbeat, bufferingUsers, lastReaction, activeTransport,
     emitPlay, emitPause, emitSeek, emitHeartbeat, sendMessage, sendEmoji } = useWatchParty(roomId);
   const { isExtracting, result: extractResult, fallbackMode: extractFallback, error: extractionError, extract, reset: resetExtraction } = useVideoExtraction();
 
@@ -697,7 +697,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
-    playerRef, userId, room, messages, activeMembers, isOwner, adminMonitoring, connectTimeout,
+    playerRef, userId, room, messages, activeMembers, isOwner, adminMonitoring, connectTimeout, activeTransport,
     isExtracting, extractResult, extractionError, showChat, showVoice, showInvite, isPlaying, isFullscreen,
     videoIsLive, videoCurrentTime, videoDuration, floatingEmojis, showQualityMenu, showEpisodeMenu,
     extractQualities, extractEpisodes, currentVideoUrl, bufferingUsers,

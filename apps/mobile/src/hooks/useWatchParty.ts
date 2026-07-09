@@ -74,6 +74,12 @@ export function useWatchParty(roomId: string) {
   // Date.now() of the last mesh message a member received — drives single-source selection.
   const lastMeshAtRef = useRef(0);
   const meshFresh = useCallback(() => Date.now() - lastMeshAtRef.current < MESH_FRESH_MS, []);
+  // UI-facing "what's actually syncing this room right now" — p2p/turn (mesh, distinguished by
+  // the winning ICE candidate type) or socket (mesh silent/unavailable, server relay in use).
+  // meshTransportTypeRef holds the last measured mesh transport; activeTransport is the reactive
+  // value consumers render, updated at the same moments meshFresh's underlying ref updates.
+  const meshTransportTypeRef = useRef<'p2p' | 'turn' | null>(null);
+  const [activeTransport, setActiveTransport] = useState<'p2p' | 'turn' | 'socket'>('socket');
   // serverClockOffset (ms) = serverClock − clientClock, measured over socket via CLOCK_PING/PONG.
   // Server-origin timestamps (serverTimestamp, scheduledAt, heartbeat.timestamp) arrive in the
   // server's clock; we subtract this offset to normalise them to the LOCAL clock, so downstream
@@ -161,9 +167,9 @@ export function useWatchParty(roomId: string) {
     socket.on(SERVER_EVENTS.VIDEO_SYNC, (state: SyncState) => setSyncState(toLocalClock(state)));
     // MESH DIAG (release-visible): which transport actually applied a play/pause/seek. If mesh is
     // fresh the socket copy is skipped (mesh already applied it); otherwise socket is the transport.
-    socket.on(SERVER_EVENTS.VIDEO_PLAY, (state: SyncState) => { if (!meshFresh()) { console.log('[mesh-diag] play applied via SOCKET'); setSyncState(toLocalClock(state)); } });
-    socket.on(SERVER_EVENTS.VIDEO_PAUSE, (state: SyncState) => { if (!meshFresh()) { console.log('[mesh-diag] pause applied via SOCKET'); setSyncState(toLocalClock(state)); } });
-    socket.on(SERVER_EVENTS.VIDEO_SEEK, (state: SyncState) => { if (!meshFresh()) { console.log('[mesh-diag] seek applied via SOCKET'); setSyncState(toLocalClock(state)); } });
+    socket.on(SERVER_EVENTS.VIDEO_PLAY, (state: SyncState) => { if (!meshFresh()) { console.log('[mesh-diag] play applied via SOCKET'); setActiveTransport('socket'); setSyncState(toLocalClock(state)); } });
+    socket.on(SERVER_EVENTS.VIDEO_PAUSE, (state: SyncState) => { if (!meshFresh()) { console.log('[mesh-diag] pause applied via SOCKET'); setActiveTransport('socket'); setSyncState(toLocalClock(state)); } });
+    socket.on(SERVER_EVENTS.VIDEO_SEEK, (state: SyncState) => { if (!meshFresh()) { console.log('[mesh-diag] seek applied via SOCKET'); setActiveTransport('socket'); setSyncState(toLocalClock(state)); } });
 
     socket.on(SERVER_EVENTS.ROOM_MESSAGE, (msg: MessageEvent) => {
       const cached = queryClient.getQueryData<IUserPublic>(['user-public', msg.userId]);
@@ -189,7 +195,10 @@ export function useWatchParty(roomId: string) {
     // T-E099: Heartbeat listener — separate from syncState (no seekTo trigger).
     // Skipped while mesh is fresh: the mesh heartbeat (faster, clock-corrected) is the source.
     socket.on(VIDEO_HEARTBEAT_EVENT, (data: HeartbeatData) => {
-      if (!meshFresh()) setHeartbeat({ currentTime: data.currentTime, timestamp: data.timestamp - serverClockOffsetRef.current });
+      if (!meshFresh()) {
+        setActiveTransport('socket');
+        setHeartbeat({ currentTime: data.currentTime, timestamp: data.timestamp - serverClockOffsetRef.current });
+      }
     });
 
     // T-E101: Buffer event — track who is buffering
@@ -259,13 +268,14 @@ export function useWatchParty(roomId: string) {
       const offset = clockOffset ?? 0;
       const localTs = msg.timestamp - offset;
       lastMeshAtRef.current = Date.now();
+      setActiveTransport(meshTransportTypeRef.current ?? 'p2p');
 
       if (msg.type === 'heartbeat') {
         setHeartbeat({ currentTime: msg.currentTime, timestamp: localTs });
         return;
       }
-      // MESH DIAG (release-visible): a play/pause/seek arrived over the P2P DataChannel.
-      console.log(`[mesh-diag] ${msg.type} applied via MESH (p2p)`);
+      // MESH DIAG (release-visible): a play/pause/seek arrived over the mesh DataChannel.
+      console.log(`[mesh-diag] ${msg.type} applied via MESH (${meshTransportTypeRef.current ?? 'p2p'})`);
       const prevPlaying = useWatchPartyStore.getState().syncState?.isPlaying ?? false;
       setSyncState({
         currentTime: msg.currentTime,
@@ -281,6 +291,7 @@ export function useWatchParty(roomId: string) {
       roomId,
       isOwner: ownerNow,
       onSyncMessage: applyMeshSync,
+      onTransportChange: (t) => { meshTransportTypeRef.current = t; },
     });
     broadcaster.start();
     broadcasterRef.current = broadcaster;
@@ -289,6 +300,8 @@ export function useWatchParty(roomId: string) {
       broadcaster.destroy();
       broadcasterRef.current = null;
       lastMeshAtRef.current = 0;
+      meshTransportTypeRef.current = null;
+      setActiveTransport('socket');
     };
   }, [room?._id, room?.ownerId, userId, roomId]);
 
@@ -364,5 +377,5 @@ export function useWatchParty(roomId: string) {
     getSocket()?.emit(CLIENT_EVENTS.VOICE_LEAVE);
   }, []);
 
-  return { room, syncState, messages, activeMembers, playlist, isOwner, adminMonitoring, roomClosed, heartbeat, bufferingUsers, lastReaction, emitPlay, emitPause, emitSeek, emitHeartbeat, sendMessage, sendEmoji, emitMediaChange, emitVoiceJoin, emitVoiceLeave };
+  return { room, syncState, messages, activeMembers, playlist, isOwner, adminMonitoring, roomClosed, heartbeat, bufferingUsers, lastReaction, activeTransport, emitPlay, emitPause, emitSeek, emitHeartbeat, sendMessage, sendEmoji, emitMediaChange, emitVoiceJoin, emitVoiceLeave };
 }
