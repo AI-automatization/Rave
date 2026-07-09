@@ -102,9 +102,12 @@ VK, Rutube, и ряд других CDN привязывают токен к IP e
 ШАГ 1 — git pull origin main
          → Если конфликт — СТОП, сообщить пользователю
 
-ШАГ 2 — Прочитать WeWatch Hub (ЕДИНСТВЕННЫЙ ИСТОЧНИК ПРАВДЫ):
+ШАГ 2 — Прочитать WeWatch Hub (ЕДИНСТВЕННЫЙ ИСТОЧНИК ПРАВДЫ для архитектуры/зон/правил):
          Read ~/Documents/weWatch-obsidian/WeWatch-Hub.md
          → Содержит: сервисы, зоны, правила, задачи, контакты, скиллы — ВСЁ
+         → Плюс bash .claude/scripts/memory-load.sh quick — детальный слой
+           (CONSTRAINTS.md/LAST_SESSION.md/ARCHITECTURE.md), Hub'у не противоречит,
+           а дополняет его тем же файлам, что перечислены в Hub → PROJECT CONTEXTS
 
 ШАГ 3 — Прочитать docs/Tasks.md
          → Проверить активные задачи, последний T-номер
@@ -113,7 +116,13 @@ VK, Rutube, и ряд других CDN привязывают токен к IP e
 
 **После 3 шагов — показать сводку и ждать команды.**
 
-> Hub не найден? → читать: CONSTRAINTS.md + LAST_SESSION.md + ARCHITECTURE.md (fallback)
+> Hub не найден? → читать: CONSTRAINTS.md + LAST_SESSION.md + ARCHITECTURE.md (fallback, тот же набор что даёт memory-load.sh)
+
+> **Автоматика (SessionStart-хук, `obsidian-session-start.sh`) читает Hub напрямую** — не отдельный
+> `_context.md` файл. Раньше хук молча грузил устаревший `PROJECTS/weWatch/_context.md` (одноимённый,
+> но не тот файл, что обновляется по зонам в `ZONES/<zone>/_context.md`) — исправлено 2026-07-09,
+> проверено запуском хука. `ZONES/<zone>/_context.md` — зональный контекст (см. Zone System ниже),
+> отдельный файл от Hub, коллизии имён больше нет в автоматическом пути.
 
 ---
 
@@ -360,6 +369,10 @@ Brute force: 5 попыток → 15min блок | Socket.io JWT verify
 
 **Vault:** `~/Documents/weWatch-obsidian/PROJECTS/weWatch/`
 
+> Это не отдельный параллельный протокол — `memory-load.sh` детализирует то же, на что Hub
+> ссылается в PROJECT CONTEXTS (см. «СТАРТ СЕССИИ — 3 ШАГА» выше). Один старт, два слоя
+> глубины (Hub = обзор, эти файлы = детали), не два конкурирующих источника правды.
+
 ### ⛔ ЗАПРЕЩЕНО начинать любую задачу без загрузки памяти:
 ```bash
 bash .claude/scripts/memory-load.sh quick   # ОБЯЗАТЕЛЬНО при каждом старте сессии
@@ -397,14 +410,8 @@ agy -p "<промпт>"   — single-shot второе мнение (Gemini/Clau
 Детали: .claude/skills/antigravity.md | ZONES/MCPs/antigravity-cli.md
 ```
 
-### ⛔ Anti-hallucination — АБСОЛЮТНЫЙ ЗАПРЕТ:
-```
-❌ Никогда не придумывать: файлы, endpoints, env vars, схему, функции
-❌ Никогда не писать код по памяти — только после чтения реального файла
-✅ Перед изменением: find → Read полностью → проверить импорты → Edit
-✅ Перед созданием: убедиться что не существует → читать похожий файл
-✅ Если не уверен в существовании — grep сначала, потом отвечать
-```
+### Anti-hallucination
+См. КОНСТИТУЦИЯ §2 (в начале файла) — то же правило, один канонический текст, не дублировать здесь.
 
 ### В конце каждой сессии (ОБЯЗАТЕЛЬНО):
 ```bash
@@ -473,29 +480,26 @@ Frontend UI/UX:
   • ARCH    → .claude/skills/architecture-review.md      (design review + ADR writing)
   • DEPLOY  → .claude/skills/deploy.md                   (Railway pre-checks → health verify → rollback)
 
-Маркетинг (coreyhaines31/marketingskills):
-  • marketing-launch          → .claude/skills/marketing-launch.md           (Product Hunt, GTM, release strategy)
-  • marketing-social          → .claude/skills/marketing-social.md           (Instagram, TikTok, Twitter posts)
-  • marketing-video           → .claude/skills/marketing-video.md            (video scripts, hooks, thumbnails)
-  • marketing-copywriting     → .claude/skills/marketing-copywriting.md      (headlines, CTAs, landing copy)
-  • marketing-seo-audit       → .claude/skills/marketing-seo-audit.md        (SEO issues, page audit)
-  • marketing-ai-seo          → .claude/skills/marketing-ai-seo.md           (AI-powered SEO optimisation)
-  • marketing-aso             → .claude/skills/marketing-aso.md              (App Store / Play Store optimisation)
-  • marketing-ads             → .claude/skills/marketing-ads.md              (paid campaigns)
-  • marketing-ad-creative     → .claude/skills/marketing-ad-creative.md      (ad copy + visual direction)
-  • marketing-analytics       → .claude/skills/marketing-analytics.md        (metrics, dashboards, attribution)
-  • marketing-onboarding      → .claude/skills/marketing-onboarding.md       (activation, first-run flow)
-  • marketing-referrals       → .claude/skills/marketing-referrals.md        (referral programs, word-of-mouth)
-  • marketing-pricing         → .claude/skills/marketing-pricing.md          (pricing strategy, paywalls)
-  • marketing-marketing-ideas → .claude/skills/marketing-marketing-ideas.md  (growth ideas brainstorm)
-  • marketing-emails          → .claude/skills/marketing-emails.md           (drip, transactional, promo)
-  # + 27 других скиллов в .claude/skills/marketing-*.md
+Маркетинг (coreyhaines31/marketingskills, отдельный namespace от dev-скиллов выше — 43 файла всего):
+  • Запуск/стратегия: marketing-launch, marketing-pricing, marketing-marketing-ideas
+  • Контент: marketing-social, marketing-video, marketing-copywriting, marketing-emails
+  • SEO/ASO: marketing-seo-audit, marketing-ai-seo, marketing-aso
+  • Платный трафик: marketing-ads, marketing-ad-creative
+  • Рост: marketing-analytics, marketing-onboarding, marketing-referrals
+  Все файлы: `.claude/skills/marketing-<name>.md` (имя = как выше, без префикса)
 
 ГОТОВО → POST-CHECK (dev-workflow) + checkpoint clear + Done.md + tg-notify + git commit
          + bash .claude/scripts/update-last-session.sh "T-XXX" "что сделано" "следующий шаг"
 ```
 
-Исключения (dev-workflow пропустить): typo/1 символ, docs/Tasks.md, config, messages/*.json.
+**Пропорциональность — две независимые оси, не путать:**
+- **Ось "церемония" (эта режется по размеру):** полный пайплайн (SPEC→LOOP→REFLECT→CRITIC→AGY→TESTS→VISUAL) —
+  для ≥3 файлов или >20 мин (тот же порог, что в dev-workflow). Иначе — прямой путь: RESEARCH → EXECUTE → Reply.
+  Явные исключения (dev-workflow пропустить): typo/1 символ, docs/Tasks.md, config, messages/*.json.
+- **Ось "командный слой" (НЕ режется размером задачи):** git claim (ЧЕКЛИСТ выше), tg-notify, checkpoint —
+  обязательны для ЛЮБОГО размера, включая правку в 1 символ. Это защита от конфликта с Emirhan, а не ceremony —
+  правка в 1 символ в общем репо всё ещё может столкнуться со вторым разработчиком. "Прямой путь" выше НЕ отменяет
+  ни один шаг git-locking/notify/checkpoint — это другая ось, честно медленная независимо от размера задачи.
 CLI-скиллы: `/simplify` | `/security-review` | `/review` | `/fewer-permission-prompts` | `/brainstorm`
 
 ---
