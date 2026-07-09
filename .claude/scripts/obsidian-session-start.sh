@@ -4,14 +4,18 @@
 
 set -uo pipefail
 
-VAULT="${OBSIDIAN_VAULT:-/c/Users/User/OneDrive/Рабочий стол/weWatch-obsidian}"
+VAULT="${OBSIDIAN_VAULT:-$HOME/Documents/weWatch-obsidian}"
 DEV="${VAULT_DEVELOPER:-Saidazim}"
 DEV_LOWER=$(echo "$DEV" | tr '[:upper:]' '[:lower:]')
 DATE=$(date '+%Y-%m-%d')
 NOW=$(date '+%Y-%m-%d %H:%M')
 WEEK=$(date '+%Y-W%V')
 
-[[ ! -d "$VAULT" ]] && exit 0
+if [[ ! -d "$VAULT" ]]; then
+  echo "⚠️  [obsidian-session-start] Vault не найден: $VAULT — память НЕ загружена."
+  echo "    Проверь OBSIDIAN_VAULT (см. emirhan-setup.sh / obsidian-setup.sh) — это не тихий сбой."
+  exit 0
+fi
 
 # ── Pull vault из git ──────────────────────────────────────────────
 [[ -d "$VAULT/.git" ]] && git -C "$VAULT" pull -q --rebase origin main 2>/dev/null || true
@@ -133,12 +137,20 @@ if [[ -f "$LAST_SESSION_FILE" ]]; then
   awk '/^## Что делали/{p=1} /^## Что завершили/{p=1} /^## Где остановились/{p=1} /^## Следующий шаг/{p=1} /^## Открытые вопросы/{p=1} p && /^---/{p=0; next} p' "$LAST_SESSION_FILE" 2>/dev/null | head -40
 fi
 
-# ── weWatch контекст (architecture) ──────────────────────────────
-BRAIN="$VAULT/PROJECTS/weWatch/_context.md"
-if [[ -f "$BRAIN" ]]; then
+# ── weWatch Hub — ЕДИНСТВЕННЫЙ ИСТОЧНИК ПРАВДЫ (не _context.md — та была stale-копия) ──
+HUB="$VAULT/WeWatch-Hub.md"
+if [[ -f "$HUB" ]]; then
   echo ""
-  echo "━━━ 🎬 weWatch — АРХИТЕКТУРА ━━━"
-  tail -n +5 "$BRAIN"
+  echo "━━━ 🎬 weWatch — HUB (архитектура/зоны/спринт) ━━━"
+  grep "^## \|^| \|^\*\*" "$HUB" 2>/dev/null | head -60
+else
+  # Fallback только если Hub физически отсутствует — не первичный путь
+  BRAIN="$VAULT/PROJECTS/weWatch/_context.md"
+  if [[ -f "$BRAIN" ]]; then
+    echo ""
+    echo "⚠️  WeWatch-Hub.md не найден — fallback на PROJECTS/weWatch/_context.md (может быть устаревшим)"
+    tail -n +5 "$BRAIN"
+  fi
 fi
 
 # ── Handoff — git state from last session ────────────────────────

@@ -102,7 +102,8 @@ VK, Rutube, и ряд других CDN привязывают токен к IP e
 ШАГ 1 — git pull origin main
          → Если конфликт — СТОП, сообщить пользователю
 
-ШАГ 2 — Прочитать WeWatch Hub (ЕДИНСТВЕННЫЙ ИСТОЧНИК ПРАВДЫ для архитектуры/зон/правил):
+ШАГ 2 — Прочитать WeWatch Hub (ГЛАВНЫЙ источник правды для архитектуры/зон/правил —
+         не единственное, что грузится автоматикой, см. примечание ниже):
          Read ~/Documents/weWatch-obsidian/WeWatch-Hub.md
          → Содержит: сервисы, зоны, правила, задачи, контакты, скиллы — ВСЁ
          → Плюс bash .claude/scripts/memory-load.sh quick — детальный слой
@@ -118,11 +119,18 @@ VK, Rutube, и ряд других CDN привязывают токен к IP e
 
 > Hub не найден? → читать: CONSTRAINTS.md + LAST_SESSION.md + ARCHITECTURE.md (fallback, тот же набор что даёт memory-load.sh)
 
-> **Автоматика (SessionStart-хук, `obsidian-session-start.sh`) читает Hub напрямую** — не отдельный
+> **Автоматика (SessionStart-хук, `obsidian-session-start.sh`) грепает Hub напрямую** — не отдельный
 > `_context.md` файл. Раньше хук молча грузил устаревший `PROJECTS/weWatch/_context.md` (одноимённый,
 > но не тот файл, что обновляется по зонам в `ZONES/<zone>/_context.md`) — исправлено 2026-07-09,
 > проверено запуском хука. `ZONES/<zone>/_context.md` — зональный контекст (см. Zone System ниже),
 > отдельный файл от Hub, коллизии имён больше нет в автоматическом пути.
+> Хук хардкодит каждый путь по отдельности (не идёт по указателям Hub → PROJECT CONTEXTS) — Hub здесь
+> не единственный физически загружаемый файл: хук ДО него отдельно грузит `AI_CONTEXT/how-{dev}-works.md`,
+> `lessons-learned.md`, `in-progress-{dev}.md`, `CONSTRAINTS.md`, `LAST_SESSION.md`, а ПОСЛЕ —
+> `handoff-{dev}.md` + Telegram-кэш. Список того, что реально грузится — это сам скрипт, не этот абзац;
+> если список изменится в коде, а не здесь — верить коду.
+> VAULT-путь: если `OBSIDIAN_VAULT` не выставлен в шелле (`emirhan-setup.sh`/`obsidian-setup.sh` его пишут
+> в `~/.zshrc`) — хук теперь громко предупреждает и выходит, не молчит (было тихим no-op до 2026-07-09).
 
 ---
 
