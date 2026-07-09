@@ -296,14 +296,26 @@ export function useWatchParty(roomId: string) {
     broadcaster.start();
     broadcasterRef.current = broadcaster;
 
+    // activeTransport only advances FORWARD on a new incoming event (mesh message or socket
+    // fallback) — if mesh silently dies (peer drops off CGNAT, network switch, etc.) with no
+    // new event to trigger the socket branch, the badge would stay frozen on a stale p2p/turn
+    // reading forever. Poll for staleness so it decays to 'socket' once mesh actually goes
+    // quiet, matching what meshFresh() already considers true.
+    const staleCheck = setInterval(() => {
+      // React bails out of the re-render when the value is unchanged (already 'socket'), so
+      // this is a no-op most ticks — only actually updates once mesh transitions to stale.
+      if (!meshFresh()) setActiveTransport('socket');
+    }, 1000);
+
     return () => {
       broadcaster.destroy();
       broadcasterRef.current = null;
       lastMeshAtRef.current = 0;
       meshTransportTypeRef.current = null;
+      clearInterval(staleCheck);
       setActiveTransport('socket');
     };
-  }, [room?._id, room?.ownerId, userId, roomId]);
+  }, [room?._id, room?.ownerId, userId, roomId, meshFresh]);
 
   const emitPlay = useCallback(
     (currentTime: number) => {
