@@ -5,7 +5,7 @@ import i18n from '../../i18n';
 import {
   LayoutDashboard, Users, Tv2,
   ScrollText, Activity, ShieldCheck, UserCog, Bug, LogOut,
-  Globe, Flag, Scale, Settings, MessageSquare, Bell, BarChart2, ShieldAlert, Mail, Languages, Database,
+  Globe, Flag, Scale, Settings, MessageSquare, Bell, BarChart2, ShieldAlert, Mail, Languages, Database, Wifi,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/auth.store';
 import { errorsApi } from '../../api/errors.api';
@@ -168,6 +168,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     { to: '/logs',         label: t('nav.logs'),           icon: <ScrollText size={15} /> },
     { to: '/user-activity',label: t('nav.activity'),       icon: <Activity size={15} /> },
     { to: '/audit-logs',   label: t('nav.auditLogs'),      icon: <ShieldCheck size={15} /> },
+    { to: '/sync-stats',   label: t('nav.syncStats'),      icon: <Wifi size={15} /> },
   ];
 
   const systemItems: NavItem[] = [

@@ -11,6 +11,7 @@ import { useAuthStore } from '@store/auth.store';
 const CONTENT_BASE_URL = process.env.EXPO_PUBLIC_CONTENT_URL ?? '';
 import { useWatchPartyStore } from '@store/watchParty.store';
 import { watchPartyApi } from '@api/watchParty.api';
+import { syncStatsApi } from '@api/syncStats.api';
 import { activeRoomStorage } from '@utils/storage';
 import { disconnectSocket, getSocket, CLIENT_EVENTS } from '@socket/client';
 import { UniversalPlayerRef, detectVideoPlatform, detectEmbedPlatform } from '@components/video/UniversalPlayer';
@@ -68,7 +69,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const userId = useAuthStore(s => s.user?._id) ?? '';
   const { t } = useT();
 
-  const { room, syncState, messages, activeMembers, playlist, isOwner, adminMonitoring, roomClosed, heartbeat, bufferingUsers, lastReaction, activeTransport,
+  const { room, syncState, messages, activeMembers, playlist, isOwner, adminMonitoring, roomClosed, heartbeat, bufferingUsers, lastReaction, activeTransport, getTransportSnapshot,
     emitPlay, emitPause, emitSeek, emitHeartbeat, sendMessage, sendEmoji } = useWatchParty(roomId);
   const { isExtracting, result: extractResult, fallbackMode: extractFallback, error: extractionError, extract, reset: resetExtraction } = useVideoExtraction();
 
@@ -117,6 +118,20 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   // proxy source starts from position 0 — completely out of sync with the owner.
   const lastExecutedSyncRef = useRef<{ currentTime: number; isPlaying: boolean; serverTimestamp: number } | null>(null);
 
+  // T-S118: sync-quality telemetry accumulated for this room session, flushed once on handleLeave.
+  const sessionStartRef = useRef(Date.now());
+  const macroSeekCountRef = useRef(0);
+  const microAdjustCountRef = useRef(0);
+  const driftSumMsRef = useRef(0);
+  const driftSampleCountRef = useRef(0);
+  const maxDriftMsRef = useRef(0);
+  const syncErrorsRef = useRef<string[]>([]);
+  const recordDrift = (driftMs: number) => {
+    driftSumMsRef.current += driftMs;
+    driftSampleCountRef.current += 1;
+    if (driftMs > maxDriftMsRef.current) maxDriftMsRef.current = driftMs;
+  };
+
   // Chat panel open by default — fills the space below the video and puts the main
   // social surface right at hand on room entry. Voice still auto-joins muted in the
   // background (see screen) and can be toggled from the room bar.
@@ -162,9 +177,14 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   }, [extractResult]);
 
   useEffect(() => {
+    if (extractionError) syncErrorsRef.current.push(`extraction_error: ${String(extractionError)}`);
+  }, [extractionError]);
+
+  useEffect(() => {
     if (room) return;
     const timer = setTimeout(() => {
       setConnectTimeout(true);
+      syncErrorsRef.current.push('connect_timeout');
       // Room not found within timeout — clear stale restore data
       void activeRoomStorage.clear();
     }, 15000);
@@ -271,7 +291,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
           return undefined;
         })
         .then(() => syncState.isPlaying ? playerRef.current?.play() : playerRef.current?.pause())
-        .catch(() => {})
+        .catch((e: unknown) => { syncErrorsRef.current.push(`executeSync: ${String(e)}`); })
         .finally(() => { setTimeout(() => { isSyncing.current = false; }, 400); });
     };
 
@@ -330,6 +350,8 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
 
     if (absDrift > DRIFT_MACRO_SEEK_SECS) {
       // Macro sync — reset micro-sync rate first, then hard seek
+      macroSeekCountRef.current += 1;
+      recordDrift(absDrift * 1000);
       if (currentRateRef.current !== 1.0) { currentRateRef.current = 1.0; playerRef.current?.setRate(1.0); }
       suppressBufferRef.current = true;
       if (suppressBufferTimerRef.current) clearTimeout(suppressBufferTimerRef.current);
@@ -354,6 +376,8 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
       if (Math.abs(targetRate - currentRateRef.current) > 0.01) {
         currentRateRef.current = targetRate;
         playerRef.current?.setRate(targetRate);
+        microAdjustCountRef.current += 1;
+        recordDrift(absDrift * 1000);
       }
     } else if (currentRateRef.current !== 1.0) {
       // Within sync threshold — restore normal speed
@@ -535,12 +559,26 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
       { text: 'Bekor', style: 'cancel' },
       { text: isOwner ? 'Xonani yopish' : 'Chiqish', style: 'destructive', onPress: async () => {
         void activeRoomStorage.clear();
+        const { transport, meshEverConnected } = getTransportSnapshot();
+        void syncStatsApi.ingest({
+          roomId,
+          userId: userId || undefined,
+          isOwner,
+          sessionStart: sessionStartRef.current,
+          transport,
+          macroSeekCount: macroSeekCountRef.current,
+          microAdjustCount: microAdjustCountRef.current,
+          avgDriftMs: driftSampleCountRef.current > 0 ? driftSumMsRef.current / driftSampleCountRef.current : 0,
+          maxDriftMs: maxDriftMsRef.current,
+          meshConnectFailed: activeMembers.length > 1 && !meshEverConnected,
+          syncErrors: syncErrorsRef.current,
+        });
         try { if (isOwner) await watchPartyApi.closeRoom(roomId); else await watchPartyApi.leaveRoom(roomId); } catch {}
         disconnectSocket();
         navigation.goBack();
       }},
     ]);
-  }, [isOwner, roomId, navigation]);
+  }, [isOwner, roomId, navigation, userId, activeMembers.length, getTransportSnapshot]);
 
   // Video URL computation
   const originalVideoUrl = room?.videoUrl ?? '';
@@ -686,7 +724,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     if (!playerRef.current) { isSyncing.current = false; return; }
     playerRef.current.seekTo(targetMs)
       .then(() => syncToExecute.isPlaying ? playerRef.current?.play() : playerRef.current?.pause())
-      .catch(() => {})
+      .catch((e: unknown) => { syncErrorsRef.current.push(`handlePlayerReady: ${String(e)}`); })
       .finally(() => { setTimeout(() => { isSyncing.current = false; }, 400); });
   }, []);
 

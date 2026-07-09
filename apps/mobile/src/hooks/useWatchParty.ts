@@ -80,6 +80,31 @@ export function useWatchParty(roomId: string) {
   // value consumers render, updated at the same moments meshFresh's underlying ref updates.
   const meshTransportTypeRef = useRef<'p2p' | 'turn' | null>(null);
   const [activeTransport, setActiveTransport] = useState<'p2p' | 'turn' | 'socket'>('socket');
+  // Per-session transport-time accounting for T-S118 sync stats — accumulates how long each
+  // transport was actually active, flushed to admin on room leave (useWatchPartyRoom's handleLeave).
+  const transportMsRef = useRef({ p2pMs: 0, turnMs: 0, socketMs: 0 });
+  const transportSinceRef = useRef(Date.now());
+  const lastTransportRef = useRef<'p2p' | 'turn' | 'socket'>('socket');
+  const meshEverConnectedRef = useRef(false);
+  const setTransport = useCallback((next: 'p2p' | 'turn' | 'socket') => {
+    const now = Date.now();
+    const key = `${lastTransportRef.current}Ms` as 'p2pMs' | 'turnMs' | 'socketMs';
+    transportMsRef.current[key] += now - transportSinceRef.current;
+    transportSinceRef.current = now;
+    lastTransportRef.current = next;
+    if (next !== 'socket') meshEverConnectedRef.current = true;
+    setActiveTransport(next);
+  }, []);
+  // Snapshot for telemetry — flushes the still-open transport interval up to "now" without
+  // mutating state (safe to call from handleLeave without triggering a re-render).
+  const getTransportSnapshot = useCallback(() => {
+    const now = Date.now();
+    const key = `${lastTransportRef.current}Ms` as 'p2pMs' | 'turnMs' | 'socketMs';
+    return {
+      transport: { ...transportMsRef.current, [key]: transportMsRef.current[key] + (now - transportSinceRef.current) },
+      meshEverConnected: meshEverConnectedRef.current,
+    };
+  }, []);
   // serverClockOffset (ms) = serverClock − clientClock, measured over socket via CLOCK_PING/PONG.
   // Server-origin timestamps (serverTimestamp, scheduledAt, heartbeat.timestamp) arrive in the
   // server's clock; we subtract this offset to normalise them to the LOCAL clock, so downstream
@@ -167,9 +192,9 @@ export function useWatchParty(roomId: string) {
     socket.on(SERVER_EVENTS.VIDEO_SYNC, (state: SyncState) => setSyncState(toLocalClock(state)));
     // MESH DIAG (release-visible): which transport actually applied a play/pause/seek. If mesh is
     // fresh the socket copy is skipped (mesh already applied it); otherwise socket is the transport.
-    socket.on(SERVER_EVENTS.VIDEO_PLAY, (state: SyncState) => { if (!meshFresh()) { console.log('[mesh-diag] play applied via SOCKET'); setActiveTransport('socket'); setSyncState(toLocalClock(state)); } });
-    socket.on(SERVER_EVENTS.VIDEO_PAUSE, (state: SyncState) => { if (!meshFresh()) { console.log('[mesh-diag] pause applied via SOCKET'); setActiveTransport('socket'); setSyncState(toLocalClock(state)); } });
-    socket.on(SERVER_EVENTS.VIDEO_SEEK, (state: SyncState) => { if (!meshFresh()) { console.log('[mesh-diag] seek applied via SOCKET'); setActiveTransport('socket'); setSyncState(toLocalClock(state)); } });
+    socket.on(SERVER_EVENTS.VIDEO_PLAY, (state: SyncState) => { if (!meshFresh()) { console.log('[mesh-diag] play applied via SOCKET'); setTransport('socket'); setSyncState(toLocalClock(state)); } });
+    socket.on(SERVER_EVENTS.VIDEO_PAUSE, (state: SyncState) => { if (!meshFresh()) { console.log('[mesh-diag] pause applied via SOCKET'); setTransport('socket'); setSyncState(toLocalClock(state)); } });
+    socket.on(SERVER_EVENTS.VIDEO_SEEK, (state: SyncState) => { if (!meshFresh()) { console.log('[mesh-diag] seek applied via SOCKET'); setTransport('socket'); setSyncState(toLocalClock(state)); } });
 
     socket.on(SERVER_EVENTS.ROOM_MESSAGE, (msg: MessageEvent) => {
       const cached = queryClient.getQueryData<IUserPublic>(['user-public', msg.userId]);
@@ -196,7 +221,7 @@ export function useWatchParty(roomId: string) {
     // Skipped while mesh is fresh: the mesh heartbeat (faster, clock-corrected) is the source.
     socket.on(VIDEO_HEARTBEAT_EVENT, (data: HeartbeatData) => {
       if (!meshFresh()) {
-        setActiveTransport('socket');
+        setTransport('socket');
         setHeartbeat({ currentTime: data.currentTime, timestamp: data.timestamp - serverClockOffsetRef.current });
       }
     });
@@ -268,7 +293,7 @@ export function useWatchParty(roomId: string) {
       const offset = clockOffset ?? 0;
       const localTs = msg.timestamp - offset;
       lastMeshAtRef.current = Date.now();
-      setActiveTransport(meshTransportTypeRef.current ?? 'p2p');
+      setTransport(meshTransportTypeRef.current ?? 'p2p');
 
       if (msg.type === 'heartbeat') {
         setHeartbeat({ currentTime: msg.currentTime, timestamp: localTs });
@@ -304,7 +329,7 @@ export function useWatchParty(roomId: string) {
     const staleCheck = setInterval(() => {
       // React bails out of the re-render when the value is unchanged (already 'socket'), so
       // this is a no-op most ticks — only actually updates once mesh transitions to stale.
-      if (!meshFresh()) setActiveTransport('socket');
+      if (!meshFresh()) setTransport('socket');
     }, 1000);
 
     return () => {
@@ -313,7 +338,7 @@ export function useWatchParty(roomId: string) {
       lastMeshAtRef.current = 0;
       meshTransportTypeRef.current = null;
       clearInterval(staleCheck);
-      setActiveTransport('socket');
+      setTransport('socket');
     };
   }, [room?._id, room?.ownerId, userId, roomId, meshFresh]);
 
@@ -389,5 +414,5 @@ export function useWatchParty(roomId: string) {
     getSocket()?.emit(CLIENT_EVENTS.VOICE_LEAVE);
   }, []);
 
-  return { room, syncState, messages, activeMembers, playlist, isOwner, adminMonitoring, roomClosed, heartbeat, bufferingUsers, lastReaction, activeTransport, emitPlay, emitPause, emitSeek, emitHeartbeat, sendMessage, sendEmoji, emitMediaChange, emitVoiceJoin, emitVoiceLeave };
+  return { room, syncState, messages, activeMembers, playlist, isOwner, adminMonitoring, roomClosed, heartbeat, bufferingUsers, lastReaction, activeTransport, getTransportSnapshot, emitPlay, emitPause, emitSeek, emitHeartbeat, sendMessage, sendEmoji, emitMediaChange, emitVoiceJoin, emitVoiceLeave };
 }
