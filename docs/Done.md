@@ -1,8 +1,20 @@
 # WeWatch — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-07-07
+# Yangilangan: 2026-07-09
 
 ---
+
+### F-221 | T-S118 | Sync quality stats — per-room telemetry (transport, drift, errors)
+
+- **Bajaruvchi:** Saidazim (Claude opus)  **Bajarilgan:** 2026-07-09 12:40  **Model:** sonnet
+- **O'zgarishlar:** Backend: `services/admin/src/models/syncStats.model.ts` (yangi Mongo model, 30 kun TTL), `.../services/syncStats.service.ts` (ingest + overview/rooms/session aggregatsiyalari), `.../controllers/syncStats.controller.ts`, `.../routes/syncStats.routes.ts` (public `/sync-stats/ingest` + admin-auth `/admin/sync-stats/*`), `.../app.ts` (router registratsiya). Mobile: `apps/mobile/src/hooks/useWatchParty.ts` (transport-vaqt hisoblash — p2p/turn/socket ms, `meshEverConnectedRef`, `getTransportSnapshot()`), `.../hooks/useWatchPartyRoom.ts` (macro-seek/micro-adjust hisoblagichlari, drift o'rtacha/maksimal, `syncErrorsRef` — seek xatolari, extraction xatolari, connect timeout; `handleLeave`da statistikani yuboradi), `apps/mobile/src/api/syncStats.api.ts` (yangi). Admin-UI: `apps/admin-ui/src/pages/SyncStatsPage.tsx` (yangi sahifa — transport pie chart, drift trend, komnatalar jadvali, sessiya detali), `.../api/syncStats.api.ts`, `App.tsx` + `Sidebar.tsx` + 3 ta i18n fayli (`nav.syncStats`).
+- **Xulosa:** Har bir watch-party komnata sessiyasi uchun sinxronizatsiya sifati endi kuzatiladi: qaysi transport (P2P/TURN/Server) qancha vaqt ishlatilgan, o'rtacha/maksimal drift, macro-seek va micro-adjust sonlari, mesh ulanmagan holatlar, va sync xatolari — hammasi xonadan chiqishda serverga yuboriladi va admin-panelda ko'rinadi. tsc: CLEAN (services/admin va apps/mobile'da yangi xatolik yo'q; apps/admin-ui'dagi barcha yangi xatoliklar loyihaning oldindan mavjud @types/react/recharts nomuvofiqligi bilan bir xil turkumda, yangi kategoriya emas). Branch: `saidazim/feat-mesh-sync`.
+
+### F-220 | T-S117 | Sync: democratic buffer-pause больше не паузит владельца (self play/pause loop)
+
+- **Bajaruvchi:** Saidazim (Claude opus)  **Bajarilgan:** 2026-07-07 23:00  **Model:** opus
+- **O'zgarishlar:** `services/watch-party/src/socket/videoEvents.handler.ts` (BUFFER_START: `if (members <= 1) return` перед democratic pause; VIDEO_PAUSE через `socket.to` вместо `io.to` — исключить буферящего отправителя), `apps/mobile/src/hooks/useWatchPartyRoom.ts` (`emitBufferState`: не слать BUFFER_START при `activeMembers <= 1` — зеркало серверного гарда).
+- **Xulosa:** Root cause подтверждён prod-логами: `Democratic buffer pause members=1` зацикливался с `resumed room` — владелец один в комнате, буферизуя на HLS-прокси, заставлял сервер паузить/возобновлять его самого (баг «play/pause сам по себе»). При members=2 буфер владельца через `io.to` клал всю комнату (владелец стоп, мембер идёт). Фикс: сервер не паузит соло-комнату и исключает буферящего отправителя. Задеплоено `railway up` watch-party (healthcheck ✅). tsc: CLEAN (только pre-existing rootDir/LanguageTransition). Commit `e31fe72`. ⚠️ Мобильный гард — defense-in-depth, попадёт в приложение со следующей сборкой APK.
 
 ### F-219 | T-S110 | SSRF DNS-rebinding fix — hls-proxy resolved-IP validation
 

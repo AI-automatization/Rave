@@ -5,7 +5,7 @@ import { AppState, type AppStateStatus } from 'react-native';
 import { MeshClient } from './MeshClient';
 import { SyncProtocol } from './SyncProtocol';
 import { TopologyManager, type Topology } from './TopologyManager';
-import type { MeshEvent, SyncMessage } from './types';
+import type { MeshEvent, MeshTransportType, SyncMessage } from './types';
 
 export interface SyncBroadcasterConfig {
   userId: string;
@@ -15,6 +15,10 @@ export interface SyncBroadcasterConfig {
   onSyncMessage: (msg: SyncMessage, clockOffset?: number) => void;
   onTopologyChange?: (topology: Topology) => void;
   onPeerCountChange?: (count: number) => void;
+  /** Fires once a peer's mesh connection settles — tells the UI whether sync is going direct
+   * P2P or through the TURN relay. Does not fire again on disconnect; the consumer falls back
+   * to treating sync as 'socket' once mesh goes quiet (see useWatchParty's meshFresh). */
+  onTransportChange?: (transport: MeshTransportType) => void;
 }
 
 export class SyncBroadcaster {
@@ -144,6 +148,9 @@ export class SyncBroadcaster {
         break;
       case 'error':
         if (__DEV__) console.log('[SyncBroadcaster] mesh error:', event.error);
+        break;
+      case 'transport':
+        if (event.transportType) this.config.onTransportChange?.(event.transportType);
         break;
     }
   };

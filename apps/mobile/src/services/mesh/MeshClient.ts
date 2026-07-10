@@ -155,11 +155,36 @@ export class MeshClient {
       const peer = this.peers.get(peerId);
       if (!peer) return;
       const state = pc.connectionState;
+      // MESH DIAG (release-visible, remove after transport is verified): shows the real P2P
+      // outcome in logcat, which react-native-webrtc does not log on its own.
+      console.log(`[mesh-diag] peer ${peerId} connectionState=${state}`);
       if (state === 'connected') {
         peer.isConnected = true;
         // Connection recovered — a future failure gets its own fresh restart attempt.
         this.iceRestartAttempted.delete(peerId);
         this.onEvent({ type: 'connected', peerId });
+        // MESH DIAG: log which candidate type actually won (host = same LAN, srflx = STUN
+        // public-IP, relay = TURN). onicecandidate only fires during gathering and doesn't say
+        // which pair was picked — getStats() on the nominated pair is the only way to know.
+        void (async () => {
+          try {
+            const stats: Map<string, Record<string, unknown>> = await (pc as unknown as { getStats: () => Promise<Map<string, Record<string, unknown>>> }).getStats();
+            const pair = [...stats.values()].find(
+              (s) => s.type === 'candidate-pair' && (s.nominated === true || s.selected === true),
+            );
+            if (!pair) { console.log(`[mesh-diag] peer ${peerId}: no nominated candidate-pair in stats`); return; }
+            const local = stats.get(pair.localCandidateId as string);
+            const remote = stats.get(pair.remoteCandidateId as string);
+            const usesRelay = local?.candidateType === 'relay' || remote?.candidateType === 'relay';
+            console.log(
+              `[mesh-diag] peer ${peerId} TRANSPORT: local=${local?.candidateType ?? '?'} remote=${remote?.candidateType ?? '?'}` +
+              ` (relay = TURN was needed; host/srflx = direct/STUN, no TURN)`,
+            );
+            this.onEvent({ type: 'transport', peerId, transportType: usesRelay ? 'turn' : 'p2p' });
+          } catch (e) {
+            console.log(`[mesh-diag] peer ${peerId}: getStats failed`, e);
+          }
+        })();
       } else if (state === 'disconnected' || state === 'failed' || state === 'closed') {
         peer.isConnected = false;
         this.onEvent({ type: 'disconnected', peerId });
@@ -237,13 +262,14 @@ export class MeshClient {
     };
 
     channel.onopen = () => {
-      if (__DEV__) console.log(`[MeshClient] DataChannel open: ${peerId}`);
+      // MESH DIAG (release-visible): DataChannel open == the mesh P2P overlay is live for this peer.
+      console.log(`[mesh-diag] DataChannel OPEN → ${peerId} (mesh transport active)`);
       this.startClockSync(peerId);
       this.startPeriodicClockResync(peerId);
     };
 
     channel.onclose = () => {
-      if (__DEV__) console.log(`[MeshClient] DataChannel closed: ${peerId}`);
+      console.log(`[mesh-diag] DataChannel CLOSED → ${peerId}`);
       this.stopPeriodicClockResync(peerId);
     };
   }

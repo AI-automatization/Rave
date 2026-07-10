@@ -13,7 +13,7 @@ TITLE=$(echo "$INPUT" | python3 -c "import sys,json; d=json.load(sys.stdin); pri
 osascript -e "display notification \"$MSG\" with title \"$TITLE\" sound name \"Ping\"" 2>/dev/null &
 
 # ── Telegram notification (если бот настроен) ────────────────────────────────
-BOT_TOKEN="${CLAUDE_TG_BOT_TOKEN:-8734969603:AAF0FcbPp86XYgTkWf2Sveqqy8QOB_dh8P0}"
+BOT_TOKEN="${CLAUDE_TG_BOT_TOKEN:-}"
 CHAT_ID="${CLAUDE_TG_CHAT_ID:-6299152655}"
 
 if [ -n "$BOT_TOKEN" ] && [ -n "$CHAT_ID" ]; then

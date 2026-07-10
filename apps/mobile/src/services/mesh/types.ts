@@ -20,7 +20,10 @@ export interface MeshPeer {
   isConnected: boolean;
 }
 
-export type MeshEventType = 'sync' | 'connected' | 'disconnected' | 'error';
+export type MeshEventType = 'sync' | 'connected' | 'disconnected' | 'error' | 'transport';
+
+/** How the mesh DataChannel actually reached this peer, from the winning ICE candidate pair. */
+export type MeshTransportType = 'p2p' | 'turn';
 
 export interface MeshEvent {
   type: MeshEventType;
@@ -29,6 +32,8 @@ export interface MeshEvent {
   error?: string;
   /** Clock offset (ms) of the sending peer relative to us: peerClock = ourClock + clockOffset */
   clockOffset?: number;
+  /** Set on 'transport' events — host/srflx = direct P2P, relay = routed through TURN. */
+  transportType?: MeshTransportType;
 }
 
 export type MeshEventHandler = (event: MeshEvent) => void;

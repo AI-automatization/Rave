@@ -17,6 +17,8 @@ const MESH_SCHEDULE_AHEAD_MS = 150;
 // same event arrives later and is skipped — no dual-apply. If mesh goes silent
 // (owner not on mesh / connection dropped), the member falls back to socket.
 const MESH_FRESH_MS = 6000;
+// Re-run the socket clock-offset burst this often so a long session doesn't accumulate skew.
+const CLOCK_RESYNC_INTERVAL_MS = 90 * 1000;
 
 interface MemberEvent {
   userId: string;
@@ -72,6 +74,37 @@ export function useWatchParty(roomId: string) {
   // Date.now() of the last mesh message a member received — drives single-source selection.
   const lastMeshAtRef = useRef(0);
   const meshFresh = useCallback(() => Date.now() - lastMeshAtRef.current < MESH_FRESH_MS, []);
+  // UI-facing "what's actually syncing this room right now" — p2p/turn (mesh, distinguished by
+  // the winning ICE candidate type) or socket (mesh silent/unavailable, server relay in use).
+  // meshTransportTypeRef holds the last measured mesh transport; activeTransport is the reactive
+  // value consumers render, updated at the same moments meshFresh's underlying ref updates.
+  const meshTransportTypeRef = useRef<'p2p' | 'turn' | null>(null);
+  const [activeTransport, setActiveTransport] = useState<'p2p' | 'turn' | 'socket'>('socket');
+  // Per-session transport-time accounting for T-S118 sync stats — accumulates how long each
+  // transport was actually active, flushed to admin on room leave (useWatchPartyRoom's handleLeave).
+  const transportMsRef = useRef({ p2pMs: 0, turnMs: 0, socketMs: 0 });
+  const transportSinceRef = useRef(Date.now());
+  const lastTransportRef = useRef<'p2p' | 'turn' | 'socket'>('socket');
+  const meshEverConnectedRef = useRef(false);
+  const setTransport = useCallback((next: 'p2p' | 'turn' | 'socket') => {
+    const now = Date.now();
+    const key = `${lastTransportRef.current}Ms` as 'p2pMs' | 'turnMs' | 'socketMs';
+    transportMsRef.current[key] += now - transportSinceRef.current;
+    transportSinceRef.current = now;
+    lastTransportRef.current = next;
+    if (next !== 'socket') meshEverConnectedRef.current = true;
+    setActiveTransport(next);
+  }, []);
+  // Snapshot for telemetry — flushes the still-open transport interval up to "now" without
+  // mutating state (safe to call from handleLeave without triggering a re-render).
+  const getTransportSnapshot = useCallback(() => {
+    const now = Date.now();
+    const key = `${lastTransportRef.current}Ms` as 'p2pMs' | 'turnMs' | 'socketMs';
+    return {
+      transport: { ...transportMsRef.current, [key]: transportMsRef.current[key] + (now - transportSinceRef.current) },
+      meshEverConnected: meshEverConnectedRef.current,
+    };
+  }, []);
   // serverClockOffset (ms) = serverClock − clientClock, measured over socket via CLOCK_PING/PONG.
   // Server-origin timestamps (serverTimestamp, scheduledAt, heartbeat.timestamp) arrive in the
   // server's clock; we subtract this offset to normalise them to the LOCAL clock, so downstream
@@ -120,6 +153,11 @@ export function useWatchParty(roomId: string) {
     };
     socket.on('connect', runClockSync);
     if (socket.connected) runClockSync();
+    // Re-measure periodically: the phone clock drifts vs the server over a long watch-party, and
+    // the connect-time burst starts from a 0 offset. Without this the socket path keeps a stale
+    // offset and clock skew leaks into scheduledAt/heartbeat math (F3). Mesh already re-syncs its
+    // own peer offset every 5 min inside MeshClient.
+    const clockResyncInterval = setInterval(() => { if (socket.connected) runClockSync(); }, CLOCK_RESYNC_INTERVAL_MS);
 
     // Normalise a server-clock SyncState to the local clock (serverTimestamp + scheduledAt).
     const toLocalClock = (state: SyncState): SyncState => ({
@@ -152,9 +190,11 @@ export function useWatchParty(roomId: string) {
     // socket copy of the same event (mesh already applied it). VIDEO_SYNC (full state,
     // e.g. late-join seed) is always applied — it's authoritative room state, not a dup.
     socket.on(SERVER_EVENTS.VIDEO_SYNC, (state: SyncState) => setSyncState(toLocalClock(state)));
-    socket.on(SERVER_EVENTS.VIDEO_PLAY, (state: SyncState) => { if (!meshFresh()) setSyncState(toLocalClock(state)); });
-    socket.on(SERVER_EVENTS.VIDEO_PAUSE, (state: SyncState) => { if (!meshFresh()) setSyncState(toLocalClock(state)); });
-    socket.on(SERVER_EVENTS.VIDEO_SEEK, (state: SyncState) => { if (!meshFresh()) setSyncState(toLocalClock(state)); });
+    // MESH DIAG (release-visible): which transport actually applied a play/pause/seek. If mesh is
+    // fresh the socket copy is skipped (mesh already applied it); otherwise socket is the transport.
+    socket.on(SERVER_EVENTS.VIDEO_PLAY, (state: SyncState) => { if (!meshFresh()) { console.log('[mesh-diag] play applied via SOCKET'); setTransport('socket'); setSyncState(toLocalClock(state)); } });
+    socket.on(SERVER_EVENTS.VIDEO_PAUSE, (state: SyncState) => { if (!meshFresh()) { console.log('[mesh-diag] pause applied via SOCKET'); setTransport('socket'); setSyncState(toLocalClock(state)); } });
+    socket.on(SERVER_EVENTS.VIDEO_SEEK, (state: SyncState) => { if (!meshFresh()) { console.log('[mesh-diag] seek applied via SOCKET'); setTransport('socket'); setSyncState(toLocalClock(state)); } });
 
     socket.on(SERVER_EVENTS.ROOM_MESSAGE, (msg: MessageEvent) => {
       const cached = queryClient.getQueryData<IUserPublic>(['user-public', msg.userId]);
@@ -180,7 +220,10 @@ export function useWatchParty(roomId: string) {
     // T-E099: Heartbeat listener — separate from syncState (no seekTo trigger).
     // Skipped while mesh is fresh: the mesh heartbeat (faster, clock-corrected) is the source.
     socket.on(VIDEO_HEARTBEAT_EVENT, (data: HeartbeatData) => {
-      if (!meshFresh()) setHeartbeat({ currentTime: data.currentTime, timestamp: data.timestamp - serverClockOffsetRef.current });
+      if (!meshFresh()) {
+        setTransport('socket');
+        setHeartbeat({ currentTime: data.currentTime, timestamp: data.timestamp - serverClockOffsetRef.current });
+      }
     });
 
     // T-E101: Buffer event — track who is buffering
@@ -209,6 +252,7 @@ export function useWatchParty(roomId: string) {
       socket.off('connect', joinRoom);
       socket.off('connect', runClockSync);
       socket.off(SERVER_EVENTS.CLOCK_PONG);
+      clearInterval(clockResyncInterval);
       socket.off('disconnect');
       // NOTE: Do NOT emit LEAVE_ROOM here — React StrictMode runs cleanup+remount
       // in dev, which would delete the room before the second mount can join it.
@@ -249,11 +293,14 @@ export function useWatchParty(roomId: string) {
       const offset = clockOffset ?? 0;
       const localTs = msg.timestamp - offset;
       lastMeshAtRef.current = Date.now();
+      setTransport(meshTransportTypeRef.current ?? 'p2p');
 
       if (msg.type === 'heartbeat') {
         setHeartbeat({ currentTime: msg.currentTime, timestamp: localTs });
         return;
       }
+      // MESH DIAG (release-visible): a play/pause/seek arrived over the mesh DataChannel.
+      console.log(`[mesh-diag] ${msg.type} applied via MESH (${meshTransportTypeRef.current ?? 'p2p'})`);
       const prevPlaying = useWatchPartyStore.getState().syncState?.isPlaying ?? false;
       setSyncState({
         currentTime: msg.currentTime,
@@ -269,16 +316,31 @@ export function useWatchParty(roomId: string) {
       roomId,
       isOwner: ownerNow,
       onSyncMessage: applyMeshSync,
+      onTransportChange: (t) => { meshTransportTypeRef.current = t; },
     });
     broadcaster.start();
     broadcasterRef.current = broadcaster;
+
+    // activeTransport only advances FORWARD on a new incoming event (mesh message or socket
+    // fallback) — if mesh silently dies (peer drops off CGNAT, network switch, etc.) with no
+    // new event to trigger the socket branch, the badge would stay frozen on a stale p2p/turn
+    // reading forever. Poll for staleness so it decays to 'socket' once mesh actually goes
+    // quiet, matching what meshFresh() already considers true.
+    const staleCheck = setInterval(() => {
+      // React bails out of the re-render when the value is unchanged (already 'socket'), so
+      // this is a no-op most ticks — only actually updates once mesh transitions to stale.
+      if (!meshFresh()) setTransport('socket');
+    }, 1000);
 
     return () => {
       broadcaster.destroy();
       broadcasterRef.current = null;
       lastMeshAtRef.current = 0;
+      meshTransportTypeRef.current = null;
+      clearInterval(staleCheck);
+      setTransport('socket');
     };
-  }, [room?._id, room?.ownerId, userId, roomId]);
+  }, [room?._id, room?.ownerId, userId, roomId, meshFresh]);
 
   const emitPlay = useCallback(
     (currentTime: number) => {
@@ -352,5 +414,5 @@ export function useWatchParty(roomId: string) {
     getSocket()?.emit(CLIENT_EVENTS.VOICE_LEAVE);
   }, []);
 
-  return { room, syncState, messages, activeMembers, playlist, isOwner, adminMonitoring, roomClosed, heartbeat, bufferingUsers, lastReaction, emitPlay, emitPause, emitSeek, emitHeartbeat, sendMessage, sendEmoji, emitMediaChange, emitVoiceJoin, emitVoiceLeave };
+  return { room, syncState, messages, activeMembers, playlist, isOwner, adminMonitoring, roomClosed, heartbeat, bufferingUsers, lastReaction, activeTransport, getTransportSnapshot, emitPlay, emitPause, emitSeek, emitHeartbeat, sendMessage, sendEmoji, emitMediaChange, emitVoiceJoin, emitVoiceLeave };
 }

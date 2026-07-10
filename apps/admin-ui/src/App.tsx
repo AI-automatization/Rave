@@ -20,6 +20,7 @@ import { UserReportsPage } from './pages/UserReportsPage';
 import { AppealsPage } from './pages/AppealsPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
+import { SyncStatsPage } from './pages/SyncStatsPage';
 import { BannedWordsPage } from './pages/BannedWordsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { CampaignsPage } from './pages/CampaignsPage';
@@ -62,6 +63,7 @@ export default function App() {
           <Route path="appeals" element={<AppealsPage />} />
           <Route path="notifications" element={<NotificationsPage />} />
           <Route path="analytics" element={<AnalyticsPage />} />
+          <Route path="sync-stats" element={<SyncStatsPage />} />
           <Route path="banned-words" element={<BannedWordsPage />} />
           <Route path="campaigns" element={<CampaignsPage />} />
           <Route path="settings" element={<SettingsPage />} />

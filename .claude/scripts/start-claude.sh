@@ -19,10 +19,13 @@ while true; do
     echo "🔄 Перезапуск через 2 сек... (Ctrl+C чтобы выйти совсем)"
     sleep 2
 
-    # Уведомить в TG что сессия перезапустилась
-    WEWATCH_TOKEN="8734969603:AAF0FcbPp86XYgTkWf2Sveqqy8QOB_dh8P0"
-    curl -s -X POST "https://api.telegram.org/bot${WEWATCH_TOKEN}/sendMessage" \
-        -d "chat_id=6299152655" \
-        -d "text=🔄 WeWatch агент перезапущен — готов к работе" \
-        > /dev/null 2>&1
+    # Уведомить в TG что сессия перезапустилась (токен — из env, не хардкодить)
+    WEWATCH_TOKEN="${CLAUDE_TG_BOT_TOKEN:-}"
+    CHAT_ID="${CLAUDE_TG_CHAT_ID:-6299152655}"
+    if [ -n "$WEWATCH_TOKEN" ]; then
+        curl -s -X POST "https://api.telegram.org/bot${WEWATCH_TOKEN}/sendMessage" \
+            -d "chat_id=${CHAT_ID}" \
+            -d "text=🔄 WeWatch агент перезапущен — готов к работе" \
+            > /dev/null 2>&1
+    fi
 done

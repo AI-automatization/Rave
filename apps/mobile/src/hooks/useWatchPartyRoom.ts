@@ -11,6 +11,7 @@ import { useAuthStore } from '@store/auth.store';
 const CONTENT_BASE_URL = process.env.EXPO_PUBLIC_CONTENT_URL ?? '';
 import { useWatchPartyStore } from '@store/watchParty.store';
 import { watchPartyApi } from '@api/watchParty.api';
+import { syncStatsApi } from '@api/syncStats.api';
 import { activeRoomStorage } from '@utils/storage';
 import { disconnectSocket, getSocket, CLIENT_EVENTS } from '@socket/client';
 import { UniversalPlayerRef, detectVideoPlatform, detectEmbedPlatform } from '@components/video/UniversalPlayer';
@@ -42,6 +43,22 @@ const DRIFT_RATE_MAX = 0.15;           // max rate offset ±15% from 1.0 (hit at
 // iOS: 5s is fine — micro-sync not enabled on iOS.
 const HEARTBEAT_INTERVAL_MS = Platform.OS === 'android' ? 2000 : 5000;
 
+// Clock-skew guards. Sync relies on absolute server/owner timestamps normalised by the
+// measured clock offset. If that offset is stale/0 (offset not yet measured, or the phone
+// clock drifted), the skew must NOT leak into playback. These cap the blast radius:
+//   MAX_SYNC_SCHEDULE_WAIT_MS — the scheduledAt window is only ~500ms (socket) / 150ms (mesh).
+//     A larger computed wait means clock skew, not a real schedule → execute now (F1).
+//   MAX_HEARTBEAT_EXTRAPOLATION_MS — how far we extrapolate the owner position from a heartbeat.
+//     Clamps a skewed "time since heartbeat" so it can't fabricate a multi-second phantom drift (F2).
+//   MAX_COMPENSATION_SECS — upper bound on elapsed-time catch-up; a late-join seed beyond this is
+//     recovered by drift correction instead of one huge (possibly skew-inflated) seek (F4/F5).
+const MAX_SYNC_SCHEDULE_WAIT_MS = 1500;
+const MAX_HEARTBEAT_EXTRAPOLATION_MS = 3000;
+const MAX_COMPENSATION_SECS = 30;
+// On play/pause, skip the hard seekTo if the player is already this close to the target — a seek
+// flushes ExoPlayer's HLS buffer (1-2s re-buffer). Small residual gaps are closed by drift micro-sync.
+const SEEK_SKIP_THRESHOLD_MS = 1000;
+
 // T-E101: Buffer event debounce — 2000ms so brief HLS segment-loading stalls (normal ExoPlayer
 // behaviour, typically <1s) don't trigger democratic pause for all viewers.
 const BUFFER_DEBOUNCE_MS = 2000;
@@ -52,7 +69,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const userId = useAuthStore(s => s.user?._id) ?? '';
   const { t } = useT();
 
-  const { room, syncState, messages, activeMembers, playlist, isOwner, adminMonitoring, roomClosed, heartbeat, bufferingUsers, lastReaction,
+  const { room, syncState, messages, activeMembers, playlist, isOwner, adminMonitoring, roomClosed, heartbeat, bufferingUsers, lastReaction, activeTransport, getTransportSnapshot,
     emitPlay, emitPause, emitSeek, emitHeartbeat, sendMessage, sendEmoji } = useWatchParty(roomId);
   const { isExtracting, result: extractResult, fallbackMode: extractFallback, error: extractionError, extract, reset: resetExtraction } = useVideoExtraction();
 
@@ -82,6 +99,13 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const currentRateRef = useRef(1.0); // tracks active playback rate (micro-sync may change it)
   const heartbeatRef = useRef(heartbeat); // latest heartbeat — read in AppState callback without adding to deps
   heartbeatRef.current = heartbeat;
+  // Live member count — read inside emitBufferState without re-creating the callback.
+  // Solo room (owner alone) must not emit buffer signals: there is nobody to keep in sync,
+  // and the server's democratic buffer-pause would otherwise pause the owner against itself
+  // (root cause of the "owner alone → video play/pause/play/pause by itself" loop). Mirrors
+  // the server-side `members <= 1` guard in videoEvents.handler.ts — defense in depth.
+  const activeMembersCountRef = useRef(1);
+  activeMembersCountRef.current = activeMembers.length;
   const isWebViewModeRef = useRef(false); // updated after isWebViewMode is computed each render
   const isYouTubeEmbedRef = useRef(false); // true only for YouTube IFrame embed (discrete rates — micro-sync excluded)
   const isVkRutubeEmbedRef = useRef(false); // true for VK/Rutube embed iframe — postMessage has no rate API, micro-sync excluded
@@ -93,6 +117,20 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   // Without this, handlePlayerReady returns early (playerReadyRef already true) and the
   // proxy source starts from position 0 — completely out of sync with the owner.
   const lastExecutedSyncRef = useRef<{ currentTime: number; isPlaying: boolean; serverTimestamp: number } | null>(null);
+
+  // T-S118: sync-quality telemetry accumulated for this room session, flushed once on handleLeave.
+  const sessionStartRef = useRef(Date.now());
+  const macroSeekCountRef = useRef(0);
+  const microAdjustCountRef = useRef(0);
+  const driftSumMsRef = useRef(0);
+  const driftSampleCountRef = useRef(0);
+  const maxDriftMsRef = useRef(0);
+  const syncErrorsRef = useRef<string[]>([]);
+  const recordDrift = (driftMs: number) => {
+    driftSumMsRef.current += driftMs;
+    driftSampleCountRef.current += 1;
+    if (driftMs > maxDriftMsRef.current) maxDriftMsRef.current = driftMs;
+  };
 
   // Chat panel open by default — fills the space below the video and puts the main
   // social surface right at hand on room entry. Voice still auto-joins muted in the
@@ -139,9 +177,14 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   }, [extractResult]);
 
   useEffect(() => {
+    if (extractionError) syncErrorsRef.current.push(`extraction_error: ${String(extractionError)}`);
+  }, [extractionError]);
+
+  useEffect(() => {
     if (room) return;
     const timer = setTimeout(() => {
       setConnectTimeout(true);
+      syncErrorsRef.current.push('connect_timeout');
       // Room not found within timeout — clear stale restore data
       void activeRoomStorage.clear();
     }, 15000);
@@ -225,7 +268,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
       if (suppressDriftTimerRef.current) clearTimeout(suppressDriftTimerRef.current);
       suppressDriftTimerRef.current = setTimeout(() => { suppressDriftRef.current = false; suppressDriftTimerRef.current = null; }, 8000);
       const compensationSecs = syncState.isPlaying
-        ? Math.max(0, (Date.now() - serverTs) / 1000)
+        ? Math.min(MAX_COMPENSATION_SECS, Math.max(0, (Date.now() - serverTs) / 1000))
         : 0;
       const targetMs = (syncState.currentTime + compensationSecs) * 1000;
       // WebView seekTo resolves immediately (JS injection is fire-and-forget).
@@ -233,21 +276,37 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
       // that completes starts playback at the old position → visible ratchet effect.
       // 250ms on Android / 0ms on iOS (expo-av seekTo is awaitable and reliable).
       const seekPlayDelayMs = Platform.OS === 'android' ? 250 : 0;
-      playerRef.current.seekTo(targetMs)
-        .then(() => new Promise<void>(resolve => { setTimeout(resolve, seekPlayDelayMs); }))
+      // Skip the seek when we're already within SEEK_SKIP_THRESHOLD_MS of the target. A hard
+      // seekTo forces ExoPlayer to flush + re-buffer the HLS segment (1-2s stall), so on a
+      // play/pause where the member is already aligned it just adds 2-3s latency for nothing —
+      // just play/pause in place and let drift micro-sync close the small residual gap. A real
+      // seek (owner scrubbed elsewhere) lands far from current → we still do the hard seek.
+      Promise.resolve(playerRef.current.getPositionMs())
+        .then((curMs) => {
+          const needSeek = Math.abs((curMs ?? targetMs) - targetMs) > SEEK_SKIP_THRESHOLD_MS;
+          if (needSeek) {
+            return playerRef.current!.seekTo(targetMs)
+              .then(() => new Promise<void>(resolve => { setTimeout(resolve, seekPlayDelayMs); }));
+          }
+          return undefined;
+        })
         .then(() => syncState.isPlaying ? playerRef.current?.play() : playerRef.current?.pause())
-        .catch(() => {})
+        .catch((e: unknown) => { syncErrorsRef.current.push(`executeSync: ${String(e)}`); })
         .finally(() => { setTimeout(() => { isSyncing.current = false; }, 400); });
     };
 
     if (scheduled && scheduled > 0) {
       const delay = scheduled - Date.now();
-      if (delay > 0) {
-        // Future: wait until scheduledAt, then execute with elapsed-time compensation
+      // Only honour a schedule within the real window (~500ms socket / 150ms mesh + jitter).
+      // A larger "delay" means the clock offset is stale/skewed, not a genuine future schedule —
+      // waiting it out would freeze the member for seconds while the owner plays on (F1). Execute
+      // now instead; executeSync's elapsed-time compensation lands the correct position.
+      if (delay > 0 && delay <= MAX_SYNC_SCHEDULE_WAIT_MS) {
+        // Future (within window): wait until scheduledAt, then execute with compensation
         const timerId = setTimeout(executeSync, delay);
         return () => clearTimeout(timerId);
       }
-      // Past scheduledAt: execute immediately with elapsed-time compensation
+      // Past scheduledAt, or delay too large (clock skew) → execute immediately
       executeSync();
     } else {
       // No scheduledAt — execute immediately
@@ -258,7 +317,10 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   useEffect(() => {
     if (!isOwner || !room) return;
     const interval = setInterval(async () => {
-      if (isSyncing.current) return;
+      // Skip while syncing or buffering: a heartbeat sent during an owner buffer stall carries a
+      // frozen position with an advancing timestamp, so members over-extrapolate and seek past the
+      // owner's real position (F6).
+      if (isSyncing.current || isBufferingRef.current) return;
       const posMs = (await playerRef.current?.getPositionMs()) ?? 0;
       if (isPlaying) emitHeartbeat(posMs / 1000);
     }, HEARTBEAT_INTERVAL_MS);
@@ -277,12 +339,19 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   useEffect(() => {
     if (isOwner || !heartbeat || !isPlaying || isSyncing.current || suppressDriftRef.current) return;
 
-    const expected = heartbeat.currentTime + (Date.now() - heartbeat.timestamp) / 1000;
+    // Extrapolate the owner position from the heartbeat, but clamp "time since heartbeat" to a
+    // sane bound. A stale/0 clock offset can make heartbeat.timestamp land in the future
+    // (negative elapsed) or far in the past → without this clamp the skew becomes a phantom
+    // multi-second drift and fires a spurious macro-seek every heartbeat (F2).
+    const sinceHeartbeatSecs = Math.min(MAX_HEARTBEAT_EXTRAPOLATION_MS, Math.max(0, Date.now() - heartbeat.timestamp)) / 1000;
+    const expected = heartbeat.currentTime + sinceHeartbeatSecs;
     const drift = videoCurrentTimeRef.current - expected; // positive = ahead of owner, negative = behind
     const absDrift = Math.abs(drift);
 
     if (absDrift > DRIFT_MACRO_SEEK_SECS) {
       // Macro sync — reset micro-sync rate first, then hard seek
+      macroSeekCountRef.current += 1;
+      recordDrift(absDrift * 1000);
       if (currentRateRef.current !== 1.0) { currentRateRef.current = 1.0; playerRef.current?.setRate(1.0); }
       suppressBufferRef.current = true;
       if (suppressBufferTimerRef.current) clearTimeout(suppressBufferTimerRef.current);
@@ -307,6 +376,8 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
       if (Math.abs(targetRate - currentRateRef.current) > 0.01) {
         currentRateRef.current = targetRate;
         playerRef.current?.setRate(targetRate);
+        microAdjustCountRef.current += 1;
+        recordDrift(absDrift * 1000);
       }
     } else if (currentRateRef.current !== 1.0) {
       // Within sync threshold — restore normal speed
@@ -326,6 +397,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
 
   // T-E101: Buffer signal — debounced emit to server; suppressed for 2s after sync seek
   const emitBufferState = useCallback((buffering: boolean) => {
+    if (activeMembersCountRef.current <= 1) return; // solo room — no one to sync, don't feed democratic pause loop
     if (suppressBufferRef.current) return; // sync-induced buffering — don't trigger democratic pause
     if (bufferDebounceRef.current) clearTimeout(bufferDebounceRef.current);
     bufferDebounceRef.current = setTimeout(() => {
@@ -487,12 +559,26 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
       { text: 'Bekor', style: 'cancel' },
       { text: isOwner ? 'Xonani yopish' : 'Chiqish', style: 'destructive', onPress: async () => {
         void activeRoomStorage.clear();
+        const { transport, meshEverConnected } = getTransportSnapshot();
+        void syncStatsApi.ingest({
+          roomId,
+          userId: userId || undefined,
+          isOwner,
+          sessionStart: sessionStartRef.current,
+          transport,
+          macroSeekCount: macroSeekCountRef.current,
+          microAdjustCount: microAdjustCountRef.current,
+          avgDriftMs: driftSampleCountRef.current > 0 ? driftSumMsRef.current / driftSampleCountRef.current : 0,
+          maxDriftMs: maxDriftMsRef.current,
+          meshConnectFailed: activeMembers.length > 1 && !meshEverConnected,
+          syncErrors: syncErrorsRef.current,
+        });
         try { if (isOwner) await watchPartyApi.closeRoom(roomId); else await watchPartyApi.leaveRoom(roomId); } catch {}
         disconnectSocket();
         navigation.goBack();
       }},
     ]);
-  }, [isOwner, roomId, navigation]);
+  }, [isOwner, roomId, navigation, userId, activeMembers.length, getTransportSnapshot]);
 
   // Video URL computation
   const originalVideoUrl = room?.videoUrl ?? '';
@@ -632,13 +718,13 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     // a long proxy-fallback delay), uncapped compensation would seek hundreds of seconds past
     // the actual position and land past the video end.
     const compensationSecs = syncToExecute.isPlaying
-      ? Math.min(30, Math.max(0, (Date.now() - syncToExecute.serverTimestamp) / 1000))
+      ? Math.min(MAX_COMPENSATION_SECS, Math.max(0, (Date.now() - syncToExecute.serverTimestamp) / 1000))
       : 0;
     const targetMs = (syncToExecute.currentTime + compensationSecs) * 1000;
     if (!playerRef.current) { isSyncing.current = false; return; }
     playerRef.current.seekTo(targetMs)
       .then(() => syncToExecute.isPlaying ? playerRef.current?.play() : playerRef.current?.pause())
-      .catch(() => {})
+      .catch((e: unknown) => { syncErrorsRef.current.push(`handlePlayerReady: ${String(e)}`); })
       .finally(() => { setTimeout(() => { isSyncing.current = false; }, 400); });
   }, []);
 
@@ -649,7 +735,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
-    playerRef, userId, room, messages, activeMembers, isOwner, adminMonitoring, connectTimeout,
+    playerRef, userId, room, messages, activeMembers, isOwner, adminMonitoring, connectTimeout, activeTransport,
     isExtracting, extractResult, extractionError, showChat, showVoice, showInvite, isPlaying, isFullscreen,
     videoIsLive, videoCurrentTime, videoDuration, floatingEmojis, showQualityMenu, showEpisodeMenu,
     extractQualities, extractEpisodes, currentVideoUrl, bufferingUsers,

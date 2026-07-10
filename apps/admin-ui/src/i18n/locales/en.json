@@ -18,6 +18,7 @@
     "logs": "Logs",
     "activity": "Activity",
     "auditLogs": "Audit Logs",
+    "syncStats": "Sync Stats",
     "domains": "Domains",
     "bannedWords": "Banned Words",
     "staff": "Staff",

@@ -6,6 +6,9 @@ import { Ionicons } from '@expo/vector-icons';
 interface RoomInfoBarProps {
   roomName: string;
   memberCount: number;
+  /** p2p/turn = mesh DataChannel is carrying sync (turn = routed via TURN relay, not direct);
+   * socket = mesh silent/unavailable, server relay in use. See useWatchParty's activeTransport. */
+  activeTransport?: 'p2p' | 'turn' | 'socket';
   isOwner: boolean;
   hasMessages: boolean;
   onToggleInvite: () => void;
@@ -14,9 +17,16 @@ interface RoomInfoBarProps {
   onLeave: () => void;
 }
 
+const TRANSPORT_META = {
+  p2p: { label: 'P2P', color: '#4ADE80', icon: 'flash' as const },
+  turn: { label: 'TURN', color: '#FBBF24', icon: 'swap-horizontal' as const },
+  socket: { label: 'Server', color: 'rgba(255,255,255,0.4)', icon: 'cloud-outline' as const },
+};
+
 export const RoomInfoBar = React.memo(function RoomInfoBar({
   roomName,
   memberCount,
+  activeTransport,
   isOwner,
   hasMessages,
   onToggleInvite,
@@ -24,6 +34,7 @@ export const RoomInfoBar = React.memo(function RoomInfoBar({
   onToggleVoice,
   onLeave,
 }: RoomInfoBarProps) {
+  const transport = activeTransport ? TRANSPORT_META[activeTransport] : null;
   return (
     <View style={s.container}>
       {/* Left: room info */}
@@ -41,6 +52,13 @@ export const RoomInfoBar = React.memo(function RoomInfoBar({
                 <View style={s.separator} />
                 <Ionicons name="star" size={10} color="#FFD700" />
                 <Text style={s.ownerLabel}>Egasi</Text>
+              </>
+            )}
+            {transport && (
+              <>
+                <View style={s.separator} />
+                <Ionicons name={transport.icon} size={10} color={transport.color} />
+                <Text style={[s.transportLabel, { color: transport.color }]}>{transport.label}</Text>
               </>
             )}
           </View>
@@ -131,6 +149,10 @@ const s = StyleSheet.create({
   ownerLabel: {
     fontSize: 11,
     color: '#FFD700',
+    fontWeight: '600',
+  },
+  transportLabel: {
+    fontSize: 11,
     fontWeight: '600',
   },
 
