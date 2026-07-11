@@ -1,6 +1,6 @@
 // WeWatch Mobile — Auth API
 import { authClient } from './client';
-import { ApiResponse, LoginRequest, LoginResponse, RegisterRequest } from '@app-types/index';
+import { ApiResponse, IUser, LoginRequest, LoginResponse, RegisterRequest } from '@app-types/index';
 
 export const authApi = {
   async login(data: LoginRequest): Promise<LoginResponse> {
@@ -100,5 +100,24 @@ export const authApi = {
 
   async logoutAll(): Promise<void> {
     await authClient.post('/auth/logout-all');
+  },
+
+  // Telegram-only accounts have a synthetic placeholder email (see @utils/user
+  // displayEmail) — bindEmail lets them attach a real address. Sends an OTP to
+  // the given email; 409 if it's already in use or the account already has a
+  // real email bound.
+  async bindEmail(email: string): Promise<void> {
+    await authClient.post('/auth/email/bind', { email });
+  },
+
+  async verifyBindEmail(otp: string): Promise<{ user: IUser }> {
+    const res = await authClient.post<ApiResponse<{ user: IUser }>>('/auth/email/verify', { otp });
+    if (!res.data.data) throw new Error('Verify bind email response is empty');
+    return res.data.data;
+  },
+
+  // Account already has a real email — sends an OTP to the new address instead.
+  async changeEmail(email: string): Promise<void> {
+    await authClient.post('/auth/email/change', { email });
   },
 };

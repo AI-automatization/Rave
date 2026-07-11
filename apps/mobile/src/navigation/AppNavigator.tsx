@@ -169,6 +169,14 @@ export function AppNavigator() {
       // Friend request/accept → land on the Friends screen (not just Main)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (navigationRef.navigate as any)('Main', { screen: 'FriendsTab', params: { screen: 'Friends' } });
+    } else if (screen === 'BindEmail') {
+      // Bind-email nudge (e.g. "secure your account" push) → land on the BindEmail
+      // screen inside the Profile tab's stack, same nested-navigate pattern as Friends above.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (navigationRef.navigate as any)('Main', {
+        screen: 'ProfileTab',
+        params: { screen: 'BindEmail', params: { mode: (data.mode === 'change' ? 'change' : 'bind') } },
+      });
     } else if (screen === 'Notifications') {
       navigationRef.navigate('Modal', { screen: 'Notifications' });
     } else {
@@ -187,6 +195,18 @@ export function AppNavigator() {
         navigationRef.navigate('Modal', {
           screen: 'WatchPartyJoin',
           params: { inviteCode: match[1].toUpperCase() },
+        });
+        return;
+      }
+
+      // https://app.wewatch.uz/bind-email — Telegram nudge button / Android App Link
+      // (app.json android.intentFilters pathPrefix "/bind-email"). Same nested-navigate
+      // pattern as the BindEmail push-tap case above.
+      if (/\/bind-email(?:[/?#]|$)/i.test(url)) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (navigationRef.navigate as any)('Main', {
+          screen: 'ProfileTab',
+          params: { screen: 'BindEmail', params: { mode: 'bind' } },
         });
       }
     };

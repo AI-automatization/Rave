@@ -1,5 +1,5 @@
 // WeWatch Mobile — ProfileScreen (web-style card layout + animations)
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -14,6 +14,8 @@ import { FadeInView } from '@components/profile/ProfileAnimations';
 import { ProfileStackParamList } from '@app-types/index';
 import { useT } from '@i18n/index';
 import { formatDate } from '@hooks/useProfileData';
+import { displayEmail } from '@utils/user';
+import { bindEmailBannerStorage } from '@utils/storage';
 import { ProfileHeader } from '@components/profile/ProfileHeader';
 import { ProfileEmptyState } from '@components/profile/ProfileEmptyState';
 import { ProfileEditModal } from '@components/profile/ProfileEditModal';
@@ -35,6 +37,20 @@ export function ProfileScreen() {
   const [editVisible, setEditVisible] = useState(false);
   const [editUsername, setEditUsername] = useState('');
   const [editBio, setEditBio] = useState('');
+  const [bannerVisible, setBannerVisible] = useState(false);
+
+  // Bind-email banner: only shown once per account until dismissed (persisted flag).
+  useEffect(() => {
+    const uid = profileQuery.data?._id ?? user?._id;
+    if (!uid) return;
+    bindEmailBannerStorage.isDismissed(uid).then((dismissed) => setBannerVisible(!dismissed));
+  }, [profileQuery.data?._id, user?._id]);
+
+  const handleDismissBanner = useCallback(() => {
+    setBannerVisible(false);
+    const uid = profileQuery.data?._id ?? user?._id;
+    if (uid) bindEmailBannerStorage.dismiss(uid).catch(() => {});
+  }, [profileQuery.data?._id, user?._id]);
 
   const handleLogout = () => {
     appAlert(t('profile', 'logoutTitle'), t('profile', 'logoutMsg'), [
@@ -109,6 +125,7 @@ export function ProfileScreen() {
 
   const u = displayUser;
   const joinDate = formatDate(u.createdAt);
+  const hasRealEmail = displayEmail(u.email) !== null;
 
   return (
     <>
@@ -126,9 +143,32 @@ export function ProfileScreen() {
           titleLabel={t('profile', 'title')}
           pointsLabel={t('profile', 'points')}
           joinDate={joinDate}
-          email={u.email}
+          email={displayEmail(u.email)}
           friendsCount={stats?.friendsCount}
         />
+
+        {/* Bind-email banner — Telegram-only accounts have no real email on file */}
+        {!hasRealEmail && bannerVisible ? (
+          <FadeInView delay={130} style={s.bannerCard}>
+            <View style={s.bannerIconWrap}>
+              <Ionicons name="shield-checkmark-outline" size={20} color={colors.primary} />
+            </View>
+            <View style={s.bannerTextWrap}>
+              <Text style={s.bannerTitle}>{t('profile', 'bannerTitle')}</Text>
+              <Text style={s.bannerBody}>{t('profile', 'bannerBody')}</Text>
+              <TouchableOpacity
+                style={s.bannerBtn}
+                activeOpacity={0.85}
+                onPress={() => navigation.navigate('BindEmail', { mode: 'bind' })}
+              >
+                <Text style={s.bannerBtnText}>{t('profile', 'bannerBtn')}</Text>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity style={s.bannerCloseBtn} onPress={handleDismissBanner} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons name="close" size={18} color={colors.textMuted} />
+            </TouchableOpacity>
+          </FadeInView>
+        ) : null}
 
         {/* Activity */}
         <View style={s.section}>
@@ -158,12 +198,23 @@ export function ProfileScreen() {
         {/* Settings shortcut */}
         <View style={s.section}>
           <SectionHeader label={t('profile', 'accountSection')} />
-          <NavItem
-            icon="settings-outline"
-            label={t('settings', 'title')}
-            onPress={() => navigation.navigate('Settings')}
-            delay={660}
-          />
+          <View style={s.navGroup}>
+            <NavItem
+              icon="mail-outline"
+              label={t('profile', 'emailLabel')}
+              subtitle={hasRealEmail ? (displayEmail(u.email) ?? undefined) : t('profile', 'emailNotLinked')}
+              rightText={hasRealEmail ? t('profile', 'emailChangeAction') : undefined}
+              showWarningDot={!hasRealEmail}
+              onPress={() => navigation.navigate('BindEmail', { mode: hasRealEmail ? 'change' : 'bind' })}
+              delay={620}
+            />
+            <NavItem
+              icon="settings-outline"
+              label={t('settings', 'title')}
+              onPress={() => navigation.navigate('Settings')}
+              delay={660}
+            />
+          </View>
         </View>
 
         {/* Logout */}
@@ -212,4 +263,39 @@ const useStyles = createThemedStyles((colors) => ({
     borderColor: colors.error + '25',
   },
   logoutText: { ...typography.body, color: colors.error, fontWeight: '600' },
+
+  // Bind-email banner
+  bannerCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    backgroundColor: colors.primary + '14',
+    borderRadius: borderRadius.xl,
+    borderWidth: 1,
+    borderColor: colors.primary + '30',
+    padding: spacing.md,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.md,
+  },
+  bannerIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.primary + '20',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bannerTextWrap: { flex: 1, gap: 4 },
+  bannerTitle: { ...typography.body, color: colors.textPrimary, fontWeight: '700' },
+  bannerBody: { ...typography.caption, color: colors.textSecondary, lineHeight: 18 },
+  bannerBtn: {
+    marginTop: spacing.sm,
+    alignSelf: 'flex-start',
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.lg,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  bannerBtnText: { color: colors.white, fontWeight: '700', fontSize: 13 },
+  bannerCloseBtn: { padding: 4 },
 }));

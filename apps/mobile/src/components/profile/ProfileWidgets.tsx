@@ -65,6 +65,12 @@ interface NavItemProps {
   label: string;
   onPress: () => void;
   delay?: number;
+  /** Optional line under the label (e.g. current value or status). */
+  subtitle?: string;
+  /** Optional short text shown right before the chevron (e.g. "Change"). */
+  rightText?: string;
+  /** Small dot next to the chevron flagging attention needed (e.g. missing email). */
+  showWarningDot?: boolean;
 }
 
 export const NavItem = React.memo(function NavItem({
@@ -72,6 +78,9 @@ export const NavItem = React.memo(function NavItem({
   label,
   onPress,
   delay = 0,
+  subtitle,
+  rightText,
+  showWarningDot,
 }: NavItemProps) {
   const { colors } = useTheme();
   const s = useStyles();
@@ -82,7 +91,12 @@ export const NavItem = React.memo(function NavItem({
         <View style={s.navIconWrap}>
           <Ionicons name={icon} size={20} color={colors.primary} />
         </View>
-        <Text style={s.navLinkText}>{label}</Text>
+        <View style={s.navTextWrap}>
+          <Text style={s.navLinkText}>{label}</Text>
+          {subtitle ? <Text style={s.navLinkSubtitle} numberOfLines={1}>{subtitle}</Text> : null}
+        </View>
+        {showWarningDot ? <View style={s.warningDot} /> : null}
+        {rightText ? <Text style={s.navRightText}>{rightText}</Text> : null}
         <Ionicons name="chevron-forward" size={18} color={colors.textDim} />
       </TouchableOpacity>
     </FadeInView>
@@ -207,7 +221,11 @@ const useStyles = createThemedStyles((colors) => ({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  navLinkText: { ...typography.body, color: colors.textPrimary, flex: 1, fontWeight: '500' },
+  navLinkText: { ...typography.body, color: colors.textPrimary, fontWeight: '500' },
+  navTextWrap: { flex: 1, gap: 2 },
+  navLinkSubtitle: { ...typography.caption, color: colors.textMuted, fontSize: 11 },
+  navRightText: { ...typography.caption, color: colors.textSecondary, fontSize: 13, marginRight: 2 },
+  warningDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.warning, marginRight: 2 },
 
   // ComingSoonItem
   comingSoonRow: { opacity: 0.65 },

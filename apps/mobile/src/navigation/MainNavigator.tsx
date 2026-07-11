@@ -19,6 +19,7 @@ import { FriendSearchScreen } from '@screens/friends/FriendSearchScreen';
 import { ProfileScreen } from '@screens/profile/ProfileScreen';
 import { SettingsScreen } from '@screens/profile/SettingsScreen';
 import { WatchHistoryScreen } from '@screens/profile/WatchHistoryScreen';
+import { BindEmailScreen } from '@screens/profile/BindEmailScreen';
 import { VideoPlayerScreen } from '@screens/home/VideoPlayerScreen';
 import { VideoExtractScreen } from '@screens/home/VideoExtractScreen';
 import { SearchResultsScreen } from '@screens/search/SearchResultsScreen';
@@ -78,6 +79,7 @@ function ProfileStackNavigator() {
       <ProfileStack.Screen name="Profile" component={ProfileScreen} />
       <ProfileStack.Screen name="Settings" component={SettingsScreen} />
       <ProfileStack.Screen name="WatchHistory" component={WatchHistoryScreen} />
+      <ProfileStack.Screen name="BindEmail" component={BindEmailScreen} />
     </ProfileStack.Navigator>
   );
 }

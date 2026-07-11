@@ -191,6 +191,31 @@ export const translations = {
     errResend: { uz: "Kod qayta yuborib bo'lmadi", ru: 'Не удалось отправить код повторно', en: 'Failed to resend code' },
   },
 
+  // ─── Bind / Change Email ───
+  bindEmail: {
+    titleBind: { uz: 'Emailni bog\'lash', ru: 'Привязать email', en: 'Bind Email' },
+    titleChange: { uz: 'Emailni o\'zgartirish', ru: 'Изменить email', en: 'Change Email' },
+    subBind: { uz: "Akkauntingizni himoya qilish uchun email manzilingizni bog'lang", ru: 'Привяжите email, чтобы защитить свой аккаунт', en: 'Bind an email address to secure your account' },
+    subChange: { uz: "Yangi email manzilingizni kiriting", ru: 'Введите новый адрес email', en: 'Enter your new email address' },
+    emailPlaceholder: { uz: 'Email manzil', ru: 'Адрес email', en: 'Email address' },
+    sendCodeBtn: { uz: 'Kod yuborish', ru: 'Отправить код', en: 'Send code' },
+    errEmailEmpty: { uz: 'Email manzilini kiriting', ru: 'Введите адрес email', en: 'Enter an email address' },
+    errEmailInvalid: { uz: "Email manzili noto'g'ri", ru: 'Некорректный адрес email', en: 'Invalid email address' },
+    errSend: { uz: "Kod yuborib bo'lmadi", ru: 'Не удалось отправить код', en: 'Failed to send code' },
+    otpSub: { uz: 'manziliga tasdiqlash kodi yuborildi', ru: 'отправлен код подтверждения', en: 'a verification code was sent to' },
+    verifyBtn: { uz: 'Tasdiqlash', ru: 'Подтвердить', en: 'Verify' },
+    resend: { uz: 'Kodni qayta yuborish', ru: 'Отправить код повторно', en: 'Resend code' },
+    resendCooldown: { uz: 'Qayta yuborish', ru: 'Отправить повторно', en: 'Resend' },
+    errResend: { uz: "Kod qayta yuborib bo'lmadi", ru: 'Не удалось отправить код повторно', en: 'Failed to resend code' },
+    errVerifyEmpty: { uz: 'Tasdiqlash kodini kiriting', ru: 'Введите код подтверждения', en: 'Enter verification code' },
+    errVerifyLength: { uz: 'Kod 6 ta raqamdan iborat', ru: 'Код состоит из 6 цифр', en: 'Code must be 6 digits' },
+    errVerifyInvalid: { uz: "Kod noto'g'ri yoki muddati o'tgan", ru: 'Неверный код или истёк срок действия', en: 'Invalid or expired code' },
+    successBindTitle: { uz: 'Bog\'landi!', ru: 'Привязано!', en: 'Linked!' },
+    successBindMsg: { uz: "Email manzilingiz muvaffaqiyatli bog'landi", ru: 'Ваш email успешно привязан', en: 'Your email has been successfully linked' },
+    successChangeTitle: { uz: "O'zgartirildi!", ru: 'Изменено!', en: 'Changed!' },
+    successChangeMsg: { uz: "Email manzilingiz muvaffaqiyatli o'zgartirildi", ru: 'Ваш email успешно изменён', en: 'Your email has been successfully changed' },
+  },
+
   // ─── Auth — Forgot Password ───
   forgotPassword: {
     title: { uz: 'Parolni tiklash', ru: 'Восстановление пароля', en: 'Reset Password' },
@@ -341,6 +366,12 @@ export const translations = {
     purchaseHistory: { uz: 'Xaridlar tarixi', ru: 'История покупок', en: 'Purchase History' },
     purchaseHistorySub: { uz: 'Ilova ichidagi xaridlar', ru: 'Покупки внутри приложения', en: 'In-app purchases' },
     accountSection: { uz: 'HISOB', ru: 'АККАУНТ', en: 'ACCOUNT' },
+    bannerTitle: { uz: 'Akkauntingizni himoya qiling', ru: 'Защитите свой аккаунт', en: 'Secure your account' },
+    bannerBody: { uz: "Telegram mavjud bo'lmasa akkauntingizni yo'qotmaslik uchun email bog'lang", ru: 'Привяжите email, чтобы не потерять аккаунт, если Telegram недоступен', en: "Bind an email so you don't lose your account if Telegram is unavailable" },
+    bannerBtn: { uz: 'Email bog\'lash', ru: 'Привязать email', en: 'Bind email' },
+    emailLabel: { uz: 'Email', ru: 'Email', en: 'Email' },
+    emailNotLinked: { uz: "Bog'lanmagan", ru: 'Не привязан', en: 'Not linked' },
+    emailChangeAction: { uz: "O'zgartirish", ru: 'Изменить', en: 'Change' },
   },
 
   // ─── Stats ───

@@ -68,6 +68,18 @@ export const blockedUsersStorage = {
   },
 };
 
+// Per-user flag: was the "bind your email" profile banner dismissed?
+// Keyed by userId so it re-appears for a different account on the same device.
+export const bindEmailBannerStorage = {
+  async isDismissed(userId: string): Promise<boolean> {
+    const val = await get(`wewatch_bind_email_banner_dismissed_${userId}`);
+    return val === '1';
+  },
+  async dismiss(userId: string): Promise<void> {
+    await set(`wewatch_bind_email_banner_dismissed_${userId}`, '1');
+  },
+};
+
 export const activeRoomStorage = {
   async save(roomId: string, videoReferer?: string): Promise<void> {
     await set('wewatch_active_room_v1', JSON.stringify({ roomId, videoReferer: videoReferer ?? null, savedAt: Date.now() }));

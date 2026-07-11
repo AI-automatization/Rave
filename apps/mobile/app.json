@@ -149,6 +149,11 @@
               "scheme": "https",
               "host": "app.wewatch.uz",
               "pathPrefix": "/auth/telegram/callback"
+            },
+            {
+              "scheme": "https",
+              "host": "app.wewatch.uz",
+              "pathPrefix": "/bind-email"
             }
           ],
           "category": ["BROWSABLE", "DEFAULT"]
