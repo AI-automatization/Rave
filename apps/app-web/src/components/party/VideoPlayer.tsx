@@ -5,6 +5,7 @@ import { Loader2, Play, AlertCircle, Pause, Maximize, Minimize, Volume2, VolumeX
 import { useWatchPartyStore } from '@/store/watch-party.store';
 import { useAuthStore } from '@/store/auth.store';
 import { toast } from '@/hooks/use-toast';
+import { YouTubePlayer } from './YouTubePlayer';
 
 interface Props {
   onPlay: (time: number) => void;
@@ -487,8 +488,17 @@ export function VideoPlayer({
 
     isRemoteAction.current = true;
 
-    if (Math.abs(video.currentTime - syncState.currentTime) > 0.3) {
-      video.currentTime = syncState.currentTime;
+    // Compensate for delivery latency: a PLAY that took 200ms to arrive should land at the owner's
+    // CURRENT position, not where they were when they pressed play. serverTimestamp is already
+    // normalised to this client's clock (use-watch-party). Only while playing — pause is a fixed
+    // position. Capped at 30s so a stale timestamp can't seek wildly past the real position.
+    const elapsed = syncState.isPlaying && syncState.serverTimestamp
+      ? Math.min(30, Math.max(0, (Date.now() - syncState.serverTimestamp) / 1000))
+      : 0;
+    const target = syncState.currentTime + elapsed;
+
+    if (Math.abs(video.currentTime - target) > 0.3) {
+      video.currentTime = target;
     }
 
     if (syncState.isPlaying && video.paused) {
@@ -510,7 +520,7 @@ export function VideoPlayer({
     }
 
     setTimeout(() => { isRemoteAction.current = false; }, 200);
-  }, [syncState.currentTime, syncState.isPlaying, isEmbed, directSrc]);
+  }, [syncState.currentTime, syncState.isPlaying, syncState.serverTimestamp, isEmbed, directSrc, isOwner]);
 
   // Cleanup debounce timer on unmount to avoid post-unmount state updates
   useEffect(() => () => {
@@ -682,19 +692,20 @@ export function VideoPlayer({
     );
   }
 
-  // ── YouTube (always iframe) ─────────────────────────────────────────────────
+  // ── YouTube — synced via the official IFrame Player API ─────────────────────
+  // (raw iframe was display-only; YouTubePlayer broadcasts owner play/pause/seek + heartbeat and
+  //  drift-corrects followers so the room actually watches together.)
 
   if (ytId) {
     return (
-      <div className="aspect-video bg-black rounded-xl overflow-hidden">
-        <iframe
-          src={`https://www.youtube.com/embed/${ytId}?autoplay=0&enablejsapi=1`}
-          className="w-full h-full"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-          title="YouTube player"
-        />
-      </div>
+      <YouTubePlayer
+        videoId={ytId}
+        isOwner={isOwner}
+        onPlay={onPlay}
+        onPause={onPause}
+        onSeek={onSeek}
+        onHeartbeat={onHeartbeat}
+      />
     );
   }
 

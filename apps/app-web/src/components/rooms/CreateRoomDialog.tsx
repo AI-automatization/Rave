@@ -11,6 +11,7 @@ import {
 import { useCreateRoom } from '@/hooks/use-rooms';
 import { toast } from '@/store/toast.store';
 import { parseApiError } from '@/lib/api-error';
+import { ApiError } from '@/lib/api-client';
 
 interface Props {
   open: boolean;
@@ -253,7 +254,8 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
         ? (PLATFORM_TO_BACKEND[activePlatform.id] ?? 'other')
         : undefined;
       const res = await createRoom.mutateAsync({
-        name:             videoTitle || undefined,
+        // Backend `name` caps at 80 chars (Joi) — trim here, mirrors mobile's useMediaDetection slice(0, 60)
+        name:             videoTitle ? videoTitle.slice(0, 60) : undefined,
         videoUrl:         withoutVideo ? undefined : (videoUrl || undefined),
         videoTitle:       withoutVideo ? undefined : (videoTitle || undefined),
         videoThumbnail:   withoutVideo ? undefined : (videoThumbnail || undefined),
@@ -263,6 +265,18 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
       const id = res.data?._id;
       if (id) router.push(`/room/${id}`);
     } catch (err) {
+      // Backend enforces one active room per owner (T-S108): a 409 ROOM_ALREADY_EXISTS means the
+      // user already has an open room. Reopen it instead of failing silently (mirrors mobile) —
+      // this was the "create button spins then does nothing" bug: a stale room blocked creation.
+      if (err instanceof ApiError && err.status === 409) {
+        const roomId = (err.data as { data?: { roomId?: string } })?.data?.roomId;
+        if (roomId) {
+          onOpenChange(false);
+          toast.info(t('alreadyHaveRoom'));
+          router.push(`/room/${roomId}`);
+          return;
+        }
+      }
       toast.error(parseApiError(err, t('createError')));
     }
   }

@@ -14,6 +14,11 @@ interface SyncState {
   isPlaying: boolean;
   currentTime: number;
   duration: number;
+  // Owner/server wall-clock (ms) at which currentTime was captured, already normalised to THIS
+  // client's local clock (see use-watch-party clock-offset sync). Lets the player compensate for
+  // network latency: elapsed = (Date.now() - serverTimestamp)/1000 is added on resume so a PLAY
+  // that took 200ms to arrive lands at the real owner position, not a stale snapshot.
+  serverTimestamp?: number;
 }
 
 interface Heartbeat {

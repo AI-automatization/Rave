@@ -554,6 +554,7 @@
     "creating": "Creating...",
     "createBtn": "Create",
     "createError": "Failed to create room",
+    "alreadyHaveRoom": "You already have an open room — opening it",
     "joinTitle": "Join Room",
     "joinDesc": "Enter the 6-digit invite code",
     "joining": "Joining...",

@@ -515,6 +515,7 @@
     "creating": "Yaratilmoqda...",
     "createBtn": "Yaratish",
     "createError": "Xona yaratib bo'lmadi",
+    "alreadyHaveRoom": "Sizda ochiq xona bor — uni ochyapmiz",
     "joinTitle": "Xonaga qo'shilish",
     "joinDesc": "6 xonali taklif kodini kiriting",
     "joining": "Qo'shilmoqda...",
