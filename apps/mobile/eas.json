@@ -7,6 +7,7 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
+      "channel": "development",
       "env": {
         "EXPO_PUBLIC_AUTH_URL": "https://auth-production-47a8.up.railway.app/api/v1",
         "EXPO_PUBLIC_USER_URL": "https://user-production-86ed.up.railway.app/api/v1",
@@ -27,6 +28,7 @@
     },
     "preview": {
       "distribution": "internal",
+      "channel": "preview",
       "env": {
         "EXPO_PUBLIC_AUTH_URL": "https://auth-production-47a8.up.railway.app/api/v1",
         "EXPO_PUBLIC_USER_URL": "https://user-production-86ed.up.railway.app/api/v1",
@@ -43,6 +45,7 @@
     },
     "production": {
       "autoIncrement": true,
+      "channel": "production",
       "env": {
         "EXPO_PUBLIC_AUTH_URL": "https://auth-production-47a8.up.railway.app/api/v1",
         "EXPO_PUBLIC_USER_URL": "https://user-production-86ed.up.railway.app/api/v1",
