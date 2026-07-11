@@ -1,0 +1,13 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.wewatch.app",
+      "sha256_cert_fingerprints": [
+        "98:13:66:22:25:4C:16:B1:05:EB:6B:C4:1C:02:72:79:A0:9B:B0:7B:2F:67:8F:32:B3:1A:2A:A2:C2:BB:E4:D9",
+        "FA:C6:17:45:DC:09:03:78:6F:B9:ED:E6:2A:96:2B:39:9F:73:48:F0:BB:6F:89:9B:83:32:66:75:91:03:3B:9C"
+      ]
+    }
+  }
+]
