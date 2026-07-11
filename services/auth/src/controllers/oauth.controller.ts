@@ -199,8 +199,10 @@ export class OAuthController {
 
   telegramInit = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const result = await this.authService.initTelegramAuth();
-      res.json(apiResponse.success(result, 'Telegram auth initiated'));
+      // login_url flow (Telegram Login Widget button) — no state/polling, the button's
+      // signed callback is the auth proof. See telegramWebhook's '/start login' case.
+      const botUrl = this.authService.getTelegramLoginUrl();
+      res.json(apiResponse.success({ botUrl }, 'Telegram auth initiated'));
     } catch (error) {
       next(error);
     }

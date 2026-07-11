@@ -22,6 +22,16 @@ export class TelegramAuthService {
     return { state, botUrl };
   }
 
+  /**
+   * Deep link that opens the bot chat and triggers the login_url button flow
+   * (loginWithTelegramData / POST /auth/telegram/login) — no state/polling needed,
+   * the button's signed callback IS the auth proof.
+   */
+  getTelegramLoginUrl(): string {
+    const botUsername = process.env.TELEGRAM_BOT_USERNAME ?? '';
+    return `tg://resolve?domain=${botUsername}&start=login`;
+  }
+
   // Telegram Login Widget / OAuth data → hash verify → JWT
   async loginWithTelegramData(data: {
     id: string;
@@ -88,7 +98,29 @@ export class TelegramAuthService {
     const rawParam = msg.text.slice(6).trim(); // /start <param>
     const param = rawParam.startsWith('auth_') ? rawParam.slice(5) : rawParam;
 
-    // Case 1: /start STATE — polling flow (old method, still supported)
+    // Case 0: /start login — Telegram Login Widget via login_url button.
+    // Tapping it makes Telegram itself show a native "Log in to WeWatch?" confirm dialog
+    // (no browser, no custom scheme); on confirm Telegram appends signed auth data
+    // (id/first_name/.../hash) to the callback URL and opens it — Android App Links
+    // (see app.json intentFilters + public/.well-known/assetlinks.json on app-web)
+    // hands that URL straight to the app, which POSTs it to /auth/telegram/login
+    // (loginWithTelegramData — already does the hash verification).
+    if (param === 'login') {
+      const callbackUrl = `${process.env.CLIENT_URL ?? 'https://app.wewatch.uz'}/auth/telegram/callback`;
+      const botUsername = process.env.TELEGRAM_BOT_USERNAME ?? '';
+      await this.sendTelegramMessage(chatId, '🔐 Нажмите кнопку ниже, чтобы войти в WeWatch:', {
+        reply_markup: {
+          inline_keyboard: [[{
+            text: 'Войти в WeWatch',
+            login_url: { url: callbackUrl, bot_username: botUsername, request_write_access: false },
+          }]],
+        },
+      });
+      logger.info('Telegram login_url button sent', { chatId, telegramId });
+      return;
+    }
+
+    // Case 1: /start STATE — polling flow (legacy, still supported for old app builds)
     if (param) {
       const stateData = await this.redis.get(REDIS_KEYS.tgState(param));
       if (stateData) {

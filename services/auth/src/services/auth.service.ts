@@ -132,6 +132,9 @@ export class AuthService {
   initTelegramAuth = () =>
     this.telegram.initTelegramAuth();
 
+  getTelegramLoginUrl = () =>
+    this.telegram.getTelegramLoginUrl();
+
   loginWithTelegramData = (data: Parameters<TelegramAuthService['loginWithTelegramData']>[0]) =>
     this.telegram.loginWithTelegramData(data);
 
