@@ -141,6 +141,25 @@ export async function sendInternalNotification(payload: {
   }
 }
 
+// Schedules the delayed "bind your email" nudge (push, then Telegram follow-up)
+// for a user who has no real email yet (e.g. brand-new Telegram-login account).
+// The delay + guard logic lives entirely in the notification service's Bull
+// queue (services/notification/src/queues/emailNudge.queue.ts) — this call
+// just enqueues the job, mirroring sendInternalNotification above.
+export async function scheduleEmailNudge(userId: string): Promise<void> {
+  try {
+    await axios.post(
+      `${notificationServiceUrl}/api/v1/notifications/internal/schedule-email-nudge`,
+      { userId },
+      { headers: internalHeaders, timeout: 5000 },
+    );
+    logger.info('[serviceClient] scheduleEmailNudge', { userId });
+  } catch (err) {
+    const error = err as AxiosError;
+    logger.error('[serviceClient] scheduleEmailNudge failed', { userId, message: error.message });
+  }
+}
+
 // ─── Content Service ───────────────────────────────────────────────────────────
 
 export async function recordWatchHistoryInternal(

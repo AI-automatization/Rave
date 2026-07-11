@@ -1,15 +1,18 @@
 import { Request, Response, NextFunction } from 'express';
 import type Redis from 'ioredis';
+import type Bull from 'bull';
 import { NotificationService } from '../services/notification.service';
 import { apiResponse } from '@shared/utils/apiResponse';
 import { AuthenticatedRequest, NotificationType } from '@shared/types';
 import { getUserFcmTokens } from '@shared/utils/serviceClient';
 import { logger } from '@shared/utils/logger';
+import { scheduleEmailNudge, EmailNudgeJobData } from '../queues/emailNudge.queue';
 
 export class NotificationController {
   constructor(
     private notificationService: NotificationService,
     private redisPub: Redis | null = null,
+    private emailNudgeQueue: Bull.Queue<EmailNudgeJobData> | null = null,
   ) {}
 
   getNotifications = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -160,6 +163,23 @@ export class NotificationController {
       const { userId } = req.params as { userId: string };
       await this.notificationService.deleteUserData(userId);
       res.json(apiResponse.success(null, 'User notification data deleted'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // POST /notifications/internal/schedule-email-nudge — called by auth service
+  // right after a brand-new Telegram-login user is created (no real email yet).
+  scheduleEmailNudgeInternal = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = req.body as { userId: string };
+      if (!this.emailNudgeQueue) {
+        logger.warn('scheduleEmailNudgeInternal: email-nudge queue not available — skipping', { userId });
+        res.json(apiResponse.success(null, 'Email nudge queue unavailable — skipped'));
+        return;
+      }
+      await scheduleEmailNudge(this.emailNudgeQueue, { userId });
+      res.json(apiResponse.success(null, 'Email nudge scheduled'));
     } catch (error) {
       next(error);
     }

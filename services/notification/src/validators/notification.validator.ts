@@ -24,6 +24,10 @@ export const notifyUsersSchema = Joi.object({
   type: Joi.string().max(50).optional(),
 });
 
+export const scheduleEmailNudgeSchema = Joi.object({
+  userId: Joi.string().required(),
+});
+
 export const validate = (schema: Joi.ObjectSchema | Joi.ArraySchema) =>
   (req: Request, _res: Response, next: NextFunction): void => {
     const { error } = schema.validate(req.body, { abortEarly: false });

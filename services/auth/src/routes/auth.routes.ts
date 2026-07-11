@@ -2,6 +2,7 @@ import { Router } from 'express';
 import passport from 'passport';
 import { AuthController } from '../controllers/auth.controller';
 import { OAuthController } from '../controllers/oauth.controller';
+import { EmailManagementController } from '../controllers/emailManagement.controller';
 import { AuthService } from '../services/auth.service';
 import { authRateLimiter, initAdminRateLimiter, refreshRateLimiter, pollRateLimiter } from '@shared/middleware/rateLimiter.middleware';
 import { verifyToken, requireNotBlocked } from '@shared/middleware/auth.middleware';
@@ -16,6 +17,9 @@ import {
   googleIdTokenSchema,
   appleIdTokenSchema,
   changePasswordSchema,
+  bindEmailSchema,
+  changeEmailSchema,
+  verifyEmailBindSchema,
   validate,
 } from '../validators/auth.validator';
 import Redis from 'ioredis';
@@ -25,6 +29,7 @@ export const createAuthRouter = (redis: Redis): Router => {
   const authService = new AuthService(redis);
   const authController = new AuthController(authService);
   const oauthController = new OAuthController(authService);
+  const emailManagementController = new EmailManagementController(authService);
 
   // POST /auth/register — OTP yuborish
   router.post('/register', authRateLimiter, validate(registerSchema), authController.initiateRegister);
@@ -60,6 +65,15 @@ export const createAuthRouter = (redis: Redis): Router => {
 
   // POST /auth/change-password — authenticated (T-S030)
   router.post('/change-password', verifyToken, notBlocked, validate(changePasswordSchema), authController.changePassword);
+
+  // POST /auth/email/bind — Telegram-login user (placeholder email) attaches a real email
+  router.post('/email/bind', verifyToken, notBlocked, authRateLimiter, validate(bindEmailSchema), emailManagementController.bindEmail);
+
+  // POST /auth/email/change — user with a real email replaces it with a new one
+  router.post('/email/change', verifyToken, notBlocked, authRateLimiter, validate(changeEmailSchema), emailManagementController.changeEmail);
+
+  // POST /auth/email/verify — confirm bind/change with the 6-digit OTP
+  router.post('/email/verify', verifyToken, notBlocked, authRateLimiter, validate(verifyEmailBindSchema), emailManagementController.verifyEmail);
 
   // Google OAuth
   router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));

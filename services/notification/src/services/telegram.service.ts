@@ -44,6 +44,19 @@ async function sendMessage(
   await tgPost('sendMessage', { chat_id: chatId, text, ...options });
 }
 
+// Minimal helper for jobs that need a single inline button (e.g. email-nudge
+// follow-up) — reuses sendMessage's existing reply_markup support.
+export async function sendMessageWithButton(
+  chatId: number,
+  text: string,
+  buttonText: string,
+  buttonUrl: string,
+): Promise<void> {
+  await sendMessage(chatId, text, {
+    reply_markup: { inline_keyboard: [[{ text: buttonText, url: buttonUrl }]] },
+  });
+}
+
 // ── Deep link URL builders ────────────────────────────────────────
 
 const buildTelegramDeepLink = (inviteCode: string): string =>

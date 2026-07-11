@@ -5,6 +5,7 @@ import { logger } from '@shared/utils/logger';
 import { UnauthorizedError } from '@shared/utils/errors';
 import { UserRole } from '@shared/types';
 import { REDIS_KEYS } from '@shared/constants';
+import { scheduleEmailNudge } from '@shared/utils/serviceClient';
 import { PasswordAuthService, generateUniqueUsername } from './passwordAuth.service';
 
 export class TelegramAuthService {
@@ -147,7 +148,7 @@ export class TelegramAuthService {
           JSON.stringify({ accessToken, refreshToken, user }),
         );
 
-        await this.sendTelegramMessage(chatId, '✅ Вы успешно вошли в CineSync!\n\nНажмите стрелку «назад» вверху экрана чтобы вернуться в приложение ←');
+        await this.sendTelegramMessage(chatId, '✅ Вы успешно вошли в WeWatch!\n\nНажмите стрелку «назад» вверху экрана чтобы вернуться в приложение ←');
         logger.info('Telegram polling auth completed', { userId: user._id, telegramId });
         return;
       }
@@ -168,7 +169,7 @@ export class TelegramAuthService {
     }
 
     // Case 3: plain /start — welcome message
-    await this.sendTelegramMessage(chatId, '👋 CineSync botiga xush kelibsiz! Ilovadan kirish tugmasini bosing.');
+    await this.sendTelegramMessage(chatId, '👋 WeWatch botiga xush kelibsiz! Ilovadan kirish tugmasini bosing.');
   }
 
   async pollTelegramAuth(state: string): Promise<{ accessToken: string; refreshToken: string; user: IUserDocument } | null> {
@@ -188,7 +189,7 @@ export class TelegramAuthService {
 
     if (!user) {
       const username = await generateUniqueUsername(profile.username);
-      const email = `tg_${profile.id}@telegram.cinesync.internal`;
+      const email = `tg_${profile.id}@telegram.wewatch.internal`;
 
       user = await User.create({
         email,
@@ -205,6 +206,13 @@ export class TelegramAuthService {
       });
 
       logger.info('Telegram user created', { userId: user._id, telegramId: profile.id });
+
+      // Brand-new Telegram user has no real email — schedule the delayed
+      // "bind your email" nudge (push, then Telegram follow-up). Notification
+      // service owns the delay/guard logic; this just enqueues the job
+      // (mirrors sendInternalNotification cross-service pattern — errors are
+      // already caught+logged inside scheduleEmailNudge, non-blocking here).
+      void scheduleEmailNudge(user._id.toString());
     }
 
     return user;

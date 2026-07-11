@@ -7,12 +7,16 @@ import { WaitlistController } from '../controllers/waitlist.controller';
 import { CampaignController } from '../controllers/campaign.controller';
 import { verifyToken } from '@shared/middleware/auth.middleware';
 import { requireInternalSecret } from '@shared/utils/serviceClient';
-import { validate, sendInternalSchema, broadcastSchema, notifyUsersSchema } from '../validators/notification.validator';
+import {
+  validate, sendInternalSchema, broadcastSchema, notifyUsersSchema, scheduleEmailNudgeSchema,
+} from '../validators/notification.validator';
+import { getEmailNudgeQueue } from '../queues/emailNudge.queue';
 import { logger } from '@shared/utils/logger';
 
 export const createNotificationRouter = (redisUrl: string): Router => {
   const router = Router();
   const notificationService = new NotificationService(redisUrl);
+  const emailNudgeQueue = getEmailNudgeQueue(redisUrl);
 
   let redisPub: Redis | null = null;
   if (redisUrl) {
@@ -20,7 +24,7 @@ export const createNotificationRouter = (redisUrl: string): Router => {
     redisPub.on('error', (err: Error) => logger.warn('Notification redisPub error', { error: err.message }));
   }
 
-  const notificationController = new NotificationController(notificationService, redisPub);
+  const notificationController = new NotificationController(notificationService, redisPub, emailNudgeQueue);
   const telegramController = new TelegramController();
   const waitlistController = new WaitlistController();
   const campaignController = new CampaignController();
@@ -36,6 +40,10 @@ export const createNotificationRouter = (redisUrl: string): Router => {
 
   // DELETE /notifications/internal/users/:userId — cascade account deletion (T-S093)
   router.delete('/internal/users/:userId', requireInternalSecret, notificationController.deleteUserData);
+
+  // POST /notifications/internal/schedule-email-nudge — auth service calls this
+  // right after creating a brand-new Telegram-login user (no real email yet)
+  router.post('/internal/schedule-email-nudge', requireInternalSecret, validate(scheduleEmailNudgeSchema), notificationController.scheduleEmailNudgeInternal);
 
   // GET /notifications
   router.get('/', verifyToken, notificationController.getNotifications);

@@ -11,6 +11,9 @@ export interface IUserDocument extends Document {
   avatar: string | null;
   role: UserRole;
   isEmailVerified: boolean;
+  emailBoundAt: Date | null;
+  emailNudgeSentAt: Date | null;
+  emailNudgeTgAt: Date | null;
   isTestAccount: boolean;
   isBlocked: boolean;
   blockReason: string | null;
@@ -56,6 +59,9 @@ const userSchema = new Schema<IUserDocument>(
       default: 'user',
     },
     isEmailVerified: { type: Boolean, default: false },
+    emailBoundAt: { type: Date, default: null },
+    emailNudgeSentAt: { type: Date, default: null },
+    emailNudgeTgAt: { type: Date, default: null },
     isTestAccount: { type: Boolean, default: false },
     isBlocked: { type: Boolean, default: false },
     blockReason: { type: String, default: null },

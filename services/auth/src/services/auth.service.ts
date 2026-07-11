@@ -13,6 +13,7 @@ import { PasswordAuthService } from './passwordAuth.service';
 import { GoogleAuthService } from './googleAuth.service';
 import { TelegramAuthService } from './telegramAuth.service';
 import { AppleAuthService } from './appleAuth.service';
+import { EmailManagementService } from './emailManagement.service';
 
 // AuthService facade — backward compatible with all existing controller imports
 export class AuthService {
@@ -20,12 +21,14 @@ export class AuthService {
   public readonly google: GoogleAuthService;
   public readonly telegram: TelegramAuthService;
   public readonly apple: AppleAuthService;
+  public readonly emailManagement: EmailManagementService;
 
   constructor(redis: Redis) {
     this.password = new PasswordAuthService(redis);
     this.google = new GoogleAuthService(this.password, redis);
     this.telegram = new TelegramAuthService(redis, this.password);
     this.apple = new AppleAuthService(redis);
+    this.emailManagement = new EmailManagementService(redis);
   }
 
   // ─── Password Auth delegates ────────────────────────────────────────────────
@@ -160,4 +163,16 @@ export class AuthService {
     if (!user?.email) return;
     await emailService.sendAppealDecisionEmail({ to: user.email, status, note });
   }
+
+  // ─── Email Management delegates (bind / change) ──────────────────────────────
+
+  initBindEmail = (userId: string, newEmail: string) =>
+    this.emailManagement.initBindEmail(userId, newEmail);
+
+  initChangeEmail = (userId: string, newEmail: string) =>
+    this.emailManagement.initChangeEmail(userId, newEmail);
+
+  // Named distinctly from password.verifyEmail (registration token flow) to avoid collision.
+  verifyEmailBind = (userId: string, otp: string) =>
+    this.emailManagement.verifyEmail(userId, otp);
 }

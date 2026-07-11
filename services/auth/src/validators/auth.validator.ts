@@ -58,6 +58,20 @@ export const changePasswordSchema = Joi.object({
   }),
 });
 
+export const bindEmailSchema = Joi.object({
+  email: Joi.string().email().lowercase().trim().required(),
+});
+
+export const changeEmailSchema = Joi.object({
+  email: Joi.string().email().lowercase().trim().required(),
+});
+
+export const verifyEmailBindSchema = Joi.object({
+  otp: Joi.string().pattern(/^\d{6}$/).required().messages({
+    'string.pattern.base': 'Verification code must be 6 digits',
+  }),
+});
+
 export const validate = (schema: Joi.ObjectSchema) =>
   (req: Request, _res: Response, next: NextFunction): void => {
     const { error } = schema.validate(req.body, { abortEarly: false });

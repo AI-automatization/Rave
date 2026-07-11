@@ -53,6 +53,7 @@ export const REDIS_KEYS = {
   tgAuth: (state: string) => `auth:tg:auth:${state}`,
   userSession: (userId: string) => `auth:session:${userId}`,
   blockedUser: (userId: string) => `auth:blocked:${userId}`,
+  emailBind: (userId: string) => `auth:email:bind:${userId}`,
 
   // User service
   heartbeat: (userId: string) => `user:heartbeat:${userId}`,
@@ -140,3 +141,18 @@ export const PATTERNS = {
   PASSWORD: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$/,
   OBJECT_ID: /^[a-f\d]{24}$/i,
 } as const;
+
+// ─────────────────────────────────────────────
+// Synthetic Telegram Email Placeholder
+// ─────────────────────────────────────────────
+// Telegram login has no email, so the backend stores a synthetic placeholder
+// (`tg_<id>@telegram.wewatch.internal`, see services/auth telegramAuth.service)
+// purely to satisfy the unique+required email column. The legacy
+// `.cinesync.internal` domain (pre-rename) still exists for older accounts,
+// so match both. Mirrors apps/mobile/src/utils/user.ts (kept in sync manually —
+// mobile has its own copy since it doesn't import @shared).
+
+export const PLACEHOLDER_EMAIL_DOMAINS = ['@telegram.wewatch.internal', '@telegram.cinesync.internal'] as const;
+
+export const isPlaceholderEmail = (email: string): boolean =>
+  PLACEHOLDER_EMAIL_DOMAINS.some((d) => email.endsWith(d));
