@@ -3,7 +3,7 @@
 //         otherwise falls back to web-browser polling (Expo Go / old builds).
 // Apple uses expo-apple-authentication native module (requires EAS build / dev client).
 import { useState, useEffect, useRef } from 'react';
-import { Linking, AppState, Platform, NativeModules } from 'react-native';
+import { Linking, Platform } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { authApi } from '@api/auth.api';
@@ -16,18 +16,28 @@ const GOOGLE_IOS_CLIENT_ID = '756077214118-t309035asjucgjm96b365sp92n807ne1.apps
 const AUTH_BASE_URL = (process.env.EXPO_PUBLIC_AUTH_URL ?? '').replace('/api/v1', '');
 const POLL_INTERVAL_MS = 2000;
 const MAX_POLL_ATTEMPTS = 90;
+const TELEGRAM_LOGIN_TIMEOUT_MS = 3 * 60 * 1000; // give up if no callback arrives in 3 min
 
-// Lazy-require to avoid TurboModuleRegistry.getEnforcing crash in Expo Go
-const isNativeGoogleAvailable = !!NativeModules.RNGoogleSignin;
+// Lazy-require to avoid TurboModuleRegistry.getEnforcing crash in Expo Go. RNGoogleSignin is a
+// TurboModule (TurboModuleRegistry.getEnforcing, see the package's spec/NativeGoogleSignin.ts) —
+// it is NEVER exposed on the legacy `NativeModules` bridge object, on either platform. Checking
+// `NativeModules.RNGoogleSignin` here always reads false regardless of whether the module is
+// actually linked, silently forcing every build (including real dev-client/production ones) onto
+// the web-browser polling fallback instead of native sign-in. Detect availability by attempting
+// the require itself and catching the throw Expo Go would produce.
+let isNativeGoogleAvailable = false;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let GoogleSignin: any = null;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let statusCodes: any = {};
-if (isNativeGoogleAvailable) {
+try {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const m = require('@react-native-google-signin/google-signin') as typeof import('@react-native-google-signin/google-signin');
   GoogleSignin = m.GoogleSignin;
   statusCodes = m.statusCodes;
+  isNativeGoogleAvailable = true;
+} catch {
+  isNativeGoogleAvailable = false;
 }
 
 interface UseSocialAuthResult {
@@ -57,8 +67,8 @@ export function useSocialAuth(): UseSocialAuthResult {
   const [blockedReason, setBlockedReason] = useState('');
   const [blockedUserId, setBlockedUserId] = useState('');
   const googleIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const telegramIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const telegramAppStateRef = useRef<ReturnType<typeof AppState.addEventListener> | null>(null);
+  const telegramLinkingSubRef = useRef<ReturnType<typeof Linking.addEventListener> | null>(null);
+  const telegramTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (isNativeGoogleAvailable) {
@@ -74,8 +84,8 @@ export function useSocialAuth(): UseSocialAuthResult {
     }
     return () => {
       if (googleIntervalRef.current) clearInterval(googleIntervalRef.current);
-      if (telegramIntervalRef.current) clearInterval(telegramIntervalRef.current);
-      if (telegramAppStateRef.current) telegramAppStateRef.current.remove();
+      if (telegramLinkingSubRef.current) telegramLinkingSubRef.current.remove();
+      if (telegramTimeoutRef.current) clearTimeout(telegramTimeoutRef.current);
     };
   }, []);
 
@@ -175,61 +185,70 @@ export function useSocialAuth(): UseSocialAuthResult {
 
   const promptGoogleAsync = isNativeGoogleAvailable ? promptGoogleNative : promptGoogleWebFallback;
 
+  // Telegram Login Widget flow: bot sends a login_url button, Telegram itself shows the
+  // native "Log in to WeWatch?" confirm dialog (no polling needed — the button's signed
+  // callback data IS the auth proof). The callback lands back in the app either via the
+  // https://app.wewatch.uz/auth/telegram/callback Android App Link, or (fallback, if the
+  // App Link wasn't intercepted) via the app-web callback page redirecting to
+  // wewatch://auth/telegram/callback — both are handled here, same query-param shape.
   const handleTelegramLogin = async () => {
-    if (telegramIntervalRef.current) {
-      clearInterval(telegramIntervalRef.current);
-      telegramIntervalRef.current = null;
+    if (telegramLinkingSubRef.current) {
+      telegramLinkingSubRef.current.remove();
+      telegramLinkingSubRef.current = null;
+    }
+    if (telegramTimeoutRef.current) {
+      clearTimeout(telegramTimeoutRef.current);
+      telegramTimeoutRef.current = null;
     }
     setTelegramLoading(true);
     setSocialError('');
     try {
-      const { state, botUrl } = await authApi.telegramInit();
-      await Linking.openURL(botUrl);
+      const { botUrl } = await authApi.telegramInit();
 
-      let attempts = 0;
-      telegramIntervalRef.current = setInterval(async () => {
-        attempts++;
-        if (attempts > MAX_POLL_ATTEMPTS) {
-          clearInterval(telegramIntervalRef.current!);
-          telegramIntervalRef.current = null;
-          setTelegramLoading(false);
-          setSocialError(t('login', 'errorTelegramTimeout'));
-          return;
+      const finishTelegram = async (url: string) => {
+        const parsed = /auth\/telegram\/callback\?(.+)/.exec(url);
+        if (!parsed) return;
+        const query = new URLSearchParams(parsed[1]);
+        const id = query.get('id');
+        const hash = query.get('hash');
+        if (!id || !hash) return;
+
+        telegramLinkingSubRef.current?.remove();
+        telegramLinkingSubRef.current = null;
+        if (telegramTimeoutRef.current) {
+          clearTimeout(telegramTimeoutRef.current);
+          telegramTimeoutRef.current = null;
         }
         try {
-          const result = await authApi.telegramPoll(state);
-          if (result) {
-            clearInterval(telegramIntervalRef.current!);
-            telegramIntervalRef.current = null;
-            setTelegramLoading(false);
-            if (telegramAppStateRef.current) {
-              telegramAppStateRef.current.remove();
-              telegramAppStateRef.current = null;
-            }
-            await setAuth(result.user, result.accessToken, result.refreshToken);
-          }
+          const result = await authApi.telegramLoginWithData({
+            id,
+            first_name: query.get('first_name') ?? '',
+            last_name: query.get('last_name') ?? undefined,
+            username: query.get('username') ?? undefined,
+            photo_url: query.get('photo_url') ?? undefined,
+            auth_date: query.get('auth_date') ?? '',
+            hash,
+          });
+          setTelegramLoading(false);
+          await setAuth(result.user, result.accessToken, result.refreshToken);
         } catch {
-          clearInterval(telegramIntervalRef.current!);
-          telegramIntervalRef.current = null;
           setTelegramLoading(false);
           setSocialError(t('login', 'errorTelegram'));
         }
-      }, POLL_INTERVAL_MS);
+      };
 
-      if (telegramAppStateRef.current) telegramAppStateRef.current.remove();
-      telegramAppStateRef.current = AppState.addEventListener('change', (nextState) => {
-        if (nextState === 'active') {
-          telegramAppStateRef.current?.remove();
-          telegramAppStateRef.current = null;
-          setTimeout(() => {
-            if (telegramIntervalRef.current) {
-              clearInterval(telegramIntervalRef.current);
-              telegramIntervalRef.current = null;
-              setTelegramLoading(false);
-            }
-          }, 5000);
-        }
+      telegramLinkingSubRef.current = Linking.addEventListener('url', ({ url }) => {
+        void finishTelegram(url);
       });
+
+      telegramTimeoutRef.current = setTimeout(() => {
+        telegramLinkingSubRef.current?.remove();
+        telegramLinkingSubRef.current = null;
+        setTelegramLoading(false);
+        setSocialError(t('login', 'errorTelegramTimeout'));
+      }, TELEGRAM_LOGIN_TIMEOUT_MS);
+
+      await Linking.openURL(botUrl);
     } catch {
       setTelegramLoading(false);
       setSocialError(t('login', 'errorTelegram'));

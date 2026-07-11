@@ -17,7 +17,7 @@
       "bundleIdentifier": "com.wewatch.app",
       "buildNumber": "1",
       "usesAppleSignIn": true,
-      "minimumOsVersion": "16.0",
+      "minimumOsVersion": "16.4",
       "usesNonExemptEncryption": false,
       "infoPlist": {
         "NSCameraUsageDescription": "WeWatch uses your camera to set your profile photo.",
@@ -118,7 +118,7 @@
     "android": {
       "googleServicesFile": "./google-services.json",
       "package": "com.wewatch.app",
-      "versionCode": 7,
+      "versionCode": 8,
       "adaptiveIcon": {
         "backgroundColor": "#0A0A0F",
         "foregroundImage": "./assets/android-icon-foreground.png"
@@ -132,6 +132,20 @@
         "android.permission.INTERNET",
         "android.permission.POST_NOTIFICATIONS",
         "android.permission.RECEIVE_BOOT_COMPLETED"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "app.wewatch.uz",
+              "pathPrefix": "/auth/telegram/callback"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
       ]
     },
     "plugins": [

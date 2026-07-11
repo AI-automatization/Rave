@@ -67,18 +67,21 @@ export const authApi = {
     await authClient.post('/auth/resend-verification', { email });
   },
 
-  async telegramInit(): Promise<{ state: string; botUrl: string }> {
-    const res = await authClient.post<ApiResponse<{ state: string; botUrl: string }>>('/auth/telegram/init');
+  async telegramInit(): Promise<{ botUrl: string }> {
+    const res = await authClient.post<ApiResponse<{ botUrl: string }>>('/auth/telegram/init');
     if (!res.data.data) throw new Error('Telegram init failed');
     return res.data.data;
   },
 
-  async telegramPoll(state: string): Promise<LoginResponse | null> {
-    const res = await authClient.get<ApiResponse<LoginResponse | null>>(
-      `/auth/telegram/poll?state=${encodeURIComponent(state)}`,
-      { validateStatus: (s) => s === 200 || s === 202 },
-    );
-    return res.data.data ?? null;
+  // Telegram Login Widget data (id/first_name/.../hash), captured from the login_url
+  // button's callback via deep link — see handleTelegramLogin in useSocialAuth.ts.
+  async telegramLoginWithData(data: {
+    id: string; first_name: string; last_name?: string;
+    username?: string; photo_url?: string; auth_date: string; hash: string;
+  }): Promise<LoginResponse> {
+    const res = await authClient.post<ApiResponse<LoginResponse>>('/auth/telegram/login', data);
+    if (!res.data.data) throw new Error('Telegram login response is empty');
+    return res.data.data;
   },
 
   async appleLogin(
