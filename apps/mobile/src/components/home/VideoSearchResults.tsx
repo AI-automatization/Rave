@@ -95,7 +95,14 @@ export function VideoSearchResults({ results, isLoading, onSelect }: Props) {
     );
   }
 
-  if (results.length === 0) return null;
+  if (results.length === 0) {
+    return (
+      <View style={s.center}>
+        <Ionicons name="search-outline" size={40} color={colors.textDim} />
+        <Text style={s.loadingText}>{t('watchParty', 'noSearchResults')}</Text>
+      </View>
+    );
+  }
 
   return (
     <FlatList

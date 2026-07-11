@@ -16,6 +16,7 @@ import { dmApi } from '@api/user.api';
 import { IDMMessage, IDMConversation, ModalStackParamList } from '@app-types/index';
 import { useT } from '@i18n/index';
 import { spacing } from '@theme/index';
+import { resolveMediaUrl } from '@utils/url';
 import { getSocket, SERVER_EVENTS, CLIENT_EVENTS } from '@socket/client';
 import { useEnsureSocket } from '@hooks/useEnsureSocket';
 
@@ -391,7 +392,7 @@ function ForwardPicker({
               return (
                 <TouchableOpacity style={s.fwdRow} activeOpacity={0.7} onPress={() => doForward(item.peerId)}>
                   {item.peerAvatar ? (
-                    <Image source={{ uri: item.peerAvatar }} style={s.fwdAvatar} contentFit="cover" />
+                    <Image source={{ uri: resolveMediaUrl(item.peerAvatar) }} style={s.fwdAvatar} contentFit="cover" />
                   ) : (
                     <View style={[s.fwdAvatar, s.fwdAvatarFallback, { backgroundColor: bg }]}>
                       <Text style={s.fwdInitials}>{initials}</Text>

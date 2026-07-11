@@ -293,6 +293,7 @@ export const translations = {
     findSubtitle: { uz: "Do'st toping va birga kino ko'ring", ru: 'Найди друзей и смотрите кино вместе', en: 'Find friends and watch movies together' },
     searchUsers: { uz: 'Foydalanuvchilarni qidirish', ru: 'Поиск пользователей', en: 'Search Users' },
     searchUsersHint: { uz: 'Qidiruv uchun foydalanuvchi nomini kiriting', ru: 'Введи имя пользователя для поиска', en: 'Enter username to search' },
+    noMatchSuffix: { uz: 'hech bir foydalanuvchiga mos kelmadi', ru: 'не совпадает ни с одним пользователем', en: "doesn't match any user" },
     addBtn: { uz: "Qo'shish", ru: 'Добавить', en: 'Add' },
     friendPill: { uz: "Do'stlar", ru: 'Друзья', en: 'Friends' },
     sentPill: { uz: 'Yuborildi', ru: 'Отправлено', en: 'Sent' },

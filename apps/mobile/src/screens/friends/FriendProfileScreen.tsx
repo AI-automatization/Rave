@@ -13,6 +13,7 @@ import { RANK_COLORS } from '@theme/index';
 import { FriendsStackParamList, RootStackParamList } from '@app-types/index';
 import { useT } from '@i18n/index';
 import { DEFAULT_AVATAR } from '@utils/assets';
+import { resolveMediaUrl } from '@utils/url';
 import { ReportUserModal } from '@components/common/ReportUserModal';
 import { blockedUsersStorage } from '@utils/storage';
 import { userApi } from '@api/user.api';
@@ -149,7 +150,7 @@ export function FriendProfileScreen() {
           <View style={styles.avatarWrap}>
             <View style={[styles.avatarRing, { borderColor: rankColor }]}>
               <Image
-                source={profile.avatar ? { uri: profile.avatar } : DEFAULT_AVATAR}
+                source={profile.avatar ? { uri: resolveMediaUrl(profile.avatar) } : DEFAULT_AVATAR}
                 style={styles.avatar}
                 contentFit="cover"
               />

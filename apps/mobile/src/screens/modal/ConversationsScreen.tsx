@@ -14,6 +14,7 @@ import { dmApi } from '@api/user.api';
 import { IDMConversation, IDMMessage, ChatsStackParamList } from '@app-types/index';
 import { useT } from '@i18n/index';
 import { spacing } from '@theme/index';
+import { resolveMediaUrl } from '@utils/url';
 import { useEnsureSocket } from '@hooks/useEnsureSocket';
 import { getSocket, SERVER_EVENTS } from '@socket/client';
 
@@ -45,7 +46,7 @@ function ConvItem({ item, onPress }: { item: IDMConversation; onPress: () => voi
   return (
     <TouchableOpacity style={s.row} onPress={onPress} activeOpacity={0.75}>
       {item.peerAvatar ? (
-        <Image source={{ uri: item.peerAvatar }} style={[s.avatar, { borderColor: bg }]} contentFit="cover" />
+        <Image source={{ uri: resolveMediaUrl(item.peerAvatar) }} style={[s.avatar, { borderColor: bg }]} contentFit="cover" />
       ) : (
         <View style={[s.avatarFallback, { backgroundColor: bg }]}>
           <Text style={s.avatarInitials}>{initials}</Text>

@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme, spacing } from '@theme/index';
 import { useProfileHeaderStyles } from './ProfileHeader.styles';
 import { FadeInView, PulsingDot } from './ProfileAnimations';
+import { resolveMediaUrl } from '@utils/url';
 
 interface ProfileHeaderProps {
   avatarUri?: string | null;
@@ -55,7 +56,7 @@ export const ProfileHeader = React.memo(function ProfileHeader({
           <TouchableOpacity onPress={handlePressAvatar} activeOpacity={0.85}>
             <Animated.View style={[s.avatarRing, { borderColor: colors.primary, transform: [{ scale: avatarScale }] }]}>
               <Image
-                source={avatarUri ? { uri: avatarUri } : require('../../../assets/icon.png')}
+                source={avatarUri ? { uri: resolveMediaUrl(avatarUri) } : require('../../../assets/icon.png')}
                 style={s.avatar} contentFit="cover"
               />
             </Animated.View>
