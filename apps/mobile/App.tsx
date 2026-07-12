@@ -6,9 +6,10 @@ initCrashReporting();
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { StyleSheet } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
+import { queryClient } from '@utils/queryClient';
 import { useAuthStore } from '@store/auth.store';
 import { useLanguageStore } from '@store/language.store';
 import { onAccountBlocked } from '@api/client';
@@ -21,15 +22,6 @@ import { useDynamicBlockedDomains } from '@hooks/useDynamicBlockedDomains';
 import { ThemeProvider, useTheme } from '@theme/index';
 
 initErrorLogger();
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 2,
-      staleTime: 5 * 60 * 1000, // 5 min
-    },
-  },
-});
 
 function RootApp() {
   const hydrate = useAuthStore((s) => s.hydrate);

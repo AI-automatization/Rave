@@ -4,6 +4,7 @@ import { IUser } from '@app-types/index';
 import { tokenStorage, profileSetupStorage } from '@utils/storage';
 import { userApi } from '@api/user.api';
 import { setErrorUser, clearErrorUser } from '@utils/errorLogger';
+import { queryClient } from '@utils/queryClient';
 
 interface AuthState {
   user: IUser | null;
@@ -101,6 +102,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       disconnectSocket();
     } catch {}
     await tokenStorage.clear();
+    // Without this, React Query's cache survives account switches — query keys like
+    // ['my-profile'] aren't scoped by userId, so re-login as a different account served
+    // the PREVIOUS account's cached profile/stats until an app restart wiped the cache.
+    queryClient.clear();
     set({ user: null, accessToken: null, isAuthenticated: false, needsProfileSetup: false });
   },
 
