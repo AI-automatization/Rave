@@ -1,5 +1,13 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { WIcon } from '@/components/common/WeWatchLogo';
+
+// Auth sahifalari (login, register) qidiruvda indekslanmasligi kerak — aks holda
+// Google ularni brend so'roviga ("wewatch") bosh sahifa o'rniga chiqaradi.
+// follow:true — havolalar orqali bosh sahifaga link-equity o'tishi uchun.
+export const metadata: Metadata = {
+  robots: { index: false, follow: true },
+};
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (

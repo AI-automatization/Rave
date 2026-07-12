@@ -30,6 +30,9 @@ export const updateSettingsSchema = Joi.object({
     friendOnline: Joi.boolean().optional(),
     emailDigest: Joi.boolean().optional(),
   }).optional(),
+  privacy: Joi.object({
+    allowForward: Joi.boolean().optional(),
+  }).optional(),
 });
 
 export const fcmTokenSchema = Joi.object({

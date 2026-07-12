@@ -10,6 +10,7 @@ import { RANK_COLORS } from '@theme/index';
 import { useT } from '@i18n/index';
 import type { IUserPublic } from '@app-types/index';
 import { DEFAULT_AVATAR } from '@utils/assets';
+import { resolveMediaUrl } from '@utils/url';
 
 // ─── Friend Row ───────────────────────────────────────────────────────────────
 
@@ -41,7 +42,7 @@ export const FriendRow = React.memo(function FriendRow({
         <View style={s.avatarWrap}>
           <View style={[s.avatarRing, { borderColor: rankColor + '80' }]}>
             <Image
-              source={item.avatar ? { uri: item.avatar } : DEFAULT_AVATAR}
+              source={item.avatar ? { uri: resolveMediaUrl(item.avatar) } : DEFAULT_AVATAR}
               style={s.avatar}
               contentFit="cover"
               cachePolicy="memory-disk"
@@ -99,7 +100,7 @@ export const RequestCard = React.memo(function RequestCard({
       <View style={s.avatarWrap}>
         <View style={[s.avatarRing, { borderColor: rankColor + '80' }]}>
           <Image
-            source={item.requester.avatar ? { uri: item.requester.avatar } : DEFAULT_AVATAR}
+            source={item.requester.avatar ? { uri: resolveMediaUrl(item.requester.avatar) } : DEFAULT_AVATAR}
             style={s.avatar}
             contentFit="cover"
           />

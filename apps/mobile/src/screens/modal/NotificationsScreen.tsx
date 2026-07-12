@@ -52,6 +52,7 @@ export function NotificationsScreen() {
     friend_online:        { icon: 'radio-button-on-outline',  color: colors.success },
     friend_watching:      { icon: 'eye-outline',              color: colors.secondary },
     support_reply:        { icon: 'headset-outline',          color: colors.primary },
+    dm_message:           { icon: 'chatbubble-outline',        color: colors.primary },
     admin_warning:        { icon: 'warning-outline',           color: colors.error },
     announcement:         { icon: 'megaphone-outline',         color: colors.primary },
     maintenance:          { icon: 'construct-outline',         color: colors.error },

@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { FaPlay, FaUsers } from 'react-icons/fa';
 
 export const metadata: Metadata = {
-  title: 'Что такое Watch Party — совместный просмотр видео онлайн | WeWatch',
+  title: 'Что такое Watch Party — совместный просмотр видео онлайн',
   description: 'Watch party — это синхронный совместный просмотр видео с друзьями в интернете. Объясняем как это работает, чем отличается от обычного просмотра и как начать.',
   keywords: [
     'что такое watch party', 'watch party что это', 'совместный просмотр видео онлайн',

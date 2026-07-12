@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { FaPlay } from 'react-icons/fa';
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy — WeWatch',
+  title: 'Privacy Policy',
   description: 'WeWatch Privacy Policy — how we collect, use, and protect your personal data.',
   robots: { index: true, follow: true },
 };

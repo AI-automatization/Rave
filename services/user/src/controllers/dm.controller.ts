@@ -22,8 +22,20 @@ export class DMController {
     try {
       const { userId: myId } = (req as AuthenticatedRequest).user;
       const { userId } = req.params;
-      const { text } = req.body as { text: string };
-      const message = await this.dmService.sendMessage(myId, userId, text);
+      const { text, replyToId } = req.body as { text: string; replyToId?: string };
+      const message = await this.dmService.sendMessage(myId, userId, text, { replyToId });
+      res.status(201).json(apiResponse.success(message));
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  forwardMessage = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId: myId } = (req as AuthenticatedRequest).user;
+      const { userId } = req.params;
+      const { messageId } = req.body as { messageId: string };
+      const message = await this.dmService.forwardMessage(myId, userId, messageId);
       res.status(201).json(apiResponse.success(message));
     } catch (err) {
       next(err);

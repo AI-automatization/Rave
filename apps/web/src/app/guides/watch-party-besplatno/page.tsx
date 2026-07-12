@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
 
 export const metadata: Metadata = {
-  title: 'Watch Party бесплатно — лучшее приложение 2026 | WeWatch',
+  title: 'Watch Party бесплатно — лучшее приложение 2026',
   description: 'Бесплатный Watch Party для iOS и Android. WeWatch — смотри YouTube, VK, Rutube синхронно с друзьями. Без подписки, без ограничений по времени.',
   keywords: ['watch party бесплатно', 'бесплатный watch party', 'watch party приложение бесплатно', 'watch party без регистрации', 'лучший watch party', 'watch party ios android'],
   alternates: { canonical: 'https://wewatch.uz/guides/watch-party-besplatno' },
@@ -44,6 +45,7 @@ export default function WatchPartyBesplatnoPage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <GuideHeader locale="ru" />
       <main className="min-h-screen bg-[#060608] text-white">
         <div className="max-w-3xl mx-auto px-4 py-16">
           <nav className="text-sm text-zinc-500 mb-8">
@@ -122,6 +124,7 @@ export default function WatchPartyBesplatnoPage() {
           </div>
         </div>
       </main>
+      <GuideFooter locale="ru" />
     </>
   );
 }

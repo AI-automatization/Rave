@@ -14,9 +14,9 @@ export const registerDMEvents = (io: SocketServer, socket: Socket): void => {
   const { userId } = authSocket.user;
   const token = socket.handshake.auth.token as string;
 
-  socket.on(CLIENT_EVENTS.DM_SEND, async (data: { receiverId: string; text: string }) => {
+  socket.on(CLIENT_EVENTS.DM_SEND, async (data: { receiverId: string; text: string; replyToId?: string }) => {
     try {
-      const { receiverId, text } = data ?? {};
+      const { receiverId, text, replyToId } = data ?? {};
       if (!receiverId || !text) return;
 
       const safeText = xss(String(text).trim().slice(0, 2000));
@@ -24,7 +24,7 @@ export const registerDMEvents = (io: SocketServer, socket: Socket): void => {
 
       const { data: body } = await axios.post(
         `${userServiceUrl}/api/v1/users/dm/${receiverId}`,
-        { text: safeText },
+        { text: safeText, replyToId: replyToId ?? undefined },
         { headers: { Authorization: `Bearer ${token}` }, timeout: 5000 },
       );
 

@@ -117,6 +117,7 @@ export const createUserRouter = (redis: Redis): Router => {
   router.get('/dm/conversations', verifyToken, notBlocked, dmController.getConversations);
   router.get('/dm/:userId', verifyToken, notBlocked, dmController.getHistory);
   router.post('/dm/:userId', verifyToken, notBlocked, dmController.sendMessage);
+  router.post('/dm/:userId/forward', verifyToken, notBlocked, dmController.forwardMessage);
   router.patch('/dm/:userId/read', verifyToken, notBlocked, dmController.markRead);
 
   // ── Internal (service-to-service) ────────────────────────

@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { spacing, borderRadius } from '@theme/index';
 import { useT } from '@i18n/index';
+import { resolveMediaUrl } from '@utils/url';
 
 interface Props {
   visible: boolean;
@@ -72,7 +73,7 @@ export function UserActionSheet({
         {/* User info header */}
         <View style={s.userRow}>
           {avatar ? (
-            <Image source={{ uri: avatar }} style={[s.avatar, { borderColor: bg }]} contentFit="cover" />
+            <Image source={{ uri: resolveMediaUrl(avatar) }} style={[s.avatar, { borderColor: bg }]} contentFit="cover" />
           ) : (
             <View style={[s.avatarFallback, { backgroundColor: bg }]}>
               <Text style={s.avatarInitials}>{initials}</Text>

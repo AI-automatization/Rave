@@ -14,10 +14,8 @@ function getUserIdFromToken(token: string): string | null {
   }
 }
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: { id: string } },
-) {
+export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const accessToken = req.cookies.get('access_token')?.value;
     if (!accessToken) return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
@@ -35,10 +33,8 @@ export async function GET(
   }
 }
 
-export async function POST(
-  req: NextRequest,
-  { params }: { params: { id: string } },
-) {
+export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const accessToken = req.cookies.get('access_token')?.value;
     if (!accessToken) return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });

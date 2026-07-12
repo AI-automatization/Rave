@@ -4,7 +4,7 @@ import { ContactContent } from './ContactContent';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 
 export const metadata: Metadata = {
-  title: 'Контакты — WeWatch и tezcode.dev | Написать нам',
+  title: { absolute: 'Контакты — WeWatch и tezcode.dev | Написать нам' },
   description:
     'Свяжитесь с командой WeWatch и tezcode.dev: email tezcode@tezcode.dev, Telegram, Instagram. Вопросы, сотрудничество или идеи — мы на связи.',
   alternates: { canonical: `${APP_URL}/contact` },

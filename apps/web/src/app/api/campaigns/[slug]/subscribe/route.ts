@@ -4,10 +4,8 @@ const NOTIFICATION_URL =
   process.env.NOTIFICATION_SERVICE_URL ??
   'https://notification-production-9c30.up.railway.app/api/v1';
 
-export async function POST(
-  req: NextRequest,
-  { params }: { params: { slug: string } },
-): Promise<NextResponse> {
+export async function POST(req: NextRequest, props: { params: Promise<{ slug: string }> }): Promise<NextResponse> {
+  const params = await props.params;
   try {
     const { email, locale } = (await req.json()) as { email?: string; locale?: string };
     if (!email?.includes('@')) return NextResponse.json({ success: false, message: 'Invalid email' }, { status: 400 });

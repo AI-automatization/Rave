@@ -1,109 +1,98 @@
 /**
- * WeWatch PWA ikonkalari generatori (pure Node.js, bog'liqlik yo'q)
+ * WeWatch ikonkalar generatori — public/favicon.svg (binafsha "W" logo) asosida.
+ * Barcha PWA ikonkalari, favicon PNG'lari va multi-resolution favicon.ico yaratadi.
  * Ishlatish: node apps/web/generate-icons.mjs
+ *
+ * Diqqat: manba — public/favicon.svg. Logo o'zgarsa, avval SVG'ni yangilang.
  */
-import { createWriteStream, mkdirSync } from 'fs';
-import { deflateSync, crc32 } from 'zlib';
+import sharp from 'sharp';
+import { mkdirSync, writeFileSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const ICONS_DIR = join(__dirname, 'public', 'icons');
+const PUBLIC_DIR = join(__dirname, 'public');
+const ICONS_DIR = join(PUBLIC_DIR, 'icons');
+const SVG = join(PUBLIC_DIR, 'favicon.svg');
+
+if (!existsSync(SVG)) {
+  console.error(`❌  Manba topilmadi: ${SVG}`);
+  process.exit(1);
+}
 mkdirSync(ICONS_DIR, { recursive: true });
 
-// ─── CRC32 helper ────────────────────────────────────────────────────────────
-function crc(type, data) {
-  const buf = Buffer.alloc(type.length + data.length);
-  Buffer.from(type).copy(buf);
-  data.copy(buf, type.length);
-  return crc32(buf);
+// Ilova to'q foni — apple-touch va PWA ikonkalari shu rang ustida tekislanadi
+// (shaffof burchaklar iOS'da qora, maskable PWA'da esa buzuq ko'rinadi).
+const DARK_BG = { r: 10, g: 10, b: 15 }; // #0A0A0F
+
+// SVG'ni yuqori zichlikda rasterlash (sifat yo'qolmasligi uchun).
+// solid=true → to'q fon ustida tekislangan (apple/PWA), aks holda shaffof (favicon).
+const render = (size, solid = false) => {
+  let img = sharp(SVG, { density: 384 }).resize(size, size, {
+    fit: 'contain',
+    background: solid ? DARK_BG : { r: 0, g: 0, b: 0, alpha: 0 },
+  });
+  if (solid) img = img.flatten({ background: DARK_BG });
+  return img.png().toBuffer();
+};
+
+// ─── Multi-resolution favicon.ico (PNG-embedded, zamonaviy brauzerlar + Win Vista+) ──
+function buildIco(entries) {
+  const count = entries.length;
+  const header = Buffer.alloc(6);
+  header.writeUInt16LE(0, 0);
+  header.writeUInt16LE(1, 2);
+  header.writeUInt16LE(count, 4);
+  const dir = Buffer.alloc(16 * count);
+  let offset = 6 + 16 * count;
+  const bufs = [];
+  entries.forEach((e, i) => {
+    const d = i * 16;
+    dir.writeUInt8(e.size >= 256 ? 0 : e.size, d + 0);
+    dir.writeUInt8(e.size >= 256 ? 0 : e.size, d + 1);
+    dir.writeUInt16LE(1, d + 4);   // color planes
+    dir.writeUInt16LE(32, d + 6);  // bits per pixel
+    dir.writeUInt32LE(e.buf.length, d + 8);
+    dir.writeUInt32LE(offset, d + 12);
+    offset += e.buf.length;
+    bufs.push(e.buf);
+  });
+  return Buffer.concat([header, dir, ...bufs]);
 }
 
-// ─── PNG chunk ────────────────────────────────────────────────────────────────
-function chunk(type, data) {
-  const len = Buffer.alloc(4);
-  len.writeUInt32BE(data.length);
-  const crcVal = Buffer.alloc(4);
-  crcVal.writeUInt32BE(crc(type, data) >>> 0);
-  return Buffer.concat([len, Buffer.from(type), data, crcVal]);
-}
-
-// ─── PNG generator ────────────────────────────────────────────────────────────
-function createPNG(size, r, g, b) {
-  // PNG Signature
-  const sig = Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
-
-  // IHDR: width, height, bitDepth=8, colorType=2(RGB), compression=0, filter=0, interlace=0
-  const ihdr = Buffer.alloc(13);
-  ihdr.writeUInt32BE(size, 0);
-  ihdr.writeUInt32BE(size, 4);
-  ihdr.writeUInt8(8, 8);   // bit depth
-  ihdr.writeUInt8(2, 9);   // color type: RGB
-  ihdr.writeUInt8(0, 10);  // compression
-  ihdr.writeUInt8(0, 11);  // filter
-  ihdr.writeUInt8(0, 12);  // interlace
-
-  // Image data: each row starts with filter byte 0, then RGB pixels
-  const rowSize = 1 + size * 3;
-  const raw = Buffer.alloc(size * rowSize);
-  for (let y = 0; y < size; y++) {
-    const rowStart = y * rowSize;
-    raw[rowStart] = 0; // filter none
-    // Background: dark #0A0A0F, "C" letter in center with red #E50914
-    for (let x = 0; x < size; x++) {
-      const px = rowStart + 1 + x * 3;
-      const cx = x - size / 2;
-      const cy = y - size / 2;
-      const radius = size * 0.42;
-      const innerR = size * 0.32;
-      const dist = Math.sqrt(cx * cx + cy * cy);
-
-      if (dist <= radius) {
-        // Inner circle area — red fill
-        raw[px]     = r;
-        raw[px + 1] = g;
-        raw[px + 2] = b;
-
-        // Draw "C" letter shape (dark)
-        const letterScale = size / 512;
-        const lx = cx / letterScale;
-        const ly = cy / letterScale;
-        const lr = Math.sqrt(lx * lx + ly * ly);
-        if (lr < 150 && lr > 80 && !(lx > 60 && Math.abs(ly) < 70)) {
-          raw[px]     = 10;
-          raw[px + 1] = 10;
-          raw[px + 2] = 15;
-        }
-      } else {
-        // Outside circle — dark background
-        raw[px]     = 10;
-        raw[px + 1] = 10;
-        raw[px + 2] = 15;
-      }
-    }
-  }
-
-  const compressed = deflateSync(raw, { level: 9 });
-  const idat = chunk('IDAT', compressed);
-  const iend = chunk('IEND', Buffer.alloc(0));
-
-  return Buffer.concat([sig, chunk('IHDR', ihdr), idat, iend]);
-}
-
-// ─── Ikonkalarni yaratish ─────────────────────────────────────────────────────
-const SIZES = [72, 96, 128, 144, 152, 192, 384, 512];
-const RED = { r: 229, g: 9, b: 20 };  // #E50914
+const PWA_SIZES = [72, 96, 128, 144, 152, 192, 384, 512];
+const FAVICON_PNG_SIZES = [16, 32, 48];
+const ICO_SIZES = [16, 32, 48];
+const APPLE_SIZE = 180;
 
 let created = 0;
-for (const size of SIZES) {
-  const filename = `icon-${size}x${size}.png`;
-  const filepath = join(ICONS_DIR, filename);
-  const png = createPNG(size, RED.r, RED.g, RED.b);
-  const ws = createWriteStream(filepath);
-  ws.write(png);
-  ws.end();
+
+// PWA ikonkalari — to'q fon ustida (shaffofsiz)
+for (const size of PWA_SIZES) {
+  const buf = await render(size, true);
+  writeFileSync(join(ICONS_DIR, `icon-${size}x${size}.png`), buf);
   created++;
-  console.log(`  ✓  ${filename} (${size}x${size})`);
+  console.log(`  ✓  icons/icon-${size}x${size}.png`);
 }
 
-console.log(`\n✅  ${created} ta ikonka yaratildi → public/icons/`);
+// favicon PNG'lari — shaffof (brauzer o'z foni ustida ko'rsatadi)
+for (const size of FAVICON_PNG_SIZES) {
+  const buf = await render(size, false);
+  writeFileSync(join(PUBLIC_DIR, `favicon-${size}.png`), buf);
+  created++;
+  console.log(`  ✓  favicon-${size}.png`);
+}
+
+// apple-touch-icon — to'q fon ustida (iOS shaffoflikni qora qiladi)
+writeFileSync(join(PUBLIC_DIR, 'apple-touch-icon.png'), await render(APPLE_SIZE, true));
+created++;
+console.log(`  ✓  apple-touch-icon.png (${APPLE_SIZE}x${APPLE_SIZE})`);
+
+// favicon.ico — shaffof (brauzer favicon)
+const icoEntries = [];
+for (const size of ICO_SIZES) icoEntries.push({ size, buf: await render(size, false) });
+writeFileSync(join(PUBLIC_DIR, 'favicon.ico'), buildIco(icoEntries));
+created++;
+console.log(`  ✓  favicon.ico (${ICO_SIZES.join('/')} px)`);
+
+console.log(`\n✅  ${created} ta fayl yaratildi (manba: public/favicon.svg)`);

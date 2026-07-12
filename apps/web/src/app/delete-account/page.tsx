@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { FaPlay } from 'react-icons/fa';
 
 export const metadata: Metadata = {
-  title: 'Delete Your Account — WeWatch',
+  title: 'Delete Your Account',
   description:
     'How to delete your WeWatch account and all associated personal data — in-app steps and email request option.',
   robots: { index: true, follow: true },

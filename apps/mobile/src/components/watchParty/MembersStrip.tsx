@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { userApi } from '@api/user.api';
 import { spacing } from '@theme/index';
 import { useT } from '@i18n/index';
+import { resolveMediaUrl } from '@utils/url';
 
 interface Props {
   activeMembers: string[];
@@ -45,7 +46,7 @@ function MemberAvatar({
     <View style={s.avatarWrap}>
       <View style={[s.avatarRing, { borderColor, borderWidth }]}>
         {data?.avatar ? (
-          <Image source={{ uri: data.avatar }} style={s.avatarImg} contentFit="cover" />
+          <Image source={{ uri: resolveMediaUrl(data.avatar) }} style={s.avatarImg} contentFit="cover" />
         ) : (
           <View style={[s.avatarFallback, { backgroundColor: bg }]}>
             <Text style={s.avatarInitials}>{label}</Text>

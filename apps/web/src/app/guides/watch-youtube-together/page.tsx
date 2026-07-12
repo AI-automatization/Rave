@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { FaPlay, FaYoutube } from 'react-icons/fa';
 
 export const metadata: Metadata = {
-  title: 'Как смотреть YouTube вместе с другом онлайн бесплатно | WeWatch',
+  title: 'Как смотреть YouTube вместе с другом онлайн бесплатно',
   description: 'Пошаговая инструкция: как смотреть YouTube вместе с друзьями онлайн синхронно. Работает с iPhone, Android, компьютером — бесплатно и без расширений.',
   keywords: [
     'смотреть youtube вместе', 'как смотреть youtube с другом онлайн', 'смотреть ютуб вместе',
