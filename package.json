@@ -40,7 +40,20 @@
   },
   "overrides": {
     "@types/express": "4.17.25",
-    "@types/express-serve-static-core": "4.19.8"
+    "@types/express-serve-static-core": "4.19.8",
+    "@cinesync/admin-ui": {
+      "@types/react": "18.3.31",
+      "@types/react-dom": {
+        ".": "18.3.7",
+        "@types/react": "18.3.31"
+      }
+    },
+    "@mapbox/node-pre-gyp": {
+      "tar": "^7.5.16"
+    },
+    "@next/eslint-plugin-next": {
+      "glob": "^10.5.0"
+    }
   },
   "engines": {
     "node": ">=20.0.0",
