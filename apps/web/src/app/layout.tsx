@@ -92,7 +92,9 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   icons: {
     icon: [
+      { url: '/favicon.ico', sizes: '48x48', type: 'image/x-icon' },
       { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/favicon-16.png', sizes: '16x16', type: 'image/png' },
       { url: '/favicon-32.png', sizes: '32x32', type: 'image/png' },
       { url: '/favicon-48.png', sizes: '48x48', type: 'image/png' },
       { url: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
@@ -102,7 +104,7 @@ export const metadata: Metadata = {
       { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
       { url: '/icons/icon-152x152.png', sizes: '152x152', type: 'image/png' },
     ],
-    shortcut: '/favicon-32.png',
+    shortcut: '/favicon.ico',
   },
   appleWebApp: {
     capable: true,

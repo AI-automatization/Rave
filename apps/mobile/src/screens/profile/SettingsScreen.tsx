@@ -219,6 +219,7 @@ export function SettingsScreen() {
               <View key={item.key} style={i < PRIVACY_TOGGLES.length - 1 ? styles.rowBorder : undefined}>
                 <ToggleRow
                   label={t('settings', item.labelKey)}
+                  sub={item.subKey ? t('settings', item.subKey) : undefined}
                   value={privacyToggles[item.key] ?? true}
                   onChange={v => togglePrivacy(item.key, v)}
                 />

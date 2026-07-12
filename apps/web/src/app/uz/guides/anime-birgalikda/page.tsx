@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
 
 export const metadata: Metadata = {
-  title: "Anime do'stlar bilan onlayn birgalikda ko'rish — bepul | WeWatch",
+  title: "Anime do'stlar bilan onlayn birgalikda ko'rish — bepul",
   description:
     "WeWatch orqali anime-ni do'stlaringiz bilan sinxron holda tomosha qiling. Bir kishi pause bosadi — hammaga to'xtaydi. Jujutsu Kaisen, One Piece, Attack on Titan — bepul.",
   keywords: [
@@ -61,6 +62,7 @@ export default function AnimeBirgalikdaPage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <GuideHeader locale="uz" />
       <main className="min-h-screen bg-[#060608] text-white">
         <div className="max-w-3xl mx-auto px-4 py-16">
           <nav className="text-sm text-zinc-500 mb-8">
@@ -175,11 +177,13 @@ export default function AnimeBirgalikdaPage() {
               <Link href="/uz/guides/birgalikda-tomosha-qilish" className="text-sm text-purple-400 hover:text-purple-300 transition-colors">Birgalikda tomosha →</Link>
               <Link href="/uz/guides/youtube-birgalikda" className="text-sm text-purple-400 hover:text-purple-300 transition-colors">YouTube birgalikda →</Link>
               <Link href="/uz/guides/serial-birgalikda" className="text-sm text-purple-400 hover:text-purple-300 transition-colors">Serial birgalikda →</Link>
+              <Link href="/uz/guides/kino-birgalikda" className="text-sm text-purple-400 hover:text-purple-300 transition-colors">Kino birgalikda →</Link>
               <Link href="/guides/smotret-anime-vmeste" className="text-sm text-zinc-500 hover:text-zinc-400 transition-colors">На русском →</Link>
             </div>
           </div>
         </div>
       </main>
+      <GuideFooter locale="uz" />
     </>
   );
 }

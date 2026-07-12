@@ -15,6 +15,7 @@ import { RANK_COLORS } from '@theme/index';
 import { IUserPublic, FriendsStackParamList } from '@app-types/index';
 import { useT } from '@i18n/index';
 import { DEFAULT_AVATAR } from '@utils/assets';
+import { resolveMediaUrl } from '@utils/url';
 import { useStyles } from './FriendSearchScreen.styles';
 import { appAlert } from '@components/common/AppAlert';
 
@@ -62,7 +63,7 @@ export function FriendSearchScreen() {
         <View style={styles.avatarWrap}>
           <View style={[styles.avatarRing, { borderColor: rankColor + '80' }]}>
             <Image
-              source={item.avatar ? { uri: item.avatar } : DEFAULT_AVATAR}
+              source={item.avatar ? { uri: resolveMediaUrl(item.avatar) } : DEFAULT_AVATAR}
               style={styles.avatar}
               contentFit="cover"
             />
@@ -158,7 +159,7 @@ export function FriendSearchScreen() {
                   <Ionicons name="person-outline" size={32} color={colors.primary} />
                 </View>
                 <Text style={styles.emptyTitle}>{t('watchParty', 'noSearchResults')}</Text>
-                <Text style={styles.emptySubtext}>«{query}» не совпадает ни с одним пользователем</Text>
+                <Text style={styles.emptySubtext}>«{query}» {t('friends', 'noMatchSuffix')}</Text>
               </View>
             ) : (
               <View style={styles.empty}>

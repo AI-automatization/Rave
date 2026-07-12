@@ -1,5 +1,5 @@
 // WeWatch Mobile — DM Conversations Screen (T-E138)
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity,
   ActivityIndicator, StyleSheet, ListRenderItemInfo,
@@ -9,11 +9,14 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { dmApi } from '@api/user.api';
-import { IDMConversation, ChatsStackParamList } from '@app-types/index';
+import { IDMConversation, IDMMessage, ChatsStackParamList } from '@app-types/index';
 import { useT } from '@i18n/index';
 import { spacing } from '@theme/index';
+import { resolveMediaUrl } from '@utils/url';
+import { useEnsureSocket } from '@hooks/useEnsureSocket';
+import { getSocket, SERVER_EVENTS } from '@socket/client';
 
 type NavProp = NativeStackNavigationProp<ChatsStackParamList, 'Conversations'>;
 
@@ -25,24 +28,25 @@ function memberColor(id: string): string {
   return palette[Math.abs(h) % palette.length];
 }
 
-function formatRelative(dateStr: string): string {
+function formatRelative(dateStr: string, tr: (section: 'dm', key: string) => string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const min = Math.floor(diff / 60_000);
-  if (min < 1) return '<1 min';
-  if (min < 60) return `${min} min`;
+  if (min < 1) return tr('dm', 'timeNow');
+  if (min < 60) return `${min} ${tr('dm', 'timeMin')}`;
   const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr} h`;
-  return `${Math.floor(hr / 24)} d`;
+  if (hr < 24) return `${hr} ${tr('dm', 'timeHour')}`;
+  return `${Math.floor(hr / 24)} ${tr('dm', 'timeDay')}`;
 }
 
 function ConvItem({ item, onPress }: { item: IDMConversation; onPress: () => void }) {
+  const { t } = useT();
   const bg = memberColor(item.peerId);
   const initials = (item.peerUsername ?? '?').slice(0, 2).toUpperCase();
 
   return (
     <TouchableOpacity style={s.row} onPress={onPress} activeOpacity={0.75}>
       {item.peerAvatar ? (
-        <Image source={{ uri: item.peerAvatar }} style={[s.avatar, { borderColor: bg }]} contentFit="cover" />
+        <Image source={{ uri: resolveMediaUrl(item.peerAvatar) }} style={[s.avatar, { borderColor: bg }]} contentFit="cover" />
       ) : (
         <View style={[s.avatarFallback, { backgroundColor: bg }]}>
           <Text style={s.avatarInitials}>{initials}</Text>
@@ -54,7 +58,7 @@ function ConvItem({ item, onPress }: { item: IDMConversation; onPress: () => voi
           <Text style={[s.username, item.unreadCount > 0 && s.usernameUnread]} numberOfLines={1}>
             {item.peerUsername}
           </Text>
-          <Text style={s.time}>{formatRelative(item.lastMessageAt)}</Text>
+          <Text style={s.time}>{formatRelative(item.lastMessageAt, t)}</Text>
         </View>
         <View style={s.bottomRow}>
           <Text style={[s.lastMsg, item.unreadCount > 0 && s.lastMsgUnread]} numberOfLines={1}>
@@ -75,6 +79,10 @@ export function ConversationsScreen() {
   const navigation = useNavigation<NavProp>();
   const insets = useSafeAreaInsets();
   const { t } = useT();
+  const queryClient = useQueryClient();
+
+  // DM realtime uchun socket ulanishini kafolatlash
+  useEnsureSocket();
 
   const { data: conversations = [], isLoading, refetch } = useQuery<IDMConversation[]>({
     queryKey: ['dm-conversations'],
@@ -89,6 +97,18 @@ export function ConversationsScreen() {
       void refetch();
     }, [refetch]),
   );
+
+  // Jonli yangilanish: yangi DM kelganda suhbatlar ro'yxatini (so'nggi xabar,
+  // unread badge) darhol yangilash — ekranni qayta ochmasdan.
+  useEffect(() => {
+    const sock = getSocket();
+    if (!sock) return;
+    const onDM = (_msg: IDMMessage) => {
+      void queryClient.invalidateQueries({ queryKey: ['dm-conversations'] });
+    };
+    sock.on(SERVER_EVENTS.DM_MESSAGE, onDM);
+    return () => { sock.off(SERVER_EVENTS.DM_MESSAGE, onDM); };
+  }, [queryClient]);
 
   return (
     <View style={[s.root, { paddingTop: insets.top }]}>

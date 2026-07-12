@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { FaPlay } from 'react-icons/fa';
 
 export const metadata: Metadata = {
-  title: 'FAQ — Часто задаваемые вопросы | WeWatch',
+  title: 'FAQ — Часто задаваемые вопросы',
   description: 'Ответы на частые вопросы о WeWatch: как смотреть YouTube вместе, какие платформы поддерживаются, бесплатно ли приложение, как работает синхронизация.',
   keywords: [
     'wewatch faq', 'wewatch вопросы', 'как смотреть youtube вместе', 'watch party как работает',

@@ -21,6 +21,7 @@ export const NOTIFICATION_TOGGLES: ToggleItem[] = [
 export const PRIVACY_TOGGLES: ToggleItem[] = [
   { key: 'showOnlineStatus', labelKey: 'showOnlineStatus' },
   { key: 'showWatchHistory', labelKey: 'showWatchHistory' },
+  { key: 'allowForward', labelKey: 'allowForward', subKey: 'allowForwardSub' },
 ];
 
 export type { ToggleItem };
@@ -55,6 +56,8 @@ export function useSettingsStorage() {
             if (remote.privacy) {
               privacy.showOnlineStatus = remote.privacy.showActivity;
               privacy.showWatchHistory = remote.privacy.showActivity;
+              // allowForward backend'da alohida saqlanadi (default: true)
+              privacy.allowForward = remote.privacy.allowForward ?? true;
             }
             setNotifToggles(notif);
             setPrivacyToggles(privacy);
@@ -98,10 +101,11 @@ export function useSettingsStorage() {
         || notif.watchPartyInvite !== false;
       const emailEnabled = notif.dailyReminder !== false;
       const showActivity = privacy.showOnlineStatus !== false;
+      const allowForward = privacy.allowForward !== false;
 
       userApi.updateSettings({
         notifications: { push: pushEnabled, email: emailEnabled },
-        privacy: { showActivity },
+        privacy: { showActivity, allowForward },
       }).catch(() => { /* silent */ });
     }
   }, [isAuthenticated]);

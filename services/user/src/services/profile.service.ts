@@ -1,6 +1,6 @@
 import Redis from 'ioredis';
 import xss from 'xss';
-import { User, IUserDocument, INotificationSettings } from '../models/user.model';
+import { User, IUserDocument, INotificationSettings, IPrivacySettings } from '../models/user.model';
 import { Friendship } from '../models/friendship.model';
 import { logger } from '@shared/utils/logger';
 import { NotFoundError, BadRequestError } from '@shared/utils/errors';
@@ -84,13 +84,19 @@ export class ProfileService {
 
   async updateSettings(
     userId: string,
-    updates: { notifications?: Partial<INotificationSettings> },
+    updates: { notifications?: Partial<INotificationSettings>; privacy?: Partial<IPrivacySettings> },
   ): Promise<IUserDocument['settings']> {
     const updateFields: Record<string, unknown> = {};
 
     if (updates.notifications) {
       for (const [key, value] of Object.entries(updates.notifications)) {
         updateFields[`settings.notifications.${key}`] = value;
+      }
+    }
+
+    if (updates.privacy) {
+      for (const [key, value] of Object.entries(updates.privacy)) {
+        updateFields[`settings.privacy.${key}`] = value;
       }
     }
 

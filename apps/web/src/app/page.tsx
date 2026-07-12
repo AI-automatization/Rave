@@ -4,7 +4,7 @@ import { LandingContent } from './LandingContent';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 
 export const metadata: Metadata = {
-  title: 'WeWatch — Смотреть вместе онлайн | Watch Party бесплатно',
+  title: { absolute: 'WeWatch — Смотреть вместе онлайн | Watch Party бесплатно' },
   description:
     'WeWatch — смотри YouTube, VK и Rutube с друзьями в реальном времени. Бесплатный watch party с синхронизацией, чатом и эмодзи. Скачай на iOS и Android.',
   alternates: {
@@ -34,7 +34,7 @@ const jsonLd = {
       '@id': `${APP_URL}/#website`,
       url: APP_URL,
       name: 'WeWatch',
-      alternateName: ['wewatch', 'wewatch.uz', 'WeWatch app', 'вивотч'],
+      alternateName: ['wewatch', 'wewatch.uz', 'WeWatch app', 'вивотч', 'ви вотч', 'вевотч', 'ви воч'],
       description: 'Бесплатный watch party — смотри YouTube, VK, Rutube с друзьями в реальном времени',
       inLanguage: ['ru', 'uz', 'en'],
       potentialAction: {
