@@ -199,7 +199,11 @@ export function useWebViewPlayer(
   const webViewSource = htmlContent
     ? { html: htmlContent, baseUrl: htmlBaseUrl ?? 'about:blank' }
     : isYouTubeMode
-    ? { html: buildYouTubeHtml(youtubeVideoId!), baseUrl: 'https://www.youtube.com' }
+    // baseUrl must NOT be youtube.com itself — the WebView's effective Referer becomes
+    // this origin, and YouTube's embed endpoint now rejects that as an impossible/spoofed
+    // embedder identity (PLAYABILITY_ERROR_CODE_EMBEDDER_IDENTITY_DENIED), failing EVERY
+    // video regardless of its real per-video embedding setting. Our own domain works fine.
+    ? { html: buildYouTubeHtml(youtubeVideoId!), baseUrl: 'https://wewatch.uz' }
     : { uri: url, headers: referer ? { Referer: referer } : {} };
 
   return {
