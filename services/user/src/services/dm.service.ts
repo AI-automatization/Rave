@@ -7,6 +7,7 @@ import { encryptText, decryptText } from '../utils/dmCrypto';
 
 const PAGE_SIZE = 50;
 const REPLY_SNIPPET_MAX = 300;
+const MAX_PINNED_CONVERSATIONS = 5;
 
 export interface DMMessage {
   // Must be `_id` (not `id`): the mobile client, keyExtractor and socket-echo
@@ -21,6 +22,7 @@ export interface DMMessage {
   replyToText: string | null;
   replyToSender: string | null;
   forwardFrom: string | null;
+  pinned: boolean;
   createdAt: Date;
 }
 
@@ -30,7 +32,7 @@ export interface SendOptions {
   forwardFrom?: string | null;
 }
 
-function toDMMessage(m: Pick<IDirectMessageDocument, 'senderId' | 'receiverId' | 'text' | 'read' | 'replyToId' | 'replyToText' | 'replyToSender' | 'forwardFrom' | 'createdAt'> & { _id: unknown }): DMMessage {
+function toDMMessage(m: Pick<IDirectMessageDocument, 'senderId' | 'receiverId' | 'text' | 'read' | 'replyToId' | 'replyToText' | 'replyToSender' | 'forwardFrom' | 'pinned' | 'createdAt'> & { _id: unknown }): DMMessage {
   return {
     _id: String(m._id),
     senderId: m.senderId,
@@ -41,6 +43,7 @@ function toDMMessage(m: Pick<IDirectMessageDocument, 'senderId' | 'receiverId' |
     replyToText: m.replyToText ? decryptText(m.replyToText) : null,
     replyToSender: m.replyToSender ?? null,
     forwardFrom: m.forwardFrom ?? null,
+    pinned: m.pinned ?? false,
     createdAt: m.createdAt,
   };
 }
@@ -52,6 +55,8 @@ export interface Conversation {
   lastMessage: string;
   lastMessageAt: Date;
   unreadCount: number;
+  isMuted: boolean;
+  isPinned: boolean;
 }
 
 export class DMService {
@@ -90,7 +95,7 @@ export class DMService {
     if (senderId === receiverId) throw new BadRequestError('Cannot message yourself');
 
     const [receiver, sender] = await Promise.all([
-      User.findById(receiverId).select('username').lean(),
+      User.findById(receiverId).select('username mutedPeerIds').lean(),
       User.findById(senderId).select('username').lean(),
     ]);
     if (!receiver) throw new NotFoundError('User not found');
@@ -134,20 +139,25 @@ export class DMService {
     });
 
     // Telefonga push — qabul qiluvchi offline bo'lsa ham xabar keladi (Telegram uslubi).
-    // Push data'sida peerId = jo'natuvchi → notification bosilganda uning chati ochiladi;
-    // categoryId 'dm_reply' → bildirishnomadан to'g'ridan-to'g'ri javob yozish action'i.
-    void sendInternalNotification({
-      userId: receiverId,
-      type: 'dm_message',
-      title: sender?.username ?? 'Yangi xabar',
-      body: forwardFrom ? `↪ ${trimmed}` : trimmed,
-      data: {
-        peerId: senderId,
-        peerName: sender?.username ?? '',
-        screen: 'DMChat',
-        categoryId: 'dm_reply',
-      },
-    });
+    // Muted bo'lsa — push yubormaymiz, lekin xabarning o'zi baribir yetib boradi
+    // (socket orqali, agar chat ochiq bo'lsa) va unread hisoblagichga qo'shiladi.
+    const isMuted = (receiver.mutedPeerIds ?? []).includes(senderId);
+    if (!isMuted) {
+      // Push data'sida peerId = jo'natuvchi → notification bosilganda uning chati ochiladi;
+      // categoryId 'dm_reply' → bildirishnomadан to'g'ridan-to'g'ri javob yozish action'i.
+      void sendInternalNotification({
+        userId: receiverId,
+        type: 'dm_message',
+        title: sender?.username ?? 'Yangi xabar',
+        body: forwardFrom ? `↪ ${trimmed}` : trimmed,
+        data: {
+          peerId: senderId,
+          peerName: sender?.username ?? '',
+          screen: 'DMChat',
+          categoryId: 'dm_reply',
+        },
+      });
+    }
 
     return toDMMessage(msg);
   }
@@ -188,6 +198,73 @@ export class DMService {
     );
   }
 
+  // View-based read receipt: only messages up to (and including) the one the reader
+  // actually scrolled to are marked read — not the whole conversation on open.
+  // Returns the read-up-to timestamp so the caller can emit a realtime tick update
+  // to the sender, or null if nothing changed (already read / no matching messages).
+  async markReadUpTo(myId: string, peerId: string, messageId: string): Promise<Date | null> {
+    if (!Types.ObjectId.isValid(messageId)) throw new BadRequestError('Invalid message id');
+    const cursor = await DirectMessage.findById(messageId).lean();
+    if (!cursor) throw new NotFoundError('Message not found');
+
+    const belongs = (cursor.senderId === peerId && cursor.receiverId === myId) ||
+      (cursor.senderId === myId && cursor.receiverId === peerId);
+    if (!belongs) throw new ForbiddenError('Message does not belong to this conversation');
+
+    const result = await DirectMessage.updateMany(
+      { senderId: peerId, receiverId: myId, read: false, createdAt: { $lte: cursor.createdAt } },
+      { $set: { read: true } },
+    );
+    return result.modifiedCount > 0 ? cursor.createdAt : null;
+  }
+
+  async toggleMute(myId: string, peerId: string, muted: boolean): Promise<void> {
+    await User.updateOne(
+      { _id: myId },
+      muted ? { $addToSet: { mutedPeerIds: peerId } } : { $pull: { mutedPeerIds: peerId } },
+    );
+  }
+
+  async togglePinConversation(myId: string, peerId: string, pinned: boolean): Promise<void> {
+    if (pinned) {
+      const me = await User.findById(myId).select('pinnedPeerIds').lean();
+      const current = me?.pinnedPeerIds ?? [];
+      if (!current.includes(peerId) && current.length >= MAX_PINNED_CONVERSATIONS) {
+        throw new BadRequestError(`Cannot pin more than ${MAX_PINNED_CONVERSATIONS} conversations`);
+      }
+      await User.updateOne({ _id: myId }, { $addToSet: { pinnedPeerIds: peerId } });
+    } else {
+      await User.updateOne({ _id: myId }, { $pull: { pinnedPeerIds: peerId } });
+    }
+  }
+
+  // Pin state is shared between both participants (Telegram DM behavior) — either
+  // side can pin/unpin, and both see the result.
+  async togglePinMessage(myId: string, peerId: string, messageId: string, pinned: boolean): Promise<DMMessage> {
+    if (!Types.ObjectId.isValid(messageId)) throw new BadRequestError('Invalid message id');
+    const msg = await DirectMessage.findById(messageId);
+    if (!msg) throw new NotFoundError('Message not found');
+
+    const belongs = (msg.senderId === myId && msg.receiverId === peerId) ||
+      (msg.senderId === peerId && msg.receiverId === myId);
+    if (!belongs) throw new ForbiddenError('Message does not belong to this conversation');
+
+    msg.pinned = pinned;
+    await msg.save();
+    return toDMMessage(msg);
+  }
+
+  async getPinnedMessages(myId: string, peerId: string): Promise<DMMessage[]> {
+    const msgs = await DirectMessage.find({
+      $or: [
+        { senderId: myId, receiverId: peerId },
+        { senderId: peerId, receiverId: myId },
+      ],
+      pinned: true,
+    }).sort({ createdAt: 1 }).lean();
+    return msgs.map((m) => toDMMessage(m));
+  }
+
   async getConversations(myId: string): Promise<Conversation[]> {
     // Aggregate: последнее сообщение для каждого собеседника
     const rows = await DirectMessage.aggregate([
@@ -222,13 +299,16 @@ export class DMService {
     ]);
 
     const peerIds = rows.map((r) => r._id);
-    const peers = await User.find({ _id: { $in: peerIds } })
-      .select('_id username avatar')
-      .lean();
+    const [peers, me] = await Promise.all([
+      User.find({ _id: { $in: peerIds } }).select('_id username avatar').lean(),
+      User.findById(myId).select('mutedPeerIds pinnedPeerIds').lean(),
+    ]);
 
     const peerMap = new Map(peers.map((p) => [String(p._id), p]));
+    const mutedSet = new Set(me?.mutedPeerIds ?? []);
+    const pinnedOrder = me?.pinnedPeerIds ?? [];
 
-    return rows
+    const conversations: Conversation[] = rows
       .filter((r) => peerMap.has(r._id))
       .map((r) => {
         const peer = peerMap.get(r._id)!;
@@ -239,7 +319,21 @@ export class DMService {
           lastMessage: decryptText(r.lastMessage),
           lastMessageAt: r.lastMessageAt,
           unreadCount: r.unreadCount,
+          isMuted: mutedSet.has(String(peer._id)),
+          isPinned: pinnedOrder.includes(String(peer._id)),
         };
       });
+
+    // Pinned conversations float to the top, in the order they were pinned
+    // (matches pinnedPeerIds array order); everything else keeps its
+    // most-recent-first order from the aggregation above.
+    return conversations.sort((a, b) => {
+      const aPin = pinnedOrder.indexOf(a.peerId);
+      const bPin = pinnedOrder.indexOf(b.peerId);
+      if (aPin !== -1 && bPin !== -1) return aPin - bPin;
+      if (aPin !== -1) return -1;
+      if (bPin !== -1) return 1;
+      return 0; // stable sort preserves the incoming most-recent-first order
+    });
   }
 }

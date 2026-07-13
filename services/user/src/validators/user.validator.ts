@@ -39,4 +39,20 @@ export const fcmTokenSchema = Joi.object({
   token: Joi.string().required(),
 });
 
+export const muteConversationSchema = Joi.object({
+  muted: Joi.boolean().required(),
+});
+
+export const pinConversationSchema = Joi.object({
+  pinned: Joi.boolean().required(),
+});
+
+export const pinMessageSchema = Joi.object({
+  pinned: Joi.boolean().required(),
+});
+
+export const markReadUpToSchema = Joi.object({
+  messageId: Joi.string().required(),
+});
+
 export { validate };
