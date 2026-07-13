@@ -8,6 +8,7 @@ import { encryptText, decryptText } from '../utils/dmCrypto';
 const PAGE_SIZE = 50;
 const REPLY_SNIPPET_MAX = 300;
 const MAX_PINNED_CONVERSATIONS = 5;
+const UNREAD_PUSH_PREVIEW_LIMIT = 5;
 
 export interface DMMessage {
   // Must be `_id` (not `id`): the mobile client, keyExtractor and socket-echo
@@ -143,18 +144,34 @@ export class DMService {
     // (socket orqali, agar chat ochiq bo'lsa) va unread hisoblagichga qo'shiladi.
     const isMuted = (receiver.mutedPeerIds ?? []).includes(senderId);
     if (!isMuted) {
-      // Push data'sida peerId = jo'natuvchi → notification bosilganda uning chati ochiladi;
-      // categoryId 'dm_reply' → bildirishnomadан to'g'ridan-to'g'ri javob yozish action'i.
+      // Shu jo'natuvchidan hali o'qilmagan xabarlarni yig'amiz — agar bir nechta
+      // ketma-ket xabar o'qilmagan bo'lsa, ularning hammasi bitta notification'da
+      // ko'rsatiladi (Telegram uslubi), alohida-alohida push'lar o'rniga.
+      const unread = await DirectMessage.find({ senderId, receiverId, read: false })
+        .sort({ createdAt: 1 })
+        .select('text forwardFrom')
+        .lean();
+      const unreadTexts = unread.map((m) => {
+        const t = decryptText(m.text);
+        return m.forwardFrom ? `↪ ${t}` : t;
+      });
+      const body = unreadTexts.length > 1
+        ? unreadTexts.slice(-UNREAD_PUSH_PREVIEW_LIMIT).join('\n')
+        : (forwardFrom ? `↪ ${trimmed}` : trimmed);
+      // `tag' — expo-notifications FCM data'dan shu qiymatni notification identifikatori
+      // sifatida ishlatadi (Android: notify(tag, id, ...)) — bir xil tag bilan kelgan
+      // keyingi push avvalgi tray yozuvini ALMASHTIRADI, yangi qator qo'shmaydi.
       void sendInternalNotification({
         userId: receiverId,
         type: 'dm_message',
-        title: sender?.username ?? 'Yangi xabar',
-        body: forwardFrom ? `↪ ${trimmed}` : trimmed,
+        title: unreadTexts.length > 1 ? `${sender?.username ?? 'Yangi xabar'} (${unreadTexts.length})` : (sender?.username ?? 'Yangi xabar'),
+        body,
         data: {
           peerId: senderId,
           peerName: sender?.username ?? '',
           screen: 'DMChat',
           categoryId: 'dm_reply',
+          tag: `dm_${senderId}`,
         },
       });
     }

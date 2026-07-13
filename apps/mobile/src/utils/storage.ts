@@ -135,3 +135,18 @@ export const tokenStorage = {
     ]);
   },
 };
+
+// Remembers where the user was reading in a DM chat (the top-most visible list item
+// at the moment they left), so reopening the chat restores that position instead of
+// always jumping to the newest message (Telegram-style "continue reading").
+export const dmScrollPositionStorage = {
+  async save(peerId: string, itemId: string): Promise<void> {
+    await set(`wewatch_dm_scroll_${peerId}`, itemId);
+  },
+  async get(peerId: string): Promise<string | null> {
+    return get(`wewatch_dm_scroll_${peerId}`);
+  },
+  async clear(peerId: string): Promise<void> {
+    await remove(`wewatch_dm_scroll_${peerId}`);
+  },
+};
