@@ -31,6 +31,11 @@ export interface IUserDocument extends Document {
   lastSeenAt: Date | null;
   restrictions: string[];
   settings: { notifications: INotificationSettings; privacy: IPrivacySettings };
+  // DM inbox preferences — per-user, NOT shared with the peer (muting/pinning a
+  // conversation is a local inbox setting, same as Telegram). pinnedPeerIds is
+  // capped at 5 (enforced in DMService.togglePinConversation, not here).
+  mutedPeerIds: string[];
+  pinnedPeerIds: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -59,6 +64,8 @@ const userSchema = new Schema<IUserDocument>(
     fcmTokens: [{ type: String }],
     lastSeenAt: { type: Date, default: null },
     restrictions: { type: [String], default: [] },
+    mutedPeerIds: { type: [String], default: [] },
+    pinnedPeerIds: { type: [String], default: [] },
     settings: {
       type: new Schema(
         {

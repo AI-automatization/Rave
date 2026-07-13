@@ -101,6 +101,7 @@ export const CLIENT_EVENTS = Object.freeze({
   MESH_LEAVE:  'mesh:leave',
 
   DM_SEND: 'dm:send',
+  DM_READ_UNTIL: 'dm:read_until',
 } as const);
 
 export type ServerEvent = (typeof SERVER_EVENTS)[keyof typeof SERVER_EVENTS];

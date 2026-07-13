@@ -39,4 +39,27 @@ export const registerDMEvents = (io: SocketServer, socket: Socket): void => {
       socket.emit(SERVER_EVENTS.ERROR, { message: 'Failed to send message' });
     }
   });
+
+  // Reader scrolled to (or past) a message from `peerId` — mark everything up to it
+  // read and, if that actually changed anything, tell the ORIGINAL SENDER (peerId)
+  // in realtime so their tick marks flip to "read" without reopening the chat.
+  socket.on(CLIENT_EVENTS.DM_READ_UNTIL, async (data: { peerId: string; messageId: string }) => {
+    try {
+      const { peerId, messageId } = data ?? {};
+      if (!peerId || !messageId) return;
+
+      const { data: body } = await axios.patch(
+        `${userServiceUrl}/api/v1/users/dm/${peerId}/read-until`,
+        { messageId },
+        { headers: { Authorization: `Bearer ${token}` }, timeout: 5000 },
+      );
+
+      const upToCreatedAt = body?.data?.upToCreatedAt;
+      if (upToCreatedAt) {
+        io.to(`user:${peerId}`).emit(SERVER_EVENTS.DM_READ, { peerId: userId, upToCreatedAt });
+      }
+    } catch (err) {
+      logger.error('DM read-until error', { userId, error: (err as Error).message });
+    }
+  });
 };

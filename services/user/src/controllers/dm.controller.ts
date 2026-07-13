@@ -53,6 +53,65 @@ export class DMController {
     }
   };
 
+  markReadUpTo = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId: myId } = (req as AuthenticatedRequest).user;
+      const { userId } = req.params;
+      const { messageId } = req.body as { messageId: string };
+      const upToCreatedAt = await this.dmService.markReadUpTo(myId, userId, messageId);
+      res.json(apiResponse.success({ upToCreatedAt }));
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  toggleMute = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId: myId } = (req as AuthenticatedRequest).user;
+      const { userId } = req.params;
+      const { muted } = req.body as { muted: boolean };
+      await this.dmService.toggleMute(myId, userId, muted);
+      res.json(apiResponse.success(null));
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  togglePinConversation = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId: myId } = (req as AuthenticatedRequest).user;
+      const { userId } = req.params;
+      const { pinned } = req.body as { pinned: boolean };
+      await this.dmService.togglePinConversation(myId, userId, pinned);
+      res.json(apiResponse.success(null));
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  togglePinMessage = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId: myId } = (req as AuthenticatedRequest).user;
+      const { userId, messageId } = req.params;
+      const { pinned } = req.body as { pinned: boolean };
+      const message = await this.dmService.togglePinMessage(myId, userId, messageId, pinned);
+      res.json(apiResponse.success(message));
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  getPinnedMessages = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId: myId } = (req as AuthenticatedRequest).user;
+      const { userId } = req.params;
+      const messages = await this.dmService.getPinnedMessages(myId, userId);
+      res.json(apiResponse.success(messages));
+    } catch (err) {
+      next(err);
+    }
+  };
+
   getConversations = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { userId: myId } = (req as AuthenticatedRequest).user;
