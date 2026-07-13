@@ -108,7 +108,7 @@ export function WatchPartyScreen() {
   const {
     playerRef, userId, room, messages, activeMembers, isOwner, adminMonitoring, connectTimeout, activeTransport,
     showChat, showVoice, showInvite, isPlaying, isFullscreen, videoIsLive,
-    videoCurrentTime, videoDuration, floatingEmojis, showQualityMenu, showEpisodeMenu,
+    videoCurrentTime, videoDuration, pendingSkipSecs, floatingEmojis, showQualityMenu, showEpisodeMenu,
     extractQualities, extractEpisodes, currentVideoUrl, extractionError,
     originalVideoUrl, extractedVideoUrl, extractedVideoHeaders, extractedVideoProxyUrl, isWebViewMode, isExtracting,
     playlist, handleAddToQueue, handlePlaylistRemove, handlePlaylistNext,
@@ -231,6 +231,7 @@ export function WatchPartyScreen() {
         onProgressSeek={handleProgressSeek}
         onStop={handleStop}
         onSeekDirection={handleSeekDirection}
+        pendingSkipSecs={pendingSkipSecs}
         onToggleFullscreen={handleToggleFullscreen}
         onRemoveEmoji={handleRemoveEmoji}
         onCdnUrlSniffed={handleCdnUrlSniffed}
