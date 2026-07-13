@@ -88,6 +88,10 @@ export const MEDIA_DETECTION_JS = `
   // Sync with early-injection script (injectedJavaScriptBeforeContentLoaded) so
   // URLs detected before page JS ran don't get reported a second time.
   var lastReportedVideoUrl = window._csEarlyReportedUrl || '';
+  // YouTube's real title (SPA-updated document.title) often isn't ready yet on the
+  // very first scan tick — tracked separately so a later tick can send a correction
+  // without re-triggering the whole "video found" flow via lastReportedVideoUrl.
+  var lastReportedYtTitle = '';
   var fallbackTimer = null;
 
   // Search engine result pages — no real video, skip detection
@@ -238,8 +242,15 @@ export const MEDIA_DETECTION_JS = `
     var isYTShorts = url.indexOf('youtube.com/shorts/') !== -1;
     var isYTBe = url.indexOf('youtu.be/') !== -1;
     if (isYTWatch || isYTShorts || isYTBe) {
-      if (url !== lastReportedVideoUrl) {
+      var ytTitle = document.title || '';
+      var isNewYtUrl = url !== lastReportedVideoUrl;
+      // YouTube is a SPA — document.title is still the generic "YouTube" on the very
+      // first tick and gets updated by the page's own JS a bit later. Re-send once the
+      // real title shows up, even though the URL was already reported.
+      var titleImproved = !isNewYtUrl && ytTitle && ytTitle !== 'YouTube' && ytTitle !== lastReportedYtTitle;
+      if (isNewYtUrl || titleImproved) {
         lastReportedVideoUrl = url;
+        lastReportedYtTitle = ytTitle;
         var thumb = '';
         var vidMatch = url.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
         var shortMatch = url.match(/shorts\\/([a-zA-Z0-9_-]{11})/);
@@ -250,7 +261,7 @@ export const MEDIA_DETECTION_JS = `
           type: 'MEDIA_DETECTED',
           platform: 'youtube',
           videoUrl: url,
-          pageTitle: document.title || 'YouTube',
+          pageTitle: ytTitle || 'YouTube',
           thumbnailUrl: thumb,
           pageUrl: url,
         });
