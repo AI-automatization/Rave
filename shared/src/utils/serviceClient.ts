@@ -141,6 +141,25 @@ export async function sendInternalNotification(payload: {
   }
 }
 
+// ─── Watch-Party Service ────────────────────────────────────────────────────────
+
+// Broadcasts a new DM message to the receiver's open chat in realtime, regardless of
+// which path created it (in-app socket send, or a plain REST call e.g. from a
+// notification-reply) — best-effort, a missed broadcast just means the receiver's
+// chat updates on next fetch instead of live.
+export async function notifyDmMessage(receiverId: string, message: unknown): Promise<void> {
+  try {
+    await axios.post(
+      `${watchPartyServiceUrl}/api/v1/watch-party/internal/dm/${receiverId}/notify`,
+      message,
+      { headers: internalHeaders, timeout: 5000 },
+    );
+  } catch (err) {
+    const error = err as AxiosError;
+    logger.error('[serviceClient] notifyDmMessage failed', { receiverId, message: error.message });
+  }
+}
+
 // Schedules the delayed "bind your email" nudge (push, then Telegram follow-up)
 // for a user who has no real email yet (e.g. brand-new Telegram-login account).
 // The delay + guard logic lives entirely in the notification service's Bull

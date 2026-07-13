@@ -424,6 +424,20 @@ export class WatchPartyController {
     }
   };
 
+  // POST /internal/dm/:userId/notify — broadcast a DM message to userId's open chat in
+  // realtime. Called by services/user for EVERY new message regardless of how it was
+  // created (in-app socket send, or a REST call e.g. from a notification-reply) — a single
+  // source of truth so the receiver's open chat updates live either way.
+  notifyDmMessage = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { userId } = req.params;
+      this.io.to(`user:${userId}`).emit(SERVER_EVENTS.DM_MESSAGE, req.body);
+      res.json(apiResponse.success(null, 'Notified'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   // DELETE /internal/users/:userId — cascade account deletion (GDPR/App Store compliance)
   // Deletes: rooms owned by user, removes user from member arrays of other rooms
   deleteUserData = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
