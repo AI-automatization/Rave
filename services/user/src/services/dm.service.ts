@@ -2,7 +2,7 @@ import { Types } from 'mongoose';
 import { DirectMessage, IDirectMessageDocument } from '../models/directMessage.model';
 import { User } from '../models/user.model';
 import { NotFoundError, BadRequestError, ForbiddenError } from '@shared/utils/errors';
-import { sendInternalNotification } from '@shared/utils/serviceClient';
+import { sendInternalNotification, notifyDmMessage } from '@shared/utils/serviceClient';
 import { encryptText, decryptText } from '../utils/dmCrypto';
 
 const PAGE_SIZE = 50;
@@ -139,9 +139,16 @@ export class DMService {
       forwardFrom,
     });
 
+    const dmMessage = toDMMessage(msg);
+
+    // Receiver's open chat updates live regardless of how this message was created
+    // (in-app socket send, or a plain REST call e.g. from a notification-reply) — this
+    // is the single place that triggers it, so both paths behave the same. Unconditional
+    // (not gated by mute — mute only suppresses the push below, not live delivery).
+    void notifyDmMessage(receiverId, dmMessage);
+
     // Telefonga push — qabul qiluvchi offline bo'lsa ham xabar keladi (Telegram uslubi).
-    // Muted bo'lsa — push yubormaymiz, lekin xabarning o'zi baribir yetib boradi
-    // (socket orqali, agar chat ochiq bo'lsa) va unread hisoblagichga qo'shiladi.
+    // Muted bo'lsa — push yubormaymiz.
     const isMuted = (receiver.mutedPeerIds ?? []).includes(senderId);
     if (!isMuted) {
       // Shu jo'natuvchidan hali o'qilmagan xabarlarni yig'amiz — agar bir nechta
@@ -176,7 +183,7 @@ export class DMService {
       });
     }
 
-    return toDMMessage(msg);
+    return dmMessage;
   }
 
   // Boshqa suhbatdan xabarni forward qilish. Original muallif allowForward'ni

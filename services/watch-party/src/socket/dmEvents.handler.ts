@@ -30,9 +30,11 @@ export const registerDMEvents = (io: SocketServer, socket: Socket): void => {
 
       const msg = body?.data ?? body;
 
-      // Deliver to receiver if online
-      io.to(`user:${receiverId}`).emit(SERVER_EVENTS.DM_MESSAGE, msg);
-      // Echo to sender
+      // Receiver broadcast now happens centrally in dm.service.ts (POST /users/dm/:id
+      // itself triggers it) — a single source of truth so a message created via this
+      // socket path or via a plain REST call (e.g. notification-reply) both live-update
+      // the receiver's open chat the same way. Echo to sender stays here — that's
+      // specific to whoever is connected through THIS socket.
       socket.emit(SERVER_EVENTS.DM_MESSAGE, msg);
     } catch (err) {
       logger.error('DM send error', { userId, error: (err as Error).message });
