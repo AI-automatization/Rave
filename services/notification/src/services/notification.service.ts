@@ -103,8 +103,13 @@ export class NotificationService {
                   // the app's background task can build a local notification WITH the
                   // action buttons (a plain `notification` block can't carry buttons).
                   // iOS shows it via the apns alert + category (its own button rendering).
+                  // NOTE: Android's own auto-generated notification (built natively by
+                  // expo-notifications from this same data payload, in parallel with our
+                  // background task) reads its visible body text from the `message` key
+                  // (NotificationData.message), NOT `body` (which it expects as JSON and
+                  // silently discards otherwise) — both keys must carry the text.
                   tokens: fcmTokens,
-                  data: { ...data, title, body },
+                  data: { ...data, title, body, message: body },
                   android: { priority: 'high' },
                   apns: { payload: { aps: { alert: { title, body }, category: data.categoryId, sound: 'default' } } },
                 }

@@ -63,6 +63,12 @@ const SEEK_SKIP_THRESHOLD_MS = 1000;
 // behaviour, typically <1s) don't trigger democratic pause for all viewers.
 const BUFFER_DEBOUNCE_MS = 2000;
 const REACTION_RATE_LIMIT = 10;
+// Skip-10s button: a single press still fires an immediate seek+emit (unchanged feel). A second
+// press landing within this window doesn't seek again right away — it accumulates on top of the
+// pending target and only the FINAL combined position is sent once presses stop, so mashing the
+// button 5x sends one seek (one HLS re-buffer for the whole room), not five.
+const SKIP_BURST_WINDOW_MS = 600;
+const SKIP_STEP_SECS = 10;
 
 export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const navigation = useNavigation<NavProp>();
@@ -96,6 +102,12 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const reactionTimestampsRef = useRef<number[]>([]);
   const isBufferingRef = useRef(false);
   const videoCurrentTimeRef = useRef(0);
+  // Skip-10s burst batching (see SKIP_BURST_WINDOW_MS) — skipTargetSecsRef is the position
+  // already sent (or about to be sent) for this burst; further taps add SKIP_STEP_SECS on top.
+  const skipBurstActiveRef = useRef(false);
+  const skipAccumSecsRef = useRef(0);
+  const skipTargetSecsRef = useRef(0);
+  const skipBurstTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const currentRateRef = useRef(1.0); // tracks active playback rate (micro-sync may change it)
   const heartbeatRef = useRef(heartbeat); // latest heartbeat — read in AppState callback without adding to deps
   heartbeatRef.current = heartbeat;
@@ -143,6 +155,9 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const [videoIsLive, setVideoIsLive] = useState(false);
   const [videoCurrentTime, setVideoCurrentTime] = useState(0);
   const [videoDuration, setVideoDuration] = useState(0);
+  // Running total (seconds, signed) while a skip-10s burst is accumulating; null when idle.
+  // Drives the "±Ns" label on the skip buttons so mashing the button shows what will be sent.
+  const [pendingSkipSecs, setPendingSkipSecs] = useState<number | null>(null);
   const [floatingEmojis, setFloatingEmojis] = useState<FloatingEmoji[]>([]);
   const [connectTimeout, setConnectTimeout] = useState(false);
   const [showQualityMenu, setShowQualityMenu] = useState(false);
@@ -414,6 +429,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     if (bufferDebounceRef.current) clearTimeout(bufferDebounceRef.current);
     if (suppressBufferTimerRef.current) clearTimeout(suppressBufferTimerRef.current);
     if (suppressDriftTimerRef.current) clearTimeout(suppressDriftTimerRef.current);
+    if (skipBurstTimerRef.current) clearTimeout(skipBurstTimerRef.current);
     if (currentRateRef.current !== 1.0) { currentRateRef.current = 1.0; playerRef.current?.setRate(1.0); }
   }, []);
 
@@ -471,14 +487,26 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   // T-E101: WebView buffering callback
   const handleWebViewBuffering = useCallback((isBuffering: boolean) => { emitBufferState(isBuffering); }, [emitBufferState]);
   const handleWebViewSeek = useCallback((secs: number) => { if (isOwner && !isSyncing.current) emitSeek(secs); }, [isOwner, emitSeek]);
-  const handleProgress = useCallback((currentTimeSecs: number, durationSecs: number) => { setVideoCurrentTime(currentTimeSecs); if (durationSecs > 0) setVideoDuration(durationSecs); }, []);
+  // isSyncing guard: while a manual/drift seek is in flight, the WebView's own position-poll
+  // (or a stale 'timeupdate' from the page's currentTime getter, which some adapters don't update
+  // until the underlying player's seek actually lands 1-2s later) can report the PRE-seek position
+  // for a tick or two. Without this guard that stale tick overwrote videoCurrentTime immediately
+  // after seekTo(), snapping the progress bar back to the old position before catching up again —
+  // the reported "seek to 20:00 jerks back to ~6-7min" bug.
+  const handleProgress = useCallback((currentTimeSecs: number, durationSecs: number) => {
+    if (!isSyncing.current) setVideoCurrentTime(currentTimeSecs);
+    if (durationSecs > 0) setVideoDuration(durationSecs);
+  }, []);
 
   const handleProgressSeek = useCallback(async (secs: number) => {
     if (!isOwner || videoIsLive) return;
     isSyncing.current = true;
     await playerRef.current?.seekTo(secs * 1000);
     emitSeek(secs);
-    setTimeout(() => { isSyncing.current = false; }, 400);
+    // 1.5s, not 400ms: HLS proxy re-buffer after a hard seekTo takes 1-2s on Android (same
+    // figure used elsewhere in this file, e.g. suppressBufferRef) — 400ms let a stale
+    // position-poll tick land inside handleProgress before the real seek settled.
+    setTimeout(() => { isSyncing.current = false; }, 1500);
   }, [isOwner, videoIsLive, emitSeek]);
 
   const handlePlayPause = useCallback(async () => {
@@ -503,13 +531,51 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     setIsPlaying(false);
   }, [isOwner, emitPause]);
 
+  // Flushes an in-progress skip burst: applies ONE seek+emit for the accumulated total instead
+  // of one per tap. Only runs when a burst is actually active (2nd+ tap arrived) — a lone tap
+  // never reaches here, it already sent its own seek immediately in handleSeekDirection below.
+  const flushSkipBurst = useCallback(async () => {
+    skipBurstTimerRef.current = null;
+    skipBurstActiveRef.current = false;
+    const total = skipAccumSecsRef.current;
+    skipAccumSecsRef.current = 0;
+    setPendingSkipSecs(null);
+    if (total === 0) return;
+    const target = Math.max(0, skipTargetSecsRef.current + total);
+    skipTargetSecsRef.current = target;
+    isSyncing.current = true;
+    await playerRef.current?.seekTo(target * 1000);
+    emitSeek(target);
+    setTimeout(() => { isSyncing.current = false; }, 1500);
+  }, [emitSeek]);
+
   const handleSeekDirection = useCallback(async (direction: 'forward' | 'back') => {
     if (!isOwner || videoIsLive) return;
-    const posMs = (await playerRef.current?.getPositionMs()) ?? 0;
-    const newMs = Math.max(0, posMs + (direction === 'forward' ? 10 : -10) * 1000);
-    await playerRef.current?.seekTo(newMs);
-    emitSeek(newMs / 1000);
-  }, [isOwner, videoIsLive, emitSeek]);
+    const deltaSecs = direction === 'forward' ? SKIP_STEP_SECS : -SKIP_STEP_SECS;
+
+    if (!skipBurstActiveRef.current) {
+      // First tap of a burst: unchanged behaviour — seek and emit right away, no latency.
+      skipBurstActiveRef.current = true;
+      const posMs = (await playerRef.current?.getPositionMs()) ?? 0;
+      const target = Math.max(0, posMs / 1000 + deltaSecs);
+      skipTargetSecsRef.current = target;
+      isSyncing.current = true;
+      await playerRef.current?.seekTo(target * 1000);
+      emitSeek(target);
+      setTimeout(() => { isSyncing.current = false; }, 1500);
+      // Burst window stays open after the immediate seek — a tap landing inside it accumulates
+      // (below) instead of firing another seek of its own.
+      skipBurstTimerRef.current = setTimeout(() => { skipBurstActiveRef.current = false; }, SKIP_BURST_WINDOW_MS);
+      return;
+    }
+
+    // Tap landed inside an active burst — accumulate and (re)schedule a single flush, showing
+    // the running total so the owner sees what will be sent once they stop pressing.
+    skipAccumSecsRef.current += deltaSecs;
+    setPendingSkipSecs(skipAccumSecsRef.current);
+    if (skipBurstTimerRef.current) clearTimeout(skipBurstTimerRef.current);
+    skipBurstTimerRef.current = setTimeout(flushSkipBurst, SKIP_BURST_WINDOW_MS);
+  }, [isOwner, videoIsLive, emitSeek, flushSkipBurst]);
 
   const handleEmojiSelect = useCallback((emoji: string) => {
     const now = Date.now();
@@ -737,7 +803,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   return {
     playerRef, userId, room, messages, activeMembers, isOwner, adminMonitoring, connectTimeout, activeTransport,
     isExtracting, extractResult, extractionError, showChat, showVoice, showInvite, isPlaying, isFullscreen,
-    videoIsLive, videoCurrentTime, videoDuration, floatingEmojis, showQualityMenu, showEpisodeMenu,
+    videoIsLive, videoCurrentTime, videoDuration, pendingSkipSecs, floatingEmojis, showQualityMenu, showEpisodeMenu,
     extractQualities, extractEpisodes, currentVideoUrl, bufferingUsers,
     originalVideoUrl, extractedVideoUrl: playerExtractedUrl, extractedVideoHeaders, extractedVideoProxyUrl: playerProxyUrl, isWebViewMode,
     setShowChat, setShowVoice, setShowInvite, setShowQualityMenu, setShowEpisodeMenu, setVideoIsLive,

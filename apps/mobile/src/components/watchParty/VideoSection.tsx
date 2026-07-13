@@ -48,6 +48,9 @@ interface VideoSectionProps {
   onProgressSeek?: (secs: number) => void;
   isWebView?: boolean;
   onCdnUrlSniffed?: (url: string) => void;
+  /** Running accumulated total while a skip-10s burst is batching (see useWatchPartyRoom);
+   * null when idle. Shown on the skip buttons in place of the static "10s" label. */
+  pendingSkipSecs?: number | null;
 }
 
 const SHOW_MS = 3500; // controls visible duration after tap / mount
@@ -58,6 +61,7 @@ export const VideoSection = React.memo(function VideoSection({
   onPlaybackStatusUpdate, onStreamResolved, onProgress, onBuffering, onReady, onPlayPause, onStop,
   onSeekDirection, onToggleFullscreen, onRemoveEmoji,
   currentTime = 0, duration = 0, onProgressSeek, isWebView = false, onCdnUrlSniffed,
+  pendingSkipSecs = null,
 }: VideoSectionProps) {
   const { colors } = useTheme();
   const { t } = useT();
@@ -197,7 +201,7 @@ export const VideoSection = React.memo(function VideoSection({
           {!videoIsLive && (
             <TouchableOpacity style={s.seekBtn} onPress={() => onSeekDirection('back')}>
               <Ionicons name="play-back" size={22} color="#fff" />
-              <Text style={s.seekLabel}>10s</Text>
+              <Text style={s.seekLabel}>{pendingSkipSecs != null ? `${pendingSkipSecs > 0 ? '+' : ''}${pendingSkipSecs}s` : '10s'}</Text>
             </TouchableOpacity>
           )}
 
@@ -213,7 +217,7 @@ export const VideoSection = React.memo(function VideoSection({
           {!videoIsLive && (
             <TouchableOpacity style={s.seekBtn} onPress={() => onSeekDirection('forward')}>
               <Ionicons name="play-forward" size={22} color="#fff" />
-              <Text style={s.seekLabel}>10s</Text>
+              <Text style={s.seekLabel}>{pendingSkipSecs != null ? `${pendingSkipSecs > 0 ? '+' : ''}${pendingSkipSecs}s` : '10s'}</Text>
             </TouchableOpacity>
           )}
         </Animated.View>

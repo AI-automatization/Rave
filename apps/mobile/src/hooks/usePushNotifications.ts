@@ -103,13 +103,24 @@ export function usePushNotifications() {
         const peerId = data?.peerId as string | undefined;
         // Expo javob matnini userText'da beradi.
         const text = (response as { userText?: string }).userText?.trim();
-        if (!peerId || !text) return;
+        const notificationId = response.notification.request.identifier;
+        if (!peerId || !text) {
+          void Notifications.dismissNotificationAsync(notificationId).catch(() => {});
+          return;
+        }
         void (async () => {
           try {
             await dmApi.sendMessage(peerId, text);
             void queryClient.invalidateQueries({ queryKey: ['dm-conversations'] });
             void queryClient.invalidateQueries({ queryKey: ['dm-history', peerId] });
-          } catch { /* best-effort; user can retry in-app */ }
+          } catch {
+            /* best-effort; user can retry in-app */
+          } finally {
+            // Without this the inline-reply RemoteInput progress spinner on Android
+            // never resolves — expo-notifications requires an explicit dismiss to
+            // signal the reply action completed (success or failure).
+            void Notifications.dismissNotificationAsync(notificationId).catch(() => {});
+          }
         })();
         return;
       }
