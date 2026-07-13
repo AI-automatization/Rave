@@ -9,15 +9,16 @@ import {
   appealDecisionEmail,
   welcomeEmail,
   LOGO_CID,
-  LOGO_SVG,
+  LOGO_PNG_BASE64,
 } from './emailTemplates';
 
-// CID attachment — embedded inline so logo always shows without "Show images" click
+// CID attachment — embedded inline so logo always shows without "Show images" click.
+// PNG (not SVG) — SVG inline images render unreliably in Outlook/older mail clients.
 const LOGO_ATTACHMENT = {
-  filename: 'logo.svg',
-  content: Buffer.from(LOGO_SVG),
+  filename: 'logo.png',
+  content: Buffer.from(LOGO_PNG_BASE64, 'base64'),
   cid: LOGO_CID,
-  contentType: 'image/svg+xml',
+  contentType: 'image/png',
 };
 
 const transporter = nodemailer.createTransport({
