@@ -4,6 +4,14 @@
 
 ---
 
+### F-227 | T-S126 | app-web production deploy crash-loop tuzatildi (real root cause: middleware nom xatosi)
+
+- **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-14  **Model:** sonnet
+- **O'zgarishlar:** `apps/app-web/src/middleware.ts` — eksport nomi `proxy` → `middleware` (Next.js 14.2 faqat `middleware`/`default` nomini tan oladi). `apps/app-web/src/instrumentation.ts` (yangi) + `src/instrumentation-client.ts` (yangi, `sentry.client.config.ts`dan ko'chirilgan) — Sentry'ni zamonaviy `register()`-asosidagi konvensiyaga o'tkazish. `sentry.server.config.ts`, `sentry.edge.config.ts` — o'chirildi. `next.config.mjs` — `experimental.instrumentationHook: true` (Next 14.2'da majburiy).
+- **Xulosa:** T-S125 fix'ni deploy qilishda `railway up` build muvaffaqiyatli o'tdi, lekin healthcheck (`/login`) 5 daqiqa "service unavailable" bilan fail bo'lardi — har bir so'rov middleware'da `TypeError: Cannot redefine property: __import_unsupported` bilan crash qilardi. Dastlab Sentry SDK v10 nomuvofiqligi deb taxmin qilindi (legacy `sentry.*.config.ts` konvensiyasi) — shu sababli `instrumentation.ts`ga migratsiya qilindi. Lekin haqiqiy production Docker image'ni (`node:20-slim`, aynan Railway ishlatadigan) mahalliy qurib, bosqichma-bosqich tekshirish (Sentry butunlay o'chirilganda ham xato saqlanib qoldi) haqiqiy sababni ochdi: `middleware.ts` `middleware` yoki `default` o'rniga `proxy` nomli funksiyani eksport qilardi — Next.js buni yaroqli handler sifatida tanimaydi, va bu `ceddf15` (domain-split, 2026-yil) commitida shu tarzda kiritilgan bo'lib, o'shandan beri app-web'ning HECH BIR deploy urinishi muvaffaqiyatli bo'lmagan (production hozirgacha eski konteyner bilan ishlab kelgan). Fix: eksport nomini `middleware`ga qaytarish — bitta so'z, lekin haqiqiy root cause. Sentry migratsiyasi ham foydali edi (deprecated konvensiya, Sentry SDK'ning o'zi build loglarida ogohlantirgan) va saqlab qolindi. Haqiqiy Dockerfile orqali local Docker image qurib to'liq tekshirildi: `/login`→200, `/home`, `/room/[id]`→307 (autentifikatsiyasiz to'g'ri redirect), konteyner loglarida xato yo'q. `railway up` orqali production'ga deploy qilindi va tasdiqlandi (`app.wewatch.uz/login`→200 jonli). tsc: CLEAN. Commit `02ad504`.
+
+---
+
 ### F-226 | T-S125 | T-S124 regressiyasi (VK/Rutube sync) + web YouTube abadiy yuklanish bugi
 
 - **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-14  **Model:** sonnet
