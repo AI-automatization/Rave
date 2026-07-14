@@ -1,6 +1,7 @@
 // WeWatch Mobile — FriendsScreen
 import React, { useState, useCallback } from 'react';
-import { View, Text, SectionList, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, SectionListData } from 'react-native';
+import { View, Text, SectionList, FlatList, ActivityIndicator, RefreshControl, SectionListData } from 'react-native';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -83,24 +84,27 @@ export function FriendsScreen() {
             <Text style={s.subtitle}>{friends.length} {t('friends', 'friendsCount')}</Text>
           )}
         </View>
-        <TouchableOpacity
+        <TrackedTouchable
+          trackId="friends:go_to_search"
           style={s.addFriendBtn}
           onPress={() => navigation.navigate('FriendSearch')}
           activeOpacity={0.85}
         >
           <Ionicons name="person-add-outline" size={16} color={colors.white} />
           <Text style={s.addFriendBtnText}>{t('friends', 'addBtn')}</Text>
-        </TouchableOpacity>
+        </TrackedTouchable>
       </View>
 
       {/* Tabs */}
       <View style={s.tabs}>
         {tabs.map(tabItem => (
-          <TouchableOpacity
+          <TrackedTouchable
+            trackId="friends:switch_tab"
             key={tabItem}
             style={[s.tab, tab === tabItem && s.tabActive]}
             onPress={() => setTab(tabItem)}
             activeOpacity={0.8}
+            trackMeta={{ tab: tabItem }}
           >
             <Text style={[s.tabText, tab === tabItem && s.tabTextActive]}>
               {tabItem}
@@ -110,7 +114,7 @@ export function FriendsScreen() {
                 <Text style={s.badgeText}>{pendingRequests.length}</Text>
               </View>
             )}
-          </TouchableOpacity>
+          </TrackedTouchable>
         ))}
       </View>
 

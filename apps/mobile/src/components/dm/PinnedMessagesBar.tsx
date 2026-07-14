@@ -2,8 +2,9 @@
 // Tapping the body jumps to the current pinned message and cycles to the next one
 // if there's more than one; the X unpins the currently shown message directly.
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useT } from '@i18n/index';
 import type { IDMMessage } from '@app-types/index';
 
@@ -31,16 +32,16 @@ export function PinnedMessagesBar({
   return (
     <View style={s.bar}>
       <View style={s.accent} />
-      <TouchableOpacity style={s.body} activeOpacity={0.7} onPress={handlePress}>
+      <TrackedTouchable trackId="dm:pinned_bar_jump" style={s.body} activeOpacity={0.7} onPress={handlePress}>
         <Text style={s.title} numberOfLines={1}>
           {pinnedMessages.length > 1 ? `${t('dm', 'pinnedMessage')} ${index + 1}/${pinnedMessages.length}` : t('dm', 'pinnedMessage')}
         </Text>
         <Text style={s.text} numberOfLines={1}>{current.text}</Text>
-      </TouchableOpacity>
+      </TrackedTouchable>
       {onUnpin && (
-        <TouchableOpacity style={s.closeBtn} onPress={() => onUnpin(current)} hitSlop={8}>
+        <TrackedTouchable trackId="dm:pinned_bar_unpin" style={s.closeBtn} onPress={() => onUnpin(current)} hitSlop={8}>
           <Ionicons name="close" size={18} color="rgba(255,255,255,0.5)" />
-        </TouchableOpacity>
+        </TrackedTouchable>
       )}
     </View>
   );

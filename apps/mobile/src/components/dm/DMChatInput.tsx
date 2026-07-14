@@ -1,8 +1,9 @@
 // WeWatch Mobile — DM composer input row (text field + send button).
 // Extracted from DMChatScreen.tsx to keep that file under the project's 400-line limit.
 import React from 'react';
-import { View, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TextInput, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { spacing } from '@theme/index';
 
 export function DMChatInput({
@@ -27,14 +28,15 @@ export function DMChatInput({
         returnKeyType="send"
         onSubmitEditing={onSend}
       />
-      <TouchableOpacity
+      <TrackedTouchable
+        trackId="dm:send_message"
         style={[s.sendBtn, !value.trim() && s.sendBtnOff]}
         onPress={onSend}
         disabled={!value.trim()}
         activeOpacity={0.8}
       >
         <Ionicons name="send" size={18} color="#fff" />
-      </TouchableOpacity>
+      </TrackedTouchable>
     </View>
   );
 }

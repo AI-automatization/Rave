@@ -1,9 +1,10 @@
 // WeWatch Mobile — DM message bubble: reply quote, forward header, swipe-to-reply gesture.
 // Extracted from DMChatScreen.tsx to keep that file under the project's 400-line limit.
 import React, { useRef } from 'react';
-import { View, Text, Pressable, Animated, StyleSheet } from 'react-native';
+import { View, Text, Animated, StyleSheet } from 'react-native';
 import { PanGestureHandler, State, type PanGestureHandlerStateChangeEvent, type PanGestureHandlerGestureEvent } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
+import { TrackedPressable } from '@components/common/TrackedPressable';
 import * as Haptics from 'expo-haptics';
 import { useT } from '@i18n/index';
 import type { IDMMessage } from '@app-types/index';
@@ -97,7 +98,7 @@ export function MessageItem({
             <Ionicons name="arrow-undo" size={17} color="#7B72F8" />
           </Animated.View>
           <Animated.View style={{ transform: [{ translateX: bubbleX }] }}>
-            <Pressable onLongPress={() => onLongPress(item)} delayLongPress={220}>
+            <TrackedPressable trackId="dm:message" onLongPress={() => onLongPress(item)} delayLongPress={220}>
               <View style={[s.bubble, isMine ? s.bubbleMine : s.bubbleOther]}>
                 {isForward && (
                   <View style={s.fwdHeader}>
@@ -133,7 +134,7 @@ export function MessageItem({
                   )}
                 </View>
               </View>
-            </Pressable>
+            </TrackedPressable>
           </Animated.View>
         </View>
       </Animated.View>

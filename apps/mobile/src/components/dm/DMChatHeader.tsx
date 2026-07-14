@@ -1,8 +1,9 @@
 // WeWatch Mobile — DM chat top bar (back button + peer avatar + name).
 // Extracted from DMChatScreen.tsx to keep that file under the project's 400-line limit.
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { spacing } from '@theme/index';
 
 export function DMChatHeader({
@@ -15,9 +16,9 @@ export function DMChatHeader({
 }) {
   return (
     <View style={[s.header, { paddingTop: topInset + 8 }]}>
-      <TouchableOpacity onPress={onBack} style={s.backBtn} activeOpacity={0.75}>
+      <TrackedTouchable trackId="dm:chat_back" onPress={onBack} style={s.backBtn} activeOpacity={0.75}>
         <Ionicons name="chevron-back" size={26} color="#fff" />
-      </TouchableOpacity>
+      </TrackedTouchable>
       <View style={[s.peerDot, { backgroundColor: accentColor }]}>
         <Text style={s.peerInitial}>{peerName.slice(0, 1).toUpperCase()}</Text>
       </View>

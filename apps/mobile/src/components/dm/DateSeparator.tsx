@@ -1,13 +1,14 @@
 // WeWatch Mobile — inline "Today"/"Yesterday"/date pill between DM message groups (Telegram-style).
 // Tappable — opens the jump-to-date calendar, same as the floating sticky header.
 import React from 'react';
-import { Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Text, StyleSheet } from 'react-native';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 
 export function DateSeparator({ label, onPress }: { label: string; onPress: () => void }) {
   return (
-    <TouchableOpacity style={s.wrap} activeOpacity={0.7} onPress={onPress} hitSlop={6}>
+    <TrackedTouchable trackId="dm:date_separator" style={s.wrap} activeOpacity={0.7} onPress={onPress} hitSlop={6}>
       <Text style={s.label}>{label}</Text>
-    </TouchableOpacity>
+    </TrackedTouchable>
   );
 }
 

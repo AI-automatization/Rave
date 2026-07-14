@@ -5,10 +5,12 @@
 // The peek is read-only: fetches history under its own query key and never calls
 // markRead/markReadUntil, so peeking never marks anything as read.
 import React, { useRef } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Pressable, Modal, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, FlatList, Pressable, Modal, ActivityIndicator, StyleSheet } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
+import { TrackedPressable } from '@components/common/TrackedPressable';
 import { dmApi } from '@api/user.api';
 import type { IDMConversation, IDMMessage } from '@app-types/index';
 import { useT } from '@i18n/index';
@@ -64,7 +66,7 @@ export function ChatPreviewModal({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={[s.backdrop, { paddingTop: insets.top + 24 }]} onPress={onClose}>
-        <Pressable style={s.card} onPress={onOpenFull}>
+        <TrackedPressable trackId="dm:chat_preview_open_full" style={s.card} onPress={onOpenFull}>
           <View style={[s.header, { borderBottomColor: accentColor + '30' }]}>
             <View style={[s.avatarDot, { backgroundColor: accentColor }]}>
               <Text style={s.avatarInitial}>{peerName.slice(0, 1).toUpperCase()}</Text>
@@ -88,18 +90,18 @@ export function ChatPreviewModal({
               />
             )}
           </View>
-        </Pressable>
+        </TrackedPressable>
 
         {conversation && (
           <View style={s.menu}>
-            <TouchableOpacity style={s.menuRow} activeOpacity={0.7} onPress={() => { onTogglePin(conversation); onClose(); }}>
+            <TrackedTouchable trackId="dm:chat_preview_toggle_pin" style={s.menuRow} activeOpacity={0.7} onPress={() => { onTogglePin(conversation); onClose(); }}>
               <Ionicons name={conversation.isPinned ? 'remove-circle-outline' : 'pin-outline'} size={20} color="#fff" />
               <Text style={s.menuLabel}>{t('dm', conversation.isPinned ? 'unpinChat' : 'pinChat')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={s.menuRow} activeOpacity={0.7} onPress={() => { onToggleMute(conversation); onClose(); }}>
+            </TrackedTouchable>
+            <TrackedTouchable trackId="dm:chat_preview_toggle_mute" style={s.menuRow} activeOpacity={0.7} onPress={() => { onToggleMute(conversation); onClose(); }}>
               <Ionicons name={conversation.isMuted ? 'notifications-outline' : 'notifications-off-outline'} size={20} color="#fff" />
               <Text style={s.menuLabel}>{t('dm', conversation.isMuted ? 'unmute' : 'mute')}</Text>
-            </TouchableOpacity>
+            </TrackedTouchable>
           </View>
         )}
       </Pressable>

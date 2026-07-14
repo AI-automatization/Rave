@@ -1,9 +1,10 @@
 // WeWatch Mobile — DM Conversations Screen (T-E138)
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  View, Text, FlatList, TouchableOpacity, Pressable,
+  View, Text, FlatList,
   ActivityIndicator, StyleSheet, ListRenderItemInfo,
 } from 'react-native';
+import { TrackedPressable } from '@components/common/TrackedPressable';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -48,7 +49,7 @@ function ConvItem({
   const unread = item.unreadCount > 0;
 
   return (
-    <Pressable style={s.row} onPress={onPress} onLongPress={onLongPress} delayLongPress={280}>
+    <TrackedPressable trackId="conversations:open_chat" style={s.row} onPress={onPress} onLongPress={onLongPress} delayLongPress={280}>
       {(unread || item.isPinned) && (
         <View style={[s.unreadAccent, { backgroundColor: item.isPinned ? '#FBBF24' : bg }]} />
       )}
@@ -84,7 +85,7 @@ function ConvItem({
           )}
         </View>
       </View>
-    </Pressable>
+    </TrackedPressable>
   );
 }
 

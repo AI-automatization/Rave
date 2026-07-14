@@ -2,9 +2,10 @@
 // Custom month grid (no native picker, no new deps) so it matches the app's dark theme
 // instead of the OS-default date picker look.
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, Modal, Pressable, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, Modal, Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useT } from '@i18n/index';
 import { dateKeyFromDate, MONTH_KEYS } from '@utils/dmDateGroups';
 
@@ -68,20 +69,21 @@ export function DatePickerModal({ visible, onClose, onSelect, markedDateKeys, in
           <View style={s.handle} />
 
           <View style={s.monthRow}>
-            <TouchableOpacity onPress={goPrevMonth} style={s.navBtn} hitSlop={8}>
+            <TrackedTouchable trackId="dm_calendar:prev_month" onPress={goPrevMonth} style={s.navBtn} hitSlop={8}>
               <Ionicons name="chevron-back" size={20} color="#fff" />
-            </TouchableOpacity>
+            </TrackedTouchable>
             <Text style={s.monthLabel}>
               {t('calendar', MONTH_KEYS[viewMonth])} {viewYear}
             </Text>
-            <TouchableOpacity
+            <TrackedTouchable
+              trackId="dm_calendar:next_month"
               onPress={goNextMonth}
               style={s.navBtn}
               hitSlop={8}
               disabled={atCurrentMonth}
             >
               <Ionicons name="chevron-forward" size={20} color={atCurrentMonth ? 'rgba(255,255,255,0.15)' : '#fff'} />
-            </TouchableOpacity>
+            </TrackedTouchable>
           </View>
 
           <View style={s.weekdayRow}>
@@ -99,7 +101,8 @@ export function DatePickerModal({ visible, onClose, onSelect, markedDateKeys, in
                 const isToday = key === todayKey;
                 const hasMessages = markedDateKeys.has(key);
                 return (
-                  <TouchableOpacity
+                  <TrackedTouchable
+                    trackId="dm_calendar:select_day"
                     key={di}
                     style={s.dayCell}
                     disabled={isFuture}
@@ -116,7 +119,7 @@ export function DatePickerModal({ visible, onClose, onSelect, markedDateKeys, in
                         {date.getDate()}
                       </Text>
                     </View>
-                  </TouchableOpacity>
+                  </TrackedTouchable>
                 );
               })}
             </View>

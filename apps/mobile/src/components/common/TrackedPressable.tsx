@@ -10,7 +10,7 @@ interface Props extends PressableProps {
   trackMeta?: Record<string, unknown>;
 }
 
-export function TrackedPressable({ trackId, trackMeta, onPress, ...rest }: Props) {
+export function TrackedPressable({ trackId, trackMeta, onPress, onLongPress, ...rest }: Props) {
   const handlePress = onPress
     ? (e: Parameters<NonNullable<PressableProps['onPress']>>[0]) => {
         analyticsService.click(trackId, trackMeta);
@@ -18,5 +18,12 @@ export function TrackedPressable({ trackId, trackMeta, onPress, ...rest }: Props
       }
     : undefined;
 
-  return <Pressable {...rest} onPress={handlePress} />;
+  const handleLongPress = onLongPress
+    ? (e: Parameters<NonNullable<PressableProps['onLongPress']>>[0]) => {
+        analyticsService.click(`${trackId}:long_press`, trackMeta);
+        onLongPress(e);
+      }
+    : undefined;
+
+  return <Pressable {...rest} onPress={handlePress} onLongPress={handleLongPress} />;
 }

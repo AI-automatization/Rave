@@ -1,6 +1,7 @@
 // WeWatch Mobile — FriendProfileScreen
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, ActivityIndicator } from 'react-native';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRoute, useNavigation, RouteProp, NavigationProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -120,9 +121,9 @@ export function FriendProfileScreen() {
         <Text style={styles.errorText}>
           {profileQuery.isError ? t('common', 'error') : t('friends', 'profileNotFound')}
         </Text>
-        <TouchableOpacity onPress={() => profileQuery.refetch()} style={styles.retryBtn}>
+        <TrackedTouchable trackId="friend_profile:retry" onPress={() => profileQuery.refetch()} style={styles.retryBtn}>
           <Text style={styles.retryText}>{t('common', 'retry')}</Text>
-        </TouchableOpacity>
+        </TrackedTouchable>
       </View>
     );
   }
@@ -133,9 +134,9 @@ export function FriendProfileScreen() {
     <View style={styles.root}>
       {/* Floating back button */}
       <View style={[styles.floatingHeader, { paddingTop: insets.top + spacing.sm }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+        <TrackedTouchable trackId="friend_profile:back" onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color={colors.white} />
-        </TouchableOpacity>
+        </TrackedTouchable>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -188,9 +189,9 @@ export function FriendProfileScreen() {
           {statsQuery.isLoading ? (
             <ActivityIndicator color={colors.primary} style={{ marginVertical: spacing.xl }} />
           ) : statsQuery.isError ? (
-            <TouchableOpacity onPress={() => statsQuery.refetch()}>
+            <TrackedTouchable trackId="friend_profile:stats_retry" onPress={() => statsQuery.refetch()}>
               <Text style={styles.retryText}>{t('common', 'retry')}</Text>
-            </TouchableOpacity>
+            </TrackedTouchable>
           ) : stats ? (
             <View style={styles.statsGrid}>
               <StatCard icon="film-outline"    label={t('profile', 'movies')}          value={stats.totalWatched} iconColor={colors.primary}   />
@@ -203,29 +204,32 @@ export function FriendProfileScreen() {
         {/* Social actions — friends only */}
         {isFriend && (
           <View style={styles.socialActions}>
-            <TouchableOpacity
+            <TrackedTouchable
+              trackId="friend_profile:start_watch_party"
               style={styles.watchPartyBtn}
               onPress={() => rootNav.navigate('Modal', { screen: 'SourcePicker', params: { mode: 'create' } })}
               activeOpacity={0.85}
             >
               <Ionicons name="people" size={18} color={colors.white} />
               <Text style={styles.watchPartyBtnText}>Watch Party</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
+            </TrackedTouchable>
+            <TrackedTouchable
+              trackId="friend_profile:message"
               style={styles.messageBtn}
               onPress={() => rootNav.navigate('Modal', { screen: 'DMChat', params: { peerId: params.userId, peerName: profile?.username ?? '' } })}
               activeOpacity={0.85}
             >
               <Ionicons name="chatbubble-ellipses-outline" size={18} color={colors.primary} />
               <Text style={styles.messageBtnText}>{t('friends', 'dmBtn')}</Text>
-            </TouchableOpacity>
+            </TrackedTouchable>
           </View>
         )}
 
         {/* Add / Remove friend */}
         <View style={styles.actions}>
           {isFriend ? (
-            <TouchableOpacity
+            <TrackedTouchable
+              trackId="friend_profile:remove_friend"
               style={styles.removeBtn}
               onPress={handleRemoveFriend}
               disabled={removeMutation.isPending}
@@ -233,14 +237,15 @@ export function FriendProfileScreen() {
             >
               <Ionicons name="person-remove-outline" size={18} color={colors.error} />
               <Text style={styles.removeBtnText}>{t('friends', 'removeFriend')}</Text>
-            </TouchableOpacity>
+            </TrackedTouchable>
           ) : sendRequestMutation.isSuccess ? (
             <View style={styles.sentCard}>
               <Ionicons name="checkmark-circle" size={20} color={colors.success} />
               <Text style={styles.sentText}>{t('friends', 'requestSent')}</Text>
             </View>
           ) : (
-            <TouchableOpacity
+            <TrackedTouchable
+              trackId="friend_profile:add_friend"
               style={styles.addBtn}
               onPress={handleAddFriend}
               disabled={sendRequestMutation.isPending}
@@ -254,19 +259,19 @@ export function FriendProfileScreen() {
                   <Text style={styles.addBtnText}>{t('friends', 'addFriend')}</Text>
                 </>
               )}
-            </TouchableOpacity>
+            </TrackedTouchable>
           )}
         </View>
 
         <View style={styles.moderationActions}>
-          <TouchableOpacity style={styles.reportBtn} onPress={() => setShowReport(true)}>
+          <TrackedTouchable trackId="friend_profile:report" style={styles.reportBtn} onPress={() => setShowReport(true)}>
             <Ionicons name="flag-outline" size={15} color={colors.textMuted} />
             <Text style={styles.reportBtnText}>{t('friends', 'reportUser')}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.blockBtn} onPress={handleBlockUser} disabled={blockLoading}>
+          </TrackedTouchable>
+          <TrackedTouchable trackId="friend_profile:block" style={styles.blockBtn} onPress={handleBlockUser} disabled={blockLoading}>
             <Ionicons name="ban-outline" size={15} color={colors.error} />
             <Text style={styles.blockBtnText}>{t('friends', 'blockBtn')}</Text>
-          </TouchableOpacity>
+          </TrackedTouchable>
         </View>
 
         <View style={{ height: TAB_BAR_HEIGHT + insets.bottom + spacing.xl }} />

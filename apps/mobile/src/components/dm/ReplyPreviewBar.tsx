@@ -1,8 +1,9 @@
 // WeWatch Mobile — reply-preview bar shown above the DM input while composing a reply.
 // Extracted from DMChatScreen.tsx to keep that file under the project's 400-line limit.
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { spacing } from '@theme/index';
 
 export function ReplyPreviewBar({
@@ -19,9 +20,9 @@ export function ReplyPreviewBar({
         <Text style={s.sender} numberOfLines={1}>{senderName}</Text>
         <Text style={s.text} numberOfLines={1}>{text}</Text>
       </View>
-      <TouchableOpacity onPress={onCancel} style={s.close} hitSlop={8}>
+      <TrackedTouchable trackId="dm:cancel_reply" onPress={onCancel} style={s.close} hitSlop={8}>
         <Ionicons name="close" size={18} color="rgba(255,255,255,0.5)" />
-      </TouchableOpacity>
+      </TrackedTouchable>
     </View>
   );
 }

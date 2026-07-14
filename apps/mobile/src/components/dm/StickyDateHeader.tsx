@@ -2,8 +2,9 @@
 // scrolling (Telegram-style). Fades in on scroll activity, auto-fades out after a short
 // idle period. Tap opens the jump-to-date calendar.
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Animated, Text, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 
 const HIDE_DELAY_MS = 1300;
 const HEADER_HEIGHT_OFFSET = 64; // sits just below the DM header bar, not overlapping it
@@ -42,9 +43,9 @@ export function StickyDateHeader({
       pointerEvents="box-none"
       style={[s.wrap, { top: insets.top + HEADER_HEIGHT_OFFSET, opacity }]}
     >
-      <TouchableOpacity style={s.pill} activeOpacity={0.8} onPress={onPress}>
+      <TrackedTouchable trackId="dm:sticky_date_header" style={s.pill} activeOpacity={0.8} onPress={onPress}>
         <Text style={s.label}>{label}</Text>
-      </TouchableOpacity>
+      </TrackedTouchable>
     </Animated.View>
   );
 }

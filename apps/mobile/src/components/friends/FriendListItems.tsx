@@ -1,10 +1,11 @@
 // WeWatch — Friend list item components (extracted from FriendsScreen)
 import React, { useRef } from 'react';
 import {
-  View, Text, TouchableOpacity, Animated,
+  View, Text, Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { RANK_COLORS } from '@theme/index';
 import { useT } from '@i18n/index';
@@ -32,7 +33,8 @@ export const FriendRow = React.memo(function FriendRow({
 
   return (
     <Animated.View style={{ transform: [{ scale }] }}>
-      <TouchableOpacity
+      <TrackedTouchable
+        trackId="friends:open_friend_profile"
         style={s.row}
         onPress={onPress}
         onPressIn={onIn}
@@ -74,7 +76,7 @@ export const FriendRow = React.memo(function FriendRow({
           )}
           <Ionicons name="chevron-forward" size={16} color={colors.textDim} />
         </View>
-      </TouchableOpacity>
+      </TrackedTouchable>
     </Animated.View>
   );
 });
@@ -116,13 +118,13 @@ export const RequestCard = React.memo(function RequestCard({
         </View>
       </View>
       <View style={s.requestBtns}>
-        <TouchableOpacity style={s.acceptBtn} onPress={onAccept} activeOpacity={0.85}>
+        <TrackedTouchable trackId="friends:accept_request" style={s.acceptBtn} onPress={onAccept} activeOpacity={0.85}>
           <Ionicons name="checkmark" size={15} color={colors.white} />
           <Text style={s.acceptBtnText}>{t('friends', 'accept')}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={s.rejectBtn} onPress={onReject} activeOpacity={0.8}>
+        </TrackedTouchable>
+        <TrackedTouchable trackId="friends:reject_request" style={s.rejectBtn} onPress={onReject} activeOpacity={0.8}>
           <Ionicons name="close" size={17} color={colors.textMuted} />
-        </TouchableOpacity>
+        </TrackedTouchable>
       </View>
     </View>
   );
@@ -147,9 +149,9 @@ export function FriendsEmptyState({ icon, title, subtitle, action, onAction }: {
       <Text style={s.emptyTitle}>{title}</Text>
       {subtitle ? <Text style={s.emptySubtext}>{subtitle}</Text> : null}
       {action && onAction ? (
-        <TouchableOpacity style={s.emptyBtn} onPress={onAction} activeOpacity={0.85}>
+        <TrackedTouchable trackId="friends:empty_state_action" style={s.emptyBtn} onPress={onAction} activeOpacity={0.85}>
           <Text style={s.emptyBtnText}>{action}</Text>
-        </TouchableOpacity>
+        </TrackedTouchable>
       ) : null}
     </View>
   );

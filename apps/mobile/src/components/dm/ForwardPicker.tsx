@@ -1,10 +1,11 @@
 // WeWatch Mobile — DM forward target picker (bottom sheet listing your conversations).
 // Extracted from DMChatScreen.tsx to keep that file under the project's 400-line limit.
 import React, { useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Pressable, Modal, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, FlatList, Pressable, Modal, ActivityIndicator, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useQuery } from '@tanstack/react-query';
 import { dmApi } from '@api/user.api';
 import type { IDMConversation, IDMMessage } from '@app-types/index';
@@ -64,7 +65,7 @@ export function ForwardPicker({
               const bg = memberColor(item.peerId);
               const initials = (item.peerUsername ?? '?').slice(0, 2).toUpperCase();
               return (
-                <TouchableOpacity style={s.fwdRow} activeOpacity={0.7} onPress={() => doForward(item.peerId)}>
+                <TrackedTouchable trackId="dm:forward_to_peer" style={s.fwdRow} activeOpacity={0.7} onPress={() => doForward(item.peerId)}>
                   {item.peerAvatar ? (
                     <Image source={{ uri: resolveMediaUrl(item.peerAvatar) }} style={s.fwdAvatar} contentFit="cover" />
                   ) : (
@@ -74,7 +75,7 @@ export function ForwardPicker({
                   )}
                   <Text style={s.fwdName} numberOfLines={1}>{item.peerUsername}</Text>
                   <Ionicons name="send" size={16} color="#7B72F8" />
-                </TouchableOpacity>
+                </TrackedTouchable>
               );
             }}
             ListEmptyComponent={<Text style={s.fwdEmpty}>{t('dm', 'convEmpty')}</Text>}
