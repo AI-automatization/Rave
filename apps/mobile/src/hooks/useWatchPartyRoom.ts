@@ -719,14 +719,21 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     !vkRutubeExtractedMp4;
 
   // Android: YouTube + embed platforms (VK, Rutube, Twitch, Vimeo, Dailymotion) without an
-  // extracted URL use WebView. Embed detection matches UniversalPlayer.useWebview logic so
-  // VideoSection blocks direct touches to the embed and shows our own owner controls
-  // instead (isOwnerMode = isOwner, unconditional — see VideoSection.tsx tap-catcher).
+  // extracted URL use WebView. Embed detection matches UniversalPlayer.useWebview logic.
   // iOS: also use embed for VK/Rutube (IP-lock), plus existing fallbacks.
   const embedPlatformDetected = !!androidEmbedPlatform;
   const isWebViewMode = Platform.OS === 'ios'
     ? (iosVkOrRutube || !extractedVideoUrl && (iosWebmBlocked || platform === 'youtube' || extractFallback))
     : (isAndroidVkOrRutube || (!extractedVideoUrl && (platform === 'youtube' || embedPlatformDetected)));
+
+  // YouTube specifically uses the official IFrame Player API (webviewYouTube.ts) — a reliable
+  // programmatic bridge, so VideoSection blocks direct iframe touches there and drives playback
+  // only through our own controls (see VideoSection.tsx tap-catcher). VK/Rutube's "full-site"
+  // webview (raw DOM <video> element, no clean player API — WebViewAdapters.ts) still needs the
+  // owner to interact with the real page directly: a bare _csVideo.play()/pause() call fires the
+  // DOM event (so state still syncs to other clients) but doesn't reliably start/stop the actual
+  // stream on that page — found via real-device test right after this distinction was removed.
+  const isYouTubeWebViewMode = isWebViewMode && platform === 'youtube';
 
   isWebViewModeRef.current = isWebViewMode; // keep ref in sync so drift effect can read it without re-running
   // YouTube IFrame embed uses discrete rates [0.25,0.5,1,1.25,1.5,2] — fractional rate snaps to 1.0.
@@ -806,7 +813,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     isExtracting, extractResult, extractionError, showChat, showVoice, showInvite, isPlaying, isFullscreen,
     videoIsLive, videoCurrentTime, videoDuration, pendingSkipSecs, floatingEmojis, showQualityMenu, showEpisodeMenu,
     extractQualities, extractEpisodes, currentVideoUrl, bufferingUsers,
-    originalVideoUrl, extractedVideoUrl: playerExtractedUrl, extractedVideoHeaders, extractedVideoProxyUrl: playerProxyUrl, isWebViewMode,
+    originalVideoUrl, extractedVideoUrl: playerExtractedUrl, extractedVideoHeaders, extractedVideoProxyUrl: playerProxyUrl, isWebViewMode, isYouTubeWebViewMode,
     setShowChat, setShowVoice, setShowInvite, setShowQualityMenu, setShowEpisodeMenu, setVideoIsLive,
     sendMessage, sendEmoji,
     onPlaybackStatusUpdate, handleWebViewPlay, handleWebViewPause, handleWebViewSeek,

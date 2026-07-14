@@ -24,11 +24,21 @@ interface ExtractResult {
   httpHeaders?: Record<string, string>;
 }
 
+// Mirrors mobile's extractYouTubeVideoId (apps/mobile/src/utils/videoPlayer.ts): matches `v=`
+// anywhere in the query string, not just as the literal first param after "watch?" — a share
+// link with another param first (e.g. "?list=...&v=..." from a playlist, or "?si=...&v=...")
+// made the old anchored regex fail entirely, silently falling through to generic CDN extraction
+// (never meant for YouTube) and spinning forever instead of rendering the YouTube player.
 function getYouTubeId(url: string): string | null {
-  const match = url.match(
-    /(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([a-zA-Z0-9_-]{11})/,
-  );
-  return match?.[1] ?? null;
+  const watchMatch = url.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
+  if (watchMatch) return watchMatch[1];
+  const shortMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
+  if (shortMatch) return shortMatch[1];
+  const shortsMatch = url.match(/\/shorts\/([a-zA-Z0-9_-]{11})/);
+  if (shortsMatch) return shortsMatch[1];
+  const embedMatch = url.match(/\/embed\/([a-zA-Z0-9_-]{11})/);
+  if (embedMatch) return embedMatch[1];
+  return null;
 }
 
 async function extractVideoUrl(url: string): Promise<ExtractResult> {

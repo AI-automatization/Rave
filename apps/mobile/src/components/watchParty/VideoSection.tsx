@@ -48,6 +48,11 @@ interface VideoSectionProps {
   duration?: number;
   onProgressSeek?: (secs: number) => void;
   isWebView?: boolean;
+  /** True only when isWebView is specifically the YouTube IFrame embed (reliable official
+   * player API) — gates whether we block direct iframe touches and show our own controls.
+   * Other webview embeds (VK/Rutube/Twitch/Vimeo/Dailymotion) keep the owner tapping the
+   * embed's own UI directly (see VideoSection.tsx tap-catcher comment, T-S125). */
+  isYouTubeEmbed?: boolean;
   onCdnUrlSniffed?: (url: string) => void;
   /** Running accumulated total while a skip-10s burst is batching (see useWatchPartyRoom);
    * null when idle. Shown on the skip buttons in place of the static "10s" label. */
@@ -61,7 +66,7 @@ export const VideoSection = React.memo(function VideoSection({
   isFullscreen, videoIsLive, floatingEmojis, onPlay, onPause, onSeek,
   onPlaybackStatusUpdate, onStreamResolved, onProgress, onBuffering, onReady, onPlayPause, onStop,
   onSeekDirection, onToggleFullscreen, onRemoveEmoji,
-  currentTime = 0, duration = 0, onProgressSeek, isWebView = false, onCdnUrlSniffed,
+  currentTime = 0, duration = 0, onProgressSeek, isWebView = false, isYouTubeEmbed = false, onCdnUrlSniffed,
   pendingSkipSecs = null,
 }: VideoSectionProps) {
   const { colors } = useTheme();
@@ -114,7 +119,11 @@ export const VideoSection = React.memo(function VideoSection({
     }
   }, [doHide, doShow]);
 
-  const isOwnerMode = isOwner;
+  // Non-webview (native player) always gets our controls. Webview embeds only get them for
+  // YouTube (reliable IFrame Player API) — other embeds (VK/Rutube/Twitch/Vimeo/Dailymotion)
+  // still rely on the owner tapping the embed's own UI directly (T-S125).
+  const isOwnerMode = isOwner && (!isWebView || isYouTubeEmbed);
+  const blockEmbedTouch = !isWebView || isYouTubeEmbed;
   const showProgress = !videoIsLive && duration > 0;
   const ctrlPointerEvents = ctrlVisible ? 'box-none' : 'none';
 
@@ -148,18 +157,25 @@ export const VideoSection = React.memo(function VideoSection({
         />
       )}
 
-      {/* Tap area — toggles controls + blocks ALL touches from reaching the player underneath.
-          For webview embeds (YouTube/Twitch/VK/Rutube) this is deliberate: the owner must not
-          be able to reach the embed's own native UI (YouTube's play/seek bar etc.) — every
-          control action has to go through our own play/pause/seek buttons below, which drive
-          the embed via the _csVideo JS bridge (useWebViewPlayer). Non-owner taps are still
-          additionally blocked by WebViewPlayer's memberLockOverlay (defense-in-depth). */}
-      <TrackedTouchable
-        trackId="watchparty:video_tap"
-        style={StyleSheet.absoluteFill}
-        activeOpacity={1}
-        onPress={handleVideoTap}
-      />
+      {/* Tap area — toggles controls + blocks touches from reaching the player underneath.
+          For the YouTube webview embed this is deliberate: the owner must not be able to reach
+          YouTube's own native UI (play/seek bar) — every control action goes through our own
+          play/pause/seek buttons below, which drive the embed via the reliable IFrame Player
+          API bridge (_csVideo in webviewYouTube.ts / useWebViewPlayer). Skipped for OTHER webview
+          embeds (VK/Rutube/Twitch/Vimeo/Dailymotion): those use a raw DOM <video> or postMessage
+          bridge with no clean player API (WebViewAdapters.ts) — a bare _csVideo.play()/pause()
+          call there doesn't reliably start/stop the real page's stream, so the owner still needs
+          to tap the embed's own UI directly (T-S125 — regressed briefly when T-S124 made this
+          unconditional for every webview). Non-owner taps are still independently blocked by
+          WebViewPlayer's memberLockOverlay regardless of platform. */}
+      {blockEmbedTouch && (
+        <TrackedTouchable
+          trackId="watchparty:video_tap"
+          style={StyleSheet.absoluteFill}
+          activeOpacity={1}
+          onPress={handleVideoTap}
+        />
+      )}
 
       {/* Gradient overlays — visual only */}
       <Animated.View style={[s.gradientTop, { opacity: ctrlOpacity }]} pointerEvents="none" />
@@ -231,7 +247,7 @@ export const VideoSection = React.memo(function VideoSection({
       )}
 
       {/* Viewer badge */}
-      {!isOwner && !isWebView && isReady && (
+      {!isOwner && blockEmbedTouch && isReady && (
         <Animated.View style={[s.viewerBadge, { opacity: ctrlOpacity }]} pointerEvents="none">
           <Ionicons name="eye-outline" size={12} color="rgba(255,255,255,0.40)" />
           <Text style={s.viewerTxt}>Tomoshabin</Text>
