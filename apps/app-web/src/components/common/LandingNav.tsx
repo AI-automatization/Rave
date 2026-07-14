@@ -7,6 +7,7 @@ import { FaBars, FaTimes, FaChevronRight } from 'react-icons/fa';
 import { useTranslations } from 'next-intl';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { WeWatchLogo } from './WeWatchLogo';
+import { trackClick } from '@/lib/analytics';
 
 export function LandingNav() {
   const pathname = usePathname();
@@ -58,6 +59,7 @@ export function LandingNav() {
             <LanguageSwitcher />
             <Link
               href="/login"
+              onClick={() => trackClick('landing_nav:login')}
               className="h-8 px-4 rounded-lg border border-zinc-700 text-zinc-300 hover:text-white hover:border-zinc-500 transition-all text-sm font-medium flex items-center"
             >
               {t('login')}
@@ -66,6 +68,7 @@ export function LandingNav() {
               href="https://apps.apple.com"
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => trackClick('landing_nav:get_started')}
               className="h-8 px-4 rounded-lg bg-[#7B72F8] text-white hover:bg-[#6B63E8] hover:shadow-[0_0_20px_rgba(123,114,248,0.4)] transition-all text-sm font-semibold flex items-center shadow-[0_0_12px_rgba(123,114,248,0.3)]"
             >
               {t('getStarted')}
@@ -75,7 +78,7 @@ export function LandingNav() {
           {/* Mobile burger */}
           <button
             className="md:hidden relative z-[60] w-9 h-9 rounded-lg flex items-center justify-center text-zinc-400 hover:text-white hover:bg-white/5 transition-all"
-            onClick={() => setMenuOpen((v) => !v)}
+            onClick={() => { trackClick('landing_nav:toggle_menu'); setMenuOpen((v) => !v); }}
             aria-label="Menu"
           >
             <span
@@ -159,7 +162,7 @@ export function LandingNav() {
           {/* Login button */}
           <Link
             href="/login"
-            onClick={() => setMenuOpen(false)}
+            onClick={() => { trackClick('landing_nav:login'); setMenuOpen(false); }}
             className="flex items-center justify-center h-11 rounded-xl border border-zinc-700 text-zinc-300 hover:text-white hover:border-zinc-500 transition-all text-sm font-medium w-full"
           >
             {t('login')}
@@ -170,7 +173,7 @@ export function LandingNav() {
             href="https://apps.apple.com"
             target="_blank"
             rel="noopener noreferrer"
-            onClick={() => setMenuOpen(false)}
+            onClick={() => { trackClick('landing_nav:get_started'); setMenuOpen(false); }}
             className="flex items-center justify-center h-11 rounded-xl bg-[#7B72F8] text-white hover:bg-[#6B63E8] hover:shadow-[0_0_30px_rgba(123,114,248,0.5)] transition-all text-sm font-semibold w-full shadow-[0_0_15px_rgba(123,114,248,0.35)]"
           >
             {t('getStarted')}

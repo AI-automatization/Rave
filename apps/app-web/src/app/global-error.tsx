@@ -2,6 +2,7 @@
 
 import * as Sentry from '@sentry/nextjs';
 import { useEffect } from 'react';
+import { trackClick } from '@/lib/analytics';
 
 export default function GlobalError({
   error,
@@ -52,7 +53,7 @@ export default function GlobalError({
             An unexpected error occurred.
           </p>
           <button
-            onClick={reset}
+            onClick={() => { trackClick('global_error:retry'); reset(); }}
             style={{
               background: '#7C3AED',
               color: 'white',

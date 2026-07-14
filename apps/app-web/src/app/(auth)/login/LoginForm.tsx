@@ -8,6 +8,7 @@ import { Mail, Lock, Eye, EyeOff, Loader2, XCircle, ShieldX } from 'lucide-react
 import { useAuthStore } from '@/store/auth.store';
 import { authApi } from '@/lib/api/auth.api';
 import { ApiError } from '@/lib/api-client';
+import { trackClick } from '@/lib/analytics';
 
 interface BanInfo {
   reason: string | null;
@@ -30,6 +31,7 @@ export function LoginForm() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!email || !password) return;
+    trackClick('login:submit');
 
     startTransition(() => {
       void (async () => {
@@ -68,6 +70,7 @@ export function LoginForm() {
   }
 
   async function handleGoogleLogin() {
+    trackClick('login:google');
     setError('');
     setIsGoogleLoading(true);
 
@@ -203,7 +206,7 @@ export function LoginForm() {
       <div className="flex flex-col gap-1.5">
         <div className="flex items-center justify-between">
           <label className="text-xs font-medium text-slate-400">{t('passwordLabel')}</label>
-          <Link href="/auth/reset-password" className="text-xs text-violet-400 hover:text-violet-300 transition-colors">
+          <Link href="/auth/reset-password" onClick={() => trackClick('login:forgot_password')} className="text-xs text-violet-400 hover:text-violet-300 transition-colors">
             {t('forgotPassword')}
           </Link>
         </div>
@@ -286,7 +289,7 @@ export function LoginForm() {
       {/* Register link */}
       <p className="text-sm text-center text-slate-400">
         {t('noAccount')}{' '}
-        <Link href="/register" className="text-violet-400 hover:text-violet-300 font-medium transition-colors">
+        <Link href="/register" onClick={() => trackClick('login:go_to_register')} className="text-violet-400 hover:text-violet-300 font-medium transition-colors">
           {t('registerLink')}
         </Link>
       </p>

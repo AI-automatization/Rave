@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Eye, EyeOff, Loader2, LogOut, Trash2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { trackClick } from '@/lib/analytics';
 
 export function SettingsContent() {
   const t = useTranslations('settings');
@@ -42,6 +43,7 @@ export function SettingsContent() {
       setPwError(t('pwMismatch'));
       return;
     }
+    trackClick('settings:change_password_submit');
 
     setPwLoading(true);
     try {
@@ -68,6 +70,7 @@ export function SettingsContent() {
   }
 
   async function handleLogoutAll() {
+    trackClick('settings:logout_all_confirm');
     setLogoutAllLoading(true);
     try {
       const res = await fetch('/api/auth/logout-all', {
@@ -94,6 +97,7 @@ export function SettingsContent() {
       setDeleteError(t('pwRequired'));
       return;
     }
+    trackClick('settings:delete_account_confirm');
     setDeleteLoading(true);
     try {
       const res = await fetch('/api/user/me', {

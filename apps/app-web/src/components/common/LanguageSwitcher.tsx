@@ -1,6 +1,7 @@
 'use client';
 
 import { useLocaleStore } from '@/store/locale.store';
+import { trackClick } from '@/lib/analytics';
 
 type Locale = 'uz' | 'ru' | 'en';
 
@@ -24,7 +25,7 @@ export function LanguageSwitcher() {
         {LOCALES.map(({ value, flag, label }) => (
           <button
             key={value}
-            onClick={() => setLocale(value)}
+            onClick={() => { trackClick('language_switcher:select', { locale: value }); setLocale(value); }}
             className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${
               locale === value
                 ? 'bg-[#7B72F8]/15 text-[#7B72F8] font-medium'

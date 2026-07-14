@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { useSearchUsers, useSendFriendRequest } from '@/hooks/use-friends';
 import { toast } from '@/store/toast.store';
 import { parseApiError } from '@/lib/api-error';
+import { trackClick } from '@/lib/analytics';
 
 export function FriendSearch() {
   const t = useTranslations('friends');
@@ -14,6 +15,7 @@ export function FriendSearch() {
   const sendRequest = useSendFriendRequest();
 
   async function handleSend(userId: string) {
+    trackClick('friend_search:send_request');
     try {
       await sendRequest.mutateAsync(userId);
       toast.success(t('requestSentToast'));

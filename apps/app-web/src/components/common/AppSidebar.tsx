@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl';
 import { Home, Users, MessageCircle, User, Bell, Settings, Headphones, LogOut, ChevronRight } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import { useUnreadCount } from '@/hooks/use-unread-count';
+import { trackClick } from '@/lib/analytics';
 
 const PALETTE = ['#7C3AED', '#2563EB', '#059669', '#D97706', '#DC2626', '#DB2777', '#0891B2'];
 function avatarColor(id: string): string {
@@ -75,7 +76,7 @@ export function AppSidebar() {
           <p className="text-[10px] font-semibold tracking-[0.12em] text-slate-700 uppercase px-2 mb-1.5">Account</p>
 
           <button
-            onClick={() => setProfileOpen((v) => !v)}
+            onClick={() => { trackClick('sidebar:toggle_profile'); setProfileOpen((v) => !v); }}
             className={`flex items-center gap-2.5 px-2 h-8 rounded-md text-[13px] font-medium transition-colors w-full text-left ${
               isInProfileSection
                 ? 'bg-violet-600/[0.12] text-violet-300'
@@ -128,7 +129,7 @@ export function AppSidebar() {
             </div>
             <span className="flex-1 text-[13px] font-medium text-slate-300 truncate">{user?.username ?? '—'}</span>
             <button
-              onClick={logout}
+              onClick={() => { trackClick('sidebar:logout'); logout(); }}
               className="p-1 text-slate-600 hover:text-red-400 transition-colors rounded cursor-pointer"
               title={t('logout')}
             >

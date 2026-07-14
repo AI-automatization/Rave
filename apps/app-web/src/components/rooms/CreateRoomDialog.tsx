@@ -12,6 +12,7 @@ import { useCreateRoom } from '@/hooks/use-rooms';
 import { toast } from '@/store/toast.store';
 import { parseApiError } from '@/lib/api-error';
 import { ApiError } from '@/lib/api-client';
+import { trackClick } from '@/lib/analytics';
 
 interface Props {
   open: boolean;
@@ -249,6 +250,7 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
 
   /* ── Create room ────────────────────────────────────── */
   async function handleCreate(withoutVideo = false) {
+    trackClick('create_room:submit', { withoutVideo });
     try {
       const backendPlatform = activePlatform?.id
         ? (PLATFORM_TO_BACKEND[activePlatform.id] ?? 'other')
@@ -384,7 +386,7 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
               return (
                 <button
                   key={platform.id}
-                  onClick={() => handlePlatformClick(platform)}
+                  onClick={() => { trackClick('create_room:platform', { platform: platform.id }); handlePlatformClick(platform); }}
                   className="flex flex-col items-center gap-2.5 py-4 px-2 rounded-2xl border transition-all duration-150 active:scale-95 cursor-pointer"
                   style={{
                     background: isActive ? platform.bg : 'rgba(255,255,255,0.03)',

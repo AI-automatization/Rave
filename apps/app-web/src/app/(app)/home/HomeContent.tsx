@@ -11,6 +11,7 @@ import { useAuthStore } from '@/store/auth.store';
 import { RoomCard } from '@/components/rooms/RoomCard';
 import { CreateRoomDialog } from '@/components/rooms/CreateRoomDialog';
 import { JoinRoomDialog } from '@/components/rooms/JoinRoomDialog';
+import { trackClick } from '@/lib/analytics';
 import type { IWatchPartyRoom } from '@/types';
 
 function timeAgo(dateStr: string): string {
@@ -27,7 +28,7 @@ function RecentRoomCard({ room }: { room: IWatchPartyRoom }) {
 
   return (
     <button
-      onClick={() => router.push(`/room/${room._id}`)}
+      onClick={() => { trackClick('home:open_recent_room'); router.push(`/room/${room._id}`); }}
       className="group flex-shrink-0 w-48 rounded-xl overflow-hidden border border-white/[0.06] hover:border-violet-500/30 transition-all duration-200 text-left cursor-pointer"
       style={{ background: 'rgba(10,10,18,0.9)' }}
     >
@@ -114,7 +115,7 @@ export function HomeContent() {
 
         <div className="flex items-center gap-2 mt-0.5">
           <button
-            onClick={() => setJoinOpen(true)}
+            onClick={() => { trackClick('home:open_join_dialog'); setJoinOpen(true); }}
             className="h-8 px-3.5 rounded-md text-xs font-medium text-zinc-300 border border-white/[0.08] hover:bg-white/[0.06] hover:border-white/[0.14] transition-all cursor-pointer flex items-center gap-1.5"
             style={{ background: 'rgba(255,255,255,0.03)' }}
           >
@@ -122,7 +123,7 @@ export function HomeContent() {
             {t('join')}
           </button>
           <button
-            onClick={() => setCreateOpen(true)}
+            onClick={() => { trackClick('home:open_create_dialog'); setCreateOpen(true); }}
             className="h-8 px-3.5 rounded-md text-xs font-semibold text-white bg-violet-600 hover:bg-violet-500 transition-colors cursor-pointer flex items-center gap-1.5 active:scale-[0.97]"
           >
             <Plus size={12} />
@@ -179,7 +180,7 @@ export function HomeContent() {
             <p className="text-zinc-500 text-xs">{t('errorDesc')}</p>
           </div>
           <button
-            onClick={() => qc.invalidateQueries({ queryKey: ['rooms'] })}
+            onClick={() => { trackClick('home:retry'); qc.invalidateQueries({ queryKey: ['rooms'] }); }}
             className="h-8 px-4 rounded-md text-xs font-medium text-zinc-300 border border-white/[0.08] hover:bg-white/[0.06] transition-all flex items-center gap-2 cursor-pointer"
             style={{ background: 'rgba(255,255,255,0.03)' }}
           >
@@ -198,7 +199,7 @@ export function HomeContent() {
             <p className="text-zinc-500 text-sm max-w-xs">{t('emptyDesc')}</p>
           </div>
           <button
-            onClick={() => setCreateOpen(true)}
+            onClick={() => { trackClick('home:empty_state_create'); setCreateOpen(true); }}
             className="h-9 px-5 rounded-md text-sm font-medium text-white bg-violet-600 hover:bg-violet-500 cursor-pointer active:scale-[0.97] transition-colors flex items-center gap-2 mt-1"
           >
             <Plus size={13} />

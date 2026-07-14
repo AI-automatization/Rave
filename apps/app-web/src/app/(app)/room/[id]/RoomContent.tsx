@@ -13,6 +13,7 @@ import { roomsApi } from '@/lib/api/rooms.api';
 import { useWatchPartyStore } from '@/store/watch-party.store';
 import { useAuthStore } from '@/store/auth.store';
 import { toast } from '@/hooks/use-toast';
+import { trackClick } from '@/lib/analytics';
 
 interface PlaylistItem {
   videoUrl: string;
@@ -34,6 +35,7 @@ function PlaylistPanel({ roomId, isOwner }: { roomId: string; isOwner: boolean }
 
   async function handleAdd() {
     if (!urlInput.trim()) return;
+    trackClick('room:playlist_add');
     setAdding(true);
     try {
       const res = await fetch(`/api/rooms/${roomId}/playlist`, {
@@ -54,6 +56,7 @@ function PlaylistPanel({ roomId, isOwner }: { roomId: string; isOwner: boolean }
   }
 
   async function handleRemove(index: number) {
+    trackClick('room:playlist_remove');
     try {
       await fetch(`/api/rooms/${roomId}/playlist/${index}`, {
         method: 'DELETE',
@@ -65,6 +68,7 @@ function PlaylistPanel({ roomId, isOwner }: { roomId: string; isOwner: boolean }
   }
 
   async function handleNext() {
+    trackClick('room:playlist_next');
     setNextLoading(true);
     try {
       await fetch(`/api/rooms/${roomId}/playlist/next`, {
@@ -191,7 +195,7 @@ export function RoomContent({ roomId }: Props) {
         >
           <div className="flex border-b border-white/[0.07]">
             <button
-              onClick={() => setRightTab('chat')}
+              onClick={() => { trackClick('room:tab_chat'); setRightTab('chat'); }}
               className={`relative flex-1 h-10 flex items-center justify-center gap-1.5 text-xs font-medium transition-colors cursor-pointer ${
                 rightTab === 'chat' ? 'text-white' : 'text-slate-500 hover:text-slate-300'
               }`}
@@ -203,7 +207,7 @@ export function RoomContent({ roomId }: Props) {
               )}
             </button>
             <button
-              onClick={() => setRightTab('members')}
+              onClick={() => { trackClick('room:tab_members'); setRightTab('members'); }}
               className={`relative flex-1 h-10 flex items-center justify-center gap-1.5 text-xs font-medium transition-colors cursor-pointer ${
                 rightTab === 'members' ? 'text-white' : 'text-slate-500 hover:text-slate-300'
               }`}
@@ -216,7 +220,7 @@ export function RoomContent({ roomId }: Props) {
             </button>
             {isOwner && (
               <button
-                onClick={() => setRightTab('playlist')}
+                onClick={() => { trackClick('room:tab_playlist'); setRightTab('playlist'); }}
                 className={`relative flex-1 h-10 flex items-center justify-center gap-1.5 text-xs font-medium transition-colors cursor-pointer ${
                   rightTab === 'playlist' ? 'text-white' : 'text-slate-500 hover:text-slate-300'
                 }`}

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { Lock, Eye, EyeOff, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { trackClick } from '@/lib/analytics';
 
 interface Props {
   token: string | null;
@@ -38,6 +39,7 @@ export function ResetPasswordForm({ token }: Props) {
         </p>
         <a
           href="wewatch://"
+          onClick={() => trackClick('reset_password:open_app')}
           className="mt-2 inline-flex items-center gap-2 px-6 py-2.5 rounded-md text-sm font-semibold text-white bg-violet-600 hover:bg-violet-500 transition-colors"
         >
           Открыть WeWatch
@@ -52,6 +54,7 @@ export function ResetPasswordForm({ token }: Props) {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (mismatch || tooShort || !password) return;
+    trackClick('reset_password:submit');
 
     startTransition(() => {
       void (async () => {

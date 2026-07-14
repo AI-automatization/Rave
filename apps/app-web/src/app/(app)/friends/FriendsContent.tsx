@@ -9,6 +9,7 @@ import { useAuthStore } from '@/store/auth.store';
 import { FriendCard } from '@/components/friends/FriendCard';
 import { RequestCard } from '@/components/friends/RequestCard';
 import { FriendSearch } from '@/components/friends/FriendSearch';
+import { trackClick } from '@/lib/analytics';
 
 type Tab = 'friends' | 'requests' | 'search';
 
@@ -36,7 +37,7 @@ export function FriendsContent() {
         {tabs.map(({ key, label, count }) => (
           <button
             key={key}
-            onClick={() => setTab(key)}
+            onClick={() => { trackClick('friends:tab', { tab: key }); setTab(key); }}
             className={`flex-1 h-8 rounded-md flex items-center justify-center gap-1.5 text-sm font-medium transition-colors cursor-pointer ${
               tab === key
                 ? 'bg-violet-600/20 text-violet-300'
@@ -70,7 +71,7 @@ export function FriendsContent() {
               <FriendCard
                 key={f._id}
                 user={f}
-                onMessage={() => router.push(`/messages?peer=${f._id}`)}
+                onMessage={() => { trackClick('friends:message'); router.push(`/messages?peer=${f._id}`); }}
               />
             ))}
           </div>

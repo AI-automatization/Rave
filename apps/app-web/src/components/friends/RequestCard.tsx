@@ -6,6 +6,7 @@ import { useAcceptFriendRequest, useRejectFriendRequest } from '@/hooks/use-frie
 import { toast } from '@/store/toast.store';
 import { parseApiError } from '@/lib/api-error';
 import type { IFriendship, IUser } from '@/types';
+import { trackClick } from '@/lib/analytics';
 
 interface Props {
   request: IFriendship;
@@ -20,6 +21,7 @@ export function RequestCard({ request, currentUserId }: Props) {
   const sender = request.requester._id === currentUserId ? (request.receiver ?? request.requester) : request.requester;
 
   async function handleAccept() {
+    trackClick('friend_request:accept');
     try {
       await accept.mutateAsync(request._id);
       toast.success(t('acceptedToast'));
@@ -29,6 +31,7 @@ export function RequestCard({ request, currentUserId }: Props) {
   }
 
   async function handleReject() {
+    trackClick('friend_request:reject');
     try {
       await reject.mutateAsync(request._id);
     } catch (err) {

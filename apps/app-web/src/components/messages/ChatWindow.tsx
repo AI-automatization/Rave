@@ -5,6 +5,7 @@ import { ArrowLeft, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { MessageBubble } from '@/components/messages/MessageBubble';
 import { useAuthStore } from '@/store/auth.store';
+import { trackClick } from '@/lib/analytics';
 
 interface DmMessage {
   _id: string;
@@ -54,6 +55,7 @@ export function ChatWindow({ messages, onSend, peerName, peerId, onBack }: Props
     e.preventDefault();
     const trimmed = text.trim();
     if (!trimmed) return;
+    trackClick('dm:send_message');
     onSend(trimmed);
     setText('');
   }
@@ -74,7 +76,7 @@ export function ChatWindow({ messages, onSend, peerName, peerId, onBack }: Props
       >
         {onBack && (
           <button
-            onClick={onBack}
+            onClick={() => { trackClick('dm:back'); onBack(); }}
             className="w-9 h-9 flex items-center justify-center text-white/80 hover:text-white transition-colors rounded-lg hover:bg-white/[0.05] cursor-pointer"
           >
             <ArrowLeft size={20} />

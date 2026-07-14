@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { MessageCircle } from 'lucide-react';
 import type { IUser } from '@/types';
+import { trackClick } from '@/lib/analytics';
 
 interface Conversation {
   peerId: string;
@@ -58,7 +59,7 @@ export function ConversationList({ conversations, selectedPeerId, onSelect }: Pr
         return (
           <div key={conv.peerId}>
             <button
-              onClick={() => onSelect(conv.peerId)}
+              onClick={() => { trackClick('dm:select_conversation'); onSelect(conv.peerId); }}
               className={`flex items-center gap-3.5 px-4 py-3 w-full text-left transition-all cursor-pointer ${
                 active ? 'bg-violet-600/[0.15] border-l-2 border-l-violet-500' : 'border-l-2 border-l-transparent hover:bg-white/[0.04]'
               }`}

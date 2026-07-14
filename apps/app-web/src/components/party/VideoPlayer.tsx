@@ -5,6 +5,7 @@ import { Loader2, Play, AlertCircle, Pause, Maximize, Minimize, Volume2, VolumeX
 import { useWatchPartyStore } from '@/store/watch-party.store';
 import { useAuthStore } from '@/store/auth.store';
 import { toast } from '@/hooks/use-toast';
+import { trackClick } from '@/lib/analytics';
 import { YouTubePlayer } from './YouTubePlayer';
 
 interface Props {
@@ -207,6 +208,7 @@ function NativeVideoPlayer({
     if (!isOwner) return;
     const v = videoRef.current;
     if (!v) return;
+    trackClick('video:toggle_play_pause');
     if (v.paused) onOverlayClick();
     else v.pause();
   }
@@ -229,6 +231,7 @@ function NativeVideoPlayer({
   function toggleMute() {
     const v = videoRef.current;
     if (!v) return;
+    trackClick('video:toggle_mute');
     v.muted = !v.muted;
     setIsMuted(v.muted);
   }
@@ -236,6 +239,7 @@ function NativeVideoPlayer({
   function toggleFullscreen() {
     const el = containerRef.current;
     if (!el) return;
+    trackClick('video:toggle_fullscreen');
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     else el.requestFullscreen().catch(() => {});
   }
@@ -284,7 +288,7 @@ function NativeVideoPlayer({
       {/* Autoplay blocked overlay */}
       {autoplayBlocked && (
         <button
-          onClick={onOverlayClick}
+          onClick={() => { trackClick('video:autoplay_overlay'); onOverlayClick(); }}
           className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-black/70 cursor-pointer group/btn"
           aria-label="Нажмите чтобы воспроизвести"
         >

@@ -9,6 +9,7 @@ import { toast } from '@/store/toast.store';
 import { parseApiError } from '@/lib/api-error';
 import { useAuthStore } from '@/store/auth.store';
 import type { IUser } from '@/types';
+import { trackClick } from '@/lib/analytics';
 
 interface Props {
   user: IUser;
@@ -24,6 +25,7 @@ export function ProfileCard({ user }: Props) {
   const hasChanges = username !== (user.username ?? '') || bio !== (user.bio ?? '');
 
   async function handleSave() {
+    trackClick('profile:save');
     try {
       const res = await update.mutateAsync({ username, bio });
       if (res.data) setUser(res.data);
