@@ -22,6 +22,10 @@ jobs:
   build:
     name: Build APK (${{ github.event.inputs.profile }})
     runs-on: ubuntu-latest
+    # Safety net: a Gradle daemon OOM crash during the actual build step doesn't
+    # always propagate as a clean process exit (seen once — the job hung 6h until
+    # GitHub's own hard ceiling force-killed it). Fail fast well before that.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
