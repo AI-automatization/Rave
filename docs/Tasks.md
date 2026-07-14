@@ -4,6 +4,26 @@
 
 ---
 
+### T-S126 | P1 | [WEB] | app-web deploy blocker — Sentry edge instrumentation'ni instrumentation.ts'ga ko'chirish
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim (deploy urinishida topilgan, foydalanuvchi tasdiqladi)
+- **Yaratilgan:** 2026-07-14
+- **Holat:** 🔄 Bajarilmoqda
+- **Tavsiya model:** sonnet
+- **Model sababi:** 3-4 fayl, aniq migratsiya yo'li (Sentry rasmiy docs)
+- **Sabab:** `railway up` (T-S125 fix'ni deploy qilishda) build muvaffaqiyatli o'tdi, lekin healthcheck (`/login`) 5 daqiqa "service unavailable" bilan fail bo'ldi. Root cause: har bir so'rov middleware'da `TypeError: Cannot redefine property: __import_unsupported` bilan crash qiladi (Next.js Edge Runtime sandbox + Sentry SDK v10 nomuvofiqligi). `@sentry/nextjs@^10.58.0` legacy `sentry.server/client/edge.config.ts` fayl konventsiyasi bilan mos emas — build loglarida Sentry'ning o'zi buni ogohlantiradi ("move content into instrumentation file"). Bu `ceddf15` (domain-split) commitida qo'shilgan — o'shandan beri app-web'ning HECH BIR deploy urinishi muvaffaqiyatli bo'lmagan ehtimoli katta (yonidagi `web` servisi ham "Deploy failed (1d)"). Production hozircha zarar ko'rmagan — eski konteyner ishlashda davom etmoqda.
+- **Qilish kerak:**
+  - [ ] `src/instrumentation.ts` (yangi) — `register()` orqali nodejs/edge runtime uchun shartli `Sentry.init()`
+  - [ ] `src/instrumentation-client.ts` (yangi) — `sentry.client.config.ts` mazmuni ko'chiriladi
+  - [ ] `sentry.server.config.ts`, `sentry.client.config.ts`, `sentry.edge.config.ts` — o'chiriladi (mazmuni ko'chirilgandan keyin)
+  - [ ] `next.config.mjs` — kerak bo'lsa `experimental.instrumentationHook` tekshirish (Next 14.2 uchun)
+  - [ ] Local `next build` orqali tekshirish (imkon bo'lsa) + `npx tsc --noEmit`
+  - [ ] `railway up` — healthcheck o'tishini tasdiqlash
+- **Fayllar:** `apps/app-web/src/instrumentation.ts` (yangi), `apps/app-web/src/instrumentation-client.ts` (yangi), `apps/app-web/sentry.*.config.ts` (o'chiriladi), `apps/app-web/next.config.mjs`
+
+---
+
 # 🔒 Sprint 15: Security Audit fixes (2026-07-04 — аудит Claude)
 
 > Полный аудит OWASP Top 10 + WeWatch-специфика. Фундамент крепкий (JWT/bcrypt/socket/internal/IDOR — ок). Ниже — найденные уязвимости. **Не начинать без claim.**
