@@ -1,9 +1,10 @@
 // WeWatch Mobile — compact horizontal row of the user's own rooms.
 // Smaller than the main RoomGrid — a quick "jump back into your room" strip.
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useTheme, spacing, borderRadius } from '@theme/index';
 import type { IWatchPartyRoom } from '@app-types/index';
 
@@ -15,7 +16,7 @@ function MyRoomCard({ room, onPress }: { room: IWatchPartyRoom; onPress: () => v
   const isPlaying = room.status === 'playing';
 
   return (
-    <TouchableOpacity style={s.card} onPress={onPress} activeOpacity={0.82}>
+    <TrackedTouchable trackId="home:open_my_room" style={s.card} onPress={onPress} activeOpacity={0.82}>
       <View style={s.thumbWrap}>
         {room.videoThumbnail ? (
           <Image source={{ uri: room.videoThumbnail }} style={s.thumb} contentFit="cover" />
@@ -46,7 +47,7 @@ function MyRoomCard({ room, onPress }: { room: IWatchPartyRoom; onPress: () => v
           color={room.isPrivate ? colors.warning + 'BB' : colors.success + 'BB'}
         />
       </View>
-    </TouchableOpacity>
+    </TrackedTouchable>
   );
 }
 

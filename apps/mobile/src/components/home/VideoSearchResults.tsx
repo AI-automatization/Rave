@@ -3,12 +3,12 @@ import React from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
   Image,
   FlatList,
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useTheme, createThemedStyles, spacing, typography, borderRadius } from '@theme/index';
 import { useT } from '@i18n/index';
 import type { VideoSearchItem } from '@api/content.api';
@@ -46,7 +46,7 @@ function ResultCard({ item, onPress }: { item: VideoSearchItem; onPress: () => v
   const dur = formatDuration(item.duration);
 
   return (
-    <TouchableOpacity style={s.card} onPress={onPress} activeOpacity={0.8}>
+    <TrackedTouchable trackId="video_search:select_result" style={s.card} onPress={onPress} activeOpacity={0.8}>
       <View style={s.thumbWrap}>
         {item.thumbnail ? (
           <Image source={{ uri: item.thumbnail }} style={s.thumb} resizeMode="cover" />
@@ -77,7 +77,7 @@ function ResultCard({ item, onPress }: { item: VideoSearchItem; onPress: () => v
       </View>
 
       <Ionicons name="add-circle-outline" size={22} color={colors.primary} />
-    </TouchableOpacity>
+    </TrackedTouchable>
   );
 }
 

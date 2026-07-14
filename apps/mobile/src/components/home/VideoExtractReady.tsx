@@ -1,8 +1,9 @@
 // WeWatch Mobile — Video extract ready state: player + info + actions
 import React from 'react';
-import { View, Text, TouchableOpacity, StatusBar } from 'react-native';
+import { View, Text, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { RefObject } from 'react';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { UniversalPlayer, UniversalPlayerRef } from '@components/video/UniversalPlayer';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import type { VideoExtractResult } from '@api/content.api';
@@ -61,14 +62,14 @@ export function VideoExtractReady({ result, playerUrl, playerRef, onReset, onWat
       </Text>
 
       <View style={styles.actions}>
-        <TouchableOpacity style={styles.actionBtnSecondary} onPress={onReset}>
+        <TrackedTouchable trackId="video_extract:reset" style={styles.actionBtnSecondary} onPress={onReset}>
           <Ionicons name="link-outline" size={18} color={colors.textSecondary} />
           <Text style={styles.actionBtnSecondaryText}>Boshqa URL</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionBtnPrimary} onPress={onWatchParty}>
+        </TrackedTouchable>
+        <TrackedTouchable trackId="video_extract:start_watch_party" style={styles.actionBtnPrimary} onPress={onWatchParty}>
           <Ionicons name="people" size={18} color={colors.textPrimary} />
           <Text style={styles.actionBtnPrimaryText}>Watch Party</Text>
-        </TouchableOpacity>
+        </TrackedTouchable>
       </View>
     </View>
   );

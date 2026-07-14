@@ -1,11 +1,12 @@
 // WeWatch Mobile — SourcePickerScreen
 import React, { useState, useMemo } from 'react';
-import { View, Text, TouchableOpacity, FlatList, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, TextInput, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { MEDIA_SOURCES } from '@constants/mediaSources';
 import { SourceCard } from '@components/watchParty/SourceCard';
 import { useSourcePicker } from '@hooks/useSourcePicker';
@@ -33,9 +34,9 @@ export function SourcePickerScreen() {
   return (
     <LinearGradient colors={['#0A0A0F', '#0F0A1A', '#0A0A0F']} style={[s.root, { paddingTop: insets.top || 16 }]}>
       <View style={s.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+        <TrackedTouchable trackId="source_picker:back" onPress={() => navigation.goBack()} style={s.backBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
           <Ionicons name="chevron-back" size={26} color="#fff" />
-        </TouchableOpacity>
+        </TrackedTouchable>
         <Text style={s.title}>{t('sourcePicker', 'title')}</Text>
         <View style={{ width: 40 }} />
       </View>
@@ -52,9 +53,9 @@ export function SourcePickerScreen() {
           autoCorrect={false}
         />
         {query.length > 0 && (
-          <TouchableOpacity onPress={() => setQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <TrackedTouchable trackId="source_picker:clear_search" onPress={() => setQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Ionicons name="close-circle" size={18} color="#6B7280" />
-          </TouchableOpacity>
+          </TrackedTouchable>
         )}
       </View>
 
@@ -73,7 +74,8 @@ export function SourcePickerScreen() {
             autoCorrect={false}
             keyboardType="url"
           />
-          <TouchableOpacity
+          <TrackedTouchable
+            trackId="source_picker:extract_url"
             style={[s.urlBtn, (!urlInput.trim() || isExtracting) && s.urlBtnDisabled]}
             onPress={handleUrlExtract}
             disabled={!urlInput.trim() || isExtracting}
@@ -83,7 +85,7 @@ export function SourcePickerScreen() {
               ? <ActivityIndicator size="small" color="#fff" />
               : <Ionicons name="arrow-forward" size={20} color="#fff" />
             }
-          </TouchableOpacity>
+          </TrackedTouchable>
         </View>
         {urlError ? <Text style={s.urlErrorText}>{urlError}</Text> : null}
       </View>

@@ -1,10 +1,11 @@
 // WeWatch — Room Grid Card components (extracted from HomeScreen)
 import React, { useEffect, useRef } from 'react';
 import {
-  View, Text, TouchableOpacity, Image, Animated, Dimensions,
+  View, Text, Image, Animated, Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useTheme, createThemedStyles, spacing, borderRadius } from '@theme/index';
 import type { IWatchPartyRoom } from '@app-types/index';
 
@@ -99,7 +100,8 @@ export function RoomGridCard({ room, index, onPress, onLongPress }: {
 
   return (
     <Animated.View style={{ opacity, transform: [{ scale: combinedScale }], width: CARD_W }}>
-      <TouchableOpacity
+      <TrackedTouchable
+        trackId="home:room_card"
         style={[s.card, { borderColor, opacity: isEnded ? 0.42 : 1 }]}
         onPress={onPress}
         onLongPress={onLongPress}
@@ -174,7 +176,7 @@ export function RoomGridCard({ room, index, onPress, onLongPress }: {
             />
           </View>
         </LinearGradient>
-      </TouchableOpacity>
+      </TrackedTouchable>
     </Animated.View>
   );
 }

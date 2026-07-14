@@ -1,7 +1,8 @@
 // WeWatch Mobile — Home Hero CTA (Watch Together button)
 import React, { useRef } from 'react';
-import { View, Text, TouchableOpacity, Animated } from 'react-native';
+import { View, Text, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useTheme, createThemedStyles, spacing, typography, borderRadius } from '@theme/index';
 import { useT } from '@i18n/index';
 
@@ -34,10 +35,10 @@ export function HomeCTA({ onPress }: HomeCTAProps) {
         </View>
       </View>
       <Animated.View style={{ transform: [{ scale: btnScale }] }}>
-        <TouchableOpacity style={s.btn} onPress={onPress} onPressIn={onPressIn} onPressOut={onPressOut} activeOpacity={1}>
+        <TrackedTouchable trackId="home:cta_watch_together" style={s.btn} onPress={onPress} onPressIn={onPressIn} onPressOut={onPressOut} activeOpacity={1}>
           <Ionicons name="play-circle" size={18} color={colors.white} />
           <Text style={s.btnText}>{t('home', 'ctaBtn')}</Text>
-        </TouchableOpacity>
+        </TrackedTouchable>
       </Animated.View>
     </View>
   );

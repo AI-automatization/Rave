@@ -3,7 +3,6 @@ import React from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
   Image,
   FlatList,
   Dimensions,
@@ -11,6 +10,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useTheme, createThemedStyles, spacing, typography, borderRadius } from '@theme/index';
 import { useT } from '@i18n/index';
 import type { IWatchPartyRoom } from '@app-types/index';
@@ -33,7 +33,7 @@ function RoomCard({ room, onPress }: { room: IWatchPartyRoom; onPress: () => voi
   const isPlaying = room.status === 'playing';
 
   return (
-    <TouchableOpacity style={s.card} onPress={onPress} activeOpacity={0.82}>
+    <TrackedTouchable trackId="home:open_active_room" style={s.card} onPress={onPress} activeOpacity={0.82}>
       {room.videoThumbnail ? (
         <Image source={{ uri: room.videoThumbnail }} style={s.thumb} resizeMode="cover" />
       ) : (
@@ -63,7 +63,7 @@ function RoomCard({ room, onPress }: { room: IWatchPartyRoom; onPress: () => voi
           <Text style={s.metaText}>{memberCount}</Text>
         </View>
       </LinearGradient>
-    </TouchableOpacity>
+    </TrackedTouchable>
   );
 }
 
