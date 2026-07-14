@@ -147,12 +147,19 @@ export const VideoSection = React.memo(function VideoSection({
         />
       )}
 
-      {/* Tap area — toggles controls + blocks viewer from touching player */}
-      <TouchableOpacity
-        style={StyleSheet.absoluteFill}
-        activeOpacity={1}
-        onPress={handleVideoTap}
-      />
+      {/* Tap area — toggles controls + blocks viewer from touching player.
+          Skipped for webview embeds (YouTube/Twitch/VK/Rutube): isOwnerMode is already false
+          there (no app play/pause/seek UI to toggle), and this full-screen catcher would
+          otherwise swallow every tap before it reaches the embed's own native controls —
+          the owner's only way to control playback in webview mode. Non-owner taps are still
+          blocked independently by WebViewPlayer's memberLockOverlay. */}
+      {!isWebView && (
+        <TouchableOpacity
+          style={StyleSheet.absoluteFill}
+          activeOpacity={1}
+          onPress={handleVideoTap}
+        />
+      )}
 
       {/* Gradient overlays — visual only */}
       <Animated.View style={[s.gradientTop, { opacity: ctrlOpacity }]} pointerEvents="none" />
