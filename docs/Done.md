@@ -4,6 +4,14 @@
 
 ---
 
+### F-225 | Bug fix | Web: xona yaratilmayapti — videoUrl sxemasiz jo'natilsa jim-jit fail bo'lardi
+
+- **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-14  **Model:** sonnet
+- **O'zgarishlar:** `apps/app-web/src/lib/api-error.ts` — `BackendError.details` → `errors` (haqiqiy backend maydoni bilan mos, `shared/src/utils/apiResponse.ts`: `apiResponse.error(message, errors)`). `apps/app-web/src/components/rooms/CreateRoomDialog.tsx` — `handleCreate`da `videoUrl` jo'natishdan oldin sxema yo'q bo'lsa `https://` avtomatik qo'shiladi.
+- **Xulosa:** Foydalanuvchi xabari: link kiritib "yaratish"ni bosganda tugma aylanadi va hech narsa bo'lmasdan asl holatiga qaytadi. Root cause ikkita bog'liq xato: (1) URL input `<form>` ichida emas → brauzer native URL validatsiyasi ishlamaydi → sxemasiz link ("youtube.com/watch?v=...") backend Joi `videoUrl.uri()`ga o'tib, 422 bilan rad etiladi; (2) `parseApiError` `details` maydonini tekshiradi, lekin BARCHA servislar (auth/user/content/notification/admin/watch-party) Joi xatolarini `errors` maydonida qaytaradi — shu sabab aniq sabab ("videoUrl" must be a valid uri) hech qachon ko'rsatilmay, generic "Validation failed" bilan almashtirilardi (deyarli ko'rinmas toast). Ikkalasi ham tuzatildi: maydon nomi to'g'rilandi + jo'natishdan oldin URL normalizatsiya qilinadi. tsc: CLEAN (apps/app-web, yangi xatolik yo'q). Commit `5cbffb3`.
+
+---
+
 ### F-224 | T-S124 | YouTube/webview iframe — owner endi FAQAT o'z pleer boshqaruvidan foydalanadi
 
 - **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-14  **Model:** sonnet
