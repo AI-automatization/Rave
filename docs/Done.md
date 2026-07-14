@@ -4,6 +4,14 @@
 
 ---
 
+### F-223 | T-S123 | To'liq click-event tracking — mobile + web
+
+- **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-14  **Model:** sonnet
+- **O'zgarishlar:** Mobile (103 fayl, 6 commit): `analyticsService.ts` — `click(id, meta?)` + `track()` avtomatik `currentScreen`; `TrackedTouchable.tsx` / `TrackedPressable.tsx` (yangi, majburiy `trackId` prop, `onPress` + `onLongPress` qamrab oladi) — barcha watchParty/auth/home/profile-settings/friends-DM/common ekranlarida qo'llanildi. Web (28 fayl, 1 commit): `apps/app-web/src/lib/analytics.ts` (yangi, `trackClick()` → `gtag('event','click',...)`) — auth (login/register/reset-password), home, room (playlist, tabs, invite, emoji, video controls), settings, support, friends/DM, notifications, profile.
+- **Xulosa:** Bekzod so'rovi (T-S118 topic reminder, 18:00 muddat) — "Foydalanuvchi analitikasi (click+event log)" mavjudligini so'radi. Audit natijasi: backend tayyor edi, lekin mobile'da deyarli hech qanday click event yo'q edi (faqat 3 ta), web'da esa GA4 pageview'dan boshqa hech narsa yo'q edi. Foydalanuvchi to'g'ridan-to'g'ri buyruq berdi: "делай полный клик евент во всем приложении". Har ikki platformada ham endi asosiy CTA/tugma bosishlar GA4/analyticsService orqali kuzatiladi. tsc: CLEAN (apps/mobile va apps/app-web, ikkalasida ham yangi xatolik yo'q). Commits: mobile `1956729`..`3033e74` (6 ta), web `fbaff51`.
+
+---
+
 ### F-222 | T-S122 | YouTube/webview embed — owner endi videoni boshqara oladi
 
 - **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-14  **Model:** sonnet
