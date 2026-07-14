@@ -6,7 +6,7 @@ const PROTECTED_PATHS = ['/home', '/room', '/profile', '/friends', '/messages'];
 // Routes that should redirect to /home if already authenticated
 const AUTH_PATHS = ['/login', '/register'];
 
-export function proxy(req: NextRequest) {
+export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const hasAccessToken = req.cookies.has('access_token');
   const hasRefreshToken = req.cookies.has('refresh_token');

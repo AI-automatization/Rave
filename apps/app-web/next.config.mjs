@@ -20,6 +20,9 @@ const nextConfig = {
   },
   experimental: {
     optimizePackageImports: ['framer-motion', 'lucide-react'],
+    // Required in Next 14.2 for src/instrumentation.ts (Sentry server/edge init) to load —
+    // defaults to false in this version, stabilized without the flag only from Next 15.
+    instrumentationHook: true,
   },
   async headers() {
     return [
