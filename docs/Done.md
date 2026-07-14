@@ -4,6 +4,14 @@
 
 ---
 
+### F-228 | T-S127 | Web: Rutube/VK (va boshqa embed'lar) xona yaratilmasligi — Mongoose/Joi enum rassinxroni
+
+- **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-14  **Model:** sonnet
+- **O'zgarishlar:** `services/watch-party/src/models/watchPartyRoom.model.ts` — `VIDEO_PLATFORM_ENUM` konstantasi qo'shildi (`youtube,vimeo,twitch,dailymotion,direct,webview,vk,rutube,other,null`), asosiy schema va playlist sub-schema'dagi eski `['youtube','direct','webview']` enum'lari shu bilan almashtirildi. `apps/app-web/src/components/rooms/CreateRoomDialog.tsx` — `toAbsoluteThumbnailUrl()` himoya funksiyasi (Rutube oEmbed'ning protocol-relative thumbnail_url'ini normallashtiradi/noto'g'ri bo'lsa tashlab yuboradi).
+- **Xulosa:** Foydalanuvchi: Rutube link bilan xona yaratishga urinilganda tugma aylanadi va hech narsiz asl holatiga qaytadi. Railway watch-party loglarini tekshirish orqali root cause topildi: `POST /rooms` 422 qaytargan, lekin `Client error` WARN yozuvi umuman yo'q edi. Sabab — `error.middleware.ts`da Mongoose'ning o'z `ValidationError`i (schema-level enum rad etganda) alohida branch orqali ishlaydi va `logger.warn` chaqirmaydi (faqat bizning maxsus `AppError`/Joi `ValidationError` branchi log yozadi). Haqiqiy muammo: Joi validator (`createRoomSchema`) `vk`/`rutube` (va `vimeo`/`twitch`/`dailymotion`/`other`)ni qabul qiladi, lekin Mongoose schema'ning o'z `videoPlatform` enum'i faqat `['youtube','direct','webview']` bilan cheklangan qolgan edi — bu ikki ro'yxat vk/rutube qo'shilganda hech qachon sinxronlashtirilmagan. Natijada Joi so'rovni o'tkazadi, keyin `.save()` MongoDB darajasida jim-jit rad etadi. Bu deyarli barcha platformalar (YouTube'dan tashqari) uchun web orqali xona yaratishni butunlay buzgan edi — faqat mobil ilova buzilmagan, chunki u to'g'ridan-to'g'ri video pleer orqali ishlaydi va bu xona-yaratish yo'lidan farqli holat kechishi mumkin edi. Qo'shimcha: `CreateRoomDialog.tsx`da Rutube oEmbed'dan kelgan protocol-relative thumbnail URL ham (`//pic.rutube.ru/...`) backend Joi'ning `videoThumbnail.uri()`sini buzishi mumkin edi — shuning uchun normalizatsiya/tashlab yuborish qo'shildi. tsc: watch-party — faqat mavjud rootDir fon xatoliklari (stash bilan solishtirib tasdiqlandi — yangi xatolik yo'q), app-web — CLEAN. Railway avtomatik deploy qildi (GitHub push'dan keyin) — `watch-part` va `app-web` ikkalasi ham `Online`, sog'liq tekshiruvi ✅. Commit `c447c60`.
+
+---
+
 ### F-227 | T-S126 | app-web production deploy crash-loop tuzatildi (real root cause: middleware nom xatosi)
 
 - **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-14  **Model:** sonnet

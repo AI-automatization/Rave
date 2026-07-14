@@ -4,24 +4,6 @@
 
 ---
 
-### T-S127 | P1 | [BACKEND+WEB] | Web: Rutube/VK xona yaratilmayapti — Mongoose enum Joi bilan mos emas
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Saidazim (foydalanuvchi topgan, Rutube bilan test qilishda)
-- **Yaratilgan:** 2026-07-14
-- **Holat:** 🔄 Bajarilmoqda
-- **Tavsiya model:** sonnet
-- **Model sababi:** 2 fayl, aniq root cause (Railway loglaridan topildi)
-- **Sabab:** Web'da Rutube link kiritib xona yaratishga urinilganda tugma aylanadi va asl holatiga qaytadi. Railway watch-party loglarida `POST /rooms` 422 qaytargani ko'rindi, lekin `Client error` WARN yozuvi YO'Q edi — bu `error.middleware.ts`ning Mongoose ValidationError branchi (`error.name === 'ValidationError'`) `logger.warn` chaqirmasligini anglatadi. Root cause: `watchPartyRoom.model.ts`dagi Mongoose schema `videoPlatform` enum'i (`['youtube','direct','webview']`) Joi validatoridagi ro'yxatdan (`youtube,vimeo,twitch,dailymotion,direct,webview,vk,rutube,other`) ancha eski — Joi so'rovni o'tkazadi, lekin keyin `.save()` chog'ida Mongoose o'zining eski enum'i bilan rad etadi. Bu YouTube'dan boshqa deyarli har qanday platforma (vimeo/twitch/dailymotion/vk/rutube/other) uchun web orqali xona yaratishni butunlay buzadi.
-- **Qilish kerak:**
-  - [x] `services/watch-party/src/models/watchPartyRoom.model.ts` — `VIDEO_PLATFORM_ENUM` konstantasi, ikkala joyda (asosiy + playlist sub-schema) qo'llanildi
-  - [x] `apps/app-web/src/components/rooms/CreateRoomDialog.tsx` — `toAbsoluteThumbnailUrl` himoya qatlami (Rutube oEmbed protocol-relative thumbnail_url uchun)
-  - [x] `npx tsc --noEmit` (watch-party — faqat mavjud rootDir fon xatolari, yangi xatolik yo'q; app-web — CLEAN)
-  - [ ] `railway up` watch-party — deploy va tasdiqlash
-- **Fayllar:** `services/watch-party/src/models/watchPartyRoom.model.ts`, `apps/app-web/src/components/rooms/CreateRoomDialog.tsx`
-
----
-
 # 🔒 Sprint 15: Security Audit fixes (2026-07-04 — аудит Claude)
 
 > Полный аудит OWASP Top 10 + WeWatch-специфика. Фундамент крепкий (JWT/bcrypt/socket/internal/IDOR — ок). Ниже — найденные уязвимости. **Не начинать без claim.**
