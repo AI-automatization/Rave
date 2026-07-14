@@ -720,7 +720,8 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
 
   // Android: YouTube + embed platforms (VK, Rutube, Twitch, Vimeo, Dailymotion) without an
   // extracted URL use WebView. Embed detection matches UniversalPlayer.useWebview logic so
-  // VideoSection shows the correct owner controls (isOwnerMode = isOwner && !isWebView).
+  // VideoSection blocks direct touches to the embed and shows our own owner controls
+  // instead (isOwnerMode = isOwner, unconditional — see VideoSection.tsx tap-catcher).
   // iOS: also use embed for VK/Rutube (IP-lock), plus existing fallbacks.
   const embedPlatformDetected = !!androidEmbedPlatform;
   const isWebViewMode = Platform.OS === 'ios'
