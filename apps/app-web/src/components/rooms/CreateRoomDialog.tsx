@@ -255,10 +255,17 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
       const backendPlatform = activePlatform?.id
         ? (PLATFORM_TO_BACKEND[activePlatform.id] ?? 'other')
         : undefined;
+      // The url input has no <form>, so the browser's native URL validation never runs —
+      // a bare paste like "youtube.com/watch?v=..." (no scheme) reaches here as-is and fails
+      // backend Joi's videoUrl.uri() check with a 422 the user never sees the reason for
+      // (button just resets). Normalize before sending, same as mobile's URL handling.
+      const normalizedVideoUrl = videoUrl && !/^https?:\/\//i.test(videoUrl)
+        ? `https://${videoUrl}`
+        : videoUrl;
       const res = await createRoom.mutateAsync({
         // Backend `name` caps at 80 chars (Joi) — trim here, mirrors mobile's useMediaDetection slice(0, 60)
         name:             videoTitle ? videoTitle.slice(0, 60) : undefined,
-        videoUrl:         withoutVideo ? undefined : (videoUrl || undefined),
+        videoUrl:         withoutVideo ? undefined : (normalizedVideoUrl || undefined),
         videoTitle:       withoutVideo ? undefined : (videoTitle || undefined),
         videoThumbnail:   withoutVideo ? undefined : (videoThumbnail || undefined),
         videoPlatform:    withoutVideo ? undefined : backendPlatform,
