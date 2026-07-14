@@ -4,7 +4,6 @@ import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
@@ -12,6 +11,7 @@ import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { userApi } from '@api/user.api';
 import { useAuthStore } from '@store/auth.store';
@@ -76,7 +76,7 @@ export function ProfileSetupScreen() {
       <Text style={styles.sub}>{t('profileSetup', 'sub')}</Text>
 
       {/* Avatar picker */}
-      <TouchableOpacity style={styles.avatarWrap} onPress={handlePickAvatar} activeOpacity={0.8}>
+      <TrackedTouchable trackId="profile_setup:pick_avatar" style={styles.avatarWrap} onPress={handlePickAvatar} activeOpacity={0.8}>
         {avatarUri ? (
           <Image source={{ uri: avatarUri }} style={styles.avatar} contentFit="cover" />
         ) : (
@@ -87,7 +87,7 @@ export function ProfileSetupScreen() {
         <View style={styles.cameraOverlay}>
           <Ionicons name="camera" size={16} color={colors.textPrimary} />
         </View>
-      </TouchableOpacity>
+      </TrackedTouchable>
 
       {/* Username */}
       <View style={styles.fieldWrap}>
@@ -118,7 +118,8 @@ export function ProfileSetupScreen() {
       </View>
 
       {/* Buttons */}
-      <TouchableOpacity
+      <TrackedTouchable
+        trackId="profile_setup:save"
         style={[styles.saveBtn, loading && styles.btnDisabled]}
         onPress={handleSave}
         disabled={loading}
@@ -128,11 +129,11 @@ export function ProfileSetupScreen() {
         ) : (
           <Text style={styles.saveText}>{t('profileSetup', 'saveBtn')}</Text>
         )}
-      </TouchableOpacity>
+      </TrackedTouchable>
 
-      <TouchableOpacity style={styles.skipBtn} onPress={clearProfileSetup}>
+      <TrackedTouchable trackId="profile_setup:skip" style={styles.skipBtn} onPress={clearProfileSetup}>
         <Text style={styles.skipText}>{t('profileSetup', 'skipBtn')}</Text>
-      </TouchableOpacity>
+      </TrackedTouchable>
     </ScrollView>
   );
 }

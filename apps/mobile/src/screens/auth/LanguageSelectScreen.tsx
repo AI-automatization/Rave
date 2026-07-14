@@ -3,11 +3,11 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
   Dimensions,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { WeWatchLogo } from '@components/common/WeWatchLogo';
 import { AuthStackParamList } from '@app-types/index';
@@ -58,26 +58,28 @@ export function LanguageSelectScreen() {
         {LANGUAGES.map((lang) => {
           const isActive = selected === lang.code;
           return (
-            <TouchableOpacity
+            <TrackedTouchable
+              trackId="language_select:choose_language"
               key={lang.code}
               style={[styles.card, isActive && styles.cardActive]}
               activeOpacity={0.7}
               onPress={() => setSelected(lang.code)}
+              trackMeta={{ lang: lang.code }}
             >
               <Text style={styles.flag}>{lang.flag}</Text>
               <View style={styles.cardText}>
                 <Text style={styles.langNative}>{lang.native}</Text>
                 <Text style={styles.langSubtitle}>{lang.subtitle}</Text>
               </View>
-            </TouchableOpacity>
+            </TrackedTouchable>
           );
         })}
       </View>
 
       {/* Continue button */}
-      <TouchableOpacity style={styles.continueBtn} onPress={handleContinue}>
+      <TrackedTouchable trackId="language_select:continue" style={styles.continueBtn} onPress={handleContinue}>
         <Text style={styles.continueText}>{translate('languageSelect', 'continue', selected)}</Text>
-      </TouchableOpacity>
+      </TrackedTouchable>
     </View>
   );
 }

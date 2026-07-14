@@ -1,11 +1,12 @@
 // WeWatch Mobile — Register Screen
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Animated, StatusBar, Linking } from 'react-native';
+import { View, Text, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Animated, StatusBar, Linking } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useTheme, createThemedStyles } from '@theme/index';
 import { AuthStackParamList } from '@app-types/index';
 import { authApi } from '@api/auth.api';
@@ -135,13 +136,14 @@ export function RegisterScreen() {
           showsVerticalScrollIndicator={false}
         >
           <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
-            <TouchableOpacity
+            <TrackedTouchable
+              trackId="register:back"
               style={s.backBtn}
               onPress={() => navigation.goBack()}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
-            </TouchableOpacity>
+            </TrackedTouchable>
 
             <View style={s.header}>
               <Text style={s.title}>{t('register', 'title')}</Text>
@@ -171,7 +173,8 @@ export function RegisterScreen() {
               onBlur={() => setFocusedField(null)}
             />
 
-            <TouchableOpacity
+            <TrackedTouchable
+              trackId="register:toggle_tos"
               style={s.tosRow}
               onPress={() => setTosAccepted(!tosAccepted)}
               activeOpacity={0.7}
@@ -181,18 +184,18 @@ export function RegisterScreen() {
               </View>
               <Text style={s.tosText}>
                 <Text>{t('register', 'tosText')}</Text>
-                <Text style={s.tosLink} onPress={() => Linking.openURL('https://wewatch.app/terms')}>
+                <Text style={s.tosLink} onPress={() => { analyticsService.click('register:open_terms'); Linking.openURL('https://wewatch.app/terms'); }}>
                   {t('register', 'tosTerms')}
                 </Text>
                 <Text>{t('register', 'tosAnd')}</Text>
-                <Text style={s.tosLink} onPress={() => Linking.openURL('https://wewatch.app/privacy-policy')}>
+                <Text style={s.tosLink} onPress={() => { analyticsService.click('register:open_privacy'); Linking.openURL('https://wewatch.app/privacy-policy'); }}>
                   {t('register', 'tosPrivacy')}
                 </Text>
                 {t('register', 'tosEnd') ? <Text>{t('register', 'tosEnd')}</Text> : null}
               </Text>
-            </TouchableOpacity>
+            </TrackedTouchable>
 
-            <TouchableOpacity onPress={handleRegister} disabled={loading || !tosAccepted} activeOpacity={0.85} style={s.registerBtnWrap}>
+            <TrackedTouchable trackId="register:submit" onPress={handleRegister} disabled={loading || !tosAccepted} activeOpacity={0.85} style={s.registerBtnWrap}>
               <LinearGradient
                 colors={loading || !tosAccepted ? [colors.bgLoading, colors.bgLoading] : [colors.primary, colors.primaryLight]}
                 start={{ x: 0, y: 0 }}
@@ -205,7 +208,7 @@ export function RegisterScreen() {
                   <Text style={s.primaryBtnText}>{t('register', 'registerBtn')}</Text>
                 )}
               </LinearGradient>
-            </TouchableOpacity>
+            </TrackedTouchable>
 
             <View style={s.divider}>
               <View style={s.dividerLine} />
@@ -226,9 +229,9 @@ export function RegisterScreen() {
 
             <View style={s.footer}>
               <Text style={s.footerText}>{t('register', 'haveAccount')}</Text>
-              <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+              <TrackedTouchable trackId="register:go_to_login" onPress={() => navigation.navigate('Login')}>
                 <Text style={s.footerLink}>{t('register', 'loginLink')}</Text>
-              </TouchableOpacity>
+              </TrackedTouchable>
             </View>
           </Animated.View>
         </ScrollView>

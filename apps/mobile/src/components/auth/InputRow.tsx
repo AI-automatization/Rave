@@ -1,7 +1,8 @@
 // WeWatch — Reusable form input row with icon + optional password toggle
 import React from 'react';
-import { View, TextInput, TouchableOpacity } from 'react-native';
+import { View, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useTheme, createThemedStyles } from '@theme/index';
 
 interface InputRowProps {
@@ -43,9 +44,9 @@ export function InputRow({
         keyboardType={keyboard} secureTextEntry={secure && !showPass}
         autoCapitalize="none" autoCorrect={false} />
       {onToggleShowPass && (
-        <TouchableOpacity onPress={onToggleShowPass} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+        <TrackedTouchable trackId="auth:toggle_show_password" onPress={onToggleShowPass} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <Ionicons name={showPass ? 'eye-off-outline' : 'eye-outline'} size={17} color={colors.textDim} />
-        </TouchableOpacity>
+        </TrackedTouchable>
       )}
     </View>
   );

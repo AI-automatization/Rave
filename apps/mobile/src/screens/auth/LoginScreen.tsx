@@ -4,7 +4,6 @@ import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -18,6 +17,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useTheme, createThemedStyles } from '@theme/index';
 import { AuthStackParamList } from '@app-types/index';
 import { authApi } from '@api/auth.api';
@@ -175,17 +175,17 @@ export function LoginScreen() {
                 secureTextEntry={!showPass}
                 autoCapitalize="none"
               />
-              <TouchableOpacity onPress={() => setShowPass(!showPass)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <TrackedTouchable trackId="login:toggle_show_password" onPress={() => setShowPass(!showPass)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                 <Ionicons name={showPass ? 'eye-off-outline' : 'eye-outline'} size={17} color={colors.textDim} />
-              </TouchableOpacity>
+              </TrackedTouchable>
             </View>
 
-            <TouchableOpacity style={s.forgotBtn} onPress={() => navigation.navigate('ForgotPassword')}>
+            <TrackedTouchable trackId="login:forgot_password" style={s.forgotBtn} onPress={() => navigation.navigate('ForgotPassword')}>
               <Text style={s.forgotText}>{t('login', 'forgotPassword')}</Text>
-            </TouchableOpacity>
+            </TrackedTouchable>
 
             {/* Login Button */}
-            <TouchableOpacity onPress={handleLogin} disabled={loading} activeOpacity={0.85}>
+            <TrackedTouchable trackId="login:submit" onPress={handleLogin} disabled={loading} activeOpacity={0.85}>
               <LinearGradient
                 colors={loading ? [colors.bgLoading, colors.bgLoading] : [colors.primary, colors.primaryLight]}
                 start={{ x: 0, y: 0 }}
@@ -198,7 +198,7 @@ export function LoginScreen() {
                   <Text style={s.primaryBtnText}>{t('login', 'loginBtn')}</Text>
                 )}
               </LinearGradient>
-            </TouchableOpacity>
+            </TrackedTouchable>
 
             {/* Divider */}
             <View style={s.divider}>
@@ -222,9 +222,9 @@ export function LoginScreen() {
             {/* Footer */}
             <View style={s.footer}>
               <Text style={s.footerText}>{t('login', 'noAccount')}</Text>
-              <TouchableOpacity onPress={() => navigation.navigate('Register')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <TrackedTouchable trackId="login:go_to_register" onPress={() => navigation.navigate('Register')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                 <Text style={s.footerLink}>{t('login', 'register')}</Text>
-              </TouchableOpacity>
+              </TrackedTouchable>
             </View>
           </Animated.View>
         </ScrollView>

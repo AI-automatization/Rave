@@ -4,7 +4,6 @@ import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
   Animated,
@@ -18,6 +17,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useTheme, createThemedStyles } from '@theme/index';
 import { AuthStackParamList } from '@app-types/index';
 import { authApi } from '@api/auth.api';
@@ -100,9 +100,9 @@ export function ForgotPasswordScreen() {
         <Animated.View style={[s.container, { paddingTop: insets.top + 16, opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
 
           {/* Back */}
-          <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <TrackedTouchable trackId="forgot_password:back" style={s.backBtn} onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
             <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
-          </TouchableOpacity>
+          </TrackedTouchable>
 
           <View style={s.content}>
             {sent ? (
@@ -115,7 +115,7 @@ export function ForgotPasswordScreen() {
                 <Text style={s.title}>{t('forgotPassword', 'sentTitle')}</Text>
                 <Text style={s.sub}>{t('forgotPassword', 'sentSub')}</Text>
 
-                <TouchableOpacity onPress={() => navigation.navigate('Login')} activeOpacity={0.85} style={{ width: '100%', marginTop: 32 }}>
+                <TrackedTouchable trackId="forgot_password:back_to_login" onPress={() => navigation.navigate('Login')} activeOpacity={0.85} style={{ width: '100%', marginTop: 32 }}>
                   <LinearGradient
                     colors={['#7C3AED', '#9333EA']}
                     start={{ x: 0, y: 0 }}
@@ -124,7 +124,7 @@ export function ForgotPasswordScreen() {
                   >
                     <Text style={s.primaryBtnText}>{t('forgotPassword', 'backToLogin')}</Text>
                   </LinearGradient>
-                </TouchableOpacity>
+                </TrackedTouchable>
               </>
             ) : (
               <>
@@ -159,7 +159,8 @@ export function ForgotPasswordScreen() {
                   />
                 </View>
 
-                <TouchableOpacity
+                <TrackedTouchable
+                  trackId="forgot_password:submit"
                   onPress={handleSubmit}
                   disabled={loading || !email.trim()}
                   activeOpacity={0.85}
@@ -177,7 +178,7 @@ export function ForgotPasswordScreen() {
                       <Text style={s.primaryBtnText}>{t('forgotPassword', 'sendBtn')}</Text>
                     )}
                   </LinearGradient>
-                </TouchableOpacity>
+                </TrackedTouchable>
               </>
             )}
           </View>

@@ -4,13 +4,13 @@ import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
   ActivityIndicator,
   NativeSyntheticEvent,
   TextInputKeyPressEventData,
   Clipboard,
   StatusBar,
 } from 'react-native';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -161,13 +161,14 @@ export function VerifyEmailScreen() {
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       <AuthGridBackground accentLinePosition={0.15} />
 
-      <TouchableOpacity
+      <TrackedTouchable
+        trackId="verify_email:back"
         style={[s.backBtn, { marginTop: insets.top + spacing.sm }]}
         onPress={() => navigation.goBack()}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
         <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
-      </TouchableOpacity>
+      </TrackedTouchable>
 
       <View style={s.content}>
         <View style={s.iconWrap}>
@@ -218,7 +219,7 @@ export function VerifyEmailScreen() {
           ))}
         </View>
 
-        <TouchableOpacity onPress={handleVerify} disabled={loading || success} activeOpacity={0.85} style={s.verifyBtnWrap}>
+        <TrackedTouchable trackId="verify_email:submit" onPress={handleVerify} disabled={loading || success} activeOpacity={0.85} style={s.verifyBtnWrap}>
           <LinearGradient
             colors={loading ? [colors.bgLoading, colors.bgLoading] : [colors.primary, colors.primaryLight]}
             start={{ x: 0, y: 0 }}
@@ -231,9 +232,10 @@ export function VerifyEmailScreen() {
               <Text style={s.verifyText}>{t('verifyEmail', 'verifyBtn')}</Text>
             )}
           </LinearGradient>
-        </TouchableOpacity>
+        </TrackedTouchable>
 
-        <TouchableOpacity
+        <TrackedTouchable
+          trackId="verify_email:resend"
           style={[s.resendBtn, (resending || resendCooldown > 0) && s.resendBtnDisabled]}
           onPress={handleResend}
           disabled={resending || resendCooldown > 0}
@@ -245,7 +247,7 @@ export function VerifyEmailScreen() {
               {resendCooldown > 0 ? `${t('verifyEmail', 'resendCooldown')} (${resendCooldown}s)` : t('verifyEmail', 'resend')}
             </Text>
           )}
-        </TouchableOpacity>
+        </TrackedTouchable>
       </View>
     </View>
   );

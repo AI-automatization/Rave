@@ -1,9 +1,10 @@
 // WeWatch Mobile — Social auth buttons (Google wide top + Apple/Telegram row below)
 import React from 'react';
-import { View, TouchableOpacity, ActivityIndicator, Platform, Text } from 'react-native';
+import { View, ActivityIndicator, Platform, Text } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { FontAwesome5 } from '@expo/vector-icons';
 import MaskedView from '@react-native-masked-view/masked-view';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useTheme, createThemedStyles, BRAND_COLORS } from '@theme/index';
 import { useT } from '@i18n/index';
 
@@ -49,7 +50,8 @@ function WideBtn({ gradient, icon, label, loading, disabled, onPress }: WideBtnP
   const s = useStyles();
   const { colors } = useTheme();
   return (
-    <TouchableOpacity
+    <TrackedTouchable
+      trackId="social_auth:google"
       onPress={onPress}
       disabled={loading || disabled}
       activeOpacity={0.82}
@@ -72,7 +74,7 @@ function WideBtn({ gradient, icon, label, loading, disabled, onPress }: WideBtnP
           )}
         </View>
       </LinearGradient>
-    </TouchableOpacity>
+    </TrackedTouchable>
   );
 }
 
@@ -90,7 +92,8 @@ function IconBtn({ gradient, icon, label, loading, disabled, onPress }: IconBtnP
   const s = useStyles();
   const { colors } = useTheme();
   return (
-    <TouchableOpacity
+    <TrackedTouchable
+      trackId={`social_auth:${label.toLowerCase()}`}
       onPress={onPress}
       disabled={loading || disabled}
       activeOpacity={0.82}
@@ -109,7 +112,7 @@ function IconBtn({ gradient, icon, label, loading, disabled, onPress }: IconBtnP
         </View>
       </LinearGradient>
       <Text style={s.iconLabel}>{label}</Text>
-    </TouchableOpacity>
+    </TrackedTouchable>
   );
 }
 
