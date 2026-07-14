@@ -1,6 +1,7 @@
 // WeWatch Mobile — Change Password Modal
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Modal, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, Modal, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { authApi } from '@api/auth.api';
 import { useT } from '@i18n/index';
@@ -75,10 +76,11 @@ export function ChangePasswordModal({ visible, onClose }: ChangePasswordModalPro
           />
 
           <View style={styles.actions}>
-            <TouchableOpacity style={styles.cancelBtn} onPress={handleClose}>
+            <TrackedTouchable trackId="change_password_modal:cancel" style={styles.cancelBtn} onPress={handleClose}>
               <Text style={styles.cancelText}>{t('common', 'cancel')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
+            </TrackedTouchable>
+            <TrackedTouchable
+              trackId="change_password_modal:submit"
               style={[styles.saveBtn, loading && styles.btnDisabled]}
               onPress={handleSubmit}
               disabled={loading}
@@ -86,7 +88,7 @@ export function ChangePasswordModal({ visible, onClose }: ChangePasswordModalPro
               {loading
                 ? <ActivityIndicator size="small" color={colors.textPrimary} />
                 : <Text style={styles.saveText}>{t('settings', 'change')}</Text>}
-            </TouchableOpacity>
+            </TrackedTouchable>
           </View>
         </View>
       </KeyboardAvoidingView>

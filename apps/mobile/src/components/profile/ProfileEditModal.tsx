@@ -5,11 +5,11 @@ import {
   Text,
   Modal,
   TextInput,
-  TouchableOpacity,
   KeyboardAvoidingView,
   ActivityIndicator,
   Platform,
 } from 'react-native';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 
 interface ProfileEditModalProps {
@@ -52,7 +52,7 @@ export const ProfileEditModal = React.memo(function ProfileEditModal({
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={s.modalOverlay}
       >
-        <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={onClose} />
+        <TrackedTouchable trackId="profile_edit:backdrop_close" style={{ flex: 1 }} activeOpacity={1} onPress={onClose} />
         <View style={s.modalSheet}>
           <View style={s.modalHandle} />
           <Text style={s.modalTitle}>{titleLabel}</Text>
@@ -79,10 +79,11 @@ export const ProfileEditModal = React.memo(function ProfileEditModal({
           <Text style={s.charCount}>{bio.length}/200</Text>
 
           <View style={s.modalActions}>
-            <TouchableOpacity style={s.cancelBtn} onPress={onClose} activeOpacity={0.8}>
+            <TrackedTouchable trackId="profile_edit:cancel" style={s.cancelBtn} onPress={onClose} activeOpacity={0.8}>
               <Text style={s.cancelText}>{cancelLabel}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
+            </TrackedTouchable>
+            <TrackedTouchable
+              trackId="profile_edit:save"
               style={[s.saveBtn, isPending && s.btnDisabled]}
               onPress={onSave}
               disabled={isPending}
@@ -93,7 +94,7 @@ export const ProfileEditModal = React.memo(function ProfileEditModal({
               ) : (
                 <Text style={s.saveText}>{saveLabel}</Text>
               )}
-            </TouchableOpacity>
+            </TrackedTouchable>
           </View>
         </View>
       </KeyboardAvoidingView>

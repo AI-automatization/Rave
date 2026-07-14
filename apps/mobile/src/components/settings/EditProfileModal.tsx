@@ -4,12 +4,12 @@ import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
   Modal,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { useT } from '@i18n/index';
 
@@ -65,10 +65,11 @@ export function EditProfileModal({
           />
 
           <View style={styles.actions}>
-            <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
+            <TrackedTouchable trackId="edit_profile_modal:cancel" style={styles.cancelBtn} onPress={onClose}>
               <Text style={styles.cancelText}>{t('common', 'cancel')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
+            </TrackedTouchable>
+            <TrackedTouchable
+              trackId="edit_profile_modal:save"
               style={[styles.saveBtn, saving && styles.btnDisabled]}
               onPress={onSave}
               disabled={saving}
@@ -76,7 +77,7 @@ export function EditProfileModal({
               {saving
                 ? <ActivityIndicator size="small" color={colors.textPrimary} />
                 : <Text style={styles.saveText}>{t('common', 'save')}</Text>}
-            </TouchableOpacity>
+            </TrackedTouchable>
           </View>
         </View>
       </KeyboardAvoidingView>
