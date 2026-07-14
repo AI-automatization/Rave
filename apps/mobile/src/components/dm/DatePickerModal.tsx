@@ -6,6 +6,7 @@ import { View, Text, Modal, Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { TrackedTouchable } from '@components/common/TrackedTouchable';
+import { TrackedPressable } from '@components/common/TrackedPressable';
 import { useT } from '@i18n/index';
 import { dateKeyFromDate, MONTH_KEYS } from '@utils/dmDateGroups';
 
@@ -64,7 +65,7 @@ export function DatePickerModal({ visible, onClose, onSelect, markedDateKeys, in
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={s.backdrop} onPress={onClose}>
+      <TrackedPressable trackId="dm:date_picker_backdrop_close" style={s.backdrop} onPress={onClose}>
         <Pressable style={[s.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]} onPress={() => {}}>
           <View style={s.handle} />
 
@@ -125,7 +126,7 @@ export function DatePickerModal({ visible, onClose, onSelect, markedDateKeys, in
             </View>
           ))}
         </Pressable>
-      </Pressable>
+      </TrackedPressable>
     </Modal>
   );
 }

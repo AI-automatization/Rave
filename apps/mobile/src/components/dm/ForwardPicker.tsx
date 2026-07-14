@@ -2,6 +2,7 @@
 // Extracted from DMChatScreen.tsx to keep that file under the project's 400-line limit.
 import React, { useState } from 'react';
 import { View, Text, FlatList, Pressable, Modal, ActivityIndicator, StyleSheet } from 'react-native';
+import { TrackedPressable } from '@components/common/TrackedPressable';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
@@ -50,7 +51,7 @@ export function ForwardPicker({
 
   return (
     <Modal visible={!!message} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={s.sheetBackdrop} onPress={onClose}>
+      <TrackedPressable trackId="dm:forward_picker_backdrop_close" style={s.sheetBackdrop} onPress={onClose}>
         <Pressable style={[s.fwdSheet, { paddingBottom: Math.max(insets.bottom, 16) }]} onPress={() => {}}>
           <View style={s.fwdHandle} />
           <Text style={s.fwdTitle}>{t('dm', 'forwardTitle')}</Text>
@@ -81,7 +82,7 @@ export function ForwardPicker({
             ListEmptyComponent={<Text style={s.fwdEmpty}>{t('dm', 'convEmpty')}</Text>}
           />
         </Pressable>
-      </Pressable>
+      </TrackedPressable>
     </Modal>
   );
 }

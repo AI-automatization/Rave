@@ -5,7 +5,7 @@
 // The peek is read-only: fetches history under its own query key and never calls
 // markRead/markReadUntil, so peeking never marks anything as read.
 import React, { useRef } from 'react';
-import { View, Text, FlatList, Pressable, Modal, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, FlatList, Modal, ActivityIndicator, StyleSheet } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -65,7 +65,7 @@ export function ChatPreviewModal({
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable style={[s.backdrop, { paddingTop: insets.top + 24 }]} onPress={onClose}>
+      <TrackedPressable trackId="dm:chat_preview_backdrop_close" style={[s.backdrop, { paddingTop: insets.top + 24 }]} onPress={onClose}>
         <TrackedPressable trackId="dm:chat_preview_open_full" style={s.card} onPress={onOpenFull}>
           <View style={[s.header, { borderBottomColor: accentColor + '30' }]}>
             <View style={[s.avatarDot, { backgroundColor: accentColor }]}>
@@ -104,7 +104,7 @@ export function ChatPreviewModal({
             </TrackedTouchable>
           </View>
         )}
-      </Pressable>
+      </TrackedPressable>
     </Modal>
   );
 }

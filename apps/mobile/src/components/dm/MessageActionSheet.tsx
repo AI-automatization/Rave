@@ -1,10 +1,11 @@
 // WeWatch Mobile — DM long-press action sheet (Reply / Forward / Copy / Cancel).
 // Extracted from DMChatScreen.tsx to keep that file under the project's 400-line limit.
 import React from 'react';
-import { View, Text, Pressable, Modal, StyleSheet } from 'react-native';
+import { View, Text, Modal, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { TrackedTouchable } from '@components/common/TrackedTouchable';
+import { TrackedPressable } from '@components/common/TrackedPressable';
 import { useT } from '@i18n/index';
 import type { IDMMessage } from '@app-types/index';
 
@@ -23,7 +24,7 @@ export function MessageActionSheet({
 
   return (
     <Modal visible={!!message} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable style={s.backdrop} onPress={onClose}>
+      <TrackedPressable trackId="dm:message_action_backdrop_close" style={s.backdrop} onPress={onClose}>
         <View style={[s.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
           <TrackedTouchable
             trackId="dm:message_action_reply"
@@ -65,7 +66,7 @@ export function MessageActionSheet({
             <Text style={s.cancelLabel}>{t('dm', 'cancel')}</Text>
           </TrackedTouchable>
         </View>
-      </Pressable>
+      </TrackedPressable>
     </Modal>
   );
 }
