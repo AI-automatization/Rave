@@ -4,6 +4,14 @@
 
 ---
 
+### F-226 | T-S125 | T-S124 regressiyasi (VK/Rutube sync) + web YouTube abadiy yuklanish bugi
+
+- **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-14  **Model:** sonnet
+- **O'zgarishlar:** `apps/mobile/src/hooks/useWatchPartyRoom.ts` — `isYouTubeWebViewMode` flag qo'shildi (`isWebViewMode && platform === 'youtube'`) va hook return'iga qo'shildi. `apps/mobile/src/screens/modal/WatchPartyScreen.tsx` — yangi propni `VideoSection`ga ulash (`isYouTubeEmbed`). `apps/mobile/src/components/watchParty/VideoSection.tsx` — `isOwnerMode` va tap-catcher (`blockEmbedTouch`) endi faqat `!isWebView || isYouTubeEmbed` bo'lganda ishlaydi (YouTube yoki native player), boshqa webview embedlar (VK/Rutube/Twitch/Vimeo/Dailymotion) uchun T-S124'gacha bo'lgan xulq qaytarildi. `apps/app-web/src/components/party/VideoPlayer.tsx` — `getYouTubeId` regex qayta yozildi (mobil `extractYouTubeVideoId` bilan bir xil mantiq: `v=` query string ichida istalgan joyda qidiriladi, faqat "watch?v=" literal prefiksda emas).
+- **Xulosa:** Foydalanuvchi real qurilmada 2 ta bug topdi: (1) YouTube xonasi web'da abadiy "loading" holatida qolardi; (2) Rutube xonasida owner (telefon) play/pause bossa video web'da o'ynardi, lekin telefonning o'zida video joyida turardi, pauzada web telefon holatiga qaytardi. Ikkala bug alohida root cause: (1) — web'ning `getYouTubeId` regex'i faqat "youtube.com/watch?v=" literal ketma-ketligini talab qilardi (v= birinchi query parametri bo'lishi shart) — playlist yoki "si=" kabi boshqa parametr `v=`dan oldin kelsa (odatiy YouTube share linklarida tez-tez uchraydi), ID topilmay, umuman YouTube uchun mo'ljallanmagan generic CDN extraction yo'liga tushib, abadiy spinner ko'rsatardi. (2) — T-S124 xato ravishda `isOwnerMode`/tap-catcher'ni HAR QANDAY webview embed uchun (nafaqat YouTube) shartsiz yoqqan edi; YouTube uchun bu xavfsiz (rasmiy IFrame Player API), lekin Android'dagi VK/Rutube "full-site" usuli (xom DOM `<video>`, WebViewAdapters.ts) uchun bare `.play()/.pause()` chaqiruvi DOM hodisasini otib holatni sinxronlaydi, lekin sahifaning haqiqiy oqimini ishga tushirmaydi/to'xtatmaydi — owner hali ham sahifaning o'z play tugmasiga tegishi kerak edi. Fix T-S124'ni faqat YouTube uchun toraytirdi, VK/Rutube/boshqalarni eski (ishlaydigan) xulqqa qaytardi. tsc: CLEAN (apps/mobile va apps/app-web, ikkalasida ham yangi xatolik yo'q). Commit `72089d4`. GitHub Actions APK build ishga tushirilmoqda — real qurilmada tasdiqlash keyingi qadam.
+
+---
+
 ### F-225 | Bug fix | Web: xona yaratilmayapti — videoUrl sxemasiz jo'natilsa jim-jit fail bo'lardi
 
 - **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-14  **Model:** sonnet

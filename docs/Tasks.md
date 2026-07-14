@@ -4,24 +4,6 @@
 
 ---
 
-### T-S125 | P1 | [MOBILE] | T-S124 regression — VK/Rutube webview'da video sinxronlanmayapti
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Saidazim (foydalanuvchi real qurilmada topgan regressiya, T-S124 dan keyin)
-- **Yaratilgan:** 2026-07-14
-- **Holat:** 🔄 Bajarilmoqda
-- **Tavsiya model:** sonnet
-- **Model sababi:** 2-3 fayl, aniq root cause
-- **Sabab:** Foydalanuvchi real qurilmada: YouTube xonasi web'da abadiy yuklanmoqda (alohida tekshiriladi); Rutube xonasida owner (telefon) play/pause bossa — web'da o'ynaydi, lekin telefonda video joyida turadi, pauza bossa web telefon holatiga qaytadi. Root cause: T-S124 `isOwnerMode = isOwner` va tap-catcher'ni HAR QANDAY webview uchun (YouTube VA VK/Rutube/Twitch/Vimeo/Dailymotion) shartsiz yoqdi. YouTube uchun bu xavfsiz (rasmiy IFrame Player API, ishonchli `_csVideo.play()`), lekin Android'dagi VK/Rutube "full-site" usuli xom DOM `<video>` elementiga bevosita bog'lanadi (`WebViewAdapters.ts`) — sahifaning haqiqiy play tugmasisiz faqat `.play()` chaqirish 'play' hodisasini otadi (shu orqali holat sinxronlanadi) lekin haqiqiy oqim boshlanmaydi (sahifa JS'i hali init qilinmagan).
-- **Qilish kerak:**
-  - [ ] `useWatchPartyRoom.ts` — YouTube uchun alohida flag (`isYouTubeWebViewMode`) hisoblash
-  - [ ] `VideoSection.tsx` — tap-catcher + isOwnerMode faqat YouTube uchun shartsiz, VK/Rutube/boshqalar uchun eski xulq (to'g'ridan-to'g'ri iframe bilan ishlash) qaytariladi
-  - [ ] `WatchPartyScreen.tsx` — yangi propni ulash
-  - [ ] `npx tsc --noEmit` (apps/mobile) — clean
-- **Fayllar:** `apps/mobile/src/hooks/useWatchPartyRoom.ts`, `apps/mobile/src/components/watchParty/VideoSection.tsx`, `apps/mobile/src/screens/modal/WatchPartyScreen.tsx`
-
----
-
 # 🔒 Sprint 15: Security Audit fixes (2026-07-04 — аудит Claude)
 
 > Полный аудит OWASP Top 10 + WeWatch-специфика. Фундамент крепкий (JWT/bcrypt/socket/internal/IDOR — ок). Ниже — найденные уязвимости. **Не начинать без claim.**
