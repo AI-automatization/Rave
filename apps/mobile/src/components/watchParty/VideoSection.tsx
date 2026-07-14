@@ -1,11 +1,12 @@
 // WeWatch Mobile — WatchParty VideoSection
 import React, { useRef, useCallback, useEffect, useState } from 'react';
 import {
-  View, Text, TouchableOpacity, Animated,
+  View, Text, Animated,
   ActivityIndicator, StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { PlaybackStatus } from '@app-types/index';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { UniversalPlayer, UniversalPlayerRef } from '@components/video/UniversalPlayer';
 import { EmojiFloatItem } from '@components/watchParty/EmojiFloat';
 import { VideoProgressBar } from '@components/watchParty/VideoProgressBar';
@@ -154,7 +155,8 @@ export const VideoSection = React.memo(function VideoSection({
           the owner's only way to control playback in webview mode. Non-owner taps are still
           blocked independently by WebViewPlayer's memberLockOverlay. */}
       {!isWebView && (
-        <TouchableOpacity
+        <TrackedTouchable
+          trackId="watchparty:video_tap"
           style={StyleSheet.absoluteFill}
           activeOpacity={1}
           onPress={handleVideoTap}
@@ -185,17 +187,17 @@ export const VideoSection = React.memo(function VideoSection({
 
         <View style={s.topRight}>
           {isOwnerMode && (
-            <TouchableOpacity style={s.topIconBtn} onPress={onStop}>
+            <TrackedTouchable trackId="watchparty:stop" style={s.topIconBtn} onPress={onStop}>
               <Ionicons name="stop" size={14} color="rgba(255,255,255,0.82)" />
-            </TouchableOpacity>
+            </TrackedTouchable>
           )}
-          <TouchableOpacity style={s.topIconBtn} onPress={onToggleFullscreen}>
+          <TrackedTouchable trackId="watchparty:fullscreen_toggle" style={s.topIconBtn} onPress={onToggleFullscreen}>
             <Ionicons
               name={isFullscreen ? 'contract-outline' : 'expand-outline'}
               size={16}
               color="rgba(255,255,255,0.82)"
             />
-          </TouchableOpacity>
+          </TrackedTouchable>
         </View>
       </Animated.View>
 
@@ -206,26 +208,26 @@ export const VideoSection = React.memo(function VideoSection({
           pointerEvents={ctrlPointerEvents}
         >
           {!videoIsLive && (
-            <TouchableOpacity style={s.seekBtn} onPress={() => onSeekDirection('back')}>
+            <TrackedTouchable trackId="watchparty:seek_back" style={s.seekBtn} onPress={() => onSeekDirection('back')}>
               <Ionicons name="play-back" size={22} color="#fff" />
               <Text style={s.seekLabel}>{pendingSkipSecs != null ? `${pendingSkipSecs > 0 ? '+' : ''}${pendingSkipSecs}s` : '10s'}</Text>
-            </TouchableOpacity>
+            </TrackedTouchable>
           )}
 
-          <TouchableOpacity style={s.playPauseBtn} onPress={onPlayPause}>
+          <TrackedTouchable trackId="watchparty:play_pause" style={s.playPauseBtn} onPress={onPlayPause} trackMeta={{ willPlay: !isPlaying }}>
             <Ionicons
               name={isPlaying ? 'pause' : 'play'}
               size={30}
               color="#fff"
               style={isPlaying ? undefined : { marginLeft: 4 }}
             />
-          </TouchableOpacity>
+          </TrackedTouchable>
 
           {!videoIsLive && (
-            <TouchableOpacity style={s.seekBtn} onPress={() => onSeekDirection('forward')}>
+            <TrackedTouchable trackId="watchparty:seek_forward" style={s.seekBtn} onPress={() => onSeekDirection('forward')}>
               <Ionicons name="play-forward" size={22} color="#fff" />
               <Text style={s.seekLabel}>{pendingSkipSecs != null ? `${pendingSkipSecs > 0 ? '+' : ''}${pendingSkipSecs}s` : '10s'}</Text>
-            </TouchableOpacity>
+            </TrackedTouchable>
           )}
         </Animated.View>
       )}

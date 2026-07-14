@@ -1,7 +1,8 @@
 // WeWatch — MediaBottomBar: video found, analyzing, bot-protection, and hint states
 import React from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet, Animated } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { colors, spacing, borderRadius } from '@theme/index';
 import { useT } from '@i18n/index';
 import type { RoomMedia } from '@utils/mediaDetector';
@@ -33,7 +34,8 @@ export function MediaBottomBar({
           <Ionicons name="play-circle" size={22} color={colors.primary} />
           <Text style={s.videoBarTitle} numberOfLines={1}>{detectedMedia.videoTitle || t('watchParty', 'mediaDetected')}</Text>
         </View>
-        <TouchableOpacity
+        <TrackedTouchable
+          trackId="media_bottom_bar:start_watch_party"
           style={[s.videoBarBtn, isImporting && s.videoBarBtnDisabled]}
           onPress={() => onImport(detectedMedia)} disabled={isImporting} activeOpacity={0.8}
         >
@@ -43,7 +45,7 @@ export function MediaBottomBar({
               <Text style={s.videoBarBtnText}>Watch Party</Text>
             </>
           )}
-        </TouchableOpacity>
+        </TrackedTouchable>
       </Animated.View>
     );
   }

@@ -1,8 +1,9 @@
 // WeWatch — Rooms tab for WatchPartyCreateScreen (T-E108 + T-E109)
 import React, { useState } from 'react';
-import { View, Text, ScrollView, ActivityIndicator, RefreshControl, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useTheme, spacing, createThemedStyles, borderRadius, typography } from '@theme/index';
 import { useWatchPartyRooms } from '@hooks/useWatchPartyRooms';
 import { useRecentRooms } from '@hooks/useRecentRooms';
@@ -67,11 +68,13 @@ export function RoomsTab({ navigation, t }: Props) {
         {SUB_TABS.map(tab => {
           const isActive = activeTab === tab.key;
           return (
-            <TouchableOpacity
+            <TrackedTouchable
+              trackId="rooms_list:switch_tab"
               key={tab.key}
               style={[ls.seg, isActive && ls.segActive]}
               onPress={() => setActiveTab(tab.key)}
               activeOpacity={0.75}
+              trackMeta={{ tab: tab.key }}
             >
               <Ionicons
                 name={tab.icon as keyof typeof Ionicons.glyphMap}
@@ -81,7 +84,7 @@ export function RoomsTab({ navigation, t }: Props) {
               <Text style={[ls.segText, isActive && ls.segTextActive]}>
                 {t('watchParty', tab.labelKey)}
               </Text>
-            </TouchableOpacity>
+            </TrackedTouchable>
           );
         })}
       </View>

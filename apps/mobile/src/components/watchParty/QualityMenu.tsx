@@ -5,7 +5,6 @@ import {
   Modal,
   View,
   Text,
-  TouchableOpacity,
   FlatList,
   Dimensions,
   SafeAreaView,
@@ -13,6 +12,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useTheme, spacing, borderRadius, typography } from '@theme/index';
 import { useT } from '@i18n/index';
 
@@ -38,7 +38,8 @@ export function QualityMenu({ visible, qualities, currentUrl, onSelect, onClose 
   const renderItem = ({ item }: ListRenderItemInfo<QualityOption>) => {
     const isActive = item.url === currentUrl;
     return (
-      <TouchableOpacity
+      <TrackedTouchable
+        trackId="quality_menu:select_quality"
         style={[styles.item, isActive && { backgroundColor: `${colors.primary}18` }]}
         onPress={() => { onSelect(item); onClose(); }}
         activeOpacity={0.7}
@@ -48,7 +49,7 @@ export function QualityMenu({ visible, qualities, currentUrl, onSelect, onClose 
           {item.label}
         </Text>
         {isActive && <Ionicons name="checkmark" size={18} color={colors.primary} />}
-      </TouchableOpacity>
+      </TrackedTouchable>
     );
   };
 
@@ -60,14 +61,14 @@ export function QualityMenu({ visible, qualities, currentUrl, onSelect, onClose 
       onRequestClose={onClose}
       statusBarTranslucent
     >
-      <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
+      <TrackedTouchable trackId="quality_menu:backdrop_close" style={styles.backdrop} activeOpacity={1} onPress={onClose} />
       <SafeAreaView style={[styles.sheet, { backgroundColor: colors.bgElevated }]} pointerEvents="box-none">
         <View style={[styles.handle, { backgroundColor: colors.bgMuted }]} />
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
           <Text style={[styles.title, { color: colors.textPrimary }]}>{t('watchParty', 'quality')}</Text>
-          <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <TrackedTouchable trackId="quality_menu:close" onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Ionicons name="close" size={22} color={colors.textMuted} />
-          </TouchableOpacity>
+          </TrackedTouchable>
         </View>
         <FlatList
           data={qualities}

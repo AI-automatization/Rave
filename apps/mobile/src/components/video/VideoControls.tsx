@@ -1,11 +1,12 @@
 // WeWatch Mobile — Video Controls Overlay (themed + animated)
 import React, { useRef, useEffect } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, GestureResponderEvent,
+  View, Text, StyleSheet, GestureResponderEvent,
   ActivityIndicator, Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useTheme, spacing } from '@theme/index';
 import { s } from './VideoControls.styles';
 
@@ -59,31 +60,31 @@ export const VideoControls = React.memo(function VideoControls({
   return (
     <Animated.View style={[StyleSheet.absoluteFill, { opacity: fadeAnim }]}>
       <LinearGradient colors={['rgba(0,0,0,0.7)', 'transparent']} style={[s.topBar, { paddingTop }]}>
-        <TouchableOpacity onPress={onBack} style={s.iconBtn} activeOpacity={0.7}>
+        <TrackedTouchable trackId="player:back" onPress={onBack} style={s.iconBtn} activeOpacity={0.7}>
           <Ionicons name="chevron-back" size={26} color="#fff" />
-        </TouchableOpacity>
+        </TrackedTouchable>
         <Text style={s.titleText} numberOfLines={1}>{title}</Text>
-        <TouchableOpacity onPress={onToggleFullscreen} style={s.iconBtn} activeOpacity={0.7}>
+        <TrackedTouchable trackId="player:fullscreen_toggle" onPress={onToggleFullscreen} style={s.iconBtn} activeOpacity={0.7}>
           <Ionicons name={isFullscreen ? 'contract-outline' : 'expand-outline'} size={22} color="#fff" />
-        </TouchableOpacity>
+        </TrackedTouchable>
       </LinearGradient>
 
       <View style={s.centerControls}>
         {isBuffering ? <ActivityIndicator color="#fff" size="large" /> : (
           <>
-            <TouchableOpacity onPress={onSkipBack} style={s.skipBtn} activeOpacity={0.7}>
+            <TrackedTouchable trackId="player:skip_back" onPress={onSkipBack} style={s.skipBtn} activeOpacity={0.7}>
               <Ionicons name="play-back" size={28} color="#fff" />
               <Text style={s.skipLabel}>10</Text>
-            </TouchableOpacity>
+            </TrackedTouchable>
             <Animated.View style={{ transform: [{ scale: playScale }] }}>
-              <TouchableOpacity onPress={handlePlayPress} style={s.playBtn} activeOpacity={0.8}>
+              <TrackedTouchable trackId="player:play_pause" onPress={handlePlayPress} style={s.playBtn} activeOpacity={0.8} trackMeta={{ willPlay: !isPlaying }}>
                 <Ionicons name={isPlaying ? 'pause' : 'play'} size={40} color="#fff" />
-              </TouchableOpacity>
+              </TrackedTouchable>
             </Animated.View>
-            <TouchableOpacity onPress={onSkipForward} style={s.skipBtn} activeOpacity={0.7}>
+            <TrackedTouchable trackId="player:skip_forward" onPress={onSkipForward} style={s.skipBtn} activeOpacity={0.7}>
               <Ionicons name="play-forward" size={28} color="#fff" />
               <Text style={s.skipLabel}>10</Text>
-            </TouchableOpacity>
+            </TrackedTouchable>
           </>
         )}
       </View>
@@ -93,7 +94,8 @@ export const VideoControls = React.memo(function VideoControls({
           <Text style={s.timeText}>{formatTime(position)}</Text>
           <Text style={s.timeDuration}>{formatTime(duration)}</Text>
         </View>
-        <TouchableOpacity
+        <TrackedTouchable
+          trackId="player:seek_bar"
           activeOpacity={1} onPress={onSeek}
           onLayout={(e) => onSeekBarLayout(e.nativeEvent.layout.width)}
           style={s.seekBarTrack}
@@ -101,7 +103,7 @@ export const VideoControls = React.memo(function VideoControls({
           <View style={s.seekBarBg} />
           <View style={[s.seekBarFill, { width: `${progressRatio * 100}%`, backgroundColor: colors.primary }]} />
           <View style={[s.seekThumb, { left: progressRatio * seekBarWidth - 7, backgroundColor: colors.primary }]} />
-        </TouchableOpacity>
+        </TrackedTouchable>
       </LinearGradient>
     </Animated.View>
   );

@@ -1,6 +1,7 @@
 // WeWatch Mobile — WatchParty Emoji Float
 import React, { useEffect, useRef } from 'react';
-import { StyleSheet, Text, Animated, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, Animated, View } from 'react-native';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 
 interface EmojiFloatItemProps {
   emoji: string;
@@ -53,14 +54,16 @@ export function EmojiPickerBar({ onSelect }: EmojiPickerBarProps) {
     <View style={s.barWrap}>
       <View style={s.pickerBar}>
         {QUICK_EMOJIS.map(e => (
-          <TouchableOpacity
+          <TrackedTouchable
+            trackId="watchparty:send_emoji"
             key={e}
             onPress={() => onSelect(e)}
             style={s.emojiBtn}
             activeOpacity={0.65}
+            trackMeta={{ emoji: e }}
           >
             <Text style={s.emojiChar}>{e}</Text>
-          </TouchableOpacity>
+          </TrackedTouchable>
         ))}
       </View>
     </View>

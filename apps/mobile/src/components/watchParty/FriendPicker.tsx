@@ -1,7 +1,8 @@
 // WeWatch Mobile — FriendPicker component (themed + animated)
 import React, { useRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Animated } from 'react-native';
+import { View, Text, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useTheme } from '@theme/index';
 import { useFriendPickerStyles } from './FriendPicker.styles';
 import type { IUserPublic } from '@app-types/index';
@@ -35,7 +36,7 @@ function FriendRow({ friend, selected, onToggle, index: _index }: {
 
   return (
     <Animated.View style={{ transform: [{ scale }] }}>
-      <TouchableOpacity style={[s.friendRow, selected && s.friendRowSelected]} onPress={handlePress} activeOpacity={0.7}>
+      <TrackedTouchable trackId="create_room:toggle_friend" style={[s.friendRow, selected && s.friendRowSelected]} onPress={handlePress} activeOpacity={0.7}>
         <View style={[s.friendAvatar, selected && { borderColor: colors.primary, borderWidth: 2 }]}>
           <Text style={[s.friendAvatarText, selected && { color: colors.primary }]}>
             {friend.username[0].toUpperCase()}
@@ -50,7 +51,7 @@ function FriendRow({ friend, selected, onToggle, index: _index }: {
         }]}>
           {selected && <Ionicons name="checkmark" size={14} color={colors.white} />}
         </Animated.View>
-      </TouchableOpacity>
+      </TrackedTouchable>
     </Animated.View>
   );
 }
@@ -75,10 +76,10 @@ export function FriendPicker({ friends, selectedFriendIds, selectedFriends, onTo
       {selectedFriends.length > 0 && (
         <View style={s.selectedFriendsRow}>
           {selectedFriends.map(f => (
-            <TouchableOpacity key={f._id} style={s.friendChip} onPress={() => onToggleFriend(f._id)} activeOpacity={0.7}>
+            <TrackedTouchable trackId="create_room:remove_selected_friend" key={f._id} style={s.friendChip} onPress={() => onToggleFriend(f._id)} activeOpacity={0.7}>
               <Text style={s.friendChipText}>@{f.username}</Text>
               <Ionicons name="close" size={12} color={colors.white} />
-            </TouchableOpacity>
+            </TrackedTouchable>
           ))}
         </View>
       )}

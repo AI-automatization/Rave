@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useQuery } from '@tanstack/react-query';
 import { userApi } from '@api/user.api';
 import { spacing } from '@theme/index';
@@ -67,9 +68,9 @@ function MemberAvatar({
 
   if (onPress) {
     return (
-      <TouchableOpacity onPress={onPress} activeOpacity={0.75} delayLongPress={400}>
+      <TrackedTouchable trackId="members_strip:member_press" onPress={onPress} activeOpacity={0.75} delayLongPress={400}>
         {inner}
-      </TouchableOpacity>
+      </TrackedTouchable>
     );
   }
   return inner;

@@ -2,8 +2,9 @@
 // WebRTC peer-to-peer audio for watch party rooms.
 // Requires expo-dev-client (won't work in Expo Go — native modules needed).
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import type { VoiceParticipant } from '@hooks/useVoiceChat';
 import { VoiceChatParticipants } from './VoiceChatParticipants';
 import { VoiceChatControls } from './VoiceChatControls';
@@ -59,13 +60,14 @@ export function VoiceChat({
             </Text>
           </View>
         </View>
-        <TouchableOpacity
+        <TrackedTouchable
+          trackId="voice:panel_close"
           onPress={onClose}
           style={s.closeBtn}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
           <Ionicons name="chevron-down" size={22} color="rgba(255,255,255,0.45)" />
-        </TouchableOpacity>
+        </TrackedTouchable>
       </View>
 
       {/* Error */}

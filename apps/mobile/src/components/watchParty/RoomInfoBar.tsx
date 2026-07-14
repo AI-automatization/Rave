@@ -1,7 +1,8 @@
 // WeWatch Mobile — WatchParty RoomInfoBar
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 
 interface RoomInfoBarProps {
   roomName: string;
@@ -67,22 +68,22 @@ export const RoomInfoBar = React.memo(function RoomInfoBar({
 
       {/* Right: actions */}
       <View style={s.actions}>
-        <TouchableOpacity onPress={onToggleInvite} style={s.actionBtn} activeOpacity={0.7}>
+        <TrackedTouchable trackId="roombar:toggle_invite" onPress={onToggleInvite} style={s.actionBtn} activeOpacity={0.7}>
           <Ionicons name="person-add-outline" size={19} color="rgba(255,255,255,0.70)" />
-        </TouchableOpacity>
+        </TrackedTouchable>
 
-        <TouchableOpacity onPress={onToggleChat} style={s.actionBtn} activeOpacity={0.7}>
+        <TrackedTouchable trackId="roombar:toggle_chat" onPress={onToggleChat} style={s.actionBtn} activeOpacity={0.7}>
           <Ionicons name="chatbubble-outline" size={19} color="rgba(255,255,255,0.70)" />
           {hasMessages && <View style={s.notifDot} />}
-        </TouchableOpacity>
+        </TrackedTouchable>
 
-        <TouchableOpacity onPress={onToggleVoice} style={s.actionBtn} activeOpacity={0.7}>
+        <TrackedTouchable trackId="roombar:toggle_voice" onPress={onToggleVoice} style={s.actionBtn} activeOpacity={0.7}>
           <Ionicons name="mic-outline" size={19} color="rgba(255,255,255,0.70)" />
-        </TouchableOpacity>
+        </TrackedTouchable>
 
-        <TouchableOpacity onPress={onLeave} style={[s.actionBtn, s.leaveBtn]} activeOpacity={0.7}>
+        <TrackedTouchable trackId="roombar:leave" onPress={onLeave} style={[s.actionBtn, s.leaveBtn]} activeOpacity={0.7}>
           <Ionicons name="exit-outline" size={19} color="#F87171" />
-        </TouchableOpacity>
+        </TrackedTouchable>
       </View>
     </View>
   );

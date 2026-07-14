@@ -1,7 +1,8 @@
 // WeWatch — VoiceChat action buttons (join, leave, mute/unmute)
 import React from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { colors, spacing, borderRadius, typography } from '@theme/index';
 import { useT } from '@i18n/index';
 
@@ -20,26 +21,26 @@ export function VoiceChatControls({ isJoined, isMuted, isLoading, onJoin, onLeav
     <View style={s.controls}>
       {isJoined ? (
         <>
-          <TouchableOpacity style={[s.controlBtn, isMuted && s.controlBtnMuted]} onPress={onToggleMute}>
+          <TrackedTouchable trackId="voice:toggle_mute" style={[s.controlBtn, isMuted && s.controlBtnMuted]} onPress={onToggleMute} trackMeta={{ willMute: !isMuted }}>
             <Ionicons name={isMuted ? 'mic-off' : 'mic'} size={20} color={isMuted ? '#9CA3AF' : '#fff'} />
             <Text style={[s.controlText, isMuted && s.controlTextMuted]}>
               {isMuted ? t('watchParty', 'voiceUnmute') : t('watchParty', 'voiceMute')}
             </Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={s.leaveBtn} onPress={onLeave}>
+          </TrackedTouchable>
+          <TrackedTouchable trackId="voice:leave" style={s.leaveBtn} onPress={onLeave}>
             <Ionicons name="call" size={18} color="#fff" />
             <Text style={s.leaveBtnText}>{t('watchParty', 'leave')}</Text>
-          </TouchableOpacity>
+          </TrackedTouchable>
         </>
       ) : (
-        <TouchableOpacity style={[s.joinBtn, isLoading && s.joinBtnLoading]} onPress={onJoin} disabled={isLoading}>
+        <TrackedTouchable trackId="voice:join" style={[s.joinBtn, isLoading && s.joinBtnLoading]} onPress={onJoin} disabled={isLoading}>
           {isLoading ? (
             <ActivityIndicator color="#fff" size="small" />
           ) : (
             <Ionicons name="mic" size={20} color="#fff" />
           )}
           <Text style={s.joinBtnText}>{isLoading ? t('watchParty', 'voiceConnecting') : t('watchParty', 'voiceJoin')}</Text>
-        </TouchableOpacity>
+        </TrackedTouchable>
       )}
     </View>
   );
