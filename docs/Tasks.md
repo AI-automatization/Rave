@@ -901,6 +901,25 @@
 
 ---
 
+### T-S123 | P1 | [MOBILE+WEB] | To'liq click-event tracking — qayerda foydalanuvchi bosayotganini ko'rish
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim (Bekzod AI assistent so'rovi, T-S118 topic reminder 2026-07-14 — "Foydalanuvchi analitikasi click+event log")
+- **Yaratilgan:** 2026-07-14
+- **Holat:** 🔄 Bajarilmoqda
+- **Tavsiya model:** sonnet
+- **Model sababi:** ko'p fayl (89 fayl, 281 onPress), lekin mexanik pattern — wrapper komponent + trackId
+- **Sabab:** Mavjud `analyticsService` faqat screen_view avtomatik traksin qiladi (`AppNavigator.tsx:318`), lekin real click-eventlar deyarli yo'q (faqat 3 ta: login/register/room_join). Bekzod so'rovi — "click + event log har loyihada bormi/qo'shiladi". Web'da esa faqat GA pageview bor, custom click event yo'q.
+- **Qilish kerak:**
+  - [ ] `analyticsService.ts` — `click(id, meta?)` helper + `track()` currentScreen'ni avtomatik screen sifatida ulash
+  - [ ] `TrackedTouchable.tsx` / `TrackedPressable.tsx` — TouchableOpacity/Pressable wrapper, majburiy `trackId` prop (TS orqali to'liqlikni tekshirish)
+  - [ ] Barcha screens/components — `TouchableOpacity`/`Pressable` → tracked variant + mazmunli trackId
+  - [ ] Web (`apps/app-web`) — `gtag('event', 'click', {...})` helper + asosiy CTA'larga qo'shish
+  - [ ] `npx tsc --noEmit` (apps/mobile) — clean
+- **Fayllar:** `apps/mobile/src/services/analyticsService.ts`, `apps/mobile/src/components/common/Tracked*.tsx` (yangi), `apps/mobile/src/screens/**/*.tsx`, `apps/mobile/src/components/**/*.tsx`, `apps/app-web/src/lib/analytics.ts` (yangi)
+
+---
+
 ### T-S121 | P2 | [BACKEND] | DM read receipt — dm:read eventini sender'ga yuborish
 
 - **Mas'ul:** pending[Saidazim]
