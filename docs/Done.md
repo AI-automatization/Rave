@@ -1,6 +1,14 @@
 # WeWatch — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-07-09
+# Yangilangan: 2026-07-14
+
+---
+
+### F-222 | T-S122 | YouTube/webview embed — owner endi videoni boshqara oladi
+
+- **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-14  **Model:** sonnet
+- **O'zgarishlar:** `apps/mobile/src/components/watchParty/VideoSection.tsx` — butun ekranli tap-catcher (150-155-qator) `!isWebView` shartiga o'raldi.
+- **Xulosa:** Real qurilmada topilgan bug: YouTube video ochilganda owner uni umuman boshqara olmasdi. Root cause — `isOwnerMode = isOwner && !isWebView` (116-qator) webview platformalar uchun app'ning o'z play/pause panelini yashiradi ("native controls o'zi ishlaydi" degan taxmin bilan), lekin shart-shartsiz butun ekranli tap-catcher YouTube'ning haqiqiy native play tugmasiga tegishga ham yo'l qo'ymasdi — owner uchun video ishga tushirishning birorta yo'li qolmagan edi. Sync-broadcast logikasi (`useWatchPartyRoom.ts:482-489`) allaqachon to'g'ri ishlar edi — muammo faqat tap WebView'ga yetib bormasligida edi. Fix: `isWebView` bo'lganda catcher render qilinmaydi, tap to'g'ridan-to'g'ri WebView'ga o'tadi. Non-owner tap'lari alohida `WebViewPlayer`dagi `memberLockOverlay` orqali bloklanishda davom etadi. tsc: CLEAN (apps/mobile, yangi xatolik yo'q). Real qurilmada tasdiqlash — keyingi qadam (foydalanuvchi tomonidan).
 
 ---
 

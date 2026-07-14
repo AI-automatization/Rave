@@ -901,22 +901,6 @@
 
 ---
 
-### T-S122 | P1 | [MOBILE] | YouTube embed: owner video boshqara olmayapti — tap-catcher bloklaydi
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Saidazim (real qurilma test, 2026-07-14)
-- **Yaratilgan:** 2026-07-14
-- **Holat:** 🔄 Bajarilmoqda
-- **Tavsiya model:** sonnet
-- **Model sababi:** 1 fayl, touch-handling nozik joyi
-- **Sabab:** `VideoSection.tsx:116` — `isOwnerMode = isOwner && !isWebView` — YouTube/webview platformalarda har doim `false`, shuning uchun markaziy play/pause/seek panel umuman render bo'lmaydi. Ustiga, `VideoSection.tsx:150-155` dagi butun ekranni qoplagan tap-catcher (shart-shartsiz `StyleSheet.absoluteFill`) YouTube'ning o'z native play tugmasiga ham tegishga yo'l qo'ymaydi — owner videoni umuman ishga tushira olmaydi. Sync logikasi (`useWatchPartyRoom.ts:482-489` — `handleWebViewPlay/Pause/Seek`) allaqachon to'g'ri `isOwner` bilan ishlaydi va WebView'dan kelgan istalgan PLAY/PAUSE xabarini broadcast qiladi — muammo faqat tap WebView'ga yetib bormasligida.
-- **Qilish kerak:**
-  - [ ] `VideoSection.tsx` — `isWebView` bo'lganda butun ekranli tap-catcher WebView'ga tap o'tkazib yuborsin (YouTube native controls ishlashi uchun)
-  - [ ] `npx tsc --noEmit` (apps/mobile) — yangi xato yo'qligini tekshirish
-  - [ ] Real qurilmada tekshirish (Saidazim, manual)
-
----
-
 ### T-S121 | P2 | [BACKEND] | DM read receipt — dm:read eventini sender'ga yuborish
 
 - **Mas'ul:** pending[Saidazim]
