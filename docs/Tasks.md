@@ -4,23 +4,6 @@
 
 ---
 
-### T-S124 | P1 | [MOBILE] | YouTube iframe — bloklash touch, faqat o'z pleer boshqaruvi
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Saidazim (foydalanuvchi so'rovi, T-S122 fix ustiga)
-- **Yaratilgan:** 2026-07-14
-- **Holat:** 🔄 Bajarilmoqda
-- **Tavsiya model:** sonnet
-- **Model sababi:** 1-2 fayl (webviewYouTube.ts / YouTube WebView komponenti), aniq maqsad
-- **Sabab:** T-S122 fix owner uchun YouTube native play tugmasiga tegishga imkon berdi (`isWebView` bo'lganda tap-catcher o'chirildi), lekin bu YouTube o'z iframe UI'siga (native play/pause/seek) to'g'ridan-to'g'ri tegishga yo'l ochadi — foydalanuvchi ilovaning o'z pleer boshqaruvidan chetlab o'tishi mumkin. So'rov: YouTube iframe bilan hech qanday to'g'ridan-to'g'ri interaktsiya bo'lmasin, faqat `_csVideo` JS-mosti orqali (bizning custom controls).
-- **Qilish kerak:**
-  - [ ] YouTube WebView'ga touch bloklovchi overlay (`pointerEvents="none"` yoki shaffof View) qo'shish — barcha kirish `_csVideo.play()/pause()/seekTo()` orqali
-  - [ ] Real qurilma/emulyatorda birinchi play() autoplay-siyosati bilan bloklanmasligini tekshirish (WebView ichida user-gesture yo'qligi muammosi)
-  - [ ] `npx tsc --noEmit` (apps/mobile) — clean
-- **Fayllar:** `apps/mobile/src/components/video/webviewYouTube.ts`, YouTube WebView wrapper komponenti (aniqlash kerak)
-
----
-
 # 🔒 Sprint 15: Security Audit fixes (2026-07-04 — аудит Claude)
 
 > Полный аудит OWASP Top 10 + WeWatch-специфика. Фундамент крепкий (JWT/bcrypt/socket/internal/IDOR — ок). Ниже — найденные уязвимости. **Не начинать без claim.**

@@ -4,6 +4,14 @@
 
 ---
 
+### F-224 | T-S124 | YouTube/webview iframe — owner endi FAQAT o'z pleer boshqaruvidan foydalanadi
+
+- **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-14  **Model:** sonnet
+- **O'zgarishlar:** `apps/mobile/src/components/watchParty/VideoSection.tsx` — `isOwnerMode = isOwner && !isWebView` → `isOwnerMode = isOwner` (117-qator); butun ekranli tap-catcher endi `isWebView` uchun ham har doim render qilinadi (avval T-S122da webview uchun o'chirilgan edi). `apps/mobile/src/hooks/useWatchPartyRoom.ts` — izoh yangilandi (`isOwnerMode` shartsiz ekanini aks ettirish uchun).
+- **Xulosa:** Foydalanuvchi so'rovi: YouTube (va boshqa webview embedlar — Twitch/VK/Rutube, bir xil komponent orqali) iframe'ining o'z native UI'siga (play/pause/seek) hech qanday to'g'ridan-to'g'ri teginish bo'lmasin, faqat ilovaning o'z pleer paneli orqali boshqarilsin. T-S122 aksincha — owner uchun tap-catcher'ni webview'da o'chirib, YouTube native tugmasiga tegishga imkon bergan edi; endi bu teskari qilindi: tap-catcher qaytadan har doim WebView ustida turadi va barcha teginishni tutib qoladi, `isOwnerMode` esa shartsiz `isOwner` bo'lgani uchun bizning play/pause/seek panelimiz webview holatda ham ko'rinadi va `_csVideo` JS-mosti (`useWebViewPlayer.ts`) orqali videoni boshqaradi — bu most YouTube (`webviewYouTube.ts`) va boshqa embedlar (`WebViewAdapters.ts`) uchun umumiy, shuning uchun fix barcha webview platformalarda bir xil ishlaydi. Autoplay-siyosat xavfi (WebView ichida user-gesture yo'qligi) allaqachon `mediaPlaybackRequiresUserAction={false}` bilan yopilgan (`WebViewPlayer.tsx`). tsc: CLEAN (apps/mobile, yangi xatolik yo'q). GitHub Actions APK build ishga tushirildi (commit `aace1bc`) — real qurilmada/emulyatorda tasdiqlash keyingi qadam.
+
+---
+
 ### F-223 | T-S123 | To'liq click-event tracking — mobile + web
 
 - **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-14  **Model:** sonnet
