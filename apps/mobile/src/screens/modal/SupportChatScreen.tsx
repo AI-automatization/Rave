@@ -1,10 +1,11 @@
 // WeWatch Mobile — Support Chat Screen
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
-  View, Text, FlatList, TextInput, TouchableOpacity,
+  View, Text, FlatList, TextInput,
   KeyboardAvoidingView, Platform, ActivityIndicator,
   ListRenderItemInfo,
 } from 'react-native';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -147,9 +148,9 @@ export function SupportChatScreen() {
       keyboardVerticalOffset={insets.bottom}
     >
       <View style={s.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn}>
+        <TrackedTouchable trackId="support_chat:back" onPress={() => navigation.goBack()} style={s.backBtn}>
           <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
-        </TouchableOpacity>
+        </TrackedTouchable>
         <View style={s.headerInfo}>
           <Ionicons name="headset-outline" size={18} color={colors.primary} />
           <Text style={s.headerTitle}>{t('settings', 'supportTitle')}</Text>
@@ -199,7 +200,7 @@ export function SupportChatScreen() {
           ) : (
             <Text style={s.closedText}>{t('settings', 'conversationClosed')}</Text>
           )}
-          <TouchableOpacity style={s.newChatBtn} onPress={() => void startNewChat()} disabled={creatingConv} activeOpacity={0.8}>
+          <TrackedTouchable trackId="support_chat:start_new_chat" style={s.newChatBtn} onPress={() => void startNewChat()} disabled={creatingConv} activeOpacity={0.8}>
             {creatingConv ? (
               <ActivityIndicator size="small" color={colors.white} />
             ) : (
@@ -208,7 +209,7 @@ export function SupportChatScreen() {
                 <Text style={s.newChatText}>{t('settings', 'newChat')}</Text>
               </>
             )}
-          </TouchableOpacity>
+          </TrackedTouchable>
         </View>
       ) : (
         <View style={[s.inputRow, { paddingBottom: insets.bottom + spacing.xs }]}>
@@ -222,7 +223,8 @@ export function SupportChatScreen() {
             maxLength={500}
             returnKeyType="default"
           />
-          <TouchableOpacity
+          <TrackedTouchable
+            trackId="support_chat:send"
             style={[s.sendBtn, (!input.trim() || sendMutation.isPending) && s.sendBtnDisabled]}
             onPress={handleSend}
             disabled={!input.trim() || sendMutation.isPending}
@@ -233,7 +235,7 @@ export function SupportChatScreen() {
             ) : (
               <Ionicons name="send" size={18} color={colors.white} />
             )}
-          </TouchableOpacity>
+          </TrackedTouchable>
         </View>
       )}
 

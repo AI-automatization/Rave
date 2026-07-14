@@ -4,11 +4,11 @@ import {
   View,
   Text,
   FlatList,
-  TouchableOpacity,
   ActivityIndicator,
   StatusBar,
   ListRenderItemInfo,
 } from 'react-native';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -41,9 +41,9 @@ export function SearchResultsScreen() {
     <View style={[styles.root, { backgroundColor: colors.bgBase }]}>
       <StatusBar barStyle="light-content" />
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+        <TrackedTouchable trackId="search_results:back" onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
-        </TouchableOpacity>
+        </TrackedTouchable>
         <Text style={[styles.queryText, { color: colors.textPrimary }]} numberOfLines={1}>{query}</Text>
       </View>
 

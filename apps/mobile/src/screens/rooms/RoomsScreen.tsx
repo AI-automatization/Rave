@@ -1,9 +1,10 @@
 // WeWatch Mobile — Rooms Screen (all open watch party rooms)
 import React, { useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity,
+  View, Text, ScrollView,
   ActivityIndicator, RefreshControl, StatusBar,
 } from 'react-native';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { ReportRoomModal } from '@components/common/ReportRoomModal';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -59,15 +60,15 @@ export function RoomsScreen() {
             <Ionicons name="tv" size={22} color={colors.primary} />
             <Text style={s.headerTitle}>Watch Party</Text>
           </View>
-          <TouchableOpacity style={s.joinCodeBtn} onPress={handleJoin} activeOpacity={0.7}>
+          <TrackedTouchable trackId="rooms:join_by_code" style={s.joinCodeBtn} onPress={handleJoin} activeOpacity={0.7}>
             <Ionicons name="key-outline" size={16} color={colors.secondary} />
             <Text style={s.joinCodeText}>{t('watchParty', 'tabCode')}</Text>
-          </TouchableOpacity>
+          </TrackedTouchable>
         </View>
 
         {/* Quick action buttons */}
         <View style={s.actionsRow}>
-          <TouchableOpacity style={s.createRoomBtn} onPress={handleCreate} activeOpacity={0.85}>
+          <TrackedTouchable trackId="rooms:create_room" style={s.createRoomBtn} onPress={handleCreate} activeOpacity={0.85}>
             <LinearGradient
               colors={[colors.primary, colors.primaryLight ?? '#9333EA']}
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
@@ -76,7 +77,7 @@ export function RoomsScreen() {
               <Ionicons name="add-circle" size={18} color={colors.white} />
               <Text style={s.createRoomText}>{t('watchParty', 'createRoom')}</Text>
             </LinearGradient>
-          </TouchableOpacity>
+          </TrackedTouchable>
 
           {activeRooms.length > 0 && (
             <View style={s.statsPill}>
@@ -116,10 +117,10 @@ export function RoomsScreen() {
               </View>
               <Text style={s.emptyTitle}>{t('watchParty', 'noRoomsTitle')}</Text>
               <Text style={s.emptySub}>{t('watchParty', 'noRoomsSub')}</Text>
-              <TouchableOpacity style={s.emptyBtn} onPress={handleCreate} activeOpacity={0.8}>
+              <TrackedTouchable trackId="rooms:empty_state_create" style={s.emptyBtn} onPress={handleCreate} activeOpacity={0.8}>
                 <Ionicons name="add-circle-outline" size={18} color={colors.primary} />
                 <Text style={s.emptyBtnText}>{t('watchParty', 'createRoom')}</Text>
-              </TouchableOpacity>
+              </TrackedTouchable>
             </View>
           )}
 

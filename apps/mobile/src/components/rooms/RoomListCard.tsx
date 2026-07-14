@@ -1,10 +1,11 @@
 // WeWatch — Room list card component (extracted from RoomsScreen)
 import React, { useRef, useEffect } from 'react';
 import {
-  View, Text, TouchableOpacity, Image, Animated,
+  View, Text, Image, Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import type { IWatchPartyRoom, WatchPartyStatus } from '@app-types/index';
 import type { translations } from '@i18n/index';
@@ -54,7 +55,8 @@ export function RoomListCard({ room, index, onPress, onLongPress, t }: {
 
   return (
     <Animated.View style={{ opacity, transform: [{ translateY }, { scale }] }}>
-      <TouchableOpacity
+      <TrackedTouchable
+        trackId="rooms:room_list_card"
         style={[s.card, isEnded && s.cardEnded]}
         onPress={onPress}
         onLongPress={onLongPress}
@@ -108,7 +110,7 @@ export function RoomListCard({ room, index, onPress, onLongPress, t }: {
             </View>
           </View>
         </View>
-      </TouchableOpacity>
+      </TrackedTouchable>
     </Animated.View>
   );
 }

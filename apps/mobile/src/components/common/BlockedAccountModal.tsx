@@ -1,7 +1,8 @@
 // WeWatch Mobile — BlockedAccountModal
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Modal, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, Modal, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { useT } from '@i18n/index';
 import { appealApi } from '@api/appeal.api';
@@ -59,22 +60,22 @@ export function BlockedAccountModal({ visible, reason, userId, onClose }: Blocke
                 <View style={styles.reasonBox}>
                   <Text style={styles.reasonText}>{reason || t('blocked', 'noReason')}</Text>
                 </View>
-                <TouchableOpacity style={styles.appealBtn} onPress={() => setView('appeal')}>
+                <TrackedTouchable trackId="blocked_account:open_appeal" style={styles.appealBtn} onPress={() => setView('appeal')}>
                   <Ionicons name="document-text-outline" size={18} color="#fff" />
                   <Text style={styles.appealBtnText}>{t('blocked', 'appealBtn')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.okBtn} onPress={handleClose}>
+                </TrackedTouchable>
+                <TrackedTouchable trackId="blocked_account:ok" style={styles.okBtn} onPress={handleClose}>
                   <Text style={styles.okText}>{t('common', 'ok')}</Text>
-                </TouchableOpacity>
+                </TrackedTouchable>
               </>
             )}
 
             {view === 'appeal' && (
               <>
-                <TouchableOpacity style={styles.backRow} onPress={() => setView('blocked')}>
+                <TrackedTouchable trackId="blocked_account:appeal_back" style={styles.backRow} onPress={() => setView('blocked')}>
                   <Ionicons name="chevron-back" size={18} color={colors.textSecondary} />
                   <Text style={styles.backText}>{t('common', 'back')}</Text>
-                </TouchableOpacity>
+                </TrackedTouchable>
                 <Text style={styles.title}>{t('blocked', 'appealTitle')}</Text>
                 <Text style={styles.message}>{t('blocked', 'appealMessage')}</Text>
                 <TextInput
@@ -88,7 +89,8 @@ export function BlockedAccountModal({ visible, reason, userId, onClose }: Blocke
                   textAlignVertical="top"
                 />
                 {!!error && <Text style={styles.errorText}>{error}</Text>}
-                <TouchableOpacity
+                <TrackedTouchable
+                  trackId="blocked_account:submit_appeal"
                   style={[styles.appealBtn, !message.trim() && styles.disabledBtn]}
                   onPress={handleSubmitAppeal}
                   disabled={!message.trim() || loading}
@@ -98,7 +100,7 @@ export function BlockedAccountModal({ visible, reason, userId, onClose }: Blocke
                   ) : (
                     <Text style={styles.appealBtnText}>{t('common', 'send')}</Text>
                   )}
-                </TouchableOpacity>
+                </TrackedTouchable>
               </>
             )}
 
@@ -109,9 +111,9 @@ export function BlockedAccountModal({ visible, reason, userId, onClose }: Blocke
                 </View>
                 <Text style={[styles.title, { color: colors.textPrimary }]}>{t('blocked', 'appealSent')}</Text>
                 <Text style={styles.message}>{t('blocked', 'appealReview')}</Text>
-                <TouchableOpacity style={styles.okBtn} onPress={handleClose}>
+                <TrackedTouchable trackId="blocked_account:done_close" style={styles.okBtn} onPress={handleClose}>
                   <Text style={styles.okText}>{t('common', 'close')}</Text>
-                </TouchableOpacity>
+                </TrackedTouchable>
               </>
             )}
           </View>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Modal, TextInput, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, Modal, TextInput, ActivityIndicator, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { useT } from '@i18n/index';
 import { reportApi, ReportReason } from '@api/report.api';
@@ -64,26 +65,28 @@ export function ReportRoomModal({ visible, roomId, onClose }: ReportRoomModalPro
               </View>
               <Text style={s.doneTitle}>{t('common', 'reportSent')}</Text>
               <Text style={s.doneSub}>{t('common', 'reportReview')}</Text>
-              <TouchableOpacity style={s.closeBtn} onPress={handleClose}>
+              <TrackedTouchable trackId="report_room:done_close" style={s.closeBtn} onPress={handleClose}>
                 <Text style={s.closeBtnText}>{t('common', 'close')}</Text>
-              </TouchableOpacity>
+              </TrackedTouchable>
             </View>
           ) : (
             <>
               <View style={s.header}>
                 <Text style={s.title}>{t('common', 'reportRoom')}</Text>
-                <TouchableOpacity onPress={handleClose} style={s.xBtn}>
+                <TrackedTouchable trackId="report_room:close" onPress={handleClose} style={s.xBtn}>
                   <Ionicons name="close" size={20} color={colors.textSecondary} />
-                </TouchableOpacity>
+                </TrackedTouchable>
               </View>
 
               <Text style={s.label}>{t('common', 'reportReason')}</Text>
               <ScrollView style={s.reasons} showsVerticalScrollIndicator={false}>
                 {REASONS.map((r) => (
-                  <TouchableOpacity
+                  <TrackedTouchable
+                    trackId="report_room:select_reason"
                     key={r.value}
                     style={[s.reasonRow, selected === r.value && s.reasonRowActive]}
                     onPress={() => setSelected(r.value)}
+                    trackMeta={{ reason: r.value }}
                   >
                     <View style={[s.radio, selected === r.value && s.radioActive]}>
                       {selected === r.value && <View style={s.radioDot} />}
@@ -91,7 +94,7 @@ export function ReportRoomModal({ visible, roomId, onClose }: ReportRoomModalPro
                     <Text style={[s.reasonLabel, selected === r.value && s.reasonLabelActive]}>
                       {r.label}
                     </Text>
-                  </TouchableOpacity>
+                  </TrackedTouchable>
                 ))}
 
                 <Text style={[s.label, { marginTop: spacing.lg }]}>{t('common', 'reportComment')}</Text>
@@ -107,7 +110,8 @@ export function ReportRoomModal({ visible, roomId, onClose }: ReportRoomModalPro
               </ScrollView>
 
               {error && <Text style={s.errorText}>{error}</Text>}
-              <TouchableOpacity
+              <TrackedTouchable
+                trackId="report_room:submit"
                 style={[s.submitBtn, !selected && s.submitBtnDisabled]}
                 onPress={handleSubmit}
                 disabled={!selected || loading}
@@ -117,7 +121,7 @@ export function ReportRoomModal({ visible, roomId, onClose }: ReportRoomModalPro
                 ) : (
                   <Text style={s.submitText}>{t('common', 'reportSend')}</Text>
                 )}
-              </TouchableOpacity>
+              </TrackedTouchable>
             </>
           )}
         </View>

@@ -12,6 +12,7 @@ import {
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { analyticsService } from '@services/analyticsService';
 import { useTheme } from '@theme/index';
 
 export type AlertButtonStyle = 'default' | 'cancel' | 'destructive';
@@ -139,7 +140,11 @@ export function AppAlertHost() {
 
               if (isPrimary) {
                 return (
-                  <Pressable key={`${b.text}-${i}`} onPress={() => close(b.onPress)} style={btnStyle}>
+                  <Pressable
+                    key={`${b.text}-${i}`}
+                    onPress={() => { analyticsService.click('alert:button', { title: opts.title, buttonText: b.text }); close(b.onPress); }}
+                    style={btnStyle}
+                  >
                     {({ pressed }) => (
                       <LinearGradient
                         colors={['#7B72F8', '#6B63E8']}
@@ -155,7 +160,7 @@ export function AppAlertHost() {
               return (
                 <Pressable
                   key={`${b.text}-${i}`}
-                  onPress={() => close(b.onPress)}
+                  onPress={() => { analyticsService.click('alert:button', { title: opts.title, buttonText: b.text, style: b.style }); close(b.onPress); }}
                   style={({ pressed }) => [
                     ...btnStyle,
                     styles.btnOutline,

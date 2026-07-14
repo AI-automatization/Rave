@@ -1,7 +1,8 @@
 // WeWatch Mobile — UniversalPlayer
 // URL ga qarab to'g'ri player tanlaydi: expo-video (direct) yoki WebView (youtube/boshqalar)
 import React, { forwardRef, useCallback, useImperativeHandle, useRef, useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Platform } from 'react-native';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { VideoView, useVideoPlayer as createExpoPlayer } from 'expo-video';
 import { useEvent, useEventListener } from 'expo';
 import { Ionicons } from '@expo/vector-icons';
@@ -374,12 +375,13 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
         <View style={styles.center}>
           <Ionicons name="warning-outline" size={48} color={colors.error} />
           <Text style={styles.errorText}>{t('watchParty', 'videoLoadFailed')}</Text>
-          <TouchableOpacity
+          <TrackedTouchable
+            trackId="universal_player:retry"
             style={styles.retryBtn}
             onPress={() => { setVideoError(false); setAvLoaded(false); readyFiredRef.current = false; }}
           >
             <Text style={styles.retryText}>{t('common', 'retry')}</Text>
-          </TouchableOpacity>
+          </TrackedTouchable>
         </View>
       );
     }
