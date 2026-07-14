@@ -144,20 +144,32 @@ function prefetchExtraction(url: string): void {
 /* ── Title + thumbnail fetcher ───────────────────────── */
 interface VideoMeta { title: string | null; thumbnail: string | null; }
 
+// oEmbed providers (Rutube in particular) sometimes return a protocol-relative thumbnail_url
+// ("//pic.rutube.ru/..."). It renders fine in an <img> (browsers resolve it against the current
+// page's protocol) but backend Joi validation (videoThumbnail: Joi.string().uri()) requires an
+// explicit scheme and rejects it with a 422 — silently failing the whole room-create request.
+// Normalize to an absolute https URL here, or drop it entirely if it's not a usable URL at all
+// (a broken thumbnail is cosmetic; failing to create the room over it is not acceptable).
+function toAbsoluteThumbnailUrl(raw: string | undefined | null): string | null {
+  if (!raw) return null;
+  const withScheme = /^https?:\/\//i.test(raw) ? raw : raw.startsWith('//') ? `https:${raw}` : `https://${raw}`;
+  try { new URL(withScheme); return withScheme; } catch { return null; }
+}
+
 async function fetchVideoMeta(url: string): Promise<VideoMeta> {
   try {
     if (/youtube\.com|youtu\.be/.test(url)) {
       const r = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`);
       if (r.ok) {
         const d = await r.json() as { title?: string; thumbnail_url?: string };
-        return { title: d.title ?? null, thumbnail: d.thumbnail_url ?? null };
+        return { title: d.title ?? null, thumbnail: toAbsoluteThumbnailUrl(d.thumbnail_url) };
       }
     }
     if (/rutube\.ru/.test(url)) {
       const r = await fetch(`https://rutube.ru/api/oembed/?url=${encodeURIComponent(url)}&format=json`);
       if (r.ok) {
         const d = await r.json() as { title?: string; thumbnail_url?: string };
-        return { title: d.title ?? null, thumbnail: d.thumbnail_url ?? null };
+        return { title: d.title ?? null, thumbnail: toAbsoluteThumbnailUrl(d.thumbnail_url) };
       }
     }
     return { title: null, thumbnail: null };
@@ -262,12 +274,15 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
       const normalizedVideoUrl = videoUrl && !/^https?:\/\//i.test(videoUrl)
         ? `https://${videoUrl}`
         : videoUrl;
+      // Safety net alongside toAbsoluteThumbnailUrl (used when storing it from fetchVideoMeta):
+      // re-validate here too so a malformed thumbnail can never 422 the whole room-create request.
+      const safeThumbnail = videoThumbnail ? toAbsoluteThumbnailUrl(videoThumbnail) : null;
       const res = await createRoom.mutateAsync({
         // Backend `name` caps at 80 chars (Joi) — trim here, mirrors mobile's useMediaDetection slice(0, 60)
         name:             videoTitle ? videoTitle.slice(0, 60) : undefined,
         videoUrl:         withoutVideo ? undefined : (normalizedVideoUrl || undefined),
         videoTitle:       withoutVideo ? undefined : (videoTitle || undefined),
-        videoThumbnail:   withoutVideo ? undefined : (videoThumbnail || undefined),
+        videoThumbnail:   withoutVideo ? undefined : (safeThumbnail || undefined),
         videoPlatform:    withoutVideo ? undefined : backendPlatform,
       });
       onOpenChange(false);
