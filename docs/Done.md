@@ -4,6 +4,14 @@
 
 ---
 
+### F-230 | T-S129 | DM chat sahifasi web'da butunlay crash — Conversation kontrakti tekislandi
+
+- **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-15  **Model:** sonnet
+- **O'zgarishlar:** `apps/app-web/src/lib/api/user.api.ts` — `Conversation` interfeysi backend/mobil bilan tekislandi (`peerUsername`, `peerAvatar`, `lastMessage: string`, `lastMessageAt`, `isMuted`, `isPinned` — nested `peer`/`lastMessage` obyekti o'rniga). `ConversationList.tsx` — `conv.peer.username/avatar/isOnline` → `conv.peerUsername/peerAvatar` (isOnline — backend hech qachon qaytarmagan o'lik maydon, olib tashlandi). `MessagesContent.tsx` — `selectedConvo?.peer.username` → `selectedConvo?.peerUsername`.
+- **Xulosa:** Foydalanuvchi brauzer konsolini yubordi: `TypeError: undefined is not an object (evaluating 'e.peer.username')`. Root cause — web frontend'ning `Conversation` interfeysi hech qachon haqiqiy backend javobiga mos kelmagan xayoliy tuzilma bilan yozilgan edi (nested `peer` obyekti), lekin `services/user/src/services/dm.service.ts` TEKISLANGAN maydonlar qaytaradi (`peerUsername`, `peerAvatar`, `lastMessage: string`). Mobil ilova (`IDMConversation`) to'g'ri, haqiqiy kontraktga mos yozilgan — shuning uchun mobilkada DM ishlagan, web'da esa HAR QANDAY mavjud suhbat butun sahifani yiqitgan (nested error.tsx yo'qligi sababli xato root `global-error.tsx`gacha ko'tarilgan). Bu web DM'ning birinchi marta yaratilganidan beri hech qachon to'g'ri ishlamaganini anglatadi. tsc: CLEAN (apps/app-web, yangi xatolik yo'q). Railway avtomatik deploy qildi, healthcheck ✅, `app.wewatch.uz/messages` tekshirildi. Commit `c0b7d2b`.
+
+---
+
 ### F-229 | T-S128 | Android VK/Rutube full-site WebView — abadiy loading fix (timeout + retry)
 
 - **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-15  **Model:** sonnet
