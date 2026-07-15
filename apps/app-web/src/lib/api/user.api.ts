@@ -15,11 +15,18 @@ export interface DmMessage {
   isRead?: boolean;
 }
 
+// Matches the actual backend shape (services/user/src/services/dm.service.ts Conversation) —
+// flat fields, not a nested `peer` object. Mirrors mobile's IDMConversation
+// (apps/mobile/src/types/index.ts), which is what actually gets exercised against the real API.
 export interface Conversation {
   peerId: string;
-  peer: Pick<IUser, '_id' | 'username' | 'avatar' | 'isOnline'>;
-  lastMessage: DmMessage;
+  peerUsername: string;
+  peerAvatar: string | null;
+  lastMessage: string;
+  lastMessageAt: string;
   unreadCount: number;
+  isMuted: boolean;
+  isPinned: boolean;
 }
 
 // All backend responses return data directly (not wrapped in { user: }, { friends: }, etc.)

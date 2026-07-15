@@ -27,7 +27,7 @@ export function MessagesContent() {
   }, [searchParams]);
 
   const selectedConvo = conversations?.find((c) => c.peerId === selectedPeer);
-  const peerName = selectedConvo?.peer.username ?? 'Chat';
+  const peerName = selectedConvo?.peerUsername ?? 'Chat';
 
   function handleSend(text: string) {
     if (!selectedPeer) return;

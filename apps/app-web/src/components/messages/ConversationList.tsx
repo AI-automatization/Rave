@@ -2,15 +2,8 @@
 
 import { useTranslations } from 'next-intl';
 import { MessageCircle } from 'lucide-react';
-import type { IUser } from '@/types';
+import type { Conversation } from '@/lib/api/user.api';
 import { trackClick } from '@/lib/analytics';
-
-interface Conversation {
-  peerId: string;
-  peer: Pick<IUser, '_id' | 'username' | 'avatar' | 'isOnline'>;
-  lastMessage: { text: string; createdAt: string };
-  unreadCount: number;
-}
 
 interface Props {
   conversations: Conversation[];
@@ -54,7 +47,7 @@ export function ConversationList({ conversations, selectedPeerId, onSelect }: Pr
       {conversations.map((conv, idx) => {
         const active = conv.peerId === selectedPeerId;
         const color = memberColor(conv.peerId);
-        const initials = (conv.peer.username ?? '?').slice(0, 2).toUpperCase();
+        const initials = (conv.peerUsername ?? '?').slice(0, 2).toUpperCase();
 
         return (
           <div key={conv.peerId}>
@@ -70,30 +63,27 @@ export function ConversationList({ conversations, selectedPeerId, onSelect }: Pr
                   className="w-[50px] h-[50px] rounded-full flex items-center justify-center text-base font-bold text-white overflow-hidden border-2"
                   style={{ borderColor: color, backgroundColor: `${color}22` }}
                 >
-                  {conv.peer.avatar ? (
-                    <img src={conv.peer.avatar} alt="" className="w-full h-full object-cover" />
+                  {conv.peerAvatar ? (
+                    <img src={conv.peerAvatar} alt="" className="w-full h-full object-cover" />
                   ) : (
                     <span style={{ color }}>{initials}</span>
                   )}
                 </div>
-                {conv.peer.isOnline && (
-                  <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-400 rounded-full border-2 border-transparent" />
-                )}
               </div>
 
               {/* Info */}
               <div className="flex-1 min-w-0 flex flex-col gap-[3px]">
                 <div className="flex items-center justify-between gap-2">
                   <span className={`text-[15px] truncate ${conv.unreadCount > 0 ? 'font-bold text-white' : 'font-semibold text-white/75'}`}>
-                    {conv.peer.username}
+                    {conv.peerUsername}
                   </span>
                   <span className="text-[11px] text-white/28 shrink-0">
-                    {conv.lastMessage?.createdAt ? formatRelative(conv.lastMessage.createdAt) : ''}
+                    {conv.lastMessageAt ? formatRelative(conv.lastMessageAt) : ''}
                   </span>
                 </div>
                 <div className="flex items-center justify-between gap-2">
                   <p className={`text-[13px] truncate ${conv.unreadCount > 0 ? 'text-white/70 font-medium' : 'text-white/35'}`}>
-                    {conv.lastMessage?.text ?? ''}
+                    {conv.lastMessage ?? ''}
                   </p>
                   {conv.unreadCount > 0 && (
                     <span
