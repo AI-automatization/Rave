@@ -844,17 +844,4 @@
 
 ---
 
-### T-S122 | P1 | [WEB+BACKEND] | DM Web paritet — Android bilan bir xil funksiya+vizual
-
-- **Mas'ul:** claimed[Saidazim]
-- **Beruvchi:** Saidazim (o'zi, foydalanuvchi so'rovi)
-- **Yaratilgan:** 2026-07-15
-- **Holat:** 🔄 Bajarilmoqda
-- **Tavsiya model:** opus
-- **Model sababi:** 20+ fayl, ko'p bosqichli feature-parity refactor (realtime socket, IntersectionObserver, Radix UI portlar)
-- **Sabab:** Foydalanuvchi: "веб чаты должны выглядеть как в андроиде и функции те же должны быть и там". Bekend (`services/user` `/dm/*`) TO'LIQ tayyor (T-S118/119/120/121 grep bilan tasdiqlandi — pastga qarang, F-234 Done.md). Yetishmayotgan qism faqat veb: types, Next.js proxy-route'lar, API-client, hook'lar, komponentlar.
-- **Qilish kerak (to'liq reja):** `/Users/saidazim/.claude/plans/lively-weaving-dongarra.md` — 7 bosqich (Fundament → API+hook → Ro'yxat → Chat yadrosi → Interaktsiya → Read-receipts → Integratsiya).
-- **Bog'liq:** F-230 (T-S129, Conversation kontrakti fix — shu ustiga quriladi)
-
----
 

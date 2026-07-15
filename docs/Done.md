@@ -4,6 +4,61 @@
 
 ---
 
+### F-235 | T-S122 | DM Web paritet — Android bilan bir xil funksiya + vizual (7 fazali)
+
+- **Bajaruvchi:** Saidazim (Claude opus)  **Bajarilgan:** 2026-07-15  **Model:** opus
+- **O'zgarishlar (26 fayl):**
+  - **Types/API:** `apps/app-web/src/lib/api/user.api.ts` — `DmMessage` mobil `IDMMessage`ga
+    tekislandi (`read/replyTo*/forwardFrom/pinned/updatedAt`), `userApi`ga 7 ta yangi metod
+    (forwardMessage/markRead/markReadUpTo/toggleMute/togglePinConversation/togglePinMessage/
+    getPinnedMessages).
+  - **Utils:** `lib/dm/dm-format.ts` (memberColor/formatTime/formatRelative — dedup
+    ConversationList+ChatWindow'dan), `lib/dm/dm-date-groups.ts` (buildDMList/findJumpIndex —
+    mobildan deyarli so'zma-so'z port), `lib/dm/scroll-position-storage.ts` (localStorage,
+    SSR-guard).
+  - **Proxy routes (7 ta yangi):** `api/user/dm/[peerId]/{forward,read,read-until,mute,pin,
+    pinned}/route.ts` + `.../messages/[messageId]/pin/route.ts`.
+  - **i18n:** `dm`+`calendar` namespace'lariga 16+12 kalit, 3 til (en/ru/uz).
+  - **Hooks:** `hooks/use-dm.ts` qayta yozildi — `useDmRealtime` endi `DM_READ` eventini
+    tinglaydi (o'z xabarlarini `read:true` qiladi), `useSendDm` — optimistic + temp-id
+    reconciliation (remove-first-match, mobildan port) + socket-first/REST-fallback,
+    yangi `useToggleMute/useTogglePinConversation` (optimistic+rollback)/
+    `usePinnedMessages/useTogglePinMessage/useForwardMessage`. `hooks/use-dm-viewport.ts`
+    (yangi) — mobil `useDMChatViewport`ning IntersectionObserver analogi: sticky-date +
+    view-based read-marking (debounce 400ms) + scroll-position memory (debounce 600ms) —
+    bitta observer, 3 vazifa.
+  - **socket.ts:** `getSocket()` `connectPromise` bilan dedup qilindi (xuddi api-client.ts
+    `refreshPromise` patterni) — parallel `io()` race yopildi.
+  - **Komponentlar (`components/messages/dm/`, 10 ta yangi):** `MessageItem.tsx` (80%
+    maxWidth trick — wrapper'da, bubble'da emas; forward-header/reply-quote/pin/read-tick),
+    `DateSeparator.tsx`, `StickyDateHeader.tsx` (fade-timer komponentda, hookda emas —
+    mobil split'ini aynan takrorlaydi), `ChatWallpaper.tsx` (deterministik scatter,
+    ResizeObserver — window emas, SSR-safe), `MessageActionSheet.tsx` (Dialog bottom-sheet,
+    DropdownMenu emas — per-row anchor muammosi), `ReplyPreviewBar.tsx`, `ForwardPicker.tsx`
+    (FriendSearch shell qayta ishlatildi), `PinnedMessagesBar.tsx` (cycle-index porti),
+    `DatePickerModal.tsx` (Intl.DateTimeFormat weekday — 7ta qo'shimcha i18n key kerak
+    emas), `ChatPreviewModal.tsx` (Telegram-style peek, decoupled query, markRead chaqirmaydi).
+  - **`ConversationList.tsx`:** pinned-first sort, unread accent-bar (active'dan alohida),
+    hover/tap "…" menu (touch uchun ham ko'rinadi), right-click → preview.
+  - **`ChatWindow.tsx`:** to'liq orkestrator — buildDMList + barcha yangi komponentlar ulandi.
+  - **O'chirildi:** `MessageBubble.tsx` (MessageItem bilan almashtirildi, konsumerlari yo'q
+    edi).
+  - **Tasks.md tozalash:** T-S118/119/120/121 (reply/forward/forward-privacy/read-receipt)
+    grep bilan backend'da allaqachon tayyorligi tasdiqlandi (doc/code drift) — Done.md'ga
+    ko'chirildi (F-234), Tasks.md'dan olib tashlandi.
+- **Xulosa:** Saidazim: "веб чаты должны выглядеть как в андроиде и функции те же должны
+  быть и там". Backend (`services/user` `/dm/*`) grep bilan 100% tayyor ekani tasdiqlandi —
+  yetishmagan qism faqat veb edi. 7 faza (Foundation→API+hooks→List→Chat core→Interactions→
+  Read-receipts→Integration) izchil bajarildi, har faza alohida `tsc --noEmit` + `eslint`
+  bilan tekshirilib commit qilindi. Yakuniy tekshiruv: `npm run build` (production) — barcha
+  7 yangi route ro'yxatdan o'tdi, `/messages` sahifasi muvaffaqiyatli build bo'ldi (33.8kB),
+  route conflict yo'q. tsc: CLEAN butun jarayon davomida (yangi xatolik 0 ta). Real
+  ikki-sessiyali tekshiruv (DM_READ live tick-flip, pin/mute sync) va Playwright vizual
+  QA (desktop+mobile-web) — keyingi qadam, kod tomonidan hammasi tayyor va ulangan.
+  To'liq reja: `/Users/saidazim/.claude/plans/lively-weaving-dongarra.md`.
+
+---
+
 ### F-234 | T-S118,T-S119,T-S120,T-S121 | DM reply/forward/forward-privacy/read-receipt — hujjat/kod drift tozalandi (backend allaqachon tayyor edi)
 
 - **Bajaruvchi:** Saidazim (Claude opus)  **Bajarilgan:** 2026-07-15  **Model:** opus
