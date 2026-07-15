@@ -4,6 +4,25 @@
 
 ---
 
+### T-S129 | P1 | [WEB] | DM chat sahifasi web'da butunlay crash — noto'g'ri Conversation kontrakti
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim (foydalanuvchi konsol screenshotini yuborgandan keyin topildi)
+- **Yaratilgan:** 2026-07-15
+- **Holat:** 🔄 Bajarilmoqda
+- **Tavsiya model:** sonnet
+- **Model sababi:** 3 fayl, aniq root cause (browser konsolidan topildi)
+- **Sabab:** Foydalanuvchi konsolni yuborgandan keyin aniq xato ko'rindi: `TypeError: undefined is not an object (evaluating 'e.peer.username')`. Root cause — web frontend'ning `Conversation` interfeysi (`apps/app-web/src/lib/api/user.api.ts`) noto'g'ri, hech qachon haqiqiy backend javobiga mos kelmagan tuzilma bilan yozilgan: `peer: {_id, username, avatar, isOnline}` (nested obyekt) va `lastMessage: {text, createdAt}` (obyekt). Haqiqiy backend (`services/user/src/services/dm.service.ts` `Conversation` interfeysi) esa TEKISLANGAN maydonlarni qaytaradi: `peerUsername`, `peerAvatar`, `lastMessage: string`, `lastMessageAt: Date` — `peer` maydoni umuman yo'q. Mobil ilova (`apps/mobile/src/types/index.ts` `IDMConversation`) to'g'ri, haqiqiy kontraktga mos yozilgan — shuning uchun mobilkada DM ishlaydi, web'da esa `conv.peer.username` har doim `undefined.username`ga urinib, sahifani butunlay yiqitadi (har qanday suhbat mavjud bo'lganda).
+- **Qilish kerak:**
+  - [ ] `apps/app-web/src/lib/api/user.api.ts` — `Conversation` interfeysini backend/mobil bilan mos tekislash (`peerUsername`, `peerAvatar`, `lastMessage: string`, `lastMessageAt: string`)
+  - [ ] `apps/app-web/src/components/messages/ConversationList.tsx` — `conv.peer.username/avatar/isOnline` → `conv.peerUsername/peerAvatar` (isOnline maydoni backend'da yo'q — olib tashlanadi)
+  - [ ] `apps/app-web/src/app/(app)/messages/MessagesContent.tsx` — `selectedConvo?.peer.username` → `selectedConvo?.peerUsername`
+  - [ ] `npx tsc --noEmit` (apps/app-web) — clean
+  - [ ] `railway up`/push → deploy va tasdiqlash
+- **Fayllar:** `apps/app-web/src/lib/api/user.api.ts`, `apps/app-web/src/components/messages/ConversationList.tsx`, `apps/app-web/src/app/(app)/messages/MessagesContent.tsx`
+
+---
+
 # 🔒 Sprint 15: Security Audit fixes (2026-07-04 — аудит Claude)
 
 > Полный аудит OWASP Top 10 + WeWatch-специфика. Фундамент крепкий (JWT/bcrypt/socket/internal/IDOR — ок). Ниже — найденные уязвимости. **Не начинать без claim.**
