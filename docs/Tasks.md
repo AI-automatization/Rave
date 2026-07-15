@@ -844,78 +844,17 @@
 
 ---
 
-### T-S118 | P1 | [BACKEND+SHARED] | DM reply — replyTo maydonini qo'shish
+### T-S122 | P1 | [WEB+BACKEND] | DM Web paritet — Android bilan bir xil funksiya+vizual
 
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Jasur (mobile)
-- **Yaratilgan:** 2026-07-07
-- **Holat:** ❌ Boshlanmagan
-- **Tavsiya model:** sonnet
-- **Model sababi:** model + service + shared/types (LOCK)
-- **Sabab:** Xabarga reply (javob) qilish — Telegram kabi. Xabar qaysi xabarga javob ekanini saqlash kerak.
-- **Qilish kerak:**
-  - [ ] `DirectMessage` model'ga `replyTo?: ObjectId` (ref DirectMessage) qo'shish
-  - [ ] `dm.service.sendMessage(senderId, receiverId, text, replyTo?)` — replyTo qabul qilish
-  - [ ] REST `POST /users/dm/:peerId` body'ga `replyTo` qo'shish
-  - [ ] Socket `dm:send` payload'ga `replyTo` qo'shish (dmEvents.handler)
-  - [ ] Javobda `replyTo` snapshotini qaytarish: `{ _id, text, senderId }` (asl xabar o'chsa ham ko'rinsin — snapshot/denormalize tavsiya)
-  - [ ] **shared/types** `IDMMessage`ga `replyTo?` qo'shish (LOCK protocol — Jasur bilan kelishilgan)
-- **Bog'liq:** T-S117
-
----
-
-### T-S119 | P1 | [BACKEND+SHARED] | DM forward — xabarni boshqa chatga yo'naltirish
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Jasur (mobile)
-- **Yaratilgan:** 2026-07-07
-- **Holat:** ❌ Boshlanmagan
-- **Tavsiya model:** sonnet
-- **Model sababi:** model + service + shared/types (LOCK)
-- **Sabab:** Xabarni boshqa suhbatga forward qilish (Telegram kabi). Kim yozganini ko'rsatuvchi metadata kerak.
-- **Qilish kerak:**
-  - [ ] `DirectMessage` model'ga `forwardedFrom?: { userId, username }` qo'shish
-  - [ ] `dm.service` — forward: yangi xabar yaratish + forwardedFrom to'ldirish (asl matn ko'chiriladi)
-  - [ ] Endpoint yoki socket: `forwardMessage(originalMsgId, toPeerId)` — matnni o'qib, yangi peer'ga jo'natish
-  - [ ] T-S120 dagi `allowForwarding` sozlamasini tekshirish — asl muallif forward'ni o'chirgan bo'lsa 403
-  - [ ] **shared/types** `IDMMessage`ga `forwardedFrom?` qo'shish (LOCK)
-- **Bog'liq:** T-S118, T-S120
-
----
-
-### T-S120 | P2 | [BACKEND+SHARED] | Forward on/off — maxfiylik sozlamasi
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Jasur (mobile)
-- **Yaratilgan:** 2026-07-07
-- **Holat:** ❌ Boshlanmagan
-- **Tavsiya model:** haiku
-- **Model sababi:** settings schema'ga 1 bool maydon
-- **Sabab:** Foydalanuvchi o'z xabarlarini forward qilishga ruxsat berish/bermaslikni sozlamalardan boshqara olishi kerak. Frontend Settings toggle (Jasur) tayyor bo'ladi, backend saqlash+enforce kerak.
-- **Qilish kerak:**
-  - [ ] `UserSettings` (services/user) `privacy.allowForwarding: boolean` (default true) qo'shish
-  - [ ] `PATCH /users/me/settings` — allowForwarding qabul qilish
-  - [ ] T-S119 forward oqimida enforce qilish
-  - [ ] **shared/types** `UserSettings.privacy`ga `allowForwarding` qo'shish (LOCK) — frontend `UserSettings` interfeysi bilan mos
-- **Bog'liq:** T-S119
-
----
-
-### T-S121 | P2 | [BACKEND] | DM read receipt — dm:read eventini sender'ga yuborish
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Jasur (mobile)
-- **Yaratilgan:** 2026-07-08
-- **Holat:** ❌ Boshlanmagan
-- **Tavsiya model:** sonnet
-- **Model sababi:** 2 fayl — markRead oqimi + socket emit
-- **Sabab:** Hozir `SERVER_EVENTS.DM_READ` ('dm:read') umuman EMIT qilinmaydi (grep bilan tasdiqlandi). Shu sababli mobil o'qildi belgisini (✓✓) ko'rsata olmaydi — sender xabari o'qilganini bilmaydi. Dizayn (Telegram uslubi) uchun kerak.
-- **Qilish kerak:**
-  - [ ] Qabul qiluvchi `markRead(myId, peerId)` qilganda → watch-party socket orqali `io.to(`user:${peerId}`).emit(DM_READ, { readerId: myId })` yuborish
-  - [ ] REST `PATCH /users/dm/:peerId/read` yoki dmEvents.handler'da hosila qilish (user service → watch-party internal event yoki to'g'ridan socket)
-  - [ ] Payload: `{ readerId, peerId?, at }` — mobil shu peer bilan bo'lgan o'z xabarlarini `read=true` qiladi
-  - [ ] Ixtiyoriy: DM message model'ga `readAt?: Date` qo'shish (aniq vaqt uchun)
-- **Bog'liq:** T-E137, frontend read-receipt UI (Jasur, Task 3 dizayn)
+- **Mas'ul:** claimed[Saidazim]
+- **Beruvchi:** Saidazim (o'zi, foydalanuvchi so'rovi)
+- **Yaratilgan:** 2026-07-15
+- **Holat:** 🔄 Bajarilmoqda
+- **Tavsiya model:** opus
+- **Model sababi:** 20+ fayl, ko'p bosqichli feature-parity refactor (realtime socket, IntersectionObserver, Radix UI portlar)
+- **Sabab:** Foydalanuvchi: "веб чаты должны выглядеть как в андроиде и функции те же должны быть и там". Bekend (`services/user` `/dm/*`) TO'LIQ tayyor (T-S118/119/120/121 grep bilan tasdiqlandi — pastga qarang, F-234 Done.md). Yetishmayotgan qism faqat veb: types, Next.js proxy-route'lar, API-client, hook'lar, komponentlar.
+- **Qilish kerak (to'liq reja):** `/Users/saidazim/.claude/plans/lively-weaving-dongarra.md` — 7 bosqich (Fundament → API+hook → Ro'yxat → Chat yadrosi → Interaktsiya → Read-receipts → Integratsiya).
+- **Bog'liq:** F-230 (T-S129, Conversation kontrakti fix — shu ustiga quriladi)
 
 ---
 

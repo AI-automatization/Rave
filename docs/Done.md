@@ -4,6 +4,14 @@
 
 ---
 
+### F-234 | T-S118,T-S119,T-S120,T-S121 | DM reply/forward/forward-privacy/read-receipt — hujjat/kod drift tozalandi (backend allaqachon tayyor edi)
+
+- **Bajaruvchi:** Saidazim (Claude opus)  **Bajarilgan:** 2026-07-15  **Model:** opus
+- **O'zgarishlar:** Kod o'zgarmadi — bu faqat `docs/Tasks.md` tozalash. Veb DM paritet ishini boshlashdan oldin (`services/user/src/routes/user.routes.ts`, `services/user/src/services/dm.service.ts`, `services/user/src/models/directMessage.model.ts`, `services/user/src/models/user.model.ts`, `services/watch-party/src/socket/dmEvents.handler.ts`) grep bilan tasdiqlandi: T-S118 (`replyToId/replyToText/replyToSender` model+service+REST+socket — bor), T-S119 (`forwardMessage()` + `forwardFrom` snapshot + `POST /dm/:userId/forward` — bor), T-S120 (`user.model.ts:15,88` — `privacy.allowForward: boolean, default true` + `dm.service.ts:209` enforce — bor), T-S121 (`dmEvents.handler.ts:48,61` — `DM_READ_UNTIL` qabul qilib `SERVER_EVENTS.DM_READ` sender xonasiga emit qiladi — bor).
+- **Xulosa:** 4 ta task `docs/Tasks.md`da "❌ Boshlanmagan" deb qolgan edi, lekin kod ular allaqachon boshqa sessiyada (yoki shu sessiyalarning birida) bajarilgan — Task tool'ning ichki tarixida ham mos yozuvlar bor edi (#10/#11/#12 completed), lekin `docs/Tasks.md`/`Done.md` yangilanmagan. Bu aynan `project_doc_vs_code_drift_lesson` xotirasida ogohlantirilgan pattern. Tozalanmasa — veb DM paritet rejasi (T-S122) noto'g'ri "backend yo'q" taxminiga asoslanib qayta ishlanardi. `shared/types` `IDMMessage`ga `replyToId/replyToText/replyToSender/forwardFrom/pinned` maydonlari ham allaqachon mos — LOCK protocol talab qilinmadi (shared o'zgarmadi).
+
+---
+
 ### F-230 | T-S129 | DM chat sahifasi web'da butunlay crash — Conversation kontrakti tekislandi
 
 - **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-15  **Model:** sonnet
