@@ -43,6 +43,12 @@ type WebViewMessage =
 const POSITION_POLL_INTERVAL_MS = 500;
 // Android WebView is slower to bootstrap; give it extra time before showing error.
 const LOAD_TIMEOUT_MS = Platform.OS === 'android' ? 12000 : 8000;
+// URL-mode (Android VK/Rutube "full-site" — the real webpage loads directly, isHtmlMode=false)
+// relies purely on native onLoadEnd/onError/onHttpError with no app-level timeout at all — a
+// heavy SPA that keeps making background XHR/tracker requests can leave onLoadEnd unfired
+// forever, stranding the user on the loading overlay with no way out. Longer than
+// LOAD_TIMEOUT_MS since a full real webpage genuinely takes longer than a lightweight embed.
+const URL_MODE_LOAD_TIMEOUT_MS = Platform.OS === 'android' ? 18000 : 12000;
 const POSITION_POLL_JS = `
   if(window._csVideo && !window._csVideo.paused){
     window.ReactNativeWebView.postMessage(JSON.stringify({
@@ -87,13 +93,33 @@ export function useWebViewPlayer(
   // Load timeout: if WebView sends no message within LOAD_TIMEOUT_MS → show error.
   // Catches Android WebView silent failures where IFrame API loads but never fires onReady.
   useEffect(() => {
-    if (!isHtmlMode) return; // URL-mode has its own onError/onHttpError
+    if (!isHtmlMode) return; // URL-mode uses its own timeout below
     receivedFirstMessageRef.current = false;
     const timer = setTimeout(() => {
       if (!receivedFirstMessageRef.current) setError(true);
     }, LOAD_TIMEOUT_MS);
     return () => clearTimeout(timer);
   }, [isHtmlMode, youtubeVideoId, htmlContent]); // re-arm when video changes
+
+  // URL-mode load timeout (Android VK/Rutube full-site): native onLoadEnd/onError/onHttpError
+  // alone left this stuck on the loading overlay forever when a heavy real webpage never signals
+  // "finished" (see URL_MODE_LOAD_TIMEOUT_MS comment). If our injected adapter already found and
+  // attached to a <video> element (receivedFirstMessageRef set by ANY webview message, including
+  // VIDEO_FOUND), the page is actually usable — just dismiss the overlay. Otherwise show the
+  // existing error/retry UI instead of an unexplained infinite spinner.
+  useEffect(() => {
+    if (isHtmlMode) return;
+    receivedFirstMessageRef.current = false;
+    const timer = setTimeout(() => {
+      setLoading((stillLoading) => {
+        if (!stillLoading) return stillLoading;
+        if (receivedFirstMessageRef.current) return false;
+        setError(true);
+        return stillLoading;
+      });
+    }, URL_MODE_LOAD_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [isHtmlMode, url]); // re-arm when video changes
 
   // T-E100: Periodic position polling — real currentTime from WebView every 2s
   useEffect(() => {
