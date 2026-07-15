@@ -505,7 +505,29 @@
     "placeholder": "Xabar yozing...",
     "noMessages": "Hali xabar yo'q",
     "emptyTitle": "Xabarlar yo'q",
-    "emptySub": "Suhbatni boshlash uchun xabar yuboring"
+    "emptySub": "Suhbatni boshlash uchun xabar yuboring",
+    "today": "Bugun",
+    "yesterday": "Kecha",
+    "pinnedMessage": "Mahkamlangan xabar",
+    "forwardedFrom": "{name} dan yo'naltirilgan",
+    "reply": "Javob berish",
+    "forward": "Yo'naltirish",
+    "pin": "Mahkamlash",
+    "unpin": "Bekor qilish",
+    "copy": "Nusxalash",
+    "cancel": "Bekor qilish",
+    "mute": "Bildirishnomalarni o'chirish",
+    "unmute": "Bildirishnomalarni yoqish",
+    "jumpToDate": "Sanaga o'tish",
+    "pinLimitReached": "Ko'pi bilan 5 ta suhbatni mahkamlash mumkin",
+    "forwardBlocked": "Muallif bu xabarni yo'naltirishni taqiqlagan",
+    "forwardSuccess": "Xabar yo'naltirildi",
+    "replyingTo": "{name} ga javob"
+  },
+  "calendar": {
+    "monthJan": "Yan", "monthFeb": "Fev", "monthMar": "Mar", "monthApr": "Apr",
+    "monthMay": "May", "monthJun": "Iyun", "monthJul": "Iyul", "monthAug": "Avg",
+    "monthSep": "Sen", "monthOct": "Okt", "monthNov": "Noy", "monthDec": "Dek"
   },
   "room": {
     "createTitle": "Watch Party yaratish",

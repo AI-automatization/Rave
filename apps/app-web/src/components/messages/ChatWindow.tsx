@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { MessageBubble } from '@/components/messages/MessageBubble';
 import { useAuthStore } from '@/store/auth.store';
 import { trackClick } from '@/lib/analytics';
+import { memberColor, formatTime } from '@/lib/dm/dm-format';
 
 interface DmMessage {
   _id: string;
@@ -20,23 +21,6 @@ interface Props {
   peerName: string;
   peerId: string;
   onBack?: () => void;
-}
-
-const PALETTE = ['#7B72F8', '#F87171', '#34D399', '#FBBF24', '#60A5FA', '#F472B6', '#A78BFA'];
-
-function memberColor(id: string): string {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = id.charCodeAt(i) + ((h << 5) - h);
-  return PALETTE[Math.abs(h) % PALETTE.length];
-}
-
-function formatTime(dateStr: string): string {
-  try {
-    const d = new Date(dateStr);
-    return `${d.getHours()}:${d.getMinutes().toString().padStart(2, '0')}`;
-  } catch {
-    return '';
-  }
 }
 
 export function ChatWindow({ messages, onSend, peerName, peerId, onBack }: Props) {

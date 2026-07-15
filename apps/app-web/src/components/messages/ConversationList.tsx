@@ -4,30 +4,12 @@ import { useTranslations } from 'next-intl';
 import { MessageCircle } from 'lucide-react';
 import type { Conversation } from '@/lib/api/user.api';
 import { trackClick } from '@/lib/analytics';
+import { memberColor, formatRelative } from '@/lib/dm/dm-format';
 
 interface Props {
   conversations: Conversation[];
   selectedPeerId: string | null;
   onSelect: (peerId: string) => void;
-}
-
-const PALETTE = ['#7B72F8', '#F87171', '#34D399', '#FBBF24', '#60A5FA', '#F472B6', '#A78BFA'];
-
-function memberColor(id: string | undefined | null): string {
-  if (!id) return PALETTE[0];
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = id.charCodeAt(i) + ((h << 5) - h);
-  return PALETTE[Math.abs(h) % PALETTE.length];
-}
-
-function formatRelative(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const min = Math.floor(diff / 60_000);
-  if (min < 1) return '<1m';
-  if (min < 60) return `${min}m`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h`;
-  return `${Math.floor(hr / 24)}d`;
 }
 
 export function ConversationList({ conversations, selectedPeerId, onSelect }: Props) {
