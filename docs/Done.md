@@ -1,6 +1,14 @@
 # WeWatch — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-07-14
+# Yangilangan: 2026-07-15
+
+---
+
+### F-229 | T-S128 | Android VK/Rutube full-site WebView — abadiy loading fix (timeout + retry)
+
+- **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-15  **Model:** sonnet
+- **O'zgarishlar:** `apps/mobile/src/hooks/useWebViewPlayer.ts` — `URL_MODE_LOAD_TIMEOUT_MS` konstantasi (18s Android / 12s iOS) + yangi effekt: `isHtmlMode=false` (Android VK/Rutube full-site) uchun timeout tugaganda — agar adapter allaqachon `<video>` elementini topgan bo'lsa (`receivedFirstMessageRef`) shunchaki overlay yopiladi, aks holda mavjud `error`/`handleRetry` UI ko'rsatiladi.
+- **Xulosa:** Foydalanuvchi: web'da Rutube xona ochib, Android ilova orqali qo'shilganda video "rutube.ru" domeni bilan abadiy loading holatida qolgan (web'da esa normal ishlagan — web server-side extraction, Android esa client-side WebView sniffing ishlatadi, IP-lock sababli). Root cause: `LOAD_TIMEOUT_MS` mexanizmi faqat `isHtmlMode` (YouTube) uchun ishlagan; Android'ning "full-site" rejimi faqat WebView'ning o'z `onLoadEnd`ga tayangan — og'ir SPA sahifa (fon XHR/trekerlar) hech qachon "tugadi" signalini bermasa, overlay abadiy osilib qolardi, retry imkoniyati yo'q edi. Endi timeout bor va foydalanuvchi hech bo'lmaganda retry qila oladi yoki video allaqachon topilgan bo'lsa avtomatik ko'rinadi. tsc: CLEAN (apps/mobile, yangi xatolik yo'q). Commit `70713cc`. Yangi APK build kerak — real qurilmada tasdiqlash keyingi qadam.
 
 ---
 
