@@ -1,6 +1,23 @@
 # CineSync — OCHIQ VAZIFALAR
 
-# Yangilangan: 2026-07-14
+# Yangilangan: 2026-07-15
+
+---
+
+### T-S128 | P1 | [MOBILE] | Android VK/Rutube full-site WebView — abadiy loading, timeout yo'q
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim (foydalanuvchi qurilmada topgan, Rutube xonasiga qo'shilishda)
+- **Yaratilgan:** 2026-07-15
+- **Holat:** 🔄 Bajarilmoqda
+- **Tavsiya model:** sonnet
+- **Model sababi:** 1 fayl, aniq gap (mavjud timeout mexanizmi bor, faqat bitta shart kengaytiriladi)
+- **Sabab:** Foydalanuvchi: web'da xona ochiq, Android ilova orqali qo'shilganda video yuklanmay "rutube.ru" domeni bilan abadiy loading turgan (web'da video normal ketgan). Root cause: `useWebViewPlayer.ts`dagi LOAD_TIMEOUT_MS mexanizmi faqat `isHtmlMode` (YouTube va boshqa custom-HTML embedlar) uchun ishlaydi (`if (!isHtmlMode) return;`) — Android'dagi VK/Rutube "full-site" rejimi (`isHtmlMode=false`, xom rutube.ru sahifasi to'g'ridan-to'g'ri yuklanadi) faqat WebView'ning o'z `onLoadEnd`/`onError`/`onHttpError` callback'lariga tayanadi, ilova darajasida hech qanday timeout yo'q. Og'ir SPA sahifalar (fon XHR/trekerlar tufayli) ba'zan `onLoadEnd` umuman otmaydi — natijada loading overlay abadiy osilib qoladi, foydalanuvchiga hech qanday retry imkoniyati ko'rsatilmaydi.
+- **Qilish kerak:**
+  - [ ] `useWebViewPlayer.ts` — LOAD_TIMEOUT_MS effektini `isHtmlMode=false` holat uchun ham yoqish (alohida, ehtimol uzunroq timeout — real sahifa ko'proq vaqt talab qilishi mumkin)
+  - [ ] Timeout tugaganda mavjud `error`/`handleRetry` UI ishlatiladi (yangi UI kerak emas)
+  - [ ] `npx tsc --noEmit` (apps/mobile) — clean
+- **Fayllar:** `apps/mobile/src/hooks/useWebViewPlayer.ts`
 
 ---
 
