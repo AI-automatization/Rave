@@ -20,6 +20,7 @@ interface ViewportResult {
   scrollActivity: number;
   registerItem: (id: string, el: HTMLElement | null) => void;
   onScroll: () => void;
+  scrollToId: (id: string) => void;
 }
 
 export function useDmViewport(
@@ -148,6 +149,12 @@ export function useDmViewport(
     setScrollActivity((n) => n + 1);
   }, []);
 
+  // Used by DatePickerModal ("jump to date") and PinnedMessagesBar ("jump to pin") — looks up
+  // an already-registered rendered row by DMListItem id and scrolls it into view.
+  const scrollToId = useCallback((id: string) => {
+    elementsRef.current.get(id)?.scrollIntoView({ block: 'start' });
+  }, []);
+
   // Restore scroll position once per peer (or jump to bottom if nothing saved).
   useEffect(() => {
     if (!peerId || messagesCount === 0) return;
@@ -180,5 +187,5 @@ export function useDmViewport(
     };
   }, [peerId]);
 
-  return { visibleLabel, scrollActivity, registerItem, onScroll };
+  return { visibleLabel, scrollActivity, registerItem, onScroll, scrollToId };
 }

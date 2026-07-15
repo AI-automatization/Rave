@@ -6,7 +6,7 @@ import { Loader2, MessageCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useConversations, useMessages, useSendDm, useDmRealtime } from '@/hooks/use-dm';
 import { ConversationList } from '@/components/messages/ConversationList';
-import { ChatWindow } from '@/components/messages/ChatWindow';
+import { ChatWindow, type ReplyTarget } from '@/components/messages/ChatWindow';
 import { useAuthStore } from '@/store/auth.store';
 
 export function MessagesContent() {
@@ -33,9 +33,9 @@ export function MessagesContent() {
   const selectedConvo = conversations?.find((c) => c.peerId === selectedPeer);
   const peerName = selectedConvo?.peerUsername ?? 'Chat';
 
-  function handleSend(text: string) {
+  function handleSend(text: string, replyTo?: ReplyTarget) {
     if (!selectedPeer || !currentUser?._id) return;
-    sendDm.mutate({ peerId: selectedPeer, text, myId: currentUser._id });
+    sendDm.mutate({ peerId: selectedPeer, text, myId: currentUser._id, ...replyTo });
   }
 
   return (
