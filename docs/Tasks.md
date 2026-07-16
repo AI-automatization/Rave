@@ -4,6 +4,22 @@
 
 ---
 
+### T-S130 | P1 | [MOBILE] | Fullscreen overlay ekranni to'liq egallab olgan — video tor chiziq
+
+- **Mas'ul:** claimed[Saidazim]
+- **Beruvchi:** Saidazim (o'zi, foydalanuvchi so'rovi)
+- **Yaratilgan:** 2026-07-16
+- **Holat:** 🔄 Bajarilmoqda
+- **Tavsiya model:** sonnet
+- **Model sababi:** 1 fayl, aniqlangan root cause — stale Dimensions.get()
+- **Sabab:** Fullscreen rejimida `fsChatWrap` balandligi `SCREEN_H * 0.38` — lekin `SCREEN_H` modul yuklanganda BIR MARTA portret orientatsiyada o'qilgan (`WatchPartyScreen.tsx:39`), keyin hech qachon yangilanmaydi. Fullscreen `ScreenOrientation.lockAsync(LANDSCAPE)` chaqiradi (real balandlik ancha kichik), lekin `fsChatWrap` hali ham katta portret-balandlikning 38%ini ishlatadi — bu deyarli butun landscape ekranni egallaydi (`showChat` default `true`, useWatchPartyRoom.ts:150), video faqat tor chiziq bo'lib qoladi.
+- **Qilish kerak:**
+  - [ ] `WatchPartyScreen.tsx` — `useWindowDimensions()` reaktiv hook bilan almashtirish, `fsChatWrap` balandligini render vaqtida hisoblash
+  - [ ] Statik `Dimensions.get('window').height` modul darajasidagi konstantani olib tashlash
+- **Bog'liq:** yo'q
+
+---
+
 
 # 🔒 Sprint 15: Security Audit fixes (2026-07-04 — аудит Claude)
 
