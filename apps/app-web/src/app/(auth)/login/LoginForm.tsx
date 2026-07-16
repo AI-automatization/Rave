@@ -27,6 +27,7 @@ export function LoginForm() {
   const [banInfo, setBanInfo] = useState<BanInfo | null>(null);
   const [isPending, startTransition] = useTransition();
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isTelegramLoading, setIsTelegramLoading] = useState(false);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -162,8 +163,88 @@ export function LoginForm() {
     }
   }
 
-  // Full-screen loading while Google OAuth completes in popup
-  if (isGoogleLoading) {
+  async function handleTelegramLogin() {
+    trackClick('login:telegram');
+    setError('');
+    setIsTelegramLoading(true);
+
+    // Open popup BEFORE any await so Chrome doesn't block it (user-gesture context).
+    const w = 500, h = 600;
+    const left = Math.round((window.screen.width - w) / 2);
+    const top = Math.round((window.screen.height - h) / 2);
+    const popup = window.open(
+      'about:blank',
+      'telegram-auth',
+      `width=${w},height=${h},left=${left},top=${top}`,
+    );
+
+    try {
+      const res = await authApi.telegramInit();
+      const url = res.data?.url;
+      if (!url) {
+        popup?.close();
+        setIsTelegramLoading(false);
+        setError(t('genericError'));
+        return;
+      }
+
+      if (popup) {
+        popup.location.href = url;
+      } else {
+        // Popup was blocked entirely — fall back to same-tab redirect
+        window.location.href = url;
+        return;
+      }
+
+      let done = false;
+      // No postMessage channel from the Telegram callback page (unlike Google's OAuth
+      // callback) — its httpOnly cookies land on the same origin as this tab, so polling
+      // /api/auth/me is enough to detect the moment login completes in the popup.
+      const finishLogin = async () => {
+        if (done) return;
+        try {
+          const me = await authApi.me();
+          if (me.data?.user) {
+            done = true;
+            clearInterval(interval);
+            clearInterval(closedCheck);
+            killPopup(popup);
+            setUser(me.data.user);
+            // Full page reload — ensures freshly-set httpOnly cookies reach middleware
+            window.location.href = searchParams.get('redirect') || '/home';
+          }
+        } catch { /* still pending */ }
+      };
+
+      const cleanup = (withError?: string) => {
+        clearInterval(interval);
+        clearInterval(closedCheck);
+        setIsTelegramLoading(false);
+        if (withError) setError(withError);
+      };
+
+      // Popup closes itself (callback page's window.close) once login succeeds, or the user
+      // may close it manually — give polling 3 extra seconds before treating closure as
+      // cancellation, in case the close happened right as the cookies were being set.
+      const closedCheck = setInterval(() => {
+        if (popup?.closed) {
+          clearInterval(closedCheck);
+          setTimeout(() => { if (!done) cleanup(); }, 3000);
+        }
+      }, 500);
+
+      const interval = setInterval(finishLogin, 800);
+
+      // Cleanup after 2 min
+      setTimeout(() => cleanup(), 120_000);
+    } catch {
+      setIsTelegramLoading(false);
+      setError(t('genericError'));
+    }
+  }
+
+  // Full-screen loading while Google/Telegram OAuth completes in popup
+  if (isGoogleLoading || isTelegramLoading) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-12">
         <div
@@ -284,6 +365,20 @@ export function LoginForm() {
           <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
         </svg>
         Google
+      </button>
+
+      {/* Telegram */}
+      <button
+        type="button"
+        onClick={handleTelegramLogin}
+        disabled={isPending}
+        className="w-full h-10 rounded-md text-sm font-medium text-white bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.07] hover:border-white/[0.14] transition-colors flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="12" fill="#26A5E4"/>
+          <path d="M5.5 11.8 17 7.4c.53-.19 1 .13.83.94l-2 9.42c-.14.63-.51.78-1.03.49l-2.85-2.1-1.37 1.32c-.15.15-.28.28-.57.28l.2-2.9 5.3-4.79c.23-.2-.05-.32-.36-.11l-6.55 4.12-2.83-.88c-.61-.19-.62-.61.13-.9z" fill="#fff"/>
+        </svg>
+        Telegram
       </button>
 
       {/* Register link */}

@@ -46,6 +46,17 @@ export default function TelegramCallbackPage() {
       .catch(() => setStatus('error'));
   }, [params]);
 
+  // Web login popup (LoginForm.tsx handleTelegramLogin) polls /api/auth/me on the opener tab —
+  // no postMessage needed since the httpOnly cookies we just set are same-origin and visible
+  // there already. Just self-close once the opener has had a moment to see them. Only auto-close
+  // when opened via window.open() (window.opener set) — a plain browser tab/app-fallback
+  // navigation (no opener) should keep showing the status message instead.
+  useEffect(() => {
+    if (status !== 'success' || !window.opener) return;
+    const timer = setTimeout(() => window.close(), 800);
+    return () => clearTimeout(timer);
+  }, [status]);
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#0C0B18] text-white px-6">
       <div className="text-center">
