@@ -1,6 +1,26 @@
 # WeWatch — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-07-15
+# Yangilangan: 2026-07-16
+
+---
+
+### F-236 | T-S123 | YouTube Innertube-спуфинг убран (Play Store risk)
+
+- **Bajaruvchi:** Saidazim (Claude opus)  **Bajarilgan:** 2026-07-16  **Model:** sonnet
+- **O'zgarishlar:** `src/utils/youtubeInnertube.ts` o'chirildi (rasmiy Android YouTube
+  klientini spoofing — ANDROID_YT_VERSION/ANDROID_SDK). `useWebViewPlayer.ts` —
+  `extractYouTubeStream` import + `onYtInnertubeUrl` prop olib tashlandi, `YT_EMBED_ERROR`
+  (101/150/152) endi to'g'ridan `setYtEmbedBlocked(true)`. `WebViewPlayer.tsx` — "YouTube'da
+  ochish" tugmasi (`Linking.openURL`) olib tashlandi, fallback ekran yangi matn ko'rsatadi.
+  `UniversalPlayer.tsx` — `innertubeUrl` state + `effectiveExtractedUrl` dagi ustuvorlik olib
+  tashlandi (`sniffedUrl ?? extractedUrl`). `translations.ts` — `embeddedPlayerUnavailable/
+  embeddingForbidden/openInYouTube` (o'lik) → `cannotExtractVideo/tryAnotherVideo` (3 til).
+- **Xulosa:** Play Store compliance audit'da topilgan risk — Innertube-spoofing Google'ning
+  o'z platformasida (YouTube) ToS chetlab o'tish, har qanday pirat saytdan ham osonroq
+  aniqlanadi. Saidazim so'roviga ko'ra fallback ekran endi tashqi ilovaga yo'naltirmaydi —
+  shunchaki "Bu videoni chiqarib bo'lmadi / Boshqa videoni sinab ko'ring" ko'rsatadi. Oddiy
+  YouTube videolar (embedding ruxsat etilgan — aksariyat) butunlay ta'sirlanmagan, faqat
+  muallif embedding'ni aniq taqiqlagan tor edge-case o'zgardi. tsc --noEmit: CLEAN.
 
 ---
 
