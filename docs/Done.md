@@ -4,6 +4,24 @@
 
 ---
 
+### F-238 | T-S130 | Fullscreen overlay video'ni tor chiziqqa siqib qo'ygan bug tuzatildi
+
+- **Bajaruvchi:** Saidazim (Claude opus)  **Bajarilgan:** 2026-07-16  **Model:** sonnet
+- **O'zgarishlar:** `WatchPartyScreen.tsx` — `fsChatWrap.height` endi `useWindowDimensions()`
+  orqali render vaqtida hisoblanadi (`Math.round(winHeight * 0.38)`), modul darajasidagi
+  `Dimensions.get('window').height` konstantasi olib tashlandi. Fullscreen orientatsiya-lock
+  effekti endi `setShowChat(false)` ham chaqiradi — fullscreen'ga kirganda chat panel
+  avtomatik yopiladi, video darhol markazda.
+- **Xulosa:** Foydalanuvchi: fullscreen rejimida overlay butun ekranni egallagan, video
+  faqat tor ko'rinadigan chiziq bo'lib qolgan. Root cause: `SCREEN_H` moduli yuklanganda
+  BIR MARTA portret orientatsiyada o'qilgan, keyin hech qachon yangilanmagan.
+  `ScreenOrientation.lockAsync(LANDSCAPE)` fullscreen'da chaqirilgach real balandlik ancha
+  kichik bo'ladi, lekin `fsChatWrap` hamon katta portret-balandlikning 38%ini ishlatardi —
+  `showChat` default `true` bo'lgani uchun bu deyarli butun landscape ekranni egallagan.
+  tsc --noEmit: CLEAN. Real qurilmada tasdiqlash keyingi qadam (yangi build kerak).
+
+---
+
 ### F-237 | T-S124 | Telegram login tugmasi web'da (`/login`)
 
 - **Bajaruvchi:** Saidazim (Claude opus)  **Bajarilgan:** 2026-07-16  **Model:** sonnet
