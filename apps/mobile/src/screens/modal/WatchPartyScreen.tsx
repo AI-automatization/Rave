@@ -1,6 +1,6 @@
 // WeWatch Mobile — WatchPartyScreen
 import React, { useState, useEffect } from 'react';
-import { View, Text, Platform, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, Platform, StyleSheet, useWindowDimensions } from 'react-native';
 import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { ReportRoomModal } from '@components/common/ReportRoomModal';
@@ -36,8 +36,6 @@ import { appAlert } from '@components/common/AppAlert';
 
 type NavProp = NativeStackNavigationProp<ModalStackParamList, 'WatchParty'>;
 
-const SCREEN_H = Dimensions.get('window').height;
-
 type RouteType = RouteProp<ModalStackParamList, 'WatchParty'>;
 
 export function WatchPartyScreen() {
@@ -45,6 +43,7 @@ export function WatchPartyScreen() {
   const { colors } = useTheme();
   const { t } = useT();
   const navigation = useNavigation<NavProp>();
+  const { height: winHeight } = useWindowDimensions();
 
   const [showPlaylist, setShowPlaylist] = useState(false);
   const [showReport, setShowReport] = useState(false);
@@ -126,13 +125,17 @@ export function WatchPartyScreen() {
   // Auto-joins muted once the room is loaded; persists while user views chat.
   const voice = useVoiceChat(!!room);
 
-  // Lock orientation: landscape in fullscreen, portrait otherwise
+  // Lock orientation: landscape in fullscreen, portrait otherwise.
+  // Entering fullscreen also closes the chat overlay so the video is the focus by default —
+  // the user can tap the chat icon in the fullscreen action bar to bring it back.
   useEffect(() => {
     if (isFullscreen) {
       ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+      setShowChat(false);
     } else {
       ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isFullscreen]);
 
   // Restore portrait when leaving the screen
@@ -245,7 +248,7 @@ export function WatchPartyScreen() {
 
           {/* Chat panel */}
           {showChat && (
-            <View style={s.fsChatWrap}>
+            <View style={[s.fsChatWrap, { height: Math.round(winHeight * 0.38) }]}>
               <ChatPanel messages={messages} currentUserId={userId} onSend={sendMessage} />
             </View>
           )}
@@ -710,7 +713,11 @@ const s = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   fsChatWrap: {
-    height: Math.round(SCREEN_H * 0.38),
+    // height set inline from useWindowDimensions() (see JSX usage) — the fixed landscape
+    // window height isn't known until render, and a module-level Dimensions.get('window')
+    // constant would freeze at the portrait value captured on app launch and never update
+    // when fullscreen locks to landscape (was the T-S130 bug: a portrait-sized chat panel
+    // swallowing almost the entire landscape screen, leaving only a sliver of video).
     backgroundColor: '#0D0D1A',
     borderTopWidth: 1,
     borderTopColor: 'rgba(255,255,255,0.07)',
