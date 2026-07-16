@@ -1,6 +1,25 @@
 # CineSync — OCHIQ VAZIFALAR
 
-# Yangilangan: 2026-07-15
+# Yangilangan: 2026-07-16
+
+---
+
+### T-S123 | P1 | [MOBILE] | YouTube Innertube-спуфинг убрать (Play Store risk)
+
+- **Mas'ul:** claimed[Saidazim]
+- **Beruvchi:** Saidazim (o'zi, foydalanuvchi so'rovi)
+- **Yaratilgan:** 2026-07-16
+- **Holat:** 🔄 Bajarilmoqda
+- **Tavsiya model:** sonnet
+- **Model sababi:** 4 fayl, mexanik olib tashlash + fallback UI matn o'zgarishi
+- **Sabab:** Play Store review risk-audit'da topildi — `youtubeInnertube.ts` YouTube'ning rasmiy Android-ilovasini spoofing qiladi (ANDROID_YT_VERSION/ANDROID_SDK) embedding taqiqlangan videolar uchun. Bu Google'ning o'z platformasida ToS chetlab o'tish — piraт saytlardan ham xavfliroq (Google buni eng oson detektlaydi). Foydalanuvchi so'rovi: fallback ekran "YouTube'da ochish" o'rniga "bu videoni chiqarib bo'lmadi, boshqasini sinab ko'ring" ko'rsatsin (tashqi ilovaga yo'naltirmasdan).
+- **Qilish kerak:**
+  - [ ] `src/utils/youtubeInnertube.ts` — faylni butunlay o'chirish
+  - [ ] `src/hooks/useWebViewPlayer.ts` — `extractYouTubeStream` import + `onYtInnertubeUrl` prop + YT_EMBED_ERROR ichidagi chaqiruvni olib tashlash, to'g'ridan `setYtEmbedBlocked(true)`
+  - [ ] `src/components/video/WebViewPlayer.tsx` — `onYtInnertubeUrl` prop olib tashlash, fallback ekran matnini o'zgartirish (tugma yo'q, yangi xabar)
+  - [ ] `src/components/video/UniversalPlayer.tsx` — `innertubeUrl`/`setInnertubeUrl` state + `effectiveExtractedUrl` dagi ustuvorlik + prop uzatishni olib tashlash
+  - [ ] `src/i18n/translations.ts` — yangi kalit (masalan `cannotExtractTryAnother`) 3 tilda, `openInYouTube` endi ishlatilmasa — grep bilan boshqa joyda ishlatilmayotganini tekshirib o'chirish
+- **Bog'liq:** Play Store compliance report (Telegram, 2026-07-15)
 
 ---
 
