@@ -9,7 +9,6 @@ import { getAdapter, buildInjectJs } from '@components/video/WebViewAdapters';
 import { isAdRequest, getHostname } from '@components/video/webviewAdBlocker';
 import { buildYouTubeHtml } from '@components/video/webviewYouTube';
 import type { WebViewPlayerRef } from '@components/video/WebViewPlayer';
-import { extractYouTubeStream } from '@utils/youtubeInnertube';
 
 interface Props {
   url: string;
@@ -23,8 +22,6 @@ interface Props {
   onSeek: (secs: number) => void;
   onProgress?: (secs: number, dur: number) => void;
   onBuffering?: (isBuffering: boolean) => void;
-  /** Called when YT embed is blocked and Innertube extraction succeeds — switches to native player */
-  onYtInnertubeUrl?: (url: string) => void;
 }
 
 type WebViewMessage =
@@ -61,7 +58,7 @@ const POSITION_POLL_JS = `
 
 export function useWebViewPlayer(
   imperativeRef: React.Ref<WebViewPlayerRef>,
-  { url, youtubeVideoId, htmlContent, htmlBaseUrl, isOwner, referer, onPlay, onPause, onSeek, onProgress, onBuffering, onYtInnertubeUrl }: Props,
+  { url, youtubeVideoId, htmlContent, htmlBaseUrl, isOwner, referer, onPlay, onPause, onSeek, onProgress, onBuffering }: Props,
 ) {
   const webviewRef = useRef<WebView>(null);
   const currentTimeMsRef = useRef(0);
@@ -182,19 +179,13 @@ export function useWebViewPlayer(
           }
           break;
         case 'YT_EMBED_ERROR':
+          // The video owner has disabled embedding for this video (codes 101/150/152) — show
+          // the "can't extract, try another" fallback. We deliberately do NOT attempt any
+          // workaround (e.g. spoofing the official YouTube app's API) here: that's a Play
+          // Store ToS-circumvention risk on Google's own platform (see T-S123).
           if (data.code === 150 || data.code === 152 || data.code === 101) {
             setLoading(false);
-            if (youtubeVideoId && onYtInnertubeUrl) {
-              extractYouTubeStream(youtubeVideoId).then((result) => {
-                if (result?.videoUrl) {
-                  onYtInnertubeUrl(result.videoUrl);
-                } else {
-                  setYtEmbedBlocked(true);
-                }
-              }).catch(() => { setYtEmbedBlocked(true); });
-            } else {
-              setYtEmbedBlocked(true);
-            }
+            setYtEmbedBlocked(true);
           }
           break;
       }

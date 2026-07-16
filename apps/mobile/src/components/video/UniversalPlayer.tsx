@@ -101,14 +101,12 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
     const isVkRutubeAndroid = Platform.OS === 'android' &&
       (embedPlatform === 'vk' || embedPlatform === 'rutube');
     const [sniffedUrl, setSniffedUrl] = useState<string | null>(null);
-    const [innertubeUrl, setInnertubeUrl] = useState<string | null>(null);
 
-    // Reset sniffed/innertube URLs when the video URL changes (new media in the room).
+    // Reset sniffed URL when the video URL changes (new media in the room).
     const prevUrlForSniffRef = useRef(url);
     if (prevUrlForSniffRef.current !== url) {
       prevUrlForSniffRef.current = url;
       setSniffedUrl(null);
-      setInnertubeUrl(null);
     }
 
     // forceAndroidWebView: use embed WebView only when we have no CDN URL at all.
@@ -175,8 +173,8 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
       onReadyRef.current?.();
     };
 
-    // Priority: Innertube direct MP4 > sniffed CDN URL > server-extracted URL.
-    const effectiveExtractedUrl = innertubeUrl ?? sniffedUrl ?? extractedUrl;
+    // Priority: sniffed CDN URL > server-extracted URL.
+    const effectiveExtractedUrl = sniffedUrl ?? extractedUrl;
     const hasExtracted = !!effectiveExtractedUrl;
     const youtubeId = platform === 'youtube' ? extractYouTubeVideoId(url) : null;
     const proxyFailed = hasExtracted && videoError && platform === 'youtube' && !!youtubeId;
@@ -352,8 +350,7 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
           <WebViewPlayer ref={webviewRef} url={displayUrl} youtubeVideoId={ytId ?? undefined}
             htmlContent={embedHtml?.html} htmlBaseUrl={embedHtml?.baseUrl}
             isOwner={isOwner} onPlay={wrappedOnPlay} onPause={onPause} onSeek={onSeek} onProgress={onProgress} onBuffering={onBuffering}
-            userAgent={MOBILE_UA} referer={platform !== 'youtube' && !embedHtml ? referer : undefined}
-            onYtInnertubeUrl={setInnertubeUrl} />
+            userAgent={MOBILE_UA} referer={platform !== 'youtube' && !embedHtml ? referer : undefined} />
           {sniffUrl !== null && (
             <WebView
               source={{ uri: sniffUrl }}
