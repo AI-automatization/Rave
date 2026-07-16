@@ -4,6 +4,27 @@
 
 ---
 
+### F-237 | T-S124 | Telegram login tugmasi web'da (`/login`)
+
+- **Bajaruvchi:** Saidazim (Claude opus)  **Bajarilgan:** 2026-07-16  **Model:** sonnet
+- **O'zgarishlar:** `apps/app-web/src/app/api/auth/telegram/init/route.ts` (yangi) — bekend
+  `POST /telegram/init`ni chaqiradi, `tg://resolve?domain=X` (mobil deep-link, brauzer
+  tushunmaydi) dan domain chiqarib `https://t.me/X?start=login` (universal link) qaytaradi.
+  `src/lib/api/auth.api.ts` — `telegramInit()`. `LoginForm.tsx` — "Telegram" tugmasi + Google
+  bilan bir xil pattern: popup await'dan OLDIN ochiladi (Chrome bloklamasin uchun), keyin
+  `t.me` linkiga navigatsiya, so'ng `authApi.me()` har 800ms poll (postMessage kerak emas —
+  callback sahifa bilan bir xil origin, cookie'lar darhol ko'rinadi). `auth/telegram/callback/
+  page.tsx` — muvaffaqiyatdan keyin `window.close()` (faqat `window.opener` mavjud bo'lsa —
+  mobil/no-popup holatida sahifa oddiy status ko'rsatishda davom etadi).
+- **Xulosa:** Bekend (`services/auth/telegramAuth.service.ts` — hash verifikatsiya,
+  `login_url` webhook, callback-sahifa) allaqachon TO'LIQ tayyor edi — yetishmagan qism
+  faqat login sahifasidagi tugma edi. Foydalanuvchi ko'p marta savol berdi (qanday ko'rinadi,
+  nega telefon-kod input emas, Google kabi bo'lsinmi) — MTProto orqali telefon+kod so'rash
+  (Telegram akkauntga to'liq kirish huquqi berardi, fishing-pattern bilan bir xil) rad etildi,
+  rasmiy Login Widget (login_url tugma) tanlandi. tsc/eslint/production build: CLEAN.
+
+---
+
 ### F-236 | T-S123 | YouTube Innertube-спуфинг убран (Play Store risk)
 
 - **Bajaruvchi:** Saidazim (Claude opus)  **Bajarilgan:** 2026-07-16  **Model:** sonnet

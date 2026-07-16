@@ -4,23 +4,6 @@
 
 ---
 
-### T-S124 | P2 | [WEB] | Telegram login web'da — login_url popup + poll
-
-- **Mas'ul:** claimed[Saidazim]
-- **Beruvchi:** Saidazim (o'zi, foydalanuvchi so'rovi)
-- **Yaratilgan:** 2026-07-16
-- **Holat:** 🔄 Bajarilmoqda
-- **Tavsiya model:** sonnet
-- **Model sababi:** 4 fayl, mavjud Google-login patternini takrorlash
-- **Sabab:** Bekend (`services/auth` `POST /telegram/init` + webhook `login_url` + callback sahifasi) allaqachon tayyor edi — faqat login sahifasida tugma yo'q edi. Google-login bilan bir xil popup+poll pattern (postMessage kerak emas — callback sahifasi va login sahifasi bir xil origin, cookie'lar umumiy).
-- **Qilish kerak:**
-  - [x] `apps/app-web/src/app/api/auth/telegram/init/route.ts` — bekend `POST /telegram/init`ni chaqiradi, `tg://resolve?domain=X` dan domain chiqarib `https://t.me/X?start=login` qaytaradi
-  - [x] `src/lib/api/auth.api.ts` — `telegramInit()` metodi
-  - [x] `LoginForm.tsx` — "Telegram" tugmasi, `handleTelegramLogin` (Google pattern: popup ochish → init → `/api/auth/me` poll → setUser+redirect)
-  - [x] `auth/telegram/callback/page.tsx` — muvaffaqiyatdan keyin `window.close()` (faqat `window.opener` bo'lsa)
-- **Bog'liq:** yo'q
-
----
 
 # 🔒 Sprint 15: Security Audit fixes (2026-07-04 — аудит Claude)
 
