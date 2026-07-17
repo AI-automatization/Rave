@@ -2,21 +2,6 @@
 
 # Yangilangan: 2026-07-17
 
----
-
-### T-S131 | P2 | [WEB] | app-web: instant video swap (CHANGE_MEDIA) — playlist bilan bir qatorda
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Saidazim (foydalanuvchi so'rovi)
-- **Yaratilgan:** 2026-07-17 23:10
-- **Holat:** 🔄 Bajarilmoqda
-- **Tavsiya model:** sonnet
-- **Model sababi:** 3 fayl (hook + component + i18n×3), mavjud pattern'ga mos
-- **Sabab:** YouTube watch-party sync web'da (`apps/app-web`) allaqachon ishlaydi — sync protokol platformadan mustaqil, Android+Web bir xonada bo'lishi mumkin. Yagona farq: mobile'da video'ni darhol almashtirish (`CHANGE_MEDIA` socket event) bor, web'da faqat playlist-navbatga qo'shish bor edi. Qo'shildi: `sendMediaChange` hook'ga, "Play now" tugma PlaylistPanel'ga.
-- **Fayllar:** `apps/app-web/src/hooks/use-watch-party.ts`, `apps/app-web/src/app/(app)/room/[id]/RoomContent.tsx`, `apps/app-web/messages/{ru,en,uz}.json`
-
----
-
 
 # 🔒 Sprint 15: Security Audit fixes (2026-07-04 — аудит Claude)
 

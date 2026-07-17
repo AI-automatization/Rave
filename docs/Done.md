@@ -1,6 +1,24 @@
 # WeWatch — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-07-16
+# Yangilangan: 2026-07-17
+
+---
+
+### F-239 | T-S131 | app-web: instant video swap (CHANGE_MEDIA) — YouTube/Android bilan parity
+
+- **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-17  **Model:** sonnet
+- **O'zgarishlar:** `use-watch-party.ts` — `sendMediaChange()` qo'shildi (CLIENT_EVENTS.CHANGE_MEDIA
+  emit, mobile'ning `emitMediaChange`'iga oyna). `RoomContent.tsx` — PlaylistPanel'ga "Play now"
+  tugma (yashil, ▶) qo'shildi, mavjud "+" (navbatga qo'shish) tugmasi bilan bir qatorda. 3 ta
+  messages/{ru,en,uz}.json — `party.playNow` kaliti.
+- **Tekshiruv:** Research (Explore agent) YouTube watch-party sync web'da (`apps/app-web`,
+  `YouTubePlayer.tsx`) allaqachon ishlashini tasdiqladi — official IFrame API, owner heartbeat+drift
+  correction, xuddi mobile'dagi kabi. `shared/src/constants/socketEvents.ts` protokoli
+  platformadan mustaqil (`{ currentTime }` raqamlar) — Android+Web bitta xonada allaqachon
+  aralashishi mumkin edi. Yagona haqiqiy farq — video'ni darhol almashtirish UI'si web'da yo'q edi
+  (faqat playlist-navbat bor edi), shu tuzatildi. `apps/web` (landing) — o'lik/eskirgan kod, tegilmadi.
+- **Xulosa:** tsc --noEmit va eslint ikkala o'zgargan faylda toza (mavjud `any` xatolari
+  use-watch-party.ts:70'da mendan oldin edi, dev-workflow bo'yicha fon).
 
 ---
 
