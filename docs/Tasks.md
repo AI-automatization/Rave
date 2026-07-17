@@ -2,6 +2,22 @@
 
 # Yangilangan: 2026-07-18
 
+---
+
+### T-S133 | P1 | [WEB] | YouTubePlayer web'da onError yo'q — video ochilmasa spinner abadiy aylanadi
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Bekzod aka (live report, screenshot, 2026-07-18 01:00)
+- **Yaratilgan:** 2026-07-18 01:05
+- **Holat:** 🔄 Bajarilmoqda
+- **Tavsiya model:** sonnet
+- **Model sababi:** root-cause topildi, 1 fayl
+- **Sabab:** `YouTubePlayer.tsx` YT.Player'ga faqat `onReady`/`onStateChange` bergan, `onError` yo'q edi.
+  Video embed qila olmasa (private/o'chirilgan/owner embedni taqiqlagan) — YouTube `onError` chaqiradi,
+  `onReady` UMUMAN chaqirilmaydi → `!ready` spinner abadiy qoladi, foydalanuvchiga hech qanday signal
+  yo'q. Mobile bu holatni allaqachon ushlagan (`YT_EMBED_ERROR` 101/150/152), web'da yo'q edi.
+- **Fayllar:** `apps/app-web/src/components/party/YouTubePlayer.tsx`
+
 
 # 🔒 Sprint 15: Security Audit fixes (2026-07-04 — аудит Claude)
 
