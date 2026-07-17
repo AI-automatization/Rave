@@ -462,7 +462,8 @@
     "addToQueue": "Navbatga qo'shildi",
     "addError": "Qo'shib bo'lmadi",
     "removeError": "O'chirib bo'lmadi",
-    "skipError": "O'tib bo'lmadi"
+    "skipError": "O'tib bo'lmadi",
+    "playNow": "Hozir yoqish"
   },
   "movie": {
     "watch": "Ko'rish",

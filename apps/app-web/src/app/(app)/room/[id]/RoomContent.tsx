@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import { MessageCircle, Users as UsersIcon, ListVideo, X, ChevronRight, Loader2 } from 'lucide-react';
+import { MessageCircle, Users as UsersIcon, ListVideo, X, ChevronRight, Loader2, Play } from 'lucide-react';
 import { useWatchParty } from '@/hooks/use-watch-party';
 import { VideoPlayer } from '@/components/party/VideoPlayer';
 import { ChatPanel } from '@/components/party/ChatPanel';
@@ -25,13 +25,28 @@ interface Props {
   roomId: string;
 }
 
-function PlaylistPanel({ roomId, isOwner }: { roomId: string; isOwner: boolean }) {
+// Same detection mobile/CreateRoomDialog use — only needs to be good enough for the
+// videoPlatform field; the player itself dispatches on the URL, not this field (see VideoPlayer.tsx).
+const YOUTUBE_RE = /youtube\.com|youtu\.be/;
+
+function PlaylistPanel({
+  roomId, isOwner, onPlayNow,
+}: { roomId: string; isOwner: boolean; onPlayNow: (videoUrl: string, videoPlatform: string) => void }) {
   const t = useTranslations('party');
   const room = useWatchPartyStore((s) => s.room);
   const playlist = (room as unknown as { playlist?: PlaylistItem[] }).playlist ?? [];
   const [urlInput, setUrlInput] = useState('');
   const [adding, setAdding] = useState(false);
   const [nextLoading, setNextLoading] = useState(false);
+
+  function handlePlayNow() {
+    const url = urlInput.trim();
+    if (!url) return;
+    trackClick('room:playlist_play_now');
+    const normalizedUrl = /^https?:\/\//i.test(url) ? url : `https://${url}`;
+    onPlayNow(normalizedUrl, YOUTUBE_RE.test(normalizedUrl) ? 'youtube' : 'other');
+    setUrlInput('');
+  }
 
   async function handleAdd() {
     if (!urlInput.trim()) return;
@@ -134,8 +149,17 @@ function PlaylistPanel({ roomId, isOwner }: { roomId: string; isOwner: boolean }
               className="flex-1 h-8 px-2 rounded-lg text-xs bg-white/[0.06] border border-white/[0.08] text-white placeholder-slate-500 outline-none focus:border-violet-500/50"
             />
             <button
+              onClick={handlePlayNow}
+              disabled={!urlInput.trim()}
+              title={t('playNow')}
+              className="h-8 w-8 shrink-0 rounded-lg text-white bg-emerald-600 hover:bg-emerald-500 transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center"
+            >
+              <Play size={12} fill="currentColor" />
+            </button>
+            <button
               onClick={handleAdd}
               disabled={adding || !urlInput.trim()}
+              title={t('addToQueue')}
               className="h-8 px-3 rounded-lg text-xs font-medium text-white bg-violet-600 hover:bg-violet-500 transition-colors cursor-pointer disabled:opacity-50"
             >
               {adding ? <Loader2 size={12} className="animate-spin" /> : '+'}
@@ -149,7 +173,7 @@ function PlaylistPanel({ roomId, isOwner }: { roomId: string; isOwner: boolean }
 
 export function RoomContent({ roomId }: Props) {
   const t = useTranslations('party');
-  const { sendMessage, sendPlay, sendPause, sendSeek, sendEmoji, sendHeartbeat, sendBufferStart, sendBufferEnd } = useWatchParty(roomId);
+  const { sendMessage, sendPlay, sendPause, sendSeek, sendEmoji, sendHeartbeat, sendBufferStart, sendBufferEnd, sendMediaChange } = useWatchParty(roomId);
   const [rightTab, setRightTab] = useState<'chat' | 'members' | 'playlist'>('chat');
   const setRoom = useWatchPartyStore((s) => s.setRoom);
   const reset = useWatchPartyStore((s) => s.reset);
@@ -237,7 +261,11 @@ export function RoomContent({ roomId }: Props) {
           {rightTab === 'chat' && <ChatPanel onSend={sendMessage} />}
           {rightTab === 'members' && <MemberList />}
           {rightTab === 'playlist' && (
-            <PlaylistPanel roomId={roomId} isOwner={isOwner} />
+            <PlaylistPanel
+              roomId={roomId}
+              isOwner={isOwner}
+              onPlayNow={(videoUrl, videoPlatform) => sendMediaChange(videoUrl, undefined, videoPlatform)}
+            />
           )}
         </div>
       </div>

@@ -501,7 +501,8 @@
     "addToQueue": "Added to queue",
     "addError": "Failed to add",
     "removeError": "Failed to remove",
-    "skipError": "Failed to skip"
+    "skipError": "Failed to skip",
+    "playNow": "Play now"
   },
   "movie": {
     "watch": "Watch",
