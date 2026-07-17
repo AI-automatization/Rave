@@ -13,7 +13,7 @@
 // the mobile code documents for the YouTube IFrame case).
 
 import { useEffect, useRef, useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { AlertCircle, Loader2 } from 'lucide-react';
 import { useWatchPartyStore } from '@/store/watch-party.store';
 
 interface Props {
@@ -42,10 +42,21 @@ interface YTNamespace {
     events?: {
       onReady?: () => void;
       onStateChange?: (e: YTPlayerEvent) => void;
+      onError?: (e: YTPlayerEvent) => void;
     };
   }) => YTPlayer;
   PlayerState: { PLAYING: number; PAUSED: number; BUFFERING: number; ENDED: number };
 }
+
+// YouTube IFrame API onError codes: 2 = invalid videoId, 5 = HTML5 player error,
+// 100 = video not found/removed/private, 101 & 150 = embedding disabled by the video owner.
+const YT_ERROR_MESSAGES: Record<number, string> = {
+  2: 'Некорректная ссылка на видео',
+  5: 'Ошибка плеера',
+  100: 'Видео не найдено или удалено',
+  101: 'Владелец видео запретил встраивание',
+  150: 'Владелец видео запретил встраивание',
+};
 declare global {
   interface Window {
     YT?: YTNamespace;
@@ -89,6 +100,7 @@ export function YouTubePlayer({ videoId, isOwner, onPlay, onPause, onSeek, onHea
   const hostRef = useRef<HTMLDivElement | null>(null);
   const playerRef = useRef<YTPlayer | null>(null);
   const [ready, setReady] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // true while WE are applying a remote change, so the resulting state-change events aren't
   // re-broadcast (echo loop). Mirrors isRemoteAction in the native path.
@@ -106,6 +118,7 @@ export function YouTubePlayer({ videoId, isOwner, onPlay, onPause, onSeek, onHea
   useEffect(() => {
     let cancelled = false;
     setReady(false);
+    setError(null);
 
     loadYouTubeApi().then((YT) => {
       if (cancelled || !hostRef.current) return;
@@ -124,10 +137,17 @@ export function YouTubePlayer({ videoId, isOwner, onPlay, onPause, onSeek, onHea
             if (e.data === YT.PlayerState.PLAYING) onPlayRef.current(p.getCurrentTime());
             else if (e.data === YT.PlayerState.PAUSED) onPauseRef.current(p.getCurrentTime());
           },
+          // Without this, a video that fails to embed (private/removed/embedding-disabled) never
+          // fires onReady either — the loading spinner spun forever with zero feedback (reported
+          // live: "видео с youtube не приходит просто крутится").
+          onError: (e: YTPlayerEvent) => {
+            if (cancelled) return;
+            setError(YT_ERROR_MESSAGES[e.data] ?? 'Не удалось загрузить видео');
+          },
         },
       });
       playerRef.current = player;
-    }).catch(() => { /* API failed to load — followers just see a static player */ });
+    }).catch(() => { if (!cancelled) setError('Не удалось загрузить YouTube плеер'); });
 
     return () => {
       cancelled = true;
@@ -188,6 +208,16 @@ export function YouTubePlayer({ videoId, isOwner, onPlay, onPause, onSeek, onHea
       setTimeout(() => { isRemoteAction.current = false; }, 400);
     }
   }, [ready, isOwner, heartbeat, syncState.isPlaying]);
+
+  if (error) {
+    return (
+      <div className="aspect-video bg-[#0A0A12] rounded-xl flex flex-col items-center justify-center gap-3 px-6 text-center">
+        <AlertCircle size={28} className="text-red-400" />
+        <p className="text-slate-300 text-sm font-medium">Не удалось загрузить видео</p>
+        <p className="text-slate-500 text-xs">{error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="relative aspect-video bg-black rounded-xl overflow-hidden">
