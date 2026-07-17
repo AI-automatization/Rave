@@ -2,25 +2,6 @@
 
 # Yangilangan: 2026-07-18
 
----
-
-### T-S132 | P0 | [BACKEND] | Google sign-in web'da ishlamayapti — pollRateLimiter 30/min < client 800ms poll
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Bekzod aka (TEZCODE Wewatch topic, live incident 2026-07-18 00:30)
-- **Yaratilgan:** 2026-07-18 00:55
-- **Holat:** 🔄 Bajarilmoqda
-- **Tavsiya model:** sonnet
-- **Model sababi:** root-cause topildi (shared/ rate limiter + client poll interval), 2 fayl
-- **Sabab:** `LoginForm.tsx` Google popup flow'ida `/api/auth/google/poll`ni 800ms intervalda so'raydi,
-  lekin `shared/src/middleware/rateLimiter.middleware.ts`dagi `pollRateLimiter` 30 req/min (= ~1 req/2s)
-  bilan cheklaydi. Haqiqiy Google OAuth (account picker + consent) ko'pincha 24s dan uzoq davom etadi —
-  shu vaqtda client 429 ura boshlaydi, xato `finishLogin`da jim yutiladi ("hali kutilmoqda" bilan bir xil),
-  parent tab hech qachon login'ni "tugadi" deb bilmaydi. Telegram login shu xatoni tasodifan aylanib
-  o'tgan — u `/api/auth/me`ni poll qiladi, `pollRateLimiter` ostida emas.
-- **Fayllar:** `shared/src/middleware/rateLimiter.middleware.ts` (max 30→90), `apps/app-web/src/app/(auth)/login/LoginForm.tsx` (poll interval 800ms→2000ms)
-- **Shared file:** `shared/src/middleware/*` — TEZCODE Wewatch topic'ga xabar berildi (live incident, Bekzod aka o'zi so'ragan)
-
 
 # 🔒 Sprint 15: Security Audit fixes (2026-07-04 — аудит Claude)
 

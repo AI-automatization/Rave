@@ -1,6 +1,26 @@
 # WeWatch — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-07-17
+# Yangilangan: 2026-07-18
+
+---
+
+### F-240 | T-S132 | Google sign-in web'da zависал — pollRateLimiter 30/min < client poll cadence
+
+- **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-18  **Model:** sonnet
+- **O'zgarishlar:** `shared/src/middleware/rateLimiter.middleware.ts` — `pollRateLimiter.max` 30→90.
+  `apps/app-web/src/app/(auth)/login/LoginForm.tsx` — Google poll interval 800ms→2000ms, 429 endi
+  "hali kutilmoqda" bilan bir xil emas — alohida ushlanadi va pollingni to'xtatadi.
+- **Root cause:** Google popup flow 800ms intervalda `/google/poll`ni so'raydi (~75 req/min), lekin
+  limiter 30 req/min bilan cheklagan. Haqiqiy Google OAuth (account picker+consent) 24s dan uzoq
+  davom etganda client 429 ura boshlagan, xato `catch{}`da jim yutilgan — parent tab hech qachon
+  login tugaganini bilmagan, foydalanuvchi cheksiz spinner'da qolgan.
+- **Tekshiruv:** Live incident — Bekzod aka TEZCODE Wewatch topic'da xabar berdi (00:30-00:38,
+  2026-07-18), skrinshotlar (Google callback "Вы вошли!" lekin auto-close/redirect ishlamagan)
+  tahlil qilindi. Prod'da deploy qilingandan keyin `ratelimit-limit: 90` header orqali tasdiqlandi.
+  auth+app-web+content+notification+user+watch-part+admin — barchasi `shared/`ni tortib qayta
+  deploy bo'ldi, hammasi Online, health-check clean (mongo:ok, redis:ok).
+- **Xulosa:** Telegram login xuddi shu muammoni tasodifan aylanib o'tgan edi (`/api/auth/me`ni
+  poll qiladi, `pollRateLimiter` ostida emas) — shu farq root cause'ni aniqlashda kalit bo'ldi.
 
 ---
 
