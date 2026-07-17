@@ -107,10 +107,15 @@ export const refreshRateLimiter = rateLimit({
   }),
 });
 
-// #45 — Poll rate limiter — 30 req/min per IP (OAuth/Telegram polling flows)
+// #45 — Poll rate limiter — 90 req/min per IP (OAuth/Telegram polling flows).
+// Client polls every ~2s while an OAuth popup is open (up to 120s session) — several people
+// behind the same office IP testing concurrently can legitimately need more than a tight budget.
+// Was 30/min: real Google OAuth (account picker + consent) commonly runs past the ~24s that
+// 30 req/min allowed at the old 800ms client cadence, so polling got silently 429'd mid-flow and
+// never detected the completed login (T-S132 — reported as "Google sign-in doesn't work").
 export const pollRateLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 30,
+  max: 90,
   standardHeaders: true,
   legacyHeaders: false,
   passOnStoreError: false,

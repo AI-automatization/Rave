@@ -121,7 +121,15 @@ export function LoginForm() {
             // Full page reload — ensures freshly-set httpOnly cookies reach middleware
             window.location.href = searchParams.get('redirect') || '/home';
           }
-        } catch { /* still pending */ }
+        } catch (err) {
+          // A rate-limit response is not "still pending" — retrying at the same cadence just
+          // digs the hole deeper (T-S132). Stop polling and surface it instead of hanging forever.
+          if (err instanceof ApiError && err.status === 429) {
+            done = true;
+            killPopup(popup);
+            cleanup(t('genericError'));
+          }
+        }
       };
 
       const cleanup = (withError?: string) => {
@@ -152,8 +160,10 @@ export function LoginForm() {
         }
       }, 500);
 
-      // Fallback poll every 800ms in case postMessage is missed
-      const interval = setInterval(finishLogin, 800);
+      // Fallback poll every 2s in case postMessage is missed. Was 800ms — that cadence blew
+      // through pollRateLimiter's budget before a real Google OAuth flow (account picker +
+      // consent) finished, silently hanging the login (T-S132).
+      const interval = setInterval(finishLogin, 2000);
 
       // Cleanup after 2 min
       setTimeout(() => cleanup(), 120_000);
