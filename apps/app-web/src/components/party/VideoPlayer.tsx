@@ -9,6 +9,7 @@ import { trackClick } from '@/lib/analytics';
 import { YouTubePlayer } from './YouTubePlayer';
 import { VKPlayer } from './VKPlayer';
 import { TwitchPlayer } from './TwitchPlayer';
+import { VimeoPlayer } from './VimeoPlayer';
 
 interface Props {
   onPlay: (time: number) => void;
@@ -57,6 +58,19 @@ function getTwitchIds(url: string): { id: string; type: 'channel' | 'vod' } | nu
       return { id: channelMatch[1], type: 'channel' };
     }
     return null;
+  } catch {
+    return null;
+  }
+}
+
+// Mirrors mobile's extractVimeoId (apps/mobile/src/components/video/WebViewAdapters.ts).
+function getVimeoId(url: string): string | null {
+  try {
+    const { hostname, pathname } = new URL(url);
+    const host = hostname.replace(/^www\./, '');
+    if (host !== 'vimeo.com' && host !== 'player.vimeo.com') return null;
+    const match = pathname.match(/\/(?:video\/)?(\d+)/);
+    return match ? match[1] : null;
   } catch {
     return null;
   }
@@ -513,12 +527,14 @@ export function VideoPlayer({
   const ytId = getYouTubeId(videoUrl);
   const vkIds = getVKVideoIds(videoUrl);
   const twitchIds = getTwitchIds(videoUrl);
-  const isEmbed = !!ytId || !!vkIds || !!twitchIds;
+  const vimeoId = getVimeoId(videoUrl);
+  const isEmbed = !!ytId || !!vkIds || !!twitchIds || !!vimeoId;
   // Extract everything not handled by an official embed above — content service handles Rutube
-  // and any other direct/generic URL. VK/Twitch used to fall through here too (ytDlpExtractor +
-  // an authenticated session cookie — ToS-questionable, same risk category as scraping a pirate
-  // site, just against a legitimate platform); now routed to their own official embeds instead.
-  const needsExtract = !!videoUrl && !ytId && !vkIds && !twitchIds;
+  // and any other direct/generic URL. VK/Twitch/Vimeo used to fall through here too
+  // (ytDlpExtractor + an authenticated session cookie — ToS-questionable, same risk category as
+  // scraping a pirate site, just against a legitimate platform); now routed to their own
+  // official embeds instead.
+  const needsExtract = !!videoUrl && !ytId && !vkIds && !twitchIds && !vimeoId;
   const directSrc = needsExtract ? proxySrc : null;
 
   // Extract → proxy URL for any non-YouTube source
@@ -802,7 +818,22 @@ export function VideoPlayer({
     );
   }
 
-  // ── Any remaining source (Rutube, Vimeo, direct, etc.) — extract + proxy ───
+  // ── Vimeo — synced via the official Vimeo Player SDK ─────────────────────────
+
+  if (vimeoId) {
+    return (
+      <VimeoPlayer
+        videoId={vimeoId}
+        isOwner={isOwner}
+        onPlay={onPlay}
+        onPause={onPause}
+        onSeek={onSeek}
+        onHeartbeat={onHeartbeat}
+      />
+    );
+  }
+
+  // ── Any remaining source (Rutube, direct, etc.) — extract + proxy ───
 
   if (needsExtract) {
     if (extracting) {
