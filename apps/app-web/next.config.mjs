@@ -52,7 +52,7 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.youtube.com https://s.ytimg.com https://embed.twitch.tv https://player.vimeo.com https://unpkg.com",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.youtube.com https://s.ytimg.com https://embed.twitch.tv https://player.vimeo.com https://unpkg.com https://cdn.trovo.live",
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https:",
               "font-src 'self' data: https://fonts.gstatic.com",
@@ -62,7 +62,7 @@ const nextConfig = {
               // A link from an instance not listed here gets silently blocked by the browser, not
               // by our code — expand on demand as real rooms need specific instances (see
               // PeerTubePlayer.tsx's file-header comment).
-              "frame-src https://www.youtube.com https://youtube.com https://vk.com https://rutube.ru https://player.twitch.tv https://www.twitch.tv https://player.vimeo.com https://geo.dailymotion.com https://www.dailymotion.com https://www.tiktok.com https://framatube.org https://peertube.social",
+              "frame-src https://www.youtube.com https://youtube.com https://vk.com https://rutube.ru https://player.twitch.tv https://www.twitch.tv https://player.vimeo.com https://geo.dailymotion.com https://www.dailymotion.com https://www.tiktok.com https://framatube.org https://peertube.social https://player.trovo.live",
               "media-src 'self' https: blob:",
               "object-src 'none'",
               "base-uri 'self'",

@@ -13,6 +13,7 @@ import { VimeoPlayer } from './VimeoPlayer';
 import { DailymotionPlayer } from './DailymotionPlayer';
 import { TikTokPlayer } from './TikTokPlayer';
 import { PeerTubePlayer } from './PeerTubePlayer';
+import { TrovoPlayer } from './TrovoPlayer';
 
 interface Props {
   onPlay: (time: number) => void;
@@ -116,6 +117,20 @@ function getPeerTubeIds(url: string): { instance: string; videoId: string } | nu
     if (watchMatch) return { instance: hostname, videoId: watchMatch[1] };
     const shortMatch = pathname.match(/\/w\/([a-zA-Z0-9]{22})$/);
     if (shortMatch) return { instance: hostname, videoId: shortMatch[1] };
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+// Trovo channel URL: trovo.live/{streamername} (or /s/{streamername} for some share links).
+function getTrovoStreamername(url: string): string | null {
+  try {
+    const { hostname, pathname } = new URL(url);
+    const host = hostname.replace(/^www\./, '');
+    if (host !== 'trovo.live') return null;
+    const match = pathname.match(/^\/(?:s\/)?([a-zA-Z0-9_]+)\/?$/);
+    if (match && !['video', 'clip', 'discover', 'search'].includes(match[1])) return match[1];
     return null;
   } catch {
     return null;
@@ -577,13 +592,14 @@ export function VideoPlayer({
   const dailymotionId = getDailymotionId(videoUrl);
   const tiktokId = getTikTokId(videoUrl);
   const peertubeIds = getPeerTubeIds(videoUrl);
-  const isEmbed = !!ytId || !!vkIds || !!twitchIds || !!vimeoId || !!dailymotionId || !!tiktokId || !!peertubeIds;
+  const trovoName = getTrovoStreamername(videoUrl);
+  const isEmbed = !!ytId || !!vkIds || !!twitchIds || !!vimeoId || !!dailymotionId || !!tiktokId || !!peertubeIds || !!trovoName;
   // Extract everything not handled by an official embed above — content service handles Rutube
   // and any other direct/generic URL. VK/Twitch/Vimeo/Dailymotion used to fall through here too
   // (ytDlpExtractor + an authenticated session cookie — ToS-questionable, same risk category as
   // scraping a pirate site, just against a legitimate platform); now routed to their own
   // official embeds instead.
-  const needsExtract = !!videoUrl && !ytId && !vkIds && !twitchIds && !vimeoId && !dailymotionId && !tiktokId && !peertubeIds;
+  const needsExtract = !!videoUrl && !ytId && !vkIds && !twitchIds && !vimeoId && !dailymotionId && !tiktokId && !peertubeIds && !trovoName;
   const directSrc = needsExtract ? proxySrc : null;
 
   // Extract → proxy URL for any non-YouTube source
@@ -924,6 +940,19 @@ export function VideoPlayer({
         onPause={onPause}
         onSeek={onSeek}
         onHeartbeat={onHeartbeat}
+      />
+    );
+  }
+
+  // ── Trovo — official Trovo.TrovoPlayer JS API (not yet whitelisted, see TrovoPlayer.tsx) ────
+
+  if (trovoName) {
+    return (
+      <TrovoPlayer
+        streamername={trovoName}
+        isOwner={isOwner}
+        onPlay={onPlay}
+        onPause={onPause}
       />
     );
   }

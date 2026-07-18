@@ -147,6 +147,20 @@ const PLATFORMS: Platform[] = [
     urlPattern: /\/videos\/watch\/[0-9a-f-]{36}|\/w\/[a-zA-Z0-9]{22}$/,
   },
   {
+    id: 'trovo',
+    name: 'Trovo',
+    base: 'https://trovo.live',
+    renderIcon: (s) => (
+      <svg width={s} height={s} viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2 2 7v10l10 5 10-5V7L12 2Zm0 2.24 7 3.5v7.52l-7 3.5-7-3.5V7.74l7-3.5ZM9.5 8v8l7-4-7-4Z"/>
+      </svg>
+    ),
+    color: '#19D66B',
+    bg: 'rgba(25,214,107,0.13)',
+    border: 'rgba(25,214,107,0.32)',
+    urlPattern: /trovo\.live/,
+  },
+  {
     id: 'cinerama',
     name: 'Cinerama',
     base: 'https://cinerama.uz',
@@ -198,6 +212,7 @@ const PLATFORM_TO_BACKEND: Record<string, string> = {
   dailymotion: 'dailymotion',
   tiktok: 'tiktok',
   peertube: 'peertube',
+  trovo: 'trovo',
   live:    'youtube',  // YouTube Live
   cinerama:'other',
   web:     'other',

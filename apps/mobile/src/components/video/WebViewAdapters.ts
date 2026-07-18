@@ -331,6 +331,18 @@ export function extractTikTokId(url: string): string | null {
   } catch { return null; }
 }
 
+/** Trovo channel/stream nomini URL dan ajratib oladi (trovo.live/{streamername}) */
+export function extractTrovoStreamername(url: string): string | null {
+  try {
+    const { hostname, pathname } = new URL(url);
+    const host = hostname.replace(/^www\./, '');
+    if (host !== 'trovo.live') return null;
+    const match = pathname.match(/^\/(?:s\/)?([a-zA-Z0-9_]+)\/?$/);
+    if (match && !['video', 'clip', 'discover', 'search'].includes(match[1])) return match[1];
+    return null;
+  } catch { return null; }
+}
+
 // PeerTube federatsiyalashgan — istalgan domen instance bo'lishi mumkin, shuning uchun bitta
 // hostname emas, URL PATH shakli bo'yicha aniqlanadi (/videos/watch/{uuid} yoki /w/{shortId}).
 export function extractPeerTubeIds(url: string): { instance: string; videoId: string } | null {
@@ -721,6 +733,49 @@ export function buildPeerTubeHtml(instance: string, videoId: string): string {
       }, 500);
     }).catch(function() {
       rn({ type: 'YT_EMBED_ERROR', code: 101 });
+    });
+  </script>
+</body></html>`;
+}
+
+/**
+ * Trovo embed using the official Trovo.TrovoPlayer JS API. NOT YET LIVE — embedding requires
+ * Trovo to manually whitelist our domain (requested 2026-07-18, reply SLA up to 1 week), unlike
+ * Twitch's self-service parent param. Real limitation confirmed from Trovo's own docs: the
+ * player exposes play()/pause()/getCurrentTime() but NO seek method at all — sync here is
+ * play/pause-only, no catch-up/drift-correction is possible (see web's TrovoPlayer.tsx for the
+ * full explanation).
+ */
+export function buildTrovoHtml(streamername: string): string {
+  return `<!DOCTYPE html>
+<html><head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>${BASE_HTML_STYLES} #player, #player iframe { width: 100% !important; height: 100% !important; }</style>
+</head><body>
+  <div id="player"></div>
+  <script src="https://cdn.trovo.live/embed/iframeApi.js"></script>
+  <script>
+    ${RN_BRIDGE}
+    var trovoPlayer = null;
+    window._csVideo = {
+      get currentTime() { return 0; },
+      set currentTime(t) { /* no-op — Trovo has no seek API */ },
+      play: function() { if (trovoPlayer) trovoPlayer.play(); },
+      pause: function() { if (trovoPlayer) trovoPlayer.pause(); },
+      get paused() { return !trovoPlayer || trovoPlayer.getPlayerState() !== 'PLAYING'; }
+    };
+    trovoPlayer = new Trovo.TrovoPlayer('player', {
+      width: '100%', height: '100%',
+      streamername: '${streamername}',
+      enablejsapi: true,
+      origin: 'https://trovo.live',
+      events: {
+        onReady: function() { rn({ type: 'VIDEO_FOUND' }); },
+        onStateChange: function(state) {
+          if (state === 'playing') rn({ type: 'PLAY', currentTime: 0 });
+          else if (state === 'pause' || state === 'ended') rn({ type: 'PAUSE', currentTime: 0 });
+        }
+      }
     });
   </script>
 </body></html>`;
