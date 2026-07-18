@@ -2,22 +2,6 @@
 
 # Yangilangan: 2026-07-18
 
----
-
-### T-S137 | P1 | [WEB] | Rasmiy manbalar kengaytirish — VK/Twitch/Vimeo/Dailymotion/TikTok/PeerTube/Trovo
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Saidazim (foydalanuvchi so'rovi — pirat kontentni olib tashlashdan oldin rasmiy manbalarni kengaytirish)
-- **Yaratilgan:** 2026-07-18
-- **Holat:** 🔄 Bajarilmoqda
-- **Tavsiya model:** sonnet
-- **Model sababi:** ko'p fayl, lekin har biri mavjud pattern (YouTubePlayer.tsx/VKPlayer.tsx) bo'yicha
-- **Sabab:** Watch-party rasmiy video manbalarini kengaytirish — barchasi client-side official embed,
-  server-side ekstraksiya kerak emas. Tartib: VK (deploy) → Twitch → Vimeo → Dailymotion → TikTok →
-  PeerTube → Trovo (domen whitelist arizasi — javob 1 haftagacha, parallel yuboriladi).
-- **Fayllar:** `apps/app-web/src/components/party/{VK,Twitch,Vimeo,Dailymotion,TikTok,PeerTube}Player.tsx`,
-  `VideoPlayer.tsx`, `CreateRoomDialog.tsx`, `next.config.mjs` (CSP), mobile `WebViewAdapters.ts`
-
 # 🔒 Sprint 15: Security Audit fixes (2026-07-04 — аудит Claude)
 
 > Полный аудит OWASP Top 10 + WeWatch-специфика. Фундамент крепкий (JWT/bcrypt/socket/internal/IDOR — ок). Ниже — найденные уязвимости. **Не начинать без claim.**

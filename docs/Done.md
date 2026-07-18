@@ -4,6 +4,37 @@
 
 ---
 
+### F-245 | T-S137 | 7 ta rasmiy video-manba qo'shildi — VK/Twitch/Vimeo/Dailymotion/TikTok/PeerTube/Trovo
+
+- **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-18  **Model:** sonnet
+- **O'zgarishlar:**
+  - **VK** — `video_ext.php` official embed, `ytDlpExtractor` (VK_COOKIES_JSON) o'rniga
+  - **Twitch** — `Twitch.Embed` JS API, VOD to'liq sync, live channel play/pause-only. Mobile'dagi
+    `parent:["localhost"]` xatosi tuzatildi (`baseUrl: twitch.tv` bilan mos kelmagan)
+  - **Vimeo** — Vimeo Player SDK, promise-based control
+  - **Dailymotion** — `player.html` postMessage protokoli
+  - **TikTok** — `player/v1` embed. Chiquvchi komandalar (play/pause/seekTo) rasmiy docs'dan
+    tasdiqlangan, kiruvchi event formati TO'LIQ tasdiqlanmagan (docs sahifasi bir necha marta
+    timeout berdi) — himoyalangan parser bilan qurilgan, kodda ochiq belgilangan
+  - **PeerTube** — `@peertube/embed-api`. Federatsiyalashgan (fixed domen yo'q) — URL PATH shakli
+    bo'yicha aniqlanadi. CSP frame-src — faqat kichik boshlang'ich ro'yxat (framatube.org,
+    peertube.social), boshqa instance'lar domen so'ralganda qo'shiladi
+  - **Trovo** — `Trovo.TrovoPlayer` JS API. **Muhim cheklov**: rasmiy docs'da seek/setCurrentTime
+    metodi UMUMAN yo'q — faqat play/pause sync, catch-up/drift-correction imkonsiz. Domen hali
+    whitelist qilinmagan (Trovo qo'lda tasdiqlaydi, Twitch'dan farqli) — app.wewatch.uz uchun ariza
+    Gmail draft sifatida tayyorlandi (tashqi kompaniyaga chiqadigan xat — yuborishdan oldin inson
+    tekshiruvi kerak, avtomatik yuborilmadi), javob 1 haftagacha kutiladi
+  - `services/watch-party/src/models/watchPartyRoom.model.ts` + `validators/watchParty.validator.ts`
+    — `videoPlatform` enum kengaytirildi (tiktok/peertube/trovo)
+- **Tekshiruv:** Har bir platforma alohida commit + tsc/eslint clean + Railway deploy tasdiqlangan
+  (`app.wewatch.uz` health-check 200, auth health clean). Mobile — barcha platformalar uchun tsc
+  clean (faqat pre-existing LanguageTransition.tsx xatosi qoldi).
+- **Ochiq:** Trovo — domen apruvidan keyin jonli test kerak. TikTok — kiruvchi event format live
+  tekshiruv kerak. Android'da VK/Rutube hali "to'liq sayt WebView" usulida (iOS'dan farqli) —
+  keyingi kunlarga qoldirilgan alohida topilma.
+
+---
+
 ### F-244 | T-S136 | Android viewer play/pause deadlock — playerReadyRef VIDEO_FOUND fix
 
 - **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-18  **Model:** sonnet
