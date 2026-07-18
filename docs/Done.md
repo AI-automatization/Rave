@@ -4,6 +4,19 @@
 
 ---
 
+### F-244 | T-S136 | Android viewer play/pause deadlock — playerReadyRef VIDEO_FOUND fix
+
+- **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-18  **Model:** sonnet
+- **O'zgarishlar:** `useWebViewPlayer.ts`/`WebViewPlayer.tsx`/`UniversalPlayer.tsx` — `VIDEO_FOUND`
+  WebView xabari endi `fireReady()`ni ham chaqiradi, faqat `PLAY` emas.
+- **Root cause:** viewer'ning `playerReadyRef` faqat autoplay muvaffaqiyatli bo'lgandagina keladigan
+  `PLAY` xabaridan keyin `true` bo'lardi — Android WebView'da autoplay ko'pincha jim ishlamaydi,
+  deadlock. Owner buni sezmagan, chunki manual tap to'g'ridan-to'g'ri `play()`ni chaqiradi.
+- **Tekshiruv:** tsc clean (faqat pre-existing LanguageTransition.tsx xatosi), kod push qilingan —
+  yangi APK build kerak (mobile o'zgarish, avtomatik deploy bo'lmaydi).
+
+---
+
 ### F-243 | T-S135 | CSP script-src'da youtube.com yo'q edi — YouTube IFrame API skripti bloklangan
 
 - **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-18  **Model:** sonnet

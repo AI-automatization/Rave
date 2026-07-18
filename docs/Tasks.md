@@ -4,27 +4,19 @@
 
 ---
 
-### T-S136 | P0 | [MOBILE] | Android viewer YouTube/VK/Rutube play-pause'ga reaksiya bermaydi — playerReady deadlock
+### T-S137 | P1 | [WEB] | Rasmiy manbalar kengaytirish — VK/Twitch/Vimeo/Dailymotion/TikTok/PeerTube/Trovo
 
 - **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Saidazim (live report, screenshot, 2026-07-18 13:01 — CSP fix T-S135'dan keyin)
-- **Yaratilgan:** 2026-07-18 13:15
+- **Beruvchi:** Saidazim (foydalanuvchi so'rovi — pirat kontentni olib tashlashdan oldin rasmiy manbalarni kengaytirish)
+- **Yaratilgan:** 2026-07-18
 - **Holat:** 🔄 Bajarilmoqda
 - **Tavsiya model:** sonnet
-- **Model sababi:** root-cause aniqlandi (Explore agent orqali to'liq trace), 3 fayl
-- **Sabab:** `useWatchPartyRoom.ts`da viewer (non-owner) uchun `playerReadyRef.current` FAQAT birinchi
-  `'PLAY'` WebView xabaridan keyin `true` bo'ladi. Lekin `'PLAY'` xabari faqat WebView autoplay
-  MUVAFFAQIYATLI ishlaganda keladi — Android WebView'da user gesture'siz autoplay ko'pincha jim
-  ishlamaydi. Natija: `playerReadyRef` hech qachon `true` bo'lmaydi → egasidan (bu holatda web
-  owner) kelgan HAR QANDAY keyingi play/pause/seek `pendingSyncRef`ga tushib, hech qachon
-  qo'llanilmaydi — deadlock. Owner'da bu yo'q, chunki `handlePlayPause` (manual tap) to'g'ridan-to'g'ri
-  `playerRef.play()/pause()`ni chaqiradi, `playerReadyRef`ga bog'liq emas — shuning uchun avval
-  bilinmagan (owner-only testda hech qachon ko'rinmagan).
-  Fix: `VIDEO_FOUND` WebView xabari (allaqachon universal — YouTube/VK/Rutube/Twitch/generic scan
-  hammasida bor, IFrame/player obyekti YARATILGANDA darhol keladi, autoplay muvaffaqiyatiga
-  bog'liq emas) endi `fireReady()`ni ham chaqiradi — bu deadlock'ni butunlay yo'q qiladi.
-- **Fayllar:** `apps/mobile/src/hooks/useWebViewPlayer.ts`, `apps/mobile/src/components/video/WebViewPlayer.tsx`, `apps/mobile/src/components/video/UniversalPlayer.tsx`
-
+- **Model sababi:** ko'p fayl, lekin har biri mavjud pattern (YouTubePlayer.tsx/VKPlayer.tsx) bo'yicha
+- **Sabab:** Watch-party rasmiy video manbalarini kengaytirish — barchasi client-side official embed,
+  server-side ekstraksiya kerak emas. Tartib: VK (deploy) → Twitch → Vimeo → Dailymotion → TikTok →
+  PeerTube → Trovo (domen whitelist arizasi — javob 1 haftagacha, parallel yuboriladi).
+- **Fayllar:** `apps/app-web/src/components/party/{VK,Twitch,Vimeo,Dailymotion,TikTok,PeerTube}Player.tsx`,
+  `VideoPlayer.tsx`, `CreateRoomDialog.tsx`, `next.config.mjs` (CSP), mobile `WebViewAdapters.ts`
 
 # 🔒 Sprint 15: Security Audit fixes (2026-07-04 — аудит Claude)
 
