@@ -7,6 +7,7 @@ import { useAuthStore } from '@/store/auth.store';
 import { toast } from '@/hooks/use-toast';
 import { trackClick } from '@/lib/analytics';
 import { YouTubePlayer } from './YouTubePlayer';
+import { VKPlayer } from './VKPlayer';
 
 interface Props {
   onPlay: (time: number) => void;
@@ -39,6 +40,27 @@ function getYouTubeId(url: string): string | null {
   const embedMatch = url.match(/\/embed\/([a-zA-Z0-9_-]{11})/);
   if (embedMatch) return embedMatch[1];
   return null;
+}
+
+// Mirrors mobile's extractVKVideoIds (apps/mobile/src/components/video/WebViewAdapters.ts) —
+// supports both the path form (vk.com/video-12345_67890) and the share-link query form
+// (?z=video-12345_67890...).
+function getVKVideoIds(url: string): { ownerId: string; videoId: string } | null {
+  try {
+    const { hostname, pathname, searchParams } = new URL(url);
+    const host = hostname.replace(/^(www\.|m\.)/, '');
+    if (host !== 'vk.com' && host !== 'vkvideo.ru') return null;
+    const rawId =
+      searchParams.get('z')?.replace(/^video/, '') ??
+      pathname.match(/\/video(-?\d+_\d+)/)?.[1] ??
+      null;
+    if (!rawId) return null;
+    const parts = rawId.split('_');
+    if (parts.length !== 2) return null;
+    return { ownerId: parts[0], videoId: parts[1] };
+  } catch {
+    return null;
+  }
 }
 
 async function extractVideoUrl(url: string): Promise<ExtractResult> {
@@ -469,9 +491,13 @@ export function VideoPlayer({
 
   const videoUrl = room?.videoUrl ?? '';
   const ytId = getYouTubeId(videoUrl);
-  const isEmbed = !!ytId;
-  // Extract all non-YouTube URLs — content service handles Rutube, VK, and all other platforms
-  const needsExtract = !!videoUrl && !ytId;
+  const vkIds = getVKVideoIds(videoUrl);
+  const isEmbed = !!ytId || !!vkIds;
+  // Extract all non-YouTube/non-VK URLs — content service handles Rutube and everything else.
+  // VK used to fall through here too (ytDlpExtractor + an authenticated VK session cookie —
+  // ToS-questionable, same risk category as scraping a pirate site, just against a legitimate
+  // platform); now routed to VKPlayer's official video_ext.php embed instead.
+  const needsExtract = !!videoUrl && !ytId && !vkIds;
   const directSrc = needsExtract ? proxySrc : null;
 
   // Extract → proxy URL for any non-YouTube source
@@ -723,7 +749,23 @@ export function VideoPlayer({
     );
   }
 
-  // ── Any non-YouTube source (Rutube, VK, Vimeo, direct, etc.) — extract + proxy ───
+  // ── VK Video — synced via the official video_ext.php embed ──────────────────
+
+  if (vkIds) {
+    return (
+      <VKPlayer
+        ownerId={vkIds.ownerId}
+        videoId={vkIds.videoId}
+        isOwner={isOwner}
+        onPlay={onPlay}
+        onPause={onPause}
+        onSeek={onSeek}
+        onHeartbeat={onHeartbeat}
+      />
+    );
+  }
+
+  // ── Any non-YouTube/non-VK source (Rutube, Vimeo, direct, etc.) — extract + proxy ───
 
   if (needsExtract) {
     if (extracting) {
