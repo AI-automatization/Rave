@@ -4,20 +4,26 @@
 
 ---
 
-### T-S135 | P0 | [WEB] | YouTube iframe web'da kelmayapti — CSP script-src youtube.com'ni bloklaydi
+### T-S136 | P0 | [MOBILE] | Android viewer YouTube/VK/Rutube play-pause'ga reaksiya bermaydi — playerReady deadlock
 
 - **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Saidazim (live report, T-S133 fix'dan keyin ham)
-- **Yaratilgan:** 2026-07-18 (login fix'dan keyin)
+- **Beruvchi:** Saidazim (live report, screenshot, 2026-07-18 13:01 — CSP fix T-S135'dan keyin)
+- **Yaratilgan:** 2026-07-18 13:15
 - **Holat:** 🔄 Bajarilmoqda
 - **Tavsiya model:** sonnet
-- **Model sababi:** root-cause topildi, 1 fayl (config)
-- **Sabab:** `next.config.mjs`dagi CSP `script-src`da `https://www.youtube.com` yo'q edi — faqat
-  `frame-src`da bor edi. `YouTubePlayer.tsx`ning `loadYouTubeApi()` `<script src="https://www.youtube.com/iframe_api">`
-  qo'shadi — bu `script-src` tomonidan boshqariladi, `frame-src` emas. Brauzer skriptni butunlay
-  bloklagan, shuning uchun `YT.Player` hech qachon yaratilmagan, `onReady` ham, `onError` ham (T-S133)
-  ishlamagan — CSP darajasida to'siq bo'lgani uchun.
-- **Fayllar:** `apps/app-web/next.config.mjs`
+- **Model sababi:** root-cause aniqlandi (Explore agent orqali to'liq trace), 3 fayl
+- **Sabab:** `useWatchPartyRoom.ts`da viewer (non-owner) uchun `playerReadyRef.current` FAQAT birinchi
+  `'PLAY'` WebView xabaridan keyin `true` bo'ladi. Lekin `'PLAY'` xabari faqat WebView autoplay
+  MUVAFFAQIYATLI ishlaganda keladi — Android WebView'da user gesture'siz autoplay ko'pincha jim
+  ishlamaydi. Natija: `playerReadyRef` hech qachon `true` bo'lmaydi → egasidan (bu holatda web
+  owner) kelgan HAR QANDAY keyingi play/pause/seek `pendingSyncRef`ga tushib, hech qachon
+  qo'llanilmaydi — deadlock. Owner'da bu yo'q, chunki `handlePlayPause` (manual tap) to'g'ridan-to'g'ri
+  `playerRef.play()/pause()`ni chaqiradi, `playerReadyRef`ga bog'liq emas — shuning uchun avval
+  bilinmagan (owner-only testda hech qachon ko'rinmagan).
+  Fix: `VIDEO_FOUND` WebView xabari (allaqachon universal — YouTube/VK/Rutube/Twitch/generic scan
+  hammasida bor, IFrame/player obyekti YARATILGANDA darhol keladi, autoplay muvaffaqiyatiga
+  bog'liq emas) endi `fireReady()`ni ham chaqiradi — bu deadlock'ni butunlay yo'q qiladi.
+- **Fayllar:** `apps/mobile/src/hooks/useWebViewPlayer.ts`, `apps/mobile/src/components/video/WebViewPlayer.tsx`, `apps/mobile/src/components/video/UniversalPlayer.tsx`
 
 
 # 🔒 Sprint 15: Security Audit fixes (2026-07-04 — аудит Claude)

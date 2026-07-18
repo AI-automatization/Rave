@@ -4,6 +4,17 @@
 
 ---
 
+### F-243 | T-S135 | CSP script-src'da youtube.com yo'q edi — YouTube IFrame API skripti bloklangan
+
+- **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-18  **Model:** sonnet
+- **O'zgarishlar:** `apps/app-web/next.config.mjs` — CSP `script-src`ga `https://www.youtube.com` qo'shildi.
+- **Root cause:** `frame-src`da youtube.com bor edi (iframe uchun), lekin `YouTubePlayer.tsx`ning
+  `loadYouTubeApi()` `<script src="youtube.com/iframe_api">` yuklaydi — bu `script-src` tomonidan
+  boshqariladi. Brauzer skriptni butunlay bloklagan, `YT.Player` hech qachon yaratilmagan.
+- **Tekshiruv:** Deploy tasdiqlandi, foydalanuvchi live test qildi — YouTube video web'da yuklandi.
+
+---
+
 ### F-242 | T-S134 | Google/Telegram login web'da hali ham tugamayapti — popup.closed COOP tufayli yolg'on
 
 - **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-18  **Model:** sonnet
