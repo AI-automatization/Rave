@@ -4,6 +4,23 @@
 
 ---
 
+### F-242 | T-S134 | Google/Telegram login web'da hali ham tugamayapti — popup.closed COOP tufayli yolg'on
+
+- **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-18  **Model:** sonnet
+- **O'zgarishlar:** `LoginForm.tsx` — `closedCheck` (500ms timer, `.closed`ga ishonuvchi) olib
+  tashlandi. O'rniga `visibilitychange`/`focus` listener — faqat foydalanuvchi tab'ga qaytganda
+  `.closed`ni tekshiradi. Ground-truth poll interval endi to'liq sessiya davomida uzilmaydi.
+  Ikkala flow (Google + Telegram) uchun bir xil.
+- **Root cause:** T-S132 (rate limit) haqiqiy edi, lekin asosiy sabab emas edi. Prod loglarida
+  3/3 jonli urinishda ANIQ 2ta poll ketib, keyin sukunat — deterministik, tasodifiy emas. Sabab:
+  popup `accounts.google.com`ga o'tgach, Google'ning o'z COOP header'i opener bog'lanishini uzadi,
+  `.closed` shu zahoti (popup hali ochiq bo'lsa ham) `true` qaytaradi. `closedCheck` buni "user
+  cancelled" deb 3s dan keyin pollingni to'xtatgan — ~4s da, real login tugashidan ancha oldin.
+- **Tekshiruv:** Railway deploy `ecb1fdf3` — SUCCESS, health-check clean, `ratelimit-limit: 90`
+  header hali ham live (T-S132 rollback bo'lmagan).
+
+---
+
 ### F-241 | T-S133 | YouTubePlayer web'da onError qo'shildi — deploy tasdiqlandi
 
 - **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-18  **Model:** sonnet
