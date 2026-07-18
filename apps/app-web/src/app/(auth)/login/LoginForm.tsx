@@ -114,7 +114,8 @@ export function LoginForm() {
           if (poll.data?.user) {
             done = true;
             clearInterval(interval);
-            clearInterval(closedCheck);
+            document.removeEventListener('visibilitychange', onVisible);
+            window.removeEventListener('focus', onVisible);
             window.removeEventListener('message', onMessage);
             killPopup(popup);
             setUser(poll.data.user);
@@ -134,7 +135,8 @@ export function LoginForm() {
 
       const cleanup = (withError?: string) => {
         clearInterval(interval);
-        clearInterval(closedCheck);
+        document.removeEventListener('visibilitychange', onVisible);
+        window.removeEventListener('focus', onVisible);
         window.removeEventListener('message', onMessage);
         setIsGoogleLoading(false);
         if (withError) setError(withError);
@@ -151,16 +153,27 @@ export function LoginForm() {
       };
       window.addEventListener('message', onMessage);
 
-      // Popup may close because auth succeeded (backend's window.close timer).
-      // Give polling 3 extra seconds before treating closure as cancellation.
-      const closedCheck = setInterval(() => {
+      // popup.closed is NOT a trustworthy signal here: once the popup navigates to
+      // accounts.google.com (cross-origin from this tab), Google's own Cross-Origin-Opener-Policy
+      // severs the opener relationship, and `popup.closed` reads `true` from this side within
+      // seconds — while the user is still sitting on Google's account picker. An earlier version
+      // polled `popup.closed` on a timer and auto-cancelled the login ~4s in, on every attempt,
+      // regardless of how long the real OAuth flow took (T-S132 follow-up — confirmed via prod
+      // logs: exactly 2 polls fired, then silence, on 3/3 real attempts). Instead, only act on
+      // `.closed` once we get a genuine focus-return signal (below) — at that point the browser
+      // has actually resolved the window lifecycle and the read is trustworthy again.
+      const onVisible = () => {
+        if (document.visibilityState !== 'visible' || done) return;
+        void finishLogin();
         if (popup?.closed) {
-          clearInterval(closedCheck);
-          setTimeout(() => { if (!done) cleanup(); }, 3000);
+          // We're back and the popup is really gone — give one grace poll to land, then stop.
+          setTimeout(() => { if (!done) cleanup(); }, 1500);
         }
-      }, 500);
+      };
+      document.addEventListener('visibilitychange', onVisible);
+      window.addEventListener('focus', onVisible);
 
-      // Fallback poll every 2s in case postMessage is missed. Was 800ms — that cadence blew
+      // Ground-truth poll every 2s in case postMessage is missed. Was 800ms — that cadence blew
       // through pollRateLimiter's budget before a real Google OAuth flow (account picker +
       // consent) finished, silently hanging the login (T-S132).
       const interval = setInterval(finishLogin, 2000);
@@ -217,7 +230,8 @@ export function LoginForm() {
           if (me.data?.user) {
             done = true;
             clearInterval(interval);
-            clearInterval(closedCheck);
+            document.removeEventListener('visibilitychange', onVisible);
+            window.removeEventListener('focus', onVisible);
             killPopup(popup);
             setUser(me.data.user);
             // Full page reload — ensures freshly-set httpOnly cookies reach middleware
@@ -228,22 +242,29 @@ export function LoginForm() {
 
       const cleanup = (withError?: string) => {
         clearInterval(interval);
-        clearInterval(closedCheck);
+        document.removeEventListener('visibilitychange', onVisible);
+        window.removeEventListener('focus', onVisible);
         setIsTelegramLoading(false);
         if (withError) setError(withError);
       };
 
-      // Popup closes itself (callback page's window.close) once login succeeds, or the user
-      // may close it manually — give polling 3 extra seconds before treating closure as
-      // cancellation, in case the close happened right as the cookies were being set.
-      const closedCheck = setInterval(() => {
+      // popup.closed is not trustworthy while the popup sits on a cross-origin page (T-S132
+      // follow-up — see the identical comment in handleGoogleLogin for the full COOP-severing
+      // explanation). Only act on `.closed` once we get a genuine focus-return signal.
+      const onVisible = () => {
+        if (document.visibilityState !== 'visible' || done) return;
+        void finishLogin();
         if (popup?.closed) {
-          clearInterval(closedCheck);
-          setTimeout(() => { if (!done) cleanup(); }, 3000);
+          setTimeout(() => { if (!done) cleanup(); }, 1500);
         }
-      }, 500);
+      };
+      document.addEventListener('visibilitychange', onVisible);
+      window.addEventListener('focus', onVisible);
 
-      const interval = setInterval(finishLogin, 800);
+      // Ground-truth poll every 2s — was 800ms, unnecessarily aggressive for a human OAuth flow.
+      // /api/auth/me isn't behind pollRateLimiter, so this is just about load, not the 429 bug —
+      // slowed to match the Google flow for consistency.
+      const interval = setInterval(finishLogin, 2000);
 
       // Cleanup after 2 min
       setTimeout(() => cleanup(), 120_000);
