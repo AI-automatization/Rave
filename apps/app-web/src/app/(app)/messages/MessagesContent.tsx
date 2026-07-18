@@ -6,7 +6,8 @@ import { Loader2, MessageCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useConversations, useMessages, useSendDm, useDmRealtime } from '@/hooks/use-dm';
 import { ConversationList } from '@/components/messages/ConversationList';
-import { ChatWindow } from '@/components/messages/ChatWindow';
+import { ChatWindow, type ReplyTarget } from '@/components/messages/ChatWindow';
+import { useAuthStore } from '@/store/auth.store';
 
 export function MessagesContent() {
   const t = useTranslations('dm');
@@ -14,11 +15,14 @@ export function MessagesContent() {
   const [selectedPeer, setSelectedPeer] = useState<string | null>(
     searchParams.get('peer'),
   );
+  const currentUser = useAuthStore((s) => s.user);
 
   const { data: conversations, isLoading: loadingConvos } = useConversations();
   const { data: messages, isLoading: loadingMessages } = useMessages(selectedPeer);
   const sendDm = useSendDm();
-  useDmRealtime(selectedPeer);
+  // TODO(T-S122 Фаза 6): make list-level DM_MESSAGE realtime always-on (not gated on
+  // selectedPeer) — currently the conversation list only refreshes live while a chat is open.
+  useDmRealtime(selectedPeer, currentUser?._id);
 
   // Update from search params
   useEffect(() => {
@@ -27,11 +31,11 @@ export function MessagesContent() {
   }, [searchParams]);
 
   const selectedConvo = conversations?.find((c) => c.peerId === selectedPeer);
-  const peerName = selectedConvo?.peer.username ?? 'Chat';
+  const peerName = selectedConvo?.peerUsername ?? 'Chat';
 
-  function handleSend(text: string) {
-    if (!selectedPeer) return;
-    sendDm.mutate({ peerId: selectedPeer, text });
+  function handleSend(text: string, replyTo?: ReplyTarget) {
+    if (!selectedPeer || !currentUser?._id) return;
+    sendDm.mutate({ peerId: selectedPeer, text, myId: currentUser._id, ...replyTo });
   }
 
   return (

@@ -1,7 +1,8 @@
 // WeWatch Mobile — Home empty state (film database is empty in MVP)
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useTheme, createThemedStyles, spacing, typography, borderRadius } from '@theme/index';
 import { useT } from '@i18n/index';
 
@@ -21,10 +22,10 @@ export function HomeEmptyState({ onPickVideo }: HomeEmptyStateProps) {
       </View>
       <Text style={s.title}>{t('home', 'emptyTitle')}</Text>
       <Text style={s.sub}>{t('home', 'emptySub')}</Text>
-      <TouchableOpacity style={s.btn} onPress={onPickVideo} activeOpacity={0.8}>
+      <TrackedTouchable trackId="home:empty_pick_video" style={s.btn} onPress={onPickVideo} activeOpacity={0.8}>
         <Ionicons name="play-circle-outline" size={18} color={colors.primary} />
         <Text style={s.btnText}>{t('home', 'emptyBtn')}</Text>
-      </TouchableOpacity>
+      </TrackedTouchable>
     </View>
   );
 }

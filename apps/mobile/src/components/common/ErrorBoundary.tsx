@@ -1,6 +1,7 @@
 // WeWatch Mobile — ErrorBoundary
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { captureError } from '@utils/errorLogger';
 import { colors, spacing, borderRadius, typography } from '@theme/index';
 import { useT } from '@i18n/index';
@@ -22,9 +23,9 @@ function ErrorFallbackUI({ errorMessage, onRetry }: { errorMessage: string | nul
       <Text style={styles.emoji}>💥</Text>
       <Text style={styles.title}>{t('common', 'appError')}</Text>
       <Text style={styles.message}>{errorMessage ?? t('common', 'unknownError')}</Text>
-      <TouchableOpacity style={styles.retryBtn} onPress={onRetry} activeOpacity={0.8}>
+      <TrackedTouchable trackId="error_boundary:retry" style={styles.retryBtn} onPress={onRetry} activeOpacity={0.8}>
         <Text style={styles.retryText}>{t('common', 'retry')}</Text>
-      </TouchableOpacity>
+      </TrackedTouchable>
     </View>
   );
 }

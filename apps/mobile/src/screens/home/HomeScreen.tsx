@@ -3,7 +3,6 @@ import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import {
   View,
   ScrollView,
-  TouchableOpacity,
   Text,
   TextInput,
   RefreshControl,
@@ -16,6 +15,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { ReportRoomModal } from '@components/common/ReportRoomModal';
 import { useTheme, createThemedStyles, spacing, typography, borderRadius } from '@theme/index';
 import { HomeStackParamList, RootStackParamList } from '@app-types/index';
@@ -135,15 +135,17 @@ export function HomeScreen() {
         <WeWatchLogo variant="horizontal" size={40} theme="dark" />
 
         <View style={s.headerRight}>
-          <TouchableOpacity
+          <TrackedTouchable
+            trackId="home:join_by_code"
             style={s.joinCodeBtn}
             onPress={() => rootNav.navigate('Modal', { screen: 'WatchPartyJoin' })}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <Ionicons name="key-outline" size={16} color={colors.secondary} />
-          </TouchableOpacity>
+          </TrackedTouchable>
 
-          <TouchableOpacity
+          <TrackedTouchable
+            trackId="home:open_notifications"
             style={s.notifBtn}
             onPress={() => rootNav.navigate('Modal', { screen: 'Notifications' })}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -158,7 +160,7 @@ export function HomeScreen() {
                 </View>
               )}
             </View>
-          </TouchableOpacity>
+          </TrackedTouchable>
         </View>
       </View>
 
@@ -179,9 +181,9 @@ export function HomeScreen() {
             autoCapitalize="none"
           />
           {query.length > 0 && (
-            <TouchableOpacity onPress={() => setQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <TrackedTouchable trackId="home:clear_search" onPress={() => setQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Ionicons name="close-circle" size={17} color={colors.textMuted} />
-            </TouchableOpacity>
+            </TrackedTouchable>
           )}
         </View>
       </View>
@@ -263,10 +265,10 @@ export function HomeScreen() {
                   </View>
                   <Text style={s.emptyTitle}>{t('watchParty', 'noRoomsTitle')}</Text>
                   <Text style={s.emptySub}>{t('watchParty', 'noRoomsSub')}</Text>
-                  <TouchableOpacity style={s.emptyAction} onPress={handleSourcePicker} activeOpacity={0.8}>
+                  <TrackedTouchable trackId="home:empty_state_create_room" style={s.emptyAction} onPress={handleSourcePicker} activeOpacity={0.8}>
                     <Ionicons name="add-circle-outline" size={16} color={colors.primary} />
                     <Text style={s.emptyActionText}>{t('watchParty', 'createRoom')}</Text>
-                  </TouchableOpacity>
+                  </TrackedTouchable>
                 </View>
               ) : (
                 <>

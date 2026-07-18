@@ -10,6 +10,7 @@ import {
 import { useWatchPartyStore } from '@/store/watch-party.store';
 import { toast } from '@/hooks/use-toast';
 import type { IUser } from '@/types';
+import { trackClick } from '@/lib/analytics';
 
 interface Props {
   open: boolean;
@@ -36,6 +37,7 @@ export function InviteDialog({ open, onOpenChange }: Props) {
   });
 
   async function handleCopy() {
+    trackClick('invite:copy_code');
     try {
       await navigator.clipboard.writeText(inviteCode);
       setCopied(true);
@@ -47,6 +49,7 @@ export function InviteDialog({ open, onOpenChange }: Props) {
 
   async function handleInvite(userId: string) {
     if (!room?._id) return;
+    trackClick('invite:send_to_friend');
     setInvitingId(userId);
     try {
       const res = await fetch(`/api/rooms/${room._id}/invite`, {

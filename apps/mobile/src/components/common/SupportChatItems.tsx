@@ -1,9 +1,10 @@
 // WeWatch — Support chat sub-components (extracted from SupportChatScreen)
 import React from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity,
+  View, Text, TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { useT } from '@i18n/index';
 import type { SupportMessage } from '@api/support.api';
@@ -51,13 +52,13 @@ export function RatingBottomSheet({
         <Text style={s.sub}>{t('settings', 'supportRateSub')}</Text>
         <View style={s.stars}>
           {[1, 2, 3, 4, 5].map(n => (
-            <TouchableOpacity key={n} onPress={() => setScore(n)} activeOpacity={0.7}>
+            <TrackedTouchable trackId="support:rate_star" key={n} onPress={() => setScore(n)} activeOpacity={0.7} trackMeta={{ score: n }}>
               <Ionicons
                 name={n <= score ? 'star' : 'star-outline'}
                 size={36}
                 color={n <= score ? colors.gold : colors.textMuted}
               />
-            </TouchableOpacity>
+            </TrackedTouchable>
           ))}
         </View>
         <TextInput
@@ -69,17 +70,18 @@ export function RatingBottomSheet({
           multiline
           maxLength={200}
         />
-        <TouchableOpacity
+        <TrackedTouchable
+          trackId="support:rate_submit"
           style={[s.submitBtn, (!score || submitting) && { opacity: 0.4 }]}
           onPress={onSubmit}
           disabled={!score || submitting}
           activeOpacity={0.8}
         >
           <Text style={s.submitText}>{submitting ? t('settings', 'supportSending') : t('common', 'send')}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={onSkip} style={s.skipBtn}>
+        </TrackedTouchable>
+        <TrackedTouchable trackId="support:rate_skip" onPress={onSkip} style={s.skipBtn}>
           <Text style={s.skipText}>{t('settings', 'supportSkip')}</Text>
-        </TouchableOpacity>
+        </TrackedTouchable>
       </View>
     </View>
   );

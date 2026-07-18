@@ -2,9 +2,10 @@
 // Positions correctly below status bar using safe area insets.
 // Slides in from ABOVE the screen (not from behind the status bar).
 import React, { useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, Animated, StyleSheet } from 'react-native';
+import { View, Text, Animated, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useTheme, spacing, typography } from '@theme/index';
 import { useT } from '@i18n/index';
 
@@ -50,10 +51,10 @@ export function OfflineBanner({ isOnline, onRetry }: OfflineBannerProps) {
       <View style={styles.content}>
         <Ionicons name="wifi-outline" size={16} color="#000" />
         <Text style={styles.label}>{t('common', 'noInternet')}</Text>
-        <TouchableOpacity onPress={onRetry} style={styles.retryBtn} activeOpacity={0.7}>
+        <TrackedTouchable trackId="offline_banner:retry" onPress={onRetry} style={styles.retryBtn} activeOpacity={0.7}>
           <Text style={styles.retryText}>{t('common', 'retry')}</Text>
           <Ionicons name="refresh-outline" size={13} color="#000" />
-        </TouchableOpacity>
+        </TrackedTouchable>
       </View>
     </Animated.View>
   );

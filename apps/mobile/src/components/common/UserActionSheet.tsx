@@ -1,13 +1,15 @@
 // WeWatch Mobile — UserActionSheet: tap a member → see options
 import React from 'react';
 import {
-  Modal, View, Text, TouchableOpacity, TouchableWithoutFeedback,
+  Modal, View, Text, TouchableWithoutFeedback,
   StyleSheet, Platform, Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { spacing, borderRadius } from '@theme/index';
 import { useT } from '@i18n/index';
+import { resolveMediaUrl } from '@utils/url';
 
 interface Props {
   visible: boolean;
@@ -34,14 +36,15 @@ interface RowProps {
   label: string;
   destructive?: boolean;
   onPress: () => void;
+  trackId: string;
 }
 
-function ActionRow({ icon, label, destructive, onPress }: RowProps) {
+function ActionRow({ icon, label, destructive, onPress, trackId }: RowProps) {
   return (
-    <TouchableOpacity style={s.row} onPress={onPress} activeOpacity={0.75}>
+    <TrackedTouchable trackId={trackId} style={s.row} onPress={onPress} activeOpacity={0.75}>
       <Ionicons name={icon as never} size={20} color={destructive ? '#F87171' : 'rgba(255,255,255,0.72)'} />
       <Text style={[s.rowLabel, destructive && s.rowLabelDestructive]}>{label}</Text>
-    </TouchableOpacity>
+    </TrackedTouchable>
   );
 }
 
@@ -72,7 +75,7 @@ export function UserActionSheet({
         {/* User info header */}
         <View style={s.userRow}>
           {avatar ? (
-            <Image source={{ uri: avatar }} style={[s.avatar, { borderColor: bg }]} contentFit="cover" />
+            <Image source={{ uri: resolveMediaUrl(avatar) }} style={[s.avatar, { borderColor: bg }]} contentFit="cover" />
           ) : (
             <View style={[s.avatarFallback, { backgroundColor: bg }]}>
               <Text style={s.avatarInitials}>{initials}</Text>
@@ -88,12 +91,14 @@ export function UserActionSheet({
           icon="person-outline"
           label={t('dm', 'viewProfile')}
           onPress={onViewProfile}
+          trackId="user_action_sheet:view_profile"
         />
         {!isSelf && (
           <ActionRow
             icon="chatbubble-outline"
             label={t('dm', 'sendMessage')}
             onPress={onSendMessage}
+            trackId="user_action_sheet:send_message"
           />
         )}
         {!isSelf && (
@@ -103,20 +108,22 @@ export function UserActionSheet({
               icon="flag-outline"
               label={t('friends', 'reportBtn')}
               onPress={onReport}
+              trackId="user_action_sheet:report"
             />
             <ActionRow
               icon="ban-outline"
               label={t('friends', 'blockUser')}
               destructive
               onPress={onBlock}
+              trackId="user_action_sheet:block"
             />
           </>
         )}
 
         <View style={s.divider} />
-        <TouchableOpacity style={s.cancelRow} onPress={onClose} activeOpacity={0.75}>
+        <TrackedTouchable trackId="user_action_sheet:cancel" style={s.cancelRow} onPress={onClose} activeOpacity={0.75}>
           <Text style={s.cancelLabel}>{t('common', 'cancel')}</Text>
-        </TouchableOpacity>
+        </TrackedTouchable>
 
         {Platform.OS === 'ios' && <View style={{ height: 20 }} />}
       </View>

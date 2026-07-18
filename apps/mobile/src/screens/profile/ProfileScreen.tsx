@@ -1,6 +1,7 @@
 // WeWatch Mobile — ProfileScreen (web-style card layout + animations)
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView } from 'react-native';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -156,24 +157,25 @@ export function ProfileScreen() {
             <View style={s.bannerTextWrap}>
               <Text style={s.bannerTitle}>{t('profile', 'bannerTitle')}</Text>
               <Text style={s.bannerBody}>{t('profile', 'bannerBody')}</Text>
-              <TouchableOpacity
+              <TrackedTouchable
+                trackId="profile:bind_email_banner"
                 style={s.bannerBtn}
                 activeOpacity={0.85}
                 onPress={() => navigation.navigate('BindEmail', { mode: 'bind' })}
               >
                 <Text style={s.bannerBtnText}>{t('profile', 'bannerBtn')}</Text>
-              </TouchableOpacity>
+              </TrackedTouchable>
             </View>
-            <TouchableOpacity style={s.bannerCloseBtn} onPress={handleDismissBanner} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <TrackedTouchable trackId="profile:dismiss_bind_email_banner" style={s.bannerCloseBtn} onPress={handleDismissBanner} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Ionicons name="close" size={18} color={colors.textMuted} />
-            </TouchableOpacity>
+            </TrackedTouchable>
           </FadeInView>
         ) : null}
 
         {/* Activity */}
         <View style={s.section}>
           <SectionHeader label={t('profile', 'activity')} />
-          <NavItem icon="time-outline" label={t('profile', 'watchHistory')} onPress={() => navigation.navigate('WatchHistory')} delay={450} />
+          <NavItem trackId="profile:watch_history" icon="time-outline" label={t('profile', 'watchHistory')} onPress={() => navigation.navigate('WatchHistory')} delay={450} />
         </View>
 
         {/* Coming Soon — Subscription & Purchases */}
@@ -200,6 +202,7 @@ export function ProfileScreen() {
           <SectionHeader label={t('profile', 'accountSection')} />
           <View style={s.navGroup}>
             <NavItem
+              trackId="profile:manage_email"
               icon="mail-outline"
               label={t('profile', 'emailLabel')}
               subtitle={hasRealEmail ? (displayEmail(u.email) ?? undefined) : t('profile', 'emailNotLinked')}
@@ -209,6 +212,7 @@ export function ProfileScreen() {
               delay={620}
             />
             <NavItem
+              trackId="profile:open_settings_nav"
               icon="settings-outline"
               label={t('settings', 'title')}
               onPress={() => navigation.navigate('Settings')}
@@ -219,10 +223,10 @@ export function ProfileScreen() {
 
         {/* Logout */}
         <FadeInView delay={700} style={s.section}>
-          <TouchableOpacity style={s.logoutBtn} onPress={handleLogout} activeOpacity={0.7}>
+          <TrackedTouchable trackId="profile:logout" style={s.logoutBtn} onPress={handleLogout} activeOpacity={0.7}>
             <Ionicons name="log-out-outline" size={20} color={colors.error} />
             <Text style={s.logoutText}>{t('profile', 'logoutBtn')}</Text>
-          </TouchableOpacity>
+          </TrackedTouchable>
         </FadeInView>
 
         <View style={{ height: 60 + insets.bottom + spacing.xl }} />

@@ -2,12 +2,13 @@
 // In-app browser: Chrome/Safari-style layout — compact top bar + bottom nav toolbar
 import React, { useState, useRef } from 'react';
 import {
-  View, Text, TouchableOpacity, ActivityIndicator,
+  View, Text, ActivityIndicator,
   StyleSheet, Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import WebView from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { colors, spacing, borderRadius } from '@theme/index';
 import { useMediaDetection, WEBVIEW_INJECT_JS, WEBVIEW_EARLY_JS } from '@hooks/useMediaDetection';
 import { MediaBottomBar } from '@components/watchParty/MediaBottomBar';
@@ -70,13 +71,14 @@ export function MediaWebViewScreen() {
       {/* ── TOP ADDRESS BAR ─────────────────────────────────── */}
       <View style={s.addressBar}>
         {/* Close */}
-        <TouchableOpacity
+        <TrackedTouchable
+          trackId="browser:close"
           onPress={() => webViewRef.current?.stopLoading()}
           style={s.iconBtn}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
           <Ionicons name="close" size={18} color={colors.textSecondary} />
-        </TouchableOpacity>
+        </TrackedTouchable>
 
         {/* Domain pill */}
         <View style={s.domainPill}>
@@ -155,10 +157,10 @@ export function MediaWebViewScreen() {
             </View>
             <Text style={s.errorTitle}>{t('browser', 'pageUnavailable')}</Text>
             <Text style={s.errorSub}>{t('browser', 'siteBlockedBrowser')}</Text>
-            <TouchableOpacity style={s.reloadBtn} onPress={() => webViewRef.current?.reload()}>
+            <TrackedTouchable trackId="browser:error_reload" style={s.reloadBtn} onPress={() => webViewRef.current?.reload()}>
               <Ionicons name="refresh" size={16} color={colors.white} />
               <Text style={s.reloadText}>{t('browser', 'reload')}</Text>
-            </TouchableOpacity>
+            </TrackedTouchable>
           </View>
         )}
       />
@@ -166,20 +168,24 @@ export function MediaWebViewScreen() {
       {/* ── BOTTOM NAV TOOLBAR ──────────────────────────────── */}
       <View style={[s.toolbar, { paddingBottom: Math.max(insets.bottom, spacing.sm) }]}>
         <NavBtn
+          trackId="browser:go_back"
           icon="chevron-back" size={24}
           onPress={() => webViewRef.current?.goBack()}
           disabled={!canGoBack}
         />
         <NavBtn
+          trackId="browser:go_forward"
           icon="chevron-forward" size={24}
           onPress={() => webViewRef.current?.goForward()}
           disabled={!canGoForward}
         />
         <NavBtn
+          trackId="browser:reload"
           icon="refresh" size={20}
           onPress={() => webViewRef.current?.reload()}
         />
         <NavBtn
+          trackId="browser:go_home"
           icon="logo-google" size={20}
           onPress={() => webViewRef.current?.injectJavaScript(
             `window.location.href='https://www.google.com'; true;`
@@ -196,13 +202,14 @@ export function MediaWebViewScreen() {
           <Text style={s.blockedTitle}>{t('browser', 'domainBlocked')}</Text>
           <Text style={s.blockedDomain}>{blockedDomain}</Text>
           <Text style={s.blockedSub}>{t('browser', 'domainBlockedMsg')}</Text>
-          <TouchableOpacity
+          <TrackedTouchable
+            trackId="browser:blocked_go_back"
             style={s.blockedBtn}
             onPress={() => { setBlockedDomain(null); webViewRef.current?.goBack(); }}
           >
             <Ionicons name="arrow-back" size={16} color={colors.white} />
             <Text style={s.blockedBtnText}>{t('browser', 'back')}</Text>
-          </TouchableOpacity>
+          </TrackedTouchable>
         </View>
       )}
 
@@ -224,13 +231,14 @@ export function MediaWebViewScreen() {
 
 // ── NavBtn helper ───────────────────────────────────────────────
 const NavBtn = React.memo(function NavBtn({
-  icon, size, onPress, disabled = false,
+  icon, size, onPress, disabled = false, trackId,
 }: {
   icon: React.ComponentProps<typeof Ionicons>['name'];
-  size: number; onPress: () => void; disabled?: boolean;
+  size: number; onPress: () => void; disabled?: boolean; trackId: string;
 }) {
   return (
-    <TouchableOpacity
+    <TrackedTouchable
+      trackId={trackId}
       onPress={onPress} disabled={disabled}
       style={[s.navBtn, disabled && s.navBtnDisabled]}
       hitSlop={{ top: 8, bottom: 8, left: 10, right: 10 }}
@@ -239,7 +247,7 @@ const NavBtn = React.memo(function NavBtn({
         name={icon} size={size}
         color={disabled ? colors.textDim : colors.textSecondary}
       />
-    </TouchableOpacity>
+    </TrackedTouchable>
   );
 });
 

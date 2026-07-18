@@ -21,6 +21,17 @@ if (!isExpoGoEnv) {
     { identifier: 'DECLINE', buttonTitle: 'Отклонить', options: { opensAppToForeground: false, isDestructive: true } },
   ]).catch(() => {});
 
+  // DM push — bildirishnomadan to'g'ridan-to'g'ri javob yozish (Telegram uslubi).
+  // textInput action → foydalanuvchi ilovani ochmasdan javob yozadi.
+  void Notifications.setNotificationCategoryAsync('dm_reply', [
+    {
+      identifier: 'REPLY',
+      buttonTitle: 'Javob',
+      textInput: { submitButtonTitle: 'Yuborish', placeholder: 'Xabar yozing...' },
+      options: { opensAppToForeground: false },
+    },
+  ]).catch(() => {});
+
   TaskManager.defineTask(BG_NOTIFICATION_TASK, async ({ data, error }: { data: unknown; error: unknown }) => {
     if (error) return;
     try {
@@ -28,13 +39,15 @@ if (!isExpoGoEnv) {
       // FCM data can arrive under a couple of shapes depending on OS/app state.
       const nested = (d?.notification as Record<string, unknown> | undefined)?.data as Record<string, unknown> | undefined;
       const payload = nested ?? (d?.body as Record<string, unknown> | undefined) ?? d ?? {};
-      if (payload.categoryId !== 'friend_request') return;
+      const category = payload.categoryId;
+      // Faqat action-button talab qiladigan interaktiv push'lar uchun local notification quramiz.
+      if (category !== 'friend_request' && category !== 'dm_reply') return;
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: String(payload.title ?? "Yangi do'st so'rovi"),
+          title: String(payload.title ?? ''),
           body: String(payload.body ?? ''),
           data: payload,
-          categoryIdentifier: 'friend_request',
+          categoryIdentifier: String(category),
         },
         trigger: null,
       });

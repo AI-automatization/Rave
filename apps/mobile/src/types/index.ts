@@ -132,6 +132,14 @@ export interface IDMMessage {
   receiverId: string;
   text: string;
   read: boolean;
+  // Reply — javob berilgan xabar snapshot'i (Telegram uslubi)
+  replyToId?: string | null;
+  replyToText?: string | null;
+  replyToSender?: string | null;
+  // Forward — boshqa suhbatdan uzatilgan bo'lsa, original muallif username'i
+  forwardFrom?: string | null;
+  // Pin — ikkala suhbatdosh ham ko'radi (shared state, faqat menga emas)
+  pinned?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -143,6 +151,8 @@ export interface IDMConversation {
   lastMessage: string;
   lastMessageAt: string;
   unreadCount: number;
+  isMuted: boolean;
+  isPinned: boolean;
 }
 
 // ─────────────────────────────────────────────

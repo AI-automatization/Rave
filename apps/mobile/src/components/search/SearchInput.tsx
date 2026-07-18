@@ -1,7 +1,8 @@
 // WeWatch Mobile — SearchInput component
 import React from 'react';
-import { View, TextInput, TouchableOpacity } from 'react-native';
+import { View, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useTheme, createThemedStyles, spacing, borderRadius } from '@theme/index';
 
 interface SearchInputProps {
@@ -38,9 +39,9 @@ export const SearchInput = React.memo(function SearchInput({
           autoCapitalize="none"
         />
         {value.length > 0 && (
-          <TouchableOpacity onPress={onClear} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <TrackedTouchable trackId="search:clear_input" onPress={onClear} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Ionicons name="close-circle" size={18} color={colors.textMuted} />
-          </TouchableOpacity>
+          </TrackedTouchable>
         )}
       </View>
     </View>

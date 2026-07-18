@@ -3,8 +3,9 @@
 import React, { useRef, useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, StatusBar, Dimensions,
-  TouchableOpacity, TouchableWithoutFeedback, ActivityIndicator, Animated,
+  TouchableWithoutFeedback, ActivityIndicator, Animated,
 } from 'react-native';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { VideoView } from 'expo-video';
 import WebView from 'react-native-webview';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -80,10 +81,10 @@ function YouTubePlayer({
       {!loading && (
         <View style={[s.ytBackWrap, { top: insets.top + 12 }]}>
           <BlurView intensity={50} tint="dark" style={s.ytBackBlur}>
-            <TouchableOpacity style={s.ytBackBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
+            <TrackedTouchable trackId="video_player:back" style={s.ytBackBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
               <Ionicons name="chevron-back" size={18} color={colors.white} />
               <Text style={s.ytBackText} numberOfLines={1}>{title}</Text>
-            </TouchableOpacity>
+            </TrackedTouchable>
           </BlurView>
         </View>
       )}
@@ -156,11 +157,11 @@ function DirectPlayer({
                 locations={[0, 0.6, 1]}
                 style={[s.topGrad, { paddingTop: insets.top + 8 }]}
               >
-                <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} activeOpacity={0.7}>
+                <TrackedTouchable trackId="video_player:back" onPress={() => navigation.goBack()} style={s.backBtn} activeOpacity={0.7}>
                   <BlurView intensity={30} tint="dark" style={s.backBtnBlur}>
                     <Ionicons name="chevron-back" size={20} color={colors.white} />
                   </BlurView>
-                </TouchableOpacity>
+                </TrackedTouchable>
                 <View style={s.titleWrap}>
                   <Text style={s.topTitle} numberOfLines={1}>{title}</Text>
                   {dur > 0 && <Text style={s.topSubtitle}>{fmtTime(pos)} / {fmtTime(dur)}</Text>}
@@ -174,25 +175,25 @@ function DirectPlayer({
                   <ActivityIndicator color={colors.white} size="large" />
                 ) : (
                   <View style={s.centerRow}>
-                    <TouchableOpacity onPress={() => skipBy(-SEEK_SEC)} activeOpacity={0.7}>
+                    <TrackedTouchable trackId="video_player:skip_back" onPress={() => skipBy(-SEEK_SEC)} activeOpacity={0.7}>
                       <View style={s.skipButton}>
                         <Ionicons name="play-back" size={22} color={colors.white} />
                         <Text style={s.skipText}>{SEEK_SEC}</Text>
                       </View>
-                    </TouchableOpacity>
+                    </TrackedTouchable>
                     <Animated.View style={{ transform: [{ scale: playBtnScale }] }}>
-                      <TouchableOpacity onPress={togglePlay} activeOpacity={0.8}>
+                      <TrackedTouchable trackId="video_player:play_pause" onPress={togglePlay} activeOpacity={0.8} trackMeta={{ willPlay: !playing }}>
                         <LinearGradient colors={['rgba(255,255,255,0.25)', 'rgba(255,255,255,0.1)']} style={s.playButton}>
                           <Ionicons name={playing ? 'pause' : 'play'} size={36} color={colors.white} style={playing ? undefined : { marginLeft: 4 }} />
                         </LinearGradient>
-                      </TouchableOpacity>
+                      </TrackedTouchable>
                     </Animated.View>
-                    <TouchableOpacity onPress={() => skipBy(SEEK_SEC)} activeOpacity={0.7}>
+                    <TrackedTouchable trackId="video_player:skip_forward" onPress={() => skipBy(SEEK_SEC)} activeOpacity={0.7}>
                       <View style={s.skipButton}>
                         <Ionicons name="play-forward" size={22} color={colors.white} />
                         <Text style={s.skipText}>{SEEK_SEC}</Text>
                       </View>
-                    </TouchableOpacity>
+                    </TrackedTouchable>
                   </View>
                 )}
               </View>
@@ -203,7 +204,8 @@ function DirectPlayer({
                 locations={[0, 0.4, 1]}
                 style={[s.botGrad, { paddingBottom: (insets.bottom || 12) + 12 }]}
               >
-                <TouchableOpacity
+                <TrackedTouchable
+                  trackId="video_player:seek_bar"
                   activeOpacity={1}
                   onPress={(e) => seekTo(e.nativeEvent.locationX)}
                   onLayout={(e) => setSeekBarW(e.nativeEvent.layout.width)}
@@ -218,7 +220,7 @@ function DirectPlayer({
                     />
                   </View>
                   <View style={[s.seekThumb, { left: Math.max(0, progress * seekBarW - 8), backgroundColor: colors.primary }]} />
-                </TouchableOpacity>
+                </TrackedTouchable>
                 <View style={s.timeRow}>
                   <Text style={s.timeCurrent}>{fmtTime(pos)}</Text>
                   <View style={s.timeSpacer} />
@@ -253,10 +255,10 @@ function ErrorScreen({
       </View>
       <Text style={s.errorTitle}>{t('common', 'videoError')}</Text>
       <Text style={[s.errorMsg, { color: colors.textMuted }]}>{message}</Text>
-      <TouchableOpacity style={[s.errorBtn, { backgroundColor: colors.primary }]} onPress={onBack} activeOpacity={0.8}>
+      <TrackedTouchable trackId="video_player:error_go_back" style={[s.errorBtn, { backgroundColor: colors.primary }]} onPress={onBack} activeOpacity={0.8}>
         <Ionicons name="arrow-back" size={18} color={colors.white} />
         <Text style={s.errorBtnText}>{t('watchParty', 'goBack')}</Text>
-      </TouchableOpacity>
+      </TrackedTouchable>
     </Animated.View>
   );
 }

@@ -100,6 +100,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'monthly',
       priority: 0.9,
     },
+    {
+      url: `${BASE}/uz/guides/kino-birgalikda`,
+      lastModified: new Date('2026-07-07'),
+      changeFrequency: 'monthly',
+      priority: 0.9,
+    },
 
     // ── Лендинг-страницы продукта / компании ──────────────────────────────────
     {

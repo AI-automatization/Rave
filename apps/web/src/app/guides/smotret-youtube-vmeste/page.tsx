@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
 
 export const metadata: Metadata = {
-  title: 'Смотреть YouTube вместе с другом онлайн бесплатно | WeWatch',
+  title: 'Смотреть YouTube вместе с другом онлайн бесплатно',
   description: 'Как смотреть YouTube с друзьями одновременно — синхронный просмотр через WeWatch. Один ставит паузу — все ставят паузу. Бесплатно, iOS и Android.',
   keywords: ['смотреть youtube вместе', 'смотреть ютуб вместе с другом', 'youtube watch party', 'смотреть youtube одновременно', 'совместный просмотр youtube', 'youtube с друзьями онлайн'],
   alternates: {
@@ -44,6 +45,7 @@ export default function SmotretYoutubeVmestePage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <GuideHeader locale="ru" />
       <main className="min-h-screen bg-[#060608] text-white">
         <div className="max-w-3xl mx-auto px-4 py-16">
           <nav className="text-sm text-zinc-500 mb-8">
@@ -140,6 +142,7 @@ export default function SmotretYoutubeVmestePage() {
           </div>
         </div>
       </main>
+      <GuideFooter locale="ru" />
     </>
   );
 }

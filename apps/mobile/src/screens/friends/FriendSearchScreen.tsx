@@ -1,6 +1,7 @@
 // WeWatch Mobile — FriendSearchScreen
 import React, { useState } from 'react';
-import { View, Text, TextInput, FlatList, TouchableOpacity, ActivityIndicator, ListRenderItemInfo } from 'react-native';
+import { View, Text, TextInput, FlatList, ActivityIndicator, ListRenderItemInfo } from 'react-native';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -15,6 +16,7 @@ import { RANK_COLORS } from '@theme/index';
 import { IUserPublic, FriendsStackParamList } from '@app-types/index';
 import { useT } from '@i18n/index';
 import { DEFAULT_AVATAR } from '@utils/assets';
+import { resolveMediaUrl } from '@utils/url';
 import { useStyles } from './FriendSearchScreen.styles';
 import { appAlert } from '@components/common/AppAlert';
 
@@ -53,7 +55,8 @@ export function FriendSearchScreen() {
     const rankColor = RANK_COLORS[item.rank];
 
     return (
-      <TouchableOpacity
+      <TrackedTouchable
+        trackId="friend_search:open_profile"
         style={styles.row}
         onPress={() => navigation.navigate('FriendProfile', { userId: item._id })}
         activeOpacity={0.85}
@@ -62,7 +65,7 @@ export function FriendSearchScreen() {
         <View style={styles.avatarWrap}>
           <View style={[styles.avatarRing, { borderColor: rankColor + '80' }]}>
             <Image
-              source={item.avatar ? { uri: item.avatar } : DEFAULT_AVATAR}
+              source={item.avatar ? { uri: resolveMediaUrl(item.avatar) } : DEFAULT_AVATAR}
               style={styles.avatar}
               contentFit="cover"
             />
@@ -100,7 +103,8 @@ export function FriendSearchScreen() {
               <Text style={styles.sentPillText}>{t('friends', 'sentPill')}</Text>
             </View>
           ) : (
-            <TouchableOpacity
+            <TrackedTouchable
+              trackId="friend_search:send_request"
               style={styles.addBtn}
               onPress={() => sendRequest.mutate(item._id)}
               disabled={sendRequest.isPending}
@@ -108,10 +112,10 @@ export function FriendSearchScreen() {
             >
               <Ionicons name="person-add-outline" size={14} color={colors.white} />
               <Text style={styles.addBtnText}>{t('friends', 'addBtn')}</Text>
-            </TouchableOpacity>
+            </TrackedTouchable>
           )}
         </View>
-      </TouchableOpacity>
+      </TrackedTouchable>
     );
   };
 
@@ -119,9 +123,9 @@ export function FriendSearchScreen() {
     <View style={styles.root}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+        <TrackedTouchable trackId="friend_search:back" onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
-        </TouchableOpacity>
+        </TrackedTouchable>
         <View style={styles.searchBox}>
           <Ionicons name="search" size={16} color={isFetching ? colors.primary : colors.textMuted} />
           <TextInput
@@ -136,9 +140,9 @@ export function FriendSearchScreen() {
             autoCorrect={false}
           />
           {query.length > 0 && (
-            <TouchableOpacity onPress={() => setQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <TrackedTouchable trackId="friend_search:clear" onPress={() => setQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Ionicons name="close-circle" size={16} color={colors.textMuted} />
-            </TouchableOpacity>
+            </TrackedTouchable>
           )}
         </View>
       </View>
@@ -158,7 +162,7 @@ export function FriendSearchScreen() {
                   <Ionicons name="person-outline" size={32} color={colors.primary} />
                 </View>
                 <Text style={styles.emptyTitle}>{t('watchParty', 'noSearchResults')}</Text>
-                <Text style={styles.emptySubtext}>«{query}» не совпадает ни с одним пользователем</Text>
+                <Text style={styles.emptySubtext}>«{query}» {t('friends', 'noMatchSuffix')}</Text>
               </View>
             ) : (
               <View style={styles.empty}>

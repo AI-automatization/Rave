@@ -1,10 +1,11 @@
 // WeWatch Mobile — WatchParty ChatPanel
 import React, { useRef, useState } from 'react';
 import {
-  View, Text, FlatList, TextInput, TouchableOpacity,
+  View, Text, FlatList, TextInput,
   KeyboardAvoidingView, Platform, ListRenderItemInfo,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useT } from '@i18n/index';
 import { chatStyles as s } from './ChatPanel.styles';
 
@@ -51,7 +52,7 @@ function MessageItem({
   const avatarColor = memberColor(item.userId);
 
   return (
-    <TouchableOpacity onLongPress={() => onReply(item)} activeOpacity={0.85} delayLongPress={400}>
+    <TrackedTouchable trackId="chat:message" onLongPress={() => onReply(item)} activeOpacity={0.85} delayLongPress={400}>
       <View style={[s.messageRow, isMine && s.messageRowMine]}>
         {!isMine && (
           <View style={[s.avatar, { backgroundColor: avatarColor }]}>
@@ -81,7 +82,7 @@ function MessageItem({
           </View>
         </View>
       </View>
-    </TouchableOpacity>
+    </TrackedTouchable>
   );
 }
 
@@ -150,12 +151,13 @@ export function ChatPanel({ messages, currentUserId, onSend }: ChatPanelProps) {
             <Text style={s.replyBarLabel}>{replyTo.senderName}ga javob</Text>
             <Text style={s.replyBarText} numberOfLines={1}>{replyTo.text}</Text>
           </View>
-          <TouchableOpacity
+          <TrackedTouchable
+            trackId="chat:cancel_reply"
             onPress={() => setReplyTo(null)}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Ionicons name="close-circle" size={18} color="rgba(255,255,255,0.35)" />
-          </TouchableOpacity>
+          </TrackedTouchable>
         </View>
       )}
 
@@ -172,14 +174,15 @@ export function ChatPanel({ messages, currentUserId, onSend }: ChatPanelProps) {
           maxLength={200}
           multiline={false}
         />
-        <TouchableOpacity
+        <TrackedTouchable
+          trackId="chat:send"
           style={[s.sendBtn, !canSend && s.sendBtnOff]}
           onPress={handleSend}
           activeOpacity={0.8}
           disabled={!canSend}
         >
           <Ionicons name="send" size={15} color="#fff" style={{ marginLeft: 2 }} />
-        </TouchableOpacity>
+        </TrackedTouchable>
       </View>
     </KeyboardAvoidingView>
   );

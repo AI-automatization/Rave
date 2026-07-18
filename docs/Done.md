@@ -1,6 +1,264 @@
 # WeWatch — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-07-09
+# Yangilangan: 2026-07-18
+
+---
+
+### F-242 | T-S134 | Google/Telegram login web'da hali ham tugamayapti — popup.closed COOP tufayli yolg'on
+
+- **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-18  **Model:** sonnet
+- **O'zgarishlar:** `LoginForm.tsx` — `closedCheck` (500ms timer, `.closed`ga ishonuvchi) olib
+  tashlandi. O'rniga `visibilitychange`/`focus` listener — faqat foydalanuvchi tab'ga qaytganda
+  `.closed`ni tekshiradi. Ground-truth poll interval endi to'liq sessiya davomida uzilmaydi.
+  Ikkala flow (Google + Telegram) uchun bir xil.
+- **Root cause:** T-S132 (rate limit) haqiqiy edi, lekin asosiy sabab emas edi. Prod loglarida
+  3/3 jonli urinishda ANIQ 2ta poll ketib, keyin sukunat — deterministik, tasodifiy emas. Sabab:
+  popup `accounts.google.com`ga o'tgach, Google'ning o'z COOP header'i opener bog'lanishini uzadi,
+  `.closed` shu zahoti (popup hali ochiq bo'lsa ham) `true` qaytaradi. `closedCheck` buni "user
+  cancelled" deb 3s dan keyin pollingni to'xtatgan — ~4s da, real login tugashidan ancha oldin.
+- **Tekshiruv:** Railway deploy `ecb1fdf3` — SUCCESS, health-check clean, `ratelimit-limit: 90`
+  header hali ham live (T-S132 rollback bo'lmagan).
+
+---
+
+### F-241 | T-S133 | YouTubePlayer web'da onError qo'shildi — deploy tasdiqlandi
+
+- **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-18  **Model:** sonnet
+- **O'zgarishlar:** `YouTubePlayer.tsx`ga `onError` handler + xato UI (mavjud "Не удалось загрузить
+  видео" pattern'iga mos).
+- **Tekshiruv:** Railway deploy `1725a36d` — SUCCESS, `app-web` Online, ertalab tasdiqlandi.
+
+---
+
+### F-240 | T-S132 | Google sign-in web'da zависал — pollRateLimiter 30/min < client poll cadence
+
+- **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-18  **Model:** sonnet
+- **O'zgarishlar:** `shared/src/middleware/rateLimiter.middleware.ts` — `pollRateLimiter.max` 30→90.
+  `apps/app-web/src/app/(auth)/login/LoginForm.tsx` — Google poll interval 800ms→2000ms, 429 endi
+  "hali kutilmoqda" bilan bir xil emas — alohida ushlanadi va pollingni to'xtatadi.
+- **Root cause:** Google popup flow 800ms intervalda `/google/poll`ni so'raydi (~75 req/min), lekin
+  limiter 30 req/min bilan cheklagan. Haqiqiy Google OAuth (account picker+consent) 24s dan uzoq
+  davom etganda client 429 ura boshlagan, xato `catch{}`da jim yutilgan — parent tab hech qachon
+  login tugaganini bilmagan, foydalanuvchi cheksiz spinner'da qolgan.
+- **Tekshiruv:** Live incident — Bekzod aka TEZCODE Wewatch topic'da xabar berdi (00:30-00:38,
+  2026-07-18), skrinshotlar (Google callback "Вы вошли!" lekin auto-close/redirect ishlamagan)
+  tahlil qilindi. Prod'da deploy qilingandan keyin `ratelimit-limit: 90` header orqali tasdiqlandi.
+  auth+app-web+content+notification+user+watch-part+admin — barchasi `shared/`ni tortib qayta
+  deploy bo'ldi, hammasi Online, health-check clean (mongo:ok, redis:ok).
+- **Xulosa:** Telegram login xuddi shu muammoni tasodifan aylanib o'tgan edi (`/api/auth/me`ni
+  poll qiladi, `pollRateLimiter` ostida emas) — shu farq root cause'ni aniqlashda kalit bo'ldi.
+
+---
+
+### F-239 | T-S131 | app-web: instant video swap (CHANGE_MEDIA) — YouTube/Android bilan parity
+
+- **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-17  **Model:** sonnet
+- **O'zgarishlar:** `use-watch-party.ts` — `sendMediaChange()` qo'shildi (CLIENT_EVENTS.CHANGE_MEDIA
+  emit, mobile'ning `emitMediaChange`'iga oyna). `RoomContent.tsx` — PlaylistPanel'ga "Play now"
+  tugma (yashil, ▶) qo'shildi, mavjud "+" (navbatga qo'shish) tugmasi bilan bir qatorda. 3 ta
+  messages/{ru,en,uz}.json — `party.playNow` kaliti.
+- **Tekshiruv:** Research (Explore agent) YouTube watch-party sync web'da (`apps/app-web`,
+  `YouTubePlayer.tsx`) allaqachon ishlashini tasdiqladi — official IFrame API, owner heartbeat+drift
+  correction, xuddi mobile'dagi kabi. `shared/src/constants/socketEvents.ts` protokoli
+  platformadan mustaqil (`{ currentTime }` raqamlar) — Android+Web bitta xonada allaqachon
+  aralashishi mumkin edi. Yagona haqiqiy farq — video'ni darhol almashtirish UI'si web'da yo'q edi
+  (faqat playlist-navbat bor edi), shu tuzatildi. `apps/web` (landing) — o'lik/eskirgan kod, tegilmadi.
+- **Xulosa:** tsc --noEmit va eslint ikkala o'zgargan faylda toza (mavjud `any` xatolari
+  use-watch-party.ts:70'da mendan oldin edi, dev-workflow bo'yicha fon).
+
+---
+
+### F-238 | T-S130 | Fullscreen overlay video'ni tor chiziqqa siqib qo'ygan bug tuzatildi
+
+- **Bajaruvchi:** Saidazim (Claude opus)  **Bajarilgan:** 2026-07-16  **Model:** sonnet
+- **O'zgarishlar:** `WatchPartyScreen.tsx` — `fsChatWrap.height` endi `useWindowDimensions()`
+  orqali render vaqtida hisoblanadi (`Math.round(winHeight * 0.38)`), modul darajasidagi
+  `Dimensions.get('window').height` konstantasi olib tashlandi. Fullscreen orientatsiya-lock
+  effekti endi `setShowChat(false)` ham chaqiradi — fullscreen'ga kirganda chat panel
+  avtomatik yopiladi, video darhol markazda.
+- **Xulosa:** Foydalanuvchi: fullscreen rejimida overlay butun ekranni egallagan, video
+  faqat tor ko'rinadigan chiziq bo'lib qolgan. Root cause: `SCREEN_H` moduli yuklanganda
+  BIR MARTA portret orientatsiyada o'qilgan, keyin hech qachon yangilanmagan.
+  `ScreenOrientation.lockAsync(LANDSCAPE)` fullscreen'da chaqirilgach real balandlik ancha
+  kichik bo'ladi, lekin `fsChatWrap` hamon katta portret-balandlikning 38%ini ishlatardi —
+  `showChat` default `true` bo'lgani uchun bu deyarli butun landscape ekranni egallagan.
+  tsc --noEmit: CLEAN. Real qurilmada tasdiqlash keyingi qadam (yangi build kerak).
+
+---
+
+### F-237 | T-S124 | Telegram login tugmasi web'da (`/login`)
+
+- **Bajaruvchi:** Saidazim (Claude opus)  **Bajarilgan:** 2026-07-16  **Model:** sonnet
+- **O'zgarishlar:** `apps/app-web/src/app/api/auth/telegram/init/route.ts` (yangi) — bekend
+  `POST /telegram/init`ni chaqiradi, `tg://resolve?domain=X` (mobil deep-link, brauzer
+  tushunmaydi) dan domain chiqarib `https://t.me/X?start=login` (universal link) qaytaradi.
+  `src/lib/api/auth.api.ts` — `telegramInit()`. `LoginForm.tsx` — "Telegram" tugmasi + Google
+  bilan bir xil pattern: popup await'dan OLDIN ochiladi (Chrome bloklamasin uchun), keyin
+  `t.me` linkiga navigatsiya, so'ng `authApi.me()` har 800ms poll (postMessage kerak emas —
+  callback sahifa bilan bir xil origin, cookie'lar darhol ko'rinadi). `auth/telegram/callback/
+  page.tsx` — muvaffaqiyatdan keyin `window.close()` (faqat `window.opener` mavjud bo'lsa —
+  mobil/no-popup holatida sahifa oddiy status ko'rsatishda davom etadi).
+- **Xulosa:** Bekend (`services/auth/telegramAuth.service.ts` — hash verifikatsiya,
+  `login_url` webhook, callback-sahifa) allaqachon TO'LIQ tayyor edi — yetishmagan qism
+  faqat login sahifasidagi tugma edi. Foydalanuvchi ko'p marta savol berdi (qanday ko'rinadi,
+  nega telefon-kod input emas, Google kabi bo'lsinmi) — MTProto orqali telefon+kod so'rash
+  (Telegram akkauntga to'liq kirish huquqi berardi, fishing-pattern bilan bir xil) rad etildi,
+  rasmiy Login Widget (login_url tugma) tanlandi. tsc/eslint/production build: CLEAN.
+
+---
+
+### F-236 | T-S123 | YouTube Innertube-спуфинг убран (Play Store risk)
+
+- **Bajaruvchi:** Saidazim (Claude opus)  **Bajarilgan:** 2026-07-16  **Model:** sonnet
+- **O'zgarishlar:** `src/utils/youtubeInnertube.ts` o'chirildi (rasmiy Android YouTube
+  klientini spoofing — ANDROID_YT_VERSION/ANDROID_SDK). `useWebViewPlayer.ts` —
+  `extractYouTubeStream` import + `onYtInnertubeUrl` prop olib tashlandi, `YT_EMBED_ERROR`
+  (101/150/152) endi to'g'ridan `setYtEmbedBlocked(true)`. `WebViewPlayer.tsx` — "YouTube'da
+  ochish" tugmasi (`Linking.openURL`) olib tashlandi, fallback ekran yangi matn ko'rsatadi.
+  `UniversalPlayer.tsx` — `innertubeUrl` state + `effectiveExtractedUrl` dagi ustuvorlik olib
+  tashlandi (`sniffedUrl ?? extractedUrl`). `translations.ts` — `embeddedPlayerUnavailable/
+  embeddingForbidden/openInYouTube` (o'lik) → `cannotExtractVideo/tryAnotherVideo` (3 til).
+- **Xulosa:** Play Store compliance audit'da topilgan risk — Innertube-spoofing Google'ning
+  o'z platformasida (YouTube) ToS chetlab o'tish, har qanday pirat saytdan ham osonroq
+  aniqlanadi. Saidazim so'roviga ko'ra fallback ekran endi tashqi ilovaga yo'naltirmaydi —
+  shunchaki "Bu videoni chiqarib bo'lmadi / Boshqa videoni sinab ko'ring" ko'rsatadi. Oddiy
+  YouTube videolar (embedding ruxsat etilgan — aksariyat) butunlay ta'sirlanmagan, faqat
+  muallif embedding'ni aniq taqiqlagan tor edge-case o'zgardi. tsc --noEmit: CLEAN.
+
+---
+
+### F-235 | T-S122 | DM Web paritet — Android bilan bir xil funksiya + vizual (7 fazali)
+
+- **Bajaruvchi:** Saidazim (Claude opus)  **Bajarilgan:** 2026-07-15  **Model:** opus
+- **O'zgarishlar (26 fayl):**
+  - **Types/API:** `apps/app-web/src/lib/api/user.api.ts` — `DmMessage` mobil `IDMMessage`ga
+    tekislandi (`read/replyTo*/forwardFrom/pinned/updatedAt`), `userApi`ga 7 ta yangi metod
+    (forwardMessage/markRead/markReadUpTo/toggleMute/togglePinConversation/togglePinMessage/
+    getPinnedMessages).
+  - **Utils:** `lib/dm/dm-format.ts` (memberColor/formatTime/formatRelative — dedup
+    ConversationList+ChatWindow'dan), `lib/dm/dm-date-groups.ts` (buildDMList/findJumpIndex —
+    mobildan deyarli so'zma-so'z port), `lib/dm/scroll-position-storage.ts` (localStorage,
+    SSR-guard).
+  - **Proxy routes (7 ta yangi):** `api/user/dm/[peerId]/{forward,read,read-until,mute,pin,
+    pinned}/route.ts` + `.../messages/[messageId]/pin/route.ts`.
+  - **i18n:** `dm`+`calendar` namespace'lariga 16+12 kalit, 3 til (en/ru/uz).
+  - **Hooks:** `hooks/use-dm.ts` qayta yozildi — `useDmRealtime` endi `DM_READ` eventini
+    tinglaydi (o'z xabarlarini `read:true` qiladi), `useSendDm` — optimistic + temp-id
+    reconciliation (remove-first-match, mobildan port) + socket-first/REST-fallback,
+    yangi `useToggleMute/useTogglePinConversation` (optimistic+rollback)/
+    `usePinnedMessages/useTogglePinMessage/useForwardMessage`. `hooks/use-dm-viewport.ts`
+    (yangi) — mobil `useDMChatViewport`ning IntersectionObserver analogi: sticky-date +
+    view-based read-marking (debounce 400ms) + scroll-position memory (debounce 600ms) —
+    bitta observer, 3 vazifa.
+  - **socket.ts:** `getSocket()` `connectPromise` bilan dedup qilindi (xuddi api-client.ts
+    `refreshPromise` patterni) — parallel `io()` race yopildi.
+  - **Komponentlar (`components/messages/dm/`, 10 ta yangi):** `MessageItem.tsx` (80%
+    maxWidth trick — wrapper'da, bubble'da emas; forward-header/reply-quote/pin/read-tick),
+    `DateSeparator.tsx`, `StickyDateHeader.tsx` (fade-timer komponentda, hookda emas —
+    mobil split'ini aynan takrorlaydi), `ChatWallpaper.tsx` (deterministik scatter,
+    ResizeObserver — window emas, SSR-safe), `MessageActionSheet.tsx` (Dialog bottom-sheet,
+    DropdownMenu emas — per-row anchor muammosi), `ReplyPreviewBar.tsx`, `ForwardPicker.tsx`
+    (FriendSearch shell qayta ishlatildi), `PinnedMessagesBar.tsx` (cycle-index porti),
+    `DatePickerModal.tsx` (Intl.DateTimeFormat weekday — 7ta qo'shimcha i18n key kerak
+    emas), `ChatPreviewModal.tsx` (Telegram-style peek, decoupled query, markRead chaqirmaydi).
+  - **`ConversationList.tsx`:** pinned-first sort, unread accent-bar (active'dan alohida),
+    hover/tap "…" menu (touch uchun ham ko'rinadi), right-click → preview.
+  - **`ChatWindow.tsx`:** to'liq orkestrator — buildDMList + barcha yangi komponentlar ulandi.
+  - **O'chirildi:** `MessageBubble.tsx` (MessageItem bilan almashtirildi, konsumerlari yo'q
+    edi).
+  - **Tasks.md tozalash:** T-S118/119/120/121 (reply/forward/forward-privacy/read-receipt)
+    grep bilan backend'da allaqachon tayyorligi tasdiqlandi (doc/code drift) — Done.md'ga
+    ko'chirildi (F-234), Tasks.md'dan olib tashlandi.
+- **Xulosa:** Saidazim: "веб чаты должны выглядеть как в андроиде и функции те же должны
+  быть и там". Backend (`services/user` `/dm/*`) grep bilan 100% tayyor ekani tasdiqlandi —
+  yetishmagan qism faqat veb edi. 7 faza (Foundation→API+hooks→List→Chat core→Interactions→
+  Read-receipts→Integration) izchil bajarildi, har faza alohida `tsc --noEmit` + `eslint`
+  bilan tekshirilib commit qilindi. Yakuniy tekshiruv: `npm run build` (production) — barcha
+  7 yangi route ro'yxatdan o'tdi, `/messages` sahifasi muvaffaqiyatli build bo'ldi (33.8kB),
+  route conflict yo'q. tsc: CLEAN butun jarayon davomida (yangi xatolik 0 ta). Real
+  ikki-sessiyali tekshiruv (DM_READ live tick-flip, pin/mute sync) va Playwright vizual
+  QA (desktop+mobile-web) — keyingi qadam, kod tomonidan hammasi tayyor va ulangan.
+  To'liq reja: `/Users/saidazim/.claude/plans/lively-weaving-dongarra.md`.
+
+---
+
+### F-234 | T-S118,T-S119,T-S120,T-S121 | DM reply/forward/forward-privacy/read-receipt — hujjat/kod drift tozalandi (backend allaqachon tayyor edi)
+
+- **Bajaruvchi:** Saidazim (Claude opus)  **Bajarilgan:** 2026-07-15  **Model:** opus
+- **O'zgarishlar:** Kod o'zgarmadi — bu faqat `docs/Tasks.md` tozalash. Veb DM paritet ishini boshlashdan oldin (`services/user/src/routes/user.routes.ts`, `services/user/src/services/dm.service.ts`, `services/user/src/models/directMessage.model.ts`, `services/user/src/models/user.model.ts`, `services/watch-party/src/socket/dmEvents.handler.ts`) grep bilan tasdiqlandi: T-S118 (`replyToId/replyToText/replyToSender` model+service+REST+socket — bor), T-S119 (`forwardMessage()` + `forwardFrom` snapshot + `POST /dm/:userId/forward` — bor), T-S120 (`user.model.ts:15,88` — `privacy.allowForward: boolean, default true` + `dm.service.ts:209` enforce — bor), T-S121 (`dmEvents.handler.ts:48,61` — `DM_READ_UNTIL` qabul qilib `SERVER_EVENTS.DM_READ` sender xonasiga emit qiladi — bor).
+- **Xulosa:** 4 ta task `docs/Tasks.md`da "❌ Boshlanmagan" deb qolgan edi, lekin kod ular allaqachon boshqa sessiyada (yoki shu sessiyalarning birida) bajarilgan — Task tool'ning ichki tarixida ham mos yozuvlar bor edi (#10/#11/#12 completed), lekin `docs/Tasks.md`/`Done.md` yangilanmagan. Bu aynan `project_doc_vs_code_drift_lesson` xotirasida ogohlantirilgan pattern. Tozalanmasa — veb DM paritet rejasi (T-S122) noto'g'ri "backend yo'q" taxminiga asoslanib qayta ishlanardi. `shared/types` `IDMMessage`ga `replyToId/replyToText/replyToSender/forwardFrom/pinned` maydonlari ham allaqachon mos — LOCK protocol talab qilinmadi (shared o'zgarmadi).
+
+---
+
+### F-230 | T-S129 | DM chat sahifasi web'da butunlay crash — Conversation kontrakti tekislandi
+
+- **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-15  **Model:** sonnet
+- **O'zgarishlar:** `apps/app-web/src/lib/api/user.api.ts` — `Conversation` interfeysi backend/mobil bilan tekislandi (`peerUsername`, `peerAvatar`, `lastMessage: string`, `lastMessageAt`, `isMuted`, `isPinned` — nested `peer`/`lastMessage` obyekti o'rniga). `ConversationList.tsx` — `conv.peer.username/avatar/isOnline` → `conv.peerUsername/peerAvatar` (isOnline — backend hech qachon qaytarmagan o'lik maydon, olib tashlandi). `MessagesContent.tsx` — `selectedConvo?.peer.username` → `selectedConvo?.peerUsername`.
+- **Xulosa:** Foydalanuvchi brauzer konsolini yubordi: `TypeError: undefined is not an object (evaluating 'e.peer.username')`. Root cause — web frontend'ning `Conversation` interfeysi hech qachon haqiqiy backend javobiga mos kelmagan xayoliy tuzilma bilan yozilgan edi (nested `peer` obyekti), lekin `services/user/src/services/dm.service.ts` TEKISLANGAN maydonlar qaytaradi (`peerUsername`, `peerAvatar`, `lastMessage: string`). Mobil ilova (`IDMConversation`) to'g'ri, haqiqiy kontraktga mos yozilgan — shuning uchun mobilkada DM ishlagan, web'da esa HAR QANDAY mavjud suhbat butun sahifani yiqitgan (nested error.tsx yo'qligi sababli xato root `global-error.tsx`gacha ko'tarilgan). Bu web DM'ning birinchi marta yaratilganidan beri hech qachon to'g'ri ishlamaganini anglatadi. tsc: CLEAN (apps/app-web, yangi xatolik yo'q). Railway avtomatik deploy qildi, healthcheck ✅, `app.wewatch.uz/messages` tekshirildi. Commit `c0b7d2b`.
+
+---
+
+### F-229 | T-S128 | Android VK/Rutube full-site WebView — abadiy loading fix (timeout + retry)
+
+- **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-15  **Model:** sonnet
+- **O'zgarishlar:** `apps/mobile/src/hooks/useWebViewPlayer.ts` — `URL_MODE_LOAD_TIMEOUT_MS` konstantasi (18s Android / 12s iOS) + yangi effekt: `isHtmlMode=false` (Android VK/Rutube full-site) uchun timeout tugaganda — agar adapter allaqachon `<video>` elementini topgan bo'lsa (`receivedFirstMessageRef`) shunchaki overlay yopiladi, aks holda mavjud `error`/`handleRetry` UI ko'rsatiladi.
+- **Xulosa:** Foydalanuvchi: web'da Rutube xona ochib, Android ilova orqali qo'shilganda video "rutube.ru" domeni bilan abadiy loading holatida qolgan (web'da esa normal ishlagan — web server-side extraction, Android esa client-side WebView sniffing ishlatadi, IP-lock sababli). Root cause: `LOAD_TIMEOUT_MS` mexanizmi faqat `isHtmlMode` (YouTube) uchun ishlagan; Android'ning "full-site" rejimi faqat WebView'ning o'z `onLoadEnd`ga tayangan — og'ir SPA sahifa (fon XHR/trekerlar) hech qachon "tugadi" signalini bermasa, overlay abadiy osilib qolardi, retry imkoniyati yo'q edi. Endi timeout bor va foydalanuvchi hech bo'lmaganda retry qila oladi yoki video allaqachon topilgan bo'lsa avtomatik ko'rinadi. tsc: CLEAN (apps/mobile, yangi xatolik yo'q). Commit `70713cc`. Yangi APK build kerak — real qurilmada tasdiqlash keyingi qadam.
+
+---
+
+### F-228 | T-S127 | Web: Rutube/VK (va boshqa embed'lar) xona yaratilmasligi — Mongoose/Joi enum rassinxroni
+
+- **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-14  **Model:** sonnet
+- **O'zgarishlar:** `services/watch-party/src/models/watchPartyRoom.model.ts` — `VIDEO_PLATFORM_ENUM` konstantasi qo'shildi (`youtube,vimeo,twitch,dailymotion,direct,webview,vk,rutube,other,null`), asosiy schema va playlist sub-schema'dagi eski `['youtube','direct','webview']` enum'lari shu bilan almashtirildi. `apps/app-web/src/components/rooms/CreateRoomDialog.tsx` — `toAbsoluteThumbnailUrl()` himoya funksiyasi (Rutube oEmbed'ning protocol-relative thumbnail_url'ini normallashtiradi/noto'g'ri bo'lsa tashlab yuboradi).
+- **Xulosa:** Foydalanuvchi: Rutube link bilan xona yaratishga urinilganda tugma aylanadi va hech narsiz asl holatiga qaytadi. Railway watch-party loglarini tekshirish orqali root cause topildi: `POST /rooms` 422 qaytargan, lekin `Client error` WARN yozuvi umuman yo'q edi. Sabab — `error.middleware.ts`da Mongoose'ning o'z `ValidationError`i (schema-level enum rad etganda) alohida branch orqali ishlaydi va `logger.warn` chaqirmaydi (faqat bizning maxsus `AppError`/Joi `ValidationError` branchi log yozadi). Haqiqiy muammo: Joi validator (`createRoomSchema`) `vk`/`rutube` (va `vimeo`/`twitch`/`dailymotion`/`other`)ni qabul qiladi, lekin Mongoose schema'ning o'z `videoPlatform` enum'i faqat `['youtube','direct','webview']` bilan cheklangan qolgan edi — bu ikki ro'yxat vk/rutube qo'shilganda hech qachon sinxronlashtirilmagan. Natijada Joi so'rovni o'tkazadi, keyin `.save()` MongoDB darajasida jim-jit rad etadi. Bu deyarli barcha platformalar (YouTube'dan tashqari) uchun web orqali xona yaratishni butunlay buzgan edi — faqat mobil ilova buzilmagan, chunki u to'g'ridan-to'g'ri video pleer orqali ishlaydi va bu xona-yaratish yo'lidan farqli holat kechishi mumkin edi. Qo'shimcha: `CreateRoomDialog.tsx`da Rutube oEmbed'dan kelgan protocol-relative thumbnail URL ham (`//pic.rutube.ru/...`) backend Joi'ning `videoThumbnail.uri()`sini buzishi mumkin edi — shuning uchun normalizatsiya/tashlab yuborish qo'shildi. tsc: watch-party — faqat mavjud rootDir fon xatoliklari (stash bilan solishtirib tasdiqlandi — yangi xatolik yo'q), app-web — CLEAN. Railway avtomatik deploy qildi (GitHub push'dan keyin) — `watch-part` va `app-web` ikkalasi ham `Online`, sog'liq tekshiruvi ✅. Commit `c447c60`.
+
+---
+
+### F-227 | T-S126 | app-web production deploy crash-loop tuzatildi (real root cause: middleware nom xatosi)
+
+- **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-14  **Model:** sonnet
+- **O'zgarishlar:** `apps/app-web/src/middleware.ts` — eksport nomi `proxy` → `middleware` (Next.js 14.2 faqat `middleware`/`default` nomini tan oladi). `apps/app-web/src/instrumentation.ts` (yangi) + `src/instrumentation-client.ts` (yangi, `sentry.client.config.ts`dan ko'chirilgan) — Sentry'ni zamonaviy `register()`-asosidagi konvensiyaga o'tkazish. `sentry.server.config.ts`, `sentry.edge.config.ts` — o'chirildi. `next.config.mjs` — `experimental.instrumentationHook: true` (Next 14.2'da majburiy).
+- **Xulosa:** T-S125 fix'ni deploy qilishda `railway up` build muvaffaqiyatli o'tdi, lekin healthcheck (`/login`) 5 daqiqa "service unavailable" bilan fail bo'lardi — har bir so'rov middleware'da `TypeError: Cannot redefine property: __import_unsupported` bilan crash qilardi. Dastlab Sentry SDK v10 nomuvofiqligi deb taxmin qilindi (legacy `sentry.*.config.ts` konvensiyasi) — shu sababli `instrumentation.ts`ga migratsiya qilindi. Lekin haqiqiy production Docker image'ni (`node:20-slim`, aynan Railway ishlatadigan) mahalliy qurib, bosqichma-bosqich tekshirish (Sentry butunlay o'chirilganda ham xato saqlanib qoldi) haqiqiy sababni ochdi: `middleware.ts` `middleware` yoki `default` o'rniga `proxy` nomli funksiyani eksport qilardi — Next.js buni yaroqli handler sifatida tanimaydi, va bu `ceddf15` (domain-split, 2026-yil) commitida shu tarzda kiritilgan bo'lib, o'shandan beri app-web'ning HECH BIR deploy urinishi muvaffaqiyatli bo'lmagan (production hozirgacha eski konteyner bilan ishlab kelgan). Fix: eksport nomini `middleware`ga qaytarish — bitta so'z, lekin haqiqiy root cause. Sentry migratsiyasi ham foydali edi (deprecated konvensiya, Sentry SDK'ning o'zi build loglarida ogohlantirgan) va saqlab qolindi. Haqiqiy Dockerfile orqali local Docker image qurib to'liq tekshirildi: `/login`→200, `/home`, `/room/[id]`→307 (autentifikatsiyasiz to'g'ri redirect), konteyner loglarida xato yo'q. `railway up` orqali production'ga deploy qilindi va tasdiqlandi (`app.wewatch.uz/login`→200 jonli). tsc: CLEAN. Commit `02ad504`.
+
+---
+
+### F-226 | T-S125 | T-S124 regressiyasi (VK/Rutube sync) + web YouTube abadiy yuklanish bugi
+
+- **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-14  **Model:** sonnet
+- **O'zgarishlar:** `apps/mobile/src/hooks/useWatchPartyRoom.ts` — `isYouTubeWebViewMode` flag qo'shildi (`isWebViewMode && platform === 'youtube'`) va hook return'iga qo'shildi. `apps/mobile/src/screens/modal/WatchPartyScreen.tsx` — yangi propni `VideoSection`ga ulash (`isYouTubeEmbed`). `apps/mobile/src/components/watchParty/VideoSection.tsx` — `isOwnerMode` va tap-catcher (`blockEmbedTouch`) endi faqat `!isWebView || isYouTubeEmbed` bo'lganda ishlaydi (YouTube yoki native player), boshqa webview embedlar (VK/Rutube/Twitch/Vimeo/Dailymotion) uchun T-S124'gacha bo'lgan xulq qaytarildi. `apps/app-web/src/components/party/VideoPlayer.tsx` — `getYouTubeId` regex qayta yozildi (mobil `extractYouTubeVideoId` bilan bir xil mantiq: `v=` query string ichida istalgan joyda qidiriladi, faqat "watch?v=" literal prefiksda emas).
+- **Xulosa:** Foydalanuvchi real qurilmada 2 ta bug topdi: (1) YouTube xonasi web'da abadiy "loading" holatida qolardi; (2) Rutube xonasida owner (telefon) play/pause bossa video web'da o'ynardi, lekin telefonning o'zida video joyida turardi, pauzada web telefon holatiga qaytardi. Ikkala bug alohida root cause: (1) — web'ning `getYouTubeId` regex'i faqat "youtube.com/watch?v=" literal ketma-ketligini talab qilardi (v= birinchi query parametri bo'lishi shart) — playlist yoki "si=" kabi boshqa parametr `v=`dan oldin kelsa (odatiy YouTube share linklarida tez-tez uchraydi), ID topilmay, umuman YouTube uchun mo'ljallanmagan generic CDN extraction yo'liga tushib, abadiy spinner ko'rsatardi. (2) — T-S124 xato ravishda `isOwnerMode`/tap-catcher'ni HAR QANDAY webview embed uchun (nafaqat YouTube) shartsiz yoqqan edi; YouTube uchun bu xavfsiz (rasmiy IFrame Player API), lekin Android'dagi VK/Rutube "full-site" usuli (xom DOM `<video>`, WebViewAdapters.ts) uchun bare `.play()/.pause()` chaqiruvi DOM hodisasini otib holatni sinxronlaydi, lekin sahifaning haqiqiy oqimini ishga tushirmaydi/to'xtatmaydi — owner hali ham sahifaning o'z play tugmasiga tegishi kerak edi. Fix T-S124'ni faqat YouTube uchun toraytirdi, VK/Rutube/boshqalarni eski (ishlaydigan) xulqqa qaytardi. tsc: CLEAN (apps/mobile va apps/app-web, ikkalasida ham yangi xatolik yo'q). Commit `72089d4`. GitHub Actions APK build ishga tushirilmoqda — real qurilmada tasdiqlash keyingi qadam.
+
+---
+
+### F-225 | Bug fix | Web: xona yaratilmayapti — videoUrl sxemasiz jo'natilsa jim-jit fail bo'lardi
+
+- **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-14  **Model:** sonnet
+- **O'zgarishlar:** `apps/app-web/src/lib/api-error.ts` — `BackendError.details` → `errors` (haqiqiy backend maydoni bilan mos, `shared/src/utils/apiResponse.ts`: `apiResponse.error(message, errors)`). `apps/app-web/src/components/rooms/CreateRoomDialog.tsx` — `handleCreate`da `videoUrl` jo'natishdan oldin sxema yo'q bo'lsa `https://` avtomatik qo'shiladi.
+- **Xulosa:** Foydalanuvchi xabari: link kiritib "yaratish"ni bosganda tugma aylanadi va hech narsa bo'lmasdan asl holatiga qaytadi. Root cause ikkita bog'liq xato: (1) URL input `<form>` ichida emas → brauzer native URL validatsiyasi ishlamaydi → sxemasiz link ("youtube.com/watch?v=...") backend Joi `videoUrl.uri()`ga o'tib, 422 bilan rad etiladi; (2) `parseApiError` `details` maydonini tekshiradi, lekin BARCHA servislar (auth/user/content/notification/admin/watch-party) Joi xatolarini `errors` maydonida qaytaradi — shu sabab aniq sabab ("videoUrl" must be a valid uri) hech qachon ko'rsatilmay, generic "Validation failed" bilan almashtirilardi (deyarli ko'rinmas toast). Ikkalasi ham tuzatildi: maydon nomi to'g'rilandi + jo'natishdan oldin URL normalizatsiya qilinadi. tsc: CLEAN (apps/app-web, yangi xatolik yo'q). Commit `5cbffb3`.
+
+---
+
+### F-224 | T-S124 | YouTube/webview iframe — owner endi FAQAT o'z pleer boshqaruvidan foydalanadi
+
+- **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-14  **Model:** sonnet
+- **O'zgarishlar:** `apps/mobile/src/components/watchParty/VideoSection.tsx` — `isOwnerMode = isOwner && !isWebView` → `isOwnerMode = isOwner` (117-qator); butun ekranli tap-catcher endi `isWebView` uchun ham har doim render qilinadi (avval T-S122da webview uchun o'chirilgan edi). `apps/mobile/src/hooks/useWatchPartyRoom.ts` — izoh yangilandi (`isOwnerMode` shartsiz ekanini aks ettirish uchun).
+- **Xulosa:** Foydalanuvchi so'rovi: YouTube (va boshqa webview embedlar — Twitch/VK/Rutube, bir xil komponent orqali) iframe'ining o'z native UI'siga (play/pause/seek) hech qanday to'g'ridan-to'g'ri teginish bo'lmasin, faqat ilovaning o'z pleer paneli orqali boshqarilsin. T-S122 aksincha — owner uchun tap-catcher'ni webview'da o'chirib, YouTube native tugmasiga tegishga imkon bergan edi; endi bu teskari qilindi: tap-catcher qaytadan har doim WebView ustida turadi va barcha teginishni tutib qoladi, `isOwnerMode` esa shartsiz `isOwner` bo'lgani uchun bizning play/pause/seek panelimiz webview holatda ham ko'rinadi va `_csVideo` JS-mosti (`useWebViewPlayer.ts`) orqali videoni boshqaradi — bu most YouTube (`webviewYouTube.ts`) va boshqa embedlar (`WebViewAdapters.ts`) uchun umumiy, shuning uchun fix barcha webview platformalarda bir xil ishlaydi. Autoplay-siyosat xavfi (WebView ichida user-gesture yo'qligi) allaqachon `mediaPlaybackRequiresUserAction={false}` bilan yopilgan (`WebViewPlayer.tsx`). tsc: CLEAN (apps/mobile, yangi xatolik yo'q). GitHub Actions APK build ishga tushirildi (commit `aace1bc`) — real qurilmada/emulyatorda tasdiqlash keyingi qadam.
+
+---
+
+### F-223 | T-S123 | To'liq click-event tracking — mobile + web
+
+- **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-14  **Model:** sonnet
+- **O'zgarishlar:** Mobile (103 fayl, 6 commit): `analyticsService.ts` — `click(id, meta?)` + `track()` avtomatik `currentScreen`; `TrackedTouchable.tsx` / `TrackedPressable.tsx` (yangi, majburiy `trackId` prop, `onPress` + `onLongPress` qamrab oladi) — barcha watchParty/auth/home/profile-settings/friends-DM/common ekranlarida qo'llanildi. Web (28 fayl, 1 commit): `apps/app-web/src/lib/analytics.ts` (yangi, `trackClick()` → `gtag('event','click',...)`) — auth (login/register/reset-password), home, room (playlist, tabs, invite, emoji, video controls), settings, support, friends/DM, notifications, profile.
+- **Xulosa:** Bekzod so'rovi (T-S118 topic reminder, 18:00 muddat) — "Foydalanuvchi analitikasi (click+event log)" mavjudligini so'radi. Audit natijasi: backend tayyor edi, lekin mobile'da deyarli hech qanday click event yo'q edi (faqat 3 ta), web'da esa GA4 pageview'dan boshqa hech narsa yo'q edi. Foydalanuvchi to'g'ridan-to'g'ri buyruq berdi: "делай полный клик евент во всем приложении". Har ikki platformada ham endi asosiy CTA/tugma bosishlar GA4/analyticsService orqali kuzatiladi. tsc: CLEAN (apps/mobile va apps/app-web, ikkalasida ham yangi xatolik yo'q). Commits: mobile `1956729`..`3033e74` (6 ta), web `fbaff51`.
+
+---
+
+### F-222 | T-S122 | YouTube/webview embed — owner endi videoni boshqara oladi
+
+- **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-14  **Model:** sonnet
+- **O'zgarishlar:** `apps/mobile/src/components/watchParty/VideoSection.tsx` — butun ekranli tap-catcher (150-155-qator) `!isWebView` shartiga o'raldi.
+- **Xulosa:** Real qurilmada topilgan bug: YouTube video ochilganda owner uni umuman boshqara olmasdi. Root cause — `isOwnerMode = isOwner && !isWebView` (116-qator) webview platformalar uchun app'ning o'z play/pause panelini yashiradi ("native controls o'zi ishlaydi" degan taxmin bilan), lekin shart-shartsiz butun ekranli tap-catcher YouTube'ning haqiqiy native play tugmasiga tegishga ham yo'l qo'ymasdi — owner uchun video ishga tushirishning birorta yo'li qolmagan edi. Sync-broadcast logikasi (`useWatchPartyRoom.ts:482-489`) allaqachon to'g'ri ishlar edi — muammo faqat tap WebView'ga yetib bormasligida edi. Fix: `isWebView` bo'lganda catcher render qilinmaydi, tap to'g'ridan-to'g'ri WebView'ga o'tadi. Non-owner tap'lari alohida `WebViewPlayer`dagi `memberLockOverlay` orqali bloklanishda davom etadi. tsc: CLEAN (apps/mobile, yangi xatolik yo'q). Real qurilmada tasdiqlash — keyingi qadam (foydalanuvchi tomonidan).
 
 ---
 

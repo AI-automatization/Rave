@@ -1,7 +1,8 @@
 // WeWatch Mobile — WatchParty Room Card
 import React, { useRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Image, Animated } from 'react-native';
+import { View, Text, Image, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import type { IWatchPartyRoom, WatchPartyStatus } from '@app-types/index';
 import type { translations } from '@i18n/index';
@@ -44,7 +45,8 @@ export function RoomCard({ room, index, onPress, t }: RoomCardProps) {
 
   return (
     <Animated.View style={{ opacity, transform: [{ translateY }] }}>
-      <TouchableOpacity
+      <TrackedTouchable
+        trackId="rooms_list:open_room"
         style={s.card}
         onPress={() => onPress(room._id)}
         activeOpacity={0.8}
@@ -105,7 +107,7 @@ export function RoomCard({ room, index, onPress, t }: RoomCardProps) {
         <View style={s.arrowWrap}>
           <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.3)" />
         </View>
-      </TouchableOpacity>
+      </TrackedTouchable>
     </Animated.View>
   );
 }

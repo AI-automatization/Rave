@@ -49,8 +49,11 @@ export function useVideoExtract(): UseVideoExtractReturn {
   const [errorMsg, setErrorMsg] = useState('');
   const [result, setResult] = useState<VideoExtractResult | null>(null);
 
+  // Embed-type results (YouTube) always carry an empty videoUrl by design — playback
+  // goes through the client-side IFrame embed off the ORIGINAL url, not a resolved
+  // CDN stream. Without this, the preview player got url='' and showed "no video URL".
   const playerUrl = result
-    ? result.useProxy ? url : result.videoUrl
+    ? result.type === 'embed' || result.useProxy ? url : result.videoUrl
     : '';
 
   const handleExtract = useCallback(async () => {

@@ -1,8 +1,9 @@
 // WeWatch Mobile — BlockedDomainView
 // Shown instead of the video player when a domain is blocked by platform policy.
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { useT } from '@i18n/index';
 
@@ -25,9 +26,9 @@ export function BlockedDomainView({ domain, onClose }: Props) {
       <Text style={styles.domain}>{domain}</Text>
       <Text style={styles.message}>{t('browser', 'domainBlockedPolicy')}</Text>
       {onClose && (
-        <TouchableOpacity style={styles.btn} onPress={onClose}>
+        <TrackedTouchable trackId="blocked_domain:close" style={styles.btn} onPress={onClose}>
           <Text style={styles.btnText}>{t('common', 'close')}</Text>
-        </TouchableOpacity>
+        </TrackedTouchable>
       )}
     </View>
   );

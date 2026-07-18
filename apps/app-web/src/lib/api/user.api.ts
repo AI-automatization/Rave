@@ -6,20 +6,35 @@ interface UpdateProfilePayload {
   bio?: string;
 }
 
+// Mirrors mobile's IDMMessage (apps/mobile/src/types/index.ts) — same backend contract
+// (services/user/src/services/dm.service.ts toDMMessage()).
 export interface DmMessage {
   _id: string;
   senderId: string;
   receiverId: string;
   text: string;
+  read: boolean;
+  replyToId?: string | null;
+  replyToText?: string | null;
+  replyToSender?: string | null;
+  forwardFrom?: string | null;
+  pinned?: boolean;
   createdAt: string;
-  isRead?: boolean;
+  updatedAt?: string;
 }
 
+// Matches the actual backend shape (services/user/src/services/dm.service.ts Conversation) —
+// flat fields, not a nested `peer` object. Mirrors mobile's IDMConversation
+// (apps/mobile/src/types/index.ts), which is what actually gets exercised against the real API.
 export interface Conversation {
   peerId: string;
-  peer: Pick<IUser, '_id' | 'username' | 'avatar' | 'isOnline'>;
-  lastMessage: DmMessage;
+  peerUsername: string;
+  peerAvatar: string | null;
+  lastMessage: string;
+  lastMessageAt: string;
   unreadCount: number;
+  isMuted: boolean;
+  isPinned: boolean;
 }
 
 // All backend responses return data directly (not wrapped in { user: }, { friends: }, etc.)
@@ -60,9 +75,30 @@ export const userApi = {
   getConversations: () =>
     apiClient<Conversation[]>('/api/user/dm/conversations'),
 
-  getMessages: (peerId: string) =>
-    apiClient<DmMessage[]>(`/api/user/dm/${peerId}`),
+  getMessages: (peerId: string, before?: string) =>
+    apiClient<DmMessage[]>(`/api/user/dm/${peerId}${before ? `?before=${encodeURIComponent(before)}` : ''}`),
 
-  sendDm: (peerId: string, text: string) =>
-    apiClient<DmMessage>(`/api/user/dm/${peerId}`, { method: 'POST', body: { text } }),
+  sendDm: (peerId: string, text: string, replyToId?: string) =>
+    apiClient<DmMessage>(`/api/user/dm/${peerId}`, { method: 'POST', body: { text, replyToId } }),
+
+  forwardMessage: (peerId: string, messageId: string) =>
+    apiClient<DmMessage>(`/api/user/dm/${peerId}/forward`, { method: 'POST', body: { messageId } }),
+
+  markRead: (peerId: string) =>
+    apiClient<void>(`/api/user/dm/${peerId}/read`, { method: 'PATCH' }),
+
+  markReadUpTo: (peerId: string, messageId: string) =>
+    apiClient<{ upToCreatedAt: string }>(`/api/user/dm/${peerId}/read-until`, { method: 'PATCH', body: { messageId } }),
+
+  toggleMute: (peerId: string, muted: boolean) =>
+    apiClient<void>(`/api/user/dm/${peerId}/mute`, { method: 'POST', body: { muted } }),
+
+  togglePinConversation: (peerId: string, pinned: boolean) =>
+    apiClient<void>(`/api/user/dm/${peerId}/pin`, { method: 'POST', body: { pinned } }),
+
+  togglePinMessage: (peerId: string, messageId: string, pinned: boolean) =>
+    apiClient<DmMessage>(`/api/user/dm/${peerId}/messages/${messageId}/pin`, { method: 'POST', body: { pinned } }),
+
+  getPinnedMessages: (peerId: string) =>
+    apiClient<DmMessage[]>(`/api/user/dm/${peerId}/pinned`),
 };

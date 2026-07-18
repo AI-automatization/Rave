@@ -11,7 +11,7 @@ const LANGUAGES = {
 };
 
 export const metadata: Metadata = {
-  title: 'WeWatch — Watch Videos Together With Friends Online | Free Watch Party',
+  title: { absolute: 'WeWatch — Watch Videos Together With Friends Online | Free Watch Party' },
   description:
     'WeWatch — watch YouTube, VK and Rutube together with friends in real time. One on iPhone, another on the web — sync just works. Free watch party with chat and emoji. iOS and Android.',
   alternates: {

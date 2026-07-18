@@ -4,7 +4,7 @@ interface BackendError {
   error?: string;
   message?: string;
   code?: string;
-  details?: string[];
+  errors?: string[];
 }
 
 const STATUS_MESSAGES: Record<number, string> = {
@@ -24,8 +24,8 @@ export function parseApiError(err: unknown, fallback: string): string {
 
   const d = err.data as BackendError | null;
 
-  // Validation details — show the first one
-  if (d?.details?.length) return d.details[0];
+  // Validation errors (backend apiResponse.error(message, errors) shape) — show the first one
+  if (d?.errors?.length) return d.errors[0];
 
   // Specific backend error field (legacy format)
   if (d?.error && !GENERIC_PROXY_MESSAGES.has(d.error)) return d.error;

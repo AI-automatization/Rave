@@ -35,7 +35,12 @@ export default function TelegramCallbackPage() {
 
     // Best-effort fallback for a device with the app installed but where the App Link
     // didn't intercept this navigation — re-offer the same data via the custom scheme.
-    window.location.href = `wewatch://auth/telegram/callback?${params.toString()}`;
+    // Only when this ISN'T our own desktop-web popup flow (no window.opener): trying an
+    // unregistered wewatch:// scheme pops a blocking "invalid address" native alert in
+    // desktop Safari, which has nothing to do with a plain mobile-browser fallback.
+    if (!window.opener) {
+      window.location.href = `wewatch://auth/telegram/callback?${params.toString()}`;
+    }
 
     fetch('/api/auth/telegram-login', {
       method: 'POST',
@@ -45,6 +50,27 @@ export default function TelegramCallbackPage() {
       .then((res) => setStatus(res.ok ? 'success' : 'error'))
       .catch(() => setStatus('error'));
   }, [params]);
+
+  // Web login popup (LoginForm.tsx handleTelegramLogin) also polls /api/auth/me on the
+  // opener tab as a secondary path — but window.opener is NOT reliable here: Safari (and
+  // some Chromium configs) sever window.opener once a popup navigates cross-origin (t.me)
+  // and back, as a tracking-prevention measure. So this page can't depend on the opener
+  // still existing to hand control back — it takes care of returning to the app itself:
+  // try closing (works if this really is a popup with an intact opener), then unconditionally
+  // fall through to navigating this same page to /home a moment later. If close() succeeded,
+  // the window is already gone and this never runs; if it didn't (severed opener, popup
+  // blocked entirely and this was actually the only tab, etc.), the user still ends up
+  // logged in and on /home instead of stuck reading "Готово!" forever.
+  useEffect(() => {
+    if (status !== 'success') return;
+    const timer = setTimeout(() => {
+      if (window.opener) {
+        try { window.close(); } catch { /* ignore */ }
+      }
+      window.location.href = '/home';
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [status]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#0C0B18] text-white px-6">

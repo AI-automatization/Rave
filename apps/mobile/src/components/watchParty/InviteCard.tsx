@@ -1,8 +1,9 @@
 // WeWatch Mobile — WatchParty InviteCard
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, FlatList, ActivityIndicator, Share, Linking } from 'react-native';
+import { View, Text, FlatList, ActivityIndicator, Share, Linking } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useTheme } from '@theme/index';
 import { useInviteCardStyles } from './InviteCard.styles';
 import { userApi } from '@api/user.api';
@@ -84,10 +85,10 @@ export const InviteCard = React.memo(function InviteCard({ inviteCode, roomId, r
         {invited ? (
           <View style={s.invitedBadge}><Ionicons name="checkmark" size={14} color={colors.success} /></View>
         ) : (
-          <TouchableOpacity style={s.inviteBtn} onPress={() => handleInvite(item._id)} disabled={inviting} activeOpacity={0.7}>
+          <TrackedTouchable trackId="invite:invite_friend" style={s.inviteBtn} onPress={() => handleInvite(item._id)} disabled={inviting} activeOpacity={0.7}>
             {inviting ? <ActivityIndicator size="small" color={colors.textPrimary} />
               : <Ionicons name="person-add-outline" size={14} color={colors.textPrimary} />}
-          </TouchableOpacity>
+          </TrackedTouchable>
         )}
       </View>
     );
@@ -99,22 +100,22 @@ export const InviteCard = React.memo(function InviteCard({ inviteCode, roomId, r
         <Text style={s.label}>{t('watchParty', 'inviteCode')}</Text>
         <View style={s.codeRow}>
           <Text style={s.code}>{inviteCode}</Text>
-          <TouchableOpacity style={s.copyBtn} onPress={handleCopy}>
+          <TrackedTouchable trackId="invite:copy_code" style={s.copyBtn} onPress={handleCopy}>
             <Ionicons name={copied ? 'checkmark' : 'copy-outline'} size={18} color={copied ? colors.success : colors.textPrimary} />
-          </TouchableOpacity>
+          </TrackedTouchable>
         </View>
         {copied && <Text style={s.copiedText}>{t('watchParty', 'codeCopied')}</Text>}
       </View>
 
       <View style={s.shareSection}>
-        <TouchableOpacity style={s.telegramBtn} onPress={handleShareTelegram} activeOpacity={0.7}>
+        <TrackedTouchable trackId="invite:share_telegram" style={s.telegramBtn} onPress={handleShareTelegram} activeOpacity={0.7}>
           <Ionicons name="paper-plane-outline" size={16} color="#fff" />
           <Text style={s.telegramBtnText}>{t('watchParty', 'shareViaTelegram')}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={s.nativeShareBtn} onPress={handleShareNative} activeOpacity={0.7}>
+        </TrackedTouchable>
+        <TrackedTouchable trackId="invite:share_native" style={s.nativeShareBtn} onPress={handleShareNative} activeOpacity={0.7}>
           <Ionicons name="share-outline" size={16} color={colors.textPrimary} />
           <Text style={s.nativeShareBtnText}>{t('watchParty', 'shareNative')}</Text>
-        </TouchableOpacity>
+        </TrackedTouchable>
       </View>
 
       <View style={s.friendsSection}>

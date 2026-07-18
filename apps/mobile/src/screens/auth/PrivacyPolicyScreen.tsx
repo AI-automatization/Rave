@@ -7,7 +7,6 @@ import {
   View,
   Text,
   ScrollView,
-  TouchableOpacity,
   Animated,
   NativeSyntheticEvent,
   NativeScrollEvent,
@@ -16,6 +15,7 @@ import {
   StatusBar,
   Platform,
 } from 'react-native';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useT } from '@i18n/index';
 import { useTheme } from '@theme/index';
 import { privacyPolicyStorage } from '@utils/storage';
@@ -119,9 +119,9 @@ export function PrivacyPolicyScreen({ onAccepted }: Props) {
       {/* ── Bottom actions ── */}
       <View style={s.actions}>
         {!hasReadToBottom && (
-          <TouchableOpacity style={s.skipBtn} onPress={handleSkipToEnd} activeOpacity={0.7}>
+          <TrackedTouchable trackId="privacy_policy:skip_to_end" style={s.skipBtn} onPress={handleSkipToEnd} activeOpacity={0.7}>
             <Text style={s.skipText}>{t('privacyPolicy', 'skipToEnd')}</Text>
-          </TouchableOpacity>
+          </TrackedTouchable>
         )}
 
         <Animated.View
@@ -130,14 +130,15 @@ export function PrivacyPolicyScreen({ onAccepted }: Props) {
             { opacity: acceptOpacity, transform: [{ scale: acceptScale }] },
           ]}
         >
-          <TouchableOpacity
+          <TrackedTouchable
+            trackId="privacy_policy:accept"
             style={[s.acceptBtn, !hasReadToBottom && s.acceptBtnDisabled]}
             onPress={handleAccept}
             disabled={!hasReadToBottom || isAccepting}
             activeOpacity={0.85}
           >
             <Text style={s.acceptText}>{t('privacyPolicy', 'accept')}</Text>
-          </TouchableOpacity>
+          </TrackedTouchable>
         </Animated.View>
       </View>
     </SafeAreaView>

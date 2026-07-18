@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { Bell, Users, Tv, Trash2, Loader2, CheckCheck } from 'lucide-react';
 import type { INotification } from '@/types';
+import { trackClick } from '@/lib/analytics';
 
 async function fetchNotifications(): Promise<INotification[]> {
   const res = await fetch('/api/notifications', { credentials: 'include' });
@@ -46,7 +47,7 @@ function NotificationItem({ notification, onRead, onDelete }: NotificationItemPr
           : 'border-l-2 border-l-violet-500 hover:bg-violet-500/[0.07]'
       }`}
       style={!notification.isRead ? { background: 'rgba(124,58,237,0.05)' } : undefined}
-      onClick={() => !notification.isRead && onRead(notification._id)}
+      onClick={() => { if (!notification.isRead) { trackClick('notifications:read'); onRead(notification._id); } }}
     >
       <div className="shrink-0 mt-1">
         <NotifIcon type={notification.type} />
@@ -65,7 +66,7 @@ function NotificationItem({ notification, onRead, onDelete }: NotificationItemPr
       )}
 
       <button
-        onClick={(e) => { e.stopPropagation(); onDelete(notification._id); }}
+        onClick={(e) => { e.stopPropagation(); trackClick('notifications:delete'); onDelete(notification._id); }}
         className="p-1.5 text-slate-600 hover:text-red-400 transition-colors rounded-lg opacity-0 group-hover:opacity-100"
         aria-label="Delete"
       >
@@ -123,7 +124,7 @@ export function NotificationsContent() {
         <h1 className="text-base font-semibold text-white">{t('title')}</h1>
         {unreadCount > 0 && (
           <button
-            onClick={() => markAllRead.mutate()}
+            onClick={() => { trackClick('notifications:mark_all_read'); markAllRead.mutate(); }}
             disabled={markAllRead.isPending}
             className="h-8 px-3 rounded-md text-xs font-medium text-zinc-400 border border-white/[0.08] hover:bg-white/[0.04] transition-colors flex items-center gap-2 disabled:opacity-50 cursor-pointer"
           >

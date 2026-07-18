@@ -5,7 +5,7 @@ import { ApiResponse, IUser, IUserPublic, IUserStats } from '@app-types/index';
 export interface UserSettings {
   language: string;
   notifications: { push: boolean; email: boolean };
-  privacy: { showActivity: boolean };
+  privacy: { showActivity: boolean; allowForward?: boolean };
 }
 
 export const userApi = {
@@ -130,13 +130,49 @@ export const dmApi = {
     return res.data.data ?? [];
   },
 
-  async sendMessage(peerId: string, text: string): Promise<IDMMessage> {
-    const res = await userClient.post<ApiResponse<IDMMessage>>(`/users/dm/${peerId}`, { text });
+  async sendMessage(peerId: string, text: string, replyToId?: string): Promise<IDMMessage> {
+    const res = await userClient.post<ApiResponse<IDMMessage>>(`/users/dm/${peerId}`, {
+      text,
+      ...(replyToId ? { replyToId } : {}),
+    });
     if (!res.data.data) throw new Error('sendMessage response is empty');
+    return res.data.data;
+  },
+
+  // Xabarni boshqa suhbatga forward qilish
+  async forwardMessage(peerId: string, messageId: string): Promise<IDMMessage> {
+    const res = await userClient.post<ApiResponse<IDMMessage>>(`/users/dm/${peerId}/forward`, { messageId });
+    if (!res.data.data) throw new Error('forwardMessage response is empty');
     return res.data.data;
   },
 
   async markRead(peerId: string): Promise<void> {
     await userClient.patch(`/users/dm/${peerId}/read`);
+  },
+
+  // View-based read receipt — REST fallback for when the socket isn't connected
+  // (the primary path is the DM_READ_UNTIL socket event, which also triggers a
+  // realtime tick update on the sender's side; this path does not).
+  async markReadUpTo(peerId: string, messageId: string): Promise<void> {
+    await userClient.patch(`/users/dm/${peerId}/read-until`, { messageId });
+  },
+
+  async toggleMute(peerId: string, muted: boolean): Promise<void> {
+    await userClient.post(`/users/dm/${peerId}/mute`, { muted });
+  },
+
+  async togglePinConversation(peerId: string, pinned: boolean): Promise<void> {
+    await userClient.post(`/users/dm/${peerId}/pin`, { pinned });
+  },
+
+  async togglePinMessage(peerId: string, messageId: string, pinned: boolean): Promise<IDMMessage> {
+    const res = await userClient.post<ApiResponse<IDMMessage>>(`/users/dm/${peerId}/messages/${messageId}/pin`, { pinned });
+    if (!res.data.data) throw new Error('togglePinMessage response is empty');
+    return res.data.data;
+  },
+
+  async getPinnedMessages(peerId: string): Promise<IDMMessage[]> {
+    const res = await userClient.get<ApiResponse<IDMMessage[]>>(`/users/dm/${peerId}/pinned`);
+    return res.data.data ?? [];
   },
 };

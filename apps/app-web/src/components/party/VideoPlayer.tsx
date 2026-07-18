@@ -5,6 +5,7 @@ import { Loader2, Play, AlertCircle, Pause, Maximize, Minimize, Volume2, VolumeX
 import { useWatchPartyStore } from '@/store/watch-party.store';
 import { useAuthStore } from '@/store/auth.store';
 import { toast } from '@/hooks/use-toast';
+import { trackClick } from '@/lib/analytics';
 import { YouTubePlayer } from './YouTubePlayer';
 
 interface Props {
@@ -23,11 +24,21 @@ interface ExtractResult {
   httpHeaders?: Record<string, string>;
 }
 
+// Mirrors mobile's extractYouTubeVideoId (apps/mobile/src/utils/videoPlayer.ts): matches `v=`
+// anywhere in the query string, not just as the literal first param after "watch?" — a share
+// link with another param first (e.g. "?list=...&v=..." from a playlist, or "?si=...&v=...")
+// made the old anchored regex fail entirely, silently falling through to generic CDN extraction
+// (never meant for YouTube) and spinning forever instead of rendering the YouTube player.
 function getYouTubeId(url: string): string | null {
-  const match = url.match(
-    /(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([a-zA-Z0-9_-]{11})/,
-  );
-  return match?.[1] ?? null;
+  const watchMatch = url.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
+  if (watchMatch) return watchMatch[1];
+  const shortMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
+  if (shortMatch) return shortMatch[1];
+  const shortsMatch = url.match(/\/shorts\/([a-zA-Z0-9_-]{11})/);
+  if (shortsMatch) return shortsMatch[1];
+  const embedMatch = url.match(/\/embed\/([a-zA-Z0-9_-]{11})/);
+  if (embedMatch) return embedMatch[1];
+  return null;
 }
 
 async function extractVideoUrl(url: string): Promise<ExtractResult> {
@@ -207,6 +218,7 @@ function NativeVideoPlayer({
     if (!isOwner) return;
     const v = videoRef.current;
     if (!v) return;
+    trackClick('video:toggle_play_pause');
     if (v.paused) onOverlayClick();
     else v.pause();
   }
@@ -229,6 +241,7 @@ function NativeVideoPlayer({
   function toggleMute() {
     const v = videoRef.current;
     if (!v) return;
+    trackClick('video:toggle_mute');
     v.muted = !v.muted;
     setIsMuted(v.muted);
   }
@@ -236,6 +249,7 @@ function NativeVideoPlayer({
   function toggleFullscreen() {
     const el = containerRef.current;
     if (!el) return;
+    trackClick('video:toggle_fullscreen');
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     else el.requestFullscreen().catch(() => {});
   }
@@ -284,7 +298,7 @@ function NativeVideoPlayer({
       {/* Autoplay blocked overlay */}
       {autoplayBlocked && (
         <button
-          onClick={onOverlayClick}
+          onClick={() => { trackClick('video:autoplay_overlay'); onOverlayClick(); }}
           className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-black/70 cursor-pointer group/btn"
           aria-label="Нажмите чтобы воспроизвести"
         >

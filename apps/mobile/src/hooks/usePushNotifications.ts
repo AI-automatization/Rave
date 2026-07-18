@@ -4,7 +4,7 @@ import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
-import { userApi } from '@api/user.api';
+import { userApi, dmApi } from '@api/user.api';
 import { useAuthStore } from '@store/auth.store';
 
 // expo-notifications push registration removed from Expo Go SDK 53+
@@ -27,6 +27,15 @@ if (!isExpoGo) {
     void Notifications.setNotificationCategoryAsync('friend_request', [
       { identifier: 'ACCEPT', buttonTitle: 'Принять', options: { opensAppToForeground: false } },
       { identifier: 'DECLINE', buttonTitle: 'Отклонить', options: { opensAppToForeground: false, isDestructive: true } },
+    ]).catch(() => {});
+    // DM bildirishnomasidan to'g'ridan-to'g'ri javob yozish (Telegram uslubi)
+    void Notifications.setNotificationCategoryAsync('dm_reply', [
+      {
+        identifier: 'REPLY',
+        buttonTitle: 'Javob',
+        textInput: { submitButtonTitle: 'Yuborish', placeholder: 'Xabar yozing...' },
+        options: { opensAppToForeground: false },
+      },
     ]).catch(() => {});
   } catch {
     // expo-notifications push not supported in this environment
@@ -75,14 +84,49 @@ export function usePushNotifications() {
         void queryClient.invalidateQueries({ queryKey: ['friends'] });
         void queryClient.invalidateQueries({ queryKey: ['friend-requests'] });
       }
+      // Yangi DM push — suhbatlar ro'yxati va ochiq chatni yangilash.
+      if (type === 'dm_message') {
+        const peerId = data?.peerId as string | undefined;
+        void queryClient.invalidateQueries({ queryKey: ['dm-conversations'] });
+        if (peerId) void queryClient.invalidateQueries({ queryKey: ['dm-history', peerId] });
+      }
       void queryClient.invalidateQueries({ queryKey: ['notifications'] });
     });
 
-    // Accept/Decline tapped straight on the friend-request notification (no app open).
+    // Notification action tugmalari bosilganda (ilovani ochmasdan).
     responseRef.current = Notifications.addNotificationResponseReceivedListener((response) => {
       const action = response.actionIdentifier;
-      if (action !== 'ACCEPT' && action !== 'DECLINE') return;
       const data = response.notification.request.content.data as Record<string, unknown> | undefined;
+
+      // DM: bildirishnomadan to'g'ridan-to'g'ri javob yozish (Telegram uslubi).
+      if (action === 'REPLY') {
+        const peerId = data?.peerId as string | undefined;
+        // Expo javob matnini userText'da beradi.
+        const text = (response as { userText?: string }).userText?.trim();
+        const notificationId = response.notification.request.identifier;
+        if (!peerId || !text) {
+          void Notifications.dismissNotificationAsync(notificationId).catch(() => {});
+          return;
+        }
+        void (async () => {
+          try {
+            await dmApi.sendMessage(peerId, text);
+            void queryClient.invalidateQueries({ queryKey: ['dm-conversations'] });
+            void queryClient.invalidateQueries({ queryKey: ['dm-history', peerId] });
+          } catch {
+            /* best-effort; user can retry in-app */
+          } finally {
+            // Without this the inline-reply RemoteInput progress spinner on Android
+            // never resolves — expo-notifications requires an explicit dismiss to
+            // signal the reply action completed (success or failure).
+            void Notifications.dismissNotificationAsync(notificationId).catch(() => {});
+          }
+        })();
+        return;
+      }
+
+      // Accept/Decline tapped straight on the friend-request notification (no app open).
+      if (action !== 'ACCEPT' && action !== 'DECLINE') return;
       const friendshipId = data?.friendshipId as string | undefined;
       if (!friendshipId) return;
       void (async () => {

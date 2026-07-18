@@ -2,6 +2,7 @@
 
 import { MessageCircle } from 'lucide-react';
 import type { IUser } from '@/types';
+import { trackClick } from '@/lib/analytics';
 
 const PALETTE = ['#7C3AED', '#2563EB', '#059669', '#D97706', '#DC2626', '#DB2777', '#0891B2'];
 function avatarColor(id: string): string {
@@ -48,7 +49,7 @@ export function FriendCard({ user, onMessage }: Props) {
       {/* DM button */}
       {onMessage && (
         <button
-          onClick={onMessage}
+          onClick={() => { trackClick('friend_card:message'); onMessage(); }}
           className="h-8 px-3 rounded-lg bg-white/[0.05] border border-white/[0.08] text-slate-400 hover:text-white hover:bg-white/[0.09] transition-colors flex items-center gap-1.5 text-xs cursor-pointer"
         >
           <MessageCircle size={13} />

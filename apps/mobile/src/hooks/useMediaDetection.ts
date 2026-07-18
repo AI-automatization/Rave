@@ -78,7 +78,15 @@ export function useMediaDetection() {
   const barTranslateY = barAnim.interpolate({ inputRange: [0, 1], outputRange: [120, 0] });
 
   const setDetectedMediaOnce = useCallback((media: RoomMedia) => {
-    if (detectedUrlRef.current === media.videoUrl) return;
+    if (detectedUrlRef.current === media.videoUrl) {
+      // Same video already locked in — still allow a title-only correction (YouTube's
+      // document.title isn't populated yet on the very first detection tick).
+      if (media.videoTitle && media.videoTitle !== detectedMediaRef.current?.videoTitle) {
+        detectedMediaRef.current = media;
+        setDetectedMedia(media);
+      }
+      return;
+    }
     detectedUrlRef.current = media.videoUrl;
     detectedMediaRef.current = media;
     setDetectedMedia(media);

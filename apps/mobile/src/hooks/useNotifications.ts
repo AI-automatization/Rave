@@ -82,6 +82,9 @@ export function useNotifications() {
     const socket = getSocket();
     if (!socket) return;
     const handler = (notification: INotification) => {
+      // DM xabarlari "qo'ng'iroq" ro'yxatida ko'rsatilmaydi — ular Chats tabida yashaydi
+      // va o'z realtime yo'liga ega (DM_MESSAGE socket). Faqat push + dm-conversations yangilanadi.
+      if (notification.type === 'dm_message') return;
       addNotification(notification);
       void refetch();
       // Live-refresh the Friends screen when a friend request arrives or is accepted,
@@ -120,10 +123,12 @@ export function useNotifications() {
     ]);
   }, [deleteMutation]);
 
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  // DM'larni qo'ng'iroq ro'yxatidan chiqarib tashlaymiz (Chats tabida ko'rinadi)
+  const visibleNotifications = notifications.filter(n => n.type !== 'dm_message');
+  const unreadCount = visibleNotifications.filter(n => !n.isRead).length;
 
   return {
-    notifications,
+    notifications: visibleNotifications,
     isLoading,
     unreadCount,
     refetch,

@@ -1,11 +1,13 @@
 // WeWatch Mobile — Profile card header (web-style horizontal layout)
 import React, { useRef } from 'react';
-import { View, Text, TouchableOpacity, Animated } from 'react-native';
+import { View, Text, Animated } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useTheme, spacing } from '@theme/index';
 import { useProfileHeaderStyles } from './ProfileHeader.styles';
 import { FadeInView, PulsingDot } from './ProfileAnimations';
+import { resolveMediaUrl } from '@utils/url';
 
 interface ProfileHeaderProps {
   avatarUri?: string | null;
@@ -45,17 +47,17 @@ export const ProfileHeader = React.memo(function ProfileHeader({
     <View style={[s.container, { paddingTop: paddingTop + spacing.md }]}>
       <View style={s.topRow}>
         <Text style={s.title}>{titleLabel}</Text>
-        <TouchableOpacity onPress={onSettingsPress} style={s.settingsBtn} activeOpacity={0.7}>
+        <TrackedTouchable trackId="profile:open_settings" onPress={onSettingsPress} style={s.settingsBtn} activeOpacity={0.7}>
           <Ionicons name="settings-outline" size={22} color={colors.textSecondary} />
-        </TouchableOpacity>
+        </TrackedTouchable>
       </View>
 
       <FadeInView delay={100} style={s.profileCard}>
         <View style={s.cardContent}>
-          <TouchableOpacity onPress={handlePressAvatar} activeOpacity={0.85}>
+          <TrackedTouchable trackId="profile:pick_avatar" onPress={handlePressAvatar} activeOpacity={0.85}>
             <Animated.View style={[s.avatarRing, { borderColor: colors.primary, transform: [{ scale: avatarScale }] }]}>
               <Image
-                source={avatarUri ? { uri: avatarUri } : require('../../../assets/icon.png')}
+                source={avatarUri ? { uri: resolveMediaUrl(avatarUri) } : require('../../../assets/icon.png')}
                 style={s.avatar} contentFit="cover"
               />
             </Animated.View>
@@ -63,7 +65,7 @@ export const ProfileHeader = React.memo(function ProfileHeader({
               <Ionicons name="camera" size={10} color={colors.white} />
             </View>
             <View style={[s.onlineDotAbsolute, { backgroundColor: isOnline ? colors.success : colors.textDim, borderColor: colors.bgElevated }]} />
-          </TouchableOpacity>
+          </TrackedTouchable>
 
           <View style={s.infoSection}>
             <View style={s.nameEditRow}>
@@ -71,9 +73,9 @@ export const ProfileHeader = React.memo(function ProfileHeader({
                 <Text style={s.username}>{username.toUpperCase()}</Text>
                 {bio ? <Text style={s.bio} numberOfLines={2}>{bio}</Text> : null}
               </View>
-              <TouchableOpacity onPress={onEditPress} style={s.editBtn} activeOpacity={0.7}>
+              <TrackedTouchable trackId="profile:edit" onPress={onEditPress} style={s.editBtn} activeOpacity={0.7}>
                 <Ionicons name="create-outline" size={16} color={colors.textSecondary} />
-              </TouchableOpacity>
+              </TrackedTouchable>
             </View>
             <FadeInView delay={300}>
               <View style={s.metaRow}>

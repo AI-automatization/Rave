@@ -462,7 +462,8 @@
     "addToQueue": "Добавлено в очередь",
     "addError": "Не удалось добавить",
     "removeError": "Не удалось удалить",
-    "skipError": "Не удалось перейти к следующему"
+    "skipError": "Не удалось перейти к следующему",
+    "playNow": "Включить сейчас"
   },
   "movie": {
     "watch": "Смотреть",
@@ -505,7 +506,29 @@
     "placeholder": "Напишите сообщение...",
     "noMessages": "Пока нет сообщений",
     "emptyTitle": "Нет сообщений",
-    "emptySub": "Напишите первое сообщение"
+    "emptySub": "Напишите первое сообщение",
+    "today": "Сегодня",
+    "yesterday": "Вчера",
+    "pinnedMessage": "Закреплённое сообщение",
+    "forwardedFrom": "Переслано от {name}",
+    "reply": "Ответить",
+    "forward": "Переслать",
+    "pin": "Закрепить",
+    "unpin": "Открепить",
+    "copy": "Копировать",
+    "cancel": "Отмена",
+    "mute": "Выключить уведомления",
+    "unmute": "Включить уведомления",
+    "jumpToDate": "Перейти к дате",
+    "pinLimitReached": "Можно закрепить не более 5 чатов",
+    "forwardBlocked": "Автор запретил пересылку этого сообщения",
+    "forwardSuccess": "Сообщение переслано",
+    "replyingTo": "Ответ для {name}"
+  },
+  "calendar": {
+    "monthJan": "Янв", "monthFeb": "Фев", "monthMar": "Мар", "monthApr": "Апр",
+    "monthMay": "Май", "monthJun": "Июн", "monthJul": "Июл", "monthAug": "Авг",
+    "monthSep": "Сен", "monthOct": "Окт", "monthNov": "Ноя", "monthDec": "Дек"
   },
   "room": {
     "createTitle": "Создать Watch Party",

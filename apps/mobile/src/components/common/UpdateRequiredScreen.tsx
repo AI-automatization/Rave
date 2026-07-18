@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Linking, StyleSheet } from 'react-native';
+import { View, Text, Linking, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useTheme, spacing, borderRadius, typography } from '@theme/index';
 import { useT } from '@i18n/index';
 
@@ -65,10 +66,10 @@ export function UpdateRequiredScreen() {
       </View>
       <Text style={styles.title}>{t('update', 'title')}</Text>
       <Text style={styles.subtitle}>{t('update', 'subtitle')}</Text>
-      <TouchableOpacity style={styles.updateBtn} onPress={() => Linking.openURL(APP_STORE_URL)} activeOpacity={0.8}>
+      <TrackedTouchable trackId="update_required:open_store" style={styles.updateBtn} onPress={() => Linking.openURL(APP_STORE_URL)} activeOpacity={0.8}>
         <Ionicons name="logo-apple-appstore" size={16} color="#fff" />
         <Text style={styles.updateText}>{t('update', 'btn')}</Text>
-      </TouchableOpacity>
+      </TrackedTouchable>
     </View>
   );
 }

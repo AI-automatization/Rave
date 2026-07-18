@@ -1,9 +1,10 @@
 // WeWatch Mobile — WatchParty Join by Invite Code
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { useT } from '@i18n/index';
 import { ModalStackParamList } from '@app-types/index';
@@ -67,9 +68,9 @@ export function WatchPartyJoinScreen() {
     >
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+        <TrackedTouchable trackId="watchparty_join:back" onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
-        </TouchableOpacity>
+        </TrackedTouchable>
         <Text style={styles.title}>Qo'shilish</Text>
         <View style={{ width: 40 }} />
       </View>
@@ -85,7 +86,7 @@ export function WatchPartyJoinScreen() {
         </Text>
 
         {/* Code display */}
-        <TouchableOpacity onPress={() => inputRef.current?.focus()} activeOpacity={0.9}>
+        <TrackedTouchable trackId="watchparty_join:focus_code_input" onPress={() => inputRef.current?.focus()} activeOpacity={0.9}>
           <View style={styles.codeRow}>
             {Array.from({ length: CODE_LENGTH }).map((_, i) => (
               <View
@@ -100,7 +101,7 @@ export function WatchPartyJoinScreen() {
               </View>
             ))}
           </View>
-        </TouchableOpacity>
+        </TrackedTouchable>
 
         {/* Hidden input */}
         <TextInput
@@ -115,7 +116,8 @@ export function WatchPartyJoinScreen() {
           autoFocus
         />
 
-        <TouchableOpacity
+        <TrackedTouchable
+          trackId="watchparty_join:submit"
           style={[styles.joinBtn, (loading || code.length < CODE_LENGTH) && styles.joinBtnDisabled]}
           onPress={() => handleJoin()}
           disabled={loading || code.length < CODE_LENGTH}
@@ -129,7 +131,7 @@ export function WatchPartyJoinScreen() {
               <Text style={styles.joinBtnText}>Qo'shilish</Text>
             </>
           )}
-        </TouchableOpacity>
+        </TrackedTouchable>
       </View>
     </KeyboardAvoidingView>
   );

@@ -1,7 +1,8 @@
 // WeWatch Mobile — Profile loading / not-found states
 import React from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 
 interface ProfileEmptyStateProps {
@@ -34,9 +35,9 @@ export const ProfileEmptyState = React.memo(function ProfileEmptyState({
         <Ionicons name="person-outline" size={40} color={colors.textDim} />
       </View>
       <Text style={s.emptyText}>{titleLabel}</Text>
-      <TouchableOpacity style={s.retryBtn} onPress={onRetry} activeOpacity={0.8}>
+      <TrackedTouchable trackId="profile:empty_state_retry" style={s.retryBtn} onPress={onRetry} activeOpacity={0.8}>
         <Text style={s.retryText}>{retryLabel}</Text>
-      </TouchableOpacity>
+      </TrackedTouchable>
     </View>
   );
 });

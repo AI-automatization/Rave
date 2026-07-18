@@ -1,13 +1,14 @@
 // WeWatch — Create tab for WatchPartyCreateScreen
 import React, { useRef } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, ScrollView,
+  View, Text, TextInput, ScrollView,
   Switch, ActivityIndicator, Animated,
 } from 'react-native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useTheme, spacing } from '@theme/index';
 import { useWatchPartyCreate } from '@hooks/useWatchPartyCreate';
 import { FilmSelector } from './FilmSelector';
@@ -88,12 +89,13 @@ export function CreateTab({ navigation, t }: Props) {
             </View>
             <View style={s.membersRow}>
               {wp.maxMembersOptions.map(n => (
-                <TouchableOpacity
+                <TrackedTouchable
+                  trackId="create_room:select_max_members"
                   key={n} style={[s.memberChip, wp.maxMembers === n && s.memberChipActive]}
                   onPress={() => wp.setMaxMembers(n)} activeOpacity={0.7}
                 >
                   <Text style={[s.memberChipText, wp.maxMembers === n && s.memberChipTextActive]}>{n}</Text>
-                </TouchableOpacity>
+                </TrackedTouchable>
               ))}
             </View>
           </View>
@@ -120,7 +122,7 @@ export function CreateTab({ navigation, t }: Props) {
 
       <View style={[s.footer, { paddingBottom: insets.bottom + spacing.md }]}>
         <Animated.View style={{ transform: [{ scale: btnScale }] }}>
-          <TouchableOpacity style={[s.createBtn, wp.loading && s.createBtnDisabled]}
+          <TrackedTouchable trackId="create_room:submit" style={[s.createBtn, wp.loading && s.createBtnDisabled]}
             onPress={handleCreatePress} disabled={wp.loading} activeOpacity={0.85}>
             <LinearGradient colors={[colors.primary, colors.primaryLight ?? '#9333EA']}
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.createBtnGradient}>
@@ -131,7 +133,7 @@ export function CreateTab({ navigation, t }: Props) {
                 </>
               )}
             </LinearGradient>
-          </TouchableOpacity>
+          </TrackedTouchable>
         </Animated.View>
       </View>
     </>

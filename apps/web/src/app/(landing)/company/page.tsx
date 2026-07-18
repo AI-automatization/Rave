@@ -5,7 +5,7 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 const TEZCODE_URL = 'https://www.tezcode.dev/';
 
 export const metadata: Metadata = {
-  title: 'О компании — tezcode.dev, студия за WeWatch | AI Software Factory, Ташкент',
+  title: { absolute: 'О компании — tezcode.dev, студия за WeWatch | AI Software Factory, Ташкент' },
   description:
     'WeWatch создан tezcode.dev — AI Software Factory из Ташкента. 16 человек, 8 продуктов: AI Office, RAOS, CoreMed, WeWatch и другие. Автоматизируем бизнес с помощью AI.',
   alternates: { canonical: `${APP_URL}/company` },

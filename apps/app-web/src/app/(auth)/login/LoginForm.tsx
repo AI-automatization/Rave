@@ -8,6 +8,7 @@ import { Mail, Lock, Eye, EyeOff, Loader2, XCircle, ShieldX } from 'lucide-react
 import { useAuthStore } from '@/store/auth.store';
 import { authApi } from '@/lib/api/auth.api';
 import { ApiError } from '@/lib/api-client';
+import { trackClick } from '@/lib/analytics';
 
 interface BanInfo {
   reason: string | null;
@@ -26,10 +27,12 @@ export function LoginForm() {
   const [banInfo, setBanInfo] = useState<BanInfo | null>(null);
   const [isPending, startTransition] = useTransition();
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isTelegramLoading, setIsTelegramLoading] = useState(false);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!email || !password) return;
+    trackClick('login:submit');
 
     startTransition(() => {
       void (async () => {
@@ -68,6 +71,7 @@ export function LoginForm() {
   }
 
   async function handleGoogleLogin() {
+    trackClick('login:google');
     setError('');
     setIsGoogleLoading(true);
 
@@ -110,19 +114,29 @@ export function LoginForm() {
           if (poll.data?.user) {
             done = true;
             clearInterval(interval);
-            clearInterval(closedCheck);
+            document.removeEventListener('visibilitychange', onVisible);
+            window.removeEventListener('focus', onVisible);
             window.removeEventListener('message', onMessage);
             killPopup(popup);
             setUser(poll.data.user);
             // Full page reload — ensures freshly-set httpOnly cookies reach middleware
             window.location.href = searchParams.get('redirect') || '/home';
           }
-        } catch { /* still pending */ }
+        } catch (err) {
+          // A rate-limit response is not "still pending" — retrying at the same cadence just
+          // digs the hole deeper (T-S132). Stop polling and surface it instead of hanging forever.
+          if (err instanceof ApiError && err.status === 429) {
+            done = true;
+            killPopup(popup);
+            cleanup(t('genericError'));
+          }
+        }
       };
 
       const cleanup = (withError?: string) => {
         clearInterval(interval);
-        clearInterval(closedCheck);
+        document.removeEventListener('visibilitychange', onVisible);
+        window.removeEventListener('focus', onVisible);
         window.removeEventListener('message', onMessage);
         setIsGoogleLoading(false);
         if (withError) setError(withError);
@@ -139,17 +153,30 @@ export function LoginForm() {
       };
       window.addEventListener('message', onMessage);
 
-      // Popup may close because auth succeeded (backend's window.close timer).
-      // Give polling 3 extra seconds before treating closure as cancellation.
-      const closedCheck = setInterval(() => {
+      // popup.closed is NOT a trustworthy signal here: once the popup navigates to
+      // accounts.google.com (cross-origin from this tab), Google's own Cross-Origin-Opener-Policy
+      // severs the opener relationship, and `popup.closed` reads `true` from this side within
+      // seconds — while the user is still sitting on Google's account picker. An earlier version
+      // polled `popup.closed` on a timer and auto-cancelled the login ~4s in, on every attempt,
+      // regardless of how long the real OAuth flow took (T-S132 follow-up — confirmed via prod
+      // logs: exactly 2 polls fired, then silence, on 3/3 real attempts). Instead, only act on
+      // `.closed` once we get a genuine focus-return signal (below) — at that point the browser
+      // has actually resolved the window lifecycle and the read is trustworthy again.
+      const onVisible = () => {
+        if (document.visibilityState !== 'visible' || done) return;
+        void finishLogin();
         if (popup?.closed) {
-          clearInterval(closedCheck);
-          setTimeout(() => { if (!done) cleanup(); }, 3000);
+          // We're back and the popup is really gone — give one grace poll to land, then stop.
+          setTimeout(() => { if (!done) cleanup(); }, 1500);
         }
-      }, 500);
+      };
+      document.addEventListener('visibilitychange', onVisible);
+      window.addEventListener('focus', onVisible);
 
-      // Fallback poll every 800ms in case postMessage is missed
-      const interval = setInterval(finishLogin, 800);
+      // Ground-truth poll every 2s in case postMessage is missed. Was 800ms — that cadence blew
+      // through pollRateLimiter's budget before a real Google OAuth flow (account picker +
+      // consent) finished, silently hanging the login (T-S132).
+      const interval = setInterval(finishLogin, 2000);
 
       // Cleanup after 2 min
       setTimeout(() => cleanup(), 120_000);
@@ -159,8 +186,96 @@ export function LoginForm() {
     }
   }
 
-  // Full-screen loading while Google OAuth completes in popup
-  if (isGoogleLoading) {
+  async function handleTelegramLogin() {
+    trackClick('login:telegram');
+    setError('');
+    setIsTelegramLoading(true);
+
+    // Open popup BEFORE any await so Chrome doesn't block it (user-gesture context).
+    const w = 500, h = 600;
+    const left = Math.round((window.screen.width - w) / 2);
+    const top = Math.round((window.screen.height - h) / 2);
+    const popup = window.open(
+      'about:blank',
+      'telegram-auth',
+      `width=${w},height=${h},left=${left},top=${top}`,
+    );
+
+    try {
+      const res = await authApi.telegramInit();
+      const url = res.data?.url;
+      if (!url) {
+        popup?.close();
+        setIsTelegramLoading(false);
+        setError(t('genericError'));
+        return;
+      }
+
+      if (popup) {
+        popup.location.href = url;
+      } else {
+        // Popup was blocked entirely — fall back to same-tab redirect
+        window.location.href = url;
+        return;
+      }
+
+      let done = false;
+      // No postMessage channel from the Telegram callback page (unlike Google's OAuth
+      // callback) — its httpOnly cookies land on the same origin as this tab, so polling
+      // /api/auth/me is enough to detect the moment login completes in the popup.
+      const finishLogin = async () => {
+        if (done) return;
+        try {
+          const me = await authApi.me();
+          if (me.data?.user) {
+            done = true;
+            clearInterval(interval);
+            document.removeEventListener('visibilitychange', onVisible);
+            window.removeEventListener('focus', onVisible);
+            killPopup(popup);
+            setUser(me.data.user);
+            // Full page reload — ensures freshly-set httpOnly cookies reach middleware
+            window.location.href = searchParams.get('redirect') || '/home';
+          }
+        } catch { /* still pending */ }
+      };
+
+      const cleanup = (withError?: string) => {
+        clearInterval(interval);
+        document.removeEventListener('visibilitychange', onVisible);
+        window.removeEventListener('focus', onVisible);
+        setIsTelegramLoading(false);
+        if (withError) setError(withError);
+      };
+
+      // popup.closed is not trustworthy while the popup sits on a cross-origin page (T-S132
+      // follow-up — see the identical comment in handleGoogleLogin for the full COOP-severing
+      // explanation). Only act on `.closed` once we get a genuine focus-return signal.
+      const onVisible = () => {
+        if (document.visibilityState !== 'visible' || done) return;
+        void finishLogin();
+        if (popup?.closed) {
+          setTimeout(() => { if (!done) cleanup(); }, 1500);
+        }
+      };
+      document.addEventListener('visibilitychange', onVisible);
+      window.addEventListener('focus', onVisible);
+
+      // Ground-truth poll every 2s — was 800ms, unnecessarily aggressive for a human OAuth flow.
+      // /api/auth/me isn't behind pollRateLimiter, so this is just about load, not the 429 bug —
+      // slowed to match the Google flow for consistency.
+      const interval = setInterval(finishLogin, 2000);
+
+      // Cleanup after 2 min
+      setTimeout(() => cleanup(), 120_000);
+    } catch {
+      setIsTelegramLoading(false);
+      setError(t('genericError'));
+    }
+  }
+
+  // Full-screen loading while Google/Telegram OAuth completes in popup
+  if (isGoogleLoading || isTelegramLoading) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-12">
         <div
@@ -203,7 +318,7 @@ export function LoginForm() {
       <div className="flex flex-col gap-1.5">
         <div className="flex items-center justify-between">
           <label className="text-xs font-medium text-slate-400">{t('passwordLabel')}</label>
-          <Link href="/auth/reset-password" className="text-xs text-violet-400 hover:text-violet-300 transition-colors">
+          <Link href="/auth/reset-password" onClick={() => trackClick('login:forgot_password')} className="text-xs text-violet-400 hover:text-violet-300 transition-colors">
             {t('forgotPassword')}
           </Link>
         </div>
@@ -283,10 +398,24 @@ export function LoginForm() {
         Google
       </button>
 
+      {/* Telegram */}
+      <button
+        type="button"
+        onClick={handleTelegramLogin}
+        disabled={isPending}
+        className="w-full h-10 rounded-md text-sm font-medium text-white bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.07] hover:border-white/[0.14] transition-colors flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="12" fill="#26A5E4"/>
+          <path d="M5.5 11.8 17 7.4c.53-.19 1 .13.83.94l-2 9.42c-.14.63-.51.78-1.03.49l-2.85-2.1-1.37 1.32c-.15.15-.28.28-.57.28l.2-2.9 5.3-4.79c.23-.2-.05-.32-.36-.11l-6.55 4.12-2.83-.88c-.61-.19-.62-.61.13-.9z" fill="#fff"/>
+        </svg>
+        Telegram
+      </button>
+
       {/* Register link */}
       <p className="text-sm text-center text-slate-400">
         {t('noAccount')}{' '}
-        <Link href="/register" className="text-violet-400 hover:text-violet-300 font-medium transition-colors">
+        <Link href="/register" onClick={() => trackClick('login:go_to_register')} className="text-violet-400 hover:text-violet-300 font-medium transition-colors">
           {t('registerLink')}
         </Link>
       </p>

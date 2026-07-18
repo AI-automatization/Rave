@@ -128,7 +128,9 @@
       "versionCode": 10,
       "adaptiveIcon": {
         "backgroundColor": "#0A0A0F",
-        "foregroundImage": "./assets/android-icon-foreground.png"
+        "backgroundImage": "./assets/android-icon-background.png",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "permissions": [
         "android.permission.CAMERA",
@@ -204,6 +206,7 @@
           ]
         }
       ],
+      "./plugins/withGradleMemory",
       "@sentry/react-native",
       "expo-image",
       "expo-status-bar",

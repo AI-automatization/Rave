@@ -1,6 +1,7 @@
 // WeWatch Mobile — SettingsScreen (composed)
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Alert, Linking, AppState } from 'react-native';
+import { View, Text, ScrollView, Alert, Linking, AppState } from 'react-native';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import * as Notifications from 'expo-notifications';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { RootStackParamList } from '@app-types/index';
@@ -141,9 +142,9 @@ export function SettingsScreen() {
       <ScrollView style={styles.root} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <TrackedTouchable trackId="settings:back" onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
-          </TouchableOpacity>
+          </TrackedTouchable>
           <Text style={styles.title}>{t('settings', 'title')}</Text>
           <View style={styles.spacer} />
         </View>
@@ -152,34 +153,36 @@ export function SettingsScreen() {
           {/* Account */}
           <SectionHeader title={t('settings', 'accountSection')} />
           <View style={styles.card}>
-            <TouchableOpacity style={[styles.navRow, styles.rowBorder]} onPress={openEditProfile} activeOpacity={0.8}>
+            <TrackedTouchable trackId="settings:edit_profile" style={[styles.navRow, styles.rowBorder]} onPress={openEditProfile} activeOpacity={0.8}>
               <Ionicons name="person-outline" size={18} color={colors.textSecondary} />
               <Text style={styles.navLabel}>{t('settings', 'editProfile')}</Text>
               <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.navRow} onPress={() => setActiveModal('changePassword')} activeOpacity={0.8}>
+            </TrackedTouchable>
+            <TrackedTouchable trackId="settings:change_password" style={styles.navRow} onPress={() => setActiveModal('changePassword')} activeOpacity={0.8}>
               <Ionicons name="lock-closed-outline" size={18} color={colors.textSecondary} />
               <Text style={styles.navLabel}>{t('settings', 'changePassword')}</Text>
               <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-            </TouchableOpacity>
+            </TrackedTouchable>
           </View>
 
           {/* Language */}
           <SectionHeader title={t('settings', 'langSection')} />
           <View style={styles.card}>
             {LANGUAGES.map((lang, i) => (
-              <TouchableOpacity
+              <TrackedTouchable
+                trackId="settings:change_language"
                 key={lang.code}
                 style={[styles.langRow, i < LANGUAGES.length - 1 && styles.rowBorder]}
                 onPress={() => handleLanguageChange(lang.code)}
                 activeOpacity={0.8}
+                trackMeta={{ lang: lang.code }}
               >
                 <Text style={styles.langFlag}>{lang.flag}</Text>
                 <Text style={styles.langLabel}>{lang.label}</Text>
                 {language === lang.code && (
                   <Ionicons name="checkmark" size={20} color={colors.primary} />
                 )}
-              </TouchableOpacity>
+              </TrackedTouchable>
             ))}
           </View>
 
@@ -187,7 +190,7 @@ export function SettingsScreen() {
           <SectionHeader title={t('settings', 'notifSection')} />
           {!notifGranted && (
             <View style={styles.card}>
-              <TouchableOpacity style={styles.navRow} onPress={handleEnableNotifs} activeOpacity={0.8}>
+              <TrackedTouchable trackId="settings:enable_notifications" style={styles.navRow} onPress={handleEnableNotifs} activeOpacity={0.8}>
                 <Ionicons name="notifications-off-outline" size={18} color={colors.primary} />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.navLabel}>{t('settings', 'enableNotifs')}</Text>
@@ -196,7 +199,7 @@ export function SettingsScreen() {
                   </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-              </TouchableOpacity>
+              </TrackedTouchable>
             </View>
           )}
           <View style={styles.card}>
@@ -219,6 +222,7 @@ export function SettingsScreen() {
               <View key={item.key} style={i < PRIVACY_TOGGLES.length - 1 ? styles.rowBorder : undefined}>
                 <ToggleRow
                   label={t('settings', item.labelKey)}
+                  sub={item.subKey ? t('settings', item.subKey) : undefined}
                   value={privacyToggles[item.key] ?? true}
                   onChange={v => togglePrivacy(item.key, v)}
                 />
@@ -229,7 +233,8 @@ export function SettingsScreen() {
           {/* Support */}
           <SectionHeader title={t('settings', 'helpSection')} />
           <View style={styles.card}>
-            <TouchableOpacity
+            <TrackedTouchable
+              trackId="settings:write_support"
               style={styles.navRow}
               onPress={() => navigation.navigate('Modal', { screen: 'SupportChat' })}
               activeOpacity={0.8}
@@ -237,7 +242,7 @@ export function SettingsScreen() {
               <Ionicons name="headset-outline" size={18} color={colors.textSecondary} />
               <Text style={styles.navLabel}>{t('settings', 'writeSupport')}</Text>
               <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-            </TouchableOpacity>
+            </TrackedTouchable>
           </View>
 
           {/* App info */}
@@ -256,7 +261,8 @@ export function SettingsScreen() {
           {/* Legal */}
           <SectionHeader title={t('settings', 'legalSection')} />
           <View style={styles.card}>
-            <TouchableOpacity
+            <TrackedTouchable
+              trackId="settings:open_privacy_policy"
               style={[styles.navRow, styles.rowBorder]}
               onPress={() => Linking.openURL('https://wewatch.uz/privacy-policy')}
               activeOpacity={0.8}
@@ -264,8 +270,9 @@ export function SettingsScreen() {
               <Ionicons name="shield-checkmark-outline" size={18} color={colors.textMuted} />
               <Text style={styles.navLabel}>{t('settings', 'privacyLabel')}</Text>
               <Ionicons name="open-outline" size={16} color={colors.textMuted} />
-            </TouchableOpacity>
-            <TouchableOpacity
+            </TrackedTouchable>
+            <TrackedTouchable
+              trackId="settings:open_terms"
               style={styles.navRow}
               onPress={() => Linking.openURL('https://wewatch.uz/terms')}
               activeOpacity={0.8}
@@ -273,13 +280,14 @@ export function SettingsScreen() {
               <Ionicons name="document-text-outline" size={18} color={colors.textMuted} />
               <Text style={styles.navLabel}>{t('settings', 'termsLabel')}</Text>
               <Ionicons name="open-outline" size={16} color={colors.textMuted} />
-            </TouchableOpacity>
+            </TrackedTouchable>
           </View>
 
           {/* Danger zone */}
           <SectionHeader title={t('settings', 'dangerZone')} />
           <View style={styles.card}>
-            <TouchableOpacity
+            <TrackedTouchable
+              trackId="settings:logout_all"
               style={[styles.navRow, styles.rowBorder]}
               onPress={() => {
                 appAlert(
@@ -310,12 +318,12 @@ export function SettingsScreen() {
                 {t('settings', 'logoutAll')}
               </Text>
               <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.navRow} onPress={handleDeleteAccount} activeOpacity={0.8}>
+            </TrackedTouchable>
+            <TrackedTouchable trackId="settings:delete_account" style={styles.navRow} onPress={handleDeleteAccount} activeOpacity={0.8}>
               <Ionicons name="trash-outline" size={18} color={colors.error} />
               <Text style={[styles.navLabel, { color: colors.error }]}>{t('settings', 'deleteAccount')}</Text>
               <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-            </TouchableOpacity>
+            </TrackedTouchable>
           </View>
         </View>
 

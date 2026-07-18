@@ -1,48 +1,36 @@
 // WeWatch Mobile — DM Chat Screen (T-E137)
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
-  View, Text, FlatList, TextInput, TouchableOpacity,
-  KeyboardAvoidingView, Platform, ActivityIndicator,
+  View, FlatList,
+  KeyboardAvoidingView, Platform, ActivityIndicator, Text,
   StyleSheet, ListRenderItemInfo,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import { useNavigation, useRoute, useFocusEffect, RouteProp } from '@react-navigation/native';
+import * as Clipboard from 'expo-clipboard';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@store/auth.store';
 import { dmApi } from '@api/user.api';
 import { IDMMessage, ModalStackParamList } from '@app-types/index';
 import { useT } from '@i18n/index';
-import { spacing, borderRadius } from '@theme/index';
 import { getSocket, SERVER_EVENTS, CLIENT_EVENTS } from '@socket/client';
+import { useEnsureSocket } from '@hooks/useEnsureSocket';
+import { useDMChatViewport } from '@hooks/useDMChatViewport';
+import { memberColor } from '@utils/dmFormat';
+import { buildDMList, findJumpIndex, dateKeyFromDate, dateFromKey, type DMListItem } from '@utils/dmDateGroups';
+import { MessageItem } from '@components/dm/MessageItem';
+import { ForwardPicker } from '@components/dm/ForwardPicker';
+import { MessageActionSheet } from '@components/dm/MessageActionSheet';
+import { DateSeparator } from '@components/dm/DateSeparator';
+import { StickyDateHeader } from '@components/dm/StickyDateHeader';
+import { DatePickerModal } from '@components/dm/DatePickerModal';
+import { DMChatHeader } from '@components/dm/DMChatHeader';
+import { ReplyPreviewBar } from '@components/dm/ReplyPreviewBar';
+import { DMChatInput } from '@components/dm/DMChatInput';
+import { PinnedMessagesBar } from '@components/dm/PinnedMessagesBar';
+import { ChatWallpaper } from '@components/dm/ChatWallpaper';
 
 type RouteType = RouteProp<ModalStackParamList, 'DMChat'>;
-
-const BUBBLE_RADIUS = 18;
-
-function memberColor(id: string): string {
-  const palette = ['#7B72F8', '#F87171', '#34D399', '#FBBF24', '#60A5FA', '#F472B6', '#A78BFA'];
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = id.charCodeAt(i) + ((h << 5) - h);
-  return palette[Math.abs(h) % palette.length];
-}
-
-function formatTime(dateStr: string): string {
-  const d = new Date(dateStr);
-  return `${d.getHours()}:${d.getMinutes().toString().padStart(2, '0')}`;
-}
-
-function MessageItem({ item, currentUserId }: { item: IDMMessage; currentUserId: string }) {
-  const isMine = item.senderId === currentUserId;
-  return (
-    <View style={[s.msgRow, isMine && s.msgRowMine]}>
-      <View style={[s.bubble, isMine ? s.bubbleMine : s.bubbleOther]}>
-        <Text style={[s.msgText, isMine && s.msgTextMine]}>{item.text}</Text>
-        <Text style={[s.timeLabel, isMine && s.timeLabelMine]}>{formatTime(item.createdAt)}</Text>
-      </View>
-    </View>
-  );
-}
 
 export function DMChatScreen() {
   const { params } = useRoute<RouteType>();
@@ -53,8 +41,15 @@ export function DMChatScreen() {
   const { user } = useAuthStore();
   const myId = user?._id ?? '';
   const queryClient = useQueryClient();
-  const listRef = useRef<FlatList<IDMMessage>>(null);
+  const listRef = useRef<FlatList<DMListItem>>(null);
   const [input, setInput] = useState('');
+  const [replyTo, setReplyTo] = useState<IDMMessage | null>(null);
+  const [actionMsg, setActionMsg] = useState<IDMMessage | null>(null);
+  const [forwardMsg, setForwardMsg] = useState<IDMMessage | null>(null);
+  const [calendarVisible, setCalendarVisible] = useState(false);
+
+  // DM realtime uchun socket ulanishini kafolatlash (bug fix: socket null edi)
+  useEnsureSocket();
 
   const { data: messages = [], isLoading } = useQuery<IDMMessage[]>({
     queryKey: ['dm-history', peerId],
@@ -62,18 +57,32 @@ export function DMChatScreen() {
     staleTime: 0,
   });
 
-  // Mark messages as read on open
-  useEffect(() => {
-    void dmApi.markRead(peerId).catch(() => null);
-    void queryClient.invalidateQueries({ queryKey: ['dm-conversations'] });
-  }, [peerId, queryClient]);
+  const { data: pinnedMessages = [] } = useQuery<IDMMessage[]>({
+    queryKey: ['dm-pinned', peerId],
+    queryFn: () => dmApi.getPinnedMessages(peerId),
+    staleTime: 0,
+  });
 
-  // Scroll to bottom when messages load or new ones arrive
-  useEffect(() => {
-    if (messages.length > 0) {
-      setTimeout(() => listRef.current?.scrollToEnd({ animated: false }), 100);
-    }
-  }, [messages.length]);
+  // Pin state is shared between both DM participants — refresh on refocus so a pin
+  // the peer made while this screen was backgrounded shows up without a reopen.
+  useFocusEffect(
+    useCallback(() => {
+      void queryClient.invalidateQueries({ queryKey: ['dm-pinned', peerId] });
+    }, [peerId, queryClient]),
+  );
+
+  // Telegram-style day grouping — flat list of date separators + messages, built once
+  // per messages/language change (not per render, since it re-walks every message).
+  const listData = useMemo(() => buildDMList(messages, t), [messages, t]);
+  const markedDateKeys = useMemo(
+    () => new Set(messages.map(m => dateKeyFromDate(new Date(m.createdAt)))),
+    [messages],
+  );
+
+  const {
+    visibleLabel, visibleDateKey, scrollActivity, handleScroll,
+    onViewableItemsChanged, viewabilityConfig,
+  } = useDMChatViewport(peerId, listRef, listData, messages.length);
 
   // Listen for incoming DM messages via socket
   const handleIncoming = useCallback((msg: IDMMessage) => {
@@ -85,11 +94,23 @@ export function DMChatScreen() {
     queryClient.setQueryData<IDMMessage[]>(['dm-history', peerId], (old = []) => {
       if (old.some(m => m._id === msg._id)) return old;
       // Replace our optimistic placeholder once the server echoes the real message back.
+      // Faqat BIRINCHI mos temp'ni o'chiramiz — ketma-ket yuborilgan bir xil matnli
+      // ikki xabar birinchi echo kelganda ikkalasi ham yo'qolib qolmasligi uchun.
+      let removed = false;
       const base = msg.senderId === myId
-        ? old.filter(m => !(m._id.startsWith('temp-') && m.text === msg.text))
+        ? old.filter(m => {
+            if (!removed && m._id.startsWith('temp-') && m.text === msg.text) {
+              removed = true;
+              return false;
+            }
+            return true;
+          })
         : old;
       return [...base, msg];
     });
+
+    // Read-marking for this new message happens the normal way — via the viewport
+    // tracker above, once it actually scrolls into view (see scrollToEnd below).
     void queryClient.invalidateQueries({ queryKey: ['dm-conversations'] });
     setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
   }, [peerId, myId, queryClient]);
@@ -101,10 +122,32 @@ export function DMChatScreen() {
     return () => { sock.off(SERVER_EVENTS.DM_MESSAGE, handleIncoming); };
   }, [handleIncoming]);
 
+  // Realtime tick update: the peer just read some of MY messages — flip their
+  // checkmarks to "read" without waiting for a chat reopen.
+  useEffect(() => {
+    const sock = getSocket();
+    if (!sock) return;
+    const onRead = (data: { peerId: string; upToCreatedAt: string }) => {
+      if (data.peerId !== peerId) return;
+      const upTo = new Date(data.upToCreatedAt).getTime();
+      queryClient.setQueryData<IDMMessage[]>(['dm-history', peerId], (old = []) =>
+        old.map(m => (
+          m.senderId === myId && !m.read && new Date(m.createdAt).getTime() <= upTo
+            ? { ...m, read: true }
+            : m
+        )),
+      );
+    };
+    sock.on(SERVER_EVENTS.DM_READ, onRead);
+    return () => { sock.off(SERVER_EVENTS.DM_READ, onRead); };
+  }, [peerId, myId, queryClient]);
+
   const handleSend = () => {
     const text = input.trim();
     if (!text) return;
     setInput('');
+    const activeReply = replyTo;
+    setReplyTo(null);
 
     // Optimistic insert — the message shows instantly and never "disappears" if the
     // socket echo is slow or lost. The real message (socket echo or REST reply) replaces it.
@@ -112,17 +155,22 @@ export function DMChatScreen() {
     const nowIso = new Date().toISOString();
     const optimistic: IDMMessage = {
       _id: tempId, senderId: myId, receiverId: peerId, text,
-      read: false, createdAt: nowIso, updatedAt: nowIso,
+      read: false,
+      replyToId: activeReply?._id ?? null,
+      replyToText: activeReply ? activeReply.text.slice(0, 300) : null,
+      replyToSender: activeReply ? (activeReply.senderId === myId ? (user?.username ?? '') : peerName) : null,
+      forwardFrom: null,
+      createdAt: nowIso, updatedAt: nowIso,
     };
     queryClient.setQueryData<IDMMessage[]>(['dm-history', peerId], (old = []) => [...old, optimistic]);
     setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 60);
 
     const sock = getSocket();
     if (sock?.connected) {
-      sock.emit(CLIENT_EVENTS.DM_SEND, { receiverId: peerId, text });
+      sock.emit(CLIENT_EVENTS.DM_SEND, { receiverId: peerId, text, replyToId: activeReply?._id });
     } else {
       // Fallback to REST when socket isn't connected
-      void dmApi.sendMessage(peerId, text)
+      void dmApi.sendMessage(peerId, text, activeReply?._id)
         .then(msg => {
           queryClient.setQueryData<IDMMessage[]>(['dm-history', peerId], (old = []) => {
             const withoutTemp = old.filter(m => m._id !== tempId);
@@ -135,7 +183,43 @@ export function DMChatScreen() {
     }
   };
 
+  const handleCopy = async (msg: IDMMessage) => {
+    setActionMsg(null);
+    await Clipboard.setStringAsync(msg.text).catch(() => null);
+  };
+
+  const handleTogglePin = async (msg: IDMMessage) => {
+    try {
+      await dmApi.togglePinMessage(peerId, msg._id, !msg.pinned);
+      void queryClient.invalidateQueries({ queryKey: ['dm-pinned', peerId] });
+    } catch { /* best-effort — message may have been deleted meanwhile */ }
+  };
+
+  const handleJumpToPinned = (msg: IDMMessage) => {
+    const idx = listData.findIndex(i => i.kind === 'message' && i.message._id === msg._id);
+    if (idx !== -1) listRef.current?.scrollToIndex({ index: idx, animated: true, viewPosition: 0.3 });
+  };
+
+  // Jump-to-date: land on the day's separator (or the closest earlier day if that day
+  // has no messages) — same "closest real message" fallback Telegram uses.
+  const handleSelectDate = (date: Date) => {
+    setCalendarVisible(false);
+    const idx = findJumpIndex(listData, dateKeyFromDate(date));
+    requestAnimationFrame(() => {
+      listRef.current?.scrollToIndex({ index: idx, animated: true, viewPosition: 0 });
+    });
+  };
+
+  const onScrollToIndexFailed = (info: { index: number; averageItemLength: number }) => {
+    listRef.current?.scrollToOffset({ offset: info.averageItemLength * info.index, animated: false });
+    setTimeout(() => listRef.current?.scrollToIndex({ index: info.index, animated: true }), 100);
+  };
+
   const accentColor = memberColor(peerId);
+
+  const replyPreviewSender = replyTo
+    ? (replyTo.senderId === myId ? (user?.username ?? '') : peerName)
+    : '';
 
   return (
     <KeyboardAvoidingView
@@ -144,63 +228,101 @@ export function DMChatScreen() {
       keyboardVerticalOffset={insets.top}
     >
       {/* Header */}
-      <View style={[s.header, { paddingTop: insets.top + 8 }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} activeOpacity={0.75}>
-          <Ionicons name="chevron-back" size={24} color="#fff" />
-        </TouchableOpacity>
-        <View style={[s.peerDot, { backgroundColor: accentColor }]}>
-          <Text style={s.peerInitial}>{peerName.slice(0, 1).toUpperCase()}</Text>
-        </View>
-        <Text style={s.headerTitle} numberOfLines={1}>{peerName}</Text>
-      </View>
+      <DMChatHeader
+        peerName={peerName}
+        accentColor={accentColor}
+        topInset={insets.top}
+        onBack={() => navigation.goBack()}
+      />
+      <PinnedMessagesBar pinnedMessages={pinnedMessages} onJump={handleJumpToPinned} onUnpin={m => void handleTogglePin(m)} />
 
       {/* Messages */}
-      {isLoading ? (
-        <View style={s.loader}>
-          <ActivityIndicator color="#7B72F8" />
-        </View>
-      ) : messages.length === 0 ? (
-        <View style={s.empty}>
-          <Ionicons name="chatbubbles-outline" size={48} color="rgba(255,255,255,0.15)" />
-          <Text style={s.emptyTitle}>{t('dm', 'emptyTitle')}</Text>
-          <Text style={s.emptySub}>{t('dm', 'emptySub')}</Text>
-        </View>
-      ) : (
-        <FlatList
-          ref={listRef}
-          data={messages}
-          keyExtractor={item => item._id}
-          renderItem={({ item }: ListRenderItemInfo<IDMMessage>) => (
-            <MessageItem item={item} currentUserId={myId} />
-          )}
-          contentContainerStyle={s.list}
-          showsVerticalScrollIndicator={false}
-          onLayout={() => listRef.current?.scrollToEnd({ animated: false })}
+      <View style={s.listWrap}>
+        <ChatWallpaper />
+        {isLoading ? (
+          <View style={s.loader}>
+            <ActivityIndicator color="#7B72F8" />
+          </View>
+        ) : messages.length === 0 ? (
+          <View style={s.empty}>
+            <View style={[s.emptyAvatarRing, { borderColor: accentColor }]}>
+              <View style={[s.emptyAvatarFallback, { backgroundColor: accentColor }]}>
+                <Text style={s.emptyAvatarInitial}>{peerName.slice(0, 1).toUpperCase()}</Text>
+              </View>
+            </View>
+            <Text style={s.emptyTitle}>{peerName}</Text>
+            <Text style={s.emptySub}>{t('dm', 'emptySub')}</Text>
+          </View>
+        ) : (
+          <FlatList
+            ref={listRef}
+            data={listData}
+            keyExtractor={item => item.id}
+            renderItem={({ item }: ListRenderItemInfo<DMListItem>) => (
+              item.kind === 'date'
+                ? <DateSeparator label={item.label} onPress={() => setCalendarVisible(true)} />
+                : <MessageItem item={item.message} currentUserId={myId} onLongPress={setActionMsg} onSwipeReply={setReplyTo} />
+            )}
+            contentContainerStyle={s.list}
+            showsVerticalScrollIndicator={false}
+            onLayout={() => listRef.current?.scrollToEnd({ animated: false })}
+            onScroll={handleScroll}
+            scrollEventThrottle={100}
+            onViewableItemsChanged={onViewableItemsChanged}
+            viewabilityConfig={viewabilityConfig}
+            onScrollToIndexFailed={onScrollToIndexFailed}
+          />
+        )}
+        <StickyDateHeader
+          label={visibleLabel}
+          activityKey={scrollActivity}
+          onPress={() => setCalendarVisible(true)}
+        />
+      </View>
+
+      {/* Reply preview */}
+      {replyTo && (
+        <ReplyPreviewBar
+          senderName={replyPreviewSender}
+          text={replyTo.text}
+          onCancel={() => setReplyTo(null)}
         />
       )}
 
       {/* Input */}
-      <View style={[s.inputRow, { paddingBottom: Math.max(insets.bottom, 12) }]}>
-        <TextInput
-          style={s.input}
-          value={input}
-          onChangeText={setInput}
-          placeholder={t('dm', 'placeholder')}
-          placeholderTextColor="rgba(255,255,255,0.28)"
-          multiline
-          maxLength={2000}
-          returnKeyType="send"
-          onSubmitEditing={handleSend}
-        />
-        <TouchableOpacity
-          style={[s.sendBtn, !input.trim() && s.sendBtnOff]}
-          onPress={handleSend}
-          disabled={!input.trim()}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="send" size={18} color="#fff" />
-        </TouchableOpacity>
-      </View>
+      <DMChatInput
+        value={input}
+        onChangeText={setInput}
+        onSend={handleSend}
+        placeholder={t('dm', 'placeholder')}
+        bottomInset={insets.bottom}
+      />
+
+      {/* Long-press action sheet */}
+      <MessageActionSheet
+        message={actionMsg}
+        onReply={setReplyTo}
+        onForward={setForwardMsg}
+        onCopy={m => void handleCopy(m)}
+        onTogglePin={m => void handleTogglePin(m)}
+        onClose={() => setActionMsg(null)}
+      />
+
+      {/* Forward peer picker */}
+      <ForwardPicker
+        message={forwardMsg}
+        currentPeerId={peerId}
+        onClose={() => setForwardMsg(null)}
+      />
+
+      {/* Jump-to-date calendar */}
+      <DatePickerModal
+        visible={calendarVisible}
+        onClose={() => setCalendarVisible(false)}
+        onSelect={handleSelectDate}
+        markedDateKeys={markedDateKeys}
+        initialDate={visibleDateKey ? dateFromKey(visibleDateKey) : null}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -210,39 +332,9 @@ const s = StyleSheet.create({
     flex: 1,
     backgroundColor: '#0D0D1A',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: spacing.md,
-    paddingBottom: 12,
-    backgroundColor: '#111120',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.06)',
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  peerDot: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  peerInitial: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  headerTitle: {
+  listWrap: {
     flex: 1,
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#fff',
+    position: 'relative',
   },
   loader: {
     flex: 1,
@@ -253,103 +345,43 @@ const s = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 6,
     paddingBottom: 60,
   },
+  emptyAvatarRing: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  emptyAvatarFallback: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyAvatarInitial: {
+    color: '#fff',
+    fontSize: 28,
+    fontWeight: '700',
+  },
   emptyTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.28)',
-    marginTop: 8,
+    fontSize: 17,
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.6)',
   },
   emptySub: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.18)',
+    fontSize: 13.5,
+    color: 'rgba(255,255,255,0.28)',
     textAlign: 'center',
     paddingHorizontal: 40,
   },
   list: {
     padding: 16,
-    gap: 8,
-  },
-  msgRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-  },
-  msgRowMine: {
-    flexDirection: 'row-reverse',
-  },
-  bubble: {
-    maxWidth: '78%',
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderRadius: BUBBLE_RADIUS,
-    gap: 3,
-  },
-  bubbleMine: {
-    backgroundColor: '#7B72F8',
-    borderBottomRightRadius: 5,
-  },
-  bubbleOther: {
-    backgroundColor: '#1C1C2E',
-    borderBottomLeftRadius: 5,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
-  },
-  msgText: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.85)',
-    lineHeight: 20,
-  },
-  msgTextMine: {
-    color: '#fff',
-  },
-  timeLabel: {
-    fontSize: 9,
-    color: 'rgba(255,255,255,0.28)',
-    alignSelf: 'flex-end',
-  },
-  timeLabelMine: {
-    color: 'rgba(255,255,255,0.48)',
-  },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 8,
-    paddingHorizontal: spacing.md,
-    paddingTop: 10,
-    backgroundColor: '#111120',
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.06)',
-  },
-  input: {
-    flex: 1,
-    backgroundColor: '#1C1C2E',
-    borderRadius: 22,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: '#fff',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.07)',
-    maxHeight: 120,
-  },
-  sendBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: '#7B72F8',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#7B72F8',
-    shadowOpacity: 0.55,
-    shadowOffset: { width: 0, height: 0 },
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  sendBtnOff: {
-    backgroundColor: 'rgba(123,114,248,0.30)',
-    shadowOpacity: 0,
-    elevation: 0,
+    gap: 6,
   },
 });

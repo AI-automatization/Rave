@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
 
 export const metadata: Metadata = {
-  title: "Onlayn birgalikda tomosha qilish — do'stlar bilan bepul | WeWatch",
+  title: "Onlayn birgalikda tomosha qilish — do'stlar bilan bepul",
   description:
     "WeWatch — do'stlar bilan onlayn film, serial va videolarni birgalikda sinxron tomosha qiling. iPhone, Android va kompyuterda bepul ishlaydi. Uzoqlik muhim emas.",
   keywords: [
@@ -36,21 +37,64 @@ export const metadata: Metadata = {
 
 const jsonLd = {
   '@context': 'https://schema.org',
-  '@type': 'Article',
-  headline: "Onlayn birgalikda tomosha qilish — do'stlar bilan bepul",
-  description:
-    "WeWatch orqali do'stlaringiz bilan onlayn sinxron film va serial tomosha qiling",
-  author: { '@type': 'Organization', name: 'WeWatch', url: 'https://wewatch.uz' },
-  publisher: { '@type': 'Organization', name: 'WeWatch', url: 'https://wewatch.uz' },
-  datePublished: '2026-06-16',
-  inLanguage: 'uz',
-  mainEntityOfPage: 'https://wewatch.uz/uz/guides/birgalikda-tomosha-qilish',
+  '@graph': [
+    {
+      '@type': 'Article',
+      headline: "Onlayn birgalikda tomosha qilish — do'stlar bilan bepul",
+      description:
+        "WeWatch orqali do'stlaringiz bilan onlayn sinxron film va serial tomosha qiling",
+      author: { '@type': 'Organization', name: 'WeWatch', url: 'https://wewatch.uz' },
+      publisher: { '@type': 'Organization', name: 'WeWatch', url: 'https://wewatch.uz' },
+      datePublished: '2026-06-16',
+      inLanguage: 'uz',
+      mainEntityOfPage: 'https://wewatch.uz/uz/guides/birgalikda-tomosha-qilish',
+    },
+    {
+      '@type': 'FAQPage',
+      inLanguage: 'uz',
+      mainEntity: [
+        {
+          '@type': 'Question',
+          name: 'WeWatch bepulmi?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: "Ha, asosiy sinxron tomosha funksiyasi to'liq bepul. Ro'yxatdan o'tish ham shart emas — do'stingizga shunchaki havola yuboring.",
+          },
+        },
+        {
+          '@type': 'Question',
+          name: "Do'stim ham ilovani yuklab olishi kerakmi?",
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: "Xona yaratuvchi ilovani yuklab olishi kerak. Qo'shiluvchi do'stingiz esa havola orqali veb versiyadan ham kirishi mumkin.",
+          },
+        },
+        {
+          '@type': 'Question',
+          name: "Qancha kishi birgalikda tomosha qila oladi?",
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: "Bir xonada bir necha kishi bo'lishi mumkin. Hamma bir xil videoni sinxron holda ko'radi.",
+          },
+        },
+        {
+          '@type': 'Question',
+          name: "Internet tezligi qancha bo'lishi kerak?",
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'Oddiy video uchun 5 Mbit/s yetarli. HD video uchun 15-25 Mbit/s tavsiya etiladi.',
+          },
+        },
+      ],
+    },
+  ],
 };
 
 export default function BirgalikdaTomashaPage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <GuideHeader locale="uz" />
       <main className="min-h-screen bg-[#060608] text-white">
         <div className="max-w-3xl mx-auto px-4 py-16">
           <nav className="text-sm text-zinc-500 mb-8">
@@ -164,6 +208,7 @@ export default function BirgalikdaTomashaPage() {
           <div className="border-t border-zinc-800 pt-8">
             <p className="text-zinc-500 text-sm mb-4">Boshqa maqolalar:</p>
             <div className="flex flex-wrap gap-3">
+              <Link href="/uz/guides/kino-birgalikda" className="text-sm text-purple-400 hover:text-purple-300 transition-colors">Kino birgalikda →</Link>
               <Link href="/uz/guides/youtube-birgalikda" className="text-sm text-purple-400 hover:text-purple-300 transition-colors">YouTube birgalikda →</Link>
               <Link href="/uz/guides/anime-birgalikda" className="text-sm text-purple-400 hover:text-purple-300 transition-colors">Anime birgalikda →</Link>
               <Link href="/uz/guides/serial-birgalikda" className="text-sm text-purple-400 hover:text-purple-300 transition-colors">Serial birgalikda →</Link>
@@ -172,6 +217,7 @@ export default function BirgalikdaTomashaPage() {
           </div>
         </div>
       </main>
+      <GuideFooter locale="uz" />
     </>
   );
 }

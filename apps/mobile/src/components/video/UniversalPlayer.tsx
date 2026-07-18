@@ -1,7 +1,8 @@
 // WeWatch Mobile — UniversalPlayer
 // URL ga qarab to'g'ri player tanlaydi: expo-video (direct) yoki WebView (youtube/boshqalar)
 import React, { forwardRef, useCallback, useImperativeHandle, useRef, useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Platform } from 'react-native';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { VideoView, useVideoPlayer as createExpoPlayer } from 'expo-video';
 import { useEvent, useEventListener } from 'expo';
 import { Ionicons } from '@expo/vector-icons';
@@ -100,14 +101,12 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
     const isVkRutubeAndroid = Platform.OS === 'android' &&
       (embedPlatform === 'vk' || embedPlatform === 'rutube');
     const [sniffedUrl, setSniffedUrl] = useState<string | null>(null);
-    const [innertubeUrl, setInnertubeUrl] = useState<string | null>(null);
 
-    // Reset sniffed/innertube URLs when the video URL changes (new media in the room).
+    // Reset sniffed URL when the video URL changes (new media in the room).
     const prevUrlForSniffRef = useRef(url);
     if (prevUrlForSniffRef.current !== url) {
       prevUrlForSniffRef.current = url;
       setSniffedUrl(null);
-      setInnertubeUrl(null);
     }
 
     // forceAndroidWebView: use embed WebView only when we have no CDN URL at all.
@@ -174,8 +173,8 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
       onReadyRef.current?.();
     };
 
-    // Priority: Innertube direct MP4 > sniffed CDN URL > server-extracted URL.
-    const effectiveExtractedUrl = innertubeUrl ?? sniffedUrl ?? extractedUrl;
+    // Priority: sniffed CDN URL > server-extracted URL.
+    const effectiveExtractedUrl = sniffedUrl ?? extractedUrl;
     const hasExtracted = !!effectiveExtractedUrl;
     const youtubeId = platform === 'youtube' ? extractYouTubeVideoId(url) : null;
     const proxyFailed = hasExtracted && videoError && platform === 'youtube' && !!youtubeId;
@@ -351,8 +350,7 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
           <WebViewPlayer ref={webviewRef} url={displayUrl} youtubeVideoId={ytId ?? undefined}
             htmlContent={embedHtml?.html} htmlBaseUrl={embedHtml?.baseUrl}
             isOwner={isOwner} onPlay={wrappedOnPlay} onPause={onPause} onSeek={onSeek} onProgress={onProgress} onBuffering={onBuffering}
-            userAgent={MOBILE_UA} referer={platform !== 'youtube' && !embedHtml ? referer : undefined}
-            onYtInnertubeUrl={setInnertubeUrl} />
+            userAgent={MOBILE_UA} referer={platform !== 'youtube' && !embedHtml ? referer : undefined} />
           {sniffUrl !== null && (
             <WebView
               source={{ uri: sniffUrl }}
@@ -374,12 +372,13 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
         <View style={styles.center}>
           <Ionicons name="warning-outline" size={48} color={colors.error} />
           <Text style={styles.errorText}>{t('watchParty', 'videoLoadFailed')}</Text>
-          <TouchableOpacity
+          <TrackedTouchable
+            trackId="universal_player:retry"
             style={styles.retryBtn}
             onPress={() => { setVideoError(false); setAvLoaded(false); readyFiredRef.current = false; }}
           >
             <Text style={styles.retryText}>{t('common', 'retry')}</Text>
-          </TouchableOpacity>
+          </TrackedTouchable>
         </View>
       );
     }

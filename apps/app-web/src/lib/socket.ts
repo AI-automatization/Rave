@@ -2,29 +2,43 @@ import { io, Socket } from 'socket.io-client';
 
 let socket: Socket | null = null;
 
+// Dedupe concurrent getSocket() callers (e.g. useDmRealtime + a send/read-until emit firing
+// on the same mount) so they await one connection instead of racing to create two `io()`
+// instances — same pattern as api-client.ts's refreshPromise.
+let connectPromise: Promise<Socket> | null = null;
+
 // NEXT_PUBLIC_* vars are inlined at Next.js build time — no runtime fetch needed.
 // Railway must have NEXT_PUBLIC_SOCKET_URL set BEFORE the Docker build runs.
 const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL ?? 'http://localhost:3004';
 
 export async function getSocket(): Promise<Socket> {
   if (socket?.connected) return socket;
+  if (connectPromise) return connectPromise;
 
-  // Get JWT from our proxy route (cookie → body)
-  const res = await fetch('/api/auth/token', { credentials: 'include' });
-  const data = await res.json() as { data?: { token?: string } };
-  const token = data.data?.token;
+  connectPromise = (async () => {
+    try {
+      // Get JWT from our proxy route (cookie → body)
+      const res = await fetch('/api/auth/token', { credentials: 'include' });
+      const data = await res.json() as { data?: { token?: string } };
+      const token = data.data?.token;
 
-  if (!token) throw new Error('Not authenticated');
+      if (!token) throw new Error('Not authenticated');
 
-  socket = io(SOCKET_URL, {
-    auth: { token },
-    transports: ['websocket'],
-    reconnection: true,
-    reconnectionAttempts: 5,
-    reconnectionDelay: 2000,
-  });
+      socket = io(SOCKET_URL, {
+        auth: { token },
+        transports: ['websocket'],
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 2000,
+      });
 
-  return socket;
+      return socket;
+    } finally {
+      connectPromise = null;
+    }
+  })();
+
+  return connectPromise;
 }
 
 export function getExistingSocket(): Socket | null {

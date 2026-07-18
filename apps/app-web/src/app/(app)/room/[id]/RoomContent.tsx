@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import { MessageCircle, Users as UsersIcon, ListVideo, X, ChevronRight, Loader2 } from 'lucide-react';
+import { MessageCircle, Users as UsersIcon, ListVideo, X, ChevronRight, Loader2, Play } from 'lucide-react';
 import { useWatchParty } from '@/hooks/use-watch-party';
 import { VideoPlayer } from '@/components/party/VideoPlayer';
 import { ChatPanel } from '@/components/party/ChatPanel';
@@ -13,6 +13,7 @@ import { roomsApi } from '@/lib/api/rooms.api';
 import { useWatchPartyStore } from '@/store/watch-party.store';
 import { useAuthStore } from '@/store/auth.store';
 import { toast } from '@/hooks/use-toast';
+import { trackClick } from '@/lib/analytics';
 
 interface PlaylistItem {
   videoUrl: string;
@@ -24,7 +25,13 @@ interface Props {
   roomId: string;
 }
 
-function PlaylistPanel({ roomId, isOwner }: { roomId: string; isOwner: boolean }) {
+// Same detection mobile/CreateRoomDialog use — only needs to be good enough for the
+// videoPlatform field; the player itself dispatches on the URL, not this field (see VideoPlayer.tsx).
+const YOUTUBE_RE = /youtube\.com|youtu\.be/;
+
+function PlaylistPanel({
+  roomId, isOwner, onPlayNow,
+}: { roomId: string; isOwner: boolean; onPlayNow: (videoUrl: string, videoPlatform: string) => void }) {
   const t = useTranslations('party');
   const room = useWatchPartyStore((s) => s.room);
   const playlist = (room as unknown as { playlist?: PlaylistItem[] }).playlist ?? [];
@@ -32,8 +39,18 @@ function PlaylistPanel({ roomId, isOwner }: { roomId: string; isOwner: boolean }
   const [adding, setAdding] = useState(false);
   const [nextLoading, setNextLoading] = useState(false);
 
+  function handlePlayNow() {
+    const url = urlInput.trim();
+    if (!url) return;
+    trackClick('room:playlist_play_now');
+    const normalizedUrl = /^https?:\/\//i.test(url) ? url : `https://${url}`;
+    onPlayNow(normalizedUrl, YOUTUBE_RE.test(normalizedUrl) ? 'youtube' : 'other');
+    setUrlInput('');
+  }
+
   async function handleAdd() {
     if (!urlInput.trim()) return;
+    trackClick('room:playlist_add');
     setAdding(true);
     try {
       const res = await fetch(`/api/rooms/${roomId}/playlist`, {
@@ -54,6 +71,7 @@ function PlaylistPanel({ roomId, isOwner }: { roomId: string; isOwner: boolean }
   }
 
   async function handleRemove(index: number) {
+    trackClick('room:playlist_remove');
     try {
       await fetch(`/api/rooms/${roomId}/playlist/${index}`, {
         method: 'DELETE',
@@ -65,6 +83,7 @@ function PlaylistPanel({ roomId, isOwner }: { roomId: string; isOwner: boolean }
   }
 
   async function handleNext() {
+    trackClick('room:playlist_next');
     setNextLoading(true);
     try {
       await fetch(`/api/rooms/${roomId}/playlist/next`, {
@@ -130,8 +149,17 @@ function PlaylistPanel({ roomId, isOwner }: { roomId: string; isOwner: boolean }
               className="flex-1 h-8 px-2 rounded-lg text-xs bg-white/[0.06] border border-white/[0.08] text-white placeholder-slate-500 outline-none focus:border-violet-500/50"
             />
             <button
+              onClick={handlePlayNow}
+              disabled={!urlInput.trim()}
+              title={t('playNow')}
+              className="h-8 w-8 shrink-0 rounded-lg text-white bg-emerald-600 hover:bg-emerald-500 transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center"
+            >
+              <Play size={12} fill="currentColor" />
+            </button>
+            <button
               onClick={handleAdd}
               disabled={adding || !urlInput.trim()}
+              title={t('addToQueue')}
               className="h-8 px-3 rounded-lg text-xs font-medium text-white bg-violet-600 hover:bg-violet-500 transition-colors cursor-pointer disabled:opacity-50"
             >
               {adding ? <Loader2 size={12} className="animate-spin" /> : '+'}
@@ -145,7 +173,7 @@ function PlaylistPanel({ roomId, isOwner }: { roomId: string; isOwner: boolean }
 
 export function RoomContent({ roomId }: Props) {
   const t = useTranslations('party');
-  const { sendMessage, sendPlay, sendPause, sendSeek, sendEmoji, sendHeartbeat, sendBufferStart, sendBufferEnd } = useWatchParty(roomId);
+  const { sendMessage, sendPlay, sendPause, sendSeek, sendEmoji, sendHeartbeat, sendBufferStart, sendBufferEnd, sendMediaChange } = useWatchParty(roomId);
   const [rightTab, setRightTab] = useState<'chat' | 'members' | 'playlist'>('chat');
   const setRoom = useWatchPartyStore((s) => s.setRoom);
   const reset = useWatchPartyStore((s) => s.reset);
@@ -191,7 +219,7 @@ export function RoomContent({ roomId }: Props) {
         >
           <div className="flex border-b border-white/[0.07]">
             <button
-              onClick={() => setRightTab('chat')}
+              onClick={() => { trackClick('room:tab_chat'); setRightTab('chat'); }}
               className={`relative flex-1 h-10 flex items-center justify-center gap-1.5 text-xs font-medium transition-colors cursor-pointer ${
                 rightTab === 'chat' ? 'text-white' : 'text-slate-500 hover:text-slate-300'
               }`}
@@ -203,7 +231,7 @@ export function RoomContent({ roomId }: Props) {
               )}
             </button>
             <button
-              onClick={() => setRightTab('members')}
+              onClick={() => { trackClick('room:tab_members'); setRightTab('members'); }}
               className={`relative flex-1 h-10 flex items-center justify-center gap-1.5 text-xs font-medium transition-colors cursor-pointer ${
                 rightTab === 'members' ? 'text-white' : 'text-slate-500 hover:text-slate-300'
               }`}
@@ -216,7 +244,7 @@ export function RoomContent({ roomId }: Props) {
             </button>
             {isOwner && (
               <button
-                onClick={() => setRightTab('playlist')}
+                onClick={() => { trackClick('room:tab_playlist'); setRightTab('playlist'); }}
                 className={`relative flex-1 h-10 flex items-center justify-center gap-1.5 text-xs font-medium transition-colors cursor-pointer ${
                   rightTab === 'playlist' ? 'text-white' : 'text-slate-500 hover:text-slate-300'
                 }`}
@@ -233,7 +261,11 @@ export function RoomContent({ roomId }: Props) {
           {rightTab === 'chat' && <ChatPanel onSend={sendMessage} />}
           {rightTab === 'members' && <MemberList />}
           {rightTab === 'playlist' && (
-            <PlaylistPanel roomId={roomId} isOwner={isOwner} />
+            <PlaylistPanel
+              roomId={roomId}
+              isOwner={isOwner}
+              onPlayNow={(videoUrl, videoPlatform) => sendMediaChange(videoUrl, undefined, videoPlatform)}
+            />
           )}
         </div>
       </div>

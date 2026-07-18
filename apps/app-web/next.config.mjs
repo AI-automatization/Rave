@@ -20,6 +20,9 @@ const nextConfig = {
   },
   experimental: {
     optimizePackageImports: ['framer-motion', 'lucide-react'],
+    // Required in Next 14.2 for src/instrumentation.ts (Sentry server/edge init) to load —
+    // defaults to false in this version, stabilized without the flag only from Next 15.
+    instrumentationHook: true,
   },
   async headers() {
     return [
@@ -49,7 +52,7 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.youtube.com https://s.ytimg.com",
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https:",
               "font-src 'self' data: https://fonts.gstatic.com",

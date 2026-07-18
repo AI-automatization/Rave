@@ -28,6 +28,14 @@ export interface IWatchPartyRoomDocument extends Document {
   updatedAt: Date;
 }
 
+// Must stay in sync with the Joi enum in createRoomSchema/updateMediaSchema
+// (services/watch-party/src/validators/watchParty.validator.ts) — Joi validates the request
+// body first, but Mongoose's own schema-level enum on .save() was never updated when vk/rutube
+// (and vimeo/twitch/dailymotion/other) were added there, so requests passed Joi and then failed
+// silently at the DB layer with an unlogged Mongoose ValidationError (422, no warn log — see the
+// error.middleware.ts branch for error.name === 'ValidationError').
+const VIDEO_PLATFORM_ENUM = ['youtube', 'vimeo', 'twitch', 'dailymotion', 'direct', 'webview', 'vk', 'rutube', 'other', null];
+
 const watchPartyRoomSchema = new Schema<IWatchPartyRoomDocument>(
   {
     name:             { type: String, default: null },
@@ -35,7 +43,7 @@ const watchPartyRoomSchema = new Schema<IWatchPartyRoomDocument>(
     videoUrl:         { type: String, default: null },
     videoTitle:       { type: String, default: null },
     videoThumbnail:   { type: String, default: null },
-    videoPlatform:    { type: String, enum: ['youtube', 'direct', 'webview', null], default: null },
+    videoPlatform:    { type: String, enum: VIDEO_PLATFORM_ENUM, default: null },
     ownerId: { type: String, required: true },
     members: [{ type: String }],
     maxMembers: { type: Number, default: 10, min: 2, max: 10 },
@@ -53,7 +61,7 @@ const watchPartyRoomSchema = new Schema<IWatchPartyRoomDocument>(
       type: [{
         videoUrl:       { type: String, required: true },
         videoTitle:     { type: String, default: null },
-        videoPlatform:  { type: String, enum: ['youtube', 'direct', 'webview', null], default: null },
+        videoPlatform:  { type: String, enum: VIDEO_PLATFORM_ENUM, default: null },
         addedBy:        { type: String, required: true },
         addedAt:        { type: Date, default: Date.now },
       }],

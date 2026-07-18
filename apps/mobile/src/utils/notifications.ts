@@ -11,6 +11,7 @@ export const NOTIFICATION_ROUTES: Record<NotificationType, string> = {
   friend_online: 'Friends',
   friend_watching: 'WatchParty',
   support_reply: 'SupportChat',
+  dm_message: 'DMChat',
   admin_warning: 'Notifications',
   // Admin-broadcast types → open the notifications list
   announcement: 'Notifications',

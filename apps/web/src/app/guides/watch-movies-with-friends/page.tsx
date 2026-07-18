@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { FaPlay, FaFilm } from 'react-icons/fa';
 
 export const metadata: Metadata = {
-  title: 'Смотреть кино с друзьями онлайн бесплатно | WeWatch',
+  title: 'Смотреть кино с друзьями онлайн бесплатно',
   description: 'Как смотреть фильмы и сериалы с друзьями онлайн одновременно — бесплатно, без регистрации партнёра, с iPhone, Android и компьютера. Пошаговый гайд WeWatch.',
   keywords: [
     'смотреть кино с друзьями онлайн', 'смотреть фильм вместе онлайн бесплатно',

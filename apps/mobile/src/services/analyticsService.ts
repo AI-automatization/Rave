@@ -131,7 +131,13 @@ export const analyticsService = {
 
   track(event: string, screen?: string, meta?: Record<string, unknown>): void {
     if (!sessionId) return;
-    events.push({ event, screen, ts: Date.now(), meta });
+    events.push({ event, screen: screen ?? currentScreen?.screen, ts: Date.now(), meta });
+  },
+
+  /** Fire-and-forget tap tracking — id should be a stable, human-readable label
+   * (e.g. 'home:create_room', 'watchparty:play_pause'), not derived from dynamic content. */
+  click(id: string, meta?: Record<string, unknown>): void {
+    this.track(`click:${id}`, undefined, meta);
   },
 
   screenEnter(screen: string): void {

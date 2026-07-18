@@ -4,13 +4,13 @@ import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
   StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { useT } from '@i18n/index';
 import type { ExtractState } from '@hooks/useVideoExtract';
@@ -37,9 +37,9 @@ export function VideoExtractInput({ url, setUrl, state, errorMsg, onExtract, onB
       <StatusBar barStyle="light-content" backgroundColor={colors.bgBase} />
 
       <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backBtn}>
+        <TrackedTouchable trackId="video_extract:back" onPress={onBack} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
-        </TouchableOpacity>
+        </TrackedTouchable>
         <Text style={styles.headerTitle}>{t('watchParty', 'addVideoTitle')}</Text>
         <View style={{ width: 40 }} />
       </View>
@@ -65,9 +65,9 @@ export function VideoExtractInput({ url, setUrl, state, errorMsg, onExtract, onB
             returnKeyType="go"
           />
           {url.length > 0 && (
-            <TouchableOpacity onPress={() => setUrl('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <TrackedTouchable trackId="video_extract:clear_url" onPress={() => setUrl('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Ionicons name="close-circle" size={18} color={colors.textMuted} />
-            </TouchableOpacity>
+            </TrackedTouchable>
           )}
         </View>
 
@@ -78,7 +78,8 @@ export function VideoExtractInput({ url, setUrl, state, errorMsg, onExtract, onB
           </View>
         )}
 
-        <TouchableOpacity
+        <TrackedTouchable
+          trackId="video_extract:submit"
           style={[styles.extractBtn, !url.trim() && styles.extractBtnDisabled]}
           onPress={onExtract}
           disabled={!url.trim()}
@@ -86,7 +87,7 @@ export function VideoExtractInput({ url, setUrl, state, errorMsg, onExtract, onB
         >
           <Ionicons name="search" size={18} color={colors.textPrimary} />
           <Text style={styles.extractBtnText}>Video topish</Text>
-        </TouchableOpacity>
+        </TrackedTouchable>
 
         <View style={styles.supportedRow}>
           <Text style={styles.supportedLabel}>Qo'llab-quvvatlanadi:</Text>

@@ -1,7 +1,8 @@
 // WeWatch — SourceCard: media source grid card
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { spacing, borderRadius } from '@theme/index';
 import { useT } from '@i18n/index';
 import type { MediaSource } from '@constants/mediaSources';
@@ -18,10 +19,12 @@ export function SourceCard({ source, onPress }: Props) {
   const opacity = isInternal ? 0.45 : 1;
 
   return (
-    <TouchableOpacity
+    <TrackedTouchable
+      trackId="source_picker:select_source"
       style={[s.card, { opacity }]}
       onPress={() => onPress(source)}
       activeOpacity={0.75}
+      trackMeta={{ source: source.label }}
     >
       <Ionicons name={source.iconName as 'globe'} size={22} color={source.brandColor} />
       <Text style={[s.cardLabel, { color: isDrm ? '#888' : '#fff' }]} numberOfLines={1}>
@@ -38,7 +41,7 @@ export function SourceCard({ source, onPress }: Props) {
           <Text style={s.soonText}>{t('common', 'soon')}</Text>
         </View>
       )}
-    </TouchableOpacity>
+    </TrackedTouchable>
   );
 }
 

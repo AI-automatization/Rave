@@ -3,9 +3,9 @@ import React from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { useT } from '@i18n/index';
 import { SLIDES } from './onboardingSlides';
@@ -54,14 +54,16 @@ export function OnboardingFooter({
 
       {/* Buttons */}
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.skipBtn} onPress={onSkip}>
+        <TrackedTouchable trackId="onboarding:skip" style={styles.skipBtn} onPress={onSkip}>
           <Text style={styles.skipText}>{t('onboarding', 'skip')}</Text>
-        </TouchableOpacity>
+        </TrackedTouchable>
 
-        <TouchableOpacity
+        <TrackedTouchable
+          trackId="onboarding:next"
           style={[styles.nextBtn, { backgroundColor: accentColor }]}
           onPress={onNext}
           activeOpacity={0.8}
+          trackMeta={{ isLast }}
         >
           <Text style={styles.nextText}>
             {isLast ? t('onboarding', 'start') : t('onboarding', 'next')}
@@ -71,7 +73,7 @@ export function OnboardingFooter({
             size={18}
             color="#FFFFFF"
           />
-        </TouchableOpacity>
+        </TrackedTouchable>
       </View>
     </View>
   );

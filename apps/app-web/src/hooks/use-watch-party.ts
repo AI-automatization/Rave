@@ -198,6 +198,12 @@ export function useWatchParty(roomId: string) {
     socket?.emit(CLIENT_EVENTS.BUFFER_END, { roomId });
   }, [socket, roomId]);
 
+  // Instant video swap (mirrors mobile's emitMediaChange) — owner-only, enforced server-side.
+  // Server broadcasts ROOM_UPDATED with the new videoUrl/videoPlatform to everyone in the room.
+  const sendMediaChange = useCallback((videoUrl: string, videoTitle?: string, videoPlatform?: string) => {
+    socket?.emit(CLIENT_EVENTS.CHANGE_MEDIA, { roomId, videoUrl, videoTitle, videoPlatform });
+  }, [socket, roomId]);
+
   return {
     isConnected,
     sendMessage,
@@ -208,5 +214,6 @@ export function useWatchParty(roomId: string) {
     sendHeartbeat,
     sendBufferStart,
     sendBufferEnd,
+    sendMediaChange,
   };
 }

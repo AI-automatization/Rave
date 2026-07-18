@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { FaPlay } from 'react-icons/fa';
 
 export const metadata: Metadata = {
-  title: 'Terms of Service — WeWatch',
+  title: 'Terms of Service',
   description: 'WeWatch Terms of Service — rules and guidelines for using the WeWatch platform.',
   robots: { index: true, follow: true },
 };

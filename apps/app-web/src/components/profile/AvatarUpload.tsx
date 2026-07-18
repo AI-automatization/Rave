@@ -4,6 +4,7 @@ import { useRef } from 'react';
 import { Camera, Loader2 } from 'lucide-react';
 import { useUploadAvatar } from '@/hooks/use-profile';
 import { toast } from '@/store/toast.store';
+import { trackClick } from '@/lib/analytics';
 
 interface Props {
   avatar?: string;
@@ -44,7 +45,7 @@ export function AvatarUpload({ avatar, username }: Props) {
       </div>
 
       <button
-        onClick={() => fileRef.current?.click()}
+        onClick={() => { trackClick('profile:avatar_upload'); fileRef.current?.click(); }}
         disabled={upload.isPending}
         className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
       >

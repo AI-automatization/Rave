@@ -1,8 +1,9 @@
 // WeWatch Mobile — WebViewPlayer
 // react-native-webview asosida har qanday saytdan video o'ynatish
 import React, { forwardRef } from 'react';
-import { View, Text, ActivityIndicator, StyleSheet, TouchableOpacity, Linking } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import WebView from 'react-native-webview';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { colors, spacing, typography, borderRadius } from '@theme/index';
 import { getHostname } from './webviewAdBlocker';
 import { useWebViewPlayer } from '@hooks/useWebViewPlayer';
@@ -29,7 +30,6 @@ interface Props {
   onBuffering?: (isBuffering: boolean) => void;
   userAgent?: string;
   referer?: string;
-  onYtInnertubeUrl?: (url: string) => void;
 }
 
 export const WebViewPlayer = forwardRef<WebViewPlayerRef, Props>((props, ref) => {
@@ -37,7 +37,7 @@ export const WebViewPlayer = forwardRef<WebViewPlayerRef, Props>((props, ref) =>
   const { t } = useT();
   const {
     webviewRef, injectJs, webViewSource,
-    loading, error, redirectWarning, ytEmbedBlocked, youtubeVideoId,
+    loading, error, redirectWarning, ytEmbedBlocked,
     setLoading, setError,
     handleMessage, handleShouldStartLoad, handleNavigationStateChange, handleRetry,
     setRedirectWarning,
@@ -54,29 +54,23 @@ export const WebViewPlayer = forwardRef<WebViewPlayerRef, Props>((props, ref) =>
       )}
 
       {redirectWarning !== null && (
-        <TouchableOpacity style={s.warningBanner} onPress={() => setRedirectWarning(null)} activeOpacity={0.8}>
+        <TrackedTouchable trackId="webview_player:dismiss_redirect_warning" style={s.warningBanner} onPress={() => setRedirectWarning(null)} activeOpacity={0.8}>
           <Text style={s.warningText}>Redirect: {redirectWarning} (yopish uchun bosing)</Text>
-        </TouchableOpacity>
+        </TrackedTouchable>
       )}
 
       {ytEmbedBlocked ? (
         <View style={s.errorContainer}>
-          <Text style={s.errorTitle}>{t('watchParty', 'embeddedPlayerUnavailable')}</Text>
-          <Text style={s.errorHost}>{t('watchParty', 'embeddingForbidden')}</Text>
-          <TouchableOpacity
-            style={s.retryButton}
-            onPress={() => Linking.openURL(`https://www.youtube.com/watch?v=${youtubeVideoId}`)}
-          >
-            <Text style={s.retryText}>{t('watchParty', 'openInYouTube')}</Text>
-          </TouchableOpacity>
+          <Text style={s.errorTitle}>{t('watchParty', 'cannotExtractVideo')}</Text>
+          <Text style={s.errorHost}>{t('watchParty', 'tryAnotherVideo')}</Text>
         </View>
       ) : error ? (
         <View style={s.errorContainer}>
           <Text style={s.errorTitle}>{t('watchParty', 'connectionError')}</Text>
           <Text style={s.errorHost}>{getHostname(url)}</Text>
-          <TouchableOpacity style={s.retryButton} onPress={handleRetry}>
+          <TrackedTouchable trackId="webview_player:retry" style={s.retryButton} onPress={handleRetry}>
             <Text style={s.retryText}>{t('common', 'retry')}</Text>
-          </TouchableOpacity>
+          </TrackedTouchable>
         </View>
       ) : (
         <View style={s.webviewWrapper}>

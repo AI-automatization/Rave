@@ -29,6 +29,23 @@ import { loadCookies } from '../cookieStore';
 
 const CACHE_PREFIX = 'vextract:';
 
+// Real video title via YouTube's public oEmbed endpoint — no API key, no yt-dlp/scraping,
+// officially documented for exactly this (title/author/thumbnail lookup by URL). Never
+// throws: extraction must still succeed (with an empty title) if this call fails.
+async function fetchYouTubeTitle(videoId: string): Promise<string> {
+  try {
+    const res = await fetch(
+      `https://www.youtube.com/oembed?url=${encodeURIComponent(`https://www.youtube.com/watch?v=${videoId}`)}&format=json`,
+      { signal: AbortSignal.timeout(5000) },
+    );
+    if (!res.ok) return '';
+    const data = (await res.json()) as { title?: string };
+    return data.title ?? '';
+  } catch {
+    return '';
+  }
+}
+
 function extractYouTubeVideoId(url: string): string | null {
   const watchMatch = url.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
   if (watchMatch) return watchMatch[1];
@@ -149,8 +166,9 @@ export async function extractVideo(
     if (!videoId) throw new VideoExtractError('unsupported_site', `No YouTube video ID found in URL: ${rawUrl}`);
     // YouTube always returns official embed — yt-dlp produces IP-locked googlevideo.com URLs
     // unusable on mobile, and Google owns both YouTube and Play Store (T-S091)
+    const title = await fetchYouTubeTitle(videoId);
     result = {
-      title: '',
+      title,
       videoUrl: '',
       videoId,
       poster: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,

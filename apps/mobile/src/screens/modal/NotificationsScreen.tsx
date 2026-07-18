@@ -4,12 +4,12 @@ import {
   View,
   Text,
   FlatList,
-  TouchableOpacity,
   ActivityIndicator,
   ListRenderItemInfo,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import type { ComponentProps } from 'react';
 
 type IoniconsName = ComponentProps<typeof Ionicons>['name'];
@@ -52,6 +52,7 @@ export function NotificationsScreen() {
     friend_online:        { icon: 'radio-button-on-outline',  color: colors.success },
     friend_watching:      { icon: 'eye-outline',              color: colors.secondary },
     support_reply:        { icon: 'headset-outline',          color: colors.primary },
+    dm_message:           { icon: 'chatbubble-outline',        color: colors.primary },
     admin_warning:        { icon: 'warning-outline',           color: colors.error },
     announcement:         { icon: 'megaphone-outline',         color: colors.primary },
     maintenance:          { icon: 'construct-outline',         color: colors.error },
@@ -68,10 +69,12 @@ export function NotificationsScreen() {
     const hasActions = (item.type === 'friend_request' && !!friendshipId) || item.type === 'watch_party_invite';
 
     return (
-      <TouchableOpacity
+      <TrackedTouchable
+        trackId="notifications:open_item"
         style={[styles.item, !item.isRead && styles.itemUnread]}
         onPress={() => handlePress(item)}
         activeOpacity={0.8}
+        trackMeta={{ type: item.type }}
       >
         <View style={[styles.iconWrap, { backgroundColor: color + '22' }]}>
           <Ionicons name={icon} size={20} color={color} />
@@ -84,27 +87,27 @@ export function NotificationsScreen() {
             <View style={styles.actionRow}>
               {item.type === 'friend_request' && friendshipId && (
                 <>
-                  <TouchableOpacity style={styles.acceptBtn} onPress={() => acceptFriendMutation.mutate(friendshipId)}>
+                  <TrackedTouchable trackId="notifications:accept_friend" style={styles.acceptBtn} onPress={() => acceptFriendMutation.mutate(friendshipId)}>
                     <Text style={styles.acceptBtnText}>{t('notifications', 'accept')}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.rejectBtn} onPress={() => rejectFriendMutation.mutate(friendshipId)}>
+                  </TrackedTouchable>
+                  <TrackedTouchable trackId="notifications:reject_friend" style={styles.rejectBtn} onPress={() => rejectFriendMutation.mutate(friendshipId)}>
                     <Text style={styles.rejectBtnText}>{t('notifications', 'reject')}</Text>
-                  </TouchableOpacity>
+                  </TrackedTouchable>
                 </>
               )}
               {item.type === 'watch_party_invite' && (
-                <TouchableOpacity style={styles.acceptBtn} onPress={() => handlePress(item)}>
+                <TrackedTouchable trackId="notifications:join_party" style={styles.acceptBtn} onPress={() => handlePress(item)}>
                   <Text style={styles.acceptBtnText}>{t('notifications', 'join')}</Text>
-                </TouchableOpacity>
+                </TrackedTouchable>
               )}
             </View>
           )}
         </View>
         {!item.isRead && <View style={styles.unreadDot} />}
-        <TouchableOpacity onPress={() => handleDelete(item._id)} style={styles.deleteBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+        <TrackedTouchable trackId="notifications:delete_item" onPress={() => handleDelete(item._id)} style={styles.deleteBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <Ionicons name="close" size={16} color={colors.textMuted} />
-        </TouchableOpacity>
-      </TouchableOpacity>
+        </TrackedTouchable>
+      </TrackedTouchable>
     );
   };
 
@@ -112,9 +115,9 @@ export function NotificationsScreen() {
     <View style={styles.root}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+        <TrackedTouchable trackId="notifications:close" onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="close" size={24} color={colors.textPrimary} />
-        </TouchableOpacity>
+        </TrackedTouchable>
         <View style={styles.headerCenter}>
           <Text style={styles.title}>{t('notifications', 'title')}</Text>
           {unreadCount > 0 && (
@@ -124,9 +127,9 @@ export function NotificationsScreen() {
           )}
         </View>
         {unreadCount > 0 ? (
-          <TouchableOpacity onPress={() => markAllMutation.mutate()} disabled={markAllMutation.isPending} style={styles.markAllBtn}>
+          <TrackedTouchable trackId="notifications:mark_all_read" onPress={() => markAllMutation.mutate()} disabled={markAllMutation.isPending} style={styles.markAllBtn}>
             <Text style={styles.markAllText}>{t('notifications', 'markAllShort')}</Text>
-          </TouchableOpacity>
+          </TrackedTouchable>
         ) : (
           <View style={{ width: 80 }} />
         )}

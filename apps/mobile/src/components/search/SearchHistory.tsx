@@ -1,7 +1,8 @@
 // WeWatch Mobile — SearchHistory component
 import React from 'react';
-import { View, Text, TouchableOpacity, FlatList } from 'react-native';
+import { View, Text, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useTheme, createThemedStyles, spacing, typography } from '@theme/index';
 
 interface SearchHistoryProps {
@@ -24,28 +25,30 @@ export const SearchHistory = React.memo(function SearchHistory({
     <View style={styles.historySection}>
       <View style={styles.historyHeader}>
         <Text style={styles.sectionLabel}>Oxirgi qidiruvlar</Text>
-        <TouchableOpacity onPress={onClear}>
+        <TrackedTouchable trackId="search:clear_history" onPress={onClear}>
           <Text style={styles.clearText}>Tozalash</Text>
-        </TouchableOpacity>
+        </TrackedTouchable>
       </View>
       <FlatList
         data={history}
         keyExtractor={(item) => item}
         renderItem={({ item }) => (
-          <TouchableOpacity
+          <TrackedTouchable
+            trackId="search:history_item"
             style={styles.historyItem}
             onPress={() => onItemPress(item)}
             activeOpacity={0.7}
           >
             <Ionicons name="time-outline" size={16} color={colors.textMuted} />
             <Text style={styles.historyText}>{item}</Text>
-            <TouchableOpacity
+            <TrackedTouchable
+              trackId="search:remove_history_item"
               onPress={() => onItemRemove(item)}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
               <Ionicons name="close" size={14} color={colors.textMuted} />
-            </TouchableOpacity>
-          </TouchableOpacity>
+            </TrackedTouchable>
+          </TrackedTouchable>
         )}
         scrollEnabled={false}
       />

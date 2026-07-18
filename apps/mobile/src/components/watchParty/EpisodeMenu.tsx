@@ -5,7 +5,6 @@ import {
   Modal,
   View,
   Text,
-  TouchableOpacity,
   FlatList,
   Dimensions,
   SafeAreaView,
@@ -13,6 +12,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useTheme, spacing, borderRadius, typography } from '@theme/index';
 import { useT } from '@i18n/index';
 
@@ -80,7 +80,8 @@ export function EpisodeMenu({ visible, episodes, currentUrl, onSelect, onClose }
   const renderEpisode = (ep: Episode) => {
     const isActive = ep.url === currentUrl;
     return (
-      <TouchableOpacity
+      <TrackedTouchable
+        trackId="episode_menu:select_episode"
         key={ep.url}
         style={[styles.epItem, isActive && { backgroundColor: `${colors.primary}18` }]}
         onPress={() => { onSelect(ep); onClose(); }}
@@ -94,7 +95,7 @@ export function EpisodeMenu({ visible, episodes, currentUrl, onSelect, onClose }
           {episodeLabel(ep)}
         </Text>
         {isActive && <Ionicons name="checkmark" size={16} color={colors.primary} />}
-      </TouchableOpacity>
+      </TrackedTouchable>
     );
   };
 
@@ -103,7 +104,8 @@ export function EpisodeMenu({ visible, episodes, currentUrl, onSelect, onClose }
     const title = item.season !== null ? `${t('watchParty', 'season')} ${item.season}` : t('watchParty', 'episodes');
     return (
       <View style={styles.seasonBlock}>
-        <TouchableOpacity
+        <TrackedTouchable
+          trackId="episode_menu:toggle_season"
           style={[styles.seasonHeader, { backgroundColor: colors.bgSurface }]}
           onPress={() => toggleSeason(item.season)}
           activeOpacity={0.7}
@@ -114,7 +116,7 @@ export function EpisodeMenu({ visible, episodes, currentUrl, onSelect, onClose }
             size={18}
             color={colors.textMuted}
           />
-        </TouchableOpacity>
+        </TrackedTouchable>
         {isExpanded && item.episodes.map(renderEpisode)}
       </View>
     );
@@ -128,14 +130,14 @@ export function EpisodeMenu({ visible, episodes, currentUrl, onSelect, onClose }
       onRequestClose={onClose}
       statusBarTranslucent
     >
-      <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
+      <TrackedTouchable trackId="episode_menu:backdrop_close" style={styles.backdrop} activeOpacity={1} onPress={onClose} />
       <SafeAreaView style={[styles.sheet, { backgroundColor: colors.bgElevated }]} pointerEvents="box-none">
         <View style={[styles.handle, { backgroundColor: colors.bgMuted }]} />
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
           <Text style={[styles.title, { color: colors.textPrimary }]}>{t('watchParty', 'episodes')}</Text>
-          <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <TrackedTouchable trackId="episode_menu:close" onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Ionicons name="close" size={22} color={colors.textMuted} />
-          </TouchableOpacity>
+          </TrackedTouchable>
         </View>
         <FlatList
           data={groups}

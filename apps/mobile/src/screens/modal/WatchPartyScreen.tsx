@@ -1,6 +1,7 @@
 // WeWatch Mobile — WatchPartyScreen
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Platform, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, Platform, StyleSheet, useWindowDimensions } from 'react-native';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { ReportRoomModal } from '@components/common/ReportRoomModal';
 import { ReportUserModal } from '@components/common/ReportUserModal';
@@ -35,8 +36,6 @@ import { appAlert } from '@components/common/AppAlert';
 
 type NavProp = NativeStackNavigationProp<ModalStackParamList, 'WatchParty'>;
 
-const SCREEN_H = Dimensions.get('window').height;
-
 type RouteType = RouteProp<ModalStackParamList, 'WatchParty'>;
 
 export function WatchPartyScreen() {
@@ -44,6 +43,7 @@ export function WatchPartyScreen() {
   const { colors } = useTheme();
   const { t } = useT();
   const navigation = useNavigation<NavProp>();
+  const { height: winHeight } = useWindowDimensions();
 
   const [showPlaylist, setShowPlaylist] = useState(false);
   const [showReport, setShowReport] = useState(false);
@@ -108,9 +108,9 @@ export function WatchPartyScreen() {
   const {
     playerRef, userId, room, messages, activeMembers, isOwner, adminMonitoring, connectTimeout, activeTransport,
     showChat, showVoice, showInvite, isPlaying, isFullscreen, videoIsLive,
-    videoCurrentTime, videoDuration, floatingEmojis, showQualityMenu, showEpisodeMenu,
+    videoCurrentTime, videoDuration, pendingSkipSecs, floatingEmojis, showQualityMenu, showEpisodeMenu,
     extractQualities, extractEpisodes, currentVideoUrl, extractionError,
-    originalVideoUrl, extractedVideoUrl, extractedVideoHeaders, extractedVideoProxyUrl, isWebViewMode, isExtracting,
+    originalVideoUrl, extractedVideoUrl, extractedVideoHeaders, extractedVideoProxyUrl, isWebViewMode, isYouTubeWebViewMode, isExtracting,
     playlist, handleAddToQueue, handlePlaylistRemove, handlePlaylistNext,
     setShowChat, setShowVoice, setShowInvite, setShowQualityMenu, setShowEpisodeMenu, setVideoIsLive,
     sendMessage,
@@ -125,13 +125,17 @@ export function WatchPartyScreen() {
   // Auto-joins muted once the room is loaded; persists while user views chat.
   const voice = useVoiceChat(!!room);
 
-  // Lock orientation: landscape in fullscreen, portrait otherwise
+  // Lock orientation: landscape in fullscreen, portrait otherwise.
+  // Entering fullscreen also closes the chat overlay so the video is the focus by default —
+  // the user can tap the chat icon in the fullscreen action bar to bring it back.
   useEffect(() => {
     if (isFullscreen) {
       ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+      setShowChat(false);
     } else {
       ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isFullscreen]);
 
   // Restore portrait when leaving the screen
@@ -155,9 +159,9 @@ export function WatchPartyScreen() {
         </View>
         <Text style={s.errorTitle}>{t('watchParty', 'connectionError')}</Text>
         <Text style={s.errorSub}>{t('watchParty', 'connectionErrorSub')}</Text>
-        <TouchableOpacity style={s.errorBtn} onPress={handleLeave} activeOpacity={0.8}>
+        <TrackedTouchable trackId="watchparty:error_go_back" style={s.errorBtn} onPress={handleLeave} activeOpacity={0.8}>
           <Text style={s.errorBtnText}>{t('watchParty', 'goBack')}</Text>
-        </TouchableOpacity>
+        </TrackedTouchable>
       </View>
     );
   }
@@ -185,9 +189,9 @@ export function WatchPartyScreen() {
             {isOwner ? t('watchParty', 'videoSourceExpiredOwner') : t('watchParty', 'videoSourceExpiredViewer')}
           </Text>
           {isOwner && (
-            <TouchableOpacity style={s.expiredBtn} onPress={handleChangeMedia} activeOpacity={0.8}>
+            <TrackedTouchable trackId="watchparty:update_expired_source" style={s.expiredBtn} onPress={handleChangeMedia} activeOpacity={0.8}>
               <Text style={s.expiredBtnText}>{t('watchParty', 'updateSource')}</Text>
-            </TouchableOpacity>
+            </TrackedTouchable>
           )}
         </View>
       )}
@@ -211,6 +215,7 @@ export function WatchPartyScreen() {
         videoHeaders={extractionError === 'video_source_expired' ? undefined : extractedVideoHeaders}
         videoProxyUrl={extractionError === 'video_source_expired' ? undefined : extractedVideoProxyUrl}
         isWebView={extractionError === 'video_source_expired' ? false : isWebViewMode}
+        isYouTubeEmbed={extractionError === 'video_source_expired' ? false : isYouTubeWebViewMode}
         isReady={extractionError === 'video_source_expired' ? true : !!room && (!isExtracting || isWebViewMode)}
         isOwner={isOwner}
         isPlaying={isPlaying}
@@ -231,6 +236,7 @@ export function WatchPartyScreen() {
         onProgressSeek={handleProgressSeek}
         onStop={handleStop}
         onSeekDirection={handleSeekDirection}
+        pendingSkipSecs={pendingSkipSecs}
         onToggleFullscreen={handleToggleFullscreen}
         onRemoveEmoji={handleRemoveEmoji}
         onCdnUrlSniffed={handleCdnUrlSniffed}
@@ -242,7 +248,7 @@ export function WatchPartyScreen() {
 
           {/* Chat panel */}
           {showChat && (
-            <View style={s.fsChatWrap}>
+            <View style={[s.fsChatWrap, { height: Math.round(winHeight * 0.38) }]}>
               <ChatPanel messages={messages} currentUserId={userId} onSend={sendMessage} />
             </View>
           )}
@@ -281,7 +287,8 @@ export function WatchPartyScreen() {
           <View style={s.fsBar}>
             <EmojiPickerBar onSelect={handleEmojiSelect} />
             <View style={s.fsBarActions}>
-              <TouchableOpacity
+              <TrackedTouchable
+                trackId="watchparty:fs_toggle_chat"
                 style={[s.fsBarBtn, showChat && s.fsBarBtnChatActive]}
                 onPress={() => { setShowChat(v => !v); setShowVoice(false); }}
                 activeOpacity={0.8}
@@ -291,8 +298,9 @@ export function WatchPartyScreen() {
                   size={20}
                   color={showChat ? '#7B72F8' : 'rgba(255,255,255,0.75)'}
                 />
-              </TouchableOpacity>
-              <TouchableOpacity
+              </TrackedTouchable>
+              <TrackedTouchable
+                trackId="watchparty:fs_toggle_voice"
                 style={[s.fsBarBtn, showVoice && s.fsBarBtnVoiceActive]}
                 onPress={() => { setShowVoice(v => !v); setShowChat(false); }}
                 activeOpacity={0.8}
@@ -302,15 +310,15 @@ export function WatchPartyScreen() {
                   size={20}
                   color={showVoice ? '#4ADE80' : 'rgba(255,255,255,0.75)'}
                 />
-              </TouchableOpacity>
+              </TrackedTouchable>
               {isOwner && (
-                <TouchableOpacity style={s.fsBarBtn} onPress={handleChangeMedia} activeOpacity={0.8}>
+                <TrackedTouchable trackId="watchparty:fs_change_media" style={s.fsBarBtn} onPress={handleChangeMedia} activeOpacity={0.8}>
                   <Ionicons name="add-circle-outline" size={20} color="rgba(255,255,255,0.75)" />
-                </TouchableOpacity>
+                </TrackedTouchable>
               )}
-              <TouchableOpacity style={s.fsBarBtn} onPress={handleToggleFullscreen} activeOpacity={0.8}>
+              <TrackedTouchable trackId="watchparty:fs_exit_fullscreen" style={s.fsBarBtn} onPress={handleToggleFullscreen} activeOpacity={0.8}>
                 <Ionicons name="contract-outline" size={20} color="rgba(255,255,255,0.75)" />
-              </TouchableOpacity>
+              </TrackedTouchable>
             </View>
           </View>
         </View>
@@ -335,16 +343,16 @@ export function WatchPartyScreen() {
           {isOwner && !showPlaylist && (extractQualities.length > 0 || extractEpisodes.length > 0) && (
             <View style={s.gearRow}>
               {extractQualities.length > 0 && (
-                <TouchableOpacity style={s.gearChip} onPress={() => setShowQualityMenu(true)} activeOpacity={0.75}>
+                <TrackedTouchable trackId="watchparty:open_quality_menu" style={s.gearChip} onPress={() => setShowQualityMenu(true)} activeOpacity={0.75}>
                   <Ionicons name="settings-outline" size={13} color="rgba(255,255,255,0.5)" />
                   <Text style={s.gearChipText}>{t('watchParty', 'quality')}</Text>
-                </TouchableOpacity>
+                </TrackedTouchable>
               )}
               {extractEpisodes.length > 0 && (
-                <TouchableOpacity style={s.gearChip} onPress={() => setShowEpisodeMenu(true)} activeOpacity={0.75}>
+                <TrackedTouchable trackId="watchparty:open_episode_menu" style={s.gearChip} onPress={() => setShowEpisodeMenu(true)} activeOpacity={0.75}>
                   <Ionicons name="list-outline" size={13} color="rgba(255,255,255,0.5)" />
                   <Text style={s.gearChipText}>{t('watchParty', 'episodes')}</Text>
-                </TouchableOpacity>
+                </TrackedTouchable>
               )}
             </View>
           )}
@@ -411,14 +419,15 @@ export function WatchPartyScreen() {
 
           {/* FAB: Change media (owner) */}
           {isOwner && !showPlaylist && (
-            <TouchableOpacity style={s.fabPrimary} onPress={handleChangeMedia} activeOpacity={0.85}>
+            <TrackedTouchable trackId="watchparty:fab_change_media" style={s.fabPrimary} onPress={handleChangeMedia} activeOpacity={0.85}>
               <Ionicons name="add" size={26} color="#fff" />
-            </TouchableOpacity>
+            </TrackedTouchable>
           )}
 
           {/* FAB: Playlist */}
           {!showPlaylist && (
-            <TouchableOpacity
+            <TrackedTouchable
+              trackId="watchparty:fab_playlist_toggle"
               style={[s.fabSecondary, playlist.length > 0 && s.fabSecondaryActive]}
               onPress={() => setShowPlaylist(v => !v)}
               activeOpacity={0.8}
@@ -429,14 +438,14 @@ export function WatchPartyScreen() {
                   <Text style={s.fabBadgeText}>{playlist.length}</Text>
                 </View>
               )}
-            </TouchableOpacity>
+            </TrackedTouchable>
           )}
 
           {/* FAB: Report (viewer only) */}
           {!isOwner && (
-            <TouchableOpacity style={s.fabReport} onPress={() => setShowReport(true)} activeOpacity={0.8}>
+            <TrackedTouchable trackId="watchparty:fab_report" style={s.fabReport} onPress={() => setShowReport(true)} activeOpacity={0.8}>
               <Ionicons name="flag-outline" size={17} color="rgba(255,255,255,0.45)" />
-            </TouchableOpacity>
+            </TrackedTouchable>
           )}
 
           {/* Menus & modals */}
@@ -704,7 +713,11 @@ const s = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   fsChatWrap: {
-    height: Math.round(SCREEN_H * 0.38),
+    // height set inline from useWindowDimensions() (see JSX usage) — the fixed landscape
+    // window height isn't known until render, and a module-level Dimensions.get('window')
+    // constant would freeze at the portrait value captured on app launch and never update
+    // when fullscreen locks to landscape (was the T-S130 bug: a portrait-sized chat panel
+    // swallowing almost the entire landscape screen, leaving only a sliver of video).
     backgroundColor: '#0D0D1A',
     borderTopWidth: 1,
     borderTopColor: 'rgba(255,255,255,0.07)',

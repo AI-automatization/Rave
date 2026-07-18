@@ -10,6 +10,7 @@ import {
 import { useJoinRoom } from '@/hooks/use-rooms';
 import { toast } from '@/store/toast.store';
 import { parseApiError } from '@/lib/api-error';
+import { trackClick } from '@/lib/analytics';
 
 interface Props {
   open: boolean;
@@ -24,6 +25,7 @@ export function JoinRoomDialog({ open, onOpenChange }: Props) {
 
   async function handleJoin() {
     if (code.length < 4) return;
+    trackClick('join_room:submit');
 
     try {
       const res = await joinRoom.mutateAsync(code.trim());

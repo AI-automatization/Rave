@@ -1,8 +1,24 @@
 # CineSync — OCHIQ VAZIFALAR
 
-# Yangilangan: 2026-07-09
+# Yangilangan: 2026-07-18
 
 ---
+
+### T-S135 | P0 | [WEB] | YouTube iframe web'da kelmayapti — CSP script-src youtube.com'ni bloklaydi
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim (live report, T-S133 fix'dan keyin ham)
+- **Yaratilgan:** 2026-07-18 (login fix'dan keyin)
+- **Holat:** 🔄 Bajarilmoqda
+- **Tavsiya model:** sonnet
+- **Model sababi:** root-cause topildi, 1 fayl (config)
+- **Sabab:** `next.config.mjs`dagi CSP `script-src`da `https://www.youtube.com` yo'q edi — faqat
+  `frame-src`da bor edi. `YouTubePlayer.tsx`ning `loadYouTubeApi()` `<script src="https://www.youtube.com/iframe_api">`
+  qo'shadi — bu `script-src` tomonidan boshqariladi, `frame-src` emas. Brauzer skriptni butunlay
+  bloklagan, shuning uchun `YT.Player` hech qachon yaratilmagan, `onReady` ham, `onError` ham (T-S133)
+  ishlamagan — CSP darajasida to'siq bo'lgani uchun.
+- **Fayllar:** `apps/app-web/next.config.mjs`
+
 
 # 🔒 Sprint 15: Security Audit fixes (2026-07-04 — аудит Claude)
 
@@ -814,4 +830,34 @@
 
 > apps/web/ — хозир фақат лендинг. Янги route group (app) ичига тўлиқ веб-илова қўшилади.
 > Мобил скринларни веб учун адаптация қилиш — логика бир хил, UI Next.js/React.
+
+---
+
+## 💬 Sprint 16: DM Chat 2.0 (2026-07-07 — Jasur/Emirhan mobile)
+
+> Mobile DM chatni Telegram darajasiga ko'tarish: push+inline reply, reply, forward.
+> Frontend (apps/mobile) — Jasur bajaradi. Quyidagilar BACKEND tomonini talab qiladi.
+> **Boshlashdan oldin claim qilish shart.** Barchasi shared/types o'zgarishini o'z ichiga oladi → LOCK protocol.
+
+---
+
+### T-S117 | P1 | [BACKEND] | DM push notification — xabar kelganda FCM yuborish
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Jasur (mobile)
+- **Yaratilgan:** 2026-07-07
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** 2-3 fayl — dm.service + notification integratsiya
+- **Sabab:** Hozir `DMService.sendMessage` (services/user/src/services/dm.service.ts) push YUBORMAYDI. Telegram kabi — DM kelganda telefonga push kelishi kerak. Notification infra (FCM token) tayyor.
+- **Qilish kerak:**
+  - [ ] `dm.service.sendMessage` (yoki dmEvents.handler) → notification service orqali FCM push jo'natish
+  - [ ] Payload: `title=senderUsername`, `body=text` (yoki "Yangi xabar" agar shifrlangan bo'lsa), `data={ type:'dm', peerId:<senderId>, peerName:<senderUsername> }`
+  - [ ] Android channel: `dm_messages`, categoryId/tag: `dm_reply` (inline reply action uchun — frontend shu categoryId'ni kutadi)
+  - [ ] Faqat qabul qiluvchi socket'da OFFLINE bo'lsa push (online bo'lsa realtime socket yetkazadi) — yoki har doim, but delivered flag bilan
+  - [ ] Receiver'ning `notifications.push` sozlamasi false bo'lsa — push yubormaslik
+- **Bog'liq:** T-E137, frontend: DM inline reply (apps/mobile usePushNotifications)
+
+---
+
 

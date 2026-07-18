@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { User, Mail, Lock, Eye, EyeOff, Loader2, XCircle } from 'lucide-react';
 import { authApi } from '@/lib/api/auth.api';
 import { ApiError } from '@/lib/api-client';
+import { trackClick } from '@/lib/analytics';
 
 interface Props {
   onVerify: (email: string) => void;
@@ -28,6 +29,7 @@ export function RegisterForm({ onVerify }: Props) {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (mismatch || tooShort || !username || !email || !password) return;
+    trackClick('register:submit');
 
     startTransition(() => {
       void (async () => {
@@ -147,7 +149,7 @@ export function RegisterForm({ onVerify }: Props) {
       {/* Login link */}
       <p className="text-sm text-center text-slate-400">
         {t('hasAccount')}{' '}
-        <Link href="/login" className="text-violet-400 hover:text-violet-300 font-medium transition-colors">
+        <Link href="/login" onClick={() => trackClick('register:go_to_login')} className="text-violet-400 hover:text-violet-300 font-medium transition-colors">
           {t('loginLink')}
         </Link>
       </p>

@@ -1,11 +1,13 @@
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useQuery } from '@tanstack/react-query';
 import { userApi } from '@api/user.api';
 import { spacing } from '@theme/index';
 import { useT } from '@i18n/index';
+import { resolveMediaUrl } from '@utils/url';
 
 interface Props {
   activeMembers: string[];
@@ -45,7 +47,7 @@ function MemberAvatar({
     <View style={s.avatarWrap}>
       <View style={[s.avatarRing, { borderColor, borderWidth }]}>
         {data?.avatar ? (
-          <Image source={{ uri: data.avatar }} style={s.avatarImg} contentFit="cover" />
+          <Image source={{ uri: resolveMediaUrl(data.avatar) }} style={s.avatarImg} contentFit="cover" />
         ) : (
           <View style={[s.avatarFallback, { backgroundColor: bg }]}>
             <Text style={s.avatarInitials}>{label}</Text>
@@ -66,9 +68,9 @@ function MemberAvatar({
 
   if (onPress) {
     return (
-      <TouchableOpacity onPress={onPress} activeOpacity={0.75} delayLongPress={400}>
+      <TrackedTouchable trackId="members_strip:member_press" onPress={onPress} activeOpacity={0.75} delayLongPress={400}>
         {inner}
-      </TouchableOpacity>
+      </TrackedTouchable>
     );
   }
   return inner;

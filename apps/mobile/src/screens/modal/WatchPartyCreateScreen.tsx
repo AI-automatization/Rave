@@ -1,6 +1,7 @@
 // WeWatch Mobile — WatchPartyCreateScreen (3-tab: Rooms / Create / Join)
 import React, { useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, Animated } from 'react-native';
+import { View, Text, Animated } from 'react-native';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -51,9 +52,9 @@ export function WatchPartyCreateScreen() {
         start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }}
         style={[s.header, { paddingTop: insets.top + spacing.sm }]}
       >
-        <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} activeOpacity={0.7}>
+        <TrackedTouchable trackId="watchparty_create:close" onPress={() => navigation.goBack()} style={s.backBtn} activeOpacity={0.7}>
           <Ionicons name="close" size={24} color={colors.textPrimary} />
-        </TouchableOpacity>
+        </TrackedTouchable>
         <View style={s.headerCenter}>
           <Ionicons name="tv-outline" size={20} color={colors.primary} />
           <Text style={s.title}>Watch Party</Text>
@@ -81,9 +82,11 @@ export function WatchPartyCreateScreen() {
           </Animated.View>
 
           {TAB_KEYS.map((tab, index) => (
-            <TouchableOpacity
+            <TrackedTouchable
+              trackId="watchparty_create:switch_tab"
               key={tab.key} style={s.tab}
               onPress={() => handleTabPress(tab.key, index)} activeOpacity={0.8}
+              trackMeta={{ tab: tab.key }}
             >
               <Ionicons
                 name={tab.icon as keyof typeof Ionicons.glyphMap} size={16}
@@ -92,7 +95,7 @@ export function WatchPartyCreateScreen() {
               <Text style={[s.tabText, activeTab === tab.key && s.tabTextActive]}>
                 {t('watchParty', tab.labelKey)}
               </Text>
-            </TouchableOpacity>
+            </TrackedTouchable>
           ))}
         </View>
       </View>

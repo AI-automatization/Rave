@@ -7,7 +7,6 @@ import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
   ActivityIndicator,
   NativeSyntheticEvent,
   TextInputKeyPressEventData,
@@ -15,6 +14,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -183,13 +183,14 @@ export function BindEmailScreen() {
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       <AuthGridBackground accentLinePosition={0.15} />
 
-      <TouchableOpacity
+      <TrackedTouchable
+        trackId="bind_email:back"
         style={[s.backBtn, { marginTop: insets.top + spacing.sm }]}
         onPress={() => navigation.goBack()}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
         <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
-      </TouchableOpacity>
+      </TrackedTouchable>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={s.content}>
@@ -228,7 +229,7 @@ export function BindEmailScreen() {
                 />
               </View>
 
-              <TouchableOpacity onPress={handleSendCode} disabled={loading} activeOpacity={0.85} style={s.primaryBtnWrap}>
+              <TrackedTouchable trackId="bind_email:send_code" onPress={handleSendCode} disabled={loading} activeOpacity={0.85} style={s.primaryBtnWrap}>
                 <LinearGradient
                   colors={loading ? [colors.bgLoading, colors.bgLoading] : [colors.primary, colors.primaryLight]}
                   start={{ x: 0, y: 0 }}
@@ -241,7 +242,7 @@ export function BindEmailScreen() {
                     <Text style={s.primaryBtnText}>{t('bindEmail', 'sendCodeBtn')}</Text>
                   )}
                 </LinearGradient>
-              </TouchableOpacity>
+              </TrackedTouchable>
             </>
           ) : (
             <>
@@ -276,7 +277,7 @@ export function BindEmailScreen() {
                 ))}
               </View>
 
-              <TouchableOpacity onPress={handleVerify} disabled={loading} activeOpacity={0.85} style={s.primaryBtnWrap}>
+              <TrackedTouchable trackId="bind_email:verify" onPress={handleVerify} disabled={loading} activeOpacity={0.85} style={s.primaryBtnWrap}>
                 <LinearGradient
                   colors={loading ? [colors.bgLoading, colors.bgLoading] : [colors.primary, colors.primaryLight]}
                   start={{ x: 0, y: 0 }}
@@ -289,9 +290,10 @@ export function BindEmailScreen() {
                     <Text style={s.primaryBtnText}>{t('bindEmail', 'verifyBtn')}</Text>
                   )}
                 </LinearGradient>
-              </TouchableOpacity>
+              </TrackedTouchable>
 
-              <TouchableOpacity
+              <TrackedTouchable
+                trackId="bind_email:resend"
                 style={[s.resendBtn, (resending || resendCooldown > 0) && s.resendBtnDisabled]}
                 onPress={handleResend}
                 disabled={resending || resendCooldown > 0}
@@ -303,7 +305,7 @@ export function BindEmailScreen() {
                     {resendCooldown > 0 ? `${t('bindEmail', 'resendCooldown')} (${resendCooldown}s)` : t('bindEmail', 'resend')}
                   </Text>
                 )}
-              </TouchableOpacity>
+              </TrackedTouchable>
             </>
           )}
         </View>

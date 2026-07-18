@@ -1,5 +1,7 @@
 'use client';
 
+import { trackClick } from '@/lib/analytics';
+
 const EMOJIS = ['❤️', '🔥', '😂', '😮', '👏', '🎉'];
 
 interface Props {
@@ -12,7 +14,7 @@ export function EmojiReactions({ onSend }: Props) {
       {EMOJIS.map((emoji) => (
         <button
           key={emoji}
-          onClick={() => onSend(emoji)}
+          onClick={() => { trackClick('room:emoji_reaction', { emoji }); onSend(emoji); }}
           className="w-8 h-8 rounded-lg flex items-center justify-center text-base transition-transform duration-100 hover:scale-[1.15] active:scale-90 cursor-pointer"
         >
           {emoji}

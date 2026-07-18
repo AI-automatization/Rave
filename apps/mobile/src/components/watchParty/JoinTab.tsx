@@ -1,9 +1,10 @@
 // WeWatch — Join tab for WatchPartyCreateScreen
 import React, { useState, useRef, useCallback } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, ActivityIndicator } from 'react-native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useTheme } from '@theme/index';
 import { watchPartyApi } from '@api/watchParty.api';
 import { FadeSlideIn } from '@components/common/FadeSlideIn';
@@ -67,7 +68,7 @@ export function JoinTab({ navigation, t }: Props) {
       </FadeSlideIn>
 
       <FadeSlideIn delay={250}>
-        <TouchableOpacity onPress={() => inputRef.current?.focus()} activeOpacity={0.9}>
+        <TrackedTouchable trackId="join_room:focus_code_input" onPress={() => inputRef.current?.focus()} activeOpacity={0.9}>
           <View style={s.codeRow}>
             {Array.from({ length: CODE_LENGTH }).map((_, i) => (
               <View key={i} style={[s.codeBox, code.length === i && s.codeBoxActive, i < code.length && s.codeBoxFilled]}>
@@ -75,7 +76,7 @@ export function JoinTab({ navigation, t }: Props) {
               </View>
             ))}
           </View>
-        </TouchableOpacity>
+        </TrackedTouchable>
         <TextInput
           ref={inputRef} value={code} onChangeText={handleChangeCode}
           autoCapitalize="characters" autoCorrect={false} maxLength={CODE_LENGTH}
@@ -84,7 +85,8 @@ export function JoinTab({ navigation, t }: Props) {
       </FadeSlideIn>
 
       <FadeSlideIn delay={300}>
-        <TouchableOpacity
+        <TrackedTouchable
+          trackId="join_room:submit"
           style={[s.joinBtn, (loading || code.length < CODE_LENGTH) && s.joinBtnDisabled]}
           onPress={handleJoin} disabled={loading || code.length < CODE_LENGTH} activeOpacity={0.85}
         >
@@ -96,7 +98,7 @@ export function JoinTab({ navigation, t }: Props) {
               </>
             )}
           </LinearGradient>
-        </TouchableOpacity>
+        </TrackedTouchable>
       </FadeSlideIn>
     </View>
   );

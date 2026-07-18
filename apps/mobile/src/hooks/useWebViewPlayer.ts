@@ -9,7 +9,6 @@ import { getAdapter, buildInjectJs } from '@components/video/WebViewAdapters';
 import { isAdRequest, getHostname } from '@components/video/webviewAdBlocker';
 import { buildYouTubeHtml } from '@components/video/webviewYouTube';
 import type { WebViewPlayerRef } from '@components/video/WebViewPlayer';
-import { extractYouTubeStream } from '@utils/youtubeInnertube';
 
 interface Props {
   url: string;
@@ -23,8 +22,6 @@ interface Props {
   onSeek: (secs: number) => void;
   onProgress?: (secs: number, dur: number) => void;
   onBuffering?: (isBuffering: boolean) => void;
-  /** Called when YT embed is blocked and Innertube extraction succeeds — switches to native player */
-  onYtInnertubeUrl?: (url: string) => void;
 }
 
 type WebViewMessage =
@@ -43,6 +40,12 @@ type WebViewMessage =
 const POSITION_POLL_INTERVAL_MS = 500;
 // Android WebView is slower to bootstrap; give it extra time before showing error.
 const LOAD_TIMEOUT_MS = Platform.OS === 'android' ? 12000 : 8000;
+// URL-mode (Android VK/Rutube "full-site" — the real webpage loads directly, isHtmlMode=false)
+// relies purely on native onLoadEnd/onError/onHttpError with no app-level timeout at all — a
+// heavy SPA that keeps making background XHR/tracker requests can leave onLoadEnd unfired
+// forever, stranding the user on the loading overlay with no way out. Longer than
+// LOAD_TIMEOUT_MS since a full real webpage genuinely takes longer than a lightweight embed.
+const URL_MODE_LOAD_TIMEOUT_MS = Platform.OS === 'android' ? 18000 : 12000;
 const POSITION_POLL_JS = `
   if(window._csVideo && !window._csVideo.paused){
     window.ReactNativeWebView.postMessage(JSON.stringify({
@@ -55,7 +58,7 @@ const POSITION_POLL_JS = `
 
 export function useWebViewPlayer(
   imperativeRef: React.Ref<WebViewPlayerRef>,
-  { url, youtubeVideoId, htmlContent, htmlBaseUrl, isOwner, referer, onPlay, onPause, onSeek, onProgress, onBuffering, onYtInnertubeUrl }: Props,
+  { url, youtubeVideoId, htmlContent, htmlBaseUrl, isOwner, referer, onPlay, onPause, onSeek, onProgress, onBuffering }: Props,
 ) {
   const webviewRef = useRef<WebView>(null);
   const currentTimeMsRef = useRef(0);
@@ -87,13 +90,33 @@ export function useWebViewPlayer(
   // Load timeout: if WebView sends no message within LOAD_TIMEOUT_MS → show error.
   // Catches Android WebView silent failures where IFrame API loads but never fires onReady.
   useEffect(() => {
-    if (!isHtmlMode) return; // URL-mode has its own onError/onHttpError
+    if (!isHtmlMode) return; // URL-mode uses its own timeout below
     receivedFirstMessageRef.current = false;
     const timer = setTimeout(() => {
       if (!receivedFirstMessageRef.current) setError(true);
     }, LOAD_TIMEOUT_MS);
     return () => clearTimeout(timer);
   }, [isHtmlMode, youtubeVideoId, htmlContent]); // re-arm when video changes
+
+  // URL-mode load timeout (Android VK/Rutube full-site): native onLoadEnd/onError/onHttpError
+  // alone left this stuck on the loading overlay forever when a heavy real webpage never signals
+  // "finished" (see URL_MODE_LOAD_TIMEOUT_MS comment). If our injected adapter already found and
+  // attached to a <video> element (receivedFirstMessageRef set by ANY webview message, including
+  // VIDEO_FOUND), the page is actually usable — just dismiss the overlay. Otherwise show the
+  // existing error/retry UI instead of an unexplained infinite spinner.
+  useEffect(() => {
+    if (isHtmlMode) return;
+    receivedFirstMessageRef.current = false;
+    const timer = setTimeout(() => {
+      setLoading((stillLoading) => {
+        if (!stillLoading) return stillLoading;
+        if (receivedFirstMessageRef.current) return false;
+        setError(true);
+        return stillLoading;
+      });
+    }, URL_MODE_LOAD_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [isHtmlMode, url]); // re-arm when video changes
 
   // T-E100: Periodic position polling — real currentTime from WebView every 2s
   useEffect(() => {
@@ -156,19 +179,13 @@ export function useWebViewPlayer(
           }
           break;
         case 'YT_EMBED_ERROR':
+          // The video owner has disabled embedding for this video (codes 101/150/152) — show
+          // the "can't extract, try another" fallback. We deliberately do NOT attempt any
+          // workaround (e.g. spoofing the official YouTube app's API) here: that's a Play
+          // Store ToS-circumvention risk on Google's own platform (see T-S123).
           if (data.code === 150 || data.code === 152 || data.code === 101) {
             setLoading(false);
-            if (youtubeVideoId && onYtInnertubeUrl) {
-              extractYouTubeStream(youtubeVideoId).then((result) => {
-                if (result?.videoUrl) {
-                  onYtInnertubeUrl(result.videoUrl);
-                } else {
-                  setYtEmbedBlocked(true);
-                }
-              }).catch(() => { setYtEmbedBlocked(true); });
-            } else {
-              setYtEmbedBlocked(true);
-            }
+            setYtEmbedBlocked(true);
           }
           break;
       }
@@ -199,7 +216,11 @@ export function useWebViewPlayer(
   const webViewSource = htmlContent
     ? { html: htmlContent, baseUrl: htmlBaseUrl ?? 'about:blank' }
     : isYouTubeMode
-    ? { html: buildYouTubeHtml(youtubeVideoId!), baseUrl: 'https://www.youtube.com' }
+    // baseUrl must NOT be youtube.com itself — the WebView's effective Referer becomes
+    // this origin, and YouTube's embed endpoint now rejects that as an impossible/spoofed
+    // embedder identity (PLAYABILITY_ERROR_CODE_EMBEDDER_IDENTITY_DENIED), failing EVERY
+    // video regardless of its real per-video embedding setting. Our own domain works fine.
+    ? { html: buildYouTubeHtml(youtubeVideoId!), baseUrl: 'https://wewatch.uz' }
     : { uri: url, headers: referer ? { Referer: referer } : {} };
 
   return {

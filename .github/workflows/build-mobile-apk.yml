@@ -1,0 +1,66 @@
+name: Build Mobile APK
+
+# Manual only — builds the Android APK on GitHub's runners instead of a local machine.
+# Requires EXPO_TOKEN in repo secrets (Expo Personal Access Token — the local build
+# still needs to fetch the release keystore from Expo's servers even with --local).
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: 'EAS build profile'
+        required: true
+        default: 'preview'
+        type: choice
+        options:
+          - preview
+          - production
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build APK (${{ github.event.inputs.profile }})
+    runs-on: ubuntu-latest
+    # Safety net: a Gradle daemon OOM crash during the actual build step doesn't
+    # always propagate as a clean process exit (seen once — the job hung 6h until
+    # GitHub's own hard ceiling force-killed it). Fail fast well before that.
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install root deps
+        run: npm ci
+
+      - name: Build shared
+        run: cd shared && npm run build
+
+      - name: Build APK
+        working-directory: apps/mobile
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          npx eas-cli build --platform android --profile ${{ github.event.inputs.profile }} \
+            --local --output ./wewatch.apk --non-interactive
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wewatch-${{ github.event.inputs.profile }}-apk
+          path: apps/mobile/wewatch.apk
+          retention-days: 14

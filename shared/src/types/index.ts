@@ -168,6 +168,7 @@ export type NotificationType =
   | 'friend_online'
   | 'friend_watching'
   | 'support_reply'
+  | 'dm_message'
   | 'admin_warning'
   // Admin-broadcast types
   | 'announcement'

@@ -7,6 +7,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { io, Socket } from 'socket.io-client';
 import { apiClient } from '@/lib/api-client';
 import { toast } from '@/hooks/use-toast';
+import { trackClick } from '@/lib/analytics';
 
 const ADMIN_SOCKET_URL = process.env.NEXT_PUBLIC_ADMIN_SOCKET_URL ?? 'http://localhost:3008';
 
@@ -182,6 +183,7 @@ export function SupportContent() {
   function handleSend() {
     const text = inputText.trim();
     if (!text || !activeConv) return;
+    trackClick('support:send_message');
     sendMessage.mutate(text);
   }
 
@@ -230,7 +232,7 @@ export function SupportContent() {
               <p className="text-xs text-slate-600 mt-1">{t('emptySub')}</p>
             </div>
             <button
-              onClick={() => startConvo.mutate()}
+              onClick={() => { trackClick('support:start_chat'); startConvo.mutate(); }}
               disabled={startConvo.isPending}
               className="h-9 px-5 rounded-lg text-sm font-medium text-white bg-violet-600 hover:bg-violet-500 cursor-pointer disabled:opacity-40 transition-colors flex items-center gap-2"
             >
@@ -261,7 +263,7 @@ export function SupportContent() {
                 key={star}
                 onMouseEnter={() => setHoverRating(star)}
                 onMouseLeave={() => setHoverRating(0)}
-                onClick={() => { setRating(star); rateConvo.mutate(star); }}
+                onClick={() => { trackClick('support:rate', { star }); setRating(star); rateConvo.mutate(star); }}
                 className="cursor-pointer transition-transform hover:scale-110"
               >
                 <Star
@@ -276,7 +278,7 @@ export function SupportContent() {
             ))}
           </div>
           <button
-            onClick={() => startConvo.mutate()}
+            onClick={() => { trackClick('support:new_chat'); startConvo.mutate(); }}
             disabled={startConvo.isPending}
             className="mt-1 h-8 px-5 rounded-lg text-xs font-medium text-white bg-violet-600 hover:bg-violet-500 cursor-pointer disabled:opacity-40 transition-colors"
           >

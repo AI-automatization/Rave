@@ -4,7 +4,7 @@ import { AboutContent } from './AboutContent';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 
 export const metadata: Metadata = {
-  title: 'О WeWatch — бесплатное приложение для совместного просмотра видео',
+  title: { absolute: 'О WeWatch — бесплатное приложение для совместного просмотра видео' },
   description:
     'WeWatch — бесплатное приложение для совместного просмотра YouTube, VK и Rutube с друзьями онлайн. iOS, Android и Web. Создано tezcode.dev в Ташкенте.',
   alternates: { canonical: `${APP_URL}/about` },

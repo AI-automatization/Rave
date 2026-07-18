@@ -26,6 +26,9 @@ export const createWatchPartyRouter = (redis: Redis, io: SocketServer): Router =
   // Internal — cascade account deletion (GDPR/App Store compliance)
   router.delete('/internal/users/:userId', requireInternalSecret, watchPartyController.deleteUserData);
 
+  // Internal — broadcast a new DM message to the receiver's open chat (realtime)
+  router.post('/internal/dm/:userId/notify', requireInternalSecret, watchPartyController.notifyDmMessage);
+
   // Internal Admin: GET /watch-party/internal/admin/stats — today's stats (admin)
   router.get('/internal/admin/stats', requireInternalSecret, watchPartyController.adminGetStats);
 

@@ -6,6 +6,7 @@ import { Users, LogOut, Share2 } from 'lucide-react';
 import { useWatchPartyStore } from '@/store/watch-party.store';
 import { useTranslations } from 'next-intl';
 import { InviteDialog } from '@/components/party/InviteDialog';
+import { trackClick } from '@/lib/analytics';
 
 export function RoomHeader() {
   const t = useTranslations('party');
@@ -46,14 +47,14 @@ export function RoomHeader() {
 
         <div className="flex items-center gap-1.5">
           <button
-            onClick={() => setInviteOpen(true)}
+            onClick={() => { trackClick('room:open_invite'); setInviteOpen(true); }}
             className="h-8 px-3 rounded-lg text-xs font-medium text-zinc-300 bg-white/[0.05] border border-white/[0.09] hover:bg-white/[0.1] transition-colors flex items-center gap-1.5 cursor-pointer"
           >
             <Share2 size={12} />
             {t('link')}
           </button>
           <button
-            onClick={() => router.push('/home')}
+            onClick={() => { trackClick('room:leave'); router.push('/home'); }}
             className="h-8 px-3 rounded-lg text-xs font-medium text-red-400 bg-red-500/[0.07] border border-red-500/[0.15] hover:bg-red-500/[0.14] transition-colors flex items-center gap-1.5 cursor-pointer"
           >
             <LogOut size={12} />

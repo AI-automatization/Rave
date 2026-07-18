@@ -1,7 +1,8 @@
 // WeWatch Mobile — Profile small reusable widgets (web-style cards)
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { FadeInView } from './ProfileAnimations';
 import { useT } from '@i18n/index';
@@ -64,6 +65,8 @@ interface NavItemProps {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   onPress: () => void;
+  /** Stable click-tracking id, e.g. 'profile:watch_history'. */
+  trackId: string;
   delay?: number;
   /** Optional line under the label (e.g. current value or status). */
   subtitle?: string;
@@ -77,6 +80,7 @@ export const NavItem = React.memo(function NavItem({
   icon,
   label,
   onPress,
+  trackId,
   delay = 0,
   subtitle,
   rightText,
@@ -87,7 +91,7 @@ export const NavItem = React.memo(function NavItem({
 
   return (
     <FadeInView delay={delay}>
-      <TouchableOpacity style={s.navLink} onPress={onPress} activeOpacity={0.7}>
+      <TrackedTouchable trackId={trackId} style={s.navLink} onPress={onPress} activeOpacity={0.7}>
         <View style={s.navIconWrap}>
           <Ionicons name={icon} size={20} color={colors.primary} />
         </View>
@@ -98,7 +102,7 @@ export const NavItem = React.memo(function NavItem({
         {showWarningDot ? <View style={s.warningDot} /> : null}
         {rightText ? <Text style={s.navRightText}>{rightText}</Text> : null}
         <Ionicons name="chevron-forward" size={18} color={colors.textDim} />
-      </TouchableOpacity>
+      </TrackedTouchable>
     </FadeInView>
   );
 });

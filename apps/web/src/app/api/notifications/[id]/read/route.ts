@@ -3,10 +3,8 @@ import { NOTIFICATION_SERVICE_URL, ensureSuffix } from '@/lib/service-urls';
 
 const baseUrl = () => ensureSuffix(NOTIFICATION_SERVICE_URL, '/api/v1');
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: { id: string } },
-) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const accessToken = req.cookies.get('access_token')?.value;
     if (!accessToken) {

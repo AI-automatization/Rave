@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, Animated, StyleSheet } from 'react-native';
+import { View, Text, Animated, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useTheme, spacing, borderRadius, typography } from '@theme/index';
 import { useT } from '@i18n/index';
 
@@ -114,13 +115,13 @@ export function MaintenanceScreen({ onRetry, retrying = false }: MaintenanceScre
       <Text style={styles.title}>{t('maintenance', 'title')}</Text>
       <Text style={styles.subtitle}>{t('maintenance', 'subtitle')}</Text>
 
-      <TouchableOpacity style={styles.retryBtn} onPress={onRetry} disabled={retrying} activeOpacity={0.7}>
+      <TrackedTouchable trackId="maintenance:retry" style={styles.retryBtn} onPress={onRetry} disabled={retrying} activeOpacity={0.7}>
         {retrying
           ? <Ionicons name="hourglass-outline" size={16} color={colors.primary} />
           : <Ionicons name="refresh-outline" size={16} color={colors.primary} />
         }
         <Text style={styles.retryText}>{retrying ? t('common', 'loading') : t('maintenance', 'retry')}</Text>
-      </TouchableOpacity>
+      </TrackedTouchable>
     </View>
   );
 }

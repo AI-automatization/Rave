@@ -162,8 +162,11 @@ export class UserController {
   updateSettings = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { userId } = (req as AuthenticatedRequest).user;
-      const { notifications } = req.body as { notifications?: Record<string, boolean> };
-      const settings = await this.userService.updateSettings(userId, { notifications });
+      const { notifications, privacy } = req.body as {
+        notifications?: Record<string, boolean>;
+        privacy?: Record<string, boolean>;
+      };
+      const settings = await this.userService.updateSettings(userId, { notifications, privacy });
       res.json(apiResponse.success(settings, 'Settings updated'));
     } catch (error) {
       next(error);

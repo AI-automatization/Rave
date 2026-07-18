@@ -9,6 +9,12 @@ export interface INotificationSettings {
   emailDigest: boolean;
 }
 
+export interface IPrivacySettings {
+  // Boshqalar mening DM xabarlarimni boshqa suhbatga forward qila oladimi.
+  // O'chirilsa — forward qilishga urinish 403 qaytaradi (Telegram uslubi).
+  allowForward: boolean;
+}
+
 export interface IUserDocument extends Document {
   email: string;
   username: string;
@@ -24,7 +30,12 @@ export interface IUserDocument extends Document {
   fcmTokens: string[];
   lastSeenAt: Date | null;
   restrictions: string[];
-  settings: { notifications: INotificationSettings };
+  settings: { notifications: INotificationSettings; privacy: IPrivacySettings };
+  // DM inbox preferences — per-user, NOT shared with the peer (muting/pinning a
+  // conversation is a local inbox setting, same as Telegram). pinnedPeerIds is
+  // capped at 5 (enforced in DMService.togglePinConversation, not here).
+  mutedPeerIds: string[];
+  pinnedPeerIds: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -53,6 +64,8 @@ const userSchema = new Schema<IUserDocument>(
     fcmTokens: [{ type: String }],
     lastSeenAt: { type: Date, default: null },
     restrictions: { type: [String], default: [] },
+    mutedPeerIds: { type: [String], default: [] },
+    pinnedPeerIds: { type: [String], default: [] },
     settings: {
       type: new Schema(
         {
@@ -64,6 +77,15 @@ const userSchema = new Schema<IUserDocument>(
                 watchPartyInvite:    { type: Boolean, default: true },
                 friendOnline:        { type: Boolean, default: false },
                 emailDigest:         { type: Boolean, default: true },
+              },
+              { _id: false },
+            ),
+            default: {},
+          },
+          privacy: {
+            type: new Schema(
+              {
+                allowForward: { type: Boolean, default: true },
               },
               { _id: false },
             ),
