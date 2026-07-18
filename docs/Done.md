@@ -4,6 +4,15 @@
 
 ---
 
+### F-241 | T-S133 | YouTubePlayer web'da onError qo'shildi — deploy tasdiqlandi
+
+- **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-18  **Model:** sonnet
+- **O'zgarishlar:** `YouTubePlayer.tsx`ga `onError` handler + xato UI (mavjud "Не удалось загрузить
+  видео" pattern'iga mos).
+- **Tekshiruv:** Railway deploy `1725a36d` — SUCCESS, `app-web` Online, ertalab tasdiqlandi.
+
+---
+
 ### F-240 | T-S132 | Google sign-in web'da zависал — pollRateLimiter 30/min < client poll cadence
 
 - **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-18  **Model:** sonnet

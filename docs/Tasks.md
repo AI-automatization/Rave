@@ -4,19 +4,24 @@
 
 ---
 
-### T-S133 | P1 | [WEB] | YouTubePlayer web'da onError yo'q — video ochilmasa spinner abadiy aylanadi
+---
+
+### T-S134 | P0 | [WEB] | Google/Telegram login web'da hali ham tugamayapti — popup.closed COOP tufayli yolg'on
 
 - **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Bekzod aka (live report, screenshot, 2026-07-18 01:00)
-- **Yaratilgan:** 2026-07-18 01:05
+- **Beruvchi:** Bekzod aka (T-S132 fix'dan keyin ham qayta xabar berdi, skrinshot, 2026-07-18 10:30)
+- **Yaratilgan:** 2026-07-18 10:35
 - **Holat:** 🔄 Bajarilmoqda
 - **Tavsiya model:** sonnet
-- **Model sababi:** root-cause topildi, 1 fayl
-- **Sabab:** `YouTubePlayer.tsx` YT.Player'ga faqat `onReady`/`onStateChange` bergan, `onError` yo'q edi.
-  Video embed qila olmasa (private/o'chirilgan/owner embedni taqiqlagan) — YouTube `onError` chaqiradi,
-  `onReady` UMUMAN chaqirilmaydi → `!ready` spinner abadiy qoladi, foydalanuvchiga hech qanday signal
-  yo'q. Mobile bu holatni allaqachon ushlagan (`YT_EMBED_ERROR` 101/150/152), web'da yo'q edi.
-- **Fayllar:** `apps/app-web/src/components/party/YouTubePlayer.tsx`
+- **Model sababi:** root-cause prod loglaridan aniqlandi (3/3 urinishda aynan 2 ta poll, keyin sukunat), 1 fayl
+- **Sabab:** T-S132 (rate limit) haqiqiy edi, lekin yakuniy sabab emas ekan. `closedCheck` popup'ning
+  `.closed`ni 500ms intervalda tekshiradi — lekin popup `accounts.google.com`ga o'tgach (bizning
+  origin'dan boshqa), Google'ning o'z Cross-Origin-Opener-Policy'si opener bog'lanishini uzadi va
+  `.closed` shu zahoti (haqiqatda popup ochiq turganida!) `true` bo'lib qoladi. 3ta prod urinishning
+  HAMMASIDA aynan 2ta poll ketib, keyin ~4s da to'xtagan — bu tasodifiy throttling emas, deterministik.
+  Fix: `.closed`ga ishonmaymiz endi — faqat haqiqiy `visibilitychange`/`focus` signalidan keyin
+  (foydalanuvchi popup'ni yopib qaytganda) tekshiramiz, oralig'ida ground-truth poll (2s) davom etadi.
+- **Fayllar:** `apps/app-web/src/app/(auth)/login/LoginForm.tsx` (handleGoogleLogin + handleTelegramLogin)
 
 
 # 🔒 Sprint 15: Security Audit fixes (2026-07-04 — аудит Claude)
