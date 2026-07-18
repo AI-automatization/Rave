@@ -10,6 +10,7 @@ import { YouTubePlayer } from './YouTubePlayer';
 import { VKPlayer } from './VKPlayer';
 import { TwitchPlayer } from './TwitchPlayer';
 import { VimeoPlayer } from './VimeoPlayer';
+import { DailymotionPlayer } from './DailymotionPlayer';
 
 interface Props {
   onPlay: (time: number) => void;
@@ -70,6 +71,19 @@ function getVimeoId(url: string): string | null {
     const host = hostname.replace(/^www\./, '');
     if (host !== 'vimeo.com' && host !== 'player.vimeo.com') return null;
     const match = pathname.match(/\/(?:video\/)?(\d+)/);
+    return match ? match[1] : null;
+  } catch {
+    return null;
+  }
+}
+
+// Mirrors mobile's extractDailymotionId (apps/mobile/src/components/video/WebViewAdapters.ts).
+function getDailymotionId(url: string): string | null {
+  try {
+    const { hostname, pathname } = new URL(url);
+    const host = hostname.replace(/^www\./, '');
+    if (!host.includes('dailymotion.com') && host !== 'dai.ly') return null;
+    const match = pathname.match(/\/(?:video\/|embed\/video\/)?([a-zA-Z0-9]+)/);
     return match ? match[1] : null;
   } catch {
     return null;
@@ -528,13 +542,14 @@ export function VideoPlayer({
   const vkIds = getVKVideoIds(videoUrl);
   const twitchIds = getTwitchIds(videoUrl);
   const vimeoId = getVimeoId(videoUrl);
-  const isEmbed = !!ytId || !!vkIds || !!twitchIds || !!vimeoId;
+  const dailymotionId = getDailymotionId(videoUrl);
+  const isEmbed = !!ytId || !!vkIds || !!twitchIds || !!vimeoId || !!dailymotionId;
   // Extract everything not handled by an official embed above — content service handles Rutube
-  // and any other direct/generic URL. VK/Twitch/Vimeo used to fall through here too
+  // and any other direct/generic URL. VK/Twitch/Vimeo/Dailymotion used to fall through here too
   // (ytDlpExtractor + an authenticated session cookie — ToS-questionable, same risk category as
   // scraping a pirate site, just against a legitimate platform); now routed to their own
   // official embeds instead.
-  const needsExtract = !!videoUrl && !ytId && !vkIds && !twitchIds && !vimeoId;
+  const needsExtract = !!videoUrl && !ytId && !vkIds && !twitchIds && !vimeoId && !dailymotionId;
   const directSrc = needsExtract ? proxySrc : null;
 
   // Extract → proxy URL for any non-YouTube source
@@ -824,6 +839,21 @@ export function VideoPlayer({
     return (
       <VimeoPlayer
         videoId={vimeoId}
+        isOwner={isOwner}
+        onPlay={onPlay}
+        onPause={onPause}
+        onSeek={onSeek}
+        onHeartbeat={onHeartbeat}
+      />
+    );
+  }
+
+  // ── Dailymotion — synced via the official player.html postMessage protocol ──────
+
+  if (dailymotionId) {
+    return (
+      <DailymotionPlayer
+        videoId={dailymotionId}
         isOwner={isOwner}
         onPlay={onPlay}
         onPause={onPause}

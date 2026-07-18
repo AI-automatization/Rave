@@ -105,6 +105,20 @@ const PLATFORMS: Platform[] = [
     urlPattern: /vimeo\.com/,
   },
   {
+    id: 'dailymotion',
+    name: 'Dailymotion',
+    base: 'https://dailymotion.com',
+    renderIcon: (s) => (
+      <svg width={s} height={s} viewBox="0 0 24 24" fill="currentColor">
+        <path d="M20.5 0h-17A3.5 3.5 0 0 0 0 3.5v17A3.5 3.5 0 0 0 3.5 24h17a3.5 3.5 0 0 0 3.5-3.5v-17A3.5 3.5 0 0 0 20.5 0Zm-2.34 18.3h-2.87v-1.28h-.04c-.5.94-1.6 1.52-2.75 1.52-2.7 0-4.5-2.12-4.5-4.85 0-2.5 1.66-4.84 4.32-4.84 1.1 0 2.2.44 2.83 1.32h.04V4.5h3l-.03 13.8Zm-4.9-2.15c1.34 0 2.05-1.13 2.05-2.36 0-1.26-.68-2.4-2.05-2.4-1.36 0-1.98 1.19-1.98 2.4 0 1.19.66 2.36 1.98 2.36Z"/>
+      </svg>
+    ),
+    color: '#00D3FF',
+    bg: 'rgba(0,211,255,0.13)',
+    border: 'rgba(0,211,255,0.32)',
+    urlPattern: /dailymotion\.com|dai\.ly/,
+  },
+  {
     id: 'cinerama',
     name: 'Cinerama',
     base: 'https://cinerama.uz',
@@ -153,6 +167,7 @@ const PLATFORM_TO_BACKEND: Record<string, string> = {
   rutube:  'rutube',
   twitch:  'twitch',
   vimeo:   'vimeo',
+  dailymotion: 'dailymotion',
   live:    'youtube',  // YouTube Live
   cinerama:'other',
   web:     'other',

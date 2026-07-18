@@ -57,7 +57,7 @@ const nextConfig = {
               "img-src 'self' data: blob: https:",
               "font-src 'self' data: https://fonts.gstatic.com",
               "connect-src 'self' https: wss:",
-              "frame-src https://www.youtube.com https://youtube.com https://vk.com https://rutube.ru https://player.twitch.tv https://www.twitch.tv https://player.vimeo.com",
+              "frame-src https://www.youtube.com https://youtube.com https://vk.com https://rutube.ru https://player.twitch.tv https://www.twitch.tv https://player.vimeo.com https://geo.dailymotion.com https://www.dailymotion.com",
               "media-src 'self' https: blob:",
               "object-src 'none'",
               "base-uri 'self'",
