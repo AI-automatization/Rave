@@ -2,6 +2,23 @@
 
 # Yangilangan: 2026-07-18
 
+---
+
+### T-S135 | P0 | [WEB] | YouTube iframe web'da kelmayapti — CSP script-src youtube.com'ni bloklaydi
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim (live report, T-S133 fix'dan keyin ham)
+- **Yaratilgan:** 2026-07-18 (login fix'dan keyin)
+- **Holat:** 🔄 Bajarilmoqda
+- **Tavsiya model:** sonnet
+- **Model sababi:** root-cause topildi, 1 fayl (config)
+- **Sabab:** `next.config.mjs`dagi CSP `script-src`da `https://www.youtube.com` yo'q edi — faqat
+  `frame-src`da bor edi. `YouTubePlayer.tsx`ning `loadYouTubeApi()` `<script src="https://www.youtube.com/iframe_api">`
+  qo'shadi — bu `script-src` tomonidan boshqariladi, `frame-src` emas. Brauzer skriptni butunlay
+  bloklagan, shuning uchun `YT.Player` hech qachon yaratilmagan, `onReady` ham, `onError` ham (T-S133)
+  ishlamagan — CSP darajasida to'siq bo'lgani uchun.
+- **Fayllar:** `apps/app-web/next.config.mjs`
+
 
 # 🔒 Sprint 15: Security Audit fixes (2026-07-04 — аудит Claude)
 
