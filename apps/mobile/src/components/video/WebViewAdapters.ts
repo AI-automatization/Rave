@@ -331,6 +331,19 @@ export function extractTikTokId(url: string): string | null {
   } catch { return null; }
 }
 
+// PeerTube federatsiyalashgan — istalgan domen instance bo'lishi mumkin, shuning uchun bitta
+// hostname emas, URL PATH shakli bo'yicha aniqlanadi (/videos/watch/{uuid} yoki /w/{shortId}).
+export function extractPeerTubeIds(url: string): { instance: string; videoId: string } | null {
+  try {
+    const { hostname, pathname } = new URL(url);
+    const watchMatch = pathname.match(/\/videos\/watch\/([0-9a-f-]{36})/i);
+    if (watchMatch) return { instance: hostname, videoId: watchMatch[1] };
+    const shortMatch = pathname.match(/\/w\/([a-zA-Z0-9]{22})$/);
+    if (shortMatch) return { instance: hostname, videoId: shortMatch[1] };
+    return null;
+  } catch { return null; }
+}
+
 // ─── T-E066: Embed HTML page builders ────────────────────────────────────────
 
 const BASE_HTML_STYLES = `
@@ -656,6 +669,58 @@ export function buildTikTokHtml(videoId: string): string {
         else if (evt.indexOf('pause') !== -1) { paused = true; rn({ type: 'PAUSE', currentTime: ct }); }
         else if (evt.indexOf('seek') !== -1) { rn({ type: 'SEEK', currentTime: ct }); }
       } catch(e) {}
+    });
+  </script>
+</body></html>`;
+}
+
+/**
+ * PeerTube embed using the official @peertube/embed-api. Federated — instance is whatever
+ * hostname the video URL actually pointed to (see extractPeerTubeIds), not a fixed domain.
+ */
+export function buildPeerTubeHtml(instance: string, videoId: string): string {
+  return `<!DOCTYPE html>
+<html><head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>${BASE_HTML_STYLES} #pt-container, #pt-container iframe { width: 100% !important; height: 100% !important; border: none; }</style>
+</head><body>
+  <div id="pt-container">
+    <iframe id="pt-player"
+      src="https://${instance}/videos/embed/${videoId}?api=1&autoplay=1"
+      allow="autoplay; fullscreen" allowfullscreen></iframe>
+  </div>
+  <script src="https://unpkg.com/@peertube/embed-api/build/player.min.js"></script>
+  <script>
+    ${RN_BRIDGE}
+    var progressTimer = null;
+    var player = new PeerTubePlayer(document.getElementById('pt-player'));
+    window._csCurrentTime = 0;
+    window._csPaused = true;
+    window._csVideo = {
+      get currentTime() { return window._csCurrentTime; },
+      set currentTime(t) {
+        player.seek(t).then(function() {
+          rn({ type: 'SEEK', currentTime: t }); window._csCurrentTime = t;
+        }).catch(function() {});
+      },
+      play: function() { player.play().catch(function() {}); },
+      pause: function() { player.pause().catch(function() {}); },
+      get paused() { return window._csPaused; }
+    };
+    player.ready.then(function() {
+      rn({ type: 'VIDEO_FOUND' });
+      player.addEventListener('playbackStatusUpdate', function(d) {
+        if (typeof d.position === 'number') window._csCurrentTime = d.position;
+      });
+      player.addEventListener('playbackStatusChange', function(d) {
+        if (d.type === 'playing') { window._csPaused = false; rn({ type: 'PLAY', currentTime: window._csCurrentTime }); }
+        else if (d.type === 'paused') { window._csPaused = true; rn({ type: 'PAUSE', currentTime: window._csCurrentTime }); }
+      });
+      progressTimer = setInterval(function() {
+        if (!window._csPaused) rn({ type: 'PROGRESS', currentTime: window._csCurrentTime, duration: 0 });
+      }, 500);
+    }).catch(function() {
+      rn({ type: 'YT_EMBED_ERROR', code: 101 });
     });
   </script>
 </body></html>`;

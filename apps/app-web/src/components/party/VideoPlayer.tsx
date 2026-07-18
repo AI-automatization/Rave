@@ -12,6 +12,7 @@ import { TwitchPlayer } from './TwitchPlayer';
 import { VimeoPlayer } from './VimeoPlayer';
 import { DailymotionPlayer } from './DailymotionPlayer';
 import { TikTokPlayer } from './TikTokPlayer';
+import { PeerTubePlayer } from './PeerTubePlayer';
 
 interface Props {
   onPlay: (time: number) => void;
@@ -99,6 +100,23 @@ function getTikTokId(url: string): string | null {
     if (!host.includes('tiktok.com')) return null;
     const match = pathname.match(/\/(?:video|player\/v1)\/(\d+)/);
     return match ? match[1] : null;
+  } catch {
+    return null;
+  }
+}
+
+// PeerTube is federated — any domain can run an instance, so detection is by URL PATH shape
+// (/videos/watch/{uuid} or /w/{shortId}), not by a fixed hostname. This is a heuristic: some
+// other, unrelated site could theoretically share this exact path pattern, but it's specific
+// enough in practice (real UUID or PeerTube's base58-style short-ID format) to be reliable.
+function getPeerTubeIds(url: string): { instance: string; videoId: string } | null {
+  try {
+    const { hostname, pathname } = new URL(url);
+    const watchMatch = pathname.match(/\/videos\/watch\/([0-9a-f-]{36})/i);
+    if (watchMatch) return { instance: hostname, videoId: watchMatch[1] };
+    const shortMatch = pathname.match(/\/w\/([a-zA-Z0-9]{22})$/);
+    if (shortMatch) return { instance: hostname, videoId: shortMatch[1] };
+    return null;
   } catch {
     return null;
   }
@@ -558,13 +576,14 @@ export function VideoPlayer({
   const vimeoId = getVimeoId(videoUrl);
   const dailymotionId = getDailymotionId(videoUrl);
   const tiktokId = getTikTokId(videoUrl);
-  const isEmbed = !!ytId || !!vkIds || !!twitchIds || !!vimeoId || !!dailymotionId || !!tiktokId;
+  const peertubeIds = getPeerTubeIds(videoUrl);
+  const isEmbed = !!ytId || !!vkIds || !!twitchIds || !!vimeoId || !!dailymotionId || !!tiktokId || !!peertubeIds;
   // Extract everything not handled by an official embed above — content service handles Rutube
   // and any other direct/generic URL. VK/Twitch/Vimeo/Dailymotion used to fall through here too
   // (ytDlpExtractor + an authenticated session cookie — ToS-questionable, same risk category as
   // scraping a pirate site, just against a legitimate platform); now routed to their own
   // official embeds instead.
-  const needsExtract = !!videoUrl && !ytId && !vkIds && !twitchIds && !vimeoId && !dailymotionId && !tiktokId;
+  const needsExtract = !!videoUrl && !ytId && !vkIds && !twitchIds && !vimeoId && !dailymotionId && !tiktokId && !peertubeIds;
   const directSrc = needsExtract ? proxySrc : null;
 
   // Extract → proxy URL for any non-YouTube source
@@ -884,6 +903,22 @@ export function VideoPlayer({
     return (
       <TikTokPlayer
         videoId={tiktokId}
+        isOwner={isOwner}
+        onPlay={onPlay}
+        onPause={onPause}
+        onSeek={onSeek}
+        onHeartbeat={onHeartbeat}
+      />
+    );
+  }
+
+  // ── PeerTube — synced via the official @peertube/embed-api (instance must be CSP-allowlisted) ──
+
+  if (peertubeIds) {
+    return (
+      <PeerTubePlayer
+        instance={peertubeIds.instance}
+        videoId={peertubeIds.videoId}
         isOwner={isOwner}
         onPlay={onPlay}
         onPause={onPause}

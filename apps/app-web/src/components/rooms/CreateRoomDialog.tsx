@@ -133,6 +133,20 @@ const PLATFORMS: Platform[] = [
     urlPattern: /tiktok\.com/,
   },
   {
+    id: 'peertube',
+    name: 'PeerTube',
+    base: 'https://framatube.org',
+    renderIcon: (s) => (
+      <svg width={s} height={s} viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2Zm-2 14.5v-9l7 4.5-7 4.5Z"/>
+      </svg>
+    ),
+    color: '#F1680D',
+    bg: 'rgba(241,104,13,0.13)',
+    border: 'rgba(241,104,13,0.32)',
+    urlPattern: /\/videos\/watch\/[0-9a-f-]{36}|\/w\/[a-zA-Z0-9]{22}$/,
+  },
+  {
     id: 'cinerama',
     name: 'Cinerama',
     base: 'https://cinerama.uz',
@@ -182,6 +196,8 @@ const PLATFORM_TO_BACKEND: Record<string, string> = {
   twitch:  'twitch',
   vimeo:   'vimeo',
   dailymotion: 'dailymotion',
+  tiktok: 'tiktok',
+  peertube: 'peertube',
   live:    'youtube',  // YouTube Live
   cinerama:'other',
   web:     'other',

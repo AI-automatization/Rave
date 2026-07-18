@@ -10,8 +10,8 @@ import WebView from 'react-native-webview';
 import type { WebViewMessageEvent } from 'react-native-webview';
 import { WebViewPlayer, WebViewPlayerRef } from './WebViewPlayer';
 import {
-  extractTwitchId, extractVKVideoIds, extractRutubeId, extractVimeoId, extractDailymotionId, extractTikTokId,
-  buildTwitchHtml, buildVKVideoHtml, buildRutubeHtml, buildVimeoHtml, buildDailymotionHtml, buildTikTokHtml,
+  extractTwitchId, extractVKVideoIds, extractRutubeId, extractVimeoId, extractDailymotionId, extractTikTokId, extractPeerTubeIds,
+  buildTwitchHtml, buildVKVideoHtml, buildRutubeHtml, buildVimeoHtml, buildDailymotionHtml, buildTikTokHtml, buildPeerTubeHtml,
 } from './WebViewAdapters';
 import { colors, typography, spacing } from '@theme/index';
 import { useT } from '@i18n/index';
@@ -51,7 +51,7 @@ interface Props {
   onCdnUrlSniffed?: (url: string) => void;
 }
 
-export type EmbedPlatform = 'twitch' | 'vk' | 'rutube' | 'vimeo' | 'dailymotion' | 'tiktok' | null;
+export type EmbedPlatform = 'twitch' | 'vk' | 'rutube' | 'vimeo' | 'dailymotion' | 'tiktok' | 'peertube' | null;
 
 export function detectEmbedPlatform(url: string): EmbedPlatform {
   if (!url) return null;
@@ -66,6 +66,9 @@ export function detectEmbedPlatform(url: string): EmbedPlatform {
     if (host === 'vimeo.com' || host === 'player.vimeo.com') return 'vimeo';
     if (host.includes('dailymotion.com') || host === 'dai.ly') return 'dailymotion';
     if (host.includes('tiktok.com')) return 'tiktok';
+    // PeerTube is federated — any hostname — detected by URL PATH shape instead (see
+    // extractPeerTubeIds). Checked last since it's a path heuristic, not a domain match.
+    if (/\/videos\/watch\/[0-9a-f-]{36}/i.test(pathname) || /\/w\/[a-zA-Z0-9]{22}$/.test(pathname)) return 'peertube';
   } catch { /* invalid URL */ }
   return null;
 }
@@ -74,6 +77,7 @@ function buildEmbedHtml(url: string, embed: EmbedPlatform): { html: string; base
   switch (embed) {
     case 'twitch': { const i = extractTwitchId(url); return i ? { html: buildTwitchHtml(i.id, i.type), baseUrl: 'https://twitch.tv' } : null; }
     case 'tiktok': { const i = extractTikTokId(url); return i ? { html: buildTikTokHtml(i), baseUrl: 'https://www.tiktok.com' } : null; }
+    case 'peertube': { const i = extractPeerTubeIds(url); return i ? { html: buildPeerTubeHtml(i.instance, i.videoId), baseUrl: `https://${i.instance}` } : null; }
     case 'vk': {
       if (Platform.OS === 'android') return null;
       const i = extractVKVideoIds(url); return i ? { html: buildVKVideoHtml(i.ownerId, i.videoId), baseUrl: 'https://vk.com' } : null;
