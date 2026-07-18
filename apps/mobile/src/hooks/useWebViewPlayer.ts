@@ -22,6 +22,7 @@ interface Props {
   onSeek: (secs: number) => void;
   onProgress?: (secs: number, dur: number) => void;
   onBuffering?: (isBuffering: boolean) => void;
+  onVideoFound?: () => void;
 }
 
 type WebViewMessage =
@@ -58,7 +59,7 @@ const POSITION_POLL_JS = `
 
 export function useWebViewPlayer(
   imperativeRef: React.Ref<WebViewPlayerRef>,
-  { url, youtubeVideoId, htmlContent, htmlBaseUrl, isOwner, referer, onPlay, onPause, onSeek, onProgress, onBuffering }: Props,
+  { url, youtubeVideoId, htmlContent, htmlBaseUrl, isOwner, referer, onPlay, onPause, onSeek, onProgress, onBuffering, onVideoFound }: Props,
 ) {
   const webviewRef = useRef<WebView>(null);
   const currentTimeMsRef = useRef(0);
@@ -149,6 +150,14 @@ export function useWebViewPlayer(
     try {
       const data = JSON.parse(event.nativeEvent.data) as WebViewMessage;
       switch (data.type) {
+        case 'VIDEO_FOUND':
+          // Fires as soon as the underlying player object exists (e.g. YouTube IFrame API's own
+          // onReady) — well before autoplay/PLAYING is confirmed. A viewer's readiness gate that
+          // waited for the first PLAY message instead deadlocked whenever WebView autoplay
+          // silently failed (common, no prior user gesture): playerReady never flipped true, so
+          // every incoming owner play/pause/seek was swallowed forever (T-S136).
+          onVideoFound?.();
+          break;
         case 'PLAY':
           currentTimeMsRef.current = data.currentTime * 1000;
           isPlayingRef.current = true;
@@ -190,7 +199,7 @@ export function useWebViewPlayer(
           break;
       }
     } catch { /* ignore */ }
-  }, [isOwner, isHtmlMode, onPlay, onPause, onSeek, onProgress, onBuffering]);
+  }, [isOwner, isHtmlMode, onPlay, onPause, onSeek, onProgress, onBuffering, onVideoFound]);
 
   const handleShouldStartLoad = useCallback((request: ShouldStartLoadRequest): boolean => {
     try {

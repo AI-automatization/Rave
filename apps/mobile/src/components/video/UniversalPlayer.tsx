@@ -343,13 +343,17 @@ export const UniversalPlayer = forwardRef<UniversalPlayerRef, Props>(
       const ytId = platform === 'youtube' ? extractYouTubeVideoId(url) : null;
       const embedHtml = embedPlatform ? buildEmbedHtml(url, embedPlatform) : null;
       const displayUrl = (!ytId && platform === 'youtube') ? getYouTubeMobileUrl(url) : url;
-      // Signal ready on first play event from the WebView
+      // Signal ready on first play event from the WebView — kept as a fallback, but VIDEO_FOUND
+      // (below) is the primary signal now: waiting only for PLAY deadlocked viewers whenever
+      // WebView autoplay silently failed, since nothing else could ever call play() for them
+      // to escape a "not ready yet" state that depended on... play() already having happened.
       const wrappedOnPlay = (secs: number) => { fireReady(); onPlay(secs); };
       return (
         <View style={styles.video}>
           <WebViewPlayer ref={webviewRef} url={displayUrl} youtubeVideoId={ytId ?? undefined}
             htmlContent={embedHtml?.html} htmlBaseUrl={embedHtml?.baseUrl}
             isOwner={isOwner} onPlay={wrappedOnPlay} onPause={onPause} onSeek={onSeek} onProgress={onProgress} onBuffering={onBuffering}
+            onVideoFound={fireReady}
             userAgent={MOBILE_UA} referer={platform !== 'youtube' && !embedHtml ? referer : undefined} />
           {sniffUrl !== null && (
             <WebView
