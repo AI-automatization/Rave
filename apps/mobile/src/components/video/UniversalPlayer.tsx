@@ -10,8 +10,8 @@ import WebView from 'react-native-webview';
 import type { WebViewMessageEvent } from 'react-native-webview';
 import { WebViewPlayer, WebViewPlayerRef } from './WebViewPlayer';
 import {
-  extractTwitchId, extractVKVideoIds, extractRutubeId, extractVimeoId, extractDailymotionId,
-  buildTwitchHtml, buildVKVideoHtml, buildRutubeHtml, buildVimeoHtml, buildDailymotionHtml,
+  extractTwitchId, extractVKVideoIds, extractRutubeId, extractVimeoId, extractDailymotionId, extractTikTokId,
+  buildTwitchHtml, buildVKVideoHtml, buildRutubeHtml, buildVimeoHtml, buildDailymotionHtml, buildTikTokHtml,
 } from './WebViewAdapters';
 import { colors, typography, spacing } from '@theme/index';
 import { useT } from '@i18n/index';
@@ -51,7 +51,7 @@ interface Props {
   onCdnUrlSniffed?: (url: string) => void;
 }
 
-export type EmbedPlatform = 'twitch' | 'vk' | 'rutube' | 'vimeo' | 'dailymotion' | null;
+export type EmbedPlatform = 'twitch' | 'vk' | 'rutube' | 'vimeo' | 'dailymotion' | 'tiktok' | null;
 
 export function detectEmbedPlatform(url: string): EmbedPlatform {
   if (!url) return null;
@@ -65,6 +65,7 @@ export function detectEmbedPlatform(url: string): EmbedPlatform {
     if (host === 'rutube.ru') return 'rutube';
     if (host === 'vimeo.com' || host === 'player.vimeo.com') return 'vimeo';
     if (host.includes('dailymotion.com') || host === 'dai.ly') return 'dailymotion';
+    if (host.includes('tiktok.com')) return 'tiktok';
   } catch { /* invalid URL */ }
   return null;
 }
@@ -72,6 +73,7 @@ export function detectEmbedPlatform(url: string): EmbedPlatform {
 function buildEmbedHtml(url: string, embed: EmbedPlatform): { html: string; baseUrl: string } | null {
   switch (embed) {
     case 'twitch': { const i = extractTwitchId(url); return i ? { html: buildTwitchHtml(i.id, i.type), baseUrl: 'https://twitch.tv' } : null; }
+    case 'tiktok': { const i = extractTikTokId(url); return i ? { html: buildTikTokHtml(i), baseUrl: 'https://www.tiktok.com' } : null; }
     case 'vk': {
       if (Platform.OS === 'android') return null;
       const i = extractVKVideoIds(url); return i ? { html: buildVKVideoHtml(i.ownerId, i.videoId), baseUrl: 'https://vk.com' } : null;

@@ -320,6 +320,17 @@ export function extractDailymotionId(url: string): string | null {
   } catch { return null; }
 }
 
+/** TikTok URL dan video ID ni ajratib oladi (masalan /@user/video/1234...) */
+export function extractTikTokId(url: string): string | null {
+  try {
+    const { hostname, pathname } = new URL(url);
+    const host = hostname.replace(/^www\./, '');
+    if (!host.includes('tiktok.com')) return null;
+    const match = pathname.match(/\/(?:video|player\/v1)\/(\d+)/);
+    return match ? match[1] : null;
+  } catch { return null; }
+}
+
 // ─── T-E066: Embed HTML page builders ────────────────────────────────────────
 
 const BASE_HTML_STYLES = `
@@ -586,6 +597,64 @@ export function buildDailymotionHtml(videoId: string): string {
           case 'timeupdate': ct = data.currentTime || ct; dur = data.duration || dur; break;
           case 'ended': paused = true; rn({ type: 'PAUSE', currentTime: ct }); break;
         }
+      } catch(e) {}
+    });
+  </script>
+</body></html>`;
+}
+
+/**
+ * TikTok embed — official tiktok.com/player/v1/{id}. Outgoing commands are confirmed from
+ * TikTok's own docs (developers.tiktok.com/doc/embed-player): postMessage({type, value,
+ * 'x-tiktok-player': true}). Incoming event names/shape are NOT fully confirmed (their docs page
+ * kept timing out on repeated fetch attempts) — this defensively tries several plausible field
+ * names. Owner-side local-tap detection may not work until verified live; web's TikTokPlayer.tsx
+ * has the same caveat documented.
+ */
+export function buildTikTokHtml(videoId: string): string {
+  return `<!DOCTYPE html>
+<html><head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>${BASE_HTML_STYLES} iframe { width: 100%; height: 100%; border: none; display: block; }</style>
+</head><body>
+  <iframe id="tt-player"
+    src="https://www.tiktok.com/player/v1/${videoId}?music_info=1&description=1"
+    allow="fullscreen"></iframe>
+  <script>
+    ${RN_BRIDGE}
+    var ct = 0, paused = true, progressTimer = null;
+    function sendCmd(type, value) {
+      var f = document.getElementById('tt-player');
+      if (f && f.contentWindow) {
+        f.contentWindow.postMessage({ type: type, value: value, 'x-tiktok-player': true }, '*');
+      }
+    }
+    window._csVideo = {
+      get currentTime() { return ct; },
+      set currentTime(t) { ct = t; sendCmd('seekTo', t); rn({ type: 'SEEK', currentTime: t }); },
+      play: function() { sendCmd('play'); },
+      pause: function() { sendCmd('pause'); },
+      get paused() { return paused; }
+    };
+    function startProgress() {
+      if (progressTimer) clearInterval(progressTimer);
+      progressTimer = setInterval(function() {
+        if (!paused) rn({ type: 'PROGRESS', currentTime: ct, duration: 0 });
+      }, 500);
+    }
+    // No confirmed "ready" event from TikTok's docs — signal found once the iframe itself
+    // is present, same fallback used when a platform's readiness event isn't documented.
+    setTimeout(function() { rn({ type: 'VIDEO_FOUND' }); startProgress(); }, 1500);
+    window.addEventListener('message', function(e) {
+      try {
+        var data = e.data;
+        if (!data || typeof data !== 'object') return;
+        var t = data.currentTime || data.value || data.seekTo;
+        if (typeof t === 'number') ct = t;
+        var evt = ((data.type || data.event || '') + '').toLowerCase();
+        if (evt.indexOf('play') !== -1) { paused = false; rn({ type: 'PLAY', currentTime: ct }); }
+        else if (evt.indexOf('pause') !== -1) { paused = true; rn({ type: 'PAUSE', currentTime: ct }); }
+        else if (evt.indexOf('seek') !== -1) { rn({ type: 'SEEK', currentTime: ct }); }
       } catch(e) {}
     });
   </script>

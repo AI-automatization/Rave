@@ -34,7 +34,7 @@ export interface IWatchPartyRoomDocument extends Document {
 // (and vimeo/twitch/dailymotion/other) were added there, so requests passed Joi and then failed
 // silently at the DB layer with an unlogged Mongoose ValidationError (422, no warn log — see the
 // error.middleware.ts branch for error.name === 'ValidationError').
-const VIDEO_PLATFORM_ENUM = ['youtube', 'vimeo', 'twitch', 'dailymotion', 'direct', 'webview', 'vk', 'rutube', 'other', null];
+const VIDEO_PLATFORM_ENUM = ['youtube', 'vimeo', 'twitch', 'dailymotion', 'direct', 'webview', 'vk', 'rutube', 'tiktok', 'peertube', 'trovo', 'other', null];
 
 const watchPartyRoomSchema = new Schema<IWatchPartyRoomDocument>(
   {

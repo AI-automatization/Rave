@@ -11,6 +11,7 @@ import { VKPlayer } from './VKPlayer';
 import { TwitchPlayer } from './TwitchPlayer';
 import { VimeoPlayer } from './VimeoPlayer';
 import { DailymotionPlayer } from './DailymotionPlayer';
+import { TikTokPlayer } from './TikTokPlayer';
 
 interface Props {
   onPlay: (time: number) => void;
@@ -84,6 +85,19 @@ function getDailymotionId(url: string): string | null {
     const host = hostname.replace(/^www\./, '');
     if (!host.includes('dailymotion.com') && host !== 'dai.ly') return null;
     const match = pathname.match(/\/(?:video\/|embed\/video\/)?([a-zA-Z0-9]+)/);
+    return match ? match[1] : null;
+  } catch {
+    return null;
+  }
+}
+
+// TikTok video IDs are the numeric id in /video/{id} or /player/v1/{id} paths.
+function getTikTokId(url: string): string | null {
+  try {
+    const { hostname, pathname } = new URL(url);
+    const host = hostname.replace(/^www\./, '');
+    if (!host.includes('tiktok.com')) return null;
+    const match = pathname.match(/\/(?:video|player\/v1)\/(\d+)/);
     return match ? match[1] : null;
   } catch {
     return null;
@@ -543,13 +557,14 @@ export function VideoPlayer({
   const twitchIds = getTwitchIds(videoUrl);
   const vimeoId = getVimeoId(videoUrl);
   const dailymotionId = getDailymotionId(videoUrl);
-  const isEmbed = !!ytId || !!vkIds || !!twitchIds || !!vimeoId || !!dailymotionId;
+  const tiktokId = getTikTokId(videoUrl);
+  const isEmbed = !!ytId || !!vkIds || !!twitchIds || !!vimeoId || !!dailymotionId || !!tiktokId;
   // Extract everything not handled by an official embed above — content service handles Rutube
   // and any other direct/generic URL. VK/Twitch/Vimeo/Dailymotion used to fall through here too
   // (ytDlpExtractor + an authenticated session cookie — ToS-questionable, same risk category as
   // scraping a pirate site, just against a legitimate platform); now routed to their own
   // official embeds instead.
-  const needsExtract = !!videoUrl && !ytId && !vkIds && !twitchIds && !vimeoId && !dailymotionId;
+  const needsExtract = !!videoUrl && !ytId && !vkIds && !twitchIds && !vimeoId && !dailymotionId && !tiktokId;
   const directSrc = needsExtract ? proxySrc : null;
 
   // Extract → proxy URL for any non-YouTube source
@@ -854,6 +869,21 @@ export function VideoPlayer({
     return (
       <DailymotionPlayer
         videoId={dailymotionId}
+        isOwner={isOwner}
+        onPlay={onPlay}
+        onPause={onPause}
+        onSeek={onSeek}
+        onHeartbeat={onHeartbeat}
+      />
+    );
+  }
+
+  // ── TikTok — synced via the official player/v1 postMessage embed ────────────
+
+  if (tiktokId) {
+    return (
+      <TikTokPlayer
+        videoId={tiktokId}
         isOwner={isOwner}
         onPlay={onPlay}
         onPause={onPause}
