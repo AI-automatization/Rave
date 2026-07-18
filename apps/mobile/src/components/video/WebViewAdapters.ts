@@ -337,9 +337,12 @@ const RN_BRIDGE = `
 
 /** Twitch embed — live channels and VODs */
 export function buildTwitchHtml(id: string, type: 'channel' | 'vod'): string {
+  // parent must match this WebView's effective origin (see UniversalPlayer.tsx's
+  // baseUrl: 'https://twitch.tv' for this embed) — "localhost" never matched that,
+  // so Twitch's own parent-domain check could reject the embed.
   const embedOpts = type === 'channel'
-    ? `channel: "${id}", parent: ["localhost"]`
-    : `video: "${id}", parent: ["localhost"]`;
+    ? `channel: "${id}", parent: ["twitch.tv"]`
+    : `video: "${id}", parent: ["twitch.tv"]`;
   return `<!DOCTYPE html>
 <html><head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">

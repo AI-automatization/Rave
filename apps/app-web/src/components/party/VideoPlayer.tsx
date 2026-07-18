@@ -8,6 +8,7 @@ import { toast } from '@/hooks/use-toast';
 import { trackClick } from '@/lib/analytics';
 import { YouTubePlayer } from './YouTubePlayer';
 import { VKPlayer } from './VKPlayer';
+import { TwitchPlayer } from './TwitchPlayer';
 
 interface Props {
   onPlay: (time: number) => void;
@@ -40,6 +41,25 @@ function getYouTubeId(url: string): string | null {
   const embedMatch = url.match(/\/embed\/([a-zA-Z0-9_-]{11})/);
   if (embedMatch) return embedMatch[1];
   return null;
+}
+
+// Mirrors mobile's extractTwitchId (apps/mobile/src/components/video/WebViewAdapters.ts) —
+// twitch.tv/videos/{id} is a VOD, twitch.tv/{channel} is a live channel.
+function getTwitchIds(url: string): { id: string; type: 'channel' | 'vod' } | null {
+  try {
+    const { hostname, pathname } = new URL(url);
+    const host = hostname.replace(/^www\./, '');
+    if (host !== 'twitch.tv') return null;
+    const vodMatch = pathname.match(/^\/videos\/(\d+)/);
+    if (vodMatch) return { id: vodMatch[1], type: 'vod' };
+    const channelMatch = pathname.match(/^\/([a-zA-Z0-9_]+)\/?$/);
+    if (channelMatch && !['videos', 'directory', 'p', 'settings'].includes(channelMatch[1])) {
+      return { id: channelMatch[1], type: 'channel' };
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 // Mirrors mobile's extractVKVideoIds (apps/mobile/src/components/video/WebViewAdapters.ts) —
@@ -492,12 +512,13 @@ export function VideoPlayer({
   const videoUrl = room?.videoUrl ?? '';
   const ytId = getYouTubeId(videoUrl);
   const vkIds = getVKVideoIds(videoUrl);
-  const isEmbed = !!ytId || !!vkIds;
-  // Extract all non-YouTube/non-VK URLs — content service handles Rutube and everything else.
-  // VK used to fall through here too (ytDlpExtractor + an authenticated VK session cookie —
-  // ToS-questionable, same risk category as scraping a pirate site, just against a legitimate
-  // platform); now routed to VKPlayer's official video_ext.php embed instead.
-  const needsExtract = !!videoUrl && !ytId && !vkIds;
+  const twitchIds = getTwitchIds(videoUrl);
+  const isEmbed = !!ytId || !!vkIds || !!twitchIds;
+  // Extract everything not handled by an official embed above — content service handles Rutube
+  // and any other direct/generic URL. VK/Twitch used to fall through here too (ytDlpExtractor +
+  // an authenticated session cookie — ToS-questionable, same risk category as scraping a pirate
+  // site, just against a legitimate platform); now routed to their own official embeds instead.
+  const needsExtract = !!videoUrl && !ytId && !vkIds && !twitchIds;
   const directSrc = needsExtract ? proxySrc : null;
 
   // Extract → proxy URL for any non-YouTube source
@@ -765,7 +786,23 @@ export function VideoPlayer({
     );
   }
 
-  // ── Any non-YouTube/non-VK source (Rutube, Vimeo, direct, etc.) — extract + proxy ───
+  // ── Twitch — synced via the official Twitch.Embed JS API (VOD only; live is play/pause-only) ──
+
+  if (twitchIds) {
+    return (
+      <TwitchPlayer
+        id={twitchIds.id}
+        type={twitchIds.type}
+        isOwner={isOwner}
+        onPlay={onPlay}
+        onPause={onPause}
+        onSeek={onSeek}
+        onHeartbeat={onHeartbeat}
+      />
+    );
+  }
+
+  // ── Any remaining source (Rutube, Vimeo, direct, etc.) — extract + proxy ───
 
   if (needsExtract) {
     if (extracting) {
