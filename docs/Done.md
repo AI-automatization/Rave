@@ -56,6 +56,14 @@
   **Ochiq:** mobile'ning
   `buildRutubeHtml()` xuddi shu noto'g'ri `{method,value}` formatini ishlatadi — ehtimol u ham
   ishlamaydi, tuzatilmagan (mobile zonasi, alohida vazifa kerak).
+- **2026-07-19 Twitch — CSP `frame-src`da `embed.twitch.tv` yo'q edi:** Twitch kanal
+  (`twitch.tv/iceicell`) umuman yuklanmadi — abadiy loading spinner, xatosiz (chunki
+  `TwitchPlayer.tsx`da boshqa barcha playerlardan farqli o'laroq LOAD_TIMEOUT yo'q edi — shu ham
+  tuzatildi). Playwright bilan jonli sinovda brauzer konsolida aniq xato topildi: `Framing
+  'https://embed.twitch.tv/' violates ... frame-src` — `script-src`da `embed.twitch.tv` bor edi
+  (SDK skripti), lekin `frame-src`da faqat `player.twitch.tv`/`www.twitch.tv` bor edi, embed
+  o'zi shu domenga iframe yaratadi. T-S135'dagi YouTube CSP xatosi bilan bir xil turkum.
+  `next.config.mjs` frame-src'ga `embed.twitch.tv` qo'shildi.
 
 ---
 

@@ -64,6 +64,7 @@ function loadTwitchApi(): Promise<TwitchNamespace> {
 const DRIFT_HARD_SEEK_SECS = 1.2;
 const SEEK_JUMP_SECS = 2.0;
 const MAX_COMPENSATION_SECS = 30;
+const LOAD_TIMEOUT_MS = 15000;
 
 export function TwitchPlayer({ id, type, isOwner, onPlay, onPause, onSeek, onHeartbeat }: Props) {
   const syncState = useWatchPartyStore((s) => s.syncState);
@@ -92,6 +93,16 @@ export function TwitchPlayer({ id, type, isOwner, onPlay, onPause, onSeek, onHea
     setReady(false);
     setError(null);
 
+    // Without this, a load failure that never reaches VIDEO_READY (e.g. a CSP frame-src
+    // block, or Twitch's SDK silently failing) spins the loader forever with no feedback —
+    // every other embed player here has this same fallback, Twitch was missing it.
+    const timeoutId = setTimeout(() => {
+      if (!cancelled) setReady((r) => {
+        if (!r) setError('Видео не загрузилось — возможно, оно недоступно для встраивания');
+        return r;
+      });
+    }, LOAD_TIMEOUT_MS);
+
     loadTwitchApi().then((Twitch) => {
       if (cancelled || !hostRef.current) return;
       const opts: Record<string, unknown> = {
@@ -104,6 +115,7 @@ export function TwitchPlayer({ id, type, isOwner, onPlay, onPause, onSeek, onHea
       const embed = new Twitch.Embed(hostId, opts);
       embed.addEventListener(Twitch.Embed.VIDEO_READY, () => {
         if (cancelled) return;
+        clearTimeout(timeoutId);
         playerRef.current = embed.getPlayer();
         setReady(true);
       });
@@ -119,7 +131,7 @@ export function TwitchPlayer({ id, type, isOwner, onPlay, onPause, onSeek, onHea
       });
     }).catch(() => { if (!cancelled) setError('Не удалось загрузить Twitch плеер'); });
 
-    return () => { cancelled = true; playerRef.current = null; };
+    return () => { cancelled = true; clearTimeout(timeoutId); playerRef.current = null; };
   }, [id, type, isVod, hostId]);
 
   // Owner: heartbeat + seek detection (VOD only — a live channel has no timeline to seek/sync).
