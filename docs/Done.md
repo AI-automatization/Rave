@@ -79,6 +79,16 @@
   qo'shimcha "ready" signali sifatida qo'shildi — sync logikasi (play/pause/seek postMessage
   buyruqlari) TEGILMADI, chunki ular ishlamasligi haqida hech qanday dalil yo'q (faqat "false
   error" simptomi kuzatildi, VK'dagi "sync umuman yo'q" emas).
+- **2026-07-19 Dailymotion — sync haqiqatda ham ishlamas edi (foydalanuvchi tasdiqladi: onLoad
+  fix'dan keyin video ochiladi, lekin play/pause/seek HECH NARSA qilmaydi):** Dailymotion'ning
+  haqiqiy `dmp.photon_boot.js` bundle'ini (`geo.dailymotion.com/static/latest/cdn/...`) to'g'ridan
+  yuklab, `receiveMessage` funksiyasini o'qib chiqildi — real formatga ega ekan:
+  `{command, parameters:[...]}` (parameters — MASSIV), bizning kod esa `{command, time}` yuborardi
+  (`time` — parameters emas, alohida maydon). Natijada `parameters` doim `[]`ga defaultlanardi va
+  masalan seek `api('seek')` — argumentSIZ chaqirilardi (jim no-op). `sendCmd()` to'g'ri formatga
+  o'zgartirildi. Playwright headless bilan tasdiqlab bo'lmadi (Dailymotion bot-detection asosiy
+  player obyektini butunlay ishga tushirishga to'sqinlik qiladi bu muhitda) — fix manba kodidan
+  to'g'ridan olingan, taxmin emas, lekin haqiqiy tasdiqlash foydalanuvchi brauzerida kutilmoqda.
 
 ---
 

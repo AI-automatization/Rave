@@ -52,8 +52,13 @@ export function DailymotionPlayer({ videoId, isOwner, onPlay, onPause, onSeek, o
   const onHeartbeatRef = useRef(onHeartbeat); onHeartbeatRef.current = onHeartbeat;
   const markReadyRef = useRef<() => void>(() => {});
 
-  function sendCmd(command: string, params?: object) {
-    iframeRef.current?.contentWindow?.postMessage(JSON.stringify({ command, ...params }), '*');
+  // Dailymotion's real receiveMessage handler (extracted from their own player bundle,
+  // dmp.photon_boot.js, 2026-07-19) destructures `{command, parameters=[]} = e.data` and calls
+  // `player.api(command, ...parameters)` — parameters MUST be an array. The previous shape here
+  // was `{command, time}` (a sibling field, not `parameters`), so `parameters` always defaulted
+  // to `[]` and e.g. seek ran as `api('seek')` with no time argument — a silent no-op.
+  function sendCmd(command: string, parameters: unknown[] = []) {
+    iframeRef.current?.contentWindow?.postMessage(JSON.stringify({ command, parameters }), '*');
   }
 
   useEffect(() => {
@@ -126,7 +131,7 @@ export function DailymotionPlayer({ videoId, isOwner, onPlay, onPause, onSeek, o
       : 0;
     const target = syncState.currentTime + elapsed;
     if (Math.abs(currentTimeRef.current - target) > 0.5) {
-      sendCmd('seek', { time: target });
+      sendCmd('seek', [target]);
       currentTimeRef.current = target;
     }
     sendCmd(syncState.isPlaying ? 'play' : 'pause');
@@ -141,7 +146,7 @@ export function DailymotionPlayer({ videoId, isOwner, onPlay, onPause, onSeek, o
     const expected = heartbeat.currentTime + (Date.now() - heartbeat.timestamp) / 1000;
     if (Math.abs(expected - currentTimeRef.current) > DRIFT_HARD_SEEK_SECS) {
       isRemoteAction.current = true;
-      sendCmd('seek', { time: expected });
+      sendCmd('seek', [expected]);
       currentTimeRef.current = expected;
       setTimeout(() => { isRemoteAction.current = false; }, 400);
     }
