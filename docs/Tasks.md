@@ -1,6 +1,39 @@
 # CineSync — OCHIQ VAZIFALAR
 
-# Yangilangan: 2026-07-18
+# Yangilangan: 2026-07-19
+
+# 📱 Sprint 17: Web fixes'ni mobile'ga ko'chirish (2026-07-19)
+
+---
+
+### T-S138 | P1 | [MOBILE] | Web'da topilgan video-player fix'larni mobile'ga ko'chirish
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim (web live-test session)
+- **Yaratilgan:** 2026-07-19
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** 3-4 fayl (WebViewAdapters.ts + UniversalPlayer.tsx), lekin real device test kerak
+- **Sabab:** 2026-07-19 web session'da 4 ta jonli sinov orqali tasdiqlangan fix — mobile'da xuddi
+  shu assumption'lar (`buildVKVideoHtml`/`buildRutubeHtml`) hech qachon tekshirilmagan, ehtimol
+  xuddi shu buglar mobile'da ham bor.
+- **Qilish kerak:**
+  - [ ] **VK** — `buildVKVideoHtml()` sync logikasi (postMessage `{method,value}`) ISHLAMAYDI
+    (web'da confirmed: VK umuman postMessage yubormaydi/qabul qilmaydi). Sync kodini olib
+    tashlash, VK'ni mobile'da ham "har kim o'zi tomosha qiladi" rejimiga o'tkazish.
+  - [ ] **Rutube** — `buildRutubeHtml()` noto'g'ri protokol ishlatadi. Haqiqiy (web'da Playwright
+    bilan tasdiqlangan) protokol: chiquvchi `{type:'player:play'/'player:pause'/
+    'player:setCurrentTime', data:{time}}`, kiruvchi `player:changeState`/`player:currentTime`/
+    `player:ready`. Joriy kod `{method,value}` yuboradi — ishlamaydi.
+  - [ ] **Twitch live** — web'da live kanal uchun play/pause sync butunlay olib tashlandi (umumiy
+    pozitsiya yo'q, foydasi yo'q edi). Mobile'da xuddi shunday sync bo'lsa — xuddi shu sabab bilan
+    olib tashlash kerak (faqat VOD sync qoldirish).
+  - [ ] Real qurilmada tekshirish — barcha 3 platforma
+- **Fayllar:** `apps/mobile/src/components/video/WebViewAdapters.ts`,
+  `apps/mobile/src/components/video/UniversalPlayer.tsx`
+- **Bog'liq:** web'dagi manba — `docs/Done.md` 2026-07-19 yozuvlari (VK/Rutube/Twitch)
+
+---
 
 # 🔒 Sprint 15: Security Audit fixes (2026-07-04 — аудит Claude)
 
