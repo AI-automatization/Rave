@@ -927,7 +927,9 @@ export function VideoPlayer({
     );
   }
 
-  // ── Dailymotion — synced via the official player.html postMessage protocol ──────
+  // ── Dailymotion — owner-driven one-way sync (no usable postMessage state events from the
+  // iframe, confirmed 2026-07-19) — native controls hidden, custom play/pause/seek bar for the
+  // owner calls sendCmd + broadcasts directly, no round-trip through Dailymotion needed. ──────
 
   if (dailymotionId) {
     return (

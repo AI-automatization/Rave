@@ -89,6 +89,19 @@
   o'zgartirildi. Playwright headless bilan tasdiqlab bo'lmadi (Dailymotion bot-detection asosiy
   player obyektini butunlay ishga tushirishga to'sqinlik qiladi bu muhitda) — fix manba kodidan
   to'g'ridan olingan, taxmin emas, lekin haqiqiy tasdiqlash foydalanuvchi brauzerida kutilmoqda.
+- **2026-07-19 Dailymotion — command format fix ham yetmadi, arxitektura o'zgartirildi (owner-driven
+  one-way sync):** Foydalanuvchi production'da Web Inspector konsolida real `postMessage`
+  trafigini yozib berdi (play/pause/seek bosilganda) — 10+ soniyada faqat `pes_listen_eid` (ichki
+  analytics ping) keldi, na `apiready`, na `playing`/`pause`/`seeked`. Bu XAQIQIY brauzerda
+  tasdiqlangan (headless emas) — Dailymotion iframe'i umuman foydali state event yubormaydi, xuddi
+  VK kabi. Owner harakatini `postMessage` orqali aniqlashning iloji yo'q. Yechim: `DailymotionPlayer.tsx`
+  qayta qurildi — native controls yashirildi (`controls=0`), owner uchun o'z play/pause/±10s
+  tugmalari qo'shildi. Owner tugmani bosganda BIR VAQTDA: `sendCmd()` (to'g'ri `{command,
+  parameters}` shakli) VA `onPlay`/`onPause`/`onSeek` broadcast — iframe'dan tasdiq KUTILMAYDI,
+  chunki harakatni o'zimiz boshlatyapmiz. `currentTime` "ko'r" lokal soat bilan kuzatiladi (real
+  player pozitsiyasi emas) — Trovo'da allaqachon qabul qilingan cheklov bilan bir xil turkum.
+  Haqiqiy playback (sendCmd('play') videoni chindan ishga tushiradimi) headless'da tasdiqlab
+  bo'lmadi (bot-detection manifest so'rovini bloklaydi) — foydalanuvchi brauzerida tekshirish kerak.
 
 ---
 

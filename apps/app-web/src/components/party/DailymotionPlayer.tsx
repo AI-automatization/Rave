@@ -1,17 +1,25 @@
 'use client';
 
-// WeWatch Web — Synced Dailymotion player (official geo.dailymotion.com/player.html embed).
-// Plain postMessage protocol, no SDK script needed — same owner/viewer sync model as
-// YouTubePlayer.tsx, ported from mobile's buildDailymotionHtml() (WebViewAdapters.ts).
+// WeWatch Web — Dailymotion embed, driven one-way (official geo.dailymotion.com/player.html).
 //
-// 'apiready' isn't reliably observed in production (same class of bug as VK, 2026-07-19) — the
-// iframe loads and plays fine (native controls work end-to-end) while our postMessage listener
-// never sees a recognizable ready signal, so the load-timeout fired a false "failed to embed"
-// error over a working video. The iframe's own onLoad is the ground truth for "embed succeeded";
-// treat it as ready too so the UI never lies about a video that's actually playing.
+// Dailymotion's iframe sends no usable state postMessage in production (confirmed live,
+// 2026-07-19 — captured every message over a real session pressing play/pause/seek; only an
+// internal `pes_listen_eid` analytics ping ever arrived, never `apiready`/`playing`/`pause`/
+// `seeked`). Detecting the owner's actions from iframe events is therefore a dead end. Instead:
+// native controls are hidden (`controls=0`) and replaced with our own bar. The owner's clicks
+// call sendCmd() AND broadcast (onPlay/onPause/onSeek) in the same handler — no round-trip
+// through the iframe needed, since we're the ones initiating the action.
+//
+// Outgoing commands use Dailymotion's real shape, read directly from their shipped
+// dmp.photon_boot.js: `{command, parameters:[...]}` (parameters is an array — a sibling `time`
+// field, which the previous version of this file sent, is silently ignored).
+//
+// currentTime is tracked blindly (a local ticking clock while isPlaying), not from real player
+// feedback — if the iframe stalls/buffers, our clock keeps ticking regardless. Same class of
+// trade-off already accepted for Trovo (play/pause sync with no real position feedback either).
 
 import { useEffect, useRef, useState } from 'react';
-import { AlertCircle, Loader2 } from 'lucide-react';
+import { AlertCircle, Loader2, Pause, Play, RotateCcw, RotateCw } from 'lucide-react';
 import { useWatchPartyStore } from '@/store/watch-party.store';
 
 interface Props {
@@ -23,15 +31,8 @@ interface Props {
   onHeartbeat: (time: number) => void;
 }
 
-interface DMMessage {
-  event?: string;
-  currentTime?: number;
-  duration?: number;
-}
-
-const DRIFT_HARD_SEEK_SECS = 1.2;
+const SEEK_STEP_SECS = 10;
 const MAX_COMPENSATION_SECS = 30;
-const LOAD_TIMEOUT_MS = 15000;
 
 export function DailymotionPlayer({ videoId, isOwner, onPlay, onPause, onSeek, onHeartbeat }: Props) {
   const syncState = useWatchPartyStore((s) => s.syncState);
@@ -40,92 +41,55 @@ export function DailymotionPlayer({ videoId, isOwner, onPlay, onPause, onSeek, o
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
 
-  const isRemoteAction = useRef(false);
   const currentTimeRef = useRef(0);
+  const tickTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const heartbeatTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const isOwnerRef = useRef(isOwner);   isOwnerRef.current = isOwner;
-  const onPlayRef = useRef(onPlay);     onPlayRef.current = onPlay;
-  const onPauseRef = useRef(onPause);   onPauseRef.current = onPause;
-  const onSeekRef = useRef(onSeek);     onSeekRef.current = onSeek;
-  const onHeartbeatRef = useRef(onHeartbeat); onHeartbeatRef.current = onHeartbeat;
-  const markReadyRef = useRef<() => void>(() => {});
-
-  // Dailymotion's real receiveMessage handler (extracted from their own player bundle,
-  // dmp.photon_boot.js, 2026-07-19) destructures `{command, parameters=[]} = e.data` and calls
-  // `player.api(command, ...parameters)` — parameters MUST be an array. The previous shape here
-  // was `{command, time}` (a sibling field, not `parameters`), so `parameters` always defaulted
-  // to `[]` and e.g. seek ran as `api('seek')` with no time argument — a silent no-op.
   function sendCmd(command: string, parameters: unknown[] = []) {
     iframeRef.current?.contentWindow?.postMessage(JSON.stringify({ command, parameters }), '*');
   }
 
-  useEffect(() => {
-    setReady(false);
+  function handleLoad() {
     setError(null);
-    currentTimeRef.current = 0;
+    setReady(true);
+  }
 
-    const timeoutId = setTimeout(() => {
-      setReady((r) => {
-        if (!r) setError('Видео не загрузилось — возможно, оно недоступно для встраивания');
-        return r;
-      });
-    }, LOAD_TIMEOUT_MS);
+  function handleError() {
+    setError('Видео не загрузилось — возможно, оно недоступно для встраивания');
+  }
 
-    const startHeartbeat = () => {
-      if (heartbeatTimer.current) clearInterval(heartbeatTimer.current);
-      heartbeatTimer.current = setInterval(() => {
-        if (isOwnerRef.current) onHeartbeatRef.current(currentTimeRef.current);
-      }, 1000);
-    };
-
-    const markReady = () => {
-      clearTimeout(timeoutId);
-      setError(null);
-      setReady(true);
-      startHeartbeat();
-    };
-    markReadyRef.current = markReady;
-
-    const onMessage = (e: MessageEvent) => {
-      if (e.source !== iframeRef.current?.contentWindow) return;
-      let data: DMMessage;
-      try {
-        data = (typeof e.data === 'string' ? JSON.parse(e.data) : e.data) as DMMessage;
-      } catch { return; }
-      if (typeof data.currentTime === 'number') currentTimeRef.current = data.currentTime;
-
-      switch (data.event) {
-        case 'apiready':
-          markReady();
-          break;
-        case 'playing':
-          if (isOwnerRef.current && !isRemoteAction.current) onPlayRef.current(currentTimeRef.current);
-          break;
-        case 'pause':
-        case 'ended':
-          if (isOwnerRef.current && !isRemoteAction.current) onPauseRef.current(currentTimeRef.current);
-          break;
-        case 'seeked':
-          if (isOwnerRef.current && !isRemoteAction.current) onSeekRef.current(currentTimeRef.current);
-          break;
-        default:
-          break;
-      }
-    };
-    window.addEventListener('message', onMessage);
+  // Owner: local blind clock — ticks once a second while playing, feeds the heartbeat.
+  useEffect(() => {
+    if (tickTimer.current) clearInterval(tickTimer.current);
+    if (heartbeatTimer.current) clearInterval(heartbeatTimer.current);
+    if (!isOwner || !isPlaying) return;
+    tickTimer.current = setInterval(() => { currentTimeRef.current += 1; }, 1000);
+    heartbeatTimer.current = setInterval(() => onHeartbeat(currentTimeRef.current), 1000);
     return () => {
-      window.removeEventListener('message', onMessage);
-      clearTimeout(timeoutId);
+      if (tickTimer.current) clearInterval(tickTimer.current);
       if (heartbeatTimer.current) clearInterval(heartbeatTimer.current);
     };
-  }, [videoId]);
+  }, [isOwner, isPlaying, onHeartbeat]);
 
-  // Viewer: apply incoming syncState.
+  function handleTogglePlay() {
+    const next = !isPlaying;
+    setIsPlaying(next);
+    sendCmd(next ? 'play' : 'pause');
+    if (next) onPlay(currentTimeRef.current); else onPause(currentTimeRef.current);
+  }
+
+  function handleSeekStep(deltaSecs: number) {
+    const target = Math.max(0, currentTimeRef.current + deltaSecs);
+    currentTimeRef.current = target;
+    sendCmd('seek', [target]);
+    onSeek(target);
+  }
+
+  // Viewer: apply incoming syncState — drives the iframe via sendCmd, no feedback expected.
   useEffect(() => {
     if (!ready || isOwner) return;
-    isRemoteAction.current = true;
     const elapsed = syncState.isPlaying && syncState.serverTimestamp
       ? Math.min(MAX_COMPENSATION_SECS, Math.max(0, (Date.now() - syncState.serverTimestamp) / 1000))
       : 0;
@@ -135,22 +99,16 @@ export function DailymotionPlayer({ videoId, isOwner, onPlay, onPause, onSeek, o
       currentTimeRef.current = target;
     }
     sendCmd(syncState.isPlaying ? 'play' : 'pause');
-    const clear = setTimeout(() => { isRemoteAction.current = false; }, 400);
-    return () => clearTimeout(clear);
+    setIsPlaying(syncState.isPlaying);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, isOwner, syncState.currentTime, syncState.isPlaying, syncState.serverTimestamp]);
 
-  // Viewer: drift correction (hard-seek only).
+  // Viewer: drift correction from owner's heartbeat (hard-seek — no real position feedback to
+  // measure drift against otherwise).
   useEffect(() => {
-    if (!ready || isOwner || !heartbeat || !syncState.isPlaying) return;
-    const expected = heartbeat.currentTime + (Date.now() - heartbeat.timestamp) / 1000;
-    if (Math.abs(expected - currentTimeRef.current) > DRIFT_HARD_SEEK_SECS) {
-      isRemoteAction.current = true;
-      sendCmd('seek', [expected]);
-      currentTimeRef.current = expected;
-      setTimeout(() => { isRemoteAction.current = false; }, 400);
-    }
-  }, [ready, isOwner, heartbeat, syncState.isPlaying]);
+    if (!ready || isOwner || !heartbeat) return;
+    currentTimeRef.current = heartbeat.currentTime;
+  }, [ready, isOwner, heartbeat]);
 
   if (error) {
     return (
@@ -163,15 +121,48 @@ export function DailymotionPlayer({ videoId, isOwner, onPlay, onPause, onSeek, o
   }
 
   return (
-    <div className="relative aspect-video bg-black rounded-xl overflow-hidden">
+    <div className="relative aspect-video bg-black rounded-xl overflow-hidden group">
       <iframe
         ref={iframeRef}
-        src={`https://geo.dailymotion.com/player.html?video=${videoId}&autoplay=0&controls=1&api=postMessage`}
+        src={`https://geo.dailymotion.com/player.html?video=${videoId}&autoplay=0&controls=0&api=postMessage`}
         className="w-full h-full border-0"
         allow="autoplay; fullscreen; encrypted-media"
         allowFullScreen
-        onLoad={() => markReadyRef.current()}
+        onLoad={handleLoad}
+        onError={handleError}
       />
+      {/* Native controls are hidden (controls=0) — only the owner gets a control bar, since
+          sync is entirely owner-driven with no feedback loop through the iframe. */}
+      {!isOwner && <div className="absolute inset-0" />}
+      {isOwner && ready && (
+        <div
+          className={`absolute bottom-0 left-0 right-0 flex items-center justify-center gap-3 px-4 py-3 bg-gradient-to-t from-black/80 to-transparent transition-opacity ${
+            isPlaying ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'
+          }`}
+        >
+          <button
+            onClick={() => handleSeekStep(-SEEK_STEP_SECS)}
+            className="w-9 h-9 rounded-full flex items-center justify-center text-white hover:bg-white/10 active:scale-90 transition-all"
+            aria-label="Назад 10с"
+          >
+            <RotateCcw size={18} />
+          </button>
+          <button
+            onClick={handleTogglePlay}
+            className="w-11 h-11 rounded-full flex items-center justify-center text-white bg-white/10 hover:bg-white/20 active:scale-90 transition-all"
+            aria-label={isPlaying ? 'Пауза' : 'Воспроизвести'}
+          >
+            {isPlaying ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" />}
+          </button>
+          <button
+            onClick={() => handleSeekStep(SEEK_STEP_SECS)}
+            className="w-9 h-9 rounded-full flex items-center justify-center text-white hover:bg-white/10 active:scale-90 transition-all"
+            aria-label="Вперёд 10с"
+          >
+            <RotateCw size={18} />
+          </button>
+        </div>
+      )}
       {!ready && (
         <div className="absolute inset-0 flex items-center justify-center bg-[#0A0A12]/80 pointer-events-none">
           <Loader2 size={28} className="animate-spin text-violet-400" />
