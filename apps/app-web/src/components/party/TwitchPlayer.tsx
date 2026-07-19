@@ -2,10 +2,10 @@
 
 // WeWatch Web — Synced Twitch player (official Twitch.Embed JS API).
 //
-// Only VODs (type: 'vod') support timeline sync — owner/viewer heartbeat+seek, same model as
-// YouTubePlayer. Live channels (type: 'channel') have no fixed timeline to seek to; for those we
-// only sync play/pause of the local view (there's no "seek everyone to position X" concept for a
-// live broadcast), so heartbeat/drift-correction is skipped entirely in that mode.
+// Only VODs (type: 'vod') are synced — owner/viewer play/pause+seek+heartbeat, same model as
+// YouTubePlayer. Live channels (type: 'channel') get no sync at all: there's no shared timeline
+// to seek to, and forcing every viewer's independent live view to pause because the owner's did
+// has no "watch together" benefit — everyone already sees the same live edge on their own.
 //
 // parent must list every domain this embed can legitimately appear on — self-service, no approval
 // wait (unlike e.g. Trovo). https://dev.twitch.tv/docs/embed/
@@ -119,16 +119,23 @@ export function TwitchPlayer({ id, type, isOwner, onPlay, onPause, onSeek, onHea
         playerRef.current = embed.getPlayer();
         setReady(true);
       });
-      embed.addEventListener(Twitch.Embed.VIDEO_PLAY, () => {
-        if (!isOwnerRef.current || isRemoteAction.current) return;
-        const p = playerRef.current;
-        if (p) onPlayRef.current(isVod ? p.getCurrentTime() : 0);
-      });
-      embed.addEventListener(Twitch.Embed.VIDEO_PAUSE, () => {
-        if (!isOwnerRef.current || isRemoteAction.current) return;
-        const p = playerRef.current;
-        if (p) onPauseRef.current(isVod ? p.getCurrentTime() : 0);
-      });
+      // Live channels: no shared timeline to sync to (the code below this already only applies
+      // incoming state for VOD), so broadcasting the owner's local play/pause here was pure
+      // overhead — it forced every viewer's independent live view to pause just because the
+      // owner's did, with no "watch together" benefit since there's no position to keep in sync.
+      // Removed for channels (2026-07-19); VODs still sync fully.
+      if (isVod) {
+        embed.addEventListener(Twitch.Embed.VIDEO_PLAY, () => {
+          if (!isOwnerRef.current || isRemoteAction.current) return;
+          const p = playerRef.current;
+          if (p) onPlayRef.current(p.getCurrentTime());
+        });
+        embed.addEventListener(Twitch.Embed.VIDEO_PAUSE, () => {
+          if (!isOwnerRef.current || isRemoteAction.current) return;
+          const p = playerRef.current;
+          if (p) onPauseRef.current(p.getCurrentTime());
+        });
+      }
     }).catch(() => { if (!cancelled) setError('Не удалось загрузить Twitch плеер'); });
 
     return () => { cancelled = true; clearTimeout(timeoutId); playerRef.current = null; };

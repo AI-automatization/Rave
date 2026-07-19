@@ -64,6 +64,11 @@
   (SDK skripti), lekin `frame-src`da faqat `player.twitch.tv`/`www.twitch.tv` bor edi, embed
   o'zi shu domenga iframe yaratadi. T-S135'dagi YouTube CSP xatosi bilan bir xil turkum.
   `next.config.mjs` frame-src'ga `embed.twitch.tv` qo'shildi.
+- **2026-07-19 Twitch — live kanal uchun sync butunlay olib tashlandi (Saidazim so'rovi):** Owner
+  play/pause bosgani live kanalda barcha viewer'larning mustaqil live oqimini sababsiz to'xtatardi
+  — umumiy pozitsiya tushunchasi yo'qligi sabab bundan "birga tomosha qilish" foydasi yo'q edi
+  (hamma allaqachon bir xil live edge'ni ko'radi). `VIDEO_PLAY`/`VIDEO_PAUSE` listener'lari endi
+  faqat `isVod` bo'lganda ro'yxatdan o'tkaziladi. VOD to'liq sync saqlanib qoldi.
 
 ---
 
