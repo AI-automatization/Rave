@@ -4,6 +4,26 @@
 
 ---
 
+### F-247 | Web chat: xabar umuman yuborilmasdi (ikkita field mismatch)
+
+- **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-19  **Model:** sonnet
+- **Sabab:** Room ichidagi chat'da xabar yuborilmasdi.
+- **Root cause (ikkita mustaqil mismatch, mobile bilan solishtirib topildi):**
+  1. **Chiquvchi:** web `SEND_MESSAGE` orqali `{roomId, text}` yuborardi, backend
+     (`chatEvents.handler.ts`) esa `data.message.slice(...)` kutadi — `message` undefined bo'lgani
+     uchun handler ichida xato, xabar hech qachon broadcast qilinmasdi.
+  2. **Kiruvchi:** backend `ROOM_MESSAGE` orqali tekis `{userId, username, message, timestamp}`
+     yuboradi, lekin `ChatPanel.tsx` ichma-ich `IChatMessage` shaklini kutadi
+     (`{id, user:{_id,username}, text, timestamp}`) — `msg.user` mavjud bo'lmagani uchun render
+     vaqtida `msg.user._id` xato berardi (hatto o'zi yuborgan xabar ham qulardi).
+- **Yechim:** `use-watch-party.ts` — chiquvchi `{message: text}` ga o'zgartirildi; kiruvchi
+  `ROOM_MESSAGE` endi to'g'ri `IChatMessage` shakliga transform qilinadi (mobile'ning
+  `useWatchParty.ts`dagi xuddi shu transformatsiyasi asosida).
+- **Tekshiruv:** tsc clean, eslint — faqat 2 ta pre-existing `any` xatosi (mening o'zgarishimga
+  aloqasi yo'q, git stash bilan tasdiqlandi).
+
+---
+
 ### F-246 | T-S139 | Room yaratishda ilova ichida video qidiruv (YouTube/Rutube/VK)
 
 - **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-19  **Model:** sonnet

@@ -7,13 +7,18 @@ import { useSocket } from '@/hooks/use-socket';
 import { useWatchPartyStore } from '@/store/watch-party.store';
 import { useAuthStore } from '@/store/auth.store';
 import { toast } from '@/store/toast.store';
-import type { IChatMessage, IWatchPartyRoom } from '@/types';
+import type { IWatchPartyRoom } from '@/types';
 
 // Incoming server sync payload — the backend always sends serverTimestamp on VIDEO_PLAY/PAUSE/SEEK/
 // SYNC (built in watchPartyService.syncState). It's an owner/server wall-clock in ms; we normalise
 // it to this client's clock via the measured offset so downstream latency compensation is correct.
 interface ServerSyncPayload { currentTime: number; isPlaying?: boolean; serverTimestamp?: number }
 interface ServerHeartbeat { currentTime: number; timestamp: number; updatedBy: string }
+
+// Raw ROOM_MESSAGE payload (services/watch-party/src/socket/chatEvents.handler.ts) — flat, not
+// the nested IChatMessage shape ChatPanel.tsx renders. Mirrors mobile's transform in
+// apps/mobile/src/hooks/useWatchParty.ts (same mismatch existed there once, fixed the same way).
+interface ServerChatMessage { userId: string; username: string; message: string; timestamp: number }
 
 // How often to re-measure the clock offset. The phone/browser clock drifts vs the server over a
 // long watch-party and the connect-time burst starts from a 0 offset — mirrors mobile's 90s cadence.
@@ -81,8 +86,13 @@ export function useWatchParty(roomId: string) {
       removeMember(data.userId);
     });
 
-    socket.on(SERVER_EVENTS.ROOM_MESSAGE, (message: IChatMessage) => {
-      addMessage(message);
+    socket.on(SERVER_EVENTS.ROOM_MESSAGE, (raw: ServerChatMessage) => {
+      addMessage({
+        id: `${raw.userId}-${raw.timestamp}`,
+        user: { _id: raw.userId, username: raw.username },
+        text: raw.message,
+        timestamp: raw.timestamp,
+      });
     });
 
     // Server sends syncState directly as payload (match mobile pattern). serverTimestamp is
@@ -167,7 +177,10 @@ export function useWatchParty(roomId: string) {
   }, [socket, isConnected, roomId, router, setRoom, setMembers, addMember, removeMember, addMessage, setSyncState, setHeartbeat, setConnected, reset]);
 
   const sendMessage = useCallback((text: string) => {
-    socket?.emit(CLIENT_EVENTS.SEND_MESSAGE, { roomId, text });
+    // Backend's chatEvents.handler.ts reads data.message (matches mobile's emit shape) — roomId
+    // isn't read from the payload at all (it uses the socket's own tracked room), but data.message
+    // being undefined here crashed `.slice()` server-side and the message was silently never sent.
+    socket?.emit(CLIENT_EVENTS.SEND_MESSAGE, { roomId, message: text });
   }, [socket, roomId]);
 
   const sendPlay = useCallback((currentTime: number) => {
