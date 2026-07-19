@@ -3,9 +3,9 @@
 // WeWatch Web — Synced Trovo player (official Trovo.TrovoPlayer JS API).
 //
 // NOT YET LIVE: embedding requires a whitelisted domain (Trovo requires manual approval, unlike
-// Twitch's self-service `parent` param) — app.wewatch.uz whitelist request submitted
-// 2026-07-18 to developer@trovo.live, reply SLA up to 1 week. This component is ready to go the
-// moment approval lands; until then any Trovo URL will fail to load.
+// Twitch's self-service `parent` param) — app.wewatch.uz whitelist request sent from
+// wewatch@wewatch.uz to developer@trovo.live on 2026-07-18, reply SLA up to 1 week. This
+// component is ready to go the moment approval lands; until then any Trovo URL will fail to load.
 //
 // Real limitation, confirmed from Trovo's own docs (developer.trovo.live/docs/Embedded.html):
 // the player object exposes play()/pause()/getCurrentTime()/getDuration() but NO seek/
