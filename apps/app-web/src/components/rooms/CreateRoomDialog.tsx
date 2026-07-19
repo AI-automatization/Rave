@@ -478,7 +478,7 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="bg-[#0C0B18] border-white/[0.07] text-white max-w-[460px] p-0 overflow-hidden rounded-2xl">
+      <DialogContent className="bg-[#0C0B18] border-white/[0.07] text-white max-w-[620px] p-0 overflow-hidden rounded-2xl">
 
         {/* Header */}
         <DialogHeader className="px-6 pt-6 pb-0">
