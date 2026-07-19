@@ -2,12 +2,30 @@
 
 import { useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { SERVER_EVENTS, CLIENT_EVENTS } from '@shared/constants/socketEvents';
 import { useSocket } from '@/hooks/use-socket';
 import { useWatchPartyStore } from '@/store/watch-party.store';
 import { useAuthStore } from '@/store/auth.store';
 import { toast } from '@/store/toast.store';
 import type { IWatchPartyRoom } from '@/types';
+
+// Room membership (room.members / MEMBER_JOINED) only carries user IDs — the actual
+// username/avatar has to be resolved separately via GET /api/user/[id]. Cached through
+// react-query (key 'user-public') so joining the same room twice, or a member showing up in
+// multiple places, doesn't re-fetch. Without this, MemberList/participants fell back to
+// `#<id-suffix>` for everyone forever (member objects were created with username: '').
+async function fetchUserPublic(id: string): Promise<{ username: string; avatar?: string } | null> {
+  try {
+    const res = await fetch(`/api/user/${id}`, { credentials: 'include' });
+    if (!res.ok) return null;
+    const data = await res.json() as { data?: { username?: string; avatar?: string } };
+    if (!data.data?.username) return null;
+    return { username: data.data.username, avatar: data.data.avatar };
+  } catch {
+    return null;
+  }
+}
 
 // Incoming server sync payload — the backend always sends serverTimestamp on VIDEO_PLAY/PAUSE/SEEK/
 // SYNC (built in watchPartyService.syncState). It's an owner/server wall-clock in ms; we normalise
@@ -27,10 +45,21 @@ const CLOCK_RESYNC_INTERVAL_MS = 90_000;
 export function useWatchParty(roomId: string) {
   const { socket, isConnected } = useSocket();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const {
-    setRoom, setMembers, addMember, removeMember,
+    setRoom, setMembers, addMember, updateMember, removeMember,
     addMessage, setSyncState, setHeartbeat, setConnected, reset,
   } = useWatchPartyStore();
+
+  const resolveMemberProfile = useCallback((userId: string) => {
+    void queryClient.fetchQuery({
+      queryKey: ['user-public', userId],
+      queryFn: () => fetchUserPublic(userId),
+      staleTime: 5 * 60_000,
+    }).then((profile) => {
+      if (profile) updateMember(userId, profile);
+    });
+  }, [queryClient, updateMember]);
 
   // serverClockOffset (ms) = serverClock − localClock, measured over the socket via CLOCK_PING/PONG.
   // Subtract it from any server wall-clock timestamp to get the equivalent local-clock instant.
@@ -71,15 +100,18 @@ export function useWatchParty(roomId: string) {
     // Server events
     socket.on(SERVER_EVENTS.ROOM_JOINED, (data: { room: IWatchPartyRoom; syncState: { currentTime: number; isPlaying: boolean } | null }) => {
       setRoom(data.room);
-      // room.members is string[] (user IDs from DB) — map to placeholder member objects for count display
+      // room.members is string[] (user IDs from DB) — map to placeholder member objects for count
+      // display immediately, then resolve each one's real username/avatar in the background.
       const rawMembers = Array.isArray((data.room as any)?.members) ? (data.room as any).members as string[] : [];
       setMembers(rawMembers.map((id) => ({ _id: id, username: '' })));
+      rawMembers.forEach(resolveMemberProfile);
       if (data.syncState) setSyncState(data.syncState);
     });
 
-    // Server sends { userId } — map to member shape
+    // Server sends { userId } — map to member shape, then resolve the real profile
     socket.on(SERVER_EVENTS.MEMBER_JOINED, (data: { userId: string }) => {
       addMember({ _id: data.userId, username: '' });
+      resolveMemberProfile(data.userId);
     });
 
     socket.on(SERVER_EVENTS.MEMBER_LEFT, (data: { userId: string }) => {
@@ -174,7 +206,7 @@ export function useWatchParty(roomId: string) {
       socket.off(SERVER_EVENTS.ERROR);
       setConnected(false);
     };
-  }, [socket, isConnected, roomId, router, setRoom, setMembers, addMember, removeMember, addMessage, setSyncState, setHeartbeat, setConnected, reset]);
+  }, [socket, isConnected, roomId, router, setRoom, setMembers, addMember, removeMember, resolveMemberProfile, addMessage, setSyncState, setHeartbeat, setConnected, reset]);
 
   const sendMessage = useCallback((text: string) => {
     // Backend's chatEvents.handler.ts reads data.message (matches mobile's emit shape) — roomId

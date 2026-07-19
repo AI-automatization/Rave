@@ -3,7 +3,7 @@
 import { create } from 'zustand';
 import type { IWatchPartyRoom, IChatMessage, IUser } from '@/types';
 
-interface WatchPartyMember {
+export interface WatchPartyMember {
   _id: string;
   username: string;
   avatar?: string;
@@ -38,6 +38,7 @@ interface WatchPartyState {
   setRoom: (room: IWatchPartyRoom | null) => void;
   setMembers: (members: WatchPartyMember[]) => void;
   addMember: (member: WatchPartyMember) => void;
+  updateMember: (userId: string, patch: Partial<Omit<WatchPartyMember, '_id'>>) => void;
   removeMember: (userId: string) => void;
   addMessage: (message: IChatMessage) => void;
   setSyncState: (state: Partial<SyncState>) => void;
@@ -67,6 +68,10 @@ export const useWatchPartyStore = create<WatchPartyState>((set) => ({
       members: s.members.some((m) => m._id === member._id)
         ? s.members
         : [...s.members, member],
+    })),
+  updateMember: (userId, patch) =>
+    set((s) => ({
+      members: s.members.map((m) => (m._id === userId ? { ...m, ...patch } : m)),
     })),
   removeMember: (userId) =>
     set((s) => ({ members: s.members.filter((m) => m._id !== userId) })),

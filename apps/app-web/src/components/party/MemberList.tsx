@@ -32,12 +32,21 @@ export function MemberList() {
             className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-white/[0.03] transition-colors"
           >
             <div className="relative shrink-0">
-              <div
-                className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white"
-                style={{ background: color }}
-              >
-                {(member.username?.[0] ?? '?').toUpperCase()}
-              </div>
+              {member.avatar ? (
+                // eslint-disable-next-line @next/next/no-img-element -- user-uploaded avatar URL, not worth a next/image domain allowlist entry
+                <img
+                  src={member.avatar}
+                  alt=""
+                  className="w-7 h-7 rounded-full object-cover"
+                />
+              ) : (
+                <div
+                  className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white"
+                  style={{ background: color }}
+                >
+                  {(member.username?.[0] ?? '?').toUpperCase()}
+                </div>
+              )}
               {member.isOnline !== false && (
                 <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-emerald-500 rounded-full border-[1.5px] border-[#09090B]" />
               )}

@@ -4,6 +4,27 @@
 
 ---
 
+### F-248 | Room "Участники" panelida username/avatar o'rniga `#d974` ko'rinardi
+
+- **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-19  **Model:** sonnet
+- **Sabab:** `ROOM_JOINED`/`MEMBER_JOINED` handler'lari member obyektlarini `{_id, username: ''}`
+  bilan yaratardi (`room.members` backend'da faqat user ID string massiv, profil ma'lumoti yo'q) —
+  hech qachon haqiqiy username/avatar so'ralmagan, shuning uchun har doim `#<id oxiri>` fallback
+  ko'rinardi. `MemberList.tsx`da avatar uchun `<img>` ham umuman yo'q edi — faqat rangli doira +
+  bosh harf.
+- **Yechim:**
+  - Yangi proxy route `apps/app-web/src/app/api/user/[id]/route.ts` → backend `GET /users/:id`
+    (public profile, `getPublicProfile`).
+  - `use-watch-party.ts` — `resolveMemberProfile()` har bir a'zo uchun profilni fon rejimida
+    so'raydi (react-query `['user-public', id]` bilan keshlanadi), natijasi yangi
+    `updateMember()` store action orqali mavjud a'zoga qo'shiladi.
+  - `MemberList.tsx` — `member.avatar` mavjud bo'lsa haqiqiy `<img>` ko'rsatadi, bo'lmasa eski
+    rangli-harf fallback saqlanadi.
+- **Tekshiruv:** tsc clean, eslint — 3 ta pre-existing xato (mening o'zgarishimga aloqasi yo'q,
+  git stash bilan tasdiqlandi).
+
+---
+
 ### F-247 | Web chat: xabar umuman yuborilmasdi (ikkita field mismatch)
 
 - **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-19  **Model:** sonnet
