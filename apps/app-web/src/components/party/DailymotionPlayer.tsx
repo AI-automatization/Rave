@@ -3,6 +3,12 @@
 // WeWatch Web — Synced Dailymotion player (official geo.dailymotion.com/player.html embed).
 // Plain postMessage protocol, no SDK script needed — same owner/viewer sync model as
 // YouTubePlayer.tsx, ported from mobile's buildDailymotionHtml() (WebViewAdapters.ts).
+//
+// 'apiready' isn't reliably observed in production (same class of bug as VK, 2026-07-19) — the
+// iframe loads and plays fine (native controls work end-to-end) while our postMessage listener
+// never sees a recognizable ready signal, so the load-timeout fired a false "failed to embed"
+// error over a working video. The iframe's own onLoad is the ground truth for "embed succeeded";
+// treat it as ready too so the UI never lies about a video that's actually playing.
 
 import { useEffect, useRef, useState } from 'react';
 import { AlertCircle, Loader2 } from 'lucide-react';
@@ -44,6 +50,7 @@ export function DailymotionPlayer({ videoId, isOwner, onPlay, onPause, onSeek, o
   const onPauseRef = useRef(onPause);   onPauseRef.current = onPause;
   const onSeekRef = useRef(onSeek);     onSeekRef.current = onSeek;
   const onHeartbeatRef = useRef(onHeartbeat); onHeartbeatRef.current = onHeartbeat;
+  const markReadyRef = useRef<() => void>(() => {});
 
   function sendCmd(command: string, params?: object) {
     iframeRef.current?.contentWindow?.postMessage(JSON.stringify({ command, ...params }), '*');
@@ -68,6 +75,14 @@ export function DailymotionPlayer({ videoId, isOwner, onPlay, onPause, onSeek, o
       }, 1000);
     };
 
+    const markReady = () => {
+      clearTimeout(timeoutId);
+      setError(null);
+      setReady(true);
+      startHeartbeat();
+    };
+    markReadyRef.current = markReady;
+
     const onMessage = (e: MessageEvent) => {
       if (e.source !== iframeRef.current?.contentWindow) return;
       let data: DMMessage;
@@ -78,9 +93,7 @@ export function DailymotionPlayer({ videoId, isOwner, onPlay, onPause, onSeek, o
 
       switch (data.event) {
         case 'apiready':
-          clearTimeout(timeoutId);
-          setReady(true);
-          startHeartbeat();
+          markReady();
           break;
         case 'playing':
           if (isOwnerRef.current && !isRemoteAction.current) onPlayRef.current(currentTimeRef.current);
@@ -152,6 +165,7 @@ export function DailymotionPlayer({ videoId, isOwner, onPlay, onPause, onSeek, o
         className="w-full h-full border-0"
         allow="autoplay; fullscreen; encrypted-media"
         allowFullScreen
+        onLoad={() => markReadyRef.current()}
       />
       {!ready && (
         <div className="absolute inset-0 flex items-center justify-center bg-[#0A0A12]/80 pointer-events-none">

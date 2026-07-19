@@ -69,6 +69,16 @@
   — umumiy pozitsiya tushunchasi yo'qligi sabab bundan "birga tomosha qilish" foydasi yo'q edi
   (hamma allaqachon bir xil live edge'ni ko'radi). `VIDEO_PLAY`/`VIDEO_PAUSE` listener'lari endi
   faqat `isVod` bo'lganda ro'yxatdan o'tkaziladi. VOD to'liq sync saqlanib qoldi.
+- **2026-07-19 Dailymotion — xuddi VK'dagi kabi soxta "yuklanmadi" xatosi:** Foydalanuvchi
+  production'da tasdiqladi — video real ishlaydi (Unmute tugmasi, kadr ko'rinadi), keyin bir necha
+  soniyadan so'ng "Не удалось загрузить видео" chiqadi. Sabab — `apiready` postMessage event'i
+  production'da kelmayapti (xuddi VK'ning `inited` kabi), 15s LOAD_TIMEOUT yolg'on xato chiqaradi.
+  Playwright bilan headless test CORS/bot-detection'ga uchradi (Dailymotion manifest so'rovini
+  bloklaydi) — shuning uchun aniq protokolni tasdiqlab bo'lmadi, lekin foydalanuvchining real
+  brauzerdagi kuzatuvi yetarli edi. Yechim VK bilan bir xil: `iframe.onLoad` `apiready`'ga
+  qo'shimcha "ready" signali sifatida qo'shildi — sync logikasi (play/pause/seek postMessage
+  buyruqlari) TEGILMADI, chunki ular ishlamasligi haqida hech qanday dalil yo'q (faqat "false
+  error" simptomi kuzatildi, VK'dagi "sync umuman yo'q" emas).
 
 ---
 
