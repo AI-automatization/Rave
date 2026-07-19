@@ -51,7 +51,9 @@
   tasdiqlandi** (mobile'ning `buildRutubeHtml()` taxmin qilgan `{method,value}` shakli ISHLAMAYDI
   — haqiqiy protokol `{type:'player:play'/'player:pause'/'player:setCurrentTime', data:{time}}`
   chiquvchi, `player:changeState`/`player:currentTime`/`player:ready` kiruvchi — hammasi real va
-  ishlaydi, VK'dan farqli). To'liq sync (play/pause/seek) ishlaydi. **Ochiq:** mobile'ning
+  ishlaydi, VK'dan farqli). To'liq sync (play/pause/seek) ishlaydi — **Saidazim tomonidan
+  production'da (app.wewatch.uz) shaxsan tasdiqlandi (2026-07-19, screen recording bilan)**.
+  **Ochiq:** mobile'ning
   `buildRutubeHtml()` xuddi shu noto'g'ri `{method,value}` formatini ishlatadi — ehtimol u ham
   ishlamaydi, tuzatilmagan (mobile zonasi, alohida vazifa kerak).
 
