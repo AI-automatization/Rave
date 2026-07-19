@@ -3,8 +3,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, Globe, ArrowRight, Users, X, ExternalLink } from 'lucide-react';
+import { Loader2, Globe, ArrowRight, Users, X, ExternalLink, Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useQuery } from '@tanstack/react-query';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
@@ -270,6 +271,30 @@ function detectPlatform(url: string): Platform | null {
   return PLATFORMS.find(p => p.urlPattern?.test(url)) ?? null;
 }
 
+/* ── In-app search — mirrors mobile's contentApi.searchVideos (apps/mobile/src/api/content.api.ts).
+   Backend covers YouTube (official Data API v3)/Rutube/VK — other platforms still need a pasted
+   link, so their platform buttons keep the popup-window flow instead of focusing this input. ── */
+interface VideoSearchItem {
+  title: string;
+  thumbnail: string;
+  url: string;
+  platform: 'youtube' | 'rutube' | 'vk';
+  duration?: number;
+  viewCount?: number;
+}
+
+const SEARCHABLE_PLATFORM_IDS = new Set(['youtube', 'rutube', 'vk']);
+
+function fmtDuration(s: number | undefined): string | null {
+  if (!s || !isFinite(s) || s <= 0) return null;
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = Math.floor(s % 60);
+  return h > 0
+    ? `${h}:${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`
+    : `${m}:${sec.toString().padStart(2, '0')}`;
+}
+
 /* ── Component ────────────────────────────────────────── */
 export function CreateRoomDialog({ open, onOpenChange }: Props) {
   const t = useTranslations('room');
@@ -282,10 +307,41 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
   const [activePlatform, setActivePlatform]   = useState<Platform | null>(null);
   const [clipDetected, setClipDetected]       = useState(false);
   const [titleLoading, setTitleLoading]       = useState(false);
+  const [searchQuery, setSearchQuery]         = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
   const urlRef        = useRef<HTMLInputElement>(null);
+  const searchRef     = useRef<HTMLInputElement>(null);
   const titleTimer    = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const prefetchTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  /* ── In-app search (YouTube/Rutube/VK) — debounced ─── */
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 400);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const { data: searchResults = [], isFetching: searchLoading } = useQuery<VideoSearchItem[]>({
+    queryKey: ['video-search', debouncedSearch],
+    queryFn: async () => {
+      const res = await fetch(`/api/content/search?q=${encodeURIComponent(debouncedSearch)}`, { credentials: 'include' });
+      if (!res.ok) return [];
+      const data = await res.json() as { data?: VideoSearchItem[] };
+      return data.data ?? [];
+    },
+    enabled: open && debouncedSearch.length >= 2,
+    staleTime: 60_000,
+  });
+
+  function handleSelectSearchResult(item: VideoSearchItem) {
+    trackClick('create_room:search_select', { platform: item.platform });
+    setVideoUrl(item.url);
+    setVideoTitle(item.title);
+    setVideoThumbnail(toAbsoluteThumbnailUrl(item.thumbnail));
+    setActivePlatform(detectPlatform(item.url));
+    setSearchQuery('');
+    prefetchExtraction(item.url);
+  }
 
   /* ── Clipboard auto-detect on open ────────────────── */
   useEffect(() => {
@@ -339,6 +395,12 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
   /* ── Platform click → open in popup window ─────────── */
   function handlePlatformClick(platform: Platform) {
     setActivePlatform(platform);
+    // Youtube/Rutube/VK have in-app search (below) — no need to send the user to a popup window
+    // to find a link and paste it back.
+    if (SEARCHABLE_PLATFORM_IDS.has(platform.id)) {
+      setTimeout(() => searchRef.current?.focus(), 80);
+      return;
+    }
     if (platform.base) {
       const popup = window.open(
         platform.base,
@@ -405,6 +467,7 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
     setActivePlatform(null);
     setClipDetected(false);
     setTitleLoading(false);
+    setSearchQuery('');
   }
 
   const hintText = activePlatform
@@ -472,6 +535,55 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
                 : <ArrowRight size={18} />}
             </button>
           </div>
+
+          {/* In-app search — YouTube/Rutube/VK, no need to leave the site to find a link */}
+          <div className="relative">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+            <input
+              ref={searchRef}
+              type="text"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder={t('searchPlaceholder')}
+              className="w-full h-11 pl-9 pr-3 bg-[#111118] border border-white/[0.08] rounded-xl text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/20 transition-all"
+            />
+          </div>
+
+          {debouncedSearch.length >= 2 && (
+            <div className="flex flex-col gap-0.5 max-h-64 overflow-y-auto rounded-xl border border-white/[0.06] bg-white/[0.02] p-1">
+              {searchLoading && (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 size={16} className="animate-spin text-slate-500" />
+                </div>
+              )}
+              {!searchLoading && searchResults.length === 0 && (
+                <p className="text-center py-4 text-[12px] text-slate-500">{t('searchNoResults')}</p>
+              )}
+              {!searchLoading && searchResults.map((item, idx) => (
+                <button
+                  key={`${item.url}-${idx}`}
+                  onClick={() => handleSelectSearchResult(item)}
+                  className="flex items-center gap-2.5 p-1.5 rounded-lg hover:bg-white/[0.05] transition-colors text-left cursor-pointer"
+                >
+                  <div className="relative w-20 h-11 rounded-md overflow-hidden shrink-0 bg-black/40">
+                    {item.thumbnail && (
+                      // eslint-disable-next-line @next/next/no-img-element -- external thumbnails from arbitrary platforms, next/image domain allowlist not worth it here
+                      <img src={item.thumbnail} alt="" className="w-full h-full object-cover" />
+                    )}
+                    {fmtDuration(item.duration) && (
+                      <span className="absolute bottom-0.5 right-0.5 px-1 rounded bg-black/80 text-[9px] text-white tabular-nums">
+                        {fmtDuration(item.duration)}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[12px] text-slate-200 truncate leading-tight">{item.title}</p>
+                    <p className="text-[10px] text-slate-500 uppercase mt-0.5">{item.platform}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Video title preview */}
           {(videoTitle || titleLoading) && (

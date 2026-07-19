@@ -1,6 +1,32 @@
 # WeWatch — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-07-18
+# Yangilangan: 2026-07-19
+
+---
+
+### F-246 | T-S139 | Room yaratishda ilova ichida video qidiruv (YouTube/Rutube/VK)
+
+- **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-19  **Model:** sonnet
+- **Sabab:** `CreateRoomDialog.tsx`da platforma tugmasi bosilganda popup oyna ochilib, foydalanuvchi
+  o'sha saytda qidirib, havolani nusxalab qaytishi kerak edi — mobile'da esa qidiruv allaqachon
+  ilova ichida ishlaydi (`useVideoSearch`/`SearchResultsScreen.tsx`). Web'ni tenglashtirish so'raldi.
+- **Topilma:** Backend'da `GET /content/video-search?q=` allaqachon TAYYOR edi (YouTube yt-dlp
+  orqali, Rutube rasmiy API, VK yt-dlp orqali) + web proxy (`/api/content/search`) ham bor edi —
+  frontendga ulanmagan edi.
+- **O'zgarishlar:**
+  - **YouTube qidiruvi rasmiy Data API v3'ga ko'chirildi** (`YOUTUBE_API_KEY` — foydalanuvchi
+    yangi Google Cloud kaliti yaratdi, Railway content-service'ga qo'shildi). Kalit yo'q bo'lsa
+    eski yt-dlp `ytsearch` fallback sifatida saqlanadi (`services/content/src/services/
+    videoSearch.service.ts`).
+  - `CreateRoomDialog.tsx` — qidiruv input (debounce 400ms) + natijalar ro'yxati (thumbnail,
+    sarlavha, davomiylik, platforma). Natijaga bosish — videoUrl/Title/Thumbnail/Platform avtomatik
+    to'ldiradi (xuddi clipboard-detect kabi). YouTube/Rutube/VK tugmalari endi popup ochmaydi —
+    qidiruv input'ga fokus qiladi; qolgan platformalar (Twitch/Vimeo/Dailymotion/...) uchun popup
+    saqlanib qoldi (ular uchun qidiruv yo'q).
+- **Tekshiruv:** tsc/eslint clean. YouTube Data API kaliti to'g'ridan curl bilan tasdiqlandi
+  (haqiqiy natijalar qaytdi).
+- **Ochiq:** VK qidiruvi yt-dlp orqali (VK video qidiruv sahifasini scrape qiladi) — Rutube
+  extraction'da topilgan Railway IP-blok muammosi bu yerda ham bo'lishi mumkin, tekshirilmagan.
 
 ---
 

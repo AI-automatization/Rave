@@ -551,6 +551,7 @@
     "joinError": "Xonaga qo'shilib bo'lmadi",
     "searchLabel": "Yoki video qidiring",
     "searchPlaceholder": "Video nomi...",
+    "searchNoResults": "Hech narsa topilmadi",
     "sourceTitle": "Manba tanlang",
     "sourcePaste": "Yoki to'g'ridan-to'g'ri havola kiriting",
     "noMedia": "Videosiz xona yaratish",

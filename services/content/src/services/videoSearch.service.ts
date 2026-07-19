@@ -1,9 +1,15 @@
 // CineSync — Video Search Service
-// Searches YouTube (yt-dlp), Rutube (API), VK Video (yt-dlp) in parallel
+// Searches YouTube (official Data API v3, falls back to yt-dlp if no key), Rutube (API),
+// VK Video (yt-dlp) in parallel
 
 import { spawn } from 'child_process';
 import { fetch } from 'undici';
 import { logger } from '@shared/utils/logger';
+
+const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
+if (!YOUTUBE_API_KEY) {
+  logger.warn('video-search: YOUTUBE_API_KEY not set — falling back to yt-dlp ytsearch (less reliable)');
+}
 
 export interface VideoSearchItem {
   title: string;
@@ -117,6 +123,45 @@ function runYtDlpVkSearch(query: string): Promise<VideoSearchItem[]> {
   });
 }
 
+// ── YouTube Data API v3 search (official — preferred over yt-dlp's ytsearch) ─────────────────
+
+interface YouTubeSearchResponse {
+  items?: Array<{
+    id?: { videoId?: string };
+    snippet?: {
+      title?: string;
+      thumbnails?: { medium?: { url?: string }; default?: { url?: string } };
+    };
+  }>;
+}
+
+async function searchYouTubeOfficial(query: string): Promise<VideoSearchItem[]> {
+  try {
+    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=${PER_PLATFORM}&q=${encodeURIComponent(query)}&key=${YOUTUBE_API_KEY}`;
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), SEARCH_TIMEOUT_MS);
+    const res = await fetch(url, { signal: ctrl.signal });
+    clearTimeout(timer);
+
+    if (!res.ok) {
+      logger.warn('YouTube Data API search failed', { status: res.status });
+      return [];
+    }
+    const data = await res.json() as YouTubeSearchResponse;
+    return (data.items ?? [])
+      .filter((item) => item.id?.videoId && item.snippet?.title)
+      .map((item) => ({
+        title: item.snippet!.title!,
+        thumbnail: item.snippet!.thumbnails?.medium?.url ?? item.snippet!.thumbnails?.default?.url ?? '',
+        url: `https://www.youtube.com/watch?v=${item.id!.videoId}`,
+        platform: 'youtube' as const,
+      }));
+  } catch (e) {
+    logger.warn('YouTube Data API search error', { error: (e as Error).message });
+    return [];
+  }
+}
+
 // ── Rutube API search ────────────────────────────────────────────────────────
 
 interface RutubeSearchResult {
@@ -168,7 +213,7 @@ export async function searchVideos(query: string): Promise<VideoSearchItem[]> {
   logger.info('video-search', { query: trimmed });
 
   const [youtube, rutube, vk] = await Promise.allSettled([
-    runYtDlpSearch(trimmed),
+    YOUTUBE_API_KEY ? searchYouTubeOfficial(trimmed) : runYtDlpSearch(trimmed),
     searchRutube(trimmed),
     runYtDlpVkSearch(trimmed),
   ]);

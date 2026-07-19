@@ -551,6 +551,7 @@
     "joinError": "Не удалось присоединиться",
     "searchLabel": "Или найдите видео",
     "searchPlaceholder": "Название видео...",
+    "searchNoResults": "Ничего не найдено",
     "sourceTitle": "Выберите источник",
     "sourcePaste": "Или вставьте прямую ссылку",
     "noMedia": "Создать без видео",
