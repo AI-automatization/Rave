@@ -102,6 +102,18 @@
   player pozitsiyasi emas) — Trovo'da allaqachon qabul qilingan cheklov bilan bir xil turkum.
   Haqiqiy playback (sendCmd('play') videoni chindan ishga tushiradimi) headless'da tasdiqlab
   bo'lmadi (bot-detection manifest so'rovini bloklaydi) — foydalanuvchi brauzerida tekshirish kerak.
+- **2026-07-19 Dailymotion — owner-driven fix HAM ishlamadi, VK'ga o'xshab sync butunlay yechildi:**
+  Foydalanuvchi production'da tasdiqladi — o'z play/pause/±10s tugmalarimiz iframe'ga umuman ta'sir
+  qilmaydi (na owner, na viewer tomonida), ikkinchi foydalanuvchining videosi mustaqil ketmoqda.
+  Ikkita mustaqil, dalilga asoslangan urinish (1. `apiready`/state event kutish, 2. owner-driven
+  bir tomonlama `sendCmd`) ikkalasi ham ishlamadi — demak `dmp.photon_boot.js`da topilgan
+  `receiveMessage` kanali hozirgi jonli pleer tomonidan haqiqatda ishlatilmaydi (boshqa ichki
+  kanal orqali ishlaydi, minifikatsiyalangan koddan yana qazish oqilona emas — real devtools
+  kirishisiz samarasi past). `DailymotionPlayer.tsx` VK bilan bir xil "har kim o'z nusxasini
+  ko'radi" rejimiga qaytarildi (native controls qaytarildi, UI banner bilan ochiq belgilangan).
+  Ikkala urinish ham izsiz emas — kod tarixida qoladi, keyingi safar boshqa yondashuv (masalan,
+  Dailymotion'ning rasmiy JS SDK'si, DailymotionExtensions'sdk.js, agar mavjud bo'lsa) sinab
+  ko'rilishi mumkin, lekin bu alohida, oldindan tekshirilmagan yo'l.
 
 ---
 

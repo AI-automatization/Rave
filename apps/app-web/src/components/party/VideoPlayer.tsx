@@ -927,19 +927,14 @@ export function VideoPlayer({
     );
   }
 
-  // ── Dailymotion — owner-driven one-way sync (no usable postMessage state events from the
-  // iframe, confirmed 2026-07-19) — native controls hidden, custom play/pause/seek bar for the
-  // owner calls sendCmd + broadcasts directly, no round-trip through Dailymotion needed. ──────
+  // ── Dailymotion — NOT synced (two independent control attempts both failed against the real
+  // iframe, confirmed 2026-07-19 — see DailymotionPlayer.tsx header). Each viewer gets their own
+  // independent copy; there's no owner/viewer distinction to wire up. ─────────────────────────
 
   if (dailymotionId) {
     return (
       <DailymotionPlayer
         videoId={dailymotionId}
-        isOwner={isOwner}
-        onPlay={onPlay}
-        onPause={onPause}
-        onSeek={onSeek}
-        onHeartbeat={onHeartbeat}
       />
     );
   }
