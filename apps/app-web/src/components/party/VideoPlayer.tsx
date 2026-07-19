@@ -8,6 +8,7 @@ import { toast } from '@/hooks/use-toast';
 import { trackClick } from '@/lib/analytics';
 import { YouTubePlayer } from './YouTubePlayer';
 import { VKPlayer } from './VKPlayer';
+import { RutubePlayer } from './RutubePlayer';
 import { TwitchPlayer } from './TwitchPlayer';
 import { VimeoPlayer } from './VimeoPlayer';
 import { DailymotionPlayer } from './DailymotionPlayer';
@@ -153,6 +154,19 @@ function getVKVideoIds(url: string): { ownerId: string; videoId: string } | null
     const parts = rawId.split('_');
     if (parts.length !== 2) return null;
     return { ownerId: parts[0], videoId: parts[1] };
+  } catch {
+    return null;
+  }
+}
+
+// Mirrors mobile's extractRutubeId (apps/mobile/src/components/video/WebViewAdapters.ts).
+function getRutubeVideoId(url: string): string | null {
+  try {
+    const { hostname, pathname } = new URL(url);
+    const host = hostname.replace(/^www\./, '');
+    if (host !== 'rutube.ru') return null;
+    const match = pathname.match(/\/(?:video|play\/embed)\/([a-zA-Z0-9]+)/);
+    return match ? match[1] : null;
   } catch {
     return null;
   }
@@ -587,19 +601,21 @@ export function VideoPlayer({
   const videoUrl = room?.videoUrl ?? '';
   const ytId = getYouTubeId(videoUrl);
   const vkIds = getVKVideoIds(videoUrl);
+  const rutubeId = getRutubeVideoId(videoUrl);
   const twitchIds = getTwitchIds(videoUrl);
   const vimeoId = getVimeoId(videoUrl);
   const dailymotionId = getDailymotionId(videoUrl);
   const tiktokId = getTikTokId(videoUrl);
   const peertubeIds = getPeerTubeIds(videoUrl);
   const trovoName = getTrovoStreamername(videoUrl);
-  const isEmbed = !!ytId || !!vkIds || !!twitchIds || !!vimeoId || !!dailymotionId || !!tiktokId || !!peertubeIds || !!trovoName;
-  // Extract everything not handled by an official embed above — content service handles Rutube
-  // and any other direct/generic URL. VK/Twitch/Vimeo/Dailymotion used to fall through here too
+  const isEmbed = !!ytId || !!vkIds || !!rutubeId || !!twitchIds || !!vimeoId || !!dailymotionId || !!tiktokId || !!peertubeIds || !!trovoName;
+  // Extract everything not handled by an official embed above — content service handles any
+  // other direct/generic URL. VK/Rutube/Twitch/Vimeo/Dailymotion used to fall through here too
   // (ytDlpExtractor + an authenticated session cookie — ToS-questionable, same risk category as
-  // scraping a pirate site, just against a legitimate platform); now routed to their own
-  // official embeds instead.
-  const needsExtract = !!videoUrl && !ytId && !vkIds && !twitchIds && !vimeoId && !dailymotionId && !tiktokId && !peertubeIds && !trovoName;
+  // scraping a pirate site, just against a legitimate platform; Rutube also blocks yt-dlp's
+  // requests from Railway's datacenter IP outright); now routed to their own official embeds
+  // instead.
+  const needsExtract = !!videoUrl && !ytId && !vkIds && !rutubeId && !twitchIds && !vimeoId && !dailymotionId && !tiktokId && !peertubeIds && !trovoName;
   const directSrc = needsExtract ? proxySrc : null;
 
   // Extract → proxy URL for any non-YouTube source
@@ -851,13 +867,26 @@ export function VideoPlayer({
     );
   }
 
-  // ── VK Video — synced via the official video_ext.php embed ──────────────────
+  // ── VK Video — NOT synced (video_ext.php has no postMessage control API, confirmed 2026-07-19) ──
+  // Each viewer gets their own independent copy; there's no owner/viewer distinction to wire up.
 
   if (vkIds) {
     return (
       <VKPlayer
         ownerId={vkIds.ownerId}
         videoId={vkIds.videoId}
+      />
+    );
+  }
+
+  // ── Rutube — synced via the official rutube.ru/play/embed/ postMessage protocol ─────────────
+  // (also sidesteps yt-dlp's IP-block on Rutube's options-JSON endpoint from Railway — see
+  // RutubePlayer.tsx header comment for the verified command/event shapes.)
+
+  if (rutubeId) {
+    return (
+      <RutubePlayer
+        videoId={rutubeId}
         isOwner={isOwner}
         onPlay={onPlay}
         onPause={onPause}

@@ -32,6 +32,28 @@
 - **Ochiq:** Trovo — domen apruvidan keyin jonli test kerak. TikTok — kiruvchi event format live
   tekshiruv kerak. Android'da VK/Rutube hali "to'liq sayt WebView" usulida (iOS'dan farqli) —
   keyingi kunlarga qoldirilgan alohida topilma.
+- **2026-07-19 tuzatish (web):** VK jonli testda 2 ta bug topildi — (1) `video_ext.php` hech qanday
+  `postMessage` yubormasligi/qabul qilmasligi (standalone iframe testida tasdiqlandi: 8s+ ichida
+  bitta ham event kelmadi, `{method:'play'}` yuborish videoni ishga tushirmadi) → yuqoridagi "VK —
+  video_ext.php official embed" band **noto'g'ri** edi, sync umuman ishlamaydi; `VKPlayer.tsx` sync
+  logikasi butunlay olib tashlandi, VK endi ataylab "har kim o'z nusxasini ko'radi" rejimida (UI
+  banner bilan ochiq belgilangan). (2) Shu bilan bog'liq — member iframe'ni to'liq boshqara olardi
+  (owner-only cheklov yo'q edi YouTube'dan boshqa hech bir platformada) — bu ham tizimli muammo,
+  hozircha faqat VK uchun tuzatilmadi (chunki VK endi sync qilmaydi, cheklovga hojat yo'q). Twitch/
+  Vimeo/Dailymotion/TikTok/PeerTube/Trovo'da member-cheklov hali ham YO'Q — keyingi topilma.
+- **2026-07-19 Rutube — yangi rasmiy embed qo'shildi:** Rutube'da alohida player komponenti umuman
+  yo'q edi — u avvalgi generic content-service extraction (yt-dlp) orqali ketardi. Jonli sinovda
+  aniqlandi: Rutube Railway'ning datacenter IP'sini `rutube.ru/api/play/options/{id}/`
+  endpointida bloklaydi (404 qaytaradi — o'z (Railway bo'lmagan) IP'dan xuddi shu endpoint 200
+  qaytardi, video to'liq mavjud edi). Bu yt-dlp versiyasi yoki kod xatosi emas — sof IP-blok.
+  Yechim: yangi `RutubePlayer.tsx` — `rutube.ru/play/embed/` rasmiy embedi orqali, VK singari
+  server-side extraction'ni butunlay chetlab o'tadi. **Protokol headless Playwright bilan jonli
+  tasdiqlandi** (mobile'ning `buildRutubeHtml()` taxmin qilgan `{method,value}` shakli ISHLAMAYDI
+  — haqiqiy protokol `{type:'player:play'/'player:pause'/'player:setCurrentTime', data:{time}}`
+  chiquvchi, `player:changeState`/`player:currentTime`/`player:ready` kiruvchi — hammasi real va
+  ishlaydi, VK'dan farqli). To'liq sync (play/pause/seek) ishlaydi. **Ochiq:** mobile'ning
+  `buildRutubeHtml()` xuddi shu noto'g'ri `{method,value}` formatini ishlatadi — ehtimol u ham
+  ishlamaydi, tuzatilmagan (mobile zonasi, alohida vazifa kerak).
 
 ---
 
