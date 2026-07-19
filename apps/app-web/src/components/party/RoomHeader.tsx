@@ -4,8 +4,11 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Users, LogOut, Share2 } from 'lucide-react';
 import { useWatchPartyStore } from '@/store/watch-party.store';
+import { useAuthStore } from '@/store/auth.store';
 import { useTranslations } from 'next-intl';
 import { InviteDialog } from '@/components/party/InviteDialog';
+import { LeaveRoomDialog } from '@/components/party/LeaveRoomDialog';
+import { toast } from '@/store/toast.store';
 import { trackClick } from '@/lib/analytics';
 
 export function RoomHeader() {
@@ -15,9 +18,37 @@ export function RoomHeader() {
   const room = useWatchPartyStore((s) => s.room);
   const storeMembers = useWatchPartyStore((s) => s.members);
   const isConnected = useWatchPartyStore((s) => s.isConnected);
+  const currentUser = useAuthStore((s) => s.user);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [leaveOpen, setLeaveOpen] = useState(false);
 
   const memberCount = ((room as any)?.members as unknown[])?.length ?? storeMembers.length;
+  const isOwner = !!currentUser && room?.ownerId === currentUser._id;
+  const otherMembers = storeMembers.filter((m) => m._id !== currentUser?._id);
+
+  async function handleLeaveClick() {
+    trackClick('room:leave');
+    if (!room?._id) { router.push('/home'); return; }
+
+    if (isOwner && otherMembers.length > 0) {
+      setLeaveOpen(true);
+      return;
+    }
+
+    try {
+      const url = isOwner ? `/api/rooms/${room._id}` : `/api/rooms/${room._id}/leave`;
+      const res = await fetch(url, {
+        method: isOwner ? 'DELETE' : 'POST',
+        credentials: 'include',
+        headers: isOwner ? undefined : { 'Content-Type': 'application/json' },
+        body: isOwner ? undefined : JSON.stringify({}),
+      });
+      if (!res.ok) throw new Error('failed');
+    } catch {
+      toast.error(t('leaveError'));
+    }
+    router.push('/home');
+  }
 
   return (
     <>
@@ -54,7 +85,7 @@ export function RoomHeader() {
             {t('link')}
           </button>
           <button
-            onClick={() => { trackClick('room:leave'); router.push('/home'); }}
+            onClick={() => { void handleLeaveClick(); }}
             className="h-8 px-3 rounded-lg text-xs font-medium text-red-400 bg-red-500/[0.07] border border-red-500/[0.15] hover:bg-red-500/[0.14] transition-colors flex items-center gap-1.5 cursor-pointer"
           >
             <LogOut size={12} />
@@ -64,6 +95,14 @@ export function RoomHeader() {
       </div>
 
       <InviteDialog open={inviteOpen} onOpenChange={setInviteOpen} />
+      {room?._id && (
+        <LeaveRoomDialog
+          open={leaveOpen}
+          onOpenChange={setLeaveOpen}
+          roomId={room._id}
+          otherMembers={otherMembers}
+        />
+      )}
     </>
   );
 }

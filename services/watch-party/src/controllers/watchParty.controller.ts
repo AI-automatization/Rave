@@ -104,8 +104,20 @@ export class WatchPartyController {
   leaveRoom = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { userId } = (req as AuthenticatedRequest).user;
-      await this.watchPartyService.leaveRoom(userId, req.params.id);
-      res.json(apiResponse.success(null, 'Left room'));
+      const roomId = req.params.id;
+      const { newOwnerId } = req.body as { newOwnerId?: string };
+      const result = await this.watchPartyService.leaveRoom(userId, roomId, newOwnerId);
+
+      if (result.closed) {
+        this.io.to(roomId).emit(SERVER_EVENTS.ROOM_CLOSED, { reason: 'owner_left' });
+      } else if (result.newOwnerId) {
+        this.io.to(roomId).emit(SERVER_EVENTS.MEMBER_LEFT, { userId });
+        this.io.to(roomId).emit(SERVER_EVENTS.OWNER_TRANSFERRED, { newOwnerId: result.newOwnerId });
+      } else {
+        this.io.to(roomId).emit(SERVER_EVENTS.MEMBER_LEFT, { userId });
+      }
+
+      res.json(apiResponse.success(result, 'Left room'));
     } catch (error) {
       next(error);
     }

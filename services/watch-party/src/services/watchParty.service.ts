@@ -190,9 +190,12 @@ export class WatchPartyService {
     return updated;
   }
 
-  async leaveRoom(userId: string, roomId: string): Promise<{ closed: boolean; newOwnerId?: string }> {
+  async leaveRoom(userId: string, roomId: string, requestedNewOwnerId?: string): Promise<{ closed: boolean; newOwnerId?: string }> {
     const room = await WatchPartyRoom.findById(roomId);
     if (!room) return { closed: false };
+    // Already closed (e.g. owner just called closeRoom() over REST) — the subsequent unmount's
+    // socket LEAVE_ROOM must no-op here, not re-run ownership transfer on a dead room.
+    if (room.status === 'ended') return { closed: true };
 
     if (room.ownerId === userId) {
       const remainingMembers = room.members.filter((m) => m !== userId);
@@ -203,7 +206,9 @@ export class WatchPartyService {
         logger.info('Watch party room deleted (no members)', { roomId });
         return { closed: true };
       }
-      const newOwnerId = remainingMembers[0];
+      const newOwnerId = requestedNewOwnerId && remainingMembers.includes(requestedNewOwnerId)
+        ? requestedNewOwnerId
+        : remainingMembers[0];
       await WatchPartyRoom.updateOne({ _id: roomId }, { ownerId: newOwnerId, members: remainingMembers });
       logger.info('Watch party ownership transferred', { roomId, from: userId, to: newOwnerId });
       return { closed: false, newOwnerId };
