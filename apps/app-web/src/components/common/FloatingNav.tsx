@@ -180,7 +180,7 @@ export function FloatingNav() {
           className="relative flex items-center gap-1 px-2 py-2 rounded-2xl glass-nav border border-white/[0.08] shadow-2xl pointer-events-auto"
         >
           {popover && (
-            <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 rounded-2xl glass-nav border border-white/[0.08] shadow-2xl overflow-hidden max-h-[70vh] flex flex-col">
+            <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 rounded-2xl glass-nav border border-white/[0.08] shadow-2xl overflow-hidden max-h-[70vh] flex flex-col animate-popover-in">
               {popover === 'friends' && (
                 <div className="w-72 flex-1 min-h-0 flex flex-col">
                   <FriendsPanel />

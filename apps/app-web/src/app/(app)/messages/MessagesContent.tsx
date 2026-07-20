@@ -57,15 +57,25 @@ export function MessagesContent() {
           </div>
 
           {loadingConvos ? (
-            <div className="flex justify-center py-8">
-              <Loader2 size={20} className="animate-spin text-violet-400" />
+            <div className="flex flex-col divide-y divide-white/[0.05]" aria-busy="true">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="flex items-center gap-3 px-4 py-3">
+                  <div className="skeleton w-10 h-10 rounded-full shrink-0" />
+                  <div className="flex-1 flex flex-col gap-1.5">
+                    <div className="skeleton h-3 w-2/5 rounded" />
+                    <div className="skeleton h-2.5 w-3/5 rounded" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
-            <ConversationList
-              conversations={conversations ?? []}
-              selectedPeerId={selectedPeer}
-              onSelect={setSelectedPeer}
-            />
+            <div className="animate-fade-slide-in">
+              <ConversationList
+                conversations={conversations ?? []}
+                selectedPeerId={selectedPeer}
+                onSelect={setSelectedPeer}
+              />
+            </div>
           )}
         </div>
 

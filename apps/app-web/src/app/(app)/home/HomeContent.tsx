@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, LogIn, Loader2, WifiOff, RefreshCw, Play, TrendingUp } from 'lucide-react';
+import { Plus, LogIn, WifiOff, RefreshCw, Play, TrendingUp } from 'lucide-react';
 
 import { useTranslations } from 'next-intl';
 import { useRooms } from '@/hooks/use-rooms';
@@ -164,10 +164,20 @@ export function HomeContent() {
         </div>
       )}
 
-      {/* ── Loading ── */}
+      {/* ── Loading — skeleton shaped like the real room grid (no layout shift once it
+          resolves) instead of a bare spinner. .skeleton is the shimmer defined in
+          globals.css — was already there, just never wired up to any page. ── */}
       {isLoading && (
-        <div className="flex items-center justify-center py-24">
-          <Loader2 size={20} className="animate-spin text-violet-400/50" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" aria-busy="true">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="liquid-glass-sm overflow-hidden">
+              <div className="skeleton aspect-video" />
+              <div className="px-3 py-2.5 flex flex-col gap-2">
+                <div className="skeleton h-3 w-3/4 rounded" />
+                <div className="skeleton h-2.5 w-1/3 rounded" />
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
@@ -210,7 +220,7 @@ export function HomeContent() {
 
       {/* ── LIVE NOW ── */}
       {hasRooms && activeRooms.length > 0 && (
-        <section className="flex flex-col gap-4">
+        <section className="flex flex-col gap-4 animate-fade-slide-in">
           <SectionHeader label="Live Now" count={activeRooms.length} live />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {activeRooms.map((room) => (
@@ -222,7 +232,7 @@ export function HomeContent() {
 
       {/* ── ROOMS ── */}
       {hasRooms && idleRooms.length > 0 && (
-        <section className="flex flex-col gap-4">
+        <section className="flex flex-col gap-4 animate-fade-slide-in">
           <SectionHeader label="Rooms" count={idleRooms.length} />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {idleRooms.map((room) => (

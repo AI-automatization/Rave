@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, Users, Bell } from 'lucide-react';
+import { Users, Bell } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useFriends, useFriendRequests } from '@/hooks/use-friends';
 import { useAuthStore } from '@/store/auth.store';
@@ -12,6 +12,19 @@ import { FriendSearch } from '@/components/friends/FriendSearch';
 import { trackClick } from '@/lib/analytics';
 
 type Tab = 'friends' | 'requests' | 'search';
+
+// Shaped like FriendCard/RequestCard rows — no layout shift once real data lands.
+function RowSkeleton() {
+  return (
+    <div className="flex items-center gap-3 px-4 py-3" aria-busy="true">
+      <div className="skeleton w-9 h-9 rounded-full shrink-0" />
+      <div className="flex-1 flex flex-col gap-1.5">
+        <div className="skeleton h-3 w-1/3 rounded" />
+        <div className="skeleton h-2.5 w-1/5 rounded" />
+      </div>
+    </div>
+  );
+}
 
 export function FriendsContent() {
   const t = useTranslations('friends');
@@ -56,8 +69,8 @@ export function FriendsContent() {
       {tab === 'friends' && (
         <div className="liquid-glass overflow-hidden">
           {loadingFriends && (
-            <div className="flex justify-center py-10">
-              <Loader2 size={20} className="animate-spin text-violet-400/60" />
+            <div className="flex flex-col divide-y divide-white/[0.05]">
+              {[0, 1, 2].map((i) => <RowSkeleton key={i} />)}
             </div>
           )}
           {!loadingFriends && (!friends || friends.length === 0) && (
@@ -66,23 +79,25 @@ export function FriendsContent() {
               <p className="text-sm text-zinc-500">{t('empty')}</p>
             </div>
           )}
-          <div className="flex flex-col divide-y divide-white/[0.05]">
-            {friends?.map((f) => (
-              <FriendCard
-                key={f._id}
-                user={f}
-                onMessage={() => { trackClick('friends:message'); router.push(`/messages?peer=${f._id}`); }}
-              />
-            ))}
-          </div>
+          {!loadingFriends && friends && friends.length > 0 && (
+            <div className="flex flex-col divide-y divide-white/[0.05] animate-fade-slide-in">
+              {friends.map((f) => (
+                <FriendCard
+                  key={f._id}
+                  user={f}
+                  onMessage={() => { trackClick('friends:message'); router.push(`/messages?peer=${f._id}`); }}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       {tab === 'requests' && (
         <div className="liquid-glass overflow-hidden">
           {loadingRequests && (
-            <div className="flex justify-center py-10">
-              <Loader2 size={20} className="animate-spin text-violet-400/60" />
+            <div className="flex flex-col divide-y divide-white/[0.05]">
+              {[0, 1].map((i) => <RowSkeleton key={i} />)}
             </div>
           )}
           {!loadingRequests && (!requests || requests.length === 0) && (
@@ -91,11 +106,13 @@ export function FriendsContent() {
               <p className="text-sm text-zinc-500">{t('noRequests')}</p>
             </div>
           )}
-          <div className="flex flex-col divide-y divide-white/[0.05]">
-            {requests?.map((req) => (
-              <RequestCard key={req._id} request={req} currentUserId={currentUser?._id ?? ''} />
-            ))}
-          </div>
+          {!loadingRequests && requests && requests.length > 0 && (
+            <div className="flex flex-col divide-y divide-white/[0.05] animate-fade-slide-in">
+              {requests.map((req) => (
+                <RequestCard key={req._id} request={req} currentUserId={currentUser?._id ?? ''} />
+              ))}
+            </div>
+          )}
         </div>
       )}
 

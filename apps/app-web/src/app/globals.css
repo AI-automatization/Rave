@@ -195,6 +195,25 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* Skeleton → content reveal (streaming-entertainment-ui skill: 200ms ease-out,
+   transform+opacity only — no layout-affecting properties, respects reduced-motion
+   via the global override below). */
+.animate-fade-slide-in {
+  animation: fadeSlideIn 200ms ease-out;
+}
+
+/* Popover/dropdown appear — same fade+scale as the shared Dialog primitive
+   (data-[state=open]:zoom-in-95 fade-in-0), for custom popovers that don't go
+   through that component (e.g. FloatingNav's dock popover). */
+@keyframes popoverIn {
+  from { opacity: 0; transform: scale(0.96) translateY(4px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+.animate-popover-in {
+  animation: popoverIn 200ms cubic-bezier(0.23, 1, 0.32, 1);
+  transform-origin: bottom center;
+}
+
 /* ── Accessibility: reduced-motion ── */
 @media (prefers-reduced-motion: reduce) {
   *,
