@@ -36,16 +36,29 @@ export function useVirtualBrowser(isOwner: boolean) {
     const onStopped = () => { setActive(false); setFrame(null); };
     const onError = (data: { message: string }) => setError(data.message);
 
+    // Catch-up: ROOM_JOINED now carries a `vb` snapshot (services/watch-party
+    // getSessionSnapshot) for whoever joins/refreshes AFTER the owner already started a
+    // session — the one-shot VB_STARTED broadcast at start time never reaches them otherwise,
+    // which is exactly the bug where a member saw the old broken video instead of the stream.
+    const onRoomJoined = (data: { vb?: { url: string; width: number; height: number } | null }) => {
+      if (data.vb) {
+        setActive(true);
+        setDimensions({ width: data.vb.width, height: data.vb.height });
+      }
+    };
+
     socket.on(SERVER_EVENTS.VB_STARTED, onStarted);
     socket.on(SERVER_EVENTS.VB_FRAME, onFrame);
     socket.on(SERVER_EVENTS.VB_STOPPED, onStopped);
     socket.on(SERVER_EVENTS.VB_ERROR, onError);
+    socket.on(SERVER_EVENTS.ROOM_JOINED, onRoomJoined);
 
     return () => {
       socket.off(SERVER_EVENTS.VB_STARTED, onStarted);
       socket.off(SERVER_EVENTS.VB_FRAME, onFrame);
       socket.off(SERVER_EVENTS.VB_STOPPED, onStopped);
       socket.off(SERVER_EVENTS.VB_ERROR, onError);
+      socket.off(SERVER_EVENTS.ROOM_JOINED, onRoomJoined);
     };
   }, [socket, isConnected]);
 

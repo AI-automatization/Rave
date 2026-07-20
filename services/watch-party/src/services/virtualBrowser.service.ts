@@ -27,6 +27,7 @@ interface VBSession {
   page: Page;
   cdp: CDPSession;
   ownerId: string;
+  url: string;
 }
 
 const sessions = new Map<string, VBSession>(); // roomId -> session
@@ -41,6 +42,16 @@ export function hasSession(roomId: string): boolean {
 
 export function getSessionOwner(roomId: string): string | undefined {
   return sessions.get(roomId)?.ownerId;
+}
+
+// Catch-up snapshot for a client joining/reconnecting AFTER the owner already started a
+// session — without this, ROOM_JOINED had no way to tell a fresh client "a virtual browser is
+// already running", so anyone who joined/refreshed post-start never received the one-shot
+// VB_STARTED broadcast and just saw the old, now-not-actually-active video player instead.
+export function getSessionSnapshot(roomId: string): { url: string; width: number; height: number; ownerId: string } | null {
+  const s = sessions.get(roomId);
+  if (!s) return null;
+  return { url: s.url, width: VB_VIEWPORT.width, height: VB_VIEWPORT.height, ownerId: s.ownerId };
 }
 
 export async function startSession(
@@ -80,7 +91,7 @@ export async function startSession(
     everyNthFrame: 1,
   });
 
-  sessions.set(roomId, { browser, context, page, cdp, ownerId });
+  sessions.set(roomId, { browser, context, page, cdp, ownerId, url });
 
   try {
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20_000 });

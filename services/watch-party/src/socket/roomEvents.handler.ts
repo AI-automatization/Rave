@@ -5,7 +5,7 @@ import { SERVER_EVENTS, CLIENT_EVENTS } from '@shared/constants/socketEvents';
 import { JwtPayload, VideoPlatform } from '@shared/types';
 import { recordWatchHistoryInternal } from '@shared/utils/serviceClient';
 import { bufferTimeouts, resumeBufferedRoom } from './videoEvents.handler';
-import { stopSession } from '../services/virtualBrowser.service';
+import { stopSession, getSessionSnapshot } from '../services/virtualBrowser.service';
 
 interface AuthenticatedSocket extends Socket {
   user: JwtPayload;
@@ -61,7 +61,12 @@ export const registerRoomEvents = (
       // Mark as recent joiner — 30s grace: their buffering won't pause the room
       await watchPartyService.trackJoin(data.roomId, userId);
 
-      socket.emit(SERVER_EVENTS.ROOM_JOINED, { room, syncState });
+      // Catch-up: if the owner already started a virtual browser before this client joined
+      // (or the client just refreshed), it must find out NOW — the one-shot VB_STARTED
+      // broadcast at start time only reaches whoever was already in the room at that instant.
+      const vb = getSessionSnapshot(data.roomId);
+
+      socket.emit(SERVER_EVENTS.ROOM_JOINED, { room, syncState, vb });
       socket.to(data.roomId).emit(SERVER_EVENTS.MEMBER_JOINED, { userId });
 
       logger.info('Socket joined room', { userId, roomId: data.roomId });
@@ -255,8 +260,9 @@ export const registerRoomEvents = (
       authSocket.roomId = data.roomId;
 
       const syncState = await watchPartyService.getSyncState(data.roomId);
+      const vb = getSessionSnapshot(data.roomId);
 
-      socket.emit(SERVER_EVENTS.ROOM_JOINED, { room, syncState });
+      socket.emit(SERVER_EVENTS.ROOM_JOINED, { room, syncState, vb });
 
       // Notify room members that admin is watching
       socket.to(data.roomId).emit(SERVER_EVENTS.ADMIN_MONITORING, {
