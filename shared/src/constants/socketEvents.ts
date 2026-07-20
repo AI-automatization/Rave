@@ -56,6 +56,13 @@ export const SERVER_EVENTS = Object.freeze({
   DM_MESSAGE: 'dm:message',
   DM_READ:    'dm:read',
 
+  // Kosmi-style shared virtual browser: server runs a real headless Chromium page (Playwright
+  // CDP screencast), owner controls it, JPEG frames broadcast to every room member.
+  VB_STARTED: 'vb:started',
+  VB_FRAME:   'vb:frame',
+  VB_STOPPED: 'vb:stopped',
+  VB_ERROR:   'vb:error',
+
   ERROR: 'error',
 } as const);
 
@@ -102,6 +109,11 @@ export const CLIENT_EVENTS = Object.freeze({
 
   DM_SEND: 'dm:send',
   DM_READ_UNTIL: 'dm:read_until',
+
+  // Kosmi-style shared virtual browser (owner-only)
+  VB_START: 'vb:start',
+  VB_INPUT: 'vb:input',
+  VB_STOP:  'vb:stop',
 } as const);
 
 export type ServerEvent = (typeof SERVER_EVENTS)[keyof typeof SERVER_EVENTS];

@@ -5,6 +5,7 @@ import { SERVER_EVENTS, CLIENT_EVENTS } from '@shared/constants/socketEvents';
 import { JwtPayload, VideoPlatform } from '@shared/types';
 import { recordWatchHistoryInternal } from '@shared/utils/serviceClient';
 import { bufferTimeouts, resumeBufferedRoom } from './videoEvents.handler';
+import { stopSession } from '../services/virtualBrowser.service';
 
 interface AuthenticatedSocket extends Socket {
   user: JwtPayload;
@@ -110,6 +111,7 @@ export const registerRoomEvents = (
     try {
       const result = await watchPartyService.leaveRoom(userId, roomId);
       if (result.closed) {
+        await stopSession(roomId);
         io.to(roomId).emit(SERVER_EVENTS.ROOM_CLOSED, { reason: 'owner_left' });
       } else if (result.newOwnerId) {
         // Update cached ownerId on all sockets in the room so video events skip DB
@@ -133,6 +135,7 @@ export const registerRoomEvents = (
             void (async () => {
               try {
                 await watchPartyService.closeRoomBySystem(roomId);
+                await stopSession(roomId);
                 io.to(roomId).emit(SERVER_EVENTS.ROOM_CLOSED, { reason: 'inactivity' });
                 logger.info('Room auto-closed after 5 minutes of inactivity', { roomId });
               } catch (e) {

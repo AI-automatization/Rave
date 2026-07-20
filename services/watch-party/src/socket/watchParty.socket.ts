@@ -13,6 +13,8 @@ import { registerVoiceEvents } from './voiceEvents.handler';
 import { registerMeshHandlers } from './mesh.handlers';
 import { registerReactionEvents } from './reactionEvents.handler';
 import { registerDMEvents } from './dmEvents.handler';
+import { registerVBEvents } from './vbEvents.handler';
+import { stopSession, stopAllSessions } from '../services/virtualBrowser.service';
 
 interface AuthenticatedSocket extends Socket {
   user: JwtPayload;
@@ -63,6 +65,7 @@ export const registerWatchPartySocket = (io: SocketServer, watchPartyService: Wa
   // On startup: close rooms that have been inactive for more than 30 minutes (not ALL rooms)
   void watchPartyService.closeInactiveRooms(30).then((ids) => {
     for (const roomId of ids) {
+      void stopSession(roomId);
       io.to(roomId).emit(SERVER_EVENTS.ROOM_CLOSED, { reason: 'inactivity' });
     }
     if (ids.length > 0) logger.info('Startup: closed stale rooms', { count: ids.length });
@@ -73,6 +76,7 @@ export const registerWatchPartySocket = (io: SocketServer, watchPartyService: Wa
     try {
       const closedIds = await watchPartyService.closeInactiveRooms(INACTIVE_THRESHOLD_MINUTES);
       for (const roomId of closedIds) {
+        void stopSession(roomId);
         io.to(roomId).emit(SERVER_EVENTS.ROOM_CLOSED, { reason: 'inactivity' });
       }
       await watchPartyService.purgeEndedRooms(60);
@@ -81,9 +85,10 @@ export const registerWatchPartySocket = (io: SocketServer, watchPartyService: Wa
     }
   }, INACTIVE_CHECK_INTERVAL_MS);
 
-  // Clean up on process exit
-  process.on('SIGTERM', () => clearInterval(cleanupInterval));
-  process.on('SIGINT',  () => clearInterval(cleanupInterval));
+  // Clean up on process exit — also close any running Chromium sessions so a redeploy/restart
+  // doesn't leak browser processes.
+  process.on('SIGTERM', () => { clearInterval(cleanupInterval); void stopAllSessions(); });
+  process.on('SIGINT',  () => { clearInterval(cleanupInterval); void stopAllSessions(); });
 
   // #45 — connection rate limit middleware (Redis-backed, shared across instances)
   io.use(async (socket: Socket, next) => {
@@ -143,6 +148,7 @@ export const registerWatchPartySocket = (io: SocketServer, watchPartyService: Wa
     registerMeshHandlers(io, socket, authSocket);
     registerReactionEvents(io, socket, authSocket, redis);
     registerDMEvents(io, socket);
+    registerVBEvents(io, socket, authSocket, watchPartyService);
 
     // DISCONNECT — do NOT remove user from members (allows reconnect).
     // Only clean up voice and notify others. Explicit leave happens via room:leave event or HTTP API.

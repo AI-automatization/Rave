@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import { MessageCircle, Users as UsersIcon, ListVideo, X, ChevronRight, Loader2, Play } from 'lucide-react';
+import { MessageCircle, Users as UsersIcon, ListVideo, X, ChevronRight, Loader2, Play, Globe } from 'lucide-react';
 import { useWatchParty } from '@/hooks/use-watch-party';
+import { useVirtualBrowser } from '@/hooks/use-virtual-browser';
 import { VideoPlayer } from '@/components/party/VideoPlayer';
+import { VirtualBrowserPlayer } from '@/components/party/VirtualBrowserPlayer';
 import { ChatPanel } from '@/components/party/ChatPanel';
 import { MemberList } from '@/components/party/MemberList';
 import { RoomHeader } from '@/components/party/RoomHeader';
@@ -181,6 +183,15 @@ export function RoomContent({ roomId }: Props) {
   const currentUser = useAuthStore((s) => s.user);
   const isOwner = !!(room && currentUser && room.ownerId === currentUser._id);
 
+  // Kosmi-style shared virtual browser — owner opens a URL in a server-side headless browser,
+  // everyone in the room watches the same live stream. `vbActive` is broadcast-driven (true for
+  // EVERY member the instant the owner starts a session) — `showVBPanel` is purely local, lets
+  // the owner reveal the "enter a URL" form before anything is actually running yet.
+  const { frame: vbFrame, active: vbActive, dimensions: vbDimensions, error: vbError, start: vbStart, stop: vbStop, sendInput: vbSendInput } = useVirtualBrowser(isOwner);
+  const [showVBPanel, setShowVBPanel] = useState(false);
+  const showVB = vbActive || (isOwner && showVBPanel);
+  const handleVBStop = () => { vbStop(); setShowVBPanel(false); };
+
   // Pre-load room via REST immediately — don't wait 2-3s for socket ROOM_JOINED
   useEffect(() => {
     let mounted = true;
@@ -201,14 +212,37 @@ export function RoomContent({ roomId }: Props) {
       <div className="flex flex-1 overflow-hidden">
         {/* Left: Video */}
         <div className="flex-1 flex flex-col p-4 gap-3 min-w-0">
-          <VideoPlayer
-            onPlay={sendPlay}
-            onPause={sendPause}
-            onSeek={sendSeek}
-            onHeartbeat={sendHeartbeat}
-            onBufferStart={sendBufferStart}
-            onBufferEnd={sendBufferEnd}
-          />
+          {showVB ? (
+            <VirtualBrowserPlayer
+              isOwner={isOwner}
+              frame={vbFrame}
+              dimensions={vbDimensions}
+              error={vbError}
+              start={vbStart}
+              stop={handleVBStop}
+              sendInput={vbSendInput}
+            />
+          ) : (
+            <VideoPlayer
+              onPlay={sendPlay}
+              onPause={sendPause}
+              onSeek={sendSeek}
+              onHeartbeat={sendHeartbeat}
+              onBufferStart={sendBufferStart}
+              onBufferEnd={sendBufferEnd}
+            />
+          )}
+
+          {isOwner && !showVB && (
+            <button
+              onClick={() => { trackClick('room:open_vb_panel'); setShowVBPanel(true); }}
+              className="self-start flex items-center gap-1.5 px-3 h-8 rounded-lg text-xs font-medium text-zinc-400 hover:text-white border border-white/[0.08] hover:border-white/[0.16] transition-colors cursor-pointer"
+            >
+              <Globe size={13} />
+              Виртуальный браузер
+            </button>
+          )}
+
           <EmojiReactions onSend={sendEmoji} />
         </div>
 

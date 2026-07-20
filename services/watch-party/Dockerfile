@@ -39,6 +39,14 @@ COPY --from=builder /app/services/watch-party/dist ./services/watch-party/dist
 
 RUN ln -s /app/shared/dist /app/node_modules/@shared
 
+# Playwright/Chromium for the shared virtual browser feature — same Alpine setup already
+# proven working in services/content/Dockerfile (T-S043). System chromium avoids downloading
+# the ~150MB browser bundle; chromium-driver doesn't exist in Alpine, only chromium is needed.
+RUN apk add --no-cache chromium \
+    nss freetype harfbuzz ca-certificates ttf-freefont
+ENV PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium-browser
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S cinesync -u 1001 && \
     mkdir -p /app/services/watch-party/logs && \
