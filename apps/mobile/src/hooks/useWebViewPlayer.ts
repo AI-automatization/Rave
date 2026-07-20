@@ -188,14 +188,19 @@ export function useWebViewPlayer(
           }
           break;
         case 'YT_EMBED_ERROR':
-          // The video owner has disabled embedding for this video (codes 101/150/152) — show
-          // the "can't extract, try another" fallback. We deliberately do NOT attempt any
-          // workaround (e.g. spoofing the official YouTube app's API) here: that's a Play
-          // Store ToS-circumvention risk on Google's own platform (see T-S123).
-          if (data.code === 150 || data.code === 152 || data.code === 101) {
-            setLoading(false);
-            setYtEmbedBlocked(true);
-          }
+          // Any YouTube playback error now shows the "can't extract, try another" fallback —
+          // previously only 101/150/152 (owner disabled embedding) did, silently leaving codes
+          // 2 (invalid id) / 5 (html5 player error) / 100 (removed or private) as a permanent
+          // black screen with no spinner and no way out (loading starts false for html mode,
+          // see LOAD_TIMEOUT_MS comment above). Code -1 is our own synthetic code (webviewYouTube.ts)
+          // for when the iframe_api script itself fails to load or never calls
+          // onYouTubeIframeAPIReady within 8s — that case used to rely purely on the outer 12s
+          // LOAD_TIMEOUT_MS with zero explanation; this makes it immediate and explicit.
+          // We deliberately do NOT attempt any workaround (e.g. spoofing the official YouTube
+          // app's API) here: that's a Play Store ToS-circumvention risk on Google's own
+          // platform (see T-S123).
+          setLoading(false);
+          setYtEmbedBlocked(true);
           break;
       }
     } catch { /* ignore */ }

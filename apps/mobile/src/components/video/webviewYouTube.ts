@@ -15,19 +15,31 @@ export function buildYouTubeHtml(videoId: string): string {
 </head>
 <body>
   <div id="yt"></div>
-  <script src="https://www.youtube.com/iframe_api" async></script>
+  <script src="https://www.youtube.com/iframe_api" async onerror="onIframeApiScriptError()"></script>
   <script>
     var ytPlayer = null;
     var progressTimer = null;
     // Command queue: if sync commands arrive before IFrame API is ready
     var pendingSeek = null;
     var pendingPlay = null; // null=no cmd, true=play, false=pause
+    var apiReadyFired = false;
 
     function rn(obj) {
       if (window.ReactNativeWebView) {
         window.ReactNativeWebView.postMessage(JSON.stringify(obj));
       }
     }
+
+    // The RN-side LOAD_TIMEOUT_MS (useWebViewPlayer.ts) only fires an error if NOT ONE
+    // message arrived within 12s — but a viewer stuck here previously got silence forever
+    // with no visible feedback (permanent black screen, no spinner, no retry button) whenever
+    // the iframe_api script failed outright (blocked network/DNS) or loaded but never called
+    // onYouTubeIframeAPIReady. Surface both cases explicitly instead of relying on total silence.
+    function onIframeApiScriptError() {
+      if (apiReadyFired) return;
+      rn({ type: 'YT_EMBED_ERROR', code: -1 });
+    }
+    var apiLoadTimeout = setTimeout(onIframeApiScriptError, 8000);
 
     // Declare _csVideo GLOBALLY so injectWithRetry can find it even before IFrame ready
     window._csVideo = {
@@ -52,6 +64,8 @@ export function buildYouTubeHtml(videoId: string): string {
     };
 
     function onYouTubeIframeAPIReady() {
+      apiReadyFired = true;
+      clearTimeout(apiLoadTimeout);
       ytPlayer = new YT.Player('yt', {
         videoId: '${videoId}',
         playerVars: {

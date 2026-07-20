@@ -4,6 +4,38 @@
 
 ---
 
+### F-250 | T-S138 | Android: YouTube xonasida zritel uchun abadiy qora ekran
+
+- **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-20  **Model:** sonnet
+- **Sabab:** Foydalanuvchi skrinshot yubordi — Android APK'da zritel sifatida YouTube xonasiga
+  kirganda video umuman ko'rinmadi, faqat abadiy qora ekran ("iframe youtube не пришел на
+  андроид").
+- **Root cause (kod orqali topildi):** `useWebViewPlayer.ts`da YouTube uchun `loading` boshlang'ich
+  holati shartsiz `false` (html-rejim spinner ko'rsatmaydi), va `YT_EMBED_ERROR` handler FAQAT
+  kod 101/150/152 (owner embedding'ni taqiqlagan) uchun `ytEmbedBlocked` xato ekranini ko'rsatardi.
+  Kod 2 (noto'g'ri videoId)/5 (html5 pleer xatosi)/100 (o'chirilgan/xususiy video) kelganda —
+  hech qanday UI ko'rsatilmasdi: spinner yo'q (boshida ham yo'q edi), xato ekrani yo'q — natijada
+  foydalanuvchi abadiy qora ekranda qolardi. Veb tomonidagi `YouTubePlayer.tsx` esa BARCHA
+  kodlarni (2/5/100/101/150) qamrab olgan edi — mobil bilan parite yo'q edi.
+  Qo'shimcha topilma: agar `https://www.youtube.com/iframe_api` skripti tarmoq/DNS
+  bloklanishi sababli umuman yuklanmasa yoki yuklansa-da `onYouTubeIframeAPIReady` hech qachon
+  chaqirilmasa — hech qanday WebView xabari yuborilmaydi, faqat RN tomonidagi tashqi 12s
+  `LOAD_TIMEOUT_MS` orqali "connectionError" ko'rsatilishi kerak edi, lekin buning uchun ANIQ
+  hech qanday tashxis/signal yo'q edi.
+- **Yechim:**
+  - `webviewYouTube.ts` — `iframe_api` skript tegiga `onerror` qo'shildi + ichki 8s
+    `apiLoadTimeout` (agar `onYouTubeIframeAPIReady` shu vaqt ichida chaqirilmasa) — ikkalasi ham
+    yangi sintetik kod `-1` bilan `YT_EMBED_ERROR` yuboradi (tarmoq bloklangan/skript
+    ishlamagan holatlar uchun aniq signal, sukut emas).
+  - `useWebViewPlayer.ts` — `YT_EMBED_ERROR` handler endi HAR QANDAY kod uchun
+    `ytEmbedBlocked` xato ekranini (+ retry) ko'rsatadi, faqat 101/150/152 emas.
+- **Tekshiruv:** `tsc --noEmit` (apps/mobile) — faqat mavjud fon xatoligi
+  (`LanguageTransition.tsx`, stash bilan solishtirib tasdiqlandi), yangi xatolik yo'q.
+- **Cheklov:** bu videoning ANIQ qaysi xato kodi bilan muvaffaqiyatsiz bo'lganini tasdiqlaydigan
+  jonli device log (adb logcat) hali yo'q — fix qora ekranni ko'rinadigan xato+retry ekraniga
+  aylantiradi barcha holatlar uchun, lekin asl tarmoq/video sababi hali diagnostika qilinmagan.
+  Real qurilmada tekshirish keyingi qadam.
+
 ### F-249 | Web: embedding taqiqlangan YouTube video butun xonani "Something went wrong"ga qulatardi
 
 - **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-20  **Model:** sonnet
