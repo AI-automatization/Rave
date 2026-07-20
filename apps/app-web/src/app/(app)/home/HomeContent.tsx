@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Plus, LogIn, WifiOff, RefreshCw, Play, TrendingUp } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 import { useTranslations } from 'next-intl';
 import { useRooms } from '@/hooks/use-rooms';
@@ -220,11 +221,18 @@ export function HomeContent() {
 
       {/* ── LIVE NOW ── */}
       {hasRooms && activeRooms.length > 0 && (
-        <section className="flex flex-col gap-4 animate-fade-slide-in">
+        <section className="flex flex-col gap-4">
           <SectionHeader label="Live Now" count={activeRooms.length} live />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {activeRooms.map((room) => (
-              <RoomCard key={room._id} room={room} />
+            {activeRooms.map((room, i) => (
+              <motion.div
+                key={room._id}
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, ease: 'easeOut', delay: Math.min(i * 0.04, 0.24) }}
+              >
+                <RoomCard room={room} />
+              </motion.div>
             ))}
           </div>
         </section>
@@ -232,11 +240,18 @@ export function HomeContent() {
 
       {/* ── ROOMS ── */}
       {hasRooms && idleRooms.length > 0 && (
-        <section className="flex flex-col gap-4 animate-fade-slide-in">
+        <section className="flex flex-col gap-4">
           <SectionHeader label="Rooms" count={idleRooms.length} />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {idleRooms.map((room) => (
-              <RoomCard key={room._id} room={room} />
+            {idleRooms.map((room, i) => (
+              <motion.div
+                key={room._id}
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, ease: 'easeOut', delay: Math.min(i * 0.04, 0.24) }}
+              >
+                <RoomCard room={room} />
+              </motion.div>
             ))}
           </div>
         </section>

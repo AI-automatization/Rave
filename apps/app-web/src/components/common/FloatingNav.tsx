@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Home, Users, MessageCircle, User, Bell, Settings, Headphones, LogOut } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import { useUnreadCount } from '@/hooks/use-unread-count';
@@ -179,18 +180,32 @@ export function FloatingNav() {
           ref={dockRef}
           className="relative flex items-center gap-1 px-2 py-2 rounded-2xl glass-nav border border-white/[0.08] shadow-2xl pointer-events-auto"
         >
-          {popover && (
-            <div className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 rounded-2xl glass-nav border border-white/[0.08] shadow-2xl overflow-hidden max-h-[70vh] flex flex-col animate-popover-in">
-              {popover === 'friends' && (
-                <div className="w-72 flex-1 min-h-0 flex flex-col">
-                  <FriendsPanel />
-                </div>
-              )}
-              {popover === 'account' && (
-                <AccountPopoverContent unreadNotifications={unreadNotifications} onNavigate={() => setPopover(null)} />
-              )}
-            </div>
-          )}
+          {/* AnimatePresence gives this a real exit animation, not just enter — plain CSS
+              can only animate an element INTO existence, never its removal (there's no hook
+              for "about to unmount"). This is the textbook case for framer-motion: everything
+              else in the app (Dialog/Toast) already gets enter+exit for free from Radix's own
+              data-state mechanism, but this popover is hand-rolled conditional rendering. */}
+          <AnimatePresence>
+            {popover && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.96, y: 4 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.96, y: 4 }}
+                transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
+                style={{ transformOrigin: 'bottom center' }}
+                className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 rounded-2xl glass-nav border border-white/[0.08] shadow-2xl overflow-hidden max-h-[70vh] flex flex-col"
+              >
+                {popover === 'friends' && (
+                  <div className="w-72 flex-1 min-h-0 flex flex-col">
+                    <FriendsPanel />
+                  </div>
+                )}
+                {popover === 'account' && (
+                  <AccountPopoverContent unreadNotifications={unreadNotifications} onNavigate={() => setPopover(null)} />
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <DockIcon href="/home" label={t('home')} icon={Home} active={pathname.startsWith('/home')} />
           <DockIcon
