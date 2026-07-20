@@ -8,6 +8,7 @@ import { Home, Users, MessageCircle, User, Bell, Settings, Headphones, LogOut, C
 import { useAuthStore } from '@/store/auth.store';
 import { useUnreadCount } from '@/hooks/use-unread-count';
 import { trackClick } from '@/lib/analytics';
+import { OnlineFriendsWidget } from './OnlineFriendsWidget';
 
 const PALETTE = ['#7C3AED', '#2563EB', '#059669', '#D97706', '#DC2626', '#DB2777', '#0891B2'];
 function avatarColor(id: string): string {
@@ -114,6 +115,9 @@ export function AppSidebar() {
               <SubItem href="/settings" label={t('settings')} icon={<Settings size={13} />} pathname={pathname} />
             </div>
           )}
+
+          <div className="my-2 h-px bg-white/[0.05]" />
+          <OnlineFriendsWidget />
         </nav>
 
         {/* User footer */}

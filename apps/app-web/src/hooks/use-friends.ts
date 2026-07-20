@@ -10,6 +10,9 @@ export function useFriends() {
       const res = await userApi.getFriends();
       return Array.isArray(res.data) ? res.data : [];
     },
+    // isOnline has no push/socket updates on web yet — poll so the sidebar widget's
+    // presence dots don't go stale for the length of a whole session.
+    refetchInterval: 20000,
   });
 }
 
