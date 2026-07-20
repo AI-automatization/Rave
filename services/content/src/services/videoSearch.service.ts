@@ -1,6 +1,15 @@
 // CineSync — Video Search Service
 // Searches YouTube (official Data API v3, falls back to yt-dlp if no key), Rutube (API),
-// VK Video (yt-dlp) in parallel
+// VK Video (yt-dlp), Dailymotion (official public API, no key required), PeerTube (SepiaSearch —
+// the real cross-instance PeerTube search engine at joinpeertube.org, no key required) and
+// YouTube Live (same Data API key, eventType=live) in parallel.
+//
+// Twitch/Vimeo were considered too (both have official search APIs) but both require registering
+// a developer app for OAuth client-credentials (TWITCH_CLIENT_ID/SECRET, VIMEO_ACCESS_TOKEN) —
+// nothing to fake here without those, so they're not wired up. TikTok has no usable public search
+// API without a restrictive partner review process. Trovo/Cinerama/Web have no video-level search
+// API at all (Cinerama is a small standalone site, Web is an arbitrary-URL fallback) — those
+// platforms keep the popup-browse-then-paste-link flow in CreateRoomDialog.tsx.
 
 import { spawn } from 'child_process';
 import { fetch } from 'undici';
@@ -15,7 +24,7 @@ export interface VideoSearchItem {
   title: string;
   thumbnail: string;
   url: string;
-  platform: 'youtube' | 'rutube' | 'vk';
+  platform: 'youtube' | 'rutube' | 'vk' | 'dailymotion' | 'peertube' | 'live';
   duration?: number;
   viewCount?: number;
 }
@@ -204,6 +213,117 @@ async function searchRutube(query: string): Promise<VideoSearchItem[]> {
   }
 }
 
+// ── Dailymotion — official public search API, no key required ────────────────
+
+interface DailymotionSearchResponse {
+  list?: Array<{
+    id?: string;
+    title?: string;
+    thumbnail_url?: string;
+    duration?: number;
+    views_total?: number;
+  }>;
+}
+
+async function searchDailymotion(query: string): Promise<VideoSearchItem[]> {
+  try {
+    const url = `https://api.dailymotion.com/videos?search=${encodeURIComponent(query)}&fields=id,title,thumbnail_url,duration,views_total&limit=${PER_PLATFORM}`;
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), SEARCH_TIMEOUT_MS);
+    const res = await fetch(url, { signal: ctrl.signal });
+    clearTimeout(timer);
+
+    if (!res.ok) return [];
+    const data = await res.json() as DailymotionSearchResponse;
+    return (data.list ?? [])
+      .filter((item) => item.id && item.title)
+      .map((item) => ({
+        title: item.title!,
+        thumbnail: item.thumbnail_url ?? '',
+        url: `https://www.dailymotion.com/video/${item.id}`,
+        platform: 'dailymotion' as const,
+        duration: item.duration,
+        viewCount: item.views_total,
+      }));
+  } catch {
+    return [];
+  }
+}
+
+// ── PeerTube — via SepiaSearch (search.joinpeertube.org), the real cross-instance search
+// engine for the whole federated network. PeerTube itself has no single global search — each
+// instance only searches its own catalog — so SepiaSearch (run by the PeerTube project itself)
+// is the only way to search "PeerTube" as a platform rather than one arbitrary instance. No key
+// required. Its `url` field is already the exact /videos/watch/{uuid} shape our own
+// extractPeerTubeIds (apps/app-web + apps/mobile) expects. ─────────────────────
+
+interface SepiaSearchResponse {
+  data?: Array<{
+    name?: string;
+    url?: string;
+    thumbnailUrl?: string;
+    duration?: number;
+    views?: number;
+  }>;
+}
+
+async function searchPeerTube(query: string): Promise<VideoSearchItem[]> {
+  try {
+    const url = `https://search.joinpeertube.org/api/v1/search/videos?search=${encodeURIComponent(query)}&count=${PER_PLATFORM}`;
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), SEARCH_TIMEOUT_MS);
+    const res = await fetch(url, { signal: ctrl.signal });
+    clearTimeout(timer);
+
+    if (!res.ok) return [];
+    const data = await res.json() as SepiaSearchResponse;
+    return (data.data ?? [])
+      .filter((item) => item.url && item.name)
+      .map((item) => ({
+        title: item.name!,
+        thumbnail: item.thumbnailUrl ?? '',
+        url: item.url!,
+        platform: 'peertube' as const,
+        duration: item.duration,
+        viewCount: item.views,
+      }));
+  } catch {
+    return [];
+  }
+}
+
+// ── YouTube Live — same Data API key as regular YouTube search, eventType=live filters to
+// channels currently streaming. Skipped entirely without a key (no yt-dlp fallback attempted —
+// yt-dlp has no dedicated "live search" mode worth relying on). ──────────────
+
+async function searchYouTubeLive(query: string): Promise<VideoSearchItem[]> {
+  if (!YOUTUBE_API_KEY) return [];
+  try {
+    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&eventType=live&maxResults=${PER_PLATFORM}&q=${encodeURIComponent(query)}&key=${YOUTUBE_API_KEY}`;
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), SEARCH_TIMEOUT_MS);
+    const res = await fetch(url, { signal: ctrl.signal });
+    clearTimeout(timer);
+
+    if (!res.ok) {
+      logger.warn('YouTube Live search failed', { status: res.status });
+      return [];
+    }
+    const data = await res.json() as YouTubeSearchResponse;
+    return (data.items ?? [])
+      .filter((item) => item.id?.videoId && item.snippet?.title)
+      .map((item) => ({
+        title: item.snippet!.title!,
+        thumbnail: item.snippet!.thumbnails?.medium?.url ?? item.snippet!.thumbnails?.default?.url ?? '',
+        url: `https://www.youtube.com/watch?v=${item.id!.videoId}`,
+        platform: 'live' as const,
+      }));
+  } catch (e) {
+    logger.warn('YouTube Live search error', { error: (e as Error).message });
+    return [];
+  }
+}
+
 // ── Main search ──────────────────────────────────────────────────────────────
 
 export async function searchVideos(query: string): Promise<VideoSearchItem[]> {
@@ -212,23 +332,32 @@ export async function searchVideos(query: string): Promise<VideoSearchItem[]> {
 
   logger.info('video-search', { query: trimmed });
 
-  const [youtube, rutube, vk] = await Promise.allSettled([
+  const [youtube, rutube, vk, dailymotion, peertube, live] = await Promise.allSettled([
     YOUTUBE_API_KEY ? searchYouTubeOfficial(trimmed) : runYtDlpSearch(trimmed),
     searchRutube(trimmed),
     runYtDlpVkSearch(trimmed),
+    searchDailymotion(trimmed),
+    searchPeerTube(trimmed),
+    searchYouTubeLive(trimmed),
   ]);
 
-  const ytResults  = youtube.status  === 'fulfilled' ? youtube.value  : [];
-  const rtResults  = rutube.status   === 'fulfilled' ? rutube.value   : [];
-  const vkResults  = vk.status       === 'fulfilled' ? vk.value       : [];
+  const results = [
+    youtube.status     === 'fulfilled' ? youtube.value     : [],
+    rutube.status      === 'fulfilled' ? rutube.value      : [],
+    vk.status          === 'fulfilled' ? vk.value          : [],
+    dailymotion.status === 'fulfilled' ? dailymotion.value : [],
+    peertube.status    === 'fulfilled' ? peertube.value    : [],
+    live.status        === 'fulfilled' ? live.value        : [],
+  ];
 
-  // Interleave: yt, rt, vk, yt, rt, vk ...
+  // Interleave round-robin across every platform that returned results, instead of one
+  // platform (e.g. YouTube) dominating the top of the list just by returning more matches.
   const merged: VideoSearchItem[] = [];
-  const max = Math.max(ytResults.length, rtResults.length, vkResults.length);
+  const max = Math.max(...results.map((r) => r.length));
   for (let i = 0; i < max; i++) {
-    if (ytResults[i]) merged.push(ytResults[i]);
-    if (rtResults[i]) merged.push(rtResults[i]);
-    if (vkResults[i]) merged.push(vkResults[i]);
+    for (const platformResults of results) {
+      if (platformResults[i]) merged.push(platformResults[i]);
+    }
   }
 
   return merged;

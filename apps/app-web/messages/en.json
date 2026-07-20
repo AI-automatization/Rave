@@ -596,6 +596,7 @@
     "searchLabel": "Or search for a video",
     "searchPlaceholder": "Video title...",
     "searchNoResults": "No results found",
+    "searchAvailable": "In-app search available",
     "sourceTitle": "Choose source",
     "sourcePaste": "Or paste a direct link",
     "noMedia": "Create without video",

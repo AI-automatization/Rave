@@ -272,18 +272,32 @@ function detectPlatform(url: string): Platform | null {
 }
 
 /* ── In-app search — mirrors mobile's contentApi.searchVideos (apps/mobile/src/api/content.api.ts).
-   Backend covers YouTube (official Data API v3)/Rutube/VK — other platforms still need a pasted
-   link, so their platform buttons keep the popup-window flow instead of focusing this input. ── */
+   Backend (services/content/src/services/videoSearch.service.ts) covers YouTube (official Data
+   API v3)/Rutube/VK/Dailymotion (official public API)/PeerTube (SepiaSearch)/YouTube Live —
+   Twitch/Vimeo would need their own registered OAuth app credentials we don't have, TikTok has no
+   usable public search API, and Trovo/Cinerama/Web have no video-level search API to call at all.
+   Those keep the popup-window-then-paste-link flow instead of focusing this input. ── */
 interface VideoSearchItem {
   title: string;
   thumbnail: string;
   url: string;
-  platform: 'youtube' | 'rutube' | 'vk';
+  platform: 'youtube' | 'rutube' | 'vk' | 'dailymotion' | 'peertube' | 'live';
   duration?: number;
   viewCount?: number;
 }
 
-const SEARCHABLE_PLATFORM_IDS = new Set(['youtube', 'rutube', 'vk']);
+const SEARCHABLE_PLATFORM_IDS = new Set(['youtube', 'rutube', 'vk', 'dailymotion', 'peertube', 'live']);
+
+// Idle-state brand tint, derived from each platform's own `color` hex — so the resting grid
+// tile carries a whisper of brand identity instead of looking identical (flat gray) for every
+// platform until hovered. Doesn't touch platform.bg/border (those stay the stronger hover/active
+// treatment already tuned per platform).
+function hexToRgba(hex: string, alpha: number): string {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!m) return `rgba(255,255,255,${alpha})`;
+  const [r, g, b] = [m[1], m[2], m[3]].map((h) => parseInt(h, 16));
+  return `rgba(${r},${g},${b},${alpha})`;
+}
 
 function fmtDuration(s: number | undefined): string | null {
   if (!s || !isFinite(s) || s <= 0) return null;
@@ -559,7 +573,9 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
               {!searchLoading && searchResults.length === 0 && (
                 <p className="text-center py-4 text-[12px] text-slate-500">{t('searchNoResults')}</p>
               )}
-              {!searchLoading && searchResults.map((item, idx) => (
+              {!searchLoading && searchResults.map((item, idx) => {
+                const itemPlatform = PLATFORMS.find(p => p.id === item.platform);
+                return (
                 <button
                   key={`${item.url}-${idx}`}
                   onClick={() => handleSelectSearchResult(item)}
@@ -578,10 +594,18 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[12px] text-slate-200 truncate leading-tight">{item.title}</p>
-                    <p className="text-[10px] text-slate-500 uppercase mt-0.5">{item.platform}</p>
+                    <div className="flex items-center gap-1 mt-0.5">
+                      {itemPlatform && (
+                        <span style={{ color: itemPlatform.color }} className="shrink-0 flex items-center">
+                          {itemPlatform.renderIcon(10)}
+                        </span>
+                      )}
+                      <p className="text-[10px] text-slate-500">{itemPlatform?.name ?? item.platform}</p>
+                    </div>
                   </div>
                 </button>
-              ))}
+                );
+              })}
             </div>
           )}
 
@@ -603,18 +627,25 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
             </p>
           )}
 
-          {/* Platform grid — 3 columns */}
+          {/* Platform grid — 3 columns. Idle tile now carries a faint wash of the platform's
+              own color (hexToRgba) instead of flat neutral gray for every platform alike —
+              hover/active still escalate to the stronger platform.bg/border already tuned per
+              platform. Small search-glyph badge marks which platforms search in-app (this dialog's
+              own search box) vs. which pop out a browser window to find + paste a link. */}
           <div className="grid grid-cols-3 gap-3">
             {PLATFORMS.map(platform => {
               const isActive = activePlatform?.id === platform.id;
+              const canSearch = SEARCHABLE_PLATFORM_IDS.has(platform.id);
+              const idleBg = hexToRgba(platform.color, 0.05);
+              const idleBorder = hexToRgba(platform.color, 0.16);
               return (
                 <button
                   key={platform.id}
                   onClick={() => { trackClick('create_room:platform', { platform: platform.id }); handlePlatformClick(platform); }}
-                  className="flex flex-col items-center gap-2.5 py-4 px-2 rounded-2xl border transition-all duration-150 active:scale-95 cursor-pointer"
+                  className="relative flex flex-col items-center gap-2.5 py-4 px-2 rounded-2xl border transition-all duration-150 active:scale-95 cursor-pointer"
                   style={{
-                    background: isActive ? platform.bg : 'rgba(255,255,255,0.03)',
-                    borderColor: isActive ? platform.border : 'rgba(255,255,255,0.06)',
+                    background: isActive ? platform.bg : idleBg,
+                    borderColor: isActive ? platform.border : idleBorder,
                   }}
                   onMouseEnter={e => {
                     if (!isActive) {
@@ -624,11 +655,19 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
                   }}
                   onMouseLeave={e => {
                     if (!isActive) {
-                      e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
-                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)';
+                      e.currentTarget.style.background = idleBg;
+                      e.currentTarget.style.borderColor = idleBorder;
                     }
                   }}
                 >
+                  {canSearch && (
+                    <span
+                      className="absolute top-2 right-2 flex items-center justify-center w-4 h-4 rounded-full bg-white/[0.06]"
+                      title={t('searchAvailable')}
+                    >
+                      <Search size={9} className="text-zinc-400" />
+                    </span>
+                  )}
                   <span style={{ color: platform.color }}>
                     {platform.renderIcon(32)}
                   </span>
