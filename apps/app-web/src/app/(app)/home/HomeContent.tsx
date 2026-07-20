@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, LogIn, WifiOff, RefreshCw, Play, TrendingUp } from 'lucide-react';
+import { Plus, LogIn, WifiOff, RefreshCw, Play, TrendingUp, Users, Tv } from 'lucide-react';
 import { motion, useReducedMotion } from 'framer-motion';
 
 import { useTranslations } from 'next-intl';
@@ -202,10 +202,14 @@ export function HomeContent() {
         </div>
       )}
 
-      {/* ── Empty state ── */}
+      {/* ── Empty state — was a huge p-12 box with just an icon/text/button floating in the
+          middle of a lot of dead space. Tightened the padding and filled the remaining room
+          with an actual 3-step "how it works" strip instead of empty air. ── */}
       {!isLoading && !isError && (!rooms || rooms.length === 0) && (
-        <div className="liquid-glass p-12 flex flex-col items-center gap-4 text-center">
-          <TrendingUp size={28} className="text-violet-400/40" />
+        <div className="liquid-glass p-8 flex flex-col items-center gap-4 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
+            <TrendingUp size={22} className="text-violet-400" />
+          </div>
           <div className="flex flex-col gap-1">
             <p className="text-white font-semibold text-base">{t('empty')}</p>
             <p className="text-zinc-500 text-sm max-w-xs">{t('emptyDesc')}</p>
@@ -217,6 +221,21 @@ export function HomeContent() {
             <Plus size={13} />
             {t('createFirst')}
           </button>
+
+          <div className="w-full max-w-sm grid grid-cols-3 gap-2 pt-5 mt-2 border-t border-white/[0.06]">
+            {[
+              { icon: Plus, label: t('step1') },
+              { icon: Users, label: t('step2') },
+              { icon: Tv, label: t('step3') },
+            ].map(({ icon: Icon, label }, i) => (
+              <div key={i} className="flex flex-col items-center gap-1.5">
+                <div className="w-8 h-8 rounded-full bg-white/[0.04] border border-white/[0.06] flex items-center justify-center">
+                  <Icon size={13} className="text-zinc-500" />
+                </div>
+                <p className="text-[10.5px] text-zinc-600 leading-tight">{label}</p>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

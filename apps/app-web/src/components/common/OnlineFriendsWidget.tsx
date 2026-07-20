@@ -23,7 +23,14 @@ export function FriendsPanel() {
   const router = useRouter();
   const { data: friends, isLoading } = useFriends();
 
+  // Was previously filtering down to ONLY online friends and showing "Друзей пока нет"
+  // (t('empty'), meant for zero friends total) whenever nobody happened to be online — wrong
+  // copy for someone who has real friends that are just offline right now, and it hid them
+  // entirely, which read as "friends missing" rather than "nobody's online". Show everyone,
+  // online sorted first, so the list always reflects reality.
   const online = (friends ?? []).filter((f) => f.isOnline);
+  const offline = (friends ?? []).filter((f) => !f.isOnline);
+  const sorted = [...online, ...offline];
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
@@ -58,38 +65,46 @@ export function FriendsPanel() {
           </div>
         )}
 
-        {!isLoading && online.length === 0 && (
+        {!isLoading && sorted.length === 0 && (
           <div className="flex flex-col items-center gap-1 py-6 px-2 text-center">
             <span className="w-1.5 h-1.5 rounded-full bg-zinc-700" />
             <p className="text-[12px] text-zinc-600 leading-snug">{t('empty')}</p>
           </div>
         )}
 
-        {!isLoading && online.length > 0 && (
+        {!isLoading && sorted.length > 0 && (
           <div className="flex flex-col gap-0.5">
-            {online.map((f) => {
+            {sorted.map((f) => {
               const color = avatarColor(f._id);
               return (
                 <button
                   key={f._id}
-                  onClick={() => { trackClick('sidebar:online_friend', { friendId: f._id }); router.push(`/messages?peer=${f._id}`); }}
-                  aria-label={`${t('online')}: ${f.username}`}
-                  className={`group flex items-center gap-2.5 px-1.5 h-10 rounded-lg text-[13px] text-zinc-300 hover:bg-white/[0.05] active:bg-white/[0.08] transition-colors w-full text-left cursor-pointer ${FOCUS_RING}`}
+                  onClick={() => { trackClick('sidebar:friend', { friendId: f._id, online: f.isOnline }); router.push(`/messages?peer=${f._id}`); }}
+                  aria-label={f.isOnline ? `${t('online')}: ${f.username}` : f.username}
+                  className={`group flex items-center gap-2.5 px-1.5 h-10 rounded-lg text-[13px] hover:bg-white/[0.05] active:bg-white/[0.08] transition-colors w-full text-left cursor-pointer ${FOCUS_RING} ${
+                    f.isOnline ? 'text-zinc-300' : 'text-zinc-500'
+                  }`}
                 >
-                  <div className="relative shrink-0">
+                  <div className={`relative shrink-0 ${f.isOnline ? '' : 'opacity-60'}`}>
                     <div
-                      className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white overflow-hidden ring-2 ring-emerald-400/40 group-hover:ring-emerald-400/70 transition-all"
+                      className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white overflow-hidden transition-all ${
+                        f.isOnline ? 'ring-2 ring-emerald-400/40 group-hover:ring-emerald-400/70' : ''
+                      }`}
                       style={{ background: f.avatar ? undefined : color }}
                     >
                       {f.avatar
                         ? <img src={f.avatar} alt="" className="w-full h-full object-cover" />
                         : (f.username?.[0]?.toUpperCase() ?? '?')}
                     </div>
-                    <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-[#0e0a20]" />
+                    {f.isOnline && (
+                      <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-[#0e0a20]" />
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="truncate font-medium leading-tight">{f.username}</p>
-                    <p className="text-[10.5px] text-emerald-500/80 leading-tight">{t('online')}</p>
+                    {f.isOnline && (
+                      <p className="text-[10.5px] text-emerald-500/80 leading-tight">{t('online')}</p>
+                    )}
                   </div>
                 </button>
               );
