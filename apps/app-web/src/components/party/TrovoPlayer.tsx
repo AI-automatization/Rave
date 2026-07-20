@@ -105,22 +105,26 @@ export function TrovoPlayer({ streamername, isOwner, onPlay, onPause }: Props) {
     return () => clearTimeout(clear);
   }, [ready, isOwner, syncState.isPlaying]);
 
-  if (error) {
-    return (
-      <div className="aspect-video bg-[#0A0A12] rounded-xl flex flex-col items-center justify-center gap-3 px-6 text-center">
-        <AlertCircle size={28} className="text-red-400" />
-        <p className="text-slate-300 text-sm font-medium">Не удалось загрузить видео</p>
-        <p className="text-slate-500 text-xs">{error}</p>
-      </div>
-    );
-  }
-
   return (
     <div className="relative aspect-video bg-black rounded-xl overflow-hidden">
+      {/* Unconditionally rendered — same fix as YouTubePlayer.tsx (2026-07-20): if
+          new Trovo.TrovoPlayer(hostId, ...) replaces this element with an iframe the way bare
+          YT.Player does (unconfirmed for Trovo specifically, but the same risky "JS constructor
+          on a plain div" shape), an early `if (error) return <different tree>` would make React
+          try to remove a node Trovo already replaced outside its knowledge — crashing with
+          "NotFoundError: Failed to execute 'removeChild' ... not a child of this node". Cheap
+          insurance either way: keep this div in the tree always, show error as an overlay. */}
       <div id={hostId} className="w-full h-full" />
-      {!ready && (
+      {!ready && !error && (
         <div className="absolute inset-0 flex items-center justify-center bg-[#0A0A12]/80 pointer-events-none">
           <Loader2 size={28} className="animate-spin text-violet-400" />
+        </div>
+      )}
+      {error && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center bg-[#0A0A12]">
+          <AlertCircle size={28} className="text-red-400" />
+          <p className="text-slate-300 text-sm font-medium">Не удалось загрузить видео</p>
+          <p className="text-slate-500 text-xs">{error}</p>
         </div>
       )}
     </div>

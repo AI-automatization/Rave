@@ -209,22 +209,27 @@ export function YouTubePlayer({ videoId, isOwner, onPlay, onPause, onSeek, onHea
     }
   }, [ready, isOwner, heartbeat, syncState.isPlaying]);
 
-  if (error) {
-    return (
-      <div className="aspect-video bg-[#0A0A12] rounded-xl flex flex-col items-center justify-center gap-3 px-6 text-center">
-        <AlertCircle size={28} className="text-red-400" />
-        <p className="text-slate-300 text-sm font-medium">Не удалось загрузить видео</p>
-        <p className="text-slate-500 text-xs">{error}</p>
-      </div>
-    );
-  }
-
   return (
     <div className="relative aspect-video bg-black rounded-xl overflow-hidden">
+      {/* Unconditionally rendered — never removed from the tree based on ready/error state.
+          new YT.Player(hostRef.current, ...) REPLACES this element with an iframe (documented
+          YouTube IFrame API behavior, not something under our control) — if this div is ever
+          swapped for a different JSX branch (e.g. an early `if (error) return <other tree>`),
+          React tries to remove a node YouTube already silently replaced, throwing
+          "NotFoundError: Failed to execute 'removeChild' ... not a child of this node" and
+          crashing the whole room. Confirmed live (2026-07-20) with a video whose embedding is
+          disabled: onError fires, error state was set, and the resulting tree swap crashed. */}
       <div ref={hostRef} className="w-full h-full" />
-      {!ready && (
+      {!ready && !error && (
         <div className="absolute inset-0 flex items-center justify-center bg-[#0A0A12]/80 pointer-events-none">
           <Loader2 size={28} className="animate-spin text-violet-400" />
+        </div>
+      )}
+      {error && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center bg-[#0A0A12]">
+          <AlertCircle size={28} className="text-red-400" />
+          <p className="text-slate-300 text-sm font-medium">Не удалось загрузить видео</p>
+          <p className="text-slate-500 text-xs">{error}</p>
         </div>
       )}
     </div>

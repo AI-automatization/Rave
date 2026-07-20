@@ -1,6 +1,35 @@
 # WeWatch — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-07-19
+# Yangilangan: 2026-07-20
+
+---
+
+### F-249 | Web: embedding taqiqlangan YouTube video butun xonani "Something went wrong"ga qulatardi
+
+- **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-20  **Model:** sonnet
+- **Sabab:** Foydalanuvchi bitta aniq YouTube video bilan (`SAKvJzuPcxg`) xona ochganda — owner
+  HAM, viewer HAM darhol "Something went wrong" React error boundary'ga tushardi. Boshqa videolar
+  (masalan "ТОПЛЕС" kanali) muammosiz ishlardi.
+- **Root cause (browser console'dagi haqiqiy stack trace orqali topildi, taxmin emas):**
+  `NotFoundError: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child
+  of this node.` — `YouTubePlayer.tsx`da `new YT.Player(hostRef.current, {...})` chaqirilgan
+  (elementning O'ZI, id string emas). YouTube IFrame API'ning hujjatlashtirilgan xatti-harakati:
+  bu **elementni butunlay iframe bilan ALMASHTIRADI**, ichiga qo'shmaydi. Shu videoda `onError`
+  (kod 150 — "video owner disabled embedding") ishga tushganda, komponent `if (error) return
+  <boshqa JSX daraxti>` qilardi — bu `hostRef` divini React daraxtidan olib tashlashga urinardi,
+  lekin u DOMda allaqachon YouTube tomonidan iframe'ga almashtirilgan edi → React `removeChild`
+  chaqirganda node topilmadi → crash butun xona sahifasini qulatdi.
+- **Tasdiqlash (Playwright, taxmin emas):** xuddi shu videoId bilan haqiqiy `new YT.Player()`
+  test qilindi — `onError` kod **150** bilan ishga tushdi (aynan shu video uchun), va host div
+  elementi (`tagName`) test oxirida haqiqatda `DIV`dan `IFRAME`ga aylanganligi tasdiqlandi.
+- **Yechim:** `YouTubePlayer.tsx` — `hostRef` divi endi HAR DOIM daraxtda qoladi (ready/error
+  holatidan qat'iy nazar), xato endi shu divning ustiga overlay sifatida chiqadi, alohida JSX
+  daraxti sifatida emas. `TrovoPlayer.tsx`da ham xuddi shu ehtiyot chorasi qo'llandi (Trovo ham
+  xuddi shu xavfli naqsh — "JS constructor oddiy div ustida" — ishlatadi, lekin DOM
+  almashtirish xatti-harakati tasdiqlanmagan). Twitch (`Twitch.Embed`) va Vimeo
+  (`Vimeo.Player(iframeRef.current)`) tekshirildi — ular xavfsiz (Twitch iframe'ni ICHIGA
+  qo'shadi, Vimeo allaqachon mavjud iframe elementini oladi, almashtirmaydi).
+- **Tekshiruv:** tsc/eslint clean.
 
 ---
 
