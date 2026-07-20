@@ -4,6 +4,29 @@
 
 ---
 
+### F-251 | Online/offline auditi — web hech qachon heartbeat yubormagan + sidebar widget qayta dizayn
+
+- **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-20  **Model:** sonnet
+- **Sabab:** Foydalanuvchi so'rovi: online/offline mantiqini to'liq tekshirish, uni ham web'da
+  ham APK'da ishlashini ta'minlash, va sidebar'dagi do'stlar widget'iga normal dizayn berish.
+- **Audit natijasi:** `services/user/src/services/profile.service.ts` — `isUserOnline()` shunchaki
+  Redis kalitini tekshiradi (`heartbeat(userId)` orqali 3 daqiqalik TTL bilan yoziladi,
+  `POST /users/heartbeat`). Mobile bu endpointni allaqachon har 2 daqiqada chaqirar edi
+  (`apps/mobile/src/navigation/AppNavigator.tsx`) — lekin web'da bu endpointga HECH QACHON
+  murojaat qilinmagan edi. Natija: faqat web'dan foydalanadigan foydalanuvchi do'stlariga
+  doim "offline" ko'rinardi, qanchalik faol bo'lishidan qat'iy nazar.
+- **Yechim (web):** `POST /api/user/heartbeat` proxy route, `userApi.heartbeat()`,
+  `useHeartbeat()` hook (mobile bilan bir xil 2 daqiqalik interval) — `(app)/layout.tsx`ga
+  ulandi, har bir autentifikatsiya qilingan sahifada ishlaydi.
+- **Mobile:** o'zgarish kerak emas — mexanizm allaqachon to'g'ri ishlagan (heartbeat + UI
+  ko'rsatish `FriendsScreen`/`FriendListItems`/`ProfileHeader` va h.k.da allaqachon bor edi).
+- **Sidebar widget qayta dizayn:** `OnlineFriendsWidget.tsx` — endi haqiqiy `.glass` panel:
+  sarlavha (pulslaydigan onlayn-son badge), ring bilan ajratilgan avatarlar + "Онлайн" subtext,
+  overflow avatar ("+N"), bo'sh holat, va yuklanish skeleton (avval hech narsa ko'rsatilmasdi).
+- **Tekshiruv:** `tsc --noEmit` (apps/app-web) — 0 xatolik.
+- **Cheklov:** brauzer avtomatizatsiyasi (claude-in-chrome) bu sessiyada ulanmagan edi —
+  vizual tasdiqni foydalanuvchi o'zi qilishi kerak (deploy qilindi, `app.wewatch.uz`).
+
 ### F-250 | T-S138 | Android: YouTube xonasida zritel uchun abadiy qora ekran
 
 - **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-20  **Model:** sonnet
