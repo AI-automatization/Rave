@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Users } from 'lucide-react';
 import { useFriends } from '@/hooks/use-friends';
 import { trackClick } from '@/lib/analytics';
 
@@ -14,26 +13,23 @@ function avatarColor(id: string): string {
   return PALETTE[Math.abs(h) % PALETTE.length];
 }
 
-const MAX_SHOWN = 5;
-
-// ui-ux-pro-max skill: visible focus ring for keyboard nav (Accessibility, CRITICAL) —
-// shared across every interactive element in this widget so tab order is never invisible.
+// ui-ux-pro-max skill: visible focus ring for keyboard nav (Accessibility, CRITICAL).
 const FOCUS_RING = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/60 focus-visible:ring-offset-1 focus-visible:ring-offset-[#0e0a20]';
 
-export function OnlineFriendsWidget() {
+// The rail+panel two-tier sidebar (AppSidebar.tsx) shows this as the "Друзья" space's context
+// panel — fills the whole column (no outer card chrome of its own, the panel container supplies
+// that), same idea as Discord's channel list next to the server rail.
+export function FriendsPanel() {
   const t = useTranslations('friends');
   const router = useRouter();
   const { data: friends, isLoading } = useFriends();
 
   const online = (friends ?? []).filter((f) => f.isOnline);
-  const overflow = online.length - MAX_SHOWN;
 
   return (
-    <div className="mx-2 mt-3 mb-2 glass rounded-xl overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center gap-1.5 px-3 h-9 border-b border-white/[0.06]">
-        <Users size={13} className="text-violet-400/70" />
-        <p className="flex-1 text-[11px] font-semibold tracking-[0.08em] text-slate-400 uppercase">
+    <div className="flex flex-col h-full">
+      <div className="flex items-center gap-1.5 px-3 h-11 border-b border-white/[0.06] shrink-0">
+        <p className="flex-1 text-[11px] font-semibold tracking-[0.12em] text-slate-500 uppercase">
           {t('tabFriends')}
         </p>
         <span
@@ -43,7 +39,6 @@ export function OnlineFriendsWidget() {
         >
           {online.length > 0 && (
             <span className="relative flex w-1.5 h-1.5">
-              {/* motion-safe: respects prefers-reduced-motion (ui-ux-pro-max §7 reduced-motion) */}
               <span className="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
               <span className="relative inline-flex w-1.5 h-1.5 rounded-full bg-emerald-400" />
             </span>
@@ -52,11 +47,10 @@ export function OnlineFriendsWidget() {
         </span>
       </div>
 
-      {/* Body */}
-      <div className="p-1.5">
+      <div className="flex-1 overflow-y-auto p-1.5">
         {isLoading && (
           <div className="flex flex-col gap-1 px-1.5 py-1" aria-hidden="true">
-            {[0, 1].map((i) => (
+            {[0, 1, 2].map((i) => (
               <div key={i} className="flex items-center gap-2.5 h-10 animate-pulse">
                 <div className="w-7 h-7 rounded-full bg-white/[0.06] shrink-0" />
                 <div className="h-2.5 w-20 rounded bg-white/[0.06]" />
@@ -66,7 +60,7 @@ export function OnlineFriendsWidget() {
         )}
 
         {!isLoading && online.length === 0 && (
-          <div className="flex flex-col items-center gap-1 py-4 px-2 text-center">
+          <div className="flex flex-col items-center gap-1 py-6 px-2 text-center">
             <span className="w-1.5 h-1.5 rounded-full bg-zinc-700" />
             <p className="text-[12px] text-zinc-600 leading-snug">{t('empty')}</p>
           </div>
@@ -74,7 +68,7 @@ export function OnlineFriendsWidget() {
 
         {!isLoading && online.length > 0 && (
           <div className="flex flex-col gap-0.5">
-            {online.slice(0, MAX_SHOWN).map((f) => {
+            {online.map((f) => {
               const color = avatarColor(f._id);
               return (
                 <button
@@ -101,32 +95,17 @@ export function OnlineFriendsWidget() {
                 </button>
               );
             })}
-
-            {overflow > 0 && (
-              <Link
-                href="/friends"
-                onClick={() => trackClick('sidebar:online_friends_overflow')}
-                className={`flex items-center gap-2.5 px-1.5 h-10 rounded-lg text-[12px] text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.04] active:bg-white/[0.07] transition-colors ${FOCUS_RING}`}
-              >
-                <div className="w-7 h-7 rounded-full bg-white/[0.06] flex items-center justify-center text-[10px] font-semibold text-zinc-400 shrink-0">
-                  +{overflow}
-                </div>
-                <span>{t('tabFriends')}</span>
-              </Link>
-            )}
           </div>
         )}
       </div>
 
-      {(friends?.length ?? 0) > 0 && (
-        <Link
-          href="/friends"
-          onClick={() => trackClick('sidebar:see_all_friends')}
-          className={`flex items-center justify-center h-9 text-[12px] font-medium text-violet-400/90 hover:text-violet-300 active:text-violet-200 hover:bg-white/[0.03] border-t border-white/[0.06] transition-colors ${FOCUS_RING}`}
-        >
-          {t('tabFriends')} →
-        </Link>
-      )}
+      <Link
+        href="/friends"
+        onClick={() => trackClick('sidebar:see_all_friends')}
+        className={`flex items-center justify-center h-10 text-[12px] font-medium text-violet-400/90 hover:text-violet-300 active:text-violet-200 hover:bg-white/[0.03] border-t border-white/[0.06] transition-colors shrink-0 ${FOCUS_RING}`}
+      >
+        {t('tabFriends')} →
+      </Link>
     </div>
   );
 }
