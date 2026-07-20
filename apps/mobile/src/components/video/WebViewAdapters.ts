@@ -371,7 +371,11 @@ const RN_BRIDGE = `
   }
 `;
 
-/** Twitch embed — live channels and VODs */
+/** Twitch embed — live channels and VODs.
+ * Live channels don't broadcast play/pause: there's no shared timeline to keep in sync (this
+ * matches web's TwitchPlayer.tsx, 2026-07-19) — forcing every viewer's independent live view to
+ * pause because the room owner's did has no "watch together" benefit, since everyone already
+ * sees the same live edge on their own. Only VODs report PLAY/PAUSE up to the RN bridge. */
 export function buildTwitchHtml(id: string, type: 'channel' | 'vod'): string {
   // parent must match this WebView's effective origin (see UniversalPlayer.tsx's
   // baseUrl: 'https://twitch.tv' for this embed) — "localhost" never matched that,
@@ -379,6 +383,7 @@ export function buildTwitchHtml(id: string, type: 'channel' | 'vod'): string {
   const embedOpts = type === 'channel'
     ? `channel: "${id}", parent: ["twitch.tv"]`
     : `video: "${id}", parent: ["twitch.tv"]`;
+  const isVod = type === 'vod';
   return `<!DOCTYPE html>
 <html><head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -408,12 +413,13 @@ export function buildTwitchHtml(id: string, type: 'channel' | 'vod'): string {
           rn({ type: 'PROGRESS', currentTime: window._csVideo.currentTime, duration: 0 });
         }, 500);
       });
+      ${isVod ? `
       embed.addEventListener(Twitch.Embed.VIDEO_PLAY, function() {
         rn({ type: 'PLAY', currentTime: window._csVideo ? window._csVideo.currentTime : 0 });
       });
       embed.addEventListener(Twitch.Embed.VIDEO_PAUSE, function() {
         rn({ type: 'PAUSE', currentTime: window._csVideo ? window._csVideo.currentTime : 0 });
-      });
+      });` : ''}
     });
   </script>
 </body></html>`;
@@ -579,7 +585,18 @@ export function buildVimeoHtml(videoId: string): string {
 </body></html>`;
 }
 
-/** Dailymotion embed */
+/** Dailymotion embed.
+ * NOT SYNCED (confirmed live in production on web, 2026-07-19 — see web's DailymotionPlayer.tsx
+ * header comment): the iframe sends no usable state postMessage at all in practice (only an
+ * internal 'pes_listen_eid' analytics ping was ever observed, never 'apiready'/'playing'/
+ * 'pause'/'timeupdate'), and it doesn't respond to outgoing {command,...} messages either — two
+ * independent real-device-adjacent attempts to control it both failed. Since it's the same remote
+ * page either way, the same is true here. 'apiready' therefore never arrives — the video visibly
+ * loads and plays fine regardless, so the iframe's own onload is used as the ready signal instead
+ * (same class of fix as VK). The rest of this bridge (sendCmd/_csVideo/message listener) is left
+ * in place rather than ripped out: it's inert (nothing ever calls back), not harmful, and matches
+ * the "no sync" reality — an owner's local play/pause never gets detected to broadcast, and a
+ * viewer's remote command never has any effect either way. */
 export function buildDailymotionHtml(videoId: string): string {
   return `<!DOCTYPE html>
 <html><head>
@@ -588,10 +605,11 @@ export function buildDailymotionHtml(videoId: string): string {
 </head><body>
   <iframe id="dm-player"
     src="https://geo.dailymotion.com/player.html?video=${videoId}&autoplay=1&controls=1"
-    allow="autoplay; fullscreen; encrypted-media" allowfullscreen></iframe>
+    allow="autoplay; fullscreen; encrypted-media" allowfullscreen
+    onload="markReady()"></iframe>
   <script>
     ${RN_BRIDGE}
-    var ct = 0, dur = 0, paused = true, progressTimer = null;
+    var ct = 0, dur = 0, paused = true, progressTimer = null, readyFired = false;
     function sendCmd(cmd, params) {
       var f = document.getElementById('dm-player');
       if (f && f.contentWindow) {
@@ -611,11 +629,17 @@ export function buildDailymotionHtml(videoId: string): string {
         if (!paused) rn({ type: 'PROGRESS', currentTime: ct, duration: dur });
       }, 500);
     }
+    function markReady() {
+      if (readyFired) return;
+      readyFired = true;
+      rn({ type: 'VIDEO_FOUND' });
+      startProgress();
+    }
     window.addEventListener('message', function(e) {
       try {
         var data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
         switch (data.event) {
-          case 'apiready': rn({ type: 'VIDEO_FOUND' }); startProgress(); break;
+          case 'apiready': markReady(); break;
           case 'playing': paused = false; rn({ type: 'PLAY', currentTime: ct }); break;
           case 'pause': paused = true; rn({ type: 'PAUSE', currentTime: ct }); break;
           case 'seeked': ct = data.currentTime || ct; rn({ type: 'SEEK', currentTime: ct }); break;

@@ -11,27 +11,30 @@
 - **Mas'ul:** pending[Saidazim]
 - **Beruvchi:** Saidazim (web live-test session)
 - **Yaratilgan:** 2026-07-19
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 Bajarilmoqda (Twitch+Dailymotion kod tomondan tugadi 2026-07-20, VK/Rutube scope'dan
+  chiqarildi, real qurilma testi qolgan)
 - **Tavsiya model:** sonnet
-- **Model sababi:** 3-4 fayl (WebViewAdapters.ts + UniversalPlayer.tsx), lekin real device test kerak
-- **Sabab:** 2026-07-19 web session'da 4 ta jonli sinov orqali tasdiqlangan fix — mobile'da xuddi
-  shu assumption'lar (`buildVKVideoHtml`/`buildRutubeHtml`) hech qachon tekshirilmagan, ehtimol
-  xuddi shu buglar mobile'da ham bor.
+- **Model sababi:** kod qismi tugadi, qolgani faqat real device test
+- **Sabab:** 2026-07-19 web session'da jonli sinov orqali tasdiqlangan fix'lar — mobile'da xuddi
+  shu assumption'lar hech qachon tekshirilmagan edi.
+- **2026-07-20 topilma:** `UniversalPlayer.tsx:84-90` — VK/Rutube **Android'da umuman
+  buildVKVideoHtml/buildRutubeHtml ishlatmaydi** (`Platform.OS==='android' → return null`) — ular
+  alohida CDN-sniffing + ExoPlayer pipeline orqali ishlaydi (iframe/postMessage emas). Shuning
+  uchun Rutube protokol-fix'i Android'ga umuman aloqasi yo'q (faqat iOS uchun buildRutubeHtml hali
+  ham ishlatiladi, lekin bu safar tegilmadi). Foydalanuvchi tasdiqladi: VK/Rutube'ni tegmaslik,
+  faqat Twitch+Dailymotion.
 - **Qilish kerak:**
-  - [ ] **VK** — `buildVKVideoHtml()` sync logikasi (postMessage `{method,value}`) ISHLAMAYDI
-    (web'da confirmed: VK umuman postMessage yubormaydi/qabul qilmaydi). Sync kodini olib
-    tashlash, VK'ni mobile'da ham "har kim o'zi tomosha qiladi" rejimiga o'tkazish.
-  - [ ] **Rutube** — `buildRutubeHtml()` noto'g'ri protokol ishlatadi. Haqiqiy (web'da Playwright
-    bilan tasdiqlangan) protokol: chiquvchi `{type:'player:play'/'player:pause'/
-    'player:setCurrentTime', data:{time}}`, kiruvchi `player:changeState`/`player:currentTime`/
-    `player:ready`. Joriy kod `{method,value}` yuboradi — ishlamaydi.
-  - [ ] **Twitch live** — web'da live kanal uchun play/pause sync butunlay olib tashlandi (umumiy
-    pozitsiya yo'q, foydasi yo'q edi). Mobile'da xuddi shunday sync bo'lsa — xuddi shu sabab bilan
-    olib tashlash kerak (faqat VOD sync qoldirish).
-  - [ ] Real qurilmada tekshirish — barcha 3 platforma
-- **Fayllar:** `apps/mobile/src/components/video/WebViewAdapters.ts`,
-  `apps/mobile/src/components/video/UniversalPlayer.tsx`
-- **Bog'liq:** web'dagi manba — `docs/Done.md` 2026-07-19 yozuvlari (VK/Rutube/Twitch)
+  - [x] **Twitch live** — `buildTwitchHtml()` endi VIDEO_PLAY/VIDEO_PAUSE faqat `type==='vod'`
+    bo'lganda ro'yxatdan o'tkaziladi (live kanal uchun sync yo'q — web bilan bir xil sabab).
+  - [x] **Dailymotion** — `apiready` mobile'da ham kelmasligi kutilyapti (xuddi shu remote sahifa),
+    shuning uchun `iframe onload="markReady()"` qo'shildi — video ko'rinishi/o'ynashi endi
+    kafolatlangan. Sync (play/pause/seek) ATAYLAB tuzatilmadi — web'da IKKALA urinish (event kutish
+    HAM owner-driven control) ham real productionda ishlamadi, demak mobile'da ham ishlamaydi.
+  - [ ] VK/Rutube — **scope'dan chiqarildi** (Android boshqa pipeline, iOS alohida vazifa kerak
+    bo'lsa).
+  - [ ] Real qurilmada tekshirish — Twitch (VOD/live farqi) + Dailymotion (video ko'rinishi)
+- **Fayllar:** `apps/mobile/src/components/video/WebViewAdapters.ts`
+- **Bog'liq:** web'dagi manba — `docs/Done.md` 2026-07-19/20 yozuvlari (VK/Rutube/Twitch/Dailymotion)
 
 ---
 
