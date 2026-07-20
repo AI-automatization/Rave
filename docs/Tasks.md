@@ -1,8 +1,25 @@
 # CineSync — OCHIQ VAZIFALAR
 
-# Yangilangan: 2026-07-19
+# Yangilangan: 2026-07-21
 
-# 📱 Sprint 17: Web fixes'ni mobile'ga ko'chirish (2026-07-19)
+---
+
+### T-E208 | P1 | [MOBILE] | Play Store'ga chiqishga tayyorlik — to'liq audit A dan Z gacha
+
+- **Mas'ul:** pending[Jasur]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-07-21
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** ko'p ekran/config tekshirish, lekin bitta katta refactor emas
+- **Sabab:** Play Store'ga chiqarishdan oldin mobil ilovani boshidan oxirigacha tekshirish kerak — ilova holati, config, real qurilmada sinov.
+- **Qilish kerak:**
+  - [ ] Butun ilovani A dan Z gacha audit qilish (ekranlar, navigatsiya, crash/xato holatlar, permissions, ikonka/splash, app.json/eas.json config)
+  - [ ] APK yig'ish (EAS build) — MAJBURIY
+  - [ ] Real qurilmada test qilish — MAJBURIY (simulyator emas)
+  - [ ] Play Store talablariga moslikni tekshirish (privacy policy, permissions izohlari va h.k.)
+- **⛔ TEGMASLIK KERAK:** watch-party sinxronizatsiya logikasi, backend, video ekstraktsiya bilan bog'liq har qanday kod — faqat mobil UI/config/tayyorlik tomoni.
+- **Bog'liq:** Telegram orqali Jasur'ga yuborildi (2026-07-21)
 
 ---
 
