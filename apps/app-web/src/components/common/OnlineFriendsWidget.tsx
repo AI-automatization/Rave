@@ -16,6 +16,10 @@ function avatarColor(id: string): string {
 
 const MAX_SHOWN = 5;
 
+// ui-ux-pro-max skill: visible focus ring for keyboard nav (Accessibility, CRITICAL) —
+// shared across every interactive element in this widget so tab order is never invisible.
+const FOCUS_RING = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/60 focus-visible:ring-offset-1 focus-visible:ring-offset-[#0e0a20]';
+
 export function OnlineFriendsWidget() {
   const t = useTranslations('friends');
   const router = useRouter();
@@ -39,7 +43,8 @@ export function OnlineFriendsWidget() {
         >
           {online.length > 0 && (
             <span className="relative flex w-1.5 h-1.5">
-              <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 animate-ping" />
+              {/* motion-safe: respects prefers-reduced-motion (ui-ux-pro-max §7 reduced-motion) */}
+              <span className="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
               <span className="relative inline-flex w-1.5 h-1.5 rounded-full bg-emerald-400" />
             </span>
           )}
@@ -50,9 +55,9 @@ export function OnlineFriendsWidget() {
       {/* Body */}
       <div className="p-1.5">
         {isLoading && (
-          <div className="flex flex-col gap-1 px-1.5 py-1">
+          <div className="flex flex-col gap-1 px-1.5 py-1" aria-hidden="true">
             {[0, 1].map((i) => (
-              <div key={i} className="flex items-center gap-2.5 h-9 animate-pulse">
+              <div key={i} className="flex items-center gap-2.5 h-10 animate-pulse">
                 <div className="w-7 h-7 rounded-full bg-white/[0.06] shrink-0" />
                 <div className="h-2.5 w-20 rounded bg-white/[0.06]" />
               </div>
@@ -75,7 +80,8 @@ export function OnlineFriendsWidget() {
                 <button
                   key={f._id}
                   onClick={() => { trackClick('sidebar:online_friend', { friendId: f._id }); router.push(`/messages?peer=${f._id}`); }}
-                  className="group flex items-center gap-2.5 px-1.5 h-9 rounded-lg text-[13px] text-zinc-300 hover:bg-white/[0.05] transition-colors w-full text-left cursor-pointer"
+                  aria-label={`${t('online')}: ${f.username}`}
+                  className={`group flex items-center gap-2.5 px-1.5 h-10 rounded-lg text-[13px] text-zinc-300 hover:bg-white/[0.05] active:bg-white/[0.08] transition-colors w-full text-left cursor-pointer ${FOCUS_RING}`}
                 >
                   <div className="relative shrink-0">
                     <div
@@ -100,7 +106,7 @@ export function OnlineFriendsWidget() {
               <Link
                 href="/friends"
                 onClick={() => trackClick('sidebar:online_friends_overflow')}
-                className="flex items-center gap-2.5 px-1.5 h-8 rounded-lg text-[12px] text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.04] transition-colors"
+                className={`flex items-center gap-2.5 px-1.5 h-10 rounded-lg text-[12px] text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.04] active:bg-white/[0.07] transition-colors ${FOCUS_RING}`}
               >
                 <div className="w-7 h-7 rounded-full bg-white/[0.06] flex items-center justify-center text-[10px] font-semibold text-zinc-400 shrink-0">
                   +{overflow}
@@ -116,7 +122,7 @@ export function OnlineFriendsWidget() {
         <Link
           href="/friends"
           onClick={() => trackClick('sidebar:see_all_friends')}
-          className="flex items-center justify-center h-8 text-[12px] font-medium text-violet-400/90 hover:text-violet-300 hover:bg-white/[0.03] border-t border-white/[0.06] transition-colors"
+          className={`flex items-center justify-center h-9 text-[12px] font-medium text-violet-400/90 hover:text-violet-300 active:text-violet-200 hover:bg-white/[0.03] border-t border-white/[0.06] transition-colors ${FOCUS_RING}`}
         >
           {t('tabFriends')} →
         </Link>
