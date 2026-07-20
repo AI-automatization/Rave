@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Plus, LogIn, WifiOff, RefreshCw, Play, TrendingUp } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 
 import { useTranslations } from 'next-intl';
 import { useRooms } from '@/hooks/use-rooms';
@@ -81,6 +81,7 @@ function SectionHeader({
 
 export function HomeContent() {
   const t = useTranslations('home');
+  const shouldReduceMotion = useReducedMotion();
   const { data: rooms, isLoading, isError } = useRooms();
   const qc = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
@@ -227,9 +228,9 @@ export function HomeContent() {
             {activeRooms.map((room, i) => (
               <motion.div
                 key={room._id}
-                initial={{ opacity: 0, y: 4 }}
+                initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 4 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2, ease: 'easeOut', delay: Math.min(i * 0.04, 0.24) }}
+                transition={{ duration: shouldReduceMotion ? 0 : 0.2, ease: 'easeOut', delay: shouldReduceMotion ? 0 : Math.min(i * 0.04, 0.24) }}
               >
                 <RoomCard room={room} />
               </motion.div>
@@ -246,9 +247,9 @@ export function HomeContent() {
             {idleRooms.map((room, i) => (
               <motion.div
                 key={room._id}
-                initial={{ opacity: 0, y: 4 }}
+                initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 4 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2, ease: 'easeOut', delay: Math.min(i * 0.04, 0.24) }}
+                transition={{ duration: shouldReduceMotion ? 0 : 0.2, ease: 'easeOut', delay: shouldReduceMotion ? 0 : Math.min(i * 0.04, 0.24) }}
               >
                 <RoomCard room={room} />
               </motion.div>

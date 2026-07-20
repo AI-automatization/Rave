@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Home, Users, MessageCircle, User, Bell, Settings, Headphones, LogOut } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import { useUnreadCount } from '@/hooks/use-unread-count';
@@ -31,7 +31,7 @@ type Popover = 'friends' | 'account' | null;
 
 interface DockIconProps {
   label: string;
-  icon: React.ComponentType<{ size?: number }>;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
   active: boolean;
   badge?: number;
   href?: string;
@@ -41,15 +41,28 @@ interface DockIconProps {
 // Single dock button — either a direct Link (Home, Messages) or a toggle button that opens a
 // popover above the dock (Friends, Account). 44px target (Touch & Interaction, CRITICAL),
 // aria-label since there's no visible text label (icon-only dock, macOS/Discord style).
+//
+// Two motion touches unique to this being an actual "dock": a spring hover-lift (whileHover),
+// echoing the macOS Dock magnification without the layout cost of animating neighbors' size —
+// just this icon translates/scales, nothing else reflows; and a shared layoutId pill
+// (`dock-active-pill`) that glides between whichever icon is active instead of the highlight
+// just snapping from one to the next. Both skip entirely under prefers-reduced-motion —
+// framer-motion animates via JS/WAAPI, not CSS transition/animation properties, so the global
+// `@media (prefers-reduced-motion: reduce)` kill-switch in globals.css does NOT reach these;
+// useReducedMotion() is the framer-motion-side equivalent of that same rule.
 function DockIcon({ label, icon: Icon, active, badge, href, onClick }: DockIconProps) {
-  const className = `relative flex items-center justify-center w-11 h-11 rounded-2xl transition-all cursor-pointer ${FOCUS_RING} ${
-    active
-      ? 'bg-violet-600/20 text-violet-300'
-      : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.08] active:bg-white/[0.12]'
-  }`;
-  const content = (
+  const shouldReduceMotion = useReducedMotion();
+
+  const inner = (
     <>
-      <Icon size={20} />
+      {active && (
+        <motion.span
+          layoutId="dock-active-pill"
+          className="absolute inset-0 rounded-2xl bg-violet-600/20"
+          transition={shouldReduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 500, damping: 34 }}
+        />
+      )}
+      <Icon size={20} className="relative" />
       {!!badge && badge > 0 && (
         <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[9px] font-bold tabular-nums ring-2 ring-[#0e0a20]">
           {formatBadge(badge)}
@@ -58,17 +71,29 @@ function DockIcon({ label, icon: Icon, active, badge, href, onClick }: DockIconP
     </>
   );
 
+  const motionProps = shouldReduceMotion ? {} : {
+    whileHover: { scale: 1.12, y: -3 },
+    whileTap: { scale: 0.94 },
+    transition: { type: 'spring' as const, stiffness: 400, damping: 15 },
+  };
+  const className = `relative flex items-center justify-center w-11 h-11 rounded-2xl cursor-pointer transition-colors ${FOCUS_RING} ${
+    active ? 'text-violet-300' : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.08] active:bg-white/[0.12]'
+  }`;
+
   if (href) {
     return (
-      <Link href={href} title={label} aria-label={label} onClick={() => trackClick('dock:nav', { href })} className={className}>
-        {content}
+      <Link href={href} title={label} aria-label={label} onClick={() => trackClick('dock:nav', { href })} className="contents">
+        <motion.div {...motionProps} className={className}>{inner}</motion.div>
       </Link>
     );
   }
   return (
-    <button type="button" title={label} aria-label={label} aria-expanded={active} onClick={onClick} className={className}>
-      {content}
-    </button>
+    <motion.button
+      type="button" title={label} aria-label={label} aria-expanded={active} onClick={onClick}
+      {...motionProps} className={className}
+    >
+      {inner}
+    </motion.button>
   );
 }
 
@@ -140,6 +165,7 @@ function AccountPopoverContent({ unreadNotifications, onNavigate }: { unreadNoti
 export function FloatingNav() {
   const t = useTranslations('nav');
   const pathname = usePathname();
+  const shouldReduceMotion = useReducedMotion();
   const { count: unreadNotifications } = useUnreadCount();
   const { data: friendRequests } = useFriendRequests();
   const { data: conversations } = useConversations();
@@ -188,10 +214,10 @@ export function FloatingNav() {
           <AnimatePresence>
             {popover && (
               <motion.div
-                initial={{ opacity: 0, scale: 0.96, y: 4 }}
+                initial={{ opacity: 0, scale: shouldReduceMotion ? 1 : 0.96, y: shouldReduceMotion ? 0 : 4 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.96, y: 4 }}
-                transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
+                exit={{ opacity: 0, scale: shouldReduceMotion ? 1 : 0.96, y: shouldReduceMotion ? 0 : 4 }}
+                transition={{ duration: shouldReduceMotion ? 0 : 0.18, ease: [0.23, 1, 0.32, 1] }}
                 style={{ transformOrigin: 'bottom center' }}
                 className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 rounded-2xl glass-nav border border-white/[0.08] shadow-2xl overflow-hidden max-h-[70vh] flex flex-col"
               >
