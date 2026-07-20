@@ -216,23 +216,30 @@ export function HomeContent() {
           </div>
           <button
             onClick={() => { trackClick('home:empty_state_create'); setCreateOpen(true); }}
-            className="h-9 px-5 rounded-md text-sm font-medium text-white bg-violet-600 hover:bg-violet-500 cursor-pointer active:scale-[0.97] transition-colors flex items-center gap-2 mt-1"
+            className="h-10 px-6 rounded-lg text-sm font-semibold text-white bg-violet-600 hover:bg-violet-500 cursor-pointer active:scale-[0.97] transition-all flex items-center gap-2 mt-1 shadow-[0_0_24px_rgba(124,58,237,0.28)] hover:shadow-[0_0_28px_rgba(124,58,237,0.4)]"
           >
-            <Plus size={13} />
+            <Plus size={14} />
             {t('createFirst')}
           </button>
 
-          <div className="w-full max-w-sm grid grid-cols-3 gap-2 pt-5 mt-2 border-t border-white/[0.06]">
+          <div className="w-full max-w-sm h-px my-1 mt-6" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)' }} />
+
+          <div className="w-full max-w-sm grid grid-cols-3 gap-3">
             {[
-              { icon: Plus, label: t('step1') },
-              { icon: Users, label: t('step2') },
-              { icon: Tv, label: t('step3') },
-            ].map(({ icon: Icon, label }, i) => (
-              <div key={i} className="flex flex-col items-center gap-1.5">
-                <div className="w-8 h-8 rounded-full bg-white/[0.04] border border-white/[0.06] flex items-center justify-center">
-                  <Icon size={13} className="text-zinc-500" />
+              { icon: Plus, label: t('step1'), color: '#7C3AED', bg: 'bg-violet-500/[0.1]', border: 'border-violet-500/[0.2]' },
+              { icon: Users, label: t('step2'), color: '#22D3EE', bg: 'bg-cyan-500/[0.1]', border: 'border-cyan-500/[0.2]' },
+              { icon: Tv, label: t('step3'), color: '#34D399', bg: 'bg-emerald-500/[0.1]', border: 'border-emerald-500/[0.2]' },
+            ].map(({ icon: Icon, label, color, bg, border }, i) => (
+              <div key={i} className="flex flex-col items-center gap-2">
+                <div className={`relative w-10 h-10 rounded-full ${bg} border ${border} flex items-center justify-center`}>
+                  <Icon size={15} style={{ color }} />
+                  <span
+                    className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#0C0B18] border border-white/[0.1] flex items-center justify-center text-[9px] font-bold text-zinc-400"
+                  >
+                    {i + 1}
+                  </span>
                 </div>
-                <p className="text-[10.5px] text-zinc-600 leading-tight">{label}</p>
+                <p className="text-[11px] text-zinc-400 leading-tight font-medium">{label}</p>
               </div>
             ))}
           </div>
