@@ -16,9 +16,8 @@ function avatarColor(id: string): string {
 // ui-ux-pro-max skill: visible focus ring for keyboard nav (Accessibility, CRITICAL).
 const FOCUS_RING = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/60 focus-visible:ring-offset-1 focus-visible:ring-offset-[#0e0a20]';
 
-// The rail+panel two-tier sidebar (AppSidebar.tsx) shows this as the "Друзья" space's context
-// panel — fills the whole column (no outer card chrome of its own, the panel container supplies
-// that), same idea as Discord's channel list next to the server rail.
+// FloatingNav.tsx renders this inside the "Друзья" dock icon's popover — fills the given
+// container (no outer card chrome of its own, the popover wrapper supplies that).
 export function FriendsPanel() {
   const t = useTranslations('friends');
   const router = useRouter();
@@ -27,7 +26,7 @@ export function FriendsPanel() {
   const online = (friends ?? []).filter((f) => f.isOnline);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col flex-1 min-h-0">
       <div className="flex items-center gap-1.5 px-3 h-11 border-b border-white/[0.06] shrink-0">
         <p className="flex-1 text-[11px] font-semibold tracking-[0.12em] text-slate-500 uppercase">
           {t('tabFriends')}
@@ -47,7 +46,7 @@ export function FriendsPanel() {
         </span>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-1.5">
+      <div className="flex-1 min-h-0 overflow-y-auto p-1.5">
         {isLoading && (
           <div className="flex flex-col gap-1 px-1.5 py-1" aria-hidden="true">
             {[0, 1, 2].map((i) => (
