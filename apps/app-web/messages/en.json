@@ -1,5 +1,7 @@
 {
   "nav": {
+    "sectionMain": "Main",
+    "sectionAccount": "Account",
     "home": "Home",
     "search": "Search",
     "movies": "Movies",

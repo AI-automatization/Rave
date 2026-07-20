@@ -23,6 +23,9 @@ export function useFriendRequests() {
       const res = await userApi.getFriendRequests();
       return Array.isArray(res.data) ? res.data : [];
     },
+    // Powers the sidebar's request-count badge — needs to go stale on its own since nothing
+    // pushes an update to it outside the friends page itself.
+    refetchInterval: 30000,
   });
 }
 

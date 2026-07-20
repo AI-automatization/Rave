@@ -15,6 +15,9 @@ export function useConversations() {
       const res = await userApi.getConversations();
       return Array.isArray(res.data) ? res.data : [];
     },
+    // useDmRealtime only mounts on the /messages page itself (peerId=null there), so a sidebar
+    // badge shown on OTHER pages never gets the socket-driven invalidate — poll instead.
+    refetchInterval: 30000,
   });
 }
 
