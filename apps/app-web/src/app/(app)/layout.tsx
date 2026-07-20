@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { useAuthStore } from '@/store/auth.store';
+import { useHeartbeat } from '@/hooks/use-heartbeat';
 import { AppNav } from '@/components/common/AppNav';
 import { AppSidebar } from '@/components/common/AppSidebar';
 import { MaintenanceBanner } from '@/components/common/MaintenanceBanner';
@@ -12,6 +13,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
+
+  useHeartbeat();
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: 'transparent' }}>

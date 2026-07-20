@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { Users } from 'lucide-react';
 import { useFriends } from '@/hooks/use-friends';
 import { trackClick } from '@/lib/analytics';
 
@@ -13,64 +14,109 @@ function avatarColor(id: string): string {
   return PALETTE[Math.abs(h) % PALETTE.length];
 }
 
-const MAX_SHOWN = 6;
+const MAX_SHOWN = 5;
 
 export function OnlineFriendsWidget() {
   const t = useTranslations('friends');
   const router = useRouter();
-  const { data: friends } = useFriends();
+  const { data: friends, isLoading } = useFriends();
 
   const online = (friends ?? []).filter((f) => f.isOnline);
+  const overflow = online.length - MAX_SHOWN;
 
   return (
-    <div className="px-2 mt-3">
-      <div className="flex items-center justify-between px-2 mb-1.5">
-        <p className="text-[10px] font-semibold tracking-[0.12em] text-slate-700 uppercase">
+    <div className="mx-2 mt-3 mb-2 glass rounded-xl overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center gap-1.5 px-3 h-9 border-b border-white/[0.06]">
+        <Users size={13} className="text-violet-400/70" />
+        <p className="flex-1 text-[11px] font-semibold tracking-[0.08em] text-slate-400 uppercase">
           {t('tabFriends')}
         </p>
-        {online.length > 0 && (
-          <span className="flex items-center gap-1 text-[10px] font-medium text-emerald-500">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-            {online.length}
-          </span>
-        )}
+        <span
+          className={`flex items-center gap-1 text-[11px] font-semibold px-1.5 h-[18px] rounded-full ${
+            online.length > 0 ? 'text-emerald-400 bg-emerald-400/10' : 'text-zinc-600 bg-white/[0.04]'
+          }`}
+        >
+          {online.length > 0 && (
+            <span className="relative flex w-1.5 h-1.5">
+              <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 animate-ping" />
+              <span className="relative inline-flex w-1.5 h-1.5 rounded-full bg-emerald-400" />
+            </span>
+          )}
+          {online.length}
+        </span>
       </div>
 
-      {online.length === 0 ? (
-        <p className="px-2 text-[12px] text-zinc-600">{t('empty')}</p>
-      ) : (
-        <div className="flex flex-col gap-0.5">
-          {online.slice(0, MAX_SHOWN).map((f) => {
-            const color = avatarColor(f._id);
-            return (
-              <button
-                key={f._id}
-                onClick={() => { trackClick('sidebar:online_friend', { friendId: f._id }); router.push(`/messages?peer=${f._id}`); }}
-                className="flex items-center gap-2.5 px-2 h-8 rounded-md text-[13px] text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04] transition-colors w-full text-left cursor-pointer"
-              >
-                <div className="relative shrink-0">
-                  <div
-                    className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white overflow-hidden"
-                    style={{ background: f.avatar ? undefined : color }}
-                  >
-                    {f.avatar
-                      ? <img src={f.avatar} alt="" className="w-full h-full object-cover" />
-                      : (f.username?.[0]?.toUpperCase() ?? '?')}
+      {/* Body */}
+      <div className="p-1.5">
+        {isLoading && (
+          <div className="flex flex-col gap-1 px-1.5 py-1">
+            {[0, 1].map((i) => (
+              <div key={i} className="flex items-center gap-2.5 h-9 animate-pulse">
+                <div className="w-7 h-7 rounded-full bg-white/[0.06] shrink-0" />
+                <div className="h-2.5 w-20 rounded bg-white/[0.06]" />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {!isLoading && online.length === 0 && (
+          <div className="flex flex-col items-center gap-1 py-4 px-2 text-center">
+            <span className="w-1.5 h-1.5 rounded-full bg-zinc-700" />
+            <p className="text-[12px] text-zinc-600 leading-snug">{t('empty')}</p>
+          </div>
+        )}
+
+        {!isLoading && online.length > 0 && (
+          <div className="flex flex-col gap-0.5">
+            {online.slice(0, MAX_SHOWN).map((f) => {
+              const color = avatarColor(f._id);
+              return (
+                <button
+                  key={f._id}
+                  onClick={() => { trackClick('sidebar:online_friend', { friendId: f._id }); router.push(`/messages?peer=${f._id}`); }}
+                  className="group flex items-center gap-2.5 px-1.5 h-9 rounded-lg text-[13px] text-zinc-300 hover:bg-white/[0.05] transition-colors w-full text-left cursor-pointer"
+                >
+                  <div className="relative shrink-0">
+                    <div
+                      className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white overflow-hidden ring-2 ring-emerald-400/40 group-hover:ring-emerald-400/70 transition-all"
+                      style={{ background: f.avatar ? undefined : color }}
+                    >
+                      {f.avatar
+                        ? <img src={f.avatar} alt="" className="w-full h-full object-cover" />
+                        : (f.username?.[0]?.toUpperCase() ?? '?')}
+                    </div>
+                    <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-[#0e0a20]" />
                   </div>
-                  <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-emerald-400 rounded-full border-2 border-[#07070D]" />
+                  <div className="flex-1 min-w-0">
+                    <p className="truncate font-medium leading-tight">{f.username}</p>
+                    <p className="text-[10.5px] text-emerald-500/80 leading-tight">{t('online')}</p>
+                  </div>
+                </button>
+              );
+            })}
+
+            {overflow > 0 && (
+              <Link
+                href="/friends"
+                onClick={() => trackClick('sidebar:online_friends_overflow')}
+                className="flex items-center gap-2.5 px-1.5 h-8 rounded-lg text-[12px] text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.04] transition-colors"
+              >
+                <div className="w-7 h-7 rounded-full bg-white/[0.06] flex items-center justify-center text-[10px] font-semibold text-zinc-400 shrink-0">
+                  +{overflow}
                 </div>
-                <span className="flex-1 truncate">{f.username}</span>
-              </button>
-            );
-          })}
-        </div>
-      )}
+                <span>{t('tabFriends')}</span>
+              </Link>
+            )}
+          </div>
+        )}
+      </div>
 
       {(friends?.length ?? 0) > 0 && (
         <Link
           href="/friends"
           onClick={() => trackClick('sidebar:see_all_friends')}
-          className="block px-2 mt-1 text-[12px] text-violet-400/80 hover:text-violet-300 transition-colors"
+          className="flex items-center justify-center h-8 text-[12px] font-medium text-violet-400/90 hover:text-violet-300 hover:bg-white/[0.03] border-t border-white/[0.06] transition-colors"
         >
           {t('tabFriends')} →
         </Link>

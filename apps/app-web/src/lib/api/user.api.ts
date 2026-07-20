@@ -72,6 +72,9 @@ export const userApi = {
   searchUsers: (query: string) =>
     apiClient<IUser[]>(`/api/user/search?q=${encodeURIComponent(query)}`),
 
+  heartbeat: () =>
+    apiClient('/api/user/heartbeat', { method: 'POST' }),
+
   getConversations: () =>
     apiClient<Conversation[]>('/api/user/dm/conversations'),
 

@@ -116,7 +116,6 @@ export function AppSidebar() {
             </div>
           )}
 
-          <div className="my-2 h-px bg-white/[0.05]" />
           <OnlineFriendsWidget />
         </nav>
 
