@@ -1,7 +1,7 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
-import { Globe, Loader2, X } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Globe, Loader2, MousePointer2, X } from 'lucide-react';
 import type { VBInput } from '@/hooks/use-virtual-browser';
 
 interface Props {
@@ -9,6 +9,7 @@ interface Props {
   frame: string | null;
   dimensions: { width: number; height: number } | null;
   error: string | null;
+  remoteCursor: { x: number; y: number } | null;
   start: (url: string) => void;
   stop: () => void;
   sendInput: (input: VBInput) => void;
@@ -19,10 +20,13 @@ interface Props {
 // frame stream. See services/watch-party/src/services/virtualBrowser.service.ts for the server
 // side (CDP screencast + input dispatch). State/socket wiring lives in the parent's
 // useVirtualBrowser() call (RoomContent.tsx) — this component is presentational + input capture.
-export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, start, stop, sendInput }: Props) {
+export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, remoteCursor, start, stop, sendInput }: Props) {
   const [urlInput, setUrlInput] = useState('');
   const imgRef = useRef<HTMLImageElement>(null);
   const lastMoveRef = useRef(0);
+  // Owner's own pointer position in CSS space (not server-viewport space) — purely local visual
+  // feedback, no round-trip needed since it's just "where is MY mouse over the stream right now".
+  const [localCursorCss, setLocalCursorCss] = useState<{ x: number; y: number } | null>(null);
 
   // Maps a mouse event's page position to the server-side browser's fixed viewport (1280x720
   // by default) regardless of how large the <img> is actually rendered on screen.
@@ -37,13 +41,33 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, start,
     };
   }, [dimensions]);
 
+  // Inverse of toViewportCoords — used to place the OTHER viewers' synced cursor (received in
+  // server-viewport space via VB_CURSOR) at the right spot on THIS client's rendered <img>,
+  // whatever size it happens to be displayed at.
+  const viewportToCssCoords = useCallback((vx: number, vy: number): { x: number; y: number } | null => {
+    if (!imgRef.current || !dimensions) return null;
+    const rect = imgRef.current.getBoundingClientRect();
+    return {
+      x: (vx / dimensions.width) * rect.width,
+      y: (vy / dimensions.height) * rect.height,
+    };
+  }, [dimensions]);
+
   const handleMouseMove = (e: React.MouseEvent) => {
+    if (isOwner && imgRef.current) {
+      const rect = imgRef.current.getBoundingClientRect();
+      setLocalCursorCss({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+    }
     if (!isOwner) return;
     const now = Date.now();
     if (now - lastMoveRef.current < 40) return; // ~25fps — enough for pointer tracking, cheap
     lastMoveRef.current = now;
     const pos = toViewportCoords(e);
     if (pos) sendInput({ type: 'mousemove', x: pos.x, y: pos.y });
+  };
+
+  const handleMouseLeave = () => {
+    if (isOwner) setLocalCursorCss(null);
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -55,11 +79,6 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, start,
   const handleMouseUp = () => {
     if (!isOwner) return;
     sendInput({ type: 'mouseup' });
-  };
-
-  const handleWheel = (e: React.WheelEvent) => {
-    if (!isOwner) return;
-    sendInput({ type: 'wheel', deltaX: e.deltaX, deltaY: e.deltaY });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -76,6 +95,23 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, start,
     if (!isOwner) return;
     if (e.key.length !== 1) sendInput({ type: 'keyup', key: e.key });
   };
+
+  // Native (non-React) wheel listener with { passive: false } — React attaches its synthetic
+  // onWheel as a PASSIVE listener by default (has been since React 17, for scroll-perf reasons),
+  // which silently makes e.preventDefault() a no-op. Without this, scrolling over the stream
+  // scrolled the actual WeWatch page underneath instead of the remote browser — exactly the
+  // reported bug. This is the standard workaround: attach the listener directly to the DOM node.
+  useEffect(() => {
+    const el = imgRef.current;
+    if (!el || !isOwner) return;
+
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      sendInput({ type: 'wheel', deltaX: e.deltaX, deltaY: e.deltaY });
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [isOwner, sendInput, frame]); // re-attach if the <img> node identity changes across renders
 
   if (!frame && !dimensions) {
     if (!isOwner) {
@@ -111,6 +147,8 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, start,
     );
   }
 
+  const remoteCursorCss = !isOwner && remoteCursor ? viewportToCssCoords(remoteCursor.x, remoteCursor.y) : null;
+
   return (
     <div className="relative aspect-video bg-black rounded-xl overflow-hidden">
       {isOwner && (
@@ -130,22 +168,48 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, start,
       )}
 
       {frame && (
-        // eslint-disable-next-line @next/next/no-img-element -- live JPEG frame stream (base64 data URL), not a real <Image>-optimizable asset
-        <img
-          ref={imgRef}
-          src={`data:image/jpeg;base64,${frame}`}
-          alt=""
-          draggable={false}
-          tabIndex={isOwner ? 0 : -1}
-          onMouseMove={handleMouseMove}
-          onMouseDown={handleMouseDown}
-          onMouseUp={handleMouseUp}
-          onWheel={handleWheel}
-          onKeyDown={handleKeyDown}
-          onKeyUp={handleKeyUp}
-          onContextMenu={(e) => e.preventDefault()}
-          className={`w-full h-full object-contain select-none ${isOwner ? 'cursor-default' : 'cursor-not-allowed'}`}
-        />
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element -- live JPEG frame stream (base64 data URL), not a real <Image>-optimizable asset */}
+          <img
+            ref={imgRef}
+            src={`data:image/jpeg;base64,${frame}`}
+            alt=""
+            draggable={false}
+            tabIndex={isOwner ? 0 : -1}
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
+            onMouseDown={handleMouseDown}
+            onMouseUp={handleMouseUp}
+            onKeyDown={handleKeyDown}
+            onKeyUp={handleKeyUp}
+            onContextMenu={(e) => e.preventDefault()}
+            className={`w-full h-full object-contain select-none ${isOwner ? 'cursor-none' : 'cursor-not-allowed'}`}
+          />
+
+          {/* Owner's own cursor — the JPEG screencast never contains an OS cursor (headless
+              Chrome doesn't render one), so without this the owner has zero feedback about
+              where they're about to click. cursor-none above hides the real OS pointer so this
+              doesn't look like two overlapping cursors. */}
+          {isOwner && localCursorCss && (
+            <MousePointer2
+              size={18}
+              className="absolute pointer-events-none text-violet-300 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]"
+              style={{ left: localCursorCss.x, top: localCursorCss.y, transform: 'translate(-2px,-2px)' }}
+              fill="currentColor"
+            />
+          )}
+
+          {/* Everyone else sees the OWNER's cursor, synced via VB_CURSOR — same reason Kosmi
+              shows one: otherwise nobody but the owner has any idea what they're pointing at. */}
+          {remoteCursorCss && (
+            <MousePointer2
+              size={18}
+              className="absolute pointer-events-none text-amber-300 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]"
+              style={{ left: remoteCursorCss.x, top: remoteCursorCss.y, transform: 'translate(-2px,-2px)' }}
+              fill="currentColor"
+            />
+          )}
+        </>
       )}
     </div>
   );

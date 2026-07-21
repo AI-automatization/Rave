@@ -62,6 +62,10 @@ export const SERVER_EVENTS = Object.freeze({
   VB_FRAME:   'vb:frame',
   VB_STOPPED: 'vb:stopped',
   VB_ERROR:   'vb:error',
+  // Owner's pointer position relayed to everyone else — headless Chrome's screencast frames
+  // never include an OS cursor, so without this nobody but the owner can tell where they're
+  // about to click (Kosmi shows a synced cursor for exactly this reason).
+  VB_CURSOR:  'vb:cursor',
 
   ERROR: 'error',
 } as const);

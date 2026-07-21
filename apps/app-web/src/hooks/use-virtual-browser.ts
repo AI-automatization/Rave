@@ -23,6 +23,10 @@ export function useVirtualBrowser(isOwner: boolean) {
   const [active, setActive] = useState(false);
   const [dimensions, setDimensions] = useState<{ width: number; height: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Owner's pointer position in server-viewport space, relayed from vbEvents.handler.ts on
+  // every mousemove input — lets viewers see a synced cursor (Kosmi-style) even though the
+  // JPEG screencast itself never contains an OS cursor.
+  const [remoteCursor, setRemoteCursor] = useState<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     if (!socket || !isConnected) return;
@@ -33,7 +37,7 @@ export function useVirtualBrowser(isOwner: boolean) {
       setError(null);
     };
     const onFrame = (data: { data: string }) => setFrame(data.data);
-    const onStopped = () => { setActive(false); setFrame(null); };
+    const onStopped = () => { setActive(false); setFrame(null); setRemoteCursor(null); };
     const onError = (data: { message: string }) => setError(data.message);
 
     // Catch-up: ROOM_JOINED now carries a `vb` snapshot (services/watch-party
@@ -47,11 +51,14 @@ export function useVirtualBrowser(isOwner: boolean) {
       }
     };
 
+    const onCursor = (data: { x: number; y: number }) => setRemoteCursor({ x: data.x, y: data.y });
+
     socket.on(SERVER_EVENTS.VB_STARTED, onStarted);
     socket.on(SERVER_EVENTS.VB_FRAME, onFrame);
     socket.on(SERVER_EVENTS.VB_STOPPED, onStopped);
     socket.on(SERVER_EVENTS.VB_ERROR, onError);
     socket.on(SERVER_EVENTS.ROOM_JOINED, onRoomJoined);
+    socket.on(SERVER_EVENTS.VB_CURSOR, onCursor);
 
     return () => {
       socket.off(SERVER_EVENTS.VB_STARTED, onStarted);
@@ -59,6 +66,7 @@ export function useVirtualBrowser(isOwner: boolean) {
       socket.off(SERVER_EVENTS.VB_STOPPED, onStopped);
       socket.off(SERVER_EVENTS.VB_ERROR, onError);
       socket.off(SERVER_EVENTS.ROOM_JOINED, onRoomJoined);
+      socket.off(SERVER_EVENTS.VB_CURSOR, onCursor);
     };
   }, [socket, isConnected]);
 
@@ -75,5 +83,5 @@ export function useVirtualBrowser(isOwner: boolean) {
     socket?.emit(CLIENT_EVENTS.VB_INPUT, input);
   }, [socket, isOwner]);
 
-  return { frame, active, dimensions, error, start, stop, sendInput };
+  return { frame, active, dimensions, error, remoteCursor, start, stop, sendInput };
 }

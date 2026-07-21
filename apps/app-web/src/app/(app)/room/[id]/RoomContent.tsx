@@ -187,7 +187,7 @@ export function RoomContent({ roomId }: Props) {
   // everyone in the room watches the same live stream. `vbActive` is broadcast-driven (true for
   // EVERY member the instant the owner starts a session) — `showVBPanel` is purely local, lets
   // the owner reveal the "enter a URL" form before anything is actually running yet.
-  const { frame: vbFrame, active: vbActive, dimensions: vbDimensions, error: vbError, start: vbStart, stop: vbStop, sendInput: vbSendInput } = useVirtualBrowser(isOwner);
+  const { frame: vbFrame, active: vbActive, dimensions: vbDimensions, error: vbError, remoteCursor: vbRemoteCursor, start: vbStart, stop: vbStop, sendInput: vbSendInput } = useVirtualBrowser(isOwner);
   const [showVBPanel, setShowVBPanel] = useState(false);
   const showVB = vbActive || (isOwner && showVBPanel);
   const handleVBStop = () => { vbStop(); setShowVBPanel(false); };
@@ -218,6 +218,7 @@ export function RoomContent({ roomId }: Props) {
               frame={vbFrame}
               dimensions={vbDimensions}
               error={vbError}
+              remoteCursor={vbRemoteCursor}
               start={vbStart}
               stop={handleVBStop}
               sendInput={vbSendInput}
