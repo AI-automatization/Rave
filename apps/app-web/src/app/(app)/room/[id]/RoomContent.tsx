@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { MessageCircle, Users as UsersIcon, ListVideo, X, ChevronRight, Loader2, Play, Globe } from 'lucide-react';
 import { useWatchParty } from '@/hooks/use-watch-party';
@@ -175,6 +176,8 @@ function PlaylistPanel({
 
 export function RoomContent({ roomId }: Props) {
   const t = useTranslations('party');
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const { sendMessage, sendPlay, sendPause, sendSeek, sendEmoji, sendHeartbeat, sendBufferStart, sendBufferEnd, sendMediaChange } = useWatchParty(roomId);
   const [rightTab, setRightTab] = useState<'chat' | 'members' | 'playlist'>('chat');
   const setRoom = useWatchPartyStore((s) => s.setRoom);
@@ -204,6 +207,22 @@ export function RoomContent({ roomId }: Props) {
       reset();
     };
   }, [roomId, setRoom, reset]);
+
+  // Room creation (CreateRoomDialog) is a plain REST call with no socket/room context yet, so it
+  // can't run the extraction-then-VB-fallback check CHANGE_MEDIA does (roomEvents.handler.ts) —
+  // a URL that needs VB would otherwise just sit there showing "failed to load video" forever.
+  // ?verify=1 means "re-submit the room's initial video through CHANGE_MEDIA once the socket is
+  // up" — harmless for URLs that already work (server skips the check for official embeds, and
+  // broadcasts the same unchanged value for everything else), fixes the ones that don't.
+  const verifiedInitialVideo = useRef(false);
+  useEffect(() => {
+    if (verifiedInitialVideo.current) return;
+    if (searchParams.get('verify') !== '1') return;
+    if (!room?.videoUrl) return;
+    verifiedInitialVideo.current = true;
+    sendMediaChange(room.videoUrl, room.videoTitle ?? undefined, room.videoPlatform ?? undefined);
+    router.replace(`/room/${roomId}`); // strip the param — a refresh shouldn't re-trigger this
+  }, [searchParams, room, roomId, sendMediaChange, router]);
 
   return (
     <div className="flex flex-col h-[calc(100vh-3rem)] -m-4 md:-m-6 lg:-m-8">
