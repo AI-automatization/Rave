@@ -11,20 +11,38 @@ let connectPromise: Promise<Socket> | null = null;
 // Railway must have NEXT_PUBLIC_SOCKET_URL set BEFORE the Docker build runs.
 const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL ?? 'http://localhost:3004';
 
+async function fetchToken(): Promise<string | null> {
+  const res = await fetch('/api/auth/token', { credentials: 'include' });
+  const data = await res.json() as { data?: { token?: string } };
+  return data.data?.token ?? null;
+}
+
+// access_token is a short-lived (15min) JWT — /api/auth/token just echoes whatever cookie is
+// currently there, no expiry check. Unlike normal REST calls (api-client.ts refreshes on 401
+// and retries automatically), a socket that connects with an already-expired token gets
+// rejected by watchParty.socket.ts's jwt.verify() and never recovers on its own: reconnection
+// keeps resending the same stale token, so chat/sync/VB all silently stay dead for the rest of
+// the tab's life. Mirrors api-client.ts's refresh flow, just triggered by connect_error instead
+// of a 401 status.
+async function refreshAccessToken(): Promise<boolean> {
+  try {
+    const res = await fetch('/api/auth/refresh', { method: 'POST', credentials: 'include' });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 export async function getSocket(): Promise<Socket> {
   if (socket?.connected) return socket;
   if (connectPromise) return connectPromise;
 
   connectPromise = (async () => {
     try {
-      // Get JWT from our proxy route (cookie → body)
-      const res = await fetch('/api/auth/token', { credentials: 'include' });
-      const data = await res.json() as { data?: { token?: string } };
-      const token = data.data?.token;
-
+      const token = await fetchToken();
       if (!token) throw new Error('Not authenticated');
 
-      socket = io(SOCKET_URL, {
+      const s = io(SOCKET_URL, {
         auth: { token },
         transports: ['websocket'],
         reconnection: true,
@@ -32,7 +50,21 @@ export async function getSocket(): Promise<Socket> {
         reconnectionDelay: 2000,
       });
 
-      return socket;
+      let refreshedOnce = false;
+      s.on('connect_error', () => {
+        if (refreshedOnce) return;
+        refreshedOnce = true;
+        void (async () => {
+          if (!(await refreshAccessToken())) return;
+          const freshToken = await fetchToken();
+          if (!freshToken) return;
+          s.auth = { token: freshToken };
+          s.connect();
+        })();
+      });
+
+      socket = s;
+      return s;
     } finally {
       connectPromise = null;
     }
