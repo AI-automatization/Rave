@@ -86,7 +86,30 @@ const GEO_BLOCKED_DOMAINS = new Set([
   'seasonvar.ru',
 ]);
 
+// Single-flight dedup: watch-party's CHANGE_MEDIA handler (server-side extraction-vs-VB check)
+// and the web client's own VideoPlayer extraction call both hit this same URL within moments of
+// each other — one to decide "extract or fall back to VB", the other to actually get bytes to
+// play. Without this, that's two independent Playwright browser launches racing the SAME slow
+// site at once. Concurrent calls for the same URL now share one in-flight promise instead.
+const inFlightExtractions = new Map<string, Promise<VideoExtractResult>>();
+
 export async function extractVideo(
+  rawUrl: string,
+  redis: Redis,
+  options?: { cookies?: string; tmdbId?: string },
+): Promise<VideoExtractResult> {
+  const dedupeKey = createHash('sha256').update(rawUrl).digest('hex');
+  const existing = inFlightExtractions.get(dedupeKey);
+  if (existing) return existing;
+
+  const promise = extractVideoUncached(rawUrl, redis, options).finally(() => {
+    inFlightExtractions.delete(dedupeKey);
+  });
+  inFlightExtractions.set(dedupeKey, promise);
+  return promise;
+}
+
+async function extractVideoUncached(
   rawUrl: string,
   redis: Redis,
   options?: { cookies?: string; tmdbId?: string },

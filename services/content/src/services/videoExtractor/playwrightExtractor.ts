@@ -10,8 +10,13 @@ import { logger } from '@shared/utils/logger';
 import { VideoExtractResult } from './types';
 import { playwrightCookiesToHeader, saveCookies } from '../cookieStore';
 
-const NAVIGATE_TIMEOUT_MS = 25_000;
-const POST_LOAD_WAIT_MS   = 5_000;  // extra wait for deferred video requests
+// Budget must stay well under the content-service's global 30s request timeout
+// (shared/src/middleware/timeout.middleware.ts) — at 25s+5s=30s this was a dead-heat race that
+// the outer timeout almost always won, so a real result (even a clean "null, nothing found")
+// rarely got the chance to come back before the request was killed with a 503. Left tighter here
+// so the extraction-failed → VB-fallback decision lands sooner instead of stalling near 30s.
+const NAVIGATE_TIMEOUT_MS = 12_000;
+const POST_LOAD_WAIT_MS   = 3_000;  // extra wait for deferred video requests
 const MAX_CONCURRENT      = 3;
 
 const USER_AGENTS = [
