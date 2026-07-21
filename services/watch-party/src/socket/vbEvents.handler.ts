@@ -47,7 +47,10 @@ export const registerVBEvents = (
 
     try {
       await startSession(roomId, userId, url.toString(), (base64Jpeg) => {
-        io.to(roomId).emit(SERVER_EVENTS.VB_FRAME, { data: base64Jpeg });
+        // volatile: if a client's socket buffer isn't ready to accept the next write, Socket.io
+        // drops this packet instead of queuing it — a lagging viewer always jumps to the latest
+        // frame rather than slowly draining a growing backlog of stale ones.
+        io.to(roomId).volatile.emit(SERVER_EVENTS.VB_FRAME, { data: base64Jpeg });
       });
       io.to(roomId).emit(SERVER_EVENTS.VB_STARTED, { url: url.toString(), width: VB_VIEWPORT.width, height: VB_VIEWPORT.height, ownerId: userId });
       logger.info('VB started', { roomId, userId, url: url.toString() });

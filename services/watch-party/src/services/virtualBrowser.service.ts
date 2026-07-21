@@ -31,6 +31,12 @@ interface VBSession {
 }
 
 const sessions = new Map<string, VBSession>(); // roomId -> session
+// Guards against a rapid double VB_START (e.g. double-click) racing two chromium.launch() calls
+// before the first one lands in `sessions` — without this, the loser of the race becomes an
+// orphaned browser that nobody tracks but that keeps broadcasting its own frames forever.
+const startingRooms = new Set<string>();
+
+const FRAME_INTERVAL_MS = 100; // cap relayed frames at ~10fps — see startSession for why
 
 export function activeSessionCount(): number {
   return sessions.size;
@@ -60,46 +66,66 @@ export async function startSession(
   url: string,
   onFrame: (base64Jpeg: string) => void,
 ): Promise<void> {
-  // Restarting with a new URL — tear down any existing session for this room first.
-  if (sessions.has(roomId)) {
-    await stopSession(roomId);
+  if (startingRooms.has(roomId)) {
+    throw new Error('virtual_browser_starting');
   }
-  if (sessions.size >= MAX_CONCURRENT) {
-    throw new Error('virtual_browser_limit');
-  }
-
-  const browser = await chromium.launch({
-    headless: true,
-    executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-  });
-  const context = await browser.newContext({ viewport: VB_VIEWPORT });
-  const page = await context.newPage();
-  const cdp = await context.newCDPSession(page);
-
-  cdp.on('Page.screencastFrame', (event: { data: string; sessionId: number }) => {
-    onFrame(event.data);
-    // Ack is required for Chrome to keep sending frames — a missed ack stalls the stream.
-    cdp.send('Page.screencastFrameAck', { sessionId: event.sessionId }).catch(() => { /* session may have closed */ });
-  });
-
-  await cdp.send('Page.startScreencast', {
-    format: 'jpeg',
-    quality: 70,
-    maxWidth: VB_VIEWPORT.width,
-    maxHeight: VB_VIEWPORT.height,
-    everyNthFrame: 1,
-  });
-
-  sessions.set(roomId, { browser, context, page, cdp, ownerId, url });
+  startingRooms.add(roomId);
 
   try {
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20_000 });
-    logger.info('VB session started', { roomId, url, active: sessions.size });
-  } catch (e) {
-    // Navigation failure doesn't kill the session — owner still sees the failed-load page
-    // and can retry a different URL from the same browser instance.
-    logger.warn('VB: initial navigation failed', { roomId, url, error: (e as Error).message });
+    // Restarting with a new URL — tear down any existing session for this room first.
+    if (sessions.has(roomId)) {
+      await stopSession(roomId);
+    }
+    if (sessions.size >= MAX_CONCURRENT) {
+      throw new Error('virtual_browser_limit');
+    }
+
+    const browser = await chromium.launch({
+      headless: true,
+      executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+    });
+    const context = await browser.newContext({ viewport: VB_VIEWPORT });
+    const page = await context.newPage();
+    const cdp = await context.newCDPSession(page);
+
+    let lastRelayedAt = 0;
+    cdp.on('Page.screencastFrame', (event: { data: string; sessionId: number }) => {
+      // Ack every single frame immediately — Chrome pauses the screencast until acked, so a
+      // missed/delayed ack stalls the whole stream regardless of what we do with the data.
+      cdp.send('Page.screencastFrameAck', { sessionId: event.sessionId }).catch(() => { /* session may have closed */ });
+
+      // But only RELAY at a capped rate. Chrome can push frames much faster than a busy page's
+      // native reflow rate, and at 1280x720/quality-70 each one is tens of KB — fanned out to
+      // every room member over Socket.io that piles up in slow clients' send buffers and gets
+      // delivered as a growing backlog of stale frames (reported as "browser lags terribly" /
+      // "member sees something different than the owner", worse with more viewers).
+      const now = Date.now();
+      if (now - lastRelayedAt < FRAME_INTERVAL_MS) return;
+      lastRelayedAt = now;
+      onFrame(event.data);
+    });
+
+    await cdp.send('Page.startScreencast', {
+      format: 'jpeg',
+      quality: 55,
+      maxWidth: VB_VIEWPORT.width,
+      maxHeight: VB_VIEWPORT.height,
+      everyNthFrame: 1,
+    });
+
+    sessions.set(roomId, { browser, context, page, cdp, ownerId, url });
+
+    try {
+      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20_000 });
+      logger.info('VB session started', { roomId, url, active: sessions.size });
+    } catch (e) {
+      // Navigation failure doesn't kill the session — owner still sees the failed-load page
+      // and can retry a different URL from the same browser instance.
+      logger.warn('VB: initial navigation failed', { roomId, url, error: (e as Error).message });
+    }
+  } finally {
+    startingRooms.delete(roomId);
   }
 }
 
