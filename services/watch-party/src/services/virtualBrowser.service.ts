@@ -38,6 +38,14 @@ const startingRooms = new Set<string>();
 
 const FRAME_INTERVAL_MS = 100; // cap relayed frames at ~10fps — see startSession for why
 
+// Same pattern as content-service's playwrightExtractor.ts (services/content/src/services/
+// videoExtractor/playwrightExtractor.ts) — matches a network response whose URL is a direct
+// media file. Here it runs against the LIVE, owner-controlled VB page instead of a throwaway
+// one-shot extraction browser: the owner can click through ads/play buttons/captchas visually
+// (the whole reason to reach for VB in the first place) and the moment the real page requests
+// an actual media URL, we grab it and switch the room over to it.
+const MEDIA_URL_RE = /\.(m3u8|mpd|mp4)(\?[^"'\s]*)?$/i;
+
 export function activeSessionCount(): number {
   return sessions.size;
 }
@@ -65,6 +73,7 @@ export async function startSession(
   ownerId: string,
   url: string,
   onFrame: (base64Jpeg: string) => void,
+  onMediaFound?: (mediaUrl: string, type: 'mp4' | 'hls') => void,
 ): Promise<void> {
   if (startingRooms.has(roomId)) {
     throw new Error('virtual_browser_starting');
@@ -88,6 +97,20 @@ export async function startSession(
     const context = await browser.newContext({ viewport: VB_VIEWPORT });
     const page = await context.newPage();
     const cdp = await context.newCDPSession(page);
+
+    if (onMediaFound) {
+      let mediaFound = false;
+      page.on('response', (response) => {
+        if (mediaFound) return; // first match wins — ignore anything after
+        const respUrl = response.url();
+        const match = MEDIA_URL_RE.exec(respUrl);
+        if (!match) return;
+        mediaFound = true;
+        const type = match[1].toLowerCase() === 'mp4' ? 'mp4' : 'hls';
+        logger.info('VB: media URL intercepted', { roomId, url: respUrl.slice(0, 120), type });
+        onMediaFound(respUrl, type);
+      });
+    }
 
     let lastRelayedAt = 0;
     cdp.on('Page.screencastFrame', (event: { data: string; sessionId: number }) => {

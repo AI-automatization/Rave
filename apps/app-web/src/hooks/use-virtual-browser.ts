@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { SERVER_EVENTS, CLIENT_EVENTS } from '@shared/constants/socketEvents';
 import { useSocket } from '@/hooks/use-socket';
+import { toast } from '@/store/toast.store';
 
 export type VBInput =
   | { type: 'mousemove'; x: number; y: number }
@@ -37,7 +38,16 @@ export function useVirtualBrowser(isOwner: boolean) {
       setError(null);
     };
     const onFrame = (data: { data: string }) => setFrame(data.data);
-    const onStopped = () => { setActive(false); setFrame(null); setRemoteCursor(null); };
+    const onStopped = (data?: { reason?: string }) => {
+      setActive(false);
+      setFrame(null);
+      setRemoteCursor(null);
+      // ROOM_UPDATED (with the intercepted videoUrl) fires separately and flips the room over
+      // to the normal player — this toast just explains WHY the browser view disappeared.
+      if (data?.reason === 'media_found') {
+        toast.success('Видео найдено — переключаемся на плеер');
+      }
+    };
     const onError = (data: { message: string }) => setError(data.message);
 
     // Catch-up: ROOM_JOINED now carries a `vb` snapshot (services/watch-party
