@@ -55,8 +55,13 @@ function release(): void {
 }
 // ---------------------------------------------------------
 
-// Matches HLS manifests, DASH manifests, and MP4 streams
-const MEDIA_URL_RE = /\.(m3u8|mpd|mp4)(\?[^"'\s]*)?$/i;
+// Matches HLS manifests, DASH manifests, and MP4/fMP4-segment streams by URL extension.
+// Deliberately NOT matching bare .ts by extension — TypeScript sourcemaps/webpack chunks end in
+// .ts constantly during normal page load and would false-positive. .ts (transport-stream
+// segments) and opaque paths with no extension at all (e.g. /api/stream/get?id=123) are instead
+// caught by the Content-Type fallback below, for CDNs that set an honest video mime type.
+const MEDIA_EXT_RE = /\.(m3u8|mpd|mp4|m4s|webm)(\?[^"'\s]*)?$/i;
+const MEDIA_CONTENT_TYPE_RE = /^(video\/(mp4|webm|mp2t|iso\.segment)|audio\/mp4|application\/(vnd\.apple\.mpegurl|x-mpegurl|dash\+xml))/i;
 
 export async function playwrightExtractor(url: string, redis?: Redis): Promise<VideoExtractResult | null> {
   await acquire();
@@ -107,16 +112,25 @@ export async function playwrightExtractor(url: string, redis?: Redis): Promise<V
     const onResponse = (response: Response): void => {
       if (foundUrl) return; // already found — skip subsequent matches
       const respUrl = response.url();
-      const match   = MEDIA_URL_RE.exec(respUrl);
-      if (match) {
+      const extMatch = MEDIA_EXT_RE.exec(respUrl);
+      if (extMatch) {
         foundUrl  = respUrl;
-        const ext = match[1].toLowerCase();
-        foundType = ext === 'mp4' ? 'mp4' : 'hls'; // m3u8 + mpd → hls
-        logger.info('Playwright: media URL intercepted', {
+        const ext = extMatch[1].toLowerCase();
+        foundType = ext === 'm3u8' || ext === 'mpd' ? 'hls' : 'mp4';
+        logger.info('Playwright: media URL intercepted (by extension)', {
           url:  respUrl.slice(0, 120),
           type: foundType,
         });
+        return;
       }
+      // No recognizable extension — fall back to Content-Type.
+      const contentType = response.headers()['content-type'] ?? '';
+      if (!MEDIA_CONTENT_TYPE_RE.test(contentType)) return;
+      foundUrl  = respUrl;
+      foundType = /mpegurl|dash/i.test(contentType) ? 'hls' : 'mp4';
+      logger.info('Playwright: media URL intercepted (by content-type)', {
+        url: respUrl.slice(0, 120), contentType, type: foundType,
+      });
     };
 
     page.on('response', onResponse);
