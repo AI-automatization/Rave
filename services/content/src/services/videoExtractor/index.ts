@@ -275,8 +275,12 @@ export async function extractVideo(
         });
       }
     }
-    // Playwright: only for known JS-heavy platforms (slow — last resort)
-    if (!result && isPlaywrightPlatform(parsedUrl)) {
+    // Playwright: universal last resort once generic+yt-dlp both failed — not gated to the
+    // known-JS-heavy allowlist anymore (T-S043 originally scoped it there to be conservative,
+    // but genericExtractor+yt-dlp already ruled out the cheap paths by this point regardless of
+    // domain, so any site the user pastes gets one real-browser network-sniff attempt too).
+    // Concurrency guard below is the actual protection against overload, not the domain list.
+    if (!result) {
       if (playwrightRunning >= PLAYWRIGHT_MAX_CONCURRENT) {
         logger.warn('Playwright concurrency limit reached, skipping', { url: rawUrl, active: playwrightRunning });
       } else {
