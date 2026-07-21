@@ -1,6 +1,7 @@
 // WeWatch Mobile — SettingsScreen (composed)
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, Alert, Linking, AppState } from 'react-native';
+import Constants from 'expo-constants';
 import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import * as Notifications from 'expo-notifications';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
@@ -249,7 +250,7 @@ export function SettingsScreen() {
           <SectionHeader title={t('settings', 'appSection')} />
           <View style={styles.card}>
             {[
-              { label: t('settings', 'version'), value: '1.0.0' },
+              { label: t('settings', 'version'), value: Constants.expoConfig?.version ?? '1.0.0' },
             ].map((item, i) => (
               <View key={item.label} style={[styles.infoRow, i === 0 && styles.rowBorder]}>
                 <Text style={styles.infoLabel}>{item.label}</Text>
