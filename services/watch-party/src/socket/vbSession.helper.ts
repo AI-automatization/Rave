@@ -9,7 +9,18 @@ import { WatchPartyService } from '../services/watchParty.service';
 import { logger } from '@shared/utils/logger';
 import { SERVER_EVENTS } from '@shared/constants/socketEvents';
 import { VideoPlatform } from '@shared/types';
+import { watchPartyServiceUrl } from '@shared/utils/serviceConfig';
 import { VB_VIEWPORT, startSession, stopSession, pauseScreencast } from '../services/virtualBrowser.service';
+
+// Some CDNs 403 anything not coming from the IP that first requested the URL (same class of
+// protection already seen on VK/Rutube). VB's Playwright browser ran inside THIS service's
+// container, so re-fetching through vbMediaProxy (also this service) keeps playback on the same
+// egress IP the CDN saw — handing app-web's proxy-stream the raw CDN URL directly would fetch
+// from a different Railway service/IP and 403 on CDNs that check this.
+function proxiedMediaUrl(mediaUrl: string, mediaType: 'mp4' | 'hls'): string {
+  const ext = mediaType === 'hls' ? 'm3u8' : 'mp4';
+  return `${watchPartyServiceUrl}/api/v1/watch-party/vb-media-proxy/stream.${ext}?url=${encodeURIComponent(mediaUrl)}`;
+}
 
 export async function startVBForRoom(
   io: SocketServer,
@@ -31,9 +42,12 @@ export async function startVBForRoom(
       } else {
         await pauseScreencast(roomId);
       }
+      // 'capture' mediaUrl already points at our own vb-capture endpoint — only 'url' (a raw,
+      // independently-fetchable CDN URL) needs the same-IP proxy wrapper.
+      const roomVideoUrl = kind === 'url' ? proxiedMediaUrl(mediaUrl, mediaType) : mediaUrl;
       try {
         const updated = await watchPartyService.updateRoomMedia(ownerId, roomId, {
-          videoUrl: mediaUrl,
+          videoUrl: roomVideoUrl,
           videoTitle: null,
           videoPlatform: 'generic' as VideoPlatform,
         });

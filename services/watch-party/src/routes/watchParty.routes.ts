@@ -6,6 +6,7 @@ import { WatchPartyService } from '../services/watchParty.service';
 import { createDomainAdminController } from '../controllers/domain.admin.controller';
 import { createTurnController } from '../controllers/turn.controller';
 import { vbCaptureController } from '../controllers/vbCapture.controller';
+import { vbMediaProxyController } from '../controllers/vbMediaProxy.controller';
 import { verifyToken, requireNotBlocked } from '@shared/middleware/auth.middleware';
 import { requireInternalSecret } from '@shared/utils/serviceClient';
 import { createRoomLimiter, joinRoomLimiter } from '../middleware/rateLimiter';
@@ -66,6 +67,14 @@ export const createWatchPartyRouter = (redis: Redis, io: SocketServer): Router =
   // server-to-server with no credentials, same as it would fetch a real external .mp4 URL. roomId
   // itself is an unguessable Mongo ObjectId, same exposure as any other proxied stream URL.
   router.get('/vb-capture/:roomId', vbCaptureController.stream);
+
+  // GET /watch-party/vb-media-proxy/stream.(m3u8|mp4)?url=... and .../seg?url=... — re-fetches a
+  // media URL the VB network sniffer found (category A) through THIS service's own egress IP,
+  // instead of handing the raw CDN URL to app-web's proxy-stream (a different Railway service/IP —
+  // some CDNs 403 anything not coming from the IP that first requested it, see controller comment).
+  // Same public/no-auth trust model as vb-capture above.
+  router.get('/vb-media-proxy/stream.:ext(m3u8|mp4)', vbMediaProxyController.stream);
+  router.get('/vb-media-proxy/seg', vbMediaProxyController.stream);
 
   // GET /watch-party/rooms/my/recent — user's last 10 rooms (T-S061)
   router.get('/rooms/my/recent', verifyToken, notBlocked, watchPartyController.getRecentRooms);
