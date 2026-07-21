@@ -63,6 +63,25 @@ function release(): void {
 const MEDIA_EXT_RE = /\.(m3u8|mpd|mp4|m4s|webm)(\?[^"'\s]*)?$/i;
 const MEDIA_CONTENT_TYPE_RE = /^(video\/(mp4|webm|mp2t|iso\.segment)|audio\/mp4|application\/(vnd\.apple\.mpegurl|x-mpegurl|dash\+xml))/i;
 
+// Third line of defense: some sites deliberately lie about Content-Type (serve a video segment
+// as application/octet-stream, or omit the header) specifically to dodge naive extension/mime
+// scrapers. Only worth downloading the body when the declared type is already ambiguous —
+// checking magic bytes on every html/js/css/image response would burn bandwidth for nothing.
+const AMBIGUOUS_CONTENT_TYPE_RE = /^(application\/octet-stream|binary\/octet-stream|)$/i;
+const MIN_MEDIA_BYTES = 4096; // real media segments are never this small — skip tiny beacons/pixels
+
+function sniffMagicBytes(buf: Buffer): 'mp4' | 'hls' | null {
+  if (buf.length < 12) return null;
+  // MP4 / fMP4-CMAF: ISO-BMFF box type spelled out as ASCII at offset 4 (ftyp/moov/moof/styp/sidx)
+  const boxType = buf.toString('ascii', 4, 8);
+  if (boxType === 'ftyp' || boxType === 'moov' || boxType === 'moof' || boxType === 'styp' || boxType === 'sidx') return 'mp4';
+  // WebM/Matroska EBML header
+  if (buf[0] === 0x1a && buf[1] === 0x45 && buf[2] === 0xdf && buf[3] === 0xa3) return 'mp4';
+  // MPEG-TS: 0x47 sync byte repeating every 188 bytes
+  if (buf.length >= 376 && buf[0] === 0x47 && buf[188] === 0x47 && buf[376] === 0x47) return 'hls';
+  return null;
+}
+
 export async function playwrightExtractor(url: string, redis?: Redis): Promise<VideoExtractResult | null> {
   await acquire();
 
@@ -124,13 +143,29 @@ export async function playwrightExtractor(url: string, redis?: Redis): Promise<V
         return;
       }
       // No recognizable extension — fall back to Content-Type.
-      const contentType = response.headers()['content-type'] ?? '';
-      if (!MEDIA_CONTENT_TYPE_RE.test(contentType)) return;
-      foundUrl  = respUrl;
-      foundType = /mpegurl|dash/i.test(contentType) ? 'hls' : 'mp4';
-      logger.info('Playwright: media URL intercepted (by content-type)', {
-        url: respUrl.slice(0, 120), contentType, type: foundType,
-      });
+      const headers = response.headers();
+      const contentType = headers['content-type'] ?? '';
+      if (MEDIA_CONTENT_TYPE_RE.test(contentType)) {
+        foundUrl  = respUrl;
+        foundType = /mpegurl|dash/i.test(contentType) ? 'hls' : 'mp4';
+        logger.info('Playwright: media URL intercepted (by content-type)', {
+          url: respUrl.slice(0, 120), contentType, type: foundType,
+        });
+        return;
+      }
+      // Still nothing — the site may be lying about Content-Type on purpose. Only worth the
+      // download if the declared type is itself ambiguous/missing and not a tiny beacon/pixel.
+      if (!AMBIGUOUS_CONTENT_TYPE_RE.test(contentType)) return;
+      const contentLength = parseInt(headers['content-length'] ?? '', 10);
+      if (!Number.isNaN(contentLength) && contentLength < MIN_MEDIA_BYTES) return;
+      void response.body().then((body) => {
+        if (foundUrl) return;
+        const type = sniffMagicBytes(body);
+        if (!type) return;
+        foundUrl  = respUrl;
+        foundType = type;
+        logger.info('Playwright: media URL intercepted (by magic bytes)', { url: respUrl.slice(0, 120), type });
+      }).catch(() => { /* body unavailable (redirected/aborted) — skip */ });
     };
 
     page.on('response', onResponse);

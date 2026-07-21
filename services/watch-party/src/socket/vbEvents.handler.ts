@@ -3,8 +3,9 @@ import { Server as SocketServer, Socket } from 'socket.io';
 import { WatchPartyService } from '../services/watchParty.service';
 import { logger } from '@shared/utils/logger';
 import { SERVER_EVENTS, CLIENT_EVENTS } from '@shared/constants/socketEvents';
-import { JwtPayload, VideoPlatform } from '@shared/types';
-import { VB_VIEWPORT, VBInput, startSession, stopSession, sendInput, getSessionOwner } from '../services/virtualBrowser.service';
+import { JwtPayload } from '@shared/types';
+import { VBInput, stopSession, sendInput, getSessionOwner } from '../services/virtualBrowser.service';
+import { startVBForRoom } from './vbSession.helper';
 
 interface AuthenticatedSocket extends Socket {
   user: JwtPayload;
@@ -46,33 +47,7 @@ export const registerVBEvents = (
     }
 
     try {
-      await startSession(roomId, userId, url.toString(), (base64Jpeg) => {
-        // volatile: if a client's socket buffer isn't ready to accept the next write, Socket.io
-        // drops this packet instead of queuing it — a lagging viewer always jumps to the latest
-        // frame rather than slowly draining a growing backlog of stale ones.
-        io.to(roomId).volatile.emit(SERVER_EVENTS.VB_FRAME, { data: base64Jpeg });
-      }, (mediaUrl, mediaType) => {
-        // The owner clicked through to a real video inside the VB — stop streaming the browser
-        // and hand the room straight to the normal player instead, same as a manual CHANGE_MEDIA
-        // (roomEvents.handler.ts). updateRoomMedia resets currentTime/isPlaying, which is right —
-        // this is effectively "the owner just picked a new video".
-        void (async () => {
-          await stopSession(roomId);
-          try {
-            const updated = await watchPartyService.updateRoomMedia(userId, roomId, {
-              videoUrl: mediaUrl,
-              videoTitle: null,
-              videoPlatform: 'generic' as VideoPlatform,
-            });
-            io.to(roomId).emit(SERVER_EVENTS.ROOM_UPDATED, updated);
-          } catch (e) {
-            logger.error('VB: failed to switch room to intercepted media', { roomId, mediaUrl, error: (e as Error).message });
-          }
-          io.to(roomId).emit(SERVER_EVENTS.VB_STOPPED, { reason: 'media_found', url: mediaUrl, mediaType });
-          logger.info('VB: switched room to intercepted media', { roomId, mediaUrl, mediaType });
-        })();
-      });
-      io.to(roomId).emit(SERVER_EVENTS.VB_STARTED, { url: url.toString(), width: VB_VIEWPORT.width, height: VB_VIEWPORT.height, ownerId: userId });
+      await startVBForRoom(io, watchPartyService, roomId, userId, url.toString());
       logger.info('VB started', { roomId, userId, url: url.toString() });
     } catch (e) {
       const message = (e as Error).message === 'virtual_browser_limit'

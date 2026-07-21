@@ -6,11 +6,14 @@ import { JwtPayload, VideoPlatform } from '@shared/types';
 import { recordWatchHistoryInternal } from '@shared/utils/serviceClient';
 import { bufferTimeouts, resumeBufferedRoom } from './videoEvents.handler';
 import { stopSession, getSessionSnapshot } from '../services/virtualBrowser.service';
+import { startVBForRoom } from './vbSession.helper';
+import { isOfficialEmbedHost, tryExtract } from '../services/extractionClient';
 
 interface AuthenticatedSocket extends Socket {
   user: JwtPayload;
   roomId?: string;
   roomOwnerId?: string; // cached to avoid DB lookup on every video event
+  rawToken?: string;
 }
 
 // In-memory map of roomId → inactivity close timer
@@ -168,6 +171,29 @@ export const registerRoomEvents = (
     if (!roomId) {
       logger.warn('Media change: socket has no roomId', { userId });
       return;
+    }
+
+    // Extraction-flow pre-check: official-embed platforms (YouTube/VK/Rutube/etc) already play
+    // instantly client-side via their own iframe — skip straight to the normal broadcast below,
+    // unchanged, no added latency. Everything else gets tested against content-service's
+    // extraction pipeline first; if THAT can't produce a playable result either, auto-fall into
+    // the shared virtual browser instead of broadcasting a URL that will just show "failed to
+    // load video" to the whole room. rawToken missing would mean a broken auth-middleware state
+    // that shouldn't happen in practice — treat it as "skip the check", not "drop the request".
+    if (authSocket.rawToken && !isOfficialEmbedHost(data.videoUrl)) {
+      const playable = await tryExtract(data.videoUrl, authSocket.rawToken);
+      if (!playable) {
+        try {
+          await startVBForRoom(io, watchPartyService, roomId, userId, data.videoUrl);
+          logger.info('CHANGE_MEDIA: extraction failed, auto-started VB', { roomId, userId, url: data.videoUrl });
+          return; // room is now watching the live VB stream — don't also broadcast the raw URL
+        } catch (e) {
+          // VB itself couldn't start (e.g. concurrency limit) — fall through to the normal
+          // broadcast so the owner at least gets today's behavior (a clear load error) instead
+          // of the request silently doing nothing.
+          logger.warn('CHANGE_MEDIA: VB auto-fallback failed to start too', { roomId, error: (e as Error).message });
+        }
+      }
     }
 
     try {

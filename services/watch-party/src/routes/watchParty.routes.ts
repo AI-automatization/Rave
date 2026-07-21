@@ -5,6 +5,7 @@ import { WatchPartyController } from '../controllers/watchParty.controller';
 import { WatchPartyService } from '../services/watchParty.service';
 import { createDomainAdminController } from '../controllers/domain.admin.controller';
 import { createTurnController } from '../controllers/turn.controller';
+import { vbCaptureController } from '../controllers/vbCapture.controller';
 import { verifyToken, requireNotBlocked } from '@shared/middleware/auth.middleware';
 import { requireInternalSecret } from '@shared/utils/serviceClient';
 import { createRoomLimiter, joinRoomLimiter } from '../middleware/rateLimiter';
@@ -58,6 +59,13 @@ export const createWatchPartyRouter = (redis: Redis, io: SocketServer): Router =
 
   // GET /watch-party/turn/credentials — WebRTC ICE servers (mesh sync + voice)
   router.get('/turn/credentials', verifyToken, turnCtrl.getCredentials);
+
+  // GET /watch-party/vb-capture/:roomId — serves the in-memory VB byte capture (categories B/C
+  // of the extraction flow) as a normal Range-capable video resource. Deliberately public/no-auth,
+  // same trust model as any external CDN URL we proxy — app-web's proxy-stream route fetches this
+  // server-to-server with no credentials, same as it would fetch a real external .mp4 URL. roomId
+  // itself is an unguessable Mongo ObjectId, same exposure as any other proxied stream URL.
+  router.get('/vb-capture/:roomId', vbCaptureController.stream);
 
   // GET /watch-party/rooms/my/recent — user's last 10 rooms (T-S061)
   router.get('/rooms/my/recent', verifyToken, notBlocked, watchPartyController.getRecentRooms);
