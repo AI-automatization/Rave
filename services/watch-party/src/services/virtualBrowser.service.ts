@@ -53,7 +53,24 @@ const FRAME_INTERVAL_MS = 100; // cap relayed frames at ~10fps — see startSess
 // constantly. Instead .ts (transport-stream segments) is caught via the Content-Type fallback
 // below, which also catches CDNs that serve segments through an opaque path with no extension at
 // all (e.g. /api/stream/get?id=123) but still set an honest video Content-Type header.
-const MEDIA_EXT_RE = /\.(m3u8|mpd|mp4|m4s|webm)(\?[^"'\s]*)?$/i;
+//
+// Matched against the URL's PATHNAME only, never the full href — asilmedia's own player.html
+// wraps the real file in a ?file=<url-encoded mp4 url> query param, and matching the whole href
+// string caught THAT page itself as "the video" (its query string happens to end in .mp4),
+// serving an HTML page as if it were a video file (silent black-screen 0:00 playback, not an
+// error — the <video> tag just had nothing decodable). Real CDNs commonly put a token AFTER the
+// extension too (segment.ts?expires=...), which pathname-only matching still handles correctly
+// since the query string was never part of the pathname to begin with.
+const MEDIA_EXT_RE = /\.(m3u8|mpd|mp4|m4s|webm)$/i;
+
+function matchMediaExtension(url: string): string | null {
+  try {
+    return MEDIA_EXT_RE.exec(new URL(url).pathname)?.[1]?.toLowerCase() ?? null;
+  } catch {
+    return null;
+  }
+}
+
 const MEDIA_CONTENT_TYPE_RE = /^(video\/(mp4|webm|mp2t|iso\.segment)|audio\/mp4|application\/(vnd\.apple\.mpegurl|x-mpegurl|dash\+xml))/i;
 
 function classifyMediaUrl(ext: string): 'mp4' | 'hls' {
@@ -153,10 +170,10 @@ export async function startSession(
       page.on('response', (response) => {
         if (mediaFound) return; // first match wins — ignore anything after
         const respUrl = response.url();
-        const extMatch = MEDIA_EXT_RE.exec(respUrl);
-        if (extMatch) {
+        const ext = matchMediaExtension(respUrl);
+        if (ext) {
           mediaFound = true;
-          const type = classifyMediaUrl(extMatch[1].toLowerCase());
+          const type = classifyMediaUrl(ext);
           logger.info('VB: media URL intercepted (by extension)', { roomId, url: respUrl.slice(0, 120), type });
           onMediaFound(respUrl, type, 'url');
           return;

@@ -60,8 +60,24 @@ function release(): void {
 // .ts constantly during normal page load and would false-positive. .ts (transport-stream
 // segments) and opaque paths with no extension at all (e.g. /api/stream/get?id=123) are instead
 // caught by the Content-Type fallback below, for CDNs that set an honest video mime type.
-const MEDIA_EXT_RE = /\.(m3u8|mpd|mp4|m4s|webm)(\?[^"'\s]*)?$/i;
+//
+// Matched against the URL's PATHNAME only, never the full href — asilmedia's player.html wraps
+// the real file in a ?file=<url-encoded mp4 url> query param, and matching the whole href string
+// caught THAT page itself as "the video" (its query string happens to end in .mp4), handing the
+// player an HTML page instead (silent black-screen 0:00 playback — the <video> tag just had
+// nothing decodable, no error). Real CDNs commonly put a token after the extension too
+// (segment.ts?expires=...), which pathname-only matching still handles correctly since the query
+// string was never part of the pathname.
+const MEDIA_EXT_RE = /\.(m3u8|mpd|mp4|m4s|webm)$/i;
 const MEDIA_CONTENT_TYPE_RE = /^(video\/(mp4|webm|mp2t|iso\.segment)|audio\/mp4|application\/(vnd\.apple\.mpegurl|x-mpegurl|dash\+xml))/i;
+
+function matchMediaExtension(url: string): string | null {
+  try {
+    return MEDIA_EXT_RE.exec(new URL(url).pathname)?.[1]?.toLowerCase() ?? null;
+  } catch {
+    return null;
+  }
+}
 
 // Third line of defense: some sites deliberately lie about Content-Type (serve a video segment
 // as application/octet-stream, or omit the header) specifically to dodge naive extension/mime
@@ -131,10 +147,9 @@ export async function playwrightExtractor(url: string, redis?: Redis): Promise<V
     const onResponse = (response: Response): void => {
       if (foundUrl) return; // already found — skip subsequent matches
       const respUrl = response.url();
-      const extMatch = MEDIA_EXT_RE.exec(respUrl);
-      if (extMatch) {
+      const ext = matchMediaExtension(respUrl);
+      if (ext) {
         foundUrl  = respUrl;
-        const ext = extMatch[1].toLowerCase();
         foundType = ext === 'm3u8' || ext === 'mpd' ? 'hls' : 'mp4';
         logger.info('Playwright: media URL intercepted (by extension)', {
           url:  respUrl.slice(0, 120),
