@@ -183,6 +183,7 @@ export function RoomContent({ roomId }: Props) {
   const setRoom = useWatchPartyStore((s) => s.setRoom);
   const reset = useWatchPartyStore((s) => s.reset);
   const room = useWatchPartyStore((s) => s.room);
+  const roomJoined = useWatchPartyStore((s) => s.roomJoined);
   const currentUser = useAuthStore((s) => s.user);
   const isOwner = !!(room && currentUser && room.ownerId === currentUser._id);
 
@@ -214,15 +215,20 @@ export function RoomContent({ roomId }: Props) {
   // ?verify=1 means "re-submit the room's initial video through CHANGE_MEDIA once the socket is
   // up" — harmless for URLs that already work (server skips the check for official embeds, and
   // broadcasts the same unchanged value for everything else), fixes the ones that don't.
+  //
+  // Must wait for `roomJoined` (ROOM_JOINED actually received), not just `room` being populated —
+  // `room` gets filled in fast from the REST preload above, well before the socket's own
+  // JOIN_ROOM round-trip finishes. Firing CHANGE_MEDIA before that lands as "socket has no
+  // roomId" server-side and gets silently dropped — a real race that broke this exact fix live.
   const verifiedInitialVideo = useRef(false);
   useEffect(() => {
     if (verifiedInitialVideo.current) return;
     if (searchParams.get('verify') !== '1') return;
-    if (!room?.videoUrl) return;
+    if (!roomJoined || !room?.videoUrl) return;
     verifiedInitialVideo.current = true;
     sendMediaChange(room.videoUrl, room.videoTitle ?? undefined, room.videoPlatform ?? undefined);
     router.replace(`/room/${roomId}`); // strip the param — a refresh shouldn't re-trigger this
-  }, [searchParams, room, roomId, sendMediaChange, router]);
+  }, [searchParams, room, roomJoined, roomId, sendMediaChange, router]);
 
   return (
     <div className="flex flex-col h-[calc(100vh-3rem)] -m-4 md:-m-6 lg:-m-8">

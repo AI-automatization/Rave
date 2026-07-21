@@ -48,7 +48,7 @@ export function useWatchParty(roomId: string) {
   const queryClient = useQueryClient();
   const {
     setRoom, setMembers, addMember, updateMember, removeMember,
-    addMessage, setSyncState, setHeartbeat, setConnected, reset,
+    addMessage, setSyncState, setHeartbeat, setConnected, setRoomJoined, reset,
   } = useWatchPartyStore();
 
   const resolveMemberProfile = useCallback((userId: string) => {
@@ -106,6 +106,10 @@ export function useWatchParty(roomId: string) {
       setMembers(rawMembers.map((id) => ({ _id: id, username: '' })));
       rawMembers.forEach(resolveMemberProfile);
       if (data.syncState) setSyncState(data.syncState);
+      // Only now has the server actually set authSocket.roomId (roomEvents.handler.ts's
+      // JOIN_ROOM handler) — anything emitting a room-scoped event before this point risks the
+      // server seeing "socket has no roomId" and silently dropping it.
+      setRoomJoined(true);
     });
 
     // Server sends { userId } — map to member shape, then resolve the real profile
@@ -205,8 +209,9 @@ export function useWatchParty(roomId: string) {
       socket.off(SERVER_EVENTS.MEMBER_KICKED);
       socket.off(SERVER_EVENTS.ERROR);
       setConnected(false);
+      setRoomJoined(false);
     };
-  }, [socket, isConnected, roomId, router, setRoom, setMembers, addMember, removeMember, resolveMemberProfile, addMessage, setSyncState, setHeartbeat, setConnected, reset]);
+  }, [socket, isConnected, roomId, router, setRoom, setMembers, addMember, removeMember, resolveMemberProfile, addMessage, setSyncState, setHeartbeat, setConnected, setRoomJoined, reset]);
 
   const sendMessage = useCallback((text: string) => {
     // Backend's chatEvents.handler.ts reads data.message (matches mobile's emit shape) — roomId
