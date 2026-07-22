@@ -255,6 +255,7 @@ interface NativeProps {
   onBufferStart: () => void;
   onBufferEnd: () => void;
   onOverlayClick: () => void;
+  onAutoplayBlocked: () => void;
 }
 
 function NativeVideoPlayer({
@@ -271,6 +272,7 @@ function NativeVideoPlayer({
   onBufferStart,
   onBufferEnd,
   onOverlayClick,
+  onAutoplayBlocked,
 }: NativeProps) {
   const hlsRef = useRef<import('hls.js').default | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -283,6 +285,23 @@ function NativeVideoPlayer({
   const [isMuted, setIsMuted] = useState(false);
   const [showControls, setShowControls] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  // True from the moment a new src is handed to us until the browser actually has enough data
+  // to play — without this, a fresh video (e.g. right after the VB handoff) just sits on a black
+  // frame at 0:00 with no feedback while the browser silently buffers, reading as "broken".
+  const [isBuffering, setIsBuffering] = useState(true);
+
+  // Fresh src → back to "loading", until canplay/playing says otherwise (mirror-state effect below).
+  useEffect(() => { setIsBuffering(true); }, [src]);
+
+  // Only the owner's own action should decide whether the room starts playing — members follow
+  // via the sync effect below once the owner's play event round-trips through the server. A
+  // recent real click (VB's own play button, or the room's play button) counts as user activation
+  // for autoplay purposes in every mainstream browser, so this reliably succeeds; the existing
+  // autoplayBlocked overlay is the fallback for the rare case a browser still refuses it.
+  function attemptOwnerAutoplay(video: HTMLVideoElement) {
+    if (!isOwner) return;
+    video.play().catch(() => onAutoplayBlocked());
+  }
 
   // HLS setup + macOS suppression
   useEffect(() => {
@@ -300,11 +319,12 @@ function NativeVideoPlayer({
         }, { once: true });
       }
       video.addEventListener('play', suppressMacOsPlayer, { passive: true });
+      attemptOwnerAutoplay(video);
       return;
     }
 
     import('hls.js').then(({ default: Hls }) => {
-      if (!Hls.isSupported()) { video.src = src; return; }
+      if (!Hls.isSupported()) { video.src = src; attemptOwnerAutoplay(video); return; }
       hlsRef.current?.destroy();
       // startPosition in config tells HLS.js to buffer segments from owner's
       // current position instead of from 0 — crucial when joining mid-playback
@@ -318,9 +338,12 @@ function NativeVideoPlayer({
       hlsRef.current = hls;
       hls.loadSource(src);
       hls.attachMedia(video);
-      hls.once(Hls.Events.MANIFEST_PARSED, suppressMacOsPlayer);
+      hls.once(Hls.Events.MANIFEST_PARSED, () => {
+        suppressMacOsPlayer();
+        attemptOwnerAutoplay(video);
+      });
       video.addEventListener('play', suppressMacOsPlayer, { passive: true });
-    }).catch(() => { video.src = src; });
+    }).catch(() => { video.src = src; attemptOwnerAutoplay(video); });
 
     return () => {
       hlsRef.current?.destroy();
@@ -344,6 +367,8 @@ function NativeVideoPlayer({
     const onMeta = () => { if (isFinite(video.duration)) setDuration(video.duration); };
     const onVolChange = () => { setVolume(video.volume); setIsMuted(video.muted); };
     const onFullscreenChange = () => setIsFullscreen(!!document.fullscreenElement);
+    const onWaitingEvt = () => setIsBuffering(true);
+    const onReadyEvt = () => setIsBuffering(false);
     document.addEventListener('fullscreenchange', onFullscreenChange);
     video.addEventListener('play', onPlayEvt);
     video.addEventListener('pause', onPauseEvt);
@@ -351,6 +376,9 @@ function NativeVideoPlayer({
     video.addEventListener('loadedmetadata', onMeta);
     video.addEventListener('durationchange', onMeta);
     video.addEventListener('volumechange', onVolChange);
+    video.addEventListener('waiting', onWaitingEvt);
+    video.addEventListener('canplay', onReadyEvt);
+    video.addEventListener('playing', onReadyEvt);
     return () => {
       video.removeEventListener('play', onPlayEvt);
       video.removeEventListener('pause', onPauseEvt);
@@ -358,6 +386,9 @@ function NativeVideoPlayer({
       video.removeEventListener('loadedmetadata', onMeta);
       video.removeEventListener('durationchange', onMeta);
       video.removeEventListener('volumechange', onVolChange);
+      video.removeEventListener('waiting', onWaitingEvt);
+      video.removeEventListener('canplay', onReadyEvt);
+      video.removeEventListener('playing', onReadyEvt);
       document.removeEventListener('fullscreenchange', onFullscreenChange);
     };
   }, [videoRef]);
@@ -450,6 +481,27 @@ function NativeVideoPlayer({
           if (!isOwner) onBufferEnd();
         }}
       />
+
+      {/* Buffering — video has a src but the browser doesn't have enough data yet (fresh VB
+          handoff, seek, network stall). Without this the video area is just a black rectangle
+          at 0:00 with no signal that anything is happening. Autoplay-blocked takes priority —
+          no point showing "loading" over a state that needs a click, not a wait. */}
+      {isBuffering && !autoplayBlocked && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-black/60 pointer-events-none">
+          <div className="relative w-16 h-16 flex items-center justify-center">
+            <span
+              className="absolute inset-0 rounded-full animate-ping"
+              style={{ background: 'rgba(124,58,237,0.25)', animationDuration: '1.8s' }}
+            />
+            <span
+              className="absolute inset-0 rounded-full"
+              style={{ background: 'rgba(124,58,237,0.12)', boxShadow: '0 0 32px rgba(124,58,237,0.35)' }}
+            />
+            <Loader2 size={26} className="relative animate-spin text-violet-400" />
+          </div>
+          <p className="text-slate-400 text-sm font-medium tracking-wide">Загрузка видео</p>
+        </div>
+      )}
 
       {/* Autoplay blocked overlay */}
       {autoplayBlocked && (
@@ -1029,6 +1081,7 @@ export function VideoPlayer({
           onBufferStart={onBufferStart}
           onBufferEnd={onBufferEnd}
           onOverlayClick={handleOverlayClick}
+          onAutoplayBlocked={() => setAutoplayBlocked(true)}
         />
       );
     }
