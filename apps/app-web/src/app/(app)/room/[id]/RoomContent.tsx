@@ -103,8 +103,19 @@ function PlaylistPanel({
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {playlist.length === 0 ? (
-        <div className="flex-1 flex items-center justify-center">
-          <p className="text-slate-500 text-xs">{t('queueEmpty')}</p>
+        <div className="flex-1 flex flex-col items-center justify-center gap-3 px-6 text-center">
+          <div
+            className="w-12 h-12 rounded-full flex items-center justify-center"
+            style={{ background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.2)' }}
+          >
+            <ListVideo size={18} className="text-violet-400/70" />
+          </div>
+          <div>
+            <p className="text-slate-400 text-xs font-medium">{t('queueEmpty')}</p>
+            <p className="text-slate-600 text-[11px] mt-0.5">
+              {isOwner ? t('queueEmptyHint') : t('queueEmptyHintMember')}
+            </p>
+          </div>
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto px-3 py-2 flex flex-col gap-1.5">
@@ -231,104 +242,118 @@ export function RoomContent({ roomId }: Props) {
   }, [searchParams, room, roomJoined, roomId, sendMediaChange, router]);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-3rem)] -m-4 md:-m-6 lg:-m-8">
-      <RoomHeader />
+    <div className="relative flex flex-col h-[calc(100vh-3rem)] -m-4 md:-m-6 lg:-m-8 overflow-hidden">
+      {/* Ambient depth — the room used to sit on the same flat #060608 as every settings/profile
+          page. A cinema room should feel like a room, not a form; this glow lives behind every
+          panel (z-0, pointer-events-none) so it never competes with actual content. */}
+      <div
+        className="absolute inset-0 z-0 pointer-events-none"
+        style={{
+          background:
+            'radial-gradient(ellipse 80% 50% at 30% 0%, rgba(124,58,237,0.12), transparent 60%), ' +
+            'radial-gradient(ellipse 60% 40% at 100% 100%, rgba(34,211,238,0.06), transparent 60%)',
+        }}
+      />
 
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left: Video */}
-        <div className="flex-1 flex flex-col p-4 gap-3 min-w-0">
-          {showVB ? (
-            <VirtualBrowserPlayer
-              isOwner={isOwner}
-              frame={vbFrame}
-              dimensions={vbDimensions}
-              error={vbError}
-              remoteCursor={vbRemoteCursor}
-              start={vbStart}
-              stop={handleVBStop}
-              sendInput={vbSendInput}
-            />
-          ) : (
-            <VideoPlayer
-              onPlay={sendPlay}
-              onPause={sendPause}
-              onSeek={sendSeek}
-              onHeartbeat={sendHeartbeat}
-              onBufferStart={sendBufferStart}
-              onBufferEnd={sendBufferEnd}
-            />
-          )}
+      <div className="relative z-10 flex flex-col h-full">
+        <RoomHeader />
 
-          {isOwner && !showVB && (
-            <button
-              onClick={() => { trackClick('room:open_vb_panel'); setShowVBPanel(true); }}
-              className="self-start flex items-center gap-1.5 px-3 h-8 rounded-lg text-xs font-medium text-zinc-400 hover:text-white border border-white/[0.08] hover:border-white/[0.16] transition-colors cursor-pointer"
-            >
-              <Globe size={13} />
-              Виртуальный браузер
-            </button>
-          )}
+        <div className="flex flex-1 overflow-hidden">
+          {/* Left: Video */}
+          <div className="flex-1 flex flex-col p-4 gap-3 min-w-0">
+            {showVB ? (
+              <VirtualBrowserPlayer
+                isOwner={isOwner}
+                frame={vbFrame}
+                dimensions={vbDimensions}
+                error={vbError}
+                remoteCursor={vbRemoteCursor}
+                start={vbStart}
+                stop={handleVBStop}
+                sendInput={vbSendInput}
+              />
+            ) : (
+              <VideoPlayer
+                onPlay={sendPlay}
+                onPause={sendPause}
+                onSeek={sendSeek}
+                onHeartbeat={sendHeartbeat}
+                onBufferStart={sendBufferStart}
+                onBufferEnd={sendBufferEnd}
+              />
+            )}
 
-          <EmojiReactions onSend={sendEmoji} />
-        </div>
-
-        {/* Right: Chat / Members / Playlist */}
-        <div
-          className="hidden md:flex flex-col w-80 border-l border-white/[0.07]"
-          style={{ background: 'rgba(7,7,13,0.5)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' }}
-        >
-          <div className="flex border-b border-white/[0.07]">
-            <button
-              onClick={() => { trackClick('room:tab_chat'); setRightTab('chat'); }}
-              className={`relative flex-1 h-10 flex items-center justify-center gap-1.5 text-xs font-medium transition-colors cursor-pointer ${
-                rightTab === 'chat' ? 'text-white' : 'text-slate-500 hover:text-slate-300'
-              }`}
-            >
-              <MessageCircle size={13} />
-              {t('chat')}
-              {rightTab === 'chat' && (
-                <span className="absolute bottom-0 inset-x-3 h-0.5 rounded-full bg-violet-500" />
-              )}
-            </button>
-            <button
-              onClick={() => { trackClick('room:tab_members'); setRightTab('members'); }}
-              className={`relative flex-1 h-10 flex items-center justify-center gap-1.5 text-xs font-medium transition-colors cursor-pointer ${
-                rightTab === 'members' ? 'text-white' : 'text-slate-500 hover:text-slate-300'
-              }`}
-            >
-              <UsersIcon size={13} />
-              {t('members')}
-              {rightTab === 'members' && (
-                <span className="absolute bottom-0 inset-x-3 h-0.5 rounded-full bg-violet-500" />
-              )}
-            </button>
-            {isOwner && (
+            {isOwner && !showVB && (
               <button
-                onClick={() => { trackClick('room:tab_playlist'); setRightTab('playlist'); }}
+                onClick={() => { trackClick('room:open_vb_panel'); setShowVBPanel(true); }}
+                className="self-start flex items-center gap-1.5 px-3 h-8 rounded-lg text-xs font-medium text-zinc-400 hover:text-white border border-white/[0.08] hover:border-white/[0.16] transition-colors cursor-pointer"
+              >
+                <Globe size={13} />
+                Виртуальный браузер
+              </button>
+            )}
+
+            <EmojiReactions onSend={sendEmoji} />
+          </div>
+
+          {/* Right: Chat / Members / Playlist */}
+          <div
+            className="hidden md:flex flex-col w-80 border-l border-white/[0.07]"
+            style={{ background: 'rgba(7,7,13,0.5)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' }}
+          >
+            <div className="flex border-b border-white/[0.07]">
+              <button
+                onClick={() => { trackClick('room:tab_chat'); setRightTab('chat'); }}
                 className={`relative flex-1 h-10 flex items-center justify-center gap-1.5 text-xs font-medium transition-colors cursor-pointer ${
-                  rightTab === 'playlist' ? 'text-white' : 'text-slate-500 hover:text-slate-300'
+                  rightTab === 'chat' ? 'text-white' : 'text-slate-500 hover:text-slate-300'
                 }`}
               >
-                <ListVideo size={13} />
-                {t('queue')}
-                {rightTab === 'playlist' && (
+                <MessageCircle size={13} />
+                {t('chat')}
+                {rightTab === 'chat' && (
                   <span className="absolute bottom-0 inset-x-3 h-0.5 rounded-full bg-violet-500" />
                 )}
               </button>
+              <button
+                onClick={() => { trackClick('room:tab_members'); setRightTab('members'); }}
+                className={`relative flex-1 h-10 flex items-center justify-center gap-1.5 text-xs font-medium transition-colors cursor-pointer ${
+                  rightTab === 'members' ? 'text-white' : 'text-slate-500 hover:text-slate-300'
+                }`}
+              >
+                <UsersIcon size={13} />
+                {t('members')}
+                {rightTab === 'members' && (
+                  <span className="absolute bottom-0 inset-x-3 h-0.5 rounded-full bg-violet-500" />
+                )}
+              </button>
+              {isOwner && (
+                <button
+                  onClick={() => { trackClick('room:tab_playlist'); setRightTab('playlist'); }}
+                  className={`relative flex-1 h-10 flex items-center justify-center gap-1.5 text-xs font-medium transition-colors cursor-pointer ${
+                    rightTab === 'playlist' ? 'text-white' : 'text-slate-500 hover:text-slate-300'
+                  }`}
+                >
+                  <ListVideo size={13} />
+                  {t('queue')}
+                  {rightTab === 'playlist' && (
+                    <span className="absolute bottom-0 inset-x-3 h-0.5 rounded-full bg-violet-500" />
+                  )}
+                </button>
+              )}
+            </div>
+
+            {rightTab === 'chat' && <ChatPanel onSend={sendMessage} />}
+            {rightTab === 'members' && <MemberList />}
+            {rightTab === 'playlist' && (
+              <PlaylistPanel
+                roomId={roomId}
+                isOwner={isOwner}
+                onPlayNow={(videoUrl, videoPlatform) => sendMediaChange(videoUrl, undefined, videoPlatform)}
+              />
             )}
           </div>
-
-          {rightTab === 'chat' && <ChatPanel onSend={sendMessage} />}
-          {rightTab === 'members' && <MemberList />}
-          {rightTab === 'playlist' && (
-            <PlaylistPanel
-              roomId={roomId}
-              isOwner={isOwner}
-              onPlayNow={(videoUrl, videoPlatform) => sendMediaChange(videoUrl, undefined, videoPlatform)}
-            />
-          )}
         </div>
-      </div>
+        </div>
     </div>
   );
 }

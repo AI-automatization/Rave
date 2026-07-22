@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useCallback, useState } from 'react';
-import { Loader2, Play, Pause, Maximize, Minimize, Volume2, VolumeX, Volume1 } from 'lucide-react';
+import { Loader2, Play, Pause, Maximize, Minimize, Volume2, VolumeX, Volume1, Clapperboard } from 'lucide-react';
 import { useWatchPartyStore } from '@/store/watch-party.store';
 import { useAuthStore } from '@/store/auth.store';
 import { toast } from '@/hooks/use-toast';
@@ -911,7 +911,13 @@ export function VideoPlayer({
 
   if (!videoUrl) {
     return (
-      <div className="aspect-video bg-[#0A0A12] rounded-xl flex flex-col items-center justify-center gap-2">
+      <div className="aspect-video bg-[#0A0A12] rounded-xl flex flex-col items-center justify-center gap-3">
+        <div
+          className="w-14 h-14 rounded-full flex items-center justify-center"
+          style={{ background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.2)' }}
+        >
+          <Clapperboard size={22} className="text-violet-400/70" />
+        </div>
         <p className="text-slate-400 text-sm font-medium">Видео не выбрано</p>
         {!isConnected && (
           <div className="flex items-center gap-2 text-xs text-slate-600">
