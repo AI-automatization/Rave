@@ -104,14 +104,6 @@ export default function RootLayout({
             <noscript><img src={'https://mc.yandex.ru/watch/' + YM_ID} style={{ position: 'absolute', left: '-9999px' }} alt="" /></noscript>
           </>
         )}
-        {/* TEMP deploy-verification marker — remove once confirmed the fix is live, not a
-            permanent feature. See project_web_app_domain_split-adjacent debugging session
-            2026-07-22: user reported the same old UI after multiple hard refreshes + a private
-            window, so we need an unambiguous signal that bypasses all guessing about JS caching. */}
-        <Script id="deploy-marker" strategy="beforeInteractive">{`console.log('%c[WeWatch DEPLOY CHECK] build 2026-07-22T12:05Z — if you see this, the latest code IS live', 'color:#7C3AED;font-weight:bold;font-size:14px;background:#111;padding:4px 8px;border-radius:4px')`}</Script>
-        <div style={{ position: 'fixed', bottom: 8, left: 8, zIndex: 99999, background: '#7C3AED', color: 'white', fontSize: 11, fontWeight: 700, padding: '4px 8px', borderRadius: 6, fontFamily: 'monospace', pointerEvents: 'none' }}>
-          DEPLOY 2026-07-22T12:05Z
-        </div>
         <Providers>
           <LocaleHtmlUpdater />
           {children}
