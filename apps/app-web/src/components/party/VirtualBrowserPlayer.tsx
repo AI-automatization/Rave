@@ -169,6 +169,15 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, remote
 
       {frame && (
         <>
+          {/* Nothing in the room auto-plays here on purpose — the whole point of falling back to
+              VB is a real page the owner has to click through (play button, ads, captchas). Without
+              this hint people stared at a loaded page with no idea they were the ones expected to
+              act on it. */}
+          <div className="absolute top-2 left-2 z-10 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/70 backdrop-blur-sm border border-violet-500/20 pointer-events-none">
+            <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
+            <span className="text-white/80 text-xs font-medium">Запустите видео на сайте</span>
+          </div>
+
           {/* eslint-disable-next-line @next/next/no-img-element -- live JPEG frame stream (base64 data URL), not a real <Image>-optimizable asset */}
           <img
             ref={imgRef}
