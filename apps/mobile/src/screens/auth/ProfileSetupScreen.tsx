@@ -8,12 +8,12 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Image } from 'expo-image';
-import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { userApi } from '@api/user.api';
+import { pickAvatar } from '@utils/avatarPicker';
 import { useAuthStore } from '@store/auth.store';
 import { useT } from '@i18n/index';
 
@@ -32,20 +32,8 @@ export function ProfileSetupScreen() {
   const [loading, setLoading] = useState(false);
 
   const handlePickAvatar = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') return;
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-      base64: false,
-    });
-
-    if (!result.canceled && result.assets[0]) {
-      setAvatarUri(result.assets[0].uri);
-    }
+    const asset = await pickAvatar();
+    if (asset) setAvatarUri(asset.uri);
   };
 
   const handleSave = async () => {

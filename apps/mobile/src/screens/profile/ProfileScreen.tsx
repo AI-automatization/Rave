@@ -5,11 +5,11 @@ import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { useMyProfile } from '@hooks/useProfile';
 import { useAuthStore } from '@store/auth.store';
 import { userApi } from '@api/user.api';
+import { pickAvatar } from '@utils/avatarPicker';
 import { useTheme, createThemedStyles, spacing, borderRadius, typography } from '@theme/index';
 import { FadeInView } from '@components/profile/ProfileAnimations';
 import { ProfileStackParamList } from '@app-types/index';
@@ -61,23 +61,12 @@ export function ProfileScreen() {
   };
 
   const handlePickAvatar = useCallback(async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      appAlert(t('common', 'error'), t('profile', 'galleryPermission') || 'Gallery permission required');
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-    if (result.canceled || !result.assets[0]) return;
+    const asset = await pickAvatar();
+    if (!asset) return;
 
-    const asset = result.assets[0];
     const fileSize = asset.fileSize ?? 0;
     if (fileSize > 5 * 1024 * 1024) {
-      appAlert(t('common', 'error'), t('profile', 'avatarTooLarge') || 'Max 5MB');
+      appAlert(t('common', 'error'), t('profile', 'avatarTooLarge'));
       return;
     }
 

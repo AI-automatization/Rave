@@ -22,8 +22,8 @@
   - [x] Play Store talablariga moslikni qisman tekshirish (privacy policy URL ishlaydi, app.wewatch.uz/.well-known/assetlinks.json to'g'ri)
 - **2026-07-21 topilmalar:**
   - **FIX qilindi:** `SettingsScreen.tsx:252` — versiya raqami hardcoded `'1.0.0'` edi (app.json'da haqiqiy versiya 1.0.1), `Constants.expoConfig?.version` orqali tuzatildi, emulyatorda tasdiqlandi.
-  - **P1 — tuzatilmagan:** `android.permission.CAMERA` (app.json) + iOS `NSCameraUsageDescription` e'lon qilingan, lekin kodda hech qayerda ishlatilmaydi (faqat galereya `ImagePicker`) — Play Store review'da savol tug'dirishi mumkin. Qaror kerak: olib tashlash yoki kamera funksiyasini qo'shish.
-  - **P2:** `RECEIVE_BOOT_COMPLETED` permission ishlatilmayapti (BroadcastReceiver yo'q).
+  - **✅ HAL QILINDI (2026-07-22, Jasur qarori):** `CAMERA` permission ishlatilmayotgan edi — kamera funksiyasi qo'shildi. Yangi `apps/mobile/src/utils/avatarPicker.ts` (umumiy: kamera/galereya tanlovi + ruxsatlar), `ProfileSetupScreen` + `ProfileScreen` shunga o'tkazildi. Endi CAMERA + `NSCameraUsageDescription` oqlangan. i18n kalitlar qo'shildi (uz/ru/en). tsc: CLEAN.
+  - **✅ HAL QILINDI (2026-07-22):** `RECEIVE_BOOT_COMPLETED` permission app.json'dan olib tashlandi (ishlatilmasdi, BroadcastReceiver yo'q).
   - **P2:** 13-14 ta `console.log` `__DEV__` bilan o'ralmagan (`MeshClient.ts`, `useWatchParty.ts`, `usePushNotifications.ts` va h.k. — bular watch-party/mesh zonasida, TEGILMADI).
   - **tsc --noEmit:** toza, xato yo'q.
   - Play Console akkaunt, Service Account key, Feature Graphic + 5 screenshot (T-E124, Emirhan) — hali yo'q, RELEASE-CHECKLIST.md bo'yicha submission uchun bloklovchi.

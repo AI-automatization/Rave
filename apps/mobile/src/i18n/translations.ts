@@ -373,6 +373,13 @@ export const translations = {
     emailLabel: { uz: 'Email', ru: 'Email', en: 'Email' },
     emailNotLinked: { uz: "Bog'lanmagan", ru: 'Не привязан', en: 'Not linked' },
     emailChangeAction: { uz: "O'zgartirish", ru: 'Изменить', en: 'Change' },
+    photoSourceTitle: { uz: 'Profil rasmi', ru: 'Фото профиля', en: 'Profile photo' },
+    photoFromCamera: { uz: 'Kameradan olish', ru: 'Сделать фото', en: 'Take a photo' },
+    photoFromGallery: { uz: 'Galereyadan tanlash', ru: 'Выбрать из галереи', en: 'Choose from gallery' },
+    cameraPermission: { uz: 'Kameraga ruxsat kerak', ru: 'Требуется доступ к камере', en: 'Camera permission required' },
+    galleryPermission: { uz: 'Galereyaga ruxsat kerak', ru: 'Требуется доступ к галерее', en: 'Gallery permission required' },
+    avatarTooLarge: { uz: 'Rasm hajmi 5MB dan oshmasin', ru: 'Размер фото не более 5МБ', en: 'Max photo size 5MB' },
+    avatarUploadError: { uz: 'Rasm yuklab bo\'lmadi', ru: 'Не удалось загрузить фото', en: 'Upload failed' },
   },
 
   // ─── Stats ───
