@@ -15,13 +15,17 @@
 - **Sabab:** wewatch.uz'ni AI answer engine'lar (ChatGPT, Claude, Perplexity, AI Overviews) iqtibos qila
   oladigan holatga keltirish. PHASE 0 audit topilmalari: robots.txt/robots.ts konflikti, sitemap
   dublikatlari, 12 ta AI crawler robots'da yo'q, IndexNow yo'q, crawler-visibility tekshiruvi yo'q.
-- **Qilish kerak (PHASE 1):**
-  - [ ] robots.txt / app/robots.ts konfliktini hal qilish, AI crawler ro'yxatini to'ldirish
-  - [ ] sitemap.ts — dublikatlarni olib tashlash, yetishmayotgan sahifalar, alternates.languages
-  - [ ] Legal sahifalarga canonical, team/[slug] ga generateMetadata
-  - [ ] IndexNow (lib + API route + kalit fayl + .env.example)
-  - [ ] public/llms.txt yangilash, fakt ziddiyatlarini tozalash
-  - [ ] scripts/check-crawler-visibility.mjs + npm script
+- **Qilish kerak (PHASE 1):** ✅ TUGADI (commit bd2c72c9)
+  - [x] robots.txt / app/robots.ts konflikti — statik fayl o'chirildi, 22 bot generatsiya qilinadi
+  - [x] sitemap.ts — dublikatsiz 38 URL, ru/uz hreflang, real lastmod
+  - [x] Legal sahifalarga canonical (team/[slug] da metadata allaqachon bor edi, title dublikati tuzatildi)
+  - [x] IndexNow (lib + API route + kalit fayl + .env.example + README)
+  - [x] public/llms.txt — faktlar shared/constants bilan moslashtirildi
+  - [x] scripts/check-crawler-visibility.mjs — 7 route × 5 UA, hammasi PASS
+- **Qo'lda qilinishi kerak (TODO human):**
+  - [ ] Railway'da `INDEXNOW_SECRET` env o'rnatish (`openssl rand -hex 24`) + `INDEXNOW_KEY=b7a4e5408d77764d08338835ee8cdd0e`
+  - [ ] Pro tarif (29 000 so'm, /pricing) haqiqatan faolmi? llms.txt da TODO qoldirilgan
+  - [ ] `.claude/scripts/tg-notify.sh` — Windows'da `python3` topilmayapti, xabar yuborilmadi
 - **⛔ TEGMASLIK KERAK:** apps/mobile, services/*, watch-party sinxronizatsiya logikasi. Faqat apps/web.
 - **Keyingi fazalar:** PHASE 2 (rendering), 3 (schema), 4 (kontent sahifalari), 5 (performance)
 
