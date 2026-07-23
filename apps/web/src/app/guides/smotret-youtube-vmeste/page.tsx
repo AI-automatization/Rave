@@ -142,7 +142,7 @@ export default function SmotretYoutubeVmestePage() {
           </div>
         </div>
       </main>
-      <GuideFooter locale="ru" />
+      <GuideFooter locale="ru" currentPath="/guides/smotret-youtube-vmeste" />
     </>
   );
 }

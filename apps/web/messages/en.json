@@ -43,13 +43,34 @@
     "newsletterPlaceholder": "your@email.com",
     "newsletterSubscribe": "Subscribe",
     "faqItems": [
-      { "q": "How to watch videos together online with friends?", "a": "Download WeWatch, open the built-in browser, find a video on YouTube, VK or Rutube, create a room and send the link to a friend. Everyone sees the same frame in real time." },
-      { "q": "Is WeWatch free?", "a": "Yes, WeWatch is completely free. Download it from the App Store or Google Play and start watching with friends right away — sign up with your phone number." },
-      { "q": "Can I watch YouTube with friends at the same time?", "a": "Yes. WeWatch supports YouTube, VK Video, Rutube, Uzmove and any other site through the built-in browser. Pause and seek work for everyone at once." },
-      { "q": "What if my friend is far away?", "a": "Create a Watch Party in WeWatch, invite your friend with a link — and you watch in sync as if sitting side by side. Distance doesn't matter." },
-      { "q": "Can we watch if one is on the phone and the other on the site?", "a": "Yes — WeWatch syncs playback across all platforms at once. iPhone, Android and a desktop browser work in one room without limits." },
-      { "q": "How to watch videos together for free?", "a": "WeWatch is a free app to watch videos together online. Create a room, share the link — and watch YouTube, VK, Rutube in sync with friends." },
-      { "q": "Can we watch anime or series together?", "a": "Yes, WeWatch works with any video site through the built-in browser — including anime and series sites. Just open the site and create a room." }
+      {
+        "q": "How to watch videos together online with friends?",
+        "a": "Download WeWatch, open the built-in browser, find a video on YouTube, VK or Rutube, create a room and send the link to a friend. Everyone sees the same frame in real time."
+      },
+      {
+        "q": "Is WeWatch free?",
+        "a": "Yes, WeWatch is completely free. Download it from the App Store or Google Play and start watching with friends right away — sign up with your phone number."
+      },
+      {
+        "q": "Can I watch YouTube with friends at the same time?",
+        "a": "Yes. WeWatch supports YouTube, VK Video, Rutube, Uzmove and any other site through the built-in browser. Pause and seek work for everyone at once."
+      },
+      {
+        "q": "What if my friend is far away?",
+        "a": "Create a Watch Party in WeWatch, invite your friend with a link — and you watch in sync as if sitting side by side. Distance doesn't matter."
+      },
+      {
+        "q": "Can we watch if one is on the phone and the other on the site?",
+        "a": "Yes — WeWatch syncs playback across all platforms at once. iPhone, Android and a desktop browser work in one room without limits."
+      },
+      {
+        "q": "How to watch videos together for free?",
+        "a": "WeWatch is a free app to watch videos together online. Create a room, share the link — and watch YouTube, VK, Rutube in sync with friends."
+      },
+      {
+        "q": "Can we watch anime or series together?",
+        "a": "Yes, WeWatch works with any video site through the built-in browser — including anime and series sites. Just open the site and create a room."
+      }
     ],
     "heroTrust": "iOS · Android · Web — all in sync",
     "heroCardLabel": "WHAT ARE WE WATCHING?",
@@ -442,7 +463,12 @@
     "products": "Products",
     "rights": "All rights reserved.",
     "country": "Social cinema",
-    "madeBy": "Built at tezcode.dev · Founder Bekzod Mirzaaliyev · WeWatch — Emirhan Ertan"
+    "madeBy": "Built at tezcode.dev · Founder Bekzod Mirzaaliyev · WeWatch — Emirhan Ertan",
+    "howItWorks": "How it works",
+    "allGuides": "All guides",
+    "team": "Team",
+    "deleteAccount": "Delete account",
+    "language": "Language"
   },
   "company": {
     "breadcrumb": "About",
@@ -539,19 +565,27 @@
     "sub": "WeWatch is a free app for watching videos together. One person presses “play” — and the film plays in sync for everyone, wherever they are.",
     "download": "Download on the App Store",
     "soon": "Coming soon",
-    "stat1v": "Free", "stat1l": "Forever",
-    "stat2v": "3", "stat2l": "Platforms",
-    "stat3v": "2025", "stat3l": "Founded",
-    "stat4v": "∞", "stat4l": "Sites",
+    "stat1v": "Free",
+    "stat1l": "Forever",
+    "stat2v": "3",
+    "stat2l": "Platforms",
+    "stat3v": "2025",
+    "stat3l": "Founded",
+    "stat4v": "∞",
+    "stat4l": "Sites",
     "whatTag": "What it is",
     "whatTitle": "What is WeWatch?",
     "whatText": "Open any site in the built-in browser — YouTube, VK, Rutube, Uzmove — create a room and invite friends via a link. Everyone sees the exact same frame in real time, and pause and seek stay in sync for all participants.",
     "featTag": "Features",
     "featTitle": "What WeWatch can do",
-    "f1t": "Synced playback", "f1d": "Drift within a couple of seconds — barely noticeable.",
-    "f2t": "Built-in browser", "f2d": "Any video site, no limits.",
-    "f3t": "Cross-platform", "f3d": "iPhone, Android and browser in one room.",
-    "f4t": "Chat & reactions", "f4d": "Discuss the video right as you watch.",
+    "f1t": "Synced playback",
+    "f1d": "Drift within a couple of seconds — barely noticeable.",
+    "f2t": "Built-in browser",
+    "f2d": "Any video site, no limits.",
+    "f3t": "Cross-platform",
+    "f3d": "iPhone, Android and browser in one room.",
+    "f4t": "Chat & reactions",
+    "f4d": "Discuss the video right as you watch.",
     "madeTag": "Who made it",
     "madeTitle": "A product by tezcode.dev",
     "madeText": "WeWatch is built by the tezcode.dev team in Tashkent — a small studio making products that bring people closer.",

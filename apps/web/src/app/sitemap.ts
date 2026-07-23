@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { TEAM } from './team/team-data';
+import { GUIDES, GUIDE_PAIRS } from '@/data/guides';
 
 const BASE = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 
@@ -19,6 +20,14 @@ const pair = (ru: string, uz: string) => ({
   uz: `${BASE}${uz}`,
   'x-default': `${BASE}${ru}`,
 });
+
+/** Looks a guide up in GUIDE_PAIRS from either side; undefined when it has no counterpart. */
+function guideLanguages(path: string) {
+  const uz = GUIDE_PAIRS[path];
+  if (uz) return pair(path, uz);
+  const ru = Object.keys(GUIDE_PAIRS).find((k) => GUIDE_PAIRS[k] === path);
+  return ru ? pair(ru, path) : undefined;
+}
 
 const ENTRIES: Entry[] = [
   // ── Главные страницы (ru default, /uz, /en) ─────────────────────────────────
@@ -44,87 +53,19 @@ const ENTRIES: Entry[] = [
     languages: { ru: BASE, uz: `${BASE}/uz`, en: `${BASE}/en`, 'x-default': BASE },
   },
 
-  // ── Русские гайды ──────────────────────────────────────────────────────────
-  {
-    path: '/guides/smotret-vmeste-onlayn',
-    lastModified: '2026-07-07',
-    changeFrequency: 'monthly',
-    priority: 0.9,
-    languages: pair('/guides/smotret-vmeste-onlayn', '/uz/guides/birgalikda-tomosha-qilish'),
-  },
-  {
-    path: '/guides/smotret-youtube-vmeste',
-    lastModified: '2026-07-07',
-    changeFrequency: 'monthly',
-    priority: 0.9,
-    languages: pair('/guides/smotret-youtube-vmeste', '/uz/guides/youtube-birgalikda'),
-  },
-  {
-    path: '/guides/smotret-anime-vmeste',
-    lastModified: '2026-07-07',
-    changeFrequency: 'monthly',
-    priority: 0.9,
-    languages: pair('/guides/smotret-anime-vmeste', '/uz/guides/anime-birgalikda'),
-  },
-  {
-    path: '/guides/smotret-serial-vmeste',
-    lastModified: '2026-07-07',
-    changeFrequency: 'monthly',
-    priority: 0.9,
-    languages: pair('/guides/smotret-serial-vmeste', '/uz/guides/serial-birgalikda'),
-  },
-  {
-    path: '/guides/kino-s-drugom-onlayn',
-    lastModified: '2026-07-07',
-    changeFrequency: 'monthly',
-    priority: 0.8,
-    languages: pair('/guides/kino-s-drugom-onlayn', '/uz/guides/kino-birgalikda'),
-  },
-  { path: '/guides/watch-party-besplatno', lastModified: '2026-07-07', changeFrequency: 'monthly', priority: 0.8 },
-  { path: '/guides/smotret-film-vdvoem', lastModified: '2026-07-03', changeFrequency: 'monthly', priority: 0.9 },
-  { path: '/guides/smotret-serialy-vmeste-besplatno', lastModified: '2026-07-03', changeFrequency: 'monthly', priority: 0.9 },
-  { path: '/guides/smotret-vk-video-vmeste', lastModified: '2026-07-03', changeFrequency: 'monthly', priority: 0.8 },
-  { path: '/guides/smotret-rutube-vmeste', lastModified: '2026-07-03', changeFrequency: 'monthly', priority: 0.8 },
+  // ── Гайды (реестр: src/data/guides.ts — новый гайд добавляется только там) ──
+  ...GUIDES.map((g) => ({
+    path: g.path,
+    lastModified: g.lastModified,
+    changeFrequency: 'monthly' as const,
+    priority: g.priority,
+    ...(guideLanguages(g.path) ? { languages: guideLanguages(g.path)! } : {}),
+  })),
   // English-slug guides (/guides/what-is-watch-party, /watch-movies-with-friends,
-  // /watch-youtube-together) are intentionally excluded: they carry robots.index=false
-  // and canonical → their Russian equivalents.
-
-  // ── Узбекские гайды ────────────────────────────────────────────────────────
-  {
-    path: '/uz/guides/birgalikda-tomosha-qilish',
-    lastModified: '2026-07-07',
-    changeFrequency: 'monthly',
-    priority: 0.9,
-    languages: pair('/guides/smotret-vmeste-onlayn', '/uz/guides/birgalikda-tomosha-qilish'),
-  },
-  {
-    path: '/uz/guides/youtube-birgalikda',
-    lastModified: '2026-07-07',
-    changeFrequency: 'monthly',
-    priority: 0.9,
-    languages: pair('/guides/smotret-youtube-vmeste', '/uz/guides/youtube-birgalikda'),
-  },
-  {
-    path: '/uz/guides/anime-birgalikda',
-    lastModified: '2026-07-07',
-    changeFrequency: 'monthly',
-    priority: 0.9,
-    languages: pair('/guides/smotret-anime-vmeste', '/uz/guides/anime-birgalikda'),
-  },
-  {
-    path: '/uz/guides/serial-birgalikda',
-    lastModified: '2026-07-07',
-    changeFrequency: 'monthly',
-    priority: 0.9,
-    languages: pair('/guides/smotret-serial-vmeste', '/uz/guides/serial-birgalikda'),
-  },
-  {
-    path: '/uz/guides/kino-birgalikda',
-    lastModified: '2026-07-07',
-    changeFrequency: 'monthly',
-    priority: 0.9,
-    languages: pair('/guides/kino-s-drugom-onlayn', '/uz/guides/kino-birgalikda'),
-  },
+  // /watch-youtube-together) are absent from the registry on purpose: they carry
+  // robots.index=false and canonical → their Russian equivalents.
+  { path: '/guides', lastModified: '2026-07-23', changeFrequency: 'weekly', priority: 0.8 },
+  { path: '/uz/guides', lastModified: '2026-07-23', changeFrequency: 'weekly', priority: 0.8 },
 
   // ── Продукт / компания ─────────────────────────────────────────────────────
   { path: '/features', lastModified: '2026-07-07', changeFrequency: 'monthly', priority: 0.8 },

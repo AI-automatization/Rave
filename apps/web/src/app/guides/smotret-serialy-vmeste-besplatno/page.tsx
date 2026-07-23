@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
 
 export const metadata: Metadata = {
-  title: 'Смотреть сериалы вместе онлайн бесплатно — синхронно | WeWatch',
+  // No manual "| WeWatch" — the root layout's title template appends it.
+  title: 'Смотреть сериалы вместе онлайн бесплатно — синхронно',
   description:
     'Как смотреть сериалы вместе с друзьями онлайн бесплатно. WeWatch синхронизирует серии между всеми участниками — смотрите по эпизоду вместе на iPhone, Android и вебе.',
   keywords: [
@@ -41,6 +43,7 @@ export default function SerialyVmestePage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <GuideHeader locale="ru" />
       <main className="min-h-screen bg-[#060608] text-white">
         <div className="max-w-3xl mx-auto px-4 py-16">
           <nav className="text-sm text-zinc-500 mb-8">
@@ -90,6 +93,7 @@ export default function SerialyVmestePage() {
           </div>
         </div>
       </main>
+      <GuideFooter locale="ru" currentPath="/guides/smotret-serialy-vmeste-besplatno" />
     </>
   );
 }

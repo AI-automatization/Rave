@@ -130,7 +130,7 @@ export default function KinoSDrugoOnlaynPage() {
           </div>
         </div>
       </main>
-      <GuideFooter locale="ru" />
+      <GuideFooter locale="ru" currentPath="/guides/kino-s-drugom-onlayn" />
     </>
   );
 }

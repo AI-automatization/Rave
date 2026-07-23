@@ -31,6 +31,8 @@ const ROUTES = [
   { path: '/uz', keywords: ['WeWatch', 'birgalikda'] },
   { path: '/en', keywords: ['WeWatch', 'watch'] },
   { path: '/faq', keywords: ['watch party', 'синхрон'] },
+  { path: '/guides', keywords: ['Гайды', 'YouTube'] },
+  { path: '/uz/guides', keywords: ['gaydlar', 'YouTube'] },
   { path: '/how-it-works', keywords: ['комнат', 'ссылк'] },
   { path: '/guides/smotret-vmeste-onlayn', keywords: ['вместе'] },
   { path: '/uz/guides/birgalikda-tomosha-qilish', keywords: ['birgalikda'] },

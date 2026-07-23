@@ -179,7 +179,7 @@ export default function SerialBirgalikdaPage() {
           </div>
         </div>
       </main>
-      <GuideFooter locale="uz" />
+      <GuideFooter locale="uz" currentPath="/uz/guides/serial-birgalikda" />
     </>
   );
 }

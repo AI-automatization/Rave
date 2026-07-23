@@ -256,7 +256,7 @@ export default function KinoBirgalikdaPage() {
           </div>
         </div>
       </main>
-      <GuideFooter locale="uz" />
+      <GuideFooter locale="uz" currentPath="/uz/guides/kino-birgalikda" />
     </>
   );
 }

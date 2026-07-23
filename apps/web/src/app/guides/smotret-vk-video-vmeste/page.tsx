@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
 
 export const metadata: Metadata = {
-  title: 'Смотреть VK Видео вместе с друзьями онлайн — синхронно | WeWatch',
+  // No manual "| WeWatch" — the root layout's title template appends it.
+  title: 'Смотреть VK Видео вместе с друзьями онлайн — синхронно',
   description:
     'Как смотреть VK Видео вместе с друзьями синхронно. WeWatch открывает VK Видео во встроенном браузере и синхронизирует просмотр между iPhone, Android и вебом.',
   keywords: [
@@ -35,6 +37,7 @@ export default function VkVmestePage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <GuideHeader locale="ru" />
       <main className="min-h-screen bg-[#060608] text-white">
         <div className="max-w-3xl mx-auto px-4 py-16">
           <nav className="text-sm text-zinc-500 mb-8">
@@ -101,6 +104,7 @@ export default function VkVmestePage() {
           </div>
         </div>
       </main>
+      <GuideFooter locale="ru" currentPath="/guides/smotret-vk-video-vmeste" />
     </>
   );
 }

@@ -124,7 +124,7 @@ export default function WatchPartyBesplatnoPage() {
           </div>
         </div>
       </main>
-      <GuideFooter locale="ru" />
+      <GuideFooter locale="ru" currentPath="/guides/watch-party-besplatno" />
     </>
   );
 }

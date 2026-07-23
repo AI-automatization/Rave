@@ -141,7 +141,7 @@ export default function SmotretVmesteOnlaynPage() {
           </div>
         </div>
       </main>
-      <GuideFooter locale="ru" />
+      <GuideFooter locale="ru" currentPath="/guides/smotret-vmeste-onlayn" />
     </>
   );
 }

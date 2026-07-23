@@ -6,21 +6,29 @@ import { WeWatchLogo } from './WeWatchLogo';
 
 // Locale-aware guide links: sitewide internal links are the main crawl path
 // to the SEO guide pages, so each locale points to its own language versions.
-const GUIDE_LINKS: Record<string, { watchTogether: string; movie: string; youtube: string }> = {
+//
+// The `en` locale points at the Russian guides on purpose. The English-slug
+// guides (/guides/what-is-watch-party etc.) are noindex + canonical → their
+// Russian equivalents, so linking to them from every page sent crawl budget to
+// URLs that can never be indexed.
+const GUIDE_LINKS: Record<string, { hub: string; watchTogether: string; movie: string; youtube: string }> = {
   ru: {
+    hub: '/guides',
     watchTogether: '/guides/smotret-vmeste-onlayn',
     movie: '/guides/kino-s-drugom-onlayn',
     youtube: '/guides/smotret-youtube-vmeste',
   },
   uz: {
+    hub: '/uz/guides',
     watchTogether: '/uz/guides/birgalikda-tomosha-qilish',
     movie: '/uz/guides/kino-birgalikda',
     youtube: '/uz/guides/youtube-birgalikda',
   },
   en: {
-    watchTogether: '/guides/what-is-watch-party',
-    movie: '/guides/watch-movies-with-friends',
-    youtube: '/guides/watch-youtube-together',
+    hub: '/guides',
+    watchTogether: '/guides/smotret-vmeste-onlayn',
+    movie: '/guides/kino-s-drugom-onlayn',
+    youtube: '/guides/smotret-youtube-vmeste',
   },
 };
 
@@ -49,6 +57,7 @@ export function Footer() {
               <p className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-3">{t('platform')}</p>
               <ul className="space-y-2">
                 <li><Link href="/features" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('features')}</Link></li>
+                <li><Link href="/how-it-works" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('howItWorks')}</Link></li>
                 <li><Link href="/pricing"  className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('pricing')}</Link></li>
               </ul>
             </div>
@@ -58,6 +67,7 @@ export function Footer() {
                 <li><Link href={guides.watchTogether} className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('guideWatchTogether')}</Link></li>
                 <li><Link href={guides.movie} className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('guideMovie')}</Link></li>
                 <li><Link href={guides.youtube} className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('guideYoutube')}</Link></li>
+                <li><Link href={guides.hub} className="text-zinc-500 text-sm hover:text-zinc-300 transition-colors">{t('allGuides')} →</Link></li>
               </ul>
             </div>
             <div>
@@ -65,6 +75,7 @@ export function Footer() {
               <ul className="space-y-2">
                 <li><Link href="/company" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('about')}</Link></li>
                 <li><Link href="/products" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('products')}</Link></li>
+                <li><Link href="/team" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('team')}</Link></li>
                 <li><a href="https://www.tezcode.dev/" target="_blank" rel="noopener noreferrer" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">tezcode.dev</a></li>
               </ul>
             </div>
@@ -75,12 +86,26 @@ export function Footer() {
                 <li><Link href="/terms" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('terms')}</Link></li>
                 <li><Link href="/dmca" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('dmca')}</Link></li>
                 <li><Link href="/faq" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('faq')}</Link></li>
+                <li><Link href="/delete-account" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('deleteAccount')}</Link></li>
               </ul>
             </div>
           </div>
         </div>
 
-        <div className="border-t border-zinc-800/60 mt-8 pt-6 flex flex-col gap-2">
+        {/*
+          Real <a href> language links. The header LanguageSwitcher swaps locale
+          through a client store without changing the URL, so it produces no
+          crawlable link — without this row /uz and /en are reachable only from
+          the sitemap, which is why they sat in "Discovered, not indexed".
+        */}
+        <div className="border-t border-zinc-800/60 mt-8 pt-6 flex flex-wrap items-center gap-x-4 gap-y-2">
+          <span className="text-zinc-600 text-xs uppercase tracking-widest">{t('language')}</span>
+          <Link href="/" hrefLang="ru" className="text-zinc-600 text-xs hover:text-zinc-300 transition-colors">Русский</Link>
+          <Link href="/uz" hrefLang="uz" className="text-zinc-600 text-xs hover:text-zinc-300 transition-colors">O&apos;zbekcha</Link>
+          <Link href="/en" hrefLang="en" className="text-zinc-600 text-xs hover:text-zinc-300 transition-colors">English</Link>
+        </div>
+
+        <div className="border-t border-zinc-800/60 mt-6 pt-6 flex flex-col gap-2">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
             <p className="text-zinc-700 text-xs">© {new Date().getFullYear()} WeWatch. {t('rights')}</p>
             <p className="text-zinc-700 text-xs">{t('country')}</p>

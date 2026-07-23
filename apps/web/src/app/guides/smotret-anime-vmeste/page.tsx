@@ -132,7 +132,7 @@ export default function SmotretAnimeVmestePage() {
           </div>
         </div>
       </main>
-      <GuideFooter locale="ru" />
+      <GuideFooter locale="ru" currentPath="/guides/smotret-anime-vmeste" />
     </>
   );
 }

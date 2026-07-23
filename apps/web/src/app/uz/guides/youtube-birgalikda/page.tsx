@@ -169,7 +169,7 @@ export default function YoutubeBirgalikdaPage() {
           </div>
         </div>
       </main>
-      <GuideFooter locale="uz" />
+      <GuideFooter locale="uz" currentPath="/uz/guides/youtube-birgalikda" />
     </>
   );
 }

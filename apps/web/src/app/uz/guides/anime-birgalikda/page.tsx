@@ -183,7 +183,7 @@ export default function AnimeBirgalikdaPage() {
           </div>
         </div>
       </main>
-      <GuideFooter locale="uz" />
+      <GuideFooter locale="uz" currentPath="/uz/guides/anime-birgalikda" />
     </>
   );
 }

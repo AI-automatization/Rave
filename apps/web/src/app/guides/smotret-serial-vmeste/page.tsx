@@ -138,7 +138,7 @@ export default function SmotretSerialVmestePage() {
           </div>
         </div>
       </main>
-      <GuideFooter locale="ru" />
+      <GuideFooter locale="ru" currentPath="/guides/smotret-serial-vmeste" />
     </>
   );
 }
