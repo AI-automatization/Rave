@@ -5,6 +5,7 @@ import { FaPlay } from 'react-icons/fa';
 export const metadata: Metadata = {
   title: 'DMCA Policy',
   description: 'WeWatch DMCA / Copyright Policy — how to report copyright infringement and our takedown process.',
+  alternates: { canonical: 'https://wewatch.uz/dmca' },
   robots: { index: true, follow: true },
 };
 

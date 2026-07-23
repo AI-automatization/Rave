@@ -5,6 +5,7 @@ import { FaPlay } from 'react-icons/fa';
 export const metadata: Metadata = {
   title: 'Terms of Service',
   description: 'WeWatch Terms of Service — rules and guidelines for using the WeWatch platform.',
+  alternates: { canonical: 'https://wewatch.uz/terms' },
   robots: { index: true, follow: true },
 };
 

@@ -13,7 +13,8 @@ export function generateMetadata({ params }: { params: { slug: string } }): Meta
   if (!m) return {};
   const url = `https://wewatch.uz/team/${m.slug}`;
   return {
-    title: `${m.name} / ${m.nameAlt} — ${m.role} | WeWatch`,
+    // No manual "| WeWatch" — the root layout's title template already appends it.
+    title: `${m.name} / ${m.nameAlt} — ${m.role}`,
     description: `${m.name} (${m.nameAlt}) — ${m.role} в tezcode. ${m.tagline}`,
     keywords: [m.name, m.nameAlt, m.role, 'WeWatch', 'tezcode', ...m.knowsAbout],
     alternates: { canonical: url },

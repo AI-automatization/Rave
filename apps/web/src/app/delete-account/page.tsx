@@ -6,6 +6,7 @@ export const metadata: Metadata = {
   title: 'Delete Your Account',
   description:
     'How to delete your WeWatch account and all associated personal data — in-app steps and email request option.',
+  alternates: { canonical: 'https://wewatch.uz/delete-account' },
   robots: { index: true, follow: true },
 };
 

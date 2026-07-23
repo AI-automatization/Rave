@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint src"
+    "lint": "eslint src",
+    "check:crawlers": "node scripts/check-crawler-visibility.mjs"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.11",

@@ -1,44 +1,72 @@
-# WeWatch
+# WeWatch (wewatch.uz)
 
-> WeWatch (wewatch.uz) is a free watch party app for watching videos together with friends in real time. One person presses play or pause — it happens for everyone at the same time. Works with YouTube, VK Video, Rutube, Uzmove and any website through a built-in browser. Available on iOS, Android and Web. Made by tezcode.dev (Tashkent, Uzbekistan). Interface languages: Russian, Uzbek, English.
+> WeWatch (wewatch.uz) is a watch-party platform for watching YouTube, VK Video and
+> Rutube videos in perfect sync with friends. One participant presses play, pause or
+> seek — it applies to everyone in the room at the same moment. Available on the web
+> at wewatch.uz, on iOS, and on Android. Built by tezcode (TEZ KOD LLC), Tashkent,
+> Uzbekistan. Interface languages: Russian, Uzbek, English.
 
-## What WeWatch does
+## What it does
 
-- **Synchronized watching (watch party):** Everyone in a room sees the exact same frame in real time. Pause, play and seek are synced for all participants (drift kept within about ±2 seconds using clock synchronization).
-- **Cross-platform sync:** One participant can be on an iPhone, another on Android, another in a desktop web browser — they all watch in the same synced room. This cross-device watch party is a core differentiator.
-- **Built-in browser:** Open YouTube, VK Video, Rutube, Uzmove, Cinerama or any other video site inside the app and watch it together — no need for the site to support co-watching.
-- **Live chat and emoji reactions:** Text chat and floating emoji reactions inside every room.
-- **Friends, Battle mode, achievements:** Add friends, compete on who watches more (Battle), and unlock achievements.
-- **Free:** WeWatch is fully free. Sign up with a phone number. No paid plan.
+- **Synchronized playback:** Everyone in a room shares one playback position. Play, pause
+  and seek propagate to all participants in real time.
+- **Cross-device rooms:** One participant on iPhone, another on Android, another in a
+  desktop browser — all in the same synced room.
+- **Supported sources:** YouTube, VK Video, Rutube and direct .mp4 links. The mobile app
+  additionally has a built-in browser for opening other video sites.
+- **Live chat and emoji reactions** inside every room.
+- **Friends, Battle mode, achievements:** add friends, compare watch time, unlock achievements.
+
+## Technical
+
+Clock offset between each client and the server is measured NTP-style over a WebSocket
+ping/echo exchange, so every participant can convert server timestamps into its own local
+clock. Playback commands are scheduled at a shared future timestamp rather than executed
+on arrival, which absorbs differences in network latency. A periodic heartbeat compares
+each client's position against the room's authoritative position; drift beyond 500 ms
+triggers an automatic correction. Rooms close automatically after 10 minutes of inactivity.
 
 ## Key facts
 
 - Website: https://wewatch.uz
-- Platforms: iOS (App Store), Android (Google Play), Web (browser)
-- Price: Free
-- Supported sources: YouTube, VK Video, Rutube, Uzmove, Cinerama, and other sites via built-in browser
-- Languages: Russian (ru), Uzbek (uz), English (en)
-- Made by: tezcode.dev, Tashkent, Uzbekistan
-- Category: Entertainment / social co-watching (analogous to Rave)
+- Platforms: Web (wewatch.uz), iOS, Android
+- Room capacity: up to 10 participants per room
+- Pricing: free tier with no time limit; a paid Pro plan is listed at https://wewatch.uz/pricing
+  (TODO(human): confirm whether the Pro plan is live and what it includes)
+- Account: required to create a room and control playback; joining via an invite link
+  works without an account
+- Languages: Russian (ru, default), Uzbek (uz, /uz), English (en, /en)
+- Made by: tezcode / TEZ KOD LLC, Tashkent, Uzbekistan — https://tezcode.dev
+- Category: entertainment / social co-watching (comparable to Teleparty, Watch2Gether, Kast, Rave)
+- No browser extension required
 
-## Common questions WeWatch answers
+## Key pages
 
-- How to watch videos together with friends online → download WeWatch, open the built-in browser, find a video, create a room, share the invite link. Everyone watches synchronously.
-- Can I watch a movie online with my friend → yes; find the movie in the built-in browser, create a room, send the link. Pause and seek are synced for both of you.
-- How to watch YouTube together at the same time → supported through the built-in browser; pause and seek sync for all.
-- What to do when a friend is far away → create a watch party and share the link; distance does not matter.
-- Can one person be on phone and another on the website → yes, WeWatch syncs across all platforms in one room.
-- Is WeWatch free → yes, fully free.
+- https://wewatch.uz — homepage: what WeWatch is and how to start
+- https://wewatch.uz/how-it-works — hosting a watch party in four steps
+- https://wewatch.uz/faq — sync, supported platforms, pricing, devices
+- https://wewatch.uz/features — feature overview
+- https://wewatch.uz/pricing — plans
+- https://wewatch.uz/guides/smotret-vmeste-onlayn — guide: watching together online (ru)
+- https://wewatch.uz/guides/smotret-youtube-vmeste — guide: watching YouTube together (ru)
+- https://wewatch.uz/guides/kino-s-drugom-onlayn — guide: watching a movie with a friend (ru)
+- https://wewatch.uz/uz/guides/birgalikda-tomosha-qilish — guide: watching together (uz)
+- https://wewatch.uz/uz/guides/youtube-birgalikda — guide: YouTube together (uz)
+- https://wewatch.uz/team — the people who build it
+- https://wewatch.uz/about — about the project
+- https://wewatch.uz/privacy-policy · https://wewatch.uz/terms · https://wewatch.uz/dmca
 
-## Pages
+## Common questions
 
-- Homepage: https://wewatch.uz
-- What is a watch party: https://wewatch.uz/guides/what-is-watch-party
-- Watch together online (RU): https://wewatch.uz/guides/smotret-vmeste-onlayn
-- Watch YouTube together (RU): https://wewatch.uz/guides/smotret-youtube-vmeste
-- Watch a movie with a friend online (RU): https://wewatch.uz/guides/kino-s-drugom-onlayn
-- Watch together online (UZ): https://wewatch.uz/uz/guides/birgalikda-tomosha-qilish
-- Watch a movie with friends (UZ): https://wewatch.uz/uz/guides/kino-birgalikda
-- YouTube together (UZ): https://wewatch.uz/uz/guides/youtube-birgalikda
-- FAQ: https://wewatch.uz/faq
-- About: https://wewatch.uz/about
+- How do I watch a video together with a friend? Create a room, paste a YouTube, VK Video
+  or Rutube link, send the room link to your friend. Playback stays in sync for everyone.
+- Can one person be on a phone and another on the website? Yes — rooms sync across web,
+  iOS and Android simultaneously.
+- Is an account required? To create a room and control playback, yes. To join via an
+  invite link, no.
+- How many people fit in one room? Up to 10.
+- Does it need a browser extension? No.
+
+## Contact
+
+support@wewatch.uz

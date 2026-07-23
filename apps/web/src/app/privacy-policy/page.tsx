@@ -5,6 +5,7 @@ import { FaPlay } from 'react-icons/fa';
 export const metadata: Metadata = {
   title: 'Privacy Policy',
   description: 'WeWatch Privacy Policy — how we collect, use, and protect your personal data.',
+  alternates: { canonical: 'https://wewatch.uz/privacy-policy' },
   robots: { index: true, follow: true },
 };
 
