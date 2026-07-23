@@ -4,7 +4,8 @@ import { WatchPartyService } from '../services/watchParty.service';
 import { logger } from '@shared/utils/logger';
 import { SERVER_EVENTS, CLIENT_EVENTS } from '@shared/constants/socketEvents';
 import { JwtPayload } from '@shared/types';
-import { VB_VIEWPORT, VBInput, startSession, stopSession, sendInput, getSessionOwner } from '../services/virtualBrowser.service';
+import { VBInput, stopSession, sendInput, getSessionOwner } from '../services/virtualBrowser.service';
+import { startVBForRoom } from './vbSession.helper';
 
 interface AuthenticatedSocket extends Socket {
   user: JwtPayload;
@@ -46,10 +47,7 @@ export const registerVBEvents = (
     }
 
     try {
-      await startSession(roomId, userId, url.toString(), (base64Jpeg) => {
-        io.to(roomId).emit(SERVER_EVENTS.VB_FRAME, { data: base64Jpeg });
-      });
-      io.to(roomId).emit(SERVER_EVENTS.VB_STARTED, { url: url.toString(), width: VB_VIEWPORT.width, height: VB_VIEWPORT.height, ownerId: userId });
+      await startVBForRoom(io, watchPartyService, roomId, userId, url.toString());
       logger.info('VB started', { roomId, userId, url: url.toString() });
     } catch (e) {
       const message = (e as Error).message === 'virtual_browser_limit'
@@ -64,6 +62,11 @@ export const registerVBEvents = (
     if (!authSocket.roomId) return;
     const roomId = authSocket.roomId;
     if (getSessionOwner(roomId) !== userId) return; // silently ignore non-owner input
+    // Relay the owner's pointer position to everyone else so they can see a synced cursor —
+    // the JPEG screencast itself never contains an OS cursor (see VB_CURSOR comment).
+    if (input.type === 'mousemove') {
+      socket.to(roomId).emit(SERVER_EVENTS.VB_CURSOR, { x: input.x, y: input.y });
+    }
     await sendInput(roomId, userId, input);
   });
 

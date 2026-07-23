@@ -473,7 +473,9 @@
     "addError": "Qo'shib bo'lmadi",
     "removeError": "O'chirib bo'lmadi",
     "skipError": "O'tib bo'lmadi",
-    "playNow": "Hozir yoqish"
+    "playNow": "Hozir yoqish",
+    "queueEmptyHint": "Pastdagi maydonga havola qo'sh",
+    "queueEmptyHintMember": "Xona egasi hali video qo'shmagan"
   },
   "movie": {
     "watch": "Ko'rish",
@@ -490,7 +492,8 @@
     "you": "Sen",
     "empty": "Hali xabar yo'q",
     "placeholder": "Xabar yozing...",
-    "cooldown": "{seconds}s kuting"
+    "cooldown": "{seconds}s kuting",
+    "emptyHint": "Birinchi bo'lib yozing"
   },
   "profile": {
     "title": "Profil",

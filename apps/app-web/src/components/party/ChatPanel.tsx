@@ -1,23 +1,14 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Send } from 'lucide-react';
+import { Send, MessageCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useWatchPartyStore } from '@/store/watch-party.store';
 import { useAuthStore } from '@/store/auth.store';
+import { avatarColor } from '@/lib/utils';
 
 interface Props {
   onSend: (text: string) => void;
-}
-
-const AVATAR_COLORS = ['#7C3AED', '#2563EB', '#059669', '#D97706', '#DC2626', '#DB2777', '#0891B2'];
-
-function avatarColor(username: string): string {
-  let hash = 0;
-  for (let i = 0; i < username.length; i++) {
-    hash = username.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
 export function ChatPanel({ onSend }: Props) {
@@ -43,7 +34,18 @@ export function ChatPanel({ onSend }: Props) {
     <div className="flex flex-col h-full">
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-2 py-2 flex flex-col gap-0.5 scrollbar-hide">
         {messages.length === 0 && (
-          <p className="text-zinc-600 text-[11px] text-center py-6">{t('empty')}</p>
+          <div className="flex-1 flex flex-col items-center justify-center gap-3 px-6 text-center">
+            <div
+              className="w-12 h-12 rounded-full flex items-center justify-center"
+              style={{ background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.2)' }}
+            >
+              <MessageCircle size={18} className="text-violet-400/70" />
+            </div>
+            <div>
+              <p className="text-zinc-400 text-xs font-medium">{t('empty')}</p>
+              <p className="text-zinc-600 text-[11px] mt-0.5">{t('emptyHint')}</p>
+            </div>
+          </div>
         )}
         {messages.map((msg) => {
           const isMe = msg.user._id === currentUser?._id;

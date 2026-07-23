@@ -86,7 +86,30 @@ const GEO_BLOCKED_DOMAINS = new Set([
   'seasonvar.ru',
 ]);
 
+// Single-flight dedup: watch-party's CHANGE_MEDIA handler (server-side extraction-vs-VB check)
+// and the web client's own VideoPlayer extraction call both hit this same URL within moments of
+// each other — one to decide "extract or fall back to VB", the other to actually get bytes to
+// play. Without this, that's two independent Playwright browser launches racing the SAME slow
+// site at once. Concurrent calls for the same URL now share one in-flight promise instead.
+const inFlightExtractions = new Map<string, Promise<VideoExtractResult>>();
+
 export async function extractVideo(
+  rawUrl: string,
+  redis: Redis,
+  options?: { cookies?: string; tmdbId?: string },
+): Promise<VideoExtractResult> {
+  const dedupeKey = createHash('sha256').update(rawUrl).digest('hex');
+  const existing = inFlightExtractions.get(dedupeKey);
+  if (existing) return existing;
+
+  const promise = extractVideoUncached(rawUrl, redis, options).finally(() => {
+    inFlightExtractions.delete(dedupeKey);
+  });
+  inFlightExtractions.set(dedupeKey, promise);
+  return promise;
+}
+
+async function extractVideoUncached(
   rawUrl: string,
   redis: Redis,
   options?: { cookies?: string; tmdbId?: string },
@@ -275,8 +298,12 @@ export async function extractVideo(
         });
       }
     }
-    // Playwright: only for known JS-heavy platforms (slow — last resort)
-    if (!result && isPlaywrightPlatform(parsedUrl)) {
+    // Playwright: universal last resort once generic+yt-dlp both failed — not gated to the
+    // known-JS-heavy allowlist anymore (T-S043 originally scoped it there to be conservative,
+    // but genericExtractor+yt-dlp already ruled out the cheap paths by this point regardless of
+    // domain, so any site the user pastes gets one real-browser network-sniff attempt too).
+    // Concurrency guard below is the actual protection against overload, not the domain list.
+    if (!result) {
       if (playwrightRunning >= PLAYWRIGHT_MAX_CONCURRENT) {
         logger.warn('Playwright concurrency limit reached, skipping', { url: rawUrl, active: playwrightRunning });
       } else {

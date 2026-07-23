@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Users, LogOut, Share2 } from 'lucide-react';
+import { LogOut, Share2 } from 'lucide-react';
 import { useWatchPartyStore } from '@/store/watch-party.store';
 import { useAuthStore } from '@/store/auth.store';
 import { useTranslations } from 'next-intl';
@@ -10,6 +10,7 @@ import { InviteDialog } from '@/components/party/InviteDialog';
 import { LeaveRoomDialog } from '@/components/party/LeaveRoomDialog';
 import { toast } from '@/store/toast.store';
 import { trackClick } from '@/lib/analytics';
+import { avatarColor } from '@/lib/utils';
 
 export function RoomHeader() {
   const t = useTranslations('party');
@@ -70,9 +71,36 @@ export function RoomHeader() {
             </span>
           )}
 
-          <div className="flex items-center gap-1 text-[11px] text-slate-500 shrink-0">
-            <Users size={11} />
-            {memberCount}
+          {/* Face-pile — social presence beats a bare number: makes an otherwise plain text
+              header feel like an actual room with people in it, not a settings page. */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <div className="flex items-center -space-x-2">
+              {storeMembers.slice(0, 4).map((m) => (
+                <div
+                  key={m._id}
+                  title={m.username}
+                  className="w-5 h-5 rounded-full border-2 border-[#09090B] overflow-hidden shrink-0"
+                >
+                  {m.avatar ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- user-uploaded avatar URL
+                    <img src={m.avatar} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <div
+                      className="w-full h-full flex items-center justify-center text-[8px] font-bold text-white"
+                      style={{ background: avatarColor(m.username ?? '?') }}
+                    >
+                      {(m.username?.[0] ?? '?').toUpperCase()}
+                    </div>
+                  )}
+                </div>
+              ))}
+              {storeMembers.length > 4 && (
+                <div className="w-5 h-5 rounded-full border-2 border-[#09090B] bg-white/10 flex items-center justify-center text-[8px] font-semibold text-zinc-300 shrink-0">
+                  +{storeMembers.length - 4}
+                </div>
+              )}
+            </div>
+            <span className="text-[11px] text-slate-500">{memberCount}</span>
           </div>
         </div>
 

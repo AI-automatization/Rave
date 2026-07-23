@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useCallback, useState } from 'react';
-import { Loader2, Play, AlertCircle, Pause, Maximize, Minimize, Volume2, VolumeX, Volume1 } from 'lucide-react';
+import { Loader2, Play, Pause, Maximize, Minimize, Volume2, VolumeX, Volume1, Clapperboard } from 'lucide-react';
 import { useWatchPartyStore } from '@/store/watch-party.store';
 import { useAuthStore } from '@/store/auth.store';
 import { toast } from '@/hooks/use-toast';
@@ -15,6 +15,31 @@ import { DailymotionPlayer } from './DailymotionPlayer';
 import { TikTokPlayer } from './TikTokPlayer';
 import { PeerTubePlayer } from './PeerTubePlayer';
 import { TrovoPlayer } from './TrovoPlayer';
+
+// Shared loading visual for every "video not playable yet" moment (initial room load, extraction
+// in flight, extraction failed but the server may still auto-recover via VB — see extractError
+// usage below). A failed extraction is a normal, silent step of the extraction-then-VB-fallback
+// flow, not a user-facing error: the room either gets a VB session moments later or the video
+// simply changes, so this never resolves into "Не удалось загрузить видео" — it just keeps
+// looking like loading until the room state moves on.
+function VideoLoading({ label = 'Загрузка видео' }: { label?: string }) {
+  return (
+    <div className="aspect-video bg-[#0A0A12] rounded-xl flex flex-col items-center justify-center gap-4">
+      <div className="relative w-16 h-16 flex items-center justify-center">
+        <span
+          className="absolute inset-0 rounded-full animate-ping"
+          style={{ background: 'rgba(124,58,237,0.25)', animationDuration: '1.8s' }}
+        />
+        <span
+          className="absolute inset-0 rounded-full"
+          style={{ background: 'rgba(124,58,237,0.12)', boxShadow: '0 0 32px rgba(124,58,237,0.35)' }}
+        />
+        <Loader2 size={26} className="relative animate-spin text-violet-400" />
+      </div>
+      <p className="text-slate-400 text-sm font-medium tracking-wide">{label}</p>
+    </div>
+  );
+}
 
 interface Props {
   onPlay: (time: number) => void;
@@ -230,6 +255,7 @@ interface NativeProps {
   onBufferStart: () => void;
   onBufferEnd: () => void;
   onOverlayClick: () => void;
+  onAutoplayBlocked: () => void;
 }
 
 function NativeVideoPlayer({
@@ -246,6 +272,7 @@ function NativeVideoPlayer({
   onBufferStart,
   onBufferEnd,
   onOverlayClick,
+  onAutoplayBlocked,
 }: NativeProps) {
   const hlsRef = useRef<import('hls.js').default | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -258,6 +285,23 @@ function NativeVideoPlayer({
   const [isMuted, setIsMuted] = useState(false);
   const [showControls, setShowControls] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  // True from the moment a new src is handed to us until the browser actually has enough data
+  // to play — without this, a fresh video (e.g. right after the VB handoff) just sits on a black
+  // frame at 0:00 with no feedback while the browser silently buffers, reading as "broken".
+  const [isBuffering, setIsBuffering] = useState(true);
+
+  // Fresh src → back to "loading", until canplay/playing says otherwise (mirror-state effect below).
+  useEffect(() => { setIsBuffering(true); }, [src]);
+
+  // Only the owner's own action should decide whether the room starts playing — members follow
+  // via the sync effect below once the owner's play event round-trips through the server. A
+  // recent real click (VB's own play button, or the room's play button) counts as user activation
+  // for autoplay purposes in every mainstream browser, so this reliably succeeds; the existing
+  // autoplayBlocked overlay is the fallback for the rare case a browser still refuses it.
+  function attemptOwnerAutoplay(video: HTMLVideoElement) {
+    if (!isOwner) return;
+    video.play().catch(() => onAutoplayBlocked());
+  }
 
   // HLS setup + macOS suppression
   useEffect(() => {
@@ -275,11 +319,12 @@ function NativeVideoPlayer({
         }, { once: true });
       }
       video.addEventListener('play', suppressMacOsPlayer, { passive: true });
+      attemptOwnerAutoplay(video);
       return;
     }
 
     import('hls.js').then(({ default: Hls }) => {
-      if (!Hls.isSupported()) { video.src = src; return; }
+      if (!Hls.isSupported()) { video.src = src; attemptOwnerAutoplay(video); return; }
       hlsRef.current?.destroy();
       // startPosition in config tells HLS.js to buffer segments from owner's
       // current position instead of from 0 — crucial when joining mid-playback
@@ -293,9 +338,12 @@ function NativeVideoPlayer({
       hlsRef.current = hls;
       hls.loadSource(src);
       hls.attachMedia(video);
-      hls.once(Hls.Events.MANIFEST_PARSED, suppressMacOsPlayer);
+      hls.once(Hls.Events.MANIFEST_PARSED, () => {
+        suppressMacOsPlayer();
+        attemptOwnerAutoplay(video);
+      });
       video.addEventListener('play', suppressMacOsPlayer, { passive: true });
-    }).catch(() => { video.src = src; });
+    }).catch(() => { video.src = src; attemptOwnerAutoplay(video); });
 
     return () => {
       hlsRef.current?.destroy();
@@ -319,6 +367,8 @@ function NativeVideoPlayer({
     const onMeta = () => { if (isFinite(video.duration)) setDuration(video.duration); };
     const onVolChange = () => { setVolume(video.volume); setIsMuted(video.muted); };
     const onFullscreenChange = () => setIsFullscreen(!!document.fullscreenElement);
+    const onWaitingEvt = () => setIsBuffering(true);
+    const onReadyEvt = () => setIsBuffering(false);
     document.addEventListener('fullscreenchange', onFullscreenChange);
     video.addEventListener('play', onPlayEvt);
     video.addEventListener('pause', onPauseEvt);
@@ -326,6 +376,9 @@ function NativeVideoPlayer({
     video.addEventListener('loadedmetadata', onMeta);
     video.addEventListener('durationchange', onMeta);
     video.addEventListener('volumechange', onVolChange);
+    video.addEventListener('waiting', onWaitingEvt);
+    video.addEventListener('canplay', onReadyEvt);
+    video.addEventListener('playing', onReadyEvt);
     return () => {
       video.removeEventListener('play', onPlayEvt);
       video.removeEventListener('pause', onPauseEvt);
@@ -333,6 +386,9 @@ function NativeVideoPlayer({
       video.removeEventListener('loadedmetadata', onMeta);
       video.removeEventListener('durationchange', onMeta);
       video.removeEventListener('volumechange', onVolChange);
+      video.removeEventListener('waiting', onWaitingEvt);
+      video.removeEventListener('canplay', onReadyEvt);
+      video.removeEventListener('playing', onReadyEvt);
       document.removeEventListener('fullscreenchange', onFullscreenChange);
     };
   }, [videoRef]);
@@ -425,6 +481,27 @@ function NativeVideoPlayer({
           if (!isOwner) onBufferEnd();
         }}
       />
+
+      {/* Buffering — video has a src but the browser doesn't have enough data yet (fresh VB
+          handoff, seek, network stall). Without this the video area is just a black rectangle
+          at 0:00 with no signal that anything is happening. Autoplay-blocked takes priority —
+          no point showing "loading" over a state that needs a click, not a wait. */}
+      {isBuffering && !autoplayBlocked && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-black/60 pointer-events-none">
+          <div className="relative w-16 h-16 flex items-center justify-center">
+            <span
+              className="absolute inset-0 rounded-full animate-ping"
+              style={{ background: 'rgba(124,58,237,0.25)', animationDuration: '1.8s' }}
+            />
+            <span
+              className="absolute inset-0 rounded-full"
+              style={{ background: 'rgba(124,58,237,0.12)', boxShadow: '0 0 32px rgba(124,58,237,0.35)' }}
+            />
+            <Loader2 size={26} className="relative animate-spin text-violet-400" />
+          </div>
+          <p className="text-slate-400 text-sm font-medium tracking-wide">Загрузка видео</p>
+        </div>
+      )}
 
       {/* Autoplay blocked overlay */}
       {autoplayBlocked && (
@@ -829,16 +906,18 @@ export function VideoPlayer({
   // ── Loading / error states ──────────────────────────────────────────────────
 
   if (!room) {
-    return (
-      <div className="aspect-video bg-[#0A0A12] rounded-xl flex items-center justify-center">
-        <Loader2 size={24} className="animate-spin text-violet-400" />
-      </div>
-    );
+    return <VideoLoading />;
   }
 
   if (!videoUrl) {
     return (
-      <div className="aspect-video bg-[#0A0A12] rounded-xl flex flex-col items-center justify-center gap-2">
+      <div className="aspect-video bg-[#0A0A12] rounded-xl flex flex-col items-center justify-center gap-3">
+        <div
+          className="w-14 h-14 rounded-full flex items-center justify-center"
+          style={{ background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.2)' }}
+        >
+          <Clapperboard size={22} className="text-violet-400/70" />
+        </div>
         <p className="text-slate-400 text-sm font-medium">Видео не выбрано</p>
         {!isConnected && (
           <div className="flex items-center gap-2 text-xs text-slate-600">
@@ -986,22 +1065,11 @@ export function VideoPlayer({
   // ── Any remaining source (Rutube, direct, etc.) — extract + proxy ───
 
   if (needsExtract) {
-    if (extracting) {
-      return (
-        <div className="aspect-video bg-[#0A0A12] rounded-xl flex flex-col items-center justify-center gap-3">
-          <Loader2 size={28} className="animate-spin text-violet-400" />
-          <p className="text-slate-400 text-sm">Загрузка видео...</p>
-        </div>
-      );
-    }
-    if (extractError) {
-      return (
-        <div className="aspect-video bg-[#0A0A12] rounded-xl flex flex-col items-center justify-center gap-3 px-6 text-center">
-          <AlertCircle size={28} className="text-red-400" />
-          <p className="text-slate-300 text-sm font-medium">Не удалось загрузить видео</p>
-          <p className="text-slate-500 text-xs">{extractError}</p>
-        </div>
-      );
+    // extractError is deliberately silent — a failed direct extraction just means the server is
+    // about to (or already did) fall back to the shared virtual browser; showing a scary "failed
+    // to load" error here would be wrong in the common case where VB picks it up moments later.
+    if (extracting || extractError) {
+      return <VideoLoading />;
     }
     if (proxySrc) {
       return (
@@ -1019,14 +1087,11 @@ export function VideoPlayer({
           onBufferStart={onBufferStart}
           onBufferEnd={onBufferEnd}
           onOverlayClick={handleOverlayClick}
+          onAutoplayBlocked={() => setAutoplayBlocked(true)}
         />
       );
     }
-    return (
-      <div className="aspect-video bg-[#0A0A12] rounded-xl flex items-center justify-center">
-        <Loader2 size={24} className="animate-spin text-violet-400" />
-      </div>
-    );
+    return <VideoLoading />;
   }
 
   return null;

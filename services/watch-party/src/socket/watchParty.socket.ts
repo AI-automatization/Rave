@@ -19,6 +19,7 @@ import { stopSession, stopAllSessions } from '../services/virtualBrowser.service
 interface AuthenticatedSocket extends Socket {
   user: JwtPayload;
   roomId?: string;
+  rawToken?: string;
 }
 
 const verifySocketToken = (token: string): JwtPayload => {
@@ -113,6 +114,9 @@ export const registerWatchPartySocket = (io: SocketServer, watchPartyService: Wa
     try {
       const user = verifySocketToken(token);
       (socket as AuthenticatedSocket).user = user;
+      // Kept for server-to-server calls that need to act as this user (e.g. roomEvents.handler.ts
+      // calling content-service's /content/extract, which requires a real user JWT).
+      (socket as AuthenticatedSocket).rawToken = token;
       next();
     } catch {
       next(new Error('Invalid token'));

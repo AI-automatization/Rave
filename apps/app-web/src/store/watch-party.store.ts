@@ -34,6 +34,12 @@ interface WatchPartyState {
   syncState: SyncState;
   heartbeat: Heartbeat | null;
   isConnected: boolean;
+  // True only once ROOM_JOINED has actually come back from the server for the CURRENT room —
+  // isConnected flips true as soon as the socket transport connects, well before the JOIN_ROOM
+  // round-trip finishes (server sets authSocket.roomId only inside its own JOIN_ROOM handler).
+  // Anything that needs to emit a room-scoped event (e.g. CHANGE_MEDIA) must wait for this, or
+  // the server sees "socket has no roomId" and silently drops it — a real race, not hypothetical.
+  roomJoined: boolean;
 
   setRoom: (room: IWatchPartyRoom | null) => void;
   setMembers: (members: WatchPartyMember[]) => void;
@@ -44,6 +50,7 @@ interface WatchPartyState {
   setSyncState: (state: Partial<SyncState>) => void;
   setHeartbeat: (hb: Heartbeat) => void;
   setConnected: (connected: boolean) => void;
+  setRoomJoined: (joined: boolean) => void;
   reset: () => void;
 }
 
@@ -60,6 +67,7 @@ export const useWatchPartyStore = create<WatchPartyState>((set) => ({
   syncState: initialSyncState,
   heartbeat: null,
   isConnected: false,
+  roomJoined: false,
 
   setRoom: (room) => set({ room }),
   setMembers: (members) => set({ members: members ?? [] }),
@@ -81,6 +89,7 @@ export const useWatchPartyStore = create<WatchPartyState>((set) => ({
     set((s) => ({ syncState: { ...s.syncState, ...state } })),
   setHeartbeat: (hb) => set({ heartbeat: hb }),
   setConnected: (connected) => set({ isConnected: connected }),
+  setRoomJoined: (joined) => set({ roomJoined: joined }),
   reset: () =>
     set({
       room: null,
@@ -89,5 +98,6 @@ export const useWatchPartyStore = create<WatchPartyState>((set) => ({
       syncState: initialSyncState,
       heartbeat: null,
       isConnected: false,
+      roomJoined: false,
     }),
 }));

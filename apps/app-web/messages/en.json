@@ -512,7 +512,9 @@
     "addError": "Failed to add",
     "removeError": "Failed to remove",
     "skipError": "Failed to skip",
-    "playNow": "Play now"
+    "playNow": "Play now",
+    "queueEmptyHint": "Add a link below",
+    "queueEmptyHintMember": "The room owner hasn't added any videos yet"
   },
   "movie": {
     "watch": "Watch",
@@ -529,7 +531,8 @@
     "you": "You",
     "empty": "No messages yet",
     "placeholder": "Type a message...",
-    "cooldown": "Wait {seconds}s"
+    "cooldown": "Wait {seconds}s",
+    "emptyHint": "Be the first to say something"
   },
   "profile": {
     "title": "Profile",

@@ -10,8 +10,13 @@ import { logger } from '@shared/utils/logger';
 import { VideoExtractResult } from './types';
 import { playwrightCookiesToHeader, saveCookies } from '../cookieStore';
 
-const NAVIGATE_TIMEOUT_MS = 25_000;
-const POST_LOAD_WAIT_MS   = 5_000;  // extra wait for deferred video requests
+// Budget must stay well under the content-service's global 30s request timeout
+// (shared/src/middleware/timeout.middleware.ts) — at 25s+5s=30s this was a dead-heat race that
+// the outer timeout almost always won, so a real result (even a clean "null, nothing found")
+// rarely got the chance to come back before the request was killed with a 503. Left tighter here
+// so the extraction-failed → VB-fallback decision lands sooner instead of stalling near 30s.
+const NAVIGATE_TIMEOUT_MS = 12_000;
+const POST_LOAD_WAIT_MS   = 3_000;  // extra wait for deferred video requests
 const MAX_CONCURRENT      = 3;
 
 const USER_AGENTS = [
@@ -55,8 +60,48 @@ function release(): void {
 }
 // ---------------------------------------------------------
 
-// Matches HLS manifests, DASH manifests, and MP4 streams
-const MEDIA_URL_RE = /\.(m3u8|mpd|mp4)(\?[^"'\s]*)?$/i;
+// Matches HLS manifests, DASH manifests, and MP4/fMP4-segment streams by URL extension.
+// Deliberately NOT matching bare .ts by extension — TypeScript sourcemaps/webpack chunks end in
+// .ts constantly during normal page load and would false-positive. .ts (transport-stream
+// segments) and opaque paths with no extension at all (e.g. /api/stream/get?id=123) are instead
+// caught by the Content-Type fallback below, for CDNs that set an honest video mime type.
+//
+// Matched against the URL's PATHNAME only, never the full href — asilmedia's player.html wraps
+// the real file in a ?file=<url-encoded mp4 url> query param, and matching the whole href string
+// caught THAT page itself as "the video" (its query string happens to end in .mp4), handing the
+// player an HTML page instead (silent black-screen 0:00 playback — the <video> tag just had
+// nothing decodable, no error). Real CDNs commonly put a token after the extension too
+// (segment.ts?expires=...), which pathname-only matching still handles correctly since the query
+// string was never part of the pathname.
+const MEDIA_EXT_RE = /\.(m3u8|mpd|mp4|m4s|webm)$/i;
+const MEDIA_CONTENT_TYPE_RE = /^(video\/(mp4|webm|mp2t|iso\.segment)|audio\/mp4|application\/(vnd\.apple\.mpegurl|x-mpegurl|dash\+xml))/i;
+
+function matchMediaExtension(url: string): string | null {
+  try {
+    return MEDIA_EXT_RE.exec(new URL(url).pathname)?.[1]?.toLowerCase() ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// Third line of defense: some sites deliberately lie about Content-Type (serve a video segment
+// as application/octet-stream, or omit the header) specifically to dodge naive extension/mime
+// scrapers. Only worth downloading the body when the declared type is already ambiguous —
+// checking magic bytes on every html/js/css/image response would burn bandwidth for nothing.
+const AMBIGUOUS_CONTENT_TYPE_RE = /^(application\/octet-stream|binary\/octet-stream|)$/i;
+const MIN_MEDIA_BYTES = 4096; // real media segments are never this small — skip tiny beacons/pixels
+
+function sniffMagicBytes(buf: Buffer): 'mp4' | 'hls' | null {
+  if (buf.length < 12) return null;
+  // MP4 / fMP4-CMAF: ISO-BMFF box type spelled out as ASCII at offset 4 (ftyp/moov/moof/styp/sidx)
+  const boxType = buf.toString('ascii', 4, 8);
+  if (boxType === 'ftyp' || boxType === 'moov' || boxType === 'moof' || boxType === 'styp' || boxType === 'sidx') return 'mp4';
+  // WebM/Matroska EBML header
+  if (buf[0] === 0x1a && buf[1] === 0x45 && buf[2] === 0xdf && buf[3] === 0xa3) return 'mp4';
+  // MPEG-TS: 0x47 sync byte repeating every 188 bytes
+  if (buf.length >= 376 && buf[0] === 0x47 && buf[188] === 0x47 && buf[376] === 0x47) return 'hls';
+  return null;
+}
 
 export async function playwrightExtractor(url: string, redis?: Redis): Promise<VideoExtractResult | null> {
   await acquire();
@@ -107,16 +152,40 @@ export async function playwrightExtractor(url: string, redis?: Redis): Promise<V
     const onResponse = (response: Response): void => {
       if (foundUrl) return; // already found — skip subsequent matches
       const respUrl = response.url();
-      const match   = MEDIA_URL_RE.exec(respUrl);
-      if (match) {
+      const ext = matchMediaExtension(respUrl);
+      if (ext) {
         foundUrl  = respUrl;
-        const ext = match[1].toLowerCase();
-        foundType = ext === 'mp4' ? 'mp4' : 'hls'; // m3u8 + mpd → hls
-        logger.info('Playwright: media URL intercepted', {
+        foundType = ext === 'm3u8' || ext === 'mpd' ? 'hls' : 'mp4';
+        logger.info('Playwright: media URL intercepted (by extension)', {
           url:  respUrl.slice(0, 120),
           type: foundType,
         });
+        return;
       }
+      // No recognizable extension — fall back to Content-Type.
+      const headers = response.headers();
+      const contentType = headers['content-type'] ?? '';
+      if (MEDIA_CONTENT_TYPE_RE.test(contentType)) {
+        foundUrl  = respUrl;
+        foundType = /mpegurl|dash/i.test(contentType) ? 'hls' : 'mp4';
+        logger.info('Playwright: media URL intercepted (by content-type)', {
+          url: respUrl.slice(0, 120), contentType, type: foundType,
+        });
+        return;
+      }
+      // Still nothing — the site may be lying about Content-Type on purpose. Only worth the
+      // download if the declared type is itself ambiguous/missing and not a tiny beacon/pixel.
+      if (!AMBIGUOUS_CONTENT_TYPE_RE.test(contentType)) return;
+      const contentLength = parseInt(headers['content-length'] ?? '', 10);
+      if (!Number.isNaN(contentLength) && contentLength < MIN_MEDIA_BYTES) return;
+      void response.body().then((body) => {
+        if (foundUrl) return;
+        const type = sniffMagicBytes(body);
+        if (!type) return;
+        foundUrl  = respUrl;
+        foundType = type;
+        logger.info('Playwright: media URL intercepted (by magic bytes)', { url: respUrl.slice(0, 120), type });
+      }).catch(() => { /* body unavailable (redirected/aborted) — skip */ });
     };
 
     page.on('response', onResponse);
