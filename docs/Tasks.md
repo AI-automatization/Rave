@@ -9,7 +9,9 @@
 - **Mas'ul:** pending[Jasur]
 - **Beruvchi:** Jasur
 - **Yaratilgan:** 2026-07-23 (PHASE 0 audit tugadi)
-- **Holat:** 🔄 Bajarilmoqda — PHASE 1
+- **Holat:** ⏸ Kutishda — PHASE 1 + ichki havola ishi tugadi va main'ga deploy bo'ldi (9a526a1c).
+  **2026-07-30 da** Search Console natijasi qayta tekshiriladi. Google qayta crawl qilmaguncha
+  yangi kod yozish behuda — o'lchov bo'lmaydi.
 - **Tavsiya model:** opus
 - **Model sababi:** ko'p faylli SEO infratuzilma + mavjud bazani buzmasdan yamash
 - **Sabab:** wewatch.uz'ni AI answer engine'lar (ChatGPT, Claude, Perplexity, AI Overviews) iqtibos qila
@@ -23,7 +25,10 @@
   - [x] public/llms.txt — faktlar shared/constants bilan moslashtirildi
   - [x] scripts/check-crawler-visibility.mjs — 7 route × 5 UA, hammasi PASS
 - **Qo'lda qilinishi kerak (TODO human):**
-  - [ ] Railway'da `INDEXNOW_SECRET` env o'rnatish (`openssl rand -hex 24`) + `INDEXNOW_KEY=b7a4e5408d77764d08338835ee8cdd0e`
+  - [ ] Railway'da `INDEXNOW_SECRET` env o'rnatish (`openssl rand -hex 24`) + `INDEXNOW_KEY=b7a4e5408d77764d08338835ee8cdd0e`,
+        keyin `curl -X POST https://wewatch.uz/api/indexnow -H "x-indexnow-secret: ..."` (jonli tekshirildi: kalit fayli 200, env yo'q)
+  - [ ] GSC: sitemap.xml ni qayta yuborish + URL Inspection'da qayta indekslash so'rovi
+        (/guides, /uz/guides, /how-it-works, rutube/vk/film-vdvoem/serialy gaydlari, /en)
   - [ ] Pro tarif (29 000 so'm, /pricing) haqiqatan faolmi? llms.txt da TODO qoldirilgan
   - [ ] `.claude/scripts/tg-notify.sh` — Windows'da `python3` topilmayapti, xabar yuborilmadi
 - **⛔ TEGMASLIK KERAK:** apps/mobile, services/*, watch-party sinxronizatsiya logikasi. Faqat apps/web.
