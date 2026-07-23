@@ -1,6 +1,29 @@
 # CineSync — OCHIQ VAZIFALAR
 
-# Yangilangan: 2026-07-21
+# Yangilangan: 2026-07-23
+
+---
+
+### T-E209 | P2 | [WEB] | GEO/AEO/SEO texnik baza — robots, sitemap, IndexNow, crawler checker
+
+- **Mas'ul:** pending[Jasur]
+- **Beruvchi:** Jasur
+- **Yaratilgan:** 2026-07-23 (PHASE 0 audit tugadi)
+- **Holat:** 🔄 Bajarilmoqda — PHASE 1
+- **Tavsiya model:** opus
+- **Model sababi:** ko'p faylli SEO infratuzilma + mavjud bazani buzmasdan yamash
+- **Sabab:** wewatch.uz'ni AI answer engine'lar (ChatGPT, Claude, Perplexity, AI Overviews) iqtibos qila
+  oladigan holatga keltirish. PHASE 0 audit topilmalari: robots.txt/robots.ts konflikti, sitemap
+  dublikatlari, 12 ta AI crawler robots'da yo'q, IndexNow yo'q, crawler-visibility tekshiruvi yo'q.
+- **Qilish kerak (PHASE 1):**
+  - [ ] robots.txt / app/robots.ts konfliktini hal qilish, AI crawler ro'yxatini to'ldirish
+  - [ ] sitemap.ts — dublikatlarni olib tashlash, yetishmayotgan sahifalar, alternates.languages
+  - [ ] Legal sahifalarga canonical, team/[slug] ga generateMetadata
+  - [ ] IndexNow (lib + API route + kalit fayl + .env.example)
+  - [ ] public/llms.txt yangilash, fakt ziddiyatlarini tozalash
+  - [ ] scripts/check-crawler-visibility.mjs + npm script
+- **⛔ TEGMASLIK KERAK:** apps/mobile, services/*, watch-party sinxronizatsiya logikasi. Faqat apps/web.
+- **Keyingi fazalar:** PHASE 2 (rendering), 3 (schema), 4 (kontent sahifalari), 5 (performance)
 
 ---
 
