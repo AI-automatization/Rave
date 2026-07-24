@@ -149,7 +149,7 @@
 - **Mas'ul:** pending[Saidazim]
 - **Beruvchi:** Saidazim (T-S172 QA paytida topildi)
 - **Yaratilgan:** 2026-07-24
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 Bajarilmoqda
 - **Tavsiya model:** sonnet
 - **Model sababi:** wiring — API allaqachon bor, faqat chaqiruv yetishmayapti, 1-2 fayl
 - **Sabab:** `roomEvents.handler.ts:36-48` faqat public xonalarni avto-join qiladi; private xona uchun member bo'lmagan socket ulanishda `'Not a room member. Join via invite code first.'` xatosi bilan rad etiladi. Web'da bu holatni qamrab oladigan hech narsa yo'q — `RoomContent.tsx` `?code=` parametrni umuman o'qimaydi/ishlatmaydi. Lekin backend join-by-code endpoint **allaqachon bor va ishlaydi**: `apps/app-web/src/app/api/rooms/join/[code]/route.ts` → `POST /watch-party/rooms/join/:code` (backend'da). Faqat ulanish yetishmayapti.
