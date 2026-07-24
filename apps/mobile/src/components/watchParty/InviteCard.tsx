@@ -31,11 +31,13 @@ export const InviteCard = React.memo(function InviteCard({ inviteCode, roomId, r
     userApi.getFriends().then(setFriends).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
+  const shareUrl = `https://app.wewatch.uz/room/${roomId}?code=${inviteCode}`;
+
   const handleCopy = useCallback(async () => {
-    await Clipboard.setStringAsync(inviteCode);
+    await Clipboard.setStringAsync(shareUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  }, [inviteCode]);
+  }, [shareUrl]);
 
   const handleShareTelegram = useCallback(async () => {
     try {
@@ -56,12 +58,11 @@ export const InviteCard = React.memo(function InviteCard({ inviteCode, roomId, r
   const handleShareNative = useCallback(async () => {
     try {
       const shareMessage = `${t('watchParty', 'shareRoomMessage')}\n\n` +
-        `${roomName}\n` +
-        `${t('watchParty', 'inviteCode')}: ${inviteCode}\n\n` +
-        `cinesync://join/${inviteCode}`;
+        `${roomName}\n\n` +
+        `${shareUrl}`;
       await Share.share({ message: shareMessage });
     } catch { /* User cancelled */ }
-  }, [inviteCode, roomName, t]);
+  }, [roomName, shareUrl, t]);
 
   const handleInvite = useCallback(async (friendId: string) => {
     setInvitingId(friendId);
