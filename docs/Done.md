@@ -4,6 +4,12 @@
 
 ---
 
+### F-255 | T-S182 | Private room: ?code= server-side join-by-code'ga ulandi
+
+- **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-24  **Model:** sonnet
+- **O'zgarishlar:** `apps/app-web/src/app/(app)/room/[id]/page.tsx` — `searchParams`dan `code`ni o'qib, `RoomContent` render bo'lishidan OLDIN server-side (`cookies()` + to'g'ridan-to'g'ri backend chaqiruvi) `POST /watch-party/rooms/join/:code` chaqiradi. Client socket'ning JOIN_ROOM bilan poyga (race) bo'lmasligi uchun ataylab server-side va awaited qilindi.
+- **Xulosa:** Private xonalarga (parolsiz) share-link orqali web'da endi to'liq kirish mumkin. `tsc --noEmit`: 0 xato. Parolli private xonalar hali qamrab olinmagan — **T-S183** sifatida alohida yozildi.
+
 ### F-254 | T-S172 | Redirect-after-login: query-string yo'qolishi fix + private-room gap topildi
 
 - **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-24  **Model:** sonnet
