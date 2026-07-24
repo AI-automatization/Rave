@@ -149,7 +149,7 @@
 - **Mas'ul:** pending[Saidazim]
 - **Beruvchi:** Saidazim (room redesign planning)
 - **Yaratilgan:** 2026-07-24
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 Bajarilmoqda
 - **Tavsiya model:** haiku
 - **Model sababi:** manual QA, kod o'zgarishi kutilmaydi (faqat tasdiqlash yoki kichik fix)
 - **Sabab:** `middleware.ts:22-27` unauth foydalanuvchini `/login?redirect=...` ga yuboradi, lekin login'dan keyin haqiqatan komnataga qaytishi kodda aniq tekshirilmagan.
