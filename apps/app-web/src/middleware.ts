@@ -22,7 +22,9 @@ export function middleware(req: NextRequest) {
   if (PROTECTED_PATHS.some((p) => routePath.startsWith(p))) {
     if (!isAuthenticated) {
       const loginUrl = new URL(`${localePrefix}/login`, req.url);
-      loginUrl.searchParams.set('redirect', pathname);
+      // Room share links carry ?code=INVITECODE — pathname alone drops the query
+      // string, which silently lost the invite code on the login round-trip.
+      loginUrl.searchParams.set('redirect', pathname + req.nextUrl.search);
       return NextResponse.redirect(loginUrl);
     }
   }

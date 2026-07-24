@@ -208,6 +208,31 @@ export function AppNavigator() {
           screen: 'ProfileTab',
           params: { screen: 'BindEmail', params: { mode: 'bind' } },
         });
+        return;
+      }
+
+      // https://app.wewatch.uz/room/:roomId?code=INVITECODE — room share link / Android App Link
+      // (app.json android.intentFilters pathPrefix "/room"). `code` present → go through the
+      // existing join-by-invite-code flow (works whether or not the user is already a member);
+      // no `code` → navigate straight to the room by id.
+      const roomMatch = url.match(/\/room\/([^/?#]+)/i);
+      if (roomMatch) {
+        const roomId = decodeURIComponent(roomMatch[1]);
+        let inviteCode: string | null = null;
+        try {
+          inviteCode = new URL(url).searchParams.get('code');
+        } catch {
+          // malformed URL — fall back to roomId-only navigation below
+        }
+
+        if (inviteCode) {
+          navigationRef.navigate('Modal', {
+            screen: 'WatchPartyJoin',
+            params: { inviteCode: inviteCode.toUpperCase() },
+          });
+        } else {
+          navigationRef.navigate('Modal', { screen: 'WatchParty', params: { roomId } });
+        }
       }
     };
 

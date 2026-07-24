@@ -1,8 +1,32 @@
 # WeWatch — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-07-20
+# Yangilangan: 2026-07-24
 
 ---
+
+### F-255 | T-S182 | Private room: ?code= server-side join-by-code'ga ulandi
+
+- **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-24  **Model:** sonnet
+- **O'zgarishlar:** `apps/app-web/src/app/(app)/room/[id]/page.tsx` — `searchParams`dan `code`ni o'qib, `RoomContent` render bo'lishidan OLDIN server-side (`cookies()` + to'g'ridan-to'g'ri backend chaqiruvi) `POST /watch-party/rooms/join/:code` chaqiradi. Client socket'ning JOIN_ROOM bilan poyga (race) bo'lmasligi uchun ataylab server-side va awaited qilindi.
+- **Xulosa:** Private xonalarga (parolsiz) share-link orqali web'da endi to'liq kirish mumkin. `tsc --noEmit`: 0 xato. Parolli private xonalar hali qamrab olinmagan — **T-S183** sifatida alohida yozildi.
+
+### F-254 | T-S172 | Redirect-after-login: query-string yo'qolishi fix + private-room gap topildi
+
+- **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-24  **Model:** sonnet
+- **O'zgarishlar:** `apps/app-web/src/middleware.ts` — `loginUrl.searchParams.set('redirect', pathname)` → `pathname + req.nextUrl.search`, aks holda T-S171'dagi `?code=` parametri login redirect orqali yo'qolar edi.
+- **Xulosa:** Asosiy QA topilmasi tasdiqlandi va tuzatildi (`tsc --noEmit`: 0 xato). Yon-topilma: private xonalar uchun web'da join-by-code umuman ulanmagan (backend endpoint bor, chaqiruv yo'q) — alohida task sifatida yozildi: **T-S182**.
+
+### F-253 | T-S171 | Haqiqiy share-ssылка (join code o'rniga) — web + mobile
+
+- **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-24  **Model:** sonnet
+- **O'zgarishlar:** `apps/app-web/src/components/party/InviteDialog.tsx` (shareUrl = `{APP_URL}/room/{roomId}?code={inviteCode}`, handleCopy endi link'ni copy qiladi, kod box pastida link ko'rsatiladi), `apps/mobile/src/components/watchParty/InviteCard.tsx` (handleCopy + handleShareNative shu link'ni ishlatadi, o'lik `cinesync://` string o'chirildi)
+- **Xulosa:** T-S169'da qo'shilgan Android App Link endi haqiqiy ishlaydigan share-tugma bilan ulandi. `tsc --noEmit`: mobile'da faqat fon xato (LanguageTransition), app-web'da 0 xato. T-S177/178 (Instagram share) endi shu link formatidan foydalanishi mumkin.
+
+### F-252 | T-S169 | Android App Links: /room intent-filter + AppNavigator handler
+
+- **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-24  **Model:** sonnet
+- **O'zgarishlar:** `apps/mobile/app.json` (intentFilters ga pathPrefix "/room" qo'shildi), `apps/mobile/src/navigation/AppNavigator.tsx` (deep-link handler `https://app.wewatch.uz/room/:id?code=` ni parse qiladi — `code` bo'lsa WatchPartyJoin invite-flow, bo'lmasa roomId bo'yicha to'g'ridan-to'g'ri WatchParty)
+- **Xulosa:** Room-redesign Faza 2 (deep link) ning Android yarmi tayyor. iOS qismi (T-S170) Apple Developer akkaunti yo'qligi sababli bloklangan. `tsc --noEmit`: yangi xato yo'q (faqat mavjud fon xato LanguageTransition.tsx).
 
 ### F-251 | Online/offline auditi — web hech qachon heartbeat yubormagan + sidebar widget qayta dizayn
 

@@ -24,6 +24,8 @@ export function InviteDialog({ open, onOpenChange }: Props) {
   const [invitingId, setInvitingId] = useState<string | null>(null);
 
   const inviteCode = room?.inviteCode ?? '';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.wewatch.uz';
+  const shareUrl = room?._id ? `${appUrl}/room/${room._id}?code=${inviteCode}` : '';
 
   const { data: friends } = useQuery<IUser[]>({
     queryKey: ['friends'],
@@ -37,9 +39,9 @@ export function InviteDialog({ open, onOpenChange }: Props) {
   });
 
   async function handleCopy() {
-    trackClick('invite:copy_code');
+    trackClick('invite:copy_link');
     try {
-      await navigator.clipboard.writeText(inviteCode);
+      await navigator.clipboard.writeText(shareUrl || inviteCode);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -98,6 +100,10 @@ export function InviteDialog({ open, onOpenChange }: Props) {
             {copied ? <Check size={18} /> : <Copy size={18} />}
           </button>
         </div>
+
+        {shareUrl && (
+          <p className="text-xs text-slate-500 text-center truncate" title={shareUrl}>{shareUrl}</p>
+        )}
 
         {copied && (
           <p className="text-xs text-emerald-400 text-center">{t('copied')}</p>

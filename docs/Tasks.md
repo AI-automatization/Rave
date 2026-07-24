@@ -1,6 +1,283 @@
 # CineSync — OCHIQ VAZIFALAR
 
-# Yangilangan: 2026-07-23
+# Yangilangan: 2026-07-24
+
+---
+
+# 🎬 Room Redesign — 3 fazali reja (2026-07-24 planning session)
+
+> To'liq research + reja: memory `project_room_redesign_3phases.md`. Hali bitta ham boshlanmagan — pastdagi tartib bo'yicha claim qilib boshlash kerak. Fazalar orasida bog'liqlik bor: T-S171 (link) → T-S177/T-S178 (Instagram share stikerida shu link ishlatiladi).
+
+## FAZA 1 — Room chat + voice UI
+
+### T-S160 | P1 | [BACKEND] | Room chat: avatar + replyTo payload'ga qo'shish
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim (room redesign planning)
+- **Yaratilgan:** 2026-07-24
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** 1-2 fayl, mavjud handler'ni kengaytirish
+- **Sabab:** `chatEvents.handler.ts:19-40` hozir faqat `{userId,username,message,timestamp}` broadcast qiladi — `avatar` yo'q, mobile'dan kelayotgan `replyTo` o'qilmaydi/saqlanmaydi/qayta yuborilmaydi. Shuning uchun mobile'dagi reply UI ishlamaydi (backend jimgina drop qiladi).
+- **Qilish kerak:**
+  - [ ] `SERVER_EVENTS.ROOM_MESSAGE` payload'ga `avatar`, `replyTo:{id,text,senderName}` qo'shish
+  - [ ] `shared/src/constants`/types yangilash (shared/* — Telegram xabar + tasdiq kerak, lock protocol)
+  - [ ] Socket.io event NOM o'zgarmaydi, faqat payload kengaytiriladi — 3 platforma bilan moslikni saqlash
+- **Fayllar:** `services/watch-party/src/socket/chatEvents.handler.ts`, `shared/src/constants/socketEvents.ts`, `shared/src/types/*`
+
+### T-S161 | P1 | [WEB] | ChatPanel: avatar render + click → profile modal ochish
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim (room redesign planning)
+- **Yaratilgan:** 2026-07-24
+- **Holat:** ❌ Boshlanmagan (T-S160 dan keyin, avatar payload kerak)
+- **Tavsiya model:** sonnet
+- **Model sababi:** 1 komponent, mavjud pattern (`MemberList.tsx`) copy
+- **Sabab:** Hozir web chat — IRC-style oddiy matn qator, avatar umuman yo'q (`ChatPanel.tsx:50-65`), `IChatMessage.user.avatar` type'da bor lekin render qilinmaydi.
+- **Qilish kerak:**
+  - [ ] Avatar rasm/placeholder render (pattern: `MemberList.tsx:34-53`)
+  - [ ] Avatar/username'ga onClick → `UserProfileModal` (T-S163 tayyor bo'lgandan keyin ulash)
+- **Fayllar:** `apps/app-web/src/components/party/ChatPanel.tsx`
+
+### T-S162 | P1 | [MOBILE] | ChatPanel: click avatar/username → profile modal ochish
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim (room redesign planning)
+- **Yaratilgan:** 2026-07-24
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** 1 fayl, onPress qo'shish + navigation
+- **Sabab:** Mobile'da avatar bor (rangli doira, faqat harf — real rasm emas), lekin bosilmaydi. `avatar` field ishlatilmayapti (`ChatPanel.tsx:22`).
+- **Qilish kerak:**
+  - [ ] `item.avatar` bo'lsa haqiqiy rasm render, bo'lmasa hozirgi initial-circle fallback
+  - [ ] onPress → `UserProfileModal(userId)` (T-S163)
+- **Fayllar:** `apps/mobile/src/components/watchParty/ChatPanel.tsx`
+
+### T-S163 | P2 | [MOBILE+WEB] | UserProfileModal — yangi komponent (add friend + view profile)
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim (room redesign planning)
+- **Yaratilgan:** 2026-07-24
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** yangi komponent, lekin mavjud pattern'lardan (FriendProfileScreen, Dialog/Sheet primitives) yig'iladi
+- **Sabab:** Loyihada profil modal/bottom-sheet umuman yo'q — faqat mobile'da full-screen `FriendProfileScreen.tsx` bor (referens sifatida). Web'da hech narsa yo'q (`profile/[id]` route'i ham yo'q).
+- **Qilish kerak:**
+  - [ ] Web: `Dialog`/`Sheet` primitive asosida modal, add-friend action, "profilga o'tish" link (yangi `profile/[id]` route kerak bo'lishi mumkin)
+  - [ ] Mobile: bottom sheet (tekshirish — `@gorhom/bottom-sheet` bormi, yo'q bo'lsa Modal+Animated), `useFriendProfile`'dagi `sendRequestMutation` qayta ishlatish
+- **Fayllar:** yangi — `apps/app-web/src/components/profile/UserProfileModal.tsx`, `apps/mobile/src/components/profile/UserProfileSheet.tsx`
+
+### T-S164 | P2 | [WEB] | Reply UI komnata chatida (DM pattern'idan portlash)
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim (room redesign planning)
+- **Yaratilgan:** 2026-07-24
+- **Holat:** ❌ Boshlanmagan (T-S160 dan keyin)
+- **Tavsiya model:** sonnet
+- **Model sababi:** mavjud DM pattern'ni 1-in-1 ko'chirish, yangi arxitektura emas
+- **Sabab:** Web room chatida reply umuman yo'q. DM'da tayyor: `ReplyTarget` interface, `handleReply`, `ReplyPreviewBar` — 1-in-1 ko'chirish mumkin.
+- **Fayllar:** manba (copy qilinadigan) — `apps/app-web/src/components/messages/ChatWindow.tsx:25-28,80-81`, `apps/app-web/src/components/messages/dm/`; maqsad — `apps/app-web/src/components/party/ChatPanel.tsx`
+
+### T-S165 | P2 | [MOBILE] | Swipe-to-reply komnata chatida (DM pattern'idan portlash)
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim (room redesign planning)
+- **Yaratilgan:** 2026-07-24
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** mavjud gesture pattern ko'chirish
+- **Sabab:** DM'da to'liq qator svayp bor (`dm/MessageItem.tsx` — `PanGestureHandler` FULL row'ni o'raydi, threshold=60, haptics), watch-party ChatPanel'da faqat long-press bor, svayp yo'q.
+- **Qilish kerak:**
+  - [ ] `PanGestureHandler` ko'chirish, `onSwipeReply` → mavjud `onReply` state'ga ulash (long-press ham qoladi)
+- **Fayllar:** manba — `apps/mobile/src/components/dm/MessageItem.tsx`; maqsad — `apps/mobile/src/components/watchParty/ChatPanel.tsx`
+
+### T-S166 | P2 | [WEB] | Swipe-to-reply web'da (framer-motion drag)
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim (room redesign planning)
+- **Yaratilgan:** 2026-07-24
+- **Holat:** ❌ Boshlanmagan (T-S164 dan keyin)
+- **Tavsiya model:** sonnet
+- **Model sababi:** yangi interaction, lekin bitta komponent
+- **Sabab:** Web'da hech qayerda drag-jest ishlatilmagan (`framer-motion` bor, `drag=`/`dragConstraints` grep 0 natija). Bu loyihada birinchi drag-interaction bo'ladi.
+- **Qilish kerak:**
+  - [ ] `drag="x"` + `dragConstraints`, threshold ~60px, snap-back animatsiya, butun qator bo'yicha (faqat matn emas)
+- **Fayllar:** `apps/app-web/src/components/party/ChatPanel.tsx`
+
+### T-S167 | P1 | [MOBILE] | Chat+Voice UI birlashtirish (ikkalasi bir vaqtda ko'rinsin)
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim (room redesign planning)
+- **Yaratilgan:** 2026-07-24
+- **Holat:** ❌ Boshlanmagan — **variant A/B/C tanlovi kutilmoqda** (tavsiya: C — bitta panelga birlashtirish)
+- **Tavsiya model:** sonnet
+- **Model sababi:** state-machine refactor, 3-4 fayl
+- **Sabab:** Hozir `showChat`/`showVoice` bir-birini istisno qiladi (`useWatchPartyRoom.ts:150-151`), foydalanuvchi bir vaqtda ikkalasini ko'rmaydi. Auto-join-muted allaqachon ishlaydi (`useVoiceChat.ts:229-238,50-51`) — muammo faqat UI'da.
+- **Qilish kerak:**
+  - [ ] Variant C: bitta panel — tepada compact voice-strip (avatar+mic), pastda chat; toggle olib tashlanadi
+  - [ ] Mute tugmasi har doim mavjud bo'lishi kerak (hozir faqat voice panel ochiq bo'lganda ko'rinadi — `VoiceChatControls`)
+- **Fayllar:** `apps/mobile/src/hooks/useWatchPartyRoom.ts`, `apps/mobile/src/screens/modal/WatchPartyScreen.tsx`, `apps/mobile/src/components/watchParty/RoomInfoBar.tsx`, `VoiceChatControls.tsx`
+
+### T-S168 | P3 | [WEB] | Voice chat web'da noldan (WebRTC) — SCOPE QARORI KUTILMOQDA
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim (room redesign planning)
+- **Yaratilgan:** 2026-07-24
+- **Holat:** ⛔ Bloklangan — Saidazim hali tasdiqlamadi: Faza 1 web'ga voice qo'shishni ham o'z ichiga oladimi?
+- **Tavsiya model:** opus
+- **Model sababi:** noldan WebRTC mesh, backend allaqachon bor (`voiceEvents.handler.ts`, TURN) lekin web klient — katta arxitektura
+- **Sabab:** `apps/app-web` da voice zависимости/fayllari 0 ta. Agar kerak bo'lsa — brauzer WebRTC API orqali xuddi shu backend signaling'ga ulanish.
+- **Fayllar:** yangi — `apps/app-web/src/hooks/use-voice-chat.ts` va h.k. (backend qayta ishlatiladi, o'zgarmaydi)
+
+---
+
+## FAZA 2 — Deep link (Smart App Link) + video queue/Virtual Browser
+
+### T-S170 | P1 | [MOBILE] | iOS Universal Links: associatedDomains + apple-app-site-association
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim (room redesign planning)
+- **Yaratilgan:** 2026-07-24
+- **Holat:** ⛔ Bloklangan — Apple Developer Program akkaunti hali yo'q (2026-07-24: Saidazim tasdiqladi), demak Team ID ham yo'q. ETA yo'q — akkaunt ochilgunicha bu task kutadi, boshqa tasklarga bog'liq emas (parallel davom etish mumkin).
+- **Tavsiya model:** sonnet
+- **Model sababi:** noldan, lekin standart konfiguratsiya
+- **Sabab:** iOS'da `associatedDomains` entitlement yo'q, `apple-app-site-association` fayli umuman yo'q.
+- **Fayllar:** `apps/mobile/app.json`, yangi `apps/app-web/public/.well-known/apple-app-site-association`
+
+### T-S183 | P3 | [WEB] | Parolli private xonalar uchun join UI (password prompt)
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim (T-S182 paytida topildi)
+- **Yaratilgan:** 2026-07-24
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** kichik UI + 1 qo'shimcha holat
+- **Sabab:** T-S182'da server-side join qo'shildi, lekin `watchParty.service.ts:160-164` — agar xona parolli bo'lsa, join `password_required`/`Noto'g'ri parol` xatosi bilan qaytadi (parol yo'q holatda). Bu hozircha jimgina yutiladi (page.tsx try/catch) — foydalanuvchi umumiy "not a member" xatosini ko'radi, parol kiritish imkoniyati yo'q.
+- **Qilish kerak:**
+  - [ ] `page.tsx`'dagi join chaqiruvi xato turini aniqlashi (`password_required` vs boshqa) va `RoomContent`ga flag sifatida uzatishi
+  - [ ] Parol kiritish modal/forma, muvaffaqiyatli bo'lsa join-by-code'ni parol bilan qayta chaqirish
+- **Fayllar:** `apps/app-web/src/app/(app)/room/[id]/page.tsx`, `apps/app-web/src/app/(app)/room/[id]/RoomContent.tsx`
+
+### T-S173 | P2 | [BACKEND] | Playlist: fon rejimida extraction pre-resolve (qo'shilganda)
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim (room redesign planning)
+- **Yaratilgan:** 2026-07-24
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** opus
+- **Model sababi:** yangi arxitektura — background job, VideoItem status field
+- **Sabab:** Hozir extraction faqat "Play Now"da tekshiriladi (`CHANGE_MEDIA`), "Next"da umuman yo'q. Video qo'shilganda darhol fon rejimida `tryExtract()` chaqirish kerak, natijani `VideoItem`ga yozish.
+- **Fayllar:** `services/watch-party/src/services/watchPartyPlaylist.service.ts`, `services/watch-party/src/models/watchPartyRoom.model.ts` (VideoItem schema)
+
+### T-S174 | P2 | [BACKEND] | Headless VB sniffer (screencast'siz) pre-resolve uchun
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim (room redesign planning)
+- **Yaratilgan:** 2026-07-24
+- **Holat:** ❌ Boshlanmagan (T-S173 bilan birga)
+- **Tavsiya model:** opus
+- **Model sababi:** mavjud VB service'ni refactor qilish — sniffer logikasini screencast'dan ajratish
+- **Sabab:** `virtualBrowser.service.ts:126-256` dagi sniffer-hook'lar screencast bilan bog'langan. Fon rejimida (hech kimga ko'rsatmasdan) ishga tushirish uchun ajratish kerak. `MAX_CONCURRENT=3` byudjetini interactive+background orasida bo'lish kerak.
+- **Fayllar:** `services/watch-party/src/services/virtualBrowser.service.ts`
+
+### T-S175 | P2 | [BACKEND] | playNextFromPlaylist — pre-resolve statusni tekshirish + VB fallback
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim (room redesign planning)
+- **Yaratilgan:** 2026-07-24
+- **Holat:** ❌ Boshlanmagan (T-S173/174 dan keyin)
+- **Tavsiya model:** sonnet
+- **Model sababi:** mavjud funksiyaga tekshiruv qo'shish, 1 fayl
+- **Sabab:** Hozir `playNextFromPlaylist` (`watchPartyPlaylist.service.ts:141-172`) `CHANGE_MEDIA`→VB avto-fallback'ni butunlay o'tkazib yuboradi — navbatni "Next" bilan siljitganda uzilmaydigan link'ga tushib qolsa, hech qanday avtomatik tiklanish yo'q.
+- **Fayllar:** `services/watch-party/src/services/watchPartyPlaylist.service.ts`
+
+### T-S176 | P3 | [WEB] | Playlist panelida navbat statusi indikatori
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim (room redesign planning)
+- **Yaratilgan:** 2026-07-24
+- **Holat:** ❌ Boshlanmagan (T-S173 dan keyin)
+- **Tavsiya model:** sonnet
+- **Model sababi:** UI-only, 1 komponent
+- **Sabab:** Foydalanuvchi navbatga link qo'shganda hozir hech qanday feedback yo'q — resolve/ready/needs-manual holatini ko'rsatish kerak.
+- **Fayllar:** playlist panel komponenti (`RoomContent.tsx` ichidagi PlaylistPanel)
+
+---
+
+## FAZA 3 — Instagram Stories share (карточка + native share)
+
+### T-S177 | P2 | [WEB] | Story-card rasm generatsiya endpoint (next/og ImageResponse)
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim (room redesign planning)
+- **Yaratilgan:** 2026-07-24
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** yangi lekin izolyatsiyalangan endpoint, 1 fayl
+- **Sabab:** Loyihada OG-image generatsiya pattern umuman yo'q (`next/og`/`ImageResponse` — 0 natija). Mobile shu PNG'ni yuklab olib `react-native-share`ga beradi — on-device rasterizatsiya kerak emas.
+- **Qilish kerak:**
+  - [ ] `apps/app-web/src/app/api/rooms/[id]/story-image/route.tsx` — 1080×1920, videoTitle + brend (logo-mark, DM_Sans/Oswald font) + link matn
+- **Fayllar:** yangi — `apps/app-web/src/app/api/rooms/[id]/story-image/`
+
+### T-S178 | P2 | [MOBILE] | react-native-share Instagram Stories integratsiyasi + queries config
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim (room redesign planning)
+- **Yaratilgan:** 2026-07-24
+- **Holat:** ❌ Boshlanmagan (T-S171 + T-S177 dan keyin)
+- **Tavsiya model:** sonnet
+- **Model sababi:** yangi dependency + native config plugin, lekin standart kutubxona (custom native module emas)
+- **Sabab:** Meta App ID bor: **2239499546865583** (WeWatch Automation) — faqat `source_application` uchun kerak, hech qanday permission/App Review kerak emas (bu Graph API auto-publish'dan butunlay boshqa use-case).
+- **Qilish kerak:**
+  - [ ] `react-native-share` dependency qo'shish
+  - [ ] `Share.shareSingle({social: INSTAGRAM_STORIES, backgroundImage, attributionURL: T-S171 link, appId: '2239499546865583'})`
+  - [ ] Android: `<queries><package android:name="com.instagram.android"/></queries>` — Expo config plugin orqali
+  - [ ] iOS: `LSApplicationQueriesSchemes: ["instagram-stories","instagram"]` — config plugin orqali
+  - [ ] Tugma joyi: `InviteCard.tsx` (T-S171 bilan bir modal)
+- **Fayllar:** `apps/mobile/package.json`, `apps/mobile/app.json` (config plugin), `apps/mobile/src/components/watchParty/InviteCard.tsx`
+- **⚠️ Real qurilmada test kerak** — simulyatorda Instagram o'rnatilmagan holatni tekshirib bo'lmaydi.
+
+### T-S179 | P3 | [MOBILE] | Fallback UI — Instagram o'rnatilmagan holat
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim (room redesign planning)
+- **Yaratilgan:** 2026-07-24
+- **Holat:** ❌ Boshlanmagan (T-S178 dan keyin)
+- **Tavsiya model:** haiku
+- **Model sababi:** 1 shart, kichik UI
+- **Sabab:** `canOpenURL` false qaytarsa — oddiy `Share.share()` fallback yoki xabar ko'rsatish kerak.
+- **Fayllar:** `apps/mobile/src/components/watchParty/InviteCard.tsx`
+
+### T-S180 | P3 | [WEB] | Web Share API — best-effort Instagram story share
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim (room redesign planning)
+- **Yaratilgan:** 2026-07-24
+- **Holat:** ❌ Boshlanmagan (T-S177 dan keyin)
+- **Tavsiya model:** haiku
+- **Model sababi:** kichik, bitta browser API chaqiruvi
+- **Sabab:** Web'da to'liq 1-tap yechim yo'q (Instagram'da rasmiy web API yo'q) — `navigator.share({files:[png]})` orqali eng yaqin, foydalanuvchi baribir Instagram ichida "Add to Story" bosishi kerak. Desktop'da — shunchaki "Yuklab olish" tugmasi.
+- **Fayllar:** `apps/app-web/src/components/party/InviteDialog.tsx`
+
+---
+
+## BAG — Virtual Browser boshqarilmayapti
+
+### T-S181 | P1 | [WEB] | VirtualBrowserPlayer: touch handler'lar yo'qligi fix
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim (manual QA — screenshot)
+- **Yaratilgan:** 2026-07-24
+- **Holat:** ⛔ Bloklangan — Saidazim'dan screenshot/qurilma tasdig'i kutilmoqda (qaysi qurilma/browser'da bo'lgan)
+- **Tavsiya model:** sonnet
+- **Model sababi:** 1 fayl, aniq root cause topilgan
+- **Sabab:** `VirtualBrowserPlayer.tsx:188-193` faqat mouse event'larni ushlaydi (`onMouseMove/onMouseDown/onMouseUp/onKeyDown/onKeyUp`), touch handler'lar (`onTouchStart/onTouchMove/onTouchEnd`) umuman yo'q, `touch-action` `<img>`ga qo'llanilmagan (`globals.css:225-228` faqat `button/a/[role=button]`ga). Deyarli bir xil bag desktop wheel uchun allaqachon tuzatilgan (`46c7c2b` commit — passive `onWheel` fix). Ikkinchi, zaifroq nomzod — Safari `<img>`ni click bilan avto-focus qilmaydi, keyingi keydown/keyup yo'qolishi mumkin.
+- **Qilish kerak:**
+  - [ ] `onTouchStart/onTouchMove/onTouchEnd` qo'shish, `sendInput`ga mouse bilan bir xil mapping
+  - [ ] `touch-action: none` VB `<img>`ga
+  - [ ] `touchmove`da `preventDefault()` (wheel fix'iga o'xshash, native listener kerak bo'lishi mumkin — React synthetic passive)
+  - [ ] mousedown/touchstart'da `.focus()` chaqirish (Safari uchun)
+- **Fayllar:** `apps/app-web/src/components/party/VirtualBrowserPlayer.tsx`
 
 ---
 
