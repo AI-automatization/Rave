@@ -16,6 +16,9 @@ export const metadata: Metadata = {
     "serial birga ko'rish bepul",
     "turk seriallari birgalikda",
     "dorama birgalikda ko'rish",
+    "birga serial korish",
+    "serial birga korish",
+    "turk serial birga korish",
   ],
   alternates: {
     canonical: 'https://wewatch.uz/uz/guides/serial-birgalikda',

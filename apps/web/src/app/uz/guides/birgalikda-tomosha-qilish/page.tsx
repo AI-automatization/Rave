@@ -16,6 +16,9 @@ export const metadata: Metadata = {
     "onlayn kinoteatr do'stlar bilan",
     "WeWatch o'zbek",
     "film do'st bilan onlayn",
+    "birga korish",
+    "birga tomosha qilish",
+    "do'st bilan birga korish",
   ],
   alternates: {
     canonical: 'https://wewatch.uz/uz/guides/birgalikda-tomosha-qilish',

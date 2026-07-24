@@ -16,6 +16,9 @@ export const metadata: Metadata = {
     "onlayn kinoteatr do'stlar bilan",
     "masofadan birga kino ko'rish",
     "WeWatch kino",
+    "birga kino korish",
+    "dostim bilan kino korish",
+    "birga film korish onlayn",
   ],
   alternates: {
     canonical: 'https://wewatch.uz/uz/guides/kino-birgalikda',

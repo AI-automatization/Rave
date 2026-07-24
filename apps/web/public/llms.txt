@@ -31,8 +31,8 @@ triggers an automatic correction. Rooms close automatically after 10 minutes of 
 - Website: https://wewatch.uz
 - Platforms: Web (wewatch.uz), iOS, Android
 - Room capacity: up to 10 participants per room
-- Pricing: free tier with no time limit; a paid Pro plan is listed at https://wewatch.uz/pricing
-  (TODO(human): confirm whether the Pro plan is live and what it includes)
+- Pricing: free tier with no time limit; a Pro plan is listed at 29,000 UZS / month
+  (https://wewatch.uz/pricing)
 - Account: required to create a room and control playback; joining via an invite link
   works without an account
 - Languages: Russian (ru, default), Uzbek (uz, /uz), English (en, /en)

@@ -37,14 +37,9 @@ const jsonLd = {
       alternateName: ['wewatch', 'wewatch.uz', 'WeWatch app', 'вивотч', 'ви вотч', 'вевотч', 'ви воч'],
       description: 'Бесплатный watch party — смотри YouTube, VK, Rutube с друзьями в реальном времени',
       inLanguage: ['ru', 'uz', 'en'],
-      potentialAction: {
-        '@type': 'SearchAction',
-        target: {
-          '@type': 'EntryPoint',
-          urlTemplate: `${APP_URL}/?q={search_term_string}`,
-        },
-        'query-input': 'required name=search_term_string',
-      },
+      // SearchAction (sitelinks searchbox) убран: реальной страницы поиска нет
+      // (только /api/content/search), а шаблон /?q={search_term_string} Google
+      // индексировал как отдельный URL — лишний «Обнаружена, не проиндексирована».
     },
     {
       '@type': 'Organization',

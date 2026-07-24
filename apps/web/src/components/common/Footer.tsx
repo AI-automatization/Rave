@@ -11,24 +11,30 @@ import { WeWatchLogo } from './WeWatchLogo';
 // guides (/guides/what-is-watch-party etc.) are noindex + canonical → their
 // Russian equivalents, so linking to them from every page sent crawl budget to
 // URLs that can never be indexed.
-const GUIDE_LINKS: Record<string, { hub: string; watchTogether: string; movie: string; youtube: string }> = {
+const GUIDE_LINKS: Record<string, { hub: string; watchTogether: string; movie: string; youtube: string; anime: string; serial: string }> = {
   ru: {
     hub: '/guides',
     watchTogether: '/guides/smotret-vmeste-onlayn',
     movie: '/guides/kino-s-drugom-onlayn',
     youtube: '/guides/smotret-youtube-vmeste',
+    anime: '/guides/smotret-anime-vmeste',
+    serial: '/guides/smotret-serial-vmeste',
   },
   uz: {
     hub: '/uz/guides',
     watchTogether: '/uz/guides/birgalikda-tomosha-qilish',
     movie: '/uz/guides/kino-birgalikda',
     youtube: '/uz/guides/youtube-birgalikda',
+    anime: '/uz/guides/anime-birgalikda',
+    serial: '/uz/guides/serial-birgalikda',
   },
   en: {
     hub: '/guides',
     watchTogether: '/guides/smotret-vmeste-onlayn',
     movie: '/guides/kino-s-drugom-onlayn',
     youtube: '/guides/smotret-youtube-vmeste',
+    anime: '/guides/smotret-anime-vmeste',
+    serial: '/guides/smotret-serial-vmeste',
   },
 };
 
@@ -67,6 +73,8 @@ export function Footer() {
                 <li><Link href={guides.watchTogether} className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('guideWatchTogether')}</Link></li>
                 <li><Link href={guides.movie} className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('guideMovie')}</Link></li>
                 <li><Link href={guides.youtube} className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('guideYoutube')}</Link></li>
+                <li><Link href={guides.anime} className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('guideAnime')}</Link></li>
+                <li><Link href={guides.serial} className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('guideSerial')}</Link></li>
                 <li><Link href={guides.hub} className="text-zinc-500 text-sm hover:text-zinc-300 transition-colors">{t('allGuides')} →</Link></li>
               </ul>
             </div>

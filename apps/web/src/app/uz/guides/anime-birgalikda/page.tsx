@@ -16,6 +16,9 @@ export const metadata: Metadata = {
     "anime sinxron tomosha",
     "anime do'st bilan bepul",
     "o'zbek anime tomosha",
+    "birga anime korish",
+    "anime birga korish",
+    "do'st bilan anime korish",
   ],
   alternates: {
     canonical: 'https://wewatch.uz/uz/guides/anime-birgalikda',

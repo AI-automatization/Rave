@@ -27,21 +27,34 @@ const nextConfig = {
   // + guide pages. APP_DOMAIN is overridable per-env; defaults to production.
   async redirects() {
     const APP = process.env.NEXT_PUBLIC_APP_DOMAIN ?? 'https://app.wewatch.uz';
+    // Canonical host is the non-www apex. GSC crawled assets on www.wewatch.uz,
+    // which means both hosts served content → duplicate-host risk. A single 301
+    // from www.* to the apex collapses them regardless of DNS/hosting config.
+    const CANONICAL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
+    const WWW_HOST = `www.${CANONICAL.replace(/^https?:\/\//, '')}`;
+    const wwwRedirect = {
+      source: '/:path*',
+      has: [{ type: 'host', value: WWW_HOST }],
+      destination: `${CANONICAL}/:path*`,
+      permanent: true,
+    };
     const appPaths = [
       'home', 'room', 'friends', 'messages', 'profile',
       'settings', 'notifications', 'support', 'login', 'register', 'auth',
     ];
-    return appPaths.map((p) => ({
-      source: `/${p}/:path*`,
-      destination: `${APP}/${p}/:path*`,
-      permanent: true,
-    })).concat(
-      appPaths.map((p) => ({
+    return [
+      wwwRedirect,
+      ...appPaths.map((p) => ({
+        source: `/${p}/:path*`,
+        destination: `${APP}/${p}/:path*`,
+        permanent: true,
+      })),
+      ...appPaths.map((p) => ({
         source: `/${p}`,
         destination: `${APP}/${p}`,
         permanent: true,
       })),
-    );
+    ];
   },
   async headers() {
     // Marketing / legal pages carry no personalization — safe to cache at the CDN

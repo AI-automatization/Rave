@@ -15,6 +15,9 @@ export const metadata: Metadata = {
     "youtube sinxron tomosha",
     "do'st bilan youtube ko'rish bepul",
     "youtube birga onlayn",
+    "birga youtube korish",
+    "youtube birga korish",
+    "telefonda birga youtube ko'rish",
   ],
   alternates: {
     canonical: 'https://wewatch.uz/uz/guides/youtube-birgalikda',
