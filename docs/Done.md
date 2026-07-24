@@ -4,6 +4,12 @@
 
 ---
 
+### F-253 | T-S171 | Haqiqiy share-ssылка (join code o'rniga) — web + mobile
+
+- **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-24  **Model:** sonnet
+- **O'zgarishlar:** `apps/app-web/src/components/party/InviteDialog.tsx` (shareUrl = `{APP_URL}/room/{roomId}?code={inviteCode}`, handleCopy endi link'ni copy qiladi, kod box pastida link ko'rsatiladi), `apps/mobile/src/components/watchParty/InviteCard.tsx` (handleCopy + handleShareNative shu link'ni ishlatadi, o'lik `cinesync://` string o'chirildi)
+- **Xulosa:** T-S169'da qo'shilgan Android App Link endi haqiqiy ishlaydigan share-tugma bilan ulandi. `tsc --noEmit`: mobile'da faqat fon xato (LanguageTransition), app-web'da 0 xato. T-S177/178 (Instagram share) endi shu link formatidan foydalanishi mumkin.
+
 ### F-252 | T-S169 | Android App Links: /room intent-filter + AppNavigator handler
 
 - **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-24  **Model:** sonnet

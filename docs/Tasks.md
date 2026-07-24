@@ -144,22 +144,6 @@
 - **Sabab:** iOS'da `associatedDomains` entitlement yo'q, `apple-app-site-association` fayli umuman yo'q.
 - **Fayllar:** `apps/mobile/app.json`, yangi `apps/app-web/public/.well-known/apple-app-site-association`
 
-### T-S171 | P1 | [BACKEND+WEB+MOBILE] | Haqiqiy share-ssылка generatsiyasi (join code o'rniga)
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Saidazim (room redesign planning)
-- **Yaratilgan:** 2026-07-24
-- **Holat:** 🔄 Bajarilmoqda
-- **Tavsiya model:** sonnet
-- **Model sababi:** 2-3 fayl, frontend string generatsiya
-- **Sabab:** Hozir faqat 6-xonali invite-kod copy qilinadi. `InviteCard.tsx`'da o'lik `cinesync://` sxema string bor (haqiqiy sxema `wewatch://`) — ishlamaydi.
-- **Qilish kerak:**
-  - [ ] `https://app.wewatch.uz/room/{roomId}?code={inviteCode}` formatini generatsiya qilish
-  - [ ] `InviteDialog.tsx` (web) va `InviteCard.tsx` (mobile) — copy/share'ni shu ssылкага almashtirish
-  - [ ] O'lik `cinesync://` stringni o'chirish (https link o'zi ilovani ochadi, custom scheme kerak emas)
-- **Fayllar:** `apps/app-web/src/components/party/InviteDialog.tsx`, `apps/mobile/src/components/watchParty/InviteCard.tsx`
-- **⚠️ Bog'liq:** T-S177/T-S178 (Instagram share) shu link formatini stikerda ishlatadi — avval shu tugashi kerak.
-
 ### T-S172 | P2 | [WEB] | Redirect-after-login flow'ni /room/[id] uchun tekshirish
 
 - **Mas'ul:** pending[Saidazim]
