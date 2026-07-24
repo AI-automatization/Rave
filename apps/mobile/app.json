@@ -155,6 +155,11 @@
               "scheme": "https",
               "host": "app.wewatch.uz",
               "pathPrefix": "/bind-email"
+            },
+            {
+              "scheme": "https",
+              "host": "app.wewatch.uz",
+              "pathPrefix": "/room"
             }
           ],
           "category": ["BROWSABLE", "DEFAULT"]
