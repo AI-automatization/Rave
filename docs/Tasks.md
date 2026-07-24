@@ -138,7 +138,7 @@
 - **Mas'ul:** pending[Saidazim]
 - **Beruvchi:** Saidazim (room redesign planning)
 - **Yaratilgan:** 2026-07-24
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 Bajarilmoqda
 - **Tavsiya model:** sonnet
 - **Model sababi:** 2 fayl, mavjud pattern (`/bind-email` handler) ko'chirish
 - **Sabab:** `assetlinks.json` allaqachon live (`app.wewatch.uz`), lekin `intentFilters` faqat auth pathlarni qamraydi (`app.json`), `AppNavigator.tsx:193` faqat `wewatch://join/:code` ni tushunadi, https `/room/:id` yo'q.
