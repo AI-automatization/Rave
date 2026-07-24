@@ -144,16 +144,19 @@
 - **Sabab:** iOS'da `associatedDomains` entitlement yo'q, `apple-app-site-association` fayli umuman yo'q.
 - **Fayllar:** `apps/mobile/app.json`, yangi `apps/app-web/public/.well-known/apple-app-site-association`
 
-### T-S172 | P2 | [WEB] | Redirect-after-login flow'ni /room/[id] uchun tekshirish
+### T-S182 | P2 | [WEB] | Private room: ?code= parametrni join-by-code API bilan ulash
 
 - **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Saidazim (room redesign planning)
+- **Beruvchi:** Saidazim (T-S172 QA paytida topildi)
 - **Yaratilgan:** 2026-07-24
-- **Holat:** 🔄 Bajarilmoqda
-- **Tavsiya model:** haiku
-- **Model sababi:** manual QA, kod o'zgarishi kutilmaydi (faqat tasdiqlash yoki kichik fix)
-- **Sabab:** `middleware.ts:22-27` unauth foydalanuvchini `/login?redirect=...` ga yuboradi, lekin login'dan keyin haqiqatan komnataga qaytishi kodda aniq tekshirilmagan.
-- **Fayllar:** `apps/app-web/src/middleware.ts`
+- **Holat:** ❌ Boshlanmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** wiring — API allaqachon bor, faqat chaqiruv yetishmayapti, 1-2 fayl
+- **Sabab:** `roomEvents.handler.ts:36-48` faqat public xonalarni avto-join qiladi; private xona uchun member bo'lmagan socket ulanishda `'Not a room member. Join via invite code first.'` xatosi bilan rad etiladi. Web'da bu holatni qamrab oladigan hech narsa yo'q — `RoomContent.tsx` `?code=` parametrni umuman o'qimaydi/ishlatmaydi. Lekin backend join-by-code endpoint **allaqachon bor va ishlaydi**: `apps/app-web/src/app/api/rooms/join/[code]/route.ts` → `POST /watch-party/rooms/join/:code` (backend'da). Faqat ulanish yetishmayapti.
+- **Qilish kerak:**
+  - [ ] `RoomContent.tsx`: mount paytida `searchParams.get('code')` bo'lsa — `/api/rooms/join/[code]` ni chaqirish (socket JOIN_ROOM'dan oldin yoki bilan parallel)
+  - [ ] Parolli private xonalar uchun UI (agar join 401/403 qaytarsa — parol so'rash) — tekshirish kerak, `watchParty.service.ts:160` password tekshiruvi bor
+- **Fayllar:** `apps/app-web/src/app/(app)/room/[id]/RoomContent.tsx`, referens — `apps/app-web/src/app/api/rooms/join/[code]/route.ts` (o'zgarishsiz, mavjud)
 
 ### T-S173 | P2 | [BACKEND] | Playlist: fon rejimida extraction pre-resolve (qo'shilganda)
 

@@ -4,6 +4,12 @@
 
 ---
 
+### F-254 | T-S172 | Redirect-after-login: query-string yo'qolishi fix + private-room gap topildi
+
+- **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-24  **Model:** sonnet
+- **O'zgarishlar:** `apps/app-web/src/middleware.ts` — `loginUrl.searchParams.set('redirect', pathname)` → `pathname + req.nextUrl.search`, aks holda T-S171'dagi `?code=` parametri login redirect orqali yo'qolar edi.
+- **Xulosa:** Asosiy QA topilmasi tasdiqlandi va tuzatildi (`tsc --noEmit`: 0 xato). Yon-topilma: private xonalar uchun web'da join-by-code umuman ulanmagan (backend endpoint bor, chaqiruv yo'q) — alohida task sifatida yozildi: **T-S182**.
+
 ### F-253 | T-S171 | Haqiqiy share-ssылка (join code o'rniga) — web + mobile
 
 - **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-24  **Model:** sonnet
