@@ -133,17 +133,6 @@
 
 ## FAZA 2 — Deep link (Smart App Link) + video queue/Virtual Browser
 
-### T-S169 | P1 | [MOBILE] | Android App Links: /room intent-filter + AppNavigator handler
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Saidazim (room redesign planning)
-- **Yaratilgan:** 2026-07-24
-- **Holat:** 🔄 Bajarilmoqda
-- **Tavsiya model:** sonnet
-- **Model sababi:** 2 fayl, mavjud pattern (`/bind-email` handler) ko'chirish
-- **Sabab:** `assetlinks.json` allaqachon live (`app.wewatch.uz`), lekin `intentFilters` faqat auth pathlarni qamraydi (`app.json`), `AppNavigator.tsx:193` faqat `wewatch://join/:code` ni tushunadi, https `/room/:id` yo'q.
-- **Fayllar:** `apps/mobile/app.json`, `apps/mobile/src/navigation/AppNavigator.tsx`
-
 ### T-S170 | P1 | [MOBILE] | iOS Universal Links: associatedDomains + apple-app-site-association
 
 - **Mas'ul:** pending[Saidazim]

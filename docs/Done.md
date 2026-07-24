@@ -1,8 +1,14 @@
 # WeWatch — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-07-20
+# Yangilangan: 2026-07-24
 
 ---
+
+### F-252 | T-S169 | Android App Links: /room intent-filter + AppNavigator handler
+
+- **Bajaruvchi:** Saidazim (Claude sonnet)  **Bajarilgan:** 2026-07-24  **Model:** sonnet
+- **O'zgarishlar:** `apps/mobile/app.json` (intentFilters ga pathPrefix "/room" qo'shildi), `apps/mobile/src/navigation/AppNavigator.tsx` (deep-link handler `https://app.wewatch.uz/room/:id?code=` ni parse qiladi — `code` bo'lsa WatchPartyJoin invite-flow, bo'lmasa roomId bo'yicha to'g'ridan-to'g'ri WatchParty)
+- **Xulosa:** Room-redesign Faza 2 (deep link) ning Android yarmi tayyor. iOS qismi (T-S170) Apple Developer akkaunti yo'qligi sababli bloklangan. `tsc --noEmit`: yangi xato yo'q (faqat mavjud fon xato LanguageTransition.tsx).
 
 ### F-251 | Online/offline auditi — web hech qachon heartbeat yubormagan + sidebar widget qayta dizayn
 
