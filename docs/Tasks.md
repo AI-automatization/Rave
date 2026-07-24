@@ -149,7 +149,7 @@
 - **Mas'ul:** pending[Saidazim]
 - **Beruvchi:** Saidazim (room redesign planning)
 - **Yaratilgan:** 2026-07-24
-- **Holat:** ❌ Boshlanmagan (T-S169/T-S170 bilan parallel qilish mumkin)
+- **Holat:** 🔄 Bajarilmoqda
 - **Tavsiya model:** sonnet
 - **Model sababi:** 2-3 fayl, frontend string generatsiya
 - **Sabab:** Hozir faqat 6-xonali invite-kod copy qilinadi. `InviteCard.tsx`'da o'lik `cinesync://` sxema string bor (haqiqiy sxema `wewatch://`) — ishlamaydi.
