@@ -149,7 +149,7 @@
 - **Mas'ul:** pending[Saidazim]
 - **Beruvchi:** Saidazim (room redesign planning)
 - **Yaratilgan:** 2026-07-24
-- **Holat:** ⛔ Bloklangan — Apple Team ID + Bundle ID kerak (Saidazim'dan)
+- **Holat:** ⛔ Bloklangan — Apple Developer Program akkaunti hali yo'q (2026-07-24: Saidazim tasdiqladi), demak Team ID ham yo'q. ETA yo'q — akkaunt ochilgunicha bu task kutadi, boshqa tasklarga bog'liq emas (parallel davom etish mumkin).
 - **Tavsiya model:** sonnet
 - **Model sababi:** noldan, lekin standart konfiguratsiya
 - **Sabab:** iOS'da `associatedDomains` entitlement yo'q, `apple-app-site-association` fayli umuman yo'q.
