@@ -67,28 +67,33 @@ export default function GuidesHubPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <GuideHeader locale="ru" />
       <main className="min-h-screen bg-[#060608] text-white">
+        <div className="relative overflow-hidden border-b border-zinc-800/50">
+          <div aria-hidden className="pointer-events-none absolute -top-40 left-1/2 h-80 w-[42rem] -translate-x-1/2 rounded-full bg-[#7B72F8]/20 blur-[120px]" />
+          <div className="relative max-w-4xl mx-auto px-4 sm:px-6 pt-16 pb-14">
+            <nav aria-label="Хлебные крошки" className="text-zinc-600 text-xs mb-6">
+              <Link href="/" className="hover:text-zinc-400 transition-colors">WeWatch</Link>
+              <span className="mx-2">/</span>
+              <span className="text-zinc-500">Гайды</span>
+            </nav>
+
+            <h1 className="text-4xl md:text-5xl font-bold mb-4 tracking-tight">Гайды WeWatch</h1>
+            <p className="text-zinc-400 text-lg leading-relaxed max-w-2xl">
+              Как смотреть YouTube, VK Видео, Rutube, фильмы, сериалы и аниме вместе с друзьями —
+              синхронно, бесплатно и без расширений для браузера. Один участник ставит паузу — видео
+              останавливается у всех в комнате.
+            </p>
+          </div>
+        </div>
+
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-14">
-          <nav aria-label="Хлебные крошки" className="text-zinc-600 text-xs mb-6">
-            <Link href="/" className="hover:text-zinc-400 transition-colors">WeWatch</Link>
-            <span className="mx-2">/</span>
-            <span className="text-zinc-500">Гайды</span>
-          </nav>
-
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">Гайды WeWatch</h1>
-          <p className="text-zinc-400 text-lg leading-relaxed max-w-2xl mb-10">
-            Как смотреть YouTube, VK Видео, Rutube, фильмы, сериалы и аниме вместе с друзьями —
-            синхронно, бесплатно и без расширений для браузера. Один участник ставит паузу — видео
-            останавливается у всех в комнате.
-          </p>
-
           <ul className="grid gap-4 sm:grid-cols-2">
             {guides.map((g) => (
               <li key={g.path}>
                 <Link
                   href={g.path}
-                  className="block h-full rounded-2xl border border-zinc-800/60 bg-[#0E0E14] px-6 py-5 hover:border-[#7B72F8]/40 transition-colors"
+                  className="group flex h-full flex-col rounded-2xl border border-zinc-800/60 bg-[#0E0E14] px-6 py-5 hover:border-[#7B72F8]/40 hover:bg-[#111118] transition-colors"
                 >
-                  <span className="block text-white font-semibold mb-1.5">{g.title}</span>
+                  <span className="block text-white font-semibold mb-1.5 group-hover:text-[#9B92FF] transition-colors">{g.title}</span>
                   <span className="block text-zinc-500 text-sm leading-relaxed">{g.summary}</span>
                 </Link>
               </li>

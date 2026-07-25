@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { FaPlay } from 'react-icons/fa';
+import { WeWatchLogo } from '@/components/common/WeWatchLogo';
 
 export const metadata: Metadata = {
   title: 'DMCA Policy',
@@ -16,26 +16,24 @@ const SUPPORT_EMAIL = 'support@wewatch.app';
 
 export default function DmcaPage() {
   return (
-    <div className="min-h-screen bg-[#0A0A0F] text-zinc-300">
-      <header className="sticky top-0 z-50 bg-[#0A0A0F]/90 backdrop-blur-md border-b border-zinc-800/60">
-        <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="inline-flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-[#7B72F8] flex items-center justify-center">
-              <FaPlay size={9} className="text-white ml-0.5" />
-            </div>
-            <span className="text-xl font-bold tracking-wider text-white">
-              WE<span className="text-[#7B72F8]">WATCH</span>
-            </span>
-          </Link>
-          <div className="flex gap-4 text-sm text-zinc-500">
-            <Link href="/privacy-policy" className="hover:text-zinc-300 transition-colors">Privacy</Link>
-            <Link href="/terms" className="hover:text-zinc-300 transition-colors">Terms</Link>
+    <div className="min-h-screen bg-[#060608] text-zinc-300">
+      <header className="sticky top-0 z-50 bg-[#060608]/90 backdrop-blur-md border-b border-zinc-800/60">
+        <div className="max-w-4xl mx-auto px-6 py-3.5 flex items-center justify-between gap-4">
+          <WeWatchLogo variant="horizontal" iconSize={26} href="/" />
+          <div className="flex gap-5 text-sm text-zinc-400">
+            <Link href="/privacy-policy" className="hover:text-white transition-colors">Privacy</Link>
+            <Link href="/terms" className="hover:text-white transition-colors">Terms</Link>
           </div>
         </div>
       </header>
 
       <main className="max-w-4xl mx-auto px-6 py-16">
-        <h1 className="text-4xl font-bold text-white mb-2">DMCA & Copyright Policy</h1>
+        <nav aria-label="Breadcrumb" className="text-zinc-600 text-xs mb-6">
+          <Link href="/" className="hover:text-zinc-400 transition-colors">WeWatch</Link>
+          <span className="mx-2">/</span>
+          <span className="text-zinc-500">DMCA</span>
+        </nav>
+        <h1 className="text-4xl md:text-5xl font-bold text-white mb-2 tracking-tight">DMCA &amp; Copyright Policy</h1>
         <p className="text-zinc-500 text-sm mb-12">
           Last updated: {EFFECTIVE_DATE}
         </p>
