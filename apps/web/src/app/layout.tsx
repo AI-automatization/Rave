@@ -3,6 +3,7 @@ import { DM_Sans, Oswald } from 'next/font/google';
 import Script from 'next/script';
 import { Providers } from '@/components/common/Providers';
 import { LocaleHtmlUpdater } from '@/components/common/LocaleHtmlUpdater';
+import { LocaleSuggestBanner } from '@/components/common/LocaleSuggestBanner';
 import './globals.css';
 
 const GA_ID = 'G-2S4DR8CBF0';
@@ -192,6 +193,7 @@ export default function RootLayout({
         )}
         <Providers>
           <LocaleHtmlUpdater />
+          <LocaleSuggestBanner />
           {children}
         </Providers>
       </body>
