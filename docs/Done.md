@@ -1,8 +1,20 @@
 # WeWatch — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-07-24
+# Yangilangan: 2026-07-25
 
 ---
+
+### F-257 | T-E211 | Ingliz kontenti — /en gaydlar, FAQ, how-it-works, JSON-LD
+
+- **Bajaruvchi:** Jasur (Claude opus 5)  **Bajarilgan:** 2026-07-25  **Model:** opus
+- **O'zgarishlar:** YANGI: `apps/web/src/app/en/faq/page.tsx` (12 savol + FAQPage schema), `en/how-it-works/page.tsx`, `en/guides/page.tsx` (hub), `en/guides/{watch-youtube-together,what-is-watch-party,watch-movies-with-friends}/page.tsx`. O'ZGARDI: `en/page.tsx` (JSON-LD qo'shildi — avval umuman yo'q edi), `en/layout.tsx` (layout darajasidagi hreflang olib tashlandi — u butun `/en/*` ga meros bo'lib xato URL berardi), `data/guides.ts` (`GUIDE_GROUPS` uch tilli reyestr, `GUIDE_PAIRS` undan hosil bo'ladi), `lib/i18n/routes.ts` (`hreflangFor()`), `sitemap.ts`, `GuideChrome.tsx` (`en` locale + `/faq`,`/terms` havolalari lokalizatsiya qilindi), `Footer.tsx`, `faq/page.tsx`, `how-it-works/page.tsx` + 5 ta gayd sahifasida hreflang. O'CHIRILDI: `guides/{watch-youtube-together,what-is-watch-party,watch-movies-with-friends}/page.tsx` → 308 redirect (`next.config.mjs`).
+- **Xulosa:** T-E210 mexanizmni berdi, lekin `/en` da atigi 1 sahifa bor edi — Google hreflang orqali inglizni to'g'ri `/en` ga olib kelardi, sayt esa uni ushlab tura olmasdi (FAQ bosilsa ruscha ochilardi). 🔴 Reja ikki marta o'zgardi: (1) 3 ta "ingliz gayd" aslida ingliz *slug* + ruscha *matn* ekan (dublikat, shuning uchun noindex edi) — ko'chirilmadi, qaytadan yozildi; (2) `/terms` va `/privacy-policy` allaqachon to'liq ingliz tilida ekan — `/en/` nusxasi dublikat kontent bo'lardi, YARATILMADI. 🔴 "no return tag" tuzatildi: `/guides/smotret-youtube-vmeste` va uz juftligi ingliz versiyaga qaytish tegi bermasdi (hreflang qo'lda yozilgani uchun) — 5 sahifa `hreflangFor()` ga o'tkazildi, endi sahifa va sitemap bitta manbadan oladi. Tekshiruv: build 84/84 ✓, standalone curl — 7 yangi sahifa 200, 3 eski URL 308, hreflang uch tomonlama ✓, sitemap 44→46, `/faq`+cookie=en → 307 `/en/faq` (mexanizm yangi sahifalarni reyestrdan o'zi ko'rdi) ✓, `tsc --noEmit`: 5 xato — hammasi `@types/react` fon konflikti, sessiya boshidagi bilan bir xil. **Qolgan:** `t()` migratsiyasi (~25 sahifa), ruscha huquqiy sahifalar yo'q, `/how-it-works` (ru) da "300 мс" fakt xatosi (real: 500 ms), `/en` da `/features`+`/pricing`+`/about` yo'q.
+
+### F-256 | T-E210 | Avtomatik til aniqlash — cookie redirect + taklif banneri
+
+- **Bajaruvchi:** Jasur (Claude opus 5)  **Bajarilgan:** 2026-07-25  **Model:** opus
+- **O'zgarishlar:** YANGI: `apps/web/src/lib/i18n/config.ts` (`DEFAULT_LOCALE`, `PREFIX_DEFAULT`, `parseAcceptLanguage` q-weight bilan), `lib/i18n/routes.ts` (qaysi sahifa qaysi tilda mavjud), `components/common/LocaleSuggestBanner.tsx`. O'ZGARDI: `src/proxy.ts` (locale routing + auth guard saqlandi, `/en` prefiksi ham qo'llab-quvvatlanadi — avval faqat `/uz` edi), `LanguageSwitcher.tsx`, `store/locale.store.ts`, `app/layout.tsx`.
+- **Xulosa:** Saytda avtomatik til aniqlash UMUMAN yo'q edi (`proxy.ts` faqat auth guard qilardi). 🔴 IP/Accept-Language redirect ATAYLAB rad etildi: Googlebot AQSh IP'idan `en` bilan keladi — redirect qo'yilsa bot `/` ni hech qachon ko'rmaydi va ru+uz indeksdan chiqadi (VPN emas, asosiy zarba shu). Yechim: cookie bor → 307 (faqat sahifa o'sha tilda MAVJUD bo'lsa, aks holda joyida qoladi); cookie yo'q → redirect yo'q, banner `navigator.languages` orqali taklif qiladi. Banner client-side — server javobi hamma uchun bayt-ma-bayt bir xil qoladi, CDN kesh buzilmaydi, cloaking xavfi 0. 🔴 Yo'l-yo'lakay: `LanguageSwitcher` faqat client store'ni o'zgartirardi, URL'ni emas — `/uz` da "Русский" tugmasi UMUMAN ishlamasdi (`Providers.tsx:36` URL'ni ustun qo'yadi). Endi haqiqiy `<a href>`. `/ru` prefiksiga o'tilMADI (40+ URL 301 = nol SEO foyda, `PREFIX_DEFAULT` bilan keyin o'zgartirsa bo'ladi). Tekshiruv: dev serverda 12/12 curl testi ✓. **Ma'lum cheklov:** `Vary: Cookie` yuborilmaydi (GA/Metrika cookie'lari kesh hit rate'ni o'ldirardi) — Cloudflare qo'yilsa cookie redirect 1-tashrifda ishlamasligi mumkin, izoh `proxy.ts` ichida.
 
 ### F-255 | T-S182 | Private room: ?code= server-side join-by-code'ga ulandi
 
