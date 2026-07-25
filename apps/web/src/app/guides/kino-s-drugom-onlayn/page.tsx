@@ -1,18 +1,18 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
+import { hreflangFor } from '@/lib/i18n/routes';
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
+const PATH = '/guides/kino-s-drugom-onlayn';
 
 export const metadata: Metadata = {
   title: 'Смотреть кино с другом онлайн бесплатно',
   description: 'Смотрите фильмы и кино с другом онлайн бесплатно через WeWatch. Синхронный просмотр на iPhone, Android и компьютере. Расстояние не важно.',
   keywords: ['кино с другом онлайн', 'смотреть кино с другом', 'смотреть фильм с другом онлайн бесплатно', 'кино с другом бесплатно', 'смотреть кино вместе онлайн', 'фильм с другом онлайн'],
   alternates: {
-    canonical: 'https://wewatch.uz/guides/kino-s-drugom-onlayn',
-    languages: {
-      'ru': 'https://wewatch.uz/guides/kino-s-drugom-onlayn',
-      'uz': 'https://wewatch.uz/uz/guides/kino-birgalikda',
-      'x-default': 'https://wewatch.uz/guides/kino-s-drugom-onlayn',
-    },
+    canonical: `${APP_URL}${PATH}`,
+    languages: hreflangFor(PATH, APP_URL),
   },
   openGraph: {
     title: 'Кино с другом онлайн бесплатно | WeWatch',
@@ -37,7 +37,7 @@ const jsonLd = {
 
 const RELATED = [
   { href: '/guides/smotret-vmeste-onlayn', label: 'Смотреть вместе онлайн' },
-  { href: '/guides/watch-movies-with-friends', label: 'Watch movies with friends' },
+  { href: '/en/guides/watch-movies-with-friends', label: 'English' },
   { href: '/guides/smotret-serial-vmeste', label: 'Смотреть сериал вместе' },
   { href: '/uz/guides/kino-birgalikda', label: "O'zbekcha" },
 ];

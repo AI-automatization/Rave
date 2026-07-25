@@ -7,10 +7,10 @@ import { WeWatchLogo } from './WeWatchLogo';
 // Locale-aware guide links: sitewide internal links are the main crawl path
 // to the SEO guide pages, so each locale points to its own language versions.
 //
-// The `en` locale points at the Russian guides on purpose. The English-slug
-// guides (/guides/what-is-watch-party etc.) are noindex + canonical → their
-// Russian equivalents, so linking to them from every page sent crawl budget to
-// URLs that can never be indexed.
+// `en` used to point at the Russian guides, because the only English-slug pages
+// were noindex duplicates. Real English guides now exist under /en/guides, so it
+// points there. There are three of them and five slots — anime and series both
+// map to the movies guide, which covers series and anime episodes explicitly.
 const GUIDE_LINKS: Record<string, { hub: string; watchTogether: string; movie: string; youtube: string; anime: string; serial: string }> = {
   ru: {
     hub: '/guides',
@@ -29,12 +29,12 @@ const GUIDE_LINKS: Record<string, { hub: string; watchTogether: string; movie: s
     serial: '/uz/guides/serial-birgalikda',
   },
   en: {
-    hub: '/guides',
-    watchTogether: '/guides/smotret-vmeste-onlayn',
-    movie: '/guides/kino-s-drugom-onlayn',
-    youtube: '/guides/smotret-youtube-vmeste',
-    anime: '/guides/smotret-anime-vmeste',
-    serial: '/guides/smotret-serial-vmeste',
+    hub: '/en/guides',
+    watchTogether: '/en/guides/what-is-watch-party',
+    movie: '/en/guides/watch-movies-with-friends',
+    youtube: '/en/guides/watch-youtube-together',
+    anime: '/en/guides/watch-movies-with-friends',
+    serial: '/en/guides/watch-movies-with-friends',
   },
 };
 

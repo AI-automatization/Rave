@@ -4,15 +4,21 @@ import { relatedGuides } from '@/data/guides';
 
 // Static chrome for standalone SEO pages (/guides/*, /uz/guides/*): server
 // components with zero client JS so guide pages stay fully static and light.
-type GuideLocale = 'ru' | 'uz';
+type GuideLocale = 'ru' | 'uz' | 'en';
 
+// Hrefs live here alongside the labels: they used to be hardcoded to the Russian
+// pages in the JSX, which meant an Uzbek or English guide linked its reader
+// straight out of their language.
 const LABELS: Record<GuideLocale, {
   home: string;
   homeHref: string;
   faq: string;
+  faqHref: string;
   cta: string;
   privacy: string;
+  privacyHref: string;
   terms: string;
+  termsHref: string;
   rights: string;
   backHome: string;
   related: string;
@@ -23,9 +29,12 @@ const LABELS: Record<GuideLocale, {
     home: 'Главная',
     homeHref: '/',
     faq: 'FAQ',
+    faqHref: '/faq',
     cta: 'Начать бесплатно',
     privacy: 'Конфиденциальность',
+    privacyHref: '/privacy-policy',
     terms: 'Условия',
+    termsHref: '/terms',
     rights: 'Все права защищены.',
     backHome: '← На главную',
     related: 'Другие гайды',
@@ -36,14 +45,36 @@ const LABELS: Record<GuideLocale, {
     home: 'Bosh sahifa',
     homeHref: '/uz',
     faq: 'FAQ',
+    faqHref: '/faq',
     cta: 'Bepul boshlash',
     privacy: 'Maxfiylik',
+    privacyHref: '/privacy-policy',
     terms: 'Shartlar',
+    termsHref: '/terms',
     rights: 'Barcha huquqlar himoyalangan.',
     backHome: '← Bosh sahifaga',
     related: 'Boshqa gaydlar',
     allGuides: 'Barcha gaydlar →',
     guidesHref: '/uz/guides',
+  },
+  en: {
+    home: 'Home',
+    homeHref: '/en',
+    faq: 'FAQ',
+    faqHref: '/en/faq',
+    cta: 'Start free',
+    privacy: 'Privacy',
+    // The legal pages are written in English and served from a single URL for
+    // every locale — duplicating them under /en would be the same text on two
+    // URLs, which is a self-inflicted duplicate-content problem.
+    privacyHref: '/privacy-policy',
+    terms: 'Terms',
+    termsHref: '/terms',
+    rights: 'All rights reserved.',
+    backHome: '← Back home',
+    related: 'More guides',
+    allGuides: 'All guides →',
+    guidesHref: '/en/guides',
   },
 };
 
@@ -100,7 +131,7 @@ export function GuideHeader({ locale = 'ru' }: { locale?: GuideLocale }) {
           <Link href={t.homeHref} className="text-zinc-400 hover:text-white transition-colors hidden sm:inline">
             {t.home}
           </Link>
-          <Link href="/faq" className="text-zinc-400 hover:text-white transition-colors">
+          <Link href={t.faqHref} className="text-zinc-400 hover:text-white transition-colors">
             {t.faq}
           </Link>
           <Link
@@ -135,8 +166,8 @@ export function GuideFooter({
           <p className="text-zinc-600 text-xs">© {new Date().getFullYear()} WeWatch. {t.rights}</p>
           <div className="flex gap-4 text-zinc-600 text-xs">
             <Link href={t.guidesHref} className="hover:text-zinc-400 transition-colors">{t.allGuides}</Link>
-            <Link href="/privacy-policy" className="hover:text-zinc-400 transition-colors">{t.privacy}</Link>
-            <Link href="/terms" className="hover:text-zinc-400 transition-colors">{t.terms}</Link>
+            <Link href={t.privacyHref} className="hover:text-zinc-400 transition-colors">{t.privacy}</Link>
+            <Link href={t.termsHref} className="hover:text-zinc-400 transition-colors">{t.terms}</Link>
             <Link href={t.homeHref} className="hover:text-zinc-400 transition-colors">{t.backHome}</Link>
           </div>
         </div>

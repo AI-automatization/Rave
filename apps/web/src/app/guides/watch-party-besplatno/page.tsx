@@ -1,12 +1,19 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
+import { hreflangFor } from '@/lib/i18n/routes';
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
+const PATH = '/guides/watch-party-besplatno';
 
 export const metadata: Metadata = {
   title: 'Watch Party бесплатно — лучшее приложение 2026',
   description: 'Бесплатный Watch Party для iOS и Android. WeWatch — смотри YouTube, VK, Rutube синхронно с друзьями. Без подписки, без ограничений по времени.',
   keywords: ['watch party бесплатно', 'бесплатный watch party', 'watch party приложение бесплатно', 'watch party без регистрации', 'лучший watch party', 'watch party ios android'],
-  alternates: { canonical: 'https://wewatch.uz/guides/watch-party-besplatno' },
+  alternates: {
+    canonical: `${APP_URL}${PATH}`,
+    languages: hreflangFor(PATH, APP_URL),
+  },
   openGraph: {
     title: 'Watch Party бесплатно | WeWatch',
     description: 'Лучший бесплатный watch party для iOS и Android. YouTube, VK, Rutube синхронно с друзьями.',
@@ -37,7 +44,7 @@ const COMPARE = [
 
 const RELATED = [
   { href: '/guides/smotret-vmeste-onlayn', label: 'Смотреть вместе онлайн' },
-  { href: '/guides/what-is-watch-party', label: 'Что такое Watch Party' },
+  { href: '/en/guides/what-is-watch-party', label: 'English' },
   { href: '/guides/smotret-youtube-vmeste', label: 'YouTube вместе' },
 ];
 

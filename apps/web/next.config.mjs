@@ -38,12 +38,28 @@ const nextConfig = {
       destination: `${CANONICAL}/:path*`,
       permanent: true,
     };
+    // Three /guides/* pages had English slugs but Russian text inside — duplicates
+    // of the Russian guides, which is why they were noindex'd. They have been
+    // rewritten as real English guides under /en/guides, so the old URLs redirect
+    // there permanently: the slug is what English searchers land on, and it now
+    // resolves to a page actually written in English.
+    const englishGuideRedirects = [
+      'watch-youtube-together',
+      'what-is-watch-party',
+      'watch-movies-with-friends',
+    ].map((slug) => ({
+      source: `/guides/${slug}`,
+      destination: `/en/guides/${slug}`,
+      permanent: true,
+    }));
+
     const appPaths = [
       'home', 'room', 'friends', 'messages', 'profile',
       'settings', 'notifications', 'support', 'login', 'register', 'auth',
     ];
     return [
       wwwRedirect,
+      ...englishGuideRedirects,
       ...appPaths.map((p) => ({
         source: `/${p}/:path*`,
         destination: `${APP}/${p}/:path*`,

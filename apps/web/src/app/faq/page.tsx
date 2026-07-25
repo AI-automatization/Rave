@@ -1,6 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { FaPlay } from 'react-icons/fa';
+import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
+import { hreflangFor } from '@/lib/i18n/routes';
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 
 export const metadata: Metadata = {
   title: 'FAQ — Часто задаваемые вопросы',
@@ -9,7 +12,12 @@ export const metadata: Metadata = {
     'wewatch faq', 'wewatch вопросы', 'как смотреть youtube вместе', 'watch party как работает',
     'смотреть вместе онлайн бесплатно', 'синхронный просмотр видео', 'watch party приложение бесплатно',
   ],
-  alternates: { canonical: 'https://wewatch.uz/faq' },
+  // hreflang must be reciprocal — /en/faq points here, so this must point back,
+  // otherwise Search Console reports "no return tag" and ignores the pairing.
+  alternates: {
+    canonical: `${APP_URL}/faq`,
+    languages: hreflangFor('/faq', APP_URL),
+  },
   openGraph: {
     title: 'FAQ — Часто задаваемые вопросы | WeWatch',
     description: 'Всё о WeWatch: синхронизация, поддерживаемые платформы, бесплатный тариф, iOS и Android.',
@@ -81,74 +89,71 @@ export default function FaqPage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <div className="min-h-screen bg-[#0A0A0F] text-zinc-300">
-        <header className="sticky top-0 z-50 bg-[#0A0A0F]/90 backdrop-blur-md border-b border-zinc-800/60">
-          <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
-            <Link href="/" className="inline-flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-[#7B72F8] flex items-center justify-center">
-                <FaPlay size={9} className="text-white ml-0.5" />
-              </div>
-              <span className="text-xl font-bold tracking-wider text-white">
-                WE<span className="text-[#7B72F8]">WATCH</span>
-              </span>
-            </Link>
-            <div className="flex gap-4 text-sm text-zinc-500">
-              <Link href="/guides/watch-youtube-together" className="hover:text-zinc-300 transition-colors">Гайды</Link>
-              <Link href="/privacy-policy" className="hover:text-zinc-300 transition-colors">Privacy</Link>
-            </div>
-          </div>
-        </header>
-
-        <main className="max-w-4xl mx-auto px-6 py-16">
-          <div className="mb-12">
-            <p className="text-[#7B72F8] text-sm font-semibold uppercase tracking-widest mb-3">Справочный центр</p>
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">Часто задаваемые вопросы</h1>
-            <p className="text-zinc-400 text-lg max-w-2xl">
+      <GuideHeader locale="ru" />
+      <div className="min-h-screen bg-[#060608] text-zinc-300">
+        {/* Hero with a soft brand-purple glow behind the heading */}
+        <div className="relative overflow-hidden border-b border-zinc-800/50">
+          <div aria-hidden className="pointer-events-none absolute -top-40 left-1/2 h-80 w-[42rem] -translate-x-1/2 rounded-full bg-[#7B72F8]/20 blur-[120px]" />
+          <div className="relative max-w-4xl mx-auto px-6 pt-16 pb-14">
+            <nav aria-label="Хлебные крошки" className="text-zinc-600 text-xs mb-6">
+              <Link href="/" className="hover:text-zinc-400 transition-colors">WeWatch</Link>
+              <span className="mx-2">/</span>
+              <span className="text-zinc-500">FAQ</span>
+            </nav>
+            <p className="text-[#9B92FF] text-xs font-semibold uppercase tracking-[0.2em] mb-3">Справочный центр</p>
+            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 tracking-tight">Часто задаваемые вопросы</h1>
+            <p className="text-zinc-400 text-lg max-w-2xl leading-relaxed">
               Всё что нужно знать о WeWatch — синхронизация, поддерживаемые платформы, тарифы и технические детали.
             </p>
           </div>
+        </div>
 
-          <div className="space-y-4">
+        <main className="max-w-4xl mx-auto px-6 py-14">
+          <div className="space-y-3">
             {faqs.map(({ q, a }, i) => (
-              <details key={i} className="group bg-[#111118] border border-zinc-800/60 rounded-xl overflow-hidden">
-                <summary className="flex items-center justify-between gap-4 px-6 py-5 cursor-pointer list-none hover:bg-zinc-800/20 transition-colors">
-                  <h2 className="text-white font-semibold text-base leading-snug">{q}</h2>
-                  <span className="shrink-0 w-6 h-6 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 group-open:rotate-45 transition-transform duration-200 text-lg leading-none">+</span>
+              <details key={i} className="group bg-[#0E0E14] border border-zinc-800/60 rounded-2xl overflow-hidden transition-colors hover:border-zinc-700/70 open:border-[#7B72F8]/40 open:bg-[#111118]">
+                <summary className="flex items-center justify-between gap-4 px-6 py-5 cursor-pointer list-none select-none">
+                  <h2 className="text-white font-semibold text-base leading-snug group-hover:text-white">{q}</h2>
+                  <span className="shrink-0 w-7 h-7 rounded-full bg-zinc-800/80 flex items-center justify-center text-zinc-400 group-open:bg-[#7B72F8] group-open:text-white group-open:rotate-45 transition-all duration-200 text-lg leading-none">+</span>
                 </summary>
-                <div className="px-6 pb-6 pt-1">
-                  <p className="text-zinc-400 leading-7 text-sm">{a}</p>
+                <div className="px-6 pb-6 pt-0">
+                  <p className="text-zinc-400 leading-7 text-sm border-t border-zinc-800/50 pt-4">{a}</p>
                 </div>
               </details>
             ))}
           </div>
 
-          <div className="mt-16 bg-[#111118] border border-[#7B72F8]/30 rounded-2xl px-8 py-8 text-center">
-            <p className="text-zinc-400 mb-2">Не нашли ответ?</p>
-            <p className="text-white font-semibold text-lg mb-4">Напишите нам напрямую</p>
-            <a
-              href="mailto:support@wewatch.uz"
-              className="inline-flex items-center gap-2 bg-[#7B72F8] hover:bg-[#6B62E8] text-white font-semibold px-6 py-3 rounded-xl transition-colors"
-            >
-              support@wewatch.uz
-            </a>
+          <div className="mt-14 relative overflow-hidden bg-gradient-to-br from-[#141225] to-[#0E0E14] border border-[#7B72F8]/30 rounded-3xl px-8 py-10 text-center">
+            <div aria-hidden className="pointer-events-none absolute -bottom-24 left-1/2 h-56 w-96 -translate-x-1/2 rounded-full bg-[#7B72F8]/20 blur-[90px]" />
+            <div className="relative">
+              <p className="text-zinc-400 mb-1.5">Не нашли ответ?</p>
+              <p className="text-white font-semibold text-xl mb-5">Напишите нам напрямую</p>
+              <a
+                href="mailto:support@wewatch.uz"
+                className="inline-flex items-center gap-2 bg-[#7B72F8] hover:bg-[#6B62E8] text-white font-semibold px-6 py-3 rounded-xl transition-colors shadow-lg shadow-[#7B72F8]/25"
+              >
+                support@wewatch.uz
+              </a>
+            </div>
           </div>
 
           <div className="mt-12 pt-8 border-t border-zinc-800/40">
             <p className="text-zinc-600 text-sm mb-4">Полезные гайды:</p>
             <div className="flex flex-wrap gap-3">
-              <Link href="/guides/watch-youtube-together" className="text-sm text-[#7B72F8] hover:text-[#9B92FF] transition-colors underline underline-offset-4">
+              <Link href="/guides/smotret-youtube-vmeste" className="text-sm text-[#7B72F8] hover:text-[#9B92FF] transition-colors underline underline-offset-4">
                 Как смотреть YouTube вместе →
               </Link>
-              <Link href="/guides/what-is-watch-party" className="text-sm text-[#7B72F8] hover:text-[#9B92FF] transition-colors underline underline-offset-4">
+              <Link href="/guides/watch-party-besplatno" className="text-sm text-[#7B72F8] hover:text-[#9B92FF] transition-colors underline underline-offset-4">
                 Что такое watch party →
               </Link>
-              <Link href="/guides/watch-movies-with-friends" className="text-sm text-[#7B72F8] hover:text-[#9B92FF] transition-colors underline underline-offset-4">
+              <Link href="/guides/kino-s-drugom-onlayn" className="text-sm text-[#7B72F8] hover:text-[#9B92FF] transition-colors underline underline-offset-4">
                 Смотреть кино с друзьями онлайн →
               </Link>
             </div>
           </div>
         </main>
       </div>
+      <GuideFooter locale="ru" />
     </>
   );
 }

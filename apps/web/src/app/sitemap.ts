@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { TEAM } from './team/team-data';
-import { GUIDES, GUIDE_PAIRS } from '@/data/guides';
+import { GUIDES } from '@/data/guides';
+import { hreflangFor } from '@/lib/i18n/routes';
 
 const BASE = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 
@@ -14,19 +15,15 @@ type Entry = {
   languages?: Record<string, string>;
 };
 
-/** Builds the hreflang set for a ru/uz guide pair (x-default points at the Russian page). */
-const pair = (ru: string, uz: string) => ({
-  ru: `${BASE}${ru}`,
-  uz: `${BASE}${uz}`,
-  'x-default': `${BASE}${ru}`,
-});
-
-/** Looks a guide up in GUIDE_PAIRS from either side; undefined when it has no counterpart. */
+/**
+ * hreflang set for a guide, from the same helper the pages themselves use — so
+ * the sitemap and each page's `alternates.languages` cannot disagree. Returns
+ * undefined for a guide with no counterpart in another language.
+ */
 function guideLanguages(path: string) {
-  const uz = GUIDE_PAIRS[path];
-  if (uz) return pair(path, uz);
-  const ru = Object.keys(GUIDE_PAIRS).find((k) => GUIDE_PAIRS[k] === path);
-  return ru ? pair(ru, path) : undefined;
+  const languages = hreflangFor(path, BASE);
+  // A lone guide resolves to itself + x-default, which is noise in the sitemap.
+  return Object.keys(languages).length > 2 ? languages : undefined;
 }
 
 const ENTRIES: Entry[] = [
@@ -61,15 +58,40 @@ const ENTRIES: Entry[] = [
     priority: g.priority,
     ...(guideLanguages(g.path) ? { languages: guideLanguages(g.path)! } : {}),
   })),
-  // English-slug guides (/guides/what-is-watch-party, /watch-movies-with-friends,
-  // /watch-youtube-together) are absent from the registry on purpose: they carry
-  // robots.index=false and canonical → their Russian equivalents.
-  { path: '/guides', lastModified: '2026-07-23', changeFrequency: 'weekly', priority: 0.8 },
-  { path: '/uz/guides', lastModified: '2026-07-23', changeFrequency: 'weekly', priority: 0.8 },
+  // The three English guides come from the registry above like every other guide.
+  // Their old /guides/<english-slug> URLs 301 to /en/guides/* and are therefore
+  // deliberately not listed — a sitemap must contain final URLs, not redirects.
+  {
+    path: '/guides',
+    lastModified: '2026-07-25',
+    changeFrequency: 'weekly',
+    priority: 0.8,
+    languages: { ru: `${BASE}/guides`, uz: `${BASE}/uz/guides`, en: `${BASE}/en/guides`, 'x-default': `${BASE}/guides` },
+  },
+  {
+    path: '/uz/guides',
+    lastModified: '2026-07-25',
+    changeFrequency: 'weekly',
+    priority: 0.8,
+    languages: { ru: `${BASE}/guides`, uz: `${BASE}/uz/guides`, en: `${BASE}/en/guides`, 'x-default': `${BASE}/guides` },
+  },
+  {
+    path: '/en/guides',
+    lastModified: '2026-07-25',
+    changeFrequency: 'weekly',
+    priority: 0.7,
+    languages: { ru: `${BASE}/guides`, uz: `${BASE}/uz/guides`, en: `${BASE}/en/guides`, 'x-default': `${BASE}/guides` },
+  },
 
   // ── Продукт / компания ─────────────────────────────────────────────────────
   { path: '/features', lastModified: '2026-07-07', changeFrequency: 'monthly', priority: 0.8 },
-  { path: '/how-it-works', lastModified: '2026-07-03', changeFrequency: 'monthly', priority: 0.8 },
+  {
+    path: '/how-it-works',
+    lastModified: '2026-07-25',
+    changeFrequency: 'monthly',
+    priority: 0.8,
+    languages: hreflangFor('/how-it-works', BASE),
+  },
   { path: '/pricing', lastModified: '2026-07-07', changeFrequency: 'monthly', priority: 0.7 },
   { path: '/products', lastModified: '2026-07-07', changeFrequency: 'monthly', priority: 0.5 },
   { path: '/company', lastModified: '2026-07-07', changeFrequency: 'monthly', priority: 0.5 },
@@ -81,7 +103,27 @@ const ENTRIES: Entry[] = [
   { path: '/use-cases/svidanie-online', lastModified: '2026-07-03', changeFrequency: 'monthly', priority: 0.8 },
 
   // ── Сервисные / правовые ───────────────────────────────────────────────────
-  { path: '/faq', lastModified: '2026-07-07', changeFrequency: 'monthly', priority: 0.6 },
+  {
+    path: '/faq',
+    lastModified: '2026-07-25',
+    changeFrequency: 'monthly',
+    priority: 0.6,
+    languages: hreflangFor('/faq', BASE),
+  },
+  {
+    path: '/en/faq',
+    lastModified: '2026-07-25',
+    changeFrequency: 'monthly',
+    priority: 0.5,
+    languages: hreflangFor('/faq', BASE),
+  },
+  {
+    path: '/en/how-it-works',
+    lastModified: '2026-07-25',
+    changeFrequency: 'monthly',
+    priority: 0.6,
+    languages: hreflangFor('/how-it-works', BASE),
+  },
   { path: '/about', lastModified: '2026-07-07', changeFrequency: 'monthly', priority: 0.5 },
   { path: '/privacy-policy', lastModified: '2026-07-07', changeFrequency: 'yearly', priority: 0.3 },
   { path: '/delete-account', lastModified: '2026-07-07', changeFrequency: 'monthly', priority: 0.3 },

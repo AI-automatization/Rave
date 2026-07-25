@@ -1,6 +1,10 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
+import { hreflangFor } from '@/lib/i18n/routes';
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
+const PATH = '/uz/guides/youtube-birgalikda';
 
 export const metadata: Metadata = {
   title: "YouTube-ni do'st bilan onlayn birgalikda ko'rish — bepul",
@@ -20,12 +24,8 @@ export const metadata: Metadata = {
     "telefonda birga youtube ko'rish",
   ],
   alternates: {
-    canonical: 'https://wewatch.uz/uz/guides/youtube-birgalikda',
-    languages: {
-      'ru': 'https://wewatch.uz/guides/smotret-youtube-vmeste',
-      'uz': 'https://wewatch.uz/uz/guides/youtube-birgalikda',
-      'x-default': 'https://wewatch.uz/guides/smotret-youtube-vmeste',
-    },
+    canonical: `${APP_URL}${PATH}`,
+    languages: hreflangFor(PATH, APP_URL),
   },
   openGraph: {
     title: "YouTube birgalikda ko'rish — bepul | WeWatch",

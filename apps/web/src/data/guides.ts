@@ -6,12 +6,12 @@
 // surfaced from the /guides hub, the footer and the related-guides block at the
 // bottom of each guide.
 //
-// The three English-slug guides (/guides/what-is-watch-party,
-// /watch-movies-with-friends, /watch-youtube-together) are deliberately absent:
-// they carry robots.index=false and canonical → their Russian equivalents, so
-// linking to them would leak crawl budget onto non-indexable URLs.
+// Three pages used to sit under /guides with English slugs but Russian text —
+// duplicates of the Russian guides, kept noindex for that reason. They have been
+// rewritten as real English guides under /en/guides and are listed here like any
+// other; the old /guides/<english-slug> URLs 301 to them (next.config.mjs).
 
-export type GuideLocale = 'ru' | 'uz';
+export type GuideLocale = 'ru' | 'uz' | 'en';
 
 export type Guide = {
   path: string;
@@ -149,16 +149,60 @@ export const GUIDES: Guide[] = [
     lastModified: '2026-07-07',
     priority: 0.9,
   },
+
+  // ── English guides ─────────────────────────────────────────────────────────
+  // These replace the three English-slug pages that used to live under /guides
+  // with Russian text inside them — duplicates that had to be noindex'd. The
+  // old URLs now 301 here (next.config.mjs).
+  {
+    path: '/en/guides/watch-youtube-together',
+    title: 'Watch YouTube together',
+    summary: 'Watch YouTube in sync with a friend — one pauses, everyone pauses.',
+    locale: 'en',
+    lastModified: '2026-07-25',
+    priority: 0.9,
+  },
+  {
+    path: '/en/guides/what-is-watch-party',
+    title: 'What is a watch party',
+    summary: 'What a watch party is, how synced playback works and how to start one.',
+    locale: 'en',
+    lastModified: '2026-07-25',
+    priority: 0.8,
+  },
+  {
+    path: '/en/guides/watch-movies-with-friends',
+    title: 'Watch movies with friends',
+    summary: 'Watch films and series together online, free, from any device.',
+    locale: 'en',
+    lastModified: '2026-07-25',
+    priority: 0.9,
+  },
 ];
 
-/** ru↔uz counterparts, mirroring each page's own `alternates.languages`. */
-export const GUIDE_PAIRS: Record<string, string> = {
-  '/guides/smotret-vmeste-onlayn': '/uz/guides/birgalikda-tomosha-qilish',
-  '/guides/smotret-youtube-vmeste': '/uz/guides/youtube-birgalikda',
-  '/guides/smotret-anime-vmeste': '/uz/guides/anime-birgalikda',
-  '/guides/smotret-serial-vmeste': '/uz/guides/serial-birgalikda',
-  '/guides/kino-s-drugom-onlayn': '/uz/guides/kino-birgalikda',
-};
+/**
+ * Guides that are the same article in different languages. Slugs are translated
+ * per locale (SEO: the URL is shown in search results and its matching part is
+ * bolded), so counterparts cannot be derived by swapping a prefix.
+ */
+export const GUIDE_GROUPS: { ru: string; uz?: string; en?: string }[] = [
+  { ru: '/guides/smotret-vmeste-onlayn', uz: '/uz/guides/birgalikda-tomosha-qilish' },
+  { ru: '/guides/smotret-youtube-vmeste', uz: '/uz/guides/youtube-birgalikda', en: '/en/guides/watch-youtube-together' },
+  { ru: '/guides/smotret-anime-vmeste', uz: '/uz/guides/anime-birgalikda' },
+  { ru: '/guides/smotret-serial-vmeste', uz: '/uz/guides/serial-birgalikda' },
+  { ru: '/guides/kino-s-drugom-onlayn', uz: '/uz/guides/kino-birgalikda', en: '/en/guides/watch-movies-with-friends' },
+  { ru: '/guides/watch-party-besplatno', en: '/en/guides/what-is-watch-party' },
+];
+
+/** ru↔uz counterparts. Derived from GUIDE_GROUPS — kept for existing callers. */
+export const GUIDE_PAIRS: Record<string, string> = Object.fromEntries(
+  GUIDE_GROUPS.filter((g) => g.uz).map((g) => [g.ru, g.uz!])
+);
+
+/** Every locale variant of the guide `path` belongs to, keyed by locale. */
+export function guideGroupFor(path: string): { ru: string; uz?: string; en?: string } | undefined {
+  return GUIDE_GROUPS.find((g) => g.ru === path || g.uz === path || g.en === path);
+}
 
 export const guidesFor = (locale: GuideLocale): Guide[] =>
   GUIDES.filter((g) => g.locale === locale);

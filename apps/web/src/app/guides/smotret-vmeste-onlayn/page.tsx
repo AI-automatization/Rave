@@ -134,7 +134,7 @@ export default function SmotretVmesteOnlaynPage() {
               <Link href="/" className="inline-flex items-center justify-center gap-2 bg-[#7B72F8] hover:bg-[#6a63e8] text-white font-semibold px-6 py-3 rounded-xl transition-colors">
                 Скачать WeWatch
               </Link>
-              <Link href="/guides/watch-youtube-together" className="inline-flex items-center justify-center gap-2 border border-zinc-700 hover:border-zinc-500 text-zinc-300 font-medium px-6 py-3 rounded-xl transition-colors">
+              <Link href="/guides/smotret-youtube-vmeste" className="inline-flex items-center justify-center gap-2 border border-zinc-700 hover:border-zinc-500 text-zinc-300 font-medium px-6 py-3 rounded-xl transition-colors">
                 Гайд: YouTube вместе →
               </Link>
             </div>

@@ -1,6 +1,10 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
+import { hreflangFor } from '@/lib/i18n/routes';
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
+const PATH = '/uz/guides/kino-birgalikda';
 
 export const metadata: Metadata = {
   title: "Do'stlar bilan onlayn kino ko'rish — bepul",
@@ -21,12 +25,8 @@ export const metadata: Metadata = {
     "birga film korish onlayn",
   ],
   alternates: {
-    canonical: 'https://wewatch.uz/uz/guides/kino-birgalikda',
-    languages: {
-      'ru': 'https://wewatch.uz/guides/kino-s-drugom-onlayn',
-      'uz': 'https://wewatch.uz/uz/guides/kino-birgalikda',
-      'x-default': 'https://wewatch.uz/guides/kino-s-drugom-onlayn',
-    },
+    canonical: `${APP_URL}${PATH}`,
+    languages: hreflangFor(PATH, APP_URL),
   },
   openGraph: {
     title: "Do'stlar bilan onlayn kino ko'rish — bepul | WeWatch",

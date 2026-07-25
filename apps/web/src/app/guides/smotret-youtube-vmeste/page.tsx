@@ -1,18 +1,18 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
+import { hreflangFor } from '@/lib/i18n/routes';
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
+const PATH = '/guides/smotret-youtube-vmeste';
 
 export const metadata: Metadata = {
   title: 'Смотреть YouTube вместе с другом онлайн бесплатно',
   description: 'Как смотреть YouTube с друзьями одновременно — синхронный просмотр через WeWatch. Один ставит паузу — все ставят паузу. Бесплатно, iOS и Android.',
   keywords: ['смотреть youtube вместе', 'смотреть ютуб вместе с другом', 'youtube watch party', 'смотреть youtube одновременно', 'совместный просмотр youtube', 'youtube с друзьями онлайн'],
   alternates: {
-    canonical: 'https://wewatch.uz/guides/smotret-youtube-vmeste',
-    languages: {
-      'ru': 'https://wewatch.uz/guides/smotret-youtube-vmeste',
-      'uz': 'https://wewatch.uz/uz/guides/youtube-birgalikda',
-      'x-default': 'https://wewatch.uz/guides/smotret-youtube-vmeste',
-    },
+    canonical: `${APP_URL}${PATH}`,
+    languages: hreflangFor(PATH, APP_URL),
   },
   openGraph: {
     title: 'Смотреть YouTube вместе с другом | WeWatch',
