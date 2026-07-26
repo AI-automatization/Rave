@@ -34,6 +34,8 @@ export const chatStyles = StyleSheet.create({
     flexShrink: 0, marginBottom: 2,
   },
   avatarText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+  // Same box as `avatar`, minus the generated background colour — the photo covers it anyway.
+  avatarImage: { width: 30, height: 30, borderRadius: 15, flexShrink: 0, marginBottom: 2 },
 
   bubbleGroup: { maxWidth: '76%', gap: 3 },
   bubbleGroupMine: { alignItems: 'flex-end' },

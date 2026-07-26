@@ -2,13 +2,24 @@
 import { create } from 'zustand';
 import { IWatchPartyRoom, SyncState, VideoItem } from '@app-types/index';
 
-interface ChatMessage {
+/** Snapshot of the quoted message. Room chat isn't persisted, so this travels with the reply. */
+export interface ReplyTo {
+  messageId: string;
+  senderName: string;
+  text: string;
+}
+
+// Single definition for both the store and ChatPanel — the two used to be declared separately and
+// had already drifted (the panel knew about `replyTo`, the store didn't, so replies never survived
+// the round trip). ChatPanel re-exports these so its existing importers keep working.
+export interface ChatMessage {
   id: string;
   userId: string;
   username: string;
   avatar: string | null;
   text: string;
   timestamp: number;
+  replyTo?: ReplyTo;
 }
 
 interface WatchPartyState {

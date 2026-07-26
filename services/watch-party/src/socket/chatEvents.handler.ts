@@ -52,12 +52,16 @@ const resolveAvatar = async (authSocket: AuthenticatedSocket): Promise<string | 
 // Room chat is never persisted (no collection, no Redis list) — the server therefore cannot look a
 // quoted message up by id, so the sender supplies the snapshot it is replying to. Every field is
 // untrusted user input and gets the same xss()+length treatment as the message body.
+// `messageId` is accepted alongside `id` because that is the field name mobile has always sent
+// (apps/mobile/src/hooks/useWatchParty.ts sendMessage) — installed builds can't be updated in
+// lockstep with the server, and rejecting them would keep reply silently broken there.
 const sanitizeReplyTo = (raw: unknown): ReplyToPayload | undefined => {
   if (!raw || typeof raw !== 'object') return undefined;
-  const { id, text, senderName } = raw as Record<string, unknown>;
-  if (typeof id !== 'string' || typeof text !== 'string') return undefined;
+  const { id, messageId, text, senderName } = raw as Record<string, unknown>;
+  const rawId = typeof id === 'string' ? id : messageId;
+  if (typeof rawId !== 'string' || typeof text !== 'string') return undefined;
 
-  const safeId = xss(id.slice(0, MAX_ID_LEN));
+  const safeId = xss(rawId.slice(0, MAX_ID_LEN));
   const safeText = xss(text.slice(0, MAX_REPLY_TEXT_LEN));
   if (!safeId || !safeText) return undefined;
 

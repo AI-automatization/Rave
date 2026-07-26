@@ -41,10 +41,10 @@
 
 ### T-S162 | P1 | [MOBILE] | ChatPanel: click avatar/username → profile modal ochish
 
-- **Mas'ul:** pending[Saidazim]
+- **Mas'ul:** pending[Jasur]
 - **Beruvchi:** Saidazim (room redesign planning)
 - **Yaratilgan:** 2026-07-24
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 Bajarilmoqda (2026-07-26, Jasur)
 - **Tavsiya model:** sonnet
 - **Model sababi:** 1 fayl, onPress qo'shish + navigation
 - **Sabab:** Mobile'da avatar bor (rangli doira, faqat harf — real rasm emas), lekin bosilmaydi. `avatar` field ishlatilmayapti (`ChatPanel.tsx:22`).

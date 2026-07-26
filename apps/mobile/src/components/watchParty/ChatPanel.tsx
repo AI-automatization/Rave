@@ -1,34 +1,25 @@
 // WeWatch Mobile — WatchParty ChatPanel
 import React, { useRef, useState } from 'react';
 import {
-  View, Text, FlatList, TextInput,
+  View, Text, FlatList, TextInput, Image,
   KeyboardAvoidingView, Platform, ListRenderItemInfo,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useT } from '@i18n/index';
+import type { ChatMessage, ReplyTo } from '@store/watchParty.store';
 import { chatStyles as s } from './ChatPanel.styles';
 
-export interface ReplyTo {
-  messageId: string;
-  senderName: string;
-  text: string;
-}
-
-export interface ChatMessage {
-  id: string;
-  userId: string;
-  username: string;
-  avatar: string | null;
-  text: string;
-  timestamp: number;
-  replyTo?: ReplyTo;
-}
+// Owned by the store (single definition, see watchParty.store.ts) — re-exported here because
+// WatchPartyScreen and friends have always imported these two names from this file.
+export type { ChatMessage, ReplyTo };
 
 interface ChatPanelProps {
   messages: ChatMessage[];
   currentUserId: string;
   onSend: (text: string, replyTo?: ReplyTo) => void;
+  /** Wired by T-S163's UserProfileSheet. Absent → avatar/name render but don't respond to taps. */
+  onOpenProfile?: (userId: string) => void;
 }
 
 function formatTime(ts: number): string {
@@ -44,24 +35,45 @@ function memberColor(userId: string): string {
 }
 
 function MessageItem({
-  item, currentUserId, onReply,
+  item, currentUserId, onReply, onOpenProfile,
 }: {
-  item: ChatMessage; currentUserId: string; onReply: (msg: ChatMessage) => void;
+  item: ChatMessage; currentUserId: string;
+  onReply: (msg: ChatMessage) => void;
+  onOpenProfile?: (userId: string) => void;
 }) {
   const isMine = item.userId === currentUserId;
   const avatarColor = memberColor(item.userId);
+  const openProfile = onOpenProfile ? () => onOpenProfile(item.userId) : undefined;
 
   return (
     <TrackedTouchable trackId="chat:message" onLongPress={() => onReply(item)} activeOpacity={0.85} delayLongPress={400}>
       <View style={[s.messageRow, isMine && s.messageRowMine]}>
         {!isMine && (
-          <View style={[s.avatar, { backgroundColor: avatarColor }]}>
-            <Text style={s.avatarText}>{item.username[0]?.toUpperCase()}</Text>
-          </View>
+          <TrackedTouchable
+            trackId="chat:open_profile"
+            onPress={openProfile}
+            disabled={!openProfile}
+            activeOpacity={0.7}
+          >
+            {item.avatar ? (
+              <Image source={{ uri: item.avatar }} style={s.avatarImage} />
+            ) : (
+              <View style={[s.avatar, { backgroundColor: avatarColor }]}>
+                <Text style={s.avatarText}>{item.username[0]?.toUpperCase()}</Text>
+              </View>
+            )}
+          </TrackedTouchable>
         )}
         <View style={[s.bubbleGroup, isMine && s.bubbleGroupMine]}>
           {!isMine && (
-            <Text style={s.senderName}>{item.username}</Text>
+            <TrackedTouchable
+              trackId="chat:open_profile_name"
+              onPress={openProfile}
+              disabled={!openProfile}
+              activeOpacity={0.7}
+            >
+              <Text style={s.senderName}>{item.username}</Text>
+            </TrackedTouchable>
           )}
           <View style={[s.bubble, isMine ? s.bubbleMine : s.bubbleOther]}>
             {item.replyTo && (
@@ -86,7 +98,7 @@ function MessageItem({
   );
 }
 
-export function ChatPanel({ messages, currentUserId, onSend }: ChatPanelProps) {
+export function ChatPanel({ messages, currentUserId, onSend, onOpenProfile }: ChatPanelProps) {
   const { t } = useT();
   const [input, setInput] = useState('');
   const [replyTo, setReplyTo] = useState<ReplyTo | null>(null);
@@ -105,7 +117,7 @@ export function ChatPanel({ messages, currentUserId, onSend }: ChatPanelProps) {
   };
 
   const renderItem = ({ item }: ListRenderItemInfo<ChatMessage>) => (
-    <MessageItem item={item} currentUserId={currentUserId} onReply={handleReply} />
+    <MessageItem item={item} currentUserId={currentUserId} onReply={handleReply} onOpenProfile={onOpenProfile} />
   );
 
   const canSend = input.trim().length > 0;

@@ -24,10 +24,16 @@ interface MemberEvent {
   userId: string;
 }
 
+// id / username / avatar / replyTo were added to the ROOM_MESSAGE payload in T-S160 and stay
+// optional here: a watch-party still on the older build emits only the bottom three fields.
 interface MessageEvent {
+  id?: string;
   userId: string;
+  username?: string;
+  avatar?: string;
   message: string;
   timestamp: number;
+  replyTo?: { id: string; text: string; senderName: string };
 }
 
 export interface RoomClosedData {
@@ -198,7 +204,20 @@ export function useWatchParty(roomId: string) {
 
     socket.on(SERVER_EVENTS.ROOM_MESSAGE, (msg: MessageEvent) => {
       const cached = queryClient.getQueryData<IUserPublic>(['user-public', msg.userId]);
-      addMessage({ id: `${msg.userId}-${msg.timestamp}`, userId: msg.userId, username: cached?.username ?? msg.userId.slice(-4), avatar: cached?.avatar ?? null, text: msg.message, timestamp: msg.timestamp });
+      addMessage({
+        id: msg.id ?? `${msg.userId}-${msg.timestamp}`,
+        userId: msg.userId,
+        // Cache first, payload second: the cached profile is the one the rest of the room UI
+        // already shows, so preferring it keeps the same person from appearing under two names.
+        username: cached?.username ?? msg.username ?? msg.userId.slice(-4),
+        avatar: cached?.avatar ?? msg.avatar ?? null,
+        text: msg.message,
+        timestamp: msg.timestamp,
+        // ChatPanel's ReplyTo is keyed on `messageId`; the server speaks `id`.
+        replyTo: msg.replyTo
+          ? { messageId: msg.replyTo.id, senderName: msg.replyTo.senderName, text: msg.replyTo.text }
+          : undefined,
+      });
     });
 
     socket.on(SERVER_EVENTS.MEMBER_JOINED, (data: MemberEvent) => addMember(data.userId));
