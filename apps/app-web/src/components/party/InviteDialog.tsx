@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Copy, Check, Send, Loader2 } from 'lucide-react';
+import { Copy, Check, Send, Loader2, Image as ImageIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -22,6 +22,7 @@ export function InviteDialog({ open, onOpenChange }: Props) {
   const room = useWatchPartyStore((s) => s.room);
   const [copied, setCopied] = useState(false);
   const [invitingId, setInvitingId] = useState<string | null>(null);
+  const [storyPending, setStoryPending] = useState(false);
 
   const inviteCode = room?.inviteCode ?? '';
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.wewatch.uz';
@@ -46,6 +47,42 @@ export function InviteDialog({ open, onOpenChange }: Props) {
       setTimeout(() => setCopied(false), 2000);
     } catch {
       // fallback
+    }
+  }
+
+  // Instagram has no official web "post to story" API, so this is the closest thing available:
+  // hand the generated PNG to the OS share sheet and let the user pick Instagram, where they still
+  // tap "Add to story" themselves. Desktop browsers can't share files — there it degrades to a
+  // plain download, which is genuinely the best a browser can do.
+  async function handleShareStory() {
+    if (!room?._id || storyPending) return;
+    trackClick('invite:share_story');
+    setStoryPending(true);
+    try {
+      const res = await fetch(`/api/rooms/${room._id}/story-image`, { credentials: 'include' });
+      if (!res.ok) throw new Error('story image failed');
+      const blob = await res.blob();
+      const file = new File([blob], 'wewatch-story.png', { type: 'image/png' });
+
+      // canShare({ files }) is the only reliable probe — navigator.share exists on desktop Safari
+      // but rejects file payloads, and a rejection here looks like a broken button to the user.
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], text: shareUrl });
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'wewatch-story.png';
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    } catch (err) {
+      // AbortError just means the user dismissed the share sheet — not a failure worth a toast.
+      if (!(err instanceof DOMException && err.name === 'AbortError')) {
+        toast({ title: t('storyShareError'), variant: 'destructive' });
+      }
+    } finally {
+      setStoryPending(false);
     }
   }
 
@@ -108,6 +145,17 @@ export function InviteDialog({ open, onOpenChange }: Props) {
         {copied && (
           <p className="text-xs text-emerald-400 text-center">{t('copied')}</p>
         )}
+
+        <button
+          onClick={handleShareStory}
+          disabled={!room?._id || storyPending}
+          className="h-10 rounded-xl flex items-center justify-center gap-2 text-sm font-medium text-white border border-white/[0.12] bg-white/[0.06] hover:bg-white/[0.1] disabled:opacity-40 transition-colors cursor-pointer"
+        >
+          {storyPending
+            ? <Loader2 size={15} className="animate-spin" />
+            : <ImageIcon size={15} />}
+          {t('shareStory')}
+        </button>
 
         {/* Friends list */}
         {friends && friends.length > 0 && (

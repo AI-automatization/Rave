@@ -481,7 +481,9 @@
     "voiceMute": "Mikrofonni o'chirish",
     "voiceUnmute": "Mikrofonni yoqish",
     "voiceLeave": "Ovozli chatdan chiqish",
-    "voiceRetry": "Qayta urinish"
+    "voiceRetry": "Qayta urinish",
+    "shareStory": "Story sifatida ulashish",
+    "storyShareError": "Story rasmini yaratib bo'lmadi"
   },
   "movie": {
     "watch": "Ko'rish",

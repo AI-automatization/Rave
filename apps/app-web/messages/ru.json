@@ -481,7 +481,9 @@
     "voiceMute": "Выключить микрофон",
     "voiceUnmute": "Включить микрофон",
     "voiceLeave": "Выйти из голосового чата",
-    "voiceRetry": "Повторить"
+    "voiceRetry": "Повторить",
+    "shareStory": "Поделиться в story",
+    "storyShareError": "Не удалось создать картинку для story"
   },
   "movie": {
     "watch": "Смотреть",

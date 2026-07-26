@@ -520,7 +520,9 @@
     "voiceMute": "Mute microphone",
     "voiceUnmute": "Unmute microphone",
     "voiceLeave": "Leave voice chat",
-    "voiceRetry": "Retry"
+    "voiceRetry": "Retry",
+    "shareStory": "Share to story",
+    "storyShareError": "Could not generate the story image"
   },
   "movie": {
     "watch": "Watch",
