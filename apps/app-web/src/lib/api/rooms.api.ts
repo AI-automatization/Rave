@@ -22,6 +22,9 @@ export const roomsApi = {
   create: (data: CreateRoomPayload) =>
     apiClient<IWatchPartyRoom>('/api/rooms', { method: 'POST', body: data }),
 
-  joinByCode: (code: string) =>
-    apiClient<IWatchPartyRoom>(`/api/rooms/join/${code}`, { method: 'POST' }),
+  joinByCode: (code: string, password?: string) =>
+    apiClient<IWatchPartyRoom>(`/api/rooms/join/${code}`, {
+      method: 'POST',
+      ...(password ? { body: { password } } : {}),
+    }),
 };

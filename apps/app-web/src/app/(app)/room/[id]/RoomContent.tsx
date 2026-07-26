@@ -14,6 +14,7 @@ import { RoomHeader } from '@/components/party/RoomHeader';
 import { EmojiReactions } from '@/components/party/EmojiReactions';
 import { UserProfileModal } from '@/components/profile/UserProfileModal';
 import { VoiceStrip } from '@/components/party/VoiceStrip';
+import { RoomPasswordDialog } from '@/components/party/RoomPasswordDialog';
 import { useVoiceChat } from '@/hooks/use-voice-chat';
 import { useSocket } from '@/hooks/use-socket';
 import { roomsApi } from '@/lib/api/rooms.api';
@@ -30,6 +31,10 @@ interface PlaylistItem {
 
 interface Props {
   roomId: string;
+  /** ?code= from the share link — needed to retry the join once a password is supplied. */
+  inviteCode?: string;
+  /** Server-side join came back `password_required` (page.tsx). */
+  needsPassword?: boolean;
 }
 
 // Same detection mobile/CreateRoomDialog use — only needs to be good enough for the
@@ -189,7 +194,7 @@ function PlaylistPanel({
   );
 }
 
-export function RoomContent({ roomId }: Props) {
+export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props) {
   const t = useTranslations('party');
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -381,6 +386,17 @@ export function RoomContent({ roomId }: Props) {
         </div>
 
       <UserProfileModal userId={profileUserId} onClose={() => setProfileUserId(null)} />
+
+      {/* router.refresh() is not enough here: membership is established server-side and the socket
+          has already tried (and failed) to join, so the connection has to be rebuilt from scratch —
+          a full reload is the honest way to do that. */}
+      {needsPassword && inviteCode && (
+        <RoomPasswordDialog
+          open
+          inviteCode={inviteCode}
+          onJoined={() => window.location.reload()}
+        />
+      )}
     </div>
   );
 }

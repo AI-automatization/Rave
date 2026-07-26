@@ -574,7 +574,12 @@
     "soonBadge": "Скоро",
     "clipboardDetected": "Видео из буфера обмена",
     "hintPlatform": "Откройте видео и скопируйте ссылку сюда",
-    "hintWeb": "Введите URL любого сайта"
+    "hintWeb": "Введите URL любого сайта",
+    "passwordTitle": "Комната защищена паролем",
+    "passwordHint": "Введите пароль, который дал владелец комнаты",
+    "passwordPlaceholder": "Пароль",
+    "passwordSubmit": "Войти",
+    "passwordWrong": "Неверный пароль"
   },
   "support": {
     "title": "Поддержка",

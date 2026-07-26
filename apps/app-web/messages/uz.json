@@ -574,7 +574,12 @@
     "soonBadge": "Tez kunda",
     "clipboardDetected": "Bufer almashuvidan video",
     "hintPlatform": "Videoni oching va havolani bu yerga nusxalang",
-    "hintWeb": "Istalgan sayt URL manzilini kiriting"
+    "hintWeb": "Istalgan sayt URL manzilini kiriting",
+    "passwordTitle": "Xona parol bilan himoyalangan",
+    "passwordHint": "Kirish uchun xona egasi bergan parolni kiriting",
+    "passwordPlaceholder": "Parol",
+    "passwordSubmit": "Kirish",
+    "passwordWrong": "Noto'g'ri parol"
   },
   "support": {
     "title": "Yordam",

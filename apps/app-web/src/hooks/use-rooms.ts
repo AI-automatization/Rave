@@ -26,7 +26,10 @@ export function useCreateRoom() {
 export function useJoinRoom() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: roomsApi.joinByCode,
+    // Wrapped, not passed by reference: react-query calls mutationFn(variables, context), and
+    // joinByCode's second parameter is now `password` — handing it the context object directly
+    // would send react-query internals to the API as a password.
+    mutationFn: (code: string) => roomsApi.joinByCode(code),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['rooms'] });
     },

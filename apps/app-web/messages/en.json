@@ -613,7 +613,12 @@
     "soonBadge": "Soon",
     "clipboardDetected": "Video from clipboard",
     "hintPlatform": "Open a video and copy the link here",
-    "hintWeb": "Enter any website URL"
+    "hintWeb": "Enter any website URL",
+    "passwordTitle": "This room is password protected",
+    "passwordHint": "Enter the password the room owner gave you",
+    "passwordPlaceholder": "Password",
+    "passwordSubmit": "Join",
+    "passwordWrong": "Wrong password"
   },
   "support": {
     "title": "Support",
