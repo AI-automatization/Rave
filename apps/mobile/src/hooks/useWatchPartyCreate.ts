@@ -1,7 +1,7 @@
 // WeWatch Mobile — useWatchPartyCreate hook
 import { useState, useEffect, useRef, useCallback } from 'react';
 
-import { watchPartyApi } from '@api/watchParty.api';
+import { watchPartyApi, RoomAlreadyExistsError } from '@api/watchParty.api';
 import { userApi } from '@api/user.api';
 import { useVideoExtraction } from '@hooks/useVideoExtraction';
 import { isDomainBlocked } from '@constants/blockedDomains';
@@ -120,14 +120,15 @@ export function useWatchPartyCreate(): UseWatchPartyCreateReturn {
       });
       onSuccess(room._id);
     } catch (err: unknown) {
+      // One active room per owner (409) → reopen the existing room instead of erroring.
+      // Decoded in watchParty.api.ts so every createRoom call site shares one implementation.
+      if (err instanceof RoomAlreadyExistsError) {
+        onSuccess(err.existingRoom._id);
+        return;
+      }
       let msg = t('watchParty', 'errorCreate');
       if (err && typeof err === 'object' && 'response' in err) {
-        const resp = (err as { response?: { data?: { message?: string; code?: string; data?: { roomId?: string } }; status?: number } }).response;
-        // One active room per owner (409) → reopen the existing room instead of erroring.
-        if (resp?.status === 409 && resp.data?.message === 'ROOM_ALREADY_EXISTS' && resp.data?.data?.roomId) {
-          onSuccess(resp.data.data.roomId);
-          return;
-        }
+        const resp = (err as { response?: { data?: { message?: string; code?: string }; status?: number } }).response;
         if (resp?.data?.code === 'USER_RESTRICTED') {
           msg = t('blocked', 'userRestricted');
         } else if (resp?.data?.message) {

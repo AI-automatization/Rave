@@ -1,8 +1,20 @@
 # WeWatch — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-07-26
+# Yangilangan: 2026-07-27
 
 ---
+
+### F-278 | T-S108 | Bitta faol xona cheklovi (backend guard + 4 ta klient nuqtasi birlashtirildi)
+
+- **Bajaruvchi:** Jasur (Claude opus 5)  **Bajarilgan:** 2026-07-27  **Model:** opus
+- **O'zgarishlar:** `services/watch-party/src/services/watchParty.service.ts` (`findActiveRoomByOwner()` + `createRoom` da guard), `controllers/watchParty.controller.ts` (409 javobi), `apps/mobile/src/api/watchParty.api.ts` (`RoomAlreadyExistsError`), `hooks/useCreateWatchParty.ts`, `useWatchPartyCreate.ts`, `useSourcePicker.ts`, `useMediaDetection.ts`.
+- **Xulosa:** Guard servisda (yagona haqiqat manbai), 409 javobi controller'da yig'iladi — `roomId` ni qaytarish uchun `shared/` error middleware'ini o'zgartirish kerak bo'lardi, bu bitta endpoint uchun ortiqcha. 🔴 **Orqaga moslik:** o'rnatilgan mobil build'lar `message === 'ROOM_ALREADY_EXISTS'` + `data.roomId` o'qiydi, ularni server bilan bir vaqtda yangilab bo'lmaydi — shuning uchun javob ATAYLAB ortiqcha: eski maydonlar ham, yangi `code`/`roomId` ham yuboriladi. Aks holda hamma eski ilova "xona yaratib bo'lmadi" ko'rsatardi. 🔴 Mobil'da `createRoom` ning 4 ta chaqiruv joyi bor edi: ikkitasida 409 ishlovchisi bor, ikkitasida YO'Q (`useSourcePicker` jimgina WebView ochardi, ya'ni foydalanuvchi o'z xonasini topa olmasdi). Endi 409 API qatlamida bir marta dekod qilinadi (`RoomAlreadyExistsError`), to'rttasi ham shundan foydalanadi. HomeScreen'dagi "Mening xonalarim" seksiyasi ALLAQACHON bajarilgan ekan (`useRecentRooms` + `status !== 'ended'`) — tegilmadi.
+
+### F-277 | T-S181 | VirtualBrowserPlayer: touch boshqaruvi qo'shildi
+
+- **Bajaruvchi:** Jasur (Claude opus 5)  **Bajarilgan:** 2026-07-27  **Model:** opus
+- **O'zgarishlar:** `apps/app-web/src/components/party/VirtualBrowserPlayer.tsx` — `clientToViewport()` (koordinata mapping'i sichqoncha va barmoq uchun umumiy), native `touchstart/touchmove/touchend/touchcancel` listenerlari, `touchAction: 'none'`, `mousedown`/`touchstart` da `focus()`.
+- **Xulosa:** Komponent FAQAT sichqoncha event'larini ushlardi — telefon yoki sensorli ekranda virtual brauzer umuman boshqarilmasdi. 🔴 Native listener `{ passive: false }` bilan, xuddi wheel fix'idagi kabi: React `touchstart/touchmove` ni passiv ro'yxatdan o'tkazadi va `preventDefault()` jimgina ishlamaydi — busiz har bir svayp oqim ortidagi WeWatch sahifasini scroll qilardi. 🔴 Barmoq svaypi `mousemove` emas, **`wheel`** ga o'giriladi: sensorli qurilmada surish "sahifani scroll qilish" degani, ushlab surish esa masofaviy sahifada matn belgilardi. Tap (10px dan kam harakat) → `mousedown`+`mouseup` = klik. `touchAction: 'none'` faqat egaga — tomoshabinlar xonani scroll qila olishi kerak. Safari `<img>` ni klikda fokuslamaydi, shuning uchun `focus()` qo'lda chaqiriladi (aks holda birinchi o'zaro ta'sirdan keyin klaviatura ishlamasdi).
 
 ### F-276 | T-S101 + T-S102 | Migratsiya qoldig'i — skript to'ldirildi, tsc clean tasdiqlandi, hujjat yangilandi
 

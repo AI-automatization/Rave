@@ -3,7 +3,7 @@ import { useState, useCallback } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { showAlert } from '@components/common/AppAlert';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { watchPartyApi } from '@api/watchParty.api';
+import { watchPartyApi, RoomAlreadyExistsError } from '@api/watchParty.api';
 import type { VideoSearchItem } from '@api/content.api';
 import type { RootStackParamList } from '@app-types/index';
 
@@ -27,14 +27,10 @@ export function useCreateWatchParty(onSuccess?: () => void) {
       rootNav.navigate('Modal', { screen: 'WatchParty', params: { roomId: room._id } });
     } catch (err: unknown) {
       // Backend enforces one active room per owner (409 ROOM_ALREADY_EXISTS).
-      // Instead of erroring, reopen the room the user already has.
-      const resp = (err as {
-        response?: { status?: number; data?: { message?: string; data?: { roomId?: string } } };
-      }).response;
-      const existingId =
-        resp?.status === 409 && resp.data?.message === 'ROOM_ALREADY_EXISTS'
-          ? resp.data.data?.roomId
-          : undefined;
+      // Instead of erroring, reopen the room the user already has. The 409 is decoded once in
+      // watchParty.api.ts — this used to dig through err.response here, which every other
+      // createRoom call site had to repeat (and two of them didn't).
+      const existingId = err instanceof RoomAlreadyExistsError ? err.existingRoom._id : undefined;
       if (existingId) {
         onSuccess?.();
         showAlert({

@@ -28,18 +28,25 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, remote
   // feedback, no round-trip needed since it's just "where is MY mouse over the stream right now".
   const [localCursorCss, setLocalCursorCss] = useState<{ x: number; y: number } | null>(null);
 
-  // Maps a mouse event's page position to the server-side browser's fixed viewport (1280x720
-  // by default) regardless of how large the <img> is actually rendered on screen.
-  const toViewportCoords = useCallback((e: React.MouseEvent): { x: number; y: number } | null => {
+  // Maps a viewport-space client point to the server-side browser's fixed viewport (1280x720
+  // by default) regardless of how large the <img> is actually rendered on screen. Takes raw
+  // coordinates rather than a React.MouseEvent so the touch handlers below can reuse it —
+  // a TouchEvent has no clientX of its own, only per-Touch ones.
+  const clientToViewport = useCallback((clientX: number, clientY: number): { x: number; y: number } | null => {
     if (!imgRef.current || !dimensions) return null;
     const rect = imgRef.current.getBoundingClientRect();
     const scaleX = dimensions.width / rect.width;
     const scaleY = dimensions.height / rect.height;
     return {
-      x: Math.round((e.clientX - rect.left) * scaleX),
-      y: Math.round((e.clientY - rect.top) * scaleY),
+      x: Math.round((clientX - rect.left) * scaleX),
+      y: Math.round((clientY - rect.top) * scaleY),
     };
   }, [dimensions]);
+
+  const toViewportCoords = useCallback(
+    (e: React.MouseEvent) => clientToViewport(e.clientX, e.clientY),
+    [clientToViewport],
+  );
 
   // Inverse of toViewportCoords — used to place the OTHER viewers' synced cursor (received in
   // server-viewport space via VB_CURSOR) at the right spot on THIS client's rendered <img>,
@@ -72,6 +79,9 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, remote
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!isOwner) return;
+    // Safari does not focus an <img> on click, so the keydown/keyup handlers below never fired
+    // after the first interaction — typing into the remote page silently did nothing.
+    imgRef.current?.focus();
     const pos = toViewportCoords(e);
     if (pos) sendInput({ type: 'mousedown', x: pos.x, y: pos.y });
   };
@@ -112,6 +122,75 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, remote
     el.addEventListener('wheel', onWheel, { passive: false });
     return () => el.removeEventListener('wheel', onWheel);
   }, [isOwner, sendInput, frame]); // re-attach if the <img> node identity changes across renders
+
+  // Touch input. Before this the component listened for mouse events ONLY, so on a phone or a
+  // touchscreen laptop the virtual browser was completely uncontrollable — the reported bug.
+  //
+  // Native listeners with { passive: false } for the same reason as the wheel handler above:
+  // React registers touchstart/touchmove passively, which makes preventDefault() a silent no-op,
+  // and without it every drag scrolls the WeWatch page behind the stream instead.
+  //
+  // A finger drag is translated to WHEEL, not to a held mousemove: on a touch device dragging
+  // means "scroll the page", whereas a held pointer drag would select text on the remote page.
+  // A tap (no meaningful movement) becomes mousedown+mouseup, i.e. a click.
+  useEffect(() => {
+    const el = imgRef.current;
+    if (!el || !isOwner) return;
+
+    // Below this, the finger hasn't really moved — treat the gesture as a tap.
+    const TAP_SLOP_PX = 10;
+    let startX = 0, startY = 0, lastX = 0, lastY = 0, moved = false;
+
+    const onTouchStart = (e: TouchEvent) => {
+      const t = e.touches[0];
+      if (!t) return;
+      e.preventDefault();
+      el.focus(); // same Safari focus problem as mousedown
+      startX = lastX = t.clientX;
+      startY = lastY = t.clientY;
+      moved = false;
+      // Move the remote pointer to where the finger landed, so hover-dependent controls
+      // (menus, custom players) behave as they would under a mouse.
+      const pos = clientToViewport(t.clientX, t.clientY);
+      if (pos) sendInput({ type: 'mousemove', x: pos.x, y: pos.y });
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      const t = e.touches[0];
+      if (!t) return;
+      e.preventDefault();
+      const dx = t.clientX - lastX;
+      const dy = t.clientY - lastY;
+      if (Math.abs(t.clientX - startX) > TAP_SLOP_PX || Math.abs(t.clientY - startY) > TAP_SLOP_PX) {
+        moved = true;
+      }
+      lastX = t.clientX;
+      lastY = t.clientY;
+      // Negated: dragging the finger UP should scroll the content DOWN, which is a positive
+      // wheel delta — the same convention as native touch scrolling.
+      if (moved) sendInput({ type: 'wheel', deltaX: -dx, deltaY: -dy });
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      e.preventDefault();
+      if (moved) return; // it was a scroll, not a click
+      const pos = clientToViewport(startX, startY);
+      if (!pos) return;
+      sendInput({ type: 'mousedown', x: pos.x, y: pos.y });
+      sendInput({ type: 'mouseup' });
+    };
+
+    el.addEventListener('touchstart', onTouchStart, { passive: false });
+    el.addEventListener('touchmove', onTouchMove, { passive: false });
+    el.addEventListener('touchend', onTouchEnd, { passive: false });
+    el.addEventListener('touchcancel', onTouchEnd, { passive: false });
+    return () => {
+      el.removeEventListener('touchstart', onTouchStart);
+      el.removeEventListener('touchmove', onTouchMove);
+      el.removeEventListener('touchend', onTouchEnd);
+      el.removeEventListener('touchcancel', onTouchEnd);
+    };
+  }, [isOwner, sendInput, frame, clientToViewport]);
 
   if (!frame && !dimensions) {
     if (!isOwner) {
@@ -192,6 +271,10 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, remote
             onKeyDown={handleKeyDown}
             onKeyUp={handleKeyUp}
             onContextMenu={(e) => e.preventDefault()}
+            // globals.css only applies touch-action to button/a/[role=button], so this <img> was
+            // left with the browser default and every gesture went to page scroll/zoom first.
+            // `none` for the owner only — viewers should still be able to scroll the room past it.
+            style={isOwner ? { touchAction: 'none' } : undefined}
             className={`w-full h-full object-contain select-none ${isOwner ? 'cursor-none' : 'cursor-not-allowed'}`}
           />
 

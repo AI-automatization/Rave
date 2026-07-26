@@ -65,6 +65,26 @@ export class WatchPartyController {
       });
       res.status(201).json(apiResponse.success(room, 'Room created'));
     } catch (error) {
+      // Handled here rather than by the shared error middleware because the client needs the
+      // existing room's id to navigate to it, and that middleware only forwards code/reason —
+      // teaching it about roomId would mean changing shared/* for a single endpoint.
+      const err = error as Error & { code?: string; roomId?: string };
+      if (err.code === 'ROOM_ALREADY_EXISTS' && err.roomId) {
+        // Shape is deliberately redundant. Mobile builds already in the field read
+        // `message === 'ROOM_ALREADY_EXISTS'` + `data.roomId` (useCreateWatchParty.ts), and those
+        // installs cannot be updated together with the server — if the response only carried the
+        // newer `code`/`roomId` fields they would show "could not create room" instead of
+        // reopening the existing one. New clients read `code`/`roomId`.
+        res.status(409).json({
+          success: false,
+          data: { roomId: err.roomId },
+          code: 'ROOM_ALREADY_EXISTS',
+          roomId: err.roomId,
+          message: 'ROOM_ALREADY_EXISTS',
+          errors: null,
+        });
+        return;
+      }
       next(error);
     }
   };

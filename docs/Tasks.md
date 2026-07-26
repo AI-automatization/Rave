@@ -116,24 +116,6 @@
 - **Sabab:** `canOpenURL` false qaytarsa — oddiy `Share.share()` fallback yoki xabar ko'rsatish kerak.
 - **Fayllar:** `apps/mobile/src/components/watchParty/InviteCard.tsx`
 
-### T-S181 | P1 | [WEB] | VirtualBrowserPlayer: touch handler'lar yo'qligi fix
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Saidazim (manual QA — screenshot)
-- **Yaratilgan:** 2026-07-24
-- **Holat:** ⛔ Bloklangan — Saidazim'dan screenshot/qurilma tasdig'i kutilmoqda (qaysi qurilma/browser'da bo'lgan)
-- **Tavsiya model:** sonnet
-- **Model sababi:** 1 fayl, aniq root cause topilgan
-- **Sabab:** `VirtualBrowserPlayer.tsx:188-193` faqat mouse event'larni ushlaydi (`onMouseMove/onMouseDown/onMouseUp/onKeyDown/onKeyUp`), touch handler'lar (`onTouchStart/onTouchMove/onTouchEnd`) umuman yo'q, `touch-action` `<img>`ga qo'llanilmagan (`globals.css:225-228` faqat `button/a/[role=button]`ga). Deyarli bir xil bag desktop wheel uchun allaqachon tuzatilgan (`46c7c2b` commit — passive `onWheel` fix). Ikkinchi, zaifroq nomzod — Safari `<img>`ni click bilan avto-focus qilmaydi, keyingi keydown/keyup yo'qolishi mumkin.
-- **Qilish kerak:**
-  - [ ] `onTouchStart/onTouchMove/onTouchEnd` qo'shish, `sendInput`ga mouse bilan bir xil mapping
-  - [ ] `touch-action: none` VB `<img>`ga
-  - [ ] `touchmove`da `preventDefault()` (wheel fix'iga o'xshash, native listener kerak bo'lishi mumkin — React synthetic passive)
-  - [ ] mousedown/touchstart'da `.focus()` chaqirish (Safari uchun)
-- **Fayllar:** `apps/app-web/src/components/party/VirtualBrowserPlayer.tsx`
-
----
-
 ### T-E209 | P2 | [WEB] | GEO/AEO/SEO texnik baza — robots, sitemap, IndexNow, crawler checker
 
 - **Mas'ul:** pending[Jasur]
@@ -294,22 +276,6 @@
 # 🔵 Sprint 13: Mobile UX fixes (2026-07-03 — manual QA Saidazim)
 
 ---
-
-### T-S108 | P1 | [MOBILE+BACKEND] | Single active room guard + "Мои комнаты" на главном
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Saidazim (manual QA)
-- **Yaratilgan:** 2026-07-03
-- **Holat:** 🔄 Bajarilmoqda
-- **Tavsiya model:** sonnet
-- **Model sababi:** backend guard + mobile UI, 3-4 fayl, mavjud endpoint qayta ishlatiladi
-- **Sabab:** Foydalanuvchi bir vaqtda bir nechta xona ochishi mumkin (guard yo'q). Bor xonani topib bo'lmaydi — HomeScreen'da "mening xonalarim" yo'q.
-- **Qilish kerak:**
-  - [ ] Backend `createRoom`: agar `ownerId` da active (status != ended) xona bo'lsa → `409 ROOM_ALREADY_EXISTS` + roomId
-  - [ ] Mobile: create javobida shu kodni ushlab → mavjud xonaga navigate + toast
-  - [ ] Mobile HomeScreen: "Мои комнаты" seksiya (`getRecentRooms`, filter active), tap → xona ochish
-  - [ ] Deploy watch-party
-- **Fayllar:** `services/watch-party/src/controllers/watchParty.controller.ts` (+ service), `apps/mobile/src/screens/home/HomeScreen.tsx`, `apps/mobile/src/screens/rooms/RoomsScreen.tsx`
 
 ### T-S107b | ✅ | [MOBILE] | Fix: свайп-вниз случайно сворачивает комнату
 

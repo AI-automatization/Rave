@@ -5,7 +5,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import WebView from 'react-native-webview';
 import type { WebViewNavigation, WebViewMessageEvent } from 'react-native-webview';
-import { watchPartyApi } from '@api/watchParty.api';
+import { watchPartyApi, RoomAlreadyExistsError } from '@api/watchParty.api';
 import { contentApi } from '@api/content.api';
 import { getSocket, CLIENT_EVENTS } from '@socket/client';
 import {
@@ -252,15 +252,15 @@ export function useMediaDetection() {
         response?: { status?: number; data?: { message?: string; data?: { roomId?: string } } };
         code?: string; message?: string;
       };
-      const resp = axiosErr.response;
       // Backend enforces one active room per owner (409 ROOM_ALREADY_EXISTS).
       // Instead of showing the raw error, reopen the room the user already has.
-      if (resp?.status === 409 && resp.data?.message === 'ROOM_ALREADY_EXISTS') {
-        const existingId = resp.data?.data?.roomId;
-        if (existingId) {
-          navigation.navigate('WatchParty', { roomId: existingId, videoReferer: media.videoReferer });
-          return;
-        }
+      // Decoded in watchParty.api.ts — one implementation for all createRoom call sites.
+      if (err instanceof RoomAlreadyExistsError) {
+        navigation.navigate('WatchParty', {
+          roomId: err.existingRoom._id,
+          videoReferer: media.videoReferer,
+        });
+        return;
       }
       const isTimeout = axiosErr.code === 'ECONNABORTED' || (axiosErr.message ?? '').includes('timeout');
       const msg = isTimeout || axiosErr.message === 'Network Error'

@@ -1,6 +1,22 @@
 // WeWatch Mobile — Watch Party API
+import axios from 'axios';
 import { watchPartyClient } from './client';
 import { ApiResponse, IWatchPartyRoom, VideoItem } from '@app-types/index';
+
+/**
+ * Thrown when the backend refuses a second room for the same owner (T-S108). Carries the room the
+ * user already has open so the caller can send them there instead of showing a dead end.
+ *
+ * Resolved once here rather than in each of the four createRoom call sites (useCreateWatchParty,
+ * useSourcePicker, useMediaDetection, useWatchPartyCreate) — they would otherwise each need the
+ * same 409 branch.
+ */
+export class RoomAlreadyExistsError extends Error {
+  constructor(public readonly existingRoom: IWatchPartyRoom) {
+    super('ROOM_ALREADY_EXISTS');
+    this.name = 'RoomAlreadyExistsError';
+  }
+}
 
 export const watchPartyApi = {
   async createRoom(data: {
@@ -18,8 +34,20 @@ export const watchPartyApi = {
     /** E67-3: WebView session cookies — faqat webview-session rejimida */
     cookies?: string;
   }): Promise<IWatchPartyRoom> {
-    const res = await watchPartyClient.post<ApiResponse<IWatchPartyRoom>>('/watch-party/rooms', data);
-    return res.data.data!;
+    try {
+      const res = await watchPartyClient.post<ApiResponse<IWatchPartyRoom>>('/watch-party/rooms', data);
+      return res.data.data!;
+    } catch (err) {
+      const body = axios.isAxiosError(err) ? (err.response?.data as { code?: string; roomId?: string } | undefined) : undefined;
+      if (err && axios.isAxiosError(err) && err.response?.status === 409 && body?.code === 'ROOM_ALREADY_EXISTS' && body.roomId) {
+        // Fetch the room so callers get the same shape they would from a successful create and
+        // can navigate immediately. If THAT fails, fall through to the original error rather than
+        // inventing a room object.
+        const existing = await this.getRoomById(body.roomId).catch(() => null);
+        if (existing) throw new RoomAlreadyExistsError(existing);
+      }
+      throw err;
+    }
   },
 
   async getRooms(): Promise<IWatchPartyRoom[]> {

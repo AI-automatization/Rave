@@ -5,7 +5,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useT } from '@i18n/index';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { contentApi } from '@api/content.api';
-import { watchPartyApi } from '@api/watchParty.api';
+import { watchPartyApi, RoomAlreadyExistsError } from '@api/watchParty.api';
 import { getSocket, CLIENT_EVENTS } from '@socket/client';
 import type { MediaSource } from '@constants/mediaSources';
 import type { ModalStackParamList } from '@app-types/index';
@@ -82,7 +82,13 @@ export function useSourcePicker() {
         videoPlatform: extracted.platform,
       });
       navigation.navigate('WatchParty', { roomId: room._id });
-    } catch {
+    } catch (err) {
+      // Without this, hitting the one-room-per-owner limit here fell into the generic catch below
+      // and silently opened a WebView instead of the room the user already has.
+      if (err instanceof RoomAlreadyExistsError) {
+        navigation.navigate('WatchParty', { roomId: err.existingRoom._id });
+        return;
+      }
       try {
         new URL(trimmed);
         navigation.navigate('MediaWebView', {

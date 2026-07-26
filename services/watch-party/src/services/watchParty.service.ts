@@ -94,6 +94,20 @@ export class WatchPartyService {
       throw new ForbiddenError('USER_RESTRICTED: You are not allowed to create rooms');
     }
 
+    // One live room per owner. Nothing stopped a user from spawning rooms endlessly before, and
+    // because there was no "my rooms" list anywhere they could not find the ones they had already
+    // opened either — so every attempt left another orphan room running until the 5-minute
+    // inactivity sweep collected it. The existing room's id travels with the error so the client
+    // can send the user straight there instead of just showing a refusal.
+    const existing = await this.findActiveRoomByOwner(ownerId);
+    if (existing) {
+      throw Object.assign(new Error('You already have an active room'), {
+        statusCode: 409,
+        code: 'ROOM_ALREADY_EXISTS',
+        roomId: existing._id.toString(),
+      });
+    }
+
     if (videoUrl) {
       if (!/^https?:\/\//i.test(videoUrl)) {
         throw new BadRequestError('videoUrl must start with http:// or https://');
@@ -150,6 +164,15 @@ export class WatchPartyService {
     if (!isPrivate) void this.invalidatePublicRoomsCache();
     logger.info('Watch party room created', { roomId: room._id, ownerId, isPrivate });
     return room;
+  }
+
+  /**
+   * The owner's currently-live room, if any. "Live" means not ended — a room sitting in `waiting`
+   * with nobody connected still counts, because it is exactly the one the user should be sent
+   * back to rather than duplicating.
+   */
+  async findActiveRoomByOwner(ownerId: string): Promise<IWatchPartyRoomDocument | null> {
+    return WatchPartyRoom.findOne({ ownerId, status: { $ne: 'ended' } }).sort({ lastActivityAt: -1 });
   }
 
   async joinRoom(userId: string, inviteCode: string, password?: string): Promise<IWatchPartyRoomDocument> {
