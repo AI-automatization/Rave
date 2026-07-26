@@ -8,7 +8,7 @@ import { useSocket } from '@/hooks/use-socket';
 import { useWatchPartyStore } from '@/store/watch-party.store';
 import { useAuthStore } from '@/store/auth.store';
 import { toast } from '@/store/toast.store';
-import type { IWatchPartyRoom } from '@/types';
+import type { IWatchPartyRoom, IChatReplyTo } from '@/types';
 
 // Room membership (room.members / MEMBER_JOINED) only carries user IDs — the actual
 // username/avatar has to be resolved separately via GET /api/user/[id]. Cached through
@@ -46,6 +46,7 @@ interface ServerChatMessage {
   avatar?: string;
   message: string;
   timestamp: number;
+  replyTo?: IChatReplyTo;
 }
 
 // How often to re-measure the clock offset. The phone/browser clock drifts vs the server over a
@@ -138,6 +139,7 @@ export function useWatchParty(roomId: string) {
         user: { _id: raw.userId, username: raw.username, avatar: raw.avatar },
         text: raw.message,
         timestamp: raw.timestamp,
+        replyTo: raw.replyTo,
       });
     });
 
@@ -223,11 +225,11 @@ export function useWatchParty(roomId: string) {
     };
   }, [socket, isConnected, roomId, router, setRoom, setMembers, addMember, removeMember, resolveMemberProfile, addMessage, setSyncState, setHeartbeat, setConnected, setRoomJoined, reset]);
 
-  const sendMessage = useCallback((text: string) => {
+  const sendMessage = useCallback((text: string, replyTo?: IChatReplyTo) => {
     // Backend's chatEvents.handler.ts reads data.message (matches mobile's emit shape) — roomId
     // isn't read from the payload at all (it uses the socket's own tracked room), but data.message
     // being undefined here crashed `.slice()` server-side and the message was silently never sent.
-    socket?.emit(CLIENT_EVENTS.SEND_MESSAGE, { roomId, message: text });
+    socket?.emit(CLIENT_EVENTS.SEND_MESSAGE, { roomId, message: text, replyTo });
   }, [socket, roomId]);
 
   const sendPlay = useCallback((currentTime: number) => {

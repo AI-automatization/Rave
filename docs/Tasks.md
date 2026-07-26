@@ -69,10 +69,10 @@
 
 ### T-S164 | P2 | [WEB] | Reply UI komnata chatida (DM pattern'idan portlash)
 
-- **Mas'ul:** pending[Saidazim]
+- **Mas'ul:** pending[Jasur]
 - **Beruvchi:** Saidazim (room redesign planning)
 - **Yaratilgan:** 2026-07-24
-- **Holat:** ❌ Boshlanmagan (T-S160 dan keyin)
+- **Holat:** 🔄 Bajarilmoqda (2026-07-26, Jasur)
 - **Tavsiya model:** sonnet
 - **Model sababi:** mavjud DM pattern'ni 1-in-1 ko'chirish, yangi arxitektura emas
 - **Sabab:** Web room chatida reply umuman yo'q. DM'da tayyor: `ReplyTarget` interface, `handleReply`, `ReplyPreviewBar` — 1-in-1 ko'chirish mumkin.
@@ -80,10 +80,10 @@
 
 ### T-S165 | P2 | [MOBILE] | Swipe-to-reply komnata chatida (DM pattern'idan portlash)
 
-- **Mas'ul:** pending[Saidazim]
+- **Mas'ul:** pending[Jasur]
 - **Beruvchi:** Saidazim (room redesign planning)
 - **Yaratilgan:** 2026-07-24
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 Bajarilmoqda (2026-07-26, Jasur)
 - **Tavsiya model:** sonnet
 - **Model sababi:** mavjud gesture pattern ko'chirish
 - **Sabab:** DM'da to'liq qator svayp bor (`dm/MessageItem.tsx` — `PanGestureHandler` FULL row'ni o'raydi, threshold=60, haptics), watch-party ChatPanel'da faqat long-press bor, svayp yo'q.
@@ -93,10 +93,10 @@
 
 ### T-S166 | P2 | [WEB] | Swipe-to-reply web'da (framer-motion drag)
 
-- **Mas'ul:** pending[Saidazim]
+- **Mas'ul:** pending[Jasur]
 - **Beruvchi:** Saidazim (room redesign planning)
 - **Yaratilgan:** 2026-07-24
-- **Holat:** ❌ Boshlanmagan (T-S164 dan keyin)
+- **Holat:** 🔄 Bajarilmoqda (2026-07-26, Jasur)
 - **Tavsiya model:** sonnet
 - **Model sababi:** yangi interaction, lekin bitta komponent
 - **Sabab:** Web'da hech qayerda drag-jest ishlatilmagan (`framer-motion` bor, `drag=`/`dragConstraints` grep 0 natija). Bu loyihada birinchi drag-interaction bo'ladi.

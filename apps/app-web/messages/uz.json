@@ -494,7 +494,8 @@
     "empty": "Hali xabar yo'q",
     "placeholder": "Xabar yozing...",
     "cooldown": "{seconds}s kuting",
-    "emptyHint": "Birinchi bo'lib yozing"
+    "emptyHint": "Birinchi bo'lib yozing",
+    "reply": "Javob berish"
   },
   "profile": {
     "title": "Profil",

@@ -28,6 +28,16 @@ export const chatStyles = StyleSheet.create({
   messageRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
   messageRowMine: { flexDirection: 'row-reverse' },
 
+  // Swipe-to-reply layers (ported from dm/MessageItem.tsx): the icon sits outside the row's
+  // right edge and only becomes visible as the row is dragged over it.
+  swipeWrap: { position: 'relative' },
+  swipeReplyIcon: {
+    position: 'absolute',
+    top: 0, bottom: 0, right: -34,
+    width: 26,
+    alignItems: 'center', justifyContent: 'center',
+  },
+
   avatar: {
     width: 30, height: 30, borderRadius: 15,
     alignItems: 'center', justifyContent: 'center',

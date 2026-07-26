@@ -1,9 +1,14 @@
 // WeWatch Mobile — WatchParty ChatPanel
 import React, { useRef, useState } from 'react';
 import {
-  View, Text, FlatList, TextInput, Image,
+  View, Text, FlatList, TextInput, Image, Animated,
   KeyboardAvoidingView, Platform, ListRenderItemInfo,
 } from 'react-native';
+import {
+  PanGestureHandler, State,
+  type PanGestureHandlerStateChangeEvent, type PanGestureHandlerGestureEvent,
+} from 'react-native-gesture-handler';
+import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { useT } from '@i18n/index';
@@ -27,6 +32,9 @@ function formatTime(ts: number): string {
   return `${d.getHours()}:${d.getMinutes().toString().padStart(2, '0')}`;
 }
 
+const SWIPE_REPLY_TRIGGER = 60;
+const SWIPE_REPLY_MAX = 76;
+
 function memberColor(userId: string): string {
   const palette = ['#7B72F8', '#F87171', '#34D399', '#FBBF24', '#60A5FA', '#F472B6', '#A78BFA'];
   let hash = 0;
@@ -45,56 +53,124 @@ function MessageItem({
   const avatarColor = memberColor(item.userId);
   const openProfile = onOpenProfile ? () => onOpenProfile(item.userId) : undefined;
 
+  // Swipe-to-reply, ported 1:1 from dm/MessageItem.tsx — same trigger distance, same haptic,
+  // same built-in Animated driver (this project has no reanimated, see babel.config.js).
+  // Long-press to reply stays as it was; the two just become alternative ways in.
+  const translateX = useRef(new Animated.Value(0)).current;
+  const hapticFiredRef = useRef(false);
+
+  const onGestureEvent = useRef(
+    Animated.event(
+      [{ nativeEvent: { translationX: translateX } }],
+      {
+        useNativeDriver: true,
+        listener: (e: PanGestureHandlerGestureEvent) => {
+          const tx = e.nativeEvent.translationX;
+          if (tx <= -SWIPE_REPLY_TRIGGER && !hapticFiredRef.current) {
+            hapticFiredRef.current = true;
+            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+          } else if (tx > -SWIPE_REPLY_TRIGGER && hapticFiredRef.current) {
+            hapticFiredRef.current = false;
+          }
+        },
+      },
+    ),
+  ).current;
+
+  const onHandlerStateChange = (e: PanGestureHandlerStateChangeEvent) => {
+    if (e.nativeEvent.oldState !== State.ACTIVE) return;
+    const triggered = e.nativeEvent.translationX <= -SWIPE_REPLY_TRIGGER;
+    Animated.spring(translateX, { toValue: 0, useNativeDriver: true, bounciness: 8 }).start();
+    hapticFiredRef.current = false;
+    if (triggered) onReply(item);
+  };
+
+  const rowX = translateX.interpolate({
+    inputRange: [-SWIPE_REPLY_MAX, 0, 1],
+    outputRange: [-SWIPE_REPLY_MAX, 0, 0],
+    extrapolate: 'clamp',
+  });
+  const replyIconStyle = {
+    opacity: translateX.interpolate({
+      inputRange: [-SWIPE_REPLY_TRIGGER, -20, 0],
+      outputRange: [1, 0.35, 0],
+      extrapolate: 'clamp' as const,
+    }),
+    transform: [{
+      scale: translateX.interpolate({
+        inputRange: [-SWIPE_REPLY_TRIGGER, -20, 0],
+        outputRange: [1, 0.7, 0.6],
+        extrapolate: 'clamp' as const,
+      }),
+    }],
+  };
+
   return (
-    <TrackedTouchable trackId="chat:message" onLongPress={() => onReply(item)} activeOpacity={0.85} delayLongPress={400}>
-      <View style={[s.messageRow, isMine && s.messageRowMine]}>
-        {!isMine && (
-          <TrackedTouchable
-            trackId="chat:open_profile"
-            onPress={openProfile}
-            disabled={!openProfile}
-            activeOpacity={0.7}
-          >
-            {item.avatar ? (
-              <Image source={{ uri: item.avatar }} style={s.avatarImage} />
-            ) : (
-              <View style={[s.avatar, { backgroundColor: avatarColor }]}>
-                <Text style={s.avatarText}>{item.username[0]?.toUpperCase()}</Text>
-              </View>
-            )}
-          </TrackedTouchable>
-        )}
-        <View style={[s.bubbleGroup, isMine && s.bubbleGroupMine]}>
-          {!isMine && (
-            <TrackedTouchable
-              trackId="chat:open_profile_name"
-              onPress={openProfile}
-              disabled={!openProfile}
-              activeOpacity={0.7}
-            >
-              <Text style={s.senderName}>{item.username}</Text>
-            </TrackedTouchable>
-          )}
-          <View style={[s.bubble, isMine ? s.bubbleMine : s.bubbleOther]}>
-            {item.replyTo && (
-              <View style={[s.replyPreview, isMine && s.replyPreviewMine]}>
-                <View style={[s.replyAccent, isMine && s.replyAccentMine]} />
-                <View style={s.replyContent}>
-                  <Text style={[s.replyAuthor, isMine && s.replyAuthorMine]}>
-                    {item.replyTo.senderName}
-                  </Text>
-                  <Text style={[s.replyText, isMine && s.replyTextMine]} numberOfLines={1}>
-                    {item.replyTo.text}
-                  </Text>
+    // The handler wraps the FULL row, so the swipe can start anywhere on the message's
+    // horizontal band — same reasoning as the DM list.
+    <PanGestureHandler
+      onGestureEvent={onGestureEvent}
+      onHandlerStateChange={onHandlerStateChange}
+      activeOffsetX={-10}
+      failOffsetY={[-12, 12]}
+    >
+      <Animated.View style={s.swipeWrap}>
+        <Animated.View pointerEvents="none" style={[s.swipeReplyIcon, replyIconStyle]}>
+          <Ionicons name="arrow-undo" size={17} color="#7B72F8" />
+        </Animated.View>
+        <Animated.View style={{ transform: [{ translateX: rowX }] }}>
+          <TrackedTouchable trackId="chat:message" onLongPress={() => onReply(item)} activeOpacity={0.85} delayLongPress={400}>
+            <View style={[s.messageRow, isMine && s.messageRowMine]}>
+              {!isMine && (
+                <TrackedTouchable
+                  trackId="chat:open_profile"
+                  onPress={openProfile}
+                  disabled={!openProfile}
+                  activeOpacity={0.7}
+                >
+                  {item.avatar ? (
+                    <Image source={{ uri: item.avatar }} style={s.avatarImage} />
+                  ) : (
+                    <View style={[s.avatar, { backgroundColor: avatarColor }]}>
+                      <Text style={s.avatarText}>{item.username[0]?.toUpperCase()}</Text>
+                    </View>
+                  )}
+                </TrackedTouchable>
+              )}
+              <View style={[s.bubbleGroup, isMine && s.bubbleGroupMine]}>
+                {!isMine && (
+                  <TrackedTouchable
+                    trackId="chat:open_profile_name"
+                    onPress={openProfile}
+                    disabled={!openProfile}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={s.senderName}>{item.username}</Text>
+                  </TrackedTouchable>
+                )}
+                <View style={[s.bubble, isMine ? s.bubbleMine : s.bubbleOther]}>
+                  {item.replyTo && (
+                    <View style={[s.replyPreview, isMine && s.replyPreviewMine]}>
+                      <View style={[s.replyAccent, isMine && s.replyAccentMine]} />
+                      <View style={s.replyContent}>
+                        <Text style={[s.replyAuthor, isMine && s.replyAuthorMine]}>
+                          {item.replyTo.senderName}
+                        </Text>
+                        <Text style={[s.replyText, isMine && s.replyTextMine]} numberOfLines={1}>
+                          {item.replyTo.text}
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+                  <Text style={[s.messageText, isMine && s.messageTextMine]}>{item.text}</Text>
+                  <Text style={[s.timeLabel, isMine && s.timeLabelMine]}>{formatTime(item.timestamp)}</Text>
                 </View>
               </View>
-            )}
-            <Text style={[s.messageText, isMine && s.messageTextMine]}>{item.text}</Text>
-            <Text style={[s.timeLabel, isMine && s.timeLabelMine]}>{formatTime(item.timestamp)}</Text>
-          </View>
-        </View>
-      </View>
-    </TrackedTouchable>
+            </View>
+          </TrackedTouchable>
+        </Animated.View>
+      </Animated.View>
+    </PanGestureHandler>
   );
 }
 

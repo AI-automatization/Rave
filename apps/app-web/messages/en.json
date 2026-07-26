@@ -533,7 +533,8 @@
     "empty": "No messages yet",
     "placeholder": "Type a message...",
     "cooldown": "Wait {seconds}s",
-    "emptyHint": "Be the first to say something"
+    "emptyHint": "Be the first to say something",
+    "reply": "Reply"
   },
   "profile": {
     "title": "Profile",

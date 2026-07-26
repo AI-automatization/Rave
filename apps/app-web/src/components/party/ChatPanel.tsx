@@ -1,17 +1,24 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, MessageCircle } from 'lucide-react';
+import { Send, MessageCircle, Reply } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { useTranslations } from 'next-intl';
 import { useWatchPartyStore } from '@/store/watch-party.store';
 import { useAuthStore } from '@/store/auth.store';
+import { ReplyPreviewBar } from '@/components/messages/dm/ReplyPreviewBar';
 import { avatarColor } from '@/lib/utils';
+import type { IChatReplyTo } from '@/types';
 
 interface Props {
-  onSend: (text: string) => void;
+  onSend: (text: string, replyTo?: IChatReplyTo) => void;
   /** Wired by T-S163's UserProfileModal. Absent → avatars render but aren't clickable. */
   onOpenProfile?: (userId: string) => void;
 }
+
+// Horizontal drag past this many pixels arms the reply — same threshold mobile's DM swipe uses
+// (apps/mobile/src/components/dm/MessageItem.tsx), so the gesture feels identical across platforms.
+const SWIPE_REPLY_THRESHOLD_PX = 60;
 
 export function ChatPanel({ onSend, onOpenProfile }: Props) {
   const t = useTranslations('chat');
@@ -19,7 +26,9 @@ export function ChatPanel({ onSend, onOpenProfile }: Props) {
   const members = useWatchPartyStore((s) => s.members);
   const currentUser = useAuthStore((s) => s.user);
   const [text, setText] = useState('');
+  const [replyTo, setReplyTo] = useState<IChatReplyTo | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
@@ -29,8 +38,9 @@ export function ChatPanel({ onSend, onOpenProfile }: Props) {
     e.preventDefault();
     const trimmed = text.trim();
     if (!trimmed) return;
-    onSend(trimmed);
+    onSend(trimmed, replyTo ?? undefined);
     setText('');
+    setReplyTo(null);
   }
 
   return (
@@ -60,8 +70,26 @@ export function ChatPanel({ onSend, onOpenProfile }: Props) {
           const avatar = msg.user.avatar ?? members.find((m) => m._id === msg.user._id)?.avatar;
           const clickable = Boolean(onOpenProfile);
 
+          const startReply = () => {
+            setReplyTo({ id: msg.id, text: msg.text, senderName: name });
+            inputRef.current?.focus();
+          };
+
           return (
-            <div key={msg.id} className="flex items-start gap-2 px-1 py-1 hover:bg-white/[0.03] rounded transition-colors">
+            // Swipe-to-reply: drag the whole row (not just the text) like the DM/mobile gesture.
+            // dragSnapToOrigin springs it back, so a drag that doesn't reach the threshold simply
+            // undoes itself. This is the first drag interaction in the web app — the hover Reply
+            // button above stays for pointer users, who have no swipe.
+            <motion.div
+              key={msg.id}
+              drag="x"
+              dragDirectionLock
+              dragConstraints={{ left: 0, right: SWIPE_REPLY_THRESHOLD_PX + 20 }}
+              dragElastic={0.25}
+              dragSnapToOrigin
+              onDragEnd={(_, info) => { if (info.offset.x > SWIPE_REPLY_THRESHOLD_PX) startReply(); }}
+              className="group flex items-start gap-2 px-1 py-1 hover:bg-white/[0.03] rounded transition-colors touch-pan-y"
+            >
               <button
                 type="button"
                 onClick={() => onOpenProfile?.(msg.user._id)}
@@ -83,6 +111,17 @@ export function ChatPanel({ onSend, onOpenProfile }: Props) {
               </button>
 
               <div className="min-w-0 flex-1">
+                {msg.replyTo && (
+                  <div className="flex items-stretch gap-1.5 mb-0.5 max-w-full">
+                    <div className="w-[2px] rounded-full shrink-0" style={{ backgroundColor: '#7B72F8' }} />
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-bold truncate" style={{ color: '#9C93FF' }}>
+                        {msg.replyTo.senderName}
+                      </p>
+                      <p className="text-[10px] text-white/40 truncate">{msg.replyTo.text}</p>
+                    </div>
+                  </div>
+                )}
                 <button
                   type="button"
                   onClick={() => onOpenProfile?.(msg.user._id)}
@@ -97,14 +136,35 @@ export function ChatPanel({ onSend, onOpenProfile }: Props) {
                   {msg.text}
                 </span>
               </div>
-            </div>
+
+              {/* Hover-only so the compact IRC-style rows don't gain a permanent icon column.
+                  focus-within keeps it reachable by keyboard, where there is no hover. */}
+              <button
+                type="button"
+                onClick={startReply}
+                aria-label={t('reply')}
+                title={t('reply')}
+                className="shrink-0 mt-[1px] p-1 rounded text-zinc-500 opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-white hover:bg-white/[0.08] transition-all cursor-pointer"
+              >
+                <Reply size={12} />
+              </button>
+            </motion.div>
           );
         })}
       </div>
 
+      {replyTo && (
+        <ReplyPreviewBar
+          senderName={replyTo.senderName}
+          text={replyTo.text}
+          onCancel={() => setReplyTo(null)}
+        />
+      )}
+
       <form onSubmit={handleSubmit} className="p-3 border-t border-white/[0.07]">
         <div className="flex items-center gap-2">
           <input
+            ref={inputRef}
             type="text"
             value={text}
             onChange={(e) => setText(e.target.value)}
