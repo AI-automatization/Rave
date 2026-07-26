@@ -70,11 +70,16 @@ export async function GET(
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          justifyContent: 'center',
-          padding: 96,
+          // space-between over three blocks, with the middle one owning the free space. An earlier
+          // version paired justifyContent:'center' with marginTop:'auto' on the footer — the auto
+          // margin won, the centring did nothing, and the card rendered with a large dead gap.
+          justifyContent: 'space-between',
+          // Instagram overlays its own UI over roughly the top and bottom 250px of a story, so
+          // nothing meaningful may sit there.
+          padding: '260px 96px 240px',
           // Matches the app's own dark surface (#060608 chrome) with a violet wash, so the story
           // reads as WeWatch without needing a remote logo asset — satori cannot fetch our SVGs.
-          background: 'linear-gradient(160deg, #12102a 0%, #060608 55%, #1a0f2e 100%)',
+          background: 'linear-gradient(160deg, #221a4d 0%, #0d0a1f 45%, #060608 70%, #2a1450 100%)',
           color: '#ffffff',
         }}
       >
@@ -96,21 +101,43 @@ export async function GET(
         <div
           style={{
             display: 'flex',
-            fontSize: title.length > 60 ? 66 : 88,
-            fontWeight: 700,
-            lineHeight: 1.15,
-            textAlign: 'center',
-            marginTop: 64,
-            // Long video titles would otherwise push the brand line off-canvas.
-            maxHeight: 560,
-            overflow: 'hidden',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            // Takes every pixel between the badge and the footer, which is what actually centres
+            // the title on the canvas.
+            flex: 1,
           }}
         >
-          {title}
-        </div>
+          <div
+            style={{
+              display: 'flex',
+              fontSize: title.length > 60 ? 66 : 88,
+              fontWeight: 700,
+              lineHeight: 1.15,
+              textAlign: 'center',
+              // Long video titles would otherwise push the brand line off-canvas.
+              maxHeight: 560,
+              overflow: 'hidden',
+            }}
+          >
+            {title}
+          </div>
 
-        <div style={{ display: 'flex', fontSize: 40, color: 'rgba(255,255,255,0.55)', marginTop: 56 }}>
-          Birga tomosha qilamiz
+          <div style={{ display: 'flex', fontSize: 40, color: 'rgba(255,255,255,0.55)', marginTop: 40 }}>
+            Birga tomosha qilamiz
+          </div>
+
+          <div
+            style={{
+              display: 'flex',
+              width: 160,
+              height: 6,
+              borderRadius: 999,
+              marginTop: 56,
+              background: 'linear-gradient(90deg, #7C3AED 0%, #34D399 100%)',
+            }}
+          />
         </div>
 
         <div
@@ -119,7 +146,6 @@ export async function GET(
             flexDirection: 'column',
             alignItems: 'center',
             gap: 18,
-            marginTop: 'auto',
           }}
         >
           <span style={{ fontSize: 56, fontWeight: 700, letterSpacing: 4 }}>WeWatch</span>
