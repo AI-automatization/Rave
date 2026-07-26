@@ -64,6 +64,10 @@ const watchPartyRoomSchema = new Schema<IWatchPartyRoomDocument>(
         videoPlatform:  { type: String, enum: VIDEO_PLATFORM_ENUM, default: null },
         addedBy:        { type: String, required: true },
         addedAt:        { type: Date, default: Date.now },
+        // T-S173 background pre-resolve. Defaults to 'pending' so a freshly queued item is
+        // distinguishable from one whose probe already came back.
+        resolveStatus:  { type: String, enum: ['pending', 'ready', 'needs_vb'], default: 'pending' },
+        resolvedAt:     { type: Date, default: null },
       }],
       default: [],
     },

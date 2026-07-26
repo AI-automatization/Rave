@@ -88,12 +88,24 @@ export interface OptionalAuthRequest extends Request {
 export type WatchPartyStatus = 'waiting' | 'playing' | 'paused' | 'ended';
 export type VideoPlatform = 'youtube' | 'vimeo' | 'twitch' | 'dailymotion' | 'direct' | 'webview' | 'other';
 
+/**
+ * Outcome of the background pre-resolve started when an item is queued (T-S173).
+ *  pending   — probe in flight, or the item predates the feature
+ *  ready     — extraction (or the headless VB probe) produced something playable
+ *  needs_vb  — nothing playable found; playing it will fall back to the interactive
+ *              virtual browser, where a human clicks through the page
+ */
+export type VideoResolveStatus = 'pending' | 'ready' | 'needs_vb';
+
 export interface VideoItem {
   videoUrl: string;
   videoTitle: string | null;
   videoPlatform: VideoPlatform | null;
   addedBy: string;   // userId
   addedAt: Date;
+  // Optional so documents written before T-S173 stay valid — absent means "never probed".
+  resolveStatus?: VideoResolveStatus;
+  resolvedAt?: Date | null;
 }
 
 export interface IWatchPartyRoom {

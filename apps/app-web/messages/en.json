@@ -522,7 +522,10 @@
     "voiceLeave": "Leave voice chat",
     "voiceRetry": "Retry",
     "shareStory": "Share to story",
-    "storyShareError": "Could not generate the story image"
+    "storyShareError": "Could not generate the story image",
+    "queueStatusPending": "Checking...",
+    "queueStatusReady": "Ready to play",
+    "queueStatusNeedsVb": "Needs manual start — opens in the browser"
   },
   "movie": {
     "watch": "Watch",

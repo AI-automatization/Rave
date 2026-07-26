@@ -27,6 +27,25 @@ interface PlaylistItem {
   videoUrl: string;
   videoTitle?: string;
   addedBy?: string;
+  /** Background pre-resolve verdict (T-S173). Absent on items queued before that shipped. */
+  resolveStatus?: 'pending' | 'ready' | 'needs_vb';
+}
+
+// Shows what the server found out about a queued link. Before T-S176 adding a URL gave no
+// feedback at all — the owner only discovered a dead link when the room reached it.
+function QueueStatusDot({ status, labels }: {
+  status: PlaylistItem['resolveStatus'];
+  labels: { pending: string; ready: string; needsVb: string };
+}) {
+  const map = {
+    pending:  { color: 'bg-slate-500 animate-pulse', title: labels.pending },
+    ready:    { color: 'bg-emerald-500',             title: labels.ready },
+    needs_vb: { color: 'bg-amber-500',               title: labels.needsVb },
+  } as const;
+  // `pending` also covers a missing value: an item queued before the feature existed was never
+  // probed, and claiming it is "ready" would be a guess.
+  const s = map[status ?? 'pending'];
+  return <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${s.color}`} title={s.title} />;
 }
 
 interface Props {
@@ -134,6 +153,14 @@ function PlaylistPanel({
               className="flex items-center gap-2 bg-white/[0.03] rounded-lg px-2 py-1.5 group"
             >
               <span className="text-slate-600 text-[10px] w-4 shrink-0">{i + 1}</span>
+              <QueueStatusDot
+                status={item.resolveStatus}
+                labels={{
+                  pending: t('queueStatusPending'),
+                  ready: t('queueStatusReady'),
+                  needsVb: t('queueStatusNeedsVb'),
+                }}
+              />
               <p className="flex-1 text-xs text-slate-300 truncate">
                 {item.videoTitle ?? item.videoUrl}
               </p>

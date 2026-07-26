@@ -2,8 +2,10 @@ import Redis from 'ioredis';
 import { WatchPartyRoom, IWatchPartyRoomDocument } from '../models/watchPartyRoom.model';
 import { logger } from '@shared/utils/logger';
 import { NotFoundError, ForbiddenError, BadRequestError } from '@shared/utils/errors';
-import { SyncState, VideoPlatform, VideoItem } from '@shared/types';
+import { SyncState, VideoPlatform, VideoItem, VideoResolveStatus } from '@shared/types';
 import { REDIS_KEYS, TTL } from '@shared/constants';
+import { isOfficialEmbedHost, tryExtract } from './extractionClient';
+import { probeUrl } from './virtualBrowser.service';
 const BLOCKED_DOMAINS_KEY = 'watch_party:blocked_domains';
 const PRIVATE_URL = /^https?:\/\/(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/i;
 const MAX_PLAYLIST = 50;
@@ -121,6 +123,55 @@ export class WatchPartyPlaylistService {
     return result;
   }
 
+  /**
+   * Works out whether a queued link will actually play, and records the answer on the item
+   * (T-S173). Runs in the background right after the item is queued — before this, extraction was
+   * only ever attempted at CHANGE_MEDIA time, so "Next" could drop the room onto a dead link with
+   * no warning and nothing to fall back to.
+   *
+   * Never throws: it is fire-and-forget, and a failed probe legitimately means "assume it needs
+   * the interactive virtual browser".
+   */
+  async preResolvePlaylistItem(
+    roomId: string,
+    videoUrl: string,
+    addedAt: Date,
+    userToken?: string,
+  ): Promise<VideoResolveStatus> {
+    let status: VideoResolveStatus = 'needs_vb';
+    try {
+      if (isOfficialEmbedHost(videoUrl)) {
+        // YouTube/VK/Rutube and friends play through their own iframe client-side — there is
+        // nothing for the server to resolve, and probing them would burn a Chromium slot.
+        status = 'ready';
+      } else if (userToken && await tryExtract(videoUrl, userToken)) {
+        status = 'ready';
+      } else if (await probeUrl(videoUrl)) {
+        // Extraction said no, but a real browser did reveal a fetchable stream. Only the verdict
+        // is stored, not the URL: CDN links are short-lived and usually IP-locked, so it would be
+        // stale (or 403) by the time the room reaches this item.
+        status = 'ready';
+      }
+    } catch (err) {
+      logger.warn('Playlist pre-resolve failed', { roomId, videoUrl, error: (err as Error).message });
+    }
+
+    try {
+      // Matched on url+addedAt rather than index: the owner can remove or advance items while the
+      // probe is still running, and an index would by then point at a different video.
+      await WatchPartyRoom.updateOne(
+        { _id: roomId },
+        { $set: { 'playlist.$[item].resolveStatus': status, 'playlist.$[item].resolvedAt': new Date() } },
+        { arrayFilters: [{ 'item.videoUrl': videoUrl, 'item.addedAt': addedAt }] },
+      );
+    } catch (err) {
+      logger.warn('Playlist pre-resolve write-back failed', { roomId, error: (err as Error).message });
+    }
+
+    logger.info('Playlist item pre-resolved', { roomId, videoUrl: videoUrl.slice(0, 120), status });
+    return status;
+  }
+
   async removeFromPlaylist(ownerId: string, roomId: string, index: number): Promise<IWatchPartyRoomDocument> {
     const room = await WatchPartyRoom.findOne({ _id: roomId, ownerId, status: { $ne: 'ended' } });
     if (!room) {
@@ -150,6 +201,13 @@ export class WatchPartyPlaylistService {
     }
 
     const next = room.playlist[0] as VideoItem;
+    // T-S175 — hand the caller the pre-resolve verdict recorded when this item was queued, so it
+    // can start the virtual browser instead of broadcasting a URL that will only show everyone a
+    // "failed to load video" box. Before this, playNextFromPlaylist skipped the extraction/VB
+    // fallback that CHANGE_MEDIA has always had, so advancing the queue onto a dead link had no
+    // recovery path at all. `pending` (probe still running, or an item queued before T-S173) is
+    // deliberately treated as "just play it" — the same behaviour as before.
+    const nextNeedsVirtualBrowser = next.resolveStatus === 'needs_vb';
     room.playlist.splice(0, 1);
     room.videoUrl      = next.videoUrl;
     room.videoTitle    = next.videoTitle;
@@ -167,7 +225,9 @@ export class WatchPartyPlaylistService {
       updatedBy: ownerId,
     });
 
-    logger.info('Playlist advanced to next item', { roomId, ownerId, nextUrl: next.videoUrl });
-    return room;
+    logger.info('Playlist advanced to next item', {
+      roomId, ownerId, nextUrl: next.videoUrl, resolveStatus: next.resolveStatus ?? 'unknown',
+    });
+    return Object.assign(room, { nextNeedsVirtualBrowser });
   }
 }

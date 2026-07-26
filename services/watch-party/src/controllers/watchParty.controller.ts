@@ -9,6 +9,7 @@ import { WatchPartyRoom } from '../models/watchPartyRoom.model';
 import { logger } from '@shared/utils/logger';
 import { getAppSetting } from '@shared/utils/appSettings';
 import { ForbiddenError } from '@shared/utils/errors';
+import { startVBForRoom } from '../socket/vbSession.helper';
 
 export class WatchPartyController {
   constructor(
@@ -164,6 +165,23 @@ export class WatchPartyController {
       const room = await this.watchPartyService.addToPlaylist(userId, roomId, { videoUrl, videoTitle, videoPlatform });
       this.io.to(roomId).emit(SERVER_EVENTS.PLAYLIST_UPDATED, { playlist: room.playlist });
       res.status(201).json(apiResponse.success({ playlist: room.playlist }, 'Added to playlist'));
+
+      // T-S173 — resolve the link in the background, AFTER responding. Extraction plus a headless
+      // browser probe can take tens of seconds; making the owner wait for it would turn "add to
+      // queue" into a long spinner for something they don't need an answer to yet.
+      const queued = room.playlist[room.playlist.length - 1];
+      if (queued) {
+        const token = req.headers.authorization?.replace(/^Bearer\s+/i, '');
+        void this.watchPartyService
+          .preResolvePlaylistItem(roomId, queued.videoUrl, queued.addedAt, token)
+          .then(async () => {
+            // Re-read rather than patching the in-memory copy: other items' probes may have
+            // landed in the meantime, and the panel should show all of their statuses.
+            const fresh = await this.watchPartyService.getRoom(roomId).catch(() => null);
+            if (fresh) this.io.to(roomId).emit(SERVER_EVENTS.PLAYLIST_UPDATED, { playlist: fresh.playlist });
+          })
+          .catch(() => { /* preResolvePlaylistItem never throws; this is belt-and-braces */ });
+      }
     } catch (error) {
       next(error);
     }
@@ -204,6 +222,19 @@ export class WatchPartyController {
         videoPlatform: room.videoPlatform,
         playlist:      room.playlist,
       }, 'Advanced to next video'));
+
+      // T-S175 — the pre-resolve (T-S173) already established this link needs a real browser, so
+      // start one instead of leaving the room on a URL that cannot play. Fired after the response
+      // for the same reason as the pre-resolve above: launching Chromium takes seconds and the
+      // owner's "Next" should not hang on it. CHANGE_MEDIA has always had this fallback;
+      // advancing the queue did not, which is the gap this closes.
+      if (room.videoUrl && (room as { nextNeedsVirtualBrowser?: boolean }).nextNeedsVirtualBrowser) {
+        const videoUrl = room.videoUrl;
+        void startVBForRoom(this.io, this.watchPartyService, roomId, userId, videoUrl)
+          .catch((e) => logger.warn('playNext: VB fallback failed to start', {
+            roomId, url: videoUrl, error: (e as Error).message,
+          }));
+      }
     } catch (error) {
       next(error);
     }

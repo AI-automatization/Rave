@@ -14,6 +14,14 @@ export const VB_VIEWPORT = { width: 1280, height: 720 } as const;
 
 const MAX_CONCURRENT = 3;
 
+// Background probes (T-S174) share the same Chromium budget as interactive sessions — each one is
+// a real browser process. Capped at one so a queue of freshly-queued playlist links can never
+// starve a room that is actually watching something: interactive startSession() checks only
+// `sessions.size` against MAX_CONCURRENT, so at worst a probe occupies one of the three slots.
+const MAX_BACKGROUND_PROBES = 1;
+const PROBE_TIMEOUT_MS = 25_000;
+let activeProbes = 0;
+
 export type VBInput =
   | { type: 'mousemove'; x: number; y: number }
   | { type: 'mousedown'; x: number; y: number; button?: 'left' | 'right' | 'middle' }
@@ -132,6 +140,58 @@ export function getSessionSnapshot(roomId: string): { url: string; width: number
 //             session, only stop the screencast broadcast (see pauseScreencast below).
 export type MediaFoundKind = 'url' | 'capture';
 
+/**
+ * Category A sniffing — media the page fetches over plain HTTP, recognised by extension, then
+ * Content-Type, then magic bytes. Lifted out of startSession (T-S174) so the background probe
+ * below can reuse it: it only ever touched `page`, never the screencast or the session map.
+ *
+ * Categories B/C (appendBuffer hook, WebSocket frames) stay inside startSession on purpose —
+ * they produce a URL backed by a live in-memory buffer that only fills while THAT browser keeps
+ * playing, which is useless to a probe that tears its browser down immediately.
+ */
+function attachResponseSniffer(
+  page: Page,
+  logId: string,
+  onFound: (mediaUrl: string, type: 'mp4' | 'hls') => void,
+): void {
+  let found = false;
+  const hit = (mediaUrl: string, type: 'mp4' | 'hls', how: string, extra?: Record<string, unknown>) => {
+    if (found) return;
+    found = true;
+    logger.info(`VB: media URL intercepted (by ${how})`, { logId, url: mediaUrl.slice(0, 120), type, ...extra });
+    onFound(mediaUrl, type);
+  };
+
+  page.on('response', (response) => {
+    if (found) return; // first match wins — ignore anything after
+    const respUrl = response.url();
+    const ext = matchMediaExtension(respUrl);
+    if (ext) {
+      hit(respUrl, classifyMediaUrl(ext), 'extension');
+      return;
+    }
+    // No recognizable extension (opaque path like /api/stream/get?id=123) — fall back to
+    // the response's own Content-Type.
+    const headers = response.headers();
+    const contentType = headers['content-type'] ?? '';
+    if (MEDIA_CONTENT_TYPE_RE.test(contentType)) {
+      hit(respUrl, classifyMediaContentType(contentType), 'content-type', { contentType });
+      return;
+    }
+    // Still nothing — the site may be lying about Content-Type on purpose to dodge exactly
+    // this kind of scraping. Only worth the download if the declared type is itself
+    // ambiguous/missing and the response isn't a tiny beacon/pixel.
+    if (!AMBIGUOUS_CONTENT_TYPE_RE.test(contentType)) return;
+    const contentLength = parseInt(headers['content-length'] ?? '', 10);
+    if (!Number.isNaN(contentLength) && contentLength < MIN_MEDIA_BYTES) return;
+    void response.body().then((body) => {
+      if (found) return;
+      const type = sniffMagicBytes(body);
+      if (type) hit(respUrl, type, 'magic bytes');
+    }).catch(() => { /* body unavailable (redirected/aborted) — skip */ });
+  });
+}
+
 export async function startSession(
   roomId: string,
   ownerId: string,
@@ -167,42 +227,10 @@ export async function startSession(
       // websocket frames) — whichever fires first wins, the other two stop mattering.
       let mediaFound = false;
 
-      page.on('response', (response) => {
-        if (mediaFound) return; // first match wins — ignore anything after
-        const respUrl = response.url();
-        const ext = matchMediaExtension(respUrl);
-        if (ext) {
-          mediaFound = true;
-          const type = classifyMediaUrl(ext);
-          logger.info('VB: media URL intercepted (by extension)', { roomId, url: respUrl.slice(0, 120), type });
-          onMediaFound(respUrl, type, 'url');
-          return;
-        }
-        // No recognizable extension (opaque path like /api/stream/get?id=123) — fall back to
-        // the response's own Content-Type.
-        const headers = response.headers();
-        const contentType = headers['content-type'] ?? '';
-        if (MEDIA_CONTENT_TYPE_RE.test(contentType)) {
-          mediaFound = true;
-          const type = classifyMediaContentType(contentType);
-          logger.info('VB: media URL intercepted (by content-type)', { roomId, url: respUrl.slice(0, 120), contentType, type });
-          onMediaFound(respUrl, type, 'url');
-          return;
-        }
-        // Still nothing — the site may be lying about Content-Type on purpose to dodge exactly
-        // this kind of scraping. Only worth the download if the declared type is itself
-        // ambiguous/missing and the response isn't a tiny beacon/pixel.
-        if (!AMBIGUOUS_CONTENT_TYPE_RE.test(contentType)) return;
-        const contentLength = parseInt(headers['content-length'] ?? '', 10);
-        if (!Number.isNaN(contentLength) && contentLength < MIN_MEDIA_BYTES) return;
-        void response.body().then((body) => {
-          if (mediaFound) return;
-          const type = sniffMagicBytes(body);
-          if (!type) return;
-          mediaFound = true;
-          logger.info('VB: media URL intercepted (by magic bytes)', { roomId, url: respUrl.slice(0, 120), type });
-          onMediaFound(respUrl, type, 'url');
-        }).catch(() => { /* body unavailable (redirected/aborted) — skip */ });
+      attachResponseSniffer(page, roomId, (mediaUrl, type) => {
+        if (mediaFound) return;
+        mediaFound = true;
+        onMediaFound(mediaUrl, type, 'url');
       });
 
       // Category C — binary WebSocket transport instead of per-segment HTTP requests. Playwright
@@ -293,6 +321,54 @@ export async function startSession(
     }
   } finally {
     startingRooms.delete(roomId);
+  }
+}
+
+/**
+ * Headless pre-resolve probe (T-S174): open the URL in a throwaway browser, watch for a directly
+ * fetchable media URL, tear everything down. No screencast, no entry in `sessions`, nobody
+ * watching — this exists so a link can be checked when it is ADDED to the playlist rather than
+ * at the moment the room tries to play it.
+ *
+ * Returns the media URL if the page revealed one, otherwise null. Never throws: a probe failing
+ * only means "we don't know yet", which the caller records as needing the interactive fallback.
+ */
+export async function probeUrl(url: string): Promise<{ mediaUrl: string; type: 'mp4' | 'hls' } | null> {
+  if (activeProbes >= MAX_BACKGROUND_PROBES || sessions.size + activeProbes >= MAX_CONCURRENT) {
+    logger.info('VB probe: skipped, no spare capacity', { url, sessions: sessions.size, activeProbes });
+    return null;
+  }
+  activeProbes++;
+
+  let browser: Browser | null = null;
+  try {
+    browser = await chromium.launch({
+      headless: true,
+      executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+    });
+    const context = await browser.newContext({ viewport: VB_VIEWPORT });
+    const page = await context.newPage();
+
+    const result = await new Promise<{ mediaUrl: string; type: 'mp4' | 'hls' } | null>((resolve) => {
+      const timer = setTimeout(() => resolve(null), PROBE_TIMEOUT_MS);
+      attachResponseSniffer(page, `probe:${url.slice(0, 60)}`, (mediaUrl, type) => {
+        clearTimeout(timer);
+        resolve({ mediaUrl, type });
+      });
+      // Not awaited on purpose — many players only start fetching media well after load, so the
+      // timeout above (not navigation completion) is what bounds the probe.
+      page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20_000 }).catch(() => { /* sniffer may still fire */ });
+    });
+
+    logger.info('VB probe finished', { url: url.slice(0, 120), found: !!result });
+    return result;
+  } catch (err) {
+    logger.warn('VB probe failed to start', { url: url.slice(0, 120), error: (err as Error).message });
+    return null;
+  } finally {
+    await browser?.close().catch(() => { /* already gone */ });
+    activeProbes--;
   }
 }
 

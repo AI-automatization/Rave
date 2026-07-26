@@ -27,6 +27,7 @@ export class WatchPartyService {
   addToPlaylist!: WatchPartyPlaylistService['addToPlaylist'];
   removeFromPlaylist!: WatchPartyPlaylistService['removeFromPlaylist'];
   playNextFromPlaylist!: WatchPartyPlaylistService['playNextFromPlaylist'];
+  preResolvePlaylistItem!: WatchPartyPlaylistService['preResolvePlaylistItem'];
   kickMember!: WatchPartyMembersService['kickMember'];
   markBuffering!: WatchPartyMembersService['markBuffering'];
   unmarkBuffering!: WatchPartyMembersService['unmarkBuffering'];
@@ -50,6 +51,7 @@ export class WatchPartyService {
     this.addToPlaylist = this.playlist.addToPlaylist.bind(this.playlist);
     this.removeFromPlaylist = this.playlist.removeFromPlaylist.bind(this.playlist);
     this.playNextFromPlaylist = this.playlist.playNextFromPlaylist.bind(this.playlist);
+    this.preResolvePlaylistItem = this.playlist.preResolvePlaylistItem.bind(this.playlist);
     this.kickMember = this.members.kickMember.bind(this.members);
     this.markBuffering = this.members.markBuffering.bind(this.members);
     this.unmarkBuffering = this.members.unmarkBuffering.bind(this.members);

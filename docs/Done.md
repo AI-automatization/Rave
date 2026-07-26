@@ -4,6 +4,17 @@
 
 ---
 
+### F-279 | T-S173 + T-S174 + T-S175 + T-S176 | Playlist pre-resolve zanjiri
+
+- **Bajaruvchi:** Jasur (Claude opus 5)  **Bajarilgan:** 2026-07-27  **Model:** opus
+- **O'zgarishlar:** `shared/src/types/index.ts` (`VideoResolveStatus`, `VideoItem.resolveStatus/resolvedAt` — ixtiyoriy), `services/watch-party/src/models/watchPartyRoom.model.ts` (playlist sub-sxemasi), `services/watchPartyPlaylist.service.ts` (`preResolvePlaylistItem()`, `playNextFromPlaylist` verdikt qaytaradi), `services/virtualBrowser.service.ts` (`attachResponseSniffer()` ajratildi + `probeUrl()`), `services/watchParty.service.ts` (facade), `controllers/watchParty.controller.ts` (fon rejimida ishga tushirish + VB fallback), `apps/app-web/.../RoomContent.tsx` (`QueueStatusDot`), `messages/{uz,ru,en}.json`.
+- **Xulosa:**
+  **T-S174** — sniffer'ning A-toifasi (`attachResponseSniffer`) `startSession` dan ajratildi; u faqat `page` bilan ishlardi, screencast yoki sessiya map'iga bog'liq emasdi. B/C toifalari (appendBuffer, WebSocket) ATAYLAB joyida qoldirildi: ular jonli in-memory bufferga tayanadigan URL beradi, ya'ni brauzerini darhol yopadigan probe uchun foydasiz. `probeUrl()` — screencast'siz, `sessions` ga yozilmaydi, 25s timeout. Byudjet: `MAX_BACKGROUND_PROBES=1` va `sessions.size + activeProbes < MAX_CONCURRENT` — navbatga qo'shilgan linklar oqimi tomosha qilayotgan xonani ochlikka qo'ymasligi uchun.
+  **T-S173** — element navbatga qo'shilgach fon rejimida: official embed host → darhol `ready` (ular klient tomonda iframe orqali o'ynaydi, probe qilish Chromium slotini bekorga yoqardi) → `tryExtract` → `probeUrl`. Natija faqat VERDIKT sifatida saqlanadi, topilgan URL emas: CDN linklari qisqa umrli va odatda IP-lock, xona o'sha elementga yetganda allaqachon eskirgan bo'lardi. Write-back `index` bo'yicha emas, `videoUrl`+`addedAt` bo'yicha — probe ishlayotganda ega elementni o'chirishi yoki navbatni siljitishi mumkin. Javob QAYTARILGANDAN KEYIN ishga tushadi: ekstraktsiya + brauzer probe o'nlab soniya olishi mumkin, "navbatga qo'shish" esa spinner bo'lib qolmasligi kerak.
+  **T-S175** — `playNextFromPlaylist` endi verdiktni qaytaradi, controller `needs_vb` bo'lsa VB'ni ishga tushiradi. `pending` (probe hali tugamagan yoki element T-S173 dan oldin qo'shilgan) ATAYLAB "shunchaki o'ynat" deb qaraladi — avvalgi xatti-harakat.
+  **T-S176** — panelda rangli nuqta (kulrang=tekshirilmoqda, yashil=tayyor, sariq=qo'lda ochish kerak). Ilgari link qo'shilganda hech qanday feedback yo'q edi.
+  ⚠️ **Sinovdan o'tmagan:** jonli Chromium probe (Playwright + Redis + Mongo kerak), VB fallback jonli xonada.
+
 ### F-278 | T-S108 | Bitta faol xona cheklovi (backend guard + 4 ta klient nuqtasi birlashtirildi)
 
 - **Bajaruvchi:** Jasur (Claude opus 5)  **Bajarilgan:** 2026-07-27  **Model:** opus
