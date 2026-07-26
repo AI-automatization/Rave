@@ -13,6 +13,9 @@ import { MemberList } from '@/components/party/MemberList';
 import { RoomHeader } from '@/components/party/RoomHeader';
 import { EmojiReactions } from '@/components/party/EmojiReactions';
 import { UserProfileModal } from '@/components/profile/UserProfileModal';
+import { VoiceStrip } from '@/components/party/VoiceStrip';
+import { useVoiceChat } from '@/hooks/use-voice-chat';
+import { useSocket } from '@/hooks/use-socket';
 import { roomsApi } from '@/lib/api/rooms.api';
 import { useWatchPartyStore } from '@/store/watch-party.store';
 import { useAuthStore } from '@/store/auth.store';
@@ -198,6 +201,12 @@ export function RoomContent({ roomId }: Props) {
   const reset = useWatchPartyStore((s) => s.reset);
   const room = useWatchPartyStore((s) => s.room);
   const roomJoined = useWatchPartyStore((s) => s.roomJoined);
+
+  // Voice runs for the whole room session, not just while the chat tab is open — leaving the tab
+  // must not drop the call. Gated on roomJoined because the server only accepts voice:join once
+  // the socket has an attached roomId (voiceEvents.handler.ts returns early otherwise).
+  const { socket } = useSocket();
+  const voice = useVoiceChat(socket, roomJoined);
   const currentUser = useAuthStore((s) => s.user);
   const isOwner = !!(room && currentUser && room.ownerId === currentUser._id);
 
@@ -344,6 +353,19 @@ export function RoomContent({ roomId }: Props) {
                 </button>
               )}
             </div>
+
+            {/* Above the tab content, not inside it: the mic control has to stay reachable no
+                matter which tab is showing. */}
+            <VoiceStrip
+              isJoined={voice.isJoined}
+              isMuted={voice.isMuted}
+              isLoading={voice.isLoading}
+              errorMsg={voice.errorMsg}
+              participants={voice.participants}
+              onToggleMute={voice.toggleMute}
+              onLeave={voice.leaveVoice}
+              onJoin={voice.joinVoice}
+            />
 
             {rightTab === 'chat' && <ChatPanel onSend={sendMessage} onOpenProfile={setProfileUserId} />}
             {rightTab === 'members' && <MemberList />}

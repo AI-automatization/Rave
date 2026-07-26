@@ -476,7 +476,12 @@
     "skipError": "O'tib bo'lmadi",
     "playNow": "Hozir yoqish",
     "queueEmptyHint": "Pastdagi maydonga havola qo'sh",
-    "queueEmptyHintMember": "Xona egasi hali video qo'shmagan"
+    "queueEmptyHintMember": "Xona egasi hali video qo'shmagan",
+    "voiceEmpty": "Ovozli chatda hech kim yo'q",
+    "voiceMute": "Mikrofonni o'chirish",
+    "voiceUnmute": "Mikrofonni yoqish",
+    "voiceLeave": "Ovozli chatdan chiqish",
+    "voiceRetry": "Qayta urinish"
   },
   "movie": {
     "watch": "Ko'rish",

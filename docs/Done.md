@@ -4,6 +4,54 @@
 
 ---
 
+### F-272 | T-S168 | Web'da ovozli chat noldan (WebRTC) — mavjud signaling qayta ishlatildi
+
+- **Bajaruvchi:** Jasur (Claude opus 5)  **Bajarilgan:** 2026-07-26  **Model:** opus
+- **O'zgarishlar:** YANGI: `apps/app-web/src/hooks/use-voice-chat.ts` (brauzer WebRTC, peer boshqaruvi, TURN, speaking aniqlash), `components/party/VoiceStrip.tsx`, `app/api/rooms/turn/route.ts` (TURN proxy — creds httpOnly cookie talab qiladi, brauzerdan to'g'ridan-to'g'ri chaqirib bo'lmaydi). O'ZGARDI: `room/[id]/RoomContent.tsx` (voice-strip tab kontentidan TEPADA), `messages/{uz,ru,en}.json` (5 ta `party.voice*` kalit).
+- **Xulosa:** Backend UMUMAN o'zgarmadi — `voiceEvents.handler.ts` faqat offer/answer/ICE ni relay qiladi, shuning uchun brauzer peer'i react-native-webrtc peer'i bilan to'g'ridan-to'g'ri kelishadi. Mobil versiyadan ikki farq: (1) 🔴 remote audio'ni QO'LDA `<audio>` ga ulash shart — react-native-webrtc kiruvchi trekni o'zi ijro etadi, brauzer YO'Q, busiz qo'ng'iroq ulanadi-yu jim qoladi; (2) speaking aniqlash Web Audio RMS orqali haqiqiy (mobil faqat taymerda `false` yuboradi). Glare oldini olish: faqat kech qo'shilgan tomon offer yuboradi (`VOICE_JOINED`), `VOICE_USER_JOINED` da offer yuborilmaydi. Mute tugmasi tab kontentidan tashqarida — mobil'dagi bag (chat ochiq bo'lsa mikrofonni o'chirib bo'lmasdi) web'da takrorlanmadi. Tekshiruv: `tsc --noEmit` 0 xato, `next build` muvaffaqiyatli (SSR muammosi yo'q, `/room/[id]` 27.8 kB). **Real sinov qilinmagan:** ikki brauzer o'rtasida haqiqiy qo'ng'iroq, TURN relay CGNAT ortida, mobil↔web aralash xona.
+
+### F-271 | T-S166 | Web'da svayp-javob (framer-motion drag)
+
+- **Bajaruvchi:** Jasur (Claude opus 5)  **Bajarilgan:** 2026-07-26  **Model:** opus
+- **O'zgarishlar:** `apps/app-web/src/components/party/ChatPanel.tsx` — `motion.div` + `drag="x"`, `dragSnapToOrigin`, threshold 60px.
+- **Xulosa:** Loyihadagi BIRINCHI drag-interaktsiya (`drag=` grep bo'yicha 0 natija edi). Threshold mobil DM svaypi bilan bir xil (60px) — jest ikkala platformada bir xil his qilinsin. Butun qator suriladi, faqat matn emas. Kursorli foydalanuvchilar uchun hover'dagi Reply tugmasi qoladi — ularda svayp yo'q.
+
+### F-270 | T-S165 | Mobil xona chatida svayp-javob (DM pattern'idan port)
+
+- **Bajaruvchi:** Jasur (Claude opus 5)  **Bajarilgan:** 2026-07-26  **Model:** opus
+- **O'zgarishlar:** `apps/mobile/src/components/watchParty/ChatPanel.tsx` + `.styles.ts` — `PanGestureHandler` butun qatorni o'raydi, `SWIPE_REPLY_TRIGGER=60`, haptic, `Animated.spring` qaytish, `swipeWrap`/`swipeReplyIcon` stillari.
+- **Xulosa:** `dm/MessageItem.tsx` dan 1:1 ko'chirildi — reanimated yo'q, o'rnatilgan `Animated` + gesture-handler. Long-press orqali javob berish OLIB TASHLANMADI, svayp qo'shimcha yo'l bo'ldi.
+
+### F-269 | T-S164 | Web xona chatida reply UI (DM pattern'idan port)
+
+- **Bajaruvchi:** Jasur (Claude opus 5)  **Bajarilgan:** 2026-07-26  **Model:** opus
+- **O'zgarishlar:** `types/index.ts` (`IChatReplyTo`, `IChatMessage.replyTo`), `hooks/use-watch-party.ts` (payloadni o'qish + `sendMessage(text, replyTo)`), `components/party/ChatPanel.tsx` (hover Reply tugmasi, iqtibos bloki), `messages/{uz,ru,en}.json` (`chat.reply`).
+- **Xulosa:** `messages/dm/ReplyPreviewBar.tsx` qayta ishlatildi, nusxa olinmadi. Reply tugmasi faqat hover'da ko'rinadi (IRC uslubidagi ixcham qatorlarga doimiy ikonka ustuni qo'shmaslik uchun), `focus:opacity-100` bilan klaviaturadan ham yetib boriladi.
+
+### F-268 | T-S163 | Xona chatidan foydalanuvchi profilini ochish (web modal + mobil action sheet)
+
+- **Bajaruvchi:** Jasur (Claude opus 5)  **Bajarilgan:** 2026-07-26  **Model:** opus
+- **O'zgarishlar:** YANGI `apps/app-web/src/components/profile/UserProfileModal.tsx`; `RoomContent.tsx` ga ulandi; `messages/*.json` (`friends.addFriend`). Mobil: `components/common/UserActionSheet.tsx` ga `onAddFriend` qatori, `WatchPartyScreen.tsx` da mutation + `isAlreadyFriend` tekshiruvi.
+- **Xulosa:** 🔴 Rejadan CHEKINISH: mobil uchun yangi `UserProfileSheet` YARATILMADI. Sababi — `UserActionSheet` allaqachon bor va `MembersStrip` dan ochiladi (profil/xabar/shikoyat/blok); ikkinchi, boshqacha sheet dublikat va nomuvofiq UX bo'lardi. Yetishmayotgan yagona narsa "Do'st qo'shish" edi — o'sha qo'shildi (o'zi yoki allaqachon do'st bo'lsa ko'rinmaydi). **Bajarilmadi:** web'da `profile/[id]` alohida sahifasi — modal to'liq profilni ko'rsatadi, ortiqcha ko'rindi; kerak bo'lsa alohida task.
+
+### F-267 | T-S162 | Mobil chatda haqiqiy avatar + profil ochish; ChatMessage dublikati yo'q qilindi
+
+- **Bajaruvchi:** Jasur (Claude opus 5)  **Bajarilgan:** 2026-07-26  **Model:** opus
+- **O'zgarishlar:** `apps/mobile/src/components/watchParty/ChatPanel.tsx` (Image render, bosiladigan avatar/username), `.styles.ts` (`avatarImage`), `hooks/useWatchParty.ts` (id/username/avatar/replyTo o'qish), `store/watchParty.store.ts` (`ChatMessage`/`ReplyTo` yagona ta'rif).
+- **Xulosa:** 🔴 Yon-topilma: `ChatMessage` IKKI joyda alohida e'lon qilingan va ajralib ketgan edi — ChatPanel `replyTo` ni bilardi, store bilmasdi, shuning uchun javob store'ga umuman yetib bormasdi. Endi store yagona ega, ChatPanel re-export qiladi. Keshdagi profil server payloadidan ustun — aks holda bir odam ikki xil nom bilan ko'rinardi.
+
+### F-266 | T-S161 | Web chatda avatar render + profil ochishga tayyorgarlik
+
+- **Bajaruvchi:** Jasur (Claude opus 5)  **Bajarilgan:** 2026-07-26  **Model:** opus
+- **O'zgarishlar:** `apps/app-web/src/hooks/use-watch-party.ts` (`ServerChatMessage` ga `id`/`avatar`), `components/party/ChatPanel.tsx` (avatar rasm yoki rangli initial-doira).
+- **Xulosa:** Payloadda avatar bo'lmasa (eski backend build'i) `members` ro'yxatidan qidiriladi — `use-watch-party` uni `GET /api/user/[id]` orqali alohida hal qiladi. `onOpenProfile` ixtiyoriy prop qilindi: T-S163 ulanmaguncha bo'sh onClick qoldirilmadi, avatar shunchaki bosilmaydi.
+
+### F-265 | T-S160 | Xona chati payloadi — avatar, replyTo va server id
+
+- **Bajaruvchi:** Jasur (Claude opus 5)  **Bajarilgan:** 2026-07-26  **Model:** opus
+- **O'zgarishlar:** `services/watch-party/src/socket/chatEvents.handler.ts` — `resolveAvatar()` (user-service `/users/:id/public`, soketda keshlanadi), `sanitizeReplyTo()` (xss + uzunlik), `randomUUID()` id, bitta payload obyekti.
+- **Xulosa:** `shared/*` ga TEGILMADI — Socket.io event nomi (`room:message`) o'zgarmadi va loyihada room-chat uchun shared type umuman yo'q edi (grep: 0), demak lock protokoli kerak bo'lmadi. 🔴 Yo'l-yo'lakay 3 ta bag: (1) ikkita alohida `Date.now()` sababli bir xabar jo'natuvchida va qolganlarda TURLI id olardi (ikkalasi ham `userId-timestamp` dan yasardi); (2) mobil `replyTo:{messageId}` yuborardi, server `{id}` kutardi — server endi ikkalasini qabul qiladi, chunki o'rnatilgan build'larni server bilan bir vaqtda yangilab bo'lmaydi; (3) `data.message` undefined bo'lsa `.slice()` crash qilardi. Avatar har xabarda emas, ULANISHGA bir marta olinadi — faol xona aks holda user-service'ni har qatorda urardi.
+
 ### F-264 | T-S115 | Brute force: Redis yiqilganda in-memory fallback hisoblagich
 
 - **Bajaruvchi:** Jasur (Claude opus 5)  **Bajarilgan:** 2026-07-26  **Model:** opus

@@ -1,108 +1,14 @@
 # CineSync — OCHIQ VAZIFALAR
 
-# Yangilangan: 2026-07-24
+# Yangilangan: 2026-07-26
 
 ---
 
 # 🎬 Room Redesign — 3 fazali reja (2026-07-24 planning session)
 
-> To'liq research + reja: memory `project_room_redesign_3phases.md`. Hali bitta ham boshlanmagan — pastdagi tartib bo'yicha claim qilib boshlash kerak. Fazalar orasida bog'liqlik bor: T-S171 (link) → T-S177/T-S178 (Instagram share stikerida shu link ishlatiladi).
+> To'liq research + reja: memory `project_room_redesign_3phases.md`. FAZA 1 tugadi (2026-07-26, Jasur — T-S160..T-S166 + T-S168, Done.md F-265..F-272); qolgani — pastdagi tartib bo'yicha claim qilib boshlash kerak. Fazalar orasida bog'liqlik bor: T-S171 (link) → T-S177/T-S178 (Instagram share stikerida shu link ishlatiladi).
 
 ## FAZA 1 — Room chat + voice UI
-
-### T-S160 | P1 | [BACKEND] | Room chat: avatar + replyTo payload'ga qo'shish
-
-- **Mas'ul:** pending[Jasur]
-- **Beruvchi:** Saidazim (room redesign planning)
-- **Yaratilgan:** 2026-07-24
-- **Holat:** 🔄 Bajarilmoqda (2026-07-26, Jasur)
-- **Tavsiya model:** sonnet
-- **Model sababi:** 1-2 fayl, mavjud handler'ni kengaytirish
-- **Sabab:** `chatEvents.handler.ts:19-40` hozir faqat `{userId,username,message,timestamp}` broadcast qiladi — `avatar` yo'q, mobile'dan kelayotgan `replyTo` o'qilmaydi/saqlanmaydi/qayta yuborilmaydi. Shuning uchun mobile'dagi reply UI ishlamaydi (backend jimgina drop qiladi).
-- **Qilish kerak:**
-  - [ ] `SERVER_EVENTS.ROOM_MESSAGE` payload'ga `avatar`, `replyTo:{id,text,senderName}` qo'shish
-  - [ ] `shared/src/constants`/types yangilash (shared/* — Telegram xabar + tasdiq kerak, lock protocol)
-  - [ ] Socket.io event NOM o'zgarmaydi, faqat payload kengaytiriladi — 3 platforma bilan moslikni saqlash
-- **Fayllar:** `services/watch-party/src/socket/chatEvents.handler.ts`, `shared/src/constants/socketEvents.ts`, `shared/src/types/*`
-
-### T-S161 | P1 | [WEB] | ChatPanel: avatar render + click → profile modal ochish
-
-- **Mas'ul:** pending[Jasur]
-- **Beruvchi:** Saidazim (room redesign planning)
-- **Yaratilgan:** 2026-07-24
-- **Holat:** 🔄 Bajarilmoqda (2026-07-26, Jasur — T-S160 tugadi)
-- **Tavsiya model:** sonnet
-- **Model sababi:** 1 komponent, mavjud pattern (`MemberList.tsx`) copy
-- **Sabab:** Hozir web chat — IRC-style oddiy matn qator, avatar umuman yo'q (`ChatPanel.tsx:50-65`), `IChatMessage.user.avatar` type'da bor lekin render qilinmaydi.
-- **Qilish kerak:**
-  - [ ] Avatar rasm/placeholder render (pattern: `MemberList.tsx:34-53`)
-  - [ ] Avatar/username'ga onClick → `UserProfileModal` (T-S163 tayyor bo'lgandan keyin ulash)
-- **Fayllar:** `apps/app-web/src/components/party/ChatPanel.tsx`
-
-### T-S162 | P1 | [MOBILE] | ChatPanel: click avatar/username → profile modal ochish
-
-- **Mas'ul:** pending[Jasur]
-- **Beruvchi:** Saidazim (room redesign planning)
-- **Yaratilgan:** 2026-07-24
-- **Holat:** 🔄 Bajarilmoqda (2026-07-26, Jasur)
-- **Tavsiya model:** sonnet
-- **Model sababi:** 1 fayl, onPress qo'shish + navigation
-- **Sabab:** Mobile'da avatar bor (rangli doira, faqat harf — real rasm emas), lekin bosilmaydi. `avatar` field ishlatilmayapti (`ChatPanel.tsx:22`).
-- **Qilish kerak:**
-  - [ ] `item.avatar` bo'lsa haqiqiy rasm render, bo'lmasa hozirgi initial-circle fallback
-  - [ ] onPress → `UserProfileModal(userId)` (T-S163)
-- **Fayllar:** `apps/mobile/src/components/watchParty/ChatPanel.tsx`
-
-### T-S163 | P2 | [MOBILE+WEB] | UserProfileModal — yangi komponent (add friend + view profile)
-
-- **Mas'ul:** pending[Jasur]
-- **Beruvchi:** Saidazim (room redesign planning)
-- **Yaratilgan:** 2026-07-24
-- **Holat:** 🔄 Bajarilmoqda (2026-07-26, Jasur)
-- **Tavsiya model:** sonnet
-- **Model sababi:** yangi komponent, lekin mavjud pattern'lardan (FriendProfileScreen, Dialog/Sheet primitives) yig'iladi
-- **Sabab:** Loyihada profil modal/bottom-sheet umuman yo'q — faqat mobile'da full-screen `FriendProfileScreen.tsx` bor (referens sifatida). Web'da hech narsa yo'q (`profile/[id]` route'i ham yo'q).
-- **Qilish kerak:**
-  - [ ] Web: `Dialog`/`Sheet` primitive asosida modal, add-friend action, "profilga o'tish" link (yangi `profile/[id]` route kerak bo'lishi mumkin)
-  - [ ] Mobile: bottom sheet (tekshirish — `@gorhom/bottom-sheet` bormi, yo'q bo'lsa Modal+Animated), `useFriendProfile`'dagi `sendRequestMutation` qayta ishlatish
-- **Fayllar:** yangi — `apps/app-web/src/components/profile/UserProfileModal.tsx`, `apps/mobile/src/components/profile/UserProfileSheet.tsx`
-
-### T-S164 | P2 | [WEB] | Reply UI komnata chatida (DM pattern'idan portlash)
-
-- **Mas'ul:** pending[Jasur]
-- **Beruvchi:** Saidazim (room redesign planning)
-- **Yaratilgan:** 2026-07-24
-- **Holat:** 🔄 Bajarilmoqda (2026-07-26, Jasur)
-- **Tavsiya model:** sonnet
-- **Model sababi:** mavjud DM pattern'ni 1-in-1 ko'chirish, yangi arxitektura emas
-- **Sabab:** Web room chatida reply umuman yo'q. DM'da tayyor: `ReplyTarget` interface, `handleReply`, `ReplyPreviewBar` — 1-in-1 ko'chirish mumkin.
-- **Fayllar:** manba (copy qilinadigan) — `apps/app-web/src/components/messages/ChatWindow.tsx:25-28,80-81`, `apps/app-web/src/components/messages/dm/`; maqsad — `apps/app-web/src/components/party/ChatPanel.tsx`
-
-### T-S165 | P2 | [MOBILE] | Swipe-to-reply komnata chatida (DM pattern'idan portlash)
-
-- **Mas'ul:** pending[Jasur]
-- **Beruvchi:** Saidazim (room redesign planning)
-- **Yaratilgan:** 2026-07-24
-- **Holat:** 🔄 Bajarilmoqda (2026-07-26, Jasur)
-- **Tavsiya model:** sonnet
-- **Model sababi:** mavjud gesture pattern ko'chirish
-- **Sabab:** DM'da to'liq qator svayp bor (`dm/MessageItem.tsx` — `PanGestureHandler` FULL row'ni o'raydi, threshold=60, haptics), watch-party ChatPanel'da faqat long-press bor, svayp yo'q.
-- **Qilish kerak:**
-  - [ ] `PanGestureHandler` ko'chirish, `onSwipeReply` → mavjud `onReply` state'ga ulash (long-press ham qoladi)
-- **Fayllar:** manba — `apps/mobile/src/components/dm/MessageItem.tsx`; maqsad — `apps/mobile/src/components/watchParty/ChatPanel.tsx`
-
-### T-S166 | P2 | [WEB] | Swipe-to-reply web'da (framer-motion drag)
-
-- **Mas'ul:** pending[Jasur]
-- **Beruvchi:** Saidazim (room redesign planning)
-- **Yaratilgan:** 2026-07-24
-- **Holat:** 🔄 Bajarilmoqda (2026-07-26, Jasur)
-- **Tavsiya model:** sonnet
-- **Model sababi:** yangi interaction, lekin bitta komponent
-- **Sabab:** Web'da hech qayerda drag-jest ishlatilmagan (`framer-motion` bor, `drag=`/`dragConstraints` grep 0 natija). Bu loyihada birinchi drag-interaction bo'ladi.
-- **Qilish kerak:**
-  - [ ] `drag="x"` + `dragConstraints`, threshold ~60px, snap-back animatsiya, butun qator bo'yicha (faqat matn emas)
-- **Fayllar:** `apps/app-web/src/components/party/ChatPanel.tsx`
 
 ### T-S167 | P1 | [MOBILE] | Chat+Voice UI birlashtirish (ikkalasi bir vaqtda ko'rinsin)
 
@@ -117,17 +23,6 @@
   - [ ] Variant C: bitta panel — tepada compact voice-strip (avatar+mic), pastda chat; toggle olib tashlanadi
   - [ ] Mute tugmasi har doim mavjud bo'lishi kerak (hozir faqat voice panel ochiq bo'lganda ko'rinadi — `VoiceChatControls`)
 - **Fayllar:** `apps/mobile/src/hooks/useWatchPartyRoom.ts`, `apps/mobile/src/screens/modal/WatchPartyScreen.tsx`, `apps/mobile/src/components/watchParty/RoomInfoBar.tsx`, `VoiceChatControls.tsx`
-
-### T-S168 | P3 | [WEB] | Voice chat web'da noldan (WebRTC) — SCOPE QARORI KUTILMOQDA
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Saidazim (room redesign planning)
-- **Yaratilgan:** 2026-07-24
-- **Holat:** ⛔ Bloklangan — Saidazim hali tasdiqlamadi: Faza 1 web'ga voice qo'shishni ham o'z ichiga oladimi?
-- **Tavsiya model:** opus
-- **Model sababi:** noldan WebRTC mesh, backend allaqachon bor (`voiceEvents.handler.ts`, TURN) lekin web klient — katta arxitektura
-- **Sabab:** `apps/app-web` da voice zависимости/fayllari 0 ta. Agar kerak bo'lsa — brauzer WebRTC API orqali xuddi shu backend signaling'ga ulanish.
-- **Fayllar:** yangi — `apps/app-web/src/hooks/use-voice-chat.ts` va h.k. (backend qayta ishlatiladi, o'zgarmaydi)
 
 ---
 

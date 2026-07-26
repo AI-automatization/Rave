@@ -515,7 +515,12 @@
     "skipError": "Failed to skip",
     "playNow": "Play now",
     "queueEmptyHint": "Add a link below",
-    "queueEmptyHintMember": "The room owner hasn't added any videos yet"
+    "queueEmptyHintMember": "The room owner hasn't added any videos yet",
+    "voiceEmpty": "Nobody in voice chat",
+    "voiceMute": "Mute microphone",
+    "voiceUnmute": "Unmute microphone",
+    "voiceLeave": "Leave voice chat",
+    "voiceRetry": "Retry"
   },
   "movie": {
     "watch": "Watch",
