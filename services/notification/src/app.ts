@@ -9,6 +9,7 @@ import { errorHandler, notFoundHandler } from '@shared/middleware/error.middlewa
 import { setupSentryErrorHandler } from '@shared/utils/sentry';
 import { metricsMiddleware, registerMetricsEndpoint } from '@shared/utils/metrics';
 import { requestId } from '@shared/middleware/requestId.middleware';
+import { mongoSanitize } from '@shared/middleware/mongoSanitize.middleware';
 import { timeout } from '@shared/middleware/timeout.middleware';
 import { maintenanceGuard } from '@shared/middleware/maintenance.middleware';
 import { apiLogger } from '@shared/middleware/apiLogger.middleware';
@@ -64,6 +65,7 @@ export const createApp = (): express.Application => {
   app.use(morgan('combined', { stream: morganStream }));
   app.use(express.json({ limit: '10kb' }));
   app.use(requestId);
+  app.use(mongoSanitize);
   app.use(metricsMiddleware());
   app.use(apiLogger('notification'));
   app.use(timeout());

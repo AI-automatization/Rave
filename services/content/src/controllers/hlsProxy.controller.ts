@@ -14,8 +14,28 @@ import jwt from 'jsonwebtoken';
 import { LRUCache } from 'lru-cache';
 import { logger } from '@shared/utils/logger';
 import type { AuthenticatedRequest } from '@shared/types';
+import { config } from '../config/index';
 
 const getPublicKey = () => (process.env.JWT_PUBLIC_KEY ?? '').replace(/\\n/g, '\n');
+
+const allowedOrigins = config.corsOrigins.split(',').map((o) => o.trim()).filter(Boolean);
+
+/**
+ * Replaces the blanket `Access-Control-Allow-Origin: *` these responses used to send, which let
+ * any site on the internet run its video traffic through our bandwidth.
+ *
+ * A missing Origin header means a native player (ExoPlayer/AVPlayer) or a server-to-server call —
+ * CORS does not apply to those at all, so the right move is to send no header rather than to
+ * reject: adding one would be meaningless, and `*` is what created the abuse window. Browsers
+ * always send Origin, so they still get checked against the same allowlist app.ts uses.
+ */
+function setProxyCors(req: Request, res: Response): void {
+  const origin = req.headers.origin;
+  res.setHeader('Vary', 'Origin'); // the response body is origin-independent, the header isn't
+  if (typeof origin === 'string' && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+}
 
 /**
  * Verifies a raw JWT string from the ?token= query param.
@@ -474,7 +494,7 @@ export const hlsProxyController = {
 
       res.setHeader('Content-Type',                  'application/vnd.apple.mpegurl');
       res.setHeader('Cache-Control',                 'no-store');
-      res.setHeader('Access-Control-Allow-Origin',   '*');
+      setProxyCors(req, res);
       res.status(200).send(rewritten);
     } catch (err) {
       logger.error('HLS proxy: failed to fetch m3u8', {
@@ -532,7 +552,7 @@ export const hlsProxyController = {
       if (cached) {
         res.setHeader('Content-Type',                cached.contentType);
         res.setHeader('Cache-Control',               'no-store');
-        res.setHeader('Access-Control-Allow-Origin', '*');
+        setProxyCors(req, res);
         res.setHeader('Content-Length',               String(cached.body.length));
         res.status(200).send(cached.body);
         return;
@@ -596,7 +616,7 @@ export const hlsProxyController = {
 
       res.setHeader('Content-Type',                contentType);
       res.setHeader('Cache-Control',               'no-store');
-      res.setHeader('Access-Control-Allow-Origin', '*');
+      setProxyCors(req, res);
 
       if (upstreamRes.headers['content-length'])  res.setHeader('Content-Length', upstreamRes.headers['content-length'] as string);
       if (upstreamRes.headers['content-range'])   res.setHeader('Content-Range',  upstreamRes.headers['content-range'] as string);

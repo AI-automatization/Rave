@@ -23,6 +23,48 @@ const BCRYPT_ROUNDS = 12;
 const MAX_LOGIN_ATTEMPTS = 5;
 const BLOCK_DURATION_SECONDS = 15 * 60; // 15 minutes
 
+/**
+ * Per-instance login-attempt counter used only while Redis is unreachable.
+ *
+ * It is deliberately NOT a replacement for the Redis counter: with several auth instances behind
+ * the load balancer an attacker's attempts spread across them, so the effective limit during an
+ * outage is `MAX_LOGIN_ATTEMPTS × instances`. That is still bounded, where the previous behaviour
+ * (log the failure, allow the login attempt) was unbounded. Full fail-closed was rejected because
+ * a Redis blip would then lock every user out of the product.
+ */
+const fallbackAttempts = {
+  entries: new Map<string, { count: number; expiresAt: number }>(),
+
+  get(email: string): number {
+    const entry = this.entries.get(email);
+    if (!entry) return 0;
+    if (entry.expiresAt <= Date.now()) {
+      this.entries.delete(email);
+      return 0;
+    }
+    return entry.count;
+  },
+
+  increment(email: string): void {
+    // Prune on write — this map only ever fills up during an outage, and clearing expired rows
+    // here avoids needing a timer that would otherwise run forever for nothing.
+    const now = Date.now();
+    for (const [key, entry] of this.entries) {
+      if (entry.expiresAt <= now) this.entries.delete(key);
+    }
+    const current = this.entries.get(email);
+    if (current && current.expiresAt > now) {
+      current.count++;
+      return;
+    }
+    this.entries.set(email, { count: 1, expiresAt: now + BLOCK_DURATION_SECONDS * 1000 });
+  },
+
+  clear(email: string): void {
+    this.entries.delete(email);
+  },
+};
+
 // ─── Shared module-level utilities ──────────────────────────────────────────
 
 export async function generateUniqueUsername(displayName: string): Promise<string> {
@@ -199,8 +241,11 @@ export class PasswordAuthService {
     try {
       await this.redis.del(REDIS_KEYS.loginAttempts(email));
     } catch {
-      logger.warn('Redis unavailable — could not clear login attempts', { email });
+      logger.warn('Redis unavailable — clearing in-memory login attempts instead', { email });
     }
+    // Always clear the fallback too: a successful login must not leave a stale count behind that
+    // locks the user out once Redis comes back and the two counters disagree.
+    fallbackAttempts.clear(email);
 
     const payload: JwtPayload = {
       userId: user._id.toString(),
@@ -599,8 +644,11 @@ export class PasswordAuthService {
     try {
       await this.redis.del(REDIS_KEYS.loginAttempts(email));
     } catch {
-      logger.warn('Redis unavailable — could not clear login attempts', { email });
+      logger.warn('Redis unavailable — clearing in-memory login attempts instead', { email });
     }
+    // Always clear the fallback too: a successful login must not leave a stale count behind that
+    // locks the user out once Redis comes back and the two counters disagree.
+    fallbackAttempts.clear(email);
   }
 
   private async checkBruteForce(email: string): Promise<void> {
@@ -611,8 +659,13 @@ export class PasswordAuthService {
       }
     } catch (err) {
       if (err instanceof TooManyRequestsError) throw err;
-      // Redis unavailable — degrade gracefully (no brute-force protection)
-      logger.warn('Redis unavailable for brute force check — degraded mode', { email });
+      // Redis down: fall back to the per-instance counter instead of waving every attempt through.
+      // This used to log and continue, which meant a Redis outage silently removed brute-force
+      // protection entirely — precisely when an attacker would want it gone.
+      logger.warn('Redis unavailable for brute force check — using in-memory fallback', { email });
+      if (fallbackAttempts.get(email) >= MAX_LOGIN_ATTEMPTS) {
+        throw new TooManyRequestsError('Account locked for 15 minutes due to too many failed attempts');
+      }
     }
   }
 
@@ -623,7 +676,8 @@ export class PasswordAuthService {
         await this.redis.expire(REDIS_KEYS.loginAttempts(email), BLOCK_DURATION_SECONDS);
       }
     } catch {
-      logger.warn('Redis unavailable — could not increment login attempts', { email });
+      logger.warn('Redis unavailable — counting login attempt in memory', { email });
+      fallbackAttempts.increment(email);
     }
   }
 }

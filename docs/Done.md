@@ -1,8 +1,38 @@
 # WeWatch — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-07-25
+# Yangilangan: 2026-07-26
 
 ---
+
+### F-264 | T-S115 | Brute force: Redis yiqilganda in-memory fallback hisoblagich
+
+- **Bajaruvchi:** Jasur (Claude opus 5)  **Bajarilgan:** 2026-07-26  **Model:** opus
+- **O'zgarishlar:** `services/auth/src/services/passwordAuth.service.ts` — modul darajasidagi `fallbackAttempts` (Map, TTL 15 daqiqa, yozishda eskilarini tozalaydi); `checkBruteForce`/`incrementLoginAttempts` catch bloklari endi shuni ishlatadi; muvaffaqiyatli loginda ikkala hisoblagich ham tozalanadi.
+- **Xulosa:** Redis yiqilsa brute-force himoyasi butunlay o'chib qolardi (fail-open) — ya'ni aynan hujumchi xohlagan paytda. To'liq fail-closed ATAYLAB tanlanmadi: Redis'ning bir lahzalik uzilishi hamma foydalanuvchini tizimdan chiqarib yuborardi. Cheklov izohda ochiq yozilgan: bir nechta instance bo'lsa amaldagi limit `5 × instance soni`, lekin bu cheksizlikdan yaxshiroq.
+
+### F-263 | T-S116 | internal-secret solishtiruvi timing-safe qilindi
+
+- **Bajaruvchi:** Jasur (Claude opus 5)  **Bajarilgan:** 2026-07-26  **Model:** opus
+- **O'zgarishlar:** `shared/src/utils/serviceClient.ts` — `validateInternalSecret` endi `crypto.timingSafeEqual`, ikkala tomon avval `sha256` bilan 32 baytga keltiriladi.
+- **Xulosa:** `===` birinchi farqli baytda to'xtaydi — taxminning qancha qismi to'g'ri ekani vaqt orqali sizadi. `timingSafeEqual` uzunlik farq qilsa xato tashlaydi (bu esa uzunlikni oshkor qilardi), shuning uchun oldin hash qilinadi. Xavf past (ichki tarmoq), lekin tuzatish arzon.
+
+### F-262 | T-S114 | hls-proxy: wildcard CORS `*` olib tashlandi
+
+- **Bajaruvchi:** Jasur (Claude opus 5)  **Bajarilgan:** 2026-07-26  **Model:** opus
+- **O'zgarishlar:** `services/content/src/controllers/hlsProxy.controller.ts` — 3 ta `Access-Control-Allow-Origin: '*'` o'rniga `setProxyCors()` helper: Origin allowlist'da bo'lsa qaytariladi, bo'lmasa header umuman yuborilmaydi; `Vary: Origin` qo'shildi. Allowlist app.ts dagi bilan bir xil manbadan (`config.corsOrigins`).
+- **Xulosa:** Har qanday sayt bizning bandwidth orqali video oqizishi mumkin edi. Origin header YO'Q holat (ExoPlayer/AVPlayer, server-to-server) ataylab ruxsat etiladi — CORS ularga umuman taalluqli emas, header qo'shish ma'nosiz bo'lardi, `*` esa aynan shu teshikni yaratgan edi.
+
+### F-261 | T-S113 | express-mongo-sanitize o'rniga o'z middleware'i — 6 servisda
+
+- **Bajaruvchi:** Jasur (Claude opus 5)  **Bajarilgan:** 2026-07-26  **Model:** opus
+- **O'zgarishlar:** YANGI `shared/src/middleware/mongoSanitize.middleware.ts` (`$`-bilan boshlanuvchi va nuqtali kalitlarni body/query/params dan rekursiv o'chiradi, o'chirilganda warn log). `app.use(mongoSanitize)` — admin, auth, content, notification, user, watch-party (`requestId` dan keyin).
+- **Xulosa:** Loyihada NoSQL-injection himoyasi faqat validatsiyaga tayanardi. `express-mongo-sanitize` paketi ATAYLAB olinmadi: xatti-harakat ~30 qator, repo esa allaqachon o'z middleware'larini `shared/src/middleware/` da qo'lda yozadi. `req.query` qayta tayinlanmaydi, joyida tozalanadi (Express 5 da sinadigan naqsh — oldini olindi).
+
+### F-260 | T-S112 | battle servisiga helmet() — VAZIFA ESKIRGAN, kod o'zgarmadi
+
+- **Bajaruvchi:** Jasur (Claude opus 5)  **Bajarilgan:** 2026-07-26  **Model:** opus
+- **O'zgarishlar:** yo'q.
+- **Xulosa:** `services/battle/` loyihada UMUMAN yo'q (faqat `tests/api/battle` qolgan), `gateway` esa Node emas — nginx. Qolgan 6 ta Node servisning hammasida `app.use(helmet())` allaqachon bor (tekshirildi). Vazifa 2026-07-04 auditidan qolgan, o'shandan beri battle servisi olib tashlangan.
 
 ### F-257 | T-E211 | Ingliz kontenti — /en gaydlar, FAQ, how-it-works, JSON-LD
 

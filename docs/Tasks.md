@@ -379,87 +379,24 @@
 
 ---
 
----
-
 ### T-S111 | P1 | [SECURITY] | Deps: обновить high-уязвимости (ws/undici/nodemailer/next)
 
-- **Mas'ul:** pending[Saidazim]
+- **Mas'ul:** pending[Jasur]
 - **Beruvchi:** Saidazim (security audit)
 - **Yaratilgan:** 2026-07-04
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 Qisman bajarildi (2026-07-26, Jasur) — xavfsiz qismi tugadi, **major bump qarori kutilmoqda**
 - **Tavsiya model:** sonnet
 - **Model sababi:** package bumps + smoke-тест
 - **Sabab:** 54 уязвимости (13 high). Реально достижимые в рантайме: `ws` (DoS memory exhaustion → socket.io/watch-party), `undici` (обход TLS-проверки), `nodemailer` (письмо не на тот домен → auth), `next` (DoS Image Optimizer → web). Фикс: `npm audit fix`, поднять ws/undici/nodemailer/next, проверить что socket.io/сборки не сломались.
+- **2026-07-26 holati:**
+  - [x] `ws` va `undici` — **hozir zaiflik yo'q**, o'z-o'zidan hal bo'lgan (2026-07-04 auditidan keyin)
+  - [x] `npm audit fix` (major'siz) — 83 → 82 zaiflik. `apps/web` next 16.2.10 → 16.2.12
+  - [x] Tekshiruv: app-web tsc 0, apps/web tsc 5 (oldin ham 5), mobile 1 (oldin ham 1), auth/user/content/watch-party — bazaviy holatda
+  - [ ] **Qaror kerak — `nodemailer` 6.9 → 9.0.3 (MAJOR).** auth + notification servislarida. SMTP command injection + noto'g'ri domenga xat. Breaking change, smoke-test kerak.
+  - [ ] **Qaror kerak — `apps/app-web` next 14.2.35 → 15/16 (MAJOR migratsiya).** Image Optimizer DoS. Bu "bump" emas, alohida migratsiya vazifasi.
+  - [ ] `tar` (critical, `@mapbox/node-pre-gyp` orqali) — build-time bog'liqlik, runtime so'rov yo'lida emas; ota-paketning major bump'i kerak
+  - [ ] Qolgan 40+ zaiflik — devDependency (eslint/jest/vite/expo), runtime'ga chiqmaydi
 - **Файлы:** `package.json`, `package-lock.json` (overrides при необходимости)
-
----
-
-### T-S112 | P2 | [SECURITY] | battle-сервис: добавить helmet()
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Saidazim (security audit)
-- **Yaratilgan:** 2026-07-04
-- **Holat:** ❌ Boshlanmagan
-- **Tavsiya model:** haiku
-- **Model sababi:** 1 строка
-- **Sabab:** Единственный из 7 сервисов без security-заголовков (CSP/HSTS/X-Frame-Options). Фикс: `app.use(helmet())` как в остальных.
-- **Файлы:** `services/battle/src/app.ts`
-
----
-
-### T-S113 | P2 | [SECURITY] | express-mongo-sanitize на всех сервисах (defense-in-depth)
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Saidazim (security audit)
-- **Yaratilgan:** 2026-07-04
-- **Holat:** ❌ Boshlanmagan
-- **Tavsiya model:** sonnet
-- **Model sababi:** middleware в 7 app.ts
-- **Sabab:** Нигде нет `express-mongo-sanitize`. Защита от NoSQL-инъекции ($ne/$gt в body/query) держится только на валидации. Прямых `req.body→query` не найдено (смягчено), но добавить middleware стоит. Фикс: подключить в каждый app.ts.
-- **Файлы:** `services/*/src/app.ts`, shared middleware
-
----
-
-### T-S114 | P3 | [SECURITY] | hls-proxy: убрать wildcard CORS `*`
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Saidazim (security audit)
-- **Yaratilgan:** 2026-07-04
-- **Holat:** ❌ Boshlanmagan
-- **Tavsiya model:** haiku
-- **Model sababi:** 2 строки
-- **Sabab:** hls-proxy отдаёт `Access-Control-Allow-Origin: *` — любой origin гоняет трафик через прокси (абуз bandwidth). Ограничить до своих доменов или rate-limit.
-- **Файлы:** `services/content/src/controllers/hlsProxy.controller.ts` (342, 421)
-
----
-
-### T-S115 | P3 | [SECURITY] | Брутфорс: fail-closed при падении Redis
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Saidazim (security audit)
-- **Yaratilgan:** 2026-07-04
-- **Holat:** ❌ Boshlanmagan
-- **Tavsiya model:** sonnet
-- **Model sababi:** 1 файл, логика degraded-режима
-- **Sabab:** Если Redis лёг → проверка попыток логина пропускается (fail-open). Окно для брутфорса во время сбоя. Фикс: fail-closed либо in-memory fallback-счётчик.
-- **Файлы:** `services/auth/src/services/passwordAuth.service.ts`
-
----
-
-### T-S116 | P3 | [SECURITY] | internal-secret → crypto.timingSafeEqual
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Saidazim (security audit)
-- **Yaratilgan:** 2026-07-04
-- **Holat:** ❌ Boshlanmagan
-- **Tavsiya model:** haiku
-- **Model sababi:** 1 функция
-- **Sabab:** `secret === INTERNAL_SECRET` — не timing-safe. Теоретический тайминг-атак (риск низкий, внутренняя сеть). Фикс: `crypto.timingSafeEqual`.
-- **Файлы:** `shared/src/utils/serviceClient.ts` (validateInternalSecret)
-
----
-
-# 🟣 Sprint 14: Staging + CI/CD (2026-07-03) — A1+B1+C2
 
 ---
 

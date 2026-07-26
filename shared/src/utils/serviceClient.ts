@@ -1,3 +1,4 @@
+import { createHash, timingSafeEqual } from 'crypto';
 import { logger } from './logger';
 import { AppError, ConflictError, BadRequestError, ValidationError, InternalServerError } from './errors';
 import { isQueueReady, queueAddPoints, queueTriggerAchievement } from './serviceQueue';
@@ -371,8 +372,15 @@ export async function cascadeDeleteUser(userId: string): Promise<void> {
 // ─── Internal secret middleware ────────────────────────────────────────────────
 
 export function validateInternalSecret(secret: string | undefined): boolean {
-  if (!INTERNAL_SECRET) return false;
-  return secret === INTERNAL_SECRET;
+  if (!INTERNAL_SECRET || typeof secret !== 'string') return false;
+
+  // `===` on strings bails out at the first differing byte, so the time it takes leaks how much of
+  // a guess was correct. timingSafeEqual doesn't — but it throws on length mismatch, which would
+  // leak the length instead, so both sides are hashed to a fixed 32 bytes first. That also means
+  // the comparison stays constant-time regardless of what an attacker sends.
+  const a = createHash('sha256').update(secret).digest();
+  const b = createHash('sha256').update(INTERNAL_SECRET).digest();
+  return timingSafeEqual(a, b);
 }
 
 export function requireInternalSecret(

@@ -12,6 +12,7 @@ import { errorHandler, notFoundHandler } from '@shared/middleware/error.middlewa
 import { setupSentryErrorHandler } from '@shared/utils/sentry';
 import { metricsMiddleware, registerMetricsEndpoint } from '@shared/utils/metrics';
 import { requestId } from '@shared/middleware/requestId.middleware';
+import { mongoSanitize } from '@shared/middleware/mongoSanitize.middleware';
 import { timeout } from '@shared/middleware/timeout.middleware';
 import { maintenanceGuard } from '@shared/middleware/maintenance.middleware';
 import { morganStream, logger } from '@shared/utils/logger';
@@ -80,6 +81,7 @@ export const createApp = (redis: Redis): { app: express.Application; io: SocketS
   app.use(morgan('combined', { stream: morganStream }));
   app.use(express.json({ limit: '10kb' }));
   app.use(requestId);
+  app.use(mongoSanitize);
   app.use(metricsMiddleware());
   app.use(timeout());
   app.use(maintenanceGuard);
