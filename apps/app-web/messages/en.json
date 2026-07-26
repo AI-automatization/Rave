@@ -296,7 +296,8 @@
     "serverError": "Server error, please try again",
     "searchError": "Search failed",
     "acceptError": "Error, please try again",
-    "userNotFound": "User not found"
+    "userNotFound": "User not found",
+    "addFriend": "Add friend"
   },
   "battle": {
     "title": "BATTLE",

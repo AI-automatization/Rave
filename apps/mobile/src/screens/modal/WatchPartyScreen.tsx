@@ -31,7 +31,8 @@ import { isDomainBlocked } from '@constants/blockedDomains';
 import { extractDomain } from '@utils/videoPlayer';
 import { blockedUsersStorage } from '@utils/storage';
 import { userApi } from '@api/user.api';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { useFriendsStore } from '@store/friends.store';
 import { appAlert } from '@components/common/AppAlert';
 
 type NavProp = NativeStackNavigationProp<ModalStackParamList, 'WatchParty'>;
@@ -62,6 +63,23 @@ export function WatchPartyScreen() {
   };
 
   const handleActionSheetClose = () => setActionSheetUserId(null);
+
+  // "Add friend" only makes sense for someone who isn't already one — the room is full of
+  // strangers, which is exactly why the action belongs here and not only on the friends screen.
+  const friends = useFriendsStore((s) => s.friends);
+  const isAlreadyFriend = friends.some((f) => f._id === actionSheetUserId);
+
+  const addFriendMutation = useMutation({
+    mutationFn: (uid: string) => userApi.sendFriendRequest(uid),
+    onSuccess: () => appAlert('✓', t('friends', 'requestSentAlert')),
+    onError: () => appAlert(t('common', 'error'), t('friends', 'requestError')),
+  });
+
+  const handleActionSheetAddFriend = () => {
+    const uid = actionSheetUserId;
+    setActionSheetUserId(null);
+    if (uid) addFriendMutation.mutate(uid);
+  };
 
   const handleActionSheetViewProfile = () => {
     const uid = actionSheetUserId;
@@ -249,7 +267,7 @@ export function WatchPartyScreen() {
           {/* Chat panel */}
           {showChat && (
             <View style={[s.fsChatWrap, { height: Math.round(winHeight * 0.38) }]}>
-              <ChatPanel messages={messages} currentUserId={userId} onSend={sendMessage} />
+              <ChatPanel messages={messages} currentUserId={userId} onSend={sendMessage} onOpenProfile={handleMemberPress} />
             </View>
           )}
 
@@ -399,7 +417,7 @@ export function WatchPartyScreen() {
           {/* Chat panel */}
           {showChat && (
             <View style={s.chatPanel}>
-              <ChatPanel messages={messages} currentUserId={userId} onSend={sendMessage} />
+              <ChatPanel messages={messages} currentUserId={userId} onSend={sendMessage} onOpenProfile={handleMemberPress} />
             </View>
           )}
 
@@ -489,6 +507,11 @@ export function WatchPartyScreen() {
               onSendMessage={handleActionSheetSendMessage}
               onReport={handleActionSheetReport}
               onBlock={handleActionSheetBlock}
+              onAddFriend={
+                actionSheetUserId !== userId && !isAlreadyFriend
+                  ? handleActionSheetAddFriend
+                  : undefined
+              }
             />
           )}
         </>

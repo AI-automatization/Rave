@@ -55,10 +55,10 @@
 
 ### T-S163 | P2 | [MOBILE+WEB] | UserProfileModal — yangi komponent (add friend + view profile)
 
-- **Mas'ul:** pending[Saidazim]
+- **Mas'ul:** pending[Jasur]
 - **Beruvchi:** Saidazim (room redesign planning)
 - **Yaratilgan:** 2026-07-24
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 Bajarilmoqda (2026-07-26, Jasur)
 - **Tavsiya model:** sonnet
 - **Model sababi:** yangi komponent, lekin mavjud pattern'lardan (FriendProfileScreen, Dialog/Sheet primitives) yig'iladi
 - **Sabab:** Loyihada profil modal/bottom-sheet umuman yo'q — faqat mobile'da full-screen `FriendProfileScreen.tsx` bor (referens sifatida). Web'da hech narsa yo'q (`profile/[id]` route'i ham yo'q).

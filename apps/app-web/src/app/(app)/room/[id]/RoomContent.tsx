@@ -12,6 +12,7 @@ import { ChatPanel } from '@/components/party/ChatPanel';
 import { MemberList } from '@/components/party/MemberList';
 import { RoomHeader } from '@/components/party/RoomHeader';
 import { EmojiReactions } from '@/components/party/EmojiReactions';
+import { UserProfileModal } from '@/components/profile/UserProfileModal';
 import { roomsApi } from '@/lib/api/rooms.api';
 import { useWatchPartyStore } from '@/store/watch-party.store';
 import { useAuthStore } from '@/store/auth.store';
@@ -191,6 +192,8 @@ export function RoomContent({ roomId }: Props) {
   const router = useRouter();
   const { sendMessage, sendPlay, sendPause, sendSeek, sendEmoji, sendHeartbeat, sendBufferStart, sendBufferEnd, sendMediaChange } = useWatchParty(roomId);
   const [rightTab, setRightTab] = useState<'chat' | 'members' | 'playlist'>('chat');
+  /** Whose profile the modal is showing — `null` means closed. */
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const setRoom = useWatchPartyStore((s) => s.setRoom);
   const reset = useWatchPartyStore((s) => s.reset);
   const room = useWatchPartyStore((s) => s.room);
@@ -342,7 +345,7 @@ export function RoomContent({ roomId }: Props) {
               )}
             </div>
 
-            {rightTab === 'chat' && <ChatPanel onSend={sendMessage} />}
+            {rightTab === 'chat' && <ChatPanel onSend={sendMessage} onOpenProfile={setProfileUserId} />}
             {rightTab === 'members' && <MemberList />}
             {rightTab === 'playlist' && (
               <PlaylistPanel
@@ -354,6 +357,8 @@ export function RoomContent({ roomId }: Props) {
           </div>
         </div>
         </div>
+
+      <UserProfileModal userId={profileUserId} onClose={() => setProfileUserId(null)} />
     </div>
   );
 }

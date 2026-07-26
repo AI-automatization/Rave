@@ -22,6 +22,8 @@ interface Props {
   onSendMessage: () => void;
   onReport: () => void;
   onBlock: () => void;
+  /** Omitted when the row shouldn't appear at all — already friends, or the user themself. */
+  onAddFriend?: () => void;
 }
 
 function avatarColor(id: string): string {
@@ -50,7 +52,7 @@ function ActionRow({ icon, label, destructive, onPress, trackId }: RowProps) {
 
 export function UserActionSheet({
   visible, userId, username, avatar, isSelf,
-  onClose, onViewProfile, onSendMessage, onReport, onBlock,
+  onClose, onViewProfile, onSendMessage, onReport, onBlock, onAddFriend,
 }: Props) {
   const { t } = useT();
   const bg = avatarColor(userId);
@@ -99,6 +101,14 @@ export function UserActionSheet({
             label={t('dm', 'sendMessage')}
             onPress={onSendMessage}
             trackId="user_action_sheet:send_message"
+          />
+        )}
+        {onAddFriend && (
+          <ActionRow
+            icon="person-add-outline"
+            label={t('friends', 'addFriend')}
+            onPress={onAddFriend}
+            trackId="user_action_sheet:add_friend"
           />
         )}
         {!isSelf && (

@@ -266,7 +266,8 @@
     "requestError": "Do'stlik so'rovi yuborib bo'lmadi",
     "serverError": "Server xatosi, qayta urinib ko'ring",
     "searchError": "Qidiruv amalga oshmadi",
-    "acceptError": "Xato yuz berdi, qaytadan urinib ko'ring"
+    "acceptError": "Xato yuz berdi, qaytadan urinib ko'ring",
+    "addFriend": "Do'st sifatida qo'shish"
   },
   "battle": {
     "title": "BATTLE",
