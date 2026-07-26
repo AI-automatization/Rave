@@ -131,7 +131,12 @@ export class ProfileService {
   }
 
   async getFcmTokens(userId: string): Promise<string[]> {
-    const user = await User.findById(userId).select('fcmTokens').lean();
+    const user = await User.findById(userId).select('fcmTokens settings.notifications.push').lean();
+    // Gate the master push switch HERE rather than at each caller: this is the single place every
+    // internal push resolves its device tokens (notification-service's sendInternal, DM, friend
+    // requests, watch-party invites), so honouring the setting once covers all of them. `!== false`
+    // so users created before the field existed keep receiving pushes.
+    if (user?.settings?.notifications?.push === false) return [];
     return user?.fcmTokens ?? [];
   }
 

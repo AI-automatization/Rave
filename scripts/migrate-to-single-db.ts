@@ -83,6 +83,11 @@ async function main(): Promise<void> {
       fcmTokens: profile['fcmTokens'] ?? [],
       lastSeenAt: profile['lastSeenAt'] ?? null,
       restrictions: profile['restrictions'] ?? [],
+      // DM inbox prefs — added to the user model after this script was first written. Without
+      // them the migrated documents come out missing the fields entirely; app code mostly guards
+      // with `?? []`, but a one-time migration should still produce complete documents.
+      mutedPeerIds: profile['mutedPeerIds'] ?? [],
+      pinnedPeerIds: profile['pinnedPeerIds'] ?? [],
       settings: profile['settings'] ?? { notifications: {} },
       createdAt: authUser['createdAt'],
       updatedAt: new Date(),

@@ -39,20 +39,6 @@
 - **Sabab:** iOS'da `associatedDomains` entitlement yo'q, `apple-app-site-association` fayli umuman yo'q.
 - **Fayllar:** `apps/mobile/app.json`, yangi `apps/app-web/public/.well-known/apple-app-site-association`
 
-### T-S183 | P3 | [WEB] | Parolli private xonalar uchun join UI (password prompt)
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Saidazim (T-S182 paytida topildi)
-- **Yaratilgan:** 2026-07-24
-- **Holat:** ❌ Boshlanmagan
-- **Tavsiya model:** sonnet
-- **Model sababi:** kichik UI + 1 qo'shimcha holat
-- **Sabab:** T-S182'da server-side join qo'shildi, lekin `watchParty.service.ts:160-164` — agar xona parolli bo'lsa, join `password_required`/`Noto'g'ri parol` xatosi bilan qaytadi (parol yo'q holatda). Bu hozircha jimgina yutiladi (page.tsx try/catch) — foydalanuvchi umumiy "not a member" xatosini ko'radi, parol kiritish imkoniyati yo'q.
-- **Qilish kerak:**
-  - [ ] `page.tsx`'dagi join chaqiruvi xato turini aniqlashi (`password_required` vs boshqa) va `RoomContent`ga flag sifatida uzatishi
-  - [ ] Parol kiritish modal/forma, muvaffaqiyatli bo'lsa join-by-code'ni parol bilan qayta chaqirish
-- **Fayllar:** `apps/app-web/src/app/(app)/room/[id]/page.tsx`, `apps/app-web/src/app/(app)/room/[id]/RoomContent.tsx`
-
 ### T-S173 | P2 | [BACKEND] | Playlist: fon rejimida extraction pre-resolve (qo'shilganda)
 
 - **Mas'ul:** pending[Saidazim]
@@ -101,19 +87,6 @@
 
 ## FAZA 3 — Instagram Stories share (карточка + native share)
 
-### T-S177 | P2 | [WEB] | Story-card rasm generatsiya endpoint (next/og ImageResponse)
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Saidazim (room redesign planning)
-- **Yaratilgan:** 2026-07-24
-- **Holat:** ❌ Boshlanmagan
-- **Tavsiya model:** sonnet
-- **Model sababi:** yangi lekin izolyatsiyalangan endpoint, 1 fayl
-- **Sabab:** Loyihada OG-image generatsiya pattern umuman yo'q (`next/og`/`ImageResponse` — 0 natija). Mobile shu PNG'ni yuklab olib `react-native-share`ga beradi — on-device rasterizatsiya kerak emas.
-- **Qilish kerak:**
-  - [ ] `apps/app-web/src/app/api/rooms/[id]/story-image/route.tsx` — 1080×1920, videoTitle + brend (logo-mark, DM_Sans/Oswald font) + link matn
-- **Fayllar:** yangi — `apps/app-web/src/app/api/rooms/[id]/story-image/`
-
 ### T-S178 | P2 | [MOBILE] | react-native-share Instagram Stories integratsiyasi + queries config
 
 - **Mas'ul:** pending[Saidazim]
@@ -142,21 +115,6 @@
 - **Model sababi:** 1 shart, kichik UI
 - **Sabab:** `canOpenURL` false qaytarsa — oddiy `Share.share()` fallback yoki xabar ko'rsatish kerak.
 - **Fayllar:** `apps/mobile/src/components/watchParty/InviteCard.tsx`
-
-### T-S180 | P3 | [WEB] | Web Share API — best-effort Instagram story share
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Saidazim (room redesign planning)
-- **Yaratilgan:** 2026-07-24
-- **Holat:** ❌ Boshlanmagan (T-S177 dan keyin)
-- **Tavsiya model:** haiku
-- **Model sababi:** kichik, bitta browser API chaqiruvi
-- **Sabab:** Web'da to'liq 1-tap yechim yo'q (Instagram'da rasmiy web API yo'q) — `navigator.share({files:[png]})` orqali eng yaqin, foydalanuvchi baribir Instagram ichida "Add to Story" bosishi kerak. Desktop'da — shunchaki "Yuklab olish" tugmasi.
-- **Fayllar:** `apps/app-web/src/components/party/InviteDialog.tsx`
-
----
-
-## BAG — Virtual Browser boshqarilmayapti
 
 ### T-S181 | P1 | [WEB] | VirtualBrowserPlayer: touch handler'lar yo'qligi fix
 
@@ -512,49 +470,6 @@
 - **Yaratilgan:** 2026-05-23 00:00
 - **Holat:** ✅ Bajarildi (2026-05-27) — content/watch-party/notification/admin/auth/user — все cinesync ✓
 - **Tavsiya model:** haiku
-
----
-
-### T-S101 | P2 | [BACKEND] | Migration: Скрипт миграции данных
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Saidazim
-- **Yaratilgan:** 2026-05-23 00:00
-- **Holat:** ❌ Boshlanmagan
-- **Tavsiya model:** sonnet
-- **Model sababi:** Migration script — bir marta ishga tushiriladi
-- **Sabab:** Mavjud ma'lumotlarni cinesync_auth + cinesync_user → cinesync ga ko'chirish
-- **Qilish kerak:**
-  - [ ] `scripts/migrate-to-single-db.ts` yaratish
-  - [ ] cinesync_auth.users + cinesync_user.users → email bo'yicha birlashtirish
-  - [ ] Natijani cinesync.users ga yozish
-  - [ ] Dry-run mode qo'shish (`--dry-run` flag)
-
----
-
-### T-S102 | P3 | [BACKEND] | Migration: tsc clean + db-architecture.html yangilash
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Saidazim
-- **Yaratilgan:** 2026-05-23 00:00
-- **Holat:** ❌ Boshlanmagan
-- **Tavsiya model:** haiku
-- **Model sababi:** tsc + HTML update, yakuniy tekshirish
-- **Sabab:** Migratsiya tugagach — barcha servislar tsc clean bo'lishi kerak
-- **Qilish kerak:**
-  - [ ] `cd services/auth && npx tsc --noEmit`
-  - [ ] `cd services/user && npx tsc --noEmit`
-  - [ ] Boshqa 4 servis ham tsc clean
-  - [ ] `docs/db-architecture.html` — yangi arxitektura (bitta cinesync, merged users)
-
----
-
-# 🔄 Sprint 12: Mesh Sync Migration (2026-06-29)
-
-> Kontekst: real qurilmada Socket.io sync ishladi, ammo 1-2s kechikish bilan.
-> Mesh kodi YOZILGAN, ammo HALI ULANMAGAN — `SyncBroadcaster`/`MeshClient` faqat `services/mesh/` ichida, useWatchPartyRoom unga ulanmagan.
-> Vazifa: mavjud mesh karkasni ulash + 2 blocker (clock-offset, TURN) yopish.
-> Zo'rlik: T-S106 → T-S107 → T-C016 (ketma-ket)
 
 ---
 
@@ -1025,24 +940,4 @@
 > **Boshlashdan oldin claim qilish shart.** Barchasi shared/types o'zgarishini o'z ichiga oladi → LOCK protocol.
 
 ---
-
-### T-S117 | P1 | [BACKEND] | DM push notification — xabar kelganda FCM yuborish
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Jasur (mobile)
-- **Yaratilgan:** 2026-07-07
-- **Holat:** ❌ Boshlanmagan
-- **Tavsiya model:** sonnet
-- **Model sababi:** 2-3 fayl — dm.service + notification integratsiya
-- **Sabab:** Hozir `DMService.sendMessage` (services/user/src/services/dm.service.ts) push YUBORMAYDI. Telegram kabi — DM kelganda telefonga push kelishi kerak. Notification infra (FCM token) tayyor.
-- **Qilish kerak:**
-  - [ ] `dm.service.sendMessage` (yoki dmEvents.handler) → notification service orqali FCM push jo'natish
-  - [ ] Payload: `title=senderUsername`, `body=text` (yoki "Yangi xabar" agar shifrlangan bo'lsa), `data={ type:'dm', peerId:<senderId>, peerName:<senderUsername> }`
-  - [ ] Android channel: `dm_messages`, categoryId/tag: `dm_reply` (inline reply action uchun — frontend shu categoryId'ni kutadi)
-  - [ ] Faqat qabul qiluvchi socket'da OFFLINE bo'lsa push (online bo'lsa realtime socket yetkazadi) — yoki har doim, but delivered flag bilan
-  - [ ] Receiver'ning `notifications.push` sozlamasi false bo'lsa — push yubormaslik
-- **Bog'liq:** T-E137, frontend: DM inline reply (apps/mobile usePushNotifications)
-
----
-
 

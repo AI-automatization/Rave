@@ -2,6 +2,8 @@ import { Schema, model, Document } from 'mongoose';
 import { UserRole, UserRank } from '@shared/types';
 
 export interface INotificationSettings {
+  /** Master switch — false silences every device push for this user (see getFcmTokens). */
+  push: boolean;
   friendRequest: boolean;
   friendAccepted: boolean;
   watchPartyInvite: boolean;
@@ -72,6 +74,11 @@ const userSchema = new Schema<IUserDocument>(
           notifications: {
             type: new Schema(
               {
+                // Master switch for device push. It was declared client-side
+                // (apps/mobile/src/api/user.api.ts UserSettings) but never existed here, so
+                // `updateSettings` silently dropped it and the push path had nothing to read —
+                // T-S117's last checklist item. Defaults true to preserve today's behaviour.
+                push:                { type: Boolean, default: true },
                 friendRequest:       { type: Boolean, default: true },
                 friendAccepted:      { type: Boolean, default: true },
                 watchPartyInvite:    { type: Boolean, default: true },

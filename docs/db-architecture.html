@@ -314,10 +314,10 @@
         <div class="coll-head" style="border-top:3px solid #22d3ee">
           <span class="coll-icon">👤</span>
           <span class="coll-name">users <span style="color:var(--muted);font-size:11px;font-weight:400">(профиль)</span></span>
-          <span class="coll-db">user DB</span>
+          <span class="coll-db">cinesync</span>
         </div>
         <div class="field"><span class="fname pk">_id</span><span class="ftype">ObjectId</span><span class="fdesc">ID профиля</span><div class="badges"><span class="b b-pk">PK</span></div></div>
-        <div class="field"><span class="fname fk">authId</span><span class="ftype">String</span><span class="fdesc">связь с auth.users._id (разные сервисы!)</span><div class="badges"><span class="b b-fk">FK</span><span class="b b-u">UNIQUE</span></div></div>
+        <div class="field"><span class="fname">passwordHash</span><span class="ftype">String</span><span class="fdesc">учётка и профиль — ОДИН документ (Sprint 11, T-S096..T-S100)</span></div>
         <div class="field"><span class="fname">email / username</span><span class="ftype">String</span><span class="fdesc">дублируются для быстрого поиска</span><div class="badges"><span class="b b-u">UNIQUE</span></div></div>
         <div class="field"><span class="fname">avatar</span><span class="ftype">String | null</span><span class="fdesc">URL фото профиля</span></div>
         <div class="field"><span class="fname">bio</span><span class="ftype">String (макс 200)</span><span class="fdesc">описание профиля</span></div>
@@ -329,7 +329,7 @@
         <div class="field"><span class="fname">settings.notifications</span><span class="ftype">Object</span><span class="fdesc">настройки: какие уведомления получать</span></div>
         <div class="idx-block">
           <div class="idx-title">Индексы</div>
-          <div class="idx-row">{ authId } <span>— уникальный · связь между сервисами</span></div>
+          <div class="idx-row">{ email }, { username } <span>— уникальные</span></div>
           <div class="idx-row">{ totalPoints: -1 } <span>— таблица лидеров (от большего к меньшему)</span></div>
           <div class="idx-row">{ rank } <span>— фильтр по рангу</span></div>
         </div>
@@ -339,7 +339,7 @@
         <div class="coll-head" style="border-top:3px solid #22d3ee">
           <span class="coll-icon">🤝</span>
           <span class="coll-name">friendships <span style="color:var(--muted);font-size:11px;font-weight:400">(заявки в друзья)</span></span>
-          <span class="coll-db">user DB</span>
+          <span class="coll-db">cinesync</span>
         </div>
         <div class="field"><span class="fname pk">_id</span><span class="ftype">ObjectId</span><span class="fdesc">ID записи</span><div class="badges"><span class="b b-pk">PK</span></div></div>
         <div class="field"><span class="fname fk">requesterId</span><span class="ftype">String</span><span class="fdesc">кто отправил заявку → users._id</span><div class="badges"><span class="b b-fk">FK</span><span class="b b-i">IDX</span></div></div>
@@ -717,8 +717,8 @@
           <div class="step-c">
             <div class="step-label">Создаём профиль в сервисе пользователей</div>
             <div class="step-box">
-              Создаём запись в <span class="k">user.users</span> с полем <span class="k">authId</span> = новый _id<br>
-              <span class="cm">// два сервиса — две базы — связаны через authId</span>
+              Один документ в <span class="k">cinesync.users</span> — учётка + профиль сразу<br>
+              <span class="cm">// одна база, один документ — authId больше не существует</span>
             </div>
           </div>
         </div>
@@ -1010,7 +1010,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr><td class="c-from">auth.users</td><td class="c-field">_id</td><td class="arr">→</td><td class="c-to">user.users.authId</td><td class="c-type">1 к 1</td><td class="c-desc">Учётные данные ↔ Профиль (два разных сервиса)</td></tr>
+        <tr><td class="c-from">cinesync.users</td><td class="c-field">_id</td><td class="arr">→</td><td class="c-to">— </td><td class="c-type">—</td><td class="c-desc">Учётка и профиль в ОДНОМ документе (Sprint 11) — связь authId удалена</td></tr>
         <tr><td class="c-from">refreshtokens</td><td class="c-field">userId</td><td class="arr">→</td><td class="c-to">auth.users._id</td><td class="c-type">N к 1</td><td class="c-desc">Несколько сессий (телефон + планшет) на одного юзера</td></tr>
         <tr><td class="c-from">friendships</td><td class="c-field">requesterId</td><td class="arr">→</td><td class="c-to">user.users._id</td><td class="c-type">N к 1</td><td class="c-desc">Кто отправил заявку</td></tr>
         <tr><td class="c-from">friendships</td><td class="c-field">receiverId</td><td class="arr">→</td><td class="c-to">user.users._id</td><td class="c-type">N к 1</td><td class="c-desc">Кто получил заявку</td></tr>

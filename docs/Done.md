@@ -4,6 +4,36 @@
 
 ---
 
+### F-276 | T-S101 + T-S102 | Migratsiya qoldig'i — skript to'ldirildi, tsc clean tasdiqlandi, hujjat yangilandi
+
+- **Bajaruvchi:** Jasur (Claude opus 5)  **Bajarilgan:** 2026-07-26  **Model:** opus
+- **O'zgarishlar:** `scripts/migrate-to-single-db.ts` (`mutedPeerIds`/`pinnedPeerIds` qo'shildi), `docs/db-architecture.html` (authId FK olib tashlandi, `user DB` → `cinesync`, ro'yxatdan o'tish oqimi va bog'lanishlar jadvali yangilandi).
+- **Xulosa:** 🔴 T-S101 skripti ALLAQACHON yozilgan ekan (dry-run default, `--execute` bilan yozadi, `_id` bo'yicha upsert — qayta ishga tushirish xavfsiz). Yagona bo'shliq: DM ishi paytida modelga qo'shilgan `mutedPeerIds`/`pinnedPeerIds` birlashtirilgan hujjatga tushmasdi. Vazifada "email bo'yicha birlashtirish" deyilgan, skript esa `authId` bo'yicha qiladi — bu TO'G'RIROQ, chunki aynan `authId` ikki bazani bog'lovchi maydon. 🔴 T-S102 "hamma servis tsc clean" talabi: `tsconfig.json` (dev) bilan har servisda ~20 ta `TS6059 rootDir` xatosi chiqadi, lekin bu SOXTA — real build `tsconfig.build.json` bilan `shared/dist` ga qaraydi. `npm run build --workspace=@cinesync/shared` dan keyin 6 ta servisning HAMMASI `tsconfig.build.json` bilan **0 xato**. Ya'ni migratsiya kodni buzmagan; rootDir shovqini alohida, migratsiyaga aloqasiz build-config masalasi.
+
+### F-275 | T-S117 | DM push — umumiy push sozlamasi endi hurmat qilinadi
+
+- **Bajaruvchi:** Jasur (Claude opus 5)  **Bajarilgan:** 2026-07-26  **Model:** opus
+- **O'zgarishlar:** `services/user/src/models/user.model.ts` (`INotificationSettings.push` + sxemaga `push: Boolean, default true`), `services/user/src/services/profile.service.ts` (`getFcmTokens` push o'chirilgan bo'lsa bo'sh massiv qaytaradi).
+- **Xulosa:** 🔴 Vazifaning asosiy qismi ALLAQACHON bajarilgan ekan — `dm.service.sendMessage` push yuboradi, mute'ni tekshiradi, o'qilmagan xabarlarni bitta notification'ga birlashtiradi (Telegram uslubi), `categoryId: 'dm_reply'` va `tag: dm_<senderId>` beradi. Bajarilmagan YAGONA band — qabul qiluvchining umumiy push sozlamasi. Sabab topildi: `settings.notifications` sxemasida `push` maydoni UMUMAN yo'q edi, mobil `UserSettings` tipida esa e'lon qilingan — ya'ni `updateSettings` uni jimgina tashlab yuborardi va push yo'li o'qiydigan narsa yo'q edi. Tekshiruv `getFcmTokens` ga qo'yildi: bu barcha ichki push'lar (DM, do'stlik so'rovi, xona taklifi) token oladigan yagona nuqta, shuning uchun bir joyda hurmat qilinsa hammasi qamrab olinadi. `=== false` tekshiruvi — maydon paydo bo'lishidan oldin yaratilgan foydalanuvchilar push olishda davom etadi.
+
+### F-274 | T-S180 | Web Share API orqali story ulashish
+
+- **Bajaruvchi:** Jasur (Claude opus 5)  **Bajarilgan:** 2026-07-26  **Model:** opus
+- **O'zgarishlar:** `apps/app-web/src/components/party/InviteDialog.tsx` — "Story sifatida ulashish" tugmasi; `messages/{uz,ru,en}.json` (`party.shareStory`, `storyShareError`).
+- **Xulosa:** Instagram'da rasmiy web "post to story" API yo'q — eng yaqin yechim: yaratilgan PNG'ni OS share sheet'iga berish, foydalanuvchi Instagram'ni tanlaydi va o'zi "Add to story" bosadi. 🔴 `navigator.canShare({files})` bilan tekshirish SHART: desktop Safari'da `navigator.share` MAVJUD, lekin fayl payload'ini rad etadi — tekshiruvsiz tugma shunchaki buzuq ko'rinardi. Desktop'da yuklab olishga degradatsiya. `AbortError` (foydalanuvchi share sheet'ni yopdi) xato deb hisoblanmaydi.
+
+### F-273 | T-S177 | Story-card rasm endpoint (next/og)
+
+- **Bajaruvchi:** Jasur (Claude opus 5)  **Bajarilgan:** 2026-07-26  **Model:** opus
+- **O'zgarishlar:** YANGI `apps/app-web/src/app/api/rooms/[id]/story-image/route.tsx` — 1080×1920 `ImageResponse`.
+- **Xulosa:** Loyihada OG-image generatsiya patterni umuman yo'q edi. Auth ikkala yo'l bilan qabul qilinadi — cookie (web) va Bearer (mobil T-S178). 🔴 Vazifada DM_Sans/Oswald shrifti va `logo-mark` SVG aytilgan, lekin ular YUKLANMADI: satori mahalliy SVG/woff'ni tortib ololmaydi va Railway'da fayl yo'li nozik — o'rniga brend gradienti + matn bilan berildi, tashqi bog'liqliksiz. Xona ma'lumoti olinmasa umumiy karta qaytadi (so'rovni yiqitish foydalanuvchiga buzuq rasm ko'rsatardi). `Cache-Control: no-store` — xona nomi sessiya davomida o'zgaradi.
+
+### F-272b | T-S183 | Parolli private xonalar uchun parol kiritish UI
+
+- **Bajaruvchi:** Jasur (Claude opus 5)  **Bajarilgan:** 2026-07-26  **Model:** opus
+- **O'zgarishlar:** YANGI `apps/app-web/src/components/party/RoomPasswordDialog.tsx`; `room/[id]/page.tsx` (xato turini aniqlash), `RoomContent.tsx` (`inviteCode`/`needsPassword` proplari), `api/rooms/join/[code]/route.ts` (body uzatish), `lib/api/rooms.api.ts`, `hooks/use-rooms.ts`, `messages/*.json` (`room.password*`).
+- **Xulosa:** `page.tsx` server-side join javobini o'qimasdan yutardi — foydalanuvchi umumiy "not a member" xatosini ko'rar, parol kiritadigan joy YO'Q edi. Endi 401 + `message='password_required'` aniqlanadi. Modal ataylab yopilmaydi: parolsiz xona ortida ishlaydigan narsa yo'q, Escape foydalanuvchini buzuq ekranga tashlardi. 🔴 Yon-topilma: `useJoinRoom` da `mutationFn: roomsApi.joinByCode` to'g'ridan-to'g'ri berilgan edi — react-query `mutationFn(variables, context)` chaqiradi, ya'ni `joinByCode` ning yangi 2-parametri (`password`) ga react-query ichki context obyekti tushardi. O'raldi.
+
 ### F-272 | T-S168 | Web'da ovozli chat noldan (WebRTC) — mavjud signaling qayta ishlatildi
 
 - **Bajaruvchi:** Jasur (Claude opus 5)  **Bajarilgan:** 2026-07-26  **Model:** opus
