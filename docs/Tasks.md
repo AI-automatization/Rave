@@ -12,10 +12,10 @@
 
 ### T-S160 | P1 | [BACKEND] | Room chat: avatar + replyTo payload'ga qo'shish
 
-- **Mas'ul:** pending[Saidazim]
+- **Mas'ul:** pending[Jasur]
 - **Beruvchi:** Saidazim (room redesign planning)
 - **Yaratilgan:** 2026-07-24
-- **Holat:** ❌ Boshlanmagan
+- **Holat:** 🔄 Bajarilmoqda (2026-07-26, Jasur)
 - **Tavsiya model:** sonnet
 - **Model sababi:** 1-2 fayl, mavjud handler'ni kengaytirish
 - **Sabab:** `chatEvents.handler.ts:19-40` hozir faqat `{userId,username,message,timestamp}` broadcast qiladi — `avatar` yo'q, mobile'dan kelayotgan `replyTo` o'qilmaydi/saqlanmaydi/qayta yuborilmaydi. Shuning uchun mobile'dagi reply UI ishlamaydi (backend jimgina drop qiladi).
