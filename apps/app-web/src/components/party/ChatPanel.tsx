@@ -9,11 +9,14 @@ import { avatarColor } from '@/lib/utils';
 
 interface Props {
   onSend: (text: string) => void;
+  /** Wired by T-S163's UserProfileModal. Absent → avatars render but aren't clickable. */
+  onOpenProfile?: (userId: string) => void;
 }
 
-export function ChatPanel({ onSend }: Props) {
+export function ChatPanel({ onSend, onOpenProfile }: Props) {
   const t = useTranslations('chat');
   const messages = useWatchPartyStore((s) => s.messages);
+  const members = useWatchPartyStore((s) => s.members);
   const currentUser = useAuthStore((s) => s.user);
   const [text, setText] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -49,17 +52,51 @@ export function ChatPanel({ onSend }: Props) {
         )}
         {messages.map((msg) => {
           const isMe = msg.user._id === currentUser?._id;
+          const name = msg.user.username || `#${msg.user._id.slice(-4)}`;
           const color = avatarColor(msg.user.username ?? '?');
+          // The socket payload carries the sender's avatar, but a watch-party running the
+          // pre-T-S160 build omits it — fall back to the member list, which use-watch-party
+          // resolves separately via GET /api/user/[id].
+          const avatar = msg.user.avatar ?? members.find((m) => m._id === msg.user._id)?.avatar;
+          const clickable = Boolean(onOpenProfile);
 
           return (
-            <div key={msg.id} className="px-1 py-0.5 hover:bg-white/[0.03] rounded transition-colors">
-              <span className="text-[12px] font-semibold" style={{ color }}>
-                {msg.user.username ?? '?'}
-              </span>
-              <span className="text-[12px] text-zinc-400 mx-1">:</span>
-              <span className={`text-[12px] break-words ${isMe ? 'text-white' : 'text-zinc-200'}`}>
-                {msg.text}
-              </span>
+            <div key={msg.id} className="flex items-start gap-2 px-1 py-1 hover:bg-white/[0.03] rounded transition-colors">
+              <button
+                type="button"
+                onClick={() => onOpenProfile?.(msg.user._id)}
+                disabled={!clickable}
+                aria-label={name}
+                className={`shrink-0 mt-[1px] rounded-full ${clickable ? 'cursor-pointer hover:opacity-80 transition-opacity' : 'cursor-default'}`}
+              >
+                {avatar ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- user-uploaded avatar URL, not worth a next/image domain allowlist entry
+                  <img src={avatar} alt="" className="w-5 h-5 rounded-full object-cover" />
+                ) : (
+                  <div
+                    className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white"
+                    style={{ background: color }}
+                  >
+                    {(msg.user.username?.[0] ?? '?').toUpperCase()}
+                  </div>
+                )}
+              </button>
+
+              <div className="min-w-0 flex-1">
+                <button
+                  type="button"
+                  onClick={() => onOpenProfile?.(msg.user._id)}
+                  disabled={!clickable}
+                  className={`text-[12px] font-semibold align-baseline ${clickable ? 'cursor-pointer hover:underline' : 'cursor-default'}`}
+                  style={{ color }}
+                >
+                  {name}
+                </button>
+                <span className="text-[12px] text-zinc-400 mx-1">:</span>
+                <span className={`text-[12px] break-words ${isMe ? 'text-white' : 'text-zinc-200'}`}>
+                  {msg.text}
+                </span>
+              </div>
             </div>
           );
         })}

@@ -27,10 +27,10 @@
 
 ### T-S161 | P1 | [WEB] | ChatPanel: avatar render + click → profile modal ochish
 
-- **Mas'ul:** pending[Saidazim]
+- **Mas'ul:** pending[Jasur]
 - **Beruvchi:** Saidazim (room redesign planning)
 - **Yaratilgan:** 2026-07-24
-- **Holat:** ❌ Boshlanmagan (T-S160 dan keyin, avatar payload kerak)
+- **Holat:** 🔄 Bajarilmoqda (2026-07-26, Jasur — T-S160 tugadi)
 - **Tavsiya model:** sonnet
 - **Model sababi:** 1 komponent, mavjud pattern (`MemberList.tsx`) copy
 - **Sabab:** Hozir web chat — IRC-style oddiy matn qator, avatar umuman yo'q (`ChatPanel.tsx:50-65`), `IChatMessage.user.avatar` type'da bor lekin render qilinmaydi.

@@ -36,7 +36,17 @@ interface ServerHeartbeat { currentTime: number; timestamp: number; updatedBy: s
 // Raw ROOM_MESSAGE payload (services/watch-party/src/socket/chatEvents.handler.ts) — flat, not
 // the nested IChatMessage shape ChatPanel.tsx renders. Mirrors mobile's transform in
 // apps/mobile/src/hooks/useWatchParty.ts (same mismatch existed there once, fixed the same way).
-interface ServerChatMessage { userId: string; username: string; message: string; timestamp: number }
+// `id` and `avatar` were added server-side in T-S160 and are optional here on purpose: a
+// watch-party instance deployed before that change still emits the old four-field payload, and the
+// room would otherwise render keyless messages against it.
+interface ServerChatMessage {
+  id?: string;
+  userId: string;
+  username: string;
+  avatar?: string;
+  message: string;
+  timestamp: number;
+}
 
 // How often to re-measure the clock offset. The phone/browser clock drifts vs the server over a
 // long watch-party and the connect-time burst starts from a 0 offset — mirrors mobile's 90s cadence.
@@ -124,8 +134,8 @@ export function useWatchParty(roomId: string) {
 
     socket.on(SERVER_EVENTS.ROOM_MESSAGE, (raw: ServerChatMessage) => {
       addMessage({
-        id: `${raw.userId}-${raw.timestamp}`,
-        user: { _id: raw.userId, username: raw.username },
+        id: raw.id ?? `${raw.userId}-${raw.timestamp}`,
+        user: { _id: raw.userId, username: raw.username, avatar: raw.avatar },
         text: raw.message,
         timestamp: raw.timestamp,
       });
