@@ -34,7 +34,7 @@
 - **Mas'ul:** pending[Saidazim]
 - **Beruvchi:** Saidazim (room redesign planning)
 - **Yaratilgan:** 2026-07-24
-- **Holat:** ❌ Boshlanmagan — **variant A/B/C tanlovi kutilmoqda** (tavsiya: C — bitta panelga birlashtirish)
+- **Holat:** 🔄 Bajarilmoqda — Saidazim variant C ni tanladi (2026-07-27), ish boshlandi
 - **Tavsiya model:** sonnet
 - **Model sababi:** state-machine refactor, 3-4 fayl
 - **Sabab:** Hozir `showChat`/`showVoice` bir-birini istisno qiladi (`useWatchPartyRoom.ts:150-151`), foydalanuvchi bir vaqtda ikkalasini ko'rmaydi. Auto-join-muted allaqachon ishlaydi (`useVoiceChat.ts:229-238,50-51`) — muammo faqat UI'da.
@@ -63,7 +63,7 @@
 - **Mas'ul:** pending[Saidazim]
 - **Beruvchi:** Saidazim (room redesign planning)
 - **Yaratilgan:** 2026-07-24
-- **Holat:** ❌ Boshlanmagan (T-S171 + T-S177 dan keyin)
+- **Holat:** 🔄 Bajarilmoqda — T-S171+T-S177 tayyor edi, ish boshlandi (2026-07-27)
 - **Tavsiya model:** sonnet
 - **Model sababi:** yangi dependency + native config plugin, lekin standart kutubxona (custom native module emas)
 - **Sabab:** Meta App ID bor: **2239499546865583** (WeWatch Automation) — faqat `source_application` uchun kerak, hech qanday permission/App Review kerak emas (bu Graph API auto-publish'dan butunlay boshqa use-case).
