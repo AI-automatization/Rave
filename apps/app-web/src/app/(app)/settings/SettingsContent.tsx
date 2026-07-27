@@ -6,10 +6,22 @@ import { useTranslations } from 'next-intl';
 import { Eye, EyeOff, Loader2, LogOut, Trash2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { trackClick } from '@/lib/analytics';
+import { useLocaleStore } from '@/store/locale.store';
+
+// The app ships uz/ru/en and Providers re-renders on locale change, but the only switcher UI lived
+// in LandingNav — a component this app never renders (the landing moved to apps/web). So the
+// picker had no home and users were stuck on whatever the cookie said, with no way to change it.
+const LOCALES = [
+  { value: 'uz', flag: '🇺🇿', label: "O'zbek" },
+  { value: 'ru', flag: '🇷🇺', label: 'Русский' },
+  { value: 'en', flag: '🇬🇧', label: 'English' },
+] as const;
 
 export function SettingsContent() {
   const t = useTranslations('settings');
   const router = useRouter();
+  const locale = useLocaleStore((s) => s.locale);
+  const setLocale = useLocaleStore((s) => s.setLocale);
 
   // Change password state
   const [currentPassword, setCurrentPassword] = useState('');
@@ -123,6 +135,31 @@ export function SettingsContent() {
   return (
     <div className="max-w-2xl mx-auto flex flex-col gap-6">
       <h1 className="text-xl font-bold text-white">{t('title')}</h1>
+
+      {/* Language */}
+      <section className="liquid-glass p-6">
+        <p className="text-zinc-500 text-[11px] font-semibold tracking-[0.14em] uppercase mb-5">
+          {t('language')}
+        </p>
+        {/* Buttons, not the hover dropdown from LanguageSwitcher — that one never opens on touch. */}
+        <div className="flex flex-wrap gap-2">
+          {LOCALES.map(({ value, flag, label }) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => { trackClick('settings:locale', { locale: value }); setLocale(value); }}
+              className={`h-9 px-3.5 rounded-lg text-sm flex items-center gap-2 transition-colors cursor-pointer border ${
+                locale === value
+                  ? 'bg-violet-600/15 border-violet-500/40 text-violet-300 font-medium'
+                  : 'bg-white/[0.03] border-white/[0.08] text-slate-400 hover:text-slate-200 hover:bg-white/[0.06]'
+              }`}
+            >
+              <span>{flag}</span>
+              <span>{label}</span>
+            </button>
+          ))}
+        </div>
+      </section>
 
       {/* Change Password */}
       <section className="liquid-glass p-6">
