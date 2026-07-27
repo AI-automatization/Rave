@@ -38,12 +38,23 @@ http {
     limit_req_zone $binary_remote_addr zone=api:10m rate=20r/s;
     limit_req_zone $binary_remote_addr zone=auth:10m rate=10r/m;
 
-    upstream auth_service         { server ${AUTH_UPSTREAM};         keepalive 32; }
-    upstream user_service         { server ${USER_UPSTREAM};         keepalive 32; }
-    upstream content_service      { server ${CONTENT_UPSTREAM};      keepalive 32; }
-    upstream watch_party_service  { server ${WATCH_PARTY_UPSTREAM};  keepalive 32; }
-    upstream notification_service { server ${NOTIFICATION_UPSTREAM}; keepalive 32; }
-    upstream admin_service        { server ${ADMIN_UPSTREAM};        keepalive 32; }
+    # A static `upstream { server host:port; }` block resolves its hostname ONCE, when nginx
+    # loads — which is also when `nginx -t` runs in docker-entrypoint.sh, before `exec nginx`.
+    # If Railway's private-network DNS for that service isn't answering yet at that exact
+    # instant (a real race — confirmed in prod: `host not found in upstream
+    # "auth.railway.internal:3001"`, repeating every ~1s until Railway gave up and marked the
+    # deploy FAILED), nginx refuses to start at all — for the WHOLE gateway, over ONE upstream
+    # being slow, and it never recovers on its own once past that boot window.
+    #
+    # `resolver` + a `set` + variable `proxy_pass` makes nginx resolve each upstream lazily, at
+    # REQUEST time, using this resolver — not at startup. A slow/unready upstream now costs one
+    # 502 to whichever request hit it first, not a dead gateway. RESOLVER_IP is read from the
+    # container's own /etc/resolv.conf by docker-entrypoint.sh, so this always matches whatever
+    # DNS Railway actually wired up for *.railway.internal, not a guessed/hardcoded address.
+    # Trade-off: loses the `keepalive` upstream connection pool that a static upstream{} block
+    # allows — acceptable here, correctness (starting up, staying up) matters far more than
+    # pooling for a gateway currently carrying no production traffic.
+    resolver ${RESOLVER_IP} valid=10s ipv6=off;
 
     server {
         listen ${PORT};
@@ -58,7 +69,8 @@ http {
         # ── Auth ──────────────────────────────────────────────
         location /api/v1/auth/ {
             limit_req zone=auth burst=10 nodelay;
-            proxy_pass http://auth_service;
+            set $auth_upstream ${AUTH_UPSTREAM};
+            proxy_pass http://$auth_upstream;
             proxy_http_version 1.1;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
@@ -69,7 +81,8 @@ http {
         # ── User ──────────────────────────────────────────────
         location /api/v1/users/ {
             limit_req zone=api burst=40 nodelay;
-            proxy_pass http://user_service;
+            set $user_upstream ${USER_UPSTREAM};
+            proxy_pass http://$user_upstream;
             proxy_http_version 1.1;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
@@ -80,7 +93,8 @@ http {
         # ── Content ───────────────────────────────────────────
         location /api/v1/content/ {
             limit_req zone=api burst=40 nodelay;
-            proxy_pass http://content_service;
+            set $content_upstream ${CONTENT_UPSTREAM};
+            proxy_pass http://$content_upstream;
             proxy_http_version 1.1;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
@@ -88,7 +102,8 @@ http {
             proxy_set_header X-Forwarded-Proto $fwd_proto;
         }
         location /api/v1/youtube/ {
-            proxy_pass http://content_service;
+            set $content_upstream ${CONTENT_UPSTREAM};
+            proxy_pass http://$content_upstream;
             proxy_http_version 1.1;
             proxy_set_header Host $host;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -98,7 +113,8 @@ http {
         # ── Watch Party (REST + WebSocket) ────────────────────
         location /api/v1/watch-party/ {
             limit_req zone=api burst=40 nodelay;
-            proxy_pass http://watch_party_service;
+            set $watch_party_upstream ${WATCH_PARTY_UPSTREAM};
+            proxy_pass http://$watch_party_upstream;
             proxy_http_version 1.1;
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection "upgrade";
@@ -109,7 +125,8 @@ http {
             proxy_read_timeout 86400;
         }
         location /socket.io/ {
-            proxy_pass http://watch_party_service;
+            set $watch_party_upstream ${WATCH_PARTY_UPSTREAM};
+            proxy_pass http://$watch_party_upstream;
             proxy_http_version 1.1;
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection "upgrade";
@@ -121,7 +138,8 @@ http {
         # ── Notifications ─────────────────────────────────────
         location /api/v1/notifications/ {
             limit_req zone=api burst=40 nodelay;
-            proxy_pass http://notification_service;
+            set $notification_upstream ${NOTIFICATION_UPSTREAM};
+            proxy_pass http://$notification_upstream;
             proxy_http_version 1.1;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
@@ -132,7 +150,8 @@ http {
         # ── Admin (auth by JWT/role in the service; no IP allow-list on Railway) ──
         location /api/v1/admin/ {
             limit_req zone=auth burst=20 nodelay;
-            proxy_pass http://admin_service;
+            set $admin_upstream ${ADMIN_UPSTREAM};
+            proxy_pass http://$admin_upstream;
             proxy_http_version 1.1;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
@@ -141,14 +160,16 @@ http {
         }
         # Admin also serves /api/v1/operator, /api/v1/errors and generic /api/v1 (analytics/support/moderation)
         location /api/v1/operator/ {
-            proxy_pass http://admin_service;
+            set $admin_upstream ${ADMIN_UPSTREAM};
+            proxy_pass http://$admin_upstream;
             proxy_http_version 1.1;
             proxy_set_header Host $host;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Proto $fwd_proto;
         }
         location /api/v1/errors/ {
-            proxy_pass http://admin_service;
+            set $admin_upstream ${ADMIN_UPSTREAM};
+            proxy_pass http://$admin_upstream;
             proxy_http_version 1.1;
             proxy_set_header Host $host;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;

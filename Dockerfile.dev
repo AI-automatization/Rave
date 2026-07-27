@@ -12,13 +12,13 @@ COPY services/auth/package*.json ./services/auth/
 COPY services/user/package*.json ./services/user/
 COPY services/content/package*.json ./services/content/
 COPY services/watch-party/package*.json ./services/watch-party/
-COPY services/battle/package*.json ./services/battle/
 COPY services/notification/package*.json ./services/notification/
 COPY services/admin/package*.json ./services/admin/
 
 # Apps workspace stubs (npm workspaces resolution uchun — apps kodi kerak emas)
 COPY apps/package.json ./apps/
 COPY apps/web/package*.json ./apps/web/
+COPY apps/app-web/package*.json ./apps/app-web/
 COPY apps/admin-ui/package*.json ./apps/admin-ui/
 # Mobile: .dockerignore da excluded, stub yaratamiz (npm workspaces uchun)
 RUN mkdir -p ./apps/mobile && echo '{"name":"cinesync-mobile","version":"1.0.0","private":true}' > ./apps/mobile/package.json
@@ -30,6 +30,15 @@ RUN apk add --no-cache python3 py3-pip && \
 # Barcha workspace dependency'larini o'rnatish (devDeps ham)
 # --ignore-scripts: native build xatolarini oldini olish (apps uchun)
 RUN npm install --ignore-scripts
+
+# bcrypt (services/auth) needs its own postinstall script to fetch/build the native
+# lib/binding/*/bcrypt_lib.node — --ignore-scripts above skips it, so auth crashed on startup
+# with "Cannot find module .../bcrypt_lib.node" (confirmed via local docker-compose run,
+# 2026-07-27). Alpine's musl libc also won't match bcrypt's glibc prebuilt binary, so this
+# needs an actual source build — make/g++ for node-gyp, on top of the python3 already
+# installed above for yt-dlp.
+RUN apk add --no-cache make g++ && \
+    npm rebuild bcrypt --build-from-source
 
 # Source code ko'chirish
 COPY shared ./shared

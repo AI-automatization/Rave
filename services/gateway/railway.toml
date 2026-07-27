@@ -5,7 +5,7 @@
 
 [build]
 builder = "DOCKERFILE"
-dockerfilePath = "Dockerfile"
+dockerfilePath = "services/gateway/Dockerfile"
 
 [deploy]
 healthcheckPath = "/health"
