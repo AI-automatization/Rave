@@ -4,10 +4,10 @@
 
 ---
 
-### F-280 | T-S184 | Prod test (app.wewatch.uz) — 6 ta bug topildi va tuzatildi
+### F-280 | T-S184 | Prod test (app.wewatch.uz) — 8 ta bug topildi, 7 tasi tuzatildi
 
 - **Bajaruvchi:** Jasur (Claude opus 5)  **Bajarilgan:** 2026-07-27  **Model:** opus
-- **O'zgarishlar:** `apps/app-web/next.config.mjs`, `apps/app-web/src/hooks/use-watch-party.ts`, `apps/app-web/src/components/party/RoomHeader.tsx`, `InviteDialog.tsx`, `apps/app-web/src/app/api/rooms/[id]/story-image/route.tsx`, `apps/app-web/messages/{uz,ru,en}.json`, `services/auth/src/controllers/auth.controller.ts`, `apps/web/src/lib/app-url.ts` (yangi) + 10 ta landing fayli.
+- **O'zgarishlar:** `apps/app-web/next.config.mjs`, `apps/app-web/src/hooks/use-watch-party.ts`, `apps/app-web/src/components/party/RoomHeader.tsx`, `InviteDialog.tsx`, `apps/app-web/src/app/(app)/settings/SettingsContent.tsx`, `apps/app-web/src/app/api/rooms/[id]/story-image/route.tsx`, `apps/app-web/messages/{uz,ru,en}.json`, `services/auth/src/controllers/auth.controller.ts`, `apps/web/src/lib/app-url.ts` (yangi) + 10 ta landing fayli.
 - **Sinov usuli:** 3 ta yangi akkaunt (vaqtinchalik pochta orqali OTP), 3 ta alohida Chromium konteksti, jonli prod. Sinovdan **muvaffaqiyatli** o'tgani: chat real-time (3 klient), reply (T-S164/165), avatar (T-S161), chatdan profil ochish (T-S163), parolli xona (T-S183 — noto'g'ri parol 403, to'g'risi kiritadi), story-image endpoint (T-S177), VirtualBrowser ochilishi (T-S181), bitta faol xona guard'i (T-S108 — ega bo'yicha, a'zolikni cheklamaydi = to'g'ri xatti-harakat).
 - **Xulosa:**
   🔴 **1. Ovozli chat prod'da umuman ishlamasdi (T-S168).** `next.config.mjs` da `Permissions-Policy: microphone=()` — brauzer `getUserMedia` ni ruxsat so'ramasdan bloklaydi ("microphone is not allowed in this document"), VoiceStrip barchada "Permission denied" holatida qotgan. `microphone=(self)` qilindi; kamera atayin yopiq qoldi.
@@ -16,7 +16,8 @@
   🟡 **4. Ishtirokchilar soni eskirib qolardi.** `RoomHeader.tsx:26` avval REST snapshot'ini (`room.members`, sahifa yuklanganda olingan va keyin o'zgarmaydi) o'qib, socket'dagi jonli ro'yxatni faqat fallback sifatida ishlatardi — 3 kishilik xonada 3 ta avatar yonida "2" turardi. Tartib teskari qilindi.
   🟡 **5. InviteDialog lokalizatsiyadan chetda qolgan.** Dialog tavsifi rus/ingliz interfeysda ham **hardcoded o'zbekcha** ("Bu kodni do'stlaringizga yuboring"), taklif toast'lari esa hardcoded inglizcha edi. Uchala tilga `inviteCodeHint`/`inviteSent`/`inviteError` kalitlari qo'shildi.
   🟡 **6. Story-card har doim o'zbekcha chiqardi (T-S177).** Matn PNG ichiga server tomonda rasterizatsiya qilinadi, shuning uchun `?lang=` parametri qo'shildi; InviteDialog `useLocale()` ni uzatadi, default — avvalgidek o'zbekcha.
-  🟡 **7. Landing → app o'tishlari har sahifada CORS xatosi berardi.** `wewatch.uz` da `<Link href="/register">` ichki route deb prefetch qilinadi, 308 redirect esa `app.wewatch.uz` ga olib boradi → RSC so'rovi CORS bilan bloklanadi (har hover'da behuda so'rov, bosganda client-router fallback). 13 ta havola `appUrl()` orqali absolyut URL'li oddiy `<a>` ga o'tkazildi (`apps/web/src/lib/app-url.ts` — next.config.mjs bilan bir xil env o'qiydi).
+  🟡 **7. Til almashtirish umuman mavjud emasdi.** `LanguageSwitcher` faqat `LandingNav.tsx` ichida chaqirilardi, `LandingNav` esa app-web'da hech qayerda render qilinmaydi (landing `apps/web` ga ko'chirilgandan keyin qolgan o'lik komponent). Ya'ni ilova uch tilga tarjima qilingan, `locale.store` + `Providers` to'liq ishlaydi, lekin foydalanuvchi tilni tanlay olmasdi (cookie yo'q bo'lsa — hamma uchun ruscha). Sozlamalar sahifasiga tugmali tanlov qo'shildi; hover-dropdown ATAYLAB takrorlanmadi — u sensorli ekranda ochilmaydi.
+  🟡 **8. Landing → app o'tishlari har sahifada CORS xatosi berardi.** `wewatch.uz` da `<Link href="/register">` ichki route deb prefetch qilinadi, 308 redirect esa `app.wewatch.uz` ga olib boradi → RSC so'rovi CORS bilan bloklanadi (har hover'da behuda so'rov, bosganda client-router fallback). 13 ta havola `appUrl()` orqali absolyut URL'li oddiy `<a>` ga o'tkazildi (`apps/web/src/lib/app-url.ts` — next.config.mjs bilan bir xil env o'qiydi).
   ⚠️ **Kod bilan tuzatib bo'lmaydi:** notification servisi barcha so'rovni "Invalid token" bilan rad etadi — Railway'dagi `JWT_PUBLIC_KEY` mos emas (T-S185, Tasks.md).
   ⚠️ **Sinovdan o'tmagan:** tuzatishlar deploydan keyin jonli tekshirilishi kerak (ayniqsa mikrofon header'i va navbat real-time'i) — prod hali eski build'da.
 
