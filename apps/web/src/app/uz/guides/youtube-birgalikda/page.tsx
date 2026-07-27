@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
 import { hreflangFor } from '@/lib/i18n/routes';
+import { appUrl } from '@/lib/app-url';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 const PATH = '/uz/guides/youtube-birgalikda';
@@ -152,12 +153,12 @@ export default function YoutubeBirgalikdaPage() {
           <div className="bg-gradient-to-r from-red-900/30 to-purple-900/30 rounded-2xl p-8 text-center border border-red-800/20 mb-10">
             <h2 className="text-2xl font-bold text-white mb-3">Do'stingiz bilan YouTube ko'ring</h2>
             <p className="text-zinc-400 mb-6">Hoziroq bepul boshlang — ro'yxatdan o'tish shart emas.</p>
-            <Link
-              href="/register"
+            <a
+              href={appUrl('/register')}
               className="inline-block bg-purple-600 hover:bg-purple-500 text-white font-semibold px-8 py-3 rounded-xl transition-colors"
             >
               Xona yaratish
-            </Link>
+            </a>
           </div>
 
           <div className="border-t border-zinc-800 pt-8">

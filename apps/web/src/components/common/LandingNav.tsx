@@ -7,6 +7,7 @@ import { FaBars, FaTimes, FaChevronRight, FaArrowRight } from 'react-icons/fa';
 import { useTranslations } from 'next-intl';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { WeWatchLogo } from './WeWatchLogo';
+import { appUrl } from '@/lib/app-url';
 
 export function LandingNav() {
   const pathname = usePathname();
@@ -79,19 +80,19 @@ export function LandingNav() {
             {/* Desktop CTA — pill buttons */}
             <div className="hidden lg:flex items-center gap-2.5">
               <LanguageSwitcher />
-              <Link
-                href="/login"
+              <a
+                href={appUrl('/login')}
                 className="h-9 px-4 rounded-full border border-zinc-700 text-zinc-300 hover:text-white hover:border-zinc-500 transition-all text-sm font-medium flex items-center"
               >
                 {t('login')}
-              </Link>
-              <Link
-                href="/register"
+              </a>
+              <a
+                href={appUrl('/register')}
                 className="group h-9 pl-4 pr-3.5 rounded-full bg-[#7B72F8] text-white hover:bg-[#6B63E8] transition-all text-sm font-semibold flex items-center gap-1.5 shadow-[0_0_16px_rgba(123,114,248,0.35)] hover:shadow-[0_0_26px_rgba(123,114,248,0.55)]"
               >
                 {t('getStarted')}
                 <FaArrowRight size={11} className="group-hover:translate-x-0.5 transition-transform" aria-hidden="true" />
-              </Link>
+              </a>
             </div>
 
             {/* Mobile burger */}
@@ -183,22 +184,22 @@ export function LandingNav() {
           </div>
 
           {/* Login button */}
-          <Link
-            href="/login"
+          <a
+            href={appUrl('/login')}
             onClick={() => setMenuOpen(false)}
             className="flex items-center justify-center h-11 rounded-xl border border-zinc-700 text-zinc-300 hover:text-white hover:border-zinc-500 transition-all text-sm font-medium w-full"
           >
             {t('login')}
-          </Link>
+          </a>
 
           {/* CTA button */}
-          <Link
-            href="/register"
+          <a
+            href={appUrl('/register')}
             onClick={() => setMenuOpen(false)}
             className="flex items-center justify-center h-11 rounded-xl bg-[#7B72F8] text-white hover:bg-[#6B63E8] hover:shadow-[0_0_30px_rgba(123,114,248,0.5)] transition-all text-sm font-semibold w-full shadow-[0_0_15px_rgba(123,114,248,0.35)]"
           >
             {t('getStarted')}
-          </Link>
+          </a>
         </div>
       </div>
     </>

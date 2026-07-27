@@ -18,6 +18,15 @@ interface Room {
   inviteCode?: string;
 }
 
+// The tagline is baked into the PNG, so it cannot come from next-intl at render time on the client.
+// Callers pass ?lang= (the web share dialog sends the active locale); anything else falls back to
+// Uzbek, which is what the card shipped with.
+const TAGLINE: Record<string, string> = {
+  uz: 'Birga tomosha qilamiz',
+  ru: 'Смотрим вместе',
+  en: 'Watching together',
+};
+
 /**
  * GET /api/rooms/[id]/story-image — renders the room as a 1080×1920 PNG for Instagram Stories.
  *
@@ -56,6 +65,7 @@ export async function GET(
     }
   }
 
+  const tagline = TAGLINE[req.nextUrl.searchParams.get('lang') ?? ''] ?? TAGLINE.uz;
   const title = room.videoTitle || room.name || 'Watch Party';
   const shareUrl = room.inviteCode
     ? `${APP_URL}/room/${id}?code=${room.inviteCode}`
@@ -125,7 +135,7 @@ export async function GET(
           </div>
 
           <div style={{ display: 'flex', fontSize: 40, color: 'rgba(255,255,255,0.55)', marginTop: 40 }}>
-            Birga tomosha qilamiz
+            {tagline}
           </div>
 
           <div

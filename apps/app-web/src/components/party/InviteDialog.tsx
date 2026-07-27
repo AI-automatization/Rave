@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Copy, Check, Send, Loader2, Image as ImageIcon } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
@@ -19,6 +19,7 @@ interface Props {
 
 export function InviteDialog({ open, onOpenChange }: Props) {
   const t = useTranslations('party');
+  const locale = useLocale();
   const room = useWatchPartyStore((s) => s.room);
   const [copied, setCopied] = useState(false);
   const [invitingId, setInvitingId] = useState<string | null>(null);
@@ -59,7 +60,9 @@ export function InviteDialog({ open, onOpenChange }: Props) {
     trackClick('invite:share_story');
     setStoryPending(true);
     try {
-      const res = await fetch(`/api/rooms/${room._id}/story-image`, { credentials: 'include' });
+      // ?lang= — the tagline is rasterised into the PNG server-side, so the locale has to travel
+      // with the request; without it every story card went out in Uzbek regardless of UI language.
+      const res = await fetch(`/api/rooms/${room._id}/story-image?lang=${locale}`, { credentials: 'include' });
       if (!res.ok) throw new Error('story image failed');
       const blob = await res.blob();
       const file = new File([blob], 'wewatch-story.png', { type: 'image/png' });
@@ -98,12 +101,12 @@ export function InviteDialog({ open, onOpenChange }: Props) {
         body: JSON.stringify({ userId }),
       });
       if (res.ok) {
-        toast({ title: 'Invite sent ✓' });
+        toast({ title: t('inviteSent') });
       } else {
-        toast({ title: 'Failed to invite', variant: 'destructive' });
+        toast({ title: t('inviteError'), variant: 'destructive' });
       }
     } catch {
-      toast({ title: 'Failed to invite', variant: 'destructive' });
+      toast({ title: t('inviteError'), variant: 'destructive' });
     } finally {
       setInvitingId(null);
     }
@@ -118,7 +121,7 @@ export function InviteDialog({ open, onOpenChange }: Props) {
         <DialogHeader>
           <DialogTitle className="text-white">{t('inviteFriends')}</DialogTitle>
           <DialogDescription className="text-slate-400">
-            Bu kodni do&apos;stlaringizga yuboring
+            {t('inviteCodeHint')}
           </DialogDescription>
         </DialogHeader>
 

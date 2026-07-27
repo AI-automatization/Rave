@@ -177,6 +177,15 @@ export function useWatchParty(roomId: string) {
       setRoom(room);
     });
 
+    // Queue changed (add/remove/next) — the panel reads room.playlist, so patch it in place.
+    // Without this the web client only ever saw the queue snapshot from the initial REST load:
+    // POST /playlist returned 201, the server broadcast PLAYLIST_UPDATED, and nothing listened —
+    // the item appeared only after a full page reload (mobile has listened since T-S174).
+    socket.on(SERVER_EVENTS.PLAYLIST_UPDATED, (data: { playlist: unknown[] }) => {
+      const current = useWatchPartyStore.getState().room;
+      if (current) setRoom({ ...current, playlist: data.playlist } as unknown as IWatchPartyRoom);
+    });
+
     // Owner transferred — update ownerId in local room so video controls flip correctly
     socket.on(SERVER_EVENTS.OWNER_TRANSFERRED, (data: { newOwnerId: string }) => {
       const current = useWatchPartyStore.getState().room;
@@ -217,6 +226,7 @@ export function useWatchParty(roomId: string) {
       socket.off(SERVER_EVENTS.VIDEO_HEARTBEAT);
       socket.off(SERVER_EVENTS.ROOM_CLOSED);
       socket.off(SERVER_EVENTS.ROOM_UPDATED);
+      socket.off(SERVER_EVENTS.PLAYLIST_UPDATED);
       socket.off(SERVER_EVENTS.OWNER_TRANSFERRED);
       socket.off(SERVER_EVENTS.MEMBER_KICKED);
       socket.off(SERVER_EVENTS.ERROR);

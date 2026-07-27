@@ -9,6 +9,7 @@ import {
   FaWifi, FaShieldAlt, FaCheck, FaArrowRight,
 } from 'react-icons/fa';
 import { useTranslations } from 'next-intl';
+import { appUrl } from '@/lib/app-url';
 
 /* ── Animation configs ─────────────────────────────── */
 const springConfig = { type: 'spring' as const, stiffness: 260, damping: 22 };
@@ -387,15 +388,15 @@ export function FeaturesContent() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             {/* Primary CTA */}
             <motion.div whileHover={{ scale: 1.06, y: -3 }} whileTap={{ scale: 0.95 }} transition={springConfig}>
-              <Link
-                href="/register"
+              <a
+                href={appUrl('/register')}
                 className="group/btn inline-flex items-center gap-2.5 h-12 px-8 rounded-xl bg-[#7B72F8] text-white font-semibold shadow-[0_0_24px_rgba(123,114,248,0.5)] hover:shadow-[0_0_50px_rgba(123,114,248,0.8)] hover:bg-[#6B63E8] transition-all duration-300 text-sm relative overflow-hidden"
               >
                 {/* Shine sweep */}
                 <div className="absolute inset-0 -translate-x-full group-hover/btn:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/15 to-transparent" />
                 <FaPlay size={11} />
                 <span>{tl('startShort')}</span>
-              </Link>
+              </a>
             </motion.div>
             {/* Secondary CTA */}
             <motion.div whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }} transition={springConfig}>

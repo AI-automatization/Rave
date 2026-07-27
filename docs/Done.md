@@ -4,6 +4,22 @@
 
 ---
 
+### F-280 | T-S184 | Prod test (app.wewatch.uz) — 6 ta bug topildi va tuzatildi
+
+- **Bajaruvchi:** Jasur (Claude opus 5)  **Bajarilgan:** 2026-07-27  **Model:** opus
+- **O'zgarishlar:** `apps/app-web/next.config.mjs`, `apps/app-web/src/hooks/use-watch-party.ts`, `apps/app-web/src/components/party/RoomHeader.tsx`, `InviteDialog.tsx`, `apps/app-web/src/app/api/rooms/[id]/story-image/route.tsx`, `apps/app-web/messages/{uz,ru,en}.json`, `services/auth/src/controllers/auth.controller.ts`, `apps/web/src/lib/app-url.ts` (yangi) + 10 ta landing fayli.
+- **Sinov usuli:** 3 ta yangi akkaunt (vaqtinchalik pochta orqali OTP), 3 ta alohida Chromium konteksti, jonli prod. Sinovdan **muvaffaqiyatli** o'tgani: chat real-time (3 klient), reply (T-S164/165), avatar (T-S161), chatdan profil ochish (T-S163), parolli xona (T-S183 — noto'g'ri parol 403, to'g'risi kiritadi), story-image endpoint (T-S177), VirtualBrowser ochilishi (T-S181), bitta faol xona guard'i (T-S108 — ega bo'yicha, a'zolikni cheklamaydi = to'g'ri xatti-harakat).
+- **Xulosa:**
+  🔴 **1. Ovozli chat prod'da umuman ishlamasdi (T-S168).** `next.config.mjs` da `Permissions-Policy: microphone=()` — brauzer `getUserMedia` ni ruxsat so'ramasdan bloklaydi ("microphone is not allowed in this document"), VoiceStrip barchada "Permission denied" holatida qotgan. `microphone=(self)` qilindi; kamera atayin yopiq qoldi.
+  🔴 **2. Ro'yxatdan o'tish oxirida foydalanuvchi `/login` ga tashlanardi.** `POST /register/confirm` faqat `{ userId }` qaytarardi, web route esa cookie qo'yish uchun `accessToken`/`refreshToken` kutadi → sessiya yo'q → middleware `/login?redirect=/home` ga qaytaradi, ya'ni OTP tasdiqlangani bilan "ro'yxatdan o'tish ishlamadi"day ko'rinadi. Controller endi `generateAndStoreTokens` bilan sessiya beradi (OTP allaqachon egalikni isbotlagan). Javob **ortiqcha**: eski `userId` maydoni saqlandi, mobil klientlar buzilmasin.
+  🔴 **3. Navbat (playlist) web'da real-time yangilanmasdi (T-S173..176).** Server `playlist:updated` broadcast qiladi, mobil `useWatchParty.ts:259` da tinglaydi — web'da esa hech kim tinglamasdi: POST 201 qaytarardi-yu, element faqat sahifa qayta yuklangandan keyin ko'rinardi. `use-watch-party.ts` ga handler qo'shildi (`room.playlist` ni joyida patch qiladi).
+  🟡 **4. Ishtirokchilar soni eskirib qolardi.** `RoomHeader.tsx:26` avval REST snapshot'ini (`room.members`, sahifa yuklanganda olingan va keyin o'zgarmaydi) o'qib, socket'dagi jonli ro'yxatni faqat fallback sifatida ishlatardi — 3 kishilik xonada 3 ta avatar yonida "2" turardi. Tartib teskari qilindi.
+  🟡 **5. InviteDialog lokalizatsiyadan chetda qolgan.** Dialog tavsifi rus/ingliz interfeysda ham **hardcoded o'zbekcha** ("Bu kodni do'stlaringizga yuboring"), taklif toast'lari esa hardcoded inglizcha edi. Uchala tilga `inviteCodeHint`/`inviteSent`/`inviteError` kalitlari qo'shildi.
+  🟡 **6. Story-card har doim o'zbekcha chiqardi (T-S177).** Matn PNG ichiga server tomonda rasterizatsiya qilinadi, shuning uchun `?lang=` parametri qo'shildi; InviteDialog `useLocale()` ni uzatadi, default — avvalgidek o'zbekcha.
+  🟡 **7. Landing → app o'tishlari har sahifada CORS xatosi berardi.** `wewatch.uz` da `<Link href="/register">` ichki route deb prefetch qilinadi, 308 redirect esa `app.wewatch.uz` ga olib boradi → RSC so'rovi CORS bilan bloklanadi (har hover'da behuda so'rov, bosganda client-router fallback). 13 ta havola `appUrl()` orqali absolyut URL'li oddiy `<a>` ga o'tkazildi (`apps/web/src/lib/app-url.ts` — next.config.mjs bilan bir xil env o'qiydi).
+  ⚠️ **Kod bilan tuzatib bo'lmaydi:** notification servisi barcha so'rovni "Invalid token" bilan rad etadi — Railway'dagi `JWT_PUBLIC_KEY` mos emas (T-S185, Tasks.md).
+  ⚠️ **Sinovdan o'tmagan:** tuzatishlar deploydan keyin jonli tekshirilishi kerak (ayniqsa mikrofon header'i va navbat real-time'i) — prod hali eski build'da.
+
 ### F-279 | T-S173 + T-S174 + T-S175 + T-S176 | Playlist pre-resolve zanjiri
 
 - **Bajaruvchi:** Jasur (Claude opus 5)  **Bajarilgan:** 2026-07-27  **Model:** opus

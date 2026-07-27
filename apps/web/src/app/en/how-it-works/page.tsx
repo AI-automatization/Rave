@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
 import { hreflangFor } from '@/lib/i18n/routes';
+import { appUrl } from '@/lib/app-url';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 const PATH = '/en/how-it-works';
@@ -160,9 +161,9 @@ export default function EnHowItWorksPage() {
             <div className="relative">
               <h2 className="text-2xl font-bold mb-3">Ready to try it?</h2>
               <p className="text-zinc-400 mb-6">Create your first room in under a minute</p>
-              <Link href="/register" className="inline-flex items-center justify-center gap-2 bg-[#7B72F8] hover:bg-[#6a63e8] text-white font-semibold px-6 py-3 rounded-xl transition-colors shadow-lg shadow-[#7B72F8]/25">
+              <a href={appUrl('/register')} className="inline-flex items-center justify-center gap-2 bg-[#7B72F8] hover:bg-[#6a63e8] text-white font-semibold px-6 py-3 rounded-xl transition-colors shadow-lg shadow-[#7B72F8]/25">
                 Start free
-              </Link>
+              </a>
             </div>
           </div>
         </div>

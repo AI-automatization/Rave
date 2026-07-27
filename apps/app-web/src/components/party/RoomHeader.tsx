@@ -23,7 +23,11 @@ export function RoomHeader() {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [leaveOpen, setLeaveOpen] = useState(false);
 
-  const memberCount = ((room as any)?.members as unknown[])?.length ?? storeMembers.length;
+  // storeMembers is the live list (ROOM_JOINED seeds it, MEMBER_JOINED/MEMBER_LEFT keep it current);
+  // room.members is the REST snapshot from page load and never changes afterwards. Reading the
+  // snapshot first made the count go stale the moment someone joined — the face-pile showed three
+  // avatars next to the number "2". Fall back to the snapshot only before the socket has joined.
+  const memberCount = storeMembers.length || ((room as any)?.members as unknown[])?.length || 0;
   const isOwner = !!currentUser && room?.ownerId === currentUser._id;
   const otherMembers = storeMembers.filter((m) => m._id !== currentUser?._id);
 

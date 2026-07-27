@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { WeWatchLogo } from './WeWatchLogo';
 import { relatedGuides } from '@/data/guides';
+import { appUrl } from '@/lib/app-url';
 
 // Static chrome for standalone SEO pages (/guides/*, /uz/guides/*): server
 // components with zero client JS so guide pages stay fully static and light.
@@ -134,12 +135,12 @@ export function GuideHeader({ locale = 'ru' }: { locale?: GuideLocale }) {
           <Link href={t.faqHref} className="text-zinc-400 hover:text-white transition-colors">
             {t.faq}
           </Link>
-          <Link
-            href="/register"
+          <a
+            href={appUrl('/register')}
             className="h-8 px-3.5 rounded-full bg-[#7B72F8] text-white hover:bg-[#6B63E8] transition-colors text-xs sm:text-sm font-semibold flex items-center whitespace-nowrap"
           >
             {t.cta}
-          </Link>
+          </a>
         </nav>
       </div>
     </header>

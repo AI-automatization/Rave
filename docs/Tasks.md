@@ -1,6 +1,25 @@
 # CineSync — OCHIQ VAZIFALAR
 
-# Yangilangan: 2026-07-26
+# Yangilangan: 2026-07-27
+
+---
+
+# 🚨 PROD — DARHOL HAL QILINISHI KERAK
+
+### T-S185 | P0 | [DEVOPS] | notification servisi barcha so'rovni "Invalid token" bilan rad etadi
+
+- **Mas'ul:** pending[Jasur]
+- **Beruvchi:** prod test (2026-07-27, app.wewatch.uz)
+- **Yaratilgan:** 2026-07-27 08:30
+- **Holat:** ❌ Boshlanmagan — **kod emas, env muammosi**
+- **Tavsiya model:** —
+- **Model sababi:** kod o'zgarishi kerak emas, Railway env sozlash
+- **Sabab:** `/api/notifications` va `/api/notifications/unread-count` prod'da **401 `{"message":"Invalid token"}`** qaytaradi. Bir xil cookie bilan `/api/auth/me` 200 beradi, xona yaratish/qo'shilish (watch-party, user servislari) ham ishlaydi — ya'ni token yaroqli, uni faqat notification servisi rad etadi. `shared/src/middleware/auth.middleware.ts:32` `JWT_PUBLIC_KEY` bilan RS256 tekshiradi, `services/notification/src/config` esa `requireEnv('JWT_PUBLIC_KEY')` — kalit bor (aks holda servis ko'tarilmasdi), lekin **auth servisi imzolayotgan kalitga mos emas** (eski juftlik qolgan).
+- **Ta'siri:** web va mobil'da bildirishnomalar umuman ishlamaydi; xona sahifasida har 30 soniyada konsolga 401 yozadi.
+- **Qilish kerak:**
+  - [ ] Railway → notification servisi → `JWT_PUBLIC_KEY` ni auth servisidagi qiymat bilan bir xil qilish (`JWT_PRIVATE_KEY` juftligi)
+  - [ ] Redeploy, so'ng `GET /api/notifications/unread-count` 200 qaytarishini tekshirish
+- **Fayllar:** kod o'zgarmaydi — Railway env
 
 ---
 

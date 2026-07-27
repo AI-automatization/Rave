@@ -42,7 +42,22 @@ export class AuthController {
     try {
       const { email, code } = req.body as { email: string; code: string };
       const user = await this.authService.confirmRegistration(email, code);
-      res.status(201).json(apiResponse.success({ userId: user._id }, 'Registration successful'));
+
+      // The OTP already proved this is the account owner, so hand back a session right away —
+      // same shape as /login. Without it every new user landed on /login again immediately after
+      // confirming (the web client sets its cookies from this response and had nothing to set),
+      // which reads as "registration failed". `userId` stays in the payload for older clients.
+      const ip = req.ip ?? null;
+      const userAgent = req.headers['user-agent'] ?? null;
+      const { accessToken, refreshToken } = await this.authService.generateAndStoreTokens(
+        user._id.toString(), user.email, user.role as import('@shared/types').UserRole,
+        ip, userAgent, true, user.username,
+      );
+
+      res.status(201).json(apiResponse.success(
+        { userId: user._id, accessToken, refreshToken, user },
+        'Registration successful',
+      ));
     } catch (error) {
       next(error);
     }

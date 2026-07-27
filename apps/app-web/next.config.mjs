@@ -41,8 +41,13 @@ const nextConfig = {
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           { key: 'X-XSS-Protection', value: '1; mode=block' },
           {
+            // microphone=(self): the room's voice chat (T-S168) calls getUserMedia from this very
+            // document. With `microphone=()` the browser refuses before any permission prompt
+            // ("Permissions policy violation: microphone is not allowed in this document") and the
+            // voice strip is stuck on "Permission denied" for everyone. Camera stays disabled —
+            // nothing in the app uses it.
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=()',
+            value: 'camera=(), microphone=(self), geolocation=()',
           },
           {
             key: 'Strict-Transport-Security',

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
 import { hreflangFor } from '@/lib/i18n/routes';
+import { appUrl } from '@/lib/app-url';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 const PATH = '/uz/guides/kino-birgalikda';
@@ -240,12 +241,12 @@ export default function KinoBirgalikdaPage() {
           <div className="bg-gradient-to-r from-purple-900/40 to-indigo-900/40 rounded-2xl p-8 text-center border border-purple-800/30 mb-10">
             <h2 className="text-2xl font-bold text-white mb-3">Hoziroq birga kino ko'ring</h2>
             <p className="text-zinc-400 mb-6">Bepul, istagan qurilmadan.</p>
-            <Link
-              href="/register"
+            <a
+              href={appUrl('/register')}
               className="inline-block bg-purple-600 hover:bg-purple-500 text-white font-semibold px-8 py-3 rounded-xl transition-colors"
             >
               Xona yaratish
-            </Link>
+            </a>
           </div>
 
           <div className="border-t border-zinc-800 pt-8">
