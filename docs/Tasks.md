@@ -6,27 +6,6 @@
 
 # 🚨 PROD — DARHOL HAL QILINISHI KERAK
 
-### T-S186 | P0 | [WEB+BACKEND] | Real qurilma testida topilgan 4 ta bug (room/auth/video)
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Saidazim (real device test, 2026-07-27)
-- **Yaratilgan:** 2026-07-27
-- **Holat:** ❌ Boshlanmagan
-- **Tavsiya model:** sonnet
-- **Model sababi:** 4 ta alohida root cause, 5+ fayl (watch-party socket handlers + app-web auth/player)
-- **Sabab:** Telefonda real test — 4 ta bug topildi:
-  1. Video ovozi juda past, playerdan volume slider ishlamaydi (iOS Safari `video.volume` JS orqali o'zgartirib bo'lmaydi — platform cheklovi)
-  2. Google login popup orqali — mobil brauzerlarda beqaror (`window.opener` uziladi, `popup.closed` ishonchsiz — T-S132 da ham shu muammo patchlangan edi). Klassik full-page redirect flow'ga o'tish kerak.
-  3. Room owner orqaga qaytib yangi room yaratsa — eski room yopilmagani uchun 409 bilan eski room'ga qaytaradi (T-S108 himoyasi)
-  4. Oddiy user tab yopib/orqaga qaytib chiqsa — room'da "qolib ketadi" (DB'dan chiqarilmaydi)
-  - **Root cause 3+4 bir xil:** `watchParty.socket.ts` disconnect handler — reconnect uchun ataylab membership'ni darhol o'chirmaydi, faqat butun room bo'shasa 5 daqiqadan keyin yopiladi. Individual user uchun grace-period yo'q.
-- **Qilish kerak:**
-  - [ ] `services/watch-party/src/socket/roomEvents.handler.ts` + `watchParty.socket.ts` — 20s grace-period timer disconnect uchun, JOIN_ROOM'da bekor qilinadi
-  - [ ] `apps/app-web/src/app/(auth)/login/LoginForm.tsx` — Google login popup → redirect flow
-  - [ ] `apps/app-web/src/components/party/VideoPlayer.tsx` — iOS'da volume slider'ni yashirish/moslashtirish
-
----
-
 - **Mas'ul:** pending[Jasur]
 - **Beruvchi:** prod test (2026-07-27, app.wewatch.uz)
 - **Yaratilgan:** 2026-07-27 08:30

@@ -70,120 +70,22 @@ export function LoginForm() {
     );
   }
 
-  async function handleGoogleLogin() {
+  function handleGoogleLogin() {
     trackClick('login:google');
     setError('');
     setIsGoogleLoading(true);
 
-    // Open popup BEFORE any await so Chrome doesn't block it (user-gesture context).
-    // Navigate to the real URL after we get it from the API.
-    const w = 500, h = 600;
-    const left = Math.round((window.screen.width - w) / 2);
-    const top = Math.round((window.screen.height - h) / 2);
-    const popup = window.open(
-      'about:blank',
-      'google-auth',
-      `width=${w},height=${h},left=${left},top=${top}`,
-    );
-
-    try {
-      const res = await authApi.googleInit();
-      const url = res.data?.url;
-      const state = res.data?.state;
-      if (!url || !state) {
-        popup?.close();
-        setIsGoogleLoading(false);
-        setError(t('genericError'));
-        return;
-      }
-
-      // Navigate the already-open popup to the auth URL
-      if (popup) {
-        popup.location.href = url;
-      } else {
-        // Popup was blocked entirely — fall back to same-tab redirect
-        window.location.href = url;
-        return;
-      }
-
-      let done = false;
-      const finishLogin = async () => {
-        if (done) return;
-        try {
-          const poll = await authApi.googlePoll(state!);
-          if (poll.data?.user) {
-            done = true;
-            clearInterval(interval);
-            document.removeEventListener('visibilitychange', onVisible);
-            window.removeEventListener('focus', onVisible);
-            window.removeEventListener('message', onMessage);
-            killPopup(popup);
-            setUser(poll.data.user);
-            // Full page reload — ensures freshly-set httpOnly cookies reach middleware
-            window.location.href = searchParams.get('redirect') || '/home';
-          }
-        } catch (err) {
-          // A rate-limit response is not "still pending" — retrying at the same cadence just
-          // digs the hole deeper (T-S132). Stop polling and surface it instead of hanging forever.
-          if (err instanceof ApiError && err.status === 429) {
-            done = true;
-            killPopup(popup);
-            cleanup(t('genericError'));
-          }
-        }
-      };
-
-      const cleanup = (withError?: string) => {
-        clearInterval(interval);
-        document.removeEventListener('visibilitychange', onVisible);
-        window.removeEventListener('focus', onVisible);
-        window.removeEventListener('message', onMessage);
-        setIsGoogleLoading(false);
-        if (withError) setError(withError);
-      };
-
-      const onMessage = async (e: MessageEvent) => {
-        if (e.data === 'google-auth-done') {
-          killPopup(popup);
-          await finishLogin();
-        } else if (e.data === 'google-auth-error') {
-          killPopup(popup);
-          cleanup(t('genericError'));
-        }
-      };
-      window.addEventListener('message', onMessage);
-
-      // popup.closed is NOT a trustworthy signal here: once the popup navigates to
-      // accounts.google.com (cross-origin from this tab), Google's own Cross-Origin-Opener-Policy
-      // severs the opener relationship, and `popup.closed` reads `true` from this side within
-      // seconds — while the user is still sitting on Google's account picker. An earlier version
-      // polled `popup.closed` on a timer and auto-cancelled the login ~4s in, on every attempt,
-      // regardless of how long the real OAuth flow took (T-S132 follow-up — confirmed via prod
-      // logs: exactly 2 polls fired, then silence, on 3/3 real attempts). Instead, only act on
-      // `.closed` once we get a genuine focus-return signal (below) — at that point the browser
-      // has actually resolved the window lifecycle and the read is trustworthy again.
-      const onVisible = () => {
-        if (document.visibilityState !== 'visible' || done) return;
-        void finishLogin();
-        if (popup?.closed) {
-          // We're back and the popup is really gone — give one grace poll to land, then stop.
-          setTimeout(() => { if (!done) cleanup(); }, 1500);
-        }
-      };
-      document.addEventListener('visibilitychange', onVisible);
-      window.addEventListener('focus', onVisible);
-
-      // Ground-truth poll every 2s in case postMessage is missed. Was 800ms — that cadence blew
-      // through pollRateLimiter's budget before a real Google OAuth flow (account picker +
-      // consent) finished, silently hanging the login (T-S132).
-      const interval = setInterval(finishLogin, 2000);
-
-      // Cleanup after 2 min
-      setTimeout(() => cleanup(), 120_000);
-    } catch {
-      setIsGoogleLoading(false);
-      setError(t('genericError'));
-    }
+    // Classic full-page redirect — no popup, no polling. Was popup+poll (window.open + postMessage
+    // + /api/auth/me polling), which needed three rounds of patching for mobile-browser breakage
+    // (T-S132, T-S134: Google's Cross-Origin-Opener-Policy severs window.opener once the popup
+    // navigates cross-origin, making both `popup.closed` and postMessage unreliable). This route
+    // 302s to the auth service's passport /google endpoint; Google redirects back to
+    // /auth/callback on this same origin, which finishes the login. See
+    // api/auth/google/start/route.ts for the full round-trip.
+    const redirect = searchParams.get('redirect');
+    window.location.href = redirect
+      ? `/api/auth/google/start?redirect=${encodeURIComponent(redirect)}`
+      : '/api/auth/google/start';
   }
 
   async function handleTelegramLogin() {

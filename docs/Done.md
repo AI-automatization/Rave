@@ -4,6 +4,14 @@
 
 ---
 
+### F-281 | T-S186 | Real qurilma testida topilgan 4 ta bug (room/auth/video) — hammasi tuzatildi
+
+- **Bajaruvchi:** Saidazim (Claude sonnet 5)  **Bajarilgan:** 2026-07-27  **Model:** sonnet
+- **O'zgarishlar:** `services/watch-party/src/socket/roomEvents.handler.ts` (disconnect grace-period: `disconnectGraceTimers` map + `scheduleDisconnectLeave`/`finalizeRoomLeave` helperlar, JOIN_ROOM'da bekor qilish), `watchParty.socket.ts` (disconnect handlerda `scheduleDisconnectLeave` chaqiruvi), YANGI `apps/app-web/src/app/api/auth/google/start/route.ts` + `google/exchange/route.ts`, YANGI `apps/app-web/src/app/auth/callback/page.tsx`, `LoginForm.tsx` (handleGoogleLogin — popup+poll to'liq olib tashlandi, oddiy redirect), `apps/app-web/src/components/party/VideoPlayer.tsx` (`isVolumeSliderUnusable()` — iOS'da volume slider yashiriladi, mute tugmasi qoladi).
+- **Xulosa:** 4 ta bug, 3 ta mustaqil root cause: (1) iOS har qanday brauzerda `HTMLMediaElement.volume`ni JS orqali o'zgartirishga yo'l qo'ymaydi (Apple platform cheklovi) — slider olib tashlandi, faqat mute qoldi; (2) Google login popup+poll — mobil brauzerlarda Google COOP `window.opener`ni uzadi, `popup.closed` ishonchsiz (T-S132/T-S134 shu bilan patchlangan edi) — backend'da ALLAQACHON tayyor klassik Passport redirect flow bor edi (`/auth/google` → `/auth/google/callback` → `CLIENT_URL/auth/callback?code=`), faqat frontend undan foydalanmagan edi; ikkita yangi route + callback sahifa shuni ulaydi; (3+4) room/auth bitta root cause — `watchParty.socket.ts` disconnect handleri ataylab a'zolikni darhol o'chirmaydi (reconnect uchun), faqat butun xona bo'shasa 5 daqiqadan keyin yopiladi — individual user uchun grace-period yo'q edi. Yechim: 20s per-user grace timer (`disconnectGraceTimers`), JOIN_ROOM'da bekor qilinadi; muddat tugasa `finalizeRoomLeave()` orqali LEAVE_ROOM bilan bir xil yo'l (owner bo'lsa xona yopiladi/egasi almashadi, T-S108 409 muammosi ham shu bilan hal bo'ladi). Tekshiruv: `tsc --noEmit` ikkala servisda ham CLEAN (watch-party'da 130 ta eski `@shared` rootDir xatosi — mendan oldin ham bor edi, stash bilan tasdiqlandi), `next build` toza, ikkalasi ham `railway up` orqali production'ga deploy qilindi va live tekshirildi (`/api/auth/google/start` → real Google redirect, watch-party health OK).
+
+---
+
 ### F-280 | T-S184 | Prod test (app.wewatch.uz) — 8 ta bug topildi, 7 tasi tuzatildi
 
 - **Bajaruvchi:** Jasur (Claude opus 5)  **Bajarilgan:** 2026-07-27  **Model:** opus

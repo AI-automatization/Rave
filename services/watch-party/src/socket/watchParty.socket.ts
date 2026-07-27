@@ -6,7 +6,7 @@ import { SERVER_EVENTS } from '@shared/constants/socketEvents';
 import { JwtPayload } from '@shared/types';
 import { config } from '../config/index';
 import { TIMING, LIMITS } from '@shared/constants';
-import { registerRoomEvents, roomCloseTimers } from './roomEvents.handler';
+import { registerRoomEvents, roomCloseTimers, scheduleDisconnectLeave } from './roomEvents.handler';
 import { registerVideoEvents } from './videoEvents.handler';
 import { registerChatEvents } from './chatEvents.handler';
 import { registerVoiceEvents } from './voiceEvents.handler';
@@ -168,6 +168,12 @@ export const registerWatchPartySocket = (io: SocketServer, watchPartyService: Wa
 
         authSocket.roomId = undefined;
         socket.to(roomId).emit(SERVER_EVENTS.MEMBER_LEFT, { userId });
+
+        // Arm the grace-period leave — if this user doesn't rejoin roomId within the window,
+        // it's a real departure (tab closed, navigated back) and membership is actually removed,
+        // exactly as if they'd clicked Leave. See roomEvents.handler.ts for why disconnect alone
+        // must not do this immediately.
+        scheduleDisconnectLeave(io, watchPartyService, userId, roomId);
 
         // Start inactivity timer if room is now empty (no sockets connected)
         const sockets = await io.in(roomId).fetchSockets();

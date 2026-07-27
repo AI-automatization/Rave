@@ -20,6 +20,97 @@ interface AuthenticatedSocket extends Socket {
 export const roomCloseTimers = new Map<string, ReturnType<typeof setTimeout>>();
 const ROOM_INACTIVITY_MS = 5 * 60 * 1000; // 5 minutes
 
+// In-memory map of `${roomId}:${userId}` → disconnect grace timer. A raw socket `disconnect`
+// (tab close, back-button navigation, brief network drop, phone screen lock) must not instantly
+// evict someone from room membership — this window lets a genuine reconnect (page reload,
+// socket.io's own retry) land before the departure is treated as real. JOIN_ROOM below cancels
+// the timer on a rejoin; if it fires, the disconnect becomes equivalent to an explicit LEAVE_ROOM.
+export const disconnectGraceTimers = new Map<string, ReturnType<typeof setTimeout>>();
+const DISCONNECT_GRACE_MS = 20 * 1000;
+
+// Starts the room-empty inactivity timer if nobody is left connected — shared by the explicit
+// leave path and the disconnect-grace path below, both of which can be the reason a room just
+// became empty.
+function scheduleRoomEmptyCheck(
+  io: SocketServer,
+  watchPartyService: WatchPartyService,
+  roomId: string,
+): void {
+  void (async () => {
+    const sockets = await io.in(roomId).fetchSockets();
+    if (sockets.length === 0 && !roomCloseTimers.has(roomId)) {
+      logger.info('Room empty — starting 5-minute inactivity timer', { roomId });
+      const timer = setTimeout(() => {
+        roomCloseTimers.delete(roomId);
+        void (async () => {
+          try {
+            await watchPartyService.closeRoomBySystem(roomId);
+            await stopSession(roomId);
+            io.to(roomId).emit(SERVER_EVENTS.ROOM_CLOSED, { reason: 'inactivity' });
+            logger.info('Room auto-closed after 5 minutes of inactivity', { roomId });
+          } catch (e) {
+            logger.error('Failed to auto-close room', { roomId, error: e });
+          }
+        })();
+      }, ROOM_INACTIVITY_MS);
+      roomCloseTimers.set(roomId, timer);
+    }
+  })();
+}
+
+// Removes `userId` from `roomId`'s membership and handles the close/transfer fallout — the same
+// terminal step for both an explicit LEAVE_ROOM click and a disconnect whose grace period expired.
+// `excludeSocket` is only available in the explicit-leave case (there's a live socket to exclude
+// from the broadcast); a grace-expired disconnect has none, so it broadcasts to everyone via `io`.
+async function finalizeRoomLeave(
+  io: SocketServer,
+  watchPartyService: WatchPartyService,
+  userId: string,
+  roomId: string,
+  excludeSocket?: Socket,
+): Promise<void> {
+  try {
+    const result = await watchPartyService.leaveRoom(userId, roomId);
+    const broadcastTarget = excludeSocket ? excludeSocket.to(roomId) : io.to(roomId);
+
+    if (result.closed) {
+      await stopSession(roomId);
+      io.to(roomId).emit(SERVER_EVENTS.ROOM_CLOSED, { reason: 'owner_left' });
+    } else if (result.newOwnerId) {
+      // Update cached ownerId on all sockets in the room so video events skip DB
+      const roomSockets = await io.in(roomId).fetchSockets();
+      for (const s of roomSockets) {
+        (s as unknown as AuthenticatedSocket).roomOwnerId = result.newOwnerId;
+      }
+      broadcastTarget.emit(SERVER_EVENTS.MEMBER_LEFT, { userId });
+      io.to(roomId).emit(SERVER_EVENTS.OWNER_TRANSFERRED, { newOwnerId: result.newOwnerId });
+    } else {
+      broadcastTarget.emit(SERVER_EVENTS.MEMBER_LEFT, { userId });
+    }
+
+    if (!result.closed) scheduleRoomEmptyCheck(io, watchPartyService, roomId);
+  } catch (error) {
+    logger.error('Failed to finalize room leave', { userId, roomId, error });
+  }
+}
+
+// Called from the socket-level `disconnect` handler (watchParty.socket.ts). Arms the grace timer
+// described above instead of leaving immediately.
+export function scheduleDisconnectLeave(
+  io: SocketServer,
+  watchPartyService: WatchPartyService,
+  userId: string,
+  roomId: string,
+): void {
+  const key = `${roomId}:${userId}`;
+  if (disconnectGraceTimers.has(key)) return; // already armed
+  const timer = setTimeout(() => {
+    disconnectGraceTimers.delete(key);
+    void finalizeRoomLeave(io, watchPartyService, userId, roomId);
+  }, DISCONNECT_GRACE_MS);
+  disconnectGraceTimers.set(key, timer);
+}
+
 export const registerRoomEvents = (
   io: SocketServer,
   socket: Socket,
@@ -53,6 +144,16 @@ export const registerRoomEvents = (
         clearTimeout(pendingTimer);
         roomCloseTimers.delete(data.roomId);
         logger.info('Room inactivity timer cancelled — member joined', { roomId: data.roomId });
+      }
+
+      // Cancel this user's own disconnect-grace timer, if any — a genuine rejoin (refresh,
+      // reconnect, screen unlock) means the earlier disconnect was never a real departure.
+      const graceKey = `${data.roomId}:${userId}`;
+      const pendingGrace = disconnectGraceTimers.get(graceKey);
+      if (pendingGrace) {
+        clearTimeout(pendingGrace);
+        disconnectGraceTimers.delete(graceKey);
+        logger.info('Disconnect grace timer cancelled — user rejoined', { roomId: data.roomId, userId });
       }
 
       await socket.join(data.roomId);
@@ -116,47 +217,7 @@ export const registerRoomEvents = (
       logger.warn('Failed to resolve buffer-pause on room leave', { userId, roomId, error: e });
     }
 
-    try {
-      const result = await watchPartyService.leaveRoom(userId, roomId);
-      if (result.closed) {
-        await stopSession(roomId);
-        io.to(roomId).emit(SERVER_EVENTS.ROOM_CLOSED, { reason: 'owner_left' });
-      } else if (result.newOwnerId) {
-        // Update cached ownerId on all sockets in the room so video events skip DB
-        const roomSockets = await io.in(roomId).fetchSockets();
-        for (const s of roomSockets) {
-          (s as unknown as AuthenticatedSocket).roomOwnerId = result.newOwnerId;
-        }
-        socket.to(roomId).emit(SERVER_EVENTS.MEMBER_LEFT, { userId });
-        io.to(roomId).emit(SERVER_EVENTS.OWNER_TRANSFERRED, { newOwnerId: result.newOwnerId });
-      } else {
-        socket.to(roomId).emit(SERVER_EVENTS.MEMBER_LEFT, { userId });
-      }
-
-      // If the room is not already closed, check if anyone is still in the socket room
-      if (!result.closed) {
-        const sockets = await io.in(roomId).fetchSockets();
-        if (sockets.length === 0 && !roomCloseTimers.has(roomId)) {
-          logger.info('Room empty — starting 5-minute inactivity timer', { roomId });
-          const timer = setTimeout(() => {
-            roomCloseTimers.delete(roomId);
-            void (async () => {
-              try {
-                await watchPartyService.closeRoomBySystem(roomId);
-                await stopSession(roomId);
-                io.to(roomId).emit(SERVER_EVENTS.ROOM_CLOSED, { reason: 'inactivity' });
-                logger.info('Room auto-closed after 5 minutes of inactivity', { roomId });
-              } catch (e) {
-                logger.error('Failed to auto-close room', { roomId, error: e });
-              }
-            })();
-          }, ROOM_INACTIVITY_MS);
-          roomCloseTimers.set(roomId, timer);
-        }
-      }
-    } catch (error) {
-      logger.error('Socket leave room error', { userId, error });
-    }
+    await finalizeRoomLeave(io, watchPartyService, userId, roomId, socket);
 
     logger.info('Socket left room', { userId, roomId });
   });

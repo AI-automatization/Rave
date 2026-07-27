@@ -218,6 +218,18 @@ function buildProxyUrl(cdnUrl: string, headers?: Record<string, string>): string
   return `/api/content/proxy-stream?url=${encodeURIComponent(cdnUrl)}&h=${h}`;
 }
 
+// iOS (every browser engine on it — Chrome/Firefox/Edge for iOS are all WebKit under the hood)
+// hard-ignores `HTMLMediaElement.volume` assignments: Apple restricts in-page volume control to
+// the hardware buttons only, by design. A custom volume slider silently does nothing there —
+// confirmed via real-device test (2026-07-27). `mute`/`muted`, unlike `.volume`, IS respected by
+// iOS, so that control still works and stays. iPadOS 13+ reports as desktop Safari but carries the
+// same restriction — maxTouchPoints is the standard way to tell it apart from a real Mac.
+function isVolumeSliderUnusable(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent;
+  return /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+}
+
 // Must use noop () => {} handlers — null reverts to browser defaults (shows OS player).
 // Empty handlers tell the OS "app handles media itself → no system UI needed".
 const MEDIA_ACTIONS: MediaSessionAction[] = [
@@ -289,6 +301,10 @@ function NativeVideoPlayer({
   // to play — without this, a fresh video (e.g. right after the VB handoff) just sits on a black
   // frame at 0:00 with no feedback while the browser silently buffers, reading as "broken".
   const [isBuffering, setIsBuffering] = useState(true);
+  // Starts false (assume controllable) so SSR/first client render match — corrected right after
+  // mount, before the user could plausibly touch the slider.
+  const [volumeSliderUnusable, setVolumeSliderUnusable] = useState(false);
+  useEffect(() => { setVolumeSliderUnusable(isVolumeSliderUnusable()); }, []);
 
   // Fresh src → back to "loading", until canplay/playing says otherwise (mirror-state effect below).
   useEffect(() => { setIsBuffering(true); }, [src]);
@@ -580,24 +596,28 @@ function NativeVideoPlayer({
                 >
                   <VolumeIcon size={16} />
                 </button>
-                <input
-                  type="range"
-                  min={0}
-                  max={1}
-                  step={0.05}
-                  value={isMuted ? 0 : volume}
-                  onChange={handleVolume}
-                  onClick={(e) => e.stopPropagation()}
-                  className="w-16 cursor-pointer"
-                  style={{
-                    accentColor: '#7c3aed',
-                    height: '3px',
-                    appearance: 'none',
-                    background: `linear-gradient(to right, rgba(255,255,255,0.8) ${(isMuted ? 0 : volume) * 100}%, rgba(255,255,255,0.2) 0%)`,
-                    borderRadius: '2px',
-                  }}
-                  aria-label="Громкость"
-                />
+                {/* iOS ignores .volume from JS (hardware buttons only) — a slider that visibly
+                    moves but audibly does nothing is worse than no slider; mute above still works. */}
+                {!volumeSliderUnusable && (
+                  <input
+                    type="range"
+                    min={0}
+                    max={1}
+                    step={0.05}
+                    value={isMuted ? 0 : volume}
+                    onChange={handleVolume}
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-16 cursor-pointer"
+                    style={{
+                      accentColor: '#7c3aed',
+                      height: '3px',
+                      appearance: 'none',
+                      background: `linear-gradient(to right, rgba(255,255,255,0.8) ${(isMuted ? 0 : volume) * 100}%, rgba(255,255,255,0.2) 0%)`,
+                      borderRadius: '2px',
+                    }}
+                    aria-label="Громкость"
+                  />
+                )}
               </div>
 
               {/* Time */}
