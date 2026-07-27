@@ -43,7 +43,6 @@ WeWatch lets you start a room, drop in a video link, and watch it together with 
 | `services/watch-party` | Express + Socket.io + Redis | 3004 |
 | `services/notification` | Express + Firebase FCM + Bull | 3007 |
 | `services/admin` | Express + MongoDB | 3008 |
-| `services/gateway` | Nginx reverse proxy | — |
 | `apps/mobile` | React Native + Expo (Android + iOS) | — |
 | `apps/web` | Next.js — marketing site (wewatch.uz) | — |
 | `apps/app-web` | Next.js — web app (app.wewatch.uz) | — |
@@ -61,9 +60,8 @@ Node.js microservices, each independently deployable to Railway.
 
   apps/mobile, apps/web, apps/app-web, apps/admin-ui
               │
-              ▼
-      services/gateway (nginx)
-              │
+              │  (each client calls every service's own Railway URL directly —
+              │   no shared API gateway)
    ┌──────┬───┴────┬───────────┬──────────────┬───────┐
    ▼      ▼        ▼           ▼              ▼       ▼
  auth   user    content   watch-party   notification admin

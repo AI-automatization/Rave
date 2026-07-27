@@ -37,7 +37,6 @@ jobs:
             watch-part: ['services/watch-party/**', 'shared/**']
             notification: ['services/notification/**', 'shared/**']
             admin: ['services/admin/**', 'shared/**']
-            gateway: ['services/gateway/**']
             web: ['apps/web/**']
             app-web: ['apps/app-web/**']
             admin-ui: ['apps/admin-ui/**']
@@ -135,7 +134,6 @@ jobs:
             watch-part)   SERVICE_URL="${{ secrets.PROD_WATCH_PARTY_URL }}" ;;
             notification) SERVICE_URL="${{ secrets.PROD_NOTIFICATION_URL }}" ;;
             admin)        SERVICE_URL="${{ secrets.PROD_ADMIN_URL }}" ;;
-            gateway)      SERVICE_URL="${{ secrets.PROD_GATEWAY_URL }}" ;;
             # Front-end services have no /health endpoint — probe an existing path
             web)          SERVICE_URL="${{ secrets.PROD_WEB_URL }}"; HEALTH_PATH="/" ;;
             app-web)      SERVICE_URL="${{ secrets.PROD_APP_WEB_URL }}"; HEALTH_PATH="/login" ;;
