@@ -509,6 +509,8 @@
     "playNow": "Включить сейчас",
     "queueEmptyHint": "Добавь ссылку в поле ниже",
     "queueEmptyHintMember": "Хозяин комнаты пока не добавил видео",
+    "voiceRoom": "Голосовой чат",
+    "voiceJoin": "Войти",
     "voiceEmpty": "В голосовом чате никого нет",
     "voiceMute": "Выключить микрофон",
     "voiceUnmute": "Включить микрофон",

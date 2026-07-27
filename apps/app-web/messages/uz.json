@@ -509,6 +509,8 @@
     "playNow": "Hozir yoqish",
     "queueEmptyHint": "Pastdagi maydonga havola qo'sh",
     "queueEmptyHintMember": "Xona egasi hali video qo'shmagan",
+    "voiceRoom": "Ovozli chat",
+    "voiceJoin": "Kirish",
     "voiceEmpty": "Ovozli chatda hech kim yo'q",
     "voiceMute": "Mikrofonni o'chirish",
     "voiceUnmute": "Mikrofonni yoqish",

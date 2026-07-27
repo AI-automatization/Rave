@@ -548,6 +548,8 @@
     "playNow": "Play now",
     "queueEmptyHint": "Add a link below",
     "queueEmptyHintMember": "The room owner hasn't added any videos yet",
+    "voiceRoom": "Voice chat",
+    "voiceJoin": "Join",
     "voiceEmpty": "Nobody in voice chat",
     "voiceMute": "Mute microphone",
     "voiceUnmute": "Unmute microphone",

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 import { useTranslations } from 'next-intl';
 import { MessageCircle, Users as UsersIcon, ListVideo, X, ChevronRight, Loader2, Play, Globe } from 'lucide-react';
 import { useWatchParty } from '@/hooks/use-watch-party';
@@ -239,6 +240,7 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
   // the socket has an attached roomId (voiceEvents.handler.ts returns early otherwise).
   const { socket } = useSocket();
   const voice = useVoiceChat(socket, roomJoined);
+  const isConnected = useWatchPartyStore((s) => s.isConnected);
   const currentUser = useAuthStore((s) => s.user);
   const isOwner = !!(room && currentUser && room.ownerId === currentUser._id);
 
@@ -287,16 +289,22 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
 
   return (
     <div className="relative flex flex-col h-[calc(100vh-3rem)] -m-4 md:-m-6 lg:-m-8 overflow-hidden">
-      {/* Ambient depth — the room used to sit on the same flat #060608 as every settings/profile
-          page. A cinema room should feel like a room, not a form; this glow lives behind every
-          panel (z-0, pointer-events-none) so it never competes with actual content. */}
-      <div
+      {/* Ambient depth — real-user feedback (2026-07-28): the room "feels like a brick", too dark,
+          doesn't feel alive. Root cause was that this glow sat at 6-12% opacity — a fraction of
+          what /home's own background actually uses (see globals.css body{} — 48%/22%/10%). Panels
+          on top were also flat near-opaque black instead of the app's own `.liquid-glass` violet
+          tint, so almost none of this ever showed through. Matched to /home's real intensity, plus
+          a slow drift so the glow itself reads as motion, not a static poster behind the UI. */}
+      <motion.div
         className="absolute inset-0 z-0 pointer-events-none"
         style={{
           background:
-            'radial-gradient(ellipse 80% 50% at 30% 0%, rgba(124,58,237,0.12), transparent 60%), ' +
-            'radial-gradient(ellipse 60% 40% at 100% 100%, rgba(34,211,238,0.06), transparent 60%)',
+            'radial-gradient(ellipse 75% 55% at 25% -5%, rgba(124,58,237,0.32), transparent 62%), ' +
+            'radial-gradient(ellipse 55% 45% at 100% 105%, rgba(34,211,238,0.16), transparent 60%), ' +
+            'radial-gradient(ellipse 40% 35% at 90% 0%, rgba(124,58,237,0.18), transparent 55%)',
         }}
+        animate={{ opacity: [0.85, 1, 0.85] }}
+        transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
       />
 
       <div className="relative z-10 flex flex-col h-full">
@@ -305,6 +313,13 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
         <div className="flex flex-1 overflow-hidden">
           {/* Left: Video */}
           <div className="flex-1 flex flex-col p-4 gap-3 min-w-0">
+            {/* Thin glow frame around the player only (not the toolbar below it) — a colored ring
+                signals "this is the live, active surface of the room" instead of the video sitting
+                as a bare black rectangle indistinguishable from a broken embed. */}
+            <div
+              className="rounded-xl"
+              style={{ boxShadow: isConnected ? '0 0 0 1px rgba(124,58,237,0.35), 0 0 32px rgba(124,58,237,0.12)' : 'none' }}
+            >
             {showVB ? (
               <VirtualBrowserPlayer
                 isOwner={isOwner}
@@ -326,6 +341,7 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
                 onBufferEnd={sendBufferEnd}
               />
             )}
+            </div>
 
             {isOwner && !showVB && (
               <button
@@ -340,10 +356,11 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
             <EmojiReactions onSend={sendEmoji} />
           </div>
 
-          {/* Right: Chat / Members / Playlist */}
+          {/* Right: Chat / Members / Playlist — glass-panel matches the violet-tinted surface
+              every other page already uses (see globals.css); the flat neutral rgba this replaced
+              is exactly why the sidebar read as dead weight next to a colorful room. */}
           <div
-            className="hidden md:flex flex-col w-80 border-l border-white/[0.07]"
-            style={{ background: 'rgba(7,7,13,0.5)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' }}
+            className="glass-panel hidden md:flex flex-col w-80 rounded-none !border-y-0 !border-r-0"
           >
             <div className="flex border-b border-white/[0.07]">
               <button

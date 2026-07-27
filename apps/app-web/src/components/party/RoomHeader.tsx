@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 import { LogOut, Share2 } from 'lucide-react';
 import { useWatchPartyStore } from '@/store/watch-party.store';
 import { useAuthStore } from '@/store/auth.store';
@@ -57,15 +58,28 @@ export function RoomHeader() {
 
   return (
     <>
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.07]">
+      <div className="glass-nav relative z-10 flex items-center justify-between px-4 py-3 border-b border-white/[0.07]">
         <div className="flex items-center gap-2.5 min-w-0">
-          {/* Connection dot */}
-          <div
-            className="w-1.5 h-1.5 rounded-full shrink-0"
-            style={{ background: isConnected ? '#34d399' : '#f87171', boxShadow: isConnected ? '0 0 4px #34d399' : 'none' }}
-          />
+          {/* Connection dot — a live pulse reads as "this room is actually alive right now" at a
+              glance, where a static dot (the previous state) blended into the rest of the muted
+              chrome and went unnoticed (real-user feedback: room "feels like a brick"). */}
+          <span className="relative flex w-2 h-2 shrink-0">
+            {isConnected && (
+              <motion.span
+                className="absolute inset-0 rounded-full bg-emerald-400"
+                animate={{ scale: [1, 2.2], opacity: [0.55, 0] }}
+                transition={{ duration: 1.8, repeat: Infinity, ease: 'easeOut' }}
+              />
+            )}
+            <span
+              className="relative w-2 h-2 rounded-full"
+              style={{ background: isConnected ? '#34d399' : '#f87171' }}
+            />
+          </span>
 
-          <h2 className="text-[14px] font-semibold text-white truncate leading-snug">
+          <h2
+            className="font-[family-name:var(--font-display)] text-[16px] font-medium tracking-wide text-white truncate leading-snug"
+          >
             {room?.name ?? room?.videoTitle ?? tHome('title')}
           </h2>
 

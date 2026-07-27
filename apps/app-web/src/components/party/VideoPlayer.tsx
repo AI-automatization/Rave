@@ -834,7 +834,10 @@ export function VideoPlayer({
         credentials: 'include',
         body: JSON.stringify({
           videoUrl,
-          position: video.currentTime,
+          // content-service's save() reads `currentTime`, not `position` — this was silently
+          // saving as 0 every 10s (no error, since the field is optional and defaults via
+          // `currentTime ?? 0`), so the "continue watching" resume never actually worked.
+          currentTime: video.currentTime,
           duration: video.duration || 0,
         }),
       }).catch(() => {});
@@ -920,7 +923,16 @@ export function VideoPlayer({
     if (!v) return;
     playPendingRef.current = true;
     v.play()
-      .then(() => setAutoplayBlocked(false))
+      .then(() => {
+        // Normally cleared by handlePlay when the <video>'s native `play` event fires — but
+        // that listener is owner-only (`onPlay={isOwner ? onPlay : undefined}`, so only the
+        // owner's play broadcasts to the room). For a non-owner viewer that event never fires,
+        // so without clearing it here too, this ref stays stuck `true` after their very first
+        // successful click — every click after that silently no-ops on the guard above, with
+        // the overlay still visibly there (confirmed via real-device test, 2026-07-27).
+        playPendingRef.current = false;
+        setAutoplayBlocked(false);
+      })
       .catch((e: unknown) => {
         playPendingRef.current = false;
         if ((e as DOMException)?.name !== 'AbortError') setAutoplayBlocked(true);

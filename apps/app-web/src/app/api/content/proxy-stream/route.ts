@@ -7,7 +7,14 @@ const CHROME_UA =
 const PRIVATE_IP_RE =
   /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|0\.)/i;
 
-const ALLOWED_FORWARD_HEADERS = ['Referer', 'Origin', 'Accept-Language'] as const;
+// `hParam` below is server-generated (content-service's extractor result, round-tripped through
+// the client only as an opaque blob — see buildProxyUrl in VideoPlayer.tsx), so widening this list
+// doesn't let a client inject arbitrary headers of its own choosing; it only affects which of
+// OUR OWN extraction pipeline's headers survive the round trip. `Cookie` was missing: yt-dlp's
+// `http_headers` commonly includes a session Cookie the CDN requires (see ytDlpExtractor.ts's
+// own Cookie handling) — without forwarding it here, the upstream fetch below gets rejected by
+// the CDN and this route returns 502 (confirmed via real-device test, 2026-07-27).
+const ALLOWED_FORWARD_HEADERS = ['Referer', 'Origin', 'Accept-Language', 'Cookie'] as const;
 
 function safeUrl(raw: string): URL | null {
   try {
