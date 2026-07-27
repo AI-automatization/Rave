@@ -13,6 +13,7 @@
 // the mobile code documents for the YouTube IFrame case).
 
 import { useEffect, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { useWatchPartyStore } from '@/store/watch-party.store';
 
@@ -50,12 +51,14 @@ interface YTNamespace {
 
 // YouTube IFrame API onError codes: 2 = invalid videoId, 5 = HTML5 player error,
 // 100 = video not found/removed/private, 101 & 150 = embedding disabled by the video owner.
-const YT_ERROR_MESSAGES: Record<number, string> = {
-  2: 'Некорректная ссылка на видео',
-  5: 'Ошибка плеера',
-  100: 'Видео не найдено или удалено',
-  101: 'Владелец видео запретил встраивание',
-  150: 'Владелец видео запретил встраивание',
+// Values are message KEYS (messages/*.json → party.*) — this map is module-level, outside any
+// component, so it cannot call the translator itself.
+const YT_ERROR_KEYS: Record<number, string> = {
+  2: 'playerYtBadUrl',
+  5: 'playerYtInternal',
+  100: 'playerYtNotFound',
+  101: 'playerYtEmbedForbidden',
+  150: 'playerYtEmbedForbidden',
 };
 declare global {
   interface Window {
@@ -94,12 +97,15 @@ const YT_SEEK_JUMP_SECS = 2.0;
 const MAX_COMPENSATION_SECS = 30;
 
 export function YouTubePlayer({ videoId, isOwner, onPlay, onPause, onSeek, onHeartbeat }: Props) {
+  const t = useTranslations('party');
   const syncState = useWatchPartyStore((s) => s.syncState);
   const heartbeat = useWatchPartyStore((s) => s.heartbeat);
 
   const hostRef = useRef<HTMLDivElement | null>(null);
   const playerRef = useRef<YTPlayer | null>(null);
   const [ready, setReady] = useState(false);
+  // Holds a message KEY, not text — the error follows the language switcher and effects
+  // never need `t` in their dependency list.
   const [error, setError] = useState<string | null>(null);
 
   // true while WE are applying a remote change, so the resulting state-change events aren't
@@ -142,12 +148,12 @@ export function YouTubePlayer({ videoId, isOwner, onPlay, onPause, onSeek, onHea
           // live: "видео с youtube не приходит просто крутится").
           onError: (e: YTPlayerEvent) => {
             if (cancelled) return;
-            setError(YT_ERROR_MESSAGES[e.data] ?? 'Не удалось загрузить видео');
+            setError(YT_ERROR_KEYS[e.data] ?? 'playerLoadFailed');
           },
         },
       });
       playerRef.current = player;
-    }).catch(() => { if (!cancelled) setError('Не удалось загрузить YouTube плеер'); });
+    }).catch(() => { if (!cancelled) setError('playerSdkFailed'); });
 
     return () => {
       cancelled = true;
@@ -228,8 +234,8 @@ export function YouTubePlayer({ videoId, isOwner, onPlay, onPause, onSeek, onHea
       {error && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center bg-[#0A0A12]">
           <AlertCircle size={28} className="text-red-400" />
-          <p className="text-slate-300 text-sm font-medium">Не удалось загрузить видео</p>
-          <p className="text-slate-500 text-xs">{error}</p>
+          <p className="text-slate-300 text-sm font-medium">{t('playerLoadFailed')}</p>
+          <p className="text-slate-500 text-xs">{t(error, { platform: 'YouTube' })}</p>
         </div>
       )}
     </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 
 interface Stats {
   totalUsers: number;
@@ -14,6 +15,7 @@ function formatNumber(n: number): string {
 }
 
 export function StatsWidget() {
+  const tr = useTranslations('common');
   const [stats, setStats] = useState<Stats | null>(null);
 
   useEffect(() => {
@@ -44,7 +46,7 @@ export function StatsWidget() {
       <span style={{ color: '#4ade80' }}>{formatNumber(stats.activeUsers)}</span>
       <span className="text-zinc-600">·</span>
       <span style={{ color: '#7B72F8' }}>{formatNumber(stats.totalUsers)}</span>
-      <span className="text-zinc-600 text-[10px]">онлайн</span>
+      <span className="text-zinc-600 text-[10px]">{tr('online')}</span>
     </div>
   );
 }

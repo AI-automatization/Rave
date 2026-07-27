@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/dialog';
 import { useJoinRoom } from '@/hooks/use-rooms';
 import { toast } from '@/store/toast.store';
-import { parseApiError } from '@/lib/api-error';
+import { useApiError } from '@/hooks/use-api-error';
 import { trackClick } from '@/lib/analytics';
 
 interface Props {
@@ -19,6 +19,7 @@ interface Props {
 
 export function JoinRoomDialog({ open, onOpenChange }: Props) {
   const t = useTranslations('room');
+  const parseError = useApiError();
   const router = useRouter();
   const joinRoom = useJoinRoom();
   const [code, setCode] = useState('');
@@ -35,7 +36,7 @@ export function JoinRoomDialog({ open, onOpenChange }: Props) {
         router.push(`/room/${roomId}`);
       }
     } catch (err) {
-      toast.error(parseApiError(err, t('joinError')));
+      toast.error(parseError(err, t('joinError')));
     }
   }
 

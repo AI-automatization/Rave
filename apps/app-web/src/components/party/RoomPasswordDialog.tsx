@@ -5,7 +5,7 @@ import { Loader2, Lock } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { roomsApi } from '@/lib/api/rooms.api';
-import { parseApiError } from '@/lib/api-error';
+import { useApiError } from '@/hooks/use-api-error';
 import { trackClick } from '@/lib/analytics';
 
 interface Props {
@@ -17,6 +17,7 @@ interface Props {
 
 export function RoomPasswordDialog({ open, inviteCode, onJoined }: Props) {
   const t = useTranslations('room');
+  const parseError = useApiError();
   const [password, setPassword] = useState('');
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +32,7 @@ export function RoomPasswordDialog({ open, inviteCode, onJoined }: Props) {
       await roomsApi.joinByCode(inviteCode, password);
       onJoined();
     } catch (err) {
-      setError(parseApiError(err, t('passwordWrong')));
+      setError(parseError(err, t('passwordWrong')));
       setPending(false);
     }
   }

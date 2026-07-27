@@ -4,6 +4,23 @@
 
 ---
 
+### F-282 | T-S187 | app-web lokalizatsiya qoldig'i — 35 faylda hardcoded ruscha matn
+
+- **Bajaruvchi:** Jasur (Claude opus 5)  **Bajarilgan:** 2026-07-27  **Model:** opus
+- **O'zgarishlar:** `apps/app-web/messages/{uz,ru,en}.json` (~50 kalit), 10 ta pleyer (`VideoPlayer.tsx`, `YouTubePlayer.tsx`, `VKPlayer.tsx`, `RutubePlayer.tsx`, `TwitchPlayer.tsx`, `VimeoPlayer.tsx`, `DailymotionPlayer.tsx`, `TikTokPlayer.tsx`, `PeerTubePlayer.tsx`, `TrovoPlayer.tsx`, `VirtualBrowserPlayer.tsx`), `hooks/use-watch-party.ts`, `hooks/use-virtual-browser.ts`, `hooks/use-api-error.ts` (yangi), `lib/api-error.ts` + 11 ta chaqiruvchi, `app/auth/reset-password/{page.tsx,ResetPasswordForm.tsx}`, `app/auth/telegram/callback/page.tsx`, `app/(auth)/login/LoginForm.tsx`, `components/common/{MaintenanceBanner,StatsWidget}.tsx`.
+- **Xulosa:**
+  🔴 **F-280 §7 ning ikkinchi yarmi.** O'sha vazifada til almashtirish qo'shildi (sozlamalar sahifasiga), lekin interfeysning katta qismi baribir ruscha qolardi: 27 faylda hardcoded matn bor edi, ya'ni foydalanuvchi o'zbekchani tanlasa ham pleyer xatolari, HTTP xato matnlari, parolni tiklash sahifasi va ban bloki ruscha chiqardi. Til tanlovi ishlaydi-yu, natijasi ko'rinmasdi.
+  🔴 **Xato state'ida matn emas, KALIT saqlanadi** (`setError('playerEmbedBlocked')`, render'da `t(error)`). Sabab: `setError` chaqiruvlari `useEffect` ichida, `t` ni bog'liqliklar ro'yxatiga qo'shish kerak bo'lardi — pleyer qayta-qayta initsializatsiya bo'lishi xavfi. Yon foyda: til almashtirilganda ekrandagi xato matni ham yangilanadi, ilgari qotib qolardi. `YT_ERROR_MESSAGES` → `YT_ERROR_KEYS` xuddi shu sabab (modul darajasida, tarjimon chaqira olmaydi).
+  🔴 **Socket hook'larida `t` ref orqali** (`tRef.current(...)`). `useWatchParty` ning socket effekti 15 ta bog'liqlikka ega va butun xona obunasini o'rnatadi — `t` ni qo'shish tarjimon identifikatori o'zgarganda obunani uzib-ulardi. Toast bir martalik hodisa, shuning uchun ref'dagi joriy qiymat yetarli.
+  🔴 **`lib/api-error.ts` — 403/404/429/500/502/503 matnlari hardcoded ruscha edi.** U oddiy TS moduli (mutation callback'laridan chaqiriladi), tarjimon ushlab tura olmaydi. `parseApiError()` ga ixtiyoriy `tCommon` parametri qo'shildi va `useApiError()` hooki yaratildi; 11 ta chaqiruvchi fayl unga o'tkazildi (hammasi allaqachon `useTranslations` ishlatardi, faqat status-kod tarmog'i tarjimasiz qolgan edi).
+  🔴 **Parolni tiklash sahifasi server component.** Locale klient tomonda cookie'dan o'qiladi (`Providers.tsx` → `NextIntlClientProvider`), shuning uchun server render tarjima qila olmaydi — sarlavha bloki `ResetPasswordHeader` klient komponentiga ajratildi. `metadata.title` ATAYLAB statik qoldi (`Parolni tiklash`, o'zbekcha = SSR default locale'i), chunki tab sarlavhasi til almashtirgichga ergasha olmaydi.
+  ⚪ **ATAYLAB tegilmagani:** `'Русский'` (til nomi o'z tilida turishi kerak), `'VK Видео'` (brend nomi), `story-image/route.tsx` dagi `ru:` (u allaqachon til xaritasi), `app/layout.tsx` dagi `description` (server metadata, yuqoridagi sabab).
+  🔴 **Rebase konflikti F-281 bilan** (`VideoPlayer.tsx`, volume slider): Saidazimning iOS sharti (`!volumeSliderUnusable`) saqlandi, ichidagi `aria-label` tarjimaga o'tkazildi — ikkalasi birlashtirildi, hech biri bekor qilinmadi. Boshlanishida bu ish ham T-S186 deb belgilangan edi; `origin/main` da o'sha raqamni Saidazim band qilgani aniqlangach T-S187 ga ko'chirildi.
+  ✅ `tsc --noEmit` — 0 xato. ESLint — yangi xato/ogohlantirish yo'q (mavjudlari `RoomHeader.tsx`, `use-watch-party.ts`, `watch-party.store.ts`, `VideoPlayer.tsx` da — HEAD'da ham bor, fon).
+  ⚠️ **Sinovdan o'tmagan:** jonli brauzerda uch tilni almashtirib tekshirish (ayniqsa pleyer xatolari va parolni tiklash sahifasi).
+
+---
+
 ### F-281 | T-S186 | Real qurilma testida topilgan 4 ta bug (room/auth/video) — hammasi tuzatildi
 
 - **Bajaruvchi:** Saidazim (Claude sonnet 5)  **Bajarilgan:** 2026-07-27  **Model:** sonnet

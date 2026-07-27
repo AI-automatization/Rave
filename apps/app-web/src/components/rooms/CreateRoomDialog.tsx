@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { useCreateRoom } from '@/hooks/use-rooms';
 import { toast } from '@/store/toast.store';
-import { parseApiError } from '@/lib/api-error';
+import { useApiError } from '@/hooks/use-api-error';
 import { ApiError } from '@/lib/api-client';
 import { trackClick } from '@/lib/analytics';
 
@@ -312,6 +312,7 @@ function fmtDuration(s: number | undefined): string | null {
 /* ── Component ────────────────────────────────────────── */
 export function CreateRoomDialog({ open, onOpenChange }: Props) {
   const t = useTranslations('room');
+  const parseError = useApiError();
   const router = useRouter();
   const createRoom = useCreateRoom();
 
@@ -473,7 +474,7 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
           return;
         }
       }
-      toast.error(parseApiError(err, t('createError')));
+      toast.error(parseError(err, t('createError')));
     }
   }
 

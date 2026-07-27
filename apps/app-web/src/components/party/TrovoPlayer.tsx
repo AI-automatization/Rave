@@ -16,6 +16,7 @@
 // framing of the player as stream-oriented ("Begins playing the live stream") even for VODs.
 
 import { useEffect, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { useWatchPartyStore } from '@/store/watch-party.store';
 
@@ -59,7 +60,10 @@ export function TrovoPlayer({ streamername, isOwner, onPlay, onPause }: Props) {
 
   const playerRef = useRef<TrovoPlayerHandle | null>(null);
   const hostId = useRef(`trovo-embed-${Math.random().toString(36).slice(2)}`).current;
+  const t = useTranslations('party');
   const [ready, setReady] = useState(false);
+  // Holds a message KEY, not text — the error follows the language switcher and effects
+  // never need `t` in their dependency list.
   const [error, setError] = useState<string | null>(null);
 
   const isRemoteAction = useRef(false);
@@ -89,7 +93,7 @@ export function TrovoPlayer({ streamername, isOwner, onPlay, onPause }: Props) {
         },
       });
     }).catch(() => {
-      if (!cancelled) setError('Trovo embed недоступен — домен ожидает подтверждения Trovo');
+      if (!cancelled) setError('playerTrovoPending');
     });
 
     return () => { cancelled = true; playerRef.current = null; };
@@ -123,8 +127,8 @@ export function TrovoPlayer({ streamername, isOwner, onPlay, onPause }: Props) {
       {error && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center bg-[#0A0A12]">
           <AlertCircle size={28} className="text-red-400" />
-          <p className="text-slate-300 text-sm font-medium">Не удалось загрузить видео</p>
-          <p className="text-slate-500 text-xs">{error}</p>
+          <p className="text-slate-300 text-sm font-medium">{t('playerLoadFailed')}</p>
+          <p className="text-slate-500 text-xs">{t(error, { platform: 'Trovo' })}</p>
         </div>
       )}
     </div>

@@ -6,6 +6,7 @@
 // (apps/mobile/src/components/video/WebViewAdapters.ts), which already proved this exact protocol.
 
 import { useEffect, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { useWatchPartyStore } from '@/store/watch-party.store';
 
@@ -58,7 +59,10 @@ export function VimeoPlayer({ videoId, isOwner, onPlay, onPause, onSeek, onHeart
 
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const playerRef = useRef<VimeoPlayerHandle | null>(null);
+  const t = useTranslations('party');
   const [ready, setReady] = useState(false);
+  // Holds a message KEY, not text — the error follows the language switcher and effects
+  // never need `t` in their dependency list.
   const [error, setError] = useState<string | null>(null);
 
   const isRemoteAction = useRef(false);
@@ -83,7 +87,7 @@ export function VimeoPlayer({ videoId, isOwner, onPlay, onPause, onSeek, onHeart
       playerRef.current = player;
 
       player.ready().then(() => { if (!cancelled) setReady(true); }).catch(() => {
-        if (!cancelled) setError('Не удалось загрузить видео');
+        if (!cancelled) setError('playerLoadFailed');
       });
       player.on('play', (d) => {
         currentTimeRef.current = d.seconds ?? currentTimeRef.current;
@@ -96,7 +100,7 @@ export function VimeoPlayer({ videoId, isOwner, onPlay, onPause, onSeek, onHeart
       player.on('seeked', (d) => {
         currentTimeRef.current = d.seconds ?? currentTimeRef.current;
       });
-    }).catch(() => { if (!cancelled) setError('Не удалось загрузить Vimeo плеер'); });
+    }).catch(() => { if (!cancelled) setError('playerSdkFailed'); });
 
     return () => { cancelled = true; playerRef.current = null; };
   }, [videoId]);
@@ -153,8 +157,8 @@ export function VimeoPlayer({ videoId, isOwner, onPlay, onPause, onSeek, onHeart
     return (
       <div className="aspect-video bg-[#0A0A12] rounded-xl flex flex-col items-center justify-center gap-3 px-6 text-center">
         <AlertCircle size={28} className="text-red-400" />
-        <p className="text-slate-300 text-sm font-medium">Не удалось загрузить видео</p>
-        <p className="text-slate-500 text-xs">{error}</p>
+        <p className="text-slate-300 text-sm font-medium">{t('playerLoadFailed')}</p>
+        <p className="text-slate-500 text-xs">{t(error, { platform: 'Vimeo' })}</p>
       </div>
     );
   }

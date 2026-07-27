@@ -4,7 +4,7 @@ import { Loader2, Check, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useAcceptFriendRequest, useRejectFriendRequest } from '@/hooks/use-friends';
 import { toast } from '@/store/toast.store';
-import { parseApiError } from '@/lib/api-error';
+import { useApiError } from '@/hooks/use-api-error';
 import type { IFriendship, IUser } from '@/types';
 import { trackClick } from '@/lib/analytics';
 
@@ -15,6 +15,7 @@ interface Props {
 
 export function RequestCard({ request, currentUserId }: Props) {
   const t = useTranslations('friends');
+  const parseError = useApiError();
   const accept = useAcceptFriendRequest();
   const reject = useRejectFriendRequest();
 
@@ -26,7 +27,7 @@ export function RequestCard({ request, currentUserId }: Props) {
       await accept.mutateAsync(request._id);
       toast.success(t('acceptedToast'));
     } catch (err) {
-      toast.error(parseApiError(err, t('acceptError')));
+      toast.error(parseError(err, t('acceptError')));
     }
   }
 
@@ -35,7 +36,7 @@ export function RequestCard({ request, currentUserId }: Props) {
     try {
       await reject.mutateAsync(request._id);
     } catch (err) {
-      toast.error(parseApiError(err, t('acceptError')));
+      toast.error(parseError(err, t('acceptError')));
     }
   }
 

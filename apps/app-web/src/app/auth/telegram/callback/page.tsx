@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 // Telegram redirects here after the user confirms the login_url button
 // (services/auth telegramAuth.service.ts handleTelegramWebhook '/start login' case),
@@ -15,6 +16,7 @@ import { useSearchParams } from 'next/navigation';
 // it completes the web login itself and also tries the wewatch:// custom-scheme
 // fallback so the app can pick it up if it's installed.
 export default function TelegramCallbackPage() {
+  const t = useTranslations('auth');
   const params = useSearchParams();
   const [status, setStatus] = useState<'pending' | 'success' | 'error'>('pending');
 
@@ -75,9 +77,9 @@ export default function TelegramCallbackPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#0C0B18] text-white px-6">
       <div className="text-center">
-        {status === 'pending' && <p className="text-slate-400">Входим через Telegram…</p>}
-        {status === 'success' && <p className="text-emerald-400">Готово! Можете вернуться в приложение.</p>}
-        {status === 'error' && <p className="text-red-400">Не удалось войти. Попробуйте ещё раз через кнопку в боте.</p>}
+        {status === 'pending' && <p className="text-slate-400">{t('tgPending')}</p>}
+        {status === 'success' && <p className="text-emerald-400">{t('tgSuccess')}</p>}
+        {status === 'error' && <p className="text-red-400">{t('tgError')}</p>}
       </div>
     </div>
   );

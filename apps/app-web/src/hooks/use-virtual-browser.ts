@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { SERVER_EVENTS, CLIENT_EVENTS } from '@shared/constants/socketEvents';
 import { useSocket } from '@/hooks/use-socket';
 import { toast } from '@/store/toast.store';
@@ -20,6 +21,10 @@ export type VBInput =
 // owns the actual rendering + input capture.
 export function useVirtualBrowser(isOwner: boolean) {
   const { socket, isConnected } = useSocket();
+  // Via ref so the socket effect below doesn't have to depend on `t` — see use-watch-party.ts.
+  const t = useTranslations('party');
+  const tRef = useRef(t);
+  tRef.current = t;
   const [frame, setFrame] = useState<string | null>(null);
   const [active, setActive] = useState(false);
   const [dimensions, setDimensions] = useState<{ width: number; height: number } | null>(null);
@@ -45,7 +50,7 @@ export function useVirtualBrowser(isOwner: boolean) {
       // ROOM_UPDATED (with the intercepted videoUrl) fires separately and flips the room over
       // to the normal player — this toast just explains WHY the browser view disappeared.
       if (data?.reason === 'media_found') {
-        toast.success('Видео найдено — переключаемся на плеер');
+        toast.success(tRef.current('vbMediaFound'));
       }
     };
     const onError = (data: { message: string }) => setError(data.message);

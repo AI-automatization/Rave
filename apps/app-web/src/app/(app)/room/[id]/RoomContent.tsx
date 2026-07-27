@@ -333,7 +333,7 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
                 className="self-start flex items-center gap-1.5 px-3 h-8 rounded-lg text-xs font-medium text-zinc-400 hover:text-white border border-white/[0.08] hover:border-white/[0.16] transition-colors cursor-pointer"
               >
                 <Globe size={13} />
-                Виртуальный браузер
+                {t('virtualBrowser')}
               </button>
             )}
 

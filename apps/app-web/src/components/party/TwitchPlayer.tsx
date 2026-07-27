@@ -11,6 +11,7 @@
 // wait (unlike e.g. Trovo). https://dev.twitch.tv/docs/embed/
 
 import { useEffect, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { useWatchPartyStore } from '@/store/watch-party.store';
 
@@ -73,7 +74,10 @@ export function TwitchPlayer({ id, type, isOwner, onPlay, onPause, onSeek, onHea
 
   const hostRef = useRef<HTMLDivElement | null>(null);
   const playerRef = useRef<TwitchPlayerHandle | null>(null);
+  const t = useTranslations('party');
   const [ready, setReady] = useState(false);
+  // Holds a message KEY, not text — the error follows the language switcher and effects
+  // never need `t` in their dependency list.
   const [error, setError] = useState<string | null>(null);
   // Twitch.Embed takes a container element ID (string), not a DOM ref — needs to be unique in
   // case multiple instances ever mount at once.
@@ -98,7 +102,7 @@ export function TwitchPlayer({ id, type, isOwner, onPlay, onPause, onSeek, onHea
     // every other embed player here has this same fallback, Twitch was missing it.
     const timeoutId = setTimeout(() => {
       if (!cancelled) setReady((r) => {
-        if (!r) setError('Видео не загрузилось — возможно, оно недоступно для встраивания');
+        if (!r) setError('playerEmbedBlocked');
         return r;
       });
     }, LOAD_TIMEOUT_MS);
@@ -136,7 +140,7 @@ export function TwitchPlayer({ id, type, isOwner, onPlay, onPause, onSeek, onHea
           if (p) onPauseRef.current(p.getCurrentTime());
         });
       }
-    }).catch(() => { if (!cancelled) setError('Не удалось загрузить Twitch плеер'); });
+    }).catch(() => { if (!cancelled) setError('playerSdkFailed'); });
 
     return () => { cancelled = true; clearTimeout(timeoutId); playerRef.current = null; };
   }, [id, type, isVod, hostId]);
@@ -147,11 +151,11 @@ export function TwitchPlayer({ id, type, isOwner, onPlay, onPause, onSeek, onHea
     const iid = setInterval(() => {
       const p = playerRef.current;
       if (!p) return;
-      const t = p.getCurrentTime();
-      if (p.isPaused()) { lastPolledTime.current = t; return; }
-      if (Math.abs(t - lastPolledTime.current) > SEEK_JUMP_SECS) onSeekRef.current(t);
-      lastPolledTime.current = t;
-      onHeartbeatRef.current(t);
+      const pos = p.getCurrentTime();
+      if (p.isPaused()) { lastPolledTime.current = pos; return; }
+      if (Math.abs(pos - lastPolledTime.current) > SEEK_JUMP_SECS) onSeekRef.current(pos);
+      lastPolledTime.current = pos;
+      onHeartbeatRef.current(pos);
     }, 1000);
     return () => clearInterval(iid);
   }, [ready, isOwner, isVod]);
@@ -188,8 +192,8 @@ export function TwitchPlayer({ id, type, isOwner, onPlay, onPause, onSeek, onHea
     return (
       <div className="aspect-video bg-[#0A0A12] rounded-xl flex flex-col items-center justify-center gap-3 px-6 text-center">
         <AlertCircle size={28} className="text-red-400" />
-        <p className="text-slate-300 text-sm font-medium">Не удалось загрузить видео</p>
-        <p className="text-slate-500 text-xs">{error}</p>
+        <p className="text-slate-300 text-sm font-medium">{t('playerLoadFailed')}</p>
+        <p className="text-slate-500 text-xs">{t(error, { platform: 'Twitch' })}</p>
       </div>
     );
   }

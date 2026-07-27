@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { useSendFriendRequest } from '@/hooks/use-friends';
 import { useAuthStore } from '@/store/auth.store';
 import { toast } from '@/store/toast.store';
-import { parseApiError } from '@/lib/api-error';
+import { useApiError } from '@/hooks/use-api-error';
 import { avatarColor } from '@/lib/utils';
 import { trackClick } from '@/lib/analytics';
 import type { IUser } from '@/types';
@@ -30,6 +30,7 @@ async function fetchProfile(userId: string): Promise<IUser> {
 
 export function UserProfileModal({ userId, onClose }: Props) {
   const t = useTranslations('friends');
+  const parseError = useApiError();
   const tc = useTranslations('common');
   const currentUser = useAuthStore((s) => s.user);
   const sendRequest = useSendFriendRequest();
@@ -51,7 +52,7 @@ export function UserProfileModal({ userId, onClose }: Props) {
       toast.success(t('requestSentToast'));
       onClose();
     } catch (err) {
-      toast.error(parseApiError(err, t('requestError')));
+      toast.error(parseError(err, t('requestError')));
     }
   }
 

@@ -16,6 +16,7 @@
 // Each viewer gets their own independent, fully-interactive copy — same conclusion as VKPlayer.tsx.
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { AlertCircle, Info, Loader2 } from 'lucide-react';
 
 interface Props {
@@ -23,7 +24,9 @@ interface Props {
 }
 
 export function DailymotionPlayer({ videoId }: Props) {
+  const t = useTranslations('party');
   const [ready, setReady] = useState(false);
+  // Message KEY, not text — see VKPlayer.tsx for the rationale.
   const [error, setError] = useState<string | null>(null);
 
   function handleLoad() {
@@ -32,15 +35,15 @@ export function DailymotionPlayer({ videoId }: Props) {
   }
 
   function handleError() {
-    setError('Видео не загрузилось — возможно, оно недоступно для встраивания');
+    setError('playerEmbedBlocked');
   }
 
   if (error) {
     return (
       <div className="aspect-video bg-[#0A0A12] rounded-xl flex flex-col items-center justify-center gap-3 px-6 text-center">
         <AlertCircle size={28} className="text-red-400" />
-        <p className="text-slate-300 text-sm font-medium">Не удалось загрузить видео</p>
-        <p className="text-slate-500 text-xs">{error}</p>
+        <p className="text-slate-300 text-sm font-medium">{t('playerLoadFailed')}</p>
+        <p className="text-slate-500 text-xs">{t(error)}</p>
       </div>
     );
   }
@@ -57,7 +60,7 @@ export function DailymotionPlayer({ videoId }: Props) {
       />
       <div className="absolute top-2 left-2 flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] text-slate-300 bg-black/60 backdrop-blur-sm">
         <Info size={11} className="text-amber-400 shrink-0" />
-        Видео Dailymotion не синхронизируется — у каждого своя копия
+        {t('playerNotSynced', { platform: 'Dailymotion' })}
       </div>
       {!ready && (
         <div className="absolute inset-0 flex items-center justify-center bg-[#0A0A12]/80 pointer-events-none">

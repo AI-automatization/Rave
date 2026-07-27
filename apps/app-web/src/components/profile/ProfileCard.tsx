@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl';
 import { useUpdateProfile } from '@/hooks/use-profile';
 import { AvatarUpload } from '@/components/profile/AvatarUpload';
 import { toast } from '@/store/toast.store';
-import { parseApiError } from '@/lib/api-error';
+import { useApiError } from '@/hooks/use-api-error';
 import { useAuthStore } from '@/store/auth.store';
 import type { IUser } from '@/types';
 import { trackClick } from '@/lib/analytics';
@@ -17,6 +17,7 @@ interface Props {
 
 export function ProfileCard({ user }: Props) {
   const t = useTranslations('profile');
+  const parseError = useApiError();
   const update = useUpdateProfile();
   const setUser = useAuthStore((s) => s.setUser);
   const [username, setUsername] = useState(user.username ?? '');
@@ -31,7 +32,7 @@ export function ProfileCard({ user }: Props) {
       if (res.data) setUser(res.data);
       toast.success(t('saved'));
     } catch (err) {
-      toast.error(parseApiError(err, t('saveError')));
+      toast.error(parseError(err, t('saveError')));
     }
   }
 

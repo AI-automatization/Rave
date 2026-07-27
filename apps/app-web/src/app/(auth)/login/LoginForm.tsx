@@ -249,12 +249,12 @@ export function LoginForm() {
         <div className="flex flex-col gap-2 bg-red-500/[0.08] border border-red-500/20 rounded-xl px-4 py-3.5">
           <div className="flex items-center gap-2.5 text-red-400">
             <ShieldX size={16} className="shrink-0" />
-            <span className="text-sm font-semibold">Аккаунт заблокирован</span>
+            <span className="text-sm font-semibold">{t('bannedTitle')}</span>
           </div>
           {banInfo.reason && (
-            <p className="text-xs text-red-300/80 pl-[26px]">Причина: {banInfo.reason}</p>
+            <p className="text-xs text-red-300/80 pl-[26px]">{t('bannedReason', { reason: banInfo.reason })}</p>
           )}
-          <p className="text-xs text-slate-500 pl-[26px]">Если вы считаете это ошибкой — обратитесь в поддержку.</p>
+          <p className="text-xs text-slate-500 pl-[26px]">{t('bannedHint')}</p>
         </div>
       )}
 

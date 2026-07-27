@@ -8,7 +8,7 @@ import { trackClick } from '@/lib/analytics';
 import { memberColor, formatRelative } from '@/lib/dm/dm-format';
 import { useToggleMute, useTogglePinConversation } from '@/hooks/use-dm';
 import { toast } from '@/store/toast.store';
-import { parseApiError } from '@/lib/api-error';
+import { useApiError } from '@/hooks/use-api-error';
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
@@ -22,6 +22,7 @@ interface Props {
 
 export function ConversationList({ conversations, selectedPeerId, onSelect }: Props) {
   const t = useTranslations('dm');
+  const parseError = useApiError();
   const toggleMute = useToggleMute();
   const togglePin = useTogglePinConversation();
   const [previewPeerId, setPreviewPeerId] = useState<string | null>(null);
@@ -47,7 +48,7 @@ export function ConversationList({ conversations, selectedPeerId, onSelect }: Pr
     trackClick('dm:toggle_mute');
     toggleMute.mutate(
       { peerId: conv.peerId, muted: !conv.isMuted },
-      { onError: (err) => toast.error(parseApiError(err, t('mute'))) },
+      { onError: (err) => toast.error(parseError(err, t('mute'))) },
     );
   }
 
@@ -55,7 +56,7 @@ export function ConversationList({ conversations, selectedPeerId, onSelect }: Pr
     trackClick('dm:toggle_pin');
     togglePin.mutate(
       { peerId: conv.peerId, pinned: !conv.isPinned },
-      { onError: (err) => toast.error(parseApiError(err, t('pinLimitReached'))) },
+      { onError: (err) => toast.error(parseError(err, t('pinLimitReached'))) },
     );
   }
 

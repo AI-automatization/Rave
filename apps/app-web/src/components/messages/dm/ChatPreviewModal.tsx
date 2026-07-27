@@ -9,7 +9,7 @@ import type { Conversation } from '@/lib/api/user.api';
 import { useToggleMute, useTogglePinConversation } from '@/hooks/use-dm';
 import { memberColor, formatTime } from '@/lib/dm/dm-format';
 import { toast } from '@/store/toast.store';
-import { parseApiError } from '@/lib/api-error';
+import { useApiError } from '@/hooks/use-api-error';
 import { trackClick } from '@/lib/analytics';
 
 interface Props {
@@ -26,6 +26,7 @@ interface Props {
 // not mark anything as read.
 export function ChatPreviewModal({ conversation, open, onOpenChange, onOpenFull }: Props) {
   const t = useTranslations('dm');
+  const parseError = useApiError();
   const peerId = conversation?.peerId ?? null;
   const toggleMute = useToggleMute();
   const togglePin = useTogglePinConversation();
@@ -50,7 +51,7 @@ export function ChatPreviewModal({ conversation, open, onOpenChange, onOpenFull 
     trackClick('dm:preview_toggle_mute');
     toggleMute.mutate(
       { peerId: conversation.peerId, muted: !conversation.isMuted },
-      { onError: (err) => toast.error(parseApiError(err, t('mute'))) },
+      { onError: (err) => toast.error(parseError(err, t('mute'))) },
     );
   }
 
@@ -59,7 +60,7 @@ export function ChatPreviewModal({ conversation, open, onOpenChange, onOpenFull 
     trackClick('dm:preview_toggle_pin');
     togglePin.mutate(
       { peerId: conversation.peerId, pinned: !conversation.isPinned },
-      { onError: (err) => toast.error(parseApiError(err, t('pinLimitReached'))) },
+      { onError: (err) => toast.error(parseError(err, t('pinLimitReached'))) },
     );
   }
 

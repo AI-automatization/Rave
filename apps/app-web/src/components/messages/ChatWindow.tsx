@@ -19,7 +19,7 @@ import { ForwardPicker } from '@/components/messages/dm/ForwardPicker';
 import { PinnedMessagesBar } from '@/components/messages/dm/PinnedMessagesBar';
 import { DatePickerModal } from '@/components/messages/dm/DatePickerModal';
 import { toast } from '@/store/toast.store';
-import { parseApiError } from '@/lib/api-error';
+import { useApiError } from '@/hooks/use-api-error';
 import type { DmMessage } from '@/lib/api/user.api';
 
 export interface ReplyTarget {
@@ -38,6 +38,7 @@ interface Props {
 
 export function ChatWindow({ messages, onSend, peerName, peerId, onBack }: Props) {
   const t = useTranslations('dm');
+  const parseError = useApiError();
   const tCal = useTranslations('calendar');
   const currentUser = useAuthStore((s) => s.user);
   const [text, setText] = useState('');
@@ -95,7 +96,7 @@ export function ChatWindow({ messages, onSend, peerName, peerId, onBack }: Props
   function handleTogglePinMessage(message: DmMessage) {
     togglePinMessage.mutate(
       { messageId: message._id, pinned: !message.pinned },
-      { onError: (err) => toast.error(parseApiError(err, t('pin'))) },
+      { onError: (err) => toast.error(parseError(err, t('pin'))) },
     );
   }
 
@@ -117,7 +118,7 @@ export function ChatWindow({ messages, onSend, peerName, peerId, onBack }: Props
   function handleUnpinFromBar(message: DmMessage) {
     togglePinMessage.mutate(
       { messageId: message._id, pinned: false },
-      { onError: (err) => toast.error(parseApiError(err, t('unpin'))) },
+      { onError: (err) => toast.error(parseError(err, t('unpin'))) },
     );
   }
 

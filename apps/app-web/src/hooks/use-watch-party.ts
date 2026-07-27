@@ -2,6 +2,7 @@
 
 import { useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useQueryClient } from '@tanstack/react-query';
 import { SERVER_EVENTS, CLIENT_EVENTS } from '@shared/constants/socketEvents';
 import { useSocket } from '@/hooks/use-socket';
@@ -57,6 +58,12 @@ export function useWatchParty(roomId: string) {
   const { socket, isConnected } = useSocket();
   const router = useRouter();
   const queryClient = useQueryClient();
+  // Kept in a ref, not read directly inside the socket effect: adding `t` to that effect's
+  // dependency list would tear down and re-establish the whole room subscription every time the
+  // translator identity changes. Toasts are one-shot, so the language at fire time is what matters.
+  const t = useTranslations('party');
+  const tRef = useRef(t);
+  tRef.current = t;
   const {
     setRoom, setMembers, addMember, updateMember, removeMember,
     addMessage, setSyncState, setHeartbeat, setConnected, setRoomJoined, reset,
@@ -196,7 +203,7 @@ export function useWatchParty(roomId: string) {
     socket.on(SERVER_EVENTS.MEMBER_KICKED, (data: { userId: string }) => {
       const me = useAuthStore.getState().user;
       if (me && data.userId === me._id) {
-        toast.warning('Вас исключили из комнаты');
+        toast.warning(tRef.current('kickedFromRoom'));
         router.push('/home');
       }
     });
@@ -204,7 +211,7 @@ export function useWatchParty(roomId: string) {
     // Server error — handle mid-session account ban
     socket.on(SERVER_EVENTS.ERROR, (data: { code?: string; message?: string }) => {
       if (data.code === 'ACCOUNT_BLOCKED') {
-        toast.error('Ваш аккаунт заблокирован');
+        toast.error(tRef.current('accountBlocked'));
         void useAuthStore.getState().logout().then(() => {
           router.push('/login');
         });

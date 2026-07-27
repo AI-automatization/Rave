@@ -16,6 +16,7 @@
 // platforms for a "watch a film together" use case, included per today's source-expansion pass.
 
 import { useEffect, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { useWatchPartyStore } from '@/store/watch-party.store';
 
@@ -45,7 +46,10 @@ export function TikTokPlayer({ videoId, isOwner, onPlay, onPause, onSeek, onHear
   const heartbeat = useWatchPartyStore((s) => s.heartbeat);
 
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const t = useTranslations('party');
   const [ready, setReady] = useState(false);
+  // Holds a message KEY, not text — the error follows the language switcher and effects
+  // never need `t` in their dependency list.
   const [error, setError] = useState<string | null>(null);
 
   const isRemoteAction = useRef(false);
@@ -74,7 +78,7 @@ export function TikTokPlayer({ videoId, isOwner, onPlay, onPause, onSeek, onHear
     // signal here (unlike YouTube/Vimeo/Twitch's explicit onReady callback).
     const timeoutId = setTimeout(() => setReady(true), 1500);
     const hardTimeout = setTimeout(() => {
-      setReady((r) => { if (!r) setError('Видео не загрузилось'); return r; });
+      setReady((r) => { if (!r) setError('playerNotLoaded'); return r; });
     }, LOAD_TIMEOUT_MS);
 
     const startHeartbeat = () => {
@@ -89,8 +93,8 @@ export function TikTokPlayer({ videoId, isOwner, onPlay, onPause, onSeek, onHear
       if (e.source !== iframeRef.current?.contentWindow) return;
       const data = e.data as TikTokMessage;
       if (!data || typeof data !== 'object') return;
-      const t = data.currentTime ?? data.value ?? data.seekTo;
-      if (typeof t === 'number') currentTimeRef.current = t;
+      const pos = data.currentTime ?? data.value ?? data.seekTo;
+      if (typeof pos === 'number') currentTimeRef.current = pos;
 
       const evt = (data.type ?? data.event ?? '').toString().toLowerCase();
       if (!isOwnerRef.current || isRemoteAction.current) return;
@@ -141,8 +145,8 @@ export function TikTokPlayer({ videoId, isOwner, onPlay, onPause, onSeek, onHear
     return (
       <div className="aspect-video bg-[#0A0A12] rounded-xl flex flex-col items-center justify-center gap-3 px-6 text-center">
         <AlertCircle size={28} className="text-red-400" />
-        <p className="text-slate-300 text-sm font-medium">Не удалось загрузить видео</p>
-        <p className="text-slate-500 text-xs">{error}</p>
+        <p className="text-slate-300 text-sm font-medium">{t('playerLoadFailed')}</p>
+        <p className="text-slate-500 text-xs">{t(error, { platform: 'TikTok' })}</p>
       </div>
     );
   }

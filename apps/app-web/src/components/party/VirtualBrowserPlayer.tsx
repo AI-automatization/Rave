@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Globe, Loader2, MousePointer2, X } from 'lucide-react';
 import type { VBInput } from '@/hooks/use-virtual-browser';
 
@@ -21,6 +22,7 @@ interface Props {
 // side (CDP screencast + input dispatch). State/socket wiring lives in the parent's
 // useVirtualBrowser() call (RoomContent.tsx) — this component is presentational + input capture.
 export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, remoteCursor, start, stop, sendInput }: Props) {
+  const t = useTranslations('party');
   const [urlInput, setUrlInput] = useState('');
   const imgRef = useRef<HTMLImageElement>(null);
   const lastMoveRef = useRef(0);
@@ -197,7 +199,7 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, remote
       return (
         <div className="aspect-video bg-[#0A0A12] rounded-xl flex flex-col items-center justify-center gap-2 text-center px-6">
           <Globe size={24} className="text-zinc-700" />
-          <p className="text-sm text-zinc-500">Владелец комнаты ещё не открыл браузер</p>
+          <p className="text-sm text-zinc-500">{t('vbNotOpened')}</p>
         </div>
       );
     }
@@ -218,7 +220,7 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, remote
             disabled={!urlInput}
             className="h-10 px-4 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-30 text-white text-sm font-medium transition-colors cursor-pointer"
           >
-            Открыть
+            {t('vbOpen')}
           </button>
         </div>
         {error && <p className="text-red-400 text-xs">{error}</p>}
@@ -233,7 +235,7 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, remote
       {isOwner && (
         <button
           onClick={stop}
-          title="Закрыть виртуальный браузер"
+          title={t('vbClose')}
           className="absolute top-2 right-2 z-10 w-8 h-8 rounded-lg bg-black/60 hover:bg-black/80 flex items-center justify-center text-white cursor-pointer"
         >
           <X size={16} />
@@ -254,7 +256,7 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, remote
               act on it. */}
           <div className="absolute top-2 left-2 z-10 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/70 backdrop-blur-sm border border-violet-500/20 pointer-events-none">
             <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
-            <span className="text-white/80 text-xs font-medium">Запустите видео на сайте</span>
+            <span className="text-white/80 text-xs font-medium">{t('vbStartVideo')}</span>
           </div>
 
           {/* eslint-disable-next-line @next/next/no-img-element -- live JPEG frame stream (base64 data URL), not a real <Image>-optimizable asset */}

@@ -5,11 +5,12 @@ import { Search, Loader2, UserPlus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useSearchUsers, useSendFriendRequest } from '@/hooks/use-friends';
 import { toast } from '@/store/toast.store';
-import { parseApiError } from '@/lib/api-error';
+import { useApiError } from '@/hooks/use-api-error';
 import { trackClick } from '@/lib/analytics';
 
 export function FriendSearch() {
   const t = useTranslations('friends');
+  const parseError = useApiError();
   const [query, setQuery] = useState('');
   const { data: users, isLoading } = useSearchUsers(query);
   const sendRequest = useSendFriendRequest();
@@ -20,7 +21,7 @@ export function FriendSearch() {
       await sendRequest.mutateAsync(userId);
       toast.success(t('requestSentToast'));
     } catch (err) {
-      toast.error(parseApiError(err, t('requestError')));
+      toast.error(parseError(err, t('requestError')));
     }
   }
 

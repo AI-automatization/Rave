@@ -8,7 +8,7 @@ import { useConversations, useForwardMessage } from '@/hooks/use-dm';
 import type { DmMessage } from '@/lib/api/user.api';
 import { memberColor } from '@/lib/dm/dm-format';
 import { toast } from '@/store/toast.store';
-import { parseApiError } from '@/lib/api-error';
+import { useApiError } from '@/hooks/use-api-error';
 import { trackClick } from '@/lib/analytics';
 
 interface Props {
@@ -22,6 +22,7 @@ interface Props {
 // "send friend request". Excludes the conversation the message is already in, matching mobile.
 export function ForwardPicker({ message, currentPeerId, onClose }: Props) {
   const t = useTranslations('dm');
+  const parseError = useApiError();
   const [query, setQuery] = useState('');
   const { data: conversations } = useConversations();
   const forward = useForwardMessage();
@@ -37,7 +38,7 @@ export function ForwardPicker({ message, currentPeerId, onClose }: Props) {
       { toPeerId, messageId: message._id },
       {
         onSuccess: () => { toast.success(t('forwardSuccess')); onClose(); },
-        onError: (err) => toast.error(parseApiError(err, t('forwardBlocked'))),
+        onError: (err) => toast.error(parseError(err, t('forwardBlocked'))),
       },
     );
   }

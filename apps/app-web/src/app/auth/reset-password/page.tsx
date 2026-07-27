@@ -1,9 +1,12 @@
 import type { Metadata } from 'next';
-import { ResetPasswordForm } from './ResetPasswordForm';
+import { ResetPasswordForm, ResetPasswordHeader } from './ResetPasswordForm';
 import { WeWatchLogo } from '@/components/common/WeWatchLogo';
 
+// Static title: this is a server component and the locale lives in a client-side cookie, so the
+// tab title cannot follow the language switcher. Uses the app's default locale (uz — see
+// Providers.tsx, which starts every SSR render in uz).
 export const metadata: Metadata = {
-  title: 'Сброс пароля',
+  title: 'Parolni tiklash',
   robots: { index: false, follow: false },
 };
 
@@ -41,13 +44,7 @@ export default async function ResetPasswordPage({ searchParams }: Props) {
           <div style={{ height: 2, background: 'linear-gradient(90deg, transparent 0%, #7C3AED 50%, transparent 100%)' }} />
 
           <div className="px-7 py-8">
-            <p className="text-xs font-bold text-violet-400 uppercase tracking-[0.12em] mb-2">
-              Безопасность аккаунта
-            </p>
-            <h1 className="text-2xl font-extrabold text-white mb-2">Новый пароль</h1>
-            <p className="text-sm text-slate-400 leading-relaxed mb-7">
-              Придумайте надёжный пароль для вашего аккаунта WeWatch.
-            </p>
+            <ResetPasswordHeader />
 
             <ResetPasswordForm token={token ?? null} />
           </div>

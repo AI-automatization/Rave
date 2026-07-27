@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useCallback, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Loader2, Play, Pause, Maximize, Minimize, Volume2, VolumeX, Volume1, Clapperboard } from 'lucide-react';
 import { useWatchPartyStore } from '@/store/watch-party.store';
 import { useAuthStore } from '@/store/auth.store';
@@ -22,7 +23,8 @@ import { TrovoPlayer } from './TrovoPlayer';
 // flow, not a user-facing error: the room either gets a VB session moments later or the video
 // simply changes, so this never resolves into "Не удалось загрузить видео" — it just keeps
 // looking like loading until the room state moves on.
-function VideoLoading({ label = 'Загрузка видео' }: { label?: string }) {
+function VideoLoading({ label }: { label?: string }) {
+  const t = useTranslations('party');
   return (
     <div className="aspect-video bg-[#0A0A12] rounded-xl flex flex-col items-center justify-center gap-4">
       <div className="relative w-16 h-16 flex items-center justify-center">
@@ -36,7 +38,7 @@ function VideoLoading({ label = 'Загрузка видео' }: { label?: strin
         />
         <Loader2 size={26} className="relative animate-spin text-violet-400" />
       </div>
-      <p className="text-slate-400 text-sm font-medium tracking-wide">{label}</p>
+      <p className="text-slate-400 text-sm font-medium tracking-wide">{label ?? t('playerLoading')}</p>
     </div>
   );
 }
@@ -286,6 +288,7 @@ function NativeVideoPlayer({
   onOverlayClick,
   onAutoplayBlocked,
 }: NativeProps) {
+  const t = useTranslations('party');
   const hlsRef = useRef<import('hls.js').default | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -515,7 +518,7 @@ function NativeVideoPlayer({
             />
             <Loader2 size={26} className="relative animate-spin text-violet-400" />
           </div>
-          <p className="text-slate-400 text-sm font-medium tracking-wide">Загрузка видео</p>
+          <p className="text-slate-400 text-sm font-medium tracking-wide">{t('playerLoading')}</p>
         </div>
       )}
 
@@ -524,13 +527,13 @@ function NativeVideoPlayer({
         <button
           onClick={() => { trackClick('video:autoplay_overlay'); onOverlayClick(); }}
           className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-black/70 cursor-pointer group/btn"
-          aria-label="Нажмите чтобы воспроизвести"
+          aria-label={t('playerTapToPlay')}
         >
           <div className="w-20 h-20 rounded-full flex items-center justify-center transition-all group-hover/btn:scale-110"
             style={{ background: 'rgba(124,58,237,0.85)', boxShadow: '0 0 40px rgba(124,58,237,0.5)' }}>
             <Play size={32} className="text-white ml-1.5" fill="white" />
           </div>
-          <span className="text-white/60 text-sm font-medium">Нажмите чтобы начать</span>
+          <span className="text-white/60 text-sm font-medium">{t('playerTapToStart')}</span>
         </button>
       )}
 
@@ -568,7 +571,7 @@ function NativeVideoPlayer({
                   background: `linear-gradient(to right, #7c3aed ${duration ? (currentTime / duration) * 100 : 0}%, rgba(255,255,255,0.2) 0%)`,
                   borderRadius: '2px',
                 }}
-                aria-label="Прогресс"
+                aria-label={t('playerProgress')}
               />
             </div>
 
@@ -579,7 +582,7 @@ function NativeVideoPlayer({
                 <button
                   onClick={(e) => { e.stopPropagation(); handleVideoAreaClick(); }}
                   className="w-9 h-9 rounded-full flex items-center justify-center text-white transition-all hover:bg-white/10 active:scale-90 flex-shrink-0"
-                  aria-label={isPaused ? 'Воспроизвести' : 'Пауза'}
+                  aria-label={isPaused ? t('playerPlay') : t('playerPause')}
                 >
                   {isPaused
                     ? <Play size={20} fill="currentColor" />
@@ -615,7 +618,7 @@ function NativeVideoPlayer({
                       background: `linear-gradient(to right, rgba(255,255,255,0.8) ${(isMuted ? 0 : volume) * 100}%, rgba(255,255,255,0.2) 0%)`,
                       borderRadius: '2px',
                     }}
-                    aria-label="Громкость"
+                    aria-label={t('playerVolume')}
                   />
                 )}
               </div>
@@ -640,7 +643,7 @@ function NativeVideoPlayer({
               <button
                 onClick={(e) => { e.stopPropagation(); toggleFullscreen(); }}
                 className="text-white/60 hover:text-white transition-colors flex-shrink-0"
-                aria-label={isFullscreen ? 'Выйти из полного экрана' : 'Полный экран'}
+                aria-label={isFullscreen ? t('playerFullscreenExit') : t('playerFullscreen')}
               >
                 {isFullscreen ? <Minimize size={16} /> : <Maximize size={16} />}
               </button>
@@ -662,6 +665,7 @@ export function VideoPlayer({
   onBufferStart,
   onBufferEnd,
 }: Props) {
+  const t = useTranslations('party');
   const room = useWatchPartyStore((s) => s.room);
   const isConnected = useWatchPartyStore((s) => s.isConnected);
   const syncState = useWatchPartyStore((s) => s.syncState);
@@ -938,11 +942,11 @@ export function VideoPlayer({
         >
           <Clapperboard size={22} className="text-violet-400/70" />
         </div>
-        <p className="text-slate-400 text-sm font-medium">Видео не выбрано</p>
+        <p className="text-slate-400 text-sm font-medium">{t('playerNoVideoSelected')}</p>
         {!isConnected && (
           <div className="flex items-center gap-2 text-xs text-slate-600">
             <Loader2 size={12} className="animate-spin" />
-            Подключение...
+            {t('playerConnecting')}
           </div>
         )}
       </div>

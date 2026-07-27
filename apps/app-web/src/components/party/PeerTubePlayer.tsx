@@ -13,6 +13,7 @@
 // "all PeerTube instances" (there are hundreds, run independently).
 
 import { useEffect, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { useWatchPartyStore } from '@/store/watch-party.store';
 
@@ -64,7 +65,10 @@ export function PeerTubePlayer({ instance, videoId, isOwner, onPlay, onPause, on
 
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const playerRef = useRef<PeerTubePlayerHandle | null>(null);
+  const t = useTranslations('party');
   const [ready, setReady] = useState(false);
+  // Holds a message KEY, not text — the error follows the language switcher and effects
+  // never need `t` in their dependency list.
   const [error, setError] = useState<string | null>(null);
 
   const isRemoteAction = useRef(false);
@@ -89,7 +93,7 @@ export function PeerTubePlayer({ instance, videoId, isOwner, onPlay, onPause, on
       playerRef.current = player;
 
       player.ready.then(() => { if (!cancelled) setReady(true); }).catch(() => {
-        if (!cancelled) setError('Не удалось загрузить видео — возможно, инстанс не разрешён (см. CSP)');
+        if (!cancelled) setError('playerPeerTubeCsp');
       });
       player.addEventListener('playbackStatusUpdate', (data) => {
         if ('position' in data) currentTimeRef.current = data.position;
@@ -99,7 +103,7 @@ export function PeerTubePlayer({ instance, videoId, isOwner, onPlay, onPause, on
         if (data.type === 'playing') onPlayRef.current(currentTimeRef.current);
         else if (data.type === 'paused') onPauseRef.current(currentTimeRef.current);
       });
-    }).catch(() => { if (!cancelled) setError('Не удалось загрузить PeerTube плеер'); });
+    }).catch(() => { if (!cancelled) setError('playerSdkFailed'); });
 
     return () => { cancelled = true; playerRef.current = null; };
   }, [instance, videoId]);
@@ -156,8 +160,8 @@ export function PeerTubePlayer({ instance, videoId, isOwner, onPlay, onPause, on
     return (
       <div className="aspect-video bg-[#0A0A12] rounded-xl flex flex-col items-center justify-center gap-3 px-6 text-center">
         <AlertCircle size={28} className="text-red-400" />
-        <p className="text-slate-300 text-sm font-medium">Не удалось загрузить видео</p>
-        <p className="text-slate-500 text-xs">{error}</p>
+        <p className="text-slate-300 text-sm font-medium">{t('playerLoadFailed')}</p>
+        <p className="text-slate-500 text-xs">{t(error, { platform: 'PeerTube' })}</p>
       </div>
     );
   }

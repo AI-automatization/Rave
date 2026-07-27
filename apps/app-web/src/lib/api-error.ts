@@ -7,19 +7,23 @@ interface BackendError {
   errors?: string[];
 }
 
-const STATUS_MESSAGES: Record<number, string> = {
-  403: 'Нет доступа',
-  404: 'Не найдено',
-  429: 'Слишком много запросов — подождите немного',
-  500: 'Ошибка сервера',
-  502: 'Сервис недоступен',
-  503: 'Технические работы — попробуйте позже',
+// Message KEYS (messages/*.json → common.*), not text: this module is plain TS called from
+// mutation callbacks, so it cannot hold a translator itself. useApiError() (hooks/use-api-error.ts)
+// binds them to the active locale; parseApiError() without a translator falls back to the caller's
+// own already-translated fallback string.
+const STATUS_KEYS: Record<number, string> = {
+  403: 'httpForbidden',
+  404: 'httpNotFound',
+  429: 'httpTooManyRequests',
+  500: 'httpServerError',
+  502: 'httpServiceUnavailable',
+  503: 'httpMaintenance',
 };
 
 // Generic messages from Next.js proxy catch blocks — not useful to show to the user
 const GENERIC_PROXY_MESSAGES = new Set(['Service unavailable', 'Internal server error']);
 
-export function parseApiError(err: unknown, fallback: string): string {
+export function parseApiError(err: unknown, fallback: string, tCommon?: (key: string) => string): string {
   if (!(err instanceof ApiError)) return fallback;
 
   const d = err.data as BackendError | null;
@@ -34,5 +38,6 @@ export function parseApiError(err: unknown, fallback: string): string {
   if (d?.message && !GENERIC_PROXY_MESSAGES.has(d.message)) return d.message;
 
   // Known status codes
-  return STATUS_MESSAGES[err.status] ?? fallback;
+  const key = STATUS_KEYS[err.status];
+  return key && tCommon ? tCommon(key) : fallback;
 }

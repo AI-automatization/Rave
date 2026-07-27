@@ -18,6 +18,7 @@
 // Twitch/etc in T-S137.
 
 import { useEffect, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { useWatchPartyStore } from '@/store/watch-party.store';
 
@@ -44,7 +45,10 @@ export function RutubePlayer({ videoId, isOwner, onPlay, onPause, onSeek, onHear
   const heartbeat = useWatchPartyStore((s) => s.heartbeat);
 
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const t = useTranslations('party');
   const [ready, setReady] = useState(false);
+  // Holds a message KEY, not text — the error follows the language switcher and effects
+  // never need `t` in their dependency list.
   const [error, setError] = useState<string | null>(null);
 
   // true while WE are applying a remote change, so the resulting Rutube event isn't re-broadcast
@@ -70,7 +74,7 @@ export function RutubePlayer({ videoId, isOwner, onPlay, onPause, onSeek, onHear
 
     const timeoutId = setTimeout(() => {
       setReady((r) => {
-        if (!r) setError('Видео не загрузилось — возможно, оно недоступно для встраивания');
+        if (!r) setError('playerEmbedBlocked');
         return r;
       });
     }, LOAD_TIMEOUT_MS);
@@ -154,8 +158,8 @@ export function RutubePlayer({ videoId, isOwner, onPlay, onPause, onSeek, onHear
     return (
       <div className="aspect-video bg-[#0A0A12] rounded-xl flex flex-col items-center justify-center gap-3 px-6 text-center">
         <AlertCircle size={28} className="text-red-400" />
-        <p className="text-slate-300 text-sm font-medium">Не удалось загрузить видео</p>
-        <p className="text-slate-500 text-xs">{error}</p>
+        <p className="text-slate-300 text-sm font-medium">{t('playerLoadFailed')}</p>
+        <p className="text-slate-500 text-xs">{t(error, { platform: 'Rutube' })}</p>
       </div>
     );
   }
