@@ -12,9 +12,13 @@ interface RoomInfoBarProps {
   activeTransport?: 'p2p' | 'turn' | 'socket';
   isOwner: boolean;
   hasMessages: boolean;
+  /** T-S167 (variant C): mute lives here so it's reachable with the chat/voice panel fully
+   * closed — previously it only existed inside VoiceChatControls, gated behind `showVoice`. */
+  isVoiceJoined: boolean;
+  isVoiceMuted: boolean;
   onToggleInvite: () => void;
   onToggleChat: () => void;
-  onToggleVoice: () => void;
+  onToggleMute: () => void;
   onLeave: () => void;
 }
 
@@ -30,9 +34,11 @@ export const RoomInfoBar = React.memo(function RoomInfoBar({
   activeTransport,
   isOwner,
   hasMessages,
+  isVoiceJoined,
+  isVoiceMuted,
   onToggleInvite,
   onToggleChat,
-  onToggleVoice,
+  onToggleMute,
   onLeave,
 }: RoomInfoBarProps) {
   const transport = activeTransport ? TRANSPORT_META[activeTransport] : null;
@@ -77,8 +83,18 @@ export const RoomInfoBar = React.memo(function RoomInfoBar({
           {hasMessages && <View style={s.notifDot} />}
         </TrackedTouchable>
 
-        <TrackedTouchable trackId="roombar:toggle_voice" onPress={onToggleVoice} style={s.actionBtn} activeOpacity={0.7}>
-          <Ionicons name="mic-outline" size={19} color="rgba(255,255,255,0.70)" />
+        <TrackedTouchable
+          trackId="roombar:toggle_mute"
+          onPress={onToggleMute}
+          style={[s.actionBtn, isVoiceJoined && !isVoiceMuted && s.actionBtnMicLive]}
+          activeOpacity={0.7}
+          trackMeta={{ willMute: !isVoiceMuted }}
+        >
+          <Ionicons
+            name={isVoiceMuted || !isVoiceJoined ? 'mic-off-outline' : 'mic'}
+            size={19}
+            color={isVoiceJoined && !isVoiceMuted ? '#4ADE80' : 'rgba(255,255,255,0.70)'}
+          />
         </TrackedTouchable>
 
         <TrackedTouchable trackId="roombar:leave" onPress={onLeave} style={[s.actionBtn, s.leaveBtn]} activeOpacity={0.7}>
@@ -174,6 +190,10 @@ const s = StyleSheet.create({
   leaveBtn: {
     backgroundColor: 'rgba(248,113,113,0.10)',
     marginLeft: 2,
+  },
+
+  actionBtnMicLive: {
+    backgroundColor: 'rgba(74,222,128,0.14)',
   },
 
   notifDot: {

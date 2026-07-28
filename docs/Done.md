@@ -1,6 +1,14 @@
 # WeWatch — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-07-27
+# Yangilangan: 2026-07-28
+
+---
+
+### F-282 | T-S167 | Mobile: Chat+Voice UI birlashtirish (variant C)
+
+- **Bajaruvchi:** Saidazim (Claude sonnet 5)  **Bajarilgan:** 2026-07-28  **Model:** sonnet
+- **O'zgarishlar:** YANGI `apps/mobile/src/components/watchParty/VoiceStrip.tsx`. O'ZGARDI: `useWatchPartyRoom.ts` (`showVoice`/`setShowVoice` olib tashlandi), `WatchPartyScreen.tsx` (fullscreen va oddiy rejimda `VoiceChat` to'liq panel o'rniga `VoiceStrip` doim `ChatPanel` ustida ko'rinadi; fsBar mic tugmasi endi voice-panel toggle emas, to'g'ridan-to'g'ri mute), `RoomInfoBar.tsx` (`onToggleVoice` → `isVoiceJoined`/`isVoiceMuted`/`onToggleMute`, mic tugmasi doim mavjud), `translations.ts` (`voiceRetry` qo'shildi). O'CHIRILDI: `VoiceChat.tsx`, `VoiceChatControls.tsx`, `VoiceChatParticipants.tsx` — barchasi endi orphan edi.
+- **Xulosa:** `showChat`/`showVoice` bir-birini istisno qilardi — foydalanuvchi chat o'qiyotganda ovozli chat borligini bilmasdi. Endi bitta panel: yuqorida doim ko'rinadigan compact voice-strip (avatarlar, gapirayotgan uchun yashil halqa, join/leave), pastida chat — web'dagi bugungi VoiceStrip redizayni bilan bir xil g'oya, lekin RN-native ijro (Animated/Reanimated ulanmagani uchun speaking pulse — statik ring + shadow, CSS keyframe emas). Mute RoomInfoBar'da alohida — panel yopiq bo'lsa ham bosilishi mumkin, avval faqat voice panel ochiq bo'lganda mavjud edi. Tekshiruv: `tsc --noEmit` — faqat 1 ta pre-existing xato (`LanguageTransition.tsx`, mendan oldin ham bor edi), mening fayllarimda 0 ta yangi xato. ESLint mobile uchun sozlanmagan (lint script yo'q package.json'da). **Real qurilmada/simulyatorda tekshirilmagan** — Chrome-in-browser MCP web uchun, mobil simulyator bu sessiyada mavjud emas.
 
 ---
 

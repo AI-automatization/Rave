@@ -145,10 +145,11 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   };
 
   // Chat panel open by default — fills the space below the video and puts the main
-  // social surface right at hand on room entry. Voice still auto-joins muted in the
-  // background (see screen) and can be toggled from the room bar.
+  // social surface right at hand on room entry. Voice auto-joins muted in the background
+  // (see screen) and always renders as a compact strip at the top of this same panel
+  // (T-S167, variant C) — there is no separate voice toggle anymore, and mute is reachable
+  // straight from RoomInfoBar regardless of whether this panel is open at all.
   const [showChat, setShowChat] = useState(true);
-  const [showVoice, setShowVoice] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -810,11 +811,11 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
 
   return {
     playerRef, userId, room, messages, activeMembers, isOwner, adminMonitoring, connectTimeout, activeTransport,
-    isExtracting, extractResult, extractionError, showChat, showVoice, showInvite, isPlaying, isFullscreen,
+    isExtracting, extractResult, extractionError, showChat, showInvite, isPlaying, isFullscreen,
     videoIsLive, videoCurrentTime, videoDuration, pendingSkipSecs, floatingEmojis, showQualityMenu, showEpisodeMenu,
     extractQualities, extractEpisodes, currentVideoUrl, bufferingUsers,
     originalVideoUrl, extractedVideoUrl: playerExtractedUrl, extractedVideoHeaders, extractedVideoProxyUrl: playerProxyUrl, isWebViewMode, isYouTubeWebViewMode,
-    setShowChat, setShowVoice, setShowInvite, setShowQualityMenu, setShowEpisodeMenu, setVideoIsLive,
+    setShowChat, setShowInvite, setShowQualityMenu, setShowEpisodeMenu, setVideoIsLive,
     sendMessage, sendEmoji,
     onPlaybackStatusUpdate, handleWebViewPlay, handleWebViewPause, handleWebViewSeek,
     handleWebViewBuffering, handleProgress, handleProgressSeek, handlePlayPause, handleStop,

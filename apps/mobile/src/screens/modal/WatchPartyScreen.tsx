@@ -9,7 +9,7 @@ import { UserActionSheet } from '@components/common/UserActionSheet';
 import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ChatPanel, ChatMessage } from '@components/watchParty/ChatPanel';
-import { VoiceChat } from '@components/watchParty/VoiceChat';
+import { VoiceStrip } from '@components/watchParty/VoiceStrip';
 import { useVoiceChat } from '@hooks/useVoiceChat';
 import { EmojiPickerBar } from '@components/watchParty/EmojiFloat';
 import { VideoSection } from '@components/watchParty/VideoSection';
@@ -125,12 +125,12 @@ export function WatchPartyScreen() {
 
   const {
     playerRef, userId, room, messages, activeMembers, isOwner, adminMonitoring, connectTimeout, activeTransport,
-    showChat, showVoice, showInvite, isPlaying, isFullscreen, videoIsLive,
+    showChat, showInvite, isPlaying, isFullscreen, videoIsLive,
     videoCurrentTime, videoDuration, pendingSkipSecs, floatingEmojis, showQualityMenu, showEpisodeMenu,
     extractQualities, extractEpisodes, currentVideoUrl, extractionError,
     originalVideoUrl, extractedVideoUrl, extractedVideoHeaders, extractedVideoProxyUrl, isWebViewMode, isYouTubeWebViewMode, isExtracting,
     playlist, handleAddToQueue, handlePlaylistRemove, handlePlaylistNext,
-    setShowChat, setShowVoice, setShowInvite, setShowQualityMenu, setShowEpisodeMenu, setVideoIsLive,
+    setShowChat, setShowInvite, setShowQualityMenu, setShowEpisodeMenu, setVideoIsLive,
     sendMessage,
     onPlaybackStatusUpdate, handleWebViewPlay, handleWebViewPause, handleWebViewSeek,
     handleWebViewBuffering, handleProgress, handleProgressSeek, handlePlayPause, handleStop,
@@ -264,28 +264,21 @@ export function WatchPartyScreen() {
       {isFullscreen && (
         <View style={s.fsOverlay} pointerEvents="box-none">
 
-          {/* Chat panel */}
+          {/* Chat panel — voice strip (T-S167, variant C) sits above it, always together now */}
           {showChat && (
             <View style={[s.fsChatWrap, { height: Math.round(winHeight * 0.38) }]}>
+              <VoiceStrip
+                currentUserId={userId}
+                isJoined={voice.isJoined}
+                isMuted={voice.isMuted}
+                isLoading={voice.isLoading}
+                errorMsg={voice.errorMsg}
+                participants={voice.participants}
+                onJoin={voice.joinVoice}
+                onLeave={voice.leaveVoice}
+              />
               <ChatPanel messages={messages} currentUserId={userId} onSend={sendMessage} onOpenProfile={handleMemberPress} />
             </View>
-          )}
-
-          {/* Voice chat */}
-          {showVoice && (
-            <VoiceChat
-              currentUserId={userId}
-              visible={showVoice}
-              onClose={() => setShowVoice(false)}
-              isJoined={voice.isJoined}
-              isMuted={voice.isMuted}
-              participants={voice.participants}
-              isLoading={voice.isLoading}
-              errorMsg={voice.errorMsg}
-              onJoin={voice.joinVoice}
-              onLeave={voice.leaveVoice}
-              onToggleMute={voice.toggleMute}
-            />
           )}
 
           {/* Progress bar */}
@@ -308,7 +301,7 @@ export function WatchPartyScreen() {
               <TrackedTouchable
                 trackId="watchparty:fs_toggle_chat"
                 style={[s.fsBarBtn, showChat && s.fsBarBtnChatActive]}
-                onPress={() => { setShowChat(v => !v); setShowVoice(false); }}
+                onPress={() => setShowChat(v => !v)}
                 activeOpacity={0.8}
               >
                 <Ionicons
@@ -317,16 +310,19 @@ export function WatchPartyScreen() {
                   color={showChat ? '#7B72F8' : 'rgba(255,255,255,0.75)'}
                 />
               </TrackedTouchable>
+              {/* T-S167 (variant C): the voice panel toggle is gone — voice is always visible
+                  as a strip inside the chat panel above. This button is now the same always-
+                  reachable mute control RoomInfoBar has (which isn't rendered in fullscreen). */}
               <TrackedTouchable
-                trackId="watchparty:fs_toggle_voice"
-                style={[s.fsBarBtn, showVoice && s.fsBarBtnVoiceActive]}
-                onPress={() => { setShowVoice(v => !v); setShowChat(false); }}
+                trackId="watchparty:fs_toggle_mute"
+                style={[s.fsBarBtn, voice.isJoined && !voice.isMuted && s.fsBarBtnVoiceActive]}
+                onPress={voice.toggleMute}
                 activeOpacity={0.8}
               >
                 <Ionicons
-                  name={showVoice ? 'mic' : 'mic-outline'}
+                  name={voice.isMuted || !voice.isJoined ? 'mic-off-outline' : 'mic'}
                   size={20}
-                  color={showVoice ? '#4ADE80' : 'rgba(255,255,255,0.75)'}
+                  color={voice.isJoined && !voice.isMuted ? '#4ADE80' : 'rgba(255,255,255,0.75)'}
                 />
               </TrackedTouchable>
               {isOwner && (
@@ -351,9 +347,11 @@ export function WatchPartyScreen() {
             activeTransport={activeTransport}
             isOwner={isOwner}
             hasMessages={messages.length > 0}
+            isVoiceJoined={voice.isJoined}
+            isVoiceMuted={voice.isMuted}
             onToggleInvite={() => setShowInvite(v => !v)}
-            onToggleChat={() => { setShowChat(v => !v); setShowVoice(false); }}
-            onToggleVoice={() => { setShowVoice(v => !v); setShowChat(false); }}
+            onToggleChat={() => setShowChat(v => !v)}
+            onToggleMute={voice.toggleMute}
             onLeave={handleLeave}
           />
 
@@ -397,26 +395,20 @@ export function WatchPartyScreen() {
             <EmojiPickerBar onSelect={handleEmojiSelect} />
           </View>
 
-          {/* Voice chat panel */}
-          {showVoice && (
-            <VoiceChat
-              currentUserId={userId}
-              visible={showVoice}
-              onClose={() => setShowVoice(false)}
-              isJoined={voice.isJoined}
-              isMuted={voice.isMuted}
-              participants={voice.participants}
-              isLoading={voice.isLoading}
-              errorMsg={voice.errorMsg}
-              onJoin={voice.joinVoice}
-              onLeave={voice.leaveVoice}
-              onToggleMute={voice.toggleMute}
-            />
-          )}
-
-          {/* Chat panel */}
+          {/* Chat panel — voice strip (T-S167, variant C) always renders above it now, replacing
+              the old separate toggled VoiceChat panel that made voice invisible while chatting. */}
           {showChat && (
             <View style={s.chatPanel}>
+              <VoiceStrip
+                currentUserId={userId}
+                isJoined={voice.isJoined}
+                isMuted={voice.isMuted}
+                isLoading={voice.isLoading}
+                errorMsg={voice.errorMsg}
+                participants={voice.participants}
+                onJoin={voice.joinVoice}
+                onLeave={voice.leaveVoice}
+              />
               <ChatPanel messages={messages} currentUserId={userId} onSend={sendMessage} onOpenProfile={handleMemberPress} />
             </View>
           )}

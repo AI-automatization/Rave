@@ -27,19 +27,7 @@
 
 ## FAZA 1 — Room chat + voice UI
 
-### T-S167 | P1 | [MOBILE] | Chat+Voice UI birlashtirish (ikkalasi bir vaqtda ko'rinsin)
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Saidazim (room redesign planning)
-- **Yaratilgan:** 2026-07-24
-- **Holat:** 🔄 Bajarilmoqda — Saidazim variant C ni tanladi (2026-07-27), ish boshlandi
-- **Tavsiya model:** sonnet
-- **Model sababi:** state-machine refactor, 3-4 fayl
-- **Sabab:** Hozir `showChat`/`showVoice` bir-birini istisno qiladi (`useWatchPartyRoom.ts:150-151`), foydalanuvchi bir vaqtda ikkalasini ko'rmaydi. Auto-join-muted allaqachon ishlaydi (`useVoiceChat.ts:229-238,50-51`) — muammo faqat UI'da.
-- **Qilish kerak:**
-  - [ ] Variant C: bitta panel — tepada compact voice-strip (avatar+mic), pastda chat; toggle olib tashlanadi
-  - [ ] Mute tugmasi har doim mavjud bo'lishi kerak (hozir faqat voice panel ochiq bo'lganda ko'rinadi — `VoiceChatControls`)
-- **Fayllar:** `apps/mobile/src/hooks/useWatchPartyRoom.ts`, `apps/mobile/src/screens/modal/WatchPartyScreen.tsx`, `apps/mobile/src/components/watchParty/RoomInfoBar.tsx`, `VoiceChatControls.tsx`
+✅ T-S167 tugadi (2026-07-28) — Done.md'ga ko'chirildi.
 
 ---
 

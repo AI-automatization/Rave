@@ -609,6 +609,7 @@ export const translations = {
     voiceJoin: { uz: 'Ovozli chatga kirish', ru: 'Войти в голосовой чат', en: 'Join voice chat' },
     voiceConnecting: { uz: 'Ulanmoqda...', ru: 'Подключение...', en: 'Connecting...' },
     voiceEmpty: { uz: "Ovozli chatda hech kim yo'q", ru: 'Никого нет в голосовом чате', en: 'No one in voice chat' },
+    voiceRetry: { uz: 'Qayta urinish', ru: 'Повторить', en: 'Retry' },
     youLabel: { uz: 'Siz', ru: 'Вы', en: 'You' },
     voiceTitle: { uz: 'Ovozli chat', ru: 'Голосовой чат', en: 'Voice chat' },
     voiceIdle: { uz: 'Real-vaqt audio', ru: 'Аудио в реальном времени', en: 'Real-time audio' },
