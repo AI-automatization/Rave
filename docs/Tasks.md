@@ -837,3 +837,30 @@
 
 ---
 
+
+## 🌍 Til aniqlash — to'liq ishlaydigan holatga keltirish
+
+### T-S188 | P2 | [WEB] | Locale detection: o'lik kod, Vary xatosi, in-place til almashtirish
+
+- **Mas'ul:** pending[Jasur]
+- **Beruvchi:** Jasur
+- **Yaratilgan:** 2026-07-28 00:00
+- **Holat:** 🔄 Bajarilmoqda
+- **Tavsiya model:** opus
+- **Model sababi:** 4 fayl, SEO/kesh oqibatlari bor, ikki xil locale modeli (URL vs store) aralashgan
+- **Sabab:** F-256 (T-E210) da qurilgan til aniqlash mexanizmida 6 ta bo'shliq topildi:
+  1. `LOCALE_HINT_COOKIE` (`config.ts:30`) — hech qayerda ishlatilmaydi, izohi middleware yozadi deb yolg'on va'da beradi
+  2. `Vary: Accept-Language` (`proxy.ts:116`) — server bu header'ni o'qimaydi, lekin u `s-maxage=3600` bilan keshlanadigan sahifalarni har xil Accept-Language qiymati bo'yicha parchalaydi
+  3. `dismiss()` izohi "never nags twice" deydi, kod `sessionStorage` ishlatadi → brauzer qayta ochilsa banner takrorlanadi
+  4. `sessionStorage` try/catch'siz → cookie bloklangan kontekstda `SecurityError`, banner butunlay o'ladi
+  5. Cookie'da `Secure` flagi yo'q
+  6. **Asosiy:** `/features`, `/pricing`, `/about`, `/products`, `/company`, `/contact` `next-intl` bilan to'liq tarjima qilingan, lekin banner ularda chiqmaydi — `translatedPath()` null qaytaradi (URL varianti yo'q). Tarjima bor, odam yetolmaydi.
+- **Qilish kerak:**
+  - [ ] `LOCALE_HINT_COOKIE` o'chirish
+  - [ ] `Vary` semantikasini tuzatish
+  - [ ] Banner in-place rejimi — URL varianti yo'q sahifalarda `setLocale()` bilan joyida almashtirish
+  - [ ] `sessionStorage` → xavfsiz `localStorage`, try/catch
+  - [ ] Cookie `Secure` flagi
+  - [ ] `tsc --noEmit` toza
+- **Fayllar:** `apps/web/src/lib/i18n/config.ts`, `routes.ts`, `src/proxy.ts`, `src/components/common/LocaleSuggestBanner.tsx`, `src/store/locale.store.ts`
+- **Bog'liq:** F-256, F-257 (Done.md)
