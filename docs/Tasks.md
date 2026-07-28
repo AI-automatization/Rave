@@ -48,6 +48,23 @@
 
 ✅ T-S188 tugadi (2026-07-28) — Done.md'ga ko'chirildi.
 
+### T-S189 | P1 | [MOBILE] | In-app browser: deteksiyasiz "shu sahifa bilan urinish" + verify-on-join
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim (2026-07-28, foydalanuvchi so'rovi — real APK testida topilgan bug)
+- **Yaratilgan:** 2026-07-28
+- **Holat:** 🔄 Boshlanmoqda
+- **Tavsiya model:** sonnet
+- **Model sababi:** mavjud `importMedia()`/`CHANGE_MEDIA` infratuzilmasini qayta ishlatish, yangi arxitektura emas
+- **Sabab:** Mobile `MediaWebViewScreen`da "Watch Party" tugmasi faqat client/server deteksiya muvaffaqiyatli bo'lgandagina chiqadi (`detectedMedia !== null`) — agar ikkalasi ham video topolmasa (bot-himoya, cross-origin iframe, qo'llab-quvvatlanmagan player), xona **umuman yaratilmaydi**. Web'da esa xona URL berilishi bilan darhol yaratiladi, extraction xona ICHIDA sodir bo'ladi, muvaffaqiyatsiz bo'lsa VB avtomatik ochiladi (`CreateRoomDialog`→`?verify=1`→`CHANGE_MEDIA`). Mobil'da bu "verify on join" mexanizmi umuman yo'q (tekshirildi — `useWatchParty.ts`/`useWatchPartyRoom.ts`da faqat quality/episode select uchun `CHANGE_MEDIA` bor, room-join uchun yo'q).
+- **Qilish kerak:**
+  - [ ] `ModalStackParamList`'ning `WatchParty` route'iga `needsVerify?: boolean` qo'shish
+  - [ ] `MediaBottomBar.tsx` — deteksiya topilmagan holatda statik hint o'rniga "Shu sahifa bilan urinib ko'rish" tugmasi
+  - [ ] `MediaWebViewScreen.tsx`/`useMediaDetection.ts` — shu tugma bosilganda mavjud `importMedia()`ni joriy URL bilan chaqirish, `needsVerify: true` bilan navigatsiya qilish
+  - [ ] `WatchPartyScreen.tsx` (fragile `useWatchPartyRoom.ts`ga TEGMASDAN, screen darajasida) — `needsVerify` bo'lsa, xona egasi uchun bir martalik `CHANGE_MEDIA` qayta yuborish (server extraction+VB pipeline'ini ishga tushirish uchun)
+  - [ ] `tsc --noEmit` — yangi/eski xatolar solishtirilsin
+- **Fayllar:** `apps/mobile/src/types/index.ts`, `apps/mobile/src/components/watchParty/MediaBottomBar.tsx`, `apps/mobile/src/hooks/useMediaDetection.ts`, `apps/mobile/src/screens/modal/MediaWebViewScreen.tsx`, `apps/mobile/src/screens/modal/WatchPartyScreen.tsx`
+
 ---
 
 ### T-E209 | P2 | [WEB] | GEO/AEO/SEO texnik baza — robots, sitemap, IndexNow, crawler checker
