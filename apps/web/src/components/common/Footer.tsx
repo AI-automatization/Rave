@@ -3,6 +3,15 @@
 import Link from 'next/link';
 import { useTranslations, useLocale } from 'next-intl';
 import { WeWatchLogo } from './WeWatchLogo';
+import { useLocaleStore } from '@/store/locale.store';
+import type { Locale } from '@/lib/i18n/config';
+
+/** Language roots, in the order they are offered. Fixed targets — see the row below. */
+const LOCALE_ROOTS: readonly { locale: Locale; href: string; label: string }[] = [
+  { locale: 'ru', href: '/', label: 'Русский' },
+  { locale: 'uz', href: '/uz', label: "O'zbekcha" },
+  { locale: 'en', href: '/en', label: 'English' },
+];
 
 // Locale-aware guide links: sitewide internal links are the main crawl path
 // to the SEO guide pages, so each locale points to its own language versions.
@@ -41,6 +50,7 @@ const GUIDE_LINKS: Record<string, { hub: string; watchTogether: string; movie: s
 export function Footer() {
   const t = useTranslations('footer');
   const locale = useLocale();
+  const setLocale = useLocaleStore((s) => s.setLocale);
   const guides = GUIDE_LINKS[locale] ?? GUIDE_LINKS.ru;
 
   return (
@@ -101,16 +111,27 @@ export function Footer() {
         </div>
 
         {/*
-          Real <a href> language links. The header LanguageSwitcher swaps locale
-          through a client store without changing the URL, so it produces no
-          crawlable link — without this row /uz and /en are reachable only from
-          the sitemap, which is why they sat in "Discovered, not indexed".
+          Sitewide entry points to the language roots — deliberately fixed links
+          to /, /uz and /en rather than to the current page's translation. They
+          exist for crawlers: without this row the localized roots were reachable
+          only from the sitemap and sat in "Discovered, not indexed".
+
+          Distinct from the header LanguageSwitcher, which translates *this page*.
+          Clicking still records the choice, so the proxy honours it next visit.
         */}
         <div className="border-t border-zinc-800/60 mt-8 pt-6 flex flex-wrap items-center gap-x-4 gap-y-2">
           <span className="text-zinc-600 text-xs uppercase tracking-widest">{t('language')}</span>
-          <Link href="/" hrefLang="ru" className="text-zinc-600 text-xs hover:text-zinc-300 transition-colors">Русский</Link>
-          <Link href="/uz" hrefLang="uz" className="text-zinc-600 text-xs hover:text-zinc-300 transition-colors">O&apos;zbekcha</Link>
-          <Link href="/en" hrefLang="en" className="text-zinc-600 text-xs hover:text-zinc-300 transition-colors">English</Link>
+          {LOCALE_ROOTS.map(({ locale, href, label }) => (
+            <Link
+              key={locale}
+              href={href}
+              hrefLang={locale}
+              onClick={() => setLocale(locale)}
+              className="text-zinc-600 text-xs hover:text-zinc-300 transition-colors"
+            >
+              {label}
+            </Link>
+          ))}
         </div>
 
         <div className="border-t border-zinc-800/60 mt-6 pt-6 flex flex-col gap-2">

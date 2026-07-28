@@ -35,9 +35,12 @@ export function Providers({ children, initialLocale = 'ru' }: { children: React.
   };
 
   useEffect(() => {
+    // Order: URL beats cookie beats the server-rendered default. A visitor with
+    // no cookie keeps initialLocale — the suggestion banner, not this effect, is
+    // what offers them their browser language.
     const forced = urlLocale();
-    setLocale(forced ?? readLocaleFromCookie());
-  }, []);
+    setLocale(forced ?? readLocaleFromCookie() ?? initialLocale);
+  }, [initialLocale]);
 
   useEffect(() => {
     if (urlLocale()) return; // URL locale wins on /uz and /en

@@ -20,14 +20,15 @@ export const DEFAULT_LOCALE: Locale = 'ru';
 /** When true the default locale also gets a prefix (`/ru/faq`). See note above. */
 export const PREFIX_DEFAULT = false;
 
-/** Persisted user choice. Kept as-is — visitors already carry this cookie. */
-export const LOCALE_COOKIE = 'wewatch-locale';
-
 /**
- * Written by the middleware from Accept-Language on a first visit. Read by the
- * suggestion banner only — it never redirects, so a wrong guess costs nothing.
+ * Persisted user choice — the only locale cookie there is. Kept under this name
+ * because visitors already carry it; renaming would reset everyone's preference.
+ *
+ * Nothing server-side ever writes it. The browser's own language is read on the
+ * client from `navigator.languages`, which is the same data `Accept-Language`
+ * carries, so no hint cookie has to be minted to pass it along.
  */
-export const LOCALE_HINT_COOKIE = 'wewatch-locale-hint';
+export const LOCALE_COOKIE = 'wewatch-locale';
 
 export const LOCALE_COOKIE_MAX_AGE = 365 * 24 * 60 * 60; // 1 year
 

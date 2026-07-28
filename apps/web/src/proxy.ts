@@ -70,13 +70,20 @@ function guardAuth(req: NextRequest, pathname: string): NextResponse | null {
  *
  * 307, never 308/301: the target depends on a cookie the user can change, so the
  * browser must never cache the redirect as permanent.
+ *
+ * Known limitation: a CDN in front of the app can serve a cached Russian page to
+ * a visitor whose cookie says Uzbek, because this proxy does not run on a cache
+ * hit. `Vary: Cookie` on the pass-through would fix it but would key the cache on
+ * the whole cookie header — analytics cookies included — and collapse the hit
+ * rate. If a CDN is put in front of wewatch.uz, drop `/`, `/uz` and `/en` from
+ * the cacheable list in next.config.mjs instead.
  */
 function routeLocale(req: NextRequest, pathname: string): NextResponse {
   const pathLocale = localeFromPath(pathname);
 
   // A prefixed URL (/uz, /en) is an explicit request for that language — from a
   // shared link, a search result or an hreflang tag. Never second-guess it.
-  if (pathLocale !== null && pathLocale !== DEFAULT_LOCALE) return withVary(NextResponse.next());
+  if (pathLocale !== null && pathLocale !== DEFAULT_LOCALE) return NextResponse.next();
 
   const cookieValue = req.cookies.get(LOCALE_COOKIE)?.value;
   const preferred = isLocale(cookieValue) ? cookieValue : null;
@@ -84,36 +91,26 @@ function routeLocale(req: NextRequest, pathname: string): NextResponse {
   // No stored choice (first visit — or a crawler, which sends no cookies): serve
   // the page as-is. The banner makes the suggestion client-side, so the response
   // stays identical for every visitor and remains CDN-cacheable.
-  if (!preferred || preferred === DEFAULT_LOCALE) return withVary(NextResponse.next());
+  if (!preferred || preferred === DEFAULT_LOCALE) return NextResponse.next();
 
   // Returning visitor who reads Uzbek or English. Only redirect when this exact
   // page exists in their language — otherwise leave them on the Russian page
   // rather than dumping them on an unrelated home page mid-navigation.
   const target = translatedPath(pathname, preferred);
-  if (!target || target === pathname) return withVary(NextResponse.next());
+  if (!target || target === pathname) return NextResponse.next();
 
   const url = req.nextUrl.clone();
   url.pathname = target;
 
   const response = NextResponse.redirect(url, 307);
   // Cookie-dependent — must never be stored by a shared cache and handed to the
-  // next visitor.
+  // next visitor. `Vary` documents *why* for any intermediary that ignores
+  // no-store; the pass-through responses above carry no Vary at all, because
+  // they are byte-identical for everyone and keying them on a header would only
+  // fragment the CDN cache (see next.config.mjs: `/`, `/uz`, `/en` are cached
+  // with s-maxage=3600).
   response.headers.set('Cache-Control', 'no-store');
-  return withVary(response);
-}
-
-/**
- * Tells caches the response varies by language negotiation.
- *
- * `Vary: Cookie` is intentionally *not* sent: it would key the cache on the full
- * cookie header (analytics cookies included), collapsing the hit rate on the
- * marketing pages. The trade-off is that a CDN in front of the app can serve a
- * cached Russian page to a visitor whose cookie says Uzbek, since this proxy
- * never runs on a cache hit. If a CDN is put in front of wewatch.uz, drop `/`,
- * `/uz` and `/en` from the cacheable list in next.config.mjs.
- */
-function withVary(response: NextResponse) {
-  response.headers.set('Vary', 'Accept-Language');
+  response.headers.set('Vary', 'Cookie');
   return response;
 }
 
