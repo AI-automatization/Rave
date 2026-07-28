@@ -4,6 +4,22 @@
 
 ---
 
+### F-284 | T-S188 | Web: til aniqlash mexanizmi to'liq ishlaydigan holatga keltirildi
+
+- **Bajaruvchi:** Jasur (Claude opus 5)  **Bajarilgan:** 2026-07-28  **Model:** opus
+- **O'zgarishlar:** `apps/web/src/proxy.ts`, `src/lib/i18n/{config,routes}.ts`, `src/store/locale.store.ts`, `src/components/common/{LocaleSuggestBanner,LanguageSwitcher,Providers,Footer}.tsx`
+- **Xulosa:** Eng katta topilma — **banner umuman ko'rinmasdi**: hujjat oqimida `fixed top-0` header ostiga tushib qolgan edi (o'lchov: banner `y:0 h:48`, header `y:0 h:87.5`), ya'ni F-256 da qurilgan til taklifi hech qachon ishlamagan. Pastga o'tkazildi (`fixed bottom-3`, CLS = 0, har qanday sahifa header'idan xoli). Ikkinchi katta ish — `localeSwitchFor()` bilan ikki localization modeli ajratildi: `navigate` (tarjima URL'i bor — `/` → `/uz`, `<a href>`, ulashiladi va crawl qilinadi) va `in-place` (next-intl bir URL'da tarjima qiladi — `/features`, store almashadi). Shu bilan `/features`, `/pricing`, `/about`, `/products`, `/company`, `/contact` uchun uchala tilda tayyor bo'lgan lekin yetib bo'lmaydigan tarjima ochildi, va `LanguageSwitcher` u sahifalarda bosh sahifaga uloqtirishni to'xtatdi. Qolgan tuzatishlar: `LOCALE_HINT_COOKIE` o'chirildi (hech qayerda ishlatilmagan, izohi middleware yozadi deb yolg'on va'da berardi); `Vary: Accept-Language` olib tashlandi — server bu header'ni o'qimaydi, lekin u `s-maxage=3600` bilan keshlanadigan sahifalarni parchalardi (redirect javobida semantik to'g'ri `Vary: Cookie`); dismiss `sessionStorage` → `localStorage` (izohdagi "never nags twice" endi rost), storage kirishlari try/catch bilan (cookie bloklangan kontekstda banner o'lmasin); cookie `Secure` flagi (faqat https, localhost buzilmasin); `readLocaleFromCookie` endi `Locale|null` — "ruschani tanladi" va "hali tanlamadi" farqlanadi; footer til qatori bosilganda tanlov eslab qolinadi (avval yozilmasdi). Tekshirildi: Playwright 27/27 (3 til × banner/redirect/switcher/footer/Vary), `next build` toza, `tsc` yangi xatosiz (5 ta pre-existing `@types/react` konflikti). Commit `723fde34`.
+
+---
+
+### F-285 | T-S189 | Web: i18n bo'shliqlari yopildi — /uz va /en to'liq o'z tilida
+
+- **Bajaruvchi:** Jasur (Claude opus 5)  **Bajarilgan:** 2026-07-28  **Model:** opus
+- **O'zgarishlar:** YANGI `apps/web/src/data/use-cases.ts`, `src/app/uz/faq/page.tsx`, `src/app/uz/how-it-works/page.tsx`, `src/app/uz/use-cases/{masofadagi-juftlik,onlayn-uchrashuv}/page.tsx`, `src/app/en/use-cases/{long-distance,online-date}/page.tsx`. O'ZGARDI: `messages/{ru,uz,en}.json`, `src/app/LandingContent.tsx`, `src/app/how-it-works/page.tsx`, `src/app/sitemap.ts`, `src/app/uz/guides/page.tsx`, `src/app/use-cases/*/page.tsx`, `src/components/common/{Footer,GuideChrome}.tsx`, `src/lib/i18n/routes.ts`
+- **Xulosa:** Render qilingan sahifa bo'ylab audit (boshqa til matni + boshqa tilga havola) yozildi: **78 ta ruscha matn / 32 ta noto'g'ri havola → 7 / 5**, qolganlari esa atayin til almashtirish havolalari («Русский», «На русском →», `hrefLang` bilan). Asosiy nuqson — `UseCaseCards` butun bir bo'lim sifatida qattiq ruscha edi: `/uz` va `/en` bosh sahifalarida ham ruscha chiqardi va oltita kartaning hammasi ruscha sahifalarga uloqtirardi. `/uz` uchun FAQ va «Qanday ishlaydi» yo'q edi — footer va gayd shapkasi o'zbekcha yozuv bilan ruscha sahifaga olib borardi. `USE_CASE_GROUPS` reyestri qo'shildi (`GUIDE_GROUPS` bilan bir xil sabab: slug'lar tarjima qilingan, prefiks arifmetikasi 404 beradi) — bosh sahifa kartalari, hreflang va proxy redirect shundan o'qiydi. Sitemap 46 → 52 URL, har biri uch tilli hreflang bilan. Yondoshgan tuzatish: ruscha `/how-it-works` da «менее 300 мс» — loyihada bunday konstanta yo'q, `SYNC_DRIFT_WINDOW_MS = 500` bo'yicha to'g'rilandi va matn ingliz/o'zbek versiyalari bilan bir xil mexanizmni tasvirlaydi. **URL tuzilishi ATAYIN o'zgarmadi**: ruscha root'da qoladi, `/ru` prefiks migratsiyasi qilinmadi — Jasur qarori (2026-07-28), sababi 40+ URL 301 = 2-8 hafta reyting chayqalishi, evaziga nol SEO foyda (Google uchun muhimi hreflang, prefiks emas). Tekshirildi: Playwright 34/34, i18n audit, `next build` 52 sahifa, `tsc` yangi xatosiz. Commit `bdfd612b`.
+
+---
+
 ### F-283 | T-S178 + T-S179 | Mobile: Instagram Stories share + fallback UI
 
 - **Bajaruvchi:** Saidazim (Claude sonnet 5)  **Bajarilgan:** 2026-07-28  **Model:** sonnet
