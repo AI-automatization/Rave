@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
 import { guidesFor } from '@/data/guides';
+import { socialMeta } from '@/lib/i18n/metadata';
 
 const URL = 'https://wewatch.uz/uz/guides';
 
@@ -17,12 +18,12 @@ export const metadata: Metadata = {
       'x-default': 'https://wewatch.uz/guides',
     },
   },
-  openGraph: {
+  ...socialMeta({
+    locale: 'uz',
     title: 'WeWatch gaydlari — birgalikda tomosha qilish',
     description: "Do'stlar bilan sinxron tomosha qilish bo'yicha bosqichma-bosqich gaydlar.",
     url: URL,
-    type: 'website',
-  },
+  }),
   robots: { index: true, follow: true },
 };
 

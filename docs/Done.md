@@ -4,6 +4,18 @@
 
 ---
 
+### F-287 | T-S192 | Web: til aniqlash cookie/IP'dan butunlay voz kechildi — URL yagona haqiqat manbai
+
+- **Bajaruvchi:** Jasur (Claude opus 5)  **Bajarilgan:** 2026-07-28  **Model:** opus
+- **O'zgarishlar:**
+  - **O'CHIRILDI:** `src/store/locale.store.ts` (cookie yozuvchi + zustand store), `src/components/common/LocaleSuggestBanner.tsx` (navigator.languages taklifi), `src/components/common/LocaleHtmlUpdater.tsx` (store'dan `<html lang>`).
+  - **O'ZGARDI:** `src/proxy.ts` — butun `routeLocale()` olib tashlandi, faqat auth guard qoldi; matcher marketing sahifalarini umuman ko'rmaydi endi. `src/lib/i18n/config.ts` — `LOCALE_COOKIE`, `LOCALE_COOKIE_MAX_AGE`, `parseAcceptLanguage()` o'chirildi. `src/lib/i18n/routes.ts` — `STORE_LOCALIZED_ROUTES` o'chirildi, oltita marketing sahifa `TRANSLATED_ROUTES` ga ko'chdi, `LocaleSwitch` faqat `{mode:'navigate'}`. `Providers.tsx` — ikkala `useEffect` (cookie+store o'qish) olib tashlandi. `LanguageSwitcher.tsx`, `Footer.tsx` — store'ga yozish yo'q, faqat `<a href>`.
+  - **YANGI:** `src/lib/i18n/metadata.ts` (`socialMeta()`), `src/components/common/LandingShell.tsx`, `app/uz/(landing)/` va `app/en/(landing)/` — layout + 12 sahifa (features, pricing, products, company, contact, about ×2 til).
+  - **Tuzatildi (yon effekt sifatida topilgan):** `/uz` va `/en` ostidagi **18 sahifada twitter card ruscha edi** (Next.js `twitter` blokini merge qilmaydi, root layout'niki meros bo'lardi) — hammasi `socialMeta()` ga o'tkazildi. `aria-label="Статистика"` (`FeaturesContent`, `LandingContent`) va `{ text: 'Ташкент' }` (`CompanyContent`) hardcoded ruscha edi — `nav.stats` va yangi `company.cityName` kalitlariga o'tkazildi (`messages/{ru,uz,en}.json`). `sitemap.ts` — `LANDING_PAGES` ro'yxati, har biri 3 tilda.
+- **Xulosa:** Muammoni Jasur ko'rsatdi: "Britaniyadan kirgan odamning cookie'si orqali `/en` ochilardi — bu xavfli va 100% ishlamaydi, yangi akkauntda nima bo'ladi?". To'g'ri — cookie'siz kelgan **birinchi tashrif** (ya'ni trafikning ko'p qismi va har bir yangi foydalanuvchi) uchun mexanizm umuman ishlamasdi, cookie **bor** bo'lganda esa ulashilgan ruscha havolani boshqa sahifaga burib yuborardi. Endi til faqat URL'dan aniqlanadi: `/faq` = ru, `/uz/faq` = uz, `/en/faq` = en — hamma uchun, har doim, bir xil. Til faqat `LanguageSwitcher` bosilganda o'zgaradi va u navigatsiya qiladi. Yon foyda: oltita marketing sahifa endi uch tilda ulashiladigan va indekslanadigan URL'ga ega (ilgari bitta URL client-state'ga qarab boshqa tilni ko'rsatardi — Google faqat ruschasini ko'rgan). Tekshiruv: `next build` — 102 sahifa, 12 yangisi static prerender; render qilingan HTML'da `/uz` va `/en` bo'ylab **0 ta kutilmagan kirill matn** (til almashtirish havolalaridan tashqari); har bir sahifada `twitter:title` o'z tilida; hreflang 4 ta tegdan iborat va canonical'lar to'g'ri. `tsc --noEmit` — 5 ta xato, hammasi pre-existing `@types/react` dublikati (`LocaleBoundary`, `button.tsx`, `toaster.tsx` — tegilmagan fayllar ham xato beradi).
+
+---
+
 ### F-284 | T-S188 | Mobile: Virtual Browser player — web bilan extraction fallback paritetligi
 
 - **Bajaruvchi:** Saidazim (Claude sonnet 5)  **Bajarilgan:** 2026-07-28  **Model:** sonnet

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
 import { hreflangFor } from '@/lib/i18n/routes';
+import { socialMeta } from '@/lib/i18n/metadata';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 const PATH = '/uz/faq';
@@ -19,14 +20,12 @@ export const metadata: Metadata = {
     canonical: `${APP_URL}${PATH}`,
     languages: hreflangFor(PATH, APP_URL),
   },
-  openGraph: {
+  ...socialMeta({
+    locale: 'uz',
     title: "FAQ — Ko'p so'raladigan savollar | WeWatch",
-    description:
-      "WeWatch haqida hammasi: sinxronizatsiya, qo'llab-quvvatlanadigan platformalar, bepul tarif, iOS va Android.",
+    description: "WeWatch haqida hammasi: sinxronizatsiya, qo'llab-quvvatlanadigan platformalar, bepul tarif, iOS va Android.",
     url: `${APP_URL}${PATH}`,
-    locale: 'uz_UZ',
-    type: 'website',
-  },
+  }),
   robots: { index: true, follow: true },
 };
 

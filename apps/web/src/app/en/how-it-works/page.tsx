@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
 import { hreflangFor } from '@/lib/i18n/routes';
 import { appUrl } from '@/lib/app-url';
+import { socialMeta } from '@/lib/i18n/metadata';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 const PATH = '/en/how-it-works';
@@ -19,13 +20,13 @@ export const metadata: Metadata = {
     canonical: `${APP_URL}${PATH}`,
     languages: hreflangFor(PATH, APP_URL),
   },
-  openGraph: {
+  ...socialMeta({
+    locale: 'en',
     title: 'How WeWatch Works',
     description: 'Watching together in 4 steps — synchronized across every device.',
     url: `${APP_URL}${PATH}`,
-    locale: 'en_US',
     type: 'article',
-  },
+  }),
   robots: { index: true, follow: true },
 };
 

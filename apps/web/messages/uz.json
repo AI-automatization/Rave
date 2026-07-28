@@ -502,7 +502,8 @@
     "contactChannelsSub": "Tez javob beramiz — odatda kun ichida.",
     "contactWhere": "Qayerdamiz",
     "contactCity": "Toshkent, O'zbekiston",
-    "contactReplyNote": "24 soat ichida javob beramiz"
+    "contactReplyNote": "24 soat ichida javob beramiz",
+    "cityName": "Toshkent"
   },
   "products": {
     "breadcrumb": "Mahsulotlar",

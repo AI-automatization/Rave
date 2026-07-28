@@ -26,6 +26,23 @@ function guideLanguages(path: string) {
   return Object.keys(languages).length > 2 ? languages : undefined;
 }
 
+/**
+ * Marketing pages that exist at `/x`, `/uz/x` and `/en/x`. Listed once here and
+ * expanded into three sitemap entries below, so adding a language version cannot
+ * be half-done — the page, the hreflang and the sitemap all read the same list
+ * (this one and TRANSLATED_ROUTES in lib/i18n/routes.ts).
+ */
+const LANDING_PAGES: readonly { path: string; priority: number }[] = [
+  { path: '/features', priority: 0.8 },
+  { path: '/pricing', priority: 0.7 },
+  { path: '/products', priority: 0.5 },
+  { path: '/company', priority: 0.5 },
+  { path: '/contact', priority: 0.4 },
+  { path: '/about', priority: 0.5 },
+];
+
+const LANDING_LASTMOD = '2026-07-28';
+
 const ENTRIES: Entry[] = [
   // ── Главные страницы (ru default, /uz, /en) ─────────────────────────────────
   {
@@ -84,7 +101,10 @@ const ENTRIES: Entry[] = [
   },
 
   // ── Продукт / компания ─────────────────────────────────────────────────────
-  { path: '/features', lastModified: '2026-07-07', changeFrequency: 'monthly', priority: 0.8 },
+  // Каждая из этих страниц теперь существует на трёх языках под собственным URL
+  // (T-S190). До этого /uz и /en версий не было вовсе: страница переводилась на
+  // лету из клиентского стора на одном URL, поэтому узбекская и английская
+  // версии были непошарибельны и невидимы для краулера.
   {
     path: '/how-it-works',
     lastModified: '2026-07-25',
@@ -92,10 +112,11 @@ const ENTRIES: Entry[] = [
     priority: 0.8,
     languages: hreflangFor('/how-it-works', BASE),
   },
-  { path: '/pricing', lastModified: '2026-07-07', changeFrequency: 'monthly', priority: 0.7 },
-  { path: '/products', lastModified: '2026-07-07', changeFrequency: 'monthly', priority: 0.5 },
-  { path: '/company', lastModified: '2026-07-07', changeFrequency: 'monthly', priority: 0.5 },
-  { path: '/contact', lastModified: '2026-07-07', changeFrequency: 'monthly', priority: 0.4 },
+  ...LANDING_PAGES.flatMap(({ path, priority }) => [
+    { path, lastModified: LANDING_LASTMOD, changeFrequency: 'monthly' as const, priority, languages: hreflangFor(path, BASE) },
+    { path: `/uz${path}`, lastModified: LANDING_LASTMOD, changeFrequency: 'monthly' as const, priority: priority - 0.1, languages: hreflangFor(path, BASE) },
+    { path: `/en${path}`, lastModified: LANDING_LASTMOD, changeFrequency: 'monthly' as const, priority: priority - 0.1, languages: hreflangFor(path, BASE) },
+  ]),
   { path: '/tezcode', lastModified: '2026-07-03', changeFrequency: 'monthly', priority: 0.6 },
 
   // ── Use-cases ──────────────────────────────────────────────────────────────
@@ -146,7 +167,7 @@ const ENTRIES: Entry[] = [
     priority: 0.6,
     languages: hreflangFor('/how-it-works', BASE),
   },
-  { path: '/about', lastModified: '2026-07-07', changeFrequency: 'monthly', priority: 0.5 },
+  // /about — см. LANDING_PAGES выше (три языка одной записью).
   { path: '/privacy-policy', lastModified: '2026-07-07', changeFrequency: 'yearly', priority: 0.3 },
   { path: '/delete-account', lastModified: '2026-07-07', changeFrequency: 'monthly', priority: 0.3 },
   { path: '/terms', lastModified: '2026-07-07', changeFrequency: 'yearly', priority: 0.3 },

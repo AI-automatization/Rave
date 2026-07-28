@@ -16,58 +16,44 @@ import { DEFAULT_LOCALE, type Locale, stripLocale, withLocale } from './config';
 /**
  * Locale-free paths that exist in more than one language via a plain prefix.
  * Guides are excluded — their slugs differ per locale and come from the registry.
+ *
+ * Every entry here must have a real page file per locale. This map drives both
+ * hreflang and the language switcher, so a route listed without its `/uz` or
+ * `/en` counterpart advertises a 404 to Google.
+ *
+ * The six marketing pages below used to be missing from this map on purpose:
+ * they were translated at render time from the client locale store, on one
+ * shared URL. That made them unshareable and unindexable in Uzbek and English —
+ * `/features` was one URL that showed a different language depending on client
+ * state. They now have their own URLs under /uz and /en, and the store is gone.
  */
 const TRANSLATED_ROUTES: Record<string, readonly Locale[]> = {
   '/': ['ru', 'uz', 'en'],
   '/guides': ['ru', 'uz', 'en'],
   '/faq': ['ru', 'uz', 'en'],
   '/how-it-works': ['ru', 'uz', 'en'],
+  '/features': ['ru', 'uz', 'en'],
+  '/pricing': ['ru', 'uz', 'en'],
+  '/products': ['ru', 'uz', 'en'],
+  '/company': ['ru', 'uz', 'en'],
+  '/contact': ['ru', 'uz', 'en'],
+  '/about': ['ru', 'uz', 'en'],
 };
 
 /**
- * Pages next-intl translates at render time, with no locale URL of their own:
- * one path serves all three languages and the locale store picks which. Their
- * copy lives entirely in `messages/{ru,uz,en}.json` under the namespaces listed
- * beside each route — verified present in all three files, so switching cannot
- * fall through to a raw key.
+ * How to get `pathname` into `target`, or null when that page has no version in
+ * that language.
  *
- * They are deliberately *not* in TRANSLATED_ROUTES: that map drives hreflang and
- * the middleware redirect, and both need a distinct URL per language. Claiming a
- * `/uz/features` that does not exist would emit hreflang pointing at a 404.
+ * One mechanism only: navigate to the URL that language lives at. There used to
+ * be a second, `{mode:'in-place'}`, which re-rendered the page in another
+ * language without changing the URL — that is what made the visible language
+ * disagree with the address bar. Every localized page now has a URL.
  */
-const STORE_LOCALIZED_ROUTES: readonly string[] = [
-  '/features', // featuresPage + landing
-  '/pricing', // pricingPage + landing
-  '/products', // products
-  '/company', // company
-  '/contact', // company
-  '/about', // aboutPage
-];
-
-/**
- * How to get `pathname` into `target`, or null when that is not possible.
- *
- * Two mechanisms, because the site localizes two different ways:
- *   'navigate'  — a real URL exists in the target language; go there. Shareable,
- *                 crawlable, and what hreflang advertises.
- *   'in-place'  — the page is translated by next-intl on the same URL; switching
- *                 the store re-renders it without navigating.
- *
- * Callers must not collapse these into one: navigating an in-place page would
- * dump the visitor on a home page, and switching the store on a URL-localized
- * page would show a language the URL contradicts.
- */
-export type LocaleSwitch = { mode: 'navigate'; href: string } | { mode: 'in-place' };
+export type LocaleSwitch = { mode: 'navigate'; href: string };
 
 export function localeSwitchFor(pathname: string, target: Locale): LocaleSwitch | null {
   const href = translatedPath(pathname, target);
-  if (href) return { mode: 'navigate', href };
-
-  if (STORE_LOCALIZED_ROUTES.includes(stripLocale(normalize(pathname)))) {
-    return { mode: 'in-place' };
-  }
-
-  return null;
+  return href ? { mode: 'navigate', href } : null;
 }
 
 /** Trailing slash removed so `/guides/` and `/guides` resolve alike. */

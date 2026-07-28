@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
 import { hreflangFor } from '@/lib/i18n/routes';
 import { appUrl } from '@/lib/app-url';
+import { socialMeta } from '@/lib/i18n/metadata';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 const PATH = '/uz/guides/youtube-birgalikda';
@@ -28,13 +29,13 @@ export const metadata: Metadata = {
     canonical: `${APP_URL}${PATH}`,
     languages: hreflangFor(PATH, APP_URL),
   },
-  openGraph: {
+  ...socialMeta({
+    locale: 'uz',
     title: "YouTube birgalikda ko'rish — bepul | WeWatch",
-    description:
-      "YouTube-ni do'stingiz bilan sinxron tomosha qiling. Bir kishi pause bosdi — hammaga to'xtaydi.",
+    description: "YouTube-ni do'stingiz bilan sinxron tomosha qiling. Bir kishi pause bosdi — hammaga to'xtaydi.",
     url: 'https://wewatch.uz/uz/guides/youtube-birgalikda',
     type: 'article',
-  },
+  }),
   robots: { index: true, follow: true },
 };
 

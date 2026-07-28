@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { ContactContent } from './ContactContent';
+import { hreflangFor } from '@/lib/i18n/routes';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 
@@ -7,7 +8,10 @@ export const metadata: Metadata = {
   title: { absolute: 'Контакты — WeWatch и tezcode.dev | Написать нам' },
   description:
     'Свяжитесь с командой WeWatch и tezcode.dev: email tezcode@tezcode.dev, Telegram, Instagram. Вопросы, сотрудничество или идеи — мы на связи.',
-  alternates: { canonical: `${APP_URL}/contact` },
+  alternates: {
+    canonical: `${APP_URL}/contact`,
+    languages: hreflangFor('/contact', APP_URL),
+  },
   openGraph: {
     title: 'Контакты — WeWatch и tezcode.dev',
     description: 'Напишите команде WeWatch и tezcode.dev — email, Telegram, Instagram.',

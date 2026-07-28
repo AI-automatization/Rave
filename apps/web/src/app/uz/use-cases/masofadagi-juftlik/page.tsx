@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
 import { hreflangFor } from '@/lib/i18n/routes';
 import { appUrl } from '@/lib/app-url';
+import { socialMeta } from '@/lib/i18n/metadata';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 const PATH = '/uz/use-cases/masofadagi-juftlik';
@@ -21,13 +22,13 @@ export const metadata: Metadata = {
     canonical: `${APP_URL}${PATH}`,
     languages: hreflangFor(PATH, APP_URL),
   },
-  openGraph: {
+  ...socialMeta({
+    locale: 'uz',
     title: "Masofadan turib birga ko'rish — WeWatch",
     description: "Ajralgan juftliklar uchun onlayn uchrashuv: kino va seriallar sinxron, xuddi yonginangizda.",
     url: `${APP_URL}${PATH}`,
-    locale: 'uz_UZ',
     type: 'article',
-  },
+  }),
   robots: { index: true, follow: true },
 };
 

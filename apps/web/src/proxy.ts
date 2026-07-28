@@ -1,12 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import {
-  DEFAULT_LOCALE,
-  LOCALE_COOKIE,
-  isLocale,
-  localeFromPath,
-  stripLocale,
-} from '@/lib/i18n/config';
-import { translatedPath } from '@/lib/i18n/routes';
+import { DEFAULT_LOCALE, localeFromPath, stripLocale } from '@/lib/i18n/config';
 
 // Routes that require authentication
 const PROTECTED_PATHS = ['/home', '/room', '/profile', '/friends', '/messages'];
@@ -14,20 +7,29 @@ const PROTECTED_PATHS = ['/home', '/room', '/profile', '/friends', '/messages'];
 // Routes that should redirect to /home if already authenticated
 const AUTH_PATHS = ['/login', '/register'];
 
+/**
+ * Auth guard only.
+ *
+ * Locale is decided by the URL and nothing else — no cookie, no IP, no
+ * Accept-Language. A request for `/faq` gets the Russian page, `/uz/faq` gets the
+ * Uzbek one, for every visitor, first-time or returning, human or crawler.
+ *
+ * The previous version redirected on a `wewatch-locale` cookie, which broke in
+ * three ways that all matter more than the convenience it bought:
+ *   1. A first-time visitor — the majority of traffic, and every new account —
+ *      has no cookie, so the mechanism did nothing for exactly the people it was
+ *      supposed to help. "Works only for people who already told us" is not
+ *      language detection.
+ *   2. A shared link stopped meaning one page. Someone with an `en` cookie who
+ *      opened a Russian link was bounced to /en — a different page than the
+ *      sender saw and linked to.
+ *   3. The response for the same URL differed per visitor, so any shared cache
+ *      in front of the app could hand one visitor's language to the next.
+ * Language is now changed the one way that cannot misfire: the visitor clicks it
+ * in LanguageSwitcher, which navigates to that language's URL.
+ */
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
-
-  const authResponse = guardAuth(req, pathname);
-  if (authResponse) return authResponse;
-
-  return routeLocale(req, pathname);
-}
-
-/**
- * Auth guard. Runs before locale routing: being sent to the login page matters
- * more than being sent to a translation of a page you cannot see anyway.
- */
-function guardAuth(req: NextRequest, pathname: string): NextResponse | null {
   const isAuthenticated = req.cookies.has('access_token') || req.cookies.has('refresh_token');
 
   // Strip the locale prefix before matching, so /uz/home is guarded exactly like
@@ -46,84 +48,30 @@ function guardAuth(req: NextRequest, pathname: string): NextResponse | null {
     return NextResponse.redirect(new URL(`${localePrefix}/home`, req.url));
   }
 
-  return null;
-}
-
-/**
- * Locale routing.
- *
- * Deliberately narrow: the only thing that redirects is a *returning* visitor
- * who has already chosen a language. Everything else is served as requested.
- *
- * Why no Accept-Language redirect:
- *   Googlebot crawls from US IPs and either omits Accept-Language or sends `en`.
- *   Redirecting on that header would bounce every crawl of the Russian root to
- *   /en, and the Russian and Uzbek pages would silently fall out of the index.
- *   Accept-Language is instead used to *suggest* a language via a dismissible
- *   banner (LocaleSuggestBanner) — the Wikipedia/GitHub model, where a wrong
- *   guess costs one click instead of trapping the visitor in the wrong language.
- *
- * Why not IP/geo at all:
- *   IP tells you a country, not a language — a large share of Tashkent traffic
- *   reads Russian, and a VPN or a crawler makes it meaningless. It also carries
- *   the same Googlebot problem, but without a header the user can control.
- *
- * 307, never 308/301: the target depends on a cookie the user can change, so the
- * browser must never cache the redirect as permanent.
- *
- * Known limitation: a CDN in front of the app can serve a cached Russian page to
- * a visitor whose cookie says Uzbek, because this proxy does not run on a cache
- * hit. `Vary: Cookie` on the pass-through would fix it but would key the cache on
- * the whole cookie header — analytics cookies included — and collapse the hit
- * rate. If a CDN is put in front of wewatch.uz, drop `/`, `/uz` and `/en` from
- * the cacheable list in next.config.mjs instead.
- */
-function routeLocale(req: NextRequest, pathname: string): NextResponse {
-  const pathLocale = localeFromPath(pathname);
-
-  // A prefixed URL (/uz, /en) is an explicit request for that language — from a
-  // shared link, a search result or an hreflang tag. Never second-guess it.
-  if (pathLocale !== null && pathLocale !== DEFAULT_LOCALE) return NextResponse.next();
-
-  const cookieValue = req.cookies.get(LOCALE_COOKIE)?.value;
-  const preferred = isLocale(cookieValue) ? cookieValue : null;
-
-  // No stored choice (first visit — or a crawler, which sends no cookies): serve
-  // the page as-is. The banner makes the suggestion client-side, so the response
-  // stays identical for every visitor and remains CDN-cacheable.
-  if (!preferred || preferred === DEFAULT_LOCALE) return NextResponse.next();
-
-  // Returning visitor who reads Uzbek or English. Only redirect when this exact
-  // page exists in their language — otherwise leave them on the Russian page
-  // rather than dumping them on an unrelated home page mid-navigation.
-  const target = translatedPath(pathname, preferred);
-  if (!target || target === pathname) return NextResponse.next();
-
-  const url = req.nextUrl.clone();
-  url.pathname = target;
-
-  const response = NextResponse.redirect(url, 307);
-  // Cookie-dependent — must never be stored by a shared cache and handed to the
-  // next visitor. `Vary` documents *why* for any intermediary that ignores
-  // no-store; the pass-through responses above carry no Vary at all, because
-  // they are byte-identical for everyone and keying them on a header would only
-  // fragment the CDN cache (see next.config.mjs: `/`, `/uz`, `/en` are cached
-  // with s-maxage=3600).
-  response.headers.set('Cache-Control', 'no-store');
-  response.headers.set('Vary', 'Cookie');
-  return response;
+  return NextResponse.next();
 }
 
 export const config = {
   /*
-   * Everything except:
-   *   api/*    — JSON endpoints, never localized by URL
-   *   _next/*  — build output and image optimizer
-   *   og-image — dynamic OG renderer
-   *   *.ext    — static files in /public (favicon, llms.txt, manifest, …)
-   *
-   * Wider than the previous auth-only matcher because locale routing has to see
-   * the marketing pages (`/`, `/faq`, `/guides/*`) too, not just the app shell.
+   * The app shell only — marketing pages need no proxy now that locale routing
+   * is gone, and keeping them out means they are served straight from the cache.
+   * Locale prefixes are listed explicitly because the guard has to see /uz/home
+   * as well as /home.
    */
-  matcher: ['/((?!api|_next|og-image|.*\\.[\\w]+$).*)'],
+  matcher: [
+    '/home/:path*',
+    '/room/:path*',
+    '/profile/:path*',
+    '/friends/:path*',
+    '/messages/:path*',
+    '/login',
+    '/register',
+    '/:locale(uz|en)/home/:path*',
+    '/:locale(uz|en)/room/:path*',
+    '/:locale(uz|en)/profile/:path*',
+    '/:locale(uz|en)/friends/:path*',
+    '/:locale(uz|en)/messages/:path*',
+    '/:locale(uz|en)/login',
+    '/:locale(uz|en)/register',
+  ],
 };

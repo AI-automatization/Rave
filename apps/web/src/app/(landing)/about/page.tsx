@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { AboutContent } from './AboutContent';
+import { hreflangFor } from '@/lib/i18n/routes';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 
@@ -7,7 +8,10 @@ export const metadata: Metadata = {
   title: { absolute: 'О WeWatch — бесплатное приложение для совместного просмотра видео' },
   description:
     'WeWatch — бесплатное приложение для совместного просмотра YouTube, VK и Rutube с друзьями онлайн. iOS, Android и Web. Создано tezcode.dev в Ташкенте.',
-  alternates: { canonical: `${APP_URL}/about` },
+  alternates: {
+    canonical: `${APP_URL}/about`,
+    languages: hreflangFor('/about', APP_URL),
+  },
   openGraph: {
     title: 'О WeWatch',
     description: 'WeWatch — бесплатный watch party для iOS, Android и Web. Смотри видео синхронно с друзьями.',

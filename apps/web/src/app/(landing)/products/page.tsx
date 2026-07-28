@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { ProductsContent } from './ProductsContent';
+import { hreflangFor } from '@/lib/i18n/routes';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 
@@ -7,7 +8,10 @@ export const metadata: Metadata = {
   title: { absolute: 'Продукты tezcode.dev — AI Office, RAOS, CoreMed, WeWatch и другие' },
   description:
     'Восемь продуктов tezcode.dev: AI Office, RAOS, CoreMed, WorkControl, AI-Trade, WeWatch, Ventra, Savdo-Builder. AI-решения для бизнеса и людей из Ташкента.',
-  alternates: { canonical: `${APP_URL}/products` },
+  alternates: {
+    canonical: `${APP_URL}/products`,
+    languages: hreflangFor('/products', APP_URL),
+  },
   openGraph: {
     title: 'Продукты tezcode.dev',
     description: 'Экосистема из 8 продуктов — от AI для бизнеса до WeWatch для друзей.',

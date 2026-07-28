@@ -174,6 +174,9 @@ function FeatureCard({
 export function FeaturesContent() {
   const t = useTranslations('featuresPage');
   const tl = useTranslations('landing');
+  // aria-label was hardcoded Russian — a screen reader on /uz/features and
+  // /en/features announced the section in a language the page is not in.
+  const tNav = useTranslations('nav');
   const { count: subCount, setHasStarted: startSubCounter } = useCountUp(150, 2.2);
 
   const FEATURE_LIST = [
@@ -286,7 +289,7 @@ export function FeaturesContent() {
       </section>
 
       {/* ── STATS STRIP ──────────────────────────────── */}
-      <section className="py-10 px-4 relative z-10" aria-label="Статистика">
+      <section className="py-10 px-4 relative z-10" aria-label={tNav('stats')}>
         <div className="max-w-4xl mx-auto">
           <dl className="grid grid-cols-2 md:grid-cols-4 gap-px bg-zinc-800/30 rounded-2xl overflow-hidden border border-zinc-800/50 shadow-[0_0_60px_rgba(123,114,248,0.06)]">
             {STATS.map(({ val, label, isCounter }, i) => (

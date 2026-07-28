@@ -2,8 +2,6 @@ import type { Metadata, Viewport } from 'next';
 import { DM_Sans, Oswald } from 'next/font/google';
 import Script from 'next/script';
 import { Providers } from '@/components/common/Providers';
-import { LocaleHtmlUpdater } from '@/components/common/LocaleHtmlUpdater';
-import { LocaleSuggestBanner } from '@/components/common/LocaleSuggestBanner';
 import './globals.css';
 
 const GA_ID = 'G-2S4DR8CBF0';
@@ -191,11 +189,7 @@ export default function RootLayout({
             <noscript><img src={'https://mc.yandex.ru/watch/' + YM_ID} style={{ position: 'absolute', left: '-9999px' }} alt="" /></noscript>
           </>
         )}
-        <Providers>
-          <LocaleHtmlUpdater />
-          <LocaleSuggestBanner />
-          {children}
-        </Providers>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

@@ -502,7 +502,8 @@
     "contactChannelsSub": "Отвечаем быстро — обычно в течение дня.",
     "contactWhere": "Где мы",
     "contactCity": "Ташкент, Узбекистан",
-    "contactReplyNote": "Отвечаем в течение 24 часов"
+    "contactReplyNote": "Отвечаем в течение 24 часов",
+    "cityName": "Ташкент"
   },
   "products": {
     "breadcrumb": "Продукты",

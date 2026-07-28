@@ -49,7 +49,9 @@ export function CompanyContent() {
     { num: 8, label: t('statProducts'), href: '/products' },
     { num: 16, label: t('statTeam') },
     { num: 6, label: t('statDirections') },
-    { text: 'Ташкент', label: t('statCity') },
+    // Hardcoded 'Ташкент' until /uz/company and /en/company existed — the city
+    // name is a word like any other and has to follow the page's language.
+    { text: t('cityName'), label: t('statCity') },
   ];
 
   const STEPS = [

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
 import { hreflangFor } from '@/lib/i18n/routes';
 import { appUrl } from '@/lib/app-url';
+import { socialMeta } from '@/lib/i18n/metadata';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 const PATH = '/uz/guides/kino-birgalikda';
@@ -29,13 +30,13 @@ export const metadata: Metadata = {
     canonical: `${APP_URL}${PATH}`,
     languages: hreflangFor(PATH, APP_URL),
   },
-  openGraph: {
+  ...socialMeta({
+    locale: 'uz',
     title: "Do'stlar bilan onlayn kino ko'rish — bepul | WeWatch",
-    description:
-      "Do'stingiz uzoqda bo'lsa ham birga kino ko'ring. Bir kishi pause bosadi — hammaga to'xtaydi. Bepul, iOS va Android.",
+    description: "Do'stingiz uzoqda bo'lsa ham birga kino ko'ring. Bir kishi pause bosadi — hammaga to'xtaydi. Bepul, iOS va Android.",
     url: 'https://wewatch.uz/uz/guides/kino-birgalikda',
     type: 'article',
-  },
+  }),
   robots: { index: true, follow: true },
 };
 

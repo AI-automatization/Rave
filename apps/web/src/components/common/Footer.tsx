@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useTranslations, useLocale } from 'next-intl';
 import { WeWatchLogo } from './WeWatchLogo';
-import { useLocaleStore } from '@/store/locale.store';
 import { isLocale, type Locale } from '@/lib/i18n/config';
 import { translatedPath } from '@/lib/i18n/routes';
 
@@ -51,15 +50,13 @@ const GUIDE_LINKS: Record<string, { hub: string; watchTogether: string; movie: s
 export function Footer() {
   const t = useTranslations('footer');
   const locale = useLocale();
-  const setLocale = useLocaleStore((s) => s.setLocale);
 
   /**
-   * URL of a URL-localized page in the language currently on screen.
+   * URL of a page in the language currently on screen.
    *
    * The labels were already translated but the hrefs were not: an Uzbek footer
-   * read "Qanday ishlaydi" and led to the Russian page. Only pages that have a
-   * locale URL of their own go through here — /features and /pricing are
-   * translated in place on a single URL and must stay untouched.
+   * read "Qanday ishlaydi" and led to the Russian page. Paths with no version in
+   * this language fall through to the original.
    */
   const localized = (path: string) =>
     isLocale(locale) ? translatedPath(path, locale) ?? path : path;
@@ -129,7 +126,6 @@ export function Footer() {
           only from the sitemap and sat in "Discovered, not indexed".
 
           Distinct from the header LanguageSwitcher, which translates *this page*.
-          Clicking still records the choice, so the proxy honours it next visit.
         */}
         <div className="border-t border-zinc-800/60 mt-8 pt-6 flex flex-wrap items-center gap-x-4 gap-y-2">
           <span className="text-zinc-600 text-xs uppercase tracking-widest">{t('language')}</span>
@@ -138,7 +134,7 @@ export function Footer() {
               key={locale}
               href={href}
               hrefLang={locale}
-              onClick={() => setLocale(locale)}
+              lang={locale}
               className="text-zinc-600 text-xs hover:text-zinc-300 transition-colors"
             >
               {label}

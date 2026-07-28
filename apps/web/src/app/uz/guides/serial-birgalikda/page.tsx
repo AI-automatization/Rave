@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
 import { appUrl } from '@/lib/app-url';
+import { socialMeta } from '@/lib/i18n/metadata';
 
 export const metadata: Metadata = {
   title: "Serial do'stlar bilan birgalikda ko'rish onlayn — bepul",
@@ -29,13 +30,13 @@ export const metadata: Metadata = {
       'x-default': 'https://wewatch.uz/guides/smotret-serial-vmeste',
     },
   },
-  openGraph: {
+  ...socialMeta({
+    locale: 'uz',
     title: "Serial birgalikda ko'rish — bepul | WeWatch",
-    description:
-      "Seriallarni do'stlaringiz bilan sinxron tomosha qiling. Turk, koreya, rus seriallar — bepul.",
+    description: "Seriallarni do'stlaringiz bilan sinxron tomosha qiling. Turk, koreya, rus seriallar — bepul.",
     url: 'https://wewatch.uz/uz/guides/serial-birgalikda',
     type: 'article',
-  },
+  }),
   robots: { index: true, follow: true },
 };
 

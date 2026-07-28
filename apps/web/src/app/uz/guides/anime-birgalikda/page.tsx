@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
 import { appUrl } from '@/lib/app-url';
+import { socialMeta } from '@/lib/i18n/metadata';
 
 export const metadata: Metadata = {
   title: "Anime do'stlar bilan onlayn birgalikda ko'rish — bepul",
@@ -29,13 +30,13 @@ export const metadata: Metadata = {
       'x-default': 'https://wewatch.uz/guides/smotret-anime-vmeste',
     },
   },
-  openGraph: {
+  ...socialMeta({
+    locale: 'uz',
     title: "Anime birgalikda ko'rish — bepul | WeWatch",
-    description:
-      "Anime-ni do'stlaringiz bilan sinxron tomosha qiling. Bir kishi pause bosdi — hammaga to'xtaydi.",
+    description: "Anime-ni do'stlaringiz bilan sinxron tomosha qiling. Bir kishi pause bosdi — hammaga to'xtaydi.",
     url: 'https://wewatch.uz/uz/guides/anime-birgalikda',
     type: 'article',
-  },
+  }),
   robots: { index: true, follow: true },
 };
 

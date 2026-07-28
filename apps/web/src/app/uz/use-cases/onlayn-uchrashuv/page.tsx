@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
 import { hreflangFor } from '@/lib/i18n/routes';
 import { appUrl } from '@/lib/app-url';
+import { socialMeta } from '@/lib/i18n/metadata';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 const PATH = '/uz/use-cases/onlayn-uchrashuv';
@@ -20,13 +21,13 @@ export const metadata: Metadata = {
     canonical: `${APP_URL}${PATH}`,
     languages: hreflangFor(PATH, APP_URL),
   },
-  openGraph: {
+  ...socialMeta({
+    locale: 'uz',
     title: 'Onlayn uchrashuv: ikki kishilik kino kechasi',
     description: "WeWatch ko'rishni sinxronlaydi — chat va emoji bilan haqiqiy uchrashuv muhiti.",
     url: `${APP_URL}${PATH}`,
-    locale: 'uz_UZ',
     type: 'article',
-  },
+  }),
   robots: { index: true, follow: true },
 };
 

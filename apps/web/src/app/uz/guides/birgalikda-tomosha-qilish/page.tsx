@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
 import { appUrl } from '@/lib/app-url';
+import { socialMeta } from '@/lib/i18n/metadata';
 
 export const metadata: Metadata = {
   title: "Onlayn birgalikda tomosha qilish — do'stlar bilan bepul",
@@ -29,13 +30,13 @@ export const metadata: Metadata = {
       'x-default': 'https://wewatch.uz/guides/smotret-vmeste-onlayn',
     },
   },
-  openGraph: {
+  ...socialMeta({
+    locale: 'uz',
     title: "Onlayn birgalikda tomosha qilish — bepul | WeWatch",
-    description:
-      "Do'stlaringiz bilan istagan filmni onlayn sinxron tomosha qiling. Bir kishi pause bosadi — hammaga to'xtaydi.",
+    description: "Do'stlaringiz bilan istagan filmni onlayn sinxron tomosha qiling. Bir kishi pause bosadi — hammaga to'xtaydi.",
     url: 'https://wewatch.uz/uz/guides/birgalikda-tomosha-qilish',
     type: 'article',
-  },
+  }),
   robots: { index: true, follow: true },
 };
 

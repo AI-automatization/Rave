@@ -21,16 +21,14 @@ export const DEFAULT_LOCALE: Locale = 'ru';
 export const PREFIX_DEFAULT = false;
 
 /**
- * Persisted user choice — the only locale cookie there is. Kept under this name
- * because visitors already carry it; renaming would reset everyone's preference.
- *
- * Nothing server-side ever writes it. The browser's own language is read on the
- * client from `navigator.languages`, which is the same data `Accept-Language`
- * carries, so no hint cookie has to be minted to pass it along.
+ * There is deliberately no locale cookie, no IP lookup and no Accept-Language
+ * branch anywhere in this app. The URL says which language a page is in, and it
+ * says the same thing to everyone — first-time visitor, returning visitor, new
+ * account, crawler. Anything derived from the visitor instead of the URL either
+ * misses the people who have no history yet, or hands two people who opened the
+ * same link two different pages. `LanguageSwitcher` is the only way the language
+ * changes, and it changes it by navigating.
  */
-export const LOCALE_COOKIE = 'wewatch-locale';
-
-export const LOCALE_COOKIE_MAX_AGE = 365 * 24 * 60 * 60; // 1 year
 
 /** OpenGraph locale codes, per locale. */
 export const OG_LOCALE: Record<Locale, string> = {
@@ -77,32 +75,4 @@ export function withLocale(pathname: string, locale: Locale): string {
   const bare = stripLocale(pathname);
   if (locale === DEFAULT_LOCALE && !PREFIX_DEFAULT) return bare;
   return bare === '/' ? `/${locale}` : `/${locale}${bare}`;
-}
-
-/**
- * Picks the best supported locale from an Accept-Language header, honouring its
- * q-weights. Returns null when nothing matches, so callers can fall back rather
- * than guess. Region subtags are ignored (`ru-RU` → `ru`).
- */
-export function parseAcceptLanguage(header: string | null | undefined): Locale | null {
-  if (!header) return null;
-
-  const ranked = header
-    .split(',')
-    .map((part) => {
-      const [tag, ...params] = part.trim().split(';');
-      const q = params.find((p) => p.trim().startsWith('q='));
-      const quality = q ? Number.parseFloat(q.split('=')[1]) : 1;
-      return { tag: tag.trim().toLowerCase(), quality: Number.isNaN(quality) ? 0 : quality };
-    })
-    .filter((entry) => entry.tag && entry.quality > 0)
-    .sort((a, b) => b.quality - a.quality);
-
-  for (const { tag } of ranked) {
-    const base = tag.split('-')[0];
-    if (isLocale(base)) return base;
-    // Uzbek Cyrillic and the legacy `uz-Latn`/`uz-Cyrl` tags both reduce to `uz`
-    // above; nothing extra needed. Other Turkic tags are deliberately not mapped.
-  }
-  return null;
 }

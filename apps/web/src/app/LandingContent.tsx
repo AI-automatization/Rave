@@ -309,6 +309,8 @@ function useCountUp(end: number, duration = 1.8) {
 // ── Stats Bar ────────────────────────────────────────────────────────────
 function StatsBar() {
   const t = useTranslations('landing');
+  // aria-label was hardcoded Russian on /uz and /en too — see FeaturesContent.
+  const tNav = useTranslations('nav');
   const { count, setHasStarted } = useCountUp(150, 2.2);
 
   const STATS = [
@@ -318,7 +320,7 @@ function StatsBar() {
     { value: 'counter', label: t('statsLabel4') },
   ];
   return (
-    <section className="py-14 px-4 relative overflow-hidden" aria-label="Статистика">
+    <section className="py-14 px-4 relative overflow-hidden" aria-label={tNav('stats')}>
       <div className="absolute inset-0 bg-gradient-to-b from-[#0A0A0F] via-[#0D0D1A] to-[#0A0A0F]" aria-hidden="true" />
       <div className="relative z-10 max-w-5xl mx-auto">
         <dl className="grid grid-cols-2 md:grid-cols-4 gap-px bg-zinc-800/30 rounded-2xl overflow-hidden border border-zinc-800/50 shadow-[0_0_60px_rgba(123,114,248,0.06)]">

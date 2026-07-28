@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
 import { guidesFor } from '@/data/guides';
 import { hreflangFor } from '@/lib/i18n/routes';
+import { socialMeta } from '@/lib/i18n/metadata';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 const PATH = '/en/guides';
@@ -16,13 +17,12 @@ export const metadata: Metadata = {
     canonical: URL,
     languages: hreflangFor(PATH, APP_URL),
   },
-  openGraph: {
+  ...socialMeta({
+    locale: 'en',
     title: 'WeWatch Guides — Watching Together',
     description: 'Step-by-step guides to synchronized co-watching with friends.',
     url: URL,
-    locale: 'en_US',
-    type: 'website',
-  },
+  }),
   robots: { index: true, follow: true },
 };
 

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { FaPlay, FaYoutube } from 'react-icons/fa';
 import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
 import { hreflangFor } from '@/lib/i18n/routes';
+import { socialMeta } from '@/lib/i18n/metadata';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 const PATH = '/en/guides/watch-youtube-together';
@@ -20,14 +21,13 @@ export const metadata: Metadata = {
     canonical: `${APP_URL}${PATH}`,
     languages: hreflangFor(PATH, APP_URL),
   },
-  openGraph: {
+  ...socialMeta({
+    locale: 'en',
     title: 'How to Watch YouTube Together With a Friend Online | WeWatch',
-    description:
-      'Watch YouTube in sync with friends — from a phone, from a computer, across platforms. No extensions, free.',
+    description: 'Watch YouTube in sync with friends — from a phone, from a computer, across platforms. No extensions, free.',
     url: `${APP_URL}${PATH}`,
-    locale: 'en_US',
     type: 'article',
-  },
+  }),
   robots: { index: true, follow: true },
 };
 

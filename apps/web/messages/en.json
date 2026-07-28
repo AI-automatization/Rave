@@ -536,7 +536,8 @@
     "contactChannelsSub": "We reply fast — usually within a day.",
     "contactWhere": "Where we are",
     "contactCity": "Tashkent, Uzbekistan",
-    "contactReplyNote": "We reply within 24 hours"
+    "contactReplyNote": "We reply within 24 hours",
+    "cityName": "Tashkent"
   },
   "products": {
     "breadcrumb": "Products",
