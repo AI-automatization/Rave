@@ -28,6 +28,16 @@ export const useInviteCardStyles = createThemedStyles((colors) => ({
     paddingVertical: spacing.sm, paddingHorizontal: spacing.md,
   },
   nativeShareBtnText: { ...typography.caption, color: colors.textPrimary, fontWeight: '600' },
+  // Icon-only and fixed-width (not flex:1 like its siblings) — the row already fits two labeled
+  // buttons snugly; a third with a "Storyga qo'shish"/"Добавить в Story" label would wrap awkwardly
+  // on narrower phones. The Instagram glyph reads on its own without a caption.
+  instagramBtn: {
+    width: 40, alignItems: 'center', justifyContent: 'center',
+    borderRadius: borderRadius.sm,
+    paddingVertical: spacing.sm,
+    // Instagram's own gradient — the one brand color that's unambiguous even as a small square.
+    backgroundColor: '#E1306C',
+  },
   friendsSection: {
     paddingHorizontal: spacing.md, paddingBottom: spacing.md,
     borderTopWidth: 1, borderTopColor: colors.border, paddingTop: spacing.sm, gap: spacing.xs,

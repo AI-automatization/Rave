@@ -545,6 +545,10 @@ export const translations = {
     shareText: { uz: "WeWatch Watch Party ga qo'shiling!", ru: 'Присоединяйтесь к WeWatch Watch Party!', en: 'Join WeWatch Watch Party!' },
     shareViaTelegram: { uz: 'Telegram orqali ulashish', ru: 'Поделиться через Telegram', en: 'Share via Telegram' },
     shareNative: { uz: 'Boshqa ilovalar', ru: 'Другие приложения', en: 'Other apps' },
+    shareInstagramStory: { uz: 'Storyga qo’shish', ru: 'Добавить в Story', en: 'Add to Story' },
+    shareInstagramFailed: { uz: 'Instagram Storyga ulashib bo’lmadi', ru: 'Не удалось поделиться в Instagram Story', en: 'Could not share to Instagram Story' },
+    instagramNotInstalledTitle: { uz: 'Instagram topilmadi', ru: 'Instagram не найден', en: 'Instagram not found' },
+    instagramNotInstalledBody: { uz: 'Storyga qo’shish uchun Instagram ilovasi kerak. Hozircha havolani boshqa usulda ulashing.', ru: 'Для публикации в Story нужно приложение Instagram. Пока можно поделиться ссылкой другим способом.', en: 'Instagram app is required to share to Story. You can share the link another way for now.' },
     shareRoomMessage: { uz: "Menga WeWatch da qo'shiling! 🎬", ru: 'Присоединяйся ко мне в WeWatch! 🎬', en: 'Join me on WeWatch! 🎬' },
     // Tabs
     tabRooms: { uz: 'Xonalar', ru: 'Комнаты', en: 'Rooms' },

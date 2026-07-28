@@ -44,34 +44,7 @@
 - **Sabab:** iOS'da `associatedDomains` entitlement yo'q, `apple-app-site-association` fayli umuman yo'q.
 - **Fayllar:** `apps/mobile/app.json`, yangi `apps/app-web/public/.well-known/apple-app-site-association`
 
-### T-S178 | P2 | [MOBILE] | react-native-share Instagram Stories integratsiyasi + queries config
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Saidazim (room redesign planning)
-- **Yaratilgan:** 2026-07-24
-- **Holat:** 🔄 Bajarilmoqda — T-S171+T-S177 tayyor edi, ish boshlandi (2026-07-27)
-- **Tavsiya model:** sonnet
-- **Model sababi:** yangi dependency + native config plugin, lekin standart kutubxona (custom native module emas)
-- **Sabab:** Meta App ID bor: **2239499546865583** (WeWatch Automation) — faqat `source_application` uchun kerak, hech qanday permission/App Review kerak emas (bu Graph API auto-publish'dan butunlay boshqa use-case).
-- **Qilish kerak:**
-  - [ ] `react-native-share` dependency qo'shish
-  - [ ] `Share.shareSingle({social: INSTAGRAM_STORIES, backgroundImage, attributionURL: T-S171 link, appId: '2239499546865583'})`
-  - [ ] Android: `<queries><package android:name="com.instagram.android"/></queries>` — Expo config plugin orqali
-  - [ ] iOS: `LSApplicationQueriesSchemes: ["instagram-stories","instagram"]` — config plugin orqali
-  - [ ] Tugma joyi: `InviteCard.tsx` (T-S171 bilan bir modal)
-- **Fayllar:** `apps/mobile/package.json`, `apps/mobile/app.json` (config plugin), `apps/mobile/src/components/watchParty/InviteCard.tsx`
-- **⚠️ Real qurilmada test kerak** — simulyatorda Instagram o'rnatilmagan holatni tekshirib bo'lmaydi.
-
-### T-S179 | P3 | [MOBILE] | Fallback UI — Instagram o'rnatilmagan holat
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Saidazim (room redesign planning)
-- **Yaratilgan:** 2026-07-24
-- **Holat:** ❌ Boshlanmagan (T-S178 dan keyin)
-- **Tavsiya model:** haiku
-- **Model sababi:** 1 shart, kichik UI
-- **Sabab:** `canOpenURL` false qaytarsa — oddiy `Share.share()` fallback yoki xabar ko'rsatish kerak.
-- **Fayllar:** `apps/mobile/src/components/watchParty/InviteCard.tsx`
+✅ T-S178 + T-S179 tugadi (2026-07-28) — Done.md'ga ko'chirildi.
 
 ### T-E209 | P2 | [WEB] | GEO/AEO/SEO texnik baza — robots, sitemap, IndexNow, crawler checker
 

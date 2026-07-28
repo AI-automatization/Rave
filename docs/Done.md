@@ -4,6 +4,14 @@
 
 ---
 
+### F-283 | T-S178 + T-S179 | Mobile: Instagram Stories share + fallback UI
+
+- **Bajaruvchi:** Saidazim (Claude sonnet 5)  **Bajarilgan:** 2026-07-28  **Model:** sonnet
+- **O'zgarishlar:** YANGI `apps/mobile/plugins/withInstagramQueries.js` (Android `<queries>` config plugin). O'ZGARDI: `app.json` (plugin ro'yxati + iOS `LSApplicationQueriesSchemes`), `package.json` (`react-native-share@^12.3.1`, `expo-file-system@~56.0.8`), `InviteCard.tsx` (Instagram Story tugmasi + handler + `isInstagramInstalled` tekshiruvi), `translations.ts` (`shareInstagramStory`, `shareInstagramFailed`, `instagramNotInstalledTitle/Body`).
+- **Xulosa:** Server-side `apps/app-web/.../story-image/route.tsx` (T-S177, allaqachon prod'da) 1080×1920 PNG qaytaradi — mobil shunchaki shu rasmni `expo-file-system`'ning `downloadAsync` bilan (`/legacy` import — SDK 54+ yangi File/Directory API'sini qurilmasiz tekshirib bo'lmasligi sababli eski, yaxshi hujjatlashtirilgan yo'l tanlandi) local cache'ga tushiradi va `react-native-share`'ning `shareSingle({social: Social.InstagramStories, backgroundImage, attributionURL, appId: '2239499546865583'})`'iga beradi — web va mobil story bir xil ko'rinadi. `Social` enum'i alohida named import qilindi — kutubxonaning default export'idagi `.Social` obyekti `string` tipida, `shareSingle` esa aynan enum talab qiladi (kutubxona type-larida real nomuvofiqlik). T-S179: ulashishdan OLDIN `isInstagramInstalled()` tekshiradi (Android — `isPackageInstalled('com.instagram.android')`, `<queries>` yozuvi kerak API 30+ da; iOS — `Linking.canOpenURL('instagram-stories://share')`, `LSApplicationQueriesSchemes` kerak) — "o'rnatilmagan" holati "haqiqiy xato"dan alohida, aniq xabar bilan (native share'ga fallback tugmasi bilan birga). Tekshiruv: `tsc --noEmit` — faqat 1 ta pre-existing xato (`LanguageTransition.tsx`), yangi kutubxonalar `npm install` bilan haqiqatan o'rnatildi va tekshirildi (guess emas). **Real qurilmada/Instagram bilan tekshirilmagan** — bu sessiyada mobil qurilma/simulyator yo'q, task o'zi buni alohida ogohlantiradi.
+
+---
+
 ### F-282 | T-S167 | Mobile: Chat+Voice UI birlashtirish (variant C)
 
 - **Bajaruvchi:** Saidazim (Claude sonnet 5)  **Bajarilgan:** 2026-07-28  **Model:** sonnet
