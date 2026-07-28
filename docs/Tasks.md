@@ -864,3 +864,27 @@
   - [ ] `tsc --noEmit` toza
 - **Fayllar:** `apps/web/src/lib/i18n/config.ts`, `routes.ts`, `src/proxy.ts`, `src/components/common/LocaleSuggestBanner.tsx`, `src/store/locale.store.ts`
 - **Bog'liq:** F-256, F-257 (Done.md)
+
+### T-S189 | P1 | [WEB] | i18n bo'shliqlari: UseCaseCards, use-cases sahifalari, GuideChrome havolalari
+
+- **Mas'ul:** pending[Jasur]
+- **Beruvchi:** Jasur
+- **Yaratilgan:** 2026-07-28 00:00
+- **Holat:** 🔄 Bajarilmoqda
+- **Tavsiya model:** opus
+- **Model sababi:** ko'p fayl, kontent tarjimasi + routing, uch til
+- **Sabab:** `/uz` va `/en` sahifalarida ruscha kontent va ruscha sahifalarga havolalar qolgan:
+  1. `LandingContent.tsx:1403-1447` — `UseCaseCards` bloki (6 karta + sarlavha) `t()` ishlatmaydi, matni qattiq ruscha. `/uz` va `/en` bosh sahifalarida ham ruscha chiqadi.
+  2. O'sha bloknning havolalari ruscha sahifalarga: `/use-cases/dalnie-otnosheniya`, `/guides/smotret-film-vdvoem` va h.k. — o'zbek foydalanuvchi `/uz` da bosса ruscha sahifaga tushadi.
+  3. `/use-cases/*` sahifalarida i18n umuman yo'q — faqat ruscha, uz/en versiyasi yo'q.
+  4. `GuideChrome.tsx:48,52,54` — o'zbek guide'da `faqHref: '/faq'` ruscha FAQ'ga, `privacy`/`terms` inglizcha sahifalarga olib boradi.
+- **Qaror (Jasur, 2026-07-28):** URL tuzilishi O'ZGARMAYDI — ruscha root'da qoladi, `/ru` prefiks migratsiyasi QILINMAYDI (40+ URL 301 = 2-8 hafta reyting chayqalishi, nol SEO foyda). Faqat kontent to'ldiriladi.
+- **Qilish kerak:**
+  - [ ] To'liq i18n audit — `/uz` va `/en` bo'ylab qolgan boshqa til matnlari
+  - [ ] `UseCaseCards` → `t()`, uch tilda
+  - [ ] Use-case havolalari joriy tilga bog'lansin
+  - [ ] `/uz/use-cases/*` va `/en/use-cases/*` sahifalari
+  - [ ] `GuideChrome` havolalari o'z tiliga
+  - [ ] `tsc --noEmit` toza, build toza, render tekshiruvi
+- **Fayllar:** `apps/web/src/app/LandingContent.tsx`, `src/app/use-cases/*`, `src/components/common/GuideChrome.tsx`, `messages/{ru,uz,en}.json`, `src/lib/i18n/routes.ts`
+- **Bog'liq:** T-S188 (F-284)
