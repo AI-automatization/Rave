@@ -67,13 +67,15 @@ export function useMediaDetection() {
   // If XHR fires in that window, backend extraction is cancelled entirely.
   const backendExtractTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Animate bottom bar in/out
+  // T-S189: the "Watch Party" bar is now always available (not gated on detection — see
+  // MediaBottomBar) so it just slides in once on mount, same motion as before, no longer
+  // tied to detectedMedia.
   useEffect(() => {
     Animated.spring(barAnim, {
-      toValue: detectedMedia ? 1 : 0,
+      toValue: 1,
       useNativeDriver: true, tension: 80, friction: 12,
     }).start();
-  }, [detectedMedia, barAnim]);
+  }, [barAnim]);
 
   const barTranslateY = barAnim.interpolate({ inputRange: [0, 1], outputRange: [120, 0] });
 
