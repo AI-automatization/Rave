@@ -4,6 +4,14 @@
 
 ---
 
+### F-284 | T-S188 | Mobile: Virtual Browser player — web bilan extraction fallback paritetligi
+
+- **Bajaruvchi:** Saidazim (Claude sonnet 5)  **Bajarilgan:** 2026-07-28  **Model:** sonnet
+- **O'zgarishlar:** YANGI `apps/mobile/src/hooks/useVirtualBrowser.ts` (socket wiring: VB_STARTED/VB_FRAME/VB_STOPPED/VB_ERROR/VB_CURSOR + ROOM_JOINED catch-up snapshot, `use-virtual-browser.ts` (web) bilan bir xil), YANGI `apps/mobile/src/components/watchParty/VirtualBrowserPlayer.tsx` (JPEG kadr stream `Image` orqali, owner uchun `PanResponder` bilan touch input: tap→mousedown+mouseup, drag→wheel, boshqalarga owner kursori). O'ZGARDI: `WatchPartyScreen.tsx` (`vb.active` bo'lsa `VideoSection` o'rniga shu component — faqat fullscreen bo'lmaganda), `translations.ts` (`vbStartVideo`).
+- **Xulosa:** Backend/socket-protokol allaqachon umumiy va tayyor edi (`services/watch-party/src/services/virtualBrowser.service.ts` — real headless Playwright Chromium, CDP screencast, `roomEvents.handler.ts`'dagi `CHANGE_MEDIA` — extraction muvaffaqiyatsiz bo'lsa avtomatik VB fallback, `vbSession.helper.ts` — network/MSE/WebSocket'da media topilsa avtomatik playerga qaytish) — mobile client tarafida esa **butunlay yo'q edi** (`VB_FRAME`/`VB_STARTED` bo'yicha 0 natija, ishni boshlashdan oldin grep bilan tasdiqlangan). Endi mobile ham xuddi shu oqimni ko'radi: xona video bilan yaratilganda/o'zgarganda server extraction'ni tekshiradi, muvaffaqiyatsiz bo'lsa VB avtomatik ochiladi, owner sahifada play bossa yoki server network'da mp4/hls topsa — video avtomatik playerga o'tadi. **Ataylab qamrab olinmagan:** (1) fullscreen VB — `VideoSection`ning fullscreen varianti VB uchun ko'chirilmadi, VB faqat oddiy rejimda ko'rinadi; (2) klaviatura/matn kiritish (web'da bor) — touch (play bosish) so'ralgan flow uchun yetarli, alohida follow-up bo'lishi mumkin; (3) qo'lda "brauzer ochish" tugmasi — faqat avtomatik fallback so'ralgan edi. Tekshiruv: `tsc --noEmit` — faqat 1 ta pre-existing xato (`LanguageTransition.tsx`), mening fayllarimda 0 ta yangi xato. **Real qurilmada/xonada tekshirilmagan** — bu sessiyada mobil simulyator/qurilma yo'q, VB ishga tushishi uchun haqiqiy extraction-muvaffaqiyatsiz URL va ikkinchi klient kerak.
+
+---
+
 ### F-283 | T-S178 + T-S179 | Mobile: Instagram Stories share + fallback UI
 
 - **Bajaruvchi:** Saidazim (Claude sonnet 5)  **Bajarilgan:** 2026-07-28  **Model:** sonnet

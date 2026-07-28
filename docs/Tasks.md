@@ -46,22 +46,7 @@
 
 ✅ T-S178 + T-S179 tugadi (2026-07-28) — Done.md'ga ko'chirildi.
 
-### T-S188 | P1 | [MOBILE] | Virtual Browser — web bilan bir xil ishlashi (extraction fallback + VB player)
-
-- **Mas'ul:** pending[Saidazim]
-- **Beruvchi:** Saidazim (2026-07-28, foydalanuvchi so'rovi)
-- **Yaratilgan:** 2026-07-28
-- **Holat:** 🔄 Boshlanmoqda
-- **Tavsiya model:** sonnet
-- **Model sababi:** backend/socket-protokol tayyor va umumiy (services/watch-party) — faqat mobile client (3-4 yangi/o'zgargan fayl), yangi arxitektura emas, web'dagi ishlayotgan patternni RN'ga ko'chirish
-- **Sabab:** Web'da xona video URL bilan yaratilganda/o'zgartirilganda `CHANGE_MEDIA` → content-service extraction pipeline tekshiriladi; muvaffaqiyatsiz bo'lsa server avtomatik shared Virtual Browser (`services/watch-party/src/services/virtualBrowser.service.ts` — real headless Playwright Chromium, CDP screencast) ishga tushadi va network/MSE/WebSocket orqali video URL topilishi bilan playerga avtomatik almashadi (`vbSession.helper.ts`). Bu butun mexanizm mobile'da umuman yo'q — `apps/mobile/src` bo'ylab `VB_FRAME`/`VB_STARTED`/`VirtualBrowser` bo'yicha 0 ta natija (tekshirildi, grep bilan tasdiqlangan).
-- **Qilish kerak:**
-  - [ ] `apps/mobile/src/hooks/useVirtualBrowser.ts` — web'dagi `use-virtual-browser.ts` bilan bir xil socket wiring (VB_STARTED/VB_FRAME/VB_STOPPED/VB_ERROR/VB_CURSOR, start/stop/sendInput) — backend/shared socket event'lar o'zgarmaydi
-  - [ ] `apps/mobile/src/components/watchParty/VirtualBrowserPlayer.tsx` — JPEG kadr stream (`Image` + base64 data URI), owner uchun touch/gesture input (`PanResponder` yoki `react-native-gesture-handler` — mouse emas, touch: tap→mousedown+mouseup, drag→wheel), boshqalarga owner kursori
-  - [ ] `WatchPartyScreen.tsx` / room video render logikasiga ulash — VB active bo'lsa oddiy player o'rniga shu component ko'rsatilsin
-  - [ ] i18n: `voiceRoom`/`vb*` kalitlar (`vbNotOpened`, `vbOpen`, `vbClose`, `vbStartVideo`, `vbMediaFound`) mobile `translations.ts`'ga
-  - [ ] `tsc --noEmit` — yangi/eski xatolar solishtirilsin
-- **Fayllar:** `apps/mobile/src/hooks/useVirtualBrowser.ts` (yangi), `apps/mobile/src/components/watchParty/VirtualBrowserPlayer.tsx` (yangi), `apps/mobile/src/screens/modal/WatchPartyScreen.tsx`, `apps/mobile/src/i18n/translations.ts`
+✅ T-S188 tugadi (2026-07-28) — Done.md'ga ko'chirildi.
 
 ---
 
