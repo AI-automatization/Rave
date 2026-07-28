@@ -28,7 +28,7 @@ export type Guide = {
 export const GUIDES: Guide[] = [
   // ── Русские гайды ──────────────────────────────────────────────────────────
   {
-    path: '/guides/smotret-vmeste-onlayn',
+    path: '/ru/guides/smotret-vmeste-onlayn',
     title: 'Смотреть вместе онлайн',
     summary: 'Как начать синхронный просмотр с друзьями — базовый гайд.',
     locale: 'ru',
@@ -36,7 +36,7 @@ export const GUIDES: Guide[] = [
     priority: 0.9,
   },
   {
-    path: '/guides/smotret-youtube-vmeste',
+    path: '/ru/guides/smotret-youtube-vmeste',
     title: 'Смотреть YouTube вместе',
     summary: 'Совместный просмотр YouTube: один ставит паузу — пауза у всех.',
     locale: 'ru',
@@ -44,7 +44,7 @@ export const GUIDES: Guide[] = [
     priority: 0.9,
   },
   {
-    path: '/guides/smotret-anime-vmeste',
+    path: '/ru/guides/smotret-anime-vmeste',
     title: 'Смотреть аниме вместе',
     summary: 'Синхронный просмотр аниме с другом на любом сайте.',
     locale: 'ru',
@@ -52,7 +52,7 @@ export const GUIDES: Guide[] = [
     priority: 0.9,
   },
   {
-    path: '/guides/smotret-serial-vmeste',
+    path: '/ru/guides/smotret-serial-vmeste',
     title: 'Смотреть сериал вместе',
     summary: 'Как смотреть сериалы с друзьями по эпизоду, синхронно.',
     locale: 'ru',
@@ -60,7 +60,7 @@ export const GUIDES: Guide[] = [
     priority: 0.9,
   },
   {
-    path: '/guides/smotret-serialy-vmeste-besplatno',
+    path: '/ru/guides/smotret-serialy-vmeste-besplatno',
     title: 'Сериалы вместе бесплатно',
     summary: 'Бесплатный совместный просмотр сериалов на всех платформах.',
     locale: 'ru',
@@ -68,7 +68,7 @@ export const GUIDES: Guide[] = [
     priority: 0.9,
   },
   {
-    path: '/guides/kino-s-drugom-onlayn',
+    path: '/ru/guides/kino-s-drugom-onlayn',
     title: 'Кино с другом онлайн',
     summary: 'Смотреть фильм с другом онлайн бесплатно — расстояние не важно.',
     locale: 'ru',
@@ -76,7 +76,7 @@ export const GUIDES: Guide[] = [
     priority: 0.8,
   },
   {
-    path: '/guides/smotret-film-vdvoem',
+    path: '/ru/guides/smotret-film-vdvoem',
     title: 'Смотреть фильм вдвоём',
     summary: 'Фильм на двоих: синхронно на двух устройствах, на расстоянии.',
     locale: 'ru',
@@ -84,7 +84,7 @@ export const GUIDES: Guide[] = [
     priority: 0.9,
   },
   {
-    path: '/guides/smotret-vk-video-vmeste',
+    path: '/ru/guides/smotret-vk-video-vmeste',
     title: 'Смотреть VK Видео вместе',
     summary: 'VK Видео синхронно между iPhone, Android и вебом.',
     locale: 'ru',
@@ -92,7 +92,7 @@ export const GUIDES: Guide[] = [
     priority: 0.8,
   },
   {
-    path: '/guides/smotret-rutube-vmeste',
+    path: '/ru/guides/smotret-rutube-vmeste',
     title: 'Смотреть Rutube вместе',
     summary: 'Rutube с друзьями — синхронный просмотр без расширений.',
     locale: 'ru',
@@ -100,7 +100,7 @@ export const GUIDES: Guide[] = [
     priority: 0.8,
   },
   {
-    path: '/guides/watch-party-besplatno',
+    path: '/ru/guides/watch-party-besplatno',
     title: 'Watch Party бесплатно',
     summary: 'Что такое watch party и как запустить его бесплатно.',
     locale: 'ru',
@@ -186,12 +186,12 @@ export const GUIDES: Guide[] = [
  * bolded), so counterparts cannot be derived by swapping a prefix.
  */
 export const GUIDE_GROUPS: { ru: string; uz?: string; en?: string }[] = [
-  { ru: '/guides/smotret-vmeste-onlayn', uz: '/uz/guides/birgalikda-tomosha-qilish' },
-  { ru: '/guides/smotret-youtube-vmeste', uz: '/uz/guides/youtube-birgalikda', en: '/en/guides/watch-youtube-together' },
-  { ru: '/guides/smotret-anime-vmeste', uz: '/uz/guides/anime-birgalikda' },
-  { ru: '/guides/smotret-serial-vmeste', uz: '/uz/guides/serial-birgalikda' },
-  { ru: '/guides/kino-s-drugom-onlayn', uz: '/uz/guides/kino-birgalikda', en: '/en/guides/watch-movies-with-friends' },
-  { ru: '/guides/watch-party-besplatno', en: '/en/guides/what-is-watch-party' },
+  { ru: '/ru/guides/smotret-vmeste-onlayn', uz: '/uz/guides/birgalikda-tomosha-qilish' },
+  { ru: '/ru/guides/smotret-youtube-vmeste', uz: '/uz/guides/youtube-birgalikda', en: '/en/guides/watch-youtube-together' },
+  { ru: '/ru/guides/smotret-anime-vmeste', uz: '/uz/guides/anime-birgalikda' },
+  { ru: '/ru/guides/smotret-serial-vmeste', uz: '/uz/guides/serial-birgalikda' },
+  { ru: '/ru/guides/kino-s-drugom-onlayn', uz: '/uz/guides/kino-birgalikda', en: '/en/guides/watch-movies-with-friends' },
+  { ru: '/ru/guides/watch-party-besplatno', en: '/en/guides/what-is-watch-party' },
 ];
 
 /** ru↔uz counterparts. Derived from GUIDE_GROUPS — kept for existing callers. */

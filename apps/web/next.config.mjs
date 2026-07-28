@@ -53,13 +53,37 @@ const nextConfig = {
       permanent: true,
     }));
 
+    // Russian moved from the root to its own /ru prefix (T-S193), so every
+    // Russian URL that was ever indexed 301s to its new address. These MUST stay
+    // in place permanently — they are what carries the existing ranking across,
+    // and every one of them is a URL Google already knows.
+    //
+    // Ordering matters: englishGuideRedirects is spread before this list, so the
+    // three English-slug guides reach /en/guides before the catch-all
+    // /guides/:slug rule can send them to /ru.
+    const ruRoots = [
+      'faq', 'how-it-works', 'guides', 'use-cases', 'team', 'tezcode',
+      'features', 'pricing', 'products', 'company', 'contact', 'about',
+    ];
+    const russianPrefixRedirects = [
+      // The old home page. Kept first for clarity; order among these does not matter.
+      { source: '/', destination: '/ru', permanent: true },
+      ...ruRoots.map((p) => ({ source: `/${p}`, destination: `/ru/${p}`, permanent: true })),
+      ...ruRoots.map((p) => ({
+        source: `/${p}/:path*`,
+        destination: `/ru/${p}/:path*`,
+        permanent: true,
+      })),
+    ];
+
     const appPaths = [
       'home', 'room', 'friends', 'messages', 'profile',
       'settings', 'notifications', 'support', 'login', 'register', 'auth',
     ];
     return [
       wwwRedirect,
-      ...englishGuideRedirects,
+      // App paths go to the app domain before anything else — /login is not a
+      // marketing page and must never be rewritten into /ru/login.
       ...appPaths.map((p) => ({
         source: `/${p}/:path*`,
         destination: `${APP}/${p}/:path*`,
@@ -70,17 +94,26 @@ const nextConfig = {
         destination: `${APP}/${p}`,
         permanent: true,
       })),
+      ...englishGuideRedirects,
+      ...russianPrefixRedirects,
     ];
   },
   async headers() {
     // Marketing / legal pages carry no personalization — safe to cache at the CDN
     // edge. A fresh build on every deploy regenerates them, so no staleness risk.
     const PUBLIC_CACHE = 'public, s-maxage=3600, stale-while-revalidate=86400';
+    // Every locale is prefixed now, so the list is symmetric across ru/uz/en
+    // instead of treating the Russian pages as the unprefixed special case.
+    const localized = ['ru', 'uz', 'en'].flatMap((l) => [
+      `/${l}`,
+      `/${l}/features`, `/${l}/pricing`, `/${l}/products`, `/${l}/company`,
+      `/${l}/contact`, `/${l}/about`, `/${l}/faq`, `/${l}/how-it-works`,
+      `/${l}/guides/:slug*`, `/${l}/use-cases/:slug*`,
+    ]);
     const cacheablePaths = [
-      '/', '/uz', '/en',
-      '/features', '/pricing', '/products', '/company', '/contact',
-      '/about', '/faq', '/terms', '/privacy-policy', '/dmca', '/delete-account',
-      '/guides/:slug*', '/uz/guides/:slug*',
+      ...localized,
+      // Language-neutral legal pages — never moved under a locale prefix.
+      '/terms', '/privacy-policy', '/dmca', '/delete-account',
     ];
     return [
       ...cacheablePaths.map((source) => ({
@@ -89,9 +122,11 @@ const nextConfig = {
       })),
       {
         // Everything else (app shells, auth, API) is never cached. The allowlist
-        // above wins for the public pages; this excludes them to avoid a double header.
+        // above wins for the public pages; this excludes them to avoid a double
+        // header. Locale-prefixed pages are excluded as one group now that ru is
+        // prefixed too, instead of listing every unprefixed Russian path.
         source:
-          '/((?!_next/static|_next/image|favicon\\.ico|guides/|uz/guides/|uz$|en$|features$|pricing$|products$|company$|contact$|about$|faq$|terms$|privacy-policy$|dmca$|delete-account$|$).*)',
+          '/((?!_next/static|_next/image|favicon\\.ico|ru/|uz/|en/|ru$|uz$|en$|terms$|privacy-policy$|dmca$|delete-account$|$).*)',
         headers: [
           { key: 'Cache-Control', value: 'no-cache, must-revalidate' },
         ],

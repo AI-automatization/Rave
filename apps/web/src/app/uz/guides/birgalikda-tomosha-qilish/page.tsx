@@ -25,9 +25,9 @@ export const metadata: Metadata = {
   alternates: {
     canonical: 'https://wewatch.uz/uz/guides/birgalikda-tomosha-qilish',
     languages: {
-      'ru': 'https://wewatch.uz/guides/smotret-vmeste-onlayn',
+      'ru': 'https://wewatch.uz/ru/guides/smotret-vmeste-onlayn',
       'uz': 'https://wewatch.uz/uz/guides/birgalikda-tomosha-qilish',
-      'x-default': 'https://wewatch.uz/guides/smotret-vmeste-onlayn',
+      'x-default': 'https://wewatch.uz/ru/guides/smotret-vmeste-onlayn',
     },
   },
   ...socialMeta({
@@ -103,7 +103,7 @@ export default function BirgalikdaTomashaPage() {
       <main className="min-h-screen bg-[#060608] text-white">
         <div className="max-w-3xl mx-auto px-4 py-16">
           <nav className="text-sm text-zinc-500 mb-8">
-            <Link href="/" className="hover:text-white transition-colors">WeWatch</Link>
+            <Link href="/uz" className="hover:text-white transition-colors">WeWatch</Link>
             <span className="mx-2">/</span>
             <Link href="/uz/guides/birgalikda-tomosha-qilish" className="hover:text-white transition-colors">
               Birgalikda tomosha
@@ -217,7 +217,7 @@ export default function BirgalikdaTomashaPage() {
               <Link href="/uz/guides/youtube-birgalikda" className="text-sm text-purple-400 hover:text-purple-300 transition-colors">YouTube birgalikda →</Link>
               <Link href="/uz/guides/anime-birgalikda" className="text-sm text-purple-400 hover:text-purple-300 transition-colors">Anime birgalikda →</Link>
               <Link href="/uz/guides/serial-birgalikda" className="text-sm text-purple-400 hover:text-purple-300 transition-colors">Serial birgalikda →</Link>
-              <Link href="/guides/smotret-vmeste-onlayn" className="text-sm text-zinc-500 hover:text-zinc-400 transition-colors">На русском →</Link>
+              <Link href="/ru/guides/smotret-vmeste-onlayn" className="text-sm text-zinc-500 hover:text-zinc-400 transition-colors">На русском →</Link>
             </div>
           </div>
         </div>

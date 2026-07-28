@@ -1,14 +1,14 @@
 import type { Metadata } from 'next';
-import { LandingContent } from '../LandingContent';
+import { LandingContent } from '@/components/landing/LandingContent';
+import { hreflangFor } from '@/lib/i18n/routes';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 
-const LANGUAGES = {
-  'x-default': APP_URL,
-  'ru': APP_URL,
-  'uz': `${APP_URL}/uz`,
-  'en': `${APP_URL}/en`,
-};
+// Single source: hreflangFor derives every locale's home URL from the routing
+// config, so the three home pages cannot drift apart (they did — all three
+// claimed the Russian home page lived at the bare domain, which stopped being
+// true when Russian moved under /ru).
+const LANGUAGES = hreflangFor('/', APP_URL);
 
 export const metadata: Metadata = {
   title: { absolute: "WeWatch — Do'stlar bilan birga video ko'rish | Bepul Watch Party" },

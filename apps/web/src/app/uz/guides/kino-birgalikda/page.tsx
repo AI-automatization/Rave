@@ -143,7 +143,7 @@ export default function KinoBirgalikdaPage() {
       <main className="min-h-screen bg-[#060608] text-white">
         <div className="max-w-3xl mx-auto px-4 py-16">
           <nav className="text-sm text-zinc-500 mb-8">
-            <Link href="/" className="hover:text-white transition-colors">WeWatch</Link>
+            <Link href="/uz" className="hover:text-white transition-colors">WeWatch</Link>
             <span className="mx-2">/</span>
             <Link href="/uz/guides/birgalikda-tomosha-qilish" className="hover:text-white transition-colors">
               Birgalikda tomosha
@@ -256,7 +256,7 @@ export default function KinoBirgalikdaPage() {
               <Link href="/uz/guides/birgalikda-tomosha-qilish" className="text-sm text-purple-400 hover:text-purple-300 transition-colors">Birgalikda tomosha qilish →</Link>
               <Link href="/uz/guides/youtube-birgalikda" className="text-sm text-purple-400 hover:text-purple-300 transition-colors">YouTube birgalikda →</Link>
               <Link href="/uz/guides/serial-birgalikda" className="text-sm text-purple-400 hover:text-purple-300 transition-colors">Serial birgalikda →</Link>
-              <Link href="/guides/kino-s-drugom-onlayn" className="text-sm text-zinc-500 hover:text-zinc-400 transition-colors">На русском →</Link>
+              <Link href="/ru/guides/kino-s-drugom-onlayn" className="text-sm text-zinc-500 hover:text-zinc-400 transition-colors">На русском →</Link>
             </div>
           </div>
         </div>

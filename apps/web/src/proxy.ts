@@ -11,7 +11,7 @@ const AUTH_PATHS = ['/login', '/register'];
  * Auth guard only.
  *
  * Locale is decided by the URL and nothing else — no cookie, no IP, no
- * Accept-Language. A request for `/faq` gets the Russian page, `/uz/faq` gets the
+ * Accept-Language. A request for `/ru/faq` gets the Russian page, `/uz/faq` gets the
  * Uzbek one, for every visitor, first-time or returning, human or crawler.
  *
  * The previous version redirected on a `wewatch-locale` cookie, which broke in
@@ -66,12 +66,12 @@ export const config = {
     '/messages/:path*',
     '/login',
     '/register',
-    '/:locale(uz|en)/home/:path*',
-    '/:locale(uz|en)/room/:path*',
-    '/:locale(uz|en)/profile/:path*',
-    '/:locale(uz|en)/friends/:path*',
-    '/:locale(uz|en)/messages/:path*',
-    '/:locale(uz|en)/login',
-    '/:locale(uz|en)/register',
+    '/:locale(ru|uz|en)/home/:path*',
+    '/:locale(ru|uz|en)/room/:path*',
+    '/:locale(ru|uz|en)/profile/:path*',
+    '/:locale(ru|uz|en)/friends/:path*',
+    '/:locale(ru|uz|en)/messages/:path*',
+    '/:locale(ru|uz|en)/login',
+    '/:locale(ru|uz|en)/register',
   ],
 };

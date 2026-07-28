@@ -1,24 +1,25 @@
 /**
  * Single source of truth for locale routing.
  *
- * URL shape (`localePrefix: 'as-needed'`): the default locale lives at the root
- * without a prefix (`/faq`), the others are prefixed (`/uz/guides`, `/en`).
- * The site was already indexed with Russian at the root, so prefixing it would
- * 301 every ranking URL for no SEO gain — hreflang, not the prefix, is what
- * tells Google these are translations of each other.
+ * URL shape (`localePrefix: 'always'`): every locale carries its own prefix —
+ * `/ru/faq`, `/uz/faq`, `/en/faq`. No language is a special case of the routing,
+ * and the URL alone says what language a page is in.
  *
- * To move the default locale under its own prefix later, flip PREFIX_DEFAULT to
- * true; every helper below derives from it.
+ * Russian used to sit at the root unprefixed, because the site was indexed that
+ * way and moving it costs a 301 on every ranking URL. That move was made
+ * deliberately on 2026-07-28 (T-S193, Jasur's call): the redirects are in
+ * next.config.mjs, `/` 301s to `/ru`, and Google follows 301s and transfers
+ * ranking — the cost is a few weeks of fluctuation, not a permanent loss.
  */
 
 export const LOCALES = ['ru', 'uz', 'en'] as const;
 export type Locale = (typeof LOCALES)[number];
 
-/** Locale served at the root and used as hreflang x-default. */
+/** Locale used as hreflang x-default and as the target of `/`. */
 export const DEFAULT_LOCALE: Locale = 'ru';
 
 /** When true the default locale also gets a prefix (`/ru/faq`). See note above. */
-export const PREFIX_DEFAULT = false;
+export const PREFIX_DEFAULT = true;
 
 /**
  * There is deliberately no locale cookie, no IP lookup and no Accept-Language

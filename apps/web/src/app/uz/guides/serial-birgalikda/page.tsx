@@ -25,9 +25,9 @@ export const metadata: Metadata = {
   alternates: {
     canonical: 'https://wewatch.uz/uz/guides/serial-birgalikda',
     languages: {
-      'ru': 'https://wewatch.uz/guides/smotret-serial-vmeste',
+      'ru': 'https://wewatch.uz/ru/guides/smotret-serial-vmeste',
       'uz': 'https://wewatch.uz/uz/guides/serial-birgalikda',
-      'x-default': 'https://wewatch.uz/guides/smotret-serial-vmeste',
+      'x-default': 'https://wewatch.uz/ru/guides/smotret-serial-vmeste',
     },
   },
   ...socialMeta({
@@ -60,7 +60,7 @@ export default function SerialBirgalikdaPage() {
       <main className="min-h-screen bg-[#060608] text-white">
         <div className="max-w-3xl mx-auto px-4 py-16">
           <nav className="text-sm text-zinc-500 mb-8">
-            <Link href="/" className="hover:text-white transition-colors">WeWatch</Link>
+            <Link href="/uz" className="hover:text-white transition-colors">WeWatch</Link>
             <span className="mx-2">/</span>
             <Link href="/uz/guides/serial-birgalikda" className="hover:text-white transition-colors">
               Serial birgalikda
@@ -179,7 +179,7 @@ export default function SerialBirgalikdaPage() {
               <Link href="/uz/guides/youtube-birgalikda" className="text-sm text-purple-400 hover:text-purple-300 transition-colors">YouTube birgalikda →</Link>
               <Link href="/uz/guides/anime-birgalikda" className="text-sm text-purple-400 hover:text-purple-300 transition-colors">Anime birgalikda →</Link>
               <Link href="/uz/guides/kino-birgalikda" className="text-sm text-purple-400 hover:text-purple-300 transition-colors">Kino birgalikda →</Link>
-              <Link href="/guides/smotret-serial-vmeste" className="text-sm text-zinc-500 hover:text-zinc-400 transition-colors">На русском →</Link>
+              <Link href="/ru/guides/smotret-serial-vmeste" className="text-sm text-zinc-500 hover:text-zinc-400 transition-colors">На русском →</Link>
             </div>
           </div>
         </div>

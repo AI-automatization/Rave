@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { FeaturesContent } from '@/app/(landing)/features/FeaturesContent';
+import { FeaturesContent } from '@/components/landing/FeaturesContent';
 import { hreflangFor } from '@/lib/i18n/routes';
 import { socialMeta } from '@/lib/i18n/metadata';
 
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     "WeWatch'ning barcha funksiyalari — Watch Party, Battle Mode, yutuqlar, bildirishnomalar. Do'stlaring bilan birga video ko'r, bepul.",
   alternates: {
     canonical: `${APP_URL}/uz/features`,
-    languages: hreflangFor('/features', APP_URL),
+    languages: hreflangFor('/ru/features', APP_URL),
   },
   ...socialMeta({
     locale: 'uz',

@@ -40,16 +40,9 @@ export const metadata: Metadata = {
   creator: 'WeWatch',
   publisher: 'WeWatch',
   category: 'entertainment',
-  alternates: {
-    canonical: APP_URL,
-    languages: {
-      'x-default': APP_URL,
-      'ru': APP_URL,
-      'ru-RU': APP_URL,
-      'uz': `${APP_URL}/uz`,
-      'en': `${APP_URL}/en`,
-    },
-  },
+  // No canonical / hreflang here: `/` is a 301 to `/ru` (next.config.mjs) and
+  // has no page of its own, so the root layout has no URL to be canonical for.
+  // Every page under /ru, /uz and /en declares its own set.
   openGraph: {
     type: 'website',
     locale: 'ru_RU',
@@ -160,14 +153,14 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   // Static shell: lang defaults to ru so the page renders without reading request
-  // headers (which would force dynamic rendering of the whole tree). The /uz and
-  // /en subtrees render Uzbek/English content via their own LocaleBoundary layout,
-  // and the inline script below corrects <html lang> before hydration for those URLs.
+  // headers (which would force dynamic rendering of the whole tree). Each locale
+  // subtree renders its own content via its LocaleBoundary layout, and the
+  // inline script below corrects <html lang> from the URL before hydration.
   return (
     <html lang="ru" suppressHydrationWarning>
       <body className={`${dmSans.variable} ${oswald.variable} font-body antialiased bg-[#060608] text-white`}>
         <Script id="set-lang" strategy="beforeInteractive">{`
-          (function(){var p=location.pathname;document.documentElement.lang=(p==='/uz'||p.indexOf('/uz/')===0)?'uz':(p==='/en'||p.indexOf('/en/')===0)?'en':'ru';})();
+          (function(){var p=location.pathname.split('/')[1];document.documentElement.lang=(p==='uz'||p==='en')?p:'ru';})();
         `}</Script>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdApp) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdOrg) }} />

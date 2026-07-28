@@ -19,7 +19,7 @@ export default function DmcaPage() {
     <div className="min-h-screen bg-[#060608] text-zinc-300">
       <header className="sticky top-0 z-50 bg-[#060608]/90 backdrop-blur-md border-b border-zinc-800/60">
         <div className="max-w-4xl mx-auto px-6 py-3.5 flex items-center justify-between gap-4">
-          <WeWatchLogo variant="horizontal" iconSize={26} href="/" />
+          <WeWatchLogo variant="horizontal" iconSize={26} href="/en" />
           <div className="flex gap-5 text-sm text-zinc-400">
             <Link href="/privacy-policy" className="hover:text-white transition-colors">Privacy</Link>
             <Link href="/terms" className="hover:text-white transition-colors">Terms</Link>
@@ -29,7 +29,7 @@ export default function DmcaPage() {
 
       <main className="max-w-4xl mx-auto px-6 py-16">
         <nav aria-label="Breadcrumb" className="text-zinc-600 text-xs mb-6">
-          <Link href="/" className="hover:text-zinc-400 transition-colors">WeWatch</Link>
+          <Link href="/en" className="hover:text-zinc-400 transition-colors">WeWatch</Link>
           <span className="mx-2">/</span>
           <span className="text-zinc-500">DMCA</span>
         </nav>
@@ -277,7 +277,7 @@ export default function DmcaPage() {
           <div className="flex gap-4 text-zinc-600 text-xs">
             <Link href="/privacy-policy" className="hover:text-zinc-400 transition-colors">Privacy</Link>
             <Link href="/terms" className="hover:text-zinc-400 transition-colors">Terms</Link>
-            <Link href="/" className="hover:text-zinc-400 transition-colors">← Home</Link>
+            <Link href="/en" className="hover:text-zinc-400 transition-colors">← Home</Link>
           </div>
         </div>
       </footer>

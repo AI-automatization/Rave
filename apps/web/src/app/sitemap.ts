@@ -1,5 +1,5 @@
 import type { MetadataRoute } from 'next';
-import { TEAM } from './team/team-data';
+import { TEAM } from './ru/team/team-data';
 import { GUIDES } from '@/data/guides';
 import { hreflangFor } from '@/lib/i18n/routes';
 
@@ -33,38 +33,41 @@ function guideLanguages(path: string) {
  * (this one and TRANSLATED_ROUTES in lib/i18n/routes.ts).
  */
 const LANDING_PAGES: readonly { path: string; priority: number }[] = [
-  { path: '/features', priority: 0.8 },
-  { path: '/pricing', priority: 0.7 },
-  { path: '/products', priority: 0.5 },
-  { path: '/company', priority: 0.5 },
-  { path: '/contact', priority: 0.4 },
-  { path: '/about', priority: 0.5 },
+  { path: '/ru/features', priority: 0.8 },
+  { path: '/ru/pricing', priority: 0.7 },
+  { path: '/ru/products', priority: 0.5 },
+  { path: '/ru/company', priority: 0.5 },
+  { path: '/ru/contact', priority: 0.4 },
+  { path: '/ru/about', priority: 0.5 },
 ];
 
 const LANDING_LASTMOD = '2026-07-28';
 
 const ENTRIES: Entry[] = [
-  // ── Главные страницы (ru default, /uz, /en) ─────────────────────────────────
+  // ── Главные страницы: по одной на язык, все с префиксом ─────────────────────
+  // Голого `/` здесь нет намеренно: он 301 на /ru (next.config.mjs), а sitemap
+  // должен содержать конечные URL, а не редиректы. hreflang берётся из того же
+  // helper'а, что и на самих страницах, — расходиться они не могут.
   {
-    path: '/',
-    lastModified: '2026-07-07',
+    path: '/ru',
+    lastModified: LANDING_LASTMOD,
     changeFrequency: 'weekly',
     priority: 1.0,
-    languages: { ru: BASE, uz: `${BASE}/uz`, en: `${BASE}/en`, 'x-default': BASE },
+    languages: hreflangFor('/', BASE),
   },
   {
     path: '/uz',
-    lastModified: '2026-07-07',
+    lastModified: LANDING_LASTMOD,
     changeFrequency: 'weekly',
     priority: 0.9,
-    languages: { ru: BASE, uz: `${BASE}/uz`, en: `${BASE}/en`, 'x-default': BASE },
+    languages: hreflangFor('/', BASE),
   },
   {
     path: '/en',
-    lastModified: '2026-07-07',
+    lastModified: LANDING_LASTMOD,
     changeFrequency: 'weekly',
     priority: 0.7,
-    languages: { ru: BASE, uz: `${BASE}/uz`, en: `${BASE}/en`, 'x-default': BASE },
+    languages: hreflangFor('/', BASE),
   },
 
   // ── Гайды (реестр: src/data/guides.ts — новый гайд добавляется только там) ──
@@ -79,25 +82,25 @@ const ENTRIES: Entry[] = [
   // Their old /guides/<english-slug> URLs 301 to /en/guides/* and are therefore
   // deliberately not listed — a sitemap must contain final URLs, not redirects.
   {
-    path: '/guides',
+    path: '/ru/guides',
     lastModified: '2026-07-25',
     changeFrequency: 'weekly',
     priority: 0.8,
-    languages: { ru: `${BASE}/guides`, uz: `${BASE}/uz/guides`, en: `${BASE}/en/guides`, 'x-default': `${BASE}/guides` },
+    languages: { ru: `${BASE}/ru/guides`, uz: `${BASE}/uz/guides`, en: `${BASE}/en/guides`, 'x-default': `${BASE}/ru/guides` },
   },
   {
     path: '/uz/guides',
     lastModified: '2026-07-25',
     changeFrequency: 'weekly',
     priority: 0.8,
-    languages: { ru: `${BASE}/guides`, uz: `${BASE}/uz/guides`, en: `${BASE}/en/guides`, 'x-default': `${BASE}/guides` },
+    languages: { ru: `${BASE}/ru/guides`, uz: `${BASE}/uz/guides`, en: `${BASE}/en/guides`, 'x-default': `${BASE}/ru/guides` },
   },
   {
     path: '/en/guides',
     lastModified: '2026-07-25',
     changeFrequency: 'weekly',
     priority: 0.7,
-    languages: { ru: `${BASE}/guides`, uz: `${BASE}/uz/guides`, en: `${BASE}/en/guides`, 'x-default': `${BASE}/guides` },
+    languages: { ru: `${BASE}/ru/guides`, uz: `${BASE}/uz/guides`, en: `${BASE}/en/guides`, 'x-default': `${BASE}/ru/guides` },
   },
 
   // ── Продукт / компания ─────────────────────────────────────────────────────
@@ -106,24 +109,24 @@ const ENTRIES: Entry[] = [
   // лету из клиентского стора на одном URL, поэтому узбекская и английская
   // версии были непошарибельны и невидимы для краулера.
   {
-    path: '/how-it-works',
+    path: '/ru/how-it-works',
     lastModified: '2026-07-25',
     changeFrequency: 'monthly',
     priority: 0.8,
-    languages: hreflangFor('/how-it-works', BASE),
+    languages: hreflangFor('/ru/how-it-works', BASE),
   },
   ...LANDING_PAGES.flatMap(({ path, priority }) => [
     { path, lastModified: LANDING_LASTMOD, changeFrequency: 'monthly' as const, priority, languages: hreflangFor(path, BASE) },
     { path: `/uz${path}`, lastModified: LANDING_LASTMOD, changeFrequency: 'monthly' as const, priority: priority - 0.1, languages: hreflangFor(path, BASE) },
     { path: `/en${path}`, lastModified: LANDING_LASTMOD, changeFrequency: 'monthly' as const, priority: priority - 0.1, languages: hreflangFor(path, BASE) },
   ]),
-  { path: '/tezcode', lastModified: '2026-07-03', changeFrequency: 'monthly', priority: 0.6 },
+  { path: '/ru/tezcode', lastModified: '2026-07-03', changeFrequency: 'monthly', priority: 0.6 },
 
   // ── Use-cases ──────────────────────────────────────────────────────────────
   // Узбекские и английские версии добавлены в T-S189; hreflang читается из
   // реестра USE_CASE_GROUPS, поэтому здесь достаточно перечислить пути.
-  { path: '/use-cases/dalnie-otnosheniya', lastModified: '2026-07-28', changeFrequency: 'monthly', priority: 0.8, languages: hreflangFor('/use-cases/dalnie-otnosheniya', BASE) },
-  { path: '/use-cases/svidanie-online', lastModified: '2026-07-28', changeFrequency: 'monthly', priority: 0.8, languages: hreflangFor('/use-cases/svidanie-online', BASE) },
+  { path: '/ru/use-cases/dalnie-otnosheniya', lastModified: '2026-07-28', changeFrequency: 'monthly', priority: 0.8, languages: hreflangFor('/ru/use-cases/dalnie-otnosheniya', BASE) },
+  { path: '/ru/use-cases/svidanie-online', lastModified: '2026-07-28', changeFrequency: 'monthly', priority: 0.8, languages: hreflangFor('/ru/use-cases/svidanie-online', BASE) },
   { path: '/uz/use-cases/masofadagi-juftlik', lastModified: '2026-07-28', changeFrequency: 'monthly', priority: 0.7, languages: hreflangFor('/uz/use-cases/masofadagi-juftlik', BASE) },
   { path: '/uz/use-cases/onlayn-uchrashuv', lastModified: '2026-07-28', changeFrequency: 'monthly', priority: 0.7, languages: hreflangFor('/uz/use-cases/onlayn-uchrashuv', BASE) },
   { path: '/en/use-cases/long-distance', lastModified: '2026-07-28', changeFrequency: 'monthly', priority: 0.7, languages: hreflangFor('/en/use-cases/long-distance', BASE) },
@@ -131,25 +134,25 @@ const ENTRIES: Entry[] = [
 
   // ── Сервисные / правовые ───────────────────────────────────────────────────
   {
-    path: '/faq',
+    path: '/ru/faq',
     lastModified: '2026-07-25',
     changeFrequency: 'monthly',
     priority: 0.6,
-    languages: hreflangFor('/faq', BASE),
+    languages: hreflangFor('/ru/faq', BASE),
   },
   {
     path: '/en/faq',
     lastModified: '2026-07-25',
     changeFrequency: 'monthly',
     priority: 0.5,
-    languages: hreflangFor('/faq', BASE),
+    languages: hreflangFor('/ru/faq', BASE),
   },
   {
     path: '/en/how-it-works',
     lastModified: '2026-07-25',
     changeFrequency: 'monthly',
     priority: 0.6,
-    languages: hreflangFor('/how-it-works', BASE),
+    languages: hreflangFor('/ru/how-it-works', BASE),
   },
   // Узбекские версии — T-S189. До них узбекский футер и шапка гайдов вели на
   // русские /faq и /how-it-works.
@@ -158,14 +161,14 @@ const ENTRIES: Entry[] = [
     lastModified: '2026-07-28',
     changeFrequency: 'monthly',
     priority: 0.5,
-    languages: hreflangFor('/faq', BASE),
+    languages: hreflangFor('/ru/faq', BASE),
   },
   {
     path: '/uz/how-it-works',
     lastModified: '2026-07-28',
     changeFrequency: 'monthly',
     priority: 0.6,
-    languages: hreflangFor('/how-it-works', BASE),
+    languages: hreflangFor('/ru/how-it-works', BASE),
   },
   // /about — см. LANDING_PAGES выше (три языка одной записью).
   { path: '/privacy-policy', lastModified: '2026-07-07', changeFrequency: 'yearly', priority: 0.3 },
@@ -174,9 +177,9 @@ const ENTRIES: Entry[] = [
   { path: '/dmca', lastModified: '2026-07-07', changeFrequency: 'yearly', priority: 0.2 },
 
   // ── Команда ────────────────────────────────────────────────────────────────
-  { path: '/team', lastModified: '2026-07-03', changeFrequency: 'monthly', priority: 0.6 },
+  { path: '/ru/team', lastModified: '2026-07-03', changeFrequency: 'monthly', priority: 0.6 },
   ...TEAM.map((m) => ({
-    path: `/team/${m.slug}`,
+    path: `/ru/team/${m.slug}`,
     lastModified: '2026-07-03',
     changeFrequency: 'monthly' as const,
     priority: 0.5,

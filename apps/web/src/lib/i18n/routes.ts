@@ -2,7 +2,7 @@
  * Which pages actually exist in which language.
  *
  * Locale routing cannot just swap a prefix here: most pages are Russian-only,
- * and the translated guides use translated slugs (`/guides/smotret-anime-vmeste`
+ * and the translated guides use translated slugs (`/ru/guides/smotret-anime-vmeste`
  * ↔ `/uz/guides/anime-birgalikda`). Sending a visitor to `/en/faq` because it
  * "should" exist produces a 404 and, worse, a 404 that Google can crawl from an
  * hreflang tag. So every cross-locale jump is resolved through this registry and
@@ -25,7 +25,11 @@ import { DEFAULT_LOCALE, type Locale, stripLocale, withLocale } from './config';
  * they were translated at render time from the client locale store, on one
  * shared URL. That made them unshareable and unindexable in Uzbek and English —
  * `/features` was one URL that showed a different language depending on client
- * state. They now have their own URLs under /uz and /en, and the store is gone.
+ * state. They now have their own URLs in every language, and the store is gone.
+ *
+ * Keys are locale-FREE paths (what `stripLocale` returns) — `/faq`, not
+ * `/ru/faq`. `withLocale` puts the prefix back per locale, so prefixing a key
+ * here would make every lookup miss.
  */
 const TRANSLATED_ROUTES: Record<string, readonly Locale[]> = {
   '/': ['ru', 'uz', 'en'],
@@ -56,7 +60,7 @@ export function localeSwitchFor(pathname: string, target: Locale): LocaleSwitch 
   return href ? { mode: 'navigate', href } : null;
 }
 
-/** Trailing slash removed so `/guides/` and `/guides` resolve alike. */
+/** Trailing slash removed so `/ru/guides/` and `/ru/guides` resolve alike. */
 function normalize(pathname: string): string {
   return pathname.length > 1 ? pathname.replace(/\/$/, '') : pathname;
 }
@@ -93,7 +97,7 @@ export function switchLocalePath(pathname: string, target: Locale): string {
   return translatedPath(pathname, target) ?? withLocale('/', target);
 }
 
-/** Locales `pathname` is actually available in — used for hreflang and the banner. */
+/** Locales `pathname` is actually available in — used for hreflang and the switcher. */
 export function availableLocales(pathname: string): Locale[] {
   const path = normalize(pathname);
 
@@ -115,7 +119,9 @@ export function hreflangFor(pathname: string, baseUrl: string): Record<string, s
   const languages: Record<string, string> = {};
   for (const locale of availableLocales(pathname)) {
     const path = translatedPath(pathname, locale);
-    if (path) languages[locale] = path === '/' ? baseUrl : `${baseUrl}${path}`;
+    // Every locale is prefixed, so `path` is never the bare `/` — no home-page
+    // special case is needed here any more.
+    if (path) languages[locale] = `${baseUrl}${path}`;
   }
   // x-default points at the default locale when it exists, else the first available.
   const fallback = languages[DEFAULT_LOCALE] ?? Object.values(languages)[0];

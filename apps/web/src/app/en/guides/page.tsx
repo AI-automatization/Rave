@@ -97,7 +97,7 @@ export default function EnGuidesHubPage() {
             <Link href="/en/faq" className="text-[#7B72F8] hover:text-[#9B92FF] underline underline-offset-4 transition-colors">
               Frequently asked questions →
             </Link>
-            <Link href="/guides" hrefLang="ru" className="text-[#7B72F8] hover:text-[#9B92FF] underline underline-offset-4 transition-colors">
+            <Link href="/ru/guides" hrefLang="ru" className="text-[#7B72F8] hover:text-[#9B92FF] underline underline-offset-4 transition-colors">
               Russian guides →
             </Link>
             <Link href="/uz/guides" hrefLang="uz" className="text-[#7B72F8] hover:text-[#9B92FF] underline underline-offset-4 transition-colors">

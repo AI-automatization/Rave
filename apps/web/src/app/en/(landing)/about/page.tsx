@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { AboutContent } from '@/app/(landing)/about/AboutContent';
+import { AboutContent } from '@/components/landing/AboutContent';
 import { hreflangFor } from '@/lib/i18n/routes';
 import { socialMeta } from '@/lib/i18n/metadata';
 
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     'WeWatch is a free app for watching YouTube, VK and Rutube together with friends online. iOS, Android and Web. Built by tezcode.dev in Tashkent.',
   alternates: {
     canonical: `${APP_URL}/en/about`,
-    languages: hreflangFor('/about', APP_URL),
+    languages: hreflangFor('/ru/about', APP_URL),
   },
   ...socialMeta({
     locale: 'en',

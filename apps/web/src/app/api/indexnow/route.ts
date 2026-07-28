@@ -13,7 +13,7 @@ const SECRET = process.env.INDEXNOW_SECRET ?? '';
  * a deploy that changed content:
  *   curl -X POST https://wewatch.uz/api/indexnow -H "x-indexnow-secret: $INDEXNOW_SECRET"
  *
- * Optional body: { "urls": ["https://wewatch.uz/faq"] } to submit only those.
+ * Optional body: { "urls": ["https://wewatch.uz/ru/faq"] } to submit only those.
  */
 export async function POST(req: NextRequest): Promise<NextResponse> {
   if (!SECRET) {

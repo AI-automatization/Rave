@@ -13,9 +13,9 @@ export const metadata: Metadata = {
   alternates: {
     canonical: URL,
     languages: {
-      ru: 'https://wewatch.uz/guides',
+      ru: 'https://wewatch.uz/ru/guides',
       uz: URL,
-      'x-default': 'https://wewatch.uz/guides',
+      'x-default': 'https://wewatch.uz/ru/guides',
     },
   },
   ...socialMeta({
@@ -104,7 +104,7 @@ export default function UzGuidesHubPage() {
               Qanday ishlaydi →
             </Link>
             {/* Явный переход на другой язык — подпись по-русски намеренно. */}
-            <Link href="/guides" hrefLang="ru" className="text-[#7B72F8] hover:text-[#9B92FF] underline underline-offset-4 transition-colors">
+            <Link href="/ru/guides" hrefLang="ru" className="text-[#7B72F8] hover:text-[#9B92FF] underline underline-offset-4 transition-colors">
               Ruscha gaydlar →
             </Link>
           </div>

@@ -4,6 +4,20 @@
 
 ---
 
+### F-288 | T-S193 | Web: ruscha ham `/ru` prefiksiga o'tdi — uchala til bir xil qoidada
+
+- **Bajaruvchi:** Jasur (Claude opus 5)  **Bajarilgan:** 2026-07-28  **Model:** opus
+- **O'zgarishlar:**
+  - **KO'CHIRILDI:** barcha ruscha sahifalar `app/` root'dan `app/ru/` ga — `page.tsx`, `(landing)/` (6), `faq`, `how-it-works`, `guides/` (11), `use-cases/` (2), `team/`, `tezcode/`. Til-neytral huquqiy sahifalar (`/terms`, `/privacy-policy`, `/dmca`, `/delete-account`) root'da qoldi — ular inglizcha yozilgan va tilga bog'liq emas.
+  - **YANGI joy:** landing content komponentlari `app/ru/(landing)/*/…Content.tsx` dan `components/landing/` ga — ular uchala tilga xizmat qiladi, `ru/` ichida turishi noto'g'ri edi (`/en/features` sahifasi `ru` papkasidan import qilardi).
+  - `config.ts` — `PREFIX_DEFAULT: false → true`. Qolgan helper'lar (`localeFromPath`, `stripLocale`, `withLocale`, `hreflangFor`) shundan hosila, o'zgartirilmadi.
+  - `next.config.mjs` — 25 ta 301 (Next 308 chiqaradi, SEO'da teng): `/` → `/ru`, `/faq` → `/ru/faq` va h.k., har biri `:path*` varianti bilan. Tartib: app yo'llari → inglizcha gayd slug'lari → ruscha prefiks. Cache header'lari uch til bo'yicha simmetrik ro'yxatga o'tdi.
+  - **YANGI:** `lib/i18n/use-localized-href.ts` (`useLocalizedHref()`) — umumiy komponentlardagi ichki havolalar joriy tilga moslanadi. `Footer`, `LandingNav` va 5 ta landing content shundan foydalanadi.
+  - 266 ichki havola `/ru/…` ga o'tkazildi; `sitemap.ts` (`/` yozuvi olib tashlandi — u endi redirect), `public/llms.txt` (11 URL), `GuideChrome` `homeHref`, `data/tezcode.ts` (`href: '/'` → `isHome: true`).
+- **Xulosa:** Jasurning qarori — ruscha ham boshqa tillar kabi prefiksga ega bo'lsin. Bu ilgari ikki marta ko'tarilib rad etilgan edi (40+ URL 301 = 2-8 hafta reyting chayqalishi), uchinchi marta so'ralgani uchun bajarildi; 301'lar reytingni o'tkazadi, yo'qotmaydi. **Skript qo'zg'atgan uchta zarar topilib tuzatildi:** `https://tezcode.dev` → `https://ru/tezcode.dev` (7 qator), `instagram.com/tezcode_dev` → `instagram.com/ru/tezcode_dev` (5 fayl), `TRANSLATED_ROUTES` kalitlariga `/ru` qo'shilishi (kalitlar locale-free bo'lishi shart, aks holda har bir qidiruv promax qiladi). **Yon bug topildi va tuzatildi:** 47 sahifada logotip/breadcrumb `href="/"` edi — `/` endi `/ru` ga redirect qilgani uchun o'zbek sahifadan logotip bosilsa ruschaga tushib ketardi. Tekshiruv: `next build` — 102 sahifa; `next start` + 23 URL bo'yicha curl — barcha eski manzillar 308 bilan to'g'ri yangi manzilga ketadi, `/login` app domenga, prefiksli URL'lar 200; buzilgan ichki havola 0; `/uz` va `/en` da kutilmagan kirill 0; sitemap 64 URL, redirect yo'q; `tsc` — 5 xato, hammasi pre-existing `@types/react` dublikati. **Deploy'dan keyin qilinishi kerak:** Google Search Console'ga yangi sitemap yuborish va 2-3 hafta Coverage hisobotini kuzatish.
+
+---
+
 ### F-287 | T-S192 | Web: til aniqlash cookie/IP'dan butunlay voz kechildi — URL yagona haqiqat manbai
 
 - **Bajaruvchi:** Jasur (Claude opus 5)  **Bajarilgan:** 2026-07-28  **Model:** opus

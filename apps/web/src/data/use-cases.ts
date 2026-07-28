@@ -2,7 +2,7 @@
  * Registry of the use-case landing pages, one entry per scenario.
  *
  * Same shape and same reason as GUIDE_GROUPS in ./guides: the slugs are
- * translated, not prefixed (`/use-cases/dalnie-otnosheniya` ↔
+ * translated, not prefixed (`/ru/use-cases/dalnie-otnosheniya` ↔
  * `/uz/use-cases/masofadagi-juftlik`), so nothing can derive one locale's URL
  * from another's by string surgery. Both the home-page cards and hreflang read
  * from here, which is what keeps the cards from linking at a page that does not
@@ -22,12 +22,12 @@ export type UseCaseGroup = Record<Locale, string>;
 
 export const USE_CASE_GROUPS: readonly UseCaseGroup[] = [
   {
-    ru: '/use-cases/dalnie-otnosheniya',
+    ru: '/ru/use-cases/dalnie-otnosheniya',
     uz: '/uz/use-cases/masofadagi-juftlik',
     en: '/en/use-cases/long-distance',
   },
   {
-    ru: '/use-cases/svidanie-online',
+    ru: '/ru/use-cases/svidanie-online',
     uz: '/uz/use-cases/onlayn-uchrashuv',
     en: '/en/use-cases/online-date',
   },

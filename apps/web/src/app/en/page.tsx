@@ -1,14 +1,11 @@
 import type { Metadata } from 'next';
-import { LandingContent } from '../LandingContent';
+import { LandingContent } from '@/components/landing/LandingContent';
+import { hreflangFor } from '@/lib/i18n/routes';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 
-const LANGUAGES = {
-  'x-default': APP_URL,
-  'ru': APP_URL,
-  'uz': `${APP_URL}/uz`,
-  'en': `${APP_URL}/en`,
-};
+// See the note in app/uz/page.tsx — derived, not hand-written.
+const LANGUAGES = hreflangFor('/', APP_URL);
 
 export const metadata: Metadata = {
   title: { absolute: 'WeWatch — Watch Videos Together With Friends Online | Free Watch Party' },

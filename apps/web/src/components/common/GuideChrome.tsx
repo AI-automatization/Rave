@@ -28,9 +28,9 @@ const LABELS: Record<GuideLocale, {
 }> = {
   ru: {
     home: 'Главная',
-    homeHref: '/',
+    homeHref: '/ru',
     faq: 'FAQ',
-    faqHref: '/faq',
+    faqHref: '/ru/faq',
     cta: 'Начать бесплатно',
     privacy: 'Конфиденциальность',
     privacyHref: '/privacy-policy',
@@ -40,7 +40,7 @@ const LABELS: Record<GuideLocale, {
     backHome: '← На главную',
     related: 'Другие гайды',
     allGuides: 'Все гайды →',
-    guidesHref: '/guides',
+    guidesHref: '/ru/guides',
   },
   uz: {
     home: 'Bosh sahifa',

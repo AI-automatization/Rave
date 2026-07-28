@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { CompanyContent } from '@/app/(landing)/company/CompanyContent';
+import { CompanyContent } from '@/components/landing/CompanyContent';
 import { hreflangFor } from '@/lib/i18n/routes';
 import { socialMeta } from '@/lib/i18n/metadata';
 
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     "WeWatch'ni tezcode.dev yaratgan — Toshkentdagi AI Software Factory. 16 kishi, 8 mahsulot: AI Office, RAOS, CoreMed, WeWatch va boshqalar.",
   alternates: {
     canonical: `${APP_URL}/uz/company`,
-    languages: hreflangFor('/company', APP_URL),
+    languages: hreflangFor('/ru/company', APP_URL),
   },
   ...socialMeta({
     locale: 'uz',

@@ -18,7 +18,8 @@ export interface Product {
   highlight?: boolean;
   soon?: boolean;
   url?: string;   // внешний сайт продукта (новая вкладка)
-  href?: string;  // внутренняя ссылка (напр. WeWatch → главная)
+  /** WeWatch itself — links to the home page of whatever language is on screen. */
+  isHome?: boolean;
 }
 
 export const PRODUCTS: Product[] = [
@@ -27,7 +28,7 @@ export const PRODUCTS: Product[] = [
   { key: 'coreMed', name: 'CoreMed', icon: FaHeartbeat, color: '#4ade80', url: 'https://coremed.uz/' },
   { key: 'workControl', name: 'WorkControl', icon: FaUsersCog, color: '#a855f7' },
   { key: 'aiTrade', name: 'AI-Trade', icon: FaChartLine, color: '#f59e0b' },
-  { key: 'weWatch', name: 'WeWatch', icon: FaPlay, color: '#7B72F8', highlight: true, href: '/' },
+  { key: 'weWatch', name: 'WeWatch', icon: FaPlay, color: '#7B72F8', highlight: true, isHome: true },
   { key: 'ventra', name: 'Ventra', icon: FaBolt, color: '#f43f5e', soon: true },
   { key: 'savdoBuilder', name: 'Savdo-Builder', icon: FaCube, color: '#38bdf8', soon: true },
 ];
@@ -43,19 +44,19 @@ export const TEAM: Member[] = [
     key: 'Founder',
     name: 'Bekzod Mirzaaliyev',
     tag: 'lead',
-    photo: '/team/begzod_mirzaliyev.webp',
+    photo: '/ru/team/begzod_mirzaliyev.webp',
   },
   {
     key: 'Coo',
     name: 'Abdulaziz Yormatov',
     tag: 'lead',
-    photo: '/team/abdulaziz_yormatov.webp',
+    photo: '/ru/team/abdulaziz_yormatov.webp',
   },
   {
     key: 'Wewatch',
     name: 'Emirhan Ertan',
     tag: 'wewatch',
-    photo: '/team/ertan_emirhan.jpg',
+    photo: '/ru/team/ertan_emirhan.jpg',
   },
 ];
 

@@ -21,7 +21,7 @@ export default function DeleteAccountPage() {
     <div className="min-h-screen bg-[#0A0A0F] text-zinc-300">
       <header className="sticky top-0 z-50 bg-[#0A0A0F]/90 backdrop-blur-md border-b border-zinc-800/60">
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="inline-flex items-center gap-2">
+          <Link href="/en" className="inline-flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-[#7B72F8] flex items-center justify-center">
               <FaPlay size={9} className="text-white ml-0.5" />
             </div>
@@ -118,7 +118,7 @@ export default function DeleteAccountPage() {
             <Link href="/privacy-policy" className="hover:text-zinc-400 transition-colors">Privacy</Link>
             <Link href="/terms" className="hover:text-zinc-400 transition-colors">Terms</Link>
             <Link href="/dmca" className="hover:text-zinc-400 transition-colors">DMCA</Link>
-            <Link href="/" className="hover:text-zinc-400 transition-colors">← Home</Link>
+            <Link href="/en" className="hover:text-zinc-400 transition-colors">← Home</Link>
           </div>
         </div>
       </footer>

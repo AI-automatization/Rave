@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { PricingContent } from '@/app/(landing)/pricing/PricingContent';
+import { PricingContent } from '@/components/landing/PricingContent';
 import { hreflangFor } from '@/lib/i18n/routes';
 import { socialMeta } from '@/lib/i18n/metadata';
 
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     'WeWatch plans — Free and Pro. The core watch party is free forever, no subscription needed to watch videos together with friends.',
   alternates: {
     canonical: `${APP_URL}/en/pricing`,
-    languages: hreflangFor('/pricing', APP_URL),
+    languages: hreflangFor('/ru/pricing', APP_URL),
   },
   ...socialMeta({
     locale: 'en',

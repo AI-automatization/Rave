@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { ProductsContent } from '@/app/(landing)/products/ProductsContent';
+import { ProductsContent } from '@/components/landing/ProductsContent';
 import { hreflangFor } from '@/lib/i18n/routes';
 import { socialMeta } from '@/lib/i18n/metadata';
 
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     'Eight products by tezcode.dev: AI Office, RAOS, CoreMed, WorkControl, AI-Trade, WeWatch, Ventra, Savdo-Builder. AI solutions from Tashkent.',
   alternates: {
     canonical: `${APP_URL}/en/products`,
-    languages: hreflangFor('/products', APP_URL),
+    languages: hreflangFor('/ru/products', APP_URL),
   },
   ...socialMeta({
     locale: 'en',

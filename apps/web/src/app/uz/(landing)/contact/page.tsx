@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { ContactContent } from '@/app/(landing)/contact/ContactContent';
+import { ContactContent } from '@/components/landing/ContactContent';
 import { hreflangFor } from '@/lib/i18n/routes';
 import { socialMeta } from '@/lib/i18n/metadata';
 
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     "WeWatch va tezcode.dev jamoasi bilan bog'laning: email tezcode@tezcode.dev, Telegram, Instagram. Savol, hamkorlik yoki g'oya — biz aloqadamiz.",
   alternates: {
     canonical: `${APP_URL}/uz/contact`,
-    languages: hreflangFor('/contact', APP_URL),
+    languages: hreflangFor('/ru/contact', APP_URL),
   },
   ...socialMeta({
     locale: 'uz',

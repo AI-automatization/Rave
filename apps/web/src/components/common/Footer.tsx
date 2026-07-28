@@ -3,12 +3,12 @@
 import Link from 'next/link';
 import { useTranslations, useLocale } from 'next-intl';
 import { WeWatchLogo } from './WeWatchLogo';
-import { isLocale, type Locale } from '@/lib/i18n/config';
-import { translatedPath } from '@/lib/i18n/routes';
+import { type Locale } from '@/lib/i18n/config';
+import { useLocalizedHref } from '@/lib/i18n/use-localized-href';
 
 /** Language roots, in the order they are offered. Fixed targets — see the row below. */
 const LOCALE_ROOTS: readonly { locale: Locale; href: string; label: string }[] = [
-  { locale: 'ru', href: '/', label: 'Русский' },
+  { locale: 'ru', href: '/ru', label: 'Русский' },
   { locale: 'uz', href: '/uz', label: "O'zbekcha" },
   { locale: 'en', href: '/en', label: 'English' },
 ];
@@ -22,12 +22,12 @@ const LOCALE_ROOTS: readonly { locale: Locale; href: string; label: string }[] =
 // map to the movies guide, which covers series and anime episodes explicitly.
 const GUIDE_LINKS: Record<string, { hub: string; watchTogether: string; movie: string; youtube: string; anime: string; serial: string }> = {
   ru: {
-    hub: '/guides',
-    watchTogether: '/guides/smotret-vmeste-onlayn',
-    movie: '/guides/kino-s-drugom-onlayn',
-    youtube: '/guides/smotret-youtube-vmeste',
-    anime: '/guides/smotret-anime-vmeste',
-    serial: '/guides/smotret-serial-vmeste',
+    hub: '/ru/guides',
+    watchTogether: '/ru/guides/smotret-vmeste-onlayn',
+    movie: '/ru/guides/kino-s-drugom-onlayn',
+    youtube: '/ru/guides/smotret-youtube-vmeste',
+    anime: '/ru/guides/smotret-anime-vmeste',
+    serial: '/ru/guides/smotret-serial-vmeste',
   },
   uz: {
     hub: '/uz/guides',
@@ -51,15 +51,9 @@ export function Footer() {
   const t = useTranslations('footer');
   const locale = useLocale();
 
-  /**
-   * URL of a page in the language currently on screen.
-   *
-   * The labels were already translated but the hrefs were not: an Uzbek footer
-   * read "Qanday ishlaydi" and led to the Russian page. Paths with no version in
-   * this language fall through to the original.
-   */
-  const localized = (path: string) =>
-    isLocale(locale) ? translatedPath(path, locale) ?? path : path;
+  // Every internal link goes through this: the footer renders under all three
+  // locale prefixes from one file, so a literal path is wrong in two of them.
+  const L = useLocalizedHref();
   const guides = GUIDE_LINKS[locale] ?? GUIDE_LINKS.ru;
 
   return (
@@ -69,7 +63,7 @@ export function Footer() {
           {/* Brand */}
           <div className="flex-shrink-0">
             <div className="mb-3">
-              <WeWatchLogo iconSize={28} textSize="text-lg" />
+              <WeWatchLogo iconSize={28} textSize="text-lg" href={`/${locale}`} />
             </div>
             <p className="text-zinc-600 text-sm max-w-[200px] leading-relaxed">
               {t('tagline')}
@@ -81,9 +75,9 @@ export function Footer() {
             <div>
               <p className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-3">{t('platform')}</p>
               <ul className="space-y-2">
-                <li><Link href="/features" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('features')}</Link></li>
-                <li><Link href={localized('/how-it-works')} className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('howItWorks')}</Link></li>
-                <li><Link href="/pricing"  className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('pricing')}</Link></li>
+                <li><Link href={L('/ru/features')} className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('features')}</Link></li>
+                <li><Link href={L('/ru/how-it-works')} className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('howItWorks')}</Link></li>
+                <li><Link href={L('/ru/pricing')}  className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('pricing')}</Link></li>
               </ul>
             </div>
             <div>
@@ -100,9 +94,9 @@ export function Footer() {
             <div>
               <p className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-3">{t('company')}</p>
               <ul className="space-y-2">
-                <li><Link href="/company" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('about')}</Link></li>
-                <li><Link href="/products" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('products')}</Link></li>
-                <li><Link href="/team" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('team')}</Link></li>
+                <li><Link href={L('/ru/company')} className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('about')}</Link></li>
+                <li><Link href={L('/ru/products')} className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('products')}</Link></li>
+                <li><Link href={L('/ru/team')} className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('team')}</Link></li>
                 <li><a href="https://www.tezcode.dev/" target="_blank" rel="noopener noreferrer" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">tezcode.dev</a></li>
               </ul>
             </div>
@@ -112,7 +106,7 @@ export function Footer() {
                 <li><Link href="/privacy-policy" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('privacy')}</Link></li>
                 <li><Link href="/terms" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('terms')}</Link></li>
                 <li><Link href="/dmca" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('dmca')}</Link></li>
-                <li><Link href={localized('/faq')} className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('faq')}</Link></li>
+                <li><Link href={L('/ru/faq')} className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('faq')}</Link></li>
                 <li><Link href="/delete-account" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('deleteAccount')}</Link></li>
               </ul>
             </div>

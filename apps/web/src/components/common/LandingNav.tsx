@@ -4,15 +4,18 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { FaBars, FaTimes, FaChevronRight, FaArrowRight } from 'react-icons/fa';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { WeWatchLogo } from './WeWatchLogo';
 import { appUrl } from '@/lib/app-url';
+import { useLocalizedHref } from '@/lib/i18n/use-localized-href';
 
 export function LandingNav() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const t = useTranslations('landing');
+  const L = useLocalizedHref();
+  const locale = useLocale();
 
   // Lock body scroll when drawer is open
   useEffect(() => {
@@ -24,11 +27,11 @@ export function LandingNav() {
   useEffect(() => { setMenuOpen(false); }, [pathname]);
 
   const links = [
-    { href: '/features', label: t('nav_features') },
-    { href: '/pricing',  label: t('nav_pricing') },
-    { href: '/company',  label: t('nav_company') },
-    { href: '/about',    label: t('nav_about') },
-    { href: '/contact',  label: t('nav_contact') },
+    { href: L('/ru/features'), label: t('nav_features') },
+    { href: L('/ru/pricing'),  label: t('nav_pricing') },
+    { href: L('/ru/company'),  label: t('nav_company') },
+    { href: L('/ru/about'),    label: t('nav_about') },
+    { href: L('/ru/contact'),  label: t('nav_contact') },
   ];
 
   return (
@@ -46,7 +49,7 @@ export function LandingNav() {
 
             {/* Logo + tagline */}
             <div className="flex items-center gap-3 min-w-0">
-              <WeWatchLogo iconSize={32} textSize="text-lg" />
+              <WeWatchLogo iconSize={32} textSize="text-lg" href={`/${locale}`} />
               <span className="hidden xl:block text-[9px] uppercase tracking-[0.14em] text-zinc-500 border-l border-zinc-700/70 pl-3 leading-tight max-w-[120px]">
                 {t('nav_tagline')}
               </span>
@@ -147,7 +150,7 @@ export function LandingNav() {
 
         {/* Drawer header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-800/60">
-          <WeWatchLogo iconSize={30} textSize="text-lg" />
+          <WeWatchLogo iconSize={30} textSize="text-lg" href={`/${locale}`} />
           <button
             onClick={() => setMenuOpen(false)}
             className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-500 hover:text-white hover:bg-white/5 transition-all"
