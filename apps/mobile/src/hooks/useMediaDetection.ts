@@ -49,7 +49,7 @@ export function useMediaDetection() {
   const barAnim = useRef(new Animated.Value(0)).current;
   const lastKnownUrlRef = useRef(params.defaultUrl);
   const isImportingRef = useRef(false);
-  const importMediaRef = useRef<(media: RoomMedia) => Promise<void>>(async () => {});
+  const importMediaRef = useRef<(media: RoomMedia, opts?: { needsVerify?: boolean }) => Promise<void>>(async () => {});
   const detectedUrlRef = useRef('');
   const backendFoundVideoRef = useRef(false);
   // Set to true when a direct media URL (m3u8/mp4) is confirmed via XHR intercept.
@@ -187,7 +187,11 @@ export function useMediaDetection() {
   // Keep importMedia ref always up-to-date (avoids stale closure in WebView callbacks)
   React.useEffect(() => { importMediaRef.current = importMedia; });
 
-  async function importMedia(media: RoomMedia) {
+  // T-S189: opts.needsVerify — media came from the "try current page anyway" fallback
+  // (no client/server detection confirmed it), not from a normal detected/extracted result.
+  // Threaded onto the WatchParty navigation so the room, once joined, re-submits it through
+  // CHANGE_MEDIA — same extraction+Virtual Browser fallback pipeline web already relies on.
+  async function importMedia(media: RoomMedia, opts?: { needsVerify?: boolean }) {
     if (isImportingRef.current) return;
     // Lock immediately — prevents double-tap creating duplicate rooms and shows loading at once
     isImportingRef.current = true;
@@ -245,7 +249,10 @@ export function useMediaDetection() {
         videoTitle: effective.videoTitle, videoPlatform: effective.videoPlatform,
         videoReferer: effective.videoReferer,
       });
-      navigation.navigate('WatchParty', { roomId: room._id, videoReferer: effective.videoReferer });
+      navigation.navigate('WatchParty', {
+        roomId: room._id, videoReferer: effective.videoReferer,
+        needsVerify: opts?.needsVerify,
+      });
     } catch (err: unknown) {
       if (__DEV__) console.log('[MediaWebView] createRoom error:', err);
       const axiosErr = err as {

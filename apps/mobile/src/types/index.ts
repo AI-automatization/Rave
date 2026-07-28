@@ -106,7 +106,14 @@ export type ProfileStackParamList = {
 };
 
 export type ModalStackParamList = {
-  WatchParty: { roomId: string; videoReferer?: string };
+  WatchParty: {
+    roomId: string;
+    videoReferer?: string;
+    /** T-S189: videoUrl aniqlanmasdan (deteksiyasiz) yaratilgan xona — birinchi kirishda
+     * CHANGE_MEDIA qayta yuborilishi kerak, server extraction+VB fallback ishga tushishi uchun.
+     * Web'dagi ?verify=1 bilan bir xil maqsad. */
+    needsVerify?: boolean;
+  };
   WatchPartyCreate: undefined;
   WatchPartyJoin: { inviteCode?: string } | undefined;
   Notifications: undefined;

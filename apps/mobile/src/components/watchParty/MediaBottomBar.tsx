@@ -18,11 +18,17 @@ interface Props {
   paddingBottom: number;
   barTranslateY: Animated.AnimatedInterpolation<number>;
   onImport: (media: RoomMedia) => void;
+  // T-S189: neither client JS detection nor server extraction found a video (cross-origin
+  // iframe, unsupported player, bot-protected page) — before this, the user had NO path to
+  // create a room at all in that case. This lets them force it with the raw current page URL;
+  // the room's own extraction+Virtual Browser fallback (same pipeline web already has) takes
+  // over from there instead of requiring client-side detection to succeed first.
+  onTryCurrentPage: () => void;
 }
 
 export function MediaBottomBar({
   detectedMedia, isBackendExtracting, isBotProtected, isLoading,
-  isImporting, sourceId, paddingBottom, barTranslateY, onImport,
+  isImporting, sourceId, paddingBottom, barTranslateY, onImport, onTryCurrentPage,
 }: Props) {
   const { t } = useT();
   const pb = { paddingBottom: paddingBottom || spacing.sm };
@@ -66,6 +72,7 @@ export function MediaBottomBar({
         <Text style={[s.hintText, s.hintTextWarning]} numberOfLines={3}>
           Сайт показал защиту (reCAPTCHA / DDoS-Guard). Google не работает в встроенном браузере — используйте поиск Yandex или другой источник.
         </Text>
+        <TryBtn onPress={onTryCurrentPage} disabled={isImporting} isImporting={isImporting} />
       </View>
     );
   }
@@ -75,11 +82,31 @@ export function MediaBottomBar({
       <View style={[s.hintBar, pb]}>
         <Ionicons name="search-outline" size={15} color="#6B7280" />
         <Text style={s.hintText} numberOfLines={2}>{getSourceHint(sourceId)}</Text>
+        <TryBtn onPress={onTryCurrentPage} disabled={isImporting} isImporting={isImporting} />
       </View>
     );
   }
 
   return null;
+}
+
+// T-S189: same action from both "no signal" hint states — creates the room with the raw
+// current page URL, no client/server detection required first. Kept small (icon-first, no
+// label) so it fits next to hint text without crowding a 2-3 line warning.
+function TryBtn({ onPress, disabled, isImporting }: { onPress: () => void; disabled: boolean; isImporting: boolean }) {
+  const { t } = useT();
+  return (
+    <TrackedTouchable
+      trackId="media_bottom_bar:try_current_page"
+      style={[s.tryBtn, disabled && s.videoBarBtnDisabled]}
+      onPress={onPress} disabled={disabled} activeOpacity={0.8}
+    >
+      {isImporting
+        ? <ActivityIndicator size="small" color={colors.primary} />
+        : <Ionicons name="play-forward-outline" size={16} color={colors.primary} />}
+      <Text style={s.tryBtnText} numberOfLines={1}>{t('watchParty', 'tryCurrentPage')}</Text>
+    </TrackedTouchable>
+  );
 }
 
 const s = StyleSheet.create({
@@ -111,4 +138,11 @@ const s = StyleSheet.create({
   },
   videoBarBtnDisabled: { opacity: 0.6 },
   videoBarBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
+  tryBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 0,
+    paddingHorizontal: spacing.sm, paddingVertical: 6,
+    borderRadius: borderRadius.md, borderWidth: 1, borderColor: 'rgba(124,58,237,0.35)',
+    backgroundColor: 'rgba(124,58,237,0.1)',
+  },
+  tryBtnText: { color: colors.primary, fontWeight: '600', fontSize: 11 },
 });

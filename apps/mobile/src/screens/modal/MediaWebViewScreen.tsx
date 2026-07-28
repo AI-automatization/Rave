@@ -224,6 +224,12 @@ export function MediaWebViewScreen() {
         paddingBottom={insets.bottom}
         barTranslateY={barTranslateY}
         onImport={(media) => importMediaRef.current(media)}
+        // T-S189: no client/server detection found anything on this page — let the user force
+        // a room with the raw current URL instead of being stuck with no path forward at all.
+        onTryCurrentPage={() => importMediaRef.current(
+          { videoUrl: currentUrl || startUrl, videoTitle: pageTitle || 'Video', videoPlatform: 'direct', videoReferer: currentUrl || startUrl, mode: 'extracted' },
+          { needsVerify: true },
+        )}
       />
     </View>
   );
