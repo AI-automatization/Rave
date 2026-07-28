@@ -1,0 +1,90 @@
+// WeWatch Mobile — Virtual Browser socket wiring (T-S188)
+// Mirrors apps/app-web/src/hooks/use-virtual-browser.ts — same shared backend
+// (services/watch-party/src/services/virtualBrowser.service.ts), same socket event names, only
+// the transport differs (getSocket() here vs. useSocket() on web). VirtualBrowserPlayer.tsx owns
+// rendering + input capture; this hook only tracks state and exposes start/stop/sendInput.
+import { useCallback, useEffect, useState } from 'react';
+import { getSocket, SERVER_EVENTS, CLIENT_EVENTS } from '@socket/client';
+
+export type VBInput =
+  | { type: 'mousemove'; x: number; y: number }
+  | { type: 'mousedown'; x: number; y: number; button?: 'left' | 'right' | 'middle' }
+  | { type: 'mouseup'; button?: 'left' | 'right' | 'middle' }
+  | { type: 'wheel'; deltaX: number; deltaY: number }
+  | { type: 'keydown'; key: string }
+  | { type: 'keyup'; key: string }
+  | { type: 'type'; text: string };
+
+export function useVirtualBrowser(isOwner: boolean) {
+  const [frame, setFrame] = useState<string | null>(null);
+  const [active, setActive] = useState(false);
+  const [dimensions, setDimensions] = useState<{ width: number; height: number } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  // Owner's pointer position in server-viewport space, relayed from vbEvents.handler.ts on
+  // every mousemove input — lets viewers see a synced cursor even though the JPEG screencast
+  // itself never contains an OS cursor.
+  const [remoteCursor, setRemoteCursor] = useState<{ x: number; y: number } | null>(null);
+
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+
+    const onStarted = (data: { url: string; width: number; height: number }) => {
+      setActive(true);
+      setDimensions({ width: data.width, height: data.height });
+      setError(null);
+    };
+    const onFrame = (data: { data: string }) => setFrame(data.data);
+    const onStopped = () => {
+      setActive(false);
+      setFrame(null);
+      setRemoteCursor(null);
+      // ROOM_UPDATED (with the intercepted videoUrl) fires separately and flips the room back
+      // to the normal player — nothing else to do here.
+    };
+    const onError = (data: { message: string }) => setError(data.message);
+
+    // Catch-up: ROOM_JOINED carries a `vb` snapshot (services/watch-party getSessionSnapshot)
+    // for whoever joins/reconnects AFTER the owner already started a session — the one-shot
+    // VB_STARTED broadcast at start time never reaches them otherwise.
+    const onRoomJoined = (data: { vb?: { url: string; width: number; height: number } | null }) => {
+      if (data.vb) {
+        setActive(true);
+        setDimensions({ width: data.vb.width, height: data.vb.height });
+      }
+    };
+
+    const onCursor = (data: { x: number; y: number }) => setRemoteCursor({ x: data.x, y: data.y });
+
+    socket.on(SERVER_EVENTS.VB_STARTED, onStarted);
+    socket.on(SERVER_EVENTS.VB_FRAME, onFrame);
+    socket.on(SERVER_EVENTS.VB_STOPPED, onStopped);
+    socket.on(SERVER_EVENTS.VB_ERROR, onError);
+    socket.on(SERVER_EVENTS.ROOM_JOINED, onRoomJoined);
+    socket.on(SERVER_EVENTS.VB_CURSOR, onCursor);
+
+    return () => {
+      socket.off(SERVER_EVENTS.VB_STARTED, onStarted);
+      socket.off(SERVER_EVENTS.VB_FRAME, onFrame);
+      socket.off(SERVER_EVENTS.VB_STOPPED, onStopped);
+      socket.off(SERVER_EVENTS.VB_ERROR, onError);
+      socket.off(SERVER_EVENTS.ROOM_JOINED, onRoomJoined);
+      socket.off(SERVER_EVENTS.VB_CURSOR, onCursor);
+    };
+  }, []);
+
+  const start = useCallback((url: string) => {
+    getSocket()?.emit(CLIENT_EVENTS.VB_START, { url });
+  }, []);
+
+  const stop = useCallback(() => {
+    getSocket()?.emit(CLIENT_EVENTS.VB_STOP);
+  }, []);
+
+  const sendInput = useCallback((input: VBInput) => {
+    if (!isOwner) return; // server double-checks too, but no reason to even emit
+    getSocket()?.emit(CLIENT_EVENTS.VB_INPUT, input);
+  }, [isOwner]);
+
+  return { frame, active, dimensions, error, remoteCursor, start, stop, sendInput };
+}
