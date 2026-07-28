@@ -13,6 +13,8 @@ import { VoiceStrip } from '@components/watchParty/VoiceStrip';
 import { useVoiceChat } from '@hooks/useVoiceChat';
 import { EmojiPickerBar } from '@components/watchParty/EmojiFloat';
 import { VideoSection } from '@components/watchParty/VideoSection';
+import { VirtualBrowserPlayer } from '@components/watchParty/VirtualBrowserPlayer';
+import { useVirtualBrowser } from '@hooks/useVirtualBrowser';
 import { RoomInfoBar } from '@components/watchParty/RoomInfoBar';
 import { InviteCard } from '@components/watchParty/InviteCard';
 import { QualityMenu } from '@components/watchParty/QualityMenu';
@@ -143,6 +145,12 @@ export function WatchPartyScreen() {
   // Auto-joins muted once the room is loaded; persists while user views chat.
   const voice = useVoiceChat(!!room);
 
+  // Virtual Browser (T-S188) — server auto-falls back to this when CHANGE_MEDIA's extraction
+  // pipeline can't produce a playable result (services/watch-party roomEvents.handler.ts). No
+  // manual "open browser" trigger on mobile (out of scope) — vb.active flips on/off purely from
+  // the server-driven VB_STARTED/VB_STOPPED broadcast, same as web's automatic fallback path.
+  const vb = useVirtualBrowser(isOwner);
+
   // Lock orientation: landscape in fullscreen, portrait otherwise.
   // Entering fullscreen also closes the chat overlay so the video is the focus by default —
   // the user can tap the chat icon in the fullscreen action bar to bring it back.
@@ -224,7 +232,20 @@ export function WatchPartyScreen() {
         />
       )}
 
-      {/* Video */}
+      {/* Video — Virtual Browser (T-S188) takes over whenever the server auto-falls back to it;
+          fullscreen isn't supported for VB yet (VideoSection's fullscreen variant doesn't apply
+          here), so it only renders in the normal, non-fullscreen layout. */}
+      {vb.active && !isFullscreen ? (
+        <VirtualBrowserPlayer
+          isOwner={isOwner}
+          frame={vb.frame}
+          dimensions={vb.dimensions}
+          error={vb.error}
+          remoteCursor={vb.remoteCursor}
+          stop={vb.stop}
+          sendInput={vb.sendInput}
+        />
+      ) : (
       <VideoSection
         playerRef={playerRef}
         videoUrl={extractionError === 'video_source_expired' ? '' : originalVideoUrl}
@@ -259,6 +280,7 @@ export function WatchPartyScreen() {
         onRemoveEmoji={handleRemoveEmoji}
         onCdnUrlSniffed={handleCdnUrlSniffed}
       />
+      )}
 
       {/* ── Fullscreen overlay (renders above absolute VideoSection) ── */}
       {isFullscreen && (

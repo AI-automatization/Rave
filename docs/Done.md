@@ -4,7 +4,15 @@
 
 ---
 
-### F-284 | T-S188 | Web: til aniqlash mexanizmi to'liq ishlaydigan holatga keltirildi
+### F-284 | T-S188 | Mobile: Virtual Browser player — web bilan extraction fallback paritetligi
+
+- **Bajaruvchi:** Saidazim (Claude sonnet 5)  **Bajarilgan:** 2026-07-28  **Model:** sonnet
+- **O'zgarishlar:** YANGI `apps/mobile/src/hooks/useVirtualBrowser.ts` (socket wiring: VB_STARTED/VB_FRAME/VB_STOPPED/VB_ERROR/VB_CURSOR + ROOM_JOINED catch-up snapshot, `use-virtual-browser.ts` (web) bilan bir xil), YANGI `apps/mobile/src/components/watchParty/VirtualBrowserPlayer.tsx` (JPEG kadr stream `Image` orqali, owner uchun `PanResponder` bilan touch input: tap→mousedown+mouseup, drag→wheel, boshqalarga owner kursori). O'ZGARDI: `WatchPartyScreen.tsx` (`vb.active` bo'lsa `VideoSection` o'rniga shu component — faqat fullscreen bo'lmaganda), `translations.ts` (`vbStartVideo`).
+- **Xulosa:** Backend/socket-protokol allaqachon umumiy va tayyor edi (`services/watch-party/src/services/virtualBrowser.service.ts` — real headless Playwright Chromium, CDP screencast, `roomEvents.handler.ts`'dagi `CHANGE_MEDIA` — extraction muvaffaqiyatsiz bo'lsa avtomatik VB fallback, `vbSession.helper.ts` — network/MSE/WebSocket'da media topilsa avtomatik playerga qaytish) — mobile client tarafida esa **butunlay yo'q edi** (`VB_FRAME`/`VB_STARTED` bo'yicha 0 natija, ishni boshlashdan oldin grep bilan tasdiqlangan). Endi mobile ham xuddi shu oqimni ko'radi: xona video bilan yaratilganda/o'zgarganda server extraction'ni tekshiradi, muvaffaqiyatsiz bo'lsa VB avtomatik ochiladi, owner sahifada play bossa yoki server network'da mp4/hls topsa — video avtomatik playerga o'tadi. **Ataylab qamrab olinmagan:** (1) fullscreen VB — `VideoSection`ning fullscreen varianti VB uchun ko'chirilmadi, VB faqat oddiy rejimda ko'rinadi; (2) klaviatura/matn kiritish (web'da bor) — touch (play bosish) so'ralgan flow uchun yetarli, alohida follow-up bo'lishi mumkin; (3) qo'lda "brauzer ochish" tugmasi — faqat avtomatik fallback so'ralgan edi. Tekshiruv: `tsc --noEmit` — faqat 1 ta pre-existing xato (`LanguageTransition.tsx`), mening fayllarimda 0 ta yangi xato. **Real qurilmada/xonada tekshirilmagan** — bu sessiyada mobil simulyator/qurilma yo'q, VB ishga tushishi uchun haqiqiy extraction-muvaffaqiyatsiz URL va ikkinchi klient kerak.
+
+---
+
+### F-285 | T-S190 | Web: til aniqlash mexanizmi to'liq ishlaydigan holatga keltirildi
 
 - **Bajaruvchi:** Jasur (Claude opus 5)  **Bajarilgan:** 2026-07-28  **Model:** opus
 - **O'zgarishlar:** `apps/web/src/proxy.ts`, `src/lib/i18n/{config,routes}.ts`, `src/store/locale.store.ts`, `src/components/common/{LocaleSuggestBanner,LanguageSwitcher,Providers,Footer}.tsx`
@@ -12,11 +20,15 @@
 
 ---
 
-### F-285 | T-S189 | Web: i18n bo'shliqlari yopildi — /uz va /en to'liq o'z tilida
+### F-286 | T-S191 | Web: i18n bo'shliqlari yopildi — /uz va /en to'liq o'z tilida
 
 - **Bajaruvchi:** Jasur (Claude opus 5)  **Bajarilgan:** 2026-07-28  **Model:** opus
 - **O'zgarishlar:** YANGI `apps/web/src/data/use-cases.ts`, `src/app/uz/faq/page.tsx`, `src/app/uz/how-it-works/page.tsx`, `src/app/uz/use-cases/{masofadagi-juftlik,onlayn-uchrashuv}/page.tsx`, `src/app/en/use-cases/{long-distance,online-date}/page.tsx`. O'ZGARDI: `messages/{ru,uz,en}.json`, `src/app/LandingContent.tsx`, `src/app/how-it-works/page.tsx`, `src/app/sitemap.ts`, `src/app/uz/guides/page.tsx`, `src/app/use-cases/*/page.tsx`, `src/components/common/{Footer,GuideChrome}.tsx`, `src/lib/i18n/routes.ts`
 - **Xulosa:** Render qilingan sahifa bo'ylab audit (boshqa til matni + boshqa tilga havola) yozildi: **78 ta ruscha matn / 32 ta noto'g'ri havola → 7 / 5**, qolganlari esa atayin til almashtirish havolalari («Русский», «На русском →», `hrefLang` bilan). Asosiy nuqson — `UseCaseCards` butun bir bo'lim sifatida qattiq ruscha edi: `/uz` va `/en` bosh sahifalarida ham ruscha chiqardi va oltita kartaning hammasi ruscha sahifalarga uloqtirardi. `/uz` uchun FAQ va «Qanday ishlaydi» yo'q edi — footer va gayd shapkasi o'zbekcha yozuv bilan ruscha sahifaga olib borardi. `USE_CASE_GROUPS` reyestri qo'shildi (`GUIDE_GROUPS` bilan bir xil sabab: slug'lar tarjima qilingan, prefiks arifmetikasi 404 beradi) — bosh sahifa kartalari, hreflang va proxy redirect shundan o'qiydi. Sitemap 46 → 52 URL, har biri uch tilli hreflang bilan. Yondoshgan tuzatish: ruscha `/how-it-works` da «менее 300 мс» — loyihada bunday konstanta yo'q, `SYNC_DRIFT_WINDOW_MS = 500` bo'yicha to'g'rilandi va matn ingliz/o'zbek versiyalari bilan bir xil mexanizmni tasvirlaydi. **URL tuzilishi ATAYIN o'zgarmadi**: ruscha root'da qoladi, `/ru` prefiks migratsiyasi qilinmadi — Jasur qarori (2026-07-28), sababi 40+ URL 301 = 2-8 hafta reyting chayqalishi, evaziga nol SEO foyda (Google uchun muhimi hreflang, prefiks emas). Tekshirildi: Playwright 34/34, i18n audit, `next build` 52 sahifa, `tsc` yangi xatosiz. Commit `bdfd612b`.
+> **Raqamlash eslatmasi:** bu ikki ish dastlab T-S188/T-S189 va F-284/F-285 raqamlari bilan
+> bajarilgan (commit xabarlarida shu raqamlar qolgan: `723fde34`, `bdfd612b`). Bir vaqtda
+> Saidazim ham T-S188/F-284 ni olgan va main'ga birinchi bo'lib push qilgan — merge paytida
+> to'qnashuv aniqlanib, bu yozuvlar T-S190/T-S191 va F-285/F-286 ga ko'chirildi.
 
 ---
 
