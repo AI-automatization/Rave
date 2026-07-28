@@ -217,7 +217,10 @@
     "f5title": "Real-time Chat",
     "f5desc": "Chat, emojis, and voice during playback.",
     "f6title": "Built-in Browser",
-    "f6desc": "YouTube, VK, Rutube and more — all without leaving the app."
+    "f6desc": "YouTube, VK, Rutube and more — all without leaving the app.",
+    "catMovie": "Movie",
+    "catClip": "Clip",
+    "catVkVideo": "VK Video"
   },
   "topbar": {
     "searchPlaceholder": "Movie, genre, director..."
@@ -788,5 +791,29 @@
     "emptySub": "Start a chat and we'll get back to you shortly",
     "startChat": "Start chat",
     "newChat": "New chat"
+  },
+  "useCases": {
+    "eyebrow": "Scenarios",
+    "title": "What WeWatch is for",
+    "subtitle": "Pick your scenario — distance is no obstacle to an evening together.",
+    "more": "Learn more",
+    "longDistanceHook": "Like being there",
+    "longDistanceTitle": "Long-distance couple",
+    "longDistanceDesc": "Watch a film together even when you are in different cities.",
+    "dateHook": "Romance",
+    "dateTitle": "Online date",
+    "dateDesc": "A movie night for two, with chat and reactions.",
+    "friendsHook": "Together",
+    "friendsTitle": "Friends in different cities",
+    "friendsDesc": "One click — and you are watching the same video in sync.",
+    "seriesHook": "Club",
+    "seriesTitle": "A series, episode by episode",
+    "seriesDesc": "Your own series club — nobody spoils anything.",
+    "animeHook": "Otaku",
+    "animeTitle": "Anime night",
+    "animeDesc": "Watch anime together with friends online.",
+    "youtubeHook": "3 platforms",
+    "youtubeTitle": "YouTube together",
+    "youtubeDesc": "YouTube, VK, Rutube — in sync on every device."
   }
 }

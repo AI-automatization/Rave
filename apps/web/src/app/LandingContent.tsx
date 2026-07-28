@@ -152,6 +152,7 @@ import { useTranslations, useLocale } from 'next-intl';
 import { LandingNav } from '@/components/common/LandingNav';
 import { Footer } from '@/components/common/Footer';
 import { StatsWidget } from '@/components/common/StatsWidget';
+import { LONG_DISTANCE, ONLINE_DATE } from '@/data/use-cases';
 import { WIcon, BRAND_PURPLE } from '@/components/common/WeWatchLogo';
 
 // ── Motion config ─────────────────────────────────────────────────────────────
@@ -177,14 +178,20 @@ const screenVariants: Variants = {
 
 const TYPING_URL  = 'youtube.com';
 
-// Hero preview — real thumbnails that cycle inside the mini watch-party card
+// Hero preview — real thumbnails that cycle inside the mini watch-party card.
+// `cat` is a translation key, not a label: the category chips used to render
+// Russian ("Кино", "Клип", "VK Видео") on /uz and /en as well. Platform names
+// stay literal because they are proper nouns in every language.
 const HERO_MOVIES = [
-  { cat: 'Кино',     meta: '4K', bg: '#1a1230', img: 'https://beam-images.warnermediacdn.com/BEAM_LWM_DELIVERABLES/aa5b9295-8f9c-44f5-809b-3f2b84badfbf/8a7dd34b09c9c25336a3d850d4c431455e1aaaf0.jpg?host=wbd-images.prod-vod.h264.io&partner=beamcom&w=500' },
-  { cat: 'YouTube',  meta: 'HD', bg: '#2a1020', img: 'https://i.ytimg.com/vi/yGcXBa9lUco/hq720.jpg?sqp=-oaymwEhCK4FEIIDSFryq4qpAxMIARUAAAAAGAElAADIQj0AgKJD&rs=AOn4CLAj71HTI9a9MYcxHumJjckddZqMpA' },
-  { cat: 'YouTube',  meta: '4K', bg: '#102a38', img: 'https://i.ytimg.com/vi/BXX6vH4kr7Q/maxresdefault.jpg' },
-  { cat: 'Клип',     meta: 'HD', bg: '#301a40', img: 'https://i.ytimg.com/vi/xjrsvzKKYSg/maxresdefault.jpg' },
-  { cat: 'VK Видео', meta: 'HD', bg: '#14301f', img: 'https://sun9-50.userapi.com/impg/okCxVqdOOAzS8koDhTbej4dU46CTdWEnWGexHg/ZY8YieXzMNg.jpg?size=1152x648&quality=95&sign=96c3734375874b3e64eca8077a807080&type=video_thumb' },
+  { cat: 'catMovie',   meta: '4K', bg: '#1a1230', img: 'https://beam-images.warnermediacdn.com/BEAM_LWM_DELIVERABLES/aa5b9295-8f9c-44f5-809b-3f2b84badfbf/8a7dd34b09c9c25336a3d850d4c431455e1aaaf0.jpg?host=wbd-images.prod-vod.h264.io&partner=beamcom&w=500' },
+  { cat: 'YouTube',    meta: 'HD', bg: '#2a1020', img: 'https://i.ytimg.com/vi/yGcXBa9lUco/hq720.jpg?sqp=-oaymwEhCK4FEIIDSFryq4qpAxMIARUAAAAAGAElAADIQj0AgKJD&rs=AOn4CLAj71HTI9a9MYcxHumJjckddZqMpA' },
+  { cat: 'YouTube',    meta: '4K', bg: '#102a38', img: 'https://i.ytimg.com/vi/BXX6vH4kr7Q/maxresdefault.jpg' },
+  { cat: 'catClip',    meta: 'HD', bg: '#301a40', img: 'https://i.ytimg.com/vi/xjrsvzKKYSg/maxresdefault.jpg' },
+  { cat: 'catVkVideo', meta: 'HD', bg: '#14301f', img: 'https://sun9-50.userapi.com/impg/okCxVqdOOAzS8koDhTbej4dU46CTdWEnWGexHg/ZY8YieXzMNg.jpg?size=1152x648&quality=95&sign=96c3734375874b3e64eca8077a807080&type=video_thumb' },
 ] as const;
+
+/** Category chip label: a `landing` key when translatable, else the name itself. */
+const CATEGORY_KEYS = new Set(['catMovie', 'catClip', 'catVkVideo']);
 
 
 // ── Noise overlay (static, не перерисовывается) ────────────────────────────
@@ -1400,16 +1407,63 @@ function StarField({ count = 40 }: { count?: number }) {
 
 // ── Main ───────────────────────────────────────────────────────────────────
 // ── Use-case scenarios (aisolution-style scannable cards) ──────────────────
-const USE_CASES = [
-  { icon: FaHeart,       title: 'Пара на расстоянии', desc: 'Смотрите фильм вместе, даже если вы в разных городах.', href: '/use-cases/dalnie-otnosheniya', hook: 'Как будто рядом' },
-  { icon: FaFilm,        title: 'Свидание онлайн',    desc: 'Киновечер вдвоём с чатом и реакциями.',                 href: '/use-cases/svidanie-online',    hook: 'Романтика' },
-  { icon: FaUserFriends, title: 'Друзья в разных городах', desc: 'Один клик — и смотрите одно видео синхронно.',    href: '/guides/smotret-film-vdvoem',   hook: 'Вместе' },
-  { icon: FaTv,          title: 'Сериал по эпизоду',  desc: 'Свой сериальный клуб — никто не спойлерит.',            href: '/guides/smotret-serialy-vmeste-besplatno', hook: 'Клуб' },
-  { icon: FaPlay,        title: 'Аниме-вечер',        desc: 'Смотрите аниме вместе с друзьями онлайн.',              href: '/guides/smotret-anime-vmeste',  hook: 'Otaku' },
-  { icon: FaGlobe,       title: 'YouTube вместе',     desc: 'YouTube, VK, Rutube — синхронно на всех устройствах.',  href: '/guides/smotret-youtube-vmeste', hook: '3 платформы' },
-];
+/**
+ * Every card links into the *reader's own* language. The block used to be
+ * hardcoded Russian on all three locales, so an Uzbek visitor on /uz read
+ * Russian copy and every click dropped them onto a Russian page.
+ *
+ * Targets are explicit per locale rather than derived: not every scenario has a
+ * counterpart in every language, and pointing at a nonexistent /uz/... would be
+ * a 404 reachable from the home page. Where a scenario has no own page yet, the
+ * nearest existing guide in that language is used — a real page in the right
+ * language beats an exact match in the wrong one.
+ */
+type UseCaseKey = 'longDistance' | 'date' | 'friends' | 'series' | 'anime' | 'youtube';
+
+const USE_CASE_ORDER: readonly UseCaseKey[] = ['longDistance', 'date', 'friends', 'series', 'anime', 'youtube'];
+
+const USE_CASE_ICONS: Record<UseCaseKey, typeof FaHeart> = {
+  longDistance: FaHeart,
+  date: FaFilm,
+  friends: FaUserFriends,
+  series: FaTv,
+  anime: FaPlay,
+  youtube: FaGlobe,
+};
+
+const USE_CASE_HREFS: Record<UseCaseKey, Record<'ru' | 'uz' | 'en', string>> = {
+  // Scenario pages come from the registry so these cards and hreflang cannot
+  // drift apart; the guide targets below are spelled out because they are
+  // editorial choices, not one-to-one translations.
+  longDistance: LONG_DISTANCE,
+  date: ONLINE_DATE,
+  friends: {
+    ru: '/guides/smotret-film-vdvoem',
+    // Нет отдельного uz/en гайда «фильм вдвоём» — ближайший по смыслу про кино.
+    uz: '/uz/guides/kino-birgalikda',
+    en: '/en/guides/watch-movies-with-friends',
+  },
+  series: {
+    ru: '/guides/smotret-serialy-vmeste-besplatno',
+    uz: '/uz/guides/serial-birgalikda',
+    en: '/en/guides/what-is-watch-party',
+  },
+  anime: {
+    ru: '/guides/smotret-anime-vmeste',
+    uz: '/uz/guides/anime-birgalikda',
+    en: '/en/guides/watch-movies-with-friends',
+  },
+  youtube: {
+    ru: '/guides/smotret-youtube-vmeste',
+    uz: '/uz/guides/youtube-birgalikda',
+    en: '/en/guides/watch-youtube-together',
+  },
+};
 
 function UseCaseCards() {
+  const t = useTranslations('useCases');
+  const locale = useLocale() as 'ru' | 'uz' | 'en';
+
   return (
     <section className="relative py-24 px-4 bg-[#0A0A0F] overflow-hidden" aria-labelledby="usecases-heading">
       <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
@@ -1418,28 +1472,32 @@ function UseCaseCards() {
       </div>
       <div className="max-w-6xl mx-auto relative">
         <div className="mb-12 text-center">
-          <p className="text-[#7B72F8] text-xs uppercase tracking-widest font-semibold mb-3">Сценарии</p>
-          <h2 id="usecases-heading" className="text-4xl md:text-5xl font-display uppercase text-white mb-4">Для чего WeWatch</h2>
-          <p className="text-zinc-500 text-lg max-w-xl mx-auto">Выберите свой сценарий — расстояние не помеха вечеру вместе.</p>
+          <p className="text-[#7B72F8] text-xs uppercase tracking-widest font-semibold mb-3">{t('eyebrow')}</p>
+          <h2 id="usecases-heading" className="text-4xl md:text-5xl font-display uppercase text-white mb-4">{t('title')}</h2>
+          <p className="text-zinc-500 text-lg max-w-xl mx-auto">{t('subtitle')}</p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {USE_CASES.map(({ icon: Icon, title, desc, href, hook }) => (
-            <Link key={href} href={href}
-              className="group relative rounded-2xl border border-zinc-800/60 p-6 overflow-hidden transition-all duration-300 hover:border-[#7B72F8]/50 hover:-translate-y-1"
-              style={{ background: 'linear-gradient(145deg, rgba(17,17,24,0.96), rgba(13,13,22,0.99))' }}>
-              <div className="absolute top-0 left-0 right-0 h-px opacity-40" style={{ background: 'linear-gradient(90deg, transparent, rgba(123,114,248,0.5), transparent)' }} />
-              <div className="flex items-start justify-between mb-5">
-                <div className="w-12 h-12 rounded-xl bg-[#7B72F8]/12 border border-[#7B72F8]/25 flex items-center justify-center">
-                  <Icon size={20} className="text-[#7B72F8]" />
+          {USE_CASE_ORDER.map((key) => {
+            const Icon = USE_CASE_ICONS[key];
+            const href = USE_CASE_HREFS[key][locale];
+            return (
+              <Link key={key} href={href}
+                className="group relative rounded-2xl border border-zinc-800/60 p-6 overflow-hidden transition-all duration-300 hover:border-[#7B72F8]/50 hover:-translate-y-1"
+                style={{ background: 'linear-gradient(145deg, rgba(17,17,24,0.96), rgba(13,13,22,0.99))' }}>
+                <div className="absolute top-0 left-0 right-0 h-px opacity-40" style={{ background: 'linear-gradient(90deg, transparent, rgba(123,114,248,0.5), transparent)' }} />
+                <div className="flex items-start justify-between mb-5">
+                  <div className="w-12 h-12 rounded-xl bg-[#7B72F8]/12 border border-[#7B72F8]/25 flex items-center justify-center">
+                    <Icon size={20} className="text-[#7B72F8]" />
+                  </div>
+                  <span className="text-[10px] uppercase tracking-widest text-[#a99cff] bg-[#7B72F8]/10 border border-[#7B72F8]/20 px-2.5 py-1 rounded-full">{t(`${key}Hook`)}</span>
                 </div>
-                <span className="text-[10px] uppercase tracking-widest text-[#a99cff] bg-[#7B72F8]/10 border border-[#7B72F8]/20 px-2.5 py-1 rounded-full">{hook}</span>
-              </div>
-              <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-[#a99cff] transition-colors">{title}</h3>
-              <p className="text-sm text-zinc-400 leading-relaxed mb-4">{desc}</p>
-              <span className="inline-flex items-center gap-1.5 text-sm font-medium text-[#7B72F8] group-hover:gap-2.5 transition-all">Подробнее <FaArrowRight size={11} /></span>
-            </Link>
-          ))}
+                <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-[#a99cff] transition-colors">{t(`${key}Title`)}</h3>
+                <p className="text-sm text-zinc-400 leading-relaxed mb-4">{t(`${key}Desc`)}</p>
+                <span className="inline-flex items-center gap-1.5 text-sm font-medium text-[#7B72F8] group-hover:gap-2.5 transition-all">{t('more')} <FaArrowRight size={11} /></span>
+              </Link>
+            );
+          })}
         </div>
       </div>
     </section>
@@ -1701,7 +1759,9 @@ export function LandingContent() {
                     <motion.span key={movieIdx} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.15 }}
                       className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-black/45 backdrop-blur-sm border border-white/10 text-[10px] font-semibold uppercase tracking-wide text-white">
                       <span className="w-1.5 h-1.5 rounded-full bg-[#7B72F8]" aria-hidden="true" />
-                      {HERO_MOVIES[movieIdx].cat}
+                      {CATEGORY_KEYS.has(HERO_MOVIES[movieIdx].cat)
+                        ? t(HERO_MOVIES[movieIdx].cat)
+                        : HERO_MOVIES[movieIdx].cat}
                     </motion.span>
                     <motion.span key={`m${movieIdx}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.15 }}
                       className="px-2 py-1 rounded-md bg-black/45 backdrop-blur-sm text-[10px] text-white font-medium shrink-0">{HERO_MOVIES[movieIdx].meta}</motion.span>

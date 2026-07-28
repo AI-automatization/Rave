@@ -10,6 +10,7 @@
  */
 
 import { guideGroupFor } from '@/data/guides';
+import { useCaseGroupFor } from '@/data/use-cases';
 import { DEFAULT_LOCALE, type Locale, stripLocale, withLocale } from './config';
 
 /**
@@ -19,8 +20,8 @@ import { DEFAULT_LOCALE, type Locale, stripLocale, withLocale } from './config';
 const TRANSLATED_ROUTES: Record<string, readonly Locale[]> = {
   '/': ['ru', 'uz', 'en'],
   '/guides': ['ru', 'uz', 'en'],
-  '/faq': ['ru', 'en'],
-  '/how-it-works': ['ru', 'en'],
+  '/faq': ['ru', 'uz', 'en'],
+  '/how-it-works': ['ru', 'uz', 'en'],
 };
 
 /**
@@ -83,9 +84,13 @@ function normalize(pathname: string): string {
 export function translatedPath(pathname: string, target: Locale): string | null {
   const path = normalize(pathname);
 
-  // Guides first: their slugs are translated, so prefix arithmetic would be wrong.
-  const group = guideGroupFor(path);
-  if (group) return group[target] ?? null;
+  // Registries first: guide and use-case slugs are translated, so prefix
+  // arithmetic on them would produce URLs that do not exist.
+  const guide = guideGroupFor(path);
+  if (guide) return guide[target] ?? null;
+
+  const useCase = useCaseGroupFor(path);
+  if (useCase) return useCase[target] ?? null;
 
   const bare = stripLocale(path);
   const locales = TRANSLATED_ROUTES[bare];
@@ -106,7 +111,7 @@ export function switchLocalePath(pathname: string, target: Locale): string {
 export function availableLocales(pathname: string): Locale[] {
   const path = normalize(pathname);
 
-  const group = guideGroupFor(path);
+  const group = guideGroupFor(path) ?? useCaseGroupFor(path);
   if (group) {
     return (['ru', 'uz', 'en'] as const).filter((l) => group[l]);
   }

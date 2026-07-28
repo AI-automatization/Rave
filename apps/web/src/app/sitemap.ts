@@ -99,8 +99,14 @@ const ENTRIES: Entry[] = [
   { path: '/tezcode', lastModified: '2026-07-03', changeFrequency: 'monthly', priority: 0.6 },
 
   // ── Use-cases ──────────────────────────────────────────────────────────────
-  { path: '/use-cases/dalnie-otnosheniya', lastModified: '2026-07-03', changeFrequency: 'monthly', priority: 0.8 },
-  { path: '/use-cases/svidanie-online', lastModified: '2026-07-03', changeFrequency: 'monthly', priority: 0.8 },
+  // Узбекские и английские версии добавлены в T-S189; hreflang читается из
+  // реестра USE_CASE_GROUPS, поэтому здесь достаточно перечислить пути.
+  { path: '/use-cases/dalnie-otnosheniya', lastModified: '2026-07-28', changeFrequency: 'monthly', priority: 0.8, languages: hreflangFor('/use-cases/dalnie-otnosheniya', BASE) },
+  { path: '/use-cases/svidanie-online', lastModified: '2026-07-28', changeFrequency: 'monthly', priority: 0.8, languages: hreflangFor('/use-cases/svidanie-online', BASE) },
+  { path: '/uz/use-cases/masofadagi-juftlik', lastModified: '2026-07-28', changeFrequency: 'monthly', priority: 0.7, languages: hreflangFor('/uz/use-cases/masofadagi-juftlik', BASE) },
+  { path: '/uz/use-cases/onlayn-uchrashuv', lastModified: '2026-07-28', changeFrequency: 'monthly', priority: 0.7, languages: hreflangFor('/uz/use-cases/onlayn-uchrashuv', BASE) },
+  { path: '/en/use-cases/long-distance', lastModified: '2026-07-28', changeFrequency: 'monthly', priority: 0.7, languages: hreflangFor('/en/use-cases/long-distance', BASE) },
+  { path: '/en/use-cases/online-date', lastModified: '2026-07-28', changeFrequency: 'monthly', priority: 0.7, languages: hreflangFor('/en/use-cases/online-date', BASE) },
 
   // ── Сервисные / правовые ───────────────────────────────────────────────────
   {
@@ -120,6 +126,22 @@ const ENTRIES: Entry[] = [
   {
     path: '/en/how-it-works',
     lastModified: '2026-07-25',
+    changeFrequency: 'monthly',
+    priority: 0.6,
+    languages: hreflangFor('/how-it-works', BASE),
+  },
+  // Узбекские версии — T-S189. До них узбекский футер и шапка гайдов вели на
+  // русские /faq и /how-it-works.
+  {
+    path: '/uz/faq',
+    lastModified: '2026-07-28',
+    changeFrequency: 'monthly',
+    priority: 0.5,
+    languages: hreflangFor('/faq', BASE),
+  },
+  {
+    path: '/uz/how-it-works',
+    lastModified: '2026-07-28',
     changeFrequency: 'monthly',
     priority: 0.6,
     languages: hreflangFor('/how-it-works', BASE),

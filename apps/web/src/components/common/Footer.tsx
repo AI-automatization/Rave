@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { useTranslations, useLocale } from 'next-intl';
 import { WeWatchLogo } from './WeWatchLogo';
 import { useLocaleStore } from '@/store/locale.store';
-import type { Locale } from '@/lib/i18n/config';
+import { isLocale, type Locale } from '@/lib/i18n/config';
+import { translatedPath } from '@/lib/i18n/routes';
 
 /** Language roots, in the order they are offered. Fixed targets — see the row below. */
 const LOCALE_ROOTS: readonly { locale: Locale; href: string; label: string }[] = [
@@ -51,6 +52,17 @@ export function Footer() {
   const t = useTranslations('footer');
   const locale = useLocale();
   const setLocale = useLocaleStore((s) => s.setLocale);
+
+  /**
+   * URL of a URL-localized page in the language currently on screen.
+   *
+   * The labels were already translated but the hrefs were not: an Uzbek footer
+   * read "Qanday ishlaydi" and led to the Russian page. Only pages that have a
+   * locale URL of their own go through here — /features and /pricing are
+   * translated in place on a single URL and must stay untouched.
+   */
+  const localized = (path: string) =>
+    isLocale(locale) ? translatedPath(path, locale) ?? path : path;
   const guides = GUIDE_LINKS[locale] ?? GUIDE_LINKS.ru;
 
   return (
@@ -73,7 +85,7 @@ export function Footer() {
               <p className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-3">{t('platform')}</p>
               <ul className="space-y-2">
                 <li><Link href="/features" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('features')}</Link></li>
-                <li><Link href="/how-it-works" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('howItWorks')}</Link></li>
+                <li><Link href={localized('/how-it-works')} className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('howItWorks')}</Link></li>
                 <li><Link href="/pricing"  className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('pricing')}</Link></li>
               </ul>
             </div>
@@ -103,7 +115,7 @@ export function Footer() {
                 <li><Link href="/privacy-policy" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('privacy')}</Link></li>
                 <li><Link href="/terms" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('terms')}</Link></li>
                 <li><Link href="/dmca" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('dmca')}</Link></li>
-                <li><Link href="/faq" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('faq')}</Link></li>
+                <li><Link href={localized('/faq')} className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('faq')}</Link></li>
                 <li><Link href="/delete-account" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('deleteAccount')}</Link></li>
               </ul>
             </div>

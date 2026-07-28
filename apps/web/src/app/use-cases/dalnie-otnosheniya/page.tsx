@@ -1,5 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { hreflangFor } from '@/lib/i18n/routes';
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
+const PATH = '/use-cases/dalnie-otnosheniya';
 
 export const metadata: Metadata = {
   title: 'Смотреть фильмы вместе на расстоянии — WeWatch для пар в разлуке',
@@ -11,7 +15,12 @@ export const metadata: Metadata = {
     'свидание онлайн на расстоянии', 'что делать в отношениях на расстоянии',
     'смотреть фильм вместе с любимым онлайн', 'watch party для пар',
   ],
-  alternates: { canonical: 'https://wewatch.uz/use-cases/dalnie-otnosheniya' },
+  // Узбекская и английская версии этой страницы появились позже — hreflang
+  // берётся из реестра USE_CASE_GROUPS, чтобы три языка ссылались друг на друга.
+  alternates: {
+    canonical: `${APP_URL}${PATH}`,
+    languages: hreflangFor(PATH, APP_URL),
+  },
   openGraph: {
     title: 'Смотреть вместе на расстоянии — WeWatch',
     description: 'Свидание онлайн для пар в разлуке: фильмы и сериалы синхронно, как будто рядом.',

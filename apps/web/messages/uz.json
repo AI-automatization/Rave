@@ -217,7 +217,10 @@
     "f5title": "Real-vaqt chat",
     "f5desc": "Tomosha paytida chat, emoji va ovozli muloqot.",
     "f6title": "O'rnatilgan brauzer",
-    "f6desc": "YouTube, VK, Rutube va boshqa saytlar — ilovadan chiqmasdan."
+    "f6desc": "YouTube, VK, Rutube va boshqa saytlar — ilovadan chiqmasdan.",
+    "catMovie": "Kino",
+    "catClip": "Klip",
+    "catVkVideo": "VK Video"
   },
   "topbar": {
     "searchPlaceholder": "Film, janr, rejissyor..."
@@ -749,5 +752,29 @@
     "emptySub": "Suhbat boshlang — tez orada javob beramiz",
     "startChat": "Suhbatni boshlash",
     "newChat": "Yangi suhbat"
+  },
+  "useCases": {
+    "eyebrow": "Stsenariylar",
+    "title": "WeWatch nima uchun",
+    "subtitle": "O'z stsenariyingizni tanlang — masofa birga o'tkaziladigan kechaga to'siq emas.",
+    "more": "Batafsil",
+    "longDistanceHook": "Xuddi yonginangizda",
+    "longDistanceTitle": "Masofadagi juftlik",
+    "longDistanceDesc": "Boshqa shaharda bo'lsangiz ham kinoni birga ko'ring.",
+    "dateHook": "Romantika",
+    "dateTitle": "Onlayn uchrashuv",
+    "dateDesc": "Chat va reaksiyalar bilan ikki kishilik kino kechasi.",
+    "friendsHook": "Birgalikda",
+    "friendsTitle": "Turli shaharlardagi do'stlar",
+    "friendsDesc": "Bir bosish — va bitta videoni sinxron ko'rasiz.",
+    "seriesHook": "Klub",
+    "seriesTitle": "Serial — qism-qism",
+    "seriesDesc": "O'z serial klubingiz — hech kim spoyler aytmaydi.",
+    "animeHook": "Otaku",
+    "animeTitle": "Anime kechasi",
+    "animeDesc": "Anime-ni do'stlaringiz bilan onlayn birga ko'ring.",
+    "youtubeHook": "3 platforma",
+    "youtubeTitle": "YouTube birgalikda",
+    "youtubeDesc": "YouTube, VK, Rutube — barcha qurilmalarda sinxron."
   }
 }

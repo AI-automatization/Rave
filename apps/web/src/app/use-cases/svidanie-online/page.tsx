@@ -1,5 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { hreflangFor } from '@/lib/i18n/routes';
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
+const PATH = '/use-cases/svidanie-online';
 
 export const metadata: Metadata = {
   title: 'Свидание онлайн — киновечер вдвоём через интернет | WeWatch',
@@ -10,7 +14,11 @@ export const metadata: Metadata = {
     'что делать на свидании онлайн', 'романтический вечер онлайн', 'смотреть фильм на свидании',
     'виртуальное свидание', 'watch party свидание',
   ],
-  alternates: { canonical: 'https://wewatch.uz/use-cases/svidanie-online' },
+  // См. соседнюю страницу: hreflang из реестра USE_CASE_GROUPS.
+  alternates: {
+    canonical: `${APP_URL}${PATH}`,
+    languages: hreflangFor(PATH, APP_URL),
+  },
   openGraph: {
     title: 'Свидание онлайн — киновечер вдвоём | WeWatch',
     description: 'Смотрите фильм вместе синхронно — идея для романтического онлайн-свидания.',

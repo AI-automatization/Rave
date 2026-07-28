@@ -46,7 +46,9 @@ const LABELS: Record<GuideLocale, {
     home: 'Bosh sahifa',
     homeHref: '/uz',
     faq: 'FAQ',
-    faqHref: '/faq',
+    // Раньше здесь стоял русский /faq: узбекский читатель, нажав FAQ, попадал на
+    // страницу на другом языке. Узбекская версия появилась в T-S189.
+    faqHref: '/uz/faq',
     cta: 'Bepul boshlash',
     privacy: 'Maxfiylik',
     privacyHref: '/privacy-policy',

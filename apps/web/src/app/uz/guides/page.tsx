@@ -95,10 +95,15 @@ export default function UzGuidesHubPage() {
           </ul>
 
           <div className="mt-12 flex flex-wrap gap-4 text-sm">
-            <Link href="/faq" className="text-[#7B72F8] hover:text-[#9B92FF] underline underline-offset-4 transition-colors">
+            {/* Раньше здесь стоял русский /faq — узбекская версия появилась в T-S189. */}
+            <Link href="/uz/faq" className="text-[#7B72F8] hover:text-[#9B92FF] underline underline-offset-4 transition-colors">
               Ko&apos;p so&apos;raladigan savollar →
             </Link>
-            <Link href="/guides" className="text-[#7B72F8] hover:text-[#9B92FF] underline underline-offset-4 transition-colors">
+            <Link href="/uz/how-it-works" className="text-[#7B72F8] hover:text-[#9B92FF] underline underline-offset-4 transition-colors">
+              Qanday ishlaydi →
+            </Link>
+            {/* Явный переход на другой язык — подпись по-русски намеренно. */}
+            <Link href="/guides" hrefLang="ru" className="text-[#7B72F8] hover:text-[#9B92FF] underline underline-offset-4 transition-colors">
               Ruscha gaydlar →
             </Link>
           </div>
