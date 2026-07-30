@@ -80,7 +80,9 @@ export default defineConfig({
       testDir: './apps/web/tests',
       use: {
         ...devices['Desktop Chrome'],
-        baseURL: 'http://localhost:3000',
+        // TEST_WEB_URL — `next start` boshqa portda turganda (masalan 3000 band
+        // bo'lsa) testlarni qayta yozmasdan o'sha yerga qaratish uchun.
+        baseURL: process.env.TEST_WEB_URL ?? 'http://localhost:3000',
         viewport: { width: 1280, height: 720 },
       },
     },

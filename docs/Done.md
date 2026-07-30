@@ -4,6 +4,24 @@
 
 ---
 
+### F-290 | T-S194 | Web: til avto-aniqlash — `Accept-Language`, cookie'siz, faqat `/` da
+
+- **Bajaruvchi:** Jasur (Claude opus 5)  **Bajarilgan:** 2026-07-30  **Model:** opus
+- **O'zgarishlar:**
+  - **YANGI** `apps/web/src/lib/i18n/detect.ts` — `preferredLocale()` (q-value bo'yicha tartiblangan `Accept-Language` parseri), `isCrawler()` (UA substring ro'yxati), `localeForRoot()`.
+  - `src/proxy.ts` — `/` uchun blok: 307 + `Cache-Control: no-store` + `Vary: Accept-Language, User-Agent`; matcher'ga `'/'` qo'shildi.
+  - `next.config.mjs` — `{ source: '/', destination: '/ru', permanent: true }` **olib tashlandi**. Config redirect'lari middleware'dan OLDIN ishlaydi, ya'ni u turgan joyida aniqlash hech qachon ishga tushmasdi. Qolgan 24 ta doimiy redirect (`/faq` → `/ru/faq` va h.k.) tegilmadi.
+  - **YANGI** `apps/web/tests/locale-detection.spec.ts` — 30 ta test. `playwright.config.ts` — `web-chromium` uchun `TEST_WEB_URL` env fallback.
+- **Xulosa:** Jasur uchinchi marta so'radi: "rossiyalik ruscha, amerikalik/braziliyalik inglizcha ko'rsin — cookie'siz, aniq ishlaydigan yo'l". O'lchov bilan boshlandi va **prod'da mexanizm teskari ishlayotgani aniqlandi**: `curl https://wewatch.uz/` `ru-RU`, `en-US`, `pt-BR` — uchalasi uchun ham `/uz` qaytarardi va `wewatch-locale=uz` cookie o'rnatardi. Ya'ni rus foydalanuvchi ham o'zbekcha sahifaga tushardi. Bu hech qachon testga tushmagani uchun sezilmay qolgan — shuning uchun bu safar 30 ta doimiy test yozildi.
+  **Signal tanlovi (Jasur, 2026-07-30): faqat `Accept-Language`, IP emas.** IP **davlatni** aytadi, header **tilni** — Toshkent trafigining katta qismi rus tilida, IP qoidasi ularni noto'g'ri o'zbekchaga yuborardi. Qo'shimcha: Cloudflare yo'q (`Server: railway-edge`), demak `cf-ipcountry` mavjud emas; MaxMind bazasi esa Docker image'ga 60MB qo'shardi.
+  **Nega bu safar xavfsiz** — uchta oldingi urinishni o'ldirgan uchta muammo alohida yopildi: (1) *Googlebot AQSh IP'idan keladi* → botlar UA bo'yicha ajratiladi va doim x-default (`/ru`) oladi, ular boshqa tillarga hreflang orqali boradi; (2) *ulashilgan havola buzilardi* → aniqlash **faqat `/`** da, `/ru/faq` yoki `/uz` ga to'g'ridan-to'g'ri kelgan odam hech qachon burilmaydi; (3) *kesh bir odamning tilini boshqasiga berardi* → `/` javobi `no-store`, qolgan 100+ sahifa to'liq keshda qoladi. Cookie/localStorage/IP — hech narsa saqlanmaydi, ya'ni "yangi akkauntda nima bo'ladi?" degan savol ham yo'qoladi: birinchi tashrif va yuzinchi tashrif bir xil.
+  **301 emas, 307** — doimiy redirect brauzerda abadiy keshlanadi, nemis brauzeri bilan bir marta kirgan odam keyin har doim `/en` ga qadalib qolardi va buni hech qanday kod qaytara olmasdi. T-S193 aynan shu 301 ni qo'ygan edi; u hali deploy bo'lmagani bizni saqlab qoldi.
+  **Xulq matritsasi:** `ru-RU`→`/ru`, `en-US`→`/en`, `pt-BR`→`/en` (xalqaro fallback), `uz-UZ`→`/uz`, `de-DE,en;q=0.8`→`/en`, `pt-BR,ru;q=0.5`→`/ru`, `*`→`/ru`, header yo'q→`/ru`, Googlebot/YandexBot/GPTBot/ClaudeBot/TelegramBot→`/ru`, UA yo'q→`/ru`.
+  **Tekshiruv:** `next build` — 102 sahifa; `next start` + curl matritsasi (14 holat) — hammasi kutilgandek; 24 ta ichki URL × 3 til — hammasi 200, hech biri burilmadi; `set-cookie` 0 ta; eski manzillar hamon 308; Playwright **30/30**; `tsc --noEmit` — 5 ta xato, hammasi pre-existing `@types/react` dublikati (`LocaleBoundary`, `Providers`, `button.tsx`, `toaster.tsx` — tegilmagan fayllar).
+  **Ochiq qoladi:** brauzeri inglizcha o'rnatilgan rus foydalanuvchi `/en` ga tushadi — til almashtirgich bir bosishda hal qiladi, lekin bu Accept-Language yondashuvining tabiiy chegarasi. Aniqroq kerak bo'lsa keyingi qadam — Cloudflare qo'shib `cf-ipcountry` ni ikkinchi signal sifatida ishlatish.
+
+---
+
 ### F-288 | T-S193 | Web: ruscha ham `/ru` prefiksiga o'tdi — uchala til bir xil qoidada
 
 - **Bajaruvchi:** Jasur (Claude opus 5)  **Bajarilgan:** 2026-07-28  **Model:** opus

@@ -65,9 +65,13 @@ const nextConfig = {
       'faq', 'how-it-works', 'guides', 'use-cases', 'team', 'tezcode',
       'features', 'pricing', 'products', 'company', 'contact', 'about',
     ];
+    // `/` is deliberately NOT in this list. Config redirects run before
+    // middleware, so a rule here would answer the request outright and the
+    // language detection in src/proxy.ts would never see it. The home page is
+    // also the one URL whose destination depends on the visitor, which a
+    // permanent redirect cannot express — src/proxy.ts sends it to the locale
+    // Accept-Language asks for, with a 307.
     const russianPrefixRedirects = [
-      // The old home page. Kept first for clarity; order among these does not matter.
-      { source: '/', destination: '/ru', permanent: true },
       ...ruRoots.map((p) => ({ source: `/${p}`, destination: `/ru/${p}`, permanent: true })),
       ...ruRoots.map((p) => ({
         source: `/${p}/:path*`,
