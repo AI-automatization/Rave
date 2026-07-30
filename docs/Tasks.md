@@ -23,9 +23,14 @@
 
 ✅ T-S194 tugadi (2026-07-30) — Done.md'ga ko'chirildi (F-290).
 
-> ⚠️ **Deploy'dan keyin qilinishi kerak:** `apps/web` prod'ga chiqqach `curl -I https://wewatch.uz/`
-> ni `ru-RU` / `en-US` / `pt-BR` bilan tekshirish — hozir (deploy'gacha) prod uchalasiga ham `/uz`
-> qaytaradi. Shu bilan birga T-S193 `/ru` migratsiyasi ham chiqadi → GSC'ga yangi sitemap yuborish.
+> ✅ **Prod'da tasdiqlandi (2026-07-30, `main` d11dc6f0):** `https://wewatch.uz/` — `ru-RU`→`/ru`,
+> `en-US`→`/en`, `pt-BR`→`/en`, `uz-UZ`→`/uz`, `de-DE`→`/en`, Googlebot→`/ru`. Javob 307 +
+> `no-store` + `Vary`, `Set-Cookie` yo'q. 14 ta ichki URL × 2 til — hammasi 200 (burilmadi).
+> Eski manzillar 308 bilan `/ru/...` ga. Sitemap 64 URL, redirect qoladigan yozuv yo'q.
+>
+> ⚠️ **Qo'lda qolgan (TODO human):**
+> - [ ] GSC → yangi sitemap yuborish + 2-3 hafta Coverage kuzatish (`/ru` migratsiyasi 40+ URL)
+> - [ ] Railway'da `INDEXNOW_SECRET` o'rnatish (T-E209 dan qolgan)
 
 ---
 
