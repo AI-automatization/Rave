@@ -21,6 +21,44 @@
 
 ---
 
+### T-S194 | P1 | [WEB] | Til avto-aniqlash — `Accept-Language`, cookie'siz, faqat `/` da
+
+- **Mas'ul:** pending[Jasur]
+- **Beruvchi:** Jasur (2026-07-30)
+- **Yaratilgan:** 2026-07-30 11:45
+- **Holat:** 🔄 Bajarilmoqda
+- **Tavsiya model:** opus
+- **Model sababi:** SEO/kesh/bot xatti-harakati bir-biriga bog'liq — noto'g'ri qadam indeksni buzadi
+- **Sabab:** Rossiyadan kirgan odam ruscha, AQSh/Braziliyadan kirgan inglizcha sahifani ko'rishi
+  kerak. Hozir bu umuman yo'q — **prod'da teskari ishlayapti**: `curl https://wewatch.uz/` har
+  qanday `Accept-Language` bilan (`ru-RU`, `en-US`, `pt-BR`) **doim `/uz` ga** 307 qiladi va
+  `wewatch-locale=uz` cookie o'rnatadi (2026-07-30 o'lchov). T-S192 cookie mexanizmini kodda
+  o'chirgan, lekin u prod'ga hali chiqmagan.
+- **Yechim (Jasur tanlovi, 2026-07-30):** faqat `Accept-Language`. IP emas — IP **davlatni**
+  aytadi, header **tilni**; Toshkentdagi rus tilli odam IP bilan noto'g'ri o'zbekchaga tushardi.
+  Cloudflare yo'q (`Server: railway-edge`), demak `cf-ipcountry` ham mavjud emas.
+- **Qilish kerak:**
+  - [ ] `next.config.mjs` — `{ source: '/', destination: '/ru', permanent: true }` olib tashlash.
+        **Kritik:** 301 ni brauzer abadiy keshlaydi; Next config redirect'lari middleware'dan
+        OLDIN ishlaydi, ya'ni turgan joyida `/` hech qachon aniqlashga yetib bormaydi.
+  - [ ] YANGI `src/lib/i18n/detect.ts` — `Accept-Language` q-value parseri + bot aniqlash
+  - [ ] `src/proxy.ts` — matcher'ga `/` qo'shish, faqat shu yerda 307 bilan yo'naltirish
+  - [ ] `/` uchun `Cache-Control: no-store` + `Vary: Accept-Language` (qolgan 100+ sahifa keshda qoladi)
+  - [ ] Playwright/curl matritsa: ru/en/pt/uz/header-siz/bot × natija
+- **Qoidalar:**
+  - Faqat `/` root. `/ru/faq`, `/en` ga to'g'ridan-to'g'ri kelgan odam **hech qachon burilmaydi** —
+    ulashilgan havola hamma uchun bir xil sahifa bo'lib qolishi shart (eski cookie yechimi aynan
+    shuni buzgan edi).
+  - Cookie/localStorage/IP — **yo'q**. Hech narsa saqlanmaydi.
+  - Botlar (`robots.ts` dagi 22 ta + umumiy pattern) doim `/ru` (x-default) oladi — Googlebot
+    AQSh IP'idan kelgani uchun ru/uz indeksdan chiqib ketishi xavfi shu bilan yopiladi.
+  - Header umuman yo'q = noma'lum → `/ru` (x-default). Header bor, lekin bizning til yo'q
+    (`pt-BR`) → `/en` (xalqaro fallback).
+- **⛔ TEGMASLIK KERAK:** apps/mobile, services/*, auth guard mantiqi. Faqat `apps/web` til yo'naltirishi.
+- **Bog'liq:** T-S190 (F-289), T-S192 (F-287), T-S193 (F-288)
+
+---
+
 # 🎬 Room Redesign — 3 fazali reja (2026-07-24 planning session)
 
 > To'liq research + reja: memory `project_room_redesign_3phases.md`. FAZA 1 tugadi (2026-07-26, Jasur — T-S160..T-S166 + T-S168, Done.md F-265..F-272); qolgani — pastdagi tartib bo'yicha claim qilib boshlash kerak. Fazalar orasida bog'liqlik bor: T-S171 (link) → T-S177/T-S178 (Instagram share stikerida shu link ishlatiladi).
