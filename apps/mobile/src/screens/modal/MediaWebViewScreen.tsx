@@ -34,7 +34,7 @@ export function MediaWebViewScreen() {
   const {
     webViewRef, params,
     canGoBack, canGoForward, isLoading, pageTitle, isImporting,
-    detectedMedia, isBackendExtracting, isBotProtected,
+    detectedMedia, isBackendExtracting,
     barTranslateY, importMediaRef,
     setIsLoading,
     onNavigationStateChange, onMessage,
@@ -213,17 +213,19 @@ export function MediaWebViewScreen() {
         </View>
       )}
 
-      {/* Watch Party bottom bar */}
+      {/* Watch Party bottom bar — always one working button, see MediaBottomBar (T-S189) */}
       <MediaBottomBar
         detectedMedia={detectedMedia}
-        isBackendExtracting={isBackendExtracting}
-        isBotProtected={isBotProtected}
-        isLoading={isLoading}
         isImporting={isImporting}
-        sourceId={params.sourceId ?? ''}
         paddingBottom={insets.bottom}
         barTranslateY={barTranslateY}
         onImport={(media) => importMediaRef.current(media)}
+        // No client/server detection confirmed anything on this page yet — force a room with
+        // the raw current URL, the room's own extraction+VB fallback takes over from there.
+        onTryCurrentPage={() => importMediaRef.current(
+          { videoUrl: currentUrl || startUrl, videoTitle: pageTitle || 'Video', videoPlatform: 'direct', videoReferer: currentUrl || startUrl, mode: 'extracted' },
+          { needsVerify: true },
+        )}
       />
     </View>
   );

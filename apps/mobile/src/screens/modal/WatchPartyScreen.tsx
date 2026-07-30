@@ -1,5 +1,5 @@
 // WeWatch Mobile — WatchPartyScreen
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, Platform, StyleSheet, useWindowDimensions } from 'react-native';
 import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import * as ScreenOrientation from 'expo-screen-orientation';
@@ -26,6 +26,7 @@ import { useTheme, spacing, borderRadius, typography } from '@theme/index';
 import { ModalStackParamList } from '@app-types/index';
 import { useT } from '@i18n/index';
 import { useWatchPartyRoom } from '@hooks/useWatchPartyRoom';
+import { getSocket, CLIENT_EVENTS } from '@socket/client';
 import { analyticsService } from '@services/analyticsService';
 import { MembersStrip } from '@components/watchParty/MembersStrip';
 import { VideoProgressBar } from '@components/watchParty/VideoProgressBar';
@@ -150,6 +151,25 @@ export function WatchPartyScreen() {
   // manual "open browser" trigger on mobile (out of scope) — vb.active flips on/off purely from
   // the server-driven VB_STARTED/VB_STOPPED broadcast, same as web's automatic fallback path.
   const vb = useVirtualBrowser(isOwner);
+
+  // T-S189: room was created with a raw, unverified URL (user forced it via "try current
+  // page anyway" — no client/server detection confirmed it beforehand). Mirrors web's
+  // ?verify=1 (RoomContent.tsx): re-submit the room's own videoUrl through CHANGE_MEDIA once,
+  // right after it's loaded, so the server's extraction pipeline actually runs — and falls back
+  // to Virtual Browser automatically if it can't produce a playable result. Deliberately kept
+  // OUT of useWatchPartyRoom.ts (fragile, sync-critical file) — this only needs `room`+`isOwner`,
+  // both already returned by it, and fires at most once via the ref guard.
+  const verifiedRef = useRef(false);
+  useEffect(() => {
+    if (!params.needsVerify || verifiedRef.current || !room || !isOwner) return;
+    verifiedRef.current = true;
+    getSocket()?.emit(CLIENT_EVENTS.CHANGE_MEDIA, {
+      roomId: params.roomId,
+      videoUrl: room.videoUrl,
+      videoTitle: room.videoTitle,
+      videoPlatform: room.videoPlatform,
+    });
+  }, [params.needsVerify, params.roomId, room, isOwner]);
 
   // Lock orientation: landscape in fullscreen, portrait otherwise.
   // Entering fullscreen also closes the chat overlay so the video is the focus by default —
