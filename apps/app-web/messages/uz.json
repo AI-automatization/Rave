@@ -304,6 +304,7 @@
     "noRequests": "So'rovlar yo'q",
     "searchPlaceholder": "Foydalanuvchi nomini qidiring...",
     "accept": "Qabul",
+    "reject": "Rad etish",
     "online": "Online",
     "acceptedToast": "Do'st qabul qilindi ✓",
     "requestSentToast": "So'rov yuborildi ✓",
@@ -313,7 +314,8 @@
     "serverError": "Server xatosi, qayta urinib ko'ring",
     "searchError": "Qidiruv amalga oshmadi",
     "acceptError": "Xato yuz berdi, qaytadan urinib ko'ring",
-    "addFriend": "Do'st sifatida qo'shish"
+    "addFriend": "Qo'shish",
+    "requestSentLabel": "Yuborildi"
   },
   "battle": {
     "title": "BATTLE",
@@ -364,6 +366,7 @@
   },
   "notifications": {
     "title": "BILDIRISHNOMALAR",
+    "delete": "O'chirish",
     "markAllRead": "Barchasini o'qildi",
     "empty": "Bildirishnomalar yo'q",
     "loadError": "Yuklashda xato",

@@ -13,18 +13,12 @@ import { RoomCard } from '@/components/rooms/RoomCard';
 import { CreateRoomDialog } from '@/components/rooms/CreateRoomDialog';
 import { JoinRoomDialog } from '@/components/rooms/JoinRoomDialog';
 import { trackClick } from '@/lib/analytics';
+import { useRelativeTime } from '@/lib/relative-time';
 import type { IWatchPartyRoom } from '@/types';
-
-function timeAgo(dateStr: string): string {
-  const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
-  if (diff < 60) return `${diff}s`;
-  if (diff < 3600) return `${Math.floor(diff / 60)}m`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
-  return `${Math.floor(diff / 86400)}d`;
-}
 
 function RecentRoomCard({ room }: { room: IWatchPartyRoom }) {
   const router = useRouter();
+  const timeAgo = useRelativeTime();
   const isActive = String(room.status) === 'active';
 
   return (
@@ -47,7 +41,7 @@ function RecentRoomCard({ room }: { room: IWatchPartyRoom }) {
             LIVE
           </div>
         )}
-        <span className="absolute bottom-1.5 right-1.5 text-[9px] text-white/50">{timeAgo(room.createdAt)}</span>
+        <span className="absolute bottom-1.5 right-1.5 text-[9px] text-white/50 max-w-[70%] truncate">{timeAgo(room.createdAt)}</span>
       </div>
       <div className="px-2.5 py-2">
         <p className="text-[12px] font-medium text-white truncate leading-snug">{room.name ?? room.videoTitle ?? '—'}</p>

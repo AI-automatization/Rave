@@ -333,6 +333,7 @@
     "noRequests": "No requests",
     "searchPlaceholder": "Search for a user...",
     "accept": "Accept",
+    "reject": "Decline",
     "online": "Online",
     "acceptedToast": "Friend accepted ✓",
     "requestSentToast": "Request sent ✓",
@@ -343,7 +344,8 @@
     "searchError": "Search failed",
     "acceptError": "Error, please try again",
     "userNotFound": "User not found",
-    "addFriend": "Add friend"
+    "addFriend": "Add",
+    "requestSentLabel": "Sent"
   },
   "battle": {
     "title": "BATTLE",
@@ -398,6 +400,7 @@
   },
   "notifications": {
     "title": "NOTIFICATIONS",
+    "delete": "Delete",
     "markAllRead": "Mark all as read",
     "empty": "No notifications",
     "loadError": "Error loading notifications",

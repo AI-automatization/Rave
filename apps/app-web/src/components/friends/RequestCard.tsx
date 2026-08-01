@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useAcceptFriendRequest, useRejectFriendRequest } from '@/hooks/use-friends';
 import { toast } from '@/store/toast.store';
 import { useApiError } from '@/hooks/use-api-error';
-import type { IFriendship, IUser } from '@/types';
+import type { IFriendship } from '@/types';
 import { trackClick } from '@/lib/analytics';
 
 interface Props {
@@ -53,19 +53,23 @@ export function RequestCard({ request, currentUserId }: Props) {
       </div>
 
       <div className="flex items-center gap-1.5">
+        {/* 36px targets, not 32 — these two sit next to each other and are the only way to act
+            on a request. aria-label because they are icon-only. */}
         <button
-          onClick={handleAccept}
+          onClick={() => { void handleAccept(); }}
           disabled={isPending}
-          className="h-8 w-8 rounded-lg bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 flex items-center justify-center transition-colors cursor-pointer disabled:opacity-40"
+          aria-label={t('accept')}
+          className="h-9 w-9 rounded-lg bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 flex items-center justify-center transition-colors cursor-pointer disabled:opacity-40"
         >
           {accept.isPending ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
         </button>
         <button
-          onClick={handleReject}
+          onClick={() => { void handleReject(); }}
           disabled={isPending}
-          className="h-8 w-8 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 flex items-center justify-center transition-colors cursor-pointer disabled:opacity-40"
+          aria-label={t('reject')}
+          className="h-9 w-9 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 flex items-center justify-center transition-colors cursor-pointer disabled:opacity-40"
         >
-          <X size={14} />
+          {reject.isPending ? <Loader2 size={14} className="animate-spin" /> : <X size={14} />}
         </button>
       </div>
     </div>

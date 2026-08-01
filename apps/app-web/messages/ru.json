@@ -304,6 +304,7 @@
     "noRequests": "Запросов нет",
     "searchPlaceholder": "Найти пользователя...",
     "accept": "Принять",
+    "reject": "Отклонить",
     "online": "Онлайн",
     "acceptedToast": "Друг добавлен ✓",
     "requestSentToast": "Запрос отправлен ✓",
@@ -313,7 +314,8 @@
     "serverError": "Ошибка сервера, попробуйте снова",
     "searchError": "Поиск не выполнен",
     "acceptError": "Ошибка, попробуйте снова",
-    "addFriend": "Добавить в друзья"
+    "addFriend": "Добавить",
+    "requestSentLabel": "Отправлено"
   },
   "battle": {
     "title": "БАТЛ",
@@ -364,6 +366,7 @@
   },
   "notifications": {
     "title": "УВЕДОМЛЕНИЯ",
+    "delete": "Удалить",
     "markAllRead": "Отметить всё прочитанным",
     "empty": "Уведомлений нет",
     "loadError": "Ошибка при загрузке",

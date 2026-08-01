@@ -2,24 +2,16 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import { Bell, Users, Tv, Trash2, Loader2, CheckCheck } from 'lucide-react';
+import { Bell, Users, Tv, Trash2, CheckCheck } from 'lucide-react';
 import type { INotification } from '@/types';
 import { trackClick } from '@/lib/analytics';
+import { useRelativeTime } from '@/lib/relative-time';
 
 async function fetchNotifications(): Promise<INotification[]> {
   const res = await fetch('/api/notifications', { credentials: 'include' });
   if (!res.ok) throw new Error('Failed to fetch');
   const data = await res.json() as { data?: INotification[] } | INotification[];
   return Array.isArray(data) ? data : (data as { data?: INotification[] }).data ?? [];
-}
-
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60_000);
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return new Date(dateStr).toLocaleDateString();
 }
 
 function NotifIcon({ type }: { type: INotification['type'] }) {
@@ -39,6 +31,9 @@ interface NotificationItemProps {
 }
 
 function NotificationItem({ notification, onRead, onDelete }: NotificationItemProps) {
+  const t = useTranslations('notifications');
+  const timeAgo = useRelativeTime();
+
   return (
     <div
       className={`flex items-start gap-3 px-4 py-3.5 border-b border-white/[0.05] last:border-0 transition-colors cursor-pointer group ${
@@ -65,10 +60,12 @@ function NotificationItem({ notification, onRead, onDelete }: NotificationItemPr
         <div className="w-2 h-2 rounded-full bg-violet-500 shrink-0 mt-1.5" />
       )}
 
+      {/* Always visible below `sm`: `group-hover` has no equivalent on touch, so on a phone the
+          delete button was simply unreachable. */}
       <button
         onClick={(e) => { e.stopPropagation(); trackClick('notifications:delete'); onDelete(notification._id); }}
-        className="p-1.5 text-slate-600 hover:text-red-400 transition-colors rounded-lg opacity-0 group-hover:opacity-100"
-        aria-label="Delete"
+        className="p-1.5 text-slate-600 hover:text-red-400 transition-colors rounded-lg sm:opacity-0 sm:group-hover:opacity-100"
+        aria-label={t('delete')}
       >
         <Trash2 size={14} />
       </button>
@@ -134,9 +131,20 @@ export function NotificationsContent() {
         )}
       </div>
 
+      {/* Skeleton shaped like the real rows, matching /home and /friends — a centred spinner
+          collapsed the page height and made the list jump into place once data landed. */}
       {isLoading && (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 size={28} className="animate-spin text-violet-400" />
+        <div className="liquid-glass overflow-hidden" aria-busy="true">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="flex items-start gap-3 px-4 py-3.5 border-b border-white/[0.05] last:border-0">
+              <div className="skeleton w-4 h-4 rounded shrink-0 mt-1" />
+              <div className="flex-1 flex flex-col gap-2">
+                <div className="skeleton h-3 w-2/5 rounded" />
+                <div className="skeleton h-2.5 w-4/5 rounded" />
+                <div className="skeleton h-2 w-16 rounded" />
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
