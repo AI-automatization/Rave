@@ -239,6 +239,9 @@
     "error": "Произошла ошибка",
     "httpForbidden": "Нет доступа",
     "httpNotFound": "Не найдено",
+    "notFoundTitle": "Страница не найдена",
+    "notFoundHint": "Ссылка устарела или адрес введён неверно. Продолжите с главной страницы.",
+    "goBack": "Назад",
     "httpTooManyRequests": "Слишком много запросов — подождите немного",
     "httpServerError": "Ошибка сервера",
     "httpServiceUnavailable": "Сервис недоступен",
@@ -265,7 +268,14 @@
     "seeAll": "Все",
     "recentRooms": "Недавние комнаты",
     "rejoin": "Вернуться",
-    "room": "Комната"
+    "room": "Комната",
+    "greeting": "Привет, {name}",
+    "greetingGuest": "Добро пожаловать",
+    "liveNow": "Сейчас в эфире",
+    "allRooms": "Комнаты",
+    "statRooms": "Комнат",
+    "statLive": "В эфире",
+    "statViewers": "Зрителей"
   },
   "search": {
     "title": "ПОИСК",

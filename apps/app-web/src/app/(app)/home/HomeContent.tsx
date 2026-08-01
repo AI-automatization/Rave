@@ -105,13 +105,17 @@ export function HomeContent() {
   const totalViewers = activeRooms.reduce((sum, r) => sum + (r.members?.length ?? 0), 0);
 
   return (
-    <div className="flex flex-col gap-8 max-w-5xl mx-auto">
+    // `max-w-5xl` left roughly a third of a 1440px screen empty on both sides while the room grid
+    // stayed at 3 columns (prod audit 2026-08-01). Wider cap + a 4th column from `xl`.
+    <div className="flex flex-col gap-8 max-w-7xl mx-auto">
 
       {/* ── Header + actions ── */}
       <div className="flex items-start justify-between gap-4 pt-1">
         <div>
-          <h1 className="text-lg font-semibold text-white">
-            {user?.username ?? 'WeWatch'}
+          {/* Was the bare username with a 'WeWatch' fallback — read as a stray label rather than
+              a greeting, and said nothing when the user object hadn't loaded yet. */}
+          <h1 className="font-[family-name:var(--font-display)] text-xl sm:text-2xl font-semibold text-white tracking-wide">
+            {user?.username ? t('greeting', { name: user.username }) : t('greetingGuest')}
           </h1>
         </div>
 
@@ -138,12 +142,14 @@ export function HomeContent() {
       {hasRooms && (
         <div className="liquid-glass">
           <div className="grid grid-cols-3 divide-x divide-white/[0.06] px-6 py-4">
+            {/* Hardcoded English until 2026-08-01 — these three sat untranslated on the uz and ru
+                versions of the page (prod audit). */}
             {[
-              { label: 'Rooms', value: rooms?.length ?? 0 },
-              { label: 'Live', value: activeRooms.length },
-              { label: 'Viewers', value: totalViewers },
-            ].map(({ label, value }) => (
-              <div key={label} className="flex flex-col items-center gap-1">
+              { key: 'statRooms', label: t('statRooms'), value: rooms?.length ?? 0 },
+              { key: 'statLive', label: t('statLive'), value: activeRooms.length },
+              { key: 'statViewers', label: t('statViewers'), value: totalViewers },
+            ].map(({ key, label, value }) => (
+              <div key={key} className="flex flex-col items-center gap-1">
                 <p className="text-2xl font-bold text-violet-400 leading-none">{value}</p>
                 <p className="text-[10px] text-zinc-500 uppercase tracking-wider">{label}</p>
               </div>
@@ -170,8 +176,8 @@ export function HomeContent() {
           resolves) instead of a bare spinner. .skeleton is the shimmer defined in
           globals.css — was already there, just never wired up to any page. ── */}
       {isLoading && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" aria-busy="true">
-          {Array.from({ length: 6 }).map((_, i) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3" aria-busy="true">
+          {Array.from({ length: 8 }).map((_, i) => (
             <div key={i} className="liquid-glass-sm overflow-hidden">
               <div className="skeleton aspect-video" />
               <div className="px-3 py-2.5 flex flex-col gap-2">
@@ -249,8 +255,8 @@ export function HomeContent() {
       {/* ── LIVE NOW ── */}
       {hasRooms && activeRooms.length > 0 && (
         <section className="flex flex-col gap-4">
-          <SectionHeader label="Live Now" count={activeRooms.length} live />
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <SectionHeader label={t('liveNow')} count={activeRooms.length} live />
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
             {activeRooms.map((room, i) => (
               <motion.div
                 key={room._id}
@@ -268,8 +274,8 @@ export function HomeContent() {
       {/* ── ROOMS ── */}
       {hasRooms && idleRooms.length > 0 && (
         <section className="flex flex-col gap-4">
-          <SectionHeader label="Rooms" count={idleRooms.length} />
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <SectionHeader label={t('allRooms')} count={idleRooms.length} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
             {idleRooms.map((room, i) => (
               <motion.div
                 key={room._id}

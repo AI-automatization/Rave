@@ -51,7 +51,10 @@ export function StatsGrid() {
   ];
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+    // 4-across only in the `sm`–`lg` band, where this is a full-width row under the profile card.
+    // From `lg` it becomes a 20rem side rail (see ProfileContent), and four tiles in that width
+    // would squeeze each one to ~4rem — back to 2 columns there.
+    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-3">
       {STAT_CONFIG.map((cfg, i) => {
         const Icon = cfg.icon;
         return (

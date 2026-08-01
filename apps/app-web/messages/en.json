@@ -239,6 +239,9 @@
     "error": "An error occurred",
     "httpForbidden": "No access",
     "httpNotFound": "Not found",
+    "notFoundTitle": "Page not found",
+    "notFoundHint": "This link is out of date, or the address was typed incorrectly. Continue from the home page.",
+    "goBack": "Back",
     "httpTooManyRequests": "Too many requests — please wait a moment",
     "httpServerError": "Server error",
     "httpServiceUnavailable": "Service unavailable",
@@ -289,7 +292,14 @@
     "public": "Public",
     "recentRooms": "Recent rooms",
     "rejoin": "Rejoin",
-    "room": "Room"
+    "room": "Room",
+    "greeting": "Hi, {name}",
+    "greetingGuest": "Welcome",
+    "liveNow": "Live now",
+    "allRooms": "Rooms",
+    "statRooms": "Rooms",
+    "statLive": "Live",
+    "statViewers": "Viewers"
   },
   "search": {
     "title": "SEARCH",

@@ -239,6 +239,9 @@
     "error": "Xato yuz berdi",
     "httpForbidden": "Ruxsat yo'q",
     "httpNotFound": "Topilmadi",
+    "notFoundTitle": "Sahifa topilmadi",
+    "notFoundHint": "Bu havola eskirgan yoki manzil noto'g'ri kiritilgan. Bosh sahifadan davom eting.",
+    "goBack": "Orqaga",
     "httpTooManyRequests": "So'rov juda ko'p — biroz kuting",
     "httpServerError": "Server xatosi",
     "httpServiceUnavailable": "Xizmat mavjud emas",
@@ -265,7 +268,14 @@
     "seeAll": "Hammasi",
     "recentRooms": "So'nggi xonalar",
     "rejoin": "Qaytish",
-    "room": "Xona"
+    "room": "Xona",
+    "greeting": "Salom, {name}",
+    "greetingGuest": "Xush kelibsiz",
+    "liveNow": "Hozir efirda",
+    "allRooms": "Xonalar",
+    "statRooms": "Xona",
+    "statLive": "Efirda",
+    "statViewers": "Tomoshabin"
   },
   "search": {
     "title": "QIDIRISH",
