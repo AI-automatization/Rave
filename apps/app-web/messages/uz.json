@@ -376,6 +376,7 @@
   },
   "settings": {
     "title": "SOZLAMALAR",
+    "togglePassword": "Parolni ko'rsatish yoki yashirish",
     "profilePhoto": "PROFIL RASMI",
     "photoHint": "JPEG, PNG yoki WebP\nMaksimal 5 MB",
     "notifTitle": "BILDIRISHNOMALAR",
@@ -491,6 +492,7 @@
     "plan1historyVal": "30 kun"
   },
   "party": {
+    "resumedFrom": "{time} dan davom ettirildi",
     "creating": "Watch Party yaratilmoqda...",
     "joining": "Watch Party ga qo'shilmoqda...",
     "roomNotFound": "Xona topilmadi",
@@ -688,6 +690,10 @@
     "emptyTitle": "Qanday yordam bera olamiz?",
     "emptySub": "Suhbat boshlang — tez orada javob beramiz",
     "startChat": "Suhbatni boshlash",
-    "newChat": "Yangi suhbat"
+    "newChat": "Yangi suhbat",
+    "startError": "Suhbatni boshlab bo'lmadi",
+    "sendError": "Xabar yuborilmadi",
+    "unavailableTitle": "Qo'llab-quvvatlash hozir mavjud emas",
+    "unavailableHint": "Xizmatga ulanib bo'lmadi. Keyinroq urinib ko'ring yoki support@wewatch.uz ga yozing."
   }
 }

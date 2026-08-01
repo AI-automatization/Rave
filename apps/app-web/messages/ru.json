@@ -376,6 +376,7 @@
   },
   "settings": {
     "title": "НАСТРОЙКИ",
+    "togglePassword": "Показать или скрыть пароль",
     "profilePhoto": "ФОТО ПРОФИЛЯ",
     "photoHint": "JPEG, PNG или WebP\nМаксимум 5 МБ",
     "notifTitle": "УВЕДОМЛЕНИЯ",
@@ -491,6 +492,7 @@
     "rowAdsNo": "Нет"
   },
   "party": {
+    "resumedFrom": "Продолжаем с {time}",
     "creating": "Watch Party создаётся...",
     "joining": "Присоединяемся к Watch Party...",
     "roomNotFound": "Комната не найдена",
@@ -688,6 +690,10 @@
     "emptyTitle": "Чем можем помочь?",
     "emptySub": "Начните чат — ответим в ближайшее время",
     "startChat": "Начать чат",
-    "newChat": "Новый чат"
+    "newChat": "Новый чат",
+    "startError": "Не удалось начать чат",
+    "sendError": "Сообщение не отправлено",
+    "unavailableTitle": "Поддержка сейчас недоступна",
+    "unavailableHint": "Не удалось подключиться к сервису. Попробуйте позже или напишите на support@wewatch.uz."
   }
 }

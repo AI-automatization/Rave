@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Eye, EyeOff, Loader2, LogOut, Trash2 } from 'lucide-react';
@@ -173,6 +173,8 @@ export function SettingsContent() {
             onChange={setCurrentPassword}
             show={showCurrent}
             onToggle={() => setShowCurrent((v) => !v)}
+            autoComplete="current-password"
+            toggleLabel={t('togglePassword')}
           />
           <PasswordField
             label={t('newPassword')}
@@ -180,6 +182,8 @@ export function SettingsContent() {
             onChange={setNewPassword}
             show={showNew}
             onToggle={() => setShowNew((v) => !v)}
+            autoComplete="new-password"
+            toggleLabel={t('togglePassword')}
           />
           <PasswordField
             label={t('confirmNewPassword')}
@@ -187,6 +191,8 @@ export function SettingsContent() {
             onChange={setConfirmPassword}
             show={showConfirm}
             onToggle={() => setShowConfirm((v) => !v)}
+            autoComplete="new-password"
+            toggleLabel={t('togglePassword')}
           />
           {pwError && <p className="text-red-400 text-xs">{pwError}</p>}
           <button
@@ -252,6 +258,8 @@ export function SettingsContent() {
               value={deletePassword}
               onChange={(e) => setDeletePassword(e.target.value)}
               placeholder={t('yourPassword')}
+              autoComplete="current-password"
+              aria-label={t('yourPassword')}
               className="glass-input h-10 px-3 rounded-lg text-white text-sm placeholder:text-slate-600 focus:outline-none focus:border-red-500/50"
             />
             {deleteError && <p className="text-red-400 text-xs">{deleteError}</p>}
@@ -293,22 +301,33 @@ interface PasswordFieldProps {
   onChange: (v: string) => void;
   show: boolean;
   onToggle: () => void;
+  autoComplete: 'current-password' | 'new-password';
+  toggleLabel: string;
 }
 
-function PasswordField({ label, value, onChange, show, onToggle }: PasswordFieldProps) {
+function PasswordField({ label, value, onChange, show, onToggle, autoComplete, toggleLabel }: PasswordFieldProps) {
+  // `useId` rather than a prop: three of these render on the page and the label has to point at
+  // its own input — without it, clicking a label focused whichever field came first.
+  const id = useId();
+
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-slate-400 text-xs">{label}</label>
+      <label htmlFor={id} className="text-slate-400 text-xs">{label}</label>
       <div className="relative">
         <input
+          id={id}
           type={show ? 'text' : 'password'}
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          // Was missing entirely, so password managers offered nothing here and browsers could
+          // not tell the current password apart from the new one.
+          autoComplete={autoComplete}
           className="glass-input w-full h-10 px-3 pr-10 rounded-lg text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-violet-500/40 transition-colors"
         />
         <button
           type="button"
           onClick={onToggle}
+          aria-label={toggleLabel}
           className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-500 hover:text-slate-300 transition-colors cursor-pointer"
         >
           {show ? <EyeOff size={14} /> : <Eye size={14} />}

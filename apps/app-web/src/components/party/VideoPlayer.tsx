@@ -802,14 +802,11 @@ export function VideoPlayer({
         if (position > 30) {
           const fmtTime = (s: number) =>
             `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`;
-          toast({
-            title: `Continue from ${fmtTime(position)}?`,
-            description: 'You watched this before',
-            action: {
-              altText: 'Resume',
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            } as any,
-          });
+          // The `action` this used to carry was an empty object cast through `as any` — it
+          // rendered no button and did nothing. The seek happens unconditionally just below, so
+          // the toast is purely an explanation of what is about to happen; it now says so, and
+          // in the user's language (it was hardcoded English).
+          toast({ title: t('resumedFrom', { time: fmtTime(position) }) });
           // Expose seek via a brief delay so videoRef is attached to src
           setTimeout(() => {
             if (videoRef.current) videoRef.current.currentTime = position;

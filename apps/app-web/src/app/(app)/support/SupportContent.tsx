@@ -66,12 +66,16 @@ export function SupportContent() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<Socket | null>(null);
 
-  const { data: conversations, isLoading: convLoading } = useQuery({
+  const { data: conversations, isLoading: convLoading, isError: convError } = useQuery({
     queryKey: ['support-conversations'],
     queryFn: async () => {
       const res = await apiClient<SupportConversation[]>('/api/support/conversations');
       return res.data ?? [];
     },
+    // The list 403s for ordinary users in production ("Access requires one of roles: admin,
+    // superadmin, moderator" — a backend route-auth bug, services/admin). Retrying just multiplies
+    // the failed calls; the error state below is what the user needs to see.
+    retry: false,
   });
 
   // Auto-use active conversation (open first, else latest)
@@ -148,8 +152,16 @@ export function SupportContent() {
         body: { subject: 'Support' },
       }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['support-conversations'] }),
-    onError: () => toast({ title: 'Error', description: 'Could not start chat', variant: 'destructive' }),
+    onError: () => toast({ title: t('startError'), variant: 'destructive' }),
   });
+
+  // POST succeeds (201) while GET 403s, so the refetch came back empty and the same "start chat"
+  // button was offered again — every click wrote another empty conversation to the database that
+  // the user could never see (prod audit 2026-08-01). One attempt is all we allow: if the list is
+  // still empty afterwards, something is wrong on the server and clicking again cannot fix it.
+  const startFailedSilently =
+    startConvo.isSuccess && !convLoading && (conversations?.length ?? 0) === 0;
+  const unavailable = convError || startFailedSilently;
 
   const sendMessage = useMutation({
     mutationFn: (text: string) =>
@@ -161,7 +173,7 @@ export function SupportContent() {
       qc.invalidateQueries({ queryKey: ['support-messages', activeConv?._id] });
       setInputText('');
     },
-    onError: () => toast({ title: 'Error', description: 'Could not send message', variant: 'destructive' }),
+    onError: () => toast({ title: t('sendError'), variant: 'destructive' }),
   });
 
   const rateConvo = useMutation({
@@ -198,8 +210,10 @@ export function SupportContent() {
   const isLoading = convLoading || msgLoading;
 
   return (
+    // `dvh`, not `vh`: on mobile browsers `vh` is the tallest-possible viewport, so the composer
+    // sat under the URL bar. `6.5rem` clears the layout's own `pb-24` plus the floating dock.
     <div
-      className="h-[calc(100vh-3rem)] flex flex-col rounded-xl border border-white/[0.06] overflow-hidden"
+      className="h-[calc(100dvh-6.5rem)] sm:h-[calc(100dvh-3rem)] flex flex-col rounded-xl border border-white/[0.06] overflow-hidden"
       style={{ maxWidth: '40rem', margin: '0 auto', backgroundColor: '#0D0D1A' }}
     >
       {/* Header */}
@@ -224,6 +238,12 @@ export function SupportContent() {
           <div className="flex-1 flex items-center justify-center">
             <Loader2 size={24} className="animate-spin text-violet-400" />
           </div>
+        ) : unavailable ? (
+          <div className="flex-1 flex flex-col items-center justify-center gap-3 py-16 px-6 text-center">
+            <Headphones size={28} className="text-slate-700" />
+            <p className="text-sm font-semibold text-slate-400">{t('unavailableTitle')}</p>
+            <p className="text-xs text-slate-600 max-w-xs leading-relaxed">{t('unavailableHint')}</p>
+          </div>
         ) : !activeConv ? (
           <div className="flex-1 flex flex-col items-center justify-center gap-4 py-16">
             <Headphones size={28} className="text-slate-700" />
@@ -233,7 +253,7 @@ export function SupportContent() {
             </div>
             <button
               onClick={() => { trackClick('support:start_chat'); startConvo.mutate(); }}
-              disabled={startConvo.isPending}
+              disabled={startConvo.isPending || startConvo.isSuccess}
               className="h-9 px-5 rounded-lg text-sm font-medium text-white bg-violet-600 hover:bg-violet-500 cursor-pointer disabled:opacity-40 transition-colors flex items-center gap-2"
             >
               {startConvo.isPending ? <Loader2 size={14} className="animate-spin" /> : t('startChat')}
@@ -279,7 +299,7 @@ export function SupportContent() {
           </div>
           <button
             onClick={() => { trackClick('support:new_chat'); startConvo.mutate(); }}
-            disabled={startConvo.isPending}
+            disabled={startConvo.isPending || unavailable}
             className="mt-1 h-8 px-5 rounded-lg text-xs font-medium text-white bg-violet-600 hover:bg-violet-500 cursor-pointer disabled:opacity-40 transition-colors"
           >
             {t('newChat')}

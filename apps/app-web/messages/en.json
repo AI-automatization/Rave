@@ -410,6 +410,7 @@
   },
   "settings": {
     "title": "SETTINGS",
+    "togglePassword": "Show or hide password",
     "profilePhoto": "PROFILE PHOTO",
     "photoHint": "JPEG, PNG or WebP\nMax 5 MB",
     "notifTitle": "NOTIFICATIONS",
@@ -525,6 +526,7 @@
     "plan1historyVal": "30 days"
   },
   "party": {
+    "resumedFrom": "Resumed from {time}",
     "creating": "Creating Watch Party...",
     "joining": "Joining Watch Party...",
     "roomNotFound": "Room not found",
@@ -727,6 +729,10 @@
     "emptyTitle": "How can we help?",
     "emptySub": "Start a chat and we'll get back to you shortly",
     "startChat": "Start chat",
-    "newChat": "New chat"
+    "newChat": "New chat",
+    "startError": "Could not start the chat",
+    "sendError": "Message was not sent",
+    "unavailableTitle": "Support is unavailable right now",
+    "unavailableHint": "Could not reach the service. Try again later, or email support@wewatch.uz."
   }
 }
