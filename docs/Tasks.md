@@ -34,6 +34,52 @@
 
 ---
 
+# 🎨 app.wewatch.uz — to'liq UI/UX redesign
+
+### T-S195 | P1 | [WEB] | apps/app-web: 15 sahifa to'liq redesign + prod audit buglari
+
+- **Mas'ul:** pending[Jasur]
+- **Beruvchi:** Jasur (2026-08-01, prod brauzer auditi)
+- **Yaratilgan:** 2026-08-01 20:45
+- **Holat:** 🔄 Bajarilmoqda
+- **Tavsiya model:** opus
+- **Model sababi:** 15 sahifa, 60+ komponent, ~17k qator; dizayn tizimi darajasidagi qaror
+- **Sabab:** `app.wewatch.uz` prod'da to'liq aylanib chiqildi (hisob `jasur_qa01` yaratildi,
+  email kod bilan tasdiqlandi). Har sahifa alohida redesign qilinadi, yo'l-yo'lakay auditda
+  topilgan buglar tuzatiladi.
+- **Prod audit topilmalari (2026-08-01):**
+  - **P0 tashqi (kod emas):** `/notifications` 401 — yuqoridagi PROD bo'limiga qarang
+    (notification servisi `JWT_PUBLIC_KEY` mos emas, Railway env). Hali ochiq.
+  - **P0:** `/support` — `GET /api/support/conversations` 403 `"Access requires one of roles:
+    admin, superadmin, moderator"`, ammo `POST` 201 o'tadi → har bosishda DB'da bo'sh suhbat
+    yaratiladi, foydalanuvchi hech qachon ko'rmaydi. Backend rout auth noto'g'ri sozlangan.
+  - **P0:** parol tiklashni **so'rash** sahifasi yo'q. `/login` → "Забыли?" → `/auth/reset-password`
+    → "Havola yaroqsiz". `/forgot-password`, `/auth/forgot-password`, `/password-reset` — 404.
+  - **P0:** mobil (390px) `/room/[id]` — chat/a'zolar/navbat paneli DOM'da yo'q, video 15+ sek
+    "Video yuklanmoqda" da qotadi, sarlavha "Watch Party" (real nom emas), a'zolar 0,
+    "Chiqish" tugmasi ekrandan chiqib ketgan.
+  - **P1:** do'st qo'shish `POST /friend-request` 201 — UI'da hech qanday feedback yo'q.
+  - **P1:** tugma yorlig'i noto'g'ri — "Найти друга" o'rniga "Добавить в друзья".
+  - **P1:** noto'g'ri xona kodi `POST /api/rooms/join/ZZZ999` 404 — modalda xato ko'rsatilmaydi.
+  - **P1:** yaratilgan xona `/home` ro'yxatida ko'rinmaydi (qayta kirgach "Hali xonalar yo'q").
+  - **P1:** 404 sahifa — Next.js standarti, brendsiz/tarjimasiz/havolasiz.
+  - **P2:** `<title>` yo'q — `/register`, `/settings`, `/support`, `/notifications` = "WeWatch".
+  - **P2:** `/login` title uz ("Kirish"), mazmuni ru — birinchi kirishda nomuvofiqlik.
+  - **P2:** tarjimasiz: "Permission dismissed", "points", "jasur_qa01(you)" (probelsiz),
+    header aria "Notifications"/"Profile".
+  - **P2:** `/auth/reset-password` futerida "© 2025 WeWatch" — yil eskirgan.
+  - **P2:** desktop 1440px — mobil pastki nav xona chat input'ini to'sadi; `/home`, `/profile`
+    da ekranning yarmi bo'sh.
+  - **P2:** `/profile` — banner karta kengligidan chiqib ketgan.
+- **Ishlagani (buzilmasin):** ro'yxatdan o'tish + email kod, login/logout, til almashish
+  (uz/ru/en, saqlanadi), xona yaratish + YouTube player (desktop), xona chati, do'st qidirish,
+  profil saqlash, `/` → `/home` redirect, mobil `/home`.
+- **Fayllar:** `apps/app-web/src/**` (15 sahifa, `src/components/{common,party,rooms,profile,friends,messages,ui}`)
+- **⛔ TEGMASLIK KERAK:** `apps/web` (landing), `apps/mobile`, `services/*`, watch-party
+  sinxronizatsiya logikasi, Socket.io event nomlari.
+
+---
+
 # 🎬 Room Redesign — 3 fazali reja (2026-07-24 planning session)
 
 > To'liq research + reja: memory `project_room_redesign_3phases.md`. FAZA 1 tugadi (2026-07-26, Jasur — T-S160..T-S166 + T-S168, Done.md F-265..F-272); qolgani — pastdagi tartib bo'yicha claim qilib boshlash kerak. Fazalar orasida bog'liqlik bor: T-S171 (link) → T-S177/T-S178 (Instagram share stikerida shu link ishlatiladi).
