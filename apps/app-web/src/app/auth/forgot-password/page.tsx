@@ -1,22 +1,15 @@
 import type { Metadata } from 'next';
-import { ResetPasswordForm, ResetPasswordHeader } from './ResetPasswordForm';
+import { ForgotPasswordForm, ForgotPasswordHeader } from './ForgotPasswordForm';
 import { WeWatchLogo } from '@/components/common/WeWatchLogo';
 
-// Static title: this is a server component and the locale lives in a client-side cookie, so the
-// tab title cannot follow the language switcher. Uses the app's default locale (uz — see
-// Providers.tsx, which starts every SSR render in uz).
+// Static title for the same reason as ../reset-password/page.tsx: server component, locale lives
+// in a client-side cookie, so the tab title can't follow the language switcher. Default locale (uz).
 export const metadata: Metadata = {
-  title: 'Parolni tiklash',
+  title: 'Parolni tiklash so\'rovi',
   robots: { index: false, follow: false },
 };
 
-interface Props {
-  searchParams: Promise<{ token?: string }>;
-}
-
-export default async function ResetPasswordPage({ searchParams }: Props) {
-  const { token } = await searchParams;
-
+export default function ForgotPasswordPage() {
   return (
     <div
       className="min-h-screen flex items-center justify-center p-4"
@@ -44,9 +37,9 @@ export default async function ResetPasswordPage({ searchParams }: Props) {
           <div style={{ height: 2, background: 'linear-gradient(90deg, transparent 0%, #7C3AED 50%, transparent 100%)' }} />
 
           <div className="px-7 py-8">
-            <ResetPasswordHeader />
+            <ForgotPasswordHeader />
 
-            <ResetPasswordForm token={token ?? null} />
+            <ForgotPasswordForm />
           </div>
 
           {/* Footer */}

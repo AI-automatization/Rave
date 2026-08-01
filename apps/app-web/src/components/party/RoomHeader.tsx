@@ -28,7 +28,7 @@ export function RoomHeader() {
   // room.members is the REST snapshot from page load and never changes afterwards. Reading the
   // snapshot first made the count go stale the moment someone joined — the face-pile showed three
   // avatars next to the number "2". Fall back to the snapshot only before the socket has joined.
-  const memberCount = storeMembers.length || ((room as any)?.members as unknown[])?.length || 0;
+  const memberCount = storeMembers.length || room?.members?.length || 0;
   const isOwner = !!currentUser && room?.ownerId === currentUser._id;
   const otherMembers = storeMembers.filter((m) => m._id !== currentUser?._id);
 
@@ -77,14 +77,19 @@ export function RoomHeader() {
             />
           </span>
 
-          <h2
-            className="font-[family-name:var(--font-display)] text-[16px] font-medium tracking-wide text-white truncate leading-snug"
-          >
-            {room?.name ?? room?.videoTitle ?? tHome('title')}
-          </h2>
+          {/* Skeleton while the room is still loading rather than the generic "Watch Party"
+              fallback — on a slow connection that fallback read as the room's actual name for
+              seconds at a time (prod audit 2026-08-01, mobile). */}
+          {room ? (
+            <h2 className="font-[family-name:var(--font-display)] text-[15px] sm:text-[16px] font-medium tracking-wide text-white truncate leading-snug">
+              {room.name ?? room.videoTitle ?? tHome('title')}
+            </h2>
+          ) : (
+            <div className="skeleton h-4 w-32 sm:w-44 rounded shrink-0" aria-hidden="true" />
+          )}
 
           {room?.videoPlatform && (
-            <span className="text-[10px] text-slate-600 uppercase tracking-wide shrink-0">
+            <span className="hidden sm:inline text-[10px] text-slate-600 uppercase tracking-wide shrink-0">
               {room.videoPlatform}
             </span>
           )}
@@ -122,20 +127,25 @@ export function RoomHeader() {
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5">
+        {/* Labels drop below `sm` — at 390px the two labelled buttons pushed "leave" off the
+            right edge of the screen (prod audit 2026-08-01). Icon-only keeps both reachable and
+            still at a 36px target; the accessible name moves to aria-label. */}
+        <div className="flex items-center gap-1.5 shrink-0">
           <button
             onClick={() => { trackClick('room:open_invite'); setInviteOpen(true); }}
-            className="h-8 px-3 rounded-lg text-xs font-medium text-zinc-300 bg-white/[0.05] border border-white/[0.09] hover:bg-white/[0.1] transition-colors flex items-center gap-1.5 cursor-pointer"
+            aria-label={t('link')}
+            className="h-9 px-2.5 sm:px-3 rounded-lg text-xs font-medium text-zinc-300 bg-white/[0.05] border border-white/[0.09] hover:bg-white/[0.1] transition-colors flex items-center gap-1.5 cursor-pointer"
           >
-            <Share2 size={12} />
-            {t('link')}
+            <Share2 size={13} />
+            <span className="hidden sm:inline">{t('link')}</span>
           </button>
           <button
             onClick={() => { void handleLeaveClick(); }}
-            className="h-8 px-3 rounded-lg text-xs font-medium text-red-400 bg-red-500/[0.07] border border-red-500/[0.15] hover:bg-red-500/[0.14] transition-colors flex items-center gap-1.5 cursor-pointer"
+            aria-label={t('leave')}
+            className="h-9 px-2.5 sm:px-3 rounded-lg text-xs font-medium text-red-400 bg-red-500/[0.07] border border-red-500/[0.15] hover:bg-red-500/[0.14] transition-colors flex items-center gap-1.5 cursor-pointer"
           >
-            <LogOut size={12} />
-            {t('leave')}
+            <LogOut size={13} />
+            <span className="hidden sm:inline">{t('leave')}</span>
           </button>
         </div>
       </div>

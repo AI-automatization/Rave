@@ -220,7 +220,10 @@ export function LoginForm() {
       <div className="flex flex-col gap-1.5">
         <div className="flex items-center justify-between">
           <label className="text-xs font-medium text-slate-400">{t('passwordLabel')}</label>
-          <Link href="/auth/reset-password" onClick={() => trackClick('login:forgot_password')} className="text-xs text-violet-400 hover:text-violet-300 transition-colors">
+          {/* /auth/reset-password consumes an emailed token — linking straight to it meant this
+              link could only ever render "invalid link" (prod audit 2026-08-01). The request form
+              is the correct destination. */}
+          <Link href="/auth/forgot-password" onClick={() => trackClick('login:forgot_password')} className="text-xs text-violet-400 hover:text-violet-300 transition-colors">
             {t('forgotPassword')}
           </Link>
         </div>

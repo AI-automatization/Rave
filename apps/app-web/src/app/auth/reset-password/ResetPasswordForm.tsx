@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
+import Link from 'next/link';
 import { Lock, Eye, EyeOff, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { trackClick } from '@/lib/analytics';
 
@@ -45,6 +46,15 @@ export function ResetPasswordForm({ token }: Props) {
         <p className="text-sm text-slate-400 max-w-xs leading-relaxed">
           {t('resetLinkInvalidHint')}
         </p>
+        {/* Dead end until 2026-08-01: the hint told the user to request a new link "in the app",
+            with nothing to click on the web. There is now a request form — send them there. */}
+        <Link
+          href="/auth/forgot-password"
+          onClick={() => trackClick('reset_password:request_new_link')}
+          className="mt-2 inline-flex items-center gap-2 px-6 py-2.5 rounded-md text-sm font-semibold text-white bg-violet-600 hover:bg-violet-500 transition-colors"
+        >
+          {t('forgotSubmit')}
+        </Link>
       </div>
     );
   }

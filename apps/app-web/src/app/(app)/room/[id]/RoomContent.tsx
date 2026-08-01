@@ -222,6 +222,74 @@ function PlaylistPanel({
   );
 }
 
+/** Tab strip + voice control + active tab body. Rendered twice — as the desktop right rail and
+ *  as the mobile panel under the video. Until 2026-08-01 this markup lived inline inside a
+ *  `hidden md:flex` wrapper with no mobile counterpart, so under 768px the room shipped with no
+ *  chat, no member list and no queue at all (found in the prod audit, confirmed at 390px). */
+function RoomSidePanel({
+  roomId, isOwner, rightTab, setRightTab, voice, onSendMessage, onOpenProfile, onPlayNow,
+}: {
+  roomId: string;
+  isOwner: boolean;
+  rightTab: 'chat' | 'members' | 'playlist';
+  setRightTab: (t: 'chat' | 'members' | 'playlist') => void;
+  voice: ReturnType<typeof useVoiceChat>;
+  onSendMessage: (text: string) => void;
+  onOpenProfile: (userId: string) => void;
+  onPlayNow: (videoUrl: string, videoPlatform: string) => void;
+}) {
+  const t = useTranslations('party');
+
+  const tabs = [
+    { id: 'chat' as const, icon: MessageCircle, label: t('chat'), show: true },
+    { id: 'members' as const, icon: UsersIcon, label: t('members'), show: true },
+    { id: 'playlist' as const, icon: ListVideo, label: t('queue'), show: isOwner },
+  ].filter((tab) => tab.show);
+
+  return (
+    <>
+      <div className="flex border-b border-white/[0.07] shrink-0">
+        {tabs.map(({ id, icon: Icon, label }) => (
+          <button
+            key={id}
+            onClick={() => { trackClick(`room:tab_${id}`); setRightTab(id); }}
+            aria-selected={rightTab === id}
+            role="tab"
+            className={`relative flex-1 h-11 flex items-center justify-center gap-1.5 text-xs font-medium transition-colors cursor-pointer ${
+              rightTab === id ? 'text-white' : 'text-slate-500 hover:text-slate-300'
+            }`}
+          >
+            <Icon size={13} />
+            {label}
+            {rightTab === id && (
+              <span className="absolute bottom-0 inset-x-3 h-0.5 rounded-full bg-violet-500" />
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Above the tab content, not inside it: the mic control has to stay reachable no
+          matter which tab is showing. */}
+      <VoiceStrip
+        isJoined={voice.isJoined}
+        isMuted={voice.isMuted}
+        isLoading={voice.isLoading}
+        errorMsg={voice.errorMsg}
+        participants={voice.participants}
+        onToggleMute={voice.toggleMute}
+        onLeave={voice.leaveVoice}
+        onJoin={voice.joinVoice}
+      />
+
+      {rightTab === 'chat' && <ChatPanel onSend={onSendMessage} onOpenProfile={onOpenProfile} />}
+      {rightTab === 'members' && <MemberList />}
+      {rightTab === 'playlist' && (
+        <PlaylistPanel roomId={roomId} isOwner={isOwner} onPlayNow={onPlayNow} />
+      )}
+    </>
+  );
+}
+
 export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props) {
   const t = useTranslations('party');
   const searchParams = useSearchParams();
@@ -287,8 +355,12 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
     router.replace(`/room/${roomId}`); // strip the param — a refresh shouldn't re-trigger this
   }, [searchParams, room, roomJoined, roomId, sendMediaChange, router]);
 
+  // `-m-*` cancels the layout's own padding (incl. its `pb-24`), so the bottom clearance for the
+  // floating dock has to be re-added here — without it the dock sits on top of the chat composer
+  // on every breakpoint (prod audit 2026-08-01). `dvh` not `vh`: on mobile browsers `vh` is the
+  // tallest-possible viewport, so the panel ran under the URL bar.
   return (
-    <div className="relative flex flex-col h-[calc(100vh-3rem)] -m-4 md:-m-6 lg:-m-8 overflow-hidden">
+    <div className="relative flex flex-col h-[calc(100dvh-3rem)] pb-[4.75rem] -m-4 md:-m-6 lg:-m-8 overflow-hidden">
       {/* Ambient depth — real-user feedback (2026-07-28): the room "feels like a brick", too dark,
           doesn't feel alive. Root cause was that this glow sat at 6-12% opacity — a fraction of
           what /home's own background actually uses (see globals.css body{} — 48%/22%/10%). Panels
@@ -310,9 +382,10 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
       <div className="relative z-10 flex flex-col h-full">
         <RoomHeader />
 
-        <div className="flex flex-1 overflow-hidden">
-          {/* Left: Video */}
-          <div className="flex-1 flex flex-col p-4 gap-3 min-w-0">
+        <div className="flex flex-col md:flex-row flex-1 overflow-hidden min-h-0">
+          {/* Left: Video. On mobile it keeps its natural height and the panel below takes the
+              rest; on desktop it grows and the 20rem rail stays fixed. */}
+          <div className="flex flex-col p-3 md:p-4 gap-3 min-w-0 shrink-0 md:shrink md:flex-1">
             {/* Thin glow frame around the player only (not the toolbar below it) — a colored ring
                 signals "this is the live, active surface of the room" instead of the video sitting
                 as a bare black rectangle indistinguishable from a broken embed. */}
@@ -356,76 +429,22 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
             <EmojiReactions onSend={sendEmoji} />
           </div>
 
-          {/* Right: Chat / Members / Playlist — glass-panel matches the violet-tinted surface
-              every other page already uses (see globals.css); the flat neutral rgba this replaced
-              is exactly why the sidebar read as dead weight next to a colorful room. */}
-          <div
-            className="glass-panel hidden md:flex flex-col w-80 rounded-none !border-y-0 !border-r-0"
-          >
-            <div className="flex border-b border-white/[0.07]">
-              <button
-                onClick={() => { trackClick('room:tab_chat'); setRightTab('chat'); }}
-                className={`relative flex-1 h-10 flex items-center justify-center gap-1.5 text-xs font-medium transition-colors cursor-pointer ${
-                  rightTab === 'chat' ? 'text-white' : 'text-slate-500 hover:text-slate-300'
-                }`}
-              >
-                <MessageCircle size={13} />
-                {t('chat')}
-                {rightTab === 'chat' && (
-                  <span className="absolute bottom-0 inset-x-3 h-0.5 rounded-full bg-violet-500" />
-                )}
-              </button>
-              <button
-                onClick={() => { trackClick('room:tab_members'); setRightTab('members'); }}
-                className={`relative flex-1 h-10 flex items-center justify-center gap-1.5 text-xs font-medium transition-colors cursor-pointer ${
-                  rightTab === 'members' ? 'text-white' : 'text-slate-500 hover:text-slate-300'
-                }`}
-              >
-                <UsersIcon size={13} />
-                {t('members')}
-                {rightTab === 'members' && (
-                  <span className="absolute bottom-0 inset-x-3 h-0.5 rounded-full bg-violet-500" />
-                )}
-              </button>
-              {isOwner && (
-                <button
-                  onClick={() => { trackClick('room:tab_playlist'); setRightTab('playlist'); }}
-                  className={`relative flex-1 h-10 flex items-center justify-center gap-1.5 text-xs font-medium transition-colors cursor-pointer ${
-                    rightTab === 'playlist' ? 'text-white' : 'text-slate-500 hover:text-slate-300'
-                  }`}
-                >
-                  <ListVideo size={13} />
-                  {t('queue')}
-                  {rightTab === 'playlist' && (
-                    <span className="absolute bottom-0 inset-x-3 h-0.5 rounded-full bg-violet-500" />
-                  )}
-                </button>
-              )}
-            </div>
-
-            {/* Above the tab content, not inside it: the mic control has to stay reachable no
-                matter which tab is showing. */}
-            <VoiceStrip
-              isJoined={voice.isJoined}
-              isMuted={voice.isMuted}
-              isLoading={voice.isLoading}
-              errorMsg={voice.errorMsg}
-              participants={voice.participants}
-              onToggleMute={voice.toggleMute}
-              onLeave={voice.leaveVoice}
-              onJoin={voice.joinVoice}
+          {/* Chat / Members / Queue — right rail on desktop, panel under the video on mobile.
+              glass-panel matches the violet-tinted surface every other page already uses (see
+              globals.css); the flat neutral rgba this replaced is exactly why the sidebar read
+              as dead weight next to a colorful room. */}
+          <aside className="glass-panel flex flex-col min-h-0 flex-1 border-x-0 border-b-0 md:flex-none md:w-80 md:rounded-none md:!border-y-0 md:!border-r-0">
+            <RoomSidePanel
+              roomId={roomId}
+              isOwner={isOwner}
+              rightTab={rightTab}
+              setRightTab={setRightTab}
+              voice={voice}
+              onSendMessage={sendMessage}
+              onOpenProfile={setProfileUserId}
+              onPlayNow={(videoUrl, videoPlatform) => sendMediaChange(videoUrl, undefined, videoPlatform)}
             />
-
-            {rightTab === 'chat' && <ChatPanel onSend={sendMessage} onOpenProfile={setProfileUserId} />}
-            {rightTab === 'members' && <MemberList />}
-            {rightTab === 'playlist' && (
-              <PlaylistPanel
-                roomId={roomId}
-                isOwner={isOwner}
-                onPlayNow={(videoUrl, videoPlatform) => sendMediaChange(videoUrl, undefined, videoPlatform)}
-              />
-            )}
-          </div>
+          </aside>
         </div>
         </div>
 
