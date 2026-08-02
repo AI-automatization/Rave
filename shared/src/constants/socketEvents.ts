@@ -25,6 +25,7 @@ export const SERVER_EVENTS = Object.freeze({
   MEMBER_LEFT: 'member:left',
   MEMBER_KICKED: 'member:kicked',
   MEMBER_MUTED: 'member:muted',
+  MEMBER_UNMUTED: 'member:unmuted',
 
   ROOM_MESSAGE: 'room:message',
   ROOM_EMOJI: 'room:emoji',
@@ -91,6 +92,7 @@ export const CLIENT_EVENTS = Object.freeze({
 
   KICK_MEMBER: 'member:kick',
   MUTE_MEMBER: 'member:mute',
+  UNMUTE_MEMBER: 'member:unmute',
 
   VOICE_JOIN:     'voice:join',
   VOICE_LEAVE:    'voice:leave',

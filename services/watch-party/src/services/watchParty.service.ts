@@ -247,7 +247,11 @@ export class WatchPartyService {
   }
 
   async getRoom(roomId: string): Promise<IWatchPartyRoomDocument> {
-    const room = await WatchPartyRoom.findById(roomId);
+    // -password: this document was reaching clients with the bcrypt hash still attached —
+    // never actually read anywhere on the client, just an unnecessary leak. Privacy/membership
+    // authorization for isPrivate rooms happens in the controller (needs req.user, not
+    // available here) — this method only owns "don't leak the hash", not "who can see it".
+    const room = await WatchPartyRoom.findById(roomId).select('-password');
     if (!room) throw new NotFoundError('Room not found');
     return room;
   }
