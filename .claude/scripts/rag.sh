@@ -20,5 +20,6 @@ cmd="${1:-}"; shift || true
 case "$cmd" in
   index)         exec "$PY" "$SCRIPT_DIR/rag_index.py" "$@" ;;
   query|q|"")    exec "$PY" "$SCRIPT_DIR/rag_query.py" "$@" ;;
+  eval)          exec "$PY" "$SCRIPT_DIR/rag_eval.py" "$@" ;;
   *)             exec "$PY" "$SCRIPT_DIR/rag_query.py" "$cmd" "$@" ;;
 esac

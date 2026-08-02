@@ -28,6 +28,16 @@ def main():
         for ch in rc.chunk_file(path, vault):
             chunks.append(ch)
 
+    # Procedural memory (skills) — separate root (git repo, not the vault).
+    skill_files = 0
+    for path in rc.iter_skill_files():
+        skill_files += 1
+        for ch in rc.chunk_file(path, rc.SKILLS_DIR):
+            ch["file"] = f"SKILLS/{ch['file']}"
+            ch["mem_type"] = "procedural"
+            chunks.append(ch)
+    files += skill_files
+
     if not chunks:
         print(f"[rag] no chunks found in {vault}")
         sys.exit(1)
@@ -41,9 +51,20 @@ def main():
     np.save(rc.VECTORS_PATH, vectors)
     rc.META_PATH.write_text(json.dumps(chunks, ensure_ascii=False), encoding="utf-8")
 
+    print("[rag] building BM25 (keyword) index ...")
+    bm25 = rc.build_bm25(chunks)
+    rc.save_bm25(bm25)
+
+    print("[rag] building wikilink graph ...")
+    graph = rc.build_link_graph(vault)
+    rc.save_link_graph(graph)
+    edge_count = sum(len(v) for v in graph.values()) // 2
+    connected = sum(1 for v in graph.values() if v)
+
     dt = time.time() - t0
     print(f"[rag] indexed {len(chunks)} chunks from {files} files in {dt:.1f}s")
-    print(f"[rag] dim={vectors.shape[1]}  index={rc.INDEX_DIR}")
+    print(f"[rag] dim={vectors.shape[1]}  hybrid=dense+bm25  index={rc.INDEX_DIR}")
+    print(f"[rag] graph: {connected} connected nodes, {edge_count} edges")
 
 
 if __name__ == "__main__":

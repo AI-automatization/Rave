@@ -4,7 +4,13 @@
 # Stdin: JSON {"tool_name":"Edit","tool_input":{"file_path":"..."},...}
 
 VAULT="${OBSIDIAN_VAULT:-$HOME/Documents/weWatch-obsidian}"
-IN_PROGRESS="$VAULT/AI_CONTEXT/in-progress.md"
+DEV="${VAULT_DEVELOPER:-Saidazim}"
+DEV_LOWER=$(echo "$DEV" | tr '[:upper:]' '[:lower:]')
+# obsidian-checkpoint.sh writes status:active to the per-developer file, not the
+# generic in-progress.md (which has been stuck at status:clear since 2026-05-09) —
+# this hook was checking the wrong file, so auto-logging never fired even during
+# a properly checkpointed task.
+IN_PROGRESS="$VAULT/AI_CONTEXT/in-progress-${DEV_LOWER}.md"
 NOW=$(date '+%H:%M')
 
 [[ ! -f "$IN_PROGRESS" ]] && exit 0

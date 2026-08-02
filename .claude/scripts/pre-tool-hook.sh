@@ -24,8 +24,14 @@ if [[ "$TOOL" == "Edit" || "$TOOL" == "Write" ]]; then
 fi
 
 # ── DANGER: .env files ───────────────────────────────────────────────────────
+# Catches .env, .env.local, .env.production, .env.development, .env.staging,
+# .env.*.backup etc — previously only "\.env$|\.env\.prod|\.env\.production" was
+# checked, which silently let .env.local / .env.development / .env.staging through
+# (Next.js apps/web + apps/app-web use .env.local by convention — this is exactly
+# how apps/app-web/.env.local.railway-backup ended up untracked and unblocked).
+# .env.example / .env.sample stay allowed — they're committed templates with no secrets.
 if [[ "$TOOL" == "Write" || "$TOOL" == "Edit" ]]; then
-  if echo "$FILE" | grep -qE "\.env$|\.env\.prod|\.env\.production"; then
+  if echo "$FILE" | grep -qE "\.env(\.|$)" && ! echo "$FILE" | grep -qE "\.env\.(example|sample)$"; then
     echo '{"decision":"block","reason":"⛔ SECURITY: .env files cannot be committed. Use env vars in deployment config."}' >&2
     exit 2
   fi
