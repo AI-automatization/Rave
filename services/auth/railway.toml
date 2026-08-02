@@ -5,6 +5,7 @@
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "services/auth/Dockerfile"
+watchPatterns = ["services/auth/**", "shared/**"]
 
 [deploy]
 healthcheckPath = "/health"
