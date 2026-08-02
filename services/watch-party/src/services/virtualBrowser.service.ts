@@ -140,6 +140,28 @@ export function getSessionSnapshot(roomId: string): { url: string; width: number
 //             session, only stop the screencast broadcast (see pauseScreencast below).
 export type MediaFoundKind = 'url' | 'capture';
 
+// A short in-page video ad (real example caught live 2026-08-02 on hdrezka.my via the room
+// owner's own report — a 30s MostBet gambling ad played instead of the movie) matches every
+// signal `hit()` used to accept unconditionally: real extension, real video Content-Type, real
+// magic bytes. Ads are consistently ≤60s; nothing in this catalog (movies/episodes) legitimately
+// runs under a couple of minutes, so duration is a genuine discriminator, not a guess.
+const MIN_HLS_DURATION_SECS = 90;
+// MP4: true duration lives in the moov/mvhd box, which can sit at either end of the file
+// depending on encoding — parsing it reliably would mean downloading the whole thing, defeating
+// the point. Content-Length is a real, zero-extra-request proxy instead: a 30s ad at ordinary web
+// bitrate is a few MB; a movie, even at low quality, is essentially always 15MB+.
+const MIN_MP4_BYTES = 15_000_000;
+
+// #EXTINF:<seconds>,<title> — one per segment. Summing them is the actual authoritative
+// duration per the HLS spec (RFC 8216), no guessing involved.
+const EXTINF_RE = /^#EXTINF:([\d.]+),/gm;
+
+function sumHlsDurationSecs(playlistText: string): number {
+  let total = 0;
+  for (const m of playlistText.matchAll(EXTINF_RE)) total += parseFloat(m[1]);
+  return total;
+}
+
 /**
  * Category A sniffing — media the page fetches over plain HTTP, recognised by extension, then
  * Content-Type, then magic bytes. Lifted out of startSession (T-S174) so the background probe
@@ -161,13 +183,44 @@ function attachResponseSniffer(
     logger.info(`VB: media URL intercepted (by ${how})`, { logId, url: mediaUrl.slice(0, 120), type, ...extra });
     onFound(mediaUrl, type);
   };
+  // Ad candidates are logged then dropped, WITHOUT setting `found` — the real video is expected
+  // to load right after, and the listener must keep watching for it.
+  const rejectAsAd = (mediaUrl: string, type: 'mp4' | 'hls', reason: string, extra?: Record<string, unknown>) => {
+    logger.info('VB: media candidate rejected as likely ad (too short)', { logId, url: mediaUrl.slice(0, 120), type, reason, ...extra });
+  };
+
+  const verifyAndHit = async (mediaUrl: string, type: 'mp4' | 'hls', how: string, response: import('playwright-chromium').Response) => {
+    if (type === 'hls') {
+      try {
+        const text = await response.text();
+        const secs = sumHlsDurationSecs(text);
+        // 0 means no #EXTINF tags at all (e.g. a master playlist listing variant streams, not
+        // segments itself) — can't measure it, accept rather than false-reject real content.
+        if (secs > 0 && secs < MIN_HLS_DURATION_SECS) {
+          rejectAsAd(mediaUrl, type, 'hls_duration', { secs: Math.round(secs) });
+          return;
+        }
+      } catch {
+        // Body unavailable — fall through and accept rather than get stuck never finding media.
+      }
+      hit(mediaUrl, type, how);
+      return;
+    }
+    // mp4
+    const contentLength = parseInt(response.headers()['content-length'] ?? '', 10);
+    if (!Number.isNaN(contentLength) && contentLength < MIN_MP4_BYTES) {
+      rejectAsAd(mediaUrl, type, 'mp4_size', { bytes: contentLength });
+      return;
+    }
+    hit(mediaUrl, type, how);
+  };
 
   page.on('response', (response) => {
-    if (found) return; // first match wins — ignore anything after
+    if (found) return; // first ACCEPTED match wins — ad rejections above don't set this
     const respUrl = response.url();
     const ext = matchMediaExtension(respUrl);
     if (ext) {
-      hit(respUrl, classifyMediaUrl(ext), 'extension');
+      void verifyAndHit(respUrl, classifyMediaUrl(ext), 'extension', response);
       return;
     }
     // No recognizable extension (opaque path like /api/stream/get?id=123) — fall back to
@@ -175,7 +228,7 @@ function attachResponseSniffer(
     const headers = response.headers();
     const contentType = headers['content-type'] ?? '';
     if (MEDIA_CONTENT_TYPE_RE.test(contentType)) {
-      hit(respUrl, classifyMediaContentType(contentType), 'content-type', { contentType });
+      void verifyAndHit(respUrl, classifyMediaContentType(contentType), 'content-type', response);
       return;
     }
     // Still nothing — the site may be lying about Content-Type on purpose to dodge exactly
@@ -187,7 +240,7 @@ function attachResponseSniffer(
     void response.body().then((body) => {
       if (found) return;
       const type = sniffMagicBytes(body);
-      if (type) hit(respUrl, type, 'magic bytes');
+      if (type) void verifyAndHit(respUrl, type, 'magic bytes', response);
     }).catch(() => { /* body unavailable (redirected/aborted) — skip */ });
   });
 }
