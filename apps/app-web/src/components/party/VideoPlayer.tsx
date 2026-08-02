@@ -665,10 +665,10 @@ function NativeVideoPlayer({
               {/* Spacer */}
               <div className="flex-1" />
 
-              {/* Non-owner indicator */}
+              {/* Non-owner indicator — was hardcoded English "viewing" regardless of app locale */}
               {!isOwner && (
-                <span className="text-[10px] text-white/30 font-medium uppercase tracking-wide flex-shrink-0">
-                  viewing
+                <span className="text-[10px] text-white/30 font-medium flex-shrink-0">
+                  {t('playerViewing')}
                 </span>
               )}
 

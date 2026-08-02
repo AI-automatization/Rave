@@ -334,6 +334,42 @@ export const registerRoomEvents = (
     }
   });
 
+  // Mirror of MUTE_MEMBER — was previously mute-only with no way for the owner to lift it
+  // again short of the target manually leaving/rejoining voice.
+  socket.on(CLIENT_EVENTS.UNMUTE_MEMBER, async (data: { targetUserId: string }) => {
+    if (!authSocket.roomId) return;
+
+    try {
+      const room = await watchPartyService.getRoom(authSocket.roomId);
+      if (room.ownerId !== userId) {
+        socket.emit(SERVER_EVENTS.ERROR, { message: 'Only the room owner can unmute members' });
+        return;
+      }
+
+      if (!room.members.includes(data.targetUserId)) {
+        socket.emit(SERVER_EVENTS.ERROR, { message: 'User is not a room member' });
+        return;
+      }
+
+      await watchPartyService.setMuteState(authSocket.roomId, data.targetUserId, false);
+
+      io.to(authSocket.roomId).emit(SERVER_EVENTS.MEMBER_UNMUTED, {
+        userId: data.targetUserId,
+        unmutedBy: userId,
+        timestamp: Date.now(),
+      });
+
+      logger.info('Member unmuted in watch party', {
+        roomId: authSocket.roomId,
+        targetUserId: data.targetUserId,
+        unmutedBy: userId,
+      });
+    } catch (error) {
+      socket.emit(SERVER_EVENTS.ERROR, { message: 'Failed to unmute member' });
+      logger.error('Socket unmute error', { userId, error });
+    }
+  });
+
   // ── Admin monitoring join — bypasses member check, observer-only ──────────
   socket.on(CLIENT_EVENTS.ADMIN_JOIN_ROOM, async (data: { roomId: string }) => {
     const role = authSocket.user.role as string;

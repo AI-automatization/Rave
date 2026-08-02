@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, LogIn, WifiOff, RefreshCw, Play, TrendingUp, Users, Tv } from 'lucide-react';
+import { Plus, LogIn, WifiOff, RefreshCw, Play, Users2 } from 'lucide-react';
 import { motion, useReducedMotion } from 'framer-motion';
 
 import { useTranslations } from 'next-intl';
@@ -107,31 +107,41 @@ export function HomeContent() {
   return (
     <div className="flex flex-col gap-8 max-w-5xl mx-auto">
 
-      {/* ── Header + actions ── */}
-      <div className="flex items-start justify-between gap-4 pt-1">
-        <div>
-          <h1 className="text-lg font-semibold text-white">
-            {user?.username ?? 'WeWatch'}
-          </h1>
-        </div>
+      {/* ── Page title ── */}
+      <div className="flex flex-col gap-1 pt-1">
+        <h1 className="text-2xl font-bold text-white">{user?.username ? t('greeting', { name: user.username }) : t('title')}</h1>
+        <p className="text-zinc-500 text-sm">{t('subtitle')}</p>
+      </div>
 
-        <div className="flex items-center gap-2 mt-0.5">
-          <button
-            onClick={() => { trackClick('home:open_join_dialog'); setJoinOpen(true); }}
-            className="h-8 px-3.5 rounded-md text-xs font-medium text-zinc-300 border border-white/[0.08] hover:bg-white/[0.06] hover:border-white/[0.14] transition-all cursor-pointer flex items-center gap-1.5"
-            style={{ background: 'rgba(255,255,255,0.03)' }}
-          >
-            <LogIn size={12} />
-            {t('join')}
-          </button>
-          <button
-            onClick={() => { trackClick('home:open_create_dialog'); setCreateOpen(true); }}
-            className="h-8 px-3.5 rounded-md text-xs font-semibold text-white bg-violet-600 hover:bg-violet-500 transition-colors cursor-pointer flex items-center gap-1.5 active:scale-[0.97]"
-          >
-            <Plus size={12} />
-            {t('create')}
-          </button>
-        </div>
+      {/* ── One primary action, not two equal ones. A user arrives wanting to do exactly one
+          thing — create a room and watch with friends. Presenting Create/Join as two
+          same-weight tiles made the user pause and parse which one they needed; there is
+          only one thing most visitors are here for, so it gets the big unmistakable button,
+          and joining an existing invite is a secondary, deliberately smaller action underneath
+          it — not a second equally-weighted choice. ── */}
+      <div className="flex flex-col gap-3">
+        <button
+          onClick={() => { trackClick('home:open_create_dialog'); setCreateOpen(true); }}
+          className="liquid-glass p-5 flex items-center gap-4 text-left cursor-pointer transition-all hover:border-violet-500/30 group"
+        >
+          <div className="w-12 h-12 rounded-xl bg-violet-600 flex items-center justify-center shrink-0 shadow-[0_0_20px_rgba(124,58,237,0.35)] group-hover:shadow-[0_0_26px_rgba(124,58,237,0.5)] transition-shadow">
+            <Plus size={22} className="text-white" />
+          </div>
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <p className="text-white font-semibold text-[15px]">{t('create')}</p>
+            <p className="text-zinc-500 text-[13px] truncate">{t('createTileDesc')}</p>
+          </div>
+        </button>
+
+        <button
+          onClick={() => { trackClick('home:open_join_dialog'); setJoinOpen(true); }}
+          className="flex items-center gap-2.5 text-left cursor-pointer group px-1"
+        >
+          <LogIn size={14} className="text-zinc-500 group-hover:text-zinc-300 transition-colors shrink-0" />
+          <span className="text-zinc-500 group-hover:text-zinc-300 transition-colors text-[13px]">
+            {t('alreadyHaveInvite')} <span className="text-violet-400 font-medium">{t('join')}</span>
+          </span>
+        </button>
       </div>
 
       {/* ── Quick stats (only when there's data) ── */}
@@ -202,48 +212,22 @@ export function HomeContent() {
         </div>
       )}
 
-      {/* ── Empty state — was a huge p-12 box with just an icon/text/button floating in the
-          middle of a lot of dead space. Tightened the padding and filled the remaining room
-          with an actual 3-step "how it works" strip instead of empty air. ── */}
-      {!isLoading && !isError && (!rooms || rooms.length === 0) && (
-        <div className="liquid-glass p-8 flex flex-col items-center gap-4 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
-            <TrendingUp size={22} className="text-violet-400" />
-          </div>
-          <div className="flex flex-col gap-1">
-            <p className="text-white font-semibold text-base">{t('empty')}</p>
-            <p className="text-zinc-500 text-sm max-w-xs">{t('emptyDesc')}</p>
-          </div>
-          <button
-            onClick={() => { trackClick('home:empty_state_create'); setCreateOpen(true); }}
-            className="h-10 px-6 rounded-lg text-sm font-semibold text-white bg-violet-600 hover:bg-violet-500 cursor-pointer active:scale-[0.97] transition-all flex items-center gap-2 mt-1 shadow-[0_0_24px_rgba(124,58,237,0.28)] hover:shadow-[0_0_28px_rgba(124,58,237,0.4)]"
-          >
-            <Plus size={14} />
-            {t('createFirst')}
-          </button>
-
-          <div className="w-full max-w-sm h-px my-1 mt-6" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)' }} />
-
-          <div className="w-full max-w-sm grid grid-cols-3 gap-3">
-            {[
-              { icon: Plus, label: t('step1'), color: '#7C3AED', bg: 'bg-violet-500/[0.1]', border: 'border-violet-500/[0.2]' },
-              { icon: Users, label: t('step2'), color: '#22D3EE', bg: 'bg-cyan-500/[0.1]', border: 'border-cyan-500/[0.2]' },
-              { icon: Tv, label: t('step3'), color: '#34D399', bg: 'bg-emerald-500/[0.1]', border: 'border-emerald-500/[0.2]' },
-            ].map(({ icon: Icon, label, color, bg, border }, i) => (
-              <div key={i} className="flex flex-col items-center gap-2">
-                <div className={`relative w-10 h-10 rounded-full ${bg} border ${border} flex items-center justify-center`}>
-                  <Icon size={15} style={{ color }} />
-                  <span
-                    className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#0C0B18] border border-white/[0.1] flex items-center justify-center text-[9px] font-bold text-zinc-400"
-                  >
-                    {i + 1}
-                  </span>
-                </div>
-                <p className="text-[11px] text-zinc-400 leading-tight font-medium">{label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
+      {/* ── My Rooms — plain section, own header, so it reads as a distinct place on the
+          page rather than a continuation of the action tiles above. Empty state here is
+          deliberately quiet: icon + one line, no repeated CTA (the two tiles above already
+          are the CTA) and no decorative mockups — this section's only job is to answer
+          "do I have any rooms," not to sell the feature a second time. ── */}
+      {!isLoading && !isError && (
+        <section className="flex flex-col gap-4">
+          <SectionHeader label={t('myRooms')} count={hasRooms ? rooms?.length : undefined} />
+          {!hasRooms && (
+            <div className="liquid-glass-sm flex flex-col items-center justify-center gap-2.5 py-14 text-center">
+              <Users2 size={20} className="text-zinc-700" />
+              <p className="text-zinc-300 font-medium text-sm">{t('empty')}</p>
+              <p className="text-zinc-600 text-xs max-w-xs">{t('emptyDesc')}</p>
+            </div>
+          )}
+        </section>
       )}
 
       {/* ── LIVE NOW ── */}

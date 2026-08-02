@@ -7,6 +7,11 @@ import { TrackedTouchable } from '@components/common/TrackedTouchable';
 interface RoomInfoBarProps {
   roomName: string;
   memberCount: number;
+  /** Localized "participants" suffix — was hardcoded Uzbek ("ishtirokchi") regardless of the
+   * app's selected language; caller now passes t('watchParty', 'participantsSuffix'). */
+  participantsLabel: string;
+  /** Localized "Owner" badge text — was hardcoded Uzbek ("Egasi") for the same reason. */
+  ownerLabel: string;
   /** p2p/turn = mesh DataChannel is carrying sync (turn = routed via TURN relay, not direct);
    * socket = mesh silent/unavailable, server relay in use. See useWatchParty's activeTransport. */
   activeTransport?: 'p2p' | 'turn' | 'socket';
@@ -31,6 +36,8 @@ const TRANSPORT_META = {
 export const RoomInfoBar = React.memo(function RoomInfoBar({
   roomName,
   memberCount,
+  participantsLabel,
+  ownerLabel,
   activeTransport,
   isOwner,
   hasMessages,
@@ -53,12 +60,12 @@ export const RoomInfoBar = React.memo(function RoomInfoBar({
           <Text style={s.roomName} numberOfLines={1}>{roomName}</Text>
           <View style={s.metaRow}>
             <Ionicons name="people" size={11} color="rgba(255,255,255,0.35)" />
-            <Text style={s.metaText}>{memberCount} ishtirokchi</Text>
+            <Text style={s.metaText}>{memberCount} {participantsLabel}</Text>
             {isOwner && (
               <>
                 <View style={s.separator} />
                 <Ionicons name="star" size={10} color="#FFD700" />
-                <Text style={s.ownerLabel}>Egasi</Text>
+                <Text style={s.ownerLabel}>{ownerLabel}</Text>
               </>
             )}
             {transport && (

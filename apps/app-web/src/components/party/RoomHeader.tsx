@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { LogOut, Share2 } from 'lucide-react';
+import { LogOut, Share2, MoreVertical } from 'lucide-react';
 import { useWatchPartyStore } from '@/store/watch-party.store';
 import { useAuthStore } from '@/store/auth.store';
 import { useTranslations } from 'next-intl';
@@ -12,6 +12,9 @@ import { LeaveRoomDialog } from '@/components/party/LeaveRoomDialog';
 import { toast } from '@/store/toast.store';
 import { trackClick } from '@/lib/analytics';
 import { avatarColor } from '@/lib/utils';
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
+} from '@/components/ui/dropdown-menu';
 
 export function RoomHeader() {
   const t = useTranslations('party');
@@ -118,25 +121,45 @@ export function RoomHeader() {
                 </div>
               )}
             </div>
-            <span className="text-[11px] text-slate-500">{memberCount}</span>
+            <span className="text-[11px] text-slate-500">{memberCount} {t('members').toLowerCase()}</span>
           </div>
         </div>
 
         <div className="flex items-center gap-1.5">
+          {/* Primary action — renamed from "Ссылка" (link? copy? share? — unclear what happens)
+              to "Пригласить" (invite), which names the outcome instead of the mechanism. */}
           <button
             onClick={() => { trackClick('room:open_invite'); setInviteOpen(true); }}
-            className="h-8 px-3 rounded-lg text-xs font-medium text-zinc-300 bg-white/[0.05] border border-white/[0.09] hover:bg-white/[0.1] transition-colors flex items-center gap-1.5 cursor-pointer"
+            className="h-8 px-3 rounded-lg text-xs font-medium text-white bg-violet-600 hover:bg-violet-500 transition-colors flex items-center gap-1.5 cursor-pointer"
           >
             <Share2 size={12} />
-            {t('link')}
+            {t('invite')}
           </button>
-          <button
-            onClick={() => { void handleLeaveClick(); }}
-            className="h-8 px-3 rounded-lg text-xs font-medium text-red-400 bg-red-500/[0.07] border border-red-500/[0.15] hover:bg-red-500/[0.14] transition-colors flex items-center gap-1.5 cursor-pointer"
-          >
-            <LogOut size={12} />
-            {t('leave')}
-          </button>
+
+          {/* Leave used to sit at the same visual weight as Invite (same size, one bg-color swap
+              away from looking like a co-equal action) — real-user feedback flagged this as a
+              destructive action reading as just another primary button. Tucked behind an
+              overflow menu instead, same "dangerous action lives in a secondary spot" pattern
+              already used for logout elsewhere in this app (AppNav account popover). */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                aria-label={t('leave')}
+                className="h-8 w-8 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.06] transition-colors flex items-center justify-center cursor-pointer"
+              >
+                <MoreVertical size={15} />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-[#16162a] border-white/[0.08] text-white/90">
+              <DropdownMenuItem
+                onClick={() => { void handleLeaveClick(); }}
+                className="text-red-400 focus:bg-red-500/[0.1] focus:text-red-400 cursor-pointer"
+              >
+                <LogOut size={13} className="mr-2" />
+                {t('leave')}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 

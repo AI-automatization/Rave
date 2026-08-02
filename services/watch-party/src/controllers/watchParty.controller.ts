@@ -8,7 +8,7 @@ import { SERVER_EVENTS } from '@shared/constants/socketEvents';
 import { WatchPartyRoom } from '../models/watchPartyRoom.model';
 import { logger } from '@shared/utils/logger';
 import { getAppSetting } from '@shared/utils/appSettings';
-import { ForbiddenError } from '@shared/utils/errors';
+import { ForbiddenError, NotFoundError } from '@shared/utils/errors';
 import { startVBForRoom } from '../socket/vbSession.helper';
 
 export class WatchPartyController {
@@ -106,6 +106,14 @@ export class WatchPartyController {
   getRoom = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const room = await this.watchPartyService.getRoom(req.params.id);
+      // Private rooms were fully readable by any authenticated user who had the room ID —
+      // verifyToken only checks "logged in", not "belongs to this room". Membership/ownership
+      // is required for a private room; 404 (not 403) so a non-member can't even confirm the
+      // room exists — same reasoning as the join flow already uses for a bad invite code.
+      const { userId } = (req as AuthenticatedRequest).user;
+      if (room.isPrivate && room.ownerId !== userId && !room.members.includes(userId)) {
+        throw new NotFoundError('Room not found');
+      }
       res.json(apiResponse.success(room));
     } catch (error) {
       next(error);

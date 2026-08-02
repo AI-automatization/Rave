@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useCallback, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useQueryClient } from '@tanstack/react-query';
@@ -83,6 +83,11 @@ export function useWatchParty(roomId: string) {
   // Subtract it from any server wall-clock timestamp to get the equivalent local-clock instant.
   const serverClockOffsetRef = useRef(0);
 
+  // Floating emoji reactions (rendered over the video by the caller) — ephemeral, not part of
+  // useWatchPartyStore's persisted room state, so plain useState is enough here.
+  const [reactions, setReactions] = useState<{ id: string; emoji: string; userId: string }[]>([]);
+  const reactionIdRef = useRef(0);
+
   // Join room
   useEffect(() => {
     if (!socket || !isConnected) return;
@@ -148,6 +153,19 @@ export function useWatchParty(roomId: string) {
         timestamp: raw.timestamp,
         replyTo: raw.replyTo,
       });
+    });
+
+    // ROOM_EMOJI (chatEvents.handler.ts SEND_EMOJI handler) — broadcast to everyone including
+    // the sender. Was emit-only on this client before (EmojiReactions.tsx sends, nothing ever
+    // listened for the broadcast back) — reactions silently went nowhere. reactionIdRef keeps
+    // keys unique even if two reactions land in the same millisecond.
+    socket.on(SERVER_EVENTS.ROOM_EMOJI, (data: { userId: string; emoji: string; timestamp: number }) => {
+      const id = `${data.timestamp}-${reactionIdRef.current++}`;
+      setReactions((prev) => [...prev, { id, emoji: data.emoji, userId: data.userId }]);
+      // Auto-clear — these are a transient floating-over-video effect, not a persisted log.
+      setTimeout(() => {
+        setReactions((prev) => prev.filter((r) => r.id !== id));
+      }, 2600);
     });
 
     // Server sends syncState directly as payload (match mobile pattern). serverTimestamp is
@@ -226,6 +244,7 @@ export function useWatchParty(roomId: string) {
       socket.off(SERVER_EVENTS.MEMBER_JOINED);
       socket.off(SERVER_EVENTS.MEMBER_LEFT);
       socket.off(SERVER_EVENTS.ROOM_MESSAGE);
+      socket.off(SERVER_EVENTS.ROOM_EMOJI);
       socket.off(SERVER_EVENTS.VIDEO_PLAY);
       socket.off(SERVER_EVENTS.VIDEO_PAUSE);
       socket.off(SERVER_EVENTS.VIDEO_SEEK);
@@ -265,6 +284,21 @@ export function useWatchParty(roomId: string) {
     socket?.emit(CLIENT_EVENTS.SEND_EMOJI, { roomId, emoji });
   }, [socket, roomId]);
 
+  // Owner moderation — backend (roomEvents.handler.ts) already enforced owner-only + validated
+  // membership server-side for all three; this client just needed to actually send them. No UI
+  // called KICK_MEMBER/MUTE_MEMBER on any platform before this.
+  const kickMember = useCallback((targetUserId: string) => {
+    socket?.emit(CLIENT_EVENTS.KICK_MEMBER, { targetUserId });
+  }, [socket]);
+
+  const muteMember = useCallback((targetUserId: string) => {
+    socket?.emit(CLIENT_EVENTS.MUTE_MEMBER, { targetUserId });
+  }, [socket]);
+
+  const unmuteMember = useCallback((targetUserId: string) => {
+    socket?.emit(CLIENT_EVENTS.UNMUTE_MEMBER, { targetUserId });
+  }, [socket]);
+
   const sendHeartbeat = useCallback((currentTime: number) => {
     socket?.emit(CLIENT_EVENTS.HEARTBEAT, { roomId, currentTime });
   }, [socket, roomId]);
@@ -285,6 +319,7 @@ export function useWatchParty(roomId: string) {
 
   return {
     isConnected,
+    reactions,
     sendMessage,
     sendPlay,
     sendPause,
@@ -294,5 +329,8 @@ export function useWatchParty(roomId: string) {
     sendBufferStart,
     sendBufferEnd,
     sendMediaChange,
+    kickMember,
+    muteMember,
+    unmuteMember,
   };
 }

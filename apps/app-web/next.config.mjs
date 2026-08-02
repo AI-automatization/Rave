@@ -61,7 +61,15 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https:",
               "font-src 'self' data: https://fonts.gstatic.com",
-              "connect-src 'self' https: wss:",
+              // 2026-08-02: local LAN dev testing (phone + laptop against a Mac's plain-HTTP dev
+              // server) surfaced that this only ever allowed `wss:` — production's watch-party
+              // connection is always TLS (Railway), so this never mattered there. But a dev server
+              // with no TLS makes socket.io-client fall back to `ws:` (unencrypted), which this
+              // policy silently blocked with zero server-side trace (the browser drops the request
+              // before it ever leaves the machine) — looked exactly like "sync doesn't work" with
+              // nothing in any log to explain why. `ws:`/`http:` only added in development so
+              // production's policy is unchanged.
+              `connect-src 'self' https: wss:${process.env.NODE_ENV === 'development' ? ' http: ws:' : ''}`,
               // PeerTube is federated (any domain can run an instance) — frame-src needs exact
               // domains, so this starter list only covers well-known Framasoft-adjacent instances.
               // A link from an instance not listed here gets silently blocked by the browser, not
