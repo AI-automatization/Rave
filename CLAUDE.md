@@ -310,10 +310,18 @@ Multi-Agent: `.claude/locks/shared-{zone}.lock` (TTL 30 мин).
 ## GIT ПРАВИЛА
 
 ```
-Branch: saidazim/feat-xxx | emirhan/feat-xxx
+Branch: saidazim/feat-xxx | emirhan/feat-xxx — от dev, не от main
 Commits: feat(auth): ... | fix(watch-party): ... | refactor(content): ...
-main → production (protected) | develop → integration
+main → production. ПРЯМОЙ push в main запрещён ВСЕМ (2026-08-02, включая Saidazim/Emirhan) —
+  только через PR, approve только от Emirhan или Saidazim (.github/CODEOWNERS,
+  require_code_owner_reviews). Ветка блокировки без bypass — enforce_admins тоже включён.
+dev → интеграционная ветка, все фичи пушатся сюда, потом PR dev→main.
 ```
+
+> Каждый Railway-сервис настроен на watchPatterns (services/<name>/**, apps/<name>/**, +
+> shared/**) — push, не задевающий папку сервиса, больше не пересобирает его. Только apps/web
+> ("web" в Railway) пока не привязан к своему railway.toml через Config File Path в дашборде —
+> апдейт watchPatterns там не сработает, пока это не поправят руками в Railway UI.
 
 ---
 
