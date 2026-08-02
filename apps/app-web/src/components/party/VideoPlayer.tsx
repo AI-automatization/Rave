@@ -215,7 +215,40 @@ async function extractVideoUrl(url: string): Promise<ExtractResult> {
   return data.data;
 }
 
-function buildProxyUrl(cdnUrl: string, headers?: Record<string, string>): string {
+// bl.rutube.ru signs its HLS URLs to an IP — confirmed live 2026-08-02 (real VB catch, watch-party
+// service logs) that our own proxy-stream (running on app-web) gets a 403 fetching it, while
+// content-service's existing hls-proxy (services/content/src/controllers/hlsProxy.controller.ts —
+// SSRF-guarded, DNS-rebinding-protected, already used for the mobile HLS path) fetches the exact
+// same URL fine — verified with a direct curl test against both before writing this. Whatever
+// Rutube's lock actually keys on, content-service's proxy already satisfies it and app-web's
+// doesn't; route through the proven one instead of debugging app-web's from scratch.
+const IP_LOCKED_CDN_HOSTS = [/(^|\.)rutube\.ru$/i];
+
+function isIpLockedCdn(cdnUrl: string): boolean {
+  try {
+    const host = new URL(cdnUrl).hostname;
+    return IP_LOCKED_CDN_HOSTS.some((re) => re.test(host));
+  } catch {
+    return false;
+  }
+}
+
+async function buildProxyUrl(cdnUrl: string, headers?: Record<string, string>): Promise<string> {
+  if (isIpLockedCdn(cdnUrl)) {
+    const contentBase = process.env.NEXT_PUBLIC_CONTENT_SERVICE_URL;
+    if (contentBase) {
+      try {
+        const res = await fetch('/api/auth/token', { credentials: 'include' });
+        const data = (await res.json()) as { data?: { token?: string } };
+        const token = data.data?.token;
+        if (token) {
+          return `${contentBase}/hls-proxy?url=${encodeURIComponent(cdnUrl)}&referer=${encodeURIComponent(cdnUrl)}&token=${encodeURIComponent(token)}`;
+        }
+      } catch {
+        // Fall through to the normal proxy below rather than leave the player with no src at all.
+      }
+    }
+  }
   const h = headers ? encodeURIComponent(JSON.stringify(headers)) : '';
   return `/api/content/proxy-stream?url=${encodeURIComponent(cdnUrl)}&h=${h}`;
 }
@@ -729,8 +762,8 @@ export function VideoPlayer({
     setExtracting(true);
 
     extractVideoUrl(videoUrl)
-      .then((result) => {
-        setProxySrc(buildProxyUrl(result.videoUrl, result.httpHeaders));
+      .then(async (result) => {
+        setProxySrc(await buildProxyUrl(result.videoUrl, result.httpHeaders));
         setIsHls(result.type === 'hls');
         setExtractPoster(result.poster);
       })
