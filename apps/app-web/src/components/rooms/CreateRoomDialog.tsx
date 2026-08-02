@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, Globe, ArrowRight, Users, X, ExternalLink, Search } from 'lucide-react';
+import { Loader2, Globe, ArrowRight, ArrowLeft, Users, X, ExternalLink, Search, ChevronDown, Link2, Lock } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -309,6 +309,12 @@ function fmtDuration(s: number | undefined): string | null {
     : `${m}:${sec.toString().padStart(2, '0')}`;
 }
 
+/* ── Top sources shown up-front — the rest live behind "Other sources". A user thinks "what
+   are we watching", not "which of these 12 logos is mine" — narrowing the first-glance choice
+   to the platforms people actually use most keeps the decision fast without removing anything
+   (Rutube/Vimeo/etc. are one click away under the toggle, not deleted). ── */
+const TOP_PLATFORM_IDS = ['youtube', 'tiktok', 'vk', 'twitch'];
+
 /* ── Component ────────────────────────────────────────── */
 export function CreateRoomDialog({ open, onOpenChange }: Props) {
   const t = useTranslations('room');
@@ -316,6 +322,7 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
   const router = useRouter();
   const createRoom = useCreateRoom();
 
+  const [step, setStep]                       = useState<1 | 2>(1);
   const [videoUrl, setVideoUrl]               = useState('');
   const [videoTitle, setVideoTitle]           = useState('');
   const [videoThumbnail, setVideoThumbnail]   = useState<string | null>(null);
@@ -324,6 +331,9 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
   const [titleLoading, setTitleLoading]       = useState(false);
   const [searchQuery, setSearchQuery]         = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [showOtherSources, setShowOtherSources] = useState(false);
+  const [roomName, setRoomName]               = useState('');
+  const [isPrivate, setIsPrivate]             = useState(false);
 
   const urlRef        = useRef<HTMLInputElement>(null);
   const searchRef     = useRef<HTMLInputElement>(null);
@@ -356,6 +366,20 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
     setActivePlatform(detectPlatform(item.url));
     setSearchQuery('');
     prefetchExtraction(item.url);
+    setRoomName(item.title.slice(0, 60));
+    setStep(2);
+  }
+
+  /* ── Advance to step 2 (room name + visibility) — pre-fills the editable name from whatever
+     title we resolved in step 1, but only once (roomName stays untouched if the user already
+     typed something and goes back-and-forth between steps).
+     No "create without video" path — the backend requires either movieId or videoUrl on every
+     room (services/watch-party/src/services/watchParty.service.ts:90-92, BadRequestError if
+     both are missing), confirmed live: the old "Создать без видео" button 400'd every time. ── */
+  function goToStep2() {
+    trackClick('create_room:go_step2');
+    setRoomName((prev) => prev || videoTitle.slice(0, 60));
+    setStep(2);
   }
 
   /* ── Clipboard auto-detect on open ────────────────── */
@@ -428,8 +452,8 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
   }
 
   /* ── Create room ────────────────────────────────────── */
-  async function handleCreate(withoutVideo = false) {
-    trackClick('create_room:submit', { withoutVideo });
+  async function handleCreate() {
+    trackClick('create_room:submit', { isPrivate });
     try {
       const backendPlatform = activePlatform?.id
         ? (PLATFORM_TO_BACKEND[activePlatform.id] ?? 'other')
@@ -446,11 +470,12 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
       const safeThumbnail = videoThumbnail ? toAbsoluteThumbnailUrl(videoThumbnail) : null;
       const res = await createRoom.mutateAsync({
         // Backend `name` caps at 80 chars (Joi) — trim here, mirrors mobile's useMediaDetection slice(0, 60)
-        name:             videoTitle ? videoTitle.slice(0, 60) : undefined,
-        videoUrl:         withoutVideo ? undefined : (normalizedVideoUrl || undefined),
-        videoTitle:       withoutVideo ? undefined : (videoTitle || undefined),
-        videoThumbnail:   withoutVideo ? undefined : (safeThumbnail || undefined),
-        videoPlatform:    withoutVideo ? undefined : backendPlatform,
+        name:             roomName ? roomName.slice(0, 60) : undefined,
+        videoUrl:         normalizedVideoUrl || undefined,
+        videoTitle:       videoTitle || undefined,
+        videoThumbnail:   safeThumbnail || undefined,
+        videoPlatform:    backendPlatform,
+        isPrivate,
       });
       onOpenChange(false);
       const id = res.data?._id;
@@ -459,8 +484,7 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
       // so it can't run the extraction-pipeline-then-VB-fallback check itself (see
       // roomEvents.handler.ts's CHANGE_MEDIA handler). Without this, a URL that needs VB would
       // just sit there showing "failed to load video" forever instead of falling back.
-      const hasVideo = !withoutVideo && !!(normalizedVideoUrl || undefined);
-      if (id) router.push(hasVideo ? `/room/${id}?verify=1` : `/room/${id}`);
+      if (id) router.push(normalizedVideoUrl ? `/room/${id}?verify=1` : `/room/${id}`);
     } catch (err) {
       // Backend enforces one active room per owner (T-S108): a 409 ROOM_ALREADY_EXISTS means the
       // user already has an open room. Reopen it instead of failing silently (mirrors mobile) —
@@ -482,6 +506,7 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
     onOpenChange(false);
     clearTimeout(titleTimer.current);
     clearTimeout(prefetchTimer.current);
+    setStep(1);
     setVideoUrl('');
     setVideoTitle('');
     setVideoThumbnail(null);
@@ -489,6 +514,9 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
     setClipDetected(false);
     setTitleLoading(false);
     setSearchQuery('');
+    setShowOtherSources(false);
+    setRoomName('');
+    setIsPrivate(false);
   }
 
   const hintText = activePlatform
@@ -497,6 +525,10 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
       : `${t('hintPlatform')} (${activePlatform.name})`
     : null;
 
+  const topPlatforms = PLATFORMS.filter(p => TOP_PLATFORM_IDS.includes(p.id));
+  const otherPlatforms = PLATFORMS.filter(p => !TOP_PLATFORM_IDS.includes(p.id));
+  const canAdvance = !!videoUrl && !titleLoading;
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="bg-[#0C0B18] border-white/[0.07] text-white max-w-[620px] p-0 overflow-hidden rounded-2xl">
@@ -504,204 +536,345 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
         {/* Header */}
         <DialogHeader className="px-6 pt-6 pb-0">
           <DialogTitle className="text-[15px] font-semibold text-white text-center">
-            {t('sourceTitle')}
+            {step === 1 ? t('whatToWatch') : t('createTitle')}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex flex-col gap-4 px-5 pb-5 pt-4">
+        {step === 1 && (
+          <div className="flex flex-col gap-4 px-5 pb-5 pt-4">
 
-          {/* Clipboard detected banner */}
-          {clipDetected && (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-violet-500/10 border border-violet-500/20 text-[12px] text-violet-300">
-              <span className="shrink-0">📋</span>
-              <span className="flex-1 truncate">{t('clipboardDetected')}</span>
+            {/* Clipboard detected banner */}
+            {clipDetected && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-violet-500/10 border border-violet-500/20 text-[12px] text-violet-300">
+                <span className="shrink-0">📋</span>
+                <span className="flex-1 truncate">{t('clipboardDetected')}</span>
+                <button
+                  onClick={() => { setClipDetected(false); setVideoUrl(''); setVideoTitle(''); setActivePlatform(null); }}
+                  className="shrink-0 opacity-60 hover:opacity-100 transition-opacity"
+                >
+                  <X size={13} />
+                </button>
+              </div>
+            )}
+
+            {/* URL input row — arrow now advances to step 2 (room name + visibility) instead of
+                creating immediately, so every room (video or not) goes through the same "who can
+                join" question. */}
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                {activePlatform && (
+                  <span
+                    className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none flex items-center"
+                    style={{ color: activePlatform.color }}
+                  >
+                    {activePlatform.renderIcon(16)}
+                  </span>
+                )}
+                <input
+                  ref={urlRef}
+                  type="url"
+                  value={videoUrl}
+                  onChange={e => handleUrlChange(e.target.value)}
+                  placeholder="https://..."
+                  className="w-full h-12 bg-[#111118] border border-white/[0.08] rounded-xl text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/20 transition-all"
+                  style={{ paddingLeft: activePlatform ? '2.5rem' : '1rem', paddingRight: '1rem' }}
+                />
+              </div>
               <button
-                onClick={() => { setClipDetected(false); setVideoUrl(''); setVideoTitle(''); setActivePlatform(null); }}
-                className="shrink-0 opacity-60 hover:opacity-100 transition-opacity"
+                onClick={goToStep2}
+                disabled={!canAdvance}
+                className="h-12 w-12 rounded-xl flex items-center justify-center shrink-0 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95"
+                style={{ background: 'linear-gradient(135deg,#7C3AED,#5B21B6)' }}
               >
-                <X size={13} />
+                {titleLoading
+                  ? <Loader2 size={18} className="animate-spin" />
+                  : <ArrowRight size={18} />}
               </button>
             </div>
-          )}
 
-          {/* URL input row */}
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              {activePlatform && (
-                <span
-                  className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none flex items-center"
-                  style={{ color: activePlatform.color }}
-                >
-                  {activePlatform.renderIcon(16)}
-                </span>
-              )}
+            {/* In-app search — YouTube/Rutube/VK, no need to leave the site to find a link */}
+            <div className="relative">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
               <input
-                ref={urlRef}
-                type="url"
-                value={videoUrl}
-                onChange={e => handleUrlChange(e.target.value)}
-                placeholder="https://..."
-                className="w-full h-12 bg-[#111118] border border-white/[0.08] rounded-xl text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/20 transition-all"
-                style={{ paddingLeft: activePlatform ? '2.5rem' : '1rem', paddingRight: '1rem' }}
+                ref={searchRef}
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder={t('searchPlaceholder')}
+                className="w-full h-11 pl-9 pr-3 bg-[#111118] border border-white/[0.08] rounded-xl text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/20 transition-all"
               />
             </div>
-            <button
-              onClick={() => void handleCreate()}
-              disabled={!videoUrl || createRoom.isPending}
-              className="h-12 w-12 rounded-xl flex items-center justify-center shrink-0 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95"
-              style={{ background: 'linear-gradient(135deg,#7C3AED,#5B21B6)' }}
-            >
-              {createRoom.isPending
-                ? <Loader2 size={18} className="animate-spin" />
-                : <ArrowRight size={18} />}
-            </button>
-          </div>
 
-          {/* In-app search — YouTube/Rutube/VK, no need to leave the site to find a link */}
-          <div className="relative">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
-            <input
-              ref={searchRef}
-              type="text"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder={t('searchPlaceholder')}
-              className="w-full h-11 pl-9 pr-3 bg-[#111118] border border-white/[0.08] rounded-xl text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/20 transition-all"
-            />
-          </div>
-
-          {debouncedSearch.length >= 2 && (
-            <div className="flex flex-col gap-0.5 max-h-64 overflow-y-auto rounded-xl border border-white/[0.06] bg-white/[0.02] p-1">
-              {searchLoading && (
-                <div className="flex items-center justify-center py-4">
-                  <Loader2 size={16} className="animate-spin text-slate-500" />
-                </div>
-              )}
-              {!searchLoading && searchResults.length === 0 && (
-                <p className="text-center py-4 text-[12px] text-slate-500">{t('searchNoResults')}</p>
-              )}
-              {!searchLoading && searchResults.map((item, idx) => {
-                const itemPlatform = PLATFORMS.find(p => p.id === item.platform);
-                return (
-                <button
-                  key={`${item.url}-${idx}`}
-                  onClick={() => handleSelectSearchResult(item)}
-                  className="flex items-center gap-2.5 p-1.5 rounded-lg hover:bg-white/[0.05] transition-colors text-left cursor-pointer"
-                >
-                  <div className="relative w-20 h-11 rounded-md overflow-hidden shrink-0 bg-black/40">
-                    {item.thumbnail && (
-                      // eslint-disable-next-line @next/next/no-img-element -- external thumbnails from arbitrary platforms, next/image domain allowlist not worth it here
-                      <img src={item.thumbnail} alt="" className="w-full h-full object-cover" />
-                    )}
-                    {fmtDuration(item.duration) && (
-                      <span className="absolute bottom-0.5 right-0.5 px-1 rounded bg-black/80 text-[9px] text-white tabular-nums">
-                        {fmtDuration(item.duration)}
-                      </span>
-                    )}
+            {debouncedSearch.length >= 2 && (
+              <div className="flex flex-col gap-0.5 max-h-64 overflow-y-auto rounded-xl border border-white/[0.06] bg-white/[0.02] p-1">
+                {searchLoading && (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 size={16} className="animate-spin text-slate-500" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[12px] text-slate-200 truncate leading-tight">{item.title}</p>
-                    <div className="flex items-center gap-1 mt-0.5">
-                      {itemPlatform && (
-                        <span style={{ color: itemPlatform.color }} className="shrink-0 flex items-center">
-                          {itemPlatform.renderIcon(10)}
+                )}
+                {!searchLoading && searchResults.length === 0 && (
+                  <p className="text-center py-4 text-[12px] text-slate-500">{t('searchNoResults')}</p>
+                )}
+                {!searchLoading && searchResults.map((item, idx) => {
+                  const itemPlatform = PLATFORMS.find(p => p.id === item.platform);
+                  return (
+                  <button
+                    key={`${item.url}-${idx}`}
+                    onClick={() => handleSelectSearchResult(item)}
+                    className="flex items-center gap-2.5 p-1.5 rounded-lg hover:bg-white/[0.05] transition-colors text-left cursor-pointer"
+                  >
+                    <div className="relative w-20 h-11 rounded-md overflow-hidden shrink-0 bg-black/40">
+                      {item.thumbnail && (
+                        // eslint-disable-next-line @next/next/no-img-element -- external thumbnails from arbitrary platforms, next/image domain allowlist not worth it here
+                        <img src={item.thumbnail} alt="" className="w-full h-full object-cover" />
+                      )}
+                      {fmtDuration(item.duration) && (
+                        <span className="absolute bottom-0.5 right-0.5 px-1 rounded bg-black/80 text-[9px] text-white tabular-nums">
+                          {fmtDuration(item.duration)}
                         </span>
                       )}
-                      <p className="text-[10px] text-slate-500">{itemPlatform?.name ?? item.platform}</p>
                     </div>
-                  </div>
-                </button>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12px] text-slate-200 truncate leading-tight">{item.title}</p>
+                      <div className="flex items-center gap-1 mt-0.5">
+                        {itemPlatform && (
+                          <span style={{ color: itemPlatform.color }} className="shrink-0 flex items-center">
+                            {itemPlatform.renderIcon(10)}
+                          </span>
+                        )}
+                        <p className="text-[10px] text-slate-500">{itemPlatform?.name ?? item.platform}</p>
+                      </div>
+                    </div>
+                  </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Video title preview */}
+            {(videoTitle || titleLoading) && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[12px]">
+                {titleLoading
+                  ? <Loader2 size={12} className="animate-spin text-slate-500 shrink-0" />
+                  : <span className="text-slate-500 shrink-0">▶</span>}
+                <span className="text-slate-300 truncate">{titleLoading ? '...' : videoTitle}</span>
+              </div>
+            )}
+
+            {/* Hint */}
+            {hintText && !clipDetected && (
+              <p className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                <ExternalLink size={11} className="shrink-0" />
+                {hintText}
+              </p>
+            )}
+
+            {/* Top sources — 4 columns, just the platforms most people actually use. Idle tile
+                carries a faint wash of the platform's own color (hexToRgba) instead of flat
+                neutral gray. Small search-glyph badge marks which platforms search in-app vs.
+                pop out a browser window. */}
+            <div className="grid grid-cols-4 gap-3">
+              {topPlatforms.map(platform => {
+                const isActive = activePlatform?.id === platform.id;
+                const canSearch = SEARCHABLE_PLATFORM_IDS.has(platform.id);
+                const idleBg = hexToRgba(platform.color, 0.05);
+                const idleBorder = hexToRgba(platform.color, 0.16);
+                return (
+                  <button
+                    key={platform.id}
+                    onClick={() => { trackClick('create_room:platform', { platform: platform.id }); handlePlatformClick(platform); }}
+                    className="relative flex flex-col items-center gap-2 py-3.5 px-2 rounded-2xl border transition-all duration-150 active:scale-95 cursor-pointer"
+                    style={{
+                      background: isActive ? platform.bg : idleBg,
+                      borderColor: isActive ? platform.border : idleBorder,
+                    }}
+                    onMouseEnter={e => {
+                      if (!isActive) {
+                        e.currentTarget.style.background = platform.bg;
+                        e.currentTarget.style.borderColor = platform.border;
+                      }
+                    }}
+                    onMouseLeave={e => {
+                      if (!isActive) {
+                        e.currentTarget.style.background = idleBg;
+                        e.currentTarget.style.borderColor = idleBorder;
+                      }
+                    }}
+                  >
+                    {canSearch && (
+                      <span
+                        className="absolute top-1.5 right-1.5 flex items-center justify-center w-4 h-4 rounded-full bg-white/[0.06]"
+                        title={t('searchAvailable')}
+                      >
+                        <Search size={9} className="text-zinc-400" />
+                      </span>
+                    )}
+                    <span style={{ color: platform.color }}>
+                      {platform.renderIcon(26)}
+                    </span>
+                    <span
+                      className="text-[10px] font-medium leading-none text-center"
+                      style={{ color: isActive ? '#e2e8f0' : '#64748b' }}
+                    >
+                      {platform.name}
+                    </span>
+                  </button>
                 );
               })}
             </div>
-          )}
 
-          {/* Video title preview */}
-          {(videoTitle || titleLoading) && (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[12px]">
-              {titleLoading
-                ? <Loader2 size={12} className="animate-spin text-slate-500 shrink-0" />
-                : <span className="text-slate-500 shrink-0">▶</span>}
-              <span className="text-slate-300 truncate">{titleLoading ? '...' : videoTitle}</span>
-            </div>
-          )}
+            {/* Other sources — collapsed by default (spec: don't make the user scan 12 logos
+                to answer "what are we watching"). Same tile treatment, just hidden until asked for. */}
+            <button
+              onClick={() => setShowOtherSources(v => !v)}
+              className="flex items-center justify-center gap-1.5 text-[12px] text-slate-500 hover:text-slate-300 transition-colors cursor-pointer py-1"
+            >
+              {t('otherSources')}
+              <ChevronDown size={13} className={`transition-transform ${showOtherSources ? 'rotate-180' : ''}`} />
+            </button>
 
-          {/* Hint */}
-          {hintText && !clipDetected && (
-            <p className="flex items-center gap-1.5 text-[11px] text-slate-500">
-              <ExternalLink size={11} className="shrink-0" />
-              {hintText}
-            </p>
-          )}
-
-          {/* Platform grid — 3 columns. Idle tile now carries a faint wash of the platform's
-              own color (hexToRgba) instead of flat neutral gray for every platform alike —
-              hover/active still escalate to the stronger platform.bg/border already tuned per
-              platform. Small search-glyph badge marks which platforms search in-app (this dialog's
-              own search box) vs. which pop out a browser window to find + paste a link. */}
-          <div className="grid grid-cols-3 gap-3">
-            {PLATFORMS.map(platform => {
-              const isActive = activePlatform?.id === platform.id;
-              const canSearch = SEARCHABLE_PLATFORM_IDS.has(platform.id);
-              const idleBg = hexToRgba(platform.color, 0.05);
-              const idleBorder = hexToRgba(platform.color, 0.16);
-              return (
-                <button
-                  key={platform.id}
-                  onClick={() => { trackClick('create_room:platform', { platform: platform.id }); handlePlatformClick(platform); }}
-                  className="relative flex flex-col items-center gap-2.5 py-4 px-2 rounded-2xl border transition-all duration-150 active:scale-95 cursor-pointer"
-                  style={{
-                    background: isActive ? platform.bg : idleBg,
-                    borderColor: isActive ? platform.border : idleBorder,
-                  }}
-                  onMouseEnter={e => {
-                    if (!isActive) {
-                      e.currentTarget.style.background = platform.bg;
-                      e.currentTarget.style.borderColor = platform.border;
-                    }
-                  }}
-                  onMouseLeave={e => {
-                    if (!isActive) {
-                      e.currentTarget.style.background = idleBg;
-                      e.currentTarget.style.borderColor = idleBorder;
-                    }
-                  }}
-                >
-                  {canSearch && (
-                    <span
-                      className="absolute top-2 right-2 flex items-center justify-center w-4 h-4 rounded-full bg-white/[0.06]"
-                      title={t('searchAvailable')}
+            {showOtherSources && (
+              <div className="grid grid-cols-4 gap-3">
+                {otherPlatforms.map(platform => {
+                  const isActive = activePlatform?.id === platform.id;
+                  const canSearch = SEARCHABLE_PLATFORM_IDS.has(platform.id);
+                  const idleBg = hexToRgba(platform.color, 0.05);
+                  const idleBorder = hexToRgba(platform.color, 0.16);
+                  return (
+                    <button
+                      key={platform.id}
+                      onClick={() => { trackClick('create_room:platform', { platform: platform.id }); handlePlatformClick(platform); }}
+                      className="relative flex flex-col items-center gap-2 py-3.5 px-2 rounded-2xl border transition-all duration-150 active:scale-95 cursor-pointer"
+                      style={{
+                        background: isActive ? platform.bg : idleBg,
+                        borderColor: isActive ? platform.border : idleBorder,
+                      }}
+                      onMouseEnter={e => {
+                        if (!isActive) {
+                          e.currentTarget.style.background = platform.bg;
+                          e.currentTarget.style.borderColor = platform.border;
+                        }
+                      }}
+                      onMouseLeave={e => {
+                        if (!isActive) {
+                          e.currentTarget.style.background = idleBg;
+                          e.currentTarget.style.borderColor = idleBorder;
+                        }
+                      }}
                     >
-                      <Search size={9} className="text-zinc-400" />
-                    </span>
-                  )}
-                  <span style={{ color: platform.color }}>
-                    {platform.renderIcon(32)}
-                  </span>
-                  <span
-                    className="text-[11px] font-medium leading-none text-center"
-                    style={{ color: isActive ? '#e2e8f0' : '#64748b' }}
-                  >
-                    {platform.name}
-                  </span>
-                </button>
-              );
-            })}
+                      {canSearch && (
+                        <span
+                          className="absolute top-1.5 right-1.5 flex items-center justify-center w-4 h-4 rounded-full bg-white/[0.06]"
+                          title={t('searchAvailable')}
+                        >
+                          <Search size={9} className="text-zinc-400" />
+                        </span>
+                      )}
+                      <span style={{ color: platform.color }}>
+                        {platform.renderIcon(26)}
+                      </span>
+                      <span
+                        className="text-[10px] font-medium leading-none text-center"
+                        style={{ color: isActive ? '#e2e8f0' : '#64748b' }}
+                      >
+                        {platform.name}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
           </div>
+        )}
 
-          {/* Divider */}
-          <div className="h-px bg-white/[0.05]" />
+        {step === 2 && (
+          <div className="flex flex-col gap-4 px-5 pb-5 pt-4">
+            <button
+              onClick={() => setStep(1)}
+              className="flex items-center gap-1.5 text-[12px] text-slate-500 hover:text-slate-300 transition-colors cursor-pointer self-start"
+            >
+              <ArrowLeft size={13} />
+              {t('backBtn')}
+            </button>
 
-          {/* Create without video */}
-          <button
-            onClick={() => void handleCreate(true)}
-            disabled={createRoom.isPending}
-            className="w-full h-10 rounded-xl border border-white/[0.08] text-sm font-medium text-slate-400 hover:text-white hover:border-white/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
-          >
-            <Users size={14} />
-            {t('noMedia')}
-          </button>
-        </div>
+            {/* Video preview — step 1 always resolves a video now (no "skip video" path) */}
+            {videoTitle && (
+              <div className="flex items-center gap-3 p-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+                <div className="relative w-20 h-11 rounded-md overflow-hidden shrink-0 bg-black/40">
+                  {videoThumbnail && (
+                    // eslint-disable-next-line @next/next/no-img-element -- external thumbnail
+                    <img src={videoThumbnail} alt="" className="w-full h-full object-cover" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] text-slate-200 truncate leading-tight">{videoTitle}</p>
+                  {activePlatform && (
+                    <div className="flex items-center gap-1 mt-1">
+                      <span style={{ color: activePlatform.color }} className="shrink-0 flex items-center">
+                        {activePlatform.renderIcon(10)}
+                      </span>
+                      <p className="text-[10px] text-slate-500">{activePlatform.name}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Room name — editable, pre-filled from the video title */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[12px] font-medium text-slate-400">{t('roomName')}</label>
+              <input
+                type="text"
+                value={roomName}
+                onChange={e => setRoomName(e.target.value)}
+                placeholder={t('roomNamePlaceholder')}
+                maxLength={60}
+                className="w-full h-11 px-3.5 bg-[#111118] border border-white/[0.08] rounded-xl text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/20 transition-all"
+              />
+            </div>
+
+            {/* Visibility — the only two states the backend actually supports (isPrivate).
+                A public room means anyone with the room list access can join; private means
+                invite-link only. */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[12px] font-medium text-slate-400">{t('whoCanJoin')}</label>
+              <div className="grid grid-cols-2 gap-2.5">
+                <button
+                  onClick={() => setIsPrivate(false)}
+                  className={`flex flex-col items-start gap-1.5 p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                    !isPrivate ? 'bg-violet-500/[0.1] border-violet-500/30' : 'bg-white/[0.03] border-white/[0.08] hover:border-white/[0.16]'
+                  }`}
+                >
+                  <Users size={15} className={!isPrivate ? 'text-violet-300' : 'text-zinc-500'} />
+                  <span className={`text-[13px] font-medium ${!isPrivate ? 'text-white' : 'text-zinc-300'}`}>{t('visibilityPublic')}</span>
+                  <span className="text-[11px] text-zinc-500 leading-snug">{t('visibilityPublicDesc')}</span>
+                </button>
+                <button
+                  onClick={() => setIsPrivate(true)}
+                  className={`flex flex-col items-start gap-1.5 p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                    isPrivate ? 'bg-violet-500/[0.1] border-violet-500/30' : 'bg-white/[0.03] border-white/[0.08] hover:border-white/[0.16]'
+                  }`}
+                >
+                  <Lock size={15} className={isPrivate ? 'text-violet-300' : 'text-zinc-500'} />
+                  <span className={`text-[13px] font-medium ${isPrivate ? 'text-white' : 'text-zinc-300'}`}>{t('visibilityPrivate')}</span>
+                  <span className="text-[11px] text-zinc-500 leading-snug">{t('visibilityPrivateDesc')}</span>
+                </button>
+              </div>
+            </div>
+
+            <button
+              onClick={() => void handleCreate()}
+              disabled={createRoom.isPending}
+              className="w-full h-12 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98] cursor-pointer"
+              style={{ background: 'linear-gradient(135deg,#7C3AED,#5B21B6)' }}
+            >
+              {createRoom.isPending
+                ? <><Loader2 size={16} className="animate-spin" />{t('creating')}</>
+                : <><Link2 size={15} />{t('createBtn')}</>}
+            </button>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
