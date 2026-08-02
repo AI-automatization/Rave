@@ -514,6 +514,8 @@ export const translations = {
     chat: { uz: 'Chat', ru: 'Чат', en: 'Chat' },
     leave: { uz: 'Chiqish', ru: 'Выйти', en: 'Leave' },
     members: { uz: "A'zolar", ru: 'Участники', en: 'Members' },
+    participantsSuffix: { uz: 'ishtirokchi', ru: 'участников', en: 'members' },
+    ownerBadge: { uz: 'Egasi', ru: 'Хозяин', en: 'Owner' },
     filmOptional: { uz: 'FILM (IXTIYORIY)', ru: 'ФИЛЬМ (НЕОБЯЗАТЕЛЬНО)', en: 'MOVIE (OPTIONAL)' },
     fromCatalog: { uz: 'Katalogdan', ru: 'Из каталога', en: 'From Catalog' },
     fromUrl: { uz: 'URL orqali', ru: 'Через URL', en: 'Via URL' },

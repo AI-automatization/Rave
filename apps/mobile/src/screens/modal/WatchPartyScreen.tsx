@@ -386,6 +386,8 @@ export function WatchPartyScreen() {
           <RoomInfoBar
             roomName={room?.videoTitle ?? room?.name ?? 'Watch Party'}
             memberCount={activeMembers.length}
+            participantsLabel={t('watchParty', 'participantsSuffix')}
+            ownerLabel={t('watchParty', 'ownerBadge')}
             activeTransport={activeTransport}
             isOwner={isOwner}
             hasMessages={messages.length > 0}
