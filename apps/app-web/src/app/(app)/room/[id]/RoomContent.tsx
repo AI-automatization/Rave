@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { useTranslations } from 'next-intl';
@@ -353,6 +353,23 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
   const showVB = vbActive || (isOwner && showVBPanel);
   const handleVBStop = () => { vbStop(); setShowVBPanel(false); };
 
+  // Extraction reporting "success" (found a videoUrl) doesn't guarantee our own proxy can
+  // actually retrieve it — a file-host mirror 403ing our proxied request is a different failure
+  // class than a broken URL outright (confirmed live 2026-08-03/04: extraction succeeded, the
+  // video area just showed "Видео не загрузилось" / sat on the autoplay overlay forever, no
+  // fallback ever kicked in). Mobile already has this exact recovery path (WatchPartyScreen.tsx
+  // handleVideoFatalError) — web never did. Same shape here: owner-only, once per videoUrl,
+  // falls back to the shared Virtual Browser on the original page.
+  const vbFallbackTriedRef = useRef(false);
+  useEffect(() => { vbFallbackTriedRef.current = false; }, [room?.videoUrl]);
+  const handleVideoFatalError = useCallback(() => {
+    if (!isOwner || showVB || vbFallbackTriedRef.current) return;
+    const url = room?.videoUrl;
+    if (!url) return;
+    vbFallbackTriedRef.current = true;
+    vbStart(url);
+  }, [isOwner, showVB, room?.videoUrl, vbStart]);
+
   // Pre-load room via REST immediately — don't wait 2-3s for socket ROOM_JOINED
   useEffect(() => {
     let mounted = true;
@@ -417,8 +434,16 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
           {/* Left: Video — no longer bare `flex-1` (that made it stretch to swallow the sidebar's
               space on mobile when the sidebar was hidden). `md:flex-1` only grows it to fill
               leftover WIDTH once the layout is a row (md+); on mobile (column) it stays its
-              natural aspect-ratio height so the panel below has room. */}
-          <div className="shrink-0 md:flex-1 flex flex-col p-3 sm:p-5 gap-3 sm:gap-4 min-w-0">
+              natural aspect-ratio height so the panel below has room.
+              `overflow-y-auto` (added 2026-08-04): the video is `aspect-video` sized off the
+              column's full WIDTH — on a wide-but-short desktop window that height can exceed the
+              row's own stretched height, and this column had no scroll of its own, so the excess
+              (VB button, emoji reactions) got silently clipped by the parent row's
+              `overflow-hidden` — invisible, not just visually cramped (real report 2026-08-03:
+              "где реакции???", root-caused live via a Safari screenshot at a short window size).
+              Scoped to md+ only: on mobile the column is already natural-height (shrink-0, no
+              flex stretch), so there's nothing to scroll there in the first place. */}
+          <div className="shrink-0 md:flex-1 flex flex-col p-3 sm:p-5 gap-3 sm:gap-4 min-w-0 md:overflow-y-auto">
             {/* Thin glow frame around the player only (not the toolbar below it) — a colored ring
                 signals "this is the live, active surface of the room" instead of the video sitting
                 as a bare black rectangle indistinguishable from a broken embed. */}
@@ -446,6 +471,7 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
                 onHeartbeat={sendHeartbeat}
                 onBufferStart={sendBufferStart}
                 onBufferEnd={sendBufferEnd}
+                onFatalError={handleVideoFatalError}
               />
             )}
             </div>

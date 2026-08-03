@@ -50,6 +50,12 @@ interface Props {
   onHeartbeat: (time: number) => void;
   onBufferStart: () => void;
   onBufferEnd: () => void;
+  /** Real playback failure (not just autoplay needing a click) on the generic extract+proxy path
+   * — owner-only VB auto-fallback lives in the caller (RoomContent), mirroring mobile's
+   * UniversalPlayer → WatchPartyScreen `onFatalError` chain. Official embeds (YouTube/VK/Twitch/
+   * etc.) don't report through this — they're not part of the extraction-vs-playback gap this
+   * closes, same scope mobile's version has. */
+  onFatalError?: () => void;
 }
 
 interface ExtractResult {
@@ -303,6 +309,11 @@ interface NativeProps {
   onBufferEnd: () => void;
   onOverlayClick: () => void;
   onAutoplayBlocked: () => void;
+  /** Fires once when playback has genuinely failed (native `<video>` error, or an HLS.js fatal
+   * error network/media recovery couldn't fix) — distinct from `autoplayBlocked`, which just
+   * needs a click, not a different source. Mirrors mobile's UniversalPlayer `onFatalError`; the
+   * caller (RoomContent) decides what to do with it (owner-only VB fallback). */
+  onFatalError?: () => void;
 }
 
 function NativeVideoPlayer({
@@ -320,11 +331,27 @@ function NativeVideoPlayer({
   onBufferEnd,
   onOverlayClick,
   onAutoplayBlocked,
+  onFatalError,
 }: NativeProps) {
   const t = useTranslations('party');
   const hlsRef = useRef<import('hls.js').default | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  // Ref so the HLS-setup effect (deps: [src, isHls, videoRef]) always calls the CURRENT
+  // onFatalError without needing it in that dependency array (it's an inline arrow from the
+  // parent on every render — adding it directly would tear down/rebuild the whole HLS session
+  // every render).
+  const onFatalErrorRef = useRef(onFatalError);
+  onFatalErrorRef.current = onFatalError;
+  // Guards against firing twice for the same fatal event (native `error` event AND a
+  // still-pending HLS fatal-error callback could both land for the same underlying failure).
+  const fatalFiredRef = useRef(false);
+  useEffect(() => { fatalFiredRef.current = false; }, [src]);
+  const reportFatal = () => {
+    if (fatalFiredRef.current) return;
+    fatalFiredRef.current = true;
+    onFatalErrorRef.current?.();
+  };
 
   const [isPaused, setIsPaused] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
@@ -393,6 +420,11 @@ function NativeVideoPlayer({
       hls.once(Hls.Events.MANIFEST_PARSED, () => {
         suppressMacOsPlayer();
         attemptOwnerAutoplay(video);
+      });
+      // hls.js has its own retry/recovery ladder for non-fatal errors (segment stalls, etc.) —
+      // only a `fatal` error means it's given up, which is the actual "video didn't load" signal.
+      hls.on(Hls.Events.ERROR, (_event, data) => {
+        if (data.fatal) reportFatal();
       });
       video.addEventListener('play', suppressMacOsPlayer, { passive: true });
     }).catch(() => { video.src = src; attemptOwnerAutoplay(video); });
@@ -532,6 +564,7 @@ function NativeVideoPlayer({
         onCanPlay={() => {
           if (!isOwner) onBufferEnd();
         }}
+        onError={reportFatal}
       />
 
       {/* Buffering — video has a src but the browser doesn't have enough data yet (fresh VB
@@ -697,6 +730,7 @@ export function VideoPlayer({
   onHeartbeat,
   onBufferStart,
   onBufferEnd,
+  onFatalError,
 }: Props) {
   const t = useTranslations('party');
   const room = useWatchPartyStore((s) => s.room);
@@ -1157,6 +1191,7 @@ export function VideoPlayer({
           onBufferEnd={onBufferEnd}
           onOverlayClick={handleOverlayClick}
           onAutoplayBlocked={() => setAutoplayBlocked(true)}
+          onFatalError={onFatalError}
         />
       );
     }
