@@ -1,6 +1,6 @@
 // WeWatch Mobile — WatchParty Emoji Float
 import React, { useEffect, useRef } from 'react';
-import { StyleSheet, Text, Animated, View } from 'react-native';
+import { StyleSheet, Text, Animated, View, ScrollView } from 'react-native';
 import { TrackedTouchable } from '@components/common/TrackedTouchable';
 
 interface EmojiFloatItemProps {
@@ -52,7 +52,17 @@ interface EmojiPickerBarProps {
 export function EmojiPickerBar({ onSelect }: EmojiPickerBarProps) {
   return (
     <View style={s.barWrap}>
-      <View style={s.pickerBar}>
+      {/* 10 emojis at 36px + gaps + padding add up to ~440px — wider than most phone screens
+          (360-410px CSS width), so the row silently overflowed past the screen edge with no way
+          to reach the last couple of emojis (real report 2026-08-03: "выходит за экран"). A
+          horizontal ScrollView is the one fix that's correct regardless of device width or how
+          many quick-react emojis we ever add. */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={s.pickerBar}
+        style={s.pickerScroll}
+      >
         {QUICK_EMOJIS.map(e => (
           <TrackedTouchable
             trackId="watchparty:send_emoji"
@@ -65,7 +75,7 @@ export function EmojiPickerBar({ onSelect }: EmojiPickerBarProps) {
             <Text style={s.emojiChar}>{e}</Text>
           </TrackedTouchable>
         ))}
-      </View>
+      </ScrollView>
     </View>
   );
 }
@@ -80,6 +90,11 @@ const s = StyleSheet.create({
 
   barWrap: {
     alignItems: 'center',
+  },
+  pickerScroll: {
+    flexGrow: 0,
+    maxWidth: '100%',
+    borderRadius: 30,
   },
   pickerBar: {
     flexDirection: 'row',
