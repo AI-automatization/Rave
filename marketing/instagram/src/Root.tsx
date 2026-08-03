@@ -51,6 +51,8 @@ import { DecisionTreeDiagram } from './slides/DecisionTreeDiagram';
 import { DecisionTreeReal } from './slides/DecisionTreeReal';
 import { DecisionTreeGuaranteed } from './slides/DecisionTreeGuaranteed';
 import { Demo3DPhoneFlythrough, DEMO_3D_DURATION } from './slides/Demo3DPhoneFlythrough';
+import { WatchPartyMockReel, WATCH_PARTY_MOCK_DURATION } from './slides/WatchPartyMockReel';
+import { WatchPartyMockReel3D, WATCH_PARTY_MOCK_3D_DURATION } from './slides/WatchPartyMockReel3D';
 
 const W = 1080;
 const H = 1080;
@@ -194,6 +196,10 @@ export const RemotionRoot: React.FC = () => (
     <Composition id="W1-Quote"     component={W1Quote}    width={1080} height={1080} fps={FPS} durationInFrames={SLIDE_DUR} />
 
     <Composition id="Demo3D-PhoneFlythrough" component={Demo3DPhoneFlythrough} width={1080} height={1920} fps={FPS} durationInFrames={DEMO_3D_DURATION} />
+
+    <Composition id="WatchPartyMockReel" component={WatchPartyMockReel} width={1080} height={1920} fps={FPS} durationInFrames={WATCH_PARTY_MOCK_DURATION} />
+
+    <Composition id="WatchPartyMockReel3D" component={WatchPartyMockReel3D} width={1080} height={1920} fps={FPS} durationInFrames={WATCH_PARTY_MOCK_3D_DURATION} />
 
     {/* ── Instagram Stories 9:16 (1080×1920) — 7 kunlik kontent plan ── */}
     {/* Day 1 — Tanishuv */}

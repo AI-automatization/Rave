@@ -71,7 +71,7 @@ const Icon: React.FC<{ name: string; size?: number; color?: string }> = ({ name,
 };
 
 // ─── Status bar ───────────────────────────────────────────────────────────────
-const StatusBar: React.FC = () => (
+export const StatusBar: React.FC = () => (
   <div style={{
     height: 28, display: 'flex', alignItems: 'center',
     paddingLeft: 16, paddingRight: 16,
