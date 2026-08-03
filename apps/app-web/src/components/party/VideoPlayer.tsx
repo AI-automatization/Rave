@@ -265,6 +265,19 @@ async function buildProxyUrl(cdnUrl: string, headers?: Record<string, string>): 
 // confirmed via real-device test (2026-07-27). `mute`/`muted`, unlike `.volume`, IS respected by
 // iOS, so that control still works and stays. iPadOS 13+ reports as desktop Safari but carries the
 // same restriction — maxTouchPoints is the standard way to tell it apart from a real Mac.
+// `video.play()` rejects for two very different reasons that were previously treated as the same
+// thing (both just set `autoplayBlocked`, showing a "Нажмите чтобы начать" button): the browser's
+// autoplay policy withholding playback until a real user gesture (NotAllowedError — genuinely
+// fixed by a click), vs the source actually being unplayable (NotSupportedError, NetworkError, or
+// anything else — clicking again just replays the exact same failure). Real report 2026-08-03/04:
+// the click-to-start button "hangs and doesn't respond" — it WAS responding, just retrying a
+// doomed play() call and landing back on the identical overlay every time, indistinguishable from
+// broken. AbortError isn't a failure at all (play() interrupted by a rapid pause) — call sites
+// filter it out before reaching this.
+function isAutoplayPolicyError(e: unknown): boolean {
+  return (e as DOMException)?.name === 'NotAllowedError';
+}
+
 function isVolumeSliderUnusable(): boolean {
   if (typeof navigator === 'undefined') return false;
   const ua = navigator.userAgent;
@@ -379,7 +392,10 @@ function NativeVideoPlayer({
   // autoplayBlocked overlay is the fallback for the rare case a browser still refuses it.
   function attemptOwnerAutoplay(video: HTMLVideoElement) {
     if (!isOwner) return;
-    video.play().catch(() => onAutoplayBlocked());
+    video.play().catch((e: unknown) => {
+      if (isAutoplayPolicyError(e)) onAutoplayBlocked();
+      else reportFatal();
+    });
   }
 
   // HLS setup + macOS suppression
@@ -756,6 +772,15 @@ export function VideoPlayer({
   // and delivering conflicting VIDEO_PLAY/VIDEO_PAUSE to viewers faster than they can process.
   const pendingEmitRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [autoplayBlocked, setAutoplayBlocked] = useState(false);
+  // True once playback has genuinely failed (not just autoplay policy) — swaps the "Нажмите чтобы
+  // начать" overlay (which was misleading here: clicking it just replayed the same doomed
+  // play() call, looking "frozen") for a proper "Открываем виртуальный браузер..." loading state
+  // while the owner-only fallback in RoomContent (onFatalError → vbStart) kicks in.
+  const [fatalPlaybackError, setFatalPlaybackError] = useState(false);
+  const reportPlaybackFatal = useCallback(() => {
+    setFatalPlaybackError(true);
+    onFatalError?.();
+  }, [onFatalError]);
 
   const [proxySrc, setProxySrc] = useState<string | null>(null);
   const [isHls, setIsHls] = useState(false);
@@ -794,6 +819,7 @@ export function VideoPlayer({
     setExtractPoster(undefined);
     setExtractError(null);
     setExtracting(true);
+    setFatalPlaybackError(false);
 
     extractVideoUrl(videoUrl)
       .then(async (result) => {
@@ -838,7 +864,9 @@ export function VideoPlayer({
         .then(() => setAutoplayBlocked(false))
         .catch((e: unknown) => {
           // AbortError = play() interrupted by rapid pause — not a real block, don't show overlay
-          if ((e as DOMException)?.name !== 'AbortError') setAutoplayBlocked(true);
+          if ((e as DOMException)?.name === 'AbortError') return;
+          if (isAutoplayPolicyError(e)) setAutoplayBlocked(true);
+          else reportPlaybackFatal();
         });
     } else if (!syncState.isPlaying && !video.paused) {
       video.pause();
@@ -846,7 +874,7 @@ export function VideoPlayer({
     }
 
     setTimeout(() => { isRemoteAction.current = false; }, 200);
-  }, [syncState.currentTime, syncState.isPlaying, syncState.serverTimestamp, isEmbed, directSrc, isOwner]);
+  }, [syncState.currentTime, syncState.isPlaying, syncState.serverTimestamp, isEmbed, directSrc, isOwner, reportPlaybackFatal]);
 
   // Cleanup debounce timer on unmount to avoid post-unmount state updates
   useEffect(() => () => {
@@ -1002,7 +1030,9 @@ export function VideoPlayer({
       })
       .catch((e: unknown) => {
         playPendingRef.current = false;
-        if ((e as DOMException)?.name !== 'AbortError') setAutoplayBlocked(true);
+        if ((e as DOMException)?.name === 'AbortError') return;
+        if (isAutoplayPolicyError(e)) setAutoplayBlocked(true);
+        else reportPlaybackFatal();
       });
   }
 
@@ -1174,6 +1204,13 @@ export function VideoPlayer({
     if (extracting || extractError) {
       return <VideoLoading />;
     }
+    // Real playback failure (not just autoplay needing a click) — stop rendering the player (its
+    // own "click to start" overlay would just retry the identical doomed play() call) and show
+    // the same "opening virtual browser" state mobile already has while the owner-only fallback
+    // (RoomContent's handleVideoFatalError → vbStart) takes over.
+    if (fatalPlaybackError) {
+      return <VideoLoading label={t('playerOpeningVB')} />;
+    }
     if (proxySrc) {
       return (
         <NativeVideoPlayer
@@ -1191,7 +1228,7 @@ export function VideoPlayer({
           onBufferEnd={onBufferEnd}
           onOverlayClick={handleOverlayClick}
           onAutoplayBlocked={() => setAutoplayBlocked(true)}
-          onFatalError={onFatalError}
+          onFatalError={reportPlaybackFatal}
         />
       );
     }
