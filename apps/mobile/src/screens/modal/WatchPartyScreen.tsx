@@ -1,5 +1,5 @@
 // WeWatch Mobile — WatchPartyScreen
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, Platform, StyleSheet, useWindowDimensions } from 'react-native';
 import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import * as ScreenOrientation from 'expo-screen-orientation';
@@ -152,6 +152,24 @@ export function WatchPartyScreen() {
   // the server-driven VB_STARTED/VB_STOPPED broadcast, same as web's automatic fallback path.
   const vb = useVirtualBrowser(isOwner);
 
+  // Owner-only auto-recovery: the server's extraction pipeline said a URL was playable (found
+  // SOME video URL), but UniversalPlayer then couldn't actually fetch it (direct attempt AND
+  // our proxy both failed) — a real case is a file-host mirror like vikingfile.com returning
+  // 403 on our proxy's request (extraction reporting "success" doesn't guarantee OUR server can
+  // actually retrieve the link; found via a live test 2026-08-03, asilmedia → vikingfile). Rather
+  // than leave the room stuck on a permanently broken player, the owner falls back to the shared
+  // Virtual Browser on the original page — same recovery path CHANGE_MEDIA already uses when
+  // extraction fails outright, just triggered from a playback failure instead.
+  const vbFallbackTriedRef = useRef(false);
+  useEffect(() => { vbFallbackTriedRef.current = false; }, [room?.videoUrl]);
+  const handleVideoFatalError = useCallback(() => {
+    if (!isOwner || vb.active || vbFallbackTriedRef.current) return;
+    const url = room?.videoUrl ?? originalVideoUrl;
+    if (!url) return;
+    vbFallbackTriedRef.current = true;
+    vb.start(url);
+  }, [isOwner, vb, room?.videoUrl, originalVideoUrl]);
+
   // T-S189: room was created with a raw, unverified URL (user forced it via "try current
   // page anyway" — no client/server detection confirmed it beforehand). Mirrors web's
   // ?verify=1 (RoomContent.tsx): re-submit the room's own videoUrl through CHANGE_MEDIA once,
@@ -297,6 +315,7 @@ export function WatchPartyScreen() {
         onBuffering={handleWebViewBuffering}
         onStreamResolved={({ isLive }) => setVideoIsLive(isLive)}
         onReady={handlePlayerReady}
+        onFatalError={handleVideoFatalError}
         onPlayPause={handlePlayPause}
         currentTime={videoCurrentTime}
         duration={videoDuration}
@@ -650,9 +669,9 @@ const s = StyleSheet.create({
   // ── Gear row ────────────────────────────────────────────────────
   gearRow: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 10,
     paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingVertical: 11,
     backgroundColor: '#0D0D1A',
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.04)',
@@ -660,9 +679,9 @@ const s = StyleSheet.create({
   gearChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 7,
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 8,
     backgroundColor: 'rgba(255,255,255,0.06)',
     borderRadius: 20,
     borderWidth: 1,
@@ -679,9 +698,9 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: 7,
     backgroundColor: 'rgba(245,158,11,0.08)',
-    paddingVertical: 7,
+    paddingVertical: 9,
     paddingHorizontal: 14,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(245,158,11,0.12)',
@@ -799,7 +818,7 @@ const s = StyleSheet.create({
     borderTopColor: 'rgba(255,255,255,0.07)',
     paddingTop: 8,
     paddingBottom: Platform.OS === 'ios' ? 28 : 14,
-    gap: 6,
+    gap: 8,
   },
   fsBarActions: {
     flexDirection: 'row',

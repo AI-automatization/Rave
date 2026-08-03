@@ -47,7 +47,7 @@ export const chatStyles = StyleSheet.create({
   // Same box as `avatar`, minus the generated background colour — the photo covers it anyway.
   avatarImage: { width: 30, height: 30, borderRadius: 15, flexShrink: 0, marginBottom: 2 },
 
-  bubbleGroup: { maxWidth: '76%', gap: 3 },
+  bubbleGroup: { maxWidth: '76%', gap: 5 },
   bubbleGroupMine: { alignItems: 'flex-end' },
 
   senderName: {
@@ -55,7 +55,7 @@ export const chatStyles = StyleSheet.create({
     color: 'rgba(255,255,255,0.42)', paddingLeft: 4,
   },
 
-  bubble: { paddingHorizontal: 13, paddingVertical: 9, borderRadius: BUBBLE_RADIUS, gap: 3 },
+  bubble: { paddingHorizontal: 13, paddingVertical: 9, borderRadius: BUBBLE_RADIUS, gap: 5 },
   bubbleMine: { backgroundColor: '#7B72F8', borderBottomRightRadius: 5 },
   bubbleOther: {
     backgroundColor: '#1C1C2E', borderBottomLeftRadius: 5,
@@ -63,9 +63,9 @@ export const chatStyles = StyleSheet.create({
   },
 
   replyPreview: {
-    flexDirection: 'row', gap: 6,
+    flexDirection: 'row', gap: 7,
     backgroundColor: 'rgba(0,0,0,0.22)',
-    borderRadius: 10, padding: 7, marginBottom: 3,
+    borderRadius: 10, padding: 9, marginBottom: 3,
   },
   replyPreviewMine: { backgroundColor: 'rgba(0,0,0,0.25)' },
 
@@ -104,9 +104,9 @@ export const chatStyles = StyleSheet.create({
 
   // Input row
   inputRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingHorizontal: 12, paddingVertical: 10,
-    paddingBottom: Platform.OS === 'ios' ? 22 : 10,
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingHorizontal: 14, paddingVertical: 12,
+    paddingBottom: Platform.OS === 'ios' ? 22 : 12,
     backgroundColor: '#111120',
     borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)',
   },

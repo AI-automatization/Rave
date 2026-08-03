@@ -60,6 +60,10 @@ interface VideoSectionProps {
   /** Which loading message to show while !isReady — 'extracting' (still trying to find a
    * direct stream) or 'vb' (gave up, waiting for the server to hand off to Virtual Browser). */
   loadingStage?: 'extracting' | 'vb';
+  /** UniversalPlayer gave up on the current URL entirely (direct attempt AND proxy fallback
+   * both failed) — passed through so the screen can react (owner-only: auto-fall back to VB
+   * instead of leaving everyone staring at a permanently broken player). */
+  onFatalError?: () => void;
 }
 
 const SHOW_MS = 3500; // controls visible duration after tap / mount
@@ -70,7 +74,7 @@ export const VideoSection = React.memo(function VideoSection({
   onPlaybackStatusUpdate, onStreamResolved, onProgress, onBuffering, onReady, onPlayPause, onStop,
   onSeekDirection, onToggleFullscreen, onRemoveEmoji,
   currentTime = 0, duration = 0, onProgressSeek, isWebView = false, isYouTubeEmbed = false, onCdnUrlSniffed,
-  pendingSkipSecs = null, loadingStage = 'extracting',
+  pendingSkipSecs = null, loadingStage = 'extracting', onFatalError,
 }: VideoSectionProps) {
   const { colors } = useTheme();
   const { t } = useT();
@@ -183,6 +187,7 @@ export const VideoSection = React.memo(function VideoSection({
           onBuffering={onBuffering}
           onReady={onReady}
           onCdnUrlSniffed={onCdnUrlSniffed}
+          onFatalError={onFatalError}
         />
       )}
 
