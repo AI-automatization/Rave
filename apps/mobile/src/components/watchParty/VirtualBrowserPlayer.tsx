@@ -37,37 +37,59 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, remote
   const startRef = useRef({ x: 0, y: 0 });
   const movedRef = useRef(false);
 
+  // PanResponder.create() below runs ONCE (frozen via useRef) so its gesture identity survives
+  // re-renders — but that also freezes any closure it reads. `layout` starts null and only gets
+  // set later by onLayout (fires async, after mount); dimensions arrives even later over the
+  // socket (VB_STARTED). Without these refs the responder's handlers would forever see the
+  // values from the very first render — layout=null, dimensions=null — so toViewportCoords
+  // would always return null and every tap would silently no-op. This was the actual bug behind
+  // "видел VB, не мог им управлять": nothing crashed, nothing errored, taps just went nowhere.
+  const layoutRef = useRef(layout);
+  layoutRef.current = layout;
+  const dimensionsRef = useRef(dimensions);
+  dimensionsRef.current = dimensions;
+  const isOwnerRef = useRef(isOwner);
+  isOwnerRef.current = isOwner;
+  const sendInputRef = useRef(sendInput);
+  sendInputRef.current = sendInput;
+
   const onLayout = useCallback((e: LayoutChangeEvent) => {
     const { width, height } = e.nativeEvent.layout;
     setLayout({ width, height });
   }, []);
 
   // Maps a touch point in this view's local coordinate space to the server-side browser's fixed
-  // viewport (VB_VIEWPORT, typically 1280x720) — same math as web's clientToViewport.
+  // viewport (VB_VIEWPORT, typically 1280x720) — same math as web's clientToViewport. Reads the
+  // refs (not the render-scoped layout/dimensions) so it always sees current values even when
+  // called from the frozen PanResponder closures below.
   const toViewportCoords = useCallback((localX: number, localY: number): { x: number; y: number } | null => {
-    if (!layout || !dimensions) return null;
-    const scaleX = dimensions.width / layout.width;
-    const scaleY = dimensions.height / layout.height;
+    const l = layoutRef.current;
+    const d = dimensionsRef.current;
+    if (!l || !d) return null;
+    const scaleX = d.width / l.width;
+    const scaleY = d.height / l.height;
     return { x: Math.round(localX * scaleX), y: Math.round(localY * scaleY) };
-  }, [layout, dimensions]);
+  }, []);
 
   // Inverse — places the OWNER's cursor (received in server-viewport space via VB_CURSOR) at the
   // right spot on THIS client's rendered frame, whatever size it happens to be displayed at.
   const viewportToLocal = useCallback((vx: number, vy: number): { x: number; y: number } | null => {
-    if (!layout || !dimensions) return null;
-    return { x: (vx / dimensions.width) * layout.width, y: (vy / dimensions.height) * layout.height };
-  }, [layout, dimensions]);
+    const l = layoutRef.current;
+    const d = dimensionsRef.current;
+    if (!l || !d) return null;
+    return { x: (vx / d.width) * l.width, y: (vy / d.height) * l.height };
+  }, []);
 
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => isOwner,
-      onMoveShouldSetPanResponder: () => isOwner,
+      onStartShouldSetPanResponder: () => isOwnerRef.current,
+      onMoveShouldSetPanResponder: () => isOwnerRef.current,
       onPanResponderGrant: (evt: GestureResponderEvent) => {
         const { locationX, locationY } = evt.nativeEvent;
         startRef.current = { x: locationX, y: locationY };
         movedRef.current = false;
         const pos = toViewportCoords(locationX, locationY);
-        if (pos) sendInput({ type: 'mousemove', x: pos.x, y: pos.y });
+        if (pos) sendInputRef.current({ type: 'mousemove', x: pos.x, y: pos.y });
       },
       onPanResponderMove: (evt: GestureResponderEvent, gestureState: PanResponderGestureState) => {
         const { locationX, locationY } = evt.nativeEvent;
@@ -80,15 +102,15 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, remote
         lastMoveRef.current = now;
         // Negated: dragging the finger UP should scroll the content DOWN — same convention as
         // native touch scrolling, matches web's touch handler.
-        sendInput({ type: 'wheel', deltaX: -gestureState.dx, deltaY: -gestureState.dy });
+        sendInputRef.current({ type: 'wheel', deltaX: -gestureState.dx, deltaY: -gestureState.dy });
       },
       onPanResponderRelease: (evt: GestureResponderEvent) => {
         if (movedRef.current) return; // it was a drag/scroll, not a tap
         const { locationX, locationY } = evt.nativeEvent;
         const pos = toViewportCoords(locationX, locationY);
         if (!pos) return;
-        sendInput({ type: 'mousedown', x: pos.x, y: pos.y });
-        sendInput({ type: 'mouseup' });
+        sendInputRef.current({ type: 'mousedown', x: pos.x, y: pos.y });
+        sendInputRef.current({ type: 'mouseup' });
       },
     }),
   ).current;

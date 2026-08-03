@@ -30,13 +30,18 @@ const randomDelay = (min = 100, max = 300): Promise<void> =>
 const MP4_RE = /(https?:\/\/[^"' \s<>]+\.mp4[^"' \s<>]*)/gi;
 const M3U8_RE = /(https?:\/\/[^"' \s<>]+\.m3u8[^"' \s<>]*)/gi;
 
-// <video src="..."> or <source src="...">
-const VIDEO_TAG_SRC_RE = /<(?:video|source)[^>]+src=["']([^"']+)["']/gi;
+// <video src="..."> or <source src="...">. Backreference (["'])...\1 instead of a shared
+// [^"']+ class — the old pattern stopped capturing at the FIRST quote of EITHER type inside
+// the value, so e.g. content="O'rgimchak odam: ..." (a real title, and a completely ordinary
+// one in Uzbek — the language uses ' constantly) truncated to just "O". The attribute is always
+// wrapped in ONE quote type; the backreference makes the match stop only at that same type,
+// letting the other type appear freely inside the value.
+const VIDEO_TAG_SRC_RE = /<(?:video|source)[^>]+src=(["'])(.*?)\1/gi;
 
 // og:video meta
-const OG_VIDEO_RE = /<meta[^>]+property=["']og:video(?::url)?["'][^>]+content=["']([^"']+)["']/gi;
-const OG_TITLE_RE = /<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i;
-const OG_IMAGE_RE = /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i;
+const OG_VIDEO_RE = /<meta[^>]+property=["']og:video(?::url)?["'][^>]+content=(["'])(.*?)\1/gi;
+const OG_TITLE_RE = /<meta[^>]+property=["']og:title["'][^>]+content=(["'])(.*?)\1/i;
+const OG_IMAGE_RE = /<meta[^>]+property=["']og:image["'][^>]+content=(["'])(.*?)\1/i;
 const TITLE_RE = /<title[^>]*>([^<]+)<\/title>/i;
 
 // <iframe src="..."> — embed player iframes
@@ -54,6 +59,24 @@ function allMatches(re: RegExp, html: string): string[] {
   let m: RegExpExecArray | null;
   while ((m = re.exec(html)) !== null) {
     results.push(m[1].trim());
+  }
+  return [...new Set(results)];
+}
+
+// For the quote-backreference patterns above — (["'])(.*?)\1 — the actual value is capture
+// group 2 (group 1 is just which quote character it happened to be).
+function firstQuotedAttr(re: RegExp, html: string): string | null {
+  re.lastIndex = 0;
+  const m = re.exec(html);
+  return m ? m[2].trim() : null;
+}
+
+function allQuotedAttrs(re: RegExp, html: string): string[] {
+  re.lastIndex = 0;
+  const results: string[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(html)) !== null) {
+    results.push(m[2].trim());
   }
   return [...new Set(results)];
 }
@@ -94,8 +117,8 @@ async function fetchHtml(url: string, referer?: string): Promise<string | null> 
 }
 
 function extractVideoUrls(html: string, base: URL): string[] {
-  const videoTagSrcs = allMatches(VIDEO_TAG_SRC_RE, html).map((s) => resolveUrl(s, base));
-  const ogVideos = allMatches(OG_VIDEO_RE, html).map((s) => resolveUrl(s, base));
+  const videoTagSrcs = allQuotedAttrs(VIDEO_TAG_SRC_RE, html).map((s) => resolveUrl(s, base));
+  const ogVideos = allQuotedAttrs(OG_VIDEO_RE, html).map((s) => resolveUrl(s, base));
   const m3u8Urls = allMatches(M3U8_RE, html);
   const mp4Urls = allMatches(MP4_RE, html);
   return [
@@ -115,11 +138,11 @@ export async function genericExtractor(
   if (!html) return null;
 
   const title =
-    firstMatch(OG_TITLE_RE, html) ??
+    firstQuotedAttr(OG_TITLE_RE, html) ??
     firstMatch(TITLE_RE, html) ??
     pageUrl.hostname;
 
-  const poster = firstMatch(OG_IMAGE_RE, html) ?? '';
+  const poster = firstQuotedAttr(OG_IMAGE_RE, html) ?? '';
 
   // 1. Try direct video URLs in page
   const candidates = extractVideoUrls(html, pageUrl);

@@ -551,6 +551,8 @@
     "kick": "Remove from room",
     "kickConfirm": "Confirm",
     "cancel": "Cancel",
+    "save": "Save",
+    "renameRoom": "Rename room",
     "muteMic": "Mute microphone",
     "unmuteMic": "Allow microphone",
     "mutedByHost": "Muted by host",

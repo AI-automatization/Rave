@@ -133,9 +133,9 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.md,
-    paddingTop: 10,
-    paddingBottom: 8,
+    paddingHorizontal: spacing.lg,
+    paddingTop: 11,
+    paddingBottom: 9,
   },
   headerLabel: {
     fontSize: 10,
@@ -147,11 +147,11 @@ const s = StyleSheet.create({
   onlinePill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 5,
     backgroundColor: 'rgba(74,222,128,0.10)',
     borderRadius: 10,
     paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: 4,
     borderWidth: 1,
     borderColor: 'rgba(74,222,128,0.2)',
   },
@@ -166,7 +166,7 @@ const s = StyleSheet.create({
   },
 
   scroll: {
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.lg,
     gap: 14,
     alignItems: 'flex-start',
   },

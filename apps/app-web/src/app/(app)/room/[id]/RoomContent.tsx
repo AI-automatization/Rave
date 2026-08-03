@@ -252,10 +252,10 @@ function RoomSidePanel({
       {/* Active tab now gets a background pill, not just an underline — spec feedback called
           out that the active state wasn't obvious enough at a glance. Bar itself sits on
           transparent (no border-b) since the pill already separates it from the content below. */}
-      <div className="flex gap-1 p-1.5 shrink-0">
+      <div className="flex gap-1.5 p-2 shrink-0">
         <button
           onClick={() => { trackClick('room:tab_chat'); setRightTab('chat'); }}
-          className={`flex-1 h-8 rounded-lg flex items-center justify-center gap-1.5 text-xs font-medium transition-colors cursor-pointer ${
+          className={`flex-1 h-9 rounded-lg flex items-center justify-center gap-1.5 text-xs font-medium transition-colors cursor-pointer ${
             rightTab === 'chat' ? 'bg-violet-500/[0.14] text-white' : 'text-slate-500 hover:text-slate-300 hover:bg-white/[0.04]'
           }`}
         >
@@ -264,7 +264,7 @@ function RoomSidePanel({
         </button>
         <button
           onClick={() => { trackClick('room:tab_members'); setRightTab('members'); }}
-          className={`flex-1 h-8 rounded-lg flex items-center justify-center gap-1.5 text-xs font-medium transition-colors cursor-pointer ${
+          className={`flex-1 h-9 rounded-lg flex items-center justify-center gap-1.5 text-xs font-medium transition-colors cursor-pointer ${
             rightTab === 'members' ? 'bg-violet-500/[0.14] text-white' : 'text-slate-500 hover:text-slate-300 hover:bg-white/[0.04]'
           }`}
         >
@@ -274,7 +274,7 @@ function RoomSidePanel({
         {isOwner && (
           <button
             onClick={() => { trackClick('room:tab_playlist'); setRightTab('playlist'); }}
-            className={`flex-1 h-8 rounded-lg flex items-center justify-center gap-1.5 text-xs font-medium transition-colors cursor-pointer ${
+            className={`flex-1 h-9 rounded-lg flex items-center justify-center gap-1.5 text-xs font-medium transition-colors cursor-pointer ${
               rightTab === 'playlist' ? 'bg-violet-500/[0.14] text-white' : 'text-slate-500 hover:text-slate-300 hover:bg-white/[0.04]'
             }`}
           >
@@ -327,7 +327,7 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
   const t = useTranslations('party');
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { sendMessage, sendPlay, sendPause, sendSeek, sendEmoji, sendHeartbeat, sendBufferStart, sendBufferEnd, sendMediaChange, reactions, kickMember, muteMember, unmuteMember } = useWatchParty(roomId);
+  const { sendMessage, sendPlay, sendPause, sendSeek, sendEmoji, sendHeartbeat, sendBufferStart, sendBufferEnd, sendMediaChange, reactions, kickMember, muteMember, unmuteMember, renameRoom } = useWatchParty(roomId);
   const [rightTab, setRightTab] = useState<RightTab>('chat');
   // Mobile-only (T-S-mobile-room-panel, 2026-08-02): the sidebar below is `hidden md:flex` — real-
   // device report confirmed there was previously NO way to reach chat/voice/members on a phone at
@@ -417,11 +417,11 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
       />
 
       <div className="relative z-10 flex flex-col h-full">
-        <RoomHeader />
+        <RoomHeader renameRoom={renameRoom} />
 
         <div className="flex flex-1 overflow-hidden">
           {/* Left: Video */}
-          <div className="flex-1 flex flex-col p-4 gap-3 min-w-0">
+          <div className="flex-1 flex flex-col p-5 gap-4 min-w-0">
             {/* Thin glow frame around the player only (not the toolbar below it) — a colored ring
                 signals "this is the live, active surface of the room" instead of the video sitting
                 as a bare black rectangle indistinguishable from a broken embed. */}

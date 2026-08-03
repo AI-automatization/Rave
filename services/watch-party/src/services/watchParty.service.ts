@@ -256,6 +256,22 @@ export class WatchPartyService {
     return room;
   }
 
+  async renameRoom(ownerId: string, roomId: string, name: string): Promise<IWatchPartyRoomDocument> {
+    const trimmed = name.trim();
+    if (!trimmed || trimmed.length > 80) {
+      throw new BadRequestError('Room name must be 1-80 characters');
+    }
+
+    const updated = await WatchPartyRoom.findOneAndUpdate(
+      { _id: roomId, ownerId },
+      { $set: { name: trimmed } },
+      { new: true },
+    ).select('-password');
+
+    if (!updated) throw new ForbiddenError('Only the room owner can rename this room');
+    return updated;
+  }
+
   async getRooms(limit = 50): Promise<Array<IWatchPartyRoomDocument & { memberCount: number }>> {
     const cutoff = new Date(Date.now() - TIMING.ROOM_INACTIVE_MINUTES * 60 * 1000);
     const rooms = await WatchPartyRoom.find({

@@ -117,20 +117,20 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 10,
+    paddingVertical: 13,
     paddingHorizontal: 16,
     backgroundColor: '#0F0F1C',
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.05)',
-    gap: 12,
-    minHeight: 56,
+    gap: 14,
+    minHeight: 60,
   },
 
   left: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 12,
     minWidth: 0,
   },
 
@@ -183,7 +183,7 @@ const s = StyleSheet.create({
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 7,
     flexShrink: 0,
   },
 

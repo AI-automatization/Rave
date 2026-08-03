@@ -83,9 +83,9 @@ const s = StyleSheet.create({
   },
   pickerBar: {
     flexDirection: 'row',
-    gap: 2,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
     backgroundColor: 'rgba(8,8,18,0.88)',
     borderRadius: 30,
     borderWidth: 1,
