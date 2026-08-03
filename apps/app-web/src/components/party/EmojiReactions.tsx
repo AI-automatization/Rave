@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { trackClick } from '@/lib/analytics';
 
 const EMOJIS = ['❤️', '🔥', '😂', '😮', '👏', '🎉'];
@@ -13,6 +14,10 @@ interface Props {
 }
 
 export function EmojiReactions({ onSend, cooldownSec = 0 }: Props) {
+  // Reuses `chat.cooldown` (existing "Wait {seconds}s" key, was defined but never wired up to any
+  // UI) instead of adding a near-duplicate `party.*` key — same "wait N seconds" meaning, and it's
+  // already translated for all three locales (ru/en/uz).
+  const tChat = useTranslations('chat');
   const isCoolingDown = cooldownSec > 0;
   return (
     <div className="relative flex items-center gap-1 px-4 py-2 border-t border-white/[0.04]">
@@ -28,7 +33,7 @@ export function EmojiReactions({ onSend, cooldownSec = 0 }: Props) {
       ))}
       {isCoolingDown && (
         <span className="absolute right-4 text-[11px] font-medium text-white/50 tabular-nums">
-          {cooldownSec}s
+          {tChat('cooldown', { seconds: cooldownSec })}
         </span>
       )}
     </div>

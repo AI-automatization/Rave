@@ -5,7 +5,6 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { useTranslations } from 'next-intl';
 import { MessageCircle, Users as UsersIcon, ListVideo, X, ChevronRight, Loader2, Play, Globe } from 'lucide-react';
-import { Sheet, SheetContent } from '@/components/ui/sheet';
 import type { IChatReplyTo } from '@/types';
 import { useWatchParty } from '@/hooks/use-watch-party';
 import { useVirtualBrowser } from '@/hooks/use-virtual-browser';
@@ -329,11 +328,6 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
   const router = useRouter();
   const { sendMessage, sendPlay, sendPause, sendSeek, sendEmoji, sendHeartbeat, sendBufferStart, sendBufferEnd, sendMediaChange, reactions, reactionCooldownSec, kickMember, muteMember, unmuteMember, renameRoom } = useWatchParty(roomId);
   const [rightTab, setRightTab] = useState<RightTab>('chat');
-  // Mobile-only (T-S-mobile-room-panel, 2026-08-02): the sidebar below is `hidden md:flex` — real-
-  // device report confirmed there was previously NO way to reach chat/voice/members on a phone at
-  // all, since the global dock's chat icon links to /messages (DMs), not this room. Below md, the
-  // same content moves into a bottom sheet instead, opened from a floating trigger.
-  const [mobilePanelOpen, setMobilePanelOpen] = useState(false);
   /** Whose profile the modal is showing — `null` means closed. */
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const setRoom = useWatchPartyStore((s) => s.setRoom);
@@ -419,9 +413,12 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
       <div className="relative z-10 flex flex-col h-full">
         <RoomHeader renameRoom={renameRoom} />
 
-        <div className="flex flex-1 overflow-hidden">
-          {/* Left: Video */}
-          <div className="flex-1 flex flex-col p-5 gap-4 min-w-0">
+        <div className="flex flex-col md:flex-row flex-1 min-h-0 overflow-hidden">
+          {/* Left: Video — no longer bare `flex-1` (that made it stretch to swallow the sidebar's
+              space on mobile when the sidebar was hidden). `md:flex-1` only grows it to fill
+              leftover WIDTH once the layout is a row (md+); on mobile (column) it stays its
+              natural aspect-ratio height so the panel below has room. */}
+          <div className="shrink-0 md:flex-1 flex flex-col p-3 sm:p-5 gap-3 sm:gap-4 min-w-0">
             {/* Thin glow frame around the player only (not the toolbar below it) — a colored ring
                 signals "this is the live, active surface of the room" instead of the video sitting
                 as a bare black rectangle indistinguishable from a broken embed. */}
@@ -466,12 +463,18 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
             <EmojiReactions onSend={sendEmoji} cooldownSec={reactionCooldownSec} />
           </div>
 
-          {/* Right: Chat / Members / Playlist — glass-panel matches the violet-tinted surface
-              every other page already uses (see globals.css); the flat neutral rgba this replaced
-              is exactly why the sidebar read as dead weight next to a colorful room. Desktop only
-              — below md this whole panel moves into the bottom sheet triggered by the mobile FAB. */}
+          {/* Right: Chat / Members / Playlist / Voice — glass-panel matches the violet-tinted
+              surface every other page already uses (see globals.css); the flat neutral rgba this
+              replaced is exactly why the sidebar read as dead weight next to a colorful room.
+              Redesigned 2026-08-04: used to be `hidden md:flex`, reachable on mobile only through
+              a bottom sheet that covered ~75% of the screen (video peeking out above it) — real
+              report: "нужно чтобы пользователь мог одновременно нормально смотреть видео и писать
+              в чат и разговаривать" (watch video, chat, and talk AT THE SAME TIME, not one modal
+              at a time). Below md this now stacks directly under the video instead — video keeps
+              its natural aspect-ratio height (no longer stretched by a `flex-1` fighting an empty
+              sidebar), panel takes the rest via its own `flex-1`. Row layout only from md up. */}
           <div
-            className="glass-panel hidden md:flex flex-col w-80 min-h-0 rounded-none !border-y-0 !border-r-0"
+            className="glass-panel flex flex-col flex-1 min-h-0 md:flex-none md:w-80 rounded-none border-t border-white/[0.06] md:border-t-0 md:!border-y-0 md:!border-r-0"
           >
             <RoomSidePanel
               rightTab={rightTab}
@@ -490,43 +493,6 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
         </div>
         </div>
 
-      {/* Mobile trigger (T-S-mobile-room-panel, 2026-08-02). Used to sit at bottom-24 to clear
-          the global floating dock, but the dock is now hidden on /room/* entirely (immersive
-          room view owns its own chrome) — bottom-6 is the room's own safe-area rest position now.
-          Badge mirrors the dock's own pattern (unread-style red dot) so an active voice call
-          stays visible even with the sheet closed — same reasoning as VoiceStrip being pinned
-          above the tab content on desktop. */}
-      <button
-        onClick={() => { trackClick('room:mobile_panel_open'); setMobilePanelOpen(true); }}
-        aria-label={t('chat')}
-        className="md:hidden fixed bottom-6 right-4 z-40 w-12 h-12 rounded-full flex items-center justify-center glass-nav border border-white/[0.1] shadow-2xl text-violet-300 cursor-pointer active:scale-95 transition-transform"
-      >
-        <MessageCircle size={20} />
-        {voice.isJoined && (
-          <span className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-[#0e0a20] animate-pulse" />
-        )}
-      </button>
-
-      <Sheet open={mobilePanelOpen} onOpenChange={setMobilePanelOpen}>
-        <SheetContent
-          side="bottom"
-          className="md:hidden glass-panel !rounded-t-2xl !rounded-b-none border-x-0 border-b-0 p-0 flex flex-col h-[75vh] max-h-[75vh] gap-0"
-        >
-          <RoomSidePanel
-            rightTab={rightTab}
-            setRightTab={setRightTab}
-            isOwner={isOwner}
-            voice={voice}
-            roomId={roomId}
-            sendMessage={sendMessage}
-            setProfileUserId={setProfileUserId}
-            sendMediaChange={sendMediaChange}
-            kickMember={kickMember}
-            muteMember={muteMember}
-            unmuteMember={unmuteMember}
-          />
-        </SheetContent>
-      </Sheet>
 
       <UserProfileModal userId={profileUserId} onClose={() => setProfileUserId(null)} />
 
