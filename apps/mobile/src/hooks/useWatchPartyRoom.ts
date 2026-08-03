@@ -1,6 +1,6 @@
 // WeWatch — useWatchPartyRoom: socket sync, playback callbacks, room state management
 import { useRef, useState, useEffect, useCallback } from 'react';
-import { Dimensions, Platform, AppState } from 'react-native';
+import { Dimensions, Platform, AppState, BackHandler } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { PlaybackStatus } from '@app-types/index';
@@ -646,6 +646,22 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
       }},
     ]);
   }, [isOwner, roomId, navigation, userId, activeMembers.length, getTransportSnapshot]);
+
+  // ModalNavigator sets gestureEnabled: false for this screen, but that only blocks iOS's
+  // edge-swipe — Android's hardware/gesture back button still pops the screen by default.
+  // That bypassed handleLeave entirely: closeRoom/leaveRoom was never called, the socket never
+  // disconnected (useWatchParty's unmount cleanup deliberately only detaches listeners, see its
+  // own comment), so the server never saw a disconnect and the room just stayed open forever.
+  // This is why "room does not close in the APK" — testers exit via the back button, not the
+  // in-app exit icon. Intercepting back press and routing it through the same handleLeave
+  // confirm dialog makes every exit path behave like the in-app button.
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      handleLeave();
+      return true;
+    });
+    return () => sub.remove();
+  }, [handleLeave]);
 
   // Video URL computation
   const originalVideoUrl = room?.videoUrl ?? '';
