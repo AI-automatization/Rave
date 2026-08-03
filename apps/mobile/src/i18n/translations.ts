@@ -617,6 +617,8 @@ export const translations = {
     voiceEmpty: { uz: "Ovozli chatda hech kim yo'q", ru: 'Никого нет в голосовом чате', en: 'No one in voice chat' },
     voiceRetry: { uz: 'Qayta urinish', ru: 'Повторить', en: 'Retry' },
     vbStartVideo: { uz: 'Saytda videoni ishga tushiring', ru: 'Запустите видео на сайте', en: 'Start the video on the site' },
+    loadingExtracting: { uz: 'Video qidirilmoqda...', ru: 'Ищем видео...', en: 'Looking for video...' },
+    loadingFallbackVB: { uz: 'Virtual brauzer ochilmoqda...', ru: 'Открываем виртуальный браузер...', en: 'Opening virtual browser...' },
     tryCurrentPage: { uz: 'Baribir urinish', ru: 'Всё равно попробовать', en: 'Try anyway' },
     youLabel: { uz: 'Siz', ru: 'Вы', en: 'You' },
     voiceTitle: { uz: 'Ovozli chat', ru: 'Голосовой чат', en: 'Voice chat' },

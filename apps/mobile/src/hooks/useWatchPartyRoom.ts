@@ -827,7 +827,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
 
   return {
     playerRef, userId, room, messages, activeMembers, isOwner, adminMonitoring, connectTimeout, activeTransport,
-    isExtracting, extractResult, extractionError, showChat, showInvite, isPlaying, isFullscreen,
+    isExtracting, extractResult, extractionError, extractFallback, showChat, showInvite, isPlaying, isFullscreen,
     videoIsLive, videoCurrentTime, videoDuration, pendingSkipSecs, floatingEmojis, showQualityMenu, showEpisodeMenu,
     extractQualities, extractEpisodes, currentVideoUrl, bufferingUsers,
     originalVideoUrl, extractedVideoUrl: playerExtractedUrl, extractedVideoHeaders, extractedVideoProxyUrl: playerProxyUrl, isWebViewMode, isYouTubeWebViewMode,

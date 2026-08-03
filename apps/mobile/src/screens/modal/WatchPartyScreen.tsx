@@ -131,7 +131,7 @@ export function WatchPartyScreen() {
     showChat, showInvite, isPlaying, isFullscreen, videoIsLive,
     videoCurrentTime, videoDuration, pendingSkipSecs, floatingEmojis, showQualityMenu, showEpisodeMenu,
     extractQualities, extractEpisodes, currentVideoUrl, extractionError,
-    originalVideoUrl, extractedVideoUrl, extractedVideoHeaders, extractedVideoProxyUrl, isWebViewMode, isYouTubeWebViewMode, isExtracting,
+    originalVideoUrl, extractedVideoUrl, extractedVideoHeaders, extractedVideoProxyUrl, isWebViewMode, isYouTubeWebViewMode, isExtracting, extractFallback,
     playlist, handleAddToQueue, handlePlaylistRemove, handlePlaylistNext,
     setShowChat, setShowInvite, setShowQualityMenu, setShowEpisodeMenu, setVideoIsLive,
     sendMessage,
@@ -275,7 +275,15 @@ export function WatchPartyScreen() {
         videoProxyUrl={extractionError === 'video_source_expired' ? undefined : extractedVideoProxyUrl}
         isWebView={extractionError === 'video_source_expired' ? false : isWebViewMode}
         isYouTubeEmbed={extractionError === 'video_source_expired' ? false : isYouTubeWebViewMode}
-        isReady={extractionError === 'video_source_expired' ? true : !!room && (!isExtracting || isWebViewMode)}
+        // extractFallback means the extraction attempt gave up with nothing to play — for a
+        // known embed platform (isWebViewMode true) that's fine, UniversalPlayer's own embed
+        // WebView takes over. For everything else it's the gap before the server-side VB
+        // auto-fallback kicks in (vb.active flips true and swaps this whole component out) —
+        // staying "not ready" here keeps the loading box up instead of letting UniversalPlayer
+        // mount with nothing extracted, which used to fall back to rendering the raw source
+        // page (uncontrollable, no sync — see T-S189 follow-up).
+        isReady={extractionError === 'video_source_expired' ? true : !!room && !isExtracting && (isWebViewMode || !extractFallback)}
+        loadingStage={extractFallback && !isWebViewMode ? 'vb' : 'extracting'}
         isOwner={isOwner}
         isPlaying={isPlaying}
         isFullscreen={isFullscreen}

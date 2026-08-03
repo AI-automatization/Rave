@@ -18,8 +18,19 @@ export const videoStyles = StyleSheet.create({
 
   loadingBox: {
     ...StyleSheet.absoluteFill,
-    alignItems: 'center', justifyContent: 'center', gap: 12,
+    alignItems: 'center', justifyContent: 'center', gap: 14,
   },
+  loadingIconWrap: {
+    width: 56, height: 56, borderRadius: 28,
+    backgroundColor: 'rgba(123,114,248,0.12)',
+    borderWidth: 1, borderColor: 'rgba(123,114,248,0.3)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  loadingGlow: {
+    position: 'absolute', width: 56, height: 56, borderRadius: 28,
+    backgroundColor: 'rgba(123,114,248,0.35)',
+  },
+  loadingTitle: { fontSize: 14, fontWeight: '700', color: 'rgba(255,255,255,0.92)', letterSpacing: 0.2 },
   loadingText: { fontSize: 12, color: 'rgba(255,255,255,0.38)', letterSpacing: 0.5 },
 
   gradientTop: {

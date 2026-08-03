@@ -57,6 +57,9 @@ interface VideoSectionProps {
   /** Running accumulated total while a skip-10s burst is batching (see useWatchPartyRoom);
    * null when idle. Shown on the skip buttons in place of the static "10s" label. */
   pendingSkipSecs?: number | null;
+  /** Which loading message to show while !isReady — 'extracting' (still trying to find a
+   * direct stream) or 'vb' (gave up, waiting for the server to hand off to Virtual Browser). */
+  loadingStage?: 'extracting' | 'vb';
 }
 
 const SHOW_MS = 3500; // controls visible duration after tap / mount
@@ -67,10 +70,26 @@ export const VideoSection = React.memo(function VideoSection({
   onPlaybackStatusUpdate, onStreamResolved, onProgress, onBuffering, onReady, onPlayPause, onStop,
   onSeekDirection, onToggleFullscreen, onRemoveEmoji,
   currentTime = 0, duration = 0, onProgressSeek, isWebView = false, isYouTubeEmbed = false, onCdnUrlSniffed,
-  pendingSkipSecs = null,
+  pendingSkipSecs = null, loadingStage = 'extracting',
 }: VideoSectionProps) {
   const { colors } = useTheme();
   const { t } = useT();
+
+  // Loading badge pulse — plain ActivityIndicator read as "frozen/broken" more than "working"
+  // in real-user feedback; a slow breathing glow behind the icon reads as active progress.
+  const pulseAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1, duration: 1100, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 0, duration: 1100, useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [pulseAnim]);
+  const pulseScale = pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.18] });
+  const pulseOpacity = pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.5, 0.15] });
 
   const ctrlOpacity = useRef(new Animated.Value(1)).current;
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -133,8 +152,18 @@ export const VideoSection = React.memo(function VideoSection({
       {/* Video player */}
       {!isReady ? (
         <View style={s.loadingBox}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={s.loadingText}>{t('common', 'loading')}</Text>
+          <View style={s.loadingIconWrap}>
+            <Animated.View style={[s.loadingGlow, { transform: [{ scale: pulseScale }], opacity: pulseOpacity }]} />
+            <Ionicons
+              name={loadingStage === 'vb' ? 'globe-outline' : 'search-outline'}
+              size={26}
+              color={colors.primary}
+            />
+          </View>
+          <Text style={s.loadingTitle}>
+            {loadingStage === 'vb' ? t('watchParty', 'loadingFallbackVB') : t('watchParty', 'loadingExtracting')}
+          </Text>
+          <ActivityIndicator size="small" color="rgba(255,255,255,0.5)" />
         </View>
       ) : (
         <UniversalPlayer

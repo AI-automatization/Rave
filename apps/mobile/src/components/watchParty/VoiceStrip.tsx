@@ -111,16 +111,16 @@ const s = StyleSheet.create({
     borderRadius: borderRadius.lg,
     marginHorizontal: spacing.lg,
     marginTop: spacing.sm,
-    padding: spacing.sm,
-    gap: spacing.xs,
+    padding: spacing.md,
+    gap: spacing.sm,
   },
-  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   headerText: { ...typography.caption, fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: 0.3 },
   headerLoader: { marginLeft: 'auto' },
 
-  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   avatarScroll: { flex: 1 },
-  avatarScrollContent: { flexDirection: 'row', gap: 8, paddingVertical: 2 },
+  avatarScrollContent: { flexDirection: 'row', gap: 10, paddingVertical: 2 },
 
   avatarWrap: { position: 'relative' },
   avatar: {
