@@ -1,6 +1,7 @@
 // WeWatch Mobile — WatchPartyScreen
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, Platform, StyleSheet, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { ReportRoomModal } from '@components/common/ReportRoomModal';
@@ -48,6 +49,7 @@ export function WatchPartyScreen() {
   const { t } = useT();
   const navigation = useNavigation<NavProp>();
   const { height: winHeight } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
 
   const [showPlaylist, setShowPlaylist] = useState(false);
   const [showReport, setShowReport] = useState(false);
@@ -129,7 +131,7 @@ export function WatchPartyScreen() {
   const {
     playerRef, userId, room, messages, activeMembers, isOwner, adminMonitoring, connectTimeout, activeTransport,
     showChat, showInvite, isPlaying, isFullscreen, videoIsLive,
-    videoCurrentTime, videoDuration, pendingSkipSecs, floatingEmojis, showQualityMenu, showEpisodeMenu,
+    videoCurrentTime, videoDuration, pendingSkipSecs, floatingEmojis, reactionCooldownSec, showQualityMenu, showEpisodeMenu,
     extractQualities, extractEpisodes, currentVideoUrl, extractionError,
     originalVideoUrl, extractedVideoUrl, extractedVideoHeaders, extractedVideoProxyUrl, isWebViewMode, isYouTubeWebViewMode, isExtracting, extractFallback,
     playlist, handleAddToQueue, handlePlaylistRemove, handlePlaylistNext,
@@ -243,7 +245,12 @@ export function WatchPartyScreen() {
   const showMembers = !isFullscreen && !!room && !showChat;
 
   return (
-    <View style={s.root}>
+    // root previously had no top inset at all — on devices where the status bar isn't fully
+    // transparent/overlaid, the video/VB player (the very first stacked element) rendered right
+    // under it, reading as "player pressed to the top, covered by the clock/signal/battery icons"
+    // (real report 2026-08-03). Skipped in fullscreen — that mode is meant to be edge-to-edge,
+    // landscape, and already locks orientation away from the notch/status-bar area.
+    <View style={[s.root, !isFullscreen && { paddingTop: insets.top }]}>
 
       {/* Expired source banner */}
       {extractionError === 'video_source_expired' && (
@@ -365,7 +372,7 @@ export function WatchPartyScreen() {
 
           {/* Bottom action bar */}
           <View style={s.fsBar}>
-            <EmojiPickerBar onSelect={handleEmojiSelect} />
+            <EmojiPickerBar onSelect={handleEmojiSelect} cooldownSec={reactionCooldownSec} />
             <View style={s.fsBarActions}>
               <TrackedTouchable
                 trackId="watchparty:fs_toggle_chat"
@@ -463,7 +470,7 @@ export function WatchPartyScreen() {
 
           {/* Emoji reaction bar */}
           <View style={[s.emojiBar, Platform.OS !== 'ios' && s.emojiBarAndroid]}>
-            <EmojiPickerBar onSelect={handleEmojiSelect} />
+            <EmojiPickerBar onSelect={handleEmojiSelect} cooldownSec={reactionCooldownSec} />
           </View>
 
           {/* Chat panel — voice strip (T-S167, variant C) always renders above it now, replacing

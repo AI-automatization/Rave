@@ -147,6 +147,13 @@ export function VirtualBrowserPlayer({ isOwner, frame, dimensions, error, remote
           source={{ uri: `data:image/jpeg;base64,${frame}` }}
           style={s.frameImg}
           resizeMode="contain"
+          // Each new frame is a fresh base64 data URI (never the same string twice), so RN's
+          // Image treats every VB_FRAME as a brand-new source. Android's Image defaults
+          // fadeDuration to 300ms, cross-fading from transparent on every source change —
+          // at several frames/sec that reads as a constant black flicker/brightness pulse
+          // (found via a live report 2026-08-03: "мерцает чёрным как будто яркость меняет").
+          // iOS already defaults fadeDuration to 0, so this only mattered on Android.
+          fadeDuration={0}
         />
 
         {/* Everyone else sees the OWNER's cursor, synced via VB_CURSOR — otherwise nobody but

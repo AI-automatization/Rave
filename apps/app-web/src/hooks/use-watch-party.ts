@@ -85,8 +85,12 @@ export function useWatchParty(roomId: string) {
 
   // Floating emoji reactions (rendered over the video by the caller) — ephemeral, not part of
   // useWatchPartyStore's persisted room state, so plain useState is enough here.
-  const [reactions, setReactions] = useState<{ id: string; emoji: string; userId: string }[]>([]);
+  const [reactions, setReactions] = useState<{ id: string; emoji: string; userId: string; username?: string; avatar?: string }[]>([]);
   const reactionIdRef = useRef(0);
+
+  // Burst-lockout countdown (server-driven — REACTION_COOLDOWN). 0 = picker enabled.
+  const [reactionCooldownSec, setReactionCooldownSec] = useState(0);
+  const cooldownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Join room
   useEffect(() => {
@@ -155,17 +159,34 @@ export function useWatchParty(roomId: string) {
       });
     });
 
-    // ROOM_EMOJI (chatEvents.handler.ts SEND_EMOJI handler) — broadcast to everyone including
-    // the sender. Was emit-only on this client before (EmojiReactions.tsx sends, nothing ever
-    // listened for the broadcast back) — reactions silently went nowhere. reactionIdRef keeps
-    // keys unique even if two reactions land in the same millisecond.
-    socket.on(SERVER_EVENTS.ROOM_EMOJI, (data: { userId: string; emoji: string; timestamp: number }) => {
+    // REACTION_BROADCAST (reactionEvents.handler.ts, same event mobile uses via SEND_REACTION) —
+    // broadcast to everyone including the sender. Previously this client sent/listened on the
+    // legacy room:emoji pair instead, which mobile never spoke — reactions never crossed
+    // platforms in either direction (real report 2026-08-03). reactionIdRef keeps keys unique
+    // even if two reactions land in the same millisecond.
+    socket.on(SERVER_EVENTS.REACTION_BROADCAST, (data: { userId: string; username?: string; avatar?: string; emoji: string; timestamp: number }) => {
       const id = `${data.timestamp}-${reactionIdRef.current++}`;
-      setReactions((prev) => [...prev, { id, emoji: data.emoji, userId: data.userId }]);
+      setReactions((prev) => [...prev, { id, emoji: data.emoji, userId: data.userId, username: data.username, avatar: data.avatar }]);
       // Auto-clear — these are a transient floating-over-video effect, not a persisted log.
       setTimeout(() => {
         setReactions((prev) => prev.filter((r) => r.id !== id));
       }, 2600);
+    });
+
+    // Sender-only: burst limit hit — drive a visible countdown so EmojiReactions can disable
+    // itself instead of taps just silently going nowhere.
+    socket.on(SERVER_EVENTS.REACTION_COOLDOWN, (data: { retryAfterSec: number }) => {
+      if (cooldownIntervalRef.current) clearInterval(cooldownIntervalRef.current);
+      setReactionCooldownSec(data.retryAfterSec);
+      cooldownIntervalRef.current = setInterval(() => {
+        setReactionCooldownSec((prev) => {
+          if (prev <= 1) {
+            if (cooldownIntervalRef.current) clearInterval(cooldownIntervalRef.current);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
     });
 
     // Server sends syncState directly as payload (match mobile pattern). serverTimestamp is
@@ -244,7 +265,9 @@ export function useWatchParty(roomId: string) {
       socket.off(SERVER_EVENTS.MEMBER_JOINED);
       socket.off(SERVER_EVENTS.MEMBER_LEFT);
       socket.off(SERVER_EVENTS.ROOM_MESSAGE);
-      socket.off(SERVER_EVENTS.ROOM_EMOJI);
+      socket.off(SERVER_EVENTS.REACTION_BROADCAST);
+      socket.off(SERVER_EVENTS.REACTION_COOLDOWN);
+      if (cooldownIntervalRef.current) clearInterval(cooldownIntervalRef.current);
       socket.off(SERVER_EVENTS.VIDEO_PLAY);
       socket.off(SERVER_EVENTS.VIDEO_PAUSE);
       socket.off(SERVER_EVENTS.VIDEO_SEEK);
@@ -281,7 +304,7 @@ export function useWatchParty(roomId: string) {
   }, [socket, roomId]);
 
   const sendEmoji = useCallback((emoji: string) => {
-    socket?.emit(CLIENT_EVENTS.SEND_EMOJI, { roomId, emoji });
+    socket?.emit(CLIENT_EVENTS.SEND_REACTION, { roomId, emoji });
   }, [socket, roomId]);
 
   // Owner moderation — backend (roomEvents.handler.ts) already enforced owner-only + validated
@@ -326,6 +349,7 @@ export function useWatchParty(roomId: string) {
   return {
     isConnected,
     reactions,
+    reactionCooldownSec,
     sendMessage,
     sendPlay,
     sendPause,

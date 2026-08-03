@@ -80,8 +80,8 @@ export function RoomHeader({ renameRoom }: Props) {
 
   return (
     <>
-      <div className="glass-nav relative z-10 flex items-center justify-between px-5 py-3.5 border-b border-white/[0.07]">
-        <div className="flex items-center gap-2.5 min-w-0">
+      <div className="glass-nav relative z-10 flex items-center justify-between gap-2 px-3 sm:px-5 py-3.5 border-b border-white/[0.07] overflow-hidden">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
           {/* Connection dot — a live pulse reads as "this room is actually alive right now" at a
               glance, where a static dot (the previous state) blended into the rest of the muted
               chrome and went unnoticed (real-user feedback: room "feels like a brick"). */}
@@ -147,13 +147,17 @@ export function RoomHeader({ renameRoom }: Props) {
           )}
 
           {room?.videoPlatform && (
-            <span className="text-[10px] text-slate-600 uppercase tracking-wide shrink-0">
+            <span className="hidden sm:inline text-[10px] text-slate-600 uppercase tracking-wide shrink-0">
               {room.videoPlatform}
             </span>
           )}
 
           {/* Face-pile — social presence beats a bare number: makes an otherwise plain text
-              header feel like an actual room with people in it, not a settings page. */}
+              header feel like an actual room with people in it, not a settings page. On phones
+              (real report 2026-08-03: header content clipped past the screen edge, "1 участники"
+              cut off entirely) the numeric label is the first thing to go — the avatars alone
+              already say "people are here", the exact count isn't worth the width on a 360-400px
+              screen once title + invite + overflow menu are already fighting for the same row. */}
           <div className="flex items-center gap-1.5 shrink-0">
             <div className="flex items-center -space-x-2">
               {storeMembers.slice(0, 4).map((m) => (
@@ -181,19 +185,22 @@ export function RoomHeader({ renameRoom }: Props) {
                 </div>
               )}
             </div>
-            <span className="text-[11px] text-slate-500">{memberCount} {t('members').toLowerCase()}</span>
+            <span className="hidden sm:inline text-[11px] text-slate-500">{memberCount} {t('members').toLowerCase()}</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 shrink-0">
           {/* Primary action — renamed from "Ссылка" (link? copy? share? — unclear what happens)
-              to "Пригласить" (invite), which names the outcome instead of the mechanism. */}
+              to "Пригласить" (invite), which names the outcome instead of the mechanism. Text
+              label drops below sm — icon-only keeps a full 44px+ touch target without forcing
+              the title down to a 3-character sliver on a phone-width header. */}
           <button
             onClick={() => { trackClick('room:open_invite'); setInviteOpen(true); }}
-            className="h-8 px-3 rounded-lg text-xs font-medium text-white bg-violet-600 hover:bg-violet-500 transition-colors flex items-center gap-1.5 cursor-pointer"
+            aria-label={t('invite')}
+            className="h-8 px-2.5 sm:px-3 rounded-lg text-xs font-medium text-white bg-violet-600 hover:bg-violet-500 transition-colors flex items-center gap-1.5 cursor-pointer shrink-0"
           >
             <Share2 size={12} />
-            {t('invite')}
+            <span className="hidden sm:inline">{t('invite')}</span>
           </button>
 
           {/* Leave used to sit at the same visual weight as Invite (same size, one bg-color swap

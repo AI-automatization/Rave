@@ -16,7 +16,7 @@ import { VIDEO_HEIGHT, videoStyles as s } from './VideoSection.styles';
 
 export { VIDEO_HEIGHT };
 
-export interface FloatingEmoji { id: string; emoji: string; x: number; }
+export interface FloatingEmoji { id: string; emoji: string; x: number; avatar?: string | null; username?: string; }
 
 interface VideoSectionProps {
   playerRef: React.RefObject<UniversalPlayerRef | null>;
@@ -306,7 +306,7 @@ export const VideoSection = React.memo(function VideoSection({
 
       {/* Floating emojis */}
       {floatingEmojis.map(e => (
-        <EmojiFloatItem key={e.id} emoji={e.emoji} x={e.x} onDone={() => onRemoveEmoji(e.id)} />
+        <EmojiFloatItem key={e.id} emoji={e.emoji} x={e.x} avatar={e.avatar} username={e.username} onDone={() => onRemoveEmoji(e.id)} />
       ))}
     </View>
   );
