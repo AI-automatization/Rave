@@ -73,9 +73,11 @@ const SKIP_STEP_SECS = 10;
 export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const navigation = useNavigation<NavProp>();
   const userId = useAuthStore(s => s.user?._id) ?? '';
+  const selfAvatar = useAuthStore(s => s.user?.avatar);
+  const selfUsername = useAuthStore(s => s.user?.username);
   const { t } = useT();
 
-  const { room, syncState, messages, activeMembers, playlist, isOwner, adminMonitoring, roomClosed, heartbeat, bufferingUsers, lastReaction, activeTransport, getTransportSnapshot,
+  const { room, syncState, messages, activeMembers, playlist, isOwner, adminMonitoring, roomClosed, heartbeat, bufferingUsers, lastReaction, reactionCooldownSec, activeTransport, getTransportSnapshot,
     emitPlay, emitPause, emitSeek, emitHeartbeat, sendMessage, sendEmoji } = useWatchParty(roomId);
   const { isExtracting, result: extractResult, fallbackMode: extractFallback, error: extractionError, extract, reset: resetExtraction } = useVideoExtraction();
 
@@ -407,7 +409,13 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     if (!lastReaction || lastReaction.userId === userId) return;
     setFloatingEmojis(prev => [
       ...prev,
-      { id: `${lastReaction.userId}-${lastReaction.timestamp}`, emoji: lastReaction.emoji, x: Math.random() * (SCREEN_W - 60) + 10 },
+      {
+        id: `${lastReaction.userId}-${lastReaction.timestamp}`,
+        emoji: lastReaction.emoji,
+        x: Math.random() * (SCREEN_W - 60) + 10,
+        avatar: lastReaction.avatar,
+        username: lastReaction.username,
+      },
     ]);
   }, [lastReaction, userId]);
 
@@ -579,13 +587,14 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   }, [isOwner, videoIsLive, emitSeek, flushSkipBurst]);
 
   const handleEmojiSelect = useCallback((emoji: string) => {
+    if (reactionCooldownSec > 0) return; // server-driven burst lockout — picker is already dimmed
     const now = Date.now();
     reactionTimestampsRef.current = reactionTimestampsRef.current.filter(t => now - t < 1000);
     if (reactionTimestampsRef.current.length >= REACTION_RATE_LIMIT) return;
     reactionTimestampsRef.current.push(now);
     sendEmoji(emoji);
-    setFloatingEmojis(prev => [...prev, { id: `${now}`, emoji, x: Math.random() * (SCREEN_W - 60) + 10 }]);
-  }, [sendEmoji]);
+    setFloatingEmojis(prev => [...prev, { id: `${now}`, emoji, x: Math.random() * (SCREEN_W - 60) + 10, avatar: selfAvatar, username: selfUsername }]);
+  }, [sendEmoji, reactionCooldownSec, selfAvatar, selfUsername]);
 
   const handleRemoveEmoji = useCallback((id: string) => { setFloatingEmojis(prev => prev.filter(e => e.id !== id)); }, []);
 
@@ -828,7 +837,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   return {
     playerRef, userId, room, messages, activeMembers, isOwner, adminMonitoring, connectTimeout, activeTransport,
     isExtracting, extractResult, extractionError, extractFallback, showChat, showInvite, isPlaying, isFullscreen,
-    videoIsLive, videoCurrentTime, videoDuration, pendingSkipSecs, floatingEmojis, showQualityMenu, showEpisodeMenu,
+    videoIsLive, videoCurrentTime, videoDuration, pendingSkipSecs, floatingEmojis, reactionCooldownSec, showQualityMenu, showEpisodeMenu,
     extractQualities, extractEpisodes, currentVideoUrl, bufferingUsers,
     originalVideoUrl, extractedVideoUrl: playerExtractedUrl, extractedVideoHeaders, extractedVideoProxyUrl: playerProxyUrl, isWebViewMode, isYouTubeWebViewMode,
     setShowChat, setShowInvite, setShowQualityMenu, setShowEpisodeMenu, setVideoIsLive,

@@ -6,6 +6,8 @@ interface FloatingReaction {
   id: string;
   emoji: string;
   userId: string;
+  username?: string;
+  avatar?: string;
 }
 
 interface Props {
@@ -32,17 +34,25 @@ export function ReactionOverlay({ reactions }: Props) {
     <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-xl">
       <AnimatePresence>
         {reactions.map((r) => (
-          <motion.span
+          <motion.div
             key={r.id}
-            className="absolute bottom-2 text-3xl select-none"
+            className="absolute bottom-2 flex flex-col items-center gap-0.5 select-none"
             style={{ left: `${laneFor(r.id)}%` }}
             initial={{ opacity: 0, y: 0, scale: 0.6 }}
             animate={{ opacity: [0, 1, 1, 0], y: shouldReduceMotion ? 0 : -160, scale: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 2.4, ease: 'easeOut' }}
           >
-            {r.emoji}
-          </motion.span>
+            <span className="text-3xl leading-none">{r.emoji}</span>
+            {r.avatar ? (
+              // eslint-disable-next-line @next/next/no-img-element -- tiny ephemeral overlay avatar, not worth next/image's layout machinery
+              <img src={r.avatar} alt="" className="w-4 h-4 rounded-full object-cover ring-1 ring-white/40" />
+            ) : r.username ? (
+              <span className="w-4 h-4 rounded-full bg-violet-500/80 ring-1 ring-white/40 flex items-center justify-center text-[8px] font-semibold text-white leading-none">
+                {r.username.charAt(0).toUpperCase()}
+              </span>
+            ) : null}
+          </motion.div>
         ))}
       </AnimatePresence>
     </div>

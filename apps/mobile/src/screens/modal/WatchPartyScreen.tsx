@@ -131,7 +131,7 @@ export function WatchPartyScreen() {
   const {
     playerRef, userId, room, messages, activeMembers, isOwner, adminMonitoring, connectTimeout, activeTransport,
     showChat, showInvite, isPlaying, isFullscreen, videoIsLive,
-    videoCurrentTime, videoDuration, pendingSkipSecs, floatingEmojis, showQualityMenu, showEpisodeMenu,
+    videoCurrentTime, videoDuration, pendingSkipSecs, floatingEmojis, reactionCooldownSec, showQualityMenu, showEpisodeMenu,
     extractQualities, extractEpisodes, currentVideoUrl, extractionError,
     originalVideoUrl, extractedVideoUrl, extractedVideoHeaders, extractedVideoProxyUrl, isWebViewMode, isYouTubeWebViewMode, isExtracting, extractFallback,
     playlist, handleAddToQueue, handlePlaylistRemove, handlePlaylistNext,
@@ -372,7 +372,7 @@ export function WatchPartyScreen() {
 
           {/* Bottom action bar */}
           <View style={s.fsBar}>
-            <EmojiPickerBar onSelect={handleEmojiSelect} />
+            <EmojiPickerBar onSelect={handleEmojiSelect} cooldownSec={reactionCooldownSec} />
             <View style={s.fsBarActions}>
               <TrackedTouchable
                 trackId="watchparty:fs_toggle_chat"
@@ -470,7 +470,7 @@ export function WatchPartyScreen() {
 
           {/* Emoji reaction bar */}
           <View style={[s.emojiBar, Platform.OS !== 'ios' && s.emojiBarAndroid]}>
-            <EmojiPickerBar onSelect={handleEmojiSelect} />
+            <EmojiPickerBar onSelect={handleEmojiSelect} cooldownSec={reactionCooldownSec} />
           </View>
 
           {/* Chat panel — voice strip (T-S167, variant C) always renders above it now, replacing

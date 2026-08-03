@@ -327,7 +327,7 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
   const t = useTranslations('party');
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { sendMessage, sendPlay, sendPause, sendSeek, sendEmoji, sendHeartbeat, sendBufferStart, sendBufferEnd, sendMediaChange, reactions, kickMember, muteMember, unmuteMember, renameRoom } = useWatchParty(roomId);
+  const { sendMessage, sendPlay, sendPause, sendSeek, sendEmoji, sendHeartbeat, sendBufferStart, sendBufferEnd, sendMediaChange, reactions, reactionCooldownSec, kickMember, muteMember, unmuteMember, renameRoom } = useWatchParty(roomId);
   const [rightTab, setRightTab] = useState<RightTab>('chat');
   // Mobile-only (T-S-mobile-room-panel, 2026-08-02): the sidebar below is `hidden md:flex` — real-
   // device report confirmed there was previously NO way to reach chat/voice/members on a phone at
@@ -463,7 +463,7 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
               </button>
             )}
 
-            <EmojiReactions onSend={sendEmoji} />
+            <EmojiReactions onSend={sendEmoji} cooldownSec={reactionCooldownSec} />
           </div>
 
           {/* Right: Chat / Members / Playlist — glass-panel matches the violet-tinted surface

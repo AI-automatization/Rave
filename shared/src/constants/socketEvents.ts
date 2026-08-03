@@ -31,6 +31,9 @@ export const SERVER_EVENTS = Object.freeze({
   ROOM_EMOJI: 'room:emoji',
 
   REACTION_BROADCAST: 'reaction:broadcast',
+  // Sender-only: burst limit hit (20+ reactions in the trailing 60s window) — client should
+  // disable its emoji picker and show retryAfterSec as a countdown, not silently drop taps.
+  REACTION_COOLDOWN: 'reaction:cooldown',
 
   PLAYLIST_UPDATED: 'playlist:updated',
 

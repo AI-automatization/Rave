@@ -51,6 +51,8 @@ export interface HeartbeatData {
 // T-E106: Reaction broadcast from any room member
 export interface ReactionBroadcast {
   userId: string;
+  username?: string;
+  avatar?: string;
   emoji: string;
   timestamp: number;
 }
@@ -74,6 +76,9 @@ export function useWatchParty(roomId: string) {
   const [heartbeat, setHeartbeat] = useState<HeartbeatData | null>(null);
   const [bufferingUsers, setBufferingUsers] = useState<Set<string>>(new Set());
   const [lastReaction, setLastReaction] = useState<ReactionBroadcast | null>(null);
+  // Server-driven burst-lockout countdown (REACTION_COOLDOWN) — 0 = picker enabled.
+  const [reactionCooldownSec, setReactionCooldownSec] = useState(0);
+  const cooldownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Mesh sync (P2P/TURN) — owner broadcasts here, members apply. Socket stays as fallback.
   const broadcasterRef = useRef<SyncBroadcaster | null>(null);
@@ -261,6 +266,22 @@ export function useWatchParty(roomId: string) {
     // T-E106: Reaction broadcast from other members
     socket.on(SERVER_EVENTS.REACTION_BROADCAST, (data: ReactionBroadcast) => setLastReaction(data));
 
+    // Sender-only: burst limit hit (20+ reactions in the trailing 60s window) — drive a visible
+    // countdown so the picker can disable itself instead of taps just going nowhere.
+    socket.on(SERVER_EVENTS.REACTION_COOLDOWN, (data: { retryAfterSec: number }) => {
+      if (cooldownIntervalRef.current) clearInterval(cooldownIntervalRef.current);
+      setReactionCooldownSec(data.retryAfterSec);
+      cooldownIntervalRef.current = setInterval(() => {
+        setReactionCooldownSec(prev => {
+          if (prev <= 1) {
+            if (cooldownIntervalRef.current) clearInterval(cooldownIntervalRef.current);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    });
+
     // Admin monitoring events
     socket.on('admin:joined', () => setAdminMonitoring(true));
     socket.on('admin:left', () => setAdminMonitoring(false));
@@ -292,6 +313,8 @@ export function useWatchParty(roomId: string) {
       socket.off(VIDEO_HEARTBEAT_EVENT);
       socket.off(SERVER_EVENTS.PLAYLIST_UPDATED);
       socket.off(SERVER_EVENTS.REACTION_BROADCAST);
+      socket.off(SERVER_EVENTS.REACTION_COOLDOWN);
+      if (cooldownIntervalRef.current) clearInterval(cooldownIntervalRef.current);
       socket.off('admin:joined');
       socket.off('admin:left');
     };
@@ -433,5 +456,5 @@ export function useWatchParty(roomId: string) {
     getSocket()?.emit(CLIENT_EVENTS.VOICE_LEAVE);
   }, []);
 
-  return { room, syncState, messages, activeMembers, playlist, isOwner, adminMonitoring, roomClosed, heartbeat, bufferingUsers, lastReaction, activeTransport, getTransportSnapshot, emitPlay, emitPause, emitSeek, emitHeartbeat, sendMessage, sendEmoji, emitMediaChange, emitVoiceJoin, emitVoiceLeave };
+  return { room, syncState, messages, activeMembers, playlist, isOwner, adminMonitoring, roomClosed, heartbeat, bufferingUsers, lastReaction, reactionCooldownSec, activeTransport, getTransportSnapshot, emitPlay, emitPause, emitSeek, emitHeartbeat, sendMessage, sendEmoji, emitMediaChange, emitVoiceJoin, emitVoiceLeave };
 }
