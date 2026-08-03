@@ -45,7 +45,7 @@ export function ChatPanel({ onSend, onOpenProfile }: Props) {
 
   return (
     <div className="flex flex-col h-full">
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-2.5 scrollbar-hide">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-3 scrollbar-hide">
         {messages.length === 0 && (
           <div className="flex-1 flex flex-col items-center justify-center gap-3 px-6 text-center">
             <div
@@ -88,7 +88,7 @@ export function ChatPanel({ onSend, onOpenProfile }: Props) {
               dragElastic={0.25}
               dragSnapToOrigin
               onDragEnd={(_, info) => { if (info.offset.x > SWIPE_REPLY_THRESHOLD_PX) startReply(); }}
-              className="group flex items-start gap-2.5 px-1.5 py-1.5 hover:bg-white/[0.03] rounded-lg transition-colors touch-pan-y"
+              className="group flex items-start gap-3 px-2 py-2 hover:bg-white/[0.03] rounded-lg transition-colors touch-pan-y"
             >
               <button
                 type="button"
@@ -161,7 +161,7 @@ export function ChatPanel({ onSend, onOpenProfile }: Props) {
         />
       )}
 
-      <form onSubmit={handleSubmit} className="p-3 border-t border-white/[0.07]">
+      <form onSubmit={handleSubmit} className="p-4 border-t border-white/[0.07]">
         <div className="flex items-center gap-2">
           <input
             ref={inputRef}

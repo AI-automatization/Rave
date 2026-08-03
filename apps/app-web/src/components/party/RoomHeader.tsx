@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { LogOut, Share2, MoreVertical } from 'lucide-react';
+import { LogOut, Share2, MoreVertical, Pencil, Check, X } from 'lucide-react';
 import { useWatchPartyStore } from '@/store/watch-party.store';
 import { useAuthStore } from '@/store/auth.store';
 import { useTranslations } from 'next-intl';
@@ -16,7 +16,11 @@ import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
 
-export function RoomHeader() {
+interface Props {
+  renameRoom: (name: string) => void;
+}
+
+export function RoomHeader({ renameRoom }: Props) {
   const t = useTranslations('party');
   const tHome = useTranslations('home');
   const router = useRouter();
@@ -26,6 +30,8 @@ export function RoomHeader() {
   const currentUser = useAuthStore((s) => s.user);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [leaveOpen, setLeaveOpen] = useState(false);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState('');
 
   // storeMembers is the live list (ROOM_JOINED seeds it, MEMBER_JOINED/MEMBER_LEFT keep it current);
   // room.members is the REST snapshot from page load and never changes afterwards. Reading the
@@ -59,9 +65,22 @@ export function RoomHeader() {
     router.push('/home');
   }
 
+  function startEditingName() {
+    setNameDraft(room?.name ?? room?.videoTitle ?? '');
+    setIsEditingName(true);
+  }
+
+  function submitRename() {
+    const trimmed = nameDraft.trim();
+    if (trimmed && trimmed !== room?.name) {
+      renameRoom(trimmed);
+    }
+    setIsEditingName(false);
+  }
+
   return (
     <>
-      <div className="glass-nav relative z-10 flex items-center justify-between px-4 py-3 border-b border-white/[0.07]">
+      <div className="glass-nav relative z-10 flex items-center justify-between px-5 py-3.5 border-b border-white/[0.07]">
         <div className="flex items-center gap-2.5 min-w-0">
           {/* Connection dot — a live pulse reads as "this room is actually alive right now" at a
               glance, where a static dot (the previous state) blended into the rest of the muted
@@ -80,11 +99,52 @@ export function RoomHeader() {
             />
           </span>
 
-          <h2
-            className="font-[family-name:var(--font-display)] text-[16px] font-medium tracking-wide text-white truncate leading-snug"
-          >
-            {room?.name ?? room?.videoTitle ?? tHome('title')}
-          </h2>
+          {isEditingName ? (
+            <div className="flex items-center gap-1 min-w-0">
+              <input
+                autoFocus
+                value={nameDraft}
+                onChange={(e) => setNameDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') submitRename();
+                  if (e.key === 'Escape') setIsEditingName(false);
+                }}
+                maxLength={80}
+                className="min-w-0 w-40 sm:w-56 bg-white/[0.06] border border-white/[0.12] rounded-md px-2 py-0.5 text-[15px] font-medium text-white outline-none focus:border-violet-500/50"
+              />
+              <button
+                onClick={submitRename}
+                aria-label={t('save')}
+                className="h-6 w-6 rounded text-emerald-400 hover:bg-white/[0.06] flex items-center justify-center shrink-0 cursor-pointer"
+              >
+                <Check size={13} />
+              </button>
+              <button
+                onClick={() => setIsEditingName(false)}
+                aria-label={t('cancel')}
+                className="h-6 w-6 rounded text-zinc-500 hover:bg-white/[0.06] flex items-center justify-center shrink-0 cursor-pointer"
+              >
+                <X size={13} />
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 min-w-0">
+              <h2
+                className="font-[family-name:var(--font-display)] text-[16px] font-medium tracking-wide text-white truncate leading-snug"
+              >
+                {room?.name ?? room?.videoTitle ?? tHome('title')}
+              </h2>
+              {isOwner && (
+                <button
+                  onClick={startEditingName}
+                  aria-label={t('renameRoom')}
+                  className="h-5 w-5 rounded text-zinc-600 hover:text-zinc-300 hover:bg-white/[0.06] transition-colors flex items-center justify-center shrink-0 cursor-pointer"
+                >
+                  <Pencil size={11} />
+                </button>
+              )}
+            </div>
+          )}
 
           {room?.videoPlatform && (
             <span className="text-[10px] text-slate-600 uppercase tracking-wide shrink-0">

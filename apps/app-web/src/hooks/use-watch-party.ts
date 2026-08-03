@@ -317,6 +317,12 @@ export function useWatchParty(roomId: string) {
     socket?.emit(CLIENT_EVENTS.CHANGE_MEDIA, { roomId, videoUrl, videoTitle, videoPlatform });
   }, [socket, roomId]);
 
+  // Owner-only room rename — server broadcasts ROOM_UPDATED (same as sendMediaChange), which
+  // already patches room.name via the listener above.
+  const renameRoom = useCallback((name: string) => {
+    socket?.emit(CLIENT_EVENTS.RENAME_ROOM, { name });
+  }, [socket]);
+
   return {
     isConnected,
     reactions,
@@ -332,5 +338,6 @@ export function useWatchParty(roomId: string) {
     kickMember,
     muteMember,
     unmuteMember,
+    renameRoom,
   };
 }

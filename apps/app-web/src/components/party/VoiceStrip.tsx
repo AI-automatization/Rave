@@ -79,7 +79,7 @@ export function VoiceStrip({
   }
 
   return (
-    <div className="liquid-glass-sm mx-3 mt-3 p-2.5 flex flex-col gap-2.5">
+    <div className="liquid-glass-sm mx-3 mt-3 p-3.5 flex flex-col gap-3">
       {/* Always-visible compact row — icon/label/count on the left, the one relevant action
           (Join, or Mute+Leave+expand-toggle) on the right. This alone answers "is voice live
           and how many people" without needing the avatar strip below to be open. */}

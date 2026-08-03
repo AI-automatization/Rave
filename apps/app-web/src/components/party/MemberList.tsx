@@ -34,7 +34,7 @@ export function MemberList({ isOwner: viewerIsOwner = false, onKick }: Props) {
   const [confirmKickId, setConfirmKickId] = useState<string | null>(null);
 
   return (
-    <div className="flex flex-col gap-0.5 p-2">
+    <div className="flex flex-col gap-1 p-3">
       {members.map((member) => {
         const isOwner = room?.ownerId === member._id;
         const isMe = currentUser?._id === member._id;
@@ -48,7 +48,7 @@ export function MemberList({ isOwner: viewerIsOwner = false, onKick }: Props) {
         return (
           <div
             key={member._id}
-            className="group flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-white/[0.03] transition-colors"
+            className="group flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/[0.03] transition-colors"
           >
             <div className="relative shrink-0">
               {member.avatar ? (

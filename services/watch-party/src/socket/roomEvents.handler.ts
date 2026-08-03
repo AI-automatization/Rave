@@ -274,6 +274,23 @@ export const registerRoomEvents = (
     }
   });
 
+  socket.on(CLIENT_EVENTS.RENAME_ROOM, async (data: { name: string }) => {
+    const roomId = authSocket.roomId;
+    if (!roomId) {
+      logger.warn('Room rename: socket has no roomId', { userId });
+      return;
+    }
+
+    try {
+      const updated = await watchPartyService.renameRoom(userId, roomId, data.name);
+      io.to(roomId).emit(SERVER_EVENTS.ROOM_UPDATED, updated);
+      logger.info('Room renamed', { roomId, userId });
+    } catch (error) {
+      socket.emit(SERVER_EVENTS.ERROR, { message: (error as Error).message || 'Failed to rename room' });
+      logger.error('Socket room rename error', { userId, error });
+    }
+  });
+
   socket.on(CLIENT_EVENTS.KICK_MEMBER, async (data: { targetUserId: string }) => {
     if (!authSocket.roomId) return;
 

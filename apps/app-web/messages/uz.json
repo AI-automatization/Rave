@@ -512,6 +512,8 @@
     "kick": "Xonadan chiqarish",
     "kickConfirm": "Tasdiqlash",
     "cancel": "Bekor qilish",
+    "save": "Saqlash",
+    "renameRoom": "Xona nomini o'zgartirish",
     "muteMic": "Mikrofonni o'chirish",
     "unmuteMic": "Mikrofonga ruxsat berish",
     "mutedByHost": "Xo'jayin tomonidan o'chirilgan",

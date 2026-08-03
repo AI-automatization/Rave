@@ -106,6 +106,9 @@ export const CLIENT_EVENTS = Object.freeze({
   // Owner xona mediasini almashtiradi → server room:updated broadcast qiladi barcha memberlarga
   CHANGE_MEDIA: 'room:media:change',
 
+  // Owner xona nomini o'zgartiradi → server room:updated broadcast qiladi barcha memberlarga
+  RENAME_ROOM: 'room:rename',
+
   // WebRTC mesh signalling (Bosqich B)
   PEER_OFFER:  'mesh:peer_offer',
   PEER_ANSWER: 'mesh:peer_answer',
