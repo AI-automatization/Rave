@@ -8,15 +8,19 @@
     "render:all": "node render-all.js"
   },
   "dependencies": {
+    "@react-three/fiber": "8.18.0",
     "@remotion/cli": "4.0.257",
-    "@remotion/transitions": "^4.0.462",
+    "@remotion/three": "4.0.257",
+    "@remotion/transitions": "4.0.257",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "remotion": "4.0.257"
+    "remotion": "4.0.257",
+    "three": "0.185.1"
   },
   "devDependencies": {
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
+    "@types/three": "0.185.3",
     "typescript": "^5.4.0"
   },
   "remotion": {
