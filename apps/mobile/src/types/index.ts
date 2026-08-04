@@ -20,6 +20,7 @@ export type {
   FriendshipStatus,
   SyncMessage,
   MeshSignalPayload,
+  VideoCandidate,
 } from '@shared/types/index';
 
 // ─────────────────────────────────────────────

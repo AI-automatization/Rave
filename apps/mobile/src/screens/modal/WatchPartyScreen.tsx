@@ -20,6 +20,7 @@ import { RoomInfoBar } from '@components/watchParty/RoomInfoBar';
 import { InviteCard } from '@components/watchParty/InviteCard';
 import { QualityMenu } from '@components/watchParty/QualityMenu';
 import { EpisodeMenu } from '@components/watchParty/EpisodeMenu';
+import { VideoCandidatePicker } from '@components/watchParty/VideoCandidatePicker';
 import { PlaylistPanel } from '@components/watchParty/PlaylistPanel';
 import { BlockedDomainView } from '@components/common/BlockedDomainView';
 import { Ionicons } from '@expo/vector-icons';
@@ -142,6 +143,7 @@ export function WatchPartyScreen() {
     handleToggleFullscreen, handleSeekDirection, handleEmojiSelect, handleRemoveEmoji,
     handleChangeMedia, handleQualitySelect, handleEpisodeSelect, handleLeave, handlePlayerReady,
     handleCdnUrlSniffed,
+    candidates, showCandidatePicker, setShowCandidatePicker, handleOpenCandidatePicker, handleCandidateSelect,
   } = useWatchPartyRoom(params.roomId, params.videoReferer);
 
   // Voice connection lifted to screen level — stays alive across panel switches.
@@ -433,8 +435,8 @@ export function WatchPartyScreen() {
             onLeave={handleLeave}
           />
 
-          {/* Quality / Episode gear row */}
-          {isOwner && !showPlaylist && (extractQualities.length > 0 || extractEpisodes.length > 0) && (
+          {/* Quality / Episode / candidate-picker gear row */}
+          {isOwner && !showPlaylist && (
             <View style={s.gearRow}>
               {extractQualities.length > 0 && (
                 <TrackedTouchable trackId="watchparty:open_quality_menu" style={s.gearChip} onPress={() => setShowQualityMenu(true)} activeOpacity={0.75}>
@@ -448,6 +450,12 @@ export function WatchPartyScreen() {
                   <Text style={s.gearChipText}>{t('watchParty', 'episodes')}</Text>
                 </TrackedTouchable>
               )}
+              {/* T-S190: owner-only video-candidate picker — "the extractor might have grabbed
+                  a banner ad next to the real video, here's everything else it found". */}
+              <TrackedTouchable trackId="watchparty:open_candidate_picker" style={s.gearChip} onPress={handleOpenCandidatePicker} activeOpacity={0.75}>
+                <Ionicons name="film-outline" size={13} color="rgba(255,255,255,0.5)" />
+                <Text style={s.gearChipText}>{t('watchParty', 'wrongVideoChip')}</Text>
+              </TrackedTouchable>
             </View>
           )}
 
@@ -550,6 +558,12 @@ export function WatchPartyScreen() {
             currentUrl={currentVideoUrl || room?.videoUrl || ''}
             onSelect={handleEpisodeSelect}
             onClose={() => setShowEpisodeMenu(false)}
+          />
+          <VideoCandidatePicker
+            visible={showCandidatePicker}
+            candidates={candidates}
+            onSelect={handleCandidateSelect}
+            onClose={() => setShowCandidatePicker(false)}
           />
           {room && (
             <ReportRoomModal
