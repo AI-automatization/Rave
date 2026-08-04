@@ -388,9 +388,27 @@ function NativeVideoPlayer({
   // Guards against firing twice for the same fatal event (native `error` event AND a
   // still-pending HLS fatal-error callback could both land for the same underlying failure).
   const fatalFiredRef = useRef(false);
-  useEffect(() => { fatalFiredRef.current = false; }, [src]);
+  // One silent same-URL retry before actually escalating to onFatalError (which triggers the
+  // owner-only VB restart). Real prod pattern confirmed live 2026-08-04, twice, on unrelated
+  // sources (rutube HLS, fayllar1.ru mp4): a freshly-signed vb-media-proxy URL 403s on its very
+  // first fetch, then succeeds every time on a manual replay seconds later — the HMAC signature
+  // itself is provably correct both times (recomputed against the real secret, matched), so
+  // whatever causes it isn't a logic bug, it's transient. A VB restart is expensive (relaunches a
+  // whole headless browser) for something a plain reload usually clears on its own.
+  const retriedRef = useRef(false);
+  useEffect(() => { fatalFiredRef.current = false; retriedRef.current = false; }, [src]);
   const reportFatal = () => {
     if (fatalFiredRef.current) return;
+    if (!retriedRef.current) {
+      retriedRef.current = true;
+      const video = videoRef.current;
+      if (video && src) {
+        if (hlsRef.current) hlsRef.current.loadSource(src);
+        else video.src = src;
+        attemptOwnerAutoplay(video);
+      }
+      return; // give the retry a chance — a second fatal signal falls through to the branch below
+    }
     fatalFiredRef.current = true;
     onFatalErrorRef.current?.();
   };
