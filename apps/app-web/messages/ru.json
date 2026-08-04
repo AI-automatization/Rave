@@ -588,8 +588,8 @@
     "videoCandidateReject": "Не то, дальше",
     "videoCandidateEmbedHint": "Предпросмотр недоступен для этого типа видео — подтвердите, если это то, что нужно",
     "videoCandidateBack": "Назад к списку",
-    "noOtherCandidates": "Другие видео не найдены"
-  },
+    "noOtherCandidates": "Другие видео не найдены",
+    "playerRetryPlayback": "Не удалось воспроизвести — нажмите, чтобы повторить"  },
   "movie": {
     "watch": "Смотреть",
     "details": "Подробнее",

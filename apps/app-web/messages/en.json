@@ -627,8 +627,8 @@
     "videoCandidateReject": "Not this, next",
     "videoCandidateEmbedHint": "No preview available for this video type — confirm if this is the right one",
     "videoCandidateBack": "Back to list",
-    "noOtherCandidates": "No other videos found"
-  },
+    "noOtherCandidates": "No other videos found",
+    "playerRetryPlayback": "Playback failed — click to retry"  },
   "movie": {
     "watch": "Watch",
     "details": "Details",

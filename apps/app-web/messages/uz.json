@@ -588,8 +588,8 @@
     "videoCandidateReject": "Bu emas, keyingisi",
     "videoCandidateEmbedHint": "Bu turdagi video uchun oldindan ko'rish mavjud emas — agar shu to'g'ri bo'lsa, tasdiqlang",
     "videoCandidateBack": "Ro'yxatga qaytish",
-    "noOtherCandidates": "Boshqa videolar topilmadi"
-  },
+    "noOtherCandidates": "Boshqa videolar topilmadi",
+    "playerRetryPlayback": "Video ijro etilmadi — qayta urinish uchun bosing"  },
   "movie": {
     "watch": "Ko'rish",
     "details": "Batafsil",

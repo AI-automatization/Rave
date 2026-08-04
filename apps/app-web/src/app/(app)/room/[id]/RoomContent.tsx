@@ -70,6 +70,41 @@ function detectVideoPlatform(url: string): string {
   return YOUTUBE_RE.test(url) ? 'youtube' : 'other';
 }
 
+// vbSession.helper.ts (services/watch-party) wraps whatever media VB finds into
+// `<watchPartyServiceUrl>/api/v1/watch-party/vb-media-proxy/stream.<ext>?url=<encoded original>`
+// (proxiedMediaUrl()) and broadcasts that as the new room.videoUrl. If that wrapped URL is ever
+// fed back into vbStart() as-is — e.g. VB relaunches and its sniffer catches media again — the
+// helper wraps it a SECOND time, and each further round nests one level deeper:
+// `...?url=<proxy>?url=<proxy>?url=...`. Confirmed in production 2026-08-04: nested 13 levels
+// deep, 133 requests, all 502 (the fix that shipped as ed7e5c22/1fb1b330 and had to be rolled
+// back). Recovering the ORIGINAL url from the proxy's own `?url=` param — instead of just
+// refusing to retry on a proxied URL at all — means a genuinely-failing proxied stream can still
+// retry VB against the real source page. Returns the input unchanged if it isn't a proxy URL,
+// and `null` if it IS a proxy URL but no valid original can be recovered (caller should skip the
+// VB fallback rather than guess).
+//
+// Unwraps REPEATEDLY, not just once: rooms created during the broken deploy still hold
+// multi-level-nested URLs in Mongo, and a single unwrap would hand back a still-proxied URL —
+// re-creating the exact nesting loop this exists to prevent. The iteration cap is a cheap
+// guarantee of termination regardless of how deep a stored URL happens to be.
+const MAX_PROXY_UNWRAP_DEPTH = 16;
+function unwrapVbProxyUrl(url: string): string | null {
+  let current = url;
+  for (let depth = 0; depth < MAX_PROXY_UNWRAP_DEPTH; depth++) {
+    let parsed: URL;
+    try {
+      parsed = new URL(current);
+    } catch {
+      return null;
+    }
+    if (!parsed.pathname.includes('/vb-media-proxy/')) return current;
+    const original = parsed.searchParams.get('url'); // URLSearchParams already decodes the value
+    if (!original) return null;
+    current = original;
+  }
+  return null; // nested deeper than any legitimate URL would be — refuse rather than guess
+}
+
 function PlaylistPanel({
   roomId, isOwner, onPlayNow,
 }: { roomId: string; isOwner: boolean; onPlayNow: (videoUrl: string, videoPlatform: string) => void }) {
@@ -367,16 +402,28 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
   // class than a broken URL outright (confirmed live 2026-08-03/04: extraction succeeded, the
   // video area just showed "Видео не загрузилось" / sat on the autoplay overlay forever, no
   // fallback ever kicked in). Mobile already has this exact recovery path (WatchPartyScreen.tsx
-  // handleVideoFatalError) — web never did. Same shape here: owner-only, once per videoUrl,
-  // falls back to the shared Virtual Browser on the original page.
-  const vbFallbackTriedRef = useRef(false);
-  useEffect(() => { vbFallbackTriedRef.current = false; }, [room?.videoUrl]);
+  // handleVideoFatalError) — web never did. Same shape here: owner-only, falls back to the
+  // shared Virtual Browser on the original page.
+  //
+  // Guard is keyed by URL, not a single boolean: a boolean reset on every `room?.videoUrl` change
+  // (the original, since-rolled-back implementation) self-defeats, because VB mutates
+  // room.videoUrl every time it finds new media — the very event the guard needs to survive.
+  // Tracking the set of URLs already attempted means each distinct source gets at most one VB
+  // attempt, and the reset can never fire mid-loop because there IS no reset. The size cap is a
+  // second, independent backstop in case some future URL variation (query-param reordering,
+  // trailing slash, etc.) slips past the exact-string dedup.
+  const vbAttemptedUrlsRef = useRef<Set<string>>(new Set());
+  const VB_MAX_ATTEMPTS_PER_SESSION = 3;
   const handleVideoFatalError = useCallback(() => {
-    if (!isOwner || showVB || vbFallbackTriedRef.current) return;
-    const url = room?.videoUrl;
-    if (!url) return;
-    vbFallbackTriedRef.current = true;
-    vbStart(url);
+    if (!isOwner || showVB) return;
+    const rawUrl = room?.videoUrl;
+    if (!rawUrl) return;
+    const targetUrl = unwrapVbProxyUrl(rawUrl);
+    if (!targetUrl) return; // already-proxied URL with no recoverable original — nothing sane to retry
+    if (vbAttemptedUrlsRef.current.has(targetUrl)) return; // this exact source was already tried
+    if (vbAttemptedUrlsRef.current.size >= VB_MAX_ATTEMPTS_PER_SESSION) return; // hard cap backstop
+    vbAttemptedUrlsRef.current.add(targetUrl);
+    vbStart(targetUrl);
   }, [isOwner, showVB, room?.videoUrl, vbStart]);
 
   // Pre-load room via REST immediately — don't wait 2-3s for socket ROOM_JOINED
