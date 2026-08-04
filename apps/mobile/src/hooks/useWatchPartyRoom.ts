@@ -18,7 +18,7 @@ import { UniversalPlayerRef, detectVideoPlatform, detectEmbedPlatform } from '@c
 import type { FloatingEmoji } from '@components/watchParty/VideoSection';
 import type { QualityOption } from '@components/watchParty/QualityMenu';
 import type { Episode } from '@components/watchParty/EpisodeMenu';
-import { ModalStackParamList } from '@app-types/index';
+import { ModalStackParamList, VideoCandidate } from '@app-types/index';
 import { useT } from '@i18n/index';
 import { appAlert } from '@components/common/AppAlert';
 
@@ -78,7 +78,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const { t } = useT();
 
   const { room, syncState, messages, activeMembers, playlist, isOwner, adminMonitoring, roomClosed, heartbeat, bufferingUsers, lastReaction, reactionCooldownSec, activeTransport, getTransportSnapshot,
-    emitPlay, emitPause, emitSeek, emitHeartbeat, sendMessage, sendEmoji } = useWatchParty(roomId);
+    candidates, requestCandidates, emitPlay, emitPause, emitSeek, emitHeartbeat, sendMessage, sendEmoji } = useWatchParty(roomId);
   const { isExtracting, result: extractResult, fallbackMode: extractFallback, error: extractionError, extract, reset: resetExtraction } = useVideoExtraction();
 
   const playerRef = useRef<UniversalPlayerRef>(null);
@@ -165,6 +165,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const [connectTimeout, setConnectTimeout] = useState(false);
   const [showQualityMenu, setShowQualityMenu] = useState(false);
   const [showEpisodeMenu, setShowEpisodeMenu] = useState(false);
+  const [showCandidatePicker, setShowCandidatePicker] = useState(false);
   const [extractQualities, setExtractQualities] = useState<QualityOption[]>([]);
   const [extractEpisodes, setExtractEpisodes] = useState<Episode[]>([]);
   const [currentVideoUrl, setCurrentVideoUrl] = useState('');
@@ -615,6 +616,23 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     setCurrentVideoUrl(episode.url);
   }, [isOwner, room, roomId]);
 
+  // T-S190: owner-only video-candidate picker — "is this actually the right video, or did the
+  // extractor pick up a banner ad next to it?". Opening the picker asks the server for whatever
+  // it's already collected (fire-and-forget since CHANGE_MEDIA, see useWatchParty.requestCandidates).
+  const handleOpenCandidatePicker = useCallback(() => {
+    if (!isOwner) return;
+    requestCandidates();
+    setShowCandidatePicker(true);
+  }, [isOwner, requestCandidates]);
+
+  // Confirming a candidate replaces the room's video the same way quality/episode selection
+  // does — a direct CHANGE_MEDIA emit, no separate mechanism.
+  const handleCandidateSelect = useCallback((candidate: VideoCandidate) => {
+    if (!isOwner || !room) return;
+    getSocket()?.emit(CLIENT_EVENTS.CHANGE_MEDIA, { roomId, videoUrl: candidate.url, videoTitle: room.videoTitle ?? 'Video', videoPlatform: room.videoPlatform ?? 'direct' });
+    setCurrentVideoUrl(candidate.url);
+  }, [isOwner, room, roomId]);
+
   const handleAddToQueue = useCallback(() => {
     if (!isOwner) return;
     navigation.navigate('SourcePicker', { mode: 'queue', roomId });
@@ -849,5 +867,6 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     handleChangeMedia, handleQualitySelect, handleEpisodeSelect, handleLeave, handlePlayerReady,
     handleCdnUrlSniffed,
     playlist, handleAddToQueue, handlePlaylistRemove, handlePlaylistNext,
+    candidates, showCandidatePicker, setShowCandidatePicker, handleOpenCandidatePicker, handleCandidateSelect,
   };
 }

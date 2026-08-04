@@ -1,13 +1,19 @@
 import { Server as SocketServer, Socket } from 'socket.io';
+import Redis from 'ioredis';
 import { WatchPartyService } from '../services/watchParty.service';
 import { logger } from '@shared/utils/logger';
 import { SERVER_EVENTS, CLIENT_EVENTS } from '@shared/constants/socketEvents';
+import { REDIS_KEYS } from '@shared/constants';
 import { JwtPayload, VideoPlatform } from '@shared/types';
 import { recordWatchHistoryInternal } from '@shared/utils/serviceClient';
 import { bufferTimeouts, resumeBufferedRoom } from './videoEvents.handler';
 import { stopSession, getSessionSnapshot } from '../services/virtualBrowser.service';
 import { startVBForRoom } from './vbSession.helper';
-import { isOfficialEmbedHost, tryExtract } from '../services/extractionClient';
+import { isOfficialEmbedHost, tryExtract, fetchCandidates } from '../services/extractionClient';
+
+// TTL for the candidates Redis entry — matches how long "the current video session" is a
+// meaningful concept; deliberately generous since a room can sit on one video for hours.
+const CANDIDATES_TTL_SEC = 6 * 60 * 60; // 6h
 
 interface AuthenticatedSocket extends Socket {
   user: JwtPayload;
@@ -116,6 +122,7 @@ export const registerRoomEvents = (
   socket: Socket,
   authSocket: AuthenticatedSocket,
   watchPartyService: WatchPartyService,
+  redis: Redis,
 ): void => {
   const { userId } = authSocket.user;
 
@@ -234,6 +241,23 @@ export const registerRoomEvents = (
       return;
     }
 
+    // Video-candidate picker: fire-and-forget, runs alongside tryExtract below rather than
+    // blocking it — candidates are a nice-to-have for the owner's picker UI, never on the
+    // critical path for playback. Overwrites (not appends to) any candidates from the PREVIOUS
+    // video — this is a genuinely new source, the old list is stale. Same official-embed gate as
+    // tryExtract: genericExtractorCandidates only ever applies to non-embed URLs anyway.
+    if (authSocket.rawToken && !isOfficialEmbedHost(data.videoUrl)) {
+      const token = authSocket.rawToken;
+      void fetchCandidates(data.videoUrl, token).then((candidates) => {
+        if (candidates.length === 0) return;
+        return redis.setex(REDIS_KEYS.videoCandidates(roomId), CANDIDATES_TTL_SEC, JSON.stringify(candidates));
+      }).catch((err) => {
+        logger.info('CHANGE_MEDIA: candidates fetch/store failed, ignoring', { roomId, error: (err as Error).message });
+      });
+    } else {
+      void redis.del(REDIS_KEYS.videoCandidates(roomId)).catch(() => {});
+    }
+
     // Extraction-flow pre-check: official-embed platforms (YouTube/VK/Rutube/etc) already play
     // instantly client-side via their own iframe — skip straight to the normal broadcast below,
     // unchanged, no added latency. Everything else gets tested against content-service's
@@ -271,6 +295,34 @@ export const registerRoomEvents = (
     } catch (error) {
       socket.emit(SERVER_EVENTS.ERROR, { message: 'Failed to change room media' });
       logger.error('Socket media change error', { userId, error });
+    }
+  });
+
+  // REQUEST_CANDIDATES — owner only: "show me what videos we've found for the current source" —
+  // fired when the owner opens the picker (initial pick, or later via the player's "Это не то
+  // видео" menu entry). Answers from Redis only, no re-extraction — see CHANGE_MEDIA above for
+  // where candidates actually get collected.
+  socket.on(CLIENT_EVENTS.REQUEST_CANDIDATES, async () => {
+    const roomId = authSocket.roomId;
+    if (!roomId) return;
+
+    if (authSocket.roomOwnerId === undefined) {
+      try {
+        const room = await watchPartyService.getRoom(roomId);
+        authSocket.roomOwnerId = room.ownerId;
+      } catch {
+        return;
+      }
+    }
+    if (authSocket.roomOwnerId !== userId) return;
+
+    try {
+      const raw = await redis.get(REDIS_KEYS.videoCandidates(roomId));
+      const candidates = raw ? JSON.parse(raw) : [];
+      socket.emit(SERVER_EVENTS.VIDEO_CANDIDATES, { candidates });
+    } catch (error) {
+      logger.warn('REQUEST_CANDIDATES: failed to read from Redis', { roomId, error: (error as Error).message });
+      socket.emit(SERVER_EVENTS.VIDEO_CANDIDATES, { candidates: [] });
     }
   });
 

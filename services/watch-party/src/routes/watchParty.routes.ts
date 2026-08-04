@@ -9,7 +9,7 @@ import { vbCaptureController } from '../controllers/vbCapture.controller';
 import { vbMediaProxyController } from '../controllers/vbMediaProxy.controller';
 import { verifyToken, requireNotBlocked } from '@shared/middleware/auth.middleware';
 import { requireInternalSecret } from '@shared/utils/serviceClient';
-import { createRoomLimiter, joinRoomLimiter } from '../middleware/rateLimiter';
+import { createRoomLimiter, joinRoomLimiter, vbMediaProxyLimiter, vbCaptureLimiter } from '../middleware/rateLimiter';
 import { validate, createRoomSchema, joinRoomSchema } from '../validators/watchParty.validator';
 
 export const createWatchPartyRouter = (redis: Redis, io: SocketServer): Router => {
@@ -21,6 +21,8 @@ export const createWatchPartyRouter = (redis: Redis, io: SocketServer): Router =
   const notBlocked = requireNotBlocked(redis);
   const createLimiter = createRoomLimiter(redis);
   const joinLimiter = joinRoomLimiter(redis);
+  const vbProxyLimiter = vbMediaProxyLimiter(redis);
+  const vbCaptureLim = vbCaptureLimiter(redis);
 
   // Internal — force-disconnect blocked user from all sockets
   router.post('/internal/users/:userId/disconnect', requireInternalSecret, watchPartyController.disconnectUser);
@@ -65,16 +67,23 @@ export const createWatchPartyRouter = (redis: Redis, io: SocketServer): Router =
   // of the extraction flow) as a normal Range-capable video resource. Deliberately public/no-auth,
   // same trust model as any external CDN URL we proxy — app-web's proxy-stream route fetches this
   // server-to-server with no credentials, same as it would fetch a real external .mp4 URL. roomId
-  // itself is an unguessable Mongo ObjectId, same exposure as any other proxied stream URL.
-  router.get('/vb-capture/:roomId', vbCaptureController.stream);
+  // itself is an unguessable Mongo ObjectId, same exposure as any other proxied stream URL. Takes
+  // no attacker-supplied URL (lower risk than vb-media-proxy below) but still had no rate limiter
+  // at all until GitHub issue #76 — vbCaptureLim closes that.
+  router.get('/vb-capture/:roomId', vbCaptureLim, vbCaptureController.stream);
 
   // GET /watch-party/vb-media-proxy/stream.(m3u8|mp4)?url=... and .../seg?url=... — re-fetches a
   // media URL the VB network sniffer found (category A) through THIS service's own egress IP,
   // instead of handing the raw CDN URL to app-web's proxy-stream (a different Railway service/IP —
   // some CDNs 403 anything not coming from the IP that first requested it, see controller comment).
-  // Same public/no-auth trust model as vb-capture above.
-  router.get('/vb-media-proxy/stream.:ext(m3u8|mp4)', vbMediaProxyController.stream);
-  router.get('/vb-media-proxy/seg', vbMediaProxyController.stream);
+  // Route itself stays public/no-auth (same trust model as vb-capture above — no verifyToken), but
+  // GitHub issue #76 found this was a wide-open bandwidth proxy + SSRF vector: anyone could pass
+  // an arbitrary ?url= with no rate limit, and a redirect walked straight past the old guard. Fixed
+  // via: (1) HMAC signature required in the URL (verifyProxyUrl in the controller — only URLs we
+  // minted ourselves in vbSession.helper.ts pass), (2) the shared SSRF guard re-checked on every
+  // redirect hop, (3) this per-IP rate limiter.
+  router.get('/vb-media-proxy/stream.:ext(m3u8|mp4)', vbProxyLimiter, vbMediaProxyController.stream);
+  router.get('/vb-media-proxy/seg', vbProxyLimiter, vbMediaProxyController.stream);
 
   // GET /watch-party/rooms/my/recent — user's last 10 rooms (T-S061)
   router.get('/rooms/my/recent', verifyToken, notBlocked, watchPartyController.getRecentRooms);

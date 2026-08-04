@@ -235,6 +235,21 @@ export interface VideoExtractRequest {
   tmdbId?: string;
 }
 
+// One page can genuinely contain several plausible video URLs (real content vs a banner ad vs a
+// "recommended" clip) — the anti-ad heuristics elsewhere (duration/size thresholds) only catch
+// SHORT ads, not long ones, so sometimes the "found" video just isn't the right one. This lets the
+// owner see what was found and pick, instead of the server silently guessing.
+export interface VideoCandidate {
+  url: string;
+  type: 'mp4' | 'hls' | 'embed';
+  /** Thumbnail — either the extractor's own og:image-derived poster, or (for VB-caught
+   * candidates, which have no page metadata) a base64 JPEG data URI grabbed from VB's own CDP
+   * screencast at the moment the candidate was caught. */
+  poster?: string;
+  duration?: number;
+  source: 'extract' | 'vb';
+}
+
 // ─────────────────────────────────────────────
 // Friendship
 // ─────────────────────────────────────────────

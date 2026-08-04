@@ -19,6 +19,7 @@ export const createContentRouter = (redis: Redis, elastic: ElasticsearchClient):
 
   // ── Video URL Extraction ──────────────────────────────────
   router.post('/extract', verifyToken, notBlocked, apiRateLimiter, videoExtractController.extract);
+  router.post('/extract-candidates', verifyToken, notBlocked, apiRateLimiter, videoExtractController.extractCandidates);
 
   // ── HLS Reverse Proxy ─────────────────────────────────────
   // m3u8 + segment: token via Authorization header (initial master request) OR ?token=

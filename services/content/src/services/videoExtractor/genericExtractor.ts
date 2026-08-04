@@ -192,3 +192,36 @@ export async function genericExtractor(
 
   return null;
 }
+
+// Max candidates returned — a pathological page could match dozens of .mp4/.m3u8-looking
+// strings; nobody wants to scroll a picker that long, and it bounds how much work the caller
+// does resolving/storing them.
+const MAX_CANDIDATES = 5;
+
+// Deliberately separate from genericExtractor() above, not a variant of it — this is used ONLY
+// by the owner's video-candidate picker (T-video-candidates), never by the main extractVideo()
+// pipeline that every normal playback request goes through. Keeping it fully independent means
+// this can't regress the one thing that actually has to keep working: genericExtractor() itself
+// still returns exactly its old single-best-guess result, completely untouched. No iframe-
+// following here either — that's for making SOME extraction succeed at all cost; this is
+// best-effort "what else did we see", not worth the extra requests/latency.
+export async function genericExtractorCandidates(pageUrl: URL): Promise<VideoExtractResult[]> {
+  const html = await fetchHtml(pageUrl.href);
+  if (!html) return [];
+
+  const title =
+    firstQuotedAttr(OG_TITLE_RE, html) ??
+    firstMatch(TITLE_RE, html) ??
+    pageUrl.hostname;
+  const poster = firstQuotedAttr(OG_IMAGE_RE, html) ?? '';
+  const resolvedPoster = poster ? resolveUrl(poster, pageUrl) : undefined;
+
+  const urls = extractVideoUrls(html, pageUrl).slice(0, MAX_CANDIDATES);
+  return urls.map((videoUrl) => ({
+    title,
+    videoUrl,
+    poster: resolvedPoster ?? '',
+    platform: 'generic' as const,
+    type: guessType(videoUrl),
+  }));
+}

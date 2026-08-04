@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { LogOut, Share2, MoreVertical, Pencil, Check, X } from 'lucide-react';
+import { LogOut, Share2, MoreVertical, Pencil, Check, X, Clapperboard, Link2 } from 'lucide-react';
 import { useWatchPartyStore } from '@/store/watch-party.store';
 import { useAuthStore } from '@/store/auth.store';
 import { useTranslations } from 'next-intl';
@@ -13,14 +13,20 @@ import { toast } from '@/store/toast.store';
 import { trackClick } from '@/lib/analytics';
 import { avatarColor } from '@/lib/utils';
 import {
-  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 
 interface Props {
   renameRoom: (name: string) => void;
+  /** Opens the video-candidate picker (T-S189 follow-up) — owner-only, wired from RoomContent
+   * since the socket state/emit lives there, same reason renameRoom is a prop here too. */
+  onPickDifferentVideo: () => void;
+  /** Switches the sidebar to the Queue tab (where the existing URL input + "Play Now" lives) —
+   * just a reachability shortcut, doesn't duplicate any UI. */
+  onChangeSource: () => void;
 }
 
-export function RoomHeader({ renameRoom }: Props) {
+export function RoomHeader({ renameRoom, onPickDifferentVideo, onChangeSource }: Props) {
   const t = useTranslations('party');
   const tHome = useTranslations('home');
   const router = useRouter();
@@ -218,6 +224,25 @@ export function RoomHeader({ renameRoom }: Props) {
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="bg-[#16162a] border-white/[0.08] text-white/90">
+              {isOwner && (
+                <>
+                  <DropdownMenuItem
+                    onClick={() => { trackClick('room:menu_pick_different_video'); onPickDifferentVideo(); }}
+                    className="cursor-pointer"
+                  >
+                    <Clapperboard size={13} className="mr-2" />
+                    {t('pickDifferentVideo')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => { trackClick('room:menu_change_source'); onChangeSource(); }}
+                    className="cursor-pointer"
+                  >
+                    <Link2 size={13} className="mr-2" />
+                    {t('changeSource')}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="bg-white/[0.08]" />
+                </>
+              )}
               <DropdownMenuItem
                 onClick={() => { void handleLeaveClick(); }}
                 className="text-red-400 focus:bg-red-500/[0.1] focus:text-red-400 cursor-pointer"

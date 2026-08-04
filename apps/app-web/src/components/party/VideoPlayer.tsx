@@ -43,6 +43,35 @@ function VideoLoading({ label }: { label?: string }) {
   );
 }
 
+// Shown to a NON-owner viewer when playback has genuinely failed. The owner-only VB auto-fallback
+// (RoomContent's handleVideoFatalError → vbStart) is what actually recovers this room — a non-
+// owner can never trigger that themselves (vbStart is gated on isOwner), so leaving them on the
+// owner-facing "Открываем виртуальный браузер..." VideoLoading state is a dead end: nobody will
+// ever open VB on their behalf, and that state only ever clears when videoUrl changes. This overlay
+// gives them the same click-to-retry affordance the autoplay-blocked overlay already has — clicking
+// it clears `fatalPlaybackError`, which remounts NativeVideoPlayer against the same src and lets the
+// owner's meanwhile-arrived VB session (or a transient failure resolving itself) actually surface.
+function FatalErrorRetryOverlay({ onRetry }: { onRetry: () => void }) {
+  const t = useTranslations('party');
+  return (
+    <div className="aspect-video bg-black rounded-xl overflow-hidden relative">
+      <button
+        onClick={onRetry}
+        className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-black/70 cursor-pointer group/btn"
+        aria-label={t('playerRetryPlayback')}
+      >
+        <div
+          className="w-20 h-20 rounded-full flex items-center justify-center transition-all group-hover/btn:scale-110"
+          style={{ background: 'rgba(124,58,237,0.85)', boxShadow: '0 0 40px rgba(124,58,237,0.5)' }}
+        >
+          <Play size={32} className="text-white ml-1.5" fill="white" />
+        </div>
+        <span className="text-white/60 text-sm font-medium">{t('playerRetryPlayback')}</span>
+      </button>
+    </div>
+  );
+}
+
 interface Props {
   onPlay: (time: number) => void;
   onPause: (time: number) => void;
@@ -1205,11 +1234,17 @@ export function VideoPlayer({
       return <VideoLoading />;
     }
     // Real playback failure (not just autoplay needing a click) — stop rendering the player (its
-    // own "click to start" overlay would just retry the identical doomed play() call) and show
-    // the same "opening virtual browser" state mobile already has while the owner-only fallback
-    // (RoomContent's handleVideoFatalError → vbStart) takes over.
+    // own "click to start" overlay would just retry the identical doomed play() call). Only the
+    // OWNER actually triggers the VB fallback (vbStart is owner-gated in RoomContent), so only
+    // the owner gets the "opening virtual browser" loading state — showing that to a non-owner
+    // would be a dead end nobody ever resolves for them. A non-owner instead gets a click-to-retry
+    // overlay: their own re-render (remounting NativeVideoPlayer against the same src) either
+    // recovers on its own, or catches up once the owner's VB session comes online and room state
+    // moves on.
     if (fatalPlaybackError) {
-      return <VideoLoading label={t('playerOpeningVB')} />;
+      return isOwner
+        ? <VideoLoading label={t('playerOpeningVB')} />
+        : <FatalErrorRetryOverlay onRetry={() => setFatalPlaybackError(false)} />;
     }
     if (proxySrc) {
       return (

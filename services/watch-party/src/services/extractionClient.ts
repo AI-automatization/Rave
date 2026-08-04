@@ -3,8 +3,10 @@
 // or needs to fall back to the shared virtual browser (see videoResolver flow in vbEvents.handler.ts).
 import { axios, contentServiceUrl } from '@shared/utils/serviceConfig';
 import { logger } from '@shared/utils/logger';
+import type { VideoCandidate } from '@shared/types';
 
 const EXTRACT_TIMEOUT_MS = 60_000; // generic(10s) + yt-dlp(20s) + Playwright(~30s) stacked worst case
+const CANDIDATES_TIMEOUT_MS = 12_000; // just one HTML fetch + regex (genericExtractorCandidates) — cheap
 
 // Only worth pre-checking non-official-embed URLs — YouTube/VK/Rutube/Twitch/Vimeo/Dailymotion/
 // TikTok/Trovo already render instantly client-side via their own iframe embed (VideoPlayer.tsx's
@@ -52,5 +54,32 @@ export async function tryExtract(url: string, userToken: string): Promise<boolea
       url, error: (err as Error).message,
     });
     return false;
+  }
+}
+
+// Best-effort, fire-and-forget from the caller's perspective (roomEvents.handler.ts doesn't
+// await this before broadcasting CHANGE_MEDIA — candidates are a nice-to-have for the picker,
+// not on the critical path for playback). Only worth calling for non-embed URLs, same as
+// tryExtract — official embeds don't go through genericExtractor at all.
+export async function fetchCandidates(url: string, userToken: string): Promise<VideoCandidate[]> {
+  try {
+    const res = await axios.post<{ data?: { candidates?: Array<{ videoUrl: string; type: string; poster?: string; duration?: number }> } }>(
+      `${contentServiceUrl}/api/v1/content/extract-candidates`,
+      { url },
+      { headers: { Authorization: `Bearer ${userToken}` }, timeout: CANDIDATES_TIMEOUT_MS },
+    );
+    const raw = res.data?.data?.candidates ?? [];
+    return raw.map((c) => ({
+      url: c.videoUrl,
+      type: c.type as VideoCandidate['type'],
+      poster: c.poster,
+      duration: c.duration,
+      source: 'extract' as const,
+    }));
+  } catch (err) {
+    logger.info('extractionClient: candidates fetch failed, ignoring', {
+      url, error: (err as Error).message,
+    });
+    return [];
   }
 }

@@ -145,7 +145,7 @@ export const registerWatchPartySocket = (io: SocketServer, watchPartyService: Wa
     }, 30_000);
 
     // Register all event handlers
-    registerRoomEvents(io, socket, authSocket, watchPartyService);
+    registerRoomEvents(io, socket, authSocket, watchPartyService, redis);
     registerVideoEvents(io, socket, authSocket, watchPartyService);
     registerChatEvents(socket, authSocket, (uid) => checkMsgRateLimit(redis, uid));
     registerVoiceEvents(socket, authSocket, redis);

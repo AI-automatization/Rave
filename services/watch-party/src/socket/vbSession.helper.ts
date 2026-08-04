@@ -10,6 +10,7 @@ import { logger } from '@shared/utils/logger';
 import { SERVER_EVENTS } from '@shared/constants/socketEvents';
 import { VideoPlatform } from '@shared/types';
 import { watchPartyServiceUrl } from '@shared/utils/serviceConfig';
+import { signProxyUrl } from '@shared/utils/proxySignature';
 import { VB_VIEWPORT, startSession, stopSession, pauseScreencast } from '../services/virtualBrowser.service';
 
 // Some CDNs 403 anything not coming from the IP that first requested the URL (same class of
@@ -17,9 +18,16 @@ import { VB_VIEWPORT, startSession, stopSession, pauseScreencast } from '../serv
 // container, so re-fetching through vbMediaProxy (also this service) keeps playback on the same
 // egress IP the CDN saw — handing app-web's proxy-stream the raw CDN URL directly would fetch
 // from a different Railway service/IP and 403 on CDNs that check this.
+//
+// The URL is signed (GitHub issue #76) because vb-media-proxy is deliberately public/no-auth
+// (same trust model as vb-capture — see watchParty.routes.ts) — without a signature it would be
+// an open proxy anyone could point at an arbitrary URL. vbMediaProxy.controller.ts verifies the
+// exp/sig pair before fetching anything.
 function proxiedMediaUrl(mediaUrl: string, mediaType: 'mp4' | 'hls'): string {
   const ext = mediaType === 'hls' ? 'm3u8' : 'mp4';
-  return `${watchPartyServiceUrl}/api/v1/watch-party/vb-media-proxy/stream.${ext}?url=${encodeURIComponent(mediaUrl)}`;
+  const { exp, sig } = signProxyUrl(mediaUrl);
+  return `${watchPartyServiceUrl}/api/v1/watch-party/vb-media-proxy/stream.${ext}`
+       + `?url=${encodeURIComponent(mediaUrl)}&exp=${exp}&sig=${sig}`;
 }
 
 export async function startVBForRoom(

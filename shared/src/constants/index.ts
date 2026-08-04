@@ -70,10 +70,13 @@ export const REDIS_KEYS = {
   bufferingUsers: (roomId: string) => `party:buffering:${roomId}`,
   reactionRate: (userId: string, roomId: string) => `party:reaction_rate:${userId}:${roomId}`,
   reactionBurst: (userId: string, roomId: string) => `party:reaction_burst:${userId}:${roomId}`,
+  videoCandidates: (roomId: string) => `party:candidates:${roomId}`,
   createRoomRate: (ip: string) => `party:create_rate:${ip}`,
   joinRoomRate: (userId: string) => `party:join_rate:${userId}`,
   recentRooms: (userId: string) => `party:recent_rooms:${userId}`,
   publicRoomsCache: () => `party:public_rooms_cache`,
+  vbMediaProxyRate: (ip: string) => `party:vb_media_proxy_rate:${ip}`,
+  vbCaptureRate: (ip: string) => `party:vb_capture_rate:${ip}`,
 
 } as const;
 

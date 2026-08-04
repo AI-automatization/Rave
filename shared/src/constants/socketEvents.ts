@@ -71,6 +71,11 @@ export const SERVER_EVENTS = Object.freeze({
   // about to click (Kosmi shows a synced cursor for exactly this reason).
   VB_CURSOR:  'vb:cursor',
 
+  // Owner-only: the video-candidate picker. Server pushes whatever candidates it currently has
+  // for the room's video session (from generic-extraction regex matches and/or VB's sniffer) —
+  // see REQUEST_CANDIDATES below for when this fires.
+  VIDEO_CANDIDATES: 'video:candidates',
+
   ERROR: 'error',
 } as const);
 
@@ -126,6 +131,13 @@ export const CLIENT_EVENTS = Object.freeze({
   VB_START: 'vb:start',
   VB_INPUT: 'vb:input',
   VB_STOP:  'vb:stop',
+
+  // Owner-only: "show me what candidates you've found so far" — fires when opening the picker
+  // (either the initial "is this the right video?" flow, or later via the player's "Это не то
+  // видео" menu entry). Server answers from Redis (VIDEO_CANDIDATES below), no re-extraction —
+  // candidates are collected proactively as a side effect of CHANGE_MEDIA / VB sniffing, not on
+  // demand here.
+  REQUEST_CANDIDATES: 'video:candidates:request',
 } as const);
 
 export type ServerEvent = (typeof SERVER_EVENTS)[keyof typeof SERVER_EVENTS];
