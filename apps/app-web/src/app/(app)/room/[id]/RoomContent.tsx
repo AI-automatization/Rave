@@ -414,17 +414,30 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
   // trailing slash, etc.) slips past the exact-string dedup.
   const vbAttemptedUrlsRef = useRef<Set<string>>(new Set());
   const VB_MAX_ATTEMPTS_PER_SESSION = 3;
+
+  // Tracks the last genuine owner-submitted SOURCE PAGE (never a vb-media-proxy rewrite) so a
+  // fatal-error retry can re-open VB on the actual page instead of the raw sniffed media file.
+  // unwrapVbProxyUrl(url) === url is how the function itself signals "not a proxy URL" (per its
+  // own contract above) — reused here rather than re-deriving the same check.
+  // Real prod bug 2026-08-04: retrying on the unwrapped CDN file URL (e.g. a raw .mp4/.m3u8) made
+  // VB call page.goto() on a media file, not a page — that either downloads the file (mp4) or
+  // gets net::ERR_CONNECTION_RESET (CDNs that reject direct manifest requests outside their
+  // normal referrer/session context), never re-triggering the sniffer.
+  const originalSourceUrlRef = useRef<string | null>(null);
+  useEffect(() => {
+    const url = room?.videoUrl;
+    if (url && unwrapVbProxyUrl(url) === url) originalSourceUrlRef.current = url;
+  }, [room?.videoUrl]);
+
   const handleVideoFatalError = useCallback(() => {
     if (!isOwner || showVB) return;
-    const rawUrl = room?.videoUrl;
-    if (!rawUrl) return;
-    const targetUrl = unwrapVbProxyUrl(rawUrl);
-    if (!targetUrl) return; // already-proxied URL with no recoverable original — nothing sane to retry
+    const targetUrl = originalSourceUrlRef.current;
+    if (!targetUrl) return; // no known source page to retry (e.g. fatal error before any CHANGE_MEDIA)
     if (vbAttemptedUrlsRef.current.has(targetUrl)) return; // this exact source was already tried
     if (vbAttemptedUrlsRef.current.size >= VB_MAX_ATTEMPTS_PER_SESSION) return; // hard cap backstop
     vbAttemptedUrlsRef.current.add(targetUrl);
     vbStart(targetUrl);
-  }, [isOwner, showVB, room?.videoUrl, vbStart]);
+  }, [isOwner, showVB, vbStart]);
 
   // Pre-load room via REST immediately — don't wait 2-3s for socket ROOM_JOINED
   useEffect(() => {
