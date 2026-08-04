@@ -45,18 +45,43 @@ export function signProxyUrl(target: string, ttlSec = 6 * 60 * 60): { exp: numbe
  * before it's ever called.
  */
 export function verifyProxyUrl(target: string, exp: number, sig: string): boolean {
+  return verifyProxyUrlDetailed(target, exp, sig).ok;
+}
+
+// TEMP DIAGNOSTIC (2026-08-04, remove once root-caused): production shows a freshly-signed
+// vb-media-proxy URL 403ing on its very first fetch, then succeeding on a manual replay minutes
+// later. The signature has been independently recomputed against the real secret every time this
+// was investigated and was byte-correct — every hypothesis testable from outside the running
+// process (secret mismatch, multi-replica, encoding, rate-limiter, expiry) has been ruled out.
+// What's never been captured is the RAW values this function actually received on a live failing
+// request — every prior check replayed a *reconstruction* built from the client-visible broadcast
+// log, which assumes (never confirmed) that the server received byte-identical values. This
+// exposes exactly which branch fails and the full expected-vs-received signature so the next
+// occurrence has real evidence instead of another reconstruction.
+export function verifyProxyUrlDetailed(target: string, exp: number, sig: string): { ok: boolean; reason?: string } {
   const secret = getSecret();
-  if (!secret) return false; // fail closed on misconfiguration
+  if (!secret) return { ok: false, reason: 'no_secret' };
 
-  if (!Number.isFinite(exp) || exp < Math.floor(Date.now() / 1000)) return false;
+  const now = Math.floor(Date.now() / 1000);
+  if (!Number.isFinite(exp) || exp < now) {
+    return { ok: false, reason: `expired_or_invalid_exp exp=${exp} now=${now} delta=${exp - now}` };
+  }
 
-  if (typeof sig !== 'string' || !/^[0-9a-f]{64}$/i.test(sig)) return false; // not a well-formed sha256 hex digest
+  if (typeof sig !== 'string' || !/^[0-9a-f]{64}$/i.test(sig)) {
+    return { ok: false, reason: `malformed_sig sig="${sig}" len=${typeof sig === 'string' ? sig.length : 'n/a'}` };
+  }
 
   const expected = crypto.createHmac('sha256', secret).update(`${target}|${exp}`).digest('hex');
 
   const a = Buffer.from(sig, 'hex');
   const b = Buffer.from(expected, 'hex');
-  if (a.length !== b.length || a.length !== SHA256_HEX_LENGTH / 2) return false; // timingSafeEqual throws on length mismatch
+  if (a.length !== b.length || a.length !== SHA256_HEX_LENGTH / 2) {
+    return { ok: false, reason: `length_mismatch a=${a.length} b=${b.length}` };
+  }
 
-  return crypto.timingSafeEqual(a, b);
+  const match = crypto.timingSafeEqual(a, b);
+  if (!match) {
+    return { ok: false, reason: `sig_mismatch received=${sig} expected=${expected} target="${target}" exp=${exp}` };
+  }
+  return { ok: true };
 }

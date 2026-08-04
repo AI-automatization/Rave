@@ -22,7 +22,8 @@
 //      re-checked on EVERY redirect hop, not just the initial URL.
 import { Request, Response } from 'express';
 import { validateProxyUrl, resolveSafeUpstream } from '@shared/utils/ssrfGuard';
-import { signProxyUrl, verifyProxyUrl } from '@shared/utils/proxySignature';
+import { signProxyUrl, verifyProxyUrlDetailed } from '@shared/utils/proxySignature';
+import { logger } from '@shared/utils/logger';
 
 // Production logs (2026-08-04) showed this proxy recursively wrapping its OWN url up to 13
 // levels deep (`?url=<proxy>?url=<proxy>?url=...`) — 133 requests, all 502ing. That's a real
@@ -109,7 +110,16 @@ export const vbMediaProxyController = {
     // vbSession.helper.ts when the room is switched over) — closes the open-proxy hole, since an
     // attacker can no longer hand this endpoint an arbitrary URL of their choosing.
     const { exp, sig } = req.query;
-    if (!verifyProxyUrl(rawUrl, Number(exp), typeof sig === 'string' ? sig : '')) {
+    const verify = verifyProxyUrlDetailed(rawUrl, Number(exp), typeof sig === 'string' ? sig : '');
+    if (!verify.ok) {
+      // TEMP DIAGNOSTIC (2026-08-04, remove once root-caused) — see proxySignature.ts. Logs the
+      // exact reason and raw values THIS PROCESS received, not a client-side reconstruction.
+      logger.warn('vb-media-proxy: signature verification failed', {
+        reason: verify.reason,
+        receivedExp: exp,
+        receivedSig: sig,
+        rawUrlLength: rawUrl.length,
+      });
       res.status(403).json({ success: false, message: 'Forbidden' });
       return;
     }
