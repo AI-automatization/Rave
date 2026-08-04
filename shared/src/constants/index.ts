@@ -75,6 +75,8 @@ export const REDIS_KEYS = {
   joinRoomRate: (userId: string) => `party:join_rate:${userId}`,
   recentRooms: (userId: string) => `party:recent_rooms:${userId}`,
   publicRoomsCache: () => `party:public_rooms_cache`,
+  vbMediaProxyRate: (ip: string) => `party:vb_media_proxy_rate:${ip}`,
+  vbCaptureRate: (ip: string) => `party:vb_capture_rate:${ip}`,
 
 } as const;
 

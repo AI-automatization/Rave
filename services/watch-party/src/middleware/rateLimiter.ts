@@ -44,3 +44,26 @@ export const joinRoomLimiter = (redis: Redis) =>
     60,
     'Too many join attempts. Try again in a minute.',
   );
+
+// vb-media-proxy and vb-capture (GitHub issue #76) are unauthenticated by design — see the route
+// comments in watchParty.routes.ts — so a per-IP limiter is the only abuse guard they get. A real
+// HLS player fetches many segments per minute (each .ts chunk is a separate request), so the limit
+// has to stay well above normal playback traffic or it breaks video for legitimate viewers; 300/min
+// per IP comfortably covers that while still capping runaway/malicious usage.
+export const vbMediaProxyLimiter = (redis: Redis) =>
+  makeRateLimiter(
+    redis,
+    (req) => REDIS_KEYS.vbMediaProxyRate(req.ip ?? 'unknown'),
+    300,
+    60,
+    'Too many media proxy requests. Try again in a minute.',
+  );
+
+export const vbCaptureLimiter = (redis: Redis) =>
+  makeRateLimiter(
+    redis,
+    (req) => REDIS_KEYS.vbCaptureRate(req.ip ?? 'unknown'),
+    300,
+    60,
+    'Too many capture requests. Try again in a minute.',
+  );

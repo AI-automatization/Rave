@@ -9,22 +9,84 @@
 // a different egress IP — so every segment came back 403 after the VB browser handed off (fine
 // for CDNs with no such check, e.g. fayllar1.ru/solodcdn.com, broken for e.g. vibio.tv). Routing
 // the actual upstream fetch through this container keeps it on the same IP that VB used.
+//
+// SECURITY (GitHub issue #76, fixed 2026-08-04): this route is intentionally public/no-auth (see
+// watchParty.routes.ts comment) — CDN URLs are minted server-side and handed to arbitrary
+// unauthenticated viewers via app-web's proxy-stream, same trust model as vb-capture. That used to
+// mean anyone could pass ANY `?url=` and stream it through our Railway egress for free, and a
+// `https://` redirect could walk straight past the (weak, string-only) old guard into our private
+// network. Two independent fixes now sit in front of every fetch:
+//   1. HMAC signature (signProxyUrl/verifyProxyUrl, shared/src/utils/proxySignature.ts) — the URL
+//      must have been minted by us (vbSession.helper.ts) within the last few hours.
+//   2. Shared SSRF guard (shared/src/utils/ssrfGuard.ts, same one services/content/hlsProxy uses)
+//      re-checked on EVERY redirect hop, not just the initial URL.
 import { Request, Response } from 'express';
+import { validateProxyUrl, resolveSafeUpstream } from '@shared/utils/ssrfGuard';
+import { signProxyUrl, verifyProxyUrl } from '@shared/utils/proxySignature';
 
-const PRIVATE_IP_RE =
-  /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|0\.)/i;
+// Production logs (2026-08-04) showed this proxy recursively wrapping its OWN url up to 13
+// levels deep (`?url=<proxy>?url=<proxy>?url=...`) — 133 requests, all 502ing. That's a real
+// amplification/DoS vector (each hop re-triggers a full fetch attempt against ourselves) and was
+// the direct cause of a production video outage. Block it outright: a target whose *path* mentions
+// vb-media-proxy can only be us, wrapping ourselves, regardless of what host it claims.
+const SELF_REFERENCE_MARKER = '/vb-media-proxy/';
 
-function safeUrl(raw: string): URL | null {
+/** validateProxyUrl() (shared SSRF guard) + the self-reference check above, in one place so
+ *  both the up-front guard and every safeFetch() redirect hop use identical logic.
+ *
+ *  Also DNS-resolves the hostname (resolveSafeUpstream) rather than trusting the hostname
+ *  *string* alone: `validateProxyUrl` is a regex/literal check, so a perfectly ordinary-looking
+ *  attacker-owned domain that resolves to 169.254.169.254 (cloud metadata) or RFC1918 space
+ *  sails straight past it. The HMAC signature makes this hard to reach — a target URL has to
+ *  have been minted by us — but VB's sniffer mints signatures for whatever media URL it finds on
+ *  a page the room owner opened, so an authenticated user CAN steer what gets signed. That's a
+ *  narrow path, not a closed one, so the resolve check stays. (True TOCTOU-proof protection also
+ *  needs IP pinning at connect time, which `fetch()` can't express without a custom dispatcher —
+ *  services/content's hlsProxy does exactly that for its own hot path; here the remaining window
+ *  is a DNS flip between this check and the connect, which is materially harder than just
+ *  pointing an A record at a private IP.) */
+async function validateTarget(rawUrl: string): Promise<string | null> {
+  const ssrfError = validateProxyUrl(rawUrl);
+  if (ssrfError) return ssrfError;
+
+  let pathname: string;
   try {
-    const u = new URL(raw);
-    if (u.protocol !== 'https:') return null;
-    const host = u.hostname.toLowerCase();
-    if (host === 'localhost' || host === '0.0.0.0') return null;
-    if (PRIVATE_IP_RE.test(host)) return null;
-    return u;
+    pathname = new URL(rawUrl).pathname;
   } catch {
-    return null;
+    return 'Invalid URL';
   }
+  if (pathname.includes(SELF_REFERENCE_MARKER)) {
+    return 'Self-referencing proxy URL blocked';
+  }
+
+  const resolved = await resolveSafeUpstream(rawUrl);
+  if ('error' in resolved) return resolved.error;
+
+  return null;
+}
+
+const MAX_REDIRECTS = 3;
+
+/**
+ * Fetches `url`, re-validating (SSRF + self-reference) every hop instead of trusting fetch()'s
+ * default follow-redirects behavior — a redirect target is attacker-controlled exactly like the
+ * original URL and must pass the same guard. Resolves relative Location headers against the
+ * current URL before validating/following them.
+ */
+async function safeFetch(url: string, headers: Record<string, string>): Promise<globalThis.Response> {
+  let current = url;
+  for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+    const reason = await validateTarget(current);
+    if (reason) throw new Error(`unsafe URL at hop ${hop}: ${reason}`);
+
+    const res = await fetch(current, { headers, redirect: 'manual' });
+    if (res.status < 300 || res.status > 399) return res;
+
+    const loc = res.headers.get('location');
+    if (!loc) return res;
+    current = new URL(loc, current).href;
+  }
+  throw new Error('too many redirects');
 }
 
 const CHROME_UA =
@@ -42,11 +104,22 @@ export const vbMediaProxyController = {
       res.status(400).json({ success: false, message: 'url required' });
       return;
     }
-    const parsed = safeUrl(rawUrl);
-    if (!parsed) {
+
+    // Signature check FIRST: the URL must have been minted by us (signProxyUrl, called from
+    // vbSession.helper.ts when the room is switched over) — closes the open-proxy hole, since an
+    // attacker can no longer hand this endpoint an arbitrary URL of their choosing.
+    const { exp, sig } = req.query;
+    if (!verifyProxyUrl(rawUrl, Number(exp), typeof sig === 'string' ? sig : '')) {
+      res.status(403).json({ success: false, message: 'Forbidden' });
+      return;
+    }
+
+    const guardReason = await validateTarget(rawUrl);
+    if (guardReason) {
       res.status(400).json({ success: false, message: 'Invalid or unsafe URL' });
       return;
     }
+    const parsedUrl = new URL(rawUrl); // already validated above — safe to construct without try/catch
 
     const range = req.headers.range;
     const headers: Record<string, string> = {
@@ -58,7 +131,7 @@ export const vbMediaProxyController = {
 
     let upstream: globalThis.Response;
     try {
-      upstream = await fetch(parsed.href, { headers });
+      upstream = await safeFetch(parsedUrl.href, headers);
     } catch {
       res.status(502).json({ success: false, message: 'Upstream fetch failed' });
       return;
@@ -70,11 +143,11 @@ export const vbMediaProxyController = {
     }
 
     const rawCT = upstream.headers.get('content-type') ?? '';
-    const isManifest = rawCT.includes('mpegurl') || rawCT.includes('x-mpegurl') || parsed.pathname.endsWith('.m3u8');
+    const isManifest = rawCT.includes('mpegurl') || rawCT.includes('x-mpegurl') || parsedUrl.pathname.endsWith('.m3u8');
 
     if (isManifest) {
       const text = await upstream.text();
-      const base = parsed.href.substring(0, parsed.href.lastIndexOf('/') + 1);
+      const base = parsedUrl.href.substring(0, parsedUrl.href.lastIndexOf('/') + 1);
       const proxy = proxyBase(req);
 
       const rewritten = text
@@ -83,7 +156,11 @@ export const vbMediaProxyController = {
           const t = line.trim();
           if (!t || t.startsWith('#')) return line;
           const absUrl = t.startsWith('http') ? t : base + t;
-          return `${proxy}/seg?url=${encodeURIComponent(absUrl)}`;
+          // Every rewritten segment URL must carry its own signature — once signature checking
+          // is on, an unsigned /seg?url=... would be rejected by stream() above and every
+          // playlist would break the instant this ships.
+          const { exp: segExp, sig: segSig } = signProxyUrl(absUrl);
+          return `${proxy}/seg?url=${encodeURIComponent(absUrl)}&exp=${segExp}&sig=${segSig}`;
         })
         .join('\n');
 
@@ -96,7 +173,7 @@ export const vbMediaProxyController = {
 
     const ct = rawCT.startsWith('video/') || rawCT === 'application/octet-stream'
       ? rawCT
-      : parsed.pathname.endsWith('.ts') ? 'video/MP2T' : 'video/mp4';
+      : parsedUrl.pathname.endsWith('.ts') ? 'video/MP2T' : 'video/mp4';
 
     res.status(upstream.status === 206 ? 206 : 200);
     res.setHeader('Content-Type', ct);
