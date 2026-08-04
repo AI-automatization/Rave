@@ -577,7 +577,8 @@
     "playerConnecting": "Ulanmoqda...",
     "kickedFromRoom": "Sizni xonadan chiqarib yuborishdi",
     "accountBlocked": "Akkauntingiz bloklandi",
-    "vbMediaFound": "Video topildi — pleyerga o'tilmoqda"
+    "vbMediaFound": "Video topildi — pleyerga o'tilmoqda",
+    "playerOpeningVB": "Virtual brauzer ochilmoqda..."
   },
   "movie": {
     "watch": "Ko'rish",

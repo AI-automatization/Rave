@@ -616,7 +616,8 @@
     "playerConnecting": "Connecting...",
     "kickedFromRoom": "You were removed from the room",
     "accountBlocked": "Your account has been blocked",
-    "vbMediaFound": "Video found — switching to the player"
+    "vbMediaFound": "Video found — switching to the player",
+    "playerOpeningVB": "Opening virtual browser..."
   },
   "movie": {
     "watch": "Watch",
