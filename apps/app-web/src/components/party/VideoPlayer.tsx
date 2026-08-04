@@ -422,6 +422,12 @@ function NativeVideoPlayer({
   function attemptOwnerAutoplay(video: HTMLVideoElement) {
     if (!isOwner) return;
     video.play().catch((e: unknown) => {
+      // AbortError = play() interrupted by a near-simultaneous pause() (e.g. the room-sync
+      // effect deciding the actual state is paused right as this fires) — not a real failure.
+      // Missing here (2026-08-04) sent every such race straight to reportFatal(), which
+      // triggers the owner-only VB fallback — real prod symptom: sources that played fine
+      // immediately re-triggered a VB restart on nearly every load.
+      if ((e as DOMException)?.name === 'AbortError') return;
       if (isAutoplayPolicyError(e)) onAutoplayBlocked();
       else reportFatal();
     });

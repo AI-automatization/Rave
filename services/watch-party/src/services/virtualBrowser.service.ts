@@ -81,8 +81,20 @@ function matchMediaExtension(url: string): string | null {
 
 const MEDIA_CONTENT_TYPE_RE = /^(video\/(mp4|webm|mp2t|iso\.segment)|audio\/mp4|application\/(vnd\.apple\.mpegurl|x-mpegurl|dash\+xml))/i;
 
+// .mpd is an MPEG-DASH manifest — a different format from HLS's .m3u8 (XML segment templates vs
+// a text playlist), and neither the player (hls.js only, no dash.js) nor vb-media-proxy's
+// manifest rewrite (line-based #EXTM3U parsing) understand it. Grabbing one used to get
+// misclassified as 'hls' and handed straight to the player, which failed instantly — confirmed
+// live 2026-08-04 on uzmovi.net (srv518.uzdown.space .mpd), and the resulting fatal-error retry
+// then tried to page.goto() the raw manifest URL directly, which isn't a browsable page either.
+// Until dash.js support exists, treat DASH like an ad candidate: log and keep looking instead of
+// grabbing something we can't play.
+function isDashUrl(ext: string | null, contentType: string): boolean {
+  return ext === 'mpd' || /dash/i.test(contentType);
+}
+
 function classifyMediaUrl(ext: string): 'mp4' | 'hls' {
-  return ext === 'm3u8' || ext === 'mpd' ? 'hls' : 'mp4';
+  return ext === 'm3u8' ? 'hls' : 'mp4';
 }
 
 function classifyMediaContentType(contentType: string): 'mp4' | 'hls' {
@@ -188,6 +200,11 @@ function attachResponseSniffer(
   const rejectAsAd = (mediaUrl: string, type: 'mp4' | 'hls', reason: string, extra?: Record<string, unknown>) => {
     logger.info('VB: media candidate rejected as likely ad (too short)', { logId, url: mediaUrl.slice(0, 120), type, reason, ...extra });
   };
+  // Same non-fatal shape as rejectAsAd — DASH isn't playable (see isDashUrl), so skip it and
+  // keep sniffing for a real candidate instead of grabbing something guaranteed to fail.
+  const rejectAsDash = (mediaUrl: string) => {
+    logger.info('VB: media candidate rejected — DASH (.mpd) unsupported, no dash.js', { logId, url: mediaUrl.slice(0, 120) });
+  };
 
   const verifyAndHit = async (mediaUrl: string, type: 'mp4' | 'hls', how: string, response: import('playwright-chromium').Response) => {
     if (type === 'hls') {
@@ -219,14 +236,18 @@ function attachResponseSniffer(
     if (found) return; // first ACCEPTED match wins — ad rejections above don't set this
     const respUrl = response.url();
     const ext = matchMediaExtension(respUrl);
+    const headers = response.headers();
+    const contentType = headers['content-type'] ?? '';
+    if (isDashUrl(ext, contentType)) {
+      rejectAsDash(respUrl);
+      return;
+    }
     if (ext) {
       void verifyAndHit(respUrl, classifyMediaUrl(ext), 'extension', response);
       return;
     }
     // No recognizable extension (opaque path like /api/stream/get?id=123) — fall back to
     // the response's own Content-Type.
-    const headers = response.headers();
-    const contentType = headers['content-type'] ?? '';
     if (MEDIA_CONTENT_TYPE_RE.test(contentType)) {
       void verifyAndHit(respUrl, classifyMediaContentType(contentType), 'content-type', response);
       return;

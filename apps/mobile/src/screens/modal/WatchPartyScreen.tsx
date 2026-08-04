@@ -208,17 +208,30 @@ export function WatchPartyScreen() {
   // size cap is a second, independent backstop.
   const vbAttemptedUrlsRef = useRef<Set<string>>(new Set());
   const VB_MAX_ATTEMPTS_PER_SESSION = 3;
+
+  // Tracks the last genuine owner-submitted SOURCE PAGE (never a vb-media-proxy rewrite) so a
+  // fatal-error retry can re-open VB on the actual page instead of the raw sniffed media file.
+  // unwrapVbProxyUrl(url) === url is how the function itself signals "not a proxy URL" (per its
+  // own contract above) — reused here rather than re-deriving the same check. Mirrors web's
+  // RoomContent.tsx fix — real prod bug 2026-08-04: retrying on the unwrapped CDN file URL made
+  // VB call page.goto() on a media file, not a page (downloads the file, or ERR_CONNECTION_RESET
+  // on CDNs that reject direct manifest requests outside their normal referrer/session context),
+  // never re-triggering the sniffer.
+  const originalSourceUrlRef = useRef<string | null>(null);
+  useEffect(() => {
+    const url = room?.videoUrl ?? originalVideoUrl;
+    if (url && unwrapVbProxyUrl(url) === url) originalSourceUrlRef.current = url;
+  }, [room?.videoUrl, originalVideoUrl]);
+
   const handleVideoFatalError = useCallback(() => {
     if (!isOwner || vb.active) return;
-    const rawUrl = room?.videoUrl ?? originalVideoUrl;
-    if (!rawUrl) return;
-    const targetUrl = unwrapVbProxyUrl(rawUrl);
-    if (!targetUrl) return; // already-proxied URL with no recoverable original — nothing sane to retry
+    const targetUrl = originalSourceUrlRef.current;
+    if (!targetUrl) return; // no known source page to retry (e.g. fatal error before any CHANGE_MEDIA)
     if (vbAttemptedUrlsRef.current.has(targetUrl)) return; // this exact source was already tried
     if (vbAttemptedUrlsRef.current.size >= VB_MAX_ATTEMPTS_PER_SESSION) return; // hard cap backstop
     vbAttemptedUrlsRef.current.add(targetUrl);
     vb.start(targetUrl);
-  }, [isOwner, vb, room?.videoUrl, originalVideoUrl]);
+  }, [isOwner, vb]);
 
   // T-S189: room was created with a raw, unverified URL (user forced it via "try current
   // page anyway" — no client/server detection confirmed it beforehand). Mirrors web's
