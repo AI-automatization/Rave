@@ -578,7 +578,17 @@
     "kickedFromRoom": "Sizni xonadan chiqarib yuborishdi",
     "accountBlocked": "Akkauntingiz bloklandi",
     "vbMediaFound": "Video topildi — pleyerga o'tilmoqda",
-    "playerOpeningVB": "Virtual brauzer ochilmoqda..."
+    "playerOpeningVB": "Virtual brauzer ochilmoqda...",
+    "pickDifferentVideo": "Bu noto'g'ri video",
+    "changeSource": "Manbani almashtirish",
+    "videoCandidatesTitle": "Videoni tanlang",
+    "videoCandidatesCycleHint": "Topilgan variantlarni birma-bir ko'rib chiqing",
+    "videoCandidatesGridHint": "Ro'yxatdan videoni tanlang",
+    "videoCandidateConfirm": "Shu video",
+    "videoCandidateReject": "Bu emas, keyingisi",
+    "videoCandidateEmbedHint": "Bu turdagi video uchun oldindan ko'rish mavjud emas — agar shu to'g'ri bo'lsa, tasdiqlang",
+    "videoCandidateBack": "Ro'yxatga qaytish",
+    "noOtherCandidates": "Boshqa videolar topilmadi"
   },
   "movie": {
     "watch": "Ko'rish",

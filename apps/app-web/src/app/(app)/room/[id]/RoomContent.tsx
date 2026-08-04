@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { useTranslations } from 'next-intl';
 import { MessageCircle, Users as UsersIcon, ListVideo, X, ChevronRight, Loader2, Play, Globe } from 'lucide-react';
-import type { IChatReplyTo } from '@/types';
+import type { IChatReplyTo, VideoCandidate } from '@/types';
 import { useWatchParty } from '@/hooks/use-watch-party';
 import { useVirtualBrowser } from '@/hooks/use-virtual-browser';
 import { VideoPlayer } from '@/components/party/VideoPlayer';
@@ -15,6 +15,7 @@ import { MemberList } from '@/components/party/MemberList';
 import { RoomHeader } from '@/components/party/RoomHeader';
 import { EmojiReactions } from '@/components/party/EmojiReactions';
 import { ReactionOverlay } from '@/components/party/ReactionOverlay';
+import { VideoCandidatePicker } from '@/components/party/VideoCandidatePicker';
 import { UserProfileModal } from '@/components/profile/UserProfileModal';
 import { VoiceStrip } from '@/components/party/VoiceStrip';
 import { RoomPasswordDialog } from '@/components/party/RoomPasswordDialog';
@@ -63,6 +64,12 @@ interface Props {
 // videoPlatform field; the player itself dispatches on the URL, not this field (see VideoPlayer.tsx).
 const YOUTUBE_RE = /youtube\.com|youtu\.be/;
 
+// Shared by PlaylistPanel's "Play Now" and the video-candidate picker's confirm action — both
+// ultimately call sendMediaChange with a raw URL and need the same rough videoPlatform guess.
+function detectVideoPlatform(url: string): string {
+  return YOUTUBE_RE.test(url) ? 'youtube' : 'other';
+}
+
 function PlaylistPanel({
   roomId, isOwner, onPlayNow,
 }: { roomId: string; isOwner: boolean; onPlayNow: (videoUrl: string, videoPlatform: string) => void }) {
@@ -78,7 +85,7 @@ function PlaylistPanel({
     if (!url) return;
     trackClick('room:playlist_play_now');
     const normalizedUrl = /^https?:\/\//i.test(url) ? url : `https://${url}`;
-    onPlayNow(normalizedUrl, YOUTUBE_RE.test(normalizedUrl) ? 'youtube' : 'other');
+    onPlayNow(normalizedUrl, detectVideoPlatform(normalizedUrl));
     setUrlInput('');
   }
 
@@ -326,10 +333,12 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
   const t = useTranslations('party');
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { sendMessage, sendPlay, sendPause, sendSeek, sendEmoji, sendHeartbeat, sendBufferStart, sendBufferEnd, sendMediaChange, reactions, reactionCooldownSec, kickMember, muteMember, unmuteMember, renameRoom } = useWatchParty(roomId);
+  const { sendMessage, sendPlay, sendPause, sendSeek, sendEmoji, sendHeartbeat, sendBufferStart, sendBufferEnd, sendMediaChange, reactions, reactionCooldownSec, videoCandidates, requestCandidates, kickMember, muteMember, unmuteMember, renameRoom } = useWatchParty(roomId);
   const [rightTab, setRightTab] = useState<RightTab>('chat');
   /** Whose profile the modal is showing — `null` means closed. */
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
+  // Video-candidate picker (T-S189 follow-up) — owner-only, manually triggered from the "⋮" menu.
+  const [candidatePickerOpen, setCandidatePickerOpen] = useState(false);
   const setRoom = useWatchPartyStore((s) => s.setRoom);
   const reset = useWatchPartyStore((s) => s.reset);
   const room = useWatchPartyStore((s) => s.room);
@@ -428,7 +437,11 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
       />
 
       <div className="relative z-10 flex flex-col h-full">
-        <RoomHeader renameRoom={renameRoom} />
+        <RoomHeader
+          renameRoom={renameRoom}
+          onPickDifferentVideo={() => setCandidatePickerOpen(true)}
+          onChangeSource={() => setRightTab('playlist')}
+        />
 
         <div className="flex flex-col md:flex-row flex-1 min-h-0 overflow-hidden">
           {/* Left: Video — no longer bare `flex-1` (that made it stretch to swallow the sidebar's
@@ -521,6 +534,16 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
 
 
       <UserProfileModal userId={profileUserId} onClose={() => setProfileUserId(null)} />
+
+      {isOwner && (
+        <VideoCandidatePicker
+          open={candidatePickerOpen}
+          onOpenChange={setCandidatePickerOpen}
+          candidates={videoCandidates}
+          onRequestCandidates={requestCandidates}
+          onConfirm={(candidate: VideoCandidate) => sendMediaChange(candidate.url, undefined, detectVideoPlatform(candidate.url))}
+        />
+      )}
 
       {/* router.refresh() is not enough here: membership is established server-side and the socket
           has already tried (and failed) to join, so the connection has to be rebuilt from scratch —

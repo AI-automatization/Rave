@@ -9,7 +9,7 @@ import { useSocket } from '@/hooks/use-socket';
 import { useWatchPartyStore } from '@/store/watch-party.store';
 import { useAuthStore } from '@/store/auth.store';
 import { toast } from '@/store/toast.store';
-import type { IWatchPartyRoom, IChatReplyTo } from '@/types';
+import type { IWatchPartyRoom, IChatReplyTo, VideoCandidate } from '@/types';
 
 // Room membership (room.members / MEMBER_JOINED) only carries user IDs — the actual
 // username/avatar has to be resolved separately via GET /api/user/[id]. Cached through
@@ -91,6 +91,14 @@ export function useWatchParty(roomId: string) {
   // Burst-lockout countdown (server-driven — REACTION_COOLDOWN). 0 = picker enabled.
   const [reactionCooldownSec, setReactionCooldownSec] = useState(0);
   const cooldownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Video-candidate picker (T-S189 follow-up) — `null` means no response has come back yet
+  // (request in flight, or never requested this session); an empty array is a real "server
+  // looked and found nothing extra" answer, distinct from "still waiting". Populated by
+  // VIDEO_CANDIDATES, which the server sends in reply to REQUEST_CANDIDATES from Redis (no
+  // re-extraction — candidates are collected proactively as a side effect of CHANGE_MEDIA / VB
+  // sniffing on the backend, see roomEvents.handler.ts).
+  const [videoCandidates, setVideoCandidates] = useState<VideoCandidate[] | null>(null);
 
   // Join room
   useEffect(() => {
@@ -247,6 +255,13 @@ export function useWatchParty(roomId: string) {
       }
     });
 
+    // Owner-only: video-candidate picker response — server answers REQUEST_CANDIDATES (or pushes
+    // proactively in a future iteration) with whatever it currently has cached for this room's
+    // video session. `candidates` may legitimately be empty — that's a real answer, not "no data".
+    socket.on(SERVER_EVENTS.VIDEO_CANDIDATES, (data: { candidates: VideoCandidate[] }) => {
+      setVideoCandidates(data.candidates ?? []);
+    });
+
     // Server error — handle mid-session account ban
     socket.on(SERVER_EVENTS.ERROR, (data: { code?: string; message?: string }) => {
       if (data.code === 'ACCOUNT_BLOCKED') {
@@ -278,6 +293,7 @@ export function useWatchParty(roomId: string) {
       socket.off(SERVER_EVENTS.PLAYLIST_UPDATED);
       socket.off(SERVER_EVENTS.OWNER_TRANSFERRED);
       socket.off(SERVER_EVENTS.MEMBER_KICKED);
+      socket.off(SERVER_EVENTS.VIDEO_CANDIDATES);
       socket.off(SERVER_EVENTS.ERROR);
       setConnected(false);
       setRoomJoined(false);
@@ -346,10 +362,17 @@ export function useWatchParty(roomId: string) {
     socket?.emit(CLIENT_EVENTS.RENAME_ROOM, { name });
   }, [socket]);
 
+  // Owner-only: "show me what candidates you've found so far" — no payload, server answers from
+  // Redis via VIDEO_CANDIDATES (listener above). Fired when the picker UI opens.
+  const requestCandidates = useCallback(() => {
+    socket?.emit(CLIENT_EVENTS.REQUEST_CANDIDATES);
+  }, [socket]);
+
   return {
     isConnected,
     reactions,
     reactionCooldownSec,
+    videoCandidates,
     sendMessage,
     sendPlay,
     sendPause,
@@ -363,5 +386,6 @@ export function useWatchParty(roomId: string) {
     muteMember,
     unmuteMember,
     renameRoom,
+    requestCandidates,
   };
 }

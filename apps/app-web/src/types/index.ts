@@ -11,6 +11,7 @@ export type {
   JwtPayload,
   IUserPublic,
   VideoPlatform,
+  VideoCandidate,
 } from '@shared/types';
 
 // Import for local use within this file
