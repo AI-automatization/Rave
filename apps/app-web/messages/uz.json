@@ -428,7 +428,7 @@
     "deleteError": "O'chirishda xato"
   },
   "settings": {
-    "title": "SOZLAMALAR",
+    "title": "Sozlamalar",
     "togglePassword": "Parolni ko'rsatish yoki yashirish",
     "profilePhoto": "PROFIL RASMI",
     "photoHint": "JPEG, PNG yoki WebP\nMaksimal 5 MB",
@@ -455,6 +455,7 @@
     "deleteAccount": "Hisobni o'chirish",
     "deleteMyAccount": "Mening hisobimni o'chirish",
     "deleteConfirm": "Bu harakat qaytarib bo'lmaydi. Tasdiqlash uchun parolni kiriting.",
+    "deleteHint": "Hisobingiz, do'stlaringiz va barcha yozishmalar butunlay o'chiriladi. Buni qaytarib bo'lmaydi.",
     "yourPassword": "Parolingiz",
     "pwMinLength": "Yangi parol kamida 8 belgidan iborat bo'lishi kerak",
     "pwMismatch": "Parollar mos kelmayapti",
@@ -752,7 +753,9 @@
     "open": "Ochiq",
     "closed": "Yopiq",
     "placeholder": "Xabar yozing...",
+    "send": "Yuborish",
     "rateTitle": "Qo'llab-quvvatlash qanday edi?",
+    "rateStar": "{count} yulduz",
     "rateThanks": "Fikringiz uchun rahmat!",
     "empty": "Hozircha tiketlar yo'q",
     "selectTicket": "Tiket tanlang",

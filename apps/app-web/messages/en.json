@@ -462,7 +462,7 @@
     "deleteError": "Error deleting"
   },
   "settings": {
-    "title": "SETTINGS",
+    "title": "Settings",
     "togglePassword": "Show or hide password",
     "profilePhoto": "PROFILE PHOTO",
     "photoHint": "JPEG, PNG or WebP\nMax 5 MB",
@@ -489,6 +489,7 @@
     "deleteAccount": "Delete account",
     "deleteMyAccount": "Delete my account",
     "deleteConfirm": "This action is irreversible. Enter your password to confirm.",
+    "deleteHint": "Your account, friends and all conversations will be deleted permanently.",
     "yourPassword": "Your password",
     "pwMinLength": "New password must be at least 8 characters",
     "pwMismatch": "Passwords do not match",
@@ -791,7 +792,9 @@
     "open": "Open",
     "closed": "Closed",
     "placeholder": "Write a message...",
+    "send": "Send",
     "rateTitle": "How was your support?",
+    "rateStar": "{count} stars",
     "rateThanks": "Thanks for your feedback!",
     "empty": "No tickets yet",
     "selectTicket": "Select a ticket",

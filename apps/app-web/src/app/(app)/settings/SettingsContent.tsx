@@ -1,9 +1,12 @@
 'use client';
 
-import { useId, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Eye, EyeOff, Loader2, LogOut, Trash2 } from 'lucide-react';
+import { Loader2, LogOut, Trash2 } from 'lucide-react';
+import { Field, Input, PasswordInput } from '@/components/ui/field';
+import { Notice } from '@/components/ui/notice';
+import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import { trackClick } from '@/lib/analytics';
 import { useLocaleStore } from '@/store/locale.store';
@@ -17,19 +20,30 @@ const LOCALES = [
   { value: 'en', flag: '🇬🇧', label: 'English' },
 ] as const;
 
+/** Bo'lim sarlavhasi — to'rtala bo'limda bir xil tipografik pog'ona */
+function SectionTitle({ children, tone = 'muted' }: { children: React.ReactNode; tone?: 'muted' | 'danger' }) {
+  return (
+    <h2
+      className={`mb-5 text-[11px] font-semibold uppercase tracking-[0.14em] ${
+        tone === 'danger' ? 'text-[var(--ww-danger)]' : 'text-[var(--ww-text-3)]'
+      }`}
+    >
+      {children}
+    </h2>
+  );
+}
+
 export function SettingsContent() {
   const t = useTranslations('settings');
   const router = useRouter();
   const locale = useLocaleStore((s) => s.locale);
   const setLocale = useLocaleStore((s) => s.setLocale);
 
-  // Change password state
+  // Change password state. `show*` bayroqlari yo'q — ko'zni `PasswordInput`
+  // o'zi boshqaradi (a11y yorlig'i bilan birga).
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showCurrent, setShowCurrent] = useState(false);
-  const [showNew, setShowNew] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
   const [pwLoading, setPwLoading] = useState(false);
   const [pwError, setPwError] = useState('');
 
@@ -133,206 +147,173 @@ export function SettingsContent() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto flex flex-col gap-6">
-      <h1 className="text-xl font-bold text-white">{t('title')}</h1>
+    <div className="mx-auto flex max-w-2xl flex-col gap-6">
+      <h1 className="text-[26px] font-semibold tracking-[-0.025em] text-[var(--ww-text)] sm:text-[30px]">
+        {t('title')}
+      </h1>
 
-      {/* Language */}
-      <section className="liquid-glass p-6">
-        <p className="text-zinc-500 text-[11px] font-semibold tracking-[0.14em] uppercase mb-5">
-          {t('language')}
-        </p>
+      {/* Til */}
+      <section className="ww-panel p-6">
+        <SectionTitle>{t('language')}</SectionTitle>
         {/* Buttons, not the hover dropdown from LanguageSwitcher — that one never opens on touch. */}
         <div className="flex flex-wrap gap-2">
-          {LOCALES.map(({ value, flag, label }) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => { trackClick('settings:locale', { locale: value }); setLocale(value); }}
-              className={`h-9 px-3.5 rounded-lg text-sm flex items-center gap-2 transition-colors cursor-pointer border ${
-                locale === value
-                  ? 'bg-violet-600/15 border-violet-500/40 text-violet-300 font-medium'
-                  : 'bg-white/[0.03] border-white/[0.08] text-slate-400 hover:text-slate-200 hover:bg-white/[0.06]'
-              }`}
-            >
-              <span>{flag}</span>
-              <span>{label}</span>
-            </button>
-          ))}
+          {LOCALES.map(({ value, flag, label }) => {
+            const active = locale === value;
+            return (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={active}
+                onClick={() => { trackClick('settings:locale', { locale: value }); setLocale(value); }}
+                className={`flex h-11 cursor-pointer items-center gap-2 rounded-[var(--ww-r-md)] px-4 text-[13.5px] transition-colors ${
+                  active
+                    ? 'border border-[rgba(124,58,237,0.45)] bg-[var(--ww-accent-soft)] font-medium text-[var(--ww-accent-hi)]'
+                    : 'ww-btn-subtle text-[var(--ww-text-2)]'
+                }`}
+              >
+                <span aria-hidden="true">{flag}</span>
+                <span>{label}</span>
+              </button>
+            );
+          })}
         </div>
       </section>
 
-      {/* Change Password */}
-      <section className="liquid-glass p-6">
-        <p className="text-zinc-500 text-[11px] font-semibold tracking-[0.14em] uppercase mb-5">
-          {t('changePassword')}
-        </p>
-        <form onSubmit={handleChangePassword} className="flex flex-col gap-3">
-          <PasswordField
-            label={t('currentPassword')}
-            value={currentPassword}
-            onChange={setCurrentPassword}
-            show={showCurrent}
-            onToggle={() => setShowCurrent((v) => !v)}
-            autoComplete="current-password"
-            toggleLabel={t('togglePassword')}
-          />
-          <PasswordField
-            label={t('newPassword')}
-            value={newPassword}
-            onChange={setNewPassword}
-            show={showNew}
-            onToggle={() => setShowNew((v) => !v)}
-            autoComplete="new-password"
-            toggleLabel={t('togglePassword')}
-          />
-          <PasswordField
-            label={t('confirmNewPassword')}
-            value={confirmPassword}
-            onChange={setConfirmPassword}
-            show={showConfirm}
-            onToggle={() => setShowConfirm((v) => !v)}
-            autoComplete="new-password"
-            toggleLabel={t('togglePassword')}
-          />
-          {pwError && <p className="text-red-400 text-xs">{pwError}</p>}
-          <button
+      {/* Parolni almashtirish */}
+      <section className="ww-panel p-6">
+        <SectionTitle>{t('changePassword')}</SectionTitle>
+        {/* Uchta maydon ham `Field` + `PasswordInput` primitivida. Ilgari shu
+            faylda lokal `PasswordField` bor edi — o'z `useId` i, o'z ko'z
+            tugmasi va boshqa fayllardagilardan biroz farqli o'lchamlari
+            bilan. Endi manba bitta: components/ui/field.tsx */}
+        <form onSubmit={handleChangePassword} className="flex flex-col gap-4">
+          <Field label={t('currentPassword')}>
+            <PasswordInput
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              // Was missing entirely, so password managers offered nothing here and browsers could
+              // not tell the current password apart from the new one.
+              autoComplete="current-password"
+              toggleLabel={t('togglePassword')}
+            />
+          </Field>
+          <Field label={t('newPassword')}>
+            <PasswordInput
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              autoComplete="new-password"
+              toggleLabel={t('togglePassword')}
+            />
+          </Field>
+          <Field label={t('confirmNewPassword')}>
+            <PasswordInput
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              autoComplete="new-password"
+              toggleLabel={t('togglePassword')}
+            />
+          </Field>
+
+          {/* Xato forma darajasida (server "joriy parol noto'g'ri" ham deyishi
+              mumkin), shuning uchun bitta maydonga bog'lanmaydi */}
+          {pwError && <Notice variant="danger">{pwError}</Notice>}
+
+          <Button
             type="submit"
+            variant="accent"
+            size="xl"
             disabled={pwLoading}
-            className="self-start h-9 px-4 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm font-medium transition-colors flex items-center gap-2 cursor-pointer"
+            className="self-start px-6"
           >
-            {pwLoading && <Loader2 size={14} className="animate-spin" />}
+            {pwLoading && <Loader2 size={16} aria-hidden="true" className="animate-spin" />}
             {t('save')}
-          </button>
+          </Button>
         </form>
       </section>
 
-      {/* Sessions */}
-      <section className="liquid-glass p-6">
-        <p className="text-zinc-500 text-[11px] font-semibold tracking-[0.14em] uppercase mb-5">
-          {t('sessions')}
-        </p>
+      {/* Seanslar */}
+      <section className="ww-panel p-6">
+        <SectionTitle>{t('sessions')}</SectionTitle>
         {logoutAllOpen ? (
-          <div className="flex flex-col gap-3">
-            <p className="text-slate-300 text-sm">{t('signOutConfirm')}</p>
-            <div className="flex gap-2">
-              <button
-                onClick={handleLogoutAll}
+          <div className="flex flex-col gap-4">
+            <p className="text-[13.5px] leading-relaxed text-[var(--ww-text-2)]">{t('signOutConfirm')}</p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="accent"
+                size="xl"
+                onClick={() => { void handleLogoutAll(); }}
                 disabled={logoutAllLoading}
-                className="h-9 px-4 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm font-medium transition-colors flex items-center gap-2 cursor-pointer"
+                className="px-6"
               >
-                {logoutAllLoading && <Loader2 size={14} className="animate-spin" />}
+                {logoutAllLoading && <Loader2 size={16} aria-hidden="true" className="animate-spin" />}
                 {t('confirm')}
-              </button>
-              <button
-                onClick={() => setLogoutAllOpen(false)}
-                className="h-9 px-4 rounded-lg bg-white/[0.06] border border-white/[0.08] text-slate-300 text-sm font-medium hover:bg-white/[0.1] transition-colors cursor-pointer"
-              >
+              </Button>
+              <Button type="button" variant="subtle" size="xl" onClick={() => setLogoutAllOpen(false)} className="px-6">
                 {t('cancel')}
-              </button>
+              </Button>
             </div>
           </div>
         ) : (
-          <button
-            onClick={() => setLogoutAllOpen(true)}
-            className="h-9 px-4 rounded-lg bg-white/[0.06] border border-white/[0.08] text-slate-300 text-sm font-medium hover:bg-white/[0.1] transition-colors flex items-center gap-2 cursor-pointer"
-          >
-            <LogOut size={14} />
+          <Button type="button" variant="subtle" size="xl" onClick={() => setLogoutAllOpen(true)} className="px-5">
+            <LogOut size={16} aria-hidden="true" />
             {t('signOutAll')}
-          </button>
+          </Button>
         )}
       </section>
 
-      {/* Danger zone */}
-      <section
-        className="rounded-2xl p-6"
-        style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.20)', backdropFilter: 'blur(36px)', WebkitBackdropFilter: 'blur(36px)', boxShadow: 'inset 0 1px 0 rgba(255,100,100,0.15)' }}
-      >
-        <p className="text-red-400 text-[11px] font-semibold tracking-[0.14em] uppercase mb-5">
-          {t('dangerZone')}
-        </p>
+      {/* Xavfli hudud — inline `style` bilan yozilgan qizil shisha edi;
+          endi holat tokenlaridan (`--ww-danger-*`) yig'iladi. */}
+      <section className="rounded-[var(--ww-r-xl)] border border-[var(--ww-danger-line)] bg-[var(--ww-danger-soft)] p-6">
+        <SectionTitle tone="danger">{t('dangerZone')}</SectionTitle>
         {deleteOpen ? (
-          <form onSubmit={handleDeleteAccount} className="flex flex-col gap-3">
-            <p className="text-slate-300 text-sm">{t('deleteConfirm')}</p>
-            <input
-              type="password"
-              value={deletePassword}
-              onChange={(e) => setDeletePassword(e.target.value)}
-              placeholder={t('yourPassword')}
-              autoComplete="current-password"
-              aria-label={t('yourPassword')}
-              className="glass-input h-10 px-3 rounded-lg text-white text-sm placeholder:text-slate-600 focus:outline-none focus:border-red-500/50"
-            />
-            {deleteError && <p className="text-red-400 text-xs">{deleteError}</p>}
-            <div className="flex gap-2">
+          <form onSubmit={handleDeleteAccount} className="flex flex-col gap-4">
+            <p className="text-[13.5px] leading-relaxed text-[var(--ww-text-2)]">{t('deleteConfirm')}</p>
+            <Field label={t('yourPassword')} error={deleteError || undefined}>
+              <Input
+                type="password"
+                value={deletePassword}
+                onChange={(e) => setDeletePassword(e.target.value)}
+                placeholder={t('yourPassword')}
+                autoComplete="current-password"
+              />
+            </Field>
+            <div className="flex flex-wrap gap-2">
               <button
                 type="submit"
                 disabled={deleteLoading}
-                className="h-9 px-4 rounded-lg bg-red-600/80 hover:bg-red-600 disabled:opacity-50 text-white text-sm font-medium transition-colors flex items-center gap-2 cursor-pointer"
+                className="flex h-12 cursor-pointer items-center gap-2 rounded-[var(--ww-r-md)] bg-[var(--ww-danger)] px-6 text-[15px] font-medium text-[#1A0808] transition-[filter] duration-[var(--ww-dur)] hover:brightness-110 disabled:cursor-default disabled:opacity-50"
               >
-                {deleteLoading && <Loader2 size={14} className="animate-spin" />}
+                {deleteLoading && <Loader2 size={16} aria-hidden="true" className="animate-spin" />}
                 {t('deleteMyAccount')}
               </button>
-              <button
+              <Button
                 type="button"
+                variant="subtle"
+                size="xl"
                 onClick={() => { setDeleteOpen(false); setDeletePassword(''); setDeleteError(''); }}
-                className="h-9 px-4 rounded-lg bg-white/[0.06] border border-white/[0.08] text-slate-300 text-sm font-medium hover:bg-white/[0.1] transition-colors cursor-pointer"
+                className="px-6"
               >
                 {t('cancel')}
-              </button>
+              </Button>
             </div>
           </form>
         ) : (
-          <button
-            onClick={() => setDeleteOpen(true)}
-            className="h-9 px-4 rounded-lg bg-red-600/10 border border-red-500/30 text-red-400 hover:bg-red-600/20 text-sm font-medium transition-colors flex items-center gap-2 cursor-pointer"
-          >
-            <Trash2 size={14} />
-            {t('deleteAccount')}
-          </button>
+          <div className="flex flex-col gap-4">
+            <Notice variant="danger" title={t('deleteAccount')}>
+              {t('deleteHint')}
+            </Notice>
+            <button
+              type="button"
+              onClick={() => setDeleteOpen(true)}
+              className="flex h-12 cursor-pointer items-center gap-2 self-start rounded-[var(--ww-r-md)] border border-[var(--ww-danger-line)] px-5 text-[15px] font-medium text-[var(--ww-danger)] transition-colors hover:bg-[rgba(255,107,107,0.14)]"
+            >
+              <Trash2 size={16} aria-hidden="true" />
+              {t('deleteAccount')}
+            </button>
+          </div>
         )}
       </section>
-    </div>
-  );
-}
-
-interface PasswordFieldProps {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  show: boolean;
-  onToggle: () => void;
-  autoComplete: 'current-password' | 'new-password';
-  toggleLabel: string;
-}
-
-function PasswordField({ label, value, onChange, show, onToggle, autoComplete, toggleLabel }: PasswordFieldProps) {
-  // `useId` rather than a prop: three of these render on the page and the label has to point at
-  // its own input — without it, clicking a label focused whichever field came first.
-  const id = useId();
-
-  return (
-    <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-slate-400 text-xs">{label}</label>
-      <div className="relative">
-        <input
-          id={id}
-          type={show ? 'text' : 'password'}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          // Was missing entirely, so password managers offered nothing here and browsers could
-          // not tell the current password apart from the new one.
-          autoComplete={autoComplete}
-          className="glass-input w-full h-10 px-3 pr-10 rounded-lg text-white text-sm placeholder:text-zinc-600 focus:outline-none focus:border-violet-500/40 transition-colors"
-        />
-        <button
-          type="button"
-          onClick={onToggle}
-          aria-label={toggleLabel}
-          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-500 hover:text-slate-300 transition-colors cursor-pointer"
-        >
-          {show ? <EyeOff size={14} /> : <Eye size={14} />}
-        </button>
-      </div>
     </div>
   );
 }

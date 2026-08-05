@@ -418,6 +418,18 @@ button, a, [role="button"] {
   resize: none;
 }
 
+/* — Chat yozish maydoni (support). `.ww-textarea` dan farqi: bo'sh holatda
+     bitta qatorli (`.ww-field` balandligi), yozilgan sari o'sadi va tepasi
+     `max-height` bilan cheklanadi — panel balandligi sakramasin. — */
+.ww-composer {
+  height: auto;
+  min-height: 3rem;
+  max-height: 7.5rem;
+  padding: 0.8125rem 1rem;
+  line-height: 1.4;
+  resize: none;
+}
+
 /* Chrome autofill sariq foni butun qorong'i dizaynni buzadi */
 .ww-field:-webkit-autofill,
 .ww-field:-webkit-autofill:hover,
