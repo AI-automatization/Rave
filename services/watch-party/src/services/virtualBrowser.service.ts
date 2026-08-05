@@ -312,14 +312,33 @@ export async function startSession(
       const captureUrl = `${watchPartyServiceUrl}/api/v1/watch-party/vb-capture/${roomId}`;
       startCapture(roomId);
 
+      // Category A (a real fetchable URL) is strictly better than capture when both exist: no
+      // duration/timestamp issues, no MAX_CAPTURE_BYTES cap, VB doesn't need to stay alive after
+      // handoff. Real prod case 2026-08-05 (uzmovi.net): capture crossed MIN_SWITCH_BYTES and
+      // locked in mediaFound at ~1.5s, while a genuine HLS URL (category A, rutube) was found
+      // ~3s later and never got a chance — capture's own MSE segments carried absolute (not
+      // zero-based) baseMediaDecodeTime from the source site's player, producing a client-side
+      // duration of 13+ hours and a black frame. Giving category A this head start costs capture
+      // (when it's the only path that ever fires) a few extra seconds before playback starts.
+      const CAPTURE_GRACE_MS = 2500;
+      const captureStartedAt = Date.now();
       const onCaptureChunk = (chunk: Buffer) => {
         if (mediaFound) return;
         const crossedThreshold = appendCapture(roomId, chunk);
-        if (crossedThreshold) {
-          mediaFound = true;
-          logger.info('VB: media captured (enough bytes buffered)', { roomId, captureUrl });
-          onMediaFound(captureUrl, 'mp4', 'capture');
+        if (!crossedThreshold) return;
+        const remaining = CAPTURE_GRACE_MS - (Date.now() - captureStartedAt);
+        if (remaining > 0) {
+          setTimeout(() => {
+            if (mediaFound) return;
+            mediaFound = true;
+            logger.info('VB: media captured (enough bytes buffered, after grace period)', { roomId, captureUrl });
+            onMediaFound(captureUrl, 'mp4', 'capture');
+          }, remaining);
+          return;
         }
+        mediaFound = true;
+        logger.info('VB: media captured (enough bytes buffered)', { roomId, captureUrl });
+        onMediaFound(captureUrl, 'mp4', 'capture');
       };
 
       page.on('websocket', (ws) => {
