@@ -14,14 +14,27 @@ async function fetchNotifications(): Promise<INotification[]> {
   return Array.isArray(data) ? data : (data as { data?: INotification[] }).data ?? [];
 }
 
+/** Turi bo'yicha ikonka — rang tokendan, ilgari to'g'ridan-to'g'ri Tailwind ranglari edi */
 function NotifIcon({ type }: { type: INotification['type'] }) {
   if (type === 'friend_request' || type === 'friend_accepted') {
-    return <Users size={16} className="text-violet-400" />;
+    return <Users size={15} aria-hidden="true" className="text-[var(--ww-accent-hi)]" />;
   }
   if (type === 'watch_party_invite') {
-    return <Tv size={16} className="text-blue-400" />;
+    return <Tv size={15} aria-hidden="true" className="text-[var(--ww-online)]" />;
   }
-  return <Bell size={16} className="text-slate-400" />;
+  return <Bell size={15} aria-hidden="true" className="text-[var(--ww-text-3)]" />;
+}
+
+/** Bo'sh va xato holatlari bir xil shaklda — faqat matn farq qiladi */
+function EmptyState({ text }: { text: string }) {
+  return (
+    <div className="ww-card flex flex-col items-center justify-center gap-3 py-16">
+      <span className="flex h-12 w-12 items-center justify-center rounded-full border border-[var(--ww-line)] bg-[var(--ww-surface-1)]">
+        <Bell size={20} aria-hidden="true" className="text-[var(--ww-text-4)]" />
+      </span>
+      <p className="text-[13px] text-[var(--ww-text-3)]">{text}</p>
+    </div>
+  );
 }
 
 interface NotificationItemProps {
@@ -33,43 +46,82 @@ interface NotificationItemProps {
 function NotificationItem({ notification, onRead, onDelete }: NotificationItemProps) {
   const t = useTranslations('notifications');
   const timeAgo = useRelativeTime();
+  const unread = !notification.isRead;
+
+  const markRead = () => {
+    if (!unread) return;
+    trackClick('notifications:read');
+    onRead(notification._id);
+  };
 
   return (
-    <div
-      className={`flex items-start gap-3 px-4 py-3.5 border-b border-white/[0.05] last:border-0 transition-colors cursor-pointer group ${
-        notification.isRead
-          ? 'hover:bg-white/[0.02]'
-          : 'border-l-2 border-l-violet-500 hover:bg-violet-500/[0.07]'
+    <li
+      /* O'qilmagan qator bosiladigan bo'lgani uchun klaviaturadan ham
+         ochilishi kerak — ilgari bu oddiy `div` edi va Tab bilan umuman
+         yetib bo'lmasdi. O'qilgan qator interaktiv emas, unga rol berilmaydi. */
+      role={unread ? 'button' : undefined}
+      tabIndex={unread ? 0 : undefined}
+      aria-label={unread ? t('markRead') : undefined}
+      onClick={markRead}
+      onKeyDown={(e) => {
+        if (!unread) return;
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          markRead();
+        }
+      }}
+      className={`group relative flex items-start gap-3 border-b border-[var(--ww-line)] px-4 py-3.5 transition-colors last:border-0 ${
+        unread
+          ? 'cursor-pointer bg-[var(--ww-accent-soft)] hover:bg-[rgba(124,58,237,0.20)]'
+          : 'hover:bg-[var(--ww-surface-1)]'
       }`}
-      style={!notification.isRead ? { background: 'rgba(124,58,237,0.05)' } : undefined}
-      onClick={() => { if (!notification.isRead) { trackClick('notifications:read'); onRead(notification._id); } }}
     >
-      <div className="shrink-0 mt-1">
-        <NotifIcon type={notification.type} />
-      </div>
+      {/* Chap chekkadagi belgi — holat faqat fon rangiga tayanmasligi kerak */}
+      {unread && (
+        <span
+          aria-hidden="true"
+          className="absolute inset-y-0 left-0 w-[3px] bg-[var(--ww-accent-hi)]"
+        />
+      )}
 
-      <div className="flex-1 min-w-0">
-        <p className={`text-sm font-medium leading-snug ${notification.isRead ? 'text-slate-300' : 'text-white'}`}>
+      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--ww-line)] bg-[var(--ww-surface-1)]">
+        <NotifIcon type={notification.type} />
+      </span>
+
+      <div className="min-w-0 flex-1">
+        <p
+          className={`text-[13.5px] font-medium leading-snug ${
+            unread ? 'text-[var(--ww-text)]' : 'text-[var(--ww-text-2)]'
+          }`}
+        >
           {notification.title}
         </p>
-        <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{notification.body}</p>
-        <p className="text-[11px] text-slate-600 mt-1">{timeAgo(notification.createdAt)}</p>
+        <p className="mt-0.5 line-clamp-2 text-[12.5px] leading-relaxed text-[var(--ww-text-3)]">
+          {notification.body}
+        </p>
+        <p className="mt-1 text-[11.5px] text-[var(--ww-text-4)]">
+          {timeAgo(notification.createdAt)}
+        </p>
       </div>
 
-      {!notification.isRead && (
-        <div className="w-2 h-2 rounded-full bg-violet-500 shrink-0 mt-1.5" />
+      {unread && (
+        <span
+          aria-hidden="true"
+          className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[var(--ww-accent-hi)]"
+        />
       )}
 
       {/* Always visible below `sm`: `group-hover` has no equivalent on touch, so on a phone the
           delete button was simply unreachable. */}
       <button
+        type="button"
         onClick={(e) => { e.stopPropagation(); trackClick('notifications:delete'); onDelete(notification._id); }}
-        className="p-1.5 text-slate-600 hover:text-red-400 transition-colors rounded-lg sm:opacity-0 sm:group-hover:opacity-100"
+        className="-m-1 shrink-0 cursor-pointer rounded-[var(--ww-r-sm)] p-2.5 text-[var(--ww-text-4)] transition-colors hover:bg-[var(--ww-danger-soft)] hover:text-[var(--ww-danger)] sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
         aria-label={t('delete')}
       >
-        <Trash2 size={14} />
+        <Trash2 size={15} aria-hidden="true" />
       </button>
-    </div>
+    </li>
   );
 }
 
@@ -115,30 +167,45 @@ export function NotificationsContent() {
   const unreadCount = notifications?.filter((n) => !n.isRead).length ?? 0;
 
   return (
-    <div className="flex flex-col gap-5 max-w-2xl mx-auto">
-      {/* Header */}
-      <div className="liquid-glass-sm px-5 py-3.5 flex items-center justify-between">
-        <h1 className="text-base font-semibold text-white">{t('title')}</h1>
+    <div className="mx-auto flex max-w-2xl flex-col gap-6">
+      {/* Sarlavha endi panel ichida emas, sahifaning o'z sarlavhasi — /home
+          bilan bir xil tipografik pog'ona */}
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-[26px] font-semibold tracking-[-0.025em] text-[var(--ww-text)] sm:text-[30px]">
+            {t('title')}
+          </h1>
+          {unreadCount > 0 && (
+            <p className="mt-1 text-[13px] text-[var(--ww-text-3)]">
+              {t('unreadCount', { count: unreadCount })}
+            </p>
+          )}
+        </div>
+
         {unreadCount > 0 && (
           <button
+            type="button"
             onClick={() => { trackClick('notifications:mark_all_read'); markAllRead.mutate(); }}
             disabled={markAllRead.isPending}
-            className="h-8 px-3 rounded-md text-xs font-medium text-zinc-400 border border-white/[0.08] hover:bg-white/[0.04] transition-colors flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+            className="ww-btn-subtle flex h-10 cursor-pointer items-center gap-2 rounded-[var(--ww-r-md)] px-3.5 text-[13px] font-medium text-[var(--ww-text-2)]"
           >
-            <CheckCheck size={14} />
+            <CheckCheck size={15} aria-hidden="true" />
             {t('markAllRead')}
           </button>
         )}
-      </div>
+      </header>
 
       {/* Skeleton shaped like the real rows, matching /home and /friends — a centred spinner
           collapsed the page height and made the list jump into place once data landed. */}
       {isLoading && (
-        <div className="liquid-glass overflow-hidden" aria-busy="true">
+        <div className="ww-card overflow-hidden" aria-busy="true">
           {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="flex items-start gap-3 px-4 py-3.5 border-b border-white/[0.05] last:border-0">
-              <div className="skeleton w-4 h-4 rounded shrink-0 mt-1" />
-              <div className="flex-1 flex flex-col gap-2">
+            <div
+              key={i}
+              className="flex items-start gap-3 border-b border-[var(--ww-line)] px-4 py-3.5 last:border-0"
+            >
+              <div className="skeleton h-8 w-8 shrink-0 rounded-full" />
+              <div className="flex flex-1 flex-col gap-2">
                 <div className="skeleton h-3 w-2/5 rounded" />
                 <div className="skeleton h-2.5 w-4/5 rounded" />
                 <div className="skeleton h-2 w-16 rounded" />
@@ -148,22 +215,14 @@ export function NotificationsContent() {
         </div>
       )}
 
-      {isError && !isLoading && (
-        <div className="liquid-glass-sm flex flex-col items-center justify-center py-16 gap-3">
-          <Bell size={24} className="text-zinc-700" />
-          <p className="text-sm text-zinc-500">{t('loadError')}</p>
-        </div>
-      )}
+      {isError && !isLoading && <EmptyState text={t('loadError')} />}
 
       {!isLoading && !isError && (!notifications || notifications.length === 0) && (
-        <div className="liquid-glass-sm flex flex-col items-center justify-center py-16 gap-3">
-          <Bell size={24} className="text-zinc-700" />
-          <p className="text-sm text-zinc-500">{t('empty')}</p>
-        </div>
+        <EmptyState text={t('empty')} />
       )}
 
       {!isLoading && !isError && notifications && notifications.length > 0 && (
-        <div className="liquid-glass overflow-hidden">
+        <ul className="ww-card overflow-hidden">
           {notifications.map((n) => (
             <NotificationItem
               key={n._id}
@@ -172,7 +231,7 @@ export function NotificationsContent() {
               onDelete={(id) => deleteNotif.mutate(id)}
             />
           ))}
-        </div>
+        </ul>
       )}
     </div>
   );

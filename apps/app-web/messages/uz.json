@@ -413,8 +413,10 @@
     "total": "Jami:"
   },
   "notifications": {
-    "title": "BILDIRISHNOMALAR",
+    "title": "Bildirishnomalar",
     "delete": "O'chirish",
+    "markRead": "O'qildi deb belgilash",
+    "unreadCount": "{count} ta o'qilmagan",
     "markAllRead": "Barchasini o'qildi",
     "empty": "Bildirishnomalar yo'q",
     "loadError": "Yuklashda xato",
@@ -567,6 +569,8 @@
     "roomClosedInactive": "Xona 5 daqiqa faolsizligi sababli avtomatik yopildi.",
     "chat": "Chat",
     "members": "A'zolar",
+    "memberYou": "siz",
+    "memberOwner": "Xona egasi",
     "queue": "Navbat",
     "next": "Keyingisi",
     "queueEmpty": "Navbat bo'sh",
@@ -574,6 +578,7 @@
     "live": "Live",
     "idle": "Faolsiz",
     "addToQueue": "Navbatga qo'shildi",
+    "removeFromQueue": "Navbatdan olib tashlash",
     "addError": "Qo'shib bo'lmadi",
     "removeError": "O'chirib bo'lmadi",
     "skipError": "O'tib bo'lmadi",
@@ -640,7 +645,8 @@
     "placeholder": "Xabar yozing...",
     "cooldown": "{seconds}s kuting",
     "emptyHint": "Birinchi bo'lib yozing",
-    "reply": "Javob berish"
+    "reply": "Javob berish",
+    "send": "Yuborish"
   },
   "profile": {
     "title": "Profil",

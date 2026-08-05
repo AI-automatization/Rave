@@ -447,8 +447,10 @@
     "noDataDesc": "Watch movies and your statistics will appear here"
   },
   "notifications": {
-    "title": "NOTIFICATIONS",
+    "title": "Notifications",
     "delete": "Delete",
+    "markRead": "Mark as read",
+    "unreadCount": "{count} unread",
     "markAllRead": "Mark all as read",
     "empty": "No notifications",
     "loadError": "Error loading notifications",
@@ -606,6 +608,8 @@
     "copyLink": "Copy link",
     "chat": "Chat",
     "members": "Members",
+    "memberYou": "you",
+    "memberOwner": "Room owner",
     "queue": "Queue",
     "next": "Next",
     "queueEmpty": "Queue is empty",
@@ -613,6 +617,7 @@
     "live": "Live",
     "idle": "Idle",
     "addToQueue": "Added to queue",
+    "removeFromQueue": "Remove from queue",
     "addError": "Failed to add",
     "removeError": "Failed to remove",
     "skipError": "Failed to skip",
@@ -679,7 +684,8 @@
     "placeholder": "Type a message...",
     "cooldown": "Wait {seconds}s",
     "emptyHint": "Be the first to say something",
-    "reply": "Reply"
+    "reply": "Reply",
+    "send": "Send"
   },
   "profile": {
     "title": "Profile",
