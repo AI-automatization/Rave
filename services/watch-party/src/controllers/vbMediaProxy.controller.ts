@@ -98,6 +98,21 @@ function proxyBase(req: Request): string {
   return `${req.protocol}://${req.get('host')}/api/v1/watch-party/vb-media-proxy`;
 }
 
+/**
+ * Rewrites a client `Range: bytes=X-Y` (or open-ended `bytes=X-`) header to request at most
+ * `maxBytes` from upstream, preserving the start offset. Unrecognized formats (suffix ranges like
+ * `bytes=-500`, multi-range, malformed) are passed through unchanged rather than guessed at.
+ */
+function cappedRange(rangeHeader: string, maxBytes: number): string {
+  const match = /^bytes=(\d+)-(\d*)$/.exec(rangeHeader.trim());
+  if (!match) return rangeHeader;
+  const start = Number(match[1]);
+  const requestedEnd = match[2] ? Number(match[2]) : undefined;
+  const cappedEnd = start + maxBytes - 1;
+  const end = requestedEnd !== undefined ? Math.min(requestedEnd, cappedEnd) : cappedEnd;
+  return `bytes=${start}-${end}`;
+}
+
 export const vbMediaProxyController = {
   async stream(req: Request, res: Response): Promise<void> {
     const urlParam = req.query.url;
@@ -140,13 +155,22 @@ export const vbMediaProxyController = {
     }
     const parsedUrl = new URL(rawUrl); // already validated above — safe to construct without try/catch
 
+    // Root-caused 2026-08-05: an open-ended (or just huge) Range request forwarded verbatim to
+    // upstream comes back as a single response covering the WHOLE remainder of the file — one
+    // real prod case (fayllar1.ru, a 738MB source) sent a `Range: bytes=0-` first request and got
+    // a 738MB single response back, which reads as "stuck loading forever" client-side even though
+    // nothing is actually broken. Capping what we ask upstream for forces the browser back into
+    // its normal progressive-range-request pattern regardless of what it originally asked for —
+    // upstream's real Content-Range (reflecting our capped request, not the client's original one)
+    // is what gets forwarded back, so this is transparent to the client either way.
+    const MAX_RANGE_CHUNK_BYTES = 4 * 1024 * 1024; // 4MB — comfortably ahead of normal playback, not a full-file download
     const range = req.headers.range;
     const headers: Record<string, string> = {
       'User-Agent': CHROME_UA,
       'Accept': '*/*',
       'Accept-Encoding': 'identity',
     };
-    if (range) headers['Range'] = range;
+    if (range) headers['Range'] = cappedRange(range, MAX_RANGE_CHUNK_BYTES);
 
     let upstream: globalThis.Response;
     try {
