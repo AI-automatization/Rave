@@ -145,30 +145,29 @@ export function ChatWindow({ messages, onSend, peerName, peerId, onBack }: Props
   }
 
   return (
-    <div className="flex flex-col h-full" style={{ background: 'transparent' }}>
+    <div className="flex h-full flex-col">
       {/* Header */}
-      <div
-        className="flex items-center gap-2.5 px-4 py-3 border-b border-white/[0.07]"
-        style={{ background: 'rgba(10,7,20,0.5)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}
-      >
+      <div className="flex items-center gap-2.5 border-b border-[var(--ww-line)] bg-[var(--ww-surface-1)] px-4 py-3">
         {onBack && (
           <button
+            type="button"
             onClick={() => { trackClick('dm:back'); onBack(); }}
-            className="w-9 h-9 flex items-center justify-center text-white/80 hover:text-white transition-colors rounded-lg hover:bg-white/[0.05] cursor-pointer"
+            aria-label={t('back')}
+            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[var(--ww-r-sm)] text-[var(--ww-text-2)] transition-colors hover:bg-[var(--ww-surface-2)] hover:text-[var(--ww-text)]"
           >
-            <ArrowLeft size={20} />
+            <ArrowLeft size={19} aria-hidden="true" />
           </button>
         )}
 
         {/* Peer avatar */}
-        <div
-          className="w-[34px] h-[34px] rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0"
-          style={{ backgroundColor: color }}
+        <span
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[13.5px] font-semibold"
+          style={{ background: `${color}2E`, border: `1px solid ${color}59`, color }}
         >
           {initial}
-        </div>
+        </span>
 
-        <span className="text-[16px] font-bold text-white flex-1 truncate">{peerName}</span>
+        <span className="flex-1 truncate text-[15px] font-semibold text-[var(--ww-text)]">{peerName}</span>
       </div>
 
       {pinnedMessages && pinnedMessages.length > 0 && (
@@ -190,9 +189,9 @@ export function ChatWindow({ messages, onSend, peerName, peerId, onBack }: Props
           className="relative h-full overflow-y-auto px-4 py-4 flex flex-col gap-2 scrollbar-hide"
         >
           {listData.length === 0 ? (
-            <div className="flex-1 flex flex-col items-center justify-center gap-2 py-16">
-              <p className="text-[15px] font-semibold text-white/28">{t('emptyTitle')}</p>
-              <p className="text-[13px] text-white/18 text-center px-10">{t('emptySub')}</p>
+            <div className="flex flex-1 flex-col items-center justify-center gap-2 py-16">
+              <p className="text-[14px] font-semibold text-[var(--ww-text-3)]">{t('emptyTitle')}</p>
+              <p className="px-10 text-center text-[12.5px] text-[var(--ww-text-4)]">{t('emptySub')}</p>
             </div>
           ) : (
             listData.map((item) =>
@@ -224,31 +223,29 @@ export function ChatWindow({ messages, onSend, peerName, peerId, onBack }: Props
       )}
 
       {/* Input */}
+      {/* Yozish maydoni — /support bilan bir xil `.ww-field` + `.ww-composer`.
+          Ilgari bu `glass-input` + qo'lda yozilgan `#7B72F8` tugma edi. */}
       <form
         onSubmit={handleSubmit}
-        className="flex items-end gap-2 px-4 pt-2.5 pb-3 border-t border-white/[0.07]"
-        style={{ background: 'rgba(10,7,20,0.5)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}
+        className="flex items-end gap-2 border-t border-[var(--ww-line)] bg-[var(--ww-surface-1)] px-4 pb-3 pt-2.5"
       >
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={t('placeholder')}
+          aria-label={t('placeholder')}
           maxLength={2000}
           rows={1}
-          className="glass-input flex-1 rounded-[22px] px-4 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-violet-500/45 transition-all resize-none leading-5"
-          style={{ maxHeight: '120px' }}
+          className="ww-field ww-composer min-w-0 flex-1 text-[13.5px]"
         />
         <button
           type="submit"
           disabled={!text.trim()}
-          className="w-[42px] h-[42px] rounded-full flex items-center justify-center text-white transition-all active:scale-95 cursor-pointer shrink-0 disabled:opacity-30"
-          style={{
-            backgroundColor: text.trim() ? '#7B72F8' : 'rgba(123,114,248,0.30)',
-            boxShadow: text.trim() ? '0 0 12px rgba(123,114,248,0.55)' : 'none',
-          }}
+          aria-label={t('send')}
+          className="ww-btn-accent flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-[var(--ww-r-md)] text-white disabled:cursor-default"
         >
-          <Send size={16} />
+          <Send size={17} aria-hidden="true" />
         </button>
       </form>
 

@@ -11,9 +11,9 @@ export function DateSeparator({ label, onPress }: Props) {
   return (
     <div className="flex justify-center py-2">
       <button
+        type="button"
         onClick={onPress}
-        className="px-3 py-1 rounded-full text-[11px] font-semibold text-white/60 hover:text-white/85 transition-colors cursor-pointer"
-        style={{ backgroundColor: 'rgba(28,28,46,0.85)' }}
+        className="cursor-pointer rounded-full border border-[var(--ww-line)] bg-[var(--ww-panel)] px-3 py-1 text-[11px] font-semibold text-[var(--ww-text-3)] backdrop-blur-md transition-colors hover:text-[var(--ww-text)]"
       >
         {label}
       </button>

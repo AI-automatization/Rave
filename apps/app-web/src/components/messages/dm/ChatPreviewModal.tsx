@@ -66,64 +66,75 @@ export function ChatPreviewModal({ conversation, open, onOpenChange, onOpenFull 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#0C0B18] border-white/[0.07] text-white max-w-[380px] p-0 overflow-hidden rounded-2xl gap-0">
+      <DialogContent className="max-w-[380px] gap-0 overflow-hidden rounded-[var(--ww-r-xl)] border-[var(--ww-line)] bg-[var(--ww-panel-solid)] p-0 text-[var(--ww-text)]">
         {/* Header */}
-        <div
-          className="flex items-center gap-2.5 px-4 py-3 border-b"
-          style={{ borderColor: `${color}30` }}
-        >
-          <div
-            className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0"
-            style={{ backgroundColor: color }}
+        <div className="flex items-center gap-2.5 border-b border-[var(--ww-line)] px-4 py-3">
+          <span
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[12.5px] font-semibold"
+            style={{ background: `${color}2E`, border: `1px solid ${color}59`, color }}
           >
             {initials}
-          </div>
-          <span className="text-[15px] font-bold text-white truncate">{conversation.peerUsername}</span>
+          </span>
+          <span className="truncate text-[15px] font-semibold text-[var(--ww-text)]">
+            {conversation.peerUsername}
+          </span>
         </div>
 
         {/* Read-only message preview */}
         <button
+          type="button"
           onClick={() => { trackClick('dm:preview_open_full'); onOpenFull(conversation.peerId); }}
-          className="flex flex-col gap-1.5 px-4 py-3 max-h-[280px] overflow-y-auto text-left w-full cursor-pointer hover:bg-white/[0.02] transition-colors"
+          className="flex max-h-[280px] w-full cursor-pointer flex-col gap-1.5 overflow-y-auto px-4 py-3 text-left transition-colors hover:bg-[var(--ww-surface-1)]"
         >
           {!messages || messages.length === 0 ? (
-            <p className="text-[13px] text-white/30 py-6 text-center w-full">{t('noMessages')}</p>
+            <p className="w-full py-6 text-center text-[13px] text-[var(--ww-text-4)]">{t('noMessages')}</p>
           ) : (
-            messages.map((m) => (
-              <div
-                key={m._id}
-                className={`max-w-[85%] min-w-0 rounded-2xl px-3 py-1.5 ${m.senderId === conversation.peerId ? 'self-start' : 'self-end'}`}
-                style={{ backgroundColor: m.senderId === conversation.peerId ? '#1C1C2E' : '#7B72F8' }}
-              >
-                <p className="text-[13px] text-white break-words">{m.text}</p>
-                <span className="text-[10px] text-white/50">{formatTime(m.createdAt)}</span>
-              </div>
-            ))
+            messages.map((m) => {
+              const fromPeer = m.senderId === conversation.peerId;
+              return (
+                <div
+                  key={m._id}
+                  className={`min-w-0 max-w-[85%] rounded-2xl px-3 py-1.5 ${
+                    fromPeer
+                      ? 'self-start border border-[var(--ww-line)] bg-[var(--ww-surface-2)] text-[var(--ww-text-2)]'
+                      : 'self-end bg-[var(--ww-accent)] text-white'
+                  }`}
+                >
+                  <p className="break-words text-[13px]">{m.text}</p>
+                  <span className={`text-[10px] ${fromPeer ? 'text-[var(--ww-text-4)]' : 'text-white/60'}`}>
+                    {formatTime(m.createdAt)}
+                  </span>
+                </div>
+              );
+            })
           )}
         </button>
 
         {/* Quick actions */}
-        <div className="flex flex-col border-t border-white/[0.07]">
+        <div className="flex flex-col border-t border-[var(--ww-line)]">
           <button
+            type="button"
             onClick={handlePin}
-            className="flex items-center gap-3 px-4 py-3 text-sm text-white/85 hover:bg-white/[0.04] transition-colors cursor-pointer"
+            className="flex h-12 cursor-pointer items-center gap-3 px-4 text-[14px] text-[var(--ww-text-2)] transition-colors hover:bg-[var(--ww-surface-2)] hover:text-[var(--ww-text)]"
           >
-            {conversation.isPinned ? <PinOff size={17} /> : <Pin size={17} />}
+            {conversation.isPinned ? <PinOff size={17} aria-hidden="true" /> : <Pin size={17} aria-hidden="true" />}
             {conversation.isPinned ? t('unpin') : t('pin')}
           </button>
           <button
+            type="button"
             onClick={handleMute}
-            className="flex items-center gap-3 px-4 py-3 text-sm text-white/85 hover:bg-white/[0.04] transition-colors cursor-pointer"
+            className="flex h-12 cursor-pointer items-center gap-3 px-4 text-[14px] text-[var(--ww-text-2)] transition-colors hover:bg-[var(--ww-surface-2)] hover:text-[var(--ww-text)]"
           >
-            {conversation.isMuted ? <Bell size={17} /> : <BellOff size={17} />}
+            {conversation.isMuted ? <Bell size={17} aria-hidden="true" /> : <BellOff size={17} aria-hidden="true" />}
             {conversation.isMuted ? t('unmute') : t('mute')}
           </button>
           <button
+            type="button"
             onClick={() => { trackClick('dm:preview_open_full'); onOpenFull(conversation.peerId); }}
-            className="flex items-center gap-3 px-4 py-3 text-sm text-violet-400 hover:bg-white/[0.04] transition-colors cursor-pointer"
+            className="flex h-12 cursor-pointer items-center gap-3 px-4 text-[14px] font-medium text-[var(--ww-accent-hi)] transition-colors hover:bg-[var(--ww-surface-2)]"
           >
-            <MessageSquare size={17} />
-            {t('selectChat')}
+            <MessageSquare size={17} aria-hidden="true" />
+            {t('openChat')}
           </button>
         </div>
       </DialogContent>

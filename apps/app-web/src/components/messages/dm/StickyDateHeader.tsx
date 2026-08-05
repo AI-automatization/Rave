@@ -54,9 +54,9 @@ export function StickyDateHeader({ label, activityKey, onPress }: Props) {
       style={{ top: 12, opacity: visible ? 1 : 0 }}
     >
       <button
+        type="button"
         onClick={onPress}
-        className="pointer-events-auto px-3 py-1 rounded-full text-[11px] font-semibold text-white/70 hover:text-white shadow-lg transition-colors cursor-pointer"
-        style={{ backgroundColor: 'rgba(28,28,46,0.92)' }}
+        className="pointer-events-auto cursor-pointer rounded-full border border-[var(--ww-line)] bg-[var(--ww-panel)] px-3 py-1 text-[11px] font-semibold text-[var(--ww-text-2)] backdrop-blur-md transition-colors hover:text-[var(--ww-text)]"
       >
         {label}
       </button>
