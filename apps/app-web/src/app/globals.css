@@ -20,6 +20,74 @@
   --surface: rgba(10, 10, 18, 0.9);
   --border: rgba(255, 255, 255, 0.06);
   --border-hover: rgba(255, 255, 255, 0.14);
+
+  /* ══════════════════════════════════════════════════════════════
+     WW DESIGN SYSTEM v2 — "Kinematik dark"
+     Redesign fundamenti (T-S195). Yangi ekranlar FAQAT shu
+     tokenlardan foydalanadi — to'g'ridan-to'g'ri hex yozilmaydi.
+     Eski `--accent`, `.liquid-glass`, `.card` yuqorida saqlanadi:
+     hali ko'chirilmagan ekranlar ularga tayanadi.
+     ══════════════════════════════════════════════════════════════ */
+
+  /* — Sirtlar: chuqurlik pog'onasi (past → yuqori) — */
+  --ww-bg:          #05050A;
+  --ww-surface-1:   rgba(255, 255, 255, 0.024);
+  --ww-surface-2:   rgba(255, 255, 255, 0.045);
+  --ww-surface-3:   rgba(255, 255, 255, 0.075);
+  --ww-panel:       rgba(13, 11, 24, 0.72);
+
+  /* — Chiziqlar — */
+  --ww-line:        rgba(255, 255, 255, 0.07);
+  --ww-line-hover:  rgba(255, 255, 255, 0.13);
+  --ww-line-strong: rgba(255, 255, 255, 0.18);
+
+  /* — Matn: 4 pog'onali ierarxiya (kontrast AA dan past tushmaydi) — */
+  --ww-text:        #EFEDF7;
+  --ww-text-2:      rgba(239, 237, 247, 0.66);
+  --ww-text-3:      rgba(239, 237, 247, 0.42);
+  --ww-text-4:      rgba(239, 237, 247, 0.28);
+
+  /* — Brend aksenti — */
+  --ww-accent:      #7C3AED;
+  --ww-accent-hi:   #9F7BFF;  /* qorong'i fonda matn/ikonka uchun — 7C3AED o'qilmaydi */
+  --ww-accent-lo:   #5B2ABF;
+  --ww-accent-soft: rgba(124, 58, 237, 0.14);
+
+  /* — Geymifikatsiya aksentlari —
+     16–28 yosh auditoriya uchun: battle, daraja, seriya, reyting vizual
+     jihatdan ajralib turishi kerak. Hammasi violet bo'lsa, nima muhimligi
+     bilinmaydi. Har rang BITTA ma'noga biriktirilgan va boshqa joyda
+     ishlatilmaydi — aks holda ranglar ma'nosini yo'qotadi. */
+  --ww-gold:        #F5C542;  /* ball / XP */
+  --ww-gold-soft:   rgba(245, 197, 66, 0.12);
+  --ww-live:        #FF3B4E;  /* jonli efir */
+  --ww-live-soft:   rgba(255, 59, 78, 0.12);
+  --ww-streak:      #FF8A3D;  /* ketma-ket kunlar */
+  --ww-streak-soft: rgba(255, 138, 61, 0.12);
+  --ww-online:      #3DDC84;  /* onlayn holat */
+
+  /* — Holat ranglari — */
+  --ww-danger:      #FF6B6B;
+  --ww-danger-soft: rgba(255, 107, 107, 0.10);
+  --ww-danger-line: rgba(255, 107, 107, 0.24);
+  --ww-success:     #4ADE80;
+
+  /* — Tartib o'lchamlari —
+     Yon panel kengligi ikki joyda kerak: panelning o'zida va kontent
+     surilishida ((app)/layout.tsx). Bitta manba bo'lishi uchun shu yerda. */
+  --ww-sidebar: 248px;
+
+  /* — Radiuslar — */
+  --ww-r-sm: 10px;
+  --ww-r-md: 14px;
+  --ww-r-lg: 20px;
+  --ww-r-xl: 28px;
+
+  /* — Harakat: bitta easing, uchta tezlik — */
+  --ww-ease:     cubic-bezier(0.22, 1, 0.36, 1);
+  --ww-dur-fast: 140ms;
+  --ww-dur:      220ms;
+  --ww-dur-slow: 420ms;
 }
 
 @layer base {
@@ -29,13 +97,12 @@
 
   body {
     min-height: 100vh;
-    background:
-      radial-gradient(ellipse 85% 60% at 62% 0%, rgba(124,58,237,0.48) 0%, rgba(109,40,217,0.20) 45%, transparent 70%),
-      radial-gradient(ellipse 45% 40% at 12% 8%, rgba(124,58,237,0.22) 0%, transparent 55%),
-      radial-gradient(ellipse 35% 30% at 92% 88%, rgba(34,211,238,0.10) 0%, transparent 50%),
-      #06050E;
-    background-attachment: fixed;
-    color: rgb(226 232 240);
+    /* Uchta radial gradient bor edi (binafsha + moviy dog'lar,
+       background-attachment: fixed). Ular kontent ostida doim harakatsiz
+       turib, kartalar chegarasini yuvib yuborardi va sahifa "iflos" ko'rinardi.
+       Fon endi tekis — chuqurlik faqat sirtlar ierarxiyasi orqali. */
+    background: var(--ww-bg);
+    color: var(--ww-text);
   }
 
   * {
@@ -225,6 +292,233 @@
 /* ── touch-action on interactive elements ── */
 button, a, [role="button"] {
   touch-action: manipulation;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   WW v2 — komponent qatlami ("Kinematik dark")
+   ══════════════════════════════════════════════════════════════════ */
+
+/* — Plyonka donadorligi. Tekis gradientni "raqamli" ko'rinishdan
+     qutqaradi va banding'ni yashiradi. ::after — chunki fon
+     elementining o'z gradienti ostida qolmasligi kerak. — */
+.ww-grain::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* mix-blend-mode: overlay edi — deyarli qora fonda overlay hech narsa
+     bermaydi (natija fon yorqinligiga ko'paytiriladi ≈ 0). Aralashuvsiz
+     past opacity qatlam ko'rinadigan yagona variant. */
+  opacity: 0.038;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* — Auth sahifalari foni: bitta yumshoq violet halo (ilgari uchta
+     gradient bir-birini yuvib, loyqa "AI slop" fon berardi). — */
+/* Tekis fon — hech qanday gradient, halo yoki soya yo'q.
+   Ilgari uchta radial gradient bor edi: ular ustunlar chegarasida chok,
+   karta atrofida esa loyqa dog' hosil qilardi. Chuqurlik endi faqat
+   sirtlar ierarxiyasi va chegaralar orqali beriladi. */
+.ww-auth-bg {
+  background: var(--ww-bg);
+}
+
+/* Past bo'yli planshet/landshaft (1023×800, 844×390 …) da tasma + forma
+   birgalikda sig'maydi va sahifa 145px scroll qilardi. Bunday holatda
+   tasma olib tashlanadi — kirish formasi marketing bannerdan muhimroq.
+   Faqat `md…lg-1` oralig'iga taalluqli: `lg` da tartib yonma-yon. */
+@media (min-width: 768px) and (max-width: 1023.98px) and (max-height: 900px) {
+  .ww-auth-strip { display: none; }
+  .ww-auth-grid { grid-template-rows: 1fr; }
+}
+
+/* — Panel: deyarli ko'rinmas chegara + yuqoridan tushayotgan yorug'lik.
+     `.liquid-glass` dan farqi — blur 40px→24px va violet chegara olib
+     tashlangan: rangli chegara har bir kartani "o'yinchoq" qilib
+     ko'rsatardi. — */
+.ww-panel {
+  position: relative;
+  background: var(--ww-panel);
+  border: 1px solid var(--ww-line);
+  border-radius: var(--ww-r-xl);
+  /* Tashqi qora soya YO'Q — ataylab. #05050A fonda `0 24px 64px rgba(0,0,0,.8)`
+     chuqurlik bermaydi: qora ustiga qora tushib, karta atrofida kir-kulrang
+     dog' qoladi. Qorong'i UI'da balandlik soya bilan emas, sirtning fondan
+     yorqinroq bo'lishi + chegara + yuqoridagi ichki yorug'lik bilan
+     beriladi. */
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+}
+
+/* — Maydon (input/select). h-12 (48px) — barmoq uchun eng kichik
+     qulay o'lcham; eski h-10 (40px) mobil tap-target minimumidan past. — */
+.ww-field {
+  width: 100%;
+  height: 3rem;
+  background: var(--ww-surface-1);
+  border: 1px solid var(--ww-line);
+  border-radius: var(--ww-r-md);
+  color: var(--ww-text);
+  font-size: 0.9375rem;
+  transition:
+    border-color var(--ww-dur) var(--ww-ease),
+    background-color var(--ww-dur) var(--ww-ease),
+    box-shadow var(--ww-dur) var(--ww-ease);
+}
+.ww-field::placeholder { color: var(--ww-text-4); }
+.ww-field:hover:not(:focus) { border-color: var(--ww-line-hover); }
+.ww-field:focus {
+  outline: none;
+  background: var(--ww-surface-2);
+  border-color: rgba(124, 58, 237, 0.55);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.16);
+}
+.ww-field[aria-invalid='true'] {
+  border-color: var(--ww-danger-line);
+}
+.ww-field[aria-invalid='true']:focus {
+  border-color: var(--ww-danger);
+  box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.14);
+}
+/* — Bir belgilik kod katagi (email tasdiqlash OTP). `.ww-field` ustiga
+     yoziladi va u bergan `width:100%` / `height:3rem` ni bekor qiladi.
+     Nega alohida klass, Tailwind `w-11 h-13` emas: `.ww-field` qatlamsiz
+     (unlayered) CSS, Tailwind utilitalari esa `utilities` qatlamida — kaskadda
+     qatlamsiz qoida HAR DOIM yutadi, ya'ni yordamchi klass bilan o'lchamni
+     o'zgartirib bo'lmaydi. Eski kod aynan shunga tushgan edi (`h-13` Tailwind'da
+     umuman mavjud emas ham). — */
+.ww-otp {
+  width: 2.75rem;   /* 44px — 6 ta katak + gap 320px telefonga sig'adi */
+  height: 3.25rem;  /* 52px — kvadratdan sal baland, raqam markazda turadi */
+  padding: 0;
+  text-align: center;
+  font-size: 1.1875rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+@media (min-width: 640px) {
+  .ww-otp { width: 3rem; }
+}
+
+/* Chrome autofill sariq foni butun qorong'i dizaynni buzadi */
+.ww-field:-webkit-autofill,
+.ww-field:-webkit-autofill:hover,
+.ww-field:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--ww-text);
+  -webkit-box-shadow: 0 0 0 1000px #14121F inset;
+  caret-color: var(--ww-text);
+  transition: background-color 9999s ease-out;
+}
+
+/* — Asosiy tugma. Tashqi soya/yaltirash yo'q: tugma o'z rangi bilan
+     ajralib turadi, atrofiga tarqaladigan yorug'lik dog'i kerak emas. — */
+.ww-btn-accent {
+  background: linear-gradient(180deg, #8B4BF5 0%, var(--ww-accent) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  transition: filter var(--ww-dur) var(--ww-ease), transform var(--ww-dur-fast) var(--ww-ease);
+}
+.ww-btn-accent:hover:not(:disabled) {
+  filter: brightness(1.10);
+}
+.ww-btn-accent:active:not(:disabled) { transform: scale(0.985); }
+/* O'chirilgan holat: gradientni xiralashtirish yetarli emas edi — natija
+   loyqa siyohrang bo'lib, hali ham bosiladigandek ko'rinardi. Gradient
+   butunlay olib tashlanadi, tugma tekis sirtga aylanadi. */
+.ww-btn-accent:disabled {
+  background: var(--ww-surface-2);
+  color: var(--ww-text-4);
+  box-shadow: inset 0 0 0 1px var(--ww-line);
+  filter: none;
+}
+
+/* — Ikkilamchi/ijtimoiy tugma — */
+.ww-btn-subtle {
+  background: var(--ww-surface-1);
+  border: 1px solid var(--ww-line);
+  transition: background-color var(--ww-dur) var(--ww-ease), border-color var(--ww-dur) var(--ww-ease), transform var(--ww-dur-fast) var(--ww-ease);
+}
+.ww-btn-subtle:hover:not(:disabled) {
+  background: var(--ww-surface-2);
+  border-color: var(--ww-line-hover);
+}
+.ww-btn-subtle:active:not(:disabled) { transform: scale(0.985); }
+
+/* — Karta: panelning kichik varianti. Chuqurlik faqat sirt + chegara
+     orqali, soya yo'q. — */
+.ww-card {
+  background: var(--ww-surface-1);
+  border: 1px solid var(--ww-line);
+  border-radius: var(--ww-r-lg);
+  transition: border-color var(--ww-dur) var(--ww-ease), background-color var(--ww-dur) var(--ww-ease);
+}
+a.ww-card,
+button.ww-card {
+  transition:
+    border-color var(--ww-dur) var(--ww-ease),
+    background-color var(--ww-dur) var(--ww-ease),
+    transform var(--ww-dur) var(--ww-ease);
+}
+/* Ko'tarilish — soyasiz "jonlilik". Qorong'i UI'da drop-shadow loyqa dog'
+   beradi, transform esa bermaydi. */
+a.ww-card:hover,
+button.ww-card:hover {
+  background: var(--ww-surface-2);
+  border-color: var(--ww-line-hover);
+  transform: translateY(-2px);
+}
+@media (prefers-reduced-motion: reduce) {
+  a.ww-card:hover,
+  button.ww-card:hover { transform: none; }
+}
+
+/* — Jonli efir nuqtasi: ikki qatlam, tashqisi tarqaladi — */
+.ww-live-dot {
+  position: relative;
+  display: inline-flex;
+  height: 0.5rem;
+  width: 0.5rem;
+  flex: none;
+}
+.ww-live-dot::before,
+.ww-live-dot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: var(--ww-live);
+}
+.ww-live-dot::before {
+  animation: wwPing 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+  opacity: 0.65;
+}
+@keyframes wwPing {
+  75%, 100% { transform: scale(2.4); opacity: 0; }
+}
+
+/* — Progress o'lchagich (daraja to'ldirilishi) — */
+.ww-meter {
+  height: 0.375rem;
+  border-radius: 9999px;
+  background: var(--ww-surface-3);
+  overflow: hidden;
+}
+.ww-meter > span {
+  display: block;
+  height: 100%;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, var(--ww-accent) 0%, var(--ww-accent-hi) 100%);
+  transition: width var(--ww-dur-slow) var(--ww-ease);
+}
+
+/* — Kirish animatsiyasi: faqat opacity+transform (layout'ga tegmaydi).
+     `prefers-reduced-motion` yuqoridagi global override bilan o'chadi. — */
+@keyframes wwRise {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+.ww-rise {
+  animation: wwRise var(--ww-dur-slow) var(--ww-ease) both;
 }
 
 /* ── Seamless marquee scroll ── */

@@ -3,10 +3,13 @@
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { User, Mail, Lock, Eye, EyeOff, Loader2, XCircle } from 'lucide-react';
+import { User, Mail, Lock, Loader2, ArrowRight } from 'lucide-react';
 import { authApi } from '@/lib/api/auth.api';
 import { ApiError } from '@/lib/api-client';
 import { trackClick } from '@/lib/analytics';
+import { Button } from '@/components/ui/button';
+import { Field, Input, PasswordInput } from '@/components/ui/field';
+import { Notice } from '@/components/ui/notice';
 
 interface Props {
   onVerify: (email: string) => void;
@@ -19,7 +22,6 @@ export function RegisterForm({ onVerify }: Props) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
-  const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState('');
   const [isPending, startTransition] = useTransition();
 
@@ -48,111 +50,102 @@ export function RegisterForm({ onVerify }: Props) {
     });
   }
 
-  return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-      <h1 className="text-[17px] font-semibold text-white text-center">{t('registerTitle')}</h1>
+  const disabled =
+    isPending || mismatch || tooShort || !username || !email || !password || !confirm;
 
-      {/* Username */}
-      <div className="flex flex-col gap-1.5">
-        <label className="text-xs font-medium text-slate-400">{t('usernameLabel')}</label>
-        <div className="relative">
-          <User size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
-          <input
+  return (
+    <div className="flex flex-col gap-6 sm:gap-7">
+      <header className="flex flex-col gap-2">
+        <h1 className="text-[25px] font-semibold leading-[1.15] tracking-[-0.02em] text-[var(--ww-text)] sm:text-[28px]">
+          {t('registerHeading')}
+        </h1>
+        <p className="text-[14px] leading-relaxed text-[var(--ww-text-3)]">{t('registerSub')}</p>
+      </header>
+
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4 sm:gap-5" noValidate>
+        <Field label={t('usernameLabel')}>
+          <Input
             type="text"
+            icon={User}
             value={username}
             onChange={(e) => { setUsername(e.target.value); setError(''); }}
             required
             autoFocus
             autoComplete="username"
-            className="w-full h-10 bg-white/[0.04] border border-white/[0.08] rounded-md pl-9 pr-4 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-violet-500/40 transition-colors"
           />
-        </div>
-      </div>
+        </Field>
 
-      {/* Email */}
-      <div className="flex flex-col gap-1.5">
-        <label className="text-xs font-medium text-slate-400">{t('emailLabel')}</label>
-        <div className="relative">
-          <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
-          <input
+        <Field label={t('emailLabel')}>
+          <Input
             type="email"
+            icon={Mail}
             value={email}
             onChange={(e) => { setEmail(e.target.value); setError(''); }}
-            placeholder="email@example.com"
+            placeholder={t('emailPlaceholder')}
             required
             autoComplete="email"
-            className="w-full h-10 bg-white/[0.04] border border-white/[0.08] rounded-md pl-9 pr-4 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-violet-500/40 transition-colors"
+            inputMode="email"
           />
-        </div>
-      </div>
+        </Field>
 
-      {/* Password */}
-      <div className="flex flex-col gap-1.5">
-        <label className="text-xs font-medium text-slate-400">{t('passwordLabel')}</label>
-        <div className="relative">
-          <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
-          <input
-            type={showPw ? 'text' : 'password'}
+        <Field label={t('passwordLabel')} error={tooShort ? t('passwordMin') : undefined}>
+          <PasswordInput
+            icon={Lock}
             value={password}
             onChange={(e) => { setPassword(e.target.value); setError(''); }}
             required
             autoComplete="new-password"
-            className="w-full h-10 bg-white/[0.04] border border-white/[0.08] rounded-md pl-9 pr-10 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-violet-500/40 transition-colors"
+            toggleLabel={t('showPassword')}
           />
-          <button
-            type="button"
-            onClick={() => setShowPw((v) => !v)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
-          >
-            {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
-          </button>
-        </div>
-        {tooShort && <p className="text-xs text-red-400">{t('passwordMin')}</p>}
-      </div>
+        </Field>
 
-      {/* Confirm */}
-      <div className="flex flex-col gap-1.5">
-        <label className="text-xs font-medium text-slate-400">{t('confirmPasswordLabel')}</label>
-        <div className="relative">
-          <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
-          <input
-            type="password"
+        <Field label={t('confirmPasswordLabel')} error={mismatch ? t('passwordMismatch') : undefined}>
+          <PasswordInput
+            icon={Lock}
             value={confirm}
             onChange={(e) => { setConfirm(e.target.value); setError(''); }}
             required
             autoComplete="new-password"
-            className="w-full h-10 bg-white/[0.04] border border-white/[0.08] rounded-md pl-9 pr-4 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-violet-500/40 transition-colors"
+            toggleLabel={t('showPassword')}
           />
-        </div>
-        {mismatch && <p className="text-xs text-red-400">{t('passwordMismatch')}</p>}
-      </div>
+        </Field>
 
-      {/* Error */}
-      {error && (
-        <div className="flex items-center gap-2.5 text-sm text-red-400 bg-red-500/[0.07] border border-red-500/[0.15] rounded-xl px-3.5 py-2.5">
-          <XCircle size={14} className="shrink-0" />
-          {error}
-        </div>
-      )}
+        {error && <Notice variant="danger">{error}</Notice>}
 
-      {/* Submit */}
-      <button
-        type="submit"
-        disabled={isPending || mismatch || tooShort || !username || !email || !password || !confirm}
-        className="w-full h-10 rounded-md text-sm font-semibold text-white bg-violet-600 hover:bg-violet-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-[0.98] cursor-pointer"
-      >
-        {isPending
-          ? <><Loader2 size={15} className="animate-spin" />{t('register')}...</>
-          : t('register')}
-      </button>
+        <Button
+          type="submit"
+          variant="accent"
+          size="xl"
+          disabled={disabled}
+          className="group mt-1 w-full font-semibold"
+        >
+          {isPending ? (
+            <>
+              <Loader2 className="animate-spin" aria-hidden="true" />
+              {t('register')}
+            </>
+          ) : (
+            <>
+              {t('register')}
+              <ArrowRight
+                aria-hidden="true"
+                className="transition-transform duration-200 group-hover:translate-x-0.5"
+              />
+            </>
+          )}
+        </Button>
+      </form>
 
-      {/* Login link */}
-      <p className="text-sm text-center text-slate-400">
+      <p className="text-center text-[13.5px] text-[var(--ww-text-3)]">
         {t('hasAccount')}{' '}
-        <Link href="/login" onClick={() => trackClick('register:go_to_login')} className="text-violet-400 hover:text-violet-300 font-medium transition-colors">
+        <Link
+          href="/login"
+          onClick={() => trackClick('register:go_to_login')}
+          className="-my-1.5 inline-block py-1.5 font-medium text-[var(--ww-accent-hi)] transition-colors hover:text-white"
+        >
           {t('loginLink')}
         </Link>
       </p>
-    </form>
+    </div>
   );
 }

@@ -85,7 +85,10 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="ru" suppressHydrationWarning>
-      <body className={`${dmSans.variable} ${oswald.variable} font-body antialiased bg-[#060608] text-white`}>
+      {/* Fon rangi globals.css'dagi `body` qoidasida (`--ww-bg`) — bu yerda
+          `bg-[#060608]` bo'lib, ikkalasi bir-biriga zid edi (Tailwind klassi
+          ustun kelib, dizayn tokeni e'tiborsiz qolardi). */}
+      <body className={`${dmSans.variable} ${oswald.variable} font-body antialiased text-white`}>
         <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="afterInteractive" />
         <Script id="gtag-init" strategy="afterInteractive">{`
           window.dataLayer = window.dataLayer || [];
