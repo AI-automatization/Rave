@@ -266,9 +266,14 @@ async function extractVideoUncached(
     }
     if (result) result = { ...result, platform, sourceType: 'type1', extractionMethod: 'yt-dlp', cacheable: true };
 
-  } else if (platform === 'generic') {
+  } else if (platform === 'generic' && !/\.mpd(\?|#|$)/i.test(rawUrl)) {
     // Direct stream URL — return as-is. Type detection: extension first, then CDN path patterns.
-    const type: 'hls' | 'mp4' = /\.(m3u8|mpd)/i.test(rawUrl) ? 'hls'
+    // .mpd (DASH) is excluded above rather than mapped to 'hls' here — the client only ships
+    // hls.js, no dash.js, so a DASH manifest handed off as type 'hls' just hangs unplayable with
+    // no error (same bug fixed in playwrightExtractor.ts and watch-party's virtualBrowser.service.ts,
+    // 2026-08-05). Leaving `result` unset here falls through to the `throw unsupported_site` below,
+    // which is what the caller (watch-party's tryExtract) needs to correctly fall back to VB.
+    const type: 'hls' | 'mp4' = /\.(m3u8)/i.test(rawUrl) ? 'hls'
       : /\/(stream|playlist\.m3u8|manifest\.m3u8|master\.m3u8|manifest|hls|dash|chunklist)/i.test(rawUrl) ? 'hls'
       : /\/(video|vod|cdn|media)\/[^/]+\/(index|master|720p|480p|360p|1080p|hls)/i.test(rawUrl) ? 'hls'
       : 'mp4';
