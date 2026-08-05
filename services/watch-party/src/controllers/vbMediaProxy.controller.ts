@@ -100,9 +100,18 @@ function proxyBase(req: Request): string {
 
 export const vbMediaProxyController = {
   async stream(req: Request, res: Response): Promise<void> {
-    const rawUrl = req.query.url;
-    if (typeof rawUrl !== 'string') {
+    const urlParam = req.query.url;
+    if (typeof urlParam !== 'string') {
       res.status(400).json({ success: false, message: 'url required' });
+      return;
+    }
+    // base64url, not encodeURIComponent — see vbSession.helper.ts for why (a duplicate decode
+    // pass somewhere upstream mangles any %-escape the target URL itself contains).
+    let rawUrl: string;
+    try {
+      rawUrl = Buffer.from(urlParam, 'base64url').toString('utf8');
+    } catch {
+      res.status(400).json({ success: false, message: 'Invalid url encoding' });
       return;
     }
 
@@ -112,8 +121,8 @@ export const vbMediaProxyController = {
     const { exp, sig } = req.query;
     const verify = verifyProxyUrlDetailed(rawUrl, Number(exp), typeof sig === 'string' ? sig : '');
     if (!verify.ok) {
-      // TEMP DIAGNOSTIC (2026-08-04, remove once root-caused) — see proxySignature.ts. Logs the
-      // exact reason and raw values THIS PROCESS received, not a client-side reconstruction.
+      // Root-caused 2026-08-05 (see the base64url comment on proxiedMediaUrl in
+      // vbSession.helper.ts) — kept as a permanent safety net, not just a diagnostic.
       logger.warn('vb-media-proxy: signature verification failed', {
         reason: verify.reason,
         receivedExp: exp,
@@ -170,7 +179,8 @@ export const vbMediaProxyController = {
           // is on, an unsigned /seg?url=... would be rejected by stream() above and every
           // playlist would break the instant this ships.
           const { exp: segExp, sig: segSig } = signProxyUrl(absUrl);
-          return `${proxy}/seg?url=${encodeURIComponent(absUrl)}&exp=${segExp}&sig=${segSig}`;
+          const encodedAbsUrl = Buffer.from(absUrl, 'utf8').toString('base64url');
+          return `${proxy}/seg?url=${encodedAbsUrl}&exp=${segExp}&sig=${segSig}`;
         })
         .join('\n');
 

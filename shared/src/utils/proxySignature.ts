@@ -48,16 +48,13 @@ export function verifyProxyUrl(target: string, exp: number, sig: string): boolea
   return verifyProxyUrlDetailed(target, exp, sig).ok;
 }
 
-// TEMP DIAGNOSTIC (2026-08-04, remove once root-caused): production shows a freshly-signed
-// vb-media-proxy URL 403ing on its very first fetch, then succeeding on a manual replay minutes
-// later. The signature has been independently recomputed against the real secret every time this
-// was investigated and was byte-correct — every hypothesis testable from outside the running
-// process (secret mismatch, multi-replica, encoding, rate-limiter, expiry) has been ruled out.
-// What's never been captured is the RAW values this function actually received on a live failing
-// request — every prior check replayed a *reconstruction* built from the client-visible broadcast
-// log, which assumes (never confirmed) that the server received byte-identical values. This
-// exposes exactly which branch fails and the full expected-vs-received signature so the next
-// occurrence has real evidence instead of another reconstruction.
+// Root-caused 2026-08-05: some layer between vbSession.helper.ts (minting) and here (verifying)
+// was decoding the query string one time too many, which only mattered for a target URL that
+// itself contained a %-escape (e.g. a filename with a space) — mangling it into a different byte
+// string than what was signed. Fixed by transporting the target as base64url instead of
+// encodeURIComponent (see vbSession.helper.ts), which has no '%' to be vulnerable to extra
+// decode passes. This detailed variant stays as a permanent diagnostic, not a temp one — cheap
+// and it's already paid for itself once.
 export function verifyProxyUrlDetailed(target: string, exp: number, sig: string): { ok: boolean; reason?: string } {
   const secret = getSecret();
   if (!secret) return { ok: false, reason: 'no_secret' };

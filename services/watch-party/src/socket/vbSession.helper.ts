@@ -23,11 +23,21 @@ import { VB_VIEWPORT, startSession, stopSession, pauseScreencast } from '../serv
 // (same trust model as vb-capture — see watchParty.routes.ts) — without a signature it would be
 // an open proxy anyone could point at an arbitrary URL. vbMediaProxy.controller.ts verifies the
 // exp/sig pair before fetching anything.
+//
+// Root-caused 2026-08-05 (was the unexplained "signature mismatch" from GitHub issue #76's
+// diagnostic logging): some layer between here and vbMediaProxy.controller.ts (Railway's edge,
+// most likely) normalizes/decodes the query string once before Express's own parser decodes it
+// again — one decode too many. Invisible for a plain URL, but for a mediaUrl that itself contains
+// a %-escape (e.g. a filename with a space, "%20"), encodeURIComponent turns that into "%2520",
+// and the extra decode collapses it all the way to a literal space — a completely different byte
+// string than what was signed, so the HMAC can never match. base64url has no '%' in its alphabet,
+// so it's inert to however many decode passes happen in between.
 function proxiedMediaUrl(mediaUrl: string, mediaType: 'mp4' | 'hls'): string {
   const ext = mediaType === 'hls' ? 'm3u8' : 'mp4';
   const { exp, sig } = signProxyUrl(mediaUrl);
+  const encodedUrl = Buffer.from(mediaUrl, 'utf8').toString('base64url');
   return `${watchPartyServiceUrl}/api/v1/watch-party/vb-media-proxy/stream.${ext}`
-       + `?url=${encodeURIComponent(mediaUrl)}&exp=${exp}&sig=${sig}`;
+       + `?url=${encodedUrl}&exp=${exp}&sig=${sig}`;
 }
 
 export async function startVBForRoom(

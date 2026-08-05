@@ -153,9 +153,17 @@ export async function playwrightExtractor(url: string, redis?: Redis): Promise<V
       if (foundUrl) return; // already found — skip subsequent matches
       const respUrl = response.url();
       const ext = matchMediaExtension(respUrl);
+      if (ext === 'mpd') {
+        // DASH manifest — the client only ships hls.js, no dash.js. Used to be mislabeled 'hls'
+        // here, which handed the player a manifest it can never parse (silent stuck-loading
+        // black screen, no error). Same bug already fixed in watch-party's own VB extractor
+        // (virtualBrowser.service.ts, 2026-08-04) — this is a second, independent extractor with
+        // the identical gap. Keep listening instead of locking in an unplayable URL.
+        return;
+      }
       if (ext) {
         foundUrl  = respUrl;
-        foundType = ext === 'm3u8' || ext === 'mpd' ? 'hls' : 'mp4';
+        foundType = ext === 'm3u8' ? 'hls' : 'mp4';
         logger.info('Playwright: media URL intercepted (by extension)', {
           url:  respUrl.slice(0, 120),
           type: foundType,
@@ -166,8 +174,9 @@ export async function playwrightExtractor(url: string, redis?: Redis): Promise<V
       const headers = response.headers();
       const contentType = headers['content-type'] ?? '';
       if (MEDIA_CONTENT_TYPE_RE.test(contentType)) {
+        if (/dash/i.test(contentType)) return; // DASH — see the ext==='mpd' comment above
         foundUrl  = respUrl;
-        foundType = /mpegurl|dash/i.test(contentType) ? 'hls' : 'mp4';
+        foundType = /mpegurl/i.test(contentType) ? 'hls' : 'mp4';
         logger.info('Playwright: media URL intercepted (by content-type)', {
           url: respUrl.slice(0, 120), contentType, type: foundType,
         });
