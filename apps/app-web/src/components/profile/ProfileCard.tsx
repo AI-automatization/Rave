@@ -5,6 +5,8 @@ import { Loader2, Check } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useUpdateProfile } from '@/hooks/use-profile';
 import { AvatarUpload } from '@/components/profile/AvatarUpload';
+import { Field, Input } from '@/components/ui/field';
+import { Button } from '@/components/ui/button';
 import { toast } from '@/store/toast.store';
 import { useApiError } from '@/hooks/use-api-error';
 import { useAuthStore } from '@/store/auth.store';
@@ -14,6 +16,8 @@ import { trackClick } from '@/lib/analytics';
 interface Props {
   user: IUser;
 }
+
+const BIO_MAX = 200;
 
 export function ProfileCard({ user }: Props) {
   const t = useTranslations('profile');
@@ -37,45 +41,45 @@ export function ProfileCard({ user }: Props) {
   }
 
   return (
-    <div className="liquid-glass p-6 flex flex-col items-center gap-5">
+    <div className="ww-panel flex flex-col items-center gap-6 p-6">
       <AvatarUpload avatar={user.avatar} username={user.username} />
 
-      <div className="w-full flex flex-col gap-4">
-        {/* Username */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[11px] font-medium text-zinc-500 uppercase tracking-wide">{t('usernameLabel')}</label>
-          <input
+      <div className="flex w-full flex-col gap-5">
+        {/* Maydonlar auth formalari bilan bir xil `Field`/`Input` primitivida —
+            label↔input bog'lanishi va `aria-invalid` avtomatik. */}
+        <Field label={t('usernameLabel')}>
+          <Input
             type="text"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="glass-input w-full h-9 rounded-md px-3 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-violet-500/40 transition-colors"
+            autoComplete="username"
           />
-        </div>
+        </Field>
 
-        {/* Bio */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[11px] font-medium text-zinc-500 uppercase tracking-wide">{t('bioLabel')}</label>
+        <Field label={t('bioLabel')} hint={`${bio.length}/${BIO_MAX}`}>
           <textarea
             value={bio}
             onChange={(e) => setBio(e.target.value)}
-            rows={3}
-            maxLength={200}
-            className="glass-input w-full rounded-md px-3 py-2.5 text-sm text-white placeholder:text-zinc-600 resize-none focus:outline-none focus:border-violet-500/40 transition-colors"
+            maxLength={BIO_MAX}
+            className="ww-field ww-textarea"
           />
-        </div>
+        </Field>
 
-        {/* Save */}
-        {hasChanges && (
-          <button
-            onClick={handleSave}
-            disabled={update.isPending}
-            className="self-start h-9 px-4 rounded-md text-sm font-medium text-white bg-violet-600 hover:bg-violet-500 disabled:opacity-40 flex items-center gap-2 transition-colors cursor-pointer active:scale-[0.97]"
-          >
-            {update.isPending
-              ? <><Loader2 size={14} className="animate-spin" />{t('saving')}</>
-              : <><Check size={14} />{t('save')}</>}
-          </button>
-        )}
+        {/* Tugma har doim ko'rinadi, faqat o'chirilgan bo'ladi. Ilgari u
+            o'zgarish bo'lgandagina paydo bo'lardi — karta balandligi sakrab,
+            "saqlash umuman bormi?" degan savol tug'ilardi. */}
+        <Button
+          type="button"
+          variant="accent"
+          size="xl"
+          onClick={() => { void handleSave(); }}
+          disabled={!hasChanges || update.isPending}
+          className="self-start px-6"
+        >
+          {update.isPending
+            ? <><Loader2 size={16} aria-hidden="true" className="animate-spin" />{t('saving')}</>
+            : <><Check size={16} aria-hidden="true" />{t('save')}</>}
+        </Button>
       </div>
     </div>
   );

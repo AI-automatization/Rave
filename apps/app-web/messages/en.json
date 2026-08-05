@@ -372,7 +372,10 @@
     "noResultsFor": "No results for"
   },
   "friends": {
-    "title": "FRIENDS",
+    "title": "Friends",
+    "friendCount": "{count} friends",
+    "message": "Message",
+    "wantsToBeFriend": "Wants to be friends",
     "tabFriends": "Friends",
     "tabRequests": "Requests",
     "tabSearch": "Search",
@@ -696,6 +699,10 @@
     "saving": "Saving...",
     "saved": "Profile saved",
     "saveError": "Failed to save",
+    "avatarChange": "Change photo",
+    "avatarUpdated": "Photo updated",
+    "avatarTooLarge": "File is larger than 5 MB",
+    "avatarError": "Could not upload photo",
     "points": "points",
     "lastSeen": "Last seen:",
     "films": "Films",

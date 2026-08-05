@@ -35,6 +35,10 @@
   --ww-surface-2:   rgba(255, 255, 255, 0.045);
   --ww-surface-3:   rgba(255, 255, 255, 0.075);
   --ww-panel:       rgba(13, 11, 24, 0.72);
+  /* Panelning shaffofsiz varianti — panel ustidagi element o'z chegarasi bilan
+     panelni "kesib" turishi kerak bo'lganda (masalan avatardagi kamera nishoni).
+     Yarim shaffof `--ww-panel` bunday chegarada ostidagi rangni o'tkazib yuboradi. */
+  --ww-panel-solid: #0D0B18;
 
   /* — Chiziqlar — */
   --ww-line:        rgba(255, 255, 255, 0.07);
@@ -71,6 +75,7 @@
   --ww-danger-soft: rgba(255, 107, 107, 0.10);
   --ww-danger-line: rgba(255, 107, 107, 0.24);
   --ww-success:     #4ADE80;
+  --ww-success-soft: rgba(74, 222, 128, 0.12);
 
   /* — Tartib o'lchamlari —
      Yon panel kengligi ikki joyda kerak: panelning o'zida va kontent
@@ -399,6 +404,18 @@ button, a, [role="button"] {
 }
 @media (min-width: 640px) {
   .ww-otp { width: 3rem; }
+}
+
+/* — Ko'p qatorli maydon (profil "Bio"). `.ww-field` bilan birga yoziladi va
+     uning `height: 3rem` ini bekor qiladi. Nega yana alohida klass, Tailwind
+     `h-24` emas — yuqoridagi `.ww-otp` izohidagi bilan bir xil sabab:
+     `.ww-field` qatlamsiz CSS, utilita esa `utilities` qatlamida va yutqazadi. — */
+.ww-textarea {
+  height: auto;
+  min-height: 6.5rem;
+  padding: 0.75rem 1rem;
+  line-height: 1.55;
+  resize: none;
 }
 
 /* Chrome autofill sariq foni butun qorong'i dizaynni buzadi */

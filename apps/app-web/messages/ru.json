@@ -343,7 +343,10 @@
     "notFound": "Фильмы не найдены"
   },
   "friends": {
-    "title": "ДРУЗЬЯ",
+    "title": "Друзья",
+    "friendCount": "{count} друзей",
+    "message": "Написать",
+    "wantsToBeFriend": "Хочет добавить вас в друзья",
     "tabFriends": "Друзья",
     "tabRequests": "Запросы",
     "tabSearch": "Поиск",
@@ -657,6 +660,10 @@
     "saving": "Сохранение...",
     "saved": "Профиль сохранён",
     "saveError": "Не удалось сохранить",
+    "avatarChange": "Сменить фото",
+    "avatarUpdated": "Фото обновлено",
+    "avatarTooLarge": "Файл больше 5 МБ",
+    "avatarError": "Не удалось загрузить фото",
     "points": "очков",
     "lastSeen": "Последний раз:",
     "films": "Фильмы",
