@@ -7,6 +7,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
 import { trackClick } from '@/lib/analytics';
+import { buildProxyUrl } from './VideoPlayer';
 import type { VideoCandidate } from '@/types';
 
 interface Props {
@@ -39,23 +40,30 @@ function CandidatePreview({ candidate }: { candidate: VideoCandidate }) {
   useEffect(() => {
     const video = videoRef.current;
     if (!video || candidate.type === 'embed') return;
-
-    if (candidate.type === 'mp4' || video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = candidate.url;
-      video.play().catch(() => {});
-      return;
-    }
-
     let cancelled = false;
-    import('hls.js').then(({ default: Hls }) => {
+
+    // candidate.url is always cross-origin from the browser's point of view — a raw CDN url from
+    // content-service's extraction, or our own watch-party service's vb-capture/vb-media-proxy —
+    // same CORS problem the main player already solves via this same proxy, see VideoPlayer.tsx.
+    buildProxyUrl(candidate.url).then((proxiedUrl) => {
       if (cancelled) return;
-      if (!Hls.isSupported()) { video.src = candidate.url; video.play().catch(() => {}); return; }
-      hlsRef.current?.destroy();
-      const hls = new Hls({ enableWorker: true });
-      hlsRef.current = hls;
-      hls.loadSource(candidate.url);
-      hls.attachMedia(video);
-      hls.once(Hls.Events.MANIFEST_PARSED, () => { video.play().catch(() => {}); });
+
+      if (candidate.type === 'mp4' || video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = proxiedUrl;
+        video.play().catch(() => {});
+        return;
+      }
+
+      import('hls.js').then(({ default: Hls }) => {
+        if (cancelled) return;
+        if (!Hls.isSupported()) { video.src = proxiedUrl; video.play().catch(() => {}); return; }
+        hlsRef.current?.destroy();
+        const hls = new Hls({ enableWorker: true });
+        hlsRef.current = hls;
+        hls.loadSource(proxiedUrl);
+        hls.attachMedia(video);
+        hls.once(Hls.Events.MANIFEST_PARSED, () => { video.play().catch(() => {}); });
+      }).catch(() => {});
     }).catch(() => {});
 
     return () => {

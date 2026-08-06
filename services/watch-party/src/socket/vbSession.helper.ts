@@ -47,6 +47,15 @@ function proxiedMediaUrl(mediaUrl: string, mediaType: 'mp4' | 'hls'): string {
        + `?url=${encodedUrl}&exp=${exp}&sig=${sig}`;
 }
 
+// 'capture' candidates surface at MIN_SWITCH_BYTES (vbCapture.service.ts, ~512KB — tuned for "the
+// live player has enough to start", not "the confirm-picker's static preview has enough to look
+// like anything"). The underlying browser keeps playing/capturing regardless of whether the owner
+// has looked at the picker yet (pauseScreencast only stops the JPEG relay), so delaying the
+// candidate-ready notification costs nothing but wall-clock time before the owner sees it — by
+// which point there's actually enough buffered to preview. 'url' candidates skip this entirely:
+// they're a complete, independently-fetchable CDN resource already, waiting buys nothing.
+const CAPTURE_PREVIEW_DELAY_MS = 30_000;
+
 export async function startVBForRoom(
   io: SocketServer,
   redis: Redis,
@@ -77,14 +86,22 @@ export async function startVBForRoom(
       // already uses for "Это не то видео" (VideoCandidate.source: 'vb', see shared/src/types) —
       // one candidate, but the same confirm/reject UI, no separate mechanism to build or learn.
       const candidate: VideoCandidate = { url: roomVideoUrl, type: mediaType, source: 'vb' };
-      try {
-        await redis.setex(REDIS_KEYS.videoCandidates(roomId), CANDIDATES_TTL_SEC, JSON.stringify([candidate]));
-      } catch (e) {
-        logger.warn('VB: failed to store candidate in Redis', { roomId, error: (e as Error).message });
+      const announceCandidate = async () => {
+        try {
+          await redis.setex(REDIS_KEYS.videoCandidates(roomId), CANDIDATES_TTL_SEC, JSON.stringify([candidate]));
+        } catch (e) {
+          logger.warn('VB: failed to store candidate in Redis', { roomId, error: (e as Error).message });
+        }
+        io.to(roomId).emit(SERVER_EVENTS.VIDEO_CANDIDATES, { candidates: [candidate] });
+        io.to(roomId).emit(SERVER_EVENTS.VB_STOPPED, { reason: 'media_found', needsConfirmation: true, url: mediaUrl, mediaType });
+        logger.info('VB: media candidate ready, awaiting owner confirmation', { roomId, mediaUrl, mediaType, kind });
+      };
+
+      if (kind === 'capture') {
+        setTimeout(() => { void announceCandidate(); }, CAPTURE_PREVIEW_DELAY_MS);
+      } else {
+        await announceCandidate();
       }
-      io.to(roomId).emit(SERVER_EVENTS.VIDEO_CANDIDATES, { candidates: [candidate] });
-      io.to(roomId).emit(SERVER_EVENTS.VB_STOPPED, { reason: 'media_found', needsConfirmation: true, url: mediaUrl, mediaType });
-      logger.info('VB: media candidate ready, awaiting owner confirmation', { roomId, mediaUrl, mediaType, kind });
     })();
   });
 

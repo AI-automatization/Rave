@@ -268,7 +268,12 @@ function isIpLockedCdn(cdnUrl: string): boolean {
   }
 }
 
-async function buildProxyUrl(cdnUrl: string, headers?: Record<string, string>): Promise<string> {
+// Exported for VideoCandidatePicker.tsx's preview — a candidate.url (whether a raw CDN url from
+// content-service's extraction, or our own watch-party service's vb-capture/vb-media-proxy) is a
+// cross-origin request from the browser's point of view, same as room.videoUrl always is. Reusing
+// this instead of setting candidate.url directly on <video src> avoids a CORS failure identical to
+// what this function already exists to solve for the main player.
+export async function buildProxyUrl(cdnUrl: string, headers?: Record<string, string>): Promise<string> {
   if (isIpLockedCdn(cdnUrl)) {
     const contentBase = process.env.NEXT_PUBLIC_CONTENT_SERVICE_URL;
     if (contentBase) {
