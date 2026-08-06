@@ -54,6 +54,15 @@ export const vbCaptureController = {
     // buffer), only the total does, so even a stale-for-a-few-seconds response is never WRONG
     // data, just a stale metadata total that the next natural request corrects.
     res.setHeader('Cache-Control', 'public, max-age=3, stale-while-revalidate=2');
+    // The global CORS middleware (app.ts) sets Vary: Origin on every response by design — its
+    // origin check is a per-request function, which the cors package always pairs with a Vary
+    // header. Correct for authenticated routes, but this one is deliberately public/no-auth (same
+    // content regardless of caller's Origin) and Cloudflare's cache (this zone's plan) does not
+    // cache ANY response carrying a non-default Vary value — confirmed live 2026-08-06: real
+    // traffic through stream.wewatch.uz came back cf-cache-status: BYPASS on every request despite
+    // a matching, active Cache Rule, until this was removed. Must come after cors() ran (it's
+    // global middleware, applied before this controller) to actually override it.
+    res.removeHeader('Vary');
     res.setHeader('Content-Length', String(result.buffer.length));
     if (range) {
       res.setHeader('Content-Range', `bytes ${start}-${end}/${totalBytes}`);

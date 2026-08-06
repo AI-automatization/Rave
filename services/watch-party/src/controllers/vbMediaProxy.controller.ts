@@ -229,6 +229,11 @@ export const vbMediaProxyController = {
     // caching here is a real, safe win for a synced room with no staleness risk: the bytes and the
     // total are both fixed the moment upstream published them.
     res.setHeader('Cache-Control', 'public, max-age=3600, immutable');
+    // See vbCapture.controller.ts's identical fix for why — global CORS middleware (app.ts) sets
+    // Vary: Origin on every response, and Cloudflare's cache does not cache ANY response carrying
+    // a non-default Vary value. Confirmed live 2026-08-06: cf-cache-status was BYPASS on every
+    // request through stream.wewatch.uz despite a matching, active Cache Rule, until this line.
+    res.removeHeader('Vary');
     const cl = upstream.headers.get('content-length');
     const cr = upstream.headers.get('content-range');
     if (cl) res.setHeader('Content-Length', cl);
