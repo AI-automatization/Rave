@@ -320,25 +320,25 @@ export async function startSession(
       // zero-based) baseMediaDecodeTime from the source site's player, producing a client-side
       // duration of 13+ hours and a black frame. Giving category A this head start costs capture
       // (when it's the only path that ever fires) a few extra seconds before playback starts.
+      //
+      // Bug fixed 2026-08-05 (same day, second pass): the grace window was anchored to VB SESSION
+      // start (`captureStartedAt`), not to the moment capture actually crosses its own threshold.
+      // A live repro showed capture not crossing threshold until ~3s in — already past a
+      // session-anchored 2.5s budget — so it locked in with ZERO effective grace, and the real
+      // category-A URL (which arrived a mere ~1.4s after the threshold-cross) never got a chance
+      // either. Anchoring the window to the threshold-cross moment instead makes the grace period
+      // always exactly CAPTURE_GRACE_MS regardless of how long capture itself took to warm up.
       const CAPTURE_GRACE_MS = 2500;
-      const captureStartedAt = Date.now();
       const onCaptureChunk = (chunk: Buffer) => {
         if (mediaFound) return;
         const crossedThreshold = appendCapture(roomId, chunk);
         if (!crossedThreshold) return;
-        const remaining = CAPTURE_GRACE_MS - (Date.now() - captureStartedAt);
-        if (remaining > 0) {
-          setTimeout(() => {
-            if (mediaFound) return;
-            mediaFound = true;
-            logger.info('VB: media captured (enough bytes buffered, after grace period)', { roomId, captureUrl });
-            onMediaFound(captureUrl, 'mp4', 'capture');
-          }, remaining);
-          return;
-        }
-        mediaFound = true;
-        logger.info('VB: media captured (enough bytes buffered)', { roomId, captureUrl });
-        onMediaFound(captureUrl, 'mp4', 'capture');
+        setTimeout(() => {
+          if (mediaFound) return;
+          mediaFound = true;
+          logger.info('VB: media captured (enough bytes buffered, after grace period)', { roomId, captureUrl });
+          onMediaFound(captureUrl, 'mp4', 'capture');
+        }, CAPTURE_GRACE_MS);
       };
 
       page.on('websocket', (ws) => {

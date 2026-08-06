@@ -19,6 +19,7 @@
 //     actually closes when the owner stops VB / the room closes / the usual inactivity cleanup.
 
 import { logger } from '@shared/utils/logger';
+import { rebaseFmp4Chunk, resetFmp4RebaseState } from './fmp4Rebase.service';
 
 const MAX_CAPTURE_BYTES = 1_500_000_000; // ~1.5GB per room — generous for one movie, bounds memory
 export const MIN_SWITCH_BYTES = 512 * 1024; // wait for a small initial buffer before switching the room over — enough for the video element to have something to actually play immediately, not just an init segment
@@ -32,6 +33,10 @@ interface CaptureBuffer {
 const captures = new Map<string, CaptureBuffer>(); // roomId -> capture
 
 export function startCapture(roomId: string): void {
+  // A restarted VB session (new URL, same roomId) must not carry over the previous session's
+  // per-track tfdt base — otherwise the first chunk of the new capture gets rebased against a
+  // stale reference point instead of becoming its own zero.
+  resetFmp4RebaseState(roomId);
   captures.set(roomId, { chunks: [], totalBytes: 0, done: false });
 }
 
@@ -49,8 +54,9 @@ export function appendCapture(roomId: string, chunk: Buffer): boolean {
   const c = captures.get(roomId);
   if (!c || c.done) return false;
   const wasBelowThreshold = c.totalBytes < MIN_SWITCH_BYTES;
-  c.chunks.push(chunk);
-  c.totalBytes += chunk.length;
+  const rebased = rebaseFmp4Chunk(roomId, chunk);
+  c.chunks.push(rebased);
+  c.totalBytes += rebased.length;
   if (c.totalBytes >= MAX_CAPTURE_BYTES) {
     c.done = true;
     logger.warn('VB capture: hit size cap, stopping further capture', { roomId, totalBytes: c.totalBytes });
@@ -75,4 +81,5 @@ export function stopCapture(roomId: string): void {
 
 export function clearCapture(roomId: string): void {
   captures.delete(roomId);
+  resetFmp4RebaseState(roomId);
 }
