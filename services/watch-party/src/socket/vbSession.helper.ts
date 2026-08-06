@@ -10,7 +10,7 @@ import { logger } from '@shared/utils/logger';
 import { SERVER_EVENTS } from '@shared/constants/socketEvents';
 import { REDIS_KEYS } from '@shared/constants';
 import { VideoCandidate } from '@shared/types';
-import { watchPartyServiceUrl } from '@shared/utils/serviceConfig';
+import { vbStreamPublicUrl } from '@shared/utils/serviceConfig';
 import { signProxyUrl } from '@shared/utils/proxySignature';
 import { VB_VIEWPORT, startSession } from '../services/virtualBrowser.service';
 
@@ -43,7 +43,7 @@ function proxiedMediaUrl(mediaUrl: string, mediaType: 'mp4' | 'hls'): string {
   const ext = mediaType === 'hls' ? 'm3u8' : 'mp4';
   const { exp, sig } = signProxyUrl(mediaUrl);
   const encodedUrl = Buffer.from(mediaUrl, 'utf8').toString('base64url');
-  return `${watchPartyServiceUrl}/api/v1/watch-party/vb-media-proxy/stream.${ext}`
+  return `${vbStreamPublicUrl}/api/v1/watch-party/vb-media-proxy/stream.${ext}`
        + `?url=${encodedUrl}&exp=${exp}&sig=${sig}`;
 }
 

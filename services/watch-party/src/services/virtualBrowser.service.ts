@@ -7,7 +7,7 @@
 
 import { chromium, Browser, BrowserContext, Page, CDPSession } from 'playwright-chromium';
 import { logger } from '@shared/utils/logger';
-import { watchPartyServiceUrl } from '@shared/utils/serviceConfig';
+import { vbStreamPublicUrl } from '@shared/utils/serviceConfig';
 import { startCapture, appendCapture, stopCapture, clearCapture } from './vbCapture.service';
 
 export const VB_VIEWPORT = { width: 1280, height: 720 } as const;
@@ -396,7 +396,7 @@ export async function startSession(
 
       // Category C — binary WebSocket transport instead of per-segment HTTP requests. Playwright
       // exposes WebSocket frames directly at the Node/CDP level, no in-page script needed.
-      const captureUrl = `${watchPartyServiceUrl}/api/v1/watch-party/vb-capture/${roomId}`;
+      const captureUrl = `${vbStreamPublicUrl}/api/v1/watch-party/vb-capture/${roomId}`;
       startCapture(roomId);
 
       // Previously capture waited out a grace period before reporting itself, purely to give a

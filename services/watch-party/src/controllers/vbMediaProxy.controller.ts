@@ -222,7 +222,13 @@ export const vbMediaProxyController = {
     res.status(upstream.status === 206 ? 206 : 200);
     res.setHeader('Content-Type', ct);
     res.setHeader('Accept-Ranges', 'bytes');
-    res.setHeader('Cache-Control', 'no-cache');
+    // Unlike vb-capture.controller.ts's growing in-memory buffer, this proxies a REAL upstream CDN
+    // resource — its Content-Range total (forwarded below, `cr`) reflects the upstream's own
+    // stable, already-published file size, not something we're still writing. A given signed proxy
+    // URL is fetched by every viewer in the room independently (no shared cache client-side), so
+    // caching here is a real, safe win for a synced room with no staleness risk: the bytes and the
+    // total are both fixed the moment upstream published them.
+    res.setHeader('Cache-Control', 'public, max-age=3600, immutable');
     const cl = upstream.headers.get('content-length');
     const cr = upstream.headers.get('content-range');
     if (cl) res.setHeader('Content-Length', cl);

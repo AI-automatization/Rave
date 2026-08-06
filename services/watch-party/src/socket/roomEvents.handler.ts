@@ -10,16 +10,19 @@ import { bufferTimeouts, resumeBufferedRoom } from './videoEvents.handler';
 import { stopSession, getSessionSnapshot } from '../services/virtualBrowser.service';
 import { startVBForRoom, CANDIDATES_TTL_SEC } from './vbSession.helper';
 import { isOfficialEmbedHost, tryExtract, fetchCandidates } from '../services/extractionClient';
-import { watchPartyServiceUrl } from '@shared/utils/serviceConfig';
+import { vbStreamPublicUrl } from '@shared/utils/serviceConfig';
 
 // A confirmed VB candidate's url is one of OUR OWN endpoints (vb-capture's raw buffer, or
 // vb-media-proxy's signed passthrough — see vbSession.helper.ts's proxiedMediaUrl) — running that
 // back through content-service's tryExtract would be nonsensical (it's not a page to scrape, it's
 // already-resolved media) and, worse, a 422 there would auto-fall-back to VB again, pointed at our
 // own service's URL — a pointless loop. Same skip treatment as isOfficialEmbedHost below.
+// Checked against vbStreamPublicUrl (not watchPartyServiceUrl directly) so this stays correct
+// whichever one actually produced the URL — vbStreamPublicUrl already falls back to
+// watchPartyServiceUrl itself when the Cloudflare-CDN env var isn't set (see serviceConfig.ts).
 function isOwnVbUrl(url: string): boolean {
-  return url.startsWith(`${watchPartyServiceUrl}/api/v1/watch-party/vb-capture/`)
-      || url.startsWith(`${watchPartyServiceUrl}/api/v1/watch-party/vb-media-proxy/`);
+  return url.startsWith(`${vbStreamPublicUrl}/api/v1/watch-party/vb-capture/`)
+      || url.startsWith(`${vbStreamPublicUrl}/api/v1/watch-party/vb-media-proxy/`);
 }
 
 interface AuthenticatedSocket extends Socket {

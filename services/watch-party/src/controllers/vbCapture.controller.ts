@@ -44,7 +44,16 @@ export const vbCaptureController = {
     res.status(range ? 206 : 200);
     res.setHeader('Content-Type', 'video/mp4');
     res.setHeader('Accept-Ranges', 'bytes');
-    res.setHeader('Cache-Control', 'no-cache');
+    // NOT immutable/long-lived: totalBytes (the Content-Range denominator below) grows as capture
+    // continues, so the exact same byte range can legitimately get a DIFFERENT total a few seconds
+    // later — caching that as permanent would risk teaching a client the wrong final size, the
+    // same class of bug as today's tfdt/mvhd duration fix, just via the cache this time instead of
+    // the source player. A short TTL still gets the real win — several viewers in the same room,
+    // synced, requesting near-identical ranges within the same couple of seconds — without ever
+    // being stale enough to matter. Bytes themselves never change once written (append-only
+    // buffer), only the total does, so even a stale-for-a-few-seconds response is never WRONG
+    // data, just a stale metadata total that the next natural request corrects.
+    res.setHeader('Cache-Control', 'public, max-age=3, stale-while-revalidate=2');
     res.setHeader('Content-Length', String(result.buffer.length));
     if (range) {
       res.setHeader('Content-Range', `bytes ${start}-${end}/${totalBytes}`);
