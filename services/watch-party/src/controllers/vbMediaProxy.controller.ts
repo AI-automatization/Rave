@@ -234,24 +234,36 @@ export const vbMediaProxyController = {
     // a non-default Vary value. Confirmed live 2026-08-06: cf-cache-status was BYPASS on every
     // request through stream.wewatch.uz despite a matching, active Cache Rule, until this line.
     res.removeHeader('Vary');
-    const cl = upstream.headers.get('content-length');
     const cr = upstream.headers.get('content-range');
-    if (cl) res.setHeader('Content-Length', cl);
     if (cr) res.setHeader('Content-Range', cr);
 
     if (!upstream.body) { res.end(); return; }
+
+    // Buffered instead of streamed chunk-by-chunk (real prod issue 2026-08-06: proxying this
+    // through Bunny's CDN as a second CDN option — separate from the Cloudflare cache above —
+    // came back cf-cache-status-equivalent 502 on every single request despite the origin
+    // logging a clean 206 with correct bytes every time, and Bunny's own Origin Error monitor
+    // showing zero errors. That combination points at Bunny's edge rejecting the response as
+    // invalid, not a connectivity problem — the prime suspect being a Content-Length forwarded
+    // from upstream's headers that doesn't exactly match what the streaming loop actually wrote
+    // (upstream could truncate, or Node could chunk differently than declared). MAX_RANGE_CHUNK_
+    // BYTES above already caps this to 4MB, small enough that buffering costs nothing measurable,
+    // and computing Content-Length from the buffer we're actually about to send is the only way
+    // to guarantee the header and the bytes can never disagree.
+    const chunks: Buffer[] = [];
     const reader = upstream.body.getReader();
     res.on('close', () => { void reader.cancel().catch(() => {}); });
     try {
       for (;;) {
         const { done, value } = await reader.read();
         if (done) break;
-        res.write(value);
+        chunks.push(Buffer.from(value));
       }
     } catch {
-      // client disconnected mid-stream or upstream dropped — nothing to recover
-    } finally {
-      res.end();
+      // client disconnected mid-stream or upstream dropped — send back whatever was collected
     }
+    const body = Buffer.concat(chunks);
+    res.setHeader('Content-Length', String(body.length));
+    res.end(body);
   },
 };
