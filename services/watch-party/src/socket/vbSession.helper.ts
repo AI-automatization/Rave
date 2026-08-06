@@ -12,7 +12,7 @@ import { REDIS_KEYS } from '@shared/constants';
 import { VideoCandidate } from '@shared/types';
 import { watchPartyServiceUrl } from '@shared/utils/serviceConfig';
 import { signProxyUrl } from '@shared/utils/proxySignature';
-import { VB_VIEWPORT, startSession, stopSession, pauseScreencast } from '../services/virtualBrowser.service';
+import { VB_VIEWPORT, startSession } from '../services/virtualBrowser.service';
 
 // TTL for the candidates Redis entry — matches how long "the current video session" is a
 // meaningful concept; deliberately generous since a room can sit on one video for hours. Defined
@@ -47,15 +47,6 @@ function proxiedMediaUrl(mediaUrl: string, mediaType: 'mp4' | 'hls'): string {
        + `?url=${encodedUrl}&exp=${exp}&sig=${sig}`;
 }
 
-// 'capture' candidates surface at MIN_SWITCH_BYTES (vbCapture.service.ts, ~512KB — tuned for "the
-// live player has enough to start", not "the confirm-picker's static preview has enough to look
-// like anything"). The underlying browser keeps playing/capturing regardless of whether the owner
-// has looked at the picker yet (pauseScreencast only stops the JPEG relay), so delaying the
-// candidate-ready notification costs nothing but wall-clock time before the owner sees it — by
-// which point there's actually enough buffered to preview. 'url' candidates skip this entirely:
-// they're a complete, independently-fetchable CDN resource already, waiting buys nothing.
-const CAPTURE_PREVIEW_DELAY_MS = 30_000;
-
 export async function startVBForRoom(
   io: SocketServer,
   redis: Redis,
@@ -63,45 +54,39 @@ export async function startVBForRoom(
   ownerId: string,
   url: string,
 ): Promise<void> {
+  // Real prod case 2026-08-06 (uzmovi.net): VB is a best-effort sniffer — ads, related-content
+  // widgets, and (separately) a duration bug on captured streams can all pass its heuristics —
+  // so it no longer auto-commits to the room. Every candidate found during the collection window
+  // (virtualBrowser.service.ts, COLLECTION_WINDOW_MS) accumulates here; session lifecycle
+  // (stop vs. keep-alive-for-capture) is virtualBrowser.service.ts's own call, made once the
+  // window closes — this function only cares about presenting what was found.
+  const candidates: VideoCandidate[] = [];
+
   await startSession(roomId, ownerId, url, (base64Jpeg) => {
     // volatile: a lagging viewer jumps to the latest frame instead of draining a backlog.
     io.to(roomId).volatile.emit(SERVER_EVENTS.VB_FRAME, { data: base64Jpeg });
   }, (mediaUrl, mediaType, kind) => {
+    // 'capture' mediaUrl already points at our own vb-capture endpoint — only 'url' (a raw,
+    // independently-fetchable CDN URL) needs the same-IP proxy wrapper.
+    const roomVideoUrl = kind === 'url' ? proxiedMediaUrl(mediaUrl, mediaType) : mediaUrl;
+    candidates.push({ url: roomVideoUrl, type: mediaType, source: 'vb' });
+  }, () => {
     void (async () => {
-      // 'url' (categories A) — independently fetchable, close the VB browser.
-      // 'capture' (categories B/C) — mediaUrl is our own vb-capture endpoint, only fed by this
-      // browser continuing to play the source — must stay alive, just stop the JPEG screencast.
-      if (kind === 'url') {
-        await stopSession(roomId);
-      } else {
-        await pauseScreencast(roomId);
-      }
-      // 'capture' mediaUrl already points at our own vb-capture endpoint — only 'url' (a raw,
-      // independently-fetchable CDN URL) needs the same-IP proxy wrapper.
-      const roomVideoUrl = kind === 'url' ? proxiedMediaUrl(mediaUrl, mediaType) : mediaUrl;
-
-      // Real prod case 2026-08-06 (uzmovi.net): VB is a best-effort guess — ads, and separately a
-      // still-being-chased duration bug on captured streams — so it does NOT auto-commit to the
-      // room anymore. Instead it's surfaced through the SAME video-candidate picker the owner
-      // already uses for "Это не то видео" (VideoCandidate.source: 'vb', see shared/src/types) —
-      // one candidate, but the same confirm/reject UI, no separate mechanism to build or learn.
-      const candidate: VideoCandidate = { url: roomVideoUrl, type: mediaType, source: 'vb' };
-      const announceCandidate = async () => {
+      if (candidates.length > 0) {
         try {
-          await redis.setex(REDIS_KEYS.videoCandidates(roomId), CANDIDATES_TTL_SEC, JSON.stringify([candidate]));
+          await redis.setex(REDIS_KEYS.videoCandidates(roomId), CANDIDATES_TTL_SEC, JSON.stringify(candidates));
         } catch (e) {
-          logger.warn('VB: failed to store candidate in Redis', { roomId, error: (e as Error).message });
+          logger.warn('VB: failed to store candidates in Redis', { roomId, error: (e as Error).message });
         }
-        io.to(roomId).emit(SERVER_EVENTS.VIDEO_CANDIDATES, { candidates: [candidate] });
-        io.to(roomId).emit(SERVER_EVENTS.VB_STOPPED, { reason: 'media_found', needsConfirmation: true, url: mediaUrl, mediaType });
-        logger.info('VB: media candidate ready, awaiting owner confirmation', { roomId, mediaUrl, mediaType, kind });
-      };
-
-      if (kind === 'capture') {
-        setTimeout(() => { void announceCandidate(); }, CAPTURE_PREVIEW_DELAY_MS);
       } else {
-        await announceCandidate();
+        void redis.del(REDIS_KEYS.videoCandidates(roomId)).catch(() => {});
       }
+      // needsConfirmation: true even when empty — auto-opens the SAME picker (its existing "нет
+      // вариантов" state, see VideoCandidatePicker.tsx) instead of the screencast just quietly
+      // stopping with no feedback at all.
+      io.to(roomId).emit(SERVER_EVENTS.VIDEO_CANDIDATES, { candidates });
+      io.to(roomId).emit(SERVER_EVENTS.VB_STOPPED, { reason: 'media_found', needsConfirmation: true });
+      logger.info('VB: collection window closed, candidates ready for owner confirmation', { roomId, count: candidates.length });
     })();
   });
 
