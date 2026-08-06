@@ -14,6 +14,54 @@ export const VB_VIEWPORT = { width: 1280, height: 720 } as const;
 
 const MAX_CONCURRENT = 3;
 
+// Anti-detection — the plain launch config below had zero stealth measures; real prod logs
+// (2026-08-06) showed "HeadlessChrome/149.0.0.0" going out verbatim in the User-Agent on every
+// request, an instant giveaway to literally any bot-detection script checking that header. This
+// reduces the chance a site shows a "не робот" challenge in the first place — it does NOT solve
+// one if it appears. Solving/bypassing an actual CAPTCHA is out of scope on purpose (Claude's own
+// operating rules prohibit that outright, independent of what this project wants).
+//
+// Standard, widely-documented technique (same approach as puppeteer-extra-plugin-stealth /
+// playwright-extra's stealth plugin) reimplemented by hand instead of pulling in either package —
+// both are built around vanilla `playwright`'s launcher API, not `playwright-chromium` (a
+// different, lighter package this file already depends on), and every patch below is a handful of
+// well-known lines, not worth a new dependency + compatibility risk for.
+const STEALTH_LAUNCH_ARGS = ['--disable-blink-features=AutomationControlled'];
+// Real desktop Chrome UA string, same major version family as the bundled playwright-chromium —
+// just without the "HeadlessChrome" token that gives the game away.
+const STEALTH_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
+  + '(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
+
+async function applyStealthPatches(context: BrowserContext): Promise<void> {
+  await context.addInitScript(/* js */ `
+    (function () {
+      // navigator.webdriver is the single most-checked headless signal — true only under
+      // automation, real Chrome never sets it. Redefine as a getter so it survives re-reads.
+      Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+
+      // Headless Chromium omits window.chrome entirely — every real Chrome install has it.
+      if (!window.chrome) window.chrome = { runtime: {} };
+
+      // navigator.plugins is empty under headless; a real desktop Chrome always reports at
+      // least the built-in PDF viewer entries. Length alone is what most checks look at.
+      Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
+      Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
+
+      // Headless has a well-known mismatch here: Notification.permission reports 'default' but
+      // permissions.query({name:'notifications'}) reports 'denied' — real Chrome never disagrees
+      // with itself like that.
+      const origQuery = window.navigator.permissions && window.navigator.permissions.query;
+      if (origQuery) {
+        window.navigator.permissions.query = (params) => (
+          params && params.name === 'notifications'
+            ? Promise.resolve({ state: Notification.permission })
+            : origQuery(params)
+        );
+      }
+    })();
+  `);
+}
+
 // Background probes (T-S174) share the same Chromium budget as interactive sessions — each one is
 // a real browser process. Capped at one so a queue of freshly-queued playlist links can never
 // starve a room that is actually watching something: interactive startSession() checks only
@@ -314,9 +362,10 @@ export async function startSession(
     const browser = await chromium.launch({
       headless: true,
       executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', ...STEALTH_LAUNCH_ARGS],
     });
-    const context = await browser.newContext({ viewport: VB_VIEWPORT });
+    const context = await browser.newContext({ viewport: VB_VIEWPORT, userAgent: STEALTH_USER_AGENT });
+    await applyStealthPatches(context);
     const page = await context.newPage();
     const cdp = await context.newCDPSession(page);
 
@@ -463,9 +512,10 @@ export async function probeUrl(url: string): Promise<{ mediaUrl: string; type: '
     browser = await chromium.launch({
       headless: true,
       executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', ...STEALTH_LAUNCH_ARGS],
     });
-    const context = await browser.newContext({ viewport: VB_VIEWPORT });
+    const context = await browser.newContext({ viewport: VB_VIEWPORT, userAgent: STEALTH_USER_AGENT });
+    await applyStealthPatches(context);
     const page = await context.newPage();
 
     const result = await new Promise<{ mediaUrl: string; type: 'mp4' | 'hls' } | null>((resolve) => {
