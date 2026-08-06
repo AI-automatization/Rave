@@ -152,7 +152,7 @@ export const registerWatchPartySocket = (io: SocketServer, watchPartyService: Wa
     registerMeshHandlers(io, socket, authSocket);
     registerReactionEvents(io, socket, authSocket, redis);
     registerDMEvents(io, socket);
-    registerVBEvents(io, socket, authSocket, watchPartyService);
+    registerVBEvents(io, socket, authSocket, watchPartyService, redis);
 
     // DISCONNECT — do NOT remove user from members (allows reconnect).
     // Only clean up voice and notify others. Explicit leave happens via room:leave event or HTTP API.

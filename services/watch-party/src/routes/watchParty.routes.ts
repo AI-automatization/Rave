@@ -15,7 +15,7 @@ import { validate, createRoomSchema, joinRoomSchema } from '../validators/watchP
 export const createWatchPartyRouter = (redis: Redis, io: SocketServer): Router => {
   const router = Router();
   const watchPartyService = new WatchPartyService(redis);
-  const watchPartyController = new WatchPartyController(watchPartyService, io);
+  const watchPartyController = new WatchPartyController(watchPartyService, io, redis);
   const domainAdminCtrl = createDomainAdminController(redis);
   const turnCtrl = createTurnController(redis);
   const notBlocked = requireNotBlocked(redis);

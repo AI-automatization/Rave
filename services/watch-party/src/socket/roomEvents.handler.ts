@@ -8,12 +8,19 @@ import { JwtPayload, VideoPlatform } from '@shared/types';
 import { recordWatchHistoryInternal } from '@shared/utils/serviceClient';
 import { bufferTimeouts, resumeBufferedRoom } from './videoEvents.handler';
 import { stopSession, getSessionSnapshot } from '../services/virtualBrowser.service';
-import { startVBForRoom } from './vbSession.helper';
+import { startVBForRoom, CANDIDATES_TTL_SEC } from './vbSession.helper';
 import { isOfficialEmbedHost, tryExtract, fetchCandidates } from '../services/extractionClient';
+import { watchPartyServiceUrl } from '@shared/utils/serviceConfig';
 
-// TTL for the candidates Redis entry — matches how long "the current video session" is a
-// meaningful concept; deliberately generous since a room can sit on one video for hours.
-const CANDIDATES_TTL_SEC = 6 * 60 * 60; // 6h
+// A confirmed VB candidate's url is one of OUR OWN endpoints (vb-capture's raw buffer, or
+// vb-media-proxy's signed passthrough — see vbSession.helper.ts's proxiedMediaUrl) — running that
+// back through content-service's tryExtract would be nonsensical (it's not a page to scrape, it's
+// already-resolved media) and, worse, a 422 there would auto-fall-back to VB again, pointed at our
+// own service's URL — a pointless loop. Same skip treatment as isOfficialEmbedHost below.
+function isOwnVbUrl(url: string): boolean {
+  return url.startsWith(`${watchPartyServiceUrl}/api/v1/watch-party/vb-capture/`)
+      || url.startsWith(`${watchPartyServiceUrl}/api/v1/watch-party/vb-media-proxy/`);
+}
 
 interface AuthenticatedSocket extends Socket {
   user: JwtPayload;
@@ -246,7 +253,7 @@ export const registerRoomEvents = (
     // critical path for playback. Overwrites (not appends to) any candidates from the PREVIOUS
     // video — this is a genuinely new source, the old list is stale. Same official-embed gate as
     // tryExtract: genericExtractorCandidates only ever applies to non-embed URLs anyway.
-    if (authSocket.rawToken && !isOfficialEmbedHost(data.videoUrl)) {
+    if (authSocket.rawToken && !isOfficialEmbedHost(data.videoUrl) && !isOwnVbUrl(data.videoUrl)) {
       const token = authSocket.rawToken;
       void fetchCandidates(data.videoUrl, token).then((candidates) => {
         if (candidates.length === 0) return;
@@ -254,7 +261,10 @@ export const registerRoomEvents = (
       }).catch((err) => {
         logger.info('CHANGE_MEDIA: candidates fetch/store failed, ignoring', { roomId, error: (err as Error).message });
       });
-    } else {
+    } else if (!isOwnVbUrl(data.videoUrl)) {
+      // Confirming a VB candidate keeps that same candidate in Redis on purpose — CHANGE_MEDIA
+      // below still needs it there in case the owner reopens the picker for "не то видео" right
+      // after confirming. Any other case (embed host, or a genuinely new non-VB url) clears it.
       void redis.del(REDIS_KEYS.videoCandidates(roomId)).catch(() => {});
     }
 
@@ -265,11 +275,11 @@ export const registerRoomEvents = (
     // the shared virtual browser instead of broadcasting a URL that will just show "failed to
     // load video" to the whole room. rawToken missing would mean a broken auth-middleware state
     // that shouldn't happen in practice — treat it as "skip the check", not "drop the request".
-    if (authSocket.rawToken && !isOfficialEmbedHost(data.videoUrl)) {
+    if (authSocket.rawToken && !isOfficialEmbedHost(data.videoUrl) && !isOwnVbUrl(data.videoUrl)) {
       const playable = await tryExtract(data.videoUrl, authSocket.rawToken);
       if (!playable) {
         try {
-          await startVBForRoom(io, watchPartyService, roomId, userId, data.videoUrl);
+          await startVBForRoom(io, redis, roomId, userId, data.videoUrl);
           logger.info('CHANGE_MEDIA: extraction failed, auto-started VB', { roomId, userId, url: data.videoUrl });
           return; // room is now watching the live VB stream — don't also broadcast the raw URL
         } catch (e) {

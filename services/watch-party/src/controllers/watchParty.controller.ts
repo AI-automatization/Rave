@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { Server as SocketServer } from 'socket.io';
+import Redis from 'ioredis';
 import { WatchPartyService } from '../services/watchParty.service';
 import { apiResponse, buildPaginationMeta } from '@shared/utils/apiResponse';
 import { AuthenticatedRequest, VideoPlatform } from '@shared/types';
@@ -15,6 +16,7 @@ export class WatchPartyController {
   constructor(
     private watchPartyService: WatchPartyService,
     private io: SocketServer,
+    private redis: Redis,
   ) {}
 
   createRoom = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -238,7 +240,7 @@ export class WatchPartyController {
       // advancing the queue did not, which is the gap this closes.
       if (room.videoUrl && (room as { nextNeedsVirtualBrowser?: boolean }).nextNeedsVirtualBrowser) {
         const videoUrl = room.videoUrl;
-        void startVBForRoom(this.io, this.watchPartyService, roomId, userId, videoUrl)
+        void startVBForRoom(this.io, this.redis, roomId, userId, videoUrl)
           .catch((e) => logger.warn('playNext: VB fallback failed to start', {
             roomId, url: videoUrl, error: (e as Error).message,
           }));

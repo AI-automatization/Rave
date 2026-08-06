@@ -5,13 +5,20 @@
 // Same lifecycle either way: start the session, broadcast frames, and switch the room over to
 // whatever media the live network/capture sniffer eventually catches.
 import { Server as SocketServer } from 'socket.io';
-import { WatchPartyService } from '../services/watchParty.service';
+import Redis from 'ioredis';
 import { logger } from '@shared/utils/logger';
 import { SERVER_EVENTS } from '@shared/constants/socketEvents';
-import { VideoPlatform } from '@shared/types';
+import { REDIS_KEYS } from '@shared/constants';
+import { VideoCandidate } from '@shared/types';
 import { watchPartyServiceUrl } from '@shared/utils/serviceConfig';
 import { signProxyUrl } from '@shared/utils/proxySignature';
 import { VB_VIEWPORT, startSession, stopSession, pauseScreencast } from '../services/virtualBrowser.service';
+
+// TTL for the candidates Redis entry — matches how long "the current video session" is a
+// meaningful concept; deliberately generous since a room can sit on one video for hours. Defined
+// here (not in roomEvents.handler.ts, which also uses it) because that file already imports
+// startVBForRoom from this one — importing back would be a circular dependency.
+export const CANDIDATES_TTL_SEC = 6 * 60 * 60; // 6h
 
 // Some CDNs 403 anything not coming from the IP that first requested the URL (same class of
 // protection already seen on VK/Rutube). VB's Playwright browser ran inside THIS service's
@@ -42,7 +49,7 @@ function proxiedMediaUrl(mediaUrl: string, mediaType: 'mp4' | 'hls'): string {
 
 export async function startVBForRoom(
   io: SocketServer,
-  watchPartyService: WatchPartyService,
+  redis: Redis,
   roomId: string,
   ownerId: string,
   url: string,
@@ -63,18 +70,21 @@ export async function startVBForRoom(
       // 'capture' mediaUrl already points at our own vb-capture endpoint — only 'url' (a raw,
       // independently-fetchable CDN URL) needs the same-IP proxy wrapper.
       const roomVideoUrl = kind === 'url' ? proxiedMediaUrl(mediaUrl, mediaType) : mediaUrl;
+
+      // Real prod case 2026-08-06 (uzmovi.net): VB is a best-effort guess — ads, and separately a
+      // still-being-chased duration bug on captured streams — so it does NOT auto-commit to the
+      // room anymore. Instead it's surfaced through the SAME video-candidate picker the owner
+      // already uses for "Это не то видео" (VideoCandidate.source: 'vb', see shared/src/types) —
+      // one candidate, but the same confirm/reject UI, no separate mechanism to build or learn.
+      const candidate: VideoCandidate = { url: roomVideoUrl, type: mediaType, source: 'vb' };
       try {
-        const updated = await watchPartyService.updateRoomMedia(ownerId, roomId, {
-          videoUrl: roomVideoUrl,
-          videoTitle: null,
-          videoPlatform: 'generic' as VideoPlatform,
-        });
-        io.to(roomId).emit(SERVER_EVENTS.ROOM_UPDATED, updated);
+        await redis.setex(REDIS_KEYS.videoCandidates(roomId), CANDIDATES_TTL_SEC, JSON.stringify([candidate]));
       } catch (e) {
-        logger.error('VB: failed to switch room to intercepted media', { roomId, mediaUrl, kind, error: (e as Error).message });
+        logger.warn('VB: failed to store candidate in Redis', { roomId, error: (e as Error).message });
       }
-      io.to(roomId).emit(SERVER_EVENTS.VB_STOPPED, { reason: 'media_found', url: mediaUrl, mediaType });
-      logger.info('VB: switched room to intercepted media', { roomId, mediaUrl, mediaType, kind });
+      io.to(roomId).emit(SERVER_EVENTS.VIDEO_CANDIDATES, { candidates: [candidate] });
+      io.to(roomId).emit(SERVER_EVENTS.VB_STOPPED, { reason: 'media_found', needsConfirmation: true, url: mediaUrl, mediaType });
+      logger.info('VB: media candidate ready, awaiting owner confirmation', { roomId, mediaUrl, mediaType, kind });
     })();
   });
 
