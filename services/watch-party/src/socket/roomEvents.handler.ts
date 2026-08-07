@@ -7,7 +7,7 @@ import { REDIS_KEYS } from '@shared/constants';
 import { JwtPayload, VideoPlatform } from '@shared/types';
 import { recordWatchHistoryInternal } from '@shared/utils/serviceClient';
 import { bufferTimeouts, resumeBufferedRoom } from './videoEvents.handler';
-import { stopSession, getSessionSnapshot } from '../services/virtualBrowser.service';
+import { stopSession, getSessionSnapshot, hasSession } from '../services/virtualBrowser.service';
 import { startVBForRoom, CANDIDATES_TTL_SEC } from './vbSession.helper';
 import { isOfficialEmbedHost, tryExtract, fetchCandidates } from '../services/extractionClient';
 import { vbStreamPublicUrl } from '@shared/utils/serviceConfig';
@@ -58,6 +58,15 @@ function scheduleRoomEmptyCheck(
       logger.info('Room empty — starting 5-minute inactivity timer', { roomId });
       const timer = setTimeout(() => {
         roomCloseTimers.delete(roomId);
+        // Real prod case 2026-08-07: this fired mid-VB-search (page navigation, a Cloudflare
+        // challenge, clicking through player tabs) and killed the session before it could finish
+        // — nobody being in the room's Socket.io membership isn't abandonment if VB is actively
+        // hunting for a video on the owner's behalf. Don't kill it; just check again next window.
+        if (hasSession(roomId)) {
+          logger.info('Room inactivity timer skipped — VB session still active', { roomId });
+          scheduleRoomEmptyCheck(io, watchPartyService, roomId);
+          return;
+        }
         void (async () => {
           try {
             await watchPartyService.closeRoomBySystem(roomId);

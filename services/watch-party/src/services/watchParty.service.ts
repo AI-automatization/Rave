@@ -10,6 +10,7 @@ import { getUserRestrictions } from '@shared/utils/serviceClient';
 import { getAppSetting } from '@shared/utils/appSettings';
 import { WatchPartyPlaylistService } from './watchPartyPlaylist.service';
 import { WatchPartyMembersService } from './watchPartyMembers.service';
+import { hasSession } from './virtualBrowser.service';
 
 const BLOCKED_DOMAINS_KEY = 'watch_party:blocked_domains';
 const SYNC_THRESHOLD_SECONDS = 2;
@@ -343,7 +344,13 @@ export class WatchPartyService {
     }).select('_id');
 
     if (stale.length === 0) return [];
-    const ids = stale.map((r) => r._id.toString());
+    // Real prod case 2026-08-07: a room got swept as "inactive" and its VB session killed
+    // mid-search — lastActivityAt only moves on actual playback sync (play/pause/seek/heartbeat,
+    // see updateRoomMedia/syncState below), which never fires while VB is still hunting for a
+    // video (page navigation, a Cloudflare challenge, clicking through player tabs — all real
+    // time, none of it a "sync" event). A room the owner is actively working through VB on is by
+    // definition not abandoned, whatever this timestamp says.
+    const ids = stale.map((r) => r._id.toString()).filter((id) => !hasSession(id));
     await WatchPartyRoom.updateMany({ _id: { $in: ids } }, { status: 'ended' });
     await Promise.all(ids.map((id) => this.redis.del(REDIS_KEYS.watchPartyRoom(id))));
     ids.forEach((id) => this.lastMongoHeartbeatWrite.delete(id));
