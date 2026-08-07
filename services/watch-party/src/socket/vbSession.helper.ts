@@ -12,7 +12,8 @@ import { REDIS_KEYS } from '@shared/constants';
 import { VideoCandidate } from '@shared/types';
 import { vbStreamPublicUrl } from '@shared/utils/serviceConfig';
 import { signProxyUrl } from '@shared/utils/proxySignature';
-import { VB_VIEWPORT, startSession } from '../services/virtualBrowser.service';
+import { VB_VIEWPORT, startSession, getSessionPageTitle } from '../services/virtualBrowser.service';
+import { WatchPartyRoom } from '../models/watchPartyRoom.model';
 
 // TTL for the candidates Redis entry — matches how long "the current video session" is a
 // meaningful concept; deliberately generous since a room can sit on one video for hours. Defined
@@ -69,9 +70,23 @@ export async function startVBForRoom(
     // 'capture' mediaUrl already points at our own vb-capture endpoint — only 'url' (a raw,
     // independently-fetchable CDN URL) needs the same-IP proxy wrapper.
     const roomVideoUrl = kind === 'url' ? proxiedMediaUrl(mediaUrl, mediaType) : mediaUrl;
-    candidates.push({ url: roomVideoUrl, type: mediaType, source: 'vb' });
+    // Real prod report 2026-08-07: every VB-found room stayed on the generic default name
+    // forever, since nothing in this path ever set videoTitle — the source page's own <title>
+    // (captured once navigation succeeds, virtualBrowser.service.ts) is the only title info VB
+    // ever has, so every candidate from the same session gets the same one.
+    candidates.push({ url: roomVideoUrl, type: mediaType, source: 'vb', title: getSessionPageTitle(roomId) });
   }, () => {
     void (async () => {
+      // Real prod case 2026-08-07: a room got swept as "inactive" 15 seconds after candidates
+      // became ready — closeInactiveRooms's hasSession() guard only covers the search itself, but
+      // lastActivityAt never moved even once during the ENTIRE VB run (no play/pause/seek/
+      // heartbeat happened, since nothing was playing yet), so the room was already past the
+      // 5-minute cutoff the instant VB finished. The owner needs real time to actually look at the
+      // picker and decide — touch the timestamp now so that time isn't borrowed from a clock that
+      // was already expired before they got a chance to see anything.
+      await WatchPartyRoom.updateOne({ _id: roomId }, { lastActivityAt: new Date() }).catch((e) => {
+        logger.warn('VB: failed to refresh room activity before presenting candidates', { roomId, error: (e as Error).message });
+      });
       if (candidates.length > 0) {
         try {
           await redis.setex(REDIS_KEYS.videoCandidates(roomId), CANDIDATES_TTL_SEC, JSON.stringify(candidates));

@@ -604,7 +604,7 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
           onOpenChange={setCandidatePickerOpen}
           candidates={videoCandidates}
           onRequestCandidates={requestCandidates}
-          onConfirm={(candidate: VideoCandidate) => sendMediaChange(candidate.url, undefined, detectVideoPlatform(candidate.url))}
+          onConfirm={(candidate: VideoCandidate) => sendMediaChange(candidate.url, candidate.title, detectVideoPlatform(candidate.url))}
         />
       )}
 
