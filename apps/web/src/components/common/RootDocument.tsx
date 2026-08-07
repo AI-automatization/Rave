@@ -1,22 +1,26 @@
 import type { Metadata, Viewport } from 'next';
+import type { AbstractIntlMessages } from 'next-intl';
 import { DM_Sans, Oswald } from 'next/font/google';
 import Script from 'next/script';
 import { Providers } from '@/components/common/Providers';
-import { LocaleBoundary } from '@/components/common/LocaleBoundary';
 import { AVAILABLE_OPERATING_SYSTEMS } from '@/data/product-facts';
+import enMessages from '../../../messages/en.json';
+import ruMessages from '../../../messages/ru.json';
+import uzMessages from '../../../messages/uz.json';
 import '@/app/globals.css';
 
 const GA_ID = 'G-2S4DR8CBF0';
 const YM_ID = process.env.NEXT_PUBLIC_YM_ID ?? '';
+const messages = { en: enMessages, ru: ruMessages, uz: uzMessages };
 
 const dmSans = DM_Sans({
-  subsets: ['latin', 'latin-ext'],
+  subsets: ['latin'],
   variable: '--font-dm-sans',
   display: 'swap',
 });
 
 const oswald = Oswald({
-  subsets: ['latin', 'latin-ext'],
+  subsets: ['latin'],
   variable: '--font-oswald',
   display: 'swap',
 });
@@ -160,8 +164,8 @@ export function RootDocument({
       <body className={`${dmSans.variable} ${oswald.variable} font-body antialiased bg-[#060608] text-white`}>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdApp) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdOrg) }} />
-        <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="afterInteractive" />
-        <Script id="gtag-init" strategy="afterInteractive">{`
+        <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="lazyOnload" />
+        <Script id="gtag-init" strategy="lazyOnload">{`
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}
           gtag('js', new Date());
@@ -169,8 +173,8 @@ export function RootDocument({
         `}</Script>
         {YM_ID && (
           <>
-            <Script src="https://mc.yandex.ru/metrika/tag.js" strategy="afterInteractive" />
-            <Script id="ym-init" strategy="afterInteractive">{`
+            <Script src="https://mc.yandex.ru/metrika/tag.js" strategy="lazyOnload" />
+            <Script id="ym-init" strategy="lazyOnload">{`
               window.ym = window.ym || function(){(window.ym.a = window.ym.a || []).push(arguments)};
               window.ym.l = 1 * new Date();
               ym(${YM_ID}, "init", { clickmap: true, trackLinks: true, accurateTrackBounce: true, webvisor: true });
@@ -178,8 +182,8 @@ export function RootDocument({
             <noscript><img src={'https://mc.yandex.ru/watch/' + YM_ID} style={{ position: 'absolute', left: '-9999px' }} alt="" /></noscript>
           </>
         )}
-        <Providers initialLocale={locale}>
-          <LocaleBoundary locale={locale}>{children}</LocaleBoundary>
+        <Providers initialLocale={locale} messages={messages[locale] as unknown as AbstractIntlMessages}>
+          {children}
         </Providers>
       </body>
     </html>

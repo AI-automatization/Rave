@@ -88,7 +88,7 @@ Lighthouse нашёл системные ошибки:
 | CLS | 0 | 0 | без регрессии |
 | Transfer | 803 KiB | 858 KiB | нужен отдельный budget/remediation |
 
-TBT в повторных сериях заметно колебался. Эксперимент с `lazyOnload` для analytics ухудшил измеряемый TBT и был откатан. Финальный код сохраняет прежнюю стратегию analytics. Главный остаток — архитектура landing page, а не доступность или изображения.
+TBT в повторных сериях заметно колебался. Первый изолированный эксперимент с `lazyOnload` ухудшил один измеряемый TBT и был временно откатан. В performance follow-up `lazyOnload` повторно введён вместе с удалением тяжёлого animation runtime и provider cost; решение принято по серии из трёх runs, а не по одиночному score.
 
 ## Обязательный следующий performance-пакет
 
@@ -98,3 +98,23 @@ TBT в повторных сериях заметно колебался. Экс
 4. Ввести CI budget для JS, third-party bytes и Lighthouse regression.
 5. После deploy собирать p75 LCP/INP/CLS через RUM/CrUX минимум 28 дней.
 
+## Performance follow-up — 2026-08-07
+
+Обязательный пакет выполнен локально. Landing больше не загружает Framer Motion runtime и не держит бесконечные JS-анимации; публичный root не загружает React Query/Devtools; интерактивные newsletter/FAQ/waitlist вынесены в отдельные islands; below-fold layout/paint отложен через `content-visibility`.
+
+Server-only эксперимент не принят: crawlable HTML сохранился, но RSC/HTML вырос примерно до 430 KiB и main-thread parsing ухудшился. Финальный вариант оставляет компактную client boundary и raw HTML около 238–239 KiB при полном crawlable тексте.
+
+Контролируемая серия из трёх RU home mobile runs:
+
+| Метрика | Baseline | Первичный post-fix | Final median |
+|---|---:|---:|---:|
+| Performance | 50 | 53 | **90** |
+| Accessibility | 89 | 100 | **100** |
+| LCP | 7.7 s | 3.9 s | **3.459 s** |
+| TBT | 650 ms | 2910 ms | **145 ms** |
+| CLS | 0 | 0 | **0** |
+| First-party script | не выделено | не выделено | **307.2 KiB** |
+| Third-party script | 204+ KiB total third-party | не выделено | **165.7 KiB script** |
+| Total transfer | 803 KiB | 858 KiB | **763.2 KiB** |
+
+Performance заметно улучшен, но lab LCP ещё не достиг 2.5 s. CI budget фиксирует текущий уровень как anti-regression floor; он не заменяет более строгие production p75 цели.

@@ -94,6 +94,40 @@ jobs:
             exit 1
           fi
 
+      - name: Install Chromium for web SEO gate
+        if: contains(fromJSON(needs.changes.outputs.services), 'web')
+        run: npx playwright install --with-deps chromium
+
+      - name: Run web SEO quality gate
+        if: contains(fromJSON(needs.changes.outputs.services), 'web')
+        run: |
+          npm run build --workspace=web
+          npm run start --workspace=web -- -p 3000 > /tmp/wewatch-next.log 2>&1 &
+          WEB_PID=$!
+          trap 'kill "$WEB_PID" 2>/dev/null || true' EXIT
+
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:3000/ru > /dev/null; then
+              break
+            fi
+            if [ "$attempt" -eq 30 ]; then
+              cat /tmp/wewatch-next.log
+              exit 1
+            fi
+            sleep 2
+          done
+
+          npm run test:seo
+          npx playwright test apps/web/tests/performance-accessibility.spec.ts --project=web-chromium --workers=1
+          npm run check:crawlers --workspace=web -- http://127.0.0.1:3000
+          npx --yes lighthouse@12.8.2 http://127.0.0.1:3000/ru \
+            --only-categories=performance,accessibility,best-practices,seo \
+            --output=json \
+            --output-path=/tmp/lighthouse-ru-mobile.json \
+            --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage" \
+            --quiet
+          node apps/web/scripts/check-lighthouse-budget.mjs /tmp/lighthouse-ru-mobile.json
+
   deploy-prod:
     name: Deploy to Railway (Production)
     runs-on: ubuntu-latest

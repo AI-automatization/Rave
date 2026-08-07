@@ -287,7 +287,23 @@ Performance не объявляется закрытым. Чистый RU home m
 
 Проверено: build **102/102**, accessibility Playwright **18/18**, SEO Playwright **18/18**, crawler visibility **45/45**, `git diff --check`. Полные отчёты: `docs/seo/lighthouse-baseline.md`, `docs/seo/stage-5-report.md`.
 
-Следующий этап: measurement/CI/post-deploy. До production launch обязателен отдельный performance workstream — server/client islands, lazy-mount/stop below-fold animations и JS/third-party budgets.
+Performance follow-up 2026-08-07 завершил обязательный локальный пакет. Framer Motion runtime и бесконечные JS-анимации убраны с landing, глобальный React Query/Devtools provider снят с публичных страниц, newsletter/FAQ/waitlist выделены в islands, ниже-fold rendering отложен. Server-only эксперимент не оставлен: он увеличивал HTML/RSC примерно до 430 KiB и ухудшал parsing; финальный raw HTML составляет примерно 238–239 KiB и сохраняет 6199–7319 видимых символов.
+
+Финальная контролируемая серия RU home mobile: Performance **75/90/90** (median **90**), LCP median **3.459 s**, TBT median **145 ms**, CLS **0**, Accessibility/Best Practices/SEO **100/100/100**. Baseline → final: Performance **50 → 90**, LCP **7.7 → 3.459 s**. Разброс runs сохранён в отчёте; лабораторный LCP всё ещё выше цели 2.5 s, production CWV/INP остаются открытыми до field data.
+
+## 0.8. Этап 6 — Measurement/CI/distribution — 2026-08-07
+
+Локальная часть этапа выполнена:
+
+- создан `docs/seo/measurement-plan.md` с источниками, dimensions, event contract, alert rules и 30/60/90 baseline procedure;
+- создан `docs/seo/distribution-plan.md` с безопасной очередностью GSC/Bing/Яндекс/IndexNow/outreach;
+- добавлен `.github/workflows/seo-quality.yml` для build, SEO, accessibility, crawler и Lighthouse checks;
+- production workflow теперь запускает тот же web SEO gate при изменениях `apps/web/**` и блокирует deploy при failure;
+- `check-lighthouse-budget.mjs` ограничивает Performance/LCP/TBT/CLS, first-party JS, third-party JS и total transfer.
+
+Локальная валидация: build **102/102**, SEO **18/18**, accessibility **18/18**, crawler **45/45**, Lighthouse budget **PASS**, `git diff --check` **PASS**.
+
+Внешняя часть не выполнялась без deploy/account-owner доступа: production crawl текущего сайта по-прежнему имеет **40/45**, все пять failure относятся к `/uz/guides` старого production build. После deploy нужны production crawl 45/45, sitemap/reindex в GSC/Bing/Яндекс, IndexNow только для изменённых canonical URL и 30/60/90 review.
 
 ## 1. Краткий вывод
 
