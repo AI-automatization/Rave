@@ -7,12 +7,60 @@
 
 import { chromium, Browser, BrowserContext, Page, CDPSession } from 'playwright-chromium';
 import { logger } from '@shared/utils/logger';
-import { watchPartyServiceUrl } from '@shared/utils/serviceConfig';
+import { vbStreamPublicUrl } from '@shared/utils/serviceConfig';
 import { startCapture, appendCapture, stopCapture, clearCapture } from './vbCapture.service';
 
 export const VB_VIEWPORT = { width: 1280, height: 720 } as const;
 
 const MAX_CONCURRENT = 3;
+
+// Anti-detection — the plain launch config below had zero stealth measures; real prod logs
+// (2026-08-06) showed "HeadlessChrome/149.0.0.0" going out verbatim in the User-Agent on every
+// request, an instant giveaway to literally any bot-detection script checking that header. This
+// reduces the chance a site shows a "не робот" challenge in the first place — it does NOT solve
+// one if it appears. Solving/bypassing an actual CAPTCHA is out of scope on purpose (Claude's own
+// operating rules prohibit that outright, independent of what this project wants).
+//
+// Standard, widely-documented technique (same approach as puppeteer-extra-plugin-stealth /
+// playwright-extra's stealth plugin) reimplemented by hand instead of pulling in either package —
+// both are built around vanilla `playwright`'s launcher API, not `playwright-chromium` (a
+// different, lighter package this file already depends on), and every patch below is a handful of
+// well-known lines, not worth a new dependency + compatibility risk for.
+const STEALTH_LAUNCH_ARGS = ['--disable-blink-features=AutomationControlled'];
+// Real desktop Chrome UA string, same major version family as the bundled playwright-chromium —
+// just without the "HeadlessChrome" token that gives the game away.
+const STEALTH_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
+  + '(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
+
+async function applyStealthPatches(context: BrowserContext): Promise<void> {
+  await context.addInitScript(/* js */ `
+    (function () {
+      // navigator.webdriver is the single most-checked headless signal — true only under
+      // automation, real Chrome never sets it. Redefine as a getter so it survives re-reads.
+      Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+
+      // Headless Chromium omits window.chrome entirely — every real Chrome install has it.
+      if (!window.chrome) window.chrome = { runtime: {} };
+
+      // navigator.plugins is empty under headless; a real desktop Chrome always reports at
+      // least the built-in PDF viewer entries. Length alone is what most checks look at.
+      Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
+      Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
+
+      // Headless has a well-known mismatch here: Notification.permission reports 'default' but
+      // permissions.query({name:'notifications'}) reports 'denied' — real Chrome never disagrees
+      // with itself like that.
+      const origQuery = window.navigator.permissions && window.navigator.permissions.query;
+      if (origQuery) {
+        window.navigator.permissions.query = (params) => (
+          params && params.name === 'notifications'
+            ? Promise.resolve({ state: Notification.permission })
+            : origQuery(params)
+        );
+      }
+    })();
+  `);
+}
 
 // Background probes (T-S174) share the same Chromium budget as interactive sessions — each one is
 // a real browser process. Capped at one so a queue of freshly-queued playlist links can never
@@ -144,12 +192,14 @@ export function getSessionSnapshot(roomId: string): { url: string; width: number
 }
 
 // 'url'     — categories A (extension/content-type/magic-bytes on a real HTTP response). The
-//             found URL is independently fetchable from the original CDN — the caller should
-//             close the VB session, there's nothing more this browser needs to do.
+//             found URL is independently fetchable from the original CDN, no ongoing browser
+//             activity needed to keep it usable.
 // 'capture' — categories B (appendBuffer hook) / C (WebSocket frames). mediaUrl points at OUR
 //             OWN vb-capture endpoint, backed by an in-memory buffer that only grows as long as
-//             THIS browser session keeps playing the source — the caller must NOT close the
-//             session, only stop the screencast broadcast (see pauseScreencast below).
+//             THIS browser session keeps playing the source. startSession's collection window
+//             (see COLLECTION_WINDOW_MS) decides session teardown once it closes — keeps the
+//             session alive (screencast paused) if any 'capture' candidate was found, stops it
+//             outright otherwise. onMediaFound itself is just a report, not a lifecycle signal.
 export type MediaFoundKind = 'url' | 'capture';
 
 // A short in-page video ad (real example caught live 2026-08-02 on hdrezka.my via the room
@@ -187,11 +237,24 @@ function attachResponseSniffer(
   page: Page,
   logId: string,
   onFound: (mediaUrl: string, type: 'mp4' | 'hls') => void,
+  // Real prod case 2026-08-06 (uzmovi.net serial page): the first accepted match wasn't the right
+  // episode — a related-content widget's clip passed every ad heuristic (real extension, real
+  // Content-Type, past the size/duration floor) just like a genuine result would. Default false
+  // (single-shot) so probe() below — a one-off check, not a live session — keeps its original
+  // "first match wins" contract; startSession passes true to keep sniffing for the collection
+  // window instead of locking onto whatever arrives first.
+  collectMultiple = false,
 ): void {
   let found = false;
+  const seenUrls = new Set<string>();
   const hit = (mediaUrl: string, type: 'mp4' | 'hls', how: string, extra?: Record<string, unknown>) => {
-    if (found) return;
-    found = true;
+    if (collectMultiple) {
+      if (seenUrls.has(mediaUrl)) return;
+      seenUrls.add(mediaUrl);
+    } else {
+      if (found) return;
+      found = true;
+    }
     logger.info(`VB: media URL intercepted (by ${how})`, { logId, url: mediaUrl.slice(0, 120), type, ...extra });
     onFound(mediaUrl, type);
   };
@@ -233,7 +296,7 @@ function attachResponseSniffer(
   };
 
   page.on('response', (response) => {
-    if (found) return; // first ACCEPTED match wins — ad rejections above don't set this
+    if (!collectMultiple && found) return; // first ACCEPTED match wins — ad rejections above don't set this
     const respUrl = response.url();
     const ext = matchMediaExtension(respUrl);
     const headers = response.headers();
@@ -266,12 +329,21 @@ function attachResponseSniffer(
   });
 }
 
+// Real prod case 2026-08-06 (uzmovi.net serial page): the first candidate found wasn't the right
+// episode (a related-content widget passed every ad heuristic same as genuine content would) — the
+// owner had no way to reject it, VB had already locked in and handed the room over. Collect for
+// this long after the FIRST candidate appears (not from session start — a page that takes 10s to
+// even start loading anything shouldn't eat into the window before there's anything to collect)
+// before finalizing, instead of committing to whatever arrived first.
+const COLLECTION_WINDOW_MS = 40_000;
+
 export async function startSession(
   roomId: string,
   ownerId: string,
   url: string,
   onFrame: (base64Jpeg: string) => void,
   onMediaFound?: (mediaUrl: string, type: 'mp4' | 'hls', kind: MediaFoundKind) => void,
+  onCollectionEnd?: () => void,
 ): Promise<void> {
   if (startingRooms.has(roomId)) {
     throw new Error('virtual_browser_starting');
@@ -290,55 +362,57 @@ export async function startSession(
     const browser = await chromium.launch({
       headless: true,
       executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', ...STEALTH_LAUNCH_ARGS],
     });
-    const context = await browser.newContext({ viewport: VB_VIEWPORT });
+    const context = await browser.newContext({ viewport: VB_VIEWPORT, userAgent: STEALTH_USER_AGENT });
+    await applyStealthPatches(context);
     const page = await context.newPage();
     const cdp = await context.newCDPSession(page);
 
     if (onMediaFound) {
-      // Shared across all three capture mechanisms below (normal response, appendBuffer hook,
-      // websocket frames) — whichever fires first wins, the other two stop mattering.
-      let mediaFound = false;
+      // Collection window (see COLLECTION_WINDOW_MS above): starts on the FIRST candidate from
+      // EITHER mechanism, stays open collecting more of either kind until it closes, then
+      // finalizes once. `capturedAsCandidate` decides session teardown at that point — capture
+      // needs the browser to keep playing/growing its buffer even after the window closes (until
+      // the owner actually confirms or rejects it), url-only sessions don't.
+      let windowTimer: ReturnType<typeof setTimeout> | null = null;
+      let windowClosed = false;
+      let capturedAsCandidate = false;
+      const openWindowIfNeeded = () => {
+        if (windowTimer !== null || windowClosed) return;
+        windowTimer = setTimeout(() => {
+          windowClosed = true;
+          if (!capturedAsCandidate) void stopSession(roomId);
+          else void pauseScreencast(roomId);
+          onCollectionEnd?.();
+        }, COLLECTION_WINDOW_MS);
+      };
 
       attachResponseSniffer(page, roomId, (mediaUrl, type) => {
-        if (mediaFound) return;
-        mediaFound = true;
+        if (windowClosed) return;
         onMediaFound(mediaUrl, type, 'url');
-      });
+        openWindowIfNeeded();
+      }, true /* collectMultiple */);
 
       // Category C — binary WebSocket transport instead of per-segment HTTP requests. Playwright
       // exposes WebSocket frames directly at the Node/CDP level, no in-page script needed.
-      const captureUrl = `${watchPartyServiceUrl}/api/v1/watch-party/vb-capture/${roomId}`;
+      const captureUrl = `${vbStreamPublicUrl}/api/v1/watch-party/vb-capture/${roomId}`;
       startCapture(roomId);
 
-      // Category A (a real fetchable URL) is strictly better than capture when both exist: no
-      // duration/timestamp issues, no MAX_CAPTURE_BYTES cap, VB doesn't need to stay alive after
-      // handoff. Real prod case 2026-08-05 (uzmovi.net): capture crossed MIN_SWITCH_BYTES and
-      // locked in mediaFound at ~1.5s, while a genuine HLS URL (category A, rutube) was found
-      // ~3s later and never got a chance — capture's own MSE segments carried absolute (not
-      // zero-based) baseMediaDecodeTime from the source site's player, producing a client-side
-      // duration of 13+ hours and a black frame. Giving category A this head start costs capture
-      // (when it's the only path that ever fires) a few extra seconds before playback starts.
-      const CAPTURE_GRACE_MS = 2500;
-      const captureStartedAt = Date.now();
+      // Previously capture waited out a grace period before reporting itself, purely to give a
+      // slower-to-arrive category-A URL a chance to win a race that no longer exists — both kinds
+      // now just join the same candidate list, so capture reports itself the moment it has enough
+      // bytes to be worth previewing, same as category A reports itself the moment it's found.
+      let captureNoted = false;
       const onCaptureChunk = (chunk: Buffer) => {
-        if (mediaFound) return;
+        if (windowClosed || captureNoted) return;
         const crossedThreshold = appendCapture(roomId, chunk);
         if (!crossedThreshold) return;
-        const remaining = CAPTURE_GRACE_MS - (Date.now() - captureStartedAt);
-        if (remaining > 0) {
-          setTimeout(() => {
-            if (mediaFound) return;
-            mediaFound = true;
-            logger.info('VB: media captured (enough bytes buffered, after grace period)', { roomId, captureUrl });
-            onMediaFound(captureUrl, 'mp4', 'capture');
-          }, remaining);
-          return;
-        }
-        mediaFound = true;
+        captureNoted = true;
+        capturedAsCandidate = true;
         logger.info('VB: media captured (enough bytes buffered)', { roomId, captureUrl });
         onMediaFound(captureUrl, 'mp4', 'capture');
+        openWindowIfNeeded();
       };
 
       page.on('websocket', (ws) => {
@@ -438,9 +512,10 @@ export async function probeUrl(url: string): Promise<{ mediaUrl: string; type: '
     browser = await chromium.launch({
       headless: true,
       executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', ...STEALTH_LAUNCH_ARGS],
     });
-    const context = await browser.newContext({ viewport: VB_VIEWPORT });
+    const context = await browser.newContext({ viewport: VB_VIEWPORT, userAgent: STEALTH_USER_AGENT });
+    await applyStealthPatches(context);
     const page = await context.newPage();
 
     const result = await new Promise<{ mediaUrl: string; type: 'mp4' | 'hls' } | null>((resolve) => {

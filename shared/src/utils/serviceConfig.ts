@@ -47,6 +47,21 @@ export const watchPartyServiceUrl =
     ? `https://${process.env.RAILWAY_SERVICE_WATCH_PART_URL}`
     : 'http://localhost:3004');
 
+// Public-facing VB video URLs ONLY (vbSession.helper.ts's vb-capture/vb-media-proxy links handed
+// to browser clients) — deliberately separate from watchPartyServiceUrl above, which is used far
+// more broadly (socket connections, internal service-to-service calls) and must keep pointing at
+// Railway's own domain regardless of this. Falls back to watchPartyServiceUrl itself (today's
+// actual behavior — no CDN in front of video) when unset, so forgetting to configure this in an
+// environment is a no-op, not a broken deploy. Cloudflare-proxied CNAME set up 2026-08-06
+// (stream.wewatch.uz) specifically to let Cloudflare cache repeat range requests within a room —
+// see vbCapture.controller.ts / vbMediaProxy.controller.ts Cache-Control headers from the same
+// change. Deliberately NOT applied to wewatch.uz/app.wewatch.uz themselves — those are DNS-only
+// (same-day fix for MARS_IT/Uzbekistan ISPs null-routing Cloudflare's 188.114.96.0/97.0 anycast
+// pair) — routing video through a DIFFERENT Cloudflare-proxied hostname re-exposes that same
+// blocked IP range for exactly this traffic, a deliberate, accepted tradeoff (bandwidth cost vs.
+// video access for those specific ISPs), not an oversight.
+export const vbStreamPublicUrl = process.env.VB_STREAM_PUBLIC_URL ?? watchPartyServiceUrl;
+
 export const authServiceUrl =
   process.env.AUTH_SERVICE_URL ??
   (process.env.RAILWAY_SERVICE_AUTH_URL

@@ -189,7 +189,10 @@ export function WatchPartyScreen() {
   // pipeline can't produce a playable result (services/watch-party roomEvents.handler.ts). No
   // manual "open browser" trigger on mobile (out of scope) — vb.active flips on/off purely from
   // the server-driven VB_STARTED/VB_STOPPED broadcast, same as web's automatic fallback path.
-  const vb = useVirtualBrowser(isOwner);
+  // VB never auto-commits what it finds (2026-08-06) — reusing handleOpenCandidatePicker here
+  // gets the exact same owner-only guard + requestCandidates() it already does for the manual
+  // gear-row "Это не то видео" entry, just fired automatically instead of waiting for a tap.
+  const vb = useVirtualBrowser(isOwner, handleOpenCandidatePicker);
 
   // Owner-only auto-recovery: the server's extraction pipeline said a URL was playable (found
   // SOME video URL), but UniversalPlayer then couldn't actually fetch it (direct attempt AND

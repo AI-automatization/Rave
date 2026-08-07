@@ -1,5 +1,6 @@
 // WeWatch — Shared Virtual Browser socket events (owner-only: start/input/stop)
 import { Server as SocketServer, Socket } from 'socket.io';
+import Redis from 'ioredis';
 import { WatchPartyService } from '../services/watchParty.service';
 import { logger } from '@shared/utils/logger';
 import { SERVER_EVENTS, CLIENT_EVENTS } from '@shared/constants/socketEvents';
@@ -18,6 +19,7 @@ export const registerVBEvents = (
   socket: Socket,
   authSocket: AuthenticatedSocket,
   watchPartyService: WatchPartyService,
+  redis: Redis,
 ): void => {
   const { userId } = authSocket.user;
 
@@ -47,7 +49,7 @@ export const registerVBEvents = (
     }
 
     try {
-      await startVBForRoom(io, watchPartyService, roomId, userId, url.toString());
+      await startVBForRoom(io, redis, roomId, userId, url.toString());
       logger.info('VB started', { roomId, userId, url: url.toString() });
     } catch (e) {
       const message = (e as Error).message === 'virtual_browser_limit'
