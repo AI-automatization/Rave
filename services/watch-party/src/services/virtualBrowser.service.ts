@@ -351,8 +351,20 @@ export async function startSession(
   startingRooms.add(roomId);
 
   try {
-    // Restarting with a new URL — tear down any existing session for this room first.
-    if (sessions.has(roomId)) {
+    // Real prod case 2026-08-07: createRoom() now starts VB when its initial URL isn't directly
+    // playable (same gate CHANGE_MEDIA already had), but the client's normal room-open flow ALSO
+    // fires a CHANGE_MEDIA for that same URL moments later — two independent triggers landing on
+    // the identical url within a second of each other. Tearing down and relaunching a fresh
+    // browser for a URL that's already actively being worked on threw away all progress every
+    // time (the collection window restarted from zero, looking to the user like VB — and by
+    // extension the anti-detection patches — had simply stopped working). If the existing session
+    // is already on this exact URL, let it keep running instead of racing itself.
+    const existing = sessions.get(roomId);
+    if (existing && existing.url === url) {
+      return;
+    }
+    // Restarting with a genuinely new URL — tear down any existing session for this room first.
+    if (existing) {
       await stopSession(roomId);
     }
     if (sessions.size >= MAX_CONCURRENT) {
