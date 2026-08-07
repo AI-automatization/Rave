@@ -44,7 +44,16 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
       setDimensions({ width: data.width, height: data.height });
       setError(null);
     };
-    const onFrame = (data: { data: string }) => setFrame(data.data);
+    // setActive(true) here too, not just in onStarted/onRoomJoined — real prod reports
+    // 2026-08-07: the VB overlay sometimes never appeared despite the backend session running
+    // fine (confirmed in logs), for reasons never conclusively pinned down (one-shot VB_STARTED
+    // broadcasting before this socket had joined the room, a missed/raced ROOM_JOINED catch-up,
+    // etc — several credible races, no single provable one). Frames are NOT one-shot: they keep
+    // streaming continuously the whole time a session is active, so treating "a frame arrived" as
+    // proof-of-active makes this self-healing regardless of which specific race caused the miss —
+    // the very next frame corrects the UI instead of requiring VB_STARTED/ROOM_JOINED to have
+    // landed at exactly the right moment.
+    const onFrame = (data: { data: string }) => { setFrame(data.data); setActive(true); };
     const onStopped = (data?: { reason?: string; needsConfirmation?: boolean }) => {
       setActive(false);
       setFrame(null);
