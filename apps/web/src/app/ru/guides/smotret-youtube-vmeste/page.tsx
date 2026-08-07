@@ -8,7 +8,7 @@ const PATH = '/ru/guides/smotret-youtube-vmeste';
 
 export const metadata: Metadata = {
   title: 'Смотреть YouTube вместе с другом онлайн бесплатно',
-  description: 'Как смотреть YouTube с друзьями одновременно — синхронный просмотр через WeWatch. Один ставит паузу — все ставят паузу. Бесплатно, iOS и Android.',
+  description: 'Как смотреть YouTube с друзьями одновременно через веб-версию WeWatch. Приложения для iOS и Android находятся в разработке.',
   keywords: ['смотреть youtube вместе', 'смотреть ютуб вместе с другом', 'youtube watch party', 'смотреть youtube одновременно', 'совместный просмотр youtube', 'youtube с друзьями онлайн'],
   alternates: {
     canonical: `${APP_URL}${PATH}`,
@@ -16,24 +16,13 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: 'Смотреть YouTube вместе с другом | WeWatch',
-    description: 'Синхронный просмотр YouTube с друзьями — бесплатно через WeWatch. Работает на iPhone, Android и в браузере.',
+    description: 'Синхронный просмотр YouTube с друзьями через WeWatch в браузере. Приложения iOS и Android разрабатываются.',
     url: 'https://wewatch.uz/ru/guides/smotret-youtube-vmeste',
     type: 'article',
   },
   robots: { index: true, follow: true },
 };
 
-const jsonLd = {
-  '@context': 'https://schema.org',
-  '@type': 'Article',
-  headline: 'Как смотреть YouTube вместе с другом онлайн',
-  description: 'Пошаговый гайд по синхронному просмотру YouTube через WeWatch',
-  author: { '@type': 'Organization', name: 'WeWatch', url: 'https://wewatch.uz' },
-  publisher: { '@type': 'Organization', name: 'WeWatch', url: 'https://wewatch.uz' },
-  datePublished: '2026-06-15',
-  inLanguage: 'ru',
-  mainEntityOfPage: 'https://wewatch.uz/ru/guides/smotret-youtube-vmeste',
-};
 
 const RELATED = [
   { href: '/ru/guides/smotret-vmeste-onlayn', label: 'Смотреть вместе онлайн' },
@@ -44,7 +33,6 @@ const RELATED = [
 export default function SmotretYoutubeVmestePage() {
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <GuideHeader locale="ru" />
       <main className="min-h-screen bg-[#060608] text-white">
         <div className="max-w-3xl mx-auto px-4 py-16">
@@ -70,7 +58,7 @@ export default function SmotretYoutubeVmestePage() {
               YouTube не имеет встроенной функции watch party. Если ты и друг одновременно включите одно видео — через минуту вы будете на разных таймкодах из-за разной скорости интернета, рекламы и буферизации.
             </p>
             <p className="text-zinc-400 leading-relaxed">
-              WeWatch решает это: встроенный браузер синхронизирует воспроизведение в реальном времени. Вы видите один и тот же кадр — всегда.
+              WeWatch решает это: веб-версия синхронизирует воспроизведение YouTube в реальном времени. Вы видите один и тот же кадр — всегда.
             </p>
           </section>
 
@@ -78,8 +66,8 @@ export default function SmotretYoutubeVmestePage() {
             <h2 className="text-2xl font-bold text-white mb-6">Как смотреть YouTube вместе — 4 шага</h2>
             <ol className="space-y-5">
               {[
-                { n: 1, title: 'Скачайте WeWatch', desc: 'App Store (iOS) или Google Play (Android). Бесплатно, установка 30 секунд.' },
-                { n: 2, title: 'Откройте YouTube в браузере WeWatch', desc: 'Встроенный браузер работает как обычный — найдите видео на YouTube, VK или любом другом сайте.' },
+                { n: 1, title: 'Откройте WeWatch', desc: 'Откройте wewatch.uz в браузере. Приложения для iOS и Android находятся в разработке.' },
+                { n: 2, title: 'Добавьте видео YouTube', desc: 'Вставьте ссылку на нужное видео YouTube в веб-версии WeWatch.' },
                 { n: 3, title: 'Нажмите "Создать комнату"', desc: 'WeWatch сгенерирует ссылку-приглашение. Отправьте другу в Telegram, WhatsApp или любом мессенджере.' },
                 { n: 4, title: 'Смотрите синхронно', desc: 'Как только друг открывает ссылку — просмотр синхронизируется автоматически. Пауза, перемотка, звук — всё работает для всех одновременно.' },
               ].map(({ n, title, desc }) => (
@@ -102,7 +90,7 @@ export default function SmotretYoutubeVmestePage() {
                 '✅ Субтитры YouTube работают у каждого независимо',
                 '✅ Качество видео каждый выбирает сам (1080p, 4K)',
                 '✅ Работает без Premium-подписки YouTube',
-                '✅ Кросс-платформа: один на iPhone, другой на Android или в браузере',
+                '✅ Веб-версия работает в браузерах на iPhone, Android и компьютере',
               ].map(i => <li key={i}>{i}</li>)}
             </ul>
           </section>
@@ -135,9 +123,9 @@ export default function SmotretYoutubeVmestePage() {
 
           <div className="bg-[#7B72F8]/10 border border-[#7B72F8]/30 rounded-2xl p-8 text-center">
             <h2 className="text-2xl font-bold text-white mb-3">Попробуйте прямо сейчас</h2>
-            <p className="text-zinc-400 mb-6">Скачайте WeWatch и начните смотреть YouTube вместе за 30 секунд</p>
+            <p className="text-zinc-400 mb-6">Откройте WeWatch в браузере и начните смотреть YouTube вместе</p>
             <Link href="/ru" className="inline-flex items-center justify-center gap-2 bg-[#7B72F8] hover:bg-[#6a63e8] text-white font-semibold px-8 py-3 rounded-xl transition-colors">
-              Скачать бесплатно
+              Открыть веб-версию
             </Link>
           </div>
         </div>

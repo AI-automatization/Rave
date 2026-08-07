@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { WeWatchLogo } from './WeWatchLogo';
 import { relatedGuides } from '@/data/guides';
 import { appUrl } from '@/lib/app-url';
+import { ArticleMetadata } from './ArticleMetadata';
 
 // Static chrome for standalone SEO pages (/guides/*, /uz/guides/*): server
 // components with zero client JS so guide pages stay fully static and light.
@@ -114,7 +115,7 @@ export function RelatedGuides({
                 className="block h-full rounded-xl border border-zinc-800/60 bg-[#0E0E14] px-5 py-4 hover:border-[#7B72F8]/40 transition-colors"
               >
                 <span className="block text-white text-sm font-medium mb-1">{g.title}</span>
-                <span className="block text-zinc-500 text-xs leading-relaxed">{g.summary}</span>
+                <span className="block text-zinc-400 text-xs leading-relaxed">{g.summary}</span>
               </Link>
             </li>
           ))}
@@ -139,7 +140,7 @@ export function GuideHeader({ locale = 'ru' }: { locale?: GuideLocale }) {
           </Link>
           <a
             href={appUrl('/register')}
-            className="h-8 px-3.5 rounded-full bg-[#7B72F8] text-white hover:bg-[#6B63E8] transition-colors text-xs sm:text-sm font-semibold flex items-center whitespace-nowrap"
+            className="h-8 px-3.5 rounded-full bg-[#5F56D6] text-white hover:bg-[#5048BE] transition-colors text-xs sm:text-sm font-semibold flex items-center whitespace-nowrap"
           >
             {t.cta}
           </a>
@@ -163,11 +164,12 @@ export function GuideFooter({
   const t = LABELS[locale];
   return (
     <>
+      {currentPath && <ArticleMetadata currentPath={currentPath} />}
       {currentPath && <RelatedGuides currentPath={currentPath} locale={locale} />}
       <footer className="border-t border-zinc-800/60 py-6 mt-8 bg-[#060608]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p className="text-zinc-600 text-xs">© {new Date().getFullYear()} WeWatch. {t.rights}</p>
-          <div className="flex gap-4 text-zinc-600 text-xs">
+          <p className="text-zinc-400 text-xs">© {new Date().getFullYear()} WeWatch. {t.rights}</p>
+          <div className="flex gap-4 text-zinc-400 text-xs">
             <Link href={t.guidesHref} className="hover:text-zinc-400 transition-colors">{t.allGuides}</Link>
             <Link href={t.privacyHref} className="hover:text-zinc-400 transition-colors">{t.privacy}</Link>
             <Link href={t.termsHref} className="hover:text-zinc-400 transition-colors">{t.terms}</Link>

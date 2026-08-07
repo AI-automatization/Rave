@@ -3,9 +3,9 @@ import Link from 'next/link';
 import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
 
 export const metadata: Metadata = {
-  title: 'Смотреть сериал вместе с другом онлайн бесплатно',
-  description: 'Смотрите сериалы вместе с друзьями онлайн — синхронно, бесплатно через WeWatch. Пауза у одного = пауза у всех. iOS, Android и браузер.',
-  keywords: ['смотреть сериал вместе', 'смотреть сериалы вместе онлайн', 'смотреть сериал с другом онлайн', 'сериалы вместе онлайн бесплатно', 'совместный просмотр сериалов'],
+  title: 'Смотреть сериал с другом онлайн — синхронный марафон',
+  description: 'Как смотреть один сериал с другом по эпизодам: синхронное воспроизведение, пауза и чат в веб-версии WeWatch.',
+  keywords: ['смотреть сериал с другом', 'смотреть сериал вместе с другом', 'синхронный просмотр сериала', 'сериальный марафон с другом'],
   alternates: {
     canonical: 'https://wewatch.uz/ru/guides/smotret-serial-vmeste',
     languages: {
@@ -16,35 +16,23 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: 'Смотреть сериал вместе с другом | WeWatch',
-    description: 'Синхронный просмотр сериалов с друзьями онлайн. Бесплатно, iOS и Android.',
+    description: 'Синхронный просмотр одного сериала с другом по эпизодам через веб-версию WeWatch.',
     url: 'https://wewatch.uz/ru/guides/smotret-serial-vmeste',
     type: 'article',
   },
   robots: { index: true, follow: true },
 };
 
-const jsonLd = {
-  '@context': 'https://schema.org',
-  '@type': 'Article',
-  headline: 'Как смотреть сериал вместе с другом онлайн',
-  description: 'Гайд по совместному просмотру сериалов через WeWatch',
-  author: { '@type': 'Organization', name: 'WeWatch', url: 'https://wewatch.uz' },
-  publisher: { '@type': 'Organization', name: 'WeWatch', url: 'https://wewatch.uz' },
-  datePublished: '2026-06-15',
-  inLanguage: 'ru',
-  mainEntityOfPage: 'https://wewatch.uz/ru/guides/smotret-serial-vmeste',
-};
 
 const RELATED = [
+  { href: '/ru/guides/smotret-serialy-vmeste-besplatno', label: 'Бесплатный сериальный клуб для группы' },
   { href: '/ru/guides/smotret-vmeste-onlayn', label: 'Смотреть вместе онлайн' },
   { href: '/ru/guides/smotret-anime-vmeste', label: 'Смотреть аниме вместе' },
-  { href: '/ru/guides/kino-s-drugom-onlayn', label: 'Кино с другом онлайн' },
 ];
 
 export default function SmotretSerialVmestePage() {
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <GuideHeader locale="ru" />
       <main className="min-h-screen bg-[#060608] text-white">
         <div className="max-w-3xl mx-auto px-4 py-16">
@@ -61,17 +49,17 @@ export default function SmotretSerialVmestePage() {
           </h1>
 
           <p className="text-xl text-zinc-400 mb-10 leading-relaxed">
-            Друг далеко, а новый сезон уже вышел? WeWatch позволяет смотреть сериалы вместе онлайн — синхронно, с чатом и реакциями. Обсуждайте каждую серию в реальном времени.
+            Друг далеко, а новый сезон уже вышел? WeWatch помогает проходить один сериал вместе эпизод за эпизодом — синхронно, с чатом и реакциями.
           </p>
 
           <section className="mb-10">
             <h2 className="text-2xl font-bold text-white mb-4">Идеально для марафона сериалов</h2>
             <p className="text-zinc-400 leading-relaxed mb-4">
-              WeWatch не ограничивает время сессии. Смотрите 1 серию или весь сезон подряд — синхронизация работает непрерывно. Встроенный чат позволяет обсуждать события не выходя из приложения.
+              Выберите следующую серию или продолжите сезон: синхронизация удерживает одинаковую позицию у участников, а чат позволяет обсуждать события прямо во время просмотра.
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
               {[
-                { title: 'Любой сайт', desc: 'YouTube, VK, Rutube и любые другие через браузер' },
+                { title: 'Поддерживаемые источники', desc: 'YouTube, VK Видео, Rutube и прямые MP4-ссылки' },
                 { title: 'Синхронно', desc: 'Пауза у одного — пауза у всех. Отставание < 500 мс' },
                 { title: 'Чат внутри', desc: 'Обсуждайте серии прямо в WeWatch' },
               ].map(({ title, desc }) => (
@@ -87,8 +75,8 @@ export default function SmotretSerialVmestePage() {
             <h2 className="text-2xl font-bold text-white mb-6">Как начать — 4 шага</h2>
             <ol className="space-y-5">
               {[
-                { n: 1, title: 'Скачайте WeWatch', desc: 'App Store или Google Play — бесплатно.' },
-                { n: 2, title: 'Найдите сериал', desc: 'Откройте браузер WeWatch, перейдите на YouTube, VK или любой стриминг. Выберите серию.' },
+                { n: 1, title: 'Откройте WeWatch', desc: 'Веб-версия доступна сейчас; приложения iOS и Android разрабатываются.' },
+                { n: 2, title: 'Добавьте серию', desc: 'Вставьте ссылку YouTube, VK Видео, Rutube или прямую MP4-ссылку.' },
                 { n: 3, title: 'Создайте комнату и поделитесь ссылкой', desc: 'Одна кнопка — WeWatch создаёт комнату и даёт ссылку для друга.' },
                 { n: 4, title: 'Смотрите и общайтесь', desc: 'Пишите в чат прямо во время просмотра — WeWatch не мешает видео.' },
               ].map(({ n, title, desc }) => (
@@ -131,9 +119,9 @@ export default function SmotretSerialVmestePage() {
 
           <div className="bg-[#7B72F8]/10 border border-[#7B72F8]/30 rounded-2xl p-8 text-center">
             <h2 className="text-2xl font-bold text-white mb-3">Смотрите сериалы вместе</h2>
-            <p className="text-zinc-400 mb-6">Скачайте WeWatch бесплатно и начните марафон с другом</p>
+            <p className="text-zinc-400 mb-6">Откройте WeWatch в браузере и начните марафон с другом</p>
             <Link href="/ru" className="inline-flex items-center justify-center gap-2 bg-[#7B72F8] hover:bg-[#6a63e8] text-white font-semibold px-8 py-3 rounded-xl transition-colors">
-              Скачать бесплатно
+              Открыть веб-версию
             </Link>
           </div>
         </div>

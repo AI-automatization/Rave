@@ -11,7 +11,7 @@ const PATH = '/uz/guides/youtube-birgalikda';
 export const metadata: Metadata = {
   title: "YouTube-ni do'st bilan onlayn birgalikda ko'rish — bepul",
   description:
-    "WeWatch orqali YouTube videolarini do'stingiz bilan sinxron holda tomosha qiling. Bir kishi pause bosadi — hammaga to'xtaydi. iPhone, Android, kompyuter — bepul.",
+    "WeWatch veb-versiyasi orqali YouTube videolarini do'stingiz bilan sinxron tomosha qiling. iOS va Android ilovalari ishlab chiqilmoqda.",
   keywords: [
     "youtube birgalikda ko'rish",
     "youtube do'st bilan onlayn",
@@ -39,22 +39,10 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-const jsonLd = {
-  '@context': 'https://schema.org',
-  '@type': 'Article',
-  headline: "YouTube-ni do'st bilan onlayn birgalikda ko'rish",
-  description: "WeWatch orqali YouTube videolarini do'stingiz bilan sinxron holda tomosha qiling",
-  author: { '@type': 'Organization', name: 'WeWatch', url: 'https://wewatch.uz' },
-  publisher: { '@type': 'Organization', name: 'WeWatch', url: 'https://wewatch.uz' },
-  datePublished: '2026-06-16',
-  inLanguage: 'uz',
-  mainEntityOfPage: 'https://wewatch.uz/uz/guides/youtube-birgalikda',
-};
 
 export default function YoutubeBirgalikdaPage() {
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <GuideHeader locale="uz" />
       <main className="min-h-screen bg-[#060608] text-white">
         <div className="max-w-3xl mx-auto px-4 py-16">
@@ -92,9 +80,9 @@ export default function YoutubeBirgalikdaPage() {
             <h2 className="text-2xl font-bold text-white mb-4">YouTube-ni birgalikda qanday ko'rish mumkin?</h2>
             <ol className="space-y-4">
               {[
-                { n: '1', t: "WeWatch ilovasini oching", d: "App Store yoki Google Play'dan yuklab oling — bepul." },
+                { n: '1', t: "WeWatch'ni oching", d: "wewatch.uz'ni brauzerda oching; iOS va Android ilovalari ishlab chiqilmoqda." },
                 { n: '2', t: "Yangi xona yarating", d: "'Xona yaratish' tugmasini bosing va istalgan nom bering." },
-                { n: '3', t: "YouTube videosini toping", d: "Ichki brauzerni oching, YouTube'da kerakli videoni toping va 'Shu yerda ko'r' tugmasini bosing." },
+                { n: '3', t: "YouTube videosini qo'shing", d: "Kerakli YouTube video havolasini WeWatch veb-versiyasiga kiriting." },
                 { n: '4', t: "Do'stingizni taklif qiling", d: "Xona havolasini Telegram yoki WhatsApp orqali yuboring." },
                 { n: '5', t: "Birgalikda tomosha boshlang", d: "Do'stingiz qo'shilgach play bosing — ikkovingiz bir vaqtda tomosha qilasiz." },
               ].map(({ n, t, d }) => (
@@ -115,7 +103,7 @@ export default function YoutubeBirgalikdaPage() {
               {[
                 { title: 'Sinxron tomosha', desc: "Bir kadr — bir vaqtda. Server barcha ishtirokchilarni sinxronlashtiradi." },
                 { title: "Bepul va ro'yxatsiz", desc: "Xona yaratuvchi ro'yxatdan o'tadi, do'stingiz shunchaki havola orqali kiradi." },
-                { title: 'Har qanday qurilma', desc: 'iPhone, Android yoki kompyuter — farq qilmaydi.' },
+                { title: 'Har qanday qurilma', desc: 'iPhone, Android yoki kompyuter brauzerida ishlaydi; mobil ilovalar ishlab chiqilmoqda.' },
                 { title: 'Demokratik pause', desc: "Kimdir internet tufayli to'xtatsa — server hammani kutib turadi." },
               ].map(({ title, desc }) => (
                 <div key={title} className="bg-zinc-900 rounded-xl p-5 border border-zinc-800">

@@ -8,9 +8,6 @@ const nextConfig = {
     // a web dep — suppress next build's type-check step in CI/Docker
     ignoreBuildErrors: true,
   },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: '**.cloudinary.com' },

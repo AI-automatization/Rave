@@ -43,15 +43,16 @@ export default function TermsPage() {
           <strong className="text-zinc-200 block mb-1">Please Read Carefully</strong>
           These Terms of Service (&quot;Terms&quot;) constitute a legally binding agreement between you
           and <strong className="text-zinc-200">{COMPANY}</strong> (&quot;WeWatch&quot;, &quot;we&quot;,
-          &quot;our&quot;, &quot;us&quot;) governing your use of the WeWatch mobile application,
-          website ({APP_URL}), and all related services (collectively, the &quot;Service&quot;).
+          &quot;our&quot;, &quot;us&quot;) governing your use of the WeWatch website ({APP_URL}) and all
+          related services (collectively, the &quot;Service&quot;). Native iOS and Android applications
+          are in development and will become part of the Service only when released.
           By creating an account or using the Service, you agree to be bound by these Terms.
           If you do not agree, do not use the Service.
         </div>
 
         <Section title="1. Eligibility">
           <ul>
-            <li>You must be at least <strong className="text-zinc-200">17 years old</strong> to use the Service. The app carries a 17+ rating on the App Store due to user-generated content and mature video content that users may share in watch party rooms.</li>
+            <li>You must be at least <strong className="text-zinc-200">17 years old</strong> to use the Service due to user-generated content and mature video content that users may share in watch party rooms. Native iOS and Android apps are still in development.</li>
             <li>If you are under 18, you represent that your parent or legal guardian has reviewed and agreed to these Terms on your behalf.</li>
             <li>You must provide accurate, complete, and current information when creating your account.</li>
             <li>You may not create an account if you have previously been banned from the Service.</li>

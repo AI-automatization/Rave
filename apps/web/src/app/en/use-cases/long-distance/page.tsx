@@ -9,7 +9,7 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 const PATH = '/en/use-cases/long-distance';
 
 export const metadata: Metadata = {
-  title: 'Watch Movies Together Long Distance — WeWatch for Couples Apart',
+  title: 'Watch Movies Together Long Distance — for Couples Apart',
   description:
     'Partner far away? Watch films and series together online, in sync, as if you were in the same room. WeWatch is a long-distance date night for couples in different cities and countries.',
   keywords: [
@@ -32,17 +32,6 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-const jsonLd = {
-  '@context': 'https://schema.org',
-  '@type': 'Article',
-  headline: 'Watch movies together long distance',
-  description: 'How couples apart watch films and series together online through WeWatch.',
-  author: { '@type': 'Organization', name: 'WeWatch', url: APP_URL },
-  publisher: { '@type': 'Organization', name: 'WeWatch', url: APP_URL },
-  datePublished: '2026-07-28',
-  inLanguage: 'en',
-  mainEntityOfPage: `${APP_URL}${PATH}`,
-};
 
 const STEPS = [
   { n: 1, title: 'Agree on the film first', desc: 'Pick a film or a series together — on YouTube, VK Video or Rutube.' },
@@ -52,14 +41,13 @@ const STEPS = [
 
 const FAQS = [
   { q: 'Does it work between different countries?', a: 'Yes. Synchronization does not depend on distance — only on having an internet connection.' },
-  { q: 'Do we need the same phone?', a: 'No. One of you can be on iPhone, the other on Android or in a browser.' },
+  { q: 'Do we need the same phone?', a: 'No. Both can use the web version in browsers on iPhone, Android or desktop; native apps are in development.' },
   { q: 'Is it free?', a: 'Yes, WeWatch is free.' },
 ];
 
 export default function LongDistancePage() {
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <GuideHeader locale="en" />
       <main className="min-h-screen bg-[#060608] text-white">
         <div className="max-w-3xl mx-auto px-4 py-16">
@@ -107,7 +95,7 @@ export default function LongDistancePage() {
             <p className="text-zinc-400 leading-relaxed">
               Counting down “three, two, one” falls apart at the first pause. WeWatch holds the
               timeline automatically: seeking, buffering, different connection speeds — all of it gets
-              evened out. Works between iPhone and Android at the same time.
+              evened out. The web version works in browsers on iPhone and Android; native apps are in development.
             </p>
           </section>
 
@@ -137,7 +125,7 @@ export default function LongDistancePage() {
           </div>
         </div>
       </main>
-      <GuideFooter locale="en" />
+      <GuideFooter locale="en" currentPath={PATH} />
     </>
   );
 }

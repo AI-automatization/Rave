@@ -11,23 +11,16 @@ test.describe('Public Pages — ochiq sahifalar', () => {
     await expect(cta).toBeVisible({ timeout: 10000 });
   });
 
-  test('/login sahifasi yuklanadi va form elementlari bor', async ({ page }) => {
-    test.setTimeout(60000);
-    await page.goto('/login');
-    await expect(page).toHaveTitle(/.+/);
-    await expect(page.locator('input[name="email"]')).toBeVisible();
-    await expect(page.locator('input[name="password"]')).toBeVisible();
-    await expect(page.locator('button[type="submit"]')).toBeVisible();
+  test('/login marketing saytidan app domeniga redirect qiladi', async ({ request }) => {
+    const response = await request.get('/login', { maxRedirects: 0 });
+    expect(response.status()).toBe(308);
+    expect(response.headers().location).toBe('https://app.wewatch.uz/login');
   });
 
-  test('/register sahifasi yuklanadi va form elementlari bor', async ({ page }) => {
-    test.setTimeout(60000);
-    await page.goto('/register');
-    await expect(page).toHaveTitle(/.+/);
-    await expect(page.locator('input[name="username"]')).toBeVisible();
-    await expect(page.locator('input[name="email"]')).toBeVisible();
-    await expect(page.locator('input[name="password"]')).toBeVisible();
-    await expect(page.locator('input[name="confirmPassword"]')).toBeVisible();
+  test('/register marketing saytidan app domeniga redirect qiladi', async ({ request }) => {
+    const response = await request.get('/register', { maxRedirects: 0 });
+    expect(response.status()).toBe(308);
+    expect(response.headers().location).toBe('https://app.wewatch.uz/register');
   });
 
   test('/features sahifasi yuklanadi', async ({ page }) => {

@@ -9,7 +9,7 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 const PATH = '/uz/use-cases/masofadagi-juftlik';
 
 export const metadata: Metadata = {
-  title: "Masofadan turib birga kino ko'rish — ajralgan juftliklar uchun WeWatch",
+  title: "Masofadan turib birga kino ko'rish — ajralgan juftliklar uchun",
   description:
     "Yaringiz uzoqdami? Kino va seriallarni onlayn, sinxron, xuddi yonma-yon o'tirgandek birga ko'ringiz. WeWatch — turli shahar va davlatlardagi juftliklar uchun masofadan uchrashuv.",
   keywords: [
@@ -32,17 +32,6 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-const jsonLd = {
-  '@context': 'https://schema.org',
-  '@type': 'Article',
-  headline: "Masofadan turib birga kino ko'rish",
-  description: "Ajralgan juftliklar WeWatch orqali kino va seriallarni onlayn birga qanday ko'radi.",
-  author: { '@type': 'Organization', name: 'WeWatch', url: APP_URL },
-  publisher: { '@type': 'Organization', name: 'WeWatch', url: APP_URL },
-  datePublished: '2026-07-28',
-  inLanguage: 'uz',
-  mainEntityOfPage: `${APP_URL}${PATH}`,
-};
 
 const STEPS = [
   { n: 1, title: 'Kinoni oldindan tanlangiz', desc: "Kino yoki serial haqida kelishingiz — YouTube, VK Video yoki Rutube'da." },
@@ -52,14 +41,13 @@ const STEPS = [
 
 const FAQS = [
   { q: 'Turli davlatlar orasida ishlaydimi?', a: "Ha. Sinxronizatsiya masofaga bog'liq emas — faqat internet ulanishi muhim." },
-  { q: 'Bir xil telefon kerakmi?', a: "Yo'q. Biri iPhone'da, ikkinchisi Android'da yoki brauzerda bo'lishi mumkin." },
+  { q: 'Bir xil telefon kerakmi?', a: "Yo'q. Veb-versiyani iPhone yoki Android brauzerida ochish mumkin; mobil ilovalar ishlab chiqilmoqda." },
   { q: 'Bu bepulmi?', a: 'Ha, WeWatch bepul.' },
 ];
 
 export default function MasofadagiJuftlikPage() {
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <GuideHeader locale="uz" />
       <main className="min-h-screen bg-[#060608] text-white">
         <div className="max-w-3xl mx-auto px-4 py-16">
@@ -107,7 +95,7 @@ export default function MasofadagiJuftlikPage() {
             <p className="text-zinc-400 leading-relaxed">
               «Uch-ikki-bir» deb qo&apos;lda sinxronlash birinchi pauzada tarqab ketadi. WeWatch vaqtni
               avtomatik ushlab turadi: oldinga o&apos;tish, buferlanish, har xil internet tezligi — hammasi
-              tekislanadi. iPhone va Android o&apos;rtasida bir vaqtda ishlaydi.
+              tekislanadi. Veb-versiya iPhone va Android brauzerlarida ishlaydi; mobil ilovalar ishlab chiqilmoqda.
             </p>
           </section>
 
@@ -137,7 +125,7 @@ export default function MasofadagiJuftlikPage() {
           </div>
         </div>
       </main>
-      <GuideFooter locale="uz" />
+      <GuideFooter locale="uz" currentPath={PATH} />
     </>
   );
 }

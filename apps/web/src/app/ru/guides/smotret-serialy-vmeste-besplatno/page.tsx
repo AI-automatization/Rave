@@ -4,45 +4,29 @@ import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
 
 export const metadata: Metadata = {
   // No manual "| WeWatch" — the root layout's title template appends it.
-  title: 'Смотреть сериалы вместе онлайн бесплатно — синхронно',
+  title: 'Сериальный клуб онлайн бесплатно — смотреть сериалы группой',
   description:
-    'Как смотреть сериалы вместе с друзьями онлайн бесплатно. WeWatch синхронизирует серии между всеми участниками — смотрите по эпизоду вместе на iPhone, Android и вебе.',
+    'Как организовать бесплатный сериальный клуб онлайн для нескольких друзей: общая комната, синхронный эпизод и чат.',
   keywords: [
-    'смотреть сериалы вместе', 'смотреть сериалы вместе онлайн бесплатно', 'смотреть сериал вместе',
-    'сериал с друзьями онлайн', 'смотреть сериалы синхронно', 'watch party сериалы',
+    'смотреть сериалы вместе онлайн бесплатно', 'сериальный клуб онлайн',
+    'сериалы с друзьями бесплатно', 'групповой просмотр сериалов',
   ],
   alternates: {
     canonical: 'https://wewatch.uz/ru/guides/smotret-serialy-vmeste-besplatno',
-    languages: {
-      'ru': 'https://wewatch.uz/ru/guides/smotret-serialy-vmeste-besplatno',
-      'uz': 'https://wewatch.uz/uz/guides/serial-birgalikda',
-    },
   },
   openGraph: {
-    title: 'Смотреть сериалы вместе онлайн бесплатно | WeWatch',
-    description: 'Синхронный просмотр сериалов с друзьями — по эпизоду вместе.',
+    title: 'Сериальный клуб онлайн бесплатно | WeWatch',
+    description: 'Групповой синхронный просмотр сериалов с друзьями и обсуждением в чате.',
     url: 'https://wewatch.uz/ru/guides/smotret-serialy-vmeste-besplatno',
     type: 'article',
   },
   robots: { index: true, follow: true },
 };
 
-const jsonLd = {
-  '@context': 'https://schema.org',
-  '@type': 'Article',
-  headline: 'Как смотреть сериалы вместе онлайн бесплатно',
-  description: 'Гайд по совместному синхронному просмотру сериалов через WeWatch.',
-  author: { '@type': 'Organization', name: 'WeWatch', url: 'https://wewatch.uz' },
-  publisher: { '@type': 'Organization', name: 'WeWatch', url: 'https://wewatch.uz' },
-  datePublished: '2026-07-02',
-  inLanguage: 'ru',
-  mainEntityOfPage: 'https://wewatch.uz/ru/guides/smotret-serialy-vmeste-besplatno',
-};
 
 export default function SerialyVmestePage() {
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <GuideHeader locale="ru" />
       <main className="min-h-screen bg-[#060608] text-white">
         <div className="max-w-3xl mx-auto px-4 py-16">
@@ -52,9 +36,9 @@ export default function SerialyVmestePage() {
             <span>Сериалы вместе</span>
           </nav>
 
-          <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">Смотреть сериалы вместе онлайн бесплатно</h1>
+          <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">Сериальный клуб онлайн бесплатно</h1>
           <p className="text-xl text-zinc-400 mb-10 leading-relaxed">
-            Начните сериал с друзьями и смотрите по эпизоду синхронно. WeWatch держит серию в одном времени у всех — никто не убегает вперёд и не спойлерит.
+            Соберите несколько друзей в сериальный клуб и смотрите выбранный эпизод синхронно. WeWatch держит одну позицию у всех — никто не убегает вперёд и не спойлерит.
           </p>
 
           <section className="mb-10">
@@ -85,10 +69,10 @@ export default function SerialyVmestePage() {
 
           <div className="bg-[#7B72F8]/10 border border-[#7B72F8]/30 rounded-2xl p-8 text-center">
             <h2 className="text-2xl font-bold mb-3">Начните сериал вместе</h2>
-            <p className="text-zinc-400 mb-6">WeWatch бесплатен — без ограничений</p>
+            <p className="text-zinc-400 mb-6">Основные функции совместного просмотра WeWatch бесплатны</p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Link href="/ru" className="inline-flex items-center justify-center gap-2 bg-[#7B72F8] hover:bg-[#6a63e8] text-white font-semibold px-6 py-3 rounded-xl transition-colors">Скачать WeWatch</Link>
-              <Link href="/ru/guides/smotret-anime-vmeste" className="inline-flex items-center justify-center gap-2 border border-zinc-700 hover:border-zinc-500 text-zinc-300 font-medium px-6 py-3 rounded-xl transition-colors">Аниме вместе →</Link>
+              <Link href="/ru" className="inline-flex items-center justify-center gap-2 bg-[#7B72F8] hover:bg-[#6a63e8] text-white font-semibold px-6 py-3 rounded-xl transition-colors">Открыть WeWatch</Link>
+              <Link href="/ru/guides/smotret-serial-vmeste" className="inline-flex items-center justify-center gap-2 border border-zinc-700 hover:border-zinc-500 text-zinc-300 font-medium px-6 py-3 rounded-xl transition-colors">Сериал вдвоём →</Link>
             </div>
           </div>
         </div>

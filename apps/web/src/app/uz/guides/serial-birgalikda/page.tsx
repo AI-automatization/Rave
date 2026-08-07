@@ -40,22 +40,10 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-const jsonLd = {
-  '@context': 'https://schema.org',
-  '@type': 'Article',
-  headline: "Serial do'stlar bilan birgalikda ko'rish onlayn",
-  description: "WeWatch orqali seriallarni do'stlaringiz bilan sinxron holda tomosha qiling",
-  author: { '@type': 'Organization', name: 'WeWatch', url: 'https://wewatch.uz' },
-  publisher: { '@type': 'Organization', name: 'WeWatch', url: 'https://wewatch.uz' },
-  datePublished: '2026-06-16',
-  inLanguage: 'uz',
-  mainEntityOfPage: 'https://wewatch.uz/uz/guides/serial-birgalikda',
-};
 
 export default function SerialBirgalikdaPage() {
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <GuideHeader locale="uz" />
       <main className="min-h-screen bg-[#060608] text-white">
         <div className="max-w-3xl mx-auto px-4 py-16">
@@ -92,8 +80,8 @@ export default function SerialBirgalikdaPage() {
               ))}
             </div>
             <p className="text-zinc-400 text-sm">
-              WeWatch ichki brauzeri orqali VK Video, YouTube va boshqa platformalardagi seriallarni
-              ochib tomosha qilish mumkin.
+              WeWatch veb-versiyasi orqali VK Video, YouTube, Rutube yoki to'g'ridan-to'g'ri MP4
+              havolasidagi seriallarni sinxron tomosha qilish mumkin.
             </p>
           </section>
 
@@ -101,9 +89,9 @@ export default function SerialBirgalikdaPage() {
             <h2 className="text-2xl font-bold text-white mb-4">Serial birgalikda ko'rish bosqichlari</h2>
             <ol className="space-y-4">
               {[
-                { n: '1', t: "WeWatch ilovasini yuklab oling", d: "App Store yoki Google Play — bepul." },
+                { n: '1', t: "WeWatch'ni oching", d: "Veb-versiya mavjud; iOS va Android ilovalari ishlab chiqilmoqda." },
                 { n: '2', t: "Xona yarating", d: "'Xona yaratish' tugmasini bosing va nom bering." },
-                { n: '3', t: "Serial saytini oching", d: "Ichki brauzerni oching, kerakli serialni VK yoki YouTube'dan toping." },
+                { n: '3', t: "Serialni qo'shing", d: "Kerakli VK Video, YouTube, Rutube yoki to'g'ridan-to'g'ri MP4 havolasini kiriting." },
                 { n: '4', t: "Do'stlaringizni taklif qiling", d: "Xona havolasini Telegram'dan yuboring. Do'stingiz havola orqali kiradi." },
                 { n: '5', t: "Birgalikda tomosha qiling", d: "Play bosasiz — hammangiz bir vaqtda ko'rasiz. Pause — ham sinxron." },
               ].map(({ n, t, d }) => (
@@ -124,7 +112,7 @@ export default function SerialBirgalikdaPage() {
               {[
                 "Sinxron pause — kimdir bosadi, hammaga ta'sir qiladi",
                 "Demokratik kutish — internet sekinlashsa, server hammani kutadi",
-                "Har qanday qurilmada — iPhone, Android, kompyuter",
+                "Brauzerda — iPhone, Android yoki kompyuter; mobil ilovalar ishlab chiqilmoqda",
                 "Bepul va ro'yxatdan o'tmasdan do'stlaringizni taklif qilish mumkin",
                 "Matn chat — tomosha paytida fikr almashish",
               ].map((item) => (
@@ -142,7 +130,7 @@ export default function SerialBirgalikdaPage() {
               {[
                 {
                   q: "Turk seriallarini qayerdan topish mumkin?",
-                  a: "VK Video va YouTube'da ko'plab turk seriallar tarjima bilan mavjud. WeWatch ichki brauzeri orqali ularni sinxron tomosha qilish mumkin.",
+                  a: "VK Video va YouTube'da mavjud turk seriallarini qo'llab-quvvatlanadigan havola orqali sinxron tomosha qilish mumkin.",
                 },
                 {
                   q: "Bir seriyadan keyingisiga o'tish osonmi?",

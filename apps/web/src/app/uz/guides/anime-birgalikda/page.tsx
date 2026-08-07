@@ -40,17 +40,6 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-const jsonLd = {
-  '@context': 'https://schema.org',
-  '@type': 'Article',
-  headline: "Anime do'stlar bilan onlayn birgalikda ko'rish",
-  description: "WeWatch orqali anime-ni do'stlaringiz bilan sinxron holda tomosha qiling",
-  author: { '@type': 'Organization', name: 'WeWatch', url: 'https://wewatch.uz' },
-  publisher: { '@type': 'Organization', name: 'WeWatch', url: 'https://wewatch.uz' },
-  datePublished: '2026-06-16',
-  inLanguage: 'uz',
-  mainEntityOfPage: 'https://wewatch.uz/uz/guides/anime-birgalikda',
-};
 
 const POPULAR_ANIME = [
   'Jujutsu Kaisen',
@@ -66,7 +55,6 @@ const POPULAR_ANIME = [
 export default function AnimeBirgalikdaPage() {
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <GuideHeader locale="uz" />
       <main className="min-h-screen bg-[#060608] text-white">
         <div className="max-w-3xl mx-auto px-4 py-16">
@@ -110,8 +98,8 @@ export default function AnimeBirgalikdaPage() {
               ))}
             </div>
             <p className="text-zinc-400 text-sm">
-              VK Video, YouTube, Rutube va boshqa platformalardagi anime-larni WeWatch orqali sinxron tomosha
-              qilish mumkin. Ichki brauzer yordamida istalgan saytni ochasiz.
+              VK Video, YouTube, Rutube yoki to'g'ridan-to'g'ri MP4 havolasi orqali mavjud anime-larni
+              WeWatch veb-versiyasida sinxron tomosha qilish mumkin.
             </p>
           </section>
 
@@ -119,9 +107,9 @@ export default function AnimeBirgalikdaPage() {
             <h2 className="text-2xl font-bold text-white mb-4">Anime birgalikda qanday ko'riladi?</h2>
             <ol className="space-y-4">
               {[
-                { n: '1', t: "WeWatch ilovasini yuklab oling", d: "App Store yoki Google Play'dan bepul." },
+                { n: '1', t: "WeWatch'ni oching", d: "Veb-versiyani brauzerda oching; iOS va Android ilovalari ishlab chiqilmoqda." },
                 { n: '2', t: "Xona yarating", d: "Bosh sahifada 'Xona yaratish' tugmasini bosing." },
-                { n: '3', t: "Anime-ni toping", d: "Ichki brauzerni oching. VK Video, YouTube yoki boshqa saytda kerakli anime seriyasini toping." },
+                { n: '3', t: "Anime-ni qo'shing", d: "VK Video, YouTube, Rutube yoki to'g'ridan-to'g'ri MP4 havolasini kiriting." },
                 { n: '4', t: "Do'stlarni taklif qiling", d: "Xona havolasini Telegram yoki WhatsApp orqali yuboring. Ular hech narsa yuklamasa ham kirishi mumkin." },
                 { n: '5', t: "Birgalikda tomosha qiling", d: "Hammasi qo'shilgach play bosing. Sinxron tomosha boshlanadi." },
               ].map(({ n, t, d }) => (
