@@ -102,8 +102,23 @@ export class WatchPartyController {
         }
       }
 
+      // Real prod incident 2026-08-07: tryExtract's own axios timeout (extractionClient.ts,
+      // 60s) is longer than the shared timeout() middleware's global request timeout (30s) — when
+      // content-service's extraction call runs long (e.g. Elasticsearch down, slow yt-dlp probe),
+      // the timeout middleware can already have sent the client a 503 by the time this line is
+      // reached, and calling res.json() again crashed the ENTIRE process with ERR_HTTP_HEADERS_SENT
+      // (not just this one request). The room/VB session are already created above regardless —
+      // only the response to an already-gone client is skipped here.
+      if (res.headersSent) {
+        logger.warn('createRoom: response already sent (timeout race), skipping', { roomId: room._id });
+        return;
+      }
       res.status(201).json(apiResponse.success(room, 'Room created'));
     } catch (error) {
+      if (res.headersSent) {
+        logger.warn('createRoom: error occurred after response already sent (timeout race)', { error: (error as Error).message });
+        return;
+      }
       // Handled here rather than by the shared error middleware because the client needs the
       // existing room's id to navigate to it, and that middleware only forwards code/reason —
       // teaching it about roomId would mean changing shared/* for a single endpoint.
