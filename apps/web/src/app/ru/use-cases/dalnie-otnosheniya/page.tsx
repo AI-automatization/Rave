@@ -1,12 +1,13 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { hreflangFor } from '@/lib/i18n/routes';
+import { ArticleMetadata } from '@/components/common/ArticleMetadata';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 const PATH = '/ru/use-cases/dalnie-otnosheniya';
 
 export const metadata: Metadata = {
-  title: 'Смотреть фильмы вместе на расстоянии — WeWatch для пар в разлуке',
+  title: 'Смотреть фильмы вместе на расстоянии — для пар в разлуке',
   description:
     'Партнёр далеко? Смотрите фильмы и сериалы вместе онлайн, синхронно, как будто рядом. WeWatch — свидание на расстоянии для пар в разных городах и странах.',
   keywords: [
@@ -30,22 +31,10 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-const jsonLd = {
-  '@context': 'https://schema.org',
-  '@type': 'Article',
-  headline: 'Смотреть фильмы вместе на расстоянии',
-  description: 'Как парам в разлуке смотреть фильмы и сериалы вместе онлайн через WeWatch.',
-  author: { '@type': 'Organization', name: 'WeWatch', url: 'https://wewatch.uz' },
-  publisher: { '@type': 'Organization', name: 'WeWatch', url: 'https://wewatch.uz' },
-  datePublished: '2026-07-02',
-  inLanguage: 'ru',
-  mainEntityOfPage: 'https://wewatch.uz/ru/use-cases/dalnie-otnosheniya',
-};
 
 export default function DalnieOtnosheniyaPage() {
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <main className="min-h-screen bg-[#060608] text-white">
         <div className="max-w-3xl mx-auto px-4 py-16">
           <nav className="text-sm text-zinc-500 mb-8">
@@ -90,7 +79,7 @@ export default function DalnieOtnosheniyaPage() {
           <section className="mb-10">
             <h2 className="text-2xl font-bold mb-4">Почему WeWatch, а не «включим на счёт три»</h2>
             <p className="text-zinc-400 leading-relaxed">
-              Ручная синхронизация «три-два-один» рассыпается на первой же паузе. WeWatch держит время автоматически: перемотка, буферизация, разная скорость интернета — всё выравнивается. Работает между iPhone и Android одновременно.
+              Ручная синхронизация «три-два-один» рассыпается на первой же паузе. Веб-версия WeWatch работает в браузерах на iPhone и Android; нативные приложения находятся в разработке.
             </p>
           </section>
 
@@ -99,8 +88,8 @@ export default function DalnieOtnosheniyaPage() {
             <div className="space-y-4">
               {[
                 { q: 'Работает между разными странами?', a: 'Да. Синхронизация не зависит от расстояния — важно только интернет-соединение.' },
-                { q: 'Нужен ли одинаковый телефон?', a: 'Нет. Один может быть на iPhone, другой на Android или в браузере.' },
-                { q: 'Это бесплатно?', a: 'Да, WeWatch бесплатен.' },
+                { q: 'Нужен ли одинаковый телефон?', a: 'Нет. Откройте веб-версию в браузерах на iPhone или Android. Нативные приложения находятся в разработке.' },
+                { q: 'Это бесплатно?', a: 'Основные функции совместного просмотра WeWatch бесплатны.' },
               ].map(({ q, a }) => (
                 <details key={q} className="border border-zinc-800 rounded-xl p-4">
                   <summary className="text-white font-medium cursor-pointer">{q}</summary>
@@ -112,14 +101,15 @@ export default function DalnieOtnosheniyaPage() {
 
           <div className="bg-[#7B72F8]/10 border border-[#7B72F8]/30 rounded-2xl p-8 text-center">
             <h2 className="text-2xl font-bold mb-3">Устройте вечер вдвоём сегодня</h2>
-            <p className="text-zinc-400 mb-6">Расстояние не важно — WeWatch бесплатен</p>
+            <p className="text-zinc-400 mb-6">Расстояние не важно — основные функции просмотра бесплатны</p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Link href="/ru" className="inline-flex items-center justify-center gap-2 bg-[#7B72F8] hover:bg-[#6a63e8] text-white font-semibold px-6 py-3 rounded-xl transition-colors">Скачать WeWatch</Link>
+              <Link href="/ru" className="inline-flex items-center justify-center gap-2 bg-[#7B72F8] hover:bg-[#6a63e8] text-white font-semibold px-6 py-3 rounded-xl transition-colors">Открыть WeWatch</Link>
               <Link href="/ru/use-cases/svidanie-online" className="inline-flex items-center justify-center gap-2 border border-zinc-700 hover:border-zinc-500 text-zinc-300 font-medium px-6 py-3 rounded-xl transition-colors">Свидание онлайн →</Link>
             </div>
           </div>
         </div>
       </main>
+      <ArticleMetadata currentPath={PATH} />
     </>
   );
 }

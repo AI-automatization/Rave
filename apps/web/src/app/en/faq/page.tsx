@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   ...socialMeta({
     locale: 'en',
     title: 'FAQ — Frequently Asked Questions | WeWatch',
-    description: 'Everything about WeWatch: synchronization, supported platforms, the free tier, iOS and Android.',
+    description: 'Everything about WeWatch: web synchronization, the free tier, and iOS/Android apps currently in development.',
     url: `${APP_URL}${PATH}`,
   }),
   robots: { index: true, follow: true },
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
 const faqs = [
   {
     q: 'How do I watch YouTube together with a friend online?',
-    a: 'Open wewatch.uz in a browser or install WeWatch on iOS. Press “Create room”, paste a YouTube link and share the room link with your friend. As soon as they join, playback is synchronized — when you pause, the video stops for everyone at the same moment.',
+    a: 'Open wewatch.uz in a browser. Press “Create room”, paste a YouTube link and share the room link with your friend. Native iOS and Android apps are in development.',
   },
   {
     q: 'What is a watch party?',
@@ -42,19 +42,19 @@ const faqs = [
   },
   {
     q: 'Which video services does WeWatch support?',
-    a: 'WeWatch supports YouTube, VK Video, Rutube and direct .mp4 links. The mobile app also has a built-in browser, so you can open other video sites and watch those in sync too.',
+    a: 'WeWatch supports YouTube, VK Video, Rutube and direct .mp4 links in the web version.',
   },
   {
     q: 'Is WeWatch free?',
-    a: 'Yes. The free tier has no time limit — create rooms, invite friends and watch together for as long as you want. A Pro plan with extra features is available, but synced watching is not behind it.',
+    a: 'Core watch-party features are free. A Pro plan is listed for additional features; production checkout availability still requires confirmation.',
   },
   {
     q: 'Does WeWatch work on Android?',
-    a: 'The iOS app is available on the App Store now. The Android app is in active development. The web version (wewatch.uz) works in any browser, including on Android, today.',
+    a: 'The native iOS and Android apps are in active development. The web version at wewatch.uz is available now and works in browsers on phones and computers.',
   },
   {
     q: 'Can one person watch from a phone and another from a computer?',
-    a: 'Yes — this is one of the core features. One participant on iPhone, another on Android, a third in a desktop browser: all in the same room, synchronized in real time across every platform.',
+    a: 'Yes. Participants can open the web version in browsers on iPhone, Android and desktop and join the same synchronized room. Native apps are in development.',
   },
   {
     q: 'How does the video synchronization work?',
@@ -70,7 +70,7 @@ const faqs = [
   },
   {
     q: 'Do we need a browser extension?',
-    a: 'No. WeWatch runs as a web app and as native mobile apps — there is nothing to install in your browser, and nothing for your friend to install either if they join by link.',
+    a: 'No. WeWatch currently runs as a web app, so participants can join through a browser link. Native iOS and Android apps are in development.',
   },
   {
     q: 'Can we watch together from different countries?',

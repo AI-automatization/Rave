@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { LandingContent } from '@/components/landing/LandingContent';
 import { hreflangFor } from '@/lib/i18n/routes';
+import { publishHomepageSchema } from '@/data/homepage-schema';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 
@@ -13,7 +14,7 @@ const LANGUAGES = hreflangFor('/', APP_URL);
 export const metadata: Metadata = {
   title: { absolute: "WeWatch — Do'stlar bilan birga video ko'rish | Bepul Watch Party" },
   description:
-    "WeWatch — YouTube, VK va Rutube'ni do'stlaring bilan real vaqtda birga ko'r. Biri telefonda, biri saytda — sinxron ishlaydi. Bepul watch party: chat, emoji. iOS va Android.",
+    "WeWatch — YouTube, VK va Rutube'ni do'stlaring bilan vebda real vaqtda birga ko'r. Bepul watch party: chat va emoji. iOS va Android ilovalari ishlab chiqilmoqda.",
   alternates: {
     canonical: `${APP_URL}/uz`,
     languages: LANGUAGES,
@@ -21,7 +22,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "WeWatch — Do'stlar bilan birga video ko'rish onlayn",
     description:
-      "Bepul watch party — YouTube, VK, Rutube'ni do'stlar bilan real vaqtda birga ko'r. Sinxronizatsiya, chat, emoji. iOS va Android.",
+      "Bepul veb watch party — YouTube, VK va Rutube'ni do'stlar bilan real vaqtda birga ko'r. iOS va Android ilovalari ishlab chiqilmoqda.",
     url: `${APP_URL}/uz`,
     locale: 'uz_UZ',
     images: [{ url: '/og-image', width: 1200, height: 630, alt: "WeWatch — do'stlar bilan birga video ko'rish" }],
@@ -34,7 +35,7 @@ export const metadata: Metadata = {
     creator: '@wewatch_app',
     title: "WeWatch — Do'stlar bilan birga video ko'rish",
     description:
-      "Bepul watch party — YouTube, VK, Rutube'ni do'stlar bilan real vaqtda birga ko'r. Chat, emoji. iOS va Android.",
+      "Bepul veb watch party — YouTube, VK va Rutube'ni do'stlar bilan real vaqtda birga ko'r. iOS va Android ilovalari ishlab chiqilmoqda.",
     images: ['/og-image'],
   },
   robots: { index: true, follow: true },
@@ -55,14 +56,14 @@ const jsonLd = {
       inLanguage: 'uz',
     },
     {
-      '@type': 'MobileApplication',
+      '@type': 'SoftwareApplication',
       '@id': `${APP_URL}/uz#app`,
       name: "WeWatch — birga ko'rish",
       url: `${APP_URL}/uz`,
       description:
-        "Do'stlar bilan birga film va video ko'rish uchun bepul ilova. YouTube, VK, Rutube, Uzmove'ni real vaqtda sinxron ko'ring. Chat, emoji-reaksiyalar.",
+        "Do'stlar bilan YouTube, VK Video, Rutube va to'g'ridan-to'g'ri MP4 havolalarini vebda sinxron ko'rish xizmati. iOS va Android ilovalari ishlab chiqilmoqda.",
       applicationCategory: 'EntertainmentApplication',
-      operatingSystem: 'iOS, Android',
+      operatingSystem: 'Web',
       inLanguage: 'uz',
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD', availability: 'https://schema.org/InStock' },
     },
@@ -76,7 +77,7 @@ const jsonLd = {
           name: "Do'stlar bilan birga video ko'rish qanday ishlaydi?",
           acceptedAnswer: {
             '@type': 'Answer',
-            text: "WeWatch'ni yuklab oling, ichki brauzerni oching, YouTube, VK yoki Rutube'dan video toping, xona yarating va do'stingizga havola yuboring. Hamma bir xil kadrni real vaqtda ko'radi.",
+            text: "WeWatch'ni brauzerda oching, YouTube, VK yoki Rutube'dan video toping, xona yarating va do'stingizga havola yuboring. Mobil ilovalar ishlab chiqilmoqda.",
           },
         },
         {
@@ -84,7 +85,7 @@ const jsonLd = {
           name: "Birga kino ko'rish bepulmi?",
           acceptedAnswer: {
             '@type': 'Answer',
-            text: "Ha, WeWatch to'liq bepul. App Store yoki Google Play'dan yuklab oling va telefon raqami orqali ro'yxatdan o'tib, darhol do'stlaringiz bilan birga kino ko'rishni boshlang.",
+            text: "WeWatch'ning asosiy funksiyalari veb-versiyada bepul. iOS va Android ilovalari ishlab chiqilmoqda.",
           },
         },
         {
@@ -92,7 +93,7 @@ const jsonLd = {
           name: "Videoni birga qanday ko'rish mumkin?",
           acceptedAnswer: {
             '@type': 'Answer',
-            text: "Ichki brauzerda videoni toping, xona yarating va havolani ulashing. Video birga ko'rish uchun ishtirokchilarga havola yuborilishi kifoya — hamma sinxron ko'radi.",
+            text: "YouTube, VK Video, Rutube yoki to'g'ridan-to'g'ri MP4 havolasini kiriting, xona yarating va havolani ulashing — hamma sinxron ko'radi.",
           },
         },
         {
@@ -100,7 +101,7 @@ const jsonLd = {
           name: "Anime yoki serialni birga ko'rish mumkinmi?",
           acceptedAnswer: {
             '@type': 'Answer',
-            text: "Ha, WeWatch ichki brauzer orqali istalgan video-sayt bilan ishlaydi — anime va seriallar ham. Kerakli saytni oching, xona yarating va do'stingiz bilan birga serial ko'ring.",
+            text: "Ha, anime yoki serial YouTube, VK Video, Rutube yoxud to'g'ridan-to'g'ri MP4 havolasi orqali mavjud bo'lsa, xona yaratib uni do'stingiz bilan sinxron ko'rishingiz mumkin.",
           },
         },
         {
@@ -108,7 +109,7 @@ const jsonLd = {
           name: "Biri telefonda, biri saytda bo'lsa birga ko'rish mumkinmi?",
           acceptedAnswer: {
             '@type': 'Answer',
-            text: "Ha — WeWatch ko'rishni barcha platformalar o'rtasida bir vaqtda sinxronlaydi. iPhone, Android va kompyuter brauzeri bitta xonada cheklovsiz ishlaydi.",
+            text: "Ha — WeWatch veb-versiyasini iPhone, Android va kompyuter brauzerida ochib, bitta sinxron xonada ishlatish mumkin. Mobil ilovalar ishlab chiqilmoqda.",
           },
         },
       ],
@@ -116,12 +117,14 @@ const jsonLd = {
   ],
 };
 
+const publishedJsonLd = publishHomepageSchema(jsonLd, 'uz');
+
 export default function UzHomePage() {
   return (
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(publishedJsonLd) }}
       />
       <LandingContent />
     </>

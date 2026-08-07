@@ -12,7 +12,7 @@ const URL = `${APP_URL}${PATH}`;
 export const metadata: Metadata = {
   title: 'WeWatch Guides — Watching Videos Together With Friends',
   description:
-    'Guides on watching YouTube, films and series together with friends in sync. Works free on iPhone, Android and in the browser.',
+    'Guides on watching YouTube, films and series together through the free WeWatch web version. Native iOS and Android apps are in development.',
   alternates: {
     canonical: URL,
     languages: hreflangFor(PATH, APP_URL),

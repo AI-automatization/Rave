@@ -15,13 +15,19 @@ export type GuideLocale = 'ru' | 'uz' | 'en';
 
 export type Guide = {
   path: string;
+  /** Visible H1 and Article.headline; kept here so schema cannot drift from the page. */
+  headline: string;
   /** Short link label — the anchor text crawlers read. */
   title: string;
   /** One line describing what the guide answers. */
   summary: string;
+  /** One search intent this canonical URL owns; unique within its locale. */
+  primaryIntent: string;
   locale: GuideLocale;
   /** Real last-edit date of the page source (YYYY-MM-DD), used for sitemap lastmod. */
   lastModified: string;
+  /** First publication date (YYYY-MM-DD), used by the visible byline and Article schema. */
+  datePublished: string;
   priority: number;
 };
 
@@ -29,124 +35,169 @@ export const GUIDES: Guide[] = [
   // ── Русские гайды ──────────────────────────────────────────────────────────
   {
     path: '/ru/guides/smotret-vmeste-onlayn',
+    headline: 'Смотреть вместе онлайн бесплатно',
     title: 'Смотреть вместе онлайн',
     summary: 'Как начать синхронный просмотр с друзьями — базовый гайд.',
+    primaryIntent: 'смотреть вместе онлайн',
     locale: 'ru',
     lastModified: '2026-07-07',
+    datePublished: '2026-06-15',
     priority: 0.9,
   },
   {
     path: '/ru/guides/smotret-youtube-vmeste',
+    headline: 'Смотреть YouTube вместе с другом онлайн',
     title: 'Смотреть YouTube вместе',
     summary: 'Совместный просмотр YouTube: один ставит паузу — пауза у всех.',
+    primaryIntent: 'смотреть youtube вместе',
     locale: 'ru',
     lastModified: '2026-07-07',
+    datePublished: '2026-06-15',
     priority: 0.9,
   },
   {
     path: '/ru/guides/smotret-anime-vmeste',
+    headline: 'Смотреть аниме вместе с другом онлайн',
     title: 'Смотреть аниме вместе',
-    summary: 'Синхронный просмотр аниме с другом на любом сайте.',
+    summary: 'Синхронный просмотр аниме с другом через поддерживаемые источники.',
+    primaryIntent: 'смотреть аниме вместе',
     locale: 'ru',
     lastModified: '2026-07-07',
+    datePublished: '2026-06-15',
     priority: 0.9,
   },
   {
     path: '/ru/guides/smotret-serial-vmeste',
+    headline: 'Смотреть сериал вместе с другом онлайн',
     title: 'Смотреть сериал вместе',
-    summary: 'Как смотреть сериалы с друзьями по эпизоду, синхронно.',
+    summary: 'Как смотреть один сериал с другом по эпизодам и устраивать марафон.',
+    primaryIntent: 'смотреть сериал с другом',
     locale: 'ru',
-    lastModified: '2026-07-07',
+    lastModified: '2026-08-06',
+    datePublished: '2026-06-15',
     priority: 0.9,
   },
   {
     path: '/ru/guides/smotret-serialy-vmeste-besplatno',
+    headline: 'Сериальный клуб онлайн бесплатно',
     title: 'Сериалы вместе бесплатно',
-    summary: 'Бесплатный совместный просмотр сериалов на всех платформах.',
+    summary: 'Как бесплатно организовать групповой сериальный клуб онлайн.',
+    primaryIntent: 'смотреть сериалы вместе бесплатно',
     locale: 'ru',
-    lastModified: '2026-07-03',
+    lastModified: '2026-08-06',
+    datePublished: '2026-07-02',
     priority: 0.9,
   },
   {
     path: '/ru/guides/kino-s-drugom-onlayn',
+    headline: 'Смотреть кино с другом онлайн бесплатно',
     title: 'Кино с другом онлайн',
     summary: 'Смотреть фильм с другом онлайн бесплатно — расстояние не важно.',
+    primaryIntent: 'смотреть кино с другом онлайн',
     locale: 'ru',
     lastModified: '2026-07-07',
+    datePublished: '2026-06-15',
     priority: 0.8,
   },
   {
     path: '/ru/guides/smotret-film-vdvoem',
+    headline: 'Смотреть фильм вдвоём онлайн',
     title: 'Смотреть фильм вдвоём',
     summary: 'Фильм на двоих: синхронно на двух устройствах, на расстоянии.',
+    primaryIntent: 'смотреть фильм вдвоём',
     locale: 'ru',
     lastModified: '2026-07-03',
+    datePublished: '2026-07-02',
     priority: 0.9,
   },
   {
     path: '/ru/guides/smotret-vk-video-vmeste',
+    headline: 'Смотреть VK Видео вместе с друзьями',
     title: 'Смотреть VK Видео вместе',
-    summary: 'VK Видео синхронно между iPhone, Android и вебом.',
+    summary: 'VK Видео синхронно в веб-браузерах; приложения iOS и Android разрабатываются.',
+    primaryIntent: 'смотреть vk видео вместе',
     locale: 'ru',
     lastModified: '2026-07-03',
+    datePublished: '2026-07-02',
     priority: 0.8,
   },
   {
     path: '/ru/guides/smotret-rutube-vmeste',
+    headline: 'Смотреть Rutube вместе с друзьями',
     title: 'Смотреть Rutube вместе',
     summary: 'Rutube с друзьями — синхронный просмотр без расширений.',
+    primaryIntent: 'смотреть rutube вместе',
     locale: 'ru',
     lastModified: '2026-07-03',
+    datePublished: '2026-07-02',
     priority: 0.8,
   },
   {
     path: '/ru/guides/watch-party-besplatno',
+    headline: 'Бесплатный Watch Party онлайн в 2026',
     title: 'Watch Party бесплатно',
     summary: 'Что такое watch party и как запустить его бесплатно.',
+    primaryIntent: 'бесплатный watch party',
     locale: 'ru',
-    lastModified: '2026-07-07',
+    lastModified: '2026-08-06',
+    datePublished: '2026-06-15',
     priority: 0.8,
   },
 
   // ── O'zbekcha gaydlar ──────────────────────────────────────────────────────
   {
     path: '/uz/guides/birgalikda-tomosha-qilish',
+    headline: 'Onlayn birgalikda tomosha qilish — bepul',
     title: 'Birgalikda tomosha qilish',
     summary: "Do'stlar bilan onlayn sinxron tomosha qilishni boshlash.",
+    primaryIntent: 'birgalikda onlayn tomosha qilish',
     locale: 'uz',
     lastModified: '2026-07-07',
+    datePublished: '2026-06-16',
     priority: 0.9,
   },
   {
     path: '/uz/guides/youtube-birgalikda',
+    headline: "YouTube-ni do'st bilan onlayn birgalikda ko'rish",
     title: 'YouTube birgalikda',
     summary: "YouTube videolarini do'st bilan sinxron ko'rish.",
+    primaryIntent: "youtube birgalikda ko'rish",
     locale: 'uz',
     lastModified: '2026-07-07',
+    datePublished: '2026-06-16',
     priority: 0.9,
   },
   {
     path: '/uz/guides/anime-birgalikda',
+    headline: "Anime do'stlar bilan birgalikda ko'rish",
     title: 'Anime birgalikda',
     summary: "Anime-ni do'stlar bilan bir vaqtda tomosha qilish.",
+    primaryIntent: "anime birgalikda ko'rish",
     locale: 'uz',
     lastModified: '2026-07-07',
+    datePublished: '2026-06-16',
     priority: 0.9,
   },
   {
     path: '/uz/guides/serial-birgalikda',
+    headline: "Serial do'stlar bilan birgalikda ko'rish",
     title: 'Serial birgalikda',
     summary: "Seriallarni do'stlar bilan qism-qism sinxron ko'rish.",
+    primaryIntent: "serial birgalikda ko'rish",
     locale: 'uz',
     lastModified: '2026-07-07',
+    datePublished: '2026-06-16',
     priority: 0.9,
   },
   {
     path: '/uz/guides/kino-birgalikda',
+    headline: "Do'stlar bilan onlayn kino ko'rish — bepul",
     title: 'Kino birgalikda',
     summary: "Do'st bilan onlayn kino ko'rish — biri telefonda, biri kompyuterda.",
+    primaryIntent: "do'stlar bilan onlayn kino ko'rish",
     locale: 'uz',
     lastModified: '2026-07-07',
+    datePublished: '2026-07-07',
     priority: 0.9,
   },
 
@@ -156,26 +207,35 @@ export const GUIDES: Guide[] = [
   // old URLs now 301 here (next.config.mjs).
   {
     path: '/en/guides/watch-youtube-together',
+    headline: 'How to watch YouTube together with a friend',
     title: 'Watch YouTube together',
     summary: 'Watch YouTube in sync with a friend — one pauses, everyone pauses.',
+    primaryIntent: 'watch youtube together',
     locale: 'en',
     lastModified: '2026-07-25',
+    datePublished: '2026-07-25',
     priority: 0.9,
   },
   {
     path: '/en/guides/what-is-watch-party',
+    headline: 'What is a watch party?',
     title: 'What is a watch party',
     summary: 'What a watch party is, how synced playback works and how to start one.',
+    primaryIntent: 'what is a watch party',
     locale: 'en',
     lastModified: '2026-07-25',
+    datePublished: '2026-06-01',
     priority: 0.8,
   },
   {
     path: '/en/guides/watch-movies-with-friends',
+    headline: 'Watch movies with friends online',
     title: 'Watch movies with friends',
-    summary: 'Watch films and series together online, free, from any device.',
+    summary: 'Watch films and series together online in browsers on phones and desktops.',
+    primaryIntent: 'watch movies with friends online',
     locale: 'en',
     lastModified: '2026-07-25',
+    datePublished: '2026-06-01',
     priority: 0.9,
   },
 ];
@@ -191,7 +251,6 @@ export const GUIDE_GROUPS: { ru: string; uz?: string; en?: string }[] = [
   { ru: '/ru/guides/smotret-anime-vmeste', uz: '/uz/guides/anime-birgalikda' },
   { ru: '/ru/guides/smotret-serial-vmeste', uz: '/uz/guides/serial-birgalikda' },
   { ru: '/ru/guides/kino-s-drugom-onlayn', uz: '/uz/guides/kino-birgalikda', en: '/en/guides/watch-movies-with-friends' },
-  { ru: '/ru/guides/watch-party-besplatno', en: '/en/guides/what-is-watch-party' },
 ];
 
 /** ru↔uz counterparts. Derived from GUIDE_GROUPS — kept for existing callers. */

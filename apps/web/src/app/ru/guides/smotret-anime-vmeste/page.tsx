@@ -4,7 +4,7 @@ import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
 
 export const metadata: Metadata = {
   title: 'Смотреть аниме вместе с другом онлайн бесплатно',
-  description: 'Смотрите аниме вместе с друзьями онлайн синхронно — через WeWatch. Любой сайт с аниме, бесплатно, без задержек. iOS и Android.',
+  description: 'Смотрите аниме вместе с друзьями онлайн через веб-версию WeWatch. Приложения iOS и Android находятся в разработке.',
   keywords: ['смотреть аниме вместе', 'смотреть аниме с другом онлайн', 'аниме watch party', 'смотреть аниме онлайн вместе бесплатно', 'совместный просмотр аниме'],
   alternates: {
     canonical: 'https://wewatch.uz/ru/guides/smotret-anime-vmeste',
@@ -16,26 +16,15 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: 'Смотреть аниме вместе с другом | WeWatch',
-    description: 'Синхронный просмотр аниме с друзьями — любой сайт, бесплатно, iOS и Android.',
+    description: 'Синхронный просмотр аниме с друзьями через бесплатную веб-версию. Приложения iOS и Android разрабатываются.',
     url: 'https://wewatch.uz/ru/guides/smotret-anime-vmeste',
     type: 'article',
   },
   robots: { index: true, follow: true },
 };
 
-const jsonLd = {
-  '@context': 'https://schema.org',
-  '@type': 'Article',
-  headline: 'Как смотреть аниме вместе с другом онлайн',
-  description: 'Гайд по совместному просмотру аниме через WeWatch — любой сайт, синхронно, бесплатно',
-  author: { '@type': 'Organization', name: 'WeWatch', url: 'https://wewatch.uz' },
-  publisher: { '@type': 'Organization', name: 'WeWatch', url: 'https://wewatch.uz' },
-  datePublished: '2026-06-15',
-  inLanguage: 'ru',
-  mainEntityOfPage: 'https://wewatch.uz/ru/guides/smotret-anime-vmeste',
-};
 
-const ANIME_SITES = ['AnimeGo', 'Animejoy', 'Shikimori (YouTube)', 'AniLibria', 'YouTube (аниме-каналы)', 'VK Видео', 'Любой другой сайт'];
+const ANIME_SITES = ['YouTube (аниме-каналы)', 'VK Видео', 'Rutube', 'Прямая MP4-ссылка'];
 const RELATED = [
   { href: '/ru/guides/smotret-vmeste-onlayn', label: 'Смотреть вместе онлайн' },
   { href: '/ru/guides/smotret-serial-vmeste', label: 'Смотреть сериал вместе' },
@@ -45,7 +34,6 @@ const RELATED = [
 export default function SmotretAnimeVmestePage() {
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <GuideHeader locale="ru" />
       <main className="min-h-screen bg-[#060608] text-white">
         <div className="max-w-3xl mx-auto px-4 py-16">
@@ -62,12 +50,12 @@ export default function SmotretAnimeVmestePage() {
           </h1>
 
           <p className="text-xl text-zinc-400 mb-10 leading-relaxed">
-            WeWatch — лучший способ смотреть аниме с другом онлайн. Встроенный браузер открывает любой сайт с аниме, синхронизация работает в реальном времени. Вы видите один и тот же кадр — всегда.
+            WeWatch помогает смотреть аниме с другом онлайн через поддерживаемые источники: YouTube, VK Видео, Rutube и прямые MP4-ссылки. Синхронизация работает в реальном времени.
           </p>
 
           <section className="mb-10">
-            <h2 className="text-2xl font-bold text-white mb-4">Какие сайты с аниме поддерживаются?</h2>
-            <p className="text-zinc-400 mb-4">WeWatch открывает любой сайт через встроенный браузер — ограничений нет:</p>
+            <h2 className="text-2xl font-bold text-white mb-4">Какие источники с аниме поддерживаются?</h2>
+            <p className="text-zinc-400 mb-4">Используйте видео из одного из подтверждённых источников:</p>
             <ul className="grid grid-cols-2 gap-2 text-zinc-400 text-sm">
               {ANIME_SITES.map(s => (
                 <li key={s} className="flex items-center gap-2">
@@ -81,8 +69,8 @@ export default function SmotretAnimeVmestePage() {
             <h2 className="text-2xl font-bold text-white mb-6">Как смотреть аниме вместе — 4 шага</h2>
             <ol className="space-y-5">
               {[
-                { n: 1, title: 'Скачайте WeWatch', desc: 'Бесплатно в App Store или Google Play. Регистрация по номеру телефона — 30 секунд.' },
-                { n: 2, title: 'Откройте любимый сайт с аниме', desc: 'В браузере WeWatch перейдите на AnimeGo, Animejoy, YouTube или любой другой сайт. Найдите серию.' },
+                { n: 1, title: 'Откройте WeWatch', desc: 'Откройте wewatch.uz в браузере. Приложения для iOS и Android находятся в разработке.' },
+                { n: 2, title: 'Добавьте серию', desc: 'Вставьте ссылку YouTube, VK Видео, Rutube или прямую MP4-ссылку.' },
                 { n: 3, title: 'Создайте комнату', desc: 'Нажмите кнопку "Создать комнату" — WeWatch выдаст ссылку. Отправьте другу.' },
                 { n: 4, title: 'Смотрите синхронно', desc: 'Друг переходит по ссылке — просмотр синхронизируется автоматически. Можете обсуждать в чате прямо в WeWatch.' },
               ].map(({ n, title, desc }) => (
@@ -102,9 +90,9 @@ export default function SmotretAnimeVmestePage() {
             <div className="space-y-4">
               {[
                 { q: 'Работает ли с субтитрами?', a: 'Да. Субтитры отображаются как обычно — каждый участник может выбрать свой язык субтитров независимо.' },
-                { q: 'Можно ли смотреть аниме с двух разных устройств?', a: 'Да — один может быть на iPhone, другой на Android или в браузере на ноутбуке. Синхронизация работает между всеми платформами.' },
+                { q: 'Можно ли смотреть аниме с двух разных устройств?', a: 'Да — откройте веб-версию в браузерах на iPhone, Android или ноутбуке. Нативные приложения разрабатываются.' },
                 { q: 'Есть ли ограничение по длительности просмотра?', a: 'Нет. Марафон аниме на 12 серий? Без проблем — WeWatch не ограничивает время сессии.' },
-                { q: 'Это бесплатно?', a: 'Да, WeWatch полностью бесплатный. Скачайте приложение и начните смотреть аниме с другом прямо сейчас.' },
+                { q: 'Это бесплатно?', a: 'Основные функции доступны бесплатно в веб-версии. Мобильные приложения находятся в разработке.' },
               ].map(({ q, a }) => (
                 <details key={q} className="border border-zinc-800 rounded-xl p-4">
                   <summary className="text-white font-medium cursor-pointer">{q}</summary>
@@ -125,9 +113,9 @@ export default function SmotretAnimeVmestePage() {
 
           <div className="bg-[#7B72F8]/10 border border-[#7B72F8]/30 rounded-2xl p-8 text-center">
             <h2 className="text-2xl font-bold text-white mb-3">Смотри аниме вместе уже сегодня</h2>
-            <p className="text-zinc-400 mb-6">Скачайте WeWatch бесплатно — синхронный просмотр с другом за 30 секунд</p>
+            <p className="text-zinc-400 mb-6">Откройте WeWatch в браузере и смотрите синхронно с другом</p>
             <Link href="/ru" className="inline-flex items-center justify-center gap-2 bg-[#7B72F8] hover:bg-[#6a63e8] text-white font-semibold px-8 py-3 rounded-xl transition-colors">
-              Скачать бесплатно
+              Открыть веб-версию
             </Link>
           </div>
         </div>

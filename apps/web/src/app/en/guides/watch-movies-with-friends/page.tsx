@@ -4,6 +4,7 @@ import { FaPlay, FaFilm } from 'react-icons/fa';
 import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
 import { hreflangFor } from '@/lib/i18n/routes';
 import { socialMeta } from '@/lib/i18n/metadata';
+import { VisibleFaqs } from '@/components/common/VisibleFaqs';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 const PATH = '/en/guides/watch-movies-with-friends';
@@ -11,7 +12,7 @@ const PATH = '/en/guides/watch-movies-with-friends';
 export const metadata: Metadata = {
   title: 'Watch Movies With Friends Online Free — Long Distance Guide',
   description:
-    'How to watch films and series with friends online at the same time — free, from iPhone, Android or desktop, no matter how far apart you are.',
+    'How to watch films and series with friends through the free WeWatch web version. Native iOS and Android apps are in development.',
   keywords: [
     'watch movies with friends online', 'watch movies together online free',
     'watch films with friends long distance', 'watch series together online',
@@ -31,53 +32,24 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
+const FAQS = [
+  { q: 'Can I watch movies with friends in a different country?', a: 'Yes. Distance does not affect synchronization — playback is scheduled against a shared server clock, so participants on different continents stay aligned.' },
+  { q: 'Does my friend need to install anything?', a: 'No. Joining through the room link works in any browser, and no account is required to join by invite.' },
+  { q: 'Can we chat while watching?', a: 'Yes. Every room has live text chat and emoji reactions running alongside the video.' },
+] as const;
+
 const jsonLd = {
   '@context': 'https://schema.org',
   '@graph': [
     {
-      '@type': 'Article',
-      '@id': `${APP_URL}${PATH}#article`,
-      headline: 'Watch movies with friends online free',
-      description:
-        'A complete guide to watching films and series together online with WeWatch — free, no extensions, from any device.',
-      inLanguage: 'en',
-      author: { '@type': 'Organization', name: 'WeWatch', url: APP_URL },
-      publisher: { '@type': 'Organization', name: 'WeWatch', url: APP_URL },
-      datePublished: '2026-06-01',
-      dateModified: '2026-07-25',
-      url: `${APP_URL}${PATH}`,
-      mainEntityOfPage: { '@type': 'WebPage', '@id': `${APP_URL}${PATH}` },
-    },
-    {
       '@type': 'FAQPage',
       '@id': `${APP_URL}${PATH}#faq`,
       inLanguage: 'en',
-      mainEntity: [
-        {
-          '@type': 'Question',
-          name: 'Can I watch movies with friends in a different country?',
-          acceptedAnswer: {
-            '@type': 'Answer',
-            text: 'Yes. Distance does not affect synchronization — playback is scheduled against a shared server clock, so participants on different continents stay aligned.',
-          },
-        },
-        {
-          '@type': 'Question',
-          name: 'Does my friend need to install anything?',
-          acceptedAnswer: {
-            '@type': 'Answer',
-            text: 'No. Joining through the room link works in any browser, and no account is required to join by invite.',
-          },
-        },
-        {
-          '@type': 'Question',
-          name: 'Can we chat while watching?',
-          acceptedAnswer: {
-            '@type': 'Answer',
-            text: 'Yes. Every room has live text chat and emoji reactions running alongside the video.',
-          },
-        },
-      ],
+      mainEntity: FAQS.map(({ q, a }) => ({
+        '@type': 'Question',
+        name: q,
+        acceptedAnswer: { '@type': 'Answer', text: a },
+      })),
     },
   ],
 };
@@ -143,12 +115,12 @@ export default function WatchMoviesWithFriendsEnPage() {
               <Step
                 n={1}
                 title="Open WeWatch"
-                text="Go to wewatch.uz in a browser, or install the app on iOS or Android. Creating an account takes about 30 seconds."
+                text="Open wewatch.uz in a browser on any device. Native iOS and Android apps are in development."
               />
               <Step
                 n={2}
                 title="Pick what to watch"
-                text="Paste a YouTube, VK Video or Rutube link, or a direct video link. On mobile, the built-in browser lets you open other video sites and watch those in sync as well."
+                text="Paste a YouTube, VK Video, Rutube or direct MP4 link in the web version."
               />
               <Step
                 n={3}
@@ -194,6 +166,8 @@ export default function WatchMoviesWithFriendsEnPage() {
               ))}
             </ul>
           </section>
+
+          <VisibleFaqs title="Frequently asked questions" items={FAQS} />
 
           <div className="bg-gradient-to-br from-[#7B72F8]/10 to-[#7B72F8]/5 border border-[#7B72F8]/25 rounded-2xl px-8 py-8 text-center">
             <p className="text-zinc-400 text-sm mb-2">Ready when you are</p>

@@ -8,7 +8,7 @@ const URL = 'https://wewatch.uz/ru/guides';
 export const metadata: Metadata = {
   title: 'Гайды WeWatch — как смотреть видео вместе с друзьями',
   description:
-    'Все гайды WeWatch: как смотреть YouTube, VK Видео, Rutube, фильмы, сериалы и аниме вместе с друзьями онлайн — синхронно и бесплатно, на iPhone, Android и в браузере.',
+    'Все гайды WeWatch: как смотреть YouTube, VK Видео, Rutube, фильмы, сериалы и аниме вместе через веб-версию. Приложения iOS и Android разрабатываются.',
   alternates: {
     canonical: URL,
     languages: {

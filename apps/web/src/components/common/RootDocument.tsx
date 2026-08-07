@@ -2,7 +2,9 @@ import type { Metadata, Viewport } from 'next';
 import { DM_Sans, Oswald } from 'next/font/google';
 import Script from 'next/script';
 import { Providers } from '@/components/common/Providers';
-import './globals.css';
+import { LocaleBoundary } from '@/components/common/LocaleBoundary';
+import { AVAILABLE_OPERATING_SYSTEMS } from '@/data/product-facts';
+import '@/app/globals.css';
 
 const GA_ID = 'G-2S4DR8CBF0';
 const YM_ID = process.env.NEXT_PUBLIC_YM_ID ?? '';
@@ -19,7 +21,7 @@ const oswald = Oswald({
   display: 'swap',
 });
 
-export const viewport: Viewport = {
+export const siteViewport: Viewport = {
   themeColor: '#7C3AED',
   colorScheme: 'dark',
   width: 'device-width',
@@ -28,19 +30,19 @@ export const viewport: Viewport = {
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 
-export const metadata: Metadata = {
+export const siteMetadata: Metadata = {
   metadataBase: new URL(APP_URL),
   title: {
     default: 'WeWatch — Смотреть видео вместе с друзьями онлайн бесплатно',
     template: '%s | WeWatch',
   },
   description:
-    'WeWatch (wewatch) — смотри YouTube, VK и Rutube вместе с друзьями. Один на iPhone, другой на сайте — синхронизация работает. Бесплатный watch party с чатом и эмодзи. iOS и Android.',
+    'WeWatch (wewatch) — смотри YouTube, VK и Rutube вместе с друзьями в вебе. Бесплатный watch party с чатом и эмодзи. Приложения для iOS и Android находятся в разработке.',
   authors: [{ name: 'WeWatch', url: APP_URL }],
   creator: 'WeWatch',
   publisher: 'WeWatch',
   category: 'entertainment',
-  // No canonical / hreflang here: `/` is a 301 to `/ru` (next.config.mjs) and
+  // No canonical / hreflang here: `/` is a temporary locale redirect and
   // has no page of its own, so the root layout has no URL to be canonical for.
   // Every page under /ru, /uz and /en declares its own set.
   openGraph: {
@@ -51,7 +53,7 @@ export const metadata: Metadata = {
     url: APP_URL,
     title: 'WeWatch — Смотреть видео вместе с друзьями онлайн',
     description:
-      'Бесплатный watch party — смотри YouTube, VK, Rutube с друзьями в реальном времени. Синхронизация, чат, эмодзи. iOS и Android.',
+      'Бесплатный watch party — смотри YouTube, VK и Rutube с друзьями в вебе. Приложения для iOS и Android находятся в разработке.',
     images: [
       {
         url: '/og-image',
@@ -67,7 +69,7 @@ export const metadata: Metadata = {
     creator: '@wewatch_app',
     title: 'WeWatch — Смотреть видео вместе с друзьями',
     description:
-      'Бесплатный watch party. YouTube, VK, Rutube синхронно с друзьями — чат, эмодзи, iOS и Android.',
+      'Бесплатный watch party в вебе. YouTube, VK и Rutube синхронно с друзьями. Приложения для iOS и Android в разработке.',
     images: ['/og-image'],
   },
   robots: {
@@ -119,16 +121,16 @@ export const metadata: Metadata = {
 
 const jsonLdApp = {
   '@context': 'https://schema.org',
-  '@type': 'MobileApplication',
+  '@type': 'SoftwareApplication',
   name: 'WeWatch',
   applicationCategory: 'EntertainmentApplication',
   applicationSubCategory: 'SocialNetworkingApplication',
-  operatingSystem: 'iOS, Android',
+  operatingSystem: AVAILABLE_OPERATING_SYSTEMS,
   offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
   description: 'Watch YouTube, VK and Rutube together with friends in real time. You pause — everyone pauses. Free watch party with chat, emoji and reactions.',
   url: 'https://wewatch.uz',
   inLanguage: ['ru', 'uz', 'en'],
-  featureList: ['watch party', 'YouTube sync', 'VK sync', 'Rutube sync', 'live chat', 'emoji reactions', 'cross-platform iOS Android Web'],
+  featureList: ['watch party', 'YouTube sync', 'VK sync', 'Rutube sync', 'live chat', 'emoji reactions', 'cross-device Web'],
 };
 
 // Entity graph: ties WeWatch to its maker tezcode (tezcode.dev) so Google treats
@@ -149,19 +151,13 @@ const jsonLdOrg = {
 };
 
 
-export default function RootLayout({
+export function RootDocument({
   children,
-}: Readonly<{ children: React.ReactNode }>) {
-  // Static shell: lang defaults to ru so the page renders without reading request
-  // headers (which would force dynamic rendering of the whole tree). Each locale
-  // subtree renders its own content via its LocaleBoundary layout, and the
-  // inline script below corrects <html lang> from the URL before hydration.
+  locale,
+}: Readonly<{ children: React.ReactNode; locale: 'ru' | 'uz' | 'en' }>) {
   return (
-    <html lang="ru" suppressHydrationWarning>
+    <html lang={locale}>
       <body className={`${dmSans.variable} ${oswald.variable} font-body antialiased bg-[#060608] text-white`}>
-        <Script id="set-lang" strategy="beforeInteractive">{`
-          (function(){var p=location.pathname.split('/')[1];document.documentElement.lang=(p==='uz'||p==='en')?p:'ru';})();
-        `}</Script>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdApp) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdOrg) }} />
         <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="afterInteractive" />
@@ -182,7 +178,9 @@ export default function RootLayout({
             <noscript><img src={'https://mc.yandex.ru/watch/' + YM_ID} style={{ position: 'absolute', left: '-9999px' }} alt="" /></noscript>
           </>
         )}
-        <Providers>{children}</Providers>
+        <Providers initialLocale={locale}>
+          <LocaleBoundary locale={locale}>{children}</LocaleBoundary>
+        </Providers>
       </body>
     </html>
   );

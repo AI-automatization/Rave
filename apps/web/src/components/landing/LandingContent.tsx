@@ -115,26 +115,22 @@ function FAQAccordion() {
             onClick={() => setOpen(open === i ? null : i)}
             className="w-full text-left flex items-center justify-between gap-4 px-6 py-4 rounded-2xl bg-zinc-900/60 border border-zinc-800/60 hover:border-[#7B72F8]/40 transition-all duration-200 cursor-pointer"
             aria-expanded={open === i}
+            aria-controls={`homepage-faq-answer-${i}`}
           >
             <span className="text-white font-medium text-sm leading-snug">{q}</span>
             <span className={`flex-shrink-0 w-5 h-5 rounded-full border border-zinc-700 flex items-center justify-center text-zinc-400 transition-transform duration-200 ${open === i ? 'rotate-45 border-[#7B72F8] text-[#7B72F8]' : ''}`} aria-hidden="true">
               <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M5 1v8M1 5h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
             </span>
           </button>
-          <AnimatePresence initial={false}>
-            {open === i && (
-              <motion.div
-                key="answer"
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.22, ease: 'easeInOut' }}
-                className="overflow-hidden"
-              >
-                <p className="px-6 pt-3 pb-5 text-zinc-400 text-sm leading-relaxed">{a}</p>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <div
+            id={`homepage-faq-answer-${i}`}
+            className={`grid overflow-hidden transition-[grid-template-rows,opacity] duration-200 ${open === i ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}
+            aria-hidden={open !== i}
+          >
+            <div className="min-h-0 overflow-hidden">
+              <p className="px-6 pt-3 pb-5 text-zinc-400 text-sm leading-relaxed">{a}</p>
+            </div>
+          </div>
         </motion.div>
       ))}
     </div>
@@ -143,7 +139,7 @@ function FAQAccordion() {
 
 import { motion, AnimatePresence, useScroll, useTransform, useReducedMotion, type Variants } from 'framer-motion';
 import {
-  FaPlay, FaUsers, FaComment, FaApple,
+  FaPlay, FaUsers, FaComment, FaMobileAlt,
   FaChevronRight, FaCheck, FaLink, FaHeart, FaUserFriends, FaGlobe, FaShieldAlt,
   FaFilm, FaTv, FaArrowRight,
 } from 'react-icons/fa';
@@ -230,7 +226,7 @@ function MarqueeItem({ name, color }: { name: string; color: string }) {
       {/* Platform name */}
       <span
         className="text-sm font-semibold tracking-wide transition-colors duration-300 group-hover:text-white"
-        style={{ color: 'rgba(161,161,170,0.7)' }}
+        style={{ color: 'rgba(212,212,216,0.82)' }}
       >
         {name}
       </span>
@@ -249,8 +245,7 @@ function Marquee() {
     { name: 'YouTube', color: '#FF4444' },
     { name: 'VK', color: '#2787F5' },
     { name: 'Rutube', color: '#E53935' },
-    { name: 'Uzmove', color: '#22d3ee' },
-    { name: 'Cinerama', color: '#a855f7' },
+    { name: 'MP4', color: '#22d3ee' },
   ];
 
   const renderSet = () =>
@@ -323,9 +318,9 @@ function StatsBar() {
     <section className="py-14 px-4 relative overflow-hidden" aria-label={tNav('stats')}>
       <div className="absolute inset-0 bg-gradient-to-b from-[#0A0A0F] via-[#0D0D1A] to-[#0A0A0F]" aria-hidden="true" />
       <div className="relative z-10 max-w-5xl mx-auto">
-        <dl className="grid grid-cols-2 md:grid-cols-4 gap-px bg-zinc-800/30 rounded-2xl overflow-hidden border border-zinc-800/50 shadow-[0_0_60px_rgba(123,114,248,0.06)]">
+        <div role="list" className="grid grid-cols-2 md:grid-cols-4 gap-px bg-zinc-800/30 rounded-2xl overflow-hidden border border-zinc-800/50 shadow-[0_0_60px_rgba(123,114,248,0.06)]">
           {STATS.map(({ value, label }, i) => (
-            <motion.div key={label} initial={{ opacity: 0, y: 20, scale: 0.95 }} whileInView={{ opacity: 1, y: 0, scale: 1 }}
+            <motion.div key={label} role="listitem" initial={{ opacity: 0, y: 20, scale: 0.95 }} whileInView={{ opacity: 1, y: 0, scale: 1 }}
               viewport={{ once: true }} transition={{ ...springConfig, delay: i * 0.06 }}
               className="flex flex-col items-center justify-center py-10 px-6 bg-[#0D0D16]/90 relative group cursor-default hover:bg-[#7B72F8]/[0.04] transition-colors duration-300"
               onViewportEnter={value === 'counter' ? () => setHasStarted(true) : undefined}>
@@ -337,8 +332,7 @@ function StatsBar() {
                 style={{ background: 'radial-gradient(circle at 50% 30%, rgba(123,114,248,0.12) 0%, transparent 60%)' }} aria-hidden="true" />
               {/* Bottom gradient */}
               <div className="absolute bottom-0 left-[20%] right-[20%] h-12 opacity-0 group-hover:opacity-30 transition-opacity duration-500 blur-[25px] pointer-events-none bg-[#7B72F8]" aria-hidden="true" />
-              <dt className="sr-only">{label}</dt>
-              <motion.dd className="text-4xl md:text-5xl font-display font-bold bg-clip-text text-transparent mb-1 relative"
+              <motion.span className="text-4xl md:text-5xl font-display font-bold bg-clip-text text-transparent mb-1 relative"
                 style={{ backgroundImage: 'linear-gradient(135deg, #7B72F8, #a855f7)' }}
                 initial={{ scale: 0, opacity: 0 }}
                 whileInView={{ scale: 1, opacity: 1 }}
@@ -346,11 +340,11 @@ function StatsBar() {
                 whileHover={{ scale: 1.15, textShadow: '0 0 30px rgba(123,114,248,0.6)' }}
                 transition={{ type: 'spring', stiffness: 400, damping: 15 }}>
                 {value === 'counter' ? `${count}+` : value}
-              </motion.dd>
+              </motion.span>
               <span className="text-xs text-zinc-500 uppercase tracking-widest font-medium group-hover:text-zinc-400 group-hover:tracking-[0.2em] transition-all duration-300">{label}</span>
             </motion.div>
           ))}
-        </dl>
+        </div>
       </div>
     </section>
   );
@@ -500,7 +494,7 @@ function BentoFeatures({ t }: { t: ReturnType<typeof useTranslations<'landing'>>
             </GlassCard>
           </motion.div>
 
-          {/* [3] Built-in Browser (1 col × 1 row) */}
+          {/* [3] Supported video sources (1 col × 1 row) */}
           <motion.div variants={fadeUpScale} whileHover={{ y: -6, transition: { type: 'spring', stiffness: 300, damping: 20 } }}>
             <GlassCard className="h-full p-6 relative overflow-hidden" glowColor="#7B72F8">
               <motion.div className="w-11 h-11 rounded-xl flex items-center justify-center mb-4 relative"
@@ -1533,7 +1527,7 @@ export function LandingContent() {
     } catch {
       // fail silently — UI success regardless
     }
-    trackEvent('android_waitlist_signup', { email: waitlistEmail });
+    trackEvent('mobile_waitlist_signup', { email: waitlistEmail });
     setWaitlistDone(true);
   };
 
@@ -1642,8 +1636,7 @@ export function LandingContent() {
               </motion.div>
 
               {/* H1 — skill §6: bold display, clear hierarchy */}
-              <motion.h1 id="hero-heading" initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.1 }}
+              <motion.h1 id="hero-heading"
                 className="text-5xl sm:text-6xl lg:text-6xl xl:text-7xl font-display uppercase leading-[0.9] tracking-tight mb-6 text-white"
                 style={{ textShadow: '0 0 120px rgba(123,114,248,0.28)' }}>
                 {t('heroTitle1')}<br />
@@ -1689,18 +1682,15 @@ export function LandingContent() {
                     style={{ background: 'linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.15) 50%, transparent 60%)' }}
                     animate={{ x: ['-100%', '200%'] }}
                     transition={{ repeat: Infinity, duration: 3.5, ease: 'linear', repeatDelay: 2.5 }} />
-                  <FaApple size={22} className="relative z-10" aria-hidden="true" />
-                  <div className="text-left leading-tight relative z-10">
-                    <div className="text-[10px] opacity-70">Download on the</div>
-                    <div className="text-[15px] font-bold">App Store</div>
-                  </div>
+                  <FaMobileAlt size={22} className="relative z-10" aria-hidden="true" />
+                  <div className="text-[15px] font-bold relative z-10">{t('heroBadge')}</div>
                   <span className="relative z-10 ml-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/20">{t('soon')}</span>
                 </motion.span>
                 <motion.a href="#demo"
                   className="inline-flex items-center gap-2 h-14 px-8 rounded-xl border border-zinc-700/80 text-zinc-300 hover:border-[#7B72F8]/50 hover:text-white hover:bg-[#7B72F8]/[0.06] transition-colors duration-200 text-sm backdrop-blur-sm cursor-pointer"
                   whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
                   transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                  aria-label="Посмотреть как работает WeWatch">
+                  >
                   <FaPlay size={11} aria-hidden="true" />
                   {t('heroHowBtn')}
                 </motion.a>
@@ -2053,7 +2043,6 @@ export function LandingContent() {
                 {DEMO_STEPS.map(({ step, title, sub, icon: Icon }, i) => (
                   <button key={i} onClick={() => switchScreen(i)}
                     aria-pressed={activeScreen === i}
-                    aria-label={`Шаг ${step}: ${title}`}
                     className={`flex items-start gap-3 p-4 rounded-xl text-left transition-all duration-250 flex-shrink-0 lg:flex-shrink lg:w-full border cursor-pointer ${
                       activeScreen === i
                         ? 'bg-[#7B72F8]/10 border-[#7B72F8]/40 shadow-[0_0_24px_rgba(123,114,248,0.10)]'
@@ -2065,10 +2054,10 @@ export function LandingContent() {
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
-                        <span className={`text-[10px] font-bold transition-colors ${activeScreen === i ? 'text-[#7B72F8]' : 'text-zinc-600'}`}>{step}</span>
+                        <span className={`text-[10px] font-bold transition-colors ${activeScreen === i ? 'text-[#9B92FF]' : 'text-zinc-400'}`}>{step}</span>
                         <span className={`text-xs font-semibold transition-colors truncate ${activeScreen === i ? 'text-white' : 'text-zinc-400'}`}>{title}</span>
                       </div>
-                      <p className="text-[10px] text-zinc-600 leading-relaxed">{sub}</p>
+                      <p className="text-[10px] text-zinc-400 leading-relaxed">{sub}</p>
                     </div>
                   </button>
                 ))}
@@ -2083,8 +2072,14 @@ export function LandingContent() {
                     <button key={i} onClick={() => switchScreen(i)} role="tab"
                       aria-selected={activeScreen === i}
                       aria-label={`Экран ${i + 1}: ${DEMO_STEPS[i]?.title}`}
-                      className={`rounded-full transition-all duration-250 cursor-pointer ${activeScreen === i ? 'w-8 h-2.5' : 'w-2.5 h-2.5 bg-zinc-700 hover:bg-zinc-500'}`}
-                      style={activeScreen === i ? { background: 'linear-gradient(90deg, #7B72F8, #a855f7)', boxShadow: '0 0 10px rgba(123,114,248,0.7)' } : {}} />
+                      className="group w-8 h-8 rounded-full flex items-center justify-center cursor-pointer"
+                    >
+                      <span
+                        aria-hidden="true"
+                        className={`block rounded-full transition-all duration-250 ${activeScreen === i ? 'w-8 h-2.5' : 'w-2.5 h-2.5 bg-zinc-700 group-hover:bg-zinc-500'}`}
+                        style={activeScreen === i ? { background: 'linear-gradient(90deg, #7B72F8, #a855f7)', boxShadow: '0 0 10px rgba(123,114,248,0.7)' } : {}}
+                      />
+                    </button>
                   ))}
                 </div>
               </div>
@@ -2173,12 +2168,12 @@ export function LandingContent() {
                   style={{ background: 'linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.18) 50%, transparent 60%)' }}
                   animate={{ x: ['-100%', '200%'] }}
                   transition={{ repeat: Infinity, duration: 3, ease: 'linear', repeatDelay: 2 }} />
-                <FaApple size={24} className="relative z-10" aria-hidden="true" />
+                <FaMobileAlt size={24} className="relative z-10" aria-hidden="true" />
                 <span className="relative z-10">{t('ctaPlayBtn')}</span>
                 <span className="relative z-10 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/20">{t('soon')}</span>
               </motion.span>
 
-              {/* Android Waitlist */}
+              {/* Mobile apps waitlist */}
               {waitlistDone ? (
                 <motion.p
                   initial={{ opacity: 0, y: 6 }}
@@ -2189,7 +2184,7 @@ export function LandingContent() {
                   <span>{t('waitlistThanks')}</span>
                 </motion.p>
               ) : (
-                <form onSubmit={handleWaitlist} className="flex items-center gap-2 w-full max-w-sm" aria-label="Android waitlist">
+                <form onSubmit={handleWaitlist} className="flex items-center gap-2 w-full max-w-sm" aria-label="Mobile apps waitlist">
                   <input
                     type="email"
                     value={waitlistEmail}
@@ -2197,7 +2192,7 @@ export function LandingContent() {
                     placeholder={t('waitlistPlaceholder')}
                     required
                     className="flex-1 h-11 px-4 rounded-xl bg-zinc-900/80 border border-zinc-700/60 text-zinc-200 text-sm placeholder:text-zinc-600 focus:outline-none focus:border-[#7B72F8]/60 focus:ring-1 focus:ring-[#7B72F8]/30 transition-colors"
-                    aria-label="Email для Android waitlist"
+                    aria-label="Email для уведомлений о мобильных приложениях"
                   />
                   <button
                     type="submit"

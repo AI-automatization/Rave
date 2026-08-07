@@ -110,7 +110,7 @@ export default function TezcodePage() {
           <section className="mb-12">
             <h2 className="text-2xl font-bold mb-4">Кто такие tezcode</h2>
             <p className="text-zinc-400 leading-relaxed mb-4">
-              tezcode — команда разработчиков и AI-инженеров из Ташкента, Узбекистан. Мы строим продукты «под ключ»: от мобильных приложений и веб-сервисов до AI-автоматизации бизнес-процессов. WeWatch — пример нашего подхода: real-time синхронизация между iOS, Android и вебом.
+              tezcode — команда разработчиков и AI-инженеров из Ташкента, Узбекистан. Мы строим продукты «под ключ»: от мобильных приложений и веб-сервисов до AI-автоматизации. WeWatch уже работает в вебе, а версии для iOS и Android находятся в разработке.
             </p>
             <p className="text-zinc-400 leading-relaxed">
               Больше о компании и других продуктах — на <a href={TEZCODE_URL} target="_blank" rel="noopener" className="text-[#7B72F8] hover:underline">tezcode.dev</a>.

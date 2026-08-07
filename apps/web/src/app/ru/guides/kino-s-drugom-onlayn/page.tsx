@@ -8,7 +8,7 @@ const PATH = '/ru/guides/kino-s-drugom-onlayn';
 
 export const metadata: Metadata = {
   title: 'Смотреть кино с другом онлайн бесплатно',
-  description: 'Смотрите фильмы и кино с другом онлайн бесплатно через WeWatch. Синхронный просмотр на iPhone, Android и компьютере. Расстояние не важно.',
+  description: 'Смотрите фильмы и кино с другом онлайн бесплатно через веб-версию WeWatch. Приложения iOS и Android находятся в разработке.',
   keywords: ['кино с другом онлайн', 'смотреть кино с другом', 'смотреть фильм с другом онлайн бесплатно', 'кино с другом бесплатно', 'смотреть кино вместе онлайн', 'фильм с другом онлайн'],
   alternates: {
     canonical: `${APP_URL}${PATH}`,
@@ -16,24 +16,13 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: 'Кино с другом онлайн бесплатно | WeWatch',
-    description: 'Синхронный просмотр фильмов с другом онлайн. Бесплатно, iOS и Android.',
+    description: 'Синхронный просмотр фильмов с другом через бесплатную веб-версию. Приложения iOS и Android разрабатываются.',
     url: 'https://wewatch.uz/ru/guides/kino-s-drugom-onlayn',
     type: 'article',
   },
   robots: { index: true, follow: true },
 };
 
-const jsonLd = {
-  '@context': 'https://schema.org',
-  '@type': 'Article',
-  headline: 'Как смотреть кино с другом онлайн бесплатно',
-  description: 'Гайд по совместному просмотру фильмов с другом через WeWatch',
-  author: { '@type': 'Organization', name: 'WeWatch', url: 'https://wewatch.uz' },
-  publisher: { '@type': 'Organization', name: 'WeWatch', url: 'https://wewatch.uz' },
-  datePublished: '2026-06-15',
-  inLanguage: 'ru',
-  mainEntityOfPage: 'https://wewatch.uz/ru/guides/kino-s-drugom-onlayn',
-};
 
 const RELATED = [
   { href: '/ru/guides/smotret-vmeste-onlayn', label: 'Смотреть вместе онлайн' },
@@ -45,7 +34,6 @@ const RELATED = [
 export default function KinoSDrugoOnlaynPage() {
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <GuideHeader locale="ru" />
       <main className="min-h-screen bg-[#060608] text-white">
         <div className="max-w-3xl mx-auto px-4 py-16">
@@ -62,16 +50,16 @@ export default function KinoSDrugoOnlaynPage() {
           </h1>
 
           <p className="text-xl text-zinc-400 mb-10 leading-relaxed">
-            Хочешь провести вечер с другом за фильмом, но вы в разных городах? WeWatch решает это — синхронный просмотр кино онлайн, бесплатно, на любом устройстве. Как будто сидите рядом.
+            Хочешь провести вечер с другом за фильмом, но вы в разных городах? WeWatch решает это — синхронный просмотр кино в браузерах на телефонах и компьютерах. Как будто сидите рядом.
           </p>
 
           <section className="mb-10">
             <h2 className="text-2xl font-bold text-white mb-4">Что делает WeWatch особенным</h2>
             <p className="text-zinc-400 leading-relaxed mb-4">
-              Большинство сервисов watch party привязаны к одной платформе (только Netflix или только YouTube). WeWatch открывает <strong className="text-white">любой видеосайт</strong> через встроенный браузер — смотри кино откуда угодно.
+              Многие сервисы watch party привязаны к одной платформе. WeWatch поддерживает <strong className="text-white">YouTube, VK Видео, Rutube и прямые MP4-ссылки</strong> в веб-версии.
             </p>
             <p className="text-zinc-400 leading-relaxed">
-              Плюс кросс-платформа: ты на iPhone, друг на Android или ноутбуке — синхронизация работает между всеми устройствами одновременно.
+              Веб-версия работает в браузерах на iPhone, Android и ноутбуке. Нативные приложения для iOS и Android находятся в разработке.
             </p>
           </section>
 
@@ -79,8 +67,8 @@ export default function KinoSDrugoOnlaynPage() {
             <h2 className="text-2xl font-bold text-white mb-6">Как смотреть кино с другом — 4 шага</h2>
             <ol className="space-y-5">
               {[
-                { n: 1, title: 'Скачайте WeWatch', desc: 'Бесплатно в App Store (iPhone) или Google Play (Android).' },
-                { n: 2, title: 'Найдите фильм', desc: 'Откройте встроенный браузер, перейдите на любой видеосайт — YouTube, VK, Rutube, Uzmove или любой другой.' },
+                { n: 1, title: 'Откройте WeWatch', desc: 'Откройте веб-версию на iPhone, Android или компьютере; мобильные приложения разрабатываются.' },
+                { n: 2, title: 'Добавьте фильм', desc: 'Вставьте ссылку YouTube, VK Видео, Rutube или прямую MP4-ссылку.' },
                 { n: 3, title: 'Создайте комнату', desc: 'Нажмите "Создать комнату" и отправьте другу ссылку-приглашение.' },
                 { n: 4, title: 'Смотрите вместе', desc: 'Друг переходит по ссылке — просмотр синхронизируется. Пишите в чат, ставьте эмодзи, обсуждайте каждую сцену.' },
               ].map(({ n, title, desc }) => (
@@ -100,9 +88,9 @@ export default function KinoSDrugoOnlaynPage() {
             <div className="space-y-4">
               {[
                 { q: 'Можно смотреть кино если мы в разных странах?', a: 'Да. WeWatch работает через интернет, расстояние не имеет значения. Узбекистан, Россия, Европа — синхронизация одинаковая.' },
-                { q: 'Нужна ли подписка на видеосервис?', a: 'Зависит от сайта. WeWatch открывает видео в браузере — если сайт требует подписку, она нужна. Но YouTube и VK работают бесплатно.' },
+                { q: 'Нужна ли подписка на источник видео?', a: 'WeWatch принимает поддерживаемую ссылку, но доступ к самому видео определяется правилами выбранного источника.' },
                 { q: 'Можно ли смотреть с нескольких друзей одновременно?', a: 'Да — создайте одну комнату и поделитесь ссылкой с несколькими людьми. Все смотрят синхронно.' },
-                { q: 'Это действительно бесплатно?', a: 'Да. WeWatch бесплатный. Скачайте приложение и начните сегодня.' },
+                { q: 'Это действительно бесплатно?', a: 'Основные функции веб-версии бесплатны. Приложения для iOS и Android находятся в разработке.' },
               ].map(({ q, a }) => (
                 <details key={q} className="border border-zinc-800 rounded-xl p-4">
                   <summary className="text-white font-medium cursor-pointer">{q}</summary>
@@ -123,9 +111,9 @@ export default function KinoSDrugoOnlaynPage() {
 
           <div className="bg-[#7B72F8]/10 border border-[#7B72F8]/30 rounded-2xl p-8 text-center">
             <h2 className="text-2xl font-bold text-white mb-3">Кино с другом — прямо сейчас</h2>
-            <p className="text-zinc-400 mb-6">Скачайте WeWatch бесплатно и начните за 30 секунд</p>
+            <p className="text-zinc-400 mb-6">Откройте WeWatch в браузере и начните совместный просмотр</p>
             <Link href="/ru" className="inline-flex items-center justify-center gap-2 bg-[#7B72F8] hover:bg-[#6a63e8] text-white font-semibold px-8 py-3 rounded-xl transition-colors">
-              Скачать бесплатно
+              Открыть веб-версию
             </Link>
           </div>
         </div>

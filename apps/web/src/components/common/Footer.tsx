@@ -65,7 +65,7 @@ export function Footer() {
             <div className="mb-3">
               <WeWatchLogo iconSize={28} textSize="text-lg" href={`/${locale}`} />
             </div>
-            <p className="text-zinc-600 text-sm max-w-[200px] leading-relaxed">
+            <p className="text-zinc-400 text-sm max-w-[200px] leading-relaxed">
               {t('tagline')}
             </p>
           </div>
@@ -75,39 +75,39 @@ export function Footer() {
             <div>
               <p className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-3">{t('platform')}</p>
               <ul className="space-y-2">
-                <li><Link href={L('/ru/features')} className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('features')}</Link></li>
-                <li><Link href={L('/ru/how-it-works')} className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('howItWorks')}</Link></li>
-                <li><Link href={L('/ru/pricing')}  className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('pricing')}</Link></li>
+                <li><Link href={L('/ru/features')} className="text-zinc-400 text-sm hover:text-zinc-200 transition-colors">{t('features')}</Link></li>
+                <li><Link href={L('/ru/how-it-works')} className="text-zinc-400 text-sm hover:text-zinc-200 transition-colors">{t('howItWorks')}</Link></li>
+                <li><Link href={L('/ru/pricing')}  className="text-zinc-400 text-sm hover:text-zinc-200 transition-colors">{t('pricing')}</Link></li>
               </ul>
             </div>
             <div>
               <p className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-3">{t('guides')}</p>
               <ul className="space-y-2">
-                <li><Link href={guides.watchTogether} className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('guideWatchTogether')}</Link></li>
-                <li><Link href={guides.movie} className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('guideMovie')}</Link></li>
-                <li><Link href={guides.youtube} className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('guideYoutube')}</Link></li>
-                <li><Link href={guides.anime} className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('guideAnime')}</Link></li>
-                <li><Link href={guides.serial} className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('guideSerial')}</Link></li>
-                <li><Link href={guides.hub} className="text-zinc-500 text-sm hover:text-zinc-300 transition-colors">{t('allGuides')} →</Link></li>
+                <li><Link href={guides.watchTogether} className="text-zinc-400 text-sm hover:text-zinc-200 transition-colors">{t('guideWatchTogether')}</Link></li>
+                <li><Link href={guides.movie} className="text-zinc-400 text-sm hover:text-zinc-200 transition-colors">{t('guideMovie')}</Link></li>
+                <li><Link href={guides.youtube} className="text-zinc-400 text-sm hover:text-zinc-200 transition-colors">{t('guideYoutube')}</Link></li>
+                <li><Link href={guides.anime} className="text-zinc-400 text-sm hover:text-zinc-200 transition-colors">{t('guideAnime')}</Link></li>
+                <li><Link href={guides.serial} className="text-zinc-400 text-sm hover:text-zinc-200 transition-colors">{t('guideSerial')}</Link></li>
+                <li><Link href={guides.hub} className="text-zinc-300 text-sm hover:text-white transition-colors">{t('allGuides')} →</Link></li>
               </ul>
             </div>
             <div>
               <p className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-3">{t('company')}</p>
               <ul className="space-y-2">
-                <li><Link href={L('/ru/company')} className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('about')}</Link></li>
-                <li><Link href={L('/ru/products')} className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('products')}</Link></li>
-                <li><Link href={L('/ru/team')} className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('team')}</Link></li>
-                <li><a href="https://www.tezcode.dev/" target="_blank" rel="noopener noreferrer" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">tezcode.dev</a></li>
+                <li><Link href={L('/ru/company')} className="text-zinc-400 text-sm hover:text-zinc-200 transition-colors">{t('about')}</Link></li>
+                <li><Link href={L('/ru/products')} className="text-zinc-400 text-sm hover:text-zinc-200 transition-colors">{t('products')}</Link></li>
+                <li><Link href={L('/ru/team')} className="text-zinc-400 text-sm hover:text-zinc-200 transition-colors">{t('team')}</Link></li>
+                <li><a href="https://www.tezcode.dev/" target="_blank" rel="noopener noreferrer" className="text-zinc-400 text-sm hover:text-zinc-200 transition-colors">tezcode.dev</a></li>
               </ul>
             </div>
             <div>
               <p className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-3">{t('legal')}</p>
               <ul className="space-y-2">
-                <li><Link href="/privacy-policy" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('privacy')}</Link></li>
-                <li><Link href="/terms" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('terms')}</Link></li>
-                <li><Link href="/dmca" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('dmca')}</Link></li>
-                <li><Link href={L('/ru/faq')} className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('faq')}</Link></li>
-                <li><Link href="/delete-account" className="text-zinc-600 text-sm hover:text-zinc-300 transition-colors">{t('deleteAccount')}</Link></li>
+                <li><Link href="/privacy-policy" className="text-zinc-400 text-sm hover:text-zinc-200 transition-colors">{t('privacy')}</Link></li>
+                <li><Link href="/terms" className="text-zinc-400 text-sm hover:text-zinc-200 transition-colors">{t('terms')}</Link></li>
+                <li><Link href="/dmca" className="text-zinc-400 text-sm hover:text-zinc-200 transition-colors">{t('dmca')}</Link></li>
+                <li><Link href={L('/ru/faq')} className="text-zinc-400 text-sm hover:text-zinc-200 transition-colors">{t('faq')}</Link></li>
+                <li><Link href="/delete-account" className="text-zinc-400 text-sm hover:text-zinc-200 transition-colors">{t('deleteAccount')}</Link></li>
               </ul>
             </div>
           </div>
@@ -122,14 +122,14 @@ export function Footer() {
           Distinct from the header LanguageSwitcher, which translates *this page*.
         */}
         <div className="border-t border-zinc-800/60 mt-8 pt-6 flex flex-wrap items-center gap-x-4 gap-y-2">
-          <span className="text-zinc-600 text-xs uppercase tracking-widest">{t('language')}</span>
+          <span className="text-zinc-400 text-xs uppercase tracking-widest">{t('language')}</span>
           {LOCALE_ROOTS.map(({ locale, href, label }) => (
             <Link
               key={locale}
               href={href}
               hrefLang={locale}
               lang={locale}
-              className="text-zinc-600 text-xs hover:text-zinc-300 transition-colors"
+              className="text-zinc-400 text-xs hover:text-zinc-200 transition-colors"
             >
               {label}
             </Link>
@@ -138,10 +138,10 @@ export function Footer() {
 
         <div className="border-t border-zinc-800/60 mt-6 pt-6 flex flex-col gap-2">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
-            <p className="text-zinc-700 text-xs">© {new Date().getFullYear()} WeWatch. {t('rights')}</p>
-            <p className="text-zinc-700 text-xs">{t('country')}</p>
+            <p className="text-zinc-400 text-xs">© {new Date().getFullYear()} WeWatch. {t('rights')}</p>
+            <p className="text-zinc-400 text-xs">{t('country')}</p>
           </div>
-          <p className="text-zinc-700/80 text-xs text-center sm:text-left">{t('madeBy')}</p>
+          <p className="text-zinc-400 text-xs text-center sm:text-left">{t('madeBy')}</p>
         </div>
       </div>
     </footer>

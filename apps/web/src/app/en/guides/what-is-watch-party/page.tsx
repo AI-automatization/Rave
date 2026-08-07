@@ -4,6 +4,7 @@ import { FaPlay, FaUsers } from 'react-icons/fa';
 import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
 import { hreflangFor } from '@/lib/i18n/routes';
 import { socialMeta } from '@/lib/i18n/metadata';
+import { VisibleFaqs } from '@/components/common/VisibleFaqs';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 const PATH = '/en/guides/what-is-watch-party';
@@ -31,53 +32,24 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
+const FAQS = [
+  { q: 'What does watch party mean?', a: 'A watch party is a group of people watching the same video at the same moment over the internet, with playback kept in sync automatically. When one person pauses, it pauses for everyone.' },
+  { q: 'How is a watch party different from screen sharing?', a: 'Screen sharing re-encodes and streams one person’s screen, which costs bandwidth and loses quality. A watch party sends only small timing commands — everyone streams the video at full quality from the original source.' },
+  { q: 'Do I need an account to join a watch party?', a: 'Joining through an invite link works without an account. Creating a room and controlling playback requires a free account.' },
+] as const;
+
 const jsonLd = {
   '@context': 'https://schema.org',
   '@graph': [
     {
-      '@type': 'Article',
-      '@id': `${APP_URL}${PATH}#article`,
-      headline: 'What is a watch party — synchronized video watching explained',
-      description:
-        'What a watch party is, how synchronization works technically, how it differs from screen sharing and a video call, and how to start one.',
-      inLanguage: 'en',
-      author: { '@type': 'Organization', name: 'WeWatch', url: APP_URL },
-      publisher: { '@type': 'Organization', name: 'WeWatch', url: APP_URL },
-      datePublished: '2026-06-01',
-      dateModified: '2026-07-25',
-      url: `${APP_URL}${PATH}`,
-      mainEntityOfPage: { '@type': 'WebPage', '@id': `${APP_URL}${PATH}` },
-    },
-    {
       '@type': 'FAQPage',
       '@id': `${APP_URL}${PATH}#faq`,
       inLanguage: 'en',
-      mainEntity: [
-        {
-          '@type': 'Question',
-          name: 'What does watch party mean?',
-          acceptedAnswer: {
-            '@type': 'Answer',
-            text: 'A watch party is a group of people watching the same video at the same moment over the internet, with playback kept in sync automatically. When one person pauses, it pauses for everyone.',
-          },
-        },
-        {
-          '@type': 'Question',
-          name: 'How is a watch party different from screen sharing?',
-          acceptedAnswer: {
-            '@type': 'Answer',
-            text: 'Screen sharing re-encodes and streams one person’s screen, which costs bandwidth and loses quality. A watch party sends only small timing commands — everyone streams the video at full quality from the original source.',
-          },
-        },
-        {
-          '@type': 'Question',
-          name: 'Do I need an account to join a watch party?',
-          acceptedAnswer: {
-            '@type': 'Answer',
-            text: 'Joining through an invite link works without an account. Creating a room and controlling playback requires a free account.',
-          },
-        },
-      ],
+      mainEntity: FAQS.map(({ q, a }) => ({
+        '@type': 'Question',
+        name: q,
+        acceptedAnswer: { '@type': 'Answer', text: a },
+      })),
     },
   ],
 };
@@ -184,15 +156,15 @@ export default function WhatIsWatchPartyEnPage() {
           <section className="mb-14">
             <h2 className="text-2xl font-bold text-white mb-6">What you can watch</h2>
             <p className="text-zinc-400 leading-7 mb-4">
-              WeWatch supports YouTube, VK Video, Rutube and direct video links. The mobile app
-              additionally ships a built-in browser, so you can open other video sites and watch
-              those in sync too.
+              WeWatch supports YouTube, VK Video, Rutube and direct MP4 links in the web version.
             </p>
             <p className="text-zinc-400 leading-7">
               A room holds up to 10 participants and closes automatically after 10 minutes with
               nobody active. Live chat and emoji reactions run alongside the video.
             </p>
           </section>
+
+          <VisibleFaqs title="Frequently asked questions" items={FAQS} />
 
           <div className="bg-gradient-to-br from-[#7B72F8]/10 to-[#7B72F8]/5 border border-[#7B72F8]/25 rounded-2xl px-8 py-8 text-center">
             <p className="text-zinc-400 text-sm mb-2">Try it yourself</p>

@@ -253,6 +253,17 @@
   border-radius: 6px;
 }
 
+/* White copy on the original brand violet was only 3.74:1. Keep the brand
+   hue for decorative accents, but use the accessible shade for solid CTAs. */
+.bg-\[\#7B72F8\].text-white {
+  background-color: #5F56D6;
+}
+
+/* Breadcrumbs on the near-black editorial template need one brighter step. */
+main.bg-\[\#060608\] nav.text-zinc-500 {
+  color: #a1a1aa;
+}
+
 /* ── touch-action on interactive elements ── */
 button, a, [role="button"] {
   touch-action: manipulation;

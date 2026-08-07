@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { LandingContent } from '@/components/landing/LandingContent';
 import { hreflangFor } from '@/lib/i18n/routes';
+import { publishHomepageSchema } from '@/data/homepage-schema';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 
@@ -10,7 +11,7 @@ const LANGUAGES = hreflangFor('/', APP_URL);
 export const metadata: Metadata = {
   title: { absolute: 'WeWatch — Watch Videos Together With Friends Online | Free Watch Party' },
   description:
-    'WeWatch — watch YouTube, VK and Rutube together with friends in real time. One on iPhone, another on the web — sync just works. Free watch party with chat and emoji. iOS and Android.',
+    'WeWatch — watch YouTube, VK and Rutube together with friends in real time on the web. Free watch party with chat and emoji. Native iOS and Android apps are in development.',
   alternates: {
     canonical: `${APP_URL}/en`,
     languages: LANGUAGES,
@@ -18,7 +19,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'WeWatch — Watch Videos Together With Friends Online',
     description:
-      'Free watch party — watch YouTube, VK, Rutube with friends in real time. Sync, chat, emoji. iOS and Android.',
+      'Free web watch party — watch YouTube, VK and Rutube with friends in real time. Native iOS and Android apps are in development.',
     url: `${APP_URL}/en`,
     locale: 'en_US',
     images: [{ url: '/og-image', width: 1200, height: 630, alt: 'WeWatch — watch videos together with friends online free' }],
@@ -31,7 +32,7 @@ export const metadata: Metadata = {
     creator: '@wewatch_app',
     title: 'WeWatch — Watch Videos Together With Friends',
     description:
-      'Free watch party — YouTube, VK, Rutube in sync with friends. Chat, emoji. iOS and Android.',
+      'Free web watch party — YouTube, VK and Rutube in sync with friends. Native iOS and Android apps are in development.',
     images: ['/og-image'],
   },
   robots: { index: true, follow: true },
@@ -54,15 +55,15 @@ const jsonLd = {
       inLanguage: 'en',
     },
     {
-      '@type': 'MobileApplication',
+      '@type': 'SoftwareApplication',
       '@id': `${APP_URL}/en#app`,
       name: 'WeWatch — Watch Together',
       url: `${APP_URL}/en`,
       description:
-        'Free watch party app for watching movies and videos with friends. YouTube, VK and Rutube stay in sync in real time. Live chat and emoji reactions. iOS, Android and web.',
+        'Free web watch party for watching movies and videos with friends. YouTube, VK and Rutube stay in sync in real time. Native iOS and Android apps are in development.',
       applicationCategory: 'EntertainmentApplication',
       applicationSubCategory: 'SocialNetworkingApplication',
-      operatingSystem: 'iOS, Android, Web',
+      operatingSystem: 'Web',
       inLanguage: 'en',
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD', availability: 'https://schema.org/InStock' },
     },
@@ -76,7 +77,7 @@ const jsonLd = {
           name: 'How do I watch videos together with friends online?',
           acceptedAnswer: {
             '@type': 'Answer',
-            text: 'Open wewatch.uz or install WeWatch on iOS or Android, create a room, paste a YouTube, VK or Rutube link and share the room link with your friend. As soon as they join, playback is synchronized — when you pause, it pauses for everyone.',
+            text: 'Open wewatch.uz in a browser, create a room, paste a YouTube, VK or Rutube link and share the room link with your friend. Native iOS and Android apps are in development.',
           },
         },
         {
@@ -92,7 +93,7 @@ const jsonLd = {
           name: 'Is WeWatch free?',
           acceptedAnswer: {
             '@type': 'Answer',
-            text: 'Yes. The free tier has no time limit — you can create rooms and watch together for as long as you want. A Pro plan is available for extra features, but nothing essential is behind it.',
+            text: 'Core watch-party features are free. A Pro plan is listed for additional features; production checkout availability still requires confirmation.',
           },
         },
         {
@@ -100,7 +101,7 @@ const jsonLd = {
           name: 'Does it work between iPhone, Android and a desktop browser?',
           acceptedAnswer: {
             '@type': 'Answer',
-            text: 'Yes. One participant on iPhone, another on Android and another in a desktop browser can share the same room. Playback is scheduled against a shared server clock, so every device stays in sync regardless of platform.',
+            text: 'Yes. Participants can open the web version in browsers on iPhone, Android and desktop and share the same synchronized room. Native mobile apps are in development.',
           },
         },
         {
@@ -124,12 +125,14 @@ const jsonLd = {
   ],
 };
 
+const publishedJsonLd = publishHomepageSchema(jsonLd, 'en');
+
 export default function EnHomePage() {
   return (
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(publishedJsonLd) }}
       />
       <LandingContent />
     </>

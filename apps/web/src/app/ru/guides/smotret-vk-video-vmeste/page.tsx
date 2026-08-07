@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   // No manual "| WeWatch" — the root layout's title template appends it.
   title: 'Смотреть VK Видео вместе с друзьями онлайн — синхронно',
   description:
-    'Как смотреть VK Видео вместе с друзьями синхронно. WeWatch открывает VK Видео во встроенном браузере и синхронизирует просмотр между iPhone, Android и вебом.',
+    'Как смотреть VK Видео вместе с друзьями через веб-версию WeWatch. Приложения iOS и Android находятся в разработке.',
   keywords: [
     'смотреть vk видео вместе', 'вк видео вместе с друзьями', 'смотреть вконтакте видео вместе',
     'watch party vk', 'синхронный просмотр vk видео', 'смотреть видео из вк вместе онлайн',
@@ -21,22 +21,10 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-const jsonLd = {
-  '@context': 'https://schema.org',
-  '@type': 'Article',
-  headline: 'Как смотреть VK Видео вместе с друзьями',
-  description: 'Гайд по совместному синхронному просмотру VK Видео через WeWatch.',
-  author: { '@type': 'Organization', name: 'WeWatch', url: 'https://wewatch.uz' },
-  publisher: { '@type': 'Organization', name: 'WeWatch', url: 'https://wewatch.uz' },
-  datePublished: '2026-07-02',
-  inLanguage: 'ru',
-  mainEntityOfPage: 'https://wewatch.uz/ru/guides/smotret-vk-video-vmeste',
-};
 
 export default function VkVmestePage() {
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <GuideHeader locale="ru" />
       <main className="min-h-screen bg-[#060608] text-white">
         <div className="max-w-3xl mx-auto px-4 py-16">
@@ -48,14 +36,14 @@ export default function VkVmestePage() {
 
           <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">Смотреть VK Видео вместе с друзьями</h1>
           <p className="text-xl text-zinc-400 mb-10 leading-relaxed">
-            WeWatch открывает VK Видео во встроенном браузере и синхронизирует просмотр для всех участников. Пауза и перемотка применяются одновременно — на iPhone, Android и в вебе.
+            WeWatch синхронизирует VK Видео для всех участников через веб-версию в браузере. Приложения для iOS и Android находятся в разработке.
           </p>
 
           <section className="mb-10">
             <h2 className="text-2xl font-bold mb-6">Как смотреть VK Видео вместе — 4 шага</h2>
             <ol className="space-y-5">
               {[
-                { n: 1, title: 'Откройте WeWatch', desc: 'Скачайте приложение бесплатно в App Store или Google Play.' },
+                { n: 1, title: 'Откройте WeWatch', desc: 'Откройте веб-версию в браузере; приложения iOS и Android разрабатываются.' },
                 { n: 2, title: 'Найдите видео в VK', desc: 'В браузере WeWatch откройте VK Видео и выберите ролик, клип или фильм.' },
                 { n: 3, title: 'Создайте комнату', desc: 'Нажмите «Создать комнату» и отправьте ссылку-приглашение друзьям.' },
                 { n: 4, title: 'Смотрите синхронно', desc: 'WeWatch извлекает видеопоток VK и держит его синхронно у всех участников.' },
@@ -82,9 +70,9 @@ export default function VkVmestePage() {
             <h2 className="text-2xl font-bold mb-4">Вопросы</h2>
             <div className="space-y-4">
               {[
-                { q: 'Работает с фильмами из VK?', a: 'Да, WeWatch открывает любые видео VK через встроенный браузер.' },
+                { q: 'Работает с фильмами из VK?', a: 'Да, если видео доступно по поддерживаемой ссылке VK Видео.' },
                 { q: 'Нужен ли аккаунт VK?', a: 'Публичные видео открываются без входа. Для приватных нужен доступ к ним в VK.' },
-                { q: 'Это бесплатно?', a: 'Да, WeWatch бесплатен.' },
+                { q: 'Это бесплатно?', a: 'Основные функции совместного просмотра WeWatch бесплатны.' },
               ].map(({ q, a }) => (
                 <details key={q} className="border border-zinc-800 rounded-xl p-4">
                   <summary className="text-white font-medium cursor-pointer">{q}</summary>
@@ -96,9 +84,9 @@ export default function VkVmestePage() {
 
           <div className="bg-[#7B72F8]/10 border border-[#7B72F8]/30 rounded-2xl p-8 text-center">
             <h2 className="text-2xl font-bold mb-3">Смотрите VK Видео вместе</h2>
-            <p className="text-zinc-400 mb-6">Скачайте WeWatch бесплатно</p>
+            <p className="text-zinc-400 mb-6">Откройте веб-версию WeWatch</p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Link href="/ru" className="inline-flex items-center justify-center gap-2 bg-[#7B72F8] hover:bg-[#6a63e8] text-white font-semibold px-6 py-3 rounded-xl transition-colors">Скачать WeWatch</Link>
+              <Link href="/ru" className="inline-flex items-center justify-center gap-2 bg-[#7B72F8] hover:bg-[#6a63e8] text-white font-semibold px-6 py-3 rounded-xl transition-colors">Открыть WeWatch</Link>
               <Link href="/ru/guides/smotret-rutube-vmeste" className="inline-flex items-center justify-center gap-2 border border-zinc-700 hover:border-zinc-500 text-zinc-300 font-medium px-6 py-3 rounded-xl transition-colors">Rutube вместе →</Link>
             </div>
           </div>

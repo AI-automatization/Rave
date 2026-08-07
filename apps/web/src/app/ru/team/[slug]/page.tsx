@@ -8,8 +8,13 @@ export function generateStaticParams() {
   return TEAM.map((m) => ({ slug: m.slug }));
 }
 
-export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
-  const m = getMember(params.slug);
+type PersonPageProps = {
+  params: Promise<{ slug: string }>;
+};
+
+export async function generateMetadata({ params }: PersonPageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const m = getMember(slug);
   if (!m) return {};
   const url = `https://wewatch.uz/ru/team/${m.slug}`;
   return {
@@ -36,8 +41,9 @@ function socialIcon(href: string) {
   return { Icon: FaArrowRightLong, label: href.replace(/^https?:\/\/(www\.)?/, '').split('/')[0] };
 }
 
-export default function PersonPage({ params }: { params: { slug: string } }) {
-  const m = getMember(params.slug);
+export default async function PersonPage({ params }: PersonPageProps) {
+  const { slug } = await params;
+  const m = getMember(slug);
   if (!m) notFound();
 
   const others = TEAM.filter((p) => p.slug !== m.slug);
