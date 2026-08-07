@@ -1320,17 +1320,17 @@ export function LandingContent({ locale }: { locale: 'ru' | 'uz' | 'en' }) {
       <main className="flex-1" id="main-content">
 
         {/* ── HERO ── */}
-        <section className="relative min-h-dvh flex items-start justify-center overflow-hidden bg-[#0A0A0F]"
+        <section className="relative min-h-dvh flex items-start justify-center overflow-hidden bg-[#0A0A0F] bg-[radial-gradient(circle_at_50%_25%,rgba(123,114,248,0.10),transparent_52%)]"
           aria-labelledby="hero-heading">
           <motion.div className="absolute inset-0 pointer-events-none" aria-hidden="true">
             {/* Mesh gradient */}
-            <motion.div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[700px] rounded-full blur-[180px]"
+            <motion.div className="absolute top-1/2 left-1/2 hidden lg:block -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[700px] rounded-full blur-[180px]"
               style={{ background: 'radial-gradient(ellipse, rgba(123,114,248,0.18) 0%, rgba(168,85,247,0.08) 50%, transparent 70%)' }}
               animate={{ scale: [0.95, 1.08, 0.95], opacity: [0.7, 1, 0.7] }}
               transition={{ repeat: Infinity, duration: 6, ease: 'easeInOut' }} />
-            <div className="absolute top-1/4 left-1/5 w-[500px] h-[500px] rounded-full blur-[130px]"
+            <div className="absolute top-1/4 left-1/5 hidden lg:block w-[500px] h-[500px] rounded-full blur-[130px]"
               style={{ background: 'radial-gradient(circle, rgba(168,85,247,0.07) 0%, transparent 70%)' }} />
-            <div className="absolute bottom-1/3 right-1/5 w-[400px] h-[400px] rounded-full blur-[110px]"
+            <div className="absolute bottom-1/3 right-1/5 hidden lg:block w-[400px] h-[400px] rounded-full blur-[110px]"
               style={{ background: 'radial-gradient(circle, rgba(107,99,232,0.09) 0%, transparent 70%)' }} />
             {/* Grid */}
             <svg className="absolute inset-0 w-full h-full opacity-[0.035]" xmlns="http://www.w3.org/2000/svg">
@@ -1351,7 +1351,7 @@ export function LandingContent({ locale }: { locale: 'ru' | 'uz' | 'en' }) {
               <motion.div initial={{ opacity: 0, y: -16, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 22 }}
                 whileHover={{ scale: 1.04, boxShadow: '0 0 40px rgba(123,114,248,0.35), inset 0 1px 0 rgba(255,255,255,0.08)' }}
-                className="inline-flex items-center gap-2 mb-7 px-4 py-2 rounded-full border border-[#7B72F8]/35 bg-[#7B72F8]/[0.08] backdrop-blur-md text-xs sm:text-sm text-white/80 cursor-default"
+                className="inline-flex items-center gap-2 mb-7 px-4 py-2 rounded-full border border-[#7B72F8]/35 bg-[#7B72F8]/[0.08] lg:backdrop-blur-md text-xs sm:text-sm text-white/80 cursor-default"
                 style={{ boxShadow: '0 0 32px rgba(123,114,248,0.22), inset 0 1px 0 rgba(255,255,255,0.06)' }}>
                 <span className="relative flex h-2 w-2" aria-hidden="true">
                   <span className="absolute inline-flex h-full w-full rounded-full bg-[#7B72F8] opacity-60 animate-ping" />
@@ -1361,22 +1361,19 @@ export function LandingContent({ locale }: { locale: 'ru' | 'uz' | 'en' }) {
               </motion.div>
 
               {/* H1 — skill §6: bold display, clear hierarchy */}
-              <motion.h1 id="hero-heading"
-                className="text-5xl sm:text-6xl lg:text-6xl xl:text-7xl font-display uppercase leading-[0.9] tracking-tight mb-6 text-white"
+              <h1 id="hero-heading"
+                className="hero-lcp-title text-5xl sm:text-6xl lg:text-6xl xl:text-7xl font-display uppercase leading-[0.9] tracking-tight mb-6 text-white"
                 style={{ textShadow: '0 0 120px rgba(123,114,248,0.28)' }}>
                 {t('heroTitle1')}<br />
                 <span className="relative inline-block">
-                  <motion.span className="bg-clip-text text-transparent"
-                    style={{ backgroundImage: 'linear-gradient(135deg, #7B72F8 0%, #a855f7 50%, #7B72F8 100%)', backgroundSize: '200% 200%' }}
-                    animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
-                    transition={{ repeat: Infinity, duration: 5, ease: 'easeInOut' }}>
+                  <span className="bg-clip-text text-transparent"
+                    style={{ backgroundImage: 'linear-gradient(135deg, #7B72F8 0%, #a855f7 50%, #7B72F8 100%)' }}>
                     {t('heroTitle2')}
-                  </motion.span>
-                  <motion.span className="absolute -bottom-1 left-0 right-0 h-0.5 rounded-full" aria-hidden="true"
-                    style={{ background: 'linear-gradient(90deg, transparent, #7B72F8, #a855f7, transparent)', opacity: 0.6 }}
-                    animate={shouldReduceMotion ? {} : { scaleX: [0, 1] }} transition={{ delay: 0.9, duration: 0.6 }} />
+                  </span>
+                  <span className="absolute -bottom-1 left-0 right-0 h-0.5 rounded-full" aria-hidden="true"
+                    style={{ background: 'linear-gradient(90deg, transparent, #7B72F8, #a855f7, transparent)', opacity: 0.6 }} />
                 </span>
-              </motion.h1>
+              </h1>
 
               {/* Subtitle — §6: 1.5 line-height, ≤65 chars/line */}
               <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.55, delay: 0.3 }}
@@ -1412,7 +1409,7 @@ export function LandingContent({ locale }: { locale: 'ru' | 'uz' | 'en' }) {
                   <span className="relative z-10 ml-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/20">{t('soon')}</span>
                 </motion.span>
                 <motion.a href="#demo"
-                  className="inline-flex items-center gap-2 h-14 px-8 rounded-xl border border-zinc-700/80 text-zinc-300 hover:border-[#7B72F8]/50 hover:text-white hover:bg-[#7B72F8]/[0.06] transition-colors duration-200 text-sm backdrop-blur-sm cursor-pointer"
+                  className="inline-flex items-center gap-2 h-14 px-8 rounded-xl border border-zinc-700/80 text-zinc-300 hover:border-[#7B72F8]/50 hover:text-white hover:bg-[#7B72F8]/[0.06] transition-colors duration-200 text-sm lg:backdrop-blur-sm cursor-pointer"
                   whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
                   transition={{ type: 'spring', stiffness: 400, damping: 20 }}
                   >
@@ -1432,7 +1429,7 @@ export function LandingContent({ locale }: { locale: 'ru' | 'uz' | 'en' }) {
             {/* ── RIGHT: live sync demo card ── */}
             <motion.div initial={{ opacity: 0, y: 30, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ type: 'spring', stiffness: 200, damping: 24, delay: 0.35 }}
-              className="relative mx-auto w-full max-w-md lg:max-w-none">
+              className="relative mx-auto hidden w-full max-w-md lg:block lg:max-w-none">
               {/* floating badge — top */}
               <motion.div
                 animate={shouldReduceMotion ? {} : { y: [0, -8, 0] }}

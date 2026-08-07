@@ -262,6 +262,14 @@
   contain-intrinsic-size: auto 900px;
 }
 
+/* Mobile LCP is the hero H1. Avoid a large blurred text-shadow in the
+   throttled first paint; desktop keeps the richer glow from the inline style. */
+@media (max-width: 1023px) {
+  .hero-lcp-title {
+    text-shadow: none !important;
+  }
+}
+
 /* White copy on the original brand violet was only 3.74:1. Keep the brand
    hue for decorative accents, but use the accessible shade for solid CTAs. */
 .bg-\[\#7B72F8\].text-white {
