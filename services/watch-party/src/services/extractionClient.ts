@@ -5,7 +5,13 @@ import { axios, contentServiceUrl } from '@shared/utils/serviceConfig';
 import { logger } from '@shared/utils/logger';
 import type { VideoCandidate } from '@shared/types';
 
-const EXTRACT_TIMEOUT_MS = 60_000; // generic(10s) + yt-dlp(20s) + Playwright(~30s) stacked worst case
+// Real prod incident 2026-08-07: content-service's OWN request timeout is 70s (its extraction
+// chain's deterministic worst case incl. yt-dlp's one retry is 66s — see content-service's
+// app.ts) — 60s here meant axios gave up client-side before content-service could ever finish
+// or return its own timeout error, so every slow-but-legitimate extraction was reported here as
+// a hard network failure instead of the real "unsupported/too slow" answer. 75s gives content-
+// service's 70s a chance to respond first with a clean result.
+const EXTRACT_TIMEOUT_MS = 75_000;
 const CANDIDATES_TIMEOUT_MS = 12_000; // just one HTML fetch + regex (genericExtractorCandidates) — cheap
 
 // Only worth pre-checking non-official-embed URLs — YouTube/VK/Rutube/Twitch/Vimeo/Dailymotion/
