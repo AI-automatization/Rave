@@ -210,6 +210,25 @@ export function getSessionSnapshot(roomId: string): { url: string; width: number
 //             outright otherwise. onMediaFound itself is just a report, not a lifecycle signal.
 export type MediaFoundKind = 'url' | 'capture';
 
+// Real prod case 2026-08-07 (uzmovi.net): all 5 candidates VB presented for one room were ads,
+// not the movie — 4 of 5 came from salam-us-iptp-81.rtbcdn.ru ("rtbcdn" = real-time-bidding CDN,
+// an ad-exchange domain, unambiguous by name alone). The duration/size heuristics below didn't
+// catch these because the HLS master playlist they served had no per-segment #EXTINF lines
+// (sumHlsDurationSecs returns 0 for a variant-listing master playlist), which verifyAndHit
+// deliberately treats as "can't measure, accept" to avoid false-rejecting real content whose
+// master playlist looks the same shape. A domain-name match is a stronger, more direct signal
+// than duration ever was for this case — checked first, before any duration/size heuristics run.
+const AD_DOMAIN_MARKERS = ['rtbcdn'];
+
+function isKnownAdDomain(url: string): boolean {
+  try {
+    const hostname = new URL(url).hostname;
+    return AD_DOMAIN_MARKERS.some((marker) => hostname.includes(marker));
+  } catch {
+    return false;
+  }
+}
+
 // A short in-page video ad (real example caught live 2026-08-02 on hdrezka.my via the room
 // owner's own report — a 30s MostBet gambling ad played instead of the movie) matches every
 // signal `hit()` used to accept unconditionally: real extension, real video Content-Type, real
@@ -306,6 +325,10 @@ function attachResponseSniffer(
   page.on('response', (response) => {
     if (!collectMultiple && found) return; // first ACCEPTED match wins — ad rejections above don't set this
     const respUrl = response.url();
+    if (isKnownAdDomain(respUrl)) {
+      logger.info('VB: media candidate rejected — known ad domain', { logId, url: respUrl.slice(0, 120) });
+      return;
+    }
     const ext = matchMediaExtension(respUrl);
     const headers = response.headers();
     const contentType = headers['content-type'] ?? '';
