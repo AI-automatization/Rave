@@ -90,6 +90,7 @@ function resolveUrl(src: string, base: URL): string {
 }
 
 function guessType(url: string): VideoType {
+  if (/\.mpd(\?|#|$)/i.test(url)) return 'dash';
   return /\.m3u8/i.test(url) ? 'hls' : 'mp4';
 }
 

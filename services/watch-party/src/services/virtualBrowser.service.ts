@@ -134,23 +134,24 @@ function matchMediaExtension(url: string): string | null {
 const MEDIA_CONTENT_TYPE_RE = /^(video\/(mp4|webm|mp2t|iso\.segment)|audio\/mp4|application\/(vnd\.apple\.mpegurl|x-mpegurl|dash\+xml))/i;
 
 // .mpd is an MPEG-DASH manifest — a different format from HLS's .m3u8 (XML segment templates vs
-// a text playlist), and neither the player (hls.js only, no dash.js) nor vb-media-proxy's
-// manifest rewrite (line-based #EXTM3U parsing) understand it. Grabbing one used to get
-// misclassified as 'hls' and handed straight to the player, which failed instantly — confirmed
-// live 2026-08-04 on uzmovi.net (srv518.uzdown.space .mpd), and the resulting fatal-error retry
-// then tried to page.goto() the raw manifest URL directly, which isn't a browsable page either.
-// Until dash.js support exists, treat DASH like an ad candidate: log and keep looking instead of
-// grabbing something we can't play.
-function isDashUrl(ext: string | null, contentType: string): boolean {
-  return ext === 'mpd' || /dash/i.test(contentType);
+// a text playlist). Used to be misclassified as 'hls' and handed straight to the player, which
+// failed instantly (confirmed live 2026-08-04 on uzmovi.net, srv518.uzdown.space .mpd) — then,
+// once that was noticed, DASH was rejected outright instead (treated like an ad candidate) since
+// nothing downstream understood it. 2026-08-07: dash.js support added end-to-end (player,
+// vb-media-proxy manifest rewrite, content-service extractor) — DASH is now a real first-class
+// type, not a reject-and-keep-looking case.
+export type MediaType = 'mp4' | 'hls' | 'dash';
+
+function classifyMediaUrl(ext: string): MediaType {
+  if (ext === 'm3u8') return 'hls';
+  if (ext === 'mpd') return 'dash';
+  return 'mp4';
 }
 
-function classifyMediaUrl(ext: string): 'mp4' | 'hls' {
-  return ext === 'm3u8' ? 'hls' : 'mp4';
-}
-
-function classifyMediaContentType(contentType: string): 'mp4' | 'hls' {
-  return /mpegurl|dash/i.test(contentType) ? 'hls' : 'mp4';
+function classifyMediaContentType(contentType: string): MediaType {
+  if (/mpegurl/i.test(contentType)) return 'hls';
+  if (/dash/i.test(contentType)) return 'dash';
+  return 'mp4';
 }
 
 // Third line of defense: some sites deliberately lie about Content-Type (e.g. serve a video
@@ -233,8 +234,9 @@ function isKnownAdDomain(url: string): boolean {
 // owner's own report — a 30s MostBet gambling ad played instead of the movie) matches every
 // signal `hit()` used to accept unconditionally: real extension, real video Content-Type, real
 // magic bytes. Ads are consistently ≤60s; nothing in this catalog (movies/episodes) legitimately
-// runs under a couple of minutes, so duration is a genuine discriminator, not a guess.
-const MIN_HLS_DURATION_SECS = 90;
+// runs under a couple of minutes, so duration is a genuine discriminator, not a guess. Shared by
+// both HLS's #EXTINF summing and DASH's mediaPresentationDuration below — same reasoning either way.
+const MIN_MANIFEST_DURATION_SECS = 90;
 // MP4: true duration lives in the moov/mvhd box, which can sit at either end of the file
 // depending on encoding — parsing it reliably would mean downloading the whole thing, defeating
 // the point. Content-Length is a real, zero-extra-request proxy instead: a 30s ad at ordinary web
@@ -251,6 +253,19 @@ function sumHlsDurationSecs(playlistText: string): number {
   return total;
 }
 
+// MPD's root <MPD mediaPresentationDuration="PT1H32M20.5S" ...> — ISO 8601 duration, authoritative
+// per the DASH spec (same reasoning as EXTINF above: real value, not a guess). A live stream (no
+// fixed duration) omits this attribute entirely, same "can't measure, accept" fallback as an HLS
+// master playlist with no #EXTINF lines.
+const MPD_DURATION_RE = /mediaPresentationDuration="PT(?:([\d.]+)H)?(?:([\d.]+)M)?(?:([\d.]+)S)?"/;
+
+function parseMpdDurationSecs(xml: string): number {
+  const m = MPD_DURATION_RE.exec(xml);
+  if (!m) return 0;
+  const [, h, min, s] = m;
+  return parseFloat(h ?? '0') * 3600 + parseFloat(min ?? '0') * 60 + parseFloat(s ?? '0');
+}
+
 /**
  * Category A sniffing — media the page fetches over plain HTTP, recognised by extension, then
  * Content-Type, then magic bytes. Lifted out of startSession (T-S174) so the background probe
@@ -263,7 +278,7 @@ function sumHlsDurationSecs(playlistText: string): number {
 function attachResponseSniffer(
   page: Page,
   logId: string,
-  onFound: (mediaUrl: string, type: 'mp4' | 'hls') => void,
+  onFound: (mediaUrl: string, type: MediaType) => void,
   // Real prod case 2026-08-06 (uzmovi.net serial page): the first accepted match wasn't the right
   // episode — a related-content widget's clip passed every ad heuristic (real extension, real
   // Content-Type, past the size/duration floor) just like a genuine result would. Default false
@@ -274,7 +289,7 @@ function attachResponseSniffer(
 ): void {
   let found = false;
   const seenUrls = new Set<string>();
-  const hit = (mediaUrl: string, type: 'mp4' | 'hls', how: string, extra?: Record<string, unknown>) => {
+  const hit = (mediaUrl: string, type: MediaType, how: string, extra?: Record<string, unknown>) => {
     if (collectMultiple) {
       if (seenUrls.has(mediaUrl)) return;
       seenUrls.add(mediaUrl);
@@ -287,24 +302,35 @@ function attachResponseSniffer(
   };
   // Ad candidates are logged then dropped, WITHOUT setting `found` — the real video is expected
   // to load right after, and the listener must keep watching for it.
-  const rejectAsAd = (mediaUrl: string, type: 'mp4' | 'hls', reason: string, extra?: Record<string, unknown>) => {
+  const rejectAsAd = (mediaUrl: string, type: MediaType, reason: string, extra?: Record<string, unknown>) => {
     logger.info('VB: media candidate rejected as likely ad (too short)', { logId, url: mediaUrl.slice(0, 120), type, reason, ...extra });
   };
-  // Same non-fatal shape as rejectAsAd — DASH isn't playable (see isDashUrl), so skip it and
-  // keep sniffing for a real candidate instead of grabbing something guaranteed to fail.
-  const rejectAsDash = (mediaUrl: string) => {
-    logger.info('VB: media candidate rejected — DASH (.mpd) unsupported, no dash.js', { logId, url: mediaUrl.slice(0, 120) });
-  };
 
-  const verifyAndHit = async (mediaUrl: string, type: 'mp4' | 'hls', how: string, response: import('playwright-chromium').Response) => {
+  const verifyAndHit = async (mediaUrl: string, type: MediaType, how: string, response: import('playwright-chromium').Response) => {
     if (type === 'hls') {
       try {
         const text = await response.text();
         const secs = sumHlsDurationSecs(text);
         // 0 means no #EXTINF tags at all (e.g. a master playlist listing variant streams, not
         // segments itself) — can't measure it, accept rather than false-reject real content.
-        if (secs > 0 && secs < MIN_HLS_DURATION_SECS) {
+        if (secs > 0 && secs < MIN_MANIFEST_DURATION_SECS) {
           rejectAsAd(mediaUrl, type, 'hls_duration', { secs: Math.round(secs) });
+          return;
+        }
+      } catch {
+        // Body unavailable — fall through and accept rather than get stuck never finding media.
+      }
+      hit(mediaUrl, type, how);
+      return;
+    }
+    if (type === 'dash') {
+      try {
+        const text = await response.text();
+        const secs = parseMpdDurationSecs(text);
+        // 0 means no mediaPresentationDuration attribute (live stream, or a manifest shape this
+        // regex doesn't match) — can't measure it, accept rather than false-reject real content.
+        if (secs > 0 && secs < MIN_MANIFEST_DURATION_SECS) {
+          rejectAsAd(mediaUrl, type, 'dash_duration', { secs: Math.round(secs) });
           return;
         }
       } catch {
@@ -332,10 +358,6 @@ function attachResponseSniffer(
     const ext = matchMediaExtension(respUrl);
     const headers = response.headers();
     const contentType = headers['content-type'] ?? '';
-    if (isDashUrl(ext, contentType)) {
-      rejectAsDash(respUrl);
-      return;
-    }
     if (ext) {
       void verifyAndHit(respUrl, classifyMediaUrl(ext), 'extension', response);
       return;
@@ -373,7 +395,7 @@ export async function startSession(
   ownerId: string,
   url: string,
   onFrame: (base64Jpeg: string) => void,
-  onMediaFound?: (mediaUrl: string, type: 'mp4' | 'hls', kind: MediaFoundKind) => void,
+  onMediaFound?: (mediaUrl: string, type: MediaType, kind: MediaFoundKind) => void,
   onCollectionEnd?: () => void,
 ): Promise<void> {
   if (startingRooms.has(roomId)) {
@@ -549,7 +571,7 @@ export async function startSession(
  * Returns the media URL if the page revealed one, otherwise null. Never throws: a probe failing
  * only means "we don't know yet", which the caller records as needing the interactive fallback.
  */
-export async function probeUrl(url: string): Promise<{ mediaUrl: string; type: 'mp4' | 'hls' } | null> {
+export async function probeUrl(url: string): Promise<{ mediaUrl: string; type: MediaType } | null> {
   if (activeProbes >= MAX_BACKGROUND_PROBES || sessions.size + activeProbes >= MAX_CONCURRENT) {
     logger.info('VB probe: skipped, no spare capacity', { url, sessions: sessions.size, activeProbes });
     return null;
@@ -567,7 +589,7 @@ export async function probeUrl(url: string): Promise<{ mediaUrl: string; type: '
     await applyStealthPatches(context);
     const page = await context.newPage();
 
-    const result = await new Promise<{ mediaUrl: string; type: 'mp4' | 'hls' } | null>((resolve) => {
+    const result = await new Promise<{ mediaUrl: string; type: MediaType } | null>((resolve) => {
       const timer = setTimeout(() => resolve(null), PROBE_TIMEOUT_MS);
       attachResponseSniffer(page, `probe:${url.slice(0, 60)}`, (mediaUrl, type) => {
         clearTimeout(timer);

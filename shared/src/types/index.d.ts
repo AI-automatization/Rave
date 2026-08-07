@@ -163,7 +163,7 @@ export interface VideoExtractRequest {
 }
 export interface VideoCandidate {
     url: string;
-    type: 'mp4' | 'hls' | 'embed';
+    type: 'mp4' | 'hls' | 'dash' | 'embed';
     /** Thumbnail — either the extractor's own og:image-derived poster, or (for VB-caught
      * candidates, which have no page metadata) a base64 JPEG data URI grabbed from VB's own CDP
      * screencast at the moment the candidate was caught. */

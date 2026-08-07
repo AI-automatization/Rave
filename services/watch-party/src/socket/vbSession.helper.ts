@@ -12,7 +12,7 @@ import { REDIS_KEYS } from '@shared/constants';
 import { VideoCandidate } from '@shared/types';
 import { vbStreamPublicUrl } from '@shared/utils/serviceConfig';
 import { signProxyUrl } from '@shared/utils/proxySignature';
-import { VB_VIEWPORT, startSession, getSessionPageTitle } from '../services/virtualBrowser.service';
+import { VB_VIEWPORT, startSession, getSessionPageTitle, MediaType } from '../services/virtualBrowser.service';
 import { WatchPartyRoom } from '../models/watchPartyRoom.model';
 
 // TTL for the candidates Redis entry — matches how long "the current video session" is a
@@ -40,8 +40,8 @@ export const CANDIDATES_TTL_SEC = 6 * 60 * 60; // 6h
 // and the extra decode collapses it all the way to a literal space — a completely different byte
 // string than what was signed, so the HMAC can never match. base64url has no '%' in its alphabet,
 // so it's inert to however many decode passes happen in between.
-function proxiedMediaUrl(mediaUrl: string, mediaType: 'mp4' | 'hls'): string {
-  const ext = mediaType === 'hls' ? 'm3u8' : 'mp4';
+function proxiedMediaUrl(mediaUrl: string, mediaType: MediaType): string {
+  const ext = mediaType === 'hls' ? 'm3u8' : mediaType === 'dash' ? 'mpd' : 'mp4';
   const { exp, sig } = signProxyUrl(mediaUrl);
   const encodedUrl = Buffer.from(mediaUrl, 'utf8').toString('base64url');
   return `${vbStreamPublicUrl}/api/v1/watch-party/vb-media-proxy/stream.${ext}`

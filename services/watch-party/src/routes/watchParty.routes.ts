@@ -82,7 +82,7 @@ export const createWatchPartyRouter = (redis: Redis, io: SocketServer): Router =
   // via: (1) HMAC signature required in the URL (verifyProxyUrl in the controller — only URLs we
   // minted ourselves in vbSession.helper.ts pass), (2) the shared SSRF guard re-checked on every
   // redirect hop, (3) this per-IP rate limiter.
-  router.get('/vb-media-proxy/stream.:ext(m3u8|mp4)', vbProxyLimiter, vbMediaProxyController.stream);
+  router.get('/vb-media-proxy/stream.:ext(m3u8|mp4|mpd)', vbProxyLimiter, vbMediaProxyController.stream);
   router.get('/vb-media-proxy/seg', vbProxyLimiter, vbMediaProxyController.stream);
 
   // GET /watch-party/rooms/my/recent — user's last 10 rooms (T-S061)

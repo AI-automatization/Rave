@@ -36,6 +36,7 @@ function CandidatePreview({ candidate }: { candidate: VideoCandidate }) {
   const t = useTranslations('party');
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const hlsRef = useRef<import('hls.js').default | null>(null);
+  const dashRef = useRef<import('dashjs').MediaPlayerClass | null>(null);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -47,6 +48,18 @@ function CandidatePreview({ candidate }: { candidate: VideoCandidate }) {
     // same CORS problem the main player already solves via this same proxy, see VideoPlayer.tsx.
     buildProxyUrl(candidate.url).then((proxiedUrl) => {
       if (cancelled) return;
+
+      if (candidate.type === 'dash') {
+        import('dashjs').then((dashjs) => {
+          if (cancelled) return;
+          dashRef.current?.reset();
+          const player = dashjs.MediaPlayer().create();
+          dashRef.current = player;
+          player.initialize(video, proxiedUrl, false);
+          player.on(dashjs.MediaPlayer.events.CAN_PLAY, () => { video.play().catch(() => {}); });
+        }).catch(() => {});
+        return;
+      }
 
       if (candidate.type === 'mp4' || video.canPlayType('application/vnd.apple.mpegurl')) {
         video.src = proxiedUrl;
@@ -70,6 +83,8 @@ function CandidatePreview({ candidate }: { candidate: VideoCandidate }) {
       cancelled = true;
       hlsRef.current?.destroy();
       hlsRef.current = null;
+      dashRef.current?.reset();
+      dashRef.current = null;
     };
   }, [candidate.url, candidate.type]);
 

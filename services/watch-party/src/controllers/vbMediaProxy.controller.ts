@@ -211,6 +211,51 @@ async function streamImpl(req: Request, res: Response): Promise<void> {
 
     const rawCT = upstream.headers.get('content-type') ?? '';
     const isManifest = rawCT.includes('mpegurl') || rawCT.includes('x-mpegurl') || parsedUrl.pathname.endsWith('.m3u8');
+    const isMpd = rawCT.includes('dash+xml') || parsedUrl.pathname.endsWith('.mpd');
+
+    if (isMpd) {
+      const text = await upstream.text();
+
+      // MPD's <SegmentTemplate>/<SegmentList> derive per-segment URLs from a template
+      // ($Number$/$Time$ placeholders) resolved by the player at request time, relative to the
+      // nearest <BaseURL>. Rewriting that BaseURL to point at our query-param-signed proxy
+      // (?url=...&exp=...&sig=...) would silently break it: per RFC 3986, resolving a relative
+      // reference against a base URL drops the base's own query string entirely — the player
+      // would end up requesting /vb-media-proxy/seg/chunk-1.m4s with no url/exp/sig at all. A
+      // correct fix needs a path-scoped (not query-scoped) signed-directory proxy, which doesn't
+      // exist yet — rather than ship something that looks like it works and silently 403s/404s on
+      // the first real segment fetch, pass these through unproxied. dash.js still plays them
+      // directly off the origin CDN (loses the IP-lock protection this proxy exists for, same as
+      // any other embed source that isn't routed through us — not a regression, just not-yet-covered).
+      if (/<SegmentTemplate[\s>]/.test(text) || /<SegmentList[\s>]/.test(text)) {
+        res.status(200);
+        res.setHeader('Content-Type', 'application/dash+xml');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.send(text);
+        return;
+      }
+
+      // Single-<BaseURL>/<SegmentBase> VOD shape (the whole file addressed by byte-range Range
+      // requests against ONE url, no per-segment template) — safe to proxy: every BaseURL points
+      // at the exact same resource, so rewriting it once and letting the existing /seg Range
+      // handling (already generic, no DASH-specific logic needed there) serve every chunk request
+      // works correctly, unlike the templated case above.
+      const base = parsedUrl.href.substring(0, parsedUrl.href.lastIndexOf('/') + 1);
+      const proxy = proxyBase(req);
+      const rewritten = text.replace(/<BaseURL>([^<]+)<\/BaseURL>/g, (_match, urlText: string) => {
+        const trimmed = urlText.trim();
+        const absUrl = trimmed.startsWith('http') ? trimmed : base + trimmed;
+        const { exp: segExp, sig: segSig } = signProxyUrl(absUrl);
+        const encodedAbsUrl = Buffer.from(absUrl, 'utf8').toString('base64url');
+        return `<BaseURL>${proxy}/seg?url=${encodedAbsUrl}&exp=${segExp}&sig=${segSig}</BaseURL>`;
+      });
+
+      res.status(200);
+      res.setHeader('Content-Type', 'application/dash+xml');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.send(rewritten);
+      return;
+    }
 
     if (isManifest) {
       const text = await upstream.text();

@@ -89,7 +89,7 @@ interface Props {
 
 interface ExtractResult {
   videoUrl: string;
-  type: 'mp4' | 'hls' | 'embed';
+  type: 'mp4' | 'hls' | 'dash' | 'embed';
   poster?: string;
   httpHeaders?: Record<string, string>;
 }
@@ -344,6 +344,7 @@ function suppressMacOsPlayer() {
 interface NativeProps {
   src: string;
   isHls: boolean;
+  isDash: boolean;
   poster?: string;
   videoRef: React.RefObject<HTMLVideoElement | null>;
   autoplayBlocked: boolean;
@@ -366,6 +367,7 @@ interface NativeProps {
 function NativeVideoPlayer({
   src,
   isHls,
+  isDash,
   poster,
   videoRef,
   autoplayBlocked,
@@ -382,9 +384,10 @@ function NativeVideoPlayer({
 }: NativeProps) {
   const t = useTranslations('party');
   const hlsRef = useRef<import('hls.js').default | null>(null);
+  const dashRef = useRef<import('dashjs').MediaPlayerClass | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  // Ref so the HLS-setup effect (deps: [src, isHls, videoRef]) always calls the CURRENT
+  // Ref so the HLS/DASH-setup effect (deps: [src, isHls, isDash, videoRef]) always calls the CURRENT
   // onFatalError without needing it in that dependency array (it's an inline arrow from the
   // parent on every render — adding it directly would tear down/rebuild the whole HLS session
   // every render).
@@ -409,6 +412,7 @@ function NativeVideoPlayer({
       const video = videoRef.current;
       if (video && src) {
         if (hlsRef.current) hlsRef.current.loadSource(src);
+        else if (dashRef.current) dashRef.current.attachSource(src);
         else video.src = src;
         attemptOwnerAutoplay(video);
       }
@@ -456,12 +460,40 @@ function NativeVideoPlayer({
     });
   }
 
-  // HLS setup + macOS suppression
+  // HLS/DASH setup + macOS suppression
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !src) return;
 
     suppressMacOsPlayer();
+
+    if (isDash) {
+      import('dashjs').then((dashjs) => {
+        dashRef.current?.reset();
+        const player = dashjs.MediaPlayer().create();
+        dashRef.current = player;
+        player.initialize(video, src, false);
+        if (startPosition && startPosition > 0.5) {
+          player.on(dashjs.MediaPlayer.events.CAN_PLAY, () => {
+            if (Math.abs(video.currentTime - startPosition) > 0.3) video.currentTime = startPosition;
+          }, undefined, { once: true });
+        }
+        player.on(dashjs.MediaPlayer.events.CAN_PLAY, () => {
+          suppressMacOsPlayer();
+          attemptOwnerAutoplay(video);
+        });
+        // dash.js doesn't expose hls.js's fatal/non-fatal split — any ERROR here means playback
+        // genuinely can't continue (dash.js already retries recoverable network hiccups
+        // internally without emitting this event), same "give up" signal reportFatal expects.
+        player.on(dashjs.MediaPlayer.events.ERROR, () => { reportFatal(); });
+        video.addEventListener('play', suppressMacOsPlayer, { passive: true });
+      }).catch(() => { video.src = src; attemptOwnerAutoplay(video); });
+
+      return () => {
+        dashRef.current?.reset();
+        dashRef.current = null;
+      };
+    }
 
     if (!isHls || video.canPlayType('application/vnd.apple.mpegurl')) {
       // Safari native HLS or plain MP4 — seek after metadata loads
@@ -507,7 +539,7 @@ function NativeVideoPlayer({
       hlsRef.current?.destroy();
       hlsRef.current = null;
     };
-  }, [src, isHls, videoRef]);
+  }, [src, isHls, isDash, videoRef]);
 
   // Mirror video state for custom controls UI
   useEffect(() => {
@@ -842,6 +874,7 @@ export function VideoPlayer({
 
   const [proxySrc, setProxySrc] = useState<string | null>(null);
   const [isHls, setIsHls] = useState(false);
+  const [isDash, setIsDash] = useState(false);
   const [extractPoster, setExtractPoster] = useState<string | undefined>(undefined);
   const [extracting, setExtracting] = useState(false);
   const [extractError, setExtractError] = useState<string | null>(null);
@@ -883,6 +916,7 @@ export function VideoPlayer({
       .then(async (result) => {
         setProxySrc(await buildProxyUrl(result.videoUrl, result.httpHeaders));
         setIsHls(result.type === 'hls');
+        setIsDash(result.type === 'dash');
         setExtractPoster(result.poster);
       })
       .catch((err: unknown) => {
@@ -1280,6 +1314,7 @@ export function VideoPlayer({
         <NativeVideoPlayer
           src={proxySrc}
           isHls={isHls}
+          isDash={isDash}
           poster={extractPoster}
           videoRef={videoRef}
           autoplayBlocked={autoplayBlocked}
