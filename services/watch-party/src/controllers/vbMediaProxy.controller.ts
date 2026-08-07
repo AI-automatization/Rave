@@ -115,6 +115,30 @@ function cappedRange(rangeHeader: string, maxBytes: number): string {
 
 export const vbMediaProxyController = {
   async stream(req: Request, res: Response): Promise<void> {
+    try {
+      await streamImpl(req, res);
+    } catch (err) {
+      // An async Express handler that throws is NOT caught by Express itself — the
+      // rejection goes unhandled and crashes the entire Node process (confirmed in prod
+      // 2026-08-07: a client aborting a Range request mid-fetch raced with this handler
+      // resuming after its upstream `await`, hit res.removeHeader() on an already-closed
+      // response, threw ERR_HTTP_HEADERS_SENT, and took the whole watch-party service down
+      // in a crash-loop — every viewer in every room, not just the one aborted request).
+      // This is the last line of defense: whatever went wrong, it must stay scoped to this
+      // one request.
+      logger.error('vb-media-proxy: unhandled error in stream()', {
+        error: err instanceof Error ? err.message : String(err),
+      });
+      if (!res.headersSent) {
+        res.status(500).json({ success: false, message: 'Internal error' });
+      } else if (!res.writableEnded) {
+        res.end();
+      }
+    }
+  },
+};
+
+async function streamImpl(req: Request, res: Response): Promise<void> {
     const urlParam = req.query.url;
     if (typeof urlParam !== 'string') {
       res.status(400).json({ success: false, message: 'url required' });
@@ -219,6 +243,12 @@ export const vbMediaProxyController = {
       ? rawCT
       : parsedUrl.pathname.endsWith('.ts') ? 'video/MP2T' : 'video/mp4';
 
+    // The client (a Range-seeking video player, typically) may have aborted this exact
+    // request while we were awaiting the upstream fetch above — res.removeHeader() below
+    // throws ERR_HTTP_HEADERS_SENT if the response was already finalized by that abort,
+    // which crashed the whole process before this guard existed (2026-08-07 incident).
+    if (res.writableEnded || res.headersSent) return;
+
     res.status(upstream.status === 206 ? 206 : 200);
     res.setHeader('Content-Type', ct);
     res.setHeader('Accept-Ranges', 'bytes');
@@ -262,8 +292,12 @@ export const vbMediaProxyController = {
     } catch {
       // client disconnected mid-stream or upstream dropped — send back whatever was collected
     }
+    // Same abort race as above, just on the other side of the (potentially slow) buffering
+    // loop instead of the initial upstream fetch — the client can disconnect at any point
+    // while we're reading, and res.on('close') above only cancels the reader, it doesn't
+    // stop execution from reaching here.
+    if (res.writableEnded) return;
     const body = Buffer.concat(chunks);
     res.setHeader('Content-Length', String(body.length));
     res.end(body);
-  },
-};
+}
