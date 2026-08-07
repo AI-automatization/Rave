@@ -86,6 +86,10 @@ interface VBSession {
   cdp: CDPSession;
   ownerId: string;
   url: string;
+  /** The source page's own <title> — used to name the room instead of leaving it on the generic
+   * default, since VB (unlike the extraction pipeline) never had any page-metadata capture at
+   * all. Set once navigation succeeds; undefined if it never did or the read itself failed. */
+  pageTitle?: string;
 }
 
 const sessions = new Map<string, VBSession>(); // roomId -> session
@@ -179,6 +183,10 @@ export function hasSession(roomId: string): boolean {
 
 export function getSessionOwner(roomId: string): string | undefined {
   return sessions.get(roomId)?.ownerId;
+}
+
+export function getSessionPageTitle(roomId: string): string | undefined {
+  return sessions.get(roomId)?.pageTitle;
 }
 
 // Catch-up snapshot for a client joining/reconnecting AFTER the owner already started a
@@ -493,6 +501,12 @@ export async function startSession(
     try {
       await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20_000 });
       logger.info('VB session started', { roomId, url, active: sessions.size });
+      const s = sessions.get(roomId);
+      if (s) {
+        // Best-effort — a title read failing (page navigated away again, closed, etc.) shouldn't
+        // affect the actual media hunt, it just means the room keeps its default name.
+        s.pageTitle = await page.title().catch(() => undefined);
+      }
     } catch (e) {
       // Navigation failure doesn't kill the session — owner still sees the failed-load page
       // and can retry a different URL from the same browser instance.

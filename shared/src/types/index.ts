@@ -248,6 +248,9 @@ export interface VideoCandidate {
   poster?: string;
   duration?: number;
   source: 'extract' | 'vb';
+  /** Source page's own <title> (VB) or the extractor's title guess. Only way any candidate ever
+   * carries a real name — without it every VB-sourced room stayed on the generic default name. */
+  title?: string;
 }
 
 // ─────────────────────────────────────────────
