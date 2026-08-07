@@ -88,6 +88,16 @@ export async function startVBForRoom(
         logger.warn('VB: failed to refresh room activity before presenting candidates', { roomId, error: (e as Error).message });
       });
       if (candidates.length > 0) {
+        // Real prod finding 2026-08-07 (uzmovi.net/uzdown.space): this site re-signs its .mpd
+        // URLs roughly every 10s (anti-hotlink) — by the time a 'url'-kind candidate survives
+        // the collection window + Redis round-trip + the owner actually opening the picker, the
+        // token baked into it is already dead, and vb-media-proxy 502s trying to fetch it. A
+        // 'capture'-kind candidate (vb-capture URL) has no such problem — it serves bytes VB's
+        // own browser already played, not a re-fetch of the original signed URL — so it's
+        // strictly more reliable whenever both kinds were found in the same session. Put it
+        // first so it's what the owner sees/tries first instead of an expiring one buried in a
+        // stack of them.
+        candidates.sort((a, b) => Number(b.url.includes('/vb-capture/')) - Number(a.url.includes('/vb-capture/')));
         try {
           await redis.setex(REDIS_KEYS.videoCandidates(roomId), CANDIDATES_TTL_SEC, JSON.stringify(candidates));
         } catch (e) {
