@@ -11,6 +11,7 @@ import { logger } from '@shared/utils/logger';
 import { getAppSetting } from '@shared/utils/appSettings';
 import { ForbiddenError, NotFoundError } from '@shared/utils/errors';
 import { startVBForRoom } from '../socket/vbSession.helper';
+import { isOfficialEmbedHost, tryExtract } from '../services/extractionClient';
 
 export class WatchPartyController {
   constructor(
@@ -62,10 +63,44 @@ export class WatchPartyController {
         videoReferer?: string;
       };
 
+      // Extraction-flow pre-check, mirroring CHANGE_MEDIA (roomEvents.handler.ts) — real prod
+      // incident 2026-08-07: a room created directly with a non-video URL (a catalog/listing
+      // page, e.g. old.yummyani.me/catalog/item/berserk) had NO validation at all on this path,
+      // so it was stored and broadcast as "the video" with the player stuck loading forever and
+      // VB never getting a chance to kick in. CHANGE_MEDIA already gates every later video swap
+      // through tryExtract → VB fallback; room creation is just the same swap happening at t=0
+      // and needs the identical gate, not a separate weaker one.
+      let effectiveVideoUrl = videoUrl;
+      let vbFallbackUrl: string | undefined;
+      if (videoUrl && !isOfficialEmbedHost(videoUrl)) {
+        const authHeader = req.headers.authorization;
+        const rawToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : undefined;
+        if (rawToken) {
+          const playable = await tryExtract(videoUrl, rawToken);
+          if (!playable) {
+            // Don't persist an unplayable URL — create the room without one and let VB fill it
+            // in via the normal VIDEO_CANDIDATES / ROOM_UPDATED events once the owner's socket
+            // joins, exactly like a CHANGE_MEDIA-triggered VB session does.
+            effectiveVideoUrl = undefined;
+            vbFallbackUrl = videoUrl;
+          }
+        }
+      }
+
       const room = await this.watchPartyService.createRoom(userId, {
-        name, movieId, videoUrl, videoTitle, videoThumbnail, videoPlatform,
+        name, movieId, videoUrl: effectiveVideoUrl, videoTitle, videoThumbnail, videoPlatform,
         maxMembers, isPrivate, password, startTime, videoReferer,
       });
+
+      if (vbFallbackUrl) {
+        try {
+          await startVBForRoom(this.io, this.redis, room._id.toString(), userId, vbFallbackUrl);
+          logger.info('createRoom: extraction failed, auto-started VB', { roomId: room._id, userId, url: vbFallbackUrl });
+        } catch (e) {
+          logger.warn('createRoom: VB auto-fallback failed to start', { roomId: room._id, error: (e as Error).message });
+        }
+      }
+
       res.status(201).json(apiResponse.success(room, 'Room created'));
     } catch (error) {
       // Handled here rather than by the shared error middleware because the client needs the
