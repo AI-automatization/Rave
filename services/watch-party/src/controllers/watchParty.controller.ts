@@ -70,25 +70,26 @@ export class WatchPartyController {
       // VB never getting a chance to kick in. CHANGE_MEDIA already gates every later video swap
       // through tryExtract → VB fallback; room creation is just the same swap happening at t=0
       // and needs the identical gate, not a separate weaker one.
-      let effectiveVideoUrl = videoUrl;
       let vbFallbackUrl: string | undefined;
       if (videoUrl && !isOfficialEmbedHost(videoUrl)) {
         const authHeader = req.headers.authorization;
         const rawToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : undefined;
         if (rawToken) {
           const playable = await tryExtract(videoUrl, rawToken);
-          if (!playable) {
-            // Don't persist an unplayable URL — create the room without one and let VB fill it
-            // in via the normal VIDEO_CANDIDATES / ROOM_UPDATED events once the owner's socket
-            // joins, exactly like a CHANGE_MEDIA-triggered VB session does.
-            effectiveVideoUrl = undefined;
-            vbFallbackUrl = videoUrl;
-          }
+          if (!playable) vbFallbackUrl = videoUrl;
         }
       }
 
+      // videoUrl is still passed through as originally submitted, even when extraction says
+      // it isn't playable — createRoom() requires movieId OR videoUrl to be present (real prod
+      // incident 2026-08-07: nulling it out here to "wait for VB" made every URL-only room
+      // creation 400 with "Either movieId or videoUrl is required", since neither was left).
+      // VB running below corrects it via the normal ROOM_UPDATED broadcast once it finds
+      // something playable — same "leave the stale value in place until VB replaces it" approach
+      // CHANGE_MEDIA already uses for an existing room, just applied to a room that doesn't
+      // have a "before" state yet.
       const room = await this.watchPartyService.createRoom(userId, {
-        name, movieId, videoUrl: effectiveVideoUrl, videoTitle, videoThumbnail, videoPlatform,
+        name, movieId, videoUrl, videoTitle, videoThumbnail, videoPlatform,
         maxMembers, isPrivate, password, startTime, videoReferer,
       });
 
