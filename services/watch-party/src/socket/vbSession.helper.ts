@@ -13,6 +13,7 @@ import { VideoCandidate } from '@shared/types';
 import { vbStreamPublicUrl } from '@shared/utils/serviceConfig';
 import { signProxyUrl } from '@shared/utils/proxySignature';
 import { VB_VIEWPORT, startSession, getSessionPageTitle } from '../services/virtualBrowser.service';
+import { WatchPartyRoom } from '../models/watchPartyRoom.model';
 
 // TTL for the candidates Redis entry — matches how long "the current video session" is a
 // meaningful concept; deliberately generous since a room can sit on one video for hours. Defined
@@ -76,6 +77,16 @@ export async function startVBForRoom(
     candidates.push({ url: roomVideoUrl, type: mediaType, source: 'vb', title: getSessionPageTitle(roomId) });
   }, () => {
     void (async () => {
+      // Real prod case 2026-08-07: a room got swept as "inactive" 15 seconds after candidates
+      // became ready — closeInactiveRooms's hasSession() guard only covers the search itself, but
+      // lastActivityAt never moved even once during the ENTIRE VB run (no play/pause/seek/
+      // heartbeat happened, since nothing was playing yet), so the room was already past the
+      // 5-minute cutoff the instant VB finished. The owner needs real time to actually look at the
+      // picker and decide — touch the timestamp now so that time isn't borrowed from a clock that
+      // was already expired before they got a chance to see anything.
+      await WatchPartyRoom.updateOne({ _id: roomId }, { lastActivityAt: new Date() }).catch((e) => {
+        logger.warn('VB: failed to refresh room activity before presenting candidates', { roomId, error: (e as Error).message });
+      });
       if (candidates.length > 0) {
         try {
           await redis.setex(REDIS_KEYS.videoCandidates(roomId), CANDIDATES_TTL_SEC, JSON.stringify(candidates));
