@@ -36,6 +36,12 @@ const LOADING_CYCLE_KEYS = [
   'playerLoadingCycle5',
   'playerLoadingCycle6',
   'playerLoadingCycle7',
+  'playerLoadingCycle8',
+  'playerLoadingCycle9',
+  'playerLoadingCycle10',
+  'playerLoadingCycle11',
+  'playerLoadingCycle12',
+  'playerLoadingCycle13',
 ] as const;
 const LOADING_CYCLE_INTERVAL_MS = 2200;
 
@@ -70,7 +76,7 @@ function VideoLoading({ label }: { label?: string }) {
       </div>
       <p
         key={label ?? cyclingLabel}
-        className="text-slate-400 text-sm font-medium tracking-wide animate-[fadeSlideIn_0.4s_ease-out]"
+        className="text-slate-300 text-lg font-semibold tracking-wide animate-[loadingLabelIn_0.5s_ease-out]"
       >
         {label ?? cyclingLabel}
       </p>
@@ -728,7 +734,7 @@ function NativeVideoPlayer({
           </div>
           <p
             key={bufferingLabel}
-            className="text-slate-400 text-sm font-medium tracking-wide animate-[fadeSlideIn_0.4s_ease-out]"
+            className="text-slate-300 text-lg font-semibold tracking-wide animate-[loadingLabelIn_0.5s_ease-out]"
           >
             {bufferingLabel}
           </p>
