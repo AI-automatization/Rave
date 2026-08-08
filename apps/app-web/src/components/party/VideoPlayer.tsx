@@ -7,6 +7,7 @@ import { useWatchPartyStore } from '@/store/watch-party.store';
 import { useAuthStore } from '@/store/auth.store';
 import { toast } from '@/hooks/use-toast';
 import { trackClick } from '@/lib/analytics';
+import { tryRefresh } from '@/lib/api-client';
 import { YouTubePlayer } from './YouTubePlayer';
 import { VKPlayer } from './VKPlayer';
 import { RutubePlayer } from './RutubePlayer';
@@ -276,12 +277,24 @@ function getRutubeVideoId(url: string): string | null {
 }
 
 async function extractVideoUrl(url: string): Promise<ExtractResult> {
-  const res = await fetch('/api/content/extract', {
+  const doFetch = () => fetch('/api/content/extract', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
     body: JSON.stringify({ url }),
   });
+  let res = await doFetch();
+  // Real prod finding 2026-08-08: this was a raw fetch with no 401 handling at all — a stale
+  // access_token cookie (15min JWT, tab open longer than that) meant every extraction attempt
+  // failed here, permanently, for that videoUrl (the caller's `extractedForUrl` guard means it
+  // never retries the SAME url again even after the token gets refreshed elsewhere) — looked
+  // exactly like a broken video/site, was actually just our own stale cookie. Matches the same
+  // 401->refresh->retry api-client.ts already does for every OTHER endpoint; this one just never
+  // went through it since it needs the raw ExtractResult shape, not ApiResponse<T>.
+  if (res.status === 401) {
+    const refreshed = await tryRefresh();
+    if (refreshed) res = await doFetch();
+  }
   if (!res.ok) {
     const err = (await res.json().catch(() => ({}))) as { message?: string };
     throw new Error(err.message ?? `Extract failed: ${res.status}`);

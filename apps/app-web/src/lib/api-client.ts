@@ -21,7 +21,12 @@ async function refreshTokens(): Promise<boolean> {
   }
 }
 
-async function tryRefresh(): Promise<boolean> {
+// Exported for callers that can't go through apiClient() itself (raw fetch to an endpoint that
+// doesn't return the ApiResponse<T> envelope, e.g. extractVideoUrl in VideoPlayer.tsx — see its
+// own 401 handling) and for the proactive refresh timer (useTokenRefresh.ts) that keeps the
+// access token from ever actually expiring during a long-open tab. Same dedup as the reactive
+// 401 path below — a proactive refresh racing a reactive one collapses into one call either way.
+export async function tryRefresh(): Promise<boolean> {
   // Deduplicate concurrent refresh calls
   if (!refreshPromise) {
     refreshPromise = refreshTokens().finally(() => {
