@@ -23,8 +23,38 @@ import { TrovoPlayer } from './TrovoPlayer';
 // flow, not a user-facing error: the room either gets a VB session moments later or the video
 // simply changes, so this never resolves into "Не удалось загрузить видео" — it just keeps
 // looking like loading until the room state moves on.
-function VideoLoading({ label }: { label?: string }) {
+// Cycles through playerLoading + playerLoadingCycle1..7 every 2.2s when no explicit `label` is
+// given — the caller-supplied cases (e.g. "Открываем виртуальный браузер...") describe a specific
+// known state and stay static; only the generic "we don't know exactly what's happening yet, just
+// wait" case benefits from rotating through what the extraction pipeline might actually be doing.
+const LOADING_CYCLE_KEYS = [
+  'playerLoading',
+  'playerLoadingCycle1',
+  'playerLoadingCycle2',
+  'playerLoadingCycle3',
+  'playerLoadingCycle4',
+  'playerLoadingCycle5',
+  'playerLoadingCycle6',
+  'playerLoadingCycle7',
+] as const;
+const LOADING_CYCLE_INTERVAL_MS = 2200;
+
+function useCyclingLoadingLabel(active: boolean): string {
   const t = useTranslations('party');
+  const [index, setIndex] = useState(0);
+  useEffect(() => {
+    if (!active) return;
+    setIndex(0);
+    const id = setInterval(() => {
+      setIndex((i) => (i + 1) % LOADING_CYCLE_KEYS.length);
+    }, LOADING_CYCLE_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [active]);
+  return t(LOADING_CYCLE_KEYS[index]);
+}
+
+function VideoLoading({ label }: { label?: string }) {
+  const cyclingLabel = useCyclingLoadingLabel(!label);
   return (
     <div className="aspect-video bg-[#0A0A12] rounded-xl flex flex-col items-center justify-center gap-4">
       <div className="relative w-16 h-16 flex items-center justify-center">
@@ -38,7 +68,12 @@ function VideoLoading({ label }: { label?: string }) {
         />
         <Loader2 size={26} className="relative animate-spin text-violet-400" />
       </div>
-      <p className="text-slate-400 text-sm font-medium tracking-wide">{label ?? t('playerLoading')}</p>
+      <p
+        key={label ?? cyclingLabel}
+        className="text-slate-400 text-sm font-medium tracking-wide animate-[fadeSlideIn_0.4s_ease-out]"
+      >
+        {label ?? cyclingLabel}
+      </p>
     </div>
   );
 }
@@ -433,6 +468,7 @@ function NativeVideoPlayer({
   // to play — without this, a fresh video (e.g. right after the VB handoff) just sits on a black
   // frame at 0:00 with no feedback while the browser silently buffers, reading as "broken".
   const [isBuffering, setIsBuffering] = useState(true);
+  const bufferingLabel = useCyclingLoadingLabel(isBuffering);
   // Starts false (assume controllable) so SSR/first client render match — corrected right after
   // mount, before the user could plausibly touch the slider.
   const [volumeSliderUnusable, setVolumeSliderUnusable] = useState(false);
@@ -690,7 +726,12 @@ function NativeVideoPlayer({
             />
             <Loader2 size={26} className="relative animate-spin text-violet-400" />
           </div>
-          <p className="text-slate-400 text-sm font-medium tracking-wide">{t('playerLoading')}</p>
+          <p
+            key={bufferingLabel}
+            className="text-slate-400 text-sm font-medium tracking-wide animate-[fadeSlideIn_0.4s_ease-out]"
+          >
+            {bufferingLabel}
+          </p>
         </div>
       )}
 
