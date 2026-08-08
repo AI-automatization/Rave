@@ -27,12 +27,44 @@ function fmtDuration(seconds?: number): string | null {
   return `${m}:${s}`;
 }
 
+// Grabs the CURRENTLY DECODED frame off a playing <video> as a real thumbnail — not a page
+// screenshot, not a generic icon, an actual frame of the actual video the owner is about to
+// confirm. Real prod ask 2026-08-08: VB's own screencast-of-the-source-PAGE was explicitly
+// rejected for this ("это картинка сайта, не кадр фильма") — this only ever runs against the
+// SAME <video> element already playing the candidate below, so whatever it captures is
+// guaranteed to be real video content, never a source page.
+function captureVideoFrame(video: HTMLVideoElement): string | null {
+  if (!video.videoWidth || !video.videoHeight) return null;
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL('image/jpeg', 0.7);
+  } catch {
+    // Cross-origin canvas taint (a proxied source that somehow didn't get CORS headers right) —
+    // silently skip rather than throw; the candidate is still fully usable without a captured frame.
+    return null;
+  }
+}
+
 // Single-candidate local preview — plays ONE candidate URL in the owner's own browser only, no
 // CHANGE_MEDIA emitted here (that only happens on confirm). Candidate URLs are already-resolved
 // CDN URLs (mp4/hls), not page URLs, so this plays them directly instead of going through the
 // full extraction pipeline VideoPlayer.tsx uses for room.videoUrl. `embed` candidates aren't a
 // direct CDN URL at all — no local preview is possible for those, just the poster + confirm.
-function CandidatePreview({ candidate }: { candidate: VideoCandidate }) {
+function CandidatePreview({
+  candidate,
+  onCapture,
+}: {
+  candidate: VideoCandidate;
+  /** Real duration/poster pulled from the actual playing element — see captureVideoFrame above.
+   *  Only fires once per successful capture; the caller merges this into candidate display data
+   *  (grid thumbnails, duration badge) without mutating the server-provided candidate itself. */
+  onCapture?: (info: { poster?: string; duration?: number }) => void;
+}) {
   const t = useTranslations('party');
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const hlsRef = useRef<import('hls.js').default | null>(null);
@@ -42,6 +74,27 @@ function CandidatePreview({ candidate }: { candidate: VideoCandidate }) {
     const video = videoRef.current;
     if (!video || candidate.type === 'embed') return;
     let cancelled = false;
+    let framedCaptured = false;
+
+    const reportDuration = () => {
+      if (isFinite(video.duration) && video.duration > 0) onCapture?.({ duration: video.duration });
+    };
+    // A frame grabbed the instant playback starts is very often still black (encoder keyframe
+    // lag, or a fade-in intro) — waiting for the second timeupdate (real decoded progress, not
+    // just "play() resolved") gives a frame that's actually representative of the content.
+    let timeUpdateCount = 0;
+    const tryCaptureFrame = () => {
+      if (framedCaptured || cancelled) return;
+      timeUpdateCount++;
+      if (timeUpdateCount < 2) return;
+      const frame = captureVideoFrame(video);
+      if (frame) {
+        framedCaptured = true;
+        onCapture?.({ poster: frame });
+      }
+    };
+    video.addEventListener('loadedmetadata', reportDuration);
+    video.addEventListener('timeupdate', tryCaptureFrame);
 
     // candidate.url is always cross-origin from the browser's point of view — a raw CDN url from
     // content-service's extraction, or our own watch-party service's vb-capture/vb-media-proxy —
@@ -81,12 +134,14 @@ function CandidatePreview({ candidate }: { candidate: VideoCandidate }) {
 
     return () => {
       cancelled = true;
+      video.removeEventListener('loadedmetadata', reportDuration);
+      video.removeEventListener('timeupdate', tryCaptureFrame);
       hlsRef.current?.destroy();
       hlsRef.current = null;
       dashRef.current?.reset();
       dashRef.current = null;
     };
-  }, [candidate.url, candidate.type]);
+  }, [candidate.url, candidate.type, onCapture]);
 
   if (candidate.type === 'embed') {
     return (
@@ -119,6 +174,20 @@ export function VideoCandidatePicker({ open, onOpenChange, candidates, onRequest
   const [index, setIndex] = useState(0);
   const [mode, setMode] = useState<'cycle' | 'grid'>('cycle');
   const [gridSelected, setGridSelected] = useState<number | null>(null);
+  // Real frames/durations captured off the actual playing <video> element (see captureVideoFrame
+  // in CandidatePreview) — kept separate from `candidates` (server data) rather than mutated in,
+  // since candidates is a prop and a given candidate's captured info can arrive well after the
+  // initial render (only once playback actually starts). Keyed by index into `candidates`.
+  const [captured, setCaptured] = useState<Record<number, { poster?: string; duration?: number }>>({});
+  const captureCallbacks = useRef<Record<number, (info: { poster?: string; duration?: number }) => void>>({});
+  function captureFor(i: number) {
+    if (!captureCallbacks.current[i]) {
+      captureCallbacks.current[i] = (info) => {
+        setCaptured((prev) => ({ ...prev, [i]: { ...prev[i], ...info } }));
+      };
+    }
+    return captureCallbacks.current[i];
+  }
 
   // Fresh request + reset every time the dialog opens — a candidate set from a previous open (or
   // a previous videoUrl) shouldn't linger. onRequestCandidates is a stable useCallback off the
@@ -128,6 +197,8 @@ export function VideoCandidatePicker({ open, onOpenChange, candidates, onRequest
     setIndex(0);
     setMode('cycle');
     setGridSelected(null);
+    setCaptured({});
+    captureCallbacks.current = {};
     onRequestCandidates();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -181,7 +252,7 @@ export function VideoCandidatePicker({ open, onOpenChange, candidates, onRequest
 
         {!loading && !empty && mode === 'cycle' && current && (
           <div className="flex flex-col gap-3">
-            <CandidatePreview candidate={current} />
+            <CandidatePreview candidate={current} onCapture={captureFor(index)} />
             <div className="flex items-center justify-between gap-2">
               <span className="text-[11px] text-slate-500 tabular-nums">
                 {index + 1} / {candidates!.length}
@@ -217,7 +288,7 @@ export function VideoCandidatePicker({ open, onOpenChange, candidates, onRequest
                   <ArrowLeft size={12} />
                   {t('videoCandidateBack')}
                 </button>
-                <CandidatePreview candidate={gridCandidate} />
+                <CandidatePreview candidate={gridCandidate} onCapture={captureFor(gridSelected!)} />
                 <div className="flex justify-end">
                   <button
                     onClick={() => handleConfirm(gridCandidate)}
@@ -231,16 +302,20 @@ export function VideoCandidatePicker({ open, onOpenChange, candidates, onRequest
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-80 overflow-y-auto">
                 {candidates!.map((c, i) => {
-                  const dur = fmtDuration(c.duration);
+                  // A real captured frame (only exists for candidates the owner has already
+                  // previewed — see captureVideoFrame) always wins over the server-provided
+                  // poster/duration: it's an actual frame of THIS video, not a guess.
+                  const poster = captured[i]?.poster ?? c.poster;
+                  const dur = fmtDuration(captured[i]?.duration ?? c.duration);
                   return (
                     <button
                       key={`${c.url}-${i}`}
                       onClick={() => { trackClick('room:candidate_grid_select'); setGridSelected(i); }}
                       className="relative aspect-video rounded-lg overflow-hidden bg-white/[0.04] border border-white/[0.08] hover:border-violet-500/40 transition-colors cursor-pointer flex items-center justify-center"
                     >
-                      {c.poster ? (
-                        // eslint-disable-next-line @next/next/no-img-element -- extractor/VB-provided poster URL or data URI
-                        <img src={c.poster} alt="" className="w-full h-full object-cover" />
+                      {poster ? (
+                        // eslint-disable-next-line @next/next/no-img-element -- real captured video frame, or extractor/VB-provided poster URL
+                        <img src={poster} alt="" className="w-full h-full object-cover" />
                       ) : (
                         <Clapperboard size={18} className="text-violet-400/50" />
                       )}

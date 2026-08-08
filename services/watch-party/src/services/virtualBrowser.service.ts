@@ -278,7 +278,7 @@ function parseMpdDurationSecs(xml: string): number {
 function attachResponseSniffer(
   page: Page,
   logId: string,
-  onFound: (mediaUrl: string, type: MediaType) => void,
+  onFound: (mediaUrl: string, type: MediaType, duration?: number) => void,
   // Real prod case 2026-08-06 (uzmovi.net serial page): the first accepted match wasn't the right
   // episode — a related-content widget's clip passed every ad heuristic (real extension, real
   // Content-Type, past the size/duration floor) just like a genuine result would. Default false
@@ -289,7 +289,7 @@ function attachResponseSniffer(
 ): void {
   let found = false;
   const seenUrls = new Set<string>();
-  const hit = (mediaUrl: string, type: MediaType, how: string, extra?: Record<string, unknown>) => {
+  const hit = (mediaUrl: string, type: MediaType, how: string, duration?: number, extra?: Record<string, unknown>) => {
     if (collectMultiple) {
       if (seenUrls.has(mediaUrl)) return;
       seenUrls.add(mediaUrl);
@@ -298,7 +298,7 @@ function attachResponseSniffer(
       found = true;
     }
     logger.info(`VB: media URL intercepted (by ${how})`, { logId, url: mediaUrl.slice(0, 120), type, ...extra });
-    onFound(mediaUrl, type);
+    onFound(mediaUrl, type, duration);
   };
   // Ad candidates are logged then dropped, WITHOUT setting `found` — the real video is expected
   // to load right after, and the listener must keep watching for it.
@@ -317,6 +317,8 @@ function attachResponseSniffer(
           rejectAsAd(mediaUrl, type, 'hls_duration', { secs: Math.round(secs) });
           return;
         }
+        hit(mediaUrl, type, how, secs > 0 ? secs : undefined);
+        return;
       } catch {
         // Body unavailable — fall through and accept rather than get stuck never finding media.
       }
@@ -333,6 +335,8 @@ function attachResponseSniffer(
           rejectAsAd(mediaUrl, type, 'dash_duration', { secs: Math.round(secs) });
           return;
         }
+        hit(mediaUrl, type, how, secs > 0 ? secs : undefined);
+        return;
       } catch {
         // Body unavailable — fall through and accept rather than get stuck never finding media.
       }
@@ -395,7 +399,7 @@ export async function startSession(
   ownerId: string,
   url: string,
   onFrame: (base64Jpeg: string) => void,
-  onMediaFound?: (mediaUrl: string, type: MediaType, kind: MediaFoundKind) => void,
+  onMediaFound?: (mediaUrl: string, type: MediaType, kind: MediaFoundKind, duration?: number) => void,
   onCollectionEnd?: () => void,
 ): Promise<void> {
   if (startingRooms.has(roomId)) {
@@ -453,9 +457,9 @@ export async function startSession(
         }, COLLECTION_WINDOW_MS);
       };
 
-      attachResponseSniffer(page, roomId, (mediaUrl, type) => {
+      attachResponseSniffer(page, roomId, (mediaUrl, type, duration) => {
         if (windowClosed) return;
-        onMediaFound(mediaUrl, type, 'url');
+        onMediaFound(mediaUrl, type, 'url', duration);
         openWindowIfNeeded();
       }, true /* collectMultiple */);
 

@@ -80,7 +80,7 @@ export async function startVBForRoom(
   await startSession(roomId, ownerId, url, (base64Jpeg) => {
     // volatile: a lagging viewer jumps to the latest frame instead of draining a backlog.
     io.to(roomId).volatile.emit(SERVER_EVENTS.VB_FRAME, { data: base64Jpeg });
-  }, (mediaUrl, mediaType, kind) => {
+  }, (mediaUrl, mediaType, kind, duration) => {
     // 'capture' mediaUrl already points at our own vb-capture endpoint — only 'url' (a raw,
     // independently-fetchable CDN URL) needs the same-IP proxy wrapper.
     const roomVideoUrl = kind === 'url' ? proxiedMediaUrl(mediaUrl, mediaType, roomId) : mediaUrl;
@@ -88,7 +88,12 @@ export async function startVBForRoom(
     // forever, since nothing in this path ever set videoTitle — the source page's own <title>
     // (captured once navigation succeeds, virtualBrowser.service.ts) is the only title info VB
     // ever has, so every candidate from the same session gets the same one.
-    candidates.push({ url: roomVideoUrl, type: mediaType, source: 'vb', title: getSessionPageTitle(roomId) });
+    // duration (hls/dash only — parsed from the manifest, see virtualBrowser.service.ts's
+    // MIN_MANIFEST_DURATION_SECS check) is a real value already computed to decide ad-vs-real in
+    // the first place; passing it through means the picker can show it immediately instead of the
+    // "??:??" gap it had before 2026-08-08. No source for mp4 candidates server-side — the client
+    // gets that one for free from the <video> element itself once it loads (VideoCandidatePicker.tsx).
+    candidates.push({ url: roomVideoUrl, type: mediaType, source: 'vb', title: getSessionPageTitle(roomId), duration });
   }, () => {
     void (async () => {
       // Real prod case 2026-08-07: a room got swept as "inactive" 15 seconds after candidates
