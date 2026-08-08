@@ -24,6 +24,7 @@ import {
   StyleSheet,
   ListRenderItemInfo,
 } from 'react-native';
+import * as VideoThumbnails from 'expo-video-thumbnails';
 import { Ionicons } from '@expo/vector-icons';
 import { TrackedTouchable } from '@components/common/TrackedTouchable';
 import { UniversalPlayer, UniversalPlayerRef } from '@components/video/UniversalPlayer';
@@ -64,12 +65,41 @@ export function VideoCandidatePicker({ visible, candidates, onSelect, onClose }:
   const [mode, setMode] = useState<Mode>('cycle');
   const [cycleIndex, setCycleIndex] = useState(0);
   const [gridPreviewIndex, setGridPreviewIndex] = useState(0);
+  // Real prod gap 2026-08-08: VB-sourced candidates never carry a `poster` from the server (web
+  // has the same gap, fixed there via a browser <canvas> frame capture — no RN equivalent exists,
+  // no <canvas>/HTMLVideoElement here). expo-video-thumbnails generates a real frame directly from
+  // the candidate's own URL instead — same "actual video content, not a placeholder" result, just
+  // a native-appropriate way to get it. Keyed by index, cached for the life of this sheet.
+  const [thumbnails, setThumbnails] = useState<Record<number, string>>({});
+  const thumbnailAttempted = useRef<Set<number>>(new Set());
 
   // Fresh cycle-through every time the sheet opens — a stale mode/index from a previous
   // session would otherwise show the wrong candidate (or land straight in the grid).
   useEffect(() => {
-    if (visible) { setMode('cycle'); setCycleIndex(0); setGridPreviewIndex(0); }
+    if (visible) {
+      setMode('cycle');
+      setCycleIndex(0);
+      setGridPreviewIndex(0);
+      setThumbnails({});
+      thumbnailAttempted.current = new Set();
+    }
   }, [visible]);
+
+  // Lazy, on entering the grid (not eagerly on load) — generating a thumbnail costs a real
+  // network fetch per candidate, not worth paying for candidates the owner never looks at because
+  // the first one in cycle mode was already the right one.
+  useEffect(() => {
+    if (mode !== 'grid' || !candidates) return;
+    candidates.forEach((c, i) => {
+      if (c.poster || c.type === 'embed' || thumbnailAttempted.current.has(i)) return;
+      thumbnailAttempted.current.add(i);
+      VideoThumbnails.getThumbnailAsync(c.url, { time: 3000 })
+        .then(({ uri }) => setThumbnails((prev) => ({ ...prev, [i]: uri })))
+        .catch(() => { /* some candidates (e.g. a DASH manifest with no direct-file byte range,
+          or a site that blocks the device's own fetch) just won't thumbnail — falls back to the
+          existing placeholder icon, same as a missing server-provided poster already did */ });
+    });
+  }, [mode, candidates]);
 
   // Loading badge pulse — same animation as VideoSection's "waiting for the video" overlay,
   // reused here for the equivalent "waiting for the candidates list" moment.
@@ -132,6 +162,7 @@ export function VideoCandidatePicker({ visible, candidates, onSelect, onClose }:
 
   const renderGridItem = ({ item, index }: ListRenderItemInfo<VideoCandidate>) => {
     const duration = formatDuration(item.duration);
+    const poster = item.poster ?? thumbnails[index];
     return (
       <TrackedTouchable
         trackId="candidate_picker:grid_select"
@@ -139,8 +170,8 @@ export function VideoCandidatePicker({ visible, candidates, onSelect, onClose }:
         onPress={() => { setGridPreviewIndex(index); setMode('gridPreview'); }}
         activeOpacity={0.8}
       >
-        {item.poster ? (
-          <Image source={{ uri: item.poster }} style={styles.gridThumb} resizeMode="cover" />
+        {poster ? (
+          <Image source={{ uri: poster }} style={styles.gridThumb} resizeMode="cover" />
         ) : (
           <View style={[styles.gridThumb, styles.gridThumbPlaceholder]}>
             <Ionicons name="film-outline" size={22} color="rgba(255,255,255,0.3)" />
