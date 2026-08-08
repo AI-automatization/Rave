@@ -6,7 +6,7 @@ import { WatchPartyService } from '../services/watchParty.service';
 import { createDomainAdminController } from '../controllers/domain.admin.controller';
 import { createTurnController } from '../controllers/turn.controller';
 import { vbCaptureController } from '../controllers/vbCapture.controller';
-import { vbMediaProxyController } from '../controllers/vbMediaProxy.controller';
+import { createVbMediaProxyController } from '../controllers/vbMediaProxy.controller';
 import { verifyToken, requireNotBlocked } from '@shared/middleware/auth.middleware';
 import { requireInternalSecret } from '@shared/utils/serviceClient';
 import { createRoomLimiter, joinRoomLimiter, vbMediaProxyLimiter, vbCaptureLimiter } from '../middleware/rateLimiter';
@@ -23,6 +23,7 @@ export const createWatchPartyRouter = (redis: Redis, io: SocketServer): Router =
   const joinLimiter = joinRoomLimiter(redis);
   const vbProxyLimiter = vbMediaProxyLimiter(redis);
   const vbCaptureLim = vbCaptureLimiter(redis);
+  const vbMediaProxyController = createVbMediaProxyController(redis);
 
   // Internal — force-disconnect blocked user from all sockets
   router.post('/internal/users/:userId/disconnect', requireInternalSecret, watchPartyController.disconnectUser);

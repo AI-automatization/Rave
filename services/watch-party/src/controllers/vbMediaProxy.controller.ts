@@ -21,9 +21,12 @@
 //   2. Shared SSRF guard (shared/src/utils/ssrfGuard.ts, same one services/content/hlsProxy uses)
 //      re-checked on EVERY redirect hop, not just the initial URL.
 import { Request, Response } from 'express';
+import Redis from 'ioredis';
 import { validateProxyUrl, resolveSafeUpstream } from '@shared/utils/ssrfGuard';
 import { signProxyUrl, verifyProxyUrlDetailed } from '@shared/utils/proxySignature';
+import { REDIS_KEYS } from '@shared/constants';
 import { logger } from '@shared/utils/logger';
+import { probeUrl, MediaType } from '../services/virtualBrowser.service';
 
 // Production logs (2026-08-04) showed this proxy recursively wrapping its OWN url up to 13
 // levels deep (`?url=<proxy>?url=<proxy>?url=...`) — 133 requests, all 502ing. That's a real
@@ -113,10 +116,84 @@ function cappedRange(rangeHeader: string, maxBytes: number): string {
   return `bytes=${start}-${end}`;
 }
 
-export const vbMediaProxyController = {
+// Real prod finding 2026-08-07 (uzmovi.net/uzdown.space): this site re-signs the .mpd URL its own
+// page exposes roughly every 10s (anti-hotlink) — a candidate URL VB caught minutes earlier is
+// routinely already dead (redirects to the site's own homepage) by the time a viewer actually
+// gets to preview/confirm/play it. There's no way to know the real token TTL in general (varies
+// per site, and we don't control it), so instead of guessing a number, this refetches the source
+// page live and gets a BRAND NEW url the moment the OLD one turns out to be dead — self-adapting
+// to whatever the real TTL is, whether that's seconds or hours, without needing to know it.
+//
+// Two caches, both keyed by roomId:
+//  - freshUrlCache: a just-probed url, reused for a few seconds so a burst of near-simultaneous
+//    Range requests (normal for a buffering player) doesn't each trigger their own probe.
+//  - inFlightProbes: coalesces concurrent callers hitting the SAME dead room at the SAME moment
+//    into one probe instead of one each — a real risk given VB's own MAX_CONCURRENT session cap
+//    is shared service-wide (3 total), not per-room.
+const FRESH_URL_CACHE_TTL_MS = 8_000;
+const freshUrlCache = new Map<string, { mediaUrl: string; type: MediaType; cachedAt: number }>();
+const inFlightProbes = new Map<string, Promise<{ mediaUrl: string; type: MediaType } | null>>();
+
+async function getFreshMediaUrl(roomId: string, redis: Redis): Promise<{ mediaUrl: string; type: MediaType } | null> {
+  const cached = freshUrlCache.get(roomId);
+  if (cached && Date.now() - cached.cachedAt < FRESH_URL_CACHE_TTL_MS) {
+    return { mediaUrl: cached.mediaUrl, type: cached.type };
+  }
+
+  const existing = inFlightProbes.get(roomId);
+  if (existing) return existing;
+
+  const probePromise = (async () => {
+    const sourceUrl = await redis.get(REDIS_KEYS.vbSourceUrl(roomId)).catch(() => null);
+    if (!sourceUrl) {
+      logger.info('vb-media-proxy: refresh attempted but no stored source page URL for room', { roomId });
+      return null;
+    }
+    const result = await probeUrl(sourceUrl).catch((e: unknown) => {
+      logger.warn('vb-media-proxy: refresh probe threw', { roomId, error: (e as Error).message });
+      return null;
+    });
+    if (result) {
+      freshUrlCache.set(roomId, { mediaUrl: result.mediaUrl, type: result.type, cachedAt: Date.now() });
+      logger.info('vb-media-proxy: refreshed a stale candidate URL', { roomId, url: result.mediaUrl.slice(0, 120) });
+    } else {
+      logger.info('vb-media-proxy: refresh probe found nothing playable', { roomId, sourceUrl: sourceUrl.slice(0, 120) });
+    }
+    return result;
+  })();
+
+  inFlightProbes.set(roomId, probePromise);
+  try {
+    return await probePromise;
+  } finally {
+    inFlightProbes.delete(roomId);
+  }
+}
+
+export const createVbMediaProxyController = (redis: Redis) => ({
   async stream(req: Request, res: Response): Promise<void> {
     try {
-      await streamImpl(req, res);
+      const rawUrl = await parseAndVerifyUrl(req, res);
+      if (rawUrl === null) return; // parseAndVerifyUrl already wrote the error response
+
+      const ok = await attemptFetch(rawUrl, req, res);
+      if (ok) return;
+
+      const roomIdParam = req.query.roomId;
+      const roomId = typeof roomIdParam === 'string' ? roomIdParam : null;
+      if (!roomId) {
+        writeFetchFailedResponse(res);
+        return;
+      }
+
+      const fresh = await getFreshMediaUrl(roomId, redis);
+      if (!fresh) {
+        writeFetchFailedResponse(res);
+        return;
+      }
+
+      const retryOk = await attemptFetch(fresh.mediaUrl, req, res);
+      if (!retryOk) writeFetchFailedResponse(res);
     } catch (err) {
       // An async Express handler that throws is NOT caught by Express itself — the
       // rejection goes unhandled and crashes the entire Node process (confirmed in prod
@@ -136,46 +213,62 @@ export const vbMediaProxyController = {
       }
     }
   },
-};
+});
 
-async function streamImpl(req: Request, res: Response): Promise<void> {
-    const urlParam = req.query.url;
-    if (typeof urlParam !== 'string') {
-      res.status(400).json({ success: false, message: 'url required' });
-      return;
-    }
-    // base64url, not encodeURIComponent — see vbSession.helper.ts for why (a duplicate decode
-    // pass somewhere upstream mangles any %-escape the target URL itself contains).
-    let rawUrl: string;
-    try {
-      rawUrl = Buffer.from(urlParam, 'base64url').toString('utf8');
-    } catch {
-      res.status(400).json({ success: false, message: 'Invalid url encoding' });
-      return;
-    }
+function writeFetchFailedResponse(res: Response): void {
+  if (res.headersSent || res.writableEnded) return;
+  res.status(502).json({ success: false, message: 'Upstream fetch failed' });
+}
 
-    // Signature check FIRST: the URL must have been minted by us (signProxyUrl, called from
-    // vbSession.helper.ts when the room is switched over) — closes the open-proxy hole, since an
-    // attacker can no longer hand this endpoint an arbitrary URL of their choosing.
-    const { exp, sig } = req.query;
-    const verify = verifyProxyUrlDetailed(rawUrl, Number(exp), typeof sig === 'string' ? sig : '');
-    if (!verify.ok) {
-      // Root-caused 2026-08-05 (see the base64url comment on proxiedMediaUrl in
-      // vbSession.helper.ts) — kept as a permanent safety net, not just a diagnostic.
-      logger.warn('vb-media-proxy: signature verification failed', {
-        reason: verify.reason,
-        receivedExp: exp,
-        receivedSig: sig,
-        rawUrlLength: rawUrl.length,
-      });
-      res.status(403).json({ success: false, message: 'Forbidden' });
-      return;
-    }
+/** Decodes + verifies the signed `url`/`exp`/`sig` triple. Returns the raw target URL, or null
+ *  after already writing an error response (400/403) — the two failure cases here are about the
+ *  REQUEST itself being malformed/unauthorized, not about the upstream fetch, so unlike
+ *  attemptFetch() below they're never worth retrying with a refreshed URL. */
+async function parseAndVerifyUrl(req: Request, res: Response): Promise<string | null> {
+  const urlParam = req.query.url;
+  if (typeof urlParam !== 'string') {
+    res.status(400).json({ success: false, message: 'url required' });
+    return null;
+  }
+  // base64url, not encodeURIComponent — see vbSession.helper.ts for why (a duplicate decode
+  // pass somewhere upstream mangles any %-escape the target URL itself contains).
+  let rawUrl: string;
+  try {
+    rawUrl = Buffer.from(urlParam, 'base64url').toString('utf8');
+  } catch {
+    res.status(400).json({ success: false, message: 'Invalid url encoding' });
+    return null;
+  }
 
+  // Signature check FIRST: the URL must have been minted by us (signProxyUrl, called from
+  // vbSession.helper.ts when the room is switched over) — closes the open-proxy hole, since an
+  // attacker can no longer hand this endpoint an arbitrary URL of their choosing.
+  const { exp, sig } = req.query;
+  const verify = verifyProxyUrlDetailed(rawUrl, Number(exp), typeof sig === 'string' ? sig : '');
+  if (!verify.ok) {
+    // Root-caused 2026-08-05 (see the base64url comment on proxiedMediaUrl in
+    // vbSession.helper.ts) — kept as a permanent safety net, not just a diagnostic.
+    logger.warn('vb-media-proxy: signature verification failed', {
+      reason: verify.reason,
+      receivedExp: exp,
+      receivedSig: sig,
+      rawUrlLength: rawUrl.length,
+    });
+    res.status(403).json({ success: false, message: 'Forbidden' });
+    return null;
+  }
+
+  return rawUrl;
+}
+
+/** Fetches `rawUrl` and writes a full response (manifest rewrite or byte passthrough) on success.
+ *  Returns false WITHOUT writing anything on failure, so the caller can retry with a different
+ *  URL (see getFreshMediaUrl above) instead of the failure being final. */
+async function attemptFetch(rawUrl: string, req: Request, res: Response): Promise<boolean> {
     const guardReason = await validateTarget(rawUrl);
     if (guardReason) {
-      res.status(400).json({ success: false, message: 'Invalid or unsafe URL' });
-      return;
+      logger.warn('vb-media-proxy: target failed SSRF/self-reference guard', { reason: guardReason, urlLength: rawUrl.length });
+      return false;
     }
     const parsedUrl = new URL(rawUrl); // already validated above — safe to construct without try/catch
 
@@ -199,14 +292,14 @@ async function streamImpl(req: Request, res: Response): Promise<void> {
     let upstream: globalThis.Response;
     try {
       upstream = await safeFetch(parsedUrl.href, headers);
-    } catch {
-      res.status(502).json({ success: false, message: 'Upstream fetch failed' });
-      return;
+    } catch (e) {
+      logger.info('vb-media-proxy: upstream fetch failed', { error: (e as Error).message, urlLength: rawUrl.length });
+      return false;
     }
 
     if (!upstream.ok && upstream.status !== 206) {
-      res.status(502).json({ success: false, message: `Upstream ${upstream.status}` });
-      return;
+      logger.info('vb-media-proxy: upstream returned non-ok status', { status: upstream.status, urlLength: rawUrl.length });
+      return false;
     }
 
     const rawCT = upstream.headers.get('content-type') ?? '';
@@ -232,7 +325,7 @@ async function streamImpl(req: Request, res: Response): Promise<void> {
         res.setHeader('Content-Type', 'application/dash+xml');
         res.setHeader('Cache-Control', 'no-cache');
         res.send(text);
-        return;
+        return true;
       }
 
       // Single-<BaseURL>/<SegmentBase> VOD shape (the whole file addressed by byte-range Range
@@ -254,7 +347,7 @@ async function streamImpl(req: Request, res: Response): Promise<void> {
       res.setHeader('Content-Type', 'application/dash+xml');
       res.setHeader('Cache-Control', 'no-cache');
       res.send(rewritten);
-      return;
+      return true;
     }
 
     if (isManifest) {
@@ -281,7 +374,7 @@ async function streamImpl(req: Request, res: Response): Promise<void> {
       res.setHeader('Content-Type', 'application/x-mpegURL');
       res.setHeader('Cache-Control', 'no-cache');
       res.send(rewritten);
-      return;
+      return true;
     }
 
     const ct = rawCT.startsWith('video/') || rawCT === 'application/octet-stream'
@@ -292,7 +385,7 @@ async function streamImpl(req: Request, res: Response): Promise<void> {
     // request while we were awaiting the upstream fetch above — res.removeHeader() below
     // throws ERR_HTTP_HEADERS_SENT if the response was already finalized by that abort,
     // which crashed the whole process before this guard existed (2026-08-07 incident).
-    if (res.writableEnded || res.headersSent) return;
+    if (res.writableEnded || res.headersSent) return true;
 
     res.status(upstream.status === 206 ? 206 : 200);
     res.setHeader('Content-Type', ct);
@@ -312,7 +405,7 @@ async function streamImpl(req: Request, res: Response): Promise<void> {
     const cr = upstream.headers.get('content-range');
     if (cr) res.setHeader('Content-Range', cr);
 
-    if (!upstream.body) { res.end(); return; }
+    if (!upstream.body) { res.end(); return true; }
 
     // Buffered instead of streamed chunk-by-chunk (real prod issue 2026-08-06: proxying this
     // through Bunny's CDN as a second CDN option — separate from the Cloudflare cache above —
@@ -341,8 +434,9 @@ async function streamImpl(req: Request, res: Response): Promise<void> {
     // loop instead of the initial upstream fetch — the client can disconnect at any point
     // while we're reading, and res.on('close') above only cancels the reader, it doesn't
     // stop execution from reaching here.
-    if (res.writableEnded) return;
+    if (res.writableEnded) return true;
     const body = Buffer.concat(chunks);
     res.setHeader('Content-Length', String(body.length));
     res.end(body);
+    return true;
 }

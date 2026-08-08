@@ -40,12 +40,18 @@ export const CANDIDATES_TTL_SEC = 6 * 60 * 60; // 6h
 // and the extra decode collapses it all the way to a literal space — a completely different byte
 // string than what was signed, so the HMAC can never match. base64url has no '%' in its alphabet,
 // so it's inert to however many decode passes happen in between.
-function proxiedMediaUrl(mediaUrl: string, mediaType: MediaType): string {
+// roomId is plain/unsigned (not part of the HMAC payload) — it's not itself a capability, only
+// a lookup key vb-media-proxy uses to find REDIS_KEYS.vbSourceUrl(roomId) if the primary fetch
+// fails and a live refresh is worth attempting (see vbMediaProxy.controller.ts). Worst case a
+// tampered roomId just makes the refresh attempt look up (or fail to find) the wrong room's
+// source page — the signed url/exp/sig triple still fully gates what the PRIMARY fetch can ever
+// reach, same as before this existed.
+function proxiedMediaUrl(mediaUrl: string, mediaType: MediaType, roomId: string): string {
   const ext = mediaType === 'hls' ? 'm3u8' : mediaType === 'dash' ? 'mpd' : 'mp4';
   const { exp, sig } = signProxyUrl(mediaUrl);
   const encodedUrl = Buffer.from(mediaUrl, 'utf8').toString('base64url');
   return `${vbStreamPublicUrl}/api/v1/watch-party/vb-media-proxy/stream.${ext}`
-       + `?url=${encodedUrl}&exp=${exp}&sig=${sig}`;
+       + `?url=${encodedUrl}&exp=${exp}&sig=${sig}&roomId=${encodeURIComponent(roomId)}`;
 }
 
 export async function startVBForRoom(
@@ -63,13 +69,21 @@ export async function startVBForRoom(
   // window closes — this function only cares about presenting what was found.
   const candidates: VideoCandidate[] = [];
 
+  // Same TTL as the candidates themselves — lets vb-media-proxy re-probe this exact page later
+  // (possibly hours later, if the room sits on the picker or a viewer joins late) if a candidate
+  // it minted has gone stale by then. Set-and-forget — never read back in this file, only by
+  // vbMediaProxy.controller.ts's refresh path.
+  await redis.setex(REDIS_KEYS.vbSourceUrl(roomId), CANDIDATES_TTL_SEC, url).catch((e) => {
+    logger.warn('VB: failed to store source page URL for later refresh', { roomId, error: (e as Error).message });
+  });
+
   await startSession(roomId, ownerId, url, (base64Jpeg) => {
     // volatile: a lagging viewer jumps to the latest frame instead of draining a backlog.
     io.to(roomId).volatile.emit(SERVER_EVENTS.VB_FRAME, { data: base64Jpeg });
   }, (mediaUrl, mediaType, kind) => {
     // 'capture' mediaUrl already points at our own vb-capture endpoint — only 'url' (a raw,
     // independently-fetchable CDN URL) needs the same-IP proxy wrapper.
-    const roomVideoUrl = kind === 'url' ? proxiedMediaUrl(mediaUrl, mediaType) : mediaUrl;
+    const roomVideoUrl = kind === 'url' ? proxiedMediaUrl(mediaUrl, mediaType, roomId) : mediaUrl;
     // Real prod report 2026-08-07: every VB-found room stayed on the generic default name
     // forever, since nothing in this path ever set videoTitle — the source page's own <title>
     // (captured once navigation succeeds, virtualBrowser.service.ts) is the only title info VB

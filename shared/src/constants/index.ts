@@ -71,6 +71,11 @@ export const REDIS_KEYS = {
   reactionRate: (userId: string, roomId: string) => `party:reaction_rate:${userId}:${roomId}`,
   reactionBurst: (userId: string, roomId: string) => `party:reaction_burst:${userId}:${roomId}`,
   videoCandidates: (roomId: string) => `party:candidates:${roomId}`,
+  // Source page a VB session captured candidates from — kept alongside videoCandidates (same
+  // TTL) so vb-media-proxy can re-probe a fresh media URL if the one a candidate carries has
+  // gone stale by the time it's actually used (some sites re-sign their CDN URL every ~10s as
+  // anti-hotlink protection — see vbMediaProxy.controller.ts's refresh-on-failure logic).
+  vbSourceUrl: (roomId: string) => `party:vb_source:${roomId}`,
   createRoomRate: (ip: string) => `party:create_rate:${ip}`,
   joinRoomRate: (userId: string) => `party:join_rate:${userId}`,
   recentRooms: (userId: string) => `party:recent_rooms:${userId}`,
