@@ -83,7 +83,17 @@ async function safeFetch(url: string, headers: Record<string, string>): Promise<
     const reason = await validateTarget(current);
     if (reason) throw new Error(`unsafe URL at hop ${hop}: ${reason}`);
 
-    const res = await fetch(current, { headers, redirect: 'manual' });
+    let res: globalThis.Response;
+    try {
+      res = await fetch(current, { headers, redirect: 'manual' });
+    } catch (e) {
+      // Real prod case 2026-08-08: this used to lose which hop failed and on what host — every
+      // failure surfaced upstream as the same generic "fetch failed", indistinguishable whether
+      // it was the target itself or a later redirect hop (e.g. a site's own expired-token
+      // fallback page) that actually couldn't be reached. `.cause` on the re-thrown error still
+      // carries Node's real underlying reason (DNS/connection/TLS); the outer catch logs it.
+      throw new Error(`fetch failed at hop ${hop} (${new URL(current).hostname})`, { cause: e });
+    }
     if (res.status < 300 || res.status > 399) return res;
 
     const loc = res.headers.get('location');
@@ -293,7 +303,18 @@ async function attemptFetch(rawUrl: string, req: Request, res: Response): Promis
     try {
       upstream = await safeFetch(parsedUrl.href, headers);
     } catch (e) {
-      logger.info('vb-media-proxy: upstream fetch failed', { error: (e as Error).message, urlLength: rawUrl.length });
+      // Node's fetch() wraps the real underlying error (DNS failure, connection refused, TLS
+      // error, etc.) in `.cause` rather than putting it in `.message` — logging only `.message`
+      // (as this line used to) gave nothing but the generic "fetch failed" for every failure,
+      // real prod case 2026-08-08: indistinguishable whether hop 0 (the target itself) or a
+      // later redirect hop (e.g. the site's own expired-token fallback page) was what actually
+      // failed, or why.
+      const err = e as Error & { cause?: unknown };
+      logger.info('vb-media-proxy: upstream fetch failed', {
+        error: err.message,
+        cause: err.cause instanceof Error ? err.cause.message : err.cause,
+        urlLength: rawUrl.length,
+      });
       return false;
     }
 
