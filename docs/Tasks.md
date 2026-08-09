@@ -21,6 +21,24 @@
 
 ---
 
+### T-S196 | P2 | [BACKEND] | watch-party VB: real-playback confirmation signal для candidate picker
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim (product investigation, kosmi.io competitive analysis)
+- **Yaratilgan:** 2026-08-09 (время сессии)
+- **Holat:** 🔄 Bajarilmoqda
+- **Tavsiya model:** sonnet
+- **Model sababi:** 1-2 файла, точечное добавление сигнала в существующий пайплайн, не архитектурный рефактор
+- **Sabab:** `attachResponseSniffer` (services/watch-party/src/services/virtualBrowser.service.ts) ловит ЛЮБОЙ сетевой ответ, похожий на видео, за 40с окно (`COLLECTION_WINDOW_MS`) — может поймать рекламу/related-content вместо того, что владелец реально смотрит внутри Virtual Browser. Добавляем второй сигнал: page-injected script слушает реальные `play`/`timeupdate` события на `<video>`/`<audio>` (через MutationObserver, т.к. плеер часто создаёт тег после навигации), репортит `currentSrc` в Node через `page.exposeFunction` (тот же паттерн, что уже есть для `__wewatchCaptureChunk` в SourceBuffer-патче). Совпавший с уже пойманным кандидатом URL помечается `confirmed: true` и показывается первым/предвыбранным в `VideoCandidatePicker` — picker остаётся (владелец подтверждает вручную), не убираем safety-net.
+- **Qilish kerak:**
+  - [ ] page.addInitScript: MutationObserver + play/timeupdate listener → page.exposeFunction репорт currentSrc
+  - [ ] startSession: новый onRealPlaybackConfirmed колбэк, прокинуть в vbSession.helper.ts
+  - [ ] vbSession.helper.ts: correlate confirmed src против candidate array, пометить confirmed:true, сортировка confirmed первыми
+  - [ ] tsc --noEmit watch-party — сравнить с baseline (до/после)
+- **Fayllar:** services/watch-party/src/services/virtualBrowser.service.ts, services/watch-party/src/socket/vbSession.helper.ts
+
+---
+
 ✅ T-S194 tugadi (2026-07-30) — Done.md'ga ko'chirildi (F-290).
 
 > ✅ **Prod'da tasdiqlandi (2026-07-30, `main` d11dc6f0):** `https://wewatch.uz/` — `ru-RU`→`/ru`,
