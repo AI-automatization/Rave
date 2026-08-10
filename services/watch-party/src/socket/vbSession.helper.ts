@@ -67,7 +67,16 @@ function proxiedMediaUrl(mediaUrl: string, mediaType: MediaType, roomId: string)
   const encodedUrl = Buffer.from(mediaUrl, 'utf8').toString('base64url');
 
   if (mediaType === 'mp4' && vbEdgeFetchUrl) {
-    return `${vbEdgeFetchUrl}/?url=${encodedUrl}&exp=${exp}&sig=${sig}`;
+    // Real prod bug 2026-08-10 found live: minting this as a bare `${vbEdgeFetchUrl}/?url=...`
+    // gave it no distinguishing path segment, so isOwnVbUrl (below) and the frontend's twin check
+    // (isOwnVbMediaUrl, VideoPlayer.tsx) — both path-substring matches, deliberately host-agnostic
+    // — never recognized it as "our own already-resolved URL". CHANGE_MEDIA then treated a
+    // confirmed candidate's own playback URL as an arbitrary external page, tried to extract it,
+    // failed, auto-started a FRESH VB session pointed at the edge-fetch URL itself, whose sniffer
+    // then caught its own passthrough response as a "candidate" — a self-referential loop. The
+    // Bunny script itself doesn't care about path (only reads query params), so adding one here
+    // costs nothing there.
+    return `${vbEdgeFetchUrl}/vb-edge-fetch?url=${encodedUrl}&exp=${exp}&sig=${sig}`;
   }
 
   const ext = mediaType === 'hls' ? 'm3u8' : 'mpd';

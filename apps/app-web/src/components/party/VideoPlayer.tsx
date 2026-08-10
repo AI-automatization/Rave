@@ -334,7 +334,12 @@ function isIpLockedCdn(cdnUrl: string): boolean {
 // server-side env value, and the path segment alone is already an unambiguous signature — nothing
 // else in the app ever mints a URL containing it.
 function isOwnVbMediaUrl(url: string): boolean {
-  return url.includes('/api/v1/watch-party/vb-media-proxy/') || url.includes('/api/v1/watch-party/vb-capture/');
+  return url.includes('/api/v1/watch-party/vb-media-proxy/')
+      || url.includes('/api/v1/watch-party/vb-capture/')
+      // Same twin check as roomEvents.handler.ts's isOwnVbUrl (server-side) — a confirmed mp4
+      // candidate can now point at the Bunny Edge Script fetch path instead of this service's own
+      // vb-media-proxy route (vbSession.helper.ts's proxiedMediaUrl, VB_EDGE_FETCH_URL).
+      || url.includes('/vb-edge-fetch');
 }
 
 // Exported for VideoCandidatePicker.tsx's preview — a candidate.url (whether a raw CDN url from

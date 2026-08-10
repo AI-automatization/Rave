@@ -22,7 +22,13 @@ import { vbStreamPublicUrl } from '@shared/utils/serviceConfig';
 // watchPartyServiceUrl itself when the Cloudflare-CDN env var isn't set (see serviceConfig.ts).
 function isOwnVbUrl(url: string): boolean {
   return url.startsWith(`${vbStreamPublicUrl}/api/v1/watch-party/vb-capture/`)
-      || url.startsWith(`${vbStreamPublicUrl}/api/v1/watch-party/vb-media-proxy/`);
+      || url.startsWith(`${vbStreamPublicUrl}/api/v1/watch-party/vb-media-proxy/`)
+      // Real prod bug 2026-08-10 found live: a confirmed mp4 candidate now sometimes points at
+      // the Bunny Edge Script fetch path (vbSession.helper.ts's proxiedMediaUrl, VB_EDGE_FETCH_URL)
+      // instead of this service's own vb-media-proxy route — same "already-resolved, not a page"
+      // case, just a different host. Without this, CHANGE_MEDIA tried to extract/re-VB its own
+      // edge-fetch URL, a self-referential loop (VB navigating to a URL that IS its own output).
+      || url.includes('/vb-edge-fetch');
 }
 
 interface AuthenticatedSocket extends Socket {
