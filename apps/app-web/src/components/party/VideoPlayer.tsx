@@ -322,12 +322,28 @@ function isIpLockedCdn(cdnUrl: string): boolean {
   }
 }
 
+// Real prod case 2026-08-10: a confirmed VB candidate is already one of OUR OWN resolved
+// endpoints (vb-media-proxy's signed passthrough, or vb-capture's raw buffer — see
+// roomEvents.handler.ts's isOwnVbUrl, the server-side twin of this check) — wrapping it through
+// content-service's extraction/proxy-stream AGAIN is nonsensical (it's not a page to scrape, and
+// double-proxying an already-proxied, already-signed URL just adds a failure-prone extra hop) and
+// was the direct cause of a confirmed candidate never actually playing in the room: `needsExtract`
+// below had no exclusion for this, so every VB url got POSTed to /api/content/extract as if it
+// were a raw page, which 502s (it isn't one) and leaves proxySrc permanently null. Path-only match
+// (not the full vbStreamPublicUrl host) since the client bundle has no reliable access to that
+// server-side env value, and the path segment alone is already an unambiguous signature — nothing
+// else in the app ever mints a URL containing it.
+function isOwnVbMediaUrl(url: string): boolean {
+  return url.includes('/api/v1/watch-party/vb-media-proxy/') || url.includes('/api/v1/watch-party/vb-capture/');
+}
+
 // Exported for VideoCandidatePicker.tsx's preview — a candidate.url (whether a raw CDN url from
 // content-service's extraction, or our own watch-party service's vb-capture/vb-media-proxy) is a
 // cross-origin request from the browser's point of view, same as room.videoUrl always is. Reusing
 // this instead of setting candidate.url directly on <video src> avoids a CORS failure identical to
 // what this function already exists to solve for the main player.
 export async function buildProxyUrl(cdnUrl: string, headers?: Record<string, string>): Promise<string> {
+  if (isOwnVbMediaUrl(cdnUrl)) return cdnUrl;
   if (isIpLockedCdn(cdnUrl)) {
     const contentBase = process.env.NEXT_PUBLIC_CONTENT_SERVICE_URL;
     if (contentBase) {
@@ -959,8 +975,9 @@ export function VideoPlayer({
   // scraping a pirate site, just against a legitimate platform; Rutube also blocks yt-dlp's
   // requests from Railway's datacenter IP outright); now routed to their own official embeds
   // instead.
-  const needsExtract = !!videoUrl && !ytId && !vkIds && !rutubeId && !twitchIds && !vimeoId && !dailymotionId && !tiktokId && !peertubeIds && !trovoName;
-  const directSrc = needsExtract ? proxySrc : null;
+  const isOwnVb = isOwnVbMediaUrl(videoUrl);
+  const needsExtract = !!videoUrl && !isOwnVb && !ytId && !vkIds && !rutubeId && !twitchIds && !vimeoId && !dailymotionId && !tiktokId && !peertubeIds && !trovoName;
+  const directSrc = needsExtract ? proxySrc : (isOwnVb ? videoUrl : null);
 
   // Extract → proxy URL for any non-YouTube source
   useEffect(() => {
@@ -984,6 +1001,18 @@ export function VideoPlayer({
       })
       .finally(() => setExtracting(false));
   }, [videoUrl, needsExtract]);
+
+  // Own-VB urls skip extraction entirely (directSrc is already set above), but isHls/isDash still
+  // need to come from SOMEWHERE — normally the extraction effect above sets them from the result's
+  // `type` field. proxiedMediaUrl (vbSession.helper.ts) always mints these with a type-matching
+  // extension (stream.m3u8/.mpd/.mp4), same convention vb-capture's own controller uses — cheap and
+  // reliable to read back off the URL itself instead of threading the candidate's `type` all the
+  // way through room state just for this.
+  useEffect(() => {
+    if (!isOwnVb) return;
+    setIsHls(videoUrl.includes('.m3u8'));
+    setIsDash(videoUrl.includes('.mpd'));
+  }, [isOwnVb, videoUrl]);
 
   // ── Sync incoming state to HTML5 video ────────────────────────────────────
   useEffect(() => {
