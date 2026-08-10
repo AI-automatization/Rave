@@ -4,6 +4,28 @@
 
 ---
 
+### T-S198 | P1 | [DEVOPS] | SEO quality gate — flaky Lighthouse TBT, медиана из 3 прогонов
+
+- **Mas'ul:** Saidazim (Claude sonnet)
+- **Beruvchi:** Yakubov (root cause), Saidazim (решение "да, делай сам")
+- **Yaratilgan:** 2026-08-10
+- **Holat:** ✅ Bajarildi (2026-08-10)
+- **Tavsiya model:** sonnet
+- **Model sababi:** 2 файла (workflow + budget script), точечная логика
+- **Sabab:** Один прогон Lighthouse на холодном GitHub Actions раннере даёт нестабильный TBT
+  (2809мс vs 1500мс бюджет на первом прогоне, 145/126мс на следующих — тот же код). Flaky gate
+  ронял "Typecheck gate" → "Deploy to Railway" SKIPPED → прод не обновлялся 13 дней (найдено
+  Якубовым 2026-08-10 через gh CLI, независимо подтверждено Saidazim'ом).
+- **Qilish kerak:**
+  - [x] `.github/workflows/seo-quality.yml`: Lighthouse гоняется 3 раза вместо 1
+  - [x] `apps/web/scripts/check-lighthouse-budget.mjs`: принимает N путей к отчётам, считает
+        МЕДИАНУ каждой метрики, budget-check идёт по медиане (обратно совместимо — 1 файл = как раньше)
+  - [x] Протестировано на синтетических данных, воспроизводящих реальный инцидент (2809.5/145/126
+        → медиана 145, PASS; тот же прогон с 1 отчётом (2809.5) → FAIL, как раньше)
+- **Fayllar:** .github/workflows/seo-quality.yml, apps/web/scripts/check-lighthouse-budget.mjs
+
+---
+
 ### T-S197 | P1 | [BACKEND] | VB — единственная механика извлечения, запуск сразу при создании комнаты
 
 - **Mas'ul:** Saidazim (Claude sonnet)
