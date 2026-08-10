@@ -4,6 +4,28 @@
 
 ---
 
+### T-S200 | P1 | [MARKETING] | Instagram — 30 kunlik kontent-reja + to'liq avtomatlashtirish
+
+- **Mas'ul:** pending[Jasur]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-08-10 18:42
+- **Holat:** ❌ Boshlanmagan — Jasur'ga Telegram orqali yuborildi (@do_you_wanna_me), javob kutilmoqda
+- **Tavsiya model:** opus
+- **Model sababi:** noldan avtomatika (Meta Graph API integratsiyasi mavjud emas) + 30 kunlik strategik kontent-reja — katta, noaniq ko'p qismli ish
+- **Sabab:** WeWatch Instagram marketingi to'liq Jasur zimmasiga o'tkazildi (Saidazim qarori, T-S195 9+ kun harakatsiz qolgani munosabati bilan domain almashtirish).
+- **Qilish kerak:**
+  - [ ] 30 kunlik kontent-reja (nima/qachon/qanday format) — Saidazim'ga yuborish
+  - [ ] Instagram'ga avtomatik yuklash — repo'da hozircha YO'Q (faqat Remotion render pipeline bor,
+        marketing/instagram/), Meta Graph API yoki shunga o'xshash vositani ulash kerak
+  - [ ] Video formati: "3 ta savol + WeWatch javobi" hook-uslubi (Saidazim'ning aniq ko'rsatmasi)
+  - [ ] ERTAGA (2026-08-11) 10:00 — birinchi kontent Instagram'da jonli bo'lishi kerak
+- **Fayllar:** marketing/instagram/ (mavjud Remotion pipeline — WeWatchReel, kunlik Stories D1-D7,
+  render-all.js va h.k. — asos sifatida ishlatiladi)
+- **⚠️ Muddat juda qisqa** — to'liq avtomatika + tayyor kontent bir kunda real bo'lmasligi mumkin,
+  Jasur'ga darhol savol berishga aytilgan.
+
+---
+
 ### T-S199 | P1 | [DEVOPS] | CI workflow'lar mavjud bo'lmagan "develop" branch'ni kutayotgan edi
 
 - **Mas'ul:** Saidazim (Claude sonnet)
