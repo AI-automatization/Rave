@@ -1392,7 +1392,18 @@ export function VideoPlayer({
     // extractError is deliberately silent — a failed direct extraction just means the server is
     // about to (or already did) fall back to the shared virtual browser; showing a scary "failed
     // to load" error here would be wrong in the common case where VB picks it up moments later.
-    if (extracting || extractError) {
+    // Real prod bug found live 2026-08-10: `extracting`/`extractError` are only ever set by the
+    // extraction effect above, which only ever runs while needsExtract is true — but they're
+    // ordinary useState, so once true they PERSIST across a later render where the room's
+    // videoUrl has since moved on to an isOwnVb (VB-confirmed) url. The room starts on the raw
+    // source page (needsExtract=true, extracting set true, client-side extractVideoUrl() kicked
+    // off) and if the owner confirms a VB candidate before that stale extraction attempt ever
+    // settles (content-service extraction against a slow site can hang well past a minute — seen
+    // live, matches a >70s pending XHR in the network panel), extracting stays stuck true forever
+    // and this branch shows the generic loading cycle instead of ever rendering the video, even
+    // though directSrc is already valid. Gate on needsExtract too — extracting/extractError are
+    // only ever meaningful in that case.
+    if (needsExtract && (extracting || extractError)) {
       return <VideoLoading />;
     }
     // Real playback failure (not just autoplay needing a click) — stop rendering the player (its
