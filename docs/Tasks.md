@@ -133,12 +133,23 @@
 
 ### T-E209 | P2 | [WEB] | GEO/AEO/SEO texnik baza — robots, sitemap, IndexNow, crawler checker
 
-- **Mas'ul:** pending[Jasur]
+- **Mas'ul:** pending[Yakubov] (2026-08-10'da Jasur'dan o'tdi — Yakubov endi SEO/GEO/AEO yo'nalishiga mas'ul)
 - **Beruvchi:** Jasur
 - **Yaratilgan:** 2026-07-23 (PHASE 0 audit tugadi)
-- **Holat:** ⏸ Kutishda — PHASE 1 + ichki havola ishi tugadi va main'ga deploy bo'ldi (9a526a1c).
-  **2026-07-30 da** Search Console natijasi qayta tekshiriladi. Google qayta crawl qilmaguncha
-  yangi kod yozish behuda — o'lchov bo'lmaydi.
+- **Holat:** ✅ Deploy-bloker HAL QILINDI (2026-08-10, 16:22 — Yakubov + Saidazim, Telegram orqali,
+  Claude sessiyasi tashqarisida). Ikkita alohida sabab bor edi, ikkalasi ham topildi va tuzatildi:
+  (1) Railway'da apps/web uchun Config File Path (apps/web/railway.toml) qo'yilmagan edi — tuzatildi,
+  llms.txt endi asosan main bilan mos (2026-08-10 tekshirildi: kichik matn farqi bor, pastga qarang);
+  (2) Yakubov gh CLI orqali topdi — 2 ta commit (9656de6, 9e1d142) uchun GitHub Actions'da "Run web
+  SEO quality gate" step FAILURE bo'lgan (sovuq runner'da Lighthouse TBT 2809ms > 1500ms budjet,
+  flaky test, real regressiya emas) → "Deploy to Railway" SKIPPED bo'lgan, Railway'ga umuman
+  murojaat qilinmagan. "Re-run failed jobs" kerak bo'lmadi — (1)-fix o'zi yetarli bo'ldi.
+  INDEXNOW_SECRET + INDEXNOW_KEY ham Railway'da o'rnatildi, /api/indexnow endi 401 qaytaryapti
+  (2026-08-10 mustaqil tekshirildi: 503 emas — env bor, noto'g'ri secret bilan 401 kutilganidek).
+  **YANGI TOPILMA (2026-08-10, mustaqil tekshiruv):** prod llms.txt hali ham main bilan bayt-ma-bayt
+  bir xil EMAS — kontent farqi (mobil ilova haqida): prod ehtiyotkorona "in development" deydi,
+  main esa "on iOS, and on Android" (chiqarilganday). T-E208 (Play Store audit) hali tugallanmagan
+  ekanini hisobga olsak, MAIN'dagi versiya overclaim qilishi mumkin — Yakubov/Saidazim tekshirsin.
 - **Tavsiya model:** opus
 - **Model sababi:** ko'p faylli SEO infratuzilma + mavjud bazani buzmasdan yamash
 - **Sabab:** wewatch.uz'ni AI answer engine'lar (ChatGPT, Claude, Perplexity, AI Overviews) iqtibos qila
@@ -152,8 +163,8 @@
   - [x] public/llms.txt — faktlar shared/constants bilan moslashtirildi
   - [x] scripts/check-crawler-visibility.mjs — 7 route × 5 UA, hammasi PASS
 - **Qo'lda qilinishi kerak (TODO human):**
-  - [ ] Railway'da `INDEXNOW_SECRET` env o'rnatish (`openssl rand -hex 24`) + `INDEXNOW_KEY=b7a4e5408d77764d08338835ee8cdd0e`,
-        keyin `curl -X POST https://wewatch.uz/api/indexnow -H "x-indexnow-secret: ..."` (jonli tekshirildi: kalit fayli 200, env yo'q)
+  - [x] Railway'da `INDEXNOW_SECRET` + `INDEXNOW_KEY` o'rnatildi (2026-08-10) — mustaqil tekshirildi,
+        endi 401 qaytaryapti (noto'g'ri secret bilan — env borligini tasdiqlaydi, avval 503 edi)
   - [ ] GSC: sitemap.xml ni qayta yuborish + URL Inspection'da qayta indekslash so'rovi
         (/guides, /uz/guides, /how-it-works, rutube/vk/film-vdvoem/serialy gaydlari, /en)
   - [ ] Pro tarif (29 000 so'm, /pricing) haqiqatan faolmi? llms.txt da TODO qoldirilgan
