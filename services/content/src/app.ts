@@ -51,7 +51,14 @@ export const createApp = (redis: Redis, elastic: ElasticsearchClient): express.A
   app.use(mongoSanitize);
   app.use(metricsMiddleware());
   app.use(apiLogger('content'));
-  app.use(timeout());
+  // Real prod incident 2026-08-07: the shared timeout() middleware's 30s default is BELOW the
+  // deterministic worst case of the "unknown platform" extraction chain (genericExtractor 10s +
+  // ytDlpExtractor 20s+1s-retry-delay+20s + playwrightExtractor 12s+3s = 66s incl. yt-dlp's own
+  // one retry) — every slow-but-legitimate extraction on an unrecognized site was getting cut off
+  // with a 503 before it could finish, which is what was showing as "loader stuck" / intermittent
+  // extract 503s in prod. 70s covers that deterministic worst case; content-service's other routes
+  // are all fast, so a longer ceiling here doesn't meaningfully change behavior for them.
+  app.use(timeout(70_000));
   app.use(maintenanceGuard);
 
   app.get('/health', async (_req, res) => {

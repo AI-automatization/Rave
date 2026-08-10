@@ -479,12 +479,12 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
       });
       onOpenChange(false);
       const id = res.data?._id;
-      // ?verify=1 tells RoomContent to re-submit this initial videoUrl through CHANGE_MEDIA once
-      // the socket connects — room creation is a plain REST call with no socket/room context yet,
-      // so it can't run the extraction-pipeline-then-VB-fallback check itself (see
-      // roomEvents.handler.ts's CHANGE_MEDIA handler). Without this, a URL that needs VB would
-      // just sit there showing "failed to load video" forever instead of falling back.
-      if (id) router.push(normalizedVideoUrl ? `/room/${id}?verify=1` : `/room/${id}`);
+      // Backend now starts VB server-side directly at room creation for any non-embed URL
+      // (watchParty.controller.ts createRoom, 2026-08-10) — the old ?verify=1 client round-trip
+      // (re-submit through CHANGE_MEDIA once the socket connects) is no longer needed and has
+      // been removed; it also never existed on mobile, so this was a web-only fix for a bug that
+      // no longer exists.
+      if (id) router.push(`/room/${id}`);
     } catch (err) {
       // Backend enforces one active room per owner (T-S108): a 409 ROOM_ALREADY_EXISTS means the
       // user already has an open room. Reopen it instead of failing silently (mirrors mobile) —

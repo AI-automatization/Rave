@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/auth.store';
 import { useHeartbeat } from '@/hooks/use-heartbeat';
+import { useTokenRefresh } from '@/hooks/use-token-refresh';
 import { AppNav } from '@/components/common/AppNav';
 import { FloatingNav } from '@/components/common/FloatingNav';
 import { MaintenanceBanner } from '@/components/common/MaintenanceBanner';
@@ -22,6 +23,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, [checkAuth]);
 
   useHeartbeat();
+  useTokenRefresh();
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: 'transparent' }}>

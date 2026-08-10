@@ -87,6 +87,48 @@ export async function GET(req: NextRequest) {
     rawCT.includes('x-mpegurl') ||
     parsed.pathname.endsWith('.m3u8') ||
     parsed.pathname.endsWith('.ts') === false && parsed.search.includes('m3u8');
+  const isMpd = rawCT.includes('dash+xml') || parsed.pathname.endsWith('.mpd');
+
+  // DASH manifest — same purpose as the HLS rewrite below, mirrors watch-party's own
+  // vb-media-proxy DASH handling. <SegmentTemplate>/<SegmentList> derive per-segment URLs from a
+  // template ($Number$/$Time$) resolved by the player relative to the nearest <BaseURL> — per
+  // RFC 3986, resolving a relative reference against a base URL DROPS the base's own query
+  // string, so rewriting BaseURL to `/api/content/proxy-stream?h=...&url=...` would silently
+  // break every derived segment request (no h/url survives). Only the single-<BaseURL>/
+  // <SegmentBase> VOD shape (whole file addressed by byte-range Range requests against ONE url)
+  // is safe to rewrite; anything using SegmentTemplate/SegmentList passes through unmodified —
+  // dash.js then fetches segments straight from the origin CDN instead of through this proxy.
+  if (isMpd) {
+    const text = await upstream.text();
+
+    if (/<SegmentTemplate[\s>]/.test(text) || /<SegmentList[\s>]/.test(text)) {
+      return new Response(text, {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/dash+xml',
+          'Cache-Control': 'no-cache',
+          'Access-Control-Allow-Origin': '*',
+        },
+      });
+    }
+
+    const base = parsed.href.substring(0, parsed.href.lastIndexOf('/') + 1);
+    const hEncoded = encodeURIComponent(hParam ?? '');
+    const rewritten = text.replace(/<BaseURL>([^<]+)<\/BaseURL>/g, (_match, urlText: string) => {
+      const trimmed = urlText.trim();
+      const absUrl = trimmed.startsWith('http') ? trimmed : base + trimmed;
+      return `<BaseURL>/api/content/proxy-stream?h=${hEncoded}&url=${encodeURIComponent(absUrl)}</BaseURL>`;
+    });
+
+    return new Response(rewritten, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/dash+xml',
+        'Cache-Control': 'no-cache',
+        'Access-Control-Allow-Origin': '*',
+      },
+    });
+  }
 
   // HLS playlist: rewrite all segment URLs to go through this proxy
   if (isHls && !parsed.pathname.endsWith('.ts')) {

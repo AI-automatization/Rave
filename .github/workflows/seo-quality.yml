@@ -2,7 +2,7 @@ name: SEO quality gate
 
 on:
   pull_request:
-    branches: [main, develop]
+    branches: [main, dev]
     paths:
       - 'apps/web/**'
       - 'playwright.config.ts'
@@ -10,7 +10,7 @@ on:
       - 'package-lock.json'
       - '.github/workflows/seo-quality.yml'
   push:
-    branches: [main, develop]
+    branches: [main, dev]
     paths:
       - 'apps/web/**'
       - 'playwright.config.ts'
@@ -72,17 +72,22 @@ jobs:
       - name: Raw HTML crawler visibility
         run: npm run check:crawlers --workspace=web -- http://127.0.0.1:3000
 
-      - name: Lighthouse mobile audit
-        run: >-
-          npx --yes lighthouse@12.8.2 http://127.0.0.1:3000/ru
-          --only-categories=performance,accessibility,best-practices,seo
-          --output=json
-          --output-path=/tmp/lighthouse-ru-mobile.json
-          --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage"
-          --quiet
+      # 3 runs, not 1 — a cold-runner first try is not a stable signal (see
+      # check-lighthouse-budget.mjs's own comment for the real incident this fixes: one flaky
+      # TBT reading silently skipped the Railway deploy step for 13 days).
+      - name: Lighthouse mobile audit (3 runs, median)
+        run: |
+          for i in 1 2 3; do
+            npx --yes lighthouse@12.8.2 http://127.0.0.1:3000/ru \
+              --only-categories=performance,accessibility,best-practices,seo \
+              --output=json \
+              --output-path=/tmp/lighthouse-ru-mobile-$i.json \
+              --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage" \
+              --quiet
+          done
 
-      - name: Enforce Lighthouse and transfer budgets
-        run: node apps/web/scripts/check-lighthouse-budget.mjs /tmp/lighthouse-ru-mobile.json
+      - name: Enforce Lighthouse and transfer budgets (median of 3 runs)
+        run: node apps/web/scripts/check-lighthouse-budget.mjs /tmp/lighthouse-ru-mobile-1.json /tmp/lighthouse-ru-mobile-2.json /tmp/lighthouse-ru-mobile-3.json
 
       - name: Print server log on failure
         if: failure()

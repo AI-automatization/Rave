@@ -8,22 +8,8 @@ import { JwtPayload, VideoPlatform } from '@shared/types';
 import { recordWatchHistoryInternal } from '@shared/utils/serviceClient';
 import { bufferTimeouts, resumeBufferedRoom } from './videoEvents.handler';
 import { stopSession, getSessionSnapshot, hasSession } from '../services/virtualBrowser.service';
-import { startVBForRoom, CANDIDATES_TTL_SEC } from './vbSession.helper';
-import { isOfficialEmbedHost, tryExtract, fetchCandidates } from '../services/extractionClient';
-import { vbStreamPublicUrl } from '@shared/utils/serviceConfig';
-
-// A confirmed VB candidate's url is one of OUR OWN endpoints (vb-capture's raw buffer, or
-// vb-media-proxy's signed passthrough — see vbSession.helper.ts's proxiedMediaUrl) — running that
-// back through content-service's tryExtract would be nonsensical (it's not a page to scrape, it's
-// already-resolved media) and, worse, a 422 there would auto-fall-back to VB again, pointed at our
-// own service's URL — a pointless loop. Same skip treatment as isOfficialEmbedHost below.
-// Checked against vbStreamPublicUrl (not watchPartyServiceUrl directly) so this stays correct
-// whichever one actually produced the URL — vbStreamPublicUrl already falls back to
-// watchPartyServiceUrl itself when the Cloudflare-CDN env var isn't set (see serviceConfig.ts).
-function isOwnVbUrl(url: string): boolean {
-  return url.startsWith(`${vbStreamPublicUrl}/api/v1/watch-party/vb-capture/`)
-      || url.startsWith(`${vbStreamPublicUrl}/api/v1/watch-party/vb-media-proxy/`);
-}
+import { startVBForRoom } from './vbSession.helper';
+import { isOfficialEmbedHost, isOwnVbUrl } from '../services/extractionClient';
 
 interface AuthenticatedSocket extends Socket {
   user: JwtPayload;
@@ -260,46 +246,37 @@ export const registerRoomEvents = (
       return;
     }
 
-    // Video-candidate picker: fire-and-forget, runs alongside tryExtract below rather than
-    // blocking it — candidates are a nice-to-have for the owner's picker UI, never on the
-    // critical path for playback. Overwrites (not appends to) any candidates from the PREVIOUS
-    // video — this is a genuinely new source, the old list is stale. Same official-embed gate as
-    // tryExtract: genericExtractorCandidates only ever applies to non-embed URLs anyway.
-    if (authSocket.rawToken && !isOfficialEmbedHost(data.videoUrl) && !isOwnVbUrl(data.videoUrl)) {
-      const token = authSocket.rawToken;
-      void fetchCandidates(data.videoUrl, token).then((candidates) => {
-        if (candidates.length === 0) return;
-        return redis.setex(REDIS_KEYS.videoCandidates(roomId), CANDIDATES_TTL_SEC, JSON.stringify(candidates));
-      }).catch((err) => {
-        logger.info('CHANGE_MEDIA: candidates fetch/store failed, ignoring', { roomId, error: (err as Error).message });
-      });
-    } else if (!isOwnVbUrl(data.videoUrl)) {
+    // Single extraction mechanism (2026-08-10, Saidazim's call): content-service's pipeline
+    // (tryExtract/fetchCandidates, extractionClient.ts) is no longer invoked from here — VB is the
+    // only path for anything that isn't an official embed. The functions themselves are NOT
+    // deleted (still used by watchPartyPlaylist.service.ts's playlist pre-resolve, a separate
+    // decision) — just not called on this critical path anymore. Candidates for the picker now
+    // come exclusively from VB's own attachResponseSniffer / T-S196 real-playback confirmation.
+    if (!isOwnVbUrl(data.videoUrl)) {
       // Confirming a VB candidate keeps that same candidate in Redis on purpose — CHANGE_MEDIA
       // below still needs it there in case the owner reopens the picker for "не то видео" right
-      // after confirming. Any other case (embed host, or a genuinely new non-VB url) clears it.
+      // after confirming. Any other case (embed host, or a genuinely new non-VB url) clears it —
+      // a fresh VB session (below) repopulates it once it finds candidates.
       void redis.del(REDIS_KEYS.videoCandidates(roomId)).catch(() => {});
     }
 
-    // Extraction-flow pre-check: official-embed platforms (YouTube/VK/Rutube/etc) already play
-    // instantly client-side via their own iframe — skip straight to the normal broadcast below,
-    // unchanged, no added latency. Everything else gets tested against content-service's
-    // extraction pipeline first; if THAT can't produce a playable result either, auto-fall into
-    // the shared virtual browser instead of broadcasting a URL that will just show "failed to
-    // load video" to the whole room. rawToken missing would mean a broken auth-middleware state
-    // that shouldn't happen in practice — treat it as "skip the check", not "drop the request".
-    if (authSocket.rawToken && !isOfficialEmbedHost(data.videoUrl) && !isOwnVbUrl(data.videoUrl)) {
-      const playable = await tryExtract(data.videoUrl, authSocket.rawToken);
-      if (!playable) {
-        try {
-          await startVBForRoom(io, redis, roomId, userId, data.videoUrl);
-          logger.info('CHANGE_MEDIA: extraction failed, auto-started VB', { roomId, userId, url: data.videoUrl });
-          return; // room is now watching the live VB stream — don't also broadcast the raw URL
-        } catch (e) {
-          // VB itself couldn't start (e.g. concurrency limit) — fall through to the normal
-          // broadcast so the owner at least gets today's behavior (a clear load error) instead
-          // of the request silently doing nothing.
-          logger.warn('CHANGE_MEDIA: VB auto-fallback failed to start too', { roomId, error: (e as Error).message });
-        }
+    // Official-embed platforms (YouTube/VK/Rutube/Twitch/Vimeo/Dailymotion/TikTok/Trovo) already
+    // play instantly client-side via their own iframe — skip straight to the normal broadcast
+    // below, unchanged. Everything else launches VB immediately, no extraction attempt first —
+    // real prod bug 2026-08-10 (uzmovi.net): room creation never reached this handler at all
+    // (client-side ?verify=1 workaround, now removed — see watchParty.controller.ts createRoom,
+    // which starts VB server-side directly), so a URL needing VB just showed "failed to load
+    // video" with no fallback ever attempted.
+    if (!isOfficialEmbedHost(data.videoUrl) && !isOwnVbUrl(data.videoUrl)) {
+      try {
+        await startVBForRoom(io, redis, roomId, userId, data.videoUrl);
+        logger.info('CHANGE_MEDIA: VB started (sole extraction mechanism)', { roomId, userId, url: data.videoUrl });
+        return; // room is now watching the live VB stream — don't also broadcast the raw URL
+      } catch (e) {
+        // e.g. virtual_browser_limit (MAX_CONCURRENT) — fall through to the normal broadcast so
+        // the owner at least gets today's behavior (a clear load error) instead of the request
+        // silently doing nothing.
+        logger.warn('CHANGE_MEDIA: VB failed to start', { roomId, error: (e as Error).message });
       }
     }
 

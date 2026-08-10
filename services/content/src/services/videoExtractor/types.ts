@@ -32,7 +32,7 @@ export type VideoPlatform =
   | 'generic'
   | 'unknown';
 
-export type VideoType = 'mp4' | 'hls' | 'embed';
+export type VideoType = 'mp4' | 'hls' | 'dash' | 'embed';
 
 export interface VideoExtractResult {
   title: string;

@@ -198,6 +198,14 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* Loading-label cycling (VideoPlayer.tsx) — deliberately more pronounced than fadeSlideIn above:
+   that one is for small incidental UI reveals, this is the ONE thing visibly changing on an
+   otherwise static loading screen, so it needs to actually read as motion, not just a flicker. */
+@keyframes loadingLabelIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.94); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 /* Skeleton → content reveal (streaming-entertainment-ui skill: 200ms ease-out,
    transform+opacity only — no layout-affecting properties, respects reduced-motion
    via the global override below). */

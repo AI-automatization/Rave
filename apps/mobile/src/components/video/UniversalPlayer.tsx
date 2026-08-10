@@ -42,7 +42,7 @@ interface Props {
   onStreamResolved?: (info: { isLive: boolean; title: string }) => void;
   onReady?: () => void;
   extractedUrl?: string;
-  extractedType?: 'mp4' | 'hls';
+  extractedType?: 'mp4' | 'hls' | 'dash';
   isExtracting?: boolean;
   referer?: string;
   httpHeaders?: Record<string, string>;

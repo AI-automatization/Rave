@@ -11,7 +11,7 @@ import { logger } from '@shared/utils/logger';
 import { getAppSetting } from '@shared/utils/appSettings';
 import { ForbiddenError, NotFoundError } from '@shared/utils/errors';
 import { startVBForRoom } from '../socket/vbSession.helper';
-import { isOfficialEmbedHost, tryExtract } from '../services/extractionClient';
+import { isOfficialEmbedHost, isOwnVbUrl } from '../services/extractionClient';
 
 export class WatchPartyController {
   constructor(
@@ -63,62 +63,29 @@ export class WatchPartyController {
         videoReferer?: string;
       };
 
-      // Extraction-flow pre-check, mirroring CHANGE_MEDIA (roomEvents.handler.ts) — real prod
-      // incident 2026-08-07: a room created directly with a non-video URL (a catalog/listing
-      // page, e.g. old.yummyani.me/catalog/item/berserk) had NO validation at all on this path,
-      // so it was stored and broadcast as "the video" with the player stuck loading forever and
-      // VB never getting a chance to kick in. CHANGE_MEDIA already gates every later video swap
-      // through tryExtract → VB fallback; room creation is just the same swap happening at t=0
-      // and needs the identical gate, not a separate weaker one.
-      let vbFallbackUrl: string | undefined;
-      if (videoUrl && !isOfficialEmbedHost(videoUrl)) {
-        const authHeader = req.headers.authorization;
-        const rawToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : undefined;
-        if (rawToken) {
-          const playable = await tryExtract(videoUrl, rawToken);
-          if (!playable) vbFallbackUrl = videoUrl;
-        }
-      }
-
-      // videoUrl is still passed through as originally submitted, even when extraction says
-      // it isn't playable — createRoom() requires movieId OR videoUrl to be present (real prod
-      // incident 2026-08-07: nulling it out here to "wait for VB" made every URL-only room
-      // creation 400 with "Either movieId or videoUrl is required", since neither was left).
-      // VB running below corrects it via the normal ROOM_UPDATED broadcast once it finds
-      // something playable — same "leave the stale value in place until VB replaces it" approach
-      // CHANGE_MEDIA already uses for an existing room, just applied to a room that doesn't
-      // have a "before" state yet.
       const room = await this.watchPartyService.createRoom(userId, {
         name, movieId, videoUrl, videoTitle, videoThumbnail, videoPlatform,
         maxMembers, isPrivate, password, startTime, videoReferer,
       });
-
-      if (vbFallbackUrl) {
-        try {
-          await startVBForRoom(this.io, this.redis, room._id.toString(), userId, vbFallbackUrl);
-          logger.info('createRoom: extraction failed, auto-started VB', { roomId: room._id, userId, url: vbFallbackUrl });
-        } catch (e) {
-          logger.warn('createRoom: VB auto-fallback failed to start', { roomId: room._id, error: (e as Error).message });
-        }
-      }
-
-      // Real prod incident 2026-08-07: tryExtract's own axios timeout (extractionClient.ts,
-      // 60s) is longer than the shared timeout() middleware's global request timeout (30s) — when
-      // content-service's extraction call runs long (e.g. Elasticsearch down, slow yt-dlp probe),
-      // the timeout middleware can already have sent the client a 503 by the time this line is
-      // reached, and calling res.json() again crashed the ENTIRE process with ERR_HTTP_HEADERS_SENT
-      // (not just this one request). The room/VB session are already created above regardless —
-      // only the response to an already-gone client is skipped here.
-      if (res.headersSent) {
-        logger.warn('createRoom: response already sent (timeout race), skipping', { roomId: room._id });
-        return;
-      }
       res.status(201).json(apiResponse.success(room, 'Room created'));
-    } catch (error) {
-      if (res.headersSent) {
-        logger.warn('createRoom: error occurred after response already sent (timeout race)', { error: (error as Error).message });
-        return;
+
+      // Real prod bug 2026-08-10 (uzmovi.net): createRoom used to just store videoUrl as-is —
+      // no extraction, no VB, nothing. The only fix was a fragile client-side workaround
+      // (app-web's CreateRoomDialog appended ?verify=1, RoomContent re-submitted the same URL
+      // through CHANGE_MEDIA once the socket connected) that mobile never had at all. VB is now
+      // the sole extraction mechanism (Saidazim's call, 2026-08-10) — start it here, server-side,
+      // right at creation, same as CHANGE_MEDIA does. Fired after the response for the same
+      // reason as playNextFromPlaylist below: launching Chromium takes seconds, room creation
+      // should not hang on it. Official-embed hosts (YouTube/VK/Rutube/...) are skipped — they
+      // already play instantly client-side via their own iframe.
+      if (videoUrl && !isOfficialEmbedHost(videoUrl) && !isOwnVbUrl(videoUrl)) {
+        const roomId = String(room._id);
+        void startVBForRoom(this.io, this.redis, roomId, userId, videoUrl)
+          .catch((e) => logger.warn('createRoom: VB auto-start failed', {
+            roomId, url: videoUrl, error: (e as Error).message,
+          }));
       }
+    } catch (error) {
       // Handled here rather than by the shared error middleware because the client needs the
       // existing room's id to navigate to it, and that middleware only forwards code/reason —
       // teaching it about roomId would mean changing shared/* for a single endpoint.

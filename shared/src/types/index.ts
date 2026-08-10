@@ -241,7 +241,7 @@ export interface VideoExtractRequest {
 // owner see what was found and pick, instead of the server silently guessing.
 export interface VideoCandidate {
   url: string;
-  type: 'mp4' | 'hls' | 'embed';
+  type: 'mp4' | 'hls' | 'dash' | 'embed';
   /** Thumbnail — either the extractor's own og:image-derived poster, or (for VB-caught
    * candidates, which have no page metadata) a base64 JPEG data URI grabbed from VB's own CDP
    * screencast at the moment the candidate was caught. */
@@ -251,6 +251,10 @@ export interface VideoCandidate {
   /** Source page's own <title> (VB) or the extractor's title guess. Only way any candidate ever
    * carries a real name — without it every VB-sourced room stayed on the generic default name. */
   title?: string;
+  /** VB only — a real <video>/<audio> play/timeupdate event was observed on this exact URL (or a
+   * capture-kind candidate captured while it was playing), not just "network response shaped like
+   * media". Owner still confirms manually (picker stays); this only ranks the confirmed one first. */
+  confirmed?: boolean;
 }
 
 // ─────────────────────────────────────────────
