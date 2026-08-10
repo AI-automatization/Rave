@@ -4,6 +4,29 @@
 
 ---
 
+### T-S199 | P1 | [DEVOPS] | CI workflow'lar mavjud bo'lmagan "develop" branch'ni kutayotgan edi
+
+- **Mas'ul:** Saidazim (Claude sonnet)
+- **Beruvchi:** Yakubov (topilma)
+- **Yaratilgan:** 2026-08-10
+- **Holat:** ✅ Bajarildi (2026-08-10) — dev bb4c6b29→afb27275, PR #100 ichida avtomatik
+- **Tavsiya model:** haiku
+- **Model sababi:** 4 fayl, mexanik branch nomi almashtirish
+- **Sabab:** seo-quality.yml/lint.yml/test.yml/docker-build.yml barchasi `branches: [main, develop]`
+  kutar edi — "develop" hech qachon mavjud branch bo'lmagan (jamoa "dev"da ishlaydi). Natijada
+  dev'ga har qanday push/PR HECH QANDAY tekshiruvsiz o'tar edi (typecheck, test, SEO gate — hech
+  biri ishlamas edi), faqat keyingi dev->main PR'da (kech). T-S198 (Lighthouse median) ham shu
+  sababli dev'da ishlamas edi.
+- **Qilish kerak:**
+  - [x] 4 faylda "develop" -> "dev" (seo-quality.yml, lint.yml, test.yml, docker-build.yml)
+  - [x] deploy-staging.yml ATAYLAB TEGILMADI — u ham `environment: staging` deb yozgan, lekin
+        haqiqiy GitHub environment nomi "rave / staging" (Railway avtomatik yaratgan) — mos kelmaydi.
+        Bundan tashqari staging infra o'zi T-S109 (hali boshlanmagan). Branch nomini tuzatish
+        yolg'iz bu workflow'ni har dev push'da muvaffaqiyatsiz ishga tushiraveradi — alohida gap.
+- **Fayllar:** .github/workflows/{seo-quality,lint,test,docker-build}.yml
+
+---
+
 ### T-S198 | P1 | [DEVOPS] | SEO quality gate — flaky Lighthouse TBT, медиана из 3 прогонов
 
 - **Mas'ul:** Saidazim (Claude sonnet)
