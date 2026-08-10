@@ -2,7 +2,7 @@ name: SEO quality gate
 
 on:
   pull_request:
-    branches: [main, develop]
+    branches: [main, dev]
     paths:
       - 'apps/web/**'
       - 'playwright.config.ts'
@@ -10,7 +10,7 @@ on:
       - 'package-lock.json'
       - '.github/workflows/seo-quality.yml'
   push:
-    branches: [main, develop]
+    branches: [main, dev]
     paths:
       - 'apps/web/**'
       - 'playwright.config.ts'
