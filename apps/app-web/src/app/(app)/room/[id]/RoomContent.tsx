@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { useTranslations } from 'next-intl';
 import { MessageCircle, Users as UsersIcon, ListVideo, X, ChevronRight, Loader2, Play, Globe } from 'lucide-react';
@@ -366,8 +365,6 @@ function RoomSidePanel({
 
 export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props) {
   const t = useTranslations('party');
-  const searchParams = useSearchParams();
-  const router = useRouter();
   const { sendMessage, sendPlay, sendPause, sendSeek, sendEmoji, sendHeartbeat, sendBufferStart, sendBufferEnd, sendMediaChange, reactions, reactionCooldownSec, videoCandidates, requestCandidates, kickMember, muteMember, unmuteMember, renameRoom } = useWatchParty(roomId);
   const [rightTab, setRightTab] = useState<RightTab>('chat');
   /** Whose profile the modal is showing — `null` means closed. */
@@ -455,26 +452,10 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
     };
   }, [roomId, setRoom, reset]);
 
-  // Room creation (CreateRoomDialog) is a plain REST call with no socket/room context yet, so it
-  // can't run the extraction-then-VB-fallback check CHANGE_MEDIA does (roomEvents.handler.ts) —
-  // a URL that needs VB would otherwise just sit there showing "failed to load video" forever.
-  // ?verify=1 means "re-submit the room's initial video through CHANGE_MEDIA once the socket is
-  // up" — harmless for URLs that already work (server skips the check for official embeds, and
-  // broadcasts the same unchanged value for everything else), fixes the ones that don't.
-  //
-  // Must wait for `roomJoined` (ROOM_JOINED actually received), not just `room` being populated —
-  // `room` gets filled in fast from the REST preload above, well before the socket's own
-  // JOIN_ROOM round-trip finishes. Firing CHANGE_MEDIA before that lands as "socket has no
-  // roomId" server-side and gets silently dropped — a real race that broke this exact fix live.
-  const verifiedInitialVideo = useRef(false);
-  useEffect(() => {
-    if (verifiedInitialVideo.current) return;
-    if (searchParams.get('verify') !== '1') return;
-    if (!roomJoined || !room?.videoUrl) return;
-    verifiedInitialVideo.current = true;
-    sendMediaChange(room.videoUrl, room.videoTitle ?? undefined, room.videoPlatform ?? undefined);
-    router.replace(`/room/${roomId}`); // strip the param — a refresh shouldn't re-trigger this
-  }, [searchParams, room, roomJoined, roomId, sendMediaChange, router]);
+  // The old ?verify=1 client round-trip (re-submit the initial videoUrl through CHANGE_MEDIA once
+  // the socket connected) is gone — backend now starts VB server-side directly at room creation
+  // (watchParty.controller.ts createRoom, 2026-08-10), so there is nothing left for the client to
+  // re-verify.
 
   return (
     // No -m-4/md:-m-6/lg:-m-8 or `100vh-3rem` height math needed anymore — the room route no

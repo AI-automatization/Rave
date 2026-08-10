@@ -1,9 +1,30 @@
 // WeWatch — server-to-server call into content-service's extraction pipeline, used by
 // roomEvents.handler.ts's CHANGE_MEDIA to decide whether a submitted URL will play normally
 // or needs to fall back to the shared virtual browser (see videoResolver flow in vbEvents.handler.ts).
-import { axios, contentServiceUrl } from '@shared/utils/serviceConfig';
+import { axios, contentServiceUrl, vbStreamPublicUrl } from '@shared/utils/serviceConfig';
 import { logger } from '@shared/utils/logger';
 import type { VideoCandidate } from '@shared/types';
+
+// A confirmed VB candidate's url is one of OUR OWN endpoints (vb-capture's raw buffer, or
+// vb-media-proxy's signed passthrough — see vbSession.helper.ts's proxiedMediaUrl) — running that
+// back through content-service's tryExtract would be nonsensical (it's not a page to scrape, it's
+// already-resolved media) and, worse, a 422 there would auto-fall-back to VB again, pointed at our
+// own service's URL — a pointless loop. Same skip treatment as isOfficialEmbedHost below.
+// Checked against vbStreamPublicUrl (not watchPartyServiceUrl directly) so this stays correct
+// whichever one actually produced the URL — vbStreamPublicUrl already falls back to
+// watchPartyServiceUrl itself when the Cloudflare-CDN env var isn't set (see serviceConfig.ts).
+// Moved here from roomEvents.handler.ts (2026-08-10) so watchParty.controller.ts's createRoom can
+// use the same check when starting VB server-side at room creation, not just at CHANGE_MEDIA.
+export function isOwnVbUrl(url: string): boolean {
+  return url.startsWith(`${vbStreamPublicUrl}/api/v1/watch-party/vb-capture/`)
+      || url.startsWith(`${vbStreamPublicUrl}/api/v1/watch-party/vb-media-proxy/`)
+      // Real prod bug 2026-08-10 found live: a confirmed mp4 candidate now sometimes points at
+      // the Bunny Edge Script fetch path (vbSession.helper.ts's proxiedMediaUrl, VB_EDGE_FETCH_URL)
+      // instead of this service's own vb-media-proxy route — same "already-resolved, not a page"
+      // case, just a different host. Without this, CHANGE_MEDIA tried to extract/re-VB its own
+      // edge-fetch URL, a self-referential loop (VB navigating to a URL that IS its own output).
+      || url.includes('/vb-edge-fetch');
+}
 
 // Real prod incident 2026-08-07: content-service's OWN request timeout is 70s (its extraction
 // chain's deterministic worst case incl. yt-dlp's one retry is 66s — see content-service's

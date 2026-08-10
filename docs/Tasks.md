@@ -1,6 +1,45 @@
 # CineSync — OCHIQ VAZIFALAR
 
-# Yangilangan: 2026-07-27
+# Yangilangan: 2026-08-10
+
+---
+
+### T-S197 | P1 | [BACKEND] | VB — единственная механика извлечения, запуск сразу при создании комнаты
+
+- **Mas'ul:** Saidazim (Claude sonnet)
+- **Beruvchi:** Saidazim (prod bug, uzmovi.net — room created, no VB attempt, straight to "не удалось воспроизвести")
+- **Yaratilgan:** 2026-08-10
+- **Holat:** ✅ Bajarildi (2026-08-10) — код+типы готовы, ждёт live-проверки
+- **Tavsiya model:** sonnet
+- **Model sababi:** 3 файла backend + 2 файла web, точечное упрощение существующего flow
+- **Sabab:** `createRoom` (watchParty.service.ts) сохранял `videoUrl` как есть — extraction/VB вообще
+  не запускались. Реальный fallback жил только в хрупком клиентском костыле (`?verify=1`,
+  CreateRoomDialog.tsx → RoomContent.tsx), которого не было даже на всех mobile-флоу. Saidazim
+  решил: VB — единственная механика извлечения (кроме официальных embed-хостов), запускается сразу
+  и серверно при создании комнаты, content-service extraction (tryExtract/fetchCandidates) больше
+  не участвует в этом flow (код НЕ удалён — используется отдельно в watchPartyPlaylist.service.ts).
+- **Qilish kerak:**
+  - [x] `extractionClient.ts`: `isOwnVbUrl` перенесён сюда (экспортирован), переиспользуется и в
+        controller, и в roomEvents.handler.ts
+  - [x] `watchParty.controller.ts` createRoom: fire-and-forget `startVBForRoom` сразу после ответа,
+        для любого non-official-embed/non-own-VB URL (тот же паттерн, что уже есть в playNextFromPlaylist)
+  - [x] `roomEvents.handler.ts` CHANGE_MEDIA: убран tryExtract/fetchCandidates race, VB запускается
+        безусловно и сразу для non-embed URL
+  - [x] `CreateRoomDialog.tsx` / `RoomContent.tsx`: убран мёртвый `?verify=1` клиентский костыль
+        (useSearchParams/useRouter тоже убраны — стали неиспользуемыми)
+  - [x] tsc --noEmit: watch-party чисто (1 найденная+исправленная ошибка — unused `CANDIDATES_TTL_SEC`
+        после удаления fetchCandidates-блока), app-web чисто (0 ошибок)
+  - [ ] Live-проверка: открыть комнату с uzmovi.net (или другой non-embed) ссылкой — VB должен
+        открыться сразу, без "не удалось воспроизвести"
+- **Найдено, НЕ тронуто (отдельные решения):**
+  - `watchPartyPlaylist.service.ts` `preResolvePlaylistItem` всё ещё зовёт `tryExtract` — playlist
+    "next video" pre-resolve, отдельная фича от room-open/CHANGE_MEDIA, не входила в исходный запрос
+  - Mobile (`WatchPartyScreen.tsx`, T-S189) имеет свой узкий аналог `?verify=1` (`params.needsVerify`,
+    только для "попробовать текущую страницу принудительно") — после этого фикса избыточен (VB и так
+    стартует сразу от сервера), но не ломается, просто лишний повторный вызов. Не трогал — apps/mobile
+    зона Saidazim+Emirhan, не входила в исходный запрос.
+- **Fayllar:** services/watch-party/src/{controllers/watchParty.controller.ts,socket/roomEvents.handler.ts,services/extractionClient.ts},
+  apps/app-web/src/{components/rooms/CreateRoomDialog.tsx,app/(app)/room/[id]/RoomContent.tsx}
 
 ---
 
