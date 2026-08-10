@@ -9,10 +9,13 @@ export const PRODUCT_FACTS = {
   pricing: {
     coreWatchPartyIsFree: true,
     pro: {
-      status: 'listed',
-      monthlyPriceUzs: 29_000,
-      // The repository does not prove that checkout is live in production.
-      purchaseAvailability: 'unverified',
+      // Owner decision 2026-08-10: the plan is planned, but its price is not settled yet
+      // (pending a call between Bekzod, Emirhan and Saidazim), so no figure is published.
+      // Verified in code the same day: no payment provider exists in services/ or apps/,
+      // and the `?plan=pro` parameter is read nowhere — the plan cannot be bought.
+      status: 'planned',
+      monthlyPriceUzs: null,
+      purchaseAvailability: 'unavailable',
     },
   },
   room: { maxParticipants: 10, inactiveTimeoutMinutes: 10 },

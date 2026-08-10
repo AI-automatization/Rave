@@ -17,6 +17,10 @@ export function PricingContent() {
   const tl = useTranslations('landing');
   const reduce = useReducedMotion();
 
+  // Pro has no published price on purpose: checkout does not exist in production and
+  // the plan's pricing has not been decided yet (owner decision, 2026-08-10). Publishing
+  // a placeholder number would put an unbuyable offer into search results and AI answers,
+  // which is exactly what the claims gate exists to prevent.
   const PLANS = [
     {
       name: tl('plan1name'),
@@ -33,11 +37,12 @@ export function PricingContent() {
       cta: tl('plan1cta'),
       href: '/register',
       highlighted: false,
+      comingSoon: false,
     },
     {
       name: tl('plan2name'),
-      price: '29 000',
-      priceNote: tl('plan2period'),
+      price: null,
+      priceNote: t('plan2priceTba'),
       features: [
         { label: 'Watch Party', val: t('plan2people'), on: true },
         { label: t('rowQuality'), val: '4K 2160p', on: true },
@@ -49,6 +54,7 @@ export function PricingContent() {
       cta: tl('plan2cta'),
       href: '/register?plan=pro',
       highlighted: true,
+      comingSoon: true,
     },
   ];
 
@@ -121,10 +127,14 @@ export function PricingContent() {
                 {p.highlighted && <span className="text-[#7B72F8]">★</span>}
               </div>
 
-              {/* Price */}
+              {/* Price — Pro shows a status instead of a number until pricing is decided */}
               <div className="flex items-baseline gap-2 mb-1">
-                <span className="text-5xl font-display font-bold text-white">{p.price}</span>
-                <span className="text-zinc-500 text-sm">{p.priceNote}</span>
+                {p.price !== null && (
+                  <span className="text-5xl font-display font-bold text-white">{p.price}</span>
+                )}
+                <span className={p.price === null ? 'text-zinc-300 text-lg' : 'text-zinc-500 text-sm'}>
+                  {p.priceNote}
+                </span>
               </div>
               {p.price === '0' && (
                 <span className="inline-flex w-fit items-center gap-1 text-[10px] uppercase tracking-widest text-[#4ade80] mt-1">
@@ -153,19 +163,29 @@ export function PricingContent() {
                 ))}
               </ul>
 
-              {/* CTA */}
-              <Link
-                href={p.href}
-                className={`group flex items-center justify-center gap-2 h-12 rounded-2xl font-semibold transition-all duration-300 active:scale-[0.98] w-full ${
-                  p.highlighted
-                    ? 'text-white hover:shadow-[0_0_34px_rgba(123,114,248,0.6)]'
-                    : 'border border-zinc-700 text-zinc-200 hover:border-[#7B72F8]/50 hover:text-white'
-                }`}
-                style={p.highlighted ? { background: 'linear-gradient(135deg, #7B72F8, #6B63E8)', boxShadow: '0 0 20px rgba(123,114,248,0.4)' } : undefined}
-              >
-                {p.cta}
-                <FaArrowRight size={11} className="group-hover:translate-x-0.5 transition-transform" aria-hidden="true" />
-              </Link>
+              {/* CTA — a plan that cannot be purchased gets a disabled state, not a link */}
+              {p.comingSoon ? (
+                <span
+                  aria-disabled="true"
+                  className="flex items-center justify-center gap-2 h-12 rounded-2xl font-semibold w-full cursor-default select-none border border-[#7B72F8]/40 text-zinc-300"
+                  style={{ background: 'linear-gradient(135deg, rgba(123,114,248,0.18), rgba(107,99,232,0.10))' }}
+                >
+                  {tl('soon')}
+                </span>
+              ) : (
+                <Link
+                  href={p.href}
+                  className={`group flex items-center justify-center gap-2 h-12 rounded-2xl font-semibold transition-all duration-300 active:scale-[0.98] w-full ${
+                    p.highlighted
+                      ? 'text-white hover:shadow-[0_0_34px_rgba(123,114,248,0.6)]'
+                      : 'border border-zinc-700 text-zinc-200 hover:border-[#7B72F8]/50 hover:text-white'
+                  }`}
+                  style={p.highlighted ? { background: 'linear-gradient(135deg, #7B72F8, #6B63E8)', boxShadow: '0 0 20px rgba(123,114,248,0.4)' } : undefined}
+                >
+                  {p.cta}
+                  <FaArrowRight size={11} className="group-hover:translate-x-0.5 transition-transform" aria-hidden="true" />
+                </Link>
+              )}
             </motion.div>
           ))}
         </div>
