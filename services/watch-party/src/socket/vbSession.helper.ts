@@ -46,10 +46,31 @@ export const CANDIDATES_TTL_SEC = 6 * 60 * 60; // 6h
 // tampered roomId just makes the refresh attempt look up (or fail to find) the wrong room's
 // source page — the signed url/exp/sig triple still fully gates what the PRIMARY fetch can ever
 // reach, same as before this existed.
+// Real prod finding 2026-08-10: some VB-caught mp4 hosts (fayllar1.ru and similar Uzbek
+// file-mirror CDNs) block/throttle THIS service's Railway egress IP specifically — confirmed by
+// comparing a direct curl from a residential IP (200 OK, real Content-Length, Accept-Ranges)
+// against the identical request from Railway (2-byte stub body, or the connection just hangs).
+// Blocking major CDN edge-IP ranges is self-defeating for a site (it would reject a meaningful
+// slice of all legitimate web traffic that happens to route through the same CDN), so sites doing
+// datacenter-IP filtering generally don't bother fingerprinting/blocking them. VB_EDGE_FETCH_URL
+// (services/watch-party/bunny-edge/vb-media-fetch.ts, a Bunny Edge Script on the SAME
+// already-paid-for wewatch-stream pull zone account) re-does this exact fetch from Bunny's edge
+// IP instead — same HMAC signature scheme, same client-facing shape, only the egress IP changes.
+// Scoped to 'mp4' only: that script only does raw byte passthrough, not HLS/DASH manifest
+// rewriting (vb-media-proxy's more complex, security-sensitive logic) — those keep going through
+// Railway unchanged. Falls back to the existing Railway route automatically if the env var isn't
+// set (e.g. local dev, or before this is configured in a given environment).
+const vbEdgeFetchUrl = process.env.VB_EDGE_FETCH_URL;
+
 function proxiedMediaUrl(mediaUrl: string, mediaType: MediaType, roomId: string): string {
-  const ext = mediaType === 'hls' ? 'm3u8' : mediaType === 'dash' ? 'mpd' : 'mp4';
   const { exp, sig } = signProxyUrl(mediaUrl);
   const encodedUrl = Buffer.from(mediaUrl, 'utf8').toString('base64url');
+
+  if (mediaType === 'mp4' && vbEdgeFetchUrl) {
+    return `${vbEdgeFetchUrl}/?url=${encodedUrl}&exp=${exp}&sig=${sig}`;
+  }
+
+  const ext = mediaType === 'hls' ? 'm3u8' : 'mpd';
   return `${vbStreamPublicUrl}/api/v1/watch-party/vb-media-proxy/stream.${ext}`
        + `?url=${encodedUrl}&exp=${exp}&sig=${sig}&roomId=${encodeURIComponent(roomId)}`;
 }
