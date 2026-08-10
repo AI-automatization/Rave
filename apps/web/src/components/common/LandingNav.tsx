@@ -153,9 +153,10 @@ export function LandingNav() {
           <WeWatchLogo iconSize={30} textSize="text-lg" href={`/${locale}`} />
           <button
             onClick={() => setMenuOpen(false)}
+            aria-label={t('nav_close')}
             className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-500 hover:text-white hover:bg-white/5 transition-all"
           >
-            <FaTimes size={16} />
+            <FaTimes size={16} aria-hidden="true" />
           </button>
         </div>
 

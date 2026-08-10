@@ -3,17 +3,17 @@
 > WeWatch (wewatch.uz) is a watch-party platform for watching YouTube, VK Video and
 > Rutube videos in perfect sync with friends. One participant presses play, pause or
 > seek — it applies to everyone in the room at the same moment. Available on the web
-> at wewatch.uz, on iOS, and on Android. Built by tezcode (TEZ KOD LLC), Tashkent,
+> at wewatch.uz. Native iOS and Android apps are in development; mobile users can use
+> the web version in their browser. Built by tezcode (TEZ KOD LLC), Tashkent,
 > Uzbekistan. Interface languages: Russian, Uzbek, English.
 
 ## What it does
 
 - **Synchronized playback:** Everyone in a room shares one playback position. Play, pause
   and seek propagate to all participants in real time.
-- **Cross-device rooms:** One participant on iPhone, another on Android, another in a
-  desktop browser — all in the same synced room.
-- **Supported sources:** YouTube, VK Video, Rutube and direct .mp4 links. The mobile app
-  additionally has a built-in browser for opening other video sites.
+- **Cross-device rooms:** Participants can use browsers on iPhone, Android or desktop
+  in the same synchronized room. Native mobile apps are still in development.
+- **Supported sources:** YouTube, VK Video, Rutube and direct .mp4 links.
 - **Live chat and emoji reactions** inside every room.
 - **Friends, Battle mode, achievements:** add friends, compare watch time, unlock achievements.
 
@@ -29,9 +29,10 @@ triggers an automatic correction. Rooms close automatically after 10 minutes of 
 ## Key facts
 
 - Website: https://wewatch.uz/ru
-- Platforms: Web (wewatch.uz), iOS, Android
+- Platforms: Web (wewatch.uz) available; native iOS and Android apps in development
 - Room capacity: up to 10 participants per room
-- Pricing: free tier with no time limit; a Pro plan is listed at 29,000 UZS / month
+- Pricing: core watch-party features are free; a Pro plan is listed at 29,000 UZS / month.
+  Production checkout availability still requires owner confirmation
   (https://wewatch.uz/ru/pricing)
 - Account: required to create a room and control playback; joining via an invite link
   works without an account
@@ -60,8 +61,8 @@ triggers an automatic correction. Rooms close automatically after 10 minutes of 
 
 - How do I watch a video together with a friend? Create a room, paste a YouTube, VK Video
   or Rutube link, send the room link to your friend. Playback stays in sync for everyone.
-- Can one person be on a phone and another on the website? Yes — rooms sync across web,
-  iOS and Android simultaneously.
+- Can one person be on a phone and another on the website? Yes — rooms sync between web
+  browsers on iPhone, Android and desktop. Native mobile apps are in development.
 - Is an account required? To create a room and control playback, yes. To join via an
   invite link, no.
 - How many people fit in one room? Up to 10.

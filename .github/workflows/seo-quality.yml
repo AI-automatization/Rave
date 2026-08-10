@@ -1,0 +1,93 @@
+name: SEO quality gate
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'apps/web/**'
+      - 'playwright.config.ts'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/seo-quality.yml'
+  push:
+    branches: [main, develop]
+    paths:
+      - 'apps/web/**'
+      - 'playwright.config.ts'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/seo-quality.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: seo-quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  seo-quality:
+    name: Build, crawl, accessibility and Lighthouse
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Build web
+        run: npm run build --workspace=web
+
+      - name: Start production web
+        run: |
+          npm run start --workspace=web -- -p 3000 > /tmp/wewatch-next.log 2>&1 &
+          echo $! > /tmp/wewatch-next.pid
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:3000/ru > /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          cat /tmp/wewatch-next.log
+          exit 1
+
+      - name: SEO and structured-data regression
+        run: npm run test:seo
+
+      - name: Accessibility regression
+        run: npx playwright test apps/web/tests/performance-accessibility.spec.ts --project=web-chromium --workers=1
+
+      - name: Raw HTML crawler visibility
+        run: npm run check:crawlers --workspace=web -- http://127.0.0.1:3000
+
+      - name: Lighthouse mobile audit
+        run: >-
+          npx --yes lighthouse@12.8.2 http://127.0.0.1:3000/ru
+          --only-categories=performance,accessibility,best-practices,seo
+          --output=json
+          --output-path=/tmp/lighthouse-ru-mobile.json
+          --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage"
+          --quiet
+
+      - name: Enforce Lighthouse and transfer budgets
+        run: node apps/web/scripts/check-lighthouse-budget.mjs /tmp/lighthouse-ru-mobile.json
+
+      - name: Print server log on failure
+        if: failure()
+        run: cat /tmp/wewatch-next.log || true
+
+      - name: Stop production web
+        if: always()
+        run: kill "$(cat /tmp/wewatch-next.pid)" 2>/dev/null || true

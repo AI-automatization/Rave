@@ -6,9 +6,9 @@ import { socialMeta } from '@/lib/i18n/metadata';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 
 export const metadata: Metadata = {
-  title: { absolute: 'About WeWatch — Free App for Watching Videos Together' },
+  title: { absolute: 'About WeWatch — Watch Videos Together Online' },
   description:
-    'WeWatch is a free app for watching YouTube, VK and Rutube together with friends online. iOS, Android and Web. Built by tezcode.dev in Tashkent.',
+    'WeWatch is a web service for watching YouTube, VK and Rutube together with friends online. Native iOS and Android apps are in development.',
   alternates: {
     canonical: `${APP_URL}/en/about`,
     languages: hreflangFor('/ru/about', APP_URL),
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   ...socialMeta({
     locale: 'en',
     title: 'About WeWatch',
-    description: 'WeWatch — a free watch party for iOS, Android and Web. Watch in sync with friends.',
+    description: 'WeWatch — a free web watch party. Native iOS and Android apps are in development.',
     url: `${APP_URL}/en/about`,
   }),
   robots: { index: true, follow: true },
@@ -30,11 +30,11 @@ const jsonLd = {
   name: 'About WeWatch',
   inLanguage: 'en',
   about: {
-    '@type': 'MobileApplication',
+    '@type': 'SoftwareApplication',
     name: 'WeWatch',
     url: APP_URL,
     applicationCategory: 'EntertainmentApplication',
-    operatingSystem: 'iOS, Android',
+    operatingSystem: 'Web',
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
     author: {
       '@type': 'Organization',

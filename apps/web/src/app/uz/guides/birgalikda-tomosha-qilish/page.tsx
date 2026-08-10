@@ -7,7 +7,7 @@ import { socialMeta } from '@/lib/i18n/metadata';
 export const metadata: Metadata = {
   title: "Onlayn birgalikda tomosha qilish — do'stlar bilan bepul",
   description:
-    "WeWatch — do'stlar bilan onlayn film, serial va videolarni birgalikda sinxron tomosha qiling. iPhone, Android va kompyuterda bepul ishlaydi. Uzoqlik muhim emas.",
+    "WeWatch veb-versiyasida do'stlar bilan film, serial va videolarni sinxron tomosha qiling. iOS va Android ilovalari ishlab chiqilmoqda.",
   keywords: [
     "birgalikda tomosha qilish",
     "onlayn birgalikda tomosha",
@@ -44,17 +44,6 @@ const jsonLd = {
   '@context': 'https://schema.org',
   '@graph': [
     {
-      '@type': 'Article',
-      headline: "Onlayn birgalikda tomosha qilish — do'stlar bilan bepul",
-      description:
-        "WeWatch orqali do'stlaringiz bilan onlayn sinxron film va serial tomosha qiling",
-      author: { '@type': 'Organization', name: 'WeWatch', url: 'https://wewatch.uz' },
-      publisher: { '@type': 'Organization', name: 'WeWatch', url: 'https://wewatch.uz' },
-      datePublished: '2026-06-16',
-      inLanguage: 'uz',
-      mainEntityOfPage: 'https://wewatch.uz/uz/guides/birgalikda-tomosha-qilish',
-    },
-    {
       '@type': 'FAQPage',
       inLanguage: 'uz',
       mainEntity: [
@@ -63,15 +52,15 @@ const jsonLd = {
           name: 'WeWatch bepulmi?',
           acceptedAnswer: {
             '@type': 'Answer',
-            text: "Ha, asosiy sinxron tomosha funksiyasi to'liq bepul. Ro'yxatdan o'tish ham shart emas — do'stingizga shunchaki havola yuboring.",
+            text: "Asosiy sinxron tomosha funksiyalari bepul. Xona yaratish uchun akkaunt kerak, mehmon esa taklif havolasi orqali akkauntsiz qo'shilishi mumkin.",
           },
         },
         {
           '@type': 'Question',
-          name: "Do'stim ham ilovani yuklab olishi kerakmi?",
+          name: "Do'stimga ilova kerakmi?",
           acceptedAnswer: {
             '@type': 'Answer',
-            text: "Xona yaratuvchi ilovani yuklab olishi kerak. Qo'shiluvchi do'stingiz esa havola orqali veb versiyadan ham kirishi mumkin.",
+            text: "Yo'q. Hozir barcha ishtirokchilar veb-versiyani brauzerda ochadi; iOS va Android ilovalari ishlab chiqilmoqda.",
           },
         },
         {
@@ -127,7 +116,7 @@ export default function BirgalikdaTomashaPage() {
               pause bossa — bu o'zgarish hammaga birdan ta'sir qiladi.
             </p>
             <p className="text-zinc-400 leading-relaxed">
-              WeWatch bu jarayonni oddiy qiladi: ilovani yuklab oling, ichki brauzerni oching, istalgan videoni
+              WeWatch bu jarayonni oddiy qiladi: veb-versiyani oching, istalgan videoni
               toping va xona yarating. Do'stlaringiz taklif havolasiga o'tadilar — va siz birgalikda tomosha
               qilasiz, go'yo yonma-yon o'tirgandek.
             </p>
@@ -137,9 +126,9 @@ export default function BirgalikdaTomashaPage() {
             <h2 className="text-2xl font-bold text-white mb-4">Qanday boshlash kerak?</h2>
             <ol className="space-y-4">
               {[
-                { n: '1', t: "WeWatch ilovasini yuklab oling", d: "App Store yoki Google Play'dan bepul yuklab oling." },
+                { n: '1', t: "WeWatch'ni oching", d: "wewatch.uz'ni brauzerda bepul oching; mobil ilovalar ishlab chiqilmoqda." },
                 { n: '2', t: "Xona yarating", d: "Bosh sahifada «Xona yaratish» tugmasini bosing. Istalgan nom bering." },
-                { n: '3', t: "Video qo'shing", d: "Ichki brauzerni oching va tomosha qilmoqchi bo'lgan videoni toping — VK, YouTube, Rutube yoki boshqa platforma." },
+                { n: '3', t: "Video qo'shing", d: "YouTube, VK Video, Rutube yoki to'g'ridan-to'g'ri MP4 havolasini kiriting." },
                 { n: '4', t: "Do'stlarni taklif qiling", d: "Xona havolasini WhatsApp, Telegram yoki SMS orqali yuboring." },
                 { n: '5', t: "Birgalikda tomosha qiling", d: "Do'stlaringiz qo'shilgandan so'ng play tugmasini bosing — sinxron tomosha boshlanadi." },
               ].map(({ n, t, d }) => (
@@ -158,8 +147,8 @@ export default function BirgalikdaTomashaPage() {
             <h2 className="text-2xl font-bold text-white mb-4">Qanday qurilmalarda ishlaydi?</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {[
-                { label: 'iPhone / iPad', desc: 'iOS 15+, App Store' },
-                { label: 'Android', desc: 'Android 8+, Google Play' },
+                { label: 'iPhone / iPad', desc: 'Veb-brauzer; iOS ilovasi ishlab chiqilmoqda' },
+                { label: 'Android', desc: 'Veb-brauzer; Android ilovasi ishlab chiqilmoqda' },
                 { label: 'Kompyuter', desc: 'Brauzer orqali (veb versiya)' },
               ].map(({ label, desc }) => (
                 <div key={label} className="bg-zinc-900 rounded-xl p-5 border border-zinc-800">
@@ -176,11 +165,11 @@ export default function BirgalikdaTomashaPage() {
               {[
                 {
                   q: "WeWatch bepulmi?",
-                  a: "Ha, asosiy sinxron tomosha funksiyasi to'liq bepul. Ro'yxatdan o'tish ham shart emas — do'stingizga shunchaki havola yuboring.",
+                  a: "Asosiy sinxron tomosha funksiyalari bepul. Xona yaratish uchun akkaunt kerak, mehmon esa taklif havolasi orqali akkauntsiz qo'shilishi mumkin.",
                 },
                 {
-                  q: "Do'stim ham ilovani yuklab olishi kerakmi?",
-                  a: "Xona yaratuvchi ilovani yuklab olishi kerak. Qo'shiluvchi do'stingiz esa havola orqali veb versiyadan ham kirishi mumkin.",
+                  q: "Do'stimga ilova kerakmi?",
+                  a: "Yo'q. Hozir barcha ishtirokchilar veb-versiyani brauzerda ochadi; iOS va Android ilovalari ishlab chiqilmoqda.",
                 },
                 {
                   q: "Qancha kishi birgalikda tomosha qila oladi?",

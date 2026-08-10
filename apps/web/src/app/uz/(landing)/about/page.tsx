@@ -6,9 +6,9 @@ import { socialMeta } from '@/lib/i18n/metadata';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 
 export const metadata: Metadata = {
-  title: { absolute: "WeWatch haqida — birga video ko'rish uchun bepul ilova" },
+  title: { absolute: "WeWatch haqida — videoni birga onlayn ko'rish" },
   description:
-    "WeWatch — YouTube, VK va Rutube'ni do'stlar bilan onlayn birga ko'rish uchun bepul ilova. iOS, Android va Web. Toshkentdagi tezcode.dev tomonidan yaratilgan.",
+    "WeWatch — YouTube, VK va Rutube'ni do'stlar bilan onlayn birga ko'rish uchun veb-servis. iOS va Android ilovalari ishlab chiqilmoqda.",
   alternates: {
     canonical: `${APP_URL}/uz/about`,
     languages: hreflangFor('/ru/about', APP_URL),
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   ...socialMeta({
     locale: 'uz',
     title: 'WeWatch haqida',
-    description: "WeWatch — iOS, Android va Web uchun bepul watch party. Do'stlar bilan sinxron ko'r.",
+    description: "WeWatch — bepul veb watch party. iOS va Android ilovalari ishlab chiqilmoqda.",
     url: `${APP_URL}/uz/about`,
   }),
   robots: { index: true, follow: true },
@@ -30,11 +30,11 @@ const jsonLd = {
   name: 'WeWatch haqida',
   inLanguage: 'uz',
   about: {
-    '@type': 'MobileApplication',
+    '@type': 'SoftwareApplication',
     name: 'WeWatch',
     url: APP_URL,
     applicationCategory: 'EntertainmentApplication',
-    operatingSystem: 'iOS, Android',
+    operatingSystem: 'Web',
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
     author: {
       '@type': 'Organization',

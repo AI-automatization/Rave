@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   // No manual "| WeWatch" — the root layout's title template appends it.
   title: 'Смотреть фильм вдвоём онлайн — синхронно на расстоянии',
   description:
-    'Как смотреть фильм вдвоём онлайн, даже находясь в разных местах. WeWatch синхронизирует фильм на двух телефонах: пауза у одного — пауза у другого. Бесплатно.',
+    'Как смотреть фильм вдвоём онлайн в браузерах на двух устройствах: общая позиция, синхронная пауза и приглашение по ссылке.',
   keywords: [
     'смотреть фильм вдвоём', 'смотреть фильм вдвоём онлайн', 'смотреть кино вдвоём',
     'смотреть фильм вдвоём на расстоянии', 'фильм на двоих онлайн', 'смотреть вдвоём синхронно',
@@ -21,22 +21,10 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-const jsonLd = {
-  '@context': 'https://schema.org',
-  '@type': 'Article',
-  headline: 'Как смотреть фильм вдвоём онлайн',
-  description: 'Гайд по синхронному просмотру фильма на двоих через WeWatch.',
-  author: { '@type': 'Organization', name: 'WeWatch', url: 'https://wewatch.uz' },
-  publisher: { '@type': 'Organization', name: 'WeWatch', url: 'https://wewatch.uz' },
-  datePublished: '2026-07-02',
-  inLanguage: 'ru',
-  mainEntityOfPage: 'https://wewatch.uz/ru/guides/smotret-film-vdvoem',
-};
 
 export default function FilmVdvoemPage() {
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <GuideHeader locale="ru" />
       <main className="min-h-screen bg-[#060608] text-white">
         <div className="max-w-3xl mx-auto px-4 py-16">
@@ -48,14 +36,14 @@ export default function FilmVdvoemPage() {
 
           <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">Смотреть фильм вдвоём онлайн</h1>
           <p className="text-xl text-zinc-400 mb-10 leading-relaxed">
-            Хотите посмотреть фильм вдвоём, но вы не рядом? WeWatch синхронизирует фильм на двух телефонах: один ставит паузу — у второго тоже пауза. Как будто на одном диване.
+            Хотите посмотреть фильм вдвоём, но вы не рядом? Откройте веб-версию на двух устройствах: один ставит паузу — у второго тоже пауза. Как будто на одном диване.
           </p>
 
           <section className="mb-10">
             <h2 className="text-2xl font-bold mb-6">Как смотреть вдвоём — 3 шага</h2>
             <ol className="space-y-5">
               {[
-                { n: 1, title: 'Откройте фильм', desc: 'В браузере WeWatch найдите фильм на YouTube, VK Видео или Rutube.' },
+                { n: 1, title: 'Добавьте фильм', desc: 'Вставьте ссылку YouTube, VK Видео, Rutube или прямую MP4-ссылку.' },
                 { n: 2, title: 'Создайте комнату', desc: 'Отправьте ссылку-приглашение второму участнику.' },
                 { n: 3, title: 'Смотрите синхронно', desc: 'Просмотр идёт одновременно, а чат и эмодзи заменяют «сидеть рядом».' },
               ].map(({ n, title, desc }) => (
@@ -73,15 +61,15 @@ export default function FilmVdvoemPage() {
           <section className="mb-10">
             <h2 className="text-2xl font-bold mb-4">Идеально для пары, друга или близкого</h2>
             <p className="text-zinc-400 leading-relaxed">
-              Вдвоём смотреть проще всего — не нужно ни с кем согласовывать темп. WeWatch держит фильм синхронно и работает между iPhone и Android одновременно, так что устройства не важны.
+              Вдвоём смотреть проще всего — веб-версия WeWatch держит фильм синхронно в браузерах на iPhone и Android. Нативные приложения находятся в разработке.
             </p>
           </section>
 
           <div className="bg-[#7B72F8]/10 border border-[#7B72F8]/30 rounded-2xl p-8 text-center">
             <h2 className="text-2xl font-bold mb-3">Посмотрите фильм вдвоём сегодня</h2>
-            <p className="text-zinc-400 mb-6">WeWatch бесплатен</p>
+            <p className="text-zinc-400 mb-6">Основные функции совместного просмотра бесплатны</p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Link href="/ru" className="inline-flex items-center justify-center gap-2 bg-[#7B72F8] hover:bg-[#6a63e8] text-white font-semibold px-6 py-3 rounded-xl transition-colors">Скачать WeWatch</Link>
+              <Link href="/ru" className="inline-flex items-center justify-center gap-2 bg-[#7B72F8] hover:bg-[#6a63e8] text-white font-semibold px-6 py-3 rounded-xl transition-colors">Открыть WeWatch</Link>
               <Link href="/ru/use-cases/dalnie-otnosheniya" className="inline-flex items-center justify-center gap-2 border border-zinc-700 hover:border-zinc-500 text-zinc-300 font-medium px-6 py-3 rounded-xl transition-colors">На расстоянии →</Link>
             </div>
           </div>

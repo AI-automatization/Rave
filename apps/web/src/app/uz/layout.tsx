@@ -1,15 +1,13 @@
-import type { Metadata } from 'next';
-import { LocaleBoundary } from '@/components/common/LocaleBoundary';
+import { RootDocument, siteMetadata, siteViewport } from '@/components/common/RootDocument';
 
-export const metadata: Metadata = {
-  alternates: {
-    languages: {
-      'ru': 'https://wewatch.uz',
-      'uz': 'https://wewatch.uz/uz',
-    },
-  },
-};
+// No layout-level alternates: hreflang is page-specific. Inheriting the old
+// home-page pair here made every nested URL (for example /uz/faq) advertise the
+// locale roots as its translations, and still pointed Russian at the obsolete
+// unprefixed URL. Each indexable page uses hreflangFor() instead.
+
+export const metadata = siteMetadata;
+export const viewport = siteViewport;
 
 export default function UzLayout({ children }: { children: React.ReactNode }) {
-  return <LocaleBoundary locale="uz">{children}</LocaleBoundary>;
+  return <RootDocument locale="uz">{children}</RootDocument>;
 }

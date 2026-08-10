@@ -43,8 +43,10 @@ export default function PrivacyPolicyPage() {
         <div className="bg-[#111118] border-l-4 border-[#7B72F8] rounded-r-xl px-6 py-5 mb-10 text-zinc-400 text-sm leading-7">
           <strong className="text-zinc-200 block mb-1">About This Policy</strong>
           {COMPANY} (&quot;WeWatch&quot;, &quot;we&quot;, &quot;our&quot;, &quot;us&quot;) operates the{' '}
-          <strong className="text-zinc-200">{APP_NAME}</strong> mobile application, website ({APP_URL}),
-          and related services (collectively, the &quot;Service&quot;). This Privacy Policy describes
+          <strong className="text-zinc-200">{APP_NAME}</strong> website ({APP_URL}) and related
+          services (collectively, the &quot;Service&quot;). Native iOS and Android applications are in
+          development; mobile-specific provisions below apply when those applications are released.
+          This Privacy Policy describes
           what personal information we collect, how we use it, with whom we share it, and your rights.
           By using the Service, you agree to the practices described here.
         </div>
@@ -278,8 +280,7 @@ export default function PrivacyPolicyPage() {
         <Section title="7. Age Requirements & Children's Privacy (COPPA)">
           <p>
             {APP_NAME} is intended for users aged <strong className="text-zinc-200">17 and older</strong>.
-            The app carries a <strong className="text-zinc-200">17+</strong> age rating on the App Store
-            due to user-generated content and the potential for mature video content shared by users in
+            This age restriction reflects user-generated content and the potential for mature video content shared by users in
             watch party rooms.
           </p>
           <p className="mt-2">
