@@ -1377,8 +1377,13 @@ export function VideoPlayer({
   }
 
   // ── Any remaining source (Rutube, direct, etc.) — extract + proxy ───
+  // isOwnVb shares this render path (real prod bug 2026-08-10: this block used to be gated on
+  // needsExtract alone, which today's fix correctly made FALSE for our own vb-media-proxy/
+  // vb-capture urls — but that also skipped the whole block, including the actual <video>
+  // render, falling through to `return null` below. The player vanishing outright ("плеер
+  // исчез") was this, not a data/extraction problem.
 
-  if (needsExtract) {
+  if (needsExtract || isOwnVb) {
     // extractError is deliberately silent — a failed direct extraction just means the server is
     // about to (or already did) fall back to the shared virtual browser; showing a scary "failed
     // to load" error here would be wrong in the common case where VB picks it up moments later.
@@ -1398,10 +1403,10 @@ export function VideoPlayer({
         ? <VideoLoading label={t('playerOpeningVB')} />
         : <FatalErrorRetryOverlay onRetry={() => setFatalPlaybackError(false)} />;
     }
-    if (proxySrc) {
+    if (directSrc) {
       return (
         <NativeVideoPlayer
-          src={proxySrc}
+          src={directSrc}
           isHls={isHls}
           isDash={isDash}
           poster={extractPoster}
