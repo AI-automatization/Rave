@@ -251,6 +251,10 @@ export interface VideoCandidate {
   /** Source page's own <title> (VB) or the extractor's title guess. Only way any candidate ever
    * carries a real name — without it every VB-sourced room stayed on the generic default name. */
   title?: string;
+  /** VB only — a real <video>/<audio> play/timeupdate event was observed on this exact URL (or a
+   * capture-kind candidate captured while it was playing), not just "network response shaped like
+   * media". Owner still confirms manually (picker stays); this only ranks the confirmed one first. */
+  confirmed?: boolean;
 }
 
 // ─────────────────────────────────────────────

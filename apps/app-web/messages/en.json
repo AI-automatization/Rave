@@ -637,6 +637,7 @@
     "videoCandidatesCycleHint": "Review the candidates found, one at a time",
     "videoCandidatesGridHint": "Pick a video from the list",
     "videoCandidateConfirm": "This one",
+    "videoCandidateConfirmedBadge": "Likely it — currently playing on the page",
     "videoCandidateReject": "Not this, next",
     "videoCandidateEmbedHint": "No preview available for this video type — confirm if this is the right one",
     "videoCandidateBack": "Back to list",

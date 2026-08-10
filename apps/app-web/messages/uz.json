@@ -598,6 +598,7 @@
     "videoCandidatesCycleHint": "Topilgan variantlarni birma-bir ko'rib chiqing",
     "videoCandidatesGridHint": "Ro'yxatdan videoni tanlang",
     "videoCandidateConfirm": "Shu video",
+    "videoCandidateConfirmedBadge": "Ehtimol shu — hozir sahifada ijro etilmoqda",
     "videoCandidateReject": "Bu emas, keyingisi",
     "videoCandidateEmbedHint": "Bu turdagi video uchun oldindan ko'rish mavjud emas — agar shu to'g'ri bo'lsa, tasdiqlang",
     "videoCandidateBack": "Ro'yxatga qaytish",

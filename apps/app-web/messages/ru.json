@@ -598,6 +598,7 @@
     "videoCandidatesCycleHint": "Просмотрите найденные варианты по одному",
     "videoCandidatesGridHint": "Выберите видео из списка",
     "videoCandidateConfirm": "Это видео",
+    "videoCandidateConfirmedBadge": "Похоже, это оно — сейчас играет на странице",
     "videoCandidateReject": "Не то, дальше",
     "videoCandidateEmbedHint": "Предпросмотр недоступен для этого типа видео — подтвердите, если это то, что нужно",
     "videoCandidateBack": "Назад к списку",

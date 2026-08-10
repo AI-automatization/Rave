@@ -252,6 +252,12 @@ export function VideoCandidatePicker({ open, onOpenChange, candidates, onRequest
 
         {!loading && !empty && mode === 'cycle' && current && (
           <div className="flex flex-col gap-3">
+            {current.confirmed && (
+              <div className="flex items-center gap-1.5 text-[11px] text-emerald-400 bg-emerald-500/10 rounded-lg px-2.5 py-1.5 w-fit">
+                <Check size={12} />
+                {t('videoCandidateConfirmedBadge')}
+              </div>
+            )}
             <CandidatePreview candidate={current} onCapture={captureFor(index)} />
             <div className="flex items-center justify-between gap-2">
               <span className="text-[11px] text-slate-500 tabular-nums">

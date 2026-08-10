@@ -68,6 +68,16 @@ export async function startVBForRoom(
   // (stop vs. keep-alive-for-capture) is virtualBrowser.service.ts's own call, made once the
   // window closes — this function only cares about presenting what was found.
   const candidates: VideoCandidate[] = [];
+  // T-S196 — parallel to `candidates`, same index: the RAW (pre-proxy) mediaUrl each candidate
+  // was found under, so a later real-playback confirmation (which only ever sees real network
+  // URLs, never our own signed vbMediaProxy wrapper) can still be matched against it.
+  const rawUrlByCandidateIndex: string[] = [];
+  const confirmedRawUrls = new Set<string>();
+  // MSE-played candidates (category B/C, 'capture'-kind) never surface their real CDN URL to the
+  // page at all — the browser's <video> element plays a `blob:` URL backed by SourceBuffer, which
+  // is exactly what capture-kind already exists to handle. A `blob:` real-playback report can't be
+  // matched by URL, so it's treated as "whatever capture-kind candidate exists is confirmed".
+  let mseConfirmed = false;
 
   // Same TTL as the candidates themselves — lets vb-media-proxy re-probe this exact page later
   // (possibly hours later, if the room sits on the picker or a viewer joins late) if a candidate
@@ -93,7 +103,9 @@ export async function startVBForRoom(
     // the first place; passing it through means the picker can show it immediately instead of the
     // "??:??" gap it had before 2026-08-08. No source for mp4 candidates server-side — the client
     // gets that one for free from the <video> element itself once it loads (VideoCandidatePicker.tsx).
-    candidates.push({ url: roomVideoUrl, type: mediaType, source: 'vb', title: getSessionPageTitle(roomId), duration });
+    const confirmed = kind === 'url' ? confirmedRawUrls.has(mediaUrl) : mseConfirmed;
+    candidates.push({ url: roomVideoUrl, type: mediaType, source: 'vb', title: getSessionPageTitle(roomId), duration, confirmed });
+    rawUrlByCandidateIndex.push(mediaUrl);
   }, () => {
     void (async () => {
       // Real prod case 2026-08-07: a room got swept as "inactive" 15 seconds after candidates
@@ -116,7 +128,12 @@ export async function startVBForRoom(
         // strictly more reliable whenever both kinds were found in the same session. Put it
         // first so it's what the owner sees/tries first instead of an expiring one buried in a
         // stack of them.
-        candidates.sort((a, b) => Number(b.url.includes('/vb-capture/')) - Number(a.url.includes('/vb-capture/')));
+        // T-S196: a candidate confirmed by real play/timeupdate activity (see
+        // onRealPlaybackConfirmed above) is a strictly stronger signal than "network response
+        // shaped like media" — rank it first. Falls back to the existing vb-capture tiebreak
+        // among non-confirmed candidates, unchanged.
+        candidates.sort((a, b) => Number(b.confirmed) - Number(a.confirmed)
+          || Number(b.url.includes('/vb-capture/')) - Number(a.url.includes('/vb-capture/')));
         try {
           await redis.setex(REDIS_KEYS.videoCandidates(roomId), CANDIDATES_TTL_SEC, JSON.stringify(candidates));
         } catch (e) {
@@ -132,6 +149,16 @@ export async function startVBForRoom(
       io.to(roomId).emit(SERVER_EVENTS.VB_STOPPED, { reason: 'media_found', needsConfirmation: true });
       logger.info('VB: collection window closed, candidates ready for owner confirmation', { roomId, count: candidates.length });
     })();
+  }, (src) => {
+    if (src.startsWith('blob:')) {
+      mseConfirmed = true;
+      candidates.forEach((c, i) => { if (c.url.includes('/vb-capture/')) candidates[i] = { ...c, confirmed: true }; });
+      return;
+    }
+    confirmedRawUrls.add(src);
+    rawUrlByCandidateIndex.forEach((rawUrl, i) => {
+      if (rawUrl === src) candidates[i] = { ...candidates[i], confirmed: true };
+    });
   });
 
   io.to(roomId).emit(SERVER_EVENTS.VB_STARTED, { url, width: VB_VIEWPORT.width, height: VB_VIEWPORT.height, ownerId });

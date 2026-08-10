@@ -186,11 +186,21 @@ export const createVbMediaProxyController = (redis: Redis) => ({
       const rawUrl = await parseAndVerifyUrl(req, res);
       if (rawUrl === null) return; // parseAndVerifyUrl already wrote the error response
 
-      const ok = await attemptFetch(rawUrl, req, res);
-      if (ok) return;
-
       const roomIdParam = req.query.roomId;
       const roomId = typeof roomIdParam === 'string' ? roomIdParam : null;
+      // Real prod case 2026-08-10: some download-mirror hosts (fayllar1.ru) silently return a
+      // 200 with a near-empty body (a couple bytes, not an error status) when the request has no
+      // Referer — standard hotlink protection, just implemented as "serve a stub" instead of
+      // rejecting outright, so attemptFetch's ok-status check alone can't catch it. The real
+      // browser (VB's own Chromium) that originally found this URL navigated there FROM the
+      // source page, so that's the Referer a legitimate request would carry — vbSourceUrl in
+      // Redis is exactly that page, stored once when the room switches to this VB session
+      // (vbSession.helper.ts).
+      const referer = roomId ? await redis.get(REDIS_KEYS.vbSourceUrl(roomId)).catch(() => null) : null;
+
+      const ok = await attemptFetch(rawUrl, req, res, referer ?? undefined);
+      if (ok) return;
+
       if (!roomId) {
         writeFetchFailedResponse(res);
         return;
@@ -202,7 +212,7 @@ export const createVbMediaProxyController = (redis: Redis) => ({
         return;
       }
 
-      const retryOk = await attemptFetch(fresh.mediaUrl, req, res);
+      const retryOk = await attemptFetch(fresh.mediaUrl, req, res, referer ?? undefined);
       if (!retryOk) writeFetchFailedResponse(res);
     } catch (err) {
       // An async Express handler that throws is NOT caught by Express itself — the
@@ -274,7 +284,7 @@ async function parseAndVerifyUrl(req: Request, res: Response): Promise<string | 
 /** Fetches `rawUrl` and writes a full response (manifest rewrite or byte passthrough) on success.
  *  Returns false WITHOUT writing anything on failure, so the caller can retry with a different
  *  URL (see getFreshMediaUrl above) instead of the failure being final. */
-async function attemptFetch(rawUrl: string, req: Request, res: Response): Promise<boolean> {
+async function attemptFetch(rawUrl: string, req: Request, res: Response, referer?: string): Promise<boolean> {
     const guardReason = await validateTarget(rawUrl);
     if (guardReason) {
       logger.warn('vb-media-proxy: target failed SSRF/self-reference guard', { reason: guardReason, urlLength: rawUrl.length });
@@ -298,6 +308,7 @@ async function attemptFetch(rawUrl: string, req: Request, res: Response): Promis
       'Accept-Encoding': 'identity',
     };
     if (range) headers['Range'] = cappedRange(range, MAX_RANGE_CHUNK_BYTES);
+    if (referer) headers['Referer'] = referer;
 
     let upstream: globalThis.Response;
     try {
@@ -321,6 +332,22 @@ async function attemptFetch(rawUrl: string, req: Request, res: Response): Promis
     if (!upstream.ok && upstream.status !== 206) {
       logger.info('vb-media-proxy: upstream returned non-ok status', { status: upstream.status, urlLength: rawUrl.length });
       return false;
+    }
+
+    // Diagnostic only (2026-08-10 investigation, T-S196 thread) — metadata, never the body: a
+    // hotlink-protected origin can return a real 2xx/206 with a near-empty stub body instead of
+    // an error status, which the ok-status check above can't catch. Threshold is well below any
+    // real media chunk (MAX_RANGE_CHUNK_BYTES above is 4MB) so this never fires on legitimate
+    // traffic — only worth keeping while this class of bug is still being tracked live.
+    const upstreamCL = upstream.headers.get('content-length');
+    if (upstreamCL && Number(upstreamCL) < 1024) {
+      logger.warn('vb-media-proxy: suspiciously small upstream body (possible hotlink stub)', {
+        status: upstream.status,
+        contentType: upstream.headers.get('content-type'),
+        contentLength: upstreamCL,
+        hadReferer: Boolean(referer),
+        host: parsedUrl.hostname,
+      });
     }
 
     const rawCT = upstream.headers.get('content-type') ?? '';

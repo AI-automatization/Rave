@@ -401,6 +401,13 @@ export async function startSession(
   onFrame: (base64Jpeg: string) => void,
   onMediaFound?: (mediaUrl: string, type: MediaType, kind: MediaFoundKind, duration?: number) => void,
   onCollectionEnd?: () => void,
+  // T-S196: `attachResponseSniffer`/capture catch anything network-shaped-like-media over the
+  // whole COLLECTION_WINDOW_MS — ads, related-content widgets, etc. can pass the same heuristics
+  // real content does. This is a second, more precise signal: report the `currentSrc` of a
+  // <video>/<audio> element that is GENUINELY playing (real play + currentTime advancing), so the
+  // caller can rank whichever already-caught candidate matches highest instead of guessing from
+  // network shape alone. Additive only — does not replace or gate the existing candidates.
+  onRealPlaybackConfirmed?: (src: string) => void,
 ): Promise<void> {
   if (startingRooms.has(roomId)) {
     throw new Error('virtual_browser_starting');
@@ -518,6 +525,52 @@ export async function startSession(
           };
         })();
       `);
+
+      // T-S196 — real-playback confirmation signal (see onRealPlaybackConfirmed doc comment
+      // above). MutationObserver because players commonly create the <video>/<audio> tag AFTER
+      // navigation (react/vue players, ad-then-content swaps) — addInitScript only runs once at
+      // document-creation time, so a plain querySelectorAll at that point would see an empty DOM.
+      // 'playing' (not 'play') — fires once playback has actually resumed/started, not just been
+      // requested (a request can still stall on buffering right after 'play'). currentTime > 0.25s
+      // gate on top rejects a spurious 'playing' firing before any real frame advanced.
+      if (onRealPlaybackConfirmed) {
+        await page.exposeFunction('__wewatchRealPlayback', (src: string) => {
+          onRealPlaybackConfirmed(src);
+        });
+        await page.addInitScript(/* js */ `
+          (function () {
+            const reported = new WeakSet();
+            function reportIfPlaying(el) {
+              if (reported.has(el) || !el.currentSrc || el.paused || el.currentTime < 0.25) return;
+              reported.add(el);
+              try { window.__wewatchRealPlayback(el.currentSrc); } catch (e) { /* never break playback */ }
+            }
+            function watch(el) {
+              if (el.__wewatchWatched) return;
+              el.__wewatchWatched = true;
+              el.addEventListener('playing', () => reportIfPlaying(el));
+              el.addEventListener('timeupdate', () => reportIfPlaying(el));
+            }
+            function scan(root) {
+              if (root && root.querySelectorAll) root.querySelectorAll('video, audio').forEach(watch);
+            }
+            function start() {
+              scan(document);
+              new MutationObserver((mutations) => {
+                for (const m of mutations) {
+                  m.addedNodes.forEach((node) => {
+                    if (node.nodeType !== 1) return;
+                    if (node.tagName === 'VIDEO' || node.tagName === 'AUDIO') watch(node);
+                    scan(node);
+                  });
+                }
+              }).observe(document.documentElement, { childList: true, subtree: true });
+            }
+            if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+            else start();
+          })();
+        `);
+      }
     }
 
     let lastRelayedAt = 0;
