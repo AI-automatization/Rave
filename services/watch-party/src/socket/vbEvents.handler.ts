@@ -7,6 +7,7 @@ import { SERVER_EVENTS, CLIENT_EVENTS } from '@shared/constants/socketEvents';
 import { JwtPayload } from '@shared/types';
 import { VBInput, stopSession, sendInput, getSessionOwner } from '../services/virtualBrowser.service';
 import { startVBForRoom } from './vbSession.helper';
+import { isOwnVbUrl } from '../services/extractionClient';
 
 interface AuthenticatedSocket extends Socket {
   user: JwtPayload;
@@ -45,6 +46,20 @@ export const registerVBEvents = (
       if (url.protocol !== 'http:' && url.protocol !== 'https:') throw new Error('bad protocol');
     } catch {
       socket.emit(SERVER_EVENTS.VB_ERROR, { message: 'Invalid URL' });
+      return;
+    }
+
+    // Real prod bug 2026-08-11 (yummyani.me): a client-side bug in unwrapVbProxyUrl (RoomContent.tsx
+    // / WatchPartyScreen.tsx, now fixed) let a vb-capture URL get fed back in here as the "source
+    // page" to retry on. Guarding it here too (not just client-side) closes the same hole for any
+    // other caller of VB_START — startVBForRoom → virtualBrowser.service.ts's startSession tears
+    // down any EXISTING session for this room whose url differs from the new one (see its own
+    // comment), so pointing VB at our own already-dead vb-capture/vb-media-proxy endpoint doesn't
+    // just fail to find anything — it actively kills whatever session was still feeding that same
+    // endpoint. CHANGE_MEDIA (roomEvents.handler.ts) already has this exact check; VB_START never did.
+    if (isOwnVbUrl(url.toString())) {
+      socket.emit(SERVER_EVENTS.VB_ERROR, { message: 'Нельзя запустить VB на собственном служебном URL' });
+      logger.warn('VB start rejected — target is our own VB endpoint', { roomId, userId, url: url.toString() });
       return;
     }
 
