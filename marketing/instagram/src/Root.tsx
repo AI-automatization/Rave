@@ -52,6 +52,7 @@ import { DecisionTreeReal } from './slides/DecisionTreeReal';
 import { DecisionTreeGuaranteed } from './slides/DecisionTreeGuaranteed';
 import { UnifiedDecisionTree } from './slides/UnifiedDecisionTree';
 import { UnifiedDecisionTreeFlow, UNIFIED_DECISION_TREE_FLOW_HEIGHT } from './slides/UnifiedDecisionTreeFlow';
+import { UnifiedDecisionTreeCompact, UNIFIED_DECISION_TREE_COMPACT_HEIGHT } from './slides/UnifiedDecisionTreeCompact';
 import { Demo3DPhoneFlythrough, DEMO_3D_DURATION } from './slides/Demo3DPhoneFlythrough';
 import { WatchPartyMockReel, WATCH_PARTY_MOCK_DURATION } from './slides/WatchPartyMockReel';
 import { WatchPartyMockReel3D, WATCH_PARTY_MOCK_3D_DURATION } from './slides/WatchPartyMockReel3D';
@@ -272,5 +273,8 @@ export const RemotionRoot: React.FC = () => (
     {/* Decision Tree v5 — same verified content as v4, real flowchart geometry: computed
         branch fan-out/fan-in + curved loop-back edges to the actual target node (not text) */}
     <Composition id="DecisionTree-Flow" component={UnifiedDecisionTreeFlow} width={1760} height={UNIFIED_DECISION_TREE_FLOW_HEIGHT} fps={FPS} durationInFrames={1} />
+
+    {/* Decision Tree — one-glance summary, 8 stages, fits one photo/message */}
+    <Composition id="DecisionTree-Compact" component={UnifiedDecisionTreeCompact} width={1280} height={UNIFIED_DECISION_TREE_COMPACT_HEIGHT} fps={FPS} durationInFrames={1} />
   </>
 );
