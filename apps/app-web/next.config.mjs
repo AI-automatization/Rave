@@ -36,6 +36,11 @@ const nextConfig = {
       {
         source: '/(.*)',
         headers: [
+          // app.wewatch.uz is the application subdomain, not for indexing (robots.txt already
+          // has Disallow: /) — this header stops indexing even if a crawler ignores robots.txt
+          // or picks up a link before ever fetching it, which is how Bing indexed /login (Yakubov,
+          // T-Y201 audit, 2026-08-11).
+          { key: 'X-Robots-Tag', value: 'noindex, nofollow' },
           { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
