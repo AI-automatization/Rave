@@ -120,6 +120,18 @@ export const siteMetadata: Metadata = {
   },
   verification: {
     google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION ?? '',
+    // Yandex Webmaster ownership token for wewatch.uz. Hardcoded, unlike the
+    // Google one: it is not a secret — the tag is served in the HTML of every
+    // page, and Yandex only checks that this exact string is present. Putting it
+    // behind an env var would mean the verification silently stops working the
+    // day someone deploys without that variable set, which is how the site ends
+    // up unverified again without anyone noticing.
+    //
+    // Yandex matters here beyond Yandex itself: the 2026-08-10 baseline measured
+    // 25 pages indexed by Yandex against 60 by Google, and Russia is the largest
+    // untapped market in it (1127 impressions at 7.6% CTR). Without Webmaster
+    // access that gap cannot be diagnosed at all.
+    yandex: 'ea2fda3054e5a5b6',
   },
 };
 

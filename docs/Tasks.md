@@ -1,6 +1,44 @@
 # CineSync — OCHIQ VAZIFALAR
 
-# Yangilangan: 2026-08-10
+# Yangilangan: 2026-08-11
+
+---
+
+### T-Y201 | P1 | [SEO] | GA4 measurement-plan — 6 ta key event ulash
+
+- **Mas'ul:** pending[Yakubov]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-08-11 07:20
+- **Holat:** 🔄 Bajarilmoqda — apps/web tomoni tayyor (PR: yakubov/feat-ga4-measurement-events), app-web tomoni Saidazim'ning source_cluster cookie tasdig'ini kutmoqda
+- **Tavsiya model:** sonnet
+- **Model sababi:** ~5 fayl, aniq kontrakt (docs/seo/measurement-plan.md:48-59) bo'yicha event ulash, yangi arxitektura yo'q
+- **Sabab:** docs/seo/baseline-2026-08-10.md bo'yicha GA4 key events = 0 — organikadan konversiya o'lchab bo'lmayapti, SEO ROI noaniq (Yakubov topgan, 2026-08-10 audit).
+- **Qilish kerak:**
+  - [x] apps/web: organic_landing_view, cta_click, waitlist_submit (referrer_class bilan)
+  - [ ] app-web: registration_start, registration_complete, room_created (source_cluster cookie — Saidazim tasdig'i kerak)
+  - [ ] check-analytics-clusters.mjs'ni seo-quality.yml'ga CI qadami sifatida qo'shish (Saidazim zonasi)
+
+---
+
+### T-S200 | P1 | [MARKETING] | Instagram — 30 kunlik kontent-reja + to'liq avtomatlashtirish
+
+- **Mas'ul:** pending[Jasur]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-08-10 18:42
+- **Holat:** ❌ Boshlanmagan — Jasur'ga Telegram orqali yuborildi (@do_you_wanna_me), javob kutilmoqda
+- **Tavsiya model:** opus
+- **Model sababi:** noldan avtomatika (Meta Graph API integratsiyasi mavjud emas) + 30 kunlik strategik kontent-reja — katta, noaniq ko'p qismli ish
+- **Sabab:** WeWatch Instagram marketingi to'liq Jasur zimmasiga o'tkazildi (Saidazim qarori, T-S195 9+ kun harakatsiz qolgani munosabati bilan domain almashtirish).
+- **Qilish kerak:**
+  - [ ] 30 kunlik kontent-reja (nima/qachon/qanday format) — Saidazim'ga yuborish
+  - [ ] Instagram'ga avtomatik yuklash — repo'da hozircha YO'Q (faqat Remotion render pipeline bor,
+        marketing/instagram/), Meta Graph API yoki shunga o'xshash vositani ulash kerak
+  - [ ] Video formati: "3 ta savol + WeWatch javobi" hook-uslubi (Saidazim'ning aniq ko'rsatmasi)
+  - [ ] ERTAGA (2026-08-11) 10:00 — birinchi kontent Instagram'da jonli bo'lishi kerak
+- **Fayllar:** marketing/instagram/ (mavjud Remotion pipeline — WeWatchReel, kunlik Stories D1-D7,
+  render-all.js va h.k. — asos sifatida ishlatiladi)
+- **⚠️ Muddat juda qisqa** — to'liq avtomatika + tayyor kontent bir kunda real bo'lmasligi mumkin,
+  Jasur'ga darhol savol berishga aytilgan.
 
 ---
 

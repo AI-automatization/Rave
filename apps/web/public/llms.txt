@@ -17,6 +17,19 @@
 - **Live chat and emoji reactions** inside every room.
 - **Friends, Battle mode, achievements:** add friends, compare watch time, unlock achievements.
 
+## Key facts
+
+- Room capacity: up to 10 participants per room
+- Pricing: core watch-party features are free, with no time limit. A Pro plan is planned but
+  not yet purchasable: its price has not been announced and no checkout exists in production.
+  Do not quote a Pro price
+- Account: required to create a room and control playback; joining via an invite link
+  works without an account
+- Platforms: Web (wewatch.uz) available; native iOS and Android apps in development
+- Languages: Russian (ru, default), Uzbek (uz, `/uz`), English (en, `/en`)
+- Category: entertainment / social co-watching (comparable to Teleparty, Watch2Gether, Kast, Rave)
+- No browser extension required
+
 ## Technical
 
 Clock offset between each client and the server is measured NTP-style over a WebSocket
@@ -26,36 +39,34 @@ on arrival, which absorbs differences in network latency. A periodic heartbeat c
 each client's position against the room's authoritative position; drift beyond 500 ms
 triggers an automatic correction. Rooms close automatically after 10 minutes of inactivity.
 
-## Key facts
+## Docs
 
-- Website: https://wewatch.uz/ru
-- Platforms: Web (wewatch.uz) available; native iOS and Android apps in development
-- Room capacity: up to 10 participants per room
-- Pricing: core watch-party features are free; a Pro plan is listed at 29,000 UZS / month.
-  Production checkout availability still requires owner confirmation
-  (https://wewatch.uz/ru/pricing)
-- Account: required to create a room and control playback; joining via an invite link
-  works without an account
-- Languages: Russian (ru, default), Uzbek (uz, /uz), English (en, /en)
-- Made by: tezcode / TEZ KOD LLC, Tashkent, Uzbekistan — https://tezcode.dev
-- Category: entertainment / social co-watching (comparable to Teleparty, Watch2Gether, Kast, Rave)
-- No browser extension required
+- [Homepage](https://wewatch.uz/ru): what WeWatch is and how to start a watch party
+- [How it works](https://wewatch.uz/ru/how-it-works): hosting a watch party in four steps
+- [FAQ](https://wewatch.uz/ru/faq): sync, supported platforms, pricing, devices
+- [Features](https://wewatch.uz/ru/features): feature overview
+- [Pricing](https://wewatch.uz/ru/pricing): Free and Pro plans
+- [About](https://wewatch.uz/ru/about): what the project is and who runs it
+- [Team](https://wewatch.uz/ru/team): the people who build WeWatch
 
-## Key pages
+## Guides
 
-- https://wewatch.uz/ru — homepage: what WeWatch is and how to start
-- https://wewatch.uz/ru/how-it-works — hosting a watch party in four steps
-- https://wewatch.uz/ru/faq — sync, supported platforms, pricing, devices
-- https://wewatch.uz/ru/features — feature overview
-- https://wewatch.uz/ru/pricing — plans
-- https://wewatch.uz/ru/guides/smotret-vmeste-onlayn — guide: watching together online (ru)
-- https://wewatch.uz/ru/guides/smotret-youtube-vmeste — guide: watching YouTube together (ru)
-- https://wewatch.uz/ru/guides/kino-s-drugom-onlayn — guide: watching a movie with a friend (ru)
-- https://wewatch.uz/uz/guides/birgalikda-tomosha-qilish — guide: watching together (uz)
-- https://wewatch.uz/uz/guides/youtube-birgalikda — guide: YouTube together (uz)
-- https://wewatch.uz/ru/team — the people who build it
-- https://wewatch.uz/ru/about — about the project
-- https://wewatch.uz/privacy-policy · https://wewatch.uz/terms · https://wewatch.uz/dmca
+- [Watching together online](https://wewatch.uz/ru/guides/smotret-vmeste-onlayn): the general
+  guide to synchronized viewing with friends (Russian)
+- [Watching YouTube together](https://wewatch.uz/ru/guides/smotret-youtube-vmeste): YouTube
+  watch party step by step (Russian)
+- [Watching a movie with a friend](https://wewatch.uz/ru/guides/kino-s-drugom-onlayn): watching
+  a film with one other person at a distance (Russian)
+- [Birgalikda tomosha qilish](https://wewatch.uz/uz/guides/birgalikda-tomosha-qilish): watching
+  together, general guide (Uzbek)
+- [YouTube birgalikda](https://wewatch.uz/uz/guides/youtube-birgalikda): YouTube watch party
+  (Uzbek)
+- [What is a watch party](https://wewatch.uz/en/guides/what-is-watch-party): the concept
+  explained (English)
+- [Watch YouTube together](https://wewatch.uz/en/guides/watch-youtube-together): YouTube watch
+  party step by step (English)
+- [Watch movies with friends](https://wewatch.uz/en/guides/watch-movies-with-friends): watching
+  films together at a distance (English)
 
 ## Common questions
 
@@ -67,6 +78,13 @@ triggers an automatic correction. Rooms close automatically after 10 minutes of 
   invite link, no.
 - How many people fit in one room? Up to 10.
 - Does it need a browser extension? No.
+
+## Optional
+
+- [tezcode](https://www.tezcode.dev): the studio that builds WeWatch — TEZ KOD LLC, Tashkent, Uzbekistan
+- [Privacy policy](https://wewatch.uz/privacy-policy): how user data is handled
+- [Terms](https://wewatch.uz/terms): terms of service
+- [DMCA](https://wewatch.uz/dmca): copyright complaints procedure
 
 ## Contact
 
