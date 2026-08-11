@@ -93,7 +93,7 @@ const jsonLd = {
           name: 'Is WeWatch free?',
           acceptedAnswer: {
             '@type': 'Answer',
-            text: 'Core watch-party features are free. A Pro plan is listed for additional features; production checkout availability still requires confirmation.',
+            text: 'Core watch-party features are free, with no time limit. A Pro plan is planned for additional features, but it is not purchasable yet and its price has not been announced.',
           },
         },
         {

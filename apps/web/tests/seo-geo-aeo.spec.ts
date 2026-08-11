@@ -281,7 +281,10 @@ test.describe('SEO / GEO / AEO regression checks', () => {
     expect(text).toContain('Platforms: Web (wewatch.uz) available; native iOS and Android apps in development');
     expect(text).toContain('Supported sources:** YouTube, VK Video, Rutube and direct .mp4 links');
     expect(text).toContain('core watch-party features are free');
-    expect(text).toContain('Production checkout availability still requires owner confirmation');
+    // Owner decision 2026-08-10: no Pro price is published anywhere until it is settled,
+    // so the contract now asserts the absence of a figure rather than a caveat next to one.
+    expect(text).toContain('not yet purchasable');
+    expect(text).not.toMatch(/29[\s,_]?000/);
     expect(text).not.toMatch(UNVERIFIED_PRODUCT_CLAIMS);
   });
 

@@ -8,7 +8,7 @@ const PATH = '/ru/guides/smotret-youtube-vmeste';
 
 export const metadata: Metadata = {
   title: 'Смотреть YouTube вместе с другом онлайн бесплатно',
-  description: 'Как смотреть YouTube с друзьями одновременно через веб-версию WeWatch. Приложения для iOS и Android находятся в разработке.',
+  description: 'Как смотреть ютуб вместе с друзьями: синхронный просмотр YouTube через веб-версию WeWatch в браузере. Приложения iOS и Android в разработке.',
   keywords: ['смотреть youtube вместе', 'смотреть ютуб вместе с другом', 'youtube watch party', 'смотреть youtube одновременно', 'совместный просмотр youtube', 'youtube с друзьями онлайн'],
   alternates: {
     canonical: `${APP_URL}${PATH}`,
@@ -53,9 +53,9 @@ export default function SmotretYoutubeVmestePage() {
           </p>
 
           <section className="mb-10">
-            <h2 className="text-2xl font-bold text-white mb-4">Почему обычный YouTube не подходит для совместного просмотра?</h2>
+            <h2 className="text-2xl font-bold text-white mb-4">Почему обычный ютуб не подходит для совместного просмотра?</h2>
             <p className="text-zinc-400 leading-relaxed mb-4">
-              YouTube не имеет встроенной функции watch party. Если ты и друг одновременно включите одно видео — через минуту вы будете на разных таймкодах из-за разной скорости интернета, рекламы и буферизации.
+              У ютуба нет встроенной функции watch party. Если ты и друг одновременно включите одно видео — через минуту вы будете на разных таймкодах из-за разной скорости интернета, рекламы и буферизации.
             </p>
             <p className="text-zinc-400 leading-relaxed">
               WeWatch решает это: веб-версия синхронизирует воспроизведение YouTube в реальном времени. Вы видите один и тот же кадр — всегда.
@@ -63,7 +63,7 @@ export default function SmotretYoutubeVmestePage() {
           </section>
 
           <section className="mb-10">
-            <h2 className="text-2xl font-bold text-white mb-6">Как смотреть YouTube вместе — 4 шага</h2>
+            <h2 className="text-2xl font-bold text-white mb-6">Как смотреть ютуб вместе — 4 шага</h2>
             <ol className="space-y-5">
               {[
                 { n: 1, title: 'Откройте WeWatch', desc: 'Откройте wewatch.uz в браузере. Приложения для iOS и Android находятся в разработке.' },
@@ -99,10 +99,11 @@ export default function SmotretYoutubeVmestePage() {
             <h2 className="text-2xl font-bold text-white mb-4">Часто задаваемые вопросы</h2>
             <div className="space-y-4">
               {[
-                { q: 'Нужно ли обоим иметь WeWatch?', a: 'Создателю комнаты нужно приложение. Гость может зайти по ссылке.' },
+                { q: 'Как смотреть ютуб вместе с другом бесплатно?', a: 'Откройте wewatch.uz в браузере, вставьте ссылку на видео и отправьте другу ссылку-приглашение. Совместный просмотр бесплатный.' },
+                { q: 'Нужно ли обоим регистрироваться?', a: 'Нет. Аккаунт нужен тому, кто создаёт комнату и управляет воспроизведением. Гость заходит по ссылке-приглашению без регистрации.' },
                 { q: 'Работает ли с YouTube Premium?', a: 'Да. WeWatch открывает YouTube в браузере — ваша подписка работает как обычно.' },
-                { q: 'Есть ли задержка синхронизации?', a: 'Меньше 500 мс — практически незаметно. WeWatch использует серверное время для точной синхронизации.' },
-                { q: 'Можно ли смотреть YouTube вместе с телефона и компьютера?', a: 'Да — это главная особенность WeWatch. Один на iPhone, другой в браузере на ноуте — видео идёт синхронно.' },
+                { q: 'Есть ли задержка синхронизации?', a: 'Расхождение больше 500 мс исправляется автоматически — на глаз незаметно. WeWatch использует серверное время для точной синхронизации.' },
+                { q: 'Можно ли смотреть ютуб вместе с телефона и компьютера?', a: 'Да — это главная особенность WeWatch. Один в браузере на телефоне, другой на ноутбуке — видео идёт синхронно.' },
               ].map(({ q, a }) => (
                 <details key={q} className="border border-zinc-800 rounded-xl p-4">
                   <summary className="text-white font-medium cursor-pointer">{q}</summary>
@@ -123,7 +124,7 @@ export default function SmotretYoutubeVmestePage() {
 
           <div className="bg-[#7B72F8]/10 border border-[#7B72F8]/30 rounded-2xl p-8 text-center">
             <h2 className="text-2xl font-bold text-white mb-3">Попробуйте прямо сейчас</h2>
-            <p className="text-zinc-400 mb-6">Откройте WeWatch в браузере и начните смотреть YouTube вместе</p>
+            <p className="text-zinc-400 mb-6">Откройте WeWatch в браузере и начните смотреть ютуб вместе с друзьями</p>
             <Link href="/ru" className="inline-flex items-center justify-center gap-2 bg-[#7B72F8] hover:bg-[#6a63e8] text-white font-semibold px-8 py-3 rounded-xl transition-colors">
               Открыть веб-версию
             </Link>
