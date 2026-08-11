@@ -113,17 +113,36 @@ function proxyBase(req: Request): string {
 
 /**
  * Rewrites a client `Range: bytes=X-Y` (or open-ended `bytes=X-`) header to request at most
- * `maxBytes` from upstream, preserving the start offset. Unrecognized formats (suffix ranges like
- * `bytes=-500`, multi-range, malformed) are passed through unchanged rather than guessed at.
+ * `maxOpenEndedBytes` from upstream when open-ended, or `maxExplicitBytes` when the client asked
+ * for a specific bounded span — preserving the start offset either way. Unrecognized formats
+ * (suffix ranges like `bytes=-500`, multi-range, malformed) are passed through unchanged rather
+ * than guessed at.
+ *
+ * Real prod bug 2026-08-10 found live: capping BOTH kinds the same (originally always maxBytes,
+ * 4MB) silently truncated legitimate bounded requests too. Many of these VB-caught mp4 sources
+ * (movie-rip mirrors, confirmed via a raw fetch: ftyp→free→mdat with no moov near the start) are
+ * NOT faststart-optimized — the moov atom (the only place the player can find where audio SAMPLES
+ * live in the file) sits in the last few MB. Safari's native <video>/AVFoundation demuxer fetches
+ * that tail with one explicit, precisely-bounded Range request sized to the moov's real length,
+ * which can be several MB for a long movie's sample tables — exceeding the old 4MB cap truncated
+ * it mid-moov, losing the audio trak (positioned after video's in typical muxer output) while the
+ * video trak (parsed first, already complete before the cutoff) came through fine: video played,
+ * audio silent, Safari only. Chrome's own probing pattern for the same files happened to stay
+ * under 4MB, which is why this never showed up there. An explicit bounded request is trusted up to
+ * a much higher ceiling — comfortably covers any real moov, nowhere near a full-file download —
+ * while the ORIGINAL open-ended-request cap (the actual fix for the 2026-08-05 "738MB single
+ * response reads as stuck forever" bug) is untouched.
  */
-function cappedRange(rangeHeader: string, maxBytes: number): string {
+function cappedRange(rangeHeader: string, maxOpenEndedBytes: number, maxExplicitBytes: number): string {
   const match = /^bytes=(\d+)-(\d*)$/.exec(rangeHeader.trim());
   if (!match) return rangeHeader;
   const start = Number(match[1]);
   const requestedEnd = match[2] ? Number(match[2]) : undefined;
-  const cappedEnd = start + maxBytes - 1;
-  const end = requestedEnd !== undefined ? Math.min(requestedEnd, cappedEnd) : cappedEnd;
-  return `bytes=${start}-${end}`;
+  if (requestedEnd !== undefined) {
+    const cappedEnd = Math.min(requestedEnd, start + maxExplicitBytes - 1);
+    return `bytes=${start}-${cappedEnd}`;
+  }
+  return `bytes=${start}-${start + maxOpenEndedBytes - 1}`;
 }
 
 // Real prod finding 2026-08-07 (uzmovi.net/uzdown.space): this site re-signs the .mpd URL its own
@@ -301,13 +320,17 @@ async function attemptFetch(rawUrl: string, req: Request, res: Response, referer
     // upstream's real Content-Range (reflecting our capped request, not the client's original one)
     // is what gets forwarded back, so this is transparent to the client either way.
     const MAX_RANGE_CHUNK_BYTES = 4 * 1024 * 1024; // 4MB — comfortably ahead of normal playback, not a full-file download
+    // See cappedRange's doc comment — an explicit bounded request (e.g. Safari fetching a
+    // non-faststart file's tail moov atom) needs much more headroom than a progressive-playback
+    // chunk, without going anywhere near a full-file download.
+    const MAX_EXPLICIT_RANGE_BYTES = 24 * 1024 * 1024; // 24MB
     const range = req.headers.range;
     const headers: Record<string, string> = {
       'User-Agent': CHROME_UA,
       'Accept': '*/*',
       'Accept-Encoding': 'identity',
     };
-    if (range) headers['Range'] = cappedRange(range, MAX_RANGE_CHUNK_BYTES);
+    if (range) headers['Range'] = cappedRange(range, MAX_RANGE_CHUNK_BYTES, MAX_EXPLICIT_RANGE_BYTES);
     if (referer) headers['Referer'] = referer;
 
     let upstream: globalThis.Response;
