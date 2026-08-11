@@ -52,9 +52,23 @@ Effort is one person's time, assuming texts below are copy-pasted.
 | # | Platform | Why this one | Effort |
 |---|---|---|---|
 | 1 | **AlternativeTo** | Watch2Gether and Kosmi — the two competitors quoted instead of us — are both listed. This is the single most quoted source type for "alternative to X" questions. | 15 min |
-| 2 | **Product Hunt** | One-time launch, permanently indexed page, frequently cited in AI answers about new tools. Best done on a Tuesday–Thursday. | 40 min |
+| 2 | **Product Hunt** | One-time launch, permanently indexed page, frequently cited in AI answers about new tools. Best done on a Tuesday–Thursday. **See the name-collision note below before submitting.** | 40 min |
 | 3 | **SaaSHub** | Mirrors AlternativeTo's "alternatives" structure; cheap to add once #1 is written. | 10 min |
 | 4 | **Slant** ("best watch party apps") | List-format pages rank and get quoted for "best X" queries. | 15 min |
+
+> **Product Hunt name collision — we are NOT listed there.** Checked 2026-08-11:
+> `producthunt.com/products/wewatch` is a different product — "WeWatch: Find What To
+> Watch Together", a swipe-to-pick-a-film Android app on `wewatchapp.xyz`, launched
+> 2021, 1 follower. It is not ours and links nowhere near `wewatch.uz`.
+>
+> So Product Hunt stays a task, but the `/wewatch` slug is taken and our listing will
+> land on something like `wewatch-uz`. Submit under a name that disambiguates —
+> "WeWatch — watch party" — and make the tagline lead with synchronised playback, the
+> thing the other product does not do.
+>
+> Worth knowing beyond Product Hunt: a same-named product has existed since 2021 with
+> an app store presence. Brand queries for "WeWatch" are not ours by default, which is
+> one more reason the entity signals in Tier C matter.
 
 ### Tier B — Russia and Uzbekistan, our largest reserve
 
@@ -76,7 +90,7 @@ Emirhan either — so reach has to come from being genuinely useful in each venu
 
 | # | Platform | Why this one | Effort |
 |---|---|---|---|
-| 9 | **Instagram bio link** | The only social account the company actually has (confirmed 2026-08-11). A Telegram channel is planned but does not exist yet. Check the bio carries `wewatch.uz`. | 5 min |
+| 9 | **Instagram bio wording** | `@wewatch.tezcode` already links to `wewatch.uz` (checked 2026-08-11) — the link is done. What is not: the bio reads "Watch party platformasi — **tez kunda**" (coming soon) for a product that is live. Anyone arriving from a directory listing reads "not ready yet" and leaves. | 5 min |
 | 10 | **LinkedIn + Crunchbase company profiles** | Entity signals: they tie WeWatch to TEZ KOD LLC, which is what `jsonLdOrg` in the code already asserts. | 30 min |
 
 **Already done — verified 2026-08-11, do not redo:**
