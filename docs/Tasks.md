@@ -1,6 +1,22 @@
 # CineSync — OCHIQ VAZIFALAR
 
-# Yangilangan: 2026-08-10
+# Yangilangan: 2026-08-11
+
+---
+
+### T-Y201 | P1 | [SEO] | GA4 measurement-plan — 6 ta key event ulash
+
+- **Mas'ul:** pending[Yakubov]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-08-11 07:20
+- **Holat:** 🔄 Bajarilmoqda — apps/web tomoni tayyor (PR: yakubov/feat-ga4-measurement-events), app-web tomoni Saidazim'ning source_cluster cookie tasdig'ini kutmoqda
+- **Tavsiya model:** sonnet
+- **Model sababi:** ~5 fayl, aniq kontrakt (docs/seo/measurement-plan.md:48-59) bo'yicha event ulash, yangi arxitektura yo'q
+- **Sabab:** docs/seo/baseline-2026-08-10.md bo'yicha GA4 key events = 0 — organikadan konversiya o'lchab bo'lmayapti, SEO ROI noaniq (Yakubov topgan, 2026-08-10 audit).
+- **Qilish kerak:**
+  - [x] apps/web: organic_landing_view, cta_click, waitlist_submit (referrer_class bilan)
+  - [ ] app-web: registration_start, registration_complete, room_created (source_cluster cookie — Saidazim tasdig'i kerak)
+  - [ ] check-analytics-clusters.mjs'ni seo-quality.yml'ga CI qadami sifatida qo'shish (Saidazim zonasi)
 
 ---
 
