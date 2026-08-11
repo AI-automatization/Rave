@@ -320,3 +320,142 @@ test.describe('SEO / GEO / AEO regression checks', () => {
     expect(visibleText).toContain('Android va iOS ilovalari ishlab chiqilmoqda');
   });
 });
+
+/**
+ * Measurement-plan events (docs/seo/measurement-plan.md §Event contract).
+ *
+ * These run inside the SEO gate rather than a suite of their own because that is
+ * the only Playwright job the CI actually executes for apps/web (seo-quality.yml
+ * runs `npm run test:seo`); a spec file added next to it would never be run.
+ *
+ * `window.gtag` is stubbed in every case. gtag.js is a third-party download, and a
+ * test whose result depends on googletagmanager.com being reachable from a CI
+ * runner reports network weather, not code.
+ */
+test.describe('Analytics — measurement plan events', () => {
+  test('page context is derived from the URL, and translated slugs share one cluster', async () => {
+    const { pageContextFor } = await import('../src/lib/analytics/page-context');
+
+    expect(pageContextFor('/ru/guides/smotret-youtube-vmeste')).toEqual({
+      locale: 'ru',
+      page_type: 'guide',
+      content_slug: 'smotret-youtube-vmeste',
+      source_cluster: 'youtube',
+    });
+
+    // The RU and UZ pages are one topic under two names — reporting them as two
+    // clusters is what would make the RU/UZ comparison meaningless.
+    expect(pageContextFor('/uz/guides/youtube-birgalikda').source_cluster).toBe('youtube');
+    expect(pageContextFor('/en/guides/watch-youtube-together').source_cluster).toBe('youtube');
+
+    expect(pageContextFor('/ru').page_type).toBe('home');
+    expect(pageContextFor('/uz/faq').page_type).toBe('faq');
+    expect(pageContextFor('/ru/use-cases/dalnie-otnosheniya').source_cluster).toBe('long_distance');
+    expect(pageContextFor('/ru/guides/smotret-vmeste-onlayn/').content_slug).toBe('smotret-vmeste-onlayn');
+  });
+
+  test('AI assistants are their own referrer class, not search or referral', async () => {
+    const { classifyReferrer } = await import('../src/lib/analytics/referrer');
+
+    expect(classifyReferrer('https://www.perplexity.ai/search?q=x', 'wewatch.uz')).toBe('ai_assistant');
+    expect(classifyReferrer('https://chatgpt.com/', 'wewatch.uz')).toBe('ai_assistant');
+    // gemini.google.com is a google.com subdomain: order of checks decides this one.
+    expect(classifyReferrer('https://gemini.google.com/app', 'wewatch.uz')).toBe('ai_assistant');
+
+    expect(classifyReferrer('https://www.google.com/search?q=x', 'wewatch.uz')).toBe('organic_search');
+    expect(classifyReferrer('https://yandex.ru/search/?text=x', 'wewatch.uz')).toBe('organic_search');
+    expect(classifyReferrer('https://t.me/somechannel', 'wewatch.uz')).toBe('social');
+    expect(classifyReferrer('https://example.com/blog', 'wewatch.uz')).toBe('referral');
+    expect(classifyReferrer('', 'wewatch.uz')).toBe('direct');
+    // wewatch.uz → app.wewatch.uz is one product on two hosts, not an acquisition.
+    expect(classifyReferrer('https://wewatch.uz/ru', 'app.wewatch.uz')).toBe('internal');
+  });
+
+  /**
+   * Reads the real `window.dataLayer` rather than a stubbed `window.gtag`.
+   *
+   * A stub does not survive here: the inline `gtag-init` in RootDocument.tsx runs
+   * `function gtag(){dataLayer.push(arguments)}`, and that declaration overwrites
+   * any `window.gtag` assigned before it — so a test that substitutes gtag ends up
+   * watching a function nobody calls while the event lands in dataLayer. Asserting
+   * on dataLayer also matches what GA4 actually receives.
+   *
+   * The gtag.js download is blocked on purpose: the inline initialiser defines
+   * `dataLayer` and `gtag` on its own, so every assertion below holds without
+   * googletagmanager.com being reachable from the runner.
+   */
+  async function collectDataLayer(page: import('@playwright/test').Page, eventName: string) {
+    return page.waitForFunction((name) => {
+      const layer = (window as unknown as { dataLayer?: IArguments[] }).dataLayer ?? [];
+      const found = [...layer].find((entry) => entry[0] === 'event' && entry[1] === name);
+      return found ? { name: found[1] as string, params: found[2] as Record<string, string> } : null;
+    }, eventName, { timeout: 20_000 });
+  }
+
+  test('organic_landing_view is delivered through the queue with the contract parameters', async ({ page }) => {
+    await page.route('**/googletagmanager.com/**', (route) => route.abort());
+
+    // gtag.js is loaded with lazyOnload, so at mount `window.gtag` does not exist:
+    // this records that the event really did take the buffered path rather than a
+    // direct call that happened to find gtag ready.
+    await page.addInitScript(() => {
+      document.addEventListener('DOMContentLoaded', () => {
+        (window as unknown as { __gtagAtDomReady: string }).__gtagAtDomReady = typeof (
+          window as unknown as { gtag?: unknown }
+        ).gtag;
+      });
+    });
+
+    await page.goto('/ru/guides/smotret-youtube-vmeste', { referer: 'https://www.perplexity.ai/' });
+
+    const handle = await collectDataLayer(page, 'organic_landing_view');
+    const event = await handle.jsonValue();
+
+    expect(await page.evaluate(() => (window as unknown as { __gtagAtDomReady: string }).__gtagAtDomReady)).toBe(
+      'undefined',
+    );
+    expect(event?.params).toEqual({
+      locale: 'ru',
+      page_type: 'guide',
+      content_slug: 'smotret-youtube-vmeste',
+      referrer_class: 'ai_assistant',
+    });
+  });
+
+  test('a same-site arrival is not counted as a new acquisition', async ({ page }, testInfo) => {
+    await page.route('**/googletagmanager.com/**', (route) => route.abort());
+
+    // Built from baseURL, not hardcoded: localhost and 127.0.0.1 are different
+    // hosts to the classifier, and hardcoding one made this test assert the
+    // opposite of what it claims to.
+    const origin = new URL(testInfo.project.use.baseURL ?? 'http://localhost:3000').origin;
+    await page.goto('/ru', { referer: `${origin}/ru/faq` });
+
+    // Give the queue its full flush window before concluding nothing was sent.
+    await page.waitForTimeout(3000);
+    const events = await page.evaluate(() => {
+      const layer = (window as unknown as { dataLayer?: IArguments[] }).dataLayer ?? [];
+      return [...layer].filter((entry) => entry[1] === 'organic_landing_view').length;
+    });
+    expect(events).toBe(0);
+  });
+
+  test('cta_click fires for links that leave for the app', async ({ page }) => {
+    await page.route('**/googletagmanager.com/**', (route) => route.abort());
+    await page.goto('/ru/how-it-works');
+
+    const cta = page.locator('a[href*="/register"]').first();
+    await cta.waitFor();
+    // The CTA leaves the site; the click only needs to be observed, not followed.
+    await cta.evaluate((node) => node.setAttribute('target', '_blank'));
+    await cta.click();
+
+    const handle = await collectDataLayer(page, 'cta_click');
+    const event = await handle.jsonValue();
+
+    expect(event?.params.destination).toBe('/register');
+    expect(event?.params.locale).toBe('ru');
+    expect(event?.params.page_type).toBe('how_it_works');
+    expect(event?.params.cta_id).toContain('/register');
+  });
+});
