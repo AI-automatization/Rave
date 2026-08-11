@@ -22,9 +22,34 @@ export const metadata: Metadata = {
 };
 
 
+
+/**
+ * Rendered as the visible FAQ and published as FAQPage from this one array — the
+ * same rule the guide registry follows, so the schema cannot drift from the page.
+ * seo-geo-aeo.spec.ts asserts every question and answer appears in the visible
+ * HTML, which is what makes that guarantee testable rather than a convention.
+ */
+const FAQS = [
+  { q: 'Работает с фильмами из VK?', a: 'Да, если видео доступно по поддерживаемой ссылке VK Видео.' },
+  { q: 'Нужен ли аккаунт VK?', a: 'Публичные видео открываются без входа. Для приватных нужен доступ к ним в VK.' },
+  { q: 'Это бесплатно?', a: 'Основные функции совместного просмотра WeWatch бесплатны.' },
+] as const;
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  inLanguage: 'ru',
+  mainEntity: FAQS.map(({ q, a }) => ({
+    '@type': 'Question',
+    name: q,
+    acceptedAnswer: { '@type': 'Answer', text: a },
+  })),
+};
+
 export default function VkVmestePage() {
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <GuideHeader locale="ru" />
       <main className="min-h-screen bg-[#060608] text-white">
         <div className="max-w-3xl mx-auto px-4 py-16">
@@ -69,11 +94,7 @@ export default function VkVmestePage() {
           <section className="mb-10">
             <h2 className="text-2xl font-bold mb-4">Вопросы</h2>
             <div className="space-y-4">
-              {[
-                { q: 'Работает с фильмами из VK?', a: 'Да, если видео доступно по поддерживаемой ссылке VK Видео.' },
-                { q: 'Нужен ли аккаунт VK?', a: 'Публичные видео открываются без входа. Для приватных нужен доступ к ним в VK.' },
-                { q: 'Это бесплатно?', a: 'Основные функции совместного просмотра WeWatch бесплатны.' },
-              ].map(({ q, a }) => (
+              {FAQS.map(({ q, a }) => (
                 <details key={q} className="border border-zinc-800 rounded-xl p-4">
                   <summary className="text-white font-medium cursor-pointer">{q}</summary>
                   <p className="text-zinc-400 text-sm mt-2 leading-relaxed">{a}</p>

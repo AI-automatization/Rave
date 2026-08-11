@@ -31,9 +31,35 @@ const RELATED = [
   { href: '/ru/guides/smotret-youtube-vmeste', label: 'Смотреть YouTube вместе' },
 ];
 
+
+/**
+ * Rendered as the visible FAQ and published as FAQPage from this one array — the
+ * same rule the guide registry follows, so the schema cannot drift from the page.
+ * seo-geo-aeo.spec.ts asserts every question and answer appears in the visible
+ * HTML, which is what makes that guarantee testable rather than a convention.
+ */
+const FAQS = [
+  { q: 'Работает ли с субтитрами?', a: 'Да. Субтитры отображаются как обычно — каждый участник может выбрать свой язык субтитров независимо.' },
+  { q: 'Можно ли смотреть аниме с двух разных устройств?', a: 'Да — откройте веб-версию в браузерах на iPhone, Android или ноутбуке. Нативные приложения разрабатываются.' },
+  { q: 'Есть ли ограничение по длительности просмотра?', a: 'Нет. Марафон аниме на 12 серий? Без проблем — WeWatch не ограничивает время сессии.' },
+  { q: 'Это бесплатно?', a: 'Основные функции доступны бесплатно в веб-версии. Мобильные приложения находятся в разработке.' },
+] as const;
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  inLanguage: 'ru',
+  mainEntity: FAQS.map(({ q, a }) => ({
+    '@type': 'Question',
+    name: q,
+    acceptedAnswer: { '@type': 'Answer', text: a },
+  })),
+};
+
 export default function SmotretAnimeVmestePage() {
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <GuideHeader locale="ru" />
       <main className="min-h-screen bg-[#060608] text-white">
         <div className="max-w-3xl mx-auto px-4 py-16">
@@ -88,12 +114,7 @@ export default function SmotretAnimeVmestePage() {
           <section className="mb-10">
             <h2 className="text-2xl font-bold text-white mb-4">Часто задаваемые вопросы</h2>
             <div className="space-y-4">
-              {[
-                { q: 'Работает ли с субтитрами?', a: 'Да. Субтитры отображаются как обычно — каждый участник может выбрать свой язык субтитров независимо.' },
-                { q: 'Можно ли смотреть аниме с двух разных устройств?', a: 'Да — откройте веб-версию в браузерах на iPhone, Android или ноутбуке. Нативные приложения разрабатываются.' },
-                { q: 'Есть ли ограничение по длительности просмотра?', a: 'Нет. Марафон аниме на 12 серий? Без проблем — WeWatch не ограничивает время сессии.' },
-                { q: 'Это бесплатно?', a: 'Основные функции доступны бесплатно в веб-версии. Мобильные приложения находятся в разработке.' },
-              ].map(({ q, a }) => (
+              {FAQS.map(({ q, a }) => (
                 <details key={q} className="border border-zinc-800 rounded-xl p-4">
                   <summary className="text-white font-medium cursor-pointer">{q}</summary>
                   <p className="text-zinc-400 text-sm mt-2 leading-relaxed">{a}</p>
