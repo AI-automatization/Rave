@@ -52,23 +52,36 @@ Effort is one person's time, assuming texts below are copy-pasted.
 | # | Platform | Why this one | Effort |
 |---|---|---|---|
 | 1 | **AlternativeTo** | Watch2Gether and Kosmi — the two competitors quoted instead of us — are both listed. This is the single most quoted source type for "alternative to X" questions. | 15 min |
-| 2 | **Product Hunt** | One-time launch, permanently indexed page, frequently cited in AI answers about new tools. Best done on a Tuesday–Thursday. **See the name-collision note below before submitting.** | 40 min |
+| 2 | **Product Hunt — fix the existing listing** | We launched on 2026-06-17 at `/products/wewatch-3`. Getting listed is done; the copy on it is the problem. See below. | 15 min |
 | 3 | **SaaSHub** | Mirrors AlternativeTo's "alternatives" structure; cheap to add once #1 is written. | 10 min |
 | 4 | **Slant** ("best watch party apps") | List-format pages rank and get quoted for "best X" queries. | 15 min |
 
-> **Product Hunt name collision — we are NOT listed there.** Checked 2026-08-11:
-> `producthunt.com/products/wewatch` is a different product — "WeWatch: Find What To
-> Watch Together", a swipe-to-pick-a-film Android app on `wewatchapp.xyz`, launched
-> 2021, 1 follower. It is not ours and links nowhere near `wewatch.uz`.
+> ### Product Hunt: we are listed, and the listing contradicts the product
 >
-> So Product Hunt stays a task, but the `/wewatch` slug is taken and our listing will
-> land on something like `wewatch-uz`. Submit under a name that disambiguates —
-> "WeWatch — watch party" — and make the tagline lead with synchronised playback, the
-> thing the other product does not do.
+> Ours is `/products/wewatch-3` — launched 2026-06-17, 7 followers, 2 upvotes. (The
+> `/wewatch` slug belongs to an unrelated 2021 Android app on `wewatchapp.xyz`; brand
+> queries for "WeWatch" are therefore not ours by default, which is one more reason
+> the entity signals in Tier C matter.)
 >
-> Worth knowing beyond Product Hunt: a same-named product has existed since 2021 with
-> an app store presence. Brand queries for "WeWatch" are not ours by default, which is
-> one more reason the entity signals in Tier C matter.
+> The live description makes four claims the product does not support — three of them
+> are the exact strings `seo-geo-aeo.spec.ts` blocks on our own pages:
+>
+> | Published on Product Hunt | Reality |
+> |---|---|
+> | "a free watch party app **for iOS & Android**" | `product-facts.ts`: ios/android are `planned`. There is no app. |
+> | "Rutube and **any website**" / "Works with **ANY video site**" | Caught by `UNVERIFIED_PRODUCT_CLAIMS`. Sources are YouTube, VK Video, Rutube, direct .mp4. |
+> | "**iPhone + Android** + browser in one room" | Browsers on those devices — not native apps. |
+> | "**premium plans** for power users" | `purchaseAvailability: 'unavailable'`. No payment provider exists in the codebase. |
+>
+> This matters more than a typo. The page mentions `wewatch.uz` 33 times, so it is
+> precisely the kind of source an assistant reads and quotes about us — and a visitor
+> who comes looking for the iOS app finds no app and no explanation. The claims gate
+> we enforce in CI stops at our own domain; nothing was watching what we say elsewhere.
+>
+> Replace with the Medium English text below, which is written from `product-facts.ts`.
+> The differences that matter: "browsers on desktop, iPhone and Android" rather than an
+> app, a named source list rather than "any website", and "core watch-party features
+> are free" rather than premium plans.
 
 ### Tier B — Russia and Uzbekistan, our largest reserve
 
