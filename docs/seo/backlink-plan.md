@@ -66,19 +66,31 @@ there and we convert it badly.
 | 5 | **vc.ru** | A build story ("how we synchronise playback across devices") — not an ad. Strong domain, indexed by Yandex fast. | 2–3 h to write |
 | 6 | **Habr** | The sync mechanism (500 ms drift correction, server clock) is genuinely technical and will survive Habr's audience. Highest-authority RU link available to us for free. | 3–4 h to write |
 | 7 | **Product Radar** | Russian-language Product Hunt equivalent. | 15 min |
-| 8 | **UZ/RU Telegram tech channels** | Where our Uzbek audience already is; drives real traffic, not just links. | 30 min |
+| 8 | **UZ/RU Telegram tech channels** | Where our Uzbek audience already is; drives real traffic, not just links. We have no channel of our own yet (one is planned), so this means posting in other people's — which needs a pitch, not a press release. | 30 min |
+
+Budget for all of the above: **zero**, confirmed 2026-08-11. Nothing in this plan
+requires paying anyone, and no partner announcements are available through Bekzod or
+Emirhan either — so reach has to come from being genuinely useful in each venue.
 
 ### Tier C — free and mechanical, do first
 
 | # | Platform | Why this one | Effort |
 |---|---|---|---|
-| 9 | **tezcode.dev case page** | We already have 5 links from there — one dedicated project page with a real description is worth more than five footer links. | 1 h |
+| 9 | **Instagram bio link** | The only social account the company actually has (confirmed 2026-08-11). A Telegram channel is planned but does not exist yet. Check the bio carries `wewatch.uz`. | 5 min |
 | 10 | **LinkedIn + Crunchbase company profiles** | Entity signals: they tie WeWatch to TEZ KOD LLC, which is what `jsonLdOrg` in the code already asserts. | 30 min |
 
-Already done, checked via the GitHub API on 2026-08-11 — do not redo:
-the public repo has `homepage: https://wewatch.uz` set and the README links to the
-site three times. This entry started life in this file as a "two-minute free link"
-before it was verified; it was not free, it was finished.
+**Already done — verified 2026-08-11, do not redo:**
+
+- **GitHub repo.** `homepage: https://wewatch.uz` is set and the README links to the
+  site three times (checked via the GitHub API).
+- **tezcode.dev case page.** `www.tezcode.dev/wewatch` returns 200, mentions the
+  domain 19 times and carries two links to `https://wewatch.uz` with
+  `rel="noopener noreferrer"` — no `nofollow`, so they pass authority. This is where
+  the 5 referring pages Bing counts come from.
+
+Both of these entered this file as work items before being checked, and both turned
+out to be finished. Verify before assigning: the cheap-looking task is the one most
+likely to already be done.
 
 ### Tier D — Reddit, handle with care
 
