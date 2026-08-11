@@ -10,7 +10,7 @@
  */
 
 import { guideGroupFor } from '@/data/guides';
-import { useCaseGroupFor } from '@/data/use-cases';
+import { getUseCaseGroup } from '@/data/use-cases';
 import { DEFAULT_LOCALE, type Locale, stripLocale, withLocale } from './config';
 
 /**
@@ -79,7 +79,7 @@ export function translatedPath(pathname: string, target: Locale): string | null 
   const guide = guideGroupFor(path);
   if (guide) return guide[target] ?? null;
 
-  const useCase = useCaseGroupFor(path);
+  const useCase = getUseCaseGroup(path);
   if (useCase) return useCase[target] ?? null;
 
   const bare = stripLocale(path);
@@ -101,7 +101,7 @@ export function switchLocalePath(pathname: string, target: Locale): string {
 export function availableLocales(pathname: string): Locale[] {
   const path = normalize(pathname);
 
-  const group = guideGroupFor(path) ?? useCaseGroupFor(path);
+  const group = guideGroupFor(path) ?? getUseCaseGroup(path);
   if (group) {
     return (['ru', 'uz', 'en'] as const).filter((l) => group[l]);
   }

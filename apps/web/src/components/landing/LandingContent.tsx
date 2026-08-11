@@ -677,7 +677,7 @@ function WhyWeWatch({ t }: { t: TFn }) {
         </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {WHY_ITEMS.map(({ icon: Icon, color, bg, border, title, text, gradient }, i) => (
+          {WHY_ITEMS.map(({ icon: Icon, color, bg, border, title, text }, i) => (
             <motion.div key={title}
               initial={{ opacity: 0, y: 30, scale: 0.96 }}
               whileInView={{ opacity: 1, y: 0, scale: 1 }}

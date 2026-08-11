@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useAcceptFriendRequest, useRejectFriendRequest } from '@/hooks/use-friends';
 import { toast } from '@/store/toast.store';
 import { parseApiError } from '@/lib/api-error';
-import type { IFriendship, IUser } from '@/types';
+import type { IFriendship } from '@/types';
 
 interface Props {
   request: IFriendship;

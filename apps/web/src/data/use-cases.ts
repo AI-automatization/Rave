@@ -34,13 +34,13 @@ export const USE_CASE_GROUPS: readonly UseCaseGroup[] = [
 ];
 
 /** Every locale variant of the use-case `path` belongs to, or undefined. */
-export function useCaseGroupFor(path: string): UseCaseGroup | undefined {
+export function getUseCaseGroup(path: string): UseCaseGroup | undefined {
   return USE_CASE_GROUPS.find((g) => g.ru === path || g.uz === path || g.en === path);
 }
 
 /** `path` in `target`, or null when `path` is not a use-case page at all. */
 export function useCasePath(path: string, target: Locale): string | null {
-  return useCaseGroupFor(path)?.[target] ?? null;
+  return getUseCaseGroup(path)?.[target] ?? null;
 }
 
 /** Scenario URLs keyed by locale, in registry order. */

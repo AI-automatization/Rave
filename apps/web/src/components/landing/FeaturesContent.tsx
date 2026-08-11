@@ -15,11 +15,6 @@ import { useLocalizedHref } from '@/lib/i18n/use-localized-href';
 /* ── Animation configs ─────────────────────────────── */
 const springConfig = { type: 'spring' as const, stiffness: 260, damping: 22 };
 
-const fadeUp: Variants = {
-  hidden:  { opacity: 0, y: 30, scale: 0.96 },
-  visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.5, ease: [0.25, 0.1, 0.25, 1] } },
-};
-const stagger: Variants = { visible: { transition: { staggerChildren: 0.1 } } };
 
 /* ── Animated Counter ──────────────────────────────── */
 function useCountUp(end: number, duration = 1.8) {
