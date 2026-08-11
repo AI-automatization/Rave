@@ -72,9 +72,13 @@ there and we convert it badly.
 
 | # | Platform | Why this one | Effort |
 |---|---|---|---|
-| 9 | **GitHub repo "Website" field** | The repo is public. Setting `wewatch.uz` in the About panel is a link from a domain search engines trust completely. | **2 min** |
-| 10 | **tezcode.dev case page** | We already have 5 links from there — one dedicated project page with a real description is worth more than five footer links. | 1 h |
-| 11 | **LinkedIn + Crunchbase company profiles** | Entity signals: they tie WeWatch to TEZ KOD LLC, which is what `jsonLdOrg` in the code already asserts. | 30 min |
+| 9 | **tezcode.dev case page** | We already have 5 links from there — one dedicated project page with a real description is worth more than five footer links. | 1 h |
+| 10 | **LinkedIn + Crunchbase company profiles** | Entity signals: they tie WeWatch to TEZ KOD LLC, which is what `jsonLdOrg` in the code already asserts. | 30 min |
+
+Already done, checked via the GitHub API on 2026-08-11 — do not redo:
+the public repo has `homepage: https://wewatch.uz` set and the README links to the
+site three times. This entry started life in this file as a "two-minute free link"
+before it was verified; it was not free, it was finished.
 
 ### Tier D — Reddit, handle with care
 
@@ -183,11 +187,10 @@ WeWatch убирает саму проблему рассинхрона. У вс
 
 ## Order of work
 
-1. **Today, 2 minutes:** GitHub repo → About → Website = `https://wewatch.uz`.
-2. **This week:** Tier A (#1–4) and Tier C (#9–11). All copy-paste.
-3. **Next:** one Habr or vc.ru article. This is the only item that needs real writing
+1. **This week:** Tier A (#1–4) and Tier C (#9–10). All copy-paste.
+2. **Next:** one Habr or vc.ru article. This is the only item that needs real writing
    time, and it is also the only one likely to bring a link other people repeat.
-4. **Measure at 30 days:** referring domains in Bing, Copilot citations, and pages
+3. **Measure at 30 days:** referring domains in Bing, Copilot citations, and pages
    indexed by Bing and Yandex. Baseline to compare against is the table at the top of
    this file.
 
