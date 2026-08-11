@@ -12,7 +12,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VENV="$HOME/.tg_autobot_venv"
 CONFIG_DIR="$HOME/.config/tg_autobot"
 CONFIG_FILE="$CONFIG_DIR/config.env"
-AUTOBOT="$SCRIPT_DIR/tg_autobot.py"
 
 echo "════════════════════════════════════════════════"
 echo "🤖 tg_autobot setup — TezCode Telegram monitor"

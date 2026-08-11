@@ -39,7 +39,7 @@ log "Running tsc checks..."
 TSC_ERRORS=0
 for svc in services/auth services/user services/content services/watch-party services/battle services/notification services/admin; do
   if [ -f "$RAVE/$svc/tsconfig.json" ]; then
-    ERR=$(cd "$RAVE/$svc" && npx tsc --noEmit 2>&1 | grep "error TS" | wc -l | tr -d ' ')
+    ERR=$(cd "$RAVE/$svc" && npx tsc --noEmit 2>&1 | grep -c "error TS")
     TSC_ERRORS=$((TSC_ERRORS + ERR))
     [ "$ERR" -gt 0 ] && log "  ⚠️  $svc: $ERR TS errors"
   fi
@@ -66,12 +66,14 @@ REPORT+="💾 *Disk:* $DISK used\n"
 DAILY="$VAULT/DAILY/Saidazim/$DATE.md"
 mkdir -p "$(dirname "$DAILY")"
 if [ -f "$DAILY" ]; then
-  echo "" >> "$DAILY"
-  echo "## 🌙 Nightly Report ($TIME)" >> "$DAILY"
-  echo "- git: $UNCOMMITTED uncommitted, $AHEAD ahead" >> "$DAILY"
-  echo "- tsc errors: $TSC_ERRORS" >> "$DAILY"
-  echo "- open tasks: $PENDING" >> "$DAILY"
-  echo "- disk: $DISK" >> "$DAILY"
+  {
+    echo ""
+    echo "## 🌙 Nightly Report ($TIME)"
+    echo "- git: $UNCOMMITTED uncommitted, $AHEAD ahead"
+    echo "- tsc errors: $TSC_ERRORS"
+    echo "- open tasks: $PENDING"
+    echo "- disk: $DISK"
+  } >> "$DAILY"
 fi
 
 REPORT+="\n✅ Nightly run complete"

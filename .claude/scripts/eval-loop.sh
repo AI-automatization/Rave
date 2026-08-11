@@ -52,7 +52,7 @@ run_checks() {
   [ -z "$out" ] && return 0 || return 1
 }
 
-while [ $ITER -lt $MAX_ITER ]; do
+while [ "$ITER" -lt "$MAX_ITER" ]; do
   ITER=$((ITER + 1))
   if run_checks "$SERVICE"; then
     echo ""
