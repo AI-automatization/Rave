@@ -63,6 +63,20 @@ export function isOfficialEmbedHost(url: string): boolean {
   }
 }
 
+// SSRF guard — same pattern already enforced at room CREATION (watchParty.service.ts) and on
+// PLAYLIST adds (watchPartyPlaylist.service.ts), but CHANGE_MEDIA and the manual VB_START socket
+// event never re-checked it: only the very first videoUrl a room was created with was gated,
+// every later media change (playlist "Play Now", the owner's VB button, the fatal-error auto-
+// retry) could point our server-side headless Chromium at localhost/internal-network/cloud-
+// metadata addresses with no check at all. Centralized here (not re-duplicated a third time)
+// since extractionClient.ts is already the shared home for isOwnVbUrl/isOfficialEmbedHost, and
+// both CHANGE_MEDIA and VB_START already import from this file.
+const PRIVATE_URL = /^https?:\/\/(localhost|127\.|10\.|192\.168\.|169\.254\.|172\.(1[6-9]|2\d|3[01])\.)/i;
+
+export function isPrivateUrl(url: string): boolean {
+  return PRIVATE_URL.test(url);
+}
+
 // Returns true if content-service's pipeline can produce a playable result for this URL
 // (categories 1+2 of the extraction flow — playerjs/yt-dlp/genericExtractor/blind Playwright
 // sniff). Never throws — any failure (422 unsupported_site, 504 timeout, network error) just
