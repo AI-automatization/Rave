@@ -22,9 +22,50 @@ export const metadata: Metadata = {
 };
 
 
+/**
+ * Rendered as the visible FAQ and published as FAQPage from this one array, so the
+ * schema cannot drift from the page. Every figure here comes from
+ * src/data/product-facts.ts (verified 2026-08-06) — room capacity, the 500 ms
+ * correction threshold and the inactivity timeout are not rounded or reworded.
+ */
+const FAQS = [
+  {
+    q: 'Можно ли смотреть фильм только вдвоём или больше?',
+    a: 'Комната рассчитана на 10 участников. Вдвоём — самый частый сценарий, но третьего и четвёртого можно позвать той же ссылкой-приглашением.',
+  },
+  {
+    q: 'Нужен ли аккаунт второму участнику?',
+    a: 'Нет. Аккаунт нужен тому, кто создаёт комнату. Второй заходит по ссылке-приглашению без регистрации.',
+  },
+  {
+    q: 'У нас разная скорость интернета — фильм разъедется?',
+    a: 'Нет. Расхождение больше 500 мс WeWatch исправляет автоматически, подтягивая всех к позиции ведущего.',
+  },
+  {
+    q: 'Один смотрит с телефона, другой с ноутбука — так можно?',
+    a: 'Да. Веб-версия работает в браузерах на iPhone, Android и компьютере, синхронизация между ними одинаковая. Нативные приложения находятся в разработке.',
+  },
+  {
+    q: 'Какие ссылки на фильм подойдут?',
+    a: 'YouTube, VK Видео, Rutube и прямые MP4-ссылки. Доступ к самому фильму определяется правилами выбранного источника.',
+  },
+] as const;
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  inLanguage: 'ru',
+  mainEntity: FAQS.map(({ q, a }) => ({
+    '@type': 'Question',
+    name: q,
+    acceptedAnswer: { '@type': 'Answer', text: a },
+  })),
+};
+
 export default function FilmVdvoemPage() {
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <GuideHeader locale="ru" />
       <main className="min-h-screen bg-[#060608] text-white">
         <div className="max-w-3xl mx-auto px-4 py-16">
@@ -63,6 +104,18 @@ export default function FilmVdvoemPage() {
             <p className="text-zinc-400 leading-relaxed">
               Вдвоём смотреть проще всего — веб-версия WeWatch держит фильм синхронно в браузерах на iPhone и Android. Нативные приложения находятся в разработке.
             </p>
+          </section>
+
+          <section className="mb-10">
+            <h2 className="text-2xl font-bold mb-4">Часто задаваемые вопросы</h2>
+            <div className="space-y-4">
+              {FAQS.map(({ q, a }) => (
+                <details key={q} className="border border-zinc-800 rounded-xl p-4">
+                  <summary className="text-white font-medium cursor-pointer">{q}</summary>
+                  <p className="text-zinc-400 text-sm mt-2 leading-relaxed">{a}</p>
+                </details>
+              ))}
+            </div>
           </section>
 
           <div className="bg-[#7B72F8]/10 border border-[#7B72F8]/30 rounded-2xl p-8 text-center">
