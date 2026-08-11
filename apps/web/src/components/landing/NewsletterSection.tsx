@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useState, type FormEvent } from 'react';
+import { usePathname } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { FaCheck } from 'react-icons/fa';
+import { trackWaitlistSubmit } from '@/lib/analytics/events';
 
 interface CampaignData {
   _id: string;
@@ -15,6 +17,7 @@ interface CampaignData {
 export function NewsletterSection() {
   const t = useTranslations('landing');
   const locale = useLocale();
+  const pathname = usePathname();
   const [campaigns, setCampaigns] = useState<CampaignData[]>([]);
   const [emails, setEmails] = useState<Record<string, string>>({});
   const [done, setDone] = useState<Record<string, boolean>>({});
@@ -34,17 +37,21 @@ export function NewsletterSection() {
     const email = emails[slug] ?? '';
     if (!email.includes('@')) return;
     setSubmitting(previous => ({ ...previous, [slug]: true }));
+    let result: 'success' | 'error' = 'success';
     try {
-      await fetch(`/api/campaigns/${slug}/subscribe`, {
+      const response = await fetch(`/api/campaigns/${slug}/subscribe`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, locale }),
       });
-      window.gtag?.('event', 'campaign_subscribe', { slug });
-      setDone(previous => ({ ...previous, [slug]: true }));
+      if (!response.ok) result = 'error';
     } catch {
-      setDone(previous => ({ ...previous, [slug]: true }));
+      result = 'error';
     } finally {
+      // The confirmation is shown either way, as before — only the event
+      // distinguishes a stored subscription from a failed one.
+      trackWaitlistSubmit(pathname, slug, result);
+      setDone(previous => ({ ...previous, [slug]: true }));
       setSubmitting(previous => ({ ...previous, [slug]: false }));
     }
   };
