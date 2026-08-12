@@ -302,6 +302,22 @@ export const registerRoomEvents = (
       // Barcha memberlarga yangi room state broadcast — ROOM_UPDATED mavjud event
       io.to(roomId).emit(SERVER_EVENTS.ROOM_UPDATED, updated);
 
+      // Real prod bug 2026-08-12 (yummyani.me, live test): confirming a 'url'-kind candidate
+      // (vb-media-proxy/vb-edge-fetch — an already-resolved, independently-servable CDN URL) left
+      // the VB session running and never told clients — vbActive stayed true (use-virtual-browser.ts
+      // only flips it on an explicit VB_STOPPED broadcast) so the loading overlay kept covering the
+      // now-playing video until the owner noticed and manually clicked the VB close button. Only
+      // vb-capture (kind: 'capture' in vbSession.helper.ts) genuinely needs the session kept alive —
+      // that candidate IS the live browser's own growing byte buffer. Any other own-VB URL means
+      // the real media is already fully resolved and playable on its own; the browser instance
+      // serves no further purpose once the owner has committed to it.
+      if (isOwnVbUrl(data.videoUrl) && !data.videoUrl.includes('/vb-capture/')) {
+        await stopSession(roomId).catch((e) => {
+          logger.warn('CHANGE_MEDIA: failed to stop VB session after non-capture candidate confirm', { roomId, error: (e as Error).message });
+        });
+        io.to(roomId).emit(SERVER_EVENTS.VB_STOPPED, { reason: 'candidate_confirmed' });
+      }
+
       logger.info('Room media changed', { roomId, userId, videoUrl: data.videoUrl });
     } catch (error) {
       socket.emit(SERVER_EVENTS.ERROR, { message: 'Failed to change room media' });
