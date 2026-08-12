@@ -497,11 +497,23 @@ export async function startSession(
       // slower-to-arrive category-A URL a chance to win a race that no longer exists — both kinds
       // now just join the same candidate list, so capture reports itself the moment it has enough
       // bytes to be worth previewing, same as category A reports itself the moment it's found.
+      //
+      // Real prod bug 2026-08-12 (uzmovi.net + yummyani.me, live-tested): `windowClosed ||
+      // captureNoted` used to gate the ENTIRE function, including the `appendCapture()` call
+      // itself — so the moment the first chunk crossed MIN_SWITCH_BYTES (typically just an intro
+      // bumper, a few seconds in), captureNoted flipped true and every later chunk hit this same
+      // early return before ever reaching appendCapture(). The buffer froze at whatever had
+      // accumulated by that instant — confirmed live: vb-capture served the identical byte count
+      // on repeated fetches seconds apart, and playback showed the intro then black screen for the
+      // remaining "duration". Directly contradicts this function's own contract (see the comment
+      // above openWindowIfNeeded: "capture needs the browser to keep playing/growing its buffer
+      // even after the window closes"). `appendCapture` itself is the only thing allowed to gate
+      // on whether the buffer is still accepting bytes (its own `done` flag, set by stopCapture());
+      // captureNoted must only ever gate the ONE-TIME "tell the picker" side effect below it.
       let captureNoted = false;
       const onCaptureChunk = (chunk: Buffer) => {
-        if (windowClosed || captureNoted) return;
         const crossedThreshold = appendCapture(roomId, chunk);
-        if (!crossedThreshold) return;
+        if (captureNoted || !crossedThreshold) return;
         captureNoted = true;
         capturedAsCandidate = true;
         logger.info('VB: media captured (enough bytes buffered)', { roomId, captureUrl });
