@@ -11,6 +11,7 @@ import { getAppSetting } from '@shared/utils/appSettings';
 import { WatchPartyPlaylistService } from './watchPartyPlaylist.service';
 import { WatchPartyMembersService } from './watchPartyMembers.service';
 import { hasSession } from './virtualBrowser.service';
+import { isPrivateUrl } from './extractionClient';
 
 const BLOCKED_DOMAINS_KEY = 'watch_party:blocked_domains';
 const SYNC_THRESHOLD_SECONDS = 2;
@@ -115,8 +116,12 @@ export class WatchPartyService {
       if (!/^https?:\/\//i.test(videoUrl)) {
         throw new BadRequestError('videoUrl must start with http:// or https://');
       }
-      const PRIVATE_URL = /^https?:\/\/(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/i;
-      if (PRIVATE_URL.test(videoUrl)) {
+      // Real prod finding 2026-08-12 (multi-agent review): this used to be its own hand-duplicated
+      // regex, out of sync with extractionClient.ts's canonical isPrivateUrl (missing 169.254.x.x —
+      // cloud metadata — entirely). A room created with that as videoUrl would sail past this check
+      // and VB would navigate its real Chromium there. Import the one canonical check instead of
+      // maintaining a second copy that can silently drift.
+      if (isPrivateUrl(videoUrl)) {
         throw new BadRequestError('videoUrl points to a private or internal address');
       }
       // IP-locked CDN URLs cannot be played on mobile clients — store original platform URL
