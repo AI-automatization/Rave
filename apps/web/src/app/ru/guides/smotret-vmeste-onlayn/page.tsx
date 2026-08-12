@@ -108,7 +108,7 @@ export default function SmotretVmesteOnlaynPage() {
             <h2 className="text-2xl font-bold text-white mb-4">Какие сайты поддерживаются?</h2>
             <p className="text-zinc-400 mb-4">В веб-версии WeWatch подтверждены следующие источники:</p>
             <ul className="grid grid-cols-2 gap-2 text-zinc-400 text-sm">
-              {['YouTube', 'VK Видео', 'Rutube', 'Прямая MP4-ссылка'].map(s => (
+              {['YouTube (ютуб)', 'VK Видео (ВКонтакте)', 'Rutube (Рутуб)', 'Прямая MP4-ссылка'].map(s => (
                 <li key={s} className="flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#7B72F8] flex-shrink-0" />
                   {s}
@@ -144,7 +144,7 @@ export default function SmotretVmesteOnlaynPage() {
                 Открыть WeWatch
               </Link>
               <Link href="/ru/guides/smotret-youtube-vmeste" className="inline-flex items-center justify-center gap-2 border border-zinc-700 hover:border-zinc-500 text-zinc-300 font-medium px-6 py-3 rounded-xl transition-colors">
-                Гайд: YouTube вместе →
+                Гайд: смотреть ютуб вместе →
               </Link>
             </div>
           </div>

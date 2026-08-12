@@ -5,8 +5,12 @@ import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
 export const metadata: Metadata = {
   // No manual "| WeWatch" — the root layout's title template appends it.
   title: 'Смотреть VK Видео вместе с друзьями онлайн — синхронно',
+  // "ВКонтакте" in Cyrillic, not only "VK": Google matches the query string it was
+  // given. A page that only ever writes the Latin form gets "Не найдено: вконтакте"
+  // printed under its result — measured on the YouTube guide, 159 impressions and
+  // zero clicks, which is what the 2026-08-10 baseline traced this to.
   description:
-    'Как смотреть VK Видео вместе с друзьями через веб-версию WeWatch. Приложения iOS и Android находятся в разработке.',
+    'Как смотреть VK Видео (ВКонтакте) вместе с друзьями через веб-версию WeWatch. Приложения iOS и Android находятся в разработке.',
   keywords: [
     'смотреть vk видео вместе', 'вк видео вместе с друзьями', 'смотреть вконтакте видео вместе',
     'watch party vk', 'синхронный просмотр vk видео', 'смотреть видео из вк вместе онлайн',
@@ -61,7 +65,7 @@ export default function VkVmestePage() {
 
           <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">Смотреть VK Видео вместе с друзьями</h1>
           <p className="text-xl text-zinc-400 mb-10 leading-relaxed">
-            WeWatch синхронизирует VK Видео для всех участников через веб-версию в браузере. Приложения для iOS и Android находятся в разработке.
+            WeWatch синхронизирует VK Видео (ВКонтакте) для всех участников через веб-версию в браузере. Приложения для iOS и Android находятся в разработке.
           </p>
 
           <section className="mb-10">
@@ -69,7 +73,7 @@ export default function VkVmestePage() {
             <ol className="space-y-5">
               {[
                 { n: 1, title: 'Откройте WeWatch', desc: 'Откройте веб-версию в браузере; приложения iOS и Android разрабатываются.' },
-                { n: 2, title: 'Найдите видео в VK', desc: 'В браузере WeWatch откройте VK Видео и выберите ролик, клип или фильм.' },
+                { n: 2, title: 'Найдите видео во ВКонтакте', desc: 'В браузере WeWatch откройте VK Видео и выберите ролик, клип или фильм.' },
                 { n: 3, title: 'Создайте комнату', desc: 'Нажмите «Создать комнату» и отправьте ссылку-приглашение друзьям.' },
                 { n: 4, title: 'Смотрите синхронно', desc: 'WeWatch извлекает видеопоток VK и держит его синхронно у всех участников.' },
               ].map(({ n, title, desc }) => (
@@ -85,9 +89,9 @@ export default function VkVmestePage() {
           </section>
 
           <section className="mb-10">
-            <h2 className="text-2xl font-bold mb-4">Почему обычная ссылка VK не работает для просмотра вместе</h2>
+            <h2 className="text-2xl font-bold mb-4">Почему обычная ссылка ВКонтакте не работает для просмотра вместе</h2>
             <p className="text-zinc-400 leading-relaxed">
-              Если просто отправить ссылку на VK Видео, каждый смотрит в своём темпе — синхронизации нет. WeWatch извлекает поток и держит единое время воспроизведения, поэтому вы видите один и тот же кадр одновременно.
+              Если просто отправить ссылку на видео из ВК, каждый смотрит в своём темпе — синхронизации нет. WeWatch извлекает поток и держит единое время воспроизведения, поэтому вы видите один и тот же кадр одновременно.
             </p>
           </section>
 
