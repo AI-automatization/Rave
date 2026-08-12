@@ -426,6 +426,15 @@ export async function startSession(
   // caller can rank whichever already-caught candidate matches highest instead of guessing from
   // network shape alone. Additive only — does not replace or gate the existing candidates.
   onRealPlaybackConfirmed?: (src: string) => void,
+  // Real prod finding 2026-08-12 (uzmovi.net, live-tested): a captured 'url'-kind candidate can
+  // be bound to the session cookie this VB browser picked up loading the source page — a
+  // stateless proxy fetch with no Cookie header gets redirected to the site's homepage instead of
+  // the actual media (confirmed with a direct curl outside Railway entirely: identical redirect,
+  // no cookie jar, no IP involved). Fired once, at collection-window-close — by then the page has
+  // had the full COLLECTION_WINDOW_MS to pick up whatever cookies it's going to set (initial
+  // page-load Set-Cookie plus any later XHR-set ones), so this is the most complete snapshot
+  // available without re-fetching per candidate.
+  onSessionCookies?: (cookieHeader: string) => void,
 ): Promise<void> {
   if (startingRooms.has(roomId)) {
     throw new Error('virtual_browser_starting');
@@ -475,10 +484,22 @@ export async function startSession(
       const openWindowIfNeeded = () => {
         if (windowTimer !== null || windowClosed) return;
         windowTimer = setTimeout(() => {
-          windowClosed = true;
-          if (!capturedAsCandidate) void stopSession(roomId);
-          else void pauseScreencast(roomId);
-          onCollectionEnd?.();
+          void (async () => {
+            windowClosed = true;
+            if (onSessionCookies) {
+              try {
+                const cookies = await context.cookies();
+                if (cookies.length > 0) {
+                  onSessionCookies(cookies.map((c) => `${c.name}=${c.value}`).join('; '));
+                }
+              } catch (e) {
+                logger.warn('VB: failed to read session cookies at collection end', { roomId, error: (e as Error).message });
+              }
+            }
+            if (!capturedAsCandidate) void stopSession(roomId);
+            else void pauseScreencast(roomId);
+            onCollectionEnd?.();
+          })();
         }, COLLECTION_WINDOW_MS);
       };
 
