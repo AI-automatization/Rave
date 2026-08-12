@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   // No manual "| WeWatch" — the root layout's title template appends it.
   title: 'Смотреть Rutube вместе с друзьями онлайн — синхронно',
   description:
-    'Как смотреть Rutube вместе с друзьями через веб-версию WeWatch. Приложения iOS и Android находятся в разработке.',
+    'Как смотреть Рутуб вместе с друзьями через веб-версию WeWatch. Приложения iOS и Android находятся в разработке.',
   keywords: [
     'смотреть rutube вместе', 'рутьюб вместе с друзьями', 'смотреть rutube синхронно',
     'watch party rutube', 'совместный просмотр rutube', 'смотреть видео rutube вместе онлайн',
@@ -22,9 +22,34 @@ export const metadata: Metadata = {
 };
 
 
+
+/**
+ * Rendered as the visible FAQ and published as FAQPage from this one array — the
+ * same rule the guide registry follows, so the schema cannot drift from the page.
+ * seo-geo-aeo.spec.ts asserts every question and answer appears in the visible
+ * HTML, which is what makes that guarantee testable rather than a convention.
+ */
+const FAQS = [
+  { q: 'Работает с фильмами на Рутубе?', a: 'Да, если видео доступно по поддерживаемой ссылке Rutube.' },
+  { q: 'Нужен ли VPN?', a: 'Нет. WeWatch работает напрямую.' },
+  { q: 'Это бесплатно?', a: 'Основные функции совместного просмотра WeWatch бесплатны.' },
+] as const;
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  inLanguage: 'ru',
+  mainEntity: FAQS.map(({ q, a }) => ({
+    '@type': 'Question',
+    name: q,
+    acceptedAnswer: { '@type': 'Answer', text: a },
+  })),
+};
+
 export default function RutubeVmestePage() {
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <GuideHeader locale="ru" />
       <main className="min-h-screen bg-[#060608] text-white">
         <div className="max-w-3xl mx-auto px-4 py-16">
@@ -36,7 +61,7 @@ export default function RutubeVmestePage() {
 
           <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">Смотреть Rutube вместе с друзьями</h1>
           <p className="text-xl text-zinc-400 mb-10 leading-relaxed">
-            WeWatch синхронизирует Rutube для всех участников через веб-версию в браузере. Приложения для iOS и Android находятся в разработке.
+            WeWatch синхронизирует Rutube (Рутуб) для всех участников через веб-версию в браузере. Приложения для iOS и Android находятся в разработке.
           </p>
 
           <section className="mb-10">
@@ -44,7 +69,7 @@ export default function RutubeVmestePage() {
             <ol className="space-y-5">
               {[
                 { n: 1, title: 'Откройте WeWatch', desc: 'Откройте веб-версию в браузере; приложения iOS и Android разрабатываются.' },
-                { n: 2, title: 'Найдите видео на Rutube', desc: 'В браузере WeWatch откройте Rutube и выберите фильм, сериал или ролик.' },
+                { n: 2, title: 'Найдите видео на Рутубе', desc: 'В браузере WeWatch откройте Rutube и выберите фильм, сериал или ролик.' },
                 { n: 3, title: 'Создайте комнату', desc: 'Нажмите «Создать комнату» и отправьте ссылку-приглашение друзьям.' },
                 { n: 4, title: 'Смотрите синхронно', desc: 'WeWatch извлекает поток Rutube и держит его синхронно у всех.' },
               ].map(({ n, title, desc }) => (
@@ -60,20 +85,16 @@ export default function RutubeVmestePage() {
           </section>
 
           <section className="mb-10">
-            <h2 className="text-2xl font-bold mb-4">Rutube без рассинхрона</h2>
+            <h2 className="text-2xl font-bold mb-4">Рутуб без рассинхрона</h2>
             <p className="text-zinc-400 leading-relaxed">
-              Rutube по-разному грузится у разных людей, поэтому «включим одновременно» не работает. WeWatch держит единое время воспроизведения и компенсирует буферизацию — вы видите один кадр одновременно.
+              Рутуб по-разному грузится у разных людей, поэтому «включим одновременно» не работает. WeWatch держит единое время воспроизведения и компенсирует буферизацию — вы видите один кадр одновременно.
             </p>
           </section>
 
           <section className="mb-10">
             <h2 className="text-2xl font-bold mb-4">Вопросы</h2>
             <div className="space-y-4">
-              {[
-                { q: 'Работает с фильмами Rutube?', a: 'Да, если видео доступно по поддерживаемой ссылке Rutube.' },
-                { q: 'Нужен ли VPN?', a: 'Нет. WeWatch работает напрямую.' },
-                { q: 'Это бесплатно?', a: 'Основные функции совместного просмотра WeWatch бесплатны.' },
-              ].map(({ q, a }) => (
+              {FAQS.map(({ q, a }) => (
                 <details key={q} className="border border-zinc-800 rounded-xl p-4">
                   <summary className="text-white font-medium cursor-pointer">{q}</summary>
                   <p className="text-zinc-400 text-sm mt-2 leading-relaxed">{a}</p>

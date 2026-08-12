@@ -30,9 +30,35 @@ const RELATED = [
   { href: '/ru/guides/smotret-anime-vmeste', label: 'Смотреть аниме вместе' },
 ];
 
+
+/**
+ * Rendered as the visible FAQ and published as FAQPage from this one array — the
+ * same rule the guide registry follows, so the schema cannot drift from the page.
+ * seo-geo-aeo.spec.ts asserts every question and answer appears in the visible
+ * HTML, which is what makes that guarantee testable rather than a convention.
+ */
+const FAQS = [
+  { q: 'Если один отстаёт — что происходит?', a: 'WeWatch автоматически синхронизирует всех к позиции хоста. Никто не пропустит важный момент.' },
+  { q: 'Можно ли смотреть сериалы с субтитрами?', a: 'Да. Субтитры работают на сайте как обычно — каждый выбирает язык сам.' },
+  { q: 'Нужно ли оба иметь аккаунт?', a: 'Создателю комнаты нужен аккаунт WeWatch. Гость может войти по ссылке.' },
+  { q: 'Работает ли если мы в разных странах?', a: 'Да. WeWatch работает через интернет — расстояние и страна не важны.' },
+] as const;
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  inLanguage: 'ru',
+  mainEntity: FAQS.map(({ q, a }) => ({
+    '@type': 'Question',
+    name: q,
+    acceptedAnswer: { '@type': 'Answer', text: a },
+  })),
+};
+
 export default function SmotretSerialVmestePage() {
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <GuideHeader locale="ru" />
       <main className="min-h-screen bg-[#060608] text-white">
         <div className="max-w-3xl mx-auto px-4 py-16">
@@ -94,12 +120,7 @@ export default function SmotretSerialVmestePage() {
           <section className="mb-10">
             <h2 className="text-2xl font-bold text-white mb-4">Часто задаваемые вопросы</h2>
             <div className="space-y-4">
-              {[
-                { q: 'Если один отстаёт — что происходит?', a: 'WeWatch автоматически синхронизирует всех к позиции хоста. Никто не пропустит важный момент.' },
-                { q: 'Можно ли смотреть сериалы с субтитрами?', a: 'Да. Субтитры работают на сайте как обычно — каждый выбирает язык сам.' },
-                { q: 'Нужно ли оба иметь аккаунт?', a: 'Создателю комнаты нужен аккаунт WeWatch. Гость может войти по ссылке.' },
-                { q: 'Работает ли если мы в разных странах?', a: 'Да. WeWatch работает через интернет — расстояние и страна не важны.' },
-              ].map(({ q, a }) => (
+              {FAQS.map(({ q, a }) => (
                 <details key={q} className="border border-zinc-800 rounded-xl p-4">
                   <summary className="text-white font-medium cursor-pointer">{q}</summary>
                   <p className="text-zinc-400 text-sm mt-2 leading-relaxed">{a}</p>

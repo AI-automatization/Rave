@@ -479,7 +479,26 @@ function NativeVideoPlayer({
   // whatever causes it isn't a logic bug, it's transient. A VB restart is expensive (relaunches a
   // whole headless browser) for something a plain reload usually clears on its own.
   const retriedRef = useRef(false);
-  useEffect(() => { fatalFiredRef.current = false; retriedRef.current = false; }, [src]);
+  // Real prod pattern confirmed live 2026-08-11 (yummyani.me): a decode/parse error on a fresh
+  // capture-buffer src can fire both the native `error` event AND the retry's own reload failure
+  // within ~1s of the src being set — reportFatal's one retry above still only spans that same
+  // ~1s, nowhere near enough time for a still-filling capture buffer or a slow CDN to prove itself.
+  // The result was 3 owner-facing media switches in 12 seconds (vb-capture → vb-media-proxy →
+  // vb-media-proxy again), each one pre-empting the last before it had a real chance to buffer —
+  // the video never had a stable few seconds to actually start. Enforcing a floor on how soon
+  // escalation can happen (independent of the retry count) fixes that regardless of which layer
+  // is timing out — this is a UX/pacing floor, not a fix for whatever the underlying decode/CDN
+  // issue is.
+  const srcSetAtRef = useRef(0);
+  const escalateTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const MIN_PLAYBACK_ATTEMPT_MS = 4000;
+  useEffect(() => {
+    fatalFiredRef.current = false;
+    retriedRef.current = false;
+    srcSetAtRef.current = Date.now();
+    clearTimeout(escalateTimerRef.current);
+  }, [src]);
+  useEffect(() => () => clearTimeout(escalateTimerRef.current), []);
   const reportFatal = () => {
     if (fatalFiredRef.current) return;
     if (!retriedRef.current) {
@@ -494,7 +513,13 @@ function NativeVideoPlayer({
       return; // give the retry a chance — a second fatal signal falls through to the branch below
     }
     fatalFiredRef.current = true;
-    onFatalErrorRef.current?.();
+    const elapsed = Date.now() - srcSetAtRef.current;
+    const remaining = MIN_PLAYBACK_ATTEMPT_MS - elapsed;
+    if (remaining > 0) {
+      escalateTimerRef.current = setTimeout(() => onFatalErrorRef.current?.(), remaining);
+    } else {
+      onFatalErrorRef.current?.();
+    }
   };
 
   const [isPaused, setIsPaused] = useState(true);

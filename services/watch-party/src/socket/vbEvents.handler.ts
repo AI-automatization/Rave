@@ -7,7 +7,7 @@ import { SERVER_EVENTS, CLIENT_EVENTS } from '@shared/constants/socketEvents';
 import { JwtPayload } from '@shared/types';
 import { VBInput, stopSession, sendInput, getSessionOwner } from '../services/virtualBrowser.service';
 import { startVBForRoom } from './vbSession.helper';
-import { isOwnVbUrl } from '../services/extractionClient';
+import { isOwnVbUrl, isPrivateUrl } from '../services/extractionClient';
 
 interface AuthenticatedSocket extends Socket {
   user: JwtPayload;
@@ -60,6 +60,16 @@ export const registerVBEvents = (
     if (isOwnVbUrl(url.toString())) {
       socket.emit(SERVER_EVENTS.VB_ERROR, { message: 'Нельзя запустить VB на собственном служебном URL' });
       logger.warn('VB start rejected — target is our own VB endpoint', { roomId, userId, url: url.toString() });
+      return;
+    }
+
+    // SSRF guard (2026-08-11 security review): same gap as CHANGE_MEDIA had — room CREATION
+    // rejects private/internal URLs, but the manual "Виртуальный браузер" button (this handler)
+    // never re-checked it, so the owner could point our server-side headless Chromium at
+    // localhost/internal-network/cloud-metadata addresses any time after the room existed.
+    if (isPrivateUrl(url.toString())) {
+      socket.emit(SERVER_EVENTS.VB_ERROR, { message: 'videoUrl points to a private or internal address' });
+      logger.warn('VB start rejected — private/internal URL', { roomId, userId, url: url.toString() });
       return;
     }
 

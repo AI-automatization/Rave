@@ -39,9 +39,54 @@ const RELATED = [
   { href: '/ru/guides/smotret-youtube-vmeste', label: 'YouTube вместе' },
 ];
 
+/**
+ * Rendered as the visible FAQ and published as FAQPage from this one array, so the
+ * schema cannot drift from the page.
+ *
+ * This guide ranks for a money question, so the answers stay inside what
+ * src/data/product-facts.ts actually asserts (verified 2026-08-06): core watch
+ * party is free, Pro is `planned` with `purchaseAvailability: 'unavailable'` and
+ * no published price. Saying "free forever" or naming a Pro price here would put
+ * a claim on the page that nothing in the product backs.
+ */
+const FAQS = [
+  {
+    q: 'Что именно бесплатно в WeWatch?',
+    a: 'Основные функции совместного просмотра: комната, синхронное воспроизведение, чат и реакции. Тариф Pro находится в подготовке — цена не объявлена, купить его пока нельзя.',
+  },
+  {
+    q: 'Нужно ли привязывать карту, чтобы начать?',
+    a: 'Нет. Оплата в WeWatch пока не подключена — начать просмотр можно сразу после создания комнаты.',
+  },
+  {
+    q: 'Есть ли ограничение по времени просмотра?',
+    a: 'Ограничения на длительность нет. Комната закрывается автоматически только после 10 минут без активности участников.',
+  },
+  {
+    q: 'Сколько человек можно позвать бесплатно?',
+    a: 'До 10 участников в одной комнате — это ограничение комнаты, а не тарифа.',
+  },
+  {
+    q: 'Какие источники видео поддерживаются?',
+    a: 'YouTube, VK Видео, Rutube и прямые MP4-ссылки. Доступ к самому видео определяется правилами выбранного источника.',
+  },
+] as const;
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  inLanguage: 'ru',
+  mainEntity: FAQS.map(({ q, a }) => ({
+    '@type': 'Question',
+    name: q,
+    acceptedAnswer: { '@type': 'Answer', text: a },
+  })),
+};
+
 export default function WatchPartyBesplatnoPage() {
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <GuideHeader locale="ru" />
       <main className="min-h-screen bg-[#060608] text-white">
         <div className="max-w-3xl mx-auto px-4 py-16">
@@ -73,6 +118,18 @@ export default function WatchPartyBesplatnoPage() {
             <ul className="space-y-3 text-zinc-400 text-sm">
               {VERIFIED_FACTS.map((fact) => <li key={fact}>✅ {fact}</li>)}
             </ul>
+          </section>
+
+          <section className="mb-10">
+            <h2 className="text-2xl font-bold text-white mb-4">Часто задаваемые вопросы</h2>
+            <div className="space-y-4">
+              {FAQS.map(({ q, a }) => (
+                <details key={q} className="border border-zinc-800 rounded-xl p-4">
+                  <summary className="text-white font-medium cursor-pointer">{q}</summary>
+                  <p className="text-zinc-400 text-sm mt-2 leading-relaxed">{a}</p>
+                </details>
+              ))}
+            </div>
           </section>
 
           <section className="mb-10">

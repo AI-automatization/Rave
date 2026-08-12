@@ -28,9 +28,35 @@ export const metadata: Metadata = {
 };
 
 
+
+/**
+ * Rendered as the visible FAQ and published as FAQPage from this one array — the
+ * same rule the guide registry follows, so the schema cannot drift from the page.
+ * seo-geo-aeo.spec.ts asserts every question and answer appears in the visible
+ * HTML, which is what makes that guarantee testable rather than a convention.
+ */
+const FAQS = [
+  { q: 'Это бесплатно?', a: 'Основные функции совместного просмотра бесплатны. В интерфейсе также указан отдельный Pro-план.' },
+  { q: 'Нужна ли регистрация для гостя?', a: 'Создатель комнаты проходит быструю регистрацию. Гость может войти по ссылке.' },
+  { q: 'Сколько человек могут смотреть вместе?', a: 'До 10 участников могут находиться в одной комнате.' },
+  { q: 'Работает ли без VPN?', a: 'Да, WeWatch работает без VPN. Если видео недоступно в вашем регионе — это ограничение самого сайта, не WeWatch.' },
+] as const;
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  inLanguage: 'ru',
+  mainEntity: FAQS.map(({ q, a }) => ({
+    '@type': 'Question',
+    name: q,
+    acceptedAnswer: { '@type': 'Answer', text: a },
+  })),
+};
+
 export default function SmotretVmesteOnlaynPage() {
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <GuideHeader locale="ru" />
       <main className="min-h-screen bg-[#060608] text-white">
         <div className="max-w-3xl mx-auto px-4 py-16">
@@ -82,7 +108,7 @@ export default function SmotretVmesteOnlaynPage() {
             <h2 className="text-2xl font-bold text-white mb-4">Какие сайты поддерживаются?</h2>
             <p className="text-zinc-400 mb-4">В веб-версии WeWatch подтверждены следующие источники:</p>
             <ul className="grid grid-cols-2 gap-2 text-zinc-400 text-sm">
-              {['YouTube', 'VK Видео', 'Rutube', 'Прямая MP4-ссылка'].map(s => (
+              {['YouTube (ютуб)', 'VK Видео (ВКонтакте)', 'Rutube (Рутуб)', 'Прямая MP4-ссылка'].map(s => (
                 <li key={s} className="flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#7B72F8] flex-shrink-0" />
                   {s}
@@ -101,12 +127,7 @@ export default function SmotretVmesteOnlaynPage() {
           <section className="mb-10">
             <h2 className="text-2xl font-bold text-white mb-4">Часто задаваемые вопросы</h2>
             <div className="space-y-4">
-              {[
-                { q: 'Это бесплатно?', a: 'Основные функции совместного просмотра бесплатны. В интерфейсе также указан отдельный Pro-план.' },
-                { q: 'Нужна ли регистрация для гостя?', a: 'Создатель комнаты проходит быструю регистрацию. Гость может войти по ссылке.' },
-                { q: 'Сколько человек могут смотреть вместе?', a: 'До 10 участников могут находиться в одной комнате.' },
-                { q: 'Работает ли без VPN?', a: 'Да, WeWatch работает без VPN. Если видео недоступно в вашем регионе — это ограничение самого сайта, не WeWatch.' },
-              ].map(({ q, a }) => (
+              {FAQS.map(({ q, a }) => (
                 <details key={q} className="border border-zinc-800 rounded-xl p-4">
                   <summary className="text-white font-medium cursor-pointer">{q}</summary>
                   <p className="text-zinc-400 text-sm mt-2 leading-relaxed">{a}</p>
@@ -123,7 +144,7 @@ export default function SmotretVmesteOnlaynPage() {
                 Открыть WeWatch
               </Link>
               <Link href="/ru/guides/smotret-youtube-vmeste" className="inline-flex items-center justify-center gap-2 border border-zinc-700 hover:border-zinc-500 text-zinc-300 font-medium px-6 py-3 rounded-xl transition-colors">
-                Гайд: YouTube вместе →
+                Гайд: смотреть ютуб вместе →
               </Link>
             </div>
           </div>

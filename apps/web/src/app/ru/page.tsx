@@ -9,7 +9,7 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 export const metadata: Metadata = {
   title: { absolute: 'WeWatch — Смотреть вместе онлайн | Watch Party бесплатно' },
   description:
-    'WeWatch — смотри YouTube, VK и Rutube с друзьями в реальном времени через веб. Бесплатный watch party с чатом и эмодзи. Приложения для iOS и Android находятся в разработке.',
+    'WeWatch — смотри YouTube (ютуб), VK и Rutube с друзьями в реальном времени через веб. Бесплатный watch party с чатом и эмодзи. Приложения для iOS и Android находятся в разработке.',
   alternates: {
     canonical: `${APP_URL}/ru`,
     languages: hreflangFor('/', APP_URL),
