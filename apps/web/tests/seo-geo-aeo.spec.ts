@@ -67,6 +67,47 @@ test.describe('SEO / GEO / AEO regression checks', () => {
     }
   });
 
+  // robots.ts now branches on the request Host, so the canonical host has a way to go
+  // silently dark that it did not have before: one bad comparison there and the whole
+  // site serves `Disallow: /`. Nothing else in this suite would notice — every other
+  // assertion here still passes against a site no crawler is allowed to fetch.
+  test('robots.txt keeps the canonical host crawlable and points at the sitemap', async ({ request }) => {
+    // The Host header is the input under test, so it is set explicitly rather than
+    // inherited from baseURL — the suite runs against localhost as often as prod, and
+    // the answer is supposed to differ between the two.
+    const response = await request.get('/robots.txt', {
+      headers: { host: new URL(BASE).host },
+    });
+    expect(response.status()).toBe(200);
+
+    const body = await response.text();
+    const groups = body.split(/\n(?=User-Agent:)/i);
+    const wildcard = groups.find((group) => /^User-Agent:\s*\*/i.test(group)) ?? '';
+
+    expect(wildcard).toMatch(/^\s*Allow:\s*\/\s*$/m);
+    expect(wildcard).not.toMatch(/^\s*Disallow:\s*\/\s*$/m);
+    expect(body).toMatch(/^\s*Disallow:\s*\/api\/\s*$/m);
+    expect(body).toContain(`Sitemap: ${BASE}/sitemap.xml`);
+
+    for (const bot of ['Googlebot', 'GPTBot', 'ClaudeBot', 'PerplexityBot', 'YandexBot']) {
+      expect(body).toMatch(new RegExp(`^\\s*User-Agent:\\s*${bot}\\s*$`, 'im'));
+    }
+  });
+
+  test('robots.txt blocks a non-canonical host serving the same deployment', async ({ request }) => {
+    const response = await request.get('/robots.txt', {
+      headers: { host: 'web-production-c7ee3.up.railway.app' },
+    });
+    expect(response.status()).toBe(200);
+
+    const body = await response.text();
+    expect(body).toMatch(/^\s*Disallow:\s*\/\s*$/m);
+    expect(body).not.toMatch(/^\s*Allow:\s*\/\s*$/m);
+    // A blocked host must not advertise the canonical sitemap either — that is an
+    // invitation to crawl the duplicate copy of every URL it lists.
+    expect(body).not.toContain('Sitemap:');
+  });
+
   test('every guide owns one unique primary search intent per locale', () => {
     for (const locale of LOCALES) {
       const guides = GUIDES.filter((guide) => guide.locale === locale);
