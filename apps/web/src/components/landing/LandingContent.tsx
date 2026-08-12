@@ -1,10 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-
-declare global {
-  interface Window { gtag?: (...args: unknown[]) => void; }
-}
 import { motion, AnimatePresence, useReducedMotion, type Variants } from './MotionLite';
 import {
   FaPlay, FaUsers, FaComment, FaMobileAlt,

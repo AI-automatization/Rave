@@ -9,6 +9,7 @@ import { chromium, Browser, BrowserContext, Page, CDPSession } from 'playwright-
 import { logger } from '@shared/utils/logger';
 import { vbStreamPublicUrl } from '@shared/utils/serviceConfig';
 import { startCapture, appendCapture, stopCapture, clearCapture } from './vbCapture.service';
+import { isPrivateUrl, isOwnVbUrl } from './extractionClient';
 
 export const VB_VIEWPORT = { width: 1280, height: 720 } as const;
 
@@ -491,11 +492,38 @@ export async function startSession(
         openWindowIfNeeded();
       };
 
+      // Real prod bug 2026-08-11 (yummyani.me, found via multi-model security review — Gemini +
+      // Claude independently flagged the same root cause): this used to hand EVERY binary frame
+      // from EVERY WebSocket on the page straight to onCaptureChunk, no matter which socket it
+      // came from. Real pages open several WS at once (site chat, Yandex Metrika analytics,
+      // AND the actual video player) — a single binary heartbeat/protobuf ping from an unrelated
+      // socket landing in the same append-only buffer corrupts the fMP4/TS box structure
+      // (moof/mdat chain), which is why capture could report "success" (bytes flowed, threshold
+      // crossed) while the browser still refused to decode the result.
+      // Classify per-socket, not per-frame: checking magic bytes on every single frame would
+      // also reject legitimate CONTINUATION chunks of a real media box that don't individually
+      // start with a box header (a frame boundary is not a box boundary). Instead, the first
+      // binary frame a given socket ever sends decides whether that whole socket is "media" —
+      // real video sockets start with a real container header (fMP4 ftyp/moof/mdat/styp, or an
+      // MPEG-TS sync byte); analytics/chat protocols never coincidentally match. Once classified,
+      // every later frame from that same socket is trusted without re-checking.
+      const mediaSocketClassified = new Set<import('playwright-chromium').WebSocket>();
+      const nonMediaSockets = new WeakSet<import('playwright-chromium').WebSocket>();
       page.on('websocket', (ws) => {
         logger.info('VB: websocket opened on page', { roomId, url: ws.url() });
         ws.on('framereceived', (frame) => {
           if (typeof frame.payload === 'string') return; // text frame — control/signaling, not media
-          onCaptureChunk(frame.payload);
+          if (nonMediaSockets.has(ws)) return; // already classified as unrelated — ignore for good
+          const chunk = frame.payload;
+          if (!mediaSocketClassified.has(ws)) {
+            mediaSocketClassified.add(ws);
+            if (sniffMagicBytes(chunk) === null) {
+              nonMediaSockets.add(ws);
+              logger.info('VB: WS socket classified as non-media, ignoring', { roomId, url: ws.url() });
+              return;
+            }
+          }
+          onCaptureChunk(chunk);
         });
       });
 
@@ -602,6 +630,17 @@ export async function startSession(
 
     try {
       await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20_000 });
+      // SSRF guard, redirect case (2026-08-11 security review): the caller only checked the
+      // pre-navigation `url` — page.goto() follows redirects transparently, so a URL that looked
+      // fine at CHANGE_MEDIA/VB_START time could still 30x to a private/internal address (or,
+      // degenerate case, back to our own vb-capture/vb-media-proxy). Re-checking the FINAL url
+      // here is the only point that actually sees where navigation ended up.
+      const finalUrl = page.url();
+      if (isPrivateUrl(finalUrl) || isOwnVbUrl(finalUrl)) {
+        logger.warn('VB: navigation redirected to a disallowed URL, aborting session', { roomId, url, finalUrl });
+        await stopSession(roomId);
+        return;
+      }
       logger.info('VB session started', { roomId, url, active: sessions.size });
       const s = sessions.get(roomId);
       if (s) {

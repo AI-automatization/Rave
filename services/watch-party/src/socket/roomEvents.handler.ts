@@ -9,7 +9,7 @@ import { recordWatchHistoryInternal } from '@shared/utils/serviceClient';
 import { bufferTimeouts, resumeBufferedRoom } from './videoEvents.handler';
 import { stopSession, getSessionSnapshot, hasSession } from '../services/virtualBrowser.service';
 import { startVBForRoom } from './vbSession.helper';
-import { isOfficialEmbedHost, isOwnVbUrl } from '../services/extractionClient';
+import { isOfficialEmbedHost, isOwnVbUrl, isPrivateUrl } from '../services/extractionClient';
 
 interface AuthenticatedSocket extends Socket {
   user: JwtPayload;
@@ -243,6 +243,18 @@ export const registerRoomEvents = (
     const roomId = authSocket.roomId;
     if (!roomId) {
       logger.warn('Media change: socket has no roomId', { userId });
+      return;
+    }
+
+    // SSRF guard (2026-08-11 security review): room CREATION already rejects private/internal
+    // URLs (watchParty.service.ts), but that only gated the room's initial videoUrl — every later
+    // media change landed here with no such check, so the owner-only VB fallback could point our
+    // server-side headless Chromium at localhost/internal-network/cloud-metadata addresses after
+    // the room already existed. Own-URL candidates (isOwnVbUrl) are exempt — those are already-
+    // resolved, our-own-host URLs, not attacker-controlled navigation targets.
+    if (!isOwnVbUrl(data.videoUrl) && isPrivateUrl(data.videoUrl)) {
+      socket.emit(SERVER_EVENTS.ERROR, { message: 'videoUrl points to a private or internal address' });
+      logger.warn('CHANGE_MEDIA rejected — private/internal URL', { roomId, userId, url: data.videoUrl });
       return;
     }
 

@@ -1,8 +1,17 @@
 # WeWatch — BAJARILGAN ISHLAR ARXIVI
 
-# Yangilangan: 2026-07-28
+# Yangilangan: 2026-08-11
 
 ---
+
+### F-291 | T-S201 | VB candidate playback fix — vb-capture o'z-o'ziga qaytish sikli (yummyani.me)
+
+- **Bajaruvchi:** Saidazim (Claude Sonnet 5)  **Bajarilgan:** 2026-08-11 18:16  **Model:** sonnet
+- **O'zgarishlar:**
+  - `apps/app-web/src/app/(app)/room/[id]/RoomContent.tsx` — `unwrapVbProxyUrl()` endi `/vb-capture/` yo'lini tanib oladi, `null` qaytaradi (avval `/vb-media-proxy/`ni tekshirmagani uchun buni "haqiqiy manba sahifa" deb noto'g'ri qabul qilardi).
+  - `apps/mobile/src/screens/modal/WatchPartyScreen.tsx` — xuddi shu fix (dublikat funksiya).
+  - `services/watch-party/src/socket/vbEvents.handler.ts` — `VB_START` handlerga `isOwnVbUrl()` server-side tekshiruvi qo'shildi (himoya ikkinchi qatlami).
+- **Xulosa:** yummyani.me'da hech qaysi VB kandidat o'ynamas edi. Sabab: birinchi (default) kandidat har doim bizning `/vb-capture/` bufferimiz — u o'ynamagach, owner-only fatal-error auto-retry `vbStart()`ni shu o'z URL bilan chaqirardi, `unwrapVbProxyUrl` buni "haqiqiy sahifa" deb tanib, real manzilni yo'qotardi. Backend'da esa `startSession()` yangi (boshqa) url ko'rib, eski sessiyani o'chirardi — aynan o'sha buferni to'ldirib turgan sessiyani. Railway loglarini `--since` bilan jonli tutib, 3 fayl kodini o'qib aniqlandi. Classification: BUG/HIGH complexity/HIGH risk (self-referential-loop-guard oilasi, shu oyda 3-marta) — task_id rave-20260811-230100-e658a2. tsc: barcha 3 servisda toza (mobile'dagi 1ta LanguageTransition xatosi — pre-existing, tegilmagan).
 
 ### F-290 | T-S194 | Web: til avto-aniqlash — `Accept-Language`, cookie'siz, faqat `/` da
 

@@ -71,6 +71,17 @@ function unwrapVbProxyUrl(url: string): string | null {
     } catch {
       return null;
     }
+    // /vb-capture/ (the raw byte-buffer endpoint, vbSession.helper.ts's other own-URL kind
+    // besides vb-media-proxy) carries no `?url=` — there is no original page to recover, unlike
+    // vb-media-proxy below. Real prod bug 2026-08-11 (yummyani.me): falling through to the
+    // `!includes('/vb-media-proxy/') → return current` branch made THIS look like "not a proxy
+    // URL, must be the real source page" — originalSourceUrlRef then got overwritten with our own
+    // vb-capture URL, and the next fatal-error retry called vb.start() on it: VB navigated to its
+    // own (already-dead once the feeding session got torn down) endpoint instead of the actual
+    // page, so nothing could ever be found again. Must return null here, same contract as an
+    // unrecoverable vb-media-proxy nesting — caller skips the VB fallback rather than loop on it.
+    // Mirrors apps/app-web's RoomContent.tsx.
+    if (parsed.pathname.includes('/vb-capture/')) return null;
     if (!parsed.pathname.includes('/vb-media-proxy/')) return current;
     const original = parsed.searchParams.get('url'); // URLSearchParams already decodes the value
     if (!original) return null;

@@ -1,27 +1,41 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
+import { usePathname } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
+import { trackWaitlistSubmit } from '@/lib/analytics/events';
+
+/** Identifies this form in `waitlist_submit`; not a page, so not a path. */
+const CONTENT_SLUG = 'mobile_apps_waitlist';
 
 export function WaitlistForm() {
   const t = useTranslations('landing');
   const locale = useLocale();
+  const pathname = usePathname();
   const [email, setEmail] = useState('');
   const [done, setDone] = useState(false);
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     if (!email.includes('@')) return;
+
+    // The visible acknowledgement stays optimistic — that is a deliberate UX
+    // choice from the previous landing page. The event is not: it reports what
+    // actually happened, so a broken endpoint shows up as failed submissions
+    // instead of as signups.
+    let result: 'success' | 'error' = 'success';
     try {
-      await fetch('/api/waitlist', {
+      const response = await fetch('/api/waitlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, locale }),
       });
+      if (!response.ok) result = 'error';
     } catch {
-      // Keep the optimistic acknowledgement used by the previous landing page.
+      result = 'error';
     }
-    window.gtag?.('event', 'mobile_waitlist_signup');
+
+    trackWaitlistSubmit(pathname, CONTENT_SLUG, result);
     setDone(true);
   };
 
