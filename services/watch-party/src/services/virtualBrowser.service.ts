@@ -28,6 +28,23 @@ const MAX_CONCURRENT = 3;
 // different, lighter package this file already depends on), and every patch below is a handful of
 // well-known lines, not worth a new dependency + compatibility risk for.
 const STEALTH_LAUNCH_ARGS = ['--disable-blink-features=AutomationControlled'];
+
+// Real prod finding 2026-08-12 (uzmovi.net, live-tested): the site's actual player loads the movie
+// via MSE (a `blob:` URL fed by SourceBuffer.appendBuffer) — confirmed working end-to-end by hand
+// (buffered range grew from 10s to 94s over 8s of real playback, no errors). But live rooms showed
+// only the first ~10s (an intro bumper) ever landing in vb-capture's buffer, then nothing — same
+// static-byte-count symptom independently seen on yummyani.me the day before. Root cause: Chromium
+// throttles timers/media decode on tabs it considers backgrounded, and this service never disabled
+// that — `pauseScreencast()` (stops the CDP JPEG stream once the collection window closes and the
+// picker opens) lines up exactly with when captured content stops growing in the logs, which is
+// consistent with Chromium reclassifying the tab as background right when the screencast frames
+// stop being consumed. These three are the standard flags for exactly this class of headless
+// tool (screen/media capture that must keep running regardless of visibility) — not experimental.
+const ANTI_THROTTLE_LAUNCH_ARGS = [
+  '--disable-background-timer-throttling',
+  '--disable-backgrounding-occluded-windows',
+  '--disable-renderer-backgrounding',
+];
 // Real desktop Chrome UA string, same major version family as the bundled playwright-chromium —
 // just without the "HeadlessChrome" token that gives the game away.
 const STEALTH_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
@@ -439,7 +456,7 @@ export async function startSession(
     const browser = await chromium.launch({
       headless: true,
       executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', ...STEALTH_LAUNCH_ARGS],
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', ...STEALTH_LAUNCH_ARGS, ...ANTI_THROTTLE_LAUNCH_ARGS],
     });
     const context = await browser.newContext({ viewport: VB_VIEWPORT, userAgent: STEALTH_USER_AGENT });
     await applyStealthPatches(context);
@@ -679,7 +696,7 @@ export async function probeUrl(url: string): Promise<{ mediaUrl: string; type: M
     browser = await chromium.launch({
       headless: true,
       executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', ...STEALTH_LAUNCH_ARGS],
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', ...STEALTH_LAUNCH_ARGS, ...ANTI_THROTTLE_LAUNCH_ARGS],
     });
     const context = await browser.newContext({ viewport: VB_VIEWPORT, userAgent: STEALTH_USER_AGENT });
     await applyStealthPatches(context);
