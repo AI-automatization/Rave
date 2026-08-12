@@ -228,8 +228,15 @@ export const createVbMediaProxyController = (redis: Redis) => ({
       // Redis is exactly that page, stored once when the room switches to this VB session
       // (vbSession.helper.ts).
       const referer = roomId ? await redis.get(REDIS_KEYS.vbSourceUrl(roomId)).catch(() => null) : null;
+      // Real prod finding 2026-08-12 (uzmovi.net, live-tested): some 'url'-kind candidates are
+      // bound to the session cookie VB's own browser picked up loading the source page, not just
+      // a query-string token — a stateless fetch with no Cookie header gets redirected to the
+      // site's homepage instead of the actual media (confirmed with a direct curl outside Railway
+      // entirely, so not the IP-block class of issue this proxy otherwise exists for). See
+      // virtualBrowser.service.ts's onSessionCookies / vbSession.helper.ts for where this is captured.
+      const cookieHeader = roomId ? await redis.get(REDIS_KEYS.vbSessionCookies(roomId)).catch(() => null) : null;
 
-      const ok = await attemptFetch(rawUrl, req, res, referer ?? undefined);
+      const ok = await attemptFetch(rawUrl, req, res, referer ?? undefined, cookieHeader ?? undefined);
       if (ok) return;
 
       if (!roomId) {
@@ -243,7 +250,7 @@ export const createVbMediaProxyController = (redis: Redis) => ({
         return;
       }
 
-      const retryOk = await attemptFetch(fresh.mediaUrl, req, res, referer ?? undefined);
+      const retryOk = await attemptFetch(fresh.mediaUrl, req, res, referer ?? undefined, cookieHeader ?? undefined);
       if (!retryOk) writeFetchFailedResponse(res);
     } catch (err) {
       // An async Express handler that throws is NOT caught by Express itself — the
@@ -315,7 +322,7 @@ async function parseAndVerifyUrl(req: Request, res: Response): Promise<string | 
 /** Fetches `rawUrl` and writes a full response (manifest rewrite or byte passthrough) on success.
  *  Returns false WITHOUT writing anything on failure, so the caller can retry with a different
  *  URL (see getFreshMediaUrl above) instead of the failure being final. */
-async function attemptFetch(rawUrl: string, req: Request, res: Response, referer?: string): Promise<boolean> {
+async function attemptFetch(rawUrl: string, req: Request, res: Response, referer?: string, cookieHeader?: string): Promise<boolean> {
     const guardReason = await validateTarget(rawUrl);
     if (guardReason) {
       logger.warn('vb-media-proxy: target failed SSRF/self-reference guard', { reason: guardReason, urlLength: rawUrl.length });
@@ -344,6 +351,7 @@ async function attemptFetch(rawUrl: string, req: Request, res: Response, referer
     };
     if (range) headers['Range'] = cappedRange(range, MAX_RANGE_CHUNK_BYTES, MAX_EXPLICIT_RANGE_BYTES);
     if (referer) headers['Referer'] = referer;
+    if (cookieHeader) headers['Cookie'] = cookieHeader;
 
     let upstream: globalThis.Response;
     try {
@@ -418,12 +426,16 @@ async function attemptFetch(rawUrl: string, req: Request, res: Response, referer
       // works correctly, unlike the templated case above.
       const base = parsedUrl.href.substring(0, parsedUrl.href.lastIndexOf('/') + 1);
       const proxy = proxyBase(req);
+      // roomId propagated the same unsigned way proxiedMediaUrl (vbSession.helper.ts) does for the
+      // top-level URL — without it, segment fetches below have no roomId to look up the referer/
+      // session-cookie a candidate may need (see cookieHeader above), only the manifest fetch does.
+      const roomIdQuery = typeof req.query.roomId === 'string' ? `&roomId=${encodeURIComponent(req.query.roomId)}` : '';
       const rewritten = text.replace(/<BaseURL>([^<]+)<\/BaseURL>/g, (_match, urlText: string) => {
         const trimmed = urlText.trim();
         const absUrl = trimmed.startsWith('http') ? trimmed : base + trimmed;
         const { exp: segExp, sig: segSig } = signProxyUrl(absUrl);
         const encodedAbsUrl = Buffer.from(absUrl, 'utf8').toString('base64url');
-        return `<BaseURL>${proxy}/seg?url=${encodedAbsUrl}&exp=${segExp}&sig=${segSig}</BaseURL>`;
+        return `<BaseURL>${proxy}/seg?url=${encodedAbsUrl}&exp=${segExp}&sig=${segSig}${roomIdQuery}</BaseURL>`;
       });
 
       res.status(200);
@@ -437,6 +449,8 @@ async function attemptFetch(rawUrl: string, req: Request, res: Response, referer
       const text = await upstream.text();
       const base = parsedUrl.href.substring(0, parsedUrl.href.lastIndexOf('/') + 1);
       const proxy = proxyBase(req);
+      // See the DASH branch above for why this is here — same roomId propagation for cookie/referer lookup.
+      const roomIdQuery = typeof req.query.roomId === 'string' ? `&roomId=${encodeURIComponent(req.query.roomId)}` : '';
 
       const rewritten = text
         .split('\n')
@@ -449,7 +463,7 @@ async function attemptFetch(rawUrl: string, req: Request, res: Response, referer
           // playlist would break the instant this ships.
           const { exp: segExp, sig: segSig } = signProxyUrl(absUrl);
           const encodedAbsUrl = Buffer.from(absUrl, 'utf8').toString('base64url');
-          return `${proxy}/seg?url=${encodedAbsUrl}&exp=${segExp}&sig=${segSig}`;
+          return `${proxy}/seg?url=${encodedAbsUrl}&exp=${segExp}&sig=${segSig}${roomIdQuery}`;
         })
         .join('\n');
 

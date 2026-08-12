@@ -4,10 +4,9 @@ import { logger } from '@shared/utils/logger';
 import { NotFoundError, ForbiddenError, BadRequestError } from '@shared/utils/errors';
 import { SyncState, VideoPlatform, VideoItem, VideoResolveStatus } from '@shared/types';
 import { REDIS_KEYS, TTL } from '@shared/constants';
-import { isOfficialEmbedHost, tryExtract } from './extractionClient';
+import { isOfficialEmbedHost, tryExtract, isPrivateUrl } from './extractionClient';
 import { probeUrl } from './virtualBrowser.service';
 const BLOCKED_DOMAINS_KEY = 'watch_party:blocked_domains';
-const PRIVATE_URL = /^https?:\/\/(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/i;
 const MAX_PLAYLIST = 50;
 
 export class WatchPartyPlaylistService {
@@ -80,7 +79,11 @@ export class WatchPartyPlaylistService {
     if (!/^https?:\/\//i.test(item.videoUrl)) {
       throw new BadRequestError('videoUrl must start with http:// or https://');
     }
-    if (PRIVATE_URL.test(item.videoUrl)) {
+    // Real prod finding 2026-08-12 (multi-agent review): was its own hand-duplicated regex, out of
+    // sync with extractionClient.ts's canonical isPrivateUrl (missing 169.254.x.x — cloud
+    // metadata). A playlist add with that as videoUrl would sail past this check and later feed
+    // probeUrl() below, a real Chromium navigation. Import the one canonical check instead.
+    if (isPrivateUrl(item.videoUrl)) {
       throw new BadRequestError('videoUrl points to a private or internal address');
     }
     if (/googlevideo\.com/i.test(item.videoUrl)) {

@@ -76,6 +76,13 @@ export const REDIS_KEYS = {
   // gone stale by the time it's actually used (some sites re-sign their CDN URL every ~10s as
   // anti-hotlink protection — see vbMediaProxy.controller.ts's refresh-on-failure logic).
   vbSourceUrl: (roomId: string) => `party:vb_source:${roomId}`,
+  // Real prod finding 2026-08-12 (uzmovi.net): a captured 'url'-kind candidate can be bound to
+  // the session cookie VB's own browser picked up loading the source page (a Set-Cookie during
+  // navigation), not just a query-string token — a stateless proxy fetch with no Cookie header
+  // gets redirected to the site's homepage instead of the actual media, indistinguishable at the
+  // network layer from a hard IP-block (curl from a residential IP hits the same redirect with no
+  // cookie jar). VB's context.cookies() has the real session; vbMediaProxy replays it here.
+  vbSessionCookies: (roomId: string) => `party:vb_cookies:${roomId}`,
   createRoomRate: (ip: string) => `party:create_rate:${ip}`,
   joinRoomRate: (userId: string) => `party:join_rate:${userId}`,
   recentRooms: (userId: string) => `party:recent_rooms:${userId}`,

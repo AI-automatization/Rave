@@ -189,6 +189,13 @@ export async function startVBForRoom(
     rawUrlByCandidateIndex.forEach((rawUrl, i) => {
       if (rawUrl === src) candidates[i] = { ...candidates[i], confirmed: true };
     });
+  }, (cookieHeader) => {
+    // Same TTL/lookup pattern as vbSourceUrl above — read back by vbMediaProxy.controller.ts to
+    // replay the session a 'url'-kind candidate turned out to need (see virtualBrowser.service.ts's
+    // onSessionCookies doc comment for the uzmovi.net finding this exists for).
+    void redis.setex(REDIS_KEYS.vbSessionCookies(roomId), CANDIDATES_TTL_SEC, cookieHeader).catch((e) => {
+      logger.warn('VB: failed to store session cookies for later replay', { roomId, error: (e as Error).message });
+    });
   });
 
   io.to(roomId).emit(SERVER_EVENTS.VB_STARTED, { url, width: VB_VIEWPORT.width, height: VB_VIEWPORT.height, ownerId });
