@@ -44,7 +44,12 @@ export function Analytics() {
       // navigation between marketing pages is not.
       if (!anchor.href.startsWith(APP_ORIGIN)) return;
 
-      const destination = anchor.href.slice(APP_ORIGIN.length) || '/';
+      // gtag.js's cross-domain linker decorates matching anchors' href with its own
+      // `?_gl=...` tracking param asynchronously after mount — by the time a real
+      // click fires, `anchor.href` can already carry it. destination is meant to be
+      // the app-side route, not a snapshot of whatever the linker glued on, so query
+      // string and hash are stripped before recording it.
+      const destination = anchor.href.slice(APP_ORIGIN.length).split(/[?#]/)[0] || '/';
       const ctaId = anchor.dataset.cta ?? `${areaOf(anchor)}:${destination}`;
 
       trackCtaClick(pathname, ctaId, destination);
