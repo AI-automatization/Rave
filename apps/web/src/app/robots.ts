@@ -61,7 +61,13 @@ function isCanonicalHost(host: string): boolean {
   // it as canonical keeps the redirect the single place that decides host collapsing.
   // An absent Host header means a non-HTTP caller (build-time render), which must get
   // the production rules — otherwise a prerender would bake in the blocking variant.
-  return name === '' || name === CANONICAL_HOST || name === `www.${CANONICAL_HOST}`;
+  // localhost/127.0.0.1 (any port) is CI's own Lighthouse job and local dev — `next start`
+  // there answers on that Host, never on CANONICAL_HOST (NEXT_PUBLIC_APP_URL isn't
+  // overridden in CI). Without this, the disallow-by-default branch below fires for CI's
+  // own crawl, tanking the SEO Lighthouse score (audit for "not blocked from indexing")
+  // on every PR touching this file — confirmed live on PR #110's own first run (66/100).
+  return name === '' || name === CANONICAL_HOST || name === `www.${CANONICAL_HOST}`
+      || name === 'localhost' || name === '127.0.0.1';
 }
 
 export default async function robots(): Promise<MetadataRoute.Robots> {
