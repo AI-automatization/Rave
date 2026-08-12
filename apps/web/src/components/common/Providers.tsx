@@ -2,6 +2,7 @@
 
 import { NextIntlClientProvider, type AbstractIntlMessages } from 'next-intl';
 import { Toaster } from '@/components/common/Toaster';
+import { Analytics } from '@/components/common/Analytics';
 
 type Locale = 'uz' | 'ru' | 'en';
 
@@ -31,6 +32,7 @@ export function Providers({
     <NextIntlClientProvider locale={initialLocale} messages={messages}>
       {children}
       <Toaster />
+      <Analytics />
     </NextIntlClientProvider>
   );
 }
