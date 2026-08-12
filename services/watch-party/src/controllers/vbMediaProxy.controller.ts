@@ -201,6 +201,18 @@ async function getFreshMediaUrl(roomId: string, redis: Redis): Promise<{ mediaUr
 
 export const createVbMediaProxyController = (redis: Redis) => ({
   async stream(req: Request, res: Response): Promise<void> {
+    // Real prod bug 2026-08-12: bare helmet() (app.ts) sets Cross-Origin-Resource-Policy:
+    // same-origin on every response by default. This route is deliberately public/cross-
+    // origin (see SECURITY note above) — app-web's <video>/HLS.js fetches it from a
+    // different origin than this service — so the default silently made the browser
+    // refuse to hand the already-fetched bytes to the player at all, independent of
+    // whatever the response actually contained. Confirmed live: every vb-media-proxy
+    // request was "Cancelled ... violates the resource's Cross-Origin-Resource-Policy
+    // response header" in the browser console despite this service answering 200/206.
+    // Set unconditionally, before any branch below, so every response path (error JSON,
+    // DASH/HLS manifest rewrite, proxied media bytes) carries it. Same fix needed on
+    // vbCapture.controller.ts.
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
     try {
       const rawUrl = await parseAndVerifyUrl(req, res);
       if (rawUrl === null) return; // parseAndVerifyUrl already wrote the error response

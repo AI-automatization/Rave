@@ -42,6 +42,16 @@ export const vbCaptureController = {
     }
 
     res.status(range ? 206 : 200);
+    // Real prod bug 2026-08-12: bare helmet() (app.ts) sets Cross-Origin-Resource-Policy:
+    // same-origin on every response by default. This route is deliberately public/cross-
+    // origin — app-web's <video>/MSE fetches it from a different origin (app.wewatch.uz,
+    // or Bunny's wewatch-stream.b-cdn.net pull zone in front of this service) — so the
+    // default silently made the browser refuse to hand the already-fetched bytes to the
+    // player at all, independent of whatever the bytes actually contained. Confirmed live:
+    // every vb-capture/vb-media-proxy request was "Cancelled ... violates the resource's
+    // Cross-Origin-Resource-Policy response header" in the browser console despite the
+    // server itself answering 200. Same fix needed on vbMediaProxy.controller.ts.
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
     res.setHeader('Content-Type', 'video/mp4');
     res.setHeader('Accept-Ranges', 'bytes');
     // NOT immutable/long-lived: totalBytes (the Content-Range denominator below) grows as capture
