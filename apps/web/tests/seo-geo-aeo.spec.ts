@@ -2,6 +2,8 @@ import { expect, test } from '@playwright/test';
 import { GUIDES } from '../src/data/guides';
 import { ARTICLES } from '../src/data/articles';
 import { PRODUCT_FACTS } from '../src/data/product-facts';
+import { pageContextFor } from '../src/lib/analytics/page-context';
+import { classifyReferrer } from '../src/lib/analytics/referrer';
 
 type JsonLd = Record<string, unknown>;
 
@@ -334,8 +336,6 @@ test.describe('SEO / GEO / AEO regression checks', () => {
  */
 test.describe('Analytics — measurement plan events', () => {
   test('page context is derived from the URL, and translated slugs share one cluster', async () => {
-    const { pageContextFor } = await import('../src/lib/analytics/page-context');
-
     expect(pageContextFor('/ru/guides/smotret-youtube-vmeste')).toEqual({
       locale: 'ru',
       page_type: 'guide',
@@ -355,8 +355,6 @@ test.describe('Analytics — measurement plan events', () => {
   });
 
   test('AI assistants are their own referrer class, not search or referral', async () => {
-    const { classifyReferrer } = await import('../src/lib/analytics/referrer');
-
     expect(classifyReferrer('https://www.perplexity.ai/search?q=x', 'wewatch.uz')).toBe('ai_assistant');
     expect(classifyReferrer('https://chatgpt.com/', 'wewatch.uz')).toBe('ai_assistant');
     // gemini.google.com is a google.com subdomain: order of checks decides this one.
