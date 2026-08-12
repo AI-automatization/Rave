@@ -30,9 +30,35 @@ const RELATED = [
   { href: '/ru/guides/watch-party-besplatno', label: 'Watch party бесплатно' },
 ];
 
+/**
+ * Rendered as the visible FAQ and published as FAQPage from this one array — the
+ * same rule the guide registry follows, so the schema cannot drift from the page.
+ * seo-geo-aeo.spec.ts asserts every question and answer appears in the visible
+ * HTML, which is what makes that guarantee testable rather than a convention.
+ */
+const FAQS = [
+  { q: 'Как смотреть ютуб вместе с другом бесплатно?', a: 'Откройте wewatch.uz в браузере, вставьте ссылку на видео и отправьте другу ссылку-приглашение. Совместный просмотр бесплатный.' },
+  { q: 'Нужно ли обоим регистрироваться?', a: 'Нет. Аккаунт нужен тому, кто создаёт комнату и управляет воспроизведением. Гость заходит по ссылке-приглашению без регистрации.' },
+  { q: 'Работает ли с YouTube Premium?', a: 'Да. WeWatch открывает YouTube в браузере — ваша подписка работает как обычно.' },
+  { q: 'Есть ли задержка синхронизации?', a: 'Расхождение больше 500 мс исправляется автоматически — на глаз незаметно. WeWatch использует серверное время для точной синхронизации.' },
+  { q: 'Можно ли смотреть ютуб вместе с телефона и компьютера?', a: 'Да — это главная особенность WeWatch. Один в браузере на телефоне, другой на ноутбуке — видео идёт синхронно.' },
+] as const;
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  inLanguage: 'ru',
+  mainEntity: FAQS.map(({ q, a }) => ({
+    '@type': 'Question',
+    name: q,
+    acceptedAnswer: { '@type': 'Answer', text: a },
+  })),
+};
+
 export default function SmotretYoutubeVmestePage() {
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <GuideHeader locale="ru" />
       <main className="min-h-screen bg-[#060608] text-white">
         <div className="max-w-3xl mx-auto px-4 py-16">
@@ -98,13 +124,7 @@ export default function SmotretYoutubeVmestePage() {
           <section className="mb-10">
             <h2 className="text-2xl font-bold text-white mb-4">Часто задаваемые вопросы</h2>
             <div className="space-y-4">
-              {[
-                { q: 'Как смотреть ютуб вместе с другом бесплатно?', a: 'Откройте wewatch.uz в браузере, вставьте ссылку на видео и отправьте другу ссылку-приглашение. Совместный просмотр бесплатный.' },
-                { q: 'Нужно ли обоим регистрироваться?', a: 'Нет. Аккаунт нужен тому, кто создаёт комнату и управляет воспроизведением. Гость заходит по ссылке-приглашению без регистрации.' },
-                { q: 'Работает ли с YouTube Premium?', a: 'Да. WeWatch открывает YouTube в браузере — ваша подписка работает как обычно.' },
-                { q: 'Есть ли задержка синхронизации?', a: 'Расхождение больше 500 мс исправляется автоматически — на глаз незаметно. WeWatch использует серверное время для точной синхронизации.' },
-                { q: 'Можно ли смотреть ютуб вместе с телефона и компьютера?', a: 'Да — это главная особенность WeWatch. Один в браузере на телефоне, другой на ноутбуке — видео идёт синхронно.' },
-              ].map(({ q, a }) => (
+              {FAQS.map(({ q, a }) => (
                 <details key={q} className="border border-zinc-800 rounded-xl p-4">
                   <summary className="text-white font-medium cursor-pointer">{q}</summary>
                   <p className="text-zinc-400 text-sm mt-2 leading-relaxed">{a}</p>

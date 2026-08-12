@@ -40,9 +40,43 @@ export const metadata: Metadata = {
 };
 
 
+
+/**
+ * Rendered as the visible FAQ and published as FAQPage from this one array — the
+ * same rule the guide registry follows, so the schema cannot drift from the page.
+ * seo-geo-aeo.spec.ts asserts every question and answer appears in the visible
+ * HTML, which is what makes that guarantee testable rather than a convention.
+ */
+const FAQS = [
+  {
+    q: "YouTube Premium kerakmi?",
+    a: "Yo'q. WeWatch oddiy YouTube videolari bilan ishlaydi — Premium shart emas.",
+  },
+  {
+    q: "Do'stim boshqa shaharda bo'lsa ham ishlaydi?",
+    a: "Ha, internet bo'lsa bas. Toshkent, Samarqand, Moskva — farqi yo'q.",
+  },
+  {
+    q: "Chatda gaplashish mumkinmi?",
+    a: "Ha. WeWatch xonasida matn chat mavjud, tomosha paytida xabar yozish mumkin.",
+  },
+] as const;
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  inLanguage: 'uz',
+  mainEntity: FAQS.map(({ q, a }) => ({
+    '@type': 'Question',
+    name: q,
+    acceptedAnswer: { '@type': 'Answer', text: a },
+  })),
+};
+
 export default function YoutubeBirgalikdaPage() {
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <GuideHeader locale="uz" />
       <main className="min-h-screen bg-[#060608] text-white">
         <div className="max-w-3xl mx-auto px-4 py-16">
@@ -117,20 +151,7 @@ export default function YoutubeBirgalikdaPage() {
           <section className="mb-10">
             <h2 className="text-2xl font-bold text-white mb-4">Ko'p so'raladigan savollar</h2>
             <div className="space-y-4">
-              {[
-                {
-                  q: "YouTube Premium kerakmi?",
-                  a: "Yo'q. WeWatch oddiy YouTube videolari bilan ishlaydi — Premium shart emas.",
-                },
-                {
-                  q: "Do'stim boshqa shaharda bo'lsa ham ishlaydi?",
-                  a: "Ha, internet bo'lsa bas. Toshkent, Samarqand, Moskva — farqi yo'q.",
-                },
-                {
-                  q: "Chatda gaplashish mumkinmi?",
-                  a: "Ha. WeWatch xonasida matn chat mavjud, tomosha paytida xabar yozish mumkin.",
-                },
-              ].map(({ q, a }) => (
+              {FAQS.map(({ q, a }) => (
                 <div key={q} className="bg-zinc-900 rounded-xl p-5 border border-zinc-800">
                   <div className="font-semibold text-white mb-2">{q}</div>
                   <div className="text-zinc-400 text-sm">{a}</div>

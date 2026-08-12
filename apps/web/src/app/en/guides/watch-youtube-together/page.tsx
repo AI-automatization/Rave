@@ -40,24 +40,6 @@ const HOW_TO_STEPS = [
 
 // Facts (500 ms drift correction, 10 participants) come from
 // shared/src/constants — they must match llms.txt and the app, not be invented.
-const jsonLd = {
-  '@context': 'https://schema.org',
-  '@type': 'HowTo',
-  name: 'How to watch YouTube together with a friend online',
-  description: 'Step-by-step instructions for starting a synchronized YouTube watch party with WeWatch.',
-  inLanguage: 'en',
-  totalTime: 'PT2M',
-  tool: [{ '@type': 'HowToTool', name: 'WeWatch' }],
-  url: `${APP_URL}${PATH}`,
-  mainEntityOfPage: { '@type': 'WebPage', '@id': `${APP_URL}${PATH}` },
-  step: HOW_TO_STEPS.map((step) => ({
-    '@type': 'HowToStep',
-    position: step.n,
-    name: step.title,
-    text: step.text,
-  })),
-};
-
 function Step({ n, title, text }: { n: number; title: string; text: string }) {
   return (
     <div className="flex gap-4">
@@ -94,6 +76,39 @@ const FAQS = [
     a: 'Up to 10 participants in one room. Rooms close automatically after 10 minutes with nobody active.',
   },
 ];
+
+// Declared after FAQS, not before it: `const` is not hoisted through the temporal
+// dead zone, so building the graph above the array it reads would throw on import.
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'HowTo',
+      name: 'How to watch YouTube together with a friend online',
+      description: 'Step-by-step instructions for starting a synchronized YouTube watch party with WeWatch.',
+      inLanguage: 'en',
+      totalTime: 'PT2M',
+      tool: [{ '@type': 'HowToTool', name: 'WeWatch' }],
+      url: `${APP_URL}${PATH}`,
+      mainEntityOfPage: { '@type': 'WebPage', '@id': `${APP_URL}${PATH}` },
+      step: HOW_TO_STEPS.map((step) => ({
+        '@type': 'HowToStep',
+        position: step.n,
+        name: step.title,
+        text: step.text,
+      })),
+    },
+    {
+      '@type': 'FAQPage',
+      inLanguage: 'en',
+      mainEntity: FAQS.map(({ q, a }) => ({
+        '@type': 'Question',
+        name: q,
+        acceptedAnswer: { '@type': 'Answer', text: a },
+      })),
+    },
+  ],
+};
 
 export default function WatchYouTubeTogetherEnPage() {
   return (

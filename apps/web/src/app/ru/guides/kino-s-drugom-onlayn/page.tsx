@@ -31,9 +31,35 @@ const RELATED = [
   { href: '/uz/guides/kino-birgalikda', label: "O'zbekcha" },
 ];
 
+
+/**
+ * Rendered as the visible FAQ and published as FAQPage from this one array — the
+ * same rule the guide registry follows, so the schema cannot drift from the page.
+ * seo-geo-aeo.spec.ts asserts every question and answer appears in the visible
+ * HTML, which is what makes that guarantee testable rather than a convention.
+ */
+const FAQS = [
+  { q: 'Можно смотреть кино если мы в разных странах?', a: 'Да. WeWatch работает через интернет, расстояние не имеет значения. Узбекистан, Россия, Европа — синхронизация одинаковая.' },
+  { q: 'Нужна ли подписка на источник видео?', a: 'WeWatch принимает поддерживаемую ссылку, но доступ к самому видео определяется правилами выбранного источника.' },
+  { q: 'Можно ли смотреть с нескольких друзей одновременно?', a: 'Да — создайте одну комнату и поделитесь ссылкой с несколькими людьми. Все смотрят синхронно.' },
+  { q: 'Это действительно бесплатно?', a: 'Основные функции веб-версии бесплатны. Приложения для iOS и Android находятся в разработке.' },
+] as const;
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  inLanguage: 'ru',
+  mainEntity: FAQS.map(({ q, a }) => ({
+    '@type': 'Question',
+    name: q,
+    acceptedAnswer: { '@type': 'Answer', text: a },
+  })),
+};
+
 export default function KinoSDrugoOnlaynPage() {
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <GuideHeader locale="ru" />
       <main className="min-h-screen bg-[#060608] text-white">
         <div className="max-w-3xl mx-auto px-4 py-16">
@@ -86,12 +112,7 @@ export default function KinoSDrugoOnlaynPage() {
           <section className="mb-10">
             <h2 className="text-2xl font-bold text-white mb-4">Часто задаваемые вопросы</h2>
             <div className="space-y-4">
-              {[
-                { q: 'Можно смотреть кино если мы в разных странах?', a: 'Да. WeWatch работает через интернет, расстояние не имеет значения. Узбекистан, Россия, Европа — синхронизация одинаковая.' },
-                { q: 'Нужна ли подписка на источник видео?', a: 'WeWatch принимает поддерживаемую ссылку, но доступ к самому видео определяется правилами выбранного источника.' },
-                { q: 'Можно ли смотреть с нескольких друзей одновременно?', a: 'Да — создайте одну комнату и поделитесь ссылкой с несколькими людьми. Все смотрят синхронно.' },
-                { q: 'Это действительно бесплатно?', a: 'Основные функции веб-версии бесплатны. Приложения для iOS и Android находятся в разработке.' },
-              ].map(({ q, a }) => (
+              {FAQS.map(({ q, a }) => (
                 <details key={q} className="border border-zinc-800 rounded-xl p-4">
                   <summary className="text-white font-medium cursor-pointer">{q}</summary>
                   <p className="text-zinc-400 text-sm mt-2 leading-relaxed">{a}</p>

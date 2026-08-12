@@ -52,9 +52,47 @@ const POPULAR_ANIME = [
   'Death Note',
 ];
 
+
+/**
+ * Rendered as the visible FAQ and published as FAQPage from this one array — the
+ * same rule the guide registry follows, so the schema cannot drift from the page.
+ * seo-geo-aeo.spec.ts asserts every question and answer appears in the visible
+ * HTML, which is what makes that guarantee testable rather than a convention.
+ */
+const FAQS = [
+  {
+    q: "Qaysi saytlardagi anime-larni ko'rish mumkin?",
+    a: "VK Video, YouTube va boshqa ochiq platformalardagi anime-larni WeWatch orqali tomosha qilish mumkin.",
+  },
+  {
+    q: "Do'stim boshqa shaharda bo'lsa ham ishlaydi?",
+    a: "Ha. Toshkent, Samarqand, Moskva — internet bo'lsa bas. Masofa ta'sir qilmaydi.",
+  },
+  {
+    q: "Bir vaqtda nechta kishi tomosha qila oladi?",
+    a: "Bir xonada bir necha kishi bo'lishi mumkin. Hamma sinxron holda tomosha qiladi.",
+  },
+  {
+    q: "Seriya tugagach keyingisiga avtomatik o'tadimi?",
+    a: "Hozircha emas, lekin keyingi seriyaning havolasini joylashtirish juda tez. Bir kishi URL-ni o'zgartiradi — yangi seriya barchaga yuklanadi.",
+  },
+] as const;
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  inLanguage: 'uz',
+  mainEntity: FAQS.map(({ q, a }) => ({
+    '@type': 'Question',
+    name: q,
+    acceptedAnswer: { '@type': 'Answer', text: a },
+  })),
+};
+
 export default function AnimeBirgalikdaPage() {
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <GuideHeader locale="uz" />
       <main className="min-h-screen bg-[#060608] text-white">
         <div className="max-w-3xl mx-auto px-4 py-16">
@@ -127,24 +165,7 @@ export default function AnimeBirgalikdaPage() {
           <section className="mb-10">
             <h2 className="text-2xl font-bold text-white mb-4">Ko'p so'raladigan savollar</h2>
             <div className="space-y-4">
-              {[
-                {
-                  q: "Qaysi saytlardagi anime-larni ko'rish mumkin?",
-                  a: "VK Video, YouTube va boshqa ochiq platformalardagi anime-larni WeWatch orqali tomosha qilish mumkin.",
-                },
-                {
-                  q: "Do'stim boshqa shaharda bo'lsa ham ishlaydi?",
-                  a: "Ha. Toshkent, Samarqand, Moskva — internet bo'lsa bas. Masofa ta'sir qilmaydi.",
-                },
-                {
-                  q: "Bir vaqtda nechta kishi tomosha qila oladi?",
-                  a: "Bir xonada bir necha kishi bo'lishi mumkin. Hamma sinxron holda tomosha qiladi.",
-                },
-                {
-                  q: "Seriya tugagach keyingisiga avtomatik o'tadimi?",
-                  a: "Hozircha emas, lekin keyingi seriyaning havolasini joylashtirish juda tez. Bir kishi URL-ni o'zgartiradi — yangi seriya barchaga yuklanadi.",
-                },
-              ].map(({ q, a }) => (
+              {FAQS.map(({ q, a }) => (
                 <div key={q} className="bg-zinc-900 rounded-xl p-5 border border-zinc-800">
                   <div className="font-semibold text-white mb-2">{q}</div>
                   <div className="text-zinc-400 text-sm">{a}</div>
