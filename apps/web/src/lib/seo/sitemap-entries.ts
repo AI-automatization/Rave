@@ -1,20 +1,31 @@
-import type { MetadataRoute } from 'next';
-import { TEAM } from './ru/team/team-data';
+import { TEAM } from '@/app/ru/team/team-data';
 import { GUIDES } from '@/data/guides';
 import { hreflangFor } from '@/lib/i18n/routes';
 import { LOCALES, withLocale } from '@/lib/i18n/config';
 
 const BASE = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 
-type Entry = {
+export type ChangeFrequency = 'always' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'never';
+
+export type SitemapEntry = {
   path: string;
   /** Real last-edit date of the page source, not build time — otherwise lastmod is noise. */
   lastModified: string;
-  changeFrequency: MetadataRoute.Sitemap[number]['changeFrequency'];
+  changeFrequency: ChangeFrequency;
   priority: number;
   /** Locale counterparts, taken from the page's own `alternates.languages`. */
   languages?: Record<string, string>;
 };
+
+/**
+ * `0.8 - 0.1` is `0.7000000000000001` in IEEE 754, and that is exactly what shipped in
+ * production: four `<priority>` values came out as 0.7000000000000001 / 0.30000000000000004.
+ * Harmless for crawlers, but it is the first thing a human sees when opening the file, and
+ * schema validators flag it. One rounding point, applied where the XML is written.
+ */
+export function normalizePriority(priority: number): number {
+  return Math.round(priority * 10) / 10;
+}
 
 /**
  * hreflang set for a guide, from the same helper the pages themselves use — so
@@ -48,7 +59,7 @@ const LANDING_PAGES: readonly { path: string; priority: number }[] = [
 
 const LANDING_LASTMOD = '2026-07-28';
 
-const ENTRIES: Entry[] = [
+const ENTRIES: SitemapEntry[] = [
   // ── Главные страницы: по одной на язык, все с префиксом ─────────────────────
   // Голого `/` здесь нет намеренно: proxy отвечает временным языковым redirect,
   // а sitemap
@@ -126,7 +137,7 @@ const ENTRIES: Entry[] = [
       path: withLocale(path, locale),
       lastModified: LANDING_LASTMOD,
       changeFrequency: 'monthly' as const,
-      priority: locale === 'ru' ? priority : priority - 0.1,
+      priority: locale === 'ru' ? priority : normalizePriority(priority - 0.1),
       languages: hreflangFor(path, BASE),
     })),
   ),
@@ -196,23 +207,12 @@ const ENTRIES: Entry[] = [
   })),
 ];
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  assertValidEntryPaths(ENTRIES);
-  return ENTRIES.map(({ path, lastModified, changeFrequency, priority, languages }) => ({
-    url: path === '/' ? BASE : `${BASE}${path}`,
-    lastModified: new Date(lastModified),
-    changeFrequency,
-    priority,
-    ...(languages ? { alternates: { languages } } : {}),
-  }));
-}
-
 /**
  * Fail the build instead of publishing a sitemap with duplicated or
  * double-prefixed locale paths. HTTP/canonical validation still runs in the
  * crawler test; this guard catches the source-level regression immediately.
  */
-function assertValidEntryPaths(entries: readonly Entry[]): void {
+function assertValidEntryPaths(entries: readonly SitemapEntry[]): void {
   const seen = new Set<string>();
   const doubleLocale = /^\/(?:ru|uz|en)\/(?:ru|uz|en)(?:\/|$)/;
 
@@ -224,7 +224,17 @@ function assertValidEntryPaths(entries: readonly Entry[]): void {
   }
 }
 
+/** Validated entries with absolute URLs — the single source for the XML and for IndexNow. */
+export function sitemapEntries(): readonly (SitemapEntry & { url: string })[] {
+  assertValidEntryPaths(ENTRIES);
+  return ENTRIES.map((entry) => ({
+    ...entry,
+    priority: normalizePriority(entry.priority),
+    url: entry.path === '/' ? BASE : `${BASE}${entry.path}`,
+  }));
+}
+
 /** Absolute URLs of every indexable page — reused by the IndexNow submitter. */
 export function sitemapUrls(): string[] {
-  return sitemap().map((entry) => String(entry.url));
+  return sitemapEntries().map((entry) => entry.url);
 }
