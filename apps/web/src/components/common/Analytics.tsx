@@ -4,6 +4,8 @@ import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { APP_ORIGIN } from '@/lib/app-url';
 import { trackCtaClick, trackOrganicLandingView } from '@/lib/analytics/events';
+import { pageContextFor } from '@/lib/analytics/page-context';
+import { ensureSourceClusterCookie } from '@/lib/analytics/source-cluster-cookie';
 
 /**
  * Mounts the marketing site's measurement-plan instrumentation.
@@ -24,6 +26,11 @@ export function Analytics() {
 
   useEffect(() => {
     trackOrganicLandingView(pathname);
+    // First-touch attribution, independent of trackOrganicLandingView's own
+    // referrer-class/session-storage guards above — an internal navigation still
+    // counts as a landing for cookie purposes if this is the tab's first page,
+    // and the cookie itself already refuses to overwrite an existing value.
+    ensureSourceClusterCookie(pageContextFor(pathname).source_cluster);
     // Acquisition is a property of the visit, not of the page: re-running this on
     // every client-side navigation is exactly what the session guard inside
     // trackOrganicLandingView exists to prevent.
