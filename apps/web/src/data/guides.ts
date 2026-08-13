@@ -23,6 +23,16 @@ export type Guide = {
   summary: string;
   /** One search intent this canonical URL owns; unique within its locale. */
   primaryIntent: string;
+  /**
+   * Further intents this URL owns on top of primaryIntent — declared so that
+   * "one page owns one query" is enforced rather than remembered. Without this,
+   * nothing stops a later guide from targeting a phrase an existing page was
+   * extended for, which splits the weight instead of adding a position.
+   * seo-geo-aeo.spec.ts asserts each phrase is unique inside its locale and
+   * actually present in the page copy — a claim here with no matching text on
+   * the page is a broken claim, not a plan.
+   */
+  secondaryIntents?: string[];
   locale: GuideLocale;
   /** Real last-edit date of the page source (YYYY-MM-DD), used for sitemap lastmod. */
   lastModified: string;
@@ -39,8 +49,9 @@ export const GUIDES: Guide[] = [
     title: 'Смотреть вместе онлайн',
     summary: 'Как начать синхронный просмотр с друзьями — базовый гайд.',
     primaryIntent: 'смотреть вместе онлайн',
+    secondaryIntents: ['смотреть видео вместе'],
     locale: 'ru',
-    lastModified: '2026-07-07',
+    lastModified: '2026-08-13',
     datePublished: '2026-06-15',
     priority: 0.9,
   },
@@ -94,8 +105,9 @@ export const GUIDES: Guide[] = [
     title: 'Кино с другом онлайн',
     summary: 'Смотреть фильм с другом онлайн бесплатно — расстояние не важно.',
     primaryIntent: 'смотреть кино с другом онлайн',
+    secondaryIntents: ['смотреть кино вместе'],
     locale: 'ru',
-    lastModified: '2026-07-07',
+    lastModified: '2026-08-13',
     datePublished: '2026-06-15',
     priority: 0.8,
   },
@@ -106,7 +118,7 @@ export const GUIDES: Guide[] = [
     summary: 'Фильм на двоих: синхронно на двух устройствах, на расстоянии.',
     primaryIntent: 'смотреть фильм вдвоём',
     locale: 'ru',
-    lastModified: '2026-07-03',
+    lastModified: '2026-08-13',
     datePublished: '2026-07-02',
     priority: 0.9,
   },

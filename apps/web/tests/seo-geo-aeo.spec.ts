@@ -140,6 +140,84 @@ test.describe('SEO / GEO / AEO regression checks', () => {
     }
   });
 
+  /**
+   * A page is extended to own an extra query (T-Y202) instead of a new page being
+   * added for it, because a near-duplicate page divides the weight rather than
+   * adding a position. That only holds while the claim and the copy agree: a
+   * `secondaryIntents` entry whose phrase appears nowhere on the page is a plan,
+   * not an owned query, and the next guide is then free to target it too.
+   */
+  test('declared secondary intents are unique per locale and present in the page copy', async ({ request }) => {
+    for (const locale of LOCALES) {
+      const intents = GUIDES.filter((guide) => guide.locale === locale)
+        .flatMap((guide) => [guide.primaryIntent, ...(guide.secondaryIntents ?? [])])
+        .map((intent) => intent.trim().toLocaleLowerCase(locale));
+
+      expect(new Set(intents).size, `${locale} intents must be unique across primary and secondary`).toBe(
+        intents.length,
+      );
+    }
+
+    for (const guide of GUIDES.filter((guide) => guide.secondaryIntents?.length)) {
+      const response = await request.get(guide.path);
+      expect(response.status(), guide.path).toBe(200);
+      const visibleText = visibleHtmlText(await response.text()).toLocaleLowerCase(guide.locale);
+
+      for (const intent of guide.secondaryIntents ?? []) {
+        expect(visibleText, `${guide.path} claims "${intent}" but the phrase is not in its copy`).toContain(
+          intent.toLocaleLowerCase(guide.locale),
+        );
+      }
+    }
+  });
+
+  /**
+   * The declaration above is an honour system on its own: it proves the owner says
+   * the phrase, and nothing about the page next door quietly saying it louder. This
+   * closes that half — no other guide in the same locale may put an owned query in a
+   * heading.
+   *
+   * Headings, not any occurrence. The cluster is deliberately cross-linked with the
+   * target query as anchor text, so «смотреть кино вместе» appears on two pages that
+   * link *to* its owner — that reinforces the owner rather than competing with it.
+   * A title/H1/H2 is the claim that costs a position; a link is what pays for it.
+   */
+  test('no other guide claims an owned query in its own headings', async ({ request }) => {
+    test.setTimeout(120_000);
+
+    const headingsByPath = new Map<string, string>();
+    for (const guide of GUIDES) {
+      const response = await request.get(guide.path);
+      expect(response.status(), guide.path).toBe(200);
+      const html = await response.text();
+      const headings = [
+        ...(html.match(/<title>[\s\S]*?<\/title>/gi) ?? []),
+        ...(html.match(/<h1\b[^>]*>[\s\S]*?<\/h1>/gi) ?? []),
+        ...(html.match(/<h2\b[^>]*>[\s\S]*?<\/h2>/gi) ?? []),
+      ]
+        .map(visibleHtmlText)
+        .join(' | ');
+      headingsByPath.set(guide.path, headings.toLocaleLowerCase(guide.locale));
+    }
+
+    for (const owner of GUIDES) {
+      const owned = [owner.primaryIntent, ...(owner.secondaryIntents ?? [])];
+
+      for (const intent of owned) {
+        const needle = intent.trim().toLocaleLowerCase(owner.locale);
+
+        for (const other of GUIDES) {
+          if (other.path === owner.path || other.locale !== owner.locale) continue;
+
+          expect(
+            headingsByPath.get(other.path),
+            `${other.path} claims "${intent}" in a heading — that query is owned by ${owner.path}`,
+          ).not.toContain(needle);
+        }
+      }
+    }
+  });
+
   test('every sitemap URL returns indexable canonical HTML', async ({ request }) => {
     test.setTimeout(120_000);
 
