@@ -3,12 +3,15 @@
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useTranslations, useLocale } from 'next-intl';
-import { User, Mail, Lock, Eye, EyeOff, Loader2, XCircle } from 'lucide-react';
+import { User, Mail, Lock, Loader2, ArrowRight } from 'lucide-react';
 import { PATTERNS } from '@shared/constants';
 import { authApi } from '@/lib/api/auth.api';
 import { ApiError } from '@/lib/api-client';
 import { trackClick } from '@/lib/analytics';
 import { trackRegistrationStart, trackRegistrationComplete } from '@/lib/measurement-events';
+import { Button } from '@/components/ui/button';
+import { Field, Input, PasswordInput } from '@/components/ui/field';
+import { Notice } from '@/components/ui/notice';
 
 interface Props {
   onVerify: (email: string) => void;
@@ -46,7 +49,6 @@ export function RegisterForm({ onVerify }: Props) {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState('');
   const [isPending, startTransition] = useTransition();
 
@@ -84,84 +86,71 @@ export function RegisterForm({ onVerify }: Props) {
     });
   }
 
+  const disabled =
+    isPending || tooShort || passwordInvalid || !username || !email || !password;
+
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-7">
-      <div className="flex flex-col gap-1.5">
-        <h1 className="text-[28px] md:text-[30px] font-bold text-white leading-tight tracking-tight">{t('registerTitle')}</h1>
-        <p className="text-[14px] text-white/45">{t('registerSubtitle')}</p>
-      </div>
+    <div className="flex flex-col gap-6 sm:gap-7">
+      <header className="flex flex-col gap-2">
+        <h1 className="text-[25px] font-semibold leading-[1.15] tracking-[-0.02em] text-[var(--ww-text)] sm:text-[28px]">
+          {t('registerHeading')}
+        </h1>
+        <p className="text-[14px] leading-relaxed text-[var(--ww-text-3)]">{t('registerSub')}</p>
+      </header>
 
-      <div className="flex flex-col gap-5">
-        {/* Username */}
-        <div className="flex flex-col gap-2">
-          <label className="text-[13px] font-medium text-slate-400">{t('usernameLabel')}</label>
-          <div className="relative">
-            <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => { setUsername(e.target.value); setError(''); }}
-              required
-              autoFocus
-              autoComplete="username"
-              className="w-full h-12 bg-white/[0.04] border border-white/[0.08] rounded-xl pl-11 pr-4 text-[14px] text-white placeholder:text-zinc-600 focus:outline-none focus:border-violet-500/40 focus:bg-white/[0.06] transition-colors"
-            />
-          </div>
-        </div>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4 sm:gap-5" noValidate>
+        <Field label={t('usernameLabel')}>
+          <Input
+            type="text"
+            icon={User}
+            value={username}
+            onChange={(e) => { setUsername(e.target.value); setError(''); }}
+            required
+            autoFocus
+            autoComplete="username"
+          />
+        </Field>
 
-        {/* Email */}
-        <div className="flex flex-col gap-2">
-          <label className="text-[13px] font-medium text-slate-400">{t('emailLabel')}</label>
-          <div className="relative">
-            <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => { setEmail(e.target.value); setError(''); }}
-              placeholder="email@example.com"
-              required
-              autoComplete="email"
-              className="w-full h-12 bg-white/[0.04] border border-white/[0.08] rounded-xl pl-11 pr-4 text-[14px] text-white placeholder:text-zinc-600 focus:outline-none focus:border-violet-500/40 focus:bg-white/[0.06] transition-colors"
-            />
-          </div>
-        </div>
+        <Field label={t('emailLabel')}>
+          <Input
+            type="email"
+            icon={Mail}
+            value={email}
+            onChange={(e) => { setEmail(e.target.value); setError(''); }}
+            placeholder={t('emailPlaceholder')}
+            required
+            autoComplete="email"
+            inputMode="email"
+          />
+        </Field>
 
-        {/* Password */}
         <div className="flex flex-col gap-2">
-          <label className="text-[13px] font-medium text-slate-400">{t('passwordLabel')}</label>
-          <div className="relative">
-            <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
-            <input
-              type={showPw ? 'text' : 'password'}
+          <Field
+            label={t('passwordLabel')}
+            error={tooShort ? t('passwordMin') : passwordInvalid ? t('passwordPattern') : undefined}
+          >
+            <PasswordInput
+              icon={Lock}
               value={password}
               onChange={(e) => { setPassword(e.target.value); setError(''); }}
               required
               autoComplete="new-password"
-              className="w-full h-12 bg-white/[0.04] border border-white/[0.08] rounded-xl pl-11 pr-11 text-[14px] text-white placeholder:text-zinc-600 focus:outline-none focus:border-violet-500/40 focus:bg-white/[0.06] transition-colors"
+              toggleLabel={t('showPassword')}
             />
-            <button
-              type="button"
-              onClick={() => setShowPw((v) => !v)}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
-            >
-              {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
-            </button>
-          </div>
-          {tooShort && <p className="text-xs text-red-400">{t('passwordMin')}</p>}
-          {!tooShort && passwordInvalid && <p className="text-xs text-red-400">{t('passwordPattern')}</p>}
+          </Field>
 
           {/* Strength meter (2026-08-02 UX pass) — replaces the old "confirm password" field.
-              The reveal toggle above already covers what confirm-password exists to catch (a typo
+              The reveal toggle already covers what confirm-password exists to catch (a typo
               you can't see) — a second full field for the same purpose is exactly the kind of
               non-essential friction the research on sign-up abandonment calls out. */}
           {strength && (
-            <div className="flex items-center gap-2 mt-0.5">
+            <div className="flex items-center gap-2">
               <div className="flex-1 flex gap-1">
                 {[0, 1, 2].map((i) => (
                   <div
                     key={i}
                     className={`h-1 flex-1 rounded-full transition-colors ${
-                      i < STRENGTH_STYLE[strength].bars ? STRENGTH_STYLE[strength].color : 'bg-white/[0.08]'
+                      i < STRENGTH_STYLE[strength].bars ? STRENGTH_STYLE[strength].color : 'bg-[var(--ww-surface-2)]'
                     }`}
                   />
                 ))}
@@ -175,33 +164,42 @@ export function RegisterForm({ onVerify }: Props) {
           )}
         </div>
 
-        {/* Error */}
-        {error && (
-          <div className="flex items-center gap-2.5 text-sm text-red-400 bg-red-500/[0.07] border border-red-500/[0.15] rounded-xl px-3.5 py-2.5">
-            <XCircle size={14} className="shrink-0" />
-            {error}
-          </div>
-        )}
+        {error && <Notice variant="danger">{error}</Notice>}
 
-        {/* Submit */}
-        <button
+        <Button
           type="submit"
-          disabled={isPending || tooShort || passwordInvalid || !username || !email || !password}
-          className="w-full h-12 rounded-xl text-[15px] font-semibold text-white bg-violet-600 hover:bg-violet-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-[0.98] cursor-pointer shadow-[0_0_20px_rgba(124,58,237,0.22)] hover:shadow-[0_0_24px_rgba(124,58,237,0.34)]"
+          variant="accent"
+          size="xl"
+          disabled={disabled}
+          className="group mt-1 w-full font-semibold"
         >
-          {isPending
-            ? <><Loader2 size={16} className="animate-spin" />{t('register')}...</>
-            : t('register')}
-        </button>
+          {isPending ? (
+            <>
+              <Loader2 className="animate-spin" aria-hidden="true" />
+              {t('register')}
+            </>
+          ) : (
+            <>
+              {t('register')}
+              <ArrowRight
+                aria-hidden="true"
+                className="transition-transform duration-200 group-hover:translate-x-0.5"
+              />
+            </>
+          )}
+        </Button>
+      </form>
 
-        {/* Login link */}
-        <p className="text-[14px] text-center text-slate-400">
-          {t('hasAccount')}{' '}
-          <Link href="/login" onClick={() => trackClick('register:go_to_login')} className="text-violet-400 hover:text-violet-300 font-medium transition-colors">
-            {t('loginLink')}
-          </Link>
-        </p>
-      </div>
-    </form>
+      <p className="text-center text-[13.5px] text-[var(--ww-text-3)]">
+        {t('hasAccount')}{' '}
+        <Link
+          href="/login"
+          onClick={() => trackClick('register:go_to_login')}
+          className="-my-1.5 inline-block py-1.5 font-medium text-[var(--ww-accent-hi)] transition-colors hover:text-white"
+        >
+          {t('loginLink')}
+        </Link>
+      </p>
+    </div>
   );
 }

@@ -2,7 +2,7 @@ import { Suspense } from 'react';
 import { MessagesContent } from './MessagesContent';
 
 export const metadata = {
-  title: 'Messages',
+  title: 'Xabarlar',
 };
 
 export default function MessagesPage() {

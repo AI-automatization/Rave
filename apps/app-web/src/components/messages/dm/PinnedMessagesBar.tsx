@@ -34,23 +34,24 @@ export function PinnedMessagesBar({ pinnedMessages, onJump, onUnpin }: Props) {
   }
 
   return (
-    <div className="flex items-center gap-2.5 px-4 py-2 border-b border-white/[0.07]" style={{ background: '#111120' }}>
-      <div className="w-[3px] self-stretch rounded-full shrink-0" style={{ backgroundColor: '#7B72F8' }} />
-      <button onClick={handlePress} className="flex-1 min-w-0 text-left cursor-pointer">
-        <p className="text-[11px] font-semibold" style={{ color: '#9C93FF' }}>
+    <div className="flex items-center gap-2.5 border-b border-[var(--ww-line)] bg-[var(--ww-surface-1)] px-4 py-2">
+      <span aria-hidden="true" className="w-[3px] shrink-0 self-stretch rounded-full bg-[var(--ww-accent)]" />
+      <button type="button" onClick={handlePress} className="min-w-0 flex-1 cursor-pointer text-left">
+        <p className="text-[11px] font-semibold text-[var(--ww-accent-hi)]">
           {pinnedMessages.length > 1
             ? `${t('pinnedMessage')} ${index + 1}/${pinnedMessages.length}`
             : t('pinnedMessage')}
         </p>
-        <p className="text-[12px] text-white/60 truncate">{current.text}</p>
+        <p className="truncate text-[12px] text-[var(--ww-text-3)]">{current.text}</p>
       </button>
       {onUnpin && (
         <button
+          type="button"
           onClick={() => onUnpin(current)}
-          className="w-7 h-7 shrink-0 flex items-center justify-center rounded-full text-white/40 hover:text-white hover:bg-white/[0.08] transition-all cursor-pointer"
+          className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-[var(--ww-text-4)] transition-colors hover:bg-[var(--ww-surface-2)] hover:text-[var(--ww-text)]"
           aria-label={t('unpin')}
         >
-          <X size={14} />
+          <X size={14} aria-hidden="true" />
         </button>
       )}
     </div>

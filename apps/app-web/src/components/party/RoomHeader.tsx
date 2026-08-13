@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
 import { LogOut, Share2, MoreVertical, Pencil, Check, X, Clapperboard, Link2 } from 'lucide-react';
 import { useWatchPartyStore } from '@/store/watch-party.store';
 import { useAuthStore } from '@/store/auth.store';
@@ -43,7 +42,7 @@ export function RoomHeader({ renameRoom, onPickDifferentVideo, onChangeSource }:
   // room.members is the REST snapshot from page load and never changes afterwards. Reading the
   // snapshot first made the count go stale the moment someone joined — the face-pile showed three
   // avatars next to the number "2". Fall back to the snapshot only before the socket has joined.
-  const memberCount = storeMembers.length || ((room as any)?.members as unknown[])?.length || 0;
+  const memberCount = storeMembers.length || room?.members?.length || 0;
   const isOwner = !!currentUser && room?.ownerId === currentUser._id;
   const otherMembers = storeMembers.filter((m) => m._id !== currentUser?._id);
 
@@ -86,27 +85,36 @@ export function RoomHeader({ renameRoom, onPickDifferentVideo, onChangeSource }:
 
   return (
     <>
-      <div className="glass-nav relative z-10 flex items-center justify-between gap-2 px-3 sm:px-5 py-3.5 border-b border-white/[0.07] overflow-hidden">
-        <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
-          {/* Connection dot — a live pulse reads as "this room is actually alive right now" at a
-              glance, where a static dot (the previous state) blended into the rest of the muted
-              chrome and went unnoticed (real-user feedback: room "feels like a brick"). */}
-          <span className="relative flex w-2 h-2 shrink-0">
-            {isConnected && (
-              <motion.span
-                className="absolute inset-0 rounded-full bg-emerald-400"
-                animate={{ scale: [1, 2.2], opacity: [0.55, 0] }}
-                transition={{ duration: 1.8, repeat: Infinity, ease: 'easeOut' }}
-              />
-            )}
+      <header className="relative z-10 flex h-14 shrink-0 items-center justify-between gap-3 border-b border-[var(--ww-line)] bg-[rgba(5,5,10,0.72)] px-3 backdrop-blur-xl sm:px-4">
+        <div className="flex min-w-0 items-center gap-2.5">
+          {/* Ulanish holati. Jonli bo'lsa tarqaluvchi nuqta (.ww-live-dot, o'zining CSS
+              pulse animatsiyasi bilan) — statik nuqta qolgan kulrang chrome ichida ko'zga
+              tashlanmasdi (foydalanuvchi fikri: xona "g'isht kabi"). Uzilganda animatsiya
+              yo'q: qizil turg'un nuqta muammoni yaxshiroq bildiradi. */}
+          {isConnected ? (
             <span
-              className="relative w-2 h-2 rounded-full"
-              style={{ background: isConnected ? '#34d399' : '#f87171' }}
+              className="ww-live-dot shrink-0"
+              aria-label={t('connected')}
+              /* .ww-live-dot o'zi qizil (jonli efir rangi) — bu yerda esa
+                 "ulangan" ma'nosi, ya'ni yashil bo'lishi kerak. Klassni
+                 nusxalash o'rniga u ishlatadigan o'zgaruvchi shu element
+                 uchun qayta belgilanadi. */
+              style={{ '--ww-live': 'var(--ww-online)' } as React.CSSProperties}
             />
-          </span>
+          ) : (
+            <span
+              aria-label={t('disconnected')}
+              className="h-2 w-2 shrink-0 rounded-full bg-[var(--ww-danger)]"
+            />
+          )}
 
-          {isEditingName ? (
-            <div className="flex items-center gap-1 min-w-0">
+          {/* Skeleton while the room is still loading rather than the generic "Watch Party"
+              fallback — on a slow connection that fallback read as the room's actual name for
+              seconds at a time (prod audit 2026-08-01, mobile). */}
+          {!room ? (
+            <span className="skeleton h-4 w-32 shrink-0 rounded sm:w-44" aria-hidden="true" />
+          ) : isEditingName ? (
+            <div className="flex min-w-0 items-center gap-1">
               <input
                 autoFocus
                 value={nameDraft}
@@ -116,35 +124,33 @@ export function RoomHeader({ renameRoom, onPickDifferentVideo, onChangeSource }:
                   if (e.key === 'Escape') setIsEditingName(false);
                 }}
                 maxLength={80}
-                className="min-w-0 w-40 sm:w-56 bg-white/[0.06] border border-white/[0.12] rounded-md px-2 py-0.5 text-[15px] font-medium text-white outline-none focus:border-violet-500/50"
+                className="ww-field h-8 w-40 min-w-0 px-2 text-[15px] font-medium sm:w-56"
               />
               <button
                 onClick={submitRename}
                 aria-label={t('save')}
-                className="h-6 w-6 rounded text-emerald-400 hover:bg-white/[0.06] flex items-center justify-center shrink-0 cursor-pointer"
+                className="flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded text-[var(--ww-online)] hover:bg-[var(--ww-surface-2)]"
               >
                 <Check size={13} />
               </button>
               <button
                 onClick={() => setIsEditingName(false)}
                 aria-label={t('cancel')}
-                className="h-6 w-6 rounded text-zinc-500 hover:bg-white/[0.06] flex items-center justify-center shrink-0 cursor-pointer"
+                className="flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded text-[var(--ww-text-4)] hover:bg-[var(--ww-surface-2)]"
               >
                 <X size={13} />
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-1.5 min-w-0">
-              <h2
-                className="font-[family-name:var(--font-display)] text-[16px] font-medium tracking-wide text-white truncate leading-snug"
-              >
-                {room?.name ?? room?.videoTitle ?? tHome('title')}
-              </h2>
+            <div className="flex min-w-0 items-center gap-1.5">
+              <h1 className="truncate text-[15px] font-semibold leading-snug tracking-[-0.01em] text-[var(--ww-text)] sm:text-[16px]">
+                {room.name ?? room.videoTitle ?? tHome('title')}
+              </h1>
               {isOwner && (
                 <button
                   onClick={startEditingName}
                   aria-label={t('renameRoom')}
-                  className="h-5 w-5 rounded text-zinc-600 hover:text-zinc-300 hover:bg-white/[0.06] transition-colors flex items-center justify-center shrink-0 cursor-pointer"
+                  className="flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded text-[var(--ww-text-4)] transition-colors hover:bg-[var(--ww-surface-2)] hover:text-[var(--ww-text-2)]"
                 >
                   <Pencil size={11} />
                 </button>
@@ -153,7 +159,7 @@ export function RoomHeader({ renameRoom, onPickDifferentVideo, onChangeSource }:
           )}
 
           {room?.videoPlatform && (
-            <span className="hidden sm:inline text-[10px] text-slate-600 uppercase tracking-wide shrink-0">
+            <span className="hidden shrink-0 text-[10px] uppercase tracking-[0.12em] text-[var(--ww-text-4)] sm:inline">
               {room.videoPlatform}
             </span>
           )}
@@ -161,51 +167,54 @@ export function RoomHeader({ renameRoom, onPickDifferentVideo, onChangeSource }:
           {/* Face-pile — social presence beats a bare number: makes an otherwise plain text
               header feel like an actual room with people in it, not a settings page. On phones
               (real report 2026-08-03: header content clipped past the screen edge, "1 участники"
-              cut off entirely) the numeric label is the first thing to go — the avatars alone
-              already say "people are here", the exact count isn't worth the width on a 360-400px
-              screen once title + invite + overflow menu are already fighting for the same row. */}
-          <div className="flex items-center gap-1.5 shrink-0">
+              cut off entirely) the count next to it is a bare tabular number, not a "N members"
+              label — the avatars alone already say "people are here". */}
+          <div className="flex shrink-0 items-center gap-1.5">
             <div className="flex items-center -space-x-2">
               {storeMembers.slice(0, 4).map((m) => (
-                <div
+                <span
                   key={m._id}
                   title={m.username}
-                  className="w-5 h-5 rounded-full border-2 border-[#09090B] overflow-hidden shrink-0"
+                  /* Chegara fon rangida — avatarlar bir-birining ustiga
+                     minganda ajralib turishi uchun. Ilgari `#09090B` qotirib
+                     yozilgandi, yangi fon esa #05050A */
+                  className="h-5 w-5 shrink-0 overflow-hidden rounded-full border-2 border-[var(--ww-bg)]"
                 >
                   {m.avatar ? (
                     // eslint-disable-next-line @next/next/no-img-element -- user-uploaded avatar URL
-                    <img src={m.avatar} alt="" className="w-full h-full object-cover" />
+                    <img src={m.avatar} alt="" className="h-full w-full object-cover" />
                   ) : (
-                    <div
-                      className="w-full h-full flex items-center justify-center text-[8px] font-bold text-white"
+                    <span
+                      className="flex h-full w-full items-center justify-center text-[8px] font-bold text-white"
                       style={{ background: avatarColor(m.username ?? '?') }}
                     >
                       {(m.username?.[0] ?? '?').toUpperCase()}
-                    </div>
+                    </span>
                   )}
-                </div>
+                </span>
               ))}
               {storeMembers.length > 4 && (
-                <div className="w-5 h-5 rounded-full border-2 border-[#09090B] bg-white/10 flex items-center justify-center text-[8px] font-semibold text-zinc-300 shrink-0">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 border-[var(--ww-bg)] bg-[var(--ww-surface-3)] text-[8px] font-semibold text-[var(--ww-text-2)]">
                   +{storeMembers.length - 4}
-                </div>
+                </span>
               )}
             </div>
-            <span className="hidden sm:inline text-[11px] text-slate-500">{memberCount} {t('members').toLowerCase()}</span>
+            <span className="text-[11px] tabular-nums text-[var(--ww-text-3)]">{memberCount}</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex shrink-0 items-center gap-1.5">
           {/* Primary action — renamed from "Ссылка" (link? copy? share? — unclear what happens)
               to "Пригласить" (invite), which names the outcome instead of the mechanism. Text
               label drops below sm — icon-only keeps a full 44px+ touch target without forcing
               the title down to a 3-character sliver on a phone-width header. */}
           <button
+            type="button"
             onClick={() => { trackClick('room:open_invite'); setInviteOpen(true); }}
             aria-label={t('invite')}
-            className="h-8 px-2.5 sm:px-3 rounded-lg text-xs font-medium text-white bg-violet-600 hover:bg-violet-500 transition-colors flex items-center gap-1.5 cursor-pointer shrink-0"
+            className="ww-btn-accent flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-[var(--ww-r-sm)] px-2.5 text-[12.5px] font-medium sm:px-3"
           >
-            <Share2 size={12} />
+            <Share2 size={14} aria-hidden="true" />
             <span className="hidden sm:inline">{t('invite')}</span>
           </button>
 
@@ -218,34 +227,32 @@ export function RoomHeader({ renameRoom, onPickDifferentVideo, onChangeSource }:
             <DropdownMenuTrigger asChild>
               <button
                 aria-label={t('leave')}
-                className="h-8 w-8 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.06] transition-colors flex items-center justify-center cursor-pointer"
+                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[var(--ww-r-sm)] text-[var(--ww-text-3)] transition-colors hover:bg-[var(--ww-surface-2)] hover:text-[var(--ww-text)]"
               >
                 <MoreVertical size={15} />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-[#16162a] border-white/[0.08] text-white/90">
+            <DropdownMenuContent align="end">
               {isOwner && (
                 <>
                   <DropdownMenuItem
                     onClick={() => { trackClick('room:menu_pick_different_video'); onPickDifferentVideo(); }}
-                    className="cursor-pointer"
                   >
                     <Clapperboard size={13} className="mr-2" />
                     {t('pickDifferentVideo')}
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => { trackClick('room:menu_change_source'); onChangeSource(); }}
-                    className="cursor-pointer"
                   >
                     <Link2 size={13} className="mr-2" />
                     {t('changeSource')}
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator className="bg-white/[0.08]" />
+                  <DropdownMenuSeparator />
                 </>
               )}
               <DropdownMenuItem
                 onClick={() => { void handleLeaveClick(); }}
-                className="text-red-400 focus:bg-red-500/[0.1] focus:text-red-400 cursor-pointer"
+                className="text-[var(--ww-danger)] focus:bg-[var(--ww-danger-soft)] focus:text-[var(--ww-danger)]"
               >
                 <LogOut size={13} className="mr-2" />
                 {t('leave')}
@@ -253,7 +260,7 @@ export function RoomHeader({ renameRoom, onPickDifferentVideo, onChangeSource }:
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-      </div>
+      </header>
 
       <InviteDialog open={inviteOpen} onOpenChange={setInviteOpen} />
       {room?._id && (

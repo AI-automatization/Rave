@@ -47,16 +47,13 @@ export function ChatPanel({ onSend, onOpenProfile }: Props) {
     <div className="flex flex-col h-full">
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-3 scrollbar-hide">
         {messages.length === 0 && (
-          <div className="flex-1 flex flex-col items-center justify-center gap-3 px-6 text-center">
-            <div
-              className="w-12 h-12 rounded-full flex items-center justify-center"
-              style={{ background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.2)' }}
-            >
-              <MessageCircle size={18} className="text-violet-400/70" />
-            </div>
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
+            <span className="flex h-12 w-12 items-center justify-center rounded-full border border-[var(--ww-line)] bg-[var(--ww-accent-soft)]">
+              <MessageCircle size={18} aria-hidden="true" className="text-[var(--ww-accent-hi)]" />
+            </span>
             <div>
-              <p className="text-zinc-400 text-xs font-medium">{t('empty')}</p>
-              <p className="text-zinc-600 text-[11px] mt-0.5">{t('emptyHint')}</p>
+              <p className="text-[12.5px] font-medium text-[var(--ww-text-2)]">{t('empty')}</p>
+              <p className="mt-0.5 text-[11.5px] text-[var(--ww-text-4)]">{t('emptyHint')}</p>
             </div>
           </div>
         )}
@@ -88,7 +85,7 @@ export function ChatPanel({ onSend, onOpenProfile }: Props) {
               dragElastic={0.25}
               dragSnapToOrigin
               onDragEnd={(_, info) => { if (info.offset.x > SWIPE_REPLY_THRESHOLD_PX) startReply(); }}
-              className="group flex items-start gap-3 px-2 py-2 hover:bg-white/[0.03] rounded-lg transition-colors touch-pan-y"
+              className="group flex touch-pan-y items-start gap-2 rounded-[var(--ww-r-sm)] px-1 py-1 transition-colors hover:bg-[var(--ww-surface-1)]"
             >
               <button
                 type="button"
@@ -112,13 +109,15 @@ export function ChatPanel({ onSend, onOpenProfile }: Props) {
 
               <div className="min-w-0 flex-1">
                 {msg.replyTo && (
-                  <div className="flex items-stretch gap-1.5 mb-1 max-w-full">
-                    <div className="w-[2px] rounded-full shrink-0" style={{ backgroundColor: '#7B72F8' }} />
+                  <div className="mb-0.5 flex max-w-full items-stretch gap-1.5">
+                    <span className="w-[2px] shrink-0 rounded-full bg-[var(--ww-accent-hi)]" />
                     <div className="min-w-0">
-                      <p className="text-[10px] font-bold truncate" style={{ color: '#9C93FF' }}>
+                      <p className="truncate text-[10.5px] font-bold text-[var(--ww-accent-hi)]">
                         {msg.replyTo.senderName}
                       </p>
-                      <p className="text-[10px] text-white/40 truncate">{msg.replyTo.text}</p>
+                      <p className="truncate text-[10.5px] text-[var(--ww-text-3)]">
+                        {msg.replyTo.text}
+                      </p>
                     </div>
                   </div>
                 )}
@@ -133,9 +132,14 @@ export function ChatPanel({ onSend, onOpenProfile }: Props) {
                 >
                   {name}
                 </button>
-                <p className={`text-[13px] leading-snug break-words ${isMe ? 'text-white' : 'text-zinc-200'}`}>
+                <span className="mx-1 text-[12.5px] text-[var(--ww-text-4)]">:</span>
+                <span
+                  className={`break-words text-[12.5px] leading-relaxed ${
+                    isMe ? 'text-[var(--ww-text)]' : 'text-[var(--ww-text-2)]'
+                  }`}
+                >
                   {msg.text}
-                </p>
+                </span>
               </div>
 
               {/* Hover-only. focus-within keeps it reachable by keyboard, where there is no hover. */}
@@ -144,7 +148,7 @@ export function ChatPanel({ onSend, onOpenProfile }: Props) {
                 onClick={startReply}
                 aria-label={t('reply')}
                 title={t('reply')}
-                className="shrink-0 mt-0.5 p-1.5 rounded-lg text-zinc-500 opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-white hover:bg-white/[0.08] transition-all cursor-pointer"
+                className="mt-[1px] shrink-0 cursor-pointer rounded-[var(--ww-r-sm)] p-1 text-[var(--ww-text-4)] opacity-0 transition-all hover:bg-[var(--ww-surface-2)] hover:text-[var(--ww-text)] focus:opacity-100 group-hover:opacity-100"
               >
                 <Reply size={13} />
               </button>
@@ -161,7 +165,9 @@ export function ChatPanel({ onSend, onOpenProfile }: Props) {
         />
       )}
 
-      <form onSubmit={handleSubmit} className="p-4 border-t border-white/[0.07]">
+      {/* Yozish maydoni 36px edi — barmoq uchun kichik. `.ww-field` 48px
+          beradi, yuborish tugmasi ham xuddi shu balandlikda (kvadrat). */}
+      <form onSubmit={handleSubmit} className="border-t border-[var(--ww-line)] p-3">
         <div className="flex items-center gap-2">
           <input
             ref={inputRef}
@@ -170,14 +176,15 @@ export function ChatPanel({ onSend, onOpenProfile }: Props) {
             onChange={(e) => setText(e.target.value)}
             placeholder={t('placeholder')}
             maxLength={500}
-            className="flex-1 h-9 bg-white/[0.06] border border-white/[0.1] rounded-lg px-3 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-violet-500/50 transition-colors"
+            className="ww-field min-w-0 flex-1 px-3.5 text-[14px]"
           />
           <button
             type="submit"
             disabled={!text.trim()}
-            className="h-9 w-9 rounded-lg flex items-center justify-center text-zinc-400 bg-white/[0.06] border border-white/[0.08] hover:bg-white/[0.1] hover:text-white disabled:opacity-30 transition-colors cursor-pointer"
+            aria-label={t('send')}
+            className="ww-btn-accent flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-[var(--ww-r-md)] text-white disabled:cursor-not-allowed"
           >
-            <Send size={14} />
+            <Send size={16} aria-hidden="true" />
           </button>
         </div>
       </form>

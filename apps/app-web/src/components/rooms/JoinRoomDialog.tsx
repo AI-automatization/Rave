@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { Loader2, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
@@ -23,20 +23,28 @@ export function JoinRoomDialog({ open, onOpenChange }: Props) {
   const router = useRouter();
   const joinRoom = useJoinRoom();
   const [code, setCode] = useState('');
+  // Shown inside the dialog, not only as a toast. A wrong code is an error *about the field the
+  // user is looking at* — with the modal open and focus in the input, a corner toast is the wrong
+  // place for it (prod audit 2026-08-01: entering ZZZ999 appeared to do nothing at all).
+  const [error, setError] = useState('');
 
   async function handleJoin() {
     if (code.length < 4) return;
     trackClick('join_room:submit');
+    setError('');
 
     try {
       const res = await joinRoom.mutateAsync(code.trim());
       onOpenChange(false);
+      setCode('');
       const roomId = res.data?._id;
       if (roomId) {
         router.push(`/room/${roomId}`);
       }
     } catch (err) {
-      toast.error(parseError(err, t('joinError')));
+      const msg = parseError(err, t('joinError'));
+      setError(msg);
+      toast.error(msg);
     }
   }
 
@@ -57,15 +65,26 @@ export function JoinRoomDialog({ open, onOpenChange }: Props) {
           <input
             type="text"
             value={code}
-            onChange={(e) => setCode(e.target.value.toUpperCase())}
+            onChange={(e) => { setCode(e.target.value.toUpperCase()); setError(''); }}
+            onKeyDown={(e) => { if (e.key === 'Enter') void handleJoin(); }}
             placeholder="ABC123"
             maxLength={10}
             autoFocus
-            className="w-full h-11 bg-white/[0.06] border border-white/[0.1] rounded-xl px-4 text-center text-lg font-bold tracking-widest text-white placeholder:text-zinc-600 focus:outline-none focus:border-violet-500/50 transition-all"
+            aria-invalid={!!error}
+            className={`w-full h-11 bg-white/[0.06] border rounded-xl px-4 text-center text-lg font-bold tracking-widest text-white placeholder:text-zinc-600 focus:outline-none transition-all ${
+              error ? 'border-red-500/50' : 'border-white/[0.1] focus:border-violet-500/50'
+            }`}
           />
 
+          {error && (
+            <div className="flex items-center gap-2.5 text-sm text-red-400 bg-red-500/[0.07] border border-red-500/[0.15] rounded-xl px-3.5 py-2.5">
+              <XCircle size={14} className="shrink-0" />
+              {error}
+            </div>
+          )}
+
           <button
-            onClick={handleJoin}
+            onClick={() => { void handleJoin(); }}
             disabled={joinRoom.isPending || code.length < 4}
             className="w-full h-11 rounded-xl text-sm font-semibold text-white bg-violet-600 hover:bg-violet-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-[0.98] cursor-pointer"
           >

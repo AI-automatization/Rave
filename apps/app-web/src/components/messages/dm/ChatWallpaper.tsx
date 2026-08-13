@@ -72,7 +72,9 @@ export function ChatWallpaper() {
             left: x,
             top: y,
             transform: `rotate(${rotation}deg)`,
-            color: 'rgba(123,114,248,0.09)',
+            // Aksent tokendan olingan juda past opacity — fon naqshi mazmunni
+            // to'smasligi kerak (ilgari qo'lda yozilgan rgba(123,114,248,.09))
+            color: 'color-mix(in srgb, var(--ww-accent) 9%, transparent)',
           }}
         />
       ))}

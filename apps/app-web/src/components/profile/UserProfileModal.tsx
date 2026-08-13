@@ -60,42 +60,49 @@ export function UserProfileModal({ userId, onClose }: Props) {
 
   return (
     <Dialog open={Boolean(userId)} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="max-w-xs liquid-glass border-white/[0.08] p-6">
+      <DialogContent className="max-w-xs rounded-[var(--ww-r-xl)] border-[var(--ww-line)] bg-[var(--ww-panel-solid)] p-6 text-[var(--ww-text)]">
         <DialogTitle className="sr-only">{name}</DialogTitle>
 
         {isLoading && (
           <div className="flex items-center justify-center py-10">
-            <Loader2 size={20} className="animate-spin text-zinc-500" />
+            <Loader2 size={20} aria-hidden="true" className="animate-spin text-[var(--ww-text-4)]" />
           </div>
         )}
 
         {isError && (
-          <p className="text-sm text-zinc-400 text-center py-8">{tc('error')}</p>
+          <p className="py-8 text-center text-[13px] text-[var(--ww-text-3)]">{tc('error')}</p>
         )}
 
         {profile && (
           <div className="flex flex-col items-center gap-3">
-            {profile.avatar ? (
-              // eslint-disable-next-line @next/next/no-img-element -- user-uploaded avatar URL, not worth a next/image domain allowlist entry
-              <img src={profile.avatar} alt="" className="w-20 h-20 rounded-full object-cover" />
-            ) : (
-              <div
-                className="w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold text-white"
-                style={{ background: avatarColor(profile.username ?? '?') }}
-              >
-                {(profile.username?.[0] ?? '?').toUpperCase()}
-              </div>
-            )}
+            {(() => {
+              const color = avatarColor(profile.username ?? '?');
+              return (
+                <span
+                  className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full text-[26px] font-semibold"
+                  style={{ background: `${color}2E`, border: `1px solid ${color}59`, color }}
+                >
+                  {profile.avatar ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- user-uploaded avatar URL, not worth a next/image domain allowlist entry
+                    <img src={profile.avatar} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    (profile.username?.[0] ?? '?').toUpperCase()
+                  )}
+                </span>
+              );
+            })()}
 
             <div className="text-center">
-              <p className="text-white font-semibold">{name}</p>
+              <p className="text-[15px] font-semibold text-[var(--ww-text)]">{name}</p>
               {profile.isOnline && (
-                <p className="text-[11px] text-emerald-400 mt-0.5">{t('online')}</p>
+                <p className="mt-0.5 text-[11.5px] text-[var(--ww-online)]">{t('online')}</p>
               )}
             </div>
 
             {profile.bio && (
-              <p className="text-xs text-zinc-400 text-center break-words">{profile.bio}</p>
+              <p className="break-words text-center text-[12.5px] leading-relaxed text-[var(--ww-text-3)]">
+                {profile.bio}
+              </p>
             )}
 
             {/* Own avatar in the member list is clickable too — showing "add yourself" there would
@@ -105,11 +112,11 @@ export function UserProfileModal({ userId, onClose }: Props) {
                 type="button"
                 onClick={handleAddFriend}
                 disabled={sendRequest.isPending}
-                className="mt-1 w-full h-9 rounded-lg flex items-center justify-center gap-2 text-sm font-medium text-white bg-violet-600 hover:bg-violet-500 disabled:opacity-50 transition-colors cursor-pointer"
+                className="ww-btn-accent mt-1 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-[var(--ww-r-md)] text-[14px] font-medium text-white disabled:cursor-default"
               >
                 {sendRequest.isPending
-                  ? <Loader2 size={14} className="animate-spin" />
-                  : <UserPlus size={14} />}
+                  ? <Loader2 size={15} aria-hidden="true" className="animate-spin" />
+                  : <UserPlus size={15} aria-hidden="true" />}
                 {t('addFriend')}
               </button>
             )}

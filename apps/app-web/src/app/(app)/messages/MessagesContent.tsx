@@ -31,7 +31,7 @@ export function MessagesContent() {
   }, [searchParams]);
 
   const selectedConvo = conversations?.find((c) => c.peerId === selectedPeer);
-  const peerName = selectedConvo?.peerUsername ?? 'Chat';
+  const peerName = selectedConvo?.peerUsername ?? t('title');
 
   function handleSend(text: string, replyTo?: ReplyTarget) {
     if (!selectedPeer || !currentUser?._id) return;
@@ -39,29 +39,40 @@ export function MessagesContent() {
   }
 
   return (
-    <div className="h-[calc(100vh-3rem)] flex flex-col" style={{ maxWidth: '56rem', margin: '0 auto' }}>
-      {/* Title — hide on mobile when chat is open */}
-      <h1 className={`text-xl font-bold text-white mb-3 ${selectedPeer ? 'hidden md:block' : ''}`}>
+    // `dvh` — mobil brauzerda `vh` eng baland mumkin bo'lgan viewport, ya'ni
+    // yozish maydoni URL paneli ostiga tushib qolardi (/support bilan bir xil).
+    <div className="mx-auto flex h-[calc(100dvh-6.5rem)] max-w-4xl flex-col sm:h-[calc(100dvh-3rem)]">
+      {/* Mobilda suhbat ochilganda sarlavha yashiriladi — ekran chatga beriladi */}
+      <h1
+        className={`mb-4 text-[26px] font-semibold tracking-[-0.025em] text-[var(--ww-text)] sm:text-[30px] ${
+          selectedPeer ? 'hidden md:block' : ''
+        }`}
+      >
         {t('title')}
       </h1>
 
-      <div className="flex flex-1 overflow-hidden liquid-glass">
-        {/* Left panel: conversations */}
+      <div className="ww-panel flex flex-1 overflow-hidden">
+        {/* Chap ustun: suhbatlar */}
         <div
-          className={`w-full md:w-72 border-r border-white/[0.07] overflow-y-auto flex-shrink-0 ${selectedPeer ? 'hidden md:flex md:flex-col' : 'flex flex-col'}`}
-          style={{ background: 'rgba(10,7,20,0.4)' }}
+          className={`w-full shrink-0 overflow-y-auto border-r border-[var(--ww-line)] md:w-72 ${
+            selectedPeer ? 'hidden md:flex md:flex-col' : 'flex flex-col'
+          }`}
         >
-          {/* List header */}
-          <div className="px-4 py-3 border-b border-white/[0.06] hidden md:flex items-center">
-            <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">{t('title')}</span>
+          <div className="hidden items-center border-b border-[var(--ww-line)] px-4 py-3 md:flex">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ww-text-3)]">
+              {t('title')}
+            </span>
           </div>
 
           {loadingConvos ? (
-            <div className="flex flex-col divide-y divide-white/[0.05]" aria-busy="true">
+            <div aria-busy="true">
               {[0, 1, 2].map((i) => (
-                <div key={i} className="flex items-center gap-3 px-4 py-3">
-                  <div className="skeleton w-10 h-10 rounded-full shrink-0" />
-                  <div className="flex-1 flex flex-col gap-1.5">
+                <div
+                  key={i}
+                  className="flex items-center gap-3.5 border-b border-[var(--ww-line)] px-3.5 py-3 last:border-0"
+                >
+                  <div className="skeleton h-[50px] w-[50px] shrink-0 rounded-full" />
+                  <div className="flex flex-1 flex-col gap-2">
                     <div className="skeleton h-3 w-2/5 rounded" />
                     <div className="skeleton h-2.5 w-3/5 rounded" />
                   </div>
@@ -69,7 +80,7 @@ export function MessagesContent() {
               ))}
             </div>
           ) : (
-            <div className="animate-fade-slide-in">
+            <div className="ww-rise">
               <ConversationList
                 conversations={conversations ?? []}
                 selectedPeerId={selectedPeer}
@@ -79,12 +90,12 @@ export function MessagesContent() {
           )}
         </div>
 
-        {/* Right panel: chat */}
-        <div className={`flex-1 ${!selectedPeer ? 'hidden md:flex' : 'flex'} flex-col overflow-hidden`}>
+        {/* O'ng ustun: chat */}
+        <div className={`flex-1 flex-col overflow-hidden ${!selectedPeer ? 'hidden md:flex' : 'flex'}`}>
           {selectedPeer ? (
             loadingMessages ? (
-              <div className="flex-1 flex items-center justify-center">
-                <Loader2 size={24} className="animate-spin text-violet-400" />
+              <div className="flex flex-1 items-center justify-center">
+                <Loader2 size={22} aria-hidden="true" className="animate-spin text-[var(--ww-accent-hi)]" />
               </div>
             ) : (
               <ChatWindow
@@ -96,9 +107,11 @@ export function MessagesContent() {
               />
             )
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center gap-3">
-              <MessageCircle size={36} className="text-violet-500/20" />
-              <p className="text-sm text-zinc-600">{t('selectChat')}</p>
+            <div className="flex flex-1 flex-col items-center justify-center gap-3">
+              <span className="flex h-12 w-12 items-center justify-center rounded-full border border-[var(--ww-line)] bg-[var(--ww-surface-1)]">
+                <MessageCircle size={20} aria-hidden="true" className="text-[var(--ww-text-4)]" />
+              </span>
+              <p className="text-[13px] text-[var(--ww-text-3)]">{t('selectChat')}</p>
             </div>
           )}
         </div>

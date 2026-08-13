@@ -137,7 +137,7 @@ export function useWatchParty(roomId: string) {
       setRoom(data.room);
       // room.members is string[] (user IDs from DB) — map to placeholder member objects for count
       // display immediately, then resolve each one's real username/avatar in the background.
-      const rawMembers = Array.isArray((data.room as any)?.members) ? (data.room as any).members as string[] : [];
+      const rawMembers = Array.isArray(data.room?.members) ? data.room.members : [];
       setMembers(rawMembers.map((id) => ({ _id: id, username: '' })));
       rawMembers.forEach(resolveMemberProfile);
       if (data.syncState) setSyncState(data.syncState);

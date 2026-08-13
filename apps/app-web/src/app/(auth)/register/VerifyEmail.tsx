@@ -3,10 +3,11 @@
 import { useState, useRef, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Loader2, XCircle, Mail } from 'lucide-react';
+import { Loader2, MailCheck } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import { authApi } from '@/lib/api/auth.api';
 import { ApiError } from '@/lib/api-client';
+import { Notice } from '@/components/ui/notice';
 
 interface Props {
   email: string;
@@ -84,41 +85,82 @@ export function VerifyEmail({ email }: Props) {
   }
 
   return (
-    <div className="flex flex-col items-center gap-5">
-      <Mail className="w-12 h-12 text-violet-400" strokeWidth={1.5} />
-      <h1 className="text-xl font-bold text-white text-center">{t('emailVerifyTitle')}</h1>
-      <p className="text-sm text-slate-400 text-center">
-        {t('emailVerifyText')}<br />
-        <span className="text-white font-medium">{email}</span>
-      </p>
+    <div className="flex flex-col items-center gap-6 text-center">
+      {/* Ikki qatlamli medalyon — login/forgot dagi natija ekranlari bilan
+          bir xil shakl, ya'ni auth oqimi bo'ylab bitta til */}
+      <span className="relative flex h-16 w-16 items-center justify-center">
+        <span className="absolute inset-0 rounded-full border border-[var(--ww-line)]" />
+        <span className="absolute inset-2 rounded-full bg-[var(--ww-accent-soft)]" />
+        <MailCheck
+          size={26}
+          strokeWidth={1.6}
+          aria-hidden="true"
+          className="relative text-[var(--ww-accent-hi)]"
+        />
+      </span>
 
-      {/* OTP inputs */}
-      <div className="flex gap-2.5">
+      <div className="flex flex-col gap-2">
+        {/* Ilgari BOSH HARFLAR bilan yozilgan matn edi ("EMAIL TASDIQLANG") —
+            ekran o'quvchilar uni harflab o'qiydi va sahifadagi boshqa
+            sarlavhalar bilan bir tizimda emas edi */}
+        <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.02em] text-[var(--ww-text)]">
+          {t('emailVerifyTitle')}
+        </h1>
+        <p className="text-[13.5px] leading-relaxed text-[var(--ww-text-3)]">
+          {t('emailVerifyText')}
+          <br />
+          <span className="font-medium text-[var(--ww-text)]">{email}</span>
+        </p>
+      </div>
+
+      {/* Kod maydonlari. Ilgari `w-11 h-13` edi — Tailwind'da `h-13` klassi
+          umuman mavjud emas, balandlik matn bo'yicha hisoblanib katakchalar
+          past va bir tekis emas edi. O'lcham endi `.ww-otp` da (globals.css). */}
+      <div className="flex justify-center gap-2 sm:gap-2.5">
         {digits.map((digit, i) => (
           <input
             key={i}
-            ref={(el) => { inputRefs.current[i] = el; }}
+            ref={(el) => {
+              inputRefs.current[i] = el;
+            }}
             type="text"
             inputMode="numeric"
+            /* maxLength bitta emas — kod bir katakka to'liq joylashtirilganda
+               (paste) `handleChange` uni oltita katakka taqsimlaydi */
             maxLength={CODE_LENGTH}
+            /* Faqat birinchisida: brauzer SMS/email kodini avtomatik to'ldirsa
+               u baribir paste yo'li bilan qolganlariga tarqaladi */
+            autoComplete={i === 0 ? 'one-time-code' : 'off'}
+            autoFocus={i === 0}
+            aria-label={t('emailVerifyDigit', { n: i + 1 })}
+            aria-invalid={error ? true : undefined}
             value={digit}
             onChange={(e) => handleChange(i, e.target.value)}
             onKeyDown={(e) => handleKeyDown(i, e)}
             disabled={isPending}
-            className="w-11 h-13 bg-[#13121F] border border-[#2A2840] rounded-xl text-center text-lg font-bold text-white focus:outline-none focus:border-violet-500/60 focus:ring-1 focus:ring-violet-500/30 transition-all disabled:opacity-50"
+            className="ww-field ww-otp"
           />
         ))}
       </div>
 
-      {isPending && (
-        <Loader2 size={20} className="animate-spin text-violet-400" />
-      )}
+      {/* aria-live — kod avtomatik yuboriladi, ya'ni ekran o'quvchi
+          foydalanuvchi hech narsa bosmasa ham nima bo'layotganini bilishi kerak */}
+      <p
+        aria-live="polite"
+        className="flex min-h-[20px] items-center gap-2 text-[13px] text-[var(--ww-text-3)]"
+      >
+        {isPending && (
+          <>
+            <Loader2 size={15} className="animate-spin" aria-hidden="true" />
+            {t('emailVerifyChecking')}
+          </>
+        )}
+      </p>
 
       {error && (
-        <div className="flex items-center gap-2.5 text-sm text-red-400 bg-red-500/[0.07] border border-red-500/[0.15] rounded-xl px-3.5 py-2.5 w-full">
-          <XCircle size={14} className="shrink-0" />
+        <Notice variant="danger" className="w-full text-left">
           {error}
-        </div>
+        </Notice>
       )}
     </div>
   );

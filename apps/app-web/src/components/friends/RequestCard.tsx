@@ -5,7 +5,8 @@ import { useTranslations } from 'next-intl';
 import { useAcceptFriendRequest, useRejectFriendRequest } from '@/hooks/use-friends';
 import { toast } from '@/store/toast.store';
 import { useApiError } from '@/hooks/use-api-error';
-import type { IFriendship, IUser } from '@/types';
+import type { IFriendship } from '@/types';
+import { avatarColor } from '@/lib/utils';
 import { trackClick } from '@/lib/analytics';
 
 interface Props {
@@ -13,6 +14,7 @@ interface Props {
   currentUserId: string;
 }
 
+/** Bitta do'stlik so'rovi qatori. Ro'yxat `<ul>` bo'lgani uchun bu `<li>`. */
 export function RequestCard({ request, currentUserId }: Props) {
   const t = useTranslations('friends');
   const parseError = useApiError();
@@ -20,6 +22,7 @@ export function RequestCard({ request, currentUserId }: Props) {
   const reject = useRejectFriendRequest();
 
   const sender = request.requester._id === currentUserId ? (request.receiver ?? request.requester) : request.requester;
+  const color = avatarColor(sender._id ?? sender.username ?? 'u');
 
   async function handleAccept() {
     trackClick('friend_request:accept');
@@ -43,31 +46,49 @@ export function RequestCard({ request, currentUserId }: Props) {
   const isPending = accept.isPending || reject.isPending;
 
   return (
-    <div className="flex items-center gap-3 px-4 py-3 hover:bg-violet-500/[0.04] transition-colors">
-      <div className="w-9 h-9 rounded-full bg-white/[0.06] flex items-center justify-center text-sm font-bold text-slate-300">
-        {sender.username?.[0]?.toUpperCase() ?? '?'}
+    <li className="flex items-center gap-3 border-b border-[var(--ww-line)] px-4 py-3 transition-colors last:border-0 hover:bg-[var(--ww-surface-1)]">
+      <span
+        className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full text-[13.5px] font-semibold"
+        style={{ background: `${color}2E`, border: `1px solid ${color}59`, color }}
+      >
+        {sender.avatar ? (
+          <img src={sender.avatar} alt="" className="h-full w-full object-cover" />
+        ) : (
+          (sender.username?.[0]?.toUpperCase() ?? '?')
+        )}
+      </span>
+
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-[14px] font-medium text-[var(--ww-text)]">{sender.username}</p>
+        <p className="mt-0.5 text-[11.5px] text-[var(--ww-text-3)]">{t('wantsToBeFriend')}</p>
       </div>
 
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-white truncate">{sender.username}</p>
-      </div>
-
-      <div className="flex items-center gap-1.5">
+      <div className="flex shrink-0 items-center gap-1.5">
+        {/* 36px maydon, 32 emas — bu ikkisi yonma-yon turadi va so'rovga javob
+            berishning yagona yo'li. Faqat ikonka bo'lgani uchun aria-label. */}
         <button
-          onClick={handleAccept}
+          type="button"
+          onClick={() => { void handleAccept(); }}
           disabled={isPending}
-          className="h-8 w-8 rounded-lg bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 flex items-center justify-center transition-colors cursor-pointer disabled:opacity-40"
+          aria-label={t('accept')}
+          className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[var(--ww-r-sm)] bg-[var(--ww-success-soft)] text-[var(--ww-success)] transition-colors hover:bg-[rgba(74,222,128,0.20)] disabled:cursor-default disabled:opacity-40"
         >
-          {accept.isPending ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+          {accept.isPending
+            ? <Loader2 size={15} aria-hidden="true" className="animate-spin" />
+            : <Check size={15} aria-hidden="true" />}
         </button>
         <button
-          onClick={handleReject}
+          type="button"
+          onClick={() => { void handleReject(); }}
           disabled={isPending}
-          className="h-8 w-8 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 flex items-center justify-center transition-colors cursor-pointer disabled:opacity-40"
+          aria-label={t('reject')}
+          className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[var(--ww-r-sm)] bg-[var(--ww-danger-soft)] text-[var(--ww-danger)] transition-colors hover:bg-[rgba(255,107,107,0.20)] disabled:cursor-default disabled:opacity-40"
         >
-          <X size={14} />
+          {reject.isPending
+            ? <Loader2 size={15} aria-hidden="true" className="animate-spin" />
+            : <X size={15} aria-hidden="true" />}
         </button>
       </div>
-    </div>
+    </li>
   );
 }

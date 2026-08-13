@@ -65,12 +65,12 @@ export function VoiceStrip({
 
   if (errorMsg) {
     return (
-      <div className="mx-3 mt-3 flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl bg-red-500/[0.08] border border-red-500/20">
-        <p className="text-[12px] text-red-300/90 truncate">{errorMsg}</p>
+      <div className="mx-3 mt-3 flex items-center justify-between gap-2 rounded-[var(--ww-r-md)] border border-[var(--ww-danger-line)] bg-[var(--ww-danger-soft)] px-3 py-2.5">
+        <p className="truncate text-[12px] text-[var(--ww-danger)]" role="alert">{errorMsg}</p>
         <button
           type="button"
           onClick={onJoin}
-          className="shrink-0 text-[11px] font-medium text-white px-2.5 py-1 rounded-lg bg-white/[0.08] hover:bg-white/[0.14] transition-colors cursor-pointer"
+          className="ww-btn-subtle shrink-0 cursor-pointer rounded-[var(--ww-r-sm)] px-2.5 py-1 text-[11.5px] font-medium text-[var(--ww-text)]"
         >
           {t('voiceRetry')}
         </button>
@@ -79,22 +79,25 @@ export function VoiceStrip({
   }
 
   return (
-    <div className="liquid-glass-sm mx-3 mt-3 p-3.5 flex flex-col gap-3">
+    <div className="ww-card mx-3 mt-3 flex flex-col gap-3 p-3">
       {/* Always-visible compact row — icon/label/count on the left, the one relevant action
           (Join, or Mute+Leave+expand-toggle) on the right. This alone answers "is voice live
           and how many people" without needing the avatar strip below to be open. */}
       <div className="flex items-center gap-2">
         <Radio
           size={13}
-          className={`shrink-0 ${speakingCount > 0 ? 'text-emerald-400' : 'text-violet-300/70'}`}
+          aria-hidden="true"
+          className={`shrink-0 ${speakingCount > 0 ? 'text-[var(--ww-online)]' : 'text-[var(--ww-accent-hi)]'}`}
         />
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-violet-100/80 shrink-0">
+        <span className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--ww-text-2)]">
           {t('voiceRoom')}
         </span>
         {named.length > 0 && (
-          <span className="text-[11px] text-violet-300/50 shrink-0">· {named.length}</span>
+          <span className="shrink-0 text-[11px] text-[var(--ww-text-4)]">· {named.length}</span>
         )}
-        {isLoading && <Loader2 size={13} className="animate-spin text-violet-300/70 shrink-0" />}
+        {isLoading && (
+          <Loader2 size={13} aria-hidden="true" className="shrink-0 animate-spin text-[var(--ww-text-3)]" />
+        )}
 
         <div className="flex-1" />
 
@@ -103,9 +106,9 @@ export function VoiceStrip({
             type="button"
             onClick={onJoin}
             disabled={isLoading}
-            className="shrink-0 h-7 px-3 rounded-lg text-[12px] font-semibold text-white bg-violet-600 hover:bg-violet-500 shadow-[0_0_16px_rgba(124,58,237,0.35)] transition-colors cursor-pointer disabled:opacity-40 flex items-center gap-1.5"
+            className="ww-btn-accent flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-[var(--ww-r-sm)] px-3 text-[12px] font-semibold disabled:opacity-40"
           >
-            <Mic size={12} />
+            <Mic size={13} aria-hidden="true" />
             {t('voiceJoin')}
           </button>
         ) : (
@@ -116,12 +119,12 @@ export function VoiceStrip({
               disabled={!isJoined || forcedMuted}
               aria-label={forcedMuted ? t('mutedByHost') : isMuted ? t('voiceUnmute') : t('voiceMute')}
               title={forcedMuted ? t('mutedByHost') : isMuted ? t('voiceUnmute') : t('voiceMute')}
-              className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors disabled:opacity-40 cursor-pointer shrink-0 ${
+              className={`flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-[var(--ww-r-sm)] transition-colors disabled:opacity-40 ${
                 forcedMuted
-                  ? 'bg-red-500/[0.12] text-red-400'
+                  ? 'bg-[var(--ww-danger-soft)] text-[var(--ww-danger)]'
                   : isMuted
-                    ? 'bg-white/[0.08] text-zinc-400 hover:bg-white/[0.14] hover:text-white'
-                    : 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'
+                    ? 'bg-[var(--ww-surface-2)] text-[var(--ww-text-3)] hover:bg-[var(--ww-surface-3)] hover:text-[var(--ww-text)]'
+                    : 'bg-[rgba(61,220,132,0.16)] text-[var(--ww-online)] hover:bg-[rgba(61,220,132,0.26)]'
               }`}
             >
               {isMuted || forcedMuted ? <MicOff size={13} /> : <Mic size={13} />}
@@ -132,7 +135,7 @@ export function VoiceStrip({
                 onClick={onLeave}
                 aria-label={t('voiceLeave')}
                 title={t('voiceLeave')}
-                className="w-7 h-7 rounded-lg flex items-center justify-center text-zinc-500 hover:text-red-400 hover:bg-red-500/15 transition-colors cursor-pointer shrink-0"
+                className="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-[var(--ww-r-sm)] text-[var(--ww-text-4)] transition-colors hover:bg-[var(--ww-danger-soft)] hover:text-[var(--ww-danger)]"
               >
                 <PhoneOff size={13} />
               </button>
@@ -142,7 +145,7 @@ export function VoiceStrip({
               onClick={() => setManuallyCollapsed((v) => !v)}
               aria-label={isExpanded ? t('voiceCollapse') : t('voiceExpand')}
               title={isExpanded ? t('voiceCollapse') : t('voiceExpand')}
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-zinc-500 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer shrink-0"
+              className="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-[var(--ww-r-sm)] text-[var(--ww-text-4)] transition-colors hover:bg-[var(--ww-surface-2)] hover:text-[var(--ww-text)]"
             >
               <ChevronDown size={14} className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
             </button>
@@ -171,7 +174,7 @@ export function VoiceStrip({
                       with the ring itself is the only cue that audio is actually flowing. */}
                   {p.isSpeaking && (
                     <motion.span
-                      className="absolute -inset-1 rounded-full bg-emerald-400/30"
+                      className="absolute -inset-1 rounded-full bg-[rgba(61,220,132,0.30)]"
                       animate={{ scale: [1, 1.25, 1], opacity: [0.6, 0.15, 0.6] }}
                       transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
                     />
@@ -179,10 +182,10 @@ export function VoiceStrip({
                   <div
                     className={`relative rounded-full transition-shadow ${
                       openControlsFor === p.userId
-                        ? 'ring-2 ring-violet-400'
+                        ? 'ring-2 ring-[var(--ww-accent-hi)]'
                         : p.isSpeaking
-                          ? 'ring-2 ring-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.55)]'
-                          : 'ring-1 ring-white/15'
+                          ? 'shadow-[0_0_10px_rgba(61,220,132,0.55)] ring-2 ring-[var(--ww-online)]'
+                          : 'ring-1 ring-[var(--ww-line-strong)]'
                     }`}
                   >
                     {p.avatar ? (
@@ -215,11 +218,11 @@ export function VoiceStrip({
             if (!target) return null;
             const isSelf = target.userId === currentUser?._id;
             return (
-              <div className="flex items-center gap-2.5 px-2 py-2 rounded-lg bg-white/[0.03]">
-                <span className="text-[12px] text-zinc-300 font-medium truncate max-w-[80px] shrink-0">{target.username}</span>
+              <div className="flex items-center gap-2.5 rounded-[var(--ww-r-sm)] bg-[var(--ww-surface-1)] px-2 py-2">
+                <span className="max-w-[80px] shrink-0 truncate text-[12px] font-medium text-[var(--ww-text-2)]">{target.username}</span>
                 {!isSelf && (
                   <>
-                    {target.volume > 0 ? <Volume2 size={13} className="text-zinc-500 shrink-0" /> : <VolumeX size={13} className="text-zinc-500 shrink-0" />}
+                    {target.volume > 0 ? <Volume2 size={13} className="shrink-0 text-[var(--ww-text-4)]" /> : <VolumeX size={13} className="shrink-0 text-[var(--ww-text-4)]" />}
                     <input
                       type="range"
                       min={0}
@@ -227,8 +230,8 @@ export function VoiceStrip({
                       step={0.05}
                       value={target.volume}
                       onChange={(e) => onSetVolume(target.userId, parseFloat(e.target.value))}
-                      className="flex-1 min-w-0 cursor-pointer"
-                      style={{ accentColor: '#7c3aed', height: '3px' }}
+                      className="min-w-0 flex-1 cursor-pointer accent-[var(--ww-accent-hi)]"
+                      style={{ height: '3px' }}
                       aria-label={t('volume')}
                     />
                   </>
@@ -241,10 +244,10 @@ export function VoiceStrip({
                       if (target.mutedByHost) onUnmuteMember(target.userId); else onMuteMember(target.userId);
                     }}
                     title={target.mutedByHost ? t('unmuteMic') : t('muteMic')}
-                    className={`shrink-0 w-7 h-7 rounded-lg flex items-center justify-center transition-colors cursor-pointer ${
+                    className={`flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-[var(--ww-r-sm)] transition-colors ${
                       target.mutedByHost
-                        ? 'bg-red-500/[0.14] text-red-400 hover:bg-red-500/[0.22]'
-                        : 'text-zinc-500 hover:text-white hover:bg-white/[0.08]'
+                        ? 'bg-[var(--ww-danger-soft)] text-[var(--ww-danger)] hover:bg-[rgba(255,107,107,0.22)]'
+                        : 'text-[var(--ww-text-4)] hover:bg-[var(--ww-surface-2)] hover:text-[var(--ww-text)]'
                     }`}
                   >
                     {target.mutedByHost ? <MicOff size={13} /> : <Mic size={13} />}

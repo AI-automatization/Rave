@@ -1,61 +1,64 @@
 'use client';
 
 import { MessageCircle } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import type { IUser } from '@/types';
+import { avatarColor } from '@/lib/utils';
 import { trackClick } from '@/lib/analytics';
-
-const PALETTE = ['#7C3AED', '#2563EB', '#059669', '#D97706', '#DC2626', '#DB2777', '#0891B2'];
-function avatarColor(id: string): string {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = id.charCodeAt(i) + ((h << 5) - h);
-  return PALETTE[Math.abs(h) % PALETTE.length];
-}
 
 interface Props {
   user: IUser;
   onMessage?: () => void;
 }
 
+/** Bitta do'st qatori. Ro'yxat `<ul>` bo'lgani uchun bu `<li>`. */
 export function FriendCard({ user, onMessage }: Props) {
-  const color = avatarColor(user._id);
+  const t = useTranslations('friends');
+  // Rang endi lokal nusxadan emas, `lib/utils` dagi yagona manbadan — bir
+  // foydalanuvchi sidebar, /home qatori va shu ro'yxatda bir xil rangda bo'ladi.
+  const color = avatarColor(user._id ?? user.username ?? 'u');
 
   return (
-    <div className="flex items-center gap-3 px-4 py-3 hover:bg-violet-500/[0.04] transition-colors">
-      {/* Avatar */}
-      <div className="relative shrink-0">
-        <div
-          className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white overflow-hidden"
-          style={{ background: `${color}30`, border: `1px solid ${color}50` }}
+    <li className="flex items-center gap-3 border-b border-[var(--ww-line)] px-4 py-3 transition-colors last:border-0 hover:bg-[var(--ww-surface-1)]">
+      <span className="relative shrink-0">
+        <span
+          className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full text-[13.5px] font-semibold"
+          style={{ background: `${color}2E`, border: `1px solid ${color}59`, color }}
         >
           {user.avatar ? (
-            <img src={user.avatar} alt={user.username} className="w-full h-full object-cover" />
+            <img src={user.avatar} alt="" className="h-full w-full object-cover" />
           ) : (
-            <span style={{ color }}>{user.username?.[0]?.toUpperCase() ?? '?'}</span>
+            (user.username?.[0]?.toUpperCase() ?? '?')
           )}
-        </div>
+        </span>
         {user.isOnline && (
-          <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-[#07070D]" />
+          /* Chegara rangi sirt foniga teng — nuqta avatardan "kesib olingan"
+             ko'rinadi, ustiga yopishtirilgan emas */
+          <span
+            aria-hidden="true"
+            className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[var(--ww-bg)] bg-[var(--ww-online)]"
+          />
+        )}
+      </span>
+
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-[14px] font-medium text-[var(--ww-text)]">{user.username}</p>
+        {user.isOnline && (
+          /* Ilgari bu joyda tarjimasiz "Online" turardi (prod audit 2026-08-01) */
+          <p className="mt-0.5 text-[11.5px] text-[var(--ww-online)]">{t('online')}</p>
         )}
       </div>
 
-      {/* Info */}
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-white truncate">{user.username}</p>
-        {user.isOnline && (
-          <p className="text-[11px] text-emerald-500">Online</p>
-        )}
-      </div>
-
-      {/* DM button */}
       {onMessage && (
         <button
+          type="button"
           onClick={() => { trackClick('friend_card:message'); onMessage(); }}
-          className="h-8 px-3 rounded-lg bg-white/[0.05] border border-white/[0.08] text-slate-400 hover:text-white hover:bg-white/[0.09] transition-colors flex items-center gap-1.5 text-xs cursor-pointer"
+          className="ww-btn-subtle flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-[var(--ww-r-sm)] px-3 text-[12.5px] font-medium text-[var(--ww-text-2)]"
         >
-          <MessageCircle size={13} />
-          DM
+          <MessageCircle size={14} aria-hidden="true" />
+          {t('message')}
         </button>
       )}
-    </div>
+    </li>
   );
 }

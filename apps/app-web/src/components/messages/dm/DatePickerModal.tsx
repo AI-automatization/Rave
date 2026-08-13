@@ -69,31 +69,37 @@ export function DatePickerModal({ open, onClose, onSelect, markedDateKeys, initi
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="bg-[#0C0B18] border-white/[0.07] text-white max-w-[320px] p-4 rounded-2xl gap-3">
+      <DialogContent className="max-w-[320px] gap-3 rounded-[var(--ww-r-xl)] border-[var(--ww-line)] bg-[var(--ww-panel-solid)] p-4 text-[var(--ww-text)]">
         {/* Month nav */}
         <div className="flex items-center justify-between">
           <button
+            type="button"
             onClick={goPrevMonth}
-            className="w-8 h-8 flex items-center justify-center rounded-full text-white/70 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer"
+            aria-label={t('prevMonth')}
+            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-[var(--ww-text-2)] transition-colors hover:bg-[var(--ww-surface-2)] hover:text-[var(--ww-text)]"
           >
-            <ChevronLeft size={18} />
+            <ChevronLeft size={18} aria-hidden="true" />
           </button>
-          <span className="text-sm font-bold text-white">
+          <span className="text-[14px] font-semibold text-[var(--ww-text)]">
             {tCal(MONTH_KEYS[viewMonth.getMonth()])} {viewMonth.getFullYear()}
           </span>
           <button
+            type="button"
             onClick={goNextMonth}
             disabled={atCurrentMonth}
-            className="w-8 h-8 flex items-center justify-center rounded-full text-white/70 hover:text-white hover:bg-white/[0.08] transition-colors cursor-pointer disabled:opacity-25 disabled:cursor-default disabled:hover:bg-transparent"
+            aria-label={t('nextMonth')}
+            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-[var(--ww-text-2)] transition-colors hover:bg-[var(--ww-surface-2)] hover:text-[var(--ww-text)] disabled:cursor-default disabled:opacity-25 disabled:hover:bg-transparent"
           >
-            <ChevronRight size={18} />
+            <ChevronRight size={18} aria-hidden="true" />
           </button>
         </div>
 
         {/* Weekday header */}
         <div className="grid grid-cols-7 gap-1">
           {weekdayLabels.map((label, i) => (
-            <span key={i} className="text-[10px] text-center text-white/35 font-medium uppercase">{label}</span>
+            <span key={i} className="text-center text-[10px] font-medium uppercase text-[var(--ww-text-4)]">
+              {label}
+            </span>
           ))}
         </div>
 
@@ -108,16 +114,17 @@ export function DatePickerModal({ open, onClose, onSelect, markedDateKeys, initi
             return (
               <button
                 key={i}
+                type="button"
                 disabled={isFuture}
                 onClick={() => { onSelect(cell.date); onClose(); }}
-                className={`aspect-square rounded-full flex items-center justify-center text-[13px] transition-colors cursor-pointer disabled:cursor-default ${
+                className={`flex aspect-square cursor-pointer items-center justify-center rounded-full text-[13px] tabular-nums transition-colors disabled:cursor-default ${
                   isToday
-                    ? 'text-violet-300 font-bold ring-1 ring-violet-500/60'
+                    ? 'font-semibold text-[var(--ww-accent-hi)] ring-1 ring-[rgba(124,58,237,0.6)]'
                     : isFuture
-                      ? 'text-white/15'
+                      ? 'text-[var(--ww-text-4)] opacity-50'
                       : isMarked
-                        ? 'text-white hover:bg-white/[0.08]'
-                        : 'text-white/30 hover:bg-white/[0.05]'
+                        ? 'text-[var(--ww-text)] hover:bg-[var(--ww-surface-2)]'
+                        : 'text-[var(--ww-text-4)] hover:bg-[var(--ww-surface-1)]'
                 }`}
               >
                 {cell.date.getDate()}
@@ -126,7 +133,7 @@ export function DatePickerModal({ open, onClose, onSelect, markedDateKeys, initi
           })}
         </div>
 
-        <p className="text-[11px] text-white/25 text-center">{t('jumpToDate')}</p>
+        <p className="text-center text-[11px] text-[var(--ww-text-4)]">{t('jumpToDate')}</p>
       </DialogContent>
     </Dialog>
   );
