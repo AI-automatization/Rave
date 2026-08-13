@@ -85,6 +85,31 @@ function VideoLoading({ label }: { label?: string }) {
   );
 }
 
+// Shown to the OWNER when playback has genuinely failed. The silent VB auto-fallback (RoomContent's
+// handleVideoFatalError → vbStart) is already running in the background — this used to be the
+// owner's ONLY option, a bare "Opening virtual browser..." spinner with no escape hatch if VB also
+// comes up empty. The badge gives the owner a direct way to jump straight to the candidate picker
+// (same one "Это не то видео" already opens) instead of waiting out a VB session that might not
+// find anything either.
+function OwnerVideoStuckOverlay({ onPickDifferentVideo }: { onPickDifferentVideo?: () => void }) {
+  const t = useTranslations('party');
+  return (
+    <div className="relative">
+      <VideoLoading label={t('playerOpeningVB')} />
+      {onPickDifferentVideo && (
+        <button
+          type="button"
+          onClick={() => { trackClick('video:stuck_pick_different'); onPickDifferentVideo(); }}
+          className="absolute bottom-4 flex items-center gap-1.5 rounded-full bg-black/70 px-3 py-1.5 text-[12px] font-medium text-white/80 backdrop-blur-sm cursor-pointer transition-colors hover:bg-black/85 hover:text-white"
+        >
+          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-red-400" />
+          {t('playerVideoStuck')} — {t('playerPickAnother')}
+        </button>
+      )}
+    </div>
+  );
+}
+
 // Shown to a NON-owner viewer when playback has genuinely failed. The owner-only VB auto-fallback
 // (RoomContent's handleVideoFatalError → vbStart) is what actually recovers this room — a non-
 // owner can never trigger that themselves (vbStart is gated on isOwner), so leaving them on the
@@ -127,6 +152,10 @@ interface Props {
    * etc.) don't report through this — they're not part of the extraction-vs-playback gap this
    * closes, same scope mobile's version has. */
   onFatalError?: () => void;
+  /** Owner-only escape hatch shown alongside the fatal-error "Opening virtual browser..." state —
+   * opens the same video-candidate picker as RoomHeader's "Это не то видео" menu item, so the
+   * owner isn't stuck waiting on a VB session that might not find anything either. */
+  onPickDifferentVideo?: () => void;
 }
 
 interface ExtractResult {
@@ -534,13 +563,33 @@ function NativeVideoPlayer({
   // frame at 0:00 with no feedback while the browser silently buffers, reading as "broken".
   const [isBuffering, setIsBuffering] = useState(true);
   const bufferingLabel = useCyclingLoadingLabel(isBuffering);
+  // "Плохой интернет" badge — a SINGLE rebuffer is normal (seek, a fresh src, a brief stall) and
+  // already covered by the full-screen buffering spinner above; this is about a PATTERN of them,
+  // which is what actually signals a bad connection rather than a one-off blip. Tracks rebuffer
+  // timestamps in a sliding window; crossing the threshold shows a small persistent badge (not
+  // gated on `isBuffering` itself, since the point is "you may keep having problems", not just
+  // "buffering right now") that clears itself after a cooldown once rebuffers stop recurring.
+  const REBUFFER_WINDOW_MS = 30_000;
+  const REBUFFER_THRESHOLD = 3;
+  const POOR_CONNECTION_COOLDOWN_MS = 20_000;
+  const rebufferTimestampsRef = useRef<number[]>([]);
+  const poorConnectionClearTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const [poorConnection, setPoorConnection] = useState(false);
   // Starts false (assume controllable) so SSR/first client render match — corrected right after
   // mount, before the user could plausibly touch the slider.
   const [volumeSliderUnusable, setVolumeSliderUnusable] = useState(false);
   useEffect(() => { setVolumeSliderUnusable(isVolumeSliderUnusable()); }, []);
 
   // Fresh src → back to "loading", until canplay/playing says otherwise (mirror-state effect below).
-  useEffect(() => { setIsBuffering(true); }, [src]);
+  // Also resets the rebuffer-frequency tracker — a new source (video change, VB handoff) starting
+  // slow isn't evidence of a bad connection, it's just a cold start.
+  useEffect(() => {
+    setIsBuffering(true);
+    rebufferTimestampsRef.current = [];
+    setPoorConnection(false);
+    clearTimeout(poorConnectionClearTimerRef.current);
+  }, [src]);
+  useEffect(() => () => clearTimeout(poorConnectionClearTimerRef.current), []);
 
   // Only the owner's own action should decide whether the room starts playing — members follow
   // via the sync effect below once the owner's play event round-trips through the server. A
@@ -658,7 +707,18 @@ function NativeVideoPlayer({
     const onMeta = () => { if (isFinite(video.duration)) setDuration(video.duration); };
     const onVolChange = () => { setVolume(video.volume); setIsMuted(video.muted); };
     const onFullscreenChange = () => setIsFullscreen(!!document.fullscreenElement);
-    const onWaitingEvt = () => setIsBuffering(true);
+    const onWaitingEvt = () => {
+      setIsBuffering(true);
+      const now = Date.now();
+      const recent = rebufferTimestampsRef.current.filter((ts) => now - ts < REBUFFER_WINDOW_MS);
+      recent.push(now);
+      rebufferTimestampsRef.current = recent;
+      if (recent.length >= REBUFFER_THRESHOLD) {
+        setPoorConnection(true);
+        clearTimeout(poorConnectionClearTimerRef.current);
+        poorConnectionClearTimerRef.current = setTimeout(() => setPoorConnection(false), POOR_CONNECTION_COOLDOWN_MS);
+      }
+    };
     const onReadyEvt = () => setIsBuffering(false);
     document.addEventListener('fullscreenchange', onFullscreenChange);
     video.addEventListener('play', onPlayEvt);
@@ -797,6 +857,16 @@ function NativeVideoPlayer({
           >
             {bufferingLabel}
           </p>
+        </div>
+      )}
+
+      {/* Плохое соединение — persists independently of `isBuffering` (which only reflects the
+          CURRENT stall) since the point is "this connection is likely to keep having problems",
+          not just "buffering right now". Small corner pill, never blocks the video/controls. */}
+      {poorConnection && (
+        <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 rounded-full bg-black/70 px-2.5 py-1 text-[11px] font-medium text-amber-300 backdrop-blur-sm pointer-events-none">
+          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" />
+          {t('playerPoorConnection')}
         </div>
       )}
 
@@ -943,6 +1013,7 @@ export function VideoPlayer({
   onBufferStart,
   onBufferEnd,
   onFatalError,
+  onPickDifferentVideo,
 }: Props) {
   const t = useTranslations('party');
   const room = useWatchPartyStore((s) => s.room);
@@ -1438,7 +1509,7 @@ export function VideoPlayer({
     // moves on.
     if (fatalPlaybackError) {
       return isOwner
-        ? <VideoLoading label={t('playerOpeningVB')} />
+        ? <OwnerVideoStuckOverlay onPickDifferentVideo={onPickDifferentVideo} />
         : <FatalErrorRetryOverlay onRetry={() => setFatalPlaybackError(false)} />;
     }
     if (directSrc) {

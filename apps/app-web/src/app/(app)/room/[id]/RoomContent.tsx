@@ -558,6 +558,7 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
                 onBufferStart={sendBufferStart}
                 onBufferEnd={sendBufferEnd}
                 onFatalError={handleVideoFatalError}
+                onPickDifferentVideo={() => setCandidatePickerOpen(true)}
               />
             )}
             </div>

@@ -683,7 +683,10 @@
     "videoCandidateEmbedHint": "Предпросмотр недоступен для этого типа видео — подтвердите, если это то, что нужно",
     "videoCandidateBack": "Назад к списку",
     "noOtherCandidates": "Другие видео не найдены",
-    "playerRetryPlayback": "Не удалось воспроизвести — нажмите, чтобы повторить"  },
+    "playerRetryPlayback": "Не удалось воспроизвести — нажмите, чтобы повторить",
+    "playerPoorConnection": "Плохое соединение — возможны проблемы с видео",
+    "playerVideoStuck": "Видео не заиграло",
+    "playerPickAnother": "Выбрать другое видео"  },
   "movie": {
     "watch": "Смотреть",
     "details": "Подробнее",
