@@ -1,6 +1,23 @@
 # CineSync — OCHIQ VAZIFALAR
 
-# Yangilangan: 2026-08-11
+# Yangilangan: 2026-08-13
+
+---
+
+### T-Y202 | P1 | [SEO] | RU-klaster: hub sahifalarni kengaytirish + ichki linklar
+
+- **Mas'ul:** pending[Yakubov]
+- **Beruvchi:** Yakubov
+- **Yaratilgan:** 2026-08-13 11:05
+- **Holat:** Bajarilmoqda - branch yakubov/feat-ru-smotret-vmeste-hub (dev'dan)
+- **Tavsiya model:** sonnet
+- **Model sababi:** 3 sahifa + 1 test fayl, kontent va metadata, yangi arxitektura yo'q
+- **Sabab:** Egasining ikkita maqsadli so'rovi - `смотреть видео вместе` va `смотреть кино вместе` - hech bir sahifaga biriktirilmagan, shuning uchun 2-sahifadan tasodifiy qo'shni sahifa bilan chiqadi. Qaror (2026-08-12, egasi tasdiqlagan): yangi sahifa YARATMASLIK - film klasterida allaqachon 2 sahifa bor, uchinchisi pozitsiya qo'shmaydi, og'irlikni uchga bo'ladi. Mavjud hub'larni kengaytirish.
+- **Qilish kerak:**
+  - [ ] ru/guides/smotret-vmeste-onlayn - `смотреть видео вместе` uchun bo'lim + FAQ + description (hozir bu ibora faqat keywords'da, matnda umuman yo'q)
+  - [ ] ru/guides/kino-s-drugom-onlayn - `смотреть кино вместе` uchun bo'lim, sahifa film klasterining hub'iga aylanadi
+  - [ ] ru/guides/smotret-film-vdvoem - hub'ga yuqoriga link, o'z tor so'rovini saqlaydi
+  - [ ] apps/web/tests/seo-geo-aeo.spec.ts - yangi tekshiruvlar (CI apps/web uchun faqat shu Playwright job'ni ishga tushiradi)
 
 ---
 
