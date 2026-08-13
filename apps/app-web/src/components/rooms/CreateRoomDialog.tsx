@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2, Globe, ArrowRight, ArrowLeft, Users, X, ExternalLink, Search, ChevronDown, Link2, Lock } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -14,6 +14,7 @@ import { toast } from '@/store/toast.store';
 import { useApiError } from '@/hooks/use-api-error';
 import { ApiError } from '@/lib/api-client';
 import { trackClick } from '@/lib/analytics';
+import { trackRoomCreated } from '@/lib/measurement-events';
 
 interface Props {
   open: boolean;
@@ -318,6 +319,7 @@ const TOP_PLATFORM_IDS = ['youtube', 'tiktok', 'vk', 'twitch'];
 /* ── Component ────────────────────────────────────────── */
 export function CreateRoomDialog({ open, onOpenChange }: Props) {
   const t = useTranslations('room');
+  const locale = useLocale();
   const parseError = useApiError();
   const router = useRouter();
   const createRoom = useCreateRoom();
@@ -478,6 +480,7 @@ export function CreateRoomDialog({ open, onOpenChange }: Props) {
         isPrivate,
       });
       onOpenChange(false);
+      trackRoomCreated(locale);
       const id = res.data?._id;
       // Backend now starts VB server-side directly at room creation for any non-embed URL
       // (watchParty.controller.ts createRoom, 2026-08-10) — the old ?verify=1 client round-trip
