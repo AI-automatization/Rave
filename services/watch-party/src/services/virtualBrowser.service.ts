@@ -108,6 +108,12 @@ interface VBSession {
    * default, since VB (unlike the extraction pipeline) never had any page-metadata capture at
    * all. Set once navigation succeeds; undefined if it never did or the read itself failed. */
   pageTitle?: string;
+  /** Set by pauseScreencast() once the collection window closes on a 'capture' candidate — the
+   * session is kept alive for the ongoing byte capture, but NO MORE VB_FRAME events will ever be
+   * sent until the owner confirms/rejects the candidate (there is no resumeScreencast()). A
+   * client that treats "session exists" as "frames incoming" gets stuck on an infinite loading
+   * spinner here — see getSessionSnapshot's `paused` field, added for exactly this. */
+  paused: boolean;
 }
 
 const sessions = new Map<string, VBSession>(); // roomId -> session
@@ -212,10 +218,10 @@ export function getSessionPageTitle(roomId: string): string | undefined {
 // session — without this, ROOM_JOINED had no way to tell a fresh client "a virtual browser is
 // already running", so anyone who joined/refreshed post-start never received the one-shot
 // VB_STARTED broadcast and just saw the old, now-not-actually-active video player instead.
-export function getSessionSnapshot(roomId: string): { url: string; width: number; height: number; ownerId: string } | null {
+export function getSessionSnapshot(roomId: string): { url: string; width: number; height: number; ownerId: string; paused: boolean } | null {
   const s = sessions.get(roomId);
   if (!s) return null;
-  return { url: s.url, width: VB_VIEWPORT.width, height: VB_VIEWPORT.height, ownerId: s.ownerId };
+  return { url: s.url, width: VB_VIEWPORT.width, height: VB_VIEWPORT.height, ownerId: s.ownerId, paused: s.paused };
 }
 
 // 'url'     — categories A (extension/content-type/magic-bytes on a real HTTP response). The
@@ -676,7 +682,7 @@ export async function startSession(
       everyNthFrame: 1,
     });
 
-    sessions.set(roomId, { browser, context, page, cdp, ownerId, url });
+    sessions.set(roomId, { browser, context, page, cdp, ownerId, url, paused: false });
 
     try {
       await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20_000 });
@@ -780,6 +786,7 @@ export async function pauseScreencast(roomId: string): Promise<void> {
   const s = sessions.get(roomId);
   if (!s) return;
   try { await s.cdp.send('Page.stopScreencast'); } catch { /* already gone */ }
+  s.paused = true;
   logger.info('VB: screencast paused, session kept alive for ongoing capture', { roomId });
 }
 
