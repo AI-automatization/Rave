@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type APIRequestContext } from '@playwright/test';
 import { GUIDES } from '../src/data/guides';
 import { ARTICLES } from '../src/data/articles';
 import { PRODUCT_FACTS } from '../src/data/product-facts';
@@ -28,6 +28,33 @@ function sitemapUrls(xml: string): string[] {
   return [...xml.matchAll(/<loc>(.*?)<\/loc>/g)].map((match) => match[1]);
 }
 
+/**
+ * `/sitemap.xml` is an index, so the page URLs live one level down. Walking it here keeps
+ * every assertion below on *pages* rather than on sitemap files, and fails loudly if a
+ * sub-sitemap listed in the index is missing — a split sitemap's characteristic failure.
+ */
+async function allPageUrls(request: APIRequestContext): Promise<string[]> {
+  const index = await request.get('/sitemap.xml');
+  expect(index.status()).toBe(200);
+  expect(index.headers()['content-type']).toContain('xml');
+
+  const indexXml = await index.text();
+  expect(indexXml, 'sitemap.xml must be a sitemap index').toContain('<sitemapindex');
+
+  const urls: string[] = [];
+  for (const absoluteUrl of sitemapUrls(indexXml)) {
+    const { pathname } = new URL(absoluteUrl);
+    const child = await request.get(pathname);
+    expect(child.status(), `${pathname} listed in the index must exist`).toBe(200);
+    expect(child.headers()['content-type'], `${pathname} must be XML`).toContain('xml');
+
+    const childXml = await child.text();
+    expect(childXml, `${pathname} must be a urlset`).toContain('<urlset');
+    urls.push(...sitemapUrls(childXml));
+  }
+  return urls;
+}
+
 function visibleHtmlText(html: string): string {
   return html
     .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, ' ')
@@ -49,12 +76,7 @@ test.describe('SEO / GEO / AEO regression checks', () => {
   });
 
   test('sitemap contains unique final locale URLs and no double locale prefix', async ({ request }) => {
-    const response = await request.get('/sitemap.xml');
-    expect(response.status()).toBe(200);
-    expect(response.headers()['content-type']).toContain('xml');
-
-    const xml = await response.text();
-    const urls = sitemapUrls(xml);
+    const urls = await allPageUrls(request);
 
     expect(urls.length).toBeGreaterThan(30);
     expect(new Set(urls).size).toBe(urls.length);
@@ -121,9 +143,7 @@ test.describe('SEO / GEO / AEO regression checks', () => {
   test('every sitemap URL returns indexable canonical HTML', async ({ request }) => {
     test.setTimeout(120_000);
 
-    const sitemapResponse = await request.get('/sitemap.xml');
-    expect(sitemapResponse.status()).toBe(200);
-    const urls = sitemapUrls(await sitemapResponse.text());
+    const urls = await allPageUrls(request);
     const titlesByLocale = new Map<string, string>();
     const headingsByLocale = new Map<string, string>();
 
