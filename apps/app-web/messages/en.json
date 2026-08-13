@@ -722,7 +722,10 @@
     "videoCandidateEmbedHint": "No preview available for this video type — confirm if this is the right one",
     "videoCandidateBack": "Back to list",
     "noOtherCandidates": "No other videos found",
-    "playerRetryPlayback": "Playback failed — click to retry"  },
+    "playerRetryPlayback": "Playback failed — click to retry",
+    "playerPoorConnection": "Poor connection — video may have issues",
+    "playerVideoStuck": "Video didn't load",
+    "playerPickAnother": "Pick another video"  },
   "movie": {
     "watch": "Watch",
     "details": "Details",
