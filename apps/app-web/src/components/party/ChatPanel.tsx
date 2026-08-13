@@ -139,7 +139,7 @@ export function ChatPanel({ onSend, onOpenProfile }: Props) {
                   }`}
                 >
                   {msg.text}
-                </p>
+                </span>
               </div>
 
               {/* Hover-only. focus-within keeps it reachable by keyboard, where there is no hover. */}
