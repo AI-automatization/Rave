@@ -316,8 +316,14 @@
 - **Qo'lda qilinishi kerak (TODO human):**
   - [x] Railway'da `INDEXNOW_SECRET` + `INDEXNOW_KEY` o'rnatildi (2026-08-10) — mustaqil tekshirildi,
         endi 401 qaytaryapti (noto'g'ri secret bilan — env borligini tasdiqlaydi, avval 503 edi)
-  - [ ] GSC: sitemap.xml ni qayta yuborish + URL Inspection'da qayta indekslash so'rovi
-        (/guides, /uz/guides, /how-it-works, rutube/vk/film-vdvoem/serialy gaydlari, /en)
+  - [x] GSC: sitemap.xml qayta yuborildi (2026-08-13) + 9 URL "Запросить индексирование"
+        orqali navbatga qo'yildi: /ru/guides/smotret-youtube-vmeste, /ru/guides, /uz/guides,
+        /en, /ru/how-it-works, rutube, vk-video, film-vdvoem, serialy-besplatno
+  - [x] Yandex Webmaster (2026-08-13): huquqlar meta-teg bilan tasdiqlandi. **Topilma:**
+        sayt `http://wewatch.uz:80` sifatida ro'yxatdan o'tgan edi, prod esa https —
+        Yandex uchun bu ikki xil host. `https://wewatch.uz` alohida qo'shildi va
+        tasdiqlandi; ikkalasiga ham sitemap qo'yildi va 64 tadan URL qayta-o'tishga
+        yuborildi (kunlik limit 150 ta, domen + mirrorlar uchun umumiy)
   - [ ] Pro tarif (29 000 so'm, /pricing) haqiqatan faolmi? llms.txt da TODO qoldirilgan
   - [ ] `.claude/scripts/tg-notify.sh` — Windows'da `python3` topilmayapti, xabar yuborilmadi
 - **⛔ TEGMASLIK KERAK:** apps/mobile, services/*, watch-party sinxronizatsiya logikasi. Faqat apps/web.
