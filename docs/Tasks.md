@@ -1,6 +1,59 @@
 # CineSync — OCHIQ VAZIFALAR
 
-# Yangilangan: 2026-08-11
+# Yangilangan: 2026-08-13
+
+---
+
+### T-Y203 | P2 | [SEO] | sitemap.xml — sitemap index'ga bo'lish + buzuq priority qiymatlari
+
+- **Mas'ul:** pending[Yakubov]
+- **Beruvchi:** Yakubov
+- **Yaratilgan:** 2026-08-13 17:20
+- **Holat:** 🔄 PR ochildi (`yakubov/feat-sitemap-stylesheet` → `dev`)
+- **Tavsiya model:** sonnet
+- **Model sababi:** 4 fayl, XML serializatsiya + XSL, yangi arxitektura yo'q
+- **Sabab:** (1) Egasi bitta katta `<urlset>` o'rniga haqiqiy **sitemap index** so'radi:
+  `/sitemap.xml` → til bo'yicha alohida fayllar. (2) Prod `sitemap.xml` da to'rtta
+  `<priority>` IEEE 754 artefakti bilan chiqqan — `0.7000000000000001` va
+  `0.30000000000000004` (`priority - 0.1` dan). Next'ning `app/sitemap.ts` generatori
+  faqat `<urlset>` chiqaradi; Next manbasida `<sitemapindex>` beradigan kod yo'li yo'q
+  (metadata route loader, 2026-08-13 da tekshirildi), `generateSitemaps` esa index'siz
+  faqat pastki fayllarni yasaydi — shuning uchun XML qo'lda yoziladi.
+- **Qilish kerak:**
+  - [x] `src/lib/seo/sitemap-entries.ts` — ENTRIES + guard + `sitemapUrls()` + til bo'yicha bo'lish (IndexNow ham shu yerdan)
+  - [x] `src/app/sitemap.xml/route.ts` — `<sitemapindex>`, har bir faylga `<lastmod>`
+  - [x] `src/app/sitemap/[file]/route.ts` — `/sitemap/{ru,uz,en,shared}.xml`, hreflang saqlanadi, noma'lum fayl → 404
+  - [x] priority yaxlitlash (`Math.round(p * 10) / 10`) + `lastmod` endi `YYYY-MM-DD`
+  - [x] `app/sitemap.ts` o'chirildi (aks holda ikkalasi ham `/sitemap.xml` ni beradi)
+  - [x] `tests/seo-geo-aeo.spec.ts` — index orqali yurib, pastki fayllardan URL yig'adi
+- **`shared.xml` nega kerak:** `/privacy-policy`, `/terms`, `/dmca`, `/delete-account` da til
+  prefiksi yo'q. Faqat ru/uz/en qilinsa, bu to'rtta sahifa sitemap'dan jimgina yo'qoladi.
+- **Tekshiruv:** build ✅ · typecheck — dev'dagi 5 ta eski xato, yangisi yo'q ·
+  `npm run test:seo` 25/25 · jonli javob: index `application/xml`, root `<sitemapindex>`;
+  ru 28 + uz 17 + en 15 + shared 4 = **64 URL** (avvalgidek), `/sitemap/zz.xml` → 404,
+  `robots.txt` da `Sitemap: https://wewatch.uz/sitemap.xml`
+- **⚠️ Diqqat:** GSC va Yandex'ga yuborilgan manzil o'zgarmadi (`/sitemap.xml`) — qayta yuborish shart emas
+
+---
+
+### T-Y202 | P1 | [SEO] | RU-klaster: hub sahifalarni kengaytirish + ichki linklar
+
+- **Mas'ul:** pending[Yakubov]
+- **Beruvchi:** Yakubov
+- **Yaratilgan:** 2026-08-13 11:05
+- **Holat:** 🔄 PR #121 ochildi (`yakubov/feat-ru-smotret-vmeste-hub` → `dev`, 2026-08-13),
+  review kutilmoqda. `origin/dev` branch'ga merge qilindi (9cef9343, konflikt yo'q).
+  Tekshiruv: CI 14/14 yashil (7 typecheck + 5 test + large-file + "Build, crawl,
+  accessibility and Lighthouse"); mahalliy `npm run test:seo` — 27/27; `apps/web`
+  typecheck — dev'dagi bilan bir xil 5 ta eski xato, yangisi yo'q.
+- **Tavsiya model:** sonnet
+- **Model sababi:** 3 sahifa + 1 test fayl, kontent va metadata, yangi arxitektura yo'q
+- **Sabab:** Egasining ikkita maqsadli so'rovi - `смотреть видео вместе` va `смотреть кино вместе` - hech bir sahifaga biriktirilmagan, shuning uchun 2-sahifadan tasodifiy qo'shni sahifa bilan chiqadi. Qaror (2026-08-12, egasi tasdiqlagan): yangi sahifa YARATMASLIK - film klasterida allaqachon 2 sahifa bor, uchinchisi pozitsiya qo'shmaydi, og'irlikni uchga bo'ladi. Mavjud hub'larni kengaytirish.
+- **Qilish kerak:**
+  - [x] ru/guides/smotret-vmeste-onlayn - `смотреть видео вместе` uchun bo'lim + FAQ + description (hozir bu ibora faqat keywords'da, matnda umuman yo'q)
+  - [x] ru/guides/kino-s-drugom-onlayn - `смотреть кино вместе` uchun bo'lim, sahifa film klasterining hub'iga aylanadi
+  - [x] ru/guides/smotret-film-vdvoem - hub'ga yuqoriga link, o'z tor so'rovini saqlaydi
+  - [x] apps/web/tests/seo-geo-aeo.spec.ts - yangi tekshiruvlar (CI apps/web uchun faqat shu Playwright job'ni ishga tushiradi)
 
 ---
 
@@ -9,7 +62,10 @@
 - **Mas'ul:** pending[Yakubov]
 - **Beruvchi:** Saidazim
 - **Yaratilgan:** 2026-08-11 07:20
-- **Holat:** 🔄 Bajarilmoqda — apps/web tomoni tayyor (PR: yakubov/feat-ga4-measurement-events), app-web tomoni Saidazim'ning source_cluster cookie tasdig'ini kutmoqda
+- **Holat:** 🔄 Bajarilmoqda — apps/web tomoni **dev'ga qo'shildi** (PR #103 merge qilindi
+  2026-08-12; 2026-08-13 tekshirildi: `origin/dev` va `origin/main` sinxron). Qolgan ikkala
+  punkt ham Saidazim zonasida: app-web event'lari `source_cluster` cookie tasdig'ini kutmoqda,
+  CI qadami esa qo'shilmagan
 - **Tavsiya model:** sonnet
 - **Model sababi:** ~5 fayl, aniq kontrakt (docs/seo/measurement-plan.md:48-59) bo'yicha event ulash, yangi arxitektura yo'q
 - **Sabab:** docs/seo/baseline-2026-08-10.md bo'yicha GA4 key events = 0 — organikadan konversiya o'lchab bo'lmayapti, SEO ROI noaniq (Yakubov topgan, 2026-08-10 audit).
@@ -268,10 +324,15 @@
   murojaat qilinmagan. "Re-run failed jobs" kerak bo'lmadi — (1)-fix o'zi yetarli bo'ldi.
   INDEXNOW_SECRET + INDEXNOW_KEY ham Railway'da o'rnatildi, /api/indexnow endi 401 qaytaryapti
   (2026-08-10 mustaqil tekshirildi: 503 emas — env bor, noto'g'ri secret bilan 401 kutilganidek).
-  **YANGI TOPILMA (2026-08-10, mustaqil tekshiruv):** prod llms.txt hali ham main bilan bayt-ma-bayt
-  bir xil EMAS — kontent farqi (mobil ilova haqida): prod ehtiyotkorona "in development" deydi,
-  main esa "on iOS, and on Android" (chiqarilganday). T-E208 (Play Store audit) hali tugallanmagan
-  ekanini hisobga olsak, MAIN'dagi versiya overclaim qilishi mumkin — Yakubov/Saidazim tekshirsin.
+  ~~**YANGI TOPILMA (2026-08-10):** prod llms.txt main bilan bir xil emas — prod "in development",
+  main "on iOS, and on Android" (overclaim).~~ **HAL BO'LDI — 2026-08-13 qayta tekshirildi:**
+  prod `llms.txt` ham, `origin/main` dagi fayl ham endi bir xil matn beradi
+  ("Native iOS and Android apps are **in development**"). Overclaim yo'q.
+
+  **Prod tekshiruvi (2026-08-13, jonli HTML):** `wewatch.uz/robots.txt` — `Allow: /` +
+  `Disallow: /api/`, 22 bot; `app.wewatch.uz/robots.txt` — `Disallow: /`;
+  `/ru/guides/smotret-youtube-vmeste` — kirill "ютуб" matnda bor (22 marta), `FAQPage`
+  JSON-LD bor, canonical o'ziga. Ya'ni A-to'lqin faqat main'da emas, prod'da ham jonli.
 - **Tavsiya model:** opus
 - **Model sababi:** ko'p faylli SEO infratuzilma + mavjud bazani buzmasdan yamash
 - **Sabab:** wewatch.uz'ni AI answer engine'lar (ChatGPT, Claude, Perplexity, AI Overviews) iqtibos qila
@@ -287,8 +348,14 @@
 - **Qo'lda qilinishi kerak (TODO human):**
   - [x] Railway'da `INDEXNOW_SECRET` + `INDEXNOW_KEY` o'rnatildi (2026-08-10) — mustaqil tekshirildi,
         endi 401 qaytaryapti (noto'g'ri secret bilan — env borligini tasdiqlaydi, avval 503 edi)
-  - [ ] GSC: sitemap.xml ni qayta yuborish + URL Inspection'da qayta indekslash so'rovi
-        (/guides, /uz/guides, /how-it-works, rutube/vk/film-vdvoem/serialy gaydlari, /en)
+  - [x] GSC: sitemap.xml qayta yuborildi (2026-08-13) + 9 URL "Запросить индексирование"
+        orqali navbatga qo'yildi: /ru/guides/smotret-youtube-vmeste, /ru/guides, /uz/guides,
+        /en, /ru/how-it-works, rutube, vk-video, film-vdvoem, serialy-besplatno
+  - [x] Yandex Webmaster (2026-08-13): huquqlar meta-teg bilan tasdiqlandi. **Topilma:**
+        sayt `http://wewatch.uz:80` sifatida ro'yxatdan o'tgan edi, prod esa https —
+        Yandex uchun bu ikki xil host. `https://wewatch.uz` alohida qo'shildi va
+        tasdiqlandi; ikkalasiga ham sitemap qo'yildi va 64 tadan URL qayta-o'tishga
+        yuborildi (kunlik limit 150 ta, domen + mirrorlar uchun umumiy)
   - [ ] Pro tarif (29 000 so'm, /pricing) haqiqatan faolmi? llms.txt da TODO qoldirilgan
   - [ ] `.claude/scripts/tg-notify.sh` — Windows'da `python3` topilmayapti, xabar yuborilmadi
 - **⛔ TEGMASLIK KERAK:** apps/mobile, services/*, watch-party sinxronizatsiya logikasi. Faqat apps/web.

@@ -72,6 +72,8 @@ export default function FilmVdvoemPage() {
           <nav className="text-sm text-zinc-500 mb-8">
             <Link href="/ru" className="hover:text-white transition-colors">WeWatch</Link>
             <span className="mx-2">/</span>
+            <Link href="/ru/guides/kino-s-drugom-onlayn" className="hover:text-white transition-colors">Смотреть кино вместе</Link>
+            <span className="mx-2">/</span>
             <span>Фильм вдвоём</span>
           </nav>
 
@@ -101,8 +103,11 @@ export default function FilmVdvoemPage() {
 
           <section className="mb-10">
             <h2 className="text-2xl font-bold mb-4">Идеально для пары, друга или близкого</h2>
-            <p className="text-zinc-400 leading-relaxed">
+            <p className="text-zinc-400 leading-relaxed mb-4">
               Вдвоём смотреть проще всего — веб-версия WeWatch держит фильм синхронно в браузерах на iPhone и Android. Нативные приложения находятся в разработке.
+            </p>
+            <p className="text-zinc-400 leading-relaxed">
+              Если к вечеру присоединятся ещё несколько человек, механика та же, меняется только формат — это разобрано в общем гайде: <Link href="/ru/guides/kino-s-drugom-onlayn" className="text-[#7B72F8] hover:underline">смотреть кино вместе с другом</Link>.
             </p>
           </section>
 

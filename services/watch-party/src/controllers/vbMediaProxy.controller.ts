@@ -71,6 +71,18 @@ async function validateTarget(rawUrl: string): Promise<string | null> {
 
 const MAX_REDIRECTS = 3;
 
+/** Walks a possibly-multi-level `.cause` chain (undici's fetch() errors are two deep — see the
+ *  call site's comment) down to the deepest Error, returning its message plus `.code` (Node's
+ *  errno-style tag, e.g. ECONNREFUSED/ETIMEDOUT) when present. Stops at a depth limit rather than
+ *  trusting the chain to terminate, since `.cause` is arbitrary user-settable data in general. */
+function unwrapCause(cause: unknown, depth = 0): unknown {
+  if (depth > 5) return cause;
+  if (!(cause instanceof Error)) return cause;
+  const withCause = cause as Error & { cause?: unknown; code?: unknown };
+  if (withCause.cause !== undefined) return unwrapCause(withCause.cause, depth + 1);
+  return withCause.code ? `${withCause.message} (${withCause.code})` : withCause.message;
+}
+
 /**
  * Fetches `url`, re-validating (SSRF + self-reference) every hop instead of trusting fetch()'s
  * default follow-redirects behavior — a redirect target is attacker-controlled exactly like the
@@ -366,7 +378,14 @@ async function attemptFetch(rawUrl: string, req: Request, res: Response, referer
       const err = e as Error & { cause?: unknown };
       logger.info('vb-media-proxy: upstream fetch failed', {
         error: err.message,
-        cause: err.cause instanceof Error ? err.cause.message : err.cause,
+        // Real prod case 2026-08-13 (uzmovi.net investigation): Node's undici wraps errors TWO
+        // levels deep — `TypeError: fetch failed` with `.cause` set to ITS OWN generic-message
+        // error, and the actually-useful reason (ECONNREFUSED, ETIMEDOUT, cert failure, etc.,
+        // often as `.code`) sits one level deeper still, at `.cause.cause`. Unwrapping only one
+        // level (as this line used to) logged the same useless "fetch failed" as `cause`, which
+        // is why a live repro of this exact log line couldn't tell "site blocks Railway's IP"
+        // from "cookie/session problem" apart — there was no data to tell them apart with.
+        cause: unwrapCause(err.cause),
         urlLength: rawUrl.length,
       });
       return false;

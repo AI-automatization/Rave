@@ -44,6 +44,16 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Real gap found 2026-08-13: this script already existed in the repo (reads
+      # page-context.ts's CLUSTER_BY_SLUG against every indexed guide/use-case page) but was
+      # never wired into any pipeline — a guide added without a cluster entry doesn't fail
+      # anything at runtime, it just silently reports as the `other` cluster in analytics, so
+      # the drift was invisible until someone noticed the numbers looked wrong. Runs early
+      # (reads TS source as text, no build/server needed) so it fails fast before the
+      # Chromium install / build / Lighthouse steps below.
+      - name: Analytics cluster coverage
+        run: node apps/web/scripts/check-analytics-clusters.mjs
+
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 

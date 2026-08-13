@@ -4,7 +4,7 @@ import { GuideHeader, GuideFooter } from '@/components/common/GuideChrome';
 
 export const metadata: Metadata = {
   title: 'Смотреть вместе онлайн бесплатно — синхронный просмотр с друзьями',
-  description: 'Смотрите фильмы и видео вместе онлайн бесплатно через браузер. Приложения WeWatch для iOS и Android находятся в разработке.',
+  description: 'Смотреть видео вместе с друзьями онлайн — синхронно, прямо в браузере: YouTube, VK Видео, Rutube и прямые MP4-ссылки. Приложения iOS и Android в разработке.',
   keywords: [
     'смотреть вместе онлайн', 'смотреть вместе онлайн бесплатно', 'смотреть вместе',
     'совместный просмотр онлайн', 'синхронный просмотр', 'смотреть фильм вместе онлайн',
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: 'Смотреть вместе онлайн бесплатно | WeWatch',
-    description: 'Синхронный просмотр фильмов и видео с друзьями через веб-версию. Мобильные приложения разрабатываются.',
+    description: 'Смотреть видео вместе с друзьями — синхронно, через веб-версию. Мобильные приложения разрабатываются.',
     url: 'https://wewatch.uz/ru/guides/smotret-vmeste-onlayn',
     type: 'article',
   },
@@ -40,7 +40,22 @@ const FAQS = [
   { q: 'Нужна ли регистрация для гостя?', a: 'Создатель комнаты проходит быструю регистрацию. Гость может войти по ссылке.' },
   { q: 'Сколько человек могут смотреть вместе?', a: 'До 10 участников могут находиться в одной комнате.' },
   { q: 'Работает ли без VPN?', a: 'Да, WeWatch работает без VPN. Если видео недоступно в вашем регионе — это ограничение самого сайта, не WeWatch.' },
+  { q: 'Чем совместный просмотр видео отличается от просмотра фильма?', a: 'Только длиной ролика и поводом собраться. Комната, синхронизация и приглашение по ссылке одинаковые — отдельный режим для коротких видео включать не нужно.' },
+  { q: 'Можно смотреть видео вместе с телефона и с компьютера одновременно?', a: 'Да. Один участник открывает веб-версию на iPhone или Android, другой — на компьютере, синхронизация между ними одинаковая. Нативные приложения находятся в разработке.' },
 ] as const;
+
+/**
+ * B3 — internal linking inside the RU cluster (T-Y202). The anchor text is the
+ * query the target page is meant to own, not a generic «читать далее»: this page
+ * is the entry point of the cluster, so its outgoing anchors are where the film
+ * hub gets its «смотреть кино вместе» signal from.
+ */
+const RELATED = [
+  { href: '/ru/guides/kino-s-drugom-onlayn', label: 'Смотреть кино вместе с другом' },
+  { href: '/ru/guides/smotret-film-vdvoem', label: 'Смотреть фильм вдвоём' },
+  { href: '/ru/guides/smotret-serial-vmeste', label: 'Смотреть сериал вместе' },
+  { href: '/ru/guides/smotret-anime-vmeste', label: 'Смотреть аниме вместе' },
+];
 
 const jsonLd = {
   '@context': 'https://schema.org',
@@ -81,6 +96,19 @@ export default function SmotretVmesteOnlaynPage() {
             </p>
             <p className="text-zinc-400 leading-relaxed">
               WeWatch делает это просто: откройте веб-версию, добавьте ссылку YouTube, VK Видео, Rutube или прямую MP4-ссылку и создайте комнату. Друзья переходят по приглашению — и вы смотрите вместе, как будто сидите рядом.
+            </p>
+          </section>
+
+          <section className="mb-10">
+            <h2 className="text-2xl font-bold text-white mb-4">Смотреть видео вместе: какие ролики подойдут</h2>
+            <p className="text-zinc-400 leading-relaxed mb-4">
+              Смотреть видео вместе можно не только полнометражный фильм. Чаще в комнату включают то, что хочется обсуждать прямо по ходу: клип, обзор, запись стрима, лекцию, разбор матча или домашнее видео с телефона.
+            </p>
+            <p className="text-zinc-400 leading-relaxed mb-4">
+              Разница с фильмом или сериалом — только в длине ролика и в поводе собраться. Механика одна и та же: ссылка → комната → синхронное воспроизведение. Отдельный режим для коротких видео включать не нужно.
+            </p>
+            <p className="text-zinc-400 leading-relaxed">
+              Если вечер планируется под длинный просмотр, есть разборы под конкретные сценарии: <Link href="/ru/guides/kino-s-drugom-onlayn" className="text-[#7B72F8] hover:underline">смотреть кино вместе с другом</Link> и <Link href="/ru/guides/smotret-serial-vmeste" className="text-[#7B72F8] hover:underline">смотреть сериал вместе</Link>.
             </p>
           </section>
 
@@ -132,6 +160,15 @@ export default function SmotretVmesteOnlaynPage() {
                   <summary className="text-white font-medium cursor-pointer">{q}</summary>
                   <p className="text-zinc-400 text-sm mt-2 leading-relaxed">{a}</p>
                 </details>
+              ))}
+            </div>
+          </section>
+
+          <section className="mb-10">
+            <h2 className="text-2xl font-bold text-white mb-4">Читайте также</h2>
+            <div className="flex flex-col gap-2">
+              {RELATED.map(({ href, label }) => (
+                <Link key={href} href={href} className="text-[#7B72F8] hover:underline text-sm">→ {label}</Link>
               ))}
             </div>
           </section>
