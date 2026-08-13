@@ -8,6 +8,7 @@ import { JwtPayload } from '@shared/types';
 import { VBInput, stopSession, sendInput, getSessionOwner } from '../services/virtualBrowser.service';
 import { startVBForRoom } from './vbSession.helper';
 import { isOwnVbUrl, isPrivateUrl } from '../services/extractionClient';
+import { isDomainBlocked } from '../controllers/domain.admin.controller';
 
 interface AuthenticatedSocket extends Socket {
   user: JwtPayload;
@@ -70,6 +71,16 @@ export const registerVBEvents = (
     if (isPrivateUrl(url.toString())) {
       socket.emit(SERVER_EVENTS.VB_ERROR, { message: 'videoUrl points to a private or internal address' });
       logger.warn('VB start rejected — private/internal URL', { roomId, userId, url: url.toString() });
+      return;
+    }
+
+    // Content-policy guard (#84 follow-up): admin's blocklist (STATIC_BLOCKED_DOMAINS + manual
+    // additions, domain.admin.controller.ts) previously had no effect here — an admin blocking a
+    // domain only updated the admin-ui's own listing, the server-side headless browser would
+    // still open it and re-broadcast the render to every room member.
+    if (await isDomainBlocked(redis, url.toString())) {
+      socket.emit(SERVER_EVENTS.VB_ERROR, { message: 'Этот домен заблокирован' });
+      logger.warn('VB start rejected — blocked domain', { roomId, userId, url: url.toString() });
       return;
     }
 

@@ -59,6 +59,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
+    "@react-native/jest-preset": "0.85.3",
     "@babel/plugin-transform-template-literals": "^7.27.1",
     "@types/express": "^4.17.25",
     "@types/jest": "^29.5.0",
