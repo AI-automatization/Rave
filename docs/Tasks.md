@@ -9,7 +9,11 @@
 - **Mas'ul:** pending[Yakubov]
 - **Beruvchi:** Yakubov
 - **Yaratilgan:** 2026-08-13 11:05
-- **Holat:** Bajarilmoqda - branch yakubov/feat-ru-smotret-vmeste-hub (dev'dan)
+- **Holat:** 🔄 PR #121 ochildi (`yakubov/feat-ru-smotret-vmeste-hub` → `dev`, 2026-08-13),
+  review kutilmoqda. `origin/dev` branch'ga merge qilindi (9cef9343, konflikt yo'q).
+  Tekshiruv: CI 14/14 yashil (7 typecheck + 5 test + large-file + "Build, crawl,
+  accessibility and Lighthouse"); mahalliy `npm run test:seo` — 27/27; `apps/web`
+  typecheck — dev'dagi bilan bir xil 5 ta eski xato, yangisi yo'q.
 - **Tavsiya model:** sonnet
 - **Model sababi:** 3 sahifa + 1 test fayl, kontent va metadata, yangi arxitektura yo'q
 - **Sabab:** Egasining ikkita maqsadli so'rovi - `смотреть видео вместе` va `смотреть кино вместе` - hech bir sahifaga biriktirilmagan, shuning uchun 2-sahifadan tasodifiy qo'shni sahifa bilan chiqadi. Qaror (2026-08-12, egasi tasdiqlagan): yangi sahifa YARATMASLIK - film klasterida allaqachon 2 sahifa bor, uchinchisi pozitsiya qo'shmaydi, og'irlikni uchga bo'ladi. Mavjud hub'larni kengaytirish.
@@ -26,7 +30,10 @@
 - **Mas'ul:** pending[Yakubov]
 - **Beruvchi:** Saidazim
 - **Yaratilgan:** 2026-08-11 07:20
-- **Holat:** 🔄 Bajarilmoqda — apps/web tomoni tayyor (PR: yakubov/feat-ga4-measurement-events), app-web tomoni Saidazim'ning source_cluster cookie tasdig'ini kutmoqda
+- **Holat:** 🔄 Bajarilmoqda — apps/web tomoni **dev'ga qo'shildi** (PR #103 merge qilindi
+  2026-08-12; 2026-08-13 tekshirildi: `origin/dev` va `origin/main` sinxron). Qolgan ikkala
+  punkt ham Saidazim zonasida: app-web event'lari `source_cluster` cookie tasdig'ini kutmoqda,
+  CI qadami esa qo'shilmagan
 - **Tavsiya model:** sonnet
 - **Model sababi:** ~5 fayl, aniq kontrakt (docs/seo/measurement-plan.md:48-59) bo'yicha event ulash, yangi arxitektura yo'q
 - **Sabab:** docs/seo/baseline-2026-08-10.md bo'yicha GA4 key events = 0 — organikadan konversiya o'lchab bo'lmayapti, SEO ROI noaniq (Yakubov topgan, 2026-08-10 audit).
@@ -285,10 +292,15 @@
   murojaat qilinmagan. "Re-run failed jobs" kerak bo'lmadi — (1)-fix o'zi yetarli bo'ldi.
   INDEXNOW_SECRET + INDEXNOW_KEY ham Railway'da o'rnatildi, /api/indexnow endi 401 qaytaryapti
   (2026-08-10 mustaqil tekshirildi: 503 emas — env bor, noto'g'ri secret bilan 401 kutilganidek).
-  **YANGI TOPILMA (2026-08-10, mustaqil tekshiruv):** prod llms.txt hali ham main bilan bayt-ma-bayt
-  bir xil EMAS — kontent farqi (mobil ilova haqida): prod ehtiyotkorona "in development" deydi,
-  main esa "on iOS, and on Android" (chiqarilganday). T-E208 (Play Store audit) hali tugallanmagan
-  ekanini hisobga olsak, MAIN'dagi versiya overclaim qilishi mumkin — Yakubov/Saidazim tekshirsin.
+  ~~**YANGI TOPILMA (2026-08-10):** prod llms.txt main bilan bir xil emas — prod "in development",
+  main "on iOS, and on Android" (overclaim).~~ **HAL BO'LDI — 2026-08-13 qayta tekshirildi:**
+  prod `llms.txt` ham, `origin/main` dagi fayl ham endi bir xil matn beradi
+  ("Native iOS and Android apps are **in development**"). Overclaim yo'q.
+
+  **Prod tekshiruvi (2026-08-13, jonli HTML):** `wewatch.uz/robots.txt` — `Allow: /` +
+  `Disallow: /api/`, 22 bot; `app.wewatch.uz/robots.txt` — `Disallow: /`;
+  `/ru/guides/smotret-youtube-vmeste` — kirill "ютуб" matnda bor (22 marta), `FAQPage`
+  JSON-LD bor, canonical o'ziga. Ya'ni A-to'lqin faqat main'da emas, prod'da ham jonli.
 - **Tavsiya model:** opus
 - **Model sababi:** ko'p faylli SEO infratuzilma + mavjud bazani buzmasdan yamash
 - **Sabab:** wewatch.uz'ni AI answer engine'lar (ChatGPT, Claude, Perplexity, AI Overviews) iqtibos qila
