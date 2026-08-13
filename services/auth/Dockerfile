@@ -25,7 +25,7 @@ RUN npm run build --workspace=@cinesync/shared
 
 # Step 2: Build service using tsconfig.build.json
 # Paths point to shared/dist/*.d.ts — avoids rootDir conflict with shared/src
-RUN npm run build --workspace=@cinesync/auth -- --project tsconfig.build.json
+RUN npm run build --workspace=@cinesync/auth
 
 FROM node:20-alpine AS production
 WORKDIR /app
