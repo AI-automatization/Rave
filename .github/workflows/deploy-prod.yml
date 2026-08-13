@@ -124,13 +124,23 @@ jobs:
           npm run test:seo
           npx playwright test apps/web/tests/performance-accessibility.spec.ts --project=web-chromium --workers=1
           npm run check:crawlers --workspace=web -- http://127.0.0.1:3000
-          npx --yes lighthouse@12.8.2 http://127.0.0.1:3000/ru \
-            --only-categories=performance,accessibility,best-practices,seo \
-            --output=json \
-            --output-path=/tmp/lighthouse-ru-mobile.json \
-            --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage" \
-            --quiet
-          node apps/web/scripts/check-lighthouse-budget.mjs /tmp/lighthouse-ru-mobile.json
+
+          # Real prod incident 2026-08-10 (T-S198): a single cold-runner Lighthouse run gave a
+          # noisy TBT reading that silently skipped the Railway deploy step for 13 days — fixed
+          # in seo-quality.yml with a 3-run median, but this inline gate was never given the same
+          # fix and hit the identical failure mode live 2026-08-13 (Performance 52/LCP 5159ms on
+          # one run, blocking a real deploy on what was very plausibly runner noise, not a real
+          # regression). check-lighthouse-budget.mjs already accepts N report paths and takes the
+          # median of each metric — same script, same fix, applied here too.
+          for i in 1 2 3; do
+            npx --yes lighthouse@12.8.2 http://127.0.0.1:3000/ru \
+              --only-categories=performance,accessibility,best-practices,seo \
+              --output=json \
+              --output-path=/tmp/lighthouse-ru-mobile-$i.json \
+              --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage" \
+              --quiet
+          done
+          node apps/web/scripts/check-lighthouse-budget.mjs /tmp/lighthouse-ru-mobile-1.json /tmp/lighthouse-ru-mobile-2.json /tmp/lighthouse-ru-mobile-3.json
 
   deploy-prod:
     name: Deploy to Railway (Production)
