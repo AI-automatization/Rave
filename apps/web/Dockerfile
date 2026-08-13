@@ -7,8 +7,14 @@ ENV NODE_OPTIONS="--max-old-space-size=2048"
 # Accept build-time public env vars so Next.js can inline them
 ARG NEXT_PUBLIC_SOCKET_URL=http://localhost:3004
 ARG NEXT_PUBLIC_APP_URL=https://wewatch.uz
+# Real gap found 2026-08-13: the Railway service variable alone has no effect without a
+# matching ARG here — Next.js inlines NEXT_PUBLIC_* at build time (this Docker stage), not
+# at container runtime, so setting it in Railway's dashboard silently does nothing unless
+# the Dockerfile also declares it as a build ARG like its siblings above.
+ARG NEXT_PUBLIC_YM_ID=
 ENV NEXT_PUBLIC_SOCKET_URL=$NEXT_PUBLIC_SOCKET_URL
 ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
+ENV NEXT_PUBLIC_YM_ID=$NEXT_PUBLIC_YM_ID
 
 # Accept runtime service URLs (inlined by Next.js webpack at build time)
 ARG WATCH_PARTY_SERVICE_URL=http://localhost:3004/api/v1
