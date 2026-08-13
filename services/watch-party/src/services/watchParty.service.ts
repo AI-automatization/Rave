@@ -12,8 +12,8 @@ import { WatchPartyPlaylistService } from './watchPartyPlaylist.service';
 import { WatchPartyMembersService } from './watchPartyMembers.service';
 import { hasSession } from './virtualBrowser.service';
 import { isPrivateUrl } from './extractionClient';
+import { isDomainBlocked } from '../controllers/domain.admin.controller';
 
-const BLOCKED_DOMAINS_KEY = 'watch_party:blocked_domains';
 const SYNC_THRESHOLD_SECONDS = 2;
 const SYNC_THRESHOLD_WEBVIEW_SECONDS = 2.5;
 // Heartbeat fires every ~2s per room — Redis is updated on every tick (late-join seed needs it fresh),
@@ -133,7 +133,9 @@ export class WatchPartyService {
     const url = options.videoUrl ?? '';
     const domain = url ? (() => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return null; } })() : null;
 
-    if (domain && (await this.redis.sismember(BLOCKED_DOMAINS_KEY, domain)) === 1) {
+    // Consolidated onto the shared, parent-domain-aware check (2026-08-13) — same drift risk the
+    // isPrivateUrl consolidation above was already bitten by (2026-08-12 comment on this block).
+    if (url && await isDomainBlocked(this.redis, url)) {
       throw new ForbiddenError('Domain is blocked by platform policy');
     }
 

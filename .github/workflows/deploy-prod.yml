@@ -67,10 +67,14 @@ jobs:
 
       - name: Typecheck all services
         run: |
+          set -euo pipefail
+          fail=0
           for svc in auth user content watch-party notification admin; do
-            echo "Checking $svc..."
-            cd services/$svc && npm run typecheck && cd ../..
+            echo "::group::$svc"
+            ( cd "services/$svc" && npm run typecheck ) || fail=1
+            echo "::endgroup::"
           done
+          exit $fail
 
       - name: Run unit tests (gate)
         run: |

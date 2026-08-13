@@ -17,7 +17,7 @@ COPY shared/ ./shared/
 COPY services/content/ ./services/content/
 
 RUN npm run build --workspace=@cinesync/shared
-RUN npm run build --workspace=@cinesync/content -- --project tsconfig.build.json
+RUN npm run build --workspace=@cinesync/content
 
 FROM node:20-alpine AS production
 WORKDIR /app
