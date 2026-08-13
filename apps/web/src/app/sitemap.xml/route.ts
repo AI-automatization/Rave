@@ -1,66 +1,38 @@
-import { sitemapEntries } from '@/lib/seo/sitemap-entries';
+import { SITEMAP_FILES, lastModifiedOf, sitemapEntriesFor } from '@/lib/seo/sitemap-entries';
 
 /**
- * The sitemap is written by hand instead of Next's `app/sitemap.ts` metadata file for one
- * reason: that generator serialises the XML itself and gives no way to emit a
- * `<?xml-stylesheet?>` processing instruction. Without it, Chrome renders our sitemap as an
- * unreadable wall of text — any XML document carrying nodes from a foreign namespace (ours
- * has `<xhtml:link>` on every URL, for hreflang) drops out of the browser's XML tree viewer.
- * The stylesheet turns the same bytes into a readable table for humans; crawlers ignore the
- * instruction entirely, so nothing about indexing changes.
+ * `/sitemap.xml` is a **sitemap index**, not a urlset: it points at one file per locale
+ * plus `shared` for the locale-less legal pages. The per-locale files live at
+ * `/sitemap/<file>.xml`.
  *
- * The URL stays `/sitemap.xml`, which is what robots.txt advertises and what is already
- * submitted to Google Search Console and both Yandex Webmaster hosts.
+ * Written by hand rather than through Next's `app/sitemap.ts` metadata convention because
+ * that generator only ever emits a `<urlset>` — there is no code path in Next that serves
+ * a `<sitemapindex>` (checked against the metadata route loader source, 2026-08-13), and
+ * `generateSitemaps` produces the sub-files without an index above them.
+ *
+ * The address stays `/sitemap.xml`, which is what `robots.ts` advertises and what is
+ * already submitted to Google Search Console and to both Yandex Webmaster hosts.
  */
 
 export const dynamic = 'force-static';
 
-const XML_ESCAPES: Record<string, string> = {
-  '&': '&amp;',
-  '<': '&lt;',
-  '>': '&gt;',
-  '"': '&quot;',
-  "'": '&apos;',
-};
-
-function escapeXml(value: string): string {
-  return value.replace(/[&<>"']/g, (char) => XML_ESCAPES[char]);
-}
-
-/**
- * Date only, not a full timestamp. The source values are calendar dates from the page
- * registry, and `new Date(date).toISOString()` used to dress them up as
- * `2026-07-28T00:00:00.000Z` — a midnight precision we never actually had.
- * `YYYY-MM-DD` is valid W3C Datetime, which is what the sitemap schema asks for.
- */
-function lastmod(date: string): string {
-  return date.slice(0, 10);
-}
+const BASE = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 
 export function GET(): Response {
-  const entries = sitemapEntries();
+  const files = SITEMAP_FILES.filter((file) => sitemapEntriesFor(file).length > 0);
 
   const body = [
     '<?xml version="1.0" encoding="UTF-8"?>',
-    '<?xml-stylesheet type="text/xsl" href="/sitemap.xsl"?>',
-    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">',
-    ...entries.map(({ url, lastModified, changeFrequency, priority, languages }) => {
-      const alternates = Object.entries(languages ?? {}).map(
-        ([hreflang, href]) =>
-          `    <xhtml:link rel="alternate" hreflang="${escapeXml(hreflang)}" href="${escapeXml(href)}" />`,
-      );
-
-      return [
-        '  <url>',
-        `    <loc>${escapeXml(url)}</loc>`,
-        ...alternates,
-        `    <lastmod>${lastmod(lastModified)}</lastmod>`,
-        `    <changefreq>${changeFrequency}</changefreq>`,
-        `    <priority>${priority.toFixed(1)}</priority>`,
-        '  </url>',
-      ].join('\n');
-    }),
-    '</urlset>',
+    '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    ...files.map((file) =>
+      [
+        '  <sitemap>',
+        `    <loc>${BASE}/sitemap/${file}.xml</loc>`,
+        `    <lastmod>${lastModifiedOf(file)}</lastmod>`,
+        '  </sitemap>',
+      ].join('\n'),
+    ),
+    '</sitemapindex>',
     '',
   ].join('\n');
 

@@ -4,7 +4,7 @@
 
 ---
 
-### T-Y203 | P2 | [SEO] | sitemap.xml — brauzerda o'qilmaydi + buzuq priority qiymatlari
+### T-Y203 | P2 | [SEO] | sitemap.xml — sitemap index'ga bo'lish + buzuq priority qiymatlari
 
 - **Mas'ul:** pending[Yakubov]
 - **Beruvchi:** Yakubov
@@ -12,21 +12,26 @@
 - **Holat:** 🔄 PR ochildi (`yakubov/feat-sitemap-stylesheet` → `dev`)
 - **Tavsiya model:** sonnet
 - **Model sababi:** 4 fayl, XML serializatsiya + XSL, yangi arxitektura yo'q
-- **Sabab:** (1) Prod `sitemap.xml` da to'rtta `<priority>` IEEE 754 artefakti bilan chiqqan —
-  `0.7000000000000001` va `0.30000000000000004` (`priority - 0.1` dan). (2) Har bir `<url>`
-  ichida hreflang uchun `<xhtml:link>` bor, shuning uchun Chrome XML daraxt ko'rinishidan
-  chiqib ketadi va faylni yopishib qolgan matn sifatida ko'rsatadi. Next'ning
-  `app/sitemap.ts` generatori XML'ni o'zi yozadi va `<?xml-stylesheet?>` qo'shishga imkon
-  bermaydi (Next manbasida `<sitemapindex>`/PI uchun kod yo'li yo'q).
+- **Sabab:** (1) Egasi bitta katta `<urlset>` o'rniga haqiqiy **sitemap index** so'radi:
+  `/sitemap.xml` → til bo'yicha alohida fayllar. (2) Prod `sitemap.xml` da to'rtta
+  `<priority>` IEEE 754 artefakti bilan chiqqan — `0.7000000000000001` va
+  `0.30000000000000004` (`priority - 0.1` dan). Next'ning `app/sitemap.ts` generatori
+  faqat `<urlset>` chiqaradi; Next manbasida `<sitemapindex>` beradigan kod yo'li yo'q
+  (metadata route loader, 2026-08-13 da tekshirildi), `generateSitemaps` esa index'siz
+  faqat pastki fayllarni yasaydi — shuning uchun XML qo'lda yoziladi.
 - **Qilish kerak:**
-  - [x] `src/lib/seo/sitemap-entries.ts` — ENTRIES + guard + `sitemapUrls()` (IndexNow ham shu yerdan)
-  - [x] `src/app/sitemap.xml/route.ts` — qo'lda serializatsiya + `<?xml-stylesheet?>`; URL o'zgarmadi
-  - [x] `public/sitemap.xsl` — brauzer uchun jadval (WeWatch dark UI, 6 ustun, sahifalar soni)
+  - [x] `src/lib/seo/sitemap-entries.ts` — ENTRIES + guard + `sitemapUrls()` + til bo'yicha bo'lish (IndexNow ham shu yerdan)
+  - [x] `src/app/sitemap.xml/route.ts` — `<sitemapindex>`, har bir faylga `<lastmod>`
+  - [x] `src/app/sitemap/[file]/route.ts` — `/sitemap/{ru,uz,en,shared}.xml`, hreflang saqlanadi, noma'lum fayl → 404
   - [x] priority yaxlitlash (`Math.round(p * 10) / 10`) + `lastmod` endi `YYYY-MM-DD`
   - [x] `app/sitemap.ts` o'chirildi (aks holda ikkalasi ham `/sitemap.xml` ni beradi)
-- **Tekshiruv:** build ✅ · `apps/web` typecheck — dev'dagi 5 ta eski xato, yangisi yo'q ·
-  `npm run test:seo` 25/25 · jonli javob: 64 ta URL (avvalgidek), `application/xml`,
-  buzuq float 0 ta, brauzerda jadval ko'rinadi
+  - [x] `tests/seo-geo-aeo.spec.ts` — index orqali yurib, pastki fayllardan URL yig'adi
+- **`shared.xml` nega kerak:** `/privacy-policy`, `/terms`, `/dmca`, `/delete-account` da til
+  prefiksi yo'q. Faqat ru/uz/en qilinsa, bu to'rtta sahifa sitemap'dan jimgina yo'qoladi.
+- **Tekshiruv:** build ✅ · typecheck — dev'dagi 5 ta eski xato, yangisi yo'q ·
+  `npm run test:seo` 25/25 · jonli javob: index `application/xml`, root `<sitemapindex>`;
+  ru 28 + uz 17 + en 15 + shared 4 = **64 URL** (avvalgidek), `/sitemap/zz.xml` → 404,
+  `robots.txt` da `Sitemap: https://wewatch.uz/sitemap.xml`
 - **⚠️ Diqqat:** GSC va Yandex'ga yuborilgan manzil o'zgarmadi (`/sitemap.xml`) — qayta yuborish shart emas
 
 ---

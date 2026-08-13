@@ -238,3 +238,34 @@ export function sitemapEntries(): readonly (SitemapEntry & { url: string })[] {
 export function sitemapUrls(): string[] {
   return sitemapEntries().map((entry) => entry.url);
 }
+
+/**
+ * Files the sitemap index points at. Three locales plus `shared` for the URLs that carry
+ * no locale prefix at all (`/privacy-policy`, `/terms`, `/dmca`, `/delete-account`).
+ * Dropping that fourth file would silently remove four indexable pages from the sitemap,
+ * which is exactly the kind of regression a split like this tends to cause.
+ */
+export const SITEMAP_FILES = ['ru', 'uz', 'en', 'shared'] as const;
+export type SitemapFile = (typeof SITEMAP_FILES)[number];
+
+export function isSitemapFile(value: string): value is SitemapFile {
+  return (SITEMAP_FILES as readonly string[]).includes(value);
+}
+
+function fileOf(path: string): SitemapFile {
+  const [, first] = path.split('/');
+  return isSitemapFile(first) && first !== 'shared' ? (first as SitemapFile) : 'shared';
+}
+
+/** Entries belonging to one file of the index. */
+export function sitemapEntriesFor(file: SitemapFile) {
+  return sitemapEntries().filter((entry) => fileOf(entry.path) === file);
+}
+
+/** Newest `lastmod` in a file, so the index itself carries a date crawlers can use. */
+export function lastModifiedOf(file: SitemapFile): string {
+  return sitemapEntriesFor(file)
+    .map((entry) => entry.lastModified.slice(0, 10))
+    .sort()
+    .at(-1) ?? '1970-01-01';
+}
