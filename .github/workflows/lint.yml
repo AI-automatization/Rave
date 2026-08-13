@@ -54,3 +54,22 @@ jobs:
 
       - name: Typecheck ${{ matrix.service }}
         run: cd ${{ matrix.path }} && npm run typecheck
+
+  size-report:
+    name: Large file report
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Report files over 500 lines changed in this PR
+        run: |
+          git fetch origin ${{ github.base_ref }} --depth=1
+          changed=$(git diff --name-only origin/${{ github.base_ref }}...HEAD -- '*.ts' '*.tsx')
+          for f in $changed; do
+            [ -f "$f" ] || continue
+            n=$(wc -l < "$f")
+            [ "$n" -gt 500 ] && echo "::warning file=$f::$f is now $n lines"
+          done
+          exit 0
