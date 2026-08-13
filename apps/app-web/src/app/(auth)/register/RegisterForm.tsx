@@ -2,12 +2,13 @@
 
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { User, Mail, Lock, Eye, EyeOff, Loader2, XCircle } from 'lucide-react';
 import { PATTERNS } from '@shared/constants';
 import { authApi } from '@/lib/api/auth.api';
 import { ApiError } from '@/lib/api-client';
 import { trackClick } from '@/lib/analytics';
+import { trackRegistrationStart, trackRegistrationComplete } from '@/lib/measurement-events';
 
 interface Props {
   onVerify: (email: string) => void;
@@ -40,6 +41,7 @@ const STRENGTH_STYLE: Record<Strength, { bars: number; color: string; label: str
 
 export function RegisterForm({ onVerify }: Props) {
   const t = useTranslations('auth');
+  const locale = useLocale();
 
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -59,11 +61,13 @@ export function RegisterForm({ onVerify }: Props) {
     e.preventDefault();
     if (tooShort || passwordInvalid || !username || !email || !password) return;
     trackClick('register:submit');
+    trackRegistrationStart(locale);
 
     startTransition(() => {
       void (async () => {
         try {
           await authApi.register({ username, email, password });
+          trackRegistrationComplete(locale);
           onVerify(email);
         } catch (err) {
           if (err instanceof ApiError) {
