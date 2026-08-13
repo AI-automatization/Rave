@@ -9,6 +9,7 @@ import { recordWatchHistoryInternal } from '@shared/utils/serviceClient';
 import { bufferTimeouts, resumeBufferedRoom } from './videoEvents.handler';
 import { stopSession, getSessionSnapshot, hasSession } from '../services/virtualBrowser.service';
 import { startVBForRoom } from './vbSession.helper';
+import { cancelVbDisconnectGrace } from './vbEvents.handler';
 import { isOfficialEmbedHost, isOwnVbUrl, isPrivateUrl } from '../services/extractionClient';
 import { isDomainBlocked } from '../controllers/domain.admin.controller';
 
@@ -168,6 +169,11 @@ export const registerRoomEvents = (
         disconnectGraceTimers.delete(graceKey);
         logger.info('Disconnect grace timer cancelled — user rejoined', { roomId: data.roomId, userId });
       }
+
+      // Same cancellation for a pending VB-owner disconnect grace timer (vbEvents.handler.ts) —
+      // a rejoin here means the reload/reconnect won its race, the VB session must not be torn
+      // down once this JOIN_ROOM's own VB catch-up (`vb` below) already resumed it client-side.
+      cancelVbDisconnectGrace(data.roomId, userId);
 
       await socket.join(data.roomId);
       authSocket.roomId = data.roomId;
