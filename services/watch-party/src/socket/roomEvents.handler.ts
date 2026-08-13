@@ -10,6 +10,7 @@ import { bufferTimeouts, resumeBufferedRoom } from './videoEvents.handler';
 import { stopSession, getSessionSnapshot, hasSession } from '../services/virtualBrowser.service';
 import { startVBForRoom } from './vbSession.helper';
 import { isOfficialEmbedHost, isOwnVbUrl, isPrivateUrl } from '../services/extractionClient';
+import { isDomainBlocked } from '../controllers/domain.admin.controller';
 
 interface AuthenticatedSocket extends Socket {
   user: JwtPayload;
@@ -255,6 +256,14 @@ export const registerRoomEvents = (
     if (!isOwnVbUrl(data.videoUrl) && isPrivateUrl(data.videoUrl)) {
       socket.emit(SERVER_EVENTS.ERROR, { message: 'videoUrl points to a private or internal address' });
       logger.warn('CHANGE_MEDIA rejected — private/internal URL', { roomId, userId, url: data.videoUrl });
+      return;
+    }
+
+    // Content-policy guard (#84 follow-up) — same gap CHANGE_MEDIA had for isPrivateUrl before
+    // 2026-08-11: the admin domain blocklist was never consulted on the actual media-open path.
+    if (!isOwnVbUrl(data.videoUrl) && await isDomainBlocked(redis, data.videoUrl)) {
+      socket.emit(SERVER_EVENTS.ERROR, { message: 'Этот домен заблокирован' });
+      logger.warn('CHANGE_MEDIA rejected — blocked domain', { roomId, userId, url: data.videoUrl });
       return;
     }
 

@@ -6,7 +6,7 @@ import { SyncState, VideoPlatform, VideoItem, VideoResolveStatus } from '@shared
 import { REDIS_KEYS, TTL } from '@shared/constants';
 import { isOfficialEmbedHost, tryExtract, isPrivateUrl } from './extractionClient';
 import { probeUrl } from './virtualBrowser.service';
-const BLOCKED_DOMAINS_KEY = 'watch_party:blocked_domains';
+import { isDomainBlocked } from '../controllers/domain.admin.controller';
 const MAX_PLAYLIST = 50;
 
 export class WatchPartyPlaylistService {
@@ -32,8 +32,10 @@ export class WatchPartyPlaylistService {
       throw new BadRequestError('IP-locked CDN URLs cannot be stored. Use the original video URL.');
     }
 
-    const domain = (() => { try { return new URL(media.videoUrl).hostname.replace(/^www\./, ''); } catch { return null; } })();
-    if (domain && (await this.redis.sismember(BLOCKED_DOMAINS_KEY, domain)) === 1) {
+    // Consolidated onto the shared, parent-domain-aware check (2026-08-13) — this was previously
+    // its own exact-hostname-only sismember, same drift risk the isPrivateUrl consolidation above
+    // was already bitten by twice (2026-08-12 comment on addToPlaylist below).
+    if (await isDomainBlocked(this.redis, media.videoUrl)) {
       throw new ForbiddenError('Domain is blocked by platform policy');
     }
 
@@ -85,6 +87,12 @@ export class WatchPartyPlaylistService {
     // probeUrl() below, a real Chromium navigation. Import the one canonical check instead.
     if (isPrivateUrl(item.videoUrl)) {
       throw new BadRequestError('videoUrl points to a private or internal address');
+    }
+    // #84 follow-up (2026-08-13) — updateRoomMedia above already checked this, addToPlaylist
+    // never did, so a domain the admin explicitly blocked could still reach probeUrl() below via
+    // the playlist instead of the room's main videoUrl.
+    if (await isDomainBlocked(this.redis, item.videoUrl)) {
+      throw new BadRequestError('Domain is blocked by platform policy');
     }
     if (/googlevideo\.com/i.test(item.videoUrl)) {
       throw new BadRequestError('IP-locked CDN URLs cannot be stored. Use the original video URL.');
