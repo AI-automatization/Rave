@@ -203,10 +203,32 @@ export function YouTubePlayer({ videoId, isOwner, onPlay, onPause, onSeek, onHea
     return () => clearTimeout(clear);
   }, [ready, isOwner, syncState.currentTime, syncState.isPlaying, syncState.serverTimestamp]);
 
-  // ── Viewer: drift correction from heartbeat (hard-seek only; YT can't micro-rate) ─────
+  // ── Viewer: drift correction from heartbeat (time AND play/pause state) ─────
+  //
+  // Found 2026-08-02 (real report: two viewers, each playing the same YouTube video
+  // "differently" with no obvious cause): this effect only ever corrected TIME drift.
+  // YouTube's stock IFrame chrome still lets a viewer toggle play/pause by clicking the
+  // video area itself even with `controls: 0` (that param only hides the scrubber/buttons,
+  // not the click-to-toggle behavior) — and browsers also auto-pause backgrounded video on
+  // their own. Either way, once a viewer's LOCAL player state disagreed with syncState.isPlaying,
+  // nothing here ever noticed, because the sync-apply effect above only re-runs when syncState
+  // itself changes (i.e. the OWNER does something new) — a viewer's own stray click never
+  // touches the store, so if the owner was just sitting there playing with no new actions,
+  // the desync persisted forever. Now every heartbeat tick also reconciles play/pause state,
+  // not just position.
   useEffect(() => {
     const p = playerRef.current;
-    if (!ready || isOwner || !p || !heartbeat || !syncState.isPlaying) return;
+    if (!ready || isOwner || !p || !heartbeat) return;
+
+    const playerIsPlaying = p.getPlayerState() === (window.YT?.PlayerState.PLAYING ?? 1);
+    if (playerIsPlaying !== syncState.isPlaying) {
+      isRemoteAction.current = true;
+      if (syncState.isPlaying) p.playVideo();
+      else p.pauseVideo();
+      setTimeout(() => { isRemoteAction.current = false; }, 400);
+    }
+
+    if (!syncState.isPlaying) return;
     const expected = heartbeat.currentTime + (Date.now() - heartbeat.timestamp) / 1000;
     if (Math.abs(expected - p.getCurrentTime()) > YT_DRIFT_HARD_SEEK_SECS) {
       isRemoteAction.current = true;

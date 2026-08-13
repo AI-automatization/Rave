@@ -77,7 +77,7 @@ export const TEAM: TeamMember[] = [
     focus: [
       { title: 'Backend-микросервисы', desc: 'Node.js, MongoDB, Redis — auth, user, content, watch-party.' },
       { title: 'Real-time sync', desc: 'Socket.io, компенсация задержек, состояние комнат.' },
-      { title: 'Видео-экстракция', desc: 'YouTube, VK, Rutube через встроенный браузер + прокси.' },
+      { title: 'Видео-интеграции', desc: 'Поддержка YouTube, VK Видео, Rutube и прямых MP4-ссылок.' },
     ],
     sameAs: ['https://github.com/Foreger'],
     photo: '/ru/team/saidazim-buriboyev.jpg',

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import {
-  FaApple, FaPlay, FaMapMarkerAlt, FaChevronRight, FaArrowRight,
+  FaGlobe, FaPlay, FaMapMarkerAlt, FaChevronRight, FaArrowRight,
   FaLightbulb, FaDraftingCompass, FaCode, FaRocket,
 } from 'react-icons/fa';
 import { useTranslations, useLocale } from 'next-intl';
@@ -347,13 +347,12 @@ export function CompanyContent() {
               </div>
               <p className="text-white font-display text-2xl md:text-3xl uppercase mb-2">{t('bridgeCardTitle')}</p>
               <p className="text-zinc-500 text-sm mb-6">{t('bridgeCardSub')}</p>
-              <span
+              <Link href={L('/')}
                 className="inline-flex items-center gap-2 h-12 px-8 rounded-xl text-white/90 font-bold text-sm"
                 style={{ background: 'linear-gradient(135deg, #7B72F8, #6B63E8)', opacity: 0.9, boxShadow: '0 0 30px rgba(123,114,248,0.4)' }}
               >
-                <FaApple size={18} aria-hidden="true" /> App Store
-                <span className="ml-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/20">{t('soon')}</span>
-              </span>
+                <FaGlobe size={18} aria-hidden="true" /> WeWatch Web
+              </Link>
             </div>
           </motion.div>
         </div>

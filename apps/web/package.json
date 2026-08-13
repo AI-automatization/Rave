@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint src",
-    "check:crawlers": "node scripts/check-crawler-visibility.mjs"
+    "typecheck": "tsc --noEmit",
+    "check:crawlers": "node scripts/check-crawler-visibility.mjs",
+    "check:clusters": "node scripts/check-analytics-clusters.mjs"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.11",

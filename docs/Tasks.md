@@ -1,6 +1,184 @@
 # CineSync — OCHIQ VAZIFALAR
 
-# Yangilangan: 2026-07-27
+# Yangilangan: 2026-08-13
+
+---
+
+### T-Y203 | P2 | [SEO] | sitemap.xml — sitemap index'ga bo'lish + buzuq priority qiymatlari
+
+- **Mas'ul:** pending[Yakubov]
+- **Beruvchi:** Yakubov
+- **Yaratilgan:** 2026-08-13 17:20
+- **Holat:** 🔄 PR ochildi (`yakubov/feat-sitemap-stylesheet` → `dev`)
+- **Tavsiya model:** sonnet
+- **Model sababi:** 4 fayl, XML serializatsiya + XSL, yangi arxitektura yo'q
+- **Sabab:** (1) Egasi bitta katta `<urlset>` o'rniga haqiqiy **sitemap index** so'radi:
+  `/sitemap.xml` → til bo'yicha alohida fayllar. (2) Prod `sitemap.xml` da to'rtta
+  `<priority>` IEEE 754 artefakti bilan chiqqan — `0.7000000000000001` va
+  `0.30000000000000004` (`priority - 0.1` dan). Next'ning `app/sitemap.ts` generatori
+  faqat `<urlset>` chiqaradi; Next manbasida `<sitemapindex>` beradigan kod yo'li yo'q
+  (metadata route loader, 2026-08-13 da tekshirildi), `generateSitemaps` esa index'siz
+  faqat pastki fayllarni yasaydi — shuning uchun XML qo'lda yoziladi.
+- **Qilish kerak:**
+  - [x] `src/lib/seo/sitemap-entries.ts` — ENTRIES + guard + `sitemapUrls()` + til bo'yicha bo'lish (IndexNow ham shu yerdan)
+  - [x] `src/app/sitemap.xml/route.ts` — `<sitemapindex>`, har bir faylga `<lastmod>`
+  - [x] `src/app/sitemap/[file]/route.ts` — `/sitemap/{ru,uz,en,shared}.xml`, hreflang saqlanadi, noma'lum fayl → 404
+  - [x] priority yaxlitlash (`Math.round(p * 10) / 10`) + `lastmod` endi `YYYY-MM-DD`
+  - [x] `app/sitemap.ts` o'chirildi (aks holda ikkalasi ham `/sitemap.xml` ni beradi)
+  - [x] `tests/seo-geo-aeo.spec.ts` — index orqali yurib, pastki fayllardan URL yig'adi
+- **`shared.xml` nega kerak:** `/privacy-policy`, `/terms`, `/dmca`, `/delete-account` da til
+  prefiksi yo'q. Faqat ru/uz/en qilinsa, bu to'rtta sahifa sitemap'dan jimgina yo'qoladi.
+- **Tekshiruv:** build ✅ · typecheck — dev'dagi 5 ta eski xato, yangisi yo'q ·
+  `npm run test:seo` 25/25 · jonli javob: index `application/xml`, root `<sitemapindex>`;
+  ru 28 + uz 17 + en 15 + shared 4 = **64 URL** (avvalgidek), `/sitemap/zz.xml` → 404,
+  `robots.txt` da `Sitemap: https://wewatch.uz/sitemap.xml`
+- **⚠️ Diqqat:** GSC va Yandex'ga yuborilgan manzil o'zgarmadi (`/sitemap.xml`) — qayta yuborish shart emas
+
+---
+
+### T-Y202 | P1 | [SEO] | RU-klaster: hub sahifalarni kengaytirish + ichki linklar
+
+- **Mas'ul:** pending[Yakubov]
+- **Beruvchi:** Yakubov
+- **Yaratilgan:** 2026-08-13 11:05
+- **Holat:** 🔄 PR #121 ochildi (`yakubov/feat-ru-smotret-vmeste-hub` → `dev`, 2026-08-13),
+  review kutilmoqda. `origin/dev` branch'ga merge qilindi (9cef9343, konflikt yo'q).
+  Tekshiruv: CI 14/14 yashil (7 typecheck + 5 test + large-file + "Build, crawl,
+  accessibility and Lighthouse"); mahalliy `npm run test:seo` — 27/27; `apps/web`
+  typecheck — dev'dagi bilan bir xil 5 ta eski xato, yangisi yo'q.
+- **Tavsiya model:** sonnet
+- **Model sababi:** 3 sahifa + 1 test fayl, kontent va metadata, yangi arxitektura yo'q
+- **Sabab:** Egasining ikkita maqsadli so'rovi - `смотреть видео вместе` va `смотреть кино вместе` - hech bir sahifaga biriktirilmagan, shuning uchun 2-sahifadan tasodifiy qo'shni sahifa bilan chiqadi. Qaror (2026-08-12, egasi tasdiqlagan): yangi sahifa YARATMASLIK - film klasterida allaqachon 2 sahifa bor, uchinchisi pozitsiya qo'shmaydi, og'irlikni uchga bo'ladi. Mavjud hub'larni kengaytirish.
+- **Qilish kerak:**
+  - [x] ru/guides/smotret-vmeste-onlayn - `смотреть видео вместе` uchun bo'lim + FAQ + description (hozir bu ibora faqat keywords'da, matnda umuman yo'q)
+  - [x] ru/guides/kino-s-drugom-onlayn - `смотреть кино вместе` uchun bo'lim, sahifa film klasterining hub'iga aylanadi
+  - [x] ru/guides/smotret-film-vdvoem - hub'ga yuqoriga link, o'z tor so'rovini saqlaydi
+  - [x] apps/web/tests/seo-geo-aeo.spec.ts - yangi tekshiruvlar (CI apps/web uchun faqat shu Playwright job'ni ishga tushiradi)
+
+---
+
+### T-Y201 | P1 | [SEO] | GA4 measurement-plan — 6 ta key event ulash
+
+- **Mas'ul:** pending[Yakubov]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-08-11 07:20
+- **Holat:** 🔄 Bajarilmoqda — apps/web tomoni **dev'ga qo'shildi** (PR #103 merge qilindi
+  2026-08-12; 2026-08-13 tekshirildi: `origin/dev` va `origin/main` sinxron). Qolgan ikkala
+  punkt ham Saidazim zonasida: app-web event'lari `source_cluster` cookie tasdig'ini kutmoqda,
+  CI qadami esa qo'shilmagan
+- **Tavsiya model:** sonnet
+- **Model sababi:** ~5 fayl, aniq kontrakt (docs/seo/measurement-plan.md:48-59) bo'yicha event ulash, yangi arxitektura yo'q
+- **Sabab:** docs/seo/baseline-2026-08-10.md bo'yicha GA4 key events = 0 — organikadan konversiya o'lchab bo'lmayapti, SEO ROI noaniq (Yakubov topgan, 2026-08-10 audit).
+- **Qilish kerak:**
+  - [x] apps/web: organic_landing_view, cta_click, waitlist_submit (referrer_class bilan)
+  - [ ] app-web: registration_start, registration_complete, room_created (source_cluster cookie — Saidazim tasdig'i kerak)
+  - [ ] check-analytics-clusters.mjs'ni seo-quality.yml'ga CI qadami sifatida qo'shish (Saidazim zonasi)
+
+---
+
+### T-S200 | P1 | [MARKETING] | Instagram — 30 kunlik kontent-reja + to'liq avtomatlashtirish
+
+- **Mas'ul:** pending[Jasur]
+- **Beruvchi:** Saidazim
+- **Yaratilgan:** 2026-08-10 18:42
+- **Holat:** ❌ Boshlanmagan — Jasur'ga Telegram orqali yuborildi (@do_you_wanna_me), javob kutilmoqda
+- **Tavsiya model:** opus
+- **Model sababi:** noldan avtomatika (Meta Graph API integratsiyasi mavjud emas) + 30 kunlik strategik kontent-reja — katta, noaniq ko'p qismli ish
+- **Sabab:** WeWatch Instagram marketingi to'liq Jasur zimmasiga o'tkazildi (Saidazim qarori, T-S195 9+ kun harakatsiz qolgani munosabati bilan domain almashtirish).
+- **Qilish kerak:**
+  - [ ] 30 kunlik kontent-reja (nima/qachon/qanday format) — Saidazim'ga yuborish
+  - [ ] Instagram'ga avtomatik yuklash — repo'da hozircha YO'Q (faqat Remotion render pipeline bor,
+        marketing/instagram/), Meta Graph API yoki shunga o'xshash vositani ulash kerak
+  - [ ] Video formati: "3 ta savol + WeWatch javobi" hook-uslubi (Saidazim'ning aniq ko'rsatmasi)
+  - [ ] ERTAGA (2026-08-11) 10:00 — birinchi kontent Instagram'da jonli bo'lishi kerak
+- **Fayllar:** marketing/instagram/ (mavjud Remotion pipeline — WeWatchReel, kunlik Stories D1-D7,
+  render-all.js va h.k. — asos sifatida ishlatiladi)
+- **⚠️ Muddat juda qisqa** — to'liq avtomatika + tayyor kontent bir kunda real bo'lmasligi mumkin,
+  Jasur'ga darhol savol berishga aytilgan.
+
+---
+
+### T-S199 | P1 | [DEVOPS] | CI workflow'lar mavjud bo'lmagan "develop" branch'ni kutayotgan edi
+
+- **Mas'ul:** Saidazim (Claude sonnet)
+- **Beruvchi:** Yakubov (topilma)
+- **Yaratilgan:** 2026-08-10
+- **Holat:** ✅ Bajarildi (2026-08-10) — dev bb4c6b29→afb27275, PR #100 ichida avtomatik
+- **Tavsiya model:** haiku
+- **Model sababi:** 4 fayl, mexanik branch nomi almashtirish
+- **Sabab:** seo-quality.yml/lint.yml/test.yml/docker-build.yml barchasi `branches: [main, develop]`
+  kutar edi — "develop" hech qachon mavjud branch bo'lmagan (jamoa "dev"da ishlaydi). Natijada
+  dev'ga har qanday push/PR HECH QANDAY tekshiruvsiz o'tar edi (typecheck, test, SEO gate — hech
+  biri ishlamas edi), faqat keyingi dev->main PR'da (kech). T-S198 (Lighthouse median) ham shu
+  sababli dev'da ishlamas edi.
+- **Qilish kerak:**
+  - [x] 4 faylda "develop" -> "dev" (seo-quality.yml, lint.yml, test.yml, docker-build.yml)
+  - [x] deploy-staging.yml ATAYLAB TEGILMADI — u ham `environment: staging` deb yozgan, lekin
+        haqiqiy GitHub environment nomi "rave / staging" (Railway avtomatik yaratgan) — mos kelmaydi.
+        Bundan tashqari staging infra o'zi T-S109 (hali boshlanmagan). Branch nomini tuzatish
+        yolg'iz bu workflow'ni har dev push'da muvaffaqiyatsiz ishga tushiraveradi — alohida gap.
+- **Fayllar:** .github/workflows/{seo-quality,lint,test,docker-build}.yml
+
+---
+
+### T-S198 | P1 | [DEVOPS] | SEO quality gate — flaky Lighthouse TBT, медиана из 3 прогонов
+
+- **Mas'ul:** Saidazim (Claude sonnet)
+- **Beruvchi:** Yakubov (root cause), Saidazim (решение "да, делай сам")
+- **Yaratilgan:** 2026-08-10
+- **Holat:** ✅ Bajarildi (2026-08-10)
+- **Tavsiya model:** sonnet
+- **Model sababi:** 2 файла (workflow + budget script), точечная логика
+- **Sabab:** Один прогон Lighthouse на холодном GitHub Actions раннере даёт нестабильный TBT
+  (2809мс vs 1500мс бюджет на первом прогоне, 145/126мс на следующих — тот же код). Flaky gate
+  ронял "Typecheck gate" → "Deploy to Railway" SKIPPED → прод не обновлялся 13 дней (найдено
+  Якубовым 2026-08-10 через gh CLI, независимо подтверждено Saidazim'ом).
+- **Qilish kerak:**
+  - [x] `.github/workflows/seo-quality.yml`: Lighthouse гоняется 3 раза вместо 1
+  - [x] `apps/web/scripts/check-lighthouse-budget.mjs`: принимает N путей к отчётам, считает
+        МЕДИАНУ каждой метрики, budget-check идёт по медиане (обратно совместимо — 1 файл = как раньше)
+  - [x] Протестировано на синтетических данных, воспроизводящих реальный инцидент (2809.5/145/126
+        → медиана 145, PASS; тот же прогон с 1 отчётом (2809.5) → FAIL, как раньше)
+- **Fayllar:** .github/workflows/seo-quality.yml, apps/web/scripts/check-lighthouse-budget.mjs
+
+---
+
+### T-S197 | P1 | [BACKEND] | VB — единственная механика извлечения, запуск сразу при создании комнаты
+
+- **Mas'ul:** Saidazim (Claude sonnet)
+- **Beruvchi:** Saidazim (prod bug, uzmovi.net — room created, no VB attempt, straight to "не удалось воспроизвести")
+- **Yaratilgan:** 2026-08-10
+- **Holat:** ✅ Bajarildi (2026-08-10) — код+типы готовы, ждёт live-проверки
+- **Tavsiya model:** sonnet
+- **Model sababi:** 3 файла backend + 2 файла web, точечное упрощение существующего flow
+- **Sabab:** `createRoom` (watchParty.service.ts) сохранял `videoUrl` как есть — extraction/VB вообще
+  не запускались. Реальный fallback жил только в хрупком клиентском костыле (`?verify=1`,
+  CreateRoomDialog.tsx → RoomContent.tsx), которого не было даже на всех mobile-флоу. Saidazim
+  решил: VB — единственная механика извлечения (кроме официальных embed-хостов), запускается сразу
+  и серверно при создании комнаты, content-service extraction (tryExtract/fetchCandidates) больше
+  не участвует в этом flow (код НЕ удалён — используется отдельно в watchPartyPlaylist.service.ts).
+- **Qilish kerak:**
+  - [x] `extractionClient.ts`: `isOwnVbUrl` перенесён сюда (экспортирован), переиспользуется и в
+        controller, и в roomEvents.handler.ts
+  - [x] `watchParty.controller.ts` createRoom: fire-and-forget `startVBForRoom` сразу после ответа,
+        для любого non-official-embed/non-own-VB URL (тот же паттерн, что уже есть в playNextFromPlaylist)
+  - [x] `roomEvents.handler.ts` CHANGE_MEDIA: убран tryExtract/fetchCandidates race, VB запускается
+        безусловно и сразу для non-embed URL
+  - [x] `CreateRoomDialog.tsx` / `RoomContent.tsx`: убран мёртвый `?verify=1` клиентский костыль
+        (useSearchParams/useRouter тоже убраны — стали неиспользуемыми)
+  - [x] tsc --noEmit: watch-party чисто (1 найденная+исправленная ошибка — unused `CANDIDATES_TTL_SEC`
+        после удаления fetchCandidates-блока), app-web чисто (0 ошибок)
+  - [ ] Live-проверка: открыть комнату с uzmovi.net (или другой non-embed) ссылкой — VB должен
+        открыться сразу, без "не удалось воспроизвести"
+- **Найдено, НЕ тронуто (отдельные решения):**
+  - `watchPartyPlaylist.service.ts` `preResolvePlaylistItem` всё ещё зовёт `tryExtract` — playlist
+    "next video" pre-resolve, отдельная фича от room-open/CHANGE_MEDIA, не входила в исходный запрос
+  - Mobile (`WatchPartyScreen.tsx`, T-S189) имеет свой узкий аналог `?verify=1` (`params.needsVerify`,
+    только для "попробовать текущую страницу принудительно") — после этого фикса избыточен (VB и так
+    стартует сразу от сервера), но не ломается, просто лишний повторный вызов. Не трогал — apps/mobile
+    зона Saidazim+Emirhan, не входила в исходный запрос.
+- **Fayllar:** services/watch-party/src/{controllers/watchParty.controller.ts,socket/roomEvents.handler.ts,services/extractionClient.ts},
+  apps/app-web/src/{components/rooms/CreateRoomDialog.tsx,app/(app)/room/[id]/RoomContent.tsx}
 
 ---
 
@@ -18,6 +196,26 @@
   - [ ] Railway → notification servisi → `JWT_PUBLIC_KEY` ni auth servisidagi qiymat bilan bir xil qilish (`JWT_PRIVATE_KEY` juftligi)
   - [ ] Redeploy, so'ng `GET /api/notifications/unread-count` 200 qaytarishini tekshirish
 - **Fayllar:** kod o'zgarmaydi — Railway env
+
+---
+
+### T-S196 | P2 | [BACKEND] | watch-party VB: real-playback confirmation signal для candidate picker
+
+- **Mas'ul:** pending[Saidazim]
+- **Beruvchi:** Saidazim (product investigation, kosmi.io competitive analysis)
+- **Yaratilgan:** 2026-08-09 (время сессии)
+- **Holat:** ✅ Bajarildi (2026-08-10) — реализовано + типы чисто, ждёт live-проверки в реальной комнате
+- **Tavsiya model:** sonnet
+- **Model sababi:** 1-2 файла, точечное добавление сигнала в существующий пайплайн, не архитектурный рефактор
+- **Sabab:** `attachResponseSniffer` (services/watch-party/src/services/virtualBrowser.service.ts) ловит ЛЮБОЙ сетевой ответ, похожий на видео, за 40с окно (`COLLECTION_WINDOW_MS`) — может поймать рекламу/related-content вместо того, что владелец реально смотрит внутри Virtual Browser. Добавлен второй сигнал: page-injected script слушает реальные `play`/`timeupdate` события на `<video>`/`<audio>` (через MutationObserver, т.к. плеер часто создаёт тег после навигации), репортит `currentSrc` в Node через `page.exposeFunction` (тот же паттерн, что уже есть для `__wewatchCaptureChunk` в SourceBuffer-патче). Совпавший с уже пойманным кандидатом URL помечается `confirmed: true` и показывается первым/предвыбранным в `VideoCandidatePicker` (+ визуальный бейдж) — picker остаётся (владелец подтверждает вручную), safety-net не убран.
+- **Qilish kerak:**
+  - [x] page.addInitScript: MutationObserver + play/timeupdate listener → page.exposeFunction репорт currentSrc
+  - [x] startSession: новый onRealPlaybackConfirmed колбэк, прокинут в vbSession.helper.ts
+  - [x] vbSession.helper.ts: correlate confirmed src против candidate array (URL-kind прямой матч, MSE/capture-kind через blob: эвристику), пометка confirmed:true, сортировка confirmed первыми
+  - [x] tsc --noEmit watch-party/app-web/content — чисто (0 ошибок; попутно починен pre-existing дрейф shared/dist через `npm run build` в shared/)
+  - [x] VideoCandidatePicker.tsx: бейдж "похоже, это оно" при confirmed + ключи в ru/uz/en
+  - [ ] Live-проверка в реальной комнате (не сделана в этой сессии — только код+типы+regression)
+- **Fayllar:** services/watch-party/src/services/virtualBrowser.service.ts, services/watch-party/src/socket/vbSession.helper.ts, shared/src/types/index.ts, apps/app-web/src/components/party/VideoCandidatePicker.tsx, apps/app-web/messages/{ru,uz,en}.json
 
 ---
 
@@ -124,12 +322,28 @@
 
 ### T-E209 | P2 | [WEB] | GEO/AEO/SEO texnik baza — robots, sitemap, IndexNow, crawler checker
 
-- **Mas'ul:** pending[Jasur]
+- **Mas'ul:** pending[Yakubov] (2026-08-10'da Jasur'dan o'tdi — Yakubov endi SEO/GEO/AEO yo'nalishiga mas'ul)
 - **Beruvchi:** Jasur
 - **Yaratilgan:** 2026-07-23 (PHASE 0 audit tugadi)
-- **Holat:** ⏸ Kutishda — PHASE 1 + ichki havola ishi tugadi va main'ga deploy bo'ldi (9a526a1c).
-  **2026-07-30 da** Search Console natijasi qayta tekshiriladi. Google qayta crawl qilmaguncha
-  yangi kod yozish behuda — o'lchov bo'lmaydi.
+- **Holat:** ✅ Deploy-bloker HAL QILINDI (2026-08-10, 16:22 — Yakubov + Saidazim, Telegram orqali,
+  Claude sessiyasi tashqarisida). Ikkita alohida sabab bor edi, ikkalasi ham topildi va tuzatildi:
+  (1) Railway'da apps/web uchun Config File Path (apps/web/railway.toml) qo'yilmagan edi — tuzatildi,
+  llms.txt endi asosan main bilan mos (2026-08-10 tekshirildi: kichik matn farqi bor, pastga qarang);
+  (2) Yakubov gh CLI orqali topdi — 2 ta commit (9656de6, 9e1d142) uchun GitHub Actions'da "Run web
+  SEO quality gate" step FAILURE bo'lgan (sovuq runner'da Lighthouse TBT 2809ms > 1500ms budjet,
+  flaky test, real regressiya emas) → "Deploy to Railway" SKIPPED bo'lgan, Railway'ga umuman
+  murojaat qilinmagan. "Re-run failed jobs" kerak bo'lmadi — (1)-fix o'zi yetarli bo'ldi.
+  INDEXNOW_SECRET + INDEXNOW_KEY ham Railway'da o'rnatildi, /api/indexnow endi 401 qaytaryapti
+  (2026-08-10 mustaqil tekshirildi: 503 emas — env bor, noto'g'ri secret bilan 401 kutilganidek).
+  ~~**YANGI TOPILMA (2026-08-10):** prod llms.txt main bilan bir xil emas — prod "in development",
+  main "on iOS, and on Android" (overclaim).~~ **HAL BO'LDI — 2026-08-13 qayta tekshirildi:**
+  prod `llms.txt` ham, `origin/main` dagi fayl ham endi bir xil matn beradi
+  ("Native iOS and Android apps are **in development**"). Overclaim yo'q.
+
+  **Prod tekshiruvi (2026-08-13, jonli HTML):** `wewatch.uz/robots.txt` — `Allow: /` +
+  `Disallow: /api/`, 22 bot; `app.wewatch.uz/robots.txt` — `Disallow: /`;
+  `/ru/guides/smotret-youtube-vmeste` — kirill "ютуб" matnda bor (22 marta), `FAQPage`
+  JSON-LD bor, canonical o'ziga. Ya'ni A-to'lqin faqat main'da emas, prod'da ham jonli.
 - **Tavsiya model:** opus
 - **Model sababi:** ko'p faylli SEO infratuzilma + mavjud bazani buzmasdan yamash
 - **Sabab:** wewatch.uz'ni AI answer engine'lar (ChatGPT, Claude, Perplexity, AI Overviews) iqtibos qila
@@ -143,10 +357,16 @@
   - [x] public/llms.txt — faktlar shared/constants bilan moslashtirildi
   - [x] scripts/check-crawler-visibility.mjs — 7 route × 5 UA, hammasi PASS
 - **Qo'lda qilinishi kerak (TODO human):**
-  - [ ] Railway'da `INDEXNOW_SECRET` env o'rnatish (`openssl rand -hex 24`) + `INDEXNOW_KEY=b7a4e5408d77764d08338835ee8cdd0e`,
-        keyin `curl -X POST https://wewatch.uz/api/indexnow -H "x-indexnow-secret: ..."` (jonli tekshirildi: kalit fayli 200, env yo'q)
-  - [ ] GSC: sitemap.xml ni qayta yuborish + URL Inspection'da qayta indekslash so'rovi
-        (/guides, /uz/guides, /how-it-works, rutube/vk/film-vdvoem/serialy gaydlari, /en)
+  - [x] Railway'da `INDEXNOW_SECRET` + `INDEXNOW_KEY` o'rnatildi (2026-08-10) — mustaqil tekshirildi,
+        endi 401 qaytaryapti (noto'g'ri secret bilan — env borligini tasdiqlaydi, avval 503 edi)
+  - [x] GSC: sitemap.xml qayta yuborildi (2026-08-13) + 9 URL "Запросить индексирование"
+        orqali navbatga qo'yildi: /ru/guides/smotret-youtube-vmeste, /ru/guides, /uz/guides,
+        /en, /ru/how-it-works, rutube, vk-video, film-vdvoem, serialy-besplatno
+  - [x] Yandex Webmaster (2026-08-13): huquqlar meta-teg bilan tasdiqlandi. **Topilma:**
+        sayt `http://wewatch.uz:80` sifatida ro'yxatdan o'tgan edi, prod esa https —
+        Yandex uchun bu ikki xil host. `https://wewatch.uz` alohida qo'shildi va
+        tasdiqlandi; ikkalasiga ham sitemap qo'yildi va 64 tadan URL qayta-o'tishga
+        yuborildi (kunlik limit 150 ta, domen + mirrorlar uchun umumiy)
   - [ ] Pro tarif (29 000 so'm, /pricing) haqiqatan faolmi? llms.txt da TODO qoldirilgan
   - [ ] `.claude/scripts/tg-notify.sh` — Windows'da `python3` topilmayapti, xabar yuborilmadi
 - **⛔ TEGMASLIK KERAK:** apps/mobile, services/*, watch-party sinxronizatsiya logikasi. Faqat apps/web.

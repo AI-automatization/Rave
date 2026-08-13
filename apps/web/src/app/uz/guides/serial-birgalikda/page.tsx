@@ -40,16 +40,38 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
+
+
+/**
+ * Rendered as the visible FAQ and published as FAQPage from this one array — the
+ * same rule the guide registry follows, so the schema cannot drift from the page.
+ * seo-geo-aeo.spec.ts asserts every question and answer appears in the visible
+ * HTML, which is what makes that guarantee testable rather than a convention.
+ */
+const FAQS = [
+  {
+    q: "Turk seriallarini qayerdan topish mumkin?",
+    a: "VK Video va YouTube'da mavjud turk seriallarini qo'llab-quvvatlanadigan havola orqali sinxron tomosha qilish mumkin.",
+  },
+  {
+    q: "Bir seriyadan keyingisiga o'tish osonmi?",
+    a: "Ha. Keyingi seriya havolasini xonaga joylashtirasiz — hammaga yangi video yuklanadi.",
+  },
+  {
+    q: "Tomosha paytida gaplashish mumkinmi?",
+    a: "Ha, xonada matn chat mavjud. Ovozli chat ham qo'shilmoqda.",
+  },
+] as const;
+
 const jsonLd = {
   '@context': 'https://schema.org',
-  '@type': 'Article',
-  headline: "Serial do'stlar bilan birgalikda ko'rish onlayn",
-  description: "WeWatch orqali seriallarni do'stlaringiz bilan sinxron holda tomosha qiling",
-  author: { '@type': 'Organization', name: 'WeWatch', url: 'https://wewatch.uz' },
-  publisher: { '@type': 'Organization', name: 'WeWatch', url: 'https://wewatch.uz' },
-  datePublished: '2026-06-16',
+  '@type': 'FAQPage',
   inLanguage: 'uz',
-  mainEntityOfPage: 'https://wewatch.uz/uz/guides/serial-birgalikda',
+  mainEntity: FAQS.map(({ q, a }) => ({
+    '@type': 'Question',
+    name: q,
+    acceptedAnswer: { '@type': 'Answer', text: a },
+  })),
 };
 
 export default function SerialBirgalikdaPage() {
@@ -92,8 +114,8 @@ export default function SerialBirgalikdaPage() {
               ))}
             </div>
             <p className="text-zinc-400 text-sm">
-              WeWatch ichki brauzeri orqali VK Video, YouTube va boshqa platformalardagi seriallarni
-              ochib tomosha qilish mumkin.
+              WeWatch veb-versiyasi orqali VK Video, YouTube, Rutube yoki to'g'ridan-to'g'ri MP4
+              havolasidagi seriallarni sinxron tomosha qilish mumkin.
             </p>
           </section>
 
@@ -101,9 +123,9 @@ export default function SerialBirgalikdaPage() {
             <h2 className="text-2xl font-bold text-white mb-4">Serial birgalikda ko'rish bosqichlari</h2>
             <ol className="space-y-4">
               {[
-                { n: '1', t: "WeWatch ilovasini yuklab oling", d: "App Store yoki Google Play — bepul." },
+                { n: '1', t: "WeWatch'ni oching", d: "Veb-versiya mavjud; iOS va Android ilovalari ishlab chiqilmoqda." },
                 { n: '2', t: "Xona yarating", d: "'Xona yaratish' tugmasini bosing va nom bering." },
-                { n: '3', t: "Serial saytini oching", d: "Ichki brauzerni oching, kerakli serialni VK yoki YouTube'dan toping." },
+                { n: '3', t: "Serialni qo'shing", d: "Kerakli VK Video, YouTube, Rutube yoki to'g'ridan-to'g'ri MP4 havolasini kiriting." },
                 { n: '4', t: "Do'stlaringizni taklif qiling", d: "Xona havolasini Telegram'dan yuboring. Do'stingiz havola orqali kiradi." },
                 { n: '5', t: "Birgalikda tomosha qiling", d: "Play bosasiz — hammangiz bir vaqtda ko'rasiz. Pause — ham sinxron." },
               ].map(({ n, t, d }) => (
@@ -124,7 +146,7 @@ export default function SerialBirgalikdaPage() {
               {[
                 "Sinxron pause — kimdir bosadi, hammaga ta'sir qiladi",
                 "Demokratik kutish — internet sekinlashsa, server hammani kutadi",
-                "Har qanday qurilmada — iPhone, Android, kompyuter",
+                "Brauzerda — iPhone, Android yoki kompyuter; mobil ilovalar ishlab chiqilmoqda",
                 "Bepul va ro'yxatdan o'tmasdan do'stlaringizni taklif qilish mumkin",
                 "Matn chat — tomosha paytida fikr almashish",
               ].map((item) => (
@@ -139,20 +161,7 @@ export default function SerialBirgalikdaPage() {
           <section className="mb-10">
             <h2 className="text-2xl font-bold text-white mb-4">Ko'p so'raladigan savollar</h2>
             <div className="space-y-4">
-              {[
-                {
-                  q: "Turk seriallarini qayerdan topish mumkin?",
-                  a: "VK Video va YouTube'da ko'plab turk seriallar tarjima bilan mavjud. WeWatch ichki brauzeri orqali ularni sinxron tomosha qilish mumkin.",
-                },
-                {
-                  q: "Bir seriyadan keyingisiga o'tish osonmi?",
-                  a: "Ha. Keyingi seriya havolasini xonaga joylashtirasiz — hammaga yangi video yuklanadi.",
-                },
-                {
-                  q: "Tomosha paytida gaplashish mumkinmi?",
-                  a: "Ha, xonada matn chat mavjud. Ovozli chat ham qo'shilmoqda.",
-                },
-              ].map(({ q, a }) => (
+              {FAQS.map(({ q, a }) => (
                 <div key={q} className="bg-zinc-900 rounded-xl p-5 border border-zinc-800">
                   <div className="font-semibold text-white mb-2">{q}</div>
                   <div className="text-zinc-400 text-sm">{a}</div>

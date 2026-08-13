@@ -17,7 +17,7 @@ COPY shared/ ./shared/
 COPY services/notification/ ./services/notification/
 
 RUN npm run build --workspace=@cinesync/shared
-RUN npm run build --workspace=@cinesync/notification -- --project tsconfig.build.json
+RUN npm run build --workspace=@cinesync/notification
 
 FROM node:20-alpine AS production
 WORKDIR /app

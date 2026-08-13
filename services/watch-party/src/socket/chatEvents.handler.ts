@@ -6,7 +6,10 @@ import { JwtPayload } from '@shared/types';
 import { axios, userServiceUrl } from '@shared/utils/serviceConfig';
 import { logger } from '@shared/utils/logger';
 
-interface AuthenticatedSocket extends Socket {
+// Exported so reactionEvents.handler.ts can share the same avatar cache/lookup instead of
+// duplicating the user-service call — both handlers run against the same underlying socket
+// instance (registerChatEvents/registerReactionEvents are both called on it in watchParty.socket.ts).
+export interface AuthenticatedSocket extends Socket {
   user: JwtPayload;
   roomId?: string;
   /** Resolved once per connection by resolveAvatar(); `null` = looked up, user has none. */
@@ -30,7 +33,7 @@ const AVATAR_LOOKUP_TIMEOUT_MS = 3000;
 // it, NOT per message: an active room would otherwise hit user-service on every single chat line.
 // A failed lookup caches `null` as well — a missing avatar isn't worth retrying in a hot path, both
 // clients already fall back to the coloured initial-circle placeholder.
-const resolveAvatar = async (authSocket: AuthenticatedSocket): Promise<string | undefined> => {
+export const resolveAvatar = async (authSocket: AuthenticatedSocket): Promise<string | undefined> => {
   if (authSocket.chatAvatar === undefined) {
     try {
       const { data: body } = await axios.get(

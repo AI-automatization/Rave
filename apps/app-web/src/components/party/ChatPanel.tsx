@@ -45,7 +45,7 @@ export function ChatPanel({ onSend, onOpenProfile }: Props) {
 
   return (
     <div className="flex flex-col h-full">
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-2 py-2 flex flex-col gap-0.5 scrollbar-hide">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-3 scrollbar-hide">
         {messages.length === 0 && (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
             <span className="flex h-12 w-12 items-center justify-center rounded-full border border-[var(--ww-line)] bg-[var(--ww-accent-soft)]">
@@ -92,14 +92,14 @@ export function ChatPanel({ onSend, onOpenProfile }: Props) {
                 onClick={() => onOpenProfile?.(msg.user._id)}
                 disabled={!clickable}
                 aria-label={name}
-                className={`shrink-0 mt-[1px] rounded-full ${clickable ? 'cursor-pointer hover:opacity-80 transition-opacity' : 'cursor-default'}`}
+                className={`shrink-0 rounded-full ${clickable ? 'cursor-pointer hover:opacity-80 transition-opacity' : 'cursor-default'}`}
               >
                 {avatar ? (
                   // eslint-disable-next-line @next/next/no-img-element -- user-uploaded avatar URL, not worth a next/image domain allowlist entry
-                  <img src={avatar} alt="" className="w-5 h-5 rounded-full object-cover" />
+                  <img src={avatar} alt="" className="w-8 h-8 rounded-full object-cover" />
                 ) : (
                   <div
-                    className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white"
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-bold text-white"
                     style={{ background: color }}
                   >
                     {(msg.user.username?.[0] ?? '?').toUpperCase()}
@@ -121,11 +121,13 @@ export function ChatPanel({ onSend, onOpenProfile }: Props) {
                     </div>
                   </div>
                 )}
+                {/* Name on its own line above the message — was inline "Name: message" (IRC
+                    style), reads more like a real social chat this way. */}
                 <button
                   type="button"
                   onClick={() => onOpenProfile?.(msg.user._id)}
                   disabled={!clickable}
-                  className={`text-[12px] font-semibold align-baseline ${clickable ? 'cursor-pointer hover:underline' : 'cursor-default'}`}
+                  className={`block text-[12.5px] font-semibold leading-tight mb-0.5 ${clickable ? 'cursor-pointer hover:underline' : 'cursor-default'}`}
                   style={{ color }}
                 >
                   {name}
@@ -137,11 +139,10 @@ export function ChatPanel({ onSend, onOpenProfile }: Props) {
                   }`}
                 >
                   {msg.text}
-                </span>
+                </p>
               </div>
 
-              {/* Hover-only so the compact IRC-style rows don't gain a permanent icon column.
-                  focus-within keeps it reachable by keyboard, where there is no hover. */}
+              {/* Hover-only. focus-within keeps it reachable by keyboard, where there is no hover. */}
               <button
                 type="button"
                 onClick={startReply}
@@ -149,7 +150,7 @@ export function ChatPanel({ onSend, onOpenProfile }: Props) {
                 title={t('reply')}
                 className="mt-[1px] shrink-0 cursor-pointer rounded-[var(--ww-r-sm)] p-1 text-[var(--ww-text-4)] opacity-0 transition-all hover:bg-[var(--ww-surface-2)] hover:text-[var(--ww-text)] focus:opacity-100 group-hover:opacity-100"
               >
-                <Reply size={12} />
+                <Reply size={13} />
               </button>
             </motion.div>
           );

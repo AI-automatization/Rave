@@ -1,13 +1,16 @@
 import { Server as SocketServer, Socket } from 'socket.io';
+import Redis from 'ioredis';
 import { WatchPartyService } from '../services/watchParty.service';
 import { logger } from '@shared/utils/logger';
 import { SERVER_EVENTS, CLIENT_EVENTS } from '@shared/constants/socketEvents';
+import { REDIS_KEYS } from '@shared/constants';
 import { JwtPayload, VideoPlatform } from '@shared/types';
 import { recordWatchHistoryInternal } from '@shared/utils/serviceClient';
 import { bufferTimeouts, resumeBufferedRoom } from './videoEvents.handler';
-import { stopSession, getSessionSnapshot } from '../services/virtualBrowser.service';
+import { stopSession, getSessionSnapshot, hasSession } from '../services/virtualBrowser.service';
 import { startVBForRoom } from './vbSession.helper';
-import { isOfficialEmbedHost, tryExtract } from '../services/extractionClient';
+import { isOfficialEmbedHost, isOwnVbUrl, isPrivateUrl } from '../services/extractionClient';
+import { isDomainBlocked } from '../controllers/domain.admin.controller';
 
 interface AuthenticatedSocket extends Socket {
   user: JwtPayload;
@@ -42,6 +45,15 @@ function scheduleRoomEmptyCheck(
       logger.info('Room empty — starting 5-minute inactivity timer', { roomId });
       const timer = setTimeout(() => {
         roomCloseTimers.delete(roomId);
+        // Real prod case 2026-08-07: this fired mid-VB-search (page navigation, a Cloudflare
+        // challenge, clicking through player tabs) and killed the session before it could finish
+        // — nobody being in the room's Socket.io membership isn't abandonment if VB is actively
+        // hunting for a video on the owner's behalf. Don't kill it; just check again next window.
+        if (hasSession(roomId)) {
+          logger.info('Room inactivity timer skipped — VB session still active', { roomId });
+          scheduleRoomEmptyCheck(io, watchPartyService, roomId);
+          return;
+        }
         void (async () => {
           try {
             await watchPartyService.closeRoomBySystem(roomId);
@@ -116,6 +128,7 @@ export const registerRoomEvents = (
   socket: Socket,
   authSocket: AuthenticatedSocket,
   watchPartyService: WatchPartyService,
+  redis: Redis,
 ): void => {
   const { userId } = authSocket.user;
 
@@ -234,26 +247,57 @@ export const registerRoomEvents = (
       return;
     }
 
-    // Extraction-flow pre-check: official-embed platforms (YouTube/VK/Rutube/etc) already play
-    // instantly client-side via their own iframe — skip straight to the normal broadcast below,
-    // unchanged, no added latency. Everything else gets tested against content-service's
-    // extraction pipeline first; if THAT can't produce a playable result either, auto-fall into
-    // the shared virtual browser instead of broadcasting a URL that will just show "failed to
-    // load video" to the whole room. rawToken missing would mean a broken auth-middleware state
-    // that shouldn't happen in practice — treat it as "skip the check", not "drop the request".
-    if (authSocket.rawToken && !isOfficialEmbedHost(data.videoUrl)) {
-      const playable = await tryExtract(data.videoUrl, authSocket.rawToken);
-      if (!playable) {
-        try {
-          await startVBForRoom(io, watchPartyService, roomId, userId, data.videoUrl);
-          logger.info('CHANGE_MEDIA: extraction failed, auto-started VB', { roomId, userId, url: data.videoUrl });
-          return; // room is now watching the live VB stream — don't also broadcast the raw URL
-        } catch (e) {
-          // VB itself couldn't start (e.g. concurrency limit) — fall through to the normal
-          // broadcast so the owner at least gets today's behavior (a clear load error) instead
-          // of the request silently doing nothing.
-          logger.warn('CHANGE_MEDIA: VB auto-fallback failed to start too', { roomId, error: (e as Error).message });
-        }
+    // SSRF guard (2026-08-11 security review): room CREATION already rejects private/internal
+    // URLs (watchParty.service.ts), but that only gated the room's initial videoUrl — every later
+    // media change landed here with no such check, so the owner-only VB fallback could point our
+    // server-side headless Chromium at localhost/internal-network/cloud-metadata addresses after
+    // the room already existed. Own-URL candidates (isOwnVbUrl) are exempt — those are already-
+    // resolved, our-own-host URLs, not attacker-controlled navigation targets.
+    if (!isOwnVbUrl(data.videoUrl) && isPrivateUrl(data.videoUrl)) {
+      socket.emit(SERVER_EVENTS.ERROR, { message: 'videoUrl points to a private or internal address' });
+      logger.warn('CHANGE_MEDIA rejected — private/internal URL', { roomId, userId, url: data.videoUrl });
+      return;
+    }
+
+    // Content-policy guard (#84 follow-up) — same gap CHANGE_MEDIA had for isPrivateUrl before
+    // 2026-08-11: the admin domain blocklist was never consulted on the actual media-open path.
+    if (!isOwnVbUrl(data.videoUrl) && await isDomainBlocked(redis, data.videoUrl)) {
+      socket.emit(SERVER_EVENTS.ERROR, { message: 'Этот домен заблокирован' });
+      logger.warn('CHANGE_MEDIA rejected — blocked domain', { roomId, userId, url: data.videoUrl });
+      return;
+    }
+
+    // Single extraction mechanism (2026-08-10, Saidazim's call): content-service's pipeline
+    // (tryExtract/fetchCandidates, extractionClient.ts) is no longer invoked from here — VB is the
+    // only path for anything that isn't an official embed. The functions themselves are NOT
+    // deleted (still used by watchPartyPlaylist.service.ts's playlist pre-resolve, a separate
+    // decision) — just not called on this critical path anymore. Candidates for the picker now
+    // come exclusively from VB's own attachResponseSniffer / T-S196 real-playback confirmation.
+    if (!isOwnVbUrl(data.videoUrl)) {
+      // Confirming a VB candidate keeps that same candidate in Redis on purpose — CHANGE_MEDIA
+      // below still needs it there in case the owner reopens the picker for "не то видео" right
+      // after confirming. Any other case (embed host, or a genuinely new non-VB url) clears it —
+      // a fresh VB session (below) repopulates it once it finds candidates.
+      void redis.del(REDIS_KEYS.videoCandidates(roomId)).catch(() => {});
+    }
+
+    // Official-embed platforms (YouTube/VK/Rutube/Twitch/Vimeo/Dailymotion/TikTok/Trovo) already
+    // play instantly client-side via their own iframe — skip straight to the normal broadcast
+    // below, unchanged. Everything else launches VB immediately, no extraction attempt first —
+    // real prod bug 2026-08-10 (uzmovi.net): room creation never reached this handler at all
+    // (client-side ?verify=1 workaround, now removed — see watchParty.controller.ts createRoom,
+    // which starts VB server-side directly), so a URL needing VB just showed "failed to load
+    // video" with no fallback ever attempted.
+    if (!isOfficialEmbedHost(data.videoUrl) && !isOwnVbUrl(data.videoUrl)) {
+      try {
+        await startVBForRoom(io, redis, roomId, userId, data.videoUrl);
+        logger.info('CHANGE_MEDIA: VB started (sole extraction mechanism)', { roomId, userId, url: data.videoUrl });
+        return; // room is now watching the live VB stream — don't also broadcast the raw URL
+      } catch (e) {
+        // e.g. virtual_browser_limit (MAX_CONCURRENT) — fall through to the normal broadcast so
+        // the owner at least gets today's behavior (a clear load error) instead of the request
+        // silently doing nothing.
+        logger.warn('CHANGE_MEDIA: VB failed to start', { roomId, error: (e as Error).message });
       }
     }
 
@@ -267,10 +311,71 @@ export const registerRoomEvents = (
       // Barcha memberlarga yangi room state broadcast — ROOM_UPDATED mavjud event
       io.to(roomId).emit(SERVER_EVENTS.ROOM_UPDATED, updated);
 
+      // Real prod bug 2026-08-12 (yummyani.me, live test): confirming a 'url'-kind candidate
+      // (vb-media-proxy/vb-edge-fetch — an already-resolved, independently-servable CDN URL) left
+      // the VB session running and never told clients — vbActive stayed true (use-virtual-browser.ts
+      // only flips it on an explicit VB_STOPPED broadcast) so the loading overlay kept covering the
+      // now-playing video until the owner noticed and manually clicked the VB close button. Only
+      // vb-capture (kind: 'capture' in vbSession.helper.ts) genuinely needs the session kept alive —
+      // that candidate IS the live browser's own growing byte buffer. Any other own-VB URL means
+      // the real media is already fully resolved and playable on its own; the browser instance
+      // serves no further purpose once the owner has committed to it.
+      if (isOwnVbUrl(data.videoUrl) && !data.videoUrl.includes('/vb-capture/')) {
+        await stopSession(roomId).catch((e) => {
+          logger.warn('CHANGE_MEDIA: failed to stop VB session after non-capture candidate confirm', { roomId, error: (e as Error).message });
+        });
+        io.to(roomId).emit(SERVER_EVENTS.VB_STOPPED, { reason: 'candidate_confirmed' });
+      }
+
       logger.info('Room media changed', { roomId, userId, videoUrl: data.videoUrl });
     } catch (error) {
       socket.emit(SERVER_EVENTS.ERROR, { message: 'Failed to change room media' });
       logger.error('Socket media change error', { userId, error });
+    }
+  });
+
+  // REQUEST_CANDIDATES — owner only: "show me what videos we've found for the current source" —
+  // fired when the owner opens the picker (initial pick, or later via the player's "Это не то
+  // видео" menu entry). Answers from Redis only, no re-extraction — see CHANGE_MEDIA above for
+  // where candidates actually get collected.
+  socket.on(CLIENT_EVENTS.REQUEST_CANDIDATES, async () => {
+    const roomId = authSocket.roomId;
+    if (!roomId) return;
+
+    if (authSocket.roomOwnerId === undefined) {
+      try {
+        const room = await watchPartyService.getRoom(roomId);
+        authSocket.roomOwnerId = room.ownerId;
+      } catch {
+        return;
+      }
+    }
+    if (authSocket.roomOwnerId !== userId) return;
+
+    try {
+      const raw = await redis.get(REDIS_KEYS.videoCandidates(roomId));
+      const candidates = raw ? JSON.parse(raw) : [];
+      socket.emit(SERVER_EVENTS.VIDEO_CANDIDATES, { candidates });
+    } catch (error) {
+      logger.warn('REQUEST_CANDIDATES: failed to read from Redis', { roomId, error: (error as Error).message });
+      socket.emit(SERVER_EVENTS.VIDEO_CANDIDATES, { candidates: [] });
+    }
+  });
+
+  socket.on(CLIENT_EVENTS.RENAME_ROOM, async (data: { name: string }) => {
+    const roomId = authSocket.roomId;
+    if (!roomId) {
+      logger.warn('Room rename: socket has no roomId', { userId });
+      return;
+    }
+
+    try {
+      const updated = await watchPartyService.renameRoom(userId, roomId, data.name);
+      io.to(roomId).emit(SERVER_EVENTS.ROOM_UPDATED, updated);
+      logger.info('Room renamed', { roomId, userId });
+    } catch (error) {
+      socket.emit(SERVER_EVENTS.ERROR, { message: (error as Error).message || 'Failed to rename room' });
+      logger.error('Socket room rename error', { userId, error });
     }
   });
 
@@ -331,6 +436,42 @@ export const registerRoomEvents = (
     } catch (error) {
       socket.emit(SERVER_EVENTS.ERROR, { message: 'Failed to mute member' });
       logger.error('Socket mute error', { userId, error });
+    }
+  });
+
+  // Mirror of MUTE_MEMBER — was previously mute-only with no way for the owner to lift it
+  // again short of the target manually leaving/rejoining voice.
+  socket.on(CLIENT_EVENTS.UNMUTE_MEMBER, async (data: { targetUserId: string }) => {
+    if (!authSocket.roomId) return;
+
+    try {
+      const room = await watchPartyService.getRoom(authSocket.roomId);
+      if (room.ownerId !== userId) {
+        socket.emit(SERVER_EVENTS.ERROR, { message: 'Only the room owner can unmute members' });
+        return;
+      }
+
+      if (!room.members.includes(data.targetUserId)) {
+        socket.emit(SERVER_EVENTS.ERROR, { message: 'User is not a room member' });
+        return;
+      }
+
+      await watchPartyService.setMuteState(authSocket.roomId, data.targetUserId, false);
+
+      io.to(authSocket.roomId).emit(SERVER_EVENTS.MEMBER_UNMUTED, {
+        userId: data.targetUserId,
+        unmutedBy: userId,
+        timestamp: Date.now(),
+      });
+
+      logger.info('Member unmuted in watch party', {
+        roomId: authSocket.roomId,
+        targetUserId: data.targetUserId,
+        unmutedBy: userId,
+      });
+    } catch (error) {
+      socket.emit(SERVER_EVENTS.ERROR, { message: 'Failed to unmute member' });
+      logger.error('Socket unmute error', { userId, error });
     }
   });
 

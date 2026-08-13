@@ -1,19 +1,31 @@
-import type { MetadataRoute } from 'next';
-import { TEAM } from './ru/team/team-data';
+import { TEAM } from '@/app/ru/team/team-data';
 import { GUIDES } from '@/data/guides';
 import { hreflangFor } from '@/lib/i18n/routes';
+import { LOCALES, withLocale } from '@/lib/i18n/config';
 
 const BASE = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 
-type Entry = {
+export type ChangeFrequency = 'always' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'never';
+
+export type SitemapEntry = {
   path: string;
   /** Real last-edit date of the page source, not build time — otherwise lastmod is noise. */
   lastModified: string;
-  changeFrequency: MetadataRoute.Sitemap[number]['changeFrequency'];
+  changeFrequency: ChangeFrequency;
   priority: number;
   /** Locale counterparts, taken from the page's own `alternates.languages`. */
   languages?: Record<string, string>;
 };
+
+/**
+ * `0.8 - 0.1` is `0.7000000000000001` in IEEE 754, and that is exactly what shipped in
+ * production: four `<priority>` values came out as 0.7000000000000001 / 0.30000000000000004.
+ * Harmless for crawlers, but it is the first thing a human sees when opening the file, and
+ * schema validators flag it. One rounding point, applied where the XML is written.
+ */
+export function normalizePriority(priority: number): number {
+  return Math.round(priority * 10) / 10;
+}
 
 /**
  * hreflang set for a guide, from the same helper the pages themselves use — so
@@ -27,25 +39,30 @@ function guideLanguages(path: string) {
 }
 
 /**
- * Marketing pages that exist at `/x`, `/uz/x` and `/en/x`. Listed once here and
+ * Marketing pages that exist at `/ru/x`, `/uz/x` and `/en/x`. Listed once here and
  * expanded into three sitemap entries below, so adding a language version cannot
  * be half-done — the page, the hreflang and the sitemap all read the same list
  * (this one and TRANSLATED_ROUTES in lib/i18n/routes.ts).
+ *
+ * Paths are deliberately locale-free. Storing `/ru/features` here and then
+ * prefixing it for Uzbek/English produced `/uz/ru/features` and
+ * `/en/ru/features`, silently replacing twelve real marketing URLs with 404s.
  */
 const LANDING_PAGES: readonly { path: string; priority: number }[] = [
-  { path: '/ru/features', priority: 0.8 },
-  { path: '/ru/pricing', priority: 0.7 },
-  { path: '/ru/products', priority: 0.5 },
-  { path: '/ru/company', priority: 0.5 },
-  { path: '/ru/contact', priority: 0.4 },
-  { path: '/ru/about', priority: 0.5 },
+  { path: '/features', priority: 0.8 },
+  { path: '/pricing', priority: 0.7 },
+  { path: '/products', priority: 0.5 },
+  { path: '/company', priority: 0.5 },
+  { path: '/contact', priority: 0.4 },
+  { path: '/about', priority: 0.5 },
 ];
 
 const LANDING_LASTMOD = '2026-07-28';
 
-const ENTRIES: Entry[] = [
+const ENTRIES: SitemapEntry[] = [
   // ── Главные страницы: по одной на язык, все с префиксом ─────────────────────
-  // Голого `/` здесь нет намеренно: он 301 на /ru (next.config.mjs), а sitemap
+  // Голого `/` здесь нет намеренно: proxy отвечает временным языковым redirect,
+  // а sitemap
   // должен содержать конечные URL, а не редиректы. hreflang берётся из того же
   // helper'а, что и на самих страницах, — расходиться они не могут.
   {
@@ -115,11 +132,15 @@ const ENTRIES: Entry[] = [
     priority: 0.8,
     languages: hreflangFor('/ru/how-it-works', BASE),
   },
-  ...LANDING_PAGES.flatMap(({ path, priority }) => [
-    { path, lastModified: LANDING_LASTMOD, changeFrequency: 'monthly' as const, priority, languages: hreflangFor(path, BASE) },
-    { path: `/uz${path}`, lastModified: LANDING_LASTMOD, changeFrequency: 'monthly' as const, priority: priority - 0.1, languages: hreflangFor(path, BASE) },
-    { path: `/en${path}`, lastModified: LANDING_LASTMOD, changeFrequency: 'monthly' as const, priority: priority - 0.1, languages: hreflangFor(path, BASE) },
-  ]),
+  ...LANDING_PAGES.flatMap(({ path, priority }) =>
+    LOCALES.map((locale) => ({
+      path: withLocale(path, locale),
+      lastModified: LANDING_LASTMOD,
+      changeFrequency: 'monthly' as const,
+      priority: locale === 'ru' ? priority : normalizePriority(priority - 0.1),
+      languages: hreflangFor(path, BASE),
+    })),
+  ),
   { path: '/ru/tezcode', lastModified: '2026-07-03', changeFrequency: 'monthly', priority: 0.6 },
 
   // ── Use-cases ──────────────────────────────────────────────────────────────
@@ -186,17 +207,65 @@ const ENTRIES: Entry[] = [
   })),
 ];
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  return ENTRIES.map(({ path, lastModified, changeFrequency, priority, languages }) => ({
-    url: path === '/' ? BASE : `${BASE}${path}`,
-    lastModified: new Date(lastModified),
-    changeFrequency,
-    priority,
-    ...(languages ? { alternates: { languages } } : {}),
+/**
+ * Fail the build instead of publishing a sitemap with duplicated or
+ * double-prefixed locale paths. HTTP/canonical validation still runs in the
+ * crawler test; this guard catches the source-level regression immediately.
+ */
+function assertValidEntryPaths(entries: readonly SitemapEntry[]): void {
+  const seen = new Set<string>();
+  const doubleLocale = /^\/(?:ru|uz|en)\/(?:ru|uz|en)(?:\/|$)/;
+
+  for (const { path } of entries) {
+    if (!path.startsWith('/')) throw new Error(`Sitemap path must be absolute: ${path}`);
+    if (doubleLocale.test(path)) throw new Error(`Sitemap path has two locale prefixes: ${path}`);
+    if (seen.has(path)) throw new Error(`Duplicate sitemap path: ${path}`);
+    seen.add(path);
+  }
+}
+
+/** Validated entries with absolute URLs — the single source for the XML and for IndexNow. */
+export function sitemapEntries(): readonly (SitemapEntry & { url: string })[] {
+  assertValidEntryPaths(ENTRIES);
+  return ENTRIES.map((entry) => ({
+    ...entry,
+    priority: normalizePriority(entry.priority),
+    url: entry.path === '/' ? BASE : `${BASE}${entry.path}`,
   }));
 }
 
 /** Absolute URLs of every indexable page — reused by the IndexNow submitter. */
 export function sitemapUrls(): string[] {
-  return sitemap().map((entry) => String(entry.url));
+  return sitemapEntries().map((entry) => entry.url);
+}
+
+/**
+ * Files the sitemap index points at. Three locales plus `shared` for the URLs that carry
+ * no locale prefix at all (`/privacy-policy`, `/terms`, `/dmca`, `/delete-account`).
+ * Dropping that fourth file would silently remove four indexable pages from the sitemap,
+ * which is exactly the kind of regression a split like this tends to cause.
+ */
+export const SITEMAP_FILES = ['ru', 'uz', 'en', 'shared'] as const;
+export type SitemapFile = (typeof SITEMAP_FILES)[number];
+
+export function isSitemapFile(value: string): value is SitemapFile {
+  return (SITEMAP_FILES as readonly string[]).includes(value);
+}
+
+function fileOf(path: string): SitemapFile {
+  const [, first] = path.split('/');
+  return isSitemapFile(first) && first !== 'shared' ? (first as SitemapFile) : 'shared';
+}
+
+/** Entries belonging to one file of the index. */
+export function sitemapEntriesFor(file: SitemapFile) {
+  return sitemapEntries().filter((entry) => fileOf(entry.path) === file);
+}
+
+/** Newest `lastmod` in a file, so the index itself carries a date crawlers can use. */
+export function lastModifiedOf(file: SitemapFile): string {
+  return sitemapEntriesFor(file)
+    .map((entry) => entry.lastModified.slice(0, 10))
+    .sort()
+    .at(-1) ?? '1970-01-01';
 }

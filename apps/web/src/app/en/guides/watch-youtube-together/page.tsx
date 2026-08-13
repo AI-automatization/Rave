@@ -11,7 +11,7 @@ const PATH = '/en/guides/watch-youtube-together';
 export const metadata: Metadata = {
   title: 'How to Watch YouTube Together With a Friend Online (Free)',
   description:
-    'Step-by-step: watch YouTube together with friends in sync. Works across iPhone, Android and desktop browsers — free, no browser extension needed.',
+    'Step-by-step: watch YouTube together with friends using the free WeWatch web version. Native iOS and Android apps are in development.',
   keywords: [
     'watch youtube together', 'watch youtube with friends online', 'youtube watch party',
     'watch youtube together online free', 'youtube sync watch', 'watch videos together',
@@ -31,52 +31,15 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
+const HOW_TO_STEPS = [
+  { n: 1, title: 'Open WeWatch', text: 'Open wewatch.uz in a browser on desktop, iPhone or Android. Native iOS and Android apps are in development.' },
+  { n: 2, title: 'Create a room', text: 'Press “Create room”. Paste the YouTube link you want to watch (for example https://youtube.com/watch?v=…) and give the room a name if you like.' },
+  { n: 3, title: 'Share the link with your friend', text: 'Copy your room link and send it over WhatsApp, Telegram or any messenger. Your friend just taps the link — no account needed to join by invite.' },
+  { n: 4, title: 'Press play and watch together', text: 'Once everyone has joined, press play. The room host controls playback: their pause and seek apply to every participant at the same moment.' },
+] as const;
+
 // Facts (500 ms drift correction, 10 participants) come from
 // shared/src/constants — they must match llms.txt and the app, not be invented.
-const jsonLd = {
-  '@context': 'https://schema.org',
-  '@type': 'HowTo',
-  name: 'How to watch YouTube together with a friend online',
-  description: 'Step-by-step instructions for starting a synchronized YouTube watch party with WeWatch.',
-  inLanguage: 'en',
-  totalTime: 'PT2M',
-  tool: [{ '@type': 'HowToTool', name: 'WeWatch' }],
-  url: `${APP_URL}${PATH}`,
-  mainEntityOfPage: { '@type': 'WebPage', '@id': `${APP_URL}${PATH}` },
-  step: [
-    {
-      '@type': 'HowToStep',
-      position: 1,
-      name: 'Open WeWatch',
-      text: 'Open wewatch.uz in any browser, or install WeWatch from the App Store or Google Play.',
-    },
-    {
-      '@type': 'HowToStep',
-      position: 2,
-      name: 'Create an account',
-      text: 'Sign up for a free account. Your friend does not need one to join by invite link.',
-    },
-    {
-      '@type': 'HowToStep',
-      position: 3,
-      name: 'Create a room',
-      text: 'Press “Create room” and paste the YouTube link you want to watch.',
-    },
-    {
-      '@type': 'HowToStep',
-      position: 4,
-      name: 'Share the room link',
-      text: 'Copy the room link and send it to your friend on WhatsApp, Telegram or any messenger.',
-    },
-    {
-      '@type': 'HowToStep',
-      position: 5,
-      name: 'Press play',
-      text: 'Once your friend joins, press play. Playback stays in sync for everyone — pause and seek apply to the whole room.',
-    },
-  ],
-};
-
 function Step({ n, title, text }: { n: number; title: string; text: string }) {
   return (
     <div className="flex gap-4">
@@ -94,11 +57,11 @@ function Step({ n, title, text }: { n: number; title: string; text: string }) {
 const FAQS = [
   {
     q: 'Do I need a browser extension?',
-    a: 'No. WeWatch runs as a web app — just open wewatch.uz. There is nothing to install on desktop, and the mobile apps are optional.',
+    a: 'No. WeWatch currently runs as a web app — just open wewatch.uz. Native iOS and Android apps are in development.',
   },
   {
     q: 'Is watching YouTube together free?',
-    a: 'Yes. The free tier has no time limit — create rooms and watch together for as long as you want. A Pro plan exists for extra features, but synced watching is not behind it.',
+    a: 'Core watch-party features are free. A Pro plan is listed for additional features.',
   },
   {
     q: 'Will my friend see YouTube ads?',
@@ -114,6 +77,39 @@ const FAQS = [
   },
 ];
 
+// Declared after FAQS, not before it: `const` is not hoisted through the temporal
+// dead zone, so building the graph above the array it reads would throw on import.
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'HowTo',
+      name: 'How to watch YouTube together with a friend online',
+      description: 'Step-by-step instructions for starting a synchronized YouTube watch party with WeWatch.',
+      inLanguage: 'en',
+      totalTime: 'PT2M',
+      tool: [{ '@type': 'HowToTool', name: 'WeWatch' }],
+      url: `${APP_URL}${PATH}`,
+      mainEntityOfPage: { '@type': 'WebPage', '@id': `${APP_URL}${PATH}` },
+      step: HOW_TO_STEPS.map((step) => ({
+        '@type': 'HowToStep',
+        position: step.n,
+        name: step.title,
+        text: step.text,
+      })),
+    },
+    {
+      '@type': 'FAQPage',
+      inLanguage: 'en',
+      mainEntity: FAQS.map(({ q, a }) => ({
+        '@type': 'Question',
+        name: q,
+        acceptedAnswer: { '@type': 'Answer', text: a },
+      })),
+    },
+  ],
+};
+
 export default function WatchYouTubeTogetherEnPage() {
   return (
     <>
@@ -123,7 +119,7 @@ export default function WatchYouTubeTogetherEnPage() {
 
         <main className="max-w-4xl mx-auto px-4 sm:px-6 py-14">
           <div className="mb-10">
-            <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-zinc-500 text-sm mb-4">
+            <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-zinc-400 text-sm mb-4">
               <Link href="/en" className="hover:text-zinc-300 transition-colors">Home</Link>
               <span>/</span>
               <Link href="/en/guides" className="hover:text-zinc-300 transition-colors">Guides</Link>
@@ -135,14 +131,14 @@ export default function WatchYouTubeTogetherEnPage() {
               <div className="w-10 h-10 rounded-xl bg-red-600/20 flex items-center justify-center">
                 <FaYoutube size={20} className="text-red-500" />
               </div>
-              <span className="text-zinc-500 text-sm">Guide · 3 min read</span>
+              <span className="text-zinc-400 text-sm">Guide · 3 min read</span>
             </div>
 
             <h1 className="text-4xl md:text-5xl font-bold text-white leading-tight mb-4">
               How to watch YouTube together with a friend
             </h1>
             <p className="text-zinc-400 text-lg leading-relaxed max-w-2xl">
-              Free, without a browser extension, from any device — iPhone, Android or desktop.
+              Free and without a browser extension in browsers on iPhone, Android or desktop. Native mobile apps are in development.
               Synchronization is automatic.
             </p>
           </div>
@@ -151,7 +147,7 @@ export default function WatchYouTubeTogetherEnPage() {
             <p className="text-zinc-400 text-sm leading-6">
               <strong className="text-white">In short:</strong> WeWatch keeps a YouTube video in
               sync between everyone in a room. You pause — everyone pauses. You seek — everyone
-              seeks. An iPhone, an Android phone and a desktop browser can share the same room at
+              seeks. Browsers on an iPhone, Android phone and desktop can share the same room at
               the same time.
             </p>
           </div>
@@ -159,26 +155,7 @@ export default function WatchYouTubeTogetherEnPage() {
           <section className="mb-14">
             <h2 className="text-2xl font-bold text-white mb-8">Step by step</h2>
             <div className="space-y-8">
-              <Step
-                n={1}
-                title="Open WeWatch"
-                text="On desktop or Android, open wewatch.uz in any browser. On iPhone you can also install the WeWatch app from the App Store. Signing up takes about 30 seconds."
-              />
-              <Step
-                n={2}
-                title="Create a room"
-                text="Press “Create room”. Paste the YouTube link you want to watch (for example https://youtube.com/watch?v=…) and give the room a name if you like."
-              />
-              <Step
-                n={3}
-                title="Share the link with your friend"
-                text="Copy your room link and send it over WhatsApp, Telegram or any messenger. Your friend just taps the link — no account needed to join by invite."
-              />
-              <Step
-                n={4}
-                title="Press play and watch together"
-                text="Once everyone has joined, press play. The room host controls playback: their pause and seek apply to every participant at the same moment."
-              />
+              {HOW_TO_STEPS.map((step) => <Step key={step.n} {...step} />)}
             </div>
           </section>
 
@@ -190,7 +167,7 @@ export default function WatchYouTubeTogetherEnPage() {
             <ul className="space-y-3 mb-6">
               {[
                 'iPhone + desktop browser',
-                'Android + iPhone',
+                'Android browser + iPhone browser',
                 'Desktop + a phone on either platform',
                 'Several computers in different countries',
               ].map((item) => (

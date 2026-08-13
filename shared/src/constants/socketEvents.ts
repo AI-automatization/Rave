@@ -25,11 +25,15 @@ export const SERVER_EVENTS = Object.freeze({
   MEMBER_LEFT: 'member:left',
   MEMBER_KICKED: 'member:kicked',
   MEMBER_MUTED: 'member:muted',
+  MEMBER_UNMUTED: 'member:unmuted',
 
   ROOM_MESSAGE: 'room:message',
   ROOM_EMOJI: 'room:emoji',
 
   REACTION_BROADCAST: 'reaction:broadcast',
+  // Sender-only: burst limit hit (20+ reactions in the trailing 60s window) — client should
+  // disable its emoji picker and show retryAfterSec as a countdown, not silently drop taps.
+  REACTION_COOLDOWN: 'reaction:cooldown',
 
   PLAYLIST_UPDATED: 'playlist:updated',
 
@@ -67,6 +71,11 @@ export const SERVER_EVENTS = Object.freeze({
   // about to click (Kosmi shows a synced cursor for exactly this reason).
   VB_CURSOR:  'vb:cursor',
 
+  // Owner-only: the video-candidate picker. Server pushes whatever candidates it currently has
+  // for the room's video session (from generic-extraction regex matches and/or VB's sniffer) —
+  // see REQUEST_CANDIDATES below for when this fires.
+  VIDEO_CANDIDATES: 'video:candidates',
+
   ERROR: 'error',
 } as const);
 
@@ -91,6 +100,7 @@ export const CLIENT_EVENTS = Object.freeze({
 
   KICK_MEMBER: 'member:kick',
   MUTE_MEMBER: 'member:mute',
+  UNMUTE_MEMBER: 'member:unmute',
 
   VOICE_JOIN:     'voice:join',
   VOICE_LEAVE:    'voice:leave',
@@ -103,6 +113,9 @@ export const CLIENT_EVENTS = Object.freeze({
 
   // Owner xona mediasini almashtiradi → server room:updated broadcast qiladi barcha memberlarga
   CHANGE_MEDIA: 'room:media:change',
+
+  // Owner xona nomini o'zgartiradi → server room:updated broadcast qiladi barcha memberlarga
+  RENAME_ROOM: 'room:rename',
 
   // WebRTC mesh signalling (Bosqich B)
   PEER_OFFER:  'mesh:peer_offer',
@@ -118,6 +131,13 @@ export const CLIENT_EVENTS = Object.freeze({
   VB_START: 'vb:start',
   VB_INPUT: 'vb:input',
   VB_STOP:  'vb:stop',
+
+  // Owner-only: "show me what candidates you've found so far" — fires when opening the picker
+  // (either the initial "is this the right video?" flow, or later via the player's "Это не то
+  // видео" menu entry). Server answers from Redis (VIDEO_CANDIDATES below), no re-extraction —
+  // candidates are collected proactively as a side effect of CHANGE_MEDIA / VB sniffing, not on
+  // demand here.
+  REQUEST_CANDIDATES: 'video:candidates:request',
 } as const);
 
 export type ServerEvent = (typeof SERVER_EVENTS)[keyof typeof SERVER_EVENTS];

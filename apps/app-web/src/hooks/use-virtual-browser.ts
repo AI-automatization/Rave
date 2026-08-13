@@ -19,12 +19,14 @@ export type VBInput =
 // as JPEG frames (Chrome DevTools Protocol screencast, services/watch-party/src/services/
 // virtualBrowser.service.ts) — this hook just wires the socket side, VirtualBrowserPlayer.tsx
 // owns the actual rendering + input capture.
-export function useVirtualBrowser(isOwner: boolean) {
+export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation?: () => void) {
   const { socket, isConnected } = useSocket();
   // Via ref so the socket effect below doesn't have to depend on `t` — see use-watch-party.ts.
   const t = useTranslations('party');
   const tRef = useRef(t);
   tRef.current = t;
+  const onCandidateNeedsConfirmationRef = useRef(onCandidateNeedsConfirmation);
+  onCandidateNeedsConfirmationRef.current = onCandidateNeedsConfirmation;
   const [frame, setFrame] = useState<string | null>(null);
   const [active, setActive] = useState(false);
   const [dimensions, setDimensions] = useState<{ width: number; height: number } | null>(null);
@@ -42,14 +44,27 @@ export function useVirtualBrowser(isOwner: boolean) {
       setDimensions({ width: data.width, height: data.height });
       setError(null);
     };
-    const onFrame = (data: { data: string }) => setFrame(data.data);
-    const onStopped = (data?: { reason?: string }) => {
+    // setActive(true) here too, not just in onStarted/onRoomJoined — real prod reports
+    // 2026-08-07: the VB overlay sometimes never appeared despite the backend session running
+    // fine (confirmed in logs), for reasons never conclusively pinned down (one-shot VB_STARTED
+    // broadcasting before this socket had joined the room, a missed/raced ROOM_JOINED catch-up,
+    // etc — several credible races, no single provable one). Frames are NOT one-shot: they keep
+    // streaming continuously the whole time a session is active, so treating "a frame arrived" as
+    // proof-of-active makes this self-healing regardless of which specific race caused the miss —
+    // the very next frame corrects the UI instead of requiring VB_STARTED/ROOM_JOINED to have
+    // landed at exactly the right moment.
+    const onFrame = (data: { data: string }) => { setFrame(data.data); setActive(true); };
+    const onStopped = (data?: { reason?: string; needsConfirmation?: boolean }) => {
       setActive(false);
       setFrame(null);
       setRemoteCursor(null);
-      // ROOM_UPDATED (with the intercepted videoUrl) fires separately and flips the room over
-      // to the normal player — this toast just explains WHY the browser view disappeared.
-      if (data?.reason === 'media_found') {
+      // needsConfirmation: true — VB found *something* but, unlike a normal extraction result,
+      // never auto-commits it to the room (see vbSession.helper.ts) — it's just pushed into the
+      // same video-candidate picker the owner already knows from "Это не то видео", waiting for
+      // an explicit confirm/reject instead of silently switching everyone's player.
+      if (data?.reason === 'media_found' && data.needsConfirmation) {
+        onCandidateNeedsConfirmationRef.current?.();
+      } else if (data?.reason === 'media_found') {
         toast.success(tRef.current('vbMediaFound'));
       }
     };

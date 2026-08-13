@@ -268,7 +268,12 @@ async function extractVideoUncached(
 
   } else if (platform === 'generic') {
     // Direct stream URL — return as-is. Type detection: extension first, then CDN path patterns.
-    const type: 'hls' | 'mp4' = /\.(m3u8|mpd)/i.test(rawUrl) ? 'hls'
+    // 2026-08-07: dash.js support added client-side (VideoPlayer.tsx) — .mpd used to be excluded
+    // from this branch entirely and fell through to the `throw unsupported_site` below (a raw
+    // DASH manifest handed off as type 'hls' hung unplayable with no error, since the client only
+    // shipped hls.js at the time). Now detected first and returned as its own real type.
+    const type: 'hls' | 'mp4' | 'dash' = /\.mpd(\?|#|$)/i.test(rawUrl) ? 'dash'
+      : /\.(m3u8)/i.test(rawUrl) ? 'hls'
       : /\/(stream|playlist\.m3u8|manifest\.m3u8|master\.m3u8|manifest|hls|dash|chunklist)/i.test(rawUrl) ? 'hls'
       : /\/(video|vod|cdn|media)\/[^/]+\/(index|master|720p|480p|360p|1080p|hls)/i.test(rawUrl) ? 'hls'
       : 'mp4';

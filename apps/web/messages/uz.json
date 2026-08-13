@@ -23,10 +23,11 @@
     "nav_company": "Kompaniya",
     "nav_about": "Biz haqimizda",
     "nav_contact": "Aloqa",
+    "nav_close": "Menyuni yopish",
     "nav_tagline": "Ijtimoiy kinoteatr",
     "login": "Kirish",
     "getStarted": "Boshlash",
-    "heroBadge": "iOS — App Store'dan yuklab oling",
+    "heroBadge": "iOS va Android ilovalari ishlab chiqilmoqda",
     "heroTitle1": "FILMLARNI",
     "heroTitle2": "BIRGA KO'RING",
     "heroSub": "Brauzerni och. Video top. Do'stlarni chaqir. Hammasi shu.",
@@ -45,15 +46,15 @@
     "faqItems": [
       {
         "q": "Do'stlar bilan birga video ko'rish qanday ishlaydi?",
-        "a": "WeWatch'ni yuklab oling, ichki brauzerni oching, YouTube, VK yoki Rutube'dan video toping, xona yarating va do'stingizga havola yuboring. Hamma bir xil kadrni real vaqtda ko'radi."
+        "a": "WeWatch'ni brauzerda oching, YouTube, VK yoki Rutube'dan video toping, xona yarating va do'stingizga havola yuboring. Hamma bir xil kadrni real vaqtda ko'radi. iOS va Android ilovalari ishlab chiqilmoqda."
       },
       {
         "q": "Birga kino ko'rish bepulmi?",
-        "a": "Ha, WeWatch to'liq bepul. App Store yoki Google Play'dan yuklab oling va telefon raqami orqali ro'yxatdan o'tib, darhol do'stlaringiz bilan birga kino ko'rishni boshlang."
+        "a": "Birgalikda tomosha qilishning asosiy funksiyalari WeWatch veb-versiyasida bepul mavjud. iOS va Android ilovalari ishlab chiqilmoqda. Qo'shimcha Pro tarifi narxlar sahifasida ko'rsatilgan."
       },
       {
         "q": "YouTube'ni do'stlar bilan bir vaqtda ko'rish mumkinmi?",
-        "a": "Ha. WeWatch YouTube, VK Video, Rutube, Uzmove va boshqa saytlarni ichki brauzer orqali qo'llab-quvvatlaydi. Pauza va o'tkazib yuborish barcha ishtirokchilar uchun bir vaqtda ishlaydi."
+        "a": "Ha. WeWatch YouTube, VK Video, Rutube va to'g'ridan-to'g'ri MP4 havolalarini qo'llab-quvvatlaydi. Pauza va o'tkazib yuborish barcha ishtirokchilar uchun bir vaqtda ishlaydi."
       },
       {
         "q": "Do'st uzoqda bo'lsa nima qilish kerak?",
@@ -61,18 +62,18 @@
       },
       {
         "q": "Biri telefonda, biri saytda bo'lsa birga ko'rish mumkinmi?",
-        "a": "Ha — WeWatch ko'rishni barcha platformalar o'rtasida bir vaqtda sinxronlaydi. iPhone, Android va kompyuter brauzeri bitta xonada cheklovsiz ishlaydi."
+        "a": "Ha — WeWatch'ni iPhone, Android yoki kompyuter brauzerida oching. Turli qurilmalardagi ishtirokchilar bitta sinxron xonaga qo'shila oladi; iOS va Android ilovalari hali ishlab chiqilmoqda."
       },
       {
         "q": "Videoni birga qanday ko'rish mumkin?",
-        "a": "Ichki brauzerda videoni toping, xona yarating va havolani ulashing. Video birga ko'rish uchun ishtirokchilarga havola yuborilishi kifoya — hamma sinxron ko'radi."
+        "a": "YouTube, VK Video, Rutube yoki to'g'ridan-to'g'ri MP4 havolasini kiriting, xona yarating va uni ulashing — hamma sinxron ko'radi."
       },
       {
         "q": "Anime yoki serialni birga ko'rish mumkinmi?",
-        "a": "Ha, WeWatch ichki brauzer orqali istalgan video-sayt bilan ishlaydi — anime va seriallar ham. Kerakli saytni oching, xona yarating va do'stingiz bilan birga serial ko'ring."
+        "a": "Ha, anime yoki serial YouTube, VK Video, Rutube yoxud to'g'ridan-to'g'ri MP4 havolasi orqali mavjud bo'lsa, xona yaratib uni do'stingiz bilan sinxron ko'rishingiz mumkin."
       }
     ],
-    "heroTrust": "iOS · Android · Web — hammasi sinxron",
+    "heroTrust": "Web mavjud · iOS va Android ishlab chiqilmoqda",
     "heroCardLabel": "BIRGA NIMA KO'RAMIZ?",
     "heroCardBadge": "Sinxron",
     "heroCardStat": "hozir ko'rmoqda",
@@ -81,14 +82,14 @@
     "soon": "Tez orada",
     "urlTag": "Qanday ishlaydi",
     "urlTitle": "SHUNDAY ODDIY",
-    "urlSub": "O'rnatilgan brauzer istalgan saytni ochadi. Havola nusxa olishning hojati yo'q — video tanlang va do'stlarni chaqiring.",
+    "urlSub": "YouTube, VK Video, Rutube yoki to'g'ridan-to'g'ri MP4 havolasini kiriting va do'stlarni chaqiring.",
     "urlInputLabel": "O'rnatilgan brauzer",
-    "urlFromSites": "YouTube, VK, Rutube, Uzmove va boshqalar",
+    "urlFromSites": "YouTube, VK Video, Rutube va to'g'ridan-to'g'ri MP4 havolalari",
     "urlSyncActive": "Hammasi birga tomosha qilmoqda",
     "urlPeople": "3 kishi",
     "urlAllFrame": "Hammasi bir xil kadrda",
     "urlStep1title": "Brauzer oching",
-    "urlStep1desc": "Ilovada brauzer bor. Istalgan saytga o'ting va video tanlang.",
+    "urlStep1desc": "Veb-versiyani oching va qo'llab-quvvatlanadigan manbadagi video havolasini kiriting.",
     "urlStep2title": "Do'stlarni taklif qiling",
     "urlStep2desc": "Xona yarating va havolani yuboring. Do'stlar bosadi — va mana, birga.",
     "urlStep3title": "Birga tomosha qiling",
@@ -110,7 +111,7 @@
     "appTitle": "SHUNDAY OSON",
     "appSub": "Brauzerni oching → video tanlang → do'stlarni chaqiring",
     "demoStep1title": "Brauzerni oching",
-    "demoStep1sub": "Istalgan saytga o'ting",
+    "demoStep1sub": "Qo'llab-quvvatlanadigan manbani tanlang",
     "demoStep2title": "Do'stlarni taklif",
     "demoStep2sub": "Bir havola — hammasi birga",
     "demoStep3title": "Birga tomosha",
@@ -120,13 +121,13 @@
     "appFeat2": "Chat, emoji va reaksiyalar",
     "appFeat3": "Xona egasi o'ynashni boshqaradi",
     "appFeat4": "Taklif havolasi",
-    "appFeat5": "O'rnatilgan brauzer — istalgan sayt",
+    "appFeat5": "YouTube, VK Video, Rutube va MP4",
     "appBattleTag": "Battle Mode",
     "appBattleDesc": "Kim bu hafta ko'proq video ko'radi? Challenge yuboring!",
     "featTitle": "ICHIDA NIMA BOR?",
     "featSub": "Watch party uchun kerak bo'lgan hamma narsa.",
     "f1title": "Watch Party",
-    "f1desc": "Ilovada istalgan saytni oching, video tanlang va do'stlar bilan birga sinxron ko'ring. Chat, emoji, reaksiyalar.",
+    "f1desc": "YouTube, VK Video, Rutube yoki to'g'ridan-to'g'ri MP4 havolasini kiriting va do'stlar bilan sinxron ko'ring. Chat, emoji, reaksiyalar.",
     "f2title": "Battle",
     "f2desc": "3, 5 yoki 7 kunlik video ko'rish musobaqasi. Kim ko'proq ko'radi? G'olib points va achievement oladi.",
     "f3title": "Yutuqlar",
@@ -148,9 +149,9 @@
     "battleBullet4": "Do'stlar va notanishlar bilan",
     "ctaTitle1": "DO'STLARING",
     "ctaTitle2": "KUTMOQDA.",
-    "ctaDesc": "Bepul yuklab oling. Do'stlaring allaqachon kutmoqda.",
-    "ctaPlayBtn": "App Store — Bepul",
-    "ctaIosSoon": "Android versiyasi tez kunda",
+    "ctaDesc": "Bepul veb-versiyani oching. iOS va Android ilovalari ishlab chiqilmoqda.",
+    "ctaPlayBtn": "iOS va Android",
+    "ctaIosSoon": "Ikkala ilova ishlab chiqilmoqda",
     "screenOnline": "do'st onlayn",
     "screenUrlHint": "Video URL ni bu yerga joylashtiring...",
     "screenActiveRooms": "Aktiv xonalar",
@@ -188,11 +189,11 @@
     "whyTitle": "Nega WeWatch?",
     "whySubtitle": "Chunki yolg'iz tomosha qilish zerikarli.",
     "whyBrowserTitle": "O'rnatilgan brauzer",
-    "whyBrowserText": "YouTube, VK, Rutube, Cinerama, Uzmove — ilovada istalgan saytga o'ting. Hech narsa nusxalash shart emas.",
+    "whyBrowserText": "WeWatch veb-versiyasida YouTube, VK Video, Rutube va to'g'ridan-to'g'ri MP4 havolalari qo'llab-quvvatlanadi.",
     "whySyncTitle": "Hammasi bir kadrda",
     "whySyncText": "Pauza qilsangiz — hammada pauza. O'tkazsangiz — hammasi o'tkazadi. Masofa to'siq emas.",
     "whyFreeTitle": "Abadiy bepul",
-    "whyFreeText": "Watch Party, sinxron tomosha, do'stlar bilan birga — hammasi obunasiz. Yuklab oling va boshlang.",
+    "whyFreeText": "Watch Party va sinxron tomosha vebda obunasiz mavjud. Mobil ilovalar ishlab chiqilmoqda.",
     "whySecureTitle": "Xavfsiz va tezkor",
     "whySecureText": "JWT shifrlash, brute-force himoya va tezkor serverlar. Ma'lumotlaringiz xavfsiz, video lag'siz.",
     "globeTag": "Dunyo bo'ylab",
@@ -207,11 +208,11 @@
     "statsLabel2": "Video sifat",
     "statsLabel3": "Sinxron",
     "statsLabel4": "Obuna",
-    "heroFooter": "iOS · Android tez kunda · Bepul",
-    "ctaFooter": "Bepul · iOS · Android tez kunda",
-    "waitlistPlaceholder": "Android versiyasi uchun email",
+    "heroFooter": "Web mavjud · iOS va Android ishlab chiqilmoqda",
+    "ctaFooter": "Web bepul · iOS va Android ishlab chiqilmoqda",
+    "waitlistPlaceholder": "mobil ilovalar uchun email",
     "waitlistBtn": "Xabar bering",
-    "waitlistThanks": "Saqladik! Android chiqqanda birinchi xabar beramiz.",
+    "waitlistThanks": "Saqladik! iOS va Android ilovalari chiqqanda xabar beramiz.",
     "openSite": "Sayt oching",
     "openBrowser": "Brauzerni oching",
     "f5title": "Real-vaqt chat",
@@ -480,10 +481,10 @@
     "bridgeTag": "Odamlar uchun mahsulotimiz",
     "bridgeTitle1": "WeWatch —",
     "bridgeTitle2": "do'stlar bilan kinoteatr",
-    "bridgeText": "tezcode'ning boshqa mahsulotlari biznesga yordam bersa, WeWatch odamlar uchun yaratilgan. Istalgan videoni och, xona yarat, havolani ulash — va sinxron tomosha qiling, har bir sahnani chatda muhokama qiling. Bepul, iOS, Android va brauzerda.",
+    "bridgeText": "tezcode'ning boshqa mahsulotlari biznesga yordam bersa, WeWatch odamlar uchun yaratilgan. Veb-versiyada videoni oching, xona yarating, havolani ulashing va sinxron tomosha qiling. iOS va Android ilovalari ishlab chiqilmoqda.",
     "bridgeLink": "WeWatch imkoniyatlari",
     "bridgeCardTitle": "Birga tomosha qil",
-    "bridgeCardSub": "Bepul · iOS va Android · 30 soniyada boshlang",
+    "bridgeCardSub": "Web bepul · iOS va Android ishlab chiqilmoqda",
     "contactTag": "Bog'lanish",
     "contactTitle": "Bizga yozing",
     "contactSub": "Savollar, hamkorlik yoki g'oyalar — biz aloqadamiz.",
@@ -531,11 +532,11 @@
   },
   "aboutPage": {
     "breadcrumb": "Biz haqimizda",
-    "badge": "iOS · Android · Web · Bepul",
+    "badge": "Web mavjud · iOS va Android ishlab chiqilmoqda",
     "title1": "Birga",
     "title2": "tomosha qil",
     "sub": "WeWatch — birgalikda video tomosha qilish uchun bepul ilova. Biri «play» bosadi — va film hammada bir vaqtda, qayerda bo'lishidan qat'i nazar, sinxron ketadi.",
-    "download": "App Store'dan yuklab olish",
+    "download": "Veb-versiyani ochish",
     "soon": "Tez orada",
     "stat1v": "Bepul",
     "stat1l": "Doimo",
@@ -547,15 +548,15 @@
     "stat4l": "Sayt",
     "whatTag": "Bu nima",
     "whatTitle": "WeWatch nima?",
-    "whatText": "O'rnatilgan brauzerda istalgan saytni oching — YouTube, VK, Rutube, Uzmove — xona yarating va do'stlaringizni havola orqali chaqiring. Hammma bir xil kadrni real vaqtda ko'radi, pauza va oldinga o'tkazish esa barcha ishtirokchilarda sinxron.",
+    "whatText": "YouTube, VK Video, Rutube yoki to'g'ridan-to'g'ri MP4 havolasini qo'shing, xona yarating va do'stlaringizni chaqiring. Hamma bir xil kadrni real vaqtda ko'radi, pauza va oldinga o'tkazish esa barcha ishtirokchilarda sinxron.",
     "featTag": "Imkoniyatlar",
     "featTitle": "WeWatch nima qila oladi",
     "f1t": "Sinxron tomosha",
     "f1d": "Bir necha soniyalik kechikish — deyarli sezilmaydi.",
-    "f2t": "O'rnatilgan brauzer",
-    "f2d": "Istalgan video sayt, cheklovsiz.",
+    "f2t": "Qo'llab-quvvatlanadigan manbalar",
+    "f2d": "YouTube, VK Video, Rutube va to'g'ridan-to'g'ri MP4 havolalari.",
     "f3t": "Cross-platforma",
-    "f3d": "iPhone, Android va brauzer bitta xonada.",
+    "f3d": "iPhone, Android va kompyuter brauzerlari bitta xonada.",
     "f4t": "Chat va reaksiyalar",
     "f4d": "Videoni tomosha vaqtida muhokama qiling.",
     "madeTag": "Kim yaratgan",
@@ -563,7 +564,7 @@
     "madeText": "WeWatch Toshkentdagi tezcode.dev jamoasi tomonidan yaratilgan — odamlarni yaqinlashtiradigan mahsulotlar quruvchi kichik studiya.",
     "madeLink": "tezcode.dev haqida",
     "ctaTitle": "Birga bepul tomosha qil",
-    "ctaSub": "iOS va Android — 30 soniyada o'rnatiladi."
+    "ctaSub": "Veb-versiya hozir mavjud; iOS va Android ilovalari ishlab chiqilmoqda."
   },
   "featuresPage": {
     "title": "BARCHA FUNKSIYALAR",
@@ -617,7 +618,8 @@
     "subtitle": "Hech qanday yashirin to'lov yo'q",
     "recommended": "Tavsiya etiladi",
     "always": "doim",
-    "footnote": "* Barcha narxlar UZS da. Pro obuna istalgan vaqt bekor qilinishi mumkin.",
+    "footnote": "* Bepul tarif vaqt cheklovisiz amal qiladi. Pro shartlari alohida e'lon qilinadi.",
+    "plan2priceTba": "Narx keyinroq e'lon qilinadi",
     "plan1desc": "Har doim bepul",
     "rowQuality": "Video sifat",
     "rowAds": "Reklama",
@@ -733,7 +735,7 @@
     "soonBadge": "Tez kunda",
     "clipboardDetected": "Bufer almashuvidan video",
     "hintPlatform": "Videoni oching va havolani bu yerga nusxalang",
-    "hintWeb": "Istalgan sayt URL manzilini kiriting"
+    "hintWeb": "YouTube, VK Video, Rutube yoki to'g'ridan-to'g'ri MP4 havolasini kiriting"
   },
   "support": {
     "title": "Yordam",

@@ -1,6 +1,6 @@
 // WeWatch — useWatchPartyRoom: socket sync, playback callbacks, room state management
 import { useRef, useState, useEffect, useCallback } from 'react';
-import { Dimensions, Platform, AppState } from 'react-native';
+import { Dimensions, Platform, AppState, BackHandler } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { PlaybackStatus } from '@app-types/index';
@@ -18,7 +18,7 @@ import { UniversalPlayerRef, detectVideoPlatform, detectEmbedPlatform } from '@c
 import type { FloatingEmoji } from '@components/watchParty/VideoSection';
 import type { QualityOption } from '@components/watchParty/QualityMenu';
 import type { Episode } from '@components/watchParty/EpisodeMenu';
-import { ModalStackParamList } from '@app-types/index';
+import { ModalStackParamList, VideoCandidate } from '@app-types/index';
 import { useT } from '@i18n/index';
 import { appAlert } from '@components/common/AppAlert';
 
@@ -73,10 +73,12 @@ const SKIP_STEP_SECS = 10;
 export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const navigation = useNavigation<NavProp>();
   const userId = useAuthStore(s => s.user?._id) ?? '';
+  const selfAvatar = useAuthStore(s => s.user?.avatar);
+  const selfUsername = useAuthStore(s => s.user?.username);
   const { t } = useT();
 
-  const { room, syncState, messages, activeMembers, playlist, isOwner, adminMonitoring, roomClosed, heartbeat, bufferingUsers, lastReaction, activeTransport, getTransportSnapshot,
-    emitPlay, emitPause, emitSeek, emitHeartbeat, sendMessage, sendEmoji } = useWatchParty(roomId);
+  const { room, syncState, messages, activeMembers, playlist, isOwner, adminMonitoring, roomClosed, heartbeat, bufferingUsers, lastReaction, reactionCooldownSec, activeTransport, getTransportSnapshot,
+    candidates, requestCandidates, emitPlay, emitPause, emitSeek, emitHeartbeat, sendMessage, sendEmoji } = useWatchParty(roomId);
   const { isExtracting, result: extractResult, fallbackMode: extractFallback, error: extractionError, extract, reset: resetExtraction } = useVideoExtraction();
 
   const playerRef = useRef<UniversalPlayerRef>(null);
@@ -163,6 +165,7 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   const [connectTimeout, setConnectTimeout] = useState(false);
   const [showQualityMenu, setShowQualityMenu] = useState(false);
   const [showEpisodeMenu, setShowEpisodeMenu] = useState(false);
+  const [showCandidatePicker, setShowCandidatePicker] = useState(false);
   const [extractQualities, setExtractQualities] = useState<QualityOption[]>([]);
   const [extractEpisodes, setExtractEpisodes] = useState<Episode[]>([]);
   const [currentVideoUrl, setCurrentVideoUrl] = useState('');
@@ -407,7 +410,13 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     if (!lastReaction || lastReaction.userId === userId) return;
     setFloatingEmojis(prev => [
       ...prev,
-      { id: `${lastReaction.userId}-${lastReaction.timestamp}`, emoji: lastReaction.emoji, x: Math.random() * (SCREEN_W - 60) + 10 },
+      {
+        id: `${lastReaction.userId}-${lastReaction.timestamp}`,
+        emoji: lastReaction.emoji,
+        x: Math.random() * (SCREEN_W - 60) + 10,
+        avatar: lastReaction.avatar,
+        username: lastReaction.username,
+      },
     ]);
   }, [lastReaction, userId]);
 
@@ -579,13 +588,14 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
   }, [isOwner, videoIsLive, emitSeek, flushSkipBurst]);
 
   const handleEmojiSelect = useCallback((emoji: string) => {
+    if (reactionCooldownSec > 0) return; // server-driven burst lockout — picker is already dimmed
     const now = Date.now();
     reactionTimestampsRef.current = reactionTimestampsRef.current.filter(t => now - t < 1000);
     if (reactionTimestampsRef.current.length >= REACTION_RATE_LIMIT) return;
     reactionTimestampsRef.current.push(now);
     sendEmoji(emoji);
-    setFloatingEmojis(prev => [...prev, { id: `${now}`, emoji, x: Math.random() * (SCREEN_W - 60) + 10 }]);
-  }, [sendEmoji]);
+    setFloatingEmojis(prev => [...prev, { id: `${now}`, emoji, x: Math.random() * (SCREEN_W - 60) + 10, avatar: selfAvatar, username: selfUsername }]);
+  }, [sendEmoji, reactionCooldownSec, selfAvatar, selfUsername]);
 
   const handleRemoveEmoji = useCallback((id: string) => { setFloatingEmojis(prev => prev.filter(e => e.id !== id)); }, []);
 
@@ -604,6 +614,23 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     if (!isOwner || !room) return;
     getSocket()?.emit(CLIENT_EVENTS.CHANGE_MEDIA, { roomId, videoUrl: episode.url, videoTitle: episode.title, videoPlatform: room.videoPlatform ?? 'direct' });
     setCurrentVideoUrl(episode.url);
+  }, [isOwner, room, roomId]);
+
+  // T-S190: owner-only video-candidate picker — "is this actually the right video, or did the
+  // extractor pick up a banner ad next to it?". Opening the picker asks the server for whatever
+  // it's already collected (fire-and-forget since CHANGE_MEDIA, see useWatchParty.requestCandidates).
+  const handleOpenCandidatePicker = useCallback(() => {
+    if (!isOwner) return;
+    requestCandidates();
+    setShowCandidatePicker(true);
+  }, [isOwner, requestCandidates]);
+
+  // Confirming a candidate replaces the room's video the same way quality/episode selection
+  // does — a direct CHANGE_MEDIA emit, no separate mechanism.
+  const handleCandidateSelect = useCallback((candidate: VideoCandidate) => {
+    if (!isOwner || !room) return;
+    getSocket()?.emit(CLIENT_EVENTS.CHANGE_MEDIA, { roomId, videoUrl: candidate.url, videoTitle: room.videoTitle ?? 'Video', videoPlatform: room.videoPlatform ?? 'direct' });
+    setCurrentVideoUrl(candidate.url);
   }, [isOwner, room, roomId]);
 
   const handleAddToQueue = useCallback(() => {
@@ -646,6 +673,22 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
       }},
     ]);
   }, [isOwner, roomId, navigation, userId, activeMembers.length, getTransportSnapshot]);
+
+  // ModalNavigator sets gestureEnabled: false for this screen, but that only blocks iOS's
+  // edge-swipe — Android's hardware/gesture back button still pops the screen by default.
+  // That bypassed handleLeave entirely: closeRoom/leaveRoom was never called, the socket never
+  // disconnected (useWatchParty's unmount cleanup deliberately only detaches listeners, see its
+  // own comment), so the server never saw a disconnect and the room just stayed open forever.
+  // This is why "room does not close in the APK" — testers exit via the back button, not the
+  // in-app exit icon. Intercepting back press and routing it through the same handleLeave
+  // confirm dialog makes every exit path behave like the in-app button.
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      handleLeave();
+      return true;
+    });
+    return () => sub.remove();
+  }, [handleLeave]);
 
   // Video URL computation
   const originalVideoUrl = room?.videoUrl ?? '';
@@ -811,8 +854,8 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
 
   return {
     playerRef, userId, room, messages, activeMembers, isOwner, adminMonitoring, connectTimeout, activeTransport,
-    isExtracting, extractResult, extractionError, showChat, showInvite, isPlaying, isFullscreen,
-    videoIsLive, videoCurrentTime, videoDuration, pendingSkipSecs, floatingEmojis, showQualityMenu, showEpisodeMenu,
+    isExtracting, extractResult, extractionError, extractFallback, showChat, showInvite, isPlaying, isFullscreen,
+    videoIsLive, videoCurrentTime, videoDuration, pendingSkipSecs, floatingEmojis, reactionCooldownSec, showQualityMenu, showEpisodeMenu,
     extractQualities, extractEpisodes, currentVideoUrl, bufferingUsers,
     originalVideoUrl, extractedVideoUrl: playerExtractedUrl, extractedVideoHeaders, extractedVideoProxyUrl: playerProxyUrl, isWebViewMode, isYouTubeWebViewMode,
     setShowChat, setShowInvite, setShowQualityMenu, setShowEpisodeMenu, setVideoIsLive,
@@ -824,5 +867,6 @@ export function useWatchPartyRoom(roomId: string, videoReferer?: string) {
     handleChangeMedia, handleQualitySelect, handleEpisodeSelect, handleLeave, handlePlayerReady,
     handleCdnUrlSniffed,
     playlist, handleAddToQueue, handlePlaylistRemove, handlePlaylistNext,
+    candidates, showCandidatePicker, setShowCandidatePicker, handleOpenCandidatePicker, handleCandidateSelect,
   };
 }

@@ -14,7 +14,7 @@ import { registerMeshHandlers } from './mesh.handlers';
 import { registerReactionEvents } from './reactionEvents.handler';
 import { registerDMEvents } from './dmEvents.handler';
 import { registerVBEvents } from './vbEvents.handler';
-import { stopSession, stopAllSessions } from '../services/virtualBrowser.service';
+import { stopSession, stopAllSessions, hasSession } from '../services/virtualBrowser.service';
 
 interface AuthenticatedSocket extends Socket {
   user: JwtPayload;
@@ -145,14 +145,14 @@ export const registerWatchPartySocket = (io: SocketServer, watchPartyService: Wa
     }, 30_000);
 
     // Register all event handlers
-    registerRoomEvents(io, socket, authSocket, watchPartyService);
+    registerRoomEvents(io, socket, authSocket, watchPartyService, redis);
     registerVideoEvents(io, socket, authSocket, watchPartyService);
     registerChatEvents(socket, authSocket, (uid) => checkMsgRateLimit(redis, uid));
     registerVoiceEvents(socket, authSocket, redis);
     registerMeshHandlers(io, socket, authSocket);
     registerReactionEvents(io, socket, authSocket, redis);
     registerDMEvents(io, socket);
-    registerVBEvents(io, socket, authSocket, watchPartyService);
+    registerVBEvents(io, socket, authSocket, watchPartyService, redis);
 
     // DISCONNECT — do NOT remove user from members (allows reconnect).
     // Only clean up voice and notify others. Explicit leave happens via room:leave event or HTTP API.
@@ -182,6 +182,13 @@ export const registerWatchPartySocket = (io: SocketServer, watchPartyService: Wa
             logger.info('Room empty after disconnect — starting 5-minute inactivity timer', { roomId });
             const timer = setTimeout(() => {
               roomCloseTimers.delete(roomId);
+              // See roomEvents.handler.ts's scheduleRoomEmptyCheck for why — VB actively hunting
+              // for a video (page navigation, a Cloudflare challenge, ...) isn't abandonment even
+              // if nobody's socket is currently in the room.
+              if (hasSession(roomId)) {
+                logger.info('Room inactivity timer skipped — VB session still active', { roomId });
+                return;
+              }
               void (async () => {
                 try {
                   await watchPartyService.closeRoomBySystem(roomId);

@@ -30,13 +30,18 @@ const randomDelay = (min = 100, max = 300): Promise<void> =>
 const MP4_RE = /(https?:\/\/[^"' \s<>]+\.mp4[^"' \s<>]*)/gi;
 const M3U8_RE = /(https?:\/\/[^"' \s<>]+\.m3u8[^"' \s<>]*)/gi;
 
-// <video src="..."> or <source src="...">
-const VIDEO_TAG_SRC_RE = /<(?:video|source)[^>]+src=["']([^"']+)["']/gi;
+// <video src="..."> or <source src="...">. Backreference (["'])...\1 instead of a shared
+// [^"']+ class — the old pattern stopped capturing at the FIRST quote of EITHER type inside
+// the value, so e.g. content="O'rgimchak odam: ..." (a real title, and a completely ordinary
+// one in Uzbek — the language uses ' constantly) truncated to just "O". The attribute is always
+// wrapped in ONE quote type; the backreference makes the match stop only at that same type,
+// letting the other type appear freely inside the value.
+const VIDEO_TAG_SRC_RE = /<(?:video|source)[^>]+src=(["'])(.*?)\1/gi;
 
 // og:video meta
-const OG_VIDEO_RE = /<meta[^>]+property=["']og:video(?::url)?["'][^>]+content=["']([^"']+)["']/gi;
-const OG_TITLE_RE = /<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i;
-const OG_IMAGE_RE = /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i;
+const OG_VIDEO_RE = /<meta[^>]+property=["']og:video(?::url)?["'][^>]+content=(["'])(.*?)\1/gi;
+const OG_TITLE_RE = /<meta[^>]+property=["']og:title["'][^>]+content=(["'])(.*?)\1/i;
+const OG_IMAGE_RE = /<meta[^>]+property=["']og:image["'][^>]+content=(["'])(.*?)\1/i;
 const TITLE_RE = /<title[^>]*>([^<]+)<\/title>/i;
 
 // <iframe src="..."> — embed player iframes
@@ -58,6 +63,24 @@ function allMatches(re: RegExp, html: string): string[] {
   return [...new Set(results)];
 }
 
+// For the quote-backreference patterns above — (["'])(.*?)\1 — the actual value is capture
+// group 2 (group 1 is just which quote character it happened to be).
+function firstQuotedAttr(re: RegExp, html: string): string | null {
+  re.lastIndex = 0;
+  const m = re.exec(html);
+  return m ? m[2].trim() : null;
+}
+
+function allQuotedAttrs(re: RegExp, html: string): string[] {
+  re.lastIndex = 0;
+  const results: string[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(html)) !== null) {
+    results.push(m[2].trim());
+  }
+  return [...new Set(results)];
+}
+
 function resolveUrl(src: string, base: URL): string {
   try {
     return new URL(src, base).href;
@@ -67,6 +90,7 @@ function resolveUrl(src: string, base: URL): string {
 }
 
 function guessType(url: string): VideoType {
+  if (/\.mpd(\?|#|$)/i.test(url)) return 'dash';
   return /\.m3u8/i.test(url) ? 'hls' : 'mp4';
 }
 
@@ -94,8 +118,8 @@ async function fetchHtml(url: string, referer?: string): Promise<string | null> 
 }
 
 function extractVideoUrls(html: string, base: URL): string[] {
-  const videoTagSrcs = allMatches(VIDEO_TAG_SRC_RE, html).map((s) => resolveUrl(s, base));
-  const ogVideos = allMatches(OG_VIDEO_RE, html).map((s) => resolveUrl(s, base));
+  const videoTagSrcs = allQuotedAttrs(VIDEO_TAG_SRC_RE, html).map((s) => resolveUrl(s, base));
+  const ogVideos = allQuotedAttrs(OG_VIDEO_RE, html).map((s) => resolveUrl(s, base));
   const m3u8Urls = allMatches(M3U8_RE, html);
   const mp4Urls = allMatches(MP4_RE, html);
   return [
@@ -115,11 +139,11 @@ export async function genericExtractor(
   if (!html) return null;
 
   const title =
-    firstMatch(OG_TITLE_RE, html) ??
+    firstQuotedAttr(OG_TITLE_RE, html) ??
     firstMatch(TITLE_RE, html) ??
     pageUrl.hostname;
 
-  const poster = firstMatch(OG_IMAGE_RE, html) ?? '';
+  const poster = firstQuotedAttr(OG_IMAGE_RE, html) ?? '';
 
   // 1. Try direct video URLs in page
   const candidates = extractVideoUrls(html, pageUrl);
@@ -168,4 +192,37 @@ export async function genericExtractor(
   }
 
   return null;
+}
+
+// Max candidates returned — a pathological page could match dozens of .mp4/.m3u8-looking
+// strings; nobody wants to scroll a picker that long, and it bounds how much work the caller
+// does resolving/storing them.
+const MAX_CANDIDATES = 5;
+
+// Deliberately separate from genericExtractor() above, not a variant of it — this is used ONLY
+// by the owner's video-candidate picker (T-video-candidates), never by the main extractVideo()
+// pipeline that every normal playback request goes through. Keeping it fully independent means
+// this can't regress the one thing that actually has to keep working: genericExtractor() itself
+// still returns exactly its old single-best-guess result, completely untouched. No iframe-
+// following here either — that's for making SOME extraction succeed at all cost; this is
+// best-effort "what else did we see", not worth the extra requests/latency.
+export async function genericExtractorCandidates(pageUrl: URL): Promise<VideoExtractResult[]> {
+  const html = await fetchHtml(pageUrl.href);
+  if (!html) return [];
+
+  const title =
+    firstQuotedAttr(OG_TITLE_RE, html) ??
+    firstMatch(TITLE_RE, html) ??
+    pageUrl.hostname;
+  const poster = firstQuotedAttr(OG_IMAGE_RE, html) ?? '';
+  const resolvedPoster = poster ? resolveUrl(poster, pageUrl) : undefined;
+
+  const urls = extractVideoUrls(html, pageUrl).slice(0, MAX_CANDIDATES);
+  return urls.map((videoUrl) => ({
+    title,
+    videoUrl,
+    poster: resolvedPoster ?? '',
+    platform: 'generic' as const,
+    type: guessType(videoUrl),
+  }));
 }

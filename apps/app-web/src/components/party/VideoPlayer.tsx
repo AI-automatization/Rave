@@ -7,6 +7,7 @@ import { useWatchPartyStore } from '@/store/watch-party.store';
 import { useAuthStore } from '@/store/auth.store';
 import { toast } from '@/hooks/use-toast';
 import { trackClick } from '@/lib/analytics';
+import { tryRefresh } from '@/lib/api-client';
 import { YouTubePlayer } from './YouTubePlayer';
 import { VKPlayer } from './VKPlayer';
 import { RutubePlayer } from './RutubePlayer';
@@ -23,8 +24,44 @@ import { TrovoPlayer } from './TrovoPlayer';
 // flow, not a user-facing error: the room either gets a VB session moments later or the video
 // simply changes, so this never resolves into "Не удалось загрузить видео" — it just keeps
 // looking like loading until the room state moves on.
-function VideoLoading({ label }: { label?: string }) {
+// Cycles through playerLoading + playerLoadingCycle1..7 every 2.2s when no explicit `label` is
+// given — the caller-supplied cases (e.g. "Открываем виртуальный браузер...") describe a specific
+// known state and stay static; only the generic "we don't know exactly what's happening yet, just
+// wait" case benefits from rotating through what the extraction pipeline might actually be doing.
+const LOADING_CYCLE_KEYS = [
+  'playerLoading',
+  'playerLoadingCycle1',
+  'playerLoadingCycle2',
+  'playerLoadingCycle3',
+  'playerLoadingCycle4',
+  'playerLoadingCycle5',
+  'playerLoadingCycle6',
+  'playerLoadingCycle7',
+  'playerLoadingCycle8',
+  'playerLoadingCycle9',
+  'playerLoadingCycle10',
+  'playerLoadingCycle11',
+  'playerLoadingCycle12',
+  'playerLoadingCycle13',
+] as const;
+const LOADING_CYCLE_INTERVAL_MS = 2200;
+
+function useCyclingLoadingLabel(active: boolean): string {
   const t = useTranslations('party');
+  const [index, setIndex] = useState(0);
+  useEffect(() => {
+    if (!active) return;
+    setIndex(0);
+    const id = setInterval(() => {
+      setIndex((i) => (i + 1) % LOADING_CYCLE_KEYS.length);
+    }, LOADING_CYCLE_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [active]);
+  return t(LOADING_CYCLE_KEYS[index]);
+}
+
+function VideoLoading({ label }: { label?: string }) {
+  const cyclingLabel = useCyclingLoadingLabel(!label);
   return (
     <div className="aspect-video bg-[#0A0A12] rounded-xl flex flex-col items-center justify-center gap-4">
       <div className="relative w-16 h-16 flex items-center justify-center">
@@ -38,7 +75,41 @@ function VideoLoading({ label }: { label?: string }) {
         />
         <Loader2 size={26} className="relative animate-spin text-violet-400" />
       </div>
-      <p className="text-slate-400 text-sm font-medium tracking-wide">{label ?? t('playerLoading')}</p>
+      <p
+        key={label ?? cyclingLabel}
+        className="text-slate-300 text-lg font-semibold tracking-wide animate-[loadingLabelIn_0.5s_ease-out]"
+      >
+        {label ?? cyclingLabel}
+      </p>
+    </div>
+  );
+}
+
+// Shown to a NON-owner viewer when playback has genuinely failed. The owner-only VB auto-fallback
+// (RoomContent's handleVideoFatalError → vbStart) is what actually recovers this room — a non-
+// owner can never trigger that themselves (vbStart is gated on isOwner), so leaving them on the
+// owner-facing "Открываем виртуальный браузер..." VideoLoading state is a dead end: nobody will
+// ever open VB on their behalf, and that state only ever clears when videoUrl changes. This overlay
+// gives them the same click-to-retry affordance the autoplay-blocked overlay already has — clicking
+// it clears `fatalPlaybackError`, which remounts NativeVideoPlayer against the same src and lets the
+// owner's meanwhile-arrived VB session (or a transient failure resolving itself) actually surface.
+function FatalErrorRetryOverlay({ onRetry }: { onRetry: () => void }) {
+  const t = useTranslations('party');
+  return (
+    <div className="aspect-video bg-black rounded-xl overflow-hidden relative">
+      <button
+        onClick={onRetry}
+        className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-black/70 cursor-pointer group/btn"
+        aria-label={t('playerRetryPlayback')}
+      >
+        <div
+          className="w-20 h-20 rounded-full flex items-center justify-center transition-all group-hover/btn:scale-110"
+          style={{ background: 'rgba(124,58,237,0.85)', boxShadow: '0 0 40px rgba(124,58,237,0.5)' }}
+        >
+          <Play size={32} className="text-white ml-1.5" fill="white" />
+        </div>
+        <span className="text-white/60 text-sm font-medium">{t('playerRetryPlayback')}</span>
+      </button>
     </div>
   );
 }
@@ -50,11 +121,17 @@ interface Props {
   onHeartbeat: (time: number) => void;
   onBufferStart: () => void;
   onBufferEnd: () => void;
+  /** Real playback failure (not just autoplay needing a click) on the generic extract+proxy path
+   * — owner-only VB auto-fallback lives in the caller (RoomContent), mirroring mobile's
+   * UniversalPlayer → WatchPartyScreen `onFatalError` chain. Official embeds (YouTube/VK/Twitch/
+   * etc.) don't report through this — they're not part of the extraction-vs-playback gap this
+   * closes, same scope mobile's version has. */
+  onFatalError?: () => void;
 }
 
 interface ExtractResult {
   videoUrl: string;
-  type: 'mp4' | 'hls' | 'embed';
+  type: 'mp4' | 'hls' | 'dash' | 'embed';
   poster?: string;
   httpHeaders?: Record<string, string>;
 }
@@ -200,12 +277,24 @@ function getRutubeVideoId(url: string): string | null {
 }
 
 async function extractVideoUrl(url: string): Promise<ExtractResult> {
-  const res = await fetch('/api/content/extract', {
+  const doFetch = () => fetch('/api/content/extract', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
     body: JSON.stringify({ url }),
   });
+  let res = await doFetch();
+  // Real prod finding 2026-08-08: this was a raw fetch with no 401 handling at all — a stale
+  // access_token cookie (15min JWT, tab open longer than that) meant every extraction attempt
+  // failed here, permanently, for that videoUrl (the caller's `extractedForUrl` guard means it
+  // never retries the SAME url again even after the token gets refreshed elsewhere) — looked
+  // exactly like a broken video/site, was actually just our own stale cookie. Matches the same
+  // 401->refresh->retry api-client.ts already does for every OTHER endpoint; this one just never
+  // went through it since it needs the raw ExtractResult shape, not ApiResponse<T>.
+  if (res.status === 401) {
+    const refreshed = await tryRefresh();
+    if (refreshed) res = await doFetch();
+  }
   if (!res.ok) {
     const err = (await res.json().catch(() => ({}))) as { message?: string };
     throw new Error(err.message ?? `Extract failed: ${res.status}`);
@@ -215,7 +304,66 @@ async function extractVideoUrl(url: string): Promise<ExtractResult> {
   return data.data;
 }
 
-function buildProxyUrl(cdnUrl: string, headers?: Record<string, string>): string {
+// bl.rutube.ru signs its HLS URLs to an IP — confirmed live 2026-08-02 (real VB catch, watch-party
+// service logs) that our own proxy-stream (running on app-web) gets a 403 fetching it, while
+// content-service's existing hls-proxy (services/content/src/controllers/hlsProxy.controller.ts —
+// SSRF-guarded, DNS-rebinding-protected, already used for the mobile HLS path) fetches the exact
+// same URL fine — verified with a direct curl test against both before writing this. Whatever
+// Rutube's lock actually keys on, content-service's proxy already satisfies it and app-web's
+// doesn't; route through the proven one instead of debugging app-web's from scratch.
+const IP_LOCKED_CDN_HOSTS = [/(^|\.)rutube\.ru$/i];
+
+function isIpLockedCdn(cdnUrl: string): boolean {
+  try {
+    const host = new URL(cdnUrl).hostname;
+    return IP_LOCKED_CDN_HOSTS.some((re) => re.test(host));
+  } catch {
+    return false;
+  }
+}
+
+// Real prod case 2026-08-10: a confirmed VB candidate is already one of OUR OWN resolved
+// endpoints (vb-media-proxy's signed passthrough, or vb-capture's raw buffer — see
+// roomEvents.handler.ts's isOwnVbUrl, the server-side twin of this check) — wrapping it through
+// content-service's extraction/proxy-stream AGAIN is nonsensical (it's not a page to scrape, and
+// double-proxying an already-proxied, already-signed URL just adds a failure-prone extra hop) and
+// was the direct cause of a confirmed candidate never actually playing in the room: `needsExtract`
+// below had no exclusion for this, so every VB url got POSTed to /api/content/extract as if it
+// were a raw page, which 502s (it isn't one) and leaves proxySrc permanently null. Path-only match
+// (not the full vbStreamPublicUrl host) since the client bundle has no reliable access to that
+// server-side env value, and the path segment alone is already an unambiguous signature — nothing
+// else in the app ever mints a URL containing it.
+function isOwnVbMediaUrl(url: string): boolean {
+  return url.includes('/api/v1/watch-party/vb-media-proxy/')
+      || url.includes('/api/v1/watch-party/vb-capture/')
+      // Same twin check as roomEvents.handler.ts's isOwnVbUrl (server-side) — a confirmed mp4
+      // candidate can now point at the Bunny Edge Script fetch path instead of this service's own
+      // vb-media-proxy route (vbSession.helper.ts's proxiedMediaUrl, VB_EDGE_FETCH_URL).
+      || url.includes('/vb-edge-fetch');
+}
+
+// Exported for VideoCandidatePicker.tsx's preview — a candidate.url (whether a raw CDN url from
+// content-service's extraction, or our own watch-party service's vb-capture/vb-media-proxy) is a
+// cross-origin request from the browser's point of view, same as room.videoUrl always is. Reusing
+// this instead of setting candidate.url directly on <video src> avoids a CORS failure identical to
+// what this function already exists to solve for the main player.
+export async function buildProxyUrl(cdnUrl: string, headers?: Record<string, string>): Promise<string> {
+  if (isOwnVbMediaUrl(cdnUrl)) return cdnUrl;
+  if (isIpLockedCdn(cdnUrl)) {
+    const contentBase = process.env.NEXT_PUBLIC_CONTENT_SERVICE_URL;
+    if (contentBase) {
+      try {
+        const res = await fetch('/api/auth/token', { credentials: 'include' });
+        const data = (await res.json()) as { data?: { token?: string } };
+        const token = data.data?.token;
+        if (token) {
+          return `${contentBase}/hls-proxy?url=${encodeURIComponent(cdnUrl)}&referer=${encodeURIComponent(cdnUrl)}&token=${encodeURIComponent(token)}`;
+        }
+      } catch {
+        // Fall through to the normal proxy below rather than leave the player with no src at all.
+      }
+    }
+  }
   const h = headers ? encodeURIComponent(JSON.stringify(headers)) : '';
   return `/api/content/proxy-stream?url=${encodeURIComponent(cdnUrl)}&h=${h}`;
 }
@@ -226,6 +374,19 @@ function buildProxyUrl(cdnUrl: string, headers?: Record<string, string>): string
 // confirmed via real-device test (2026-07-27). `mute`/`muted`, unlike `.volume`, IS respected by
 // iOS, so that control still works and stays. iPadOS 13+ reports as desktop Safari but carries the
 // same restriction — maxTouchPoints is the standard way to tell it apart from a real Mac.
+// `video.play()` rejects for two very different reasons that were previously treated as the same
+// thing (both just set `autoplayBlocked`, showing a "Нажмите чтобы начать" button): the browser's
+// autoplay policy withholding playback until a real user gesture (NotAllowedError — genuinely
+// fixed by a click), vs the source actually being unplayable (NotSupportedError, NetworkError, or
+// anything else — clicking again just replays the exact same failure). Real report 2026-08-03/04:
+// the click-to-start button "hangs and doesn't respond" — it WAS responding, just retrying a
+// doomed play() call and landing back on the identical overlay every time, indistinguishable from
+// broken. AbortError isn't a failure at all (play() interrupted by a rapid pause) — call sites
+// filter it out before reaching this.
+function isAutoplayPolicyError(e: unknown): boolean {
+  return (e as DOMException)?.name === 'NotAllowedError';
+}
+
 function isVolumeSliderUnusable(): boolean {
   if (typeof navigator === 'undefined') return false;
   const ua = navigator.userAgent;
@@ -258,6 +419,7 @@ function suppressMacOsPlayer() {
 interface NativeProps {
   src: string;
   isHls: boolean;
+  isDash: boolean;
   poster?: string;
   videoRef: React.RefObject<HTMLVideoElement | null>;
   autoplayBlocked: boolean;
@@ -270,11 +432,17 @@ interface NativeProps {
   onBufferEnd: () => void;
   onOverlayClick: () => void;
   onAutoplayBlocked: () => void;
+  /** Fires once when playback has genuinely failed (native `<video>` error, or an HLS.js fatal
+   * error network/media recovery couldn't fix) — distinct from `autoplayBlocked`, which just
+   * needs a click, not a different source. Mirrors mobile's UniversalPlayer `onFatalError`; the
+   * caller (RoomContent) decides what to do with it (owner-only VB fallback). */
+  onFatalError?: () => void;
 }
 
 function NativeVideoPlayer({
   src,
   isHls,
+  isDash,
   poster,
   videoRef,
   autoplayBlocked,
@@ -287,11 +455,72 @@ function NativeVideoPlayer({
   onBufferEnd,
   onOverlayClick,
   onAutoplayBlocked,
+  onFatalError,
 }: NativeProps) {
   const t = useTranslations('party');
   const hlsRef = useRef<import('hls.js').default | null>(null);
+  const dashRef = useRef<import('dashjs').MediaPlayerClass | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  // Ref so the HLS/DASH-setup effect (deps: [src, isHls, isDash, videoRef]) always calls the CURRENT
+  // onFatalError without needing it in that dependency array (it's an inline arrow from the
+  // parent on every render — adding it directly would tear down/rebuild the whole HLS session
+  // every render).
+  const onFatalErrorRef = useRef(onFatalError);
+  onFatalErrorRef.current = onFatalError;
+  // Guards against firing twice for the same fatal event (native `error` event AND a
+  // still-pending HLS fatal-error callback could both land for the same underlying failure).
+  const fatalFiredRef = useRef(false);
+  // One silent same-URL retry before actually escalating to onFatalError (which triggers the
+  // owner-only VB restart). Real prod pattern confirmed live 2026-08-04, twice, on unrelated
+  // sources (rutube HLS, fayllar1.ru mp4): a freshly-signed vb-media-proxy URL 403s on its very
+  // first fetch, then succeeds every time on a manual replay seconds later — the HMAC signature
+  // itself is provably correct both times (recomputed against the real secret, matched), so
+  // whatever causes it isn't a logic bug, it's transient. A VB restart is expensive (relaunches a
+  // whole headless browser) for something a plain reload usually clears on its own.
+  const retriedRef = useRef(false);
+  // Real prod pattern confirmed live 2026-08-11 (yummyani.me): a decode/parse error on a fresh
+  // capture-buffer src can fire both the native `error` event AND the retry's own reload failure
+  // within ~1s of the src being set — reportFatal's one retry above still only spans that same
+  // ~1s, nowhere near enough time for a still-filling capture buffer or a slow CDN to prove itself.
+  // The result was 3 owner-facing media switches in 12 seconds (vb-capture → vb-media-proxy →
+  // vb-media-proxy again), each one pre-empting the last before it had a real chance to buffer —
+  // the video never had a stable few seconds to actually start. Enforcing a floor on how soon
+  // escalation can happen (independent of the retry count) fixes that regardless of which layer
+  // is timing out — this is a UX/pacing floor, not a fix for whatever the underlying decode/CDN
+  // issue is.
+  const srcSetAtRef = useRef(0);
+  const escalateTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const MIN_PLAYBACK_ATTEMPT_MS = 4000;
+  useEffect(() => {
+    fatalFiredRef.current = false;
+    retriedRef.current = false;
+    srcSetAtRef.current = Date.now();
+    clearTimeout(escalateTimerRef.current);
+  }, [src]);
+  useEffect(() => () => clearTimeout(escalateTimerRef.current), []);
+  const reportFatal = () => {
+    if (fatalFiredRef.current) return;
+    if (!retriedRef.current) {
+      retriedRef.current = true;
+      const video = videoRef.current;
+      if (video && src) {
+        if (hlsRef.current) hlsRef.current.loadSource(src);
+        else if (dashRef.current) dashRef.current.attachSource(src);
+        else video.src = src;
+        attemptOwnerAutoplay(video);
+      }
+      return; // give the retry a chance — a second fatal signal falls through to the branch below
+    }
+    fatalFiredRef.current = true;
+    const elapsed = Date.now() - srcSetAtRef.current;
+    const remaining = MIN_PLAYBACK_ATTEMPT_MS - elapsed;
+    if (remaining > 0) {
+      escalateTimerRef.current = setTimeout(() => onFatalErrorRef.current?.(), remaining);
+    } else {
+      onFatalErrorRef.current?.();
+    }
+  };
 
   const [isPaused, setIsPaused] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
@@ -304,6 +533,7 @@ function NativeVideoPlayer({
   // to play — without this, a fresh video (e.g. right after the VB handoff) just sits on a black
   // frame at 0:00 with no feedback while the browser silently buffers, reading as "broken".
   const [isBuffering, setIsBuffering] = useState(true);
+  const bufferingLabel = useCyclingLoadingLabel(isBuffering);
   // Starts false (assume controllable) so SSR/first client render match — corrected right after
   // mount, before the user could plausibly touch the slider.
   const [volumeSliderUnusable, setVolumeSliderUnusable] = useState(false);
@@ -319,15 +549,52 @@ function NativeVideoPlayer({
   // autoplayBlocked overlay is the fallback for the rare case a browser still refuses it.
   function attemptOwnerAutoplay(video: HTMLVideoElement) {
     if (!isOwner) return;
-    video.play().catch(() => onAutoplayBlocked());
+    video.play().catch((e: unknown) => {
+      // AbortError = play() interrupted by a near-simultaneous pause() (e.g. the room-sync
+      // effect deciding the actual state is paused right as this fires) — not a real failure.
+      // Missing here (2026-08-04) sent every such race straight to reportFatal(), which
+      // triggers the owner-only VB fallback — real prod symptom: sources that played fine
+      // immediately re-triggered a VB restart on nearly every load.
+      if ((e as DOMException)?.name === 'AbortError') return;
+      if (isAutoplayPolicyError(e)) onAutoplayBlocked();
+      else reportFatal();
+    });
   }
 
-  // HLS setup + macOS suppression
+  // HLS/DASH setup + macOS suppression
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !src) return;
 
     suppressMacOsPlayer();
+
+    if (isDash) {
+      import('dashjs').then((dashjs) => {
+        dashRef.current?.reset();
+        const player = dashjs.MediaPlayer().create();
+        dashRef.current = player;
+        player.initialize(video, src, false);
+        if (startPosition && startPosition > 0.5) {
+          player.on(dashjs.MediaPlayer.events.CAN_PLAY, () => {
+            if (Math.abs(video.currentTime - startPosition) > 0.3) video.currentTime = startPosition;
+          }, undefined, { once: true });
+        }
+        player.on(dashjs.MediaPlayer.events.CAN_PLAY, () => {
+          suppressMacOsPlayer();
+          attemptOwnerAutoplay(video);
+        });
+        // dash.js doesn't expose hls.js's fatal/non-fatal split — any ERROR here means playback
+        // genuinely can't continue (dash.js already retries recoverable network hiccups
+        // internally without emitting this event), same "give up" signal reportFatal expects.
+        player.on(dashjs.MediaPlayer.events.ERROR, () => { reportFatal(); });
+        video.addEventListener('play', suppressMacOsPlayer, { passive: true });
+      }).catch(() => { video.src = src; attemptOwnerAutoplay(video); });
+
+      return () => {
+        dashRef.current?.reset();
+        dashRef.current = null;
+      };
+    }
 
     if (!isHls || video.canPlayType('application/vnd.apple.mpegurl')) {
       // Safari native HLS or plain MP4 — seek after metadata loads
@@ -361,6 +628,11 @@ function NativeVideoPlayer({
         suppressMacOsPlayer();
         attemptOwnerAutoplay(video);
       });
+      // hls.js has its own retry/recovery ladder for non-fatal errors (segment stalls, etc.) —
+      // only a `fatal` error means it's given up, which is the actual "video didn't load" signal.
+      hls.on(Hls.Events.ERROR, (_event, data) => {
+        if (data.fatal) reportFatal();
+      });
       video.addEventListener('play', suppressMacOsPlayer, { passive: true });
     }).catch(() => { video.src = src; attemptOwnerAutoplay(video); });
 
@@ -368,7 +640,7 @@ function NativeVideoPlayer({
       hlsRef.current?.destroy();
       hlsRef.current = null;
     };
-  }, [src, isHls, videoRef]);
+  }, [src, isHls, isDash, videoRef]);
 
   // Mirror video state for custom controls UI
   useEffect(() => {
@@ -499,6 +771,7 @@ function NativeVideoPlayer({
         onCanPlay={() => {
           if (!isOwner) onBufferEnd();
         }}
+        onError={reportFatal}
       />
 
       {/* Buffering — video has a src but the browser doesn't have enough data yet (fresh VB
@@ -518,7 +791,12 @@ function NativeVideoPlayer({
             />
             <Loader2 size={26} className="relative animate-spin text-violet-400" />
           </div>
-          <p className="text-slate-400 text-sm font-medium tracking-wide">{t('playerLoading')}</p>
+          <p
+            key={bufferingLabel}
+            className="text-slate-300 text-lg font-semibold tracking-wide animate-[loadingLabelIn_0.5s_ease-out]"
+          >
+            {bufferingLabel}
+          </p>
         </div>
       )}
 
@@ -632,10 +910,10 @@ function NativeVideoPlayer({
               {/* Spacer */}
               <div className="flex-1" />
 
-              {/* Non-owner indicator */}
+              {/* Non-owner indicator — was hardcoded English "viewing" regardless of app locale */}
               {!isOwner && (
-                <span className="text-[10px] text-white/30 font-medium uppercase tracking-wide flex-shrink-0">
-                  viewing
+                <span className="text-[10px] text-white/30 font-medium flex-shrink-0">
+                  {t('playerViewing')}
                 </span>
               )}
 
@@ -664,6 +942,7 @@ export function VideoPlayer({
   onHeartbeat,
   onBufferStart,
   onBufferEnd,
+  onFatalError,
 }: Props) {
   const t = useTranslations('party');
   const room = useWatchPartyStore((s) => s.room);
@@ -689,9 +968,19 @@ export function VideoPlayer({
   // and delivering conflicting VIDEO_PLAY/VIDEO_PAUSE to viewers faster than they can process.
   const pendingEmitRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [autoplayBlocked, setAutoplayBlocked] = useState(false);
+  // True once playback has genuinely failed (not just autoplay policy) — swaps the "Нажмите чтобы
+  // начать" overlay (which was misleading here: clicking it just replayed the same doomed
+  // play() call, looking "frozen") for a proper "Открываем виртуальный браузер..." loading state
+  // while the owner-only fallback in RoomContent (onFatalError → vbStart) kicks in.
+  const [fatalPlaybackError, setFatalPlaybackError] = useState(false);
+  const reportPlaybackFatal = useCallback(() => {
+    setFatalPlaybackError(true);
+    onFatalError?.();
+  }, [onFatalError]);
 
   const [proxySrc, setProxySrc] = useState<string | null>(null);
   const [isHls, setIsHls] = useState(false);
+  const [isDash, setIsDash] = useState(false);
   const [extractPoster, setExtractPoster] = useState<string | undefined>(undefined);
   const [extracting, setExtracting] = useState(false);
   const [extractError, setExtractError] = useState<string | null>(null);
@@ -716,8 +1005,9 @@ export function VideoPlayer({
   // scraping a pirate site, just against a legitimate platform; Rutube also blocks yt-dlp's
   // requests from Railway's datacenter IP outright); now routed to their own official embeds
   // instead.
-  const needsExtract = !!videoUrl && !ytId && !vkIds && !rutubeId && !twitchIds && !vimeoId && !dailymotionId && !tiktokId && !peertubeIds && !trovoName;
-  const directSrc = needsExtract ? proxySrc : null;
+  const isOwnVb = isOwnVbMediaUrl(videoUrl);
+  const needsExtract = !!videoUrl && !isOwnVb && !ytId && !vkIds && !rutubeId && !twitchIds && !vimeoId && !dailymotionId && !tiktokId && !peertubeIds && !trovoName;
+  const directSrc = needsExtract ? proxySrc : (isOwnVb ? videoUrl : null);
 
   // Extract → proxy URL for any non-YouTube source
   useEffect(() => {
@@ -727,11 +1017,13 @@ export function VideoPlayer({
     setExtractPoster(undefined);
     setExtractError(null);
     setExtracting(true);
+    setFatalPlaybackError(false);
 
     extractVideoUrl(videoUrl)
-      .then((result) => {
-        setProxySrc(buildProxyUrl(result.videoUrl, result.httpHeaders));
+      .then(async (result) => {
+        setProxySrc(await buildProxyUrl(result.videoUrl, result.httpHeaders));
         setIsHls(result.type === 'hls');
+        setIsDash(result.type === 'dash');
         setExtractPoster(result.poster);
       })
       .catch((err: unknown) => {
@@ -739,6 +1031,18 @@ export function VideoPlayer({
       })
       .finally(() => setExtracting(false));
   }, [videoUrl, needsExtract]);
+
+  // Own-VB urls skip extraction entirely (directSrc is already set above), but isHls/isDash still
+  // need to come from SOMEWHERE — normally the extraction effect above sets them from the result's
+  // `type` field. proxiedMediaUrl (vbSession.helper.ts) always mints these with a type-matching
+  // extension (stream.m3u8/.mpd/.mp4), same convention vb-capture's own controller uses — cheap and
+  // reliable to read back off the URL itself instead of threading the candidate's `type` all the
+  // way through room state just for this.
+  useEffect(() => {
+    if (!isOwnVb) return;
+    setIsHls(videoUrl.includes('.m3u8'));
+    setIsDash(videoUrl.includes('.mpd'));
+  }, [isOwnVb, videoUrl]);
 
   // ── Sync incoming state to HTML5 video ────────────────────────────────────
   useEffect(() => {
@@ -771,7 +1075,9 @@ export function VideoPlayer({
         .then(() => setAutoplayBlocked(false))
         .catch((e: unknown) => {
           // AbortError = play() interrupted by rapid pause — not a real block, don't show overlay
-          if ((e as DOMException)?.name !== 'AbortError') setAutoplayBlocked(true);
+          if ((e as DOMException)?.name === 'AbortError') return;
+          if (isAutoplayPolicyError(e)) setAutoplayBlocked(true);
+          else reportPlaybackFatal();
         });
     } else if (!syncState.isPlaying && !video.paused) {
       video.pause();
@@ -779,7 +1085,7 @@ export function VideoPlayer({
     }
 
     setTimeout(() => { isRemoteAction.current = false; }, 200);
-  }, [syncState.currentTime, syncState.isPlaying, syncState.serverTimestamp, isEmbed, directSrc, isOwner]);
+  }, [syncState.currentTime, syncState.isPlaying, syncState.serverTimestamp, isEmbed, directSrc, isOwner, reportPlaybackFatal]);
 
   // Cleanup debounce timer on unmount to avoid post-unmount state updates
   useEffect(() => () => {
@@ -932,7 +1238,9 @@ export function VideoPlayer({
       })
       .catch((e: unknown) => {
         playPendingRef.current = false;
-        if ((e as DOMException)?.name !== 'AbortError') setAutoplayBlocked(true);
+        if ((e as DOMException)?.name === 'AbortError') return;
+        if (isAutoplayPolicyError(e)) setAutoplayBlocked(true);
+        else reportPlaybackFatal();
       });
   }
 
@@ -1096,19 +1404,49 @@ export function VideoPlayer({
   }
 
   // ── Any remaining source (Rutube, direct, etc.) — extract + proxy ───
+  // isOwnVb shares this render path (real prod bug 2026-08-10: this block used to be gated on
+  // needsExtract alone, which today's fix correctly made FALSE for our own vb-media-proxy/
+  // vb-capture urls — but that also skipped the whole block, including the actual <video>
+  // render, falling through to `return null` below. The player vanishing outright ("плеер
+  // исчез") was this, not a data/extraction problem.
 
-  if (needsExtract) {
+  if (needsExtract || isOwnVb) {
     // extractError is deliberately silent — a failed direct extraction just means the server is
     // about to (or already did) fall back to the shared virtual browser; showing a scary "failed
     // to load" error here would be wrong in the common case where VB picks it up moments later.
-    if (extracting || extractError) {
+    // Real prod bug found live 2026-08-10: `extracting`/`extractError` are only ever set by the
+    // extraction effect above, which only ever runs while needsExtract is true — but they're
+    // ordinary useState, so once true they PERSIST across a later render where the room's
+    // videoUrl has since moved on to an isOwnVb (VB-confirmed) url. The room starts on the raw
+    // source page (needsExtract=true, extracting set true, client-side extractVideoUrl() kicked
+    // off) and if the owner confirms a VB candidate before that stale extraction attempt ever
+    // settles (content-service extraction against a slow site can hang well past a minute — seen
+    // live, matches a >70s pending XHR in the network panel), extracting stays stuck true forever
+    // and this branch shows the generic loading cycle instead of ever rendering the video, even
+    // though directSrc is already valid. Gate on needsExtract too — extracting/extractError are
+    // only ever meaningful in that case.
+    if (needsExtract && (extracting || extractError)) {
       return <VideoLoading />;
     }
-    if (proxySrc) {
+    // Real playback failure (not just autoplay needing a click) — stop rendering the player (its
+    // own "click to start" overlay would just retry the identical doomed play() call). Only the
+    // OWNER actually triggers the VB fallback (vbStart is owner-gated in RoomContent), so only
+    // the owner gets the "opening virtual browser" loading state — showing that to a non-owner
+    // would be a dead end nobody ever resolves for them. A non-owner instead gets a click-to-retry
+    // overlay: their own re-render (remounting NativeVideoPlayer against the same src) either
+    // recovers on its own, or catches up once the owner's VB session comes online and room state
+    // moves on.
+    if (fatalPlaybackError) {
+      return isOwner
+        ? <VideoLoading label={t('playerOpeningVB')} />
+        : <FatalErrorRetryOverlay onRetry={() => setFatalPlaybackError(false)} />;
+    }
+    if (directSrc) {
       return (
         <NativeVideoPlayer
-          src={proxySrc}
+          src={directSrc}
           isHls={isHls}
+          isDash={isDash}
           poster={extractPoster}
           videoRef={videoRef}
           autoplayBlocked={autoplayBlocked}
@@ -1121,6 +1459,7 @@ export function VideoPlayer({
           onBufferEnd={onBufferEnd}
           onOverlayClick={handleOverlayClick}
           onAutoplayBlocked={() => setAutoplayBlocked(true)}
+          onFatalError={reportPlaybackFatal}
         />
       );
     }

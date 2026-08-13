@@ -2,13 +2,14 @@ import type { Metadata } from 'next';
 import { LandingContent } from '@/components/landing/LandingContent';
 import { hreflangFor } from '@/lib/i18n/routes';
 import { socialMeta } from '@/lib/i18n/metadata';
+import { publishHomepageSchema } from '@/data/homepage-schema';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://wewatch.uz';
 
 export const metadata: Metadata = {
   title: { absolute: 'WeWatch — Смотреть вместе онлайн | Watch Party бесплатно' },
   description:
-    'WeWatch — смотри YouTube, VK и Rutube с друзьями в реальном времени. Бесплатный watch party с синхронизацией, чатом и эмодзи. Скачай на iOS и Android.',
+    'WeWatch — смотри YouTube (ютуб), VK и Rutube с друзьями в реальном времени через веб. Бесплатный watch party с чатом и эмодзи. Приложения для iOS и Android находятся в разработке.',
   alternates: {
     canonical: `${APP_URL}/ru`,
     languages: hreflangFor('/', APP_URL),
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
     locale: 'ru',
     title: 'WeWatch — Смотреть вместе онлайн | Watch Party бесплатно',
     description:
-      'Бесплатный watch party — смотри YouTube, VK, Rutube с друзьями в реальном времени. Синхронизация, чат, эмодзи. iOS и Android.',
+      'Бесплатный watch party в вебе — YouTube, VK и Rutube с друзьями в реальном времени. Приложения для iOS и Android находятся в разработке.',
     url: `${APP_URL}/ru`,
   }),
 };
@@ -52,14 +53,14 @@ const jsonLd = {
       },
     },
     {
-      '@type': 'MobileApplication',
+      '@type': 'SoftwareApplication',
       '@id': `${APP_URL}/#app`,
       name: 'WeWatch — смотри вместе',
       url: APP_URL,
       description:
-        'Бесплатное приложение для совместного просмотра фильмов и видео онлайн. Смотри YouTube, VK, Rutube, Uzmove с друзьями в реальном времени. Синхронизация, чат, эмодзи-реакции.',
+        'Веб-сервис для совместного просмотра фильмов и видео онлайн. Смотрите YouTube, VK Видео, Rutube и прямые MP4-ссылки с друзьями в реальном времени. Нативные приложения iOS и Android разрабатываются.',
       applicationCategory: 'EntertainmentApplication',
-      operatingSystem: 'iOS, Android',
+      operatingSystem: 'Web',
       inLanguage: ['ru', 'uz', 'en'],
       offers: {
         '@type': 'Offer',
@@ -70,8 +71,8 @@ const jsonLd = {
       featureList: [
         'Синхронный просмотр видео в реальном времени',
         'Watch Party с друзьями',
-        'Встроенный браузер — любой сайт',
-        'YouTube, VK Видео, Rutube, Uzmove',
+        'YouTube, VK Видео, Rutube и прямые MP4-ссылки',
+        'YouTube, VK Видео, Rutube и прямые MP4-ссылки',
         'Чат и эмодзи-реакции',
         'Батл — соревнование кто больше смотрит',
         'Система достижений',
@@ -88,14 +89,14 @@ const jsonLd = {
         {
           '@type': 'HowToStep',
           position: 1,
-          name: 'Скачайте WeWatch',
-          text: 'Установите бесплатное приложение WeWatch из App Store или Google Play на iPhone или Android.',
+          name: 'Откройте WeWatch',
+          text: 'Откройте веб-версию WeWatch в браузере на телефоне или компьютере. Приложения для iOS и Android находятся в разработке.',
         },
         {
           '@type': 'HowToStep',
           position: 2,
           name: 'Найдите видео',
-          text: 'Откройте встроенный браузер в WeWatch и перейдите на YouTube, VK Видео, Rutube или любой другой видеосайт. Найдите фильм или видео которое хотите посмотреть.',
+          text: 'Откройте веб-версию WeWatch и вставьте ссылку YouTube, VK Видео, Rutube или прямую MP4-ссылку.',
         },
         {
           '@type': 'HowToStep',
@@ -120,7 +121,7 @@ const jsonLd = {
           name: 'Как смотреть видео вместе с друзьями онлайн?',
           acceptedAnswer: {
             '@type': 'Answer',
-            text: 'Скачайте WeWatch, откройте встроенный браузер, найдите видео на любом сайте (YouTube, VK, Rutube), создайте комнату и отправьте ссылку-приглашение другу. Все участники увидят один и тот же кадр в реальном времени.',
+            text: 'Откройте WeWatch в браузере, найдите видео на YouTube, VK или Rutube, создайте комнату и отправьте ссылку-приглашение другу. Все участники увидят один и тот же кадр в реальном времени.',
           },
         },
         {
@@ -128,7 +129,7 @@ const jsonLd = {
           name: 'Как смотреть кино вместе онлайн бесплатно?',
           acceptedAnswer: {
             '@type': 'Answer',
-            text: 'WeWatch — полностью бесплатное приложение для совместного просмотра кино онлайн. Скачайте на iOS или Android, создайте Watch Party, пригласите друга по ссылке — и смотрите синхронно любые фильмы с YouTube, VK, Rutube.',
+            text: 'WeWatch — веб-сервис для совместного просмотра кино онлайн. Откройте его в браузере, создайте Watch Party и пригласите друга по ссылке. Приложения для iOS и Android находятся в разработке.',
           },
         },
         {
@@ -136,7 +137,7 @@ const jsonLd = {
           name: 'Можно ли смотреть YouTube с друзьями одновременно?',
           acceptedAnswer: {
             '@type': 'Answer',
-            text: 'Да, WeWatch поддерживает YouTube, VK Видео, Rutube, Uzmove и другие видеосайты. Встроенный браузер открывает любой сайт, и вы смотрите видео синхронно с друзьями — пауза и перемотка работают для всех одновременно.',
+            text: 'Да, WeWatch поддерживает YouTube, VK Видео, Rutube и прямые MP4-ссылки. Пауза и перемотка работают для всех одновременно.',
           },
         },
         {
@@ -152,7 +153,7 @@ const jsonLd = {
           name: 'WeWatch бесплатный?',
           acceptedAnswer: {
             '@type': 'Answer',
-            text: 'Да, WeWatch полностью бесплатный. Скачайте приложение в App Store или Google Play и сразу начните смотреть с друзьями — регистрация по номеру телефона.',
+            text: 'Основные функции WeWatch доступны бесплатно в веб-версии. Приложения для iOS и Android находятся в разработке.',
           },
         },
         {
@@ -168,7 +169,7 @@ const jsonLd = {
           name: 'Что такое watch party?',
           acceptedAnswer: {
             '@type': 'Answer',
-            text: 'Watch party — это совместный онлайн-просмотр видео, когда несколько человек смотрят один и тот же контент синхронно через интернет. WeWatch делает watch party бесплатно — скачай приложение, создай комнату и смотри с друзьями.',
+            text: 'Watch party — это совместный онлайн-просмотр видео. Откройте веб-версию WeWatch, создайте комнату и смотрите с друзьями; приложения iOS и Android находятся в разработке.',
           },
         },
         {
@@ -176,7 +177,7 @@ const jsonLd = {
           name: 'На каких устройствах работает WeWatch?',
           acceptedAnswer: {
             '@type': 'Answer',
-            text: 'WeWatch работает на iOS (iPhone, iPad) и Android. Приложение доступно в App Store и Google Play бесплатно.',
+            text: 'Веб-версия WeWatch работает в браузере на iPhone, iPad, Android и компьютере. Нативные приложения для iOS и Android находятся в разработке.',
           },
         },
         {
@@ -184,7 +185,7 @@ const jsonLd = {
           name: 'Можно ли смотреть вместе если один на телефоне а другой на сайте?',
           acceptedAnswer: {
             '@type': 'Answer',
-            text: 'Да — WeWatch синхронизирует просмотр между всеми платформами одновременно. Один участник может открыть приложение на iPhone, другой зайти через браузер на компьютере — видео будет идти синхронно у всех. Это уникальная особенность WeWatch: кросс-платформенный watch party без ограничений по устройству.',
+            text: 'Да — участники могут открыть веб-версию WeWatch в браузерах на iPhone, Android и компьютере и войти в одну синхронную комнату. Нативные приложения для iOS и Android находятся в разработке.',
           },
         },
         {
@@ -192,7 +193,7 @@ const jsonLd = {
           name: 'Можно ли смотреть аниме вместе онлайн?',
           acceptedAnswer: {
             '@type': 'Answer',
-            text: 'Да, WeWatch поддерживает любые видеосайты через встроенный браузер — включая сайты с аниме. Откройте нужный сайт в браузере WeWatch, создайте комнату и смотрите аниме с другом синхронно.',
+            text: 'Да, если аниме доступно через YouTube, VK Видео, Rutube или прямую MP4-ссылку. Создайте комнату и поделитесь ссылкой с другом.',
           },
         },
         {
@@ -200,7 +201,7 @@ const jsonLd = {
           name: "Как смотреть кино с друзьями онлайн?",
           acceptedAnswer: {
             '@type': 'Answer',
-            text: "Скачайте приложение WeWatch, найдите видео во встроенном браузере на YouTube, VK или Rutube, создайте комнату и отправьте ссылку другу. Все смотрят синхронно в реальном времени.",
+            text: "Откройте WeWatch в браузере, найдите видео на YouTube, VK или Rutube, создайте комнату и отправьте ссылку другу. Все смотрят синхронно в реальном времени.",
           },
         },
       ],
@@ -208,14 +209,16 @@ const jsonLd = {
   ],
 };
 
+const publishedJsonLd = publishHomepageSchema(jsonLd, 'ru');
+
 export default function LandingPage() {
   return (
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(publishedJsonLd) }}
       />
-      <LandingContent />
+      <LandingContent locale="ru" />
     </>
   );
 }

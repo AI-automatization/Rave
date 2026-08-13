@@ -69,10 +69,26 @@ export const REDIS_KEYS = {
   watchPartyRoom: (roomId: string) => `party:room:${roomId}`,
   bufferingUsers: (roomId: string) => `party:buffering:${roomId}`,
   reactionRate: (userId: string, roomId: string) => `party:reaction_rate:${userId}:${roomId}`,
+  reactionBurst: (userId: string, roomId: string) => `party:reaction_burst:${userId}:${roomId}`,
+  videoCandidates: (roomId: string) => `party:candidates:${roomId}`,
+  // Source page a VB session captured candidates from — kept alongside videoCandidates (same
+  // TTL) so vb-media-proxy can re-probe a fresh media URL if the one a candidate carries has
+  // gone stale by the time it's actually used (some sites re-sign their CDN URL every ~10s as
+  // anti-hotlink protection — see vbMediaProxy.controller.ts's refresh-on-failure logic).
+  vbSourceUrl: (roomId: string) => `party:vb_source:${roomId}`,
+  // Real prod finding 2026-08-12 (uzmovi.net): a captured 'url'-kind candidate can be bound to
+  // the session cookie VB's own browser picked up loading the source page (a Set-Cookie during
+  // navigation), not just a query-string token — a stateless proxy fetch with no Cookie header
+  // gets redirected to the site's homepage instead of the actual media, indistinguishable at the
+  // network layer from a hard IP-block (curl from a residential IP hits the same redirect with no
+  // cookie jar). VB's context.cookies() has the real session; vbMediaProxy replays it here.
+  vbSessionCookies: (roomId: string) => `party:vb_cookies:${roomId}`,
   createRoomRate: (ip: string) => `party:create_rate:${ip}`,
   joinRoomRate: (userId: string) => `party:join_rate:${userId}`,
   recentRooms: (userId: string) => `party:recent_rooms:${userId}`,
   publicRoomsCache: () => `party:public_rooms_cache`,
+  vbMediaProxyRate: (ip: string) => `party:vb_media_proxy_rate:${ip}`,
+  vbCaptureRate: (ip: string) => `party:vb_capture_rate:${ip}`,
 
 } as const;
 

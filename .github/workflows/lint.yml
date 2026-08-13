@@ -2,9 +2,9 @@ name: TypeScript Check
 
 on:
   pull_request:
-    branches: [main, develop]
+    branches: [main, dev]
   push:
-    branches: [develop]
+    branches: [dev]
 
 permissions:
   contents: read
@@ -54,3 +54,31 @@ jobs:
 
       - name: Typecheck ${{ matrix.service }}
         run: cd ${{ matrix.path }} && npm run typecheck
+
+  size-report:
+    name: Large file report
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+    steps:
+      # fetch-depth: 0 (real prod CI failure 2026-08-13, verified live) — actions/checkout's
+      # default shallow (depth-1) checkout of the PR merge ref, combined with a separately
+      # shallow-fetched base branch below, gives two disconnected single-commit histories with
+      # no shared ancestor at all: `git diff origin/dev...HEAD` needs a merge-base to compute the
+      # triple-dot diff and fails outright ("no merge base") rather than just being inaccurate.
+      # Fetching full history here means the base branch's fetch afterward reuses commit objects
+      # that already exist locally instead of creating a disconnected shallow tip.
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - name: Report files over 500 lines changed in this PR
+        run: |
+          git fetch origin ${{ github.base_ref }}
+          changed=$(git diff --name-only origin/${{ github.base_ref }}...HEAD -- '*.ts' '*.tsx')
+          for f in $changed; do
+            [ -f "$f" ] || continue
+            n=$(wc -l < "$f")
+            [ "$n" -gt 500 ] && echo "::warning file=$f::$f is now $n lines"
+          done
+          exit 0

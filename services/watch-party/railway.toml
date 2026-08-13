@@ -5,6 +5,7 @@
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "services/watch-party/Dockerfile"
+watchPatterns = ["services/watch-party/**", "shared/**"]
 
 [deploy]
 healthcheckPath = "/health"

@@ -1,11 +1,14 @@
 // WeWatch — Shared Virtual Browser socket events (owner-only: start/input/stop)
 import { Server as SocketServer, Socket } from 'socket.io';
+import Redis from 'ioredis';
 import { WatchPartyService } from '../services/watchParty.service';
 import { logger } from '@shared/utils/logger';
 import { SERVER_EVENTS, CLIENT_EVENTS } from '@shared/constants/socketEvents';
 import { JwtPayload } from '@shared/types';
 import { VBInput, stopSession, sendInput, getSessionOwner } from '../services/virtualBrowser.service';
 import { startVBForRoom } from './vbSession.helper';
+import { isOwnVbUrl, isPrivateUrl } from '../services/extractionClient';
+import { isDomainBlocked } from '../controllers/domain.admin.controller';
 
 interface AuthenticatedSocket extends Socket {
   user: JwtPayload;
@@ -18,6 +21,7 @@ export const registerVBEvents = (
   socket: Socket,
   authSocket: AuthenticatedSocket,
   watchPartyService: WatchPartyService,
+  redis: Redis,
 ): void => {
   const { userId } = authSocket.user;
 
@@ -46,8 +50,42 @@ export const registerVBEvents = (
       return;
     }
 
+    // Real prod bug 2026-08-11 (yummyani.me): a client-side bug in unwrapVbProxyUrl (RoomContent.tsx
+    // / WatchPartyScreen.tsx, now fixed) let a vb-capture URL get fed back in here as the "source
+    // page" to retry on. Guarding it here too (not just client-side) closes the same hole for any
+    // other caller of VB_START — startVBForRoom → virtualBrowser.service.ts's startSession tears
+    // down any EXISTING session for this room whose url differs from the new one (see its own
+    // comment), so pointing VB at our own already-dead vb-capture/vb-media-proxy endpoint doesn't
+    // just fail to find anything — it actively kills whatever session was still feeding that same
+    // endpoint. CHANGE_MEDIA (roomEvents.handler.ts) already has this exact check; VB_START never did.
+    if (isOwnVbUrl(url.toString())) {
+      socket.emit(SERVER_EVENTS.VB_ERROR, { message: 'Нельзя запустить VB на собственном служебном URL' });
+      logger.warn('VB start rejected — target is our own VB endpoint', { roomId, userId, url: url.toString() });
+      return;
+    }
+
+    // SSRF guard (2026-08-11 security review): same gap as CHANGE_MEDIA had — room CREATION
+    // rejects private/internal URLs, but the manual "Виртуальный браузер" button (this handler)
+    // never re-checked it, so the owner could point our server-side headless Chromium at
+    // localhost/internal-network/cloud-metadata addresses any time after the room existed.
+    if (isPrivateUrl(url.toString())) {
+      socket.emit(SERVER_EVENTS.VB_ERROR, { message: 'videoUrl points to a private or internal address' });
+      logger.warn('VB start rejected — private/internal URL', { roomId, userId, url: url.toString() });
+      return;
+    }
+
+    // Content-policy guard (#84 follow-up): admin's blocklist (STATIC_BLOCKED_DOMAINS + manual
+    // additions, domain.admin.controller.ts) previously had no effect here — an admin blocking a
+    // domain only updated the admin-ui's own listing, the server-side headless browser would
+    // still open it and re-broadcast the render to every room member.
+    if (await isDomainBlocked(redis, url.toString())) {
+      socket.emit(SERVER_EVENTS.VB_ERROR, { message: 'Этот домен заблокирован' });
+      logger.warn('VB start rejected — blocked domain', { roomId, userId, url: url.toString() });
+      return;
+    }
+
     try {
-      await startVBForRoom(io, watchPartyService, roomId, userId, url.toString());
+      await startVBForRoom(io, redis, roomId, userId, url.toString());
       logger.info('VB started', { roomId, userId, url: url.toString() });
     } catch (e) {
       const message = (e as Error).message === 'virtual_browser_limit'

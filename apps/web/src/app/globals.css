@@ -253,6 +253,34 @@
   border-radius: 6px;
 }
 
+/* Keep the full acquisition copy in server-rendered HTML for crawlers, while
+   letting browsers skip style/layout/paint work for sections below the fold.
+   The intrinsic size prevents the scroll bar from jumping as a section enters
+   the viewport. */
+#main-content > section:not(:first-child) {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 900px;
+}
+
+/* Mobile LCP is the hero H1. Avoid a large blurred text-shadow in the
+   throttled first paint; desktop keeps the richer glow from the inline style. */
+@media (max-width: 1023px) {
+  .hero-lcp-title {
+    text-shadow: none !important;
+  }
+}
+
+/* White copy on the original brand violet was only 3.74:1. Keep the brand
+   hue for decorative accents, but use the accessible shade for solid CTAs. */
+.bg-\[\#7B72F8\].text-white {
+  background-color: #5F56D6;
+}
+
+/* Breadcrumbs on the near-black editorial template need one brighter step. */
+main.bg-\[\#060608\] nav.text-zinc-500 {
+  color: #a1a1aa;
+}
+
 /* ── touch-action on interactive elements ── */
 button, a, [role="button"] {
   touch-action: manipulation;

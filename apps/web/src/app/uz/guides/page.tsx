@@ -9,7 +9,7 @@ const URL = 'https://wewatch.uz/uz/guides';
 export const metadata: Metadata = {
   title: "WeWatch gaydlari — do'stlar bilan birgalikda tomosha qilish",
   description:
-    "WeWatch gaydlari: YouTube, kino, serial va anime-ni do'stlaringiz bilan onlayn sinxron tomosha qilish. iPhone, Android va brauzerda bepul ishlaydi.",
+    "WeWatch gaydlari: YouTube, kino, serial va anime-ni do'stlaringiz bilan veb-versiyada sinxron tomosha qilish. iOS va Android ilovalari ishlab chiqilmoqda.",
   alternates: {
     canonical: URL,
     languages: {
@@ -94,6 +94,29 @@ export default function UzGuidesHubPage() {
               </li>
             ))}
           </ul>
+
+          <section className="mt-12 rounded-2xl border border-zinc-800/60 bg-[#0E0E14] px-6 py-7">
+            <h2 className="text-2xl font-bold mb-4">Birgalikda tomosha qilishni qanday boshlash kerak?</h2>
+            <div className="space-y-4 text-zinc-400 leading-relaxed">
+              <p>
+                WeWatch&apos;ning veb-versiyasini kompyuter yoki telefon brauzerida oching, xona yarating
+                va taklif havolasini do&apos;stlaringizga yuboring. Ishtirokchilar bir xil xonaga kirgach,
+                videoni boshqarish sinxron ishlaydi: pauza, davom ettirish va vaqtni o&apos;zgartirish
+                xonadagi barcha qurilmalarda moslashtiriladi.
+              </p>
+              <p>
+                Alohida dastur yoki brauzer kengaytmasini o&apos;rnatish shart emas. Hozir xizmat Web
+                platformasida ishlaydi; Android va iOS ilovalari ishlab chiqilmoqda. Barqaror tomosha
+                uchun barcha ishtirokchilarga tez internet va yangilangan brauzerdan foydalanishni
+                tavsiya qilamiz.
+              </p>
+              <p>
+                Quyidagi gaydlarda YouTube, kino, serial va anime uchun alohida ko&apos;rsatmalar,
+                xonaga ulanish tartibi hamda sinxronlash bilan bog&apos;liq keng tarqalgan savollarga
+                javoblar berilgan.
+              </p>
+            </div>
+          </section>
 
           <div className="mt-12 flex flex-wrap gap-4 text-sm">
             {/* Раньше здесь стоял русский /faq — узбекская версия появилась в T-S189. */}
