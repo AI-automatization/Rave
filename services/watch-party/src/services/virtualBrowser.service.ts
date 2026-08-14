@@ -368,9 +368,21 @@ function attachResponseSniffer(
       return;
     }
     // mp4
+    // Real prod case 2026-08-14 (asilmedia.org): the source page's own <video> element requests
+    // the file with a Range header (progressive/chunked loading — common even on a first load, not
+    // just seeking), so the response is 206 Partial Content whose Content-Length is the size of
+    // just that RANGE, not the file. A 68-minute movie's first chunk can legitimately be a couple
+    // of MB, well under MIN_MP4_BYTES, and got wrongly rejected as an ad on exactly that basis —
+    // the real file was never actually short. Content-Range's own total (`bytes start-end/TOTAL`)
+    // is the real file size when present; `TOTAL` is `*` for a genuinely unknown/unbounded total
+    // (rare — e.g. a live-growing response), parsed as NaN and treated the same as "can't measure,
+    // accept" below rather than guessed at.
+    const contentRange = response.headers()['content-range'];
+    const rangeTotal = contentRange ? parseInt(/\/(\d+|\*)$/.exec(contentRange)?.[1] ?? '', 10) : NaN;
     const contentLength = parseInt(response.headers()['content-length'] ?? '', 10);
-    if (!Number.isNaN(contentLength) && contentLength < MIN_MP4_BYTES) {
-      rejectAsAd(mediaUrl, type, 'mp4_size', { bytes: contentLength });
+    const measuredBytes = !Number.isNaN(rangeTotal) ? rangeTotal : contentLength;
+    if (!Number.isNaN(measuredBytes) && measuredBytes < MIN_MP4_BYTES) {
+      rejectAsAd(mediaUrl, type, 'mp4_size', { bytes: measuredBytes, viaContentRange: !Number.isNaN(rangeTotal) });
       return;
     }
     hit(mediaUrl, type, how);
