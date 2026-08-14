@@ -99,10 +99,13 @@ export function RelatedGuides({
   if (items.length === 0) return null;
 
   return (
-    <nav aria-label={t.related} className="max-w-4xl mx-auto px-4 sm:px-6 mt-14">
+    // A <section>, not a <nav>: these are contextual links into related reading, and
+    // search engines discount links inside navigation landmarks relative to links in
+    // body content. The block sits at the end of the article and belongs to it.
+    <section aria-labelledby="related-guides" className="max-w-4xl mx-auto px-4 sm:px-6 mt-14">
       <div className="border-t border-zinc-800/60 pt-8">
         <div className="flex items-baseline justify-between gap-4 mb-5">
-          <h2 className="text-white font-semibold text-lg">{t.related}</h2>
+          <h2 id="related-guides" className="text-white font-semibold text-lg">{t.related}</h2>
           <Link href={t.guidesHref} className="text-[#7B72F8] hover:text-[#9B92FF] text-sm transition-colors">
             {t.allGuides}
           </Link>
@@ -121,7 +124,7 @@ export function RelatedGuides({
           ))}
         </ul>
       </div>
-    </nav>
+    </section>
   );
 }
 
