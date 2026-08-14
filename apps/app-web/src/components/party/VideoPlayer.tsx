@@ -404,72 +404,37 @@ export async function buildProxyUrl(cdnUrl: string, headers?: Record<string, str
 interface CaptureMseResult {
   mediaSource: MediaSource;
   objectUrl: string;
-  /** Stops the background tail-fetch loop. Idempotent. Does NOT touch mediaSource/objectUrl
-   * lifecycle — the caller (the effect's own cleanup) owns revoking/ending those, since it's the
-   * one that created them and may want to do so in a specific order relative to other cleanup. */
+  /** Stops all background tail-fetch loops (one or two, single- vs dual-track). Idempotent. Does
+   * NOT touch mediaSource/objectUrl lifecycle — the caller (the effect's own cleanup) owns
+   * revoking/ending those, since it's the one that created them and may want to do so in a
+   * specific order relative to other cleanup. */
   teardown: () => void;
 }
 
-// VB capture (categories B/C, vbCapture.service.ts) is a live-growing raw fMP4 byte stream with
-// no independently-fetchable URL of its own — see that file's own header comment. A plain
-// `video.src = captureUrl` works on Safari but not Chrome (confirmed live 2026-08-14: native
-// MEDIA_ERR_SRC_NOT_SUPPORTED, "Format error" — Chrome's progressive-download prober won't commit
-// to a format for a resource whose total size changes between requests the way this one does).
-// This feeds the same bytes to a MediaSource/SourceBuffer instead, which works identically on
-// every browser since the caller (not the browser's own guesswork) controls exactly what gets
-// decoded and when.
-//
-// Returns null if MSE playback isn't attemptable for any reason (no MediaSource support, no/
-// unrecognized codec from the server — see mp4CodecSniff.service.ts's own contract for when that
-// happens, unsupported by THIS browser's MSE implementation, or the initial probe request
-// failed) — the caller's contract is: null means "fall back to plain video.src", never worse than
-// not having this at all.
-async function setupCaptureMse(
+async function probeCodecs(url: string): Promise<{ codecs: string | null; tracks: string[] }> {
+  // A tiny range, not a HEAD — vbCapture.controller.ts only sets X-Vb-Codecs/X-Vb-Tracks on the
+  // same stream()/streamTrack() handler a real playback request hits; a HEAD isn't guaranteed to
+  // run the same path depending on how far up the stack (Bunny, Railway's edge) something might
+  // intercept it.
+  const res = await fetch(url, { headers: { Range: 'bytes=0-0' } });
+  const tracksHeader = res.headers.get('X-Vb-Tracks');
+  return {
+    codecs: res.headers.get('X-Vb-Codecs'),
+    tracks: tracksHeader ? tracksHeader.split(',').map((t) => t.trim()).filter(Boolean) : [],
+  };
+}
+
+// Repeatedly range-fetches `url` from wherever it left off and appends each new chunk to
+// `sourceBuffer`, serialized through `updateend` (never calls appendBuffer while `.updating` is
+// true). One instance of this loop per SourceBuffer — single-track capture runs one, dual-track
+// (see vbCapture.service.ts) runs two independently, one per track URL.
+function runCaptureTailPump(
   video: HTMLVideoElement,
-  src: string,
-  cb: { onFatal: () => void; onReady: () => void; isCancelled: () => boolean },
-): Promise<CaptureMseResult | null> {
-  if (typeof MediaSource === 'undefined') return null;
-
-  let codecs: string | null;
-  try {
-    // A tiny range, not a HEAD — vbCapture.controller.ts only sets X-Vb-Codecs on the same
-    // stream() handler a real playback request hits; a HEAD isn't guaranteed to run the same path
-    // depending on how far up the stack (Bunny, Railway's edge) something might intercept it.
-    const probe = await fetch(src, { headers: { Range: 'bytes=0-0' } });
-    codecs = probe.headers.get('X-Vb-Codecs');
-  } catch {
-    return null;
-  }
-  if (!codecs || cb.isCancelled()) return null;
-
-  const mimeType = `video/mp4; codecs="${codecs}"`;
-  if (!MediaSource.isTypeSupported(mimeType)) return null;
-
-  const mediaSource = new MediaSource();
-  const objectUrl = URL.createObjectURL(mediaSource);
-  video.src = objectUrl;
-
+  url: string,
+  sourceBuffer: SourceBuffer,
+  cb: { onFatal: () => void; onFirstAppend: () => void; isCancelled: () => boolean },
+): () => void {
   let stopped = false;
-  const teardown = () => { stopped = true; };
-
-  await new Promise<void>((resolve) => {
-    mediaSource.addEventListener('sourceopen', () => resolve(), { once: true });
-  });
-  if (cb.isCancelled() || stopped) return { mediaSource, objectUrl, teardown };
-
-  let sourceBuffer: SourceBuffer;
-  try {
-    sourceBuffer = mediaSource.addSourceBuffer(mimeType);
-  } catch {
-    // Codec string parsed as valid MIME but the browser's MSE implementation still rejected it
-    // outright (rare, but isTypeSupported isn't a 100% guarantee across all engines) — this is
-    // past the point where falling back to plain video.src still makes sense (video.src is
-    // already the blob: URL), so treat it as a genuine playback failure instead.
-    cb.onFatal();
-    return { mediaSource, objectUrl, teardown };
-  }
-
   const appendQueue: Uint8Array[] = [];
   let appending = false;
   let readySignaled = false;
@@ -498,7 +463,7 @@ async function setupCaptureMse(
 
   sourceBuffer.addEventListener('updateend', () => {
     appending = false;
-    if (!readySignaled) { readySignaled = true; cb.onReady(); }
+    if (!readySignaled) { readySignaled = true; cb.onFirstAppend(); }
     pump();
   });
 
@@ -509,7 +474,7 @@ async function setupCaptureMse(
     while (!stopped && !cb.isCancelled()) {
       let res: Response;
       try {
-        res = await fetch(src, { headers: { Range: `bytes=${position}-` } });
+        res = await fetch(url, { headers: { Range: `bytes=${position}-` } });
       } catch {
         await new Promise((r) => setTimeout(r, POLL_MS));
         continue;
@@ -545,7 +510,135 @@ async function setupCaptureMse(
     }
   })();
 
-  return { mediaSource, objectUrl, teardown };
+  return () => { stopped = true; };
+}
+
+// VB capture (categories B/C, vbCapture.service.ts) is a live-growing raw fMP4 byte stream with
+// no independently-fetchable URL of its own — see that file's own header comment. A plain
+// `video.src = captureUrl` works on Safari but not Chrome (confirmed live 2026-08-14: native
+// MEDIA_ERR_SRC_NOT_SUPPORTED, "Format error" — Chrome's progressive-download prober won't commit
+// to a format for a resource whose total size changes between requests the way this one does).
+// This feeds the same bytes to a MediaSource/SourceBuffer instead, which works identically on
+// every browser since the caller (not the browser's own guesswork) controls exactly what gets
+// decoded and when.
+//
+// Dual-track (2026-08-14): some sources feed the source page's player through TWO independent
+// SourceBuffers (separate video/audio), which the ORIGINAL single combined vb-capture buffer
+// stores interleaved — not a valid single MP4 stream. vbCapture.service.ts's per-track buffers
+// (X-Vb-Tracks header, /vb-capture/:roomId/:track endpoints) give each track its own clean byte
+// stream; when both are available this creates TWO real SourceBuffers instead of one. Falls back
+// to the original single-buffer path when only the combined buffer exists (X-Vb-Tracks absent —
+// WebSocket-sourced captures, or a page using only one SourceBuffer to begin with).
+//
+// Returns null if MSE playback isn't attemptable for any reason (no MediaSource support, no/
+// unrecognized codec from the server — see mp4CodecSniff.service.ts's own contract for when that
+// happens, unsupported by THIS browser's MSE implementation, or the initial probe request
+// failed) — the caller's contract is: null means "fall back to plain video.src", never worse than
+// not having this at all.
+async function setupCaptureMse(
+  video: HTMLVideoElement,
+  src: string,
+  cb: { onFatal: () => void; onReady: () => void; isCancelled: () => boolean },
+): Promise<CaptureMseResult | null> {
+  if (typeof MediaSource === 'undefined') return null;
+
+  let probe: { codecs: string | null; tracks: string[] };
+  try {
+    probe = await probeCodecs(src);
+  } catch {
+    return null;
+  }
+  if (cb.isCancelled()) return null;
+
+  const dualTrack = probe.tracks.includes('video') && probe.tracks.includes('audio');
+
+  // Dual-track setup: probe each track's own endpoint for its own codec, verify both are usable
+  // BEFORE creating anything — same all-or-nothing contract as the single-buffer path, just
+  // checked twice. Any failure here falls through to the single-buffer attempt below rather than
+  // giving up outright, since the combined buffer might still work fine on its own.
+  if (dualTrack && !cb.isCancelled()) {
+    try {
+      const [videoProbe, audioProbe] = await Promise.all([
+        probeCodecs(`${src}/video`),
+        probeCodecs(`${src}/audio`),
+      ]);
+      const videoMime = videoProbe.codecs ? `video/mp4; codecs="${videoProbe.codecs}"` : null;
+      const audioMime = audioProbe.codecs ? `audio/mp4; codecs="${audioProbe.codecs}"` : null;
+      if (
+        videoMime && audioMime && !cb.isCancelled()
+        && MediaSource.isTypeSupported(videoMime) && MediaSource.isTypeSupported(audioMime)
+      ) {
+        const mediaSource = new MediaSource();
+        const objectUrl = URL.createObjectURL(mediaSource);
+        video.src = objectUrl;
+
+        await new Promise<void>((resolve) => {
+          mediaSource.addEventListener('sourceopen', () => resolve(), { once: true });
+        });
+        if (!cb.isCancelled() && mediaSource.readyState === 'open') {
+          let videoBuffer: SourceBuffer;
+          let audioBuffer: SourceBuffer;
+          try {
+            videoBuffer = mediaSource.addSourceBuffer(videoMime);
+            audioBuffer = mediaSource.addSourceBuffer(audioMime);
+          } catch {
+            // isTypeSupported passing isn't a 100% guarantee the browser will actually accept the
+            // string in addSourceBuffer (same caveat the single-buffer path below already notes).
+            // This MediaSource/objectUrl were never handed off to a running pump — nothing to stop,
+            // just release the blob URL before falling through to the single-buffer attempt, which
+            // creates its own fresh MediaSource and overwrites video.src again.
+            URL.revokeObjectURL(objectUrl);
+            throw new Error('dual-track addSourceBuffer rejected');
+          }
+          // Only one onReady() call regardless of which track's first chunk lands first —
+          // attemptOwnerAutoplay only needs to fire once.
+          let readyFired = false;
+          const fireReadyOnce = () => { if (!readyFired) { readyFired = true; cb.onReady(); } };
+          const stopVideo = runCaptureTailPump(video, `${src}/video`, videoBuffer, { onFatal: cb.onFatal, onFirstAppend: fireReadyOnce, isCancelled: cb.isCancelled });
+          const stopAudio = runCaptureTailPump(video, `${src}/audio`, audioBuffer, { onFatal: cb.onFatal, onFirstAppend: fireReadyOnce, isCancelled: cb.isCancelled });
+          return { mediaSource, objectUrl, teardown: () => { stopVideo(); stopAudio(); } };
+        }
+        // Cancelled or the source closed itself while awaiting sourceopen — still return a real
+        // result so the caller's cleanup can revoke/close it, matching the single-buffer path.
+        return { mediaSource, objectUrl, teardown: () => {} };
+      }
+    } catch {
+      // Either the per-track probe fetch failed outright, or addSourceBuffer rejected the sniffed
+      // codec (its own catch above already released the objectUrl before rethrowing into here) —
+      // either way, fall through to the single-buffer attempt below.
+    }
+  }
+
+  if (cb.isCancelled()) return null;
+  const codecs = probe.codecs;
+  if (!codecs) return null;
+
+  const mimeType = `video/mp4; codecs="${codecs}"`;
+  if (!MediaSource.isTypeSupported(mimeType)) return null;
+
+  const mediaSource = new MediaSource();
+  const objectUrl = URL.createObjectURL(mediaSource);
+  video.src = objectUrl;
+
+  await new Promise<void>((resolve) => {
+    mediaSource.addEventListener('sourceopen', () => resolve(), { once: true });
+  });
+  if (cb.isCancelled() || mediaSource.readyState !== 'open') return { mediaSource, objectUrl, teardown: () => {} };
+
+  let sourceBuffer: SourceBuffer;
+  try {
+    sourceBuffer = mediaSource.addSourceBuffer(mimeType);
+  } catch {
+    // Codec string parsed as valid MIME but the browser's MSE implementation still rejected it
+    // outright (rare, but isTypeSupported isn't a 100% guarantee across all engines) — this is
+    // past the point where falling back to plain video.src still makes sense (video.src is
+    // already the blob: URL), so treat it as a genuine playback failure instead.
+    cb.onFatal();
+    return { mediaSource, objectUrl, teardown: () => {} };
+  }
+
+  const stop = runCaptureTailPump(video, src, sourceBuffer, { onFatal: cb.onFatal, onFirstAppend: cb.onReady, isCancelled: cb.isCancelled });
+  return { mediaSource, objectUrl, teardown: stop };
 }
 
 // iOS (every browser engine on it — Chrome/Firefox/Edge for iOS are all WebKit under the hood)

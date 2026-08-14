@@ -8,7 +8,7 @@
 import { chromium, Browser, BrowserContext, Page, CDPSession } from 'playwright-chromium';
 import { logger } from '@shared/utils/logger';
 import { vbStreamPublicUrl } from '@shared/utils/serviceConfig';
-import { startCapture, appendCapture, stopCapture, clearCapture } from './vbCapture.service';
+import { startCapture, appendCapture, appendCaptureTrack, stopCapture, clearCapture } from './vbCapture.service';
 import { isPrivateUrl, isOwnVbUrl } from './extractionClient';
 
 export const VB_VIEWPORT = { width: 1280, height: 720 } as const;
@@ -590,6 +590,18 @@ export async function startSession(
       await page.exposeFunction('__wewatchCaptureChunk', (base64Chunk: string) => {
         onCaptureChunk(Buffer.from(base64Chunk, 'base64'));
       });
+      // Dual-track addition (2026-08-14, vbCapture.service.ts's own header comment has the full
+      // story): ALSO patch MediaSource.addSourceBuffer to learn which real track (video/audio)
+      // each SourceBuffer instance was created for — from the mimeType string the page itself
+      // passes in, e.g. 'video/mp4; codecs="avc1..."' vs 'audio/mp4; codecs="mp4a..."' — and tag
+      // every appendBuffer call from that instance accordingly. Purely additive: every chunk still
+      // goes to __wewatchCaptureChunk exactly as before (zero change to the combined-buffer path
+      // that Safari/mobile already play successfully), tagged chunks ALSO go to this new function
+      // so the server can keep a second, correctly-separated copy per track.
+      await page.exposeFunction('__wewatchCaptureTrackChunk', (track: string, base64Chunk: string) => {
+        if (track !== 'video' && track !== 'audio') return;
+        appendCaptureTrack(roomId, track, Buffer.from(base64Chunk, 'base64'));
+      });
       await page.addInitScript(/* js */ `
         (function () {
           if (!window.SourceBuffer || !window.SourceBuffer.prototype.appendBuffer) return;
@@ -603,8 +615,41 @@ export async function startSession(
             }
             return btoa(binary);
           }
+          // instance -> 'video' | 'audio' | null (tagged but not a track we separate, e.g. text/
+          // subtitle SourceBuffers — falls through to the combined-only path below, same as any
+          // SourceBuffer this whole patch never learns about).
+          const trackByBuffer = new WeakMap();
+          // Real prod finding 2026-08-14 (architecture review): a normal SINGLE-SourceBuffer muxed
+          // source (the common case — one addSourceBuffer('video/mp4; codecs="avc1...,mp4a..."'))
+          // ALSO starts with 'video/', so naive tagging duplicated every such capture's bytes into
+          // a 'video' track buffer nobody ever reads (the client only queries per-track endpoints
+          // once X-Vb-Tracks reports BOTH video AND audio) — full memory cost, zero benefit, for
+          // the large majority of captures. Gate forwarding on having actually observed distinct
+          // video AND audio SourceBuffer creations on THIS page first — only a genuine dual-
+          // SourceBuffer source ever satisfies both, so single-SourceBuffer sites now cost nothing
+          // extra, exactly as the original combined-only capture did before this feature existed.
+          const seenKinds = new Set();
+          let dualTrackConfirmed = false;
+          if (window.MediaSource && window.MediaSource.prototype.addSourceBuffer) {
+            const origAddSourceBuffer = window.MediaSource.prototype.addSourceBuffer;
+            window.MediaSource.prototype.addSourceBuffer = function (mimeType) {
+              const sb = origAddSourceBuffer.apply(this, arguments);
+              try {
+                const kind = String(mimeType).toLowerCase();
+                if (kind.indexOf('video/') === 0) { trackByBuffer.set(sb, 'video'); seenKinds.add('video'); }
+                else if (kind.indexOf('audio/') === 0) { trackByBuffer.set(sb, 'audio'); seenKinds.add('audio'); }
+                if (seenKinds.has('video') && seenKinds.has('audio')) dualTrackConfirmed = true;
+              } catch (e) { /* never break playback */ }
+              return sb;
+            };
+          }
           window.SourceBuffer.prototype.appendBuffer = function (data) {
-            try { window.__wewatchCaptureChunk(toBase64(data)); } catch (e) { /* never break playback */ }
+            try {
+              const b64 = toBase64(data);
+              window.__wewatchCaptureChunk(b64);
+              const track = trackByBuffer.get(this);
+              if (track && dualTrackConfirmed) window.__wewatchCaptureTrackChunk(track, b64);
+            } catch (e) { /* never break playback */ }
             return origAppend.apply(this, arguments);
           };
         })();
