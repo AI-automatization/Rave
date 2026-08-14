@@ -73,6 +73,12 @@ export const createWatchPartyRouter = (redis: Redis, io: SocketServer): Router =
   // at all until GitHub issue #76 — vbCaptureLim closes that.
   router.get('/vb-capture/:roomId', vbCaptureLim, vbCaptureController.stream);
 
+  // GET /watch-party/vb-capture/:roomId/:track (track = video|audio) — the same room's ISOLATED
+  // per-track buffer (vbCapture.service.ts's dual-track addition, 2026-08-14), for sources whose
+  // capture got tagged by SourceBuffer mime type. Same trust model/rate limiter as the combined
+  // route above — same room, same public/no-auth exposure, just a narrower slice of it.
+  router.get('/vb-capture/:roomId/:track', vbCaptureLim, vbCaptureController.streamTrack);
+
   // GET /watch-party/vb-media-proxy/stream.(m3u8|mp4)?url=... and .../seg?url=... — re-fetches a
   // media URL the VB network sniffer found (category A) through THIS service's own egress IP,
   // instead of handing the raw CDN URL to app-web's proxy-stream (a different Railway service/IP —

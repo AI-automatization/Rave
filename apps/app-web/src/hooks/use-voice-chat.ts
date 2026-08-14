@@ -47,6 +47,12 @@ export function useVoiceChat(socket: Socket | null, active: boolean, currentUser
   // lifts it via UNMUTE_MEMBER.
   const [forcedMuted, setForcedMuted] = useState(false);
   const [participants, setParticipants] = useState<VoiceParticipant[]>([]);
+  // Local mic speaking state — `participants` only ever holds REMOTE peers (see onVoiceJoined:
+  // the server's `members` list is "everyone already in the call", i.e. never includes yourself),
+  // so a caller that only checks `participants.some(p => p.isSpeaking)` for e.g. video-ducking
+  // never reacts to the LOCAL user's own voice — confirmed live 2026-08-14: ducking worked when
+  // listening to a remote peer talk, but not on your own screen while you were the one talking.
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   // Per-remote-peer local playback volume — keyed by userId, survives peer reconnects (a fresh
@@ -149,6 +155,7 @@ export function useVoiceChat(socket: Socket | null, active: boolean, currentUser
     audioCtxRef.current = null;
     analyserRef.current = null;
     wasSpeakingRef.current = false;
+    setIsSpeaking(false);
   }, []);
 
   // ─── Speaking detection ────────────────────────────────────────────────────
@@ -180,11 +187,12 @@ export function useVoiceChat(socket: Socket | null, active: boolean, currentUser
           speaking = Date.now() - lastLoudAtRef.current < SPEAKING_RELEASE_MS;
         }
 
-        // Only emit on transitions — this fires 5×/second and the room would otherwise be
-        // flooded with identical events.
+        // Only emit/set-state on transitions — this fires 5×/second and would otherwise flood
+        // the room with identical events and re-render on every poll tick.
         if (speaking !== wasSpeakingRef.current) {
           wasSpeakingRef.current = speaking;
           socket?.emit(CLIENT_EVENTS.VOICE_SPEAKING, { speaking });
+          setIsSpeaking(speaking);
         }
       }, SPEAKING_POLL_MS);
     } catch {
@@ -381,7 +389,7 @@ export function useVoiceChat(socket: Socket | null, active: boolean, currentUser
   }, [active, socket, isJoined, isLoading, joinVoice]);
 
   return {
-    isJoined, isMuted, forcedMuted, participants, isLoading, errorMsg,
+    isJoined, isMuted, forcedMuted, participants, isLoading, errorMsg, isSpeaking,
     joinVoice, leaveVoice, toggleMute, setParticipantVolume,
   };
 }

@@ -408,6 +408,12 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
   const { socket } = useSocket();
   const currentUser = useAuthStore((s) => s.user);
   const voice = useVoiceChat(socket, roomJoined, currentUser?._id);
+  // Voice ducking — video volume dips while anyone is talking, including the LOCAL user:
+  // `voice.participants` only ever holds remote peers (the server's onVoiceJoined `members` list
+  // is "everyone already in the call", never yourself — see use-voice-chat.ts), so without
+  // `voice.isSpeaking` here this only ducked when listening to someone else talk, never on your
+  // own screen while you were the one talking (confirmed live 2026-08-14).
+  const anyoneSpeaking = voice.isSpeaking || voice.participants.some((p) => p.isSpeaking);
   const isConnected = useWatchPartyStore((s) => s.isConnected);
   const isOwner = !!(room && currentUser && room.ownerId === currentUser._id);
 
@@ -558,6 +564,8 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
                 onBufferStart={sendBufferStart}
                 onBufferEnd={sendBufferEnd}
                 onFatalError={handleVideoFatalError}
+                onPickDifferentVideo={() => setCandidatePickerOpen(true)}
+                duckAudio={anyoneSpeaking}
               />
             )}
             </div>
@@ -614,7 +622,15 @@ export function RoomContent({ roomId, inviteCode, needsPassword = false }: Props
           onOpenChange={setCandidatePickerOpen}
           candidates={videoCandidates}
           onRequestCandidates={requestCandidates}
-          onConfirm={(candidate: VideoCandidate) => sendMediaChange(candidate.url, candidate.title, detectVideoPlatform(candidate.url))}
+          onConfirm={(candidate: VideoCandidate) => {
+            // Real bug (live 2026-08-14): confirming a candidate while VB's fatal-error
+            // auto-fallback was already running never stopped that VB session — `showVB`
+            // (vbActive || …) stayed true, so the room kept showing "Opening virtual
+            // browser..." forever instead of switching to the newly confirmed video, no
+            // matter which candidate was picked. sendMediaChange alone was never enough.
+            if (showVB) handleVBStop();
+            sendMediaChange(candidate.url, candidate.title, detectVideoPlatform(candidate.url));
+          }}
         />
       )}
 

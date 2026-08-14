@@ -334,7 +334,10 @@
     "startTitle": "Xona oching va birga tomosha qiling",
     "startSub": "Video havolasini joylashtiring, do‘stlaringizga kod yuboring — hammangiz bir vaqtda, bir xil daqiqada ko‘rasiz.",
     "startSources": "Qo‘llab-quvvatlanadi",
-    "startDirect": "To‘g‘ridan havola"
+    "startDirect": "To‘g‘ridan havola",
+    "step1": "Xona yarating",
+    "step2": "Do‘stlaringizga kod yuboring",
+    "step3": "Birga tomosha qiling"
   },
   "search": {
     "title": "QIDIRISH",
@@ -683,7 +686,10 @@
     "videoCandidateEmbedHint": "Bu turdagi video uchun oldindan ko'rish mavjud emas — agar shu to'g'ri bo'lsa, tasdiqlang",
     "videoCandidateBack": "Ro'yxatga qaytish",
     "noOtherCandidates": "Boshqa videolar topilmadi",
-    "playerRetryPlayback": "Video ijro etilmadi — qayta urinish uchun bosing"  },
+    "playerRetryPlayback": "Video ijro etilmadi — qayta urinish uchun bosing",
+    "playerPoorConnection": "Internet sifati past — videoda muammolar bo'lishi mumkin",
+    "playerVideoStuck": "Video ijro etilmadi",
+    "playerPickAnother": "Boshqa video tanlash"  },
   "movie": {
     "watch": "Ko'rish",
     "details": "Batafsil",

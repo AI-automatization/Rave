@@ -46,7 +46,16 @@ export async function getSocket(): Promise<Socket> {
         auth: { token },
         transports: ['websocket'],
         reconnection: true,
-        reconnectionAttempts: 5,
+        // Real bug (live 2026-08-14): `reconnectionAttempts: 5` at a 2s base delay exhausts in
+        // roughly 15-20s (socket.io-client's default backoff caps each delay at 5s). A real
+        // network drop — phone losing signal, laptop sleep/wake, wifi switching — routinely
+        // outlasts that window; once exhausted, socket.io-client fires 'reconnect_failed' and
+        // stops trying FOREVER, even after the network genuinely comes back. The connection dot
+        // (use-socket.ts) stayed red permanently, and nothing in the room recovered without a
+        // full page reload. Unbounded attempts (still capped at reconnectionDelayMax, default
+        // 5s, so this never hammers the server) means it just keeps trying for as long as the
+        // tab is open — the correct behavior for a background connection like this one.
+        reconnectionAttempts: Infinity,
         reconnectionDelay: 2000,
       });
 

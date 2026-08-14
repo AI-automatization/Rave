@@ -358,7 +358,10 @@
     "startTitle": "Open a room and watch together",
     "startSub": "Paste a video link, send your friends the code — everyone watches in sync, frame for frame.",
     "startSources": "Supported",
-    "startDirect": "Direct link"
+    "startDirect": "Direct link",
+    "step1": "Create a room",
+    "step2": "Send friends the code",
+    "step3": "Watch together"
   },
   "search": {
     "title": "SEARCH",
@@ -722,7 +725,10 @@
     "videoCandidateEmbedHint": "No preview available for this video type — confirm if this is the right one",
     "videoCandidateBack": "Back to list",
     "noOtherCandidates": "No other videos found",
-    "playerRetryPlayback": "Playback failed — click to retry"  },
+    "playerRetryPlayback": "Playback failed — click to retry",
+    "playerPoorConnection": "Poor connection — video may have issues",
+    "playerVideoStuck": "Video didn't load",
+    "playerPickAnother": "Pick another video"  },
   "movie": {
     "watch": "Watch",
     "details": "Details",

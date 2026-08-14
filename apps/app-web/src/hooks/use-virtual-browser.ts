@@ -74,7 +74,18 @@ export function useVirtualBrowser(isOwner: boolean, onCandidateNeedsConfirmation
     // getSessionSnapshot) for whoever joins/refreshes AFTER the owner already started a
     // session — the one-shot VB_STARTED broadcast at start time never reaches them otherwise,
     // which is exactly the bug where a member saw the old broken video instead of the stream.
-    const onRoomJoined = (data: { vb?: { url: string; width: number; height: number } | null }) => {
+    //
+    // `vb.paused` (2026-08-13 root-cause trace, "VB stuck loading forever after reload"): once
+    // the collection window closes on a 'capture' candidate, the server stops the screencast for
+    // good (no resumeScreencast()) and waits for the owner to confirm/reject via the candidate
+    // picker — no more VB_FRAME will ever arrive. Setting active=true here for a paused session
+    // left VirtualBrowserPlayer's `!frame` branch spinning forever with nothing that would ever
+    // resolve it. A rejoin during this window must reopen the picker instead of "loading".
+    const onRoomJoined = (data: { vb?: { url: string; width: number; height: number; paused: boolean } | null }) => {
+      if (data.vb?.paused) {
+        onCandidateNeedsConfirmationRef.current?.();
+        return;
+      }
       if (data.vb) {
         setActive(true);
         setDimensions({ width: data.vb.width, height: data.vb.height });
